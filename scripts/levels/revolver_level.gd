@@ -314,6 +314,9 @@ func _setup_navigation() -> void:
 	# Issue #1224: use bake_navigation_polygon(false) so the baked polygon data
 	# is populated and visible via the nav mesh overlay. The NavigationPolygon
 	# resource in RevolverLevel.tscn already has the correct outlines.
+	# Issue #1273: set agent_radius = 24px (enemy CollisionShape2D radius) so the
+	# baked navmesh erodes 24px from all walls, ensuring enemies never path into walls.
+	nav_region.navigation_polygon.agent_radius = 24.0
 	print("Baking navigation mesh...")
 	nav_region.bake_navigation_polygon(false)
 	print("Navigation mesh baked successfully")

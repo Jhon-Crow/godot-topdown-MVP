@@ -538,6 +538,9 @@ func _setup_navigation() -> void:
 	# Using bake_navigation_polygon(false) (synchronous) ensures the map is ready before
 	# enemies start moving. parsed_geometry_type=1 + parsed_collision_mask=4 in the
 	# NavigationPolygon resource handle wall exclusion automatically.
+	# Issue #1273: set agent_radius = 24px (enemy CollisionShape2D radius) so the
+	# baked navmesh erodes 24px from all walls, ensuring enemies never path into walls.
+	nav_region.navigation_polygon.agent_radius = 24.0
 	print("Baking navigation mesh...")
 	nav_region.bake_navigation_polygon(false)
 	print("Navigation mesh baked successfully")

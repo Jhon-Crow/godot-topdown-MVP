@@ -406,6 +406,8 @@ func _ready() -> void:
 	# Issue #1146: Hook ORCA avoidance velocity so NavigationAgent2D steers enemies apart.
 	if _nav_agent and _nav_agent.avoidance_enabled:
 		_nav_agent.velocity_computed.connect(_on_avoidance_velocity_computed)
+	# Issue #1273: Sync NavigationAgent2D radius and max_speed with actual enemy dimensions.
+	_configure_nav_agent()
 
 	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
 	if bullet_scene == null:  # Preload bullet scene if not set in inspector
@@ -524,6 +526,21 @@ func _setup_threat_sphere() -> void:
 
 	_threat_sphere.area_entered.connect(_on_threat_area_entered)
 	_threat_sphere.area_exited.connect(_on_threat_area_exited)
+
+## Issue #1273: Sync NavigationAgent2D with actual enemy body size and speed.
+## NavigationAgent2D.radius controls RVO agent-to-agent avoidance spacing and must
+## match the CollisionShape2D radius so enemies keep correct physical separation.
+## max_speed must cover the fastest movement speed (combat_move_speed) so ORCA
+## does not clamp the velocity and slow enemies below their intended speed.
+func _configure_nav_agent() -> void:
+	if _nav_agent == null:
+		return
+	# CollisionShape2D radius is 24px — sync so ORCA keeps the correct inter-agent distance.
+	const COLLISION_RADIUS: float = 24.0
+	_nav_agent.radius = COLLISION_RADIUS
+	# max_speed must be >= the highest speed passed to set_velocity() (combat_move_speed).
+	_nav_agent.max_speed = maxf(move_speed, combat_move_speed)
+	_log_to_file("NavAgent configured: radius=%.0f max_speed=%.0f (Issue #1273)" % [_nav_agent.radius, _nav_agent.max_speed])
 
 ## Register as sound propagation listener (call_deferred for autoload init).
 func _register_sound_listener() -> void:
