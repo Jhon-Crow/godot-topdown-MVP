@@ -94,9 +94,22 @@ var nav_mesh_visible_enabled: bool = false
 
 ## Whether search path waypoints overlay is visible (Issue #1251).
 ## When enabled, all SearchPathWaypoints positions and connecting lines are drawn on screen
-## so level designers can see the predefined enemy search routes.
+## so level designers can see the predefined enemy search routes and active enemy search paths.
 ## When disabled (default), no search path overlay is shown.
 var search_path_visible_enabled: bool = false
+
+## Whether passage/search-path waypoint overlay is visible (Issue #1255).
+## When enabled, draws colored circles and labels at every passage_waypoints and
+## search_path_waypoints node so designers can verify waypoint placement.
+## When disabled (default), no waypoint overlay is shown.
+var passage_waypoints_visible_enabled: bool = false
+
+## Whether the sound propagation visualizer is enabled (Issue #1253).
+## When enabled, animated circles are drawn at each sound emission point showing
+## the propagation radius. Blue = player, red = enemy, white = neutral/environment.
+## Useful for debugging whether shooting sounds can be heard by enemies at the correct range.
+## When disabled (default), no sound visualization is shown.
+var sound_visualizer_enabled: bool = false
 
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
@@ -109,7 +122,7 @@ func _ready() -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("set_logging_enabled"):
 		file_logger.set_logging_enabled(logging_enabled)
-	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs, Nav mesh visible: %s, Search path visible: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time, nav_mesh_visible_enabled, search_path_visible_enabled])
+	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs, Nav mesh visible: %s, Search path visible: %s, Passage waypoints visible: %s, Sound visualizer: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time, nav_mesh_visible_enabled, search_path_visible_enabled, passage_waypoints_visible_enabled, sound_visualizer_enabled])
 
 
 ## Set FOV enabled/disabled.
@@ -325,6 +338,20 @@ func get_global_stuck_max_time() -> float:
 	return global_stuck_max_time
 
 
+## Set sound propagation visualizer enabled/disabled (Issue #1253).
+func set_sound_visualizer_enabled(enabled: bool) -> void:
+	if sound_visualizer_enabled != enabled:
+		sound_visualizer_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Sound visualizer %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if the sound propagation visualizer is enabled (Issue #1253).
+func is_sound_visualizer_enabled() -> bool:
+	return sound_visualizer_enabled
+
+
 ## Set navigation mesh debug overlay visibility (Issue #1187).
 func set_nav_mesh_visible_enabled(enabled: bool) -> void:
 	if nav_mesh_visible_enabled != enabled:
@@ -353,6 +380,20 @@ func is_search_path_visible_enabled() -> bool:
 	return search_path_visible_enabled
 
 
+## Set passage/search-path waypoint overlay visibility (Issue #1255).
+func set_passage_waypoints_visible_enabled(enabled: bool) -> void:
+	if passage_waypoints_visible_enabled != enabled:
+		passage_waypoints_visible_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Passage waypoints visibility %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if passage/search-path waypoint overlay is visible (Issue #1255).
+func is_passage_waypoints_visible_enabled() -> bool:
+	return passage_waypoints_visible_enabled
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -373,6 +414,8 @@ func _save_settings() -> void:
 	config.set_value("experimental", "global_stuck_max_time", global_stuck_max_time)
 	config.set_value("experimental", "nav_mesh_visible_enabled", nav_mesh_visible_enabled)
 	config.set_value("experimental", "search_path_visible_enabled", search_path_visible_enabled)
+	config.set_value("experimental", "passage_waypoints_visible_enabled", passage_waypoints_visible_enabled)
+	config.set_value("experimental", "sound_visualizer_enabled", sound_visualizer_enabled)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -400,6 +443,8 @@ func _load_settings() -> void:
 		global_stuck_max_time = config.get_value("experimental", "global_stuck_max_time", 20.0)
 		nav_mesh_visible_enabled = config.get_value("experimental", "nav_mesh_visible_enabled", false)
 		search_path_visible_enabled = config.get_value("experimental", "search_path_visible_enabled", false)
+		passage_waypoints_visible_enabled = config.get_value("experimental", "passage_waypoints_visible_enabled", false)
+		sound_visualizer_enabled = config.get_value("experimental", "sound_visualizer_enabled", false)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true
@@ -419,6 +464,8 @@ func _load_settings() -> void:
 		global_stuck_max_time = 20.0
 		nav_mesh_visible_enabled = false
 		search_path_visible_enabled = false
+		passage_waypoints_visible_enabled = false
+		sound_visualizer_enabled = false
 
 
 ## Log a message to the file logger if available.

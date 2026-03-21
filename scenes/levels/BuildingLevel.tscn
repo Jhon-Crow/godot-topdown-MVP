@@ -1,9 +1,10 @@
-[gd_scene load_steps=28 format=3 uid="uid://c8hmf4bnwx2qk"]
+[gd_scene load_steps=29 format=3 uid="uid://c8hmf4bnwx2qk"]
 
 [ext_resource type="Script" path="res://scripts/levels/building_level.gd" id="1_building_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="3_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="4_enemy"]
+[ext_resource type="Script" path="res://Scripts/Components/LevelInitFallback.cs" id="5_fallback"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_horizontal"]
 size = Vector2(2464, 32)
@@ -971,6 +972,44 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
+[node name="PassageWaypoints" type="Node2D" parent="Environment"]
+
+[node name="P1_Office1_to_Corridor" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
+position = Vector2(512, 650)
+
+[node name="P2_Office2_to_Corridor" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
+position = Vector2(950, 700)
+
+[node name="P3_Corridor_to_Conference" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
+position = Vector2(1376, 500)
+
+[node name="P4_Corridor_to_BreakRoom" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
+position = Vector2(1376, 900)
+
+[node name="P5_BreakRoom_to_ServerRoom" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
+position = Vector2(1688, 1194)
+
+[node name="P6_Lobby_Left" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
+position = Vector2(140, 1400)
+
+[node name="P7_Lobby_Mid" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
+position = Vector2(450, 1400)
+
+[node name="P8_Lobby_Right" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
+position = Vector2(750, 1400)
+
+[node name="P9_Corridor_to_MainHall" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
+position = Vector2(950, 1400)
+
+[node name="P10_Storage_Entrance_Left" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
+position = Vector2(200, 1600)
+
+[node name="P11_Storage_Entrance_Right" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
+position = Vector2(550, 1750)
+
+[node name="P12_ServerRoom_Lower" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
+position = Vector2(1700, 1750)
+
 [node name="RoomLabels" type="Node2D" parent="Environment"]
 
 [node name="Room1Label" type="ColorRect" parent="Environment/RoomLabels"]
@@ -1246,3 +1285,6 @@ offset_bottom = 45.0
 text = "AMMO: 30/30"
 
 [node name="PauseMenu" parent="." instance=ExtResource("3_pause_menu")]
+
+[node name="LevelInitFallback" type="Node" parent="."]
+script = ExtResource("5_fallback")
