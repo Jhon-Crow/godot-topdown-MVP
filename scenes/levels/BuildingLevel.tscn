@@ -1,9 +1,10 @@
-[gd_scene load_steps=28 format=3 uid="uid://c8hmf4bnwx2qk"]
+[gd_scene load_steps=29 format=3 uid="uid://c8hmf4bnwx2qk"]
 
 [ext_resource type="Script" path="res://scripts/levels/building_level.gd" id="1_building_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="3_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="4_enemy"]
+[ext_resource type="Script" path="res://scripts/components/combat_path_component.gd" id="5_combat_path"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_horizontal"]
 size = Vector2(2464, 32)
@@ -1123,5 +1124,111 @@ offset_top = 10.0
 offset_right = 200.0
 offset_bottom = 45.0
 text = "AMMO: 30/30"
+
+[node name="CombatPathComponent" type="Node" parent="."]
+script = ExtResource("5_combat_path")
+
+[node name="AttackingPaths" type="Node2D" parent="CombatPathComponent"]
+
+[node name="Office1_AttackFront" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(290, 660)
+
+[node name="Office1_AttackMid" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(400, 400)
+
+[node name="Security_AttackEntrance" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(560, 730)
+
+[node name="Security_AttackCenter" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(720, 860)
+
+[node name="Corridor_AttackWest" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(980, 856)
+
+[node name="Corridor_AttackCenter" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(1164, 856)
+
+[node name="Corridor_AttackEast" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(1350, 856)
+
+[node name="Conference_AttackEntrance" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(1420, 650)
+
+[node name="Conference_AttackCenter" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(1700, 300)
+
+[node name="Conference_AttackRight" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(2000, 400)
+
+[node name="BreakRoom_AttackEntrance" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(1420, 840)
+
+[node name="BreakRoom_AttackCenter" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(1650, 1000)
+
+[node name="MainHall_AttackNorth" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(1200, 1420)
+
+[node name="MainHall_AttackCenter" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(1200, 1650)
+
+[node name="MainHall_AttackSouth" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(1200, 1900)
+
+[node name="ServerRoom_AttackEntrance" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(1730, 1250)
+
+[node name="ServerRoom_AttackCenter" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(1950, 1500)
+
+[node name="ServerRoom_AttackRight" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(2200, 1600)
+
+[node name="RetreatPaths" type="Node2D" parent="CombatPathComponent"]
+
+[node name="Office1_RetreatDeep" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(200, 200)
+
+[node name="Office1_RetreatCover" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(280, 420)
+
+[node name="Security_RetreatDeep" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(620, 780)
+
+[node name="Security_RetreatCover" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(720, 900)
+
+[node name="Corridor_RetreatWest" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(980, 760)
+
+[node name="Corridor_RetreatEast" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(1350, 960)
+
+[node name="Conference_RetreatDeep" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(2200, 200)
+
+[node name="Conference_RetreatCover" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(1800, 200)
+
+[node name="BreakRoom_RetreatDeep" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(2100, 1100)
+
+[node name="BreakRoom_RetreatCover" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(1900, 900)
+
+[node name="Storage_Retreat" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(250, 1800)
+
+[node name="MainHall_RetreatSouth" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(1200, 1950)
+
+[node name="MainHall_RetreatCover" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(1200, 1700)
+
+[node name="ServerRoom_RetreatDeep" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(2350, 1800)
+
+[node name="ServerRoom_RetreatCover" type="Marker2D" parent="CombatPathComponent/RetreatPaths"]
+position = Vector2(2150, 1400)
 
 [node name="PauseMenu" parent="." instance=ExtResource("3_pause_menu")]
