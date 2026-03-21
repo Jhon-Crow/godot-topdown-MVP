@@ -28,6 +28,7 @@ var _overlay: _NavMeshOverlay = null
 
 
 func _ready() -> void:
+	_log("NavMeshMonitor ready")
 	# Sync debug rendering with current settings
 	_apply_settings()
 	# Connect to settings changes so toggle takes effect immediately
@@ -55,9 +56,11 @@ func _set_overlay_visible(visible: bool) -> void:
 		if _overlay != null:
 			_overlay.refresh()
 			_overlay.show()
+			_log("Overlay shown with %d polygon(s)" % _overlay.get_polygon_count())
 	else:
 		if _overlay != null:
 			_overlay.hide()
+			_log("Overlay hidden")
 
 
 ## Create the overlay node if it doesn't exist yet.
@@ -68,6 +71,7 @@ func _ensure_overlay() -> void:
 	_overlay.fill_color = NAV_MESH_FILL_COLOR
 	_overlay.outline_color = NAV_MESH_OUTLINE_COLOR
 	get_tree().root.add_child(_overlay)
+	_log("Overlay node created")
 
 
 ## Re-apply after a new NavigationRegion2D is added (e.g. after scene load).
@@ -75,6 +79,7 @@ func _ensure_overlay() -> void:
 ## timer fallback in case the bake was not triggered or already completed.
 func _on_node_added(node: Node) -> void:
 	if node is NavigationRegion2D:
+		_log("NavigationRegion2D added: %s" % node.name)
 		# Connect to bake_finished so the overlay refreshes after walls are carved.
 		if not node.bake_finished.is_connected(_deferred_refresh):
 			node.bake_finished.connect(_deferred_refresh)
@@ -86,6 +91,16 @@ func _deferred_refresh() -> void:
 	_apply_settings()
 	if _overlay != null and is_instance_valid(_overlay) and _overlay.visible:
 		_overlay.refresh()
+		_log("Overlay refreshed with %d polygon(s)" % _overlay.get_polygon_count())
+
+
+## Log a message with the NavMeshMonitor prefix via FileLogger if available.
+func _log(message: String) -> void:
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[NavMeshMonitor] " + message)
+	else:
+		print("[NavMeshMonitor] " + message)
 
 
 ## Inner class: a CanvasLayer that draws all NavigationRegion2D polygons.
@@ -107,6 +122,12 @@ class _NavMeshOverlay extends CanvasLayer:
 		_draw_node.outline_color = outline_color
 		add_child(_draw_node)
 
+	## Return the number of polygons currently drawn (for logging).
+	func get_polygon_count() -> int:
+		if _draw_node == null:
+			return 0
+		return _draw_node._polygons.size()
+
 	## Collect all NavigationRegion2D nodes and pass their baked polygons to the draw node.
 	## Reads triangulated baked data (get_polygon_count / get_polygon / get_vertices)
 	## which reflects the actual walkable area after walls are carved out — not the raw
@@ -120,6 +141,8 @@ class _NavMeshOverlay extends CanvasLayer:
 			return
 		# Search all NavigationRegion2D nodes in the current scene
 		var nav_regions: Array = _find_nav_regions(tree.root)
+		var baked_count: int = 0
+		var outline_count_total: int = 0
 		for region in nav_regions:
 			var nav_poly: NavigationPolygon = region.navigation_polygon
 			if nav_poly == null:
@@ -140,6 +163,7 @@ class _NavMeshOverlay extends CanvasLayer:
 						"vertices": verts,
 						"global_transform": region.global_transform
 					})
+				baked_count += poly_count
 			else:
 				# Fall back to outlines if no baked data yet (bake not completed)
 				var outline_count: int = nav_poly.get_outline_count()
@@ -150,7 +174,22 @@ class _NavMeshOverlay extends CanvasLayer:
 							"vertices": outline,
 							"global_transform": region.global_transform
 						})
+				outline_count_total += outline_count
 		_draw_node.set_polygons(polygons)
+		_log_inner("refresh: %d region(s), %d baked tri(s), %d outline(s), %d draw polys" % [
+			nav_regions.size(), baked_count, outline_count_total, polygons.size()])
+
+	## Log a message (inner class helper — accesses FileLogger via SceneTree).
+	func _log_inner(message: String) -> void:
+		var tree: SceneTree = Engine.get_main_loop() as SceneTree
+		if tree == null:
+			print("[NavMeshMonitor] " + message)
+			return
+		var file_logger: Node = tree.root.get_node_or_null("FileLogger")
+		if file_logger and file_logger.has_method("log_info"):
+			file_logger.log_info("[NavMeshMonitor] " + message)
+		else:
+			print("[NavMeshMonitor] " + message)
 
 	## Recursively find all NavigationRegion2D nodes under root.
 	func _find_nav_regions(node: Node) -> Array:

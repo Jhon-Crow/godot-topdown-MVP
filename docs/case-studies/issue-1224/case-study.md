@@ -147,10 +147,43 @@ Only `building_level.gd` still has this pattern on main (the other levels were a
 
 ---
 
+---
+
+## Follow-up: Game Log from 2026-03-21 (PR #1229 still in draft)
+
+**File:** `game_log_20260321_064641.txt` (attached to PR #1229 comment by Jhon-Crow)
+
+### Log Analysis
+
+| Field | Value |
+|-------|-------|
+| Build | Exported release (Debug build: false) |
+| Engine | Godot 4.3-stable (official) |
+| Build info | not available (build_info.cfg not found) — **old build, predates PR #1229 fix** |
+| Executable path | `I:/Загрузки/godot exe/experimental/Godot-Top-Down-Template.exe` |
+
+### Key observations
+
+1. **No `[NavMeshMonitor]` log entries** — confirms the user is running a build from before our logging additions in PR #1229.
+2. The `ExperimentalSettings` initialization line (line 41) shows `Nav mesh visible: true` — the setting is saved from a previous session where the user enabled it.
+3. Line 274: `Navigation mesh visibility disabled` — user toggled it off.
+4. Line 493: `Navigation mesh visibility enabled` — user toggled it back on.
+5. Line 513: Scene changes to `BuildingLevel` — at this point the overlay should refresh, but cannot because the game binary is old.
+6. The absence of any `NavMeshMonitor` log (even from `_ready()`) confirms **this test was done with the old binary, not with the fix from PR #1229**.
+
+### Conclusion
+
+The user's "still not working" report is based on testing an **old exported build** that does not include the fix from PR #1229. The fix needs to be merged and a new release exported for the user to test.
+
+---
+
 ## References
 
 - Issue #1187: Original nav mesh visibility request
 - PR #1191: Implementation that was merged (but with the outline-reading bug)
+- PR #1229: Fix for issue #1224 (reads baked polygon data, connects to `bake_finished`)
 - Commit `e950c52c`: The merged fix — replaced `set_debug_enabled()` with custom overlay, but reads wrong data
 - Commit `e181d136` (branch `issue-1188-92d193c02cfa`): The correct fix — reads baked polygon data, connects to `bake_finished`
+- Commit `56cdf595` (branch `issue-1224-feba1278811f`): PR #1229 — applies the same fix to all 8 affected levels
 - Godot 4 docs: [NavigationPolygon](https://docs.godotengine.org/en/stable/classes/class_navigationpolygon.html) — `get_polygon()` / `get_vertices()` hold baked data; `get_outline()` holds input boundaries
+- Game log: `game_log_20260321_064641.txt` (from Jhon-Crow's comment on PR #1229, 2026-03-21)
