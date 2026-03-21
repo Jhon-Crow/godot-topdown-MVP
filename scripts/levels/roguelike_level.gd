@@ -100,12 +100,12 @@ const PEDESTAL_ITEM_GLOW:  Color = Color(0.90, 0.75, 0.20, 0.85)  ## Golden glow
 ## and replace the current one.
 ## NOTE: this list mirrors the passives in ActiveItemManager.ActiveItemType.
 const PASSIVE_ACTIVE_ITEM_TYPES: Array = [
-	2,   # BREAKER_BULLETS
-	8,   # LASER_SIGHT
-	9,   # EXTENDED_MAGAZINE
-	12,  # ARMORED_SKIN
-	13,  # AUTO_RELOAD
-	16,  # COMBAT_DISPOSITION
+	6,   # BREAKER_BULLETS
+	9,   # LASER_SIGHT
+	10,  # EXTENDED_MAGAZINE
+	13,  # ARMORED_SKIN
+	14,  # AUTO_RELOAD
+	17,  # COMBAT_DISPOSITION
 ]
 
 

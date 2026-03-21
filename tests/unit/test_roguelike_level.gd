@@ -18,12 +18,12 @@ extends GutTest
 # ============================================================================
 
 const PASSIVE_ACTIVE_ITEM_TYPES: Array = [
-	2,   # BREAKER_BULLETS
-	8,   # LASER_SIGHT
-	9,   # EXTENDED_MAGAZINE
-	12,  # ARMORED_SKIN
-	13,  # AUTO_RELOAD
-	16,  # COMBAT_DISPOSITION
+	6,   # BREAKER_BULLETS
+	9,   # LASER_SIGHT
+	10,  # EXTENDED_MAGAZINE
+	13,  # ARMORED_SKIN
+	14,  # AUTO_RELOAD
+	17,  # COMBAT_DISPOSITION
 ]
 
 const ACTIVE_ITEM_NONE: int = 0
@@ -44,20 +44,22 @@ class MockActiveItemManager:
 	var add_passive_calls: Array = []
 
 	func get_all_active_item_types() -> Array:
-		## Return types 0–16 (mirrors the real enum size).
+		## Return types 0–18 (mirrors the real enum size including EXPERIMENTAL_SAMPLE).
 		var types: Array = []
-		for i in range(17):
+		for i in range(19):
 			types.append(i)
 		return types
 
 	func get_active_item_name(type: int) -> String:
+		## Mirrors ActiveItemType enum order (Issue #1194: corrected values).
 		var names := {
-			0: "None", 1: "Flashlight", 2: "Breaker Bullets",
-			3: "Homing Bullets", 4: "Teleport Bracers", 5: "BFF Pendant",
-			6: "Invisibility Suit", 7: "Force Field", 8: "Laser Sight",
-			9: "Extended Magazine", 10: "Loudspeaker", 11: "Breaching Charges",
-			12: "Armored Skin", 13: "Auto-Reload", 14: "Trajectory Glasses",
-			15: "Drilling Bullets", 16: "Combat Disposition",
+			0: "None", 1: "Flashlight", 2: "Homing Bullets",
+			3: "Teleport Bracers", 4: "BFF Pendant", 5: "Invisibility Suit",
+			6: "Breaker Bullets", 7: "Force Field", 8: "Trajectory Glasses",
+			9: "Laser Sight", 10: "Extended Magazine", 11: "Loudspeaker",
+			12: "Breaching Charges", 13: "Armored Skin", 14: "Auto-Reload",
+			15: "Drilling Bullets", 16: "Recoil Compensator", 17: "Combat Disposition",
+			18: "Experimental Sample",
 		}
 		return names.get(type, "Unknown")
 
@@ -296,13 +298,13 @@ func test_passive_item_collected_via_add_passive_item() -> void:
 	## Issue #1194: passive items use add_passive_item(), not set_active_item().
 	var level := _make_level()
 	level.active_item_manager.current_active_item = 1  # FLASHLIGHT (non-passive)
-	level.apply_pedestal_active_item(2)  # BREAKER_BULLETS (passive)
+	level.apply_pedestal_active_item(6)  # BREAKER_BULLETS (passive, enum value 6)
 	assert_true(level.active_item_manager.set_calls.is_empty(),
 		"set_active_item must NOT be called for passive items (Issue #1194)")
 	assert_false(level.active_item_manager.add_passive_calls.is_empty(),
 		"add_passive_item should have been called")
-	assert_eq(level.active_item_manager.add_passive_calls[0], 2,
-		"add_passive_item should be called with BREAKER_BULLETS (type 2)")
+	assert_eq(level.active_item_manager.add_passive_calls[0], 6,
+		"add_passive_item should be called with BREAKER_BULLETS (type 6)")
 	assert_true(level.pedestal_freed, "Pedestal removed after passive item collection")
 	# Active slot must remain unchanged (FLASHLIGHT stays equipped)
 	assert_eq(level.active_item_manager.current_active_item, 1,
@@ -311,8 +313,8 @@ func test_passive_item_collected_via_add_passive_item() -> void:
 
 func test_passive_item_no_op_when_already_equipped_in_active_slot() -> void:
 	var level := _make_level()
-	level.active_item_manager.current_active_item = 8  # LASER_SIGHT (passive) in active slot
-	level.apply_pedestal_active_item(8)  # Same item
+	level.active_item_manager.current_active_item = 9  # LASER_SIGHT (passive, enum value 9) in active slot
+	level.apply_pedestal_active_item(9)  # Same item
 	assert_true(level.active_item_manager.set_calls.is_empty(),
 		"set_active_item should NOT be called when already in active slot")
 	assert_true(level.active_item_manager.add_passive_calls.is_empty(),
@@ -323,9 +325,9 @@ func test_passive_item_no_op_when_already_equipped_in_active_slot() -> void:
 func test_passive_item_no_op_when_already_in_collection() -> void:
 	## Issue #1194: re-picking an already-collected passive item is a no-op.
 	var level := _make_level()
-	level.active_item_manager.add_passive_item(9)  # EXTENDED_MAGAZINE already collected
+	level.active_item_manager.add_passive_item(10)  # EXTENDED_MAGAZINE already collected (enum value 10)
 	var calls_before: int = level.active_item_manager.add_passive_calls.size()
-	level.apply_pedestal_active_item(9)  # Same item
+	level.apply_pedestal_active_item(10)  # Same item
 	assert_eq(level.active_item_manager.add_passive_calls.size(), calls_before,
 		"add_passive_item should NOT be called again for already-collected passive")
 	assert_true(level.pedestal_freed, "Pedestal freed on no-op duplicate pickup")
@@ -484,13 +486,13 @@ func test_two_passive_items_can_be_collected() -> void:
 	## Issue #1194: player can collect multiple passive items simultaneously.
 	var level := _make_level()
 	level.active_item_manager.current_active_item = 1  # FLASHLIGHT (active)
-	level.apply_pedestal_active_item(2)   # BREAKER_BULLETS (passive)
-	level.apply_pedestal_active_item(9)   # EXTENDED_MAGAZINE (passive)
+	level.apply_pedestal_active_item(6)   # BREAKER_BULLETS (passive, enum value 6)
+	level.apply_pedestal_active_item(10)  # EXTENDED_MAGAZINE (passive, enum value 10)
 	assert_eq(level.active_item_manager.collected_passive_items.size(), 2,
 		"Both passive items should be in the collection")
-	assert_true(level.active_item_manager.has_passive_item(2),
+	assert_true(level.active_item_manager.has_passive_item(6),
 		"BREAKER_BULLETS should be in the passive collection")
-	assert_true(level.active_item_manager.has_passive_item(9),
+	assert_true(level.active_item_manager.has_passive_item(10),
 		"EXTENDED_MAGAZINE should be in the passive collection")
 	## Active item slot must remain untouched.
 	assert_eq(level.active_item_manager.current_active_item, 1,
@@ -500,7 +502,7 @@ func test_two_passive_items_can_be_collected() -> void:
 func test_all_six_passive_items_can_be_collected() -> void:
 	## Issue #1194: all 6 passive item types can stack simultaneously.
 	var level := _make_level()
-	var all_passives: Array = [2, 8, 9, 12, 13, 16]  # PASSIVE_ACTIVE_ITEM_TYPES
+	var all_passives: Array = [6, 9, 10, 13, 14, 17]  # PASSIVE_ACTIVE_ITEM_TYPES (corrected enum values)
 	for p in all_passives:
 		level.apply_pedestal_active_item(p)
 	assert_eq(level.active_item_manager.collected_passive_items.size(), 6,
@@ -513,10 +515,10 @@ func test_all_six_passive_items_can_be_collected() -> void:
 func test_passive_items_do_not_displace_active_item() -> void:
 	## Issue #1194: collecting passives must never evict the active item.
 	var level := _make_level()
-	level.active_item_manager.current_active_item = 5  # BFF_PENDANT (active)
-	level.apply_pedestal_active_item(12)  # ARMORED_SKIN (passive)
-	level.apply_pedestal_active_item(13)  # AUTO_RELOAD (passive)
-	assert_eq(level.active_item_manager.current_active_item, 5,
+	level.active_item_manager.current_active_item = 4  # BFF_PENDANT (active, enum value 4)
+	level.apply_pedestal_active_item(13)  # ARMORED_SKIN (passive, enum value 13)
+	level.apply_pedestal_active_item(14)  # AUTO_RELOAD (passive, enum value 14)
+	assert_eq(level.active_item_manager.current_active_item, 4,
 		"BFF_PENDANT must remain in active slot after collecting passives")
 	assert_eq(level.active_item_manager.collected_passive_items.size(), 2,
 		"Two passive items should have been added to the collection")
@@ -526,21 +528,21 @@ func test_active_item_swap_after_passive_collected() -> void:
 	## Swapping an active item must not remove already-collected passives.
 	var level := _make_level()
 	level.active_item_manager.current_active_item = 1  # FLASHLIGHT
-	level.apply_pedestal_active_item(2)   # BREAKER_BULLETS (passive) collected first
-	level.apply_pedestal_active_item(4)   # TELEPORT_BRACERS (active) picked up
+	level.apply_pedestal_active_item(6)   # BREAKER_BULLETS (passive, enum value 6) collected first
+	level.apply_pedestal_active_item(3)   # TELEPORT_BRACERS (active, enum value 3) picked up
 	## Active slot now holds TELEPORT_BRACERS.
-	assert_eq(level.active_item_manager.current_active_item, 4,
+	assert_eq(level.active_item_manager.current_active_item, 3,
 		"Active slot should now hold TELEPORT_BRACERS")
 	## Passive from before must still be present.
-	assert_true(level.active_item_manager.has_passive_item(2),
+	assert_true(level.active_item_manager.has_passive_item(6),
 		"BREAKER_BULLETS passive must persist after active item swap")
 
 
 func test_reset_passive_items_clears_collection() -> void:
 	## Issue #1194: reset_passive_items() empties the collection.
 	var level := _make_level()
-	level.active_item_manager.add_passive_item(2)
-	level.active_item_manager.add_passive_item(9)
+	level.active_item_manager.add_passive_item(6)   # BREAKER_BULLETS
+	level.active_item_manager.add_passive_item(10)  # EXTENDED_MAGAZINE
 	assert_eq(level.active_item_manager.collected_passive_items.size(), 2,
 		"Precondition: 2 passive items collected")
 	level.active_item_manager.reset_passive_items()
@@ -552,10 +554,10 @@ func test_passive_already_collected_skips_pedestal_item_pick() -> void:
 	## Issue #1194: _pick_random_pedestal_item skips already-collected passives.
 	## We verify the mock's has_passive_item check works as expected.
 	var level := _make_level()
-	level.active_item_manager.add_passive_item(2)   # BREAKER_BULLETS already collected
+	level.active_item_manager.add_passive_item(6)   # BREAKER_BULLETS already collected (enum value 6)
 	## Verify has_passive_item returns true for collected item
-	assert_true(level.active_item_manager.has_passive_item(2),
+	assert_true(level.active_item_manager.has_passive_item(6),
 		"has_passive_item should return true for already-collected passive")
 	## And false for not-yet-collected items
-	assert_false(level.active_item_manager.has_passive_item(9),
+	assert_false(level.active_item_manager.has_passive_item(10),
 		"has_passive_item should return false for not-yet-collected passive")
