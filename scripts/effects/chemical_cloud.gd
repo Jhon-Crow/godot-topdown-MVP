@@ -5,13 +5,13 @@ class_name ChemicalCloud
 ## Spawned by ChemicalGasGrenade on gas release (NOT explosion).
 ## - Radius: 300px (same as aggression gas grenade)
 ## - Duration: 20 seconds before dissipating
-## - Effect: All enemies in cloud create 1–4 illusory copies for 20 seconds
+## - Effect: All enemies in cloud create 2–5 illusory copies for 20 seconds
 ## - Visual: Caustic yellow gas cloud (едкого жёлтого цвета)
 ## - Guard: If player is already under this effect, cloud has no new effect
 ##
 ## Per issue #1129 requirements:
 ## - выглядит и выделяет газ как газовая граната игрока, но газ едкого жёлтого цвета
-## - эффект: все враги создают иллюзорные копии (от 1 до 4), эффект длится 20 секунд
+## - эффект: все враги создают иллюзорные копии (от 2 до 5), эффект длится 20 секунд
 ## - все иллюзорные копии врага исчезают, если убит оригинал
 ## - когда эффект гранаты истекает, все иллюзорные копии исчезают
 
@@ -258,9 +258,9 @@ func _apply_illusion_to_enemy(enemy: Node2D) -> void:
 		_spawn_illusion_copies(enemy)
 
 
-## Spawn 1–4 illusory copies of an enemy.
+## Spawn 2–5 illusory copies of an enemy (Issue #1129).
 func _spawn_illusion_copies(original_enemy: Node2D) -> void:
-	var copy_count := randi_range(1, 4)
+	var copy_count := randi_range(2, 5)
 	FileLogger.info("[ChemicalCloud] Spawning %d illusion copies for enemy %s at %s" % [
 		copy_count, original_enemy.name, str(original_enemy.global_position)
 	])

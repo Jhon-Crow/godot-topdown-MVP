@@ -5,13 +5,13 @@ class_name ChemicalGasGrenade
 ## With 50% chance, enemies throw this instead of their default grenade.
 ## After 4 seconds, releases caustic yellow gas cloud.
 ## Unlike explosive grenades, this does NOT explode — it hisses and releases gas.
-## All enemies in the cloud create illusory copies (1–4 per enemy) for 20 seconds.
+## All enemies in the cloud create illusory copies (2–5 per enemy) for 20 seconds.
 ## If the player is already under this effect, enemies throw default grenades instead.
 ##
 ## Per issue #1129 requirements:
 ## - с 50% вероятностью враг бросает химическую гранату вместо стандартной
 ## - выглядит и выделяет газ как газовая граната игрока, но газ едкого жёлтого цвета
-## - эффект: все враги создают иллюзорные копии (от 1 до 4), эффект длится 20 секунд
+## - эффект: все враги создают иллюзорные копии (от 2 до 5), эффект длится 20 секунд
 ## - иллюзорная копия выглядит и действует как обычный враг, но убивается одним выстрелом
 ## - все оружия иллюзорной копии наносят 5% от нормального урона
 ## - иллюзорные копии не останавливают пули или шрапнель

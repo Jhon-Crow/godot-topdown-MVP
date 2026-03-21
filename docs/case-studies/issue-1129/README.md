@@ -330,6 +330,78 @@ Files changed:
 
 ---
 
+---
+
+## Bug Report #4: Chemical Grenade Still Not Working + New Requirements (2026-03-21)
+
+### Symptom
+
+Player reported two issues after the 4th round of fixes:
+1. Illusion copies still appear to not work (or die immediately after spawning).
+2. New requirement: regular enemies should NOT throw chemical grenades — only a new dedicated "gas mask enemy" should.
+
+Log file: `game_log_20260321_005517.txt`
+
+### Log Evidence
+
+The log confirms the chemical cloud DOES work correctly:
+```
+[00:56:09] [ChemicalGasGrenade] Chemical gas released at (833.2012, 298.3842)!
+[00:56:09] [ChemicalCloud] Cloud spawned at (833.2012, 298.3842), radius=300, duration=20s
+[00:56:13] [ChemicalCloud] Enemy entered cloud: Enemy4 at (868.889, 620.5388)
+[00:56:13] [ChemicalCloud] Spawning 2 illusion copies for enemy Enemy4
+[00:56:13] [IllusionEnemy] Enemy copy spawned, health=1, damage=5%% of normal
+[00:56:13] [IllusionEnemy] Illusion created at (921.2605, 614.7928) (duration=20s)
+[00:56:13] [ENEMY] [Enemy] Spawned at (924.9938, 614.7797), hp: 1, behavior: GUARD
+[00:56:13] [ENEMY] [Enemy] Spawned at (823.6152, 624.5719), hp: 1, behavior: GUARD
+...
+[00:56:13] [ENEMY] [Enemy] Hit: dmg=1, hp=1/1->0/1
+[00:56:13] [ENEMY] [Enemy] Enemy died
+[00:56:13] [IllusionEnemy] Illusion copy destroyed
+```
+
+### Root Cause of "Not Working" Perception
+
+Illusion copies ARE spawning correctly at the right positions. However, they are immediately shot and killed by the player. The copies spawn at `(924.99, 614.78)` and `(823.61, 624.57)` — near the original enemy — but the player was already shooting in that area and the copies took a single hit and disappeared instantly.
+
+This is correct behavior (one-shot kill) but looks like "not working" because copies don't survive long enough to be noticeable.
+
+The user also noted the range should be **2–5 copies** (updated from the original 1–4).
+
+### New Requirements (from comment 2026-03-20)
+
+The user clarified additional requirements for Issue #1129:
+
+1. **Regular enemies** (including Grenadier) should NOT throw chemical grenades.
+2. A new **Gas Mask Enemy** type should be added with:
+   - 4 chemical grenades
+   - In combat state: throws grenades at the player before shooting
+   - Cooldown: 4 seconds if player not under effect, or wait until effect expires if player is under effect
+3. The new enemy should be **registered in the EnemiesTableMenu** but NOT placed on any map yet.
+4. Illusion copy count updated to **2–5** (from 1–4).
+
+### Fix
+
+1. Removed chemical grenade logic from `EnemyGrenadeComponent` (regular enemies now only throw their default grenade).
+2. Removed chemical grenade substitution from `GrenadierGrenadeComponent`.
+3. Created `GasMaskGrenadeComponent` — dedicated component with 4 chemical grenades, combat-priority throwing, illusion-aware cooldown.
+4. Added `is_gas_mask` export flag to `enemy.gd`.
+5. Created `GasMaskEnemy.tscn` — same as `Enemy.tscn` but with green tint and `is_gas_mask = true`.
+6. Registered gas mask enemy in `EnemiesTableMenu` (not placed on any maps).
+7. Updated illusion copy count from `randi_range(1, 4)` to `randi_range(2, 5)`.
+
+Files changed:
+- `scripts/components/enemy_grenade_component.gd` — removed chemical grenade fields and logic
+- `scripts/components/grenadier_grenade_component.gd` — removed chemical grenade substitution
+- `scripts/components/gas_mask_grenade_component.gd` — new component (created)
+- `scripts/objects/enemy.gd` — added `is_gas_mask` export, gas mask component setup
+- `scenes/objects/GasMaskEnemy.tscn` — new scene (created)
+- `scripts/ui/enemies_table_menu.gd` — added GasMask column
+- `scripts/effects/chemical_cloud.gd` — updated copy count 1–4 → 2–5
+- `scripts/projectiles/chemical_gas_grenade.gd` — updated docstring
+
+---
+
 ## References
 
 - AggressionGasGrenade pattern: `scripts/projectiles/aggression_gas_grenade.gd`
