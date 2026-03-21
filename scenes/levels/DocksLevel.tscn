@@ -995,3 +995,79 @@ offset_bottom = 45.0
 text = "AMMO: 30/30"
 
 [node name="PauseMenu" parent="." instance=ExtResource("3_pause_menu")]
+
+[node name="SearchPathWaypoints" type="Node2D" parent="."]
+editor_description = "Pre-planned search path waypoints for enemy SEARCHING state (Issue #1246). Enemies traverse these in order starting from the nearest point to their current position."
+groups = ["search_path_waypoints"]
+
+[node name="CranePlatform_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 350)
+
+[node name="CranePlatform_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 500)
+
+[node name="CranePlatform_Top" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 350)
+
+[node name="OpenArea_North" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1500, 300)
+
+[node name="ContainerYardA_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3500, 300)
+
+[node name="ContainerYardA_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4000, 450)
+
+[node name="ContainerYardA_Far" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4600, 380)
+
+[node name="OpenArea_Mid_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1500, 1100)
+
+[node name="LoadingDock_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3400, 1400)
+
+[node name="LoadingDock_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4000, 1600)
+
+[node name="LoadingDock_Far" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4600, 1700)
+
+[node name="WarehouseA_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(350, 1550)
+
+[node name="WarehouseA_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 1800)
+
+[node name="WarehouseA_Far" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 2100)
+
+[node name="OpenArea_Mid_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2500, 2000)
+
+[node name="WarehouseB_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4150, 2500)
+
+[node name="WarehouseB_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4400, 2800)
+
+[node name="WarehouseB_Far" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4600, 3100)
+
+[node name="ContainerYardB_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 2700)
+
+[node name="ContainerYardB_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 2950)
+
+[node name="ContainerYardB_Far" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 3200)
+
+[node name="OpenArea_South_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1500, 3500)
+
+[node name="OpenArea_South_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3500, 3500)
+
+[node name="Docks_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2500, 2000)
