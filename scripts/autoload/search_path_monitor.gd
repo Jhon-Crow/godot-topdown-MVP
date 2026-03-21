@@ -4,22 +4,37 @@ extends Node
 ## Controlled by ExperimentalSettings:
 ##   - search_path_visible_enabled: show search path overlay (default: off)
 ##
-## When enabled, all SearchPathWaypoints positions and connecting lines are drawn
-## on screen so level designers can verify predefined enemy search routes.
+## When enabled, two types of search paths are drawn on screen:
+##   1. Predefined SearchPathWaypoints (static scene nodes in group "search_path_waypoints"):
+##      Drawn in cyan — lets level designers verify pre-planned enemy patrol loops.
+##   2. Active enemy search paths (dynamic spiral waypoints currently used by enemies in
+##      SEARCHING state): Drawn in orange — shows where enemies are actively searching
+##      right now, including spiral-search levels like LabyrinthLevel.
 ##
-## The overlay draws:
+## The overlay draws per type:
 ##   - A circle at each waypoint position
-##   - Lines connecting consecutive waypoints (forming the patrol loop)
-##   - A small index number near each waypoint
+##   - Lines connecting consecutive waypoints
+##   - For active paths: highlights the current target waypoint in yellow
 ##
 ## Issue #1251: Added as part of AI search path debugging tools.
+##   Fix: Added active enemy search path visualization so paths are visible in all levels,
+##   not just levels with predefined SearchPathWaypoints nodes.
 
-## Color for waypoint circles and path lines.
-const SEARCH_PATH_COLOR := Color(0.0, 1.0, 0.8, 0.9)
-## Color for the waypoint fill.
-const SEARCH_PATH_FILL_COLOR := Color(0.0, 1.0, 0.8, 0.25)
+## Color for predefined waypoint circles and path lines (cyan).
+const PREDEFINED_PATH_COLOR := Color(0.0, 1.0, 0.8, 0.9)
+## Fill color for predefined waypoint circles.
+const PREDEFINED_FILL_COLOR := Color(0.0, 1.0, 0.8, 0.25)
+## Color for active enemy search path lines and circles (orange).
+const ACTIVE_PATH_COLOR := Color(1.0, 0.55, 0.0, 0.9)
+## Fill color for active enemy search path circles.
+const ACTIVE_FILL_COLOR := Color(1.0, 0.55, 0.0, 0.25)
+## Color for the current target waypoint in an active search path (yellow).
+const ACTIVE_TARGET_COLOR := Color(1.0, 1.0, 0.0, 1.0)
 ## Radius of each waypoint circle in world pixels.
 const WAYPOINT_RADIUS := 10.0
+
+## AIState.SEARCHING enum value from enemy.gd (IDLE=0..ASSAULT=8, SEARCHING=9).
+const AI_STATE_SEARCHING := 9
 
 ## The overlay node used for custom drawing.
 var _overlay: _SearchPathOverlay = null
@@ -36,6 +51,13 @@ func _ready() -> void:
 	get_tree().node_added.connect(_on_node_added)
 
 
+## Refresh the active search paths every frame when the overlay is visible,
+## so that dynamic enemy paths (spiral search) update in real time.
+func _process(_delta: float) -> void:
+	if _overlay != null and is_instance_valid(_overlay) and _overlay.visible:
+		_overlay.refresh()
+
+
 ## Apply current search path visibility setting.
 func _apply_settings() -> void:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
@@ -43,6 +65,8 @@ func _apply_settings() -> void:
 		return
 	var show_paths: bool = experimental_settings.has_method("is_search_path_visible_enabled") and \
 		experimental_settings.is_search_path_visible_enabled()
+	if show_paths:
+		_log_info("SearchPathMonitor: enabled, refreshing overlay")
 	_set_overlay_visible(show_paths)
 
 
@@ -63,16 +87,23 @@ func _ensure_overlay() -> void:
 	if _overlay != null and is_instance_valid(_overlay):
 		return
 	_overlay = _SearchPathOverlay.new()
-	_overlay.path_color = SEARCH_PATH_COLOR
-	_overlay.fill_color = SEARCH_PATH_FILL_COLOR
+	_overlay.predefined_path_color = PREDEFINED_PATH_COLOR
+	_overlay.predefined_fill_color = PREDEFINED_FILL_COLOR
+	_overlay.active_path_color = ACTIVE_PATH_COLOR
+	_overlay.active_fill_color = ACTIVE_FILL_COLOR
+	_overlay.active_target_color = ACTIVE_TARGET_COLOR
 	_overlay.waypoint_radius = WAYPOINT_RADIUS
 	get_tree().root.add_child(_overlay)
+	_log_info("SearchPathMonitor: overlay created")
 
 
-## Re-apply after a new SearchPathWaypoints node is added (e.g. after scene load).
+## Re-apply after a new SearchPathWaypoints node or enemy is added (e.g. after scene load).
 func _on_node_added(node: Node) -> void:
 	if node.is_in_group("search_path_waypoints"):
 		# Defer refresh so all Marker2D children are fully populated
+		call_deferred("_deferred_refresh")
+	# Also refresh when a new enemy is added (it may start in SEARCHING state)
+	if node.has_method("get_search_waypoints"):
 		call_deferred("_deferred_refresh")
 
 
@@ -82,12 +113,20 @@ func _deferred_refresh() -> void:
 		_overlay.refresh()
 
 
-## Inner class: a CanvasLayer that draws all SearchPathWaypoints nodes.
+## Write an info-level log entry for debugging (visible in game log when logging is on).
+func _log_info(message: String) -> void:
+	print("[SearchPathMonitor] " + message)
+
+
+## Inner class: a CanvasLayer that draws all search path data.
 ## Using a CanvasLayer ensures the overlay renders above the game world
 ## and is not affected by the camera transform.
 class _SearchPathOverlay extends CanvasLayer:
-	var path_color: Color = Color(0.0, 1.0, 0.8, 0.9)
-	var fill_color: Color = Color(0.0, 1.0, 0.8, 0.25)
+	var predefined_path_color: Color = Color(0.0, 1.0, 0.8, 0.9)
+	var predefined_fill_color: Color = Color(0.0, 1.0, 0.8, 0.25)
+	var active_path_color: Color = Color(1.0, 0.55, 0.0, 0.9)
+	var active_fill_color: Color = Color(1.0, 0.55, 0.0, 0.25)
+	var active_target_color: Color = Color(1.0, 1.0, 0.0, 1.0)
 	var waypoint_radius: float = 10.0
 	## The Node2D child that does the actual drawing.
 	var _draw_node: _SearchPathDrawNode = null
@@ -98,20 +137,24 @@ class _SearchPathOverlay extends CanvasLayer:
 		# Follow the viewport camera so world-space coordinates in _draw() align correctly
 		follow_viewport_enabled = true
 		_draw_node = _SearchPathDrawNode.new()
-		_draw_node.path_color = path_color
-		_draw_node.fill_color = fill_color
+		_draw_node.predefined_path_color = predefined_path_color
+		_draw_node.predefined_fill_color = predefined_fill_color
+		_draw_node.active_path_color = active_path_color
+		_draw_node.active_fill_color = active_fill_color
+		_draw_node.active_target_color = active_target_color
 		_draw_node.waypoint_radius = waypoint_radius
 		add_child(_draw_node)
 
-	## Collect all SearchPathWaypoints nodes and pass their waypoints to the draw node.
+	## Collect all search path data and pass it to the draw node.
 	func refresh() -> void:
 		if _draw_node == null:
 			return
-		var waypoint_sets: Array = []
 		var tree: SceneTree = Engine.get_main_loop() as SceneTree
 		if tree == null:
 			return
-		# Find all nodes in the search_path_waypoints group
+
+		# --- Predefined SearchPathWaypoints (static scene nodes) ---
+		var predefined_sets: Array = []
 		var path_nodes: Array = tree.get_nodes_in_group("search_path_waypoints")
 		for path_node in path_nodes:
 			if not is_instance_valid(path_node):
@@ -121,37 +164,91 @@ class _SearchPathOverlay extends CanvasLayer:
 				if child is Marker2D:
 					positions.append(child.global_position)
 			if positions.size() > 0:
-				waypoint_sets.append(positions)
-		_draw_node.set_waypoint_sets(waypoint_sets)
+				predefined_sets.append(positions)
+
+		# --- Active enemy search paths (dynamic spiral/predefined waypoints) ---
+		# Collect from all enemies currently in SEARCHING state.
+		# AIState.SEARCHING == 9 (0-indexed enum from enemy.gd: IDLE=0..ASSAULT=8, SEARCHING=9)
+		var active_paths: Array = []
+		var enemies: Array = tree.get_nodes_in_group("enemies")
+		for enemy in enemies:
+			if not is_instance_valid(enemy):
+				continue
+			if not enemy.has_method("get_current_state"):
+				continue
+			if int(enemy.get_current_state()) != 9:
+				continue
+			if not enemy.has_method("get_search_waypoints"):
+				continue
+			var waypoints: Array = enemy.get_search_waypoints()
+			if waypoints.size() == 0:
+				continue
+			var current_idx: int = 0
+			if enemy.has_method("get_search_current_waypoint_index"):
+				current_idx = enemy.get_search_current_waypoint_index()
+			active_paths.append({
+				"waypoints": waypoints,
+				"current_idx": current_idx,
+				"enemy_pos": enemy.global_position
+			})
+
+		_draw_node.set_path_data(predefined_sets, active_paths)
 
 
 ## Inner draw node: performs the actual draw calls each frame.
 class _SearchPathDrawNode extends Node2D:
-	var path_color: Color = Color(0.0, 1.0, 0.8, 0.9)
-	var fill_color: Color = Color(0.0, 1.0, 0.8, 0.25)
+	var predefined_path_color: Color = Color(0.0, 1.0, 0.8, 0.9)
+	var predefined_fill_color: Color = Color(0.0, 1.0, 0.8, 0.25)
+	var active_path_color: Color = Color(1.0, 0.55, 0.0, 0.9)
+	var active_fill_color: Color = Color(1.0, 0.55, 0.0, 0.25)
+	var active_target_color: Color = Color(1.0, 1.0, 0.0, 1.0)
 	var waypoint_radius: float = 10.0
-	var _waypoint_sets: Array = []
+	var _predefined_sets: Array = []
+	var _active_paths: Array = []
 
-	func set_waypoint_sets(waypoint_sets: Array) -> void:
-		_waypoint_sets = waypoint_sets
+	func set_path_data(predefined_sets: Array, active_paths: Array) -> void:
+		_predefined_sets = predefined_sets
+		_active_paths = active_paths
 		queue_redraw()
 
 	func _draw() -> void:
-		for waypoints in _waypoint_sets:
+		# Draw predefined SearchPathWaypoints (cyan, closed loop)
+		for waypoints in _predefined_sets:
 			if waypoints.size() == 0:
 				continue
-			# Draw connecting lines between consecutive waypoints (closing the loop)
+			# Draw connecting lines (closed loop)
 			for i in range(waypoints.size()):
 				var from: Vector2 = waypoints[i]
 				var to: Vector2 = waypoints[(i + 1) % waypoints.size()]
-				draw_line(from, to, path_color, 2.0)
-			# Draw waypoint circles and index numbers on top of lines
+				draw_line(from, to, predefined_path_color, 2.0)
+			# Draw waypoint circles
+			for pos in waypoints:
+				draw_circle(pos, waypoint_radius, predefined_fill_color)
+				_draw_circle_outline(pos, waypoint_radius, predefined_path_color, 2.0)
+
+		# Draw active enemy search paths (orange, open sequence + current target highlighted)
+		for path_data in _active_paths:
+			var waypoints: Array = path_data["waypoints"]
+			var current_idx: int = path_data["current_idx"]
+			var enemy_pos: Vector2 = path_data["enemy_pos"]
+			if waypoints.size() == 0:
+				continue
+			# Draw connecting lines between waypoints (open path, not closed loop)
+			for i in range(waypoints.size() - 1):
+				var from: Vector2 = waypoints[i]
+				var to: Vector2 = waypoints[i + 1]
+				draw_line(from, to, active_path_color, 2.0)
+			# Draw waypoint circles
 			for i in range(waypoints.size()):
 				var pos: Vector2 = waypoints[i]
-				# Filled circle background
-				draw_circle(pos, waypoint_radius, fill_color)
-				# Outline circle
-				_draw_circle_outline(pos, waypoint_radius, path_color, 2.0)
+				draw_circle(pos, waypoint_radius, active_fill_color)
+				_draw_circle_outline(pos, waypoint_radius, active_path_color, 2.0)
+			# Highlight current target waypoint in yellow
+			if current_idx < waypoints.size():
+				var target_pos: Vector2 = waypoints[current_idx]
+				draw_circle(target_pos, waypoint_radius * 0.6, active_target_color)
+				# Draw line from enemy to current target
+				draw_line(enemy_pos, target_pos, active_target_color, 1.5)
 
 	## Draw a circle outline using line segments.
 	func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: float) -> void:

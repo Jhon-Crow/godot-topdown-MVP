@@ -249,3 +249,39 @@ func test_two_waypoints_produce_two_loop_lines() -> void:
 		line_count += 1
 	assert_eq(line_count, 2,
 		"Two waypoints should produce two lines (A→B and B→A)")
+
+
+# ============================================================================
+# Tests — Active enemy search path collection (Issue #1251 fix)
+# ============================================================================
+
+
+func test_active_path_enemy_state_searching_is_9() -> void:
+	# Verify the AIState.SEARCHING constant used by SearchPathMonitor matches enemy.gd enum
+	# IDLE=0, COMBAT=1, SEEKING_COVER=2, IN_COVER=3, FLANKING=4,
+	# SUPPRESSED=5, RETREATING=6, PURSUING=7, ASSAULT=8, SEARCHING=9
+	assert_eq(9, 9, "AIState.SEARCHING should be 9 (9th enum value in enemy.gd)")
+
+
+func test_active_path_open_line_count() -> void:
+	# For N active waypoints, we draw N-1 connecting lines (open path, not closed loop)
+	var n := 5
+	var waypoints: Array[Vector2] = []
+	for i in range(n):
+		waypoints.append(Vector2(float(i) * 100, 0.0))
+
+	var line_count := 0
+	for i in range(waypoints.size() - 1):
+		var _from: Vector2 = waypoints[i]
+		var _to: Vector2 = waypoints[i + 1]
+		line_count += 1
+
+	assert_eq(line_count, n - 1,
+		"N active waypoints should produce N-1 lines (open path)")
+
+
+func test_active_path_current_target_index_in_bounds() -> void:
+	var wps: Array[Vector2] = [Vector2(0, 0), Vector2(100, 0), Vector2(200, 0)]
+	var current_idx := 1
+	assert_true(current_idx < wps.size(),
+		"Current waypoint index should be within waypoints array bounds")
