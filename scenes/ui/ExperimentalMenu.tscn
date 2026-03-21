@@ -398,6 +398,24 @@ autowrap_mode = 2
 [node name="HSeparator12d" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="SearchPathVisibleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SearchPathVisibleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SearchPathVisibleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Search Paths"
+autowrap_mode = 2
+
+[node name="SearchPathVisibleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SearchPathVisibleContainer"]
+layout_mode = 2
+
+[node name="SearchPathVisibleDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws cyan circles for predefined search waypoints\nand orange circles for active enemy spiral search paths.\nCurrent target highlighted in yellow."
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="PassageWaypointsContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
@@ -418,6 +436,7 @@ autowrap_mode = 2
 
 [node name="HSeparator12f" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
+
 
 [node name="SoundVisualizerContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2

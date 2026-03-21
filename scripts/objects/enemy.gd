@@ -4579,6 +4579,10 @@ func _update_debug_label() -> void:
 
 func get_current_state() -> AIState: return _current_state
 func get_goap_world_state() -> Dictionary: return _goap_world_state.duplicate()
+## Returns a copy of the active search waypoints (Issue #1251: used by SearchPathMonitor for visualization).
+func get_search_waypoints() -> Array[Vector2]: return _search_waypoints.duplicate()
+## Returns the current search waypoint index (Issue #1251: used by SearchPathMonitor for visualization).
+func get_search_current_waypoint_index() -> int: return _search_current_waypoint_index
 
 func set_player_reloading(is_reloading: bool) -> void:
 	var old: bool = _goap_world_state.get("player_reloading", false)
