@@ -147,9 +147,81 @@ Enemies using `_move_to_target_nav()` will now receive proper pathfinding routes
 | 13:44:22 | NavMeshMonitor refresh after bake: still `poly_count=1 vertex_count=4` |
 | 13:44:25–37 | Multiple enemies PATROL STUCK, GLOBAL STUCK, FLANKING stuck |
 
+## Session 3 Root Cause Analysis (Game Log: game_log_20260321_140512.txt)
+
+### Reporter Observation
+
+Reporter comment (2026-03-21): *"на карте Здание противник начинает ходить вдоль стены (а не долбиться в неё) только когда в состоянии поиска"* — "on the Building map, the enemy only starts walking along the wall (not bumping into it) when in the SEARCHING state."
+
+### Evidence from Game Log
+
+Log `game_log_20260321_140512.txt` was recorded after the Session 2 fix was committed but **before a new game binary was built from the fixed branch**. The reporter tested from an existing executable (`Godot-Top-Down-Template.exe`, release build).
+
+**Key observations from the log:**
+
+| Time | Level | poly_count | Note |
+|------|-------|-----------|------|
+| 14:05:13 | LabyrinthLevel (initial) | 1 | Old stale data, bake not triggered yet |
+| 14:05:54 | BuildingLevel | 1 | Stale pre-baked data used — GDScript fallback ran |
+| 14:06:17 | LabyrinthLevel (revisited) | 61 | GDScript _ready() ran, properly baked! |
+
+**Critical log entry for BuildingLevel:**
+
+```
+[LevelInitFallback] GDScript _ready() did NOT execute - performing C# fallback initialization
+```
+
+This reveals a second root cause: when Godot's GDScript binary tokenization bug (godotengine/godot#94150) causes GDScript `_ready()` to not execute, the C# `LevelInitFallback` takes over — but it did **not** call `bake_navigation_polygon()`. This leaves the navmesh at whatever data was pre-baked in the `.tscn` file.
+
+### Second Root Cause: Stale Pre-baked Data in .tscn Files + C# Fallback Doesn't Re-bake
+
+All `.tscn` level files had the old 1-polygon navmesh baked inline:
+
+```gdscript
+vertices = PackedVector2Array(64, 64, 2464, 64, 2464, 2064, 64, 2064)
+polygons = [PackedInt32Array(0, 1, 2, 3)]
+outlines = [PackedVector2Array(64, 64, 2464, 64, 2464, 2064, 64, 2064)]
+```
+
+When GDScript doesn't run (C# fallback), Godot uses this stored baked data directly. Even though `source_geometry_mode = 1` was already fixed (Session 2), the **stored baked polygon is still the old 4-vertex rectangle** because the `.tscn` was never saved after a fresh re-bake in the editor.
+
+### Why SEARCHING Appeared to Work Better
+
+The reporter observed that SEARCHING state enemies "walk along the wall" while COMBAT/PURSUING enemies still bump. This is not because SEARCHING uses navmesh better — the navmesh was broken for both. The difference:
+
+- **PURSUING/COMBAT**: Enemies use `_move_to_target_nav()` → receives straight-line path → presses hard against wall
+- **SEARCHING**: Enemies generate nearby spiral waypoints and try them one-by-one; if stuck for 3+ seconds, they skip to next waypoint (`GLOBAL STUCK` → `SEARCHING`). The "walking along the wall" appearance is actually the enemy slowly shuffling between failed waypoints that happen to be wall-adjacent.
+
+### Fix Applied in Session 3
+
+**Change 1: Remove stale pre-baked polygon data from all 12 level `.tscn` files**
+
+Removed the `vertices`, `polygons`, and `outlines` properties stored in the `NavigationPolygon` sub-resource from:
+ArenaLevel, BeachLevel, BuildingLevel, CastleLevel, CityLevel, DecadenceLevel, DocksLevel, FactoryLevel, Labyrinth2Level, LabyrinthLevel, RevolverLevel, TestTier
+
+This forces Godot to produce an empty navmesh on load (instead of a stale 1-polygon rectangle), making runtime baking always necessary and its results clearly visible.
+
+**Change 2: Add `BakeNavigationMesh()` to `LevelInitFallback.cs`**
+
+Added step 11 to `PerformFallbackInit()`:
+
+```csharp
+var navRegion = levelRoot.GetNodeOrNull<NavigationRegion2D>("NavigationRegion2D");
+navRegion.BakeNavigationPolygon(false);
+```
+
+This mirrors the `nav_region.bake_navigation_polygon(false)` call in all GDScript level scripts, ensuring navmesh is properly baked even when GDScript `_ready()` fails to execute.
+
+### Expected Result After Session 3
+
+- BuildingLevel with C# fallback will now show `poly_count > 1` after `BakeNavigationMesh()` runs
+- All levels will start with an empty navmesh (no stale data) and must rely on runtime baking
+- Both GDScript and C# fallback paths now correctly bake the navmesh with `source_geometry_mode = GROUPS_WITH_CHILDREN`
+
 ## References
 
-- Game log: `docs/case-studies/issue-1271/game_log_20260321_134324.txt`
+- Game log (Session 2): `docs/case-studies/issue-1271/game_log_20260321_134324.txt`
+- Game log (Session 3): `docs/case-studies/issue-1271/game_log_20260321_140512.txt`
 - [Godot 4: NavigationPolygon.source_geometry_mode](https://docs.godotengine.org/en/stable/classes/class_navigationpolygon.html#enum-navigationpolygon-sourcegeometrymode)
 - [2D navigation overview — Godot 4 docs](https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_introduction_2d.html)
 - [Using NavigationAgents — Godot 4 docs](https://docs.godotengine.org/en/latest/tutorials/navigation/navigation_using_navigationagents.html)

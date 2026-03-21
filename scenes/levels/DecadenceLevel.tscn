@@ -58,9 +58,6 @@ polygon = PackedVector2Array(-12, -150, 12, -150, 12, 150, -12, 150)
 polygon = PackedVector2Array(-300, -12, 300, -12, 300, 12, -300, 12)
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_decadence"]
-vertices = PackedVector2Array(64, 64, 2464, 64, 2464, 2064, 64, 2064)
-polygons = [PackedInt32Array(0, 1, 2, 3)]
-outlines = [PackedVector2Array(64, 64, 2464, 64, 2464, 2064, 64, 2064)]
 parsed_geometry_type = 1
 parsed_collision_mask = 4
 source_geometry_mode = 1

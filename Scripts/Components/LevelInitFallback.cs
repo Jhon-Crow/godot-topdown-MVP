@@ -194,6 +194,27 @@ public partial class LevelInitFallback : Node
 
         // 10. Update GDScript properties so they are in sync
         SyncGDScriptProperties(levelRoot);
+
+        // 11. Bake navigation mesh (Issue #1271: GDScript _ready() normally calls this;
+        // without it the navmesh stays as the stale pre-baked rectangle from the .tscn,
+        // causing enemies to ignore walls during pathfinding).
+        BakeNavigationMesh(levelRoot);
+    }
+
+    /// <summary>
+    /// Bake the NavigationRegion2D navmesh so wall geometry is included.
+    /// Mirrors nav_region.bake_navigation_polygon(false) in GDScript level scripts.
+    /// </summary>
+    private void BakeNavigationMesh(Node levelRoot)
+    {
+        var navRegion = levelRoot.GetNodeOrNull<NavigationRegion2D>("NavigationRegion2D");
+        if (navRegion == null)
+        {
+            LogToFile("WARNING: NavigationRegion2D not found - enemy pathfinding will be limited");
+            return;
+        }
+        navRegion.BakeNavigationPolygon(false);
+        LogToFile("Navigation mesh baked successfully (C# fallback)");
     }
 
     /// <summary>

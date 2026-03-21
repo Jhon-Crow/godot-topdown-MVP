@@ -28,9 +28,6 @@ height = 240.0
 size = Vector2(200, 60)
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_level"]
-vertices = PackedVector2Array(500, 1280, 600, 800, 900, 400, 1500, 200, 3000, 100, 4500, 200, 5100, 400, 5400, 800, 5500, 1280, 5400, 1760, 5100, 2160, 4500, 2360, 3000, 2460, 1500, 2360, 900, 2160, 600, 1760)
-polygons = [PackedInt32Array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)]
-outlines = [PackedVector2Array(500, 1280, 600, 800, 900, 400, 1500, 200, 3000, 100, 4500, 200, 5100, 400, 5400, 800, 5500, 1280, 5400, 1760, 5100, 2160, 4500, 2360, 3000, 2460, 1500, 2360, 900, 2160, 600, 1760)]
 parsed_geometry_type = 1
 parsed_collision_mask = 4
 source_geometry_mode = 1

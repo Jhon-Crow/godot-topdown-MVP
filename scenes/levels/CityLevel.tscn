@@ -25,9 +25,6 @@ size = Vector2(80, 32)
 polygon = PackedVector2Array(-40, -16, 40, -16, 40, 16, -40, 16)
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_city"]
-vertices = PackedVector2Array(64, 64, 6064, 64, 6064, 5064, 64, 5064)
-polygons = [PackedInt32Array(0, 1, 2, 3)]
-outlines = [PackedVector2Array(64, 64, 6064, 64, 6064, 5064, 64, 5064)]
 parsed_geometry_type = 1
 parsed_collision_mask = 4
 source_geometry_mode = 1
