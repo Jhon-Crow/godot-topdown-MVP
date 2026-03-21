@@ -194,6 +194,9 @@ public partial class LevelInitFallback : Node
 
         // 10. Update GDScript properties so they are in sync
         SyncGDScriptProperties(levelRoot);
+
+        // 11. Setup warm ceiling lights (Issue #1206) — mirrors GDScript _setup_room_warm_lights()
+        SetupRoomWarmLights(levelRoot);
     }
 
     /// <summary>
@@ -1183,6 +1186,152 @@ public partial class LevelInitFallback : Node
             }
             scoreManager.Call("update_enemy_positions", enemiesArray);
         }
+    }
+
+    /// <summary>
+    /// Setup warm ceiling lights in the centers of rooms (Issue #1206).
+    /// Mirrors the GDScript _setup_room_warm_lights() / _create_room_warm_light() methods so
+    /// that lights are created even when GDScript _ready() silently fails due to the Godot 4.3
+    /// binary-tokenization bug (godotengine/godot#94150).
+    ///
+    /// Room positions match those in building_level.gd:
+    ///   Conference Room (1918,340), Break Room (1918,994), Server Room (2200,1638),
+    ///   Main Hall (1200,1724), Office 1 (290,384), Office 2 (718,780).
+    /// </summary>
+    private void SetupRoomWarmLights(Node levelRoot)
+    {
+        var environment = levelRoot.GetNodeOrNull("Environment");
+        if (environment == null)
+        {
+            LogToFile("WARNING: Environment node not found — skipping room warm lights setup");
+            return;
+        }
+
+        // Avoid creating lights twice if somehow GDScript already ran
+        if (levelRoot.GetNodeOrNull("Environment/RoomLights") != null)
+        {
+            LogToFile("RoomLights already exist — skipping warm lights setup");
+            return;
+        }
+
+        var container = new Node2D();
+        container.Name = "RoomLights";
+        environment.AddChild(container);
+
+        // Build the warm-light texture once and reuse it (single GPU upload)
+        var lightTexture = CreateWarmLightTexture();
+        var fixtureTexture = CreateLampFixtureTexture();
+
+        // Room config: position, energy, texture_scale, label
+        var rooms = new (Vector2 Pos, float Energy, float Scale, string Label)[]
+        {
+            // Large rooms — bigger lights
+            (new Vector2(1918, 340),  0.9f, 5.0f, "ConferenceRoom"),
+            (new Vector2(1918, 994),  0.9f, 5.0f, "BreakRoom"),
+            (new Vector2(2200, 1638), 0.9f, 5.0f, "ServerRoom"),
+            (new Vector2(1200, 1724), 0.85f, 4.5f, "MainHall"),
+            // Smaller rooms — softer lights
+            (new Vector2(290, 384),   0.7f, 3.5f, "Office1"),
+            // Office 2: shifted to upper half (y=780 instead of centre y=856)
+            (new Vector2(718, 780),   0.7f, 3.5f, "Office2"),
+        };
+
+        foreach (var room in rooms)
+            CreateRoomWarmLight(container, room.Pos, room.Energy, room.Scale, room.Label, lightTexture, fixtureTexture);
+
+        LogToFile("Warm ceiling lights placed in all rooms (Issue #1206, C# fallback)");
+    }
+
+    /// <summary>
+    /// Create a single warm ceiling light node at the given position.
+    /// </summary>
+    private static void CreateRoomWarmLight(
+        Node2D parent, Vector2 pos, float energy, float scale, string roomName,
+        ImageTexture lightTexture, ImageTexture fixtureTexture)
+    {
+        var lightNode = new Node2D();
+        lightNode.Name = $"WarmLight_{roomName}";
+        lightNode.Position = pos;
+        parent.AddChild(lightNode);
+
+        // Small visual indicator — round lamp fixture sprite
+        var fixture = new Sprite2D();
+        fixture.Name = "Fixture";
+        fixture.Texture = fixtureTexture;
+        fixture.Modulate = new Color(1.0f, 0.85f, 0.5f, 0.5f);
+        lightNode.AddChild(fixture);
+
+        // The warm PointLight2D with soft shadows
+        var light = new PointLight2D();
+        light.Name = "PointLight";
+        light.Color = new Color(1.0f, 0.75f, 0.3f, 1.0f);
+        light.Energy = energy;
+        light.ShadowEnabled = true;
+        light.ShadowFilter = PointLight2D.ShadowFilterEnum.Pcf5;
+        light.ShadowFilterSmooth = 4.0f;
+        light.Texture = lightTexture;
+        light.TextureScale = scale;
+        lightNode.AddChild(light);
+    }
+
+    /// <summary>
+    /// Create a soft radial gradient texture for the warm room lights.
+    /// Matches the GDScript _create_warm_light_texture() result exactly.
+    /// Uses a power-law falloff: bright core → gentle taper → black at rim.
+    /// </summary>
+    private static ImageTexture CreateWarmLightTexture()
+    {
+        const int size = 512;
+        var center = new Vector2(size * 0.5f, size * 0.5f);
+        float outerR = size * 0.5f;
+
+        var image = Image.Create(size, size, false, Image.Format.Rgba8);
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dist = new Vector2(x, y).DistanceTo(center);
+                float t = Mathf.Clamp(dist / outerR, 0.0f, 1.0f);
+                float brightness = Mathf.Pow(1.0f - t, 2.2f);
+                image.SetPixel(x, y, new Color(brightness, brightness, brightness, 1.0f));
+            }
+        }
+
+        return ImageTexture.CreateFromImage(image);
+    }
+
+    /// <summary>
+    /// Create a small circular texture for the lamp fixture visual indicator.
+    /// Matches the GDScript _create_lamp_fixture_texture() result exactly.
+    /// </summary>
+    private static ImageTexture CreateLampFixtureTexture()
+    {
+        const int size = 32;
+        var center = new Vector2(size * 0.5f, size * 0.5f);
+        float outerR = size * 0.5f;
+
+        var image = Image.Create(size, size, false, Image.Format.Rgba8);
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dist = new Vector2(x, y).DistanceTo(center);
+                if (dist >= outerR)
+                {
+                    image.SetPixel(x, y, new Color(0, 0, 0, 0));
+                }
+                else
+                {
+                    float t = Mathf.Clamp(dist / outerR, 0.0f, 1.0f);
+                    float alpha = Mathf.Pow(1.0f - t, 1.5f);
+                    image.SetPixel(x, y, new Color(1, 1, 1, alpha));
+                }
+            }
+        }
+
+        return ImageTexture.CreateFromImage(image);
     }
 
     /// <summary>
