@@ -390,7 +390,7 @@ class MockBeachLevel extends MockLevelBase:
 	## Sunlight configuration (Issue #1234).
 	## The sun is placed off-screen in the top-right corner to simulate outdoor daylight.
 	var sunlight_position: Vector2 = Vector2(2700, -200)
-	var sunlight_color: Color = Color(1.0, 0.92, 0.7, 1.0)
+	var sunlight_color: Color = Color(1.0, 0.95, 0.5, 1.0)
 	var sunlight_energy: float = 1.2
 	var sunlight_texture_scale: float = 14.0
 	var sunlight_shadow_enabled: bool = true

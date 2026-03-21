@@ -1291,13 +1291,14 @@ func _setup_sunlight() -> void:
 
 	var light := PointLight2D.new()
 	light.name = "SunPointLight"
-	# Warm golden-yellow sunlight color.
-	light.color = Color(1.0, 0.92, 0.7, 1.0)
+	# Bright yellow sunlight color — more yellow per user feedback.
+	light.color = Color(1.0, 0.95, 0.5, 1.0)
 	# Bright but not overwhelming — keeps the outdoor daylight feel.
 	light.energy = 1.2
 	light.shadow_enabled = true
-	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
-	light.shadow_filter_smooth = 4.0
+	# PCF3 instead of PCF5 to avoid multiple-shadow ghost artifacts on the player.
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF3
+	light.shadow_filter_smooth = 2.0
 	# Slight warm tint in shadows for a realistic sun effect.
 	light.shadow_color = Color(0.0, 0.0, 0.0, 0.5)
 	light.texture = _create_sunlight_texture()
