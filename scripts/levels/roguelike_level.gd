@@ -684,11 +684,18 @@ func _bake_navmesh_after_physics_frame(nav_region: NavigationRegion2D) -> void:
 	await get_tree().physics_frame
 	if not is_instance_valid(nav_region):
 		return
-	var msg: String = "Baking navmesh (#1107): carving walls from collision layer 4"
+	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
+	if nav_poly == null:
+		return
+	var msg: String = "Baking navmesh (#1107): scanning scene root for wall colliders on layer 4"
 	print("[RoguelikeLevel] " + msg)
 	FileLogger.info("[RoguelikeLevel] " + msg)
-	nav_region.bake_navigation_polygon(false)
-	var poly_count: int = nav_region.navigation_polygon.get_polygon_count() if nav_region.navigation_polygon else 0
+	# parse_source_geometry_data with self (scene root) scans ALL scene children including walls.
+	# bake_navigation_polygon(false) only scans NavigationRegion2D's own children — misses sibling walls.
+	var source_geometry := NavigationMeshSourceGeometryData2D.new()
+	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	var poly_count: int = nav_poly.get_polygon_count()
 	var msg2: String = "Navmesh bake complete: %d polygons (>1 means walls were carved)" % poly_count
 	print("[RoguelikeLevel] " + msg2)
 	FileLogger.info("[RoguelikeLevel] " + msg2)
