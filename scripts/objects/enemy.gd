@@ -80,7 +80,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIF
 @export var start_invisible: bool = false  ## Start with invisibility cloak, reveal only when shooting/throwing grenade (Issue #1121).
 @export var initial_state: AIState = AIState.IDLE  ## Initial AI state on spawn (Issue #1121). SEARCHING starts enemy in search mode.
 @export var has_armored_skin: bool = false  ## Whether this enemy has Armored Skin passive item (Issue #1123).
-@export var search_path_node: NodePath = NodePath("")  ## Path to SearchPathWaypoints node. When set, enemies use pre-planned waypoints during SEARCHING instead of dynamic spiral (Issue #1225).
+@export var search_path_node: NodePath = NodePath("")  ## SearchPathWaypoints node path; when set, uses pre-planned waypoints in SEARCHING instead of spiral (Issue #1225).
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
 @export var grenade_scene: PackedScene  ## Grenade scene to throw
@@ -279,8 +279,8 @@ var _search_last_progress_position: Vector2 = Vector2.ZERO  ## Last progress pos
 const SEARCH_STUCK_MAX_TIME: float = 2.0  ## Max stuck time
 const SEARCH_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
 var _has_left_idle: bool = false  ## Issue #330: Never returns to IDLE
-var _search_path_node: Node2D = null  ## Cached reference to SearchPathWaypoints node (Issue #1225)
-var _using_predefined_search_path: bool = false  ## True when using predefined waypoints instead of spiral (Issue #1225)
+var _search_path_node: Node2D = null  ## SearchPathWaypoints node cache (Issue #1225)
+var _using_predefined_search_path: bool = false  ## Using predefined path instead of spiral (Issue #1225)
 const CLOSE_COMBAT_DISTANCE: float = 400.0  ## Close combat threshold
 var _goap_world_state: Dictionary = {}  ## GOAP world state
 var _detection_timer: float = 0.0  ## Combat detection timer
@@ -1194,7 +1194,6 @@ func _process_ai_state(delta: float) -> void:
 	var previous_state := _current_state
 
 	# ABSOLUTE HIGHEST PRIORITY: Grenade danger zone evasion (Issue #407)
-	# Survival instinct - enemies flee from grenades before any other action
 	var in_grenade_danger := _grenade_avoidance.in_danger_zone if _grenade_avoidance else false
 	if in_grenade_danger and _current_state != AIState.EVADING_GRENADE:
 		_log_to_file("GRENADE DANGER: Entering EVADING_GRENADE state from %s" % AIState.keys()[_current_state])
@@ -1227,9 +1226,7 @@ func _process_ai_state(delta: float) -> void:
 			# The state machine will continue normally in the next frame
 			return
 
-	# HIGHEST PRIORITY: If player is reloading or tried to shoot with empty weapon,
-	# and enemy is close to the player, immediately attack with maximum priority.
-	# This exploits the player's vulnerability during reload or when out of ammo.
+	# HIGHEST PRIORITY: Attack immediately if player is reloading or out of ammo (Issue #318)
 	var player_reloading: bool = _goap_world_state.get("player_reloading", false)
 	var player_ammo_empty: bool = _goap_world_state.get("player_ammo_empty", false)
 	var player_is_vulnerable: bool = player_reloading or player_ammo_empty
@@ -1240,11 +1237,8 @@ func _process_ai_state(delta: float) -> void:
 		var distance_to_player := global_position.distance_to(_player.global_position)
 		_log_debug("Vulnerable check: reloading=%s, ammo_empty=%s, can_see=%s, close=%s (dist=%.0f)" % [player_reloading, player_ammo_empty, _can_see_player, player_close, distance_to_player])
 
-	# Log vulnerability conditions when player is vulnerable but we can't attack
-	# This helps diagnose why priority attacks might not be triggering
 	if player_is_vulnerable and _player and not (player_close and _can_see_player):
 		var distance_to_player := global_position.distance_to(_player.global_position)
-		# Only log once per vulnerability state change to avoid spam
 		var vuln_key := "last_vuln_log_frame"
 		var current_frame := Engine.get_physics_frames()
 		var last_log_frame: int = _goap_world_state.get(vuln_key, -100)
@@ -1253,40 +1247,27 @@ func _process_ai_state(delta: float) -> void:
 			var reason: String = "reloading" if player_reloading else "ammo_empty"
 			_log_to_file("Player vulnerable (%s) but cannot attack: close=%s (dist=%.0f), can_see=%s" % [reason, player_close, distance_to_player, _can_see_player])
 
-	# Issue #318: Also block vulnerability attacks during confusion period
-	# Issue #959: Pacifists never exploit player vulnerability
+	# Issue #318: block during confusion; Issue #959: pacifists skip
 	if player_is_vulnerable and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _can_see_player and _player and player_close:
-		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
-			# Log the vulnerability attack
 			var reason: String = "reloading" if player_reloading else "empty ammo"
 			_log_to_file("Player %s - priority attack triggered" % reason)
 
-			# Aim at player immediately - both body rotation and model rotation
+			# Aim at player immediately
 			rotation = direction_to_player.angle()
 			# CRITICAL: Force model to face player for correct aim direction (issue #264)
 			_force_model_to_face_direction(direction_to_player)
 
-			# Shoot with priority - still respects weapon fire rate cooldown
-			# The weapon cannot physically fire faster than its fire rate
-			_shoot()
-			_shoot_timer = 0.0  # Reset shoot timer after vulnerability shot
-
-			# Ensure detection delay is bypassed for any subsequent normal shots
+			_shoot(); _shoot_timer = 0.0
 			_detection_delay_elapsed = true
-
-			# Transition to COMBAT if not already in a combat-related state
 			if _current_state == AIState.IDLE:
 				_transition_to_combat()
-				_detection_delay_elapsed = true  # Re-set after transition resets it
-
-			# Return early - we've taken the highest priority action
+				_detection_delay_elapsed = true
 			return
 
-	# SECOND PRIORITY: If player is vulnerable but NOT close, pursue them aggressively
-	# This makes enemies rush toward vulnerable players to exploit the weakness
+	# SECOND PRIORITY: pursue vulnerable player who is not close
 	if player_is_vulnerable and _can_see_player and _player and not player_close:
 		var distance_to_player := global_position.distance_to(_player.global_position)
 		# Only log once per pursuit decision to avoid spam
@@ -1407,10 +1388,7 @@ func _process_combat_state(delta: float) -> void:
 			_transition_to_retreating()
 		return
 
-	# NOTE: ASSAULT state transition removed per issue #169
-	# If can't see player, pursue them (move cover-to-cover toward player)
-	# But only after minimum time has elapsed to prevent rapid state thrashing
-	# when visibility flickers at wall/obstacle edges
+	# If can't see player, pursue (after min duration to prevent rapid thrashing) - Issue #169
 	if not _can_see_player:
 		if _combat_state_timer >= COMBAT_MIN_DURATION_BEFORE_PURSUE:
 			_combat_exposed = false
@@ -2046,9 +2024,7 @@ func _process_pursuing_state(delta: float) -> void:
 			return
 
 	if _suppressive_fire: _suppressive_fire.try_suppress_pursuing(_can_see_player, _last_known_player_position, _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown)  # Issue #910
-	# VULNERABILITY SOUND PURSUIT: When we heard a reload/empty click sound,
-	# move directly toward the sound position using navigation (goes around walls).
-	# This is a direct pursuit without cover-to-cover movement.
+	# VULNERABILITY SOUND PURSUIT: pursue reload/empty click sound position
 	if _pursuing_vulnerability_sound and _last_known_player_position != Vector2.ZERO:
 		var distance_to_sound := global_position.distance_to(_last_known_player_position)
 
@@ -2242,54 +2218,25 @@ func _process_assault_state(_delta: float) -> void:
 	_assault_ready = false
 	_transition_to_combat()
 
-## Load predefined search waypoints from a SearchPathWaypoints node (Issue #1225).
-## Returns true if a valid predefined path was loaded, false otherwise.
-## When a predefined path is available, the enemy starts from the waypoint nearest
-## to its current position and progresses toward the waypoint nearest to the last
-## known player position, traversing the entire path in order.
-func _load_predefined_search_path(near_pos: Vector2) -> bool:
-	# Resolve the search path node lazily (cache it)
+## Load predefined search waypoints from SearchPathWaypoints node (Issue #1225). Returns true if loaded.
+func _load_predefined_search_path(_near_pos: Vector2) -> bool:
 	if _search_path_node == null or not is_instance_valid(_search_path_node):
-		if search_path_node != NodePath(""):
-			_search_path_node = get_node_or_null(search_path_node)
+		if search_path_node != NodePath(""): _search_path_node = get_node_or_null(search_path_node)
 		if _search_path_node == null:
-			# Also try to find it automatically by group in the scene tree
 			var found := get_tree().get_nodes_in_group("search_path_waypoints")
-			if found.size() > 0:
-				_search_path_node = found[0]
-	if _search_path_node == null:
-		return false
-	# Collect all Marker2D children as ordered waypoints
-	var all_waypoints: Array[Vector2] = []
-	for child in _search_path_node.get_children():
-		if child is Marker2D:
-			all_waypoints.append(child.global_position)
-	if all_waypoints.is_empty():
-		return false
-	# Find nearest waypoint to enemy's current position
-	var start_idx := 0
-	var min_dist_start := INF
-	for i in range(all_waypoints.size()):
-		var d := global_position.distance_to(all_waypoints[i])
-		if d < min_dist_start:
-			min_dist_start = d
-			start_idx = i
-	# Find nearest waypoint to the search center (last known player position)
-	var target_idx := start_idx
-	var min_dist_target := INF
-	for i in range(all_waypoints.size()):
-		var d := near_pos.distance_to(all_waypoints[i])
-		if d < min_dist_target:
-			min_dist_target = d
-			target_idx = i
-	# Build waypoint list: from start_idx, wrap around full path, stop after one full loop
-	_search_waypoints.clear()
-	_search_current_waypoint_index = 0
-	var count := all_waypoints.size()
-	for i in range(count):
-		var idx := (start_idx + i) % count
-		_search_waypoints.append(all_waypoints[idx])
-	_log_debug("SEARCHING: Loaded %d predefined waypoints (start=%d, player_nearest=%d)" % [_search_waypoints.size(), start_idx, target_idx])
+			if found.size() > 0: _search_path_node = found[0]
+	if _search_path_node == null: return false
+	var wps: Array[Vector2] = []
+	for c in _search_path_node.get_children():
+		if c is Marker2D: wps.append(c.global_position)
+	if wps.is_empty(): return false
+	var si := 0; var md := INF
+	for i in range(wps.size()):
+		var d := global_position.distance_to(wps[i])
+		if d < md: md = d; si = i
+	_search_waypoints.clear(); _search_current_waypoint_index = 0
+	for i in range(wps.size()): _search_waypoints.append(wps[(si + i) % wps.size()])
+	_log_debug("SEARCHING: Loaded %d predefined waypoints (start=%d)" % [_search_waypoints.size(), si])
 	return true
 
 ## Generate search waypoints in expanding square spiral (Issue #322). Skips visited zones.
@@ -2350,12 +2297,8 @@ func _process_searching_state(delta: float) -> void:
 		_transition_to_combat()
 		return
 	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
-		# Issue #1225: Predefined path exhausted — loop back to start for continued searching.
-		if _using_predefined_search_path and not _search_waypoints.is_empty():
-			_search_current_waypoint_index = 0
-			_search_moving_to_waypoint = true
-			_log_to_file("SEARCHING: Predefined path looped (wps=%d)" % _search_waypoints.size())
-			return
+		if _using_predefined_search_path and not _search_waypoints.is_empty():  # Issue #1225: loop predefined path
+			_search_current_waypoint_index = 0; _search_moving_to_waypoint = true; return
 		if _search_radius < SEARCH_MAX_RADIUS:
 			_search_radius += SEARCH_RADIUS_EXPANSION
 			_generate_search_waypoints()
@@ -2374,11 +2317,9 @@ func _process_searching_state(delta: float) -> void:
 			_log_to_file("SEARCHING: Max radius, returning to IDLE (patrol enemy)")
 			_transition_to_idle(); return
 	if _search_waypoints.is_empty():
-		# Issue #1225: Try reloading predefined path if it was previously used but now empty.
-		if _using_predefined_search_path:
+		if _using_predefined_search_path:  # Issue #1225: reload predefined path
 			_using_predefined_search_path = _load_predefined_search_path(_search_center)
-			if _using_predefined_search_path:
-				return
+			if _using_predefined_search_path: return
 		if _has_left_idle:  # Issue #330/#405: Regenerate from current position, clear old zones
 			var old := _search_center; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS
 			# Issue #405: Clear visited zones to allow exploring new areas
@@ -2469,7 +2410,6 @@ func _process_evading_grenade_state(delta: float) -> void:
 func _return_from_grenade_evasion() -> void:
 	_grenade_evasion_timer = 0.0
 	if _grenade_avoidance: _grenade_avoidance.reset()  # Clears position memory too (Issue #426)
-	# Return to previous state
 	match _pre_evasion_state:
 		AIState.IDLE: _transition_to_idle()
 		AIState.COMBAT: _transition_to_combat()
@@ -2797,12 +2737,9 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
 	# Issue #354: Initialize stuck detection
 	_search_stuck_timer = 0.0; _search_last_progress_position = global_position
-	# Issue #1225: Use predefined search path if available, otherwise fall back to dynamic spiral.
-	_using_predefined_search_path = _load_predefined_search_path(center_position)
-	if not _using_predefined_search_path:
-		_generate_search_waypoints()
-	var mode_str := "predefined" if _using_predefined_search_path else "spiral"
-	var msg := "SEARCHING started (%s): center=%s, radius=%.0f, waypoints=%d" % [mode_str, _search_center, _search_radius, _search_waypoints.size()]
+	_using_predefined_search_path = _load_predefined_search_path(center_position)  # Issue #1225
+	if not _using_predefined_search_path: _generate_search_waypoints()
+	var msg := "SEARCHING started (%s): center=%s, radius=%.0f, waypoints=%d" % ["predefined" if _using_predefined_search_path else "spiral", _search_center, _search_radius, _search_waypoints.size()]
 	_log_debug(msg); _log_to_file(msg)
 
 ## Transition to EVADING_GRENADE state - flee from grenade danger zone (Issue #407).
