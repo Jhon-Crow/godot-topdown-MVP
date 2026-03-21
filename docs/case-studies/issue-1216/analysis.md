@@ -2,7 +2,7 @@
 
 **Issue:** [#1216](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1216) — "fix нав меш"
 **PR:** [#1217](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1217)
-**Status:** Partially fixed (root causes 1 & 2 resolved; root cause 3 remains)
+**Status:** Partially fixed (root causes 1, 2 & 3 resolved; root causes 4 & 5 being addressed)
 **Date:** 2026-03-21
 **Engine:** Godot 4.3-stable
 
@@ -207,6 +207,75 @@ func _get_valid_nav_point(pos: Vector2) -> Vector2:
 | Table2 eroded boundary (x) | 1486–1614 (agent_radius=24) |
 | Enemy7 spawn x | 1600 (inside eroded zone: < 1614) |
 | Stuck events observed | 3 (Enemy7×2, Enemy10×1 in first 16 s of BuildingLevel) |
+
+---
+
+## 9. Follow-up Findings (2026-03-21 session 2)
+
+### Root Cause #5 — IDLE enemies walk directly to player via ally intel (regression)
+
+**Symptom:** Enemies in IDLE state (patrol/guard, never having engaged the player) were
+sometimes walking directly toward the player. Reported: "sometimes enemies in idle state walk
+directly toward the player."
+
+**Root Cause:** In `_process_idle_state()`, the memory system check (Issue #297) triggered
+`_transition_to_pursuing()` for ANY enemy with memory confidence >= 0.5, including:
+- Enemies that received intel from an ally who saw the player (confidence 1.0 × 0.9 = 0.9)
+- Enemies that heard gunshots from the player (confidence 0.7)
+
+Since `_memory.is_medium_confidence()` fires at >= 0.5, a pure patrol enemy receiving
+one ally intel broadcast would immediately start pursuing the player — regardless of whether
+the enemy itself had ever seen the player.
+
+**Fix (committed 2026-03-21):** Gate the memory→pursuing transition on `_has_left_idle`:
+
+```gdscript
+# Before (bug):
+if _memory and _memory.has_target():
+    if _memory.is_high_confidence(): _transition_to_pursuing(); return
+    elif _memory.is_medium_confidence(): _transition_to_pursuing(); return
+
+# After (fix):
+if _has_left_idle and _memory and _memory.has_target():
+    if _memory.is_high_confidence(): _transition_to_pursuing(); return
+    elif _memory.is_medium_confidence(): _transition_to_pursuing(); return
+```
+
+`_has_left_idle` is set to `true` the first time an enemy transitions out of IDLE state
+(i.e., it has previously engaged). Pure patrol enemies (never engaged) will only react to
+direct visual detection of the player.
+
+### Root Cause #4 Confirmed — Navmesh snap runs on stale map (Enemy10 stuck)
+
+**Symptom:** Enemy10 at (1200, 1550) is consistently snapped to (1200, 1424) by the patrol
+point snap code introduced in fix for Root Cause #3. The snap moves the enemy 126px north
+into the wrong area of the corridor, causing repeated PATROL STUCK at (1200, 1424).
+
+**Root Cause Confirmed:** `bake_from_source_geometry_data()` is synchronous for polygon
+computation but the NavigationServer2D's internal map update happens on the NEXT physics
+frame. The patrol snap code runs on physics frame 1 (via `_physics_process`), which is the
+SAME frame as `_ready()` completes. At this point the NavServer map is stale (shows
+pre-bake or empty data), so `map_get_closest_point(1200, 1550)` returns (1200, 1424) — the
+nearest edge of the pre-baked flat rectangle cut off at y=1424 by wall geometry already
+present in the pre-baked resource.
+
+**Evidence from logs:**
+- `game_log_20260321_065153.txt` line 704: snap fires at 06:52:20 (frame 3 from ReplayManager)
+- Line 705: immediately triggers `PATROL corner check: angle 180.0°` — enemy moving NORTH
+- Line 739: `PATROL STUCK: pos=(1200, 1424.01)` — enemy never moved past the snapped position
+
+**Fix (committed 2026-03-21):** Record `_spawn_physics_frame = Engine.get_physics_frames()`
+in `_ready()` and add `Engine.get_physics_frames() > _spawn_physics_frame` as a guard before
+the snap. This ensures the snap runs in physics frame 2+, after the NavServer has had one
+full physics step to propagate the freshly-baked navmesh:
+
+```gdscript
+# Before (bug):
+if not _patrol_points_snapped and _nav_agent != null:
+
+# After (fix):
+if not _patrol_points_snapped and _nav_agent != null and Engine.get_physics_frames() > _spawn_physics_frame:
+```
 
 ---
 

@@ -178,6 +178,7 @@ var _patrol_wait_timer: float = 0.0
 var _patrol_stuck_timer: float = 0.0; var _patrol_stuck_last_position: Vector2 = Vector2.ZERO  ## #1119: patrol stuck detection
 const PATROL_STUCK_MAX_TIME: float = 1.5; const PATROL_STUCK_DISTANCE_THRESHOLD: float = 20.0  ## #1119: stuck thresholds
 var _patrol_points_snapped: bool = false  ## #1216: tracks whether patrol points were snapped to the navmesh
+var _spawn_physics_frame: int = 0  ## #1216: physics frame at spawn, used to delay navmesh snap by 1 frame
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
 var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
@@ -363,6 +364,7 @@ func _ready() -> void:
 	add_to_group("enemies")
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
+	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
 
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
@@ -1337,22 +1339,18 @@ func _process_idle_state(delta: float) -> void:
 		else: _transition_to_combat()
 		return
 
-	# Check memory system for suspected player position (Issue #297)
-	# If we have high/medium confidence about player location, investigate
-	if _memory and _memory.has_target():
+	# Issue #297: re-pursue from memory only if enemy has previously engaged (#1216: gate on _has_left_idle
+	# so pure patrol/guard enemies don't walk toward the player just because an ally shared intel).
+	if _has_left_idle and _memory and _memory.has_target():
 		if _memory.is_high_confidence():
-			# High confidence: Go investigate directly
 			_log_debug("High confidence (%.0f%%) - investigating suspected position" % (_memory.confidence * 100))
 			_log_to_file("Memory: high confidence (%.2f) - transitioning to PURSUING" % _memory.confidence)
-			_transition_to_pursuing()
-			return
+			_transition_to_pursuing(); return
 		elif _memory.is_medium_confidence():
-			# Medium confidence: Investigate cautiously (also use pursuing with cover-to-cover)
 			_log_debug("Medium confidence (%.0f%%) - cautiously investigating" % (_memory.confidence * 100))
 			_log_to_file("Memory: medium confidence (%.2f) - transitioning to PURSUING" % _memory.confidence)
-			_transition_to_pursuing()
-			return
-		# Low confidence: Continue normal patrol but may wander toward suspected area
+			_transition_to_pursuing(); return
+		# Low confidence: Continue normal patrol
 	# Execute idle behavior
 	match behavior_mode:
 		BehaviorMode.PATROL: _process_patrol(delta)
@@ -4055,9 +4053,8 @@ func _calculate_lead_prediction() -> Vector2:
 func _process_patrol(delta: float) -> void:
 	# Issue #1119: NavigationAgent2D routing replaces direct direction+wall avoidance (wall-rubbing fix).
 	if _patrol_points.is_empty(): return
-	# Issue #1216: On first tick snap patrol points to nearest valid navmesh position so that
-	# points inside eroded obstacle zones don't cause permanent PATROL STUCK loops.
-	if not _patrol_points_snapped and _nav_agent != null:
+	# Issue #1216: Snap patrol points after 1 physics frame so NavServer has propagated baked navmesh.
+	if not _patrol_points_snapped and _nav_agent != null and Engine.get_physics_frames() > _spawn_physics_frame:
 		var nav_map: RID = _nav_agent.get_navigation_map()
 		if nav_map.is_valid():
 			for i in range(_patrol_points.size()): _patrol_points[i] = NavigationServer2D.map_get_closest_point(nav_map, _patrol_points[i])
