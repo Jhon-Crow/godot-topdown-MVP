@@ -28,15 +28,15 @@ theme = ExtResource("3_neon_theme")
 
 [node name="PanelContainer" type="PanelContainer" parent="MenuContainer"]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -440.0
-offset_top = -370.0
-offset_right = 440.0
-offset_bottom = 370.0
+anchors_preset = -1
+anchor_left = 0.1
+anchor_top = 0.05
+anchor_right = 0.9
+anchor_bottom = 0.95
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -80,6 +80,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Disable FOV Limitation"
+autowrap_mode = 2
 
 [node name="FOVCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FOVContainer"]
 layout_mode = 2
@@ -101,6 +102,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Complex Grenade Throwing"
+autowrap_mode = 2
 
 [node name="ComplexGrenadeCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ComplexGrenadeContainer"]
 layout_mode = 2
@@ -123,6 +125,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "AI Player Prediction"
+autowrap_mode = 2
 
 [node name="AIPredictionCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIPredictionContainer"]
 layout_mode = 2
@@ -145,6 +148,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Debug Mode (F7)"
+autowrap_mode = 2
 
 [node name="DebugModeCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DebugModeContainer"]
 layout_mode = 2
@@ -159,6 +163,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Invincibility (F6)"
+autowrap_mode = 2
 
 [node name="InvincibilityCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/InvincibilityContainer"]
 layout_mode = 2
@@ -173,6 +178,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Enable Replay Viewing"
+autowrap_mode = 2
 
 [node name="ReplayCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReplayContainer"]
 layout_mode = 2
@@ -194,6 +200,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Enable Log Recording"
+autowrap_mode = 2
 
 [node name="LoggingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/LoggingContainer"]
 layout_mode = 2
@@ -215,6 +222,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Enemy Flashlight Blinding"
+autowrap_mode = 2
 
 [node name="EnemyFlashlightBlindingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyFlashlightBlindingContainer"]
 layout_mode = 2
@@ -236,6 +244,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Show FPS Counter"
+autowrap_mode = 2
 
 [node name="FpsCounterCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsCounterContainer"]
 layout_mode = 2
@@ -257,6 +266,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Log FPS Drops"
+autowrap_mode = 2
 
 [node name="FpsDropLoggingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer"]
 layout_mode = 2
@@ -278,6 +288,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Unlock All Weapons"
+autowrap_mode = 2
 
 [node name="AllWeaponsUnlockedCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer"]
 layout_mode = 2
@@ -299,6 +310,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Unlock All Maps"
+autowrap_mode = 2
 
 [node name="AllMapsUnlockedCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer"]
 layout_mode = 2
@@ -313,6 +325,58 @@ autowrap_mode = 2
 [node name="HSeparator12b" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="GlobalStuckMaxTimeContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="GlobalStuckMaxTimeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Global Stuck Max Time"
+autowrap_mode = 2
+
+[node name="GlobalStuckMaxTimeSlider" type="HSlider" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer"]
+custom_minimum_size = Vector2(200, 30)
+layout_mode = 2
+min_value = 1.0
+max_value = 60.0
+step = 1.0
+value = 20.0
+
+[node name="GlobalStuckMaxTimeValueLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "20s"
+
+[node name="GlobalStuckMaxTimeDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "How long an enemy can stay in the same spot before\ngiving up pursuit and switching to SEARCHING state."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator12c" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="NavMeshVisibleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="NavMeshVisibleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Nav Mesh"
+autowrap_mode = 2
+
+[node name="NavMeshVisibleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer"]
+layout_mode = 2
+
+[node name="NavMeshVisibleDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws the AI navigation mesh overlay.\nShows where enemies can walk and helps debug\nincorrectly built areas of the mesh."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator12d" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="DeleteSavesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
@@ -320,6 +384,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Delete Saves"
+autowrap_mode = 2
 
 [node name="DeleteSavesButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer"]
 layout_mode = 2
@@ -343,6 +408,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "View Unlock Table"
+autowrap_mode = 2
 
 [node name="UnlockTableButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer"]
 layout_mode = 2
@@ -365,6 +431,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "View Enemies Table"
+autowrap_mode = 2
 
 [node name="EnemiesTableButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemiesTableContainer"]
 layout_mode = 2
@@ -398,6 +465,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Enemy Type"
+autowrap_mode = 2
 
 [node name="EnemyTypeOption" type="OptionButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemySpawnerContainer"]
 layout_mode = 2
@@ -418,6 +486,7 @@ autowrap_mode = 2
 layout_mode = 2
 text = "FOV enabled: Enemies see in 100 degree cone"
 horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="BackButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)

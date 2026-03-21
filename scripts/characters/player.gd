@@ -42,13 +42,10 @@ extends CharacterBody2D
 
 ## Color when at full health.
 @export var full_health_color: Color = Color(0.2, 0.6, 1.0, 1.0)
-
 ## Color when at low health (interpolates based on health percentage).
 @export var low_health_color: Color = Color(0.1, 0.2, 0.4, 1.0)
-
 ## Color to flash when hit.
 @export var hit_flash_color: Color = Color(1.0, 1.0, 1.0, 1.0)
-
 ## Duration of hit flash effect in seconds.
 @export var hit_flash_duration: float = 0.1
 
@@ -56,35 +53,27 @@ extends CharacterBody2D
 ## The actual shake distance per shot is calculated as: intensity / fire_rate * 10
 ## Lower fire rate = larger shake per shot.
 @export var screen_shake_intensity: float = 5.0
-
-## Fire rate in shots per second (used for shake calculation).
-## Default is 10.0 to match the assault rifle.
+## Fire rate in shots per second (used for shake calculation). Default is 10.0.
 @export var fire_rate: float = 10.0
-
 ## Minimum recovery time for screen shake at minimum spread.
 @export var screen_shake_min_recovery: float = 0.25
-
 ## Maximum recovery time for screen shake at maximum spread (min 50ms).
 @export var screen_shake_max_recovery: float = 0.05
 
 ## Current ammunition count.
 var _current_ammo: int = 90
-
 ## Current health of the player.
 var _current_health: int = 5
-
 ## Whether the player is alive.
 var _is_alive: bool = true
 
 ## Reference to the player model node containing all sprites.
 @onready var _player_model: Node2D = $PlayerModel
-
 ## References to individual sprite parts for color changes.
 @onready var _body_sprite: Sprite2D = $PlayerModel/Body
 @onready var _head_sprite: Sprite2D = $PlayerModel/Head
 @onready var _left_arm_sprite: Sprite2D = $PlayerModel/LeftArm
 @onready var _right_arm_sprite: Sprite2D = $PlayerModel/RightArm
-
 ## Reference to the casing pusher area (for pushing shell casings when walking over them).
 @onready var _casing_pusher: Area2D = $CasingPusher
 
@@ -115,58 +104,44 @@ var _shot_timer: float = 0.0
 
 ## Reload sequence state (0 = waiting for R, 1 = waiting for F, 2 = waiting for R).
 var _reload_sequence_step: int = 0
-
 ## Whether the player is currently in reload sequence (for Sequence mode).
 var _is_reloading_sequence: bool = false
-
 ## Whether the player is currently reloading (for Simple mode).
 var _is_reloading_simple: bool = false
-
 ## Timer for simple reload progress.
 var _reload_timer: float = 0.0
 
 ## Signal emitted when ammo changes.
 signal ammo_changed(current: int, maximum: int)
-
 ## Signal emitted when ammo is depleted.
 signal ammo_depleted
-
 ## Signal emitted when the player is hit.
 signal hit
-
 ## Signal emitted when health changes.
 signal health_changed(current: int, maximum: int)
-
 ## Signal emitted when the player dies.
 signal died
-
 ## Signal emitted when death animation completes.
 signal death_animation_completed
-
 ## Signal emitted when reload sequence progresses.
 signal reload_sequence_progress(step: int, total: int)
-
 ## Signal emitted when reload completes.
 signal reload_completed
-
 ## Signal emitted when reload starts (first step of sequence or simple reload).
 ## This signal notifies enemies that the player has begun reloading.
 signal reload_started
-
 ## Signal emitted when grenade count changes.
 signal grenade_changed(current: int, maximum: int)
-
 ## Signal emitted when a grenade is thrown.
 signal grenade_thrown
-
 ## Signal emitted when homing bullets charges change.
 signal homing_charges_changed(current: int, maximum: int)
-
 ## Signal emitted when homing bullets effect activates.
 signal homing_activated
-
 ## Signal emitted when homing bullets effect deactivates.
 signal homing_deactivated
+## Signal emitted when experimental sample charges change (Issue #1127).
+signal experimental_sample_charges_changed(current: int, maximum: int)
 
 ## Grenade scene to instantiate when throwing.
 @export var grenade_scene: PackedScene
@@ -397,14 +372,18 @@ func _ready() -> void:
 	# Initialize recoil compensator if active item manager has it selected (Issue #1073)
 	_init_recoil_compensator()
 
-	# Initialize dash if active item manager has it selected (Issue #1071)
-	_init_dash()
+	# Initialize experimental sample if active item manager has it selected (Issue #1127)
+	_init_experimental_sample()
+	_init_dash()  # (Issue #1071)
 
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
 
 	# Initialize jammer HUD icon (Issue #1036)
 	_init_jammer_hud()
+
+	# Apply item-specific player visual based on the equipped passive item (Issue #1142)
+	_apply_item_visual()
 
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
@@ -426,14 +405,10 @@ func _physics_process(delta: float) -> void:
 			_weapon_pose_applied = true
 
 	var input_direction := _get_input_direction()
-
-	# Update dash state before movement so the dash velocity is applied this frame (Issue #1071)
-	_update_dash_state(delta, input_direction)
-
-	# During an active dash (Issue #1071), override velocity with dash speed.
-	# Normal acceleration/friction are skipped until the dash ends.
-	if _dash_active:
-		velocity = _dash_direction * DASH_SPEED
+	if _dash != null:
+		_dash.update_state(delta, input_direction)  # (Issue #1071)
+	if _dash != null and _dash.is_active_dash():
+		velocity = _dash.get_dash_velocity()  # Override velocity during dash
 	elif input_direction != Vector2.ZERO:
 		# Apply acceleration towards the input direction
 		velocity = velocity.move_toward(input_direction * max_speed, acceleration * delta)
@@ -546,11 +521,11 @@ func _physics_process(delta: float) -> void:
 	# Handle recoil compensator input (hold Space to activate) (Issue #1073)
 	_handle_recoil_compensator_input(delta)
 
+	# Handle experimental sample input (press Space to trigger random effect) (Issue #1127)
+	_handle_experimental_sample_input()
+
 	# Update jammer HUD icon visibility (Issue #1036)
 	_update_jammer_hud()
-
-	# Handle dash input (press Space to dash) (Issue #1071)
-	_handle_dash_input(delta)
 
 
 func _get_input_direction() -> Vector2:
@@ -1116,13 +1091,8 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 		return
 
 	# Check force field protection (Issue #676)
-	if is_force_field_active():
-		FileLogger.info("[Player] Hit blocked by force field")
-		return
-
-	# Check dash invincibility (Issue #1071) — player is invincible during the dash
-	if is_dashing():
-		FileLogger.info("[Player] Hit blocked by dash invincibility")
+	if is_force_field_active() or is_dashing():  # Invincible: force field or dash (Issue #1071)
+		FileLogger.info("[Player] Hit blocked by %s" % ("force field" if is_force_field_active() else "dash invincibility"))
 		return
 
 	# Check invincibility mode (F6 toggle)
@@ -3218,6 +3188,14 @@ func _handle_homing_input(delta: float) -> void:
 	if not _homing_equipped:
 		return
 
+	# Issue #1115: Cancel homing effect immediately if player enters jammer range while active
+	if _homing_active and ActiveItemManager.is_active_item_jammed():
+		_homing_active = false
+		_homing_timer = 0.0
+		_stop_homing_scanner()
+		homing_deactivated.emit()
+		FileLogger.info("[Player.Homing] Homing cancelled by Radio Jammer (Issue #1115)")
+
 	# Handle active timer countdown
 	if _homing_active:
 		_homing_timer -= delta
@@ -3634,6 +3612,11 @@ func _handle_invisibility_suit_input() -> void:
 	if not is_instance_valid(_invisibility_suit):
 		return
 
+	# Issue #1115: Cancel invisibility immediately if player enters jammer range while active
+	if _invisibility_suit.is_active and ActiveItemManager.is_active_item_jammed():
+		_invisibility_suit.deactivate()
+		FileLogger.info("[Player.InvisibilitySuit] Invisibility cancelled by Radio Jammer (Issue #1115)")
+
 	# Activate on Space press (not hold — single press activates for full duration)
 	if Input.is_action_just_pressed("flashlight_toggle"):
 		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
@@ -3897,6 +3880,11 @@ func _handle_trajectory_glasses_input() -> void:
 	if not is_instance_valid(_trajectory_glasses):
 		return
 
+	# Issue #1115: Cancel trajectory glasses immediately if player enters jammer range while active
+	if _trajectory_glasses.is_active and ActiveItemManager.is_active_item_jammed():
+		_trajectory_glasses.deactivate()
+		FileLogger.info("[Player.TrajectoryGlasses] Trajectory glasses cancelled by Radio Jammer (Issue #1115)")
+
 	# Activate on Space press (not hold — single press activates for full duration)
 	if Input.is_action_just_pressed("flashlight_toggle"):
 		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
@@ -3995,6 +3983,9 @@ var _loudspeaker_cone: Node2D = null
 ## Loudspeaker progress tracker (7-level system).
 var _loudspeaker_progress: LoudspeakerProgress = null
 
+## Dash active item component (Issue #1071).
+var _dash: DashComponent = null
+
 ## Sprite shown in player's hands during loudspeaker activation (Issue #959).
 var _loudspeaker_hand_sprite: Sprite2D = null
 
@@ -4028,8 +4019,13 @@ func _init_loudspeaker() -> void:
 
 	FileLogger.info("[Player.Loudspeaker] Loudspeaker selected, initializing...")
 
-	# Create loudspeaker progress tracker
-	_loudspeaker_progress = LoudspeakerProgress.new()
+	# Reuse the persistent progress tracker from ActiveItemManager (Issue #959).
+	# Do NOT create a new one here — that would reset all progression on every scene load.
+	_loudspeaker_progress = active_item_manager.loudspeaker_progress
+	# Reset only per-run state (charges/cooldown/all_charges_used) on respawn.
+	# used_this_level is NOT reset here — it persists across deaths on the same map
+	# so the first-use 100% only fires once per level visit (Issue #959).
+	_loudspeaker_progress.reset_for_respawn()
 
 	# Create the cone visual effect node
 	_loudspeaker_cone = LoudspeakerConeEffectScript.new()
@@ -4056,9 +4052,17 @@ func _init_loudspeaker() -> void:
 			add_child(_loudspeaker_hand_sprite)
 
 	var max_charges := _loudspeaker_progress.get_max_charges()
-	FileLogger.info("[Player.Loudspeaker] Loudspeaker equipped, charges: %s" % (
-		str(max_charges) if max_charges != -1 else "unlimited"
-	))
+	FileLogger.info("[Player.Loudspeaker] Loudspeaker equipped, level: %d, charges: %s, effect: %.0f%%, used_this_level: %s, all_charges_used: %s" % [
+		_loudspeaker_progress.current_level,
+		str(max_charges) + "/" + str(max_charges) if max_charges != -1 else "unlimited",
+		_loudspeaker_progress.get_effect_chance() * 100.0,
+		_loudspeaker_progress.used_this_level,
+		_loudspeaker_progress.all_charges_used_this_level
+	])
+
+	# Apply level start states for levels 6 and 7 (Issue #959)
+	if _loudspeaker_progress.should_start_with_pacifists() or _loudspeaker_progress.is_victory_state():
+		call_deferred("_apply_loudspeaker_level_start_state")
 
 
 ## Handle loudspeaker input: press Space to emit sound cone (Issue #959).
@@ -4116,15 +4120,17 @@ func _handle_loudspeaker_input() -> void:
 	if _loudspeaker_cone and is_instance_valid(_loudspeaker_cone):
 		_loudspeaker_cone.play(aim_dir)
 
-	# Effect chance: first use is always 100%, subsequent uses depend on level
-	var effect_chance := 1.0 if is_first_use else _loudspeaker_progress.get_effect_chance()
+	# Effect chance: only first use at level 1 gets 100% (exactly 1 enemy); all other uses use level chance
+	var is_level1_first_use: bool = is_first_use and _loudspeaker_progress.current_level == 1
+	var effect_chance := 1.0 if is_level1_first_use else _loudspeaker_progress.get_effect_chance()
+	var max_pacify := 1 if is_level1_first_use else -1
 
 	# Notify all enemies on the map that a loud sound was made (they all hear it)
 	_alert_all_enemies_loudspeaker()
 
 	# Apply pacifism effect to enemies in the cone sector (Stage 5)
 	var hostility_chance := _loudspeaker_progress.get_hostility_chance()
-	_apply_loudspeaker_effect(aim_dir, effect_chance, hostility_chance)
+	_apply_loudspeaker_effect(aim_dir, effect_chance, hostility_chance, max_pacify)
 
 	# Emit signal so level scripts can track loudspeaker activations
 	loudspeaker_activated.emit(global_position, aim_dir, effect_chance)
@@ -4134,8 +4140,9 @@ func _handle_loudspeaker_input() -> void:
 	var current_charges := _loudspeaker_progress.charges_remaining
 	loudspeaker_charges_changed.emit(current_charges, max_charges if max_charges != -1 else 0)
 
-	FileLogger.info("[Player.Loudspeaker] Activated! Direction: %s, Effect chance: %.0f%%" % [
-		aim_dir, effect_chance * 100.0
+	var charges_str := "%d/%d" % [current_charges, max_charges] if max_charges != -1 else "unlimited"
+	FileLogger.info("[Player.Loudspeaker] Activated! Direction: %s, Effect chance: %.0f%%, Charges: %s" % [
+		aim_dir, effect_chance * 100.0, charges_str
 	])
 
 
@@ -4161,7 +4168,8 @@ func _get_aim_direction() -> Vector2:
 ## - Only enemies NOT previously attacked by player (not wounded/suppressed)
 ## - Effect chance: 100% on first use, per-level chance on subsequent uses
 ## - Hostility: each enemy independently rolls hostility toward any pacifist created
-func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostility_chance: float) -> void:
+## - max_pacify: maximum enemies to pacify this activation (-1 = unlimited)
+func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostility_chance: float, max_pacify: int = -1) -> void:
 	const CONE_HALF_ANGLE: float = 0.872664625997  # 50 degrees in radians
 	const COVER_MAX_DISTANCE: float = 500.0
 	var wall_mask: int = 4  # Physics layer for walls
@@ -4177,8 +4185,11 @@ func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostili
 		if not enemy.has_method("is_pacifist") or enemy.is_pacifist():
 			continue  # Already pacifist
 
-		# Check if enemy was attacked by player (only unengaged enemies can be pacified)
-		if enemy.has_method("was_attacked_by_player") and enemy.was_attacked_by_player():
+		# Issue #959: Skip enemies who were actually shot/hit by the player.
+		# Note: was_attacked_by_player() also returns true for _in_alarm_mode (merely alerted),
+		# but the loudspeaker itself alerts all enemies, which would block level 6+ pacification.
+		# Use was_hit_by_player() which checks only actual hits (_hits_taken_in_encounter > 0).
+		if enemy.has_method("was_hit_by_player") and enemy.was_hit_by_player():
 			continue
 
 		var to_enemy: Vector2 = enemy.global_position - global_position
@@ -4216,6 +4227,9 @@ func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostili
 			FileLogger.info("[Player.Loudspeaker] Pacified enemy at %s (dist=%.0f, cover=%s)" % [
 				enemy.global_position, dist, str(behind_wall)
 			])
+			# Stop after reaching the per-activation limit (e.g. 1 on very first use at level 1)
+			if max_pacify != -1 and pacified_count >= max_pacify:
+				break
 
 	FileLogger.info("[Player.Loudspeaker] Effect applied: %d/%d enemies pacified" % [
 		pacified_count, enemies.size()
@@ -4237,6 +4251,155 @@ func _alert_all_enemies_loudspeaker() -> void:
 	FileLogger.info("[Player.Loudspeaker] Alerted %d enemies" % alerted)
 
 
+## Apply loudspeaker level start state for levels 6 and 7 (Issue #959).
+## Level 6: 50% of enemies start as pacifists; 1 random enemy is immune.
+## Level 7: ALL enemies start as pacifists; show victory message.
+## Called deferred from _init_loudspeaker so all enemy nodes are ready.
+func _apply_loudspeaker_level_start_state() -> void:
+	if _loudspeaker_progress == null:
+		return
+
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	if enemies.is_empty():
+		return
+
+	if _loudspeaker_progress.is_victory_state():
+		# Level 7: ALL enemies become pacifists
+		FileLogger.info("[Player.Loudspeaker] Level 7 victory state — all enemies start as pacifists!")
+		for enemy in enemies:
+			if enemy.has_method("apply_pacifism") and enemy.has_method("is_alive") and enemy.is_alive():
+				enemy.apply_pacifism(0.0)
+		# Show victory message via a label in the UI
+		_show_loudspeaker_victory_message()
+
+	elif _loudspeaker_progress.should_start_with_pacifists():
+		# Level 6: 50% enemies start as pacifists; designate 1 as immune
+		var alive_enemies: Array = []
+		for enemy in enemies:
+			if enemy.has_method("is_alive") and enemy.is_alive():
+				alive_enemies.append(enemy)
+
+		# Pick 1 random immune enemy first (before pacifying others)
+		if not alive_enemies.is_empty() and _loudspeaker_progress.has_immune_enemy():
+			var immune_idx := randi() % alive_enemies.size()
+			var immune_enemy: Node = alive_enemies[immune_idx]
+			if immune_enemy.has_method("set_immune_to_pacifism"):
+				immune_enemy.set_immune_to_pacifism(true)
+				FileLogger.info("[Player.Loudspeaker] Level 6: enemy at %s is immune to pacifism" % immune_enemy.global_position)
+			alive_enemies.remove_at(immune_idx)
+
+		# Pacify 50% of remaining enemies
+		alive_enemies.shuffle()
+		var pacify_count: int = int(alive_enemies.size() * 0.5)
+		var pacified := 0
+		for i in range(pacify_count):
+			var enemy: Node = alive_enemies[i]
+			if enemy.has_method("apply_pacifism"):
+				enemy.apply_pacifism(0.0)
+				pacified += 1
+		FileLogger.info("[Player.Loudspeaker] Level 6: %d/%d enemies start as pacifists" % [pacified, alive_enemies.size() + 1])
+
+
+## Show the victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
+func _show_loudspeaker_victory_message() -> void:
+	var canvas := CanvasLayer.new()
+	canvas.name = "LoudspeakerVictoryCanvas"
+	canvas.layer = 100
+	add_child(canvas)
+
+	# Victory message label
+	var label := Label.new()
+	label.text = "Нам нечего делить по этому мы не будем стрелять друг в друга."
+	label.add_theme_font_size_override("font_size", 36)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.set_anchor(SIDE_LEFT, 0.0)
+	label.set_anchor(SIDE_RIGHT, 1.0)
+	label.set_anchor(SIDE_TOP, 0.3)
+	label.set_anchor(SIDE_BOTTOM, 0.7)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	canvas.add_child(label)
+
+	# "Click to continue" hint
+	var hint := Label.new()
+	hint.text = "[ нажмите, чтобы продолжить ]"
+	hint.add_theme_font_size_override("font_size", 18)
+	hint.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8, 0.8))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hint.set_anchor(SIDE_LEFT, 0.0)
+	hint.set_anchor(SIDE_RIGHT, 1.0)
+	hint.set_anchor(SIDE_TOP, 0.65)
+	hint.set_anchor(SIDE_BOTTOM, 0.75)
+	canvas.add_child(hint)
+
+	# Invisible click-catcher panel
+	var panel := ColorRect.new()
+	panel.color = Color(0, 0, 0, 0)
+	panel.set_anchor(SIDE_LEFT, 0.0)
+	panel.set_anchor(SIDE_RIGHT, 1.0)
+	panel.set_anchor(SIDE_TOP, 0.0)
+	panel.set_anchor(SIDE_BOTTOM, 1.0)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.gui_input.connect(func(ev):
+		if ev is InputEventMouseButton and ev.pressed:
+			_show_loudspeaker_end_screen(canvas)
+	)
+	canvas.add_child(panel)
+
+	FileLogger.info("[Player.Loudspeaker] Victory message shown (Level 7)")
+
+
+## Show end screen after player clicks on victory message (Issue #959).
+func _show_loudspeaker_end_screen(victory_canvas: CanvasLayer) -> void:
+	# Remove victory screen
+	if is_instance_valid(victory_canvas):
+		victory_canvas.queue_free()
+
+	# Create end screen canvas
+	var canvas := CanvasLayer.new()
+	canvas.name = "LoudspeakerEndCanvas"
+	canvas.layer = 101
+	add_child(canvas)
+
+	# Black background
+	var bg := ColorRect.new()
+	bg.color = Color(0, 0, 0, 1)
+	bg.set_anchor(SIDE_LEFT, 0.0)
+	bg.set_anchor(SIDE_RIGHT, 1.0)
+	bg.set_anchor(SIDE_TOP, 0.0)
+	bg.set_anchor(SIDE_BOTTOM, 1.0)
+	canvas.add_child(bg)
+
+	# "Конец" title
+	var title := Label.new()
+	title.text = "Конец"
+	title.add_theme_font_size_override("font_size", 72)
+	title.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.set_anchor(SIDE_LEFT, 0.0)
+	title.set_anchor(SIDE_RIGHT, 1.0)
+	title.set_anchor(SIDE_TOP, 0.2)
+	title.set_anchor(SIDE_BOTTOM, 0.45)
+	canvas.add_child(title)
+
+	# Thank you message
+	var thanks := Label.new()
+	thanks.text = "Спасибо за игру!"
+	thanks.add_theme_font_size_override("font_size", 32)
+	thanks.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85, 1))
+	thanks.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	thanks.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	thanks.set_anchor(SIDE_LEFT, 0.0)
+	thanks.set_anchor(SIDE_RIGHT, 1.0)
+	thanks.set_anchor(SIDE_TOP, 0.5)
+	thanks.set_anchor(SIDE_BOTTOM, 0.7)
+	canvas.add_child(thanks)
+
+	FileLogger.info("[Player.Loudspeaker] End screen shown (Level 7)")
+
+
 ## Check if the loudspeaker is equipped (Issue #959).
 func has_loudspeaker() -> bool:
 	return _loudspeaker_equipped
@@ -4247,159 +4410,11 @@ func get_loudspeaker_progress() -> LoudspeakerProgress:
 	return _loudspeaker_progress
 
 
-# ============================================================================
-# Dash Active Item (Issue #1071)
-# ============================================================================
-
-## Dash speed in pixels per second (3× normal max_speed).
-const DASH_SPEED: float = 900.0
-
-## Duration of the dash in seconds.
-const DASH_DURATION: float = 0.12
-
-## Cooldown between dashes in seconds (per issue spec).
-const DASH_COOLDOWN: float = 1.2
-
-## Whether dash is equipped (selected in armory).
-var _dash_equipped: bool = false
-
-## Whether a dash is currently in progress.
-var _dash_active: bool = false
-
-## Time remaining in the current dash.
-var _dash_timer: float = 0.0
-
-## Cooldown remaining before next dash can be used.
-var _dash_cooldown_timer: float = 0.0
-
-## Direction of the current dash.
-var _dash_direction: Vector2 = Vector2.ZERO
-
-## AudioStreamPlayer for dash sound.
-var _dash_audio_player: AudioStreamPlayer = null
-
-## Path to the dash sound file.
-const DASH_SOUND_PATH: String = "res://assets/audio/dash.wav"
-
-## Signal emitted when dash starts.
-signal dash_started
-
-## Signal emitted when dash ends.
-signal dash_ended
-
-## Signal emitted when dash cooldown changes.
-signal dash_cooldown_changed(remaining: float, total: float)
-
-
-## Initialize dash if ActiveItemManager has it selected.
+## Dash Active Item (Issue #1071) — state lives in DashComponent.
 func _init_dash() -> void:
-	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
-	if active_item_manager == null:
-		FileLogger.info("[Player.Dash] ActiveItemManager not found")
-		return
-
-	if not active_item_manager.has_method("has_dash"):
-		FileLogger.info("[Player.Dash] ActiveItemManager missing has_dash method")
-		return
-
-	if not active_item_manager.has_dash():
-		FileLogger.info("[Player.Dash] Dash not selected in ActiveItemManager")
-		return
-
-	_dash_equipped = true
-	_dash_active = false
-	_dash_timer = 0.0
-	_dash_cooldown_timer = 0.0
-
-	_setup_dash_audio()
-
-	FileLogger.info("[Player.Dash] Dash equipped — Speed: %.0f px/s, Duration: %.2fs, Cooldown: %.1fs" % [
-		DASH_SPEED, DASH_DURATION, DASH_COOLDOWN
-	])
-
-
-## Set up audio player for dash sound.
-func _setup_dash_audio() -> void:
-	if ResourceLoader.exists(DASH_SOUND_PATH):
-		var stream = load(DASH_SOUND_PATH)
-		if stream:
-			_dash_audio_player = AudioStreamPlayer.new()
-			_dash_audio_player.stream = stream
-			_dash_audio_player.volume_db = -6.0
-			add_child(_dash_audio_player)
-			FileLogger.info("[Player.Dash] Dash sound loaded")
-	else:
-		FileLogger.info("[Player.Dash] No dash sound found at %s — silent dash" % DASH_SOUND_PATH)
-
-
-## Update dash timers and handle input.
-## Called BEFORE the movement block in _physics_process so dash velocity applies this frame.
-func _update_dash_state(delta: float, input_direction: Vector2) -> void:
-	if not _dash_equipped:
-		return
-
-	# Update active dash timer
-	if _dash_active:
-		_dash_timer -= delta
-		if _dash_timer <= 0.0:
-			_dash_active = false
-			_dash_timer = 0.0
-			# Start cooldown after dash finishes
-			_dash_cooldown_timer = DASH_COOLDOWN
-			dash_ended.emit()
-			FileLogger.info("[Player.Dash] Dash ended, cooldown started: %.1fs" % DASH_COOLDOWN)
-		return
-
-	# Tick cooldown down
-	if _dash_cooldown_timer > 0.0:
-		_dash_cooldown_timer -= delta
-		if _dash_cooldown_timer < 0.0:
-			_dash_cooldown_timer = 0.0
-		# Update bar every frame while cooling down (shows time elapsed, not remaining)
-		_show_active_item_timer_bar(DASH_COOLDOWN - _dash_cooldown_timer, DASH_COOLDOWN)
-		if _dash_cooldown_timer <= 0.0:
-			_hide_active_item_bar()
-			FileLogger.info("[Player.Dash] Cooldown finished — dash ready")
-		return
-
-	# Activate dash on Space press (only when off cooldown and not already dashing)
-	if Input.is_action_just_pressed("flashlight_toggle"):
-		_start_dash(input_direction)
-
-
-## Handle dash input (stub kept so the call in _physics_process after move_and_slide is a no-op).
-## Actual work moved to _update_dash_state, called before movement.
-func _handle_dash_input(_delta: float) -> void:
-	pass
-
-
-## Start a dash toward the aim direction (where the player is aiming/mouse cursor).
-## Per issue spec: "рывок должен происходить в направлении прицела" (Issue #1071).
-func _start_dash(_input_direction: Vector2) -> void:
-	# Always dash in the aim direction (toward mouse cursor) — Issue #1071 owner feedback
-	_dash_direction = _get_aim_direction()
-
-	_dash_active = true
-	_dash_timer = DASH_DURATION
-
-	# Play dash sound
-	if _dash_audio_player and is_instance_valid(_dash_audio_player):
-		_dash_audio_player.play()
-
-	dash_started.emit()
-
-	FileLogger.info("[Player.Dash] Dash started — direction: (%.2f, %.2f), speed: %.0fpx/s, duration: %.2fs" % [
-		_dash_direction.x, _dash_direction.y, DASH_SPEED, DASH_DURATION
-	])
-
-
-## Returns true while a dash is in progress (used for invincibility check).
-func is_dashing() -> bool:
-	return _dash_active
-
-
-
-
+	_dash = DashComponent.new(); add_child(_dash)
+	_dash.initialize(self, get_node_or_null("/root/ActiveItemManager"))
+func is_dashing() -> bool: return _dash != null and _dash.is_dashing()
 # ============================================================================
 # Active Item Progress Bar (Issue #700)
 # ============================================================================
@@ -4513,12 +4528,8 @@ func _update_charge_bar_timer(delta: float) -> void:
 	# Trajectory glasses no longer use the ActiveItemProgressBar (Issue #1049).
 	# Their charge pips are shown by trajectory_glasses_hud which auto-hides after 400 ms.
 
-	# Handle charge bar auto-hide (300ms delay for charge-based items)
-	# Only hide if neither homing, trajectory glasses, nor dash cooldown is active
-	var any_active: bool = (_homing_equipped and _homing_active) or \
-		(_trajectory_glasses_equipped and _trajectory_glasses != null and is_instance_valid(_trajectory_glasses) and _trajectory_glasses.is_active) or \
-		(_dash_equipped and _dash_cooldown_timer > 0.0)
-	if _charge_bar_hide_pending and not any_active:
+	# Handle charge bar auto-hide (300ms delay for charge-based items, e.g. homing bullets)
+	if _charge_bar_hide_pending and not (_homing_equipped and _homing_active) and not (_dash != null and _dash.is_dashing()):
 		_charge_bar_hide_timer -= delta
 		if _charge_bar_hide_timer <= 0.0:
 			_charge_bar_hide_pending = false
@@ -4710,36 +4721,66 @@ func _init_armored_skin() -> void:
 	FileLogger.info("[Player.ArmoredSkin] Armored skin active — shards will spawn at low HP")
 
 
-## Spawn 20 glass/crystal shards in all directions from the player position.
+## Apply the glassy armor shader to all player body sprites (Issue #1142).
+func _apply_armored_skin_visual() -> void:
+	const ARMOR_SHADER_PATH: String = "res://scripts/shaders/armored_skin.gdshader"
+	if not ResourceLoader.exists(ARMOR_SHADER_PATH):
+		FileLogger.info("[Player.ArmoredSkin] WARNING: Shader not found: %s" % ARMOR_SHADER_PATH)
+		return
+	var shader: Shader = load(ARMOR_SHADER_PATH)
+	if shader == null or _player_model == null:
+		FileLogger.info("[Player.ArmoredSkin] WARNING: shader or model unavailable")
+		return
+	var applied_count: int = 0
+	for child in _player_model.get_children():
+		if child is Sprite2D:
+			var mat := ShaderMaterial.new()
+			mat.shader = shader
+			child.material = mat
+			applied_count += 1
+	FileLogger.info("[Player.ArmoredSkin] Armor shader applied to %d sprites" % applied_count)
+
+
+## Spawn glass/crystal shards from the player position (Issue #1142).
 ## Called when armored skin is active and player is at ≤2 HP while being hit.
 func _spawn_armored_skin_shards() -> void:
 	if not ResourceLoader.exists(ARMORED_SKIN_SHARD_SCENE_PATH):
 		FileLogger.info("[Player.ArmoredSkin] WARNING: Shard scene not found: %s" % ARMORED_SKIN_SHARD_SCENE_PATH)
 		return
-
 	var shard_scene: PackedScene = load(ARMORED_SKIN_SHARD_SCENE_PATH)
 	if shard_scene == null:
 		FileLogger.info("[Player.ArmoredSkin] WARNING: Failed to load shard scene")
 		return
-
 	var parent: Node = get_parent()
 	if parent == null:
 		return
-
 	FileLogger.info("[Player.ArmoredSkin] Spawning %d glass shards (HP: %d)" % [ARMORED_SKIN_SHARD_COUNT, _current_health])
-
 	for i in range(ARMORED_SKIN_SHARD_COUNT):
 		var shard: Node2D = shard_scene.instantiate()
-
 		# Set direction and source_id before add_child so _ready() uses the correct values
 		var base_angle: float = (float(i) / float(ARMORED_SKIN_SHARD_COUNT)) * TAU
-		var angle_deviation: float = randf_range(-PI / ARMORED_SKIN_SHARD_COUNT, PI / ARMORED_SKIN_SHARD_COUNT)
-		var angle: float = base_angle + angle_deviation
+		var angle: float = base_angle + randf_range(-PI / ARMORED_SKIN_SHARD_COUNT, PI / ARMORED_SKIN_SHARD_COUNT)
 		shard.direction = Vector2(cos(angle), sin(angle)).normalized()
 		shard.source_id = get_instance_id()
-
 		parent.add_child(shard)
 		shard.global_position = global_position
+
+
+# ============================================================================
+# Item Visual System (Issue #1142)
+# ============================================================================
+
+## Apply a passive visual effect to the player based on the equipped active item.
+## Single entry point for item-specific player visuals; called once from _ready().
+func _apply_item_visual() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		return
+	var item_type: int = active_item_manager.current_active_item
+	match item_type:
+		active_item_manager.ActiveItemType.ARMORED_SKIN:
+			_apply_armored_skin_visual()
+	FileLogger.info("[Player.ItemVisual] Visual applied for item type: %d" % item_type)
 
 
 # ============================================================================
@@ -4749,19 +4790,14 @@ func _spawn_armored_skin_shards() -> void:
 
 ## Whether the recoil compensator is equipped.
 var _recoil_compensator_equipped: bool = false
-
 ## Whether the recoil compensator is currently active (Space held and charge > 0).
 var _recoil_compensator_active: bool = false
-
 ## Remaining charge in seconds (max 15 seconds).
 var _recoil_compensator_charge: float = 0.0
-
 ## Maximum charge duration in seconds.
 const RECOIL_COMPENSATOR_MAX_CHARGE: float = 15.0
-
 ## Fire rate multiplier when compensator is active (10% boost).
 const RECOIL_COMPENSATOR_FIRE_RATE_BOOST: float = 1.1
-
 ## Shoot cooldown timer for fire rate boost (seconds remaining until next shot allowed).
 var _recoil_compensator_shoot_cooldown: float = 0.0
 
@@ -4772,19 +4808,15 @@ func _init_recoil_compensator() -> void:
 	if active_item_manager == null:
 		FileLogger.info("[Player.RecoilCompensator] ActiveItemManager not found")
 		return
-
 	if not active_item_manager.has_method("has_recoil_compensator"):
-		FileLogger.info("[Player.RecoilCompensator] ActiveItemManager does not have has_recoil_compensator method")
+		FileLogger.info("[Player.RecoilCompensator] ActiveItemManager missing has_recoil_compensator")
 		return
-
 	if not active_item_manager.has_recoil_compensator():
 		FileLogger.info("[Player.RecoilCompensator] Recoil compensator not selected")
 		return
-
 	_recoil_compensator_equipped = true
 	_recoil_compensator_charge = RECOIL_COMPENSATOR_MAX_CHARGE
-
-	FileLogger.info("[Player.RecoilCompensator] Recoil compensator initialized, charge: %.1f s" % _recoil_compensator_charge)
+	FileLogger.info("[Player.RecoilCompensator] Initialized, charge: %.1f s" % _recoil_compensator_charge)
 
 
 ## Handle recoil compensator input: hold Space to activate, release to deactivate.
@@ -4792,27 +4824,19 @@ func _init_recoil_compensator() -> void:
 func _handle_recoil_compensator_input(delta: float) -> void:
 	if not _recoil_compensator_equipped:
 		return
-
-	# Update shoot cooldown timer
 	if _recoil_compensator_shoot_cooldown > 0.0:
 		_recoil_compensator_shoot_cooldown -= delta
-
 	if Input.is_action_pressed("flashlight_toggle") and _recoil_compensator_charge > 0.0:
-		# Activate: deplete charge
 		if not _recoil_compensator_active:
 			_recoil_compensator_active = true
 			FileLogger.info("[Player.RecoilCompensator] Activated, charge: %.2f s" % _recoil_compensator_charge)
-
 		_recoil_compensator_charge -= delta
 		if _recoil_compensator_charge <= 0.0:
 			_recoil_compensator_charge = 0.0
 			_recoil_compensator_active = false
 			FileLogger.info("[Player.RecoilCompensator] Charge depleted, deactivating")
-
-		# Update progress bar while active
 		_show_active_item_timer_bar(_recoil_compensator_charge, RECOIL_COMPENSATOR_MAX_CHARGE)
 	else:
-		# Deactivate when Space is released or charge is empty
 		if _recoil_compensator_active:
 			_recoil_compensator_active = false
 			FileLogger.info("[Player.RecoilCompensator] Deactivated, charge: %.2f s" % _recoil_compensator_charge)
@@ -4823,3 +4847,154 @@ func _handle_recoil_compensator_input(delta: float) -> void:
 ## Check if the recoil compensator is currently active.
 func is_recoil_compensator_active() -> bool:
 	return _recoil_compensator_equipped and _recoil_compensator_active
+
+
+# ============================================================================
+# Experimental Sample (Issue #1127)
+# ============================================================================
+
+## Whether the experimental sample is equipped.
+var _experimental_sample_equipped: bool = false
+## Remaining experimental sample charges (1–5 per battle, randomised on level start).
+var _experimental_sample_charges: int = 0
+## Minimum / maximum charges per battle.
+const EXPERIMENTAL_SAMPLE_MIN_CHARGES: int = 1
+const EXPERIMENTAL_SAMPLE_MAX_CHARGES: int = 5
+## Preloaded icon popup script for the experimental sample (Issue #1127).
+const ExperimentalSampleItemPopupScript = preload("res://scripts/ui/experimental_sample_item_popup.gd")
+## Floating icon popup node shown above the player when an effect fires (Issue #1127).
+var _experimental_sample_popup: Node2D = null
+
+## Initialize the experimental sample if the ActiveItemManager has it selected.
+func _init_experimental_sample() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null or not active_item_manager.has_method("has_experimental_sample"):
+		FileLogger.info("[Player.ExperimentalSample] ActiveItemManager not available")
+		return
+	if not active_item_manager.has_experimental_sample():
+		FileLogger.info("[Player.ExperimentalSample] Experimental sample not selected")
+		return
+	_experimental_sample_equipped = true
+	# Randomise charge count (1–5) at the start of each level (Issue #1127)
+	_experimental_sample_charges = randi_range(EXPERIMENTAL_SAMPLE_MIN_CHARGES, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+	FileLogger.info("[Player.ExperimentalSample] Equipped, charges this run: %d" % _experimental_sample_charges)
+	experimental_sample_charges_changed.emit(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+	_show_active_item_charge_bar(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+	# Create floating item icon popup node (Issue #1127)
+	_experimental_sample_popup = ExperimentalSampleItemPopupScript.new()
+	_experimental_sample_popup.name = "ExperimentalSampleItemPopup"
+	add_child(_experimental_sample_popup)
+
+## Handle experimental sample input: press Space to trigger a random active item effect.
+## The randomly chosen effect can be ANY item (even items the player has not unlocked).
+func _handle_experimental_sample_input() -> void:
+	if not _experimental_sample_equipped or not Input.is_action_just_pressed("flashlight_toggle"):
+		return
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed_verbose():
+		FileLogger.info("[Player.ExperimentalSample] Space blocked by Radio Jammer (Issue #1036)")
+		return
+	if _experimental_sample_charges <= 0:
+		FileLogger.info("[Player.ExperimentalSample] No charges remaining")
+		return
+	_experimental_sample_charges -= 1
+	experimental_sample_charges_changed.emit(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+	_show_active_item_charge_bar(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+	# Pick a random active item type (all types except NONE=0 and EXPERIMENTAL_SAMPLE=18).
+	# Re-roll if the chosen type has no visible on-press action, so every charge spend is meaningful.
+	const MAX_ATTEMPTS := 20
+	var effect_fired := false
+	var fired_type: int = -1
+	for attempt in range(MAX_ATTEMPTS):
+		var random_type: int = randi_range(1, 17)
+		FileLogger.info("[Player.ExperimentalSample] Charges: %d — type %d attempt %d" % [_experimental_sample_charges, random_type, attempt + 1])
+		effect_fired = _trigger_experimental_sample_effect(random_type)
+		if effect_fired:
+			fired_type = random_type
+			break
+	if not effect_fired:
+		FileLogger.info("[Player.ExperimentalSample] All attempts passive/skipped — homing fallback triggered")
+		_homing_active = true
+		_homing_timer = HOMING_DURATION
+		_play_homing_sound()
+		_start_homing_scanner()
+		homing_activated.emit()
+		fired_type = 2  # HOMING_BULLETS fallback
+	# Show floating icon popup for the triggered item (Issue #1127)
+	if fired_type >= 0 and _experimental_sample_popup and is_instance_valid(_experimental_sample_popup):
+		var mgr: Node = get_node_or_null("/root/ActiveItemManager")
+		if mgr and mgr.has_method("get_active_item_icon_path"):
+			_experimental_sample_popup.show_icon(mgr.get_active_item_icon_path(fired_type))
+
+
+## Trigger on-press effect of item_type chosen by experimental sample.
+## Returns true if a visible effect fired, false if passive/unavailable (caller re-rolls).
+func _trigger_experimental_sample_effect(item_type: int) -> bool:
+	FileLogger.info("[Player.ExperimentalSample] Executing effect type %d" % item_type)
+	# Passive/hold/aim-only types always re-roll (FLASHLIGHT, TELEPORT_BRACERS, BREAKER_BULLETS,
+	# FORCE_FIELD, LASER_SIGHT, EXTENDED_MAGAZINE, ARMORED_SKIN, AUTO_RELOAD, DRILLING_BULLETS,
+	# RECOIL_COMPENSATOR, COMBAT_DISPOSITION)
+	if item_type in [1, 3, 6, 7, 9, 10, 13, 14, 15, 16, 17]:
+		return false
+
+	match item_type:
+		2:  # HOMING_BULLETS — activate homing for one burst (always available)
+			if _homing_active: return false
+			_homing_active = true
+			_homing_timer = HOMING_DURATION
+			_play_homing_sound()
+			_start_homing_scanner()
+			homing_activated.emit()
+			FileLogger.info("[Player.ExperimentalSample] Homing effect triggered for %.1fs" % HOMING_DURATION)
+			return true
+		4:  # BFF_PENDANT — summon companion if not yet summoned
+			if _bff_companion_summoned: return false
+			_summon_bff_companion()
+			FileLogger.info("[Player.ExperimentalSample] BFF companion summoned via experimental sample")
+			return true
+		5:  # INVISIBILITY_SUIT — activate invisibility if the node is available
+			if _invisibility_suit_equipped and _invisibility_suit != null \
+					and is_instance_valid(_invisibility_suit) and not _invisibility_suit.is_active:
+				_invisibility_suit.activate()
+				FileLogger.info("[Player.ExperimentalSample] Invisibility suit activated via experimental sample")
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Invisibility suit not equipped or already active; re-roll")
+			return false
+		8:  # TRAJECTORY_GLASSES — activate glasses if node exists, else skip
+			if _trajectory_glasses_equipped and _trajectory_glasses != null \
+					and is_instance_valid(_trajectory_glasses) and not _trajectory_glasses.is_active:
+				_update_trajectory_glasses_weapon()
+				_trajectory_glasses.activate()
+				FileLogger.info("[Player.ExperimentalSample] Trajectory glasses activated via experimental sample")
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Trajectory glasses not equipped or already active; re-roll")
+			return false
+		11: # LOUDSPEAKER — trigger loudspeaker effect if progress system allows it
+			if _loudspeaker_equipped and _loudspeaker_progress != null and _loudspeaker_progress.can_activate():
+				var is_first_use: bool = not _loudspeaker_progress.used_this_level
+				_loudspeaker_progress.use()
+				_apply_loudspeaker_effect(_get_aim_direction(),
+					1.0 if is_first_use else _loudspeaker_progress.get_effect_chance(),
+					_loudspeaker_progress.get_hostility_chance())
+				FileLogger.info("[Player.ExperimentalSample] Loudspeaker activated via experimental sample")
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Loudspeaker not equipped or no charges; re-roll")
+			return false
+		12: # BREACHING_CHARGES — detonate existing charges if any placed, else skip
+			if _breaching_charges != null and is_instance_valid(_breaching_charges):
+				var detonated := _breaching_charges.detonate()
+				FileLogger.info("[Player.ExperimentalSample] Breaching charges detonated: %s" % str(detonated))
+				return detonated
+			return false
+		_:
+			return false
+
+
+## Get remaining experimental sample charges.
+func get_experimental_sample_charges() -> int:
+	return _experimental_sample_charges
+
+
+## Get the maximum experimental sample charges constant.
+func get_max_experimental_sample_charges() -> int:
+	return EXPERIMENTAL_SAMPLE_MAX_CHARGES

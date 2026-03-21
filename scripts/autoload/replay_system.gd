@@ -139,6 +139,9 @@ func _create_frame_data() -> Dictionary:
 func _ready() -> void:
 	# Run in PROCESS_MODE_ALWAYS to work during pause
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# Issue #1157: Disable _physics_process by default to avoid per-frame overhead when idle.
+	# Enabled only during active recording or playback.
+	set_physics_process(false)
 	_log_to_file("ReplayManager ready (script loaded and _ready called)")
 	_log_to_file("ReplayManager methods: start_recording=%s, stop_recording=%s, has_replay=%s, start_playback=%s" % [
 		has_method("start_recording"),
@@ -177,6 +180,8 @@ func start_recording(level: Node2D, player: Node2D, enemies: Array) -> void:
 	_level_node = level
 	_player = player
 	_enemies = enemies.duplicate()
+	# Issue #1157: Enable physics process only while actively recording.
+	set_physics_process(true)
 
 	# Detailed logging for debugging
 	var player_name: String = player.name if player else "NULL"
@@ -207,6 +212,8 @@ func stop_recording() -> void:
 		return
 
 	_is_recording = false
+	# Issue #1157: Disable physics process when not recording or playing back.
+	set_physics_process(false)
 	_log_to_file("=== REPLAY RECORDING STOPPED ===")
 	_log_to_file("Total frames recorded: %d" % _frames.size())
 	_log_to_file("Total duration: %.2fs" % _recording_time)
@@ -268,6 +275,9 @@ func start_playback(level: Node2D) -> void:
 	# But we need our replay ghosts to update, so they should be PROCESS_MODE_ALWAYS
 	level.get_tree().paused = true
 
+	# Issue #1157: Enable physics process during playback to update ghost entities.
+	set_physics_process(true)
+
 	replay_started.emit()
 	_log_to_file("Started replay playback. Frames: %d, Duration: %.2fs" % [
 		_frames.size(),
@@ -296,6 +306,9 @@ func stop_playback() -> void:
 	# Unpause the game
 	if _level_node and is_instance_valid(_level_node):
 		_level_node.get_tree().paused = false
+
+	# Issue #1157: Disable physics process when playback is done — nothing to update.
+	set_physics_process(false)
 
 	replay_ended.emit()
 	_log_to_file("Stopped replay playback")

@@ -161,6 +161,74 @@ var is_breaker_bullet: bool = false
 ## Set via BaseWeapon.SpawnBullet() → bullet.Call("set_is_drilling_bullet", true).
 var is_drilling_bullet: bool = false
 
+## Whether this is an RPG rocket (Issue #583).
+## When true, bullet explodes on any impact instead of ricocheting/penetrating.
+## Enables realistic RPG-7 acceleration and area-of-effect explosion damage.
+## MUST be @export so RpgRocket.tscn can set it to true (non-@export vars cannot be set from .tscn).
+@export var is_rpg_rocket: bool = false
+
+## RPG rocket: initial launch speed (pixels per second, like real RPG-7 initial charge).
+@export var rpg_speed_initial: float = 600.0
+
+## RPG rocket: cruise speed after acceleration phase (pixels per second).
+@export var rpg_speed_max: float = 1800.0
+
+## RPG rocket: distance over which rocket accelerates from initial to cruise speed (pixels).
+@export var rpg_accel_distance: float = 800.0
+
+## RPG rocket: explosion radius in pixels.
+@export var rpg_explosion_radius: float = 150.0
+
+## RPG rocket: number of damage hits applied to each entity in radius.
+@export var rpg_explosion_damage: int = 3
+
+## RPG rocket: seconds of spawn immunity (ignores all collisions, avoids immediate explosion).
+@export var rpg_spawn_immunity: float = 0.15
+
+## RPG rocket: hit points before the rocket is shot down (Issue #1133).
+## Any damage source (bullet, shrapnel, explosion) reduces this.
+## When it reaches 0 the rocket is destroyed without exploding.
+## Set to 0 to disable interception (rocket cannot be shot down).
+@export var rpg_health: int = 1
+
+## RPG rocket internal state: current hit points remaining.
+var _rpg_current_health: int = 0
+
+## RPG rocket internal state: distance traveled so far.
+var _rpg_distance_traveled: float = 0.0
+
+## RPG rocket internal state: current speed (increases during acceleration phase).
+var _rpg_current_speed: float = 0.0
+
+## RPG rocket internal state: time since spawn (for spawn immunity).
+var _rpg_time_alive: float = 0.0
+
+## RPG rocket internal state: whether rocket has already exploded (prevent double-explosion).
+var _rpg_has_exploded: bool = false
+
+## RPG rocket internal state: position from the previous physics frame (for raycast hit detection).
+var _rpg_prev_position: Vector2 = Vector2.ZERO
+
+## RPG rocket internal state: StaticBody2D wall hit, stored for wall-passage creation (Issue #1131).
+var _rpg_hit_wall: StaticBody2D = null
+
+## RPG rocket internal state: precise world-space surface hit position for breach (Issue #1144).
+## Set to the exact raycast intersection point on the wall surface (not rocket center position).
+## Ensures WallBreachHelper.open_wall_passage carves the passage at the true impact point.
+var _rpg_hit_position: Vector2 = Vector2.ZERO
+
+## RPG rocket: weak homing — turning speed toward the player in radians/second (Issue #1135).
+## A small value gives a subtle "guided missile" feel without making it unavoidable.
+## Set to 0.0 to disable homing entirely.
+@export var rpg_homing_steer_speed: float = 1.2
+
+## RPG rocket: maximum total turn from the original firing direction (radians) (Issue #1135).
+## Limits how far the rocket can veer — keeps it feeling like a light correction.
+@export var rpg_homing_max_turn_angle: float = deg_to_rad(30.0)
+
+## RPG rocket internal state: original firing direction for angle-limit check (Issue #1135).
+var _rpg_homing_original_direction: Vector2 = Vector2.ZERO
+
 ## Whether this bullet penetrates through enemies (Issue #829).
 ## When true, the bullet deals damage to enemies but continues flying through them.
 ## Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
@@ -241,6 +309,16 @@ func _ready() -> void:
 			FileLogger.info("[Bullet.Breaker] Breaker bullet initialized, shrapnel scene: %s" % (
 				"loaded" if _breaker_shrapnel_scene else "MISSING"))
 
+	# Initialize RPG rocket speed, health, and raycast tracking position
+	if is_rpg_rocket:
+		_rpg_current_speed = rpg_speed_initial
+		_rpg_current_health = rpg_health
+		_rpg_prev_position = global_position
+		_rpg_homing_original_direction = direction.normalized()  # Store for angle-limit check (Issue #1135)
+		add_to_group("rpg_rockets")  # Used by grenades to check blast interception (Issue #1133)
+		FileLogger.info("[RpgRocket] Spawned: pos=%s dir=%s initial_speed=%.0f max_speed=%.0f health=%d" % [
+			str(global_position), str(direction), rpg_speed_initial, rpg_speed_max, rpg_health])
+
 
 ## Calculates the viewport diagonal distance for post-ricochet lifetime.
 func _calculate_viewport_diagonal() -> void:
@@ -284,11 +362,53 @@ func _physics_process(delta: float) -> void:
 	if homing_enabled:
 		_apply_homing_steering(delta)
 
-	# Calculate movement this frame
-	var movement := direction * speed * delta
+	# RPG rocket: weak homing toward the player (Issue #1135)
+	if is_rpg_rocket and rpg_homing_steer_speed > 0.0:
+		_apply_rpg_homing_steering(delta)
+
+	# RPG rocket: update spawn immunity timer
+	if is_rpg_rocket:
+		_rpg_time_alive += delta
+
+	# Calculate movement this frame (RPG uses accelerating speed, others use constant speed)
+	var current_speed: float = speed
+	if is_rpg_rocket:
+		# Smooth ease-in acceleration: speed_initial → speed_max over accel_distance
+		if _rpg_distance_traveled < rpg_accel_distance:
+			var t := _rpg_distance_traveled / rpg_accel_distance  # 0.0 → 1.0
+			_rpg_current_speed = lerpf(rpg_speed_initial, rpg_speed_max, t * t)
+		else:
+			_rpg_current_speed = rpg_speed_max
+		current_speed = _rpg_current_speed
+	var movement := direction * current_speed * delta
 
 	# Move in the set direction
 	position += movement
+
+	# Track distance for RPG acceleration curve and keep sprite oriented toward travel direction
+	if is_rpg_rocket:
+		_rpg_distance_traveled += movement.length()
+		rotation = direction.angle()  # Stay pointed in travel direction (direction set after _ready)
+		# Raycast-based collision: detect wall/body hits that body_entered may miss (Issue #583).
+		# Cast a ray from previous position to current position each frame as a reliable fallback.
+		if _rpg_time_alive >= rpg_spawn_immunity and not _rpg_has_exploded and _rpg_prev_position != Vector2.ZERO:
+			var space_state := get_world_2d().direct_space_state
+			var ray := PhysicsRayQueryParameters2D.create(_rpg_prev_position, global_position)
+			ray.collision_mask = 39  # same as rocket collision_mask: walls (4), enemies (2), player (1)
+			ray.exclude = [self]
+			var result := space_state.intersect_ray(ray)
+			if not result.is_empty():
+				FileLogger.info("[RpgRocket] Raycast impact on %s at %s after %.2fs dist=%.0fpx" % [
+					result.collider.name, str(result.position), _rpg_time_alive, _rpg_distance_traveled])
+				# Record wall for passage creation (Issue #1131, #1144)
+				if result.collider is StaticBody2D:
+					_rpg_hit_wall = result.collider as StaticBody2D
+					# Use the precise raycast surface hit point, not rocket center (Issue #1144).
+					# This matches how BreachingChargesEffect gets hit positions.
+					_rpg_hit_position = result.position
+				_rpg_explode()
+				return
+		_rpg_prev_position = global_position
 
 	# Track distance traveled since last ricochet (for viewport-based lifetime)
 	if _has_ricocheted:
@@ -351,6 +471,40 @@ func _update_trail() -> void:
 
 
 func _on_body_entered(body: Node2D) -> void:
+	# RPG rocket: explode on any body after spawn immunity expires
+	if is_rpg_rocket:
+		if _rpg_has_exploded:
+			return
+		if _rpg_time_alive < rpg_spawn_immunity:
+			return  # Spawn immunity - ignore until clear of shooter
+		if shooter_id == body.get_instance_id():
+			return  # Never hit the shooter
+		if body.has_method("is_alive") and not body.is_alive():
+			return  # Pass through dead entities
+		FileLogger.info("[RpgRocket] Impact on %s (type: %s) after %.2fs dist=%.0fpx" % [
+			body.name, body.get_class(), _rpg_time_alive, _rpg_distance_traveled])
+		# Record wall for passage creation (Issue #1131, #1144)
+		if body is StaticBody2D:
+			_rpg_hit_wall = body as StaticBody2D
+			# Get the precise wall surface hit position via back-raycast (Issue #1144).
+			# body_entered fires when the Area2D overlaps the body, so global_position is
+			# already inside the wall. Cast a ray from the previous frame position to find
+			# the exact surface point, matching BreachingChargesEffect hit-position logic.
+			if _rpg_prev_position != Vector2.ZERO:
+				var space_state := get_world_2d().direct_space_state
+				var surface_ray := PhysicsRayQueryParameters2D.create(_rpg_prev_position, global_position)
+				surface_ray.collision_mask = 4  # Obstacle layer only
+				surface_ray.exclude = [self]
+				var surface_result := space_state.intersect_ray(surface_ray)
+				if not surface_result.is_empty() and surface_result.collider == body:
+					_rpg_hit_position = surface_result.position
+				else:
+					_rpg_hit_position = global_position  # Fallback: use rocket position
+			else:
+				_rpg_hit_position = global_position  # Fallback: use rocket position
+		_rpg_explode()
+		return
+
 	# Check if this is the shooter - don't collide with own body
 	if shooter_id == body.get_instance_id():
 		return  # Pass through the shooter
@@ -390,8 +544,12 @@ func _on_body_entered(body: Node2D) -> void:
 	# Hit a static body (wall or obstacle) or alive enemy body
 	# Try to ricochet off static bodies (walls/obstacles)
 	if body is StaticBody2D or body is TileMap:
+		# Issue #1145: compute surface normal once and reuse it for both the dust effect
+		# and ricochet calculation to avoid a duplicate physics raycast per wall hit.
+		var cached_normal := _get_surface_normal(body)
+
 		# Always spawn dust effect when hitting walls, regardless of ricochet
-		_spawn_wall_hit_effect(body)
+		_spawn_wall_hit_effect(body, cached_normal)
 
 		# Calculate distance from shooter to determine penetration behavior
 		var distance_to_wall := _get_distance_to_shooter()
@@ -408,7 +566,7 @@ func _on_body_entered(body: Node2D) -> void:
 		elif distance_ratio <= RICOCHET_RULES_DISTANCE_RATIO:
 			_log_penetration("Within ricochet range - trying ricochet first")
 			# First try ricochet
-			if _try_ricochet(body):
+			if _try_ricochet(body, cached_normal):
 				return  # Bullet ricocheted, don't destroy
 			# Ricochet failed - try penetration (if not ricochet, then penetrate)
 			if _try_penetration(body):
@@ -416,7 +574,7 @@ func _on_body_entered(body: Node2D) -> void:
 		# Beyond 40% of viewport: distance-based penetration chance
 		else:
 			# First try ricochet (shallow angles still ricochet)
-			if _try_ricochet(body):
+			if _try_ricochet(body, cached_normal):
 				return  # Bullet ricocheted, don't destroy
 
 			# Calculate penetration chance based on distance
@@ -455,6 +613,23 @@ func _on_body_exited(body: Node2D) -> void:
 
 
 func _on_area_entered(area: Area2D) -> void:
+	# RPG rocket: explode when hitting any hit-area (enemy/player HitArea)
+	if is_rpg_rocket:
+		if _rpg_has_exploded or _rpg_time_alive < rpg_spawn_immunity:
+			return
+		# Skip other projectiles on the projectiles collision layer (Issue #1133).
+		# Bullets/shrapnel are on layer 5 (bit 16). They interact with the rocket via their own
+		# _on_area_entered which calls rocket.on_hit() directly.
+		if area.collision_layer & 16:
+			return
+		if area.has_method("on_hit"):
+			var parent: Node = area.get_parent()
+			if parent and shooter_id == parent.get_instance_id():
+				return  # Don't hit shooter
+			FileLogger.info("[RpgRocket] Hit area %s - exploding" % area.name)
+			_rpg_explode()
+		return
+
 	# Hit another area (like a target or hit detection area)
 	# Only destroy bullet if the area has on_hit method (actual hit targets)
 	# This allows bullets to pass through detection-only areas like ThreatSpheres
@@ -495,12 +670,13 @@ func _on_area_entered(area: Area2D) -> void:
 		var effective_damage: float = damage * damage_multiplier
 
 		# Call on_hit with extended parameters if supported, otherwise use basic call
+		var from_player: bool = _is_player_bullet()  # Issue #1196: track kill source
 		if area.has_method("on_hit_with_bullet_info_and_damage"):
-			# Pass full bullet information including damage amount
-			area.on_hit_with_bullet_info_and_damage(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage)
+			# Pass full bullet information including damage amount and player kill source
+			area.on_hit_with_bullet_info_and_damage(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage, from_player)
 		elif area.has_method("on_hit_with_bullet_info"):
 			# Legacy path - pass bullet info without explicit damage (will use default)
-			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated)
+			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, from_player)
 		elif area.has_method("on_hit_with_info"):
 			area.on_hit_with_info(direction, caliber_data)
 		else:
@@ -530,7 +706,9 @@ func _on_area_entered(area: Area2D) -> void:
 ## Attempts to ricochet the bullet off a surface.
 ## Returns true if ricochet occurred, false if bullet should be destroyed.
 ## @param body: The body the bullet collided with.
-func _try_ricochet(body: Node2D) -> bool:
+## @param precomputed_normal: Pre-computed surface normal from _on_body_entered (Issue #1145).
+##   Pass a non-zero vector to skip the internal raycast (avoids a duplicate intersect_ray call).
+func _try_ricochet(body: Node2D, precomputed_normal: Vector2 = Vector2.ZERO) -> bool:
 	# Check if we've exceeded maximum ricochets (-1 = unlimited)
 	var max_ricochets := _get_max_ricochets()
 	if max_ricochets >= 0 and _ricochet_count >= max_ricochets:
@@ -538,8 +716,8 @@ func _try_ricochet(body: Node2D) -> bool:
 			print("[Bullet] Max ricochets reached: ", _ricochet_count)
 		return false
 
-	# Get the surface normal at the collision point
-	var surface_normal := _get_surface_normal(body)
+	# Use pre-computed normal when available (Issue #1145: avoids duplicate raycast per wall hit)
+	var surface_normal := precomputed_normal if precomputed_normal != Vector2.ZERO else _get_surface_normal(body)
 	if surface_normal == Vector2.ZERO:
 		if _debug_ricochet:
 			print("[Bullet] Could not determine surface normal")
@@ -818,14 +996,16 @@ func can_ricochet() -> bool:
 
 
 ## Spawns dust/debris particles when bullet hits a wall or static body.
-## @param body: The body that was hit (used to get surface normal).
-func _spawn_wall_hit_effect(body: Node2D) -> void:
+## @param body: The body that was hit (used to get surface normal if precomputed_normal is zero).
+## @param precomputed_normal: Pre-computed surface normal from _on_body_entered (Issue #1145).
+##   Pass a non-zero vector to skip the internal raycast (avoids a duplicate intersect_ray call).
+func _spawn_wall_hit_effect(body: Node2D, precomputed_normal: Vector2 = Vector2.ZERO) -> void:
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
 	if impact_manager == null or not impact_manager.has_method("spawn_dust_effect"):
 		return
 
-	# Get surface normal for particle direction
-	var surface_normal := _get_surface_normal(body)
+	# Use pre-computed normal when available (Issue #1145: avoids duplicate raycast per wall hit)
+	var surface_normal := precomputed_normal if precomputed_normal != Vector2.ZERO else _get_surface_normal(body)
 
 	# Spawn dust effect at hit position
 	impact_manager.spawn_dust_effect(global_position, surface_normal, caliber_data)
@@ -1209,6 +1389,50 @@ func _apply_homing_steering(delta: float) -> void:
 		print("[Bullet] Homing steer: angle_diff=", rad_to_deg(angle_diff), "° total_turn=", rad_to_deg(absf(angle_from_original)), "°")
 
 
+## Gently steers the RPG rocket toward the player (Issue #1135).
+## Called every physics frame for enemy-fired RPG rockets.
+## Uses angular clamping identical to _apply_homing_steering() but targets the player
+## (not enemies) and is guarded by rpg_homing_max_turn_angle from the original firing direction.
+func _apply_rpg_homing_steering(delta: float) -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+
+	# Find the player
+	var players := tree.get_nodes_in_group("player")
+	if players.is_empty():
+		return
+	var player: Node = players[0]
+	if not player is Node2D:
+		return
+	# Skip dead player
+	if player.has_method("is_alive") and not (player as Node).call("is_alive"):
+		return
+
+	var target_pos: Vector2 = (player as Node2D).global_position
+
+	# Direction toward player from current rocket position
+	var to_target := (target_pos - global_position).normalized()
+
+	# Signed angle between current direction and desired direction
+	var angle_diff := direction.angle_to(to_target)
+
+	# Clamp per-frame turn (smooth steering)
+	var max_steer_this_frame := rpg_homing_steer_speed * delta
+	angle_diff = clampf(angle_diff, -max_steer_this_frame, max_steer_this_frame)
+
+	# Candidate new direction
+	var new_direction := direction.rotated(angle_diff).normalized()
+
+	# Do not exceed total turn limit from original firing direction
+	var angle_from_original := _rpg_homing_original_direction.angle_to(new_direction)
+	if absf(angle_from_original) > rpg_homing_max_turn_angle:
+		return
+
+	# Apply steering — sprite rotation is handled by the RPG block in _physics_process
+	direction = new_direction
+
+
 ## Finds the position of the best homing target enemy.
 ## When aim-line targeting is active (Issue #704, #781), finds the enemy closest
 ## to the player's line of fire. Otherwise, finds the nearest enemy to the bullet.
@@ -1411,9 +1635,10 @@ func _breaker_apply_explosion_damage(center: Vector2) -> void:
 ## Applies damage to a target.
 func _breaker_apply_damage_to(target: Node2D, amount: float) -> void:
 	var hit_direction := (target.global_position - global_position).normalized()
+	var from_player: bool = _is_player_bullet()  # Issue #1196: track kill source for unlock conditions
 
 	if target.has_method("on_hit_with_bullet_info_and_damage"):
-		target.on_hit_with_bullet_info_and_damage(hit_direction, null, false, false, amount)
+		target.on_hit_with_bullet_info_and_damage(hit_direction, null, false, false, amount, from_player)
 	elif target.has_method("on_hit_with_info"):
 		target.on_hit_with_info(hit_direction, null)
 	elif target.has_method("on_hit"):
@@ -1754,3 +1979,228 @@ static func from_pool() -> Node:
 	if pool_manager and pool_manager.has_method("get_bullet"):
 		return pool_manager.get_bullet()
 	return null
+
+
+## RPG rocket explosion (Issue #583).
+## Called instead of normal bullet destruction when is_rpg_rocket = true.
+func _rpg_explode() -> void:
+	if _rpg_has_exploded:
+		return
+	_rpg_has_exploded = true
+
+	FileLogger.info("[RpgRocket] Exploded at pos=%s after %.2fs, dist=%.0fpx" % [
+		str(global_position), _rpg_time_alive, _rpg_distance_traveled])
+
+	# Carve a wall passage when the rocket hits a StaticBody2D wall (Issue #1131, #1144).
+	# Uses WallBreachHelper — same 120 px passage as the "Breaching Charges" active item.
+	# Uses the precise surface hit position (_rpg_hit_position) instead of rocket center
+	# (global_position) so the breach is centered at the true impact point (Issue #1144).
+	var directly_hit_wall: StaticBody2D = null
+	if _rpg_hit_wall != null and is_instance_valid(_rpg_hit_wall):
+		directly_hit_wall = _rpg_hit_wall
+		var breach_pos: Vector2 = _rpg_hit_position if _rpg_hit_position != Vector2.ZERO else global_position
+		FileLogger.info("[RpgRocket] Creating wall passage in '%s' at %s" % [directly_hit_wall.name, str(breach_pos)])
+		WallBreachHelper.open_wall_passage(directly_hit_wall, breach_pos)
+		_rpg_hit_wall = null
+		_rpg_hit_position = Vector2.ZERO
+
+	# Destroy all StaticBody2D obstacles within explosion radius (Issue #1144).
+	# Piercing Charges destroy walls at the placement point; RPG should destroy all
+	# obstacles in the blast area, not just the one directly hit.
+	_rpg_breach_obstacles_in_radius(directly_hit_wall)
+
+	# Stop exhaust particles
+	var exhaust: Node = get_node_or_null("ExhaustParticles")
+	if exhaust and exhaust.has_method("set"):
+		exhaust.set("emitting", false)
+
+	# Power Fantasy rocket explosion effect
+	var power_fantasy_manager: Node = get_node_or_null("/root/PowerFantasyEffectsManager")
+	if power_fantasy_manager and power_fantasy_manager.has_method("on_grenade_exploded"):
+		power_fantasy_manager.on_grenade_exploded()
+
+	# Explosion sound via AudioManager
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager and audio_manager.has_method("play_offensive_grenade_explosion"):
+		audio_manager.play_offensive_grenade_explosion(global_position)
+
+	# Sound propagation
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_sound"):
+		var viewport := get_viewport()
+		var vp_diagonal := 1469.0
+		if viewport:
+			var sz := viewport.get_visible_rect().size
+			vp_diagonal = sqrt(sz.x * sz.x + sz.y * sz.y)
+		sound_propagation.emit_sound(1, global_position, 1, self, vp_diagonal * 2.0)
+
+	# Damage all entities in explosion radius
+	_rpg_damage_in_radius()
+
+	# Spawn visual explosion effect
+	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+	if impact_manager and impact_manager.has_method("spawn_explosion_effect"):
+		impact_manager.spawn_explosion_effect(global_position, rpg_explosion_radius)
+	else:
+		_rpg_simple_explosion_flash()
+
+	# Destroy after brief delay for visual effect
+	await get_tree().create_timer(0.1).timeout
+	_destroy()
+
+
+## RPG rocket: apply explosion damage to all entities in radius.
+func _rpg_damage_in_radius() -> void:
+	var space_state := get_world_2d().direct_space_state
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	for enemy in enemies:
+		if enemy is Node2D and _rpg_in_radius(enemy.global_position) and _rpg_has_los(space_state, enemy.global_position):
+			_rpg_apply_damage(enemy)
+	var players := get_tree().get_nodes_in_group("player")
+	for player in players:
+		if player is Node2D and _rpg_in_radius(player.global_position) and _rpg_has_los(space_state, player.global_position):
+			_rpg_apply_damage(player)
+	# Intercept other RPG rockets in the blast radius (Issue #1133)
+	var rockets := get_tree().get_nodes_in_group("rpg_rockets")
+	for rocket in rockets:
+		if rocket != self and rocket is Node2D and _rpg_in_radius(rocket.global_position):
+			if rocket.has_method("on_hit"):
+				rocket.on_hit()
+
+
+func _rpg_in_radius(pos: Vector2) -> bool:
+	return global_position.distance_to(pos) <= rpg_explosion_radius
+
+
+func _rpg_has_los(space_state: PhysicsDirectSpaceState2D, target_pos: Vector2) -> bool:
+	var query := PhysicsRayQueryParameters2D.create(global_position, target_pos)
+	query.collision_mask = 4
+	query.exclude = [self]
+	return space_state.intersect_ray(query).is_empty()
+
+
+func _rpg_apply_damage(entity: Node2D) -> void:
+	var hit_dir := (entity.global_position - global_position).normalized()
+	if entity.has_method("on_hit_with_info"):
+		for i in range(rpg_explosion_damage):
+			entity.on_hit_with_info(hit_dir, null)
+	elif entity.has_method("on_hit"):
+		for i in range(rpg_explosion_damage):
+			entity.on_hit()
+
+
+## RPG rocket: breach (destroy) all StaticBody2D obstacles within explosion radius (Issue #1144).
+##
+## Piercing Charges destroy only the one wall they are placed on.
+## The RPG rocket explodes with a 150px radius blast, so ALL obstacles within that
+## radius should be destroyed/breached — not just the one the rocket body touched.
+##
+## For each StaticBody2D on the obstacle collision layer (4) within explosion_radius:
+## - If it is not already the directly-hit wall (handled separately above), breach it.
+## - Use the closest point on the obstacle's bounding area as the breach position.
+## - Skips non-StaticBody2D bodies (enemies, player, other rockets).
+## @param already_hit_wall: The StaticBody2D already breached by direct hit (skip it here).
+func _rpg_breach_obstacles_in_radius(already_hit_wall: StaticBody2D) -> void:
+	if not is_inside_tree():
+		return
+	var space_state := get_world_2d().direct_space_state
+
+	# Use a circle shape query to find all physics bodies in the explosion radius.
+	var circle_shape := CircleShape2D.new()
+	circle_shape.radius = rpg_explosion_radius
+
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = circle_shape
+	query.transform = Transform2D(0.0, global_position)
+	query.collision_mask = 4  # Obstacle layer only
+	query.exclude = [self]
+
+	var results := space_state.intersect_shape(query)
+
+	var breached_count := 0
+	for hit in results:
+		var body: Object = hit.get("collider", null)
+		if body == null or not (body is StaticBody2D):
+			continue
+		var wall: StaticBody2D = body as StaticBody2D
+		# Skip the wall already breached by the direct hit above.
+		if wall == already_hit_wall:
+			continue
+		# Use rocket impact position as the breach center for nearby obstacles.
+		# This is approximate but correct for blast-radius destruction.
+		WallBreachHelper.open_wall_passage(wall, global_position)
+		breached_count += 1
+
+	if breached_count > 0:
+		FileLogger.info("[RpgRocket] Breached %d obstacle(s) in explosion radius" % breached_count)
+
+
+## RPG rocket: simple orange explosion flash when ImpactEffectsManager unavailable.
+func _rpg_simple_explosion_flash() -> void:
+	if not is_inside_tree():
+		return
+	var flash := ColorRect.new()
+	flash.size = Vector2(rpg_explosion_radius * 2, rpg_explosion_radius * 2)
+	flash.position = global_position - Vector2(rpg_explosion_radius, rpg_explosion_radius)
+	flash.color = Color(1.0, 0.5, 0.1, 0.7)
+	flash.z_index = 100
+	get_tree().current_scene.add_child(flash)
+	var tween := get_tree().create_tween()
+	tween.tween_property(flash, "modulate:a", 0.0, 0.3)
+	tween.tween_callback(flash.queue_free)
+
+
+## RPG rocket: receive incoming damage from bullets, shrapnel, or explosions (Issue #1133).
+## When health drops to 0 the rocket is shot down (destroyed without exploding).
+## Ignored if rpg_health == 0 (interception disabled) or rocket already destroyed.
+func on_hit() -> void:
+	if not is_rpg_rocket or _rpg_has_exploded:
+		return
+	if rpg_health <= 0:
+		return  # Interception disabled for this rocket
+	_rpg_current_health -= 1
+	FileLogger.info("[RpgRocket] Hit! remaining_health=%d pos=%s" % [_rpg_current_health, str(global_position)])
+	if _rpg_current_health <= 0:
+		_rpg_intercept()
+
+
+## RPG rocket: variant accepting hit direction and caliber data (Issue #1133).
+func on_hit_with_info(_hit_direction: Vector2, _caliber: Resource) -> void:
+	on_hit()
+
+
+## RPG rocket: variant accepting full bullet info including damage amount (Issue #1133).
+func on_hit_with_bullet_info_and_damage(_hit_direction: Vector2, _caliber: Resource,
+		_ricocheted: bool, _penetrated: bool, _dmg: float) -> void:
+	on_hit()
+
+
+## RPG rocket: destroy the rocket after being shot down — no explosion (Issue #1133).
+## A small flash indicates the intercept point.
+func _rpg_intercept() -> void:
+	if _rpg_has_exploded:
+		return
+	_rpg_has_exploded = true  # Prevent double-processing
+
+	FileLogger.info("[RpgRocket] Shot down at pos=%s after %.2fs dist=%.0fpx" % [
+		str(global_position), _rpg_time_alive, _rpg_distance_traveled])
+
+	# Stop exhaust particles
+	var exhaust: Node = get_node_or_null("ExhaustParticles")
+	if exhaust:
+		exhaust.set("emitting", false)
+
+	# Small white flash to indicate intercept (no explosion AOE)
+	if is_inside_tree():
+		var flash := ColorRect.new()
+		var flash_size := 30.0
+		flash.size = Vector2(flash_size * 2, flash_size * 2)
+		flash.position = global_position - Vector2(flash_size, flash_size)
+		flash.color = Color(1.0, 1.0, 1.0, 0.8)
+		flash.z_index = 100
+		get_tree().current_scene.add_child(flash)
+		var tween := get_tree().create_tween()
+		tween.tween_property(flash, "modulate:a", 0.0, 0.2)
+		tween.tween_callback(flash.queue_free)
+
+	_destroy()
