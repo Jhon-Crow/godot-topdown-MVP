@@ -55,7 +55,6 @@ func _process_patrol(delta: float) -> void:
 
 	# Move toward current patrol point
 	var target: Vector2 = enemy._patrol_points[enemy._current_patrol_index]
-	var direction: Vector2 = (target - enemy.global_position).normalized()
 
 	# Check if reached patrol point
 	if enemy.global_position.distance_to(target) < 10.0:
@@ -64,11 +63,18 @@ func _process_patrol(delta: float) -> void:
 		enemy.velocity = Vector2.ZERO
 		return
 
-	# Apply wall avoidance and movement
-	if enemy.has_method("_apply_wall_avoidance"):
-		direction = enemy._apply_wall_avoidance(direction)
-
-	enemy.velocity = direction * enemy.move_speed
+	# Issue #1273: use _move_to_target_nav for NavigationAgent2D path-following (wall + size aware).
+	# Fallback to raw direction if nav is unavailable.
+	if enemy.has_method("_move_to_target_nav"):
+		if not enemy._move_to_target_nav(target, enemy.move_speed):
+			enemy._is_waiting_at_patrol_point = true
+			enemy._patrol_wait_timer = 0.0
+			enemy.velocity = Vector2.ZERO
+	else:
+		var direction: Vector2 = (target - enemy.global_position).normalized()
+		if enemy.has_method("_apply_wall_avoidance"):
+			direction = enemy._apply_wall_avoidance(direction)
+		enemy.velocity = direction * enemy.move_speed
 
 
 ## Process guard behavior (stay in place, watch for threats).

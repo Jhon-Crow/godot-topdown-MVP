@@ -39,7 +39,12 @@ class MockEnemy:
 	var reset_alarm_mode_called: int = 0
 	var reset_encounter_hits_called: int = 0
 	var apply_wall_avoidance_called: int = 0
+	var move_to_target_nav_called: int = 0
 	var last_wall_avoidance_direction: Vector2 = Vector2.ZERO
+	var last_nav_target: Vector2 = Vector2.ZERO
+	var last_nav_speed: float = 0.0
+	# Controls whether _move_to_target_nav returns true (moving) or false (arrived)
+	var nav_move_result: bool = true
 
 	func _reset_alarm_mode() -> void:
 		reset_alarm_mode_called += 1
@@ -52,8 +57,16 @@ class MockEnemy:
 		last_wall_avoidance_direction = direction
 		return direction  # Return unchanged for test simplicity
 
+	func _move_to_target_nav(target: Vector2, speed: float) -> bool:
+		move_to_target_nav_called += 1
+		last_nav_target = target
+		last_nav_speed = speed
+		if nav_move_result:
+			velocity = (target - global_position).normalized() * speed
+		return nav_move_result
+
 	func has_method(method_name: String) -> bool:
-		return method_name in ["_reset_alarm_mode", "_reset_encounter_hits", "_apply_wall_avoidance"]
+		return method_name in ["_reset_alarm_mode", "_reset_encounter_hits", "_apply_wall_avoidance", "_move_to_target_nav"]
 
 
 var enemy: MockEnemy
@@ -253,7 +266,8 @@ func test_idle_state_patrol_uses_move_speed() -> void:
 		"Velocity should match move_speed")
 
 
-func test_idle_state_patrol_applies_wall_avoidance() -> void:
+func test_idle_state_patrol_uses_nav_pathfinding() -> void:
+	# Issue #1273: patrol should use _move_to_target_nav for wall- and size-aware pathfinding.
 	var state := IdleState.new(enemy)
 	enemy.behavior_mode = enemy.BehaviorMode.PATROL
 	enemy._patrol_points = [Vector2(200, 0)]
@@ -261,8 +275,10 @@ func test_idle_state_patrol_applies_wall_avoidance() -> void:
 
 	state.process(0.016)
 
-	assert_eq(enemy.apply_wall_avoidance_called, 1,
-		"Should apply wall avoidance")
+	assert_eq(enemy.move_to_target_nav_called, 1,
+		"Should use _move_to_target_nav for navigation-based pathfinding")
+	assert_eq(enemy.last_nav_target, Vector2(200, 0),
+		"Nav target should be the patrol point")
 
 
 func test_idle_state_patrol_reaches_point() -> void:
@@ -487,3 +503,53 @@ func test_patrol_with_diagonal_movement() -> void:
 		"Diagonal movement should use correct speed")
 	assert_true(enemy.velocity.x > 0 and enemy.velocity.y > 0,
 		"Should move in diagonal direction")
+
+
+# ============================================================================
+# Issue #1273: Navigation-Based Pathfinding Tests
+# ============================================================================
+
+
+func test_patrol_nav_passes_move_speed() -> void:
+	# Issue #1273: _move_to_target_nav must receive move_speed, not combat_move_speed.
+	var state := IdleState.new(enemy)
+	enemy.behavior_mode = enemy.BehaviorMode.PATROL
+	enemy._patrol_points = [Vector2(200, 0)]
+	enemy.global_position = Vector2.ZERO
+	enemy.move_speed = 150.0
+
+	state.process(0.016)
+
+	assert_almost_eq(enemy.last_nav_speed, 150.0, 0.01,
+		"Patrol should pass move_speed to _move_to_target_nav")
+
+
+func test_patrol_nav_arrived_triggers_wait() -> void:
+	# Issue #1273: when _move_to_target_nav returns false (arrived/nav finished), enter wait phase.
+	var state := IdleState.new(enemy)
+	enemy.behavior_mode = enemy.BehaviorMode.PATROL
+	enemy._patrol_points = [Vector2(200, 0)]
+	enemy.global_position = Vector2.ZERO
+	enemy.nav_move_result = false  # Simulate nav reporting arrived
+
+	state.process(0.016)
+
+	assert_true(enemy._is_waiting_at_patrol_point,
+		"Nav arrival (false return) should trigger patrol wait")
+	assert_eq(enemy.velocity, Vector2.ZERO,
+		"Velocity should be zero when arrived at patrol point via nav")
+
+
+func test_patrol_nav_not_called_when_already_waiting() -> void:
+	# If already waiting, nav should not be called.
+	var state := IdleState.new(enemy)
+	enemy.behavior_mode = enemy.BehaviorMode.PATROL
+	enemy._patrol_points = [Vector2(200, 0)]
+	enemy.global_position = Vector2.ZERO
+	enemy._is_waiting_at_patrol_point = true
+	enemy._patrol_wait_timer = 0.0
+
+	state.process(0.016)
+
+	assert_eq(enemy.move_to_target_nav_called, 0,
+		"Should not call nav when already waiting at patrol point")

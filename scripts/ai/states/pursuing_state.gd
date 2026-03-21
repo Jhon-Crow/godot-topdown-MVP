@@ -60,13 +60,14 @@ func _process_approach_phase(delta: float) -> void:
 
 	# Move toward player
 	if enemy._player:
-		var direction: Vector2 = (enemy._player.global_position - enemy.global_position).normalized()
-
-		# Apply wall avoidance
-		if enemy.has_method("_apply_wall_avoidance"):
-			direction = enemy._apply_wall_avoidance(direction)
-
-		enemy.velocity = direction * enemy.combat_move_speed
+		# Issue #1273: use _move_to_target_nav for NavigationAgent2D path-following (wall + size aware).
+		if enemy.has_method("_move_to_target_nav"):
+			enemy._move_to_target_nav(enemy._player.global_position, enemy.combat_move_speed)
+		else:
+			var direction: Vector2 = (enemy._player.global_position - enemy.global_position).normalized()
+			if enemy.has_method("_apply_wall_avoidance"):
+				direction = enemy._apply_wall_avoidance(direction)
+			enemy.velocity = direction * enemy.combat_move_speed
 
 		# Aim at player while moving
 		if enemy.has_method("_aim_at_player"):
@@ -87,14 +88,14 @@ func _process_cover_movement(delta: float) -> void:
 			enemy._has_pursuit_cover = false
 			_find_next_cover()
 	else:
-		# Move toward cover
-		var direction: Vector2 = (enemy._pursuit_next_cover - enemy.global_position).normalized()
-
-		# Apply wall avoidance
-		if enemy.has_method("_apply_wall_avoidance"):
-			direction = enemy._apply_wall_avoidance(direction)
-
-		enemy.velocity = direction * enemy.combat_move_speed
+		# Issue #1273: use _move_to_target_nav for NavigationAgent2D path-following (wall + size aware).
+		if enemy.has_method("_move_to_target_nav"):
+			enemy._move_to_target_nav(enemy._pursuit_next_cover, enemy.combat_move_speed)
+		else:
+			var direction: Vector2 = (enemy._pursuit_next_cover - enemy.global_position).normalized()
+			if enemy.has_method("_apply_wall_avoidance"):
+				direction = enemy._apply_wall_avoidance(direction)
+			enemy.velocity = direction * enemy.combat_move_speed
 
 		# Aim at player while moving
 		if enemy.has_method("_aim_at_player"):
