@@ -298,6 +298,7 @@ const CLEAR_SHOT_MAX_TIME: float = 3.0  ## Max time to find clear shot (seconds)
 const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0  ## Distance to move when exiting cover to find clear shot
 var _last_known_player_position: Vector2 = Vector2.ZERO  ## Last known player position (for sound-based detection)
 var _pursuing_vulnerability_sound: bool = false  ## Pursuing vulnerability sound without LOS
+var _passage_waypoints: Array = []  ## Cached passage waypoints (populated after _ready via deferred call)
 var _suppressive_fire: SuppressiveFireComponent = null  ## Issue #910: Suppressive fire component.
 var _memory: EnemyMemory = null  ## [#297] Suspected player pos: high>0.8=pursue, med=cautious, low=patrol
 ## Confidence values for different detection sources.
@@ -383,7 +384,7 @@ func _ready() -> void:
 	_setup_threat_sphere()
 	_initialize_goap_state()
 	_initialize_memory()
-	_connect_debug_mode_signal()
+	_connect_debug_mode_signal(); call_deferred("_cache_passage_waypoints")
 	_update_debug_label()
 	_register_sound_listener()
 	_setup_flashbang_status()
@@ -438,6 +439,8 @@ func _ready() -> void:
 	else: _transition_to_idle()  # Issue #1202: honor IDLE disable at spawn (redirects to SEARCHING if IDLE is disabled)
 	if start_invisible: _invisibility = EnemyInvisibilityComponent.new(); _invisibility.name = "InvisibilityComponent"; add_child(_invisibility); _invisibility.initialize(_enemy_model)  # Issue #1121
 
+func _cache_passage_waypoints() -> void:  ## #1226: Cache passage waypoints once (avoids per-frame tree query in _find_pursuit_cover_toward_player)
+	_passage_waypoints = get_tree().get_nodes_in_group("passage_waypoints")
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
 	_max_health = 2 if is_grenadier else randi_range(min_health, max_health)  # Issue #604: Grenadiers always 2 HP
@@ -3223,7 +3226,12 @@ func _find_pursuit_cover_toward_player() -> void:
 		_has_pursuit_cover = true
 		_current_cover_obstacle = best_obstacle
 		_log_debug("Found pursuit cover at %s (score: %.2f)" % [_pursuit_next_cover, best_score])
-	else: _has_pursuit_cover = false
+	else:
+		_has_pursuit_cover = false
+		var best_wp := Vector2.ZERO; var best_d := INF
+		for wp in _passage_waypoints:  # #1226: use cached waypoints (avoids per-frame tree query)
+			var d := global_position.distance_to(wp.global_position); if d >= 50.0 and d < best_d: best_d = d; best_wp = wp.global_position  # nearest doorway regardless of player direction
+		if best_wp != Vector2.ZERO: _pursuit_next_cover = best_wp; _has_pursuit_cover = true
 
 ## Check if there's a clear path to a position (no walls blocking).
 func _can_reach_position(target: Vector2) -> bool:
