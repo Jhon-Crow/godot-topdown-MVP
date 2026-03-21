@@ -4284,3 +4284,103 @@ text = "AMMO: -/-"
 
 [node name="PauseMenu" parent="CanvasLayer" instance=ExtResource("3_pause_menu")]
 visible = false
+
+[node name="SearchPathWaypoints" type="Node2D" parent="."]
+editor_description = "Pre-planned search path waypoints for enemy SEARCHING state (Issue #1246). Enemies traverse these in order starting from the nearest point to their current position."
+groups = ["search_path_waypoints"]
+
+[node name="RowA_Street_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 800)
+
+[node name="BuildingA1_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(800, 800)
+
+[node name="BuildingA2_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1600, 800)
+
+[node name="BuildingA3_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2400, 800)
+
+[node name="BuildingA4_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3200, 800)
+
+[node name="BuildingA5_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4000, 800)
+
+[node name="BuildingA6_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4800, 800)
+
+[node name="RowA_Street_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(5700, 800)
+
+[node name="RowB_Street_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 1800)
+
+[node name="BuildingB1_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1200, 1800)
+
+[node name="BuildingB2_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2000, 1800)
+
+[node name="BuildingB3_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2800, 1800)
+
+[node name="BuildingB4_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3600, 1800)
+
+[node name="BuildingB5_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4400, 1800)
+
+[node name="RowB_Street_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(5700, 1800)
+
+[node name="CrossStreet_Top" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3000, 1300)
+
+[node name="RowC_Street_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 2800)
+
+[node name="BuildingC1_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1200, 2800)
+
+[node name="BuildingC2_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2400, 2800)
+
+[node name="BuildingC3_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3600, 2800)
+
+[node name="BuildingC4_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4800, 2800)
+
+[node name="RowC_Street_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(5700, 2800)
+
+[node name="CrossStreet_Mid" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3000, 2500)
+
+[node name="RowD_Street_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 3800)
+
+[node name="BuildingD1_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1400, 3800)
+
+[node name="BuildingD2_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2800, 3800)
+
+[node name="BuildingD3_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4200, 3800)
+
+[node name="RowD_Street_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(5700, 3800)
+
+[node name="RowE_Street_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 4700)
+
+[node name="BuildingE_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2000, 4700)
+
+[node name="RowE_Street_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(5700, 4700)
+
+[node name="Center_Hub" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3000, 2500)
