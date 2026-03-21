@@ -1,6 +1,5 @@
 extends CharacterBody2D
 ## Enemy AI with tactical behaviors: patrol, guard, cover, flanking, GOAP.
-
 ## AI States for tactical behavior.
 enum AIState {
 	IDLE,       ## Default idle state (patrol or guard)
