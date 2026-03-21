@@ -1,6 +1,5 @@
 extends CharacterBody2D
-## Enemy AI with tactical behaviors: patrol, guard, cover, flanking, GOAP.
-## AI States for tactical behavior.
+## Enemy AI with tactical behaviors: patrol, guard, cover, flanking, GOAP. AI States for tactical behavior.
 enum AIState {
 	IDLE,       ## Default idle state (patrol or guard)
 	COMBAT,     ## Actively engaging the player (coming out of cover, shooting 2-3s, returning)
@@ -26,7 +25,6 @@ enum BehaviorMode {
 	PATROL,  ## Moves between patrol points
 	GUARD    ## Stands in one place
 }
-
 ## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579), RPG (rocket+pistol, Issue #583), PM (Makarov, Issue #583), MACHINE_GUN (PKM belt-fed, #1033), SNIPER_RIFLE (ASVK, #1125).
 enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIFLE }
 
@@ -383,7 +381,7 @@ func _ready() -> void:
 	_setup_threat_sphere()
 	_initialize_goap_state()
 	_initialize_memory()
-	_connect_debug_mode_signal(); call_deferred("_cache_passage_waypoints")
+	_connect_debug_mode_signal(); call_deferred(func(): _passage_waypoints = get_tree().get_nodes_in_group("passage_waypoints"))  ## #1226: cache once after ready
 	_update_debug_label()
 	_register_sound_listener()
 	_setup_flashbang_status()
@@ -436,8 +434,6 @@ func _ready() -> void:
 	else: _transition_to_idle()  # Issue #1202: honor IDLE disable at spawn (redirects to SEARCHING if IDLE is disabled)
 	if start_invisible: _invisibility = EnemyInvisibilityComponent.new(); _invisibility.name = "InvisibilityComponent"; add_child(_invisibility); _invisibility.initialize(_enemy_model)  # Issue #1121
 
-func _cache_passage_waypoints() -> void:  ## #1226: Cache passage waypoints once (avoids per-frame tree query in _find_pursuit_cover_toward_player)
-	_passage_waypoints = get_tree().get_nodes_in_group("passage_waypoints")
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
 	_max_health = 2 if is_grenadier else randi_range(min_health, max_health)  # Issue #604: Grenadiers always 2 HP
@@ -547,8 +543,7 @@ func _unregister_sound_listener() -> void:
 	if sound_propagation and sound_propagation.has_method("unregister_listener"):
 		sound_propagation.unregister_listener(self)
 
-## Unregister from SoundPropagation on scene change / node removal (Issue #1163: FPS fix).
-## Prevents stale listener accumulation across level reloads in the autoload singleton.
+## Unregister from SoundPropagation on scene change / node removal (Issue #1163: FPS fix). Prevents stale listener accumulation across level reloads.
 func _exit_tree() -> void:
 	_unregister_sound_listener()
 
@@ -3221,10 +3216,8 @@ func _find_pursuit_cover_toward_player() -> void:
 		_current_cover_obstacle = best_obstacle
 		_log_debug("Found pursuit cover at %s (score: %.2f)" % [_pursuit_next_cover, best_score])
 	else:
-		_has_pursuit_cover = false
-		var best_wp := Vector2.ZERO; var best_d := INF
-		for wp in _passage_waypoints:  # #1226: use cached waypoints (avoids per-frame tree query)
-			var d := global_position.distance_to(wp.global_position); if d >= 50.0 and d < best_d: best_d = d; best_wp = wp.global_position  # nearest doorway regardless of player direction
+		_has_pursuit_cover = false; var best_wp := Vector2.ZERO; var best_d := INF
+		for wp in _passage_waypoints: var d := global_position.distance_to(wp.global_position); if d >= 50.0 and d < best_d: best_d = d; best_wp = wp.global_position  # #1226: nearest waypoint
 		if best_wp != Vector2.ZERO: _pursuit_next_cover = best_wp; _has_pursuit_cover = true
 
 ## Check if there's a clear path to a position (no walls blocking).
@@ -4763,8 +4756,7 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
 	_avoidance_velocity = safe_velocity
 
-## Issue #1146: Compute a separation steering force that pushes this enemy away from
-## nearby allies. Returns the adjusted velocity with separation applied.
+## Issue #1146: Compute a separation steering force that pushes this enemy away from nearby allies. Returns adjusted velocity with separation applied.
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
 	var sep_force: Vector2 = Vector2.ZERO
 	for body in get_tree().get_nodes_in_group("enemies"):
