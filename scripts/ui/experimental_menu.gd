@@ -28,6 +28,7 @@ signal back_pressed
 @onready var waypoint_visible_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WaypointVisibleContainer/WaypointVisibleCheckbox
 @onready var passage_waypoints_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/PassageWaypointsContainer/PassageWaypointsCheckbox
 @onready var sound_visualizer_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SoundVisualizerContainer/SoundVisualizerCheckbox
+@onready var enemy_path_visible_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyPathVisibleContainer/EnemyPathVisibleCheckbox
 @onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var unlock_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer/UnlockTableButton
 @onready var enemies_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemiesTableContainer/EnemiesTableButton
@@ -105,6 +106,9 @@ func _ready() -> void:
 	_setup_row_hover(_vbox.get_node("SoundVisualizerContainer"),
 			"Show Sound Propagation",
 			_vbox.get_node("SoundVisualizerDescription"))
+	_setup_row_hover(_vbox.get_node("EnemyPathVisibleContainer"),
+			"Show Enemy Nav Paths",
+			_vbox.get_node("EnemyPathVisibleDescription"))
 	_setup_row_hover(_vbox.get_node("DeleteSavesContainer"),
 			"Delete Saves",
 			_vbox.get_node("DeleteSavesDescription"))
@@ -136,6 +140,7 @@ func _ready() -> void:
 	waypoint_visible_checkbox.toggled.connect(_on_waypoint_visible_toggled)
 	passage_waypoints_checkbox.toggled.connect(_on_passage_waypoints_toggled)
 	sound_visualizer_checkbox.toggled.connect(_on_sound_visualizer_toggled)
+	enemy_path_visible_checkbox.toggled.connect(_on_enemy_path_visible_toggled)
 	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
 	enemies_table_button.pressed.connect(_on_enemies_table_pressed)
@@ -180,6 +185,7 @@ func _update_ui() -> void:
 	waypoint_visible_checkbox.button_pressed = experimental_settings.is_passage_waypoints_visible_enabled()
 	passage_waypoints_checkbox.button_pressed = experimental_settings.has_method("is_passage_waypoints_enabled") and experimental_settings.is_passage_waypoints_enabled()
 	sound_visualizer_checkbox.button_pressed = experimental_settings.is_sound_visualizer_enabled()
+	enemy_path_visible_checkbox.button_pressed = experimental_settings.is_enemy_path_visible_enabled()
 
 	# Update global stuck max time slider
 	var stuck_time: float = experimental_settings.get_global_stuck_max_time()
@@ -224,6 +230,8 @@ func _update_ui() -> void:
 		status_parts.append("Passage waypoints disabled")
 	if experimental_settings.is_sound_visualizer_enabled():
 		status_parts.append("Sound visualizer")
+	if experimental_settings.is_enemy_path_visible_enabled():
+		status_parts.append("Enemy nav paths")
 
 	if status_parts.is_empty():
 		status_label.text = "All experimental features disabled"
@@ -367,6 +375,13 @@ func _on_sound_visualizer_toggled(enabled: bool) -> void:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
 		experimental_settings.set_sound_visualizer_enabled(enabled)
+	_update_ui()
+
+
+func _on_enemy_path_visible_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_enemy_path_visible_enabled(enabled)
 	_update_ui()
 
 
