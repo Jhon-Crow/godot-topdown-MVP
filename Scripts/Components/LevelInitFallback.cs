@@ -197,6 +197,41 @@ public partial class LevelInitFallback : Node
 
         // 11. Setup warm ceiling lights (Issue #1206) — mirrors GDScript _setup_room_warm_lights()
         SetupRoomWarmLights(levelRoot);
+
+        // 12. Bake navigation mesh with wall geometry (Issue #1275)
+        // Mirrors GDScript _setup_navigation() so NavigationServer2D.map_get_path()
+        // returns wall-aware paths used by SearchPathMonitor and EnemyPathMonitor.
+        SetupNavigation(levelRoot);
+    }
+
+    /// <summary>
+    /// Bake the NavigationPolygon using full scene geometry so wall StaticBody2D nodes
+    /// (collision_layer 4) are carved out of the nav mesh (Issue #1275).
+    /// Mirrors the two-step approach in GDScript level files:
+    ///   parse_source_geometry_data(nav_poly, source, self)
+    ///   bake_from_source_geometry_data(nav_poly, source)
+    /// </summary>
+    private void SetupNavigation(Node levelRoot)
+    {
+        var navRegion = levelRoot.GetNodeOrNull<NavigationRegion2D>("NavigationRegion2D");
+        if (navRegion == null)
+        {
+            LogToFile("SetupNavigation: NavigationRegion2D not found - skipping nav mesh bake");
+            return;
+        }
+
+        var navPoly = navRegion.NavigationPolygon;
+        if (navPoly == null)
+        {
+            LogToFile("SetupNavigation: NavigationPolygon not found - skipping nav mesh bake");
+            return;
+        }
+
+        LogToFile("SetupNavigation: baking navigation mesh with wall geometry...");
+        var sourceGeometry = new NavigationMeshSourceGeometryData2D();
+        NavigationServer2D.ParseSourceGeometryData(navPoly, sourceGeometry, levelRoot);
+        NavigationServer2D.BakeFromSourceGeometryData(navPoly, sourceGeometry);
+        LogToFile("SetupNavigation: navigation mesh bake queued");
     }
 
     /// <summary>
