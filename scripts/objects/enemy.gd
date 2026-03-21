@@ -2243,6 +2243,8 @@ func _load_predefined_search_path(_near_pos: Vector2) -> bool:
 	return true
 
 ## Generate search waypoints in expanding square spiral (Issue #322). Skips visited zones.
+## Issue #1275: waypoints are only accepted when a navigable path exists from the enemy's
+## current position to the candidate, so search paths never cross walls.
 func _generate_search_waypoints() -> void:
 	_search_waypoints.clear()
 	_search_current_waypoint_index = 0
@@ -2263,10 +2265,15 @@ func _generate_search_waypoints() -> void:
 			2: offset = Vector2(0, _search_leg_length)
 			3: offset = Vector2(-_search_leg_length, 0)
 		var next_pos := current_pos + offset
-		if _is_waypoint_navigable(next_pos) and not _is_zone_visited(next_pos):
+		# Issue #1275: require both point navigability AND a wall-free path from the enemy.
+		if _is_waypoint_navigable(next_pos) and not _is_zone_visited(next_pos) \
+				and _is_path_navigable(global_position, next_pos):
 			_search_waypoints.append(next_pos)
 			waypoints_generated += 1
-		current_pos = next_pos
+		# Only advance the spiral tracking position when the step lands on the nav mesh,
+		# so the spiral does not "teleport" through walls on the tracking level.
+		if _is_waypoint_navigable(next_pos):
+			current_pos = next_pos
 		_search_legs_completed += 1
 		_search_direction = (_search_direction + 1) % 4
 		if _search_legs_completed % 2 == 0:
@@ -2278,6 +2285,13 @@ func _is_waypoint_navigable(pos: Vector2) -> bool:
 	var nav_map := get_world_2d().navigation_map
 	var closest := NavigationServer2D.map_get_closest_point(nav_map, pos)
 	return pos.distance_to(closest) < 50.0
+
+## Check if a navigable path exists between two positions (Issue #1275).
+## Uses NavigationServer2D.map_get_path which returns an empty array when walls block the route.
+func _is_path_navigable(from_pos: Vector2, to_pos: Vector2) -> bool:
+	var nav_map := get_world_2d().navigation_map
+	var path := NavigationServer2D.map_get_path(nav_map, from_pos, to_pos, true)
+	return path.size() >= 2
 
 ## Zone tracking helpers for visited areas (Issue #322): snaps to 50px grid.
 func _get_zone_key(pos: Vector2) -> String:
