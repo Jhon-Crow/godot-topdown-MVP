@@ -1,6 +1,5 @@
 extends CharacterBody2D
-## Enemy AI with tactical behaviors: patrol, guard, cover, flanking, GOAP.
-## AI States for tactical behavior.
+## Enemy AI with tactical behaviors: patrol, guard, cover, flanking, GOAP. AI States for tactical behavior.
 enum AIState {
 	IDLE,       ## Default idle state (patrol or guard)
 	COMBAT,     ## Actively engaging the player (coming out of cover, shooting 2-3s, returning)
@@ -26,7 +25,6 @@ enum BehaviorMode {
 	PATROL,  ## Moves between patrol points
 	GUARD    ## Stands in one place
 }
-
 ## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579), RPG (rocket+pistol, Issue #583), PM (Makarov, Issue #583), MACHINE_GUN (PKM belt-fed, #1033), SNIPER_RIFLE (ASVK, #1125).
 enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIFLE }
 
@@ -384,7 +382,7 @@ func _ready() -> void:
 	_setup_threat_sphere()
 	_initialize_goap_state()
 	_initialize_memory()
-	_connect_debug_mode_signal(); call_deferred("_cache_passage_waypoints")
+	_connect_debug_mode_signal(); (func(): _passage_waypoints = get_tree().get_nodes_in_group("passage_waypoints")).call_deferred()  ## #1226: cache once after ready
 	_update_debug_label()
 	_register_sound_listener()
 	_setup_flashbang_status()
@@ -439,8 +437,6 @@ func _ready() -> void:
 	else: _transition_to_idle()  # Issue #1202: honor IDLE disable at spawn (redirects to SEARCHING if IDLE is disabled)
 	if start_invisible: _invisibility = EnemyInvisibilityComponent.new(); _invisibility.name = "InvisibilityComponent"; add_child(_invisibility); _invisibility.initialize(_enemy_model)  # Issue #1121
 
-func _cache_passage_waypoints() -> void:  ## #1226: Cache passage waypoints once (avoids per-frame tree query in _find_pursuit_cover_toward_player)
-	_passage_waypoints = get_tree().get_nodes_in_group("passage_waypoints")
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
 	_max_health = 2 if is_grenadier else randi_range(min_health, max_health)  # Issue #604: Grenadiers always 2 HP
@@ -550,8 +546,7 @@ func _unregister_sound_listener() -> void:
 	if sound_propagation and sound_propagation.has_method("unregister_listener"):
 		sound_propagation.unregister_listener(self)
 
-## Unregister from SoundPropagation on scene change / node removal (Issue #1163: FPS fix).
-## Prevents stale listener accumulation across level reloads in the autoload singleton.
+## Unregister from SoundPropagation on scene change / node removal (Issue #1163: FPS fix). Prevents stale listener accumulation across level reloads.
 func _exit_tree() -> void:
 	_unregister_sound_listener()
 
@@ -641,9 +636,9 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	if sound_type != 0 and sound_type != 1:
 		return
 
-	# React based on current state (same for gunshots and explosions) - #910: also react in alert states to player gunshots
-	var should_react := (_current_state == AIState.IDLE and intensity >= 0.01) or (_current_state in [AIState.FLANKING, AIState.RETREATING] and intensity >= 0.3)
-	if is_player_gunshot and _current_state in [AIState.SEARCHING, AIState.PURSUING, AIState.IN_COVER, AIState.COMBAT]: should_react = intensity >= 0.01
+	# React based on current state (#910, #1261: intensity must not gate reaction — propagation_distance is the authoritative range check).
+	var should_react := (_current_state == AIState.IDLE) or (_current_state in [AIState.FLANKING, AIState.RETREATING] and intensity >= 0.3)
+	if is_player_gunshot and _current_state in [AIState.SEARCHING, AIState.PURSUING, AIState.IN_COVER, AIState.COMBAT]: should_react = true
 	if not should_react: return
 
 	var sound_name := "EXPLOSION" if sound_type == 1 else "gunshot"
@@ -3228,10 +3223,8 @@ func _find_pursuit_cover_toward_player() -> void:
 		_current_cover_obstacle = best_obstacle
 		_log_debug("Found pursuit cover at %s (score: %.2f)" % [_pursuit_next_cover, best_score])
 	else:
-		_has_pursuit_cover = false
-		var best_wp := Vector2.ZERO; var best_d := INF
-		for wp in _passage_waypoints:  # #1226: use cached waypoints (avoids per-frame tree query)
-			var d := global_position.distance_to(wp.global_position); if d >= 50.0 and d < best_d: best_d = d; best_wp = wp.global_position  # nearest doorway regardless of player direction
+		_has_pursuit_cover = false; var best_wp := Vector2.ZERO; var best_d := INF
+		for wp in _passage_waypoints: var d := global_position.distance_to(wp.global_position); if d >= 50.0 and d < best_d: best_d = d; best_wp = wp.global_position  # #1226: nearest waypoint
 		if best_wp != Vector2.ZERO: _pursuit_next_cover = best_wp; _has_pursuit_cover = true
 
 ## Check if there's a clear path to a position (no walls blocking).
@@ -4594,80 +4587,50 @@ func _draw() -> void:
 		color_fov = Color(0.5, 0.5, 0.5, 0.2); color_fov_edge = Color(0.5, 0.5, 0.5, 0.5)
 	if fov_angle > 0.0:
 		_draw_fov_cone(color_fov, color_fov_edge)
-	# Draw line to player if visible
 	if _can_see_player and _player:
-		var to_player := _player.global_position - global_position
-		draw_line(Vector2.ZERO, to_player, color_to_player, 1.5)
-	# Issue #934: Draw line to companion if visible
-	if _can_see_companion and _companion != null:
-		var to_companion := _companion.global_position - global_position
-		draw_line(Vector2.ZERO, to_companion, Color.ORANGE, 1.5)
-		# Draw bullet spawn point (actual muzzle position) and check if blocked
+		draw_line(Vector2.ZERO, _player.global_position - global_position, color_to_player, 1.5)
+	if _can_see_companion and _companion != null:  # Issue #934
+		draw_line(Vector2.ZERO, _companion.global_position - global_position, Color.ORANGE, 1.5)
 		var weapon_forward := _get_weapon_forward_direction()
-		var muzzle_global := _get_bullet_spawn_position(weapon_forward)
-		var spawn_point := muzzle_global - global_position  # Convert to local coordinates for draw
+		var spawn_point := _get_bullet_spawn_position(weapon_forward) - global_position
 		if _is_bullet_spawn_clear(weapon_forward):
 			draw_circle(spawn_point, 5.0, color_bullet_spawn)
 		else:
-			# Draw X for blocked spawn point
 			draw_line(spawn_point + Vector2(-5, -5), spawn_point + Vector2(5, 5), color_blocked, 2.0)
 			draw_line(spawn_point + Vector2(-5, 5), spawn_point + Vector2(5, -5), color_blocked, 2.0)
-	# Draw line to cover position if we have one
 	if _has_valid_cover:
 		var to_cover := _cover_position - global_position
-		draw_line(Vector2.ZERO, to_cover, color_to_cover, 1.5)
-		# Draw small circle at cover position
-		draw_circle(to_cover, 8.0, color_to_cover)
-	# Draw line to clear shot target if seeking clear shot
+		draw_line(Vector2.ZERO, to_cover, color_to_cover, 1.5); draw_circle(to_cover, 8.0, color_to_cover)
 	if _seeking_clear_shot and _clear_shot_target != Vector2.ZERO:
 		var to_target := _clear_shot_target - global_position
 		draw_line(Vector2.ZERO, to_target, color_clear_shot, 2.0)
-		# Draw triangle at target position
-		var target_pos := to_target
-		draw_line(target_pos + Vector2(-6, 6), target_pos + Vector2(6, 6), color_clear_shot, 2.0)
-		draw_line(target_pos + Vector2(6, 6), target_pos + Vector2(0, -8), color_clear_shot, 2.0)
-		draw_line(target_pos + Vector2(0, -8), target_pos + Vector2(-6, 6), color_clear_shot, 2.0)
-	# Draw line to pursuit cover if pursuing
+		draw_line(to_target + Vector2(-6, 6), to_target + Vector2(6, 6), color_clear_shot, 2.0)
+		draw_line(to_target + Vector2(6, 6), to_target + Vector2(0, -8), color_clear_shot, 2.0)
+		draw_line(to_target + Vector2(0, -8), to_target + Vector2(-6, 6), color_clear_shot, 2.0)
 	if _current_state == AIState.PURSUING and _has_pursuit_cover:
 		var to_pursuit := _pursuit_next_cover - global_position
-		draw_line(Vector2.ZERO, to_pursuit, color_pursuit, 2.0)
-		draw_circle(to_pursuit, 8.0, color_pursuit)
-	# Draw line to flank target if flanking
+		draw_line(Vector2.ZERO, to_pursuit, color_pursuit, 2.0); draw_circle(to_pursuit, 8.0, color_pursuit)
 	if _current_state == AIState.FLANKING:
 		if _has_flank_cover:
 			var to_flank_cover := _flank_next_cover - global_position
-			draw_line(Vector2.ZERO, to_flank_cover, color_flank, 2.0)
-			draw_circle(to_flank_cover, 8.0, color_flank)
+			draw_line(Vector2.ZERO, to_flank_cover, color_flank, 2.0); draw_circle(to_flank_cover, 8.0, color_flank)
 		elif _flank_target != Vector2.ZERO:
 			var to_flank := _flank_target - global_position
 			draw_line(Vector2.ZERO, to_flank, color_flank, 1.5)
-			# Draw diamond at flank target
-			var flank_pos := to_flank
-			draw_line(flank_pos + Vector2(0, -8), flank_pos + Vector2(8, 0), color_flank, 2.0)
-			draw_line(flank_pos + Vector2(8, 0), flank_pos + Vector2(0, 8), color_flank, 2.0)
-			draw_line(flank_pos + Vector2(0, 8), flank_pos + Vector2(-8, 0), color_flank, 2.0)
-			draw_line(flank_pos + Vector2(-8, 0), flank_pos + Vector2(0, -8), color_flank, 2.0)
-	# Draw suspected position from memory system (Issue #297)
-	# The circle radius is inversely proportional to confidence (larger = less certain)
+			draw_line(to_flank + Vector2(0, -8), to_flank + Vector2(8, 0), color_flank, 2.0)
+			draw_line(to_flank + Vector2(8, 0), to_flank + Vector2(0, 8), color_flank, 2.0)
+			draw_line(to_flank + Vector2(0, 8), to_flank + Vector2(-8, 0), color_flank, 2.0)
+			draw_line(to_flank + Vector2(-8, 0), to_flank + Vector2(0, -8), color_flank, 2.0)
+	# Issue #297: Draw suspected pos from memory — uncertainty circle radius ∝ 1/confidence (10–100px).
 	if _memory and _memory.has_target():
 		var to_suspected := _memory.suspected_position - global_position
-		# Color varies from yellow (low confidence) to orange (high confidence)
 		var confidence_color := Color.YELLOW.lerp(Color.ORANGE_RED, _memory.confidence)
-		# Draw dashed line to suspected position
 		draw_line(Vector2.ZERO, to_suspected, confidence_color, 1.0)
-		# Draw uncertainty circle - radius is inversely proportional to confidence
-		# At confidence 1.0: radius = 10px (certain)
-		# At confidence 0.1: radius = 100px (uncertain)
 		var uncertainty_radius := 10.0 + (1.0 - _memory.confidence) * 90.0
-		# Draw circle outline by drawing multiple line segments
 		var segments := 16
 		for i in range(segments):
-			var angle1 := (float(i) / segments) * TAU
-			var angle2 := (float(i + 1) / segments) * TAU
-			var p1 := to_suspected + Vector2(cos(angle1), sin(angle1)) * uncertainty_radius
-			var p2 := to_suspected + Vector2(cos(angle2), sin(angle2)) * uncertainty_radius
-			draw_line(p1, p2, confidence_color, 1.5)
-		# Draw small filled circle at center
+			var angle1 := (float(i) / segments) * TAU; var angle2 := (float(i + 1) / segments) * TAU
+			draw_line(to_suspected + Vector2(cos(angle1), sin(angle1)) * uncertainty_radius, to_suspected + Vector2(cos(angle2), sin(angle2)) * uncertainty_radius, confidence_color, 1.5)
 		draw_circle(to_suspected, 5.0, confidence_color)
 ## Draw FOV cone with obstacle occlusion. Follows model rotation, rays stop at walls.
 func _draw_fov_cone(fill_color: Color, edge_color: Color) -> void:
@@ -4775,7 +4738,6 @@ func _has_nav_path_to(target_pos: Vector2) -> bool:
 	if _nav_agent == null: return false
 	_nav_agent.target_position = target_pos
 	return not _nav_agent.is_navigation_finished()
-
 ## Get distance to target along the navigation path (more accurate than straight-line).
 func _get_nav_path_distance(target_pos: Vector2) -> float:
 	if _nav_agent == null: return global_position.distance_to(target_pos)
@@ -4877,7 +4839,6 @@ func _calculate_suspected_directions(death_position: Vector2, hit_direction: Vec
 	_suspected_directions.append(primary)
 	_suspected_directions.append(Vector2(-primary.y, primary.x))  # perp left
 	_suspected_directions.append(Vector2(primary.y, -primary.x))  # perp right
-
 func _can_see_position(pos: Vector2) -> bool:
 	if _raycast == null: return false
 	var orig := _raycast.target_position
@@ -4903,7 +4864,6 @@ func try_throw_grenade() -> bool:
 		if not _is_pre_attack_flashing: _is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(tgt, _execute_grenade_throw.bind(tgt))
 		return true  # Callback fires the throw after flash completes
 	return _execute_grenade_throw(tgt)
-
 func _execute_grenade_throw(tgt: Vector2) -> bool:  ## Issue #824: grenade throw callback.
 	_is_pre_attack_flashing = false; if _invisibility: _invisibility.reveal()  # Issue #1121: reveal on grenade throw
 	var result := _grenade_component.try_throw(tgt, _is_alive, _is_stunned, _is_blinded)
@@ -4914,11 +4874,8 @@ func _setup_grenade_avoidance() -> void:
 	_grenade_avoidance = GrenadeAvoidanceComponent.new()
 	_grenade_avoidance.name = "GrenadeAvoidance"
 	add_child(_grenade_avoidance)
-	# Issue #426: Pass raycast for LOS check (enemies only react to visible grenades)
-	if _raycast: _grenade_avoidance.set_raycast(_raycast)
-	# Issue #426: Pass FOV params (enemies only react to grenades in vision cone)
-	if _enemy_model: _grenade_avoidance.set_fov_parameters(_enemy_model, fov_angle, fov_enabled)
-
+	if _raycast: _grenade_avoidance.set_raycast(_raycast)  # Issue #426: LOS check (enemies only react to visible grenades)
+	if _enemy_model: _grenade_avoidance.set_fov_parameters(_enemy_model, fov_angle, fov_enabled)  # Issue #426: FOV cone filter
 func _update_grenade_danger_detection() -> void:
 	if _grenade_avoidance: _grenade_avoidance.update()
 func _calculate_grenade_evasion_target() -> void:
