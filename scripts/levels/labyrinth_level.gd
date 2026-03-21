@@ -391,6 +391,14 @@ func _setup_realistic_visibility() -> void:
 	visibility_component.name = "RealisticVisibilityComponent"
 	visibility_component.set_script(visibility_script)
 	_player.add_child(visibility_component)
+
+	# Tint the visibility light to match the cold-blue laboratory atmosphere
+	# so it blends with the room cold lights (Color(0.55, 0.75, 1.0)) instead
+	# of washing them out with a warm-white glow (Issue #1263).
+	# Color is deeper blue (lower R) to avoid white cast; energy is reduced
+	# from the default 1.5 so it no longer overpowers the room cold lights (≤0.65).
+	visibility_component.set_light_color(Color(0.45, 0.65, 1.0))
+	visibility_component.set_light_energy(0.8)
 	print("[LabyrinthLevel] Realistic visibility component added to player")
 
 

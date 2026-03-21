@@ -4775,7 +4775,6 @@ func _has_nav_path_to(target_pos: Vector2) -> bool:
 	if _nav_agent == null: return false
 	_nav_agent.target_position = target_pos
 	return not _nav_agent.is_navigation_finished()
-
 ## Get distance to target along the navigation path (more accurate than straight-line).
 func _get_nav_path_distance(target_pos: Vector2) -> float:
 	if _nav_agent == null: return global_position.distance_to(target_pos)
@@ -4877,7 +4876,6 @@ func _calculate_suspected_directions(death_position: Vector2, hit_direction: Vec
 	_suspected_directions.append(primary)
 	_suspected_directions.append(Vector2(-primary.y, primary.x))  # perp left
 	_suspected_directions.append(Vector2(primary.y, -primary.x))  # perp right
-
 func _can_see_position(pos: Vector2) -> bool:
 	if _raycast == null: return false
 	var orig := _raycast.target_position
@@ -4903,7 +4901,6 @@ func try_throw_grenade() -> bool:
 		if not _is_pre_attack_flashing: _is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(tgt, _execute_grenade_throw.bind(tgt))
 		return true  # Callback fires the throw after flash completes
 	return _execute_grenade_throw(tgt)
-
 func _execute_grenade_throw(tgt: Vector2) -> bool:  ## Issue #824: grenade throw callback.
 	_is_pre_attack_flashing = false; if _invisibility: _invisibility.reveal()  # Issue #1121: reveal on grenade throw
 	var result := _grenade_component.try_throw(tgt, _is_alive, _is_stunned, _is_blinded)
@@ -4914,11 +4911,8 @@ func _setup_grenade_avoidance() -> void:
 	_grenade_avoidance = GrenadeAvoidanceComponent.new()
 	_grenade_avoidance.name = "GrenadeAvoidance"
 	add_child(_grenade_avoidance)
-	# Issue #426: Pass raycast for LOS check (enemies only react to visible grenades)
-	if _raycast: _grenade_avoidance.set_raycast(_raycast)
-	# Issue #426: Pass FOV params (enemies only react to grenades in vision cone)
-	if _enemy_model: _grenade_avoidance.set_fov_parameters(_enemy_model, fov_angle, fov_enabled)
-
+	if _raycast: _grenade_avoidance.set_raycast(_raycast)  # Issue #426: LOS check (enemies only react to visible grenades)
+	if _enemy_model: _grenade_avoidance.set_fov_parameters(_enemy_model, fov_angle, fov_enabled)  # Issue #426: FOV cone filter
 func _update_grenade_danger_detection() -> void:
 	if _grenade_avoidance: _grenade_avoidance.update()
 func _calculate_grenade_evasion_target() -> void:
