@@ -4061,6 +4061,14 @@ func _process_patrol(delta: float) -> void:
 	if _nav_agent == null:  # Fallback if nav agent unavailable
 		if global_position.distance_to(target_point) < 5.0: _is_waiting_at_patrol_point = true; velocity = Vector2.ZERO; return
 		var d := (target_point - global_position).normalized(); velocity = d * move_speed; rotation = d.angle(); return
+	# Issue #1188: Snap patrol target to nearest navmesh point so the agent always routes
+	# to a navigable position. Without this, targets inside walls are never reached
+	# (is_navigation_finished() stays false) causing repeated PATROL STUCK spam.
+	var nav_map := get_world_2d().navigation_map
+	if nav_map.is_valid():
+		var snapped := NavigationServer2D.map_get_closest_point(nav_map, target_point)
+		if snapped.distance_to(target_point) > 1.0:
+			target_point = snapped
 	_nav_agent.target_position = target_point
 	if _nav_agent.is_navigation_finished():
 		_is_waiting_at_patrol_point = true; _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; velocity = Vector2.ZERO; return

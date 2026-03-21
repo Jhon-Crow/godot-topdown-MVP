@@ -68,7 +68,15 @@ func _ensure_overlay() -> void:
 ## Re-apply after a new NavigationRegion2D is added (e.g. after scene load).
 func _on_node_added(node: Node) -> void:
 	if node is NavigationRegion2D:
-		# Defer refresh so the polygon data is fully populated
+		# Connect to the region's bake_finished signal so we refresh after the bake completes,
+		# not before. Navmesh bake is async (uses await), so call_deferred would fire too early.
+		if not node.is_connected("bake_finished", _deferred_refresh):
+			node.bake_finished.connect(_deferred_refresh)
+		# Also connect to the polygon resource's changed signal to catch runtime rebakes.
+		var nav_poly: NavigationPolygon = node.navigation_polygon
+		if nav_poly != null and not nav_poly.is_connected("changed", _deferred_refresh):
+			nav_poly.changed.connect(_deferred_refresh)
+		# Defer an initial refresh (catches pre-baked polygons from the .tscn file).
 		call_deferred("_deferred_refresh")
 
 
@@ -111,9 +119,27 @@ class _NavMeshOverlay extends CanvasLayer:
 			var nav_poly: NavigationPolygon = region.navigation_polygon
 			if nav_poly == null:
 				continue
-			# Collect each outline contour from the baked polygon
-			var outline_count: int = nav_poly.get_outline_count()
-			if outline_count > 0:
+			# Prefer baked polygon triangles (vertices + polygons array) over outlines.
+			# get_outline() returns the INPUT boundaries (floor + obstacle holes) — it does NOT
+			# change after baking and cannot show wall cutouts. The baked walkable triangles are
+			# stored in get_vertices() + get_polygon(), which do reflect the carved navmesh.
+			var polygon_count: int = nav_poly.get_polygon_count()
+			if polygon_count > 0:
+				var all_vertices: PackedVector2Array = nav_poly.get_vertices()
+				for i in range(polygon_count):
+					var indices: PackedInt32Array = nav_poly.get_polygon(i)
+					if indices.size() < 3:
+						continue
+					var verts: PackedVector2Array = PackedVector2Array()
+					for idx in indices:
+						verts.append(all_vertices[idx])
+					polygons.append({
+						"vertices": verts,
+						"global_transform": region.global_transform
+					})
+			else:
+				# No baked data yet — fall back to input outlines (floor boundary pre-bake).
+				var outline_count: int = nav_poly.get_outline_count()
 				for i in range(outline_count):
 					var outline: PackedVector2Array = nav_poly.get_outline(i)
 					if outline.size() >= 3:
@@ -121,20 +147,6 @@ class _NavMeshOverlay extends CanvasLayer:
 							"vertices": outline,
 							"global_transform": region.global_transform
 						})
-			else:
-				# Fall back to vertices from the polygon mesh itself
-				var vertex_count: int = nav_poly.get_polygon_count()
-				for i in range(vertex_count):
-					var indices: PackedInt32Array = nav_poly.get_polygon(i)
-					if indices.size() < 3:
-						continue
-					var verts: PackedVector2Array = PackedVector2Array()
-					for idx in indices:
-						verts.append(nav_poly.get_vertices()[idx])
-					polygons.append({
-						"vertices": verts,
-						"global_transform": region.global_transform
-					})
 		_draw_node.set_polygons(polygons)
 
 	## Recursively find all NavigationRegion2D nodes under root.
