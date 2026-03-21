@@ -71,6 +71,9 @@ var _replay_manager: Node = null
 ## Weapon hints component instance (Issue #809).
 var _weapon_hints_component: Node = null
 
+## Whether debug mode (F7) is active — controls passage waypoint visualization (#1226).
+var _debug_mode: bool = false
+
 
 ## Gets the ReplayManager autoload node.
 ## The ReplayManager is now a C# autoload that works reliably in exported builds,
@@ -122,6 +125,10 @@ func _ready() -> void:
 	if GameManager:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
+		if GameManager.has_signal("debug_mode_toggled"):
+			GameManager.debug_mode_toggled.connect(_on_debug_mode_toggled)
+		if GameManager.has_method("is_debug_mode_enabled"):
+			_debug_mode = GameManager.is_debug_mode_enabled(); if _debug_mode: queue_redraw()
 
 	# Initialize ScoreManager for this level
 	_initialize_score_manager()
@@ -1893,6 +1900,20 @@ func _disable_player_controls() -> void:
 
 	_log_to_file("Player controls disabled (level completed)")
 
+
+## Toggle debug mode (F7) — redraws passage waypoints (#1226).
+func _on_debug_mode_toggled(enabled: bool) -> void:
+	_debug_mode = enabled
+	queue_redraw()
+
+## Draw passage waypoints as green circles when debug mode (F7) is active (#1226).
+func _draw() -> void:
+	if not _debug_mode:
+		return
+	for wp in get_tree().get_nodes_in_group("passage_waypoints"):
+		var local_pos := wp.global_position - global_position
+		draw_circle(local_pos, 12.0, Color(0.2, 1.0, 0.3, 0.85))
+		draw_string(ThemeDB.fallback_font, local_pos + Vector2(14, 4), wp.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 
 ## Log a message to the file logger if available.
 func _log_to_file(message: String) -> void:
