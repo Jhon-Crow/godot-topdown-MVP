@@ -30,9 +30,9 @@ extends CharacterBody2D
 @export var max_health: int = 5
 
 ## Weapon loudness - determines how far gunshots propagate for enemy detection.
-## Set to viewport diagonal (~1469 pixels) for assault rifle by default.
+## Default is PM/AssaultRifle level (800px, scaled from original 1469px by factor 800/1469, Issue #1269).
 ## This affects how far enemies can hear the player's gunshots.
-@export var weapon_loudness: float = 1469.0
+@export var weapon_loudness: float = 800.0
 
 ## Reload mode: simple (press R once) or sequence (R-F-R).
 @export_enum("Simple", "Sequence") var reload_mode: int = 1  # Default to Sequence mode

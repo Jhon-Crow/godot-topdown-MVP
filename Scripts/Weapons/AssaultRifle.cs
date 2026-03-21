@@ -596,8 +596,8 @@ public partial class AssaultRifle : BaseWeapon
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            // Determine weapon loudness from WeaponData, or use viewport diagonal as default
-            float loudness = WeaponData?.Loudness ?? 1469.0f;
+            // Determine weapon loudness from WeaponData, or use PM-level default (Issue #1269: scaled 800/1469)
+            float loudness = WeaponData?.Loudness ?? 800.0f;
             // emit_sound(sound_type, position, source_type, source_node, custom_range)
             // sound_type 0 = GUNSHOT, source_type 0 = PLAYER
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
