@@ -1074,6 +1074,127 @@ text = "MAIN HALL"
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
 navigation_polygon = SubResource("NavigationPolygon_level")
 
+[node name="SearchPathWaypoints" type="Node2D" parent="."]
+editor_description = "Pre-planned search path waypoints for enemy SEARCHING state (Issue #1225). Enemies traverse these in order starting from the nearest point to their current position."
+groups = ["search_path_waypoints"]
+
+[node name="Office1_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(460, 560)
+
+[node name="Office1_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(280, 400)
+
+[node name="Office1_Corner_TL" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(150, 150)
+
+[node name="Office1_Corner_TR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(420, 150)
+
+[node name="Office1_Corner_BR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(420, 600)
+
+[node name="Corridor_Entry_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(600, 680)
+
+[node name="Office2_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(550, 870)
+
+[node name="Office2_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(720, 860)
+
+[node name="Office2_Corner_BR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(870, 960)
+
+[node name="Corridor_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1000, 860)
+
+[node name="Corridor_TopCenter" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1000, 740)
+
+[node name="Corridor_Entry_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1300, 760)
+
+[node name="ConferenceRoom_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1450, 400)
+
+[node name="ConferenceRoom_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1700, 350)
+
+[node name="ConferenceRoom_Corner_TR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2350, 150)
+
+[node name="ConferenceRoom_Corner_BR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2350, 550)
+
+[node name="ConferenceRoom_Corner_BL" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1450, 550)
+
+[node name="Corridor_BR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1300, 980)
+
+[node name="BreakRoom_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1450, 950)
+
+[node name="BreakRoom_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1750, 1000)
+
+[node name="BreakRoom_Corner_TR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2350, 850)
+
+[node name="BreakRoom_Corner_BR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2350, 1150)
+
+[node name="BreakRoom_Corner_BL" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1450, 1150)
+
+[node name="Corridor_BottomRight" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1200, 1200)
+
+[node name="MainHall_TopEntry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1200, 1450)
+
+[node name="MainHall_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1200, 1700)
+
+[node name="MainHall_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(970, 1700)
+
+[node name="Storage_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(460, 1680)
+
+[node name="Storage_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(280, 1800)
+
+[node name="Storage_Corner_BL" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(150, 1950)
+
+[node name="Storage_Corner_BR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(420, 1950)
+
+[node name="MainHall_BottomLeft" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(970, 1950)
+
+[node name="MainHall_BottomRight" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1450, 1950)
+
+[node name="MainHall_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1450, 1700)
+
+[node name="ServerRoom_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1750, 1500)
+
+[node name="ServerRoom_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2000, 1600)
+
+[node name="ServerRoom_Corner_TR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2350, 1300)
+
+[node name="ServerRoom_Corner_BR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2350, 1950)
+
+[node name="ServerRoom_Corner_BL" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1750, 1950)
+
 [node name="Entities" type="Node2D" parent="."]
 
 [node name="Player" parent="Entities" instance=ExtResource("2_player")]
