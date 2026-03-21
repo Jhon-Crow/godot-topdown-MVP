@@ -796,26 +796,11 @@ func _setup_navigation() -> void:
 		push_warning("[ArenaLevel] NavigationRegion2D not found")
 		return
 
-	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
-	if nav_poly == null:
-		push_warning("[ArenaLevel] NavigationPolygon not found")
-		return
-
+	# Issue #1224: use bake_navigation_polygon(false) so the baked polygon data
+	# is populated and visible via the nav mesh overlay. The NavigationPolygon
+	# resource in ArenaLevel.tscn already has the correct outlines.
 	print("[ArenaLevel] Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Arena playable area: 128 to 1792 (x), 128 to 952 (y).
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(128, 128),
-		Vector2(1792, 128),
-		Vector2(1792, 952),
-		Vector2(128, 952)
-	])
-	nav_poly.add_outline(floor_outline)
-
-	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
-	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	nav_region.bake_navigation_polygon(false)
 	print("[ArenaLevel] Navigation mesh baked")
 
 

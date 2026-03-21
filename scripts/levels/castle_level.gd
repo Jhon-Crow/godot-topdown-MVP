@@ -238,42 +238,11 @@ func _setup_navigation() -> void:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
 
-	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
-	if nav_poly == null:
-		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
-		return
-
-	# Bake the navigation mesh to include physics obstacles from collision layer 4
+	# Issue #1224: use bake_navigation_polygon(false) so the baked polygon data
+	# is populated and visible via the nav mesh overlay. The NavigationPolygon
+	# resource in CastleLevel.tscn already has the correct outlines.
 	print("Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Re-add the outline for the walkable floor area (approximate oval)
-	# Using a polygon that roughly follows the castle oval shape
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(500, 1280),    # Left edge
-		Vector2(600, 800),
-		Vector2(900, 400),
-		Vector2(1500, 200),
-		Vector2(3000, 100),    # Top center
-		Vector2(4500, 200),
-		Vector2(5100, 400),
-		Vector2(5400, 800),
-		Vector2(5500, 1280),   # Right edge
-		Vector2(5400, 1760),
-		Vector2(5100, 2160),
-		Vector2(4500, 2360),
-		Vector2(3000, 2460),   # Bottom center
-		Vector2(1500, 2360),
-		Vector2(900, 2160),
-		Vector2(600, 1760),
-	])
-	nav_poly.add_outline(floor_outline)
-
-	# Use NavigationServer2D to bake from source geometry
-	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
-	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-
+	nav_region.bake_navigation_polygon(false)
 	print("Navigation mesh baked successfully")
 
 

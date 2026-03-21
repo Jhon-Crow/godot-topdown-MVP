@@ -12,17 +12,24 @@ extends Node
 ## it works in exported (release) builds as well.
 ##
 ## Issue #1187: Added as part of AI navigation debugging tools.
+## Issue #1224: Fixed to read baked polygon data (get_polygon/get_vertices) instead of
+##              raw input outlines (get_outline), and to refresh after bake_finished.
 
 ## Color for the nav mesh polygon fill.
 const NAV_MESH_FILL_COLOR := Color(0.0, 0.5, 1.0, 0.25)
 ## Color for the nav mesh polygon outline.
 const NAV_MESH_OUTLINE_COLOR := Color(0.0, 0.8, 1.0, 0.85)
+## Delay after a NavigationRegion2D is added before refreshing.
+## Increased to 1.0s to ensure bake_navigation_polygon(false) completes
+## before the fallback timer reads polygon data.
+const BAKE_WAIT_SECONDS := 1.0
 
 ## The overlay node used for custom drawing.
 var _overlay: _NavMeshOverlay = null
 
 
 func _ready() -> void:
+	_log("NavMeshMonitor ready")
 	# Sync debug rendering with current settings
 	_apply_settings()
 	# Connect to settings changes so toggle takes effect immediately
@@ -50,9 +57,11 @@ func _set_overlay_visible(visible: bool) -> void:
 		if _overlay != null:
 			_overlay.refresh()
 			_overlay.show()
+			_log("Overlay shown with %d polygon(s)" % _overlay.get_polygon_count())
 	else:
 		if _overlay != null:
 			_overlay.hide()
+			_log("Overlay hidden")
 
 
 ## Create the overlay node if it doesn't exist yet.
@@ -63,19 +72,36 @@ func _ensure_overlay() -> void:
 	_overlay.fill_color = NAV_MESH_FILL_COLOR
 	_overlay.outline_color = NAV_MESH_OUTLINE_COLOR
 	get_tree().root.add_child(_overlay)
+	_log("Overlay node created")
 
 
 ## Re-apply after a new NavigationRegion2D is added (e.g. after scene load).
+## Connects to bake_finished signal for accurate post-bake refresh, with a
+## timer fallback in case the bake was not triggered or already completed.
 func _on_node_added(node: Node) -> void:
 	if node is NavigationRegion2D:
-		# Defer refresh so the polygon data is fully populated
-		call_deferred("_deferred_refresh")
+		_log("NavigationRegion2D added: %s" % node.name)
+		# Connect to bake_finished so the overlay refreshes after walls are carved.
+		if not node.bake_finished.is_connected(_deferred_refresh):
+			node.bake_finished.connect(_deferred_refresh)
+		# Also schedule a timer refresh as fallback (covers pre-baked navmesh data).
+		get_tree().create_timer(BAKE_WAIT_SECONDS).timeout.connect(_deferred_refresh)
 
 
 func _deferred_refresh() -> void:
 	_apply_settings()
 	if _overlay != null and is_instance_valid(_overlay) and _overlay.visible:
 		_overlay.refresh()
+		_log("Overlay refreshed with %d polygon(s)" % _overlay.get_polygon_count())
+
+
+## Log a message with the NavMeshMonitor prefix via FileLogger if available.
+func _log(message: String) -> void:
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[NavMeshMonitor] " + message)
+	else:
+		print("[NavMeshMonitor] " + message)
 
 
 ## Inner class: a CanvasLayer that draws all NavigationRegion2D polygons.
@@ -88,32 +114,73 @@ class _NavMeshOverlay extends CanvasLayer:
 	var _draw_node: _NavMeshDrawNode = null
 
 	func _ready() -> void:
-		# Render above game world (layer 10) but below UI (layer 100+)
-		layer = 10
-		# Follow the viewport camera so world-space coordinates in _draw() align correctly
+		# Render above all game world elements (layer 50) and above most UI (default layer 1).
+		# CinemaEffects uses layer 99; we stay below that so debug overlay doesn't cover vignette.
+		layer = 50
+		# Follow the viewport camera so world-space coordinates in _draw() align correctly.
+		# With follow_viewport_enabled=true, drawing at world coordinates maps directly
+		# to the correct screen position regardless of camera position.
 		follow_viewport_enabled = true
 		_draw_node = _NavMeshDrawNode.new()
 		_draw_node.fill_color = fill_color
 		_draw_node.outline_color = outline_color
 		add_child(_draw_node)
 
-	## Collect all NavigationRegion2D nodes and pass their polygons to the draw node.
+	## Return the number of polygons currently drawn (for logging).
+	func get_polygon_count() -> int:
+		if _draw_node == null:
+			return 0
+		return _draw_node._polygons.size()
+
+	## Collect all NavigationRegion2D nodes and pass their baked polygons to the draw node.
+	## Reads triangulated baked data (get_polygon_count / get_polygon / get_vertices)
+	## which reflects the actual walkable area after walls are carved out — not the raw
+	## input outlines which only show the floor boundary.
 	func refresh() -> void:
 		if _draw_node == null:
+			_log_inner("refresh: _draw_node is null, skipping")
 			return
 		var polygons: Array = []
 		var tree: SceneTree = Engine.get_main_loop() as SceneTree
 		if tree == null:
+			_log_inner("refresh: SceneTree is null, skipping")
 			return
 		# Search all NavigationRegion2D nodes in the current scene
 		var nav_regions: Array = _find_nav_regions(tree.root)
+		_log_inner("refresh started: found %d NavigationRegion2D node(s)" % nav_regions.size())
+		var baked_count: int = 0
+		var outline_count_total: int = 0
 		for region in nav_regions:
+			if not is_instance_valid(region):
+				_log_inner("refresh: region is invalid, skipping")
+				continue
 			var nav_poly: NavigationPolygon = region.navigation_polygon
 			if nav_poly == null:
+				_log_inner("refresh: region '%s' has null navigation_polygon" % region.name)
 				continue
-			# Collect each outline contour from the baked polygon
-			var outline_count: int = nav_poly.get_outline_count()
-			if outline_count > 0:
+			# Read baked triangulated polygon data (set by bake_navigation_polygon).
+			# This reflects the actual walkable area with walls carved out.
+			var poly_count: int = nav_poly.get_polygon_count()
+			var vertex_count: int = nav_poly.get_vertices().size()
+			_log_inner("refresh: region '%s' poly_count=%d vertex_count=%d outline_count=%d" % [
+				region.name, poly_count, vertex_count, nav_poly.get_outline_count()])
+			if poly_count > 0:
+				var all_vertices: PackedVector2Array = nav_poly.get_vertices()
+				for i in range(poly_count):
+					var indices: PackedInt32Array = nav_poly.get_polygon(i)
+					if indices.size() < 3:
+						continue
+					var verts: PackedVector2Array = PackedVector2Array()
+					for idx in indices:
+						verts.append(all_vertices[idx])
+					polygons.append({
+						"vertices": verts,
+						"global_transform": region.global_transform
+					})
+				baked_count += poly_count
+			else:
+				# Fall back to outlines if no baked data yet (bake not completed)
+				var outline_count: int = nav_poly.get_outline_count()
 				for i in range(outline_count):
 					var outline: PackedVector2Array = nav_poly.get_outline(i)
 					if outline.size() >= 3:
@@ -121,21 +188,24 @@ class _NavMeshOverlay extends CanvasLayer:
 							"vertices": outline,
 							"global_transform": region.global_transform
 						})
-			else:
-				# Fall back to vertices from the polygon mesh itself
-				var vertex_count: int = nav_poly.get_polygon_count()
-				for i in range(vertex_count):
-					var indices: PackedInt32Array = nav_poly.get_polygon(i)
-					if indices.size() < 3:
-						continue
-					var verts: PackedVector2Array = PackedVector2Array()
-					for idx in indices:
-						verts.append(nav_poly.get_vertices()[idx])
-					polygons.append({
-						"vertices": verts,
-						"global_transform": region.global_transform
-					})
+				outline_count_total += outline_count
 		_draw_node.set_polygons(polygons)
+		_log_inner("refresh done: %d region(s), %d baked poly(s), %d outline(s), %d draw polys" % [
+			nav_regions.size(), baked_count, outline_count_total, polygons.size()])
+
+	## Log a message (inner class helper — accesses FileLogger via absolute path).
+	func _log_inner(message: String) -> void:
+		# Use /root/FileLogger absolute path — same as the outer class _log() method
+		# to ensure consistent logging regardless of inner class context.
+		var tree: SceneTree = Engine.get_main_loop() as SceneTree
+		if tree == null:
+			print("[NavMeshMonitor] " + message)
+			return
+		var file_logger: Node = tree.root.get_node_or_null("/root/FileLogger")
+		if file_logger and file_logger.has_method("log_info"):
+			file_logger.log_info("[NavMeshMonitor] " + message)
+		else:
+			print("[NavMeshMonitor] " + message)
 
 	## Recursively find all NavigationRegion2D nodes under root.
 	func _find_nav_regions(node: Node) -> Array:
