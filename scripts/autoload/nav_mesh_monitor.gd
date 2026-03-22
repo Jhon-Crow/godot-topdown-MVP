@@ -96,11 +96,12 @@ func _deferred_refresh() -> void:
 
 
 ## Log a message with the NavMeshMonitor prefix via FileLogger if available.
+## Issue #1293: print() fallback gated to debug builds to avoid FPS drops.
 func _log(message: String) -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("log_info"):
 		file_logger.log_info("[NavMeshMonitor] " + message)
-	else:
+	elif OS.is_debug_build():
 		print("[NavMeshMonitor] " + message)
 
 
@@ -200,17 +201,19 @@ class _NavMeshOverlay extends CanvasLayer:
 			nav_regions.size(), baked_count, outline_count_total, polygons.size()])
 
 	## Log a message (inner class helper — accesses FileLogger via absolute path).
+	## Issue #1293: print() fallback gated to debug builds to avoid FPS drops.
 	func _log_inner(message: String) -> void:
 		# Use /root/FileLogger absolute path — same as the outer class _log() method
 		# to ensure consistent logging regardless of inner class context.
 		var tree: SceneTree = Engine.get_main_loop() as SceneTree
 		if tree == null:
-			print("[NavMeshMonitor] " + message)
+			if OS.is_debug_build():
+				print("[NavMeshMonitor] " + message)
 			return
 		var file_logger: Node = tree.root.get_node_or_null("/root/FileLogger")
 		if file_logger and file_logger.has_method("log_info"):
 			file_logger.log_info("[NavMeshMonitor] " + message)
-		else:
+		elif OS.is_debug_build():
 			print("[NavMeshMonitor] " + message)
 
 	## Recursively find all NavigationRegion2D nodes under root.
