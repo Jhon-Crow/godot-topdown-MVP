@@ -37,7 +37,24 @@ after the bake call. This assignment triggers the node's internal setter, which 
 
 **Evidence:** Godot forum thread ["NavigationServer2D baking creates mesh, but agent can't find a path"](https://forum.godotengine.org/t/navigationserver2d-baking-creates-mesh-but-agent-cant-find-a-path/60755) and ["Navigation Baking creates the mesh, but agents don't work"](https://forum.godotengine.org/t/navigation-baking-creates-the-mesh-but-agents-dont-work/64422) both confirm this exact pattern.
 
-**Fix applied (commit `TBD`):** Added `nav_region.navigation_polygon = nav_poly` after `bake_from_source_geometry_data()` in all 13 level scripts: `arena_level`, `beach_level`, `building_level`, `castle_level`, `city_level`, `decadence_level`, `docks_level`, `factory_level`, `labyrinth2_level`, `labyrinth_level`, `revolver_level`, `roguelike_level`, `test_tier`.
+**Fix applied (commit `f96f584e`):** Added `nav_region.navigation_polygon = nav_poly` after `bake_from_source_geometry_data()` in all 13 level scripts.
+
+### Problem 0b (Root Cause — Final): Navmesh Bake Timing
+
+**Confirmed date:** 2026-03-22 — Owner feedback with screenshot showing BuildingLevel paths still through walls after the `nav_region.navigation_polygon = nav_poly` fix.
+
+**Location:** All 13 level scripts — `_setup_navigation()` called from `_ready()`.
+
+**Root cause:** `parse_source_geometry_data()` is called in `_ready()` which runs before the PhysicsServer2D has registered the `CollisionShape2D` nodes from the scene tree. In Godot 4, physics shapes are only registered with the PhysicsServer after the node enters the tree AND the physics server processes the next frame. So calling `parse_source_geometry_data` in `_ready()` finds no collision bodies — the navmesh stays as an uncarved rectangle.
+
+**Evidence from game log (`game_log_20260322_045330.txt`):**
+- LabyrinthLevel (initial load): `poly_count=1 vertex_count=4 outline_count=1` — uncarved rectangle
+- 11 seconds later (after user toggles navmesh overlay): `poly_count=61 vertex_count=96` — properly carved
+- BuildingLevel (loaded via SceneLoader): `poly_count=1 vertex_count=4` — consistently uncarved across 3 separate loads
+
+The LabyrinthLevel eventually shows carved navmesh because by the time the user manually toggles the overlay (11 seconds later), the physics server has caught up. But BuildingLevel never re-bakes, so it stays uncarved.
+
+**Fix applied (commit `610745cf`):** Added `await get_tree().physics_frame` before `parse_source_geometry_data()` in all 13 level scripts. This defers the bake to after the physics server has registered all collision shapes.
 
 ---
 
@@ -200,3 +217,20 @@ Already integrated via `NavigationAgent2D.avoidance_enabled = true`. Fix 2 (enem
 - `scripts/objects/enemy.gd` — main implementation
 - `scenes/objects/Enemy.tscn` — (no change needed, handled in code)
 - `tests/unit/test_pursuing_state.gd` — add tests for new behavior
+
+---
+
+## Additional Data Collected
+
+### Game Log: `game_log_20260322_045330.txt`
+
+Owner-provided game log from Windows export build running Godot 4.3-stable. Shows BuildingLevel navmesh remaining at `poly_count=1` (uncarved rectangle) across 3 consecutive level loads, confirming the physics frame timing root cause.
+
+### Screenshots
+
+- `screenshots/building-paths-through-walls.png` — BuildingLevel showing enemy paths (yellow lines) going straight through interior walls
+- `screenshots/conflicting-paths.png` — Multiple enemies with overlapping/conflicting path lines through obstacles
+
+### PR #1288 Integration
+
+Per owner request, integrated TacticalGroupComponent from PR #1288 (Issue #1287). When 2+ enemies are within 500px of the player they form a tactical group and spread around the player using angular slot assignment. This complements the enemy-occupied penalty in PursuitComponent by providing macro-level coordination in addition to the micro-level cover position de-duplication.
