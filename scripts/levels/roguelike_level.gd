@@ -626,6 +626,92 @@ func _build_city_interior(room_node: Node2D) -> void:
 ## Enemy spawning
 ## ============================================================
 
+## ============================================================
+## Special enemy archetypes (Issue #1297)
+## ============================================================
+
+## Special enemy types that can appear in roguelike rooms.
+## Each value maps to a distinct archetype with unique traits.
+enum SpecialEnemyType {
+	NONE,         ## Regular enemy — no special traits
+	MACHINE_GUNNER,  ## PKM belt-fed; suppresses corridors; falls back to PM
+	GRENADIER,       ## Throws grenades; always 2 HP
+	ARMORED,         ## Extra HP from Armored Skin passive
+	FORCE_FIELD,     ## Protected by force field; harder to finish off
+	SNIPER,          ## ASVK sniper rifle; long-range precision
+}
+
+## Minimum level at which special enemies can appear.
+const SPECIAL_ENEMY_MIN_LEVEL: int = 2
+
+## Base chance (0–1) to have a special enemy in a room on the minimum level.
+## Increases by SPECIAL_ENEMY_CHANCE_PER_LEVEL each additional level.
+const SPECIAL_ENEMY_BASE_CHANCE: float = 0.40
+const SPECIAL_ENEMY_CHANCE_PER_LEVEL: float = 0.10
+
+## Maximum spawn chance regardless of level (capped at this value).
+const SPECIAL_ENEMY_MAX_CHANCE: float = 0.80
+
+
+## Returns the SpecialEnemyType to spawn for the last enemy slot, or NONE.
+## Called once per room; uses current roguelike level and a random roll.
+func _pick_special_enemy_type(current_level: int) -> int:
+	if current_level < SPECIAL_ENEMY_MIN_LEVEL:
+		return SpecialEnemyType.NONE
+	var chance: float = clampf(
+		SPECIAL_ENEMY_BASE_CHANCE + (current_level - SPECIAL_ENEMY_MIN_LEVEL) * SPECIAL_ENEMY_CHANCE_PER_LEVEL,
+		0.0, SPECIAL_ENEMY_MAX_CHANCE)
+	if randf() > chance:
+		return SpecialEnemyType.NONE
+	# Pool of archetypes available; extends with level
+	var pool: Array = [
+		SpecialEnemyType.MACHINE_GUNNER,
+		SpecialEnemyType.GRENADIER,
+		SpecialEnemyType.ARMORED,
+	]
+	if current_level >= 3:
+		pool.append(SpecialEnemyType.FORCE_FIELD)
+	if current_level >= 4:
+		pool.append(SpecialEnemyType.SNIPER)
+	return pool[randi() % pool.size()]
+
+
+## Applies special-enemy traits to an already-instantiated enemy node.
+## The enemy is promoted to the chosen archetype in-place (no new scene needed).
+func _apply_special_enemy(enemy: Node, special_type: int, level_bonus: int) -> void:
+	match special_type:
+		SpecialEnemyType.MACHINE_GUNNER:
+			enemy.weapon_type = 6  # WeaponType.MACHINE_GUN
+			enemy.min_health  = 2 + level_bonus
+			enemy.max_health  = 3 + level_bonus
+			enemy.behavior_mode = 1  # GUARD — holds position, suppresses
+			print("[RoguelikeLevel] Special: Machine Gunner spawned")
+		SpecialEnemyType.GRENADIER:
+			enemy.is_grenadier = true
+			enemy.weapon_type  = 0  # RIFLE (grenadier primary)
+			# is_grenadier forces max_health=2 inside enemy.gd; we only touch min/max here
+			# to ensure the rng range in enemy.gd stays consistent.
+			enemy.min_health = 2 + level_bonus
+			enemy.max_health = 2 + level_bonus
+			print("[RoguelikeLevel] Special: Grenadier spawned")
+		SpecialEnemyType.ARMORED:
+			enemy.has_armored_skin = true
+			enemy.min_health = 2 + level_bonus
+			enemy.max_health = 3 + level_bonus
+			print("[RoguelikeLevel] Special: Armored enemy spawned")
+		SpecialEnemyType.FORCE_FIELD:
+			enemy.has_force_field = true
+			enemy.min_health = 1 + level_bonus
+			enemy.max_health = 2 + level_bonus
+			print("[RoguelikeLevel] Special: Force Field enemy spawned")
+		SpecialEnemyType.SNIPER:
+			enemy.weapon_type = 7  # WeaponType.SNIPER_RIFLE
+			enemy.min_health  = 1 + level_bonus
+			enemy.max_health  = 2 + level_bonus
+			enemy.behavior_mode = 1  # GUARD — holds a firing position
+			print("[RoguelikeLevel] Special: Sniper spawned")
+
+
 func _spawn_enemies_in_room(room_node: Node2D) -> void:
 	var enemy_scene: PackedScene = load("res://scenes/objects/Enemy.tscn")
 	if enemy_scene == null:
@@ -643,6 +729,11 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 		var tmp: Vector2 = positions[i]
 		positions[i] = positions[j]
 		positions[j] = tmp
+
+	# Issue #1297: decide whether to include a special enemy in this room.
+	var special_type: int = _pick_special_enemy_type(GameManager.roguelike_current_level)
+	# The special enemy occupies the last slot (index count - 1) so regular enemies come first.
+	var special_slot: int = count - 1 if special_type != SpecialEnemyType.NONE else -1
 
 	for i in range(count):
 		var enemy: Node = enemy_scene.instantiate()
@@ -666,6 +757,9 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 		enemy.max_health = 2 + level_bonus
 		# Must destroy on death so they don't respawn (Issue #1061 round 5).
 		enemy.destroy_on_death = true
+		# Issue #1297: apply special archetype to the designated slot.
+		if i == special_slot:
+			_apply_special_enemy(enemy, special_type, level_bonus)
 		room_node.add_child(enemy)
 
 		_enemies.append(enemy)
