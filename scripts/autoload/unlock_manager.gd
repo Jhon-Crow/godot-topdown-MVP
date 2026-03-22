@@ -94,9 +94,9 @@ const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
 		"active_items": [9]  # ActiveItemManager.ActiveItemType.LASER_SIGHT = 9
 	},
 	{
-		# 300 shots with shotgun, sniper rifle, or revolver → unlock Fine Motor Skills (Issue #1346)
+		# 1000 shots with shotgun, sniper rifle, or revolver → unlock Fine Motor Skills (Issue #1346)
 		"stat": "shots_fired_special_weapons",
-		"min_kills": 300,
+		"min_kills": 1000,
 		"weapons": [],
 		"grenades": [],
 		"active_items": [19]  # ActiveItemManager.ActiveItemType.FINE_MOTOR_SKILLS = 19

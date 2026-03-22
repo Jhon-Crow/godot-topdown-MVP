@@ -4,7 +4,7 @@ extends GutTest
 ## Tests that:
 ## - FINE_MOTOR_SKILLS starts locked (not freely available from start)
 ## - shots_fired_special_weapons counter increments only for shotgun/sniper/revolver shots
-## - The shot condition requires exactly 300 special-weapon shots
+## - The shot condition requires exactly 1000 special-weapon shots
 ## - is_kill_condition_met returns correct values based on shot count
 ## - KILL_UNLOCK_CONDITIONS contains the correct entry for Fine Motor Skills
 
@@ -37,9 +37,9 @@ class MockUnlockManager:
 			"active_items": [9]  # LASER_SIGHT = 9
 		},
 		{
-			# 300 shots with shotgun, sniper rifle, or revolver → unlock Fine Motor Skills (Issue #1346)
+			# 1000 shots with shotgun, sniper rifle, or revolver → unlock Fine Motor Skills (Issue #1346)
 			"stat": "shots_fired_special_weapons",
-			"min_kills": 300,
+			"min_kills": 1000,
 			"weapons": [],
 			"grenades": [],
 			"active_items": [19]  # FINE_MOTOR_SKILLS = 19
@@ -94,7 +94,7 @@ func test_fine_motor_skills_starts_locked() -> void:
 		19: false  # FINE_MOTOR_SKILLS — locked by default (Issue #1346)
 	}
 	assert_false(unlocked_active_items[19],
-		"FINE_MOTOR_SKILLS should start locked — requires 300 special weapon shots (Issue #1346)")
+		"FINE_MOTOR_SKILLS should start locked — requires 1000 special weapon shots (Issue #1346)")
 
 
 # ============================================================================
@@ -173,7 +173,7 @@ func test_special_shots_accumulate_from_all_special_weapons() -> void:
 	game_manager.selected_weapon = "revolver"
 	for i in range(100):
 		game_manager.register_shot()
-	assert_eq(game_manager.shots_fired_special_weapons, 300,
+	assert_eq(game_manager.shots_fired_special_weapons, 1000,
 		"shots_fired_special_weapons should accumulate from all three special weapons combined")
 
 
@@ -203,37 +203,37 @@ func test_shot_condition_not_met_at_zero_shots() -> void:
 		"Fine Motor Skills shot condition should not be met at 0 shots")
 
 
-func test_shot_condition_not_met_at_299_shots() -> void:
-	game_manager.shots_fired_special_weapons = 299
+func test_shot_condition_not_met_at_999_shots() -> void:
+	game_manager.shots_fired_special_weapons = 999
 	var fine_motor_condition: Dictionary = {}
 	for cond in unlock_manager.KILL_UNLOCK_CONDITIONS:
 		if cond.get("stat", "") == "shots_fired_special_weapons":
 			fine_motor_condition = cond
 			break
 	assert_false(unlock_manager.is_kill_condition_met(fine_motor_condition),
-		"Fine Motor Skills shot condition should not be met at 299 shots (needs exactly 300)")
+		"Fine Motor Skills shot condition should not be met at 999 shots (needs exactly 1000)")
 
 
-func test_shot_condition_met_at_300_shots() -> void:
-	game_manager.shots_fired_special_weapons = 300
+func test_shot_condition_met_at_1000_shots() -> void:
+	game_manager.shots_fired_special_weapons = 1000
 	var fine_motor_condition: Dictionary = {}
 	for cond in unlock_manager.KILL_UNLOCK_CONDITIONS:
 		if cond.get("stat", "") == "shots_fired_special_weapons":
 			fine_motor_condition = cond
 			break
 	assert_true(unlock_manager.is_kill_condition_met(fine_motor_condition),
-		"Fine Motor Skills shot condition should be met at exactly 300 special weapon shots")
+		"Fine Motor Skills shot condition should be met at exactly 1000 special weapon shots")
 
 
-func test_shot_condition_met_above_300_shots() -> void:
-	game_manager.shots_fired_special_weapons = 500
+func test_shot_condition_met_above_1000_shots() -> void:
+	game_manager.shots_fired_special_weapons = 1500
 	var fine_motor_condition: Dictionary = {}
 	for cond in unlock_manager.KILL_UNLOCK_CONDITIONS:
 		if cond.get("stat", "") == "shots_fired_special_weapons":
 			fine_motor_condition = cond
 			break
 	assert_true(unlock_manager.is_kill_condition_met(fine_motor_condition),
-		"Fine Motor Skills shot condition should remain met above 300 shots")
+		"Fine Motor Skills shot condition should remain met above 1000 shots")
 
 
 # ============================================================================
@@ -251,11 +251,11 @@ func test_kill_unlock_conditions_has_fine_motor_skills_entry() -> void:
 		"KILL_UNLOCK_CONDITIONS should contain an entry for FINE_MOTOR_SKILLS (type 19)")
 
 
-func test_fine_motor_skills_condition_requires_300_shots() -> void:
+func test_fine_motor_skills_condition_requires_1000_shots() -> void:
 	for cond in unlock_manager.KILL_UNLOCK_CONDITIONS:
 		if 19 in cond.get("active_items", []):
-			assert_eq(cond.get("min_kills", 0), 300,
-				"Fine Motor Skills unlock should require 300 special weapon shots")
+			assert_eq(cond.get("min_kills", 0), 1000,
+				"Fine Motor Skills unlock should require 1000 special weapon shots")
 			assert_eq(cond.get("stat", ""), "shots_fired_special_weapons",
 				"Fine Motor Skills unlock should track 'shots_fired_special_weapons' stat")
 			return
@@ -278,15 +278,15 @@ func test_fine_motor_skills_condition_has_no_weapons_or_grenades() -> void:
 
 
 func test_active_item_condition_not_met_below_threshold() -> void:
-	game_manager.shots_fired_special_weapons = 299
+	game_manager.shots_fired_special_weapons = 999
 	assert_false(unlock_manager.is_active_item_condition_met(19),
-		"Fine Motor Skills condition should not be met at 299 shots")
+		"Fine Motor Skills condition should not be met at 999 shots")
 
 
 func test_active_item_condition_met_at_threshold() -> void:
-	game_manager.shots_fired_special_weapons = 300
+	game_manager.shots_fired_special_weapons = 1000
 	assert_true(unlock_manager.is_active_item_condition_met(19),
-		"Fine Motor Skills condition should be met at 300 special weapon shots")
+		"Fine Motor Skills condition should be met at 1000 special weapon shots")
 
 
 # ============================================================================
@@ -370,14 +370,14 @@ func test_tutorial_level_weapon_fired_does_not_count_non_special_weapons() -> vo
 		"Total shots_fired must still be tracked for Makarov PM")
 
 
-func test_tutorial_level_300_shotgun_shots_unlock_fine_motor_skills() -> void:
-	## End-to-end: 300 shotgun shots fired from Tutorial level reach the unlock threshold.
+func test_tutorial_level_1000_shotgun_shots_unlock_fine_motor_skills() -> void:
+	## End-to-end: 1000 shotgun shots fired from Tutorial level reach the unlock threshold.
 	var tutorial := MockTutorialLevelWithGameManager.new()
 	tutorial.set_game_manager(game_manager)
 	game_manager.selected_weapon = "shotgun"
 
-	for i in range(300):
+	for i in range(1000):
 		tutorial.on_weapon_fired()
 
 	assert_true(unlock_manager.is_active_item_condition_met(19),
-		"300 shotgun shots on Tutorial level must unlock Fine Motor Skills (Issue #1346)")
+		"1000 shotgun shots on Tutorial level must unlock Fine Motor Skills (Issue #1346)")

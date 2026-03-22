@@ -145,12 +145,12 @@ func test_fine_motor_skills_not_blocked_when_not_jammed() -> void:
 
 
 func test_fine_motor_skills_starts_locked() -> void:
-	# Fine Motor Skills requires 300 shots with shotgun/sniper/revolver (Issue #1346)
+	# Fine Motor Skills requires 1000 shots with shotgun/sniper/revolver (Issue #1346)
 	var unlocked_items := {
 		19: false  # FINE_MOTOR_SKILLS — locked until condition met
 	}
 	assert_false(unlocked_items[19],
-		"FINE_MOTOR_SKILLS should start locked — unlock requires 300 special weapon shots (Issue #1346)")
+		"FINE_MOTOR_SKILLS should start locked — unlock requires 1000 special weapon shots (Issue #1346)")
 
 
 # ============================================================================
