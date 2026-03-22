@@ -39,6 +39,8 @@ class MockActiveItemManager:
 	var current_active_item: int = ACTIVE_ITEM_NONE
 	## Record of set_active_item calls: [{type, restart_level}]
 	var set_calls: Array = []
+	## Issue #1303: passive items collected during roguelike run.
+	var collected_passive_items: Array = []
 
 	func get_all_active_item_types() -> Array:
 		## Return types 0–18 (mirrors the real enum size — Issue #1303).
@@ -67,6 +69,29 @@ class MockActiveItemManager:
 	func set_active_item(type: int, restart_level: bool = true) -> void:
 		set_calls.append({"type": type, "restart_level": restart_level})
 		current_active_item = type
+
+	## Issue #1303: add a passive item to the collected set.
+	func add_passive_item(type: int) -> void:
+		if type not in collected_passive_items:
+			collected_passive_items.append(type)
+
+	## Issue #1303: check if a passive item is in the collected set.
+	func has_passive_item(type: int) -> bool:
+		return type in collected_passive_items
+
+	## Issue #1303: clear all collected passive items.
+	func clear_passive_items() -> void:
+		collected_passive_items.clear()
+
+	## Issue #1303: check passive items via collected set or current_active_item.
+	func has_breaker_bullets() -> bool:
+		return current_active_item == 6 or 6 in collected_passive_items
+
+	func has_laser_sight() -> bool:
+		return current_active_item == 9 or 9 in collected_passive_items
+
+	func has_auto_reload() -> bool:
+		return current_active_item == 14 or 14 in collected_passive_items
 
 
 # ============================================================================
@@ -182,6 +207,7 @@ class MockRoguelikeLevel:
 		pedestal_item = null
 
 	## Mirrors _apply_pedestal_active_item
+	## Issue #1303: passive items now use add_passive_item() to accumulate.
 	func apply_pedestal_active_item(item_type: int) -> void:
 		if active_item_manager == null:
 			pedestal_freed = true
@@ -192,12 +218,12 @@ class MockRoguelikeLevel:
 		var current: int = active_item_manager.current_active_item
 
 		if is_passive:
-			if item_type == current:
-				# Same item — no-op, free pedestal
+			if active_item_manager.has_passive_item(item_type):
+				# Already collected this passive — no-op, free pedestal
 				pedestal_freed = true
 				pedestal_item = null
 				return
-			active_item_manager.set_active_item(item_type, false)
+			active_item_manager.add_passive_item(item_type)
 			pedestal_freed = true
 			pedestal_item = null
 		else:
@@ -280,25 +306,78 @@ func test_weapon_pedestal_removed_when_no_alternatives() -> void:
 # ============================================================================
 
 
-func test_passive_item_collected_without_restart() -> void:
+func test_passive_item_collected_via_add_passive() -> void:
+	## Issue #1303: passive items use add_passive_item() so they accumulate.
 	var level := _make_level()
 	level.active_item_manager.current_active_item = 1  # FLASHLIGHT (non-passive)
 	level.apply_pedestal_active_item(6)  # BREAKER_BULLETS (passive, type 6)
-	assert_false(level.active_item_manager.set_calls.is_empty(),
-		"set_active_item should have been called")
-	var call: Dictionary = level.active_item_manager.set_calls[0]
-	assert_eq(call["type"], 6, "Should set BREAKER_BULLETS (type 6)")
-	assert_false(call["restart_level"], "Passive item pickup must NOT trigger scene restart")
+	assert_true(level.active_item_manager.has_passive_item(6),
+		"BREAKER_BULLETS should be in collected_passive_items")
+	assert_eq(level.active_item_manager.current_active_item, 1,
+		"current_active_item should remain FLASHLIGHT — passive doesn't replace it")
 	assert_true(level.pedestal_freed, "Pedestal removed after passive item collection")
 
 
-func test_passive_item_no_op_when_already_equipped() -> void:
+func test_passive_item_no_op_when_already_collected() -> void:
+	## Issue #1303: duplicate passive pickup is a no-op.
 	var level := _make_level()
-	level.active_item_manager.current_active_item = 9  # LASER_SIGHT (passive, type 9)
+	level.active_item_manager.add_passive_item(9)  # LASER_SIGHT already collected
 	level.apply_pedestal_active_item(9)  # Same item
-	assert_true(level.active_item_manager.set_calls.is_empty(),
-		"set_active_item should NOT be called when already equipped")
 	assert_true(level.pedestal_freed, "Pedestal freed on no-op duplicate pickup")
+	assert_eq(level.active_item_manager.collected_passive_items.size(), 1,
+		"Should still have exactly 1 passive item (no duplicate)")
+
+
+# ============================================================================
+# Tests — multiple passive items coexisting (Issue #1303)
+# ============================================================================
+
+
+func test_multiple_passive_items_accumulate() -> void:
+	## Issue #1303: collecting multiple passive items should keep all of them active.
+	var level := _make_level()
+	level.apply_pedestal_active_item(6)   # BREAKER_BULLETS
+	level.pedestal_freed = false
+	level.apply_pedestal_active_item(9)   # LASER_SIGHT
+	level.pedestal_freed = false
+	level.apply_pedestal_active_item(14)  # AUTO_RELOAD
+	assert_true(level.active_item_manager.has_passive_item(6),
+		"BREAKER_BULLETS should still be active after collecting more passives")
+	assert_true(level.active_item_manager.has_passive_item(9),
+		"LASER_SIGHT should still be active after collecting more passives")
+	assert_true(level.active_item_manager.has_passive_item(14),
+		"AUTO_RELOAD should still be active after collecting more passives")
+	assert_eq(level.active_item_manager.collected_passive_items.size(), 3,
+		"Should have exactly 3 passive items collected")
+
+
+func test_passive_items_coexist_with_active_item() -> void:
+	## Issue #1303: passive items must not replace the current active (non-passive) item.
+	var level := _make_level()
+	level.active_item_manager.current_active_item = 7  # FORCE_FIELD (active)
+	level.apply_pedestal_active_item(6)   # BREAKER_BULLETS (passive)
+	level.pedestal_freed = false
+	level.apply_pedestal_active_item(9)   # LASER_SIGHT (passive)
+	assert_eq(level.active_item_manager.current_active_item, 7,
+		"Active item (FORCE_FIELD) should remain unchanged after passive pickups")
+	assert_true(level.active_item_manager.has_breaker_bullets(),
+		"has_breaker_bullets() should return true from passive collection")
+	assert_true(level.active_item_manager.has_laser_sight(),
+		"has_laser_sight() should return true from passive collection")
+
+
+func test_clear_passive_items_on_new_run() -> void:
+	## Issue #1303: passive items should be cleared at the start of a new roguelike run.
+	var level := _make_level()
+	level.active_item_manager.add_passive_item(6)   # BREAKER_BULLETS
+	level.active_item_manager.add_passive_item(9)   # LASER_SIGHT
+	level.active_item_manager.clear_passive_items()
+	assert_false(level.active_item_manager.has_passive_item(6),
+		"BREAKER_BULLETS should be cleared after new run")
+	assert_false(level.active_item_manager.has_passive_item(9),
+		"LASER_SIGHT should be cleared after new run")
+	assert_eq(level.active_item_manager.collected_passive_items.size(), 0,
+		"collected_passive_items should be empty after clear")
 
 
 # ============================================================================

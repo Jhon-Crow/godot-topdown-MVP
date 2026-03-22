@@ -323,6 +323,9 @@ func _force_roguelike_loadout() -> void:
 			ActiveItemManager.current_active_item = 0  # NONE — direct assignment, no restart
 			ActiveItemManager.active_item_changed.emit(0)
 			print("[RoguelikeLevel] Active item cleared for roguelike start")
+		# Issue #1303: clear accumulated passive items at the start of a new roguelike run.
+		if ActiveItemManager and ActiveItemManager.has_method("clear_passive_items"):
+			ActiveItemManager.clear_passive_items()
 	print("[RoguelikeLevel] Loadout forced: %s + flashbang" % GameManager.get_selected_weapon())
 
 
@@ -1675,15 +1678,18 @@ func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2
 	var current: int = ActiveItemManager.current_active_item
 
 	if is_passive:
-		# Passive: just set it without restart (it coexists with any active item).
-		# If it's the same as the current one, nothing to do.
-		if item_type == current:
-			print("[RoguelikeLevel] Active-item pedestal: already have %s — skipping" %
+		# Passive: add to passive collection (it coexists with any active item and other passives).
+		# Issue #1303: use add_passive_item() so multiple passives work simultaneously.
+		if ActiveItemManager.has_method("has_passive_item") and ActiveItemManager.has_passive_item(item_type):
+			print("[RoguelikeLevel] Active-item pedestal: already have passive %s — skipping" %
 				ActiveItemManager.get_active_item_name(item_type))
 			pedestal.queue_free()
 			_treasure_pedestal = null
 			return
-		ActiveItemManager.set_active_item(item_type, false)  # false = no scene restart
+		if ActiveItemManager.has_method("add_passive_item"):
+			ActiveItemManager.add_passive_item(item_type)
+		else:
+			ActiveItemManager.set_active_item(item_type, false)  # fallback for older builds
 		print("[RoguelikeLevel] Passive item collected: %s" %
 			ActiveItemManager.get_active_item_name(item_type))
 		pedestal.queue_free()
