@@ -224,49 +224,69 @@ func _configure_damage_reduction(enemy_node: Node2D) -> void:
 
 
 ## Disable expensive AI systems on the enemy copy for performance.
-## Keeps: visuals (sprites, modulate), HitArea (for one-shot kills), died signal.
-## Disables: _physics_process (GOAP, AI states, movement), NavigationAgent2D,
-## all RayCast2Ds (24 per enemy), ThreatSphere, SoundPropagation, components.
+## Keeps: EnemyModel (sprites), HitArea (for one-shot kills), CollisionShape2D, died signal.
+## Removes/disables EVERYTHING else: AI, raycasts, navigation, components, _process/_physics_process.
 ## Also removes from "enemies" group so other enemies don't iterate over copies in O(n²).
 func _disable_expensive_ai(enemy_node: Node2D) -> void:
-	# 1. Stop the main AI loop (4900-line _physics_process in enemy.gd)
+	# 1. Stop ALL processing on the enemy root (4900-line AI script)
 	enemy_node.set_physics_process(false)
+	enemy_node.set_process(false)
 
-	# 2. Remove from "enemies" group to prevent O(n²) inter-enemy queries.
-	#    Enemy._ready() adds itself to "enemies". Other enemies iterate this group
-	#    for tactical coordination, GOAP, and pursuit — O(n) per enemy per frame.
-	#    We keep the copy in the scene tree for visual rendering and hit detection.
+	# 2. Remove from "enemies" group to prevent O(n²) inter-enemy queries
 	if enemy_node.is_in_group("enemies"):
 		enemy_node.remove_from_group("enemies")
 
-	# 3. Disable NavigationAgent2D (pathfinding queries)
-	var nav_agent: NavigationAgent2D = enemy_node.get_node_or_null("NavigationAgent2D")
-	if nav_agent:
-		nav_agent.avoidance_enabled = false
-		nav_agent.set_physics_process(false)
+	# 3. Identify nodes we MUST keep for visuals and hit detection.
+	#    Everything else (raycasts, nav agent, components) is freed to reduce node count.
+	var keep_names := {
+		"EnemyModel": true,       # Sprites (body, head, arms, weapon)
+		"HitArea": true,           # Area2D for bullet damage detection
+		"CollisionShape2D": true,  # Physics body shape (CharacterBody2D needs this)
+		"DebugLabel": true,        # Lightweight Label node
+		"LightOccluder2D": true,   # Visual shadow casting
+	}
 
-	# 4. Disable all RayCast2Ds (8 wall + 16 cover + 1 LOS = 25 raycasts)
+	# 4. Remove all unnecessary child nodes (raycasts, nav agent, components, etc.)
+	#    This is more robust than disabling individual nodes — anything not essential is freed.
+	#    queue_free() runs at end of frame, so these nodes are still valid during this call.
 	for child in enemy_node.get_children():
-		if child is RayCast2D:
-			child.enabled = false
-		# Also disable ThreatSphere Area2D (bullet proximity detection)
-		if child is Area2D and child.name == "ThreatSphere":
-			child.monitoring = false
-			child.monitorable = false
-		# Disable CasingPusher Area2D
-		if child is Area2D and child.name == "CasingPusher":
-			child.monitoring = false
-			child.monitorable = false
+		if keep_names.has(child.name):
+			continue
+		child.queue_free()
 
-	# 5. Disable any child nodes that have their own _physics_process
-	for child in enemy_node.get_children():
-		if child.has_method("_physics_process"):
-			child.set_physics_process(false)
+	# 5. Null out internal references to freed nodes so enemy.gd's _on_death() doesn't
+	#    crash when accessing them (freed instances cause errors in GDScript 4).
+	if enemy_node.get("_death_animation") != null:
+		enemy_node._death_animation = null
+	if enemy_node.get("_force_field_component") != null:
+		enemy_node._force_field_component = null
+	if enemy_node.get("_armored_skin_component") != null:
+		enemy_node._armored_skin_component = null
+	if enemy_node.get("_invisibility") != null:
+		enemy_node._invisibility = null
+	if enemy_node.get("_pacifist") != null:
+		enemy_node._pacifist = null
+
+	# 6. Recursively disable _process and _physics_process on ALL remaining descendants.
+	#    This catches StatusEffectAnimationComponent._process(), DeathAnimationComponent._process(),
+	#    and any other callbacks that were missed by previous implementations.
+	_disable_processing_recursive(enemy_node)
+
+
+## Recursively disable _process and _physics_process on a node and all descendants.
+## Keeps the nodes in the tree (for rendering) but stops all per-frame callbacks.
+func _disable_processing_recursive(node: Node) -> void:
+	node.set_process(false)
+	node.set_physics_process(false)
+	node.set_process_input(false)
+	node.set_process_unhandled_input(false)
+	for child in node.get_children():
+		_disable_processing_recursive(child)
 
 
 ## Deferred cleanup for systems registered via call_deferred in Enemy._ready().
-## Enemy._ready() defers SoundPropagation registration, so we must defer unregistration
-## to run after it.
+## Enemy._ready() defers SoundPropagation registration and other setup, so we must
+## defer our cleanup to run after those deferred calls complete.
 func _deferred_disable_ai(enemy_node: Node2D) -> void:
 	if not is_instance_valid(enemy_node):
 		return
@@ -277,6 +297,14 @@ func _deferred_disable_ai(enemy_node: Node2D) -> void:
 	# Ensure enemy is still removed from "enemies" group (deferred adds may have re-added)
 	if enemy_node.is_in_group("enemies"):
 		enemy_node.remove_from_group("enemies")
+	# Re-disable processing on any nodes that were added/re-enabled by deferred calls
+	_disable_processing_recursive(enemy_node)
+	# Remove any newly added children that aren't essential (deferred child additions)
+	var keep_names := {"EnemyModel": true, "HitArea": true, "CollisionShape2D": true, "DebugLabel": true, "LightOccluder2D": true}
+	for child in enemy_node.get_children():
+		if keep_names.has(child.name):
+			continue
+		child.queue_free()
 
 
 ## Called when original enemy dies — all illusion copies disappear.
