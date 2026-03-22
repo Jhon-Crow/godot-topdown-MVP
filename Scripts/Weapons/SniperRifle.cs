@@ -2116,6 +2116,58 @@ public partial class SniperRifle : BaseWeapon
     /// </summary>
     public BoltActionStep CurrentBoltStep => _boltStep;
 
+    /// <summary>
+    /// Instantly completes the bolt cycle, bringing the weapon to combat-ready state (Issue #1315).
+    /// Used by the Fine Motor Skills active item. Plays all bolt step sounds rapidly
+    /// and transitions directly to Ready state if ammo is available.
+    /// </summary>
+    public void FineBoltCycle()
+    {
+        if (_boltStep == BoltActionStep.Ready)
+        {
+            GD.Print("[SniperRifle.FineMotorSkills] Bolt already ready — no cycle needed");
+            return;
+        }
+
+        GD.Print($"[SniperRifle.FineMotorSkills] Instant bolt cycle from step {_boltStep}");
+
+        // Play all remaining bolt step sounds rapidly
+        int startStep = _boltStep switch
+        {
+            BoltActionStep.NeedsBoltCycle => 1,
+            BoltActionStep.WaitExtractCasing => 2,
+            BoltActionStep.WaitChamberRound => 3,
+            BoltActionStep.WaitCloseBolt => 4,
+            _ => 1
+        };
+
+        for (int step = startStep; step <= 4; step++)
+        {
+            PlayBoltStepSound(step);
+        }
+
+        // Eject casing if needed
+        if (_hasCasingToEject)
+        {
+            SpawnCasing(_lastFireDirection, WeaponData?.Caliber);
+            _hasCasingToEject = false;
+        }
+
+        // Transition to Ready if ammo available, otherwise NeedsBoltCycle
+        if (CurrentAmmo > 0)
+        {
+            _boltStep = BoltActionStep.Ready;
+            EmitSignal(SignalName.BoltStepChanged, 4, 4);
+            GD.Print("[SniperRifle.FineMotorSkills] Bolt cycle complete — READY TO FIRE");
+        }
+        else
+        {
+            _boltStep = BoltActionStep.NeedsBoltCycle;
+            EmitSignal(SignalName.BoltStepChanged, 0, 4);
+            GD.Print("[SniperRifle.FineMotorSkills] Bolt cycle complete but NO ammo — needs reload");
+        }
+    }
+
     // =========================================================================
     // Scope / Aiming System (RMB)
     // =========================================================================
