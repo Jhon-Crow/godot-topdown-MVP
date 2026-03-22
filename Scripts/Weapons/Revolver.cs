@@ -1129,6 +1129,45 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
+    /// Steering speed (radians/sec) for the revolver's built-in slight homing (Issue #1332).
+    /// Low value gives gentle bullet correction toward enemies without feeling like a homing missile.
+    /// </summary>
+    private const float RevolverHomingSteerSpeed = 4.0f;
+
+    /// <summary>
+    /// Override SpawnBullet to enable slight built-in homing for the RSh-12 revolver (Issue #1332).
+    /// After the bullet is spawned by the base class, weak aim-line homing is applied so that
+    /// bullets nudge toward the nearest enemy near the crosshair without fully tracking them.
+    /// </summary>
+    protected override void SpawnBullet(Vector2 direction)
+    {
+        base.SpawnBullet(direction);
+
+        // Find the bullet that was just spawned (last Bullet child of CurrentScene)
+        // and apply weak homing so it gently steers toward nearby enemies.
+        var scene = GetTree().CurrentScene;
+        if (scene == null)
+            return;
+
+        // Walk children in reverse to find the most recently added Bullet
+        var children = scene.GetChildren();
+        for (int i = children.Count - 1; i >= 0; i--)
+        {
+            if (children[i] is GodotTopDownTemplate.Projectiles.Bullet bullet && !bullet.HomingEnabled)
+            {
+                // Only add weak homing if player homing effect is NOT already active
+                // (base.SpawnBullet already enables full-strength homing when player buff is on)
+                if (!(GetParent() is GodotTopDownTemplate.Characters.Player player && player.IsHomingActive()))
+                {
+                    Vector2 aimDir = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+                    bullet.EnableHomingWithAimLine(GlobalPosition, aimDir, RevolverHomingSteerSpeed);
+                }
+                break;
+            }
+        }
+    }
+
+    /// <summary>
     /// Spawns a large muzzle flash for the RSh-12 revolver.
     /// The 12.7mm round creates a significant muzzle flash from the revolver's barrel.
     /// </summary>
