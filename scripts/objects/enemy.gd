@@ -482,7 +482,7 @@ func _configure_weapon_type() -> void:
 	_is_melee_weapon = c.get("is_melee", false); _is_rpg_weapon = c.get("is_rpg", false)  # Issue #579 #583
 	if c.has("total_magazines"): total_magazines = c["total_magazines"]  # #1033
 	if c.has("reload_time"): reload_time = c["reload_time"]  # #1033
-	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
+	if OS.is_debug_build(): print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
 
 ## Setup patrol points based on patrol offsets from initial position.
 func _setup_patrol_points() -> void:
@@ -4496,20 +4496,11 @@ func _reset() -> void:
 
 ## Disables hit area collision so bullets pass through dead enemies (multiple approaches due to Godot Area2D limits).
 func _disable_hit_area_collision() -> void:
-	# Approach 1: Disable the CollisionShape2D itself
-	# This is the most reliable way to prevent collision detection
 	if _hit_collision_shape:
 		_hit_collision_shape.set_deferred("disabled", true)
-
-	# Approach 2: Move to unused collision layers
-	# This prevents any interaction even if shape disabling fails
 	if _hit_area:
 		_hit_area.set_deferred("collision_layer", 0)
 		_hit_area.set_deferred("collision_mask", 0)
-
-	# Approach 3: Disable monitorable/monitoring (original approach)
-	# Kept as additional safety measure
-	if _hit_area:
 		_hit_area.set_deferred("monitorable", false)
 		_hit_area.set_deferred("monitoring", false)
 
@@ -4979,7 +4970,7 @@ func _switch_to_secondary_weapon() -> void:
 	_current_ammo = magazine_size; _reserve_ammo = (total_magazines - 1) * magazine_size; _is_reloading = false; _reload_timer = 0.0
 	if sc.get("sprite_path", "") != "" and _weapon_sprite:  # Issue #583: update weapon sprite to PM
 		var tex := load(sc["sprite_path"]) as Texture2D; if tex: _weapon_sprite.texture = tex
-	print("[Enemy] RPG fired, switched to secondary weapon (PM)")
+	if OS.is_debug_build(): print("[Enemy] RPG fired, switched to secondary weapon (PM)")
 ## Setup enemy flashlight for night mode (Issue #824).
 func _setup_enemy_flashlight() -> void:
 	_enemy_flashlight = EnemyFlashlightComponent.new(); _enemy_flashlight.debug_logging = debug_logging; add_child(_enemy_flashlight)
