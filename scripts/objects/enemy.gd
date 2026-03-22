@@ -237,9 +237,7 @@ const PURSUIT_APPROACH_MAX_TIME: float = 3.0  ## Max approach time (sec)
 const PURSUING_MIN_DURATION_BEFORE_COMBAT: float = 0.3  ## Min before COMBAT
 const PURSUIT_MIN_PROGRESS_FRACTION: float = 0.10  ## Min progress fraction
 const PURSUIT_SAME_OBSTACLE_PENALTY: float = 4.0  ## Penalty for same cover
-const PURSUIT_ENEMY_OCCUPIED_PENALTY: float = 3.0  ## Issue #1289: penalty when another enemy targets this cover
-const PURSUIT_ENEMY_OCCUPIED_RADIUS: float = 80.0  ## Issue #1289: radius to consider a cover occupied (px)
-const PURSUIT_PATH_DESIRED_DISTANCE: float = 80.0  ## Issue #1289: enlarged nav step length while pursuing
+const PURSUIT_PATH_DESIRED_DISTANCE: float = PursuitComponent.PURSUIT_PATH_DESIRED_DISTANCE  ## Issue #1289: enlarged nav step length while pursuing (from PursuitComponent)
 var _nav_default_path_desired_distance: float = 40.0  ## Issue #1289: saved default path_desired_distance
 var _flank_cover_wait_timer: float = 0.0  ## Wait at cover timer (Flanking State)
 const FLANK_COVER_WAIT_DURATION: float = 0.8  ## Cover wait time (sec)
@@ -367,6 +365,7 @@ var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Faci
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
 var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
+var _pursuit_component: PursuitComponent = null  ## Issue #1289: Cover-finding logic for PURSUING state.
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -414,6 +413,7 @@ func _ready() -> void:
 	if _nav_agent: _nav_default_path_desired_distance = _nav_agent.path_desired_distance  # Issue #1289: save default path_desired_distance for PURSUING state
 
 	_tactical_movement = TacticalMovementComponent.new(self)  # Issue #1249: narrow passage queuing
+	_pursuit_component = PursuitComponent.new(self)  # Issue #1289: pursuit cover-finding component
 
 	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
 	if bullet_scene == null:  # Preload bullet scene if not set in inspector
@@ -3128,121 +3128,15 @@ func _count_enemies_in_combat() -> int:
 func is_in_combat_engagement() -> bool:
 	return _can_see_player and _current_state in [AIState.COMBAT, AIState.IN_COVER, AIState.ASSAULT]
 
-## Find pursuit cover toward player (penalizes same-obstacle, min progress, clear path; #93).
+## Find pursuit cover toward player — delegates to PursuitComponent (Issue #1289).
+## Selects nearest navmesh-valid cover that: advances toward player, is hidden, avoids
+## occupied spots (enemy spread), avoids flashlight beam, and differs from current obstacle.
 func _find_pursuit_cover_toward_player() -> void:
-	# Use memory-based target (not direct position) to pursue suspected position (#297)
-	var target_pos := _get_target_position()
-
-	# If no valid target and no player, can't pursue
-	if target_pos == global_position and _player == null:
-		_has_pursuit_cover = false
-		return
-	var wp_p := _combat_waypoint(target_pos)  # Issue #1227
-	if wp_p != Vector2.ZERO: _pursuit_next_cover = wp_p; _has_pursuit_cover = true; _current_cover_obstacle = null; return
-	var player_pos := target_pos
-	var best_cover: Vector2 = Vector2.ZERO
-	var best_score: float = -INF
-	var best_obstacle: Object = null
-	var found_valid_cover: bool = false
-
-	var my_distance_to_player := global_position.distance_to(player_pos)
-	# Calculate minimum required progress (must get at least this much closer)
-	var min_required_progress := my_distance_to_player * PURSUIT_MIN_PROGRESS_FRACTION
-
-	# Cast rays in all directions to find obstacles
-	for i in range(COVER_CHECK_COUNT):
-		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
-		var direction := Vector2.from_angle(angle)
-
-		var raycast := _cover_raycasts[i]
-		raycast.target_position = direction * COVER_CHECK_DISTANCE
-		raycast.force_raycast_update()
-
-		if raycast.is_colliding():
-			var collision_point := raycast.get_collision_point()
-			var collision_normal := raycast.get_collision_normal()
-			var collider := raycast.get_collider()
-
-			# Cover position is offset from collision point along normal
-			var cover_pos := collision_point + collision_normal * 35.0
-
-			# For pursuit, we want cover that is:
-			# 1. Closer to the player than we currently are (with minimum progress)
-			# 2. Hidden from the player (or mostly hidden)
-			# 3. Not too far from our current position
-			# 4. Preferably on a different obstacle than current cover
-			# 5. Reachable (no walls blocking the path)
-			var cover_distance_to_player := cover_pos.distance_to(player_pos)
-			var cover_distance_from_me := global_position.distance_to(cover_pos)
-			var progress := my_distance_to_player - cover_distance_to_player
-
-			# Skip covers that don't bring us closer to player
-			if cover_distance_to_player >= my_distance_to_player:
-				continue
-
-			# Skip covers that don't make enough progress (issue #93 fix)
-			# This prevents stopping repeatedly along the same long wall
-			if progress < min_required_progress:
-				continue
-
-			# Skip covers that are too close to current position (would cause looping)
-			# Must be at least 30 pixels away to be a meaningful movement
-			if cover_distance_from_me < 30.0:
-				continue
-
-			# Verify we can actually reach this cover position (no wall blocking path)
-			if not _can_reach_position(cover_pos):
-				continue
-
-			# Issue #1289: Validate navmesh reachability (raycast alone misses off-mesh corners).
-			if _nav_agent:
-				var nav_map := _nav_agent.get_navigation_map()
-				if nav_map.is_valid() and cover_pos.distance_to(NavigationServer2D.map_get_closest_point(nav_map, cover_pos)) > _nav_agent.radius * 2.0:
-					continue  # Off navmesh — skip to avoid paths crossing obstacles
-
-			# Check if this position is hidden from player
-			var is_hidden := not _is_position_visible_from_player(cover_pos)
-
-			# Check if this is the same obstacle as our current cover (issue #93 fix)
-			var same_obstacle_penalty: float = 0.0
-			if _current_cover_obstacle != null and collider == _current_cover_obstacle:
-				same_obstacle_penalty = PURSUIT_SAME_OBSTACLE_PENALTY
-
-			# Issue #1289: Penalize cover targeted by another enemy (spreads enemies, reduces ORCA jams).
-			var occupied_penalty: float = 0.0
-			for _other: Node in get_tree().get_nodes_in_group("enemies"):
-				if _other == self or not is_instance_valid(_other): continue
-				var _other_cover: Vector2 = _other.get("_pursuit_next_cover") if _other.get("_pursuit_next_cover") != null else Vector2.ZERO
-				if _other_cover != Vector2.ZERO and cover_pos.distance_to(_other_cover) < PURSUIT_ENEMY_OCCUPIED_RADIUS:
-					occupied_penalty = PURSUIT_ENEMY_OCCUPIED_PENALTY; break
-
-			# Score: hidden > near player > close to self > diff obstacle > no flashlight (Issue #574) > not occupied (Issue #1289)
-			var hidden_score: float = 5.0 if is_hidden else 0.0
-			var approach_score: float = progress / CLOSE_COMBAT_DISTANCE
-			var distance_penalty: float = cover_distance_from_me / COVER_CHECK_DISTANCE
-
-			# [Issue #574] Penalize cover positions lit by the flashlight
-			var flashlight_penalty: float = 0.0
-			if _flashlight_detection and _player and _flashlight_detection.is_position_lit(cover_pos, _player, _raycast):
-				flashlight_penalty = 8.0  # Strong penalty — avoid walking into flashlight beam
-
-			var total_score: float = hidden_score + approach_score * 2.0 - distance_penalty - same_obstacle_penalty - flashlight_penalty - occupied_penalty
-
-			if total_score > best_score:
-				best_score = total_score
-				best_cover = cover_pos
-				best_obstacle = collider
-				found_valid_cover = true
-
-	if found_valid_cover:
-		_pursuit_next_cover = best_cover
-		_has_pursuit_cover = true
-		_current_cover_obstacle = best_obstacle
-		_log_debug("Found pursuit cover at %s (score: %.2f)" % [_pursuit_next_cover, best_score])
-	else:
-		_has_pursuit_cover = false; var best_wp := Vector2.ZERO; var best_d := INF
-		for wp in _passage_waypoints: var d := global_position.distance_to(wp.global_position); if d >= 50.0 and d < best_d: best_d = d; best_wp = wp.global_position  # #1226: nearest waypoint
-		if best_wp != Vector2.ZERO: _pursuit_next_cover = best_wp; _has_pursuit_cover = true
+	var result := _pursuit_component.find_cover()
+	_has_pursuit_cover = result.found
+	if result.found:
+		_pursuit_next_cover      = result.cover
+		_current_cover_obstacle  = result.obstacle
 
 ## Check if there's a clear path to a position (no walls blocking).
 func _can_reach_position(target: Vector2) -> bool:

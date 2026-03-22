@@ -398,3 +398,38 @@ func test_path_distance_restored_on_non_pursuing_transition() -> void:
 
 	assert_eq(current, saved_default,
 		"path_desired_distance should be restored to default on exit from PURSUING")
+
+
+# ============================================================================
+# Issue #1289: PursuitComponent architecture tests
+# ============================================================================
+
+
+func test_pursuit_component_constants_path_distance() -> void:
+	# PursuitComponent must define PURSUIT_PATH_DESIRED_DISTANCE = 80.0
+	assert_eq(PursuitComponent.PURSUIT_PATH_DESIRED_DISTANCE, 80.0,
+		"PursuitComponent.PURSUIT_PATH_DESIRED_DISTANCE should be 80.0")
+
+
+func test_pursuit_component_constants_occupied_penalty() -> void:
+	# PursuitComponent must define PURSUIT_ENEMY_OCCUPIED_PENALTY = 3.0
+	assert_eq(PursuitComponent.PURSUIT_ENEMY_OCCUPIED_PENALTY, 3.0,
+		"PursuitComponent.PURSUIT_ENEMY_OCCUPIED_PENALTY should be 3.0")
+
+
+func test_pursuit_component_constants_occupied_radius() -> void:
+	# PursuitComponent must define PURSUIT_ENEMY_OCCUPIED_RADIUS = 80.0
+	assert_eq(PursuitComponent.PURSUIT_ENEMY_OCCUPIED_RADIUS, 80.0,
+		"PursuitComponent.PURSUIT_ENEMY_OCCUPIED_RADIUS should be 80.0")
+
+
+func test_pursuit_component_returns_not_found_with_null_enemy() -> void:
+	# PursuitComponent.find_cover() must return {found=false} when enemy ref is null.
+	var comp := PursuitComponent.new(null)
+	var result := comp.find_cover()
+	assert_false(result.found,
+		"find_cover() with null enemy should return found=false")
+	assert_eq(result.cover, Vector2.ZERO,
+		"find_cover() with null enemy should return cover=Vector2.ZERO")
+	assert_null(result.obstacle,
+		"find_cover() with null enemy should return obstacle=null")
