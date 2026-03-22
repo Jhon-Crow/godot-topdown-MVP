@@ -237,6 +237,10 @@ const PURSUIT_APPROACH_MAX_TIME: float = 3.0  ## Max approach time (sec)
 const PURSUING_MIN_DURATION_BEFORE_COMBAT: float = 0.3  ## Min before COMBAT
 const PURSUIT_MIN_PROGRESS_FRACTION: float = 0.10  ## Min progress fraction
 const PURSUIT_SAME_OBSTACLE_PENALTY: float = 4.0  ## Penalty for same cover
+const PURSUIT_ENEMY_OCCUPIED_PENALTY: float = 3.0  ## Issue #1289: penalty when another enemy targets this cover
+const PURSUIT_ENEMY_OCCUPIED_RADIUS: float = 80.0  ## Issue #1289: radius to consider a cover occupied (px)
+const PURSUIT_PATH_DESIRED_DISTANCE: float = 80.0  ## Issue #1289: enlarged nav step length while pursuing
+var _nav_default_path_desired_distance: float = 40.0  ## Issue #1289: saved default path_desired_distance
 var _flank_cover_wait_timer: float = 0.0  ## Wait at cover timer (Flanking State)
 const FLANK_COVER_WAIT_DURATION: float = 0.8  ## Cover wait time (sec)
 var _flank_next_cover: Vector2 = Vector2.ZERO  ## Next cover position
@@ -407,6 +411,9 @@ func _ready() -> void:
 	# Issue #1146: Hook ORCA avoidance velocity so NavigationAgent2D steers enemies apart.
 	if _nav_agent and _nav_agent.avoidance_enabled:
 		_nav_agent.velocity_computed.connect(_on_avoidance_velocity_computed)
+	# Issue #1289: Save the default path_desired_distance so PURSUING can enlarge and restore it.
+	if _nav_agent:
+		_nav_default_path_desired_distance = _nav_agent.path_desired_distance
 
 	_tactical_movement = TacticalMovementComponent.new(self)  # Issue #1249: narrow passage queuing
 
@@ -2587,6 +2594,7 @@ func _transition_to_idle() -> void:
 	# Reset various state tracking when returning to idle
 	_hits_taken_in_encounter = 0; _in_alarm_mode = false; _cover_burst_pending = false
 	_idle_scan_timer = 0.0; _idle_scan_targets.clear()  # Will be re-initialized in _process_guard
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # Issue #1289: restore default
 
 func _transition_to_combat() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_combat_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -2601,6 +2609,7 @@ func _transition_to_combat() -> void:
 	_pursuing_vulnerability_sound = false; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position  # Issue #1107
 	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
 	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # Issue #1289: restore default
 
 func _transition_to_seeking_cover() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_seeking_cover_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -2608,6 +2617,7 @@ func _transition_to_seeking_cover() -> void:
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
 	_seeking_cover_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #997 RCA-17
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # Issue #1289: restore default
 	_find_cover_position()
 
 func _transition_to_in_cover() -> void:
@@ -2616,6 +2626,7 @@ func _transition_to_in_cover() -> void:
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
 	_in_cover_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #997 RCA-18
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # Issue #1289: restore default
 
 ## Check if flanking is available (not on cooldown from failures).
 func _can_attempt_flanking() -> bool:
@@ -2674,6 +2685,7 @@ func _transition_to_flanking() -> bool:
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
 	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # Issue #1289: restore default
 	var msg := "FLANKING started: target=%s, side=%s, pos=%s" % [_flank_target, "right" if _flank_side > 0 else "left", global_position]
 	_log_debug(msg)
 	_log_to_file(msg)
@@ -2711,6 +2723,7 @@ func _transition_to_suppressed() -> void:
 	_current_state = AIState.SUPPRESSED
 	_has_left_idle = true; _in_alarm_mode = true  # Issue #330
 	_suppressed_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #969 RCA-11
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # Issue #1289: restore default
 func _transition_to_pursuing() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_pursuing_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.PURSUING
@@ -2730,6 +2743,8 @@ func _transition_to_pursuing() -> void:
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
 	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
+	# Issue #1289: Increase nav step length so enemies cover more ground per waypoint while pursuing.
+	if _nav_agent: _nav_agent.path_desired_distance = PURSUIT_PATH_DESIRED_DISTANCE
 
 func _transition_to_assault() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_assault_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -2742,12 +2757,14 @@ func _transition_to_assault() -> void:
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # Issue #1289: restore default
 	# Find closest cover to player for assault position
 	_find_cover_closest_to_player()
 
 func _transition_to_searching(center_position: Vector2) -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_searching_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.SEARCHING
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # Issue #1289: restore default
 	# Issue #921: Do NOT set _has_left_idle = true here; let it retain whatever value it had.
 	# Combat enemies already have it true (search indefinitely); patrol enemies have it false (timeout).
 	_search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS
@@ -2765,6 +2782,7 @@ func _transition_to_searching(center_position: Vector2) -> void:
 func _transition_to_evading_grenade() -> void:
 	_pre_evasion_state = _current_state
 	_current_state = AIState.EVADING_GRENADE
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # Issue #1289: restore default
 	_has_left_idle = true  # Mark that enemy has left IDLE state (Issue #330)
 	_grenade_evasion_timer = 0.0
 	_calculate_grenade_evasion_target()  # Calculate escape target via component
@@ -2781,6 +2799,7 @@ func _transition_to_retreating() -> void:
 	# Enter alarm mode when retreating
 	_in_alarm_mode = true
 	_retreating_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #997 RCA-17
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # Issue #1289: restore default
 
 	# Determine retreat mode based on hits taken
 	if _hits_taken_in_encounter == 0:
@@ -2812,6 +2831,7 @@ func _transition_to_pacifist(emit_signal: bool = true) -> void:
 	if _pacifist and _pacifist.is_immune: _log_to_file("Cannot become pacifist - immune"); return
 	var was := _pacifist.is_pacifist if _pacifist else false
 	_current_state = AIState.PACIFIST; _has_left_idle = true; velocity = Vector2.ZERO
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # Issue #1289: restore default
 	if _pacifist: _pacifist.start_pacifism()
 	_log_to_file("Transitioned to PACIFIST"); if emit_signal and not was: became_pacifist.emit()
 ## Make this enemy a pacifist via loudspeaker. Returns true if successful.
@@ -3196,6 +3216,16 @@ func _find_pursuit_cover_toward_player() -> void:
 			if not _can_reach_position(cover_pos):
 				continue
 
+			# Issue #1289: Validate cover position is on the navmesh (not inside/behind walls).
+			# _can_reach_position only does a straight-line raycast; a cover point offset from a
+			# wall corner can pass the raycast but still lie off the navmesh and be unreachable.
+			if _nav_agent:
+				var nav_map := _nav_agent.get_navigation_map()
+				if nav_map.is_valid():
+					var snapped := NavigationServer2D.map_get_closest_point(nav_map, cover_pos)
+					if cover_pos.distance_to(snapped) > _nav_agent.radius * 2.0:
+						continue  # Off navmesh — skip to avoid paths crossing obstacles
+
 			# Check if this position is hidden from player
 			var is_hidden := not _is_position_visible_from_player(cover_pos)
 
@@ -3204,6 +3234,18 @@ func _find_pursuit_cover_toward_player() -> void:
 			if _current_cover_obstacle != null and collider == _current_cover_obstacle:
 				same_obstacle_penalty = PURSUIT_SAME_OBSTACLE_PENALTY
 
+			# Issue #1289: Penalize cover positions already targeted by another enemy.
+			# This spreads enemies across different cover spots and reduces ORCA traffic jams.
+			var occupied_penalty: float = 0.0
+			for _other: Node in get_tree().get_nodes_in_group("enemies"):
+				if _other == self or not is_instance_valid(_other):
+					continue
+				var _raw_cover = _other.get("_pursuit_next_cover")
+				var _other_cover: Vector2 = _raw_cover if _raw_cover != null else Vector2.ZERO
+				if _other_cover != Vector2.ZERO and cover_pos.distance_to(_other_cover) < PURSUIT_ENEMY_OCCUPIED_RADIUS:
+					occupied_penalty = PURSUIT_ENEMY_OCCUPIED_PENALTY
+					break
+
 			# Score calculation:
 			# Higher score for positions that are:
 			# - Hidden from player (priority)
@@ -3211,6 +3253,7 @@ func _find_pursuit_cover_toward_player() -> void:
 			# - Not too far from current position
 			# - On a different obstacle than current cover
 			# - NOT illuminated by the player's flashlight (Issue #574)
+			# - NOT already targeted by another enemy (Issue #1289)
 			var hidden_score: float = 5.0 if is_hidden else 0.0
 			var approach_score: float = progress / CLOSE_COMBAT_DISTANCE
 			var distance_penalty: float = cover_distance_from_me / COVER_CHECK_DISTANCE
@@ -3220,7 +3263,7 @@ func _find_pursuit_cover_toward_player() -> void:
 			if _flashlight_detection and _player and _flashlight_detection.is_position_lit(cover_pos, _player, _raycast):
 				flashlight_penalty = 8.0  # Strong penalty — avoid walking into flashlight beam
 
-			var total_score: float = hidden_score + approach_score * 2.0 - distance_penalty - same_obstacle_penalty - flashlight_penalty
+			var total_score: float = hidden_score + approach_score * 2.0 - distance_penalty - same_obstacle_penalty - flashlight_penalty - occupied_penalty
 
 			if total_score > best_score:
 				best_score = total_score
