@@ -2680,7 +2680,21 @@ public partial class Player : BaseCharacter
 
         SetAllSpritesModulate(HitFlashColor);
 
-        await ToSignal(GetTree().CreateTimer(HitFlashDuration), "timeout");
+        // Issue #1334: guard against scene reload during await — GetTree() can
+        // return null if the node was freed by reload_current_scene().
+        var tree = GetTree();
+        if (tree == null)
+        {
+            return;
+        }
+
+        await ToSignal(tree.CreateTimer(HitFlashDuration), "timeout");
+
+        // Issue #1334: after await, verify node is still valid (scene may have reloaded)
+        if (!IsInstanceValid(this))
+        {
+            return;
+        }
 
         // Restore color based on current health (if still alive)
         if (HealthComponent != null && HealthComponent.IsAlive)

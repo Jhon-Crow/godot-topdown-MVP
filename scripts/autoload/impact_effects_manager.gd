@@ -688,10 +688,21 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 	if tree == null:
 		return
 
+	# Issue #1334: capture the current scene before awaiting so we can detect scene
+	# transitions that occur while the timer is pending. Without this check, coroutines
+	# spawned on the old scene resume after reload_current_scene() and perform physics
+	# raycasts / add nodes against the new scene, causing crashes on maps with many
+	# enemies (e.g. DocksLevel with 20 enemies).
+	var scene_at_schedule_time: Node = tree.current_scene
+
 	await tree.create_timer(delay).timeout
 
 	# Check if we're still valid after await (scene might have changed)
 	if not is_instance_valid(self):
+		return
+
+	# Issue #1334: abort if the scene changed while we were waiting
+	if get_tree().current_scene != scene_at_schedule_time:
 		return
 
 	if _blood_decal_scene == null:

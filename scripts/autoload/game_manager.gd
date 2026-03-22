@@ -283,13 +283,25 @@ func on_player_death() -> void:
 	restart_scene()
 
 
+## Whether a restart is already in progress (Issue #1334).
+## Prevents double-restart when Q key is pressed while the death timer is pending,
+## which can cause reload_current_scene() to be called twice in the same frame.
+var _restart_in_progress: bool = false
+
+
 ## Restarts the current scene.
 ## Resets mouse mode to hidden before reloading so the cursor does not persist
 ## from the score screen (Issue #905).
 func restart_scene() -> void:
+	# Issue #1334: prevent double restart
+	if _restart_in_progress:
+		return
+	_restart_in_progress = true
 	_reset_stats()
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 	get_tree().reload_current_scene()
+	# Reset flag after reload (the autoload persists across scene reloads)
+	_restart_in_progress = false
 
 
 ## Sets the player reference.

@@ -932,6 +932,9 @@ func _setup_navigation() -> void:
 	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
 	# with PhysicsServer2D before parsing source geometry for navmesh carving.
 	await get_tree().physics_frame
+	# Issue #1334: after awaiting, this node may have been freed by a scene reload.
+	if not is_instance_valid(self):
+		return
 
 	# Define the walkable floor area outline for the room.
 	var floor_outline: PackedVector2Array = PackedVector2Array([
