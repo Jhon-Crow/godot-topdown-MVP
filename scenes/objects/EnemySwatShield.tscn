@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://enemy_swat_shield"]
+[gd_scene load_steps=14 format=3 uid="uid://enemy_swat_shield"]
 
 [ext_resource type="Script" path="res://scripts/objects/enemy.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="2_hit_area"]
@@ -9,7 +9,6 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_right_arm.png" id="7_right_arm"]
 [ext_resource type="PackedScene" uid="uid://casing_scene" path="res://scenes/effects/Casing.tscn" id="8_casing"]
 [ext_resource type="Script" path="res://scripts/components/bloody_feet_component.gd" id="9_bloody_feet"]
-[ext_resource type="Texture2D" path="res://assets/sprites/weapons/force_field_icon.png" id="10_force_field_icon"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_enemy"]
 radius = 24.0
@@ -66,14 +65,6 @@ position = Vector2(0, 6)
 z_index = 2
 texture = ExtResource("3_revolver_sprite")
 offset = Vector2(20, 0)
-
-[node name="ShieldIcon" type="Sprite2D" parent="EnemyModel/WeaponMount"]
-visible = false
-z_index = 5
-scale = Vector2(0.12, 0.12)
-modulate = Color(0.4, 0.7, 1.0, 1.0)
-texture = ExtResource("10_force_field_icon")
-offset = Vector2(8, 0)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_enemy")

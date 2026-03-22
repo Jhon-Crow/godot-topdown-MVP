@@ -207,7 +207,7 @@ const WEAPON_CONFIGS := {
 		"bullet_spawn_offset": 30.0,
 		"weapon_loudness": 2000.0,  # Loud heavy caliber revolver
 		"sprite_path": "res://assets/sprites/weapons/revolver_topdown.png",
-		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet.tscn",
+		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet12p7mm.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",
 		"caliber_path": "res://resources/calibers/caliber_12p7x55.tres",
 		"is_shotgun": false,

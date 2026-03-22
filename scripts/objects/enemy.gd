@@ -337,6 +337,7 @@ var _evaluated_pacifists: Array = []  ## Pacifists already evaluated for spread 
 var _force_field_component: EnemyForceFieldComponent = null  ## [Issue #1034] Force field component
 var _armored_skin_component: EnemyArmoredSkinComponent = null  ## [Issue #1123] Armored skin component
 var _shield_component: EnemyShieldComponent = null; var _formation_shielder: Node2D = null; var _formation_target_pos: Vector2 = Vector2.ZERO  ## [Issue #1242] SWAT shield + formation
+var _revolver_cocking: bool = false  ## [Issue #1242] True while hammer is being cocked before revolver shot
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
@@ -3826,6 +3827,14 @@ func _shoot() -> void:
 	_execute_shoot(target_position)
 func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting callback.
 	_is_pre_attack_flashing = false
+	# [Issue #1242] Revolver hammer cocking: 0.15s delay with cock sound before each shot (same as player Revolver.cs)
+	if weapon_type == WeaponType.REVOLVER and not _revolver_cocking:
+		_revolver_cocking = true
+		var audio_hc: Node = get_node_or_null("/root/AudioManager")
+		if audio_hc and audio_hc.has_method("play_revolver_hammer_cock"): audio_hc.play_revolver_hammer_cock(global_position)
+		await get_tree().create_timer(0.15).timeout
+		_revolver_cocking = false
+		if not is_instance_valid(self) or not _is_alive: return
 	if _invisibility: _invisibility.reveal()  # Issue #1121: briefly reveal cloaked enemy when shooting
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
@@ -3851,6 +3860,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
 		elif weapon_type == WeaponType.MACHINE_GUN and audio.has_method("play_ak_shot"): audio.play_ak_shot(global_position)  # [#1033] PKM uses AK 7.62x39 sound
 		elif weapon_type == WeaponType.SNIPER_RIFLE and audio.has_method("play_asvk_shot"): audio.play_asvk_shot()  # [#1125] ASVK sniper rifle sound (non-positional, like player SniperRifle.cs)
+		elif weapon_type == WeaponType.REVOLVER and audio.has_method("play_revolver_shot"): audio.play_revolver_shot(global_position)  # [#1242] RSh-12 revolver shot sound
 		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
 	var sp: Node = get_node_or_null("/root/SoundPropagation")
 	var _now3 := Time.get_ticks_msec() / 1000.0

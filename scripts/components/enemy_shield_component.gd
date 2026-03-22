@@ -200,7 +200,8 @@ func _flash_shield() -> void:
 		_shield_sprite.modulate = original_color
 
 
-## Create the shield visual (a colored rectangle sprite attached to EnemyModel).
+## Create the SWAT riot shield visual (a Polygon2D rectangle with viewport window, attached to EnemyModel).
+## Draws a tall rectangular ballistic shield like a real SWAT/police riot shield.
 func _setup_shield_visual() -> void:
 	if _parent == null:
 		return
@@ -209,26 +210,42 @@ func _setup_shield_visual() -> void:
 		FileLogger.info("[EnemyShield] WARNING: EnemyModel not found, skipping shield visual")
 		return
 
-	# Use a ColorRect rendered as a Sprite2D via a viewport, or a simple polygon.
-	# For simplicity, reuse the force_field_icon sprite scaled to look like a rectangular shield.
-	var icon_path: String = "res://assets/sprites/weapons/force_field_icon.png"
-	if not ResourceLoader.exists(icon_path):
-		FileLogger.info("[EnemyShield] WARNING: Shield icon not found: %s" % icon_path)
-		return
+	# Create a container node for the whole shield assembly.
+	var shield_node := Node2D.new()
+	shield_node.name = "ShieldSprite"
+	shield_node.position = Vector2(20, 0)  # In front of enemy (facing direction is +X in top-down)
+	shield_node.z_index = 6  # Above weapon sprite (z=2)
 
-	var sprite := Sprite2D.new()
-	sprite.name = "ShieldSprite"
-	sprite.texture = load(icon_path) as Texture2D
-	# Position the shield slightly in front of and to the right of the enemy
-	# (weapon mount side, in the direction the enemy faces).
-	sprite.position = Vector2(28, 0)
-	sprite.scale = Vector2(0.18, 0.22)  # Wide tall shield shape
-	sprite.z_index = 6  # Above weapon sprite (z=2)
-	# SWAT shield: dark blue/grey tint
-	sprite.modulate = Color(0.3, 0.5, 0.85, 0.95)
-	model.add_child(sprite)
-	_shield_sprite = sprite
-	FileLogger.info("[EnemyShield] Shield visual created")
+	# Main shield body: tall dark rectangle (SWAT ballistic shield shape).
+	# In top-down view, the shield appears as a wide rectangle perpendicular to facing direction.
+	# X = forward/back, Y = left/right in enemy-local space.
+	var body := Polygon2D.new()
+	body.polygon = PackedVector2Array([Vector2(-4, -18), Vector2(4, -18), Vector2(4, 18), Vector2(-4, 18)])
+	body.color = Color(0.15, 0.15, 0.18, 0.95)  # Dark charcoal (like real SWAT shield)
+	shield_node.add_child(body)
+
+	# Shield edge/frame: slightly larger outline for depth.
+	var frame := Polygon2D.new()
+	frame.polygon = PackedVector2Array([Vector2(-5, -19), Vector2(5, -19), Vector2(5, 19), Vector2(-5, 19)])
+	frame.color = Color(0.1, 0.1, 0.12, 0.9)  # Darker frame edge
+	frame.z_index = -1  # Behind the body
+	shield_node.add_child(frame)
+
+	# Viewport window: small transparent rectangle near top of shield.
+	var viewport_window := Polygon2D.new()
+	viewport_window.polygon = PackedVector2Array([Vector2(-2, -13), Vector2(2, -13), Vector2(2, -8), Vector2(-2, -8)])
+	viewport_window.color = Color(0.5, 0.6, 0.7, 0.6)  # Semi-transparent blue-grey glass
+	shield_node.add_child(viewport_window)
+
+	# Handle grip hint: small dark bar at bottom-center (where hand holds).
+	var grip := Polygon2D.new()
+	grip.polygon = PackedVector2Array([Vector2(-2, 10), Vector2(2, 10), Vector2(2, 14), Vector2(-2, 14)])
+	grip.color = Color(0.08, 0.08, 0.1, 0.8)  # Very dark grip
+	shield_node.add_child(grip)
+
+	model.add_child(shield_node)
+	_shield_sprite = shield_node
+	FileLogger.info("[EnemyShield] SWAT riot shield visual created")
 
 
 ## Update formation: notify nearby allied enemies to follow behind this shielded enemy.
