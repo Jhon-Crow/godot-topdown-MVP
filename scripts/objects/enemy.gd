@@ -1990,8 +1990,13 @@ func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void
 			_retreat_burst_complete = true
 			_log_debug("ONE_HIT retreat: burst complete, now running to cover")
 	else:
-		# After burst, run to cover without shooting using navigation
+		# Issue #1338: After burst, run to cover while continuing to shoot (like FULL_HP mode)
 		_move_to_target_nav(_cover_position, combat_move_speed)
+		# Shoot with reduced accuracy while running to cover
+		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+			_aim_at_player()
+			_shoot_with_inaccuracy()
+			_shoot_timer = 0.0
 
 ## Process MULTIPLE_HITS retreat: quick burst of 2-4 shots then run to cover (same as ONE_HIT).
 func _process_retreat_multiple_hits(delta: float, direction_to_cover: Vector2) -> void:
@@ -3286,7 +3291,7 @@ func _find_cover_position() -> void:
 			if is_hidden or not found_hidden_cover:
 				# Score based on:
 				# 1. Whether position is hidden (highest priority)
-				# 2. Distance from enemy (closer is better)
+				# 2. Distance from enemy (closer is better — primary factor per Issue #1338 feedback)
 				# 3. Position relative to player (behind cover from player's view)
 				var hidden_score: float = 10.0 if is_hidden else 0.0  # Heavy weight for hidden positions
 
@@ -3297,7 +3302,8 @@ func _find_cover_position() -> void:
 				var dot_product := direction_from_player.dot(cover_direction)
 				var blocking_score: float = maxf(0.0, dot_product)
 
-				var total_score: float = hidden_score + distance_score * 0.3 + blocking_score * 0.7
+				# Issue #1338: nearest hidden cover is primary goal — distance weight 0.8, blocking weight 0.2
+				var total_score: float = hidden_score + distance_score * 0.8 + blocking_score * 0.2
 
 				# If we find a hidden position, only accept other hidden positions
 				if is_hidden and not found_hidden_cover:

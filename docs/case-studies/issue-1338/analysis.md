@@ -133,9 +133,44 @@ IN_COVER (post-suppression period: 3.0s)
 PURSUING (delayed pursuit, realistic behavior)
 ```
 
+## Follow-up Report 2 (PR comment feedback)
+
+The repo owner reported two additional issues:
+
+### Root Cause 4: Cover selection not choosing nearest cover
+
+The `_find_cover_position()` scoring weighted the "blocking" score (dot product with player direction) at 0.7 and the distance-from-enemy score at only 0.3. This meant enemies sometimes chose farther cover that happened to score better on the blocking metric, even when nearer valid cover existed.
+
+**Original scoring** (among hidden covers):
+```
+total_score = hidden_score(10.0) + distance_score * 0.3 + blocking_score * 0.7
+```
+
+The user's expectation: nearest cover to the enemy that blocks raycasts from the player. The `is_hidden` check already validates raycast blocking. Among hidden covers, distance should dominate.
+
+### Root Cause 5: Enemies stop shooting after initial burst during retreat
+
+In ONE_HIT and MULTIPLE_HITS retreat modes, after the initial burst of 2-4 shots, the enemy runs to cover silently (`_move_to_target_nav` only). The FULL_HP mode already shoots while retreating, but the other modes did not continue firing after their burst phase.
+
+## Solution (continued)
+
+### Fix 4: Prioritize nearest hidden cover
+
+Changed cover scoring weights in `_find_cover_position()`:
+```
+# Before: distance * 0.3 + blocking * 0.7
+# After:  distance * 0.8 + blocking * 0.2
+```
+
+This ensures that among covers that are hidden from the player (verified via raycast), the nearest one to the enemy is selected.
+
+### Fix 5: Shoot while retreating in all modes
+
+After the burst phase completes in ONE_HIT/MULTIPLE_HITS modes, the enemy now continues shooting with reduced accuracy while running to cover (same as FULL_HP mode). This makes retreat behavior consistent: enemies always shoot while falling back.
+
 ## Files Changed
 
-- `scripts/objects/enemy.gd` - Post-suppression timer, immediate threat reaction, hit handler protection
+- `scripts/objects/enemy.gd` - Post-suppression timer, immediate threat reaction, hit handler protection, cover distance priority, retreat shooting
 - `tests/unit/test_post_suppression_cover_1338.gd` - Regression tests
 
 ## Test Coverage
