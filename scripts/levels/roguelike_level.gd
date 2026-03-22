@@ -107,13 +107,14 @@ const PEDESTAL_ITEM_GLOW:  Color = Color(0.90, 0.75, 0.20, 0.85)  ## Golden glow
 ## alongside whatever the player already has).  All other types are "active"
 ## and replace the current one.
 ## NOTE: this list mirrors the passives in ActiveItemManager.ActiveItemType.
+## Issue #1303 fix: corrected enum values (were off-by-4 for most entries).
 const PASSIVE_ACTIVE_ITEM_TYPES: Array = [
-	2,   # BREAKER_BULLETS
-	8,   # LASER_SIGHT
-	9,   # EXTENDED_MAGAZINE
-	12,  # ARMORED_SKIN
-	13,  # AUTO_RELOAD
-	16,  # COMBAT_DISPOSITION
+	6,   # BREAKER_BULLETS
+	9,   # LASER_SIGHT
+	10,  # EXTENDED_MAGAZINE
+	13,  # ARMORED_SKIN
+	14,  # AUTO_RELOAD
+	17,  # COMBAT_DISPOSITION
 ]
 
 
@@ -322,6 +323,9 @@ func _force_roguelike_loadout() -> void:
 			ActiveItemManager.current_active_item = 0  # NONE — direct assignment, no restart
 			ActiveItemManager.active_item_changed.emit(0)
 			print("[RoguelikeLevel] Active item cleared for roguelike start")
+		# Issue #1303: clear accumulated passive items at the start of a new roguelike run.
+		if ActiveItemManager and ActiveItemManager.has_method("clear_passive_items"):
+			ActiveItemManager.clear_passive_items()
 	print("[RoguelikeLevel] Loadout forced: %s + flashbang" % GameManager.get_selected_weapon())
 
 
@@ -1674,15 +1678,18 @@ func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2
 	var current: int = ActiveItemManager.current_active_item
 
 	if is_passive:
-		# Passive: just set it without restart (it coexists with any active item).
-		# If it's the same as the current one, nothing to do.
-		if item_type == current:
-			print("[RoguelikeLevel] Active-item pedestal: already have %s — skipping" %
+		# Passive: add to passive collection (it coexists with any active item and other passives).
+		# Issue #1303: use add_passive_item() so multiple passives work simultaneously.
+		if ActiveItemManager.has_method("has_passive_item") and ActiveItemManager.has_passive_item(item_type):
+			print("[RoguelikeLevel] Active-item pedestal: already have passive %s — skipping" %
 				ActiveItemManager.get_active_item_name(item_type))
 			pedestal.queue_free()
 			_treasure_pedestal = null
 			return
-		ActiveItemManager.set_active_item(item_type, false)  # false = no scene restart
+		if ActiveItemManager.has_method("add_passive_item"):
+			ActiveItemManager.add_passive_item(item_type)
+		else:
+			ActiveItemManager.set_active_item(item_type, false)  # fallback for older builds
 		print("[RoguelikeLevel] Passive item collected: %s" %
 			ActiveItemManager.get_active_item_name(item_type))
 		pedestal.queue_free()
@@ -1705,6 +1712,25 @@ func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2
 			var item_lbl: Label = pedestal.get_node_or_null("ItemLabel")
 			if item_lbl:
 				item_lbl.text = _pedestal_item_label(old_type)
+			# Issue #1303: Update the icon on the pedestal to show the displaced item.
+			var old_icon_path: String = ActiveItemManager.get_active_item_icon_path(old_type)
+			if old_icon_path != "" and ResourceLoader.exists(old_icon_path):
+				var tex: Texture2D = load(old_icon_path) as Texture2D
+				if tex:
+					var icon_rect: TextureRect = pedestal.get_node_or_null("ItemIcon")
+					if icon_rect:
+						icon_rect.texture = tex
+					else:
+						var new_icon := TextureRect.new()
+						new_icon.name = "ItemIcon"
+						new_icon.texture = tex
+						new_icon.expand_mode = TextureRect.EXPAND_KEEP_SIZE
+						new_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+						var icon_size := Vector2(PEDESTAL_SIZE, PEDESTAL_SIZE)
+						new_icon.custom_minimum_size = icon_size
+						new_icon.size = icon_size
+						new_icon.position = Vector2(-icon_size.x * 0.5, -PEDESTAL_SIZE * 1.1)
+						pedestal.add_child(new_icon)
 			print("[RoguelikeLevel] Displaced item '%s' placed back on pedestal" %
 				ActiveItemManager.get_active_item_name(old_type))
 		else:
