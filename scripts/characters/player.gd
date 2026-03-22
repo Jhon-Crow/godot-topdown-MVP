@@ -4817,6 +4817,18 @@ func get_max_experimental_sample_charges() -> int:
 ## Whether fine motor skills item is equipped.
 var _fine_motor_skills_equipped: bool = false
 
+## Whether a fine motor skills reload sequence is currently in progress.
+## Prevents overlapping activations while reload stages are playing.
+var _fine_motor_skills_active: bool = false
+
+## Delay in seconds before Fine Motor Skills activates after pressing Space (Issue #1337).
+## Set to 0 to disable the delay. Configurable for gameplay tuning.
+const FINE_MOTOR_SKILLS_ACTIVATION_DELAY: float = 0.2
+
+## Delay in seconds between sequential reload stages (Issue #1337).
+## Controls the pacing of individual reload steps (e.g., each bolt step, each shell load).
+const FINE_MOTOR_SKILLS_STAGE_DELAY: float = 0.2
+
 ## Initialize fine motor skills if the ActiveItemManager has it selected.
 func _init_fine_motor_skills() -> void:
 	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
@@ -4832,54 +4844,78 @@ func _init_fine_motor_skills() -> void:
 	_fine_motor_skills_equipped = true
 	FileLogger.info("[Player.FineMotorSkills] Initialized — unlimited charges, no cooldown")
 
-## Handle fine motor skills input: press Space to instantly reload weapon and bring to combat-ready state.
+## Handle fine motor skills input: press Space to reload weapon with sequential
+## reload stages after a configurable activation delay (Issue #1337).
 ## Unlimited charges, no cooldown. Works with revolver, shotgun, sniper rifle, and standard weapons.
 func _handle_fine_motor_skills_input() -> void:
 	if not _fine_motor_skills_equipped:
 		return
 	if not Input.is_action_just_pressed("flashlight_toggle"):
 		return
+	# Prevent overlapping activations while a reload sequence is playing
+	if _fine_motor_skills_active:
+		FileLogger.info("[Player.FineMotorSkills] Already active — ignoring input")
+		return
 	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
 	if ActiveItemManager.is_active_item_jammed_verbose():
 		FileLogger.info("[Player.FineMotorSkills] Space blocked by Radio Jammer (Issue #1036)")
 		return
 
-	FileLogger.info("[Player.FineMotorSkills] Activating — instant reload and combat-ready")
+	FileLogger.info("[Player.FineMotorSkills] Activating — sequential reload with stages (Issue #1337)")
+	_fine_motor_skills_active = true
 
+	# Start async reload sequence with activation delay
+	_fine_motor_skills_activate_async()
+
+## Asynchronously activates fine motor skills: waits for activation delay,
+## then dispatches to weapon-specific sequential reload (Issue #1337).
+func _fine_motor_skills_activate_async() -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 
-	# Weapon-specific instant reload with sounds
+	# Wait for activation delay before starting reload (Issue #1337)
+	if FINE_MOTOR_SKILLS_ACTIVATION_DELAY > 0:
+		await get_tree().create_timer(FINE_MOTOR_SKILLS_ACTIVATION_DELAY).timeout
+
+	# Weapon-specific sequential reload with sounds
 	if _current_weapon_type == WeaponType.REVOLVER:
-		_fine_motor_skills_reload_revolver(audio_manager)
+		await _fine_motor_skills_reload_revolver(audio_manager)
 	elif _current_weapon_type == WeaponType.SHOTGUN:
-		_fine_motor_skills_reload_shotgun(audio_manager)
+		await _fine_motor_skills_reload_shotgun(audio_manager)
 	else:
 		_fine_motor_skills_reload_standard(audio_manager)
 
 	# Also handle sniper rifle bolt cycle if present
-	_fine_motor_skills_complete_sniper_bolt(audio_manager)
+	await _fine_motor_skills_complete_sniper_bolt(audio_manager)
 
-## Instantly reload revolver: open cylinder, fill all chambers, close cylinder.
+	_fine_motor_skills_active = false
+
+## Sequentially reload revolver: open cylinder, fill chambers one by one, close cylinder (Issue #1337).
 func _fine_motor_skills_reload_revolver(audio_manager: Node) -> void:
 	var revolver: Node = get_node_or_null("Revolver")
 	if revolver == null:
 		FileLogger.info("[Player.FineMotorSkills] Revolver node not found")
 		return
 
-	# Use the dedicated FineMotorSkillsReload method
-	if revolver.has_method("FineMotorSkillsReload"):
+	# Use the dedicated async method if available
+	if revolver.has_method("FineMotorSkillsReloadAsync"):
+		await revolver.call("FineMotorSkillsReloadAsync", FINE_MOTOR_SKILLS_STAGE_DELAY)
+	elif revolver.has_method("FineMotorSkillsReload"):
 		revolver.call("FineMotorSkillsReload")
 	else:
-		# Fallback: manual reload sequence
+		# Fallback: manual sequential reload
 		var fb_reload_state: int = revolver.get("ReloadState")
 		if fb_reload_state != 0:
 			revolver.call("CloseCylinder")
 		if revolver.get("CanOpenCylinder"):
 			revolver.call("OpenCylinder")
+			if FINE_MOTOR_SKILLS_STAGE_DELAY > 0:
+				await get_tree().create_timer(FINE_MOTOR_SKILLS_STAGE_DELAY).timeout
 			var fb_cyl_cap: int = revolver.get("CylinderCapacity")
 			for i in range(fb_cyl_cap):
 				if revolver.get("CanInsertCartridge"):
 					revolver.call("InsertCartridge")
+					if FINE_MOTOR_SKILLS_STAGE_DELAY > 0:
+						await get_tree().create_timer(FINE_MOTOR_SKILLS_STAGE_DELAY).timeout
 				revolver.call("RotateCylinder", 1)
 			revolver.call("CloseCylinder")
 
@@ -4893,26 +4929,43 @@ func _fine_motor_skills_reload_revolver(audio_manager: Node) -> void:
 
 	FileLogger.info("[Player.FineMotorSkills] Revolver reloaded: %d/%d rounds" % [final_ammo, final_capacity])
 
-## Instantly reload shotgun: fill tube magazine, reset pump action to Ready.
+## Sequentially reload shotgun: open action, load shells one by one, close action (Issue #1337).
 func _fine_motor_skills_reload_shotgun(audio_manager: Node) -> void:
 	var shotgun: Node = get_node_or_null("Shotgun")
 	if shotgun == null:
 		FileLogger.info("[Player.FineMotorSkills] Shotgun node not found")
 		return
 
-	# Use the dedicated FineMotorSkillsReload method which handles
-	# cancelling reload, filling tube, and resetting action state
-	if shotgun.has_method("FineMotorSkillsReload"):
+	# Use the dedicated async method if available
+	if shotgun.has_method("FineMotorSkillsReloadAsync"):
+		await shotgun.call("FineMotorSkillsReloadAsync", FINE_MOTOR_SKILLS_STAGE_DELAY)
+	elif shotgun.has_method("FineMotorSkillsReload"):
 		shotgun.call("FineMotorSkillsReload")
 	else:
-		# Fallback: manual reload
+		# Fallback: manual sequential reload
 		if shotgun.has_method("CancelReload"):
 			shotgun.call("CancelReload")
+		# Play action open sound
+		if audio_manager and audio_manager.has_method("play_shotgun_action_open"):
+			audio_manager.play_shotgun_action_open(global_position)
+		if FINE_MOTOR_SKILLS_STAGE_DELAY > 0:
+			await get_tree().create_timer(FINE_MOTOR_SKILLS_STAGE_DELAY).timeout
+		# Load shells one by one
 		var fb_capacity: int = shotgun.get("TubeMagazineCapacity")
 		var fb_shells: int = shotgun.get("ShellsInTube")
 		var fb_to_load: int = fb_capacity - fb_shells
 		if fb_to_load > 0 and shotgun.has_method("AutoRefillTube"):
-			shotgun.call("AutoRefillTube", fb_to_load)
+			for i in range(fb_to_load):
+				var loaded: int = shotgun.call("AutoRefillTube", 1)
+				if loaded <= 0:
+					break
+				if audio_manager and audio_manager.has_method("play_shotgun_load_shell"):
+					audio_manager.play_shotgun_load_shell(global_position)
+				if FINE_MOTOR_SKILLS_STAGE_DELAY > 0:
+					await get_tree().create_timer(FINE_MOTOR_SKILLS_STAGE_DELAY).timeout
+		# Play action close sound
+		if audio_manager and audio_manager.has_method("play_shotgun_action_close"):
+			audio_manager.play_shotgun_action_close(global_position)
 
 	# Update ammo display
 	var final_shells: int = shotgun.get("ShellsInTube")
@@ -4961,7 +5014,7 @@ func _fine_motor_skills_reload_standard(audio_manager: Node) -> void:
 	_is_reloading_simple = false
 	reload_completed.emit()
 
-## Complete sniper rifle bolt cycle if bolt needs cycling.
+## Sequentially complete sniper rifle bolt cycle step by step (Issue #1337).
 ## Also reloads magazine if needed (instant swap to fullest spare).
 func _fine_motor_skills_complete_sniper_bolt(audio_manager: Node) -> void:
 	var sniper: Node = get_node_or_null("SniperRifle")
@@ -4978,18 +5031,26 @@ func _fine_motor_skills_complete_sniper_bolt(audio_manager: Node) -> void:
 		if audio_manager and audio_manager.has_method("play_reload_full"):
 			audio_manager.play_reload_full(global_position)
 
-	# Complete bolt cycle if needed
+	# Complete bolt cycle step by step if needed
 	var needs_cycle = sniper.get("NeedsBoltCycle")
 	if not needs_cycle:
 		return
 
-	if sniper.has_method("FineBoltCycle"):
+	# Wait between magazine reload and bolt cycle
+	if FINE_MOTOR_SKILLS_STAGE_DELAY > 0:
+		await get_tree().create_timer(FINE_MOTOR_SKILLS_STAGE_DELAY).timeout
+
+	if sniper.has_method("FineBoltCycleAsync"):
+		await sniper.call("FineBoltCycleAsync", FINE_MOTOR_SKILLS_STAGE_DELAY)
+	elif sniper.has_method("FineBoltCycle"):
 		sniper.call("FineBoltCycle")
 	else:
-		# Fallback: play bolt sounds
+		# Fallback: play bolt sounds sequentially
 		if audio_manager and audio_manager.has_method("play_asvk_bolt_step"):
 			for step in range(1, 5):
 				audio_manager.play_asvk_bolt_step(step)
+				if step < 4 and FINE_MOTOR_SKILLS_STAGE_DELAY > 0:
+					await get_tree().create_timer(FINE_MOTOR_SKILLS_STAGE_DELAY).timeout
 
 	_is_reloading_sequence = false
 	_is_reloading_simple = false
