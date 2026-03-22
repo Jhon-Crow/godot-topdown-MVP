@@ -234,3 +234,51 @@ Owner-provided game log from Windows export build running Godot 4.3-stable. Show
 ### PR #1288 Integration
 
 Per owner request, integrated TacticalGroupComponent from PR #1288 (Issue #1287). When 2+ enemies are within 500px of the player they form a tactical group and spread around the player using angular slot assignment. This complements the enemy-occupied penalty in PursuitComponent by providing macro-level coordination in addition to the micro-level cover position de-duplication.
+
+---
+
+## Root Cause 0c — C# LevelInitFallback Missing Navmesh Bake (Final Root Cause)
+
+**Confirmed date:** 2026-03-22 — Owner feedback with screenshot showing BuildingLevel paths still going through walls after all prior fixes.
+
+**Location:** `Scripts/Components/LevelInitFallback.cs` — `PerformFallbackInit()` method.
+
+**Root cause:** BuildingLevel (and 5 other levels: CityLevel, DocksLevel, FactoryLevel, RevolverLevel, TestTier) have a C# `LevelInitFallback` node attached in their `.tscn` scenes. This component was added to work around the Godot 4.3 binary tokenization bug (`godotengine/godot#94150`) that can cause GDScript `_ready()` to silently fail to execute.
+
+The race condition:
+1. GDScript `_ready()` starts executing
+2. `_setup_navigation()` is called, which contains `await get_tree().physics_frame` — this **suspends** `_ready()` execution
+3. No further GDScript initialization runs (enemy tracking, etc.) because everything is after the await
+4. C# `LevelInitFallback._Ready()` calls `CallDeferred(CheckAndInitialize)`
+5. `CallDeferred` runs at the end of the current frame — BEFORE the physics frame await completes
+6. `CheckAndInitialize` sees `_enemies` array is empty → concludes GDScript `_ready()` didn't run
+7. C# fallback takes over ALL initialization — but **without navmesh baking**
+8. When the physics frame finally fires, `_setup_navigation()` resumes and bakes the navmesh...
+9. ...but the C# fallback already set `_initial_enemy_count` and `_enemies` in the GDScript properties
+10. Result: the GDScript `_setup_navigation()` may actually complete successfully, but the bake arrives after enemies have already started pathfinding with the uncarved navmesh
+
+**Evidence from game log (`game_log_20260322_052213.txt`):**
+```
+[05:23:07] [INFO] [LevelInitFallback] GDScript _ready() did NOT execute - performing C# fallback initialization
+...
+[05:23:08] [INFO] [NavMeshMonitor] refresh: region 'NavigationRegion2D' poly_count=1 vertex_count=4 outline_count=1
+```
+- No "Baking navigation mesh..." or "Navigation mesh baked successfully" print appears in the log for BuildingLevel
+- NavMeshMonitor consistently shows `poly_count=1 vertex_count=4` (uncarved rectangle)
+- The C# fallback's `PerformFallbackInit()` method has 11 initialization steps but does NOT include navmesh baking
+
+**Fix applied:** Added `SetupNavigationDeferred()` as step 12 in `PerformFallbackInit()`. This async method:
+1. Awaits `SceneTree.SignalName.PhysicsFrame` (mirrors GDScript `await get_tree().physics_frame`)
+2. Validates the scene is still valid after the await (prevents crashes during scene transitions)
+3. Calls `NavigationServer2D.ParseSourceGeometryData()` + `BakeFromSourceGeometryData()`
+4. Pushes the baked navmesh to the live map with `navRegion.NavigationPolygon = navPoly`
+5. Emits `bake_finished` signal to trigger NavMeshMonitor overlay refresh
+
+This ensures navmesh baking happens even when GDScript `_ready()` silently fails due to the Godot binary tokenization bug.
+
+### Game Log: `game_log_20260322_052213.txt`
+
+Latest owner-provided game log confirming the C# fallback root cause. Key evidence:
+- `LevelInitFallback] GDScript _ready() did NOT execute` appears for BuildingLevel
+- NavMeshMonitor consistently shows `poly_count=1` (uncarved) for BuildingLevel across all loads
+- LabyrinthLevel (which does NOT have LevelInitFallback) correctly shows `poly_count=61` after bake
