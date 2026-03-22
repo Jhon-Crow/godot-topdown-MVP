@@ -1372,18 +1372,23 @@ const WEAPON_ICON_PATHS: Dictionary = {
 ## The weapon is pre-selected so the pedestal can show the correct icon.
 ## Issue #1313: items already offered earlier in this run are excluded so each
 ## item can appear at most once per run.
+## Issue #1313: makarov_pm is always excluded — it is the starting weapon given
+## to every player at the beginning of a run and must not appear in treasure rooms.
+const ROGUELIKE_STARTING_WEAPONS: Array = ["makarov_pm"]
+
 func _pick_random_pedestal_item():
 	var already_offered: Array = GameManager.roguelike_offered_items if GameManager else []
 
 	# 40% chance of a weapon pickup, 60% chance of an active item.
 	if randi() % 10 < 4:
-		# Pre-select a specific weapon (different from what the player has now and
-		# not already offered this run).
+		# Pre-select a specific weapon (different from what the player has now,
+		# not already offered this run, and not a starting weapon given at run start).
 		var current_weapon_id: String = GameManager.get_selected_weapon() if GameManager else "makarov_pm"
 		var available: Array = []
 		for weapon_id in GameManager.WEAPON_SCENES.keys():
 			if weapon_id != current_weapon_id and GameManager.is_weapon_unlocked(weapon_id) \
-					and not (weapon_id in already_offered):
+					and not (weapon_id in already_offered) \
+					and not (weapon_id in ROGUELIKE_STARTING_WEAPONS):
 				available.append(weapon_id)
 		if available.is_empty():
 			# Fallback to active item if no other weapons are available
