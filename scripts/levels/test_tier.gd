@@ -733,7 +733,9 @@ func _on_player_died() -> void:
 	# Auto-restart via GameManager
 	if GameManager:
 		# Small delay to show death message
-		await get_tree().create_timer(0.5).timeout
+		await get_tree().create_timer(0.5, true).timeout
+		if not is_instance_valid(self):
+			return
 		GameManager.on_player_death()
 
 

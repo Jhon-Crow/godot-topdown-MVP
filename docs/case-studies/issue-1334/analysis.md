@@ -277,3 +277,60 @@ This crash has **two independent causes** that both manifest on DocksLevel:
 
 DocksLevel triggers both issues due to its 20 enemies producing the highest
 blood decal density and coroutine count of any map.
+
+## Cause 3: Grey Screen Freeze on Death (Sniper Kill)
+
+**Symptom:** After the player is killed (particularly by sniper), the game
+freezes on a grey screen with death visual effects and never restarts.
+
+**Data Sources:**
+- `logs/game_log_20260322_183249.txt` — hard crash during gameplay (6236 lines)
+- `logs/game_log_20260322_183457.txt` — grey screen freeze on second death (1731 lines)
+
+### Timeline (game_log_20260322_183457.txt)
+
+| Time     | Event                                                        |
+|----------|--------------------------------------------------------------|
+| 18:35:03 | DocksLevel loaded after menu transition                      |
+| 18:35:06 | 1st death — player hit 3 times (hp 3→2→1→0), restart works  |
+| 18:35:07 | Scene reloads successfully, all effects managers reset       |
+| 18:35:10 | 2nd death — ContainerYardA_Sniper kills player (50 dmg)      |
+| 18:35:10 | CinemaEffects triggers death effects (grey screen overlay)   |
+| 18:35:10 | LastChance + PenultimateHit handle death (no active effects) |
+| 18:35:11 | Log stops — **game frozen on grey screen, no restart**       |
+
+### Analysis
+
+The restart flow requires the level script's `_on_player_died()` coroutine to:
+1. Call `_show_death_message()`
+2. `await get_tree().create_timer(0.5).timeout`
+3. Call `GameManager.on_player_death()` → `restart_scene()`
+
+The grey screen freeze occurs when this coroutine fails silently:
+- The `create_timer(0.5)` call uses `process_always=false` by default, making
+  it sensitive to `Engine.time_scale`. If any effects manager has set
+  `Engine.time_scale` to a very low value (e.g., PenultimateHit at 0.1 or
+  PowerFantasy at 0.1), the timer takes 5-50x longer to fire.
+- If the level node is freed during the `await` (e.g., by Q key quick restart),
+  the coroutine is silently dropped and `on_player_death()` is never called.
+- There is **no backup mechanism** — the only path to restart is through the
+  level script's coroutine, creating a single point of failure.
+
+### Fixes Applied
+
+1. **Safety-net restart timer in GameManager** (`game_manager.gd`):
+   - `set_player()` now connects to the player's `Died` signal directly
+   - `_on_player_died_backup()` starts a 2-second timer with `process_always=true`
+   - If the level script's restart doesn't fire within 2s, the backup forces restart
+   - Uses `player_alive` flag to avoid double-restart (flag is reset by `_reset_stats()`)
+
+2. **`process_always=true` on all level death timers** (10 level scripts):
+   - Changed `create_timer(0.5)` to `create_timer(0.5, true)` so timers fire
+     regardless of `Engine.time_scale`
+   - Added `is_instance_valid(self)` guard after `await` to prevent crashes if
+     the node is freed during the timer
+
+3. **Diagnostic logging** in `docks_level.gd` and `game_manager.gd`:
+   - Logs when `_on_player_died` is called, when the timer fires, when
+     `on_player_death()` and `restart_scene()` execute, and when the backup
+     triggers

@@ -318,7 +318,9 @@ func _broadcast_player_ammo_empty(is_empty: bool) -> void:
 func _on_player_died() -> void:
 	_show_death_message()
 	if GameManager:
-		await get_tree().create_timer(0.5).timeout
+		await get_tree().create_timer(0.5, true).timeout
+		if not is_instance_valid(self):
+			return
 		GameManager.on_player_death()
 
 

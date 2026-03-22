@@ -277,6 +277,7 @@ func get_accuracy() -> float:
 
 ## Called when the player dies.
 func on_player_death() -> void:
+	_log_to_file("on_player_death() called — restarting scene")
 	player_alive = false
 	player_died.emit()
 	# Auto-restart the scene immediately
@@ -295,7 +296,9 @@ var _restart_in_progress: bool = false
 func restart_scene() -> void:
 	# Issue #1334: prevent double restart
 	if _restart_in_progress:
+		_log_to_file("restart_scene() skipped — already in progress")
 		return
+	_log_to_file("restart_scene() — reloading current scene")
 	_restart_in_progress = true
 	_reset_stats()
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
@@ -305,8 +308,48 @@ func restart_scene() -> void:
 
 
 ## Sets the player reference.
+## Issue #1334: Also connects to the player's Died signal to start a backup
+## restart timer. If the level script's _on_player_died coroutine fails for
+## any reason (e.g., await timer affected by Engine.time_scale, node freed
+## during await, or GDScript coroutine silently dropped), this safety-net
+## ensures the game always restarts.
 func set_player(p: Node2D) -> void:
 	player = p
+	_connect_player_died_signal(p)
+
+
+## Issue #1334: Connects to the player's Died signal for the backup restart timer.
+func _connect_player_died_signal(p: Node2D) -> void:
+	if p == null:
+		return
+	# Try C# signal name first (PascalCase), then GDScript (snake_case)
+	if p.has_signal("Died"):
+		if not p.is_connected("Died", _on_player_died_backup):
+			p.connect("Died", _on_player_died_backup)
+			_log_to_file("Connected to player Died signal for backup restart")
+	elif p.has_signal("died"):
+		if not p.is_connected("died", _on_player_died_backup):
+			p.connect("died", _on_player_died_backup)
+			_log_to_file("Connected to player died signal for backup restart")
+
+
+## Issue #1334: Backup restart handler connected directly to the player's Died signal.
+## Starts a safety-net timer that will force restart if the level script's
+## _on_player_died coroutine doesn't trigger GameManager.on_player_death() in time.
+## Uses process_always=true so the timer works regardless of Engine.time_scale.
+func _on_player_died_backup() -> void:
+	if not player_alive:
+		# Already dead (duplicate signal), ignore
+		return
+	_log_to_file("Player died — backup restart timer started (2.0s safety net)")
+	player_alive = false
+	# Use process_always=true so this timer fires even if Engine.time_scale is low
+	await get_tree().create_timer(2.0, true).timeout
+	# After 2 seconds, check if restart already happened (level script may have handled it)
+	if not player_alive:
+		_log_to_file("Backup restart triggered — level script did not restart within 2s")
+		player_died.emit()
+		restart_scene()
 
 
 ## Toggles debug mode on/off.

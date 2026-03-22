@@ -445,9 +445,13 @@ func _broadcast_player_ammo_empty(is_empty: bool) -> void:
 
 
 func _on_player_died() -> void:
+	_log_to_file("Player died — showing death message and scheduling restart")
 	_show_death_message()
 	if GameManager:
-		await get_tree().create_timer(0.5).timeout
+		await get_tree().create_timer(0.5, true).timeout
+		if not is_instance_valid(self):
+			return
+		_log_to_file("Death timer fired — calling GameManager.on_player_death()")
 		GameManager.on_player_death()
 
 

@@ -1304,7 +1304,7 @@ func _on_player_died() -> void:
 	_player_dead = true
 	# Do NOT call GameManager.on_player_death() — that auto-reloads the scene
 	# immediately, causing enemies to appear while death effects play (Issue #1061 r4).
-	await get_tree().create_timer(1.5).timeout
+	await get_tree().create_timer(1.5, true).timeout
 	if is_instance_valid(self):
 		_show_death_screen()
 
