@@ -150,6 +150,11 @@ var roguelike_in_treasure_room: bool = false
 ## Empty string means the default Makarov PM starting weapon.
 var roguelike_run_weapon: String = ""
 
+## Items already offered in treasure rooms during this run (Issue #1313).
+## Each entry is either a weapon ID String or an int ActiveItemType.
+## Used to prevent the same item from appearing on a pedestal twice in one run.
+var roguelike_offered_items: Array = []
+
 ## Resets all roguelike session variables to their default (not-in-run) state.
 func roguelike_reset_session() -> void:
 	roguelike_active = false
@@ -164,6 +169,7 @@ func roguelike_reset_session() -> void:
 	roguelike_current_level = 1
 	roguelike_in_treasure_room = false
 	roguelike_run_weapon = ""
+	roguelike_offered_items = []
 
 
 func _ready() -> void:
