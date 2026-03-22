@@ -1849,10 +1849,13 @@ func _process_suppressed_state(delta: float) -> void:
 			_shoot()
 			_shoot_timer = 0.0
 
-	# RCA-19: Apply minimum duration to prevent rapid cycling
+	# Issue #1338: When no longer under fire, suppressed enemies should immediately seek cover
+	# instead of staying in place (previous behavior transitioned to IN_COVER which kept enemy
+	# at current position; now they actively find and move to proper cover).
 	if not _under_fire:
 		if Time.get_ticks_msec() / 1000.0 - _suppressed_entry_time >= SUPPRESSED_MIN_DURATION:
-			_transition_to_in_cover()
+			_has_valid_cover = false
+			_transition_to_seeking_cover()
 
 ## Process RETREATING state - moving to cover with behavior based on damage taken.
 func _process_retreating_state(delta: float) -> void:
@@ -3224,82 +3227,70 @@ func _find_cover_closest_to_player() -> void:
 		# Fall back to normal cover finding
 		_find_cover_position()
 
-## Find cover position hidden from player (validates reachability). Issue #969: throttled.
+## Find cover position hidden from player. Issue #1338: rays are cast from the player position
+## to find obstacles; the nearest cover to the enemy that the player's rays can't reach is chosen.
+## Issue #969: throttled. Issue #1227: combat waypoints checked first.
 func _find_cover_position() -> void:
 	if _player == null:
 		_has_valid_cover = false
 		return
 	var wp_r := _combat_waypoint(_player.global_position, true)  # Issue #1227: retreat path
 	if wp_r != Vector2.ZERO: _cover_position = wp_r; _has_valid_cover = true; _last_cover_search_time = Time.get_ticks_msec() / 1000.0; return
-	# Issue #969: throttle 16-raycast cover search
+	# Issue #969: throttle cover search
 	var current_time := Time.get_ticks_msec() / 1000.0
 	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
 	_last_cover_search_time = current_time
 
 	var player_pos := _player.global_position
+	var space_state := get_world_2d().direct_space_state
 	var best_cover: Vector2 = Vector2.ZERO
-	var best_score: float = -INF
-	var found_hidden_cover: bool = false
+	var best_distance: float = INF
+	var found_cover: bool = false
 
-	# Cast rays in all directions to find obstacles
+	# Issue #1338: Cast rays FROM the player in all directions to find obstacles.
+	# The position behind each obstacle (opposite side from player) is a candidate cover.
+	# Pick the nearest candidate to the enemy where player's rays can't reach.
 	for i in range(COVER_CHECK_COUNT):
 		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
 		var direction := Vector2.from_angle(angle)
+		var ray_end := player_pos + direction * COVER_CHECK_DISTANCE
 
-		var raycast := _cover_raycasts[i]
-		raycast.target_position = direction * COVER_CHECK_DISTANCE
-		raycast.force_raycast_update()
+		var query := PhysicsRayQueryParameters2D.new()
+		query.from = player_pos
+		query.to = ray_end
+		query.collision_mask = 4  # Only check obstacles (layer 3)
 
-		if raycast.is_colliding():
-			var collision_point := raycast.get_collision_point()
-			var collision_normal := raycast.get_collision_normal()
+		var result := space_state.intersect_ray(query)
+		if result.is_empty():
+			continue
 
-			# Cover position is on the opposite side of the obstacle from player
-			var direction_from_player := (collision_point - player_pos).normalized()
+		var collision_point: Vector2 = result["position"]
 
-			# Position behind cover (offset from collision point along normal)
-			# Offset must be large enough to hide the entire enemy body (radius ~24 pixels)
-			# Using 35 pixels to provide some margin for the enemy's collision shape
-			var cover_pos := collision_point + collision_normal * 35.0
+		# Cover position is on the far side of the obstacle from the player.
+		# The ray travels from the player, so "behind the obstacle" is further along the ray direction.
+		# Offset 35 px past the collision point (away from the player) to fit the enemy body (~24 px radius).
+		var away_from_player := (collision_point - player_pos).normalized()
+		var cover_pos := collision_point + away_from_player * 35.0
 
-			# CRITICAL: Verify we can actually reach this cover position
-			# This prevents selecting cover positions on the opposite side of walls
-			if not _can_reach_position(cover_pos):
-				continue
+		# Verify the enemy can actually reach this cover position
+		if not _can_reach_position(cover_pos):
+			continue
 
-			# First priority: Check if this position is actually hidden from player
-			var is_hidden := not _is_position_visible_from_player(cover_pos)
+		# Verify the cover is truly hidden from the player
+		if _is_position_visible_from_player(cover_pos):
+			continue
 
-			# Only consider hidden positions unless we have no choice
-			if is_hidden or not found_hidden_cover:
-				# Score based on:
-				# 1. Whether position is hidden (highest priority)
-				# 2. Distance from enemy (closer is better)
-				# 3. Position relative to player (behind cover from player's view)
-				var hidden_score: float = 10.0 if is_hidden else 0.0  # Heavy weight for hidden positions
+		# Pick the nearest hidden cover to the enemy
+		var dist_to_enemy := global_position.distance_to(cover_pos)
+		if dist_to_enemy < best_distance:
+			best_distance = dist_to_enemy
+			best_cover = cover_pos
+			found_cover = true
 
-				var distance_score := 1.0 - (global_position.distance_to(cover_pos) / COVER_CHECK_DISTANCE)
-
-				# Check if this position is on the far side of obstacle from player
-				var cover_direction := (cover_pos - player_pos).normalized()
-				var dot_product := direction_from_player.dot(cover_direction)
-				var blocking_score: float = maxf(0.0, dot_product)
-
-				var total_score: float = hidden_score + distance_score * 0.3 + blocking_score * 0.7
-
-				# If we find a hidden position, only accept other hidden positions
-				if is_hidden and not found_hidden_cover:
-					found_hidden_cover = true
-					best_score = total_score
-					best_cover = cover_pos
-				elif (is_hidden or not found_hidden_cover) and total_score > best_score:
-					best_score = total_score
-					best_cover = cover_pos
-
-	if best_score > 0:
+	if found_cover:
 		_cover_position = best_cover
 		_has_valid_cover = true
-		_log_debug("Found cover at: %s (hidden: %s)" % [_cover_position, found_hidden_cover])
+		_log_debug("Found cover at: %s (distance: %.1f)" % [_cover_position, best_distance])
 	else: _has_valid_cover = false
 
 ## Calculate flank position based on player location and stored _flank_side.
