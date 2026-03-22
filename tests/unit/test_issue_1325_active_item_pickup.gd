@@ -49,6 +49,8 @@ class MockActiveItemManager extends Node:
 		return current_active_item == 16
 	func has_experimental_sample() -> bool:
 		return current_active_item == 18
+	func has_fine_motor_skills() -> bool:
+		return current_active_item == 19
 	func is_active_item_jammed() -> bool:
 		return false
 	func is_active_item_jammed_verbose() -> bool:
@@ -75,6 +77,7 @@ class MockPlayer:
 	var _armored_skin_active: bool = false
 	var _recoil_compensator_equipped: bool = false
 	var _experimental_sample_equipped: bool = false
+	var _fine_motor_skills_equipped: bool = false
 
 	var active_item_manager: MockActiveItemManager = null
 
@@ -101,6 +104,7 @@ class MockPlayer:
 		_armored_skin_active = false
 		_recoil_compensator_equipped = false
 		_experimental_sample_equipped = false
+		_fine_motor_skills_equipped = false
 
 	## Mirrors _on_active_item_picked_up in player.gd
 	func _on_active_item_picked_up(item_type: int) -> void:
@@ -118,6 +122,7 @@ class MockPlayer:
 			13: _init_armored_skin()
 			16: _init_recoil_compensator()
 			18: _init_experimental_sample()
+			19: _init_fine_motor_skills()
 
 	## Minimal init stubs that mirror the real guard + flag-set pattern.
 	func _init_flashlight() -> void:
@@ -181,6 +186,11 @@ class MockPlayer:
 		if not active_item_manager.has_experimental_sample():
 			return
 		_experimental_sample_equipped = true
+
+	func _init_fine_motor_skills() -> void:
+		if not active_item_manager.has_fine_motor_skills():
+			return
+		_fine_motor_skills_equipped = true
 
 
 # ============================================================================
@@ -263,6 +273,14 @@ func test_experimental_sample_equipped_after_pickup() -> void:
 	_manager.set_active_item(18, false)
 	assert_true(_player._experimental_sample_equipped,
 		"Experimental sample should be equipped immediately after pickup (Issue #1325)")
+
+
+func test_fine_motor_skills_equipped_after_pickup() -> void:
+	assert_false(_player._fine_motor_skills_equipped,
+		"Fine motor skills should NOT be equipped before pickup")
+	_manager.set_active_item(19, false)
+	assert_true(_player._fine_motor_skills_equipped,
+		"Fine motor skills should be equipped immediately after pickup (Issue #1325)")
 
 
 # --- Passive items ---

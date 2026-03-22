@@ -4658,6 +4658,9 @@ func _deequip_all_active_items() -> void:
 	_recoil_compensator_equipped = false
 	# Experimental sample
 	_experimental_sample_equipped = false
+	# Fine motor skills
+	_fine_motor_skills_equipped = false
+	_fine_motor_skills_active = false
 	FileLogger.info("[Player.ItemPickup] All active item subsystems de-equipped")
 
 
@@ -4694,6 +4697,8 @@ func _on_active_item_picked_up(item_type: int) -> void:
 			_init_recoil_compensator()
 		18: # EXPERIMENTAL_SAMPLE
 			_init_experimental_sample()
+		19: # FINE_MOTOR_SKILLS
+			_init_fine_motor_skills()
 		_:
 			# NONE(0), TELEPORT_BRACERS(3, handled in C# Player), LASER_SIGHT(9),
 			# EXTENDED_MAGAZINE(10), AUTO_RELOAD(14), DRILLING_BULLETS(15, C#),

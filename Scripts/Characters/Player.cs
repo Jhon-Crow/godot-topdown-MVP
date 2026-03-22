@@ -7837,6 +7837,10 @@ public partial class Player : BaseCharacter
         // Auto-reload (passive)
         _autoReloadActive = false;
 
+        // Fine motor skills
+        _fineMotorSkillsEquipped = false;
+        _fineMotorSkillsActive = false;
+
         LogToFile("[Player.ItemPickup] All active item subsystems de-equipped");
     }
 
@@ -7905,6 +7909,9 @@ public partial class Player : BaseCharacter
                 break;
             case 18: // EXPERIMENTAL_SAMPLE
                 InitExperimentalSample();
+                break;
+            case 19: // FINE_MOTOR_SKILLS
+                InitFineMotorSkills();
                 break;
             default:
                 // NONE (0), LASER_SIGHT (9), EXTENDED_MAGAZINE (10): no player-side init needed
