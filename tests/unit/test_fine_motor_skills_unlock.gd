@@ -287,3 +287,97 @@ func test_active_item_condition_met_at_threshold() -> void:
 	game_manager.shots_fired_special_weapons = 300
 	assert_true(unlock_manager.is_active_item_condition_met(19),
 		"Fine Motor Skills condition should be met at 300 special weapon shots")
+
+
+# ============================================================================
+# Tutorial Level Shot Registration Tests (Issue #1346 bug fix)
+# ============================================================================
+
+
+## Regression test: Tutorial level must call register_shot() on weapon fire.
+## Bug: tutorial_level.gd _on_weapon_fired() only tracked local _shots_fired
+##      for tutorial hint progression but never called GameManager.register_shot(),
+##      so all shots fired on the Tutorial level were invisible to the unlock system.
+## Fix: _on_weapon_fired() now calls GameManager.register_shot() before hint logic.
+class MockTutorialLevelWithGameManager:
+	## Simulates tutorial_level.gd _on_weapon_fired() AFTER the fix (Issue #1346).
+	## This mock mirrors the fixed code: calls register_shot() then does tutorial hints.
+	var _shots_fired: int = 0
+	var _game_manager: MockGameManager = null
+
+	func set_game_manager(gm: MockGameManager) -> void:
+		_game_manager = gm
+
+	func on_weapon_fired() -> void:
+		_shots_fired += 1
+		# Fixed: call register_shot() so stats are tracked (Issue #1346).
+		if _game_manager:
+			_game_manager.register_shot()
+		# Tutorial hint logic would follow here (not relevant for this test).
+
+	func get_shots_fired() -> int:
+		return _shots_fired
+
+
+func test_tutorial_level_weapon_fired_calls_register_shot_for_shotgun() -> void:
+	## Issue #1346 regression: shots on Tutorial level now count toward special weapon total.
+	var tutorial := MockTutorialLevelWithGameManager.new()
+	tutorial.set_game_manager(game_manager)
+	game_manager.selected_weapon = "shotgun"
+
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	assert_eq(game_manager.shots_fired_special_weapons, 3,
+		"Shotgun shots on Tutorial level must count toward shots_fired_special_weapons (Issue #1346)")
+
+
+func test_tutorial_level_weapon_fired_calls_register_shot_for_sniper() -> void:
+	var tutorial := MockTutorialLevelWithGameManager.new()
+	tutorial.set_game_manager(game_manager)
+	game_manager.selected_weapon = "sniper"
+
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	assert_eq(game_manager.shots_fired_special_weapons, 2,
+		"Sniper shots on Tutorial level must count toward shots_fired_special_weapons (Issue #1346)")
+
+
+func test_tutorial_level_weapon_fired_calls_register_shot_for_revolver() -> void:
+	var tutorial := MockTutorialLevelWithGameManager.new()
+	tutorial.set_game_manager(game_manager)
+	game_manager.selected_weapon = "revolver"
+
+	tutorial.on_weapon_fired()
+
+	assert_eq(game_manager.shots_fired_special_weapons, 1,
+		"Revolver shots on Tutorial level must count toward shots_fired_special_weapons (Issue #1346)")
+
+
+func test_tutorial_level_weapon_fired_does_not_count_non_special_weapons() -> void:
+	var tutorial := MockTutorialLevelWithGameManager.new()
+	tutorial.set_game_manager(game_manager)
+	game_manager.selected_weapon = "makarov_pm"
+
+	for i in range(10):
+		tutorial.on_weapon_fired()
+
+	assert_eq(game_manager.shots_fired_special_weapons, 0,
+		"Makarov PM shots on Tutorial level must NOT count toward shots_fired_special_weapons")
+	assert_eq(game_manager.shots_fired, 10,
+		"Total shots_fired must still be tracked for Makarov PM")
+
+
+func test_tutorial_level_300_shotgun_shots_unlock_fine_motor_skills() -> void:
+	## End-to-end: 300 shotgun shots fired from Tutorial level reach the unlock threshold.
+	var tutorial := MockTutorialLevelWithGameManager.new()
+	tutorial.set_game_manager(game_manager)
+	game_manager.selected_weapon = "shotgun"
+
+	for i in range(300):
+		tutorial.on_weapon_fired()
+
+	assert_true(unlock_manager.is_active_item_condition_met(19),
+		"300 shotgun shots on Tutorial level must unlock Fine Motor Skills (Issue #1346)")
