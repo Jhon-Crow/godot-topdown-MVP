@@ -802,6 +802,9 @@ func _setup_navigation() -> void:
 	if nav_poly == null:
 		push_warning("[ArenaLevel] NavigationPolygon not found")
 		return
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
 	print("[ArenaLevel] Baking navigation mesh...")
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)

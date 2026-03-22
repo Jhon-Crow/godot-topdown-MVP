@@ -146,6 +146,9 @@ func _setup_navigation() -> void:
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		return
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
 	nav_poly.agent_radius = 24.0
 	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()

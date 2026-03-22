@@ -668,6 +668,9 @@ func _setup_navigation() -> void:
 	if nav_poly == null:
 		push_warning("[RoguelikeLevel] NavigationPolygon not found - enemy pathfinding will be limited")
 		return
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
 
 	# Define the walkable floor area outline for the room.
 	var floor_outline: PackedVector2Array = PackedVector2Array([
