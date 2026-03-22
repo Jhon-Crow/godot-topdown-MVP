@@ -22,6 +22,9 @@ const ILLUSION_DAMAGE_MULTIPLIER: float = 0.05
 ## Maximum total illusion copies active on the map at once (performance cap).
 const MAX_TOTAL_ILLUSIONS: int = 12
 
+## Movement speed for illusion copies (simple wander toward player).
+const ILLUSION_MOVE_SPEED: float = 180.0
+
 ## Original enemy that this copy was spawned from.
 var original_enemy: Node2D = null
 
@@ -39,6 +42,9 @@ var _time_remaining: float = 0.0
 
 ## Whether the illusion has already been cleaned up.
 var _cleaned_up: bool = false
+
+## Cached player reference for simple movement.
+var _player: Node2D = null
 
 ## Reference to the scene used for the enemy.
 const ENEMY_SCENE_PATH := "res://scenes/objects/Enemy.tscn"
@@ -70,6 +76,23 @@ func _physics_process(delta: float) -> void:
 
 	if _time_remaining <= 0.0:
 		_cleanup()
+		return
+
+	# Simple movement toward player (replaces full enemy AI which is disabled for performance).
+	# The inner _enemy_node has _physics_process disabled, so we move it here instead.
+	if _enemy_node != null and is_instance_valid(_enemy_node) and _enemy_node is CharacterBody2D:
+		if _player == null or not is_instance_valid(_player):
+			var players := get_tree().get_nodes_in_group("player")
+			if players.size() > 0 and is_instance_valid(players[0]):
+				_player = players[0] as Node2D
+		if _player != null and is_instance_valid(_player):
+			var dir := (_player.global_position - _enemy_node.global_position).normalized()
+			_enemy_node.velocity = dir * ILLUSION_MOVE_SPEED
+			_enemy_node.move_and_slide()
+			# Rotate model to face movement direction
+			var model: Node2D = _enemy_node.get_node_or_null("EnemyModel")
+			if model:
+				model.rotation = dir.angle()
 
 
 ## Spawn the enemy copy by instantiating the Enemy scene and configuring it.
@@ -125,6 +148,14 @@ func _spawn_enemy_copy() -> void:
 	add_child(_enemy_node)
 	# _enemy_node.position is (0,0) relative to IllusionEnemy, so its global_position == target_pos
 
+	# CRITICAL: Disable expensive AI systems to prevent FPS drops (Issue #1129 perf fix).
+	# A full Enemy.tscn has ~4900 lines of AI, 24 raycasts, NavigationAgent2D, GOAP, etc.
+	# With 12 illusion copies, this causes 3-5 FPS. Instead, we keep only visuals + hit detection.
+	# Disable synchronously first (stops _physics_process immediately), then defer cleanup
+	# for systems registered via call_deferred in Enemy._ready() (e.g. SoundPropagation).
+	_disable_expensive_ai(_enemy_node)
+	call_deferred("_deferred_disable_ai", _enemy_node)
+
 	FileLogger.info("[IllusionEnemy] Enemy copy spawned, health=1, damage=5%% of normal")
 
 
@@ -164,6 +195,62 @@ func _configure_damage_reduction(enemy_node: Node2D) -> void:
 	# via the metadata check in bullet.gd (if it exists) or via signal
 	# The primary mechanism is the metadata "damage_multiplier" that bullet/weapon
 	# scripts should check when the shooter has this meta set.
+
+
+## Disable expensive AI systems on the enemy copy for performance.
+## Keeps: visuals (sprites, modulate), HitArea (for one-shot kills), died signal.
+## Disables: _physics_process (GOAP, AI states, movement), NavigationAgent2D,
+## all RayCast2Ds (24 per enemy), ThreatSphere, SoundPropagation, components.
+## Also removes from "enemies" group so other enemies don't iterate over copies in O(n²).
+func _disable_expensive_ai(enemy_node: Node2D) -> void:
+	# 1. Stop the main AI loop (4900-line _physics_process in enemy.gd)
+	enemy_node.set_physics_process(false)
+
+	# 2. Remove from "enemies" group to prevent O(n²) inter-enemy queries.
+	#    Enemy._ready() adds itself to "enemies". Other enemies iterate this group
+	#    for tactical coordination, GOAP, and pursuit — O(n) per enemy per frame.
+	#    We keep the copy in the scene tree for visual rendering and hit detection.
+	if enemy_node.is_in_group("enemies"):
+		enemy_node.remove_from_group("enemies")
+
+	# 3. Disable NavigationAgent2D (pathfinding queries)
+	var nav_agent: NavigationAgent2D = enemy_node.get_node_or_null("NavigationAgent2D")
+	if nav_agent:
+		nav_agent.avoidance_enabled = false
+		nav_agent.set_physics_process(false)
+
+	# 4. Disable all RayCast2Ds (8 wall + 16 cover + 1 LOS = 25 raycasts)
+	for child in enemy_node.get_children():
+		if child is RayCast2D:
+			child.enabled = false
+		# Also disable ThreatSphere Area2D (bullet proximity detection)
+		if child is Area2D and child.name == "ThreatSphere":
+			child.monitoring = false
+			child.monitorable = false
+		# Disable CasingPusher Area2D
+		if child is Area2D and child.name == "CasingPusher":
+			child.monitoring = false
+			child.monitorable = false
+
+	# 5. Disable any child nodes that have their own _physics_process
+	for child in enemy_node.get_children():
+		if child.has_method("_physics_process"):
+			child.set_physics_process(false)
+
+
+## Deferred cleanup for systems registered via call_deferred in Enemy._ready().
+## Enemy._ready() defers SoundPropagation registration, so we must defer unregistration
+## to run after it.
+func _deferred_disable_ai(enemy_node: Node2D) -> void:
+	if not is_instance_valid(enemy_node):
+		return
+	# Unregister from SoundPropagation (deferred registration in Enemy._ready)
+	var sound_propagation: Node = enemy_node.get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("unregister_listener"):
+		sound_propagation.unregister_listener(enemy_node)
+	# Ensure enemy is still removed from "enemies" group (deferred adds may have re-added)
+	if enemy_node.is_in_group("enemies"):
+		enemy_node.remove_from_group("enemies")
 
 
 ## Called when original enemy dies — all illusion copies disappear.
