@@ -683,6 +683,7 @@ func _setup_navigation() -> void:
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	nav_region.emit_signal("bake_finished")
 	print("[RoguelikeLevel] Navigation mesh baked successfully")
 
 

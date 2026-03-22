@@ -790,17 +790,23 @@ func _reconnect_weapon_signals(player: Node2D) -> void:
 # ---------------------------------------------------------------------------
 
 ## Bake NavigationRegion2D for enemy pathfinding.
+## Issue #1289: use explicit parse+bake API so all obstacle StaticBody2D nodes are
+## reliably found and carved out of the walkable area (bake_navigation_polygon can
+## miss dynamic/runtime geometry when called from _ready()).
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
 		push_warning("[ArenaLevel] NavigationRegion2D not found")
 		return
-
-	# Issue #1224: use bake_navigation_polygon(false) so the baked polygon data
-	# is populated and visible via the nav mesh overlay. The NavigationPolygon
-	# resource in ArenaLevel.tscn already has the correct outlines.
+	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
+	if nav_poly == null:
+		push_warning("[ArenaLevel] NavigationPolygon not found")
+		return
 	print("[ArenaLevel] Baking navigation mesh...")
-	nav_region.bake_navigation_polygon(false)
+	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
+	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	nav_region.emit_signal("bake_finished")
 	print("[ArenaLevel] Navigation mesh baked")
 
 
