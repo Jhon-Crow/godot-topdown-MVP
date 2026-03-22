@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Weapons;
 using GodotTopdown.Scripts.Projectiles;
@@ -1244,6 +1245,9 @@ public partial class Player : BaseCharacter
         // Initialize experimental sample if active item manager has it selected (Issue #1127)
         InitExperimentalSample();
 
+        // Initialize fine motor skills if active item manager has it selected (Issue #1315)
+        InitFineMotorSkills();
+
         // Initialize jammer HUD prohibition sign (always created; visibility toggled at runtime) (Issue #1036)
         InitJammerHud();
 
@@ -1567,6 +1571,9 @@ public partial class Player : BaseCharacter
 
         // Handle drilling bullets input (press Space to activate, Issue #751)
         HandleDrillingBulletsInput();
+
+        // Handle fine motor skills input (press Space to instantly reload) (Issue #1315)
+        HandleFineMotorSkillsInput();
 
         // Update jammer HUD visibility (Issue #1036)
         UpdateJammerHud();
@@ -2767,9 +2774,8 @@ public partial class Player : BaseCharacter
 
         // Get selected weapon ID from GameManager (GDScript autoload)
         var selectedWeaponId = gameManager.Call("get_selected_weapon").AsString();
-        if (string.IsNullOrEmpty(selectedWeaponId) || selectedWeaponId == "makarov_pm")
+        if (string.IsNullOrEmpty(selectedWeaponId))
         {
-            // Default weapon (MakarovPM) - already equipped, nothing to do
             return;
         }
 
@@ -2817,15 +2823,28 @@ public partial class Player : BaseCharacter
 
         LogToFile($"[Player.Weapon] GameManager weapon selection: {selectedWeaponId} ({weaponNodeName})");
 
-        // Remove the default MakarovPM immediately
-        var defaultWeapon = GetNodeOrNull<BaseWeapon>("MakarovPM");
-        if (defaultWeapon != null)
+        // Guard: if the correct weapon is already equipped, nothing to do.
+        // This prevents unnecessary remove/re-add of the scene-placed MakarovPM on _Ready()
+        // and avoids a crash when body_entered fires synchronously during physics processing
+        // (Issue #1323 regression fix).
+        if (CurrentWeapon != null && CurrentWeapon.Name == weaponNodeName)
         {
-            RemoveChild(defaultWeapon);
-            defaultWeapon.QueueFree();
-            LogToFile("[Player.Weapon] Removed default MakarovPM");
+            LogToFile($"[Player.Weapon] Already equipped {weaponNodeName}, no change needed");
+            return;
         }
-        CurrentWeapon = null;
+
+        // Remove the current weapon (whatever it is) before equipping the new one.
+        // Issue #1323: previously only MakarovPM was removed by name, so picking up a
+        // new weapon while already holding a non-default weapon left the old weapon node
+        // alive as a child, and picking up makarov_pm was a no-op due to an early return.
+        if (CurrentWeapon != null)
+        {
+            var oldWeaponName = CurrentWeapon.Name;
+            RemoveChild(CurrentWeapon);
+            CurrentWeapon.QueueFree();
+            CurrentWeapon = null;
+            LogToFile($"[Player.Weapon] Removed current weapon: {oldWeaponName}");
+        }
 
         // Load and instantiate the selected weapon
         var weaponScene = GD.Load<PackedScene>(scenePath);
@@ -2836,6 +2855,9 @@ public partial class Player : BaseCharacter
             AddChild(weapon);
             CurrentWeapon = weapon;
             LogToFile($"[Player.Weapon] Equipped {weaponNodeName} (ammo: {weapon.CurrentAmmo}/{weapon.WeaponData?.MagazineSize ?? 0})");
+            // Re-detect arm pose so the player's arms match the new weapon immediately.
+            _weaponPoseApplied = false;
+            _weaponDetectFrameCount = 0;
         }
         else
         {
@@ -9320,6 +9342,211 @@ public partial class Player : BaseCharacter
                 LogToFile($"[Player.ExperimentalSample] Unknown item type {itemType} — homing fallback");
                 if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
                 return HomingDuration;
+        }
+    }
+
+    #endregion
+
+    // =========================================================================
+    // Fine Motor Skills Active Item (Issue #1315, #1337)
+    // =========================================================================
+    #region Fine Motor Skills
+
+    /// <summary>
+    /// Whether the fine motor skills item is equipped.
+    /// </summary>
+    private bool _fineMotorSkillsEquipped = false;
+
+    /// <summary>
+    /// Whether a fine motor skills reload sequence is currently in progress.
+    /// Prevents overlapping activations while reload stages are playing.
+    /// </summary>
+    private bool _fineMotorSkillsActive = false;
+
+    /// <summary>
+    /// Delay in seconds before Fine Motor Skills activates after pressing Space (Issue #1337).
+    /// Set to 0 to disable the delay. Configurable for gameplay tuning.
+    /// </summary>
+    private const float FineMotorSkillsActivationDelay = 0.2f;
+
+    /// <summary>
+    /// Delay in seconds between sequential reload stages (Issue #1337).
+    /// Controls the pacing of individual reload steps (e.g., each bolt step, each shell load).
+    /// </summary>
+    private const float FineMotorSkillsStageDelay = 0.2f;
+
+    /// <summary>
+    /// Initializes the fine motor skills item if ActiveItemManager has it selected.
+    /// </summary>
+    private void InitFineMotorSkills()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.FineMotorSkills] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_fine_motor_skills"))
+        {
+            LogToFile("[Player.FineMotorSkills] ActiveItemManager missing has_fine_motor_skills method");
+            return;
+        }
+
+        bool hasFineMotorSkills = (bool)activeItemManager.Call("has_fine_motor_skills");
+        if (!hasFineMotorSkills)
+        {
+            LogToFile("[Player.FineMotorSkills] Fine motor skills not selected in ActiveItemManager");
+            return;
+        }
+
+        _fineMotorSkillsEquipped = true;
+        LogToFile("[Player.FineMotorSkills] Fine motor skills equipped — unlimited charges, no cooldown");
+    }
+
+    /// <summary>
+    /// Handles fine motor skills input: press Space to reload weapon with sequential
+    /// reload stages after a configurable activation delay (Issue #1337).
+    /// Works with all weapon types: Revolver (fills cylinder), Shotgun (fills tube + resets pump),
+    /// Sniper Rifle (completes bolt cycle + reloads), and standard weapons (instant magazine swap).
+    /// </summary>
+    private void HandleFineMotorSkillsInput()
+    {
+        if (!_fineMotorSkillsEquipped)
+        {
+            return;
+        }
+
+        if (!Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            return;
+        }
+
+        // Prevent overlapping activations while a reload sequence is playing
+        if (_fineMotorSkillsActive)
+        {
+            LogToFile("[Player.FineMotorSkills] Already active — ignoring input");
+            return;
+        }
+
+        // Issue #1036: Block active item use when jammed
+        if (IsActiveItemJammedVerbose())
+        {
+            LogToFile("[Player.FineMotorSkills] Space blocked by Radio Jammer (Issue #1036)");
+            return;
+        }
+
+        LogToFile("[Player.FineMotorSkills] Activating — sequential reload with stages (Issue #1337)");
+        _fineMotorSkillsActive = true;
+
+        // Start async reload sequence with activation delay
+        FineMotorSkillsActivateAsync();
+    }
+
+    /// <summary>
+    /// Asynchronously activates fine motor skills: waits for activation delay,
+    /// then dispatches to weapon-specific sequential reload (Issue #1337).
+    /// </summary>
+    private async void FineMotorSkillsActivateAsync()
+    {
+        // Wait for activation delay before starting reload (Issue #1337)
+        if (FineMotorSkillsActivationDelay > 0)
+        {
+            await ToSignal(GetTree().CreateTimer(FineMotorSkillsActivationDelay), "timeout");
+        }
+
+        // Handle weapon-specific sequential reload
+        if (CurrentWeapon is Revolver revolver)
+        {
+            await FineMotorSkillsReloadRevolverAsync(revolver);
+        }
+        else if (CurrentWeapon is Shotgun shotgun)
+        {
+            await FineMotorSkillsReloadShotgunAsync(shotgun);
+        }
+        else if (CurrentWeapon is SniperRifle sniper)
+        {
+            await FineMotorSkillsReloadSniperAsync(sniper);
+        }
+        else if (CurrentWeapon != null)
+        {
+            FineMotorSkillsReloadStandard(CurrentWeapon);
+        }
+
+        _fineMotorSkillsActive = false;
+    }
+
+    /// <summary>
+    /// Sequentially reloads a revolver: open cylinder, insert cartridges one by one, close cylinder (Issue #1337).
+    /// Each stage plays its sound and waits before proceeding to the next.
+    /// </summary>
+    private async Task FineMotorSkillsReloadRevolverAsync(Revolver revolver)
+    {
+        await revolver.FineMotorSkillsReloadAsync(FineMotorSkillsStageDelay);
+        LogToFile($"[Player.FineMotorSkills] Revolver reloaded: {revolver.CurrentAmmo}/{revolver.CylinderCapacity}");
+    }
+
+    /// <summary>
+    /// Sequentially reloads a shotgun: load shells one by one, then close action (Issue #1337).
+    /// Each stage plays its sound and waits before proceeding to the next.
+    /// </summary>
+    private async Task FineMotorSkillsReloadShotgunAsync(Shotgun shotgun)
+    {
+        await shotgun.FineMotorSkillsReloadAsync(FineMotorSkillsStageDelay);
+        LogToFile($"[Player.FineMotorSkills] Shotgun reloaded: {shotgun.ShellsInTube}/{shotgun.TubeMagazineCapacity}");
+    }
+
+    /// <summary>
+    /// Sequentially reloads a sniper rifle: reload magazine if needed, then complete bolt cycle
+    /// step by step (Issue #1337). Each bolt step plays its sound and waits.
+    /// </summary>
+    private async Task FineMotorSkillsReloadSniperAsync(SniperRifle sniper)
+    {
+        // First, reload magazine if needed
+        if (sniper.CurrentAmmo < (sniper.WeaponData?.MagazineSize ?? 0) && sniper.ReserveAmmo > 0)
+        {
+            sniper.InstantReload();
+            LogToFile($"[Player.FineMotorSkills] Sniper rifle magazine reloaded: {sniper.CurrentAmmo} rounds");
+
+            // Wait between reload and bolt cycle
+            if (FineMotorSkillsStageDelay > 0)
+            {
+                await ToSignal(GetTree().CreateTimer(FineMotorSkillsStageDelay), "timeout");
+            }
+        }
+
+        // Then complete bolt cycle step by step if needed
+        if (sniper.NeedsBoltCycle)
+        {
+            await sniper.FineBoltCycleAsync(FineMotorSkillsStageDelay);
+            LogToFile("[Player.FineMotorSkills] Sniper rifle bolt cycle completed");
+        }
+
+        LogToFile($"[Player.FineMotorSkills] Sniper rifle combat-ready: {sniper.CurrentAmmo} rounds, bolt={sniper.IsBoltReady}");
+    }
+
+    /// <summary>
+    /// Instantly reloads a standard weapon (rifle, pistol, SMG): swaps to fullest magazine.
+    /// Standard weapons don't have sequential stages — they reload in one step.
+    /// </summary>
+    private void FineMotorSkillsReloadStandard(BaseWeapon weapon)
+    {
+        if (weapon.CurrentAmmo < (weapon.WeaponData?.MagazineSize ?? 0) && weapon.ReserveAmmo > 0)
+        {
+            weapon.InstantReload();
+
+            // Play reload sound
+            var audioManager = GetNodeOrNull("/root/AudioManager");
+            if (audioManager != null && audioManager.HasMethod("play_reload_full"))
+            {
+                audioManager.Call("play_reload_full", GlobalPosition);
+            }
+
+            LogToFile($"[Player.FineMotorSkills] Standard weapon reloaded: {weapon.CurrentAmmo} rounds");
+        }
+        else
+        {
+            LogToFile("[Player.FineMotorSkills] Standard weapon already full or no spare ammo");
         }
     }
 

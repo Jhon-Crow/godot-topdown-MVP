@@ -1012,6 +1012,29 @@ func _setup_player_tracking() -> void:
 		_player.ammo_depleted.connect(_on_player_ammo_depleted)
 
 
+## Reconnect weapon signal handlers to the current player weapon.
+## Called after a mid-game weapon swap (e.g. pedestal pickup in Issue #1323) so the
+## ammo/shot counter UI stays in sync with the new weapon node.
+func _reconnect_weapon_signals() -> void:
+	var weapon: Node = _find_player_weapon()
+	if weapon == null:
+		return
+	if weapon.has_signal("AmmoChanged") and not weapon.AmmoChanged.is_connected(_on_weapon_ammo_changed):
+		weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
+	if weapon.has_signal("MagazinesChanged") and not weapon.MagazinesChanged.is_connected(_on_magazines_changed):
+		weapon.MagazinesChanged.connect(_on_magazines_changed)
+	if weapon.has_signal("Fired") and not weapon.Fired.is_connected(_on_shot_fired):
+		weapon.Fired.connect(_on_shot_fired)
+	if weapon.has_signal("ShellCountChanged") and not weapon.ShellCountChanged.is_connected(_on_shell_count_changed):
+		weapon.ShellCountChanged.connect(_on_shell_count_changed)
+	if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+		_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+	if weapon.has_method("GetMagazineAmmoCounts"):
+		var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+		_update_magazines_label(mag_counts)
+	print("[RoguelikeLevel] Reconnected weapon signals to %s" % weapon.name)
+
+
 func _setup_enemy_tracking() -> void:
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
@@ -1370,14 +1393,25 @@ const WEAPON_ICON_PATHS: Dictionary = {
 ## Pick a random item for the pedestal.
 ## Returns either a weapon ID String (e.g. "m16") or an int (ActiveItemType).
 ## The weapon is pre-selected so the pedestal can show the correct icon.
+## Issue #1313: items already offered earlier in this run are excluded so each
+## item can appear at most once per run.
+## Issue #1313: makarov_pm is always excluded — it is the starting weapon given
+## to every player at the beginning of a run and must not appear in treasure rooms.
+const ROGUELIKE_STARTING_WEAPONS: Array = ["makarov_pm"]
+
 func _pick_random_pedestal_item():
+	var already_offered: Array = GameManager.roguelike_offered_items if GameManager else []
+
 	# 40% chance of a weapon pickup, 60% chance of an active item.
 	if randi() % 10 < 4:
-		# Pre-select a specific weapon (different from what the player has now).
+		# Pre-select a specific weapon (different from what the player has now,
+		# not already offered this run, and not a starting weapon given at run start).
 		var current_weapon_id: String = GameManager.get_selected_weapon() if GameManager else "makarov_pm"
 		var available: Array = []
 		for weapon_id in GameManager.WEAPON_SCENES.keys():
-			if weapon_id != current_weapon_id and GameManager.is_weapon_unlocked(weapon_id):
+			if weapon_id != current_weapon_id and GameManager.is_weapon_unlocked(weapon_id) \
+					and not (weapon_id in already_offered) \
+					and not (weapon_id in ROGUELIKE_STARTING_WEAPONS):
 				available.append(weapon_id)
 		if available.is_empty():
 			# Fallback to active item if no other weapons are available
@@ -1385,11 +1419,11 @@ func _pick_random_pedestal_item():
 		else:
 			return available[randi() % available.size()]
 
-	# Choose a random active item (skip NONE index 0).
+	# Choose a random active item (skip NONE index 0, skip already-offered items).
 	var all_types: Array = ActiveItemManager.get_all_active_item_types()
 	var candidates: Array = []
 	for t in all_types:
-		if t != 0:  # Skip ActiveItemType.NONE
+		if t != 0 and not (t in already_offered):  # Skip NONE and already-offered
 			candidates.append(t)
 
 	if candidates.is_empty():
@@ -1407,6 +1441,10 @@ func _spawn_treasure_pedestal() -> void:
 
 	var item = _pick_random_pedestal_item()
 	_pedestal_item = item
+
+	# Issue #1313: record the offered item so it won't appear again this run.
+	if GameManager and not (item in GameManager.roguelike_offered_items):
+		GameManager.roguelike_offered_items.append(item)
 
 	var item_label_str: String = _pedestal_item_label(item)
 	var _log_ped := "[RoguelikeLevel] Spawning treasure pedestal: %s" % item_label_str
@@ -1512,7 +1550,11 @@ func _spawn_treasure_pedestal() -> void:
 		float_node.add_child(orb)
 
 	# Issue #1299: gentle floating animation — item bobs ±4 px over 1.4 s, looping.
-	var float_tween := create_tween()
+	# Bind the tween to the pedestal (not the level) so it is automatically killed
+	# when the pedestal is queue_free()-d.  Using `create_tween()` (bound to self/level)
+	# caused a crash: the tween survived pedestal removal and tried to animate the
+	# freed float_node → engine segfault (Issue #1323 regression).
+	var float_tween := pedestal.create_tween()
 	float_tween.set_loops()
 	float_tween.tween_property(float_node, "position:y", -PEDESTAL_SIZE * 1.1 - 4.0, 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	float_tween.tween_property(float_node, "position:y", -PEDESTAL_SIZE * 1.1 + 4.0, 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
@@ -1634,6 +1676,9 @@ func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 
 	if player.has_method("ApplySelectedWeaponFromGameManager"):
 		player.ApplySelectedWeaponFromGameManager()
+	# Reconnect level signal handlers to the new weapon after the swap,
+	# so the ammo/shot counter UI stays in sync (Issue #1323 regression fix).
+	_reconnect_weapon_signals()
 
 	print("[RoguelikeLevel] Weapon pedestal: player took %s, old weapon %s returned to pedestal" % [new_weapon_id, old_weapon_id])
 

@@ -27,7 +27,8 @@ enum ActiveItemType {
 	DRILLING_BULLETS,  # Drilling bullets - press Space to give current magazine wall-piercing bullets (Issue #751)
 	RECOIL_COMPENSATOR, # Recoil compensator - hold Space to eliminate recoil/spread and boost fire rate 10% (Issue #1073)
 	COMBAT_DISPOSITION, # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
-	EXPERIMENTAL_SAMPLE # Experimental Sample - press Space to fire a random active item effect (even unowned). 1–5 charges per battle, randomised on level start (Issue #1127)
+	EXPERIMENTAL_SAMPLE, # Experimental Sample - press Space to fire a random active item effect (even unowned). 1–5 charges per battle, randomised on level start (Issue #1127)
+	FINE_MOTOR_SKILLS  # Fine Motor Skills - press Space to instantly reload weapon and bring to combat-ready state. Unlimited charges, no cooldown (Issue #1315)
 }
 
 ## Currently selected active item type.
@@ -65,7 +66,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.DRILLING_BULLETS: true,     # No unlock condition — freely available from start (Issue #751)
 	ActiveItemType.RECOIL_COMPENSATOR: true,   # No unlock condition — freely available from start (Issue #1073)
 	ActiveItemType.COMBAT_DISPOSITION: true,   # No unlock condition — freely available from start (Issue #1047)
-	ActiveItemType.EXPERIMENTAL_SAMPLE: true   # No unlock condition — freely available from start (Issue #1127)
+	ActiveItemType.EXPERIMENTAL_SAMPLE: true,   # No unlock condition — freely available from start (Issue #1127)
+	ActiveItemType.FINE_MOTOR_SKILLS: true      # No unlock condition — freely available from start (Issue #1315)
 }
 
 ## Active item data for UI and selection.
@@ -175,6 +177,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png",
 		"description": "Experimental Sample — press Space to trigger a random active item effect (including items not yet unlocked). 1–5 charges per battle, randomised on level start.",
 		"activation_hint": "Press Space to trigger random effect"
+	},
+	ActiveItemType.FINE_MOTOR_SKILLS: {
+		"name": "Fine Motor Skills",
+		"icon_path": "res://assets/sprites/weapons/fine_motor_skills_icon.png",
+		"description": "Fine Motor Skills — press Space to instantly reload weapon and bring it to combat-ready state. Works with all weapons including revolver, shotgun, and sniper rifle. Unlimited charges, no cooldown.",
+		"activation_hint": "Press Space to reload"
 	}
 }
 
@@ -405,6 +413,11 @@ func has_combat_disposition() -> bool:
 ## Check if experimental sample is currently equipped (Issue #1127).
 func has_experimental_sample() -> bool:
 	return current_active_item == ActiveItemType.EXPERIMENTAL_SAMPLE
+
+
+## Check if fine motor skills is currently equipped (Issue #1315).
+func has_fine_motor_skills() -> bool:
+	return current_active_item == ActiveItemType.FINE_MOTOR_SKILLS
 
 
 ## Get the laser sight color (purple).
