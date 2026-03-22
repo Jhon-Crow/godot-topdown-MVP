@@ -18,6 +18,9 @@ var enemy: Node2D = null
 func on_hit_with_bullet_info_and_damage(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, bullet_damage: float, is_from_player: bool = false) -> void:
 	if shield_component and shield_component.is_active():
 		if shield_component.try_intercept_hit(caliber_data, bullet_damage, hit_direction):
+			# Issue #1242: shield enemy slowly rotates toward attacker when shield absorbs a hit.
+			if enemy and enemy.has_method("_set_hit_reaction_target"):
+				enemy._set_hit_reaction_target(-hit_direction.normalized())
 			return  # Shield blocked the hit
 	# Shield didn't block (down, or sniper round) — forward to enemy
 	_forward_to_enemy(hit_direction, caliber_data, has_ricocheted, has_penetrated, bullet_damage, is_from_player)

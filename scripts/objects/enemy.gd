@@ -1001,6 +1001,7 @@ func _force_model_to_face_direction(direction: Vector2) -> void:
 func _set_hit_reaction_target(dir: Vector2) -> void:
 	if dir.length_squared() < 0.01: return
 	_hit_reaction_angle = dir.angle(); _hit_reaction_timer = HIT_REACTION_DURATION
+	_log_to_file("HIT_REACTION: target=%.1f°, timer=%.2fs" % [rad_to_deg(_hit_reaction_angle), _hit_reaction_timer])
 ## Updates walking animation (bobbing motion for body parts). @param delta: Time since last frame.
 func _update_walk_animation(delta: float) -> void:
 	var is_moving := velocity.length() > 10.0
