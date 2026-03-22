@@ -19,6 +19,9 @@ class_name IllusionEnemy
 ## Damage multiplier for all weapons of illusory copies (5% of normal).
 const ILLUSION_DAMAGE_MULTIPLIER: float = 0.05
 
+## Maximum total illusion copies active on the map at once (performance cap).
+const MAX_TOTAL_ILLUSIONS: int = 12
+
 ## Original enemy that this copy was spawned from.
 var original_enemy: Node2D = null
 
@@ -49,6 +52,9 @@ func _ready() -> void:
 		queue_free()
 		return
 
+	# Register in illusion group for global cap tracking
+	add_to_group("illusion_enemies")
+
 	# Connect to original enemy's died signal so we disappear when original dies
 	if original_enemy.has_signal("died"):
 		original_enemy.died.connect(_on_original_died)
@@ -61,11 +67,6 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_time_remaining -= delta
-
-	# Track original enemy position (illusions wander near original)
-	if is_instance_valid(original_enemy) and _enemy_node != null:
-		# Update position to follow original with spawn offset
-		global_position = original_enemy.global_position + spawn_offset
 
 	if _time_remaining <= 0.0:
 		_cleanup()

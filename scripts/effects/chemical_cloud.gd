@@ -104,12 +104,18 @@ func _setup_detection_area() -> void:
 
 
 ## Called when a body enters the cloud area — apply effect immediately.
+## Only applies if the player is also within the cloud radius.
 func _on_body_entered(body: Node2D) -> void:
 	if not is_instance_valid(body):
 		return
 	if body.is_in_group("enemies") and body is Node2D:
 		# Skip illusion copies — they must not spawn more copies (prevents recursion)
 		if body.get_meta("is_illusion", false):
+			return
+		# Only apply if player is within cloud radius
+		var player := _find_player()
+		if player == null or global_position.distance_to(player.global_position) > cloud_radius:
+			FileLogger.info("[ChemicalCloud] Enemy %s entered cloud but player not in range — skipping" % body.name)
 			return
 		FileLogger.info("[ChemicalCloud] Enemy entered cloud: %s at %s" % [body.name, str(body.global_position)])
 		_apply_illusion_to_enemy(body)
@@ -170,9 +176,9 @@ func _create_particle_visual() -> GPUParticles2D:
 	material.scale_max = 2.5
 	material.color = Color(0.75, 0.75, 0.1, 0.85)  # Caustic yellow base color
 
-	# Configure particle system
+	# Configure particle system (keep particle count low for performance)
 	particles.z_index = 1
-	particles.amount = 100
+	particles.amount = 40
 	particles.process_material = material
 	particles.texture = texture
 	particles.lifetime = 4.0
@@ -196,19 +202,39 @@ func _create_sprite_fallback() -> Sprite2D:
 
 ## Apply illusion effect to ALL enemies on the map (Issue #1129 — illusion copies
 ## must appear for every enemy, not just those inside the cloud radius).
-## No player-under-illusion guard here: once a cloud is deployed it always spawns copies.
-## The guard (req.9) lives in GasMaskGrenadeComponent and prevents new chemical grenades
-## from being thrown while the effect is already active.
+## Guard: the effect only activates when the player is within the cloud radius.
+## If the player is not in the blast zone, the cloud has no effect.
+## The cooldown guard (req.9) lives in GasMaskGrenadeComponent.
 func _apply_effect_to_enemies_in_cloud() -> void:
+	# Only apply effect if the player is within the cloud radius (Issue #1129 fix #9)
+	var player := _find_player()
+	if player == null:
+		FileLogger.info("[ChemicalCloud] Tick at %s: no player found, skipping" % str(global_position))
+		return
+	var dist_to_player := global_position.distance_to(player.global_position)
+	if dist_to_player > cloud_radius:
+		FileLogger.info("[ChemicalCloud] Tick at %s: player is %.0fpx away (radius=%.0f), skipping" % [
+			str(global_position), dist_to_player, cloud_radius
+		])
+		return
+
 	var enemies := get_tree().get_nodes_in_group("enemies")
 
-	FileLogger.info("[ChemicalCloud] Tick at %s: found %d enemies on map" % [
-		str(global_position), enemies.size()
+	FileLogger.info("[ChemicalCloud] Tick at %s: player in range (%.0fpx), found %d enemies on map" % [
+		str(global_position), dist_to_player, enemies.size()
 	])
 
 	for enemy in enemies:
 		if enemy is Node2D and is_instance_valid(enemy):
 			_apply_illusion_to_enemy(enemy)
+
+
+## Find the player node in the scene tree.
+func _find_player() -> Node2D:
+	var players := get_tree().get_nodes_in_group("player")
+	if players.size() > 0 and is_instance_valid(players[0]):
+		return players[0] as Node2D
+	return null
 
 
 ## Apply illusion effect to a single enemy, spawning 1–4 illusory copies.
@@ -243,10 +269,21 @@ func _apply_illusion_to_enemy(enemy: Node2D) -> void:
 
 
 ## Spawn 2–5 illusory copies of an enemy (Issue #1129).
+## Respects a global cap (IllusionEnemy.MAX_TOTAL_ILLUSIONS) to avoid FPS drops.
 func _spawn_illusion_copies(original_enemy: Node2D) -> void:
-	var copy_count := randi_range(2, 5)
-	FileLogger.info("[ChemicalCloud] Spawning %d illusion copies for enemy %s at %s" % [
-		copy_count, original_enemy.name, str(original_enemy.global_position)
+	# Count currently active illusion copies to enforce performance cap
+	var existing_illusions := get_tree().get_nodes_in_group("illusion_enemies")
+	var available_slots := IllusionEnemy.MAX_TOTAL_ILLUSIONS - existing_illusions.size()
+	if available_slots <= 0:
+		FileLogger.info("[ChemicalCloud] Global illusion cap (%d) reached — skipping copies for %s" % [
+			IllusionEnemy.MAX_TOTAL_ILLUSIONS, original_enemy.name
+		])
+		return
+
+	var copy_count := mini(randi_range(2, 5), available_slots)
+	FileLogger.info("[ChemicalCloud] Spawning %d illusion copies for enemy %s at %s (cap: %d/%d)" % [
+		copy_count, original_enemy.name, str(original_enemy.global_position),
+		existing_illusions.size(), IllusionEnemy.MAX_TOTAL_ILLUSIONS
 	])
 
 	for i in range(copy_count):
@@ -254,7 +291,7 @@ func _spawn_illusion_copies(original_enemy: Node2D) -> void:
 		illusion.original_enemy = original_enemy
 		illusion.illusion_duration = illusion_effect_duration
 
-		# Spread copies around the original enemy
+		# Spread copies around the original enemy's spawn position
 		var angle := (TAU / copy_count) * i + randf_range(-0.3, 0.3)
 		var spread_radius := randf_range(30.0, 80.0)
 		illusion.spawn_offset = Vector2(cos(angle), sin(angle)) * spread_radius
