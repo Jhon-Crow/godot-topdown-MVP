@@ -862,6 +862,7 @@ func _physics_process(delta: float) -> void:
 		_grenadier_wait_timer -= delta
 		if _grenadier_wait_timer <= 0.0: _stop_waiting_for_grenadier()
 	_update_enemy_model_rotation()
+	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null: _sniper_component.update_laser_sight()  # [#1336] Red laser sight
 	if _waiting_for_grenadier:  # Issue #604: Skip AI while waiting
 		velocity = Vector2.ZERO; _update_debug_label(); _update_walk_animation(delta)
 		_apply_machete_attack_animation(); move_and_slide(); _push_casings()
@@ -4289,6 +4290,7 @@ func _notify_nearby_enemies_of_death() -> void:
 ## Called when the enemy dies.
 func _on_death() -> void:
 	_is_alive = false
+	if _sniper_component: _sniper_component.hide_laser()  # [#1336] Hide laser sight on death
 	if _invisibility and _invisibility.is_cloaked: _invisibility.remove()  # Issue #1121: reveal enemy on death
 	_log_to_file("Enemy died (ricochet: %s, penetration: %s, player_kill: %s)" % [_killed_by_ricochet, _killed_by_penetration, _killed_by_player])
 	died.emit()
