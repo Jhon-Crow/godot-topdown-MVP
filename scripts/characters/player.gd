@@ -386,6 +386,8 @@ func _ready() -> void:
 	# Apply item-specific player visual based on the equipped passive item (Issue #1142)
 	_apply_item_visual()
 
+	_connect_active_item_changed_signal()  # Issue #1325: roguelike pedestal pickup
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -4588,6 +4590,52 @@ func _spawn_armored_skin_shards() -> void:
 # ============================================================================
 # Item Visual System (Issue #1142)
 # ============================================================================
+
+## Connect to active_item_changed signal for roguelike pedestal pickup (Issue #1325).
+func _connect_active_item_changed_signal() -> void:
+	var aim: Node = get_node_or_null("/root/ActiveItemManager")
+	if aim == null or not aim.has_signal("active_item_changed"):
+		return
+	aim.active_item_changed.connect(_on_active_item_picked_up)
+
+## Reset all equipped flags and free item nodes to prevent dual-equip (Issue #1325).
+func _deequip_all_active_items() -> void:
+	for node in [_flashlight_node, _invisibility_suit, _force_field,
+			_trajectory_glasses, _trajectory_glasses_hud, _breaching_charges]:
+		if node != null and is_instance_valid(node):
+			node.queue_free()
+	_flashlight_node = null; _flashlight_equipped = false
+	_homing_equipped = false; _homing_active = false; _homing_timer = 0.0
+	_bff_pendant_equipped = false
+	_invisibility_suit = null; _invisibility_suit_equipped = false
+	_breaker_bullets_active = false
+	_force_field = null; _force_field_equipped = false
+	_trajectory_glasses = null; _trajectory_glasses_hud = null; _trajectory_glasses_equipped = false
+	_loudspeaker_equipped = false; _loudspeaker_progress = null
+	_breaching_charges = null; _breaching_charges_equipped = false
+	_armored_skin_active = false; _recoil_compensator_equipped = false
+	_experimental_sample_equipped = false
+	_fine_motor_skills_equipped = false; _fine_motor_skills_active = false
+
+## Initialise the newly picked-up item subsystem (Issue #1325).
+func _on_active_item_picked_up(item_type: int) -> void:
+	_deequip_all_active_items()
+	match item_type:
+		1: _init_flashlight()
+		2: _init_homing_bullets()
+		4: _init_bff_pendant()
+		5: _init_invisibility_suit()
+		6: _init_breaker_bullets()
+		7: _init_force_field()
+		8: _init_trajectory_glasses()
+		11: _init_loudspeaker()
+		12: _init_breaching_charges()
+		13:
+			_init_armored_skin(); _apply_item_visual()
+		16: _init_recoil_compensator()
+		18: _init_experimental_sample()
+		19: _init_fine_motor_skills()
+
 
 ## Apply a passive visual effect to the player based on the equipped active item.
 ## Single entry point for item-specific player visuals; called once from _ready().
