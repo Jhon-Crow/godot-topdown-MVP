@@ -38,7 +38,8 @@ const FORMATION_OFFSET: float = 80.0
 const SHIELD_SPEED_MULTIPLIER: float = 0.5
 
 ## Rotation speed multiplier while shield is raised (slower turning with heavy shield).
-const SHIELD_ROTATION_MULTIPLIER: float = 0.35
+## Issue #1242 feedback: enemy should turn even slower with the shield.
+const SHIELD_ROTATION_MULTIPLIER: float = 0.15
 
 ## Current shield HP (resets to SHIELD_HP when shield raises again).
 var _shield_current_hp: int = SHIELD_HP
@@ -52,8 +53,14 @@ var _recovering: bool = false
 ## Stun timer countdown.
 var _stun_timer: float = 0.0
 
+## Physics frame when the shield last intercepted a hit (prevents double-hit in same frame).
+var _last_intercept_frame: int = -1
+
 ## Visual shield sprite node (a Sprite2D added to EnemyModel).
 var _shield_sprite: Node2D = null
+
+## Shield Area2D for collision-based bullet detection (Issue #1242 feedback).
+var _shield_area: Area2D = null
 
 ## Reference to parent enemy node.
 var _parent: Node2D = null
@@ -76,6 +83,12 @@ func setup() -> void:
 ## Returns true if the shield is currently blocking bullets.
 func is_active() -> bool:
 	return _shield_up
+
+
+## Returns true if the shield intercepted a hit during the current physics frame.
+## Used to prevent double-damage when both shield Area2D and body HitArea overlap.
+func did_intercept_this_frame() -> bool:
+	return _last_intercept_frame == Engine.get_physics_frames()
 
 
 ## Returns the speed multiplier to apply to the enemy's movement.
@@ -101,7 +114,8 @@ func update(delta: float) -> void:
 	_update_formation(delta)
 
 
-## Attempt to intercept a bullet hit before it reaches the enemy's HitArea.
+## Attempt to intercept a bullet hit that has collided with the shield's Area2D.
+## Called by ShieldHitArea when a bullet physically hits the shield model.
 ## @param caliber_data: The bullet's caliber data resource (may be null).
 ## @param damage: The damage the bullet would deal.
 ## @param hit_direction: The direction the bullet is travelling.
@@ -115,15 +129,13 @@ func try_intercept_hit(caliber_data: Resource, damage: float, hit_direction: Vec
 		FileLogger.info("[EnemyShield] Sniper round bypassed shield (penetration_power >= %.0f)" % SNIPER_PENETRATION_THRESHOLD)
 		return false
 
-	# Check if bullet is coming from the front (within 90° arc of shield facing).
-	# Shield only blocks hits from the front half.
-	if not _is_hit_from_front(hit_direction):
-		FileLogger.info("[EnemyShield] Hit from behind - shield not blocking")
-		return false
+	# No angle check needed — the bullet physically hit the shield's collision shape.
+	# Damage is only blocked when the bullet hits the shield model (Issue #1242 feedback).
 
 	# Absorb damage.
 	var absorbed: int = maxi(int(round(damage)), 1)
 	_shield_current_hp -= absorbed
+	_last_intercept_frame = Engine.get_physics_frames()
 	FileLogger.info("[EnemyShield] Absorbed %d dmg (shield_hp=%d/%d)" % [absorbed, _shield_current_hp, SHIELD_HP])
 
 	if _shield_current_hp <= 0:
@@ -132,22 +144,6 @@ func try_intercept_hit(caliber_data: Resource, damage: float, hit_direction: Vec
 		_flash_shield()
 
 	return true  # Hit was intercepted, enemy takes no damage.
-
-
-## Check if the bullet came from the front (shield covers the forward arc).
-func _is_hit_from_front(hit_direction: Vector2) -> bool:
-	if _parent == null:
-		return true
-	# Use EnemyModel's global_rotation for the actual facing direction
-	# (_parent.rotation is the CharacterBody2D rotation which is not updated).
-	var model: Node2D = _parent.get_node_or_null("EnemyModel") as Node2D
-	var facing_rotation: float = model.global_rotation if model else _parent.rotation
-	var enemy_forward := Vector2.from_angle(facing_rotation)
-	# hit_direction is bullet travel direction (from shooter toward enemy).
-	# When hit from the front, hit_direction points OPPOSITE to enemy_forward,
-	# so dot < 0 means the bullet is coming from in front.
-	var dot: float = enemy_forward.dot(hit_direction.normalized())
-	return dot < 0.0  # Negative dot = bullet coming from the front hemisphere
 
 
 ## Check whether a caliber qualifies as sniper-grade (bypasses shield).
@@ -172,6 +168,8 @@ func _break_shield(hit_direction: Vector2) -> void:
 
 	if _shield_sprite:
 		_shield_sprite.visible = false
+	if _shield_area:
+		_shield_area.set_deferred("monitorable", false)
 
 	# Apply stagger (knockback impulse).
 	if _parent and _parent.has_method("apply_knockback"):
@@ -193,6 +191,8 @@ func _raise_shield() -> void:
 	_shield_current_hp = SHIELD_HP
 	if _shield_sprite:
 		_shield_sprite.visible = true
+	if _shield_area:
+		_shield_area.set_deferred("monitorable", true)
 	# Clear stun/blind state (should already be cleared by timer, but be explicit).
 	if _parent and _parent.has_method("set_stunned"):
 		_parent.set_stunned(false)
@@ -201,13 +201,13 @@ func _raise_shield() -> void:
 	FileLogger.info("[EnemyShield] Shield raised again (hp=%d)" % SHIELD_HP)
 
 
-## Flash the shield sprite briefly when it absorbs a hit.
+## Flash the shield sprite briefly when it absorbs a hit (Issue #1242 feedback: flash shield, not enemy).
 func _flash_shield() -> void:
 	if _shield_sprite == null:
 		return
 	var original_color: Color = _shield_sprite.modulate
-	_shield_sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
-	await _parent.get_tree().create_timer(0.08).timeout
+	_shield_sprite.modulate = Color(2.0, 2.0, 2.0, 1.0)  # Bright white flash (HDR overbright for visibility)
+	await _parent.get_tree().create_timer(0.1).timeout
 	if is_instance_valid(_shield_sprite):
 		_shield_sprite.modulate = original_color
 
@@ -283,9 +283,34 @@ func _setup_shield_visual() -> void:
 	grip.color = Color(0.08, 0.08, 0.1, 0.8)
 	shield_node.add_child(grip)
 
+	# Add Area2D for collision-based bullet detection (Issue #1242 feedback).
+	# Bullets that physically hit the shield model are intercepted; side/back shots bypass it.
+	var shield_area := Area2D.new()
+	shield_area.name = "ShieldHitArea"
+	shield_area.collision_layer = 2  # Same layer as enemy HitArea so bullets detect it
+	shield_area.collision_mask = 16  # Same mask as enemy HitArea (bullet layer)
+	var shield_hit_area_script = load("res://scripts/components/shield_hit_area.gd")
+	shield_area.set_script(shield_hit_area_script)
+	shield_area.shield_component = self
+	shield_area.enemy = _parent
+	# Collision shape matching the shield frame outline (slightly larger for reliability).
+	var collision_shape := CollisionPolygon2D.new()
+	collision_shape.polygon = PackedVector2Array([
+		Vector2(4, -15),
+		Vector2(6, -8),
+		Vector2(7, 0),
+		Vector2(6, 8),
+		Vector2(4, 15),
+		Vector2(-2, 15),
+		Vector2(-2, -15),
+	])
+	shield_area.add_child(collision_shape)
+	shield_node.add_child(shield_area)
+	_shield_area = shield_area
+
 	model.add_child(shield_node)
 	_shield_sprite = shield_node
-	FileLogger.info("[EnemyShield] SWAT riot shield visual created (top-down view)")
+	FileLogger.info("[EnemyShield] SWAT riot shield visual created with collision area (top-down view)")
 
 
 ## Update formation: notify nearby allied enemies to follow behind this shielded enemy.
