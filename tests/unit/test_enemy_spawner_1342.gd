@@ -321,3 +321,94 @@ func test_spawner_source_contains_invisible_entry() -> void:
 	file.close()
 	assert_true(source.contains("start_invisible"),
 		"experimental_menu.gd spawner list must contain a start_invisible entry")
+
+
+# ============================================================================
+# F8 spawn path in game_manager.gd must match experimental_menu.gd (Issue #1342)
+# ============================================================================
+
+
+func test_f8_spawn_source_contains_pm_entry() -> void:
+	## Verify game_manager.gd F8 spawn list includes PM (weapon_type 5) (Issue #1342).
+	var file := FileAccess.open("res://scripts/autoload/game_manager.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open game_manager.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains('"weapon_type": 5') or source.contains("weapon_type\": 5"),
+		"game_manager.gd F8 spawn list must contain weapon_type 5 (PM)")
+
+
+func test_f8_spawn_source_contains_teleporter_entry() -> void:
+	var file := FileAccess.open("res://scripts/autoload/game_manager.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open game_manager.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("is_teleporter"),
+		"game_manager.gd F8 spawn list must contain an is_teleporter entry")
+
+
+func test_f8_spawn_source_contains_armored_skin_entry() -> void:
+	var file := FileAccess.open("res://scripts/autoload/game_manager.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open game_manager.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("has_armored_skin"),
+		"game_manager.gd F8 spawn list must contain a has_armored_skin entry")
+
+
+func test_f8_spawn_source_contains_force_field_entry() -> void:
+	var file := FileAccess.open("res://scripts/autoload/game_manager.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open game_manager.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("has_force_field"),
+		"game_manager.gd F8 spawn list must contain a has_force_field entry")
+
+
+func test_f8_spawn_source_contains_grenadier_entry() -> void:
+	var file := FileAccess.open("res://scripts/autoload/game_manager.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open game_manager.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("is_grenadier"),
+		"game_manager.gd F8 spawn list must contain an is_grenadier entry")
+
+
+func test_f8_spawn_source_contains_invisible_entry() -> void:
+	var file := FileAccess.open("res://scripts/autoload/game_manager.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open game_manager.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("start_invisible"),
+		"game_manager.gd F8 spawn list must contain a start_invisible entry")
+
+
+func test_f8_spawn_source_applies_special_flags() -> void:
+	## Verify game_manager.gd F8 spawn applies special flags to spawned enemies (Issue #1342).
+	var file := FileAccess.open("res://scripts/autoload/game_manager.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open game_manager.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains('enemy.set("is_teleporter"') or source.contains("enemy.set(\"is_teleporter\""),
+		"game_manager.gd F8 spawn must apply is_teleporter flag to enemy")
