@@ -2762,9 +2762,8 @@ public partial class Player : BaseCharacter
 
         // Get selected weapon ID from GameManager (GDScript autoload)
         var selectedWeaponId = gameManager.Call("get_selected_weapon").AsString();
-        if (string.IsNullOrEmpty(selectedWeaponId) || selectedWeaponId == "makarov_pm")
+        if (string.IsNullOrEmpty(selectedWeaponId))
         {
-            // Default weapon (MakarovPM) - already equipped, nothing to do
             return;
         }
 
@@ -2812,15 +2811,18 @@ public partial class Player : BaseCharacter
 
         LogToFile($"[Player.Weapon] GameManager weapon selection: {selectedWeaponId} ({weaponNodeName})");
 
-        // Remove the default MakarovPM immediately
-        var defaultWeapon = GetNodeOrNull<BaseWeapon>("MakarovPM");
-        if (defaultWeapon != null)
+        // Remove the current weapon (whatever it is) before equipping the new one.
+        // Issue #1323: previously only MakarovPM was removed by name, so picking up a
+        // new weapon while already holding a non-default weapon left the old weapon node
+        // alive as a child, and picking up makarov_pm was a no-op due to an early return.
+        if (CurrentWeapon != null)
         {
-            RemoveChild(defaultWeapon);
-            defaultWeapon.QueueFree();
-            LogToFile("[Player.Weapon] Removed default MakarovPM");
+            var oldWeaponName = CurrentWeapon.Name;
+            RemoveChild(CurrentWeapon);
+            CurrentWeapon.QueueFree();
+            CurrentWeapon = null;
+            LogToFile($"[Player.Weapon] Removed current weapon: {oldWeaponName}");
         }
-        CurrentWeapon = null;
 
         // Load and instantiate the selected weapon
         var weaponScene = GD.Load<PackedScene>(scenePath);
