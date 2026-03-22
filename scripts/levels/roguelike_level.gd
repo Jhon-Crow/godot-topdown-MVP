@@ -97,8 +97,6 @@ const PEDESTAL_SIZE: float = 48.0
 ## Pedestal collision radius (touch-to-collect)
 const PEDESTAL_RADIUS: float = 36.0
 
-## Color of the pedestal base
-const PEDESTAL_BASE_COLOR: Color = Color(0.55, 0.42, 0.20, 1.0)   ## Warm gold/wood
 ## Color of the item glow orb on the pedestal
 const PEDESTAL_ITEM_GLOW:  Color = Color(0.90, 0.75, 0.20, 0.85)  ## Golden glow
 
@@ -1471,39 +1469,6 @@ func _spawn_treasure_pedestal() -> void:
 	circle.radius = PEDESTAL_RADIUS
 	col.shape = circle
 	pedestal.add_child(col)
-
-	# Visual: glowing ring on the floor (Issue #1299: background square removed so item floats visually)
-	var glow_ring := ColorRect.new()
-	glow_ring.size    = Vector2(PEDESTAL_SIZE * 2.2, PEDESTAL_SIZE * 0.35)
-	glow_ring.color   = Color(0.90, 0.75, 0.10, 0.30)
-	glow_ring.position = Vector2(-PEDESTAL_SIZE * 1.1, PEDESTAL_SIZE * 0.08)
-	pedestal.add_child(glow_ring)
-
-	# Visual: base platform — fake-3D volumetric pedestal (Issue #1180).
-	# Layer 1: bottom shadow (dark, shifted down-right to simulate depth)
-	var base_shadow := ColorRect.new()
-	base_shadow.size     = Vector2(PEDESTAL_SIZE * 1.5, PEDESTAL_SIZE * 0.5)
-	base_shadow.color    = Color(0.18, 0.12, 0.05, 0.85)
-	base_shadow.position = Vector2(-PEDESTAL_SIZE * 0.75 + 4, PEDESTAL_SIZE * 0.1 + 4)
-	pedestal.add_child(base_shadow)
-	# Layer 2: side face (slightly darker than front, visible on right)
-	var base_side := ColorRect.new()
-	base_side.size     = Vector2(4, PEDESTAL_SIZE * 0.5)
-	base_side.color    = Color(0.35, 0.25, 0.10, 1.0)
-	base_side.position = Vector2(-PEDESTAL_SIZE * 0.75 + PEDESTAL_SIZE * 1.5, PEDESTAL_SIZE * 0.1 + 2)
-	pedestal.add_child(base_side)
-	# Layer 3: top face highlight (lighter strip, simulates light on top edge)
-	var base_top := ColorRect.new()
-	base_top.size     = Vector2(PEDESTAL_SIZE * 1.5, 4)
-	base_top.color    = Color(0.80, 0.65, 0.35, 1.0)
-	base_top.position = Vector2(-PEDESTAL_SIZE * 0.75, PEDESTAL_SIZE * 0.1)
-	pedestal.add_child(base_top)
-	# Layer 4: front face (main visible face)
-	var base := ColorRect.new()
-	base.size    = Vector2(PEDESTAL_SIZE * 1.5, PEDESTAL_SIZE * 0.5 - 4)
-	base.color   = PEDESTAL_BASE_COLOR
-	base.position = Vector2(-PEDESTAL_SIZE * 0.75, PEDESTAL_SIZE * 0.1 + 4)
-	pedestal.add_child(base)
 
 	# Visual: item icon — Bug fix #1166 (Bug 3): show actual icon texture without
 	# background instead of a plain coloured square.
