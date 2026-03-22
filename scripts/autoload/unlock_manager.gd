@@ -83,6 +83,7 @@ const UNLOCK_CONDITIONS: Dictionary = {
 ##   - "grenades": List of grenade type ints to unlock
 ##   - "active_items": List of active item type ints to unlock
 ## Issue #1196: добавь условие разблокировки предмета Лазерный прицел
+## Issue #1346: добавь условие разблокировки предмета Хорошая Мелкая Моторика
 const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
 	{
 		# 1000 kills without Laser Sight → unlock Laser Sight (Issue #1196)
@@ -91,6 +92,14 @@ const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
 		"weapons": [],
 		"grenades": [],
 		"active_items": [9]  # ActiveItemManager.ActiveItemType.LASER_SIGHT = 9
+	},
+	{
+		# 300 shots with shotgun, sniper rifle, or revolver → unlock Fine Motor Skills (Issue #1346)
+		"stat": "shots_fired_special_weapons",
+		"min_kills": 300,
+		"weapons": [],
+		"grenades": [],
+		"active_items": [19]  # ActiveItemManager.ActiveItemType.FINE_MOTOR_SKILLS = 19
 	}
 ]
 
@@ -141,8 +150,11 @@ func _ready() -> void:
 		progress_manager.progress_updated.connect(_on_progress_updated)
 	# Connect to GameManager to check kill-based conditions whenever a qualifying kill is made
 	var game_manager: Node = get_node_or_null("/root/GameManager")
-	if game_manager and game_manager.has_signal("kills_without_laser_sight_updated"):
-		game_manager.kills_without_laser_sight_updated.connect(_on_kills_without_laser_sight_updated)
+	if game_manager:
+		if game_manager.has_signal("kills_without_laser_sight_updated"):
+			game_manager.kills_without_laser_sight_updated.connect(_on_kills_without_laser_sight_updated)
+		if game_manager.has_signal("shots_fired_special_weapons_updated"):
+			game_manager.shots_fired_special_weapons_updated.connect(_on_shots_fired_special_weapons_updated)
 	# Reset condition-gated items to locked state first (in case old save data has them incorrectly
 	# marked as unlocked), then re-apply earned unlocks from progress. This ensures the unlock
 	# state is always consistent with actual level completion progress.
@@ -180,6 +192,17 @@ func _on_kills_without_laser_sight_updated(_new_count: int) -> void:
 		if is_kill_condition_met(kill_condition):
 			items_unlocked_by_kill_condition.emit()
 			_log("Kill condition met — items now available to unlock in armory")
+			break
+
+
+## Called when GameManager emits shots_fired_special_weapons_updated.
+## Checks if any shot-based unlock conditions (stored in KILL_UNLOCK_CONDITIONS) are now satisfied.
+## Issue #1346.
+func _on_shots_fired_special_weapons_updated(_new_count: int) -> void:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if kill_condition.get("stat", "") == "shots_fired_special_weapons" and is_kill_condition_met(kill_condition):
+			items_unlocked_by_kill_condition.emit()
+			_log("Shot condition met — Fine Motor Skills now available to unlock in armory")
 			break
 
 
