@@ -266,6 +266,82 @@ This approach:
   - Added logging to `on_player_death()`, `restart_scene()`, and new handlers
 - `docs/case-studies/issue-1334/logs/` — new crash log files
 
+## Round 4 — Safety net timer never fires (signal connection silently fails)
+
+### New data
+
+| File | Description |
+|------|-------------|
+| `round4/game_log_20260322_200321.txt` | Session with 3 successful restarts + 1 failed (sniper) |
+| `round4/game_log_20260322_200607.txt` | Session dying on Docks from sniper — stuck on grey screen |
+| `round4/game_log_20260322_204406.txt` | Session dying on Docks from sniper — stuck on grey screen |
+
+### Analysis
+
+The Round 3 safety net timer (`_on_player_died_signal` → `_on_death_safety_net_timer`)
+**never fires**. Searching all three log files for `[GameManager]` entries shows only:
+- `GameManager ready`
+- `Weapon selected: ...`
+- `kills_without_laser_sight: ...`
+
+There is **no** `"Connected to player 'Died' signal"` log entry from `set_player()`,
+even though `docks_level.gd:235` calls `GameManager.set_player(_player)`.
+
+Meanwhile, CinemaEffects, PenultimateHit, and LastChance (all GDScript autoloads) **do**
+successfully connect to the player's `Died` signal and receive it on death.
+
+### Root cause
+
+`GameManager.set_player()` uses `player.has_signal("Died")` to check for the C# signal
+before connecting. **This check returns `false`** in the running build, causing the
+connection to be silently skipped. The `Died` signal is defined on `BaseCharacter.cs`
+(an inherited C# class), and GDScript's `has_signal()` may not reliably detect signals
+inherited from C# base classes in all Godot 4 build configurations.
+
+Other GDScript components (PenultimateHit, LastChance, CinemaEffects) connect to the
+same signal but do so **later** (after shader warmup completes, ~1 second after _ready).
+At that point, the C# node's signal table may be fully initialized, explaining why
+their `has_signal("Died")` succeeds while GameManager's fails (called during `_ready()`).
+
+Evidence: `game_log_20260322_200321.txt` shows the docks level's `_on_player_died()`
+coroutine (GDScript await) works intermittently — 3 out of 4 deaths triggered restart
+successfully, but the 4th death (sniper kill) failed silently, leaving the grey screen.
+
+### Fix (Round 4)
+
+Added **poll-based death detection** in `GameManager._process()` as a bulletproof fallback
+that works regardless of signal connection status.
+
+**How it works**: Every frame, if `player_alive == true` and `player.collision_layer == 0`,
+the player is dead (Player.cs's `OnDeath()` sets `CollisionLayer = 0` immediately on death).
+GameManager detects this and starts the same 1.5s safety net timer used by the signal handler.
+
+This approach:
+- **Works without signal connection**: No dependency on `has_signal()` or C# signal interop
+- **Uses standard Godot property**: `collision_layer` is a built-in CharacterBody2D property,
+  fully accessible from GDScript via the Godot property system
+- **Preserves normal flow**: The 1.5s timer gives level scripts time to handle death first;
+  if they succeed, the safety net is a no-op
+- **No false positives**: `collision_layer` is only set to 0 in `Player.OnDeath()`;
+  new players always spawn with collision_layer > 0
+
+Also added comprehensive logging in `set_player()` to trace exactly why signal connection
+fails, so future logs will contain diagnostic information:
+- `has_signal('Died')` and `has_signal('died')` results
+- Initial `collision_layer` value (baseline for poll detection)
+- Player class name
+
+### Files changed
+
+- `scripts/autoload/game_manager.gd`:
+  - `_process()` — added poll-based death detection checking `collision_layer == 0`
+  - `_start_death_safety_net()` — extracted shared timer-start logic for signal and poll paths
+  - `_death_detected_by_poll` flag — prevents repeated poll triggers
+  - `set_player()` — added diagnostic logging for signal and collision_layer status
+  - `_on_death_safety_net_timer()` — updated guard to check both `_death_signal_received` and `_death_detected_by_poll`
+  - `_reset_stats()` — resets `_death_detected_by_poll`
+- `docs/case-studies/issue-1334/round4/` — new crash log files
+
 ## Additional observations
 
 - `[SceneLoader] ERROR: Invalid resource` messages appear in logs when

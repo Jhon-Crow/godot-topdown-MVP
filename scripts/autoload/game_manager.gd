@@ -217,6 +217,18 @@ func _process(delta: float) -> void:
 			_f8_spawn_triggered = true
 			_spawn_selected_enemy_at_player()
 
+	# Issue #1334 Round 4: Poll-based death detection safety net.
+	# Signal-based connection from GDScript to C# Died signal can silently fail
+	# (has_signal() returns false for inherited C# signals in some Godot builds).
+	# This polling approach detects player death regardless of signal connection status.
+	# We detect death by checking collision_layer == 0, which Player.OnDeath() sets
+	# immediately on death. This is a standard Godot property accessible from GDScript.
+	if player_alive and not _reloading and not _death_detected_by_poll and player and is_instance_valid(player):
+		if player is CharacterBody2D and player.collision_layer == 0:
+			_death_detected_by_poll = true
+			_log_to_file("POLL DETECTED: Player collision_layer is 0 (dead) but player_alive was still true! Starting safety net.")
+			_start_death_safety_net()
+
 
 ## Resets all statistics to initial values.
 func _reset_stats() -> void:
@@ -225,6 +237,7 @@ func _reset_stats() -> void:
 	hits_landed = 0
 	player_alive = true
 	_death_signal_received = false
+	_death_detected_by_poll = false
 	player = null
 
 
@@ -332,6 +345,7 @@ func _reset_reloading() -> void:
 ## instead of relying on level scripts' fragile 0.5s timer + await coroutine.
 ## This ensures restart always fires regardless of level script behavior.
 func set_player(p: Node2D) -> void:
+	_log_to_file("set_player() called with: %s (class: %s)" % [str(p), p.get_class() if p else "null"])
 	# Disconnect from previous player if any
 	if player and is_instance_valid(player):
 		if player.has_signal("Died") and player.is_connected("Died", _on_player_died_signal):
@@ -341,14 +355,22 @@ func set_player(p: Node2D) -> void:
 	player = p
 	# Connect to new player's death signal
 	if player and is_instance_valid(player):
-		if player.has_signal("Died"):
+		var has_died_upper := player.has_signal("Died")
+		var has_died_lower := player.has_signal("died")
+		_log_to_file("set_player: has_signal('Died')=%s, has_signal('died')=%s" % [str(has_died_upper), str(has_died_lower)])
+		if has_died_upper:
 			if not player.is_connected("Died", _on_player_died_signal):
 				player.connect("Died", _on_player_died_signal)
 				_log_to_file("Connected to player 'Died' signal (C# naming)")
-		elif player.has_signal("died"):
+		elif has_died_lower:
 			if not player.is_connected("died", _on_player_died_signal):
 				player.connect("died", _on_player_died_signal)
 				_log_to_file("Connected to player 'died' signal (GDScript naming)")
+		else:
+			_log_to_file("WARNING: Player has neither 'Died' nor 'died' signal — poll-based detection (collision_layer check) will be used as fallback")
+		# Issue #1334 Round 4: Log collision_layer as baseline for poll-based detection
+		if player is CharacterBody2D:
+			_log_to_file("set_player: initial collision_layer=%d (poll expects 0 on death)" % player.collision_layer)
 
 
 ## Issue #1334 Round 3: Direct signal handler for player death.
@@ -366,6 +388,18 @@ func _on_player_died_signal() -> void:
 			player.collision_layer = 0
 			player.collision_mask = 0
 			_log_to_file("Disabled dead player collision from GameManager signal handler")
+	_start_death_safety_net()
+
+
+## Issue #1334 Round 4: Shared helper to start the death safety net timer.
+## Called by both signal handler (_on_player_died_signal) and poll detection (_process).
+func _start_death_safety_net() -> void:
+	# Disable collision immediately (defense-in-depth)
+	if player and is_instance_valid(player):
+		if player is CharacterBody2D:
+			player.collision_layer = 0
+			player.collision_mask = 0
+			_log_to_file("Disabled dead player collision (safety net)")
 	# Start a safety net timer. Use process_always=true and ignore_time_scale=true
 	# so the timer fires even if the tree is paused or time_scale is modified.
 	# The 1.5s delay gives level scripts ample time to call on_player_death() first
@@ -379,6 +413,10 @@ func _on_player_died_signal() -> void:
 ## Reset by _reset_stats() during restart or scene change.
 var _death_signal_received: bool = false
 
+## Whether the poll-based death detection has fired (prevents repeated timer starts).
+## Issue #1334 Round 4.
+var _death_detected_by_poll: bool = false
+
 
 ## Issue #1334 Round 3: Safety net timer callback.
 ## Forces restart if the level script's death handler failed to trigger it.
@@ -388,9 +426,9 @@ func _on_death_safety_net_timer() -> void:
 	if not player_alive or _reloading:
 		_log_to_file("Safety net timer fired — restart already handled (player_alive=%s, _reloading=%s)" % [str(player_alive), str(_reloading)])
 		return
-	# If death signal wasn't received (shouldn't happen), skip
-	if not _death_signal_received:
-		_log_to_file("Safety net timer fired — but _death_signal_received is false, skipping")
+	# If death wasn't detected by either signal or poll (shouldn't happen), skip
+	if not _death_signal_received and not _death_detected_by_poll:
+		_log_to_file("Safety net timer fired — but neither signal nor poll detected death, skipping")
 		return
 	# Check if we're in a special mode that handles death differently
 	if roguelike_active:
