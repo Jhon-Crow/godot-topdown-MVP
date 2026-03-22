@@ -1320,7 +1320,7 @@ func _process_ai_state(delta: float) -> void:
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
 			_log_to_file("Player distracted - priority attack triggered")
 			rotation = direction_to_player.angle()
-			_force_model_to_face_direction(direction_to_player)  # Fix issue #264: ensure correct aim
+			if not (_shield_component and _shield_component.get_rotation_multiplier() < 1.0): _force_model_to_face_direction(direction_to_player)  # Fix issue #264: ensure correct aim; Issue #1242: shield enemy turns slowly
 			_shoot()
 			_shoot_timer = 0.0
 			_detection_delay_elapsed = true
@@ -1363,8 +1363,8 @@ func _process_ai_state(delta: float) -> void:
 
 			# Aim at player immediately
 			rotation = direction_to_player.angle()
-			# CRITICAL: Force model to face player for correct aim direction (issue #264)
-			_force_model_to_face_direction(direction_to_player)
+			# CRITICAL: Force model to face player for correct aim direction (issue #264); Issue #1242: shield enemy turns slowly
+			if not (_shield_component and _shield_component.get_rotation_multiplier() < 1.0): _force_model_to_face_direction(direction_to_player)
 
 			_shoot(); _shoot_timer = 0.0
 			_detection_delay_elapsed = true
@@ -4222,9 +4222,10 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	if not _is_alive:
 		return
 	if _force_field_component and _force_field_component.is_active(): _log_to_file("Hit blocked by force field"); return  # Issue #1034: invulnerable while force field active
-	# Issue #1242: Shield blocking is now handled by the shield's own Area2D (ShieldHitArea).
-	# If the shield already intercepted this bullet (same physics frame), skip to prevent double-damage.
+	# Issue #1242: Shield blocking — collision-based + direction fallback (Godot signal ordering is non-deterministic).
 	if _shield_component and _shield_component.did_intercept_this_frame(): return
+	if _shield_component and _shield_component.is_active() and _enemy_model and Vector2.from_angle(_enemy_model.global_rotation).dot(-hit_direction.normalized()) > 0.0:
+		if _shield_component.try_intercept_hit(caliber_data, damage, hit_direction): return
 	if _armored_skin_component and _armored_skin_component.try_spawn_shards(_current_health, maxi(int(round(damage)), 1)): hit.emit(); _show_hit_flash(); _log_to_file("[ArmoredSkin] Triggering hit absorbed — damage ignored (Issue #1143, #1300)"); return  # Issue #1143: absorb the triggering hit's damage; Issue #1300: also absorb lethal hits from high-damage weapons
 	# [#1033] Machine gunner: 30% frontal damage resistance (±15° arc, cos15°=0.9659).
 	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active and Vector2.from_angle(_enemy_model.global_rotation if _enemy_model else rotation).dot(-hit_direction.normalized()) >= 0.9659 and randf() < 0.30:
