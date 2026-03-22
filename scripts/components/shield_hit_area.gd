@@ -1,3 +1,4 @@
+class_name ShieldHitArea
 extends Area2D
 ## Hit detection area for the SWAT shield (Issue #1242).
 ## Attached as a child of the shield visual on EnemyModel.
