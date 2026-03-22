@@ -1218,6 +1218,9 @@ func _on_player_died() -> void:
 	if GameManager:
 		# Small delay to show death message
 		await get_tree().create_timer(0.5).timeout
+		# Guard against scene already being freed during the wait (Issue #1334)
+		if not is_inside_tree():
+			return
 		GameManager.on_player_death()
 
 

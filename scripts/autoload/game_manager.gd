@@ -276,7 +276,12 @@ func get_accuracy() -> float:
 
 
 ## Called when the player dies.
+## Guarded against double-invocation: if the player is already dead (e.g. two
+## lethal hits on the same frame, or coroutine resuming after scene reload),
+## the second call is silently ignored (Issue #1334).
 func on_player_death() -> void:
+	if not player_alive:
+		return
 	player_alive = false
 	player_died.emit()
 	# Auto-restart the scene immediately

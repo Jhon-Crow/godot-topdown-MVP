@@ -300,6 +300,11 @@ public partial class SniperRifle : BaseWeapon
         {
             DeactivateScope();
         }
+
+        // Clear pending deferred shots so stale tracer references don't survive
+        // scene reload (Issue #1334).
+        _pendingSniperShots.Clear();
+
         base._ExitTree();
     }
 
@@ -1972,6 +1977,10 @@ public partial class SniperRifle : BaseWeapon
             gradient.AddPoint(0.5f, new Color(0.7f, 0.7f, 0.65f, alpha * 0.6f));
             gradient.SetColor(gradient.GetPointCount() - 1, new Color(0.5f, 0.5f, 0.5f, alpha * 0.3f));
             tracer.Gradient = gradient;
+
+            // Guard against scene reload freeing this weapon node (Issue #1334)
+            if (!IsInstanceValid(this) || !IsInsideTree())
+                return;
 
             await ToSignal(GetTree(), "process_frame");
         }

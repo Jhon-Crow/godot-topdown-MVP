@@ -2687,7 +2687,17 @@ public partial class Player : BaseCharacter
 
         SetAllSpritesModulate(HitFlashColor);
 
+        // Guard against scene reload freeing this node before the timer fires
+        // (Issue #1334: sniper kill on DocksLevel triggers scene reload while
+        // this coroutine is still waiting, causing ObjectDisposedException).
+        if (!IsInsideTree())
+            return;
+
         await ToSignal(GetTree().CreateTimer(HitFlashDuration), "timeout");
+
+        // After await, the node may have been freed by a scene reload
+        if (!IsInstanceValid(this) || !IsInsideTree())
+            return;
 
         // Restore color based on current health (if still alive)
         if (HealthComponent != null && HealthComponent.IsAlive)
@@ -9249,7 +9259,12 @@ public partial class Player : BaseCharacter
         // Wait for activation delay before starting reload (Issue #1337)
         if (FineMotorSkillsActivationDelay > 0)
         {
+            if (!IsInsideTree())
+                return;
             await ToSignal(GetTree().CreateTimer(FineMotorSkillsActivationDelay), "timeout");
+            // Guard against scene reload during wait (Issue #1334)
+            if (!IsInstanceValid(this) || !IsInsideTree())
+                return;
         }
 
         // Handle weapon-specific sequential reload
