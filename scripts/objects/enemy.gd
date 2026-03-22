@@ -338,6 +338,8 @@ var _force_field_component: EnemyForceFieldComponent = null  ## [Issue #1034] Fo
 var _armored_skin_component: EnemyArmoredSkinComponent = null  ## [Issue #1123] Armored skin component
 var _shield_component: EnemyShieldComponent = null; var _formation_shielder: Node2D = null; var _formation_target_pos: Vector2 = Vector2.ZERO  ## [Issue #1242] SWAT shield + formation
 var _revolver_cocking: bool = false  ## [Issue #1242] True while hammer is being cocked before revolver shot
+var _revolver_rounds_fired: int = 0  ## [Issue #1242] Rounds fired since last reload (for casing ejection count)
+var _revolver_reloading_coroutine: bool = false  ## [Issue #1242] True while multi-step revolver reload is running
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
@@ -1101,6 +1103,7 @@ func _update_suppression(delta: float) -> void:
 ## Update reload state.
 func _update_reload(delta: float) -> void:
 	if not _is_reloading: return
+	if _revolver_reloading_coroutine: return  # [#1242] Revolver uses coroutine, not timer
 	_reload_timer += delta
 	if _reload_timer >= reload_time: _finish_reload()
 
@@ -1110,6 +1113,7 @@ func _start_reload() -> void:
 	_is_reloading = true; _reload_timer = 0.0; reload_started.emit()
 	_log_debug("Reloading... (%d reserve ammo)" % _reserve_ammo)
 	if weapon_type == WeaponType.REVOLVER and enable_cover and _current_state not in [AIState.IN_COVER, AIState.SEEKING_COVER, AIState.EVADING_GRENADE]: _transition_to_seeking_cover()  # Issue #1242: revolver reloads in cover
+	if weapon_type == WeaponType.REVOLVER and not _revolver_reloading_coroutine: _revolver_reload_sequence()  # [#1242] Multi-step reload
 
 ## Finish the reload process.
 func _finish_reload() -> void:
@@ -1127,6 +1131,70 @@ func _finish_reload() -> void:
 	reload_finished.emit()
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	_log_debug("Reload complete. Magazine: %d/%d, Reserve: %d" % [_current_ammo, magazine_size, _reserve_ammo])
+
+## [Issue #1242] Multi-step revolver reload: open cylinder → eject casings → insert+rotate × N → close.
+## Mirrors the player's Revolver.cs reload sequence with matching sounds.
+func _revolver_reload_sequence() -> void:
+	_revolver_reloading_coroutine = true
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	var ammo_needed := magazine_size - _current_ammo
+	var ammo_to_load := mini(ammo_needed, _reserve_ammo)
+	_log_debug("[Revolver] Starting multi-step reload: need %d rounds, fired %d" % [ammo_to_load, _revolver_rounds_fired])
+
+	# Step 1: Open cylinder (0.3s)
+	if audio and audio.has_method("play_revolver_cylinder_open"): audio.play_revolver_cylinder_open(global_position)
+	await get_tree().create_timer(0.3).timeout
+	if not is_instance_valid(self) or not _is_alive: _revolver_reloading_coroutine = false; return
+
+	# Step 2: Eject spent casings (0.4s) — only eject casings for rounds actually fired
+	if _revolver_rounds_fired > 0:
+		if audio and audio.has_method("play_revolver_casings_eject"): audio.play_revolver_casings_eject(global_position)
+		_spawn_revolver_casings(_revolver_rounds_fired)
+		_revolver_rounds_fired = 0
+		await get_tree().create_timer(0.4).timeout
+		if not is_instance_valid(self) or not _is_alive: _revolver_reloading_coroutine = false; return
+
+	# Step 3: Insert cartridges one at a time with cylinder rotation between each
+	for i in range(ammo_to_load):
+		if not is_instance_valid(self) or not _is_alive: _revolver_reloading_coroutine = false; return
+		# Insert cartridge
+		if audio and audio.has_method("play_revolver_cartridge_insert"): audio.play_revolver_cartridge_insert(global_position)
+		await get_tree().create_timer(0.35).timeout
+		if not is_instance_valid(self) or not _is_alive: _revolver_reloading_coroutine = false; return
+		# Rotate cylinder to next chamber
+		if audio and audio.has_method("play_revolver_cylinder_rotate"): audio.play_revolver_cylinder_rotate(global_position)
+		await get_tree().create_timer(0.2).timeout
+		if not is_instance_valid(self) or not _is_alive: _revolver_reloading_coroutine = false; return
+
+	# Step 4: Close cylinder (0.3s)
+	if audio and audio.has_method("play_revolver_cylinder_close"): audio.play_revolver_cylinder_close(global_position)
+	await get_tree().create_timer(0.3).timeout
+	if not is_instance_valid(self) or not _is_alive: _revolver_reloading_coroutine = false; return
+
+	# Complete reload: load ammo
+	_reserve_ammo -= ammo_to_load
+	_current_ammo += ammo_to_load
+	_is_reloading = false
+	_reload_timer = 0.0
+	_revolver_reloading_coroutine = false
+	reload_finished.emit()
+	ammo_changed.emit(_current_ammo, _reserve_ammo)
+	_log_debug("[Revolver] Reload complete. Magazine: %d/%d, Reserve: %d" % [_current_ammo, magazine_size, _reserve_ammo])
+
+## [Issue #1242] Spawn ejected casings during revolver reload (casings fall out when cylinder opens).
+func _spawn_revolver_casings(count: int) -> void:
+	if casing_scene == null: return
+	for i in range(count):
+		var casing: RigidBody2D = casing_scene.instantiate()
+		casing.global_position = global_position + Vector2(randf_range(-8.0, 8.0), randf_range(-5.0, 5.0))
+		# Casings fall gently (gravity drop, not forceful ejection like semi-auto)
+		var horizontal_drift := randf_range(-30.0, 30.0)
+		var downward_speed := randf_range(40.0, 80.0)
+		casing.linear_velocity = Vector2(horizontal_drift, downward_speed)
+		casing.angular_velocity = randf_range(-10.0, 10.0)
+		if _caliber_data:
+			casing.set("caliber_data", _caliber_data)
+		get_tree().current_scene.add_child(casing)
 
 ## Check if the enemy can shoot (has ammo and not reloading). Machete: melee cooldown (Issue #579).
 func _can_shoot() -> bool:
@@ -3854,7 +3922,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	elif weapon_type == WeaponType.SNIPER_RIFLE: _sniper_component.shoot_sniper_hitscan(direction, bullet_spawn_pos)  # [#1171] Hitscan avoids physics tunneling at 10000px/s
 	else: _shoot_single_bullet(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
-	if not _is_rpg_weapon: _spawn_casing(direction, weapon_forward)  # Issue #583: no casing for RPG
+	if not _is_rpg_weapon and weapon_type != WeaponType.REVOLVER: _spawn_casing(direction, weapon_forward)  # Issue #583: no casing for RPG; #1242: revolver ejects casings on reload, not per shot
 	var audio: Node = get_node_or_null("/root/AudioManager")
 	if audio:
 		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
@@ -3871,6 +3939,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	if weapon_type == WeaponType.SNIPER_RIFLE:  # [#1177] Trigger 4-step bolt-action cycle
 		_is_bolt_cycling = true; _bolt_cycle_timer = 0.0; _bolt_cycle_step = 1
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
+	if weapon_type == WeaponType.REVOLVER: _revolver_rounds_fired += 1  # [#1242] Track for casing ejection
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _is_rpg_weapon and not _rpg_fired: _rpg_fired = true; _switch_to_secondary_weapon(); return  # Issue #583
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()

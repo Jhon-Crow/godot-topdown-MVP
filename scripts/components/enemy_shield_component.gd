@@ -129,13 +129,16 @@ func try_intercept_hit(caliber_data: Resource, damage: float, hit_direction: Vec
 func _is_hit_from_front(hit_direction: Vector2) -> bool:
 	if _parent == null:
 		return true
-	# hit_direction is bullet travel direction; -hit_direction is the direction FROM the shooter.
-	# Enemy "forward" is the direction it's facing (its rotation).
-	var enemy_forward := Vector2.from_angle(_parent.rotation)
-	# dot > 0 means hit_direction points somewhat in the same direction as enemy forward
-	# i.e. bullet is coming from in front of the enemy.
+	# Use EnemyModel's global_rotation for the actual facing direction
+	# (_parent.rotation is the CharacterBody2D rotation which is not updated).
+	var model: Node2D = _parent.get_node_or_null("EnemyModel") as Node2D
+	var facing_rotation: float = model.global_rotation if model else _parent.rotation
+	var enemy_forward := Vector2.from_angle(facing_rotation)
+	# hit_direction is bullet travel direction (from shooter toward enemy).
+	# When hit from the front, hit_direction points OPPOSITE to enemy_forward,
+	# so dot < 0 means the bullet is coming from in front.
 	var dot: float = enemy_forward.dot(hit_direction.normalized())
-	return dot > 0.0  # Shield covers the front hemisphere
+	return dot < 0.0  # Negative dot = bullet coming from the front hemisphere
 
 
 ## Check whether a caliber qualifies as sniper-grade (bypasses shield).
@@ -200,8 +203,9 @@ func _flash_shield() -> void:
 		_shield_sprite.modulate = original_color
 
 
-## Create the SWAT riot shield visual (a Polygon2D rectangle with viewport window, attached to EnemyModel).
-## Draws a tall rectangular ballistic shield like a real SWAT/police riot shield.
+## Create the SWAT riot shield visual as seen from top-down (attached to EnemyModel).
+## From above, a riot shield looks like a wide curved bar held in front of the body.
+## In enemy-local space: +X = forward (facing), Y = left/right.
 func _setup_shield_visual() -> void:
 	if _parent == null:
 		return
@@ -210,42 +214,68 @@ func _setup_shield_visual() -> void:
 		FileLogger.info("[EnemyShield] WARNING: EnemyModel not found, skipping shield visual")
 		return
 
-	# Create a container node for the whole shield assembly.
+	# Container positioned in front of enemy.
 	var shield_node := Node2D.new()
 	shield_node.name = "ShieldSprite"
-	shield_node.position = Vector2(20, 0)  # In front of enemy (facing direction is +X in top-down)
-	shield_node.z_index = 6  # Above weapon sprite (z=2)
+	shield_node.position = Vector2(18, 0)  # In front of enemy (+X = forward)
+	shield_node.z_index = 6  # Above weapon sprite
 
-	# Main shield body: tall dark rectangle (SWAT ballistic shield shape).
-	# In top-down view, the shield appears as a wide rectangle perpendicular to facing direction.
-	# X = forward/back, Y = left/right in enemy-local space.
+	# Top-down riot shield: a slightly curved wide bar.
+	# The shield is wide left-right (Y axis) and thin front-back (X axis),
+	# with a slight forward bulge in the center (convex toward the threat).
 	var body := Polygon2D.new()
-	body.polygon = PackedVector2Array([Vector2(-4, -18), Vector2(4, -18), Vector2(4, 18), Vector2(-4, 18)])
-	body.color = Color(0.15, 0.15, 0.18, 0.95)  # Dark charcoal (like real SWAT shield)
+	body.polygon = PackedVector2Array([
+		Vector2(3, -14),   # Front-right edge
+		Vector2(5, -8),    # Front bulge right
+		Vector2(6, 0),     # Front center (closest to threat)
+		Vector2(5, 8),     # Front bulge left
+		Vector2(3, 14),    # Front-left edge
+		Vector2(-1, 14),   # Back-left edge
+		Vector2(-1, -14),  # Back-right edge
+	])
+	body.color = Color(0.15, 0.15, 0.18, 0.95)  # Dark charcoal
 	shield_node.add_child(body)
 
-	# Shield edge/frame: slightly larger outline for depth.
+	# Frame outline: slightly larger for depth.
 	var frame := Polygon2D.new()
-	frame.polygon = PackedVector2Array([Vector2(-5, -19), Vector2(5, -19), Vector2(5, 19), Vector2(-5, 19)])
-	frame.color = Color(0.1, 0.1, 0.12, 0.9)  # Darker frame edge
-	frame.z_index = -1  # Behind the body
+	frame.polygon = PackedVector2Array([
+		Vector2(4, -15),
+		Vector2(6, -8),
+		Vector2(7, 0),
+		Vector2(6, 8),
+		Vector2(4, 15),
+		Vector2(-2, 15),
+		Vector2(-2, -15),
+	])
+	frame.color = Color(0.1, 0.1, 0.12, 0.9)
+	frame.z_index = -1  # Behind body
 	shield_node.add_child(frame)
 
-	# Viewport window: small transparent rectangle near top of shield.
+	# Small viewport window cutout near upper portion (top-down: right side = upper).
 	var viewport_window := Polygon2D.new()
-	viewport_window.polygon = PackedVector2Array([Vector2(-2, -13), Vector2(2, -13), Vector2(2, -8), Vector2(-2, -8)])
-	viewport_window.color = Color(0.5, 0.6, 0.7, 0.6)  # Semi-transparent blue-grey glass
+	viewport_window.polygon = PackedVector2Array([
+		Vector2(2, -10),
+		Vector2(4, -10),
+		Vector2(4, -5),
+		Vector2(2, -5),
+	])
+	viewport_window.color = Color(0.5, 0.6, 0.7, 0.5)  # Semi-transparent glass
 	shield_node.add_child(viewport_window)
 
-	# Handle grip hint: small dark bar at bottom-center (where hand holds).
+	# Grip: small dark bar on the back side (inner face).
 	var grip := Polygon2D.new()
-	grip.polygon = PackedVector2Array([Vector2(-2, 10), Vector2(2, 10), Vector2(2, 14), Vector2(-2, 14)])
-	grip.color = Color(0.08, 0.08, 0.1, 0.8)  # Very dark grip
+	grip.polygon = PackedVector2Array([
+		Vector2(-2, -3),
+		Vector2(0, -3),
+		Vector2(0, 3),
+		Vector2(-2, 3),
+	])
+	grip.color = Color(0.08, 0.08, 0.1, 0.8)
 	shield_node.add_child(grip)
 
 	model.add_child(shield_node)
 	_shield_sprite = shield_node
-	FileLogger.info("[EnemyShield] SWAT riot shield visual created")
+	FileLogger.info("[EnemyShield] SWAT riot shield visual created (top-down view)")
 
 
 ## Update formation: notify nearby allied enemies to follow behind this shielded enemy.
@@ -256,7 +286,9 @@ func _update_formation(_delta: float) -> void:
 
 	# Get all enemies in the scene.
 	var enemies: Array = _parent.get_tree().get_nodes_in_group("enemies")
-	var enemy_forward := Vector2.from_angle(_parent.rotation)
+	var model: Node2D = _parent.get_node_or_null("EnemyModel") as Node2D
+	var facing_rotation: float = model.global_rotation if model else _parent.rotation
+	var enemy_forward := Vector2.from_angle(facing_rotation)
 	var shield_back_pos: Vector2 = _parent.global_position - enemy_forward * FORMATION_OFFSET
 
 	for e in enemies:
