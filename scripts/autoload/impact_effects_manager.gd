@@ -161,11 +161,13 @@ func _ready() -> void:
 	_warmup_particle_shaders()
 
 
-## Logs to FileLogger and always prints to console for diagnostics.
+## Logs to FileLogger and prints to console in debug builds only.
+## Issue #1293: print() in release builds causes variable FPS drops.
 func _log_info(message: String) -> void:
 	var log_message := "[ImpactEffects] " + message
-	# Always print to console for debugging exported builds
-	print(log_message)
+	# Only print to console in debug builds to avoid FPS drops (Issue #1293).
+	if OS.is_debug_build():
+		print(log_message)
 	# Also write to file logger if available
 	if _file_logger and _file_logger.has_method("log_info"):
 		_file_logger.log_info(log_message)
