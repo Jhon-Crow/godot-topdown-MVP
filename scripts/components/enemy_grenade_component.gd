@@ -14,6 +14,7 @@ signal face_throw_direction(target_direction: Vector2)
 var grenade_count: int = 0
 var grenade_scene: PackedScene = null
 var enabled: bool = true
+
 var throw_cooldown: float = 15.0
 var max_throw_distance: float = 600.0
 var min_throw_distance: float = 275.0  # Updated to 275.0 per Issue #375

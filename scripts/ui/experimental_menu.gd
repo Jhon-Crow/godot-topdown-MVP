@@ -485,6 +485,7 @@ func _on_settings_changed() -> void:
 
 ## Enemy spawner: populate enemy type dropdown.
 ## Each entry stores weapon_type int as metadata (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE, 4=RPG, 5=PM, 6=MACHINE_GUN, 7=SNIPER_RIFLE).
+## Entries with a "scene_path" key will load that scene directly instead of Enemy.tscn.
 ## Restores the previously selected enemy type from ExperimentalSettings (Issue #1112).
 func _setup_enemy_spawner() -> void:
 	enemy_type_option.clear()
@@ -497,10 +498,12 @@ func _setup_enemy_spawner() -> void:
 		{"name": "Machine Gunner (PKM)", "weapon_type": 6, "behavior": 1},
 		{"name": "Sniper (ASVK)", "weapon_type": 7, "behavior": 1},
 		{"name": "Patrol Rifle", "weapon_type": 0, "behavior": 0},
+		{"name": "Gas Mask Enemy", "scene_path": "res://scenes/objects/GasMaskEnemy.tscn"},
 	]
 	for t in types:
 		enemy_type_option.add_item(t["name"])
 		enemy_type_option.set_item_metadata(enemy_type_option.item_count - 1, t)
+	_log("Enemy spawner populated: %d types (last: '%s')" % [enemy_type_option.item_count, enemy_type_option.get_item_text(enemy_type_option.item_count - 1)])
 	# Restore persisted selection.
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings and experimental_settings.has_method("get_selected_enemy_type_index"):
@@ -511,11 +514,6 @@ func _setup_enemy_spawner() -> void:
 
 ## Spawn the selected enemy type near the player on the current map.
 func _on_spawn_enemy_pressed() -> void:
-	var scene: PackedScene = load("res://scenes/objects/Enemy.tscn")
-	if scene == null:
-		spawn_status_label.text = "Error: Enemy.tscn not found."
-		return
-
 	var current_scene: Node = get_tree().current_scene
 	if current_scene == null:
 		spawn_status_label.text = "Error: No active scene."
@@ -532,12 +530,21 @@ func _on_spawn_enemy_pressed() -> void:
 	# Instantiate and configure.
 	var idx: int = enemy_type_option.selected
 	var meta: Dictionary = enemy_type_option.get_item_metadata(idx) if idx >= 0 else {"weapon_type": 0, "behavior": 1}
+
+	# Use custom scene_path if provided (e.g. GasMaskEnemy), otherwise use default Enemy.tscn.
+	var scene_path: String = meta.get("scene_path", "res://scenes/objects/Enemy.tscn")
+	var scene: PackedScene = load(scene_path)
+	if scene == null:
+		spawn_status_label.text = "Error: Scene not found: %s" % scene_path
+		return
+
 	var enemy: Node = scene.instantiate()
 	enemy.global_position = spawn_pos
-	if enemy.get("weapon_type") != null:
-		enemy.set("weapon_type", meta.get("weapon_type", 0))
-	if enemy.get("behavior_mode") != null:
-		enemy.set("behavior_mode", meta.get("behavior", 1))
+	if not meta.has("scene_path"):
+		if enemy.get("weapon_type") != null:
+			enemy.set("weapon_type", meta.get("weapon_type", 0))
+		if enemy.get("behavior_mode") != null:
+			enemy.set("behavior_mode", meta.get("behavior", 1))
 	if enemy.get("destroy_on_death") != null:
 		enemy.set("destroy_on_death", true)
 

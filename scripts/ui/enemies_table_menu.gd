@@ -48,20 +48,20 @@ const ENEMY_COUNTS: Dictionary = {
 	"res://scenes/levels/FactoryLevel.tscn": [13, 0, 0, 0, 0],
 }
 
-## Enemy features per level: [Grenadier, Teleport, Force Field, Jammer]
+## Enemy features per level: [Grenadier, Teleport, Force Field, Jammer, GasMask]
 ## true = feature present on this map.
 const ENEMY_FEATURES: Dictionary = {
-	"res://scenes/levels/LabyrinthLevel.tscn":  [false, false, false, false],
-	"res://scenes/levels/BuildingLevel.tscn":   [true,  false, false, false],
-	"res://scenes/levels/CastleLevel.tscn":     [false, false, false, false],
-	"res://scenes/levels/BeachLevel.tscn":      [false, false, false, false],
-	"res://scenes/levels/DocksLevel.tscn":      [true,  false, false, false],
-	"res://scenes/levels/Labyrinth2Level.tscn": [true,  false, false, false],
-	"res://scenes/levels/CityLevel.tscn":       [false, true,  false, false],
-	"res://scenes/levels/DecadenceLevel.tscn":  [false, false, false, true],
-	"res://scenes/levels/TestTier.tscn":        [false, false, false, false],
-	"res://scenes/levels/RevolverLevel.tscn":   [false, false, true,  false],
-	"res://scenes/levels/FactoryLevel.tscn":    [false, false, false, false],
+	"res://scenes/levels/LabyrinthLevel.tscn":  [false, false, false, false, false],
+	"res://scenes/levels/BuildingLevel.tscn":   [true,  false, false, false, false],
+	"res://scenes/levels/CastleLevel.tscn":     [false, false, false, false, false],
+	"res://scenes/levels/BeachLevel.tscn":      [false, false, false, false, false],
+	"res://scenes/levels/DocksLevel.tscn":      [true,  false, false, false, false],
+	"res://scenes/levels/Labyrinth2Level.tscn": [true,  false, false, false, false],
+	"res://scenes/levels/CityLevel.tscn":       [false, true,  false, false, false],
+	"res://scenes/levels/DecadenceLevel.tscn":  [false, false, false, true,  false],
+	"res://scenes/levels/TestTier.tscn":        [false, false, false, false, false],
+	"res://scenes/levels/RevolverLevel.tscn":   [false, false, true,  false, false],
+	"res://scenes/levels/FactoryLevel.tscn":    [false, false, false, false, false],
 }
 
 
@@ -203,7 +203,7 @@ func _populate_table() -> void:
 	_add_table_row(
 		"MAP",
 		"Rifle", "Shotgun", "UZI", "Machete", "PKM",
-		"Grenadier", "Teleport", "Force Field", "Jammer",
+		"Grenadier", "Teleport", "Force Field", "Jammer", "GasMask",
 		true
 	)
 
@@ -211,12 +211,12 @@ func _populate_table() -> void:
 	for scene_path in ENEMY_COUNTS:
 		var level_name: String = LEVEL_NAMES.get(scene_path, _extract_level_name(scene_path))
 		var counts: Array = ENEMY_COUNTS[scene_path]
-		var features: Array = ENEMY_FEATURES.get(scene_path, [false, false, false, false])
+		var features: Array = ENEMY_FEATURES.get(scene_path, [false, false, false, false, false])
 		_add_table_row(
 			level_name,
 			_count_text(counts[0]), _count_text(counts[1]), _count_text(counts[2]),
 			_count_text(counts[3]), _count_text(counts[4]),
-			features[0], features[1], features[2], features[3]
+			features[0], features[1], features[2], features[3], features[4]
 		)
 
 
@@ -238,6 +238,7 @@ func _add_table_row(
 	feat_teleport,
 	feat_force_field,
 	feat_jammer,
+	feat_gas_mask,
 	is_header: bool = false
 ) -> void:
 	var row_panel := PanelContainer.new()
@@ -331,6 +332,11 @@ func _add_table_row(
 			"value": feat_jammer,
 			"label": "Jammer",
 			"color": Color(0.2, 1.0, 0.5, 1.0),  # teal-green
+		},
+		{
+			"value": feat_gas_mask,
+			"label": "GasMask",
+			"color": Color(0.7, 1.0, 0.4, 1.0),  # yellow-green (Issue #1129)
 		},
 	]
 

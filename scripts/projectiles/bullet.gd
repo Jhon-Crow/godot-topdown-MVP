@@ -646,6 +646,11 @@ func _on_area_entered(area: Area2D) -> void:
 		if parent and shooter_id == parent.get_instance_id() and not _has_ricocheted:
 			return  # Don't hit the shooter with direct shots
 
+		# Issue #1129: Illusion copy bullets only damage the player, not enemies or other copies.
+		# If the shooter is an illusion enemy, skip damage to any non-player target.
+		if _is_illusion_bullet() and parent and not parent.is_in_group("player"):
+			return  # Illusion copies can only damage the player
+
 		# Force field protection: Block damage if target has active force field (Issue #676)
 		if parent and parent.has_method("is_force_field_active"):
 			if parent.is_force_field_active():
@@ -959,6 +964,29 @@ func _is_player_bullet() -> bool:
 	# Note: script.resource_path.contains("player") would fail for C# Player (capital P).
 	if shooter is Node and (shooter as Node).is_in_group("player"):
 		return true
+
+	return false
+
+
+## Returns true if this bullet was fired by an illusion copy (Issue #1129).
+## Illusion bullets must only damage the player, not enemies or other illusions.
+func _is_illusion_bullet() -> bool:
+	if shooter_id == -1:
+		return false
+
+	var shooter: Object = instance_from_id(shooter_id)
+	if shooter == null or not is_instance_valid(shooter):
+		return false
+
+	# Check metadata on the shooter node (inner enemy of IllusionEnemy has "is_illusion" meta)
+	if shooter is Node and (shooter as Node).get_meta("is_illusion", false):
+		return true
+
+	# Check if the shooter's parent is an IllusionEnemy
+	if shooter is Node:
+		var parent_node: Node = (shooter as Node).get_parent()
+		if parent_node and parent_node.has_method("is_illusion"):
+			return true
 
 	return false
 

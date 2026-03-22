@@ -13,6 +13,7 @@ extends EnemyGrenadeComponent
 ##
 ## The grenadier throws a grenade into each passage before entering,
 ## and nearby allies wait for the explosion before proceeding.
+## Note: Chemical grenades are only thrown by GasMaskEnemy (Issue #1129).
 class_name GrenadierGrenadeComponent
 
 ## Signal emitted when a grenade is about to be thrown (allies should wait).

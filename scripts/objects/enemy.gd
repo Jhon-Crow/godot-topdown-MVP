@@ -73,6 +73,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIF
 @export var walk_anim_intensity: float = 1.0  ## Walking animation intensity.
 @export var enemy_model_scale: float = 1.3  ## Scale multiplier for enemy model (1.3 matches player).
 @export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type (Issue #604).
+@export var is_gas_mask: bool = false  ## Whether this enemy is a gas mask type (Issue #1129).
 @export var is_teleporter: bool = false  ## Whether this enemy can teleport (Issue #752).
 @export var has_force_field: bool = false  ## Whether this enemy has a Force Field (Issue #1034).
 @export var start_invisible: bool = false  ## Start with invisibility cloak, reveal only when shooting/throwing grenade (Issue #1121).
@@ -2017,8 +2018,8 @@ func _process_pursuing_state(delta: float) -> void:
 		var ss := get_world_2d().direct_space_state
 		if ss and (_grenade_component as GrenadierGrenadeComponent).try_passage_throw(global_position, wp, ss, _is_alive, _is_stunned, _is_blinded):
 			velocity = Vector2.ZERO; return  # Wait for grenade to explode
-	# Issue #657: Non-grenadier allies wait for nearby grenadier to throw before advancing
-	if not is_grenadier and _should_wait_for_nearby_grenadier(): velocity = Vector2.ZERO; return
+	# Issue #657: Non-grenadier/non-gasmask allies wait for nearby grenadier to throw before advancing
+	if not is_grenadier and not is_gas_mask and _should_wait_for_nearby_grenadier(): velocity = Vector2.ZERO; return
 
 	# If can see player/companion and can hit them, engage (after min time to prevent thrash) #934
 	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
@@ -4727,6 +4728,8 @@ func _setup_grenade_component() -> void:
 	if not enable_grenade_throwing: return
 	if is_grenadier:
 		_grenade_component = GrenadierGrenadeComponent.new(); _grenade_component.enabled = true
+	elif is_gas_mask:
+		_grenade_component = GasMaskGrenadeComponent.new(); _grenade_component.enabled = true
 	else:
 		_grenade_component = EnemyGrenadeComponent.new()
 		_grenade_component.grenade_count = grenade_count; _grenade_component.grenade_scene = grenade_scene; _grenade_component.enabled = enable_grenade_throwing
@@ -4798,7 +4801,7 @@ func _update_grenade_world_state() -> void:
 	var rdy := _grenade_component.is_ready(_can_see_player, _under_fire, _current_health)
 	_goap_world_state["has_grenades"] = _grenade_component.grenades_remaining > 0
 	_goap_world_state["grenades_remaining"] = _grenade_component.grenades_remaining
-	_goap_world_state["ready_to_throw_grenade"] = rdy; _goap_world_state["grenadier_throw_ready"] = is_grenadier and rdy
+	_goap_world_state["ready_to_throw_grenade"] = rdy; _goap_world_state["grenadier_throw_ready"] = (is_grenadier or is_gas_mask) and rdy
 ## Attempt to throw a grenade (Issue #824: night mode flash). Returns true if throw initiated.
 func try_throw_grenade() -> bool:
 	if _grenade_component == null: return false

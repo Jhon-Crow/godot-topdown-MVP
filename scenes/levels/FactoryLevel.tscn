@@ -1,4 +1,4 @@
-[gd_scene load_steps=42 format=3 uid="uid://factory_level_1037"]
+[gd_scene load_steps=41 format=3 uid="uid://factory_level_1037"]
 
 [ext_resource type="Script" path="res://scripts/levels/factory_level.gd" id="1_factory_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -796,7 +796,7 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-[node name="Enemy5" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+[node name="Enemy5b" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1800, 250)
 behavior_mode = 1
 min_health = 4
@@ -851,7 +851,7 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-[node name="Enemy11" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+[node name="Enemy11b" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(300, 1700)
 behavior_mode = 1
 min_health = 4
