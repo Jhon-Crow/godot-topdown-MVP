@@ -195,7 +195,10 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 		var char_dist := INF if char_result.is_empty() else current_pos.distance_to(char_result["position"])
 		if wall_dist == INF and char_dist == INF: break
 		if char_dist <= wall_dist and not char_result.is_empty():
-			var hit_node: Node2D = char_result["collider"]; var hit_id := hit_node.get_instance_id()
+			var hit_node: Node2D = char_result["collider"]
+			# Issue #1334: Verify collider is still valid (may have been freed mid-frame)
+			if not is_instance_valid(hit_node): break
+			var hit_id := hit_node.get_instance_id()
 			if hit_id != shooter_id and not damaged_ids.has(hit_id):
 				if (not hit_node.has_method("is_alive")) or hit_node.call("is_alive"):
 					if hit_node.has_method("on_hit_with_bullet_info"):

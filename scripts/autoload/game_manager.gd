@@ -276,7 +276,7 @@ func get_accuracy() -> float:
 
 
 ## Called when the player dies.
-## Issue #1334: Guard against duplicate calls — both docks_level.gd and
+## Issue #1334: Guard against duplicate calls — both level GDScript and
 ## LevelInitFallback.cs connect to the player Died signal and each schedule
 ## a 0.5 s timer that calls this method.  The second call arrives after
 ## reload_current_scene() has already been triggered, causing a crash.
@@ -284,6 +284,13 @@ func on_player_death() -> void:
 	if not player_alive:
 		return
 	player_alive = false
+	# Issue #1334: Disable player collision as defense-in-depth — even if the
+	# player script already does this, ensure it from GameManager in case the
+	# player reference is a different script variant (GDScript vs C#).
+	if player and is_instance_valid(player):
+		if player is CharacterBody2D:
+			player.collision_layer = 0
+			player.collision_mask = 0
 	player_died.emit()
 	# Auto-restart the scene immediately
 	restart_scene()
@@ -304,9 +311,9 @@ func restart_scene() -> void:
 	_reset_stats()
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 	get_tree().reload_current_scene()
-	# Issue #1334: Reset the reload guard after the scene tree has finished loading
-	# the new scene.  call_deferred runs at the end of the current frame, after
-	# reload_current_scene() has fully completed and pending timers have fired.
+	# Issue #1334: Reset the reload guard after the current frame ends.
+	# call_deferred runs at the end of the frame, after reload_current_scene()
+	# has processed.  GameManager is an autoload so it persists across reloads.
 	call_deferred("_reset_reloading")
 
 

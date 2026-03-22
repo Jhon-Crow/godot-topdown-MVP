@@ -2700,7 +2700,11 @@ public partial class Player : BaseCharacter
     public override void OnDeath()
     {
         base.OnDeath();
-        // Handle player death
+        // Issue #1334: Disable collision layer so enemies can no longer raycast/interact
+        // with the dead player. This prevents crashes from hitscan or physics callbacks
+        // firing on a dead player node during the 0.5s restart delay.
+        CollisionLayer = 0;
+        CollisionMask = 0;
         GD.Print("Player died!");
     }
 

@@ -90,7 +90,7 @@ lethal shot can coincide with other damage sources in the same frame. However,
 the root cause is the duplicate handler — it would crash with any death on
 an affected level.
 
-## Fix
+## Fix (Round 1)
 
 Two guards were added to `scripts/autoload/game_manager.gd`:
 
@@ -103,10 +103,75 @@ Two guards were added to `scripts/autoload/game_manager.gd`:
    progress. The flag is reset via `call_deferred("_reset_reloading")` at the
    end of the frame, after all pending timers have fired.
 
+## Round 2 — problem not solved
+
+New crash logs (`game_log_20260322_200321.txt`, `game_log_20260322_200607.txt`)
+show crashes still occur. Analysis revealed additional root causes:
+
+### New findings
+
+1. **Crashes during the 0.5s restart delay**: After the player dies, the game
+   continues processing for 0.5 seconds before `on_player_death()` is called.
+   During this window, enemies continue firing at the dead player's physics body.
+   The sniper's hitscan raycast can interact with a dead player's collision shape,
+   and various physics callbacks can fire on partially-freed nodes, causing segfaults.
+
+2. **SceneTreeTimers persist across scene reloads**: Per Godot engine bugs
+   (godotengine/godot-proposals#8577, godotengine/godot#93619), `CreateTimer()`
+   timers fire even after the scene reloads and the originating node is freed.
+   C# lambda closures in `LevelInitFallback.cs` can reference stale state.
+
+3. **Player collision stays active after death**: Neither `player.gd` nor
+   `Player.cs` disabled the collision layer/mask on death, allowing enemies to
+   continue interacting with the dead player's physics body during the 0.5s delay.
+
+### Timeline from new crash logs
+
+**Log 1 (game_log_20260322_200321.txt)**:
+- Death 1 (20:04:15) → restart succeeds → DocksLevel reloaded
+- Death 2 (20:05:16) → restart succeeds → DocksLevel reloaded
+- Death 3 (20:05:34) → enemies keep firing at dead player → crash at 20:05:38
+
+**Log 2 (game_log_20260322_200607.txt)**:
+- Player dies at 20:06:18 → enemies keep firing → crash ~1 second later
+
+## Fix (Round 2)
+
+### 1. Disable player collision on death
+Both `player.gd` and `Player.cs` now set `collision_layer = 0` and
+`collision_mask = 0` in their death handlers. This removes the dead player
+from the physics world, preventing any hitscan raycasts or bullet collisions
+from reaching it during the 0.5s restart delay.
+
+### 2. Defense-in-depth in GameManager
+`on_player_death()` now also disables the player's collision via the
+`GameManager.player` reference, as a fallback in case the player script's
+own death handler uses a different code path.
+
+### 3. Stale callback guards
+- All GDScript level death handlers now check `is_instance_valid(self)` after
+  the `await` timer, preventing the coroutine from resuming on a freed node.
+- `LevelInitFallback.cs` adds an `_isDying` flag to prevent duplicate
+  `OnPlayerDied` calls, and its timer lambda checks `IsInstanceValid(this)`
+  before proceeding.
+
+### 4. Sniper hitscan safety
+`enemy_sniper_component.gd` now checks `is_instance_valid(hit_node)` after
+obtaining the collider from the raycast result, preventing crashes when the
+collider is freed mid-frame.
+
+### Files changed
+- `scripts/autoload/game_manager.gd` — defense-in-depth collision disable
+- `scripts/characters/player.gd` — collision disable on death
+- `Scripts/Characters/Player.cs` — collision disable on death
+- `Scripts/Components/LevelInitFallback.cs` — `_isDying` guard + `IsInstanceValid(this)` in timer
+- `scripts/components/enemy_sniper_component.gd` — `is_instance_valid` check
+- All 9 level scripts — `is_instance_valid(self)` after await in `_on_player_died()`
+
 ## Additional observations
 
-- `[SceneLoader] ERROR: Invalid resource` messages appear in logs 2, 3, 4 when
-  the SceneLoader attempts to preload the next level during the Labyrinth→Docks
-  transition. The first threaded load request gets `THREAD_LOAD_INVALID_RESOURCE`,
+- `[SceneLoader] ERROR: Invalid resource` messages appear in logs when
+  the SceneLoader attempts to preload the next level during transitions.
+  The first threaded load request gets `THREAD_LOAD_INVALID_RESOURCE`,
   but a retry succeeds. This is a separate issue (race condition in threaded
   resource loading) and does not cause the crash described here.
