@@ -1434,11 +1434,11 @@ func _spawn_treasure_pedestal() -> void:
 	col.shape = circle
 	pedestal.add_child(col)
 
-	# Visual: glowing ring on the floor to draw the player's eye
+	# Visual: glowing ring on the floor (Issue #1299: background square removed so item floats visually)
 	var glow_ring := ColorRect.new()
-	glow_ring.size    = Vector2(PEDESTAL_SIZE * 2.2, PEDESTAL_SIZE * 2.2)
-	glow_ring.color   = Color(0.90, 0.75, 0.10, 0.35)
-	glow_ring.position = Vector2(-PEDESTAL_SIZE * 1.1, -PEDESTAL_SIZE * 1.1)
+	glow_ring.size    = Vector2(PEDESTAL_SIZE * 2.2, PEDESTAL_SIZE * 0.35)
+	glow_ring.color   = Color(0.90, 0.75, 0.10, 0.30)
+	glow_ring.position = Vector2(-PEDESTAL_SIZE * 1.1, PEDESTAL_SIZE * 0.08)
 	pedestal.add_child(glow_ring)
 
 	# Visual: base platform — fake-3D volumetric pedestal (Issue #1180).
@@ -1471,6 +1471,8 @@ func _spawn_treasure_pedestal() -> void:
 	# background instead of a plain coloured square.
 	# Bug fix #1166 (Bug 1): weapon pedestal now pre-selects a specific weapon,
 	# so we show that weapon's icon instead of a generic case icon.
+	# Issue #1299: item floats in a Node2D container so the tween animation moves
+	# the whole icon group (icon + shadow) together without a background panel.
 	var icon_path: String = ""
 	if item is String and item != "" and item in WEAPON_ICON_PATHS:
 		icon_path = WEAPON_ICON_PATHS[item]
@@ -1478,6 +1480,12 @@ func _spawn_treasure_pedestal() -> void:
 			icon_path = "res://assets/sprites/weapons/weapon_case_icon.png"
 	elif item is int and ActiveItemManager:
 		icon_path = ActiveItemManager.get_active_item_icon_path(item)
+
+	# Float container — the looping tween animates this node's Y offset.
+	var float_node := Node2D.new()
+	float_node.name = "ItemFloat"
+	float_node.position = Vector2(0.0, -PEDESTAL_SIZE * 1.1)
+	pedestal.add_child(float_node)
 
 	var icon_ok := false
 	if icon_path != "" and ResourceLoader.exists(icon_path):
@@ -1491,8 +1499,8 @@ func _spawn_treasure_pedestal() -> void:
 			var icon_size := Vector2(PEDESTAL_SIZE, PEDESTAL_SIZE)
 			icon_rect.custom_minimum_size = icon_size
 			icon_rect.size = icon_size
-			icon_rect.position = Vector2(-icon_size.x * 0.5, -PEDESTAL_SIZE * 1.1)
-			pedestal.add_child(icon_rect)
+			icon_rect.position = Vector2(-icon_size.x * 0.5, 0.0)
+			float_node.add_child(icon_rect)
 			icon_ok = true
 
 	if not icon_ok:
@@ -1500,8 +1508,14 @@ func _spawn_treasure_pedestal() -> void:
 		var orb := ColorRect.new()
 		orb.size    = Vector2(PEDESTAL_SIZE * 0.8, PEDESTAL_SIZE * 0.8)
 		orb.color   = PEDESTAL_ITEM_GLOW
-		orb.position = Vector2(-PEDESTAL_SIZE * 0.4, -PEDESTAL_SIZE * 0.9)
-		pedestal.add_child(orb)
+		orb.position = Vector2(-PEDESTAL_SIZE * 0.4, 0.0)
+		float_node.add_child(orb)
+
+	# Issue #1299: gentle floating animation — item bobs ±4 px over 1.4 s, looping.
+	var float_tween := create_tween()
+	float_tween.set_loops()
+	float_tween.tween_property(float_node, "position:y", -PEDESTAL_SIZE * 1.1 - 4.0, 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	float_tween.tween_property(float_node, "position:y", -PEDESTAL_SIZE * 1.1 + 4.0, 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 	# Label: item name (larger font)
 	var label := Label.new()
@@ -1630,16 +1644,21 @@ func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 		pedestal.set_meta("pedestal_item", old_weapon_id)
 
 		# Update the icon on the pedestal to show the old weapon (Issue #1180).
+		# Issue #1299: ItemIcon now lives inside ItemFloat; try both paths for safety.
 		if old_weapon_id in WEAPON_ICON_PATHS:
 			var old_icon_path: String = WEAPON_ICON_PATHS[old_weapon_id]
 			if ResourceLoader.exists(old_icon_path):
 				var tex: Texture2D = load(old_icon_path) as Texture2D
 				if tex:
-					var icon_rect: TextureRect = pedestal.get_node_or_null("ItemIcon")
+					var icon_rect: TextureRect = pedestal.get_node_or_null("ItemFloat/ItemIcon")
+					if icon_rect == null:
+						icon_rect = pedestal.get_node_or_null("ItemIcon")
 					if icon_rect:
 						icon_rect.texture = tex
 					else:
-						# Icon node missing (e.g. fallback orb was used) — create it now.
+						# Icon node missing — add it to the float container if present,
+						# otherwise fall back to direct pedestal child.
+						var float_node: Node2D = pedestal.get_node_or_null("ItemFloat")
 						var new_icon := TextureRect.new()
 						new_icon.name = "ItemIcon"
 						new_icon.texture = tex
@@ -1648,8 +1667,12 @@ func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 						var icon_size := Vector2(PEDESTAL_SIZE, PEDESTAL_SIZE)
 						new_icon.custom_minimum_size = icon_size
 						new_icon.size = icon_size
-						new_icon.position = Vector2(-icon_size.x * 0.5, -PEDESTAL_SIZE * 1.1)
-						pedestal.add_child(new_icon)
+						if float_node:
+							new_icon.position = Vector2(-icon_size.x * 0.5, 0.0)
+							float_node.add_child(new_icon)
+						else:
+							new_icon.position = Vector2(-icon_size.x * 0.5, -PEDESTAL_SIZE * 1.1)
+							pedestal.add_child(new_icon)
 
 		# Update the item name label.
 		var item_lbl: Label = pedestal.get_node_or_null("ItemLabel")
