@@ -645,7 +645,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 			await get_tree().create_timer(0.2).timeout
 			if not _is_alive: return
 			if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
-				if _has_valid_cover:
+				if _shield_component and _shield_component.is_active(): pass  # Issue #1242: no retreat with shield up
+				elif _has_valid_cover:
 					_log_to_file("Reload complete sound triggered retreat - transitioning from %s to RETREATING (delayed from %s)" % [AIState.keys()[_current_state], AIState.keys()[state_before_delay]])
 					_transition_to_retreating()
 				elif enable_cover:
@@ -956,7 +957,9 @@ func _update_enemy_model_rotation() -> void:
 	elif _corner_check_timer > 0:  # P3: Corner check (#347)
 		target_angle = _corner_check_angle; has_target = true; rotation_reason = "P3:corner"
 	elif velocity.length_squared() > 1.0:
-		target_angle = velocity.normalized().angle(); has_target = true; rotation_reason = "P4:velocity"
+		if _shield_component and _shield_component.is_active() and _last_known_player_position != Vector2.ZERO:  # Issue #1242: shield faces player, not movement dir
+			target_angle = (_last_known_player_position - global_position).normalized().angle(); has_target = true; rotation_reason = "P4:shield_face_player"
+		else: target_angle = velocity.normalized().angle(); has_target = true; rotation_reason = "P4:velocity"
 	elif _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
 		target_angle = _idle_scan_targets[_idle_scan_target_index]; has_target = true; rotation_reason = "P5:idle_scan"
 	if not has_target:
@@ -1474,9 +1477,8 @@ func _process_combat_state(delta: float) -> void:
 
 	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:  # [#1163] Standoff + blind-fire through cover.
 		_sniper_component.process_combat(delta, _can_see_player, _player, _last_known_player_position, _prediction); return
-	# Check suppression (ignore during vulnerability pursuit)
 	# RCA-19: Add minimum combat duration before retreating to prevent rapid COMBAT→RETREATING cycling
-	if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
+	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not (_shield_component and _shield_component.is_active()):  # Issue #1242: no retreat with shield up
 		if _combat_state_timer >= 0.15:  # Brief minimum (0.15s) to prevent instant cycling
 			_combat_exposed = false
 			_combat_approaching = false
@@ -1850,10 +1852,8 @@ func _process_flanking_state(delta: float) -> void:
 		if _flank_fail_count > 0:
 			_flank_fail_count = 0
 
-	if _under_fire and enable_cover:
-		_flank_side_initialized = false
-		_transition_to_retreating()
-		return
+	if _under_fire and enable_cover and not (_shield_component and _shield_component.is_active()):  # Issue #1242: no retreat with shield up
+		_flank_side_initialized = false; _transition_to_retreating(); return
 
 	# Only transition to combat if we can ACTUALLY HIT the target (#934: incl. companion)
 	if (_can_see_player or _can_see_companion) and _can_hit_target_from_current_position():
@@ -2087,10 +2087,8 @@ func _process_pursuing_state(delta: float) -> void:
 	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null and _sniper_component.process_pursuing(delta, _can_see_player, _player, _last_known_player_position, _prediction):
 		return
 
-	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not _is_melee_weapon:
-		_pursuit_approaching = false
-		_transition_to_retreating()
-		return
+	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not _is_melee_weapon and not (_shield_component and _shield_component.is_active()):  # Issue #1242: no retreat with shield up
+		_pursuit_approaching = false; _transition_to_retreating(); return
 
 	# Issue #604: Grenadier proactive passage throw - throw before entering passage/cover
 	if is_grenadier and _grenade_component is GrenadierGrenadeComponent and _nav_agent and not _nav_agent.is_navigation_finished():
