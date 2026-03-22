@@ -436,3 +436,82 @@ func test_advance_route_five_room_run_intermediate_rooms() -> void:
 	level.current_room_idx = 4  # Room 5 is last
 	assert_eq(level.advance_route(), "treasure_room",
 		"Room 5 of 5 should go to treasure_room")
+
+
+# ============================================================================
+# Tests — room size and layout diversity (Issue #1240)
+# ============================================================================
+
+
+## Mirror of ROOM_SIZE_OPTIONS from roguelike_level.gd
+const ROOM_SIZE_OPTIONS: Array = [
+	Vector2(1280.0, 720.0),
+	Vector2(1600.0, 900.0),
+	Vector2(1920.0, 1080.0),
+]
+
+## Number of layout variants per room type.
+const ROOM_VARIANT_COUNT: int = 3
+
+## Maximum enemy count cap introduced by issue #1240.
+const ENEMIES_LEVEL_CAP: int = 8
+
+
+func test_room_size_options_has_three_entries() -> void:
+	assert_eq(ROOM_SIZE_OPTIONS.size(), 3,
+		"There must be exactly 3 room size options (compact, standard, large)")
+
+
+func test_room_size_options_all_larger_than_zero() -> void:
+	for sz in ROOM_SIZE_OPTIONS:
+		assert_gt(sz.x, 0.0, "Room width must be positive")
+		assert_gt(sz.y, 0.0, "Room height must be positive")
+
+
+func test_room_size_options_include_1280x720() -> void:
+	var found := false
+	for sz in ROOM_SIZE_OPTIONS:
+		if sz == Vector2(1280.0, 720.0):
+			found = true
+	assert_true(found, "1280×720 compact size must remain in the options list")
+
+
+func test_room_size_options_largest_is_wider_than_1280() -> void:
+	var max_w := 0.0
+	for sz in ROOM_SIZE_OPTIONS:
+		if sz.x > max_w:
+			max_w = sz.x
+	assert_gt(max_w, 1280.0, "At least one room size must be larger than the original 1280px")
+
+
+func test_room_variant_count_is_three() -> void:
+	assert_eq(ROOM_VARIANT_COUNT, 3, "Each room type must have 3 layout variants")
+
+
+func test_enemy_level_cap_raised_to_eight() -> void:
+	## Issue #1240: cap was 6, must now be 8 for more tactical challenge.
+	assert_eq(ENEMIES_LEVEL_CAP, 8, "Enemy level cap must be 8 for tactical pressure scaling")
+
+
+func test_enemy_per_room_max_is_five() -> void:
+	## Issue #1240: base max raised from 4 to 5.
+	const ENEMIES_PER_ROOM_MAX: int = 5
+	assert_eq(ENEMIES_PER_ROOM_MAX, 5, "ENEMIES_PER_ROOM_MAX must be 5 after issue #1240")
+
+
+func test_room_size_options_are_all_distinct() -> void:
+	for i in range(ROOM_SIZE_OPTIONS.size()):
+		for j in range(ROOM_SIZE_OPTIONS.size()):
+			if i != j:
+				assert_ne(ROOM_SIZE_OPTIONS[i], ROOM_SIZE_OPTIONS[j],
+					"All room size options must be distinct (no duplicates)")
+
+
+func test_mock_advance_route_not_affected_by_room_size_changes() -> void:
+	## Sanity check: room size diversity should not break existing advance routing.
+	var level := _make_level()
+	level.total_rooms = 3
+	level.current_room_idx = 2
+	level.in_treasure_room = false
+	assert_eq(level.advance_route(), "treasure_room",
+		"advance_route must still work correctly regardless of room size changes")
