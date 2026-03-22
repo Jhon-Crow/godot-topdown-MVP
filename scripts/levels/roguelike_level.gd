@@ -833,11 +833,13 @@ func _setup_navigation() -> void:
 		return
 
 	# Define the walkable floor area outline for the room.
+	# Issue #1295: Use dynamic _room_w/_room_h instead of hardcoded ROOM_WIDTH/ROOM_HEIGHT
+	# so the navigation mesh matches the actual room size (1280×720, 1600×900, or 1920×1080).
 	var floor_outline: PackedVector2Array = PackedVector2Array([
 		Vector2(0, 0),
-		Vector2(ROOM_WIDTH, 0),
-		Vector2(ROOM_WIDTH, ROOM_HEIGHT),
-		Vector2(0, ROOM_HEIGHT)
+		Vector2(_room_w, 0),
+		Vector2(_room_w, _room_h),
+		Vector2(0, _room_h)
 	])
 	nav_poly.clear()
 	nav_poly.add_outline(floor_outline)
