@@ -1223,11 +1223,16 @@ func _process_ai_state(delta: float) -> void:
 
 	if _aggression and _aggression.process_aggression_tick(delta, rotation_speed, shoot_cooldown, combat_move_speed): return  # [Issue #675,#919]
 
+	# Issue #1305: Check if COMBAT state is enabled — if disabled, skip all priority attack paths
+	# (distracted, vulnerable, etc.) so enemies truly stop attacking the player.
+	var _ps_ai := get_node_or_null("/root/PerformanceSettings")
+	var _combat_allowed: bool = _ps_ai == null or _ps_ai.is_ai_state_combat_enabled()
+
 	# HIGHEST PRIORITY: Player distracted (aim > 23° off) → shoot (Hard only; Issue #318: off during confusion).
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	var is_distraction_enabled: bool = difficulty_manager != null and difficulty_manager.is_distraction_attack_enabled()
 	var is_confused: bool = _memory_reset_confusion_timer > 0.0
-	if is_distraction_enabled and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _goap_world_state.get("player_distracted", false) and _can_see_player and _player:
+	if _combat_allowed and is_distraction_enabled and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _goap_world_state.get("player_distracted", false) and _can_see_player and _player:
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
@@ -1267,8 +1272,8 @@ func _process_ai_state(delta: float) -> void:
 			var reason: String = "reloading" if player_reloading else "ammo_empty"
 			_log_to_file("Player vulnerable (%s) but cannot attack: close=%s (dist=%.0f), can_see=%s" % [reason, player_close, distance_to_player, _can_see_player])
 
-	# Issue #318: block during confusion; Issue #959: pacifists skip
-	if player_is_vulnerable and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _can_see_player and _player and player_close:
+	# Issue #318: block during confusion; Issue #959: pacifists skip; Issue #1305: respect combat toggle
+	if _combat_allowed and player_is_vulnerable and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _can_see_player and _player and player_close:
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
@@ -1287,8 +1292,8 @@ func _process_ai_state(delta: float) -> void:
 				_detection_delay_elapsed = true
 			return
 
-	# SECOND PRIORITY: pursue vulnerable player who is not close
-	if player_is_vulnerable and _can_see_player and _player and not player_close:
+	# SECOND PRIORITY: pursue vulnerable player who is not close (Issue #1305: respect combat toggle)
+	if _combat_allowed and player_is_vulnerable and _can_see_player and _player and not player_close:
 		var distance_to_player := global_position.distance_to(_player.global_position)
 		var pursue_key := "last_pursue_vuln_frame"
 		var current_frame := Engine.get_physics_frames()
@@ -1306,8 +1311,8 @@ func _process_ai_state(delta: float) -> void:
 		if not _has_valid_cover: _find_cover_position()
 		if _has_valid_cover and _teleport_component.try_teleport(_cover_position): _transition_to_in_cover(); return
 	if _teleport_component and _teleport_component.is_ready() and not _can_see_player and _current_state == AIState.FLANKING: _teleport_component.try_teleport(_flank_target)  # #752: flank-teleport
-	# GRENADE THROW PRIORITY (Issue #363, #959): Non-pacifists check grenade triggers.
-	if _goap_world_state.get("ready_to_throw_grenade", false) and not (_pacifist and _pacifist.is_pacifist):
+	# GRENADE THROW PRIORITY (Issue #363, #959, #1305): Non-pacifists check grenade triggers; respect combat toggle.
+	if _combat_allowed and _goap_world_state.get("ready_to_throw_grenade", false) and not (_pacifist and _pacifist.is_pacifist):
 		if try_throw_grenade():
 			return
 
@@ -4174,7 +4179,8 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
 			if _memory: _memory.update_position(est_pos, 0.6); _memory_reset_confusion_timer = 0.0
 			_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()
-			if _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
+			# Issue #1305: Only fire back if combat transition succeeded (not redirected to IDLE by PerformanceSettings)
+			if _current_state == AIState.COMBAT and _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
