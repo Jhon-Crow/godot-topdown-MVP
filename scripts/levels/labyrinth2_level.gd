@@ -9,6 +9,7 @@ extends Node2D
 ## - 17 enemies distributed across many rooms (more than BuildingLevel), including a machine gunner and 2 invisible searching enemies (Issue #1121)
 ## - More rooms with narrower corridors for a true labyrinth feel
 ## - Score tracking with Hotline Miami style ranking system
+## - Warm ceiling lights in all zones (Issue #1291)
 
 ## Reference to the enemy count label.
 var _enemy_count_label: Label = null
@@ -127,6 +128,9 @@ func _ready() -> void:
 	# Setup window lights in corridors without enemies
 	_setup_window_lights()
 
+	# Setup warm ceiling lights in the center of each zone (Issue #1291)
+	_setup_room_warm_lights()
+
 	# Start replay recording
 	_start_replay_recording()
 
@@ -232,6 +236,115 @@ func _activate_exit_zone() -> void:
 	else:
 		push_warning("Exit zone not available - showing score immediately")
 		_complete_level_with_score()
+
+
+## Setup warm ceiling lights in the centers of all zones (Issue #1291).
+## Adds PointLight2D nodes with warm yellow-orange color — the same style as
+## BuildingLevel (Здание) — so the map has consistent interior illumination.
+##
+## Zone centers (derived from RoomLabel bounds in the scene):
+## - Entry Hall:        ~(334,  290)  — left entry zone
+## - West Wing:         ~(906,  290)  — upper-left wing
+## - Central Hub:       ~(1512, 440)  — upper-centre hub (taller room)
+## - North Sector:      ~(2112, 290)  — upper-right sector
+## - East Wing:         ~(2836, 290)  — far-right wing
+## - Central Corridor:  3 lights spread across the wide corridor
+## - Lower Labyrinth:   3 lights spread across the wide lower zone
+func _setup_room_warm_lights() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	var room_lights_node := Node2D.new()
+	room_lights_node.name = "RoomLights"
+	environment.add_child(room_lights_node)
+
+	# Format: [position, energy, texture_scale, label]
+	var room_configs: Array = [
+		# Upper zones — smaller rooms, softer lights
+		[Vector2(334,  290),  0.7, 3.5, "EntryHall"],
+		[Vector2(906,  290),  0.7, 3.5, "WestWing"],
+		[Vector2(1512, 440),  0.85, 4.5, "CentralHub"],
+		[Vector2(2112, 290),  0.7, 3.5, "NorthSector"],
+		[Vector2(2836, 290),  0.7, 3.5, "EastWing"],
+		# Wide zones — multiple lights spread across the length
+		[Vector2(800,  1512), 0.85, 4.5, "CentralCorridor_W"],
+		[Vector2(1664, 1512), 0.85, 4.5, "CentralCorridor_C"],
+		[Vector2(2528, 1512), 0.85, 4.5, "CentralCorridor_E"],
+		[Vector2(800,  2136), 0.85, 4.5, "LowerLabyrinth_W"],
+		[Vector2(1664, 2136), 0.85, 4.5, "LowerLabyrinth_C"],
+		[Vector2(2528, 2136), 0.85, 4.5, "LowerLabyrinth_E"],
+	]
+
+	for cfg in room_configs:
+		_create_room_warm_light(room_lights_node, cfg[0], cfg[1], cfg[2], cfg[3])
+
+	print("[Labyrinth2Level] Warm ceiling lights placed in all zones (Issue #1291)")
+
+
+## Create a single warm ceiling light at the given room-center position.
+func _create_room_warm_light(parent: Node2D, pos: Vector2, energy: float, scale: float, room_name: String) -> void:
+	var light_node := Node2D.new()
+	light_node.name = "WarmLight_%s" % room_name
+	light_node.position = pos
+	parent.add_child(light_node)
+
+	# Small visual indicator — a dim warm-colored circle representing the lamp fixture.
+	var fixture := Sprite2D.new()
+	fixture.name = "Fixture"
+	fixture.texture = _create_lamp_fixture_texture()
+	fixture.modulate = Color(1.0, 0.85, 0.5, 0.5)
+	light_node.add_child(fixture)
+
+	var light := PointLight2D.new()
+	light.name = "PointLight"
+	light.color = Color(1.0, 0.75, 0.3, 1.0)
+	light.energy = energy
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 4.0
+	light.texture = _create_warm_light_texture()
+	light.texture_scale = scale
+	light_node.add_child(light)
+
+
+## Create a soft radial gradient texture for the warm room lights.
+func _create_warm_light_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+
+	return ImageTexture.create_from_image(image)
+
+
+## Create a small circular texture for the lamp fixture visual indicator.
+func _create_lamp_fixture_texture() -> ImageTexture:
+	var size := 32
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			if dist >= outer_r:
+				image.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			else:
+				var t := clampf(dist / outer_r, 0.0, 1.0)
+				var alpha := pow(1.0 - t, 1.5)
+				image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+
+	return ImageTexture.create_from_image(image)
 
 
 ## Setup window lights in corridors without enemies.
