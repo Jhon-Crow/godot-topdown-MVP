@@ -4234,7 +4234,8 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	_last_hit_direction = hit_direction
 
 	var attacker_direction := -hit_direction.normalized()
-	if attacker_direction.length_squared() > 0.01: _force_model_to_face_direction(attacker_direction)
+	# Issue #1242: Shield enemy must NOT snap-rotate on hit — shield enforces slow turning via _update_enemy_model_rotation()
+	if attacker_direction.length_squared() > 0.01 and not (_shield_component and _shield_component.get_rotation_multiplier() < 1.0): _force_model_to_face_direction(attacker_direction)
 	_hits_taken_in_encounter += 1
 	var actual_damage: int = maxi(int(round(damage)), 1)
 	_log_to_file("Hit: dmg=%d, hp=%d/%d->%d/%d" % [actual_damage, _current_health, _max_health, _current_health - actual_damage, _max_health])
