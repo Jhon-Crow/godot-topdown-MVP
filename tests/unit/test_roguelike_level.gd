@@ -17,13 +17,14 @@ extends GutTest
 # Constants mirrored from roguelike_level.gd
 # ============================================================================
 
+## Issue #1303 fix: corrected enum values to match ActiveItemManager.ActiveItemType.
 const PASSIVE_ACTIVE_ITEM_TYPES: Array = [
-	2,   # BREAKER_BULLETS
-	8,   # LASER_SIGHT
-	9,   # EXTENDED_MAGAZINE
-	12,  # ARMORED_SKIN
-	13,  # AUTO_RELOAD
-	16,  # COMBAT_DISPOSITION
+	6,   # BREAKER_BULLETS
+	9,   # LASER_SIGHT
+	10,  # EXTENDED_MAGAZINE
+	13,  # ARMORED_SKIN
+	14,  # AUTO_RELOAD
+	17,  # COMBAT_DISPOSITION
 ]
 
 const ACTIVE_ITEM_NONE: int = 0
@@ -40,22 +41,28 @@ class MockActiveItemManager:
 	var set_calls: Array = []
 
 	func get_all_active_item_types() -> Array:
-		## Return types 0–16 (mirrors the real enum size).
+		## Return types 0–18 (mirrors the real enum size — Issue #1303).
 		var types: Array = []
-		for i in range(17):
+		for i in range(19):
 			types.append(i)
 		return types
 
 	func get_active_item_name(type: int) -> String:
+		## Issue #1303: names now match ActiveItemManager.ActiveItemType enum order.
 		var names := {
-			0: "None", 1: "Flashlight", 2: "Breaker Bullets",
-			3: "Homing Bullets", 4: "Teleport Bracers", 5: "BFF Pendant",
-			6: "Invisibility Suit", 7: "Force Field", 8: "Laser Sight",
-			9: "Extended Magazine", 10: "Loudspeaker", 11: "Breaching Charges",
-			12: "Armored Skin", 13: "Auto-Reload", 14: "Trajectory Glasses",
-			15: "Drilling Bullets", 16: "Combat Disposition",
+			0: "None", 1: "Flashlight", 2: "Homing Bullets",
+			3: "Teleport Bracers", 4: "BFF Pendant", 5: "Invisibility Suit",
+			6: "Breaker Bullets", 7: "Force Field", 8: "Trajectory Glasses",
+			9: "Laser Sight", 10: "Extended Magazine", 11: "Loudspeaker",
+			12: "Breaching Charges", 13: "Armored Skin", 14: "Auto-Reload",
+			15: "Drilling Bullets", 16: "Recoil Compensator", 17: "Combat Disposition",
+			18: "Experimental Sample",
 		}
 		return names.get(type, "Unknown")
+
+	func get_active_item_icon_path(type: int) -> String:
+		## Stub icon paths for testing pedestal icon updates (Issue #1303).
+		return "res://assets/icons/active_item_%d.png" % type
 
 	func set_active_item(type: int, restart_level: bool = true) -> void:
 		set_calls.append({"type": type, "restart_level": restart_level})
@@ -98,7 +105,7 @@ class MockGameManager:
 
 
 class MockRoguelikeLevel:
-	const PASSIVE_ACTIVE_ITEM_TYPES: Array = [2, 8, 9, 12, 13, 16]
+	const PASSIVE_ACTIVE_ITEM_TYPES: Array = [6, 9, 10, 13, 14, 17]
 	const ACTIVE_ITEM_NONE: int = 0
 
 	var active_item_manager: MockActiveItemManager = null
@@ -276,19 +283,19 @@ func test_weapon_pedestal_removed_when_no_alternatives() -> void:
 func test_passive_item_collected_without_restart() -> void:
 	var level := _make_level()
 	level.active_item_manager.current_active_item = 1  # FLASHLIGHT (non-passive)
-	level.apply_pedestal_active_item(2)  # BREAKER_BULLETS (passive)
+	level.apply_pedestal_active_item(6)  # BREAKER_BULLETS (passive, type 6)
 	assert_false(level.active_item_manager.set_calls.is_empty(),
 		"set_active_item should have been called")
 	var call: Dictionary = level.active_item_manager.set_calls[0]
-	assert_eq(call["type"], 2, "Should set BREAKER_BULLETS (type 2)")
+	assert_eq(call["type"], 6, "Should set BREAKER_BULLETS (type 6)")
 	assert_false(call["restart_level"], "Passive item pickup must NOT trigger scene restart")
 	assert_true(level.pedestal_freed, "Pedestal removed after passive item collection")
 
 
 func test_passive_item_no_op_when_already_equipped() -> void:
 	var level := _make_level()
-	level.active_item_manager.current_active_item = 8  # LASER_SIGHT (passive)
-	level.apply_pedestal_active_item(8)  # Same item
+	level.active_item_manager.current_active_item = 9  # LASER_SIGHT (passive, type 9)
+	level.apply_pedestal_active_item(9)  # Same item
 	assert_true(level.active_item_manager.set_calls.is_empty(),
 		"set_active_item should NOT be called when already equipped")
 	assert_true(level.pedestal_freed, "Pedestal freed on no-op duplicate pickup")
@@ -302,18 +309,18 @@ func test_passive_item_no_op_when_already_equipped() -> void:
 func test_active_item_replaces_current_without_restart() -> void:
 	var level := _make_level()
 	level.active_item_manager.current_active_item = 1  # FLASHLIGHT
-	level.apply_pedestal_active_item(4)  # TELEPORT_BRACERS (active)
+	level.apply_pedestal_active_item(3)  # TELEPORT_BRACERS (active, type 3)
 	assert_false(level.active_item_manager.set_calls.is_empty(),
 		"set_active_item should have been called")
 	var call: Dictionary = level.active_item_manager.set_calls[0]
-	assert_eq(call["type"], 4, "Should set TELEPORT_BRACERS (type 4)")
+	assert_eq(call["type"], 3, "Should set TELEPORT_BRACERS (type 3)")
 	assert_false(call["restart_level"], "Active item swap must NOT restart the scene")
 
 
 func test_displaced_active_item_returned_to_pedestal() -> void:
 	var level := _make_level()
 	level.active_item_manager.current_active_item = 1  # FLASHLIGHT
-	level.apply_pedestal_active_item(4)  # TELEPORT_BRACERS replaces FLASHLIGHT
+	level.apply_pedestal_active_item(3)  # TELEPORT_BRACERS replaces FLASHLIGHT
 	assert_eq(level.pedestal_item, 1,
 		"Displaced FLASHLIGHT (type 1) should be placed back on the pedestal")
 	assert_false(level.pedestal_freed, "Pedestal should NOT be freed when displaced item placed back")
@@ -324,7 +331,7 @@ func test_displaced_active_item_returned_to_pedestal() -> void:
 func test_active_item_with_no_previous_item_frees_pedestal() -> void:
 	var level := _make_level()
 	level.active_item_manager.current_active_item = ACTIVE_ITEM_NONE  # No item equipped
-	level.apply_pedestal_active_item(4)  # TELEPORT_BRACERS
+	level.apply_pedestal_active_item(3)  # TELEPORT_BRACERS (type 3)
 	assert_true(level.pedestal_freed,
 		"Pedestal freed when there is no previous item to displace")
 	assert_null(level.pedestal_item, "No displaced item on pedestal")
@@ -334,10 +341,40 @@ func test_active_item_same_as_equipped_frees_pedestal() -> void:
 	## If the pedestal somehow offers the already-equipped non-passive item,
 	## the swap sets it to itself — old_type == item_type, so no displacement.
 	var level := _make_level()
-	level.active_item_manager.current_active_item = 4  # TELEPORT_BRACERS
-	level.apply_pedestal_active_item(4)  # Same item
+	level.active_item_manager.current_active_item = 3  # TELEPORT_BRACERS (type 3)
+	level.apply_pedestal_active_item(3)  # Same item
 	assert_true(level.pedestal_freed, "Pedestal freed when same item offered")
 	assert_null(level.pedestal_item, "No displaced item on pedestal for same-item case")
+
+
+func test_trajectory_glasses_is_active_not_passive() -> void:
+	## Issue #1303: Trajectory Glasses (type 8) was wrongly in PASSIVE list,
+	## causing the pedestal to disappear instead of offering a swap.
+	assert_false(8 in PASSIVE_ACTIVE_ITEM_TYPES,
+		"TRAJECTORY_GLASSES (type 8) must NOT be in the passive list")
+
+
+func test_trajectory_glasses_swap_displaces_old_item() -> void:
+	## Issue #1303: picking Trajectory Glasses with an active item equipped
+	## must place the old item back on the pedestal (not free it).
+	var level := _make_level()
+	level.active_item_manager.current_active_item = 14  # AUTO_RELOAD (passive — stays)
+	# AUTO_RELOAD is passive, so set a non-passive item first.
+	level.active_item_manager.current_active_item = 7  # FORCE_FIELD (active)
+	level.apply_pedestal_active_item(8)  # TRAJECTORY_GLASSES (active, type 8)
+	assert_eq(level.pedestal_item, 7,
+		"Displaced FORCE_FIELD (type 7) should be placed back on the pedestal")
+	assert_false(level.pedestal_freed,
+		"Pedestal must NOT be freed — displaced item should remain for pickup")
+
+
+func test_passive_types_match_enum_values() -> void:
+	## Issue #1303: verify all passive types match the ActiveItemManager enum.
+	## BREAKER_BULLETS=6, LASER_SIGHT=9, EXTENDED_MAGAZINE=10,
+	## ARMORED_SKIN=13, AUTO_RELOAD=14, COMBAT_DISPOSITION=17
+	var expected: Array = [6, 9, 10, 13, 14, 17]
+	assert_eq(PASSIVE_ACTIVE_ITEM_TYPES, expected,
+		"PASSIVE_ACTIVE_ITEM_TYPES must use correct ActiveItemType enum values")
 
 
 # ============================================================================

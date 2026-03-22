@@ -107,13 +107,14 @@ const PEDESTAL_ITEM_GLOW:  Color = Color(0.90, 0.75, 0.20, 0.85)  ## Golden glow
 ## alongside whatever the player already has).  All other types are "active"
 ## and replace the current one.
 ## NOTE: this list mirrors the passives in ActiveItemManager.ActiveItemType.
+## Issue #1303 fix: corrected enum values (were off-by-4 for most entries).
 const PASSIVE_ACTIVE_ITEM_TYPES: Array = [
-	2,   # BREAKER_BULLETS
-	8,   # LASER_SIGHT
-	9,   # EXTENDED_MAGAZINE
-	12,  # ARMORED_SKIN
-	13,  # AUTO_RELOAD
-	16,  # COMBAT_DISPOSITION
+	6,   # BREAKER_BULLETS
+	9,   # LASER_SIGHT
+	10,  # EXTENDED_MAGAZINE
+	13,  # ARMORED_SKIN
+	14,  # AUTO_RELOAD
+	17,  # COMBAT_DISPOSITION
 ]
 
 
@@ -1705,6 +1706,25 @@ func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2
 			var item_lbl: Label = pedestal.get_node_or_null("ItemLabel")
 			if item_lbl:
 				item_lbl.text = _pedestal_item_label(old_type)
+			# Issue #1303: Update the icon on the pedestal to show the displaced item.
+			var old_icon_path: String = ActiveItemManager.get_active_item_icon_path(old_type)
+			if old_icon_path != "" and ResourceLoader.exists(old_icon_path):
+				var tex: Texture2D = load(old_icon_path) as Texture2D
+				if tex:
+					var icon_rect: TextureRect = pedestal.get_node_or_null("ItemIcon")
+					if icon_rect:
+						icon_rect.texture = tex
+					else:
+						var new_icon := TextureRect.new()
+						new_icon.name = "ItemIcon"
+						new_icon.texture = tex
+						new_icon.expand_mode = TextureRect.EXPAND_KEEP_SIZE
+						new_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+						var icon_size := Vector2(PEDESTAL_SIZE, PEDESTAL_SIZE)
+						new_icon.custom_minimum_size = icon_size
+						new_icon.size = icon_size
+						new_icon.position = Vector2(-icon_size.x * 0.5, -PEDESTAL_SIZE * 1.1)
+						pedestal.add_child(new_icon)
 			print("[RoguelikeLevel] Displaced item '%s' placed back on pedestal" %
 				ActiveItemManager.get_active_item_name(old_type))
 		else:
