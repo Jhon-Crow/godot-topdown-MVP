@@ -4630,7 +4630,8 @@ func _on_active_item_picked_up(item_type: int) -> void:
 		8: _init_trajectory_glasses()
 		11: _init_loudspeaker()
 		12: _init_breaching_charges()
-		13: _init_armored_skin(); _apply_item_visual()
+		13:
+			_init_armored_skin(); _apply_item_visual()
 		16: _init_recoil_compensator()
 		18: _init_experimental_sample()
 		19: _init_fine_motor_skills()
