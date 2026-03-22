@@ -53,7 +53,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIF
 @export var max_health: int = 4  ## Maximum random health.
 @export var threat_sphere_radius: float = 100.0  ## Bullets within radius trigger suppression.
 @export var suppression_cooldown: float = 2.0  ## Time suppressed after bullets leave.
-@export var threat_reaction_delay: float = 0.2  ## Delay before reacting to threats.
+@export var threat_reaction_delay: float = 0.0  ## Issue #1338: immediate reaction to threats (was 0.2)
 @export var flank_angle: float = PI / 3.0  ## Flank angle from player facing (60 deg).
 @export var flank_distance: float = 200.0  ## Distance to maintain while flanking.
 @export var enable_flanking: bool = true  ## Enable flanking behavior.
@@ -155,7 +155,7 @@ var _shoot_timer: float = 0.0  ## Time since last shot
 const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5; var _last_gunshot_propagation_time: float = -999.0
 const COVER_SEARCH_COOLDOWN: float = 0.3; var _last_cover_search_time: float = -999.0
 const SUPPRESSED_MIN_DURATION: float = 0.5; var _suppressed_entry_time: float = -999.0  ## RCA-11: prevent SUPPRESSED→SEEKING_COVER cycling
-const POST_SUPPRESSION_COVER_DURATION: float = 3.0; var _post_suppression_timer: float = 0.0  ## Issue #1338: stay in cover after being suppressed
+const POST_SUPPRESSION_COVER_DURATION: float = 3.0; var _post_suppression_timer: float = 0.0  ## Issue #1338: stay in cover after suppression
 const SEEKING_COVER_MIN_DURATION: float = 0.3; var _seeking_cover_entry_time: float = -999.0  ## Issue #997 RCA-17
 const RETREATING_MIN_DURATION: float = 0.3; var _retreating_entry_time: float = -999.0  ## Issue #997 RCA-17
 const IN_COVER_MIN_DURATION: float = 0.3; var _in_cover_entry_time: float = -999.0  ## Issue #997 RCA-18: prevent instant IN_COVER→SUPPRESSED cycling
@@ -1629,29 +1629,24 @@ func _process_seeking_cover_state(_delta: float) -> void:
 			if time_in_state >= SEEKING_COVER_MIN_DURATION: _transition_to_combat()  # RCA-17: min duration
 			return
 
+	# RCA-19: Only transition after minimum duration to prevent rapid cycling; also main goal: hidden.
+	if not _is_visible_from_player():
+		if time_in_state >= SEEKING_COVER_MIN_DURATION:
+			_transition_to_in_cover()
+			_log_debug("Hidden from player, entering cover state")
+		return
+
 	# Move towards cover
 	var distance: float = global_position.distance_to(_cover_position)
-	var hidden_from_player := not _is_visible_from_player()
 
-	# Issue #1338: Only transition to IN_COVER when near cover AND hidden, not just hidden anywhere.
 	if distance < 10.0:
-		if hidden_from_player:
-			if time_in_state >= SEEKING_COVER_MIN_DURATION:
-				_transition_to_in_cover()
-				_log_debug("Reached cover and hidden from player, entering cover state")
-			return
-		else:
-			# Reached the cover position, but still visible - try to find better cover
+		# Reached the cover position, but still visible - try to find better cover
+		if _is_visible_from_player():
 			_has_valid_cover = false
 			_find_cover_position()
 			if not _has_valid_cover:
 				if time_in_state >= SEEKING_COVER_MIN_DURATION: _transition_to_combat()  # RCA-17
 				return
-	elif hidden_from_player and not _under_fire and not _can_see_player and time_in_state >= 5.0:
-		# Issue #1338: Safety timeout — hidden and no longer under fire for a long time
-		_transition_to_in_cover()
-		_log_debug("Seeking cover timeout: hidden from player, entering cover state")
-		return
 
 	# Use navigation-based pathfinding to move toward cover
 	_move_to_target_nav(_cover_position, combat_move_speed)
@@ -1882,38 +1877,29 @@ func _process_retreating_state(delta: float) -> void:
 				else: _transition_to_combat()
 			return
 
+	# Check if we've reached cover and are hidden from player
+	# RCA-19: Add minimum duration check even for successful cover reach
+	if not _is_visible_from_player():
+		if time_in_state >= RETREATING_MIN_DURATION:
+			_log_debug("Reached cover during retreat")
+			# Reset encounter hits when successfully reaching cover
+			_hits_taken_in_encounter = 0
+			_transition_to_in_cover()
+		return
+
 	# Calculate direction to cover
 	var direction_to_cover := (_cover_position - global_position).normalized()
 	var distance_to_cover := global_position.distance_to(_cover_position)
 
-	# Issue #1338: Only transition to IN_COVER when actually near cover position AND hidden.
-	# Previously, losing player visibility alone triggered IN_COVER even in open areas.
-	var near_cover := distance_to_cover < 10.0
-	var hidden_from_player := not _is_visible_from_player()
-
-	if near_cover:
-		if hidden_from_player:
-			if time_in_state >= RETREATING_MIN_DURATION:
-				_log_debug("Reached cover during retreat (near cover and hidden)")
-				_hits_taken_in_encounter = 0
-				_transition_to_in_cover()
-			return
-		else:
-			# Reached cover position but still visible — find better cover
+	# Check if reached cover position
+	if distance_to_cover < 10.0:
+		if _is_visible_from_player():
 			_has_valid_cover = false
 			_find_cover_position()
 			if not _has_valid_cover:
 				if time_in_state >= RETREATING_MIN_DURATION:  # RCA-17
 					if _under_fire: _transition_to_suppressed()
 					else: _transition_to_combat()
-			return
-	elif hidden_from_player and not _under_fire and not _can_see_player:
-		# Not near cover but hidden and no longer under fire — still move to cover
-		# but if we've been retreating for a long time, transition to in_cover
-		if time_in_state >= 5.0:
-			_log_debug("Retreat timeout: hidden from player, transitioning to IN_COVER")
-			_hits_taken_in_encounter = 0
-			_transition_to_in_cover()
 			return
 
 	# Apply retreat behavior based on mode
@@ -2004,13 +1990,8 @@ func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void
 			_retreat_burst_complete = true
 			_log_debug("ONE_HIT retreat: burst complete, now running to cover")
 	else:
-		# Issue #1338: After burst, run to cover while continuing to shoot (like FULL_HP mode)
+		# After burst, run to cover without shooting using navigation
 		_move_to_target_nav(_cover_position, combat_move_speed)
-		# Shoot with reduced accuracy while running to cover
-		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_aim_at_player()
-			_shoot_with_inaccuracy()
-			_shoot_timer = 0.0
 
 ## Process MULTIPLE_HITS retreat: quick burst of 2-4 shots then run to cover (same as ONE_HIT).
 func _process_retreat_multiple_hits(delta: float, direction_to_cover: Vector2) -> void:
@@ -2909,13 +2890,6 @@ func _is_position_visible_from_player(pos: Vector2) -> bool:  ## Enemy at pos vi
 	for pt in _get_enemy_check_points(pos):
 		if _is_point_visible_from_player(pt): return true
 	return false
-## Issue #1338: Check if position is visible from an arbitrary origin (used for cover selection with last known player pos).
-func _is_position_visible_from_origin(pos: Vector2, origin: Vector2) -> bool:
-	for pt in _get_enemy_check_points(pos):
-		var q := PhysicsRayQueryParameters2D.new(); q.from = origin; q.to = pt; q.collision_mask = 4
-		var r := get_world_2d().direct_space_state.intersect_ray(q)
-		if r.is_empty() or origin.distance_to(r["position"]) >= origin.distance_to(pt) - 10.0: return true
-	return false
 
 ## Check if target is visible from enemy (raycast for LOS). For lead prediction validation.
 func _is_position_visible_to_enemy(target_pos: Vector2) -> bool:
@@ -3274,15 +3248,7 @@ func _find_cover_position() -> void:
 	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
 	_last_cover_search_time = current_time
 
-	# Issue #1338: Use last known player position when player is not visible,
-	# so cover blocks rays from where the player was last seen.
-	var player_pos: Vector2
-	if _can_see_player:
-		player_pos = _player.global_position
-	elif _last_known_player_position != Vector2.ZERO:
-		player_pos = _last_known_player_position
-	else:
-		player_pos = _player.global_position
+	var player_pos := _player.global_position
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
 	var found_hidden_cover: bool = false
@@ -3314,14 +3280,13 @@ func _find_cover_position() -> void:
 				continue
 
 			# First priority: Check if this position is actually hidden from player
-			# Issue #1338: use player_pos (which may be last known position) for visibility check
-			var is_hidden := not _is_position_visible_from_origin(cover_pos, player_pos)
+			var is_hidden := not _is_position_visible_from_player(cover_pos)
 
 			# Only consider hidden positions unless we have no choice
 			if is_hidden or not found_hidden_cover:
 				# Score based on:
 				# 1. Whether position is hidden (highest priority)
-				# 2. Distance from enemy (closer is better — primary factor per Issue #1338 feedback)
+				# 2. Distance from enemy (closer is better)
 				# 3. Position relative to player (behind cover from player's view)
 				var hidden_score: float = 10.0 if is_hidden else 0.0  # Heavy weight for hidden positions
 
@@ -3332,8 +3297,8 @@ func _find_cover_position() -> void:
 				var dot_product := direction_from_player.dot(cover_direction)
 				var blocking_score: float = maxf(0.0, dot_product)
 
-				# Issue #1338: nearest hidden cover is primary goal — distance weight 0.8, blocking weight 0.2
-				var total_score: float = hidden_score + distance_score * 0.8 + blocking_score * 0.2
+				# Issue #1338: nearest hidden cover is primary goal — distance weight 0.7, blocking weight 0.3
+				var total_score: float = hidden_score + distance_score * 0.7 + blocking_score * 0.3
 
 				# If we find a hidden position, only accept other hidden positions
 				if is_hidden and not found_hidden_cover:
@@ -4154,15 +4119,6 @@ func _on_threat_area_entered(area: Area2D) -> void:
 	if not (shooter as Node).is_in_group("player"): return  # #1228: only player bullets
 	_log_to_file("[#1311] Player bullet entered threat sphere — suppression triggered")
 	_bullets_in_threat_sphere.append(area); _threat_memory_timer = THREAT_MEMORY_DURATION
-	# Issue #1338: Immediately set under_fire and seek cover when player bullets enter threat zone.
-	# This bypasses the threat_reaction_delay so enemies don't stay in exposed states (COMBAT/PURSUING).
-	if not (_force_field_component and _force_field_component.is_active()):
-		_under_fire = true; _suppression_timer = 0.0; _threat_reaction_delay_elapsed = true
-		if enable_cover and _current_state in [AIState.COMBAT, AIState.PURSUING]:
-			_log_to_file("[#1338] Immediate retreat: bullet in threat zone during %s" % AIState.keys()[_current_state])
-			_combat_exposed = false; _combat_approaching = false; _seeking_clear_shot = false
-			_pursuit_approaching = false; _pursuing_vulnerability_sound = false
-			_transition_to_retreating()
 
 ## Called when a bullet exits the threat sphere.
 func _on_threat_area_exited(area: Area2D) -> void:
@@ -4228,16 +4184,12 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			if _memory: _memory.update_position(est_pos, 0.8); _memory_reset_confusion_timer = 0.0
 			_log_to_file("[#959] Pacifist hit - retaliates in PACIFIST state (attacker only)"); return
 		# Issue #910: When hit in non-combat state, transition to COMBAT and fire back
-		# Issue #1338: Don't pull enemies out of RETREATING/SEEKING_COVER when under active fire — they should keep seeking cover
 		if _current_state in [AIState.IDLE, AIState.SEARCHING, AIState.RETREATING, AIState.SEEKING_COVER]:
-			if _current_state in [AIState.RETREATING, AIState.SEEKING_COVER] and (_under_fire or not _bullets_in_threat_sphere.is_empty()):
-				_log_to_file("[#1338] Hit while retreating/seeking cover under fire — staying in %s" % AIState.keys()[_current_state])
-			else:
-				var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
-				if _memory: _memory.update_position(est_pos, 0.6); _memory_reset_confusion_timer = 0.0
-				_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()
-				# Issue #1305: Only fire back if combat transition succeeded (not redirected to IDLE by PerformanceSettings)
-				if _current_state == AIState.COMBAT and _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
+			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
+			if _memory: _memory.update_position(est_pos, 0.6); _memory_reset_confusion_timer = 0.0
+			_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()
+			# Issue #1305: Only fire back if combat transition succeeded (not redirected to IDLE by PerformanceSettings)
+			if _current_state == AIState.COMBAT and _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
