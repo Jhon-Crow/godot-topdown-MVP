@@ -168,6 +168,104 @@ collider is freed mid-frame.
 - `scripts/components/enemy_sniper_component.gd` — `is_instance_valid` check
 - All 9 level scripts — `is_instance_valid(self)` after await in `_on_player_died()`
 
+## Round 3 — grey death screen stuck (2026-03-22)
+
+### Problem
+
+User reports the game gets **stuck on a grey death screen** — no crash, but no
+restart either. The game displays death effects (CinemaEffects' cigarette burn,
+expanding spots, end-of-reel) and the "YOU DIED" label, but never reloads the scene.
+
+### New logs collected
+
+| File | Description |
+|------|-------------|
+| `logs/game_log_20260322_200321.txt` | Round 2 session (11806 lines) — death at 20:05:34 with no restart |
+| `logs/game_log_20260322_200607.txt` | Round 2 session (1168 lines) — death at 20:06:18 with no restart |
+| `logs/game_log_20260322_204406.txt` | Round 3 session (1125 lines) — death at 20:44:26 with no restart |
+
+### Root cause analysis
+
+The logs reveal a critical pattern: **`GameManager.on_player_death()` is never called**.
+After the player dies, `CinemaEffects`, `PenultimateHit`, and `LastChance` all log
+receiving the `Died` signal and processing death effects, but the log then simply stops.
+There are no log entries for restart, scene reload, or `on_player_death()`.
+
+#### Why the restart fails silently
+
+The restart depends on level scripts' `_on_player_died()` which uses:
+```gdscript
+func _on_player_died() -> void:
+    _show_death_message()
+    if GameManager:
+        await get_tree().create_timer(0.5).timeout
+        if not is_instance_valid(self):
+            return
+        GameManager.on_player_death()
+```
+
+And `LevelInitFallback.cs::OnPlayerDied()` which uses a C# timer:
+```csharp
+var timer = GetTree().CreateTimer(0.5);
+timer.Timeout += () => {
+    if (IsInstanceValid(this) && IsInstanceValid(gameManager))
+        gameManager.Call("on_player_death");
+};
+```
+
+**Key finding**: On DocksLevel (and other levels where GDScript works), the
+`LevelInitFallback.cs::CheckAndInitialize()` detects that GDScript `_ready()` already
+ran (log: `"GDScript _ready() already ran (enemies tracked: 20) - skipping fallback"`)
+and **returns early without connecting to the player's death signal**. This means only
+the GDScript handler is connected.
+
+The GDScript handler uses `await get_tree().create_timer(0.5).timeout` — a coroutine
+that suspends and resumes when the SceneTreeTimer fires. In exported builds with
+C#/GDScript interop, **GDScript coroutines connected to C# signals can silently fail
+to resume after await**. The `Died` signal is defined in C# (`BaseCharacter.cs`), and
+the connected function uses `await`, creating a cross-language coroutine boundary that
+is unreliable in certain Godot 4.3 exported build configurations.
+
+When the coroutine fails to resume, `GameManager.on_player_death()` is never called,
+the scene is never reloaded, and the game stays stuck on the death screen.
+
+### Fix (Round 3)
+
+**Safety net timer in GameManager**: Instead of relying on level scripts to trigger
+restart, GameManager now directly connects to the player's `Died`/`died` signal
+via `set_player()` and starts its own safety net timer:
+
+1. **`set_player()`** — When the player reference is set, GameManager connects to
+   the player's `Died` (C#) or `died` (GDScript) signal.
+
+2. **`_on_player_died_signal()`** — Immediately disables dead player's collision
+   (defense-in-depth) and starts a 1.5s SceneTreeTimer with `process_always=true`
+   and `ignore_time_scale=true`, ensuring it fires regardless of pause state or
+   time scale changes.
+
+3. **`_on_death_safety_net_timer()`** — When the timer fires, checks if
+   `player_alive` is still `true`. If so, it means no level script successfully
+   called `on_player_death()`, and GameManager forces the restart itself.
+   Special modes (roguelike, arena) are excluded from auto-restart.
+
+This approach:
+- **Preserves normal flow**: Level scripts have 1.5s to call `on_player_death()`
+  (their timers are 0.5s). If they succeed, the safety net is a no-op.
+- **Catches failures**: If the GDScript coroutine silently fails, GameManager
+  catches it and forces restart after 1.5s.
+- **No breaking changes**: Special levels (roguelike, arena) are explicitly
+  excluded from auto-restart.
+
+### Files changed
+
+- `scripts/autoload/game_manager.gd`:
+  - `set_player()` — connects to player Died/died signal
+  - `_on_player_died_signal()` — safety net timer start + collision disable
+  - `_on_death_safety_net_timer()` — checks and forces restart if needed
+  - `_death_signal_received` flag — tracks whether Died signal was received
+  - Added logging to `on_player_death()`, `restart_scene()`, and new handlers
+- `docs/case-studies/issue-1334/logs/` — new crash log files
+
 ## Additional observations
 
 - `[SceneLoader] ERROR: Invalid resource` messages appear in logs when
