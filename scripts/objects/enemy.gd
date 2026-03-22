@@ -4735,8 +4735,7 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 				velocity = _wd * speed * 0.6; if velocity.length_squared() > 0.01: rotation = velocity.angle()
 			else: velocity = Vector2.ZERO
 			return true
-	# Issue #1287: Tactical group encirclement — offset the approach target so enemies
-	# spread around the player rather than all converging on the same spot.
+	# Issue #1287: Tactical group encirclement — offset approach target so enemies spread around the player.
 	if _tactical_group and _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
 		target_pos = _tactical_group.get_adjusted_target(target_pos, get_physics_process_delta_time())
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
