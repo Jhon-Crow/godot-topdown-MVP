@@ -290,13 +290,41 @@ The second-iteration fix resolves the C# interop issue, ensuring both player C# 
 
 ---
 
+### Fourth and Fifth Log Analysis (2026-03-22 04:20:35 and 04:21:29)
+
+Two logs submitted together from the **second-iteration patched binary** (same executable session).
+
+**Log 1 (`game_log_20260322_042035.txt`)** — `Debug: false`, no combat:
+- Game ran for only ~22 seconds with no firefights.
+- FPS drops (1fps, 13fps, 3fps) are from scene/shader warmup at startup — pre-existing, unrelated to the fix.
+- No `[#1228]` lines (expected: debug mode off, no combat reached).
+- No AI state transitions to SUPPRESSED. No evidence of self-suppression.
+
+**Log 2 (`game_log_20260322_042129.txt`)** — `Debug: true`, combat observed:
+- Contains `[#1228]` diagnostic lines — **confirms the fix is in this binary**.
+- Timeline around the sole SUPPRESSED event:
+  - `04:21:47` — Player fires (`source=PLAYER (AKGL)`)
+  - `04:21:47` — `[#1228] Player bullet 'Player' — suppression allowed` → bullet added to Enemy3's threat sphere
+  - `04:21:47–50` — 6× `[#1228] Non-player bullet 'Enemy3' — no suppression` → Enemy3's own bullets correctly rejected
+  - `04:21:48` — Enemy3 `COMBAT → RETREATING` (reaction to player bullet threat)
+  - `04:21:50` — Enemy3 `RETREATING → IN_COVER → SUPPRESSED`
+- **Conclusion: Enemy3 was suppressed by the player's bullet — this is correct behavior.**
+
+**FPS drops in log 2:** Drops at 6fps, 3fps, 3fps, 3fps, 2fps detected during Debug=true session. With debug logging enabled, `_log_to_file` was being called for *every* enemy bullet that entered any enemy's threat sphere, causing excessive file I/O. This was addressed in the third-iteration fix by gating `[#1228]` diagnostic lines behind the `debug_logging` export flag.
+
+**User feedback interpretation:** The user observed Enemy3 enter SUPPRESSED state and reported self-suppression. However, as shown by the `[#1228]` log evidence, the suppression was correctly triggered by a player bullet. The fix is working as intended: enemies suppress only from player bullets, never from their own or other enemies' bullets.
+
+---
+
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `scripts/objects/enemy.gd` | Fixed `_on_threat_area_entered` to use `.get()` for both `shooter_id` and `ShooterId`, added `[#1228]` diagnostic log lines |
+| `scripts/objects/enemy.gd` | Fixed `_on_threat_area_entered` to use `.get()` for both `shooter_id` and `ShooterId`; `[#1228]` diagnostic logs gated behind `debug_logging` flag |
 | `tests/unit/test_enemy_self_suppression_1228.gd` | Unit tests including new C# bullet (ShooterId) test cases |
 | `docs/case-studies/issue-1228/case-study.md` | This document |
 | `docs/case-studies/issue-1228/game_log_20260321_064834.txt` | First game log (unpatched build) |
 | `docs/case-studies/issue-1228/game_log_20260321_070804.txt` | Second game log (unpatched build, confirms same bug) |
 | `docs/case-studies/issue-1228/game_log_20260322_035546.txt` | Third game log (first-fix build, reveals C# interop regression) |
+| `docs/case-studies/issue-1228/game_log_20260322_042035.txt` | Fourth game log (second-fix build, debug off, no combat, FPS drops from startup warmup) |
+| `docs/case-studies/issue-1228/game_log_20260322_042129.txt` | Fifth game log (second-fix build, debug on, confirms fix working via `[#1228]` lines) |
