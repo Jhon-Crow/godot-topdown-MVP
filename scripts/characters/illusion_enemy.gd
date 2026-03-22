@@ -3,6 +3,7 @@ class_name IllusionEnemy
 ## Illusory copy of an enemy created by the ChemicalGasGrenade effect (Issue #1129).
 ##
 ## An illusory copy looks and acts like a normal enemy, but:
+## - Stays near the original enemy, following its movements (does not rush toward player)
 ## - Is one-shot by any weapon or shrapnel (health = 1)
 ## - All weapons deal 5% of normal damage (ILLUSION_DAMAGE_MULTIPLIER = 0.05)
 ## - Does not stop bullets or shrapnel (collision disabled on physics layer 1)
@@ -22,8 +23,11 @@ const ILLUSION_DAMAGE_MULTIPLIER: float = 0.05
 ## Maximum total illusion copies active on the map at once (performance cap).
 const MAX_TOTAL_ILLUSIONS: int = 12
 
-## Movement speed for illusion copies (simple wander toward player).
+## Movement speed for illusion copies (following the original enemy).
 const ILLUSION_MOVE_SPEED: float = 180.0
+
+## Maximum distance an illusion copy can drift from the original enemy before snapping back.
+const MAX_DISTANCE_FROM_ORIGINAL: float = 120.0
 
 ## Original enemy that this copy was spawned from.
 var original_enemy: Node2D = null
@@ -43,8 +47,8 @@ var _time_remaining: float = 0.0
 ## Whether the illusion has already been cleaned up.
 var _cleaned_up: bool = false
 
-## Cached player reference for simple movement.
-var _player: Node2D = null
+## The persistent offset this copy maintains relative to the original enemy.
+var _follow_offset: Vector2 = Vector2.ZERO
 
 ## Reference to the scene used for the enemy.
 const ENEMY_SCENE_PATH := "res://scenes/objects/Enemy.tscn"
@@ -57,6 +61,9 @@ func _ready() -> void:
 		FileLogger.warning("[IllusionEnemy] No valid original enemy — freeing immediately")
 		queue_free()
 		return
+
+	# Store the spawn offset as the persistent follow offset so copies stay near the original
+	_follow_offset = spawn_offset
 
 	# Register in illusion group for global cap tracking
 	add_to_group("illusion_enemies")
@@ -78,21 +85,40 @@ func _physics_process(delta: float) -> void:
 		_cleanup()
 		return
 
-	# Simple movement toward player (replaces full enemy AI which is disabled for performance).
-	# The inner _enemy_node has _physics_process disabled, so we move it here instead.
+	# Follow the original enemy: maintain a fixed offset from the original's position.
+	# Illusion copies stay near their originals, mirroring their trajectory (Issue #1129 feedback).
 	if _enemy_node != null and is_instance_valid(_enemy_node) and _enemy_node is CharacterBody2D:
-		if _player == null or not is_instance_valid(_player):
-			var players := get_tree().get_nodes_in_group("player")
-			if players.size() > 0 and is_instance_valid(players[0]):
-				_player = players[0] as Node2D
-		if _player != null and is_instance_valid(_player):
-			var dir := (_player.global_position - _enemy_node.global_position).normalized()
-			_enemy_node.velocity = dir * ILLUSION_MOVE_SPEED
+		if original_enemy == null or not is_instance_valid(original_enemy):
+			_cleanup()
+			return
+
+		# Target position = original enemy position + our persistent offset
+		var target_pos := original_enemy.global_position + _follow_offset
+		var current_pos := _enemy_node.global_position
+		var to_target := target_pos - current_pos
+		var distance := to_target.length()
+
+		if distance > 2.0:
+			# Move toward the target offset position
+			var dir := to_target.normalized()
+			var speed := ILLUSION_MOVE_SPEED
+			# Speed up if drifted too far from original
+			if distance > MAX_DISTANCE_FROM_ORIGINAL:
+				speed *= 2.0
+			_enemy_node.velocity = dir * speed
 			_enemy_node.move_and_slide()
 			# Rotate model to face movement direction
 			var model: Node2D = _enemy_node.get_node_or_null("EnemyModel")
 			if model:
 				model.rotation = dir.angle()
+		else:
+			# Close enough — match the original enemy's facing direction
+			_enemy_node.velocity = Vector2.ZERO
+			_enemy_node.move_and_slide()
+			var orig_model: Node2D = original_enemy.get_node_or_null("EnemyModel")
+			var copy_model: Node2D = _enemy_node.get_node_or_null("EnemyModel")
+			if orig_model and copy_model:
+				copy_model.rotation = orig_model.rotation
 
 
 ## Spawn the enemy copy by instantiating the Enemy scene and configuring it.
