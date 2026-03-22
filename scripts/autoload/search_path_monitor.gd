@@ -129,13 +129,19 @@ class _SearchPathOverlay extends CanvasLayer:
 	var active_target_color: Color = Color(1.0, 1.0, 0.0, 1.0)
 	var waypoint_radius: float = 10.0
 	## The Node2D child that does the actual drawing.
+	## Initialized in _init() so it is available immediately after .new(),
+	## before _ready() fires (which is deferred to the next frame by add_child).
 	var _draw_node: _SearchPathDrawNode = null
 
-	func _ready() -> void:
+	func _init() -> void:
 		# Render above game world (layer 10) but below UI (layer 100+)
 		layer = 10
 		# Follow the viewport camera so world-space coordinates in _draw() align correctly
 		follow_viewport_enabled = true
+		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().
+		# _ready() is deferred to the next frame after add_child(), so if refresh()
+		# is called immediately after _SearchPathOverlay.new() + add_child(), _draw_node
+		# would still be null and the overlay would silently draw nothing.
 		_draw_node = _SearchPathDrawNode.new()
 		_draw_node.predefined_path_color = predefined_path_color
 		_draw_node.predefined_fill_color = predefined_fill_color

@@ -71,13 +71,19 @@ func _deferred_refresh() -> void:
 ## Inner class: a CanvasLayer that draws all waypoint circles each frame.
 class _WaypointOverlay extends CanvasLayer:
 	## The Node2D child that performs the actual draw calls.
+	## Initialized in _init() so it is available immediately after .new(),
+	## before _ready() fires (which is deferred to the next frame by add_child).
 	var _draw_node: _WaypointDrawNode = null
 
-	func _ready() -> void:
+	func _init() -> void:
 		# Render above game world (layer 11, just above NavMeshMonitor at 10)
 		layer = 11
 		# Follow the viewport camera so world-space coordinates align correctly
 		follow_viewport_enabled = true
+		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().
+		# _ready() is deferred to the next frame after add_child(), so if refresh()
+		# is called immediately after _WaypointOverlay.new() + add_child(), _draw_node
+		# would still be null and the overlay would silently draw nothing.
 		_draw_node = _WaypointDrawNode.new()
 		add_child(_draw_node)
 
