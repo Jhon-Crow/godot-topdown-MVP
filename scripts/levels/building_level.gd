@@ -71,6 +71,9 @@ var _replay_manager: Node = null
 ## Weapon hints component instance (Issue #809).
 var _weapon_hints_component: Node = null
 
+## Whether debug mode (F7) is active — controls passage waypoint visualization (#1226).
+var _debug_mode: bool = false
+
 
 ## Gets the ReplayManager autoload node.
 ## The ReplayManager is now a C# autoload that works reliably in exported builds,
@@ -122,6 +125,10 @@ func _ready() -> void:
 	if GameManager:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
+		if GameManager.has_signal("debug_mode_toggled"):
+			GameManager.debug_mode_toggled.connect(_on_debug_mode_toggled)
+		if GameManager.has_method("is_debug_mode_enabled"):
+			_debug_mode = GameManager.is_debug_mode_enabled(); if _debug_mode: queue_redraw()
 
 	# Initialize ScoreManager for this level
 	_initialize_score_manager()
@@ -131,6 +138,9 @@ func _ready() -> void:
 
 	# Setup window lights in corridors without enemies (Issue #593)
 	_setup_window_lights()
+
+	# Setup warm ceiling lights in the center of large rooms (Issue #1206)
+	_setup_room_warm_lights()
 
 	# Start replay recording
 	_start_replay_recording()
@@ -292,6 +302,141 @@ func _setup_weapon_hints() -> void:
 	if _weapon_hints_component.has_method("setup"):
 		_weapon_hints_component.setup(_player, canvas_layer)
 		print("[BuildingLevel] Weapon hints component added and setup")
+
+
+## Setup warm ceiling lights in the centers of large rooms (Issue #1206).
+## Adds PointLight2D nodes with warm yellow-orange color to make the rooms
+## look cozy and aesthetically pleasing.
+##
+## ## Light placement rules
+## 1. Default position: geometric center of the room (average of its bounding box).
+## 2. If a large obstacle (table, server rack, wall junction, etc.) sits at the
+##    geometric center, shift the light to the nearest open area — typically
+##    offset toward the side that has the most free floor space.
+## 3. If a wall junction or shadow-casting surface is close (< 30 px) to the
+##    light source, move the light inward until it is fully inside the open
+##    floor area so shadows don't block the cone.
+## 4. Prefer the upper half of a room when the lower half is crowded or when
+##    the room label ("OFFICE 2", etc.) already anchors the top edge visually.
+##
+## Room centers (derived from RoomLabel bounds in the scene):
+## - Conference Room: ~(1918, 340)  — geometric center, no obstacles
+## - Break Room:      ~(1918, 994)  — geometric center, no obstacles
+## - Server Room:     ~(2200, 1638) — shifted right, away from right-wall junction
+## - Main Hall:       ~(1200, 1724) — geometric center, no obstacles
+## - Office 1:        ~(290, 384)   — geometric center, no obstacles
+## - Office 2:        ~(718, 780)   — shifted up from center (856) to upper half
+func _setup_room_warm_lights() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	# Container node for all room lights
+	var room_lights_node := Node2D.new()
+	room_lights_node.name = "RoomLights"
+	environment.add_child(room_lights_node)
+
+	# Large rooms get prominent warm lights; smaller rooms get subtler ones.
+	# Format: [position, energy, texture_scale, label]
+	var room_configs: Array = [
+		# Large rooms — bigger lights
+		[Vector2(1918, 340),  0.9, 5.0, "ConferenceRoom"],
+		[Vector2(1918, 994),  0.9, 5.0, "BreakRoom"],
+		[Vector2(2200, 1638), 0.9, 5.0, "ServerRoom"],
+		[Vector2(1200, 1724), 0.85, 4.5, "MainHall"],
+		# Smaller rooms — softer lights
+		[Vector2(290, 384),   0.7, 3.5, "Office1"],
+		# Office 2: shifted to upper half (y=780 instead of centre y=856)
+		# so the glow covers the label zone and the lower-half corridor approach.
+		[Vector2(718, 780),   0.7, 3.5, "Office2"],
+	]
+
+	for cfg in room_configs:
+		_create_room_warm_light(room_lights_node, cfg[0], cfg[1], cfg[2], cfg[3])
+
+	print("[BuildingLevel] Warm ceiling lights placed in all rooms (Issue #1206)")
+
+
+## Create a single warm ceiling light at the given room-center position.
+## Uses a soft radial gradient that fades smoothly to black, producing a natural
+## "overhead lamp" feel with no hard visible edge.
+## @param parent: Container node.
+## @param pos: World-space position (room center).
+## @param energy: Light brightness (0–1 range, typical 0.7–0.9).
+## @param scale: Texture scale controlling the light radius.
+## @param room_name: Name suffix for the node (debug convenience).
+func _create_room_warm_light(parent: Node2D, pos: Vector2, energy: float, scale: float, room_name: String) -> void:
+	var light_node := Node2D.new()
+	light_node.name = "WarmLight_%s" % room_name
+	light_node.position = pos
+	parent.add_child(light_node)
+
+	# Small visual indicator — a dim warm-colored circle representing the lamp fixture.
+	# Uses Sprite2D (not Control/ColorRect) so it does NOT intercept mouse events and
+	# cannot break pause-menu or UI clicks.
+	var fixture := Sprite2D.new()
+	fixture.name = "Fixture"
+	fixture.texture = _create_lamp_fixture_texture()
+	fixture.modulate = Color(1.0, 0.85, 0.5, 0.5)  # Pale warm amber, semi-transparent
+	light_node.add_child(fixture)
+
+	# The actual PointLight2D
+	var light := PointLight2D.new()
+	light.name = "PointLight"
+	light.color = Color(1.0, 0.75, 0.3, 1.0)   # Warm amber-orange
+	light.energy = energy
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 4.0  # Soft shadow edges
+	light.texture = _create_warm_light_texture()
+	light.texture_scale = scale
+	light_node.add_child(light)
+
+
+## Create a soft radial gradient texture for the warm room lights.
+## Uses a smooth natural falloff (bright core → gentle taper → complete black).
+## No abrupt cutoff — the light fades organically like a real overhead lamp.
+func _create_warm_light_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # 256 px
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)  # 0 = center, 1 = edge
+			# Smooth inverse-square-ish falloff using a cosine curve:
+			# bright centre → smooth mid-field → natural fade at rim
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+
+	return ImageTexture.create_from_image(image)
+
+
+## Create a small circular texture for the lamp fixture visual indicator.
+## Returns a soft-edged disc so the fixture looks like a round ceiling lamp,
+## not a square. Drawn with per-pixel math so the disc has smooth anti-aliased edges.
+func _create_lamp_fixture_texture() -> ImageTexture:
+	var size := 32
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # full disc radius
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			if dist >= outer_r:
+				image.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			else:
+				# Full brightness in the core, soft fade toward the rim
+				var t := clampf(dist / outer_r, 0.0, 1.0)
+				var alpha := pow(1.0 - t, 1.5)
+				image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+
+	return ImageTexture.create_from_image(image)
 
 
 ## Setup window lights in corridors and rooms without enemies (Issue #593).
@@ -525,32 +670,22 @@ func _setup_navigation() -> void:
 	if nav_region == null:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
-
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
 		return
-
-	# Bake the navigation mesh to include physics obstacles from collision layer 4
-	# This is needed because we set parsed_geometry_type = 1 (static colliders)
-	# and parsed_collision_mask = 4 (walls layer) in the NavigationPolygon resource
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
+	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	print("Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Re-add the outline for the walkable floor area
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(64, 64),
-		Vector2(2464, 64),
-		Vector2(2464, 2064),
-		Vector2(64, 2064)
-	])
-	nav_poly.add_outline(floor_outline)
-
-	# Use NavigationServer2D to bake from source geometry
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-
+	# Issue #1289: push updated polygon back into the NavigationServer's live map.
+	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 	print("Navigation mesh baked successfully")
 
 
@@ -559,6 +694,9 @@ func _setup_player_tracking() -> void:
 	_player = get_node_or_null("Entities/Player")
 	if _player == null:
 		return
+
+	# Find the ammo label early so _apply_building_ammo_config can update it (Issue #1259)
+	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
 	# Setup realistic visibility component (Issue #540)
 	_setup_realistic_visibility()
@@ -569,9 +707,6 @@ func _setup_player_tracking() -> void:
 	# Register player with GameManager
 	if GameManager:
 		GameManager.set_player(_player)
-
-	# Find the ammo label
-	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
 	# Connect to player death signal (handles both GDScript "died" and C# "Died")
 	if _player.has_signal("died"):
@@ -1016,10 +1151,9 @@ func _on_shell_count_changed(shell_count: int, capacity: int) -> void:
 ## (handled in _on_weapon_ammo_changed for C# player, or when GDScript player
 ## truly has no ammo left).
 func _on_player_ammo_depleted() -> void:
-	# Notify all enemies that player tried to shoot with empty weapon
-	_broadcast_player_ammo_empty(true)
-	# Emit empty click sound via SoundPropagation system so enemies can hear through walls
-	# This has shorter range than reload sound but still propagates through obstacles
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
@@ -1893,6 +2027,20 @@ func _disable_player_controls() -> void:
 
 	_log_to_file("Player controls disabled (level completed)")
 
+
+## Toggle debug mode (F7) — redraws passage waypoints (#1226).
+func _on_debug_mode_toggled(enabled: bool) -> void:
+	_debug_mode = enabled
+	queue_redraw()
+
+## Draw passage waypoints as green circles when debug mode (F7) is active (#1226).
+func _draw() -> void:
+	if not _debug_mode:
+		return
+	for wp in get_tree().get_nodes_in_group("passage_waypoints"):
+		var local_pos := wp.global_position - global_position
+		draw_circle(local_pos, 12.0, Color(0.2, 1.0, 0.3, 0.85))
+		draw_string(ThemeDB.fallback_font, local_pos + Vector2(14, 4), wp.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 
 ## Log a message to the file logger if available.
 func _log_to_file(message: String) -> void:

@@ -188,11 +188,12 @@ func _ready() -> void:
 
 
 ## Log a message with the CinemaEffects prefix.
+## Issue #1293: print() fallback gated to debug builds to avoid FPS drops.
 func _log(message: String) -> void:
 	var logger: Node = get_node_or_null("/root/FileLogger")
 	if logger and logger.has_method("log_info"):
 		logger.log_info("[CinemaEffects] " + message)
-	else:
+	elif OS.is_debug_build():
 		print("[CinemaEffects] " + message)
 
 
