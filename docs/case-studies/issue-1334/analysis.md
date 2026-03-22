@@ -8,8 +8,12 @@ after the player dies and the scene attempts to reload via
 
 ## Data Sources
 
-- `game_log_20260322_164021.txt` — full game log from the session that produced
-  the crash (9144 lines, 16:40:21 to 16:42:11).
+- `game_log_20260322_164021.txt` — full game log from the initial crash report
+  (9144 lines, 16:40:21 to 16:42:11).
+- `game_log_20260322_173332.txt` — crash log after first fix attempt (4945 lines,
+  17:33:32 to 17:34:51). Crash during death sequence with 908 blood decals.
+- `game_log_20260322_173505.txt` — crash log after first fix attempt (3925 lines,
+  17:35:05 to 17:35:46). Crash during normal gameplay with 500 blood decals.
 
 ## Timeline Reconstruction
 
@@ -188,13 +192,88 @@ lack of coroutine lifecycle management:
 4. **Reentrancy guards** — Prevent double-invocation of scene reload functions.
    Used in our Fix 3.
 
+## Second Crash Report (After Initial Fix)
+
+After the initial fixes (scene-change guards, validity checks, double-restart
+guard), the user reported the crash still occurs. Two new logs were provided.
+
+### New Log Analysis
+
+**Log `game_log_20260322_173332.txt` (4945 lines):**
+- Crash during the LastChance death sequence (freeze + visual effects)
+- **908 blood decals** created before crash
+- FPS progressively dropping: 26 → 15 → 7 → 12 fps at crash
+- Last lines: blood puddle creation + FPS drop warning
+- **No restart was attempted** — crash happened during death, not reload
+
+**Log `game_log_20260322_173505.txt` (3925 lines):**
+- Crash during normal gameplay (active combat, no death/restart)
+- **500 blood decals** created before crash
+- Last line: "Blood puddle created at (3196.918, 415.5444)"
+- **No restart, no death** — crash happened during normal play
+
+### Root Cause 5: Per-puddle Area2D physics overload (PRIMARY CRASH CAUSE)
+
+**File:** `scripts/effects/blood_decal.gd`, function `_setup_puddle_area()`.
+
+Each blood decal creates 3 physics nodes:
+- 1 `Sprite2D` (the visual decal)
+- 1 `Area2D` (for bloody footprint collision detection, layer 7)
+- 1 `CollisionShape2D` with `CircleShape2D` (physics shape)
+
+With `MAX_BLOOD_DECALS = 0` (unlimited), these accumulate indefinitely:
+
+| Log | Blood Decals | Area2D Nodes | CollisionShape2D Nodes | Total Physics Objects |
+|-----|-------------|-------------|----------------------|---------------------|
+| Log 1 | 908 | 908 | 908 | 1,816 |
+| Log 2 | 500 | 500 | 500 | 1,000 |
+
+Additionally, 20 enemies each have `BloodyFeetComponent` with a `BloodDetector`
+Area2D (collision mask = layer 7). The physics broadphase must evaluate:
+- 20 detectors × N puddle Area2D = O(20N) collision pair checks per physics frame
+- At 908 puddles: 20 × 908 = **18,160 broadphase pair evaluations per frame**
+
+The `_on_area_exited` handler in `BloodyFeetComponent` (line 314) also calls
+`get_overlapping_areas()` which iterates all overlapping areas — O(N) per exit
+event, further amplifying the physics load.
+
+This matches the evidence perfectly:
+- **Hard crash (segfault)** — no GDScript error, log just stops
+- **Progressive FPS degradation** — 26 → 15 → 7 fps as decals accumulate
+- **Crash during normal gameplay** (log 2) — NOT related to scene reload at all
+- **Crash at blood decal creation** — both logs end during blood puddle creation
+
+Note: A previous fix for the same issue exists in an unmerged branch (commit
+`faac32b9` from issue #1027) which identified this exact problem:
+> "RCA-28: BloodDecal created Area2D + CircleShape2D per puddle, causing
+> 21 detectors × 90 puddles = 1890 physics broadphase pairs/frame at 60fps
+> → 6fps drops during heavy combat"
+
+The comment in `impact_effects_manager.gd` line 51 incorrectly states
+"Issue #1027 removed per-puddle Area2D physics" — that fix was never merged
+to `main`.
+
+### Fix 5: Remove per-puddle Area2D from blood_decal.gd
+
+Removed `_setup_puddle_area()` entirely from `blood_decal.gd`. Blood decals
+remain in the `"blood_puddle"` group for detection by `BloodyFeetComponent`,
+which has a distance-based fallback (`_check_blood_puddle_by_distance()`) that
+works without per-decal Area2D. The fallback check interval was reduced from
+30 to 10 frames to compensate for loss of signal-based detection.
+
 ## Conclusion
 
-This crash is a manifestation of a well-known Godot 4.x architectural
-limitation: **the engine does not cancel pending coroutines when nodes are
-freed or scenes are reloaded**. The fix applies the community-standard
-mitigation patterns (validity checks, scene-change guards, reentrancy flags)
-to all four code paths where coroutines could outlive their scene. DocksLevel
-was the trigger due to its high enemy count producing the highest density of
-pending coroutines at restart time, but the underlying bugs affected all 13
-levels.
+This crash has **two independent causes** that both manifest on DocksLevel:
+
+1. **Coroutine-after-reload crashes** (Root Causes 1-4): Fixed in the initial
+   commit with scene-change guards, validity checks, and reentrancy flags.
+
+2. **Physics broadphase overload** (Root Cause 5): Each blood decal creates
+   Area2D + CollisionShape2D physics nodes. With unlimited decals and 20
+   enemies, the physics server accumulates thousands of broadphase pairs and
+   crashes with a segfault. Fixed by removing per-puddle Area2D — decals are
+   now pure Sprite2D nodes with no physics overhead. Bloody footprint detection
+   uses distance-based group queries instead.
+
+DocksLevel triggers both issues due to its 20 enemies producing the highest
+blood decal density and coroutine count of any map.

@@ -76,8 +76,10 @@ var _is_overlapping_blood: bool = false
 var _fallback_check_counter: int = 0
 
 ## Interval for fallback distance check (in physics frames).
-## At 60fps, 30 frames = ~0.5 seconds between checks.
-const FALLBACK_CHECK_INTERVAL: int = 30
+## Issue #1334: Reduced from 30 to 10 frames (~0.17s at 60fps) since per-puddle Area2D
+## was removed to prevent physics broadphase crash. Distance-based check is now the
+## primary detection method, not a fallback.
+const FALLBACK_CHECK_INTERVAL: int = 10
 
 
 func _ready() -> void:
