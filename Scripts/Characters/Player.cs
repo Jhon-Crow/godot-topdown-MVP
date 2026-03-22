@@ -1244,6 +1244,9 @@ public partial class Player : BaseCharacter
         // Initialize experimental sample if active item manager has it selected (Issue #1127)
         InitExperimentalSample();
 
+        // Initialize fine motor skills if active item manager has it selected (Issue #1315)
+        InitFineMotorSkills();
+
         // Initialize jammer HUD prohibition sign (always created; visibility toggled at runtime) (Issue #1036)
         InitJammerHud();
 
@@ -1562,6 +1565,9 @@ public partial class Player : BaseCharacter
 
         // Handle drilling bullets input (press Space to activate, Issue #751)
         HandleDrillingBulletsInput();
+
+        // Handle fine motor skills input (press Space to instantly reload) (Issue #1315)
+        HandleFineMotorSkillsInput();
 
         // Update jammer HUD visibility (Issue #1036)
         UpdateJammerHud();
@@ -9079,6 +9085,157 @@ public partial class Player : BaseCharacter
                 LogToFile($"[Player.ExperimentalSample] Unknown item type {itemType} — homing fallback");
                 if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
                 return HomingDuration;
+        }
+    }
+
+    #endregion
+
+    // =========================================================================
+    // Fine Motor Skills Active Item (Issue #1315)
+    // =========================================================================
+    #region Fine Motor Skills
+
+    /// <summary>
+    /// Whether the fine motor skills item is equipped.
+    /// </summary>
+    private bool _fineMotorSkillsEquipped = false;
+
+    /// <summary>
+    /// Initializes the fine motor skills item if ActiveItemManager has it selected.
+    /// </summary>
+    private void InitFineMotorSkills()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.FineMotorSkills] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_fine_motor_skills"))
+        {
+            LogToFile("[Player.FineMotorSkills] ActiveItemManager missing has_fine_motor_skills method");
+            return;
+        }
+
+        bool hasFineMotorSkills = (bool)activeItemManager.Call("has_fine_motor_skills");
+        if (!hasFineMotorSkills)
+        {
+            LogToFile("[Player.FineMotorSkills] Fine motor skills not selected in ActiveItemManager");
+            return;
+        }
+
+        _fineMotorSkillsEquipped = true;
+        LogToFile("[Player.FineMotorSkills] Fine motor skills equipped — unlimited charges, no cooldown");
+    }
+
+    /// <summary>
+    /// Handles fine motor skills input: press Space to instantly reload weapon
+    /// and bring it to combat-ready state.
+    /// Works with all weapon types: Revolver (fills cylinder), Shotgun (fills tube + resets pump),
+    /// Sniper Rifle (completes bolt cycle + reloads), and standard weapons (instant magazine swap).
+    /// </summary>
+    private void HandleFineMotorSkillsInput()
+    {
+        if (!_fineMotorSkillsEquipped)
+        {
+            return;
+        }
+
+        if (!Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            return;
+        }
+
+        // Issue #1036: Block active item use when jammed
+        if (IsActiveItemJammedVerbose())
+        {
+            LogToFile("[Player.FineMotorSkills] Space blocked by Radio Jammer (Issue #1036)");
+            return;
+        }
+
+        LogToFile("[Player.FineMotorSkills] Activating — instant reload and combat-ready");
+
+        // Handle weapon-specific reload
+        if (CurrentWeapon is Revolver revolver)
+        {
+            FineMotorSkillsReloadRevolver(revolver);
+        }
+        else if (CurrentWeapon is Shotgun shotgun)
+        {
+            FineMotorSkillsReloadShotgun(shotgun);
+        }
+        else if (CurrentWeapon is SniperRifle sniper)
+        {
+            FineMotorSkillsReloadSniper(sniper);
+        }
+        else if (CurrentWeapon != null)
+        {
+            FineMotorSkillsReloadStandard(CurrentWeapon);
+        }
+    }
+
+    /// <summary>
+    /// Instantly reloads a revolver: fills all empty chambers from reserve.
+    /// </summary>
+    private void FineMotorSkillsReloadRevolver(Revolver revolver)
+    {
+        revolver.FineMotorSkillsReload();
+        LogToFile($"[Player.FineMotorSkills] Revolver reloaded: {revolver.CurrentAmmo}/{revolver.CylinderCapacity}");
+    }
+
+    /// <summary>
+    /// Instantly reloads a shotgun: fills tube and resets pump action to Ready.
+    /// </summary>
+    private void FineMotorSkillsReloadShotgun(Shotgun shotgun)
+    {
+        shotgun.FineMotorSkillsReload();
+        LogToFile($"[Player.FineMotorSkills] Shotgun reloaded: {shotgun.ShellsInTube}/{shotgun.TubeMagazineCapacity}");
+    }
+
+    /// <summary>
+    /// Instantly reloads a sniper rifle: completes bolt cycle and reloads magazine if needed.
+    /// </summary>
+    private void FineMotorSkillsReloadSniper(SniperRifle sniper)
+    {
+        // First, reload magazine if needed
+        if (sniper.CurrentAmmo < (sniper.WeaponData?.MagazineSize ?? 0) && sniper.ReserveAmmo > 0)
+        {
+            sniper.InstantReload();
+            LogToFile($"[Player.FineMotorSkills] Sniper rifle magazine reloaded: {sniper.CurrentAmmo} rounds");
+        }
+
+        // Then complete bolt cycle if needed
+        if (sniper.NeedsBoltCycle)
+        {
+            sniper.FineBoltCycle();
+            LogToFile("[Player.FineMotorSkills] Sniper rifle bolt cycle completed");
+        }
+
+        LogToFile($"[Player.FineMotorSkills] Sniper rifle combat-ready: {sniper.CurrentAmmo} rounds, bolt={sniper.IsBoltReady}");
+    }
+
+    /// <summary>
+    /// Instantly reloads a standard weapon (rifle, pistol, SMG): swaps to fullest magazine.
+    /// </summary>
+    private void FineMotorSkillsReloadStandard(BaseWeapon weapon)
+    {
+        if (weapon.CurrentAmmo < (weapon.WeaponData?.MagazineSize ?? 0) && weapon.ReserveAmmo > 0)
+        {
+            weapon.InstantReload();
+
+            // Play reload sound
+            var audioManager = GetNodeOrNull("/root/AudioManager");
+            if (audioManager != null && audioManager.HasMethod("play_reload_full"))
+            {
+                audioManager.Call("play_reload_full", GlobalPosition);
+            }
+
+            LogToFile($"[Player.FineMotorSkills] Standard weapon reloaded: {weapon.CurrentAmmo} rounds");
+        }
+        else
+        {
+            LogToFile("[Player.FineMotorSkills] Standard weapon already full or no spare ammo");
         }
     }
 

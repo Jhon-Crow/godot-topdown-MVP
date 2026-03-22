@@ -1535,6 +1535,46 @@ public partial class Shotgun : BaseWeapon
         }
     }
 
+    /// <summary>
+    /// Resets the action state to Ready, bringing the weapon to combat-ready state (Issue #1315).
+    /// Used by the Fine Motor Skills active item to bypass the pump cycle after firing.
+    /// Also cancels any in-progress reload and fills the tube from reserve.
+    /// </summary>
+    public void FineMotorSkillsReload()
+    {
+        // Cancel any in-progress reload
+        if (ReloadState != ShotgunReloadState.NotReloading)
+        {
+            ReloadState = ShotgunReloadState.NotReloading;
+            EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+        }
+
+        // Fill tube from reserve
+        int spaceInTube = TubeMagazineCapacity - ShellsInTube;
+        if (spaceInTube > 0)
+        {
+            int loaded = AutoRefillTube(spaceInTube);
+            if (loaded > 0)
+            {
+                PlayShellLoadSound();
+                GD.Print($"[Shotgun.FineMotorSkills] Loaded {loaded} shells into tube ({ShellsInTube}/{TubeMagazineCapacity})");
+            }
+        }
+
+        // Reset action state to Ready (bypasses pump cycle)
+        if (ActionState != ShotgunActionState.Ready)
+        {
+            ActionState = ShotgunActionState.Ready;
+            PlayActionCloseSound();
+            EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+            GD.Print("[Shotgun.FineMotorSkills] Action state reset to Ready");
+        }
+
+        EmitSignal(SignalName.ReloadFinished);
+        EmitSignal(SignalName.AmmoChanged, ShellsInTube, ReserveAmmo);
+        GD.Print($"[Shotgun.FineMotorSkills] Combat-ready: {ShellsInTube}/{TubeMagazineCapacity} shells");
+    }
+
     #endregion
 
     /// <summary>
