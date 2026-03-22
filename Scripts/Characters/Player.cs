@@ -5873,6 +5873,17 @@ public partial class Player : BaseCharacter
     private bool _drillingBulletsUsed = false;
 
     /// <summary>
+    /// Floating icon popup node shown above the player when drilling bullets are activated (Issue #1319).
+    /// Reuses the same experimental_sample_item_popup.gd script for consistent UX.
+    /// </summary>
+    private GodotObject _drillingBulletsPopup = null;
+
+    /// <summary>
+    /// Duration in seconds to display the drilling bullets activation icon (Issue #1319).
+    /// </summary>
+    private const float DrillingBulletsIconDuration = 0.4f;
+
+    /// <summary>
     /// Initialize drilling bullets if the ActiveItemManager has them selected (Issue #751).
     /// One charge per battle — press Space to apply wall-piercing to current magazine.
     /// </summary>
@@ -5901,6 +5912,20 @@ public partial class Player : BaseCharacter
         _drillingBulletsEquipped = true;
         _drillingBulletsUsed = false;
         LogToFile("[Player.DrillingBullets] Drilling bullets equipped — 1 charge: press Space to apply to current magazine");
+
+        // Spawn floating icon popup child (Issue #1319): reuse experimental_sample_item_popup.gd
+        if (_drillingBulletsPopup == null || !IsInstanceValid((GodotObject)_drillingBulletsPopup))
+        {
+            var popupScript = GD.Load("res://scripts/ui/experimental_sample_item_popup.gd");
+            if (popupScript != null)
+            {
+                var popupNode = new Node2D();
+                popupNode.SetScript(popupScript);
+                popupNode.Name = "DrillingBulletsIconPopup";
+                AddChild(popupNode);
+                _drillingBulletsPopup = popupNode;
+            }
+        }
     }
 
     /// <summary>
@@ -5931,6 +5956,19 @@ public partial class Player : BaseCharacter
                     int magazineAmmo = activeAmmo;
                     CurrentWeapon.DrillingBulletsRemaining = magazineAmmo;
                     LogToFile($"[Player.DrillingBullets] Activated! Magazine has {magazineAmmo} drilling bullets. Charge consumed.");
+
+                    // Show 400ms activation icon above the player (Issue #1319)
+                    if (_drillingBulletsPopup != null && IsInstanceValid((GodotObject)_drillingBulletsPopup))
+                    {
+                        var activeItemMgr = GetNodeOrNull("/root/ActiveItemManager");
+                        if (activeItemMgr != null && activeItemMgr.HasMethod("get_active_item_icon_path"))
+                        {
+                            // DRILLING_BULLETS = 15 in ActiveItemType enum
+                            string iconPath = (string)activeItemMgr.Call("get_active_item_icon_path", 15);
+                            if (!string.IsNullOrEmpty(iconPath))
+                                ((Node2D)_drillingBulletsPopup).Call("show_icon", iconPath, DrillingBulletsIconDuration);
+                        }
+                    }
                 }
                 else
                 {
