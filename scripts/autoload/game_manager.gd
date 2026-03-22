@@ -11,6 +11,13 @@ var kills: int = 0
 ## Persists across sessions — used as the unlock condition for Laser Sight (Issue #1196).
 var kills_without_laser_sight: int = 0
 
+## Cumulative shots fired with shotgun, sniper rifle, or revolver.
+## Persists across sessions — used as the unlock condition for Fine Motor Skills (Issue #1346).
+var shots_fired_special_weapons: int = 0
+
+## Weapon IDs that count toward the Fine Motor Skills unlock condition (Issue #1346).
+const FINE_MOTOR_SKILLS_WEAPONS: Array[String] = ["shotgun", "sniper", "revolver"]
+
 ## Total shots fired in current session.
 var shots_fired: int = 0
 
@@ -72,6 +79,10 @@ signal enemy_killed
 ## Signal emitted when kills_without_laser_sight changes (for kill-based unlock checks).
 ## Issue #1196.
 signal kills_without_laser_sight_updated(new_count: int)
+
+## Signal emitted when shots_fired_special_weapons changes (for shot-based unlock checks).
+## Issue #1346.
+signal shots_fired_special_weapons_updated(new_count: int)
 
 ## Signal emitted when player dies.
 signal player_died
@@ -242,9 +253,15 @@ func _reset_stats() -> void:
 
 
 ## Registers a shot fired by the player.
+## Also increments shots_fired_special_weapons when the selected weapon qualifies (Issue #1346).
 func register_shot() -> void:
 	shots_fired += 1
 	stats_updated.emit()
+	# Track shots with special weapons for Fine Motor Skills unlock (Issue #1346).
+	if selected_weapon in FINE_MOTOR_SKILLS_WEAPONS:
+		shots_fired_special_weapons += 1
+		shots_fired_special_weapons_updated.emit(shots_fired_special_weapons)
+		_log_to_file("shots_fired_special_weapons: %d (weapon: %s)" % [shots_fired_special_weapons, selected_weapon])
 
 
 ## Registers a hit landed by the player.

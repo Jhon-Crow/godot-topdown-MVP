@@ -45,8 +45,9 @@ var collected_passive_items: Array = []
 ## FLASHLIGHT (Polygon D+), TELEPORT_BRACERS (Double Corridor D+),
 ## INVISIBILITY_SUIT (Beach S + Building S), HOMING_BULLETS
 ## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S),
-## and LASER_SIGHT (1000 kills without laser sight equipped)
-## have unlock conditions (Issue #894, Issue #1000, Issue #1196).
+## LASER_SIGHT (1000 kills without laser sight equipped),
+## and FINE_MOTOR_SKILLS (300 shots with shotgun, sniper rifle, or revolver)
+## have unlock conditions (Issue #894, Issue #1000, Issue #1196, Issue #1346).
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
 	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
@@ -67,7 +68,7 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.RECOIL_COMPENSATOR: true,   # No unlock condition — freely available from start (Issue #1073)
 	ActiveItemType.COMBAT_DISPOSITION: true,   # No unlock condition — freely available from start (Issue #1047)
 	ActiveItemType.EXPERIMENTAL_SAMPLE: true,   # No unlock condition — freely available from start (Issue #1127)
-	ActiveItemType.FINE_MOTOR_SKILLS: true      # No unlock condition — freely available from start (Issue #1315)
+	ActiveItemType.FINE_MOTOR_SKILLS: false     # Condition: 300 shots with shotgun, sniper rifle, or revolver (Issue #1346)
 }
 
 ## Active item data for UI and selection.
