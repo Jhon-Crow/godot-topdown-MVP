@@ -1629,11 +1629,17 @@ func _process_seeking_cover_state(_delta: float) -> void:
 			if time_in_state >= SEEKING_COVER_MIN_DURATION: _transition_to_combat()  # RCA-17: min duration
 			return
 
-	# RCA-19: Only transition after minimum duration to prevent rapid cycling; also main goal: hidden.
-	if not _is_visible_from_player():
+	# Issue #1338: Only transition to IN_COVER when BOTH near cover AND hidden from player.
+	var distance_to_cover_sc: float = global_position.distance_to(_cover_position)
+	if distance_to_cover_sc < 10.0 and not _is_visible_from_player():
 		if time_in_state >= SEEKING_COVER_MIN_DURATION:
 			_transition_to_in_cover()
-			_log_debug("Hidden from player, entering cover state")
+			_log_debug("Hidden from player at cover, entering cover state (distance=%.1f)" % distance_to_cover_sc)
+		return
+	# Issue #1338: safety timeout for SEEKING_COVER
+	if time_in_state >= 5.0:
+		_log_debug("Seeking cover timeout (%.1fs), forcing IN_COVER" % time_in_state)
+		_transition_to_in_cover()
 		return
 
 	# Move towards cover
@@ -1877,21 +1883,26 @@ func _process_retreating_state(delta: float) -> void:
 				else: _transition_to_combat()
 			return
 
-	# Check if we've reached cover and are hidden from player
-	# RCA-19: Add minimum duration check even for successful cover reach
-	if not _is_visible_from_player():
+	# Issue #1338: Only transition to IN_COVER when BOTH near cover position AND hidden from player.
+	# Previously, becoming hidden anywhere (even in the open) would stop retreat.
+	var distance_to_cover := global_position.distance_to(_cover_position)
+	if distance_to_cover < 10.0 and not _is_visible_from_player():
 		if time_in_state >= RETREATING_MIN_DURATION:
-			_log_debug("Reached cover during retreat")
-			# Reset encounter hits when successfully reaching cover
+			_log_debug("Reached cover during retreat (distance=%.1f)" % distance_to_cover)
 			_hits_taken_in_encounter = 0
 			_transition_to_in_cover()
 		return
+	# Issue #1338: safety timeout — if retreating too long (5s), force IN_COVER to avoid stuck enemies
+	if time_in_state >= 5.0:
+		_log_debug("Retreat timeout (%.1fs), forcing IN_COVER" % time_in_state)
+		_hits_taken_in_encounter = 0
+		_transition_to_in_cover()
+		return
 
-	# Calculate direction to cover
+	# Calculate direction to cover (distance_to_cover already computed above)
 	var direction_to_cover := (_cover_position - global_position).normalized()
-	var distance_to_cover := global_position.distance_to(_cover_position)
 
-	# Check if reached cover position
+	# Check if reached cover position but still visible — find new cover
 	if distance_to_cover < 10.0:
 		if _is_visible_from_player():
 			_has_valid_cover = false
@@ -2890,6 +2901,12 @@ func _is_position_visible_from_player(pos: Vector2) -> bool:  ## Enemy at pos vi
 	for pt in _get_enemy_check_points(pos):
 		if _is_point_visible_from_player(pt): return true
 	return false
+func _is_position_visible_from_origin(pos: Vector2, origin: Vector2) -> bool:  ## Issue #1338: check visibility from arbitrary origin
+	for pt in _get_enemy_check_points(pos):
+		var q := PhysicsRayQueryParameters2D.new(); q.from = origin; q.to = pt; q.collision_mask = 4
+		var r := get_world_2d().direct_space_state.intersect_ray(q)
+		if r.is_empty() or origin.distance_to(r["position"]) >= origin.distance_to(pt) - 10.0: return true
+	return false
 
 ## Check if target is visible from enemy (raycast for LOS). For lead prediction validation.
 func _is_position_visible_to_enemy(target_pos: Vector2) -> bool:
@@ -3248,7 +3265,11 @@ func _find_cover_position() -> void:
 	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
 	_last_cover_search_time = current_time
 
+	# Issue #1338: use last known player position when player is not visible,
+	# so cover blocks rays from where the player was last seen
 	var player_pos := _player.global_position
+	if not _can_see_player and _last_known_player_position != Vector2.ZERO:
+		player_pos = _last_known_player_position
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
 	var found_hidden_cover: bool = false
@@ -3279,8 +3300,9 @@ func _find_cover_position() -> void:
 			if not _can_reach_position(cover_pos):
 				continue
 
-			# First priority: Check if this position is actually hidden from player
-			var is_hidden := not _is_position_visible_from_player(cover_pos)
+			# First priority: Check if this position is actually hidden from player_pos
+			# Issue #1338: use player_pos (may be last known position) for visibility check
+			var is_hidden := not _is_position_visible_from_origin(cover_pos, player_pos)
 
 			# Only consider hidden positions unless we have no choice
 			if is_hidden or not found_hidden_cover:
@@ -3620,6 +3642,8 @@ func _check_player_visibility() -> void:
 	if _can_see_player:
 		_player_visibility_ratio = float(visible_count) / float(check_points.size())
 		_continuous_visibility_timer += get_physics_process_delta_time()
+		# Issue #1338: track last known player position for cover search when player goes invisible
+		_last_known_player_position = _player.global_position
 	else:
 		_continuous_visibility_timer = 0.0; _player_visibility_ratio = 0.0
 
@@ -4184,7 +4208,8 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			if _memory: _memory.update_position(est_pos, 0.8); _memory_reset_confusion_timer = 0.0
 			_log_to_file("[#959] Pacifist hit - retaliates in PACIFIST state (attacker only)"); return
 		# Issue #910: When hit in non-combat state, transition to COMBAT and fire back
-		if _current_state in [AIState.IDLE, AIState.SEARCHING, AIState.RETREATING, AIState.SEEKING_COVER]:
+		# Issue #1338: RETREATING excluded — enemy must continue to cover, not break retreat on hit
+		if _current_state in [AIState.IDLE, AIState.SEARCHING, AIState.SEEKING_COVER]:
 			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
 			if _memory: _memory.update_position(est_pos, 0.6); _memory_reset_confusion_timer = 0.0
 			_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()

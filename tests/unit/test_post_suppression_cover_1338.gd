@@ -356,3 +356,209 @@ func test_cover_scoring_weights_are_correct() -> void:
 
 	assert_almost_eq(score, expected, 0.001,
 		"Score should be hidden_score + distance*0.7 + blocking*0.3")
+
+
+# ============================================================================
+# Tests for retreat persistence (Issue #1338 - retreat until reaching cover)
+# ============================================================================
+
+
+class MockRetreatingLogic:
+	## Simulates the RETREATING state logic from enemy.gd,
+	## focusing on Issue #1338: enemy must continue retreating until BOTH
+	## near cover position AND hidden from player.
+
+	const RETREATING_MIN_DURATION: float = 0.3
+
+	var _current_state: String = "RETREATING"
+	var _cover_position: Vector2 = Vector2(100, 100)
+	var _enemy_position: Vector2 = Vector2(300, 300)
+	var _is_visible_from_player: bool = true
+	var _has_valid_cover: bool = true
+	var _under_fire: bool = true
+	var _time_in_state: float = 0.0
+	var _transition_log: Array[String] = []
+
+	func process_retreating(delta: float) -> void:
+		_time_in_state += delta
+		if not _has_valid_cover:
+			if _time_in_state >= RETREATING_MIN_DURATION:
+				if _under_fire:
+					_current_state = "SUPPRESSED"
+					_transition_log.append("RETREATING -> SUPPRESSED")
+				else:
+					_current_state = "COMBAT"
+					_transition_log.append("RETREATING -> COMBAT")
+			return
+
+		# Issue #1338: Only transition to IN_COVER when BOTH near cover AND hidden
+		var distance_to_cover := _enemy_position.distance_to(_cover_position)
+		if distance_to_cover < 10.0 and not _is_visible_from_player:
+			if _time_in_state >= RETREATING_MIN_DURATION:
+				_current_state = "IN_COVER"
+				_transition_log.append("RETREATING -> IN_COVER (near+hidden)")
+			return
+
+		# Safety timeout
+		if _time_in_state >= 5.0:
+			_current_state = "IN_COVER"
+			_transition_log.append("RETREATING -> IN_COVER (timeout)")
+			return
+
+
+func test_retreating_continues_when_hidden_but_far_from_cover() -> void:
+	## Issue #1338: Enemy should NOT stop retreating just because they're
+	## hidden from the player — they must reach their cover position first.
+	var ret := MockRetreatingLogic.new()
+	ret._enemy_position = Vector2(300, 300)  # Far from cover
+	ret._cover_position = Vector2(100, 100)  # ~283 units away
+	ret._is_visible_from_player = false  # Hidden, but far from cover
+	ret._time_in_state = 0.5  # Past min duration
+
+	ret.process_retreating(1.0 / 60.0)
+
+	assert_eq(ret._current_state, "RETREATING",
+		"Enemy should keep retreating when hidden but far from cover")
+	assert_eq(ret._transition_log.size(), 0,
+		"No transition should occur when hidden but far from cover")
+
+
+func test_retreating_stops_when_near_cover_and_hidden() -> void:
+	## Enemy should transition to IN_COVER when BOTH near cover AND hidden.
+	var ret := MockRetreatingLogic.new()
+	ret._enemy_position = Vector2(105, 105)  # Near cover (~7 units)
+	ret._cover_position = Vector2(100, 100)
+	ret._is_visible_from_player = false
+	ret._time_in_state = 0.5
+
+	ret.process_retreating(1.0 / 60.0)
+
+	assert_eq(ret._current_state, "IN_COVER",
+		"Enemy should enter IN_COVER when near cover and hidden")
+
+
+func test_retreating_continues_when_near_cover_but_visible() -> void:
+	## Enemy should NOT stop at cover if still visible from player.
+	var ret := MockRetreatingLogic.new()
+	ret._enemy_position = Vector2(105, 105)  # Near cover
+	ret._cover_position = Vector2(100, 100)
+	ret._is_visible_from_player = true  # Still visible
+	ret._time_in_state = 0.5
+
+	ret.process_retreating(1.0 / 60.0)
+
+	assert_eq(ret._current_state, "RETREATING",
+		"Enemy should keep retreating if near cover but still visible")
+
+
+func test_retreating_timeout_forces_in_cover() -> void:
+	## Safety: after 5s retreat, force IN_COVER to avoid stuck enemies.
+	var ret := MockRetreatingLogic.new()
+	ret._enemy_position = Vector2(300, 300)  # Far from cover
+	ret._is_visible_from_player = true  # Still visible
+	ret._time_in_state = 5.1  # Past timeout
+
+	ret.process_retreating(1.0 / 60.0)
+
+	assert_eq(ret._current_state, "IN_COVER",
+		"Enemy should be forced into IN_COVER after 5s timeout")
+
+
+# ============================================================================
+# Tests for #910 hit handler exclusion (Issue #1338)
+# ============================================================================
+
+
+class MockHitHandler:
+	## Simulates the #910 hit handler logic, verifying that RETREATING
+	## is excluded from states that trigger COMBAT on hit.
+
+	var _current_state: String
+	var _transition_log: Array[String] = []
+
+	## Simulates the #910 hit handler
+	func on_hit() -> void:
+		# Issue #1338: RETREATING excluded from #910 handler
+		if _current_state in ["IDLE", "SEARCHING", "SEEKING_COVER"]:
+			_transition_log.append("%s -> COMBAT (#910)" % _current_state)
+			_current_state = "COMBAT"
+
+
+func test_hit_does_not_interrupt_retreat() -> void:
+	## Issue #1338: hits should NOT interrupt retreat — enemy keeps going to cover.
+	var handler := MockHitHandler.new()
+	handler._current_state = "RETREATING"
+	handler.on_hit()
+
+	assert_eq(handler._current_state, "RETREATING",
+		"Hit should NOT interrupt RETREATING state")
+	assert_eq(handler._transition_log.size(), 0,
+		"No transition should occur when hit while RETREATING")
+
+
+func test_hit_still_triggers_combat_from_idle() -> void:
+	## Existing #910 behavior: hits from IDLE should still trigger COMBAT.
+	var handler := MockHitHandler.new()
+	handler._current_state = "IDLE"
+	handler.on_hit()
+
+	assert_eq(handler._current_state, "COMBAT",
+		"Hit should trigger COMBAT from IDLE")
+
+
+func test_hit_still_triggers_combat_from_searching() -> void:
+	## Existing #910 behavior: hits from SEARCHING should still trigger COMBAT.
+	var handler := MockHitHandler.new()
+	handler._current_state = "SEARCHING"
+	handler.on_hit()
+
+	assert_eq(handler._current_state, "COMBAT",
+		"Hit should trigger COMBAT from SEARCHING")
+
+
+# ============================================================================
+# Tests for cover search with last known player position (Issue #1338)
+# ============================================================================
+
+
+class MockCoverSearch:
+	## Simulates the cover search player_pos selection logic.
+
+	var _can_see_player: bool = true
+	var _player_position: Vector2 = Vector2(500, 500)
+	var _last_known_player_position: Vector2 = Vector2(200, 200)
+
+	func get_search_origin() -> Vector2:
+		var player_pos := _player_position
+		if not _can_see_player and _last_known_player_position != Vector2.ZERO:
+			player_pos = _last_known_player_position
+		return player_pos
+
+
+func test_cover_search_uses_current_pos_when_visible() -> void:
+	## When player is visible, cover search should use current player position.
+	var search := MockCoverSearch.new()
+	search._can_see_player = true
+
+	assert_eq(search.get_search_origin(), Vector2(500, 500),
+		"Should use current player position when visible")
+
+
+func test_cover_search_uses_last_known_pos_when_invisible() -> void:
+	## Issue #1338: When player is invisible, cover search should use
+	## last known player position for raycast origin.
+	var search := MockCoverSearch.new()
+	search._can_see_player = false
+
+	assert_eq(search.get_search_origin(), Vector2(200, 200),
+		"Should use last known player position when invisible")
+
+
+func test_cover_search_fallback_when_no_last_known() -> void:
+	## If no last known position recorded, fall back to current player position.
+	var search := MockCoverSearch.new()
+	search._can_see_player = false
+	search._last_known_player_position = Vector2.ZERO
+
+	assert_eq(search.get_search_origin(), Vector2(500, 500),
+		"Should fall back to current player position when no last known")
