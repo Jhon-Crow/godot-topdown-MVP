@@ -489,3 +489,58 @@ offset_bottom = 45.0
 text = "AMMO: 30/30"
 
 [node name="PauseMenu" parent="." instance=ExtResource("3_pause_menu")]
+
+[node name="SearchPathWaypoints" type="Node2D" parent="."]
+editor_description = "Pre-planned search path waypoints for enemy SEARCHING state (Issue #1246). Enemies traverse these in order starting from the nearest point to their current position."
+groups = ["search_path_waypoints"]
+
+[node name="Shoreline_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 250)
+
+[node name="Shoreline_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1200, 200)
+
+[node name="Shoreline_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2200, 250)
+
+[node name="Rock1_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 700)
+
+[node name="Rock2_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(900, 550)
+
+[node name="MidField_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1200, 900)
+
+[node name="Rock3_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1600, 650)
+
+[node name="Rock5_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2100, 800)
+
+[node name="Hut1_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(600, 1100)
+
+[node name="Jungle_Entry_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 1400)
+
+[node name="Rock6_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1000, 1600)
+
+[node name="Hut2_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1800, 1200)
+
+[node name="Hut3_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2200, 1500)
+
+[node name="Barrel_Area" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(380, 1600)
+
+[node name="Bottom_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 1900)
+
+[node name="Bottom_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1200, 1950)
+
+[node name="Bottom_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2200, 1900)

@@ -374,7 +374,128 @@ text = "When enabled, draws the AI navigation mesh overlay.\nShows where enemies
 horizontal_alignment = 1
 autowrap_mode = 2
 
+[node name="HSeparator12e" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WaypointVisibleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WaypointVisibleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WaypointVisibleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Waypoints"
+autowrap_mode = 2
+
+[node name="WaypointVisibleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WaypointVisibleContainer"]
+layout_mode = 2
+
+[node name="WaypointVisibleDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws colored circles and labels\nat every passage and search-path waypoint node.\nGreen = passage waypoints, Yellow = search-path waypoints."
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="HSeparator12d" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SearchPathVisibleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SearchPathVisibleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SearchPathVisibleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Search Paths"
+autowrap_mode = 2
+
+[node name="SearchPathVisibleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SearchPathVisibleContainer"]
+layout_mode = 2
+
+[node name="SearchPathVisibleDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws cyan circles for predefined search waypoints\nand orange circles for active enemy spiral search paths.\nCurrent target highlighted in yellow."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="PassageWaypointsContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="PassageWaypointsLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/PassageWaypointsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Use Passage Waypoints"
+autowrap_mode = 2
+
+[node name="PassageWaypointsCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/PassageWaypointsContainer"]
+layout_mode = 2
+
+[node name="PassageWaypointsDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled (default), enemies use pre-placed passage\nwaypoints to navigate through doorways on the Building map.\nWhen disabled, enemies fall back to the previous\ncover-seeking navigation without waypoints."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator12f" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+
+[node name="SoundVisualizerContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SoundVisualizerLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SoundVisualizerContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Sound Propagation"
+autowrap_mode = 2
+
+[node name="SoundVisualizerCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SoundVisualizerContainer"]
+layout_mode = 2
+
+[node name="SoundVisualizerDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws animated circles showing sound\npropagation range at each emission point.\nBlue = player, red = enemy, white = neutral.\nUseful for debugging shooting audibility."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="EnemyPathVisibleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemyPathVisibleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyPathVisibleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Enemy Nav Paths"
+autowrap_mode = 2
+
+[node name="EnemyPathVisibleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyPathVisibleContainer"]
+layout_mode = 2
+
+[node name="EnemyPathVisibleDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws the computed navigation path for\nevery active enemy. Color shows AI state:\nGray=Idle, Red=Combat/Assault, Orange=Cover,\nMagenta=Flanking, Yellow=Pursuing,\nCyan=Searching, White=Evading, Green=Pacifist."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="TacticalGroupContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TacticalGroupLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TacticalGroupContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Tactical Group Movement"
+autowrap_mode = 2
+
+[node name="TacticalGroupCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TacticalGroupContainer"]
+layout_mode = 2
+
+[node name="TacticalGroupDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, enemies within 500 px of the player form\na tactical group and spread around the player,\napproaching from multiple directions to encircle the target\nrather than all converging from the same spot."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator12f" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HSeparator12e" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="DeleteSavesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]

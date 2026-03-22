@@ -617,10 +617,15 @@ func _on_area_entered(area: Area2D) -> void:
 	if is_rpg_rocket:
 		if _rpg_has_exploded or _rpg_time_alive < rpg_spawn_immunity:
 			return
-		# Skip other projectiles on the projectiles collision layer (Issue #1133).
-		# Bullets/shrapnel are on layer 5 (bit 16). They interact with the rocket via their own
-		# _on_area_entered which calls rocket.on_hit() directly.
+		# Other projectiles on the projectiles collision layer (Issue #1133, #1307).
+		# Bullets/shrapnel are on layer 5 (bit 16). When they overlap the rocket,
+		# the rocket receives the area_entered signal (since rocket mask includes layer 5).
+		# Treat incoming non-RPG projectiles as hits that damage this rocket.
 		if area.collision_layer & 16:
+			if area.get("is_rpg_rocket") or area is RpgRocket:
+				return  # Skip other RPG rockets (avoid mutual destruction)
+			# Incoming bullet/shrapnel hit — apply damage to this rocket (Issue #1307)
+			on_hit()
 			return
 		if area.has_method("on_hit"):
 			var parent: Node = area.get_parent()
@@ -2150,8 +2155,8 @@ func _rpg_simple_explosion_flash() -> void:
 	tween.tween_callback(flash.queue_free)
 
 
-## RPG rocket: receive incoming damage from bullets, shrapnel, or explosions (Issue #1133).
-## When health drops to 0 the rocket is shot down (destroyed without exploding).
+## RPG rocket: receive incoming damage from bullets, shrapnel, or explosions (Issue #1133, #1307).
+## When health drops to 0 the rocket explodes (full AOE explosion).
 ## Ignored if rpg_health == 0 (interception disabled) or rocket already destroyed.
 func on_hit() -> void:
 	if not is_rpg_rocket or _rpg_has_exploded:
@@ -2161,7 +2166,8 @@ func on_hit() -> void:
 	_rpg_current_health -= 1
 	FileLogger.info("[RpgRocket] Hit! remaining_health=%d pos=%s" % [_rpg_current_health, str(global_position)])
 	if _rpg_current_health <= 0:
-		_rpg_intercept()
+		FileLogger.info("[RpgRocket] Shot down by hit — exploding at pos=%s" % str(global_position))
+		_rpg_explode()
 
 
 ## RPG rocket: variant accepting hit direction and caliber data (Issue #1133).

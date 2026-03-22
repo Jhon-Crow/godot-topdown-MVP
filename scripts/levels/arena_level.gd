@@ -790,32 +790,29 @@ func _reconnect_weapon_signals(player: Node2D) -> void:
 # ---------------------------------------------------------------------------
 
 ## Bake NavigationRegion2D for enemy pathfinding.
+## Issue #1289: use explicit parse+bake API so all obstacle StaticBody2D nodes are
+## reliably found and carved out of the walkable area (bake_navigation_polygon can
+## miss dynamic/runtime geometry when called from _ready()).
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
 		push_warning("[ArenaLevel] NavigationRegion2D not found")
 		return
-
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		push_warning("[ArenaLevel] NavigationPolygon not found")
 		return
-
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
 	print("[ArenaLevel] Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Arena playable area: 128 to 1792 (x), 128 to 952 (y).
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(128, 128),
-		Vector2(1792, 128),
-		Vector2(1792, 952),
-		Vector2(128, 952)
-	])
-	nav_poly.add_outline(floor_outline)
-
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# Issue #1289: push updated polygon back into the NavigationServer's live map.
+	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 	print("[ArenaLevel] Navigation mesh baked")
 
 

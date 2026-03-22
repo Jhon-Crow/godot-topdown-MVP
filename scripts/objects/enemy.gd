@@ -1,6 +1,5 @@
 extends CharacterBody2D
-## Enemy AI with tactical behaviors: patrol, guard, cover, flanking, GOAP.
-## AI States for tactical behavior.
+## Enemy AI with tactical behaviors: patrol, guard, cover, flanking, GOAP. AI States for tactical behavior.
 enum AIState {
 	IDLE,       ## Default idle state (patrol or guard)
 	COMBAT,     ## Actively engaging the player (coming out of cover, shooting 2-3s, returning)
@@ -81,6 +80,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIF
 @export var initial_state: AIState = AIState.IDLE  ## Initial AI state on spawn (Issue #1121). SEARCHING starts enemy in search mode.
 @export var has_armored_skin: bool = false  ## Whether this enemy has Armored Skin passive item (Issue #1123).
 @export var has_swat_shield: bool = false  ## Whether this enemy is a SWAT shieldbearer with a blocking shield (Issue #1242).
+@export var search_path_node: NodePath = NodePath("")  ## SearchPathWaypoints node path; when set, uses pre-planned waypoints in SEARCHING instead of spiral (Issue #1225).
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
 @export var grenade_scene: PackedScene  ## Grenade scene to throw
@@ -178,6 +178,8 @@ var _is_waiting_at_patrol_point: bool = false
 var _patrol_wait_timer: float = 0.0
 var _patrol_stuck_timer: float = 0.0; var _patrol_stuck_last_position: Vector2 = Vector2.ZERO  ## #1119: patrol stuck detection
 const PATROL_STUCK_MAX_TIME: float = 1.5; const PATROL_STUCK_DISTANCE_THRESHOLD: float = 20.0  ## #1119: stuck thresholds
+var _patrol_points_snapped: bool = false  ## #1216: tracks whether patrol points were snapped to the navmesh
+var _spawn_physics_frame: int = 0  ## #1216: physics frame at spawn, used to delay navmesh snap by 1 frame
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
 var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
@@ -237,6 +239,8 @@ const PURSUIT_APPROACH_MAX_TIME: float = 3.0  ## Max approach time (sec)
 const PURSUING_MIN_DURATION_BEFORE_COMBAT: float = 0.3  ## Min before COMBAT
 const PURSUIT_MIN_PROGRESS_FRACTION: float = 0.10  ## Min progress fraction
 const PURSUIT_SAME_OBSTACLE_PENALTY: float = 4.0  ## Penalty for same cover
+const PURSUIT_PATH_DESIRED_DISTANCE: float = PursuitComponent.PURSUIT_PATH_DESIRED_DISTANCE  ## Issue #1289: enlarged nav step length while pursuing (from PursuitComponent)
+var _nav_default_path_desired_distance: float = 40.0  ## Issue #1289: saved default path_desired_distance
 var _flank_cover_wait_timer: float = 0.0  ## Wait at cover timer (Flanking State)
 const FLANK_COVER_WAIT_DURATION: float = 0.8  ## Cover wait time (sec)
 var _flank_next_cover: Vector2 = Vector2.ZERO  ## Next cover position
@@ -255,6 +259,7 @@ var _global_stuck_timer: float = 0.0; var _global_stuck_last_position: Vector2 =
 const GLOBAL_STUCK_MAX_TIME: float = 4.0; const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Max stuck time / min move distance  ## Issue #1173: restored 1.5→4.0; machete wall-escape is handled by MACHETE_COMBAT_STUCK_MAX_TIME
 var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1107: Stuck detection for machete COMBAT state
 const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
+var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
 var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 100.0  ## Search center / current radius (Search State - Issue #322)
@@ -276,9 +281,11 @@ var _search_visited_zones: Dictionary = {}  ## Tracks visited positions (key=sna
 const SEARCH_ZONE_SNAP_SIZE: float = 50.0  ## Grid size for snapping positions to zones
 var _search_stuck_timer: float = 0.0  ## Stuck timer (Issue #354: Stuck detection for SEARCHING)
 var _search_last_progress_position: Vector2 = Vector2.ZERO  ## Last progress pos
-const SEARCH_STUCK_MAX_TIME: float = 2.0  ## Max stuck time
+const SEARCH_STUCK_MAX_TIME: float = 0.8  ## Max stuck time (#1249: 2.0→0.8 s, faster skip of blocked search waypoints)
 const SEARCH_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
 var _has_left_idle: bool = false  ## Issue #330: Never returns to IDLE
+var _search_path_node: Node2D = null  ## SearchPathWaypoints node cache (Issue #1225)
+var _using_predefined_search_path: bool = false  ## Using predefined path instead of spiral (Issue #1225)
 const CLOSE_COMBAT_DISTANCE: float = 400.0  ## Close combat threshold
 var _goap_world_state: Dictionary = {}  ## GOAP world state
 var _detection_timer: float = 0.0  ## Combat detection timer
@@ -295,6 +302,7 @@ const CLEAR_SHOT_MAX_TIME: float = 3.0  ## Max time to find clear shot (seconds)
 const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0  ## Distance to move when exiting cover to find clear shot
 var _last_known_player_position: Vector2 = Vector2.ZERO  ## Last known player position (for sound-based detection)
 var _pursuing_vulnerability_sound: bool = false  ## Pursuing vulnerability sound without LOS
+var _passage_waypoints: Array = []  ## Cached passage waypoints (populated after _ready via deferred call)
 var _suppressive_fire: SuppressiveFireComponent = null  ## Issue #910: Suppressive fire component.
 var _memory: EnemyMemory = null  ## [#297] Suspected player pos: high>0.8=pursue, med=cautious, low=patrol
 ## Confidence values for different detection sources.
@@ -359,11 +367,15 @@ var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenad
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
+var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
+var _tactical_group: TacticalGroupComponent = null  ## Issue #1287: Tactical group movement — enemies within 500 px spread around the player.
+var _pursuit_component: PursuitComponent = null  ## Issue #1289: Cover-finding logic for PURSUING state.
 
 func _ready() -> void:
 	add_to_group("enemies")
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
+	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
 
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
@@ -380,7 +392,7 @@ func _ready() -> void:
 	_setup_threat_sphere()
 	_initialize_goap_state()
 	_initialize_memory()
-	_connect_debug_mode_signal()
+	_connect_debug_mode_signal(); (func(): var _es := get_node_or_null("/root/ExperimentalSettings"); var _wp_on: bool = (_es == null or not _es.has_method("is_passage_waypoints_enabled") or _es.is_passage_waypoints_enabled()); _passage_waypoints = get_tree().get_nodes_in_group("passage_waypoints") if _wp_on else []).call_deferred()  ## #1226: cache once after ready; #1267: skip if passage waypoints disabled
 	_update_debug_label()
 	_register_sound_listener()
 	_setup_flashbang_status()
@@ -403,6 +415,11 @@ func _ready() -> void:
 	# Issue #1146: Hook ORCA avoidance velocity so NavigationAgent2D steers enemies apart.
 	if _nav_agent and _nav_agent.avoidance_enabled:
 		_nav_agent.velocity_computed.connect(_on_avoidance_velocity_computed)
+	if _nav_agent: _nav_default_path_desired_distance = _nav_agent.path_desired_distance  # Issue #1289: save default path_desired_distance for PURSUING state
+
+	_tactical_movement = TacticalMovementComponent.new(self)  # Issue #1249: narrow passage queuing
+	_tactical_group = TacticalGroupComponent.new(self)  # Issue #1287: tactical group encirclement
+	_pursuit_component = PursuitComponent.new(self)  # Issue #1289: pursuit cover-finding component
 
 	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
 	if bullet_scene == null:  # Preload bullet scene if not set in inspector
@@ -476,7 +493,7 @@ func _configure_weapon_type() -> void:
 	_is_melee_weapon = c.get("is_melee", false); _is_rpg_weapon = c.get("is_rpg", false)  # Issue #579 #583
 	if c.has("total_magazines"): total_magazines = c["total_magazines"]  # #1033
 	if c.has("reload_time"): reload_time = c["reload_time"]  # #1033
-	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
+	if OS.is_debug_build(): print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
 
 ## Setup patrol points based on patrol offsets from initial position.
 func _setup_patrol_points() -> void:
@@ -537,14 +554,15 @@ func _deferred_register_sound_listener() -> void:
 		_log_to_file("WARNING: Could not register as sound listener (SoundPropagation not found)")
 		push_warning("[%s] Could not register as sound listener - SoundPropagation not found" % name)
 
+func _combat_waypoint(t: Vector2, r: bool = false) -> Vector2:  ## Issue #1227: nearest pre-defined combat path waypoint.
+	var c: CombatPathComponent = get_tree().get_first_node_in_group("combat_path_components"); return (c.get_nearest_retreat_waypoint(global_position, t) if r else c.get_nearest_attacking_waypoint(global_position, t)) if c else Vector2.ZERO
 ## Unregister this enemy from sound propagation when dying or being destroyed.
 func _unregister_sound_listener() -> void:
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 	if sound_propagation and sound_propagation.has_method("unregister_listener"):
 		sound_propagation.unregister_listener(self)
 
-## Unregister from SoundPropagation on scene change / node removal (Issue #1163: FPS fix).
-## Prevents stale listener accumulation across level reloads in the autoload singleton.
+## Unregister from SoundPropagation on scene change / node removal (Issue #1163: FPS fix). Prevents stale listener accumulation across level reloads.
 func _exit_tree() -> void:
 	_unregister_sound_listener()
 
@@ -604,7 +622,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		_log_to_file("Heard CASING_KICK at %s, intensity=%.2f, dist=%.0f" % [position, intensity, distance])
 		_last_known_player_position = position
 		if _memory: _memory.update_position(position, SOUND_CASING_KICK_CONFIDENCE)
-		if _current_state == AIState.IDLE: _transition_to_pursuing()
+		if _current_state == AIState.IDLE and _has_left_idle: _transition_to_pursuing()  # #1216: only re-pursue if previously engaged
 		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "CASING_KICK")  # Issue #910
 		return
 
@@ -634,9 +652,9 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	if sound_type != 0 and sound_type != 1:
 		return
 
-	# React based on current state (same for gunshots and explosions) - #910: also react in alert states to player gunshots
-	var should_react := (_current_state == AIState.IDLE and intensity >= 0.01) or (_current_state in [AIState.FLANKING, AIState.RETREATING] and intensity >= 0.3)
-	if is_player_gunshot and _current_state in [AIState.SEARCHING, AIState.PURSUING, AIState.IN_COVER, AIState.COMBAT]: should_react = intensity >= 0.01
+	# React based on current state (#910, #1261: intensity must not gate reaction — propagation_distance is the authoritative range check).
+	var should_react := (_current_state == AIState.IDLE) or (_current_state in [AIState.FLANKING, AIState.RETREATING] and intensity >= 0.3)
+	if is_player_gunshot and _current_state in [AIState.SEARCHING, AIState.PURSUING, AIState.IN_COVER, AIState.COMBAT]: should_react = true
 	if not should_react: return
 
 	var sound_name := "EXPLOSION" if sound_type == 1 else "gunshot"
@@ -789,14 +807,13 @@ func _physics_process(delta: float) -> void:
 	if _memory_reset_confusion_timer > 0.0:
 		_memory_reset_confusion_timer = maxf(0.0, _memory_reset_confusion_timer - delta)
 
-	# Issue #367: Global position-based stuck detection for PURSUING/FLANKING states.
-	# If enemy stays in same position for too long without direct player contact, force SEARCHING.
+	# Issue #367: Stuck detection for PURSUING/FLANKING — force SEARCHING if no progress.
+	# Skip when in direct contact (can hit player) or intentionally yielding (#1249).
 	if _current_state == AIState.PURSUING or _current_state == AIState.FLANKING:
 		var moved_distance := global_position.distance_to(_global_stuck_last_position)
 		if moved_distance < GLOBAL_STUCK_DISTANCE_THRESHOLD:
-			# Not making significant progress - increment stuck timer
-			# Only count if NOT in direct player contact (can't see and shoot player)
-			if not (_can_see_player and _can_hit_player_from_current_position()):
+			if not (_can_see_player and _can_hit_player_from_current_position()) \
+					and not (_tactical_movement and _tactical_movement.is_yielding):
 				_global_stuck_timer += delta
 				var _experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 				var _effective_stuck_max_time: float = GLOBAL_STUCK_MAX_TIME
@@ -811,7 +828,13 @@ func _physics_process(delta: float) -> void:
 						_flank_side_initialized = false
 						_flank_fail_count += 1
 						_flank_cooldown_timer = FLANK_COOLDOWN_DURATION
-					_transition_to_searching(global_position)
+					# #1249 session 4: search from last known player position, not the stuck position.
+					# When stuck while pursuing, the enemy may be far from the player; searching from
+					# the stuck spot wastes time. Use the last known player position instead if available.
+					var _search_start := global_position
+					if _last_known_player_position != Vector2.ZERO:
+						_search_start = _last_known_player_position
+					_transition_to_searching(_search_start)
 					return  # Skip rest of physics process this frame
 		else:
 			# Making progress - reset stuck timer and update position
@@ -846,13 +869,16 @@ func _physics_process(delta: float) -> void:
 	if _waiting_for_grenadier:  # Issue #604: Skip AI while waiting
 		velocity = Vector2.ZERO; _update_debug_label(); _update_walk_animation(delta)
 		_apply_machete_attack_animation(); move_and_slide(); _push_casings()
-		if debug_label_enabled: queue_redraw()
+		if debug_label_enabled:
+			_debug_draw_timer += delta
+			if _debug_draw_timer >= DEBUG_DRAW_INTERVAL: _debug_draw_timer = 0.0; queue_redraw()  # Issue #1220: throttle to 10 Hz
 		return
 	_process_ai_state(delta)
 
 	_update_debug_label()
-	if debug_label_enabled:  # Request redraw for debug visualization
-		queue_redraw()
+	if debug_label_enabled:  # Issue #1220: throttle FOV cone redraws to 10 Hz (was every frame → 33 raycasts/enemy/frame at 60 fps)
+		_debug_draw_timer += delta
+		if _debug_draw_timer >= DEBUG_DRAW_INTERVAL: _debug_draw_timer = 0.0; queue_redraw()
 
 	_update_walk_animation(delta)  # Update walking animation based on movement
 	_apply_machete_attack_animation()  # Issue #595: machete swing animation
@@ -917,8 +943,7 @@ func _update_enemy_model_rotation() -> void:
 		target_angle = (_current_target.global_position - global_position).normalized().angle()
 		has_target = true
 		rotation_reason = "P1:visible"
-	# Priority 2: During active combat states, maintain focus on best target even without visibility (#386, #397)
-	# Includes SEARCHING and ASSAULT - enemies should always face target during these states
+	# Priority 2: Combat states (#386, #397) — face target even without visibility (SEARCHING, ASSAULT, etc.)
 	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _current_target != null:
 		target_angle = (_current_target.global_position - global_position).normalized().angle()
 		has_target = true
@@ -1198,7 +1223,6 @@ func _process_ai_state(delta: float) -> void:
 	var previous_state := _current_state
 
 	# ABSOLUTE HIGHEST PRIORITY: Grenade danger zone evasion (Issue #407)
-	# Survival instinct - enemies flee from grenades before any other action
 	var in_grenade_danger := _grenade_avoidance.in_danger_zone if _grenade_avoidance else false
 	if in_grenade_danger and _current_state != AIState.EVADING_GRENADE:
 		_log_to_file("GRENADE DANGER: Entering EVADING_GRENADE state from %s" % AIState.keys()[_current_state])
@@ -1207,12 +1231,16 @@ func _process_ai_state(delta: float) -> void:
 
 	if _aggression and _aggression.process_aggression_tick(delta, rotation_speed, shoot_cooldown, combat_move_speed): return  # [Issue #675,#919]
 
-	# HIGHEST PRIORITY: Player distracted (aim > 23° away) - shoot immediately (Hard mode only)
-	# NOTE: Disabled during memory reset confusion period (Issue #318)
+	# Issue #1305: Check if COMBAT state is enabled — if disabled, skip all priority attack paths
+	# (distracted, vulnerable, etc.) so enemies truly stop attacking the player.
+	var _ps_ai := get_node_or_null("/root/PerformanceSettings")
+	var _combat_allowed: bool = _ps_ai == null or _ps_ai.is_ai_state_combat_enabled()
+
+	# HIGHEST PRIORITY: Player distracted (aim > 23° off) → shoot (Hard only; Issue #318: off during confusion).
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	var is_distraction_enabled: bool = difficulty_manager != null and difficulty_manager.is_distraction_attack_enabled()
 	var is_confused: bool = _memory_reset_confusion_timer > 0.0
-	if is_distraction_enabled and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _goap_world_state.get("player_distracted", false) and _can_see_player and _player:
+	if _combat_allowed and is_distraction_enabled and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _goap_world_state.get("player_distracted", false) and _can_see_player and _player:
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
@@ -1231,9 +1259,7 @@ func _process_ai_state(delta: float) -> void:
 			# The state machine will continue normally in the next frame
 			return
 
-	# HIGHEST PRIORITY: If player is reloading or tried to shoot with empty weapon,
-	# and enemy is close to the player, immediately attack with maximum priority.
-	# This exploits the player's vulnerability during reload or when out of ammo.
+	# HIGHEST PRIORITY: Attack immediately if player is reloading or out of ammo (Issue #318)
 	var player_reloading: bool = _goap_world_state.get("player_reloading", false)
 	var player_ammo_empty: bool = _goap_world_state.get("player_ammo_empty", false)
 	var player_is_vulnerable: bool = player_reloading or player_ammo_empty
@@ -1244,11 +1270,8 @@ func _process_ai_state(delta: float) -> void:
 		var distance_to_player := global_position.distance_to(_player.global_position)
 		_log_debug("Vulnerable check: reloading=%s, ammo_empty=%s, can_see=%s, close=%s (dist=%.0f)" % [player_reloading, player_ammo_empty, _can_see_player, player_close, distance_to_player])
 
-	# Log vulnerability conditions when player is vulnerable but we can't attack
-	# This helps diagnose why priority attacks might not be triggering
 	if player_is_vulnerable and _player and not (player_close and _can_see_player):
 		var distance_to_player := global_position.distance_to(_player.global_position)
-		# Only log once per vulnerability state change to avoid spam
 		var vuln_key := "last_vuln_log_frame"
 		var current_frame := Engine.get_physics_frames()
 		var last_log_frame: int = _goap_world_state.get(vuln_key, -100)
@@ -1257,43 +1280,29 @@ func _process_ai_state(delta: float) -> void:
 			var reason: String = "reloading" if player_reloading else "ammo_empty"
 			_log_to_file("Player vulnerable (%s) but cannot attack: close=%s (dist=%.0f), can_see=%s" % [reason, player_close, distance_to_player, _can_see_player])
 
-	# Issue #318: Also block vulnerability attacks during confusion period
-	# Issue #959: Pacifists never exploit player vulnerability
-	if player_is_vulnerable and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _can_see_player and _player and player_close:
-		# Check if we have a clear shot (no wall blocking bullet spawn)
+	# Issue #318: block during confusion; Issue #959: pacifists skip; Issue #1305: respect combat toggle
+	if _combat_allowed and player_is_vulnerable and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _can_see_player and _player and player_close:
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
-			# Log the vulnerability attack
 			var reason: String = "reloading" if player_reloading else "empty ammo"
 			_log_to_file("Player %s - priority attack triggered" % reason)
 
-			# Aim at player immediately - both body rotation and model rotation
+			# Aim at player immediately
 			rotation = direction_to_player.angle()
 			# CRITICAL: Force model to face player for correct aim direction (issue #264)
 			_force_model_to_face_direction(direction_to_player)
 
-			# Shoot with priority - still respects weapon fire rate cooldown
-			# The weapon cannot physically fire faster than its fire rate
-			_shoot()
-			_shoot_timer = 0.0  # Reset shoot timer after vulnerability shot
-
-			# Ensure detection delay is bypassed for any subsequent normal shots
+			_shoot(); _shoot_timer = 0.0
 			_detection_delay_elapsed = true
-
-			# Transition to COMBAT if not already in a combat-related state
 			if _current_state == AIState.IDLE:
 				_transition_to_combat()
-				_detection_delay_elapsed = true  # Re-set after transition resets it
-
-			# Return early - we've taken the highest priority action
+				_detection_delay_elapsed = true
 			return
 
-	# SECOND PRIORITY: If player is vulnerable but NOT close, pursue them aggressively
-	# This makes enemies rush toward vulnerable players to exploit the weakness
-	if player_is_vulnerable and _can_see_player and _player and not player_close:
+	# SECOND PRIORITY: pursue vulnerable player who is not close (Issue #1305: respect combat toggle)
+	if _combat_allowed and player_is_vulnerable and _can_see_player and _player and not player_close:
 		var distance_to_player := global_position.distance_to(_player.global_position)
-		# Only log once per pursuit decision to avoid spam
 		var pursue_key := "last_pursue_vuln_frame"
 		var current_frame := Engine.get_physics_frames()
 		var last_pursue_frame: int = _goap_world_state.get(pursue_key, -100)
@@ -1310,8 +1319,8 @@ func _process_ai_state(delta: float) -> void:
 		if not _has_valid_cover: _find_cover_position()
 		if _has_valid_cover and _teleport_component.try_teleport(_cover_position): _transition_to_in_cover(); return
 	if _teleport_component and _teleport_component.is_ready() and not _can_see_player and _current_state == AIState.FLANKING: _teleport_component.try_teleport(_flank_target)  # #752: flank-teleport
-	# GRENADE THROW PRIORITY (Issue #363, #959): Non-pacifists check grenade triggers.
-	if _goap_world_state.get("ready_to_throw_grenade", false) and not (_pacifist and _pacifist.is_pacifist):
+	# GRENADE THROW PRIORITY (Issue #363, #959, #1305): Non-pacifists check grenade triggers; respect combat toggle.
+	if _combat_allowed and _goap_world_state.get("ready_to_throw_grenade", false) and not (_pacifist and _pacifist.is_pacifist):
 		if try_throw_grenade():
 			return
 
@@ -1343,22 +1352,17 @@ func _process_idle_state(delta: float) -> void:
 		else: _transition_to_combat()
 		return
 
-	# Check memory system for suspected player position (Issue #297)
-	# If we have high/medium confidence about player location, investigate
-	if _memory and _memory.has_target():
+	# Issue #297/#1216: re-pursue from memory only if enemy has previously engaged (gate on _has_left_idle).
+	if _has_left_idle and _memory and _memory.has_target():
 		if _memory.is_high_confidence():
-			# High confidence: Go investigate directly
 			_log_debug("High confidence (%.0f%%) - investigating suspected position" % (_memory.confidence * 100))
 			_log_to_file("Memory: high confidence (%.2f) - transitioning to PURSUING" % _memory.confidence)
-			_transition_to_pursuing()
-			return
+			_transition_to_pursuing(); return
 		elif _memory.is_medium_confidence():
-			# Medium confidence: Investigate cautiously (also use pursuing with cover-to-cover)
 			_log_debug("Medium confidence (%.0f%%) - cautiously investigating" % (_memory.confidence * 100))
 			_log_to_file("Memory: medium confidence (%.2f) - transitioning to PURSUING" % _memory.confidence)
-			_transition_to_pursuing()
-			return
-		# Low confidence: Continue normal patrol but may wander toward suspected area
+			_transition_to_pursuing(); return
+		# Low confidence: Continue normal patrol
 	# Execute idle behavior
 	match behavior_mode:
 		BehaviorMode.PATROL: _process_patrol(delta)
@@ -1388,8 +1392,7 @@ func _process_combat_state(delta: float) -> void:
 				_machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position; _transition_to_pursuing()
 		else: _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position
 		return
-	# [#1033] Machine gunner: never retreat while belts have ammo — hold position and suppress.
-	# Fire at last-known player position (corridor suppression) regardless of LOS or under-fire status.
+	# [#1033] Machine gunner: suppress corridor (fire at last-known pos regardless of LOS/under-fire).
 	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active:
 		var suppress_target := _player.global_position if (_can_see_player and _player != null) else _last_known_player_position
 		if suppress_target != Vector2.ZERO:
@@ -1411,10 +1414,7 @@ func _process_combat_state(delta: float) -> void:
 			_transition_to_retreating()
 		return
 
-	# NOTE: ASSAULT state transition removed per issue #169
-	# If can't see player, pursue them (move cover-to-cover toward player)
-	# But only after minimum time has elapsed to prevent rapid state thrashing
-	# when visibility flickers at wall/obstacle edges
+	# If can't see player, pursue (after min duration to prevent rapid thrashing) - Issue #169
 	if not _can_see_player:
 		if _combat_state_timer >= COMBAT_MIN_DURATION_BEFORE_PURSUE:
 			_combat_exposed = false
@@ -1597,12 +1597,8 @@ func _calculate_clear_shot_exit_position(direction_to_player: Vector2) -> Vector
 		var exit_dir: Vector2 = (sidestep_dir * 0.7 + direction_to_player * 0.3).normalized()
 		var test_position: Vector2 = global_position + exit_dir * CLEAR_SHOT_EXIT_DISTANCE
 
-		# Score this position based on:
-		# 1. Does it have a clear path? (no walls in the way)
-		# 2. Would the bullet spawn be clear from there?
+		# Score: clear path + clear bullet spawn
 		var score: float = 0.0
-
-		# Check if we can move to this position
 		if _has_clear_path_to(test_position):
 			score += 1.0
 
@@ -1640,8 +1636,7 @@ func _process_seeking_cover_state(_delta: float) -> void:
 			if time_in_state >= SEEKING_COVER_MIN_DURATION: _transition_to_combat()  # RCA-17: min duration
 			return
 
-	# Check if we're already hidden from the player (the main goal)
-	# RCA-19: Only transition after minimum duration to prevent rapid cycling
+	# RCA-19: Only transition after minimum duration to prevent rapid cycling; also main goal: hidden.
 	if not _is_visible_from_player():
 		if time_in_state >= SEEKING_COVER_MIN_DURATION:
 			_transition_to_in_cover()
@@ -1716,8 +1711,7 @@ func _process_in_cover_state(delta: float) -> void:
 			_transition_to_seeking_cover()
 		return
 
-	# NOTE: ASSAULT state transition removed per issue #169
-	# Decision making based on target (player or companion) distance and visibility (#934)
+	# Decision making (#934): ASSAULT removed per #169; use distance+visibility
 	var can_see_target := _can_see_player or _can_see_companion
 	var has_target := (_player != null) or (_companion != null and _can_see_companion)
 	if has_target:
@@ -1748,9 +1742,7 @@ func _process_in_cover_state(delta: float) -> void:
 			_shoot()
 			_shoot_timer = 0.0
 
-	# If player (or companion) is no longer visible and not under fire, try pursuing
-	# Issue #934: consider companion visibility
-	# Issue #910: also try suppressive fire before pursuing
+	# If player (or companion) lost and not under fire, try suppressive fire then pursuing (Issue #934, #910).
 	if not (_can_see_player or _can_see_companion) and not _under_fire and not (_suppressive_fire and _suppressive_fire.try_suppress_cover(_player, _last_known_player_position, _is_melee_weapon, _is_reloading, _shoot_timer, shoot_cooldown)):
 		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
 		_transition_to_pursuing()
@@ -1858,15 +1850,13 @@ func _process_suppressed_state(delta: float) -> void:
 		_transition_to_seeking_cover()
 		return
 
-	# Can still shoot while suppressed (only after detection delay)
-	# Issue #934: also shoot at companion if visible
+	# Can still shoot while suppressed (only after detection delay); also at companion (Issue #934).
 	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 		_aim_at_player()
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
 
-	# If no longer under fire, exit suppression (with minimum duration check)
 	# RCA-19: Apply minimum duration to prevent rapid cycling
 	if not _under_fire:
 		if Time.get_ticks_msec() / 1000.0 - _suppressed_entry_time >= SUPPRESSED_MIN_DURATION:
@@ -2050,9 +2040,7 @@ func _process_pursuing_state(delta: float) -> void:
 			return
 
 	if _suppressive_fire: _suppressive_fire.try_suppress_pursuing(_can_see_player, _last_known_player_position, _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown)  # Issue #910
-	# VULNERABILITY SOUND PURSUIT: When we heard a reload/empty click sound,
-	# move directly toward the sound position using navigation (goes around walls).
-	# This is a direct pursuit without cover-to-cover movement.
+	# VULNERABILITY SOUND PURSUIT: pursue reload/empty click sound position
 	if _pursuing_vulnerability_sound and _last_known_player_position != Vector2.ZERO:
 		var distance_to_sound := global_position.distance_to(_last_known_player_position)
 
@@ -2246,6 +2234,27 @@ func _process_assault_state(_delta: float) -> void:
 	_assault_ready = false
 	_transition_to_combat()
 
+## Load predefined search waypoints from SearchPathWaypoints node (Issue #1225). Returns true if loaded.
+func _load_predefined_search_path(_near_pos: Vector2) -> bool:
+	if _search_path_node == null or not is_instance_valid(_search_path_node):
+		if search_path_node != NodePath(""): _search_path_node = get_node_or_null(search_path_node)
+		if _search_path_node == null:
+			var found := get_tree().get_nodes_in_group("search_path_waypoints")
+			if found.size() > 0: _search_path_node = found[0]
+	if _search_path_node == null: return false
+	var wps: Array[Vector2] = []
+	for c in _search_path_node.get_children():
+		if c is Marker2D: wps.append(c.global_position)
+	if wps.is_empty(): return false
+	var si := 0; var md := INF
+	for i in range(wps.size()):
+		var d := global_position.distance_to(wps[i])
+		if d < md: md = d; si = i
+	_search_waypoints.clear(); _search_current_waypoint_index = 0
+	for i in range(wps.size()): _search_waypoints.append(wps[(si + i) % wps.size()])
+	_log_debug("SEARCHING: Loaded %d predefined waypoints (start=%d)" % [_search_waypoints.size(), si])
+	return true
+
 ## Generate search waypoints in expanding square spiral (Issue #322). Skips visited zones.
 func _generate_search_waypoints() -> void:
 	_search_waypoints.clear()
@@ -2304,6 +2313,8 @@ func _process_searching_state(delta: float) -> void:
 		_transition_to_combat()
 		return
 	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
+		if _using_predefined_search_path and not _search_waypoints.is_empty():  # Issue #1225: loop predefined path
+			_search_current_waypoint_index = 0; _search_moving_to_waypoint = true; return
 		if _search_radius < SEARCH_MAX_RADIUS:
 			_search_radius += SEARCH_RADIUS_EXPANSION
 			_generate_search_waypoints()
@@ -2322,6 +2333,9 @@ func _process_searching_state(delta: float) -> void:
 			_log_to_file("SEARCHING: Max radius, returning to IDLE (patrol enemy)")
 			_transition_to_idle(); return
 	if _search_waypoints.is_empty():
+		if _using_predefined_search_path:  # Issue #1225: reload predefined path
+			_using_predefined_search_path = _load_predefined_search_path(_search_center)
+			if _using_predefined_search_path: return
 		if _has_left_idle:  # Issue #330/#405: Regenerate from current position, clear old zones
 			var old := _search_center; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS
 			# Issue #405: Clear visited zones to allow exploring new areas
@@ -2344,18 +2358,19 @@ func _process_searching_state(delta: float) -> void:
 			else:
 				var next_pos := _nav_agent.get_next_path_position()
 				var dir := (next_pos - global_position).normalized()
-				velocity = dir * move_speed * 0.7; move_and_slide(); _push_casings()  # Issue #341
-				# Issue #354: Stuck detection
-				var progress := global_position.distance_to(_search_last_progress_position)
+				if _tactical_movement and _tactical_movement.check_and_yield(target_waypoint, move_speed * 0.7, get_physics_process_delta_time()):  # #1249: yield in SEARCHING too
+					velocity = Vector2.ZERO; move_and_slide(); _push_casings(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; return
+				var _sv := dir * move_speed * 0.7; if _nav_agent and _nav_agent.avoidance_enabled: _nav_agent.set_velocity(_sv)  # #1249: ORCA for searching
+				velocity = (_avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else _sv) if (_nav_agent and _nav_agent.avoidance_enabled) else _sv
+				move_and_slide(); _push_casings()  # Issue #341
+				var progress := global_position.distance_to(_search_last_progress_position)  # #354: Stuck detection
 				if progress < SEARCH_PROGRESS_THRESHOLD:
 					_search_stuck_timer += delta
 					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:  # Stuck - skip waypoint
 						_log_to_file("SEARCHING: Stuck at wp %d, skipping" % _search_current_waypoint_index)
 						_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
-						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
-						_search_last_progress_position = global_position; return
-				else:
-					_search_stuck_timer = 0.0; _search_last_progress_position = global_position
+						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0; _search_last_progress_position = global_position; return
+				else: _search_stuck_timer = 0.0; _search_last_progress_position = global_position
 				if dir.length() > 0.1:
 					rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta)
 					_process_corner_check(delta, dir, "SEARCHING")  # Issue #332
@@ -2412,7 +2427,6 @@ func _process_evading_grenade_state(delta: float) -> void:
 func _return_from_grenade_evasion() -> void:
 	_grenade_evasion_timer = 0.0
 	if _grenade_avoidance: _grenade_avoidance.reset()  # Clears position memory too (Issue #426)
-	# Return to previous state
 	match _pre_evasion_state:
 		AIState.IDLE: _transition_to_idle()
 		AIState.COMBAT: _transition_to_combat()
@@ -2574,6 +2588,7 @@ func _transition_to_idle() -> void:
 	# Reset various state tracking when returning to idle
 	_hits_taken_in_encounter = 0; _in_alarm_mode = false; _cover_burst_pending = false
 	_idle_scan_timer = 0.0; _idle_scan_targets.clear()  # Will be re-initialized in _process_guard
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 
 func _transition_to_combat() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_combat_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -2587,6 +2602,8 @@ func _transition_to_combat() -> void:
 	_witnessed_ally_death = false; _suspected_directions.clear()
 	_pursuing_vulnerability_sound = false; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position  # Issue #1107
 	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
+	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 
 func _transition_to_seeking_cover() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_seeking_cover_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -2594,6 +2611,7 @@ func _transition_to_seeking_cover() -> void:
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
 	_seeking_cover_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #997 RCA-17
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 	_find_cover_position()
 
 func _transition_to_in_cover() -> void:
@@ -2602,6 +2620,7 @@ func _transition_to_in_cover() -> void:
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
 	_in_cover_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #997 RCA-18
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 
 ## Check if flanking is available (not on cooldown from failures).
 func _can_attempt_flanking() -> bool:
@@ -2659,6 +2678,8 @@ func _transition_to_flanking() -> bool:
 	# Reset global stuck detection
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
+	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 	var msg := "FLANKING started: target=%s, side=%s, pos=%s" % [_flank_target, "right" if _flank_side > 0 else "left", global_position]
 	_log_debug(msg)
 	_log_to_file(msg)
@@ -2696,6 +2717,7 @@ func _transition_to_suppressed() -> void:
 	_current_state = AIState.SUPPRESSED
 	_has_left_idle = true; _in_alarm_mode = true  # Issue #330
 	_suppressed_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #969 RCA-11
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 func _transition_to_pursuing() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_pursuing_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.PURSUING
@@ -2714,6 +2736,8 @@ func _transition_to_pursuing() -> void:
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
+	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
+	if _nav_agent: _nav_agent.path_desired_distance = PURSUIT_PATH_DESIRED_DISTANCE  # Issue #1289: larger nav step while pursuing
 
 func _transition_to_assault() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_assault_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -2726,28 +2750,32 @@ func _transition_to_assault() -> void:
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 	# Find closest cover to player for assault position
 	_find_cover_closest_to_player()
 
 func _transition_to_searching(center_position: Vector2) -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_searching_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.SEARCHING
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 	# Issue #921: Do NOT set _has_left_idle = true here; let it retain whatever value it had.
 	# Combat enemies already have it true (search indefinitely); patrol enemies have it false (timeout).
 	_search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS
 	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
 	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
-	# Issue #354: Initialize stuck detection
-	_search_stuck_timer = 0.0; _search_last_progress_position = global_position
-	_generate_search_waypoints()
-	var msg := "SEARCHING started: center=%s, radius=%.0f, waypoints=%d" % [_search_center, _search_radius, _search_waypoints.size()]
+	# Issue #354: Initialize stuck detection. #1249: clear yield on SEARCHING entry.
+	_search_stuck_timer = 0.0; _search_last_progress_position = global_position; if _tactical_movement: _tactical_movement.reset_yield()
+	_using_predefined_search_path = _load_predefined_search_path(center_position)  # Issue #1225
+	if not _using_predefined_search_path: _generate_search_waypoints()
+	var msg := "SEARCHING started (%s): center=%s, radius=%.0f, waypoints=%d" % ["predefined" if _using_predefined_search_path else "spiral", _search_center, _search_radius, _search_waypoints.size()]
 	_log_debug(msg); _log_to_file(msg)
 
 ## Transition to EVADING_GRENADE state - flee from grenade danger zone (Issue #407).
 func _transition_to_evading_grenade() -> void:
 	_pre_evasion_state = _current_state
 	_current_state = AIState.EVADING_GRENADE
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 	_has_left_idle = true  # Mark that enemy has left IDLE state (Issue #330)
 	_grenade_evasion_timer = 0.0
 	_calculate_grenade_evasion_target()  # Calculate escape target via component
@@ -2764,6 +2792,7 @@ func _transition_to_retreating() -> void:
 	# Enter alarm mode when retreating
 	_in_alarm_mode = true
 	_retreating_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #997 RCA-17
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 
 	# Determine retreat mode based on hits taken
 	if _hits_taken_in_encounter == 0:
@@ -2795,6 +2824,7 @@ func _transition_to_pacifist(emit_signal: bool = true) -> void:
 	if _pacifist and _pacifist.is_immune: _log_to_file("Cannot become pacifist - immune"); return
 	var was := _pacifist.is_pacifist if _pacifist else false
 	_current_state = AIState.PACIFIST; _has_left_idle = true; velocity = Vector2.ZERO
+	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 	if _pacifist: _pacifist.start_pacifism()
 	_log_to_file("Transitioned to PACIFIST"); if emit_signal and not was: became_pacifist.emit()
 ## Make this enemy a pacifist via loudspeaker. Returns true if successful.
@@ -3113,109 +3143,15 @@ func _count_enemies_in_combat() -> int:
 func is_in_combat_engagement() -> bool:
 	return _can_see_player and _current_state in [AIState.COMBAT, AIState.IN_COVER, AIState.ASSAULT]
 
-## Find pursuit cover toward player (penalizes same-obstacle, min progress, clear path; #93).
+## Find pursuit cover toward player — delegates to PursuitComponent (Issue #1289).
+## Selects nearest navmesh-valid cover that: advances toward player, is hidden, avoids
+## occupied spots (enemy spread), avoids flashlight beam, and differs from current obstacle.
 func _find_pursuit_cover_toward_player() -> void:
-	# Use memory-based target (not direct position) to pursue suspected position (#297)
-	var target_pos := _get_target_position()
-
-	# If no valid target and no player, can't pursue
-	if target_pos == global_position and _player == null:
-		_has_pursuit_cover = false
-		return
-
-	var player_pos := target_pos
-	var best_cover: Vector2 = Vector2.ZERO
-	var best_score: float = -INF
-	var best_obstacle: Object = null
-	var found_valid_cover: bool = false
-
-	var my_distance_to_player := global_position.distance_to(player_pos)
-	# Calculate minimum required progress (must get at least this much closer)
-	var min_required_progress := my_distance_to_player * PURSUIT_MIN_PROGRESS_FRACTION
-
-	# Cast rays in all directions to find obstacles
-	for i in range(COVER_CHECK_COUNT):
-		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
-		var direction := Vector2.from_angle(angle)
-
-		var raycast := _cover_raycasts[i]
-		raycast.target_position = direction * COVER_CHECK_DISTANCE
-		raycast.force_raycast_update()
-
-		if raycast.is_colliding():
-			var collision_point := raycast.get_collision_point()
-			var collision_normal := raycast.get_collision_normal()
-			var collider := raycast.get_collider()
-
-			# Cover position is offset from collision point along normal
-			var cover_pos := collision_point + collision_normal * 35.0
-
-			# For pursuit, we want cover that is:
-			# 1. Closer to the player than we currently are (with minimum progress)
-			# 2. Hidden from the player (or mostly hidden)
-			# 3. Not too far from our current position
-			# 4. Preferably on a different obstacle than current cover
-			# 5. Reachable (no walls blocking the path)
-			var cover_distance_to_player := cover_pos.distance_to(player_pos)
-			var cover_distance_from_me := global_position.distance_to(cover_pos)
-			var progress := my_distance_to_player - cover_distance_to_player
-
-			# Skip covers that don't bring us closer to player
-			if cover_distance_to_player >= my_distance_to_player:
-				continue
-
-			# Skip covers that don't make enough progress (issue #93 fix)
-			# This prevents stopping repeatedly along the same long wall
-			if progress < min_required_progress:
-				continue
-
-			# Skip covers that are too close to current position (would cause looping)
-			# Must be at least 30 pixels away to be a meaningful movement
-			if cover_distance_from_me < 30.0:
-				continue
-
-			# Verify we can actually reach this cover position (no wall blocking path)
-			if not _can_reach_position(cover_pos):
-				continue
-
-			# Check if this position is hidden from player
-			var is_hidden := not _is_position_visible_from_player(cover_pos)
-
-			# Check if this is the same obstacle as our current cover (issue #93 fix)
-			var same_obstacle_penalty: float = 0.0
-			if _current_cover_obstacle != null and collider == _current_cover_obstacle:
-				same_obstacle_penalty = PURSUIT_SAME_OBSTACLE_PENALTY
-
-			# Score calculation:
-			# Higher score for positions that are:
-			# - Hidden from player (priority)
-			# - Closer to player
-			# - Not too far from current position
-			# - On a different obstacle than current cover
-			# - NOT illuminated by the player's flashlight (Issue #574)
-			var hidden_score: float = 5.0 if is_hidden else 0.0
-			var approach_score: float = progress / CLOSE_COMBAT_DISTANCE
-			var distance_penalty: float = cover_distance_from_me / COVER_CHECK_DISTANCE
-
-			# [Issue #574] Penalize cover positions lit by the flashlight
-			var flashlight_penalty: float = 0.0
-			if _flashlight_detection and _player and _flashlight_detection.is_position_lit(cover_pos, _player, _raycast):
-				flashlight_penalty = 8.0  # Strong penalty — avoid walking into flashlight beam
-
-			var total_score: float = hidden_score + approach_score * 2.0 - distance_penalty - same_obstacle_penalty - flashlight_penalty
-
-			if total_score > best_score:
-				best_score = total_score
-				best_cover = cover_pos
-				best_obstacle = collider
-				found_valid_cover = true
-
-	if found_valid_cover:
-		_pursuit_next_cover = best_cover
-		_has_pursuit_cover = true
-		_current_cover_obstacle = best_obstacle
-		_log_debug("Found pursuit cover at %s (score: %.2f)" % [_pursuit_next_cover, best_score])
-	else: _has_pursuit_cover = false
+	var result := _pursuit_component.find_cover()
+	_has_pursuit_cover = result.found
+	if result.found:
+		_pursuit_next_cover      = result.cover
+		_current_cover_obstacle  = result.obstacle
 
 ## Check if there's a clear path to a position (no walls blocking).
 func _can_reach_position(target: Vector2) -> bool:
@@ -3247,7 +3183,8 @@ func _find_cover_closest_to_player() -> void:
 	if _player == null:
 		_has_valid_cover = false
 		return
-
+	var wp_a := _combat_waypoint(_player.global_position)  # Issue #1227
+	if wp_a != Vector2.ZERO: _cover_position = wp_a; _has_valid_cover = true; return
 	var player_pos := _player.global_position
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_distance: float = INF
@@ -3300,7 +3237,8 @@ func _find_cover_position() -> void:
 	if _player == null:
 		_has_valid_cover = false
 		return
-
+	var wp_r := _combat_waypoint(_player.global_position, true)  # Issue #1227: retreat path
+	if wp_r != Vector2.ZERO: _cover_position = wp_r; _has_valid_cover = true; _last_cover_search_time = Time.get_ticks_msec() / 1000.0; return
 	# Issue #969: throttle 16-raycast cover search
 	var current_time := Time.get_ticks_msec() / 1000.0
 	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
@@ -3465,6 +3403,8 @@ func _has_clear_path_to(target: Vector2) -> bool:
 
 ## Find cover position closer to the flank target for cover-to-cover movement.
 func _find_flank_cover_toward_target() -> void:
+	var wp_f := _combat_waypoint(_flank_target)  # Issue #1227
+	if wp_f != Vector2.ZERO: _flank_next_cover = wp_f; _has_flank_cover = true; return
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
 	var found_valid_cover: bool = false
@@ -4061,6 +4001,15 @@ func _calculate_lead_prediction() -> Vector2:
 func _process_patrol(delta: float) -> void:
 	# Issue #1119: NavigationAgent2D routing replaces direct direction+wall avoidance (wall-rubbing fix).
 	if _patrol_points.is_empty(): return
+	# Issue #1216: Snap patrol points after 1 physics frame; only if within agent_radius*2 (avoid cross-wall snap).
+	if not _patrol_points_snapped and _nav_agent != null and Engine.get_physics_frames() > _spawn_physics_frame:
+		var nav_map: RID = _nav_agent.get_navigation_map()
+		if nav_map.is_valid():
+			var snap_thr := ((_nav_agent.path_desired_distance if _nav_agent.path_desired_distance > 0.0 else 50.0) * 2.0)
+			for i in range(_patrol_points.size()):
+				var snapped := NavigationServer2D.map_get_closest_point(nav_map, _patrol_points[i])
+				if _patrol_points[i].distance_to(snapped) <= snap_thr: _patrol_points[i] = snapped
+			_patrol_points_snapped = true; _log_to_file("Patrol points snapped to navmesh (Issue #1216)")
 	if _is_waiting_at_patrol_point:
 		_patrol_wait_timer += delta
 		if _patrol_wait_timer >= patrol_wait_time:
@@ -4071,18 +4020,19 @@ func _process_patrol(delta: float) -> void:
 	if _nav_agent == null:  # Fallback if nav agent unavailable
 		if global_position.distance_to(target_point) < 5.0: _is_waiting_at_patrol_point = true; velocity = Vector2.ZERO; return
 		var d := (target_point - global_position).normalized(); velocity = d * move_speed; rotation = d.angle(); return
-	_nav_agent.target_position = target_point
-	if _nav_agent.is_navigation_finished():
+	# Issue #1220: use _move_to_target_nav so patrol gets the same wall-avoidance + ORCA +
+	# slide-collision corner-escape used by PURSUING/FLANKING, preventing wall-pressing.
+	if not _move_to_target_nav(target_point, move_speed):
 		_is_waiting_at_patrol_point = true; _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; velocity = Vector2.ZERO; return
-	var dir := (_nav_agent.get_next_path_position() - global_position).normalized()
-	velocity = dir * move_speed; move_and_slide(); _push_casings()
-	if dir.length() > 0.1: rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta); _process_corner_check(delta, dir, "PATROL")
+	var dir := velocity.normalized()
+	if dir.length() > 0.1: _process_corner_check(delta, dir, "PATROL")
 	var moved := global_position.distance_to(_patrol_stuck_last_position)  # Stuck detection
 	if moved < PATROL_STUCK_DISTANCE_THRESHOLD:
 		_patrol_stuck_timer += delta
 		if _patrol_stuck_timer >= PATROL_STUCK_MAX_TIME:
-			_log_to_file("PATROL STUCK: pos=%s for %.1fs, skipping" % [global_position, _patrol_stuck_timer])
-			_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; _is_waiting_at_patrol_point = true; velocity = Vector2.ZERO
+			_log_to_file("PATROL STUCK: pos=%s for %.1fs, advancing to next point" % [global_position, _patrol_stuck_timer])
+			_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; _current_patrol_index = (_current_patrol_index + 1) % _patrol_points.size()  # #1216: skip stuck point
+			_is_waiting_at_patrol_point = true; _patrol_wait_timer = 0.0; velocity = Vector2.ZERO
 	else: _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position
 
 ## Detect openings perpendicular to movement (for corner checking). Issue #347: smooth rotation.
@@ -4153,12 +4103,17 @@ func _initialize_idle_scan_targets() -> void:
 	_idle_scan_target_index = randi() % _idle_scan_targets.size()
 
 ## Called when a bullet enters the threat sphere.
+## Issue #1311: removed _is_position_visible_to_enemy — suppression works through cover.
+## Issue #1228: only player bullets suppress. #1311: fix ulong→int overflow for C# bullets.
 func _on_threat_area_entered(area: Area2D) -> void:
-	if ("shooter_id" in area and area.shooter_id == get_instance_id()) or not _is_position_visible_to_enemy(area.global_position):
-		return  # Own bullet or wall blocking line of sight — no suppression
-	_bullets_in_threat_sphere.append(area)
-	_threat_memory_timer = THREAT_MEMORY_DURATION
-	_log_debug("Bullet entered threat sphere, starting reaction delay...")
+	var raw_id = area.get("shooter_id"); if raw_id == null: raw_id = area.get("ShooterId")
+	if raw_id == null: return  # Unknown area — no suppression
+	# #1311: C# ulong may overflow to negative int64; reject only unset defaults (0, -1).
+	var sid: int = int(raw_id); if sid == 0 or sid == -1: return
+	var shooter: Object = instance_from_id(sid); if shooter == null: return
+	if not (shooter as Node).is_in_group("player"): return  # #1228: only player bullets
+	_log_to_file("[#1311] Player bullet entered threat sphere — suppression triggered")
+	_bullets_in_threat_sphere.append(area); _threat_memory_timer = THREAT_MEMORY_DURATION
 
 ## Called when a bullet exits the threat sphere.
 func _on_threat_area_exited(area: Area2D) -> void:
@@ -4229,7 +4184,8 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
 			if _memory: _memory.update_position(est_pos, 0.6); _memory_reset_confusion_timer = 0.0
 			_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()
-			if _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
+			# Issue #1305: Only fire back if combat transition succeeded (not redirected to IDLE by PerformanceSettings)
+			if _current_state == AIState.COMBAT and _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
@@ -4453,38 +4409,20 @@ func _reset() -> void:
 
 ## Disables hit area collision so bullets pass through dead enemies (multiple approaches due to Godot Area2D limits).
 func _disable_hit_area_collision() -> void:
-	# Approach 1: Disable the CollisionShape2D itself
-	# This is the most reliable way to prevent collision detection
 	if _hit_collision_shape:
 		_hit_collision_shape.set_deferred("disabled", true)
-
-	# Approach 2: Move to unused collision layers
-	# This prevents any interaction even if shape disabling fails
 	if _hit_area:
 		_hit_area.set_deferred("collision_layer", 0)
 		_hit_area.set_deferred("collision_mask", 0)
-
-	# Approach 3: Disable monitorable/monitoring (original approach)
-	# Kept as additional safety measure
-	if _hit_area:
 		_hit_area.set_deferred("monitorable", false)
 		_hit_area.set_deferred("monitoring", false)
 
 ## Re-enables hit area collision after respawning (restores all collision properties).
 func _enable_hit_area_collision() -> void:
-	# Re-enable CollisionShape2D
-	if _hit_collision_shape:
-		_hit_collision_shape.disabled = false
-
-	# Restore original collision layers
+	if _hit_collision_shape: _hit_collision_shape.disabled = false
 	if _hit_area:
-		_hit_area.collision_layer = _original_hit_area_layer
-		_hit_area.collision_mask = _original_hit_area_mask
-
-	# Re-enable monitorable/monitoring
-	if _hit_area:
-		_hit_area.monitorable = true
-		_hit_area.monitoring = true
+		_hit_area.collision_layer = _original_hit_area_layer; _hit_area.collision_mask = _original_hit_area_mask
+		_hit_area.monitorable = true; _hit_area.monitoring = true
 
 ## Returns whether this enemy is currently alive (used by bullets to check pass-through).
 func is_alive() -> bool:
@@ -4492,24 +4430,10 @@ func is_alive() -> bool:
 
 ## Initialize the death animation component.
 func _init_death_animation() -> void:
-	# Create death animation component as a child node
-	_death_animation = DeathAnimationComponent.new()
-	_death_animation.name = "DeathAnimation"
-	add_child(_death_animation)
-
-	# Initialize with sprite references
-	_death_animation.initialize(
-		_body_sprite,
-		_head_sprite,
-		_left_arm_sprite,
-		_right_arm_sprite,
-		_enemy_model
-	)
-
-	# Connect signals
+	_death_animation = DeathAnimationComponent.new(); _death_animation.name = "DeathAnimation"; add_child(_death_animation)
+	_death_animation.initialize(_body_sprite, _head_sprite, _left_arm_sprite, _right_arm_sprite, _enemy_model)
 	_death_animation.death_animation_completed.connect(_on_death_animation_completed)
 	_death_animation.ragdoll_activated.connect(_on_ragdoll_activated)
-
 	_log_to_file("Death animation component initialized")
 
 ## Called when death animation completes (body at rest).
@@ -4557,10 +4481,21 @@ func _update_debug_label() -> void:
 	if _prediction: t += _prediction.get_debug_text()
 	if _is_blinded or _is_stunned: t += "\n{%s}" % ("BLINDED + STUNNED" if _is_blinded and _is_stunned else "BLINDED" if _is_blinded else "STUNNED")
 	if _aggression: t += _aggression.get_debug_text()
+	if _tactical_movement: var _tm_info := _tactical_movement.get_debug_info(); if _tm_info != "": t += "\n" + _tm_info  # Issue #1249
+	if _tactical_group: var _tg_info := _tactical_group.get_debug_info(); if _tg_info != "": t += "\n" + _tg_info  # Issue #1287
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
 func get_goap_world_state() -> Dictionary: return _goap_world_state.duplicate()
+## Returns a copy of the active search waypoints (Issue #1251: used by SearchPathMonitor for visualization).
+func get_search_waypoints() -> Array[Vector2]: return _search_waypoints.duplicate()
+## Returns the current search waypoint index (Issue #1251: used by SearchPathMonitor for visualization).
+func get_search_current_waypoint_index() -> int: return _search_current_waypoint_index
+## Returns the current NavigationAgent2D computed path in global coordinates (Issue #1277: used by EnemyPathMonitor for visualization).
+## Returns an empty array if the navigation agent is unavailable or no path is computed.
+func get_nav_path() -> PackedVector2Array:
+	if _nav_agent == null: return PackedVector2Array()
+	return _nav_agent.get_current_navigation_path()
 
 func set_player_reloading(is_reloading: bool) -> void:
 	var old: bool = _goap_world_state.get("player_reloading", false)
@@ -4600,80 +4535,50 @@ func _draw() -> void:
 		color_fov = Color(0.5, 0.5, 0.5, 0.2); color_fov_edge = Color(0.5, 0.5, 0.5, 0.5)
 	if fov_angle > 0.0:
 		_draw_fov_cone(color_fov, color_fov_edge)
-	# Draw line to player if visible
 	if _can_see_player and _player:
-		var to_player := _player.global_position - global_position
-		draw_line(Vector2.ZERO, to_player, color_to_player, 1.5)
-	# Issue #934: Draw line to companion if visible
-	if _can_see_companion and _companion != null:
-		var to_companion := _companion.global_position - global_position
-		draw_line(Vector2.ZERO, to_companion, Color.ORANGE, 1.5)
-		# Draw bullet spawn point (actual muzzle position) and check if blocked
+		draw_line(Vector2.ZERO, _player.global_position - global_position, color_to_player, 1.5)
+	if _can_see_companion and _companion != null:  # Issue #934
+		draw_line(Vector2.ZERO, _companion.global_position - global_position, Color.ORANGE, 1.5)
 		var weapon_forward := _get_weapon_forward_direction()
-		var muzzle_global := _get_bullet_spawn_position(weapon_forward)
-		var spawn_point := muzzle_global - global_position  # Convert to local coordinates for draw
+		var spawn_point := _get_bullet_spawn_position(weapon_forward) - global_position
 		if _is_bullet_spawn_clear(weapon_forward):
 			draw_circle(spawn_point, 5.0, color_bullet_spawn)
 		else:
-			# Draw X for blocked spawn point
 			draw_line(spawn_point + Vector2(-5, -5), spawn_point + Vector2(5, 5), color_blocked, 2.0)
 			draw_line(spawn_point + Vector2(-5, 5), spawn_point + Vector2(5, -5), color_blocked, 2.0)
-	# Draw line to cover position if we have one
 	if _has_valid_cover:
 		var to_cover := _cover_position - global_position
-		draw_line(Vector2.ZERO, to_cover, color_to_cover, 1.5)
-		# Draw small circle at cover position
-		draw_circle(to_cover, 8.0, color_to_cover)
-	# Draw line to clear shot target if seeking clear shot
+		draw_line(Vector2.ZERO, to_cover, color_to_cover, 1.5); draw_circle(to_cover, 8.0, color_to_cover)
 	if _seeking_clear_shot and _clear_shot_target != Vector2.ZERO:
 		var to_target := _clear_shot_target - global_position
 		draw_line(Vector2.ZERO, to_target, color_clear_shot, 2.0)
-		# Draw triangle at target position
-		var target_pos := to_target
-		draw_line(target_pos + Vector2(-6, 6), target_pos + Vector2(6, 6), color_clear_shot, 2.0)
-		draw_line(target_pos + Vector2(6, 6), target_pos + Vector2(0, -8), color_clear_shot, 2.0)
-		draw_line(target_pos + Vector2(0, -8), target_pos + Vector2(-6, 6), color_clear_shot, 2.0)
-	# Draw line to pursuit cover if pursuing
+		draw_line(to_target + Vector2(-6, 6), to_target + Vector2(6, 6), color_clear_shot, 2.0)
+		draw_line(to_target + Vector2(6, 6), to_target + Vector2(0, -8), color_clear_shot, 2.0)
+		draw_line(to_target + Vector2(0, -8), to_target + Vector2(-6, 6), color_clear_shot, 2.0)
 	if _current_state == AIState.PURSUING and _has_pursuit_cover:
 		var to_pursuit := _pursuit_next_cover - global_position
-		draw_line(Vector2.ZERO, to_pursuit, color_pursuit, 2.0)
-		draw_circle(to_pursuit, 8.0, color_pursuit)
-	# Draw line to flank target if flanking
+		draw_line(Vector2.ZERO, to_pursuit, color_pursuit, 2.0); draw_circle(to_pursuit, 8.0, color_pursuit)
 	if _current_state == AIState.FLANKING:
 		if _has_flank_cover:
 			var to_flank_cover := _flank_next_cover - global_position
-			draw_line(Vector2.ZERO, to_flank_cover, color_flank, 2.0)
-			draw_circle(to_flank_cover, 8.0, color_flank)
+			draw_line(Vector2.ZERO, to_flank_cover, color_flank, 2.0); draw_circle(to_flank_cover, 8.0, color_flank)
 		elif _flank_target != Vector2.ZERO:
 			var to_flank := _flank_target - global_position
 			draw_line(Vector2.ZERO, to_flank, color_flank, 1.5)
-			# Draw diamond at flank target
-			var flank_pos := to_flank
-			draw_line(flank_pos + Vector2(0, -8), flank_pos + Vector2(8, 0), color_flank, 2.0)
-			draw_line(flank_pos + Vector2(8, 0), flank_pos + Vector2(0, 8), color_flank, 2.0)
-			draw_line(flank_pos + Vector2(0, 8), flank_pos + Vector2(-8, 0), color_flank, 2.0)
-			draw_line(flank_pos + Vector2(-8, 0), flank_pos + Vector2(0, -8), color_flank, 2.0)
-	# Draw suspected position from memory system (Issue #297)
-	# The circle radius is inversely proportional to confidence (larger = less certain)
+			draw_line(to_flank + Vector2(0, -8), to_flank + Vector2(8, 0), color_flank, 2.0)
+			draw_line(to_flank + Vector2(8, 0), to_flank + Vector2(0, 8), color_flank, 2.0)
+			draw_line(to_flank + Vector2(0, 8), to_flank + Vector2(-8, 0), color_flank, 2.0)
+			draw_line(to_flank + Vector2(-8, 0), to_flank + Vector2(0, -8), color_flank, 2.0)
+	# Issue #297: Draw suspected pos from memory — uncertainty circle radius ∝ 1/confidence (10–100px).
 	if _memory and _memory.has_target():
 		var to_suspected := _memory.suspected_position - global_position
-		# Color varies from yellow (low confidence) to orange (high confidence)
 		var confidence_color := Color.YELLOW.lerp(Color.ORANGE_RED, _memory.confidence)
-		# Draw dashed line to suspected position
 		draw_line(Vector2.ZERO, to_suspected, confidence_color, 1.0)
-		# Draw uncertainty circle - radius is inversely proportional to confidence
-		# At confidence 1.0: radius = 10px (certain)
-		# At confidence 0.1: radius = 100px (uncertain)
 		var uncertainty_radius := 10.0 + (1.0 - _memory.confidence) * 90.0
-		# Draw circle outline by drawing multiple line segments
 		var segments := 16
 		for i in range(segments):
-			var angle1 := (float(i) / segments) * TAU
-			var angle2 := (float(i + 1) / segments) * TAU
-			var p1 := to_suspected + Vector2(cos(angle1), sin(angle1)) * uncertainty_radius
-			var p2 := to_suspected + Vector2(cos(angle2), sin(angle2)) * uncertainty_radius
-			draw_line(p1, p2, confidence_color, 1.5)
-		# Draw small filled circle at center
+			var angle1 := (float(i) / segments) * TAU; var angle2 := (float(i + 1) / segments) * TAU
+			draw_line(to_suspected + Vector2(cos(angle1), sin(angle1)) * uncertainty_radius, to_suspected + Vector2(cos(angle2), sin(angle2)) * uncertainty_radius, confidence_color, 1.5)
 		draw_circle(to_suspected, 5.0, confidence_color)
 ## Draw FOV cone with obstacle occlusion. Follows model rotation, rays stop at walls.
 func _draw_fov_cone(fill_color: Color, edge_color: Color) -> void:
@@ -4729,6 +4634,21 @@ func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 
 ## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
+	# Issue #1249: Tactical yielding — let the closest enemy pass through narrow passages first.
+	# Do NOT yield in FLANKING: flanking has its own timeout+failure counter; interrupting it with a
+	# 3-second yield causes the flank attempt to time out, increments the failure count, and after
+	# 2 failures disables flanking entirely for this enemy. (#1249 session 4)
+	if _tactical_movement and _current_state in [AIState.PURSUING, AIState.COMBAT]:
+		if _tactical_movement.check_and_yield(target_pos, speed, get_physics_process_delta_time()):
+			var _wp: Vector2 = _tactical_movement.get_yield_position()
+			if _wp != Vector2.ZERO and global_position.distance_to(_wp) > 20.0:
+				var _wd := _apply_wall_avoidance((_wp - global_position).normalized())
+				velocity = _wd * speed * 0.6; if velocity.length_squared() > 0.01: rotation = velocity.angle()
+			else: velocity = Vector2.ZERO
+			return true
+	# Issue #1287: Tactical group encirclement — offset approach target so enemies spread around the player.
+	if _tactical_group and _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
+		target_pos = _tactical_group.get_adjusted_target(target_pos, get_physics_process_delta_time())
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
 	direction = _apply_wall_avoidance(direction)
@@ -4754,19 +4674,17 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
 	_avoidance_velocity = safe_velocity
 
-## Issue #1146: Compute a separation steering force that pushes this enemy away from
-## nearby allies. Returns the adjusted velocity with separation applied.
+## Issue #1146: Separation steering — push away from nearby allies.
+## Issue #1249: Skip separation while yielding so the passing enemy isn't pushed aside.
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
+	if _tactical_movement and _tactical_movement.is_yielding: return vel  # #1249: yielding — don't push
 	var sep_force: Vector2 = Vector2.ZERO
 	for body in get_tree().get_nodes_in_group("enemies"):
-		if body == self or not is_instance_valid(body):
-			continue
+		if body == self or not is_instance_valid(body): continue
 		var diff: Vector2 = global_position - (body as Node2D).global_position
 		var dist: float = diff.length()
-		if dist < SEPARATION_RADIUS and dist > 0.1:
-			sep_force += diff.normalized() * (SEPARATION_RADIUS - dist) / SEPARATION_RADIUS
-	if sep_force != Vector2.ZERO:
-		vel += sep_force * SEPARATION_STRENGTH * delta
+		if dist < SEPARATION_RADIUS and dist > 0.1: sep_force += diff.normalized() * (SEPARATION_RADIUS - dist) / SEPARATION_RADIUS
+	if sep_force != Vector2.ZERO: vel += sep_force * SEPARATION_STRENGTH * delta
 	return vel
 
 ## Check if the navigation agent has a valid path to the target.
@@ -4774,7 +4692,6 @@ func _has_nav_path_to(target_pos: Vector2) -> bool:
 	if _nav_agent == null: return false
 	_nav_agent.target_position = target_pos
 	return not _nav_agent.is_navigation_finished()
-
 ## Get distance to target along the navigation path (more accurate than straight-line).
 func _get_nav_path_distance(target_pos: Vector2) -> float:
 	if _nav_agent == null: return global_position.distance_to(target_pos)
@@ -4877,7 +4794,6 @@ func _calculate_suspected_directions(death_position: Vector2, hit_direction: Vec
 	_suspected_directions.append(primary)
 	_suspected_directions.append(Vector2(-primary.y, primary.x))  # perp left
 	_suspected_directions.append(Vector2(primary.y, -primary.x))  # perp right
-
 func _can_see_position(pos: Vector2) -> bool:
 	if _raycast == null: return false
 	var orig := _raycast.target_position
@@ -4903,7 +4819,6 @@ func try_throw_grenade() -> bool:
 		if not _is_pre_attack_flashing: _is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(tgt, _execute_grenade_throw.bind(tgt))
 		return true  # Callback fires the throw after flash completes
 	return _execute_grenade_throw(tgt)
-
 func _execute_grenade_throw(tgt: Vector2) -> bool:  ## Issue #824: grenade throw callback.
 	_is_pre_attack_flashing = false; if _invisibility: _invisibility.reveal()  # Issue #1121: reveal on grenade throw
 	var result := _grenade_component.try_throw(tgt, _is_alive, _is_stunned, _is_blinded)
@@ -4914,11 +4829,8 @@ func _setup_grenade_avoidance() -> void:
 	_grenade_avoidance = GrenadeAvoidanceComponent.new()
 	_grenade_avoidance.name = "GrenadeAvoidance"
 	add_child(_grenade_avoidance)
-	# Issue #426: Pass raycast for LOS check (enemies only react to visible grenades)
-	if _raycast: _grenade_avoidance.set_raycast(_raycast)
-	# Issue #426: Pass FOV params (enemies only react to grenades in vision cone)
-	if _enemy_model: _grenade_avoidance.set_fov_parameters(_enemy_model, fov_angle, fov_enabled)
-
+	if _raycast: _grenade_avoidance.set_raycast(_raycast)  # Issue #426: LOS check (enemies only react to visible grenades)
+	if _enemy_model: _grenade_avoidance.set_fov_parameters(_enemy_model, fov_angle, fov_enabled)  # Issue #426: FOV cone filter
 func _update_grenade_danger_detection() -> void:
 	if _grenade_avoidance: _grenade_avoidance.update()
 func _calculate_grenade_evasion_target() -> void:
@@ -4976,7 +4888,7 @@ func _switch_to_secondary_weapon() -> void:
 	_current_ammo = magazine_size; _reserve_ammo = (total_magazines - 1) * magazine_size; _is_reloading = false; _reload_timer = 0.0
 	if sc.get("sprite_path", "") != "" and _weapon_sprite:  # Issue #583: update weapon sprite to PM
 		var tex := load(sc["sprite_path"]) as Texture2D; if tex: _weapon_sprite.texture = tex
-	print("[Enemy] RPG fired, switched to secondary weapon (PM)")
+	if OS.is_debug_build(): print("[Enemy] RPG fired, switched to secondary weapon (PM)")
 ## Setup enemy flashlight for night mode (Issue #824).
 func _setup_enemy_flashlight() -> void:
 	_enemy_flashlight = EnemyFlashlightComponent.new(); _enemy_flashlight.debug_logging = debug_logging; add_child(_enemy_flashlight)
@@ -4988,13 +4900,10 @@ func _apply_machete_attack_animation() -> void:
 ## Connect CasingPusher Area2D signals (Issue #438, same pattern as player Issue #392).
 func _connect_casing_pusher_signals() -> void:
 	if _casing_pusher == null: return
-	if not _casing_pusher.body_entered.is_connected(_on_casing_pusher_body_entered):
-		_casing_pusher.body_entered.connect(_on_casing_pusher_body_entered)
-	if not _casing_pusher.body_exited.is_connected(_on_casing_pusher_body_exited):
-		_casing_pusher.body_exited.connect(_on_casing_pusher_body_exited)
+	if not _casing_pusher.body_entered.is_connected(_on_casing_pusher_body_entered): _casing_pusher.body_entered.connect(_on_casing_pusher_body_entered)
+	if not _casing_pusher.body_exited.is_connected(_on_casing_pusher_body_exited): _casing_pusher.body_exited.connect(_on_casing_pusher_body_exited)
 func _on_casing_pusher_body_entered(body: Node2D) -> void:
-	if body is RigidBody2D and body.has_method("receive_kick") and body not in _overlapping_casings:
-		_overlapping_casings.append(body)
+	if body is RigidBody2D and body.has_method("receive_kick") and body not in _overlapping_casings: _overlapping_casings.append(body)
 func _on_casing_pusher_body_exited(body: Node2D) -> void:
 	if body is RigidBody2D:
 		var idx := _overlapping_casings.find(body); if idx >= 0: _overlapping_casings.remove_at(idx)

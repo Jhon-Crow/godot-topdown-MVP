@@ -237,43 +237,22 @@ func _setup_navigation() -> void:
 	if nav_region == null:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
-
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
 		return
-
-	# Bake the navigation mesh to include physics obstacles from collision layer 4
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
+	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	print("Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Re-add the outline for the walkable floor area (approximate oval)
-	# Using a polygon that roughly follows the castle oval shape
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(500, 1280),    # Left edge
-		Vector2(600, 800),
-		Vector2(900, 400),
-		Vector2(1500, 200),
-		Vector2(3000, 100),    # Top center
-		Vector2(4500, 200),
-		Vector2(5100, 400),
-		Vector2(5400, 800),
-		Vector2(5500, 1280),   # Right edge
-		Vector2(5400, 1760),
-		Vector2(5100, 2160),
-		Vector2(4500, 2360),
-		Vector2(3000, 2460),   # Bottom center
-		Vector2(1500, 2360),
-		Vector2(900, 2160),
-		Vector2(600, 1760),
-	])
-	nav_poly.add_outline(floor_outline)
-
-	# Use NavigationServer2D to bake from source geometry
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-
+	# Issue #1289: push updated polygon back into the NavigationServer's live map.
+	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 	print("Navigation mesh baked successfully")
 
 
@@ -740,7 +719,9 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 
 ## Called when player runs out of ammo in current magazine.
 func _on_player_ammo_depleted() -> void:
-	_broadcast_player_ammo_empty(true)
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
