@@ -58,7 +58,9 @@ const ACTIVE_ITEM_NAMES: Dictionary = {
 	14: "Auto-Reload",
 	15: "Drilling Bullets",
 	16: "Recoil Compensator",
-	17: "Combat Disposition"
+	17: "Combat Disposition",
+	18: "Experimental Sample",
+	19: "Fine Motor Skills"
 }
 
 ## Grenade type to display name mapping.
@@ -327,7 +329,11 @@ func _populate_table() -> void:
 		if game_manager and stat != "":
 			current_kills = game_manager.get(stat) if game_manager.get(stat) != null else 0
 
-		var map_display: String = "%d / %d kills (no Laser Sight)" % [current_kills, min_kills]
+		var map_display: String
+		if stat == "shots_fired_special_weapons":
+			map_display = "%d / %d shots (shotgun/rifle/revolver)" % [current_kills, min_kills]
+		else:
+			map_display = "%d / %d kills (no Laser Sight)" % [current_kills, min_kills]
 
 		var items_list: Array[String] = []
 		for weapon_id in kill_condition.get("weapons", []):

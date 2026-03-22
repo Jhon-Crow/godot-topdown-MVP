@@ -1251,6 +1251,11 @@ public partial class Player : BaseCharacter
         // Initialize jammer HUD prohibition sign (always created; visibility toggled at runtime) (Issue #1036)
         InitJammerHud();
 
+        // Connect to ActiveItemManager's active_item_changed signal so that picking up
+        // a new active item in roguelike mode (no scene restart) immediately initialises
+        // the item's subsystem on the player (Issue #1325).
+        ConnectActiveItemChangedSignal();
+
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
         int maxAmmo = CurrentWeapon?.WeaponData?.MagazineSize ?? 0;
@@ -2769,9 +2774,8 @@ public partial class Player : BaseCharacter
 
         // Get selected weapon ID from GameManager (GDScript autoload)
         var selectedWeaponId = gameManager.Call("get_selected_weapon").AsString();
-        if (string.IsNullOrEmpty(selectedWeaponId) || selectedWeaponId == "makarov_pm")
+        if (string.IsNullOrEmpty(selectedWeaponId))
         {
-            // Default weapon (MakarovPM) - already equipped, nothing to do
             return;
         }
 
@@ -2819,15 +2823,28 @@ public partial class Player : BaseCharacter
 
         LogToFile($"[Player.Weapon] GameManager weapon selection: {selectedWeaponId} ({weaponNodeName})");
 
-        // Remove the default MakarovPM immediately
-        var defaultWeapon = GetNodeOrNull<BaseWeapon>("MakarovPM");
-        if (defaultWeapon != null)
+        // Guard: if the correct weapon is already equipped, nothing to do.
+        // This prevents unnecessary remove/re-add of the scene-placed MakarovPM on _Ready()
+        // and avoids a crash when body_entered fires synchronously during physics processing
+        // (Issue #1323 regression fix).
+        if (CurrentWeapon != null && CurrentWeapon.Name == weaponNodeName)
         {
-            RemoveChild(defaultWeapon);
-            defaultWeapon.QueueFree();
-            LogToFile("[Player.Weapon] Removed default MakarovPM");
+            LogToFile($"[Player.Weapon] Already equipped {weaponNodeName}, no change needed");
+            return;
         }
-        CurrentWeapon = null;
+
+        // Remove the current weapon (whatever it is) before equipping the new one.
+        // Issue #1323: previously only MakarovPM was removed by name, so picking up a
+        // new weapon while already holding a non-default weapon left the old weapon node
+        // alive as a child, and picking up makarov_pm was a no-op due to an early return.
+        if (CurrentWeapon != null)
+        {
+            var oldWeaponName = CurrentWeapon.Name;
+            RemoveChild(CurrentWeapon);
+            CurrentWeapon.QueueFree();
+            CurrentWeapon = null;
+            LogToFile($"[Player.Weapon] Removed current weapon: {oldWeaponName}");
+        }
 
         // Load and instantiate the selected weapon
         var weaponScene = GD.Load<PackedScene>(scenePath);
@@ -2838,6 +2855,9 @@ public partial class Player : BaseCharacter
             AddChild(weapon);
             CurrentWeapon = weapon;
             LogToFile($"[Player.Weapon] Equipped {weaponNodeName} (ammo: {weapon.CurrentAmmo}/{weapon.WeaponData?.MagazineSize ?? 0})");
+            // Re-detect arm pose so the player's arms match the new weapon immediately.
+            _weaponPoseApplied = false;
+            _weaponDetectFrameCount = 0;
         }
         else
         {
@@ -7692,6 +7712,211 @@ public partial class Player : BaseCharacter
         else
         {
             LogToFile("[Player.Debug] WARNING: GameManager doesn't have invincibility_toggled signal");
+        }
+    }
+
+    // ============================================================================
+    // Active Item Pickup Reinitialisation — Issue #1325
+    // ============================================================================
+
+    /// <summary>
+    /// Connect to ActiveItemManager's active_item_changed signal so that when the player
+    /// picks up a new active item in roguelike mode (no scene restart), the player's
+    /// item subsystem is immediately initialised (Issue #1325).
+    /// </summary>
+    private void ConnectActiveItemChangedSignal()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.ItemPickup] ActiveItemManager not found — cannot connect active_item_changed");
+            return;
+        }
+
+        if (!activeItemManager.HasSignal("active_item_changed"))
+        {
+            LogToFile("[Player.ItemPickup] ActiveItemManager missing active_item_changed signal");
+            return;
+        }
+
+        activeItemManager.Connect("active_item_changed", Callable.From<long>(OnActiveItemPickedUp));
+        LogToFile("[Player.ItemPickup] Connected to ActiveItemManager.active_item_changed");
+    }
+
+    /// <summary>
+    /// De-equip all active item subsystems so that only the newly picked-up item is active.
+    /// Resets equipped flags and frees child nodes created by Init* methods.
+    /// Called before InitX() in OnActiveItemPickedUp to prevent dual-equip when the player
+    /// swaps items at the roguelike pedestal (Issue #1325).
+    /// </summary>
+    private void DeequipAllActiveItems()
+    {
+        LogToFile("[Player.ItemPickup] De-equipping all active item subsystems before re-init");
+
+        // Flashlight
+        if (_flashlightNode != null && IsInstanceValid(_flashlightNode))
+            _flashlightNode.QueueFree();
+        _flashlightNode = null;
+        _flashlightEquipped = false;
+
+        // Homing bullets
+        _homingBulletsEquipped = false;
+        _homingActive = false;
+        _homingTimer = 0.0f;
+
+        // Teleport bracers
+        _teleportBracersEquipped = false;
+        _teleportAiming = false;
+
+        // BFF pendant — companion remains in scene; just disable new summons
+        _bffPendantEquipped = false;
+
+        // Invisibility suit
+        if (_invisibilitySuitEffect != null && IsInstanceValid(_invisibilitySuitEffect))
+            _invisibilitySuitEffect.QueueFree();
+        _invisibilitySuitEffect = null;
+        _invisibilitySuitEquipped = false;
+
+        // Breaker bullets (passive flag)
+        _breakerBulletsActive = false;
+
+        // Force field
+        if (_forceFieldEffect != null && IsInstanceValid(_forceFieldEffect))
+            _forceFieldEffect.QueueFree();
+        _forceFieldEffect = null;
+        _forceFieldEquipped = false;
+
+        // Trajectory glasses
+        if (_trajectoryGlassesEffect != null && IsInstanceValid(_trajectoryGlassesEffect))
+            _trajectoryGlassesEffect.QueueFree();
+        _trajectoryGlassesEffect = null;
+        if (_trajectoryGlassesHud != null && IsInstanceValid(_trajectoryGlassesHud))
+            _trajectoryGlassesHud.QueueFree();
+        _trajectoryGlassesHud = null;
+        _trajectoryGlassesEquipped = false;
+
+        // Loudspeaker
+        if (_loudspeakerConeEffect != null && IsInstanceValid(_loudspeakerConeEffect))
+            _loudspeakerConeEffect.QueueFree();
+        _loudspeakerConeEffect = null;
+        if (_loudspeakerHandSprite != null && IsInstanceValid(_loudspeakerHandSprite))
+            _loudspeakerHandSprite.QueueFree();
+        _loudspeakerHandSprite = null;
+        _loudspeakerProgress = null;
+        _loudspeakerHoldTimer = 0.0f;
+        _loudspeakerEquipped = false;
+
+        // Breaching charges
+        if (_breachingChargesEffect != null && IsInstanceValid(_breachingChargesEffect))
+            _breachingChargesEffect.QueueFree();
+        _breachingChargesEffect = null;
+        _breachingChargesEquipped = false;
+
+        // Drilling bullets
+        if (_drillingBulletsPopup != null && IsInstanceValid((GodotObject)_drillingBulletsPopup))
+            ((Node)_drillingBulletsPopup).QueueFree();
+        _drillingBulletsPopup = null;
+        _drillingBulletsEquipped = false;
+        _drillingBulletsUsed = false;
+
+        // Recoil compensator
+        _recoilCompensatorEquipped = false;
+        _recoilCompensatorActive = false;
+        _recoilCompensatorCharge = 0.0f;
+
+        // Experimental sample
+        if (_experimentalSamplePopup != null && IsInstanceValid((GodotObject)_experimentalSamplePopup))
+            ((Node)_experimentalSamplePopup).QueueFree();
+        _experimentalSamplePopup = null;
+        _experimentalSampleEquipped = false;
+        _experimentalSampleCharges = 0;
+
+        // Combat disposition (passive)
+        _combatDispositionActive = false;
+
+        // Auto-reload (passive)
+        _autoReloadActive = false;
+
+        // Fine motor skills
+        _fineMotorSkillsEquipped = false;
+        _fineMotorSkillsActive = false;
+
+        LogToFile("[Player.ItemPickup] All active item subsystems de-equipped");
+    }
+
+    /// <summary>
+    /// Called when a new active item is selected (e.g. picked up in roguelike mode).
+    /// Initialises the corresponding item subsystem on the player without a scene restart.
+    /// Passive items (BREAKER_BULLETS, LASER_SIGHT, EXTENDED_MAGAZINE, ARMORED_SKIN,
+    /// AUTO_RELOAD, COMBAT_DISPOSITION) are handled by their own passive init paths.
+    /// </summary>
+    /// <param name="itemType">The ActiveItemType enum value of the newly selected item.</param>
+    private void OnActiveItemPickedUp(long itemType)
+    {
+        LogToFile($"[Player.ItemPickup] active_item_changed received: type={itemType}");
+        // De-equip the previous active item before initialising the new one
+        // to prevent dual-equip when the player swaps items at the pedestal.
+        DeequipAllActiveItems();
+        // Map ActiveItemType enum values to Init functions.
+        // Values mirror ActiveItemManager.ActiveItemType in active_item_manager.gd.
+        switch (itemType)
+        {
+            case 1:  // FLASHLIGHT
+                InitFlashlight();
+                break;
+            case 2:  // HOMING_BULLETS
+                InitHomingBullets();
+                break;
+            case 3:  // TELEPORT_BRACERS
+                InitTeleportBracers();
+                break;
+            case 4:  // BFF_PENDANT
+                InitBffPendant();
+                break;
+            case 5:  // INVISIBILITY_SUIT
+                InitInvisibilitySuit();
+                break;
+            case 6:  // BREAKER_BULLETS (passive)
+                InitBreakerBullets();
+                break;
+            case 7:  // FORCE_FIELD
+                InitForceField();
+                break;
+            case 8:  // TRAJECTORY_GLASSES
+                InitTrajectoryGlasses();
+                break;
+            case 11: // LOUDSPEAKER
+                InitLoudspeaker();
+                break;
+            case 12: // BREACHING_CHARGES
+                InitBreachingCharges();
+                break;
+            case 13: // ARMORED_SKIN (passive)
+                InitArmoredSkin();
+                ApplyItemVisual();
+                break;
+            case 14: // AUTO_RELOAD (passive)
+                InitAutoReload();
+                break;
+            case 15: // DRILLING_BULLETS
+                InitDrillingBullets();
+                break;
+            case 16: // RECOIL_COMPENSATOR
+                InitRecoilCompensator();
+                break;
+            case 17: // COMBAT_DISPOSITION (passive)
+                InitCombatDisposition();
+                break;
+            case 18: // EXPERIMENTAL_SAMPLE
+                InitExperimentalSample();
+                break;
+            case 19: // FINE_MOTOR_SKILLS
+                InitFineMotorSkills();
+                break;
+            default:
+                // NONE (0), LASER_SIGHT (9), EXTENDED_MAGAZINE (10): no player-side init needed
+                LogToFile($"[Player.ItemPickup] No player-side init required for item type {itemType}");
+                break;
         }
     }
 
