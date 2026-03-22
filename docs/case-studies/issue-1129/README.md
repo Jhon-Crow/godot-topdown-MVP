@@ -402,6 +402,67 @@ Files changed:
 
 ---
 
+## Bug Report #5: GasMaskEnemy Not Added to Any Level Spawner (2026-03-22)
+
+### Symptom
+
+User reported: "в спавнер газовый враг не добавился" — the gas mask enemy was not added to the spawner. The `GasMaskEnemy.tscn` scene existed and was fully functional, but it was never placed on any playable level map.
+
+### Root Cause Analysis
+
+In Bug Report #4, the fix created the `GasMaskEnemy.tscn` scene and registered it in `EnemiesTableMenu`, but explicitly noted "NOT placed on any map yet." The `ENEMY_FEATURES` dictionary in `enemies_table_menu.gd` had `GasMask = false` for all levels, and a comment stated:
+```
+## GasMask enemy (Issue #1129) is registered here but NOT placed on any map yet.
+```
+
+This was an intentional decision at the time (the user's comment during Bug #4 said "The new enemy should be registered in the EnemiesTableMenu but NOT placed on any map yet"), but the issue remained open, and the user expected the enemy to be placed on a level as part of the full implementation.
+
+### How Enemies Are Placed in Levels
+
+The project uses two methods for placing enemies:
+
+1. **Scene-based placement** (most levels): Enemy instances are placed directly in level `.tscn` files with their special flags set as node properties. Example: `BuildingLevel.tscn` has an enemy node with `is_grenadier = true`.
+
+2. **Separate scene files** (RadioJammerEnemy, GasMaskEnemy): Specialized enemy scenes are referenced as `ext_resource` and instantiated directly. Example: `DecadenceLevel.tscn` loads `RadioJammerEnemy.tscn` and places a `RadioJammer` node.
+
+3. **Runtime spawning** (ArenaLevel, RoguelikeLevel): Enemies are instantiated at runtime from `Enemy.tscn` and configured programmatically. These do NOT support specialized enemy scenes.
+
+### Fix
+
+Added 2 GasMaskEnemy instances to **FactoryLevel** (the industrial factory map):
+- Replaced `Enemy5` at position `(1800, 250)` with `GasMaskEnemy1`
+- Replaced `Enemy11` at position `(300, 1700)` with `GasMaskEnemy2`
+- These positions are in different areas of the factory for good spatial distribution
+
+Factory was chosen because:
+- It's a later-game level with heavily armored enemies (4-6 HP), appropriate difficulty for chemical grenades
+- Thematically, "gas mask" enemies fit an industrial factory setting
+- It had no special enemy types yet (no grenadier, teleporter, etc.)
+
+Additionally updated:
+- `enemies_table_menu.gd`: Set `GasMask = true` for FactoryLevel, removed "NOT placed" comment
+- `levels_menu.gd`: Updated Factory description to mention gas mask enemies
+
+Files changed:
+- `scenes/levels/FactoryLevel.tscn` — added `GasMaskEnemy.tscn` ext_resource, replaced 2 enemies with GasMaskEnemy instances
+- `scripts/ui/enemies_table_menu.gd` — set GasMask=true for Factory, removed placeholder comment
+- `scripts/ui/levels_menu.gd` — updated Factory level description
+
+---
+
+## Timeline Summary
+
+| Date | Event |
+|------|-------|
+| 2026-03-18 | Issue #1129 created: add chemical grenade to enemies |
+| 2026-03-18 | Bug #1: Illusion copies blocked by premature `is_player_under_illusion()` guard |
+| 2026-03-18 | Bug #2: Illusion copies spawning at wrong positions (Godot `global_position` pre-tree) |
+| 2026-03-18 | Bug #3: Area2D overlap detection unreliable; switched to `intersect_shape()` |
+| 2026-03-21 | Bug #4: New requirements — dedicated GasMaskEnemy type, 2–5 copies, no chemical for regular enemies |
+| 2026-03-22 | Bug #5: GasMaskEnemy not placed on any level — added to FactoryLevel |
+
+---
+
 ## References
 
 - AggressionGasGrenade pattern: `scripts/projectiles/aggression_gas_grenade.gd`

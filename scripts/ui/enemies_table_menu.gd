@@ -50,7 +50,6 @@ const ENEMY_COUNTS: Dictionary = {
 
 ## Enemy features per level: [Grenadier, Teleport, Force Field, Jammer, GasMask]
 ## true = feature present on this map.
-## GasMask enemy (Issue #1129) is registered here but NOT placed on any map yet.
 const ENEMY_FEATURES: Dictionary = {
 	"res://scenes/levels/LabyrinthLevel.tscn":  [false, false, false, false, false],
 	"res://scenes/levels/BuildingLevel.tscn":   [true,  false, false, false, false],
@@ -62,7 +61,7 @@ const ENEMY_FEATURES: Dictionary = {
 	"res://scenes/levels/DecadenceLevel.tscn":  [false, false, false, true,  false],
 	"res://scenes/levels/TestTier.tscn":        [false, false, false, false, false],
 	"res://scenes/levels/RevolverLevel.tscn":   [false, false, true,  false, false],
-	"res://scenes/levels/FactoryLevel.tscn":    [false, false, false, false, false],
+	"res://scenes/levels/FactoryLevel.tscn":    [false, false, false, false, true],
 }
 
 

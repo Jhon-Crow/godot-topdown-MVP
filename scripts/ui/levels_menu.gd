@@ -94,7 +94,7 @@ const LEVELS: Array[Dictionary] = [
 		"name": "Factory",
 		"name_ru": "Завод",
 		"path": "res://scenes/levels/FactoryLevel.tscn",
-		"description": "Industrial factory building with interconnected rooms and corridors. 13 heavily armored enemies, max 2 per room.",
+		"description": "Industrial factory building with interconnected rooms and corridors. 13 heavily armored enemies including 2 gas mask enemies with chemical grenades, max 2 per room.",
 		"preview_color": Color(0.2, 0.18, 0.14, 1.0),
 		"preview_accent": Color(0.45, 0.38, 0.28, 1.0),
 		"enemy_count": 13,

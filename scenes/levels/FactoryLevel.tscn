@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="3_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="4_enemy"]
 [ext_resource type="Script" path="res://Scripts/Components/LevelInitFallback.cs" id="5_fallback"]
+[ext_resource type="PackedScene" uid="uid://gas_mask_enemy_1129" path="res://scenes/objects/GasMaskEnemy.tscn" id="6_gas_mask_enemy"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_h"]
 size = Vector2(2464, 32)
@@ -796,7 +797,7 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-[node name="Enemy5" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+[node name="GasMaskEnemy1" parent="Environment/Enemies" instance=ExtResource("6_gas_mask_enemy")]
 position = Vector2(1800, 250)
 behavior_mode = 1
 min_health = 4
@@ -851,7 +852,7 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-[node name="Enemy11" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+[node name="GasMaskEnemy2" parent="Environment/Enemies" instance=ExtResource("6_gas_mask_enemy")]
 position = Vector2(300, 1700)
 behavior_mode = 1
 min_health = 4
