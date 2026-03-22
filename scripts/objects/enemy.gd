@@ -155,6 +155,7 @@ var _shoot_timer: float = 0.0  ## Time since last shot
 const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5; var _last_gunshot_propagation_time: float = -999.0
 const COVER_SEARCH_COOLDOWN: float = 0.3; var _last_cover_search_time: float = -999.0
 const SUPPRESSED_MIN_DURATION: float = 0.5; var _suppressed_entry_time: float = -999.0  ## RCA-11: prevent SUPPRESSED→SEEKING_COVER cycling
+const POST_SUPPRESSION_COVER_DURATION: float = 3.0; var _post_suppression_timer: float = 0.0  ## Issue #1338: stay in cover after being suppressed
 const SEEKING_COVER_MIN_DURATION: float = 0.3; var _seeking_cover_entry_time: float = -999.0  ## Issue #997 RCA-17
 const RETREATING_MIN_DURATION: float = 0.3; var _retreating_entry_time: float = -999.0  ## Issue #997 RCA-17
 const IN_COVER_MIN_DURATION: float = 0.3; var _in_cover_entry_time: float = -999.0  ## Issue #997 RCA-18: prevent instant IN_COVER→SUPPRESSED cycling
@@ -1734,8 +1735,16 @@ func _process_in_cover_state(delta: float) -> void:
 			_shoot()
 			_shoot_timer = 0.0
 
+	# Issue #1338: decrement post-suppression timer while in cover
+	if _post_suppression_timer > 0.0:
+		_post_suppression_timer -= delta
+		if _post_suppression_timer <= 0.0:
+			_post_suppression_timer = 0.0
+			_log_debug("Post-suppression cover period ended")
+
 	# If player (or companion) lost and not under fire, try suppressive fire then pursuing (Issue #934, #910).
-	if not (_can_see_player or _can_see_companion) and not _under_fire and not (_suppressive_fire and _suppressive_fire.try_suppress_cover(_player, _last_known_player_position, _is_melee_weapon, _is_reloading, _shoot_timer, shoot_cooldown)):
+	# Issue #1338: stay in cover during post-suppression period instead of pursuing
+	if not (_can_see_player or _can_see_companion) and not _under_fire and _post_suppression_timer <= 0.0 and not (_suppressive_fire and _suppressive_fire.try_suppress_cover(_player, _last_known_player_position, _is_melee_weapon, _is_reloading, _shoot_timer, shoot_cooldown)):
 		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
 		_transition_to_pursuing()
 
@@ -1852,6 +1861,9 @@ func _process_suppressed_state(delta: float) -> void:
 	# RCA-19: Apply minimum duration to prevent rapid cycling
 	if not _under_fire:
 		if Time.get_ticks_msec() / 1000.0 - _suppressed_entry_time >= SUPPRESSED_MIN_DURATION:
+			# Issue #1338: start post-suppression timer so enemy stays in cover
+			_post_suppression_timer = POST_SUPPRESSION_COVER_DURATION
+			_log_debug("Suppression ended, entering post-suppression cover (%.1fs)" % POST_SUPPRESSION_COVER_DURATION)
 			_transition_to_in_cover()
 
 ## Process RETREATING state - moving to cover with behavior based on damage taken.
@@ -4339,6 +4351,7 @@ func _reset() -> void:
 	_has_valid_cover = false
 	_under_fire = false
 	_suppression_timer = 0.0
+	_post_suppression_timer = 0.0
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
 	_continuous_visibility_timer = 0.0
