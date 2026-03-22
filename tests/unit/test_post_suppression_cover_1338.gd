@@ -478,8 +478,8 @@ class MockHitHandler:
 
 	## Simulates the #910 hit handler
 	func on_hit() -> void:
-		# Issue #1338: RETREATING excluded from #910 handler
-		if _current_state in ["IDLE", "SEARCHING", "SEEKING_COVER"]:
+		# Issue #1338: RETREATING and SEEKING_COVER excluded from #910 handler
+		if _current_state in ["IDLE", "SEARCHING"]:
 			_transition_log.append("%s -> COMBAT (#910)" % _current_state)
 			_current_state = "COMBAT"
 
@@ -514,6 +514,93 @@ func test_hit_still_triggers_combat_from_searching() -> void:
 
 	assert_eq(handler._current_state, "COMBAT",
 		"Hit should trigger COMBAT from SEARCHING")
+
+
+func test_hit_does_not_interrupt_seeking_cover() -> void:
+	## Issue #1338: hits should NOT interrupt SEEKING_COVER — enemy keeps moving to cover.
+	var handler := MockHitHandler.new()
+	handler._current_state = "SEEKING_COVER"
+	handler.on_hit()
+
+	assert_eq(handler._current_state, "SEEKING_COVER",
+		"Hit should NOT interrupt SEEKING_COVER state")
+	assert_eq(handler._transition_log.size(), 0,
+		"No transition should occur when hit while SEEKING_COVER")
+
+
+# ============================================================================
+# Tests for visibility throttling (Issue #1338 - FPS fix)
+# ============================================================================
+
+
+class MockVisibilityThrottle:
+	## Simulates the _is_visible_from_player() throttle/cache logic.
+	const VISION_CHECK_INTERVAL: int = 6
+
+	var _cached_visible_from_player: bool = false
+	var _visible_from_player_cache_frame: int = -1
+	var _vision_frame_offset: int = 0
+	var _raycast_count: int = 0
+
+	func _do_expensive_check() -> bool:
+		_raycast_count += 1
+		return true  # simulate visible
+
+	func is_visible_from_player(frame: int) -> bool:
+		if frame == _visible_from_player_cache_frame: return _cached_visible_from_player
+		if (frame % VISION_CHECK_INTERVAL) != _vision_frame_offset: return _cached_visible_from_player
+		_visible_from_player_cache_frame = frame
+		_cached_visible_from_player = _do_expensive_check()
+		return _cached_visible_from_player
+
+
+func test_visibility_throttle_caches_per_frame() -> void:
+	## Calling _is_visible_from_player() twice in the same frame should
+	## only do the expensive raycast once.
+	var vis := MockVisibilityThrottle.new()
+	vis._vision_frame_offset = 0
+
+	# Frame 0 matches offset 0 — should do a raycast
+	vis.is_visible_from_player(0)
+	vis.is_visible_from_player(0)
+
+	assert_eq(vis._raycast_count, 1,
+		"Should only do one raycast per frame (cached)")
+
+
+func test_visibility_throttle_skips_non_check_frames() -> void:
+	## On frames that don't match the vision check interval,
+	## no new raycasts should be performed.
+	var vis := MockVisibilityThrottle.new()
+	vis._vision_frame_offset = 0
+
+	# Frame 0: check frame (offset=0, 0%6=0) — raycast
+	vis.is_visible_from_player(0)
+	assert_eq(vis._raycast_count, 1)
+
+	# Frames 1-5: not check frames — no raycasts
+	for f in range(1, 6):
+		vis.is_visible_from_player(f)
+	assert_eq(vis._raycast_count, 1,
+		"Should not raycast on non-check frames")
+
+	# Frame 6: check frame again (6%6=0) — raycast
+	vis.is_visible_from_player(6)
+	assert_eq(vis._raycast_count, 2,
+		"Should raycast again on next check frame")
+
+
+func test_visibility_throttle_reduces_load() -> void:
+	## Over 60 frames (1 second at 60fps), only ~10 raycasts should occur
+	## instead of 60 (one per frame).
+	var vis := MockVisibilityThrottle.new()
+	vis._vision_frame_offset = 0
+
+	for f in range(60):
+		vis.is_visible_from_player(f)
+
+	assert_eq(vis._raycast_count, 10,
+		"Should only do ~10 raycasts over 60 frames (every 6 frames)")
 
 
 # ============================================================================

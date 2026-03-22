@@ -2887,8 +2887,14 @@ func alert_from_loudspeaker(sound_position: Vector2) -> void:
 	if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:
 		_transition_to_pursuing()
 	_log_to_file("Alerted by loudspeaker from position %s" % sound_position)
-func _is_visible_from_player() -> bool:  ## PLAYER can see ENEMY (checks center + corners)
-	return _is_position_visible_from_player(global_position) if _player else false
+func _is_visible_from_player() -> bool:  ## PLAYER can see ENEMY (checks center + corners, throttled to every 6 frames)
+	var frame := Engine.get_physics_frames()
+	if frame == _visible_from_player_cache_frame: return _cached_visible_from_player
+	# Issue #1338: throttle expensive 5-raycast check to every VISION_CHECK_INTERVAL frames (staggered per enemy)
+	if (frame % VISION_CHECK_INTERVAL) != _vision_frame_offset: return _cached_visible_from_player
+	_visible_from_player_cache_frame = frame
+	_cached_visible_from_player = _is_position_visible_from_player(global_position) if _player else false
+	return _cached_visible_from_player
 func _get_enemy_check_points(c: Vector2) -> Array[Vector2]:  ## center + 4 corners for visibility
 	var d := 22.0 * 0.707; return [c, c + Vector2(d, d), c + Vector2(-d, d), c + Vector2(d, -d), c + Vector2(-d, -d)]
 func _is_point_visible_from_player(pt: Vector2) -> bool:  ## Single point visible from player
@@ -4208,8 +4214,8 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			if _memory: _memory.update_position(est_pos, 0.8); _memory_reset_confusion_timer = 0.0
 			_log_to_file("[#959] Pacifist hit - retaliates in PACIFIST state (attacker only)"); return
 		# Issue #910: When hit in non-combat state, transition to COMBAT and fire back
-		# Issue #1338: RETREATING excluded — enemy must continue to cover, not break retreat on hit
-		if _current_state in [AIState.IDLE, AIState.SEARCHING, AIState.SEEKING_COVER]:
+		# Issue #1338: RETREATING and SEEKING_COVER excluded — enemy must continue to cover, not break retreat on hit
+		if _current_state in [AIState.IDLE, AIState.SEARCHING]:
 			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
 			if _memory: _memory.update_position(est_pos, 0.6); _memory_reset_confusion_timer = 0.0
 			_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()
