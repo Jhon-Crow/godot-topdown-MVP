@@ -224,6 +224,7 @@ func _reset_stats() -> void:
 	shots_fired = 0
 	hits_landed = 0
 	player_alive = true
+	_death_signal_received = false
 	player = null
 
 
@@ -277,16 +278,18 @@ func get_accuracy() -> float:
 
 ## Called when the player dies.
 ## Issue #1334: Guard against duplicate calls — both level GDScript and
-## LevelInitFallback.cs connect to the player Died signal and each schedule
-## a 0.5 s timer that calls this method.  The second call arrives after
-## reload_current_scene() has already been triggered, causing a crash.
+## LevelInitFallback.cs may call this method via their 0.5s timers.
+## Round 3: GameManager now handles restart via its own signal connection
+## (_on_player_died_signal), so this method is kept as a legacy entry point
+## for level scripts that still call it. The player_alive guard prevents
+## double-restart since _on_player_died_signal already set it to false.
 func on_player_death() -> void:
+	_log_to_file("on_player_death() called (legacy entry point)")
 	if not player_alive:
+		_log_to_file("on_player_death() — player already dead, skipping")
 		return
 	player_alive = false
-	# Issue #1334: Disable player collision as defense-in-depth — even if the
-	# player script already does this, ensure it from GameManager in case the
-	# player reference is a different script variant (GDScript vs C#).
+	# Issue #1334: Disable player collision as defense-in-depth
 	if player and is_instance_valid(player):
 		if player is CharacterBody2D:
 			player.collision_layer = 0
@@ -306,7 +309,9 @@ var _reloading: bool = false
 ## Issue #1334: Prevents re-entrant calls while a reload is already underway.
 func restart_scene() -> void:
 	if _reloading:
+		_log_to_file("restart_scene() — already reloading, skipping")
 		return
+	_log_to_file("restart_scene() — starting scene reload")
 	_reloading = true
 	_reset_stats()
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
@@ -322,9 +327,83 @@ func _reset_reloading() -> void:
 	_reloading = false
 
 
-## Sets the player reference.
+## Sets the player reference and connects to the player's death signal.
+## Issue #1334 Round 3: GameManager now directly listens for the player Died signal
+## instead of relying on level scripts' fragile 0.5s timer + await coroutine.
+## This ensures restart always fires regardless of level script behavior.
 func set_player(p: Node2D) -> void:
+	# Disconnect from previous player if any
+	if player and is_instance_valid(player):
+		if player.has_signal("Died") and player.is_connected("Died", _on_player_died_signal):
+			player.disconnect("Died", _on_player_died_signal)
+		elif player.has_signal("died") and player.is_connected("died", _on_player_died_signal):
+			player.disconnect("died", _on_player_died_signal)
 	player = p
+	# Connect to new player's death signal
+	if player and is_instance_valid(player):
+		if player.has_signal("Died"):
+			if not player.is_connected("Died", _on_player_died_signal):
+				player.connect("Died", _on_player_died_signal)
+				_log_to_file("Connected to player 'Died' signal (C# naming)")
+		elif player.has_signal("died"):
+			if not player.is_connected("died", _on_player_died_signal):
+				player.connect("died", _on_player_died_signal)
+				_log_to_file("Connected to player 'died' signal (GDScript naming)")
+
+
+## Issue #1334 Round 3: Direct signal handler for player death.
+## Called immediately when the player's Died/died signal fires.
+## This acts as a SAFETY NET: it starts a timer, and when it fires,
+## checks if restart was already triggered. If not, GameManager forces restart.
+## This prevents the "grey death screen" bug where level scripts' await-based
+## timers silently fail to trigger restart in exported builds.
+func _on_player_died_signal() -> void:
+	_log_to_file("Player Died signal received — starting safety net timer")
+	_death_signal_received = true
+	# Disable collision immediately (defense-in-depth) regardless of who handles restart
+	if player and is_instance_valid(player):
+		if player is CharacterBody2D:
+			player.collision_layer = 0
+			player.collision_mask = 0
+			_log_to_file("Disabled dead player collision from GameManager signal handler")
+	# Start a safety net timer. Use process_always=true and ignore_time_scale=true
+	# so the timer fires even if the tree is paused or time_scale is modified.
+	# The 1.5s delay gives level scripts ample time to call on_player_death() first
+	# (their timers are 0.5s), so normal flow is preserved for working levels.
+	var timer := get_tree().create_timer(1.5, true, false, true)
+	timer.timeout.connect(_on_death_safety_net_timer)
+	_log_to_file("Safety net timer started (1.5s)")
+
+
+## Whether the death signal was received but restart hasn't happened yet.
+## Reset by _reset_stats() during restart or scene change.
+var _death_signal_received: bool = false
+
+
+## Issue #1334 Round 3: Safety net timer callback.
+## Forces restart if the level script's death handler failed to trigger it.
+## Checks both player_alive (normal levels) and _reloading (already restarting).
+func _on_death_safety_net_timer() -> void:
+	# If restart already happened or is in progress, nothing to do
+	if not player_alive or _reloading:
+		_log_to_file("Safety net timer fired — restart already handled (player_alive=%s, _reloading=%s)" % [str(player_alive), str(_reloading)])
+		return
+	# If death signal wasn't received (shouldn't happen), skip
+	if not _death_signal_received:
+		_log_to_file("Safety net timer fired — but _death_signal_received is false, skipping")
+		return
+	# Check if we're in a special mode that handles death differently
+	if roguelike_active:
+		_log_to_file("Safety net timer fired — roguelike mode active, skipping auto-restart")
+		return
+	# Check if the current scene is ArenaLevel (handles death with score screen, not restart)
+	var current_scene := get_tree().current_scene
+	if current_scene and current_scene.scene_file_path.find("ArenaLevel") >= 0:
+		_log_to_file("Safety net timer fired — ArenaLevel detected, skipping auto-restart")
+		return
+	# Nobody handled the death — force restart!
+	_log_to_file("Safety net timer fired — player_alive still true after 1.5s! Level script failed to restart. Forcing on_player_death()")
+	on_player_death()
 
 
 ## Toggles debug mode on/off.
