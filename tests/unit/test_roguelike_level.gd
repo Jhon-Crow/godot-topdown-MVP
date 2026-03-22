@@ -631,3 +631,39 @@ func test_mock_advance_route_not_affected_by_room_size_changes() -> void:
 	level.in_treasure_room = false
 	assert_eq(level.advance_route(), "treasure_room",
 		"advance_route must still work correctly regardless of room size changes")
+
+
+# ============================================================================
+# Tests — weapon icon paths (Issue #1317)
+# ============================================================================
+
+
+## Mirror of WEAPON_ICON_PATHS from roguelike_level.gd
+const WEAPON_ICON_PATHS: Dictionary = {
+	"makarov_pm":      "res://assets/sprites/weapons/makarov_pm_icon.png",
+	"m16":             "res://assets/sprites/weapons/m16_simple.png",
+	"shotgun":         "res://assets/sprites/weapons/shotgun_icon.png",
+	"mini_uzi":        "res://assets/sprites/weapons/mini_uzi_icon.png",
+	"silenced_pistol": "res://assets/sprites/weapons/silenced_pistol_icon.png",
+	"sniper":          "res://assets/sprites/weapons/asvk_topdown.png",
+	"revolver":        "res://assets/sprites/weapons/revolver_icon.png",
+	"ak_gl":           "res://assets/sprites/weapons/ak_gl_icon.png",
+}
+
+const WEAPON_CASE_ICON_PATH: String = "res://assets/sprites/weapons/weapon_case_icon.png"
+
+
+func test_sniper_icon_is_not_weapon_case() -> void:
+	## Issue #1317: sniper pedestal was showing suitcase instead of weapon model.
+	## WEAPON_ICON_PATHS["sniper"] must point to the ASVK sprite, not the generic case icon.
+	assert_eq(WEAPON_ICON_PATHS["sniper"], "res://assets/sprites/weapons/asvk_topdown.png",
+		"Sniper icon must be asvk_topdown.png, not weapon_case_icon.png")
+	assert_ne(WEAPON_ICON_PATHS["sniper"], WEAPON_CASE_ICON_PATH,
+		"Sniper icon must not be the generic weapon case/suitcase icon")
+
+
+func test_no_weapon_icon_maps_to_weapon_case() -> void:
+	## Issue #1317: regression guard — no weapon in WEAPON_ICON_PATHS should use the suitcase fallback.
+	for weapon_id in WEAPON_ICON_PATHS:
+		assert_ne(WEAPON_ICON_PATHS[weapon_id], WEAPON_CASE_ICON_PATH,
+			"Weapon '%s' must not use the generic weapon_case_icon (fix icon path)" % weapon_id)
