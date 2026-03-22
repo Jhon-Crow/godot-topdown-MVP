@@ -37,6 +37,9 @@ const FORMATION_OFFSET: float = 80.0
 ## Speed multiplier applied to the enemy while shield is raised.
 const SHIELD_SPEED_MULTIPLIER: float = 0.5
 
+## Rotation speed multiplier while shield is raised (slower turning with heavy shield).
+const SHIELD_ROTATION_MULTIPLIER: float = 0.35
+
 ## Current shield HP (resets to SHIELD_HP when shield raises again).
 var _shield_current_hp: int = SHIELD_HP
 
@@ -79,6 +82,12 @@ func is_active() -> bool:
 ## Returns SHIELD_SPEED_MULTIPLIER while shield is up, 1.0 otherwise.
 func get_speed_multiplier() -> float:
 	return SHIELD_SPEED_MULTIPLIER if _shield_up else 1.0
+
+
+## Returns the rotation speed multiplier while shield is raised.
+## Shield makes the enemy turn slower due to weight and bulk.
+func get_rotation_multiplier() -> float:
+	return SHIELD_ROTATION_MULTIPLIER if _shield_up else 1.0
 
 
 ## Called each physics frame from enemy _physics_process().
