@@ -4147,19 +4147,17 @@ func _initialize_idle_scan_targets() -> void:
 
 ## Called when a bullet enters the threat sphere.
 func _on_threat_area_entered(area: Area2D) -> void:
-	if not _is_position_visible_to_enemy(area.global_position):
-		return  # Wall blocking line of sight — no suppression
-	# Issue #1228: only suppress from player bullets — ignore own and other enemies' bullets.
-	if "shooter_id" in area:
-		var bullet_shooter_id: int = area.shooter_id
-		if bullet_shooter_id == -1: return  # Unknown shooter — no suppression
-		var bullet_shooter: Object = instance_from_id(bullet_shooter_id)
-		if bullet_shooter == null: return  # Shooter no longer exists — no suppression
-		if not (bullet_shooter as Node).is_in_group("player"):
-			_log_to_file("[#1228] Non-player bullet from '%s' — no suppression" % (bullet_shooter as Node).name)
-			return  # Bullet not from player (own or another enemy) — no suppression
-	_bullets_in_threat_sphere.append(area)
-	_threat_memory_timer = THREAT_MEMORY_DURATION
+	if not _is_position_visible_to_enemy(area.global_position): return  # Wall blocking — no suppression
+	# Issue #1228: only suppress from player bullets — ignore own/enemy bullets.
+	# Uses .get() for both GDScript "shooter_id" (int, default -1) and C# "ShooterId" (ulong [Export], default 0).
+	# Pattern from force_field_effect.gd (#932): .get() works where "in" operator may not for C# exports.
+	var raw_id = area.get("shooter_id"); if raw_id == null: raw_id = area.get("ShooterId")
+	if raw_id == null: _log_to_file("[#1228] No shooter_id — no suppression"); return  # Unknown area — safe default
+	var sid: int = int(raw_id); if sid <= 0: return  # -1 (GDScript default) or 0 (C# default) — no suppression
+	var shooter: Object = instance_from_id(sid); if shooter == null: return  # Shooter freed — no suppression
+	if not (shooter as Node).is_in_group("player"): _log_to_file("[#1228] Non-player bullet '%s' — no suppression" % (shooter as Node).name); return
+	_log_to_file("[#1228] Player bullet '%s' — suppression allowed" % (shooter as Node).name)
+	_bullets_in_threat_sphere.append(area); _threat_memory_timer = THREAT_MEMORY_DURATION
 	_log_debug("Bullet entered threat sphere, starting reaction delay...")
 
 ## Called when a bullet exits the threat sphere.

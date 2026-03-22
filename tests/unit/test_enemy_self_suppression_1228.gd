@@ -12,10 +12,19 @@ extends GutTest
 
 
 class MockBullet:
-	## Simulates a bullet Area2D with a shooter_id property.
+	## Simulates a GDScript bullet with snake_case shooter_id property (default -1).
 	extends RefCounted
 
 	var shooter_id: int = -1
+	var global_position: Vector2 = Vector2.ZERO
+
+
+class MockCSharpBullet:
+	## Simulates a C# Bullet with PascalCase ShooterId property (default 0, as ulong).
+	## C# Bullet.cs has [Export] public ulong ShooterId — accessible via .get("ShooterId").
+	extends RefCounted
+
+	var ShooterId: int = 0  # C# ulong default is 0 (no shooter)
 	var global_position: Vector2 = Vector2.ZERO
 
 
@@ -63,18 +72,23 @@ class MockThreatAreaLogic:
 		return null
 
 	## Mirrors the fixed _on_threat_area_entered logic.
-	func on_threat_area_entered(area: MockBullet) -> void:
+	## Accepts either MockBullet (GDScript, shooter_id) or MockCSharpBullet (C#, ShooterId).
+	func on_threat_area_entered(area: RefCounted) -> void:
 		if not _is_position_visible(area.global_position):
 			return  # Wall blocking — no suppression
 
 		# Issue #1228: only suppress from player bullets.
-		if "shooter_id" in area:
-			var bullet_shooter_id: int = area.shooter_id
-			if bullet_shooter_id == -1:
-				return  # Unknown shooter — no suppression
-			var bullet_shooter: Object = _instance_from_id(bullet_shooter_id)
-			if bullet_shooter == null or not (bullet_shooter as MockNode).is_in_group("player"):
-				return  # Bullet not from player — no suppression
+		# Use .get() for both GDScript "shooter_id" and C# "ShooterId" — same as enemy.gd fix.
+		var raw_id = area.get("shooter_id")
+		if raw_id == null: raw_id = area.get("ShooterId")
+		if raw_id == null:
+			return  # No shooter info — safe default, no suppression
+		var bullet_shooter_id: int = int(raw_id)
+		if bullet_shooter_id <= 0:
+			return  # -1 (GDScript default) or 0 (C# default) — no suppression
+		var bullet_shooter: Object = _instance_from_id(bullet_shooter_id)
+		if bullet_shooter == null or not (bullet_shooter as MockNode).is_in_group("player"):
+			return  # Bullet not from player — no suppression
 
 		bullets_in_threat_sphere.append(area)
 		threat_memory_timer = 1.0  # Simulated THREAT_MEMORY_DURATION
@@ -266,3 +280,44 @@ func test_mix_of_bullets_only_player_suppresses() -> void:
 		"Only the player bullet must be in the threat sphere (1 out of 3)")
 	assert_true(logic.bullets_in_threat_sphere.has(player_bullet),
 		"The sole entry must be the player bullet")
+
+
+# ============================================================================
+# Tests: C# Bullets (Issue #1228 follow-up — PascalCase ShooterId interop)
+# ============================================================================
+
+
+func test_csharp_player_bullet_suppresses_enemy() -> void:
+	## C# Bullet fired by the player (ShooterId = player instance ID) MUST suppress.
+	## Mirrors C# Bullet.cs with [Export] public ulong ShooterId set by BaseWeapon.cs.
+	var bullet := MockCSharpBullet.new()
+	bullet.ShooterId = PLAYER_ID  # C# [Export] ulong — accessed via .get("ShooterId")
+
+	logic.on_threat_area_entered(bullet)
+
+	assert_eq(logic.bullets_in_threat_sphere.size(), 1,
+		"C# player bullet (ShooterId) MUST suppress the enemy")
+	assert_gt(logic.threat_memory_timer, 0.0,
+		"Threat memory timer MUST be set by C# player bullet")
+
+
+func test_csharp_enemy_bullet_does_not_suppress() -> void:
+	## C# Bullet fired by an enemy (ShooterId = enemy instance ID) must NOT suppress.
+	var bullet := MockCSharpBullet.new()
+	bullet.ShooterId = ENEMY_ID
+
+	logic.on_threat_area_entered(bullet)
+
+	assert_eq(logic.bullets_in_threat_sphere.size(), 0,
+		"C# enemy bullet (ShooterId) must NOT suppress")
+
+
+func test_csharp_bullet_default_shooter_id_zero_does_not_suppress() -> void:
+	## C# Bullet with ShooterId = 0 (default, unset) must NOT suppress.
+	var bullet := MockCSharpBullet.new()
+	bullet.ShooterId = 0  # ulong default — no valid shooter
+
+	logic.on_threat_area_entered(bullet)
+
+	assert_eq(logic.bullets_in_threat_sphere.size(), 0,
+		"C# bullet with ShooterId=0 (default/unset) must NOT suppress")

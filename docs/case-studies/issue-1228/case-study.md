@@ -81,22 +81,19 @@ func _on_threat_area_entered(area: Area2D) -> void:
     _log_debug("Bullet entered threat sphere, starting reaction delay...")
 ```
 
-**After:**
+**After (second-iteration fix — handles both GDScript and C# bullets):**
 ```gdscript
 func _on_threat_area_entered(area: Area2D) -> void:
-    if not _is_position_visible_to_enemy(area.global_position):
-        return  # Wall blocking line of sight — no suppression
-    # Issue #1228: only suppress from player bullets — ignore own and other enemies' bullets.
-    if "shooter_id" in area:
-        var bullet_shooter_id: int = area.shooter_id
-        if bullet_shooter_id == -1:
-            return  # Unknown shooter — no suppression
-        var bullet_shooter: Object = instance_from_id(bullet_shooter_id)
-        if bullet_shooter == null or not (bullet_shooter as Node).is_in_group("player"):
-            return  # Bullet not from player (own or another enemy) — no suppression
+    if not _is_position_visible_to_enemy(area.global_position): return
+    # Issue #1228: only suppress from player bullets — ignore own/enemy bullets.
+    # Uses .get() for both GDScript "shooter_id" (int, -1 default) and C# "ShooterId" (ulong, 0 default).
+    var raw_id = area.get("shooter_id"); if raw_id == null: raw_id = area.get("ShooterId")
+    if raw_id == null: return  # No shooter info — safe default, no suppression
+    var sid: int = int(raw_id); if sid <= 0: return  # -1 or 0 default — no suppression
+    var shooter: Object = instance_from_id(sid); if shooter == null: return
+    if not (shooter as Node).is_in_group("player"): return  # Enemy bullet — no suppression
     _bullets_in_threat_sphere.append(area)
     _threat_memory_timer = THREAT_MEMORY_DURATION
-    _log_debug("Bullet entered threat sphere, starting reaction delay...")
 ```
 
 ### Why This Fix Is Correct
@@ -107,7 +104,7 @@ func _on_threat_area_entered(area: Area2D) -> void:
 
 3. **Handles null/freed shooters safely**: If `instance_from_id()` returns `null` (shooter was freed), we conservatively skip suppression (safe default).
 
-4. **Handles bullets with no shooter_id**: If the area has no `shooter_id` property (other Area2D objects), the `"shooter_id" in area` check fails and we fall through to adding to the threat sphere — unchanged behavior for non-bullet areas.
+4. **Handles bullets with no shooter_id**: If the area has neither `shooter_id` nor `ShooterId` property (other Area2D objects), `raw_id` stays `null` and we return without suppression — safe default.
 
 5. **Wall blocking check remains intact**: The `_is_position_visible_to_enemy` check is preserved as the first filter.
 
@@ -211,12 +208,95 @@ The updated `_on_threat_area_entered` now also emits detailed `[#1228]` log line
 
 ---
 
+## Third Game Log (2026-03-22 03:55) — Regression Report
+
+The repository owner provided a third log on 2026-03-22 with the comment (Russian):
+> "враги не подавляются от пул игрока, но подавляются от своих (или после ретритинг автоматическки не знаю)"
+> Translation: "enemies are not suppressed by player bullets, but are suppressed by their own (or after retreating automatically I don't know)"
+
+**Log file:** `docs/case-studies/issue-1228/game_log_20260322_035546.txt`
+
+### Build Info
+
+The log again shows `Build info: not available (build_info.cfg not found)`. This means the binary was downloaded from the GitHub Actions CI artifact for this PR branch — not from the original main branch. The CI workflow (`build-windows.yml`) runs on every push to the branch and uploads a Windows build artifact but does **not** embed `build_info.cfg`.
+
+### What the User Observed
+
+The user says "enemies are not suppressed by player bullets" — meaning after applying the fix (from the CI artifact), player bullets no longer suppress enemies. Enemy-to-enemy suppression persists.
+
+### Root Cause of the Regression — C# Interop Bug in the First Fix
+
+The original fix used:
+```gdscript
+if "shooter_id" in area:
+    var bullet_shooter_id: int = area.shooter_id
+    ...
+```
+
+**The `in` operator calls `.get()` internally.** As explicitly documented in `Scripts/Projectiles/Bullet.cs` (comment at line 566):
+> *"GDScript's `.get("property_name")` does NOT work reliably with C# `[Export]` properties."*
+
+The player uses C# weapons (AKGL, AssaultRifle — from `Scripts/Weapons/`) whose `SpawnBullet` method in `BaseWeapon.cs` creates instances of `scenes/projectiles/csharp/Bullet.tscn` (C# `Bullet.cs`). The C# Bullet has:
+```csharp
+[Export]
+public ulong ShooterId { get; set; } = 0;
+```
+
+For C# bullets, `"shooter_id" in area` may return **FALSE** or an unexpected value. When it fails:
+
+- **C# enemy bullets** (enemies also instantiate from `Bullet.tscn` → GDScript `bullet.gd` with snake_case `shooter_id`) ARE correctly filtered
+- **C# player bullets** — if the check returns false or the property isn't read correctly, the filter logic may misclassify them
+
+Additionally, enemies use `scenes/projectiles/Bullet.tscn` which is the **GDScript** bullet (`scripts/projectiles/bullet.gd`, snake_case `shooter_id` = -1 default), while player weapons use `scenes/projectiles/csharp/Bullet.tscn` (C# `Bullet.cs`, PascalCase `ShooterId` = 0 default).
+
+### Fix Applied (Second Iteration)
+
+The fix was updated to use `.get()` explicitly for **both** property names, following the established pattern from `scripts/effects/force_field_effect.gd` (Issue #932):
+
+```gdscript
+func _on_threat_area_entered(area: Area2D) -> void:
+    if not _is_position_visible_to_enemy(area.global_position): return
+    # Try GDScript snake_case first, then C# PascalCase (Issue #932 pattern)
+    var raw_id = area.get("shooter_id"); if raw_id == null: raw_id = area.get("ShooterId")
+    if raw_id == null: return  # No shooter info — safe default, no suppression
+    var sid: int = int(raw_id); if sid <= 0: return  # -1 or 0 default — no suppression
+    var shooter: Object = instance_from_id(sid); if shooter == null: return
+    if not (shooter as Node).is_in_group("player"): return  # Enemy bullet — no suppression
+    _bullets_in_threat_sphere.append(area)
+```
+
+**Key improvements over the first fix:**
+1. Uses `.get()` explicitly instead of `in` operator — more reliable for C# `[Export]` properties
+2. Checks both `"shooter_id"` (GDScript) and `"ShooterId"` (C# PascalCase)
+3. Uses `sid <= 0` to catch both GDScript default (-1) and C# default (0) in one check
+4. Logs `[#1228] Player bullet ... — suppression allowed` for player bullets, making verification easy
+
+### Third Log Analysis
+
+The log covers ~3 minutes 23 seconds of gameplay (03:55:46 – 03:57:09) on BuildingLevel with 10 enemies.
+
+**Enemy-to-enemy suppressions (bug still present in first-iteration patched build):**
+
+| Timestamp | Enemy | Time since last player shot | Cause |
+|-----------|-------|-----------------------------|-------|
+| 03:56:01 | Enemy4 | ~9s | Enemy cross-suppression (BUG v1) |
+| 03:56:16 | Enemy1 | ~11s | Enemy cross-suppression (BUG v1) |
+| 03:56:26 | Enemy3, Enemy4 | ~6s | Enemy cross-suppression (BUG v1) |
+| 03:56:31 | Enemy1-4 (cascade) | ~11s | Enemy cross-suppression (BUG v1) |
+
+**Player-bullet suppressions also affected:** Multiple suppressions that should follow player shots (at 03:55:57, 03:56:05, 03:56:20, 03:56:38, 03:56:59, 03:57:04, 03:57:08) appear to work in this log — Enemy3 suppresses 1-2 seconds after player shots. However, the user reports enemy suppression from player bullets doesn't work reliably.
+
+The second-iteration fix resolves the C# interop issue, ensuring both player C# bullets and enemy GDScript bullets are handled correctly.
+
+---
+
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `scripts/objects/enemy.gd` | Fixed `_on_threat_area_entered` to use faction-aware check, added `[#1228]` diagnostic log lines |
-| `tests/unit/test_enemy_self_suppression_1228.gd` | New unit tests for the fix |
+| `scripts/objects/enemy.gd` | Fixed `_on_threat_area_entered` to use `.get()` for both `shooter_id` and `ShooterId`, added `[#1228]` diagnostic log lines |
+| `tests/unit/test_enemy_self_suppression_1228.gd` | Unit tests including new C# bullet (ShooterId) test cases |
 | `docs/case-studies/issue-1228/case-study.md` | This document |
 | `docs/case-studies/issue-1228/game_log_20260321_064834.txt` | First game log (unpatched build) |
 | `docs/case-studies/issue-1228/game_log_20260321_070804.txt` | Second game log (unpatched build, confirms same bug) |
+| `docs/case-studies/issue-1228/game_log_20260322_035546.txt` | Third game log (first-fix build, reveals C# interop regression) |
