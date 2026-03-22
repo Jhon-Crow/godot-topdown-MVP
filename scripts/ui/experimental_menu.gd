@@ -494,6 +494,7 @@ func _setup_enemy_spawner() -> void:
 		{"name": "UZI (SMG)", "weapon_type": 2, "behavior": 1},
 		{"name": "Machete (melee)", "weapon_type": 3, "behavior": 1},
 		{"name": "RPG + PM pistol", "weapon_type": 4, "behavior": 1},
+		{"name": "PM (Makarov pistol)", "weapon_type": 5, "behavior": 1},
 		{"name": "Machine Gunner (PKM)", "weapon_type": 6, "behavior": 1},
 		{"name": "Sniper (ASVK)", "weapon_type": 7, "behavior": 1},
 		{"name": "Patrol Rifle", "weapon_type": 0, "behavior": 0},
