@@ -1012,6 +1012,29 @@ func _setup_player_tracking() -> void:
 		_player.ammo_depleted.connect(_on_player_ammo_depleted)
 
 
+## Reconnect weapon signal handlers to the current player weapon.
+## Called after a mid-game weapon swap (e.g. pedestal pickup in Issue #1323) so the
+## ammo/shot counter UI stays in sync with the new weapon node.
+func _reconnect_weapon_signals() -> void:
+	var weapon: Node = _find_player_weapon()
+	if weapon == null:
+		return
+	if weapon.has_signal("AmmoChanged") and not weapon.AmmoChanged.is_connected(_on_weapon_ammo_changed):
+		weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
+	if weapon.has_signal("MagazinesChanged") and not weapon.MagazinesChanged.is_connected(_on_magazines_changed):
+		weapon.MagazinesChanged.connect(_on_magazines_changed)
+	if weapon.has_signal("Fired") and not weapon.Fired.is_connected(_on_shot_fired):
+		weapon.Fired.connect(_on_shot_fired)
+	if weapon.has_signal("ShellCountChanged") and not weapon.ShellCountChanged.is_connected(_on_shell_count_changed):
+		weapon.ShellCountChanged.connect(_on_shell_count_changed)
+	if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+		_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+	if weapon.has_method("GetMagazineAmmoCounts"):
+		var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+		_update_magazines_label(mag_counts)
+	print("[RoguelikeLevel] Reconnected weapon signals to %s" % weapon.name)
+
+
 func _setup_enemy_tracking() -> void:
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
@@ -1634,6 +1657,9 @@ func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 
 	if player.has_method("ApplySelectedWeaponFromGameManager"):
 		player.ApplySelectedWeaponFromGameManager()
+	# Reconnect level signal handlers to the new weapon after the swap,
+	# so the ammo/shot counter UI stays in sync (Issue #1323 regression fix).
+	_reconnect_weapon_signals()
 
 	print("[RoguelikeLevel] Weapon pedestal: player took %s, old weapon %s returned to pedestal" % [new_weapon_id, old_weapon_id])
 
