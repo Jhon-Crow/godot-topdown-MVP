@@ -251,13 +251,14 @@ func _setup_shield_visual() -> void:
 	frame.z_index = -1  # Behind body
 	shield_node.add_child(frame)
 
-	# Small viewport window cutout near upper portion (top-down: right side = upper).
+	# Viewport window centered on the shield (top-down: Y=0 is center, X is front-back).
+	# Matches real SWAT riot shield where the window is centered horizontally.
 	var viewport_window := Polygon2D.new()
 	viewport_window.polygon = PackedVector2Array([
-		Vector2(2, -10),
-		Vector2(4, -10),
-		Vector2(4, -5),
 		Vector2(2, -5),
+		Vector2(5, -5),
+		Vector2(5, 5),
+		Vector2(2, 5),
 	])
 	viewport_window.color = Color(0.5, 0.6, 0.7, 0.5)  # Semi-transparent glass
 	shield_node.add_child(viewport_window)

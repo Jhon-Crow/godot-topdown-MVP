@@ -340,6 +340,7 @@ var _shield_component: EnemyShieldComponent = null; var _formation_shielder: Nod
 var _revolver_cocking: bool = false  ## [Issue #1242] True while hammer is being cocked before revolver shot
 var _revolver_rounds_fired: int = 0  ## [Issue #1242] Rounds fired since last reload (for casing ejection count)
 var _revolver_reloading_coroutine: bool = false  ## [Issue #1242] True while multi-step revolver reload is running
+var _knockback_velocity: Vector2 = Vector2.ZERO  ## [Issue #1242] Knockback impulse that decays over time
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
@@ -889,6 +890,8 @@ func _physics_process(delta: float) -> void:
 	if _is_alive:
 		velocity = _apply_separation_force(velocity, delta)
 		if _shield_component: velocity *= _shield_component.get_speed_multiplier()  # Issue #1242: shield halves speed
+	if _knockback_velocity.length() > 1.0: velocity += _knockback_velocity; _knockback_velocity *= exp(-8.0 * delta)  # Issue #1242: knockback decay
+	elif _knockback_velocity != Vector2.ZERO: _knockback_velocity = Vector2.ZERO
 	move_and_slide()
 
 	# Push any casings we collided with (Issue #341)
@@ -1750,7 +1753,8 @@ func _process_in_cover_state(delta: float) -> void:
 	if _is_visible_from_player():
 		# If in alarm mode and can see player, fire a burst before escaping
 		# [#1161] Sniper rifle is bolt-action: no burst fire (flee immediately)
-		if _in_alarm_mode and _can_see_player and _player and weapon_type != WeaponType.SNIPER_RIFLE:
+		# [#1242] Revolver is single-action: no burst fire
+		if _in_alarm_mode and _can_see_player and _player and weapon_type != WeaponType.SNIPER_RIFLE and weapon_type != WeaponType.REVOLVER:
 			if not _cover_burst_pending:
 				# Start the cover burst
 				_cover_burst_pending = true
@@ -1889,7 +1893,8 @@ func _process_suppressed_state(delta: float) -> void:
 		# In suppressed state we're always in alarm mode - fire a burst before escaping if we can see player/companion
 		# Issue #934: also consider companion visibility
 		# [#1161] Sniper rifle is bolt-action: no burst fire (flee immediately)
-		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and weapon_type != WeaponType.SNIPER_RIFLE:
+		# [#1242] Revolver is single-action: no burst fire
+		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and weapon_type != WeaponType.SNIPER_RIFLE and weapon_type != WeaponType.REVOLVER:
 			if not _cover_burst_pending:
 				# Start the cover burst
 				_cover_burst_pending = true
@@ -2013,7 +2018,8 @@ func _process_retreat_full_hp(delta: float, _direction_to_cover: Vector2) -> voi
 ## Process ONE_HIT retreat: quick burst of 2-4 shots in an arc while turning, then face cover.
 func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void:
 	# [#1161] Sniper rifle is bolt-action: skip burst phase and run to cover immediately
-	if weapon_type == WeaponType.SNIPER_RIFLE:
+	# [#1242] Revolver is single-action: no burst fire (same as sniper)
+	if weapon_type == WeaponType.SNIPER_RIFLE or weapon_type == WeaponType.REVOLVER:
 		_retreat_burst_complete = true
 		_move_to_target_nav(_cover_position, combat_move_speed)
 		return
@@ -4809,6 +4815,7 @@ func is_aggressive() -> bool: return _aggression != null and _aggression.is_aggr
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
 	if _flashbang_status: _flashbang_status.apply_flashbang_effect(blindness_duration, stun_duration)
 func is_shield_active() -> bool: return _shield_component != null and _shield_component.is_active()  ## Issue #1242
+func apply_knockback(impulse: Vector2) -> void: _knockback_velocity = impulse  ## Issue #1242: shield break stagger
 func set_formation_follow_target(shielder: Node2D, pos: Vector2) -> void: _formation_shielder = shielder; _formation_target_pos = pos  ## Issue #1242
 # Grenade System (Issue #363) - Component-based (extracted for Issue #377)
 ## Setup the grenade component. Called from _ready(). Grenadiers use GrenadierGrenadeComponent (Issue #604).
