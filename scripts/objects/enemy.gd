@@ -4991,13 +4991,10 @@ func _apply_machete_attack_animation() -> void:
 ## Connect CasingPusher Area2D signals (Issue #438, same pattern as player Issue #392).
 func _connect_casing_pusher_signals() -> void:
 	if _casing_pusher == null: return
-	if not _casing_pusher.body_entered.is_connected(_on_casing_pusher_body_entered):
-		_casing_pusher.body_entered.connect(_on_casing_pusher_body_entered)
-	if not _casing_pusher.body_exited.is_connected(_on_casing_pusher_body_exited):
-		_casing_pusher.body_exited.connect(_on_casing_pusher_body_exited)
+	if not _casing_pusher.body_entered.is_connected(_on_casing_pusher_body_entered): _casing_pusher.body_entered.connect(_on_casing_pusher_body_entered)
+	if not _casing_pusher.body_exited.is_connected(_on_casing_pusher_body_exited): _casing_pusher.body_exited.connect(_on_casing_pusher_body_exited)
 func _on_casing_pusher_body_entered(body: Node2D) -> void:
-	if body is RigidBody2D and body.has_method("receive_kick") and body not in _overlapping_casings:
-		_overlapping_casings.append(body)
+	if body is RigidBody2D and body.has_method("receive_kick") and body not in _overlapping_casings: _overlapping_casings.append(body)
 func _on_casing_pusher_body_exited(body: Node2D) -> void:
 	if body is RigidBody2D:
 		var idx := _overlapping_casings.find(body); if idx >= 0: _overlapping_casings.remove_at(idx)
