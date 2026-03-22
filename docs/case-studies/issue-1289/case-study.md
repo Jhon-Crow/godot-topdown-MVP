@@ -13,6 +13,34 @@
 
 ## Root Cause Analysis
 
+### Problem 0 (Root Cause — Revisited): NavigationServer Not Updated After Bake
+
+**Confirmed date:** 2026-03-22 — Owner feedback with screenshot showing paths through walls persisting even after the `parse_source_geometry_data` + `bake_from_source_geometry_data` fix from PR commit `18b3e5f7`.
+
+**Location:** All 13 level scripts — `_setup_navigation()` function.
+
+**Root cause:** `NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)` updates the **`NavigationPolygon` resource object** in-place with the carved geometry, but it does **NOT** automatically push this update to the NavigationServer's live navigation map. The NavigationServer continues routing agents through the old (uncarved) navmesh until the region's polygon is explicitly re-registered.
+
+The fix requires adding:
+```gdscript
+nav_region.navigation_polygon = nav_poly
+```
+after the bake call. This assignment triggers the node's internal setter, which calls `NavigationServer2D.region_set_navigation_polygon(region_rid, nav_poly)` — pushing the newly carved data to the live map so `NavigationAgent2D` queries use the correct walkable area.
+
+**Timeline of events:**
+1. Level `_ready()` → `_setup_navigation()` called
+2. `parse_source_geometry_data()` collects wall geometry (working correctly)
+3. `bake_from_source_geometry_data()` carves the `NavigationPolygon` resource (working correctly)
+4. ❌ **Missing step:** `nav_region.navigation_polygon = nav_poly` NOT called → NavigationServer still has old uncarved map
+5. Enemies spawn and `NavigationAgent2D.set_target_position()` is called using the stale uncarved map
+6. Paths go through walls because the server believes those areas are walkable
+
+**Evidence:** Godot forum thread ["NavigationServer2D baking creates mesh, but agent can't find a path"](https://forum.godotengine.org/t/navigationserver2d-baking-creates-mesh-but-agent-cant-find-a-path/60755) and ["Navigation Baking creates the mesh, but agents don't work"](https://forum.godotengine.org/t/navigation-baking-creates-the-mesh-but-agents-dont-work/64422) both confirm this exact pattern.
+
+**Fix applied (commit `TBD`):** Added `nav_region.navigation_polygon = nav_poly` after `bake_from_source_geometry_data()` in all 13 level scripts: `arena_level`, `beach_level`, `building_level`, `castle_level`, `city_level`, `decadence_level`, `docks_level`, `factory_level`, `labyrinth2_level`, `labyrinth_level`, `revolver_level`, `roguelike_level`, `test_tier`.
+
+---
+
 ### Problem 1: Paths Crossing Obstacles
 
 **Location:** `scripts/objects/enemy.gd` — `_find_pursuit_cover_toward_player()` (line ~3134) and `_can_reach_position()` (line ~3242)
