@@ -277,7 +277,7 @@ var _search_visited_zones: Dictionary = {}  ## Tracks visited positions (key=sna
 const SEARCH_ZONE_SNAP_SIZE: float = 50.0  ## Grid size for snapping positions to zones
 var _search_stuck_timer: float = 0.0  ## Stuck timer (Issue #354: Stuck detection for SEARCHING)
 var _search_last_progress_position: Vector2 = Vector2.ZERO  ## Last progress pos
-const SEARCH_STUCK_MAX_TIME: float = 2.0  ## Max stuck time
+const SEARCH_STUCK_MAX_TIME: float = 0.8  ## Max stuck time (#1249: 2.0→0.8 s, faster skip of blocked search waypoints)
 const SEARCH_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
 var _has_left_idle: bool = false  ## Issue #330: Never returns to IDLE
 var _search_path_node: Node2D = null  ## SearchPathWaypoints node cache (Issue #1225)
@@ -362,6 +362,7 @@ var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenad
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
+var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -406,6 +407,8 @@ func _ready() -> void:
 	# Issue #1146: Hook ORCA avoidance velocity so NavigationAgent2D steers enemies apart.
 	if _nav_agent and _nav_agent.avoidance_enabled:
 		_nav_agent.velocity_computed.connect(_on_avoidance_velocity_computed)
+
+	_tactical_movement = TacticalMovementComponent.new(self)  # Issue #1249: narrow passage queuing
 
 	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
 	if bullet_scene == null:  # Preload bullet scene if not set in inspector
@@ -800,7 +803,10 @@ func _physics_process(delta: float) -> void:
 		if moved_distance < GLOBAL_STUCK_DISTANCE_THRESHOLD:
 			# Not making significant progress - increment stuck timer
 			# Only count if NOT in direct player contact (can't see and shoot player)
-			if not (_can_see_player and _can_hit_player_from_current_position()):
+			# Also skip while intentionally yielding to another enemy (#1249): yielding is a deliberate
+			# pause, not being stuck. Counting it would cause spurious SEARCHING transitions.
+			if not (_can_see_player and _can_hit_player_from_current_position()) \
+					and not (_tactical_movement and _tactical_movement.is_yielding):
 				_global_stuck_timer += delta
 				var _experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 				var _effective_stuck_max_time: float = GLOBAL_STUCK_MAX_TIME
@@ -815,7 +821,13 @@ func _physics_process(delta: float) -> void:
 						_flank_side_initialized = false
 						_flank_fail_count += 1
 						_flank_cooldown_timer = FLANK_COOLDOWN_DURATION
-					_transition_to_searching(global_position)
+					# #1249 session 4: search from last known player position, not the stuck position.
+					# When stuck while pursuing, the enemy may be far from the player; searching from
+					# the stuck spot wastes time. Use the last known player position instead if available.
+					var _search_start := global_position
+					if _last_known_player_position != Vector2.ZERO:
+						_search_start = _last_known_player_position
+					_transition_to_searching(_search_start)
 					return  # Skip rest of physics process this frame
 		else:
 			# Making progress - reset stuck timer and update position
@@ -2345,18 +2357,19 @@ func _process_searching_state(delta: float) -> void:
 			else:
 				var next_pos := _nav_agent.get_next_path_position()
 				var dir := (next_pos - global_position).normalized()
-				velocity = dir * move_speed * 0.7; move_and_slide(); _push_casings()  # Issue #341
-				# Issue #354: Stuck detection
-				var progress := global_position.distance_to(_search_last_progress_position)
+				if _tactical_movement and _tactical_movement.check_and_yield(target_waypoint, move_speed * 0.7, get_physics_process_delta_time()):  # #1249: yield in SEARCHING too
+					velocity = Vector2.ZERO; move_and_slide(); _push_casings(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; return
+				var _sv := dir * move_speed * 0.7; if _nav_agent and _nav_agent.avoidance_enabled: _nav_agent.set_velocity(_sv)  # #1249: ORCA for searching
+				velocity = (_avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else _sv) if (_nav_agent and _nav_agent.avoidance_enabled) else _sv
+				move_and_slide(); _push_casings()  # Issue #341
+				var progress := global_position.distance_to(_search_last_progress_position)  # #354: Stuck detection
 				if progress < SEARCH_PROGRESS_THRESHOLD:
 					_search_stuck_timer += delta
 					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:  # Stuck - skip waypoint
 						_log_to_file("SEARCHING: Stuck at wp %d, skipping" % _search_current_waypoint_index)
 						_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
-						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
-						_search_last_progress_position = global_position; return
-				else:
-					_search_stuck_timer = 0.0; _search_last_progress_position = global_position
+						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0; _search_last_progress_position = global_position; return
+				else: _search_stuck_timer = 0.0; _search_last_progress_position = global_position
 				if dir.length() > 0.1:
 					rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta)
 					_process_corner_check(delta, dir, "SEARCHING")  # Issue #332
@@ -2587,6 +2600,7 @@ func _transition_to_combat() -> void:
 	_witnessed_ally_death = false; _suspected_directions.clear()
 	_pursuing_vulnerability_sound = false; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position  # Issue #1107
 	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
+	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
 
 func _transition_to_seeking_cover() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_seeking_cover_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -2659,6 +2673,7 @@ func _transition_to_flanking() -> bool:
 	# Reset global stuck detection
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
+	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
 	var msg := "FLANKING started: target=%s, side=%s, pos=%s" % [_flank_target, "right" if _flank_side > 0 else "left", global_position]
 	_log_debug(msg)
 	_log_to_file(msg)
@@ -2714,6 +2729,7 @@ func _transition_to_pursuing() -> void:
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
+	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
 
 func _transition_to_assault() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_assault_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -2738,8 +2754,8 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
 	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
-	# Issue #354: Initialize stuck detection
-	_search_stuck_timer = 0.0; _search_last_progress_position = global_position
+	# Issue #354: Initialize stuck detection. #1249: clear yield on SEARCHING entry.
+	_search_stuck_timer = 0.0; _search_last_progress_position = global_position; if _tactical_movement: _tactical_movement.reset_yield()
 	_using_predefined_search_path = _load_predefined_search_path(center_position)  # Issue #1225
 	if not _using_predefined_search_path: _generate_search_waypoints()
 	var msg := "SEARCHING started (%s): center=%s, radius=%.0f, waypoints=%d" % ["predefined" if _using_predefined_search_path else "spiral", _search_center, _search_radius, _search_waypoints.size()]
@@ -4490,19 +4506,10 @@ func _disable_hit_area_collision() -> void:
 
 ## Re-enables hit area collision after respawning (restores all collision properties).
 func _enable_hit_area_collision() -> void:
-	# Re-enable CollisionShape2D
-	if _hit_collision_shape:
-		_hit_collision_shape.disabled = false
-
-	# Restore original collision layers
+	if _hit_collision_shape: _hit_collision_shape.disabled = false
 	if _hit_area:
-		_hit_area.collision_layer = _original_hit_area_layer
-		_hit_area.collision_mask = _original_hit_area_mask
-
-	# Re-enable monitorable/monitoring
-	if _hit_area:
-		_hit_area.monitorable = true
-		_hit_area.monitoring = true
+		_hit_area.collision_layer = _original_hit_area_layer; _hit_area.collision_mask = _original_hit_area_mask
+		_hit_area.monitorable = true; _hit_area.monitoring = true
 
 ## Returns whether this enemy is currently alive (used by bullets to check pass-through).
 func is_alive() -> bool:
@@ -4510,24 +4517,10 @@ func is_alive() -> bool:
 
 ## Initialize the death animation component.
 func _init_death_animation() -> void:
-	# Create death animation component as a child node
-	_death_animation = DeathAnimationComponent.new()
-	_death_animation.name = "DeathAnimation"
-	add_child(_death_animation)
-
-	# Initialize with sprite references
-	_death_animation.initialize(
-		_body_sprite,
-		_head_sprite,
-		_left_arm_sprite,
-		_right_arm_sprite,
-		_enemy_model
-	)
-
-	# Connect signals
+	_death_animation = DeathAnimationComponent.new(); _death_animation.name = "DeathAnimation"; add_child(_death_animation)
+	_death_animation.initialize(_body_sprite, _head_sprite, _left_arm_sprite, _right_arm_sprite, _enemy_model)
 	_death_animation.death_animation_completed.connect(_on_death_animation_completed)
 	_death_animation.ragdoll_activated.connect(_on_ragdoll_activated)
-
 	_log_to_file("Death animation component initialized")
 
 ## Called when death animation completes (body at rest).
@@ -4575,6 +4568,7 @@ func _update_debug_label() -> void:
 	if _prediction: t += _prediction.get_debug_text()
 	if _is_blinded or _is_stunned: t += "\n{%s}" % ("BLINDED + STUNNED" if _is_blinded and _is_stunned else "BLINDED" if _is_blinded else "STUNNED")
 	if _aggression: t += _aggression.get_debug_text()
+	if _tactical_movement: var _tm_info := _tactical_movement.get_debug_info(); if _tm_info != "": t += "\n" + _tm_info  # Issue #1249
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
@@ -4726,6 +4720,18 @@ func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 
 ## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
+	# Issue #1249: Tactical yielding — let the closest enemy pass through narrow passages first.
+	# Do NOT yield in FLANKING: flanking has its own timeout+failure counter; interrupting it with a
+	# 3-second yield causes the flank attempt to time out, increments the failure count, and after
+	# 2 failures disables flanking entirely for this enemy. (#1249 session 4)
+	if _tactical_movement and _current_state in [AIState.PURSUING, AIState.COMBAT]:
+		if _tactical_movement.check_and_yield(target_pos, speed, get_physics_process_delta_time()):
+			var _wp: Vector2 = _tactical_movement.get_yield_position()
+			if _wp != Vector2.ZERO and global_position.distance_to(_wp) > 20.0:
+				var _wd := _apply_wall_avoidance((_wp - global_position).normalized())
+				velocity = _wd * speed * 0.6; if velocity.length_squared() > 0.01: rotation = velocity.angle()
+			else: velocity = Vector2.ZERO
+			return true
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
 	direction = _apply_wall_avoidance(direction)
@@ -4751,18 +4757,17 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
 	_avoidance_velocity = safe_velocity
 
-## Issue #1146: Compute a separation steering force that pushes this enemy away from nearby allies. Returns adjusted velocity with separation applied.
+## Issue #1146: Separation steering — push away from nearby allies.
+## Issue #1249: Skip separation while yielding so the passing enemy isn't pushed aside.
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
+	if _tactical_movement and _tactical_movement.is_yielding: return vel  # #1249: yielding — don't push
 	var sep_force: Vector2 = Vector2.ZERO
 	for body in get_tree().get_nodes_in_group("enemies"):
-		if body == self or not is_instance_valid(body):
-			continue
+		if body == self or not is_instance_valid(body): continue
 		var diff: Vector2 = global_position - (body as Node2D).global_position
 		var dist: float = diff.length()
-		if dist < SEPARATION_RADIUS and dist > 0.1:
-			sep_force += diff.normalized() * (SEPARATION_RADIUS - dist) / SEPARATION_RADIUS
-	if sep_force != Vector2.ZERO:
-		vel += sep_force * SEPARATION_STRENGTH * delta
+		if dist < SEPARATION_RADIUS and dist > 0.1: sep_force += diff.normalized() * (SEPARATION_RADIUS - dist) / SEPARATION_RADIUS
+	if sep_force != Vector2.ZERO: vel += sep_force * SEPARATION_STRENGTH * delta
 	return vel
 
 ## Check if the navigation agent has a valid path to the target.
