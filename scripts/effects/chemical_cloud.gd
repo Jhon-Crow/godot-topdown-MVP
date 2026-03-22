@@ -3,9 +3,9 @@ class_name ChemicalCloud
 ## Persistent caustic yellow gas cloud that causes enemies to create illusory copies (Issue #1129).
 ##
 ## Spawned by ChemicalGasGrenade on gas release (NOT explosion).
-## - Radius: 300px (same as aggression gas grenade)
+## - Radius: 300px (visual cloud size, same as aggression gas grenade)
 ## - Duration: 20 seconds before dissipating
-## - Effect: All enemies in cloud create 2–5 illusory copies for 20 seconds
+## - Effect: ALL enemies on the map create 2–5 illusory copies for 20 seconds
 ## - Visual: Caustic yellow gas cloud (едкого жёлтого цвета)
 ## - Guard: If player is already under this effect, cloud has no new effect
 ##
@@ -194,41 +194,21 @@ func _create_sprite_fallback() -> Sprite2D:
 	return sprite
 
 
-## Apply illusion effect to all enemies currently inside the cloud radius.
-## Uses PhysicsShapeQueryParameters2D for reliable detection regardless of
-## when the cloud was spawned or when enemies entered.
+## Apply illusion effect to ALL enemies on the map (Issue #1129 — illusion copies
+## must appear for every enemy, not just those inside the cloud radius).
 ## No player-under-illusion guard here: once a cloud is deployed it always spawns copies.
-## The guard (req.9) lives in EnemyGrenadeComponent and prevents new chemical grenades
+## The guard (req.9) lives in GasMaskGrenadeComponent and prevents new chemical grenades
 ## from being thrown while the effect is already active.
 func _apply_effect_to_enemies_in_cloud() -> void:
-	var space_state := get_world_2d().direct_space_state
-	if space_state == null:
-		FileLogger.warning("[ChemicalCloud] No space state available")
-		return
+	var enemies := get_tree().get_nodes_in_group("enemies")
 
-	# Build a circle shape query covering the cloud radius
-	var shape := CircleShape2D.new()
-	shape.radius = cloud_radius
-
-	var query := PhysicsShapeQueryParameters2D.new()
-	query.shape = shape
-	query.transform = Transform2D(0.0, global_position)
-	query.collision_mask = 2  # Enemies (layer 2)
-	query.collide_with_bodies = true
-	query.collide_with_areas = false
-
-	var results := space_state.intersect_shape(query, 32)
-
-	FileLogger.info("[ChemicalCloud] Tick at %s: found %d bodies in radius %.0f" % [
-		str(global_position), results.size(), cloud_radius
+	FileLogger.info("[ChemicalCloud] Tick at %s: found %d enemies on map" % [
+		str(global_position), enemies.size()
 	])
 
-	for hit in results:
-		var body: Object = hit.get("collider")
-		if body == null or not is_instance_valid(body):
-			continue
-		if body is Node2D and body.is_in_group("enemies"):
-			_apply_illusion_to_enemy(body)
+	for enemy in enemies:
+		if enemy is Node2D and is_instance_valid(enemy):
+			_apply_illusion_to_enemy(enemy)
 
 
 ## Apply illusion effect to a single enemy, spawning 1–4 illusory copies.
@@ -244,11 +224,6 @@ func _apply_illusion_to_enemy(enemy: Node2D) -> void:
 		return
 	if enemy.get_meta("is_illusion", false):
 		FileLogger.info("[ChemicalCloud] Skipping illusion copy %s (metadata)" % enemy.name)
-		return
-
-	# Check line of sight (gas doesn't go through walls)
-	if not _has_line_of_sight_to(enemy):
-		FileLogger.info("[ChemicalCloud] No LOS to enemy %s — skipping" % enemy.name)
 		return
 
 	# Use StatusEffectsManager to track illusion state and avoid duplicates

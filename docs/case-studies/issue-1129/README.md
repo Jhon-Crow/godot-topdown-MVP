@@ -504,6 +504,30 @@ Updated `GasMaskEnemy.tscn` to reference the new sprite.
 
 ---
 
+## Bug Report #8: Illusion copies only for cloud-radius enemies + copies damage enemies
+
+**Date**: 2026-03-22
+**Reporter**: Jhon-Crow (PR comment #47)
+**Symptom**: Illusion copies only appear near enemies inside the gas cloud radius. Also, illusion copies can damage other enemies and other illusion copies (should only damage the player).
+
+**Feedback** (translated from Russian):
+- "иллюзорные копи должны появляться у всех врагов на карте" — illusion copies must appear for ALL enemies on the map
+- "иллюзорные копии не должны наносить урон врагам или другим иллюзорным копиям (только игроку)" — illusion copies must not damage enemies or other illusion copies (only the player)
+
+**Root cause 1**: `ChemicalCloud._apply_effect_to_enemies_in_cloud()` used `PhysicsShapeQueryParameters2D` with `cloud_radius` to find enemies. Only enemies physically inside the 300px cloud radius received illusion copies.
+
+**Fix 1**: Changed to `get_tree().get_nodes_in_group("enemies")` — now iterates over ALL enemies on the map regardless of distance from the cloud. Removed the line-of-sight check since the effect is map-wide.
+
+**Root cause 2**: `bullet.gd` had no check for illusion-sourced bullets. The inner enemy node of `IllusionEnemy` fires bullets normally, and those bullets damage any enemy they hit.
+
+**Fix 2**: Added `_is_illusion_bullet()` helper to `bullet.gd` that checks if the shooter has `is_illusion` metadata or if the shooter's parent is an `IllusionEnemy`. In `_on_area_entered()`, if the bullet is from an illusion and the target is not in the "player" group, skip damage entirely.
+
+**Files changed**:
+- `scripts/effects/chemical_cloud.gd` — `_apply_effect_to_enemies_in_cloud()` now finds all enemies via scene tree group
+- `scripts/projectiles/bullet.gd` — added `_is_illusion_bullet()` and guard in `_on_area_entered()`
+
+---
+
 ## References
 
 - AggressionGasGrenade pattern: `scripts/projectiles/aggression_gas_grenade.gd`
