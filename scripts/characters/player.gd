@@ -386,10 +386,7 @@ func _ready() -> void:
 	# Apply item-specific player visual based on the equipped passive item (Issue #1142)
 	_apply_item_visual()
 
-	# Connect to ActiveItemManager's active_item_changed signal so that picking up
-	# a new active item in roguelike mode (no scene restart) immediately initialises
-	# the item's subsystem on the player (Issue #1325).
-	_connect_active_item_changed_signal()
+	_connect_active_item_changed_signal()  # Issue #1325: roguelike pedestal pickup
 
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
@@ -4594,116 +4591,49 @@ func _spawn_armored_skin_shards() -> void:
 # Item Visual System (Issue #1142)
 # ============================================================================
 
-## Connect to ActiveItemManager.active_item_changed so that picking up a new active item
-## in roguelike mode (no scene restart) immediately initialises the subsystem (Issue #1325).
+## Connect to active_item_changed signal for roguelike pedestal pickup (Issue #1325).
 func _connect_active_item_changed_signal() -> void:
-	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
-	if active_item_manager == null:
-		FileLogger.info("[Player.ItemPickup] ActiveItemManager not found — cannot connect active_item_changed")
+	var aim: Node = get_node_or_null("/root/ActiveItemManager")
+	if aim == null or not aim.has_signal("active_item_changed"):
 		return
-	if not active_item_manager.has_signal("active_item_changed"):
-		FileLogger.info("[Player.ItemPickup] ActiveItemManager missing active_item_changed signal")
-		return
-	active_item_manager.active_item_changed.connect(_on_active_item_picked_up)
-	FileLogger.info("[Player.ItemPickup] Connected to ActiveItemManager.active_item_changed")
+	aim.active_item_changed.connect(_on_active_item_picked_up)
 
-
-## De-equip all active item subsystems before re-initialising a newly picked-up item.
-## Resets equipped flags and frees child nodes to prevent dual-equip when the player
-## swaps items at the roguelike pedestal (Issue #1325).
+## Reset all equipped flags and free item nodes to prevent dual-equip (Issue #1325).
 func _deequip_all_active_items() -> void:
-	FileLogger.info("[Player.ItemPickup] De-equipping all active item subsystems before re-init")
-	# Flashlight
-	if _flashlight_node != null and is_instance_valid(_flashlight_node):
-		_flashlight_node.queue_free()
-	_flashlight_node = null
-	_flashlight_equipped = false
-	# Homing bullets
-	_homing_equipped = false
-	_homing_active = false
-	_homing_timer = 0.0
-	# BFF pendant — companion remains; just disable new summons
+	for node in [_flashlight_node, _invisibility_suit, _force_field,
+			_trajectory_glasses, _trajectory_glasses_hud, _breaching_charges]:
+		if node != null and is_instance_valid(node):
+			node.queue_free()
+	_flashlight_node = null; _flashlight_equipped = false
+	_homing_equipped = false; _homing_active = false; _homing_timer = 0.0
 	_bff_pendant_equipped = false
-	# Invisibility suit
-	if _invisibility_suit != null and is_instance_valid(_invisibility_suit):
-		_invisibility_suit.queue_free()
-	_invisibility_suit = null
-	_invisibility_suit_equipped = false
-	# Breaker bullets (passive flag)
+	_invisibility_suit = null; _invisibility_suit_equipped = false
 	_breaker_bullets_active = false
-	# Force field
-	if _force_field != null and is_instance_valid(_force_field):
-		_force_field.queue_free()
-	_force_field = null
-	_force_field_equipped = false
-	# Trajectory glasses
-	if _trajectory_glasses != null and is_instance_valid(_trajectory_glasses):
-		_trajectory_glasses.queue_free()
-	_trajectory_glasses = null
-	if _trajectory_glasses_hud != null and is_instance_valid(_trajectory_glasses_hud):
-		_trajectory_glasses_hud.queue_free()
-	_trajectory_glasses_hud = null
-	_trajectory_glasses_equipped = false
-	# Loudspeaker
-	_loudspeaker_equipped = false
-	_loudspeaker_progress = null
-	# Breaching charges
-	if _breaching_charges != null and is_instance_valid(_breaching_charges):
-		_breaching_charges.queue_free()
-	_breaching_charges = null
-	_breaching_charges_equipped = false
-	# Armored skin
-	_armored_skin_active = false
-	# Recoil compensator
-	_recoil_compensator_equipped = false
-	# Experimental sample
+	_force_field = null; _force_field_equipped = false
+	_trajectory_glasses = null; _trajectory_glasses_hud = null; _trajectory_glasses_equipped = false
+	_loudspeaker_equipped = false; _loudspeaker_progress = null
+	_breaching_charges = null; _breaching_charges_equipped = false
+	_armored_skin_active = false; _recoil_compensator_equipped = false
 	_experimental_sample_equipped = false
-	# Fine motor skills
-	_fine_motor_skills_equipped = false
-	_fine_motor_skills_active = false
-	FileLogger.info("[Player.ItemPickup] All active item subsystems de-equipped")
+	_fine_motor_skills_equipped = false; _fine_motor_skills_active = false
 
-
-## Called when a new active item is selected (e.g. picked up in roguelike mode).
-## Initialises the corresponding item subsystem on the player without a scene restart.
-## Values mirror ActiveItemManager.ActiveItemType in active_item_manager.gd.
+## Initialise the newly picked-up item subsystem (Issue #1325).
 func _on_active_item_picked_up(item_type: int) -> void:
-	FileLogger.info("[Player.ItemPickup] active_item_changed received: type=%d" % item_type)
-	# De-equip the previous active item to prevent dual-equip on pedestal swaps.
 	_deequip_all_active_items()
 	match item_type:
-		1:  # FLASHLIGHT
-			_init_flashlight()
-		2:  # HOMING_BULLETS
-			_init_homing_bullets()
-		4:  # BFF_PENDANT
-			_init_bff_pendant()
-		5:  # INVISIBILITY_SUIT
-			_init_invisibility_suit()
-		6:  # BREAKER_BULLETS (passive)
-			_init_breaker_bullets()
-		7:  # FORCE_FIELD
-			_init_force_field()
-		8:  # TRAJECTORY_GLASSES
-			_init_trajectory_glasses()
-		11: # LOUDSPEAKER
-			_init_loudspeaker()
-		12: # BREACHING_CHARGES
-			_init_breaching_charges()
-		13: # ARMORED_SKIN (passive)
-			_init_armored_skin()
-			_apply_item_visual()
-		16: # RECOIL_COMPENSATOR
-			_init_recoil_compensator()
-		18: # EXPERIMENTAL_SAMPLE
-			_init_experimental_sample()
-		19: # FINE_MOTOR_SKILLS
-			_init_fine_motor_skills()
-		_:
-			# NONE(0), TELEPORT_BRACERS(3, handled in C# Player), LASER_SIGHT(9),
-			# EXTENDED_MAGAZINE(10), AUTO_RELOAD(14), DRILLING_BULLETS(15, C#),
-			# COMBAT_DISPOSITION(17, C#): no GDScript player-side init needed.
-			FileLogger.info("[Player.ItemPickup] No GDScript player-side init required for item type %d" % item_type)
+		1: _init_flashlight()
+		2: _init_homing_bullets()
+		4: _init_bff_pendant()
+		5: _init_invisibility_suit()
+		6: _init_breaker_bullets()
+		7: _init_force_field()
+		8: _init_trajectory_glasses()
+		11: _init_loudspeaker()
+		12: _init_breaching_charges()
+		13: _init_armored_skin(); _apply_item_visual()
+		16: _init_recoil_compensator()
+		18: _init_experimental_sample()
+		19: _init_fine_motor_skills()
 
 
 ## Apply a passive visual effect to the player based on the equipped active item.
