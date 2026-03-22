@@ -87,6 +87,46 @@ Manages the SWAT shield:
 - Add to `game_manager.gd` `types` array: `{"name": "SWAT Shieldbearer", "weapon_type": 8, "behavior": 1, "has_swat_shield": true}`
 - Add to `experimental_menu.gd` setup list
 
+## Bug Report: Shield enemy does not rotate toward damage (2026-03-22)
+
+### User Feedback
+> "теперь враг вообще не поворачивается в сторону урона (должен медленно)."
+> Translation: "Now the enemy doesn't rotate toward damage at all (should rotate slowly)."
+
+### Root Cause Analysis
+
+The fix from Round 7 (commit `983989d8`) added guards to prevent instant snap-rotation on hit for shield enemies.
+However, these guards completely **skipped** all rotation instead of replacing it with slow rotation.
+
+**Three code paths affected:**
+
+1. **Shield-blocked hits** (`on_hit_with_bullet_info`, lines 4232-4234): When the shield intercepts a hit, the function returns early. No rotation update occurs — the enemy doesn't even acknowledge the hit directionally.
+
+2. **Non-blocked hits** (`on_hit_with_bullet_info`, line 4247): The guard `not (_shield_component and _shield_component.get_rotation_multiplier() < 1.0)` causes `_force_model_to_face_direction()` to be entirely skipped. But `_update_enemy_model_rotation()` (which runs every frame) doesn't have a "face attacker" priority — it faces the current target (P1/P2) which is already the player. So no observable rotation change occurs.
+
+3. **Priority attacks** (lines 1337, 1381): Same guard pattern — shield enemy skips `_force_model_to_face_direction` entirely. The bullet still fires correctly (Node2D `rotation` is set), but the visual model never catches up.
+
+**Key insight**: The `_update_enemy_model_rotation()` function uses a priority system (P0: grenade, P1: visible target, P2: combat state, P3: corner, P4: velocity, P5: idle scan). None of these priorities represent "face the attacker who just hit me." For normal enemies, `_force_model_to_face_direction` handles this instantly. For shield enemies, this was completely removed with no replacement.
+
+### Fix: Hit Reaction Rotation System
+
+Added a `_hit_reaction_timer` / `_hit_reaction_angle` mechanism (similar to existing `_corner_check_timer` / `_corner_check_angle` pattern):
+
+1. **New variables**: `_hit_reaction_angle`, `_hit_reaction_timer`, `HIT_REACTION_DURATION` (0.8s)
+2. **New priority P0.5**: Inserted between P0 (grenade throw) and P1 (visible target) in `_update_enemy_model_rotation()`
+3. **New function**: `_set_hit_reaction_target(attacker_direction)` — sets the angle and starts the timer
+4. **All three code paths** now call `_set_hit_reaction_target()` instead of skipping rotation entirely
+
+The shield enemy will now slowly rotate toward the attacker at 0.15× speed (0.45 rad/s ≈ 26°/s) for 0.8 seconds after each hit. The rotation is smooth and matches the "heavy shield" feel. After the timer expires, P1/P2 priorities take over and the enemy resumes facing its target.
+
+### Evidence from Game Log
+File: `game_log_20260322_204747.txt`
+
+- At `20:48:04`: Shield enemy spawned, enters IDLE
+- At `20:48:05`: Hears gunshot, transitions to COMBAT. Target 180°, current -24.9°
+- At `20:48:05-20:48:09`: Shield absorbs 20 hits (hp 20→0), no ROT_CHANGE logged between hits
+- No "hit_reaction" rotation entries appear because the feature didn't exist yet
+
 ## References
 - Issue #1034 (ForceField enemy) — bullet-blocking component pattern
 - Issue #1123 (ArmoredSkin) — component extraction pattern

@@ -182,6 +182,7 @@ var _patrol_points_snapped: bool = false  ## #1216: tracks whether patrol points
 var _spawn_physics_frame: int = 0  ## #1216: physics frame at spawn, used to delay navmesh snap by 1 frame
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
+var _hit_reaction_angle: float = 0.0; var _hit_reaction_timer: float = 0.0; const HIT_REACTION_DURATION: float = 0.8  ## Issue #1242: shield enemy slow rotation toward attacker on hit
 var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
 const CORNER_CHECK_DURATION: float = 0.3  ## How long to look at a corner (seconds)
 const CORNER_CHECK_DISTANCE: float = 150.0  ## Max distance to detect openings
@@ -860,6 +861,7 @@ func _physics_process(delta: float) -> void:
 	_update_memory(delta)
 	_update_goap_state()
 	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null)); if _shield_component: _shield_component.update(delta)  # Issues #1034, #1242
+	if _hit_reaction_timer > 0: _hit_reaction_timer -= delta  # Issue #1242: decay hit reaction rotation timer
 	_update_grenade_triggers(delta)
 	_update_grenade_danger_detection()  # Issue #407: Check for nearby grenades
 	if _teleport_component: _teleport_component.update(delta)  # Issue #752: Advance teleport cooldown
@@ -945,27 +947,18 @@ func _update_enemy_model_rotation() -> void:
 	var rotation_reason := ""  # Issue #397 debug: track which priority was used
 	if _is_facing_for_grenade_throw and _grenade_throw_facing_direction != Vector2.ZERO:  # P0: Issue #712
 		target_angle = _grenade_throw_facing_direction.angle(); has_target = true; rotation_reason = "P0:grenade_throw"
+	elif _hit_reaction_timer > 0:  # P0.5: Issue #1242 — shield enemy slowly turns toward attacker after hit
+		target_angle = _hit_reaction_angle; has_target = true; rotation_reason = "P0.5:hit_reaction"
 	elif _current_target != null and (_can_see_player or _can_see_companion):  # P1: Face best target if visible
-		target_angle = (_current_target.global_position - global_position).normalized().angle()
-		has_target = true
-		rotation_reason = "P1:visible"
-	# Priority 2: Combat states (#386, #397) — face target even without visibility (SEARCHING, ASSAULT, etc.)
-	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _current_target != null:
-		target_angle = (_current_target.global_position - global_position).normalized().angle()
-		has_target = true
-		rotation_reason = "P2:combat_state"
-	elif _corner_check_timer > 0:
-		target_angle = _corner_check_angle  # Corner check: smooth rotation (Issue #347)
-		has_target = true
-		rotation_reason = "P3:corner"
+		target_angle = (_current_target.global_position - global_position).normalized().angle(); has_target = true; rotation_reason = "P1:visible"
+	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _current_target != null:  # P2: Combat states (#386, #397)
+		target_angle = (_current_target.global_position - global_position).normalized().angle(); has_target = true; rotation_reason = "P2:combat_state"
+	elif _corner_check_timer > 0:  # P3: Corner check (#347)
+		target_angle = _corner_check_angle; has_target = true; rotation_reason = "P3:corner"
 	elif velocity.length_squared() > 1.0:
-		target_angle = velocity.normalized().angle()
-		has_target = true
-		rotation_reason = "P4:velocity"
+		target_angle = velocity.normalized().angle(); has_target = true; rotation_reason = "P4:velocity"
 	elif _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
-		target_angle = _idle_scan_targets[_idle_scan_target_index]
-		has_target = true
-		rotation_reason = "P5:idle_scan"
+		target_angle = _idle_scan_targets[_idle_scan_target_index]; has_target = true; rotation_reason = "P5:idle_scan"
 	if not has_target:
 		return
 	# Issue #397 debug: Log rotation priority changes
@@ -1004,6 +997,10 @@ func _force_model_to_face_direction(direction: Vector2) -> void:
 		_enemy_model.global_rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
+## Issue #1242: Set hit reaction rotation target for shield enemy (slow turn toward attacker).
+func _set_hit_reaction_target(dir: Vector2) -> void:
+	if dir.length_squared() < 0.01: return
+	_hit_reaction_angle = dir.angle(); _hit_reaction_timer = HIT_REACTION_DURATION
 ## Updates walking animation (bobbing motion for body parts). @param delta: Time since last frame.
 func _update_walk_animation(delta: float) -> void:
 	var is_moving := velocity.length() > 10.0
@@ -1320,7 +1317,8 @@ func _process_ai_state(delta: float) -> void:
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
 			_log_to_file("Player distracted - priority attack triggered")
 			rotation = direction_to_player.angle()
-			if not (_shield_component and _shield_component.get_rotation_multiplier() < 1.0): _force_model_to_face_direction(direction_to_player)  # Fix issue #264: ensure correct aim; Issue #1242: shield enemy turns slowly
+			if _shield_component and _shield_component.get_rotation_multiplier() < 1.0: _set_hit_reaction_target(direction_to_player)  # Issue #1242: shield enemy slowly aims
+			else: _force_model_to_face_direction(direction_to_player)  # Fix issue #264: ensure correct aim
 			_shoot()
 			_shoot_timer = 0.0
 			_detection_delay_elapsed = true
@@ -1361,11 +1359,9 @@ func _process_ai_state(delta: float) -> void:
 			var reason: String = "reloading" if player_reloading else "empty ammo"
 			_log_to_file("Player %s - priority attack triggered" % reason)
 
-			# Aim at player immediately
-			rotation = direction_to_player.angle()
-			# CRITICAL: Force model to face player for correct aim direction (issue #264); Issue #1242: shield enemy turns slowly
-			if not (_shield_component and _shield_component.get_rotation_multiplier() < 1.0): _force_model_to_face_direction(direction_to_player)
-
+			rotation = direction_to_player.angle()  # Aim at player immediately
+			if _shield_component and _shield_component.get_rotation_multiplier() < 1.0: _set_hit_reaction_target(direction_to_player)  # Issue #1242: shield slowly aims
+			else: _force_model_to_face_direction(direction_to_player)  # Issue #264: correct aim direction
 			_shoot(); _shoot_timer = 0.0
 			_detection_delay_elapsed = true
 			if _current_state == AIState.IDLE:
@@ -4222,23 +4218,21 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	if not _is_alive:
 		return
 	if _force_field_component and _force_field_component.is_active(): _log_to_file("Hit blocked by force field"); return  # Issue #1034: invulnerable while force field active
-	# Issue #1242: Shield blocking — collision-based + direction fallback (Godot signal ordering is non-deterministic).
-	if _shield_component and _shield_component.did_intercept_this_frame(): return
+	# Issue #1242: Shield blocking — collision-based + direction fallback; shield enemy slowly turns toward attacker.
+	if _shield_component and _shield_component.did_intercept_this_frame(): _set_hit_reaction_target(-hit_direction.normalized()); return
 	if _shield_component and _shield_component.is_active() and _enemy_model and Vector2.from_angle(_enemy_model.global_rotation).dot(-hit_direction.normalized()) > 0.0:
-		if _shield_component.try_intercept_hit(caliber_data, damage, hit_direction): return
+		if _shield_component.try_intercept_hit(caliber_data, damage, hit_direction): _set_hit_reaction_target(-hit_direction.normalized()); return
 	if _armored_skin_component and _armored_skin_component.try_spawn_shards(_current_health, maxi(int(round(damage)), 1)): hit.emit(); _show_hit_flash(); _log_to_file("[ArmoredSkin] Triggering hit absorbed — damage ignored (Issue #1143, #1300)"); return  # Issue #1143: absorb the triggering hit's damage; Issue #1300: also absorb lethal hits from high-damage weapons
 	# [#1033] Machine gunner: 30% frontal damage resistance (±15° arc, cos15°=0.9659).
 	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active and Vector2.from_angle(_enemy_model.global_rotation if _enemy_model else rotation).dot(-hit_direction.normalized()) >= 0.9659 and randf() < 0.30:
 		_log_to_file("[#1033] Machine gunner front-arc hit ignored"); hit.emit(); _show_hit_flash(); return
 
 	hit.emit()
-
-	# Store hit direction for death animation
-	_last_hit_direction = hit_direction
-
+	_last_hit_direction = hit_direction  # Store hit direction for death animation
 	var attacker_direction := -hit_direction.normalized()
-	# Issue #1242: Shield enemy must NOT snap-rotate on hit — shield enforces slow turning via _update_enemy_model_rotation()
-	if attacker_direction.length_squared() > 0.01 and not (_shield_component and _shield_component.get_rotation_multiplier() < 1.0): _force_model_to_face_direction(attacker_direction)
+	if attacker_direction.length_squared() > 0.01:  # Issue #1242: shield enemy slowly turns; normal enemies snap-rotate
+		if _shield_component and _shield_component.get_rotation_multiplier() < 1.0: _set_hit_reaction_target(attacker_direction)
+		else: _force_model_to_face_direction(attacker_direction)
 	_hits_taken_in_encounter += 1
 	var actual_damage: int = maxi(int(round(damage)), 1)
 	_log_to_file("Hit: dmg=%d, hp=%d/%d->%d/%d" % [actual_damage, _current_health, _max_health, _current_health - actual_damage, _max_health])
