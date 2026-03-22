@@ -123,6 +123,13 @@ var sound_visualizer_enabled: bool = false
 ## When disabled (default), no enemy path overlay is shown.
 var enemy_path_visible_enabled: bool = false
 
+## Whether tactical group movement is enabled (Issue #1287).
+## When enabled, enemies within 500 px of the player form a tactical group and
+## spread around the player so they approach from multiple directions instead of
+## all converging on the same spot.
+## When disabled (default), enemies move independently without group coordination.
+var tactical_group_enabled: bool = false
+
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
 
@@ -134,7 +141,7 @@ func _ready() -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("set_logging_enabled"):
 		file_logger.set_logging_enabled(logging_enabled)
-	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs, Nav mesh visible: %s, Search path visible: %s, Passage waypoints visible: %s, Passage waypoints: %s, Sound visualizer: %s, Enemy path visible: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time, nav_mesh_visible_enabled, search_path_visible_enabled, passage_waypoints_visible_enabled, passage_waypoints_enabled, sound_visualizer_enabled, enemy_path_visible_enabled])
+	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs, Nav mesh visible: %s, Search path visible: %s, Passage waypoints visible: %s, Passage waypoints: %s, Sound visualizer: %s, Enemy path visible: %s, Tactical group: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time, nav_mesh_visible_enabled, search_path_visible_enabled, passage_waypoints_visible_enabled, passage_waypoints_enabled, sound_visualizer_enabled, enemy_path_visible_enabled, tactical_group_enabled])
 
 
 ## Set FOV enabled/disabled.
@@ -378,6 +385,20 @@ func is_enemy_path_visible_enabled() -> bool:
 	return enemy_path_visible_enabled
 
 
+## Set tactical group movement enabled/disabled (Issue #1287).
+func set_tactical_group_enabled(enabled: bool) -> void:
+	if tactical_group_enabled != enabled:
+		tactical_group_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Tactical group movement %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if tactical group movement is enabled (Issue #1287).
+func is_tactical_group_enabled() -> bool:
+	return tactical_group_enabled
+
+
 ## Set navigation mesh debug overlay visibility (Issue #1187).
 func set_nav_mesh_visible_enabled(enabled: bool) -> void:
 	if nav_mesh_visible_enabled != enabled:
@@ -458,6 +479,7 @@ func _save_settings() -> void:
 	config.set_value("experimental", "passage_waypoints_enabled", passage_waypoints_enabled)
 	config.set_value("experimental", "sound_visualizer_enabled", sound_visualizer_enabled)
 	config.set_value("experimental", "enemy_path_visible_enabled", enemy_path_visible_enabled)
+	config.set_value("experimental", "tactical_group_enabled", tactical_group_enabled)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -489,6 +511,7 @@ func _load_settings() -> void:
 		passage_waypoints_enabled = config.get_value("experimental", "passage_waypoints_enabled", false)
 		sound_visualizer_enabled = config.get_value("experimental", "sound_visualizer_enabled", false)
 		enemy_path_visible_enabled = config.get_value("experimental", "enemy_path_visible_enabled", false)
+		tactical_group_enabled = config.get_value("experimental", "tactical_group_enabled", false)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true

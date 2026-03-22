@@ -17,6 +17,7 @@ using GodotTopDownTemplate.Weapons;
 /// - Exit zone creation
 /// - GameManager signal connections
 /// - Replay recording
+/// - Navigation mesh baking (Issue #1289)
 /// </summary>
 public partial class LevelInitFallback : Node
 {
@@ -197,6 +198,10 @@ public partial class LevelInitFallback : Node
 
         // 11. Setup warm ceiling lights (Issue #1206) — mirrors GDScript _setup_room_warm_lights()
         SetupRoomWarmLights(levelRoot);
+
+        // 12. Setup navigation mesh (Issue #1289) — mirrors GDScript _setup_navigation()
+        // Must run after physics frame so CollisionShape2D nodes are registered.
+        SetupNavigationDeferred(levelRoot);
     }
 
     /// <summary>
@@ -1332,6 +1337,46 @@ public partial class LevelInitFallback : Node
         }
 
         return ImageTexture.CreateFromImage(image);
+    }
+
+    /// <summary>
+    /// Setup the navigation mesh for enemy pathfinding (Issue #1289).
+    /// Mirrors GDScript _setup_navigation() — waits for the next physics frame so that
+    /// CollisionShape2D nodes are registered with PhysicsServer2D, then performs an
+    /// explicit parse + bake to carve walls out of the navmesh.
+    /// </summary>
+    private async void SetupNavigationDeferred(Node levelRoot)
+    {
+        // Wait for physics frame so CollisionShape2D nodes are registered
+        await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
+
+        // After the await, verify the node is still valid (scene may have changed)
+        if (!IsInstanceValid(this) || !IsInsideTree()) return;
+        if (!IsInstanceValid(levelRoot) || !levelRoot.IsInsideTree()) return;
+
+        var navRegion = levelRoot.GetNodeOrNull<NavigationRegion2D>("NavigationRegion2D");
+        if (navRegion == null)
+        {
+            LogToFile("NavigationRegion2D not found - enemy pathfinding will be limited");
+            return;
+        }
+
+        var navPoly = navRegion.NavigationPolygon;
+        if (navPoly == null)
+        {
+            LogToFile("NavigationPolygon not found - enemy pathfinding will be limited");
+            return;
+        }
+
+        LogToFile("Baking navigation mesh (C# fallback)...");
+        var sourceGeometry = new NavigationMeshSourceGeometryData2D();
+        NavigationServer2D.ParseSourceGeometryData(navPoly, sourceGeometry, levelRoot);
+        NavigationServer2D.BakeFromSourceGeometryData(navPoly, sourceGeometry);
+        // Push updated polygon back into the NavigationServer's live map.
+        // Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+        navRegion.NavigationPolygon = navPoly;
+        navRegion.EmitSignal("bake_finished");
+        LogToFile($"Navigation mesh baked successfully (C# fallback) — poly_count={navPoly.GetPolygonCount()}, vertex_count={navPoly.Vertices.Length}");
     }
 
     /// <summary>

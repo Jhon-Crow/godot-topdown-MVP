@@ -670,14 +670,22 @@ func _setup_navigation() -> void:
 	if nav_region == null:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
-
-	# Issue #1224: bake the nav mesh via NavigationRegion2D so walls are excluded from the
-	# walkable polygon and the nav mesh overlay displays the correct carved area.
-	# Using bake_navigation_polygon(false) (synchronous) ensures the map is ready before
-	# enemies start moving. parsed_geometry_type=1 + parsed_collision_mask=4 in the
-	# NavigationPolygon resource handle wall exclusion automatically.
+	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
+	if nav_poly == null:
+		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
+		return
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
+	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	print("Baking navigation mesh...")
-	nav_region.bake_navigation_polygon(false)
+	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
+	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# Issue #1289: push updated polygon back into the NavigationServer's live map.
+	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 	print("Navigation mesh baked successfully")
 
 

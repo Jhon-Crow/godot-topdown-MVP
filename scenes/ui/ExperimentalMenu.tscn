@@ -474,6 +474,27 @@ text = "When enabled, draws the computed navigation path for\nevery active enemy
 horizontal_alignment = 1
 autowrap_mode = 2
 
+[node name="TacticalGroupContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TacticalGroupLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TacticalGroupContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Tactical Group Movement"
+autowrap_mode = 2
+
+[node name="TacticalGroupCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TacticalGroupContainer"]
+layout_mode = 2
+
+[node name="TacticalGroupDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, enemies within 500 px of the player form\na tactical group and spread around the player,\napproaching from multiple directions to encircle the target\nrather than all converging from the same spot."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator12f" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="HSeparator12e" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
