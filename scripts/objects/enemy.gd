@@ -4806,7 +4806,6 @@ func _on_stunned_changed(stunned: bool) -> void:
 	_is_stunned = stunned
 	if _status_effect_anim: _status_effect_anim.set_stunned(stunned)
 	if stunned: velocity = Vector2.ZERO
-
 func set_blinded(blinded: bool) -> void:
 	if _flashbang_status: _flashbang_status.set_blinded(blinded)
 func set_stunned(stunned: bool) -> void:
@@ -4821,7 +4820,6 @@ func is_aggressive() -> bool: return _aggression != null and _aggression.is_aggr
 ## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
 	if _flashbang_status: _flashbang_status.apply_flashbang_effect(blindness_duration, stun_duration)
-
 # Grenade System (Issue #363) - Component-based (extracted for Issue #377)
 ## Setup the grenade component. Called from _ready(). Grenadiers use GrenadierGrenadeComponent (Issue #604).
 func _setup_grenade_component() -> void:
@@ -4851,7 +4849,6 @@ func _update_grenade_triggers(delta: float) -> void:
 	var can_see_target := _can_see_player or _can_see_companion
 	_grenade_component.update(delta, can_see_target, _under_fire, grenade_target, _current_health, _memory)
 	_update_grenade_world_state()
-
 func _on_gunshot_heard_for_grenade(position: Vector2) -> void:
 	if _grenade_component: _grenade_component.on_gunshot(position)
 func _on_vulnerable_sound_heard_for_grenade(position: Vector2) -> void:
