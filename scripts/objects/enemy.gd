@@ -4189,10 +4189,19 @@ func _initialize_idle_scan_targets() -> void:
 
 ## Called when a bullet enters the threat sphere.
 func _on_threat_area_entered(area: Area2D) -> void:
-	if ("shooter_id" in area and area.shooter_id == get_instance_id()) or not _is_position_visible_to_enemy(area.global_position):
-		return  # Own bullet or wall blocking line of sight — no suppression
-	_bullets_in_threat_sphere.append(area)
-	_threat_memory_timer = THREAT_MEMORY_DURATION
+	if not _is_position_visible_to_enemy(area.global_position): return  # Wall blocking — no suppression
+	# Issue #1228: only suppress from player bullets — ignore own/enemy bullets.
+	# Uses .get() for both GDScript "shooter_id" (int, default -1) and C# "ShooterId" (ulong [Export], default 0).
+	# Pattern from force_field_effect.gd (#932): .get() works where "in" operator may not for C# exports.
+	var raw_id = area.get("shooter_id"); if raw_id == null: raw_id = area.get("ShooterId")
+	if raw_id == null: return  # Unknown area — safe default, no suppression
+	var sid: int = int(raw_id); if sid <= 0: return  # -1 (GDScript default) or 0 (C# default) — no suppression
+	var shooter: Object = instance_from_id(sid); if shooter == null: return  # Shooter freed — no suppression
+	if not (shooter as Node).is_in_group("player"):
+		if debug_logging: _log_to_file("[#1228] Non-player bullet '%s' — no suppression" % (shooter as Node).name)
+		return
+	if debug_logging: _log_to_file("[#1228] Player bullet '%s' — suppression allowed" % (shooter as Node).name)
+	_bullets_in_threat_sphere.append(area); _threat_memory_timer = THREAT_MEMORY_DURATION
 	_log_debug("Bullet entered threat sphere, starting reaction delay...")
 
 ## Called when a bullet exits the threat sphere.
