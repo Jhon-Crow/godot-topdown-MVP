@@ -276,20 +276,43 @@ func get_accuracy() -> float:
 
 
 ## Called when the player dies.
+## Issue #1334: Guard against duplicate calls — both docks_level.gd and
+## LevelInitFallback.cs connect to the player Died signal and each schedule
+## a 0.5 s timer that calls this method.  The second call arrives after
+## reload_current_scene() has already been triggered, causing a crash.
 func on_player_death() -> void:
+	if not player_alive:
+		return
 	player_alive = false
 	player_died.emit()
 	# Auto-restart the scene immediately
 	restart_scene()
 
 
+## Whether a scene reload is already in progress (Issue #1334).
+var _reloading: bool = false
+
+
 ## Restarts the current scene.
 ## Resets mouse mode to hidden before reloading so the cursor does not persist
 ## from the score screen (Issue #905).
+## Issue #1334: Prevents re-entrant calls while a reload is already underway.
 func restart_scene() -> void:
+	if _reloading:
+		return
+	_reloading = true
 	_reset_stats()
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 	get_tree().reload_current_scene()
+	# Issue #1334: Reset the reload guard after the scene tree has finished loading
+	# the new scene.  call_deferred runs at the end of the current frame, after
+	# reload_current_scene() has fully completed and pending timers have fired.
+	call_deferred("_reset_reloading")
+
+
+## Issue #1334: Deferred callback to clear the reload guard.
+func _reset_reloading() -> void:
+	_reloading = false
 
 
 ## Sets the player reference.
