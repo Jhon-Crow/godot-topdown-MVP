@@ -4118,6 +4118,15 @@ func _on_threat_area_entered(area: Area2D) -> void:
 	if not (shooter as Node).is_in_group("player"): return  # #1228: only player bullets
 	_log_to_file("[#1311] Player bullet entered threat sphere — suppression triggered")
 	_bullets_in_threat_sphere.append(area); _threat_memory_timer = THREAT_MEMORY_DURATION
+	# Issue #1338: Immediately set under_fire and seek cover when player bullets enter threat zone.
+	# This bypasses the threat_reaction_delay so enemies don't stay in exposed states (COMBAT/PURSUING).
+	if not (_force_field_component and _force_field_component.is_active()):
+		_under_fire = true; _suppression_timer = 0.0; _threat_reaction_delay_elapsed = true
+		if enable_cover and _current_state in [AIState.COMBAT, AIState.PURSUING]:
+			_log_to_file("[#1338] Immediate retreat: bullet in threat zone during %s" % AIState.keys()[_current_state])
+			_combat_exposed = false; _combat_approaching = false; _seeking_clear_shot = false
+			_pursuit_approaching = false; _pursuing_vulnerability_sound = false
+			_transition_to_retreating()
 
 ## Called when a bullet exits the threat sphere.
 func _on_threat_area_exited(area: Area2D) -> void:
@@ -4183,12 +4192,16 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			if _memory: _memory.update_position(est_pos, 0.8); _memory_reset_confusion_timer = 0.0
 			_log_to_file("[#959] Pacifist hit - retaliates in PACIFIST state (attacker only)"); return
 		# Issue #910: When hit in non-combat state, transition to COMBAT and fire back
+		# Issue #1338: Don't pull enemies out of RETREATING/SEEKING_COVER when under active fire — they should keep seeking cover
 		if _current_state in [AIState.IDLE, AIState.SEARCHING, AIState.RETREATING, AIState.SEEKING_COVER]:
-			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
-			if _memory: _memory.update_position(est_pos, 0.6); _memory_reset_confusion_timer = 0.0
-			_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()
-			# Issue #1305: Only fire back if combat transition succeeded (not redirected to IDLE by PerformanceSettings)
-			if _current_state == AIState.COMBAT and _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
+			if _current_state in [AIState.RETREATING, AIState.SEEKING_COVER] and (_under_fire or not _bullets_in_threat_sphere.is_empty()):
+				_log_to_file("[#1338] Hit while retreating/seeking cover under fire — staying in %s" % AIState.keys()[_current_state])
+			else:
+				var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
+				if _memory: _memory.update_position(est_pos, 0.6); _memory_reset_confusion_timer = 0.0
+				_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()
+				# Issue #1305: Only fire back if combat transition succeeded (not redirected to IDLE by PerformanceSettings)
+				if _current_state == AIState.COMBAT and _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:

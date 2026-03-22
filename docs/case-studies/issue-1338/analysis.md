@@ -67,39 +67,80 @@ if not (_can_see_player or _can_see_companion) and not _under_fire:
 
 The root cause is that there was **no memory of recent suppression** when transitioning from SUPPRESSED to IN_COVER. The IN_COVER state treated a just-suppressed enemy identically to one that calmly walked to cover.
 
+## Follow-up Report (game_log_20260322_182023.txt)
+
+After the initial fix, the repo owner reported that enemies still sometimes run toward the player or stay in place instead of seeking cover when bullets hit their threat zone. Analysis of the second log revealed two additional root causes:
+
+### Root Cause 2: Delayed threat reaction allows exposed transitions
+
+The `_update_suppression()` function has a `threat_reaction_delay` (0.2s) before setting `_under_fire = true`. During this delay window:
+- COMBAT enemies see "can't see player + not under fire" → transition to PURSUING
+- PURSUING enemies see "can see player + can hit" → transition to COMBAT
+- Both transitions happen while bullets are actively flying past
+
+Log evidence:
+```
+[18:20:36] Enemy3 [#1311] Player bullet entered threat sphere — suppression triggered
+[18:20:36] Enemy3 State: COMBAT -> PURSUING   ← should have retreated!
+[18:20:36] Enemy1 State: COMBAT -> PURSUING   ← no bullets in THEIR zone, but nearby fire
+```
+
+### Root Cause 3: Hit handler pulls enemies out of cover-seeking
+
+Issue #910 added logic: "when hit in RETREATING/SEEKING_COVER → transition to COMBAT". This directly conflicts with suppression:
+```
+[18:20:34] Enemy2 [#910] Hit triggered COMBAT from SEEKING_COVER  ← was trying to take cover!
+```
+
 ## Solution
 
-Added a **post-suppression cover timer** (`POST_SUPPRESSION_COVER_DURATION = 3.0 seconds`) that keeps the enemy in cover after suppression ends:
+### Fix 1: Post-suppression cover timer (initial fix)
 
-1. **New variable**: `_post_suppression_timer` - counts down while in IN_COVER state
-2. **Set on suppression end**: When transitioning SUPPRESSED -> IN_COVER, set timer to 3.0s
-3. **Block pursuit**: IN_COVER state checks this timer before transitioning to PURSUING
-4. **Natural decay**: Timer counts down each frame; once expired, normal behavior resumes
+Added `POST_SUPPRESSION_COVER_DURATION = 3.0 seconds` timer that keeps the enemy in cover after suppression ends.
+
+### Fix 2: Immediate retreat on bullet threat (follow-up)
+
+Modified `_on_threat_area_entered()` to immediately:
+1. Set `_under_fire = true` (bypassing `threat_reaction_delay`)
+2. Set `_threat_reaction_delay_elapsed = true`
+3. Transition COMBAT/PURSUING enemies to RETREATING
+
+This ensures enemies react to bullets in the same frame they enter the threat zone.
+
+### Fix 3: Protect cover-seeking from hit handler (follow-up)
+
+Modified the Issue #910 hit handler to NOT transition from RETREATING/SEEKING_COVER to COMBAT when:
+- `_under_fire` is true, OR
+- Bullets are present in the threat sphere
+
+This preserves the original #910 behavior (hit from IDLE/SEARCHING → COMBAT) while protecting enemies that are actively seeking cover under fire.
 
 ### Fixed State Flow
 
 ```
-SUPPRESSED (under fire in cover)
-    |  [_under_fire becomes false]
+Player bullet enters threat zone
+    |  [_on_threat_area_entered: immediate _under_fire + retreat]
+    v
+RETREATING (seeking cover, protected from #910 hit handler)
+    |  [reaches cover]
+    v
+IN_COVER → SUPPRESSED (if still under fire)
+    |  [fire stops]
     v
 IN_COVER (post-suppression period: 3.0s)
-    |  [timer counting down, enemy stays put]
     |  [after 3.0s, timer expires]
-    v
-IN_COVER (normal behavior)
-    |  [can't see player => pursue]
     v
 PURSUING (delayed pursuit, realistic behavior)
 ```
 
 ## Files Changed
 
-- `scripts/objects/enemy.gd` - Added post-suppression timer logic
+- `scripts/objects/enemy.gd` - Post-suppression timer, immediate threat reaction, hit handler protection
 - `tests/unit/test_post_suppression_cover_1338.gd` - Regression tests
 
 ## Test Coverage
 
-8 test cases covering:
+19 test cases covering:
 - Timer set correctly on suppression end
 - Enemy stays in cover during post-suppression period
 - Enemy pursues after timer expires
@@ -108,3 +149,13 @@ PURSUING (delayed pursuit, realistic behavior)
 - Timer doesn't go negative
 - No timer without prior suppression (normal IN_COVER behavior preserved)
 - Under-fire still prevents pursuing (existing behavior preserved)
+- COMBAT enemy immediately retreats on bullet threat
+- PURSUING enemy immediately retreats on bullet threat
+- IDLE enemy does not retreat on bullet threat (different handling)
+- Force field blocks immediate retreat
+- Cover disabled does not trigger retreat
+- Hit does not pull RETREATING enemy to COMBAT when under fire
+- Hit does not pull SEEKING_COVER enemy to COMBAT when under fire
+- Hit does not pull RETREATING enemy with bullets in threat sphere
+- Hit still triggers COMBAT from IDLE (Issue #910 preserved)
+- Hit triggers COMBAT from RETREATING when not under fire (Issue #910 preserved)
