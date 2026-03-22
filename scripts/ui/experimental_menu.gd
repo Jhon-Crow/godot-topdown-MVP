@@ -485,6 +485,7 @@ func _on_settings_changed() -> void:
 
 ## Enemy spawner: populate enemy type dropdown.
 ## Each entry stores weapon_type int as metadata (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE, 4=RPG, 5=PM, 6=MACHINE_GUN, 7=SNIPER_RIFLE).
+## Special flags: is_teleporter, has_armored_skin, has_force_field, is_grenadier, start_invisible.
 ## Restores the previously selected enemy type from ExperimentalSettings (Issue #1112).
 func _setup_enemy_spawner() -> void:
 	enemy_type_option.clear()
@@ -498,6 +499,11 @@ func _setup_enemy_spawner() -> void:
 		{"name": "Machine Gunner (PKM)", "weapon_type": 6, "behavior": 1},
 		{"name": "Sniper (ASVK)", "weapon_type": 7, "behavior": 1},
 		{"name": "Patrol Rifle", "weapon_type": 0, "behavior": 0},
+		{"name": "Teleporter (Rifle)", "weapon_type": 0, "behavior": 1, "is_teleporter": true},
+		{"name": "Armored Skin (Rifle)", "weapon_type": 0, "behavior": 1, "has_armored_skin": true},
+		{"name": "Force Field (Rifle)", "weapon_type": 0, "behavior": 1, "has_force_field": true},
+		{"name": "Grenadier (Rifle)", "weapon_type": 0, "behavior": 1, "is_grenadier": true},
+		{"name": "Invisible (Rifle)", "weapon_type": 0, "behavior": 1, "start_invisible": true},
 	]
 	for t in types:
 		enemy_type_option.add_item(t["name"])
@@ -541,6 +547,17 @@ func _on_spawn_enemy_pressed() -> void:
 		enemy.set("behavior_mode", meta.get("behavior", 1))
 	if enemy.get("destroy_on_death") != null:
 		enemy.set("destroy_on_death", true)
+	# Apply special enemy flags if present in metadata.
+	if meta.get("is_teleporter", false) and enemy.get("is_teleporter") != null:
+		enemy.set("is_teleporter", true)
+	if meta.get("has_armored_skin", false) and enemy.get("has_armored_skin") != null:
+		enemy.set("has_armored_skin", true)
+	if meta.get("has_force_field", false) and enemy.get("has_force_field") != null:
+		enemy.set("has_force_field", true)
+	if meta.get("is_grenadier", false) and enemy.get("is_grenadier") != null:
+		enemy.set("is_grenadier", true)
+	if meta.get("start_invisible", false) and enemy.get("start_invisible") != null:
+		enemy.set("start_invisible", true)
 
 	# Add to Environment/Enemies node if it exists, otherwise directly to scene.
 	var enemies_node: Node = current_scene.find_child("Enemies", true, false)
