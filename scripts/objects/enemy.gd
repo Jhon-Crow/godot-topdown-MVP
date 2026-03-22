@@ -4095,21 +4095,17 @@ func _initialize_idle_scan_targets() -> void:
 	_idle_scan_target_index = randi() % _idle_scan_targets.size()
 
 ## Called when a bullet enters the threat sphere.
+## Issue #1311: removed _is_position_visible_to_enemy — suppression works through cover.
+## Issue #1228: only player bullets suppress. #1311: fix ulong→int overflow for C# bullets.
 func _on_threat_area_entered(area: Area2D) -> void:
-	if not _is_position_visible_to_enemy(area.global_position): return  # Wall blocking — no suppression
-	# Issue #1228: only suppress from player bullets — ignore own/enemy bullets.
-	# Uses .get() for both GDScript "shooter_id" (int, default -1) and C# "ShooterId" (ulong [Export], default 0).
-	# Pattern from force_field_effect.gd (#932): .get() works where "in" operator may not for C# exports.
 	var raw_id = area.get("shooter_id"); if raw_id == null: raw_id = area.get("ShooterId")
-	if raw_id == null: return  # Unknown area — safe default, no suppression
-	var sid: int = int(raw_id); if sid <= 0: return  # -1 (GDScript default) or 0 (C# default) — no suppression
-	var shooter: Object = instance_from_id(sid); if shooter == null: return  # Shooter freed — no suppression
-	if not (shooter as Node).is_in_group("player"):
-		if debug_logging: _log_to_file("[#1228] Non-player bullet '%s' — no suppression" % (shooter as Node).name)
-		return
-	if debug_logging: _log_to_file("[#1228] Player bullet '%s' — suppression allowed" % (shooter as Node).name)
+	if raw_id == null: return  # Unknown area — no suppression
+	# #1311: C# ulong may overflow to negative int64; reject only unset defaults (0, -1).
+	var sid: int = int(raw_id); if sid == 0 or sid == -1: return
+	var shooter: Object = instance_from_id(sid); if shooter == null: return
+	if not (shooter as Node).is_in_group("player"): return  # #1228: only player bullets
+	_log_to_file("[#1311] Player bullet entered threat sphere — suppression triggered")
 	_bullets_in_threat_sphere.append(area); _threat_memory_timer = THREAT_MEMORY_DURATION
-	_log_debug("Bullet entered threat sphere, starting reaction delay...")
 
 ## Called when a bullet exits the threat sphere.
 func _on_threat_area_exited(area: Area2D) -> void:
