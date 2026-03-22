@@ -132,7 +132,51 @@ In `_apply_pedestal_weapon`, after calling `ApplySelectedWeaponFromGameManager()
 ## Files Changed
 
 - `Scripts/Characters/Player.cs` — `ApplySelectedWeaponFromGameManager()`: add same-weapon guard
-- `scripts/levels/roguelike_level.gd` — `_apply_pedestal_weapon()`: reconnect weapon signals after swap, call weapon pose re-detection
+- `scripts/levels/roguelike_level.gd` — `_apply_pedestal_weapon()`: reconnect weapon signals after swap; `_spawn_treasure_pedestal()`: bind floating tween to pedestal node
+
+---
+
+## Second Regression: Tween Use-After-Free Crash
+
+After the first regression fix (same-weapon guard, arm pose reset, signal reconnection), the owner reported a **second crash** (`game_log_20260322_181229.txt`): the game still crashed when touching a pedestal, at least with passive items (Breaker Bullets, Drilling Bullets).
+
+### Evidence from Log (`game_log_20260322_181229.txt`)
+
+```
+[18:13:46] [RoguelikeLevel] Spawning treasure pedestal: Breaker Bullets
+[18:13:46] [RoguelikeLevel] Treasure pedestal added to scene at (640, 360)
+[18:13:46] [RoguelikeLevel] Treasure room ready — pedestal spawned: true
+...
+[18:14:55] [SoundPropagation] Sound emitted: type=GUNSHOT, ...
+→ CRASH (abrupt log end, no shutdown message, no error)
+```
+
+Key observations:
+- No `"[RoguelikeLevel] Pedestal collected by player"` message — the `_on_pedestal_body_entered` handler may or may not have printed before the crash
+- The crash is a hard engine segfault (no GDScript/C# error in logs)
+- Both crash logs (Drilling Bullets and Breaker Bullets) follow the same pattern: passive item pedestal → hard crash on touch
+
+### Root Cause: Tween Bound to Level, Animating Pedestal Child
+
+In `_spawn_treasure_pedestal()`, the floating animation tween was created with `create_tween()` (line 1538), which binds the tween to `self` (the roguelike level node). However, the tween animates `float_node`, which is a child of the pedestal:
+
+```gdscript
+# BEFORE (buggy):
+var float_tween := create_tween()   # ← tween bound to LEVEL (self)
+float_tween.set_loops()
+float_tween.tween_property(float_node, "position:y", ...)  # ← target is pedestal child
+```
+
+When the player touches a passive-item pedestal, `_apply_pedestal_active_item()` calls `pedestal.queue_free()`, which frees the pedestal and all its children (including `float_node`). But the tween survives because it's bound to the level node. On the next tween tick, it tries to set `position:y` on the freed `float_node` → **use-after-free / segfault**.
+
+### Fix 4: Bind tween to pedestal
+
+```gdscript
+# AFTER (fixed):
+var float_tween := pedestal.create_tween()   # ← tween bound to PEDESTAL
+```
+
+When the pedestal is `queue_free()`-d, Godot automatically kills all tweens bound to it. The tween no longer outlives its target.
 
 ---
 
@@ -141,4 +185,6 @@ In `_apply_pedestal_weapon`, after calling `ApplySelectedWeaponFromGameManager()
 - [Issue #1323](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1323) — Original bug report
 - [PR #1327](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1327) — Fix PR (this case study)
 - [Godot 4 Docs: Node signals](https://docs.godotengine.org/en/stable/classes/class_node.html)
-- Game log: `game_log_20260322_165808.txt` (attached to PR #1327)
+- [Godot 4 Docs: SceneTree.create_tween](https://docs.godotengine.org/en/stable/classes/class_scenetree.html#class-scenetree-method-create-tween) — tween ownership semantics
+- Game log: `game_log_20260322_165808.txt` (first regression — attached to PR #1327)
+- Game log: `game_log_20260322_181229.txt` (second regression — attached to PR #1327)

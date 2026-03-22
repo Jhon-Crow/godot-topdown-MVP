@@ -1535,7 +1535,11 @@ func _spawn_treasure_pedestal() -> void:
 		float_node.add_child(orb)
 
 	# Issue #1299: gentle floating animation — item bobs ±4 px over 1.4 s, looping.
-	var float_tween := create_tween()
+	# Bind the tween to the pedestal (not the level) so it is automatically killed
+	# when the pedestal is queue_free()-d.  Using `create_tween()` (bound to self/level)
+	# caused a crash: the tween survived pedestal removal and tried to animate the
+	# freed float_node → engine segfault (Issue #1323 regression).
+	var float_tween := pedestal.create_tween()
 	float_tween.set_loops()
 	float_tween.tween_property(float_node, "position:y", -PEDESTAL_SIZE * 1.1 - 4.0, 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	float_tween.tween_property(float_node, "position:y", -PEDESTAL_SIZE * 1.1 + 4.0, 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
