@@ -363,6 +363,7 @@ var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Faci
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
 var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
+var _tactical_group: TacticalGroupComponent = null  ## Issue #1287: Tactical group movement — enemies within 500 px spread around the player.
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -409,6 +410,7 @@ func _ready() -> void:
 		_nav_agent.velocity_computed.connect(_on_avoidance_velocity_computed)
 
 	_tactical_movement = TacticalMovementComponent.new(self)  # Issue #1249: narrow passage queuing
+	_tactical_group = TacticalGroupComponent.new(self)  # Issue #1287: tactical group encirclement
 
 	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
 	if bullet_scene == null:  # Preload bullet scene if not set in inspector
@@ -4569,6 +4571,7 @@ func _update_debug_label() -> void:
 	if _is_blinded or _is_stunned: t += "\n{%s}" % ("BLINDED + STUNNED" if _is_blinded and _is_stunned else "BLINDED" if _is_blinded else "STUNNED")
 	if _aggression: t += _aggression.get_debug_text()
 	if _tactical_movement: var _tm_info := _tactical_movement.get_debug_info(); if _tm_info != "": t += "\n" + _tm_info  # Issue #1249
+	if _tactical_group: var _tg_info := _tactical_group.get_debug_info(); if _tg_info != "": t += "\n" + _tg_info  # Issue #1287
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
@@ -4732,6 +4735,9 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 				velocity = _wd * speed * 0.6; if velocity.length_squared() > 0.01: rotation = velocity.angle()
 			else: velocity = Vector2.ZERO
 			return true
+	# Issue #1287: Tactical group encirclement — offset approach target so enemies spread around the player.
+	if _tactical_group and _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
+		target_pos = _tactical_group.get_adjusted_target(target_pos, get_physics_process_delta_time())
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
 	direction = _apply_wall_avoidance(direction)
