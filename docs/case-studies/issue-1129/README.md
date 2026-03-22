@@ -460,6 +460,47 @@ Files changed:
 | 2026-03-18 | Bug #3: Area2D overlap detection unreliable; switched to `intersect_shape()` |
 | 2026-03-21 | Bug #4: New requirements — dedicated GasMaskEnemy type, 2–5 copies, no chemical for regular enemies |
 | 2026-03-22 | Bug #5: GasMaskEnemy not placed on any level — added to FactoryLevel |
+| 2026-03-22 | Bug #6: GasMaskEnemy not in experimental spawner dropdown — added as item #9 |
+| 2026-03-22 | Bug #7: Infinite recursion — illusion copies spawning copies of copies (exponential growth) |
+| 2026-03-22 | Bug #7 fix: Added metadata check `get_meta("is_illusion", false)` to `chemical_cloud.gd` |
+| 2026-03-22 | Visual: Added gas mask head sprite (`gas_mask_head.png`) with green goggles and filter canister |
+
+---
+
+## Bug Report #7: Infinite Recursion — Illusion Copies Spawning Copies
+
+**Symptom**: After a chemical grenade explodes, hundreds/thousands of enemy copies flood the screen, causing extreme lag and eventual crash. See `screenshot_recursion.png`.
+
+**Root Cause**: The `ChemicalCloud._apply_illusion_to_enemy()` method checked `enemy.has_method("is_illusion")` to skip illusion copies. However:
+
+1. The `IllusionEnemy` wrapper node (Node2D) has `is_illusion()` method → correctly skipped
+2. But the inner `_enemy_node` (CharacterBody2D on collision layer 2) is what physics queries actually find
+3. The inner node only has **metadata** `"is_illusion": true` (set in `illusion_enemy.gd:89`) — NOT the method
+4. So the inner node passes the guard check and spawns MORE illusion copies
+5. Those new copies' inner nodes are also found by the next physics tick → exponential growth
+
+**Fix**: Added metadata check alongside the method check:
+```gdscript
+if enemy.get_meta("is_illusion", false):
+    return
+```
+
+Also added early return in `_on_body_entered()` for bodies with `is_illusion` metadata to prevent signal-based detection of illusion copies.
+
+**Game log**: `game_log_20260322_172130.txt` — log ends abruptly at 403 lines (game crashed from memory exhaustion).
+
+---
+
+## Visual Fix: Gas Mask Head Sprite
+
+The GasMaskEnemy previously used the standard `enemy_head.png` with only a green color tint. User feedback: "на газовом враге не видно противогаза" (gas mask not visible on the gas mask enemy).
+
+**Fix**: Created `assets/sprites/characters/enemy/gas_mask_head.png` — a 14x18 pixel sprite matching the original enemy head dimensions but with:
+- Two circular green goggles (olive rims, green glass, dark green pupils)
+- Bridge strap between goggles
+- Filter canister (snout) below the goggles
+
+Updated `GasMaskEnemy.tscn` to reference the new sprite.
 
 ---
 

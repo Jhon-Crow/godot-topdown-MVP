@@ -108,6 +108,9 @@ func _on_body_entered(body: Node2D) -> void:
 	if not is_instance_valid(body):
 		return
 	if body.is_in_group("enemies") and body is Node2D:
+		# Skip illusion copies — they must not spawn more copies (prevents recursion)
+		if body.get_meta("is_illusion", false):
+			return
 		FileLogger.info("[ChemicalCloud] Enemy entered cloud: %s at %s" % [body.name, str(body.global_position)])
 		_apply_illusion_to_enemy(body)
 
@@ -233,8 +236,14 @@ func _apply_illusion_to_enemy(enemy: Node2D) -> void:
 	if not is_instance_valid(enemy):
 		return
 
-	# Skip illusion enemies themselves (they don't spawn more copies)
+	# Skip illusion enemies themselves (they don't spawn more copies).
+	# The IllusionEnemy wrapper has is_illusion() method, but the inner _enemy_node
+	# (CharacterBody2D on collision layer 2) only has metadata "is_illusion" = true.
+	# Physics queries find the inner node, so we must check BOTH.
 	if enemy.has_method("is_illusion") and enemy.is_illusion():
+		return
+	if enemy.get_meta("is_illusion", false):
+		FileLogger.info("[ChemicalCloud] Skipping illusion copy %s (metadata)" % enemy.name)
 		return
 
 	# Check line of sight (gas doesn't go through walls)
