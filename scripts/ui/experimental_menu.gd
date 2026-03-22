@@ -503,6 +503,7 @@ func _setup_enemy_spawner() -> void:
 	for t in types:
 		enemy_type_option.add_item(t["name"])
 		enemy_type_option.set_item_metadata(enemy_type_option.item_count - 1, t)
+	_log("Enemy spawner populated: %d types (last: '%s')" % [enemy_type_option.item_count, enemy_type_option.get_item_text(enemy_type_option.item_count - 1)])
 	# Restore persisted selection.
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings and experimental_settings.has_method("get_selected_enemy_type_index"):

@@ -61,7 +61,7 @@ const ENEMY_FEATURES: Dictionary = {
 	"res://scenes/levels/DecadenceLevel.tscn":  [false, false, false, true,  false],
 	"res://scenes/levels/TestTier.tscn":        [false, false, false, false, false],
 	"res://scenes/levels/RevolverLevel.tscn":   [false, false, true,  false, false],
-	"res://scenes/levels/FactoryLevel.tscn":    [false, false, false, false, true],
+	"res://scenes/levels/FactoryLevel.tscn":    [false, false, false, false, false],
 }
 
 
