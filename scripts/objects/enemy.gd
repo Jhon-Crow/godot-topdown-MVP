@@ -1629,24 +1629,29 @@ func _process_seeking_cover_state(_delta: float) -> void:
 			if time_in_state >= SEEKING_COVER_MIN_DURATION: _transition_to_combat()  # RCA-17: min duration
 			return
 
-	# RCA-19: Only transition after minimum duration to prevent rapid cycling; also main goal: hidden.
-	if not _is_visible_from_player():
-		if time_in_state >= SEEKING_COVER_MIN_DURATION:
-			_transition_to_in_cover()
-			_log_debug("Hidden from player, entering cover state")
-		return
-
 	# Move towards cover
 	var distance: float = global_position.distance_to(_cover_position)
+	var hidden_from_player := not _is_visible_from_player()
 
+	# Issue #1338: Only transition to IN_COVER when near cover AND hidden, not just hidden anywhere.
 	if distance < 10.0:
-		# Reached the cover position, but still visible - try to find better cover
-		if _is_visible_from_player():
+		if hidden_from_player:
+			if time_in_state >= SEEKING_COVER_MIN_DURATION:
+				_transition_to_in_cover()
+				_log_debug("Reached cover and hidden from player, entering cover state")
+			return
+		else:
+			# Reached the cover position, but still visible - try to find better cover
 			_has_valid_cover = false
 			_find_cover_position()
 			if not _has_valid_cover:
 				if time_in_state >= SEEKING_COVER_MIN_DURATION: _transition_to_combat()  # RCA-17
 				return
+	elif hidden_from_player and not _under_fire and not _can_see_player and time_in_state >= 5.0:
+		# Issue #1338: Safety timeout — hidden and no longer under fire for a long time
+		_transition_to_in_cover()
+		_log_debug("Seeking cover timeout: hidden from player, entering cover state")
+		return
 
 	# Use navigation-based pathfinding to move toward cover
 	_move_to_target_nav(_cover_position, combat_move_speed)
@@ -1877,29 +1882,38 @@ func _process_retreating_state(delta: float) -> void:
 				else: _transition_to_combat()
 			return
 
-	# Check if we've reached cover and are hidden from player
-	# RCA-19: Add minimum duration check even for successful cover reach
-	if not _is_visible_from_player():
-		if time_in_state >= RETREATING_MIN_DURATION:
-			_log_debug("Reached cover during retreat")
-			# Reset encounter hits when successfully reaching cover
-			_hits_taken_in_encounter = 0
-			_transition_to_in_cover()
-		return
-
 	# Calculate direction to cover
 	var direction_to_cover := (_cover_position - global_position).normalized()
 	var distance_to_cover := global_position.distance_to(_cover_position)
 
-	# Check if reached cover position
-	if distance_to_cover < 10.0:
-		if _is_visible_from_player():
+	# Issue #1338: Only transition to IN_COVER when actually near cover position AND hidden.
+	# Previously, losing player visibility alone triggered IN_COVER even in open areas.
+	var near_cover := distance_to_cover < 10.0
+	var hidden_from_player := not _is_visible_from_player()
+
+	if near_cover:
+		if hidden_from_player:
+			if time_in_state >= RETREATING_MIN_DURATION:
+				_log_debug("Reached cover during retreat (near cover and hidden)")
+				_hits_taken_in_encounter = 0
+				_transition_to_in_cover()
+			return
+		else:
+			# Reached cover position but still visible — find better cover
 			_has_valid_cover = false
 			_find_cover_position()
 			if not _has_valid_cover:
 				if time_in_state >= RETREATING_MIN_DURATION:  # RCA-17
 					if _under_fire: _transition_to_suppressed()
 					else: _transition_to_combat()
+			return
+	elif hidden_from_player and not _under_fire and not _can_see_player:
+		# Not near cover but hidden and no longer under fire — still move to cover
+		# but if we've been retreating for a long time, transition to in_cover
+		if time_in_state >= 5.0:
+			_log_debug("Retreat timeout: hidden from player, transitioning to IN_COVER")
+			_hits_taken_in_encounter = 0
+			_transition_to_in_cover()
 			return
 
 	# Apply retreat behavior based on mode
@@ -2895,6 +2909,13 @@ func _is_position_visible_from_player(pos: Vector2) -> bool:  ## Enemy at pos vi
 	for pt in _get_enemy_check_points(pos):
 		if _is_point_visible_from_player(pt): return true
 	return false
+## Issue #1338: Check if position is visible from an arbitrary origin (used for cover selection with last known player pos).
+func _is_position_visible_from_origin(pos: Vector2, origin: Vector2) -> bool:
+	for pt in _get_enemy_check_points(pos):
+		var q := PhysicsRayQueryParameters2D.new(); q.from = origin; q.to = pt; q.collision_mask = 4
+		var r := get_world_2d().direct_space_state.intersect_ray(q)
+		if r.is_empty() or origin.distance_to(r["position"]) >= origin.distance_to(pt) - 10.0: return true
+	return false
 
 ## Check if target is visible from enemy (raycast for LOS). For lead prediction validation.
 func _is_position_visible_to_enemy(target_pos: Vector2) -> bool:
@@ -3253,7 +3274,15 @@ func _find_cover_position() -> void:
 	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
 	_last_cover_search_time = current_time
 
-	var player_pos := _player.global_position
+	# Issue #1338: Use last known player position when player is not visible,
+	# so cover blocks rays from where the player was last seen.
+	var player_pos: Vector2
+	if _can_see_player:
+		player_pos = _player.global_position
+	elif _last_known_player_position != Vector2.ZERO:
+		player_pos = _last_known_player_position
+	else:
+		player_pos = _player.global_position
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
 	var found_hidden_cover: bool = false
@@ -3285,7 +3314,8 @@ func _find_cover_position() -> void:
 				continue
 
 			# First priority: Check if this position is actually hidden from player
-			var is_hidden := not _is_position_visible_from_player(cover_pos)
+			# Issue #1338: use player_pos (which may be last known position) for visibility check
+			var is_hidden := not _is_position_visible_from_origin(cover_pos, player_pos)
 
 			# Only consider hidden positions unless we have no choice
 			if is_hidden or not found_hidden_cover:
