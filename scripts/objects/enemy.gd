@@ -147,7 +147,7 @@ const SEPARATION_STRENGTH: float = 280.0  ## Maximum separation impulse magnitud
 var _avoidance_velocity: Vector2 = Vector2.ZERO  ## Issue #1146: ORCA-computed safe velocity
 var _cover_raycasts: Array[RayCast2D] = []  ## Cover detection raycasts
 var _last_cover_search_rays: Array = []  ## Issue #1338: cached ray data for debug visualization (rays from player)
-const COVER_CHECK_COUNT: int = 36  ## Number of cover raycasts (Issue #1338: increased from 16 for finer angular resolution)
+const COVER_CHECK_COUNT: int = 72  ## Number of cover raycasts (Issue #1338: 72 rays = 5° apart for fine angular resolution)
 const COVER_CHECK_DISTANCE: float = 300.0  ## Cover check distance
 var _current_health: int = 0; var _max_health: int = 0  ## Current / max health (set at spawn)
 var _is_alive: bool = true  ## Is alive
@@ -3234,6 +3234,7 @@ func _find_cover_closest_to_player() -> void:
 		var away_from_player := (collision_point - player_pos).normalized()
 		var cover_pos := collision_point + away_from_player * 35.0
 		if has_nav_cp: cover_pos = NavigationServer2D.map_get_closest_point(nav_map_cp, cover_pos)
+		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue  # Issue #1355
 
 		var is_hidden := not _is_position_visible_from_player(cover_pos)
 		if is_hidden:
