@@ -55,13 +55,14 @@ func _on_explode() -> void:
 
 ## Issue #1367: Explode on landing (grenade comes to rest) instead of waiting for fuse timer.
 func _on_grenade_landed() -> void:
-	_has_landed = true
+	super._on_grenade_landed()
 	FileLogger.info("[ChemicalGasGrenade] Landed at %s — detonating on contact" % str(global_position))
 	_explode()
 
 
 ## Issue #1367: Also explode on collision with walls/obstacles for immediate detonation.
 func _on_body_entered(body: Node) -> void:
+	super._on_body_entered(body)
 	if _has_exploded:
 		return
 	# Only detonate on wall/obstacle collision, not on enemies
