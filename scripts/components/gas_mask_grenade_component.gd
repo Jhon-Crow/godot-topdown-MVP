@@ -132,8 +132,17 @@ func _throw_grenade(target_position: Vector2) -> void:
 	# Add to scene
 	get_tree().current_scene.add_child(grenade)
 
-	# Apply velocity (must be done after adding to scene tree for RigidBody2D)
-	grenade.linear_velocity = direction * throw_speed
+	# Activate the fuse timer (must be called before throwing)
+	if grenade.has_method("activate_timer"):
+		grenade.activate_timer()
+
+	# Throw using GrenadeBase.throw_grenade() which handles unfreeze + velocity
+	if grenade.has_method("throw_grenade"):
+		grenade.throw_grenade(direction, distance)
+	else:
+		# Fallback: manually unfreeze and set velocity
+		grenade.freeze = false
+		grenade.linear_velocity = direction * throw_speed
 
 	grenades_remaining -= 1
 

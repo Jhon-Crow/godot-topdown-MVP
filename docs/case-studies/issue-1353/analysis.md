@@ -117,6 +117,57 @@ Enemy (CharacterBody2D, ~50+ nodes)
 - `scripts/ui/experimental_menu.gd`: Gas Mask Enemy spawner entry (item #15)
 - `scripts/ui/enemies_table_menu.gd`: GasMask feature column
 
+## Bug Fix: Grenade Not Exploding (2026-03-23)
+
+### Symptom
+After the initial implementation, the Gas Mask Enemy's chemical grenade was thrown
+but never exploded — the gas cloud was never spawned and no illusion copies appeared.
+The game log showed "Chemical grenade thrown at..." but no subsequent "[ChemicalGasGrenade]
+Gas released" or "[ChemicalCloud]" messages. FPS dropped to 2-3 FPS due to enemies
+continuing to fire at the player while the grenade sat frozen.
+
+### Root Cause
+`gas_mask_grenade_component.gd` was setting `grenade.linear_velocity` directly after
+adding the grenade to the scene tree, but `GrenadeBase._ready()` sets `freeze = true`
+on initialization. This caused two problems:
+
+1. **Grenade frozen in place**: With `freeze = true`, the RigidBody2D ignores all
+   velocity/force changes. The grenade stayed at the enemy's position.
+2. **Timer never activated**: `activate_timer()` was never called, so the 4-second
+   fuse never started. The fallback auto-activation (line 180-184 of `grenade_base.gd`)
+   only triggers when `freeze` transitions from true to false, but no code ever
+   set `freeze = false`.
+
+### Evidence from Game Log
+- `game_log_20260323_051959.txt` (saved in `logs/`)
+- Line 2576: `[GrenadeBase] Grenade created at (1652.18, 980.1863) (frozen)` — created frozen
+- Line 2577: `[GasMaskGrenade] Chemical grenade thrown at (1394.439, 1156.662)` — component
+  logged the throw, but no timer activation or unfreeze messages followed
+- No "[ChemicalGasGrenade] Gas released" or "[ChemicalCloud]" log entries exist
+
+### Fix
+Updated `gas_mask_grenade_component.gd` `_throw_grenade()` to match the pattern used
+by `enemy_grenade_component.gd` (line 416-427) and `grenadier_grenade_component.gd`
+(line 348-358):
+
+1. Call `grenade.activate_timer()` to start the fuse countdown
+2. Call `grenade.throw_grenade(direction, distance)` which handles both unfreezing
+   and velocity application
+3. Fallback to manual `freeze = false` + `linear_velocity` if `throw_grenade()`
+   method is not available
+
+### Comparison with Working Components
+```
+# enemy_grenade_component.gd (working):
+if grenade.has_method("activate_timer"):
+    grenade.activate_timer()
+if grenade.has_method("throw_grenade"):
+    grenade.throw_grenade(dir, dist)
+
+# gas_mask_grenade_component.gd (broken):
+grenade.linear_velocity = direction * throw_speed   # <-- ignored, grenade is frozen
+```
+
 ## References
 
 - [Godot Forum: Sprite After-image](https://forum.godotengine.org/t/sprite-after-image-in-2d-game/78758)
