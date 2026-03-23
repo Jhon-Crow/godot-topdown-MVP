@@ -11,6 +11,13 @@ var kills: int = 0
 ## Persists across sessions — used as the unlock condition for Laser Sight (Issue #1196).
 var kills_without_laser_sight: int = 0
 
+## Cumulative shots fired with shotgun, sniper rifle, or revolver.
+## Persists across sessions — used as the unlock condition for Fine Motor Skills (Issue #1346).
+var shots_fired_special_weapons: int = 0
+
+## Weapon IDs that count toward the Fine Motor Skills unlock condition (Issue #1346).
+const FINE_MOTOR_SKILLS_WEAPONS: Array[String] = ["shotgun", "sniper", "revolver"]
+
 ## Total shots fired in current session.
 var shots_fired: int = 0
 
@@ -72,6 +79,10 @@ signal enemy_killed
 ## Signal emitted when kills_without_laser_sight changes (for kill-based unlock checks).
 ## Issue #1196.
 signal kills_without_laser_sight_updated(new_count: int)
+
+## Signal emitted when shots_fired_special_weapons changes (for shot-based unlock checks).
+## Issue #1346.
+signal shots_fired_special_weapons_updated(new_count: int)
 
 ## Signal emitted when player dies.
 signal player_died
@@ -150,6 +161,11 @@ var roguelike_in_treasure_room: bool = false
 ## Empty string means the default Makarov PM starting weapon.
 var roguelike_run_weapon: String = ""
 
+## Items already offered in treasure rooms during this run (Issue #1313).
+## Each entry is either a weapon ID String or an int ActiveItemType.
+## Used to prevent the same item from appearing on a pedestal twice in one run.
+var roguelike_offered_items: Array = []
+
 ## Resets all roguelike session variables to their default (not-in-run) state.
 func roguelike_reset_session() -> void:
 	roguelike_active = false
@@ -164,6 +180,7 @@ func roguelike_reset_session() -> void:
 	roguelike_current_level = 1
 	roguelike_in_treasure_room = false
 	roguelike_run_weapon = ""
+	roguelike_offered_items = []
 
 
 func _ready() -> void:
@@ -222,9 +239,15 @@ func _reset_stats() -> void:
 
 
 ## Registers a shot fired by the player.
+## Also increments shots_fired_special_weapons when the selected weapon qualifies (Issue #1346).
 func register_shot() -> void:
 	shots_fired += 1
 	stats_updated.emit()
+	# Track shots with special weapons for Fine Motor Skills unlock (Issue #1346).
+	if selected_weapon in FINE_MOTOR_SKILLS_WEAPONS:
+		shots_fired_special_weapons += 1
+		shots_fired_special_weapons_updated.emit(shots_fired_special_weapons)
+		_log_to_file("shots_fired_special_weapons: %d (weapon: %s)" % [shots_fired_special_weapons, selected_weapon])
 
 
 ## Registers a hit landed by the player.
@@ -425,16 +448,22 @@ func _spawn_selected_enemy_at_player() -> void:
 	if experimental_settings and experimental_settings.has_method("get_selected_enemy_type_index"):
 		selected_idx = experimental_settings.get_selected_enemy_type_index()
 
-	# Enemy type definitions (must match experimental_menu.gd order).
+	# Enemy type definitions (must match experimental_menu.gd _setup_enemy_spawner() order).
 	var types: Array[Dictionary] = [
 		{"name": "Rifle (M16)", "weapon_type": 0, "behavior": 1},
 		{"name": "Shotgun", "weapon_type": 1, "behavior": 1},
 		{"name": "UZI (SMG)", "weapon_type": 2, "behavior": 1},
 		{"name": "Machete (melee)", "weapon_type": 3, "behavior": 1},
 		{"name": "RPG + PM pistol", "weapon_type": 4, "behavior": 1},
+		{"name": "PM (Makarov pistol)", "weapon_type": 5, "behavior": 1},
 		{"name": "Machine Gunner (PKM)", "weapon_type": 6, "behavior": 1},
 		{"name": "Sniper (ASVK)", "weapon_type": 7, "behavior": 1},
 		{"name": "Patrol Rifle", "weapon_type": 0, "behavior": 0},
+		{"name": "Teleporter (Rifle)", "weapon_type": 0, "behavior": 1, "is_teleporter": true},
+		{"name": "Armored Skin (Rifle)", "weapon_type": 0, "behavior": 1, "has_armored_skin": true},
+		{"name": "Force Field (Rifle)", "weapon_type": 0, "behavior": 1, "has_force_field": true},
+		{"name": "Grenadier (Rifle)", "weapon_type": 0, "behavior": 1, "is_grenadier": true},
+		{"name": "Invisible (Rifle)", "weapon_type": 0, "behavior": 1, "start_invisible": true},
 	]
 	if selected_idx < 0 or selected_idx >= types.size():
 		selected_idx = 0
@@ -449,6 +478,17 @@ func _spawn_selected_enemy_at_player() -> void:
 		enemy.set("behavior_mode", meta.get("behavior", 1))
 	if enemy.get("destroy_on_death") != null:
 		enemy.set("destroy_on_death", true)
+	# Apply special enemy flags if present in metadata.
+	if meta.get("is_teleporter", false) and enemy.get("is_teleporter") != null:
+		enemy.set("is_teleporter", true)
+	if meta.get("has_armored_skin", false) and enemy.get("has_armored_skin") != null:
+		enemy.set("has_armored_skin", true)
+	if meta.get("has_force_field", false) and enemy.get("has_force_field") != null:
+		enemy.set("has_force_field", true)
+	if meta.get("is_grenadier", false) and enemy.get("is_grenadier") != null:
+		enemy.set("is_grenadier", true)
+	if meta.get("start_invisible", false) and enemy.get("start_invisible") != null:
+		enemy.set("start_invisible", true)
 
 	# Add to Enemies node if it exists, otherwise directly to scene.
 	var enemies_node: Node = current_scene.find_child("Enemies", true, false)

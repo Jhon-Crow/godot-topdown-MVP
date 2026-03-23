@@ -117,7 +117,7 @@ func show_icon(icon_path: String, duration: float = DEFAULT_DURATION) -> void:
 			var scale_factor: float = ICON_SIZE / maxf(tex_size.x, tex_size.y)
 			_sprite.scale = Vector2(scale_factor, scale_factor)
 
-	_total_duration = max(duration, DEFAULT_DURATION)
+	_total_duration = maxf(duration, 0.0)
 	_timer = _total_duration
 	_active = true
 	visible = true

@@ -78,6 +78,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIF
 @export var start_invisible: bool = false  ## Start with invisibility cloak, reveal only when shooting/throwing grenade (Issue #1121).
 @export var initial_state: AIState = AIState.IDLE  ## Initial AI state on spawn (Issue #1121). SEARCHING starts enemy in search mode.
 @export var has_armored_skin: bool = false  ## Whether this enemy has Armored Skin passive item (Issue #1123).
+@export var is_gas_mask: bool = false  ## Whether this enemy is a Gas Mask type with chemical grenades (Issue #1353).
 @export var search_path_node: NodePath = NodePath("")  ## SearchPathWaypoints node path; when set, uses pre-planned waypoints in SEARCHING instead of spiral (Issue #1225).
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
@@ -364,6 +365,7 @@ var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenad
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
+var _gas_mask_grenade: GasMaskGrenadeComponent = null  ## Issue #1353: Chemical grenade component for gas mask enemies.
 var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
 var _tactical_group: TacticalGroupComponent = null  ## Issue #1287: Tactical group movement — enemies within 500 px spread around the player.
 var _pursuit_component: PursuitComponent = null  ## Issue #1289: Cover-finding logic for PURSUING state.
@@ -446,6 +448,9 @@ func _ready() -> void:
 	elif initial_state != AIState.IDLE: _current_state = initial_state  # Issue #1121: initial state override
 	else: _transition_to_idle()  # Issue #1202: honor IDLE disable at spawn (redirects to SEARCHING if IDLE is disabled)
 	if start_invisible: _invisibility = EnemyInvisibilityComponent.new(); _invisibility.name = "InvisibilityComponent"; add_child(_invisibility); _invisibility.initialize(_enemy_model)  # Issue #1121
+	if is_gas_mask:  # Issue #1353: chemical grenades with illusion copies
+		_gas_mask_grenade = GasMaskGrenadeComponent.new(); _gas_mask_grenade.name = "GasMaskGrenadeComponent"; add_child(_gas_mask_grenade)
+		if _head_sprite: var _gm_tex := load("res://assets/sprites/characters/enemy/gas_mask_head.png"); if _gm_tex: _head_sprite.texture = _gm_tex; _head_sprite.rotation_degrees = -90.0  # Issue #1363: sprite drawn facing up, rotate to face right
 
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
@@ -1190,6 +1195,7 @@ func _find_distant_cover_position() -> void:
 		var cp := raycast.get_collision_point()
 		var cn := raycast.get_collision_normal()
 		var cover_pos := cp + cn * 35.0
+		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue  # Issue #1355
 		if not _can_reach_position(cover_pos): continue
 		var is_hidden := not _is_position_visible_from_player(cover_pos)
 		if not is_hidden and found_hidden: continue
@@ -1416,6 +1422,10 @@ func _process_combat_state(delta: float) -> void:
 			_transition_to_pursuing()
 			return
 		if _suppressive_fire: _suppressive_fire.try_suppress_pursuing(_can_see_player, _last_known_player_position, _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown)  # Issue #910
+
+	# Issue #1353: Gas mask enemy continuously tries to throw chemical grenades during combat
+	if is_gas_mask and _gas_mask_grenade and _gas_mask_grenade.has_grenades() and _player and not _gas_mask_grenade.is_throwing():
+		_gas_mask_grenade.try_throw(_player.global_position)
 
 	# Update detection delay timer
 	if not _detection_delay_elapsed:
@@ -2596,6 +2606,8 @@ func _transition_to_combat() -> void:
 	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
 	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
+	if is_gas_mask and _gas_mask_grenade and _gas_mask_grenade.has_grenades() and _player:  # Issue #1353: throw chemical grenade before shooting
+		_gas_mask_grenade.try_throw(_player.global_position)
 
 func _transition_to_seeking_cover() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_seeking_cover_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -3261,6 +3273,10 @@ func _find_cover_position() -> void:
 			# Offset must be large enough to hide the entire enemy body (radius ~24 pixels)
 			# Using 35 pixels to provide some margin for the enemy's collision shape
 			var cover_pos := collision_point + collision_normal * 35.0
+
+			# Issue #1355: teleporters skip nearby cover (would cause in-place flicker).
+			if is_teleporter and global_position.distance_to(cover_pos) < 10.0:
+				continue
 
 			# CRITICAL: Verify we can actually reach this cover position
 			# This prevents selecting cover positions on the opposite side of walls
@@ -4128,7 +4144,7 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	if not _is_alive:
 		return
 	if _force_field_component and _force_field_component.is_active(): _log_to_file("Hit blocked by force field"); return  # Issue #1034: invulnerable while force field active
-	if _armored_skin_component and _armored_skin_component.try_spawn_shards(_current_health): hit.emit(); _show_hit_flash(); _log_to_file("[ArmoredSkin] Triggering hit absorbed — damage ignored (Issue #1143)"); return  # Issue #1143: absorb the triggering hit's damage, mirroring player behaviour
+	if _armored_skin_component and _armored_skin_component.try_spawn_shards(_current_health, maxi(int(round(damage)), 1)): hit.emit(); _show_hit_flash(); _log_to_file("[ArmoredSkin] Triggering hit absorbed — damage ignored (Issue #1143, #1300)"); return  # Issue #1143: absorb the triggering hit's damage; Issue #1300: also absorb lethal hits from high-damage weapons
 	# [#1033] Machine gunner: 30% frontal damage resistance (±15° arc, cos15°=0.9659).
 	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active and Vector2.from_angle(_enemy_model.global_rotation if _enemy_model else rotation).dot(-hit_direction.normalized()) >= 0.9659 and randf() < 0.30:
 		_log_to_file("[#1033] Machine gunner front-arc hit ignored"); hit.emit(); _show_hit_flash(); return
@@ -4177,6 +4193,11 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()
 			# Issue #1305: Only fire back if combat transition succeeded (not redirected to IDLE by PerformanceSettings)
 			if _current_state == AIState.COMBAT and _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
+		# Issue #1355: Teleporter enemies teleport immediately on first damage.
+		if _teleport_component and _teleport_component.is_ready():
+			if not _has_valid_cover: _find_cover_position()
+			if _teleport_component.try_damage_teleport(_cover_position, _flank_target):
+				_log_to_file("[#1355] Damage-triggered teleport succeeded"); _transition_to_in_cover()
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
@@ -4487,6 +4508,27 @@ func get_search_current_waypoint_index() -> int: return _search_current_waypoint
 func get_nav_path() -> PackedVector2Array:
 	if _nav_agent == null: return PackedVector2Array()
 	return _nav_agent.get_current_navigation_path()
+
+## Returns cover raycast collision data for debug visualization (Issue #1359: CoverRaycastMonitor).
+## Each entry: { "origin": Vector2, "target": Vector2, "colliding": bool, "point": Vector2, "normal": Vector2 }
+func get_cover_raycast_data() -> Array:
+	var data: Array = []
+	for i in range(_cover_raycasts.size()):
+		var rc: RayCast2D = _cover_raycasts[i]
+		var entry: Dictionary = {
+			"origin": rc.global_position,
+			"target": rc.global_position + rc.target_position,
+			"colliding": rc.is_colliding(),
+		}
+		if rc.is_colliding():
+			entry["point"] = rc.get_collision_point()
+			entry["normal"] = rc.get_collision_normal()
+		data.append(entry)
+	return data
+
+## Returns the current cover position and whether it is valid (Issue #1359: CoverRaycastMonitor).
+func get_cover_info() -> Dictionary:
+	return { "position": _cover_position, "valid": _has_valid_cover }
 
 func set_player_reloading(is_reloading: bool) -> void:
 	var old: bool = _goap_world_state.get("player_reloading", false)

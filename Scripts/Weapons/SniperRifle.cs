@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Characters;
@@ -2115,6 +2116,118 @@ public partial class SniperRifle : BaseWeapon
     /// Gets the current bolt-action step.
     /// </summary>
     public BoltActionStep CurrentBoltStep => _boltStep;
+
+    /// <summary>
+    /// Instantly completes the bolt cycle, bringing the weapon to combat-ready state (Issue #1315).
+    /// Used by the Fine Motor Skills active item. Plays all bolt step sounds rapidly
+    /// and transitions directly to Ready state if ammo is available.
+    /// </summary>
+    public void FineBoltCycle()
+    {
+        if (_boltStep == BoltActionStep.Ready)
+        {
+            GD.Print("[SniperRifle.FineMotorSkills] Bolt already ready — no cycle needed");
+            return;
+        }
+
+        GD.Print($"[SniperRifle.FineMotorSkills] Instant bolt cycle from step {_boltStep}");
+
+        // Play all remaining bolt step sounds rapidly
+        int startStep = _boltStep switch
+        {
+            BoltActionStep.NeedsBoltCycle => 1,
+            BoltActionStep.WaitExtractCasing => 2,
+            BoltActionStep.WaitChamberRound => 3,
+            BoltActionStep.WaitCloseBolt => 4,
+            _ => 1
+        };
+
+        for (int step = startStep; step <= 4; step++)
+        {
+            PlayBoltStepSound(step);
+        }
+
+        // Eject casing if needed
+        if (_hasCasingToEject)
+        {
+            SpawnCasing(_lastFireDirection, WeaponData?.Caliber);
+            _hasCasingToEject = false;
+        }
+
+        // Transition to Ready if ammo available, otherwise NeedsBoltCycle
+        if (CurrentAmmo > 0)
+        {
+            _boltStep = BoltActionStep.Ready;
+            EmitSignal(SignalName.BoltStepChanged, 4, 4);
+            GD.Print("[SniperRifle.FineMotorSkills] Bolt cycle complete — READY TO FIRE");
+        }
+        else
+        {
+            _boltStep = BoltActionStep.NeedsBoltCycle;
+            EmitSignal(SignalName.BoltStepChanged, 0, 4);
+            GD.Print("[SniperRifle.FineMotorSkills] Bolt cycle complete but NO ammo — needs reload");
+        }
+    }
+
+    /// <summary>
+    /// Sequentially completes the bolt cycle with delays between each step (Issue #1337).
+    /// Each bolt step sound plays and waits before proceeding to the next,
+    /// creating an audible reload sequence instead of instant completion.
+    /// </summary>
+    /// <param name="stageDelay">Delay in seconds between each bolt step.</param>
+    public async Task FineBoltCycleAsync(float stageDelay)
+    {
+        if (_boltStep == BoltActionStep.Ready)
+        {
+            GD.Print("[SniperRifle.FineMotorSkills] Bolt already ready — no cycle needed");
+            return;
+        }
+
+        GD.Print($"[SniperRifle.FineMotorSkills] Sequential bolt cycle from step {_boltStep} (delay={stageDelay}s)");
+
+        int startStep = _boltStep switch
+        {
+            BoltActionStep.NeedsBoltCycle => 1,
+            BoltActionStep.WaitExtractCasing => 2,
+            BoltActionStep.WaitChamberRound => 3,
+            BoltActionStep.WaitCloseBolt => 4,
+            _ => 1
+        };
+
+        for (int step = startStep; step <= 4; step++)
+        {
+            PlayBoltStepSound(step);
+            EmitSignal(SignalName.BoltStepChanged, step, 4);
+            GD.Print($"[SniperRifle.FineMotorSkills] Bolt step {step}/4 complete");
+
+            // Eject casing during step 2 (extract casing)
+            if (step == 2 && _hasCasingToEject)
+            {
+                SpawnCasing(_lastFireDirection, WeaponData?.Caliber);
+                _hasCasingToEject = false;
+            }
+
+            // Wait between steps (except after the last step)
+            if (step < 4 && stageDelay > 0)
+            {
+                await ToSignal(GetTree().CreateTimer(stageDelay), "timeout");
+            }
+        }
+
+        // Transition to Ready if ammo available, otherwise NeedsBoltCycle
+        if (CurrentAmmo > 0)
+        {
+            _boltStep = BoltActionStep.Ready;
+            EmitSignal(SignalName.BoltStepChanged, 4, 4);
+            GD.Print("[SniperRifle.FineMotorSkills] Sequential bolt cycle complete — READY TO FIRE");
+        }
+        else
+        {
+            _boltStep = BoltActionStep.NeedsBoltCycle;
+            EmitSignal(SignalName.BoltStepChanged, 0, 4);
+            GD.Print("[SniperRifle.FineMotorSkills] Sequential bolt cycle complete but NO ammo — needs reload");
+        }
+    }
 
     // =========================================================================
     // Scope / Aiming System (RMB)
