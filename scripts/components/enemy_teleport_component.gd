@@ -15,13 +15,15 @@ const VIEWPORT_FRACTION: float = 1.0
 ## Fallback diagonal when viewport is unavailable (1280x720).
 const DEFAULT_DIAGONAL: float = 1469.0
 ## Minimum teleport distance in pixels (Issue #1355: reject short teleports).
-const MIN_DISTANCE: float = 50.0
+const MIN_DISTANCE: float = 10.0
 ## Max distance from nav-mesh to still count as "on the map" (Issue #1355).
-const NAV_SNAP_TOLERANCE: float = 30.0
+const NAV_SNAP_TOLERANCE: float = 50.0
 
 var _parent: CharacterBody2D = null  ## The enemy node.
 var _cooldown_timer: float = 0.0  ## Seconds until next teleport allowed.
 var _ready_flag: bool = false  ## Set in _ready after parent resolves.
+var _last_reject_reason: String = ""  ## Last rejection reason (for rate-limiting logs).
+var _reject_count: int = 0  ## Consecutive identical rejections.
 
 func _ready() -> void:
 	_parent = get_parent() as CharacterBody2D
@@ -43,19 +45,21 @@ func try_teleport(target: Vector2) -> bool:
 		return false
 	# Issue #1355: reject uninitialized (0,0) targets.
 	if target == Vector2.ZERO:
-		FileLogger.info("[Teleporter] Rejected teleport: target is (0,0)")
+		_log_reject("target is (0,0)")
 		return false
 	var dist := _parent.global_position.distance_to(target)
 	# Issue #1355: reject teleports that are too short (visual flicker).
 	if dist < MIN_DISTANCE:
-		FileLogger.info("[Teleporter] Rejected teleport: distance %.1f < min %.1f" % [dist, MIN_DISTANCE])
+		_log_reject("distance %.1f < min %.1f" % [dist, MIN_DISTANCE])
 		return false
 	if dist > _get_max_distance():
+		_log_reject("distance %.1f > max %.1f" % [dist, _get_max_distance()])
 		return false
 	# Issue #1355: reject targets that are outside the navigation map.
 	if not _is_on_nav_map(target):
-		FileLogger.info("[Teleporter] Rejected teleport: target %s is off the nav-map" % target)
+		_log_reject("target %s is off the nav-map" % target)
 		return false
+	_flush_reject_log()
 	_execute_teleport(target)
 	return true
 
@@ -73,6 +77,36 @@ static func add_backpack(enemy_model: Node2D) -> void:
 	backpack.z_index = 2  ## Same z-index as body sprite overlay
 	backpack.position = Vector2(-4, 0)  ## Aligned with body sprite
 	enemy_model.add_child(backpack)
+
+## Rate-limited rejection log. Only logs first occurrence and a summary when reason changes.
+func _log_reject(reason: String) -> void:
+	if reason == _last_reject_reason:
+		_reject_count += 1
+		return
+	_flush_reject_log()
+	_last_reject_reason = reason
+	_reject_count = 1
+	FileLogger.info("[Teleporter] Rejected teleport: %s" % reason)
+
+## Flush pending rejection log summary if there were repeated identical rejections.
+func _flush_reject_log() -> void:
+	if _reject_count > 1:
+		FileLogger.info("[Teleporter] (repeated %d more times: %s)" % [_reject_count - 1, _last_reject_reason])
+	_last_reject_reason = ""
+	_reject_count = 0
+
+## Attempt an immediate teleport in response to taking damage (Issue #1355).
+## Bypasses the under_fire requirement — the enemy should teleport on first hit.
+## Returns true if teleport succeeded.
+func try_damage_teleport(cover_position: Vector2, flank_target: Vector2) -> bool:
+	if not is_ready() or _parent == null:
+		return false
+	# Try cover position first, then flank target.
+	if cover_position != Vector2.ZERO and try_teleport(cover_position):
+		return true
+	if flank_target != Vector2.ZERO and try_teleport(flank_target):
+		return true
+	return false
 
 ## Returns true if pos is inside (or very close to) the navigation mesh.
 ## Uses NavigationServer2D to snap the point; if the snapped point is far

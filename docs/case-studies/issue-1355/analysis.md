@@ -283,6 +283,58 @@ The implemented fix addresses all three root causes:
 
 ---
 
+## Session 3: Log `game_log_20260323_055049.txt`
+
+A third game log was provided after the initial fix was deployed. This revealed two new issues:
+
+### Evidence: Teleport Never Succeeds
+
+After the initial fix, the enemy's teleport was blocked in **100% of attempts**. The log shows:
+
+1. **Nav-map rejection spam** (lines 385–600+): Hundreds of identical lines per second:
+   ```
+   [Teleporter] Rejected teleport: target (363.6755, 387) is off the nav-map
+   ```
+   The `NAV_SNAP_TOLERANCE` of 30.0 px was too strict — position (363, 387) is a valid playable position (only ~37 px from spawn point (350, 360)) but the navigation mesh snap returned a point > 30 px away.
+
+2. **MIN_DISTANCE too strict** (lines 1105–1270+): After the enemy moved closer, hundreds of:
+   ```
+   [Teleporter] Rejected teleport: distance 48.8 < min 50.0
+   ```
+   The `MIN_DISTANCE` of 50.0 px rejected teleports that were close to the threshold. The owner specified 10 px as the minimum acceptable distance.
+
+3. **No teleport on first damage** (line 507): Enemy was hit (`Hit: dmg=1, hp=4/4->3/4`) but never teleported because:
+   - Teleport is only checked in `_process_ai_state()` when `_under_fire` is true
+   - The damage handler (`on_hit_with_bullet_info`) transitions the enemy to COMBAT but doesn't trigger teleport
+   - By the time the physics loop runs, the teleport target is still being rejected
+
+### Root Causes Found (Session 3)
+
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| Nav-map false rejections | `NAV_SNAP_TOLERANCE = 30.0` too strict for experimental spawn positions | Increased to `50.0` |
+| MIN_DISTANCE too strict | `MIN_DISTANCE = 50.0` rejects legitimate short-range cover teleports | Reduced to `10.0` per owner feedback |
+| Log spam (thousands of lines/sec) | `try_teleport()` logs every frame with no rate-limiting | Added `_log_reject()` with deduplication — only logs first occurrence + summary count |
+| No teleport on first damage | Teleport only triggers in physics loop via `_under_fire` check, not from damage handler | Added `try_damage_teleport()` method called directly from `on_hit_with_bullet_info()` |
+
+### Applied Fix (Iteration 2)
+
+1. **`enemy_teleport_component.gd`:**
+   - `MIN_DISTANCE`: 50.0 → **10.0** (per owner specification)
+   - `NAV_SNAP_TOLERANCE`: 30.0 → **50.0** (prevents false rejections on valid positions)
+   - Added `_log_reject()` / `_flush_reject_log()` for rate-limited rejection logging
+   - Added `try_damage_teleport(cover, flank)` — attempts teleport to cover then flank, called from damage handler
+
+2. **`enemy.gd` — `on_hit_with_bullet_info()`:**
+   - After non-lethal hit processing, teleporter enemies now immediately attempt `try_damage_teleport()`
+   - If successful, transitions to IN_COVER state
+   - Cover search is triggered if no valid cover exists yet
+
+3. **`enemy.gd` — cover distance thresholds:**
+   - `_find_cover_position()` and `_find_distant_cover_position()` skip threshold: 50.0 → **10.0** (matches MIN_DISTANCE)
+
+---
+
 ## References
 
 - [Godot Forum: NavigationServer2D get_closest_point inaccuracy](https://forum.godotengine.org/t/navigationserver2d-get-closest-point-inaccuracy/79052)

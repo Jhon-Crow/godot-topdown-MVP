@@ -1190,7 +1190,7 @@ func _find_distant_cover_position() -> void:
 		var cp := raycast.get_collision_point()
 		var cn := raycast.get_collision_normal()
 		var cover_pos := cp + cn * 35.0
-		if is_teleporter and global_position.distance_to(cover_pos) < 50.0: continue  # Issue #1355
+		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue  # Issue #1355
 		if not _can_reach_position(cover_pos): continue
 		var is_hidden := not _is_position_visible_from_player(cover_pos)
 		if not is_hidden and found_hidden: continue
@@ -3264,7 +3264,7 @@ func _find_cover_position() -> void:
 			var cover_pos := collision_point + collision_normal * 35.0
 
 			# Issue #1355: teleporters skip nearby cover (would cause in-place flicker).
-			if is_teleporter and global_position.distance_to(cover_pos) < 50.0:
+			if is_teleporter and global_position.distance_to(cover_pos) < 10.0:
 				continue
 
 			# CRITICAL: Verify we can actually reach this cover position
@@ -4182,6 +4182,11 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()
 			# Issue #1305: Only fire back if combat transition succeeded (not redirected to IDLE by PerformanceSettings)
 			if _current_state == AIState.COMBAT and _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
+		# Issue #1355: Teleporter enemies teleport immediately on first damage.
+		if _teleport_component and _teleport_component.is_ready():
+			if not _has_valid_cover: _find_cover_position()
+			if _teleport_component.try_damage_teleport(_cover_position, _flank_target):
+				_log_to_file("[#1355] Damage-triggered teleport succeeded"); _transition_to_in_cover()
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
