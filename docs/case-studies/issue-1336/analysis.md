@@ -26,6 +26,10 @@ User feedback (translated from Russian):
 | 2026-03-23 | Unified laser, hitscan, and blind-fire to all use visual barrel direction |
 | 2026-03-23 | Owner: "теперь лазера вообще нет" — laser completely invisible |
 | 2026-03-23 | **Fix: re-parent laser CanvasItem nodes to enemy (CharacterBody2D) instead of EnemySniperComponent (Node), add debug logging, restore accidentally removed `bullet_damage_multiplier`** |
+| 2026-03-23 | Owner: "сейчас всё ещё нет лазера" — laser still invisible with enemy node parenting |
+| 2026-03-23 | Fix: direct `_is_alive` access, scene root parenting via `call_deferred` |
+| 2026-03-23 | Owner: "всё ещё нет лазера" — laser still invisible with scene root parenting |
+| 2026-03-23 | **Fix: parent laser to enemy with `top_level=true` + synchronous `add_child()` (same as SniperEnemyTracer)** |
 
 ## Data Sources
 
@@ -192,3 +196,53 @@ Three issues identified:
 
 ### Data Sources
 - `logs/game_log_20260323_132404.txt` — Game log confirming zero laser output
+
+## Round 8: Laser Still Invisible (2026-03-23, user feedback)
+
+### Symptom
+User reports "всё ещё нет лазера" (still no laser). Game log `game_log_20260323_135513.txt` confirms:
+- ContainerYardA_Sniper is active (enters COMBAT, fires at player)
+- **Zero** `[#1336]` log entries from either `_create_laser_sight()` or `update_laser_sight()`
+- Log timestamp 13:55 local (likely ~10:55 UTC), after commit `e877513c` at 10:37 UTC
+
+### Root Cause Analysis
+
+The Round 7 fix used `call_deferred("add_child", ...)` to parent laser nodes to `current_scene` (scene root). This has multiple failure modes:
+
+1. **Deferred addition timing**: `call_deferred` schedules `add_child` for the end of the frame. During `_ready()` of the enemy, `current_scene` may not yet be fully initialized or may change during the deferred call.
+
+2. **Scene transition**: If the level loads asynchronously or scene transitions occur, `current_scene` at deferred-call time may differ from `current_scene` at scheduling time.
+
+3. **No error feedback**: `call_deferred` silently fails if the target node is freed before the deferred call executes. The laser nodes would exist in memory but never be added to the scene tree.
+
+4. **update_laser_sight guard**: The `is_inside_tree()` check at line 435 would return `false` if the deferred add never succeeded, causing the entire update to be skipped silently.
+
+### Fix
+
+Adopted the same approach used by `SniperEnemyTracer` (which renders correctly):
+- Parent laser `Line2D` nodes **directly to the enemy `CharacterBody2D`** using synchronous `add_child()` (no `call_deferred`)
+- Set `top_level = true` on all laser `Line2D` and `PointLight2D` nodes so they use global coordinates
+- Removed the `is_inside_tree()` guard (no longer needed since add_child is synchronous)
+
+This is the simplest possible approach: the enemy node is a `CharacterBody2D` (a `CanvasItem`), so `Line2D` children will render correctly. `top_level = true` ensures coordinates are treated as global regardless of the enemy's position. When the enemy is freed, its children (including laser nodes) are automatically freed — no manual cleanup needed.
+
+### Why This Should Work
+
+The `SniperEnemyTracer` at line 327 of `enemy_sniper_component.gd` uses the exact same pattern:
+```gdscript
+tracer.top_level = true
+tracer.position = Vector2.ZERO
+# ...
+current_scene.add_child(tracer)
+```
+Tracers render correctly. The laser now uses:
+```gdscript
+_laser_sight.top_level = true
+# ...
+enemy.add_child(_laser_sight)
+```
+Parenting to `enemy` directly is even safer than `current_scene` since the enemy is guaranteed to exist when `_ready()` runs.
+
+### Data Sources
+- `game_log_20260323_135513.txt` — Game log confirming zero laser output
+- Comparison with SniperEnemyTracer implementation (proven to render correctly)
