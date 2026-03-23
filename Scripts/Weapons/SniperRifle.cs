@@ -601,9 +601,10 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Updates the laser sight visualization (Power Fantasy mode only).
-    /// The laser points directly toward the mouse cursor so it matches the crosshair exactly.
-    /// (Issue #1384: sniper has reduced turn sensitivity so _aimDirection lags behind the cursor,
-    /// causing significant divergence at distance — use mouse position directly instead.)
+    /// The laser always passes through the crosshair center:
+    /// - In scope mode: points toward the scope crosshair (screen center world position)
+    /// - In hip-fire mode: points toward the mouse cursor position
+    /// (Issue #1384: ensures laser aligns with crosshair in both modes.)
     /// </summary>
     private void UpdateLaserSight()
     {
@@ -612,11 +613,17 @@ public partial class SniperRifle : BaseWeapon
             return;
         }
 
-        // Use direction to mouse cursor so the laser matches the crosshair exactly.
-        // _aimDirection has 25x reduced sensitivity and lags behind the cursor at distance.
-        Vector2 toMouse = GetGlobalMousePosition() - GlobalPosition;
-        Vector2 laserDirection = toMouse.LengthSquared() > 0.001f
-            ? toMouse.Normalized()
+        // Determine the target point the laser should pass through:
+        // In scope mode, the crosshair is at screen center (not at the mouse cursor),
+        // so use GetScopeAimTarget() which returns the world position at viewport center.
+        // In hip-fire mode, the crosshair follows the mouse cursor.
+        Vector2 targetPoint = _isScopeActive
+            ? GetScopeAimTarget()
+            : GetGlobalMousePosition();
+
+        Vector2 toTarget = targetPoint - GlobalPosition;
+        Vector2 laserDirection = toTarget.LengthSquared() > 0.001f
+            ? toTarget.Normalized()
             : _aimDirection;
 
         // Use weapon range for laser length so the beam is unlimited within shooting distance
