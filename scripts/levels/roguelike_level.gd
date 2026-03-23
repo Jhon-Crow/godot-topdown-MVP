@@ -1384,7 +1384,7 @@ const WEAPON_ICON_PATHS: Dictionary = {
 	"shotgun":       "res://assets/sprites/weapons/shotgun_icon.png",
 	"mini_uzi":      "res://assets/sprites/weapons/mini_uzi_icon.png",
 	"silenced_pistol": "res://assets/sprites/weapons/silenced_pistol_icon.png",
-	"sniper":        "res://assets/sprites/weapons/weapon_case_icon.png",
+	"sniper":        "res://assets/sprites/weapons/asvk_topdown.png",
 	"revolver":      "res://assets/sprites/weapons/revolver_icon.png",
 	"ak_gl":         "res://assets/sprites/weapons/ak_gl_icon.png",
 }
