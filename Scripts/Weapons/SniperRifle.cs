@@ -613,9 +613,9 @@ public partial class SniperRifle : BaseWeapon
         // Apply recoil offset to aim direction for laser visualization
         Vector2 laserDirection = _aimDirection.Rotated(_recoilOffset);
 
-        // Calculate maximum laser length based on viewport size
-        Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
-        float maxLaserLength = viewportSize.Length();
+        // Use weapon range for laser length so the beam is unlimited within shooting distance
+        // (Issue #1384: sniper laser should be unlimited length, not limited to viewport size)
+        float maxLaserLength = WeaponData?.Range ?? 5000.0f;
 
         // Calculate the end point of the laser
         Vector2 endPoint = laserDirection * maxLaserLength;
