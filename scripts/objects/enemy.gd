@@ -38,6 +38,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIF
 @export var fov_angle: float = 100.0  ## FOV angle (deg). 0/negative = 360°. Default 100° per #66.
 @export var fov_enabled: bool = true  ## FOV enabled (combined with ExperimentalSettings).
 @export var shoot_cooldown: float = 0.1  ## Time between shots (0.1s = 10 rounds/sec).
+@export var bullet_damage_multiplier: float = 1.0  ## Damage multiplier applied to each bullet (Issue #1244).
 @export var bullet_scene: PackedScene  ## Bullet scene to instantiate when shooting.
 @export var casing_scene: PackedScene  ## Casing scene for ejected bullet casings.
 @export var bullet_spawn_offset: float = 30.0  ## Offset from center for bullet spawn.
@@ -3887,12 +3888,9 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 		if debug_logging: _log_debug("SHOOT BLOCKED: aim_dot=%.3f (%.1f deg off)" % [aim_dot, rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))])
 		return
 	var direction := weapon_forward
-	# [#1336] Sniper: use visual barrel direction for aim check + shooting so tracer matches laser
-	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component:
-		direction = _sniper_component.get_visual_barrel_direction()
-		if direction.dot(to_target) < AIM_TOLERANCE_DOT: return  # barrel not aimed yet
-		bullet_spawn_pos = _sniper_component._get_barrel_spawn_position(direction)
-		_sniper_component.shoot_sniper_hitscan(direction, bullet_spawn_pos)
+	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component:  # [#1336] visual barrel direction so tracer matches laser
+		direction = _sniper_component.get_visual_barrel_direction(); if direction.dot(to_target) < AIM_TOLERANCE_DOT: return
+		bullet_spawn_pos = _sniper_component._get_barrel_spawn_position(direction); _sniper_component.shoot_sniper_hitscan(direction, bullet_spawn_pos)
 	elif _is_rpg_weapon and not _rpg_fired: _fire_rpg_rocket(direction, bullet_spawn_pos)  # Issue #583
 	elif _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
 	else: _shoot_single_bullet(direction, bullet_spawn_pos)
@@ -3939,6 +3937,7 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 	if p.has_method("SetShooterPosition"): p.SetShooterPosition(pos)
 	elif p.get("shooter_position") != null: p.shooter_position = pos
 	elif p.get("ShooterPosition") != null: p.ShooterPosition = pos
+	if bullet_damage_multiplier != 1.0 and p.get("damage") != null: p.damage *= bullet_damage_multiplier  # Issue #1244
 
 ## Fire RPG rocket (Issue #583). RigidBody2D + linear_velocity after add_child (VOGGrenade pattern).
 func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:

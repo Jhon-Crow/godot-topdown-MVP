@@ -23,13 +23,16 @@ User feedback (translated from Russian):
 | 2026-03-23 | Failed fix attempt 1: switched laser to visual barrel direction — bullets still went elsewhere |
 | 2026-03-23 | Failed fix attempt 2: switched laser back to `_get_weapon_forward_direction()` — still mismatch |
 | 2026-03-23 | Owner: "blind fire deviation not accounted for, laser must strictly match tracer" |
-| 2026-03-23 | **Correct fix: unified laser, hitscan, and blind-fire to all use visual barrel direction** |
+| 2026-03-23 | Unified laser, hitscan, and blind-fire to all use visual barrel direction |
+| 2026-03-23 | Owner: "теперь лазера вообще нет" — laser completely invisible |
+| 2026-03-23 | **Fix: re-parent laser CanvasItem nodes to enemy (CharacterBody2D) instead of EnemySniperComponent (Node), add debug logging, restore accidentally removed `bullet_damage_multiplier`** |
 
 ## Data Sources
 
 - `logs/game_log_20260323_102814.txt` — Game log from user testing (barrel-direction fix)
 - `logs/game_log_20260323_104706.txt` — Game log confirming barrel-direction fix was still wrong
 - `logs/game_log_20260323_110139.txt` — Game log with blind fire deviation analysis
+- `logs/game_log_20260323_112851.txt` — Game log: laser completely invisible after unification fix
 - Source code analysis of `enemy.gd` and `enemy_sniper_component.gd`
 - Player M16 laser implementation in `AssaultRifle.cs` for comparison
 
@@ -123,6 +126,26 @@ The visual barrel direction is the single source of truth. The laser shows it co
 
 Laser raycast mask: **5** (binary `101`) = Layer 1 (player) + Layer 3 (walls)
 
+## Round 6: Laser Completely Invisible
+
+### Problem
+After the unification fix (commit a8f1dd54), the laser sight became completely invisible. No laser was visible at all during gameplay.
+
+### Analysis
+The laser `Line2D` nodes were created as children of `EnemySniperComponent`, which extends `Node` (NOT `Node2D`). In Godot 4.3, `CanvasItem` nodes (like `Line2D`) added as children of a plain `Node` may silently fail to render, even with `top_level = true`.
+
+The rendering chain was: `Enemy (CharacterBody2D)` → `SniperComponent (Node)` → `Line2D (top_level=true)`. While the `Line2D` had a `CanvasItem` ancestor (the Enemy), the intermediate `Node` breaks the canvas item inheritance chain in some Godot versions.
+
+The player's M16 laser (`AssaultRifle.cs`) avoids this by adding the `Line2D` directly to the weapon node (`AddChild(_laserSight)`), which is a `Node2D`.
+
+### Fix
+Re-parent laser nodes to `enemy` (the `CharacterBody2D`) instead of `self` (the `EnemySniperComponent` Node). This ensures the `Line2D` is a direct child of a `CanvasItem`, guaranteeing proper rendering.
+
+Also added debug logging to `_create_laser_sight()` and `update_laser_sight()` to help diagnose future issues.
+
+### Additional Fix: Accidental Removal of `bullet_damage_multiplier`
+The unification commit accidentally removed the `@export var bullet_damage_multiplier` and its usage in `_spawn_projectile()`. This has been restored.
+
 ## Lessons Learned
 
 1. **Visual model and shooting must use the same direction**: When a laser sight is present, it reveals any gap between the visual barrel and the actual aim direction. The only correct fix is to make all systems — laser, bullets, and visual model — agree on direction.
@@ -132,3 +155,7 @@ Laser raycast mask: **5** (binary `101`) = Layer 1 (player) + Layer 3 (walls)
 3. **Remove compensating complexity**: Blind fire had ±3° spread added on top of a snap rotation. By using the visual barrel direction (which already provides natural inaccuracy through smooth interpolation), the extra spread and snap become unnecessary.
 
 4. **Study the reference implementation**: The player's M16 laser works because both the laser and bullets use the same aim direction with no model interpolation lag. The sniper fix achieves the same result by unifying the direction source.
+
+5. **CanvasItem nodes need CanvasItem parents**: In Godot 4, `Line2D` (a `CanvasItem`) should be parented to another `CanvasItem` (like `Node2D`, `CharacterBody2D`) rather than a plain `Node`. While `top_level = true` handles transform independence, the rendering pipeline needs a proper canvas item chain for reliable rendering.
+
+6. **Watch for unrelated regressions**: The unification commit accidentally removed `bullet_damage_multiplier` — an unrelated exported variable. Always diff against the base branch to check for accidental removals.

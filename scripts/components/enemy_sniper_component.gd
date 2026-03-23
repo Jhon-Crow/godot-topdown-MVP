@@ -43,12 +43,14 @@ var enemy: Node2D = null
 ## Enable file logging (forwarded from enemy debug setting).
 var log_to_file_fn: Callable = Callable()
 
-## [#1336] Laser sight Line2D node (added to the scene tree as top-level).
+## [#1336] Laser sight Line2D node (added to enemy node for CanvasItem rendering).
 var _laser_sight: Line2D = null
 ## [#1336] Glow layers for the laser sight (additive-blended Line2D nodes).
 var _laser_glow_layers: Array[Line2D] = []
 ## [#1336] Endpoint glow PointLight2D.
 var _laser_endpoint_light: PointLight2D = null
+## [#1336] Debug: log laser state once to avoid flooding the log file.
+var _laser_logged_once: bool = false
 
 
 func _ready() -> void:
@@ -353,7 +355,12 @@ func _fade_sniper_tracer(tracer: Line2D) -> void:
 # ============================================================================
 
 ## Create the laser sight Line2D with glow layers (called once from _ready).
+## [#1336] Laser nodes are added as children of the enemy (CharacterBody2D) rather than
+## this component (Node) to guarantee they are in a valid CanvasItem branch for rendering.
+## In Godot 4.3 a CanvasItem parented under a plain Node may silently fail to render.
 func _create_laser_sight() -> void:
+	# Use enemy (CharacterBody2D / Node2D) as parent for reliable CanvasItem rendering.
+	var laser_parent: Node = enemy if enemy else self
 	_laser_sight = Line2D.new()
 	_laser_sight.name = "SniperEnemyLaser"
 	_laser_sight.width = LASER_WIDTH
@@ -364,7 +371,7 @@ func _create_laser_sight() -> void:
 	_laser_sight.z_index = 5
 	_laser_sight.add_point(Vector2.ZERO)
 	_laser_sight.add_point(Vector2.ZERO)
-	add_child(_laser_sight)
+	laser_parent.add_child(_laser_sight)
 
 	# Glow layers: additive-blended wider lines for volumetric look (like LaserGlowEffect.cs).
 	var glow_configs := [
@@ -386,7 +393,7 @@ func _create_laser_sight() -> void:
 		glow.material = mat
 		glow.add_point(Vector2.ZERO)
 		glow.add_point(Vector2.ZERO)
-		add_child(glow)
+		laser_parent.add_child(glow)
 		_laser_glow_layers.append(glow)
 
 	# Endpoint glow: small PointLight2D at the laser impact point.
@@ -406,7 +413,8 @@ func _create_laser_sight() -> void:
 			img.set_pixel(x, y, Color(1, 1, 1, a))
 	var tex := ImageTexture.create_from_image(img)
 	_laser_endpoint_light.texture = tex
-	add_child(_laser_endpoint_light)
+	laser_parent.add_child(_laser_endpoint_light)
+	_log("[#1336] Laser sight created on %s (parent=%s)" % [enemy.name if enemy else "?", laser_parent.name])
 
 
 ## Update laser sight position and endpoint every frame.
@@ -430,6 +438,10 @@ func update_laser_sight() -> void:
 	# guaranteeing the laser always points exactly where the tracer will fly.
 	var direction: Vector2 = get_visual_barrel_direction()
 	var start_pos: Vector2 = _get_barrel_spawn_position(direction)
+	# [#1336] Debug: log laser first frame to confirm it is rendering
+	if not _laser_logged_once:
+		_laser_logged_once = true
+		_log("[#1336] Laser update: dir=%v, start=%v, visible=%s, parent=%s" % [direction, start_pos, _laser_sight.visible, _laser_sight.get_parent().name if _laser_sight.get_parent() else "null"])
 
 	# Raycast to find the first wall or character hit.
 	# Collision mask 5 = walls (layer 3, value 4) + characters (layer 1, value 1).
