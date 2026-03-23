@@ -794,6 +794,16 @@ public partial class Bullet : Area2D
     {
         if (DebugHits) GD.Print($"[Bullet]: Hit {area.Name} (damage: {Damage})");
 
+        // Issue #1242: While the bullet is penetrating through a wall, it must not
+        // damage enemies whose areas overlap the wall.  The shield (and any other
+        // entity) should block the wall-penetration effect — a bullet inside a wall
+        // cannot hit anyone until it exits (at which point ExitPenetration destroys it).
+        if (_isPenetrating)
+        {
+            if (DebugHits) GD.Print($"[Bullet]: Currently penetrating wall — ignoring area hit on {area.Name}");
+            return;
+        }
+
         // Issue #912: If this area belongs to the force field, let the force field
         // GDScript handle trapping the bullet. Do NOT destroy this bullet here —
         // the force field's _on_projectile_entered will call set_physics_process(false)
