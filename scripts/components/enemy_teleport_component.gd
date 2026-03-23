@@ -5,11 +5,11 @@ extends Node
 ##
 ## The enemy teleports to cover when under fire, or to a flanking position
 ## when circling the player. Teleport distance is limited to 1 viewport diagonal.
-## Cooldown is 10 seconds between teleports.
+## Cooldown is 5 seconds between teleports (halved from 10 s per Issue #1350).
 ## A blue backpack sprite is added to the enemy model as a visual indicator.
 
 ## Teleport cooldown in seconds.
-const COOLDOWN: float = 10.0
+const COOLDOWN: float = 5.0
 ## Fraction of viewport diagonal used as max teleport distance.
 const VIEWPORT_FRACTION: float = 1.0
 ## Fallback diagonal when viewport is unavailable (1280x720).
