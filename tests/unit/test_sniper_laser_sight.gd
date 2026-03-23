@@ -199,3 +199,33 @@ func test_laser_max_length_is_sufficient() -> void:
 	# LASER_MAX_LENGTH must be long enough to cover the sniper's engagement range.
 	assert_true(EnemySniperComponent.LASER_MAX_LENGTH >= EnemySniperComponent.PREFERRED_DISTANCE * 2,
 		"LASER_MAX_LENGTH must be >= 2x PREFERRED_DISTANCE for adequate visibility [#1336]")
+
+
+func test_sniper_laser_uses_direct_is_alive_access() -> void:
+	# update_laser_sight must use direct enemy._is_alive property access instead of
+	# enemy.get("_is_alive") which can return null and cause `not null` to evaluate
+	# to true, permanently hiding the laser. [#1336]
+	var src := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
+	assert_not_null(src, "enemy_sniper_component.gd must be readable")
+	if src == null:
+		return
+	var text := src.get_as_text()
+	src.close()
+	assert_true(text.contains("enemy._is_alive"),
+		"update_laser_sight must use direct enemy._is_alive access [#1336]")
+	assert_false(text.contains('enemy.get("_is_alive")'),
+		"Must NOT use enemy.get('_is_alive') which can return null [#1336]")
+
+
+func test_sniper_laser_cleanup_on_exit_tree() -> void:
+	# _exit_tree must free laser nodes since they are parented to scene root. [#1336]
+	var src := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
+	assert_not_null(src, "enemy_sniper_component.gd must be readable")
+	if src == null:
+		return
+	var text := src.get_as_text()
+	src.close()
+	assert_true(text.contains("func _exit_tree()"),
+		"Must define _exit_tree() to clean up laser nodes on scene root [#1336]")
+	assert_true(text.contains("_laser_sight.queue_free()"),
+		"_exit_tree must queue_free _laser_sight [#1336]")

@@ -159,3 +159,36 @@ The unification commit accidentally removed the `@export var bullet_damage_multi
 5. **CanvasItem nodes need CanvasItem parents**: In Godot 4, `Line2D` (a `CanvasItem`) should be parented to another `CanvasItem` (like `Node2D`, `CharacterBody2D`) rather than a plain `Node`. While `top_level = true` handles transform independence, the rendering pipeline needs a proper canvas item chain for reliable rendering.
 
 6. **Watch for unrelated regressions**: The unification commit accidentally removed `bullet_damage_multiplier` — an unrelated exported variable. Always diff against the base branch to check for accidental removals.
+
+## Round 7: Laser Still Invisible (2026-03-23, user feedback)
+
+### Symptom
+User reports "сейчас всё ещё нет лазера" (there's still no laser). Game log `game_log_20260323_132404.txt` confirms:
+- The sniper enemy (ContainerYardA_Sniper, weapon_type=7=SNIPER_RIFLE) IS active, enters COMBAT, fires shots
+- **Zero** `[#1336]` log entries — meaning neither `_create_laser_sight()` nor `update_laser_sight()` produced any log output
+- The sniper component's `process_combat()` also produced no `[#1163]` logs
+
+### Root Cause Analysis
+
+Three issues identified:
+
+1. **`enemy.get("_is_alive")` returning null**: The `update_laser_sight()` method used `enemy.get("_is_alive")` to check if the enemy is alive. In GDScript 4, `Object.get()` can return `null` for properties depending on timing and internal state. Since `not null` evaluates to `true` in GDScript, this caused the laser to be **permanently hidden** — the function returned early at line 425-427 every single frame.
+
+2. **Laser nodes parented to enemy CharacterBody2D**: While previous fix moved laser from `EnemySniperComponent` (Node) to `enemy` (CharacterBody2D), the enemy node exists in a deep scene hierarchy. Line2D nodes with `top_level=true` parented deep in node hierarchies can still fail to render in Godot 4.3 due to CanvasItem chain issues.
+
+3. **Laser created for ALL enemies**: The `_create_laser_sight()` was called in `_ready()` unconditionally, creating laser nodes for every enemy type. For non-snipers, `update_laser_sight()` immediately hid them, but this was wasteful and created unnecessary nodes.
+
+### Fix
+
+1. **Direct property access**: Changed `enemy.get("_is_alive")` to `enemy._is_alive` — direct property access never returns null.
+
+2. **Scene root parenting**: Changed laser parent from `enemy` to `enemy.get_tree().current_scene` (the scene root), using `call_deferred("add_child", ...)` to avoid tree modification during `_ready()`. Removed `top_level=true` since scene root local coordinates equal global coordinates.
+
+3. **Gated creation**: Added `weapon_type == SNIPER_RIFLE` check in `_ready()` to only create laser for sniper enemies.
+
+4. **Cleanup on exit**: Added `_exit_tree()` to `queue_free()` laser nodes since they're now parented to scene root, not the enemy — they won't be automatically freed when the enemy is freed.
+
+5. **Console debugging**: Added `print()` statements (Godot stdout) alongside FileLogger calls to ensure debug output is visible regardless of FileLogger state.
+
+### Data Sources
+- `logs/game_log_20260323_132404.txt` — Game log confirming zero laser output
