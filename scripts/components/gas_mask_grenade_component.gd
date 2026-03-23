@@ -19,19 +19,19 @@ signal grenade_thrown(grenade: Node, target_position: Vector2)
 @export var max_grenades: int = 4
 
 ## Cooldown between throws (seconds).
-@export var throw_cooldown: float = 4.0
+@export var throw_cooldown: float = 1.0
 
 ## Maximum throw distance (pixels).
-@export var max_throw_distance: float = 600.0
+@export var max_throw_distance: float = 900.0
 
 ## Minimum safe distance (pixels).
-@export var min_throw_distance: float = 275.0
+@export var min_throw_distance: float = 100.0
 
 ## Throw inaccuracy (radians).
 @export var inaccuracy: float = 0.15
 
 ## Delay before throw animation (seconds).
-@export var throw_delay: float = 0.4
+@export var throw_delay: float = 0.1
 
 ## Chemical grenade scene.
 var _grenade_scene: PackedScene = null

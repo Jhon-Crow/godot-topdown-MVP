@@ -69,9 +69,11 @@ Enemy (CharacterBody2D, ~50+ nodes)
    references and transform data from the original enemy's sprites, avoiding
    the entire Enemy initialization chain.
 
-2. **Shader-based visual distinction**: The `illusion_clone.gdshader` applies a
-   ghostly cyan-green tint with flickering, making illusions visually distinct
-   from real enemies while using zero additional nodes.
+2. **Visually indistinguishable copies**: Illusion copies render with the original
+   enemy's exact textures and materials — no shader tint or flickering. They are
+   intentionally impossible to distinguish from real enemies, making the gas mask
+   enemy's ability a true deception tool. Only a fade-out in the last 3s hints
+   at which copies are about to expire.
 
 3. **Phantom bullets**: Illusion copies fire "phantom" bullets (`is_phantom = true`)
    that only damage the player, not enemies. This is enforced in `bullet.gd`'s
@@ -167,6 +169,61 @@ if grenade.has_method("throw_grenade"):
 # gas_mask_grenade_component.gd (broken):
 grenade.linear_velocity = direction * throw_speed   # <-- ignored, grenade is frozen
 ```
+
+## Bug Fix: Grenade Throw Delay + Distinguishable Illusions (2026-03-23)
+
+### Symptoms (reported by repo owner)
+1. **Enemy doesn't throw grenade immediately** — noticeable delay from combat entry
+   to the first chemical grenade throw.
+2. **Illusion copies are distinguishable from originals** — the ghostly cyan-green
+   shader tint and flickering made illusions easy to tell apart from real enemies.
+
+### Root Cause Analysis
+
+**Issue 1: Grenade throw delay**
+The gas mask enemy only attempted to throw a grenade in `_transition_to_combat()`,
+which fires once when entering COMBAT state. Several factors caused delays:
+- `throw_delay = 0.4s` added a small wait before each throw
+- `throw_cooldown = 4.0s` prevented retries after a failed first attempt
+- `min_throw_distance = 275px` / `max_throw_distance = 600px` were too restrictive,
+  causing `_can_throw()` to fail when the player was outside the narrow distance range
+- No retry logic: if `_can_throw()` returned false at combat entry, the enemy NEVER
+  retried until it re-entered COMBAT state (which requires losing and re-detecting player)
+
+Evidence from game log `game_log_20260323_054448.txt`:
+- GasMaskGrenadeComponent ready at 05:44:59
+- First grenade thrown at 05:45:07 (8 seconds later)
+- The enemy was in combat but out of throw range for most of that time
+
+**Issue 2: Distinguishable illusions**
+The `illusion_clone.gdshader` applied:
+- Semi-transparency (opacity = 0.55)
+- Cyan-green tint (tint_strength = 0.35)
+- Flickering animation
+- Edge glow effect
+
+These visual effects made illusions obvious to distinguish from real enemies,
+defeating the purpose of the illusion mechanic.
+
+### Fix
+
+**For throw delay:**
+1. Added continuous grenade throw attempts in `_process_combat_state()` so the
+   enemy keeps trying every frame while in combat (respects cooldown/conditions)
+2. Reduced `throw_cooldown` from 4.0s to 1.0s
+3. Reduced `throw_delay` from 0.4s to 0.1s (near-instant)
+4. Expanded distance range: `min_throw_distance` 275→100px, `max_throw_distance` 600→900px
+
+**For indistinguishable illusions:**
+1. Removed shader material application — sprites are copied with original textures,
+   colors, and materials, making illusions visually identical to real enemies
+2. Only visual distinction is a fade-out in the last 3 seconds (using modulate alpha)
+3. Retained `illusion_clone.gdshader` file for potential future use but no longer
+   applied to illusion copies
+
+### Game Log Files
+- `logs/game_log_20260323_054321.txt` — first test session after grenade fix
+- `logs/game_log_20260323_054448.txt` — second test session, longer gameplay
 
 ## References
 

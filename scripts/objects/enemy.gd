@@ -1422,6 +1422,10 @@ func _process_combat_state(delta: float) -> void:
 			return
 		if _suppressive_fire: _suppressive_fire.try_suppress_pursuing(_can_see_player, _last_known_player_position, _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown)  # Issue #910
 
+	# Issue #1353: Gas mask enemy continuously tries to throw chemical grenades during combat
+	if is_gas_mask and _gas_mask_grenade and _gas_mask_grenade.has_grenades() and _player and not _gas_mask_grenade.is_throwing():
+		_gas_mask_grenade.try_throw(_player.global_position)
+
 	# Update detection delay timer
 	if not _detection_delay_elapsed:
 		_detection_timer += delta

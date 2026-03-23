@@ -3,13 +3,15 @@ class_name IllusionEffect
 ## Visual-only illusion copy of an enemy (Issue #1353).
 ##
 ## Instead of spawning a real Enemy node (~50+ child nodes, full AI, physics, etc.),
-## this creates a lightweight visual ghost using only Sprite2D nodes with the
-## illusion_clone shader. The illusion:
+## this creates a lightweight visual copy using only Sprite2D nodes that look
+## identical to the original enemy. The illusion:
+## - Is visually indistinguishable from the real enemy
 ## - Follows the original enemy with a fixed offset
 ## - Mirrors the original's facing direction
-## - Fires phantom bullets (visual-only, damage player only)
+## - Fires phantom bullets (damage player only)
 ## - Has 1 HP (destroyed by any hit)
 ## - Disappears when the original enemy dies or after a timeout
+## - Fades out in the last 3 seconds before expiry
 ##
 ## Performance: ~6 nodes per illusion vs ~50+ for a real Enemy clone.
 
@@ -37,7 +39,7 @@ var _shoot_timer: float = 0.0
 ## The visual model node containing all sprites.
 var _model: Node2D = null
 
-## Shader material applied to all sprites.
+## Shader material (unused — illusions are visually identical to originals).
 var _shader_material: ShaderMaterial = null
 
 ## HitArea for bullet collision detection.
@@ -101,9 +103,9 @@ func _physics_process(delta: float) -> void:
 		_destroy()
 		return
 
-	# Fade out in the last 3 seconds
-	if _time_remaining < 3.0 and _shader_material:
-		_shader_material.set_shader_parameter("opacity", 0.55 * (_time_remaining / 3.0))
+	# Fade out in the last 3 seconds (modulate alpha)
+	if _time_remaining < 3.0:
+		modulate.a = _time_remaining / 3.0
 
 
 ## Initialize the illusion from an original enemy.
@@ -130,16 +132,8 @@ func _create_visual_model(original: Node2D) -> void:
 	_model.name = "IllusionModel"
 	add_child(_model)
 
-	# Load the illusion shader
-	var shader: Shader = load("res://scripts/shaders/illusion_clone.gdshader")
-	if shader:
-		_shader_material = ShaderMaterial.new()
-		_shader_material.shader = shader
-		_shader_material.set_shader_parameter("opacity", 0.55)
-		_shader_material.set_shader_parameter("flicker_speed", 3.0)
-		_shader_material.set_shader_parameter("flicker_intensity", 0.3)
-		_shader_material.set_shader_parameter("tint_color", Vector3(0.4, 0.9, 0.7))
-		_shader_material.set_shader_parameter("tint_strength", 0.35)
+	# Issue #1353: Illusion copies must be visually indistinguishable from originals.
+	# No shader applied — sprites are copied with their original appearance.
 
 	# Copy each sprite from the original's EnemyModel
 	var orig_model: Node2D = original.get_node_or_null("EnemyModel")
@@ -172,8 +166,9 @@ func _copy_sprite_recursive(source: Node, target: Node) -> void:
 			sprite.flip_v = child.flip_v
 			sprite.modulate = child.modulate
 			sprite.visible = child.visible
-			if _shader_material:
-				sprite.material = _shader_material
+			# Copy original material if present (preserves enemy's visual appearance)
+			if child.material:
+				sprite.material = child.material.duplicate()
 			target.add_child(sprite)
 			# Recurse into sprite children (e.g., WeaponMount/WeaponSprite)
 			_copy_sprite_recursive(child, sprite)
@@ -251,9 +246,6 @@ func _fire_phantom_bullet() -> void:
 	# Mark as phantom — only damages the player
 	if bullet.get("is_phantom") != null:
 		bullet.is_phantom = true
-	# Apply illusion shader to the bullet for visual consistency
-	if _shader_material and bullet.get("_trail"):
-		pass  # Trail will naturally look different
 
 	get_tree().current_scene.add_child(bullet)
 
