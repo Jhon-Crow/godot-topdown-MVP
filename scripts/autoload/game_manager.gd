@@ -234,10 +234,16 @@ func _process(delta: float) -> void:
 	# This polling approach detects player death regardless of signal connection status.
 	# We detect death by checking collision_layer == 0, which Player.OnDeath() sets
 	# immediately on death. This is a standard Godot property accessible from GDScript.
-	if player_alive and not _reloading and not _death_detected_by_poll and player and is_instance_valid(player):
+	if not _reloading and not _death_detected_by_poll and player and is_instance_valid(player):
 		if player is CharacterBody2D and player.collision_layer == 0:
 			_death_detected_by_poll = true
-			_log_to_file("POLL DETECTED: Player collision_layer is 0 (dead) but player_alive was still true! Starting safety net.")
+			# Issue #1334 Round 5: Also set player_alive = false here for enemy shoot prevention
+			# when signal connection failed and poll is the first detection method.
+			if player_alive:
+				player_alive = false
+				_log_to_file("POLL DETECTED: Player collision_layer is 0 (dead) but player_alive was still true! Starting safety net.")
+			else:
+				_log_to_file("POLL DETECTED: Player collision_layer is 0 (confirming death already flagged)")
 			_start_death_safety_net()
 
 
@@ -311,12 +317,13 @@ func get_accuracy() -> float:
 ## LevelInitFallback.cs may call this method via their 0.5s timers.
 ## Round 3: GameManager now handles restart via its own signal connection
 ## (_on_player_died_signal), so this method is kept as a legacy entry point
-## for level scripts that still call it. The player_alive guard prevents
-## double-restart since _on_player_died_signal already set it to false.
+## for level scripts that still call it.
+## Round 5: Changed guard from player_alive to _reloading, because player_alive
+## is now set to false immediately on death signal (to prevent enemies from shooting).
 func on_player_death() -> void:
 	_log_to_file("on_player_death() called (legacy entry point)")
-	if not player_alive:
-		_log_to_file("on_player_death() — player already dead, skipping")
+	if _reloading:
+		_log_to_file("on_player_death() — already reloading, skipping")
 		return
 	player_alive = false
 	# Issue #1334: Disable player collision as defense-in-depth
@@ -399,6 +406,11 @@ func set_player(p: Node2D) -> void:
 func _on_player_died_signal() -> void:
 	_log_to_file("Player Died signal received — starting safety net timer")
 	_death_signal_received = true
+	# Issue #1334 Round 5: Set player_alive = false IMMEDIATELY on death signal.
+	# This is critical because enemies check player_alive before shooting.
+	# Previously, player_alive was only set to false in on_player_death() (0.5-1.5s later),
+	# allowing enemies (especially snipers) to shoot at the dead player on the same frame.
+	player_alive = false
 	# Disable collision immediately (defense-in-depth) regardless of who handles restart
 	if player and is_instance_valid(player):
 		if player is CharacterBody2D:
@@ -437,11 +449,12 @@ var _death_detected_by_poll: bool = false
 
 ## Issue #1334 Round 3: Safety net timer callback.
 ## Forces restart if the level script's death handler failed to trigger it.
-## Checks both player_alive (normal levels) and _reloading (already restarting).
+## Issue #1334 Round 5: Only check _reloading (not player_alive), since player_alive
+## is now set to false immediately on death signal for enemy shoot prevention.
 func _on_death_safety_net_timer() -> void:
-	# If restart already happened or is in progress, nothing to do
-	if not player_alive or _reloading:
-		_log_to_file("Safety net timer fired — restart already handled (player_alive=%s, _reloading=%s)" % [str(player_alive), str(_reloading)])
+	# If restart is already in progress, nothing to do
+	if _reloading:
+		_log_to_file("Safety net timer fired — restart already in progress (_reloading=true)")
 		return
 	# If death wasn't detected by either signal or poll (shouldn't happen), skip
 	if not _death_signal_received and not _death_detected_by_poll:
@@ -457,7 +470,7 @@ func _on_death_safety_net_timer() -> void:
 		_log_to_file("Safety net timer fired — ArenaLevel detected, skipping auto-restart")
 		return
 	# Nobody handled the death — force restart!
-	_log_to_file("Safety net timer fired — player_alive still true after 1.5s! Level script failed to restart. Forcing on_player_death()")
+	_log_to_file("Safety net timer fired — no restart after 1.5s! Level script failed to restart. Forcing on_player_death()")
 	on_player_death()
 
 

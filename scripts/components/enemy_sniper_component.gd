@@ -128,6 +128,9 @@ func process_pursuing(delta: float, can_see_player: bool, player: Node,
 ## Uses the same projectile as normal shooting but bypasses the LOS requirement.
 func fire_at_predicted_position(target_pos: Vector2) -> void:
 	if enemy.bullet_scene == null: return
+	# Issue #1334 Round 5: Don't shoot at a dead player
+	var gm := enemy.get_node_or_null("/root/GameManager")
+	if gm and not gm.player_alive: return
 	var to_target := (target_pos - enemy.global_position).normalized()
 	if to_target == Vector2.ZERO: return
 
@@ -180,6 +183,10 @@ func _rotate_toward(target_pos: Vector2, delta: float) -> void:
 
 ## [#1171] Hitscan shot — instant raycast avoids physics tunneling at 10000px/s.
 func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
+	# Issue #1334 Round 5: Skip hitscan entirely if player is already dead.
+	# Prevents crash from hitscan hitting dead player on same frame as death signal.
+	var gm := enemy.get_node_or_null("/root/GameManager")
+	if gm and not gm.player_alive: return
 	var world_2d := enemy.get_world_2d()
 	if world_2d == null: return
 	var space_state := world_2d.direct_space_state
@@ -200,7 +207,14 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 			if not is_instance_valid(hit_node): break
 			var hit_id := hit_node.get_instance_id()
 			if hit_id != shooter_id and not damaged_ids.has(hit_id):
-				if (not hit_node.has_method("is_alive")) or hit_node.call("is_alive"):
+				# Issue #1334 Round 5: Check is_alive for both GDScript method and C# property (IsAlive).
+				# C# properties are exposed as get_XYZ() in GDScript, not as regular methods.
+				var target_alive := true
+				if hit_node.has_method("is_alive"):
+					target_alive = hit_node.call("is_alive")
+				elif hit_node.get("IsAlive") != null:
+					target_alive = hit_node.get("IsAlive")
+				if target_alive:
 					if hit_node.has_method("on_hit_with_bullet_info"):
 						hit_node.call("on_hit_with_bullet_info", direction, enemy.get("_caliber_data"), false, walls_penetrated > 0, damage)
 					elif hit_node.has_method("TakeDamage"): hit_node.call("TakeDamage", damage)

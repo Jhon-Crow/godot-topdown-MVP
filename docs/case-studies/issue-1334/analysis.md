@@ -342,6 +342,89 @@ fails, so future logs will contain diagnostic information:
   - `_reset_stats()` — resets `_death_detected_by_poll`
 - `docs/case-studies/issue-1334/round4/` — new crash log files
 
+## Round 5 — Sniper hitscan fires at dead player on the same frame (crash)
+
+### Data collected
+
+| File | Description |
+|------|-------------|
+| `game_log_20260323_033423.txt` | Session log — crash at 03:35:23 when sniper hitscan hits dead player |
+
+### Timeline reconstruction
+
+1. **03:35:23** — Player is on Docks map (third life). Multiple enemies fire simultaneously.
+2. **03:35:23** — `ContainerYardB_Rifle` fires a bullet that kills the player (lethal=True, health drops to 0).
+3. **03:35:23** — Player.OnDeath() fires: sets CollisionLayer=0, emits Died signal synchronously.
+4. **03:35:23** — Died signal handlers run in sequence:
+   - GameManager._on_player_died_signal: disables collision, starts 1.5s safety net timer
+   - CinemaEffects: triggers death effects
+   - PenultimateHit: ends penultimate effect
+   - LastChance: records death
+5. **03:35:23** — **ON THE SAME FRAME**: ContainerYardA_Sniper's hitscan fires.
+   - `shoot_sniper_hitscan()` uses `direct_space_state.intersect_ray()` with collision mask 1
+   - Despite CollisionLayer being set to 0 in step 3, Godot's physics server does NOT flush
+     collision layer changes mid-frame for direct_space_state queries — the raycast still finds
+     the player on collision layer 1
+   - The `is_alive` check (`has_method("is_alive")`) fails because the player is a C# node:
+     C# properties (IsAlive) are not exposed as GDScript methods, so `has_method("is_alive")`
+     returns false, and the check is bypassed
+   - The hitscan calls `TakeDamage(50)` on the dead player
+6. **03:35:23** — Log ends after SoundPropagation logs. **CRASH** — the game terminates.
+
+### Root cause
+
+Three layered failures combine to produce the crash:
+
+1. **`GameManager.player_alive` was not set to false on the Died signal** — it was only set
+   to false in `on_player_death()`, which runs 0.5–1.5 seconds later via timers. During
+   the intervening frames, enemies still see `player_alive = true` and continue shooting.
+
+2. **The sniper hitscan's `is_alive` check doesn't work for C# players** — the check
+   `has_method("is_alive")` fails for C# nodes because `IsAlive` is a C# property (accessed
+   via `get("IsAlive")` from GDScript, not via `call("is_alive")`). The condition
+   `(not has_method("is_alive")) or call("is_alive")` evaluates to `(not false) or ...` = `true`,
+   so the hitscan always considers the target alive.
+
+3. **Godot's direct_space_state doesn't flush CollisionLayer changes mid-frame** — even though
+   `CollisionLayer = 0` is set in OnDeath(), the physics server still returns the player in
+   `intersect_ray()` queries within the same frame, because the collision data is only updated
+   at the next physics step.
+
+### Fix (Round 5)
+
+**Primary fix — Set `player_alive = false` immediately on death signal:**
+- `_on_player_died_signal()` now sets `player_alive = false` immediately when the Died signal fires
+- This prevents ALL enemies from shooting at the dead player (they check `player_alive` before firing)
+- Updated `on_player_death()` and `_on_death_safety_net_timer()` guards to use `_reloading` instead
+  of `player_alive`, since `player_alive` is now false immediately
+
+**Defense-in-depth — Enemy shoot prevention:**
+- `_execute_shoot()`: Added `GameManager.player_alive` check before any shooting
+- `_shoot_with_inaccuracy()`: Added `GameManager.player_alive` check
+- `_machine_gunner_fire_at_corridor()`: Added `GameManager.player_alive` check
+- `shoot_sniper_hitscan()`: Added `GameManager.player_alive` check at entry
+- `fire_at_predicted_position()`: Added `GameManager.player_alive` check
+
+**Defense-in-depth — Fixed C# `IsAlive` property check in hitscan:**
+- The `is_alive` check now also checks `hit_node.get("IsAlive")` for C# properties
+- This ensures even if `GameManager.player_alive` is somehow stale, the hitscan correctly
+  skips dead C# nodes
+
+### Changes (Round 5)
+
+- `scripts/autoload/game_manager.gd`:
+  - `_on_player_died_signal()` — sets `player_alive = false` immediately
+  - `on_player_death()` — changed guard from `player_alive` to `_reloading`
+  - `_on_death_safety_net_timer()` — changed guard from `player_alive` to `_reloading`
+  - `_process()` poll detection — removed `player_alive` from condition, added `player_alive = false`
+- `scripts/objects/enemy.gd`:
+  - `_execute_shoot()` — added `GameManager.player_alive` check
+  - `_shoot_with_inaccuracy()` — added `GameManager.player_alive` check
+  - `_machine_gunner_fire_at_corridor()` — added `GameManager.player_alive` check
+- `scripts/components/enemy_sniper_component.gd`:
+  - `shoot_sniper_hitscan()` — added `GameManager.player_alive` check; fixed `is_alive` to also check C# property `IsAlive`
+  - `fire_at_predicted_position()` — added `GameManager.player_alive` check
+
 ## Additional observations
 
 - `[SceneLoader] ERROR: Invalid resource` messages appear in logs when

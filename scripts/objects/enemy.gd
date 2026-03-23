@@ -1137,6 +1137,9 @@ func _can_shoot() -> bool:
 ## [#1033] Machine gunner corridor suppression: burst into corridor where player was last seen (no LOS needed).
 func _machine_gunner_fire_at_corridor(target_pos: Vector2) -> void:
 	if bullet_scene == null: return
+	# Issue #1334 Round 5: Don't shoot at a dead player
+	var _gm3 := get_node_or_null("/root/GameManager")
+	if _gm3 and not _gm3.player_alive: return
 	var to_target := (target_pos - global_position).normalized()
 	if to_target == Vector2.ZERO: return
 	# Face toward the corridor
@@ -2448,6 +2451,9 @@ func _process_pacifist_state(_d: float) -> void:  ## PACIFIST: hide in cover / r
 func _shoot_with_inaccuracy() -> void:
 	if bullet_scene == null or _player == null:
 		return
+	# Issue #1334 Round 5: Don't shoot at a dead player
+	var _gm2 := get_node_or_null("/root/GameManager")
+	if _gm2 and not _gm2.player_alive: return
 
 	if not _can_shoot():
 		return
@@ -3818,6 +3824,9 @@ func _shoot() -> void:
 	_execute_shoot(target_position)
 func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting callback.
 	_is_pre_attack_flashing = false
+	# Issue #1334 Round 5: Don't shoot at a dead player — prevents crash from same-frame hitscan/damage
+	var _gm := get_node_or_null("/root/GameManager")
+	if _gm and not _gm.player_alive: return
 	if _invisibility: _invisibility.reveal()  # Issue #1121: briefly reveal cloaked enemy when shooting
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
