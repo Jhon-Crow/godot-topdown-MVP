@@ -4186,7 +4186,6 @@ func _init_armored_skin() -> void:
 	_armored_skin_active = true
 	FileLogger.info("[Player.ArmoredSkin] Armored skin active — shards will spawn at low HP")
 
-
 ## Apply the glassy armor shader to all player body sprites (Issue #1142).
 func _apply_armored_skin_visual() -> void:
 	const ARMOR_SHADER_PATH: String = "res://scripts/shaders/armored_skin.gdshader"
@@ -4205,7 +4204,6 @@ func _apply_armored_skin_visual() -> void:
 			child.material = mat
 			applied_count += 1
 	FileLogger.info("[Player.ArmoredSkin] Armor shader applied to %d sprites" % applied_count)
-
 
 ## Spawn glass/crystal shards from the player position (Issue #1142).
 ## Called when armored skin is active and player is at ≤2 HP while being hit.
@@ -4284,7 +4282,6 @@ func _on_active_item_picked_up(item_type: int) -> void:
 		16: _init_recoil_compensator()
 		18: _init_experimental_sample()
 		19: _init_fine_motor_skills()
-
 
 ## Apply a passive visual effect to the player based on the equipped active item.
 ## Single entry point for item-specific player visuals; called once from _ready().
@@ -4506,7 +4503,6 @@ func get_experimental_sample_charges() -> int:
 ## Get the maximum experimental sample charges constant.
 func get_max_experimental_sample_charges() -> int:
 	return EXPERIMENTAL_SAMPLE_MAX_CHARGES
-
 
 # =========================================================================
 # Fine Motor Skills Active Item (Issue #1315)
