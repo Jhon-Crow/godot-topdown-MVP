@@ -246,6 +246,17 @@ func _process(delta: float) -> void:
 				_log_to_file("POLL DETECTED: Player collision_layer is 0 (confirming death already flagged)")
 			_start_death_safety_net()
 
+	# Issue #1334 Round 7: Process-based safety net countdown.
+	# SceneTreeTimers (create_timer) can silently fail to fire in certain engine states
+	# (e.g., after death effects modify scene processing, or when cross-language signal
+	# callbacks interact with the scene tree timer queue). This _process-based countdown
+	# is 100% reliable because GameManager uses PROCESS_MODE_ALWAYS.
+	if _safety_net_countdown > 0.0:
+		_safety_net_countdown -= delta
+		if _safety_net_countdown <= 0.0:
+			_safety_net_countdown = 0.0
+			_on_death_safety_net_timer()
+
 
 ## Resets all statistics to initial values.
 func _reset_stats() -> void:
@@ -255,6 +266,7 @@ func _reset_stats() -> void:
 	player_alive = true
 	_death_signal_received = false
 	_death_detected_by_poll = false
+	_safety_net_countdown = 0.0
 	player = null
 
 
@@ -420,6 +432,13 @@ func _on_player_died_signal() -> void:
 	_start_death_safety_net()
 
 
+## Issue #1334 Round 7: Countdown for the process-based safety net timer.
+## Decremented in _process() every frame. When it reaches 0, _on_death_safety_net_timer() fires.
+## Using _process() instead of SceneTreeTimer because SceneTreeTimers can silently fail
+## to fire under certain engine conditions (documented in Rounds 3-6 crash logs).
+## Reset to 0 by _reset_stats() during restart.
+var _safety_net_countdown: float = 0.0
+
 ## Issue #1334 Round 4: Shared helper to start the death safety net timer.
 ## Called by both signal handler (_on_player_died_signal) and poll detection (_process).
 func _start_death_safety_net() -> void:
@@ -429,13 +448,16 @@ func _start_death_safety_net() -> void:
 			player.collision_layer = 0
 			player.collision_mask = 0
 			_log_to_file("Disabled dead player collision (safety net)")
-	# Start a safety net timer. Use process_always=true and ignore_time_scale=true
-	# so the timer fires even if the tree is paused or time_scale is modified.
+	# Issue #1334 Round 7: Use _process()-based countdown instead of SceneTreeTimer.
+	# SceneTreeTimers (create_timer) can silently fail to fire after death effects
+	# modify scene processing state. The _process() countdown is reliable because
+	# GameManager has process_mode = PROCESS_MODE_ALWAYS (set in _ready).
 	# The 1.5s delay gives level scripts ample time to call on_player_death() first
 	# (their timers are 0.5s), so normal flow is preserved for working levels.
-	var timer := get_tree().create_timer(1.5, true, false, true)
-	timer.timeout.connect(_on_death_safety_net_timer)
-	_log_to_file("Safety net timer started (1.5s)")
+	# Only start if not already counting down (avoid resetting an in-progress countdown).
+	if _safety_net_countdown <= 0.0:
+		_safety_net_countdown = 1.5
+		_log_to_file("Safety net countdown started (1.5s, process-based)")
 
 
 ## Whether the death signal was received but restart hasn't happened yet.

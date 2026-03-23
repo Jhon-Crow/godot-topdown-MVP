@@ -181,6 +181,31 @@ func _rotate_toward(target_pos: Vector2, delta: float) -> void:
 # Issue #1171 — Hitscan shooting: avoids physics tunnelling at 10000px/s
 # ============================================================================
 
+## Issue #1334 Round 7: Robust alive check that works for both GDScript and C# targets.
+## GDScript's get("IsAlive") returns null for non-[Export] C# properties, so we use
+## multiple fallback strategies: GDScript method, C# property, GameManager.player_alive
+## (for Player nodes), and collision_layer check (0 = dead, set by Player.OnDeath).
+func _check_target_alive(node: Node2D) -> bool:
+	if not is_instance_valid(node):
+		return false
+	# Strategy 1: GDScript method is_alive()
+	if node.has_method("is_alive"):
+		return node.call("is_alive")
+	# Strategy 2: C# property via get() — may return null for non-exported properties
+	var is_alive_val = node.get("IsAlive")
+	if is_alive_val != null:
+		return is_alive_val
+	# Strategy 3: Check GameManager.player_alive (covers the Player specifically)
+	var gm := enemy.get_node_or_null("/root/GameManager")
+	if gm and not gm.player_alive:
+		return false
+	# Strategy 4: collision_layer == 0 means dead (Player.OnDeath sets CollisionLayer=0)
+	if node is CharacterBody2D and node.collision_layer == 0:
+		return false
+	# Default: assume alive (unknown target type)
+	return true
+
+
 ## [#1171] Hitscan shot — instant raycast avoids physics tunneling at 10000px/s.
 func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 	# Issue #1334 Round 5: Skip hitscan entirely if player is already dead.
@@ -212,13 +237,10 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 			if not is_instance_valid(hit_node): break
 			var hit_id := hit_node.get_instance_id()
 			if hit_id != shooter_id and not damaged_ids.has(hit_id):
-				# Issue #1334 Round 5: Check is_alive for both GDScript method and C# property (IsAlive).
-				# C# properties are exposed as get_XYZ() in GDScript, not as regular methods.
-				var target_alive := true
-				if hit_node.has_method("is_alive"):
-					target_alive = hit_node.call("is_alive")
-				elif hit_node.get("IsAlive") != null:
-					target_alive = hit_node.get("IsAlive")
+				# Issue #1334 Round 7: Robust alive check using multiple fallback methods.
+				# get("IsAlive") can return null for non-[Export] C# properties in GDScript,
+				# causing the check to be silently skipped and damage applied to dead targets.
+				var target_alive := _check_target_alive(hit_node)
 				if target_alive:
 					# Issue #1334 Round 6: Store hit for deferred damage — do NOT call
 					# TakeDamage here, as it modifies physics state during an active query.
@@ -239,12 +261,7 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 		var hit_node: Node2D = hit_info["node"]
 		if not is_instance_valid(hit_node): continue
 		# Re-check alive status — a prior hit in this batch may have killed the target
-		var still_alive := true
-		if hit_node.has_method("is_alive"):
-			still_alive = hit_node.call("is_alive")
-		elif hit_node.get("IsAlive") != null:
-			still_alive = hit_node.get("IsAlive")
-		if not still_alive: continue
+		if not _check_target_alive(hit_node): continue
 		var hit_walls: int = hit_info["walls_penetrated"]
 		if hit_node.has_method("on_hit_with_bullet_info"):
 			hit_node.call("on_hit_with_bullet_info", direction, enemy.get("_caliber_data"), false, hit_walls > 0, damage)
