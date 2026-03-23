@@ -1818,22 +1818,26 @@ func _process_suppressed_state(delta: float) -> void:
 	if not _has_valid_cover:
 		_find_cover_position()
 
-	# If we have valid cover and are not yet hidden, move toward it.
-	if _has_valid_cover and _is_visible_from_player():
+	# Always move toward cover while suppressed, even if momentarily not visible.
+	# Only stop once we have REACHED the cover position AND are hidden from the player.
+	if _has_valid_cover:
 		var distance_to_cover := global_position.distance_to(_cover_position)
 		if distance_to_cover < 10.0:
-			# Reached cover but still visible — find better cover
-			_has_valid_cover = false
-			_find_cover_position()
-			if _has_valid_cover:
-				_move_to_target_nav(_cover_position, combat_move_speed)
+			# Reached cover position
+			if _is_visible_from_player():
+				# Cover wasn't good enough — find better cover
+				_has_valid_cover = false
+				_find_cover_position()
+				if _has_valid_cover:
+					_move_to_target_nav(_cover_position, combat_move_speed)
+				else:
+					velocity = Vector2.ZERO
 			else:
+				# Reached cover and hidden — stop
 				velocity = Vector2.ZERO
 		else:
+			# Still moving toward cover
 			_move_to_target_nav(_cover_position, combat_move_speed)
-	elif not _is_visible_from_player():
-		# Already hidden from player — stop moving
-		velocity = Vector2.ZERO
 	else:
 		# No valid cover found — stay in place
 		velocity = Vector2.ZERO
@@ -2715,6 +2719,8 @@ func _transition_to_suppressed() -> void:
 	_current_state = AIState.SUPPRESSED
 	_has_left_idle = true; _in_alarm_mode = true  # Issue #330
 	_suppressed_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #969 RCA-11
+	# Issue #1338: force new cover search — old cover is where we're being shot at
+	_has_valid_cover = false; _last_cover_search_time = -999.0
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 func _transition_to_pursuing() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_pursuing_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -3238,8 +3244,10 @@ func _find_cover_position() -> void:
 		_has_valid_cover = false
 		return
 	var wp_r := _combat_waypoint(_player.global_position, true)  # Issue #1227: retreat path
-	if wp_r != Vector2.ZERO: _cover_position = wp_r; _has_valid_cover = true; _last_cover_search_time = Time.get_ticks_msec() / 1000.0; return
-	# Issue #969: throttle cover search
+	# Issue #1338: only use combat waypoint if it's actually hidden from the player
+	if wp_r != Vector2.ZERO and not _is_position_visible_from_player(wp_r):
+		_cover_position = wp_r; _has_valid_cover = true; _last_cover_search_time = Time.get_ticks_msec() / 1000.0; return
+	# Issue #969: throttle cover search (skip cooldown when suppressed — need cover urgently)
 	var current_time := Time.get_ticks_msec() / 1000.0
 	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
 	_last_cover_search_time = current_time
