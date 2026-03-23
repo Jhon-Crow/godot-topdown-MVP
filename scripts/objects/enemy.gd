@@ -3995,9 +3995,16 @@ func _process_patrol(delta: float) -> void:
 	if _patrol_points.is_empty(): return
 	# Issue #1216: Snap patrol points after 1 physics frame; only if within agent_radius*2 (avoid cross-wall snap).
 	# Issue #1357: Added raycast wall check to prevent snapping across walls, and filter unreachable points.
+	# Issue #1357 (fix): Guard against navmesh not yet baked — if the map has no polygons yet,
+	# map_get_closest_point returns garbage (thousands of pixels away). Defer the snap until
+	# the navmesh has at least one polygon, which happens after bake_from_source_geometry_data
+	# completes (typically several physics frames after enemy spawn on async-bake levels).
 	if not _patrol_points_snapped and _nav_agent != null and Engine.get_physics_frames() > _spawn_physics_frame:
 		var nav_map: RID = _nav_agent.get_navigation_map()
 		if nav_map.is_valid():
+			# Skip snap if navmesh has no polygons yet (bake not complete).
+			if NavigationServer2D.map_get_polygon_count(nav_map) == 0:
+				return  # Defer: retry next frame when navmesh is baked.
 			var snap_thr := ((_nav_agent.path_desired_distance if _nav_agent.path_desired_distance > 0.0 else 50.0) * 2.0)
 			var space_state := get_world_2d().direct_space_state
 			for i in range(_patrol_points.size()):

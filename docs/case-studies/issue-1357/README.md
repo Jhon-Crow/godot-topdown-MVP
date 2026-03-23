@@ -50,9 +50,37 @@ When `_apply_wall_avoidance()` steers the enemy more than 90° away from the Nav
 
 When stuck detection triggers, the enemy now checks whether the next patrol point is actually reachable (via `_has_nav_path_to()`), and skips consecutive unreachable points until a reachable one is found (bounded by the total patrol point count to prevent infinite loops).
 
+## Update — 2026-03-23: Root Cause Found via Game Log Analysis
+
+### Game Log Evidence (`game_log_20260323_140633.txt`)
+
+The owner provided a game log that revealed the actual bug. Log lines:
+
+```
+[Enemy7] Patrol point 0 at (1700, 870) unreachable (dist to navmesh: 1909.7), removed (Issue #1357)
+[Enemy7] Patrol point 1 at (1800, 870) unreachable (dist to navmesh: 1999.2), removed (Issue #1357)
+[Enemy7] Patrol point 2 at (1600, 870) unreachable (dist to navmesh: 1821.2), removed (Issue #1357)
+[Enemy7] Patrol points snapped to navmesh (Issue #1216, #1357: 3 points)
+```
+
+All three patrol points were reported as "unreachable" with distances of **1800–2000 pixels** to the nearest navmesh point. This is physically impossible — patrol points are placed within the level area. The diagnosis: **the navmesh had not yet baked when the snap ran**.
+
+### Root Cause: Race Between Navmesh Bake and Enemy Spawn
+
+Level scripts (e.g. `building_level.gd`) call `_setup_navigation()` which uses `await get_tree().physics_frame` before calling `bake_from_source_geometry_data()`. However `_setup_enemy_tracking()` is called immediately after without awaiting the bake. Enemies spawn and start running `_process_patrol()` in the same frame as `_setup_navigation()` is still awaiting.
+
+The previous fix added `Engine.get_physics_frames() > _spawn_physics_frame` (1 frame delay), but baking takes multiple frames. When `map_get_closest_point()` is called on an empty (0-polygon) map, it returns a default/garbage position thousands of pixels away from any patrol point. All patrol points are flagged as unreachable and removed. The enemies then have no valid patrol path and spin/stand still.
+
+### Fix 4: Navmesh Polygon Count Guard
+
+Added a check for `NavigationServer2D.map_get_polygon_count(nav_map) == 0` before running the patrol point snap. If the navmesh has no polygons yet, the snap is deferred to the next frame (returns early without setting `_patrol_points_snapped = true`). Once the navmesh bake completes and polygons are available, the snap runs correctly on the next frame.
+
+**File:** `scripts/objects/enemy.gd`, `_process_patrol()` — added guard in the snap block.
+
 ## Files Changed
 
-- `scripts/objects/enemy.gd` — Three targeted fixes in `_process_patrol()` and `_move_to_target_nav()`
+- `scripts/objects/enemy.gd` — Four targeted fixes in `_process_patrol()` and `_move_to_target_nav()`
+- `docs/case-studies/issue-1357/game_log_20260323_140633.txt` — Game log provided by owner showing the bug in action
 
 ## Related Issues and Prior Work
 
