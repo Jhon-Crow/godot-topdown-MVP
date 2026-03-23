@@ -78,6 +78,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIF
 @export var start_invisible: bool = false  ## Start with invisibility cloak, reveal only when shooting/throwing grenade (Issue #1121).
 @export var initial_state: AIState = AIState.IDLE  ## Initial AI state on spawn (Issue #1121). SEARCHING starts enemy in search mode.
 @export var has_armored_skin: bool = false  ## Whether this enemy has Armored Skin passive item (Issue #1123).
+@export var is_gas_mask: bool = false  ## Whether this enemy is a Gas Mask type with chemical grenades (Issue #1353).
 @export var search_path_node: NodePath = NodePath("")  ## SearchPathWaypoints node path; when set, uses pre-planned waypoints in SEARCHING instead of spiral (Issue #1225).
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
@@ -364,6 +365,7 @@ var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenad
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
+var _gas_mask_grenade: GasMaskGrenadeComponent = null  ## Issue #1353: Chemical grenade component for gas mask enemies.
 var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
 var _tactical_group: TacticalGroupComponent = null  ## Issue #1287: Tactical group movement — enemies within 500 px spread around the player.
 var _pursuit_component: PursuitComponent = null  ## Issue #1289: Cover-finding logic for PURSUING state.
@@ -446,6 +448,9 @@ func _ready() -> void:
 	elif initial_state != AIState.IDLE: _current_state = initial_state  # Issue #1121: initial state override
 	else: _transition_to_idle()  # Issue #1202: honor IDLE disable at spawn (redirects to SEARCHING if IDLE is disabled)
 	if start_invisible: _invisibility = EnemyInvisibilityComponent.new(); _invisibility.name = "InvisibilityComponent"; add_child(_invisibility); _invisibility.initialize(_enemy_model)  # Issue #1121
+	if is_gas_mask:  # Issue #1353: chemical grenades with illusion copies
+		_gas_mask_grenade = GasMaskGrenadeComponent.new(); _gas_mask_grenade.name = "GasMaskGrenadeComponent"; add_child(_gas_mask_grenade)
+		if _head_sprite: var _gm_tex := load("res://assets/sprites/characters/enemy/gas_mask_head.png"); if _gm_tex: _head_sprite.texture = _gm_tex
 
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
@@ -1416,6 +1421,10 @@ func _process_combat_state(delta: float) -> void:
 			_transition_to_pursuing()
 			return
 		if _suppressive_fire: _suppressive_fire.try_suppress_pursuing(_can_see_player, _last_known_player_position, _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown)  # Issue #910
+
+	# Issue #1353: Gas mask enemy continuously tries to throw chemical grenades during combat
+	if is_gas_mask and _gas_mask_grenade and _gas_mask_grenade.has_grenades() and _player and not _gas_mask_grenade.is_throwing():
+		_gas_mask_grenade.try_throw(_player.global_position)
 
 	# Update detection delay timer
 	if not _detection_delay_elapsed:
@@ -2596,6 +2605,8 @@ func _transition_to_combat() -> void:
 	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
 	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
+	if is_gas_mask and _gas_mask_grenade and _gas_mask_grenade.has_grenades() and _player:  # Issue #1353: throw chemical grenade before shooting
+		_gas_mask_grenade.try_throw(_player.global_position)
 
 func _transition_to_seeking_cover() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_seeking_cover_enabled(): _transition_to_idle(); return  # Issue #1186
