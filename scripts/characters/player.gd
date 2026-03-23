@@ -386,6 +386,8 @@ func _ready() -> void:
 	# Apply item-specific player visual based on the equipped passive item (Issue #1142)
 	_apply_item_visual()
 
+	_connect_active_item_changed_signal()  # Issue #1325: roguelike pedestal pickup
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -3521,6 +3523,8 @@ func _handle_invisibility_suit_input() -> void:
 
 ## Callback when invisibility activates.
 func _on_invisibility_activated(charges_remaining: int) -> void:
+	if _invisibility_suit == null or not is_instance_valid(_invisibility_suit):
+		return
 	invisibility_changed.emit(true, charges_remaining, _invisibility_suit.MAX_CHARGES)
 	if _invisibility_hud and is_instance_valid(_invisibility_hud):
 		_invisibility_hud.set_active(true)
@@ -3531,6 +3535,8 @@ func _on_invisibility_activated(charges_remaining: int) -> void:
 
 ## Callback when invisibility deactivates.
 func _on_invisibility_deactivated(charges_remaining: int) -> void:
+	if _invisibility_suit == null or not is_instance_valid(_invisibility_suit):
+		return
 	invisibility_changed.emit(false, charges_remaining, _invisibility_suit.MAX_CHARGES)
 	if _invisibility_hud and is_instance_valid(_invisibility_hud):
 		_invisibility_hud.set_active(false)
@@ -3778,6 +3784,8 @@ func _handle_trajectory_glasses_input() -> void:
 ## Callback when trajectory glasses activates.
 ## Shows charge pips briefly (400 ms) via the HUD node; no progress bar (Issue #1049).
 func _on_trajectory_activated(charges_remaining: int) -> void:
+	if _trajectory_glasses == null or not is_instance_valid(_trajectory_glasses):
+		return
 	trajectory_glasses_changed.emit(true, charges_remaining, _trajectory_glasses.MAX_CHARGES)
 	# Show charge pip HUD briefly — it auto-hides after ACTIVATION_SHOW_DURATION (Issue #1049)
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
@@ -3786,6 +3794,8 @@ func _on_trajectory_activated(charges_remaining: int) -> void:
 
 ## Callback when trajectory glasses deactivates.
 func _on_trajectory_deactivated(charges_remaining: int) -> void:
+	if _trajectory_glasses == null or not is_instance_valid(_trajectory_glasses):
+		return
 	trajectory_glasses_changed.emit(false, charges_remaining, _trajectory_glasses.MAX_CHARGES)
 	# Hide charge pip HUD immediately on deactivation (Issue #1049)
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
@@ -4491,6 +4501,8 @@ func _handle_breaching_charges_input() -> void:
 
 ## Callback when a breaching charge is placed.
 func _on_breaching_charge_placed(charges_remaining: int) -> void:
+	if _breaching_charges == null or not is_instance_valid(_breaching_charges):
+		return
 	breaching_charge_placed.emit(charges_remaining)
 	_show_active_item_charge_bar(charges_remaining, _breaching_charges.MAX_CHARGES)
 	_charge_bar_hide_pending = true
@@ -4593,6 +4605,55 @@ func _spawn_armored_skin_shards() -> void:
 # ============================================================================
 # Item Visual System (Issue #1142)
 # ============================================================================
+
+## Connect to active_item_changed signal for roguelike pedestal pickup (Issue #1325).
+func _connect_active_item_changed_signal() -> void:
+	var aim: Node = get_node_or_null("/root/ActiveItemManager")
+	if aim == null or not aim.has_signal("active_item_changed"):
+		return
+	aim.active_item_changed.connect(_on_active_item_picked_up)
+
+## Reset all equipped flags and free item nodes to prevent dual-equip (Issue #1325).
+func _deequip_all_active_items() -> void:
+	for node in [_flashlight_node, _invisibility_suit, _force_field,
+			_trajectory_glasses, _trajectory_glasses_hud, _breaching_charges]:
+		if node != null and is_instance_valid(node):
+			node.queue_free()
+	_flashlight_node = null; _flashlight_equipped = false
+	_homing_equipped = false; _homing_active = false; _homing_timer = 0.0
+	_bff_pendant_equipped = false
+	_invisibility_suit = null; _invisibility_suit_equipped = false
+	_breaker_bullets_active = false
+	_force_field = null; _force_field_equipped = false
+	_trajectory_glasses = null; _trajectory_glasses_hud = null; _trajectory_glasses_equipped = false
+	_loudspeaker_equipped = false; _loudspeaker_progress = null
+	_breaching_charges = null; _breaching_charges_equipped = false
+	_armored_skin_active = false; _recoil_compensator_equipped = false
+	_experimental_sample_equipped = false
+	_fine_motor_skills_equipped = false; _fine_motor_skills_active = false
+
+## Initialise the newly picked-up item subsystem (Issue #1325, #1317).
+func _on_active_item_picked_up(item_type: int) -> void:
+	# Issue #1317: passive items must NOT de-equip the current active item.
+	const PASSIVE_TYPES: Array = [6, 9, 10, 13, 14, 17]
+	if item_type in PASSIVE_TYPES:
+		if item_type == 6: _init_breaker_bullets()
+		elif item_type == 13: _init_armored_skin(); _apply_item_visual()
+		return
+	_deequip_all_active_items()
+	match item_type:
+		1: _init_flashlight()
+		2: _init_homing_bullets()
+		4: _init_bff_pendant()
+		5: _init_invisibility_suit()
+		7: _init_force_field()
+		8: _init_trajectory_glasses()
+		11: _init_loudspeaker()
+		12: _init_breaching_charges()
+		16: _init_recoil_compensator()
+		18: _init_experimental_sample()
+		19: _init_fine_motor_skills()
+
 
 ## Apply a passive visual effect to the player based on the equipped active item.
 ## Single entry point for item-specific player visuals; called once from _ready().

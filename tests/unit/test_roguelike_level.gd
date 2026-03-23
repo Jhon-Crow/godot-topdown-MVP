@@ -631,3 +631,70 @@ func test_mock_advance_route_not_affected_by_room_size_changes() -> void:
 	level.in_treasure_room = false
 	assert_eq(level.advance_route(), "treasure_room",
 		"advance_route must still work correctly regardless of room size changes")
+
+
+# ============================================================================
+# Tests — passive pickup must not de-equip active item (Issue #1317)
+# ============================================================================
+
+
+func test_passive_pickup_does_not_deequip_active_item() -> void:
+	## Issue #1317: picking up a passive item (e.g. AUTO_RELOAD) from a pedestal
+	## must NOT de-equip the player's current active item. The passive item
+	## accumulates alongside whatever is already equipped.
+	var level := _make_level()
+	level.active_item_manager.current_active_item = 7  # FORCE_FIELD (active)
+	level.apply_pedestal_active_item(14)  # AUTO_RELOAD (passive)
+	assert_eq(level.active_item_manager.current_active_item, 7,
+		"Active item (FORCE_FIELD) must remain equipped after passive pickup")
+	assert_true(level.active_item_manager.has_passive_item(14),
+		"AUTO_RELOAD should be in collected passive items")
+	assert_true(level.pedestal_freed, "Pedestal should be freed after passive pickup")
+
+
+func test_all_passive_types_preserve_active_item() -> void:
+	## Issue #1317: regression guard — every passive type must preserve the active item.
+	for passive_type in PASSIVE_ACTIVE_ITEM_TYPES:
+		var level := _make_level()
+		level.active_item_manager.current_active_item = 7  # FORCE_FIELD
+		level.apply_pedestal_active_item(passive_type)
+		assert_eq(level.active_item_manager.current_active_item, 7,
+			"Passive type %d must not change active item" % passive_type)
+		assert_true(level.active_item_manager.has_passive_item(passive_type),
+			"Passive type %d should be collected" % passive_type)
+
+
+# ============================================================================
+# Tests — weapon icon paths (Issue #1317)
+# ============================================================================
+
+
+## Mirror of WEAPON_ICON_PATHS from roguelike_level.gd
+const WEAPON_ICON_PATHS: Dictionary = {
+	"makarov_pm":      "res://assets/sprites/weapons/makarov_pm_icon.png",
+	"m16":             "res://assets/sprites/weapons/m16_simple.png",
+	"shotgun":         "res://assets/sprites/weapons/shotgun_icon.png",
+	"mini_uzi":        "res://assets/sprites/weapons/mini_uzi_icon.png",
+	"silenced_pistol": "res://assets/sprites/weapons/silenced_pistol_icon.png",
+	"sniper":          "res://assets/sprites/weapons/asvk_topdown.png",
+	"revolver":        "res://assets/sprites/weapons/revolver_icon.png",
+	"ak_gl":           "res://assets/sprites/weapons/ak_gl_icon.png",
+}
+
+const WEAPON_CASE_ICON_PATH: String = "res://assets/sprites/weapons/weapon_case_icon.png"
+
+
+func test_sniper_icon_is_not_weapon_case() -> void:
+	## Issue #1317: sniper pedestal was showing suitcase instead of weapon model.
+	## WEAPON_ICON_PATHS["sniper"] must point to the ASVK sprite, not the generic case icon.
+	assert_eq(WEAPON_ICON_PATHS["sniper"], "res://assets/sprites/weapons/asvk_topdown.png",
+		"Sniper icon must be asvk_topdown.png, not weapon_case_icon.png")
+	assert_ne(WEAPON_ICON_PATHS["sniper"], WEAPON_CASE_ICON_PATH,
+		"Sniper icon must not be the generic weapon case/suitcase icon")
+
+
+func test_no_weapon_icon_maps_to_weapon_case() -> void:
+	## Issue #1317: regression guard — no weapon in WEAPON_ICON_PATHS should use the suitcase fallback.
+	for weapon_id in WEAPON_ICON_PATHS:
+		assert_ne(WEAPON_ICON_PATHS[weapon_id], WEAPON_CASE_ICON_PATH,
+			"Weapon '%s' must not use the generic weapon_case_icon (fix icon path)" % weapon_id)
