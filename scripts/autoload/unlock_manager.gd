@@ -55,9 +55,15 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"grenades": [],
 		"active_items": [3]  # ActiveItemManager.ActiveItemType.TELEPORT_BRACERS = 3 (Issue #1000 req.3)
 	},
+	"res://scenes/levels/CityLevel.tscn": {
+		"min_rank": "D",
+		"weapons": [],
+		"grenades": [],
+		"active_items": [8]  # ActiveItemManager.ActiveItemType.TRAJECTORY_GLASSES = 8 (Issue #1053 req.1)
+	},
 	"res://scenes/levels/BeachLevel.tscn": {
 		"min_rank": "D",
-		"weapons": ["ak_gl"],  # Issue #1000 req.4
+		"weapons": ["m16"],  # Issue #1053 req.3: changed from ak_gl to m16
 		"grenades": [],
 		"active_items": []
 	},
@@ -94,9 +100,9 @@ const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
 		"active_items": [9]  # ActiveItemManager.ActiveItemType.LASER_SIGHT = 9
 	},
 	{
-		# 1000 shots with shotgun, sniper rifle, or revolver → unlock Fine Motor Skills (Issue #1346)
+		# 650 shots with shotgun, sniper rifle, or revolver → unlock Fine Motor Skills (Issue #1346, Issue #1053 req.2)
 		"stat": "shots_fired_special_weapons",
-		"min_kills": 1000,
+		"min_kills": 650,
 		"weapons": [],
 		"grenades": [],
 		"active_items": [19]  # ActiveItemManager.ActiveItemType.FINE_MOTOR_SKILLS = 19

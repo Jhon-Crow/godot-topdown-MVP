@@ -178,6 +178,8 @@ func turn_on() -> void:
 	_is_on = true
 	_set_light_visible(true)
 	_play_toggle_sound()
+	if _point_light:
+		FileLogger.info("[FlashlightEffect] Turned ON: energy=%.1f, visible=%s, shadow=%s" % [_point_light.energy, str(_point_light.visible), str(_point_light.shadow_enabled)])
 
 
 ## Turn the flashlight off.
@@ -187,6 +189,7 @@ func turn_off() -> void:
 	_is_on = false
 	_set_light_visible(false)
 	_play_toggle_sound()
+	FileLogger.info("[FlashlightEffect] Turned OFF")
 
 
 ## Check if the flashlight is currently on.
