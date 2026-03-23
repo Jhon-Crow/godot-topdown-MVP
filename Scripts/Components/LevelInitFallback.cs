@@ -810,6 +810,15 @@ public partial class LevelInitFallback : Node
 
     private void CompleteLevelWithScore()
     {
+        // Disable player controls so clicks on the score screen don't trigger shooting.
+        if (_player != null && IsInstanceValid(_player))
+        {
+            _player.SetPhysicsProcess(false);
+            _player.SetProcess(false);
+            _player.SetProcessInput(false);
+            _player.SetProcessUnhandledInput(false);
+        }
+
         var scoreManager = GetNodeOrNull("/root/ScoreManager");
         if (scoreManager != null && scoreManager.HasMethod("complete_level"))
         {

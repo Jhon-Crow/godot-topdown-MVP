@@ -773,6 +773,8 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 			enemy.died_with_info.connect(_on_enemy_died_with_info)
 		if enemy.has_signal("hit"):
 			enemy.hit.connect(_on_enemy_hit)
+		if enemy.has_signal("became_pacifist"):
+			enemy.became_pacifist.connect(_on_enemy_became_pacifist.bind(enemy))
 
 
 func _get_enemy_positions(room_type: int) -> Array[Vector2]:
@@ -1247,6 +1249,19 @@ func _on_enemy_died() -> void:
 		_room_cleared = true
 		# After the last combat room, the exit leads to the treasure room (not another combat room).
 		# No pedestal in combat rooms — the pedestal is in the dedicated treasure room.
+		call_deferred("_activate_exit_zone")
+
+
+func _on_enemy_became_pacifist(enemy: Node) -> void:
+	_current_enemy_count -= 1
+	# Issue #1369: Do not double-count pacifist when it dies - already counted here
+	if is_instance_valid(enemy) and enemy.died.is_connected(_on_enemy_died):
+		enemy.died.disconnect(_on_enemy_died)
+	_update_enemy_count_label()
+	print("[RoguelikeLevel] Enemy became pacifist - counting as eliminated")
+	if _current_enemy_count <= 0:
+		print("[RoguelikeLevel] All enemies in room %d eliminated or pacified!" % (_current_room_idx + 1))
+		_room_cleared = true
 		call_deferred("_activate_exit_zone")
 
 
