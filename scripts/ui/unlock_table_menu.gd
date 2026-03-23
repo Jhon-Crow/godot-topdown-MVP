@@ -333,6 +333,8 @@ func _populate_table() -> void:
 		var map_display: String
 		if stat == "shots_fired_special_weapons":
 			map_display = "%d / %d shots (shotgun/rifle/revolver)" % [current_kills, min_kills]
+		elif stat == "total_deaths":
+			map_display = "%d / %d deaths" % [current_kills, min_kills]
 		else:
 			map_display = "%d / %d kills (no Laser Sight)" % [current_kills, min_kills]
 

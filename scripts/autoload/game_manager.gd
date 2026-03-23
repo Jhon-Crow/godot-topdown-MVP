@@ -20,7 +20,7 @@ var shots_fired_special_weapons: int = 0
 var total_deaths: int = 0
 
 ## Cumulative levels completed without taking any damage.
-## Persists across sessions — used as the unlock condition for Combat Disposition (Issue #1389).
+## Persists across sessions — tracked for future use (Issue #1389).
 var no_damage_levels_completed: int = 0
 
 ## Weapon IDs that count toward the Fine Motor Skills unlock condition (Issue #1346).
@@ -104,7 +104,7 @@ signal shots_fired_special_weapons_updated(new_count: int)
 ## Issue #1389.
 signal total_deaths_updated(new_count: int)
 
-## Signal emitted when no_damage_levels_completed changes (for no-damage unlock checks).
+## Signal emitted when no_damage_levels_completed changes.
 ## Issue #1389.
 signal no_damage_levels_completed_updated(new_count: int)
 
