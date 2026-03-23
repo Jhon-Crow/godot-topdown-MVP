@@ -7,37 +7,52 @@ extends Node
 ## The player is immune to all damage during the dash.
 ##
 ## Gameplay rules:
-## - Unlimited charges (no charge limit)
-## - 1.2 second cooldown between dashes
+## - 3 charges (chain-dashes allowed)
+## - Cooldown starts only after the 3rd (last) charge is used
 ## - All damage sources are ignored during dash
-## - Visual: afterimage trail using modulate flicker
+## - Visual: HLD-style afterimage trail with multiple ghost sprites
 
-## Duration of the dash in seconds.
+## Duration of a single dash in seconds.
 const DASH_DURATION: float = 0.15
 
 ## Speed multiplier applied during dash (relative to player max_speed).
 const DASH_SPEED_MULTIPLIER: float = 4.0
 
-## Cooldown between dashes in seconds.
+## Cooldown after all charges are spent, in seconds.
 const DASH_COOLDOWN: float = 1.2
 
-## Number of afterimage ghosts to spawn during dash.
-const AFTERIMAGE_COUNT: int = 3
+## Maximum number of dash charges.
+const MAX_CHARGES: int = 3
+
+## Number of afterimage ghosts to spawn per dash.
+const AFTERIMAGE_COUNT: int = 4
 
 ## Afterimage lifetime in seconds.
-const AFTERIMAGE_LIFETIME: float = 0.25
+const AFTERIMAGE_LIFETIME: float = 0.35
 
 ## Afterimage initial alpha.
-const AFTERIMAGE_ALPHA: float = 0.5
+const AFTERIMAGE_ALPHA: float = 0.6
+
+## Time window after a dash ends to chain the next dash (seconds).
+## If the player doesn't dash within this window, remaining charges are forfeited
+## and cooldown begins.
+const CHAIN_WINDOW: float = 0.4
 
 ## Whether the dash is currently active (player is mid-dash).
 var is_active: bool = false
 
+## Current remaining charges.
+var charges: int = MAX_CHARGES
+
 ## Remaining dash duration timer.
 var _dash_timer: float = 0.0
 
-## Remaining cooldown timer.
+## Remaining cooldown timer (only active after all charges spent or chain window expires).
 var _cooldown_timer: float = 0.0
+
+## Chain window timer — counts down after a dash ends. If it hits 0 with charges
+## remaining, the remaining charges are forfeited and full cooldown begins.
+var _chain_timer: float = 0.0
 
 ## Direction of the current dash.
 var _dash_direction: Vector2 = Vector2.ZERO
@@ -60,16 +75,20 @@ signal dash_started
 ## Signal emitted when dash ends.
 signal dash_ended
 
-## Signal emitted when cooldown finishes (ready to dash again).
+## Signal emitted when cooldown finishes (all charges restored).
 signal cooldown_finished
+
+## Signal emitted when charges change (for UI progress bar).
+signal charges_changed(current: int, maximum: int)
 
 
 ## Initialize with a reference to the player node.
 func initialize(player: CharacterBody2D) -> void:
 	_player = player
 	_original_max_speed = player.max_speed
-	FileLogger.info("[Dash] Initialized with player: %s, cooldown: %.1fs, duration: %.2fs" % [
-		player.name, DASH_COOLDOWN, DASH_DURATION
+	charges = MAX_CHARGES
+	FileLogger.info("[Dash] Initialized with player: %s, %d charges, cooldown: %.1fs, duration: %.2fs" % [
+		player.name, MAX_CHARGES, DASH_COOLDOWN, DASH_DURATION
 	])
 
 
@@ -78,10 +97,11 @@ func initialize(player: CharacterBody2D) -> void:
 ## Returns true if dash started successfully.
 func activate(direction: Vector2) -> bool:
 	if is_active:
-		return false  # Already dashing
+		return false  # Already mid-dash
 
-	if _cooldown_timer > 0.0:
-		FileLogger.info("[Dash] On cooldown (%.2fs remaining)" % _cooldown_timer)
+	if charges <= 0:
+		if _cooldown_timer > 0.0:
+			FileLogger.info("[Dash] No charges, on cooldown (%.2fs remaining)" % _cooldown_timer)
 		return false
 
 	if direction == Vector2.ZERO:
@@ -94,14 +114,21 @@ func activate(direction: Vector2) -> bool:
 	_dash_direction = direction.normalized()
 	is_active = true
 	_dash_timer = DASH_DURATION
+	_chain_timer = 0.0  # Reset chain timer while dashing
 	_afterimage_timer = 0.0
 	_afterimage_interval = DASH_DURATION / float(AFTERIMAGE_COUNT) if AFTERIMAGE_COUNT > 0 else DASH_DURATION
+
+	# Consume one charge
+	charges -= 1
+	charges_changed.emit(charges, MAX_CHARGES)
 
 	# Apply dash velocity
 	if _player != null:
 		_player.velocity = _dash_direction * _original_max_speed * DASH_SPEED_MULTIPLIER
 
-	FileLogger.info("[Dash] Activated! Direction: (%.2f, %.2f)" % [_dash_direction.x, _dash_direction.y])
+	FileLogger.info("[Dash] Activated! Dir: (%.2f, %.2f), charges left: %d/%d" % [
+		_dash_direction.x, _dash_direction.y, charges, MAX_CHARGES
+	])
 	dash_started.emit()
 	return true
 
@@ -128,13 +155,40 @@ func get_cooldown_progress() -> float:
 	return 1.0 - (_cooldown_timer / DASH_COOLDOWN)
 
 
+## Get current charges.
+func get_charges() -> int:
+	return charges
+
+
+## Get maximum charges.
+func get_max_charges() -> int:
+	return MAX_CHARGES
+
+
 func _physics_process(delta: float) -> void:
 	# Update cooldown timer
 	if _cooldown_timer > 0.0:
 		_cooldown_timer -= delta
 		if _cooldown_timer <= 0.0:
 			_cooldown_timer = 0.0
+			charges = MAX_CHARGES
+			charges_changed.emit(charges, MAX_CHARGES)
+			FileLogger.info("[Dash] Cooldown finished, charges restored: %d/%d" % [charges, MAX_CHARGES])
 			cooldown_finished.emit()
+
+	# Update chain window timer (only when not dashing and charges remain)
+	if not is_active and _chain_timer > 0.0:
+		_chain_timer -= delta
+		if _chain_timer <= 0.0:
+			_chain_timer = 0.0
+			# Chain window expired with unused charges — start cooldown
+			if charges > 0 and charges < MAX_CHARGES:
+				FileLogger.info("[Dash] Chain window expired with %d charges left, starting cooldown" % charges)
+				charges = 0
+				charges_changed.emit(charges, MAX_CHARGES)
+			if charges <= 0 and _cooldown_timer <= 0.0:
+				_cooldown_timer = DASH_COOLDOWN
+				FileLogger.info("[Dash] Full cooldown started: %.1fs" % DASH_COOLDOWN)
 
 	if not is_active:
 		return
@@ -157,21 +211,29 @@ func _physics_process(delta: float) -> void:
 		_end_dash()
 
 
-## End the dash and start cooldown.
+## End the dash and start cooldown or chain window.
 func _end_dash() -> void:
 	is_active = false
 	_dash_timer = 0.0
-	_cooldown_timer = DASH_COOLDOWN
 
 	# Reduce velocity smoothly (don't stop abruptly)
 	if _player != null:
 		_player.velocity = _dash_direction * _original_max_speed * 0.5
 
-	FileLogger.info("[Dash] Ended. Cooldown: %.1fs" % DASH_COOLDOWN)
+	if charges <= 0:
+		# All charges spent — start cooldown immediately
+		_cooldown_timer = DASH_COOLDOWN
+		FileLogger.info("[Dash] Ended (all charges spent). Cooldown: %.1fs" % DASH_COOLDOWN)
+	else:
+		# Charges remain — open chain window for next dash
+		_chain_timer = CHAIN_WINDOW
+		FileLogger.info("[Dash] Ended. %d charges left, chain window: %.1fs" % [charges, CHAIN_WINDOW])
+
 	dash_ended.emit()
 
 
 ## Spawn an afterimage ghost at the player's current position.
+## Creates an HLD-style trail with body + arms sprite copies.
 func _spawn_afterimage() -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
@@ -181,27 +243,50 @@ func _spawn_afterimage() -> void:
 	if player_model == null:
 		return
 
-	# Create a lightweight afterimage using a simple Sprite2D snapshot
-	# We duplicate the Body sprite and fade it out
-	var body_sprite: Node = player_model.get_node_or_null("Body")
-	if body_sprite == null or not (body_sprite is Sprite2D):
+	# Create a container node for the full player afterimage
+	var ghost_container := Node2D.new()
+	ghost_container.global_position = _player.global_position
+	ghost_container.z_index = _player.z_index - 1
+
+	# Copy all visible Sprite2D children from PlayerModel (Body, LeftArm, RightArm, etc.)
+	var sprites_added: int = 0
+	for child in player_model.get_children():
+		if child is Sprite2D and child.visible:
+			var ghost_sprite := Sprite2D.new()
+			ghost_sprite.texture = child.texture
+			ghost_sprite.position = child.position
+			ghost_sprite.rotation = child.rotation
+			ghost_sprite.scale = child.scale
+			ghost_sprite.flip_h = child.flip_h
+			ghost_sprite.flip_v = child.flip_v
+			ghost_sprite.offset = child.offset
+			ghost_sprite.hframes = child.hframes
+			ghost_sprite.vframes = child.vframes
+			ghost_sprite.frame = child.frame
+			ghost_sprite.region_enabled = child.region_enabled
+			if child.region_enabled:
+				ghost_sprite.region_rect = child.region_rect
+			ghost_container.add_child(ghost_sprite)
+			sprites_added += 1
+
+	if sprites_added == 0:
+		ghost_container.queue_free()
 		return
 
-	var ghost := Sprite2D.new()
-	ghost.texture = (body_sprite as Sprite2D).texture
-	ghost.global_position = _player.global_position
-	ghost.rotation = player_model.rotation
-	ghost.modulate = Color(0.4, 0.7, 1.0, AFTERIMAGE_ALPHA)  # Light blue tint like HLD
-	ghost.z_index = _player.z_index - 1
+	# Apply rotation from player model
+	ghost_container.rotation = player_model.global_rotation
+
+	# Cyan-blue tint like HLD dash trail
+	ghost_container.modulate = Color(0.3, 0.6, 1.0, AFTERIMAGE_ALPHA)
 
 	# Add to scene tree (same parent as player for correct coordinate space)
 	var parent: Node = _player.get_parent()
 	if parent == null:
-		ghost.queue_free()
+		ghost_container.queue_free()
 		return
-	parent.add_child(ghost)
+	parent.add_child(ghost_container)
 
 	# Fade out and remove afterimage
-	var tween := ghost.create_tween()
-	tween.tween_property(ghost, "modulate:a", 0.0, AFTERIMAGE_LIFETIME)
-	tween.tween_callback(ghost.queue_free)
+	var tween := ghost_container.create_tween()
+	tween.tween_property(ghost_container, "modulate:a", 0.0, AFTERIMAGE_LIFETIME)
+	tween.tween_callback(ghost_container.queue_free)

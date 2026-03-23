@@ -4613,7 +4613,7 @@ func _init_dash() -> void:
 		add_child(_dash_effect)
 		_dash_effect.initialize(self)
 	_dash_equipped = true
-	FileLogger.info("[Player.Dash] Initialized — unlimited charges, %.1fs cooldown" % 1.2)
+	FileLogger.info("[Player.Dash] Initialized — 3 charges, cooldown after all charges spent")
 func _handle_dash_input() -> void:
 	if not _dash_equipped or _dash_effect == null:
 		return

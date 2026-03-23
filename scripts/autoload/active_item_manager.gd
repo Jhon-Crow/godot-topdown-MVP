@@ -29,7 +29,7 @@ enum ActiveItemType {
 	COMBAT_DISPOSITION, # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
 	EXPERIMENTAL_SAMPLE, # Experimental Sample - press Space to fire a random active item effect (even unowned). 1–5 charges per battle, randomised on level start (Issue #1127)
 	FINE_MOTOR_SKILLS, # Fine Motor Skills - press Space to instantly reload weapon and bring to combat-ready state. Unlimited charges, no cooldown (Issue #1315)
-	DASH               # Dash - press Space to dash in movement direction with damage immunity. Unlimited charges, 1.2s cooldown (Issue #1071)
+	DASH               # Dash - press Space to dash in movement direction with damage immunity. 3 charges, cooldown after 3rd dash (Issue #1071)
 }
 
 ## Currently selected active item type.
@@ -190,7 +190,7 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.DASH: {
 		"name": "Dash",
 		"icon_path": "res://assets/sprites/weapons/dash_icon.png",
-		"description": "Dash — press Space to dash in movement direction (Hyper Light Drifter style). Immune to all damage during dash. Unlimited charges, 1.2 second cooldown.",
+		"description": "Dash — press Space to dash in movement direction (Hyper Light Drifter style). Immune to all damage during dash. 3 charges with chain-dash, cooldown after all charges spent.",
 		"activation_hint": "Press Space to dash"
 	}
 }

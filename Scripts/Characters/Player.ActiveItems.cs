@@ -5258,7 +5258,7 @@ public partial class Player
         AddChild(_dashEffect);
         _dashEffect.Call("initialize", this);
         _dashEquipped = true;
-        LogToFile("[Player.Dash] Initialized — 3 charges, cooldown after 3rd dash");
+        LogToFile("[Player.Dash] Initialized — 3 charges, cooldown only after all charges spent");
     }
 
     /// <summary>

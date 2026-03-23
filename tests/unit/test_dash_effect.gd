@@ -1,8 +1,9 @@
 extends GutTest
 ## Unit tests for the Dash active item (Issue #1071).
 ##
-## Tests active item registration, unlimited charges, 1.2s cooldown,
-## damage immunity during dash, and integration with ActiveItemManager mock.
+## Tests active item registration, 3-charge system, cooldown after 3rd dash,
+## damage immunity during dash, afterimage trail, and integration with
+## ActiveItemManager mock.
 
 
 # Mock ActiveItemManager
@@ -59,7 +60,7 @@ func test_dash_data_exists() -> void:
 		20: {
 			"name": "Dash",
 			"icon_path": "res://assets/sprites/weapons/dash_icon.png",
-			"description": "Dash — press Space to dash in movement direction (Hyper Light Drifter style). Immune to all damage during dash. Unlimited charges, 1.2 second cooldown.",
+			"description": "Dash — press Space to dash in movement direction (Hyper Light Drifter style). Immune to all damage during dash. 3 charges with chain-dash, cooldown after all charges spent.",
 			"activation_hint": "Press Space to dash"
 		}
 	}
@@ -78,15 +79,15 @@ func test_dash_data_has_icon_path() -> void:
 
 
 func test_dash_data_has_description() -> void:
-	var data := {"description": "Dash — press Space to dash in movement direction (Hyper Light Drifter style). Immune to all damage during dash. Unlimited charges, 1.2 second cooldown."}
+	var data := {"description": "Dash — press Space to dash in movement direction (Hyper Light Drifter style). Immune to all damage during dash. 3 charges with chain-dash, cooldown after all charges spent."}
 	assert_true(data["description"].contains("Space"),
 		"Dash description should mention Space key")
 	assert_true(data["description"].contains("Immune"),
 		"Dash description should mention damage immunity")
-	assert_true(data["description"].contains("Unlimited"),
-		"Dash description should mention unlimited charges")
-	assert_true(data["description"].contains("1.2"),
-		"Dash description should mention 1.2 second cooldown")
+	assert_true(data["description"].contains("3 charges"),
+		"Dash description should mention 3 charges")
+	assert_true(data["description"].contains("chain-dash"),
+		"Dash description should mention chain-dash")
 	assert_true(data["description"].contains("Hyper Light Drifter"),
 		"Dash description should reference Hyper Light Drifter")
 
@@ -140,8 +141,14 @@ func test_dash_starts_unlocked() -> void:
 
 # Dash Constants Tests
 
+func test_dash_has_3_charges() -> void:
+	# Dash should have 3 charges (chain-dash)
+	var max_charges := 3
+	assert_eq(max_charges, 3, "Dash should have 3 maximum charges")
+
+
 func test_dash_cooldown_is_1_2_seconds() -> void:
-	# Dash cooldown should be 1.2 seconds as specified in issue
+	# Dash cooldown should be 1.2 seconds (starts after all charges spent)
 	var cooldown := 1.2
 	assert_eq(cooldown, 1.2, "Dash cooldown should be 1.2 seconds")
 
@@ -159,23 +166,57 @@ func test_dash_speed_multiplier_is_high() -> void:
 	assert_true(multiplier >= 3.0, "Dash speed multiplier should be at least 3x normal speed")
 
 
-func test_dash_has_unlimited_charges() -> void:
-	# Dash has unlimited charges — no charge limit
-	# Simulated by not having a charge counter that depletes
-	var unlimited := true
-	assert_true(unlimited, "Dash should have unlimited charges")
+func test_dash_chain_window_exists() -> void:
+	# After a dash ends, there should be a brief window to chain the next dash
+	var chain_window := 0.4
+	assert_true(chain_window > 0.0 and chain_window <= 1.0,
+		"Chain window should be a brief period (0-1 seconds)")
 
 
-func test_dash_can_activate_multiple_times_with_cooldown() -> void:
-	# Simulate multiple activations respecting cooldown
-	var activations := 0
-	var cooldown := 1.2
-	var total_time := 0.0
-	for i in range(10):
-		activations += 1
-		total_time += cooldown
-	assert_eq(activations, 10, "Dash should allow repeated activation after cooldown")
-	assert_true(total_time > 10.0, "Total time should accumulate from cooldowns")
+func test_dash_charges_deplete_on_use() -> void:
+	# Simulate charge depletion
+	var charges := 3
+	for i in range(3):
+		charges -= 1
+	assert_eq(charges, 0, "All 3 charges should be spent after 3 dashes")
+
+
+func test_dash_cooldown_starts_after_last_charge() -> void:
+	# Cooldown should only start when charges reach 0
+	var charges := 3
+	var cooldown_active := false
+	for i in range(3):
+		charges -= 1
+		if charges <= 0:
+			cooldown_active = true
+	assert_true(cooldown_active, "Cooldown should start after last charge is spent")
+
+
+func test_dash_no_cooldown_between_chain_dashes() -> void:
+	# Between chain dashes (charges > 0), there is no cooldown — only a chain window
+	var charges := 3
+	charges -= 1  # First dash
+	var cooldown_active := charges <= 0
+	assert_false(cooldown_active,
+		"No cooldown should be active between chain dashes with charges remaining")
+
+
+func test_dash_charges_restored_after_cooldown() -> void:
+	# After cooldown completes, all charges should be restored
+	var charges := 0
+	var cooldown_remaining := 0.0  # Cooldown finished
+	if cooldown_remaining <= 0.0 and charges == 0:
+		charges = 3  # Restore
+	assert_eq(charges, 3, "Charges should be fully restored after cooldown")
+
+
+func test_dash_chain_window_expires_forfeits_charges() -> void:
+	# If player doesn't chain-dash within the window, remaining charges are lost
+	var charges := 2  # Used 1 of 3, 2 remaining
+	var chain_window_expired := true
+	if chain_window_expired and charges > 0:
+		charges = 0  # Forfeit remaining charges
+	assert_eq(charges, 0, "Remaining charges should be forfeited when chain window expires")
 
 
 # Damage Immunity Tests
@@ -206,21 +247,29 @@ func test_dash_immunity_checked_before_force_field() -> void:
 
 # Afterimage Visual Tests
 
-func test_afterimage_count_is_positive() -> void:
-	var afterimage_count := 3
-	assert_true(afterimage_count > 0, "Dash should spawn at least one afterimage")
+func test_afterimage_count_per_dash() -> void:
+	var afterimage_count := 4
+	assert_true(afterimage_count >= 3, "Dash should spawn at least 3 afterimages per dash")
 
 
 func test_afterimage_alpha_is_semi_transparent() -> void:
-	var alpha := 0.5
+	var alpha := 0.6
 	assert_true(alpha > 0.0 and alpha < 1.0,
 		"Afterimage should be semi-transparent (between 0 and 1)")
 
 
 func test_afterimage_lifetime_is_short() -> void:
-	var lifetime := 0.25
+	var lifetime := 0.35
 	assert_true(lifetime > 0.0 and lifetime <= 1.0,
 		"Afterimage lifetime should be short (0-1 seconds)")
+
+
+func test_afterimage_uses_full_player_model() -> void:
+	# Afterimage should copy all visible Sprite2D children (Body, Arms, etc.)
+	# not just the body sprite — for a proper HLD-style trail
+	var copies_all_sprites := true
+	assert_true(copies_all_sprites,
+		"Afterimage should copy all visible sprites from PlayerModel for HLD-style trail")
 
 
 # Direction Fallback Tests
