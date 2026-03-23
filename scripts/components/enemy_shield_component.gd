@@ -232,29 +232,31 @@ func _setup_shield_visual() -> void:
 	# Top-down riot shield: a slightly curved wide bar.
 	# The shield is wide left-right (Y axis) and thin front-back (X axis),
 	# with a slight forward bulge in the center (convex toward the threat).
+	# Issue #1242 feedback: reduced Y-span from ±14 to ±10 so side shots hit the body, not the shield.
 	var body := Polygon2D.new()
 	body.polygon = PackedVector2Array([
-		Vector2(3, -14),   # Front-right edge
-		Vector2(5, -8),    # Front bulge right
+		Vector2(3, -10),   # Front-right edge
+		Vector2(5, -6),    # Front bulge right
 		Vector2(6, 0),     # Front center (closest to threat)
-		Vector2(5, 8),     # Front bulge left
-		Vector2(3, 14),    # Front-left edge
-		Vector2(-1, 14),   # Back-left edge
-		Vector2(-1, -14),  # Back-right edge
+		Vector2(5, 6),     # Front bulge left
+		Vector2(3, 10),    # Front-left edge
+		Vector2(-1, 10),   # Back-left edge
+		Vector2(-1, -10),  # Back-right edge
 	])
 	body.color = Color(0.15, 0.15, 0.18, 0.95)  # Dark charcoal
 	shield_node.add_child(body)
 
 	# Frame outline: slightly larger for depth.
+	# Issue #1242 feedback: reduced Y-span from ±15 to ±11 (matches smaller hitbox).
 	var frame := Polygon2D.new()
 	frame.polygon = PackedVector2Array([
-		Vector2(4, -15),
-		Vector2(6, -8),
+		Vector2(4, -11),
+		Vector2(6, -6),
 		Vector2(7, 0),
-		Vector2(6, 8),
-		Vector2(4, 15),
-		Vector2(-2, 15),
-		Vector2(-2, -15),
+		Vector2(6, 6),
+		Vector2(4, 11),
+		Vector2(-2, 11),
+		Vector2(-2, -11),
 	])
 	frame.color = Color(0.1, 0.1, 0.12, 0.9)
 	frame.z_index = -1  # Behind body
@@ -264,10 +266,10 @@ func _setup_shield_visual() -> void:
 	# Matches real SWAT riot shield where the window is centered horizontally.
 	var viewport_window := Polygon2D.new()
 	viewport_window.polygon = PackedVector2Array([
-		Vector2(2, -5),
-		Vector2(5, -5),
-		Vector2(5, 5),
-		Vector2(2, 5),
+		Vector2(2, -4),
+		Vector2(5, -4),
+		Vector2(5, 4),
+		Vector2(2, 4),
 	])
 	viewport_window.color = Color(0.5, 0.6, 0.7, 0.5)  # Semi-transparent glass
 	shield_node.add_child(viewport_window)
@@ -293,16 +295,17 @@ func _setup_shield_visual() -> void:
 	shield_area.set_script(shield_hit_area_script)
 	shield_area.shield_component = self
 	shield_area.enemy = _parent
-	# Collision shape matching the shield frame outline (slightly larger for reliability).
+	# Collision shape matching the shield frame outline.
+	# Issue #1242 feedback: reduced Y-span from ±15 to ±11 to stop intercepting side-body hits.
 	var collision_shape := CollisionPolygon2D.new()
 	collision_shape.polygon = PackedVector2Array([
-		Vector2(4, -15),
-		Vector2(6, -8),
+		Vector2(4, -11),
+		Vector2(6, -6),
 		Vector2(7, 0),
-		Vector2(6, 8),
-		Vector2(4, 15),
-		Vector2(-2, 15),
-		Vector2(-2, -15),
+		Vector2(6, 6),
+		Vector2(4, 11),
+		Vector2(-2, 11),
+		Vector2(-2, -11),
 	])
 	shield_area.add_child(collision_shape)
 	shield_node.add_child(shield_area)

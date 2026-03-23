@@ -4196,7 +4196,7 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	if _force_field_component and _force_field_component.is_active(): _log_to_file("Hit blocked by force field"); return  # Issue #1034: invulnerable while force field active
 	# Issue #1242: Shield blocking — collision-based + direction fallback; shield enemy slowly turns toward attacker.
 	if _shield_component and _shield_component.did_intercept_this_frame(): _set_hit_reaction_target(-hit_direction.normalized()); return
-	if _shield_component and _shield_component.is_active() and _enemy_model and Vector2.from_angle(_enemy_model.global_rotation).dot(-hit_direction.normalized()) > 0.0:
+	if _shield_component and _shield_component.is_active() and _enemy_model and Vector2.from_angle(_enemy_model.global_rotation).dot(-hit_direction.normalized()) > 0.5:
 		if _shield_component.try_intercept_hit(caliber_data, damage, hit_direction): _set_hit_reaction_target(-hit_direction.normalized()); return
 	if _armored_skin_component and _armored_skin_component.try_spawn_shards(_current_health, maxi(int(round(damage)), 1)): hit.emit(); _show_hit_flash(); _log_to_file("[ArmoredSkin] Triggering hit absorbed — damage ignored (Issue #1143, #1300)"); return  # Issue #1143: absorb the triggering hit's damage; Issue #1300: also absorb lethal hits from high-damage weapons
 	# [#1033] Machine gunner: 30% frontal damage resistance (±15° arc, cos15°=0.9659).
