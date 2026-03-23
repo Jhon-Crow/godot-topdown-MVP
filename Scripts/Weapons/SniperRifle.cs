@@ -601,7 +601,9 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Updates the laser sight visualization (Power Fantasy mode only).
-    /// The laser shows where bullets will go, accounting for current recoil.
+    /// The laser points directly toward the mouse cursor so it matches the crosshair exactly.
+    /// (Issue #1384: sniper has reduced turn sensitivity so _aimDirection lags behind the cursor,
+    /// causing significant divergence at distance — use mouse position directly instead.)
     /// </summary>
     private void UpdateLaserSight()
     {
@@ -610,8 +612,12 @@ public partial class SniperRifle : BaseWeapon
             return;
         }
 
-        // Apply recoil offset to aim direction for laser visualization
-        Vector2 laserDirection = _aimDirection.Rotated(_recoilOffset);
+        // Use direction to mouse cursor so the laser matches the crosshair exactly.
+        // _aimDirection has 25x reduced sensitivity and lags behind the cursor at distance.
+        Vector2 toMouse = GetGlobalMousePosition() - GlobalPosition;
+        Vector2 laserDirection = toMouse.LengthSquared() > 0.001f
+            ? toMouse.Normalized()
+            : _aimDirection;
 
         // Use weapon range for laser length so the beam is unlimited within shooting distance
         // (Issue #1384: sniper laser should be unlimited length, not limited to viewport size)
