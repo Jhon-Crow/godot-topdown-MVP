@@ -634,6 +634,37 @@ func test_mock_advance_route_not_affected_by_room_size_changes() -> void:
 
 
 # ============================================================================
+# Tests — passive pickup must not de-equip active item (Issue #1317)
+# ============================================================================
+
+
+func test_passive_pickup_does_not_deequip_active_item() -> void:
+	## Issue #1317: picking up a passive item (e.g. AUTO_RELOAD) from a pedestal
+	## must NOT de-equip the player's current active item. The passive item
+	## accumulates alongside whatever is already equipped.
+	var level := _make_level()
+	level.active_item_manager.current_active_item = 7  # FORCE_FIELD (active)
+	level.apply_pedestal_active_item(14)  # AUTO_RELOAD (passive)
+	assert_eq(level.active_item_manager.current_active_item, 7,
+		"Active item (FORCE_FIELD) must remain equipped after passive pickup")
+	assert_true(level.active_item_manager.has_passive_item(14),
+		"AUTO_RELOAD should be in collected passive items")
+	assert_true(level.pedestal_freed, "Pedestal should be freed after passive pickup")
+
+
+func test_all_passive_types_preserve_active_item() -> void:
+	## Issue #1317: regression guard — every passive type must preserve the active item.
+	for passive_type in PASSIVE_ACTIVE_ITEM_TYPES:
+		var level := _make_level()
+		level.active_item_manager.current_active_item = 7  # FORCE_FIELD
+		level.apply_pedestal_active_item(passive_type)
+		assert_eq(level.active_item_manager.current_active_item, 7,
+			"Passive type %d must not change active item" % passive_type)
+		assert_true(level.active_item_manager.has_passive_item(passive_type),
+			"Passive type %d should be collected" % passive_type)
+
+
+# ============================================================================
 # Tests — weapon icon paths (Issue #1317)
 # ============================================================================
 
