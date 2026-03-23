@@ -4488,6 +4488,27 @@ func get_nav_path() -> PackedVector2Array:
 	if _nav_agent == null: return PackedVector2Array()
 	return _nav_agent.get_current_navigation_path()
 
+## Returns cover raycast collision data for debug visualization (Issue #1359: CoverRaycastMonitor).
+## Each entry: { "origin": Vector2, "target": Vector2, "colliding": bool, "point": Vector2, "normal": Vector2 }
+func get_cover_raycast_data() -> Array:
+	var data: Array = []
+	for i in range(_cover_raycasts.size()):
+		var rc: RayCast2D = _cover_raycasts[i]
+		var entry: Dictionary = {
+			"origin": rc.global_position,
+			"target": rc.global_position + rc.target_position,
+			"colliding": rc.is_colliding(),
+		}
+		if rc.is_colliding():
+			entry["point"] = rc.get_collision_point()
+			entry["normal"] = rc.get_collision_normal()
+		data.append(entry)
+	return data
+
+## Returns the current cover position and whether it is valid (Issue #1359: CoverRaycastMonitor).
+func get_cover_info() -> Dictionary:
+	return { "position": _cover_position, "valid": _has_valid_cover }
+
 func set_player_reloading(is_reloading: bool) -> void:
 	var old: bool = _goap_world_state.get("player_reloading", false)
 	_goap_world_state["player_reloading"] = is_reloading
