@@ -452,7 +452,7 @@ func _ready() -> void:
 	if start_invisible: _invisibility = EnemyInvisibilityComponent.new(); _invisibility.name = "InvisibilityComponent"; add_child(_invisibility); _invisibility.initialize(_enemy_model)  # Issue #1121
 	if is_gas_mask:  # Issue #1353: chemical grenades with illusion copies
 		_gas_mask_grenade = GasMaskGrenadeComponent.new(); _gas_mask_grenade.name = "GasMaskGrenadeComponent"; add_child(_gas_mask_grenade)
-		if _head_sprite: var _gm_tex := load("res://assets/sprites/characters/enemy/gas_mask_head.png"); if _gm_tex: _head_sprite.texture = _gm_tex
+		if _head_sprite: var _gm_tex := load("res://assets/sprites/characters/enemy/gas_mask_head.png"); if _gm_tex: _head_sprite.texture = _gm_tex; _head_sprite.rotation_degrees = -90.0  # Issue #1363: sprite drawn facing up, rotate to face right
 
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
@@ -1204,6 +1204,7 @@ func _find_distant_cover_position() -> void:
 		var away := (cp - player_pos).normalized()
 		var cover_pos := cp + away * 35.0
 		if has_nav_dc: cover_pos = NavigationServer2D.map_get_closest_point(nav_map_dc, cover_pos)
+		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue  # Issue #1355
 		var is_hidden := not _is_position_visible_from_player(cover_pos)
 		if not is_hidden and found_hidden: continue
 		# Score: prefer FAR positions (invert distance score) + hidden
@@ -3303,6 +3304,9 @@ func _find_cover_position() -> void:
 		# Offset 35 px past the collision point (away from the player) to fit the enemy body.
 		var away_from_player := (collision_point - player_pos).normalized()
 		var cover_pos := collision_point + away_from_player * 35.0
+		# Issue #1355: teleporters skip nearby cover (would cause in-place flicker).
+		if is_teleporter and global_position.distance_to(cover_pos) < 10.0:
+			continue
 
 		# Snap to nearest navigable point so the enemy can actually walk there.
 		if has_nav:
@@ -4201,6 +4205,11 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()
 			# Issue #1305: Only fire back if combat transition succeeded (not redirected to IDLE by PerformanceSettings)
 			if _current_state == AIState.COMBAT and _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
+		# Issue #1355: Teleporter enemies teleport immediately on first damage.
+		if _teleport_component and _teleport_component.is_ready():
+			if not _has_valid_cover: _find_cover_position()
+			if _teleport_component.try_damage_teleport(_cover_position, _flank_target):
+				_log_to_file("[#1355] Damage-triggered teleport succeeded"); _transition_to_in_cover()
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
