@@ -705,6 +705,7 @@ func _spawn_selected_enemy_at_player() -> void:
 		{"name": "Machine Gunner (PKM)", "weapon_type": 6, "behavior": 1},
 		{"name": "Sniper (ASVK)", "weapon_type": 7, "behavior": 1},
 		{"name": "Patrol Rifle", "weapon_type": 0, "behavior": 0},
+		{"name": "SWAT Shieldbearer", "weapon_type": 8, "behavior": 1, "has_swat_shield": true, "scene": "res://scenes/objects/EnemySwatShield.tscn"},  # Issue #1242
 		{"name": "Teleporter (Rifle)", "weapon_type": 0, "behavior": 1, "is_teleporter": true},
 		{"name": "Armored Skin (Rifle)", "weapon_type": 0, "behavior": 1, "has_armored_skin": true},
 		{"name": "Force Field (Rifle)", "weapon_type": 0, "behavior": 1, "has_force_field": true},
@@ -715,6 +716,10 @@ func _spawn_selected_enemy_at_player() -> void:
 		selected_idx = 0
 	var meta: Dictionary = types[selected_idx]
 
+	# Use scene override if provided (e.g. EnemySwatShield.tscn for the shieldbearer).
+	if meta.has("scene") and ResourceLoader.exists(meta["scene"]):
+		scene = load(meta["scene"])
+
 	# Instantiate and configure.
 	var enemy: Node = scene.instantiate()
 	enemy.global_position = spawn_pos
@@ -724,6 +729,8 @@ func _spawn_selected_enemy_at_player() -> void:
 		enemy.set("behavior_mode", meta.get("behavior", 1))
 	if enemy.get("destroy_on_death") != null:
 		enemy.set("destroy_on_death", true)
+	if meta.has("has_swat_shield") and enemy.get("has_swat_shield") != null:
+		enemy.set("has_swat_shield", meta.get("has_swat_shield", false))
 	# Apply special enemy flags if present in metadata.
 	if meta.get("is_teleporter", false) and enemy.get("is_teleporter") != null:
 		enemy.set("is_teleporter", true)
