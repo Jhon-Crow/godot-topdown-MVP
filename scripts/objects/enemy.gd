@@ -1243,18 +1243,21 @@ func _find_distant_cover_position() -> void:
 	var found_hidden: bool = false
 	var nav_map_dc: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
 	var has_nav_dc := nav_map_dc.is_valid()
+	var es_dc: Node = get_node_or_null("/root/ExperimentalSettings")
+	var inf_dc := es_dc != null and es_dc.has_method("is_cover_infinite_rays_enabled") and es_dc.is_cover_infinite_rays_enabled()
+	var ray_dist_dc: float = 10000.0 if inf_dc else COVER_CHECK_DISTANCE
 	# Issue #1338: Cast rays FROM the player (consistent with _find_cover_position)
 	for i in range(COVER_CHECK_COUNT):
 		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
 		var direction := Vector2.from_angle(angle)
-		var ray_end := player_pos + direction * COVER_CHECK_DISTANCE
+		var ray_end := player_pos + direction * ray_dist_dc
 		var query := PhysicsRayQueryParameters2D.new()
 		query.from = player_pos; query.to = ray_end; query.collision_mask = 4
 		var result := space_state.intersect_ray(query)
 		if result.is_empty(): continue
 		var cp: Vector2 = result["position"]
-		# Issue #1338: Find cover on far side of large obstacles via reverse ray
-		var cover_pos := _get_far_side_cover(player_pos, cp, direction, space_state)
+		# Issue #1338: Find cover on far side of large obstacles
+		var cover_pos := _get_far_side_cover(player_pos, cp, direction, space_state, inf_dc)
 		if has_nav_dc: cover_pos = NavigationServer2D.map_get_closest_point(nav_map_dc, cover_pos)
 		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue  # Issue #1355
 		var is_hidden := not _is_position_visible_from_player(cover_pos)
@@ -3283,12 +3286,11 @@ func _can_reach_position(target: Vector2) -> bool:
 	var target_distance := global_position.distance_to(target)
 	return hit_distance >= target_distance - 10.0  # 10 pixel tolerance
 
-## Issue #1338: Find cover on FAR side of an obstacle. Steps outward using intersect_point()
-## to detect obstacle exit; places cover 35px past far edge. Handles any obstacle thickness.
-func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, direction: Vector2, space_state: PhysicsDirectSpaceState2D) -> Vector2:
+## Issue #1338: Find cover on FAR side of obstacle via intersect_point() probing. Any thickness.
+func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, direction: Vector2, space_state: PhysicsDirectSpaceState2D, infinite_rays: bool = false) -> Vector2:
 	var near_dist := collision_point.distance_to(player_pos)
 	var step_size := 30.0
-	var max_probe_dist := COVER_CHECK_DISTANCE * 3.0
+	var max_probe_dist := 30000.0 if infinite_rays else COVER_CHECK_DISTANCE * 3.0
 	var probe_dist := near_dist + 5.0
 	var was_inside := false
 	var point_query := PhysicsPointQueryParameters2D.new()
@@ -3310,9 +3312,7 @@ func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, directio
 		probe_dist += step_size
 	return collision_point + direction * 35.0
 
-## Shared helper: cast rays from player position, find hidden cover candidates. Issue #1338.
-## Returns array of hidden cover positions (far side of obstacles, snapped to navmesh).
-## If store_debug_rays is true, updates _last_cover_search_rays for visualization (Issue #1359).
+## Issue #1338: cast rays from player, find hidden cover candidates. Issue #1359: debug rays.
 func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 	var candidates: Array[Vector2] = []
 	if _player == null: return candidates
@@ -3320,10 +3320,18 @@ func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 	var space_state := get_world_2d().direct_space_state
 	var nav_map: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
 	var has_nav := nav_map.is_valid()
+	var es: Node = get_node_or_null("/root/ExperimentalSettings")
+	var use_infinite := es != null and es.has_method("is_cover_infinite_rays_enabled") and es.is_cover_infinite_rays_enabled()
+	var use_sector := es != null and es.has_method("is_cover_sector_rays_enabled") and es.is_cover_sector_rays_enabled()
+	var ray_dist: float = 10000.0 if use_infinite else COVER_CHECK_DISTANCE
+	var sector_half := deg_to_rad(50.0)  # 100° cone half-angle
+	var sector_center: Vector2 = (global_position - player_pos).normalized() if use_sector else Vector2.ZERO
 	if store_debug_rays: _last_cover_search_rays.clear()
 	for i in range(COVER_CHECK_COUNT):
 		var direction := Vector2.from_angle((float(i) / COVER_CHECK_COUNT) * TAU)
-		var ray_end := player_pos + direction * COVER_CHECK_DISTANCE
+		if use_sector and sector_center != Vector2.ZERO and absf(direction.angle_to(sector_center)) > sector_half:
+			continue
+		var ray_end := player_pos + direction * ray_dist
 		var query := PhysicsRayQueryParameters2D.new()
 		query.from = player_pos; query.to = ray_end; query.collision_mask = 4
 		var result := space_state.intersect_ray(query)
@@ -3332,7 +3340,7 @@ func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 			if not result.is_empty(): ray_info["point"] = result["position"]; ray_info["normal"] = result["normal"]
 			_last_cover_search_rays.append(ray_info)
 		if result.is_empty(): continue
-		var cover_pos := _get_far_side_cover(player_pos, result["position"], direction, space_state)
+		var cover_pos := _get_far_side_cover(player_pos, result["position"], direction, space_state, use_infinite)
 		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue  # Issue #1355
 		if has_nav: cover_pos = NavigationServer2D.map_get_closest_point(nav_map, cover_pos)
 		if not _is_position_visible_from_player(cover_pos): candidates.append(cover_pos)
@@ -3352,22 +3360,18 @@ func _find_cover_closest_to_player() -> void:
 	_cover_position = best_cover; _has_valid_cover = true
 	_log_debug("Found assault cover at %s (distance to player: %.1f)" % [_cover_position, best_dist])
 
-## Find cover position hidden from player. Issue #1338: rays are cast from the player position
-## to find obstacles; the nearest cover to the enemy that the player's rays can't reach is chosen.
-## Issue #969: throttled. Issue #1227: combat waypoints checked first.
+## Issue #1338: find nearest-to-enemy cover hidden from player (rays from player). #969: throttled.
 func _find_cover_position() -> void:
 	if _player == null: _has_valid_cover = false; return
 	# Issue #969: throttle cover search (skip cooldown when suppressed — need cover urgently)
 	var current_time := Time.get_ticks_msec() / 1000.0
 	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
 	_last_cover_search_time = current_time
-	# Issue #1338: candidates are hidden positions on far side of obstacles, rays from player.
 	var candidates := _get_hidden_cover_candidates(true)
 	if candidates.is_empty():
 		_has_valid_cover = false
 		_log_to_file("No valid cover found (player at %s, enemy at %s)" % [_player.global_position, global_position])
 		return
-	# Pick the nearest hidden cover to the enemy
 	var best_cover := candidates[0]
 	var best_dist := global_position.distance_to(best_cover)
 	for c in candidates:
@@ -4174,9 +4178,7 @@ func _initialize_idle_scan_targets() -> void:
 		_idle_scan_targets = [0.0, PI]
 	_idle_scan_target_index = randi() % _idle_scan_targets.size()
 
-## Called when a bullet enters the threat sphere.
-## Issue #1311: removed _is_position_visible_to_enemy — suppression works through cover.
-## Issue #1228: only player bullets suppress. #1311: fix ulong→int overflow for C# bullets.
+## Bullet enters threat sphere. #1228: only player bullets. #1311: suppression through cover.
 func _on_threat_area_entered(area: Area2D) -> void:
 	var raw_id = area.get("shooter_id"); if raw_id == null: raw_id = area.get("ShooterId")
 	if raw_id == null: return  # Unknown area — no suppression
@@ -4580,9 +4582,7 @@ func get_nav_path() -> PackedVector2Array:
 	if _nav_agent == null: return PackedVector2Array()
 	return _nav_agent.get_current_navigation_path()
 
-## Returns cover raycast collision data for debug visualization (Issue #1359: CoverRaycastMonitor).
-## Issue #1338: Returns rays from the player (matching actual cover search), not from the enemy.
-## Each entry: { "origin": Vector2, "target": Vector2, "colliding": bool, "point": Vector2, "normal": Vector2 }
+## Issue #1359: cover raycast debug data (rays from player, matching actual search). Issue #1338.
 func get_cover_raycast_data() -> Array:
 	return _last_cover_search_rays
 
