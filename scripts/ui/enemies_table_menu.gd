@@ -203,7 +203,7 @@ func _populate_table() -> void:
 	_add_table_row(
 		"MAP",
 		"Rifle", "Shotgun", "UZI", "Machete", "PKM",
-		"Grenadier", "Teleport", "Force Field", "Jammer",
+		"Grenadier", "Teleport", "Force Field", "Jammer", "GasMask",
 		true
 	)
 
@@ -211,12 +211,12 @@ func _populate_table() -> void:
 	for scene_path in ENEMY_COUNTS:
 		var level_name: String = LEVEL_NAMES.get(scene_path, _extract_level_name(scene_path))
 		var counts: Array = ENEMY_COUNTS[scene_path]
-		var features: Array = ENEMY_FEATURES.get(scene_path, [false, false, false, false])
+		var features: Array = ENEMY_FEATURES.get(scene_path, [false, false, false, false, false])
 		_add_table_row(
 			level_name,
 			_count_text(counts[0]), _count_text(counts[1]), _count_text(counts[2]),
 			_count_text(counts[3]), _count_text(counts[4]),
-			features[0], features[1], features[2], features[3]
+			features[0], features[1], features[2], features[3], features[4]
 		)
 
 
@@ -238,6 +238,7 @@ func _add_table_row(
 	feat_teleport,
 	feat_force_field,
 	feat_jammer,
+	feat_gas_mask,
 	is_header: bool = false
 ) -> void:
 	var row_panel := PanelContainer.new()
@@ -331,6 +332,11 @@ func _add_table_row(
 			"value": feat_jammer,
 			"label": "Jammer",
 			"color": Color(0.2, 1.0, 0.5, 1.0),  # teal-green
+		},
+		{
+			"value": feat_gas_mask,
+			"label": "GasMask",
+			"color": Color(0.7, 0.8, 0.3, 1.0),  # olive-yellow (Issue #1353)
 		},
 	]
 
