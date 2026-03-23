@@ -127,6 +127,56 @@ File: `game_log_20260322_204747.txt`
 - At `20:48:05-20:48:09`: Shield absorbs 20 hits (hp 20→0), no ROT_CHANGE logged between hits
 - No "hit_reaction" rotation entries appear because the feature didn't exist yet
 
+## Bug Report: Shield enemy always faces player — cannot be flanked (2026-03-23)
+
+### User Feedback
+> "сейчас враг всё ещё залочен на игроке (всегда смотрит в его сторону). должна быть возможность обойти его сбоку."
+> Translation: "The enemy is still locked on the player (always faces their direction). There should be a way to go around from the side."
+
+### Game Log Evidence
+Files: `logs/game_log_20260323_065400.txt`, `logs/game_log_20260323_065630.txt`
+
+Pattern from logs — `P1:visible` dominates rotation:
+```
+[06:54:21] ROT_CHANGE: P0.5:hit_reaction -> P1:visible, state=COMBAT
+[06:55:03] ROT_CHANGE: P0.5:hit_reaction -> P1:visible, state=SEEKING_COVER
+[06:55:18] ROT_CHANGE: P0.5:hit_reaction -> P1:visible, state=COMBAT
+[06:55:20] ROT_CHANGE: P1:visible -> P0.5:hit_reaction, state=COMBAT
+```
+
+After each 0.8s hit reaction expires, the enemy immediately resumes continuous player tracking via `P1:visible`. The player never has a window to flank.
+
+### Root Cause Analysis
+
+In `_update_enemy_model_rotation()`, the `P1:visible` priority (line 961-962) computes the target angle as `(_current_target.global_position - global_position).normalized().angle()` **every frame**. Even with the 0.15× rotation speed multiplier (25.8°/s), the target angle is always the player's **exact real-time position**. The enemy continuously rotates toward the player and will always catch up.
+
+The 0.15× speed multiplier only controls **how fast** the enemy rotates, not **how often** it updates its target. A slow-but-omniscient enemy is still effectively locked on the player.
+
+### Fix: Delayed Player Tracking (SHIELD_TRACKING_INTERVAL)
+
+Instead of updating the target angle every frame, the shield enemy now samples the player's position every **1.5 seconds** (`SHIELD_TRACKING_INTERVAL`).
+
+New variables:
+- `_shield_tracking_angle: float` — cached target angle (updated periodically)
+- `_shield_tracking_timer: float` — countdown to next update
+
+Modified behavior when shield is up:
+- **P1:visible** → uses `_shield_tracking_angle` (label: `P1:shield_delayed`)
+- **P2:combat_state** → uses `_shield_tracking_angle` (label: `P2:shield_delayed`)
+- **P4:velocity** → uses `_shield_tracking_angle` (label: `P4:shield_delayed`)
+- **P0.5:hit_reaction** → still uses real-time attacker direction (immediate)
+- **Shield down** → normal continuous tracking resumes
+
+This creates a tactical window: the player can move ~1.5 seconds untracked. Combined with the 0.15× rotation speed, the player has a real opportunity to circle around the shield enemy.
+
+Additionally, when the shield enemy is hit, the tracking angle is immediately refreshed to the attacker's direction — the enemy "learns" where the hit came from.
+
+### Design Rationale
+- Real SWAT riot shield operators have limited peripheral vision (~±30° through viewport window)
+- They can't continuously track a fast-moving target while holding a heavy shield
+- They immediately react to being hit (know the direction of impact)
+- Game design precedent: Rainbow Six Siege's shield operators (Montagne, Fuze, Blitz) can be flanked when moving; the shield only protects the front arc
+
 ## References
 - Issue #1034 (ForceField enemy) — bullet-blocking component pattern
 - Issue #1123 (ArmoredSkin) — component extraction pattern
