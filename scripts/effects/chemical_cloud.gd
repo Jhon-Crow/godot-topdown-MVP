@@ -41,11 +41,27 @@ var _cloud_visual: Node2D = null
 ## Whether we're using particle system.
 var _using_particles: bool = false
 
-## Whether illusions have already been spawned (one-shot trigger).
+## Whether the initial batch of illusions has been spawned.
 var _illusions_spawned: bool = false
 
 ## Reference to player for proximity check.
 var _player: Node2D = null
+
+## Issue #1367: Progressive illusion spawning — +1 illusion every 2 seconds in cloud.
+## Maximum total illusions this cloud can spawn (initial batch + progressive).
+@export var max_illusions_per_cloud: int = 10
+
+## Interval for spawning additional illusions while player stays in cloud (seconds).
+@export var progressive_spawn_interval: float = 2.0
+
+## Total illusions spawned by this cloud so far.
+var _total_illusions_spawned: int = 0
+
+## Timer tracking time player has spent in the cloud.
+var _player_time_in_cloud: float = 0.0
+
+## Timer for progressive illusion spawning.
+var _progressive_spawn_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -65,7 +81,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_time_remaining -= delta
 
-	# Spawn illusions once when the cloud first appears
+	# Spawn initial batch of illusions when the cloud first appears
 	# Only if player is within blast radius
 	if not _illusions_spawned:
 		_illusions_spawned = true
@@ -76,12 +92,24 @@ func _physics_process(delta: float) -> void:
 				_player.global_position.distance_to(global_position) if _player else -1.0
 			])
 
+	# Issue #1367: Progressive illusion spawning while player stays in cloud.
+	# +1 illusion every 2 seconds, up to max_illusions_per_cloud total.
+	if _is_player_in_range():
+		_player_time_in_cloud += delta
+		_progressive_spawn_timer += delta
+		if _progressive_spawn_timer >= progressive_spawn_interval:
+			_progressive_spawn_timer -= progressive_spawn_interval
+			if _total_illusions_spawned < max_illusions_per_cloud:
+				_spawn_progressive_illusion()
+
 	# Update visual fade
 	_update_cloud_visual()
 
 	# Dissipate
 	if _time_remaining <= 0.0:
-		FileLogger.info("[ChemicalCloud] Cloud dissipated at %s" % str(global_position))
+		FileLogger.info("[ChemicalCloud] Cloud dissipated at %s (spawned %d total illusions)" % [
+			str(global_position), _total_illusions_spawned
+		])
 		queue_free()
 
 
@@ -106,9 +134,12 @@ func _spawn_illusions_for_nearby_enemies() -> void:
 		if enemy.has_method("is_alive") and not enemy.is_alive():
 			continue
 
-		# Check if we can spawn more illusions (global cap)
+		# Check if we can spawn more illusions (global cap or per-cloud cap)
 		if not IllusionEffect.can_spawn_more(get_tree()):
-			FileLogger.info("[ChemicalCloud] Illusion cap reached (%d), stopping" % IllusionEffect.MAX_TOTAL_ILLUSIONS)
+			FileLogger.info("[ChemicalCloud] Global illusion cap reached (%d), stopping" % IllusionEffect.MAX_TOTAL_ILLUSIONS)
+			break
+		if spawned_count >= max_illusions_per_cloud:
+			FileLogger.info("[ChemicalCloud] Per-cloud cap reached (%d), stopping initial batch" % max_illusions_per_cloud)
 			break
 
 		# Spawn 2-6 copies per enemy
@@ -145,13 +176,16 @@ func _spawn_illusions_for_nearby_enemies() -> void:
 				continue  # This position is occupied by the real enemy
 			if not IllusionEffect.can_spawn_more(get_tree()):
 				break
+			if spawned_count >= max_illusions_per_cloud:
+				break
 			# Offset relative to the enemy's new position
 			var illusion_offset: Vector2 = offsets[i] - original_offset
 			_spawn_single_illusion(enemy, illusion_offset)
 			spawned_count += 1
 
-	FileLogger.info("[ChemicalCloud] Spawned %d illusion copies for %d enemies" % [
-		spawned_count, enemies.size()
+	_total_illusions_spawned += spawned_count
+	FileLogger.info("[ChemicalCloud] Spawned %d illusion copies for %d enemies (total: %d/%d)" % [
+		spawned_count, enemies.size(), _total_illusions_spawned, max_illusions_per_cloud
 	])
 
 
@@ -164,6 +198,40 @@ func _spawn_single_illusion(enemy: Node2D, offset: Vector2) -> void:
 	illusion.phantom_shoot_interval = randf_range(1.5, 3.0)
 
 	get_tree().current_scene.add_child(illusion)
+
+
+## Issue #1367: Spawn one additional illusion for a random alive enemy.
+## Called every progressive_spawn_interval seconds while player is in the cloud.
+func _spawn_progressive_illusion() -> void:
+	if not IllusionEffect.can_spawn_more(get_tree()):
+		FileLogger.info("[ChemicalCloud] Progressive spawn skipped — global illusion cap reached")
+		return
+
+	# Find alive enemies to copy
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var alive_enemies: Array[Node2D] = []
+	for enemy in enemies:
+		if not is_instance_valid(enemy) or not enemy is Node2D:
+			continue
+		if enemy.has_method("is_alive") and not enemy.is_alive():
+			continue
+		alive_enemies.append(enemy as Node2D)
+
+	if alive_enemies.is_empty():
+		FileLogger.info("[ChemicalCloud] Progressive spawn skipped — no alive enemies")
+		return
+
+	# Pick a random enemy and spawn one illusion copy
+	var enemy: Node2D = alive_enemies[randi() % alive_enemies.size()]
+	var angle: float = randf_range(0.0, TAU)
+	var distance: float = randf_range(60.0, 120.0)
+	var offset := Vector2(cos(angle), sin(angle)) * distance
+
+	_spawn_single_illusion(enemy, offset)
+	_total_illusions_spawned += 1
+	FileLogger.info("[ChemicalCloud] Progressive illusion spawned (total: %d/%d, player in cloud: %.1fs)" % [
+		_total_illusions_spawned, max_illusions_per_cloud, _player_time_in_cloud
+	])
 
 
 ## Set up Area2D for detecting enemies/player in the cloud.
