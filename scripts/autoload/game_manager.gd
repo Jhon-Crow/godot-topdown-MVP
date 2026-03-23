@@ -386,11 +386,11 @@ func on_player_death() -> void:
 	# Issue #1334 Round 9: Record wall-clock timestamp of death for absolute failsafe
 	if _player_dead_since_ms <= 0:
 		_player_dead_since_ms = Time.get_ticks_msec()
-	# Issue #1334: Disable player collision as defense-in-depth
+	# Issue #1334 Round 10: Defer collision disable for safety
 	if player and is_instance_valid(player):
 		if player is CharacterBody2D:
-			player.collision_layer = 0
-			player.collision_mask = 0
+			player.call_deferred("set", "collision_layer", 0)
+			player.call_deferred("set", "collision_mask", 0)
 	player_died.emit()
 	# Auto-restart the scene immediately
 	restart_scene()
@@ -481,11 +481,15 @@ func _on_player_died_signal() -> void:
 	# Issue #1334 Round 9: Record wall-clock timestamp of death for absolute failsafe
 	if _player_dead_since_ms <= 0:
 		_player_dead_since_ms = Time.get_ticks_msec()
-	# Disable collision immediately (defense-in-depth) regardless of who handles restart
+	# Issue #1334 Round 10: Defer collision disable to avoid modifying physics state
+	# during active physics callbacks (body_entered/area_entered). Setting CollisionLayer
+	# inside a physics callback corrupts the physics server's collision pair list, causing
+	# native segfaults. The player's own OnDeath() also defers this, but we do it here as
+	# defense-in-depth in case the player's deferred call doesn't fire.
 	if player and is_instance_valid(player):
 		if player is CharacterBody2D:
-			player.collision_layer = 0
-			player.collision_mask = 0
+			player.call_deferred("set", "collision_layer", 0)
+			player.call_deferred("set", "collision_mask", 0)
 			_log_to_file("Disabled dead player collision from GameManager signal handler")
 	_start_death_safety_net()
 
@@ -502,11 +506,12 @@ var _safety_net_deadline_ms: int = 0
 ## Issue #1334 Round 4/8: Shared helper to start the death safety net timer.
 ## Called by both signal handler (_on_player_died_signal) and poll detection (_process).
 func _start_death_safety_net() -> void:
-	# Disable collision immediately (defense-in-depth)
+	# Issue #1334 Round 10: Defer collision disable (defense-in-depth).
+	# This may be called from a signal handler during physics callbacks.
 	if player and is_instance_valid(player):
 		if player is CharacterBody2D:
-			player.collision_layer = 0
-			player.collision_mask = 0
+			player.call_deferred("set", "collision_layer", 0)
+			player.call_deferred("set", "collision_mask", 0)
 			_log_to_file("Disabled dead player collision (safety net)")
 	# Issue #1334 Round 8: Use wall-clock deadline (OS ticks) instead of delta countdown.
 	# Previous approach (delta -= in _process) was scaled by Engine.time_scale. Death effects

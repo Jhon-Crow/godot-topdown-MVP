@@ -1432,6 +1432,13 @@ public partial class Player : BaseCharacter
 
     public override void _PhysicsProcess(double delta)
     {
+        // Issue #1334 Round 10: Stop all player processing after death.
+        // Without this guard, the dead player continues processing input, movement,
+        // and shooting on the same frame as death. Weapon Fire() calls on a dead player
+        // can cause native crashes (e.g., spawning bullets from freed/invalid state).
+        if (!IsAlive)
+            return;
+
         // Detect weapon pose after waiting a few frames for level scripts to add weapons
         if (!_weaponPoseApplied)
         {
@@ -2696,16 +2703,57 @@ public partial class Player : BaseCharacter
         }
     }
 
+    /// <summary>
+    /// Issue #1334 Round 10: GDScript-compatible is_alive() method.
+    /// GDScript code (bullets, enemies) uses has_method("is_alive") to check if a target
+    /// is alive before applying damage or physics interactions. The C# IsAlive property
+    /// is not accessible via has_method() from GDScript. Without this bridge method,
+    /// bullets pass through the is_alive check (returns true by default) and hit dead
+    /// players, causing crashes from physics state mutations on freed/invalid nodes.
+    /// </summary>
+    public bool is_alive() => IsAlive;
+
     /// <inheritdoc/>
     public override void OnDeath()
     {
         base.OnDeath();
-        // Issue #1334: Disable collision layer so enemies can no longer raycast/interact
-        // with the dead player. This prevents crashes from hitscan or physics callbacks
-        // firing on a dead player node during the 0.5s restart delay.
+        // Issue #1334 Round 10: Defer collision disabling to avoid modifying physics state
+        // during active physics callbacks. Setting CollisionLayer/CollisionMask during
+        // body_entered/area_entered callbacks corrupts the physics server's internal collision
+        // pair list, causing native segfaults. CallDeferred ensures the changes happen at the
+        // end of the frame, after all physics callbacks have completed.
+        CallDeferred(MethodName._DisableDeadPlayerCollision);
+        GD.Print("Player died!");
+    }
+
+    /// <summary>
+    /// Issue #1334 Round 10: Deferred method to disable all collision on the dead player.
+    /// Called via CallDeferred from OnDeath to avoid modifying physics state during
+    /// active physics callbacks (body_entered, area_entered) which causes native crashes.
+    /// </summary>
+    private void _DisableDeadPlayerCollision()
+    {
         CollisionLayer = 0;
         CollisionMask = 0;
-        GD.Print("Player died!");
+
+        // Disable the HitArea (Area2D) so bullets in flight cannot trigger
+        // on_area_entered callbacks on the dead player's hit detection area.
+        var hitArea = GetNodeOrNull<Area2D>("HitArea");
+        if (hitArea != null)
+        {
+            hitArea.CollisionLayer = 0;
+            hitArea.CollisionMask = 0;
+            hitArea.Monitoring = false;
+            hitArea.Monitorable = false;
+        }
+
+        // Disable the ThreatSphere too so LastChance doesn't process new threats.
+        var threatSphere = GetNodeOrNull<Area2D>("ThreatSphere");
+        if (threatSphere != null)
+        {
+            threatSphere.Monitoring = false;
+            threatSphere.Monitorable = false;
+        }
     }
 
     /// <summary>
