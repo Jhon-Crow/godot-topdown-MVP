@@ -513,6 +513,91 @@ a prior hit in the same batch already killed the target.
     raycast loop, then apply damage after loop completes. Added re-validation of node validity
     and alive status before each deferred damage call.
 
+---
+
+## Round 7 — Process-based safety net countdown + robust IsAlive check
+
+After Rounds 5-6, user reported the grey screen still persists. Two issues found:
+
+1. **SceneTreeTimer callback never fires**: The safety net timer from `get_tree().create_timer()`
+   silently failed when death effects modified scene processing state. Replaced with `_process()`-based
+   countdown that decrements `_safety_net_countdown` each frame.
+
+2. **IsAlive check bypassed for C# Player**: The sniper's `hit_node.get("IsAlive")` returns `null`
+   for non-`[Export]` C# properties. Added `_check_target_alive()` with four fallback strategies.
+
+---
+
+## Round 8 — Wall-clock safety net + enemy AI freeze (2026-03-23)
+
+### New crash logs analyzed
+
+| File | Lines | Failure mode |
+|------|-------|-------------|
+| `game_log_20260323_063548.txt` | 8749 | Process crashes instantly after sniper hits dead player |
+| `game_log_20260323_063713.txt` | 1286 | Process crashes mid-gameplay, no death events |
+| `game_log_20260323_063737.txt` | 1372 | Grey screen stuck — safety net starts but never fires |
+| `game_log_20260323_063759.txt` | 19080 | Mixed: LabyrinthLevel works fine, Docks crashes |
+
+### Root cause 1: Safety net countdown affected by Engine.time_scale
+
+The Round 7 fix used `_safety_net_countdown -= delta` in `_process()`. While `PROCESS_MODE_ALWAYS`
+ensures `_process()` runs every frame, **`delta` is still scaled by `Engine.time_scale`**.
+
+Death effects set `Engine.time_scale = 0.1` (PenultimateHit) which makes the delta 10x smaller.
+A 1.5-second countdown effectively takes **15 real seconds** to complete. The user sees the grey
+death screen for 15 seconds and thinks the game is frozen.
+
+**Evidence**: In `game_log_20260323_063737.txt`, the safety net starts at 06:37:46 and should
+fire at 06:37:47.5 (1.5s later). The log continues with enemy activity until 06:37:47 with no
+restart. The 1.5s scaled delta has barely counted down 0.15s (1.5 * 0.1 time_scale).
+
+**Fix**: Replaced delta-based countdown with wall-clock deadline using `Time.get_ticks_msec()`.
+The deadline fires in real-world seconds regardless of `Engine.time_scale`.
+
+### Root cause 2: Enemies continue full AI after player death → native segfault
+
+After `player_alive = false` is set, enemies still run full `_physics_process()` — pathfinding,
+raycasting, state transitions, LOS checks. These access the player node's physics body which
+is in an inconsistent state (CollisionLayer was set to 0 by C# but the physics server may not
+have processed it yet).
+
+**Evidence**: In `game_log_20260323_063548.txt`, after the death signal fires (line 8736),
+enemies continue "Player distracted - priority attack triggered" for several lines, then the
+sniper hitscan hits the dead player (line 8744), followed by a few more enemy actions, then
+the process terminates abruptly — characteristic of a native C++ segfault.
+
+**Fix**: Added `player_alive` check at the very top of `enemy._physics_process()`. When the
+player is dead, ALL enemy AI processing stops immediately. This is a defense-in-depth measure
+that prevents any enemy code from accessing the dead player's physics state.
+
+### Root cause 3: Sniper raycast hits dead player with stale physics state
+
+The sniper's hitscan raycast uses `direct_space_state.intersect_ray()` with collision mask 1.
+After `Player.OnDeath()` sets `CollisionLayer = 0`, the physics server may not immediately
+update — the next `intersect_ray()` call can still hit the player. While damage is deferred
+and skipped (Round 6 fix), the raycast itself may trigger undefined behavior in the physics
+server when querying an object whose collision state is being modified.
+
+**Fix**: Added mid-loop `player_alive` check in the raycast loop, and pre-compute the player's
+RID to exclude it from character raycasts when the player is dead.
+
+### Changes (Round 8)
+
+- `scripts/autoload/game_manager.gd`:
+  - Replaced `_safety_net_countdown` (float, delta-based) with `_safety_net_deadline_ms` (int,
+    wall-clock deadline via `Time.get_ticks_msec()`). Unaffected by `Engine.time_scale`.
+  - Updated `_process()`, `_start_death_safety_net()`, and `_reset_stats()` accordingly.
+
+- `scripts/objects/enemy.gd`:
+  - Added `player_alive` check at top of `_physics_process()` — freezes all enemy AI instantly
+    when player dies. Prevents physics queries, pathfinding, and shooting on dead player node.
+
+- `scripts/components/enemy_sniper_component.gd`:
+  - Pre-compute player RID for raycast exclusion.
+  - Re-check `player_alive` each iteration of the raycast loop, aborting if player died mid-frame.
+  - Exclude dead player's RID from character raycast queries.
+
 ## Additional observations
 
 - `[SceneLoader] ERROR: Invalid resource` messages appear in logs when
