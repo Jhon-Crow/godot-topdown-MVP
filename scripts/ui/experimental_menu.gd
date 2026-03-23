@@ -29,6 +29,7 @@ signal back_pressed
 @onready var passage_waypoints_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/PassageWaypointsContainer/PassageWaypointsCheckbox
 @onready var sound_visualizer_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SoundVisualizerContainer/SoundVisualizerCheckbox
 @onready var enemy_path_visible_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyPathVisibleContainer/EnemyPathVisibleCheckbox
+@onready var cover_raycast_visible_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverRaycastVisibleContainer/CoverRaycastVisibleCheckbox
 @onready var tactical_group_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TacticalGroupContainer/TacticalGroupCheckbox
 @onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var unlock_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer/UnlockTableButton
@@ -110,6 +111,9 @@ func _ready() -> void:
 	_setup_row_hover(_vbox.get_node("EnemyPathVisibleContainer"),
 			"Show Enemy Nav Paths",
 			_vbox.get_node("EnemyPathVisibleDescription"))
+	_setup_row_hover(_vbox.get_node("CoverRaycastVisibleContainer"),
+			"Show Cover Raycasts",
+			_vbox.get_node("CoverRaycastVisibleDescription"))
 	_setup_row_hover(_vbox.get_node("TacticalGroupContainer"),
 			"Tactical Group Movement",
 			_vbox.get_node("TacticalGroupDescription"))
@@ -145,6 +149,7 @@ func _ready() -> void:
 	passage_waypoints_checkbox.toggled.connect(_on_passage_waypoints_toggled)
 	sound_visualizer_checkbox.toggled.connect(_on_sound_visualizer_toggled)
 	enemy_path_visible_checkbox.toggled.connect(_on_enemy_path_visible_toggled)
+	cover_raycast_visible_checkbox.toggled.connect(_on_cover_raycast_visible_toggled)
 	tactical_group_checkbox.toggled.connect(_on_tactical_group_toggled)
 	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
@@ -191,6 +196,7 @@ func _update_ui() -> void:
 	passage_waypoints_checkbox.button_pressed = experimental_settings.has_method("is_passage_waypoints_enabled") and experimental_settings.is_passage_waypoints_enabled()
 	sound_visualizer_checkbox.button_pressed = experimental_settings.is_sound_visualizer_enabled()
 	enemy_path_visible_checkbox.button_pressed = experimental_settings.is_enemy_path_visible_enabled()
+	cover_raycast_visible_checkbox.button_pressed = experimental_settings.has_method("is_cover_raycast_visible_enabled") and experimental_settings.is_cover_raycast_visible_enabled()
 	tactical_group_checkbox.button_pressed = experimental_settings.has_method("is_tactical_group_enabled") and experimental_settings.is_tactical_group_enabled()
 
 	# Update global stuck max time slider
@@ -238,6 +244,8 @@ func _update_ui() -> void:
 		status_parts.append("Sound visualizer")
 	if experimental_settings.is_enemy_path_visible_enabled():
 		status_parts.append("Enemy nav paths")
+	if experimental_settings.has_method("is_cover_raycast_visible_enabled") and experimental_settings.is_cover_raycast_visible_enabled():
+		status_parts.append("Cover raycasts visible")
 	if experimental_settings.has_method("is_tactical_group_enabled") and experimental_settings.is_tactical_group_enabled():
 		status_parts.append("Tactical group movement")
 
@@ -393,6 +401,13 @@ func _on_enemy_path_visible_toggled(enabled: bool) -> void:
 	_update_ui()
 
 
+func _on_cover_raycast_visible_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_cover_raycast_visible_enabled(enabled)
+	_update_ui()
+
+
 func _on_tactical_group_toggled(enabled: bool) -> void:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
@@ -485,6 +500,7 @@ func _on_settings_changed() -> void:
 
 ## Enemy spawner: populate enemy type dropdown.
 ## Each entry stores weapon_type int as metadata (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE, 4=RPG, 5=PM, 6=MACHINE_GUN, 7=SNIPER_RIFLE, 8=REVOLVER).
+## Special flags: is_teleporter, has_armored_skin, has_force_field, is_grenadier, start_invisible, has_swat_shield, is_gas_mask.
 ## Restores the previously selected enemy type from ExperimentalSettings (Issue #1112).
 func _setup_enemy_spawner() -> void:
 	enemy_type_option.clear()
@@ -494,10 +510,17 @@ func _setup_enemy_spawner() -> void:
 		{"name": "UZI (SMG)", "weapon_type": 2, "behavior": 1},
 		{"name": "Machete (melee)", "weapon_type": 3, "behavior": 1},
 		{"name": "RPG + PM pistol", "weapon_type": 4, "behavior": 1},
+		{"name": "PM (Makarov pistol)", "weapon_type": 5, "behavior": 1},
 		{"name": "Machine Gunner (PKM)", "weapon_type": 6, "behavior": 1},
 		{"name": "Sniper (ASVK)", "weapon_type": 7, "behavior": 1},
 		{"name": "Patrol Rifle", "weapon_type": 0, "behavior": 0},
 		{"name": "SWAT Shieldbearer", "weapon_type": 8, "behavior": 1, "has_swat_shield": true, "scene": "res://scenes/objects/EnemySwatShield.tscn"},  # Issue #1242
+		{"name": "Teleporter (Rifle)", "weapon_type": 0, "behavior": 1, "is_teleporter": true},
+		{"name": "Armored Skin (Rifle)", "weapon_type": 0, "behavior": 1, "has_armored_skin": true},
+		{"name": "Force Field (Rifle)", "weapon_type": 0, "behavior": 1, "has_force_field": true},
+		{"name": "Grenadier (Rifle)", "weapon_type": 0, "behavior": 1, "is_grenadier": true},
+		{"name": "Invisible (Rifle)", "weapon_type": 0, "behavior": 1, "start_invisible": true},
+		{"name": "Gas Mask Enemy", "weapon_type": 0, "behavior": 1, "is_gas_mask": true},
 	]
 	for t in types:
 		enemy_type_option.add_item(t["name"])
@@ -548,6 +571,19 @@ func _on_spawn_enemy_pressed() -> void:
 		enemy.set("destroy_on_death", true)
 	if meta.has("has_swat_shield") and enemy.get("has_swat_shield") != null:
 		enemy.set("has_swat_shield", meta.get("has_swat_shield", false))
+	# Apply special enemy flags if present in metadata.
+	if meta.get("is_teleporter", false) and enemy.get("is_teleporter") != null:
+		enemy.set("is_teleporter", true)
+	if meta.get("has_armored_skin", false) and enemy.get("has_armored_skin") != null:
+		enemy.set("has_armored_skin", true)
+	if meta.get("has_force_field", false) and enemy.get("has_force_field") != null:
+		enemy.set("has_force_field", true)
+	if meta.get("is_grenadier", false) and enemy.get("is_grenadier") != null:
+		enemy.set("is_grenadier", true)
+	if meta.get("start_invisible", false) and enemy.get("start_invisible") != null:
+		enemy.set("start_invisible", true)
+	if meta.get("is_gas_mask", false) and enemy.get("is_gas_mask") != null:
+		enemy.set("is_gas_mask", true)
 
 	# Add to Environment/Enemies node if it exists, otherwise directly to scene.
 	var enemies_node: Node = current_scene.find_child("Enemies", true, false)

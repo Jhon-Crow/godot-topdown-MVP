@@ -234,6 +234,11 @@ var _rpg_homing_original_direction: Vector2 = Vector2.ZERO
 ## Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
 var penetrates_enemies: bool = false
 
+## Whether this is a phantom (illusion) bullet (Issue #1353).
+## Phantom bullets only damage the player, not enemies or other illusions.
+## Fired by IllusionEffect visual copies.
+var is_phantom: bool = false
+
 ## Set of enemy bodies this bullet has already dealt damage to (Issue #829).
 ## Prevents the bullet from re-applying damage when _on_area_entered fires multiple times
 ## for the same enemy (e.g., multiple hit areas or re-entry signals).
@@ -645,6 +650,10 @@ func _on_area_entered(area: Area2D) -> void:
 		var parent: Node = area.get_parent()
 		if parent and shooter_id == parent.get_instance_id() and not _has_ricocheted:
 			return  # Don't hit the shooter with direct shots
+
+		# Issue #1353: Phantom (illusion) bullets only damage the player
+		if is_phantom and parent and not parent.is_in_group("player"):
+			return  # Phantom bullets pass through non-player targets
 
 		# Force field protection: Block damage if target has active force field (Issue #676)
 		if parent and parent.has_method("is_force_field_active"):
