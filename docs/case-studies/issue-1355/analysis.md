@@ -229,6 +229,60 @@ The `200.0` px minimum is a reasonable starting point (roughly one enemy "screen
 
 ---
 
+## Session 2: Log `game_log_20260323_051440.txt`
+
+A second game log was provided by the reporter, revealing an additional critical bug: **enemies teleporting to `(0, 0)` — outside the map**.
+
+### Evidence: Raw Log Data (Session 2)
+
+| Log line | Time     | From                         | To                          | Distance (px) | Category    |
+|----------|----------|------------------------------|-----------------------------|---------------|-------------|
+| 641      | 05:15:04 | (350, 356.27)                | (350, 387)                  | **30.73**     | Short ⚠️    |
+| 888      | 05:15:12 | (350, 387)                   | (0, 0)                      | **529.90**    | **Off-map** ⚠️ |
+| 921      | 05:15:31 | (28.74, 8.22)                | (0, 0)                      | **29.89**     | **Off-map + Short** ⚠️ |
+| 941      | 05:15:36 | (-14.92, 160.42)             | (-3.00, 160.55)             | **11.92**     | **Short** ⚠️ |
+| 974      | 05:15:46 | (7.93, 81.93)                | (0, 0)                      | **82.31**     | **Off-map** ⚠️ |
+| 1005     | 05:15:56 | (7.93, 394.34)               | (0, 0)                      | **394.42**    | **Off-map** ⚠️ |
+| 1113     | 05:16:07 | (350, 356.27)                | (350, 387)                  | **30.73**     | Short ⚠️    |
+| 1294     | 05:16:16 | (429.85, 345.23)             | (0, 0)                      | **550.42**    | **Off-map** ⚠️ |
+
+**Key findings:**
+- **5 out of 8 teleports** go to `(0, 0)` — enemy disappears off-map
+- **3 teleports** are short-distance (< 35 px) — in-place flicker
+- **0 teleports** are normal — 100% failure rate in this session
+
+### Root Cause: Teleport to (0, 0)
+
+`_flank_target` and `_cover_position` are both initialized to `Vector2.ZERO` (line 193, 197 in `enemy.gd`). When the teleport trigger fires before these targets have been properly computed — e.g., when `_find_cover_position()` or `_calculate_flank_position()` hasn't run or found no valid result — the teleport uses the default `Vector2.ZERO` value.
+
+Since `try_teleport()` had no check for zero-target or off-map targets, the enemy was teleported to the world origin `(0, 0)`, which is outside the playable map area.
+
+### Root Cause: Negative Coordinates
+
+Once at `(0, 0)`, the enemy's movement and physics push it into negative coordinates (e.g., `(-14.92, 160.42)`), creating cascading issues where subsequent cover searches and teleports produce increasingly invalid positions.
+
+### Additional Fix Required: Nav-Map Bounds Check
+
+Beyond the minimum distance guard, `try_teleport()` must validate that the target position lies within the navigation mesh. Using `NavigationServer2D.map_get_closest_point()`, the teleport component can verify that the snapped position is within tolerance of the requested target. If the snap distance exceeds a threshold (30 px), the target is off the navigable map and the teleport should be rejected.
+
+---
+
+## Applied Fix (Solution C + Nav-Map Validation)
+
+The implemented fix addresses all three root causes:
+
+1. **`enemy_teleport_component.gd` — `try_teleport()`:**
+   - Added `MIN_DISTANCE = 50.0` constant — rejects teleports shorter than 50 px
+   - Added `Vector2.ZERO` rejection — prevents teleporting to uninitialized targets
+   - Added `_is_on_nav_map()` check — validates target is on the navigation mesh (within 30 px snap tolerance)
+   - All rejections are logged with `FileLogger.info` for debugging
+
+2. **`enemy.gd` — `_find_cover_position()` and `_find_distant_cover_position()`:**
+   - Teleporter enemies skip cover candidates within 50 px of their current position
+   - Prevents wasting cover slots on nearby wall corners
+
+---
+
 ## References
 
 - [Godot Forum: NavigationServer2D get_closest_point inaccuracy](https://forum.godotengine.org/t/navigationserver2d-get-closest-point-inaccuracy/79052)

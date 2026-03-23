@@ -1190,6 +1190,7 @@ func _find_distant_cover_position() -> void:
 		var cp := raycast.get_collision_point()
 		var cn := raycast.get_collision_normal()
 		var cover_pos := cp + cn * 35.0
+		if is_teleporter and global_position.distance_to(cover_pos) < 50.0: continue  # Issue #1355
 		if not _can_reach_position(cover_pos): continue
 		var is_hidden := not _is_position_visible_from_player(cover_pos)
 		if not is_hidden and found_hidden: continue
@@ -3261,6 +3262,10 @@ func _find_cover_position() -> void:
 			# Offset must be large enough to hide the entire enemy body (radius ~24 pixels)
 			# Using 35 pixels to provide some margin for the enemy's collision shape
 			var cover_pos := collision_point + collision_normal * 35.0
+
+			# Issue #1355: teleporters skip nearby cover (would cause in-place flicker).
+			if is_teleporter and global_position.distance_to(cover_pos) < 50.0:
+				continue
 
 			# CRITICAL: Verify we can actually reach this cover position
 			# This prevents selecting cover positions on the opposite side of walls

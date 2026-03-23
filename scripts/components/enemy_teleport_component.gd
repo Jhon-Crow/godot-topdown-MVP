@@ -14,6 +14,10 @@ const COOLDOWN: float = 5.0
 const VIEWPORT_FRACTION: float = 1.0
 ## Fallback diagonal when viewport is unavailable (1280x720).
 const DEFAULT_DIAGONAL: float = 1469.0
+## Minimum teleport distance in pixels (Issue #1355: reject short teleports).
+const MIN_DISTANCE: float = 50.0
+## Max distance from nav-mesh to still count as "on the map" (Issue #1355).
+const NAV_SNAP_TOLERANCE: float = 30.0
 
 var _parent: CharacterBody2D = null  ## The enemy node.
 var _cooldown_timer: float = 0.0  ## Seconds until next teleport allowed.
@@ -33,12 +37,24 @@ func update(delta: float) -> void:
 		_cooldown_timer -= delta
 
 ## Attempt to teleport to target. Returns true if the teleport succeeded.
-## Fails if on cooldown or target is farther than one viewport diagonal.
+## Fails if on cooldown, target too close/far, or target is off the nav-map.
 func try_teleport(target: Vector2) -> bool:
 	if not is_ready() or _parent == null:
 		return false
+	# Issue #1355: reject uninitialized (0,0) targets.
+	if target == Vector2.ZERO:
+		FileLogger.info("[Teleporter] Rejected teleport: target is (0,0)")
+		return false
 	var dist := _parent.global_position.distance_to(target)
+	# Issue #1355: reject teleports that are too short (visual flicker).
+	if dist < MIN_DISTANCE:
+		FileLogger.info("[Teleporter] Rejected teleport: distance %.1f < min %.1f" % [dist, MIN_DISTANCE])
+		return false
 	if dist > _get_max_distance():
+		return false
+	# Issue #1355: reject targets that are outside the navigation map.
+	if not _is_on_nav_map(target):
+		FileLogger.info("[Teleporter] Rejected teleport: target %s is off the nav-map" % target)
 		return false
 	_execute_teleport(target)
 	return true
@@ -57,6 +73,21 @@ static func add_backpack(enemy_model: Node2D) -> void:
 	backpack.z_index = 2  ## Same z-index as body sprite overlay
 	backpack.position = Vector2(-4, 0)  ## Aligned with body sprite
 	enemy_model.add_child(backpack)
+
+## Returns true if pos is inside (or very close to) the navigation mesh.
+## Uses NavigationServer2D to snap the point; if the snapped point is far
+## from the original, the target is off-map (Issue #1355).
+func _is_on_nav_map(pos: Vector2) -> bool:
+	if _parent == null:
+		return false
+	var nav_agent := _parent.get_node_or_null("NavigationAgent2D") as NavigationAgent2D
+	if nav_agent == null:
+		return true  # No nav-agent — cannot validate, allow teleport.
+	var nav_map: RID = nav_agent.get_navigation_map()
+	if not nav_map.is_valid():
+		return true
+	var closest: Vector2 = NavigationServer2D.map_get_closest_point(nav_map, pos)
+	return closest.distance_to(pos) <= NAV_SNAP_TOLERANCE
 
 ## Maximum teleport distance based on viewport size.
 func _get_max_distance() -> float:
