@@ -100,3 +100,28 @@ The solution modifies `_find_cover_position()` to:
 - Teleporter skip check (Issue #1355) preserved
 - Debug visualization (`get_cover_raycast_data()`) updated to show player-origin rays
 - All existing cover finding variants (`_find_distant_cover_position`, `_find_cover_closest_to_player`, `_find_flank_cover_toward_target`) unchanged - they use enemy-origin rays for non-suppression scenarios
+
+## Post-Deploy Bug: Visualization Broken (2026-03-23)
+
+### Report
+
+After deployment of the initial fix (PR #1379), the repository owner reported:
+> "сломалось отображение лучей" (ray display broke)
+
+Game log attached: `game_log_20260323_134837.txt` (from build `2026-03-23T13:48:37`, Windows, Godot 4.3-stable).
+
+### Root Cause
+
+The `CoverRaycastMonitor` overlay draws **non-colliding rays** as gray lines all the way to their `target` position. Before this fix, rays had a max length of 300px — small and readable. After enabling infinite rays (10,000px), each non-colliding ray drew a 10,000px gray line from the player position, extending far off-screen. With 120 rays in a 100° sector, the overlay became an unreadable fan of lines covering the entire screen.
+
+Colliding rays (yellow) were unaffected — they only draw from origin to the collision point, not to the full target.
+
+### Fix (2026-03-23)
+
+Added `RAY_DISPLAY_MAX_LENGTH = 800.0` constant to `cover_raycast_monitor.gd`. Non-colliding rays now clip their **displayed** endpoint to 800px from the origin. The actual ray length used for physics/cover detection is unchanged (10,000px when infinite rays are enabled).
+
+Changed file: `scripts/autoload/cover_raycast_monitor.gd`
+
+### Key Insight
+
+The collision detection distance and the visualization display distance are independent concerns. Functional rays need to reach 10,000px to find distant cover. Visual debug lines only need to reach ~800px to be useful on-screen without obscuring the gameplay view.
