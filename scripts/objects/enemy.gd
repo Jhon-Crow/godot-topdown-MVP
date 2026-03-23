@@ -39,6 +39,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIF
 @export var fov_angle: float = 100.0  ## FOV angle (deg). 0/negative = 360°. Default 100° per #66.
 @export var fov_enabled: bool = true  ## FOV enabled (combined with ExperimentalSettings).
 @export var shoot_cooldown: float = 0.1  ## Time between shots (0.1s = 10 rounds/sec).
+@export var bullet_damage_multiplier: float = 1.0  ## Damage multiplier applied to each bullet (Issue #1244).
 @export var bullet_scene: PackedScene  ## Bullet scene to instantiate when shooting.
 @export var casing_scene: PackedScene  ## Casing scene for ejected bullet casings.
 @export var bullet_spawn_offset: float = 30.0  ## Offset from center for bullet spawn.
@@ -3934,6 +3935,7 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 	if p.has_method("SetShooterPosition"): p.SetShooterPosition(pos)
 	elif p.get("shooter_position") != null: p.shooter_position = pos
 	elif p.get("ShooterPosition") != null: p.ShooterPosition = pos
+	if bullet_damage_multiplier != 1.0 and p.get("damage") != null: p.damage *= bullet_damage_multiplier  # Issue #1244
 
 ## Fire RPG rocket (Issue #583). RigidBody2D + linear_velocity after add_child (VOGGrenade pattern).
 func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:

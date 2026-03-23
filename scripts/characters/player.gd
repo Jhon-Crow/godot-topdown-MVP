@@ -3377,7 +3377,7 @@ func _summon_bff_companion() -> void:
 	companion.min_health = 2
 	companion.max_health = 4
 
-	# Issue #1244: BFF companion has 2x slower reaction speed than enemies.
+	# Issue #1244: BFF companion has 2x slower reaction speed and 3x less damage than enemies.
 	# Multiply all reaction/detection delays and shoot cooldown by 2.0 (200% of normal = 2x slower).
 	# shoot_cooldown is critical: AggressionComponent.process_combat uses it as the only rate limiter.
 	const BFF_REACTION_MULTIPLIER: float = 2.0
@@ -3385,6 +3385,7 @@ func _summon_bff_companion() -> void:
 	companion.threat_reaction_delay = 0.2 * BFF_REACTION_MULTIPLIER  # 0.2s * 2.0 = 0.4s
 	companion.lead_prediction_delay = 0.3 * BFF_REACTION_MULTIPLIER  # 0.3s * 2.0 = 0.6s
 	companion.shoot_cooldown = 0.1 * BFF_REACTION_MULTIPLIER         # 0.1s * 2.0 = 0.2s
+	companion.bullet_damage_multiplier = 1.0 / 3.0                   # 3x less damage (Issue #1244)
 
 	# Add to the current scene
 	get_tree().current_scene.add_child(companion)

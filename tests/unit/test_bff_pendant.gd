@@ -713,11 +713,15 @@ class MockBffCompanionWithReaction:
 	## BFF companion reaction multiplier (2x slower = 2.0x, Issue #1244)
 	const BFF_REACTION_MULTIPLIER: float = 2.0
 
+	## BFF companion damage multiplier (3x less damage = 1/3, Issue #1244)
+	const BFF_DAMAGE_MULTIPLIER: float = 1.0 / 3.0
+
 	## Companion reaction properties (set by summoning logic)
 	var detection_delay: float = DEFAULT_DETECTION_DELAY
 	var threat_reaction_delay: float = DEFAULT_THREAT_REACTION_DELAY
 	var lead_prediction_delay: float = DEFAULT_LEAD_PREDICTION_DELAY
 	var shoot_cooldown: float = DEFAULT_SHOOT_COOLDOWN
+	var bullet_damage_multiplier: float = 1.0
 
 	## Apply BFF reaction delays (as done in _summon_bff_companion)
 	func apply_bff_reaction_delays() -> void:
@@ -725,6 +729,7 @@ class MockBffCompanionWithReaction:
 		threat_reaction_delay = DEFAULT_THREAT_REACTION_DELAY * BFF_REACTION_MULTIPLIER
 		lead_prediction_delay = DEFAULT_LEAD_PREDICTION_DELAY * BFF_REACTION_MULTIPLIER
 		shoot_cooldown = DEFAULT_SHOOT_COOLDOWN * BFF_REACTION_MULTIPLIER
+		bullet_damage_multiplier = BFF_DAMAGE_MULTIPLIER
 
 
 func test_bff_reaction_multiplier_is_two() -> void:
@@ -823,6 +828,35 @@ func test_bff_reaction_delays_not_applied_before_summon() -> void:
 		"Before summon, threat_reaction_delay should match enemy default")
 	assert_eq(companion.lead_prediction_delay, companion.DEFAULT_LEAD_PREDICTION_DELAY,
 		"Before summon, lead_prediction_delay should match enemy default")
+
+
+func test_bff_bullet_damage_multiplier_is_one_third() -> void:
+	var companion := MockBffCompanionWithReaction.new()
+	companion.apply_bff_reaction_delays()
+	assert_almost_eq(companion.bullet_damage_multiplier, 1.0 / 3.0, 0.0001,
+		"BFF bullet_damage_multiplier should be 1/3 (3x less damage, Issue #1244)")
+
+
+func test_bff_bullet_damage_multiplier_less_than_enemy_default() -> void:
+	var companion := MockBffCompanionWithReaction.new()
+	companion.apply_bff_reaction_delays()
+	assert_true(companion.bullet_damage_multiplier < 1.0,
+		"BFF bullet_damage_multiplier should be less than enemy default (1.0)")
+
+
+func test_bff_bullet_damage_multiplier_default_before_summon() -> void:
+	var companion := MockBffCompanionWithReaction.new()
+	assert_eq(companion.bullet_damage_multiplier, 1.0,
+		"bullet_damage_multiplier should be 1.0 (no reduction) before summon")
+
+
+func test_bff_bullet_damage_is_3x_weaker_than_enemy() -> void:
+	var companion := MockBffCompanionWithReaction.new()
+	companion.apply_bff_reaction_delays()
+	var enemy_damage: float = 1.0
+	var companion_damage: float = enemy_damage * companion.bullet_damage_multiplier
+	assert_almost_eq(companion_damage * 3.0, enemy_damage, 0.0001,
+		"3x companion damage should equal 1x enemy damage (Issue #1244)")
 
 
 # ============================================================================
