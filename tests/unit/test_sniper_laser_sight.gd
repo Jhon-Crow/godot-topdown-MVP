@@ -106,20 +106,20 @@ func test_sniper_laser_uses_wall_and_character_collision_raycast() -> void:
 		"Laser raycast must exclude the enemy's own collider [#1336]")
 
 
-func test_sniper_laser_uses_barrel_direction_not_computed() -> void:
-	# Laser must use the weapon sprite's visual barrel direction (global_transform.x)
-	# instead of _get_weapon_forward_direction() which has a shortcut that bypasses
-	# the actual model rotation when _can_see_player is true. [#1336]
+func test_sniper_laser_uses_same_direction_as_bullets() -> void:
+	# Laser must use _get_weapon_forward_direction() and _get_bullet_spawn_position()
+	# — the same functions that _execute_shoot() uses for bullet direction and spawn.
+	# This ensures the laser accurately represents where the sniper will actually shoot. [#1336]
 	var src := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
 	assert_not_null(src, "enemy_sniper_component.gd must be readable")
 	if src == null:
 		return
 	var text := src.get_as_text()
 	src.close()
-	assert_true(text.contains("_weapon_sprite.global_transform.x.normalized()"),
-		"Laser must use weapon sprite's visual barrel direction [#1336]")
-	assert_false(text.contains("enemy._get_weapon_forward_direction()"),
-		"Laser must NOT use _get_weapon_forward_direction() which bypasses model rotation [#1336]")
+	assert_true(text.contains("enemy._get_weapon_forward_direction()"),
+		"Laser must use _get_weapon_forward_direction() to match bullet direction [#1336]")
+	assert_true(text.contains("enemy._get_bullet_spawn_position("),
+		"Laser must use _get_bullet_spawn_position() to match bullet spawn point [#1336]")
 
 
 func test_sniper_laser_width_matches_m16() -> void:
