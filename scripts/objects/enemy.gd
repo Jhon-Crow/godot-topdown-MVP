@@ -650,7 +650,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 			var state_before_delay := _current_state
 			_log_to_file("Reload complete sound heard - waiting 200ms before cautious transition from %s" % AIState.keys()[_current_state])
 			await get_tree().create_timer(0.2).timeout
-			if not _is_alive: return
+			if not is_inside_tree() or not _is_alive: return  # Issue #1334 Round 11: guard freed node
 			if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
 				if _shield_component and _shield_component.is_active(): pass  # Issue #1242: no retreat with shield up
 				elif _has_valid_cover:
@@ -783,6 +783,14 @@ func _select_best_target() -> void:
 
 func _physics_process(delta: float) -> void:
 	if not _is_alive:
+		return
+
+	# Issue #1334 Round 8-9: Freeze all enemy AI when player is dead or freed to prevent
+	# native crashes from physics queries on dead/freed player nodes.
+	var _gm_r9: Node = get_node_or_null("/root/GameManager")
+	if _gm_r9 and not _gm_r9.player_alive: return
+	if _player and not is_instance_valid(_player):
+		_player = null
 		return
 
 	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
@@ -1183,6 +1191,9 @@ func _can_shoot() -> bool:
 ## [#1033] Machine gunner corridor suppression: burst into corridor where player was last seen (no LOS needed).
 func _machine_gunner_fire_at_corridor(target_pos: Vector2) -> void:
 	if bullet_scene == null: return
+	# Issue #1334 Round 5: Don't shoot at a dead player
+	var _gm3 := get_node_or_null("/root/GameManager")
+	if _gm3 and not _gm3.player_alive: return
 	var to_target := (target_pos - global_position).normalized()
 	if to_target == Vector2.ZERO: return
 	# Face toward the corridor
@@ -1281,7 +1292,7 @@ func _process_ai_state(delta: float) -> void:
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	var is_distraction_enabled: bool = difficulty_manager != null and difficulty_manager.is_distraction_attack_enabled()
 	var is_confused: bool = _memory_reset_confusion_timer > 0.0
-	if _combat_allowed and is_distraction_enabled and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _goap_world_state.get("player_distracted", false) and _can_see_player and _player:
+	if _combat_allowed and is_distraction_enabled and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _goap_world_state.get("player_distracted", false) and _can_see_player and _player and is_instance_valid(_player):
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
@@ -1859,10 +1870,7 @@ func _process_suppressed_state(delta: float) -> void:
 	# Check if player has flanked us - if we're now visible from player's position,
 	# we need to find new cover even while suppressed
 	if _is_visible_from_player():
-		# In suppressed state we're always in alarm mode - fire a burst before escaping if we can see player/companion
-		# Issue #934: also consider companion visibility
-		# [#1161] Sniper rifle is bolt-action: no burst fire (flee immediately)
-		# [#1242] Revolver is single-action: no burst fire
+		# Fire burst before escaping if visible (#934 companion, #1161/#1242 skip bolt/single-action)
 		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and weapon_type != WeaponType.SNIPER_RIFLE and weapon_type != WeaponType.REVOLVER:
 			if not _cover_burst_pending:
 				# Start the cover burst
@@ -2203,10 +2211,7 @@ func _process_pursuing_state(delta: float) -> void:
 	if _has_pursuit_cover:
 		var distance: float = global_position.distance_to(_pursuit_next_cover)
 
-		# Check if we've reached the pursuit cover
-		# Note: We only check distance here, NOT visibility from player.
-		# If we checked visibility, the enemy would immediately consider themselves
-		# "at cover" even before moving, since they start hidden from player.
+		# Check if we've reached the pursuit cover (distance only, not visibility)
 		if distance < 15.0:
 			_log_debug("Reached pursuit cover at distance %.1f" % distance)
 			_has_pursuit_cover = false
@@ -2498,6 +2503,9 @@ func _process_pacifist_state(_d: float) -> void:  ## PACIFIST: hide in cover / r
 func _shoot_with_inaccuracy() -> void:
 	if bullet_scene == null or _player == null:
 		return
+	# Issue #1334 Round 5: Don't shoot at a dead player
+	var _gm2 := get_node_or_null("/root/GameManager")
+	if _gm2 and not _gm2.player_alive: return
 
 	if not _can_shoot():
 		return
@@ -3328,10 +3336,7 @@ func _find_cover_position() -> void:
 
 			# Only consider hidden positions unless we have no choice
 			if is_hidden or not found_hidden_cover:
-				# Score based on:
-				# 1. Whether position is hidden (highest priority)
-				# 2. Distance from enemy (closer is better)
-				# 3. Position relative to player (behind cover from player's view)
+				# Score: hidden (highest priority), distance (closer=better), position relative to player
 				var hidden_score: float = 10.0 if is_hidden else 0.0  # Heavy weight for hidden positions
 
 				var distance_score := 1.0 - (global_position.distance_to(cover_pos) / COVER_CHECK_DISTANCE)
@@ -3473,10 +3478,7 @@ func _find_flank_cover_toward_target() -> void:
 			# Cover position is offset from collision point along normal
 			var cover_pos := collision_point + collision_normal * 35.0
 
-			# For flanking, we want cover that is:
-			# 1. Closer to the flank target than we currently are
-			# 2. Not too far from our current position
-			# 3. Reachable (has clear path)
+			# For flanking: closer to flank target, not too far from us, reachable
 			var my_distance_to_target := global_position.distance_to(_flank_target)
 			var cover_distance_to_target := cover_pos.distance_to(_flank_target)
 			var cover_distance_from_me := global_position.distance_to(cover_pos)
@@ -3496,10 +3498,7 @@ func _find_flank_cover_toward_target() -> void:
 				# via another intermediate cover, but skip for now
 				continue
 
-			# Score calculation:
-			# Higher score for positions that are:
-			# - Closer to flank target (priority)
-			# - Not too far from current position
+			# Score: closer to flank target (priority), not too far from current position
 			var approach_score: float = (my_distance_to_target - cover_distance_to_target) / flank_distance
 			var distance_penalty: float = cover_distance_from_me / COVER_CHECK_DISTANCE
 
@@ -3527,12 +3526,7 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 	var closest_wall_distance: float = WALL_CHECK_DISTANCE
 	var hit_count: int = 0
 
-	# Raycast angles: spread from -90 to +90 degrees relative to movement direction
-	# Index 0: center (0°)
-	# Index 1-3: left side (-20°, -45°, -70°)
-	# Index 4-6: right side (+20°, +45°, +70°)
-	# Index 7: rear check for wall sliding (-180°)
-	# IMPORTANT: Use explicit Array[float] type to avoid type inference errors
+	# Raycast angles: center, left(-20°,-45°,-70°), right(+20°,+45°,+70°), rear(180°)
 	var angles: Array[float] = [0.0, -0.35, -0.79, -1.22, 0.35, 0.79, 1.22, PI]
 
 	var raycast_count: int = mini(WALL_CHECK_COUNT, _wall_raycasts.size())
@@ -3625,7 +3619,7 @@ func _check_player_visibility() -> void:
 	var is_vision_check_frame := (_vision_frame_counter % VISION_CHECK_INTERVAL) == _vision_frame_offset
 
 	# Fast-path: clear visibility immediately on blocking conditions (no raycasts needed).
-	if _is_blinded or _memory_reset_confusion_timer > 0.0 or _player == null or not _raycast \
+	if _is_blinded or _memory_reset_confusion_timer > 0.0 or _player == null or not is_instance_valid(_player) or not _raycast \
 			or (_player.has_method("is_invisible") and _player.is_invisible()):
 		_can_see_player = false; _player_visibility_ratio = 0.0; _continuous_visibility_timer = 0.0
 		return
@@ -3648,11 +3642,7 @@ func _check_player_visibility() -> void:
 	if not _is_position_in_fov(_player.global_position):
 		_continuous_visibility_timer = 0.0; return
 
-	# Check multiple points on the player's body (center + corners) to handle
-	# cases where player is near a wall corner. A single raycast to the center
-	# might hit the wall, but parts of the player's body could still be visible.
-	# This fixes the issue where enemies couldn't see players standing close to
-	# walls in narrow passages (issue #264).
+	# Check multiple points on the player's body to handle wall corner cases (#264).
 	var check_points := _get_player_check_points(_player.global_position)
 	var visible_count := 0
 	for point in check_points:
@@ -3874,6 +3864,11 @@ func _shoot() -> void:
 	_execute_shoot(target_position)
 func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting callback.
 	_is_pre_attack_flashing = false
+	# Issue #1334 Round 11: Guard against freed node during deferred shoot callbacks
+	if not is_inside_tree() or not _is_alive: return
+	# Issue #1334 Round 5: Don't shoot at a dead player — prevents crash from same-frame hitscan/damage
+	var _gm := get_node_or_null("/root/GameManager")
+	if _gm and not _gm.player_alive: return
 	# [Issue #1242] Revolver hammer cocking: 0.15s delay with cock sound before each shot (same as player Revolver.cs)
 	if weapon_type == WeaponType.REVOLVER and not _revolver_cocking:
 		_revolver_cocking = true
@@ -3881,7 +3876,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 		if audio_hc and audio_hc.has_method("play_revolver_hammer_cock"): audio_hc.play_revolver_hammer_cock(global_position)
 		await get_tree().create_timer(0.15).timeout
 		_revolver_cocking = false
-		if not is_instance_valid(self) or not _is_alive: return
+		if not is_inside_tree() or not is_instance_valid(self) or not _is_alive: return  # Issue #1334 Round 11: guard freed node after await
 	if _invisibility: _invisibility.reveal()  # Issue #1121: briefly reveal cloaked enemy when shooting
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
@@ -3925,11 +3920,15 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 
 ## Spawn projectile. Pool first (Issue #724), fallback instantiate (Issue #516, #550).
 func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
+	# Issue #1334 Round 11: Guard against spawning projectiles when scene tree is unavailable
+	if not is_inside_tree(): return
+	var current_scene := get_tree().current_scene
+	if current_scene == null: return
 	var sid := get_instance_id(); var pm: Node = get_node_or_null("/root/ProjectilePoolManager")
 	if pm and pm.has_method("get_bullet"):
 		var p = pm.get_bullet()
 		if p and p.has_method("pool_activate"): p.pool_activate(pos, dir, sid, null); if p.get("shooter_position") != null: p.shooter_position = pos; return
-	var p := bullet_scene.instantiate(); p.global_position = pos; get_tree().current_scene.add_child(p)
+	var p := bullet_scene.instantiate(); p.global_position = pos; current_scene.add_child(p)
 	if p.has_method("SetDirection"): p.SetDirection(dir)
 	elif p.get("direction") != null: p.direction = dir
 	elif p.get("Direction") != null: p.Direction = dir
@@ -3942,11 +3941,14 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 
 ## Fire RPG rocket (Issue #583). RigidBody2D + linear_velocity after add_child (VOGGrenade pattern).
 func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
+	if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node
 	var rocket: Node2D = (preload("res://scenes/projectiles/RpgRocket.tscn") as PackedScene).instantiate() as Node2D
 	if rocket == null: _log_to_file("[RPG] ERROR: RpgRocket instantiate failed!"); return
+	var current_scene := get_tree().current_scene
+	if current_scene == null: _log_to_file("[RPG] ERROR: No current scene!"); return
 	var rocket_dir: Vector2 = dir.normalized() if dir.length() > 0.0 else Vector2.RIGHT
 	rocket.set("direction", rocket_dir); rocket.set("shooter_id", get_instance_id()); rocket.set("shooter_position", pos); rocket.global_position = pos
-	get_tree().current_scene.add_child(rocket)
+	current_scene.add_child(rocket)
 	_log_to_file("[RPG] Rocket launched at %s dir=%s" % [str(pos), str(rocket_dir)])
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
@@ -3972,7 +3974,10 @@ func _spawn_muzzle_flash(p: Vector2, d: Vector2) -> void:
 	if m: m.spawn_muzzle_flash(p, d)
 ## Play shell casing sound with a delay to simulate the casing hitting the ground.
 func _play_delayed_shell_sound() -> void:
+	# Issue #1334 Round 11: Guard against freed node after await.
+	if not is_inside_tree(): return
 	await get_tree().create_timer(0.15).timeout
+	if not is_inside_tree() or not _is_alive: return
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_shell_rifle"):
 		audio_manager.play_shell_rifle(global_position)
@@ -3980,6 +3985,9 @@ func _play_delayed_shell_sound() -> void:
 ## Spawn bullet casing (based on BaseWeapon.cs for visual consistency with player).
 func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
 	if casing_scene == null: return
+	if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node
+	var current_scene := get_tree().current_scene
+	if current_scene == null: return
 	var casing_spawn_position: Vector2 = global_position + weapon_forward * (bullet_spawn_offset * 0.5)
 	var casing: RigidBody2D = casing_scene.instantiate()
 	casing.global_position = casing_spawn_position
@@ -3993,7 +4001,7 @@ func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
 	else:
 		var fallback_caliber: Resource = load("res://resources/calibers/caliber_545x39.tres")
 		if fallback_caliber: casing.set("caliber_data", fallback_caliber)
-	get_tree().current_scene.add_child(casing)
+	current_scene.add_child(casing)
 
 ## Calculate lead prediction - aims where the player will be based on velocity.
 func _calculate_lead_prediction() -> Vector2:
@@ -4010,9 +4018,6 @@ func _calculate_lead_prediction() -> Vector2:
 		return player_pos
 
 	# Only use lead prediction if enough of the player's body is visible.
-	# This prevents pre-firing when the player is at the edge of cover with only
-	# a small part of their body visible. The player must be significantly exposed
-	# before the enemy can predict their movement.
 	if _player_visibility_ratio < lead_prediction_visibility_threshold:
 		_log_debug("Lead prediction disabled: visibility ratio %.2f < %.2f required (player at cover edge)" % [_player_visibility_ratio, lead_prediction_visibility_threshold])
 		return player_pos
@@ -4043,10 +4048,7 @@ func _calculate_lead_prediction() -> Vector2:
 		# Update distance for next iteration
 		distance = global_position.distance_to(predicted_pos)
 
-	# CRITICAL: Validate that the predicted position is actually visible to the enemy.
-	# If the predicted position is behind cover (e.g., player is running toward cover exit),
-	# we should NOT aim there - it would feel like the enemy is "cheating" by knowing
-	# where the player will emerge. Fall back to player's current visible position.
+	# Validate predicted position is visible; fall back to current position if behind cover.
 	if not _is_position_visible_to_enemy(predicted_pos):
 		_log_debug("Lead prediction blocked: predicted position %s is not visible, using current position %s" % [predicted_pos, player_pos])
 		return player_pos
@@ -4260,6 +4262,7 @@ func _show_hit_flash() -> void:
 	_set_all_sprites_modulate(hit_flash_color)
 
 	await get_tree().create_timer(hit_flash_duration).timeout
+	if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node after await
 
 	# Restore color based on current health (if still alive)
 	if _is_alive:
@@ -4389,12 +4392,14 @@ func _on_death() -> void:
 	if destroy_on_death:
 		# Wait for death animation to complete before destroying
 		await get_tree().create_timer(respawn_delay).timeout
+		if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node after await
 		# Clean up death animation ragdoll bodies before destroying
 		if _death_animation and _death_animation.has_method("reset"):
 			_death_animation.reset()
 		queue_free()
 	else:
 		await get_tree().create_timer(respawn_delay).timeout
+		if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node after await
 		_reset()
 
 ## Resets the enemy to its initial state.
@@ -4720,10 +4725,7 @@ func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 
 ## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
-	# Issue #1249: Tactical yielding — let the closest enemy pass through narrow passages first.
-	# Do NOT yield in FLANKING: flanking has its own timeout+failure counter; interrupting it with a
-	# 3-second yield causes the flank attempt to time out, increments the failure count, and after
-	# 2 failures disables flanking entirely for this enemy. (#1249 session 4)
+	# Issue #1249: Tactical yielding — let closest enemy pass first. Skip in FLANKING (#1249 s4).
 	if _tactical_movement and _current_state in [AIState.PURSUING, AIState.COMBAT]:
 		if _tactical_movement.check_and_yield(target_pos, speed, get_physics_process_delta_time()):
 			var _wp: Vector2 = _tactical_movement.get_yield_position()

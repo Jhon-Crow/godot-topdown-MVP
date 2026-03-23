@@ -105,6 +105,8 @@ func _update_trail() -> void:
 
 
 func _on_body_entered(body: Node2D) -> void:
+	# Issue #1334 Round 11: Guard against invalid colliders during physics callbacks
+	if not is_instance_valid(body): return
 	# Don't collide with the grenade source
 	if source_id == body.get_instance_id():
 		return
@@ -135,6 +137,8 @@ func _on_body_entered(body: Node2D) -> void:
 
 
 func _on_area_entered(area: Area2D) -> void:
+	# Issue #1334 Round 11: Guard against invalid colliders during physics callbacks
+	if not is_instance_valid(area): return
 	# Hit a target with hit detection
 	if area.has_method("on_hit"):
 		# Check against parent's instance ID

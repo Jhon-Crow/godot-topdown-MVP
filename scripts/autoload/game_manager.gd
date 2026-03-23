@@ -27,6 +27,14 @@ var hits_landed: int = 0
 ## Whether the player is currently alive.
 var player_alive: bool = true
 
+## Issue #1334 Round 9: Absolute wall-clock timestamp (msec) when player_alive was
+## last set to false. Used as an ultimate failsafe — if the player has been dead for
+## more than 5 real seconds (regardless of _reloading, time_scale, scene state, etc.),
+## force a scene restart. This catches ALL edge cases where the normal death pipeline
+## fails: stuck timers, signal failures, C# exceptions, physics server crashes that
+## don't terminate the process, etc. Set to 0 when player is alive.
+var _player_dead_since_ms: int = 0
+
 ## Reference to the current player node.
 var player: Node2D = null
 
@@ -228,13 +236,82 @@ func _process(delta: float) -> void:
 			_f8_spawn_triggered = true
 			_spawn_selected_enemy_at_player()
 
+	# Issue #1334 Round 4: Poll-based death detection safety net.
+	# Signal-based connection from GDScript to C# Died signal can silently fail
+	# (has_signal() returns false for inherited C# signals in some Godot builds).
+	# This polling approach detects player death regardless of signal connection status.
+	# We detect death by checking collision_layer == 0, which Player.OnDeath() sets
+	# immediately on death. This is a standard Godot property accessible from GDScript.
+	if not _reloading and not _death_detected_by_poll and player and is_instance_valid(player):
+		if player is CharacterBody2D and player.collision_layer == 0:
+			_death_detected_by_poll = true
+			# Issue #1334 Round 5: Also set player_alive = false here for enemy shoot prevention
+			# when signal connection failed and poll is the first detection method.
+			if player_alive:
+				player_alive = false
+				# Issue #1334 Round 9: Record wall-clock timestamp for absolute failsafe
+				if _player_dead_since_ms <= 0:
+					_player_dead_since_ms = Time.get_ticks_msec()
+				_log_to_file("POLL DETECTED: Player collision_layer is 0 (dead) but player_alive was still true! Starting safety net.")
+			else:
+				_log_to_file("POLL DETECTED: Player collision_layer is 0 (confirming death already flagged)")
+			_start_death_safety_net()
+
+	# Issue #1334 Round 8: Wall-clock safety net using OS.get_ticks_msec().
+	# Previous rounds used delta-based countdown, but delta is scaled by Engine.time_scale.
+	# Death effects (PenultimateHit, LastChance) modify time_scale to 0.1, making the
+	# 1.5s countdown take 15 real seconds. The user sees a grey screen and thinks the game
+	# is stuck. Using wall-clock time guarantees the restart fires in real-world seconds
+	# regardless of Engine.time_scale or any other timing manipulation.
+	if _safety_net_deadline_ms > 0:
+		if Time.get_ticks_msec() >= _safety_net_deadline_ms:
+			_safety_net_deadline_ms = 0
+			_on_death_safety_net_timer()
+
+	# Issue #1334 Round 9: ABSOLUTE failsafe — if the player has been dead for more than
+	# 5 real seconds (wall-clock) and no restart has happened, force one. This catches ALL
+	# edge cases: stuck timers, signal failures, C# exceptions, physics crashes that don't
+	# terminate the process, _reloading flag stuck, etc. The 5s threshold is generous enough
+	# to let normal death effects play out, but short enough that the user won't think the
+	# game is frozen. Unlike the 1.5s safety net which can be blocked by _reloading flag or
+	# other guards, this failsafe IGNORES all guards.
+	if _player_dead_since_ms > 0 and not player_alive:
+		var dead_duration_ms: int = Time.get_ticks_msec() - _player_dead_since_ms
+		if dead_duration_ms >= 5000:
+			_log_to_file("ABSOLUTE FAILSAFE: Player dead for %d ms — forcing restart (ignoring all guards)" % dead_duration_ms)
+			# Reset the timestamp to NOW + 5s so the failsafe can re-trigger if this
+			# restart attempt also fails. Only set_player() clears it permanently.
+			_player_dead_since_ms = Time.get_ticks_msec()
+			_reloading = false  # Force-clear in case it's stuck
+			_safety_net_deadline_ms = 0
+			# Check special modes that should NOT auto-restart
+			if roguelike_active:
+				_log_to_file("ABSOLUTE FAILSAFE: roguelike mode — skipping")
+			else:
+				var current_scene := get_tree().current_scene
+				if current_scene and current_scene.scene_file_path.find("ArenaLevel") >= 0:
+					_log_to_file("ABSOLUTE FAILSAFE: ArenaLevel — skipping")
+				else:
+					player_alive = false  # Ensure it stays false for the restart
+					restart_scene()
+
 
 ## Resets all statistics to initial values.
+## Issue #1334 Round 9: player_alive is NOT reset here — it stays false until
+## set_player() is called with a valid new player. Previously, _reset_stats() set
+## player_alive = true BEFORE reload_current_scene() completed (reload is deferred).
+## This created a window where enemies saw player_alive = true but the old player
+## node was in a transitional/freed state, causing native segfaults. Now player_alive
+## remains false throughout the reload transition and is only set true when the new
+## scene's player is registered.
 func _reset_stats() -> void:
 	kills = 0
 	shots_fired = 0
 	hits_landed = 0
-	player_alive = true
+	# player_alive intentionally NOT reset here — see set_player()
+	_death_signal_received = false
+	_death_detected_by_poll = false
+	_safety_net_deadline_ms = 0
 	player = null
 
 
@@ -293,25 +370,194 @@ func get_accuracy() -> float:
 
 
 ## Called when the player dies.
+## Issue #1334: Guard against duplicate calls — both level GDScript and
+## LevelInitFallback.cs may call this method via their 0.5s timers.
+## Round 3: GameManager now handles restart via its own signal connection
+## (_on_player_died_signal), so this method is kept as a legacy entry point
+## for level scripts that still call it.
+## Round 5: Changed guard from player_alive to _reloading, because player_alive
+## is now set to false immediately on death signal (to prevent enemies from shooting).
 func on_player_death() -> void:
+	_log_to_file("on_player_death() called (legacy entry point)")
+	if _reloading:
+		_log_to_file("on_player_death() — already reloading, skipping")
+		return
 	player_alive = false
+	# Issue #1334 Round 9: Record wall-clock timestamp of death for absolute failsafe
+	if _player_dead_since_ms <= 0:
+		_player_dead_since_ms = Time.get_ticks_msec()
+	# Issue #1334 Round 10: Defer collision disable for safety
+	if player and is_instance_valid(player):
+		if player is CharacterBody2D:
+			player.call_deferred("set", "collision_layer", 0)
+			player.call_deferred("set", "collision_mask", 0)
 	player_died.emit()
 	# Auto-restart the scene immediately
 	restart_scene()
 
 
+## Whether a scene reload is already in progress (Issue #1334).
+var _reloading: bool = false
+
+
 ## Restarts the current scene.
 ## Resets mouse mode to hidden before reloading so the cursor does not persist
 ## from the score screen (Issue #905).
+## Issue #1334: Prevents re-entrant calls while a reload is already underway.
 func restart_scene() -> void:
+	if _reloading:
+		_log_to_file("restart_scene() — already reloading, skipping")
+		return
+	_log_to_file("restart_scene() — starting scene reload")
+	_reloading = true
 	_reset_stats()
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 	get_tree().reload_current_scene()
+	# Issue #1334: Reset the reload guard after the current frame ends.
+	# call_deferred runs at the end of the frame, after reload_current_scene()
+	# has processed.  GameManager is an autoload so it persists across reloads.
+	call_deferred("_reset_reloading")
 
 
-## Sets the player reference.
+## Issue #1334: Deferred callback to clear the reload guard.
+func _reset_reloading() -> void:
+	_reloading = false
+
+
+## Sets the player reference and connects to the player's death signal.
+## Issue #1334 Round 3: GameManager now directly listens for the player Died signal
+## instead of relying on level scripts' fragile 0.5s timer + await coroutine.
+## This ensures restart always fires regardless of level script behavior.
 func set_player(p: Node2D) -> void:
+	_log_to_file("set_player() called with: %s (class: %s)" % [str(p), p.get_class() if p else "null"])
+	# Disconnect from previous player if any
+	if player and is_instance_valid(player):
+		if player.has_signal("Died") and player.is_connected("Died", _on_player_died_signal):
+			player.disconnect("Died", _on_player_died_signal)
+		elif player.has_signal("died") and player.is_connected("died", _on_player_died_signal):
+			player.disconnect("died", _on_player_died_signal)
 	player = p
+	# Issue #1334 Round 9: Reset player_alive = true HERE (not in _reset_stats).
+	# This ensures player_alive stays false during the entire scene reload transition
+	# and only becomes true when the new player node is registered.
+	if p and is_instance_valid(p):
+		player_alive = true
+		_player_dead_since_ms = 0  # Clear absolute failsafe timestamp
+		_log_to_file("set_player: player_alive reset to true (new player registered)")
+	# Connect to new player's death signal
+	if player and is_instance_valid(player):
+		var has_died_upper := player.has_signal("Died")
+		var has_died_lower := player.has_signal("died")
+		_log_to_file("set_player: has_signal('Died')=%s, has_signal('died')=%s" % [str(has_died_upper), str(has_died_lower)])
+		if has_died_upper:
+			if not player.is_connected("Died", _on_player_died_signal):
+				player.connect("Died", _on_player_died_signal)
+				_log_to_file("Connected to player 'Died' signal (C# naming)")
+		elif has_died_lower:
+			if not player.is_connected("died", _on_player_died_signal):
+				player.connect("died", _on_player_died_signal)
+				_log_to_file("Connected to player 'died' signal (GDScript naming)")
+		else:
+			_log_to_file("WARNING: Player has neither 'Died' nor 'died' signal — poll-based detection (collision_layer check) will be used as fallback")
+		# Issue #1334 Round 4: Log collision_layer as baseline for poll-based detection
+		if player is CharacterBody2D:
+			_log_to_file("set_player: initial collision_layer=%d (poll expects 0 on death)" % player.collision_layer)
+
+
+## Issue #1334 Round 3: Direct signal handler for player death.
+## Called immediately when the player's Died/died signal fires.
+## This acts as a SAFETY NET: it starts a timer, and when it fires,
+## checks if restart was already triggered. If not, GameManager forces restart.
+## This prevents the "grey death screen" bug where level scripts' await-based
+## timers silently fail to trigger restart in exported builds.
+func _on_player_died_signal() -> void:
+	_log_to_file("Player Died signal received — starting safety net timer")
+	_death_signal_received = true
+	# Issue #1334 Round 5: Set player_alive = false IMMEDIATELY on death signal.
+	# This is critical because enemies check player_alive before shooting.
+	# Previously, player_alive was only set to false in on_player_death() (0.5-1.5s later),
+	# allowing enemies (especially snipers) to shoot at the dead player on the same frame.
+	player_alive = false
+	# Issue #1334 Round 9: Record wall-clock timestamp of death for absolute failsafe
+	if _player_dead_since_ms <= 0:
+		_player_dead_since_ms = Time.get_ticks_msec()
+	# Issue #1334 Round 10: Defer collision disable to avoid modifying physics state
+	# during active physics callbacks (body_entered/area_entered). Setting CollisionLayer
+	# inside a physics callback corrupts the physics server's collision pair list, causing
+	# native segfaults. The player's own OnDeath() also defers this, but we do it here as
+	# defense-in-depth in case the player's deferred call doesn't fire.
+	if player and is_instance_valid(player):
+		if player is CharacterBody2D:
+			player.call_deferred("set", "collision_layer", 0)
+			player.call_deferred("set", "collision_mask", 0)
+			_log_to_file("Disabled dead player collision from GameManager signal handler")
+	_start_death_safety_net()
+
+
+## Issue #1334 Round 8: Wall-clock deadline (in msec from OS.get_ticks_msec()) for the safety net.
+## When Time.get_ticks_msec() >= this value, _on_death_safety_net_timer() fires.
+## Using wall-clock time (OS ticks) instead of delta-based countdown because:
+## - SceneTreeTimers can silently fail (documented in Rounds 3-6)
+## - delta-based countdown is scaled by Engine.time_scale (Round 7 issue — death effects
+##   set time_scale to 0.1, making a 1.5s countdown take 15 real seconds)
+## Set to 0 when inactive. Reset by _reset_stats() during restart.
+var _safety_net_deadline_ms: int = 0
+
+## Issue #1334 Round 4/8: Shared helper to start the death safety net timer.
+## Called by both signal handler (_on_player_died_signal) and poll detection (_process).
+func _start_death_safety_net() -> void:
+	# Issue #1334 Round 10: Defer collision disable (defense-in-depth).
+	# This may be called from a signal handler during physics callbacks.
+	if player and is_instance_valid(player):
+		if player is CharacterBody2D:
+			player.call_deferred("set", "collision_layer", 0)
+			player.call_deferred("set", "collision_mask", 0)
+			_log_to_file("Disabled dead player collision (safety net)")
+	# Issue #1334 Round 8: Use wall-clock deadline (OS ticks) instead of delta countdown.
+	# Previous approach (delta -= in _process) was scaled by Engine.time_scale. Death effects
+	# set time_scale to 0.1, making a 1.5s countdown take 15 real seconds — the user sees a
+	# grey screen stuck. OS.get_ticks_msec() is unaffected by time_scale, so the deadline fires
+	# in real-world time. The 1.5s delay gives level scripts time to call on_player_death() first.
+	# Only start if not already counting down (avoid resetting an in-progress deadline).
+	if _safety_net_deadline_ms <= 0:
+		_safety_net_deadline_ms = Time.get_ticks_msec() + 1500
+		_log_to_file("Safety net deadline set (1.5 real seconds, wall-clock based)")
+
+
+## Whether the death signal was received but restart hasn't happened yet.
+## Reset by _reset_stats() during restart or scene change.
+var _death_signal_received: bool = false
+
+## Whether the poll-based death detection has fired (prevents repeated timer starts).
+## Issue #1334 Round 4.
+var _death_detected_by_poll: bool = false
+
+
+## Issue #1334 Round 3: Safety net timer callback.
+## Forces restart if the level script's death handler failed to trigger it.
+## Issue #1334 Round 5: Only check _reloading (not player_alive), since player_alive
+## is now set to false immediately on death signal for enemy shoot prevention.
+func _on_death_safety_net_timer() -> void:
+	# If restart is already in progress, nothing to do
+	if _reloading:
+		_log_to_file("Safety net timer fired — restart already in progress (_reloading=true)")
+		return
+	# If death wasn't detected by either signal or poll (shouldn't happen), skip
+	if not _death_signal_received and not _death_detected_by_poll:
+		_log_to_file("Safety net timer fired — but neither signal nor poll detected death, skipping")
+		return
+	# Check if we're in a special mode that handles death differently
+	if roguelike_active:
+		_log_to_file("Safety net timer fired — roguelike mode active, skipping auto-restart")
+		return
+	# Check if the current scene is ArenaLevel (handles death with score screen, not restart)
+	var current_scene := get_tree().current_scene
+	if current_scene and current_scene.scene_file_path.find("ArenaLevel") >= 0:
+		_log_to_file("Safety net timer fired — ArenaLevel detected, skipping auto-restart")
+		return
+	# Nobody handled the death — force restart!
+	_log_to_file("Safety net timer fired — no restart after 1.5s! Level script failed to restart. Forcing on_player_death()")
+	on_player_death()
 
 
 ## Toggles debug mode on/off.
