@@ -1028,6 +1028,13 @@ func _set_hit_reaction_target(dir: Vector2) -> void:
 	if _shield_component and _shield_component.is_active():
 		_shield_tracking_angle = _hit_reaction_angle; _shield_tracking_timer = SHIELD_TRACKING_INTERVAL
 	_log_to_file("HIT_REACTION: target=%.1f°, timer=%.2fs" % [rad_to_deg(_hit_reaction_angle), _hit_reaction_timer])
+## Issue #1242: Smooth body rotation respecting shield multiplier. Replaces instant `rotation = angle` for shield enemies.
+func _rotate_body_toward(target_angle: float, delta: float) -> void:
+	var spd := rotation_speed * (_shield_component.get_rotation_multiplier() if _shield_component and _shield_component.is_active() else 1.0)
+	var diff := wrapf(target_angle - rotation, -PI, PI)
+	if abs(diff) <= spd * delta: rotation = target_angle
+	elif diff > 0: rotation += spd * delta
+	else: rotation -= spd * delta
 ## Updates walking animation (bobbing motion for body parts). @param delta: Time since last frame.
 func _update_walk_animation(delta: float) -> void:
 	var is_moving := velocity.length() > 10.0
@@ -1180,7 +1187,7 @@ func _machine_gunner_fire_at_corridor(target_pos: Vector2) -> void:
 	if to_target == Vector2.ZERO: return
 	# Face toward the corridor
 	if _enemy_model: _enemy_model.global_rotation = to_target.angle()
-	rotation = to_target.angle()
+	_rotate_body_toward(to_target.angle(), get_physics_process_delta_time())
 	var spawn_pos := _get_bullet_spawn_position(to_target)
 	# Small spread (±5°) to simulate suppressive corridor fire
 	var spread := deg_to_rad(randf_range(-5.0, 5.0))
@@ -1280,7 +1287,7 @@ func _process_ai_state(delta: float) -> void:
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
 			_log_to_file("Player distracted - priority attack triggered")
-			rotation = direction_to_player.angle()
+			_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 			if _shield_component and _shield_component.get_rotation_multiplier() < 1.0: _set_hit_reaction_target(direction_to_player)  # Issue #1242: shield enemy slowly aims
 			else: _force_model_to_face_direction(direction_to_player)  # Fix issue #264: ensure correct aim
 			_shoot()
@@ -1323,7 +1330,7 @@ func _process_ai_state(delta: float) -> void:
 			var reason: String = "reloading" if player_reloading else "empty ammo"
 			_log_to_file("Player %s - priority attack triggered" % reason)
 
-			rotation = direction_to_player.angle()  # Aim at player immediately
+			_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 			if _shield_component and _shield_component.get_rotation_multiplier() < 1.0: _set_hit_reaction_target(direction_to_player)  # Issue #1242: shield slowly aims
 			else: _force_model_to_face_direction(direction_to_player)  # Issue #264: correct aim direction
 			_shoot(); _shoot_timer = 0.0
@@ -1504,7 +1511,7 @@ func _process_combat_state(delta: float) -> void:
 			var sidestep_dir := _find_sidestep_direction_for_clear_shot(direction_to_player)
 			if sidestep_dir != Vector2.ZERO:
 				velocity = sidestep_dir * combat_move_speed * 0.7
-				rotation = direction_to_player.angle()  # Keep facing player while sidestepping
+				_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 				_log_debug("COMBAT exposed: sidestepping to maintain clear shot")
 			else:
 				# No sidestep works - stay still, the shot might clear up
@@ -1554,7 +1561,7 @@ func _process_combat_state(delta: float) -> void:
 			# Apply enhanced wall avoidance with dynamic weighting
 			move_direction = _apply_wall_avoidance(move_direction)
 			velocity = move_direction * combat_move_speed
-			rotation = direction_to_player.angle()  # Keep facing player
+			_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 
 			# Check if the new position now has a clear shot
 			if _is_bullet_spawn_clear(direction_to_player):
@@ -1610,7 +1617,7 @@ func _process_combat_state(delta: float) -> void:
 		# Apply enhanced wall avoidance with dynamic weighting
 		move_direction = _apply_wall_avoidance(move_direction)
 		velocity = move_direction * combat_move_speed
-		rotation = direction_to_player.angle()  # Always face player
+		_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 
 		# Can shoot while approaching (only after detection delay and if have clear shot)
 		if has_clear_shot and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
@@ -2010,7 +2017,7 @@ func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void
 			var cover_direction: Vector2 = (_cover_position - global_position).normalized()
 			var cover_angle: float = cover_direction.angle()
 			target_angle = lerp_angle(player_angle, cover_angle, burst_progress * 0.7)
-			rotation = target_angle
+			_rotate_body_toward(target_angle, delta)
 
 		# Use navigation to move toward cover (slower during burst)
 		var nav_direction: Vector2 = _get_nav_direction_to(_cover_position)
@@ -2407,10 +2414,10 @@ func _process_searching_state(delta: float) -> void:
 						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0; _search_last_progress_position = global_position; return
 				else: _search_stuck_timer = 0.0; _search_last_progress_position = global_position
 				if dir.length() > 0.1:
-					rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta)
+					_rotate_body_toward(dir.angle(), delta)
 					_process_corner_check(delta, dir, "SEARCHING")  # Issue #332
 	else:
-		_search_scan_timer += delta; rotation += delta * 1.5
+		_search_scan_timer += delta; rotation += delta * 1.5 * (_shield_component.get_rotation_multiplier() if _shield_component and _shield_component.is_active() else 1.0)
 		if _search_scan_timer >= SEARCH_SCAN_DURATION:
 			_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 			_search_moving_to_waypoint = true
@@ -2453,7 +2460,7 @@ func _process_evading_grenade_state(delta: float) -> void:
 				var direction := (next_pos - global_position).normalized()
 				velocity = direction * combat_move_speed
 				move_and_slide(); _push_casings()
-				if direction.length() > 0.1: rotation = lerp_angle(rotation, direction.angle(), 10.0 * delta)
+				if direction.length() > 0.1: _rotate_body_toward(direction.angle(), delta)
 			else:
 				velocity = (evasion_target - global_position).normalized() * combat_move_speed
 				move_and_slide(); _push_casings()
@@ -3836,14 +3843,14 @@ func _aim_at_player() -> void:
 	# Get the delta time from the current physics process
 	var delta := get_physics_process_delta_time()
 
-	# Apply gradual rotation based on rotation_speed
-	if abs(angle_diff) <= rotation_speed * delta:
-		# Close enough to snap to target
+	# Apply gradual rotation based on rotation_speed; Issue #1242: shield slows all rotations
+	var aim_speed := rotation_speed * (_shield_component.get_rotation_multiplier() if _shield_component and _shield_component.is_active() else 1.0)
+	if abs(angle_diff) <= aim_speed * delta:
 		rotation = target_angle
 	elif angle_diff > 0:
-		rotation += rotation_speed * delta
+		rotation += aim_speed * delta
 	else:
-		rotation -= rotation_speed * delta
+		rotation -= aim_speed * delta
 
 ## Shoot a bullet or perform melee attack (Issue #579: MACHETE, Issue #824: night mode flash).
 func _shoot() -> void:
@@ -4070,7 +4077,7 @@ func _process_patrol(delta: float) -> void:
 	var target_point := _patrol_points[_current_patrol_index]
 	if _nav_agent == null:  # Fallback if nav agent unavailable
 		if global_position.distance_to(target_point) < 5.0: _is_waiting_at_patrol_point = true; velocity = Vector2.ZERO; return
-		var d := (target_point - global_position).normalized(); velocity = d * move_speed; rotation = d.angle(); return
+		var d := (target_point - global_position).normalized(); velocity = d * move_speed; _rotate_body_toward(d.angle(), get_physics_process_delta_time()); return
 	# Issue #1220: use _move_to_target_nav so patrol gets the same wall-avoidance + ORCA +
 	# slide-collision corner-escape used by PURSUING/FLANKING, preventing wall-pressing.
 	if not _move_to_target_nav(target_point, move_speed):
@@ -4722,7 +4729,7 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 			var _wp: Vector2 = _tactical_movement.get_yield_position()
 			if _wp != Vector2.ZERO and global_position.distance_to(_wp) > 20.0:
 				var _wd := _apply_wall_avoidance((_wp - global_position).normalized())
-				velocity = _wd * speed * 0.6; if velocity.length_squared() > 0.01: rotation = velocity.angle()
+				velocity = _wd * speed * 0.6; if velocity.length_squared() > 0.01: _rotate_body_toward(velocity.angle(), get_physics_process_delta_time())
 			else: velocity = Vector2.ZERO
 			return true
 	# Issue #1287: Tactical group encirclement — offset approach target so enemies spread around the player.
@@ -4746,7 +4753,7 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 		velocity = _avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else intended_vel
 	else:
 		velocity = intended_vel
-	if velocity.length_squared() > 0.01: rotation = velocity.angle()
+	if velocity.length_squared() > 0.01: _rotate_body_toward(velocity.angle(), get_physics_process_delta_time())
 	return true
 
 ## Issue #1146: Called by NavigationAgent2D when ORCA computes a safe avoidance velocity.
