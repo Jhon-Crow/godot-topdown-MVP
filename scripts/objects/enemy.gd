@@ -147,7 +147,7 @@ const SEPARATION_STRENGTH: float = 280.0  ## Maximum separation impulse magnitud
 var _avoidance_velocity: Vector2 = Vector2.ZERO  ## Issue #1146: ORCA-computed safe velocity
 var _cover_raycasts: Array[RayCast2D] = []  ## Cover detection raycasts
 var _last_cover_search_rays: Array = []  ## Issue #1338: cached ray data for debug visualization (rays from player)
-const COVER_CHECK_COUNT: int = 72  ## Number of cover raycasts (Issue #1338: 72 rays = 5° apart for fine angular resolution)
+const COVER_CHECK_COUNT: int = 120  ## Number of cover raycasts (Issue #1338: 120 rays = 3° apart for dense coverage of large obstacles)
 const COVER_CHECK_DISTANCE: float = 300.0  ## Cover check distance
 var _current_health: int = 0; var _max_health: int = 0  ## Current / max health (set at spawn)
 var _is_alive: bool = true  ## Is alive
@@ -1201,8 +1201,8 @@ func _find_distant_cover_position() -> void:
 		var result := space_state.intersect_ray(query)
 		if result.is_empty(): continue
 		var cp: Vector2 = result["position"]
-		var away := (cp - player_pos).normalized()
-		var cover_pos := cp + away * 35.0
+		# Issue #1338: Find cover on far side of large obstacles via reverse ray
+		var cover_pos := _get_far_side_cover(player_pos, cp, direction, space_state)
 		if has_nav_dc: cover_pos = NavigationServer2D.map_get_closest_point(nav_map_dc, cover_pos)
 		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue  # Issue #1355
 		var is_hidden := not _is_position_visible_from_player(cover_pos)
@@ -3202,6 +3202,29 @@ func _can_reach_position(target: Vector2) -> bool:
 	return hit_distance >= target_distance - 10.0  # 10 pixel tolerance
 
 ## Find cover position closest to the player for assault positioning.
+## Issue #1338: Find cover position on the FAR side of an obstacle (handles large obstacles).
+## Casts a reverse ray from beyond the obstacle back toward the player to find the exit point.
+## Returns the cover position offset past the far edge, or falls back to near-edge offset.
+func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, direction: Vector2, space_state: PhysicsDirectSpaceState2D) -> Vector2:
+	# Probe point: far beyond the collision along the same direction
+	var probe_distance := COVER_CHECK_DISTANCE
+	var far_probe := player_pos + direction * probe_distance
+	# Reverse ray: from far probe back toward the player — hits the far edge of the obstacle
+	var reverse_query := PhysicsRayQueryParameters2D.new()
+	reverse_query.from = far_probe
+	reverse_query.to = player_pos
+	reverse_query.collision_mask = 4  # Only check obstacles (layer 3)
+	var reverse_result := space_state.intersect_ray(reverse_query)
+	if not reverse_result.is_empty():
+		var far_edge: Vector2 = reverse_result["position"]
+		# Only use far edge if it's actually farther from player than the near edge
+		if far_edge.distance_to(player_pos) > collision_point.distance_to(player_pos) + 5.0:
+			var away := (far_edge - player_pos).normalized()
+			return far_edge + away * 35.0
+	# Fallback: simple offset past near-side collision
+	var away_from_player := (collision_point - player_pos).normalized()
+	return collision_point + away_from_player * 35.0
+
 func _find_cover_closest_to_player() -> void:
 	if _player == null:
 		_has_valid_cover = false
@@ -3231,8 +3254,8 @@ func _find_cover_closest_to_player() -> void:
 			continue
 
 		var collision_point: Vector2 = result["position"]
-		var away_from_player := (collision_point - player_pos).normalized()
-		var cover_pos := collision_point + away_from_player * 35.0
+		# Issue #1338: Find cover on far side of large obstacles via reverse ray
+		var cover_pos := _get_far_side_cover(player_pos, collision_point, direction, space_state)
 		if has_nav_cp: cover_pos = NavigationServer2D.map_get_closest_point(nav_map_cp, cover_pos)
 		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue  # Issue #1355
 
@@ -3301,10 +3324,9 @@ func _find_cover_position() -> void:
 
 		var collision_point: Vector2 = result["position"]
 
-		# Cover position is on the far side of the obstacle from the player.
-		# Offset 35 px past the collision point (away from the player) to fit the enemy body.
-		var away_from_player := (collision_point - player_pos).normalized()
-		var cover_pos := collision_point + away_from_player * 35.0
+		# Issue #1338: Find cover on the FAR side of the obstacle (handles large obstacles).
+		# Uses reverse ray to find obstacle exit point instead of just offsetting from near edge.
+		var cover_pos := _get_far_side_cover(player_pos, collision_point, direction, space_state)
 		# Issue #1355: teleporters skip nearby cover (would cause in-place flicker).
 		if is_teleporter and global_position.distance_to(cover_pos) < 10.0:
 			continue
