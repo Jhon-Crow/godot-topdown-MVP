@@ -662,6 +662,166 @@ past the guard with a stale `_player` reference pointing to a freed node.
   - Added `is_instance_valid(_player)` in visibility check fast-path.
   - Added `is_instance_valid(_player)` in distraction attack condition.
 
+## Round 10 — Native crash from physics state mutation + dead player continues processing (2026-03-23)
+
+### New data collected
+
+| File | Lines | Description |
+|------|-------|-------------|
+| `game_log_20260323_082449.txt` | 5211 | Session with our Round 9 fixes — crash at 08:26:03 after sniper kill |
+| `game_log_20260322_192721.txt` | 7850 | User's original code (no fixes) — grey screen stuck after death |
+| `game_log_20260322_192922.txt` | 2682 | User's original code — grey screen stuck after death |
+| `game_log_20260322_193021.txt` | 837 | User's original code — grey screen stuck after death |
+| `screenshot_round10.png` | — | Grey death screen stuck (from user's original code) |
+
+### Log analysis — Round 9 code (game_log_20260323_082449.txt)
+
+The latest log confirms our Round 9 fixes are working (safety net messages present). The game
+successfully restarts 3 times via Q-key quick restart (08:24:59, 08:25:52, 08:25:57). But on the
+4th death at 08:26:03 (killed by enemies after disabling invincibility), the game crashes.
+
+**Crash sequence at 08:26:03:**
+
+1. Player has 2 HP. Two hits arrive on the same frame (from OpenArea_Patrol2):
+   - Hit 1: health 2→1 (PenultimateHit: "Hard mode — skipping, using last chance instead")
+   - Hit 2: health 1→0 (lethal)
+2. `Player.OnDeath()` fires → sets `CollisionLayer = 0`, `CollisionMask = 0`
+3. `BaseCharacter.OnHealthDied()` emits `Died` signal
+4. Signal handlers fire in sequence:
+   - GameManager: sets `player_alive = false`, sets `collision_layer = 0` (again), starts safety net
+   - CinemaEffects: triggers death effects
+   - PenultimateHit/LastChance: record death
+5. **After signal handlers**: A weapon shot fires (`ak_gl (9 total)`) — the dead player's
+   `_PhysicsProcess()` was already running and continued to call `HandleShootingInput()` → `Shoot()`
+6. Enemies react to the dead player's shot (sound propagation, suppression)
+7. Blood puddle created
+8. **Log ends abruptly** — native crash (process killed, no graceful shutdown)
+
+### Root cause analysis
+
+**Three distinct root causes identified:**
+
+#### Root cause 1: `Player._PhysicsProcess` continues after death
+
+The C# Player's `_PhysicsProcess()` method has **no** `IsAlive` check. After `OnDeath()` fires
+(triggered by `TakeDamage()` → `HealthComponent.Died` signal), the `_PhysicsProcess()` method
+was already in progress for this frame. The remaining code in `_PhysicsProcess()` continues to
+execute: `HandleShootingInput()` → `Shoot()` → `CurrentWeapon.Fire()`. This creates a weapon
+projectile from a dead player, and the weapon's fire/reload/input processing accesses player state
+that may be inconsistent (collision disabled, health 0, etc.), leading to crashes.
+
+**Evidence**: The log shows `[WeaponHintsComponent] Shot fired with ak_gl (9 total)` AFTER the
+death signal handlers have all completed. This shot came from the dead player.
+
+#### Root cause 2: Modifying CollisionLayer during active physics callbacks causes native segfault
+
+`Player.OnDeath()` sets `CollisionLayer = 0` and `CollisionMask = 0` **synchronously** inside the
+`TakeDamage()` call chain. When `TakeDamage()` is triggered by a bullet's `body_entered` or
+`area_entered` callback, modifying collision properties during an active physics callback corrupts
+the physics server's internal collision pair list.
+
+This is a well-documented class of Godot bugs (see Round 6 analysis). The fix in Round 6 addressed
+this for the **sniper hitscan** (deferred damage in raycast loop), but the root cause remained for
+**all other damage sources** (rifle/shotgun/UZI bullets, grenades, etc.) that trigger `TakeDamage()`
+via `body_entered`/`area_entered` physics callbacks.
+
+**Evidence**: The crash happens on the same frame as death, with no SCRIPT ERROR logged — this is
+the signature of a native C++ segfault in the physics server.
+
+#### Root cause 3: GDScript code cannot detect dead C# Player
+
+GDScript bullets use `has_method("is_alive")` to check if a collision target is alive before
+applying damage. The C# Player class exposes `IsAlive` as a **property** (on `BaseCharacter`),
+NOT as a method named `is_alive`. So `has_method("is_alive")` returns **false** for the Player
+node, and the bullet's dead-entity guard is bypassed:
+
+```gdscript
+# bullet.gd line 514:
+if body.has_method("is_alive") and not body.is_alive():
+    return  # Pass through dead entities
+# ↑ has_method("is_alive") returns FALSE for C# Player → check is skipped entirely
+# The bullet hits the dead player and processes the collision
+```
+
+This allows in-flight bullets to collide with the dead player's body, triggering `body_entered`
+callbacks that access physics state of a dead/dying node.
+
+### Fix (Round 10)
+
+#### Fix 1: Guard `_PhysicsProcess` with `IsAlive` check
+
+Added `if (!IsAlive) return;` at the very top of `Player._PhysicsProcess()`. This immediately
+stops ALL player processing (movement, input, shooting, animations) when the player is dead.
+No more dead-player weapon fire or state access after death.
+
+#### Fix 2: Defer ALL collision layer/mask changes
+
+Changed `CollisionLayer = 0` in `Player.OnDeath()` from synchronous assignment to
+`CallDeferred(MethodName._DisableDeadPlayerCollision)`. This ensures the physics server's
+collision data is modified at the end of the frame (after all physics callbacks complete),
+preventing the native segfault from mid-callback physics state mutation.
+
+Also deferred all collision changes in `GameManager`:
+- `_on_player_died_signal()` — uses `call_deferred("set", "collision_layer", 0)`
+- `_start_death_safety_net()` — uses `call_deferred("set", "collision_layer", 0)`
+- `on_player_death()` — uses `call_deferred("set", "collision_layer", 0)`
+
+The `player_alive = false` flag remains **immediate** (not deferred) — this is the primary
+guard that prevents enemies from shooting. The deferred collision disable is defense-in-depth
+for the physics server.
+
+#### Fix 3: Add `is_alive()` bridge method for GDScript interop
+
+Added `public bool is_alive() => IsAlive;` to `Player.cs`. This exposes a GDScript-compatible
+method that matches the naming convention used by enemy scripts and bullet collision code.
+
+With this method:
+- `has_method("is_alive")` now returns `true` for the C# Player node
+- `body.is_alive()` returns `false` when the player is dead
+- Bullets in flight correctly pass through the dead player instead of triggering collisions
+- The sniper's `_check_target_alive()` Strategy 1 now works directly (no need for fallbacks)
+
+#### Fix 4: Disable HitArea and ThreatSphere on death
+
+`Player.OnDeath()` now also disables:
+- **HitArea** (Area2D): `CollisionLayer/Mask = 0`, `Monitoring/Monitorable = false`
+  — prevents bullets from triggering `area_entered` on dead player's hit detection
+- **ThreatSphere** (Area2D): `Monitoring/Monitorable = false`
+  — prevents LastChance from processing threats for a dead player
+
+### Changes (Round 10)
+
+- `Scripts/Characters/Player.cs`:
+  - Added `if (!IsAlive) return;` at top of `_PhysicsProcess()` — stops dead player processing
+  - Added `public bool is_alive() => IsAlive;` — GDScript-compatible alive check method
+  - Changed `OnDeath()` to use `CallDeferred` for collision disabling
+  - Added `_DisableDeadPlayerCollision()` method — disables player, HitArea, and ThreatSphere
+
+- `scripts/autoload/game_manager.gd`:
+  - `_on_player_died_signal()` — uses `call_deferred("set", ...)` for collision changes
+  - `_start_death_safety_net()` — uses `call_deferred("set", ...)` for collision changes
+  - `on_player_death()` — uses `call_deferred("set", ...)` for collision changes
+
+### Why this combination should resolve the remaining crashes
+
+1. **`player_alive = false` (immediate)** — Prevents all enemies from shooting (Round 5 fix, preserved)
+2. **`IsAlive` check in `_PhysicsProcess` (immediate)** — Stops dead player from processing input/shooting
+3. **`is_alive()` bridge method** — Bullets correctly detect dead C# player and pass through
+4. **Deferred collision changes** — Physics server state is never modified during active callbacks
+5. **HitArea/ThreatSphere disabled** — No new collision callbacks can fire on dead player
+6. **Safety net + absolute failsafe (Rounds 8-9)** — Restart guaranteed within 1.5-5s even if all else fails
+
+### Known existing components/libraries for similar problems
+
+- **Godot's `call_deferred()` pattern**: The official recommended approach for modifying physics
+  state during physics callbacks. Used by Godot's own collision response code internally.
+- **Godot's `set_deferred("collision_layer", 0)` pattern**: Common pattern in Godot tutorials
+  and documentation for safely disabling collision during physics processing.
+- **Signal disconnection on death**: Some Godot projects disconnect all signals from the dying
+  node to prevent any callbacks. We use `Monitoring = false` on Area2D instead, which is simpler.
+- **Object pooling**: Some games avoid the freed-node problem entirely by pooling and recycling
+  character nodes instead of freeing them. Not applicable here (scene reload approach).
+
 ## Additional observations
 
 - `[SceneLoader] ERROR: Invalid resource` messages appear in logs when
