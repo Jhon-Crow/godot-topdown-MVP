@@ -88,6 +88,49 @@ on_hit_with_info() called
   → Apply damage normally
 ```
 
+## Bug Report: Dash Not Working (2026-03-23)
+
+### Timeline of Events
+
+1. **Initial implementation** — Dash was implemented only in GDScript (`player.gd`, `dash_effect.gd`)
+2. **Testing** — Unit tests passed (GDScript-based tests)
+3. **User report** — Repo owner reported "не работает" (doesn't work) with game log attached
+
+### Root Cause Analysis
+
+The game uses **two player implementations**: a GDScript version (`scripts/characters/player.gd` with `scenes/characters/Player.tscn`) and a C# version (`Scripts/Characters/Player.cs` with `scenes/characters/csharp/Player.tscn`). **All level scenes reference the C# Player.tscn**, meaning the GDScript player.gd is never used in actual gameplay.
+
+The initial dash implementation was added only to the GDScript `player.gd`, not to the C# `Player.cs`. Evidence from the game log:
+
+```
+[11:14:12] [Player.ItemPickup] active_item_changed received: type=20
+[11:14:12] [Player.ItemPickup] De-equipping all active item subsystems before re-init
+[11:14:12] [Player.ItemPickup] All active item subsystems de-equipped
+[11:14:12] [Player.ItemPickup] No player-side init required for item type 20
+```
+
+The C# `OnActiveItemPickedUp` switch statement had no `case 20` for DASH, so it fell through to the `default` branch which logged "No player-side init required". This meant:
+- No `DashEffect` scene was instantiated
+- No input handling for Space key to trigger dash
+- No movement override during dash
+- No damage immunity check
+
+### Fix Applied
+
+Added complete dash integration to `Scripts/Characters/Player.cs`:
+1. `case 20: InitDash()` in `OnActiveItemPickedUp` switch
+2. `InitDash()` call in `_Ready()` for initial load
+3. Dash cleanup in `DeequipAllActiveItems()`
+4. `HandleDashInput()` call in `_PhysicsProcess()`
+5. Movement override: skip `ApplyMovement()` when `IsDashActive()`, use `MoveAndSlide()` only
+6. Damage immunity: `IsDashActive()` check at top of `TakeDamage()`
+
+The C# implementation delegates to the existing GDScript `DashEffect` node via `Call()`, following the same pattern as force field (`is_force_field_active()` → `_forceFieldEffect.Call("is_protecting")`).
+
+### Logs
+
+- `game_log_20260323_111404.txt` — Original bug report game log
+
 ## Files Modified
 
 | File | Change |
@@ -96,6 +139,7 @@ on_hit_with_info() called
 | `scripts/effects/dash_effect.gd` | **New** — Dash logic controller |
 | `scenes/effects/DashEffect.tscn` | **New** — Dash effect scene |
 | `scripts/characters/player.gd` | Added init, input, immunity, movement override |
+| `Scripts/Characters/Player.cs` | Added init, input, immunity, movement override (C# — the actual runtime player) |
 | `tests/unit/test_dash_effect.gd` | **New** — Unit tests |
 
 ## Testing

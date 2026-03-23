@@ -1248,6 +1248,9 @@ public partial class Player : BaseCharacter
         // Initialize fine motor skills if active item manager has it selected (Issue #1315)
         InitFineMotorSkills();
 
+        // Initialize dash if active item manager has it selected (Issue #1071)
+        InitDash();
+
         // Initialize jammer HUD prohibition sign (always created; visibility toggled at runtime) (Issue #1036)
         InitJammerHud();
 
@@ -1456,7 +1459,17 @@ public partial class Player : BaseCharacter
         }
 
         Vector2 inputDirection = GetInputDirection();
-        ApplyMovement(inputDirection, (float)delta);
+
+        // Skip normal movement during dash — DashEffect controls velocity (Issue #1071)
+        if (!IsDashActive())
+        {
+            ApplyMovement(inputDirection, (float)delta);
+        }
+        else
+        {
+            // DashEffect sets velocity in its own _physics_process; just slide here
+            MoveAndSlide();
+        }
 
         // Push any casings we're overlapping with using Area2D detection (Issue #392 Iteration 8)
         PushCasingsWithArea2D();
@@ -1581,6 +1594,9 @@ public partial class Player : BaseCharacter
 
         // Handle fine motor skills input (press Space to instantly reload) (Issue #1315)
         HandleFineMotorSkillsInput();
+
+        // Handle dash input (press Space to dash in movement direction) (Issue #1071)
+        HandleDashInput();
 
         // Update jammer HUD visibility (Issue #1036)
         UpdateJammerHud();
@@ -2573,6 +2589,14 @@ public partial class Player : BaseCharacter
     {
         if (HealthComponent == null || !IsAlive)
         {
+            return;
+        }
+
+        // Check dash immunity (Issue #1071)
+        // Player is immune to all damage during dash
+        if (IsDashActive())
+        {
+            LogToFile("[Player] Hit blocked by dash immunity (C#)");
             return;
         }
 
@@ -7893,6 +7917,12 @@ public partial class Player : BaseCharacter
         _fineMotorSkillsEquipped = false;
         _fineMotorSkillsActive = false;
 
+        // Dash (Issue #1071)
+        if (_dashEffect != null && IsInstanceValid(_dashEffect))
+            _dashEffect.QueueFree();
+        _dashEffect = null;
+        _dashEquipped = false;
+
         LogToFile("[Player.ItemPickup] All active item subsystems de-equipped");
     }
 
@@ -7964,6 +7994,9 @@ public partial class Player : BaseCharacter
                 break;
             case 19: // FINE_MOTOR_SKILLS
                 InitFineMotorSkills();
+                break;
+            case 20: // DASH (Issue #1071)
+                InitDash();
                 break;
             default:
                 // NONE (0), LASER_SIGHT (9), EXTENDED_MAGAZINE (10): no player-side init needed
@@ -9607,6 +9640,109 @@ public partial class Player : BaseCharacter
         {
             LogToFile("[Player.FineMotorSkills] Standard weapon already full or no spare ammo");
         }
+    }
+
+    #endregion
+
+    #region Dash Active Item (Issue #1071)
+
+    /// <summary>Reference to the instantiated DashEffect node (GDScript).</summary>
+    private Node? _dashEffect = null;
+
+    /// <summary>Whether the dash active item is currently equipped.</summary>
+    private bool _dashEquipped = false;
+
+    /// <summary>Path to the DashEffect scene.</summary>
+    private const string DashEffectScenePath = "res://scenes/effects/DashEffect.tscn";
+
+    /// <summary>
+    /// Initialize dash active item by checking ActiveItemManager and instantiating the DashEffect scene.
+    /// </summary>
+    private void InitDash()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.Dash] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_dash"))
+        {
+            LogToFile("[Player.Dash] ActiveItemManager missing has_dash method");
+            return;
+        }
+
+        bool hasDash = (bool)activeItemManager.Call("has_dash");
+        if (!hasDash)
+        {
+            LogToFile("[Player.Dash] No dash selected in ActiveItemManager");
+            return;
+        }
+
+        if (!ResourceLoader.Exists(DashEffectScenePath))
+        {
+            LogToFile($"[Player.Dash] DashEffect scene not found: {DashEffectScenePath}");
+            return;
+        }
+
+        var scene = GD.Load<PackedScene>(DashEffectScenePath);
+        if (scene == null)
+        {
+            LogToFile("[Player.Dash] Failed to load DashEffect scene");
+            return;
+        }
+
+        _dashEffect = scene.Instantiate();
+        AddChild(_dashEffect);
+        _dashEffect.Call("initialize", this);
+        _dashEquipped = true;
+        LogToFile("[Player.Dash] Initialized — unlimited charges, 1.2s cooldown");
+    }
+
+    /// <summary>
+    /// Handle dash input: press Space to dash in movement direction (Issue #1071).
+    /// </summary>
+    private void HandleDashInput()
+    {
+        if (!_dashEquipped || _dashEffect == null)
+        {
+            return;
+        }
+
+        if (!Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            return;
+        }
+
+        // Issue #1036: Block active item use when jammed
+        if (IsActiveItemJammedVerbose())
+        {
+            LogToFile("[Player.Dash] Space blocked by Radio Jammer (Issue #1036)");
+            return;
+        }
+
+        Vector2 dir = GetInputDirection();
+        if (dir == Vector2.Zero)
+        {
+            // Fall back to mouse cursor direction when stationary
+            dir = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+        }
+
+        _dashEffect.Call("activate", dir);
+    }
+
+    /// <summary>
+    /// Check if the player is currently mid-dash (immune to damage).
+    /// Called by the damage pipeline and movement override.
+    /// </summary>
+    public bool IsDashActive()
+    {
+        if (!_dashEquipped || _dashEffect == null)
+            return false;
+        if (!IsInstanceValid(_dashEffect))
+            return false;
+        return (bool)_dashEffect.Call("is_dashing");
     }
 
     #endregion
