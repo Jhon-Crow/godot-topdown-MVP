@@ -307,6 +307,48 @@ autowrap_mode = 2
 [node name="HSeparatorTactical" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="CoverInfiniteRaysContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CoverInfiniteRaysLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverInfiniteRaysContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cover Infinite Rays"
+autowrap_mode = 2
+
+[node name="CoverInfiniteRaysCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverInfiniteRaysContainer"]
+layout_mode = 2
+
+[node name="CoverInfiniteRaysDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, cover detection rays extend to 10000 px\nso enemies can find cover behind distant obstacles.\nWhen disabled, rays are limited to 300 px."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorCoverInfinite" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CoverSectorRaysContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CoverSectorRaysLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverSectorRaysContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cover Sector Rays"
+autowrap_mode = 2
+
+[node name="CoverSectorRaysCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverSectorRaysContainer"]
+layout_mode = 2
+
+[node name="CoverSectorRaysDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, cover rays fire only in a 100° cone\naimed toward the suppressed enemy.\nWhen disabled, rays cast in all 360° directions."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorCoverSector" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="PassageWaypointsContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 

@@ -3283,47 +3283,46 @@ func _can_reach_position(target: Vector2) -> bool:
 	var target_distance := global_position.distance_to(target)
 	return hit_distance >= target_distance - 10.0  # 10 pixel tolerance
 
-## Issue #1338: Find cover on FAR side of an obstacle. Steps outward using intersect_point()
-## to detect obstacle exit; places cover 35px past far edge. Handles any obstacle thickness.
+## Issue #1338: Find cover on FAR side of obstacle via intersect_point() probing. Any thickness.
 func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, direction: Vector2, space_state: PhysicsDirectSpaceState2D) -> Vector2:
-	var near_dist := collision_point.distance_to(player_pos)
-	var step_size := 30.0
-	var max_probe_dist := COVER_CHECK_DISTANCE * 3.0
-	var probe_dist := near_dist + 5.0
-	var was_inside := false
+	var near_dist := collision_point.distance_to(player_pos); var step_size := 30.0
+	var es_node: Node = get_node_or_null("/root/ExperimentalSettings")
+	var inf_rays := es_node != null and es_node.has_method("is_cover_infinite_rays_enabled") and es_node.is_cover_infinite_rays_enabled()
+	var max_probe_dist := 30000.0 if inf_rays else COVER_CHECK_DISTANCE * 3.0
+	var probe_dist := near_dist + 5.0; var was_inside := false
 	var point_query := PhysicsPointQueryParameters2D.new()
 	point_query.collision_mask = 4; point_query.collide_with_areas = false; point_query.collide_with_bodies = true
 	while probe_dist < max_probe_dist:
-		var probe_point := player_pos + direction * probe_dist
-		point_query.position = probe_point
+		var probe_point := player_pos + direction * probe_dist; point_query.position = probe_point
 		if space_state.intersect_point(point_query, 1).is_empty():
 			if was_inside: return probe_point + direction * 35.0
-			# Thin obstacle: fall back to reverse ray
 			var rev_q := PhysicsRayQueryParameters2D.new()
 			rev_q.from = probe_point; rev_q.to = player_pos; rev_q.collision_mask = 4
 			var rev_r := space_state.intersect_ray(rev_q)
-			if not rev_r.is_empty() and rev_r["position"].distance_to(player_pos) > near_dist + 5.0:
-				return rev_r["position"] + direction * 35.0
+			if not rev_r.is_empty() and rev_r["position"].distance_to(player_pos) > near_dist + 5.0: return rev_r["position"] + direction * 35.0
 			return probe_point + direction * 35.0
-		else:
-			was_inside = true
+		else: was_inside = true
 		probe_dist += step_size
 	return collision_point + direction * 35.0
 
-## Shared helper: cast rays from player position, find hidden cover candidates. Issue #1338.
-## Returns array of hidden cover positions (far side of obstacles, snapped to navmesh).
-## If store_debug_rays is true, updates _last_cover_search_rays for visualization (Issue #1359).
+## Issue #1338: cast rays from player, find hidden cover candidates (far side of obstacles, navmesh-snapped).
+## store_debug_rays updates _last_cover_search_rays for CoverRaycastMonitor (Issue #1359).
 func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 	var candidates: Array[Vector2] = []
 	if _player == null: return candidates
-	var player_pos := _player.global_position
-	var space_state := get_world_2d().direct_space_state
-	var nav_map: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
-	var has_nav := nav_map.is_valid()
+	var player_pos := _player.global_position; var space_state := get_world_2d().direct_space_state
+	var nav_map: RID = _nav_agent.get_navigation_map() if _nav_agent else RID(); var has_nav := nav_map.is_valid()
+	var es: Node = get_node_or_null("/root/ExperimentalSettings")
+	var use_infinite := es != null and es.has_method("is_cover_infinite_rays_enabled") and es.is_cover_infinite_rays_enabled()
+	var use_sector := es != null and es.has_method("is_cover_sector_rays_enabled") and es.is_cover_sector_rays_enabled()
+	var ray_dist: float = 10000.0 if use_infinite else COVER_CHECK_DISTANCE
+	var sector_half := deg_to_rad(50.0)  # Issue #1338: 100° cone toward enemy
+	var sector_center: Vector2 = (global_position - player_pos).normalized() if use_sector else Vector2.ZERO
 	if store_debug_rays: _last_cover_search_rays.clear()
 	for i in range(COVER_CHECK_COUNT):
 		var direction := Vector2.from_angle((float(i) / COVER_CHECK_COUNT) * TAU)
-		var ray_end := player_pos + direction * COVER_CHECK_DISTANCE
+		if use_sector and sector_center != Vector2.ZERO and absf(direction.angle_to(sector_center)) > sector_half: continue
+		var ray_end := player_pos + direction * ray_dist
 		var query := PhysicsRayQueryParameters2D.new()
 		query.from = player_pos; query.to = ray_end; query.collision_mask = 4
 		var result := space_state.intersect_ray(query)
