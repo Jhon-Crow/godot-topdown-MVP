@@ -3994,14 +3994,39 @@ func _process_patrol(delta: float) -> void:
 	# Issue #1119: NavigationAgent2D routing replaces direct direction+wall avoidance (wall-rubbing fix).
 	if _patrol_points.is_empty(): return
 	# Issue #1216: Snap patrol points after 1 physics frame; only if within agent_radius*2 (avoid cross-wall snap).
+	# Issue #1357: Added raycast wall check to prevent snapping across walls, and filter unreachable points.
 	if not _patrol_points_snapped and _nav_agent != null and Engine.get_physics_frames() > _spawn_physics_frame:
 		var nav_map: RID = _nav_agent.get_navigation_map()
 		if nav_map.is_valid():
 			var snap_thr := ((_nav_agent.path_desired_distance if _nav_agent.path_desired_distance > 0.0 else 50.0) * 2.0)
+			var space_state := get_world_2d().direct_space_state
 			for i in range(_patrol_points.size()):
 				var snapped := NavigationServer2D.map_get_closest_point(nav_map, _patrol_points[i])
-				if _patrol_points[i].distance_to(snapped) <= snap_thr: _patrol_points[i] = snapped
-			_patrol_points_snapped = true; _log_to_file("Patrol points snapped to navmesh (Issue #1216)")
+				if _patrol_points[i].distance_to(snapped) <= snap_thr:
+					# Issue #1357: Verify no wall between original point and snapped point
+					var query := PhysicsRayQueryParameters2D.create(_patrol_points[i], snapped)
+					query.collision_mask = 0b100  # Layer 3: obstacles/walls
+					query.exclude = [self]
+					var result := space_state.intersect_ray(query)
+					if result.is_empty():
+						_patrol_points[i] = snapped
+					else:
+						_log_to_file("Patrol point %d: wall between original and snapped pos, keeping original (Issue #1357)" % i)
+			# Issue #1357: Filter out patrol points that are outside the navmesh (unreachable)
+			var reachable_points: Array[Vector2] = []
+			for i in range(_patrol_points.size()):
+				var closest := NavigationServer2D.map_get_closest_point(nav_map, _patrol_points[i])
+				if _patrol_points[i].distance_to(closest) < 10.0:
+					reachable_points.append(_patrol_points[i])
+				else:
+					_log_to_file("Patrol point %d at %s unreachable (dist to navmesh: %.1f), removed (Issue #1357)" % [i, _patrol_points[i], _patrol_points[i].distance_to(closest)])
+			if reachable_points.size() >= 2:
+				_patrol_points = reachable_points
+			elif reachable_points.size() == 1:
+				# At least keep the one reachable point so enemy stays at a valid position
+				_patrol_points = reachable_points
+			# else: keep original points as fallback (stuck detection will handle them)
+			_patrol_points_snapped = true; _log_to_file("Patrol points snapped to navmesh (Issue #1216, #1357: %d points)" % _patrol_points.size())
 	if _is_waiting_at_patrol_point:
 		_patrol_wait_timer += delta
 		if _patrol_wait_timer >= patrol_wait_time:
@@ -4022,8 +4047,16 @@ func _process_patrol(delta: float) -> void:
 	if moved < PATROL_STUCK_DISTANCE_THRESHOLD:
 		_patrol_stuck_timer += delta
 		if _patrol_stuck_timer >= PATROL_STUCK_MAX_TIME:
-			_log_to_file("PATROL STUCK: pos=%s for %.1fs, advancing to next point" % [global_position, _patrol_stuck_timer])
-			_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; _current_patrol_index = (_current_patrol_index + 1) % _patrol_points.size()  # #1216: skip stuck point
+			_log_to_file("PATROL STUCK: pos=%s for %.1fs, advancing to next point (Issue #1357)" % [global_position, _patrol_stuck_timer])
+			_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position
+			# Issue #1357: Skip consecutive unreachable points (up to patrol_points.size to avoid infinite loop)
+			var skipped := 0
+			while skipped < _patrol_points.size():
+				_current_patrol_index = (_current_patrol_index + 1) % _patrol_points.size()
+				skipped += 1
+				var next_pt := _patrol_points[_current_patrol_index]
+				if _nav_agent != null and _has_nav_path_to(next_pt):
+					break  # Found a reachable point
 			_is_waiting_at_patrol_point = true; _patrol_wait_timer = 0.0; velocity = Vector2.ZERO
 	else: _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position
 
@@ -4642,7 +4675,13 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 		target_pos = _tactical_group.get_adjusted_target(target_pos, get_physics_process_delta_time())
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
+	var nav_direction := direction  # Issue #1357: preserve original nav direction for comparison
 	direction = _apply_wall_avoidance(direction)
+	# Issue #1357: If wall avoidance steers too far from nav path (>90°), reduce its influence.
+	# The NavigationAgent2D already computes a valid wall-free path; wall avoidance fighting
+	# the nav direction is the primary cause of enemies getting stuck at walls.
+	if nav_direction.dot(direction) < 0.0:
+		direction = (nav_direction * 0.7 + direction * 0.3).normalized()
 	# Issue #1107: Corner escape — use escape-dominant weight (1.5) when wall opposes nav dir
 	var _esc: Vector2 = Vector2.ZERO
 	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
