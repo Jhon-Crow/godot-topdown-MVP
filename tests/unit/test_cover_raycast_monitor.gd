@@ -193,21 +193,22 @@ func test_raycast_data_with_16_rays() -> void:
 	# Enemy uses 16 raycasts for cover detection
 	var enemy := MockEnemy.new()
 	var rays: Array = []
-	for i in range(16):
-		var angle := (float(i) / 16.0) * TAU
+	var player_pos := Vector2(500, 500)  # Issue #1338: rays originate from player
+	for i in range(120):
+		var angle := (float(i) / 120.0) * TAU
 		var direction := Vector2.from_angle(angle)
 		rays.append({
-			"origin": Vector2(100, 100),
-			"target": Vector2(100, 100) + direction * 300.0,
+			"origin": player_pos,
+			"target": player_pos + direction * 10000.0,
 			"colliding": i % 3 == 0,  # Every 3rd ray hits
 		})
 		if i % 3 == 0:
-			rays[i]["point"] = Vector2(100, 100) + direction * 150.0
+			rays[i]["point"] = player_pos + direction * 500.0
 			rays[i]["normal"] = -direction
 	enemy._cover_raycast_data = rays
 	var data := enemy.get_cover_raycast_data()
-	assert_eq(data.size(), 16,
-		"Should have exactly 16 raycasts matching COVER_CHECK_COUNT")
+	assert_eq(data.size(), 120,
+		"Should have exactly 120 raycasts matching COVER_CHECK_COUNT")
 
 
 func test_colliding_ray_count_from_mixed_data() -> void:
