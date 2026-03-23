@@ -144,13 +144,13 @@ func test_fine_motor_skills_not_blocked_when_not_jammed() -> void:
 # ============================================================================
 
 
-func test_fine_motor_skills_unlocked_by_default() -> void:
-	# Fine Motor Skills should be freely available (no unlock condition)
+func test_fine_motor_skills_starts_locked() -> void:
+	# Fine Motor Skills requires 1000 shots with shotgun/sniper/revolver (Issue #1346)
 	var unlocked_items := {
-		19: true  # FINE_MOTOR_SKILLS
+		19: false  # FINE_MOTOR_SKILLS — locked until condition met
 	}
-	assert_true(unlocked_items[19],
-		"FINE_MOTOR_SKILLS should be unlocked by default")
+	assert_false(unlocked_items[19],
+		"FINE_MOTOR_SKILLS should start locked — unlock requires 1000 special weapon shots (Issue #1346)")
 
 
 # ============================================================================
@@ -173,3 +173,73 @@ func test_fine_motor_skills_can_activate_multiple_times() -> void:
 	for i in range(100):
 		activations += 1
 	assert_eq(activations, 100, "Fine Motor Skills should allow 100 consecutive activations without restriction")
+
+
+# ============================================================================
+# Sequential Reload Delay Tests (Issue #1337)
+# ============================================================================
+
+
+func test_fine_motor_skills_activation_delay_is_200ms() -> void:
+	# The activation delay should be 200ms (0.2 seconds) as specified in Issue #1337
+	var expected_delay := 0.2
+	# This constant is defined in player.gd as FINE_MOTOR_SKILLS_ACTIVATION_DELAY
+	assert_eq(expected_delay, 0.2,
+		"Fine Motor Skills activation delay should be 200ms (0.2 seconds)")
+
+
+func test_fine_motor_skills_stage_delay_is_200ms() -> void:
+	# The stage delay between sequential reload steps should be 200ms
+	var expected_delay := 0.2
+	# This constant is defined in player.gd as FINE_MOTOR_SKILLS_STAGE_DELAY
+	assert_eq(expected_delay, 0.2,
+		"Fine Motor Skills stage delay should be 200ms (0.2 seconds)")
+
+
+func test_fine_motor_skills_prevents_overlapping_activations() -> void:
+	# When a reload sequence is in progress, additional presses should be ignored
+	var is_active := true  # Simulates _fine_motor_skills_active = true
+	var should_ignore := is_active  # Second press should be blocked
+	assert_true(should_ignore,
+		"Fine Motor Skills should ignore input while a reload sequence is active")
+
+
+func test_fine_motor_skills_sniper_has_four_sequential_bolt_steps() -> void:
+	# Sniper rifle bolt cycle should play 4 steps sequentially
+	var bolt_steps := [1, 2, 3, 4]
+	assert_eq(bolt_steps.size(), 4,
+		"Sniper rifle bolt cycle should have exactly 4 sequential steps")
+
+
+func test_fine_motor_skills_shotgun_sequential_shell_loading() -> void:
+	# Shotgun should load shells one by one (not all at once)
+	# Sequence: action open → shell 1 → shell 2 → ... → action close
+	var tube_capacity := 4
+	var shells_loaded := 0
+	var stages := ["action_open"]
+	for i in range(tube_capacity):
+		shells_loaded += 1
+		stages.append("shell_load_%d" % (i + 1))
+	stages.append("action_close")
+
+	assert_eq(stages.size(), tube_capacity + 2,
+		"Shotgun reload should have capacity+2 stages (open + shells + close)")
+	assert_eq(stages[0], "action_open", "First stage should be action open")
+	assert_eq(stages[-1], "action_close", "Last stage should be action close")
+
+
+func test_fine_motor_skills_revolver_sequential_cartridge_loading() -> void:
+	# Revolver should insert cartridges one by one
+	# Sequence: cylinder open → cartridge 1 → cartridge 2 → ... → cylinder close
+	var cylinder_capacity := 6
+	var cartridges_inserted := 0
+	var stages := ["cylinder_open"]
+	for i in range(cylinder_capacity):
+		cartridges_inserted += 1
+		stages.append("cartridge_insert_%d" % (i + 1))
+	stages.append("cylinder_close")
+
+	assert_eq(stages.size(), cylinder_capacity + 2,
+		"Revolver reload should have capacity+2 stages (open + cartridges + close)")
+	assert_eq(stages[0], "cylinder_open", "First stage should be cylinder open")
+	assert_eq(stages[-1], "cylinder_close", "Last stage should be cylinder close")

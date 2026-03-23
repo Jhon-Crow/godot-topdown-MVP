@@ -72,6 +72,12 @@ public partial class LevelInitFallback : Node
     private bool _scoreShown;
 
     /// <summary>
+    /// Issue #1334: Guard against duplicate death handling.
+    /// Prevents re-entrant OnPlayerDied calls and stale timer callbacks.
+    /// </summary>
+    private bool _isDying;
+
+    /// <summary>
     /// Saturation overlay for kill effects.
     /// </summary>
     private ColorRect? _saturationOverlay;
@@ -712,6 +718,10 @@ public partial class LevelInitFallback : Node
 
     private void OnPlayerDied()
     {
+        // Issue #1334: Guard against duplicate death handling
+        if (_isDying) return;
+        _isDying = true;
+
         ShowDeathMessage();
         var gameManager = GetNodeOrNull("/root/GameManager");
         if (gameManager != null && gameManager.HasMethod("on_player_death"))
@@ -719,7 +729,11 @@ public partial class LevelInitFallback : Node
             var timer = GetTree().CreateTimer(0.5);
             timer.Timeout += () =>
             {
-                if (IsInstanceValid(gameManager))
+                // Issue #1334: Verify both this node and GameManager are still valid
+                // before calling on_player_death. SceneTreeTimers persist across
+                // scene reloads (godotengine/godot-proposals#8577), so the callback
+                // can fire after this node has been freed.
+                if (IsInstanceValid(this) && IsInstanceValid(gameManager))
                     gameManager.Call("on_player_death");
             };
         }
@@ -796,6 +810,15 @@ public partial class LevelInitFallback : Node
 
     private void CompleteLevelWithScore()
     {
+        // Disable player controls so clicks on the score screen don't trigger shooting.
+        if (_player != null && IsInstanceValid(_player))
+        {
+            _player.SetPhysicsProcess(false);
+            _player.SetProcess(false);
+            _player.SetProcessInput(false);
+            _player.SetProcessUnhandledInput(false);
+        }
+
         var scoreManager = GetNodeOrNull("/root/ScoreManager");
         if (scoreManager != null && scoreManager.HasMethod("complete_level"))
         {

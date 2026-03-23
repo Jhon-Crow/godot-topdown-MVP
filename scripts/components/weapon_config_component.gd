@@ -197,6 +197,29 @@ const WEAPON_CONFIGS := {
 		"spread_increment": 0.0,
 		"max_spread": 0.0,
 		"spread_reset_time": 0.0
+	},
+	8: {  # REVOLVER (RSh-12) - heavy semi-auto revolver used by SWAT shieldbearer (Issue #1242)
+		"shoot_cooldown": 0.35,     # Semi-auto revolver pace
+		"bullet_speed": 2000.0,     # 12.7mm pistol muzzle velocity
+		"magazine_size": 5,         # 5-chamber cylinder (same as player revolver)
+		"total_magazines": 4,       # 4 reloads (20 extra rounds in pouches)
+		"reload_time": 5.0,         # Cylinder reload (longer than semi-auto pistol)
+		"bullet_spawn_offset": 30.0,
+		"weapon_loudness": 2000.0,  # Loud heavy caliber revolver
+		"sprite_path": "res://assets/sprites/weapons/revolver_topdown.png",
+		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet12p7mm.tscn",
+		"casing_scene_path": "res://scenes/effects/Casing.tscn",
+		"caliber_path": "res://resources/calibers/caliber_12p7x55.tres",
+		"is_shotgun": false,
+		"pellet_count_min": 1,
+		"pellet_count_max": 1,
+		"spread_angle": 0.0,
+		# Minimal spread — heavy caliber, semi-auto
+		"spread_threshold": 2,
+		"initial_spread": 0.5,
+		"spread_increment": 0.5,
+		"max_spread": 3.0,
+		"spread_reset_time": 0.4
 	}
 }
 
@@ -219,4 +242,5 @@ static func get_type_name(weapon_type: int) -> String:
 		5: return "PM"
 		6: return "MACHINE_GUN"
 		7: return "SNIPER_RIFLE"
+		8: return "REVOLVER"
 		_: return "UNKNOWN"

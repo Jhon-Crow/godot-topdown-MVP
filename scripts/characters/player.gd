@@ -386,6 +386,8 @@ func _ready() -> void:
 	# Apply item-specific player visual based on the equipped passive item (Issue #1142)
 	_apply_item_visual()
 
+	_connect_active_item_changed_signal()  # Issue #1325: roguelike pedestal pickup
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -1183,6 +1185,11 @@ func _get_health_percent() -> float:
 ## Called when the player dies.
 func _on_death() -> void:
 	_is_alive = false
+	# Issue #1334: Disable collision layer so enemies can no longer raycast/interact
+	# with the dead player. This prevents crashes from hitscan or physics callbacks
+	# firing on a dead player node during the 0.5s restart delay.
+	collision_layer = 0
+	collision_mask = 0
 	died.emit()
 
 	# Start death animation with the hit direction
@@ -3516,6 +3523,8 @@ func _handle_invisibility_suit_input() -> void:
 
 ## Callback when invisibility activates.
 func _on_invisibility_activated(charges_remaining: int) -> void:
+	if _invisibility_suit == null or not is_instance_valid(_invisibility_suit):
+		return
 	invisibility_changed.emit(true, charges_remaining, _invisibility_suit.MAX_CHARGES)
 	if _invisibility_hud and is_instance_valid(_invisibility_hud):
 		_invisibility_hud.set_active(true)
@@ -3526,6 +3535,8 @@ func _on_invisibility_activated(charges_remaining: int) -> void:
 
 ## Callback when invisibility deactivates.
 func _on_invisibility_deactivated(charges_remaining: int) -> void:
+	if _invisibility_suit == null or not is_instance_valid(_invisibility_suit):
+		return
 	invisibility_changed.emit(false, charges_remaining, _invisibility_suit.MAX_CHARGES)
 	if _invisibility_hud and is_instance_valid(_invisibility_hud):
 		_invisibility_hud.set_active(false)
@@ -3773,6 +3784,8 @@ func _handle_trajectory_glasses_input() -> void:
 ## Callback when trajectory glasses activates.
 ## Shows charge pips briefly (400 ms) via the HUD node; no progress bar (Issue #1049).
 func _on_trajectory_activated(charges_remaining: int) -> void:
+	if _trajectory_glasses == null or not is_instance_valid(_trajectory_glasses):
+		return
 	trajectory_glasses_changed.emit(true, charges_remaining, _trajectory_glasses.MAX_CHARGES)
 	# Show charge pip HUD briefly — it auto-hides after ACTIVATION_SHOW_DURATION (Issue #1049)
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
@@ -3781,6 +3794,8 @@ func _on_trajectory_activated(charges_remaining: int) -> void:
 
 ## Callback when trajectory glasses deactivates.
 func _on_trajectory_deactivated(charges_remaining: int) -> void:
+	if _trajectory_glasses == null or not is_instance_valid(_trajectory_glasses):
+		return
 	trajectory_glasses_changed.emit(false, charges_remaining, _trajectory_glasses.MAX_CHARGES)
 	# Hide charge pip HUD immediately on deactivation (Issue #1049)
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
@@ -4486,6 +4501,8 @@ func _handle_breaching_charges_input() -> void:
 
 ## Callback when a breaching charge is placed.
 func _on_breaching_charge_placed(charges_remaining: int) -> void:
+	if _breaching_charges == null or not is_instance_valid(_breaching_charges):
+		return
 	breaching_charge_placed.emit(charges_remaining)
 	_show_active_item_charge_bar(charges_remaining, _breaching_charges.MAX_CHARGES)
 	_charge_bar_hide_pending = true
@@ -4588,6 +4605,55 @@ func _spawn_armored_skin_shards() -> void:
 # ============================================================================
 # Item Visual System (Issue #1142)
 # ============================================================================
+
+## Connect to active_item_changed signal for roguelike pedestal pickup (Issue #1325).
+func _connect_active_item_changed_signal() -> void:
+	var aim: Node = get_node_or_null("/root/ActiveItemManager")
+	if aim == null or not aim.has_signal("active_item_changed"):
+		return
+	aim.active_item_changed.connect(_on_active_item_picked_up)
+
+## Reset all equipped flags and free item nodes to prevent dual-equip (Issue #1325).
+func _deequip_all_active_items() -> void:
+	for node in [_flashlight_node, _invisibility_suit, _force_field,
+			_trajectory_glasses, _trajectory_glasses_hud, _breaching_charges]:
+		if node != null and is_instance_valid(node):
+			node.queue_free()
+	_flashlight_node = null; _flashlight_equipped = false
+	_homing_equipped = false; _homing_active = false; _homing_timer = 0.0
+	_bff_pendant_equipped = false
+	_invisibility_suit = null; _invisibility_suit_equipped = false
+	_breaker_bullets_active = false
+	_force_field = null; _force_field_equipped = false
+	_trajectory_glasses = null; _trajectory_glasses_hud = null; _trajectory_glasses_equipped = false
+	_loudspeaker_equipped = false; _loudspeaker_progress = null
+	_breaching_charges = null; _breaching_charges_equipped = false
+	_armored_skin_active = false; _recoil_compensator_equipped = false
+	_experimental_sample_equipped = false
+	_fine_motor_skills_equipped = false; _fine_motor_skills_active = false
+
+## Initialise the newly picked-up item subsystem (Issue #1325, #1317).
+func _on_active_item_picked_up(item_type: int) -> void:
+	# Issue #1317: passive items must NOT de-equip the current active item.
+	const PASSIVE_TYPES: Array = [6, 9, 10, 13, 14, 17]
+	if item_type in PASSIVE_TYPES:
+		if item_type == 6: _init_breaker_bullets()
+		elif item_type == 13: _init_armored_skin(); _apply_item_visual()
+		return
+	_deequip_all_active_items()
+	match item_type:
+		1: _init_flashlight()
+		2: _init_homing_bullets()
+		4: _init_bff_pendant()
+		5: _init_invisibility_suit()
+		7: _init_force_field()
+		8: _init_trajectory_glasses()
+		11: _init_loudspeaker()
+		12: _init_breaching_charges()
+		16: _init_recoil_compensator()
+		18: _init_experimental_sample()
+		19: _init_fine_motor_skills()
+
 
 ## Apply a passive visual effect to the player based on the equipped active item.
 ## Single entry point for item-specific player visuals; called once from _ready().
@@ -4816,182 +4882,118 @@ func get_max_experimental_sample_charges() -> int:
 
 ## Whether fine motor skills item is equipped.
 var _fine_motor_skills_equipped: bool = false
+## Whether a fine motor skills reload sequence is currently in progress (Issue #1337).
+var _fine_motor_skills_active: bool = false
+## Delay before activation / between stages in seconds (Issue #1337). Set to 0 to disable.
+const FINE_MOTOR_SKILLS_ACTIVATION_DELAY: float = 0.2
+const FINE_MOTOR_SKILLS_STAGE_DELAY: float = 0.2
 
-## Initialize fine motor skills if the ActiveItemManager has it selected.
 func _init_fine_motor_skills() -> void:
-	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
-	if active_item_manager == null:
-		FileLogger.info("[Player.FineMotorSkills] ActiveItemManager not found")
+	var aim: Node = get_node_or_null("/root/ActiveItemManager")
+	if aim == null or not aim.has_method("has_fine_motor_skills"):
 		return
-	if not active_item_manager.has_method("has_fine_motor_skills"):
-		FileLogger.info("[Player.FineMotorSkills] ActiveItemManager missing has_fine_motor_skills")
-		return
-	if not active_item_manager.has_fine_motor_skills():
-		FileLogger.info("[Player.FineMotorSkills] Fine motor skills not selected")
+	if not aim.has_fine_motor_skills():
 		return
 	_fine_motor_skills_equipped = true
 	FileLogger.info("[Player.FineMotorSkills] Initialized — unlimited charges, no cooldown")
 
-## Handle fine motor skills input: press Space to instantly reload weapon and bring to combat-ready state.
-## Unlimited charges, no cooldown. Works with revolver, shotgun, sniper rifle, and standard weapons.
+## Handle fine motor skills input with sequential reload stages (Issue #1337).
 func _handle_fine_motor_skills_input() -> void:
-	if not _fine_motor_skills_equipped:
+	if not _fine_motor_skills_equipped or not Input.is_action_just_pressed("flashlight_toggle"):
 		return
-	if not Input.is_action_just_pressed("flashlight_toggle"):
+	if _fine_motor_skills_active:
 		return
-	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
 	if ActiveItemManager.is_active_item_jammed_verbose():
-		FileLogger.info("[Player.FineMotorSkills] Space blocked by Radio Jammer (Issue #1036)")
 		return
+	_fine_motor_skills_active = true
+	_fine_motor_skills_activate_async()
 
-	FileLogger.info("[Player.FineMotorSkills] Activating — instant reload and combat-ready")
-
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-
-	# Weapon-specific instant reload with sounds
+## Async activation: delay then weapon-specific sequential reload (Issue #1337).
+func _fine_motor_skills_activate_async() -> void:
+	var am: Node = get_node_or_null("/root/AudioManager")
+	if FINE_MOTOR_SKILLS_ACTIVATION_DELAY > 0:
+		await get_tree().create_timer(FINE_MOTOR_SKILLS_ACTIVATION_DELAY).timeout
 	if _current_weapon_type == WeaponType.REVOLVER:
-		_fine_motor_skills_reload_revolver(audio_manager)
+		await _fine_motor_skills_reload_revolver(am)
 	elif _current_weapon_type == WeaponType.SHOTGUN:
-		_fine_motor_skills_reload_shotgun(audio_manager)
+		await _fine_motor_skills_reload_shotgun(am)
 	else:
-		_fine_motor_skills_reload_standard(audio_manager)
+		_fine_motor_skills_reload_standard(am)
+	await _fine_motor_skills_complete_sniper_bolt(am)
+	_fine_motor_skills_active = false
 
-	# Also handle sniper rifle bolt cycle if present
-	_fine_motor_skills_complete_sniper_bolt(audio_manager)
-
-## Instantly reload revolver: open cylinder, fill all chambers, close cylinder.
-func _fine_motor_skills_reload_revolver(audio_manager: Node) -> void:
-	var revolver: Node = get_node_or_null("Revolver")
-	if revolver == null:
-		FileLogger.info("[Player.FineMotorSkills] Revolver node not found")
+## Sequential revolver reload: open → insert one by one → close (Issue #1337).
+func _fine_motor_skills_reload_revolver(_audio_manager: Node) -> void:
+	var rev: Node = get_node_or_null("Revolver")
+	if rev == null:
 		return
-
-	# Use the dedicated FineMotorSkillsReload method
-	if revolver.has_method("FineMotorSkillsReload"):
-		revolver.call("FineMotorSkillsReload")
-	else:
-		# Fallback: manual reload sequence
-		var fb_reload_state: int = revolver.get("ReloadState")
-		if fb_reload_state != 0:
-			revolver.call("CloseCylinder")
-		if revolver.get("CanOpenCylinder"):
-			revolver.call("OpenCylinder")
-			var fb_cyl_cap: int = revolver.get("CylinderCapacity")
-			for i in range(fb_cyl_cap):
-				if revolver.get("CanInsertCartridge"):
-					revolver.call("InsertCartridge")
-				revolver.call("RotateCylinder", 1)
-			revolver.call("CloseCylinder")
-
-	# Update ammo display
-	var final_ammo: int = revolver.get("CurrentAmmo")
-	var final_capacity: int = revolver.get("CylinderCapacity")
+	if rev.has_method("FineMotorSkillsReloadAsync"):
+		await rev.call("FineMotorSkillsReloadAsync", FINE_MOTOR_SKILLS_STAGE_DELAY)
+	elif rev.has_method("FineMotorSkillsReload"):
+		rev.call("FineMotorSkillsReload")
+	var final_ammo: int = rev.get("CurrentAmmo")
 	_current_ammo = final_ammo
 	ammo_changed.emit(_current_ammo, max_ammo)
 	_is_reloading_sequence = false
 	reload_completed.emit()
 
-	FileLogger.info("[Player.FineMotorSkills] Revolver reloaded: %d/%d rounds" % [final_ammo, final_capacity])
-
-## Instantly reload shotgun: fill tube magazine, reset pump action to Ready.
-func _fine_motor_skills_reload_shotgun(audio_manager: Node) -> void:
-	var shotgun: Node = get_node_or_null("Shotgun")
-	if shotgun == null:
-		FileLogger.info("[Player.FineMotorSkills] Shotgun node not found")
+## Sequential shotgun reload: open → load shells one by one → close (Issue #1337).
+func _fine_motor_skills_reload_shotgun(_audio_manager: Node) -> void:
+	var sg: Node = get_node_or_null("Shotgun")
+	if sg == null:
 		return
-
-	# Use the dedicated FineMotorSkillsReload method which handles
-	# cancelling reload, filling tube, and resetting action state
-	if shotgun.has_method("FineMotorSkillsReload"):
-		shotgun.call("FineMotorSkillsReload")
-	else:
-		# Fallback: manual reload
-		if shotgun.has_method("CancelReload"):
-			shotgun.call("CancelReload")
-		var fb_capacity: int = shotgun.get("TubeMagazineCapacity")
-		var fb_shells: int = shotgun.get("ShellsInTube")
-		var fb_to_load: int = fb_capacity - fb_shells
-		if fb_to_load > 0 and shotgun.has_method("AutoRefillTube"):
-			shotgun.call("AutoRefillTube", fb_to_load)
-
-	# Update ammo display
-	var final_shells: int = shotgun.get("ShellsInTube")
-	var final_capacity: int = shotgun.get("TubeMagazineCapacity")
-	_current_ammo = final_shells
+	if sg.has_method("FineMotorSkillsReloadAsync"):
+		await sg.call("FineMotorSkillsReloadAsync", FINE_MOTOR_SKILLS_STAGE_DELAY)
+	elif sg.has_method("FineMotorSkillsReload"):
+		sg.call("FineMotorSkillsReload")
+	_current_ammo = sg.get("ShellsInTube")
 	ammo_changed.emit(_current_ammo, max_ammo)
 	_is_reloading_sequence = false
 	_is_reloading_simple = false
 	reload_completed.emit()
 
-	FileLogger.info("[Player.FineMotorSkills] Shotgun reloaded: %d/%d shells" % [final_shells, final_capacity])
-
-## Instantly reload standard weapon (rifle, pistol, SMG): swap to fullest magazine.
+## Standard weapon reload (no stages needed).
 func _fine_motor_skills_reload_standard(audio_manager: Node) -> void:
-	# Find the weapon node (could be AssaultRifle, SilencedPistol, MiniUzi, MakarovPM, AKGL)
 	var weapon: Node = null
 	for child in get_children():
 		if child.has_method("InstantReload"):
 			weapon = child
 			break
-
 	if weapon != null:
-		# Cancel ongoing reload if any
 		var is_reloading = weapon.get("IsReloading")
 		if is_reloading:
 			weapon.set("IsReloading", false)
-
-		# Perform instant magazine swap
 		weapon.call("InstantReload")
-
-		# Play reload sound
 		if audio_manager and audio_manager.has_method("play_reload_full"):
 			audio_manager.play_reload_full(global_position)
-
-		var current_ammo: int = weapon.get("CurrentAmmo")
-		_current_ammo = current_ammo
+		_current_ammo = weapon.get("CurrentAmmo")
 		ammo_changed.emit(_current_ammo, max_ammo)
-		FileLogger.info("[Player.FineMotorSkills] Standard weapon reloaded: %d rounds" % current_ammo)
 	else:
-		# Fallback: simple reload
 		_current_ammo = max_ammo
 		ammo_changed.emit(_current_ammo, max_ammo)
-		FileLogger.info("[Player.FineMotorSkills] Fallback simple reload: %d/%d" % [_current_ammo, max_ammo])
-
 	_is_reloading_sequence = false
 	_is_reloading_simple = false
 	reload_completed.emit()
 
-## Complete sniper rifle bolt cycle if bolt needs cycling.
-## Also reloads magazine if needed (instant swap to fullest spare).
+## Sequential sniper bolt cycle step by step (Issue #1337).
 func _fine_motor_skills_complete_sniper_bolt(audio_manager: Node) -> void:
 	var sniper: Node = get_node_or_null("SniperRifle")
 	if sniper == null:
 		return
-
-	# Reload magazine if needed
 	if sniper.has_method("InstantReload"):
 		sniper.call("InstantReload")
-		var current_ammo: int = sniper.get("CurrentAmmo")
-		_current_ammo = current_ammo
+		_current_ammo = sniper.get("CurrentAmmo")
 		ammo_changed.emit(_current_ammo, max_ammo)
-		# Play reload sound
 		if audio_manager and audio_manager.has_method("play_reload_full"):
 			audio_manager.play_reload_full(global_position)
-
-	# Complete bolt cycle if needed
-	var needs_cycle = sniper.get("NeedsBoltCycle")
-	if not needs_cycle:
+	if not sniper.get("NeedsBoltCycle"):
 		return
-
-	if sniper.has_method("FineBoltCycle"):
+	if FINE_MOTOR_SKILLS_STAGE_DELAY > 0:
+		await get_tree().create_timer(FINE_MOTOR_SKILLS_STAGE_DELAY).timeout
+	if sniper.has_method("FineBoltCycleAsync"):
+		await sniper.call("FineBoltCycleAsync", FINE_MOTOR_SKILLS_STAGE_DELAY)
+	elif sniper.has_method("FineBoltCycle"):
 		sniper.call("FineBoltCycle")
-	else:
-		# Fallback: play bolt sounds
-		if audio_manager and audio_manager.has_method("play_asvk_bolt_step"):
-			for step in range(1, 5):
-				audio_manager.play_asvk_bolt_step(step)
-
 	_is_reloading_sequence = false
 	_is_reloading_simple = false
 	reload_completed.emit()
-	FileLogger.info("[Player.FineMotorSkills] Sniper rifle bolt cycle completed")

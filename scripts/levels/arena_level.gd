@@ -1303,10 +1303,11 @@ func _complete_level_with_score() -> void:
 	_score_shown = true
 
 	# Disable player controls.
-	if _player != null and is_instance_valid(_player) and _player.has_method("SetProcessInput"):
-		_player.SetProcessInput(false)
-	elif _player != null and is_instance_valid(_player) and _player.has_method("set_process_input"):
+	if _player != null and is_instance_valid(_player):
+		_player.set_physics_process(false)
+		_player.set_process(false)
 		_player.set_process_input(false)
+		_player.set_process_unhandled_input(false)
 
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):

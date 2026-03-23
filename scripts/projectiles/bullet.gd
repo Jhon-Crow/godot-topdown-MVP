@@ -234,6 +234,11 @@ var _rpg_homing_original_direction: Vector2 = Vector2.ZERO
 ## Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
 var penetrates_enemies: bool = false
 
+## Whether this is a phantom (illusion) bullet (Issue #1353).
+## Phantom bullets only damage the player, not enemies or other illusions.
+## Fired by IllusionEffect visual copies.
+var is_phantom: bool = false
+
 ## Set of enemy bodies this bullet has already dealt damage to (Issue #829).
 ## Prevents the bullet from re-applying damage when _on_area_entered fires multiple times
 ## for the same enemy (e.g., multiple hit areas or re-entry signals).
@@ -471,6 +476,11 @@ func _update_trail() -> void:
 
 
 func _on_body_entered(body: Node2D) -> void:
+	# Issue #1334 Round 11: Guard against invalid colliders during physics callbacks.
+	# When many physics bodies are created/destroyed in the same frame (ragdoll, casings,
+	# bullets), the physics server may deliver callbacks for freed colliders.
+	if not is_instance_valid(body): return
+	if _is_pooled: return
 	# RPG rocket: explode on any body after spawn immunity expires
 	if is_rpg_rocket:
 		if _rpg_has_exploded:
@@ -601,6 +611,7 @@ func _on_body_entered(body: Node2D) -> void:
 ## Called when the bullet exits a body (wall).
 ## Used for detecting penetration exit via the physics system.
 func _on_body_exited(body: Node2D) -> void:
+	if not is_instance_valid(body): return  # Issue #1334 Round 11: guard freed collider
 	# Only process if we're currently penetrating this specific body
 	if not _is_penetrating or _penetrating_body != body:
 		return
@@ -613,6 +624,9 @@ func _on_body_exited(body: Node2D) -> void:
 
 
 func _on_area_entered(area: Area2D) -> void:
+	# Issue #1334 Round 11: Guard against invalid/pooled state during physics callbacks
+	if not is_instance_valid(area): return
+	if _is_pooled: return
 	# RPG rocket: explode when hitting any hit-area (enemy/player HitArea)
 	if is_rpg_rocket:
 		if _rpg_has_exploded or _rpg_time_alive < rpg_spawn_immunity:
@@ -645,6 +659,10 @@ func _on_area_entered(area: Area2D) -> void:
 		var parent: Node = area.get_parent()
 		if parent and shooter_id == parent.get_instance_id() and not _has_ricocheted:
 			return  # Don't hit the shooter with direct shots
+
+		# Issue #1353: Phantom (illusion) bullets only damage the player
+		if is_phantom and parent and not parent.is_in_group("player"):
+			return  # Phantom bullets pass through non-player targets
 
 		# Force field protection: Block damage if target has active force field (Issue #676)
 		if parent and parent.has_method("is_force_field_active"):
@@ -1863,9 +1881,11 @@ func pool_activate(pos: Vector2, dir: Vector2, shooter: int, caliber: Resource =
 	set_physics_process(true)
 	set_process(true)
 
-	# Re-enable collision detection
-	monitoring = true
-	monitorable = true
+	# Issue #1334 Round 11: Defer collision re-enable to avoid "flushing queries" error.
+	# Setting monitoring=true during physics processing can corrupt the physics server's
+	# internal collision pair list when many bullets are pooled/recycled in the same frame.
+	set_deferred("monitoring", true)
+	set_deferred("monitorable", true)
 
 	_is_pooled = false
 
@@ -1885,9 +1905,9 @@ func pool_deactivate() -> void:
 	# Hide bullet
 	visible = false
 
-	# Disable collision detection
-	monitoring = false
-	monitorable = false
+	# Issue #1334 Round 11: Defer collision disable to avoid "flushing queries" corruption
+	set_deferred("monitoring", false)
+	set_deferred("monitorable", false)
 
 	# Clear trail
 	if _trail:

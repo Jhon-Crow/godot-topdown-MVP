@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Weapons;
 using GodotTopdown.Scripts.Projectiles;
@@ -1250,6 +1251,11 @@ public partial class Player : BaseCharacter
         // Initialize jammer HUD prohibition sign (always created; visibility toggled at runtime) (Issue #1036)
         InitJammerHud();
 
+        // Connect to ActiveItemManager's active_item_changed signal so that picking up
+        // a new active item in roguelike mode (no scene restart) immediately initialises
+        // the item's subsystem on the player (Issue #1325).
+        ConnectActiveItemChangedSignal();
+
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
         int maxAmmo = CurrentWeapon?.WeaponData?.MagazineSize ?? 0;
@@ -1431,6 +1437,13 @@ public partial class Player : BaseCharacter
 
     public override void _PhysicsProcess(double delta)
     {
+        // Issue #1334 Round 10: Stop all player processing after death.
+        // Without this guard, the dead player continues processing input, movement,
+        // and shooting on the same frame as death. Weapon Fire() calls on a dead player
+        // can cause native crashes (e.g., spawning bullets from freed/invalid state).
+        if (!IsAlive)
+            return;
+
         // Detect weapon pose after waiting a few frames for level scripts to add weapons
         if (!_weaponPoseApplied)
         {
@@ -2695,12 +2708,57 @@ public partial class Player : BaseCharacter
         }
     }
 
+    /// <summary>
+    /// Issue #1334 Round 10: GDScript-compatible is_alive() method.
+    /// GDScript code (bullets, enemies) uses has_method("is_alive") to check if a target
+    /// is alive before applying damage or physics interactions. The C# IsAlive property
+    /// is not accessible via has_method() from GDScript. Without this bridge method,
+    /// bullets pass through the is_alive check (returns true by default) and hit dead
+    /// players, causing crashes from physics state mutations on freed/invalid nodes.
+    /// </summary>
+    public bool is_alive() => IsAlive;
+
     /// <inheritdoc/>
     public override void OnDeath()
     {
         base.OnDeath();
-        // Handle player death
+        // Issue #1334 Round 10: Defer collision disabling to avoid modifying physics state
+        // during active physics callbacks. Setting CollisionLayer/CollisionMask during
+        // body_entered/area_entered callbacks corrupts the physics server's internal collision
+        // pair list, causing native segfaults. CallDeferred ensures the changes happen at the
+        // end of the frame, after all physics callbacks have completed.
+        CallDeferred(MethodName._DisableDeadPlayerCollision);
         GD.Print("Player died!");
+    }
+
+    /// <summary>
+    /// Issue #1334 Round 10: Deferred method to disable all collision on the dead player.
+    /// Called via CallDeferred from OnDeath to avoid modifying physics state during
+    /// active physics callbacks (body_entered, area_entered) which causes native crashes.
+    /// </summary>
+    private void _DisableDeadPlayerCollision()
+    {
+        CollisionLayer = 0;
+        CollisionMask = 0;
+
+        // Disable the HitArea (Area2D) so bullets in flight cannot trigger
+        // on_area_entered callbacks on the dead player's hit detection area.
+        var hitArea = GetNodeOrNull<Area2D>("HitArea");
+        if (hitArea != null)
+        {
+            hitArea.CollisionLayer = 0;
+            hitArea.CollisionMask = 0;
+            hitArea.Monitoring = false;
+            hitArea.Monitorable = false;
+        }
+
+        // Disable the ThreatSphere too so LastChance doesn't process new threats.
+        var threatSphere = GetNodeOrNull<Area2D>("ThreatSphere");
+        if (threatSphere != null)
+        {
+            threatSphere.Monitoring = false;
+            threatSphere.Monitorable = false;
+        }
     }
 
     /// <summary>
@@ -2768,9 +2826,8 @@ public partial class Player : BaseCharacter
 
         // Get selected weapon ID from GameManager (GDScript autoload)
         var selectedWeaponId = gameManager.Call("get_selected_weapon").AsString();
-        if (string.IsNullOrEmpty(selectedWeaponId) || selectedWeaponId == "makarov_pm")
+        if (string.IsNullOrEmpty(selectedWeaponId))
         {
-            // Default weapon (MakarovPM) - already equipped, nothing to do
             return;
         }
 
@@ -2818,15 +2875,28 @@ public partial class Player : BaseCharacter
 
         LogToFile($"[Player.Weapon] GameManager weapon selection: {selectedWeaponId} ({weaponNodeName})");
 
-        // Remove the default MakarovPM immediately
-        var defaultWeapon = GetNodeOrNull<BaseWeapon>("MakarovPM");
-        if (defaultWeapon != null)
+        // Guard: if the correct weapon is already equipped, nothing to do.
+        // This prevents unnecessary remove/re-add of the scene-placed MakarovPM on _Ready()
+        // and avoids a crash when body_entered fires synchronously during physics processing
+        // (Issue #1323 regression fix).
+        if (CurrentWeapon != null && CurrentWeapon.Name == weaponNodeName)
         {
-            RemoveChild(defaultWeapon);
-            defaultWeapon.QueueFree();
-            LogToFile("[Player.Weapon] Removed default MakarovPM");
+            LogToFile($"[Player.Weapon] Already equipped {weaponNodeName}, no change needed");
+            return;
         }
-        CurrentWeapon = null;
+
+        // Remove the current weapon (whatever it is) before equipping the new one.
+        // Issue #1323: previously only MakarovPM was removed by name, so picking up a
+        // new weapon while already holding a non-default weapon left the old weapon node
+        // alive as a child, and picking up makarov_pm was a no-op due to an early return.
+        if (CurrentWeapon != null)
+        {
+            var oldWeaponName = CurrentWeapon.Name;
+            RemoveChild(CurrentWeapon);
+            CurrentWeapon.QueueFree();
+            CurrentWeapon = null;
+            LogToFile($"[Player.Weapon] Removed current weapon: {oldWeaponName}");
+        }
 
         // Load and instantiate the selected weapon
         var weaponScene = GD.Load<PackedScene>(scenePath);
@@ -2837,6 +2907,9 @@ public partial class Player : BaseCharacter
             AddChild(weapon);
             CurrentWeapon = weapon;
             LogToFile($"[Player.Weapon] Equipped {weaponNodeName} (ammo: {weapon.CurrentAmmo}/{weapon.WeaponData?.MagazineSize ?? 0})");
+            // Re-detect arm pose so the player's arms match the new weapon immediately.
+            _weaponPoseApplied = false;
+            _weaponDetectFrameCount = 0;
         }
         else
         {
@@ -7694,6 +7767,211 @@ public partial class Player : BaseCharacter
         }
     }
 
+    // ============================================================================
+    // Active Item Pickup Reinitialisation — Issue #1325
+    // ============================================================================
+
+    /// <summary>
+    /// Connect to ActiveItemManager's active_item_changed signal so that when the player
+    /// picks up a new active item in roguelike mode (no scene restart), the player's
+    /// item subsystem is immediately initialised (Issue #1325).
+    /// </summary>
+    private void ConnectActiveItemChangedSignal()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.ItemPickup] ActiveItemManager not found — cannot connect active_item_changed");
+            return;
+        }
+
+        if (!activeItemManager.HasSignal("active_item_changed"))
+        {
+            LogToFile("[Player.ItemPickup] ActiveItemManager missing active_item_changed signal");
+            return;
+        }
+
+        activeItemManager.Connect("active_item_changed", Callable.From<long>(OnActiveItemPickedUp));
+        LogToFile("[Player.ItemPickup] Connected to ActiveItemManager.active_item_changed");
+    }
+
+    /// <summary>
+    /// De-equip all active item subsystems so that only the newly picked-up item is active.
+    /// Resets equipped flags and frees child nodes created by Init* methods.
+    /// Called before InitX() in OnActiveItemPickedUp to prevent dual-equip when the player
+    /// swaps items at the roguelike pedestal (Issue #1325).
+    /// </summary>
+    private void DeequipAllActiveItems()
+    {
+        LogToFile("[Player.ItemPickup] De-equipping all active item subsystems before re-init");
+
+        // Flashlight
+        if (_flashlightNode != null && IsInstanceValid(_flashlightNode))
+            _flashlightNode.QueueFree();
+        _flashlightNode = null;
+        _flashlightEquipped = false;
+
+        // Homing bullets
+        _homingBulletsEquipped = false;
+        _homingActive = false;
+        _homingTimer = 0.0f;
+
+        // Teleport bracers
+        _teleportBracersEquipped = false;
+        _teleportAiming = false;
+
+        // BFF pendant — companion remains in scene; just disable new summons
+        _bffPendantEquipped = false;
+
+        // Invisibility suit
+        if (_invisibilitySuitEffect != null && IsInstanceValid(_invisibilitySuitEffect))
+            _invisibilitySuitEffect.QueueFree();
+        _invisibilitySuitEffect = null;
+        _invisibilitySuitEquipped = false;
+
+        // Breaker bullets (passive flag)
+        _breakerBulletsActive = false;
+
+        // Force field
+        if (_forceFieldEffect != null && IsInstanceValid(_forceFieldEffect))
+            _forceFieldEffect.QueueFree();
+        _forceFieldEffect = null;
+        _forceFieldEquipped = false;
+
+        // Trajectory glasses
+        if (_trajectoryGlassesEffect != null && IsInstanceValid(_trajectoryGlassesEffect))
+            _trajectoryGlassesEffect.QueueFree();
+        _trajectoryGlassesEffect = null;
+        if (_trajectoryGlassesHud != null && IsInstanceValid(_trajectoryGlassesHud))
+            _trajectoryGlassesHud.QueueFree();
+        _trajectoryGlassesHud = null;
+        _trajectoryGlassesEquipped = false;
+
+        // Loudspeaker
+        if (_loudspeakerConeEffect != null && IsInstanceValid(_loudspeakerConeEffect))
+            _loudspeakerConeEffect.QueueFree();
+        _loudspeakerConeEffect = null;
+        if (_loudspeakerHandSprite != null && IsInstanceValid(_loudspeakerHandSprite))
+            _loudspeakerHandSprite.QueueFree();
+        _loudspeakerHandSprite = null;
+        _loudspeakerProgress = null;
+        _loudspeakerHoldTimer = 0.0f;
+        _loudspeakerEquipped = false;
+
+        // Breaching charges
+        if (_breachingChargesEffect != null && IsInstanceValid(_breachingChargesEffect))
+            _breachingChargesEffect.QueueFree();
+        _breachingChargesEffect = null;
+        _breachingChargesEquipped = false;
+
+        // Drilling bullets
+        if (_drillingBulletsPopup != null && IsInstanceValid((GodotObject)_drillingBulletsPopup))
+            ((Node)_drillingBulletsPopup).QueueFree();
+        _drillingBulletsPopup = null;
+        _drillingBulletsEquipped = false;
+        _drillingBulletsUsed = false;
+
+        // Recoil compensator
+        _recoilCompensatorEquipped = false;
+        _recoilCompensatorActive = false;
+        _recoilCompensatorCharge = 0.0f;
+
+        // Experimental sample
+        if (_experimentalSamplePopup != null && IsInstanceValid((GodotObject)_experimentalSamplePopup))
+            ((Node)_experimentalSamplePopup).QueueFree();
+        _experimentalSamplePopup = null;
+        _experimentalSampleEquipped = false;
+        _experimentalSampleCharges = 0;
+
+        // Combat disposition (passive)
+        _combatDispositionActive = false;
+
+        // Auto-reload (passive)
+        _autoReloadActive = false;
+
+        // Fine motor skills
+        _fineMotorSkillsEquipped = false;
+        _fineMotorSkillsActive = false;
+
+        LogToFile("[Player.ItemPickup] All active item subsystems de-equipped");
+    }
+
+    /// <summary>
+    /// Called when a new active item is selected (e.g. picked up in roguelike mode).
+    /// Initialises the corresponding item subsystem on the player without a scene restart.
+    /// Passive items (BREAKER_BULLETS, LASER_SIGHT, EXTENDED_MAGAZINE, ARMORED_SKIN,
+    /// AUTO_RELOAD, COMBAT_DISPOSITION) are handled by their own passive init paths.
+    /// </summary>
+    /// <param name="itemType">The ActiveItemType enum value of the newly selected item.</param>
+    private void OnActiveItemPickedUp(long itemType)
+    {
+        LogToFile($"[Player.ItemPickup] active_item_changed received: type={itemType}");
+        // De-equip the previous active item before initialising the new one
+        // to prevent dual-equip when the player swaps items at the pedestal.
+        DeequipAllActiveItems();
+        // Map ActiveItemType enum values to Init functions.
+        // Values mirror ActiveItemManager.ActiveItemType in active_item_manager.gd.
+        switch (itemType)
+        {
+            case 1:  // FLASHLIGHT
+                InitFlashlight();
+                break;
+            case 2:  // HOMING_BULLETS
+                InitHomingBullets();
+                break;
+            case 3:  // TELEPORT_BRACERS
+                InitTeleportBracers();
+                break;
+            case 4:  // BFF_PENDANT
+                InitBffPendant();
+                break;
+            case 5:  // INVISIBILITY_SUIT
+                InitInvisibilitySuit();
+                break;
+            case 6:  // BREAKER_BULLETS (passive)
+                InitBreakerBullets();
+                break;
+            case 7:  // FORCE_FIELD
+                InitForceField();
+                break;
+            case 8:  // TRAJECTORY_GLASSES
+                InitTrajectoryGlasses();
+                break;
+            case 11: // LOUDSPEAKER
+                InitLoudspeaker();
+                break;
+            case 12: // BREACHING_CHARGES
+                InitBreachingCharges();
+                break;
+            case 13: // ARMORED_SKIN (passive)
+                InitArmoredSkin();
+                ApplyItemVisual();
+                break;
+            case 14: // AUTO_RELOAD (passive)
+                InitAutoReload();
+                break;
+            case 15: // DRILLING_BULLETS
+                InitDrillingBullets();
+                break;
+            case 16: // RECOIL_COMPENSATOR
+                InitRecoilCompensator();
+                break;
+            case 17: // COMBAT_DISPOSITION (passive)
+                InitCombatDisposition();
+                break;
+            case 18: // EXPERIMENTAL_SAMPLE
+                InitExperimentalSample();
+                break;
+            case 19: // FINE_MOTOR_SKILLS
+                InitFineMotorSkills();
+                break;
+            default:
+                // NONE (0), LASER_SIGHT (9), EXTENDED_MAGAZINE (10): no player-side init needed
+                LogToFile($"[Player.ItemPickup] No player-side init required for item type {itemType}");
+                break;
+        }
+    }
+
     /// <summary>
     /// Called when debug mode is toggled via F7 key.
     /// </summary>
@@ -9129,7 +9407,7 @@ public partial class Player : BaseCharacter
     #endregion
 
     // =========================================================================
-    // Fine Motor Skills Active Item (Issue #1315)
+    // Fine Motor Skills Active Item (Issue #1315, #1337)
     // =========================================================================
     #region Fine Motor Skills
 
@@ -9137,6 +9415,24 @@ public partial class Player : BaseCharacter
     /// Whether the fine motor skills item is equipped.
     /// </summary>
     private bool _fineMotorSkillsEquipped = false;
+
+    /// <summary>
+    /// Whether a fine motor skills reload sequence is currently in progress.
+    /// Prevents overlapping activations while reload stages are playing.
+    /// </summary>
+    private bool _fineMotorSkillsActive = false;
+
+    /// <summary>
+    /// Delay in seconds before Fine Motor Skills activates after pressing Space (Issue #1337).
+    /// Set to 0 to disable the delay. Configurable for gameplay tuning.
+    /// </summary>
+    private const float FineMotorSkillsActivationDelay = 0.2f;
+
+    /// <summary>
+    /// Delay in seconds between sequential reload stages (Issue #1337).
+    /// Controls the pacing of individual reload steps (e.g., each bolt step, each shell load).
+    /// </summary>
+    private const float FineMotorSkillsStageDelay = 0.2f;
 
     /// <summary>
     /// Initializes the fine motor skills item if ActiveItemManager has it selected.
@@ -9168,8 +9464,8 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Handles fine motor skills input: press Space to instantly reload weapon
-    /// and bring it to combat-ready state.
+    /// Handles fine motor skills input: press Space to reload weapon with sequential
+    /// reload stages after a configurable activation delay (Issue #1337).
     /// Works with all weapon types: Revolver (fills cylinder), Shotgun (fills tube + resets pump),
     /// Sniper Rifle (completes bolt cycle + reloads), and standard weapons (instant magazine swap).
     /// </summary>
@@ -9185,6 +9481,13 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Prevent overlapping activations while a reload sequence is playing
+        if (_fineMotorSkillsActive)
+        {
+            LogToFile("[Player.FineMotorSkills] Already active — ignoring input");
+            return;
+        }
+
         // Issue #1036: Block active item use when jammed
         if (IsActiveItemJammedVerbose())
         {
@@ -9192,61 +9495,89 @@ public partial class Player : BaseCharacter
             return;
         }
 
-        LogToFile("[Player.FineMotorSkills] Activating — instant reload and combat-ready");
+        LogToFile("[Player.FineMotorSkills] Activating — sequential reload with stages (Issue #1337)");
+        _fineMotorSkillsActive = true;
 
-        // Handle weapon-specific reload
+        // Start async reload sequence with activation delay
+        FineMotorSkillsActivateAsync();
+    }
+
+    /// <summary>
+    /// Asynchronously activates fine motor skills: waits for activation delay,
+    /// then dispatches to weapon-specific sequential reload (Issue #1337).
+    /// </summary>
+    private async void FineMotorSkillsActivateAsync()
+    {
+        // Wait for activation delay before starting reload (Issue #1337)
+        if (FineMotorSkillsActivationDelay > 0)
+        {
+            await ToSignal(GetTree().CreateTimer(FineMotorSkillsActivationDelay), "timeout");
+        }
+
+        // Handle weapon-specific sequential reload
         if (CurrentWeapon is Revolver revolver)
         {
-            FineMotorSkillsReloadRevolver(revolver);
+            await FineMotorSkillsReloadRevolverAsync(revolver);
         }
         else if (CurrentWeapon is Shotgun shotgun)
         {
-            FineMotorSkillsReloadShotgun(shotgun);
+            await FineMotorSkillsReloadShotgunAsync(shotgun);
         }
         else if (CurrentWeapon is SniperRifle sniper)
         {
-            FineMotorSkillsReloadSniper(sniper);
+            await FineMotorSkillsReloadSniperAsync(sniper);
         }
         else if (CurrentWeapon != null)
         {
             FineMotorSkillsReloadStandard(CurrentWeapon);
         }
+
+        _fineMotorSkillsActive = false;
     }
 
     /// <summary>
-    /// Instantly reloads a revolver: fills all empty chambers from reserve.
+    /// Sequentially reloads a revolver: open cylinder, insert cartridges one by one, close cylinder (Issue #1337).
+    /// Each stage plays its sound and waits before proceeding to the next.
     /// </summary>
-    private void FineMotorSkillsReloadRevolver(Revolver revolver)
+    private async Task FineMotorSkillsReloadRevolverAsync(Revolver revolver)
     {
-        revolver.FineMotorSkillsReload();
+        await revolver.FineMotorSkillsReloadAsync(FineMotorSkillsStageDelay);
         LogToFile($"[Player.FineMotorSkills] Revolver reloaded: {revolver.CurrentAmmo}/{revolver.CylinderCapacity}");
     }
 
     /// <summary>
-    /// Instantly reloads a shotgun: fills tube and resets pump action to Ready.
+    /// Sequentially reloads a shotgun: load shells one by one, then close action (Issue #1337).
+    /// Each stage plays its sound and waits before proceeding to the next.
     /// </summary>
-    private void FineMotorSkillsReloadShotgun(Shotgun shotgun)
+    private async Task FineMotorSkillsReloadShotgunAsync(Shotgun shotgun)
     {
-        shotgun.FineMotorSkillsReload();
+        await shotgun.FineMotorSkillsReloadAsync(FineMotorSkillsStageDelay);
         LogToFile($"[Player.FineMotorSkills] Shotgun reloaded: {shotgun.ShellsInTube}/{shotgun.TubeMagazineCapacity}");
     }
 
     /// <summary>
-    /// Instantly reloads a sniper rifle: completes bolt cycle and reloads magazine if needed.
+    /// Sequentially reloads a sniper rifle: reload magazine if needed, then complete bolt cycle
+    /// step by step (Issue #1337). Each bolt step plays its sound and waits.
     /// </summary>
-    private void FineMotorSkillsReloadSniper(SniperRifle sniper)
+    private async Task FineMotorSkillsReloadSniperAsync(SniperRifle sniper)
     {
         // First, reload magazine if needed
         if (sniper.CurrentAmmo < (sniper.WeaponData?.MagazineSize ?? 0) && sniper.ReserveAmmo > 0)
         {
             sniper.InstantReload();
             LogToFile($"[Player.FineMotorSkills] Sniper rifle magazine reloaded: {sniper.CurrentAmmo} rounds");
+
+            // Wait between reload and bolt cycle
+            if (FineMotorSkillsStageDelay > 0)
+            {
+                await ToSignal(GetTree().CreateTimer(FineMotorSkillsStageDelay), "timeout");
+            }
         }
 
-        // Then complete bolt cycle if needed
+        // Then complete bolt cycle step by step if needed
         if (sniper.NeedsBoltCycle)
         {
-            sniper.FineBoltCycle();
+            await sniper.FineBoltCycleAsync(FineMotorSkillsStageDelay);
             LogToFile("[Player.FineMotorSkills] Sniper rifle bolt cycle completed");
         }
 
@@ -9255,6 +9586,7 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Instantly reloads a standard weapon (rifle, pistol, SMG): swaps to fullest magazine.
+    /// Standard weapons don't have sequential stages — they reload in one step.
     /// </summary>
     private void FineMotorSkillsReloadStandard(BaseWeapon weapon)
     {

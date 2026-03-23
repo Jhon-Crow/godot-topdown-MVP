@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Characters;
@@ -1672,6 +1673,78 @@ public partial class Revolver : BaseWeapon
         CloseCylinder();
 
         GD.Print($"[Revolver.FineMotorSkills] Instant reload complete: inserted {inserted} cartridges, {CurrentAmmo}/{cylinderCapacity} loaded");
+    }
+
+    /// <summary>
+    /// Sequentially reloads the revolver with delays between each stage (Issue #1337).
+    /// Plays: open cylinder → insert cartridges one by one → close cylinder.
+    /// Each stage has an audible sound with a configurable delay between them.
+    /// </summary>
+    /// <param name="stageDelay">Delay in seconds between each reload stage.</param>
+    public async Task FineMotorSkillsReloadAsync(float stageDelay)
+    {
+        // If in the middle of a reload, close first to reset state
+        if (ReloadState != RevolverReloadState.NotReloading)
+        {
+            CloseCylinder();
+        }
+
+        // Check if cylinder needs reloading
+        int cylinderCapacity = CylinderCapacity;
+        if (CurrentAmmo >= cylinderCapacity)
+        {
+            GD.Print("[Revolver.FineMotorSkills] Cylinder already full — no reload needed");
+            return;
+        }
+
+        if (!MagazineInventory.HasSpareAmmo)
+        {
+            GD.Print("[Revolver.FineMotorSkills] No spare ammo — cannot reload");
+            return;
+        }
+
+        // Stage 1: Open cylinder (plays sound + ejects casings)
+        if (!OpenCylinder())
+        {
+            GD.Print("[Revolver.FineMotorSkills] Cannot open cylinder");
+            return;
+        }
+        GD.Print("[Revolver.FineMotorSkills] Stage: cylinder open");
+
+        if (stageDelay > 0)
+        {
+            await ToSignal(GetTree().CreateTimer(stageDelay), "timeout");
+        }
+
+        // Stage 2: Insert cartridges one by one with sounds between each
+        int inserted = 0;
+        for (int i = 0; i < cylinderCapacity; i++)
+        {
+            if (CanInsertCartridge)
+            {
+                if (InsertCartridge())
+                {
+                    inserted++;
+                    GD.Print($"[Revolver.FineMotorSkills] Stage: inserted cartridge {inserted}");
+
+                    if (stageDelay > 0)
+                    {
+                        await ToSignal(GetTree().CreateTimer(stageDelay), "timeout");
+                    }
+                }
+            }
+            // Rotate to next chamber to find empty ones
+            if (i < cylinderCapacity - 1)
+            {
+                RotateCylinder(1);
+            }
+        }
+
+        // Stage 3: Close cylinder (plays sound)
+        CloseCylinder();
+        GD.Print($"[Revolver.FineMotorSkills] Stage: cylinder close — {CurrentAmmo}/{cylinderCapacity} loaded");
+
+        GD.Print($"[Revolver.FineMotorSkills] Sequential reload complete: inserted {inserted} cartridges");
     }
 
     #endregion

@@ -25,8 +25,9 @@ enum BehaviorMode {
 	PATROL,  ## Moves between patrol points
 	GUARD    ## Stands in one place
 }
-## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579), RPG (rocket+pistol, Issue #583), PM (Makarov, Issue #583), MACHINE_GUN (PKM belt-fed, #1033), SNIPER_RIFLE (ASVK, #1125).
-enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIFLE }
+
+## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579), RPG (rocket+pistol, Issue #583), PM (Makarov, Issue #583), MACHINE_GUN (PKM belt-fed, #1033), SNIPER_RIFLE (ASVK, #1125), REVOLVER (RSh-12, #1242).
+enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIFLE, REVOLVER }
 
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
 @export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.
@@ -78,6 +79,8 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIF
 @export var start_invisible: bool = false  ## Start with invisibility cloak, reveal only when shooting/throwing grenade (Issue #1121).
 @export var initial_state: AIState = AIState.IDLE  ## Initial AI state on spawn (Issue #1121). SEARCHING starts enemy in search mode.
 @export var has_armored_skin: bool = false  ## Whether this enemy has Armored Skin passive item (Issue #1123).
+@export var has_swat_shield: bool = false  ## Whether this enemy is a SWAT shieldbearer with a blocking shield (Issue #1242).
+@export var is_gas_mask: bool = false  ## Whether this enemy is a Gas Mask type with chemical grenades (Issue #1353).
 @export var search_path_node: NodePath = NodePath("")  ## SearchPathWaypoints node path; when set, uses pre-planned waypoints in SEARCHING instead of spiral (Issue #1225).
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
@@ -180,6 +183,9 @@ var _patrol_points_snapped: bool = false  ## #1216: tracks whether patrol points
 var _spawn_physics_frame: int = 0  ## #1216: physics frame at spawn, used to delay navmesh snap by 1 frame
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
+var _hit_reaction_angle: float = 0.0; var _hit_reaction_timer: float = 0.0; const HIT_REACTION_DURATION: float = 0.8  ## Issue #1242: shield enemy slow rotation toward attacker on hit
+var _shield_tracking_angle: float = 0.0; var _shield_tracking_timer: float = 0.0  ## Issue #1242: delayed player tracking — shield enemy updates facing direction periodically, not continuously
+const SHIELD_TRACKING_INTERVAL: float = 1.5  ## Seconds between player-direction updates while shield is up (allows flanking)
 var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
 const CORNER_CHECK_DURATION: float = 0.3  ## How long to look at a corner (seconds)
 const CORNER_CHECK_DISTANCE: float = 150.0  ## Max distance to detect openings
@@ -334,6 +340,10 @@ var _pacifist: PacifistComponent = null  ## Pacifism state management
 var _evaluated_pacifists: Array = []  ## Pacifists already evaluated for spread (Level 5+), prevents re-rolling
 var _force_field_component: EnemyForceFieldComponent = null  ## [Issue #1034] Force field component
 var _armored_skin_component: EnemyArmoredSkinComponent = null  ## [Issue #1123] Armored skin component
+var _shield_component: EnemyShieldComponent = null; var _formation_shielder: Node2D = null; var _formation_target_pos: Vector2 = Vector2.ZERO  ## [Issue #1242] SWAT shield + formation
+var _revolver_cocking: bool = false  ## [Issue #1242] True while hammer is being cocked before revolver shot
+var _revolver_component: EnemyRevolverComponent = null  ## [Issue #1242] Revolver reload/casing component
+var _knockback_velocity: Vector2 = Vector2.ZERO  ## [Issue #1242] Knockback impulse that decays over time
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
@@ -364,6 +374,7 @@ var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenad
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
+var _gas_mask_grenade: GasMaskGrenadeComponent = null  ## Issue #1353: Chemical grenade component for gas mask enemies.
 var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
 var _tactical_group: TacticalGroupComponent = null  ## Issue #1287: Tactical group movement — enemies within 500 px spread around the player.
 var _pursuit_component: PursuitComponent = null  ## Issue #1289: Cover-finding logic for PURSUING state.
@@ -400,6 +411,8 @@ func _ready() -> void:
 	_setup_machete_component(); if has_force_field: _force_field_component = EnemyForceFieldComponent.new(); _force_field_component.name = "ForceFieldComponent"; add_child(_force_field_component); _force_field_component.setup(); if _shield_icon: _shield_icon.visible = true  # Issue #579, #1034, #1079
 	_sniper_component = EnemySniperComponent.new(); _sniper_component.enemy = self; _sniper_component.log_to_file_fn = _log_to_file; _sniper_component.name = "SniperComponent"; add_child(_sniper_component)  # Issues #1171, #1163
 	if has_armored_skin: _armored_skin_component = EnemyArmoredSkinComponent.new(); _armored_skin_component.name = "ArmoredSkinComponent"; add_child(_armored_skin_component); _current_health += 1; _max_health += 1; _update_health_visual()  # Issue #1123: +1 HP bonus from Armored Skin
+	if has_swat_shield: _shield_component = EnemyShieldComponent.new(); _shield_component.name = "ShieldComponent"; add_child(_shield_component); _shield_component.setup()  # Issue #1242: SWAT shieldbearer
+	if weapon_type == WeaponType.REVOLVER: _revolver_component = EnemyRevolverComponent.new(); _revolver_component.enemy = self; _revolver_component.name = "RevolverComponent"; add_child(_revolver_component)  # Issue #1242: revolver reload
 	if is_teleporter: _teleport_component = EnemyTeleportComponent.new(); _teleport_component.name = "TeleportComponent"; add_child(_teleport_component); EnemyTeleportComponent.add_backpack(_enemy_model)  # Issue #752
 	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
@@ -446,6 +459,9 @@ func _ready() -> void:
 	elif initial_state != AIState.IDLE: _current_state = initial_state  # Issue #1121: initial state override
 	else: _transition_to_idle()  # Issue #1202: honor IDLE disable at spawn (redirects to SEARCHING if IDLE is disabled)
 	if start_invisible: _invisibility = EnemyInvisibilityComponent.new(); _invisibility.name = "InvisibilityComponent"; add_child(_invisibility); _invisibility.initialize(_enemy_model)  # Issue #1121
+	if is_gas_mask:  # Issue #1353: chemical grenades with illusion copies
+		_gas_mask_grenade = GasMaskGrenadeComponent.new(); _gas_mask_grenade.name = "GasMaskGrenadeComponent"; add_child(_gas_mask_grenade)
+		if _head_sprite: var _gm_tex := load("res://assets/sprites/characters/enemy/gas_mask_head.png"); if _gm_tex: _head_sprite.texture = _gm_tex; _head_sprite.rotation_degrees = -90.0  # Issue #1363: sprite drawn facing up, rotate to face right
 
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
@@ -634,9 +650,10 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 			var state_before_delay := _current_state
 			_log_to_file("Reload complete sound heard - waiting 200ms before cautious transition from %s" % AIState.keys()[_current_state])
 			await get_tree().create_timer(0.2).timeout
-			if not _is_alive: return
+			if not is_inside_tree() or not _is_alive: return  # Issue #1334 Round 11: guard freed node
 			if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
-				if _has_valid_cover:
+				if _shield_component and _shield_component.is_active(): pass  # Issue #1242: no retreat with shield up
+				elif _has_valid_cover:
 					_log_to_file("Reload complete sound triggered retreat - transitioning from %s to RETREATING (delayed from %s)" % [AIState.keys()[_current_state], AIState.keys()[state_before_delay]])
 					_transition_to_retreating()
 				elif enable_cover:
@@ -768,6 +785,14 @@ func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
 
+	# Issue #1334 Round 8-9: Freeze all enemy AI when player is dead or freed to prevent
+	# native crashes from physics queries on dead/freed player nodes.
+	var _gm_r9: Node = get_node_or_null("/root/GameManager")
+	if _gm_r9 and not _gm_r9.player_alive: return
+	if _player and not is_instance_valid(_player):
+		_player = null
+		return
+
 	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
 	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if _perf_settings and not _perf_settings.is_ai_enabled(): return
@@ -851,7 +876,15 @@ func _physics_process(delta: float) -> void:
 	_select_best_target()
 	_update_memory(delta)
 	_update_goap_state()
-	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null))  # Issue #1034
+	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null)); if _shield_component: _shield_component.update(delta)  # Issues #1034, #1242
+	if _hit_reaction_timer > 0: _hit_reaction_timer -= delta  # Issue #1242: decay hit reaction rotation timer
+	# Issue #1242: delayed player tracking for shield enemy — update facing angle periodically, not continuously
+	if _shield_component and _shield_component.is_active():
+		_shield_tracking_timer -= delta
+		if _shield_tracking_timer <= 0.0 and _current_target and is_instance_valid(_current_target):
+			_shield_tracking_angle = (_current_target.global_position - global_position).normalized().angle()
+			_shield_tracking_timer = SHIELD_TRACKING_INTERVAL
+			_log_to_file("SHIELD_TRACK: updated facing to %.1f° (interval=%.1fs)" % [rad_to_deg(_shield_tracking_angle), SHIELD_TRACKING_INTERVAL])
 	_update_grenade_triggers(delta)
 	_update_grenade_danger_detection()  # Issue #407: Check for nearby grenades
 	if _teleport_component: _teleport_component.update(delta)  # Issue #752: Advance teleport cooldown
@@ -882,6 +915,9 @@ func _physics_process(delta: float) -> void:
 	# Issue #1146: Apply separation force to prevent enemies from overlapping each other.
 	if _is_alive:
 		velocity = _apply_separation_force(velocity, delta)
+		if _shield_component: velocity *= _shield_component.get_speed_multiplier()  # Issue #1242: shield halves speed
+	if _knockback_velocity.length() > 1.0: velocity += _knockback_velocity; _knockback_velocity *= exp(-8.0 * delta)  # Issue #1242: knockback decay
+	elif _knockback_velocity != Vector2.ZERO: _knockback_velocity = Vector2.ZERO
 	move_and_slide()
 
 	# Push any casings we collided with (Issue #341)
@@ -935,27 +971,26 @@ func _update_enemy_model_rotation() -> void:
 	var rotation_reason := ""  # Issue #397 debug: track which priority was used
 	if _is_facing_for_grenade_throw and _grenade_throw_facing_direction != Vector2.ZERO:  # P0: Issue #712
 		target_angle = _grenade_throw_facing_direction.angle(); has_target = true; rotation_reason = "P0:grenade_throw"
+	elif _hit_reaction_timer > 0:  # P0.5: Issue #1242 — shield enemy slowly turns toward attacker after hit
+		target_angle = _hit_reaction_angle; has_target = true; rotation_reason = "P0.5:hit_reaction"
 	elif _current_target != null and (_can_see_player or _can_see_companion):  # P1: Face best target if visible
-		target_angle = (_current_target.global_position - global_position).normalized().angle()
-		has_target = true
-		rotation_reason = "P1:visible"
-	# Priority 2: Combat states (#386, #397) — face target even without visibility (SEARCHING, ASSAULT, etc.)
-	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _current_target != null:
-		target_angle = (_current_target.global_position - global_position).normalized().angle()
-		has_target = true
-		rotation_reason = "P2:combat_state"
-	elif _corner_check_timer > 0:
-		target_angle = _corner_check_angle  # Corner check: smooth rotation (Issue #347)
-		has_target = true
-		rotation_reason = "P3:corner"
+		if _shield_component and _shield_component.is_active():  # Issue #1242: delayed tracking — only update facing periodically, allowing flanking
+			target_angle = _shield_tracking_angle; has_target = true; rotation_reason = "P1:shield_delayed"
+		else:
+			target_angle = (_current_target.global_position - global_position).normalized().angle(); has_target = true; rotation_reason = "P1:visible"
+	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _current_target != null:  # P2: Combat states (#386, #397)
+		if _shield_component and _shield_component.is_active():  # Issue #1242: delayed tracking in combat states too
+			target_angle = _shield_tracking_angle; has_target = true; rotation_reason = "P2:shield_delayed"
+		else:
+			target_angle = (_current_target.global_position - global_position).normalized().angle(); has_target = true; rotation_reason = "P2:combat_state"
+	elif _corner_check_timer > 0:  # P3: Corner check (#347)
+		target_angle = _corner_check_angle; has_target = true; rotation_reason = "P3:corner"
 	elif velocity.length_squared() > 1.0:
-		target_angle = velocity.normalized().angle()
-		has_target = true
-		rotation_reason = "P4:velocity"
+		if _shield_component and _shield_component.is_active():  # Issue #1242: shield uses delayed tracking angle while moving
+			target_angle = _shield_tracking_angle; has_target = true; rotation_reason = "P4:shield_delayed"
+		else: target_angle = velocity.normalized().angle(); has_target = true; rotation_reason = "P4:velocity"
 	elif _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
-		target_angle = _idle_scan_targets[_idle_scan_target_index]
-		has_target = true
-		rotation_reason = "P5:idle_scan"
+		target_angle = _idle_scan_targets[_idle_scan_target_index]; has_target = true; rotation_reason = "P5:idle_scan"
 	if not has_target:
 		return
 	# Issue #397 debug: Log rotation priority changes
@@ -967,11 +1002,12 @@ func _update_enemy_model_rotation() -> void:
 	var delta := get_physics_process_delta_time()
 	var current_rot := _enemy_model.global_rotation
 	var angle_diff := wrapf(target_angle - current_rot, -PI, PI)
-	if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
+	var rot_speed := MODEL_ROTATION_SPEED * (_shield_component.get_rotation_multiplier() if _shield_component else 1.0)  # Issue #1242: shield slows turning
+	if abs(angle_diff) <= rot_speed * delta:
 		_enemy_model.global_rotation = target_angle
 	elif angle_diff > 0:
-		_enemy_model.global_rotation = current_rot + MODEL_ROTATION_SPEED * delta
-	else: _enemy_model.global_rotation = current_rot - MODEL_ROTATION_SPEED * delta
+		_enemy_model.global_rotation = current_rot + rot_speed * delta
+	else: _enemy_model.global_rotation = current_rot - rot_speed * delta
 	var aiming_left := absf(_enemy_model.global_rotation) > PI / 2
 	_model_facing_left = aiming_left
 	if aiming_left:
@@ -993,6 +1029,21 @@ func _force_model_to_face_direction(direction: Vector2) -> void:
 		_enemy_model.global_rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
+## Issue #1242: Set hit reaction rotation target for shield enemy (slow turn toward attacker).
+func _set_hit_reaction_target(dir: Vector2) -> void:
+	if dir.length_squared() < 0.01: return
+	_hit_reaction_angle = dir.angle(); _hit_reaction_timer = HIT_REACTION_DURATION
+	# Issue #1242: also refresh delayed tracking angle on hit — enemy learns attacker direction
+	if _shield_component and _shield_component.is_active():
+		_shield_tracking_angle = _hit_reaction_angle; _shield_tracking_timer = SHIELD_TRACKING_INTERVAL
+	_log_to_file("HIT_REACTION: target=%.1f°, timer=%.2fs" % [rad_to_deg(_hit_reaction_angle), _hit_reaction_timer])
+## Issue #1242: Smooth body rotation respecting shield multiplier. Replaces instant `rotation = angle` for shield enemies.
+func _rotate_body_toward(target_angle: float, delta: float) -> void:
+	var spd := rotation_speed * (_shield_component.get_rotation_multiplier() if _shield_component and _shield_component.is_active() else 1.0)
+	var diff := wrapf(target_angle - rotation, -PI, PI)
+	if abs(diff) <= spd * delta: rotation = target_angle
+	elif diff > 0: rotation += spd * delta
+	else: rotation -= spd * delta
 ## Updates walking animation (bobbing motion for body parts). @param delta: Time since last frame.
 func _update_walk_animation(delta: float) -> void:
 	var is_moving := velocity.length() > 10.0
@@ -1096,6 +1147,7 @@ func _update_suppression(delta: float) -> void:
 ## Update reload state.
 func _update_reload(delta: float) -> void:
 	if not _is_reloading: return
+	if _revolver_component and _revolver_component.is_reloading_coroutine(): return  # [#1242] Revolver uses coroutine, not timer
 	_reload_timer += delta
 	if _reload_timer >= reload_time: _finish_reload()
 
@@ -1104,6 +1156,8 @@ func _start_reload() -> void:
 	if _is_reloading or _reserve_ammo <= 0: return
 	_is_reloading = true; _reload_timer = 0.0; reload_started.emit()
 	_log_debug("Reloading... (%d reserve ammo)" % _reserve_ammo)
+	if weapon_type == WeaponType.REVOLVER and enable_cover and _current_state not in [AIState.IN_COVER, AIState.SEEKING_COVER, AIState.EVADING_GRENADE]: _transition_to_seeking_cover()  # Issue #1242: revolver reloads in cover
+	if _revolver_component and not _revolver_component.is_reloading_coroutine(): _revolver_component.start_reload_sequence()  # [#1242] Multi-step reload
 
 ## Finish the reload process.
 func _finish_reload() -> void:
@@ -1138,11 +1192,14 @@ func _can_shoot() -> bool:
 ## [#1033] Machine gunner corridor suppression: burst into corridor where player was last seen (no LOS needed).
 func _machine_gunner_fire_at_corridor(target_pos: Vector2) -> void:
 	if bullet_scene == null: return
+	# Issue #1334 Round 5: Don't shoot at a dead player
+	var _gm3 := get_node_or_null("/root/GameManager")
+	if _gm3 and not _gm3.player_alive: return
 	var to_target := (target_pos - global_position).normalized()
 	if to_target == Vector2.ZERO: return
 	# Face toward the corridor
 	if _enemy_model: _enemy_model.global_rotation = to_target.angle()
-	rotation = to_target.angle()
+	_rotate_body_toward(to_target.angle(), get_physics_process_delta_time())
 	var spawn_pos := _get_bullet_spawn_position(to_target)
 	# Small spread (±5°) to simulate suppressive corridor fire
 	var spread := deg_to_rad(randf_range(-5.0, 5.0))
@@ -1191,6 +1248,7 @@ func _find_distant_cover_position() -> void:
 		var cp := raycast.get_collision_point()
 		var cn := raycast.get_collision_normal()
 		var cover_pos := cp + cn * 35.0
+		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue  # Issue #1355
 		if not _can_reach_position(cover_pos): continue
 		var is_hidden := not _is_position_visible_from_player(cover_pos)
 		if not is_hidden and found_hidden: continue
@@ -1213,6 +1271,8 @@ func _process_ai_state(delta: float) -> void:
 	if _is_stunned:
 		velocity = Vector2.ZERO
 		return
+	if _formation_shielder != null and (not is_instance_valid(_formation_shielder) or not _formation_shielder.has_method("is_shield_active") or not _formation_shielder.is_shield_active()): _formation_shielder = null  # Issue #1242
+	if _formation_shielder != null: _move_to_target_nav(_formation_target_pos, move_speed); return
 	var previous_state := _current_state
 
 	# ABSOLUTE HIGHEST PRIORITY: Grenade danger zone evasion (Issue #407)
@@ -1233,14 +1293,15 @@ func _process_ai_state(delta: float) -> void:
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	var is_distraction_enabled: bool = difficulty_manager != null and difficulty_manager.is_distraction_attack_enabled()
 	var is_confused: bool = _memory_reset_confusion_timer > 0.0
-	if _combat_allowed and is_distraction_enabled and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _goap_world_state.get("player_distracted", false) and _can_see_player and _player:
+	if _combat_allowed and is_distraction_enabled and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _goap_world_state.get("player_distracted", false) and _can_see_player and _player and is_instance_valid(_player):
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
 			_log_to_file("Player distracted - priority attack triggered")
-			rotation = direction_to_player.angle()
-			_force_model_to_face_direction(direction_to_player)  # Fix issue #264: ensure correct aim
+			_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
+			if _shield_component and _shield_component.get_rotation_multiplier() < 1.0: _set_hit_reaction_target(direction_to_player)  # Issue #1242: shield enemy slowly aims
+			else: _force_model_to_face_direction(direction_to_player)  # Fix issue #264: ensure correct aim
 			_shoot()
 			_shoot_timer = 0.0
 			_detection_delay_elapsed = true
@@ -1281,11 +1342,9 @@ func _process_ai_state(delta: float) -> void:
 			var reason: String = "reloading" if player_reloading else "empty ammo"
 			_log_to_file("Player %s - priority attack triggered" % reason)
 
-			# Aim at player immediately
-			rotation = direction_to_player.angle()
-			# CRITICAL: Force model to face player for correct aim direction (issue #264)
-			_force_model_to_face_direction(direction_to_player)
-
+			_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
+			if _shield_component and _shield_component.get_rotation_multiplier() < 1.0: _set_hit_reaction_target(direction_to_player)  # Issue #1242: shield slowly aims
+			else: _force_model_to_face_direction(direction_to_player)  # Issue #264: correct aim direction
 			_shoot(); _shoot_timer = 0.0
 			_detection_delay_elapsed = true
 			if _current_state == AIState.IDLE:
@@ -1397,9 +1456,8 @@ func _process_combat_state(delta: float) -> void:
 
 	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:  # [#1163] Standoff + blind-fire through cover.
 		_sniper_component.process_combat(delta, _can_see_player, _player, _last_known_player_position, _prediction); return
-	# Check suppression (ignore during vulnerability pursuit)
 	# RCA-19: Add minimum combat duration before retreating to prevent rapid COMBAT→RETREATING cycling
-	if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
+	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not (_shield_component and _shield_component.is_active()):  # Issue #1242: no retreat with shield up
 		if _combat_state_timer >= 0.15:  # Brief minimum (0.15s) to prevent instant cycling
 			_combat_exposed = false
 			_combat_approaching = false
@@ -1417,6 +1475,10 @@ func _process_combat_state(delta: float) -> void:
 			_transition_to_pursuing()
 			return
 		if _suppressive_fire: _suppressive_fire.try_suppress_pursuing(_can_see_player, _last_known_player_position, _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown)  # Issue #910
+
+	# Issue #1353: Gas mask enemy continuously tries to throw chemical grenades during combat
+	if is_gas_mask and _gas_mask_grenade and _gas_mask_grenade.has_grenades() and _player and not _gas_mask_grenade.is_throwing():
+		_gas_mask_grenade.try_throw(_player.global_position)
 
 	# Update detection delay timer
 	if not _detection_delay_elapsed:
@@ -1461,7 +1523,7 @@ func _process_combat_state(delta: float) -> void:
 			var sidestep_dir := _find_sidestep_direction_for_clear_shot(direction_to_player)
 			if sidestep_dir != Vector2.ZERO:
 				velocity = sidestep_dir * combat_move_speed * 0.7
-				rotation = direction_to_player.angle()  # Keep facing player while sidestepping
+				_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 				_log_debug("COMBAT exposed: sidestepping to maintain clear shot")
 			else:
 				# No sidestep works - stay still, the shot might clear up
@@ -1511,7 +1573,7 @@ func _process_combat_state(delta: float) -> void:
 			# Apply enhanced wall avoidance with dynamic weighting
 			move_direction = _apply_wall_avoidance(move_direction)
 			velocity = move_direction * combat_move_speed
-			rotation = direction_to_player.angle()  # Keep facing player
+			_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 
 			# Check if the new position now has a clear shot
 			if _is_bullet_spawn_clear(direction_to_player):
@@ -1567,7 +1629,7 @@ func _process_combat_state(delta: float) -> void:
 		# Apply enhanced wall avoidance with dynamic weighting
 		move_direction = _apply_wall_avoidance(move_direction)
 		velocity = move_direction * combat_move_speed
-		rotation = direction_to_player.angle()  # Always face player
+		_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 
 		# Can shoot while approaching (only after detection delay and if have clear shot)
 		if has_clear_shot and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
@@ -1674,7 +1736,8 @@ func _process_in_cover_state(delta: float) -> void:
 	if _is_visible_from_player():
 		# If in alarm mode and can see player, fire a burst before escaping
 		# [#1161] Sniper rifle is bolt-action: no burst fire (flee immediately)
-		if _in_alarm_mode and _can_see_player and _player and weapon_type != WeaponType.SNIPER_RIFLE:
+		# [#1242] Revolver is single-action: no burst fire
+		if _in_alarm_mode and _can_see_player and _player and weapon_type != WeaponType.SNIPER_RIFLE and weapon_type != WeaponType.REVOLVER:
 			if not _cover_burst_pending:
 				# Start the cover burst
 				_cover_burst_pending = true
@@ -1772,10 +1835,8 @@ func _process_flanking_state(delta: float) -> void:
 		if _flank_fail_count > 0:
 			_flank_fail_count = 0
 
-	if _under_fire and enable_cover:
-		_flank_side_initialized = false
-		_transition_to_retreating()
-		return
+	if _under_fire and enable_cover and not (_shield_component and _shield_component.is_active()):  # Issue #1242: no retreat with shield up
+		_flank_side_initialized = false; _transition_to_retreating(); return
 
 	# Only transition to combat if we can ACTUALLY HIT the target (#934: incl. companion)
 	if (_can_see_player or _can_see_companion) and _can_hit_target_from_current_position():
@@ -1810,10 +1871,8 @@ func _process_suppressed_state(delta: float) -> void:
 	# Check if player has flanked us - if we're now visible from player's position,
 	# we need to find new cover even while suppressed
 	if _is_visible_from_player():
-		# In suppressed state we're always in alarm mode - fire a burst before escaping if we can see player/companion
-		# Issue #934: also consider companion visibility
-		# [#1161] Sniper rifle is bolt-action: no burst fire (flee immediately)
-		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and weapon_type != WeaponType.SNIPER_RIFLE:
+		# Fire burst before escaping if visible (#934 companion, #1161/#1242 skip bolt/single-action)
+		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and weapon_type != WeaponType.SNIPER_RIFLE and weapon_type != WeaponType.REVOLVER:
 			if not _cover_burst_pending:
 				# Start the cover burst
 				_cover_burst_pending = true
@@ -1937,7 +1996,8 @@ func _process_retreat_full_hp(delta: float, _direction_to_cover: Vector2) -> voi
 ## Process ONE_HIT retreat: quick burst of 2-4 shots in an arc while turning, then face cover.
 func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void:
 	# [#1161] Sniper rifle is bolt-action: skip burst phase and run to cover immediately
-	if weapon_type == WeaponType.SNIPER_RIFLE:
+	# [#1242] Revolver is single-action: no burst fire (same as sniper)
+	if weapon_type == WeaponType.SNIPER_RIFLE or weapon_type == WeaponType.REVOLVER:
 		_retreat_burst_complete = true
 		_move_to_target_nav(_cover_position, combat_move_speed)
 		return
@@ -1966,7 +2026,7 @@ func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void
 			var cover_direction: Vector2 = (_cover_position - global_position).normalized()
 			var cover_angle: float = cover_direction.angle()
 			target_angle = lerp_angle(player_angle, cover_angle, burst_progress * 0.7)
-			rotation = target_angle
+			_rotate_body_toward(target_angle, delta)
 
 		# Use navigation to move toward cover (slower during burst)
 		var nav_direction: Vector2 = _get_nav_direction_to(_cover_position)
@@ -2007,10 +2067,8 @@ func _process_pursuing_state(delta: float) -> void:
 	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null and _sniper_component.process_pursuing(delta, _can_see_player, _player, _last_known_player_position, _prediction):
 		return
 
-	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not _is_melee_weapon:
-		_pursuit_approaching = false
-		_transition_to_retreating()
-		return
+	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not _is_melee_weapon and not (_shield_component and _shield_component.is_active()):  # Issue #1242: no retreat with shield up
+		_pursuit_approaching = false; _transition_to_retreating(); return
 
 	# Issue #604: Grenadier proactive passage throw - throw before entering passage/cover
 	if is_grenadier and _grenade_component is GrenadierGrenadeComponent and _nav_agent and not _nav_agent.is_navigation_finished():
@@ -2154,10 +2212,7 @@ func _process_pursuing_state(delta: float) -> void:
 	if _has_pursuit_cover:
 		var distance: float = global_position.distance_to(_pursuit_next_cover)
 
-		# Check if we've reached the pursuit cover
-		# Note: We only check distance here, NOT visibility from player.
-		# If we checked visibility, the enemy would immediately consider themselves
-		# "at cover" even before moving, since they start hidden from player.
+		# Check if we've reached the pursuit cover (distance only, not visibility)
 		if distance < 15.0:
 			_log_debug("Reached pursuit cover at distance %.1f" % distance)
 			_has_pursuit_cover = false
@@ -2365,10 +2420,10 @@ func _process_searching_state(delta: float) -> void:
 						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0; _search_last_progress_position = global_position; return
 				else: _search_stuck_timer = 0.0; _search_last_progress_position = global_position
 				if dir.length() > 0.1:
-					rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta)
+					_rotate_body_toward(dir.angle(), delta)
 					_process_corner_check(delta, dir, "SEARCHING")  # Issue #332
 	else:
-		_search_scan_timer += delta; rotation += delta * 1.5
+		_search_scan_timer += delta; rotation += delta * 1.5 * (_shield_component.get_rotation_multiplier() if _shield_component and _shield_component.is_active() else 1.0)
 		if _search_scan_timer >= SEARCH_SCAN_DURATION:
 			_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 			_search_moving_to_waypoint = true
@@ -2411,7 +2466,7 @@ func _process_evading_grenade_state(delta: float) -> void:
 				var direction := (next_pos - global_position).normalized()
 				velocity = direction * combat_move_speed
 				move_and_slide(); _push_casings()
-				if direction.length() > 0.1: rotation = lerp_angle(rotation, direction.angle(), 10.0 * delta)
+				if direction.length() > 0.1: _rotate_body_toward(direction.angle(), delta)
 			else:
 				velocity = (evasion_target - global_position).normalized() * combat_move_speed
 				move_and_slide(); _push_casings()
@@ -2449,6 +2504,9 @@ func _process_pacifist_state(_d: float) -> void:  ## PACIFIST: hide in cover / r
 func _shoot_with_inaccuracy() -> void:
 	if bullet_scene == null or _player == null:
 		return
+	# Issue #1334 Round 5: Don't shoot at a dead player
+	var _gm2 := get_node_or_null("/root/GameManager")
+	if _gm2 and not _gm2.player_alive: return
 
 	if not _can_shoot():
 		return
@@ -2597,6 +2655,8 @@ func _transition_to_combat() -> void:
 	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
 	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
+	if is_gas_mask and _gas_mask_grenade and _gas_mask_grenade.has_grenades() and _player:  # Issue #1353: throw chemical grenade before shooting
+		_gas_mask_grenade.try_throw(_player.global_position)
 
 func _transition_to_seeking_cover() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_seeking_cover_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -3263,6 +3323,10 @@ func _find_cover_position() -> void:
 			# Using 35 pixels to provide some margin for the enemy's collision shape
 			var cover_pos := collision_point + collision_normal * 35.0
 
+			# Issue #1355: teleporters skip nearby cover (would cause in-place flicker).
+			if is_teleporter and global_position.distance_to(cover_pos) < 10.0:
+				continue
+
 			# CRITICAL: Verify we can actually reach this cover position
 			# This prevents selecting cover positions on the opposite side of walls
 			if not _can_reach_position(cover_pos):
@@ -3273,10 +3337,7 @@ func _find_cover_position() -> void:
 
 			# Only consider hidden positions unless we have no choice
 			if is_hidden or not found_hidden_cover:
-				# Score based on:
-				# 1. Whether position is hidden (highest priority)
-				# 2. Distance from enemy (closer is better)
-				# 3. Position relative to player (behind cover from player's view)
+				# Score: hidden (highest priority), distance (closer=better), position relative to player
 				var hidden_score: float = 10.0 if is_hidden else 0.0  # Heavy weight for hidden positions
 
 				var distance_score := 1.0 - (global_position.distance_to(cover_pos) / COVER_CHECK_DISTANCE)
@@ -3418,10 +3479,7 @@ func _find_flank_cover_toward_target() -> void:
 			# Cover position is offset from collision point along normal
 			var cover_pos := collision_point + collision_normal * 35.0
 
-			# For flanking, we want cover that is:
-			# 1. Closer to the flank target than we currently are
-			# 2. Not too far from our current position
-			# 3. Reachable (has clear path)
+			# For flanking: closer to flank target, not too far from us, reachable
 			var my_distance_to_target := global_position.distance_to(_flank_target)
 			var cover_distance_to_target := cover_pos.distance_to(_flank_target)
 			var cover_distance_from_me := global_position.distance_to(cover_pos)
@@ -3441,10 +3499,7 @@ func _find_flank_cover_toward_target() -> void:
 				# via another intermediate cover, but skip for now
 				continue
 
-			# Score calculation:
-			# Higher score for positions that are:
-			# - Closer to flank target (priority)
-			# - Not too far from current position
+			# Score: closer to flank target (priority), not too far from current position
 			var approach_score: float = (my_distance_to_target - cover_distance_to_target) / flank_distance
 			var distance_penalty: float = cover_distance_from_me / COVER_CHECK_DISTANCE
 
@@ -3472,12 +3527,7 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 	var closest_wall_distance: float = WALL_CHECK_DISTANCE
 	var hit_count: int = 0
 
-	# Raycast angles: spread from -90 to +90 degrees relative to movement direction
-	# Index 0: center (0°)
-	# Index 1-3: left side (-20°, -45°, -70°)
-	# Index 4-6: right side (+20°, +45°, +70°)
-	# Index 7: rear check for wall sliding (-180°)
-	# IMPORTANT: Use explicit Array[float] type to avoid type inference errors
+	# Raycast angles: center, left(-20°,-45°,-70°), right(+20°,+45°,+70°), rear(180°)
 	var angles: Array[float] = [0.0, -0.35, -0.79, -1.22, 0.35, 0.79, 1.22, PI]
 
 	var raycast_count: int = mini(WALL_CHECK_COUNT, _wall_raycasts.size())
@@ -3570,7 +3620,7 @@ func _check_player_visibility() -> void:
 	var is_vision_check_frame := (_vision_frame_counter % VISION_CHECK_INTERVAL) == _vision_frame_offset
 
 	# Fast-path: clear visibility immediately on blocking conditions (no raycasts needed).
-	if _is_blinded or _memory_reset_confusion_timer > 0.0 or _player == null or not _raycast \
+	if _is_blinded or _memory_reset_confusion_timer > 0.0 or _player == null or not is_instance_valid(_player) or not _raycast \
 			or (_player.has_method("is_invisible") and _player.is_invisible()):
 		_can_see_player = false; _player_visibility_ratio = 0.0; _continuous_visibility_timer = 0.0
 		return
@@ -3593,11 +3643,7 @@ func _check_player_visibility() -> void:
 	if not _is_position_in_fov(_player.global_position):
 		_continuous_visibility_timer = 0.0; return
 
-	# Check multiple points on the player's body (center + corners) to handle
-	# cases where player is near a wall corner. A single raycast to the center
-	# might hit the wall, but parts of the player's body could still be visible.
-	# This fixes the issue where enemies couldn't see players standing close to
-	# walls in narrow passages (issue #264).
+	# Check multiple points on the player's body to handle wall corner cases (#264).
 	var check_points := _get_player_check_points(_player.global_position)
 	var visible_count := 0
 	for point in check_points:
@@ -3788,14 +3834,14 @@ func _aim_at_player() -> void:
 	# Get the delta time from the current physics process
 	var delta := get_physics_process_delta_time()
 
-	# Apply gradual rotation based on rotation_speed
-	if abs(angle_diff) <= rotation_speed * delta:
-		# Close enough to snap to target
+	# Apply gradual rotation based on rotation_speed; Issue #1242: shield slows all rotations
+	var aim_speed := rotation_speed * (_shield_component.get_rotation_multiplier() if _shield_component and _shield_component.is_active() else 1.0)
+	if abs(angle_diff) <= aim_speed * delta:
 		rotation = target_angle
 	elif angle_diff > 0:
-		rotation += rotation_speed * delta
+		rotation += aim_speed * delta
 	else:
-		rotation -= rotation_speed * delta
+		rotation -= aim_speed * delta
 
 ## Shoot a bullet or perform melee attack (Issue #579: MACHETE, Issue #824: night mode flash).
 func _shoot() -> void:
@@ -3819,6 +3865,19 @@ func _shoot() -> void:
 	_execute_shoot(target_position)
 func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting callback.
 	_is_pre_attack_flashing = false
+	# Issue #1334 Round 11: Guard against freed node during deferred shoot callbacks
+	if not is_inside_tree() or not _is_alive: return
+	# Issue #1334 Round 5: Don't shoot at a dead player — prevents crash from same-frame hitscan/damage
+	var _gm := get_node_or_null("/root/GameManager")
+	if _gm and not _gm.player_alive: return
+	# [Issue #1242] Revolver hammer cocking: 0.15s delay with cock sound before each shot (same as player Revolver.cs)
+	if weapon_type == WeaponType.REVOLVER and not _revolver_cocking:
+		_revolver_cocking = true
+		var audio_hc: Node = get_node_or_null("/root/AudioManager")
+		if audio_hc and audio_hc.has_method("play_revolver_hammer_cock"): audio_hc.play_revolver_hammer_cock(global_position)
+		await get_tree().create_timer(0.15).timeout
+		_revolver_cocking = false
+		if not is_inside_tree() or not is_instance_valid(self) or not _is_alive: return  # Issue #1334 Round 11: guard freed node after await
 	if _invisibility: _invisibility.reveal()  # Issue #1121: briefly reveal cloaked enemy when shooting
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
@@ -3838,12 +3897,13 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	elif weapon_type == WeaponType.SNIPER_RIFLE: _sniper_component.shoot_sniper_hitscan(direction, bullet_spawn_pos)  # [#1171] Hitscan avoids physics tunneling at 10000px/s
 	else: _shoot_single_bullet(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
-	if not _is_rpg_weapon: _spawn_casing(direction, weapon_forward)  # Issue #583: no casing for RPG
+	if not _is_rpg_weapon and weapon_type != WeaponType.REVOLVER: _spawn_casing(direction, weapon_forward)  # Issue #583: no casing for RPG; #1242: revolver ejects casings on reload, not per shot
 	var audio: Node = get_node_or_null("/root/AudioManager")
 	if audio:
 		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
 		elif weapon_type == WeaponType.MACHINE_GUN and audio.has_method("play_ak_shot"): audio.play_ak_shot(global_position)  # [#1033] PKM uses AK 7.62x39 sound
 		elif weapon_type == WeaponType.SNIPER_RIFLE and audio.has_method("play_asvk_shot"): audio.play_asvk_shot()  # [#1125] ASVK sniper rifle sound (non-positional, like player SniperRifle.cs)
+		elif weapon_type == WeaponType.REVOLVER and audio.has_method("play_revolver_shot"): audio.play_revolver_shot(global_position)  # [#1242] RSh-12 revolver shot sound
 		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
 	var sp: Node = get_node_or_null("/root/SoundPropagation")
 	var _now3 := Time.get_ticks_msec() / 1000.0
@@ -3854,17 +3914,22 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	if weapon_type == WeaponType.SNIPER_RIFLE:  # [#1177] Trigger 4-step bolt-action cycle
 		_is_bolt_cycling = true; _bolt_cycle_timer = 0.0; _bolt_cycle_step = 1
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
+	if _revolver_component: _revolver_component.track_round_fired()  # [#1242] Track for casing ejection
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _is_rpg_weapon and not _rpg_fired: _rpg_fired = true; _switch_to_secondary_weapon(); return  # Issue #583
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
 ## Spawn projectile. Pool first (Issue #724), fallback instantiate (Issue #516, #550).
 func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
+	# Issue #1334 Round 11: Guard against spawning projectiles when scene tree is unavailable
+	if not is_inside_tree(): return
+	var current_scene := get_tree().current_scene
+	if current_scene == null: return
 	var sid := get_instance_id(); var pm: Node = get_node_or_null("/root/ProjectilePoolManager")
 	if pm and pm.has_method("get_bullet"):
 		var p = pm.get_bullet()
 		if p and p.has_method("pool_activate"): p.pool_activate(pos, dir, sid, null); if p.get("shooter_position") != null: p.shooter_position = pos; return
-	var p := bullet_scene.instantiate(); p.global_position = pos; get_tree().current_scene.add_child(p)
+	var p := bullet_scene.instantiate(); p.global_position = pos; current_scene.add_child(p)
 	if p.has_method("SetDirection"): p.SetDirection(dir)
 	elif p.get("direction") != null: p.direction = dir
 	elif p.get("Direction") != null: p.Direction = dir
@@ -3877,11 +3942,14 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 
 ## Fire RPG rocket (Issue #583). RigidBody2D + linear_velocity after add_child (VOGGrenade pattern).
 func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
+	if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node
 	var rocket: Node2D = (preload("res://scenes/projectiles/RpgRocket.tscn") as PackedScene).instantiate() as Node2D
 	if rocket == null: _log_to_file("[RPG] ERROR: RpgRocket instantiate failed!"); return
+	var current_scene := get_tree().current_scene
+	if current_scene == null: _log_to_file("[RPG] ERROR: No current scene!"); return
 	var rocket_dir: Vector2 = dir.normalized() if dir.length() > 0.0 else Vector2.RIGHT
 	rocket.set("direction", rocket_dir); rocket.set("shooter_id", get_instance_id()); rocket.set("shooter_position", pos); rocket.global_position = pos
-	get_tree().current_scene.add_child(rocket)
+	current_scene.add_child(rocket)
 	_log_to_file("[RPG] Rocket launched at %s dir=%s" % [str(pos), str(rocket_dir)])
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
@@ -3907,7 +3975,10 @@ func _spawn_muzzle_flash(p: Vector2, d: Vector2) -> void:
 	if m: m.spawn_muzzle_flash(p, d)
 ## Play shell casing sound with a delay to simulate the casing hitting the ground.
 func _play_delayed_shell_sound() -> void:
+	# Issue #1334 Round 11: Guard against freed node after await.
+	if not is_inside_tree(): return
 	await get_tree().create_timer(0.15).timeout
+	if not is_inside_tree() or not _is_alive: return
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_shell_rifle"):
 		audio_manager.play_shell_rifle(global_position)
@@ -3915,6 +3986,9 @@ func _play_delayed_shell_sound() -> void:
 ## Spawn bullet casing (based on BaseWeapon.cs for visual consistency with player).
 func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
 	if casing_scene == null: return
+	if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node
+	var current_scene := get_tree().current_scene
+	if current_scene == null: return
 	var casing_spawn_position: Vector2 = global_position + weapon_forward * (bullet_spawn_offset * 0.5)
 	var casing: RigidBody2D = casing_scene.instantiate()
 	casing.global_position = casing_spawn_position
@@ -3928,7 +4002,7 @@ func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
 	else:
 		var fallback_caliber: Resource = load("res://resources/calibers/caliber_545x39.tres")
 		if fallback_caliber: casing.set("caliber_data", fallback_caliber)
-	get_tree().current_scene.add_child(casing)
+	current_scene.add_child(casing)
 
 ## Calculate lead prediction - aims where the player will be based on velocity.
 func _calculate_lead_prediction() -> Vector2:
@@ -3945,9 +4019,6 @@ func _calculate_lead_prediction() -> Vector2:
 		return player_pos
 
 	# Only use lead prediction if enough of the player's body is visible.
-	# This prevents pre-firing when the player is at the edge of cover with only
-	# a small part of their body visible. The player must be significantly exposed
-	# before the enemy can predict their movement.
 	if _player_visibility_ratio < lead_prediction_visibility_threshold:
 		_log_debug("Lead prediction disabled: visibility ratio %.2f < %.2f required (player at cover edge)" % [_player_visibility_ratio, lead_prediction_visibility_threshold])
 		return player_pos
@@ -3978,10 +4049,7 @@ func _calculate_lead_prediction() -> Vector2:
 		# Update distance for next iteration
 		distance = global_position.distance_to(predicted_pos)
 
-	# CRITICAL: Validate that the predicted position is actually visible to the enemy.
-	# If the predicted position is behind cover (e.g., player is running toward cover exit),
-	# we should NOT aim there - it would feel like the enemy is "cheating" by knowing
-	# where the player will emerge. Fall back to player's current visible position.
+	# Validate predicted position is visible; fall back to current position if behind cover.
 	if not _is_position_visible_to_enemy(predicted_pos):
 		_log_debug("Lead prediction blocked: predicted position %s is not visible, using current position %s" % [predicted_pos, player_pos])
 		return player_pos
@@ -4012,7 +4080,7 @@ func _process_patrol(delta: float) -> void:
 	var target_point := _patrol_points[_current_patrol_index]
 	if _nav_agent == null:  # Fallback if nav agent unavailable
 		if global_position.distance_to(target_point) < 5.0: _is_waiting_at_patrol_point = true; velocity = Vector2.ZERO; return
-		var d := (target_point - global_position).normalized(); velocity = d * move_speed; rotation = d.angle(); return
+		var d := (target_point - global_position).normalized(); velocity = d * move_speed; _rotate_body_toward(d.angle(), get_physics_process_delta_time()); return
 	# Issue #1220: use _move_to_target_nav so patrol gets the same wall-avoidance + ORCA +
 	# slide-collision corner-escape used by PURSUING/FLANKING, preventing wall-pressing.
 	if not _move_to_target_nav(target_point, move_speed):
@@ -4129,18 +4197,21 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	if not _is_alive:
 		return
 	if _force_field_component and _force_field_component.is_active(): _log_to_file("Hit blocked by force field"); return  # Issue #1034: invulnerable while force field active
-	if _armored_skin_component and _armored_skin_component.try_spawn_shards(_current_health): hit.emit(); _show_hit_flash(); _log_to_file("[ArmoredSkin] Triggering hit absorbed — damage ignored (Issue #1143)"); return  # Issue #1143: absorb the triggering hit's damage, mirroring player behaviour
+	# Issue #1242: Shield blocking — collision-based + direction fallback; shield enemy slowly turns toward attacker.
+	if _shield_component and _shield_component.did_intercept_this_frame(): _set_hit_reaction_target(-hit_direction.normalized()); return
+	if _shield_component and _shield_component.is_active() and _enemy_model and Vector2.from_angle(_enemy_model.global_rotation).dot(-hit_direction.normalized()) > 0.5:
+		if _shield_component.try_intercept_hit(caliber_data, damage, hit_direction): _set_hit_reaction_target(-hit_direction.normalized()); return
+	if _armored_skin_component and _armored_skin_component.try_spawn_shards(_current_health, maxi(int(round(damage)), 1)): hit.emit(); _show_hit_flash(); _log_to_file("[ArmoredSkin] Triggering hit absorbed — damage ignored (Issue #1143, #1300)"); return  # Issue #1143: absorb the triggering hit's damage; Issue #1300: also absorb lethal hits from high-damage weapons
 	# [#1033] Machine gunner: 30% frontal damage resistance (±15° arc, cos15°=0.9659).
 	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active and Vector2.from_angle(_enemy_model.global_rotation if _enemy_model else rotation).dot(-hit_direction.normalized()) >= 0.9659 and randf() < 0.30:
 		_log_to_file("[#1033] Machine gunner front-arc hit ignored"); hit.emit(); _show_hit_flash(); return
 
 	hit.emit()
-
-	# Store hit direction for death animation
-	_last_hit_direction = hit_direction
-
+	_last_hit_direction = hit_direction  # Store hit direction for death animation
 	var attacker_direction := -hit_direction.normalized()
-	if attacker_direction.length_squared() > 0.01: _force_model_to_face_direction(attacker_direction)
+	if attacker_direction.length_squared() > 0.01:  # Issue #1242: shield enemy slowly turns; normal enemies snap-rotate
+		if _shield_component and _shield_component.get_rotation_multiplier() < 1.0: _set_hit_reaction_target(attacker_direction)
+		else: _force_model_to_face_direction(attacker_direction)
 	_hits_taken_in_encounter += 1
 	var actual_damage: int = maxi(int(round(damage)), 1)
 	_log_to_file("Hit: dmg=%d, hp=%d/%d->%d/%d" % [actual_damage, _current_health, _max_health, _current_health - actual_damage, _max_health])
@@ -4178,6 +4249,11 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()
 			# Issue #1305: Only fire back if combat transition succeeded (not redirected to IDLE by PerformanceSettings)
 			if _current_state == AIState.COMBAT and _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
+		# Issue #1355: Teleporter enemies teleport immediately on first damage.
+		if _teleport_component and _teleport_component.is_ready():
+			if not _has_valid_cover: _find_cover_position()
+			if _teleport_component.try_damage_teleport(_cover_position, _flank_target):
+				_log_to_file("[#1355] Damage-triggered teleport succeeded"); _transition_to_in_cover()
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
@@ -4187,6 +4263,7 @@ func _show_hit_flash() -> void:
 	_set_all_sprites_modulate(hit_flash_color)
 
 	await get_tree().create_timer(hit_flash_duration).timeout
+	if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node after await
 
 	# Restore color based on current health (if still alive)
 	if _is_alive:
@@ -4317,12 +4394,14 @@ func _on_death() -> void:
 	if destroy_on_death:
 		# Wait for death animation to complete before destroying
 		await get_tree().create_timer(respawn_delay).timeout
+		if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node after await
 		# Clean up death animation ragdoll bodies before destroying
 		if _death_animation and _death_animation.has_method("reset"):
 			_death_animation.reset()
 		queue_free()
 	else:
 		await get_tree().create_timer(respawn_delay).timeout
+		if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node after await
 		_reset()
 
 ## Resets the enemy to its initial state.
@@ -4490,6 +4569,27 @@ func get_nav_path() -> PackedVector2Array:
 	if _nav_agent == null: return PackedVector2Array()
 	return _nav_agent.get_current_navigation_path()
 
+## Returns cover raycast collision data for debug visualization (Issue #1359: CoverRaycastMonitor).
+## Each entry: { "origin": Vector2, "target": Vector2, "colliding": bool, "point": Vector2, "normal": Vector2 }
+func get_cover_raycast_data() -> Array:
+	var data: Array = []
+	for i in range(_cover_raycasts.size()):
+		var rc: RayCast2D = _cover_raycasts[i]
+		var entry: Dictionary = {
+			"origin": rc.global_position,
+			"target": rc.global_position + rc.target_position,
+			"colliding": rc.is_colliding(),
+		}
+		if rc.is_colliding():
+			entry["point"] = rc.get_collision_point()
+			entry["normal"] = rc.get_collision_normal()
+		data.append(entry)
+	return data
+
+## Returns the current cover position and whether it is valid (Issue #1359: CoverRaycastMonitor).
+func get_cover_info() -> Dictionary:
+	return { "position": _cover_position, "valid": _has_valid_cover }
+
 func set_player_reloading(is_reloading: bool) -> void:
 	var old: bool = _goap_world_state.get("player_reloading", false)
 	_goap_world_state["player_reloading"] = is_reloading
@@ -4627,16 +4727,13 @@ func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 
 ## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
-	# Issue #1249: Tactical yielding — let the closest enemy pass through narrow passages first.
-	# Do NOT yield in FLANKING: flanking has its own timeout+failure counter; interrupting it with a
-	# 3-second yield causes the flank attempt to time out, increments the failure count, and after
-	# 2 failures disables flanking entirely for this enemy. (#1249 session 4)
+	# Issue #1249: Tactical yielding — let closest enemy pass first. Skip in FLANKING (#1249 s4).
 	if _tactical_movement and _current_state in [AIState.PURSUING, AIState.COMBAT]:
 		if _tactical_movement.check_and_yield(target_pos, speed, get_physics_process_delta_time()):
 			var _wp: Vector2 = _tactical_movement.get_yield_position()
 			if _wp != Vector2.ZERO and global_position.distance_to(_wp) > 20.0:
 				var _wd := _apply_wall_avoidance((_wp - global_position).normalized())
-				velocity = _wd * speed * 0.6; if velocity.length_squared() > 0.01: rotation = velocity.angle()
+				velocity = _wd * speed * 0.6; if velocity.length_squared() > 0.01: _rotate_body_toward(velocity.angle(), get_physics_process_delta_time())
 			else: velocity = Vector2.ZERO
 			return true
 	# Issue #1287: Tactical group encirclement — offset approach target so enemies spread around the player.
@@ -4660,7 +4757,7 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 		velocity = _avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else intended_vel
 	else:
 		velocity = intended_vel
-	if velocity.length_squared() > 0.01: rotation = velocity.angle()
+	if velocity.length_squared() > 0.01: _rotate_body_toward(velocity.angle(), get_physics_process_delta_time())
 	return true
 
 ## Issue #1146: Called by NavigationAgent2D when ORCA computes a safe avoidance velocity.
@@ -4722,7 +4819,9 @@ func is_aggressive() -> bool: return _aggression != null and _aggression.is_aggr
 ## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
 	if _flashbang_status: _flashbang_status.apply_flashbang_effect(blindness_duration, stun_duration)
-
+func is_shield_active() -> bool: return _shield_component != null and _shield_component.is_active()  ## Issue #1242
+func apply_knockback(impulse: Vector2) -> void: _knockback_velocity = impulse  ## Issue #1242: shield break stagger
+func set_formation_follow_target(shielder: Node2D, pos: Vector2) -> void: _formation_shielder = shielder; _formation_target_pos = pos  ## Issue #1242
 # Grenade System (Issue #363) - Component-based (extracted for Issue #377)
 ## Setup the grenade component. Called from _ready(). Grenadiers use GrenadierGrenadeComponent (Issue #604).
 func _setup_grenade_component() -> void:
