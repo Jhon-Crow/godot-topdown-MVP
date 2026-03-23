@@ -170,7 +170,7 @@ color = Color(1.0, 0.2, 0.8, 1)
 energy = 1.2
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 10.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonTop_2" type="PointLight2D" parent="Environment/NeonAccents/NeonTop"]
 position = Vector2(1264, 67)
@@ -178,7 +178,7 @@ color = Color(1.0, 0.2, 0.8, 1)
 energy = 1.2
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 10.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonTop_3" type="PointLight2D" parent="Environment/NeonAccents/NeonTop"]
 position = Vector2(1848, 67)
@@ -186,7 +186,7 @@ color = Color(1.0, 0.2, 0.8, 1)
 energy = 1.2
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 10.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonTop_Out_1" type="PointLight2D" parent="Environment/NeonAccents/NeonTop"]
 position = Vector2(680, 40)
@@ -194,7 +194,7 @@ color = Color(1.0, 0.2, 0.8, 1)
 energy = 1.0
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonTop_Out_2" type="PointLight2D" parent="Environment/NeonAccents/NeonTop"]
 position = Vector2(1264, 40)
@@ -202,7 +202,7 @@ color = Color(1.0, 0.2, 0.8, 1)
 energy = 1.0
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonTop_Out_3" type="PointLight2D" parent="Environment/NeonAccents/NeonTop"]
 position = Vector2(1848, 40)
@@ -210,7 +210,7 @@ color = Color(1.0, 0.2, 0.8, 1)
 energy = 1.0
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="NeonBottom" type="ColorRect" parent="Environment/NeonAccents"]
 offset_left = 64.0
@@ -225,7 +225,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.2
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 10.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonBottom_2" type="PointLight2D" parent="Environment/NeonAccents/NeonBottom"]
 position = Vector2(1264, 2061)
@@ -233,7 +233,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.2
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 10.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonBottom_3" type="PointLight2D" parent="Environment/NeonAccents/NeonBottom"]
 position = Vector2(1848, 2061)
@@ -241,7 +241,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.2
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 10.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonBottom_Out_1" type="PointLight2D" parent="Environment/NeonAccents/NeonBottom"]
 position = Vector2(680, 2090)
@@ -249,7 +249,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.0
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonBottom_Out_2" type="PointLight2D" parent="Environment/NeonAccents/NeonBottom"]
 position = Vector2(1264, 2090)
@@ -257,7 +257,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.0
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonBottom_Out_3" type="PointLight2D" parent="Environment/NeonAccents/NeonBottom"]
 position = Vector2(1848, 2090)
@@ -265,7 +265,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.0
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="NeonLeft" type="ColorRect" parent="Environment/NeonAccents"]
 offset_left = 64.0
@@ -280,7 +280,7 @@ color = Color(1.0, 0.2, 0.8, 1)
 energy = 1.2
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 10.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonLeft_2" type="PointLight2D" parent="Environment/NeonAccents/NeonLeft"]
 position = Vector2(67, 1064)
@@ -288,7 +288,7 @@ color = Color(1.0, 0.2, 0.8, 1)
 energy = 1.2
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 10.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonLeft_3" type="PointLight2D" parent="Environment/NeonAccents/NeonLeft"]
 position = Vector2(67, 1564)
@@ -296,7 +296,7 @@ color = Color(1.0, 0.2, 0.8, 1)
 energy = 1.2
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 10.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonLeft_Out_1" type="PointLight2D" parent="Environment/NeonAccents/NeonLeft"]
 position = Vector2(40, 564)
@@ -304,7 +304,7 @@ color = Color(1.0, 0.2, 0.8, 1)
 energy = 1.0
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonLeft_Out_2" type="PointLight2D" parent="Environment/NeonAccents/NeonLeft"]
 position = Vector2(40, 1064)
@@ -312,7 +312,7 @@ color = Color(1.0, 0.2, 0.8, 1)
 energy = 1.0
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonLeft_Out_3" type="PointLight2D" parent="Environment/NeonAccents/NeonLeft"]
 position = Vector2(40, 1564)
@@ -320,7 +320,7 @@ color = Color(1.0, 0.2, 0.8, 1)
 energy = 1.0
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="NeonRight" type="ColorRect" parent="Environment/NeonAccents"]
 offset_left = 2458.0
@@ -335,7 +335,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.2
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 10.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonRight_2" type="PointLight2D" parent="Environment/NeonAccents/NeonRight"]
 position = Vector2(2461, 1064)
@@ -343,7 +343,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.2
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 10.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonRight_3" type="PointLight2D" parent="Environment/NeonAccents/NeonRight"]
 position = Vector2(2461, 1564)
@@ -351,7 +351,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.2
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 10.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonRight_Out_1" type="PointLight2D" parent="Environment/NeonAccents/NeonRight"]
 position = Vector2(2490, 564)
@@ -359,7 +359,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.0
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonRight_Out_2" type="PointLight2D" parent="Environment/NeonAccents/NeonRight"]
 position = Vector2(2490, 1064)
@@ -367,7 +367,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.0
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_NeonRight_Out_3" type="PointLight2D" parent="Environment/NeonAccents/NeonRight"]
 position = Vector2(2490, 1564)
@@ -375,7 +375,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.0
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="DanceFloorNeon1" type="ColorRect" parent="Environment/NeonAccents"]
 offset_left = 500.0
@@ -390,7 +390,7 @@ color = Color(1.0, 0.1, 0.6, 1)
 energy = 1.6
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 9.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon1_2" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon1"]
 position = Vector2(725, 403)
@@ -398,7 +398,7 @@ color = Color(1.0, 0.1, 0.6, 1)
 energy = 1.6
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 9.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon1_3" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon1"]
 position = Vector2(950, 403)
@@ -406,7 +406,7 @@ color = Color(1.0, 0.1, 0.6, 1)
 energy = 1.6
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 9.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon1_4" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon1"]
 position = Vector2(1175, 403)
@@ -414,7 +414,7 @@ color = Color(1.0, 0.1, 0.6, 1)
 energy = 1.6
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 9.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon1_5" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon1"]
 position = Vector2(1350, 403)
@@ -422,7 +422,7 @@ color = Color(1.0, 0.1, 0.6, 1)
 energy = 1.6
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 9.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon1_Omni_1" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon1"]
 position = Vector2(550, 403)
@@ -477,7 +477,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon2_2" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon2"]
 position = Vector2(725, 1197)
@@ -485,7 +485,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon2_3" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon2"]
 position = Vector2(950, 1197)
@@ -493,7 +493,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon2_4" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon2"]
 position = Vector2(1175, 1197)
@@ -501,7 +501,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon2_5" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon2"]
 position = Vector2(1350, 1197)
@@ -509,7 +509,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon2_Omni_1" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon2"]
 position = Vector2(550, 1197)
@@ -564,7 +564,7 @@ color = Color(1.0, 0.1, 0.6, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon3_2" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon3"]
 position = Vector2(503, 600)
@@ -572,7 +572,7 @@ color = Color(1.0, 0.1, 0.6, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon3_3" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon3"]
 position = Vector2(503, 800)
@@ -580,7 +580,7 @@ color = Color(1.0, 0.1, 0.6, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon3_4" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon3"]
 position = Vector2(503, 1000)
@@ -588,7 +588,7 @@ color = Color(1.0, 0.1, 0.6, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon3_5" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon3"]
 position = Vector2(503, 1170)
@@ -596,7 +596,7 @@ color = Color(1.0, 0.1, 0.6, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_pink")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon3_Omni_1" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon3"]
 position = Vector2(503, 430)
@@ -651,7 +651,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon4_2" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon4"]
 position = Vector2(1397, 600)
@@ -659,7 +659,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon4_3" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon4"]
 position = Vector2(1397, 800)
@@ -667,7 +667,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon4_4" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon4"]
 position = Vector2(1397, 1000)
@@ -675,7 +675,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon4_5" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon4"]
 position = Vector2(1397, 1170)
@@ -683,7 +683,7 @@ color = Color(0.5, 0.1, 1.0, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_purple")
 texture_scale = 8.0
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="GlowLight_DanceNeon4_Omni_1" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon4"]
 position = Vector2(1397, 430)
