@@ -28,7 +28,7 @@ const LASER_COLOR: Color = Color(1.0, 0.0, 0.0, 0.5)
 ## Laser sight line width in pixels.
 const LASER_WIDTH: float = 2.0
 ## Maximum raycast distance for the laser (px).
-const LASER_MAX_LENGTH: float = 5000.0
+const LASER_MAX_LENGTH: float = 10000.0
 
 # ============================================================================
 # State
