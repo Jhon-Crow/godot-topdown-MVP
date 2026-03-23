@@ -1813,58 +1813,52 @@ func _process_flanking_state(delta: float) -> void:
 
 ## Process SUPPRESSED state - staying in cover under fire.
 func _process_suppressed_state(delta: float) -> void:
-	velocity = Vector2.ZERO
+	# Issue #1338: suppressed enemies actively seek cover instead of staying in place.
+	# Find cover position if we don't have one yet.
+	if not _has_valid_cover:
+		_find_cover_position()
 
-	# Check if player has flanked us - if we're now visible from player's position,
-	# we need to find new cover even while suppressed
-	if _is_visible_from_player():
-		# In suppressed state we're always in alarm mode - fire a burst before escaping if we can see player/companion
-		# Issue #934: also consider companion visibility
-		# [#1161] Sniper rifle is bolt-action: no burst fire (flee immediately)
-		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and weapon_type != WeaponType.SNIPER_RIFLE:
-			if not _cover_burst_pending:
-				# Start the cover burst
-				_cover_burst_pending = true
-				_retreat_burst_remaining = randi_range(2, 4)
-				_retreat_burst_timer = 0.0
-				_retreat_burst_angle_offset = -RETREAT_BURST_ARC / 2.0
-				_log_debug("SUPPRESSED alarm: starting burst before escaping (%d shots)" % _retreat_burst_remaining)
-
-			# Fire the burst
-			if _retreat_burst_remaining > 0:
-				_retreat_burst_timer += delta
-				if _retreat_burst_timer >= RETREAT_BURST_COOLDOWN:
-					_aim_at_player()
-					_shoot_burst_shot()
-					_retreat_burst_remaining -= 1
-					_retreat_burst_timer = 0.0
-					if _retreat_burst_remaining > 0:
-						_retreat_burst_angle_offset += RETREAT_BURST_ARC / 3.0
-				return  # Stay suppressed while firing burst
-
-		# Issue #969 RCA-11: minimum stay prevents SUPPRESSED→SEEKING_COVER rapid cycle
-		if Time.get_ticks_msec() / 1000.0 - _suppressed_entry_time < SUPPRESSED_MIN_DURATION: return
-		# Burst complete or can't see player, seek new cover
-		_log_debug("Player flanked our cover position while suppressed, seeking new cover")
-		_has_valid_cover = false  # Invalidate current cover
-		_cover_burst_pending = false
-		_transition_to_seeking_cover()
-		return
+	# If we have valid cover and are not yet hidden, move toward it.
+	if _has_valid_cover and _is_visible_from_player():
+		var distance_to_cover := global_position.distance_to(_cover_position)
+		if distance_to_cover < 10.0:
+			# Reached cover but still visible — find better cover
+			_has_valid_cover = false
+			_find_cover_position()
+			if _has_valid_cover:
+				_move_to_target_nav(_cover_position, combat_move_speed)
+			else:
+				velocity = Vector2.ZERO
+		else:
+			_move_to_target_nav(_cover_position, combat_move_speed)
+	elif not _is_visible_from_player():
+		# Already hidden from player — stop moving
+		velocity = Vector2.ZERO
+	else:
+		# No valid cover found — stay in place
+		velocity = Vector2.ZERO
 
 	# Can still shoot while suppressed (only after detection delay); also at companion (Issue #934).
+	# [#1161] Sniper rifle is bolt-action: no burst fire
 	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 		_aim_at_player()
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
 
-	# RCA-19: Apply minimum duration to prevent rapid cycling
+	# If no longer under fire, transition to seeking cover (or in_cover if already hidden)
 	if not _under_fire:
 		if Time.get_ticks_msec() / 1000.0 - _suppressed_entry_time >= SUPPRESSED_MIN_DURATION:
-			# Issue #1338: start post-suppression timer so enemy stays in cover after arriving
-			_post_suppression_timer = POST_SUPPRESSION_COVER_DURATION
-			_log_debug("Suppression ended, seeking cover (post-suppression %.1fs)" % POST_SUPPRESSION_COVER_DURATION)
-			_transition_to_seeking_cover()
+			if not _is_visible_from_player():
+				# Already hidden — go directly to IN_COVER with post-suppression timer
+				_post_suppression_timer = POST_SUPPRESSION_COVER_DURATION
+				_log_debug("Suppression ended while hidden, entering cover (post-suppression %.1fs)" % POST_SUPPRESSION_COVER_DURATION)
+				_transition_to_in_cover()
+			else:
+				# Still exposed — seek cover
+				_post_suppression_timer = POST_SUPPRESSION_COVER_DURATION
+				_log_debug("Suppression ended while exposed, seeking cover (post-suppression %.1fs)" % POST_SUPPRESSION_COVER_DURATION)
+				_transition_to_seeking_cover()
 
 ## Process RETREATING state - moving to cover with behavior based on damage taken.
 func _process_retreating_state(delta: float) -> void:

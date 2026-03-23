@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-Suppressed enemies remain stationary after suppression ends instead of moving to a hidden cover position. The expected behavior is that when an enemy is no longer under fire (suppression ends), it should find the nearest cover position hidden from the player and move there.
+Suppressed enemies remain stationary while under fire instead of actively moving to cover. The expected behavior is that when an enemy is suppressed (under fire), it should immediately find the nearest cover position hidden from the player and move there.
 
 ## Timeline of Events
 
@@ -15,7 +15,7 @@ Suppressed enemies remain stationary after suppression ends instead of moving to
 
 ### Phase 2: First Fix Attempt (commit d5010345)
 
-- Changed suppressed state to transition to `SEEKING_COVER` state
+- Changed suppressed state to transition to `SEEKING_COVER` state when suppression ends
 - This was later reverted/modified based on owner feedback
 
 ### Phase 3: Owner Feedback on Issue (2026-03-22 18:49)
@@ -27,70 +27,70 @@ Suppressed enemies remain stationary after suppression ends instead of moving to
 
 - Added `POST_SUPPRESSION_COVER_DURATION` (3s) timer
 - Rewrote `_find_cover_position()` to cast rays from player
-- **Bug introduced**: Transition from `SUPPRESSED` went to `IN_COVER` instead of `SEEKING_COVER`
+- Changed `_transition_to_in_cover()` to `_transition_to_seeking_cover()` when suppression ends
+- **Problem**: enemy still stayed in place WHILE suppressed because `velocity = Vector2.ZERO` at start of `_process_suppressed_state()`
 
 ### Phase 5: Owner Reports Bug Still Present (2026-03-23 00:32)
 
 - **Log file**: `game_log_20260323_033050.txt`
 - **Observation**: "подавленный враг остаётся стоять на месте" (suppressed enemy stays in place)
 - Log evidence shows `SUPPRESSED -> IN_COVER` transitions where enemy stays at current position
+- Enemy never moves during the SUPPRESSED state because velocity is forced to zero
 
 ## Root Cause Analysis
 
-### The State Machine Bug
+### The Core Problem
 
-The enemy AI state machine has two distinct cover-related states:
-
-1. **`SEEKING_COVER`** - Active state where the enemy:
-   - Calls `_find_cover_position()` to locate a hidden position
-   - Calls `_move_to_target_nav(_cover_position, combat_move_speed)` to physically move there
-   - Transitions to `IN_COVER` once hidden from player
-
-2. **`IN_COVER`** - Passive state where the enemy:
-   - Sets `velocity = Vector2.ZERO` (stays stationary)
-   - Waits, shoots if player visible, eventually transitions to PURSUING/COMBAT
-
-### The Bug
-
-In `_process_suppressed_state()` (line 1862-1867), when suppression ends (`not _under_fire`):
+In `_process_suppressed_state()`, the very first line was:
 
 ```gdscript
-# Bug: transitions to IN_COVER (stationary) instead of SEEKING_COVER (moves to cover)
-_transition_to_in_cover()
+velocity = Vector2.ZERO
 ```
 
-This skips the movement phase entirely. The enemy changes its internal state to "in cover" but never actually moves to a cover position. It stays at whatever position it was at when suppression ended.
+This unconditionally freezes the enemy in place every frame while in the SUPPRESSED state. The enemy cannot move toward cover because its velocity is zeroed out before any movement logic runs.
+
+The SUPPRESSED state was designed as a "pinned down" state where the enemy stays still, but the desired behavior is that the enemy should actively seek cover even while being suppressed.
 
 ### Evidence from Game Logs
 
 From `game_log_20260323_033050.txt`:
 ```
-[03:31:14] [ENEMY] [Enemy3] State: SUPPRESSED -> IN_COVER   # stays in place
-[03:31:14] [ENEMY] [Enemy4] State: SUPPRESSED -> IN_COVER   # stays in place
+[03:31:12] [ENEMY] [Enemy3] State: IN_COVER -> SUPPRESSED     # enters suppressed, velocity=0
+[03:31:14] [ENEMY] [Enemy3] State: SUPPRESSED -> IN_COVER     # exits at same position
+[03:31:14] [ENEMY] [Enemy4] State: SUPPRESSED -> IN_COVER     # exits at same position
 ```
 
-After several seconds, Enemy3 eventually transitions `IN_COVER -> SEEKING_COVER` (line 1775) because the player flanked its position (it was visible from the player). But this is reactive, not proactive — the enemy should have sought cover immediately when suppression ended.
+The enemies enter SUPPRESSED and stay motionless. When suppression ends they go to IN_COVER at the same position they were already at (since they were previously in cover). No movement occurs.
 
-## Fix
+### Cover Search Logic
 
-Changed line 1867 from `_transition_to_in_cover()` to `_transition_to_seeking_cover()`.
+The `_find_cover_position()` function already implements the correct ray-from-player approach:
+- Casts rays FROM the player position in all directions
+- Finds obstacles that block those rays
+- Places cover positions 35px past the obstacle (away from player)
+- Verifies the position is reachable and truly hidden from the player
+- Picks the nearest hidden cover to the enemy
 
-This ensures the enemy:
-1. Finds a cover position via `_find_cover_position()` (rays cast from player)
-2. Physically moves to that position via navigation
-3. Transitions to `IN_COVER` only after arriving and being hidden from the player
-4. Stays in cover for the `POST_SUPPRESSION_COVER_DURATION` (3s) before pursuing
+## Fix (Phase 6)
+
+Rewrote `_process_suppressed_state()` to actively seek cover while suppressed:
+
+1. **Find cover**: calls `_find_cover_position()` if no valid cover is known
+2. **Move to cover**: uses `_move_to_target_nav()` to navigate toward cover while visible
+3. **Stop when hidden**: sets `velocity = Vector2.ZERO` only after reaching a hidden position
+4. **Shoot while moving**: enemy can still fire at player/companion while moving to cover
+5. **Exit suppression**: when no longer under fire, transitions to IN_COVER (if hidden) or SEEKING_COVER (if still exposed)
 
 ### Expected State Flow After Fix
 
 ```
-SUPPRESSED -> SEEKING_COVER -> (moves to cover) -> IN_COVER -> (3s timer) -> PURSUING
+SUPPRESSED (actively moving to cover) -> IN_COVER (arrived, hidden) -> (3s timer) -> PURSUING
 ```
 
 ### Previous Incorrect Flow
 
 ```
-SUPPRESSED -> IN_COVER (stays in place, velocity=0) -> (3s timer) -> PURSUING
+SUPPRESSED (frozen, velocity=0) -> IN_COVER (same position) -> PURSUING
 ```
 
 ## Data Files
