@@ -137,6 +137,18 @@ var cover_raycast_visible_enabled: bool = false
 ## When disabled (default), enemies move independently without group coordination.
 var tactical_group_enabled: bool = false
 
+## Whether cover detection rays extend to infinite length (Issue #1378).
+## When enabled (default), cover raycasts extend to 10,000 px so enemies can find
+## cover behind distant obstacles at any range.
+## When disabled, rays use the default 300 px range.
+var cover_infinite_rays_enabled: bool = true
+
+## Whether cover detection rays are limited to a 100° sector toward the suppressed enemy (Issue #1378).
+## When enabled (default), the ray bundle fires only in a 100° cone aimed from the player
+## toward the suppressed enemy, focusing the cover search on relevant directions.
+## When disabled, rays are cast in a full 360° circle.
+var cover_sector_rays_enabled: bool = true
+
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
 
@@ -148,7 +160,7 @@ func _ready() -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("set_logging_enabled"):
 		file_logger.set_logging_enabled(logging_enabled)
-	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs, Nav mesh visible: %s, Search path visible: %s, Passage waypoints visible: %s, Passage waypoints: %s, Sound visualizer: %s, Enemy path visible: %s, Cover raycast visible: %s, Tactical group: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time, nav_mesh_visible_enabled, search_path_visible_enabled, passage_waypoints_visible_enabled, passage_waypoints_enabled, sound_visualizer_enabled, enemy_path_visible_enabled, cover_raycast_visible_enabled, tactical_group_enabled])
+	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs, Nav mesh visible: %s, Search path visible: %s, Passage waypoints visible: %s, Passage waypoints: %s, Sound visualizer: %s, Enemy path visible: %s, Cover raycast visible: %s, Tactical group: %s, Cover infinite rays: %s, Cover sector rays: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time, nav_mesh_visible_enabled, search_path_visible_enabled, passage_waypoints_visible_enabled, passage_waypoints_enabled, sound_visualizer_enabled, enemy_path_visible_enabled, cover_raycast_visible_enabled, tactical_group_enabled, cover_infinite_rays_enabled, cover_sector_rays_enabled])
 
 
 ## Set FOV enabled/disabled.
@@ -476,6 +488,34 @@ func is_passage_waypoints_enabled() -> bool:
 	return passage_waypoints_enabled
 
 
+## Set cover infinite rays enabled/disabled (Issue #1378).
+func set_cover_infinite_rays_enabled(enabled: bool) -> void:
+	if cover_infinite_rays_enabled != enabled:
+		cover_infinite_rays_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Cover infinite rays %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if cover infinite rays is enabled (Issue #1378).
+func is_cover_infinite_rays_enabled() -> bool:
+	return cover_infinite_rays_enabled
+
+
+## Set cover sector rays enabled/disabled (Issue #1378).
+func set_cover_sector_rays_enabled(enabled: bool) -> void:
+	if cover_sector_rays_enabled != enabled:
+		cover_sector_rays_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Cover sector rays %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if cover sector rays is enabled (Issue #1378).
+func is_cover_sector_rays_enabled() -> bool:
+	return cover_sector_rays_enabled
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -502,6 +542,8 @@ func _save_settings() -> void:
 	config.set_value("experimental", "enemy_path_visible_enabled", enemy_path_visible_enabled)
 	config.set_value("experimental", "cover_raycast_visible_enabled", cover_raycast_visible_enabled)
 	config.set_value("experimental", "tactical_group_enabled", tactical_group_enabled)
+	config.set_value("experimental", "cover_infinite_rays_enabled", cover_infinite_rays_enabled)
+	config.set_value("experimental", "cover_sector_rays_enabled", cover_sector_rays_enabled)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -535,6 +577,8 @@ func _load_settings() -> void:
 		enemy_path_visible_enabled = config.get_value("experimental", "enemy_path_visible_enabled", false)
 		cover_raycast_visible_enabled = config.get_value("experimental", "cover_raycast_visible_enabled", false)
 		tactical_group_enabled = config.get_value("experimental", "tactical_group_enabled", false)
+		cover_infinite_rays_enabled = config.get_value("experimental", "cover_infinite_rays_enabled", true)
+		cover_sector_rays_enabled = config.get_value("experimental", "cover_sector_rays_enabled", true)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true
@@ -559,6 +603,8 @@ func _load_settings() -> void:
 		sound_visualizer_enabled = false
 		enemy_path_visible_enabled = false
 		cover_raycast_visible_enabled = false
+		cover_infinite_rays_enabled = true
+		cover_sector_rays_enabled = true
 
 
 ## Log a message to the file logger if available.
