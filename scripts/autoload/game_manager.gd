@@ -246,15 +246,15 @@ func _process(delta: float) -> void:
 				_log_to_file("POLL DETECTED: Player collision_layer is 0 (confirming death already flagged)")
 			_start_death_safety_net()
 
-	# Issue #1334 Round 7: Process-based safety net countdown.
-	# SceneTreeTimers (create_timer) can silently fail to fire in certain engine states
-	# (e.g., after death effects modify scene processing, or when cross-language signal
-	# callbacks interact with the scene tree timer queue). This _process-based countdown
-	# is 100% reliable because GameManager uses PROCESS_MODE_ALWAYS.
-	if _safety_net_countdown > 0.0:
-		_safety_net_countdown -= delta
-		if _safety_net_countdown <= 0.0:
-			_safety_net_countdown = 0.0
+	# Issue #1334 Round 8: Wall-clock safety net using OS.get_ticks_msec().
+	# Previous rounds used delta-based countdown, but delta is scaled by Engine.time_scale.
+	# Death effects (PenultimateHit, LastChance) modify time_scale to 0.1, making the
+	# 1.5s countdown take 15 real seconds. The user sees a grey screen and thinks the game
+	# is stuck. Using wall-clock time guarantees the restart fires in real-world seconds
+	# regardless of Engine.time_scale or any other timing manipulation.
+	if _safety_net_deadline_ms > 0:
+		if Time.get_ticks_msec() >= _safety_net_deadline_ms:
+			_safety_net_deadline_ms = 0
 			_on_death_safety_net_timer()
 
 
@@ -266,7 +266,7 @@ func _reset_stats() -> void:
 	player_alive = true
 	_death_signal_received = false
 	_death_detected_by_poll = false
-	_safety_net_countdown = 0.0
+	_safety_net_deadline_ms = 0
 	player = null
 
 
@@ -432,14 +432,16 @@ func _on_player_died_signal() -> void:
 	_start_death_safety_net()
 
 
-## Issue #1334 Round 7: Countdown for the process-based safety net timer.
-## Decremented in _process() every frame. When it reaches 0, _on_death_safety_net_timer() fires.
-## Using _process() instead of SceneTreeTimer because SceneTreeTimers can silently fail
-## to fire under certain engine conditions (documented in Rounds 3-6 crash logs).
-## Reset to 0 by _reset_stats() during restart.
-var _safety_net_countdown: float = 0.0
+## Issue #1334 Round 8: Wall-clock deadline (in msec from OS.get_ticks_msec()) for the safety net.
+## When Time.get_ticks_msec() >= this value, _on_death_safety_net_timer() fires.
+## Using wall-clock time (OS ticks) instead of delta-based countdown because:
+## - SceneTreeTimers can silently fail (documented in Rounds 3-6)
+## - delta-based countdown is scaled by Engine.time_scale (Round 7 issue — death effects
+##   set time_scale to 0.1, making a 1.5s countdown take 15 real seconds)
+## Set to 0 when inactive. Reset by _reset_stats() during restart.
+var _safety_net_deadline_ms: int = 0
 
-## Issue #1334 Round 4: Shared helper to start the death safety net timer.
+## Issue #1334 Round 4/8: Shared helper to start the death safety net timer.
 ## Called by both signal handler (_on_player_died_signal) and poll detection (_process).
 func _start_death_safety_net() -> void:
 	# Disable collision immediately (defense-in-depth)
@@ -448,16 +450,15 @@ func _start_death_safety_net() -> void:
 			player.collision_layer = 0
 			player.collision_mask = 0
 			_log_to_file("Disabled dead player collision (safety net)")
-	# Issue #1334 Round 7: Use _process()-based countdown instead of SceneTreeTimer.
-	# SceneTreeTimers (create_timer) can silently fail to fire after death effects
-	# modify scene processing state. The _process() countdown is reliable because
-	# GameManager has process_mode = PROCESS_MODE_ALWAYS (set in _ready).
-	# The 1.5s delay gives level scripts ample time to call on_player_death() first
-	# (their timers are 0.5s), so normal flow is preserved for working levels.
-	# Only start if not already counting down (avoid resetting an in-progress countdown).
-	if _safety_net_countdown <= 0.0:
-		_safety_net_countdown = 1.5
-		_log_to_file("Safety net countdown started (1.5s, process-based)")
+	# Issue #1334 Round 8: Use wall-clock deadline (OS ticks) instead of delta countdown.
+	# Previous approach (delta -= in _process) was scaled by Engine.time_scale. Death effects
+	# set time_scale to 0.1, making a 1.5s countdown take 15 real seconds — the user sees a
+	# grey screen stuck. OS.get_ticks_msec() is unaffected by time_scale, so the deadline fires
+	# in real-world time. The 1.5s delay gives level scripts time to call on_player_death() first.
+	# Only start if not already counting down (avoid resetting an in-progress deadline).
+	if _safety_net_deadline_ms <= 0:
+		_safety_net_deadline_ms = Time.get_ticks_msec() + 1500
+		_log_to_file("Safety net deadline set (1.5 real seconds, wall-clock based)")
 
 
 ## Whether the death signal was received but restart hasn't happened yet.

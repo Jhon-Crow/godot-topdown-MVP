@@ -768,6 +768,15 @@ func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
 
+	# Issue #1334 Round 8: Freeze all enemy AI immediately when the player is dead.
+	# This prevents snipers (and all other enemies) from running physics queries,
+	# shooting, or interacting with the dead player's physics body. Previous rounds
+	# only guarded individual shoot functions, but enemies still ran full AI (pathfinding,
+	# raycasting, state transitions) which could trigger native crashes when accessing
+	# physics state of the dead/freed player node.
+	var _gm_r8: Node = get_node_or_null("/root/GameManager")
+	if _gm_r8 and not _gm_r8.player_alive: return
+
 	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
 	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if _perf_settings and not _perf_settings.is_ai_enabled(): return

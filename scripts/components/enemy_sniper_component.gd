@@ -219,6 +219,14 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 	var damage := 50.0; var end_pos := spawn_pos + direction * 5000.0; var bullet_end_point := end_pos
 	var shooter_id := enemy.get_instance_id(); var walls_penetrated := 0; var current_pos := spawn_pos
 	var exclude_rids := []; var damaged_ids: Dictionary = {}
+	# Issue #1334 Round 8: Also get the player's RID so we can exclude it from raycasts
+	# if it died between the player_alive check above and the raycast loop below.
+	# When Player.OnDeath() sets CollisionLayer=0, the physics server may not process
+	# the change until the next physics tick. Excluding the player's RID directly
+	# prevents the raycast from hitting a dead player whose collision hasn't been
+	# removed from the physics server yet (this can cause native segfaults).
+	var player_node: Node2D = gm.player if gm else null
+	var player_rid: RID = player_node.get_rid() if player_node and is_instance_valid(player_node) and player_node is CollisionObject2D else RID()
 	# Issue #1334 Round 6: Collect hits during raycast loop, apply damage AFTER loop.
 	# Calling TakeDamage() inside a direct_space_state query loop modifies physics state
 	# (CollisionLayer=0 in Player.OnDeath), which is undefined behavior in Godot's physics
@@ -226,8 +234,19 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 	var pending_hits: Array[Dictionary] = []
 	for _i in range(50):
 		if current_pos.distance_to(end_pos) < 1.0: break
+		# Issue #1334 Round 8: Re-check player_alive each iteration. If another damage source
+		# killed the player during this frame (e.g., rifle bullet body_entered callback fired
+		# between _physics_process calls), the player's collision data may be in an inconsistent
+		# state. Abort the raycast loop immediately to prevent native segfaults.
+		if gm and not gm.player_alive:
+			_log("[SniperHitscan] Aborting raycast loop — player died mid-frame")
+			break
+		# Build the exclude list, adding the dead player's RID if player died
+		var char_exclude := exclude_rids.duplicate()
+		if player_rid.is_valid() and gm and not gm.player_alive:
+			char_exclude.append(player_rid)
 		var wall_result := space_state.intersect_ray(PhysicsRayQueryParameters2D.create(current_pos, end_pos, 4, exclude_rids))
-		var char_result := space_state.intersect_ray(PhysicsRayQueryParameters2D.create(current_pos, end_pos, 1, exclude_rids))
+		var char_result := space_state.intersect_ray(PhysicsRayQueryParameters2D.create(current_pos, end_pos, 1, char_exclude))
 		var wall_dist := INF if wall_result.is_empty() else current_pos.distance_to(wall_result["position"])
 		var char_dist := INF if char_result.is_empty() else current_pos.distance_to(char_result["position"])
 		if wall_dist == INF and char_dist == INF: break
