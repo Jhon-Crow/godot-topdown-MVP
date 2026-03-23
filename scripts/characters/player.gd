@@ -4560,7 +4560,6 @@ func _init_armored_skin() -> void:
 	_armored_skin_active = true
 	FileLogger.info("[Player.ArmoredSkin] Armored skin active — shards will spawn at low HP")
 
-
 ## Apply the glassy armor shader to all player body sprites (Issue #1142).
 func _apply_armored_skin_visual() -> void:
 	const ARMOR_SHADER_PATH: String = "res://scripts/shaders/armored_skin.gdshader"
@@ -4877,7 +4876,6 @@ func get_experimental_sample_charges() -> int:
 ## Get the maximum experimental sample charges constant.
 func get_max_experimental_sample_charges() -> int:
 	return EXPERIMENTAL_SAMPLE_MAX_CHARGES
-
 
 # =========================================================================
 # Fine Motor Skills Active Item (Issue #1315)
