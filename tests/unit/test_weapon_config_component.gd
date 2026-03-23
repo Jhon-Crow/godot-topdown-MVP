@@ -93,8 +93,8 @@ func test_rifle_bullet_spawn_offset() -> void:
 
 func test_rifle_weapon_loudness() -> void:
 	var config := WeaponConfigComponent.WEAPON_CONFIGS[0]
-	assert_eq(config["weapon_loudness"], 1469.0,
-		"RIFLE weapon_loudness should be 1469.0")
+	assert_eq(config["weapon_loudness"], 800.0,
+		"RIFLE weapon_loudness should be 800.0 (Issue #1269: scaled by 800/1469 factor)")
 
 
 func test_rifle_is_not_shotgun() -> void:
@@ -200,8 +200,8 @@ func test_shotgun_bullet_spawn_offset() -> void:
 
 func test_shotgun_weapon_loudness() -> void:
 	var config := WeaponConfigComponent.WEAPON_CONFIGS[1]
-	assert_eq(config["weapon_loudness"], 2000.0,
-		"SHOTGUN weapon_loudness should be 2000.0")
+	assert_eq(config["weapon_loudness"], 1089.2,
+		"SHOTGUN weapon_loudness should be 1089.2 (Issue #1269: scaled by 800/1469 factor)")
 
 
 func test_shotgun_is_shotgun_flag() -> void:
@@ -313,8 +313,8 @@ func test_uzi_bullet_spawn_offset() -> void:
 
 func test_uzi_weapon_loudness() -> void:
 	var config := WeaponConfigComponent.WEAPON_CONFIGS[2]
-	assert_eq(config["weapon_loudness"], 1200.0,
-		"UZI weapon_loudness should be 1200.0")
+	assert_eq(config["weapon_loudness"], 653.5,
+		"UZI weapon_loudness should be 653.5 (Issue #1269: scaled by 800/1469 factor)")
 
 
 func test_uzi_is_not_shotgun() -> void:
@@ -964,8 +964,8 @@ func test_machete_magazine_size_is_zero() -> void:
 
 func test_machete_weapon_loudness() -> void:
 	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
-	assert_eq(config["weapon_loudness"], 200.0,
-		"MACHETE weapon_loudness should be 200.0 (quiet melee)")
+	assert_eq(config["weapon_loudness"], 108.9,
+		"MACHETE weapon_loudness should be 108.9 (Issue #1269: scaled by 800/1469 factor)")
 
 
 func test_machete_is_not_shotgun() -> void:
@@ -1047,8 +1047,8 @@ func test_rpg_magazine_size() -> void:
 
 func test_rpg_weapon_loudness() -> void:
 	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
-	assert_eq(config["weapon_loudness"], 2500.0,
-		"RPG weapon_loudness should be 2500.0 (very loud)")
+	assert_eq(config["weapon_loudness"], 1361.5,
+		"RPG weapon_loudness should be 1361.5 (Issue #1269: scaled by 800/1469 factor)")
 
 
 func test_rpg_is_not_shotgun() -> void:
@@ -1118,8 +1118,8 @@ func test_pm_magazine_size() -> void:
 
 func test_pm_weapon_loudness() -> void:
 	var config := WeaponConfigComponent.WEAPON_CONFIGS[5]
-	assert_eq(config["weapon_loudness"], 1469.0,
-		"PM weapon_loudness should be 1469.0")
+	assert_eq(config["weapon_loudness"], 800.0,
+		"PM weapon_loudness should be 800.0 (Issue #1269: target value)")
 
 
 func test_pm_is_not_shotgun() -> void:
@@ -1183,8 +1183,8 @@ func test_sniper_rifle_magazine_size() -> void:
 
 func test_sniper_rifle_weapon_loudness() -> void:
 	var config := WeaponConfigComponent.WEAPON_CONFIGS[7]
-	assert_eq(config["weapon_loudness"], 3000.0,
-		"SNIPER_RIFLE weapon_loudness should be 3000.0")
+	assert_eq(config["weapon_loudness"], 1633.8,
+		"SNIPER_RIFLE weapon_loudness should be 1633.8 (Issue #1269: scaled by 800/1469 factor)")
 
 
 func test_sniper_rifle_is_not_shotgun() -> void:

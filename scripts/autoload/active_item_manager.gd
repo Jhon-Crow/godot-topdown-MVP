@@ -27,20 +27,27 @@ enum ActiveItemType {
 	DRILLING_BULLETS,  # Drilling bullets - press Space to give current magazine wall-piercing bullets (Issue #751)
 	RECOIL_COMPENSATOR, # Recoil compensator - hold Space to eliminate recoil/spread and boost fire rate 10% (Issue #1073)
 	COMBAT_DISPOSITION, # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
-	EXPERIMENTAL_SAMPLE # Experimental Sample - press Space to fire a random active item effect (even unowned). 1–5 charges per battle, randomised on level start (Issue #1127)
+	EXPERIMENTAL_SAMPLE, # Experimental Sample - press Space to fire a random active item effect (even unowned). 1–5 charges per battle, randomised on level start (Issue #1127)
+	FINE_MOTOR_SKILLS  # Fine Motor Skills - press Space to instantly reload weapon and bring to combat-ready state. Unlimited charges, no cooldown (Issue #1315)
 }
 
 ## Currently selected active item type.
 ## No active item is selected by default.
 var current_active_item: int = ActiveItemType.NONE
 
+## Passive items collected during a roguelike run.
+## Multiple passive items can be active simultaneously (Issue #1303).
+## This array accumulates passive item type IDs as the player picks them up.
+var collected_passive_items: Array = []
+
 ## Unlocked active items tracking.
 ## NONE is always unlocked (it's not a real item).
 ## FLASHLIGHT (Polygon D+), TELEPORT_BRACERS (Double Corridor D+),
 ## INVISIBILITY_SUIT (Beach S + Building S), HOMING_BULLETS
 ## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S),
-## and LASER_SIGHT (1000 kills without laser sight equipped)
-## have unlock conditions (Issue #894, Issue #1000, Issue #1196).
+## TRAJECTORY_GLASSES (City D+), LASER_SIGHT (1000 kills without laser sight equipped),
+## and FINE_MOTOR_SKILLS (650 shots with shotgun, sniper rifle, or revolver)
+## have unlock conditions (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346).
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
 	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
@@ -50,7 +57,7 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.INVISIBILITY_SUIT: false,   # Condition: Beach S + Building S (Issue #1000 req.5)
 	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
-	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
+	ActiveItemType.TRAJECTORY_GLASSES: false,  # Condition: City D+ (Issue #1053 req.1)
 	ActiveItemType.LASER_SIGHT: false,         # Condition: 1000 kills without laser sight equipped (Issue #1196)
 	ActiveItemType.EXTENDED_MAGAZINE: true,    # No unlock condition — freely available from start (Issue #1065)
 	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
@@ -60,7 +67,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.DRILLING_BULLETS: true,     # No unlock condition — freely available from start (Issue #751)
 	ActiveItemType.RECOIL_COMPENSATOR: true,   # No unlock condition — freely available from start (Issue #1073)
 	ActiveItemType.COMBAT_DISPOSITION: true,   # No unlock condition — freely available from start (Issue #1047)
-	ActiveItemType.EXPERIMENTAL_SAMPLE: true   # No unlock condition — freely available from start (Issue #1127)
+	ActiveItemType.EXPERIMENTAL_SAMPLE: true,   # No unlock condition — freely available from start (Issue #1127)
+	ActiveItemType.FINE_MOTOR_SKILLS: false     # Condition: 300 shots with shotgun, sniper rifle, or revolver (Issue #1346)
 }
 
 ## Active item data for UI and selection.
@@ -170,6 +178,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png",
 		"description": "Experimental Sample — press Space to trigger a random active item effect (including items not yet unlocked). 1–5 charges per battle, randomised on level start.",
 		"activation_hint": "Press Space to trigger random effect"
+	},
+	ActiveItemType.FINE_MOTOR_SKILLS: {
+		"name": "Fine Motor Skills",
+		"icon_path": "res://assets/sprites/weapons/fine_motor_skills_icon.png",
+		"description": "Fine Motor Skills — press Space to instantly reload weapon and bring it to combat-ready state. Works with all weapons including revolver, shotgun, and sniper rifle. Unlimited charges, no cooldown.",
+		"activation_hint": "Press Space to reload"
 	}
 }
 
@@ -188,7 +202,7 @@ const JAMMER_RADIUS: float = 1000.0
 ## Passive items collected during the current roguelike run (Issue #1194).
 ## Multiple passive items can be held simultaneously; their effects all apply at once.
 ## This array is separate from current_active_item (the single active-item slot).
-## Cleared at the start of a new run and on run end/death via reset_passive_items().
+## Cleared at the start of a new run via clear_passive_items().
 var collected_passive_items: Array = []
 
 ## Signal emitted when active item type changes.
@@ -196,9 +210,6 @@ signal active_item_changed(new_type: int)
 
 ## Signal emitted when an active item is unlocked.
 signal active_item_unlocked(item_type: int)
-
-## Signal emitted when a passive item is added to collected_passive_items (Issue #1194).
-signal passive_item_added(item_type: int)
 
 
 ## Set the current active item type.
@@ -226,33 +237,30 @@ func set_active_item(type: int, restart_level: bool = true) -> void:
 		_restart_current_level()
 
 
-## Add a passive item to the roguelike run collection (Issue #1194).
-## Multiple passive items can be held simultaneously.
-## Does nothing if the item is already in the collection.
-## @param type: The passive item type to add (must be in ACTIVE_ITEM_DATA).
+## Add a passive item to the collected set (roguelike mode).
+## Passive items accumulate and coexist with each other and with the active item.
+## @param type: The passive item type to add.
 func add_passive_item(type: int) -> void:
-	if type not in ACTIVE_ITEM_DATA:
-		FileLogger.info("[ActiveItemManager] add_passive_item: invalid type %d" % type)
-		return
 	if type in collected_passive_items:
 		return  # Already collected
 	collected_passive_items.append(type)
-	FileLogger.info("[ActiveItemManager] Passive item added: %s (total: %d)" % [
-		ACTIVE_ITEM_DATA[type]["name"], collected_passive_items.size()])
-	passive_item_added.emit(type)
+	FileLogger.info("[ActiveItemManager] Passive item added: %s (total passives: %d)" % [
+		get_active_item_name(type), collected_passive_items.size()
+	])
+	active_item_changed.emit(type)
 
 
-## Check if a passive item type has been collected (Issue #1194).
-## @param type: The passive item type to check.
+## Check if a passive item is in the collected set.
+## @param type: The item type to check.
+## @return: true if the item is in collected_passive_items.
 func has_passive_item(type: int) -> bool:
 	return type in collected_passive_items
 
 
-## Clear all collected passive items (Issue #1194).
-## Called at the start of a new roguelike run and on run end/death.
-func reset_passive_items() -> void:
+## Clear all collected passive items (called on roguelike run start).
+func clear_passive_items() -> void:
 	collected_passive_items.clear()
-	FileLogger.info("[ActiveItemManager] Passive items cleared")
+	FileLogger.info("[ActiveItemManager] Passive items cleared for new run")
 
 
 ## Restart the current level.
@@ -332,10 +340,9 @@ func has_invisibility_suit() -> bool:
 
 
 ## Check if breaker bullets are currently equipped (Issue #678).
-## Also returns true when collected as a passive item in the roguelike run (Issue #1194).
+## Also checks collected passive items for roguelike mode (Issue #1303).
 func has_breaker_bullets() -> bool:
-	return current_active_item == ActiveItemType.BREAKER_BULLETS or \
-		ActiveItemType.BREAKER_BULLETS in collected_passive_items
+	return current_active_item == ActiveItemType.BREAKER_BULLETS or ActiveItemType.BREAKER_BULLETS in collected_passive_items
 
 
 ## Check if force field is currently equipped (Issue #676).
@@ -349,21 +356,20 @@ func has_trajectory_glasses() -> bool:
 
 
 ## Check if laser sight is currently equipped (Issue #947).
-## Also returns true when collected as a passive item in the roguelike run (Issue #1194).
+## Also checks collected passive items for roguelike mode (Issue #1303).
 func has_laser_sight() -> bool:
-	return current_active_item == ActiveItemType.LASER_SIGHT or \
-		ActiveItemType.LASER_SIGHT in collected_passive_items
+	return current_active_item == ActiveItemType.LASER_SIGHT or ActiveItemType.LASER_SIGHT in collected_passive_items
 
 
 ## Check if extended magazine is currently equipped (Issue #1065).
-## Also returns true when collected as a passive item in the roguelike run (Issue #1194).
+## Also checks collected passive items for roguelike mode (Issue #1303).
 func has_extended_magazine() -> bool:
-	return current_active_item == ActiveItemType.EXTENDED_MAGAZINE or \
-		ActiveItemType.EXTENDED_MAGAZINE in collected_passive_items
+	return current_active_item == ActiveItemType.EXTENDED_MAGAZINE or ActiveItemType.EXTENDED_MAGAZINE in collected_passive_items
 
 
 ## Get the magazine size multiplier from extended magazine item (Issue #1065).
-## Returns 2.5 when extended magazine is equipped (active slot or passive collection), 1.0 otherwise.
+## Returns 2.5 when extended magazine is equipped, 1.0 otherwise.
+## Also checks collected passive items for roguelike mode (Issue #1303).
 func get_magazine_size_multiplier() -> float:
 	if has_extended_magazine():
 		return 2.5
@@ -371,7 +377,8 @@ func get_magazine_size_multiplier() -> float:
 
 
 ## Get the total ammo multiplier from extended magazine item (Issue #1065).
-## Returns 0.95 when extended magazine is equipped (active slot or passive collection), 1.0 otherwise.
+## Returns 0.95 when extended magazine is equipped, 1.0 otherwise.
+## Also checks collected passive items for roguelike mode (Issue #1303).
 func get_total_ammo_multiplier() -> float:
 	if has_extended_magazine():
 		return 0.95
@@ -389,10 +396,9 @@ func has_breaching_charges() -> bool:
 
 
 ## Check if armored skin is currently equipped (Issue #1045).
-## Also returns true when collected as a passive item in the roguelike run (Issue #1194).
+## Also checks collected passive items for roguelike mode (Issue #1303).
 func has_armored_skin() -> bool:
-	return current_active_item == ActiveItemType.ARMORED_SKIN or \
-		ActiveItemType.ARMORED_SKIN in collected_passive_items
+	return current_active_item == ActiveItemType.ARMORED_SKIN or ActiveItemType.ARMORED_SKIN in collected_passive_items
 
 
 ## Check if drilling bullets are currently equipped (Issue #751).
@@ -406,15 +412,19 @@ func has_recoil_compensator() -> bool:
 
 
 ## Check if combat disposition is currently equipped (Issue #1047).
-## Also returns true when collected as a passive item in the roguelike run (Issue #1194).
+## Also checks collected passive items for roguelike mode (Issue #1303).
 func has_combat_disposition() -> bool:
-	return current_active_item == ActiveItemType.COMBAT_DISPOSITION or \
-		ActiveItemType.COMBAT_DISPOSITION in collected_passive_items
+	return current_active_item == ActiveItemType.COMBAT_DISPOSITION or ActiveItemType.COMBAT_DISPOSITION in collected_passive_items
 
 
 ## Check if experimental sample is currently equipped (Issue #1127).
 func has_experimental_sample() -> bool:
 	return current_active_item == ActiveItemType.EXPERIMENTAL_SAMPLE
+
+
+## Check if fine motor skills is currently equipped (Issue #1315).
+func has_fine_motor_skills() -> bool:
+	return current_active_item == ActiveItemType.FINE_MOTOR_SKILLS
 
 
 ## Get the laser sight color (purple).
@@ -424,7 +434,8 @@ func get_laser_sight_color() -> Color:
 
 
 ## Check if a laser sight should be forced on all weapons.
-## Returns true when laser sight is equipped (active slot or passive collection, Issue #947/#1194).
+## Returns true when laser sight active item is equipped (Issue #947).
+## Also checks collected passive items for roguelike mode (Issue #1303).
 func should_force_laser_sight() -> bool:
 	return has_laser_sight()
 
@@ -483,10 +494,9 @@ func reset_loudspeaker_progress() -> void:
 
 
 ## Check if auto-reload is currently equipped (Issue #1067).
-## Also returns true when collected as a passive item in the roguelike run (Issue #1194).
+## Also checks collected passive items for roguelike mode (Issue #1303).
 func has_auto_reload() -> bool:
-	return current_active_item == ActiveItemType.AUTO_RELOAD or \
-		ActiveItemType.AUTO_RELOAD in collected_passive_items
+	return current_active_item == ActiveItemType.AUTO_RELOAD or ActiveItemType.AUTO_RELOAD in collected_passive_items
 
 
 ## Check if an active item type is unlocked.

@@ -17,6 +17,7 @@ using GodotTopDownTemplate.Weapons;
 /// - Exit zone creation
 /// - GameManager signal connections
 /// - Replay recording
+/// - Navigation mesh baking (Issue #1289)
 /// </summary>
 public partial class LevelInitFallback : Node
 {
@@ -69,6 +70,12 @@ public partial class LevelInitFallback : Node
     /// Whether the score screen has been shown.
     /// </summary>
     private bool _scoreShown;
+
+    /// <summary>
+    /// Issue #1334: Guard against duplicate death handling.
+    /// Prevents re-entrant OnPlayerDied calls and stale timer callbacks.
+    /// </summary>
+    private bool _isDying;
 
     /// <summary>
     /// Saturation overlay for kill effects.
@@ -194,6 +201,13 @@ public partial class LevelInitFallback : Node
 
         // 10. Update GDScript properties so they are in sync
         SyncGDScriptProperties(levelRoot);
+
+        // 11. Setup warm ceiling lights (Issue #1206) — mirrors GDScript _setup_room_warm_lights()
+        SetupRoomWarmLights(levelRoot);
+
+        // 12. Setup navigation mesh (Issue #1289) — mirrors GDScript _setup_navigation()
+        // Must run after physics frame so CollisionShape2D nodes are registered.
+        SetupNavigationDeferred(levelRoot);
     }
 
     /// <summary>
@@ -336,6 +350,61 @@ public partial class LevelInitFallback : Node
         {
             weapon.Call("ConfigureAmmoForEnemyCount", _initialEnemyCount);
             LogToFile($"Configured silenced pistol ammo for {_initialEnemyCount} enemies");
+        }
+
+        // BuildingLevel-specific ammo config: M16/AK+GL limited to 2 magazines (Issue #949, #1259)
+        ApplyBuildingLevelAmmoConfig(weapon);
+    }
+
+    /// <summary>
+    /// Apply BuildingLevel-specific ammo limits (2 magazines for M16/AKGL) when running as fallback
+    /// for BuildingLevel (Issue #949, #1259). Other levels use default ammo counts.
+    /// </summary>
+    private void ApplyBuildingLevelAmmoConfig(Node weapon)
+    {
+        var levelRoot = GetParent();
+        if (levelRoot == null) return;
+
+        // Only apply on BuildingLevel
+        if (levelRoot.Name != "BuildingLevel") return;
+
+        // M16 (AssaultRifle) and AK+GL should have 2 magazines (30+30) on Building level
+        bool isLimitedWeapon = weapon.Name == "AKGL" || weapon.Name == "AssaultRifle";
+        if (!isLimitedWeapon) return;
+
+        int baseMagazines = 2;
+
+        // Respect Power Fantasy ammo multiplier if active
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null && difficultyManager.HasMethod("get_ammo_multiplier"))
+        {
+            int multiplier = difficultyManager.Call("get_ammo_multiplier").AsInt32();
+            if (multiplier > 1)
+            {
+                baseMagazines *= multiplier;
+                LogToFile($"BuildingLevel: Power Fantasy mode - {weapon.Name} magazines multiplied by {multiplier}x");
+            }
+        }
+
+        if (weapon.HasMethod("ReinitializeMagazines"))
+        {
+            weapon.Call("ReinitializeMagazines", baseMagazines, true);
+            LogToFile($"BuildingLevel: {weapon.Name} magazines reinitialized to {baseMagazines} (C# fallback, Issue #1259)");
+        }
+
+        // Refresh ammo display after reinitializing
+        var currentAmmo = weapon.Get("CurrentAmmo");
+        var reserveAmmo = weapon.Get("ReserveAmmo");
+        if (currentAmmo.VariantType != Variant.Type.Nil && reserveAmmo.VariantType != Variant.Type.Nil)
+        {
+            UpdateAmmoLabelMagazine(currentAmmo.AsInt32(), reserveAmmo.AsInt32());
+        }
+
+        // Apply auto-reload magazine size reduction if active (Issue #1067)
+        if (_player != null && _player.HasMethod("ApplyAutoReloadAfterLevelAmmoConfig"))
+        {
+            _player.Call("ApplyAutoReloadAfterLevelAmmoConfig");
+            LogToFile($"BuildingLevel: Re-applied auto-reload magazine reduction after ammo config for {weapon.Name}");
         }
     }
 
@@ -598,8 +667,10 @@ public partial class LevelInitFallback : Node
         }
     }
 
-    private void OnEnemyDiedWithInfo(bool isRicochetKill, bool isPenetrationKill)
+    private void OnEnemyDiedWithInfo(bool isRicochetKill, bool isPenetrationKill, bool isPlayerKill)
     {
+        // Issue #1259: signature must match enemy.gd died_with_info(is_ricochet_kill, is_penetration_kill, is_player_kill)
+        // Issue #1196 added is_player_kill as the 3rd param. Mismatched arity silently dropped all score calls.
         var scoreManager = GetNodeOrNull("/root/ScoreManager");
         if (scoreManager != null && scoreManager.HasMethod("register_kill"))
             scoreManager.Call("register_kill", isRicochetKill, isPenetrationKill);
@@ -647,6 +718,10 @@ public partial class LevelInitFallback : Node
 
     private void OnPlayerDied()
     {
+        // Issue #1334: Guard against duplicate death handling
+        if (_isDying) return;
+        _isDying = true;
+
         ShowDeathMessage();
         var gameManager = GetNodeOrNull("/root/GameManager");
         if (gameManager != null && gameManager.HasMethod("on_player_death"))
@@ -654,7 +729,11 @@ public partial class LevelInitFallback : Node
             var timer = GetTree().CreateTimer(0.5);
             timer.Timeout += () =>
             {
-                if (IsInstanceValid(gameManager))
+                // Issue #1334: Verify both this node and GameManager are still valid
+                // before calling on_player_death. SceneTreeTimers persist across
+                // scene reloads (godotengine/godot-proposals#8577), so the callback
+                // can fire after this node has been freed.
+                if (IsInstanceValid(this) && IsInstanceValid(gameManager))
                     gameManager.Call("on_player_death");
             };
         }
@@ -731,6 +810,15 @@ public partial class LevelInitFallback : Node
 
     private void CompleteLevelWithScore()
     {
+        // Disable player controls so clicks on the score screen don't trigger shooting.
+        if (_player != null && IsInstanceValid(_player))
+        {
+            _player.SetPhysicsProcess(false);
+            _player.SetProcess(false);
+            _player.SetProcessInput(false);
+            _player.SetProcessUnhandledInput(false);
+        }
+
         var scoreManager = GetNodeOrNull("/root/ScoreManager");
         if (scoreManager != null && scoreManager.HasMethod("complete_level"))
         {
@@ -760,6 +848,12 @@ public partial class LevelInitFallback : Node
             var scoreScreen = new Node();
             scoreScreen.SetScript(animatedScoreScreenScript);
             parent.AddChild(scoreScreen);
+            // Connect animation_completed signal to add navigation buttons (Issue #1259)
+            if (scoreScreen.HasSignal("animation_completed"))
+            {
+                scoreScreen.Connect("animation_completed",
+                    new Callable(this, MethodName.OnScoreAnimationCompleted));
+            }
             if (scoreScreen.HasMethod("show_animated_score"))
             {
                 scoreScreen.Call("show_animated_score", ui, scoreData);
@@ -769,6 +863,209 @@ public partial class LevelInitFallback : Node
         {
             ShowVictoryMessage();
         }
+    }
+
+    /// <summary>
+    /// Called when score animation finishes — add navigation buttons (Issue #1259).
+    /// Mirrors _add_score_screen_buttons() in GDScript level scripts.
+    /// </summary>
+    private void OnScoreAnimationCompleted(Node container)
+    {
+        _scoreShown = true;
+
+        // Spacer
+        var spacer = new Control();
+        spacer.CustomMinimumSize = new Vector2(0, 10);
+        container.AddChild(spacer);
+
+        var buttonsContainer = new VBoxContainer();
+        buttonsContainer.Name = "ButtonsContainer";
+        buttonsContainer.Alignment = BoxContainer.AlignmentMode.Center;
+        buttonsContainer.AddThemeConstantOverride("separation", 10);
+        container.AddChild(buttonsContainer);
+
+        // Next Level button (if there is a next level)
+        string nextLevelPath = GetNextLevelPath();
+        if (nextLevelPath != "")
+        {
+            var nextButton = new Button();
+            nextButton.Name = "NextLevelButton";
+            nextButton.Text = "→ Next Level";
+            nextButton.CustomMinimumSize = new Vector2(200, 40);
+            nextButton.AddThemeFontSizeOverride("font_size", 18);
+            nextButton.Pressed += () => OnNextLevelPressed(nextLevelPath);
+            buttonsContainer.AddChild(nextButton);
+        }
+
+        // Restart button
+        var restartButton = new Button();
+        restartButton.Name = "RestartButton";
+        restartButton.Text = "↻ Restart (Q)";
+        restartButton.CustomMinimumSize = new Vector2(200, 40);
+        restartButton.AddThemeFontSizeOverride("font_size", 18);
+        restartButton.Pressed += OnRestartPressed;
+        buttonsContainer.AddChild(restartButton);
+
+        // Level Select button
+        var levelSelectButton = new Button();
+        levelSelectButton.Name = "LevelSelectButton";
+        levelSelectButton.Text = "☰ Level Select";
+        levelSelectButton.CustomMinimumSize = new Vector2(200, 40);
+        levelSelectButton.AddThemeFontSizeOverride("font_size", 18);
+        levelSelectButton.Pressed += OnLevelSelectPressed;
+        buttonsContainer.AddChild(levelSelectButton);
+
+        // Armory button (shown when unlock items are available, Issue #897)
+        var unlockManager = GetNodeOrNull("/root/UnlockManager");
+        if (unlockManager != null && unlockManager.HasMethod("has_any_available_unlock")
+            && unlockManager.Call("has_any_available_unlock").AsBool())
+        {
+            var armoryButton = new Button();
+            armoryButton.Name = "ArmoryButton";
+            armoryButton.Text = "★ Armory — Items Available!";
+            armoryButton.CustomMinimumSize = new Vector2(200, 40);
+            armoryButton.AddThemeFontSizeOverride("font_size", 18);
+            armoryButton.AddThemeColorOverride("font_color", new Color(1.0f, 0.85f, 0.2f, 1.0f));
+            var armoryStyle = new StyleBoxFlat();
+            armoryStyle.BgColor = new Color(0.28f, 0.22f, 0.08f, 0.9f);
+            armoryStyle.BorderColor = new Color(1.0f, 0.8f, 0.1f, 1.0f);
+            armoryStyle.BorderWidthLeft = 2;
+            armoryStyle.BorderWidthRight = 2;
+            armoryStyle.BorderWidthTop = 2;
+            armoryStyle.BorderWidthBottom = 2;
+            armoryStyle.CornerRadiusTopLeft = 4;
+            armoryStyle.CornerRadiusTopRight = 4;
+            armoryStyle.CornerRadiusBottomLeft = 4;
+            armoryStyle.CornerRadiusBottomRight = 4;
+            armoryButton.AddThemeStyleboxOverride("normal", armoryStyle);
+            armoryButton.Pressed += OnArmoryPressed;
+            buttonsContainer.AddChild(armoryButton);
+        }
+
+        Input.MouseMode = Input.MouseModeEnum.Confined;
+        if (nextLevelPath != "")
+        {
+            var nextBtn = buttonsContainer.GetNodeOrNull<Button>("NextLevelButton");
+            nextBtn?.GrabFocus();
+        }
+        else
+        {
+            restartButton.GrabFocus();
+        }
+    }
+
+    private void OnNextLevelPressed(string levelPath)
+    {
+        Input.MouseMode = Input.MouseModeEnum.ConfinedHidden;
+        var tree = GetTree();
+        if (tree != null)
+        {
+            var err = tree.ChangeSceneToFile(levelPath);
+            if (err != Error.Ok)
+                Input.MouseMode = Input.MouseModeEnum.Confined;
+        }
+    }
+
+    private void OnRestartPressed()
+    {
+        var gameManager = GetNodeOrNull("/root/GameManager");
+        if (gameManager != null && gameManager.HasMethod("restart_scene"))
+            gameManager.Call("restart_scene");
+        else
+            GetTree()?.ReloadCurrentScene();
+    }
+
+    private void OnLevelSelectPressed()
+    {
+        var levelsMenuScript = GD.Load<Script>("res://scripts/ui/levels_menu.gd");
+        if (levelsMenuScript != null)
+        {
+            var levelsMenu = new CanvasLayer();
+            levelsMenu.SetScript(levelsMenuScript);
+            levelsMenu.Layer = 100;
+            GetTree()?.Root.AddChild(levelsMenu);
+            if (levelsMenu.HasSignal("back_pressed"))
+                levelsMenu.Connect("back_pressed", Callable.From(() => levelsMenu.QueueFree()));
+        }
+    }
+
+    private void OnArmoryPressed()
+    {
+        var armoryMenuScene = GD.Load<PackedScene>("res://scenes/ui/ArmoryMenu.tscn");
+        if (armoryMenuScene != null)
+        {
+            var armoryMenu = armoryMenuScene.Instantiate<CanvasLayer>();
+            armoryMenu.Set("layer", 100);
+            armoryMenu.Set("opened_from_score_screen", true);
+            GetTree()?.Root.AddChild(armoryMenu);
+            // Issue #1050: Remove gold highlight from armory button if all available items
+            // have been unlocked — matches _remove_armory_button_gold_style() in GDScript levels.
+            if (armoryMenu.HasSignal("back_pressed"))
+                armoryMenu.Connect("back_pressed", Callable.From(() =>
+                {
+                    armoryMenu.QueueFree();
+                    RemoveArmoryButtonGoldStyle();
+                }));
+            if (armoryMenu.HasSignal("apply_pressed_from_score_screen"))
+                armoryMenu.Connect("apply_pressed_from_score_screen", Callable.From(() =>
+                    RemoveArmoryButtonGoldStyle()));
+        }
+    }
+
+    /// <summary>
+    /// Remove the gold highlight from the ArmoryButton when no items remain to unlock.
+    /// The button stays visible but loses its gold styling and reverts to plain "Armory" text.
+    /// Matches _remove_armory_button_gold_style() in GDScript level scripts (Issue #1050).
+    /// </summary>
+    private void RemoveArmoryButtonGoldStyle()
+    {
+        var unlockManager = GetNodeOrNull("/root/UnlockManager");
+        bool hasAvailableUnlock = unlockManager != null
+            && unlockManager.HasMethod("has_any_available_unlock")
+            && unlockManager.Call("has_any_available_unlock").AsBool();
+        if (hasAvailableUnlock)
+            return; // Still items to unlock — keep the highlight
+
+        var currentScene = GetTree()?.CurrentScene;
+        var armoryBtn = currentScene?.FindChild("ArmoryButton", true, false) as Button;
+        if (armoryBtn != null)
+        {
+            armoryBtn.Text = "Armory";
+            armoryBtn.RemoveThemeColorOverride("font_color");
+            armoryBtn.RemoveThemeStyleboxOverride("normal");
+        }
+    }
+
+    /// <summary>
+    /// Returns the path of the next level in the campaign order, or empty string if last.
+    /// Matches the level ordering in GDScript _get_next_level_path().
+    /// </summary>
+    private string GetNextLevelPath()
+    {
+        var tree = GetTree();
+        if (tree == null) return "";
+
+        string currentPath = tree.CurrentScene?.SceneFilePath ?? "";
+        string[] levelPaths = new[]
+        {
+            "res://scenes/levels/LabyrinthLevel.tscn",
+            "res://scenes/levels/BuildingLevel.tscn",
+            "res://scenes/levels/TestTier.tscn",
+            "res://scenes/levels/CastleLevel.tscn",
+            "res://scenes/levels/RevolverLevel.tscn",
+            "res://scenes/levels/CityLevel.tscn",
+            "res://scenes/levels/BeachLevel.tscn",
+            "res://scenes/levels/DocksLevel.tscn",
+            "res://scenes/levels/FactoryLevel.tscn",
+            "res://scenes/levels/DecadenceLevel.tscn",
+            "res://scenes/levels/Labyrinth2Level.tscn",
+        };
+        for (int i = 0; i < levelPaths.Length; i++)
+        {
+            if (levelPaths[i] == currentPath && i + 1 < levelPaths.Length)
+                return levelPaths[i + 1];
+        }
+        return "";
     }
 
     private void ShowVictoryMessage()
@@ -917,6 +1214,192 @@ public partial class LevelInitFallback : Node
             }
             scoreManager.Call("update_enemy_positions", enemiesArray);
         }
+    }
+
+    /// <summary>
+    /// Setup warm ceiling lights in the centers of rooms (Issue #1206).
+    /// Mirrors the GDScript _setup_room_warm_lights() / _create_room_warm_light() methods so
+    /// that lights are created even when GDScript _ready() silently fails due to the Godot 4.3
+    /// binary-tokenization bug (godotengine/godot#94150).
+    ///
+    /// Room positions match those in building_level.gd:
+    ///   Conference Room (1918,340), Break Room (1918,994), Server Room (2200,1638),
+    ///   Main Hall (1200,1724), Office 1 (290,384), Office 2 (718,780).
+    /// </summary>
+    private void SetupRoomWarmLights(Node levelRoot)
+    {
+        var environment = levelRoot.GetNodeOrNull("Environment");
+        if (environment == null)
+        {
+            LogToFile("WARNING: Environment node not found — skipping room warm lights setup");
+            return;
+        }
+
+        // Avoid creating lights twice if somehow GDScript already ran
+        if (levelRoot.GetNodeOrNull("Environment/RoomLights") != null)
+        {
+            LogToFile("RoomLights already exist — skipping warm lights setup");
+            return;
+        }
+
+        var container = new Node2D();
+        container.Name = "RoomLights";
+        environment.AddChild(container);
+
+        // Build the warm-light texture once and reuse it (single GPU upload)
+        var lightTexture = CreateWarmLightTexture();
+        var fixtureTexture = CreateLampFixtureTexture();
+
+        // Room config: position, energy, texture_scale, label
+        var rooms = new (Vector2 Pos, float Energy, float Scale, string Label)[]
+        {
+            // Large rooms — bigger lights
+            (new Vector2(1918, 340),  0.9f, 5.0f, "ConferenceRoom"),
+            (new Vector2(1918, 994),  0.9f, 5.0f, "BreakRoom"),
+            (new Vector2(2200, 1638), 0.9f, 5.0f, "ServerRoom"),
+            (new Vector2(1200, 1724), 0.85f, 4.5f, "MainHall"),
+            // Smaller rooms — softer lights
+            (new Vector2(290, 384),   0.7f, 3.5f, "Office1"),
+            // Office 2: shifted to upper half (y=780 instead of centre y=856)
+            (new Vector2(718, 780),   0.7f, 3.5f, "Office2"),
+        };
+
+        foreach (var room in rooms)
+            CreateRoomWarmLight(container, room.Pos, room.Energy, room.Scale, room.Label, lightTexture, fixtureTexture);
+
+        LogToFile("Warm ceiling lights placed in all rooms (Issue #1206, C# fallback)");
+    }
+
+    /// <summary>
+    /// Create a single warm ceiling light node at the given position.
+    /// </summary>
+    private static void CreateRoomWarmLight(
+        Node2D parent, Vector2 pos, float energy, float scale, string roomName,
+        ImageTexture lightTexture, ImageTexture fixtureTexture)
+    {
+        var lightNode = new Node2D();
+        lightNode.Name = $"WarmLight_{roomName}";
+        lightNode.Position = pos;
+        parent.AddChild(lightNode);
+
+        // Small visual indicator — round lamp fixture sprite
+        var fixture = new Sprite2D();
+        fixture.Name = "Fixture";
+        fixture.Texture = fixtureTexture;
+        fixture.Modulate = new Color(1.0f, 0.85f, 0.5f, 0.5f);
+        lightNode.AddChild(fixture);
+
+        // The warm PointLight2D with soft shadows
+        var light = new PointLight2D();
+        light.Name = "PointLight";
+        light.Color = new Color(1.0f, 0.75f, 0.3f, 1.0f);
+        light.Energy = energy;
+        light.ShadowEnabled = true;
+        light.ShadowFilter = PointLight2D.ShadowFilterEnum.Pcf5;
+        light.ShadowFilterSmooth = 4.0f;
+        light.Texture = lightTexture;
+        light.TextureScale = scale;
+        lightNode.AddChild(light);
+    }
+
+    /// <summary>
+    /// Create a soft radial gradient texture for the warm room lights.
+    /// Matches the GDScript _create_warm_light_texture() result exactly.
+    /// Uses a power-law falloff: bright core → gentle taper → black at rim.
+    /// </summary>
+    private static ImageTexture CreateWarmLightTexture()
+    {
+        const int size = 512;
+        var center = new Vector2(size * 0.5f, size * 0.5f);
+        float outerR = size * 0.5f;
+
+        var image = Image.Create(size, size, false, Image.Format.Rgba8);
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dist = new Vector2(x, y).DistanceTo(center);
+                float t = Mathf.Clamp(dist / outerR, 0.0f, 1.0f);
+                float brightness = Mathf.Pow(1.0f - t, 2.2f);
+                image.SetPixel(x, y, new Color(brightness, brightness, brightness, 1.0f));
+            }
+        }
+
+        return ImageTexture.CreateFromImage(image);
+    }
+
+    /// <summary>
+    /// Create a small circular texture for the lamp fixture visual indicator.
+    /// Matches the GDScript _create_lamp_fixture_texture() result exactly.
+    /// </summary>
+    private static ImageTexture CreateLampFixtureTexture()
+    {
+        const int size = 32;
+        var center = new Vector2(size * 0.5f, size * 0.5f);
+        float outerR = size * 0.5f;
+
+        var image = Image.Create(size, size, false, Image.Format.Rgba8);
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dist = new Vector2(x, y).DistanceTo(center);
+                if (dist >= outerR)
+                {
+                    image.SetPixel(x, y, new Color(0, 0, 0, 0));
+                }
+                else
+                {
+                    float t = Mathf.Clamp(dist / outerR, 0.0f, 1.0f);
+                    float alpha = Mathf.Pow(1.0f - t, 1.5f);
+                    image.SetPixel(x, y, new Color(1, 1, 1, alpha));
+                }
+            }
+        }
+
+        return ImageTexture.CreateFromImage(image);
+    }
+
+    /// <summary>
+    /// Setup the navigation mesh for enemy pathfinding (Issue #1289).
+    /// Mirrors GDScript _setup_navigation() — waits for the next physics frame so that
+    /// CollisionShape2D nodes are registered with PhysicsServer2D, then performs an
+    /// explicit parse + bake to carve walls out of the navmesh.
+    /// </summary>
+    private async void SetupNavigationDeferred(Node levelRoot)
+    {
+        // Wait for physics frame so CollisionShape2D nodes are registered
+        await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
+
+        // After the await, verify the node is still valid (scene may have changed)
+        if (!IsInstanceValid(this) || !IsInsideTree()) return;
+        if (!IsInstanceValid(levelRoot) || !levelRoot.IsInsideTree()) return;
+
+        var navRegion = levelRoot.GetNodeOrNull<NavigationRegion2D>("NavigationRegion2D");
+        if (navRegion == null)
+        {
+            LogToFile("NavigationRegion2D not found - enemy pathfinding will be limited");
+            return;
+        }
+
+        var navPoly = navRegion.NavigationPolygon;
+        if (navPoly == null)
+        {
+            LogToFile("NavigationPolygon not found - enemy pathfinding will be limited");
+            return;
+        }
+
+        LogToFile("Baking navigation mesh (C# fallback)...");
+        var sourceGeometry = new NavigationMeshSourceGeometryData2D();
+        NavigationServer2D.ParseSourceGeometryData(navPoly, sourceGeometry, levelRoot);
+        NavigationServer2D.BakeFromSourceGeometryData(navPoly, sourceGeometry);
+        // Push updated polygon back into the NavigationServer's live map.
+        // Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+        navRegion.NavigationPolygon = navPoly;
+        navRegion.EmitSignal("bake_finished");
+        LogToFile($"Navigation mesh baked successfully (C# fallback) — poly_count={navPoly.GetPolygonCount()}, vertex_count={navPoly.Vertices.Length}");
     }
 
     /// <summary>

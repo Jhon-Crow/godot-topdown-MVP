@@ -28,6 +28,7 @@ const KEY_LAST_LEVEL := "last_level"
 const KEY_CURRENT_GRENADE_TYPE := "current_type"
 const KEY_CURRENT_ACTIVE_ITEM := "current_type"
 const KEY_KILLS_WITHOUT_LASER_SIGHT := "kills_without_laser_sight"  # Issue #1196
+const KEY_SHOTS_FIRED_SPECIAL_WEAPONS := "shots_fired_special_weapons"  # Issue #1346
 
 ## Default level to load when no saved state exists.
 const DEFAULT_LEVEL := "res://scenes/levels/LabyrinthLevel.tscn"
@@ -84,6 +85,8 @@ func _connect_signals() -> void:
 			game_manager.weapon_unlocked.connect(_on_weapon_unlocked)
 		if game_manager.has_signal("kills_without_laser_sight_updated"):
 			game_manager.kills_without_laser_sight_updated.connect(_on_kills_without_laser_sight_updated)
+		if game_manager.has_signal("shots_fired_special_weapons_updated"):
+			game_manager.shots_fired_special_weapons_updated.connect(_on_shots_fired_special_weapons_updated)
 
 	# GrenadeManager signals
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -160,6 +163,10 @@ func _on_kills_without_laser_sight_updated(_new_count: int) -> void:
 	_save_state()
 
 
+func _on_shots_fired_special_weapons_updated(_new_count: int) -> void:
+	_save_state()
+
+
 # ============================================================================
 # Save / Load
 # ============================================================================
@@ -196,6 +203,9 @@ func _save_state_with_level(level_path: String) -> void:
 		# Save kill stats (Issue #1196)
 		config.set_value(SECTION_KILL_STATS, KEY_KILLS_WITHOUT_LASER_SIGHT,
 				game_manager.get("kills_without_laser_sight") if game_manager.get("kills_without_laser_sight") != null else 0)
+		# Save shot stats (Issue #1346)
+		config.set_value(SECTION_KILL_STATS, KEY_SHOTS_FIRED_SPECIAL_WEAPONS,
+				game_manager.get("shots_fired_special_weapons") if game_manager.get("shots_fired_special_weapons") != null else 0)
 
 	# Save selected grenade type
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -260,6 +270,11 @@ func _load_state() -> void:
 			var saved_kills: int = config.get_value(SECTION_KILL_STATS, KEY_KILLS_WITHOUT_LASER_SIGHT, 0)
 			game_manager.kills_without_laser_sight = saved_kills
 			_log_to_file("Restored kills_without_laser_sight: %d" % saved_kills)
+		# Restore shot stats (Issue #1346)
+		if config.has_section_key(SECTION_KILL_STATS, KEY_SHOTS_FIRED_SPECIAL_WEAPONS):
+			var saved_shots: int = config.get_value(SECTION_KILL_STATS, KEY_SHOTS_FIRED_SPECIAL_WEAPONS, 0)
+			game_manager.shots_fired_special_weapons = saved_shots
+			_log_to_file("Restored shots_fired_special_weapons: %d" % saved_shots)
 
 		# Restore selected weapon
 		if config.has_section_key(SECTION_GAME, KEY_SELECTED_WEAPON):
@@ -351,6 +366,7 @@ func clear_all_saves() -> void:
 			game_manager.unlocked_weapons[weapon_id] = weapon_id == "makarov_pm"
 		game_manager.selected_weapon = "makarov_pm"
 		game_manager.kills_without_laser_sight = 0  # Issue #1196
+		game_manager.shots_fired_special_weapons = 0  # Issue #1346
 
 	# Reset GrenadeManager to defaults
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")

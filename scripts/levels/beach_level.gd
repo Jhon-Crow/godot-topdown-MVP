@@ -60,6 +60,9 @@ func _ready() -> void:
 	# Setup weapon hints (Issue #809)
 	_setup_weapon_hints()
 
+	# Add sunlight source off-screen in the top-right corner (Issue #1234)
+	_setup_sunlight()
+
 
 func _initialize_score_manager() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
@@ -173,9 +176,23 @@ func _get_combo_color(combo: int) -> Color:
 
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
-	if nav_region:
-		nav_region.navigation_polygon.agent_radius = 24.0
-		nav_region.bake_navigation_polygon(false)
+	if nav_region == null:
+		return
+	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
+	if nav_poly == null:
+		return
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
+	nav_poly.agent_radius = 24.0
+	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
+	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
+	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# Issue #1289: push updated polygon back into the NavigationServer's live map.
+	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 
 
 func _setup_player_tracking() -> void:
@@ -349,7 +366,9 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 
 ## Called when player runs out of ammo in current magazine.
 func _on_player_ammo_depleted() -> void:
-	_broadcast_player_ammo_empty(true)
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
@@ -403,6 +422,9 @@ func _on_player_died() -> void:
 	_show_death_message()
 	if GameManager:
 		await get_tree().create_timer(0.5).timeout
+		# Issue #1334: After await, verify this node is still valid (scene may have reloaded)
+		if not is_instance_valid(self):
+			return
 		GameManager.on_player_death()
 
 
@@ -1269,6 +1291,61 @@ func _disable_player_controls() -> void:
 		_player.velocity = Vector2.ZERO
 
 	_log_to_file("Player controls disabled (level completed)")
+
+
+## Place a single sunlight source off-screen in the top-right corner.
+## The light simulates sunlight illuminating the whole beach map.
+## Obstacles with LightOccluder2D (rocks, huts) will cast shadows.
+## Position (2700, -200) is outside the map frame (map bounds: 64–2464 x, 64–2064 y).
+func _setup_sunlight() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	var sun_node := Node2D.new()
+	sun_node.name = "Sunlight"
+	# Off-screen top-right corner — outside the visible map frame.
+	sun_node.position = Vector2(2700, -200)
+	environment.add_child(sun_node)
+
+	var light := PointLight2D.new()
+	light.name = "SunPointLight"
+	# Bright yellow sunlight color — more yellow per user feedback.
+	light.color = Color(1.0, 0.95, 0.5, 1.0)
+	# Bright but not overwhelming — keeps the outdoor daylight feel.
+	light.energy = 1.2
+	light.shadow_enabled = true
+	# SHADOW_FILTER_NONE gives crisp single shadows without PCF5's ghost duplicates.
+	# (Godot 4.3 valid values: NONE=0, PCF5=1, PCF13=2 — PCF3 does not exist.)
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_NONE
+	# Slight warm tint in shadows for a realistic sun effect.
+	light.shadow_color = Color(0.0, 0.0, 0.0, 0.5)
+	light.texture = _create_sunlight_texture()
+	# Scale large enough to cover the entire map from the off-screen position.
+	# The farthest corner (bottom-left ~64,2064) is ~3500 px away; scale 14 * 256 = 3584 px.
+	light.texture_scale = 14.0
+	sun_node.add_child(light)
+
+	print("[BeachLevel] Sunlight placed off-screen at top-right corner (Issue #1234)")
+
+
+## Create a smooth radial gradient texture for the sunlight.
+## Uses power-law falloff so the light fades naturally with no hard edge.
+func _create_sunlight_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # 256 px
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)  # 0 = centre, 1 = edge
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+
+	return ImageTexture.create_from_image(image)
 
 
 func _log_to_file(message: String) -> void:

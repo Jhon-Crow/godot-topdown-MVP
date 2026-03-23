@@ -41,13 +41,21 @@ enum RoomType {
 	CITY         ## Urban: L-shaped cover blocks, car-like barriers
 }
 
-## Room size for procedural generation
+## Room size options for procedural generation (Issue #1240: larger, more varied rooms)
+## Three sizes: compact, standard, and large.
+const ROOM_SIZE_OPTIONS: Array = [
+	Vector2(1280.0, 720.0),   ## Compact — tight quarters, close combat
+	Vector2(1600.0, 900.0),   ## Standard — moderate space, balanced
+	Vector2(1920.0, 1080.0),  ## Large — open tactical arena, long sightlines
+]
+
+## Backwards-compatible aliases (used for fixed-size code paths like the tscn)
 const ROOM_WIDTH:  float = 1280.0
 const ROOM_HEIGHT: float = 720.0
 
-## Enemy count limits per room
+## Enemy count limits per room (Issue #1240: more enemies for tactical pressure)
 const ENEMIES_PER_ROOM_MIN: int = 3
-const ENEMIES_PER_ROOM_MAX: int = 4
+const ENEMIES_PER_ROOM_MAX: int = 5
 
 ## Number of rooms per run
 const MIN_ROOMS: int = 3
@@ -99,6 +107,7 @@ const PEDESTAL_ITEM_GLOW:  Color = Color(0.90, 0.75, 0.20, 0.85)  ## Golden glow
 ## alongside whatever the player already has).  All other types are "active"
 ## and replace the current one.
 ## NOTE: this list mirrors the passives in ActiveItemManager.ActiveItemType.
+## Issue #1303 fix: corrected enum values (were off-by-4 for most entries).
 const PASSIVE_ACTIVE_ITEM_TYPES: Array = [
 	6,   # BREAKER_BULLETS
 	9,   # LASER_SIGHT
@@ -119,6 +128,12 @@ var _room_type: int = RoomType.LABYRINTH
 var _current_room_idx: int = 0
 ## Total rooms in this run
 var _total_rooms: int = 3
+
+## Dynamic room dimensions chosen at build time (Issue #1240)
+var _room_w: float = 1280.0
+var _room_h: float = 720.0
+## Layout variant index chosen at build time (Issue #1240: multiple variants per type)
+var _room_variant: int = 0
 
 var _player: Node2D = null
 
@@ -304,15 +319,13 @@ func _force_roguelike_loadout() -> void:
 	# Issue #1166: player must start roguelike with no active/passive items on the FIRST room only.
 	# On level 1 room 1 (roguelike_current_level == 1 and roguelike_current_room == 0) clear items.
 	if GameManager.roguelike_current_level == 1 and GameManager.roguelike_current_room == 0:
-		if ActiveItemManager:
-			if ActiveItemManager.current_active_item != 0:
-				ActiveItemManager.current_active_item = 0  # NONE — direct assignment, no restart
-				ActiveItemManager.active_item_changed.emit(0)
-				print("[RoguelikeLevel] Active item cleared for roguelike start")
-			# Issue #1194: also clear any previously collected passive items.
-			if not ActiveItemManager.collected_passive_items.is_empty():
-				ActiveItemManager.reset_passive_items()
-				print("[RoguelikeLevel] Passive items cleared for roguelike start")
+		if ActiveItemManager and ActiveItemManager.current_active_item != 0:
+			ActiveItemManager.current_active_item = 0  # NONE — direct assignment, no restart
+			ActiveItemManager.active_item_changed.emit(0)
+			print("[RoguelikeLevel] Active item cleared for roguelike start")
+		# Issue #1303: clear accumulated passive items at the start of a new roguelike run.
+		if ActiveItemManager and ActiveItemManager.has_method("clear_passive_items"):
+			ActiveItemManager.clear_passive_items()
 	print("[RoguelikeLevel] Loadout forced: %s + flashbang" % GameManager.get_selected_weapon())
 
 
@@ -326,11 +339,19 @@ func _restore_loadout() -> void:
 ## ============================================================
 
 func _build_room_scene() -> void:
+	# Issue #1240: pick a random room size and layout variant each time.
+	var size_idx: int = randi() % ROOM_SIZE_OPTIONS.size()
+	var chosen_size: Vector2 = ROOM_SIZE_OPTIONS[size_idx]
+	_room_w = chosen_size.x
+	_room_h = chosen_size.y
+	_room_variant = randi() % 3  # 0, 1, or 2 — three layout variants per type
+	print("[RoguelikeLevel] Room size: %.0f×%.0f, variant: %d" % [_room_w, _room_h, _room_variant])
+
 	# Background
 	var bg := ColorRect.new()
 	bg.name  = "WorldBackground"
 	bg.position = Vector2(-200, -200)
-	bg.size     = Vector2(ROOM_WIDTH + 400, ROOM_HEIGHT + 400)
+	bg.size     = Vector2(_room_w + 400, _room_h + 400)
 	bg.color    = BG_COLOR
 	add_child(bg)
 
@@ -347,14 +368,14 @@ func _build_room(parent: Node) -> void:
 	var floor_color: Color = ROOM_FLOOR_COLORS.get(_room_type, FLOOR_COLOR)
 	var floor_rect := ColorRect.new()
 	floor_rect.position = Vector2(0, 0)
-	floor_rect.size     = Vector2(ROOM_WIDTH, ROOM_HEIGHT)
+	floor_rect.size     = Vector2(_room_w, _room_h)
 	floor_rect.color    = floor_color
 	parent.add_child(floor_rect)
 
 	# Boundary walls — closed on all sides (single room, no corridors)
 	_build_room_boundary_closed(parent)
 
-	# Interior layout by type
+	# Interior layout by type — Issue #1240: each type now has 3 variants
 	match _room_type:
 		RoomType.LABYRINTH:
 			_build_labyrinth_interior(parent)
@@ -367,13 +388,14 @@ func _build_room(parent: Node) -> void:
 		RoomType.CITY:
 			_build_city_interior(parent)
 
-	print("[RoguelikeLevel] Room built: type=%s" % ROOM_TYPE_NAMES.get(_room_type, "?"))
+	print("[RoguelikeLevel] Room built: type=%s variant=%d size=%.0f×%.0f" % [
+		ROOM_TYPE_NAMES.get(_room_type, "?"), _room_variant, _room_w, _room_h])
 
 
 ## Fully-enclosed boundary walls (no corridor openings — single room).
 func _build_room_boundary_closed(room_node: Node2D) -> void:
-	var w: float = ROOM_WIDTH
-	var h: float = ROOM_HEIGHT
+	var w: float = _room_w
+	var h: float = _room_h
 	var t: float = 24.0  ## Wall thickness
 	_create_wall(room_node, Rect2(0,     0,     w, t))   ## Top
 	_create_wall(room_node, Rect2(0,     h - t, w, t))   ## Bottom
@@ -382,117 +404,317 @@ func _build_room_boundary_closed(room_node: Node2D) -> void:
 
 
 ## ─── Labyrinth: horizontal and vertical divider walls ───────────────────────
+## Issue #1240: 3 variants for more variety.
 func _build_labyrinth_interior(room_node: Node2D) -> void:
-	var w: float = ROOM_WIDTH
-	var h: float = ROOM_HEIGHT
+	var w: float = _room_w
+	var h: float = _room_h
 	var opening: float = 140.0
-
-	# Horizontal divider at 1/3 height — gap on right side
-	_create_wall(room_node, Rect2(60, h * 0.33, w * 0.55, 20))
-	# Horizontal divider at 2/3 height — gap on left side
-	_create_wall(room_node, Rect2(w * 0.45, h * 0.66, w * 0.55 - 30, 20))
-	# Vertical divider at centre — gap in middle
-	_create_wall(room_node, Rect2(w * 0.5 - 10, 60, 20, h * 0.35))
-	_create_wall(room_node, Rect2(w * 0.5 - 10, h * 0.35 + opening, 20, h * 0.30))
-	# Short L-wall in upper-left quadrant
-	_create_wall(room_node, Rect2(120, h * 0.14, 140, 20))
-	_create_wall(room_node, Rect2(120, h * 0.14, 20, 80))
-	# Short L-wall in lower-right quadrant
-	_create_wall(room_node, Rect2(w - 260, h * 0.78, 140, 20))
-	_create_wall(room_node, Rect2(w - 280 + 140, h * 0.72, 20, 80))
+	match _room_variant:
+		0:
+			# Classic maze: two horizontal dividers + one vertical divider with gap
+			_create_wall(room_node, Rect2(60, h * 0.33, w * 0.55, 20))
+			_create_wall(room_node, Rect2(w * 0.45, h * 0.66, w * 0.55 - 30, 20))
+			_create_wall(room_node, Rect2(w * 0.5 - 10, 60, 20, h * 0.35))
+			_create_wall(room_node, Rect2(w * 0.5 - 10, h * 0.35 + opening, 20, h * 0.30))
+			_create_wall(room_node, Rect2(120, h * 0.14, 140, 20))
+			_create_wall(room_node, Rect2(120, h * 0.14, 20, 80))
+			_create_wall(room_node, Rect2(w - 260, h * 0.78, 140, 20))
+			_create_wall(room_node, Rect2(w - 280 + 140, h * 0.72, 20, 80))
+		1:
+			# T-junction maze: central horizontal wall + two vertical stubs creating 3 corridors
+			_create_wall(room_node, Rect2(60, h * 0.50, w * 0.35, 20))
+			_create_wall(room_node, Rect2(w * 0.65, h * 0.50, w * 0.35 - 60, 20))
+			# Upper channel wall
+			_create_wall(room_node, Rect2(w * 0.35, 60, 20, h * 0.28))
+			_create_wall(room_node, Rect2(w * 0.65, 60, 20, h * 0.28))
+			# Lower channel wall
+			_create_wall(room_node, Rect2(w * 0.35, h * 0.72, 20, h * 0.28))
+			_create_wall(room_node, Rect2(w * 0.65, h * 0.72, 20, h * 0.28))
+			# Short cross-pieces for cover
+			_create_wall(room_node, Rect2(w * 0.20, h * 0.22, 80, 20))
+			_create_wall(room_node, Rect2(w * 0.75, h * 0.72, 80, 20))
+		2:
+			# Spiral-ish: one long corridor divider + two alcove stubs + a central pillar
+			_create_wall(room_node, Rect2(60, h * 0.40, w * 0.60, 20))
+			_create_wall(room_node, Rect2(w * 0.40, h * 0.60, w * 0.60 - 60, 20))
+			# Left alcove
+			_create_wall(room_node, Rect2(60, h * 0.40, 20, h * 0.32))
+			# Right alcove
+			_create_wall(room_node, Rect2(w - 80, h * 0.30, 20, h * 0.32))
+			# Central pillar box
+			_create_wall(room_node, Rect2(w * 0.47, h * 0.40, 20, h * 0.20))
+			_create_wall(room_node, Rect2(w * 0.47, h * 0.40, w * 0.08, 20))
+			_create_wall(room_node, Rect2(w * 0.47, h * 0.60, w * 0.08, 20))
 
 
 ## ─── Building: walled sub-rooms with doorways ───────────────────────────────
+## Issue #1240: 3 variants.
 func _build_building_interior(room_node: Node2D) -> void:
-	var w: float = ROOM_WIDTH
-	var h: float = ROOM_HEIGHT
+	var w: float = _room_w
+	var h: float = _room_h
 	var opening: float = 100.0
-
-	# Vertical wall dividing left and right sub-rooms — doorway at mid-height
-	_create_wall(room_node, Rect2(w * 0.42, 60, 20, h * 0.35))
-	_create_wall(room_node, Rect2(w * 0.42, 60 + h * 0.35 + opening, 20, h - (60 + h * 0.35 + opening) - 60))
-
-	# Top-right alcove
-	_create_wall(room_node, Rect2(w * 0.60, 60, w * 0.22, 20))
-	_create_wall(room_node, Rect2(w * 0.82 - 20, 60, 20, h * 0.28))
-
-	# Bottom-left alcove
-	_create_wall(room_node, Rect2(60, h * 0.68, w * 0.22, 20))
-	_create_wall(room_node, Rect2(60, h * 0.54, 20, h * 0.14 + 20))
-
-	# Cover crate in left room
-	_create_cover(room_node, Rect2(w * 0.18, h * 0.42, 60, 60))
-	# Cover panel in right room
-	_create_cover(room_node, Rect2(w * 0.68, h * 0.55, 80, 20))
+	match _room_variant:
+		0:
+			# Classic: vertical divider with doorway, top-right alcove, bottom-left alcove
+			_create_wall(room_node, Rect2(w * 0.42, 60, 20, h * 0.35))
+			_create_wall(room_node, Rect2(w * 0.42, 60 + h * 0.35 + opening, 20, h - (60 + h * 0.35 + opening) - 60))
+			_create_wall(room_node, Rect2(w * 0.60, 60, w * 0.22, 20))
+			_create_wall(room_node, Rect2(w * 0.82 - 20, 60, 20, h * 0.28))
+			_create_wall(room_node, Rect2(60, h * 0.68, w * 0.22, 20))
+			_create_wall(room_node, Rect2(60, h * 0.54, 20, h * 0.14 + 20))
+			_create_cover(room_node, Rect2(w * 0.18, h * 0.42, 60, 60))
+			_create_cover(room_node, Rect2(w * 0.68, h * 0.55, 80, 20))
+		1:
+			# Three-room layout: top corridor + bottom corridor divided by horizontal wall
+			_create_wall(room_node, Rect2(60, h * 0.38, w * 0.38, 20))
+			_create_wall(room_node, Rect2(w * 0.38 + opening, h * 0.38, w * 0.62 - opening - 60, 20))
+			_create_wall(room_node, Rect2(60, h * 0.62, w * 0.38, 20))
+			_create_wall(room_node, Rect2(w * 0.38 + opening, h * 0.62, w * 0.62 - opening - 60, 20))
+			# Two vertical sub-dividers creating three lanes
+			_create_wall(room_node, Rect2(w * 0.38, 60, 20, h * 0.38))
+			_create_wall(room_node, Rect2(w * 0.62, h * 0.62, 20, h * 0.38))
+			# Cover objects
+			_create_cover(room_node, Rect2(w * 0.22, h * 0.48, 60, 24))
+			_create_cover(room_node, Rect2(w * 0.72, h * 0.48, 60, 24))
+		2:
+			# Fortress: outer ring of rooms with central open courtyard
+			# Left wing
+			_create_wall(room_node, Rect2(w * 0.26, 60, 20, h * 0.35))
+			_create_wall(room_node, Rect2(w * 0.26, h * 0.35 + opening, 20, h * 0.30))
+			# Right wing
+			_create_wall(room_node, Rect2(w * 0.74, 60, 20, h * 0.35))
+			_create_wall(room_node, Rect2(w * 0.74, h * 0.35 + opening, 20, h * 0.30))
+			# Top bar connecting wings
+			_create_wall(room_node, Rect2(w * 0.26, h * 0.24, w * 0.14, 20))
+			_create_wall(room_node, Rect2(w * 0.60, h * 0.24, w * 0.14, 20))
+			# Bottom bar
+			_create_wall(room_node, Rect2(w * 0.26, h * 0.76, w * 0.14, 20))
+			_create_wall(room_node, Rect2(w * 0.60, h * 0.76, w * 0.14, 20))
+			# Central cover pair
+			_create_cover(room_node, Rect2(w * 0.46, h * 0.40, 24, 80))
+			_create_cover(room_node, Rect2(w * 0.54, h * 0.40, 24, 80))
 
 
 ## ─── Beach: open field with scattered obstacles ─────────────────────────────
+## Issue #1240: 3 variants with more obstacles and tactical cover.
 func _build_beach_interior(room_node: Node2D) -> void:
-	var w: float = ROOM_WIDTH
-	var h: float = ROOM_HEIGHT
-
-	# Scattered crates and barrels
-	var positions: Array[Vector2] = [
-		Vector2(w * 0.18, h * 0.25),
-		Vector2(w * 0.18, h * 0.65),
-		Vector2(w * 0.40, h * 0.38),
-		Vector2(w * 0.40, h * 0.58),
-		Vector2(w * 0.62, h * 0.22),
-		Vector2(w * 0.62, h * 0.72),
-		Vector2(w * 0.80, h * 0.44),
-	]
-	for pos in positions:
-		var sz: float = 44.0 if (int(pos.x) % 2 == 0) else 32.0
-		_create_cover(room_node, Rect2(pos.x - sz * 0.5, pos.y - sz * 0.5, sz, sz))
-
-	# A low sandbag wall segment
-	_create_cover(room_node, Rect2(w * 0.55, h * 0.5 - 10, 120, 20))
+	var w: float = _room_w
+	var h: float = _room_h
+	match _room_variant:
+		0:
+			# Scattered crates and barrels (original, slightly expanded)
+			var positions: Array[Vector2] = [
+				Vector2(w * 0.18, h * 0.25),
+				Vector2(w * 0.18, h * 0.65),
+				Vector2(w * 0.40, h * 0.38),
+				Vector2(w * 0.40, h * 0.58),
+				Vector2(w * 0.62, h * 0.22),
+				Vector2(w * 0.62, h * 0.72),
+				Vector2(w * 0.80, h * 0.44),
+				Vector2(w * 0.28, h * 0.50),
+			]
+			for pos in positions:
+				var sz: float = 44.0 if (int(pos.x) % 2 == 0) else 32.0
+				_create_cover(room_node, Rect2(pos.x - sz * 0.5, pos.y - sz * 0.5, sz, sz))
+			_create_cover(room_node, Rect2(w * 0.55, h * 0.5 - 10, 120, 20))
+		1:
+			# Beachhead: two diagonal sandbag lines with gaps — flanking possible
+			_create_cover(room_node, Rect2(w * 0.22, h * 0.18, 100, 20))
+			_create_cover(room_node, Rect2(w * 0.34, h * 0.30, 100, 20))
+			_create_cover(room_node, Rect2(w * 0.46, h * 0.42, 100, 20))
+			# Second diagonal line (offset, creates crossfire)
+			_create_cover(room_node, Rect2(w * 0.30, h * 0.72, 100, 20))
+			_create_cover(room_node, Rect2(w * 0.44, h * 0.60, 100, 20))
+			_create_cover(room_node, Rect2(w * 0.58, h * 0.48, 100, 20))
+			# Far cover
+			_create_cover(room_node, Rect2(w * 0.72, h * 0.28, 56, 56))
+			_create_cover(room_node, Rect2(w * 0.78, h * 0.68, 56, 56))
+		2:
+			# Debris field: irregular cluster in middle + lone outpost covers
+			for i in range(5):
+				var angle: float = i * TAU / 5.0
+				var cx: float = w * 0.50 + cos(angle) * w * 0.12
+				var cy: float = h * 0.50 + sin(angle) * h * 0.16
+				_create_cover(room_node, Rect2(cx - 24, cy - 24, 48, 48))
+			# Outpost covers near corners
+			_create_cover(room_node, Rect2(w * 0.14, h * 0.20, 36, 60))
+			_create_cover(room_node, Rect2(w * 0.80, h * 0.20, 36, 60))
+			_create_cover(room_node, Rect2(w * 0.14, h * 0.70, 36, 60))
+			_create_cover(room_node, Rect2(w * 0.80, h * 0.70, 36, 60))
+			# Central chokepoint wall
+			_create_cover(room_node, Rect2(w * 0.42, h * 0.46, 20, 80))
 
 
 ## ─── Docks: parallel container walls ────────────────────────────────────────
+## Issue #1240: 3 variants — different container configurations.
 func _build_docks_interior(room_node: Node2D) -> void:
-	var w: float = ROOM_WIDTH
-	var h: float = ROOM_HEIGHT
-
-	# Three pairs of container walls (horizontal, parallel)
-	for row in range(3):
-		var y: float = h * (0.22 + row * 0.24)
-		# Left container
-		_create_wall(room_node, Rect2(80, y, w * 0.36, 22))
-		# Right container (offset)
-		_create_wall(room_node, Rect2(w * 0.52, y + 22, w * 0.36, 22))
-
-	# End container stack on left
-	_create_wall(room_node, Rect2(80, h * 0.22, 22, h * 0.22))
-	# End container stack on right
-	_create_wall(room_node, Rect2(w - 102, h * 0.46, 22, h * 0.22))
+	var w: float = _room_w
+	var h: float = _room_h
+	match _room_variant:
+		0:
+			# Classic: three pairs of offset container rows
+			for row in range(3):
+				var y: float = h * (0.22 + row * 0.24)
+				_create_wall(room_node, Rect2(80, y, w * 0.36, 22))
+				_create_wall(room_node, Rect2(w * 0.52, y + 22, w * 0.36, 22))
+			_create_wall(room_node, Rect2(80, h * 0.22, 22, h * 0.22))
+			_create_wall(room_node, Rect2(w - 102, h * 0.46, 22, h * 0.22))
+		1:
+			# Staggered containers: alternating left-leaning / right-leaning
+			for row in range(4):
+				var y: float = h * (0.18 + row * 0.18)
+				if row % 2 == 0:
+					_create_wall(room_node, Rect2(80, y, w * 0.32, 22))
+					_create_wall(room_node, Rect2(w * 0.56, y, w * 0.32, 22))
+				else:
+					_create_wall(room_node, Rect2(w * 0.12, y, w * 0.32, 22))
+					_create_wall(room_node, Rect2(w * 0.60, y, w * 0.30, 22))
+			# A lone container stack at centre-right
+			_create_wall(room_node, Rect2(w * 0.48, h * 0.36, 22, h * 0.28))
+		2:
+			# Warehouse: long corridors + cross-walls creating choke corners
+			_create_wall(room_node, Rect2(80, h * 0.30, w * 0.70, 22))
+			_create_wall(room_node, Rect2(w * 0.30, h * 0.70, w * 0.70 - 80, 22))
+			# Vertical cross-walls sealing off corners
+			_create_wall(room_node, Rect2(80, h * 0.30, 22, h * 0.20))
+			_create_wall(room_node, Rect2(w - 102, h * 0.50, 22, h * 0.20))
+			# Mid-room gap-cover pair
+			_create_cover(room_node, Rect2(w * 0.44, h * 0.46, 24, 80))
+			_create_cover(room_node, Rect2(w * 0.56, h * 0.46, 24, 80))
 
 
 ## ─── City: L-shaped cover blocks and barriers ───────────────────────────────
+## Issue #1240: 3 variants — different urban layout configurations.
 func _build_city_interior(room_node: Node2D) -> void:
-	var w: float = ROOM_WIDTH
-	var h: float = ROOM_HEIGHT
-
-	# L-shaped cover in upper-left
-	_create_cover(room_node, Rect2(w * 0.14, h * 0.20, 100, 20))
-	_create_cover(room_node, Rect2(w * 0.14, h * 0.20, 20, 80))
-
-	# L-shaped cover in lower-right
-	_create_cover(room_node, Rect2(w * 0.72, h * 0.68, 100, 20))
-	_create_cover(room_node, Rect2(w * 0.72 + 80, h * 0.60, 20, 80))
-
-	# Car-like long barriers
-	_create_cover(room_node, Rect2(w * 0.34, h * 0.42, 160, 32))
-	_create_cover(room_node, Rect2(w * 0.60, h * 0.30, 160, 32))
-
-	# Bollard cluster
-	for i in range(3):
-		_create_cover(room_node, Rect2(w * 0.46 + i * 36, h * 0.60, 24, 24))
+	var w: float = _room_w
+	var h: float = _room_h
+	match _room_variant:
+		0:
+			# Classic: two L-shapes + two car barriers + bollard cluster
+			_create_cover(room_node, Rect2(w * 0.14, h * 0.20, 100, 20))
+			_create_cover(room_node, Rect2(w * 0.14, h * 0.20, 20, 80))
+			_create_cover(room_node, Rect2(w * 0.72, h * 0.68, 100, 20))
+			_create_cover(room_node, Rect2(w * 0.72 + 80, h * 0.60, 20, 80))
+			_create_cover(room_node, Rect2(w * 0.34, h * 0.42, 160, 32))
+			_create_cover(room_node, Rect2(w * 0.60, h * 0.30, 160, 32))
+			for i in range(3):
+				_create_cover(room_node, Rect2(w * 0.46 + i * 36, h * 0.60, 24, 24))
+		1:
+			# Crossroads: four corner covers + two parallel road barriers in the centre
+			# Corner barricades
+			_create_cover(room_node, Rect2(w * 0.12, h * 0.18, 80, 20))
+			_create_cover(room_node, Rect2(w * 0.76, h * 0.18, 80, 20))
+			_create_cover(room_node, Rect2(w * 0.12, h * 0.72, 80, 20))
+			_create_cover(room_node, Rect2(w * 0.76, h * 0.72, 80, 20))
+			# Central road dividers
+			_create_cover(room_node, Rect2(w * 0.38, h * 0.35, 180, 24))
+			_create_cover(room_node, Rect2(w * 0.38, h * 0.60, 180, 24))
+			# Lone pillar at centre
+			_create_cover(room_node, Rect2(w * 0.49, h * 0.46, 32, 48))
+		2:
+			# Alley: walled corridor down the middle + flanking cover on both sides
+			# Left flank cover
+			_create_cover(room_node, Rect2(w * 0.16, h * 0.28, 28, 100))
+			_create_cover(room_node, Rect2(w * 0.16, h * 0.60, 28, 80))
+			# Right flank cover
+			_create_cover(room_node, Rect2(w * 0.76, h * 0.28, 28, 100))
+			_create_cover(room_node, Rect2(w * 0.76, h * 0.60, 28, 80))
+			# Central alley walls (two long pieces with gap — the alley)
+			_create_wall(room_node, Rect2(w * 0.36, 60, 20, h * 0.33))
+			_create_wall(room_node, Rect2(w * 0.36, h * 0.33 + 120, 20, h * 0.33))
+			_create_wall(room_node, Rect2(w * 0.64, 60, 20, h * 0.33))
+			_create_wall(room_node, Rect2(w * 0.64, h * 0.33 + 120, 20, h * 0.33))
 
 
 ## ============================================================
 ## Enemy spawning
 ## ============================================================
+
+## ============================================================
+## Special enemy archetypes (Issue #1297)
+## ============================================================
+
+## Special enemy types that can appear in roguelike rooms.
+## Each value maps to a distinct archetype with unique traits.
+enum SpecialEnemyType {
+	NONE,         ## Regular enemy — no special traits
+	MACHINE_GUNNER,  ## PKM belt-fed; suppresses corridors; falls back to PM
+	GRENADIER,       ## Throws grenades; always 2 HP
+	ARMORED,         ## Extra HP from Armored Skin passive
+	FORCE_FIELD,     ## Protected by force field; harder to finish off
+	SNIPER,          ## ASVK sniper rifle; long-range precision
+}
+
+## Minimum level at which special enemies can appear.
+const SPECIAL_ENEMY_MIN_LEVEL: int = 2
+
+## Base chance (0–1) to have a special enemy in a room on the minimum level.
+## Increases by SPECIAL_ENEMY_CHANCE_PER_LEVEL each additional level.
+const SPECIAL_ENEMY_BASE_CHANCE: float = 0.40
+const SPECIAL_ENEMY_CHANCE_PER_LEVEL: float = 0.10
+
+## Maximum spawn chance regardless of level (capped at this value).
+const SPECIAL_ENEMY_MAX_CHANCE: float = 0.80
+
+
+## Returns the SpecialEnemyType to spawn for the last enemy slot, or NONE.
+## Called once per room; uses current roguelike level and a random roll.
+func _pick_special_enemy_type(current_level: int) -> int:
+	if current_level < SPECIAL_ENEMY_MIN_LEVEL:
+		return SpecialEnemyType.NONE
+	var chance: float = clampf(
+		SPECIAL_ENEMY_BASE_CHANCE + (current_level - SPECIAL_ENEMY_MIN_LEVEL) * SPECIAL_ENEMY_CHANCE_PER_LEVEL,
+		0.0, SPECIAL_ENEMY_MAX_CHANCE)
+	if randf() > chance:
+		return SpecialEnemyType.NONE
+	# Pool of archetypes available; extends with level
+	var pool: Array = [
+		SpecialEnemyType.MACHINE_GUNNER,
+		SpecialEnemyType.GRENADIER,
+		SpecialEnemyType.ARMORED,
+	]
+	if current_level >= 3:
+		pool.append(SpecialEnemyType.FORCE_FIELD)
+	if current_level >= 4:
+		pool.append(SpecialEnemyType.SNIPER)
+	return pool[randi() % pool.size()]
+
+
+## Applies special-enemy traits to an already-instantiated enemy node.
+## The enemy is promoted to the chosen archetype in-place (no new scene needed).
+func _apply_special_enemy(enemy: Node, special_type: int, level_bonus: int) -> void:
+	match special_type:
+		SpecialEnemyType.MACHINE_GUNNER:
+			enemy.weapon_type = 6  # WeaponType.MACHINE_GUN
+			enemy.min_health  = 2 + level_bonus
+			enemy.max_health  = 3 + level_bonus
+			enemy.behavior_mode = 1  # GUARD — holds position, suppresses
+			print("[RoguelikeLevel] Special: Machine Gunner spawned")
+		SpecialEnemyType.GRENADIER:
+			enemy.is_grenadier = true
+			enemy.weapon_type  = 0  # RIFLE (grenadier primary)
+			# is_grenadier forces max_health=2 inside enemy.gd; we only touch min/max here
+			# to ensure the rng range in enemy.gd stays consistent.
+			enemy.min_health = 2 + level_bonus
+			enemy.max_health = 2 + level_bonus
+			print("[RoguelikeLevel] Special: Grenadier spawned")
+		SpecialEnemyType.ARMORED:
+			enemy.has_armored_skin = true
+			enemy.min_health = 2 + level_bonus
+			enemy.max_health = 3 + level_bonus
+			print("[RoguelikeLevel] Special: Armored enemy spawned")
+		SpecialEnemyType.FORCE_FIELD:
+			enemy.has_force_field = true
+			enemy.min_health = 1 + level_bonus
+			enemy.max_health = 2 + level_bonus
+			print("[RoguelikeLevel] Special: Force Field enemy spawned")
+		SpecialEnemyType.SNIPER:
+			enemy.weapon_type = 7  # WeaponType.SNIPER_RIFLE
+			enemy.min_health  = 1 + level_bonus
+			enemy.max_health  = 2 + level_bonus
+			enemy.behavior_mode = 1  # GUARD — holds a firing position
+			print("[RoguelikeLevel] Special: Sniper spawned")
+
 
 func _spawn_enemies_in_room(room_node: Node2D) -> void:
 	var enemy_scene: PackedScene = load("res://scenes/objects/Enemy.tscn")
@@ -501,8 +723,8 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 		return
 
 	var positions: Array[Vector2] = _get_enemy_positions(_room_type)
-	# More enemies each level (cap at positions.size() and an absolute max of 6)
-	var level_enemy_max: int = min(ENEMIES_PER_ROOM_MAX + (GameManager.roguelike_current_level - 1), 6)
+	# More enemies each level (cap at positions.size() and an absolute max of 8, Issue #1240)
+	var level_enemy_max: int = min(ENEMIES_PER_ROOM_MAX + (GameManager.roguelike_current_level - 1), 8)
 	var count: int = randi_range(ENEMIES_PER_ROOM_MIN, min(level_enemy_max, positions.size()))
 
 	# Shuffle positions
@@ -512,6 +734,11 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 		positions[i] = positions[j]
 		positions[j] = tmp
 
+	# Issue #1297: decide whether to include a special enemy in this room.
+	var special_type: int = _pick_special_enemy_type(GameManager.roguelike_current_level)
+	# The special enemy occupies the last slot (index count - 1) so regular enemies come first.
+	var special_slot: int = count - 1 if special_type != SpecialEnemyType.NONE else -1
+
 	for i in range(count):
 		var enemy: Node = enemy_scene.instantiate()
 		enemy.name = "Enemy_%d" % i
@@ -519,13 +746,24 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 		enemy.weapon_type   = _random_enemy_weapon(_room_type)
 		enemy.behavior_mode = _random_enemy_behavior(i)
 		if enemy.behavior_mode == 0:  # PATROL
-			enemy.patrol_offsets = [Vector2(80, 0), Vector2(-80, 0)]
+			# Issue #1240: varied patrol routes — choose from several patterns
+			var patrol_patterns: Array = [
+				[Vector2(100, 0), Vector2(-100, 0)],             # Horizontal
+				[Vector2(0, 80), Vector2(0, -80)],              # Vertical
+				[Vector2(120, 0), Vector2(-120, 0)],             # Wide horizontal
+				[Vector2(80, 60), Vector2(-80, -60)],            # Diagonal
+				[Vector2(100, 0), Vector2(0, 80), Vector2(-100, 0)],  # L-shaped
+			]
+			enemy.patrol_offsets = patrol_patterns[randi() % patrol_patterns.size()]
 		# Difficulty scaling: each level adds 1 to enemy health pool (Issue #1166)
 		var level_bonus: int = max(0, GameManager.roguelike_current_level - 1)
 		enemy.min_health = 1 + level_bonus
 		enemy.max_health = 2 + level_bonus
 		# Must destroy on death so they don't respawn (Issue #1061 round 5).
 		enemy.destroy_on_death = true
+		# Issue #1297: apply special archetype to the designated slot.
+		if i == special_slot:
+			_apply_special_enemy(enemy, special_type, level_bonus)
 		room_node.add_child(enemy)
 
 		_enemies.append(enemy)
@@ -535,11 +773,14 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 			enemy.died_with_info.connect(_on_enemy_died_with_info)
 		if enemy.has_signal("hit"):
 			enemy.hit.connect(_on_enemy_hit)
+		if enemy.has_signal("became_pacifist"):
+			enemy.became_pacifist.connect(_on_enemy_became_pacifist.bind(enemy))
 
 
 func _get_enemy_positions(room_type: int) -> Array[Vector2]:
-	var w: float = ROOM_WIDTH
-	var h: float = ROOM_HEIGHT
+	# Issue #1240: use dynamic room dimensions; return 8 positions for more enemies.
+	var w: float = _room_w
+	var h: float = _room_h
 	match room_type:
 		RoomType.LABYRINTH:
 			return [
@@ -548,6 +789,9 @@ func _get_enemy_positions(room_type: int) -> Array[Vector2]:
 				Vector2(w * 0.60, h * 0.22),
 				Vector2(w * 0.60, h * 0.76),
 				Vector2(w * 0.80, h * 0.50),
+				Vector2(w * 0.38, h * 0.50),
+				Vector2(w * 0.70, h * 0.38),
+				Vector2(w * 0.70, h * 0.62),
 			]
 		RoomType.BUILDING:
 			return [
@@ -556,6 +800,9 @@ func _get_enemy_positions(room_type: int) -> Array[Vector2]:
 				Vector2(w * 0.70, h * 0.30),
 				Vector2(w * 0.70, h * 0.70),
 				Vector2(w * 0.50, h * 0.50),
+				Vector2(w * 0.34, h * 0.50),
+				Vector2(w * 0.84, h * 0.50),
+				Vector2(w * 0.56, h * 0.22),
 			]
 		RoomType.BEACH:
 			return [
@@ -564,6 +811,9 @@ func _get_enemy_positions(room_type: int) -> Array[Vector2]:
 				Vector2(w * 0.55, h * 0.50),
 				Vector2(w * 0.75, h * 0.30),
 				Vector2(w * 0.75, h * 0.68),
+				Vector2(w * 0.46, h * 0.22),
+				Vector2(w * 0.46, h * 0.78),
+				Vector2(w * 0.85, h * 0.50),
 			]
 		RoomType.DOCKS:
 			return [
@@ -572,6 +822,9 @@ func _get_enemy_positions(room_type: int) -> Array[Vector2]:
 				Vector2(w * 0.40, h * 0.70),
 				Vector2(w * 0.65, h * 0.50),
 				Vector2(w * 0.82, h * 0.50),
+				Vector2(w * 0.28, h * 0.50),
+				Vector2(w * 0.56, h * 0.30),
+				Vector2(w * 0.56, h * 0.70),
 			]
 		RoomType.CITY:
 			return [
@@ -580,6 +833,9 @@ func _get_enemy_positions(room_type: int) -> Array[Vector2]:
 				Vector2(w * 0.46, h * 0.70),
 				Vector2(w * 0.72, h * 0.50),
 				Vector2(w * 0.86, h * 0.22),
+				Vector2(w * 0.86, h * 0.78),
+				Vector2(w * 0.60, h * 0.50),
+				Vector2(w * 0.30, h * 0.22),
 			]
 		_:
 			return [
@@ -609,9 +865,11 @@ func _random_enemy_weapon(room_type: int) -> int:
 
 func _random_enemy_behavior(enemy_index: int) -> int:
 	# BehaviorMode: PATROL=0, GUARD=1
+	# Issue #1240: more balanced mix — 50% patrol, 50% guard (was 33/67).
+	# First enemy is still a guard to ensure the room is immediately threatening.
 	if enemy_index == 0:
 		return 1  # First enemy is always a guard
-	return 0 if (randi() % 3 == 0) else 1  # 33% patrol, 67% guard
+	return randi() % 2  # 50% patrol, 50% guard
 
 
 ## ============================================================
@@ -644,7 +902,7 @@ func _spawn_player() -> void:
 	player.name = "Player"
 
 	# Spawn at the left-centre of the room, just inside the boundary wall
-	player.position = Vector2(80.0, ROOM_HEIGHT * 0.5)
+	player.position = Vector2(80.0, _room_h * 0.5)
 	entities_node.add_child(player)
 	print("[RoguelikeLevel] Player spawned at (%.0f, %.0f)" % [player.position.x, player.position.y])
 
@@ -653,6 +911,9 @@ func _spawn_player() -> void:
 ## Standard level setup
 ## ============================================================
 
+## Setup and bake the navigation mesh for enemy pathfinding.
+## Issue #1216: Parse source geometry (walls on collision layer 4) then bake
+## synchronously so walls are excluded from the walkable area.
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
@@ -665,6 +926,34 @@ func _setup_navigation() -> void:
 		nav_poly.agent_radius = 24.0
 		nav_region.navigation_polygon = nav_poly
 		add_child(nav_region)
+
+	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
+	if nav_poly == null:
+		push_warning("[RoguelikeLevel] NavigationPolygon not found - enemy pathfinding will be limited")
+		return
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
+
+	# Define the walkable floor area outline for the room.
+	var floor_outline: PackedVector2Array = PackedVector2Array([
+		Vector2(0, 0),
+		Vector2(ROOM_WIDTH, 0),
+		Vector2(ROOM_WIDTH, ROOM_HEIGHT),
+		Vector2(0, ROOM_HEIGHT)
+	])
+	nav_poly.clear()
+	nav_poly.add_outline(floor_outline)
+
+	print("[RoguelikeLevel] Baking navigation mesh...")
+	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
+	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# Issue #1289: push updated polygon back into the NavigationServer's live map.
+	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
+	print("[RoguelikeLevel] Navigation mesh baked successfully")
 
 
 func _setup_player_tracking() -> void:
@@ -725,6 +1014,29 @@ func _setup_player_tracking() -> void:
 		_player.ammo_depleted.connect(_on_player_ammo_depleted)
 
 
+## Reconnect weapon signal handlers to the current player weapon.
+## Called after a mid-game weapon swap (e.g. pedestal pickup in Issue #1323) so the
+## ammo/shot counter UI stays in sync with the new weapon node.
+func _reconnect_weapon_signals() -> void:
+	var weapon: Node = _find_player_weapon()
+	if weapon == null:
+		return
+	if weapon.has_signal("AmmoChanged") and not weapon.AmmoChanged.is_connected(_on_weapon_ammo_changed):
+		weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
+	if weapon.has_signal("MagazinesChanged") and not weapon.MagazinesChanged.is_connected(_on_magazines_changed):
+		weapon.MagazinesChanged.connect(_on_magazines_changed)
+	if weapon.has_signal("Fired") and not weapon.Fired.is_connected(_on_shot_fired):
+		weapon.Fired.connect(_on_shot_fired)
+	if weapon.has_signal("ShellCountChanged") and not weapon.ShellCountChanged.is_connected(_on_shell_count_changed):
+		weapon.ShellCountChanged.connect(_on_shell_count_changed)
+	if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+		_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+	if weapon.has_method("GetMagazineAmmoCounts"):
+		var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+		_update_magazines_label(mag_counts)
+	print("[RoguelikeLevel] Reconnected weapon signals to %s" % weapon.name)
+
+
 func _setup_enemy_tracking() -> void:
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
@@ -750,9 +1062,9 @@ func _setup_exit_zone() -> void:
 
 	_exit_zone = exit_scene.instantiate()
 
-	# Place near the right wall, vertically centred
-	var exit_x: float = ROOM_WIDTH - 120.0
-	var exit_y: float = ROOM_HEIGHT * 0.5
+	# Place near the right wall, vertically centred (use dynamic room size)
+	var exit_x: float = _room_w - 120.0
+	var exit_y: float = _room_h * 0.5
 	_exit_zone.position    = Vector2(exit_x, exit_y)
 	_exit_zone.zone_width  = 100.0
 	_exit_zone.zone_height = 100.0
@@ -940,6 +1252,19 @@ func _on_enemy_died() -> void:
 		call_deferred("_activate_exit_zone")
 
 
+func _on_enemy_became_pacifist(enemy: Node) -> void:
+	_current_enemy_count -= 1
+	# Issue #1369: Do not double-count pacifist when it dies - already counted here
+	if is_instance_valid(enemy) and enemy.died.is_connected(_on_enemy_died):
+		enemy.died.disconnect(_on_enemy_died)
+	_update_enemy_count_label()
+	print("[RoguelikeLevel] Enemy became pacifist - counting as eliminated")
+	if _current_enemy_count <= 0:
+		print("[RoguelikeLevel] All enemies in room %d eliminated or pacified!" % (_current_room_idx + 1))
+		_room_cleared = true
+		call_deferred("_activate_exit_zone")
+
+
 func _on_enemy_died_with_info(is_ricochet: bool, is_penetration: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
@@ -985,7 +1310,9 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 
 
 func _on_player_ammo_depleted() -> void:
-	_broadcast_player_ammo_empty(true)
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sp: Node = get_node_or_null("/root/SoundPropagation")
 		if sp and sp.has_method("emit_player_empty_click"):
@@ -1072,7 +1399,7 @@ const WEAPON_ICON_PATHS: Dictionary = {
 	"shotgun":       "res://assets/sprites/weapons/shotgun_icon.png",
 	"mini_uzi":      "res://assets/sprites/weapons/mini_uzi_icon.png",
 	"silenced_pistol": "res://assets/sprites/weapons/silenced_pistol_icon.png",
-	"sniper":        "res://assets/sprites/weapons/weapon_case_icon.png",
+	"sniper":        "res://assets/sprites/weapons/asvk_topdown.png",
 	"revolver":      "res://assets/sprites/weapons/revolver_icon.png",
 	"ak_gl":         "res://assets/sprites/weapons/ak_gl_icon.png",
 }
@@ -1081,14 +1408,25 @@ const WEAPON_ICON_PATHS: Dictionary = {
 ## Pick a random item for the pedestal.
 ## Returns either a weapon ID String (e.g. "m16") or an int (ActiveItemType).
 ## The weapon is pre-selected so the pedestal can show the correct icon.
+## Issue #1313: items already offered earlier in this run are excluded so each
+## item can appear at most once per run.
+## Issue #1313: makarov_pm is always excluded — it is the starting weapon given
+## to every player at the beginning of a run and must not appear in treasure rooms.
+const ROGUELIKE_STARTING_WEAPONS: Array = ["makarov_pm"]
+
 func _pick_random_pedestal_item():
+	var already_offered: Array = GameManager.roguelike_offered_items if GameManager else []
+
 	# 40% chance of a weapon pickup, 60% chance of an active item.
 	if randi() % 10 < 4:
-		# Pre-select a specific weapon (different from what the player has now).
+		# Pre-select a specific weapon (different from what the player has now,
+		# not already offered this run, and not a starting weapon given at run start).
 		var current_weapon_id: String = GameManager.get_selected_weapon() if GameManager else "makarov_pm"
 		var available: Array = []
 		for weapon_id in GameManager.WEAPON_SCENES.keys():
-			if weapon_id != current_weapon_id and GameManager.is_weapon_unlocked(weapon_id):
+			if weapon_id != current_weapon_id and GameManager.is_weapon_unlocked(weapon_id) \
+					and not (weapon_id in already_offered) \
+					and not (weapon_id in ROGUELIKE_STARTING_WEAPONS):
 				available.append(weapon_id)
 		if available.is_empty():
 			# Fallback to active item if no other weapons are available
@@ -1096,23 +1434,12 @@ func _pick_random_pedestal_item():
 		else:
 			return available[randi() % available.size()]
 
-	# Choose a random active item (skip NONE index 0).
-	# Issue #1194: also skip passive items already collected in this run so the player
-	# is always offered something new.
+	# Choose a random active item (skip NONE index 0, skip already-offered items).
 	var all_types: Array = ActiveItemManager.get_all_active_item_types()
 	var candidates: Array = []
 	for t in all_types:
-		if t == 0:  # Skip ActiveItemType.NONE
-			continue
-		if t in PASSIVE_ACTIVE_ITEM_TYPES and ActiveItemManager.has_passive_item(t):
-			continue  # Skip already-collected passives
-		candidates.append(t)
-
-	if candidates.is_empty():
-		# All passives collected and no weapons — offer any non-NONE item as fallback
-		for t in all_types:
-			if t != 0:
-				candidates.append(t)
+		if t != 0 and not (t in already_offered):  # Skip NONE and already-offered
+			candidates.append(t)
 
 	if candidates.is_empty():
 		return "makarov_pm"  # Ultimate fallback
@@ -1129,6 +1456,10 @@ func _spawn_treasure_pedestal() -> void:
 
 	var item = _pick_random_pedestal_item()
 	_pedestal_item = item
+
+	# Issue #1313: record the offered item so it won't appear again this run.
+	if GameManager and not (item in GameManager.roguelike_offered_items):
+		GameManager.roguelike_offered_items.append(item)
 
 	var item_label_str: String = _pedestal_item_label(item)
 	var _log_ped := "[RoguelikeLevel] Spawning treasure pedestal: %s" % item_label_str
@@ -1147,7 +1478,7 @@ func _spawn_treasure_pedestal() -> void:
 	pedestal.z_index = 10
 
 	# Position at room centre
-	pedestal.position = Vector2(ROOM_WIDTH * 0.5, ROOM_HEIGHT * 0.5)
+	pedestal.position = Vector2(_room_w * 0.5, _room_h * 0.5)
 
 	# Collision circle (larger than visual so the player can't miss it)
 	var col := CollisionShape2D.new()
@@ -1156,11 +1487,11 @@ func _spawn_treasure_pedestal() -> void:
 	col.shape = circle
 	pedestal.add_child(col)
 
-	# Visual: glowing ring on the floor to draw the player's eye
+	# Visual: glowing ring on the floor (Issue #1299: background square removed so item floats visually)
 	var glow_ring := ColorRect.new()
-	glow_ring.size    = Vector2(PEDESTAL_SIZE * 2.2, PEDESTAL_SIZE * 2.2)
-	glow_ring.color   = Color(0.90, 0.75, 0.10, 0.35)
-	glow_ring.position = Vector2(-PEDESTAL_SIZE * 1.1, -PEDESTAL_SIZE * 1.1)
+	glow_ring.size    = Vector2(PEDESTAL_SIZE * 2.2, PEDESTAL_SIZE * 0.35)
+	glow_ring.color   = Color(0.90, 0.75, 0.10, 0.30)
+	glow_ring.position = Vector2(-PEDESTAL_SIZE * 1.1, PEDESTAL_SIZE * 0.08)
 	pedestal.add_child(glow_ring)
 
 	# Visual: base platform — fake-3D volumetric pedestal (Issue #1180).
@@ -1193,6 +1524,8 @@ func _spawn_treasure_pedestal() -> void:
 	# background instead of a plain coloured square.
 	# Bug fix #1166 (Bug 1): weapon pedestal now pre-selects a specific weapon,
 	# so we show that weapon's icon instead of a generic case icon.
+	# Issue #1299: item floats in a Node2D container so the tween animation moves
+	# the whole icon group (icon + shadow) together without a background panel.
 	var icon_path: String = ""
 	if item is String and item != "" and item in WEAPON_ICON_PATHS:
 		icon_path = WEAPON_ICON_PATHS[item]
@@ -1200,6 +1533,12 @@ func _spawn_treasure_pedestal() -> void:
 			icon_path = "res://assets/sprites/weapons/weapon_case_icon.png"
 	elif item is int and ActiveItemManager:
 		icon_path = ActiveItemManager.get_active_item_icon_path(item)
+
+	# Float container — the looping tween animates this node's Y offset.
+	var float_node := Node2D.new()
+	float_node.name = "ItemFloat"
+	float_node.position = Vector2(0.0, -PEDESTAL_SIZE * 1.1)
+	pedestal.add_child(float_node)
 
 	var icon_ok := false
 	if icon_path != "" and ResourceLoader.exists(icon_path):
@@ -1213,8 +1552,8 @@ func _spawn_treasure_pedestal() -> void:
 			var icon_size := Vector2(PEDESTAL_SIZE, PEDESTAL_SIZE)
 			icon_rect.custom_minimum_size = icon_size
 			icon_rect.size = icon_size
-			icon_rect.position = Vector2(-icon_size.x * 0.5, -PEDESTAL_SIZE * 1.1)
-			pedestal.add_child(icon_rect)
+			icon_rect.position = Vector2(-icon_size.x * 0.5, 0.0)
+			float_node.add_child(icon_rect)
 			icon_ok = true
 
 	if not icon_ok:
@@ -1222,8 +1561,18 @@ func _spawn_treasure_pedestal() -> void:
 		var orb := ColorRect.new()
 		orb.size    = Vector2(PEDESTAL_SIZE * 0.8, PEDESTAL_SIZE * 0.8)
 		orb.color   = PEDESTAL_ITEM_GLOW
-		orb.position = Vector2(-PEDESTAL_SIZE * 0.4, -PEDESTAL_SIZE * 0.9)
-		pedestal.add_child(orb)
+		orb.position = Vector2(-PEDESTAL_SIZE * 0.4, 0.0)
+		float_node.add_child(orb)
+
+	# Issue #1299: gentle floating animation — item bobs ±4 px over 1.4 s, looping.
+	# Bind the tween to the pedestal (not the level) so it is automatically killed
+	# when the pedestal is queue_free()-d.  Using `create_tween()` (bound to self/level)
+	# caused a crash: the tween survived pedestal removal and tried to animate the
+	# freed float_node → engine segfault (Issue #1323 regression).
+	var float_tween := pedestal.create_tween()
+	float_tween.set_loops()
+	float_tween.tween_property(float_node, "position:y", -PEDESTAL_SIZE * 1.1 - 4.0, 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	float_tween.tween_property(float_node, "position:y", -PEDESTAL_SIZE * 1.1 + 4.0, 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 	# Label: item name (larger font)
 	var label := Label.new()
@@ -1342,6 +1691,9 @@ func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 
 	if player.has_method("ApplySelectedWeaponFromGameManager"):
 		player.ApplySelectedWeaponFromGameManager()
+	# Reconnect level signal handlers to the new weapon after the swap,
+	# so the ammo/shot counter UI stays in sync (Issue #1323 regression fix).
+	_reconnect_weapon_signals()
 
 	print("[RoguelikeLevel] Weapon pedestal: player took %s, old weapon %s returned to pedestal" % [new_weapon_id, old_weapon_id])
 
@@ -1352,16 +1704,21 @@ func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 		pedestal.set_meta("pedestal_item", old_weapon_id)
 
 		# Update the icon on the pedestal to show the old weapon (Issue #1180).
+		# Issue #1299: ItemIcon now lives inside ItemFloat; try both paths for safety.
 		if old_weapon_id in WEAPON_ICON_PATHS:
 			var old_icon_path: String = WEAPON_ICON_PATHS[old_weapon_id]
 			if ResourceLoader.exists(old_icon_path):
 				var tex: Texture2D = load(old_icon_path) as Texture2D
 				if tex:
-					var icon_rect: TextureRect = pedestal.get_node_or_null("ItemIcon")
+					var icon_rect: TextureRect = pedestal.get_node_or_null("ItemFloat/ItemIcon")
+					if icon_rect == null:
+						icon_rect = pedestal.get_node_or_null("ItemIcon")
 					if icon_rect:
 						icon_rect.texture = tex
 					else:
-						# Icon node missing (e.g. fallback orb was used) — create it now.
+						# Icon node missing — add it to the float container if present,
+						# otherwise fall back to direct pedestal child.
+						var float_node: Node2D = pedestal.get_node_or_null("ItemFloat")
 						var new_icon := TextureRect.new()
 						new_icon.name = "ItemIcon"
 						new_icon.texture = tex
@@ -1370,8 +1727,12 @@ func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 						var icon_size := Vector2(PEDESTAL_SIZE, PEDESTAL_SIZE)
 						new_icon.custom_minimum_size = icon_size
 						new_icon.size = icon_size
-						new_icon.position = Vector2(-icon_size.x * 0.5, -PEDESTAL_SIZE * 1.1)
-						pedestal.add_child(new_icon)
+						if float_node:
+							new_icon.position = Vector2(-icon_size.x * 0.5, 0.0)
+							float_node.add_child(new_icon)
+						else:
+							new_icon.position = Vector2(-icon_size.x * 0.5, -PEDESTAL_SIZE * 1.1)
+							pedestal.add_child(new_icon)
 
 		# Update the item name label.
 		var item_lbl: Label = pedestal.get_node_or_null("ItemLabel")
@@ -1400,18 +1761,20 @@ func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2
 	var current: int = ActiveItemManager.current_active_item
 
 	if is_passive:
-		# Passive: add to the roguelike passive collection (Issue #1194).
-		# Multiple passives can be held simultaneously; all their effects apply.
-		if ActiveItemManager.has_passive_item(item_type) or item_type == current:
-			print("[RoguelikeLevel] Active-item pedestal: already have %s — skipping" %
+		# Passive: add to passive collection (it coexists with any active item and other passives).
+		# Issue #1303: use add_passive_item() so multiple passives work simultaneously.
+		if ActiveItemManager.has_method("has_passive_item") and ActiveItemManager.has_passive_item(item_type):
+			print("[RoguelikeLevel] Active-item pedestal: already have passive %s — skipping" %
 				ActiveItemManager.get_active_item_name(item_type))
 			pedestal.queue_free()
 			_treasure_pedestal = null
 			return
-		ActiveItemManager.add_passive_item(item_type)
-		print("[RoguelikeLevel] Passive item collected: %s (total passives: %d)" % [
-			ActiveItemManager.get_active_item_name(item_type),
-			ActiveItemManager.collected_passive_items.size()])
+		if ActiveItemManager.has_method("add_passive_item"):
+			ActiveItemManager.add_passive_item(item_type)
+		else:
+			ActiveItemManager.set_active_item(item_type, false)  # fallback for older builds
+		print("[RoguelikeLevel] Passive item collected: %s" %
+			ActiveItemManager.get_active_item_name(item_type))
 		pedestal.queue_free()
 		_treasure_pedestal = null
 	else:
@@ -1432,6 +1795,25 @@ func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2
 			var item_lbl: Label = pedestal.get_node_or_null("ItemLabel")
 			if item_lbl:
 				item_lbl.text = _pedestal_item_label(old_type)
+			# Issue #1303: Update the icon on the pedestal to show the displaced item.
+			var old_icon_path: String = ActiveItemManager.get_active_item_icon_path(old_type)
+			if old_icon_path != "" and ResourceLoader.exists(old_icon_path):
+				var tex: Texture2D = load(old_icon_path) as Texture2D
+				if tex:
+					var icon_rect: TextureRect = pedestal.get_node_or_null("ItemIcon")
+					if icon_rect:
+						icon_rect.texture = tex
+					else:
+						var new_icon := TextureRect.new()
+						new_icon.name = "ItemIcon"
+						new_icon.texture = tex
+						new_icon.expand_mode = TextureRect.EXPAND_KEEP_SIZE
+						new_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+						var icon_size := Vector2(PEDESTAL_SIZE, PEDESTAL_SIZE)
+						new_icon.custom_minimum_size = icon_size
+						new_icon.size = icon_size
+						new_icon.position = Vector2(-icon_size.x * 0.5, -PEDESTAL_SIZE * 1.1)
+						pedestal.add_child(new_icon)
 			print("[RoguelikeLevel] Displaced item '%s' placed back on pedestal" %
 				ActiveItemManager.get_active_item_name(old_type))
 		else:
@@ -1575,10 +1957,14 @@ func _start_next_level() -> void:
 
 ## Build the treasure room scene: simple open floor, no enemies, warm golden colours.
 func _build_room_scene_treasure() -> void:
+	# Treasure room always uses standard size for readability
+	_room_w = ROOM_WIDTH
+	_room_h = ROOM_HEIGHT
+
 	var bg := ColorRect.new()
 	bg.name  = "WorldBackground"
 	bg.position = Vector2(-200, -200)
-	bg.size     = Vector2(ROOM_WIDTH + 400, ROOM_HEIGHT + 400)
+	bg.size     = Vector2(_room_w + 400, _room_h + 400)
 	bg.color    = Color(0.08, 0.06, 0.02, 1.0)  ## Dark warm background
 	add_child(bg)
 
@@ -1589,7 +1975,7 @@ func _build_room_scene_treasure() -> void:
 	# Floor — warm golden tone to distinguish from combat rooms
 	var floor_rect := ColorRect.new()
 	floor_rect.position = Vector2(0, 0)
-	floor_rect.size     = Vector2(ROOM_WIDTH, ROOM_HEIGHT)
+	floor_rect.size     = Vector2(_room_w, _room_h)
 	floor_rect.color    = Color(0.22, 0.18, 0.08, 1.0)
 	room_container.add_child(floor_rect)
 
@@ -1598,8 +1984,8 @@ func _build_room_scene_treasure() -> void:
 	# Decorative pillars in the four corners (treasure room feel)
 	var pillar_size := Vector2(40, 40)
 	var offsets := [
-		Vector2(60, 60), Vector2(ROOM_WIDTH - 100, 60),
-		Vector2(60, ROOM_HEIGHT - 100), Vector2(ROOM_WIDTH - 100, ROOM_HEIGHT - 100),
+		Vector2(60, 60), Vector2(_room_w - 100, 60),
+		Vector2(60, _room_h - 100), Vector2(_room_w - 100, _room_h - 100),
 	]
 	for pos in offsets:
 		_create_cover(room_container, Rect2(pos.x, pos.y, pillar_size.x, pillar_size.y))

@@ -74,21 +74,28 @@ func apply_hp_bonus(current_health: int, max_health: int) -> Array[int]:
 	return [new_current, new_max]
 
 
-## Try to spawn shards when the enemy is hit at low HP.
+## Try to spawn shards when the enemy is hit at low HP or by a lethal hit.
 ## Call from enemy.on_hit_with_bullet_info() before applying damage.
 ## Triggers at most once — subsequent hits at low HP are handled normally.
 ## Same-frame hits after the trigger are also absorbed so that area-of-effect
 ## damage bursts (e.g. grenade explosions) cannot kill the enemy in the same
 ## physics frame as the trigger (Issue #1143).
 ## @param current_health: Health *before* this hit is applied.
+## @param incoming_damage: Damage amount about to be applied (default 1). Used to detect
+##   lethal hits from high-damage weapons (e.g. silenced pistol) that would otherwise
+##   skip the low-HP threshold check entirely (Issue #1300).
 ## @return true if the hit must be absorbed (initial trigger or same-frame burst hit).
-func try_spawn_shards(current_health: int) -> bool:
+func try_spawn_shards(current_health: int, incoming_damage: int = 1) -> bool:
 	# Absorb all hits on the same physics frame as the trigger (grenade burst fix).
 	if _has_triggered and Engine.get_physics_frames() == _trigger_frame:
 		return true
 	if _has_triggered:
 		return false
-	if current_health > HP_THRESHOLD:
+	# Trigger when HP is already low OR when this hit would be lethal (Issue #1300).
+	# High-damage weapons (e.g. silenced pistol with 10 dmg) can one-shot an armored
+	# enemy whose HP is still above HP_THRESHOLD, bypassing the armor entirely without
+	# this second condition.
+	if current_health > HP_THRESHOLD and current_health - incoming_damage > 0:
 		return false
 	_has_triggered = true
 	_trigger_frame = Engine.get_physics_frames()
