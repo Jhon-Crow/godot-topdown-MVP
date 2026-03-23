@@ -89,6 +89,8 @@ var _replay_manager: Node = null
 ## shotgun reload count, hammer-cock persistence, grenade check, AK GL hint.
 ## Bug fixes (Issue #991): AK GL hint no longer overlaps grenade hint (sequential flow via
 ## GrenadeFired signal); GL hint is dismissed when launcher fires.
+## Bug fix (Issue #998): Scope RMB hint shown from the very start for sniper rifle;
+## dismissed when player activates scope (ScopeStateChanged signal connected).
 ## ============================================================
 
 ## Tutorial hint labels: hint_key -> RichTextLabel node (Issue #945: was Label).
@@ -137,6 +139,9 @@ var _tutorial_sniper_rifle: Node = null
 ## Whether the sniper bolt has been cycled (for reload step tracking).
 var _tutorial_sniper_bolt_cycled: bool = false
 
+## Whether the scope has been used (for sniper scope training, Issue #998).
+var _tutorial_scope_used: bool = false
+
 ## Hint keys (same as tutorial_level.gd).
 const TUTORIAL_HINT_RELOAD := "reload"
 const TUTORIAL_HINT_GRENADE := "grenade"
@@ -144,10 +149,36 @@ const TUTORIAL_HINT_HAMMER_COCK := "hammer_cock"
 const TUTORIAL_HINT_BOLT_CYCLE := "bolt_cycle"
 const TUTORIAL_HINT_GRENADE_LAUNCHER := "grenade_launcher"  ## AK GL underbarrel (Bug fix #10)
 const TUTORIAL_HINT_FIRE_MODE := "fire_mode"  ## M16 fire-mode switch [B] (Bug fix round 5)
+const TUTORIAL_HINT_SCOPE := "scope"  ## Sniper scope RMB hint (Issue #998)
 
 ## Vertical spacing between stacked tutorial hints (pixels).
 ## Increased to 60 to prevent overlap when hints wrap to 2 lines (Bug fix #1 round 3).
 const TUTORIAL_HINT_SPACING: float = 60.0
+
+## Issue #944: Animation timing constants for hint fade-in, strikethrough, and fade-out.
+const TUTORIAL_HINT_FADE_IN_DURATION := 0.3
+const TUTORIAL_HINT_STRIKETHROUGH_DURATION := 0.4
+const TUTORIAL_HINT_FADE_OUT_DURATION := 0.3
+
+## Issue #944: Tracks hints currently being animated (prevents double-dismiss).
+var _tutorial_animating_hints: Dictionary = {}
+
+## Issue #944: Track Line2D strikethrough nodes for each hint (hint_key -> Array[Line2D]).
+## Each hint has one Line2D per text line, so lines animate independently without connectors.
+var _tutorial_hint_strike_lines: Dictionary = {}
+
+## Issue #944: Track current strikethrough progress for each hint (hint_key -> float 0.0-1.0).
+## Progress increases as each step completes; used to animate Line2D extension.
+var _tutorial_hint_strike_progress: Dictionary = {}
+
+## Issue #944 Session 4: Track line count for each hint (hint_key -> int).
+## Multi-line hints need multiple Line2D segments, one per line.
+var _tutorial_hint_line_counts: Dictionary = {}
+
+## Issue #1080: Track per-line text widths for each hint (hint_key -> Array[float]).
+## Each entry is the rendered pixel width of the corresponding text line,
+## so strikethrough lines match the actual text length instead of the label width.
+var _tutorial_hint_line_widths: Dictionary = {}
 
 ## Number of shots fired (Issue #945: reload hint appears after 2 shots).
 var _tutorial_shots_fired: int = 0
@@ -177,6 +208,7 @@ const TUTORIAL_HINT_COLOR_BOLT_CYCLE := Color(0.85, 0.6, 1.0, 1.0)         ## Pu
 const TUTORIAL_HINT_COLOR_HAMMER_COCK := Color(1.0, 0.8, 0.3, 1.0)         ## Yellow — hammer cock
 const TUTORIAL_HINT_COLOR_GRENADE_LAUNCHER := Color(1.0, 0.4, 0.2, 1.0)    ## Red-orange — AK GL
 const TUTORIAL_HINT_COLOR_FIRE_MODE := Color(0.3, 0.9, 1.0, 1.0)           ## Cyan — fire mode switch (Bug fix round 5)
+const TUTORIAL_HINT_COLOR_SCOPE := Color(0.3, 0.9, 1.0, 1.0)               ## Cyan — scope aiming (Issue #998)
 
 
 ## Gets the ReplayManager autoload node.
@@ -234,6 +266,9 @@ func _ready() -> void:
 
 	# Setup window lights in corridors without enemies
 	_setup_window_lights()
+
+	# Setup cold ceiling lights in all rooms (Issue #1208)
+	_setup_room_cold_lights()
 
 	# Show tutorial hints for basic controls (Issue #808)
 	_setup_tutorial_hints()
@@ -356,6 +391,14 @@ func _setup_realistic_visibility() -> void:
 	visibility_component.name = "RealisticVisibilityComponent"
 	visibility_component.set_script(visibility_script)
 	_player.add_child(visibility_component)
+
+	# Tint the visibility light to match the cold-blue laboratory atmosphere
+	# so it blends with the room cold lights (Color(0.55, 0.75, 1.0)) instead
+	# of washing them out with a warm-white glow (Issue #1263).
+	# Color is deeper blue (lower R) to avoid white cast; energy is reduced
+	# from the default 1.5 so it no longer overpowers the room cold lights (≤0.65).
+	visibility_component.set_light_color(Color(0.45, 0.65, 1.0))
+	visibility_component.set_light_energy(0.8)
 	print("[LabyrinthLevel] Realistic visibility component added to player")
 
 
@@ -472,10 +515,140 @@ func _create_ambient_moonlight(parent: Node2D) -> void:
 	parent.add_child(ambient)
 
 
+## Setup cold ceiling lights in all rooms (Issue #1208).
+## Adds dim PointLight2D nodes with a cold blue tint to simulate fluorescent
+## laboratory lighting. Energy and scale are lower than the warm BuildingLevel
+## lights to keep the atmosphere tense and cold.
+##
+## Room centers (derived from InteriorWall positions in the scene):
+## - Generator Room:  ~(400, 270)   — upper-left, left of x=750 wall
+## - Control Room:    ~(1500, 220)  — upper-right, between x=1050 and x=1920
+## - Storage Hall:    ~(220, 840)   — lower-left, left of x=450 wall
+## - Corridor Area:   ~(700, 380)   — centre passage between rooms
+## - Server Room:     ~(1100, 900)  — lower-centre, below y=680 wall
+## - Pipe/Elec Room:  ~(1700, 700)  — right side, between pipe and elec walls
+func _setup_room_cold_lights() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	# Container node for all room lights
+	var room_lights_node := Node2D.new()
+	room_lights_node.name = "RoomLights"
+	environment.add_child(room_lights_node)
+
+	# Cold blue-tinted dim lights for each room.
+	# Energy is ~25% lower than the warm BuildingLevel equivalents.
+	# Format: [position, energy, texture_scale, label]
+	var room_configs: Array = [
+		# Upper-left — Generator Room
+		[Vector2(400, 270),  0.65, 3.5, "GeneratorRoom"],
+		# Upper-right — Control Room (larger space)
+		[Vector2(1500, 220), 0.65, 4.0, "ControlRoom"],
+		# Lower-left — Storage Hall
+		[Vector2(220, 840),  0.55, 3.0, "StorageHall"],
+		# Centre passage
+		[Vector2(700, 380),  0.50, 3.0, "Corridor"],
+		# Lower-centre — Server Room
+		[Vector2(1100, 900), 0.65, 3.5, "ServerRoom"],
+		# Right side — Pipe/Electrical Room
+		[Vector2(1700, 700), 0.55, 3.0, "PipeElecRoom"],
+	]
+
+	for cfg in room_configs:
+		_create_room_cold_light(room_lights_node, cfg[0], cfg[1], cfg[2], cfg[3])
+
+	print("[LabyrinthLevel] Cold ceiling lights placed in all rooms (Issue #1208)")
+
+
+## Create a single cold ceiling light at the given room-center position.
+## Uses a Sprite2D fixture (not ColorRect/Control) so it never intercepts mouse
+## events and cannot break pause-menu clicks.
+## @param parent: Container node.
+## @param pos: World-space position (room center).
+## @param energy: Light brightness (lower → dimmer and more atmospheric).
+## @param scale: Texture scale controlling the light radius.
+## @param room_name: Name suffix for the node (debug convenience).
+func _create_room_cold_light(parent: Node2D, pos: Vector2, energy: float, scale: float, room_name: String) -> void:
+	var light_node := Node2D.new()
+	light_node.name = "ColdLight_%s" % room_name
+	light_node.position = pos
+	parent.add_child(light_node)
+
+	# Small round ceiling lamp fixture — cold white-blue tint, semi-transparent.
+	# Sprite2D is a Node2D and never blocks input, unlike Control-based nodes.
+	var fixture := Sprite2D.new()
+	fixture.name = "Fixture"
+	fixture.texture = _create_lamp_fixture_texture()
+	fixture.modulate = Color(0.7, 0.85, 1.0, 0.45)  # Pale cold blue, semi-transparent
+	light_node.add_child(fixture)
+
+	# The actual PointLight2D — cold blue tint, shadows on.
+	var light := PointLight2D.new()
+	light.name = "PointLight"
+	light.color = Color(0.55, 0.75, 1.0, 1.0)   # Cold blue-white
+	light.energy = energy
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 3.0
+	light.shadow_color = Color(0.0, 0.0, 0.05, 0.65)
+	light.texture = _create_cold_light_texture()
+	light.texture_scale = scale
+	light_node.add_child(light)
+
+
+## Create a soft radial gradient texture for the cold room lights.
+## Uses the same power-law circular falloff as the warm BuildingLevel lights
+## so there are no hard visible edges — the light fades naturally to black.
+func _create_cold_light_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # 256 px
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)  # 0 = centre, 1 = edge
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+
+	return ImageTexture.create_from_image(image)
+
+
+## Create a small circular texture for the ceiling lamp fixture visual.
+## Draws a soft-edged disc so the fixture looks round, matching the
+## circular PointLight2D pool beneath it.
+func _create_lamp_fixture_texture() -> ImageTexture:
+	var size := 32
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # full disc radius
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			if dist >= outer_r:
+				image.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			else:
+				var t := clampf(dist / outer_r, 0.0, 1.0)
+				var alpha := pow(1.0 - t, 1.5)
+				image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+
+	return ImageTexture.create_from_image(image)
+
+
 func _process(_delta: float) -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("update_enemy_positions"):
 		score_manager.update_enemy_positions(_enemies)
+	# Issue #959: Re-check level completion when a retaliating pacifist finishes retaliation.
+	if _current_enemy_count <= 0 and not _level_cleared and not _has_retaliating_pacifists():
+		print("All enemies eliminated or pacified! Labyrinth cleared!")
+		_level_cleared = true
+		call_deferred("_activate_exit_zone")
 
 	# Update tutorial hint positions to follow player (Issue #808)
 	_update_tutorial_hint_positions()
@@ -525,27 +698,22 @@ func _setup_navigation() -> void:
 	if nav_region == null:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
-
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
 		return
-
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
+	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	print("Baking navigation mesh...")
-	nav_poly.clear()
-
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(48, 48),
-		Vector2(1968, 48),
-		Vector2(1968, 1128),
-		Vector2(48, 1128)
-	])
-	nav_poly.add_outline(floor_outline)
-
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-
+	# Issue #1289: push updated polygon back into the NavigationServer's live map.
+	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 	print("Navigation mesh baked successfully")
 
 
@@ -626,6 +794,9 @@ func _setup_player_tracking() -> void:
 				_tutorial_sniper_rifle = weapon  # Bug fix #3: reference for bolt step hints
 				if weapon.has_signal("BoltStepChanged"):
 					weapon.BoltStepChanged.connect(_on_tutorial_sniper_bolt_step_changed)
+				# Issue #998: Connect scope state signal to dismiss scope hint when player uses scope.
+				if weapon.has_signal("ScopeStateChanged"):
+					weapon.ScopeStateChanged.connect(_on_tutorial_scope_state_changed)
 			"Revolver":
 				_tutorial_has_revolver = true
 				# Connect to HammerCocked signal to dismiss hammer hint (Issue #808)
@@ -709,6 +880,9 @@ func _setup_enemy_tracking() -> void:
 				child.died_with_info.connect(_on_enemy_died_with_info)
 		if child.has_signal("hit"):
 			child.hit.connect(_on_enemy_hit)
+		# Issue #959: Connect to pacifist signal - pacifists count as killed for level completion
+		if child.has_signal("became_pacifist"):
+			child.became_pacifist.connect(_on_enemy_became_pacifist.bind(child))
 
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
@@ -755,6 +929,10 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+
+	# Reapply auto-reload magazine size reduction if active (Issue #1067).
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
 ## Setup debug UI elements for kills and accuracy.
@@ -840,20 +1018,46 @@ func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
 
-	if GameManager:
-		GameManager.register_kill()
-
-	if _current_enemy_count <= 0:
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		print("All enemies eliminated! Labyrinth cleared!")
 		_level_cleared = true
 		call_deferred("_activate_exit_zone")
 
 
 ## Called when an enemy dies with special kill information.
-func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
+func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
+	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
+	if GameManager:
+		GameManager.register_kill(is_player_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
+
+
+## Issue #959: Called when an enemy becomes a pacifist via loudspeaker.
+## Pacifists count as "killed" for level completion purposes.
+## NOTE: Does NOT activate exit zone while any pacifist is still retaliating (attacking the player).
+func _on_enemy_became_pacifist(enemy: Node) -> void:
+	_current_enemy_count -= 1
+	# Issue #959: Do not count pacifist again when it dies - already counted here
+	if is_instance_valid(enemy) and enemy.died.is_connected(_on_enemy_died):
+		enemy.died.disconnect(_on_enemy_died)
+	_update_enemy_count_label()
+	_log_to_file("[LabyrinthLevel] Enemy became pacifist - counting as eliminated")
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
+		print("All enemies eliminated or pacified! Labyrinth cleared!")
+		_level_cleared = true
+		call_deferred("_activate_exit_zone")
+
+
+## Returns true if any enemy is a pacifist who is currently retaliating (attacking the player).
+## Level should not complete while any enemy is still a threat (Issue #959).
+func _has_retaliating_pacifists() -> bool:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and enemy.has_method("is_alive") and enemy.is_alive():
+			if enemy.has_method("is_retaliating") and enemy.is_retaliating():
+				return true
+	return false
 
 
 ## Complete the level and show the score screen.
@@ -887,6 +1091,10 @@ func _complete_level_with_score() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):
 		var score_data: Dictionary = score_manager.complete_level()
+		# Notify loudspeaker progression (Issue #959)
+		var aim: Node = get_node_or_null("/root/ActiveItemManager")
+		if aim and aim.has_method("notify_level_completed"):
+			aim.notify_level_completed(score_data.get("kills", 0) > 0)
 		_show_score_screen(score_data)
 	else:
 		_show_victory_message()
@@ -937,8 +1145,10 @@ func _on_shell_count_changed(shell_count: int, capacity: int) -> void:
 		if weapon != null and weapon.get("ReloadState") != null:
 			reload_state = int(weapon.ReloadState)
 	_update_ammo_label_magazine(shell_count, reserve_ammo)
-	# Bug fix #7 + round 4: update bolt-cycle hint with new shell count and current reload state
-	if _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
+	# Bug fix #7 + round 4: update bolt-cycle hint with new shell count and current reload state.
+	# Issue #1025: skip update when reload_state=0 (shot fired, not reloading) and the full-reload
+	# hint is active — otherwise the hint resets to state=0 (open-bolt highlighted) on every shot.
+	if _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE) and (reload_state != 0 or not _tutorial_shotgun_full_reload_active):
 		var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]
 		if is_instance_valid(label):
 			label.text = _build_tutorial_shotgun_full_reload_hint_bbcode(reload_state)
@@ -946,7 +1156,9 @@ func _on_shell_count_changed(shell_count: int, capacity: int) -> void:
 
 ## Called when player runs out of ammo in current magazine.
 func _on_player_ammo_depleted() -> void:
-	_broadcast_player_ammo_empty(true)
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
@@ -1002,6 +1214,9 @@ func _on_player_died() -> void:
 	_show_death_message()
 	if GameManager:
 		await get_tree().create_timer(0.5).timeout
+		# Issue #1334: After await, verify this node is still valid (scene may have reloaded)
+		if not is_instance_valid(self):
+			return
 		GameManager.on_player_death()
 
 
@@ -1525,6 +1740,10 @@ func _setup_selected_weapon() -> void:
 				m16.ReinitializeMagazines(base_magazines, true)
 				print("LabyrinthLevel: M16 magazines reinitialized to %d" % base_magazines)
 
+			# Reapply auto-reload magazine size reduction if active (Issue #1067).
+			if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+				_player.ApplyAutoReloadAfterLevelAmmoConfig()
+
 			print("LabyrinthLevel: M16 Assault Rifle equipped successfully")
 		else:
 			push_error("LabyrinthLevel: Failed to load AssaultRifle scene!")
@@ -1642,10 +1861,34 @@ func _on_armory_button_pressed() -> void:
 	if armory_menu_scene:
 		var armory_menu = armory_menu_scene.instantiate()
 		armory_menu.layer = 100
+		# Issue #1006: Mark as opened from score screen to prevent level restart on Apply
+		armory_menu.opened_from_score_screen = true
 		get_tree().root.add_child(armory_menu)
-		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+		armory_menu.back_pressed.connect(func():
+			armory_menu.queue_free()
+			# Issue #1050: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
+		armory_menu.apply_pressed_from_score_screen.connect(func():
+			# Issue #1050: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
 	else:
 		_log_to_file("ERROR: Could not load armory menu scene")
+
+
+## Issue #1050: Remove gold highlight from the ArmoryButton when no items remain to unlock.
+## The button stays visible but loses its gold styling and reverts to plain "Armory" text.
+func _remove_armory_button_gold_style() -> void:
+	var armory_btn := get_tree().current_scene.find_child("ArmoryButton", true, false)
+	if armory_btn:
+		armory_btn.text = "Armory"
+		armory_btn.remove_theme_color_override("font_color")
+		armory_btn.remove_theme_stylebox_override("normal")
 
 
 ## Get the next level path based on the level ordering from LevelsMenu.
@@ -1661,6 +1904,13 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
+		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 	]
 
 	for i in range(level_paths.size()):
@@ -1709,6 +1959,11 @@ func _setup_tutorial_hints() -> void:
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		if canvas_layer:
 			_add_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK, "[color=#ff4444][ПКМ][/color] Взведи курок", canvas_layer)
+	# Issue #998: Show scope hint from the very start for sniper rifle.
+	if _tutorial_has_sniper_rifle:
+		var canvas_layer := get_node_or_null("CanvasLayer")
+		if canvas_layer:
+			_add_tutorial_hint(TUTORIAL_HINT_SCOPE, "[color=#ff4444][ПКМ][/color] Прицелься через оптику", canvas_layer)
 
 
 ## Called when player's weapon fires a shot (Issue #945).
@@ -1802,6 +2057,7 @@ func _on_tutorial_reload_sequence_progress(step: int, total: int) -> void:
 ## Bug fix #2: `step` is the LAST COMPLETED step (0 = nothing done yet, 1 = first press done, etc.).
 ##   So we highlight step+1 as the next action to perform.
 ## Bug fix #5: Revolver and shotgun use separate hint builders.
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_reload_hint_bbcode(step: int, total: int) -> String:
 	# Guard: shotgun uses static/ActionState-based hints
 	if _tutorial_has_shotgun:
@@ -1814,8 +2070,12 @@ func _build_tutorial_reload_hint_bbcode(step: int, total: int) -> String:
 			0:
 				return "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"
 			1:
+				# Step 1 completed: extend strikethrough to 25%
+				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.25)
 				return "[color=#888888][R][/color] [color=#ff4444][R][/color] Перезарядись"
 			_:
+				# All steps done: extend strikethrough to cover both [R] keys (~50%)
+				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.5)
 				return "[color=#888888][R] [R][/color] Перезарядись"
 	else:
 		# Standard 3-step reload: R -> F -> R
@@ -1824,10 +2084,16 @@ func _build_tutorial_reload_hint_bbcode(step: int, total: int) -> String:
 			0:
 				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"
 			1:
+				# Step 1 completed: extend strikethrough to ~17%
+				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.17)
 				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
 			2:
+				# Step 2 completed: extend strikethrough to ~33%
+				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.33)
 				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
 			_:
+				# All steps done: extend strikethrough to ~50%
+				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.5)
 				return "[color=#888888][R] [F] [R][/color] Перезарядись"
 
 
@@ -1846,6 +2112,8 @@ func _get_tutorial_hint_color(hint_key: String) -> Color:
 			return TUTORIAL_HINT_COLOR_GRENADE_LAUNCHER
 		TUTORIAL_HINT_FIRE_MODE:
 			return TUTORIAL_HINT_COLOR_FIRE_MODE  # Bug fix round 5
+		TUTORIAL_HINT_SCOPE:
+			return TUTORIAL_HINT_COLOR_SCOPE  # Issue #998
 		_:
 			return Color(1.0, 1.0, 0.3, 1.0)  # Default yellow fallback
 
@@ -1908,6 +2176,16 @@ func _on_tutorial_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
 ## Called when revolver hammer is cocked — dismisses hammer hint (Issue #808).
 func _on_tutorial_hammer_cocked() -> void:
 	_dismiss_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK)
+
+
+## Called when scope state changes (activated/deactivated).
+## Dismisses the scope hint when the player uses the scope for the first time (Issue #998).
+func _on_tutorial_scope_state_changed(is_active: bool) -> void:
+	if not is_active or _tutorial_scope_used:
+		return
+	_tutorial_scope_used = true
+	print("[LabyrinthLevel] Scope used — dismissing scope hint")
+	_dismiss_tutorial_hint(TUTORIAL_HINT_SCOPE)
 
 
 ## Called when player switches fire mode (M16 final training hint, Bug fix round 5).
@@ -2037,14 +2315,23 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 
 
 ## Build BBCode for the grenade throw hint with step-based highlighting (Bug fix round 5).
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
 	match step:
 		0:
 			return "[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]"
 		1:
+			# First step completed
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.25)
 			return "[color=#888888][G+ПКМ вправо][/color] [color=#ff4444][G+ПКМ→отпусти G][/color] [color=#888888][ПКМ бросок][/color]"
-		_:
+		2:
+			# First two steps completed
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.6)
 			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G][/color] [color=#ff4444][ПКМ бросок][/color]"
+		_:
+			# All steps done
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.85)
+			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок][/color]"
 
 
 ## Update the grenade hint step based on current input (Bug fix round 5).
@@ -2123,16 +2410,27 @@ func _tutorial_ak_gl_has_round_loaded() -> bool:
 
 ## Build BBCode for sniper bolt-cycle hint showing 4-step sequence (Bug fix #4).
 ## Bug fix #3: highlights the NEXT step in red based on last completed step.
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_sniper_bolt_hint_bbcode(step: int) -> String:
 	const STEPS := ["←", "↓", "↑", "→"]
 	var parts: PackedStringArray = []
 	for i in range(STEPS.size()):
 		if i < step:
+			# Completed step: grey (strikethrough animated via Line2D)
 			parts.append("[color=#888888][%s][/color]" % STEPS[i])
 		elif i == step:
+			# Current step - red highlight
 			parts.append("[color=#ff4444][%s][/color]" % STEPS[i])
 		else:
+			# Future step - grey
 			parts.append("[color=#888888][%s][/color]" % STEPS[i])
+
+	# Extend strikethrough progressively based on completed steps
+	# Each step is ~12.5% of the total hint width (4 steps + text = ~50% for keys)
+	if step > 0:
+		var progress := float(step) * 0.125  # 12.5% per step
+		_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, progress)
+
 	return " ".join(parts) + " Передёрни затвор"
 
 
@@ -2145,30 +2443,42 @@ func _build_tutorial_shotgun_reload_hint_bbcode() -> String:
 ## Build BBCode for shotgun full-reload hint with step-based highlighting (Bug fix round 4).
 ## Mirrors _build_shotgun_full_reload_hint_bbcode() from tutorial_level.gd.
 ## state=0/1: highlight open-bolt; state=2: highlight load-shells; state=3: highlight close-bolt.
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_shotgun_full_reload_hint_bbcode(state: int) -> String:
 	var shells_needed: int = _get_tutorial_shotgun_shells_to_load()
 	match state:
 		0, 1:  # Not reloading or waiting to open
 			return "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
-		2:  # Loading shells
+		2:  # Loading shells (open is completed)
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.25)
 			return "[color=#888888][ПКМ↑ открыть][/color] [color=#ff4444][СКМ+ПКМ↓ x%d][/color] [color=#888888][ПКМ↓ закрыть][/color]" % shells_needed
-		3:  # Waiting to close
+		3:  # Waiting to close (open and loading completed)
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.55)
 			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d][/color] [color=#ff4444][ПКМ↓ закрыть][/color]" % shells_needed
 		_:
+			# All steps completed
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.8)
 			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
 
 
 ## Build BBCode for the revolver reload hint with step-based highlighting (Bug fix round 4).
 ## Mirrors _build_revolver_reload_hint_bbcode() from tutorial_level.gd.
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_revolver_reload_hint_bbcode(step: int) -> String:
 	match step:
 		0:
 			return "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]"
 		1:
+			# Cylinder opened: next is insert cartridges (open is completed)
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.15)
 			return "[color=#888888][R открыть][/color] [color=#ff4444][ПКМ↑ патрон][/color] [color=#888888][скролл] [R закрыть][/color]"
 		2:
+			# Scrolled (cylinder rotated): next is close cylinder (open and insert completed)
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.55)
 			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл][/color] [color=#ff4444][R закрыть][/color]"
 		_:
+			# All steps done
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.75)
 			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/color]"
 
 
@@ -2196,18 +2506,23 @@ func _on_tutorial_shotgun_action_state_changed(new_state: int) -> void:
 
 ## Build BBCode for the shotgun between-shots pump hint (Bug fix round 4).
 ## state=1 (NeedsPumpUp): highlight drag-up; state=2 (NeedsPumpDown): highlight drag-down.
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_shotgun_pump_hint_bbcode(state: int) -> String:
 	match state:
-		1:  # NeedsPumpUp
+		1:  # NeedsPumpUp (nothing completed yet)
 			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор"
-		2:  # NeedsPumpDown
+		2:  # NeedsPumpDown (pump-up completed)
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.2)
 			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] Передёрни затвор"
 		_:
+			# Both completed
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.4)
 			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] Передёрни затвор"
 
 
 ## Called when the shotgun's reload state changes (full shell-by-shell reload).
 ## Bug fix round 4: updates the TUTORIAL_HINT_BOLT_CYCLE hint to highlight the current reload step.
+## Issue #983: when state=0 (NotReloading), reload is complete — dismiss hint and advance tutorial.
 ## ShotgunReloadState: 0=NotReloading, 1=WaitingToOpen, 2=Loading, 3=WaitingToClose
 func _on_tutorial_shotgun_reload_state_changed(new_state: int) -> void:
 	if _tutorial_step != TutorialStep.RELOAD:
@@ -2216,20 +2531,28 @@ func _on_tutorial_shotgun_reload_state_changed(new_state: int) -> void:
 	if not _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
 		return
 
+	# state=0 means reload is fully complete (bolt closed) — treat as reload done.
+	if new_state == 0:
+		print("[LabyrinthLevel] Shotgun reload completed via ReloadStateChanged(0)")
+		_on_tutorial_reload_completed()
+		return
+
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]
 	if is_instance_valid(label):
 		label.text = _build_tutorial_shotgun_full_reload_hint_bbcode(new_state)
 
 
 ## Return the number of shells the shotgun still needs to fill up to capacity (Bug fix #7).
+## Issue #1025: use ShellsInTube/TubeMagazineCapacity (same as tutorial_level.gd) instead of
+##   CurrentAmmo/MaxAmmo which the Shotgun does not populate.
 func _get_tutorial_shotgun_shells_to_load() -> int:
 	if _tutorial_shotgun == null:
 		return 8
-	var current_ammo = _tutorial_shotgun.get("CurrentAmmo")
-	var max_ammo = _tutorial_shotgun.get("MaxAmmo")
-	if current_ammo == null or max_ammo == null:
+	var shells_in_tube = _tutorial_shotgun.get("ShellsInTube")
+	var tube_capacity = _tutorial_shotgun.get("TubeMagazineCapacity")
+	if shells_in_tube == null or tube_capacity == null:
 		return 8
-	return int(max_ammo) - int(current_ammo)
+	return int(tube_capacity) - int(shells_in_tube)
 
 
 ## Get the unique color for a tutorial hint by its key (Issue #945).
@@ -2248,10 +2571,12 @@ func _dismiss_all_tutorial_hints() -> void:
 
 ## Create and register a tutorial hint RichTextLabel with BBCode support.
 ## Issue #945: Uses RichTextLabel for BBCode color support (per-hint unique colors + red key highlights).
+## Issue #944: Adds fade-in animation when new hints appear + creates Line2D for progressive strikethrough.
 func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
 	if _tutorial_hints.has(hint_key):
-		# Already exists - just update text
-		_tutorial_hints[hint_key].text = text
+		# Already exists - just update text (don't animate)
+		if not _tutorial_animating_hints.has(hint_key):
+			_tutorial_hints[hint_key].text = text
 		return
 
 	var label := RichTextLabel.new()
@@ -2269,8 +2594,20 @@ func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> v
 	label.fit_content = true
 	label.scroll_active = false
 
+	# Issue #944: Start transparent for fade-in animation
+	label.modulate.a = 0.0
+
 	canvas_layer.add_child(label)
 	_tutorial_hints[hint_key] = label
+
+	# Issue #944 Session 5: Initialize empty array; Line2D nodes created per-line in deferred setup.
+	_tutorial_hint_strike_lines[hint_key] = []
+	_tutorial_hint_strike_progress[hint_key] = 0.0
+
+	# Session 5: Calculate line count and create one Line2D per text line after layout.
+	# Font size 20 with default line spacing gives ~26px per line.
+	# We need to wait a frame for RichTextLabel to calculate its content size.
+	_setup_tutorial_strikethrough_lines.call_deferred(hint_key, label)
 
 	# Position immediately
 	var index := _tutorial_hints.size() - 1
@@ -2279,22 +2616,225 @@ func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> v
 	label.custom_minimum_size = Vector2(300, 30)
 	label.position = screen_pos + Vector2(-150, -80 - index * TUTORIAL_HINT_SPACING)
 
+	# Issue #944: Animate fade-in
+	var tween := create_tween()
+	tween.tween_property(label, "modulate:a", 1.0, TUTORIAL_HINT_FADE_IN_DURATION).set_ease(Tween.EASE_OUT)
+
 	print("[LabyrinthLevel] Tutorial hint added '%s': %s" % [hint_key, text])
 
 
+## Issue #944 Session 5: Set up one Line2D per text line after label layout is ready.
+## Each line gets its own Line2D node so there are no diagonal connectors between lines.
+## Issue #1080: Also computes per-line text widths so strikethrough matches actual text length.
+func _setup_tutorial_strikethrough_lines(hint_key: String, label: RichTextLabel) -> void:
+	if not is_instance_valid(label):
+		return
+
+	# Get font metrics. Font size is 20, typical line height with spacing is ~26px.
+	const LINE_HEIGHT := 26.0  # Font size + default line spacing
+
+	# Calculate number of lines based on content height vs line height.
+	var content_height := label.get_content_height()
+	var line_count := maxi(1, roundi(content_height / LINE_HEIGHT))
+	_tutorial_hint_line_counts[hint_key] = line_count
+
+	# Issue #1080: Compute per-line text widths using font metrics.
+	# Map each character in the plain text to its visual line, then measure each line's width.
+	var line_widths: Array = []
+	var font: Font = label.get_theme_font("normal_font")
+	var font_size: int = label.get_theme_font_size("normal_font_size")
+	if is_instance_valid(font) and font_size > 0:
+		var plain_text: String = label.get_parsed_text()
+		# Build per-line text strings by mapping character indices to visual lines.
+		var per_line_text: Array = []
+		for _i in range(line_count):
+			per_line_text.append("")
+		var char_count: int = plain_text.length()
+		for char_idx in range(char_count):
+			var visual_line: int = label.get_character_line(char_idx)
+			if visual_line >= 0 and visual_line < line_count:
+				per_line_text[visual_line] += plain_text[char_idx]
+		for line_idx in range(line_count):
+			var w: float = font.get_string_size(per_line_text[line_idx], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+			line_widths.append(maxf(w, 1.0))
+	else:
+		# Fallback: use label content width for all lines.
+		var fallback_width: float = label.get_content_width()
+		if fallback_width <= 0:
+			fallback_width = label.custom_minimum_size.x
+		if fallback_width <= 0:
+			fallback_width = 300.0
+		for _i in range(line_count):
+			line_widths.append(fallback_width)
+	_tutorial_hint_line_widths[hint_key] = line_widths
+
+	# Create one Line2D per text line to avoid diagonal connectors between lines.
+	var lines: Array = []
+	for line_idx in range(line_count):
+		# Vertical center of each line: ~55% of line height.
+		var line_y := line_idx * LINE_HEIGHT + LINE_HEIGHT * 0.55
+		var seg := Line2D.new()
+		seg.name = "StrikeLine_%s_%d" % [hint_key, line_idx]
+		seg.width = 1.5
+		seg.default_color = Color(0.6, 0.6, 0.6, 0.6)
+		seg.z_index = 1
+		# Start and end both at x=0 (invisible until animation begins).
+		seg.add_point(Vector2(0, line_y))
+		seg.add_point(Vector2(0, line_y))
+		label.add_child(seg)
+		lines.append(seg)
+
+	_tutorial_hint_strike_lines[hint_key] = lines
+	print("[LabyrinthLevel] Setup strikethrough for '%s': %d lines, widths: %s" % [hint_key, line_count, str(line_widths)])
+
+
+## Issue #944 Session 5: Animate the strikethrough lines to extend progressively as steps complete.
+## target_progress: 0.0-1.0 representing how much of the hint text should be struck through.
+## For multi-line text, progress spans all lines (e.g., 2 lines: 0.5 = line 1 fully struck).
+func _extend_tutorial_hint_strikethrough(hint_key: String, target_progress: float) -> void:
+	if not _tutorial_hint_strike_lines.has(hint_key):
+		return
+
+	var strike_lines: Array = _tutorial_hint_strike_lines[hint_key]
+	if strike_lines.is_empty():
+		return
+
+	var current_progress: float = _tutorial_hint_strike_progress.get(hint_key, 0.0)
+	if target_progress <= current_progress:
+		return  # Already at or past this progress
+
+	# Issue #1080: Use per-line widths if available, otherwise fall back to content width.
+	var line_widths: Array = _tutorial_hint_line_widths.get(hint_key, [])
+	if line_widths.is_empty():
+		var fallback_width := 300.0
+		if _tutorial_hints.has(hint_key):
+			var label: RichTextLabel = _tutorial_hints[hint_key]
+			if is_instance_valid(label):
+				var content_width := label.get_content_width()
+				if content_width > 0:
+					fallback_width = content_width
+				elif label.custom_minimum_size.x > 0:
+					fallback_width = label.custom_minimum_size.x
+		var line_count_fb: int = _tutorial_hint_line_counts.get(hint_key, 1)
+		for _i in range(line_count_fb):
+			line_widths.append(fallback_width)
+
+	var line_count: int = _tutorial_hint_line_counts.get(hint_key, 1)
+
+	# Animate the line extension from current position to new position.
+	var tween := create_tween()
+	tween.tween_method(
+		func(progress: float):
+			_update_tutorial_strikethrough_points(strike_lines, line_count, line_widths, progress),
+		current_progress, target_progress, TUTORIAL_HINT_STRIKETHROUGH_DURATION * 0.5
+	).set_ease(Tween.EASE_OUT)
+
+	_tutorial_hint_strike_progress[hint_key] = target_progress
+	print("[LabyrinthLevel] Strikethrough extended for '%s': %.0f%% -> %.0f%%" % [hint_key, current_progress * 100, target_progress * 100])
+
+
+## Issue #944 Session 5: Update per-line Line2D end points for multi-line strikethrough.
+## progress: 0.0-1.0 overall progress across all lines.
+## Each Line2D in the array represents one text line and is animated independently.
+## Issue #1080: line_widths is an Array[float] with the pixel width of each text line,
+## so the strikethrough only extends over the actual text, not over empty space.
+func _update_tutorial_strikethrough_points(strike_lines: Array, line_count: int, line_widths: Array, progress: float) -> void:
+	for line_idx in range(line_count):
+		if line_idx >= strike_lines.size():
+			break
+		var seg: Line2D = strike_lines[line_idx]
+		if not is_instance_valid(seg):
+			continue
+
+		# Calculate how much of this line should be struck through.
+		var line_start_progress := float(line_idx) / line_count
+		var line_end_progress := float(line_idx + 1) / line_count
+		var line_progress: float
+
+		if progress <= line_start_progress:
+			line_progress = 0.0
+		elif progress >= line_end_progress:
+			line_progress = 1.0
+		else:
+			line_progress = (progress - line_start_progress) / (line_end_progress - line_start_progress)
+
+		# Issue #1080: Use per-line width so the strikethrough matches the actual text length.
+		var line_width: float = line_widths[line_idx] if line_idx < line_widths.size() else 300.0
+		seg.set_point_position(1, Vector2(line_width * line_progress, seg.get_point_position(0).y))
+
+
 ## Remove a tutorial hint label by key.
+## Issue #944: Extends strikethrough to 100% before fade-out for all hints.
+## Uses the persistent Line2D attached to the hint (created in _add_tutorial_hint).
 func _dismiss_tutorial_hint(hint_key: String) -> void:
 	if not _tutorial_hints.has(hint_key):
 		return
 
+	# Issue #944: Prevent double-dismiss while animating
+	if _tutorial_animating_hints.has(hint_key):
+		return
+
 	var label: RichTextLabel = _tutorial_hints[hint_key]
-	if is_instance_valid(label):
-		# Hide immediately so it does not overlap new hints during the same frame
-		# before queue_free() is processed.
-		label.visible = false
-		label.queue_free()
+	if not is_instance_valid(label):
+		_tutorial_hints.erase(hint_key)
+		return
+
+	# Mark as animating to prevent updates during animation
+	_tutorial_animating_hints[hint_key] = true
+
+	print("[LabyrinthLevel] Dismissing hint '%s' (with strikethrough animation)" % hint_key)
+	_animate_tutorial_hint_strikethrough_and_fade(hint_key, label)
+
+
+## Issue #944 Session 5: Extend the per-line Line2D strikethroughs to 100% and then fade out.
+## Uses the persistent Line2D array created per text line in _setup_tutorial_strikethrough_lines.
+func _animate_tutorial_hint_strikethrough_and_fade(hint_key: String, label: RichTextLabel) -> void:
+	# Get the existing strike lines for this hint
+	var strike_lines: Array = []
+	if _tutorial_hint_strike_lines.has(hint_key):
+		strike_lines = _tutorial_hint_strike_lines[hint_key]
+
+	# Issue #1080: Use per-line widths if available, otherwise fall back to content width.
+	var line_widths: Array = _tutorial_hint_line_widths.get(hint_key, [])
+	if line_widths.is_empty():
+		var fallback_width: float = label.get_content_width()
+		if fallback_width <= 0:
+			fallback_width = label.custom_minimum_size.x
+		if fallback_width <= 0:
+			fallback_width = 300.0
+		var line_count_fb: int = _tutorial_hint_line_counts.get(hint_key, 1)
+		for _i in range(line_count_fb):
+			line_widths.append(fallback_width)
+
+	var line_count: int = _tutorial_hint_line_counts.get(hint_key, 1)
+	var current_progress: float = _tutorial_hint_strike_progress.get(hint_key, 0.0)
+
+	# Animate the lines from current position to full width (100%)
+	var tween := create_tween()
+
+	if not strike_lines.is_empty():
+		tween.tween_method(
+			func(progress: float):
+				_update_tutorial_strikethrough_points(strike_lines, line_count, line_widths, progress),
+			current_progress, 1.0, TUTORIAL_HINT_STRIKETHROUGH_DURATION
+		).set_ease(Tween.EASE_OUT)
+
+	# After strikethrough animation completes, fade out the whole label
+	tween.tween_property(label, "modulate:a", 0.0, TUTORIAL_HINT_FADE_OUT_DURATION).set_ease(Tween.EASE_IN)
+	tween.tween_callback(_finalize_tutorial_hint_dismiss.bind(hint_key, label))
+
+
+## Issue #944 Session 4: Finalize hint dismissal after animation completes.
+func _finalize_tutorial_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
+	_tutorial_animating_hints.erase(hint_key)
 	_tutorial_hints.erase(hint_key)
-	print("[LabyrinthLevel] Tutorial hint dismissed: %s" % hint_key)
+	_tutorial_hint_strike_lines.erase(hint_key)
+	_tutorial_hint_strike_progress.erase(hint_key)
+	_tutorial_hint_line_counts.erase(hint_key)
+	_tutorial_hint_line_widths.erase(hint_key)
+	if is_instance_valid(label):
+		label.queue_free()
+	print("[LabyrinthLevel] Hint '%s' dismissed (animation complete)" % hint_key)
 
 
 ## Update tutorial hint positions to float above the player.

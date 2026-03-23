@@ -61,6 +61,15 @@ public partial class ShotgunPellet : Area2D
     [Export]
     public bool IsBreakerBullet { get; set; } = false;
 
+    /// <summary>
+    /// Whether this pellet ignores walls (Issue #751).
+    /// When true, the pellet passes through walls with full damage and no ricochet.
+    /// Set via Node.Set("is_drilling_bullet", true) by Shotgun.SpawnPelletWithOffset().
+    /// Exported to allow setting via snake_case name.
+    /// </summary>
+    [Export]
+    public bool IsDrillingBullet { get; set; } = false;
+
     // =========================================================================
     // Ricochet Configuration (Shotgun Pellet - limited to 35 degrees)
     // =========================================================================
@@ -646,6 +655,13 @@ public partial class ShotgunPellet : Area2D
             }
         }
 
+        // Drilling pellets pass through walls completely (Issue #751)
+        // TileMapLayer is checked alongside TileMap for Godot 4.3+ compatibility
+        if (IsDrillingBullet && (body is StaticBody2D || body is TileMap || body is TileMapLayer))
+        {
+            return; // Wall ignored — pellet continues with full damage
+        }
+
         // Try to ricochet off static bodies (walls/obstacles)
         // Pellets CANNOT penetrate - only ricochet or stop
         if (body is StaticBody2D || body is TileMap)
@@ -746,9 +762,18 @@ public partial class ShotgunPellet : Area2D
 
         bool hitEnemy = false;
         float effectiveDamage = Damage * _damageMultiplier;
+        bool fromPlayer = IsPlayerPellet();
 
-        // Check if the target implements IDamageable
-        if (area is IDamageable damageable)
+        // Issue #1196: prefer on_hit_with_bullet_info_and_damage to propagate is_from_player,
+        // so the kill-source tracking in enemy.gd works correctly for the Laser Sight unlock.
+        if (area.HasMethod("on_hit_with_bullet_info_and_damage"))
+        {
+            GD.Print($"[ShotgunPellet]: Target {area.Name} has on_hit_with_bullet_info_and_damage, calling with from_player={fromPlayer}");
+            area.Call("on_hit_with_bullet_info_and_damage", Direction, (Godot.Resource?)null, _hasRicocheted, false, effectiveDamage, fromPlayer);
+            hitEnemy = true;
+        }
+        // Check if the target implements IDamageable (C# enemies / non-GDScript targets)
+        else if (area is IDamageable damageable)
         {
             GD.Print($"[ShotgunPellet]: Target {area.Name} is IDamageable, applying {effectiveDamage} damage");
             damageable.TakeDamage(effectiveDamage);

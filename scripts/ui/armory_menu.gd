@@ -12,6 +12,10 @@ signal back_pressed
 ## Signal emitted when a weapon is selected.
 signal weapon_selected(weapon_id: String)
 
+## Signal emitted when Apply is pressed from score screen context (Issue #1006).
+## The armory should close without restarting the level.
+signal apply_pressed_from_score_screen
+
 ## Path to weapon case icon used for locked/closed weapons.
 const WEAPON_CASE_ICON_PATH: String = "res://assets/sprites/weapons/weapon_case_icon.png"
 
@@ -93,6 +97,9 @@ const MAX_GRENADE_ROWS_COLLAPSED: int = 1
 ## Number of columns in the weapon/grenade grids.
 const GRID_COLUMNS: int = 4
 
+## Number of columns in the special items grid.
+const SPECIAL_GRID_COLUMNS: int = 7
+
 ## Maximum number of visible active item rows before accordion hides the rest.
 const MAX_ACTIVE_ITEM_ROWS_COLLAPSED: int = 1
 
@@ -144,6 +151,11 @@ var _active_item_manager: Node = null
 
 ## Reference to UnlockManager autoload.
 var _unlock_manager: Node = null
+
+## Whether the armory was opened from the score screen (Issue #1006).
+## When true, pressing Apply should hide the armory and return to score screen
+## instead of restarting the level.
+var opened_from_score_screen: bool = false
 
 ## Cached weapon resource data.
 var _weapon_resources: Dictionary = {}
@@ -287,7 +299,7 @@ func _build_ui() -> void:
 	margin.add_theme_constant_override("margin_left", 16)
 	margin.add_theme_constant_override("margin_top", 12)
 	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_bottom", 12)
+	margin.add_theme_constant_override("margin_bottom", 24)
 	panel.add_child(margin)
 
 	# Main vertical layout (title + content + buttons)
@@ -296,12 +308,16 @@ func _build_ui() -> void:
 	main_vbox.add_theme_constant_override("separation", 8)
 	margin.add_child(main_vbox)
 
-	# Title
+	# Title with neon styling
 	var title := Label.new()
 	title.text = "ARMORY"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 22)
-	title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
+	var neon_label_settings = load("res://resources/themes/neon_label_settings.tres")
+	if neon_label_settings:
+		title.label_settings = neon_label_settings
+	else:
+		title.add_theme_font_size_override("font_size", 22)
+		title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
 	main_vbox.add_child(title)
 
 	# Separator below title
@@ -383,6 +399,11 @@ func _build_ui() -> void:
 	apply_style_disabled.corner_radius_bottom_left = 4
 	apply_style_disabled.corner_radius_bottom_right = 4
 	_apply_button.add_theme_stylebox_override("disabled", apply_style_disabled)
+
+	# Bottom spacer for footer padding
+	var bottom_spacer := Control.new()
+	bottom_spacer.custom_minimum_size = Vector2(0, 8)
+	main_vbox.add_child(bottom_spacer)
 
 	# Initial highlight and stats
 	_highlight_selected_items()
@@ -591,7 +612,7 @@ func _build_right_area() -> VBoxContainer:
 	# --- SPECIAL SECTION ---
 	_add_category_header(right_vbox, "SPECIAL")
 	_active_item_grid = GridContainer.new()
-	_active_item_grid.columns = GRID_COLUMNS
+	_active_item_grid.columns = SPECIAL_GRID_COLUMNS
 	_active_item_grid.layout_mode = 2
 	_active_item_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_active_item_grid.add_theme_constant_override("h_separation", 6)
@@ -600,7 +621,7 @@ func _build_right_area() -> VBoxContainer:
 
 	# Populate active item grid from ActiveItemManager
 	var active_item_index: int = 0
-	var max_visible_active_items: int = MAX_ACTIVE_ITEM_ROWS_COLLAPSED * GRID_COLUMNS
+	var max_visible_active_items: int = MAX_ACTIVE_ITEM_ROWS_COLLAPSED * SPECIAL_GRID_COLUMNS
 	if _active_item_manager:
 		for item_type in _active_item_manager.get_all_active_item_types():
 			var adata: Dictionary = _active_item_manager.get_active_item_data(item_type)
@@ -1083,9 +1104,14 @@ func _on_apply_pressed() -> void:
 			_active_item_manager.set_active_item(_pending_active_item_type, false)
 		active_item_changed = true
 
-	# Restart the level to apply changes
+	# Apply changes: either restart level or return to score screen (Issue #1006)
 	if weapon_changed or grenade_changed or active_item_changed:
-		if GameManager:
+		if opened_from_score_screen:
+			# Issue #1006: When opened from score screen, hide armory and return
+			# to score screen instead of restarting the level.
+			apply_pressed_from_score_screen.emit()
+			queue_free()
+		elif GameManager:
 			get_tree().paused = false
 			Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 			GameManager.restart_scene()
@@ -1553,6 +1579,12 @@ func _animate_slot_reveal(slot: PanelContainer) -> void:
 	tween.tween_property(slot, "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT)
 	if vbox:
 		tween.tween_property(vbox, "scale", Vector2(1.0, 1.0), 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("pause"):
+		_on_back_pressed()
+		get_viewport().set_input_as_handled()
 
 
 func _on_back_pressed() -> void:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://docks_level_753"]
+[gd_scene load_steps=31 format=3 uid="uid://docks_level_753"]
 
 [ext_resource type="Script" path="res://scripts/levels/docks_level.gd" id="1_docks_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -51,10 +51,37 @@ size = Vector2(150, 24)
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_container_large"]
 polygon = PackedVector2Array(-100, -40, 100, -40, 100, 40, -100, 40)
 
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_warehouse_wall_h"]
+polygon = PackedVector2Array(-200, -12, 200, -12, 200, 12, -200, 12)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_warehouse_wall_v"]
+polygon = PackedVector2Array(-12, -170, 12, -170, 12, 170, -12, 170)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_warehouse_a_wall_h"]
+polygon = PackedVector2Array(-250, -12, 250, -12, 250, 12, -250, 12)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_warehouse_a_wall_v"]
+polygon = PackedVector2Array(-12, -320, 12, -320, 12, 320, -12, 320)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_warehouse_a_bottom_wall"]
+polygon = PackedVector2Array(-87.5, -12, 87.5, -12, 87.5, 12, -87.5, 12)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_warehouse_b_wall_h"]
+polygon = PackedVector2Array(-350, -12, 350, -12, 350, 12, -350, 12)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_warehouse_b_wall_v"]
+polygon = PackedVector2Array(-12, -420, 12, -420, 12, 420, -12, 420)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_warehouse_b_top_wall"]
+polygon = PackedVector2Array(-125, -12, 125, -12, 125, 12, -125, 12)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_crane_entrance_wall"]
+polygon = PackedVector2Array(-75, -12, 75, -12, 75, 12, -75, 12)
+
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_docks"]
-vertices = PackedVector2Array(64, 64, 5064, 64, 5064, 4064, 64, 4064)
+vertices = PackedVector2Array(64, 200, 5064, 200, 5064, 4064, 64, 4064)
 polygons = [PackedInt32Array(0, 1, 2, 3)]
-outlines = [PackedVector2Array(64, 64, 5064, 64, 5064, 4064, 64, 4064)]
+outlines = [PackedVector2Array(64, 200, 5064, 200, 5064, 4064, 64, 4064)]
 parsed_geometry_type = 1
 parsed_collision_mask = 4
 source_geometry_mode = 0
@@ -66,6 +93,18 @@ script = ExtResource("1_docks_level")
 
 [node name="LevelInitFallback" type="Node" parent="."]
 script = ExtResource("5_fallback")
+
+[node name="SunLight" type="DirectionalLight2D" parent="."]
+position = Vector2(4000, -500)
+rotation = 0.3
+color = Color(0.75, 0.85, 1, 1)
+energy = 0.2
+height = 2.5
+shadow_enabled = true
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_filter = 1
+shadow_filter_smooth = 8.0
+max_distance = 10000.0
 
 [node name="Environment" type="Node2D" parent="."]
 
@@ -177,6 +216,9 @@ color = Color(0.4, 0.35, 0.3, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/CranePlatform/WallTop"]
 shape = SubResource("RectangleShape2D_warehouse_wall_h")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/CranePlatform/WallTop"]
+occluder = SubResource("OccluderPolygon2D_warehouse_wall_h")
+
 [node name="WallBottomL" type="StaticBody2D" parent="Environment/Structures/CranePlatform"]
 position = Vector2(-125.0, 158.0)
 collision_layer = 4
@@ -191,6 +233,9 @@ color = Color(0.4, 0.35, 0.3, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/CranePlatform/WallBottomL"]
 shape = SubResource("RectangleShape2D_crane_entrance_wall")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/CranePlatform/WallBottomL"]
+occluder = SubResource("OccluderPolygon2D_crane_entrance_wall")
 
 [node name="WallBottomR" type="StaticBody2D" parent="Environment/Structures/CranePlatform"]
 position = Vector2(125.0, 158.0)
@@ -207,6 +252,9 @@ color = Color(0.4, 0.35, 0.3, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/CranePlatform/WallBottomR"]
 shape = SubResource("RectangleShape2D_crane_entrance_wall")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/CranePlatform/WallBottomR"]
+occluder = SubResource("OccluderPolygon2D_crane_entrance_wall")
+
 [node name="WallLeft" type="StaticBody2D" parent="Environment/Structures/CranePlatform"]
 position = Vector2(-208.0, 0.0)
 collision_layer = 4
@@ -222,6 +270,9 @@ color = Color(0.4, 0.35, 0.3, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/CranePlatform/WallLeft"]
 shape = SubResource("RectangleShape2D_warehouse_wall_v")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/CranePlatform/WallLeft"]
+occluder = SubResource("OccluderPolygon2D_warehouse_wall_v")
+
 [node name="WallRight" type="StaticBody2D" parent="Environment/Structures/CranePlatform"]
 position = Vector2(208.0, 0.0)
 collision_layer = 4
@@ -236,6 +287,9 @@ color = Color(0.4, 0.35, 0.3, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/CranePlatform/WallRight"]
 shape = SubResource("RectangleShape2D_warehouse_wall_v")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/CranePlatform/WallRight"]
+occluder = SubResource("OccluderPolygon2D_warehouse_wall_v")
 
 [node name="WarehouseA" type="Node2D" parent="Environment/Structures"]
 position = Vector2(400, 1800)
@@ -262,6 +316,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/WarehouseA/WallTop"]
 shape = SubResource("RectangleShape2D_warehouse_a_wall_h")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/WarehouseA/WallTop"]
+occluder = SubResource("OccluderPolygon2D_warehouse_a_wall_h")
+
 [node name="WallBottomL" type="StaticBody2D" parent="Environment/Structures/WarehouseA"]
 position = Vector2(-125.0, 308.0)
 collision_layer = 4
@@ -277,6 +334,10 @@ color = Color(0.35, 0.3, 0.25, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/WarehouseA/WallBottomL"]
 position = Vector2(-37.5, 0.0)
 shape = SubResource("RectangleShape2D_warehouse_a_bottom_wall")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/WarehouseA/WallBottomL"]
+position = Vector2(-37.5, 0.0)
+occluder = SubResource("OccluderPolygon2D_warehouse_a_bottom_wall")
 
 [node name="WallBottomR" type="StaticBody2D" parent="Environment/Structures/WarehouseA"]
 position = Vector2(125.0, 308.0)
@@ -294,6 +355,10 @@ color = Color(0.35, 0.3, 0.25, 1)
 position = Vector2(37.5, 0.0)
 shape = SubResource("RectangleShape2D_warehouse_a_bottom_wall")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/WarehouseA/WallBottomR"]
+position = Vector2(37.5, 0.0)
+occluder = SubResource("OccluderPolygon2D_warehouse_a_bottom_wall")
+
 [node name="WallLeft" type="StaticBody2D" parent="Environment/Structures/WarehouseA"]
 position = Vector2(-258.0, 0.0)
 collision_layer = 4
@@ -309,6 +374,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/WarehouseA/WallLeft"]
 shape = SubResource("RectangleShape2D_warehouse_a_wall_v")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/WarehouseA/WallLeft"]
+occluder = SubResource("OccluderPolygon2D_warehouse_a_wall_v")
+
 [node name="WallRight" type="StaticBody2D" parent="Environment/Structures/WarehouseA"]
 position = Vector2(258.0, 0.0)
 collision_layer = 4
@@ -323,6 +391,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/WarehouseA/WallRight"]
 shape = SubResource("RectangleShape2D_warehouse_a_wall_v")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/WarehouseA/WallRight"]
+occluder = SubResource("OccluderPolygon2D_warehouse_a_wall_v")
 
 [node name="WarehouseB" type="Node2D" parent="Environment/Structures"]
 position = Vector2(4400, 2800)
@@ -350,6 +421,10 @@ color = Color(0.35, 0.3, 0.25, 1)
 position = Vector2(-50.0, 0.0)
 shape = SubResource("RectangleShape2D_warehouse_b_top_wall")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/WarehouseB/WallTopL"]
+position = Vector2(-50.0, 0.0)
+occluder = SubResource("OccluderPolygon2D_warehouse_b_top_wall")
+
 [node name="WallTopR" type="StaticBody2D" parent="Environment/Structures/WarehouseB"]
 position = Vector2(175.0, -408.0)
 collision_layer = 4
@@ -366,6 +441,10 @@ color = Color(0.35, 0.3, 0.25, 1)
 position = Vector2(50.0, 0.0)
 shape = SubResource("RectangleShape2D_warehouse_b_top_wall")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/WarehouseB/WallTopR"]
+position = Vector2(50.0, 0.0)
+occluder = SubResource("OccluderPolygon2D_warehouse_b_top_wall")
+
 [node name="WallBottom" type="StaticBody2D" parent="Environment/Structures/WarehouseB"]
 position = Vector2(0.0, 408.0)
 collision_layer = 4
@@ -380,6 +459,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/WarehouseB/WallBottom"]
 shape = SubResource("RectangleShape2D_warehouse_b_wall_h")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/WarehouseB/WallBottom"]
+occluder = SubResource("OccluderPolygon2D_warehouse_b_wall_h")
 
 [node name="WallLeft" type="StaticBody2D" parent="Environment/Structures/WarehouseB"]
 position = Vector2(-358.0, 0.0)
@@ -396,6 +478,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/WarehouseB/WallLeft"]
 shape = SubResource("RectangleShape2D_warehouse_b_wall_v")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/WarehouseB/WallLeft"]
+occluder = SubResource("OccluderPolygon2D_warehouse_b_wall_v")
+
 [node name="WallRight" type="StaticBody2D" parent="Environment/Structures/WarehouseB"]
 position = Vector2(358.0, 0.0)
 collision_layer = 4
@@ -410,6 +495,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/WarehouseB/WallRight"]
 shape = SubResource("RectangleShape2D_warehouse_b_wall_v")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Structures/WarehouseB/WallRight"]
+occluder = SubResource("OccluderPolygon2D_warehouse_b_wall_v")
 
 [node name="Containers" type="Node2D" parent="Environment"]
 
@@ -792,13 +880,16 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-[node name="ContainerYardA_Shotgun" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+[node name="ContainerYardA_Sniper" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(4500, 420)
 behavior_mode = 1
-weapon_type = 1
+weapon_type = 7
 destroy_on_death = true
-enable_flanking = true
+enable_flanking = false
 enable_cover = true
+min_health = 2
+max_health = 3
+fov_angle = 120.0
 
 [node name="WarehouseA_Shotgun" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(350, 1700)
@@ -992,3 +1083,79 @@ offset_bottom = 45.0
 text = "AMMO: 30/30"
 
 [node name="PauseMenu" parent="." instance=ExtResource("3_pause_menu")]
+
+[node name="SearchPathWaypoints" type="Node2D" parent="."]
+editor_description = "Pre-planned search path waypoints for enemy SEARCHING state (Issue #1246). Enemies traverse these in order starting from the nearest point to their current position."
+groups = ["search_path_waypoints"]
+
+[node name="CranePlatform_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 350)
+
+[node name="CranePlatform_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 500)
+
+[node name="CranePlatform_Top" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 350)
+
+[node name="OpenArea_North" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1500, 300)
+
+[node name="ContainerYardA_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3500, 300)
+
+[node name="ContainerYardA_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4000, 450)
+
+[node name="ContainerYardA_Far" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4600, 380)
+
+[node name="OpenArea_Mid_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1500, 1100)
+
+[node name="LoadingDock_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3400, 1400)
+
+[node name="LoadingDock_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4000, 1600)
+
+[node name="LoadingDock_Far" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4600, 1700)
+
+[node name="WarehouseA_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(350, 1550)
+
+[node name="WarehouseA_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 1800)
+
+[node name="WarehouseA_Far" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 2100)
+
+[node name="OpenArea_Mid_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2500, 2000)
+
+[node name="WarehouseB_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4150, 2500)
+
+[node name="WarehouseB_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4400, 2800)
+
+[node name="WarehouseB_Far" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4600, 3100)
+
+[node name="ContainerYardB_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 2700)
+
+[node name="ContainerYardB_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 2950)
+
+[node name="ContainerYardB_Far" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 3200)
+
+[node name="OpenArea_South_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1500, 3500)
+
+[node name="OpenArea_South_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3500, 3500)
+
+[node name="Docks_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2500, 2000)

@@ -113,6 +113,10 @@ func _ready() -> void:
 	_log("  Contrast boost: %.1f (%.1fx)" % [SCREEN_CONTRAST_BOOST, 1.0 + SCREEN_CONTRAST_BOOST])
 	_log("  Effect duration: %.1f real seconds" % EFFECT_DURATION_REAL_SECONDS)
 
+	# Issue #1157: Disable _process by default to avoid per-frame overhead when idle.
+	# _process is re-enabled only when an effect is active or player needs to be found.
+	set_process(false)
+
 
 func _process(_delta: float) -> void:
 	# Check if we need to find the player
@@ -136,11 +140,12 @@ func _process(_delta: float) -> void:
 
 
 ## Log a message with the PenultimateHit prefix.
+## Issue #1293: print() fallback gated to debug builds to avoid FPS drops.
 func _log(message: String) -> void:
 	var logger: Node = get_node_or_null("/root/FileLogger")
 	if logger and logger.has_method("log_info"):
 		logger.log_info("[PenultimateHit] " + message)
-	else:
+	elif OS.is_debug_build():
 		print("[PenultimateHit] " + message)
 
 
@@ -191,6 +196,11 @@ func _find_player() -> void:
 	elif _player.has_signal("Died") and not _player.Died.is_connected(_on_player_died):
 		_player.Died.connect(_on_player_died)
 		_log("Connected to player Died signal (C#)")
+
+	# Issue #1157: Player found and connected — stop per-frame polling.
+	# _process will be re-enabled only when an effect needs to run.
+	if _connected_to_player:
+		set_process(false)
 
 
 ## Called when player health changes (GDScript player, int values).
@@ -243,6 +253,8 @@ func _start_penultimate_effect() -> void:
 
 	_is_effect_active = true
 	_effect_start_time = Time.get_ticks_msec() / 1000.0
+	# Issue #1157: Enable _process to track effect duration and fade-out.
+	set_process(true)
 
 	_log("Starting penultimate hit effect:")
 	_log("  - Time scale: %.2f" % PENULTIMATE_TIME_SCALE)
@@ -358,6 +370,9 @@ func _complete_fade_out() -> void:
 
 	# Now fully remove the visual effects
 	_remove_visual_effects()
+
+	# Issue #1157: Disable _process after effect is fully done — nothing to update.
+	set_process(false)
 
 
 ## Removes the visual effects after fade-out is complete.
@@ -512,6 +527,9 @@ func reset_effects() -> void:
 	_player = null
 	_connected_to_player = false
 	_player_original_colors.clear()
+
+	# Issue #1157: Re-enable _process to search for the player in the new scene.
+	set_process(true)
 
 
 ## Called when the scene tree structure changes.

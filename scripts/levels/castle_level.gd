@@ -62,6 +62,9 @@ var _level_cleared: bool = false
 ## Whether the level completion sequence has been triggered (prevents duplicate calls).
 var _level_completed: bool = false
 
+## Weapon hints component instance (Issue #809).
+var _weapon_hints_component: Node = null
+
 
 func _ready() -> void:
 	print("CastleLevel loaded - Medieval Fortress Assault")
@@ -101,6 +104,9 @@ func _ready() -> void:
 
 	# Setup exit zone at the exit point (bottom of castle)
 	_setup_exit_zone()
+
+	# Setup weapon hints (Issue #809)
+	_setup_weapon_hints()
 
 
 ## Initialize the ScoreManager for this level.
@@ -179,6 +185,11 @@ func _process(_delta: float) -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("update_enemy_positions"):
 		score_manager.update_enemy_positions(_enemies)
+	# Issue #959: Re-check level completion when a retaliating pacifist finishes retaliation.
+	if _current_enemy_count <= 0 and not _level_cleared and not _has_retaliating_pacifists():
+		print("All enemies eliminated or pacified! Level cleared!")
+		_level_cleared = true
+		call_deferred("_activate_exit_zone")
 
 
 ## Called when combo changes.
@@ -226,43 +237,22 @@ func _setup_navigation() -> void:
 	if nav_region == null:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
-
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
 		return
-
-	# Bake the navigation mesh to include physics obstacles from collision layer 4
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
+	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	print("Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Re-add the outline for the walkable floor area (approximate oval)
-	# Using a polygon that roughly follows the castle oval shape
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(500, 1280),    # Left edge
-		Vector2(600, 800),
-		Vector2(900, 400),
-		Vector2(1500, 200),
-		Vector2(3000, 100),    # Top center
-		Vector2(4500, 200),
-		Vector2(5100, 400),
-		Vector2(5400, 800),
-		Vector2(5500, 1280),   # Right edge
-		Vector2(5400, 1760),
-		Vector2(5100, 2160),
-		Vector2(4500, 2360),
-		Vector2(3000, 2460),   # Bottom center
-		Vector2(1500, 2360),
-		Vector2(900, 2160),
-		Vector2(600, 1760),
-	])
-	nav_poly.add_outline(floor_outline)
-
-	# Use NavigationServer2D to bake from source geometry
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-
+	# Issue #1289: push updated polygon back into the NavigationServer's live map.
+	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 	print("Navigation mesh baked successfully")
 
 
@@ -305,6 +295,33 @@ func _setup_realistic_visibility() -> void:
 	visibility_component.set_script(visibility_script)
 	_player.add_child(visibility_component)
 	print("[CastleLevel] Realistic visibility component added to player")
+
+
+## Setup weapon hints component (Issue #809).
+## Shows weapon-specific tutorial hints when player uses a new weapon.
+func _setup_weapon_hints() -> void:
+	if _player == null:
+		return
+
+	var canvas_layer: Node = get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		push_warning("[CastleLevel] CanvasLayer node not found for weapon hints")
+		return
+
+	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
+	if hints_script == null:
+		push_warning("[CastleLevel] WeaponHintsComponent script not found")
+		return
+
+	_weapon_hints_component = Node.new()
+	_weapon_hints_component.name = "WeaponHintsComponent"
+	_weapon_hints_component.set_script(hints_script)
+	add_child(_weapon_hints_component)
+
+	# Setup the component with player and CanvasLayer references (Issue #809)
+	if _weapon_hints_component.has_method("setup"):
+		_weapon_hints_component.setup(_player, canvas_layer)
+		print("[CastleLevel] Weapon hints component added and setup")
 
 
 ## Setup tracking for the player.
@@ -416,6 +433,9 @@ func _setup_enemy_tracking() -> void:
 		# Track when enemy is hit for accuracy
 		if child.has_signal("hit"):
 			child.hit.connect(_on_enemy_hit)
+		# Issue #959: Connect to pacifist signal - pacifists count as killed for level completion
+		if child.has_signal("became_pacifist"):
+			child.became_pacifist.connect(_on_enemy_became_pacifist.bind(child))
 
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
@@ -465,6 +485,9 @@ func _configure_castle_weapon_ammo(weapon: Node) -> void:
 			_update_magazines_label(mag_counts)
 	else:
 		push_warning("[CastleLevel] Weapon %s doesn't have ReinitializeMagazines method" % weapon.name)
+	# Reapply auto-reload magazine size reduction if active (Issue #1067).
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
 ## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
@@ -492,6 +515,9 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+	# Reapply auto-reload magazine size reduction if active (Issue #1067).
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
 ## Setup debug UI elements for kills and accuracy.
@@ -581,11 +607,7 @@ func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
 
-	# Register kill with GameManager
-	if GameManager:
-		GameManager.register_kill()
-
-	if _current_enemy_count <= 0:
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		print("All enemies eliminated! Castle cleared!")
 		_level_cleared = true
 		# Activate exit zone - score will show when player reaches it
@@ -593,10 +615,38 @@ func _on_enemy_died() -> void:
 
 
 ## Called when an enemy dies with special kill information.
-func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
+func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
+	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
+	if GameManager:
+		GameManager.register_kill(is_player_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
+
+
+## Issue #959: Called when an enemy becomes a pacifist via loudspeaker.
+## Pacifists count as "killed" for level completion purposes.
+func _on_enemy_became_pacifist(enemy: Node) -> void:
+	_current_enemy_count -= 1
+	# Issue #959: Do not count pacifist again when it dies - already counted here
+	if is_instance_valid(enemy) and enemy.died.is_connected(_on_enemy_died):
+		enemy.died.disconnect(_on_enemy_died)
+	_update_enemy_count_label()
+	print("[Castle] Enemy became pacifist - counting as eliminated")
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
+		print("All enemies eliminated or pacified! Level cleared!")
+		_level_cleared = true
+		call_deferred("_activate_exit_zone")
+
+
+## Returns true if any enemy is a pacifist who is currently retaliating (attacking the player).
+## Level should not complete while any enemy is still a threat (Issue #959).
+func _has_retaliating_pacifists() -> bool:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and enemy.has_method("is_alive") and enemy.is_alive():
+			if enemy.has_method("is_retaliating") and enemy.is_retaliating():
+				return true
+	return false
 
 
 ## Complete the level and show the score screen.
@@ -616,6 +666,10 @@ func _complete_level_with_score() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):
 		var score_data: Dictionary = score_manager.complete_level()
+		# Notify loudspeaker progression (Issue #959)
+		var aim: Node = get_node_or_null("/root/ActiveItemManager")
+		if aim and aim.has_method("notify_level_completed"):
+			aim.notify_level_completed(score_data.get("kills", 0) > 0)
 		_show_score_screen(score_data)
 	else:
 		_show_victory_message()
@@ -665,7 +719,9 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 
 ## Called when player runs out of ammo in current magazine.
 func _on_player_ammo_depleted() -> void:
-	_broadcast_player_ammo_empty(true)
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
@@ -719,6 +775,9 @@ func _on_player_died() -> void:
 	_show_death_message()
 	if GameManager:
 		await get_tree().create_timer(0.5).timeout
+		# Issue #1334: After await, verify this node is still valid (scene may have reloaded)
+		if not is_instance_valid(self):
+			return
 		GameManager.on_player_death()
 
 
@@ -974,7 +1033,7 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	buttons_container.add_theme_constant_override("separation", 10)
 	container.add_child(buttons_container)
 
-	# Next Level button (Issue #568) - Castle is the last level, so no next level
+	# Next Level button (Issue #568) - Castle leads to Double Corridor next
 	var next_level_path: String = _get_next_level_path()
 	if next_level_path != "":
 		var next_button := Button.new()
@@ -1079,13 +1138,37 @@ func _on_armory_button_pressed() -> void:
 	if armory_menu_scene:
 		var armory_menu = armory_menu_scene.instantiate()
 		armory_menu.layer = 100
+		# Issue #1006: Mark as opened from score screen to prevent level restart on Apply
+		armory_menu.opened_from_score_screen = true
 		get_tree().root.add_child(armory_menu)
-		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+		armory_menu.back_pressed.connect(func():
+			armory_menu.queue_free()
+			# Issue #1050: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
+		armory_menu.apply_pressed_from_score_screen.connect(func():
+			# Issue #1050: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
 	else:
 		_log_to_file("ERROR: Could not load armory menu scene")
 
 
-## Get the next level path based on the level ordering from LevelsMenu (Issue #568).
+## Issue #1050: Remove gold highlight from the ArmoryButton when no items remain to unlock.
+## The button stays visible but loses its gold styling and reverts to plain "Armory" text.
+func _remove_armory_button_gold_style() -> void:
+	var armory_btn := get_tree().current_scene.find_child("ArmoryButton", true, false)
+	if armory_btn:
+		armory_btn.text = "Armory"
+		armory_btn.remove_theme_color_override("font_color")
+		armory_btn.remove_theme_stylebox_override("normal")
+
+
+## Get the next level path based on the level ordering from LevelsMenu (Issue #568, Issue #762).
 ## Returns empty string if this is the last level or level not found.
 func _get_next_level_path() -> String:
 	var current_scene_path: String = ""
@@ -1099,6 +1182,13 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
+		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 	]
 
 	for i in range(level_paths.size()):

@@ -198,8 +198,17 @@ public partial class Bullet : Area2D
 
     /// <summary>
     /// Enable debug logging for penetration calculations.
+    /// Issue #969: Set to false by default — having this true in gameplay generates
+    /// hundreds of file I/O operations per second during shootouts, causing FPS drops.
     /// </summary>
-    private const bool DebugPenetration = true;
+    private const bool DebugPenetration = false;
+
+    /// <summary>
+    /// Enable debug logging for bullet hit events (OnAreaEntered / OnBodyEntered).
+    /// Issue #969: Set to false by default — unconditional GD.Print() on every hit
+    /// generates excessive console output during combat, contributing to FPS drops.
+    /// </summary>
+    private const bool DebugHits = false;
 
     /// <summary>
     /// Whether the bullet is currently penetrating through a wall.
@@ -248,6 +257,15 @@ public partial class Bullet : Area2D
     /// </summary>
     [Export]
     public bool IsBreakerBullet { get; set; } = false;
+
+    /// <summary>
+    /// Whether this bullet ignores walls (Issue #751).
+    /// When true, the bullet passes through walls with full damage and no ricochet.
+    /// Set via Node.Set("is_drilling_bullet", true) by BaseWeapon.SpawnBullet().
+    /// Exported to allow setting via snake_case name.
+    /// </summary>
+    [Export]
+    public bool IsDrillingBullet { get; set; } = false;
 
     /// <summary>
     /// Whether this bullet penetrates through enemies (Issue #829).
@@ -615,7 +633,7 @@ public partial class Bullet : Area2D
             {
                 if (_passedThroughEnemyBodies.Add(body))
                 {
-                    GD.Print($"[Bullet]: Penetrating through enemy CharacterBody2D {body.Name}, bullet continues flying");
+                    if (DebugHits) GD.Print($"[Bullet]: Penetrating through enemy CharacterBody2D {body.Name}, bullet continues flying");
                 }
                 return; // Don't destroy the bullet - it passes through the enemy body
             }
@@ -632,6 +650,13 @@ public partial class Bullet : Area2D
         {
             LogPenetration("Inside existing penetration hole, passing through");
             return;
+        }
+
+        // Drilling bullets pass through walls completely (Issue #751)
+        // TileMapLayer is checked alongside TileMap for Godot 4.3+ compatibility
+        if (IsDrillingBullet && (body is StaticBody2D || body is TileMap || body is TileMapLayer))
+        {
+            return; // Wall ignored — bullet continues with full damage
         }
 
         // Try to ricochet or penetrate off static bodies (walls/obstacles)
@@ -767,7 +792,17 @@ public partial class Bullet : Area2D
     /// </summary>
     private void OnAreaEntered(Area2D area)
     {
-        GD.Print($"[Bullet]: Hit {area.Name} (damage: {Damage})");
+        if (DebugHits) GD.Print($"[Bullet]: Hit {area.Name} (damage: {Damage})");
+
+        // Issue #1242: While the bullet is penetrating through a wall, it must not
+        // damage enemies whose areas overlap the wall.  The shield (and any other
+        // entity) should block the wall-penetration effect — a bullet inside a wall
+        // cannot hit anyone until it exits (at which point ExitPenetration destroys it).
+        if (_isPenetrating)
+        {
+            if (DebugHits) GD.Print($"[Bullet]: Currently penetrating wall — ignoring area hit on {area.Name}");
+            return;
+        }
 
         // Issue #912: If this area belongs to the force field, let the force field
         // GDScript handle trapping the bullet. Do NOT destroy this bullet here —
@@ -775,7 +810,7 @@ public partial class Bullet : Area2D
         // and store a reference to this bullet for later release.
         if (IsForceFieldArea(area))
         {
-            GD.Print($"[Bullet]: Entering force field area — letting force field handle this bullet");
+            if (DebugHits) GD.Print($"[Bullet]: Entering force field area — letting force field handle this bullet");
             return;
         }
 
@@ -785,7 +820,7 @@ public partial class Bullet : Area2D
         var parent = area.GetParent();
         if (parent != null && ShooterId == parent.GetInstanceId() && !_hasRicocheted)
         {
-            GD.Print($"[Bullet]: Ignoring self-hit on {parent.Name} (not ricocheted)");
+            if (DebugHits) GD.Print($"[Bullet]: Ignoring self-hit on {parent.Name} (not ricocheted)");
             return; // Don't hit the shooter with direct shots
         }
 
@@ -800,7 +835,7 @@ public partial class Bullet : Area2D
                 bool ricochetsDamagePlayer = result.AsBool();
                 if (!ricochetsDamagePlayer)
                 {
-                    GD.Print($"[Bullet]: Power Fantasy mode - ricocheted bullet passing through player {parent.Name}");
+                    if (DebugHits) GD.Print($"[Bullet]: Power Fantasy mode - ricocheted bullet passing through player {parent.Name}");
                     return; // Pass through player without damage
                 }
             }
@@ -814,7 +849,7 @@ public partial class Bullet : Area2D
             var isAlive = parent.Call("is_alive").AsBool();
             if (!isAlive)
             {
-                GD.Print($"[Bullet]: Passing through dead entity {parent.Name}");
+                if (DebugHits) GD.Print($"[Bullet]: Passing through dead entity {parent.Name}");
                 return; // Pass through dead entities
             }
         }
@@ -831,11 +866,21 @@ public partial class Bullet : Area2D
 
         // Track if this is a valid hit on an enemy target
         bool hitEnemy = false;
+        bool fromPlayer = IsPlayerBullet(); // Issue #1196: track kill source for Laser Sight unlock
 
-        // Check if the target implements IDamageable
-        if (area is IDamageable damageable)
+        // Issue #1196: prefer on_hit_with_bullet_info_and_damage to pass is_from_player,
+        // so enemy.gd can attribute the kill to the player for the Laser Sight unlock condition.
+        if (area.HasMethod("on_hit_with_bullet_info_and_damage"))
         {
-            GD.Print($"[Bullet]: Target {area.Name} is IDamageable, applying {Damage} damage");
+            float effectiveDamage = GetEffectiveDamage();
+            if (DebugHits) GD.Print($"[Bullet]: Target {area.Name} has on_hit_with_bullet_info_and_damage, applying {effectiveDamage} damage (from_player={fromPlayer})");
+            area.Call("on_hit_with_bullet_info_and_damage", Direction, (Godot.Resource?)null, _hasRicocheted, _hasPenetrated, effectiveDamage, fromPlayer);
+            hitEnemy = true;
+        }
+        // Check if the target implements IDamageable (C# targets)
+        else if (area is IDamageable damageable)
+        {
+            if (DebugHits) GD.Print($"[Bullet]: Target {area.Name} is IDamageable, applying {Damage} damage");
             damageable.TakeDamage(Damage);
             hitEnemy = true;
         }
@@ -844,21 +889,21 @@ public partial class Bullet : Area2D
         else if (parent != null && parent.HasMethod("take_damage"))
         {
             float effectiveDamage = GetEffectiveDamage();
-            GD.Print($"[Bullet]: Target {parent.Name} has take_damage method, applying {effectiveDamage} damage");
+            if (DebugHits) GD.Print($"[Bullet]: Target {parent.Name} has take_damage method, applying {effectiveDamage} damage");
             parent.Call("take_damage", effectiveDamage);
             hitEnemy = true;
         }
         // Fallback: Check for on_hit method (legacy compatibility with GDScript targets)
         else if (area.HasMethod("on_hit"))
         {
-            GD.Print($"[Bullet]: Target {area.Name} has on_hit method, calling it (damage={Damage} NOT applied - legacy path)");
+            if (DebugHits) GD.Print($"[Bullet]: Target {area.Name} has on_hit method, calling it (damage={Damage} NOT applied - legacy path)");
             area.Call("on_hit");
             hitEnemy = true;
         }
         // Also check for OnHit method (C# convention)
         else if (area.HasMethod("OnHit"))
         {
-            GD.Print($"[Bullet]: Target {area.Name} has OnHit method, calling it");
+            if (DebugHits) GD.Print($"[Bullet]: Target {area.Name} has OnHit method, calling it");
             area.Call("OnHit");
             hitEnemy = true;
         }
@@ -881,7 +926,7 @@ public partial class Bullet : Area2D
         // This is used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
         if (hitEnemy && PenetratesEnemies)
         {
-            GD.Print($"[Bullet]: Penetrating through enemy, bullet continues flying");
+            if (DebugHits) GD.Print($"[Bullet]: Penetrating through enemy, bullet continues flying");
             // Track the enemy so we don't re-apply damage on subsequent area_entered calls
             if (parent is Node2D parentNode2DTrack)
             {
@@ -943,7 +988,7 @@ public partial class Bullet : Area2D
         var hitEffectsManager = GetNodeOrNull("/root/HitEffectsManager");
         if (hitEffectsManager != null && hitEffectsManager.HasMethod("on_player_hit_enemy"))
         {
-            GD.Print("[Bullet]: Triggering player hit effects");
+            if (DebugHits) GD.Print("[Bullet]: Triggering player hit effects");
             hitEffectsManager.Call("on_player_hit_enemy");
         }
     }
@@ -963,7 +1008,7 @@ public partial class Bullet : Area2D
         // Check if enemy is a Node2D (required by StatusEffectsManager)
         if (enemy is not Node2D enemyNode2D)
         {
-            GD.Print($"[Bullet]: Cannot apply stun - {enemy.Name} is not a Node2D");
+            if (DebugHits) GD.Print($"[Bullet]: Cannot apply stun - {enemy.Name} is not a Node2D");
             return;
         }
 
@@ -971,7 +1016,7 @@ public partial class Bullet : Area2D
         var statusEffectsManager = GetNodeOrNull("/root/StatusEffectsManager");
         if (statusEffectsManager != null && statusEffectsManager.HasMethod("apply_stun"))
         {
-            GD.Print($"[Bullet]: Applying stun effect to {enemy.Name} for {StunDuration}s");
+            if (DebugHits) GD.Print($"[Bullet]: Applying stun effect to {enemy.Name} for {StunDuration}s");
             statusEffectsManager.Call("apply_stun", enemyNode2D, StunDuration);
         }
         else
@@ -979,7 +1024,7 @@ public partial class Bullet : Area2D
             // Fallback: try to call set_stunned directly on the enemy
             if (enemy.HasMethod("set_stunned"))
             {
-                GD.Print($"[Bullet]: Applying stun directly to {enemy.Name} for {StunDuration}s");
+                if (DebugHits) GD.Print($"[Bullet]: Applying stun directly to {enemy.Name} for {StunDuration}s");
                 enemy.Call("set_stunned", true);
                 // Note: Without StatusEffectsManager, the stun won't auto-expire
                 // This is a fallback for compatibility

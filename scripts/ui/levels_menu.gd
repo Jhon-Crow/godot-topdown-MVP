@@ -51,6 +51,16 @@ const LEVELS: Array[Dictionary] = [
 		"map_size": "6000x2560"
 	},
 	{
+		"name": "Double Corridor",
+		"name_ru": "Двойной Коридор",
+		"path": "res://scenes/levels/RevolverLevel.tscn",
+		"description": "H-shaped map with two parallel corridors: penetration zones for multi-enemy kills and cover for reloading.",
+		"preview_color": Color(0.2, 0.15, 0.25, 1.0),
+		"preview_accent": Color(0.4, 0.3, 0.5, 1.0),
+		"enemy_count": 12,
+		"map_size": "2000x1600"
+	},
+	{
 		"name": "City",
 		"name_ru": "Город",
 		"path": "res://scenes/levels/CityLevel.tscn",
@@ -81,14 +91,46 @@ const LEVELS: Array[Dictionary] = [
 		"map_size": "5000x4000"
 	},
 	{
-		"name": "Double Corridor",
-		"name_ru": "Двойной Коридор",
-		"path": "res://scenes/levels/RevolverLevel.tscn",
-		"description": "H-shaped map with two parallel corridors: penetration zones for multi-enemy kills and cover for reloading.",
-		"preview_color": Color(0.2, 0.15, 0.25, 1.0),
-		"preview_accent": Color(0.4, 0.3, 0.5, 1.0),
+		"name": "Factory",
+		"name_ru": "Завод",
+		"path": "res://scenes/levels/FactoryLevel.tscn",
+		"description": "Industrial factory building with interconnected rooms and corridors. 13 heavily armored enemies, max 2 per room.",
+		"preview_color": Color(0.2, 0.18, 0.14, 1.0),
+		"preview_accent": Color(0.45, 0.38, 0.28, 1.0),
+		"enemy_count": 13,
+		"map_size": "2400x2000"
+	},
+	{
+		"name": "Decadence",
+		"name_ru": "Декаданс",
+		"path": "res://scenes/levels/DecadenceLevel.tscn",
+		"description": "Hotline Miami: Chapter Three. Neon nightclub with dance floor, bar, VIP rooms, and back alley. Synthwave aesthetic.",
+		"preview_color": Color(0.1, 0.03, 0.18, 1.0),
+		"preview_accent": Color(1.0, 0.2, 0.8, 1.0),
 		"enemy_count": 12,
-		"map_size": "2000x1600"
+		"map_size": "2400x2000"
+	},
+	{
+		"name": "Labyrinth Complex",
+		"name_ru": "Лабиринт Комплекс",
+		"path": "res://scenes/levels/Labyrinth2Level.tscn",
+		"description": "Larger labyrinth with 3 rows of rooms, winding corridors, and 15 enemies including a grenadier, armored M16 enemy, and a machine gunner.",
+		"preview_color": Color(0.12, 0.14, 0.2, 1.0),
+		"preview_accent": Color(0.25, 0.3, 0.45, 1.0),
+		"enemy_count": 15,
+		"map_size": "3200x2400"
+	},
+	{
+		"name": "Arena",
+		"name_ru": "Арена",
+		"path": "res://scenes/levels/ArenaLevel.tscn",
+		"description": "Endless wave survival arena. Fight off waves of enemies. Health, ammo, and weapon pickups spawn between waves.",
+		"preview_color": Color(0.35, 0.1, 0.1, 1.0),
+		"preview_accent": Color(0.8, 0.3, 0.2, 1.0),
+		"enemy_count": 0,
+		"endless": true,
+		"always_unlocked": true,
+		"map_size": "1920x1080"
 	}
 ]
 
@@ -114,12 +156,20 @@ var _level_cards: Dictionary = {}
 
 ## Check whether a level at the given index in LEVELS is unlocked.
 ## The first level (Labyrinth) is always unlocked.
+## The Roguelike level is always unlocked (procedurally generated, no prerequisites).
 ## All other levels require the immediately preceding level to be completed on any difficulty.
+## If the "all maps unlocked" experimental setting is enabled (Issue #1075), all levels are accessible.
 ## @param level_index: Index into the LEVELS array.
 ## @param progress_manager: The ProgressManager autoload node (may be null).
 ## @return: True if the level is available to play.
 func is_level_unlocked(level_index: int, progress_manager: Node) -> bool:
 	if level_index <= 0:
+		return true
+	# Levels marked always_unlocked are available regardless of progression.
+	if LEVELS[level_index].get("always_unlocked", false):
+		return true
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.is_all_maps_unlocked():
 		return true
 	var previous_path: String = LEVELS[level_index - 1]["path"]
 	if progress_manager and progress_manager.has_method("is_level_completed_any_difficulty"):
@@ -194,12 +244,16 @@ func _build_ui() -> void:
 	main_vbox.add_theme_constant_override("separation", 8)
 	margin.add_child(main_vbox)
 
-	# Title
+	# Title with neon styling
 	var title := Label.new()
 	title.text = "SELECT LEVEL"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 22)
-	title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
+	var neon_label_settings = load("res://resources/themes/neon_label_settings.tres")
+	if neon_label_settings:
+		title.label_settings = neon_label_settings
+	else:
+		title.add_theme_font_size_override("font_size", 22)
+		title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
 	main_vbox.add_child(title)
 
 	# Separator
@@ -352,7 +406,13 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 
 		var enemy_label := Label.new()
 		var enemy_count: int = level_data.get("enemy_count", 0)
-		enemy_label.text = "%d enemies" % enemy_count if enemy_count > 0 else "Training"
+		var is_endless: bool = level_data.get("endless", false)
+		if is_endless:
+			enemy_label.text = "∞ волн"
+		elif enemy_count > 0:
+			enemy_label.text = "%d enemies" % enemy_count
+		else:
+			enemy_label.text = "Training"
 		enemy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		enemy_label.add_theme_font_size_override("font_size", 13)
 		enemy_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.8, 0.9))
@@ -496,23 +556,39 @@ func _on_card_gui_input(event: InputEvent, level_path: String) -> void:
 
 ## Load the selected level.
 func _on_level_selected(level_path: String) -> void:
-	# Unpause the game before changing scene
-	get_tree().paused = false
-
 	# Restore hidden cursor for gameplay (confined and hidden)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+
+	# Issue #1324: Reset roguelike session if the player navigates away via the Levels menu
+	# while a run is active (e.g. ESC → Levels → pick a level). Without this reset,
+	# roguelike_active stays true in the new scene and the armory button remains disabled.
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager and game_manager.get("roguelike_active") == true:
+		if game_manager.has_method("roguelike_reset_session"):
+			game_manager.roguelike_reset_session()
 
 	# Save the selected level for next session (Issue #896)
 	var persist_manager: Node = get_node_or_null("/root/PersistManager")
 	if persist_manager and persist_manager.has_method("save_last_level"):
 		persist_manager.save_last_level(level_path)
 
-	# Change to the selected level
-	var error := get_tree().change_scene_to_file(level_path)
-	if error != OK:
-		get_tree().paused = true
-		# Show cursor again for menu interaction if error
-		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+	# Issue #997: Use SceneLoader for background loading with loading screen
+	var scene_loader: Node = get_node_or_null("/root/SceneLoader")
+	if scene_loader and scene_loader.has_method("load_level"):
+		scene_loader.load_level(level_path)
+	else:
+		# Fallback to direct loading if SceneLoader not available
+		get_tree().paused = false
+		var error := get_tree().change_scene_to_file(level_path)
+		if error != OK:
+			get_tree().paused = true
+			Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("pause"):
+		_on_back_pressed()
+		get_viewport().set_input_as_handled()
 
 
 func _on_back_pressed() -> void:

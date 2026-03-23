@@ -12,7 +12,8 @@ class_name ActiveItemProgressBar
 ## Display mode for the progress bar.
 enum DisplayMode {
 	SEGMENTED,  # Discrete charge segments (for charge-limited items)
-	CONTINUOUS  # Smooth progress bar (for time-limited items)
+	CONTINUOUS, # Smooth progress bar (for time-limited items)
+	COMBINED    # Both charge segments AND timer bar (for items with charges + duration, Issue #974)
 }
 
 ## Current display mode.
@@ -26,6 +27,18 @@ var max_value: float = 1.0
 
 ## Whether the progress bar is currently visible.
 var is_visible: bool = false
+
+## For COMBINED mode: current timer value (time remaining).
+var timer_value: float = 0.0
+
+## For COMBINED mode: maximum timer value (max duration).
+var timer_max: float = 1.0
+
+## For COMBINED mode: current charge count (integer).
+var charge_value: int = 0
+
+## For COMBINED mode: maximum charge count (integer).
+var charge_max: int = 1
 
 ## Width of the progress bar in pixels.
 const BAR_WIDTH: float = 40.0
@@ -60,6 +73,23 @@ const COLOR_FILL_LOW: Color = Color(0.9, 0.2, 0.2, 0.85)
 ## Fill color for empty segments in segmented mode.
 const COLOR_SEGMENT_EMPTY: Color = Color(0.2, 0.2, 0.2, 0.4)
 
+## Height of the timer bar in COMBINED mode (below charge pips).
+const TIMER_BAR_HEIGHT: float = 3.0
+
+## Gap between charge pips and timer bar in COMBINED mode.
+const COMBINED_GAP: float = 2.0
+
+## Height of charge pips in COMBINED mode (smaller than regular segments).
+const PIP_HEIGHT: float = 4.0
+
+## Timer bar fill color (bright cyan for visibility).
+const COLOR_TIMER_FILL: Color = Color(0.0, 0.9, 0.7, 0.9)
+
+## Optional override fill color. When not Color(0,0,0,0) (transparent), always use this color
+## instead of the dynamic high/medium/low colors. Set by callers that want a fixed color
+## (e.g. enemy force field recharge bar uses force-field blue — Issue #1034).
+var fill_color_override: Color = Color(0.0, 0.0, 0.0, 0.0)
+
 
 ## Show the progress bar with the given parameters.
 ## @param mode: DisplayMode.SEGMENTED or DisplayMode.CONTINUOUS
@@ -71,6 +101,37 @@ func show_bar(mode: int, current: float, maximum: float) -> void:
 	max_value = maxf(maximum, 0.001)  # Prevent division by zero
 	is_visible = true
 	queue_redraw()
+
+
+## Show combined charge + timer bar (Issue #974).
+## @param charges_current: Current number of charges.
+## @param charges_maximum: Maximum number of charges.
+## @param time_remaining: Remaining time for current activation.
+## @param time_maximum: Maximum duration per activation.
+func show_combined_bar(charges_current: int, charges_maximum: int, time_remaining: float, time_maximum: float) -> void:
+	display_mode = DisplayMode.COMBINED
+	charge_value = charges_current
+	charge_max = maxi(charges_maximum, 1)
+	timer_value = time_remaining
+	timer_max = maxf(time_maximum, 0.001)
+	is_visible = true
+	queue_redraw()
+
+
+## Update the timer value in COMBINED mode without changing charges.
+## @param time_remaining: New time remaining value.
+func update_timer(time_remaining: float) -> void:
+	timer_value = time_remaining
+	if is_visible:
+		queue_redraw()
+
+
+## Update charges in COMBINED mode.
+## @param charges_current: New charge count.
+func update_charges(charges_current: int) -> void:
+	charge_value = charges_current
+	if is_visible:
+		queue_redraw()
 
 
 ## Hide the progress bar.
@@ -87,8 +148,11 @@ func update_value(current: float) -> void:
 		queue_redraw()
 
 
-## Get the fill color based on the current percentage.
+## Get the fill color based on the current percentage (or the override color if set).
 func _get_fill_color() -> Color:
+	# If an override color is set (non-transparent), always use it (Issue #1034).
+	if fill_color_override.a > 0.0:
+		return fill_color_override
 	if max_value <= 0.0:
 		return COLOR_FILL_LOW
 	var percent: float = current_value / max_value
@@ -106,8 +170,10 @@ func _draw() -> void:
 
 	if display_mode == DisplayMode.SEGMENTED:
 		_draw_segmented_bar()
-	else:
+	elif display_mode == DisplayMode.CONTINUOUS:
 		_draw_continuous_bar()
+	else:
+		_draw_combined_bar()
 
 
 ## Draw a segmented progress bar (discrete charges).
@@ -161,3 +227,79 @@ func _draw_continuous_bar() -> void:
 
 	# Draw border
 	draw_rect(bar_rect, COLOR_BORDER, false, BORDER_WIDTH)
+
+
+## Draw combined charge pips + timer bar (Issue #974).
+## Layout: charge pips on top, timer bar below.
+## This is for items that have both limited charges AND a duration per use
+## (e.g., Homing Bullets: 2 charges, 1.2s each; Trajectory Glasses: 2 charges, 10s each).
+func _draw_combined_bar() -> void:
+	if charge_max <= 0:
+		return
+
+	# Calculate vertical positions
+	var pip_y: float = BAR_Y_OFFSET
+	var timer_y: float = BAR_Y_OFFSET + PIP_HEIGHT + COMBINED_GAP
+
+	# Draw charge pips (small segments showing remaining charges)
+	var total_gaps: float = SEGMENT_GAP * float(charge_max - 1) if charge_max > 1 else 0.0
+	var pip_width: float = (BAR_WIDTH - total_gaps) / float(charge_max)
+	if pip_width < 2.0:
+		pip_width = 2.0
+
+	var start_x: float = -BAR_WIDTH / 2.0
+
+	# Get fill color based on charge percentage
+	var charge_percent: float = float(charge_value) / float(charge_max)
+	var pip_fill_color: Color
+	if charge_percent > 0.5:
+		pip_fill_color = COLOR_FILL_HIGH
+	elif charge_percent > 0.25:
+		pip_fill_color = COLOR_FILL_MEDIUM
+	else:
+		pip_fill_color = COLOR_FILL_LOW
+
+	for i in range(charge_max):
+		var seg_x: float = start_x + float(i) * (pip_width + SEGMENT_GAP)
+		var pip_rect := Rect2(seg_x, pip_y, pip_width, PIP_HEIGHT)
+
+		# Draw pip background
+		draw_rect(pip_rect, COLOR_BACKGROUND)
+
+		# Draw pip fill or empty
+		if i < charge_value:
+			draw_rect(pip_rect, pip_fill_color)
+		else:
+			draw_rect(pip_rect, COLOR_SEGMENT_EMPTY)
+
+		# Draw pip border
+		draw_rect(pip_rect, COLOR_BORDER, false, BORDER_WIDTH)
+
+	# Draw timer bar below the pips
+	var timer_rect := Rect2(-BAR_WIDTH / 2.0, timer_y, BAR_WIDTH, TIMER_BAR_HEIGHT)
+
+	# Draw timer background
+	draw_rect(timer_rect, COLOR_BACKGROUND)
+
+	# Draw timer fill
+	if timer_max > 0.0 and timer_value > 0.0:
+		var fill_ratio: float = clampf(timer_value / timer_max, 0.0, 1.0)
+		var fill_width: float = BAR_WIDTH * fill_ratio
+		var fill_rect := Rect2(-BAR_WIDTH / 2.0, timer_y, fill_width, TIMER_BAR_HEIGHT)
+		draw_rect(fill_rect, COLOR_TIMER_FILL)
+
+	# Draw timer border
+	draw_rect(timer_rect, COLOR_BORDER, false, BORDER_WIDTH)
+
+
+## Get the fill color for timer bar based on time remaining.
+func _get_timer_fill_color() -> Color:
+	if timer_max <= 0.0:
+		return COLOR_FILL_LOW
+	var percent: float = timer_value / timer_max
+	if percent > 0.5:
+		return COLOR_FILL_HIGH
+	elif percent > 0.25:
+		return COLOR_FILL_MEDIUM
+	else:
+		return COLOR_FILL_LOW

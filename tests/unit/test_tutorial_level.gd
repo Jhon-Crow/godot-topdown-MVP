@@ -35,6 +35,11 @@ extends GutTest
 ##            tutorial; magazine reload (R→F→R) via _on_player_reload_completed advances it.
 ## Fix 4th#4: Lab map grenade tutorial appears — use GetCurrentGrenades() not get("GrenadeCount").
 ## Fix 4th#5: AK GL hint uses GrenadeAvailable (bool) instead of GrenadeLauncherAmmo (missing).
+##
+## Issue #998:
+## Scope RMB hint shown from the very start when player has sniper rifle (not only after reload).
+## Scope hint dismissed as soon as player activates scope; if scope was used before completing
+## reload, SCOPE_TRAINING step is skipped automatically and tutorial advances to THROW_GRENADE.
 
 
 # ============================================================================
@@ -214,7 +219,18 @@ class MockTutorialLevel:
 			_active_hints[HINT_BOLT_CYCLE] = _build_shotgun_pump_hint_bbcode(state)
 
 	## Called when shotgun reload state changes (Fix 4th#2).
+	## Issue #983 Fix 1: state=0 (NotReloading) means reload completed — dismiss hint and advance.
 	func on_shotgun_reload_state_changed(state: int) -> void:
+		if state == 0:
+			# Reload fully complete — dismiss hint and advance tutorial
+			_dismiss_hint(HINT_BOLT_CYCLE)
+			if not _has_reloaded:
+				_has_reloaded = true
+				if _has_thrown_grenade:
+					advance_to_step(TutorialStep.COMPLETED)
+				else:
+					advance_to_step(TutorialStep.THROW_GRENADE)
+			return
 		if _active_hints.has(HINT_BOLT_CYCLE):
 			_active_hints[HINT_BOLT_CYCLE] = _build_shotgun_full_reload_hint_bbcode(state)
 
@@ -366,12 +382,14 @@ class MockTutorialLevel:
 			_dismiss_hint(HINT_FIRE_MODE)
 			advance_to_step(TutorialStep.RELOAD)
 
+	## Issue #998: Scope hint dismissed when player uses scope (from any step).
+	## If scope used during SCOPE_TRAINING, also advance to THROW_GRENADE.
 	func on_scope_state_changed(is_active: bool) -> void:
-		if _current_step != TutorialStep.SCOPE_TRAINING:
+		if not is_active or _scope_used:
 			return
-		if is_active and not _scope_used:
-			_scope_used = true
-			_dismiss_hint(HINT_SCOPE)
+		_scope_used = true
+		_dismiss_hint(HINT_SCOPE)
+		if _current_step == TutorialStep.SCOPE_TRAINING:
 			advance_to_step(TutorialStep.THROW_GRENADE)
 
 	func on_hammer_cocked() -> void:
@@ -386,6 +404,7 @@ class MockTutorialLevel:
 	## Fix 3rd#9: Grenade hint only shown if player has grenades.
 	## Fix 3rd#10: AK GL shows underbarrel grenade launcher hint after reload.
 	## Fix 4th#3: Sniper advances to SCOPE_TRAINING via on_reload_completed, not bolt-cycle.
+	## Issue #998: If scope was already used early, skip SCOPE_TRAINING and go to THROW_GRENADE.
 	func on_reload_completed() -> void:
 		if _current_step != TutorialStep.RELOAD:
 			return
@@ -395,10 +414,14 @@ class MockTutorialLevel:
 			# Fix 3rd#7: dismiss bolt-cycle hint for shotgun on reload
 			if _has_shotgun:
 				_dismiss_hint(HINT_BOLT_CYCLE)
-			# Fix 4th#3: Sniper advances to SCOPE_TRAINING after magazine reload
+			# Fix 4th#3: Sniper advances to SCOPE_TRAINING after magazine reload.
+			# Issue #998: If scope was already used early, skip SCOPE_TRAINING.
 			if _has_sniper_rifle:
-				advance_to_step(TutorialStep.SCOPE_TRAINING)
-				return
+				if _scope_used:
+					pass  # Fall through to grenade step below
+				else:
+					advance_to_step(TutorialStep.SCOPE_TRAINING)
+					return
 			# Fix 3rd#8: do NOT dismiss hammer-cock — stays until player manually cocks
 			# Fix 3rd#6: M16 (not AK GL) shows fire-mode switch hint after reload
 			if _has_assault_rifle and not _has_ak_gl:
@@ -434,6 +457,9 @@ class MockTutorialLevel:
 			# Bug fix #3: Revolver hammer-cock hint shown immediately from weapon pickup.
 			if _has_revolver:
 				_add_hint(HINT_HAMMER_COCK, "[color=#ff4444][ПКМ][/color] Взведи курок")
+			# Issue #998: Scope hint shown from the very start for sniper rifle.
+			if _has_sniper_rifle:
+				_add_hint(HINT_SCOPE, "[color=#ff4444][ПКМ][/color] Прицелься через оптику")
 
 
 var tutorial: MockTutorialLevel
@@ -893,21 +919,22 @@ func test_sniper_bolt_cycle_dismisses_bolt_hint_only() -> void:
 
 
 func test_sniper_scope_hint_shown_after_magazine_reload() -> void:
-	## Fix 4th#3: Scope hint shown after magazine reload (on_reload_completed), not bolt cycle.
+	## Fix 4th#3: Scope hint available from start and also remains during SCOPE_TRAINING step.
+	## Issue #998: Scope hint now shown from the very start (not just after reload).
 	tutorial._has_sniper_rifle = true
 	tutorial.set_initial_step_based_on_weapon(false)
 	tutorial.on_weapon_fired()
 	tutorial.on_weapon_fired()
 
-	# Bolt cycle alone does NOT show scope hint
+	# Issue #998: Scope hint already shown from start; bolt cycle does not affect it
 	tutorial.on_sniper_bolt_step_changed(4, 4)
-	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
-		"Scope hint NOT shown after bolt cycle — need magazine reload first (Fix 4th#3)")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
+		"Scope hint visible from start — shown even before magazine reload (Issue #998)")
 
-	# Magazine reload advances to SCOPE_TRAINING
+	# Magazine reload advances to SCOPE_TRAINING — scope hint persists
 	tutorial.on_reload_completed()
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
-		"Scope hint appears after magazine reload (Fix 4th#3)")
+		"Scope hint still present after magazine reload in SCOPE_TRAINING (Fix 4th#3 + Issue #998)")
 
 
 func test_sniper_scope_dismissed_grenade_shown_after_scope() -> void:
@@ -1361,8 +1388,13 @@ func test_complete_sniper_flow() -> void:
 	## Fix 3rd#3: bolt-cycle hint updates per step.
 	## Fix 3rd#5: grenade hint shown AFTER scope training, not during reload.
 	## Fix 4th#3: bolt cycle only dismisses bolt hint; magazine reload advances to SCOPE_TRAINING.
+	## Issue #998: Scope hint shown from the very start (alongside reload/bolt hints).
 	tutorial._has_sniper_rifle = true
 	tutorial.set_initial_step_based_on_weapon(false)
+
+	# Issue #998: Scope hint visible from the very start
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
+		"Scope hint shown from start for sniper (Issue #998)")
 
 	# Fire 1st shot to reveal bolt-cycle hint
 	tutorial.on_weapon_fired()
@@ -1377,6 +1409,9 @@ func test_complete_sniper_flow() -> void:
 		"Reload hint [R][F][R] shown after 2nd shot")
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
 		"Bolt-cycle hint still active")
+	# Issue #998: Scope hint still visible alongside reload hint
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
+		"Scope hint still visible during reload step (Issue #998)")
 	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
 		"Grenade hint NOT shown during reload step (Fix 3rd#5)")
 
@@ -1393,8 +1428,9 @@ func test_complete_sniper_flow() -> void:
 		"Bolt cycle hint dismissed after cycling (Fix 4th#3)")
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
 		"Reload hint [R][F][R] STILL shown — bolt cycle alone does not advance (Fix 4th#3)")
-	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
-		"Scope hint NOT shown yet — need magazine reload first (Fix 4th#3)")
+	# Issue #998: Scope hint still visible (not yet used by player)
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
+		"Scope hint still visible after bolt cycle — not yet used (Issue #998)")
 	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.RELOAD,
 		"Still in RELOAD step after bolt cycle (Fix 4th#3)")
 
@@ -1404,7 +1440,7 @@ func test_complete_sniper_flow() -> void:
 	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
 		"Reload hint dismissed after magazine reload")
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
-		"Scope hint shown after magazine reload (Fix 4th#3)")
+		"Scope hint still shown in SCOPE_TRAINING step (Fix 4th#3 + Issue #998)")
 	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
 		"Grenade hint NOT shown during scope training (Fix 3rd#5)")
 	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.SCOPE_TRAINING,
@@ -1724,3 +1760,184 @@ func test_grenade_hint_shown_when_has_grenades() -> void:
 
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
 		"Grenade hint shown when player has grenades (Fix 3rd#9)")
+
+
+# ============================================================================
+# Issue #983 Bug Fix Tests
+# ============================================================================
+
+
+func test_shotgun_hint_dismissed_via_reload_state_not_reload_completed() -> void:
+	## Issue #983 Fix 1: Shotgun hint is dismissed when ReloadStateChanged(0) fires,
+	## NOT via on_reload_completed (which is never emitted for shotgun).
+	tutorial._has_shotgun = true
+	tutorial._shotgun_capacity = 8
+	tutorial._shotgun_current_ammo = 0
+	tutorial._grenade_count = 0
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()   # 1st shot: reveals pump hint
+	tutorial.on_weapon_fired()   # 2nd shot: reveals full reload hint
+
+	# Simulate full reload sequence: open(1) → loading(2) → close(3) → done(0)
+	tutorial.on_shotgun_reload_state_changed(1)
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Hint still visible during reload (state=1)")
+	tutorial.on_shotgun_reload_state_changed(2)
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Hint still visible while loading shells (state=2)")
+	tutorial.on_shotgun_reload_state_changed(3)
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Hint still visible waiting to close bolt (state=3)")
+
+	# Reload complete: state=0 should dismiss hint
+	tutorial.on_shotgun_reload_state_changed(0)
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Issue #983 Fix 1: Shotgun bolt-cycle hint dismissed when ReloadStateChanged(0)")
+
+
+func test_shotgun_hint_not_reset_to_first_step_on_reload_complete() -> void:
+	## Issue #983 Fix 1: When reload completes (state=0), hint must NOT reset to
+	## show the first step [ПКМ↑ открыть] highlighted in red.
+	tutorial._has_shotgun = true
+	tutorial._shotgun_capacity = 8
+	tutorial._shotgun_current_ammo = 0
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	# Simulate full reload and completion
+	tutorial.on_shotgun_reload_state_changed(1)
+	tutorial.on_shotgun_reload_state_changed(2)
+	tutorial.on_shotgun_reload_state_changed(3)
+	tutorial.on_shotgun_reload_state_changed(0)
+
+	# Hint must be gone — not showing "ПКМ↑ открыть" highlighted red again
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Issue #983 Fix 1: Hint is gone after reload complete — not reset to first step")
+
+
+func test_shotgun_tutorial_advances_to_grenade_on_reload_complete() -> void:
+	## Issue #983 Fix 1: Tutorial advances to THROW_GRENADE after shotgun reload completes.
+	tutorial._has_shotgun = true
+	tutorial._shotgun_capacity = 8
+	tutorial._shotgun_current_ammo = 0
+	tutorial._grenade_count = 3
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_shotgun_reload_state_changed(0)  # Reload complete
+
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.THROW_GRENADE,
+		"Issue #983 Fix 1: Tutorial advances to THROW_GRENADE after shotgun reload completes")
+
+
+func test_shotgun_shells_to_load_uses_shells_in_tube() -> void:
+	## Issue #983 Fix 2: _get_shotgun_shells_to_load (via _build_shotgun_full_reload_hint_bbcode)
+	## uses ShellsInTube / TubeMagazineCapacity, not CurrentAmmo / MaxAmmo.
+	## In the mock, these are _shotgun_current_ammo and _shotgun_capacity.
+	tutorial._has_shotgun = true
+	tutorial._shotgun_capacity = 8
+	tutorial._shotgun_current_ammo = 6  # 6 shells loaded, 2 empty slots
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()  # Full reload hint appears
+
+	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_BOLT_CYCLE, "")
+	assert_true(hint_text.contains("x2"),
+		"Issue #983 Fix 2: Shotgun hint shows x2 when 6 shells already loaded (capacity 8)")
+	assert_false(hint_text.contains("x8"),
+		"Issue #983 Fix 2: Shotgun hint does NOT show x8 when only 2 shells needed")
+
+
+func test_shotgun_shells_to_load_zero_when_full() -> void:
+	## Issue #983 Fix 2: When tube is full, shells_to_load = 0.
+	tutorial._has_shotgun = true
+	tutorial._shotgun_capacity = 8
+	tutorial._shotgun_current_ammo = 8  # Fully loaded
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_BOLT_CYCLE, "")
+	assert_true(hint_text.contains("x0"),
+		"Issue #983 Fix 2: Shotgun hint shows x0 when tube is full")
+
+
+# ============================================================================
+# Issue #998: Scope RMB hint shown from the very start for sniper rifle
+# ============================================================================
+
+
+func test_sniper_scope_hint_shown_from_start() -> void:
+	## Issue #998: Scope hint appears immediately when sniper rifle is equipped.
+	tutorial._has_sniper_rifle = true
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
+		"Scope RMB hint must appear from the very start for sniper rifle (Issue #998)")
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.RELOAD,
+		"Tutorial starts at RELOAD step with scope hint visible (Issue #998)")
+
+
+func test_sniper_scope_hint_dismissed_when_scope_used_early() -> void:
+	## Issue #998: If player uses scope during RELOAD step, scope hint is dismissed immediately.
+	tutorial._has_sniper_rifle = true
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
+		"Scope hint visible from start (Issue #998)")
+
+	tutorial.on_scope_state_changed(true)
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
+		"Scope hint dismissed after scope used (Issue #998)")
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.RELOAD,
+		"Tutorial still in RELOAD step — scope used early, reload not done yet (Issue #998)")
+
+
+func test_sniper_scope_training_skipped_when_scope_used_before_reload() -> void:
+	## Issue #998: If scope was used before reload completes, SCOPE_TRAINING is skipped.
+	tutorial._has_sniper_rifle = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	# Use scope before completing reload
+	tutorial.on_scope_state_changed(true)
+	assert_true(tutorial._scope_used, "Scope marked as used (Issue #998)")
+
+	# Complete reload — should skip SCOPE_TRAINING and go directly to THROW_GRENADE
+	tutorial.on_reload_completed()
+
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.THROW_GRENADE,
+		"After early scope use + reload, jump to THROW_GRENADE (skip SCOPE_TRAINING, Issue #998)")
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
+		"Scope hint not shown again after early use (Issue #998)")
+
+
+func test_sniper_scope_hint_color_is_cyan() -> void:
+	## Issue #998: Scope hint uses cyan color (same as scope training in original flow).
+	tutorial._has_sniper_rifle = true
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	assert_eq(tutorial.get_hint_color(MockTutorialLevel.HINT_SCOPE),
+		MockTutorialLevel.HINT_COLOR_SCOPE,
+		"Scope hint should use cyan color (Issue #998)")
+
+
+func test_sniper_scope_training_still_works_normally_when_scope_not_used_early() -> void:
+	## Issue #998: If player does NOT use scope early, normal SCOPE_TRAINING flow still works.
+	tutorial._has_sniper_rifle = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	# Complete reload without using scope — should advance to SCOPE_TRAINING
+	tutorial.on_reload_completed()
+
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.SCOPE_TRAINING,
+		"Tutorial advances to SCOPE_TRAINING after reload if scope not used early (Issue #998)")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
+		"Scope hint remains active in SCOPE_TRAINING step (Issue #998)")

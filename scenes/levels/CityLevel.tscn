@@ -1,4 +1,4 @@
-[gd_scene load_steps=37 format=3 uid="uid://city_level_581"]
+[gd_scene load_steps=35 format=3 uid="uid://city_level_581"]
 
 [ext_resource type="Script" path="res://scripts/levels/city_level.gd" id="1_city"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -12,11 +12,6 @@ size = Vector2(6064, 32)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_v"]
 size = Vector2(32, 5064)
 
-[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_wall_h"]
-polygon = PackedVector2Array(-3032, -16, 3032, -16, 3032, 16, -3032, 16)
-
-[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_wall_v"]
-polygon = PackedVector2Array(-16, -2532, 16, -2532, 16, 2532, -16, 2532)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cover"]
 size = Vector2(80, 32)
@@ -126,6 +121,18 @@ offset_right = 6064.0
 offset_bottom = 5064.0
 color = Color(0.25, 0.22, 0.2, 1)
 
+[node name="SunLight" type="DirectionalLight2D" parent="Environment"]
+position = Vector2(-500, -500)
+rotation = -0.785398
+color = Color(1.0, 0.65, 0.2, 1)
+energy = 1.5
+shadow_enabled = true
+shadow_color = Color(0, 0, 0, 0.4)
+shadow_filter = 1
+shadow_filter_smooth = 2.0
+height = 0.4
+max_distance = 8192.0
+
 [node name="Walls" type="Node2D" parent="Environment"]
 
 [node name="WallTop" type="StaticBody2D" parent="Environment/Walls"]
@@ -143,9 +150,6 @@ color = Color(0.35, 0.28, 0.22, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTop"]
 shape = SubResource("RectangleShape2D_wall_h")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallTop"]
-occluder = SubResource("OccluderPolygon2D_wall_h")
-
 [node name="WallBottom" type="StaticBody2D" parent="Environment/Walls"]
 position = Vector2(3064, 5080)
 collision_layer = 4
@@ -160,9 +164,6 @@ color = Color(0.35, 0.28, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallBottom"]
 shape = SubResource("RectangleShape2D_wall_h")
-
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallBottom"]
-occluder = SubResource("OccluderPolygon2D_wall_h")
 
 [node name="WallLeft" type="StaticBody2D" parent="Environment/Walls"]
 position = Vector2(48, 2564)
@@ -179,9 +180,6 @@ color = Color(0.35, 0.28, 0.22, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLeft"]
 shape = SubResource("RectangleShape2D_wall_v")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallLeft"]
-occluder = SubResource("OccluderPolygon2D_wall_v")
-
 [node name="WallRight" type="StaticBody2D" parent="Environment/Walls"]
 position = Vector2(6080, 2564)
 collision_layer = 4
@@ -196,9 +194,6 @@ color = Color(0.35, 0.28, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRight"]
 shape = SubResource("RectangleShape2D_wall_v")
-
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallRight"]
-occluder = SubResource("OccluderPolygon2D_wall_v")
 
 [node name="Buildings" type="Node2D" parent="Environment"]
 
@@ -4221,6 +4216,14 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
+[node name="TeleporterEnemy" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(2400, 2800)
+behavior_mode = 1
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+is_teleporter = true
+
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
 navigation_polygon = SubResource("NavigationPolygon_city")
 
@@ -4276,3 +4279,103 @@ text = "AMMO: -/-"
 
 [node name="PauseMenu" parent="CanvasLayer" instance=ExtResource("3_pause_menu")]
 visible = false
+
+[node name="SearchPathWaypoints" type="Node2D" parent="."]
+editor_description = "Pre-planned search path waypoints for enemy SEARCHING state (Issue #1246). Enemies traverse these in order starting from the nearest point to their current position."
+groups = ["search_path_waypoints"]
+
+[node name="RowA_Street_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 800)
+
+[node name="BuildingA1_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(800, 800)
+
+[node name="BuildingA2_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1600, 800)
+
+[node name="BuildingA3_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2400, 800)
+
+[node name="BuildingA4_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3200, 800)
+
+[node name="BuildingA5_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4000, 800)
+
+[node name="BuildingA6_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4800, 800)
+
+[node name="RowA_Street_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(5700, 800)
+
+[node name="RowB_Street_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 1800)
+
+[node name="BuildingB1_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1200, 1800)
+
+[node name="BuildingB2_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2000, 1800)
+
+[node name="BuildingB3_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2800, 1800)
+
+[node name="BuildingB4_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3600, 1800)
+
+[node name="BuildingB5_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4400, 1800)
+
+[node name="RowB_Street_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(5700, 1800)
+
+[node name="CrossStreet_Top" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3000, 1300)
+
+[node name="RowC_Street_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 2800)
+
+[node name="BuildingC1_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1200, 2800)
+
+[node name="BuildingC2_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2400, 2800)
+
+[node name="BuildingC3_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3600, 2800)
+
+[node name="BuildingC4_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4800, 2800)
+
+[node name="RowC_Street_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(5700, 2800)
+
+[node name="CrossStreet_Mid" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3000, 2500)
+
+[node name="RowD_Street_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 3800)
+
+[node name="BuildingD1_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1400, 3800)
+
+[node name="BuildingD2_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2800, 3800)
+
+[node name="BuildingD3_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4200, 3800)
+
+[node name="RowD_Street_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(5700, 3800)
+
+[node name="RowE_Street_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 4700)
+
+[node name="BuildingE_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2000, 4700)
+
+[node name="RowE_Street_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(5700, 4700)
+
+[node name="Center_Hub" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3000, 2500)

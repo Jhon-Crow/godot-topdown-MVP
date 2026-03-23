@@ -78,6 +78,10 @@ func _on_explode() -> void:
 	# Spawn visual explosion effect
 	_spawn_explosion_effect()
 
+	# Issue #1005: Spawn scorch mark on floor
+	# F-1 (defensive): 2x frag size (~80px), prominent burnt mark (alpha 0.7)
+	_spawn_scorch_mark(80.0, 0.7, "defensive")
+
 
 ## Override explosion sound to play defensive grenade specific sound.
 func _play_explosion_sound() -> void:

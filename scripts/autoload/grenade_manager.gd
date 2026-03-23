@@ -19,12 +19,12 @@ var current_grenade_type: int = GrenadeType.FLASHBANG
 
 ## Unlocked grenades tracking.
 ## FLASHBANG is always unlocked (default grenade, explicitly stated in issue #894).
-## No grenade has an unlock condition defined — all are freely available from the start.
+## FRAG (Building D+) and DEFENSIVE (Beach S) have unlock conditions (Issue #1000).
 ## Issue #894: "all unspecified items can be opened from the start"
 var unlocked_grenades: Dictionary = {
 	GrenadeType.FLASHBANG: true,
-	GrenadeType.FRAG: true,          # No unlock condition — freely available from start
-	GrenadeType.DEFENSIVE: true,     # No unlock condition — freely available from start
+	GrenadeType.FRAG: false,         # Condition: Building D+ (Issue #1000 req.1)
+	GrenadeType.DEFENSIVE: false,    # Condition: Beach S (Issue #1000 req.6)
 	GrenadeType.AGGRESSION_GAS: true # No unlock condition — freely available from start
 }
 
