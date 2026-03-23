@@ -106,20 +106,20 @@ func test_sniper_laser_uses_wall_and_character_collision_raycast() -> void:
 		"Laser raycast must exclude the enemy's own collider [#1336]")
 
 
-func test_sniper_laser_uses_same_direction_as_bullets() -> void:
-	# Laser must use _get_weapon_forward_direction() and _get_bullet_spawn_position()
-	# — the same functions that _execute_shoot() uses for bullet direction and spawn.
-	# This ensures the laser accurately represents where the sniper will actually shoot. [#1336]
+func test_sniper_laser_uses_visual_barrel_direction() -> void:
+	# Laser and hitscan must both use get_visual_barrel_direction() so they always match.
+	# This uses the actual weapon sprite transform instead of the instant player direction,
+	# ensuring the laser visually aligns with the barrel and tracer. [#1336]
 	var src := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
 	assert_not_null(src, "enemy_sniper_component.gd must be readable")
 	if src == null:
 		return
 	var text := src.get_as_text()
 	src.close()
-	assert_true(text.contains("enemy._get_weapon_forward_direction()"),
-		"Laser must use _get_weapon_forward_direction() to match bullet direction [#1336]")
-	assert_true(text.contains("enemy._get_bullet_spawn_position("),
-		"Laser must use _get_bullet_spawn_position() to match bullet spawn point [#1336]")
+	assert_true(text.contains("func get_visual_barrel_direction()"),
+		"Must define get_visual_barrel_direction() for consistent laser/bullet direction [#1336]")
+	assert_true(text.contains("_weapon_sprite.global_transform.x.normalized()"),
+		"Visual barrel direction must use _weapon_sprite.global_transform.x [#1336]")
 
 
 func test_sniper_laser_width_matches_m16() -> void:
@@ -137,6 +137,21 @@ func test_sniper_laser_width_matches_m16() -> void:
 # ============================================================================
 # enemy.gd integration tests
 # ============================================================================
+
+
+func test_enemy_execute_shoot_uses_barrel_direction_for_sniper() -> void:
+	# _execute_shoot must use get_visual_barrel_direction() for sniper hitscan
+	# so the tracer matches the laser sight. [#1336]
+	var src := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	assert_not_null(src, "enemy.gd must be readable")
+	if src == null:
+		return
+	var text := src.get_as_text()
+	src.close()
+	assert_true(text.contains("_sniper_component.get_visual_barrel_direction()"),
+		"enemy.gd must use get_visual_barrel_direction() for sniper shots [#1336]")
+	assert_true(text.contains("_sniper_component._get_barrel_spawn_position("),
+		"enemy.gd must use _get_barrel_spawn_position() for sniper spawn point [#1336]")
 
 
 func test_enemy_calls_update_laser_in_physics_process() -> void:

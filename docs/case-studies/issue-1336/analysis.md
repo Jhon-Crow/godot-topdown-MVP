@@ -7,92 +7,111 @@ The sniper enemy's laser sight did not align with where the bullets/tracers actu
 User feedback (translated from Russian):
 1. "прицел всё ещё указывает не туда, куда летит трассер" — The laser sight still points in a different direction than the tracer flies.
 2. "лазер проходит сквозь игрока" — The laser passes through the player.
+3. "возможно не учитывается отклонение при стрельбе в слепую, лазер должен быть направлен туда, куда полетит трассер (строго)" — Blind fire deviation is not accounted for; the laser must strictly match the tracer.
 
 ## Timeline of Events
 
 | Date | Event |
 |------|-------|
-| 2026-03-22 | Initial implementation: red laser sight added to sniper enemy (commit 91ba5fdd) |
+| 2026-03-22 | Initial implementation: red laser sight added to sniper enemy |
 | 2026-03-22 | PR #1341 opened, marked ready to merge |
 | 2026-03-23 | Owner feedback: laser doesn't reach player on Docks map |
-| 2026-03-23 | Fix: doubled laser length from 5000px to 10000px (commit f62ffe1d) |
+| 2026-03-23 | Fix: doubled laser length from 5000px to 10000px |
 | 2026-03-23 | Owner feedback: laser doesn't point where tracer goes, passes through player |
-| 2026-03-23 | Fix: changed raycast mask from 4 to 5 (walls+characters), excluded enemy collider (commit b943d0f0) |
+| 2026-03-23 | Fix: changed raycast mask from 4 to 5 (walls+characters), excluded enemy collider |
 | 2026-03-23 | Owner feedback: laser STILL doesn't match tracer direction |
-| 2026-03-23 | Failed fix: switched laser to visual barrel direction (commit 79f1d51b) |
-| 2026-03-23 | Owner feedback: "снайпер стреляет не туда, где прицел" — bullets still go elsewhere |
-| 2026-03-23 | Correct fix: laser uses _get_weapon_forward_direction() + _get_bullet_spawn_position() to match bullet trajectory |
+| 2026-03-23 | Failed fix attempt 1: switched laser to visual barrel direction — bullets still went elsewhere |
+| 2026-03-23 | Failed fix attempt 2: switched laser back to `_get_weapon_forward_direction()` — still mismatch |
+| 2026-03-23 | Owner: "blind fire deviation not accounted for, laser must strictly match tracer" |
+| 2026-03-23 | **Correct fix: unified laser, hitscan, and blind-fire to all use visual barrel direction** |
 
 ## Data Sources
 
-- `game_log_20260323_102814.txt` — Game log from user testing session (barrel-direction fix)
-- `game_log_20260323_104706.txt` — Game log confirming barrel-direction fix was still wrong
+- `logs/game_log_20260323_102814.txt` — Game log from user testing (barrel-direction fix)
+- `logs/game_log_20260323_104706.txt` — Game log confirming barrel-direction fix was still wrong
+- `logs/game_log_20260323_110139.txt` — Game log with blind fire deviation analysis
 - Source code analysis of `enemy.gd` and `enemy_sniper_component.gd`
 - Player M16 laser implementation in `AssaultRifle.cs` for comparison
 
 ## Root Cause Analysis
 
-### The Direction Calculation Bug
+### The Dual Direction System
 
-The laser sight used `enemy._get_weapon_forward_direction()` to determine where to point. This function has **two different code paths** depending on `_can_see_player`:
+The enemy AI has **two separate direction systems** that diverge:
+
+1. **Visual barrel direction** (`_weapon_sprite.global_transform.x.normalized()`): The direction the weapon model visually points. Rotates smoothly via `lerp_angle()` with `MODEL_ROTATION_SPEED * delta`, creating natural-looking rotation lag.
+
+2. **Instant aim direction** (`_get_weapon_forward_direction()`): When `_can_see_player` is true, returns `(player.pos - enemy.pos).normalized()` — a direct geometric direction that ignores model rotation. When `_can_see_player` is false, falls back to the visual barrel direction.
 
 ```gdscript
 func _get_weapon_forward_direction() -> Vector2:
-    # Path A: When player IS visible
+    # Path A: When player IS visible — instant, perfect aim
     if _player and is_instance_valid(_player) and _can_see_player:
         return (_player.global_position - global_position).normalized()
-    # Path B: When player is NOT visible
+    # Path B: When player is NOT visible — visual barrel
     if _weapon_sprite:
         return _weapon_sprite.global_transform.x.normalized()
 ```
 
-**Path A** returns a geometric direction from the enemy's body center to the player's position. This is an **instantaneous, perfect aim direction** that ignores where the visual weapon barrel is actually pointing.
+### Why Previous Fixes Failed
 
-**Path B** returns the weapon sprite's transform-based direction, which follows the enemy model's smooth rotation via `_update_enemy_model_rotation()`.
+**Attempt: Laser uses `_get_weapon_forward_direction()` (same as bullets)**
+- When player visible: both laser and bullet use instant direction → both skip ahead of barrel
+- Result: laser and tracer match each other, but BOTH diverge from the visual barrel
+- User sees: barrel points left, laser goes straight, tracer goes straight → visually broken
 
-### Why This Causes a Mismatch
+**Attempt: Laser uses visual barrel direction**
+- Laser follows the barrel (visually correct)
+- But hitscan still uses `_get_weapon_forward_direction()` → instant aim direction
+- Result: laser follows barrel, tracer goes somewhere else
+- User sees: laser matches barrel, but tracer doesn't match laser → still broken
 
-The enemy model rotates smoothly toward the player using `MODEL_ROTATION_SPEED * delta` interpolation (see `_update_enemy_model_rotation()`, line 930 of `enemy.gd`). At any given frame, the model's visual facing angle may differ from the true angle to the player because:
+**Attempt: Back to `_get_weapon_forward_direction()` for laser**
+- Same as first attempt — laser matches tracer but both diverge from barrel
+- For blind fire: `fire_at_predicted_position()` adds ±3° random spread to bullets
+- Laser doesn't account for this spread
+- Result: even more mismatch during blind fire
 
-1. **Smooth rotation lag**: The model hasn't finished turning yet
-2. **Corner peeking**: The model rotates through a corner-check angle
-3. **Blind-fire**: During blind-fire, `fire_at_predicted_position()` snaps the model to a predicted position (line 155-156), which is different from both the player's actual position and Path A's computation
+### The Core Problem
 
-The **tracer** (spawned by `shoot_sniper_hitscan()`) uses the same `_get_weapon_forward_direction()`, so in theory it matches the laser. However, the **visual appearance** differs because:
+The **visual model** and the **shooting system** operate on different direction systems. The model rotates smoothly (cosmetic), while bullets use instant geometric aim (gameplay). The `AIM_TOLERANCE_DOT = cos(30°)` check allows the enemy to fire when the barrel is up to 30° away from the target, making the divergence large and clearly visible.
 
-- The tracer is a brief flash (2 second fade) starting from the muzzle, making small angular differences hard to notice
-- The laser is persistent and visible every frame, making the divergence from the **visual barrel direction** obvious to the player
-
-### Why the Laser Appeared to Pass Through the Player
-
-The laser's start position was computed from `_get_bullet_spawn_position(direction)` which, when `_can_see_player` is true, uses the direction-to-player to offset from the weapon sprite position:
-
-```gdscript
-weapon_forward = (_player.global_position - global_position).normalized()
-result = _weapon_sprite.global_position + weapon_forward * scaled_muzzle_offset
-```
-
-If the model faces angle A (e.g., 150 degrees) but the player is at angle B (e.g., 145 degrees), the start position is offset from the weapon sprite in the wrong direction. Combined with the direction pointing at the player from the body center (not the muzzle), the laser line could visually appear to pass through the player's sprite rather than stopping at their collision shape.
+Additionally, blind fire applied ±3° random spread on top of a snap rotation to the predicted position — creating further mismatch between the visible barrel direction and actual bullet direction.
 
 ### Comparison with Player M16 Laser
 
-The player's M16 assault rifle laser (in `AssaultRifle.cs`) uses `_aimDirection` which tracks the mouse cursor — this is the **actual weapon aim direction**, not a computed geometric direction. The M16 laser always visually matches the barrel because both follow the same rotation.
-
-## Failed Fix Attempt: Visual Barrel Direction
-
-The first fix (commit 79f1d51b) changed the laser to use `_weapon_sprite.global_transform.x` — the visual barrel direction. The rationale was "visual consistency": the laser should follow the model rotation.
-
-**This was wrong.** The bullets use `_get_weapon_forward_direction()` which returns the direct-to-player direction (not the visual barrel). So the laser now followed the visual barrel, but bullets flew in a different direction (directly at the player). The user correctly reported: "снайпер стреляет не туда, где прицел" (sniper shoots where the laser isn't).
-
-The core insight: the laser is a **gameplay UI element** that shows the player where they will be shot. It must match the **actual bullet trajectory**, not the visual model state.
+The player's M16 assault rifle laser (in `AssaultRifle.cs`) uses:
+```csharp
+Vector2 laserDirection = _aimDirection.Rotated(_recoilOffset);
+```
+The M16 laser follows the actual aim direction WITH recoil offset. Both the laser and the bullet use the same aim direction, and the weapon model directly follows the mouse cursor without interpolation lag. This means the M16 laser naturally matches both the barrel and the bullet.
 
 ## Correct Solution
 
-Changed `update_laser_sight()` to use `enemy._get_weapon_forward_direction()` and `enemy._get_bullet_spawn_position(direction)` — the **same functions** that `_execute_shoot()` uses for bullet direction and spawn position. This ensures:
+**Unified all sniper shooting systems to use the visual barrel direction.** This ensures the laser, hitscan tracer, and blind-fire bullets all go in the same direction — the direction the barrel is actually pointing.
 
-1. The laser points exactly where the next bullet will fly
-2. The laser starts from the same muzzle position as bullet spawning
-3. Both laser and bullets share the same `_can_see_player` logic, so they always agree
+### Changes Made
+
+1. **`get_visual_barrel_direction()`** — New function in `EnemySniperComponent` that always returns `_weapon_sprite.global_transform.x.normalized()`, the actual visual barrel direction.
+
+2. **`_get_barrel_spawn_position()`** — New function that computes muzzle position from the visual barrel transform (unlike `_get_bullet_spawn_position()` which uses instant aim when player visible).
+
+3. **Laser** (`update_laser_sight()`) — Now uses `get_visual_barrel_direction()` instead of `_get_weapon_forward_direction()`.
+
+4. **Hitscan** (`shoot_sniper_hitscan()`) — Called from `_execute_shoot()` with the visual barrel direction and spawn position, so the tracer matches the laser.
+
+5. **`_execute_shoot()` in enemy.gd** — For snipers specifically: computes barrel direction via `_sniper_component.get_visual_barrel_direction()`, checks barrel aim tolerance, and passes barrel direction to hitscan. Also adds a barrel-specific aim check so the sniper only fires when the barrel is actually pointed at the target.
+
+6. **Blind fire** (`fire_at_predicted_position()`) — Removed model snap rotation and ±3° random spread. Now uses `get_visual_barrel_direction()` directly. The barrel is already smoothly rotating toward the predicted position via `_rotate_toward()`, providing natural inaccuracy.
+
+### Why This Works
+
+All three shooting paths now use the same direction source:
+- **Laser**: `get_visual_barrel_direction()` → visual barrel
+- **Hitscan**: barrel direction passed from `_execute_shoot()` → visual barrel
+- **Blind fire**: `get_visual_barrel_direction()` → visual barrel
+
+The visual barrel direction is the single source of truth. The laser shows it continuously, the hitscan tracer shows it when fired, and blind-fire bullets follow it too. The sniper is now slightly less accurate (no more instant aim bypassing model rotation), but the laser sight accurately shows where the shot will go — which is the whole point of having a laser sight.
 
 ### Collision Layer Reference
 
@@ -101,19 +120,15 @@ Changed `update_laser_sight()` to use `enemy._get_weapon_forward_direction()` an
 | 1 | 1 | Player character |
 | 2 | 2 | Enemy characters |
 | 3 | 4 | Walls/Obstacles |
-| 5 | 16 | Projectiles |
 
 Laser raycast mask: **5** (binary `101`) = Layer 1 (player) + Layer 3 (walls)
 
-## Additional Data
-
-- `game_log_20260323_102814.txt` — Game log from testing the failed barrel-direction fix
-- `game_log_20260323_104706.txt` — Game log confirming laser still didn't match bullet direction
-
 ## Lessons Learned
 
-1. **Laser must match bullet trajectory, not visual model**: A laser sight is a gameplay indicator showing "you will be shot here." It must use the exact same direction calculation as bullets, even if that direction differs from the visual barrel orientation.
+1. **Visual model and shooting must use the same direction**: When a laser sight is present, it reveals any gap between the visual barrel and the actual aim direction. The only correct fix is to make all systems — laser, bullets, and visual model — agree on direction.
 
-2. **Function reuse is the correct approach here**: Unlike the initial analysis which treated `_get_weapon_forward_direction()` as a "pitfall," using the same function for both laser and bullets is the correct design — it guarantees they always agree.
+2. **Don't fight the visual model**: Using instant geometric aim while the model rotates smoothly creates a fundamental contradiction that no amount of laser logic can resolve. The solution is to make the bullets follow the barrel, not vice versa.
 
-3. **Visual barrel ≠ actual aim direction**: In this codebase, the model rotates smoothly with interpolation lag, but bullets skip ahead to aim directly at the player. The laser must follow the bullets, not the visual model. This is a design choice in the game (enemies have "perfect aim" once they see you, with rotation being cosmetic).
+3. **Remove compensating complexity**: Blind fire had ±3° spread added on top of a snap rotation. By using the visual barrel direction (which already provides natural inaccuracy through smooth interpolation), the extra spread and snap become unnecessary.
+
+4. **Study the reference implementation**: The player's M16 laser works because both the laser and bullets use the same aim direction with no model interpolation lag. The sniper fix achieves the same result by unifying the direction source.

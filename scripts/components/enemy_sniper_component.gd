@@ -146,6 +146,9 @@ func process_pursuing(delta: float, can_see_player: bool, player: Node,
 
 ## Fire sniper bullet at a predicted player position through cover walls.
 ## Uses the same projectile as normal shooting but bypasses the LOS requirement.
+## [#1336] Uses the visual barrel direction (same as laser sight) so the bullet
+## flies where the laser points. The barrel is already smoothly rotating toward
+## the target via _rotate_toward(), providing natural inaccuracy without extra spread.
 func fire_at_predicted_position(target_pos: Vector2) -> void:
 	if enemy.bullet_scene == null: return
 	# Issue #1334 Round 5: Don't shoot at a dead player
@@ -154,13 +157,12 @@ func fire_at_predicted_position(target_pos: Vector2) -> void:
 	var to_target := (target_pos - enemy.global_position).normalized()
 	if to_target == Vector2.ZERO: return
 
-	var enemy_model: Node = enemy._enemy_model
-	if enemy_model: enemy_model.global_rotation = to_target.angle()
-	enemy.rotation = to_target.angle()
-
-	var spawn_pos: Vector2 = enemy._get_bullet_spawn_position(to_target)
-	var spread := deg_to_rad(randf_range(-3.0, 3.0))
-	var direction := to_target.rotated(spread)
+	# [#1336] Use visual barrel direction so blind-fire bullets match the laser sight.
+	# Do NOT snap model rotation to to_target — the barrel is already smoothly rotating
+	# toward the target via _rotate_toward(). Using the current barrel direction ensures
+	# the bullet goes exactly where the laser points.
+	var direction := get_visual_barrel_direction()
+	var spawn_pos: Vector2 = _get_barrel_spawn_position(direction)
 	enemy._spawn_projectile(direction, spawn_pos)
 	enemy._spawn_muzzle_flash(spawn_pos, direction)
 	enemy._spawn_casing(direction, to_target)
@@ -227,6 +229,7 @@ func _check_target_alive(node: Node2D) -> bool:
 
 
 ## [#1171] Hitscan shot — instant raycast avoids physics tunneling at 10000px/s.
+## [#1336] Caller (_execute_shoot) passes visual barrel direction so tracer matches laser.
 func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 	# Issue #1334 Round 11: Guard against freed enemy node
 	if not enemy.is_inside_tree(): return
@@ -422,12 +425,11 @@ func update_laser_sight() -> void:
 
 	_set_laser_visible(true)
 
-	# [#1336] Use the same direction and spawn position as bullets (_execute_shoot)
-	# so the laser accurately represents where the sniper will actually shoot.
-	# _get_weapon_forward_direction() returns direct-to-player when _can_see_player
-	# is true, which matches the bullet flight direction.
-	var direction: Vector2 = enemy._get_weapon_forward_direction()
-	var start_pos: Vector2 = enemy._get_bullet_spawn_position(direction)
+	# [#1336] Use the visual barrel direction so the laser matches the weapon model.
+	# The sniper hitscan also uses this direction (via get_visual_barrel_direction()),
+	# guaranteeing the laser always points exactly where the tracer will fly.
+	var direction: Vector2 = get_visual_barrel_direction()
+	var start_pos: Vector2 = _get_barrel_spawn_position(direction)
 
 	# Raycast to find the first wall or character hit.
 	# Collision mask 5 = walls (layer 3, value 4) + characters (layer 1, value 1).
@@ -478,6 +480,30 @@ func _set_laser_visible(visible: bool) -> void:
 # ============================================================================
 # Helpers
 # ============================================================================
+
+## [#1336] Returns the visual barrel direction from the weapon sprite transform.
+## Unlike _get_weapon_forward_direction() which jumps directly to the player when
+## _can_see_player is true, this always returns the actual visual barrel direction.
+## Both the laser sight and hitscan shooting use this so they always match.
+func get_visual_barrel_direction() -> Vector2:
+	if enemy._weapon_sprite:
+		return enemy._weapon_sprite.global_transform.x.normalized()
+	elif enemy._enemy_model:
+		return enemy._enemy_model.global_transform.x.normalized()
+	return Vector2.RIGHT
+
+
+## [#1336] Compute bullet spawn position using the visual barrel direction.
+## Unlike _get_bullet_spawn_position() which uses direct-to-player offset when
+## _can_see_player is true, this always uses the visual barrel transform.
+func _get_barrel_spawn_position(direction: Vector2) -> Vector2:
+	var muzzle_local_offset := 52.0
+	if enemy._weapon_sprite and enemy._enemy_model:
+		var weapon_forward := enemy._weapon_sprite.global_transform.x.normalized()
+		var scaled_muzzle_offset := muzzle_local_offset * enemy.enemy_model_scale
+		return enemy._weapon_sprite.global_position + weapon_forward * scaled_muzzle_offset
+	return enemy.global_position + direction * enemy.bullet_spawn_offset
+
 
 ## Forward message to enemy file logger if available.
 func _log(message: String) -> void:

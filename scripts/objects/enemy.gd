@@ -3879,22 +3879,22 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 		_revolver_cocking = false
 		if not is_inside_tree() or not is_instance_valid(self) or not _is_alive: return  # Issue #1334 Round 11: guard freed node after await
 	if _invisibility: _invisibility.reveal()  # Issue #1121: briefly reveal cloaked enemy when shooting
-	# Calculate bullet spawn position at weapon muzzle first
-	# We need this to calculate the correct bullet direction
 	var weapon_forward := _get_weapon_forward_direction()
 	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
 	var to_target := (target_position - global_position).normalized()
-	# Bullets fly in barrel direction, only shoot when properly aimed (issue #254, #344)
-	var aim_dot := weapon_forward.dot(to_target)
+	var aim_dot := weapon_forward.dot(to_target)  # Only shoot when properly aimed (issue #254, #344)
 	if aim_dot < AIM_TOLERANCE_DOT:
-		if debug_logging:
-			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
-			_log_debug("SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
+		if debug_logging: _log_debug("SHOOT BLOCKED: aim_dot=%.3f (%.1f deg off)" % [aim_dot, rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))])
 		return
 	var direction := weapon_forward
-	if _is_rpg_weapon and not _rpg_fired: _fire_rpg_rocket(direction, bullet_spawn_pos)  # Issue #583
+	# [#1336] Sniper: use visual barrel direction for aim check + shooting so tracer matches laser
+	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component:
+		direction = _sniper_component.get_visual_barrel_direction()
+		if direction.dot(to_target) < AIM_TOLERANCE_DOT: return  # barrel not aimed yet
+		bullet_spawn_pos = _sniper_component._get_barrel_spawn_position(direction)
+		_sniper_component.shoot_sniper_hitscan(direction, bullet_spawn_pos)
+	elif _is_rpg_weapon and not _rpg_fired: _fire_rpg_rocket(direction, bullet_spawn_pos)  # Issue #583
 	elif _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
-	elif weapon_type == WeaponType.SNIPER_RIFLE: _sniper_component.shoot_sniper_hitscan(direction, bullet_spawn_pos)  # [#1171] Hitscan avoids physics tunneling at 10000px/s
 	else: _shoot_single_bullet(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 	if not _is_rpg_weapon and weapon_type != WeaponType.REVOLVER: _spawn_casing(direction, weapon_forward)  # Issue #583: no casing for RPG; #1242: revolver ejects casings on reload, not per shot
