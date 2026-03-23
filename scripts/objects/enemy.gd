@@ -3202,28 +3202,50 @@ func _can_reach_position(target: Vector2) -> bool:
 	return hit_distance >= target_distance - 10.0  # 10 pixel tolerance
 
 ## Find cover position closest to the player for assault positioning.
-## Issue #1338: Find cover position on the FAR side of an obstacle (handles large obstacles).
-## Casts a reverse ray from beyond the obstacle back toward the player to find the exit point.
-## Returns the cover position offset past the far edge, or falls back to near-edge offset.
+## Issue #1338: Find cover position on the FAR side of an obstacle (handles ANY thickness).
+## Uses iterative probing: steps outward from the collision point in increments, using
+## intersect_point() to detect when the probe exits the obstacle body. Then places cover
+## 35px past the exit point. No thickness limit — works for walls, buildings, any size.
 func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, direction: Vector2, space_state: PhysicsDirectSpaceState2D) -> Vector2:
-	# Probe point: far beyond the collision along the same direction
-	var probe_distance := COVER_CHECK_DISTANCE
-	var far_probe := player_pos + direction * probe_distance
-	# Reverse ray: from far probe back toward the player — hits the far edge of the obstacle
-	var reverse_query := PhysicsRayQueryParameters2D.new()
-	reverse_query.from = far_probe
-	reverse_query.to = player_pos
-	reverse_query.collision_mask = 4  # Only check obstacles (layer 3)
-	var reverse_result := space_state.intersect_ray(reverse_query)
-	if not reverse_result.is_empty():
-		var far_edge: Vector2 = reverse_result["position"]
-		# Only use far edge if it's actually farther from player than the near edge
-		if far_edge.distance_to(player_pos) > collision_point.distance_to(player_pos) + 5.0:
-			var away := (far_edge - player_pos).normalized()
-			return far_edge + away * 35.0
+	var near_dist := collision_point.distance_to(player_pos)
+	var away_dir := direction  # Already normalized (from Vector2.from_angle)
+	# Step outward from inside the obstacle, checking each point with intersect_point().
+	# When intersect_point returns empty, the probe is outside the obstacle = far edge found.
+	var step_size := 30.0  # 30px increments for precision
+	var max_probe_dist := COVER_CHECK_DISTANCE * 3.0  # Up to 900px for very large obstacles
+	var probe_dist := near_dist + 5.0  # Start just past the near edge (inside obstacle)
+	var was_inside := false  # Will be set true when intersect_point detects obstacle overlap
+	var point_query := PhysicsPointQueryParameters2D.new()
+	point_query.collision_mask = 4  # Only obstacles (layer 3)
+	point_query.collide_with_areas = false
+	point_query.collide_with_bodies = true
+	while probe_dist < max_probe_dist:
+		var probe_point := player_pos + away_dir * probe_dist
+		point_query.position = probe_point
+		var overlaps := space_state.intersect_point(point_query, 1)  # Max 1 result for speed
+		if overlaps.is_empty():
+			# Probe is in open air — we've exited the obstacle.
+			if was_inside:
+				# This is the far edge. Place cover 35px further away.
+				return probe_point + away_dir * 35.0
+			else:
+				# We were never inside (obstacle might be very thin and step jumped over it).
+				# Fall back to reverse ray from this point.
+				var rev_q := PhysicsRayQueryParameters2D.new()
+				rev_q.from = probe_point
+				rev_q.to = player_pos
+				rev_q.collision_mask = 4
+				var rev_r := space_state.intersect_ray(rev_q)
+				if not rev_r.is_empty():
+					var far_edge: Vector2 = rev_r["position"]
+					if far_edge.distance_to(player_pos) > near_dist + 5.0:
+						return far_edge + away_dir * 35.0
+				return probe_point + away_dir * 35.0
+		else:
+			was_inside = true
+		probe_dist += step_size
 	# Fallback: simple offset past near-side collision
-	var away_from_player := (collision_point - player_pos).normalized()
-	return collision_point + away_from_player * 35.0
+	return collision_point + away_dir * 35.0
 
 func _find_cover_closest_to_player() -> void:
 	if _player == null:

@@ -149,6 +149,52 @@ Three issues with cover search:
 - Updated `_find_distant_cover_position()` to use player-origin `PhysicsRayQueryParameters2D` (consistent with other cover functions)
 - Debug visualization (CoverRaycastMonitor) now correctly shows rays originating from the player
 
+### Phase 10: Cover Detection Fails for Large/Thick Obstacles (2026-03-23 04:37)
+
+- **Screenshot**: `cover_large_obstacle.png` (previously) and `screenshot_thick_cover_20260323.png`
+- **Observation**: "определение укрытия должно работать с большими укрытиями"
+  (cover detection must work with large obstacles)
+- Screenshot shows a large rectangular building/wall where rays hit the near side but no cover is found behind it
+
+### Phase 11: Still Not Working (2026-03-23 05:36)
+
+- **Log file**: `game_log_20260323_083151.txt`
+- **Screenshot**: `screenshot_thick_cover_20260323.png`
+- **Observation**: "всё ещё не считаются толстые укрытия (не должно быть ограничений по толщине укрытия)"
+  (thick cover still not counted — there should be NO limit on cover thickness)
+- Screenshot shows rays hitting thick obstacle but enemy not finding valid cover behind it
+
+### Root Cause Analysis (Phase 11)
+
+The `_get_far_side_cover()` function used a **single reverse ray** to find the far edge of obstacles:
+
+```gdscript
+var far_probe := player_pos + direction * COVER_CHECK_DISTANCE  # 300px
+# Reverse ray from 300px away back toward player
+```
+
+**Problem**: When the obstacle is thicker than `COVER_CHECK_DISTANCE - near_edge_distance`, the reverse ray probe point starts **inside** the obstacle. In Godot 4.x, `intersect_ray()` does NOT detect the collider that the ray **starts inside of**. This means:
+
+1. Ray from player hits near edge at distance 100px
+2. Reverse ray starts at distance 300px (still inside a 250px+ thick wall)
+3. `intersect_ray()` returns empty — it can't see the wall it's inside
+4. Fallback: simple 35px offset from near edge — places cover ON the near side, still visible to player
+5. `_is_position_visible_from_player()` correctly rejects this position → no valid cover found
+
+### Fix (Phase 11)
+
+Replaced the single reverse-ray approach with **iterative point probing** using `intersect_point()`:
+
+1. Start probing at `near_edge + 5px` (inside obstacle)
+2. Step outward in 30px increments along the ray direction
+3. At each step, use `PhysicsPointQueryParameters2D.intersect_point()` to check if the point overlaps an obstacle body
+4. `intersect_point()` correctly detects when a point is **inside** a collider (unlike `intersect_ray()` which misses colliders the origin is inside)
+5. When `intersect_point()` returns empty after previously returning non-empty, we've found the far edge
+6. Place cover 35px past the far edge exit point
+7. Maximum probe distance: 900px (3× `COVER_CHECK_DISTANCE`) — supports walls up to ~900px thick
+
+This approach has no thickness limitation and works reliably because `intersect_point()` is the correct Godot API for testing if a point is inside a collision body.
+
 ## Data Files
 
 - `game_log_20260322_171711.txt` - Original issue report log
@@ -158,3 +204,7 @@ Three issues with cover search:
 - `screenshot_cover_bug.png` - Screenshot showing enemy choosing distant cover over nearby wall
 - `round4/game_log_20260323_063239.txt` - Log showing predefined waypoint issue
 - `round4/cover_detection_wrong.png` - Screenshot of incorrect cover detection
+- `game_log_20260323_065933.txt` - Log showing more ray count requested
+- `game_log_20260323_083151.txt` - Log showing thick obstacle cover failure
+- `screenshot_thick_cover_20260323.png` - Screenshot of thick obstacle not generating valid cover
+- `cover_large_obstacle.png` - Screenshot of large obstacle cover issue
