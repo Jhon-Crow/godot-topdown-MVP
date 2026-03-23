@@ -50,18 +50,19 @@ func test_sniper_laser_has_glow_layers() -> void:
 		"Glow layers must use additive blending [#1336]")
 
 
-func test_sniper_laser_has_endpoint_light() -> void:
-	# Laser must have an endpoint glow (PointLight2D) like M16 laser. [#1336]
+func test_sniper_laser_uses_lazy_creation() -> void:
+	# [#1336] Round 9: Laser must be created lazily on first update_laser_sight() call,
+	# NOT during _ready(), to avoid scene tree timing issues.
 	var src := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
 	assert_not_null(src, "enemy_sniper_component.gd must be readable")
 	if src == null:
 		return
 	var text := src.get_as_text()
 	src.close()
-	assert_true(text.contains("_laser_endpoint_light"),
-		"enemy_sniper_component.gd must have endpoint PointLight2D [#1336]")
-	assert_true(text.contains("PointLight2D.new()"),
-		"enemy_sniper_component.gd must create PointLight2D for endpoint glow [#1336]")
+	assert_true(text.contains("_laser_created"),
+		"enemy_sniper_component.gd must track lazy creation state [#1336]")
+	assert_true(text.contains("current_scene.add_child(_laser_sight)"),
+		"Laser must be parented to current_scene for reliable rendering [#1336]")
 
 
 func test_sniper_laser_has_update_method() -> void:
@@ -217,19 +218,19 @@ func test_sniper_laser_uses_direct_is_alive_access() -> void:
 		"Must NOT use enemy.get('_is_alive') which can return null [#1336]")
 
 
-func test_sniper_laser_uses_top_level_for_global_coords() -> void:
-	# Laser Line2D must use top_level=true so it renders in global coordinates
-	# regardless of enemy node hierarchy. This matches SniperEnemyTracer approach. [#1336]
+func test_sniper_laser_parented_to_scene_root() -> void:
+	# [#1336] Round 9: Laser must be parented to current_scene (scene root) for reliable
+	# rendering. Previous approaches using enemy.add_child + top_level=true failed.
 	var src := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
 	assert_not_null(src, "enemy_sniper_component.gd must be readable")
 	if src == null:
 		return
 	var text := src.get_as_text()
 	src.close()
-	assert_true(text.contains("top_level = true"),
-		"Laser Line2D must set top_level = true for reliable global-coordinate rendering [#1336]")
-	assert_true(text.contains("enemy.add_child(_laser_sight)"),
-		"Laser must be parented directly to enemy node (not scene root) [#1336]")
+	assert_true(text.contains("current_scene.add_child(_laser_sight)"),
+		"Laser must be parented to current_scene for reliable rendering [#1336]")
+	assert_true(text.contains("current_scene.add_child(glow)"),
+		"Glow layers must be parented to current_scene [#1336]")
 
 
 func test_sniper_laser_cleanup_on_exit_tree() -> void:

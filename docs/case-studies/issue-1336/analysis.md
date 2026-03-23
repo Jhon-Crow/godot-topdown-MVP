@@ -246,3 +246,50 @@ Parenting to `enemy` directly is even safer than `current_scene` since the enemy
 ### Data Sources
 - `game_log_20260323_135513.txt` — Game log confirming zero laser output
 - Comparison with SniperEnemyTracer implementation (proven to render correctly)
+
+## Round 9: Laser Still Invisible (2026-03-23, user feedback)
+
+### Symptom
+User reports "всё ещё не отображается лазер" (laser still not displaying). Game log `game_log_20260323_154948.txt` confirms:
+- F8-spawned sniper (weapon_type=7=SNIPER_RIFLE) IS active, enters COMBAT, fires and hits player
+- **Zero** `[#1336]` log entries — neither creation nor update logged
+- **Zero** `[#1163]` log entries — but this is expected (no retreat-distance log when player is at comfortable range)
+- Sniper fires gunshots (SoundPropagation logs: range=1634 = sniper weapon_loudness)
+- Game runs from exported exe (Debug build: false)
+
+### Root Cause Analysis
+
+After 8 rounds of fixes, three deeper issues were identified:
+
+1. **Laser created during `_ready()` — too early**: All previous approaches called `_create_laser_sight()` from the EnemySniperComponent's `_ready()`. During `_ready()`:
+   - `current_scene` may not be fully initialized (scene transitions, async loading)
+   - `call_deferred` approaches silently fail if scene changes before deferred call executes
+   - `enemy.add_child` with `top_level=true` may not render due to CanvasItem chain issues in Godot 4.3
+   - No `print()` debugging was used, so failures were invisible in both stdout and FileLogger
+
+2. **PointLight2D with procedural texture was risky**: Creating a 64x64 Image with pixel-by-pixel iteration and `ImageTexture.create_from_image()` during `_ready()` could silently fail or crash in release builds, potentially aborting the entire `_create_laser_sight()` function before the log line at the end.
+
+3. **`top_level = true` on enemy children may not render**: While the SniperEnemyTracer uses `top_level=true`, it's parented to `current_scene` (scene root), NOT to the enemy. The tracer's `current_scene.add_child(tracer)` pattern is what actually works. Previous rounds incorrectly assumed that `enemy.add_child(laser)` + `top_level=true` would behave the same way.
+
+### Fix (Round 9)
+
+1. **Lazy creation**: Moved laser creation from `_ready()` to the first `update_laser_sight()` call. This runs during `_physics_process()` when the scene tree is guaranteed to be fully initialized, `current_scene` is valid, and FileLogger is ready.
+
+2. **Scene root parenting (no top_level)**: Laser Line2D nodes are added to `current_scene` directly — the SAME pattern used by SniperEnemyTracer (which renders correctly). No `top_level=true` needed since scene root local coordinates equal global coordinates.
+
+3. **Removed PointLight2D endpoint light**: Eliminated the procedural texture creation that could silently crash. The glow layers provide sufficient visual effect.
+
+4. **Added print() debugging**: All creation and first-update paths now use `print()` (Godot stdout) in addition to FileLogger, ensuring debug output is visible regardless of FileLogger state.
+
+5. **Retry mechanism**: If `current_scene` is null on first attempt (rare edge case), `_laser_created` is reset to `false` so creation retries on the next frame.
+
+### Key Insight
+The working reference implementations show the pattern:
+- **Player M16 laser** (C#): `AddChild(_laserSight)` — child of weapon, local coordinates
+- **SniperEnemyTracer** (GDScript): `current_scene.add_child(tracer)` — child of scene root, global coordinates
+- **Previous laser attempts** (GDScript): `enemy.add_child(_laser_sight)` with `top_level=true` — this combination never worked
+
+### Data Sources
+- `game_log_20260323_154948.txt` — Game log confirming zero laser output after Round 8 fix
+- `Scripts/Weapons/AssaultRifle.cs` — Working player M16 laser reference implementation
+- `enemy_sniper_component.gd` lines 323-338 — Working SniperEnemyTracer implementation
