@@ -2,14 +2,14 @@ extends GrenadeBase
 class_name ChemicalGasGrenade
 ## Chemical gas grenade that releases a cloud creating illusion copies (Issue #1353).
 ##
-## After 4 seconds, releases a yellow-green chemical gas cloud.
+## Explodes on contact/landing (Issue #1367), releasing a yellow-green chemical gas cloud.
 ## The cloud creates visual-only illusion copies of nearby enemies.
 ## Unlike explosive grenades, this does NOT explode — it hisses and releases gas.
 ##
 ## Uses visual effects instead of spawning real enemy clones for performance.
 
-## Effect radius for the gas cloud.
-@export var effect_radius: float = 300.0
+## Effect radius for the gas cloud (Issue #1367: 2x bigger cloud).
+@export var effect_radius: float = 600.0
 
 ## Duration the gas cloud persists (seconds).
 @export var cloud_duration: float = 20.0
@@ -51,6 +51,24 @@ func _update_blink_effect(delta: float) -> void:
 ## Override to spawn chemical cloud instead of explosion.
 func _on_explode() -> void:
 	_spawn_chemical_cloud()
+
+
+## Issue #1367: Explode on landing (grenade comes to rest) instead of waiting for fuse timer.
+func _on_grenade_landed() -> void:
+	super._on_grenade_landed()
+	FileLogger.info("[ChemicalGasGrenade] Landed at %s — detonating on contact" % str(global_position))
+	_explode()
+
+
+## Issue #1367: Also explode on collision with walls/obstacles for immediate detonation.
+func _on_body_entered(body: Node) -> void:
+	super._on_body_entered(body)
+	if _has_exploded:
+		return
+	# Only detonate on wall/obstacle collision, not on enemies
+	if body is StaticBody2D or body is TileMap:
+		FileLogger.info("[ChemicalGasGrenade] Hit obstacle '%s' — detonating on contact" % body.name)
+		_explode()
 
 
 ## Override base _explode to skip explosive effects.

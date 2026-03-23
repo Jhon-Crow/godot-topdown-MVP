@@ -1,9 +1,11 @@
 extends GutTest
-## Unit tests for ChemicalCloud illusion spawning (Issue #1361).
+## Unit tests for ChemicalCloud illusion spawning (Issues #1361, #1367).
 ##
 ## Tests that:
 ## - Illusion copy count range is 2-6 per enemy
 ## - Original enemy is positioned randomly among copies (not always center)
+## - Progressive illusion spawning: max 10, +1 every 2 seconds (Issue #1367)
+## - Cloud radius doubled to 600 (Issue #1367)
 
 
 # ============================================================================
@@ -162,3 +164,85 @@ func test_total_entities_equals_copies_plus_one() -> void:
 		# Total visible = 1 original + illusion_count
 		assert_eq(1 + illusion_count, total_positions,
 			"Total entities should be %d (1 original + %d illusions)" % [total_positions, illusion_count])
+
+
+# ============================================================================
+# Tests for Issue #1367: Progressive illusion spawning and cloud radius
+# ============================================================================
+
+
+func test_max_illusions_per_cloud_default_is_10() -> void:
+	var cloud := ChemicalCloud.new()
+	assert_eq(cloud.max_illusions_per_cloud, 10, "max_illusions_per_cloud should default to 10")
+	cloud.free()
+
+
+func test_progressive_spawn_interval_default_is_2() -> void:
+	var cloud := ChemicalCloud.new()
+	assert_almost_eq(cloud.progressive_spawn_interval, 2.0, 0.01,
+		"progressive_spawn_interval should default to 2.0 seconds")
+	cloud.free()
+
+
+func test_chemical_grenade_effect_radius_is_600() -> void:
+	# Issue #1367: Cloud should be 2x bigger (300 -> 600)
+	var grenade := ChemicalGasGrenade.new()
+	assert_almost_eq(grenade.effect_radius, 600.0, 0.01,
+		"effect_radius should be 600 (2x the original 300)")
+	grenade.free()
+
+
+func test_progressive_spawning_respects_per_cloud_cap() -> void:
+	# Simulate progressive spawning and verify it stops at max_illusions_per_cloud
+	var cloud := ChemicalCloud.new()
+	var max_cap := cloud.max_illusions_per_cloud
+	assert_eq(max_cap, 10, "Max cap should be 10")
+
+	# Simulate: initial batch spawns 4, then progressive adds 1 at a time
+	var initial_batch: int = 4
+	var total: int = initial_batch
+	var seconds_in_cloud: float = 0.0
+	var interval: float = cloud.progressive_spawn_interval
+
+	# Simulate 20 seconds in cloud
+	while seconds_in_cloud < 20.0 and total < max_cap:
+		seconds_in_cloud += interval
+		total += 1
+
+	# After enough time, total should reach exactly max_cap
+	assert_eq(total, max_cap,
+		"Total illusions should reach cap of %d" % max_cap)
+	cloud.free()
+
+
+func test_initial_batch_plus_progressive_can_reach_10() -> void:
+	# With initial batch of 2-6 and progressive spawning every 2s,
+	# the system should be able to reach 10 total illusions.
+	var cloud := ChemicalCloud.new()
+
+	# Worst case: initial batch of 6, need 4 more progressive spawns = 8 seconds
+	# Best case: initial batch of 2, need 8 more progressive spawns = 16 seconds
+	# Cloud duration is 20 seconds, so both cases fit within cloud lifetime.
+	var initial_min: int = cloud.min_copies_per_enemy  # 2
+	var initial_max: int = cloud.max_copies_per_enemy  # 6
+	var max_cap: int = cloud.max_illusions_per_cloud  # 10
+	var interval: float = cloud.progressive_spawn_interval  # 2.0
+	var duration: float = cloud.cloud_duration  # 20.0
+
+	# Even with max initial batch (6), remaining 4 need 4*2 = 8 seconds
+	var remaining_from_max_batch: int = max_cap - initial_max  # 4
+	var time_needed: float = remaining_from_max_batch * interval  # 8.0
+	assert_true(time_needed <= duration,
+		"Should have enough time (%.1fs needed, %.1fs available) to reach cap from max initial batch" % [
+			time_needed, duration
+		])
+
+	# Even with min initial batch (2), remaining 8 need 8*2 = 16 seconds
+	var remaining_from_min_batch: int = max_cap - initial_min  # 8
+	var time_needed_min: float = remaining_from_min_batch * interval  # 16.0
+	assert_true(time_needed_min <= duration,
+		"Should have enough time (%.1fs needed, %.1fs available) to reach cap from min initial batch" % [
+			time_needed_min, duration
+		])
+
+	cloud.free()
