@@ -639,7 +639,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 			var state_before_delay := _current_state
 			_log_to_file("Reload complete sound heard - waiting 200ms before cautious transition from %s" % AIState.keys()[_current_state])
 			await get_tree().create_timer(0.2).timeout
-			if not _is_alive: return
+			if not is_inside_tree() or not _is_alive: return  # Issue #1334 Round 11: guard freed node
 			if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
 				if _has_valid_cover:
 					_log_to_file("Reload complete sound triggered retreat - transitioning from %s to RETREATING (delayed from %s)" % [AIState.keys()[_current_state], AIState.keys()[state_before_delay]])
@@ -3855,6 +3855,8 @@ func _shoot() -> void:
 	_execute_shoot(target_position)
 func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting callback.
 	_is_pre_attack_flashing = false
+	# Issue #1334 Round 11: Guard against freed node during deferred shoot callbacks
+	if not is_inside_tree() or not _is_alive: return
 	# Issue #1334 Round 5: Don't shoot at a dead player — prevents crash from same-frame hitscan/damage
 	var _gm := get_node_or_null("/root/GameManager")
 	if _gm and not _gm.player_alive: return
@@ -3899,11 +3901,15 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 
 ## Spawn projectile. Pool first (Issue #724), fallback instantiate (Issue #516, #550).
 func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
+	# Issue #1334 Round 11: Guard against spawning projectiles when scene tree is unavailable
+	if not is_inside_tree(): return
+	var current_scene := get_tree().current_scene
+	if current_scene == null: return
 	var sid := get_instance_id(); var pm: Node = get_node_or_null("/root/ProjectilePoolManager")
 	if pm and pm.has_method("get_bullet"):
 		var p = pm.get_bullet()
 		if p and p.has_method("pool_activate"): p.pool_activate(pos, dir, sid, null); if p.get("shooter_position") != null: p.shooter_position = pos; return
-	var p := bullet_scene.instantiate(); p.global_position = pos; get_tree().current_scene.add_child(p)
+	var p := bullet_scene.instantiate(); p.global_position = pos; current_scene.add_child(p)
 	if p.has_method("SetDirection"): p.SetDirection(dir)
 	elif p.get("direction") != null: p.direction = dir
 	elif p.get("Direction") != null: p.Direction = dir
@@ -3916,11 +3922,14 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 
 ## Fire RPG rocket (Issue #583). RigidBody2D + linear_velocity after add_child (VOGGrenade pattern).
 func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
+	if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node
 	var rocket: Node2D = (preload("res://scenes/projectiles/RpgRocket.tscn") as PackedScene).instantiate() as Node2D
 	if rocket == null: _log_to_file("[RPG] ERROR: RpgRocket instantiate failed!"); return
+	var current_scene := get_tree().current_scene
+	if current_scene == null: _log_to_file("[RPG] ERROR: No current scene!"); return
 	var rocket_dir: Vector2 = dir.normalized() if dir.length() > 0.0 else Vector2.RIGHT
 	rocket.set("direction", rocket_dir); rocket.set("shooter_id", get_instance_id()); rocket.set("shooter_position", pos); rocket.global_position = pos
-	get_tree().current_scene.add_child(rocket)
+	current_scene.add_child(rocket)
 	_log_to_file("[RPG] Rocket launched at %s dir=%s" % [str(pos), str(rocket_dir)])
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
@@ -3946,7 +3955,13 @@ func _spawn_muzzle_flash(p: Vector2, d: Vector2) -> void:
 	if m: m.spawn_muzzle_flash(p, d)
 ## Play shell casing sound with a delay to simulate the casing hitting the ground.
 func _play_delayed_shell_sound() -> void:
+	# Issue #1334 Round 11: Guard against freed node after await.
+	# When many enemies fire rapidly, many SceneTreeTimers are created. If the scene
+	# reloads or the enemy is freed before the timer fires, the coroutine resumes on
+	# a freed node causing a native segfault. Check is_inside_tree() after await.
+	if not is_inside_tree(): return
 	await get_tree().create_timer(0.15).timeout
+	if not is_inside_tree() or not _is_alive: return
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_shell_rifle"):
 		audio_manager.play_shell_rifle(global_position)
@@ -3954,6 +3969,9 @@ func _play_delayed_shell_sound() -> void:
 ## Spawn bullet casing (based on BaseWeapon.cs for visual consistency with player).
 func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
 	if casing_scene == null: return
+	if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node
+	var current_scene := get_tree().current_scene
+	if current_scene == null: return
 	var casing_spawn_position: Vector2 = global_position + weapon_forward * (bullet_spawn_offset * 0.5)
 	var casing: RigidBody2D = casing_scene.instantiate()
 	casing.global_position = casing_spawn_position
@@ -3967,7 +3985,7 @@ func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
 	else:
 		var fallback_caliber: Resource = load("res://resources/calibers/caliber_545x39.tres")
 		if fallback_caliber: casing.set("caliber_data", fallback_caliber)
-	get_tree().current_scene.add_child(casing)
+	current_scene.add_child(casing)
 
 ## Calculate lead prediction - aims where the player will be based on velocity.
 func _calculate_lead_prediction() -> Vector2:
@@ -4231,6 +4249,7 @@ func _show_hit_flash() -> void:
 	_set_all_sprites_modulate(hit_flash_color)
 
 	await get_tree().create_timer(hit_flash_duration).timeout
+	if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node after await
 
 	# Restore color based on current health (if still alive)
 	if _is_alive:
@@ -4360,12 +4379,14 @@ func _on_death() -> void:
 	if destroy_on_death:
 		# Wait for death animation to complete before destroying
 		await get_tree().create_timer(respawn_delay).timeout
+		if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node after await
 		# Clean up death animation ragdoll bodies before destroying
 		if _death_animation and _death_animation.has_method("reset"):
 			_death_animation.reset()
 		queue_free()
 	else:
 		await get_tree().create_timer(respawn_delay).timeout
+		if not is_inside_tree(): return  # Issue #1334 Round 11: guard freed node after await
 		_reset()
 
 ## Resets the enemy to its initial state.

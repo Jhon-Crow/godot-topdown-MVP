@@ -208,6 +208,8 @@ func _check_target_alive(node: Node2D) -> bool:
 
 ## [#1171] Hitscan shot — instant raycast avoids physics tunneling at 10000px/s.
 func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
+	# Issue #1334 Round 11: Guard against freed enemy node
+	if not enemy.is_inside_tree(): return
 	# Issue #1334 Round 5: Skip hitscan entirely if player is already dead.
 	# Prevents crash from hitscan hitting dead player on same frame as death signal.
 	var gm := enemy.get_node_or_null("/root/GameManager")
@@ -303,12 +305,17 @@ func _spawn_sniper_tracer(from_pos: Vector2, end_pos: Vector2) -> void:
 	grad.set_color(0, Color(0.9, 0.9, 0.85, 0.8)); grad.add_point(0.5, Color(0.7, 0.7, 0.65, 0.5))
 	grad.set_color(grad.get_point_count() - 1, Color(0.5, 0.5, 0.5, 0.2))
 	tracer.gradient = grad; tracer.add_point(from_pos); tracer.add_point(end_pos)
-	get_tree().current_scene.add_child(tracer); _fade_sniper_tracer(tracer)
+	# Issue #1334 Round 11: Guard against null current_scene during scene transitions
+	var current_scene := get_tree().current_scene
+	if current_scene == null: tracer.queue_free(); return
+	current_scene.add_child(tracer); _fade_sniper_tracer(tracer)
 
 ## Async fade-out for the sniper tracer.
 func _fade_sniper_tracer(tracer: Line2D) -> void:
 	var elapsed := 0.0; var initial_width := tracer.width
 	while elapsed < 2.0 and is_instance_valid(tracer):
+		# Issue #1334 Round 11: Guard coroutine against freed enemy/scene after await
+		if not is_inside_tree(): break
 		elapsed += get_process_delta_time(); var p := elapsed / 2.0; var a := lerpf(0.7, 0.0, p)
 		tracer.default_color = Color(0.8, 0.8, 0.8, a); tracer.width = initial_width + p * 3.0
 		var grad := Gradient.new()

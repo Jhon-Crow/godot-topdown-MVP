@@ -822,6 +822,94 @@ With this method:
 - **Object pooling**: Some games avoid the freed-node problem entirely by pooling and recycling
   character nodes instead of freeing them. Not applicable here (scene reload approach).
 
+## Round 11 — Native crash during gameplay with many simultaneous enemies
+
+### Data collected (Round 11)
+
+| File | Description |
+|------|-------------|
+| `game_log_20260322_192721.txt` | Crash during gameplay on Docks — no player death event before crash |
+| `game_log_20260322_192922.txt` | Crash during gameplay on Docks — player AK_GL firing + many enemies reacting |
+| `game_log_20260322_193021.txt` | Crash during gameplay on Docks — sniper entering COMBAT + distracted attacks |
+| `game_log_20260323_092753.txt` | Successful death+restart then crash on second playthrough — 12+ distracted attacks in 1s |
+
+### Problem description
+
+After applying Rounds 1–10 fixes, the game still crashes on the Docks map. However, the
+crash pattern has changed: **the crash now occurs during normal gameplay (player alive), not
+during the death/restart sequence**. The logs show the game terminating abruptly (native
+segfault) with no error message or death event logged.
+
+### Timeline reconstruction (game_log_20260323_092753.txt)
+
+1. **09:28:03** — Player enters Docks map (20 enemies spawned)
+2. **09:28:10** — Player dies from enemy rifle, game successfully restarts
+3. **09:28:12** — Second playthrough begins, player engages enemies
+4. **09:28:13** — `ContainerYardB_Machete` killed → 30 blood decals + ragdoll activation
+5. **09:28:13** — `LoadingDock_UZI` fires **12+ "distracted attack" shots** within ~1 second
+6. **09:28:13** — `ContainerYardA_Rifle2`, `LoadingDock_Rifle2` also fire distracted attacks
+7. **09:28:13** — `ContainerYardA_Sniper` enters COMBAT, rotates to aim at player
+8. **09:28:14** — **CRASH** — log stops mid-frame during enemy processing
+
+### Root cause analysis
+
+Five distinct root causes identified:
+
+#### 1. Unsafe `await` coroutines resume on freed nodes
+`_play_delayed_shell_sound()` calls `await get_tree().create_timer(0.15).timeout` without
+checking if the node is still in the scene tree after the await completes. When many enemies
+fire rapidly (12+ shots/second), many SceneTreeTimer coroutines are created. If the scene
+reloads before all timers fire, the coroutine resumes on a freed node → native segfault.
+Same issue in `_show_hit_flash()`, `_on_death()` cleanup, and reload reaction code.
+
+#### 2. Physics body creation during active physics processing
+`death_animation_component.gd:_create_ragdoll_body()` creates 4 new `RigidBody2D` nodes with
+`get_tree().current_scene.add_child(rb)` during the physics callback chain (death signal →
+ragdoll activation). Adding new collision objects during the "flushing queries" phase of the
+physics server corrupts its internal collision pair list. Similarly, `_create_ragdoll_joint()`
+adds `PinJoint2D` nodes during the same callback chain.
+
+#### 3. Bullet pool monitoring changes during physics processing
+`bullet.gd:pool_activate()` sets `monitoring = true` and `monitorable = true` directly (not
+deferred). When bullet pooling recycles a bullet during the same frame that other bullets are
+being processed by the physics server, this can corrupt the collision pair list. The "flushing
+queries" error occurs silently in release builds but causes native crashes when combined with
+other concurrent physics mutations.
+
+#### 4. Missing validity guards in collision callbacks
+`_on_body_entered`, `_on_area_entered`, and `_on_body_exited` in `bullet.gd` and `shrapnel.gd`
+do not check `is_instance_valid(body/area)` before accessing the collider. When ragdoll bodies
+are being created/freed in the same frame, the physics server may deliver collision callbacks
+with stale collider references → native segfault.
+
+#### 5. Projectile spawning without scene tree validation
+`_spawn_projectile()`, `_spawn_casing()`, and `_fire_rpg_rocket()` access
+`get_tree().current_scene.add_child()` without checking if the enemy is still in the tree
+or if `current_scene` is null. During scene transitions or rapid enemy destruction, these
+calls can fail with null reference errors or add children to a scene that's being freed.
+
+### Fix
+
+1. **Added `is_inside_tree()` guards** after all `await` statements in enemy.gd — prevents
+   coroutine resume on freed nodes
+2. **Deferred ragdoll body/joint creation** via `call_deferred("add_child", rb)` — prevents
+   physics body creation during active physics callbacks
+3. **Deferred bullet pool monitoring changes** via `set_deferred("monitoring", true/false)` —
+   prevents collision pair list corruption during physics processing
+4. **Added `is_instance_valid()` guards** at top of all collision callbacks in bullet.gd and
+   shrapnel.gd — prevents access to freed colliders
+5. **Added scene tree validation** in `_spawn_projectile()`, `_spawn_casing()`, `_fire_rpg_rocket()`,
+   `_execute_shoot()`, and sniper hitscan code — prevents null reference crashes
+
+### Relevant Godot engine issues
+
+- [#107951](https://github.com/godotengine/godot/issues/107951) — Crash when adding/removing
+  bodies while performing physics queries
+- [#85852](https://github.com/godotengine/godot/issues/85852) — Errors when changing scene
+  during physics callbacks
+- [Godot Physics Troubleshooting](https://docs.godotengine.org/en/4.3/tutorials/physics/troubleshooting_physics_issues.html) —
+  "Removing a CollisionObject node during a physics callback is not allowed"
+
 ## Additional observations
 
 - `[SceneLoader] ERROR: Invalid resource` messages appear in logs when
