@@ -598,6 +598,70 @@ RID to exclude it from character raycasts when the player is dead.
   - Re-check `player_alive` each iteration of the raycast loop, aborting if player died mid-frame.
   - Exclude dead player's RID from character raycast queries.
 
+---
+
+## Round 9 (2026-03-23)
+
+### Root cause 1: `_reset_stats()` prematurely resets `player_alive = true`
+
+`restart_scene()` calls `_reset_stats()` which sets `player_alive = true` and `player = null`
+**before** `reload_current_scene()` completes. Since `reload_current_scene()` is deferred (it
+calls `change_scene_to_file()` internally which defers the actual scene swap), there is a window
+where enemies see `player_alive = true` but the old player node is in a transitional or freed
+state. The enemy's Round 8 guard (`if not player_alive: return`) passes, and the enemy resumes
+full AI processing — accessing `_player.global_position` on a freed or inconsistent node causes
+a native segfault.
+
+**Evidence**: In `game_log_20260323_072247.txt`, the game successfully restarts after a death at
+07:23:47 (GameManager safety net works correctly). But after the reload at 07:23:48, the log
+ends abruptly at 07:23:51 during normal gameplay with NO death event logged — characteristic of
+a native segfault. The `LoadingDock_UZI` enemy fires shots and triggers distraction attacks right
+before termination, suggesting enemy AI accessed stale player state.
+
+**Fix**: Removed `player_alive = true` from `_reset_stats()`. Now `player_alive` stays `false`
+throughout the entire scene reload transition and is only reset to `true` in `set_player()` when
+the new scene's player node is registered. This eliminates the window where enemies could see
+a false-positive alive state during reload.
+
+### Root cause 2: No absolute failsafe for stuck death states
+
+The existing safety mechanisms (signal-based detection, poll detection, 1.5s wall-clock timer)
+all have guards and conditions that can prevent them from firing. If any combination of edge
+cases causes ALL mechanisms to fail (e.g., `_reloading` flag stuck true, signal connection lost,
+poll detection bypassed), the player is stuck on the grey death screen forever.
+
+**Fix**: Added an absolute wall-clock failsafe in `_process()` that tracks when `player_alive`
+was set to `false`. If 5 real seconds elapse without `set_player()` being called (which resets
+it to `true`), the failsafe force-clears ALL guards (`_reloading`, `_safety_net_deadline_ms`)
+and calls `restart_scene()`. This failsafe re-arms every 5 seconds if the restart fails, and
+only `set_player()` (successful new scene load) permanently clears it. Special modes (roguelike,
+ArenaLevel) are excluded from auto-restart.
+
+### Root cause 3: Enemy references freed player node
+
+Enemy `_physics_process()` and visibility check code access `_player.global_position` without
+checking `is_instance_valid(_player)`. While the Round 8 `player_alive` guard prevents this
+during normal death flow, the `_reset_stats()` timing bug (root cause 1) could let enemies
+past the guard with a stale `_player` reference pointing to a freed node.
+
+**Fix**: Added `is_instance_valid(_player)` checks:
+- At the top of `_physics_process()`: if `_player` is invalid, set `_player = null` and return
+- In the visibility check fast-path: added to the null-check condition
+- In the distraction attack condition: added alongside the existing `_player` truthiness check
+
+### Changes (Round 9)
+
+- `scripts/autoload/game_manager.gd`:
+  - Removed `player_alive = true` from `_reset_stats()` — stays false until `set_player()`.
+  - Added `player_alive = true` and `_player_dead_since_ms = 0` reset in `set_player()`.
+  - Added `_player_dead_since_ms` wall-clock timestamp tracking in all death detection paths.
+  - Added absolute 5-second failsafe in `_process()` that ignores all guards and forces restart.
+
+- `scripts/objects/enemy.gd`:
+  - Added `is_instance_valid(_player)` check at top of `_physics_process()` (clears stale ref).
+  - Added `is_instance_valid(_player)` in visibility check fast-path.
+  - Added `is_instance_valid(_player)` in distraction attack condition.
+
 ## Additional observations
 
 - `[SceneLoader] ERROR: Invalid resource` messages appear in logs when

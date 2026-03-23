@@ -27,6 +27,14 @@ var hits_landed: int = 0
 ## Whether the player is currently alive.
 var player_alive: bool = true
 
+## Issue #1334 Round 9: Absolute wall-clock timestamp (msec) when player_alive was
+## last set to false. Used as an ultimate failsafe — if the player has been dead for
+## more than 5 real seconds (regardless of _reloading, time_scale, scene state, etc.),
+## force a scene restart. This catches ALL edge cases where the normal death pipeline
+## fails: stuck timers, signal failures, C# exceptions, physics server crashes that
+## don't terminate the process, etc. Set to 0 when player is alive.
+var _player_dead_since_ms: int = 0
+
 ## Reference to the current player node.
 var player: Node2D = null
 
@@ -241,6 +249,9 @@ func _process(delta: float) -> void:
 			# when signal connection failed and poll is the first detection method.
 			if player_alive:
 				player_alive = false
+				# Issue #1334 Round 9: Record wall-clock timestamp for absolute failsafe
+				if _player_dead_since_ms <= 0:
+					_player_dead_since_ms = Time.get_ticks_msec()
 				_log_to_file("POLL DETECTED: Player collision_layer is 0 (dead) but player_alive was still true! Starting safety net.")
 			else:
 				_log_to_file("POLL DETECTED: Player collision_layer is 0 (confirming death already flagged)")
@@ -257,13 +268,47 @@ func _process(delta: float) -> void:
 			_safety_net_deadline_ms = 0
 			_on_death_safety_net_timer()
 
+	# Issue #1334 Round 9: ABSOLUTE failsafe — if the player has been dead for more than
+	# 5 real seconds (wall-clock) and no restart has happened, force one. This catches ALL
+	# edge cases: stuck timers, signal failures, C# exceptions, physics crashes that don't
+	# terminate the process, _reloading flag stuck, etc. The 5s threshold is generous enough
+	# to let normal death effects play out, but short enough that the user won't think the
+	# game is frozen. Unlike the 1.5s safety net which can be blocked by _reloading flag or
+	# other guards, this failsafe IGNORES all guards.
+	if _player_dead_since_ms > 0 and not player_alive:
+		var dead_duration_ms: int = Time.get_ticks_msec() - _player_dead_since_ms
+		if dead_duration_ms >= 5000:
+			_log_to_file("ABSOLUTE FAILSAFE: Player dead for %d ms — forcing restart (ignoring all guards)" % dead_duration_ms)
+			# Reset the timestamp to NOW + 5s so the failsafe can re-trigger if this
+			# restart attempt also fails. Only set_player() clears it permanently.
+			_player_dead_since_ms = Time.get_ticks_msec()
+			_reloading = false  # Force-clear in case it's stuck
+			_safety_net_deadline_ms = 0
+			# Check special modes that should NOT auto-restart
+			if roguelike_active:
+				_log_to_file("ABSOLUTE FAILSAFE: roguelike mode — skipping")
+			else:
+				var current_scene := get_tree().current_scene
+				if current_scene and current_scene.scene_file_path.find("ArenaLevel") >= 0:
+					_log_to_file("ABSOLUTE FAILSAFE: ArenaLevel — skipping")
+				else:
+					player_alive = false  # Ensure it stays false for the restart
+					restart_scene()
+
 
 ## Resets all statistics to initial values.
+## Issue #1334 Round 9: player_alive is NOT reset here — it stays false until
+## set_player() is called with a valid new player. Previously, _reset_stats() set
+## player_alive = true BEFORE reload_current_scene() completed (reload is deferred).
+## This created a window where enemies saw player_alive = true but the old player
+## node was in a transitional/freed state, causing native segfaults. Now player_alive
+## remains false throughout the reload transition and is only set true when the new
+## scene's player is registered.
 func _reset_stats() -> void:
 	kills = 0
 	shots_fired = 0
 	hits_landed = 0
-	player_alive = true
+	# player_alive intentionally NOT reset here — see set_player()
 	_death_signal_received = false
 	_death_detected_by_poll = false
 	_safety_net_deadline_ms = 0
@@ -338,6 +383,9 @@ func on_player_death() -> void:
 		_log_to_file("on_player_death() — already reloading, skipping")
 		return
 	player_alive = false
+	# Issue #1334 Round 9: Record wall-clock timestamp of death for absolute failsafe
+	if _player_dead_since_ms <= 0:
+		_player_dead_since_ms = Time.get_ticks_msec()
 	# Issue #1334: Disable player collision as defense-in-depth
 	if player and is_instance_valid(player):
 		if player is CharacterBody2D:
@@ -389,6 +437,13 @@ func set_player(p: Node2D) -> void:
 		elif player.has_signal("died") and player.is_connected("died", _on_player_died_signal):
 			player.disconnect("died", _on_player_died_signal)
 	player = p
+	# Issue #1334 Round 9: Reset player_alive = true HERE (not in _reset_stats).
+	# This ensures player_alive stays false during the entire scene reload transition
+	# and only becomes true when the new player node is registered.
+	if p and is_instance_valid(p):
+		player_alive = true
+		_player_dead_since_ms = 0  # Clear absolute failsafe timestamp
+		_log_to_file("set_player: player_alive reset to true (new player registered)")
 	# Connect to new player's death signal
 	if player and is_instance_valid(player):
 		var has_died_upper := player.has_signal("Died")
@@ -423,6 +478,9 @@ func _on_player_died_signal() -> void:
 	# Previously, player_alive was only set to false in on_player_death() (0.5-1.5s later),
 	# allowing enemies (especially snipers) to shoot at the dead player on the same frame.
 	player_alive = false
+	# Issue #1334 Round 9: Record wall-clock timestamp of death for absolute failsafe
+	if _player_dead_since_ms <= 0:
+		_player_dead_since_ms = Time.get_ticks_msec()
 	# Disable collision immediately (defense-in-depth) regardless of who handles restart
 	if player and is_instance_valid(player):
 		if player is CharacterBody2D:

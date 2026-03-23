@@ -774,8 +774,14 @@ func _physics_process(delta: float) -> void:
 	# only guarded individual shoot functions, but enemies still ran full AI (pathfinding,
 	# raycasting, state transitions) which could trigger native crashes when accessing
 	# physics state of the dead/freed player node.
-	var _gm_r8: Node = get_node_or_null("/root/GameManager")
-	if _gm_r8 and not _gm_r8.player_alive: return
+	# Issue #1334 Round 9: Also freeze when _player reference is invalid (freed/null).
+	# During scene reload transitions, the player node may be freed while enemy nodes
+	# still exist. Accessing a freed _player reference causes native segfaults.
+	var _gm_r9: Node = get_node_or_null("/root/GameManager")
+	if _gm_r9 and not _gm_r9.player_alive: return
+	if _player and not is_instance_valid(_player):
+		_player = null
+		return
 
 	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
 	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
@@ -1244,7 +1250,7 @@ func _process_ai_state(delta: float) -> void:
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	var is_distraction_enabled: bool = difficulty_manager != null and difficulty_manager.is_distraction_attack_enabled()
 	var is_confused: bool = _memory_reset_confusion_timer > 0.0
-	if _combat_allowed and is_distraction_enabled and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _goap_world_state.get("player_distracted", false) and _can_see_player and _player:
+	if _combat_allowed and is_distraction_enabled and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _goap_world_state.get("player_distracted", false) and _can_see_player and _player and is_instance_valid(_player):
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
@@ -3584,7 +3590,7 @@ func _check_player_visibility() -> void:
 	var is_vision_check_frame := (_vision_frame_counter % VISION_CHECK_INTERVAL) == _vision_frame_offset
 
 	# Fast-path: clear visibility immediately on blocking conditions (no raycasts needed).
-	if _is_blinded or _memory_reset_confusion_timer > 0.0 or _player == null or not _raycast \
+	if _is_blinded or _memory_reset_confusion_timer > 0.0 or _player == null or not is_instance_valid(_player) or not _raycast \
 			or (_player.has_method("is_invisible") and _player.is_invisible()):
 		_can_see_player = false; _player_visibility_ratio = 0.0; _continuous_visibility_timer = 0.0
 		return
