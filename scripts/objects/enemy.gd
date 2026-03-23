@@ -146,6 +146,7 @@ const SEPARATION_RADIUS: float = 60.0  ## Distance within which separation force
 const SEPARATION_STRENGTH: float = 280.0  ## Maximum separation impulse magnitude (px/s²)
 var _avoidance_velocity: Vector2 = Vector2.ZERO  ## Issue #1146: ORCA-computed safe velocity
 var _cover_raycasts: Array[RayCast2D] = []  ## Cover detection raycasts
+var _last_cover_search_rays: Array = []  ## Issue #1338: cached ray data for debug visualization (rays from player)
 const COVER_CHECK_COUNT: int = 36  ## Number of cover raycasts (Issue #1338: increased from 16 for finer angular resolution)
 const COVER_CHECK_DISTANCE: float = 300.0  ## Cover check distance
 var _current_health: int = 0; var _max_health: int = 0  ## Current / max health (set at spawn)
@@ -1184,20 +1185,24 @@ func _activate_machine_gunner_pm_fallback() -> void:
 func _find_distant_cover_position() -> void:
 	if _player == null: _has_valid_cover = false; return
 	var player_pos := _player.global_position
+	var space_state := get_world_2d().direct_space_state
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
 	var found_hidden: bool = false
 	var nav_map_dc: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
 	var has_nav_dc := nav_map_dc.is_valid()
+	# Issue #1338: Cast rays FROM the player (consistent with _find_cover_position)
 	for i in range(COVER_CHECK_COUNT):
 		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
-		var raycast := _cover_raycasts[i]
-		raycast.target_position = Vector2.from_angle(angle) * COVER_CHECK_DISTANCE
-		raycast.force_raycast_update()
-		if not raycast.is_colliding(): continue
-		var cp := raycast.get_collision_point()
-		var cn := raycast.get_collision_normal()
-		var cover_pos := cp + cn * 35.0
+		var direction := Vector2.from_angle(angle)
+		var ray_end := player_pos + direction * COVER_CHECK_DISTANCE
+		var query := PhysicsRayQueryParameters2D.new()
+		query.from = player_pos; query.to = ray_end; query.collision_mask = 4
+		var result := space_state.intersect_ray(query)
+		if result.is_empty(): continue
+		var cp: Vector2 = result["position"]
+		var away := (cp - player_pos).normalized()
+		var cover_pos := cp + away * 35.0
 		if has_nav_dc: cover_pos = NavigationServer2D.map_get_closest_point(nav_map_dc, cover_pos)
 		var is_hidden := not _is_position_visible_from_player(cover_pos)
 		if not is_hidden and found_hidden: continue
@@ -3200,45 +3205,42 @@ func _find_cover_closest_to_player() -> void:
 	if _player == null:
 		_has_valid_cover = false
 		return
-	var wp_a := _combat_waypoint(_player.global_position)  # Issue #1227
-	if wp_a != Vector2.ZERO: _cover_position = wp_a; _has_valid_cover = true; return
+	# Issue #1338: NO predefined waypoints — purely raycast-based cover search.
+	# Cast rays FROM the player in all directions; pick hidden cover closest to PLAYER.
 	var player_pos := _player.global_position
+	var space_state := get_world_2d().direct_space_state
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_distance: float = INF
 	var found_cover: bool = false
 
-	# Cast rays in all directions to find obstacles
 	var nav_map_cp: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
 	var has_nav_cp := nav_map_cp.is_valid()
 	for i in range(COVER_CHECK_COUNT):
 		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
 		var direction := Vector2.from_angle(angle)
+		var ray_end := player_pos + direction * COVER_CHECK_DISTANCE
 
-		var raycast := _cover_raycasts[i]
-		raycast.target_position = direction * COVER_CHECK_DISTANCE
-		raycast.force_raycast_update()
+		var query := PhysicsRayQueryParameters2D.new()
+		query.from = player_pos
+		query.to = ray_end
+		query.collision_mask = 4  # Only check obstacles (layer 3)
 
-		if raycast.is_colliding():
-			var collision_point := raycast.get_collision_point()
-			var collision_normal := raycast.get_collision_normal()
+		var result := space_state.intersect_ray(query)
+		if result.is_empty():
+			continue
 
-			# Cover position is offset from collision point along normal
-			var cover_pos := collision_point + collision_normal * 35.0
-			# Issue #1338: Snap to nav-mesh instead of direct raycast reachability check
-			if has_nav_cp: cover_pos = NavigationServer2D.map_get_closest_point(nav_map_cp, cover_pos)
+		var collision_point: Vector2 = result["position"]
+		var away_from_player := (collision_point - player_pos).normalized()
+		var cover_pos := collision_point + away_from_player * 35.0
+		if has_nav_cp: cover_pos = NavigationServer2D.map_get_closest_point(nav_map_cp, cover_pos)
 
-			# Check if this position is hidden from player (safe cover)
-			var is_hidden := not _is_position_visible_from_player(cover_pos)
-
-			if is_hidden:
-				# Calculate distance from this cover to the player
-				var distance_to_player := cover_pos.distance_to(player_pos)
-
-				# We want the cover closest to the player
-				if distance_to_player < best_distance:
-					best_distance = distance_to_player
-					best_cover = cover_pos
-					found_cover = true
+		var is_hidden := not _is_position_visible_from_player(cover_pos)
+		if is_hidden:
+			var distance_to_player := cover_pos.distance_to(player_pos)
+			if distance_to_player < best_distance:
+				best_distance = distance_to_player
+				best_cover = cover_pos
+				found_cover = true
 
 	if found_cover:
 		_cover_position = best_cover
@@ -3255,10 +3257,7 @@ func _find_cover_position() -> void:
 	if _player == null:
 		_has_valid_cover = false
 		return
-	var wp_r := _combat_waypoint(_player.global_position, true)  # Issue #1227: retreat path
-	# Issue #1338: only use combat waypoint if it's actually hidden from the player
-	if wp_r != Vector2.ZERO and not _is_position_visible_from_player(wp_r):
-		_cover_position = wp_r; _has_valid_cover = true; _last_cover_search_time = Time.get_ticks_msec() / 1000.0; return
+	# Issue #1338: NO predefined waypoints — cover is purely raycast-based.
 	# Issue #969: throttle cover search (skip cooldown when suppressed — need cover urgently)
 	var current_time := Time.get_ticks_msec() / 1000.0
 	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
@@ -3275,6 +3274,8 @@ func _find_cover_position() -> void:
 	# Pick the nearest candidate to the enemy where player's rays can't reach.
 	var nav_map: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
 	var has_nav := nav_map.is_valid()
+	# Store ray data for debug visualization (Issue #1359)
+	_last_cover_search_rays.clear()
 	for i in range(COVER_CHECK_COUNT):
 		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
 		var direction := Vector2.from_angle(angle)
@@ -3286,20 +3287,24 @@ func _find_cover_position() -> void:
 		query.collision_mask = 4  # Only check obstacles (layer 3)
 
 		var result := space_state.intersect_ray(query)
+		# Store ray info for debug visualization
+		var ray_info := { "origin": player_pos, "target": ray_end, "colliding": not result.is_empty() }
+		if not result.is_empty():
+			ray_info["point"] = result["position"]
+			ray_info["normal"] = result["normal"]
+		_last_cover_search_rays.append(ray_info)
+
 		if result.is_empty():
 			continue
 
 		var collision_point: Vector2 = result["position"]
 
 		# Cover position is on the far side of the obstacle from the player.
-		# The ray travels from the player, so "behind the obstacle" is further along the ray direction.
-		# Offset 35 px past the collision point (away from the player) to fit the enemy body (~24 px radius).
+		# Offset 35 px past the collision point (away from the player) to fit the enemy body.
 		var away_from_player := (collision_point - player_pos).normalized()
 		var cover_pos := collision_point + away_from_player * 35.0
 
-		# Issue #1338: Snap to nearest navigable point so the enemy can actually walk there.
-		# Previous _can_reach_position() used direct raycast which rejected valid cover
-		# behind corners that the nav-mesh can route around.
+		# Snap to nearest navigable point so the enemy can actually walk there.
 		if has_nav:
 			cover_pos = NavigationServer2D.map_get_closest_point(nav_map, cover_pos)
 
@@ -3415,8 +3420,7 @@ func _has_clear_path_to(target: Vector2) -> bool:
 
 ## Find cover position closer to the flank target for cover-to-cover movement.
 func _find_flank_cover_toward_target() -> void:
-	var wp_f := _combat_waypoint(_flank_target)  # Issue #1227
-	if wp_f != Vector2.ZERO: _flank_next_cover = wp_f; _has_flank_cover = true; return
+	# Issue #1338: NO predefined waypoints — purely raycast-based cover search.
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
 	var found_valid_cover: bool = false
@@ -4510,21 +4514,10 @@ func get_nav_path() -> PackedVector2Array:
 	return _nav_agent.get_current_navigation_path()
 
 ## Returns cover raycast collision data for debug visualization (Issue #1359: CoverRaycastMonitor).
+## Issue #1338: Returns rays from the player (matching actual cover search), not from the enemy.
 ## Each entry: { "origin": Vector2, "target": Vector2, "colliding": bool, "point": Vector2, "normal": Vector2 }
 func get_cover_raycast_data() -> Array:
-	var data: Array = []
-	for i in range(_cover_raycasts.size()):
-		var rc: RayCast2D = _cover_raycasts[i]
-		var entry: Dictionary = {
-			"origin": rc.global_position,
-			"target": rc.global_position + rc.target_position,
-			"colliding": rc.is_colliding(),
-		}
-		if rc.is_colliding():
-			entry["point"] = rc.get_collision_point()
-			entry["normal"] = rc.get_collision_normal()
-		data.append(entry)
-	return data
+	return _last_cover_search_rays
 
 ## Returns the current cover position and whether it is valid (Issue #1359: CoverRaycastMonitor).
 func get_cover_info() -> Dictionary:

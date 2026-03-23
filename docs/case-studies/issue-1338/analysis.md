@@ -124,6 +124,31 @@ Two issues with `_find_cover_position()`:
 - `_find_distant_cover_position()`: Same nav-mesh snap fix
 - Added file logging for cover search results to aid future debugging
 
+### Phase 9: Owner Requests No Predefined Waypoints (2026-03-23 03:28)
+
+- **Log file**: `round4/game_log_20260323_063239.txt`
+- **Observation**: "для укрытий не должно быть заранее назначенных точек. укрытием должно считаться ближайшее к врагу место, в котором в него не попадают лучи, выпущенные из игрока."
+  (cover should not use predefined waypoints; cover = nearest position to enemy where rays from player don't hit)
+- Also requested merge from main for debug visualization of cover search
+
+### Root Cause Analysis (Phase 9)
+
+Three issues with cover search:
+
+1. **Predefined combat waypoints bypassed raycast search**: `_find_cover_position()` and `_find_cover_closest_to_player()` both called `_combat_waypoint()` first. If a predefined waypoint was found, it was used as cover without checking if it was truly the nearest hidden position. This meant enemies would go to designer-placed waypoints instead of the geometrically nearest cover behind obstacles.
+
+2. **Debug visualization didn't match actual algorithm**: The `get_cover_raycast_data()` function returned data from `_cover_raycasts` (RayCast2D nodes attached to the enemy), but `_find_cover_position()` used `PhysicsRayQueryParameters2D` from the player position. The debug overlay showed rays from the enemy, making it impossible to verify the player-origin raycast search.
+
+3. **`_find_distant_cover_position()` used enemy-origin raycasts**: Unlike `_find_cover_position()` which cast from the player, the distant cover search still used enemy-attached RayCast2D nodes, creating inconsistency.
+
+### Fix (Phase 9)
+
+- Removed all `_combat_waypoint()` calls from `_find_cover_position()`, `_find_cover_closest_to_player()`, and `_find_flank_cover_toward_target()`
+- Added `_last_cover_search_rays` array to cache ray data from player-origin searches
+- Updated `get_cover_raycast_data()` to return cached player-origin ray data (matching actual search algorithm)
+- Updated `_find_distant_cover_position()` to use player-origin `PhysicsRayQueryParameters2D` (consistent with other cover functions)
+- Debug visualization (CoverRaycastMonitor) now correctly shows rays originating from the player
+
 ## Data Files
 
 - `game_log_20260322_171711.txt` - Original issue report log
@@ -131,3 +156,5 @@ Two issues with `_find_cover_position()`:
 - `game_log_20260323_040254.txt` - Post-movement-fix log showing cover detection issue
 - `game_log_20260323_052526.txt` - Confirmation suppression works, cover detection still wrong
 - `screenshot_cover_bug.png` - Screenshot showing enemy choosing distant cover over nearby wall
+- `round4/game_log_20260323_063239.txt` - Log showing predefined waypoint issue
+- `round4/cover_detection_wrong.png` - Screenshot of incorrect cover detection
