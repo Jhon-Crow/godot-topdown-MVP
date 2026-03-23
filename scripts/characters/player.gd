@@ -1185,6 +1185,11 @@ func _get_health_percent() -> float:
 ## Called when the player dies.
 func _on_death() -> void:
 	_is_alive = false
+	# Issue #1334: Disable collision layer so enemies can no longer raycast/interact
+	# with the dead player. This prevents crashes from hitscan or physics callbacks
+	# firing on a dead player node during the 0.5s restart delay.
+	collision_layer = 0
+	collision_mask = 0
 	died.emit()
 
 	# Start death animation with the hit direction
