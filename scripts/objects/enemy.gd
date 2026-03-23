@@ -450,7 +450,7 @@ func _ready() -> void:
 	if start_invisible: _invisibility = EnemyInvisibilityComponent.new(); _invisibility.name = "InvisibilityComponent"; add_child(_invisibility); _invisibility.initialize(_enemy_model)  # Issue #1121
 	if is_gas_mask:  # Issue #1353: chemical grenades with illusion copies
 		_gas_mask_grenade = GasMaskGrenadeComponent.new(); _gas_mask_grenade.name = "GasMaskGrenadeComponent"; add_child(_gas_mask_grenade)
-		if _head_sprite: var _gm_tex := load("res://assets/sprites/characters/enemy/gas_mask_head.png"); if _gm_tex: _head_sprite.texture = _gm_tex
+		if _head_sprite: var _gm_tex := load("res://assets/sprites/characters/enemy/gas_mask_head.png"); if _gm_tex: _head_sprite.texture = _gm_tex; _head_sprite.rotation_degrees = -90.0  # Issue #1363: sprite drawn facing up, rotate to face right
 
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
