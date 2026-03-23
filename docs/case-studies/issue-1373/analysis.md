@@ -1,4 +1,4 @@
-# Case Study: Issue #1373 — Enemy Squad Coordination & Friendly Fire Prevention
+# Case Study: Issue #1373 — Enemy Squad Coordination & Cover Detection Fix
 
 ## Problem Statement
 
@@ -6,6 +6,36 @@ Enemies within proximity interfere with each other during movement and frequentl
 friendly fire. The request is to make enemies within 1000 px behave as a synchronized team:
 covering each other, coordinating paths relative to allies, and using a group-level GOAP
 so the squad operates as a single organism.
+
+### Root Cause: Cover Detection Regression (identified 2026-03-23)
+
+Owner feedback on PR #1374: "совсем не та логика поиска укрытия (лучи должны исходить из игрока)"
+("completely wrong cover-finding logic — rays must originate from the player").
+
+**The core bug**: PR #1352 (commit c740ff7b) implemented correct player-origin raycasts for
+cover detection. However, the initial #1373 implementation reverted this by using enemy-origin
+child RayCast2D nodes instead of physics queries from the player position.
+
+| Aspect | PR #1352 (correct) | Initial #1373 (broken) |
+|--------|-------------------|----------------------|
+| Ray origin | Player position | Enemy position |
+| Method | Physics queries (intersect_ray) | Child RayCast2D nodes |
+| Ray count | 120 (3° resolution) | 16 (22.5° resolution) |
+| Ray range | 10,000 px (infinite) | 300 px |
+| Far-side probing | _get_far_side_cover() (intersect_point) | collision_normal * 35px offset |
+| Navmesh snapping | Yes (NavigationServer2D) | No |
+| Debug visualization | Cached player-origin ray data | Child raycast state |
+
+**Why player-origin matters**: Cover must be evaluated from the player's perspective. A position
+is "cover" if the player's line of sight cannot reach it. Casting rays from the enemy finds
+obstacles near the enemy, but doesn't guarantee the enemy will be hidden from the player.
+
+### Evidence from game_log_20260323_141146.txt
+
+- Rapid state oscillation: enemies cycle COMBAT → RETREATING → IN_COVER → SUPPRESSED
+  because selected cover positions don't actually hide them from the player
+- Enemies in IN_COVER immediately transition to SUPPRESSED (still visible to player)
+- No explicit raycast errors — the code works, but selects wrong positions
 
 ## Existing Systems (pre-#1373)
 
