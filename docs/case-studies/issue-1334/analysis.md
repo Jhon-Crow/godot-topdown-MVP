@@ -425,6 +425,94 @@ Three layered failures combine to produce the crash:
   - `shoot_sniper_hitscan()` — added `GameManager.player_alive` check; fixed `is_alive` to also check C# property `IsAlive`
   - `fire_at_predicted_position()` — added `GameManager.player_alive` check
 
+## Round 6 — Native segfault from physics state mutation during hitscan raycast loop
+
+### Symptom
+User reports: "всё ещё вылетает" (still crashes) specifically when killed by a sniper.
+Log: `game_log_20260323_041436.txt`
+
+### Log analysis
+The log ends abruptly at line 1405 during active combat on the Docks map. There is **no death
+event logged at all** — no `player_alive`, no `on_player_death`, no `Died` signal, no restart.
+The game process terminates instantly with a native segfault. The logging system has no time
+to flush its buffer before the crash.
+
+The last entries show normal combat activity: enemies shooting, sound propagation events,
+blood decals — then nothing. The crash is so fast that it occurs between log writes.
+
+### Root cause
+**Modifying physics state (CollisionLayer) during an active `direct_space_state.intersect_ray()` loop
+causes undefined behavior in Godot's physics server, resulting in a native C++ segfault.**
+
+The crash sequence in `shoot_sniper_hitscan()`:
+1. Sniper hitscan fires — enters raycast loop calling `space_state.intersect_ray()` iteratively
+2. Loop finds the player as a collision hit on layer 1
+3. Loop calls `hit_node.call("TakeDamage", 50)` — lethal damage to the player
+4. `TakeDamage(50)` runs **synchronously** → `HealthComponent.TakeDamage()` → `Died` signal
+   → `BaseCharacter.OnHealthDied()` → `Player.OnDeath()` → **`CollisionLayer = 0`**
+5. `EmitSignal(SignalName.Died)` fires → `GameManager._on_player_died_signal()` →
+   **`player.collision_layer = 0`** (again), **`player.collision_mask = 0`**
+6. Control returns to the hitscan loop — next iteration calls `space_state.intersect_ray()`
+7. **SEGFAULT** — The physics server's internal state was mutated (CollisionLayer changed)
+   during an active query sequence. Godot's physics server does not support concurrent
+   modification during `direct_space_state` queries.
+
+### Evidence from Godot engine documentation and issues
+This is a **well-documented class of unsafe operations** in Godot:
+- Godot issues #19023, #107951, #6676, #34330, #101795 document crashes from modifying
+  physics state during physics callbacks/queries
+- The engine tries to guard against this with "Removing a CollisionObject node during a
+  physics callback is not allowed" warnings, but these guards do **not** catch indirect
+  modifications through cross-language (GDScript→C#) method calls
+- The Godot physics troubleshooting docs recommend using `call_deferred()` for any physics
+  state changes triggered during physics operations
+
+### Why Round 5 fix didn't work
+Round 5 added `GameManager.player_alive` checks before shooting, and set `player_alive = false`
+immediately on the `Died` signal. But the crash happens **inside the hitscan's own execution**:
+- The hitscan function calls `TakeDamage()` which kills the player synchronously
+- The `Died` signal fires synchronously within `TakeDamage()`
+- `player_alive = false` IS set... but we're already past the `player_alive` check at the
+  function entry — we're inside the raycast loop
+- The physics state modification (CollisionLayer=0) happens before the loop finishes
+- The next `intersect_ray()` call crashes
+
+### Fix
+**Deferred damage application**: Collect all hits during the raycast loop without calling any
+damage methods. After the loop fully completes (all `intersect_ray()` calls are done), apply
+damage to the collected hits. This is the standard safe pattern for Godot physics queries.
+
+```
+# BEFORE (Round 5 — crashes):
+for _i in range(50):
+    var char_result := space_state.intersect_ray(...)
+    if target_alive:
+        hit_node.call("TakeDamage", damage)   # ← modifies physics state mid-loop!
+    exclude_rids.append(char_result["rid"])     # ← next iteration crashes
+
+# AFTER (Round 6 — safe):
+var pending_hits := []
+for _i in range(50):
+    var char_result := space_state.intersect_ray(...)
+    if target_alive:
+        pending_hits.append({"node": hit_node, ...})  # ← collect only
+    exclude_rids.append(char_result["rid"])
+
+# Apply damage AFTER all raycast queries are complete:
+for hit_info in pending_hits:
+    hit_node.call("TakeDamage", damage)   # ← safe, no active physics query
+```
+
+Additional safety: re-check `is_alive`/`IsAlive` before applying each deferred hit, in case
+a prior hit in the same batch already killed the target.
+
+### Changes (Round 6)
+
+- `scripts/components/enemy_sniper_component.gd`:
+  - `shoot_sniper_hitscan()` — Restructured to collect hits in `pending_hits` array during
+    raycast loop, then apply damage after loop completes. Added re-validation of node validity
+    and alive status before each deferred damage call.
+
 ## Additional observations
 
 - `[SceneLoader] ERROR: Invalid resource` messages appear in logs when

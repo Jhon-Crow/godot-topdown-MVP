@@ -194,6 +194,11 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 	var damage := 50.0; var end_pos := spawn_pos + direction * 5000.0; var bullet_end_point := end_pos
 	var shooter_id := enemy.get_instance_id(); var walls_penetrated := 0; var current_pos := spawn_pos
 	var exclude_rids := []; var damaged_ids: Dictionary = {}
+	# Issue #1334 Round 6: Collect hits during raycast loop, apply damage AFTER loop.
+	# Calling TakeDamage() inside a direct_space_state query loop modifies physics state
+	# (CollisionLayer=0 in Player.OnDeath), which is undefined behavior in Godot's physics
+	# server and causes a native segfault crash. The safe pattern is: query first, damage later.
+	var pending_hits: Array[Dictionary] = []
 	for _i in range(50):
 		if current_pos.distance_to(end_pos) < 1.0: break
 		var wall_result := space_state.intersect_ray(PhysicsRayQueryParameters2D.create(current_pos, end_pos, 4, exclude_rids))
@@ -215,13 +220,10 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 				elif hit_node.get("IsAlive") != null:
 					target_alive = hit_node.get("IsAlive")
 				if target_alive:
-					if hit_node.has_method("on_hit_with_bullet_info"):
-						hit_node.call("on_hit_with_bullet_info", direction, enemy.get("_caliber_data"), false, walls_penetrated > 0, damage)
-					elif hit_node.has_method("TakeDamage"): hit_node.call("TakeDamage", damage)
-					elif hit_node.has_method("take_damage"): hit_node.call("take_damage", damage)
-					elif hit_node.has_method("on_hit"): hit_node.call("on_hit")
+					# Issue #1334 Round 6: Store hit for deferred damage — do NOT call
+					# TakeDamage here, as it modifies physics state during an active query.
+					pending_hits.append({"node": hit_node, "walls_penetrated": walls_penetrated})
 					damaged_ids[hit_id] = true
-					if log_to_file_fn.is_valid(): log_to_file_fn.call("[SniperHitscan] Hit %s damage=%.0f" % [hit_node.name, damage])
 			exclude_rids.append(char_result["rid"]); current_pos = char_result["position"] + direction * 5.0
 		elif not wall_result.is_empty():
 			var impact_mgr := enemy.get_node_or_null("/root/ImpactEffectsManager")
@@ -231,6 +233,25 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 				walls_penetrated += 1; exclude_rids.append(wall_result["rid"])
 				current_pos = wall_result["position"] + direction * 5.0
 			else: bullet_end_point = wall_result["position"]; break
+	# Issue #1334 Round 6: Apply damage AFTER the raycast loop has fully completed.
+	# This ensures no physics state modifications happen during active direct_space_state queries.
+	for hit_info in pending_hits:
+		var hit_node: Node2D = hit_info["node"]
+		if not is_instance_valid(hit_node): continue
+		# Re-check alive status — a prior hit in this batch may have killed the target
+		var still_alive := true
+		if hit_node.has_method("is_alive"):
+			still_alive = hit_node.call("is_alive")
+		elif hit_node.get("IsAlive") != null:
+			still_alive = hit_node.get("IsAlive")
+		if not still_alive: continue
+		var hit_walls: int = hit_info["walls_penetrated"]
+		if hit_node.has_method("on_hit_with_bullet_info"):
+			hit_node.call("on_hit_with_bullet_info", direction, enemy.get("_caliber_data"), false, hit_walls > 0, damage)
+		elif hit_node.has_method("TakeDamage"): hit_node.call("TakeDamage", damage)
+		elif hit_node.has_method("take_damage"): hit_node.call("take_damage", damage)
+		elif hit_node.has_method("on_hit"): hit_node.call("on_hit")
+		if log_to_file_fn.is_valid(): log_to_file_fn.call("[SniperHitscan] Hit %s damage=%.0f" % [hit_node.name, damage])
 	_spawn_sniper_tracer(spawn_pos, bullet_end_point)
 
 ## Spawn a fading smoke tracer Line2D from muzzle to bullet endpoint.
