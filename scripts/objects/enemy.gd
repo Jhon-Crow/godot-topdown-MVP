@@ -376,7 +376,8 @@ var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing r
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
 var _gas_mask_grenade: GasMaskGrenadeComponent = null  ## Issue #1353: Chemical grenade component for gas mask enemies.
 var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
-var _tactical_group: TacticalGroupComponent = null  ## Issue #1287: Tactical group movement — enemies within 500 px spread around the player.
+var _tactical_group: TacticalGroupComponent = null  ## Issue #1287: Tactical group movement — enemies within 1000 px spread around the player.
+var _squad_coordinator: SquadCoordinatorComponent = null  ## Issue #1373: Squad coordination — enemies within 1000 px behave as synchronized team.
 var _pursuit_component: PursuitComponent = null  ## Issue #1289: Cover-finding logic for PURSUING state.
 
 func _ready() -> void:
@@ -428,6 +429,7 @@ func _ready() -> void:
 
 	_tactical_movement = TacticalMovementComponent.new(self)  # Issue #1249: narrow passage queuing
 	_tactical_group = TacticalGroupComponent.new(self)  # Issue #1287: tactical group encirclement
+	_squad_coordinator = SquadCoordinatorComponent.new(self)  # Issue #1373: squad coordination
 	_pursuit_component = PursuitComponent.new(self)  # Issue #1289: pursuit cover-finding component
 
 	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
@@ -868,6 +870,7 @@ func _physics_process(delta: float) -> void:
 	_select_best_target()
 	_update_memory(delta)
 	_update_goap_state()
+	if _squad_coordinator and _player: _squad_coordinator.tick(delta, _player.global_position)  # Issue #1373: squad coordination tick
 	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null)); if _shield_component: _shield_component.update(delta)  # Issues #1034, #1242
 	if _hit_reaction_timer > 0: _hit_reaction_timer -= delta  # Issue #1242: decay hit reaction rotation timer
 	# Issue #1242: delayed player tracking for shield enemy — update facing angle periodically, not continuously
@@ -1238,6 +1241,7 @@ func _find_distant_cover_position() -> void:
 		var cover_pos := cp + cn * 35.0
 		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue  # Issue #1355
 		if not _can_reach_position(cover_pos): continue
+		if _squad_coordinator and _squad_coordinator.is_cover_claimed(cover_pos): continue  # Issue #1373
 		var is_hidden := not _is_position_visible_from_player(cover_pos)
 		if not is_hidden and found_hidden: continue
 		# Score: prefer FAR positions (invert distance score) + hidden
@@ -1249,6 +1253,7 @@ func _find_distant_cover_position() -> void:
 		elif (is_hidden or not found_hidden) and total_score > best_score: best_score = total_score; best_cover = cover_pos
 	if best_score > 0:
 		_cover_position = best_cover; _has_valid_cover = true
+		if _squad_coordinator: _squad_coordinator.claim_cover(best_cover)  # Issue #1373
 		_log_to_file("[#1033] Distant cover found at %s (dist_to_player=%.0f)" % [best_cover, best_cover.distance_to(player_pos)])
 	else:
 		_find_cover_position()  # Fallback to normal cover search
@@ -1774,8 +1779,12 @@ func _process_in_cover_state(delta: float) -> void:
 				_transition_to_combat()
 				return
 			else:  # Can't hit from here - need to pursue (move cover-to-cover)
-				_log_debug("Target is far and can't hit, transitioning to PURSUING")
-				_transition_to_pursuing()
+				# Issue #1373: If squad coordinator says we should provide covering fire, stay and suppress.
+				if _squad_coordinator and _squad_coordinator.should_provide_covering_fire():
+					_log_debug("Squad covering fire: holding position while allies move")
+				else:
+					_log_debug("Target is far and can't hit, transitioning to PURSUING")
+					_transition_to_pursuing()
 				return
 
 	# If not under fire and can see player or companion, engage (only shoot after detection delay)
@@ -3323,6 +3332,10 @@ func _find_cover_position() -> void:
 			if not _can_reach_position(cover_pos):
 				continue
 
+			# Issue #1373: Skip cover positions already claimed by squad mates.
+			if _squad_coordinator and _squad_coordinator.is_cover_claimed(cover_pos):
+				continue
+
 			# First priority: Check if this position is actually hidden from player
 			var is_hidden := not _is_position_visible_from_player(cover_pos)
 
@@ -3355,6 +3368,7 @@ func _find_cover_position() -> void:
 	if best_score > 0:
 		_cover_position = best_cover
 		_has_valid_cover = true
+		if _squad_coordinator: _squad_coordinator.claim_cover(best_cover)  # Issue #1373: claim cover for squad deconfliction
 		_log_debug("Found cover at: %s (hidden: %s)" % [_cover_position, found_hidden_cover])
 	else: _has_valid_cover = false
 
@@ -4363,6 +4377,7 @@ func _notify_nearby_enemies_of_death() -> void:
 ## Called when the enemy dies.
 func _on_death() -> void:
 	_is_alive = false
+	if _squad_coordinator: _squad_coordinator.release_cover()  # Issue #1373: release cover claim on death
 	if _invisibility and _invisibility.is_cloaked: _invisibility.remove()  # Issue #1121: reveal enemy on death
 	_log_to_file("Enemy died (ricochet: %s, penetration: %s, player_kill: %s)" % [_killed_by_ricochet, _killed_by_penetration, _killed_by_player])
 	died.emit()
@@ -4548,10 +4563,19 @@ func _update_debug_label() -> void:
 	if _aggression: t += _aggression.get_debug_text()
 	if _tactical_movement: var _tm_info := _tactical_movement.get_debug_info(); if _tm_info != "": t += "\n" + _tm_info  # Issue #1249
 	if _tactical_group: var _tg_info := _tactical_group.get_debug_info(); if _tg_info != "": t += "\n" + _tg_info  # Issue #1287
+	if _squad_coordinator: var _sq_info := _squad_coordinator.get_debug_info(); if _sq_info != "": t += "\n" + _sq_info  # Issue #1373
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
 func get_goap_world_state() -> Dictionary: return _goap_world_state.duplicate()
+## Issue #1373: Public query methods for SquadCoordinatorComponent.
+func get_squad_claimed_cover() -> Vector2: return _squad_coordinator.get_claimed_cover() if _squad_coordinator else Vector2.INF
+func is_alive_enemy() -> bool: return _is_alive
+func get_health_ratio() -> float: return float(_current_health) / float(_max_health) if _max_health > 0 else 0.0
+func has_valid_cover_position() -> bool: return _has_valid_cover
+func can_see_player_now() -> bool: return _can_see_player
+func is_actively_shooting() -> bool: return _current_state == AIState.COMBAT and _can_see_player and _shoot_timer >= shoot_cooldown * 0.5
+func get_firing_direction() -> Vector2: return _get_weapon_forward_direction() if (_current_state == AIState.COMBAT and _can_see_player) else Vector2.ZERO
 ## Returns a copy of the active search waypoints (Issue #1251: used by SearchPathMonitor for visualization).
 func get_search_waypoints() -> Array[Vector2]: return _search_waypoints.duplicate()
 ## Returns the current search waypoint index (Issue #1251: used by SearchPathMonitor for visualization).
@@ -4735,6 +4759,9 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	# Issue #1287: Tactical group encirclement — offset approach target so enemies spread around the player.
 	if _tactical_group and _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
 		target_pos = _tactical_group.get_adjusted_target(target_pos, get_physics_process_delta_time())
+	# Issue #1373: Squad coordination — firing lane avoidance + inter-enemy spacing.
+	if _squad_coordinator and _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.FLANKING, AIState.ASSAULT]:
+		target_pos = _squad_coordinator.get_coordinated_target(target_pos, get_physics_process_delta_time())
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
 	direction = _apply_wall_avoidance(direction)
