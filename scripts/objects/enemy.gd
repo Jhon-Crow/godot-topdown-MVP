@@ -145,7 +145,7 @@ const SEPARATION_RADIUS: float = 60.0  ## Distance within which separation force
 const SEPARATION_STRENGTH: float = 280.0  ## Maximum separation impulse magnitude (px/s²)
 var _avoidance_velocity: Vector2 = Vector2.ZERO  ## Issue #1146: ORCA-computed safe velocity
 var _cover_raycasts: Array[RayCast2D] = []  ## Cover detection raycasts
-const COVER_CHECK_COUNT: int = 16  ## Number of cover raycasts
+const COVER_CHECK_COUNT: int = 36  ## Number of cover raycasts (Issue #1338: increased from 16 for finer angular resolution)
 const COVER_CHECK_DISTANCE: float = 300.0  ## Cover check distance
 var _current_health: int = 0; var _max_health: int = 0  ## Current / max health (set at spawn)
 var _is_alive: bool = true  ## Is alive
@@ -1182,6 +1182,8 @@ func _find_distant_cover_position() -> void:
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
 	var found_hidden: bool = false
+	var nav_map_dc: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
+	var has_nav_dc := nav_map_dc.is_valid()
 	for i in range(COVER_CHECK_COUNT):
 		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
 		var raycast := _cover_raycasts[i]
@@ -1191,7 +1193,7 @@ func _find_distant_cover_position() -> void:
 		var cp := raycast.get_collision_point()
 		var cn := raycast.get_collision_normal()
 		var cover_pos := cp + cn * 35.0
-		if not _can_reach_position(cover_pos): continue
+		if has_nav_dc: cover_pos = NavigationServer2D.map_get_closest_point(nav_map_dc, cover_pos)
 		var is_hidden := not _is_position_visible_from_player(cover_pos)
 		if not is_hidden and found_hidden: continue
 		# Score: prefer FAR positions (invert distance score) + hidden
@@ -3195,6 +3197,8 @@ func _find_cover_closest_to_player() -> void:
 	var found_cover: bool = false
 
 	# Cast rays in all directions to find obstacles
+	var nav_map_cp: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
+	var has_nav_cp := nav_map_cp.is_valid()
 	for i in range(COVER_CHECK_COUNT):
 		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
 		var direction := Vector2.from_angle(angle)
@@ -3209,11 +3213,8 @@ func _find_cover_closest_to_player() -> void:
 
 			# Cover position is offset from collision point along normal
 			var cover_pos := collision_point + collision_normal * 35.0
-
-			# CRITICAL: Verify we can actually reach this cover position
-			# This prevents selecting cover positions on the opposite side of walls
-			if not _can_reach_position(cover_pos):
-				continue
+			# Issue #1338: Snap to nav-mesh instead of direct raycast reachability check
+			if has_nav_cp: cover_pos = NavigationServer2D.map_get_closest_point(nav_map_cp, cover_pos)
 
 			# Check if this position is hidden from player (safe cover)
 			var is_hidden := not _is_position_visible_from_player(cover_pos)
@@ -3261,6 +3262,8 @@ func _find_cover_position() -> void:
 	# Issue #1338: Cast rays FROM the player in all directions to find obstacles.
 	# The position behind each obstacle (opposite side from player) is a candidate cover.
 	# Pick the nearest candidate to the enemy where player's rays can't reach.
+	var nav_map: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
+	var has_nav := nav_map.is_valid()
 	for i in range(COVER_CHECK_COUNT):
 		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
 		var direction := Vector2.from_angle(angle)
@@ -3283,9 +3286,11 @@ func _find_cover_position() -> void:
 		var away_from_player := (collision_point - player_pos).normalized()
 		var cover_pos := collision_point + away_from_player * 35.0
 
-		# Verify the enemy can actually reach this cover position
-		if not _can_reach_position(cover_pos):
-			continue
+		# Issue #1338: Snap to nearest navigable point so the enemy can actually walk there.
+		# Previous _can_reach_position() used direct raycast which rejected valid cover
+		# behind corners that the nav-mesh can route around.
+		if has_nav:
+			cover_pos = NavigationServer2D.map_get_closest_point(nav_map, cover_pos)
 
 		# Verify the cover is truly hidden from the player
 		if _is_position_visible_from_player(cover_pos):
@@ -3301,8 +3306,10 @@ func _find_cover_position() -> void:
 	if found_cover:
 		_cover_position = best_cover
 		_has_valid_cover = true
-		_log_debug("Found cover at: %s (distance: %.1f)" % [_cover_position, best_distance])
-	else: _has_valid_cover = false
+		_log_to_file("Found cover at %s (distance: %.1f, player at %s)" % [_cover_position, best_distance, player_pos])
+	else:
+		_has_valid_cover = false
+		_log_to_file("No valid cover found (player at %s, enemy at %s)" % [player_pos, global_position])
 
 ## Calculate flank position based on player location and stored _flank_side.
 func _calculate_flank_position() -> void:

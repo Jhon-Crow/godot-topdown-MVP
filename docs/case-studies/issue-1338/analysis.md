@@ -93,7 +93,41 @@ SUPPRESSED (actively moving to cover) -> IN_COVER (arrived, hidden) -> (3s timer
 SUPPRESSED (frozen, velocity=0) -> IN_COVER (same position) -> PURSUING
 ```
 
+### Phase 7: Owner Reports Cover Detection Still Incorrect (2026-03-23 01:05)
+
+- **Log file**: `game_log_20260323_040254.txt`
+- **Observation**: "всё ещё враг не уходит когда игрока нет в прямой видимости. так же всё ещё не корректно определяется ближайшее укрытие"
+  (enemy still doesn't leave when player is not in line of sight; nearest cover is still incorrectly determined)
+- Rays from player should go in all directions, but the nearest cover to the enemy should be chosen
+
+### Phase 8: Owner Confirms Suppression Works, Cover Still Wrong (2026-03-23 02:31)
+
+- **Log file**: `game_log_20260323_052526.txt`
+- **Screenshot**: `screenshot_cover_bug.png`
+- **Observation**: "подавление работает правильно. не правильно определяется ближайшее укрытие"
+  (suppression works correctly; nearest cover is incorrectly determined)
+- Screenshot shows enemy path going toward distant cover instead of nearby wall
+
+### Root Cause Analysis (Phase 8)
+
+Two issues with `_find_cover_position()`:
+
+1. **Angular resolution too low**: Only 16 rays (22.5° apart) meant many nearby walls were missed entirely. Increased to 36 rays (10° apart) to cover all wall segments in indoor environments.
+
+2. **Reachability check too restrictive**: `_can_reach_position()` used a direct line-of-sight raycast from enemy to cover position. In indoor environments with corners, valid cover behind walls was rejected because a wall blocked the direct line — even though the navigation mesh could route around the corner. Replaced with `NavigationServer2D.map_get_closest_point()` to snap cover positions to the nav-mesh, ensuring they are on walkable ground.
+
+### Fix (Phase 8)
+
+- `COVER_CHECK_COUNT`: 16 → 36 (finer angular resolution catches more walls)
+- `_find_cover_position()`: Replaced `_can_reach_position()` with nav-mesh snapping
+- `_find_cover_closest_to_player()`: Same nav-mesh snap fix
+- `_find_distant_cover_position()`: Same nav-mesh snap fix
+- Added file logging for cover search results to aid future debugging
+
 ## Data Files
 
 - `game_log_20260322_171711.txt` - Original issue report log
 - `game_log_20260323_033050.txt` - Post-first-fix log showing bug still present
+- `game_log_20260323_040254.txt` - Post-movement-fix log showing cover detection issue
+- `game_log_20260323_052526.txt` - Confirmation suppression works, cover detection still wrong
+- `screenshot_cover_bug.png` - Screenshot showing enemy choosing distant cover over nearby wall
