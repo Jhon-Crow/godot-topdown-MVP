@@ -1861,10 +1861,10 @@ func _process_suppressed_state(delta: float) -> void:
 	# RCA-19: Apply minimum duration to prevent rapid cycling
 	if not _under_fire:
 		if Time.get_ticks_msec() / 1000.0 - _suppressed_entry_time >= SUPPRESSED_MIN_DURATION:
-			# Issue #1338: start post-suppression timer so enemy stays in cover
+			# Issue #1338: start post-suppression timer so enemy stays in cover after arriving
 			_post_suppression_timer = POST_SUPPRESSION_COVER_DURATION
-			_log_debug("Suppression ended, entering post-suppression cover (%.1fs)" % POST_SUPPRESSION_COVER_DURATION)
-			_transition_to_in_cover()
+			_log_debug("Suppression ended, seeking cover (post-suppression %.1fs)" % POST_SUPPRESSION_COVER_DURATION)
+			_transition_to_seeking_cover()
 
 ## Process RETREATING state - moving to cover with behavior based on damage taken.
 func _process_retreating_state(delta: float) -> void:
