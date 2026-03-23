@@ -1185,6 +1185,11 @@ func _get_health_percent() -> float:
 ## Called when the player dies.
 func _on_death() -> void:
 	_is_alive = false
+	# Issue #1334: Disable collision layer so enemies can no longer raycast/interact
+	# with the dead player. This prevents crashes from hitscan or physics callbacks
+	# firing on a dead player node during the 0.5s restart delay.
+	collision_layer = 0
+	collision_mask = 0
 	died.emit()
 
 	# Start death animation with the hit direction
@@ -3518,6 +3523,8 @@ func _handle_invisibility_suit_input() -> void:
 
 ## Callback when invisibility activates.
 func _on_invisibility_activated(charges_remaining: int) -> void:
+	if _invisibility_suit == null or not is_instance_valid(_invisibility_suit):
+		return
 	invisibility_changed.emit(true, charges_remaining, _invisibility_suit.MAX_CHARGES)
 	if _invisibility_hud and is_instance_valid(_invisibility_hud):
 		_invisibility_hud.set_active(true)
@@ -3528,6 +3535,8 @@ func _on_invisibility_activated(charges_remaining: int) -> void:
 
 ## Callback when invisibility deactivates.
 func _on_invisibility_deactivated(charges_remaining: int) -> void:
+	if _invisibility_suit == null or not is_instance_valid(_invisibility_suit):
+		return
 	invisibility_changed.emit(false, charges_remaining, _invisibility_suit.MAX_CHARGES)
 	if _invisibility_hud and is_instance_valid(_invisibility_hud):
 		_invisibility_hud.set_active(false)
@@ -3775,6 +3784,8 @@ func _handle_trajectory_glasses_input() -> void:
 ## Callback when trajectory glasses activates.
 ## Shows charge pips briefly (400 ms) via the HUD node; no progress bar (Issue #1049).
 func _on_trajectory_activated(charges_remaining: int) -> void:
+	if _trajectory_glasses == null or not is_instance_valid(_trajectory_glasses):
+		return
 	trajectory_glasses_changed.emit(true, charges_remaining, _trajectory_glasses.MAX_CHARGES)
 	# Show charge pip HUD briefly — it auto-hides after ACTIVATION_SHOW_DURATION (Issue #1049)
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
@@ -3783,6 +3794,8 @@ func _on_trajectory_activated(charges_remaining: int) -> void:
 
 ## Callback when trajectory glasses deactivates.
 func _on_trajectory_deactivated(charges_remaining: int) -> void:
+	if _trajectory_glasses == null or not is_instance_valid(_trajectory_glasses):
+		return
 	trajectory_glasses_changed.emit(false, charges_remaining, _trajectory_glasses.MAX_CHARGES)
 	# Hide charge pip HUD immediately on deactivation (Issue #1049)
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
@@ -4488,6 +4501,8 @@ func _handle_breaching_charges_input() -> void:
 
 ## Callback when a breaching charge is placed.
 func _on_breaching_charge_placed(charges_remaining: int) -> void:
+	if _breaching_charges == null or not is_instance_valid(_breaching_charges):
+		return
 	breaching_charge_placed.emit(charges_remaining)
 	_show_active_item_charge_bar(charges_remaining, _breaching_charges.MAX_CHARGES)
 	_charge_bar_hide_pending = true
@@ -4617,21 +4632,24 @@ func _deequip_all_active_items() -> void:
 	_experimental_sample_equipped = false
 	_fine_motor_skills_equipped = false; _fine_motor_skills_active = false
 
-## Initialise the newly picked-up item subsystem (Issue #1325).
+## Initialise the newly picked-up item subsystem (Issue #1325, #1317).
 func _on_active_item_picked_up(item_type: int) -> void:
+	# Issue #1317: passive items must NOT de-equip the current active item.
+	const PASSIVE_TYPES: Array = [6, 9, 10, 13, 14, 17]
+	if item_type in PASSIVE_TYPES:
+		if item_type == 6: _init_breaker_bullets()
+		elif item_type == 13: _init_armored_skin(); _apply_item_visual()
+		return
 	_deequip_all_active_items()
 	match item_type:
 		1: _init_flashlight()
 		2: _init_homing_bullets()
 		4: _init_bff_pendant()
 		5: _init_invisibility_suit()
-		6: _init_breaker_bullets()
 		7: _init_force_field()
 		8: _init_trajectory_glasses()
 		11: _init_loudspeaker()
 		12: _init_breaching_charges()
-		13:
-			_init_armored_skin(); _apply_item_visual()
 		16: _init_recoil_compensator()
 		18: _init_experimental_sample()
 		19: _init_fine_motor_skills()
