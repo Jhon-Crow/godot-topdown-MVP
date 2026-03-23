@@ -217,8 +217,23 @@ func test_sniper_laser_uses_direct_is_alive_access() -> void:
 		"Must NOT use enemy.get('_is_alive') which can return null [#1336]")
 
 
+func test_sniper_laser_uses_top_level_for_global_coords() -> void:
+	# Laser Line2D must use top_level=true so it renders in global coordinates
+	# regardless of enemy node hierarchy. This matches SniperEnemyTracer approach. [#1336]
+	var src := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
+	assert_not_null(src, "enemy_sniper_component.gd must be readable")
+	if src == null:
+		return
+	var text := src.get_as_text()
+	src.close()
+	assert_true(text.contains("top_level = true"),
+		"Laser Line2D must set top_level = true for reliable global-coordinate rendering [#1336]")
+	assert_true(text.contains("enemy.add_child(_laser_sight)"),
+		"Laser must be parented directly to enemy node (not scene root) [#1336]")
+
+
 func test_sniper_laser_cleanup_on_exit_tree() -> void:
-	# _exit_tree must free laser nodes since they are parented to scene root. [#1336]
+	# _exit_tree must free laser nodes to handle edge cases. [#1336]
 	var src := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
 	assert_not_null(src, "enemy_sniper_component.gd must be readable")
 	if src == null:

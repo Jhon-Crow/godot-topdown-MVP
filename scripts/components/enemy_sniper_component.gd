@@ -357,30 +357,25 @@ func _fade_sniper_tracer(tracer: Line2D) -> void:
 # ============================================================================
 
 ## Create the laser sight Line2D with glow layers (called once from _ready for snipers only).
-## [#1336] Laser nodes are added as children of the current scene root via call_deferred
-## to guarantee they are in a valid CanvasItem branch for rendering. In Godot 4.3 a
-## CanvasItem parented under a plain Node or certain hierarchies may silently fail to render.
+## [#1336] Round 8: Laser nodes are added directly to the enemy CharacterBody2D with
+## top_level=true, so they use global coordinates and render reliably. This mirrors how
+## SniperEnemyTracer works (line 327) and avoids the call_deferred/scene-root issues
+## that caused the laser to be invisible in previous rounds.
 func _create_laser_sight() -> void:
 	if enemy == null:
-		print("[#1336] ERROR: _create_laser_sight called with null enemy")
+		_log("[#1336] ERROR: _create_laser_sight called with null enemy")
 		return
-	# [#1336] Add laser nodes to the current_scene (top-level scene root) instead of the
-	# enemy node. This avoids Godot 4.3 CanvasItem rendering issues where Line2D nodes
-	# parented under certain node hierarchies may silently fail to render, even with
-	# top_level=true. Adding to the scene root guarantees a valid CanvasItem rendering path.
-	var laser_parent: Node = enemy.get_tree().current_scene if enemy.get_tree() else enemy
-	if laser_parent == null:
-		laser_parent = enemy
 	_laser_sight = Line2D.new()
 	_laser_sight.name = "SniperEnemyLaser_%s" % enemy.name
 	_laser_sight.width = LASER_WIDTH
 	_laser_sight.default_color = LASER_COLOR
 	_laser_sight.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	_laser_sight.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_laser_sight.top_level = true
 	_laser_sight.z_index = 5
 	_laser_sight.add_point(Vector2.ZERO)
 	_laser_sight.add_point(Vector2.ZERO)
-	laser_parent.call_deferred("add_child", _laser_sight)
+	enemy.add_child(_laser_sight)
 
 	# Glow layers: additive-blended wider lines for volumetric look (like LaserGlowEffect.cs).
 	var glow_configs := [
@@ -395,13 +390,14 @@ func _create_laser_sight() -> void:
 		glow.default_color = Color(LASER_COLOR.r, LASER_COLOR.g, LASER_COLOR.b, cfg["alpha"])
 		glow.begin_cap_mode = Line2D.LINE_CAP_ROUND
 		glow.end_cap_mode = Line2D.LINE_CAP_ROUND
+		glow.top_level = true
 		glow.z_index = 4
 		var mat := CanvasItemMaterial.new()
 		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 		glow.material = mat
 		glow.add_point(Vector2.ZERO)
 		glow.add_point(Vector2.ZERO)
-		laser_parent.call_deferred("add_child", glow)
+		enemy.add_child(glow)
 		_laser_glow_layers.append(glow)
 
 	# Endpoint glow: small PointLight2D at the laser impact point.
@@ -421,9 +417,8 @@ func _create_laser_sight() -> void:
 			img.set_pixel(x, y, Color(1, 1, 1, a))
 	var tex := ImageTexture.create_from_image(img)
 	_laser_endpoint_light.texture = tex
-	laser_parent.call_deferred("add_child", _laser_endpoint_light)
-	print("[#1336] Laser sight created on %s (parent=%s, weapon=%d)" % [enemy.name, laser_parent.name, enemy.weapon_type])
-	_log("[#1336] Laser sight created on %s (parent=%s)" % [enemy.name, laser_parent.name])
+	enemy.add_child(_laser_endpoint_light)
+	_log("[#1336] Laser sight created on %s (weapon=%d)" % [enemy.name, enemy.weapon_type])
 
 
 ## Update laser sight position and endpoint every frame.
@@ -431,11 +426,6 @@ func _create_laser_sight() -> void:
 func update_laser_sight() -> void:
 	if _laser_sight == null or enemy == null:
 		return
-	# [#1336] Skip update until laser is added to the tree (call_deferred from _create_laser_sight).
-	if not _laser_sight.is_inside_tree():
-		return
-	# [#1336] Use direct property access instead of enemy.get("_is_alive") which can
-	# return null and cause `not null` to evaluate to true, permanently hiding the laser.
 	if not enemy._is_alive:
 		_set_laser_visible(false)
 		return
@@ -447,11 +437,9 @@ func update_laser_sight() -> void:
 	# guaranteeing the laser always points exactly where the tracer will fly.
 	var direction: Vector2 = get_visual_barrel_direction()
 	var start_pos: Vector2 = _get_barrel_spawn_position(direction)
-	# [#1336] Debug: log laser first frame to confirm it is rendering
 	if not _laser_logged_once:
 		_laser_logged_once = true
-		print("[#1336] Laser update: enemy=%s, dir=%v, start=%v, visible=%s, in_tree=%s" % [enemy.name, direction, start_pos, _laser_sight.visible, _laser_sight.is_inside_tree()])
-		_log("[#1336] Laser update: dir=%v, start=%v, visible=%s, parent=%s" % [direction, start_pos, _laser_sight.visible, _laser_sight.get_parent().name if _laser_sight.get_parent() else "null"])
+		_log("[#1336] Laser update: dir=%v, start=%v, visible=%s" % [direction, start_pos, _laser_sight.visible])
 
 	# Raycast to find the first wall or character hit.
 	# Collision mask 5 = walls (layer 3, value 4) + characters (layer 1, value 1).
@@ -472,7 +460,7 @@ func update_laser_sight() -> void:
 		# Extend 4px into the surface for visual penetration (like M16 laser).
 		laser_end = result["position"] + direction * 4.0
 
-	# Update Line2D points (parented to scene root, so use global coordinates).
+	# Update Line2D points (top_level=true, so use global coordinates).
 	_laser_sight.set_point_position(0, start_pos)
 	_laser_sight.set_point_position(1, laser_end)
 
@@ -489,9 +477,10 @@ func hide_laser() -> void:
 	_set_laser_visible(false)
 
 
-## [#1336] Clean up laser nodes when component is freed (e.g. enemy death/despawn).
-## Since laser nodes are parented to the scene root (not the enemy), they must be
-## explicitly freed to avoid orphan nodes.
+## [#1336] Clean up laser nodes when component exits tree.
+## Laser nodes are children of the enemy node and get freed automatically when the
+## enemy is freed. This explicit cleanup handles edge cases (e.g. component removed
+## while enemy is still alive).
 func _exit_tree() -> void:
 	if _laser_sight and is_instance_valid(_laser_sight):
 		_laser_sight.queue_free()
