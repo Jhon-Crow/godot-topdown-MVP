@@ -22,7 +22,7 @@ mouse_velocity_to_throw_multiplier = 0.5
 min_swing_distance = 180.0
 ground_friction = 300.0
 sound_range_multiplier = 1.0
-effect_radius = 300.0
+effect_radius = 600.0
 cloud_duration = 20.0
 illusion_duration = 20.0
 
