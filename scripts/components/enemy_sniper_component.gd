@@ -341,9 +341,26 @@ func update_laser_sight() -> void:
 
 	_set_laser_visible(true)
 
-	# Calculate laser origin: weapon muzzle position.
-	var direction: Vector2 = enemy._get_weapon_forward_direction()
-	var start_pos: Vector2 = enemy._get_bullet_spawn_position(direction)
+	# [#1336] Use the weapon sprite's visual barrel direction instead of
+	# _get_weapon_forward_direction() which returns the computed direction-to-player
+	# when _can_see_player is true.  That computed direction ignores smooth model
+	# rotation and can point somewhere different from the visual barrel, causing
+	# the laser to diverge from the tracer / where the weapon visually aims.
+	var direction: Vector2
+	if enemy._weapon_sprite:
+		direction = enemy._weapon_sprite.global_transform.x.normalized()
+	elif enemy._enemy_model:
+		direction = enemy._enemy_model.global_transform.x.normalized()
+	else:
+		direction = Vector2.from_angle(enemy.rotation)
+
+	# Calculate laser start: weapon muzzle position based on visual barrel.
+	var muzzle_offset: float = 52.0 * enemy.enemy_model_scale
+	var start_pos: Vector2
+	if enemy._weapon_sprite:
+		start_pos = enemy._weapon_sprite.global_position + direction * muzzle_offset
+	else:
+		start_pos = enemy.global_position + direction * enemy.bullet_spawn_offset
 
 	# Raycast to find the first wall or character hit.
 	# Collision mask 5 = walls (layer 3, value 4) + characters (layer 1, value 1).
