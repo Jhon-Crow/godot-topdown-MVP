@@ -24,7 +24,7 @@ class_name ChemicalCloud
 @export var min_copies_per_enemy: int = 2
 
 ## Maximum copies per enemy.
-@export var max_copies_per_enemy: int = 4
+@export var max_copies_per_enemy: int = 6
 
 ## How long each illusion copy lasts (seconds).
 @export var illusion_duration: float = 20.0
@@ -111,12 +111,43 @@ func _spawn_illusions_for_nearby_enemies() -> void:
 			FileLogger.info("[ChemicalCloud] Illusion cap reached (%d), stopping" % IllusionEffect.MAX_TOTAL_ILLUSIONS)
 			break
 
-		# Spawn 2-4 copies per enemy
+		# Spawn 2-6 copies per enemy
 		var copies: int = randi_range(min_copies_per_enemy, max_copies_per_enemy)
+
+		# Issue #1361: Generate all positions (copies + 1 for original),
+		# then randomly assign the original to one of the non-center positions
+		# so the real enemy is not always in the center of the cluster.
+		var total_positions: int = copies + 1  # copies for illusions + 1 center
+		var offsets: Array[Vector2] = []
+		# Position 0 is the center (offset 0,0)
+		offsets.append(Vector2.ZERO)
+		# Remaining positions are spread in a circle
 		for i in range(copies):
+			var angle: float = (TAU / copies) * i + randf_range(-0.3, 0.3)
+			var distance: float = randf_range(60.0, 120.0)
+			offsets.append(Vector2(cos(angle), sin(angle)) * distance)
+
+		# Pick a random position for the original enemy (any of the total_positions)
+		var original_index: int = randi_range(0, total_positions - 1)
+		var original_offset: Vector2 = offsets[original_index]
+
+		# Move the original enemy to its new position
+		if original_offset != Vector2.ZERO:
+			var new_pos: Vector2 = enemy.global_position + original_offset.rotated(enemy.rotation)
+			FileLogger.info("[ChemicalCloud] Moving original enemy from %s to %s (offset=%s)" % [
+				str(enemy.global_position), str(new_pos), str(original_offset)
+			])
+			enemy.global_position = new_pos
+
+		# Spawn illusions at all positions except the one assigned to the original
+		for i in range(total_positions):
+			if i == original_index:
+				continue  # This position is occupied by the real enemy
 			if not IllusionEffect.can_spawn_more(get_tree()):
 				break
-			_spawn_single_illusion(enemy, i, copies)
+			# Offset relative to the enemy's new position
+			var illusion_offset: Vector2 = offsets[i] - original_offset
+			_spawn_single_illusion(enemy, illusion_offset)
 			spawned_count += 1
 
 	FileLogger.info("[ChemicalCloud] Spawned %d illusion copies for %d enemies" % [
@@ -124,15 +155,10 @@ func _spawn_illusions_for_nearby_enemies() -> void:
 	])
 
 
-## Spawn a single illusion copy of an enemy.
-func _spawn_single_illusion(enemy: Node2D, index: int, total: int) -> void:
+## Spawn a single illusion copy of an enemy at a given offset.
+func _spawn_single_illusion(enemy: Node2D, offset: Vector2) -> void:
 	var illusion := IllusionEffect.new()
 	illusion.illusion_duration = illusion_duration
-
-	# Calculate offset around the enemy (spread evenly in a circle)
-	var angle: float = (TAU / total) * index + randf_range(-0.3, 0.3)
-	var distance: float = randf_range(60.0, 120.0)
-	var offset := Vector2(cos(angle), sin(angle)) * distance
 
 	illusion.setup(enemy, offset)
 	illusion.phantom_shoot_interval = randf_range(1.5, 3.0)
