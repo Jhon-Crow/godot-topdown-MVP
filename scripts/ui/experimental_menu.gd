@@ -31,8 +31,6 @@ signal back_pressed
 @onready var enemy_path_visible_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyPathVisibleContainer/EnemyPathVisibleCheckbox
 @onready var cover_raycast_visible_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverRaycastVisibleContainer/CoverRaycastVisibleCheckbox
 @onready var tactical_group_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TacticalGroupContainer/TacticalGroupCheckbox
-@onready var cover_infinite_rays_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverInfiniteRaysContainer/CoverInfiniteRaysCheckbox
-@onready var cover_sector_rays_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverSectorRaysContainer/CoverSectorRaysCheckbox
 @onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var unlock_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer/UnlockTableButton
 @onready var enemies_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemiesTableContainer/EnemiesTableButton
@@ -119,12 +117,6 @@ func _ready() -> void:
 	_setup_row_hover(_vbox.get_node("TacticalGroupContainer"),
 			"Tactical Group Movement",
 			_vbox.get_node("TacticalGroupDescription"))
-	_setup_row_hover(_vbox.get_node("CoverInfiniteRaysContainer"),
-			"Cover Infinite Rays",
-			_vbox.get_node("CoverInfiniteRaysDescription"))
-	_setup_row_hover(_vbox.get_node("CoverSectorRaysContainer"),
-			"Cover Sector Rays",
-			_vbox.get_node("CoverSectorRaysDescription"))
 	_setup_row_hover(_vbox.get_node("DeleteSavesContainer"),
 			"Delete Saves",
 			_vbox.get_node("DeleteSavesDescription"))
@@ -159,8 +151,6 @@ func _ready() -> void:
 	enemy_path_visible_checkbox.toggled.connect(_on_enemy_path_visible_toggled)
 	cover_raycast_visible_checkbox.toggled.connect(_on_cover_raycast_visible_toggled)
 	tactical_group_checkbox.toggled.connect(_on_tactical_group_toggled)
-	cover_infinite_rays_checkbox.toggled.connect(_on_cover_infinite_rays_toggled)
-	cover_sector_rays_checkbox.toggled.connect(_on_cover_sector_rays_toggled)
 	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
 	enemies_table_button.pressed.connect(_on_enemies_table_pressed)
@@ -208,8 +198,6 @@ func _update_ui() -> void:
 	enemy_path_visible_checkbox.button_pressed = experimental_settings.is_enemy_path_visible_enabled()
 	cover_raycast_visible_checkbox.button_pressed = experimental_settings.has_method("is_cover_raycast_visible_enabled") and experimental_settings.is_cover_raycast_visible_enabled()
 	tactical_group_checkbox.button_pressed = experimental_settings.has_method("is_tactical_group_enabled") and experimental_settings.is_tactical_group_enabled()
-	cover_infinite_rays_checkbox.button_pressed = experimental_settings.has_method("is_cover_infinite_rays_enabled") and experimental_settings.is_cover_infinite_rays_enabled()
-	cover_sector_rays_checkbox.button_pressed = experimental_settings.has_method("is_cover_sector_rays_enabled") and experimental_settings.is_cover_sector_rays_enabled()
 
 	# Update global stuck max time slider
 	var stuck_time: float = experimental_settings.get_global_stuck_max_time()
@@ -260,10 +248,6 @@ func _update_ui() -> void:
 		status_parts.append("Cover raycasts visible")
 	if experimental_settings.has_method("is_tactical_group_enabled") and experimental_settings.is_tactical_group_enabled():
 		status_parts.append("Tactical group movement")
-	if experimental_settings.has_method("is_cover_infinite_rays_enabled") and experimental_settings.is_cover_infinite_rays_enabled():
-		status_parts.append("Cover infinite rays")
-	if experimental_settings.has_method("is_cover_sector_rays_enabled") and experimental_settings.is_cover_sector_rays_enabled():
-		status_parts.append("Cover sector rays")
 
 	if status_parts.is_empty():
 		status_label.text = "All experimental features disabled"
@@ -428,20 +412,6 @@ func _on_tactical_group_toggled(enabled: bool) -> void:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
 		experimental_settings.set_tactical_group_enabled(enabled)
-	_update_ui()
-
-
-func _on_cover_infinite_rays_toggled(enabled: bool) -> void:
-	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
-	if experimental_settings:
-		experimental_settings.set_cover_infinite_rays_enabled(enabled)
-	_update_ui()
-
-
-func _on_cover_sector_rays_toggled(enabled: bool) -> void:
-	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
-	if experimental_settings:
-		experimental_settings.set_cover_sector_rays_enabled(enabled)
 	_update_ui()
 
 
