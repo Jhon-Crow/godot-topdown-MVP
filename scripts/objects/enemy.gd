@@ -184,6 +184,8 @@ var _spawn_physics_frame: int = 0  ## #1216: physics frame at spawn, used to del
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
 var _hit_reaction_angle: float = 0.0; var _hit_reaction_timer: float = 0.0; const HIT_REACTION_DURATION: float = 0.8  ## Issue #1242: shield enemy slow rotation toward attacker on hit
+var _shield_tracking_angle: float = 0.0; var _shield_tracking_timer: float = 0.0  ## Issue #1242: delayed player tracking — shield enemy updates facing direction periodically, not continuously
+const SHIELD_TRACKING_INTERVAL: float = 1.5  ## Seconds between player-direction updates while shield is up (allows flanking)
 var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
 const CORNER_CHECK_DURATION: float = 0.3  ## How long to look at a corner (seconds)
 const CORNER_CHECK_DISTANCE: float = 150.0  ## Max distance to detect openings
@@ -868,6 +870,13 @@ func _physics_process(delta: float) -> void:
 	_update_goap_state()
 	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null)); if _shield_component: _shield_component.update(delta)  # Issues #1034, #1242
 	if _hit_reaction_timer > 0: _hit_reaction_timer -= delta  # Issue #1242: decay hit reaction rotation timer
+	# Issue #1242: delayed player tracking for shield enemy — update facing angle periodically, not continuously
+	if _shield_component and _shield_component.is_active():
+		_shield_tracking_timer -= delta
+		if _shield_tracking_timer <= 0.0 and _current_target and is_instance_valid(_current_target):
+			_shield_tracking_angle = (_current_target.global_position - global_position).normalized().angle()
+			_shield_tracking_timer = SHIELD_TRACKING_INTERVAL
+			_log_to_file("SHIELD_TRACK: updated facing to %.1f° (interval=%.1fs)" % [rad_to_deg(_shield_tracking_angle), SHIELD_TRACKING_INTERVAL])
 	_update_grenade_triggers(delta)
 	_update_grenade_danger_detection()  # Issue #407: Check for nearby grenades
 	if _teleport_component: _teleport_component.update(delta)  # Issue #752: Advance teleport cooldown
@@ -956,14 +965,20 @@ func _update_enemy_model_rotation() -> void:
 	elif _hit_reaction_timer > 0:  # P0.5: Issue #1242 — shield enemy slowly turns toward attacker after hit
 		target_angle = _hit_reaction_angle; has_target = true; rotation_reason = "P0.5:hit_reaction"
 	elif _current_target != null and (_can_see_player or _can_see_companion):  # P1: Face best target if visible
-		target_angle = (_current_target.global_position - global_position).normalized().angle(); has_target = true; rotation_reason = "P1:visible"
+		if _shield_component and _shield_component.is_active():  # Issue #1242: delayed tracking — only update facing periodically, allowing flanking
+			target_angle = _shield_tracking_angle; has_target = true; rotation_reason = "P1:shield_delayed"
+		else:
+			target_angle = (_current_target.global_position - global_position).normalized().angle(); has_target = true; rotation_reason = "P1:visible"
 	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _current_target != null:  # P2: Combat states (#386, #397)
-		target_angle = (_current_target.global_position - global_position).normalized().angle(); has_target = true; rotation_reason = "P2:combat_state"
+		if _shield_component and _shield_component.is_active():  # Issue #1242: delayed tracking in combat states too
+			target_angle = _shield_tracking_angle; has_target = true; rotation_reason = "P2:shield_delayed"
+		else:
+			target_angle = (_current_target.global_position - global_position).normalized().angle(); has_target = true; rotation_reason = "P2:combat_state"
 	elif _corner_check_timer > 0:  # P3: Corner check (#347)
 		target_angle = _corner_check_angle; has_target = true; rotation_reason = "P3:corner"
 	elif velocity.length_squared() > 1.0:
-		if _shield_component and _shield_component.is_active() and _last_known_player_position != Vector2.ZERO:  # Issue #1242: shield faces player, not movement dir
-			target_angle = (_last_known_player_position - global_position).normalized().angle(); has_target = true; rotation_reason = "P4:shield_face_player"
+		if _shield_component and _shield_component.is_active():  # Issue #1242: shield uses delayed tracking angle while moving
+			target_angle = _shield_tracking_angle; has_target = true; rotation_reason = "P4:shield_delayed"
 		else: target_angle = velocity.normalized().angle(); has_target = true; rotation_reason = "P4:velocity"
 	elif _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
 		target_angle = _idle_scan_targets[_idle_scan_target_index]; has_target = true; rotation_reason = "P5:idle_scan"
@@ -1009,6 +1024,9 @@ func _force_model_to_face_direction(direction: Vector2) -> void:
 func _set_hit_reaction_target(dir: Vector2) -> void:
 	if dir.length_squared() < 0.01: return
 	_hit_reaction_angle = dir.angle(); _hit_reaction_timer = HIT_REACTION_DURATION
+	# Issue #1242: also refresh delayed tracking angle on hit — enemy learns attacker direction
+	if _shield_component and _shield_component.is_active():
+		_shield_tracking_angle = _hit_reaction_angle; _shield_tracking_timer = SHIELD_TRACKING_INTERVAL
 	_log_to_file("HIT_REACTION: target=%.1f°, timer=%.2fs" % [rad_to_deg(_hit_reaction_angle), _hit_reaction_timer])
 ## Updates walking animation (bobbing motion for body parts). @param delta: Time since last frame.
 func _update_walk_animation(delta: float) -> void:
