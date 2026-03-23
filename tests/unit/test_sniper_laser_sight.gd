@@ -88,8 +88,9 @@ func test_sniper_laser_has_hide_method() -> void:
 		"enemy_sniper_component.gd must define hide_laser() method [#1336]")
 
 
-func test_sniper_laser_uses_wall_collision_raycast() -> void:
-	# Laser must raycast against walls (collision layer 4) to stop at obstacles. [#1336]
+func test_sniper_laser_uses_wall_and_character_collision_raycast() -> void:
+	# Laser must raycast against walls (layer 3, value 4) AND characters (layer 1, value 1)
+	# so the laser stops at the player body instead of passing through. [#1336]
 	var src := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
 	assert_not_null(src, "enemy_sniper_component.gd must be readable")
 	if src == null:
@@ -97,7 +98,12 @@ func test_sniper_laser_uses_wall_collision_raycast() -> void:
 	var text := src.get_as_text()
 	src.close()
 	assert_true(text.contains("intersect_ray"),
-		"update_laser_sight must use raycast to detect walls [#1336]")
+		"update_laser_sight must use raycast to detect obstacles [#1336]")
+	# Collision mask 5 = walls (4) + characters (1)
+	assert_true(text.contains(", 5)"),
+		"Laser raycast must use collision mask 5 (walls + characters) [#1336]")
+	assert_true(text.contains("enemy.get_rid()"),
+		"Laser raycast must exclude the enemy's own collider [#1336]")
 
 
 func test_sniper_laser_width_matches_m16() -> void:

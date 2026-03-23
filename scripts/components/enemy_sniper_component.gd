@@ -345,7 +345,9 @@ func update_laser_sight() -> void:
 	var direction: Vector2 = enemy._get_weapon_forward_direction()
 	var start_pos: Vector2 = enemy._get_bullet_spawn_position(direction)
 
-	# Raycast to find the first wall hit (collision layer 4 = walls).
+	# Raycast to find the first wall or character hit.
+	# Collision mask 5 = walls (layer 3, value 4) + characters (layer 1, value 1).
+	# This stops the laser at the player body instead of passing through.
 	var end_pos := start_pos + direction * LASER_MAX_LENGTH
 	var world_2d := enemy.get_world_2d()
 	if world_2d == null:
@@ -354,7 +356,8 @@ func update_laser_sight() -> void:
 	if space_state == null:
 		return
 
-	var query := PhysicsRayQueryParameters2D.create(start_pos, end_pos, 4)
+	var query := PhysicsRayQueryParameters2D.create(start_pos, end_pos, 5)
+	query.exclude = [enemy.get_rid()]  # Exclude own collider
 	var result := space_state.intersect_ray(query)
 	var laser_end := end_pos
 	if not result.is_empty():
