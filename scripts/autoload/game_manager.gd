@@ -53,13 +53,13 @@ var selected_weapon: String = "makarov_pm"
 
 ## Unlocked weapons tracking.
 ## PM is always unlocked (starting weapon).
-## Weapons with unlock conditions (shotgun, mini_uzi, sniper, revolver) start locked.
-## All other weapons (m16, silenced_pistol, ak_gl) are freely available from the start.
+## Weapons with unlock conditions (shotgun, mini_uzi, sniper, revolver, m16) start locked.
+## All other weapons (silenced_pistol, ak_gl) are freely available from the start.
 ## Weapons can be unlocked by holding LMB on their case in the armory menu once condition is met.
 ## Issue #894: "all unspecified items can be opened from the start"
 var unlocked_weapons: Dictionary = {
 	"makarov_pm": true,
-	"m16": true,       # No unlock condition — freely available from start
+	"m16": false,      # Condition: Beach D+ (Issue #1053 req.3)
 	"shotgun": false,  # Condition: Building D+
 	"mini_uzi": false, # Condition: Labyrinth D+
 	"silenced_pistol": true,  # No unlock condition — freely available from start
