@@ -661,11 +661,32 @@ func _build_right_area() -> VBoxContainer:
 	return right_vbox
 
 
+## Returns true if any slot in the given overflow array has condition_met == true and is locked.
+func _has_condition_met_in_overflow(overflow_slots: Array) -> bool:
+	for slot in overflow_slots:
+		var is_unlocked: bool = slot.get_meta("is_unlocked", true)
+		var condition_met: bool = slot.get_meta("condition_met", false)
+		if not is_unlocked and condition_met:
+			return true
+	return false
+
+
+## Apply gold style to an accordion button to indicate hidden condition-met items.
+func _apply_accordion_button_condition_met_style(button: Button) -> void:
+	button.add_theme_color_override("font_color", Color(1.0, 0.8, 0.1, 1.0))
+
+
+## Reset accordion button to default font color.
+func _apply_accordion_button_default_style(button: Button) -> void:
+	button.remove_theme_color_override("font_color")
+
+
 ## Toggle weapon accordion (expand/collapse overflow items).
 func _toggle_weapon_accordion() -> void:
 	_weapons_expanded = not _weapons_expanded
 	if _weapons_expanded:
 		_weapon_accordion_button.text = "Collapse ▲"
+		_apply_accordion_button_default_style(_weapon_accordion_button)
 		for slot in _weapon_overflow_slots:
 			slot.visible = true
 	else:
@@ -677,6 +698,10 @@ func _apply_accordion_collapsed_weapons() -> void:
 	_weapon_accordion_button.text = "Show all ▼"
 	for slot in _weapon_overflow_slots:
 		slot.visible = false
+	if _has_condition_met_in_overflow(_weapon_overflow_slots):
+		_apply_accordion_button_condition_met_style(_weapon_accordion_button)
+	else:
+		_apply_accordion_button_default_style(_weapon_accordion_button)
 
 
 ## Toggle grenade accordion (expand/collapse overflow items).
@@ -684,6 +709,7 @@ func _toggle_grenade_accordion() -> void:
 	_grenades_expanded = not _grenades_expanded
 	if _grenades_expanded:
 		_grenade_accordion_button.text = "Collapse ▲"
+		_apply_accordion_button_default_style(_grenade_accordion_button)
 		for slot in _grenade_overflow_slots:
 			slot.visible = true
 	else:
@@ -695,6 +721,10 @@ func _apply_accordion_collapsed_grenades() -> void:
 	_grenade_accordion_button.text = "Show all ▼"
 	for slot in _grenade_overflow_slots:
 		slot.visible = false
+	if _has_condition_met_in_overflow(_grenade_overflow_slots):
+		_apply_accordion_button_condition_met_style(_grenade_accordion_button)
+	else:
+		_apply_accordion_button_default_style(_grenade_accordion_button)
 
 
 ## Toggle active item accordion (expand/collapse overflow items).
@@ -702,6 +732,7 @@ func _toggle_active_item_accordion() -> void:
 	_active_items_expanded = not _active_items_expanded
 	if _active_items_expanded:
 		_active_item_accordion_button.text = "Collapse ▲"
+		_apply_accordion_button_default_style(_active_item_accordion_button)
 		for slot in _active_item_overflow_slots:
 			slot.visible = true
 	else:
@@ -713,6 +744,10 @@ func _apply_accordion_collapsed_active_items() -> void:
 	_active_item_accordion_button.text = "Show all ▼"
 	for slot in _active_item_overflow_slots:
 		slot.visible = false
+	if _has_condition_met_in_overflow(_active_item_overflow_slots):
+		_apply_accordion_button_condition_met_style(_active_item_accordion_button)
+	else:
+		_apply_accordion_button_default_style(_active_item_accordion_button)
 
 
 ## Add a styled category header label.
@@ -1161,6 +1196,23 @@ func _highlight_selected_items() -> void:
 	# Highlight pending active item
 	if _pending_active_item_type in _active_item_slots:
 		_apply_selected_style(_active_item_slots[_pending_active_item_type])
+
+	# Update accordion button gold highlights to reflect current condition_met states
+	if _weapon_accordion_button and not _weapons_expanded:
+		if _has_condition_met_in_overflow(_weapon_overflow_slots):
+			_apply_accordion_button_condition_met_style(_weapon_accordion_button)
+		else:
+			_apply_accordion_button_default_style(_weapon_accordion_button)
+	if _grenade_accordion_button and not _grenades_expanded:
+		if _has_condition_met_in_overflow(_grenade_overflow_slots):
+			_apply_accordion_button_condition_met_style(_grenade_accordion_button)
+		else:
+			_apply_accordion_button_default_style(_grenade_accordion_button)
+	if _active_item_accordion_button and not _active_items_expanded:
+		if _has_condition_met_in_overflow(_active_item_overflow_slots):
+			_apply_accordion_button_condition_met_style(_active_item_accordion_button)
+		else:
+			_apply_accordion_button_default_style(_active_item_accordion_button)
 
 
 ## Update the Current Loadout panel with stats for pending weapon, grenade, and active item.
