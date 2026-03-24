@@ -8,14 +8,12 @@ extends Node
 ## designers can see where enemies can walk and verify the mesh is correct.
 ##
 ## NOTE: NavigationServer2D.set_debug_enabled() only works in Godot editor/debug
-## builds. This implementation uses Polygon2D and Line2D scene nodes so
-## it works reliably in exported (release) builds with gl_compatibility renderer.
+## builds. This implementation uses a custom overlay drawn via draw_polygon so
+## it works in exported (release) builds as well.
 ##
 ## Issue #1187: Added as part of AI navigation debugging tools.
 ## Issue #1224: Fixed to read baked polygon data (get_polygon/get_vertices) instead of
 ##              raw input outlines (get_outline), and to refresh after bake_finished.
-## Issue #1392: Replaced Node2D._draw() with Polygon2D/Line2D scene nodes to fix
-##              invisible overlays in gl_compatibility exported builds.
 
 ## Color for the nav mesh polygon fill.
 const NAV_MESH_FILL_COLOR := Color(0.0, 0.5, 1.0, 0.25)
@@ -26,7 +24,7 @@ const NAV_MESH_OUTLINE_COLOR := Color(0.0, 0.8, 1.0, 0.85)
 ## before the fallback timer reads polygon data.
 const BAKE_WAIT_SECONDS := 1.0
 
-## The overlay node used for rendering.
+## The overlay node used for custom drawing.
 var _overlay: _NavMeshOverlay = null
 
 
@@ -107,54 +105,70 @@ func _log(message: String) -> void:
 		print("[NavMeshMonitor] " + message)
 
 
-## Inner class: a CanvasLayer that renders NavigationRegion2D polygons using
-## Polygon2D and Line2D scene nodes instead of custom _draw() calls.
-## Issue #1392: Node2D._draw() is unreliable in gl_compatibility exported builds;
-## Polygon2D/Line2D scene nodes use Godot's built-in rendering pipeline reliably.
+## Inner class: a CanvasLayer that draws all NavigationRegion2D polygons.
+## Using a CanvasLayer ensures the overlay renders above the game world
+## and is not affected by the camera transform.
 class _NavMeshOverlay extends CanvasLayer:
 	var fill_color: Color = Color(0.0, 0.5, 1.0, 0.25)
 	var outline_color: Color = Color(0.0, 0.8, 1.0, 0.85)
-	## Container node for all polygon/line child nodes.
-	var _container: Node2D = null
-	## Number of polygons currently displayed.
-	var _polygon_count: int = 0
+	## The Node2D child that does the actual drawing.
+	## Initialized in _init() so it is available immediately after .new(),
+	## before _ready() fires (which is deferred to the next frame by add_child).
+	var _draw_node: _NavMeshDrawNode = null
 
 	func _init() -> void:
-		# Render above all game world elements but below cinema effects (layer 99).
-		layer = 50
-		# Follow the viewport camera so world-space coordinates align correctly.
+		# Render above all visual effects (CinemaEffects=99, HitEffects=100,
+		# PenultimateHit=101, LastChance=102, Flashbang/PowerFantasy=103).
+		# Issue #1392: overlays were invisible because fullscreen effect layers
+		# at 99-103 occluded debug drawings at layer 50.
+		layer = 150
+		# Follow the viewport camera so world-space coordinates in _draw() align correctly.
+		# With follow_viewport_enabled=true, drawing at world coordinates maps directly
+		# to the correct screen position regardless of camera position.
 		follow_viewport_enabled = true
-		# Container holds all Polygon2D/Line2D children.
-		_container = Node2D.new()
-		_container.name = "NavMeshContainer"
-		add_child(_container)
+		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().
+		# _ready() is deferred to the next frame after add_child(), so if refresh()
+		# is called immediately after _NavMeshOverlay.new() + add_child(), _draw_node
+		# would still be null. _init() runs synchronously during .new().
+		_draw_node = _NavMeshDrawNode.new()
+		_draw_node.fill_color = fill_color
+		_draw_node.outline_color = outline_color
+		add_child(_draw_node)
 
 	## Return the number of polygons currently drawn (for logging).
 	func get_polygon_count() -> int:
-		return _polygon_count
+		if _draw_node == null:
+			return 0
+		return _draw_node._polygons.size()
 
-	## Collect all NavigationRegion2D nodes and create Polygon2D/Line2D nodes.
+	## Collect all NavigationRegion2D nodes and pass their baked polygons to the draw node.
+	## Reads triangulated baked data (get_polygon_count / get_polygon / get_vertices)
+	## which reflects the actual walkable area after walls are carved out — not the raw
+	## input outlines which only show the floor boundary.
 	func refresh() -> void:
-		if _container == null:
+		if _draw_node == null:
+			_log_inner("refresh: _draw_node is null, skipping")
 			return
-		# Clear previous polygon/line nodes
-		for child in _container.get_children():
-			child.queue_free()
-		_polygon_count = 0
-
+		var polygons: Array = []
 		var tree: SceneTree = Engine.get_main_loop() as SceneTree
 		if tree == null:
+			_log_inner("refresh: SceneTree is null, skipping")
 			return
+		# Search all NavigationRegion2D nodes in the current scene
 		var nav_regions: Array = _find_nav_regions(tree.root)
 		_log_inner("refresh started: found %d NavigationRegion2D node(s)" % nav_regions.size())
 		var baked_count: int = 0
 		var outline_count_total: int = 0
 		for region in nav_regions:
 			if not is_instance_valid(region):
+				_log_inner("refresh: region is invalid, skipping")
 				continue
 			var nav_poly: NavigationPolygon = region.navigation_polygon
 			if nav_poly == null:
+				_log_inner("refresh: region '%s' has null navigation_polygon" % region.name)
 				continue
+			# Read baked triangulated polygon data (set by bake_navigation_polygon).
+			# This reflects the actual walkable area with walls carved out.
 			var poly_count: int = nav_poly.get_polygon_count()
 			var vertex_count: int = nav_poly.get_vertices().size()
 			_log_inner("refresh: region '%s' poly_count=%d vertex_count=%d outline_count=%d" % [
@@ -168,45 +182,31 @@ class _NavMeshOverlay extends CanvasLayer:
 					var verts: PackedVector2Array = PackedVector2Array()
 					for idx in indices:
 						verts.append(all_vertices[idx])
-					_add_polygon(verts, region.global_transform)
+					polygons.append({
+						"vertices": verts,
+						"global_transform": region.global_transform
+					})
 				baked_count += poly_count
 			else:
+				# Fall back to outlines if no baked data yet (bake not completed)
 				var outline_count: int = nav_poly.get_outline_count()
 				for i in range(outline_count):
 					var outline: PackedVector2Array = nav_poly.get_outline(i)
 					if outline.size() >= 3:
-						_add_polygon(outline, region.global_transform)
+						polygons.append({
+							"vertices": outline,
+							"global_transform": region.global_transform
+						})
 				outline_count_total += outline_count
+		_draw_node.set_polygons(polygons)
 		_log_inner("refresh done: %d region(s), %d baked poly(s), %d outline(s), %d draw polys" % [
-			nav_regions.size(), baked_count, outline_count_total, _polygon_count])
+			nav_regions.size(), baked_count, outline_count_total, polygons.size()])
 
-	## Create a Polygon2D (fill) and Line2D (outline) for one polygon.
-	func _add_polygon(verts: PackedVector2Array, xform: Transform2D) -> void:
-		# Transform vertices to world space
-		var world_verts: PackedVector2Array = PackedVector2Array()
-		for v in verts:
-			world_verts.append(xform * v)
-
-		# Filled polygon
-		var poly := Polygon2D.new()
-		poly.polygon = world_verts
-		poly.color = fill_color
-		_container.add_child(poly)
-
-		# Outline using Line2D (closed loop)
-		var line := Line2D.new()
-		var outline_pts := PackedVector2Array(world_verts)
-		if outline_pts.size() >= 2:
-			outline_pts.append(outline_pts[0])  # Close the loop
-		line.points = outline_pts
-		line.default_color = outline_color
-		line.width = 1.5
-		_container.add_child(line)
-
-		_polygon_count += 1
-
-	## Log a message (inner class helper).
+	## Log a message (inner class helper — accesses FileLogger via absolute path).
+	## Issue #1293: print() fallback gated to debug builds to avoid FPS drops.
 	func _log_inner(message: String) -> void:
+		# Use /root/FileLogger absolute path — same as the outer class _log() method
+		# to ensure consistent logging regardless of inner class context.
 		var tree: SceneTree = Engine.get_main_loop() as SceneTree
 		if tree == null:
 			if OS.is_debug_build():
@@ -226,3 +226,34 @@ class _NavMeshOverlay extends CanvasLayer:
 		for child in node.get_children():
 			result.append_array(_find_nav_regions(child))
 		return result
+
+
+## Inner draw node: performs the actual draw calls each frame.
+class _NavMeshDrawNode extends Node2D:
+	var fill_color: Color = Color(0.0, 0.5, 1.0, 0.25)
+	var outline_color: Color = Color(0.0, 0.8, 1.0, 0.85)
+	var _polygons: Array = []
+
+	func set_polygons(polygons: Array) -> void:
+		_polygons = polygons
+		queue_redraw()
+
+	func _draw() -> void:
+		for poly_data in _polygons:
+			var verts: PackedVector2Array = poly_data["vertices"]
+			var xform: Transform2D = poly_data["global_transform"]
+			# Transform vertices from NavigationRegion2D local space to world space,
+			# then to this node's local space (identity since it's at root level)
+			var world_verts: PackedVector2Array = PackedVector2Array()
+			for v in verts:
+				world_verts.append(xform * v)
+			# Colors array for draw_polygon (one per vertex)
+			var colors: PackedColorArray = PackedColorArray()
+			colors.resize(world_verts.size())
+			colors.fill(fill_color)
+			draw_polygon(world_verts, colors)
+			# Draw outline
+			draw_polyline(world_verts, outline_color, 1.5)
+			# Close the outline loop
+			if world_verts.size() >= 2:
+				draw_line(world_verts[world_verts.size() - 1], world_verts[0], outline_color, 1.5)

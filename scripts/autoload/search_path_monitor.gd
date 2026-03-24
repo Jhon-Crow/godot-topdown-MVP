@@ -19,8 +19,6 @@ extends Node
 ## Issue #1251: Added as part of AI search path debugging tools.
 ##   Fix: Added active enemy search path visualization so paths are visible in all levels,
 ##   not just levels with predefined SearchPathWaypoints nodes.
-## Issue #1392: Replaced Node2D._draw() with Line2D scene nodes to fix
-##              invisible overlays in gl_compatibility exported builds.
 
 ## Color for predefined waypoint circles and path lines (cyan).
 const PREDEFINED_PATH_COLOR := Color(0.0, 1.0, 0.8, 0.9)
@@ -34,13 +32,11 @@ const ACTIVE_FILL_COLOR := Color(1.0, 0.55, 0.0, 0.25)
 const ACTIVE_TARGET_COLOR := Color(1.0, 1.0, 0.0, 1.0)
 ## Radius of each waypoint circle in world pixels.
 const WAYPOINT_RADIUS := 10.0
-## Number of segments for circle approximations.
-const CIRCLE_SEGMENTS := 16
 
 ## AIState.SEARCHING enum value from enemy.gd (IDLE=0..ASSAULT=8, SEARCHING=9).
 const AI_STATE_SEARCHING := 9
 
-## The overlay node used for rendering.
+## The overlay node used for custom drawing.
 var _overlay: _SearchPathOverlay = null
 
 
@@ -91,6 +87,12 @@ func _ensure_overlay() -> void:
 	if _overlay != null and is_instance_valid(_overlay):
 		return
 	_overlay = _SearchPathOverlay.new()
+	_overlay.predefined_path_color = PREDEFINED_PATH_COLOR
+	_overlay.predefined_fill_color = PREDEFINED_FILL_COLOR
+	_overlay.active_path_color = ACTIVE_PATH_COLOR
+	_overlay.active_fill_color = ACTIVE_FILL_COLOR
+	_overlay.active_target_color = ACTIVE_TARGET_COLOR
+	_overlay.waypoint_radius = WAYPOINT_RADIUS
 	get_tree().root.add_child(_overlay)
 	_log_info("SearchPathMonitor: overlay created")
 
@@ -113,72 +115,52 @@ func _deferred_refresh() -> void:
 
 ## Write an info-level log entry for debugging (visible in game log when logging is on).
 func _log_info(message: String) -> void:
-	var file_logger: Node = get_node_or_null("/root/FileLogger")
-	if file_logger and file_logger.has_method("log_info"):
-		file_logger.log_info("[SearchPathMonitor] " + message)
-	elif OS.is_debug_build():
-		print("[SearchPathMonitor] " + message)
+	print("[SearchPathMonitor] " + message)
 
 
-## Generate circle outline points as a PackedVector2Array for use with Line2D.
-static func _circle_points(center: Vector2, radius: float, segments: int = CIRCLE_SEGMENTS) -> PackedVector2Array:
-	var pts := PackedVector2Array()
-	for i in range(segments + 1):
-		var angle := (TAU * i) / segments
-		pts.append(center + Vector2(cos(angle), sin(angle)) * radius)
-	return pts
-
-
-## Inner class: a CanvasLayer that renders search path data using Line2D nodes.
-## Issue #1392: Node2D._draw() is unreliable in gl_compatibility exported builds;
-## Line2D scene nodes use Godot's built-in rendering pipeline reliably.
+## Inner class: a CanvasLayer that draws all search path data.
+## Using a CanvasLayer ensures the overlay renders above the game world
+## and is not affected by the camera transform.
 class _SearchPathOverlay extends CanvasLayer:
-	## Container node for all line child nodes.
-	var _container: Node2D = null
-	## Pool of reusable Line2D nodes to avoid per-frame allocation.
-	var _line_pool: Array[Line2D] = []
-	## How many pool nodes are currently in use.
-	var _pool_used: int = 0
+	var predefined_path_color: Color = Color(0.0, 1.0, 0.8, 0.9)
+	var predefined_fill_color: Color = Color(0.0, 1.0, 0.8, 0.25)
+	var active_path_color: Color = Color(1.0, 0.55, 0.0, 0.9)
+	var active_fill_color: Color = Color(1.0, 0.55, 0.0, 0.25)
+	var active_target_color: Color = Color(1.0, 1.0, 0.0, 1.0)
+	var waypoint_radius: float = 10.0
+	## The Node2D child that does the actual drawing.
+	## Initialized in _init() so it is available immediately after .new(),
+	## before _ready() fires (which is deferred to the next frame by add_child).
+	var _draw_node: _SearchPathDrawNode = null
 
 	func _init() -> void:
-		# Render above game world (layer 10) but below UI (layer 100+)
-		layer = 10
-		# Follow the viewport camera so world-space coordinates align correctly
+		# Issue #1392: raised above all visual effects (layers 97-103).
+		layer = 150
+		# Follow the viewport camera so world-space coordinates in _draw() align correctly
 		follow_viewport_enabled = true
-		_container = Node2D.new()
-		_container.name = "SearchPathContainer"
-		add_child(_container)
+		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().
+		# _ready() is deferred to the next frame after add_child(), so if refresh()
+		# is called immediately after _SearchPathOverlay.new() + add_child(), _draw_node
+		# would still be null and the overlay would silently draw nothing.
+		_draw_node = _SearchPathDrawNode.new()
+		_draw_node.predefined_path_color = predefined_path_color
+		_draw_node.predefined_fill_color = predefined_fill_color
+		_draw_node.active_path_color = active_path_color
+		_draw_node.active_fill_color = active_fill_color
+		_draw_node.active_target_color = active_target_color
+		_draw_node.waypoint_radius = waypoint_radius
+		add_child(_draw_node)
 
-	## Get a Line2D from the pool (reuse or create).
-	func _get_line() -> Line2D:
-		if _pool_used < _line_pool.size():
-			var line: Line2D = _line_pool[_pool_used]
-			line.show()
-			_pool_used += 1
-			return line
-		var line := Line2D.new()
-		_container.add_child(line)
-		_line_pool.append(line)
-		_pool_used += 1
-		return line
-
-	## Hide all unused pool nodes after refresh.
-	func _finish_refresh() -> void:
-		for i in range(_pool_used, _line_pool.size()):
-			_line_pool[i].hide()
-
-	## Collect all search path data and render using Line2D nodes.
+	## Collect all search path data and pass it to the draw node.
 	func refresh() -> void:
-		if _container == null:
+		if _draw_node == null:
 			return
-		_pool_used = 0
-
 		var tree: SceneTree = Engine.get_main_loop() as SceneTree
 		if tree == null:
-			_finish_refresh()
 			return
 
 		# --- Predefined SearchPathWaypoints (static scene nodes) ---
+		var predefined_sets: Array = []
 		var path_nodes: Array = tree.get_nodes_in_group("search_path_waypoints")
 		for path_node in path_nodes:
 			if not is_instance_valid(path_node):
@@ -187,32 +169,13 @@ class _SearchPathOverlay extends CanvasLayer:
 			for child in path_node.get_children():
 				if child is Marker2D:
 					positions.append(child.global_position)
-			if positions.size() == 0:
-				continue
-
-			# Draw connecting lines (closed loop)
-			var loop_pts := PackedVector2Array()
-			for pos in positions:
-				loop_pts.append(pos)
-			loop_pts.append(positions[0])  # Close the loop
-			var loop_line: Line2D = _get_line()
-			loop_line.points = loop_pts
-			loop_line.default_color = SearchPathMonitor.PREDEFINED_PATH_COLOR
-			loop_line.width = 2.0
-
-			# Draw waypoint circles
-			for pos in positions:
-				var fill_circle: Line2D = _get_line()
-				fill_circle.points = SearchPathMonitor._circle_points(pos, SearchPathMonitor.WAYPOINT_RADIUS)
-				fill_circle.default_color = SearchPathMonitor.PREDEFINED_FILL_COLOR
-				fill_circle.width = SearchPathMonitor.WAYPOINT_RADIUS
-
-				var outline_circle: Line2D = _get_line()
-				outline_circle.points = SearchPathMonitor._circle_points(pos, SearchPathMonitor.WAYPOINT_RADIUS)
-				outline_circle.default_color = SearchPathMonitor.PREDEFINED_PATH_COLOR
-				outline_circle.width = 2.0
+			if positions.size() > 0:
+				predefined_sets.append(positions)
 
 		# --- Active enemy search paths (dynamic spiral/predefined waypoints) ---
+		# Collect from all enemies currently in SEARCHING state.
+		# AIState.SEARCHING == 9 (0-indexed enum from enemy.gd: IDLE=0..ASSAULT=8, SEARCHING=9)
+		var active_paths: Array = []
 		var enemies: Array = tree.get_nodes_in_group("enemies")
 		for enemy in enemies:
 			if not is_instance_valid(enemy):
@@ -229,43 +192,76 @@ class _SearchPathOverlay extends CanvasLayer:
 			var current_idx: int = 0
 			if enemy.has_method("get_search_current_waypoint_index"):
 				current_idx = enemy.get_search_current_waypoint_index()
-			var enemy_pos: Vector2 = enemy.global_position
+			active_paths.append({
+				"waypoints": waypoints,
+				"current_idx": current_idx,
+				"enemy_pos": enemy.global_position
+			})
 
-			# Draw connecting lines between waypoints (open path)
-			if waypoints.size() >= 2:
-				var path_pts := PackedVector2Array()
-				for wp in waypoints:
-					path_pts.append(wp)
-				var path_line: Line2D = _get_line()
-				path_line.points = path_pts
-				path_line.default_color = SearchPathMonitor.ACTIVE_PATH_COLOR
-				path_line.width = 2.0
+		_draw_node.set_path_data(predefined_sets, active_paths)
 
+
+## Inner draw node: performs the actual draw calls each frame.
+class _SearchPathDrawNode extends Node2D:
+	var predefined_path_color: Color = Color(0.0, 1.0, 0.8, 0.9)
+	var predefined_fill_color: Color = Color(0.0, 1.0, 0.8, 0.25)
+	var active_path_color: Color = Color(1.0, 0.55, 0.0, 0.9)
+	var active_fill_color: Color = Color(1.0, 0.55, 0.0, 0.25)
+	var active_target_color: Color = Color(1.0, 1.0, 0.0, 1.0)
+	var waypoint_radius: float = 10.0
+	var _predefined_sets: Array = []
+	var _active_paths: Array = []
+
+	func set_path_data(predefined_sets: Array, active_paths: Array) -> void:
+		_predefined_sets = predefined_sets
+		_active_paths = active_paths
+		queue_redraw()
+
+	func _draw() -> void:
+		# Draw predefined SearchPathWaypoints (cyan, closed loop)
+		for waypoints in _predefined_sets:
+			if waypoints.size() == 0:
+				continue
+			# Draw connecting lines (closed loop)
+			for i in range(waypoints.size()):
+				var from: Vector2 = waypoints[i]
+				var to: Vector2 = waypoints[(i + 1) % waypoints.size()]
+				draw_line(from, to, predefined_path_color, 2.0)
+			# Draw waypoint circles
+			for pos in waypoints:
+				draw_circle(pos, waypoint_radius, predefined_fill_color)
+				_draw_circle_outline(pos, waypoint_radius, predefined_path_color, 2.0)
+
+		# Draw active enemy search paths (orange, open sequence + current target highlighted)
+		for path_data in _active_paths:
+			var waypoints: Array = path_data["waypoints"]
+			var current_idx: int = path_data["current_idx"]
+			var enemy_pos: Vector2 = path_data["enemy_pos"]
+			if waypoints.size() == 0:
+				continue
+			# Draw connecting lines between waypoints (open path, not closed loop)
+			for i in range(waypoints.size() - 1):
+				var from: Vector2 = waypoints[i]
+				var to: Vector2 = waypoints[i + 1]
+				draw_line(from, to, active_path_color, 2.0)
 			# Draw waypoint circles
 			for i in range(waypoints.size()):
 				var pos: Vector2 = waypoints[i]
-				var fill_circle: Line2D = _get_line()
-				fill_circle.points = SearchPathMonitor._circle_points(pos, SearchPathMonitor.WAYPOINT_RADIUS)
-				fill_circle.default_color = SearchPathMonitor.ACTIVE_FILL_COLOR
-				fill_circle.width = SearchPathMonitor.WAYPOINT_RADIUS
-
-				var outline_circle: Line2D = _get_line()
-				outline_circle.points = SearchPathMonitor._circle_points(pos, SearchPathMonitor.WAYPOINT_RADIUS)
-				outline_circle.default_color = SearchPathMonitor.ACTIVE_PATH_COLOR
-				outline_circle.width = 2.0
-
+				draw_circle(pos, waypoint_radius, active_fill_color)
+				_draw_circle_outline(pos, waypoint_radius, active_path_color, 2.0)
 			# Highlight current target waypoint in yellow
 			if current_idx < waypoints.size():
 				var target_pos: Vector2 = waypoints[current_idx]
-				var target_circle: Line2D = _get_line()
-				target_circle.points = SearchPathMonitor._circle_points(target_pos, SearchPathMonitor.WAYPOINT_RADIUS * 0.6)
-				target_circle.default_color = SearchPathMonitor.ACTIVE_TARGET_COLOR
-				target_circle.width = SearchPathMonitor.WAYPOINT_RADIUS * 0.6
-
+				draw_circle(target_pos, waypoint_radius * 0.6, active_target_color)
 				# Draw line from enemy to current target
-				var target_line: Line2D = _get_line()
-				target_line.points = PackedVector2Array([enemy_pos, target_pos])
-				target_line.default_color = SearchPathMonitor.ACTIVE_TARGET_COLOR
-				target_line.width = 1.5
+				draw_line(enemy_pos, target_pos, active_target_color, 1.5)
 
-		_finish_refresh()
+	## Draw a circle outline using line segments.
+	func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: float) -> void:
+		const SEGMENTS := 16
+		for i in range(SEGMENTS):
+			var angle_a := (TAU * i) / SEGMENTS
+			var angle_b := (TAU * (i + 1)) / SEGMENTS
+			var p1 := center + Vector2(cos(angle_a), sin(angle_a)) * radius
+			var p2 := center + Vector2(cos(angle_b), sin(angle_b)) * radius
+			draw_line(p1, p2, color, width)

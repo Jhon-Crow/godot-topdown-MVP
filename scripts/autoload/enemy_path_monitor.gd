@@ -21,8 +21,6 @@ extends Node
 ##   PACIFIST           — Green
 ##
 ## Issue #1277: Added as part of AI navigation debugging tools.
-## Issue #1392: Replaced Node2D._draw() with Line2D scene nodes to fix
-##              invisible overlays in gl_compatibility exported builds.
 
 ## AIState enum values (mirrors enemy.gd AIState — keep in sync).
 const AI_STATE_IDLE := 0
@@ -44,10 +42,8 @@ const WAYPOINT_RADIUS := 6.0
 const TARGET_RADIUS := 10.0
 ## Width of the path polyline.
 const LINE_WIDTH := 2.0
-## Number of segments for circle approximations.
-const CIRCLE_SEGMENTS := 12
 
-## The overlay node used for rendering.
+## The overlay node used for custom drawing.
 var _overlay: _EnemyPathOverlay = null
 
 
@@ -92,6 +88,9 @@ func _ensure_overlay() -> void:
 	if _overlay != null and is_instance_valid(_overlay):
 		return
 	_overlay = _EnemyPathOverlay.new()
+	_overlay.waypoint_radius = WAYPOINT_RADIUS
+	_overlay.target_radius = TARGET_RADIUS
+	_overlay.line_width = LINE_WIDTH
 	get_tree().root.add_child(_overlay)
 	_log("EnemyPathMonitor: overlay created")
 
@@ -113,7 +112,7 @@ func _log(message: String) -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("log_info"):
 		file_logger.log_info("[EnemyPathMonitor] " + message)
-	elif OS.is_debug_build():
+	else:
 		print("[EnemyPathMonitor] " + message)
 
 
@@ -140,62 +139,32 @@ static func _color_for_state(state: int) -> Color:
 			return Color(0.8, 0.8, 0.8, 0.9)        # Light gray — unknown
 
 
-## Generate circle outline points as a PackedVector2Array for use with Line2D.
-static func _circle_points(center: Vector2, radius: float, segments: int = CIRCLE_SEGMENTS) -> PackedVector2Array:
-	var pts := PackedVector2Array()
-	for i in range(segments + 1):
-		var angle := (TAU * i) / segments
-		pts.append(center + Vector2(cos(angle), sin(angle)) * radius)
-	return pts
-
-
-## Inner class: a CanvasLayer that renders enemy nav paths using Line2D nodes.
-## Issue #1392: Node2D._draw() is unreliable in gl_compatibility exported builds;
-## Line2D scene nodes use Godot's built-in rendering pipeline reliably.
+## Inner class: a CanvasLayer that draws all enemy nav paths.
 class _EnemyPathOverlay extends CanvasLayer:
-	## Container node for all line child nodes.
-	var _container: Node2D = null
-	## Pool of reusable Line2D nodes to avoid per-frame allocation.
-	var _line_pool: Array[Line2D] = []
-	## How many pool nodes are currently in use.
-	var _pool_used: int = 0
+	var waypoint_radius: float = 6.0
+	var target_radius: float = 10.0
+	var line_width: float = 2.0
+	var _draw_node: _EnemyPathDrawNode = null
 
 	func _init() -> void:
-		layer = 10
+		# Issue #1392: raised above visual effects (layers 97-103) to remain visible.
+		layer = 150
 		follow_viewport_enabled = true
-		_container = Node2D.new()
-		_container.name = "EnemyPathContainer"
-		add_child(_container)
+		_draw_node = _EnemyPathDrawNode.new()
+		_draw_node.waypoint_radius = waypoint_radius
+		_draw_node.target_radius = target_radius
+		_draw_node.line_width = line_width
+		add_child(_draw_node)
 
-	## Get a Line2D from the pool (reuse or create).
-	func _get_line() -> Line2D:
-		if _pool_used < _line_pool.size():
-			var line: Line2D = _line_pool[_pool_used]
-			line.show()
-			_pool_used += 1
-			return line
-		var line := Line2D.new()
-		_container.add_child(line)
-		_line_pool.append(line)
-		_pool_used += 1
-		return line
-
-	## Hide all unused pool nodes after refresh.
-	func _finish_refresh() -> void:
-		for i in range(_pool_used, _line_pool.size()):
-			_line_pool[i].hide()
-
-	## Collect nav path data from all active enemies and render using Line2D nodes.
+	## Collect nav path data from all active enemies and pass to the draw node.
 	func refresh() -> void:
-		if _container == null:
+		if _draw_node == null:
 			return
-		_pool_used = 0
-
 		var tree: SceneTree = Engine.get_main_loop() as SceneTree
 		if tree == null:
-			_finish_refresh()
 			return
 
+		var paths: Array = []
 		var enemies: Array = tree.get_nodes_in_group("enemies")
 		for enemy in enemies:
 			if not is_instance_valid(enemy):
@@ -208,46 +177,58 @@ class _EnemyPathOverlay extends CanvasLayer:
 			var state: int = 0
 			if enemy.has_method("get_current_state"):
 				state = int(enemy.get_current_state())
+			paths.append({
+				"path": path,
+				"state": state,
+				"enemy_pos": enemy.global_position,
+			})
+
+		_draw_node.set_path_data(paths)
+
+
+## Inner draw node: performs the actual draw calls each frame.
+class _EnemyPathDrawNode extends Node2D:
+	var waypoint_radius: float = 6.0
+	var target_radius: float = 10.0
+	var line_width: float = 2.0
+	var _paths: Array = []
+
+	func set_path_data(paths: Array) -> void:
+		_paths = paths
+		queue_redraw()
+
+	func _draw() -> void:
+		for path_data in _paths:
+			var path: PackedVector2Array = path_data["path"]
+			var state: int = path_data["state"]
+			var enemy_pos: Vector2 = path_data["enemy_pos"]
+			if path.size() < 2:
+				continue
 
 			var color: Color = EnemyPathMonitor._color_for_state(state)
 			var fill_color: Color = Color(color.r, color.g, color.b, 0.25)
-			var enemy_pos: Vector2 = enemy.global_position
 
-			# Path line from enemy to first waypoint
-			var lead_line: Line2D = _get_line()
-			lead_line.points = PackedVector2Array([enemy_pos, path[0]])
-			lead_line.default_color = color
-			lead_line.width = EnemyPathMonitor.LINE_WIDTH
-
-			# Path line through all waypoints
-			var path_line: Line2D = _get_line()
-			path_line.points = path
-			path_line.default_color = color
-			path_line.width = EnemyPathMonitor.LINE_WIDTH
-
-			# Small dots at intermediate waypoints (circle outlines)
+			# Draw path line from enemy to first waypoint, then between waypoints
+			draw_line(enemy_pos, path[0], color, line_width)
 			for i in range(path.size() - 1):
-				# Filled circle (use a closed Line2D with narrow width as approximation)
-				var fill_circle: Line2D = _get_line()
-				fill_circle.points = EnemyPathMonitor._circle_points(path[i], EnemyPathMonitor.WAYPOINT_RADIUS)
-				fill_circle.default_color = fill_color
-				fill_circle.width = EnemyPathMonitor.WAYPOINT_RADIUS  # Thick to appear filled
+				draw_line(path[i], path[i + 1], color, line_width)
 
-				var outline_circle: Line2D = _get_line()
-				outline_circle.points = EnemyPathMonitor._circle_points(path[i], EnemyPathMonitor.WAYPOINT_RADIUS)
-				outline_circle.default_color = color
-				outline_circle.width = EnemyPathMonitor.LINE_WIDTH
+			# Draw small dots at intermediate waypoints
+			for i in range(path.size() - 1):
+				draw_circle(path[i], waypoint_radius, fill_color)
+				_draw_circle_outline(path[i], waypoint_radius, color, line_width)
 
-			# Larger dot at the final target
+			# Draw larger dot at the final target
 			var dest: Vector2 = path[path.size() - 1]
-			var fill_target: Line2D = _get_line()
-			fill_target.points = EnemyPathMonitor._circle_points(dest, EnemyPathMonitor.TARGET_RADIUS)
-			fill_target.default_color = fill_color
-			fill_target.width = EnemyPathMonitor.TARGET_RADIUS
+			draw_circle(dest, target_radius, fill_color)
+			_draw_circle_outline(dest, target_radius, color, line_width)
 
-			var outline_target: Line2D = _get_line()
-			outline_target.points = EnemyPathMonitor._circle_points(dest, EnemyPathMonitor.TARGET_RADIUS)
-			outline_target.default_color = color
-			outline_target.width = EnemyPathMonitor.LINE_WIDTH
-
-		_finish_refresh()
+	## Draw a circle outline using line segments.
+	func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: float) -> void:
+		const SEGMENTS := 12
+		for i in range(SEGMENTS):
+			var angle_a := (TAU * i) / SEGMENTS
+			var angle_b := (TAU * (i + 1)) / SEGMENTS
+			var p1 := center + Vector2(cos(angle_a), sin(angle_a)) * radius
+			var p2 := center + Vector2(cos(angle_b), sin(angle_b)) * radius
+			draw_line(p1, p2, color, width)
