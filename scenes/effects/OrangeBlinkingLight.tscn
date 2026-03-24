@@ -18,21 +18,21 @@ script = ExtResource("1_orange_blinking_light")
 [node name="LightA" type="PointLight2D" parent="."]
 position = Vector2(40, 0)
 color = Color(1.0, 0.45, 0.05, 1.0)
-energy = 1.8
+energy = 4.0
 shadow_enabled = true
 shadow_color = Color(0, 0, 0, 0.6)
 shadow_filter = 1
 shadow_filter_smooth = 4.0
 texture = SubResource("GradientTexture2D_orange")
-texture_scale = 5.0
+texture_scale = 8.0
 
 [node name="LightB" type="PointLight2D" parent="."]
 position = Vector2(-40, 0)
 color = Color(1.0, 0.45, 0.05, 1.0)
-energy = 1.8
+energy = 4.0
 shadow_enabled = true
 shadow_color = Color(0, 0, 0, 0.6)
 shadow_filter = 1
 shadow_filter_smooth = 4.0
 texture = SubResource("GradientTexture2D_orange")
-texture_scale = 5.0
+texture_scale = 8.0

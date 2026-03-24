@@ -1105,22 +1105,28 @@ position = Vector2(2350, 1900)
 [node name="Lighting" type="Node2D" parent="."]
 
 [node name="EntryHallLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
-position = Vector2(424, 384)
+position = Vector2(422, 382)
 
 [node name="WorkshopLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
-position = Vector2(1165, 384)
+position = Vector2(1165, 382)
 
 [node name="ControlRoomLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
-position = Vector2(2005, 384)
+position = Vector2(2007, 382)
 
 [node name="StorageLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
-position = Vector2(424, 1000)
+position = Vector2(422, 1000)
+
+[node name="CentralHallLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
+position = Vector2(1165, 1000)
 
 [node name="AssemblyLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
-position = Vector2(2005, 1000)
+position = Vector2(2007, 1000)
 
 [node name="BoilerRoomLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
-position = Vector2(424, 1680)
+position = Vector2(422, 1682)
+
+[node name="MaintenanceLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
+position = Vector2(1165, 1682)
 
 [node name="ExitHallLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
-position = Vector2(2005, 1680)
+position = Vector2(2007, 1682)

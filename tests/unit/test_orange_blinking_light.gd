@@ -18,7 +18,7 @@ class MockOrangeBlinkingLight:
 	const BLINK_INTERVAL: float = 0.4
 
 	## Light energy when on.
-	const LIGHT_ON_ENERGY: float = 1.8
+	const LIGHT_ON_ENERGY: float = 4.0
 
 	## Orange color for industrial warning lamps.
 	const LIGHT_COLOR: Color = Color(1.0, 0.45, 0.05, 1.0)
