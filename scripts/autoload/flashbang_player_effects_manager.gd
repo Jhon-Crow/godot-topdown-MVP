@@ -262,9 +262,10 @@ func _warmup_shader() -> void:
 
 
 ## Log a message with the FlashbangPlayer prefix.
+## Issue #1293: print() fallback gated to debug builds to avoid FPS drops.
 func _log(message: String) -> void:
 	var logger: Node = get_node_or_null("/root/FileLogger")
 	if logger and logger.has_method("log_info"):
 		logger.log_info("[FlashbangPlayer] " + message)
-	else:
+	elif OS.is_debug_build():
 		print("[FlashbangPlayer] " + message)

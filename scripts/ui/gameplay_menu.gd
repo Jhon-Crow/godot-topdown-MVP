@@ -12,6 +12,7 @@ signal back_pressed
 @onready var blood_slider: HSlider = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BloodContainer/BloodSlider
 @onready var blood_value_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BloodContainer/BloodValueLabel
 @onready var weapon_hints_option: OptionButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WeaponHintsContainer/WeaponHintsOption
+@onready var aim_assist_toggle: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AimAssistContainer/AimAssistToggle
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 
 
@@ -21,11 +22,14 @@ func _ready() -> void:
 			"Blood Amount")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WeaponHintsContainer,
 			"Weapon Hints")
+	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AimAssistContainer,
+			"Revolver Aim Assist")
 
 	# Connect button and slider signals
 	blood_slider.value_changed.connect(_on_blood_amount_changed)
 	_setup_weapon_hints_option()
 	weapon_hints_option.item_selected.connect(_on_weapon_hints_selected)
+	aim_assist_toggle.toggled.connect(_on_aim_assist_toggled)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update slider from current settings
@@ -51,6 +55,11 @@ func _update_ui() -> void:
 	blood_slider.set_block_signals(false)
 	blood_value_label.text = "%d%%" % int(gameplay_settings.get_blood_amount() * 100.0)
 
+	# Aim assist toggle (Issue #1332)
+	aim_assist_toggle.set_block_signals(true)
+	aim_assist_toggle.button_pressed = gameplay_settings.is_revolver_aim_assist_enabled()
+	aim_assist_toggle.set_block_signals(false)
+
 
 func _on_blood_amount_changed(value: float) -> void:
 	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
@@ -74,6 +83,13 @@ func _setup_weapon_hints_option() -> void:
 	else:
 		# Default to "Always" if settings not available
 		weapon_hints_option.select(0)
+
+
+## Called when the revolver aim assist toggle is changed (Issue #1332).
+func _on_aim_assist_toggled(enabled: bool) -> void:
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	if gameplay_settings:
+		gameplay_settings.set_revolver_aim_assist_enabled(enabled)
 
 
 ## Called when weapon hints option is changed.

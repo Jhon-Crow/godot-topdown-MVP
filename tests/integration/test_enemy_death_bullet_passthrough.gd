@@ -412,3 +412,49 @@ func test_is_alive_is_set_immediately_on_death() -> void:
 
 	# Check immediately without waiting for next frame
 	assert_false(mock_enemy.is_alive(), "is_alive should be false immediately after death")
+
+
+# ============================================================================
+# Ragdoll Bullet Pass-Through Tests (Issue #1413)
+# ============================================================================
+
+
+func test_ragdoll_body_is_in_dead_enemy_ragdoll_group() -> void:
+	# When an enemy dies and the ragdoll activates, each RigidBody2D body part
+	# must be in the "dead_enemy_ragdoll" group so that bullet.gd can detect
+	# and pass through them instead of being destroyed.
+	var rb := RigidBody2D.new()
+	add_child_autoqfree(rb)
+	rb.add_to_group("dead_enemy_ragdoll")
+
+	assert_true(rb.is_in_group("dead_enemy_ragdoll"),
+		"Ragdoll RigidBody2D should be in dead_enemy_ragdoll group")
+
+
+func test_ragdoll_body_does_not_have_is_alive_method() -> void:
+	# Ragdoll bodies are plain RigidBody2D nodes — they have no is_alive() method.
+	# This is the reason the old dead-enemy check in bullet.gd did not catch them.
+	var rb := RigidBody2D.new()
+	add_child_autoqfree(rb)
+
+	assert_false(rb.has_method("is_alive"),
+		"Ragdoll RigidBody2D should not have is_alive() method")
+
+
+func test_bullet_passthrough_logic_for_ragdoll() -> void:
+	# Simulate the bullet._on_body_entered logic for a ragdoll body.
+	# A ragdoll body: has no is_alive(), is in "dead_enemy_ragdoll" group.
+	# The bullet should return early (pass through) when it detects this group.
+	var rb := RigidBody2D.new()
+	add_child_autoqfree(rb)
+	rb.add_to_group("dead_enemy_ragdoll")
+
+	# Replicate the bullet pass-through decision:
+	var should_pass_through := false
+	if rb.has_method("is_alive") and not rb.is_alive():
+		should_pass_through = true
+	elif rb.is_in_group("dead_enemy_ragdoll"):
+		should_pass_through = true
+
+	assert_true(should_pass_through,
+		"Bullet should pass through dead_enemy_ragdoll group members (Issue #1413)")

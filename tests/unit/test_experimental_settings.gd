@@ -45,6 +45,9 @@ class MockExperimentalSettings:
 	## Whether all maps are unlocked (Issue #1075).
 	var all_maps_unlocked: bool = false
 
+	## Whether search path waypoints overlay is visible (Issue #1251).
+	var search_path_visible_enabled: bool = false
+
 	## Signal tracking
 	var settings_changed_emitted: int = 0
 
@@ -172,6 +175,17 @@ class MockExperimentalSettings:
 	func is_all_maps_unlocked() -> bool:
 		return all_maps_unlocked
 
+	## Set search path waypoints overlay visibility (Issue #1251).
+	func set_search_path_visible_enabled(enabled: bool) -> void:
+		if search_path_visible_enabled != enabled:
+			search_path_visible_enabled = enabled
+			settings_changed_emitted += 1
+			_save_settings()
+
+	## Check if search path waypoints overlay is visible (Issue #1251).
+	func is_search_path_visible_enabled() -> bool:
+		return search_path_visible_enabled
+
 	## Save settings (simulated).
 	func _save_settings() -> void:
 		_saved_settings["fov_enabled"] = fov_enabled
@@ -185,6 +199,7 @@ class MockExperimentalSettings:
 		_saved_settings["enemy_flashlight_blinding_enabled"] = enemy_flashlight_blinding_enabled
 		_saved_settings["all_weapons_unlocked"] = all_weapons_unlocked
 		_saved_settings["all_maps_unlocked"] = all_maps_unlocked
+		_saved_settings["search_path_visible_enabled"] = search_path_visible_enabled
 
 	## Load settings (simulated).
 	func _load_settings() -> void:
@@ -232,6 +247,10 @@ class MockExperimentalSettings:
 			all_maps_unlocked = _saved_settings["all_maps_unlocked"]
 		else:
 			all_maps_unlocked = false
+		if _saved_settings.has("search_path_visible_enabled"):
+			search_path_visible_enabled = _saved_settings["search_path_visible_enabled"]
+		else:
+			search_path_visible_enabled = false
 
 	## Reset to defaults.
 	func reset_to_defaults() -> void:
@@ -246,6 +265,7 @@ class MockExperimentalSettings:
 		enemy_flashlight_blinding_enabled = false
 		all_weapons_unlocked = false
 		all_maps_unlocked = false
+		search_path_visible_enabled = false
 		settings_changed_emitted += 1
 		_saved_settings.clear()
 

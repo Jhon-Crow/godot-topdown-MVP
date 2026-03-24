@@ -73,6 +73,216 @@ autowrap_mode = 2
 [node name="HSeparator" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="ShowCategoryLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Visualisation"
+label_settings = ExtResource("2_neon_label")
+horizontal_alignment = 1
+
+[node name="HSeparatorShowTop" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="FpsCounterContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="FpsCounterLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsCounterContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show FPS Counter"
+autowrap_mode = 2
+
+[node name="FpsCounterCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsCounterContainer"]
+layout_mode = 2
+
+[node name="FpsCounterDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, displays current FPS in the top-left
+corner of the screen. Disabled by default."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorFpsCounter" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="NavMeshVisibleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="NavMeshVisibleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Nav Mesh"
+autowrap_mode = 2
+
+[node name="NavMeshVisibleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer"]
+layout_mode = 2
+
+[node name="NavMeshVisibleDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws the AI navigation mesh overlay.\nShows where enemies can walk and helps debug\nincorrectly built areas of the mesh."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorNavMesh" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WaypointVisibleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WaypointVisibleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WaypointVisibleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Waypoints"
+autowrap_mode = 2
+
+[node name="WaypointVisibleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WaypointVisibleContainer"]
+layout_mode = 2
+
+[node name="WaypointVisibleDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws colored circles and labels\nat every passage and search-path waypoint node.\nGreen = passage waypoints, Yellow = search-path waypoints."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorWaypoint" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SearchPathVisibleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SearchPathVisibleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SearchPathVisibleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Search Paths"
+autowrap_mode = 2
+
+[node name="SearchPathVisibleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SearchPathVisibleContainer"]
+layout_mode = 2
+
+[node name="SearchPathVisibleDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws cyan circles for predefined search waypoints\nand orange circles for active enemy spiral search paths.\nCurrent target highlighted in yellow."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorSearchPath" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SoundVisualizerContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SoundVisualizerLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SoundVisualizerContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Sound Propagation"
+autowrap_mode = 2
+
+[node name="SoundVisualizerCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SoundVisualizerContainer"]
+layout_mode = 2
+
+[node name="SoundVisualizerDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws animated circles showing sound\npropagation range at each emission point.\nBlue = player, red = enemy, white = neutral.\nUseful for debugging shooting audibility."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorSoundVis" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemyPathVisibleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemyPathVisibleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyPathVisibleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Enemy Nav Paths"
+autowrap_mode = 2
+
+[node name="EnemyPathVisibleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyPathVisibleContainer"]
+layout_mode = 2
+
+[node name="EnemyPathVisibleDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws the computed navigation path for\nevery active enemy. Color shows AI state:\nGray=Idle, Red=Combat/Assault, Orange=Cover,\nMagenta=Flanking, Yellow=Pursuing,\nCyan=Searching, White=Evading, Green=Pacifist."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorEnemyPath" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CoverRaycastVisibleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CoverRaycastVisibleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverRaycastVisibleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Cover Raycasts"
+autowrap_mode = 2
+
+[node name="CoverRaycastVisibleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverRaycastVisibleContainer"]
+layout_mode = 2
+
+[node name="CoverRaycastVisibleDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws rays from each enemy showing cover
+search: gray=miss, yellow=obstacle hit, green circle=chosen
+cover position, red line=player-to-cover LOS check."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="CoverInfiniteRaysContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CoverInfiniteRaysLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverInfiniteRaysContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cover Infinite Rays"
+autowrap_mode = 2
+
+[node name="CoverInfiniteRaysCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverInfiniteRaysContainer"]
+layout_mode = 2
+button_pressed = true
+
+[node name="CoverInfiniteRaysDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, cover detection rays extend to 10,000 px
+so enemies find cover behind distant obstacles at any range.
+When disabled, rays use the default 300 px range."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="CoverSectorRaysContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CoverSectorRaysLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverSectorRaysContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cover Sector Rays"
+autowrap_mode = 2
+
+[node name="CoverSectorRaysCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverSectorRaysContainer"]
+layout_mode = 2
+button_pressed = true
+
+[node name="CoverSectorRaysDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, cover ray bundle fires only in a 100-degree
+cone from the player toward the suppressed enemy. When
+disabled, rays are cast in a full 360-degree circle."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorShowBottom" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AICategoryLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "AI & Gameplay"
+label_settings = ExtResource("2_neon_label")
+horizontal_alignment = 1
+
+[node name="HSeparatorAITop" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="FOVContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
@@ -92,30 +302,7 @@ FOV limited (100) by default. Press F7 to visualize."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="HSeparator2" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="ComplexGrenadeContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="ComplexGrenadeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ComplexGrenadeContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Complex Grenade Throwing"
-autowrap_mode = 2
-
-[node name="ComplexGrenadeCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ComplexGrenadeContainer"]
-layout_mode = 2
-
-[node name="ComplexGrenadeDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-text = "When enabled, uses 3-step throwing (G+RMB drag,
-hold, release). When disabled, hold RMB to aim
-with trajectory preview, release to throw."
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="HSeparator3" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="HSeparatorFOV" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="AIPredictionContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
@@ -138,191 +325,49 @@ velocity tracking, and behavioral adaptation."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="HSeparator4" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="HSeparatorAIPred" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="DebugModeContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="TacticalGroupContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="DebugModeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DebugModeContainer"]
+[node name="TacticalGroupLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TacticalGroupContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Debug Mode (F7)"
+text = "Tactical Group Movement"
 autowrap_mode = 2
 
-[node name="DebugModeCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DebugModeContainer"]
+[node name="TacticalGroupCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TacticalGroupContainer"]
 layout_mode = 2
 
-[node name="HSeparator5" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="TacticalGroupDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
-
-[node name="InvincibilityContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="InvincibilityLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/InvincibilityContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Invincibility (F6)"
-autowrap_mode = 2
-
-[node name="InvincibilityCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/InvincibilityContainer"]
-layout_mode = 2
-
-[node name="HSeparator6" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="ReplayContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="ReplayLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReplayContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Enable Replay Viewing"
-autowrap_mode = 2
-
-[node name="ReplayCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReplayContainer"]
-layout_mode = 2
-
-[node name="ReplayDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-text = "When enabled, watch replay button appears after
-completing levels. Press W on score screen to view."
+text = "When enabled, enemies within 500 px of the player form\na tactical group and spread around the player,\napproaching from multiple directions to encircle the target\nrather than all converging from the same spot."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="HSeparator7" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="HSeparatorTactical" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="LoggingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="PassageWaypointsContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="LoggingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/LoggingContainer"]
+[node name="PassageWaypointsLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/PassageWaypointsContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Enable Log Recording"
+text = "Use Passage Waypoints"
 autowrap_mode = 2
 
-[node name="LoggingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/LoggingContainer"]
+[node name="PassageWaypointsCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/PassageWaypointsContainer"]
 layout_mode = 2
 
-[node name="LoggingDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="PassageWaypointsDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
-text = "When enabled (default), game events are written to
-a log file for debugging. Disable to improve FPS."
+text = "When enabled (default), enemies use pre-placed passage\nwaypoints to navigate through doorways on the Building map.\nWhen disabled, enemies fall back to the previous\ncover-seeking navigation without waypoints."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="HSeparator8" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="EnemyFlashlightBlindingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="EnemyFlashlightBlindingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyFlashlightBlindingContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Enemy Flashlight Blinding"
-autowrap_mode = 2
-
-[node name="EnemyFlashlightBlindingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyFlashlightBlindingContainer"]
-layout_mode = 2
-
-[node name="EnemyFlashlightBlindingDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-text = "When enabled, enemy flashlights blind the player
-in night mode. Disabled by default."
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="HSeparator9" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="FpsCounterContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="FpsCounterLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsCounterContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Show FPS Counter"
-autowrap_mode = 2
-
-[node name="FpsCounterCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsCounterContainer"]
-layout_mode = 2
-
-[node name="FpsCounterDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-text = "When enabled, displays current FPS in the top-left
-corner of the screen. Disabled by default."
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="HSeparator10" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="FpsDropLoggingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="FpsDropLoggingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Log FPS Drops"
-autowrap_mode = 2
-
-[node name="FpsDropLoggingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer"]
-layout_mode = 2
-
-[node name="FpsDropLoggingDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-text = "When enabled, logs a warning to the log file when
-FPS drops below 30. Disabled by default."
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="HSeparator11" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="AllWeaponsUnlockedContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="AllWeaponsUnlockedLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Unlock All Weapons"
-autowrap_mode = 2
-
-[node name="AllWeaponsUnlockedCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer"]
-layout_mode = 2
-
-[node name="AllWeaponsUnlockedDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-text = "When enabled, all weapons, grenades, and items are
-unlocked in the armory. Disabled by default."
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="HSeparator12" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="AllMapsUnlockedContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="AllMapsUnlockedLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Unlock All Maps"
-autowrap_mode = 2
-
-[node name="AllMapsUnlockedCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer"]
-layout_mode = 2
-
-[node name="AllMapsUnlockedDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
-layout_mode = 2
-text = "When enabled, all levels are accessible without
-completing previous levels. Disabled by default."
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="HSeparator12b" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="HSeparatorPassage" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="GlobalStuckMaxTimeContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
@@ -353,28 +398,228 @@ text = "How long an enemy can stay in the same spot before\ngiving up pursuit an
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="HSeparator12c" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="HSeparatorStuck" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="NavMeshVisibleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="ComplexGrenadeContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="NavMeshVisibleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer"]
+[node name="ComplexGrenadeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ComplexGrenadeContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Show Nav Mesh"
+text = "Complex Grenade Throwing"
 autowrap_mode = 2
 
-[node name="NavMeshVisibleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer"]
+[node name="ComplexGrenadeCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ComplexGrenadeContainer"]
 layout_mode = 2
 
-[node name="NavMeshVisibleDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="ComplexGrenadeDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
-text = "When enabled, draws the AI navigation mesh overlay.\nShows where enemies can walk and helps debug\nincorrectly built areas of the mesh."
+text = "When enabled, uses 3-step throwing (G+RMB drag,
+hold, release). When disabled, hold RMB to aim
+with trajectory preview, release to throw."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="HSeparator12d" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="HSeparatorGrenade" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemyFlashlightBlindingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemyFlashlightBlindingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyFlashlightBlindingContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Enemy Flashlight Blinding"
+autowrap_mode = 2
+
+[node name="EnemyFlashlightBlindingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyFlashlightBlindingContainer"]
+layout_mode = 2
+
+[node name="EnemyFlashlightBlindingDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, enemy flashlights blind the player
+in night mode. Disabled by default."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorFlashlight" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ReplayContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ReplayLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReplayContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Enable Replay Viewing"
+autowrap_mode = 2
+
+[node name="ReplayCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReplayContainer"]
+layout_mode = 2
+
+[node name="ReplayDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, watch replay button appears after
+completing levels. Press W on score screen to view."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorAIBottom" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="CheatsCategoryLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Cheats"
+label_settings = ExtResource("2_neon_label")
+horizontal_alignment = 1
+
+[node name="HSeparatorCheatsTop" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="InvincibilityContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="InvincibilityLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/InvincibilityContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Invincibility (F6)"
+autowrap_mode = 2
+
+[node name="InvincibilityCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/InvincibilityContainer"]
+layout_mode = 2
+
+[node name="HSeparatorInvincibility" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AllWeaponsUnlockedContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AllWeaponsUnlockedLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Unlock All Weapons"
+autowrap_mode = 2
+
+[node name="AllWeaponsUnlockedCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer"]
+layout_mode = 2
+
+[node name="AllWeaponsUnlockedDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, all weapons, grenades, and items are
+unlocked in the armory. Disabled by default."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorWeapons" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AllMapsUnlockedContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AllMapsUnlockedLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Unlock All Maps"
+autowrap_mode = 2
+
+[node name="AllMapsUnlockedCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer"]
+layout_mode = 2
+
+[node name="AllMapsUnlockedDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, all levels are accessible without
+completing previous levels. Disabled by default."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorCheatsBottom" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="PerfCategoryLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Performance & Logging"
+label_settings = ExtResource("2_neon_label")
+horizontal_alignment = 1
+
+[node name="HSeparatorPerfTop" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="LoggingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="LoggingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/LoggingContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Enable Log Recording"
+autowrap_mode = 2
+
+[node name="LoggingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/LoggingContainer"]
+layout_mode = 2
+
+[node name="LoggingDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled (default), game events are written to
+a log file for debugging. Disable to improve FPS."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorLogging" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="FpsDropLoggingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="FpsDropLoggingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Log FPS Drops"
+autowrap_mode = 2
+
+[node name="FpsDropLoggingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer"]
+layout_mode = 2
+
+[node name="FpsDropLoggingDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, logs a warning to the log file when
+FPS drops below 30. Disabled by default."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorPerfBottom" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DebugCategoryLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Debug"
+label_settings = ExtResource("2_neon_label")
+horizontal_alignment = 1
+
+[node name="HSeparatorDebugTop" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DebugModeContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DebugModeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DebugModeContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Debug Mode (F7)"
+autowrap_mode = 2
+
+[node name="DebugModeCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DebugModeContainer"]
+layout_mode = 2
+
+[node name="HSeparatorDebugBottom" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="UtilitiesCategoryLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Utilities"
+label_settings = ExtResource("2_neon_label")
+horizontal_alignment = 1
+
+[node name="HSeparatorUtilTop" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="DeleteSavesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
@@ -398,7 +643,7 @@ Experimental settings are preserved."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="HSeparator13" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="HSeparatorDeleteSaves" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="UnlockTableContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
@@ -421,7 +666,7 @@ which levels at what rank."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="HSeparator14" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="HSeparatorUnlockTable" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="EnemiesTableContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
@@ -443,7 +688,7 @@ text = "Shows which unique enemy types appear on each map."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="HSeparator14b" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+[node name="HSeparatorEnemiesTable" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="EnemySpawnerLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
@@ -482,6 +727,9 @@ text = ""
 horizontal_alignment = 1
 autowrap_mode = 2
 
+[node name="HSeparatorUtilBottom" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 text = "FOV enabled: Enemies see in 100 degree cone"
@@ -493,3 +741,50 @@ custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Back"
+
+[node name="NavBar" type="PanelContainer" parent="MenuContainer"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -160.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 8.0
+grow_horizontal = 0
+grow_vertical = 1
+
+[node name="NavVBox" type="VBoxContainer" parent="MenuContainer/NavBar"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="NavTitle" type="Label" parent="MenuContainer/NavBar/NavVBox"]
+layout_mode = 2
+text = "Sections"
+horizontal_alignment = 1
+
+[node name="NavVisualisationButton" type="Button" parent="MenuContainer/NavBar/NavVBox"]
+layout_mode = 2
+text = "Visualisation"
+
+[node name="NavAIButton" type="Button" parent="MenuContainer/NavBar/NavVBox"]
+layout_mode = 2
+text = "AI & Gameplay"
+
+[node name="NavCheatsButton" type="Button" parent="MenuContainer/NavBar/NavVBox"]
+layout_mode = 2
+text = "Cheats"
+
+[node name="NavPerfButton" type="Button" parent="MenuContainer/NavBar/NavVBox"]
+layout_mode = 2
+text = "Performance"
+
+[node name="NavDebugButton" type="Button" parent="MenuContainer/NavBar/NavVBox"]
+layout_mode = 2
+text = "Debug"
+
+[node name="NavUtilitiesButton" type="Button" parent="MenuContainer/NavBar/NavVBox"]
+layout_mode = 2
+text = "Utilities"

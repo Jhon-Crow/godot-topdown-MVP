@@ -559,6 +559,14 @@ func _on_level_selected(level_path: String) -> void:
 	# Restore hidden cursor for gameplay (confined and hidden)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 
+	# Issue #1324: Reset roguelike session if the player navigates away via the Levels menu
+	# while a run is active (e.g. ESC → Levels → pick a level). Without this reset,
+	# roguelike_active stays true in the new scene and the armory button remains disabled.
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager and game_manager.get("roguelike_active") == true:
+		if game_manager.has_method("roguelike_reset_session"):
+			game_manager.roguelike_reset_session()
+
 	# Save the selected level for next session (Issue #896)
 	var persist_manager: Node = get_node_or_null("/root/PersistManager")
 	if persist_manager and persist_manager.has_method("save_last_level"):

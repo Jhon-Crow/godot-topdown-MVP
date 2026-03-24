@@ -128,6 +128,9 @@ func process_pursuing(delta: float, can_see_player: bool, player: Node,
 ## Uses the same projectile as normal shooting but bypasses the LOS requirement.
 func fire_at_predicted_position(target_pos: Vector2) -> void:
 	if enemy.bullet_scene == null: return
+	# Issue #1334 Round 5: Don't shoot at a dead player
+	var gm := enemy.get_node_or_null("/root/GameManager")
+	if gm and not gm.player_alive: return
 	var to_target := (target_pos - enemy.global_position).normalized()
 	if to_target == Vector2.ZERO: return
 
@@ -178,8 +181,39 @@ func _rotate_toward(target_pos: Vector2, delta: float) -> void:
 # Issue #1171 — Hitscan shooting: avoids physics tunnelling at 10000px/s
 # ============================================================================
 
+## Issue #1334 Round 7: Robust alive check that works for both GDScript and C# targets.
+## GDScript's get("IsAlive") returns null for non-[Export] C# properties, so we use
+## multiple fallback strategies: GDScript method, C# property, GameManager.player_alive
+## (for Player nodes), and collision_layer check (0 = dead, set by Player.OnDeath).
+func _check_target_alive(node: Node2D) -> bool:
+	if not is_instance_valid(node):
+		return false
+	# Strategy 1: GDScript method is_alive()
+	if node.has_method("is_alive"):
+		return node.call("is_alive")
+	# Strategy 2: C# property via get() — may return null for non-exported properties
+	var is_alive_val = node.get("IsAlive")
+	if is_alive_val != null:
+		return is_alive_val
+	# Strategy 3: Check GameManager.player_alive (covers the Player specifically)
+	var gm := enemy.get_node_or_null("/root/GameManager")
+	if gm and not gm.player_alive:
+		return false
+	# Strategy 4: collision_layer == 0 means dead (Player.OnDeath sets CollisionLayer=0)
+	if node is CharacterBody2D and node.collision_layer == 0:
+		return false
+	# Default: assume alive (unknown target type)
+	return true
+
+
 ## [#1171] Hitscan shot — instant raycast avoids physics tunneling at 10000px/s.
 func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
+	# Issue #1334 Round 11: Guard against freed enemy node
+	if not enemy.is_inside_tree(): return
+	# Issue #1334 Round 5: Skip hitscan entirely if player is already dead.
+	# Prevents crash from hitscan hitting dead player on same frame as death signal.
+	var gm := enemy.get_node_or_null("/root/GameManager")
+	if gm and not gm.player_alive: return
 	var world_2d := enemy.get_world_2d()
 	if world_2d == null: return
 	var space_state := world_2d.direct_space_state
@@ -187,24 +221,52 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 	var damage := 50.0; var end_pos := spawn_pos + direction * 5000.0; var bullet_end_point := end_pos
 	var shooter_id := enemy.get_instance_id(); var walls_penetrated := 0; var current_pos := spawn_pos
 	var exclude_rids := []; var damaged_ids: Dictionary = {}
+	# Issue #1334 Round 8: Also get the player's RID so we can exclude it from raycasts
+	# if it died between the player_alive check above and the raycast loop below.
+	# When Player.OnDeath() sets CollisionLayer=0, the physics server may not process
+	# the change until the next physics tick. Excluding the player's RID directly
+	# prevents the raycast from hitting a dead player whose collision hasn't been
+	# removed from the physics server yet (this can cause native segfaults).
+	var player_node: Node2D = gm.player if gm else null
+	var player_rid: RID = player_node.get_rid() if player_node and is_instance_valid(player_node) and player_node is CollisionObject2D else RID()
+	# Issue #1334 Round 6: Collect hits during raycast loop, apply damage AFTER loop.
+	# Calling TakeDamage() inside a direct_space_state query loop modifies physics state
+	# (CollisionLayer=0 in Player.OnDeath), which is undefined behavior in Godot's physics
+	# server and causes a native segfault crash. The safe pattern is: query first, damage later.
+	var pending_hits: Array[Dictionary] = []
 	for _i in range(50):
 		if current_pos.distance_to(end_pos) < 1.0: break
+		# Issue #1334 Round 8: Re-check player_alive each iteration. If another damage source
+		# killed the player during this frame (e.g., rifle bullet body_entered callback fired
+		# between _physics_process calls), the player's collision data may be in an inconsistent
+		# state. Abort the raycast loop immediately to prevent native segfaults.
+		if gm and not gm.player_alive:
+			_log("[SniperHitscan] Aborting raycast loop — player died mid-frame")
+			break
+		# Build the exclude list, adding the dead player's RID if player died
+		var char_exclude := exclude_rids.duplicate()
+		if player_rid.is_valid() and gm and not gm.player_alive:
+			char_exclude.append(player_rid)
 		var wall_result := space_state.intersect_ray(PhysicsRayQueryParameters2D.create(current_pos, end_pos, 4, exclude_rids))
-		var char_result := space_state.intersect_ray(PhysicsRayQueryParameters2D.create(current_pos, end_pos, 1, exclude_rids))
+		var char_result := space_state.intersect_ray(PhysicsRayQueryParameters2D.create(current_pos, end_pos, 1, char_exclude))
 		var wall_dist := INF if wall_result.is_empty() else current_pos.distance_to(wall_result["position"])
 		var char_dist := INF if char_result.is_empty() else current_pos.distance_to(char_result["position"])
 		if wall_dist == INF and char_dist == INF: break
 		if char_dist <= wall_dist and not char_result.is_empty():
-			var hit_node: Node2D = char_result["collider"]; var hit_id := hit_node.get_instance_id()
+			var hit_node: Node2D = char_result["collider"]
+			# Issue #1334: Verify collider is still valid (may have been freed mid-frame)
+			if not is_instance_valid(hit_node): break
+			var hit_id := hit_node.get_instance_id()
 			if hit_id != shooter_id and not damaged_ids.has(hit_id):
-				if (not hit_node.has_method("is_alive")) or hit_node.call("is_alive"):
-					if hit_node.has_method("on_hit_with_bullet_info"):
-						hit_node.call("on_hit_with_bullet_info", direction, enemy.get("_caliber_data"), false, walls_penetrated > 0, damage)
-					elif hit_node.has_method("TakeDamage"): hit_node.call("TakeDamage", damage)
-					elif hit_node.has_method("take_damage"): hit_node.call("take_damage", damage)
-					elif hit_node.has_method("on_hit"): hit_node.call("on_hit")
+				# Issue #1334 Round 7: Robust alive check using multiple fallback methods.
+				# get("IsAlive") can return null for non-[Export] C# properties in GDScript,
+				# causing the check to be silently skipped and damage applied to dead targets.
+				var target_alive := _check_target_alive(hit_node)
+				if target_alive:
+					# Issue #1334 Round 6: Store hit for deferred damage — do NOT call
+					# TakeDamage here, as it modifies physics state during an active query.
+					pending_hits.append({"node": hit_node, "walls_penetrated": walls_penetrated})
 					damaged_ids[hit_id] = true
-					if log_to_file_fn.is_valid(): log_to_file_fn.call("[SniperHitscan] Hit %s damage=%.0f" % [hit_node.name, damage])
 			exclude_rids.append(char_result["rid"]); current_pos = char_result["position"] + direction * 5.0
 		elif not wall_result.is_empty():
 			var impact_mgr := enemy.get_node_or_null("/root/ImpactEffectsManager")
@@ -214,6 +276,20 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 				walls_penetrated += 1; exclude_rids.append(wall_result["rid"])
 				current_pos = wall_result["position"] + direction * 5.0
 			else: bullet_end_point = wall_result["position"]; break
+	# Issue #1334 Round 6: Apply damage AFTER the raycast loop has fully completed.
+	# This ensures no physics state modifications happen during active direct_space_state queries.
+	for hit_info in pending_hits:
+		var hit_node: Node2D = hit_info["node"]
+		if not is_instance_valid(hit_node): continue
+		# Re-check alive status — a prior hit in this batch may have killed the target
+		if not _check_target_alive(hit_node): continue
+		var hit_walls: int = hit_info["walls_penetrated"]
+		if hit_node.has_method("on_hit_with_bullet_info"):
+			hit_node.call("on_hit_with_bullet_info", direction, enemy.get("_caliber_data"), false, hit_walls > 0, damage)
+		elif hit_node.has_method("TakeDamage"): hit_node.call("TakeDamage", damage)
+		elif hit_node.has_method("take_damage"): hit_node.call("take_damage", damage)
+		elif hit_node.has_method("on_hit"): hit_node.call("on_hit")
+		if log_to_file_fn.is_valid(): log_to_file_fn.call("[SniperHitscan] Hit %s damage=%.0f" % [hit_node.name, damage])
 	_spawn_sniper_tracer(spawn_pos, bullet_end_point)
 
 ## Spawn a fading smoke tracer Line2D from muzzle to bullet endpoint.
@@ -229,12 +305,17 @@ func _spawn_sniper_tracer(from_pos: Vector2, end_pos: Vector2) -> void:
 	grad.set_color(0, Color(0.9, 0.9, 0.85, 0.8)); grad.add_point(0.5, Color(0.7, 0.7, 0.65, 0.5))
 	grad.set_color(grad.get_point_count() - 1, Color(0.5, 0.5, 0.5, 0.2))
 	tracer.gradient = grad; tracer.add_point(from_pos); tracer.add_point(end_pos)
-	get_tree().current_scene.add_child(tracer); _fade_sniper_tracer(tracer)
+	# Issue #1334 Round 11: Guard against null current_scene during scene transitions
+	var current_scene := get_tree().current_scene
+	if current_scene == null: tracer.queue_free(); return
+	current_scene.add_child(tracer); _fade_sniper_tracer(tracer)
 
 ## Async fade-out for the sniper tracer.
 func _fade_sniper_tracer(tracer: Line2D) -> void:
 	var elapsed := 0.0; var initial_width := tracer.width
 	while elapsed < 2.0 and is_instance_valid(tracer):
+		# Issue #1334 Round 11: Guard coroutine against freed enemy/scene after await
+		if not is_inside_tree(): break
 		elapsed += get_process_delta_time(); var p := elapsed / 2.0; var a := lerpf(0.7, 0.0, p)
 		tracer.default_color = Color(0.8, 0.8, 0.8, a); tracer.width = initial_width + p * 3.0
 		var grad := Gradient.new()

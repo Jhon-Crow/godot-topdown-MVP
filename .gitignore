@@ -45,3 +45,4 @@ ci-logs/
 
 # Game runtime logs
 game-logs/
+game_log*.txt

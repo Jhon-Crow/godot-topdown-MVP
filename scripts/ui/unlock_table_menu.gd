@@ -24,7 +24,8 @@ const LEVEL_NAMES: Dictionary = {
 	"res://scenes/levels/CastleLevel.tscn": "Castle",
 	"res://scenes/levels/RevolverLevel.tscn": "Double Corridor",
 	"res://scenes/levels/BeachLevel.tscn": "Beach",
-	"res://scenes/levels/DocksLevel.tscn": "Docks"
+	"res://scenes/levels/DocksLevel.tscn": "Docks",
+	"res://scenes/levels/CityLevel.tscn": "City"
 }
 
 ## Weapon ID to display name mapping.
@@ -58,7 +59,9 @@ const ACTIVE_ITEM_NAMES: Dictionary = {
 	14: "Auto-Reload",
 	15: "Drilling Bullets",
 	16: "Recoil Compensator",
-	17: "Combat Disposition"
+	17: "Combat Disposition",
+	18: "Experimental Sample",
+	19: "Fine Motor Skills"
 }
 
 ## Grenade type to display name mapping.
@@ -327,7 +330,11 @@ func _populate_table() -> void:
 		if game_manager and stat != "":
 			current_kills = game_manager.get(stat) if game_manager.get(stat) != null else 0
 
-		var map_display: String = "%d / %d kills (no Laser Sight)" % [current_kills, min_kills]
+		var map_display: String
+		if stat == "shots_fired_special_weapons":
+			map_display = "%d / %d shots (shotgun/rifle/revolver)" % [current_kills, min_kills]
+		else:
+			map_display = "%d / %d kills (no Laser Sight)" % [current_kills, min_kills]
 
 		var items_list: Array[String] = []
 		for weapon_id in kill_condition.get("weapons", []):
@@ -354,6 +361,39 @@ func _populate_table() -> void:
 			map_display = map_display + " ✓"
 
 		_add_table_row(map_display, "—", ", ".join(items_list), false, condition_met)
+
+	# Add rows for all-difficulties conditions
+	var all_diff_unlock_conditions: Array = []
+	if "ALL_DIFFICULTIES_UNLOCK_CONDITIONS" in unlock_manager:
+		all_diff_unlock_conditions = unlock_manager.ALL_DIFFICULTIES_UNLOCK_CONDITIONS
+
+	for all_diff_condition in all_diff_unlock_conditions:
+		var items_list: Array[String] = []
+		for weapon_id in all_diff_condition.get("weapons", []):
+			var weapon_name: String = WEAPON_NAMES.get(weapon_id, weapon_id)
+			items_list.append(weapon_name)
+			if weapon_id not in weapons_with_conditions:
+				weapons_with_conditions.append(weapon_id)
+		for grenade_type in all_diff_condition.get("grenades", []):
+			var grenade_name: String = GRENADE_NAMES.get(grenade_type, "Grenade %d" % grenade_type)
+			items_list.append(grenade_name)
+			if grenade_type not in grenades_with_conditions:
+				grenades_with_conditions.append(grenade_type)
+		for item_type in all_diff_condition.get("active_items", []):
+			var item_name: String = ACTIVE_ITEM_NAMES.get(item_type, "Item %d" % item_type)
+			items_list.append(item_name)
+			if item_type not in active_items_with_conditions:
+				active_items_with_conditions.append(item_type)
+
+		var condition_met: bool = false
+		if unlock_manager.has_method("is_all_difficulties_condition_met"):
+			condition_met = unlock_manager.is_all_difficulties_condition_met()
+
+		var map_display: String = "1 level per difficulty"
+		if condition_met:
+			map_display = map_display + " ✓"
+
+		_add_table_row(map_display, "Any", ", ".join(items_list), false, condition_met)
 
 	# Add separator before unallocated items
 	var sep := HSeparator.new()

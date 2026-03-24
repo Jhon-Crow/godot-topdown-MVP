@@ -463,7 +463,7 @@ public partial class AKGL : BaseWeapon
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            float loudness = WeaponData?.Loudness ?? 1600.0f;
+            float loudness = WeaponData?.Loudness ?? 871.3f;  // Issue #1269: scaled 800/1469 from 1600
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
         }
     }

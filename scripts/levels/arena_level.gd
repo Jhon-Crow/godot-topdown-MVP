@@ -116,11 +116,8 @@ var _wave_label: Label = null
 ## Reference to the ammo count label.
 var _ammo_label: Label = null
 
-## Reference to the kills label.
-var _kills_label: Label = null
-
-## Reference to the accuracy label.
-var _accuracy_label: Label = null
+## Reference to the difficulty label.
+var _difficulty_label: Label = null
 
 ## Reference to the magazines label.
 var _magazines_label: Label = null
@@ -790,33 +787,30 @@ func _reconnect_weapon_signals(player: Node2D) -> void:
 # ---------------------------------------------------------------------------
 
 ## Bake NavigationRegion2D for enemy pathfinding.
+## Issue #1289: use explicit parse+bake API so all obstacle StaticBody2D nodes are
+## reliably found and carved out of the walkable area (bake_navigation_polygon can
+## miss dynamic/runtime geometry when called from _ready()).
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
 		push_warning("[ArenaLevel] NavigationRegion2D not found")
 		return
-
-	# Bake navmesh after two physics frames: first for physics shapes to register,
-	# second for NavigationServer2D to sync — Issue #1188
-	_bake_navmesh_after_physics_frame(nav_region)
-
-
-## Bake navigation polygon after two physics frames to ensure all StaticBody2D
-## collision shapes are fully registered and NavigationServer2D has synced — Issue #1188.
-func _bake_navmesh_after_physics_frame(nav_region: NavigationRegion2D) -> void:
-	await get_tree().physics_frame  # Wait for StaticBody2D shapes to register with PhysicsServer2D
-	await get_tree().physics_frame  # Wait for NavigationServer2D to sync the map state
-	if not is_instance_valid(nav_region):
-		return
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		return
+	# Issues #1188/#1289: wait two physics frames so StaticBody2D shapes are registered
+	# with PhysicsServer2D and NavigationServer2D syncs the map state before baking.
+	await get_tree().physics_frame
+	await get_tree().physics_frame
 	_log_to_file("Baking navmesh (Issue #1188): scanning scene root for wall colliders on layer 4")
 	# parse_source_geometry_data with self (scene root) scans ALL scene children including walls.
 	# bake_navigation_polygon(false) only scans NavigationRegion2D children — misses sibling walls.
 	var source_geometry := NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# Push updated polygon back into NavigationServer's live map — Issue #1289.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 	var poly_count: int = nav_poly.get_polygon_count()
 	_log_to_file("Navmesh bake complete: %d polygons (>1 means walls were carved)" % poly_count)
 
@@ -1065,27 +1059,16 @@ func _setup_ui() -> void:
 	_health_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4, 1.0))
 	ui.add_child(_health_label)
 
-	# Kills label.
-	_kills_label = Label.new()
-	_kills_label.name = "KillsLabel"
-	_kills_label.text = "Убийства: 0"
-	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left = 10
-	_kills_label.offset_top = 72
-	_kills_label.offset_right = 250
-	_kills_label.offset_bottom = 102
-	ui.add_child(_kills_label)
-
-	# Accuracy label.
-	_accuracy_label = Label.new()
-	_accuracy_label.name = "AccuracyLabel"
-	_accuracy_label.text = "Точность: 0%"
-	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left = 10
-	_accuracy_label.offset_top = 102
-	_accuracy_label.offset_right = 250
-	_accuracy_label.offset_bottom = 132
-	ui.add_child(_accuracy_label)
+	# Difficulty label.
+	_difficulty_label = Label.new()
+	_difficulty_label.name = "DifficultyLabel"
+	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_difficulty_label.offset_left = 10
+	_difficulty_label.offset_top = 72
+	_difficulty_label.offset_right = 250
+	_difficulty_label.offset_bottom = 102
+	ui.add_child(_difficulty_label)
 
 	# Magazines label.
 	_magazines_label = Label.new()
@@ -1269,10 +1252,8 @@ func _update_health_label() -> void:
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
-	if _kills_label:
-		_kills_label.text = "Убийства: %d" % GameManager.kills
-	if _accuracy_label:
-		_accuracy_label.text = "Точность: %.1f%%" % GameManager.get_accuracy()
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 	_update_health_label()
 
 
@@ -1308,10 +1289,11 @@ func _complete_level_with_score() -> void:
 	_score_shown = true
 
 	# Disable player controls.
-	if _player != null and is_instance_valid(_player) and _player.has_method("SetProcessInput"):
-		_player.SetProcessInput(false)
-	elif _player != null and is_instance_valid(_player) and _player.has_method("set_process_input"):
+	if _player != null and is_instance_valid(_player):
+		_player.set_physics_process(false)
+		_player.set_process(false)
 		_player.set_process_input(false)
+		_player.set_process_unhandled_input(false)
 
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):

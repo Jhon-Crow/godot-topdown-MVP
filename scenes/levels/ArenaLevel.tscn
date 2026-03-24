@@ -224,3 +224,43 @@ mouse_filter = 2
 
 [node name="PauseMenu" parent="CanvasLayer" instance=ExtResource("3_pause_menu")]
 visible = false
+
+[node name="SearchPathWaypoints" type="Node2D" parent="."]
+editor_description = "Pre-planned search path waypoints for enemy SEARCHING state (Issue #1246). Enemies traverse these in order starting from the nearest point to their current position."
+groups = ["search_path_waypoints"]
+
+[node name="Arena_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(960, 540)
+
+[node name="Arena_TopLeft" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 250)
+
+[node name="Arena_TopCenter" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(960, 200)
+
+[node name="Arena_TopRight" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1620, 250)
+
+[node name="CoverA_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(400, 400)
+
+[node name="CoverA_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(960, 300)
+
+[node name="CoverA_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1520, 400)
+
+[node name="CoverB_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(600, 680)
+
+[node name="CoverB_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(960, 780)
+
+[node name="CoverB_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1320, 680)
+
+[node name="Arena_BottomLeft" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 850)
+
+[node name="Arena_BottomRight" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1620, 850)

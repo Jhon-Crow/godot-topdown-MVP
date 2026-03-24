@@ -140,6 +140,10 @@ func _close_log_file() -> void:
 ## Write a message to the log file with timestamp.
 ## Writes are batched and flushed every FLUSH_INTERVAL seconds (Issue #885).
 ## ERROR-level messages bypass the buffer and flush immediately.
+## Issue #1293: print() is gated to debug builds only. In release/export builds,
+## stdout writes cause variable FPS drops (1–9 fps) depending on how the OS
+## handles the unconnected stdout pipe. With 40–70 log messages/second the
+## overhead is significant and non-deterministic across launches.
 func _write_log(level: String, message: String) -> void:
 	if not _logging_enabled:
 		return
@@ -147,8 +151,9 @@ func _write_log(level: String, message: String) -> void:
 	var timestamp := Time.get_time_string_from_system()
 	var log_line := "[%s] [%s] %s" % [timestamp, level, message]
 
-	# Also print to console
-	print(log_line)
+	# Only print to console in debug builds to avoid FPS drops (Issue #1293).
+	if OS.is_debug_build():
+		print(log_line)
 
 	if _log_file != null:
 		_write_buffer.append(log_line)

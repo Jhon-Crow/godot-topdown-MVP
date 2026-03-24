@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Characters;
@@ -1535,6 +1536,104 @@ public partial class Shotgun : BaseWeapon
         }
     }
 
+    /// <summary>
+    /// Resets the action state to Ready, bringing the weapon to combat-ready state (Issue #1315).
+    /// Used by the Fine Motor Skills active item to bypass the pump cycle after firing.
+    /// Also cancels any in-progress reload and fills the tube from reserve.
+    /// </summary>
+    public void FineMotorSkillsReload()
+    {
+        // Cancel any in-progress reload
+        if (ReloadState != ShotgunReloadState.NotReloading)
+        {
+            ReloadState = ShotgunReloadState.NotReloading;
+            EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+        }
+
+        // Fill tube from reserve
+        int spaceInTube = TubeMagazineCapacity - ShellsInTube;
+        if (spaceInTube > 0)
+        {
+            int loaded = AutoRefillTube(spaceInTube);
+            if (loaded > 0)
+            {
+                PlayShellLoadSound();
+                GD.Print($"[Shotgun.FineMotorSkills] Loaded {loaded} shells into tube ({ShellsInTube}/{TubeMagazineCapacity})");
+            }
+        }
+
+        // Reset action state to Ready (bypasses pump cycle)
+        if (ActionState != ShotgunActionState.Ready)
+        {
+            ActionState = ShotgunActionState.Ready;
+            PlayActionCloseSound();
+            EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+            GD.Print("[Shotgun.FineMotorSkills] Action state reset to Ready");
+        }
+
+        EmitSignal(SignalName.ReloadFinished);
+        EmitSignal(SignalName.AmmoChanged, ShellsInTube, ReserveAmmo);
+        GD.Print($"[Shotgun.FineMotorSkills] Combat-ready: {ShellsInTube}/{TubeMagazineCapacity} shells");
+    }
+
+    /// <summary>
+    /// Sequentially reloads the shotgun with delays between each stage (Issue #1337).
+    /// Plays: action open → shell load (one by one) → action close.
+    /// Each stage has an audible sound with a configurable delay between them.
+    /// </summary>
+    /// <param name="stageDelay">Delay in seconds between each reload stage.</param>
+    public async Task FineMotorSkillsReloadAsync(float stageDelay)
+    {
+        // Cancel any in-progress reload
+        if (ReloadState != ShotgunReloadState.NotReloading)
+        {
+            ReloadState = ShotgunReloadState.NotReloading;
+            EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+        }
+
+        // Stage 1: Play action open sound (cock/open bolt)
+        PlayActionOpenSound();
+        GD.Print("[Shotgun.FineMotorSkills] Stage: action open");
+
+        if (stageDelay > 0)
+        {
+            await ToSignal(GetTree().CreateTimer(stageDelay), "timeout");
+        }
+
+        // Stage 2: Load shells one by one with sounds between each
+        int spaceInTube = TubeMagazineCapacity - ShellsInTube;
+        if (spaceInTube > 0)
+        {
+            for (int i = 0; i < spaceInTube; i++)
+            {
+                int loaded = AutoRefillTube(1);
+                if (loaded <= 0)
+                    break;
+
+                PlayShellLoadSound();
+                GD.Print($"[Shotgun.FineMotorSkills] Stage: loaded shell {i + 1} ({ShellsInTube}/{TubeMagazineCapacity})");
+
+                if (stageDelay > 0)
+                {
+                    await ToSignal(GetTree().CreateTimer(stageDelay), "timeout");
+                }
+            }
+        }
+
+        // Stage 3: Close action (ready to fire)
+        if (ActionState != ShotgunActionState.Ready)
+        {
+            ActionState = ShotgunActionState.Ready;
+            EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+        }
+        PlayActionCloseSound();
+        GD.Print("[Shotgun.FineMotorSkills] Stage: action close — combat-ready");
+
+        EmitSignal(SignalName.ReloadFinished);
+        EmitSignal(SignalName.AmmoChanged, ShellsInTube, ReserveAmmo);
+        GD.Print($"[Shotgun.FineMotorSkills] Sequential reload complete: {ShellsInTube}/{TubeMagazineCapacity} shells");
+    }
+
     #endregion
 
     /// <summary>
@@ -1999,7 +2098,7 @@ public partial class Shotgun : BaseWeapon
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            float loudness = WeaponData?.Loudness ?? 1469.0f;
+            float loudness = WeaponData?.Loudness ?? 800.0f;  // Issue #1269: scaled 800/1469
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
         }
     }

@@ -29,11 +29,8 @@ var _current_enemy_count: int = 0
 ## Whether game over has been shown.
 var _game_over_shown: bool = false
 
-## Reference to the kills label.
-var _kills_label: Label = null
-
-## Reference to the accuracy label.
-var _accuracy_label: Label = null
+## Reference to the difficulty label.
+var _difficulty_label: Label = null
 
 ## Reference to the magazines label (shows individual magazine ammo counts).
 var _magazines_label: Label = null
@@ -391,6 +388,14 @@ func _setup_realistic_visibility() -> void:
 	visibility_component.name = "RealisticVisibilityComponent"
 	visibility_component.set_script(visibility_script)
 	_player.add_child(visibility_component)
+
+	# Tint the visibility light to match the cold-blue laboratory atmosphere
+	# so it blends with the room cold lights (Color(0.55, 0.75, 1.0)) instead
+	# of washing them out with a warm-white glow (Issue #1263).
+	# Color is deeper blue (lower R) to avoid white cast; energy is reduced
+	# from the default 1.5 so it no longer overpowers the room cold lights (≤0.65).
+	visibility_component.set_light_color(Color(0.45, 0.65, 1.0))
+	visibility_component.set_light_energy(0.8)
 	print("[LabyrinthLevel] Realistic visibility component added to player")
 
 
@@ -691,27 +696,22 @@ func _setup_navigation() -> void:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
 
-	# Bake navmesh after two physics frames: first for physics shapes to register,
-	# second for NavigationServer2D to sync — Issue #1188
-	_bake_navmesh_after_physics_frame(nav_region)
-
-
-## Bake navigation polygon after two physics frames to ensure all StaticBody2D
-## collision shapes are fully registered and NavigationServer2D has synced — Issue #1188.
-func _bake_navmesh_after_physics_frame(nav_region: NavigationRegion2D) -> void:
-	await get_tree().physics_frame  # Wait for StaticBody2D shapes to register with PhysicsServer2D
-	await get_tree().physics_frame  # Wait for NavigationServer2D to sync the map state
-	if not is_instance_valid(nav_region):
-		return
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		return
+	# Issues #1188/#1289: wait two physics frames so StaticBody2D shapes are registered
+	# with PhysicsServer2D and NavigationServer2D syncs the map state before baking.
+	await get_tree().physics_frame
+	await get_tree().physics_frame
 	_log_to_file("Baking navmesh (Issue #1188): scanning scene root for wall colliders on layer 4")
 	# parse_source_geometry_data with self (scene root) scans ALL scene children including walls.
 	# bake_navigation_polygon(false) only scans NavigationRegion2D children — misses sibling walls.
 	var source_geometry := NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# Push updated polygon back into NavigationServer's live map — Issue #1289.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 	var poly_count: int = nav_poly.get_polygon_count()
 	_log_to_file("Navmesh bake complete: %d polygons (>1 means walls were carved)" % poly_count)
 
@@ -934,31 +934,53 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
+## Apply Labyrinth level ammo configuration to a weapon (Issue #1422).
+## Silenced pistol: exactly as many bullets as enemies.
+## Mini UZI and rifles: 2 magazines to match level difficulty.
+## Shotgun, sniper, revolver: defaults are sufficient for 5 enemies.
+func _configure_labyrinth_weapon_ammo(weapon: Node, weapon_id: String) -> void:
+	if weapon == null:
+		return
+
+	if weapon_id == "silenced_pistol":
+		_configure_silenced_pistol_ammo(weapon)
+	elif weapon_id == "mini_uzi" or weapon_id == "m16" or weapon_id == "ak_gl":
+		var base_magazines: int = 2
+		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+		if difficulty_manager:
+			var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+			if ammo_multiplier > 1:
+				base_magazines *= ammo_multiplier
+				print("[LabyrinthLevel] Power Fantasy mode - %s magazines multiplied by %dx" % [weapon.name, ammo_multiplier])
+		if weapon.has_method("ReinitializeMagazines"):
+			weapon.ReinitializeMagazines(base_magazines, true)
+			print("[LabyrinthLevel] %s magazines reinitialized to %d" % [weapon.name, base_magazines])
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
+		_log_to_file("Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+
+
 ## Setup debug UI elements for kills and accuracy.
 func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
 
-	_kills_label = Label.new()
-	_kills_label.name = "KillsLabel"
-	_kills_label.text = "Kills: 0"
-	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left = 10
-	_kills_label.offset_top = 45
-	_kills_label.offset_right = 200
-	_kills_label.offset_bottom = 75
-	ui.add_child(_kills_label)
-
-	_accuracy_label = Label.new()
-	_accuracy_label.name = "AccuracyLabel"
-	_accuracy_label.text = "Accuracy: 0%"
-	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left = 10
-	_accuracy_label.offset_top = 75
-	_accuracy_label.offset_right = 200
-	_accuracy_label.offset_bottom = 105
-	ui.add_child(_accuracy_label)
+	_difficulty_label = Label.new()
+	_difficulty_label.name = "DifficultyLabel"
+	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_difficulty_label.offset_left = 10
+	_difficulty_label.offset_top = 45
+	_difficulty_label.offset_right = 200
+	_difficulty_label.offset_bottom = 75
+	ui.add_child(_difficulty_label)
 
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
@@ -1005,11 +1027,8 @@ func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
 
-	if _kills_label:
-		_kills_label.text = "Kills: %d" % GameManager.kills
-
-	if _accuracy_label:
-		_accuracy_label.text = "Accuracy: %.1f%%" % GameManager.get_accuracy()
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 
 
 ## Called when an enemy dies.
@@ -1155,7 +1174,9 @@ func _on_shell_count_changed(shell_count: int, capacity: int) -> void:
 
 ## Called when player runs out of ammo in current magazine.
 func _on_player_ammo_depleted() -> void:
-	_broadcast_player_ammo_empty(true)
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
@@ -1211,6 +1232,9 @@ func _on_player_died() -> void:
 	_show_death_message()
 	if GameManager:
 		await get_tree().create_timer(0.5).timeout
+		# Issue #1334: After await, verify this node is still valid (scene may have reloaded)
+		if not is_instance_valid(self):
+			return
 		GameManager.on_player_death()
 
 
@@ -1618,7 +1642,8 @@ func _setup_selected_weapon() -> void:
 			var expected_name: String = weapon_names[selected_weapon_id]
 			var existing_weapon = _player.get_node_or_null(expected_name)
 			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
-				_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % expected_name)
+				_log_to_file("%s already equipped by C# Player - applying labyrinth ammo config" % expected_name)
+				_configure_labyrinth_weapon_ammo(existing_weapon, selected_weapon_id)
 				return
 
 	if selected_weapon_id == "shotgun":
@@ -1759,6 +1784,7 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = akgl
 
+			_configure_labyrinth_weapon_ammo(akgl, "ak_gl")
 			print("LabyrinthLevel: AK + GL equipped successfully")
 		else:
 			push_error("LabyrinthLevel: Failed to load AKGL scene!")

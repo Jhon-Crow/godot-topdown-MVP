@@ -199,7 +199,7 @@ func _on_body_entered(body: Node) -> void:
 		_explode()
 
 
-## Called when the rocket enters an Area2D (e.g. grenade shockwave).
+## Called when the rocket enters an Area2D (e.g. grenade shockwave or bullet).
 func _on_area_entered(area: Area2D) -> void:
 	if _has_exploded or _spawn_immunity_active:
 		return
@@ -207,6 +207,34 @@ func _on_area_entered(area: Area2D) -> void:
 	if area.is_in_group("explosion") or area.is_in_group("shockwave") or area.name.to_lower().contains("explosion") or area.name.to_lower().contains("blast"):
 		FileLogger.info("[RpgRocket] Hit by area %s - exploding" % area.name)
 		_explode()
+		return
+	# Incoming bullet/shrapnel on projectiles layer (Issue #1307).
+	# Skip other RPG rockets to avoid mutual destruction.
+	if area.collision_layer & 16:
+		if area is RpgRocket:
+			return
+		FileLogger.info("[RpgRocket] Hit by projectile %s - exploding" % area.name)
+		_explode()
+
+
+## Receive incoming damage from bullets, shrapnel, or explosions (Issue #1307).
+## Triggers full explosion so the rocket detonates when shot.
+func on_hit() -> void:
+	if _has_exploded:
+		return
+	FileLogger.info("[RpgRocket] on_hit() — exploding at pos=%s" % str(global_position))
+	_explode()
+
+
+## Variant accepting hit direction and caliber data (Issue #1307).
+func on_hit_with_info(_hit_direction: Vector2, _caliber: Resource) -> void:
+	on_hit()
+
+
+## Variant accepting full bullet info including damage amount (Issue #1307).
+func on_hit_with_bullet_info_and_damage(_hit_direction: Vector2, _caliber: Resource,
+		_ricocheted: bool, _penetrated: bool, _dmg: float) -> void:
+	on_hit()
 
 
 func _explode() -> void:

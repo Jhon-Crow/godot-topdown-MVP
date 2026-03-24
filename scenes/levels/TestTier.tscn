@@ -1599,3 +1599,79 @@ text = "AMMO: 30/30"
 
 [node name="LevelInitFallback" type="Node" parent="."]
 script = ExtResource("6_fallback")
+
+[node name="SearchPathWaypoints" type="Node2D" parent="."]
+editor_description = "Pre-planned search path waypoints for enemy SEARCHING state (Issue #1246). Enemies traverse these in order starting from the nearest point to their current position."
+groups = ["search_path_waypoints"]
+
+[node name="SpawnZone_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 1544)
+
+[node name="SpawnZone_Top" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 1000)
+
+[node name="SpawnZone_Bottom" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 2100)
+
+[node name="CombatZone1_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(900, 800)
+
+[node name="CombatZone1_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1200, 800)
+
+[node name="CombatZone1_TopLeft" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(800, 400)
+
+[node name="CombatZone1_TopRight" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1500, 400)
+
+[node name="CombatZone1_Cover" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1500, 1000)
+
+[node name="MidArea_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1700, 1200)
+
+[node name="MidArea_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2000, 1544)
+
+[node name="MidArea_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2300, 1888)
+
+[node name="CombatZone2_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2500, 800)
+
+[node name="CombatZone2_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2800, 800)
+
+[node name="CombatZone2_TopLeft" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2500, 400)
+
+[node name="CombatZone2_TopRight" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3200, 400)
+
+[node name="CombatZone2_Cover" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3100, 1100)
+
+[node name="CombatZone3_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1700, 2100)
+
+[node name="CombatZone3_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2000, 2300)
+
+[node name="CombatZone3_BottomLeft" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1700, 2700)
+
+[node name="CombatZone3_BottomRight" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2300, 2700)
+
+[node name="StrategicZone_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3200, 1544)
+
+[node name="StrategicZone_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3600, 1544)
+
+[node name="StrategicZone_TopRight" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3800, 800)
+
+[node name="StrategicZone_BottomRight" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3800, 2300)

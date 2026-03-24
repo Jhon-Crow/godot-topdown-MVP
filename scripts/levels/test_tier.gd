@@ -38,11 +38,8 @@ var _current_enemy_count: int = 0
 ## Whether game over has been shown.
 var _game_over_shown: bool = false
 
-## Reference to the kills label.
-var _kills_label: Label = null
-
-## Reference to the accuracy label.
-var _accuracy_label: Label = null
+## Reference to the difficulty label.
+var _difficulty_label: Label = null
 
 ## Reference to the magazines label (shows individual magazine ammo counts).
 var _magazines_label: Label = null
@@ -208,28 +205,22 @@ func _setup_navigation() -> void:
 	if nav_region == null:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
-
-	# Bake navmesh after two physics frames: first for physics shapes to register,
-	# second for NavigationServer2D to sync — Issue #1188
-	_bake_navmesh_after_physics_frame(nav_region)
-
-
-## Bake navigation polygon after two physics frames to ensure all StaticBody2D
-## collision shapes are fully registered and NavigationServer2D has synced — Issue #1188.
-func _bake_navmesh_after_physics_frame(nav_region: NavigationRegion2D) -> void:
-	await get_tree().physics_frame  # Wait for StaticBody2D shapes to register with PhysicsServer2D
-	await get_tree().physics_frame  # Wait for NavigationServer2D to sync the map state
-	if not is_instance_valid(nav_region):
-		return
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		return
+	# Issues #1188/#1289: wait two physics frames so StaticBody2D shapes are registered
+	# with PhysicsServer2D and NavigationServer2D syncs the map state before baking.
+	await get_tree().physics_frame
+	await get_tree().physics_frame
 	_log_to_file("Baking navmesh (Issue #1188): scanning scene root for wall colliders on layer 4")
 	# parse_source_geometry_data with self (scene root) scans ALL scene children including walls.
 	# bake_navigation_polygon(false) only scans NavigationRegion2D children — misses sibling walls.
 	var source_geometry := NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# Push updated polygon back into NavigationServer's live map — Issue #1289.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 	var poly_count: int = nav_poly.get_polygon_count()
 	_log_to_file("Navmesh bake complete: %d polygons (>1 means walls were carved)" % poly_count)
 
@@ -503,27 +494,16 @@ func _setup_debug_ui() -> void:
 	if ui == null:
 		return
 
-	# Create kills label
-	_kills_label = Label.new()
-	_kills_label.name = "KillsLabel"
-	_kills_label.text = "Kills: 0"
-	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left = 10
-	_kills_label.offset_top = 45
-	_kills_label.offset_right = 200
-	_kills_label.offset_bottom = 75
-	ui.add_child(_kills_label)
-
-	# Create accuracy label
-	_accuracy_label = Label.new()
-	_accuracy_label.name = "AccuracyLabel"
-	_accuracy_label.text = "Accuracy: 0%"
-	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left = 10
-	_accuracy_label.offset_top = 75
-	_accuracy_label.offset_right = 200
-	_accuracy_label.offset_bottom = 105
-	ui.add_child(_accuracy_label)
+	# Create difficulty label
+	_difficulty_label = Label.new()
+	_difficulty_label.name = "DifficultyLabel"
+	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_difficulty_label.offset_left = 10
+	_difficulty_label.offset_top = 45
+	_difficulty_label.offset_right = 200
+	_difficulty_label.offset_bottom = 75
+	ui.add_child(_difficulty_label)
 
 	# Create magazines label (shows individual magazine ammo counts)
 	_magazines_label = Label.new()
@@ -560,11 +540,8 @@ func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
 
-	if _kills_label:
-		_kills_label.text = "Kills: %d" % GameManager.kills
-
-	if _accuracy_label:
-		_accuracy_label.text = "Accuracy: %.1f%%" % GameManager.get_accuracy()
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 
 
 ## Called when an enemy dies.
@@ -671,10 +648,9 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 ## (handled in _on_weapon_ammo_changed for C# player, or when GDScript player
 ## truly has no ammo left).
 func _on_player_ammo_depleted() -> void:
-	# Notify all enemies that player tried to shoot with empty weapon
-	_broadcast_player_ammo_empty(true)
-	# Emit empty click sound via SoundPropagation system so enemies can hear through walls
-	# This has shorter range than reload sound but still propagates through obstacles
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
@@ -739,6 +715,9 @@ func _on_player_died() -> void:
 	if GameManager:
 		# Small delay to show death message
 		await get_tree().create_timer(0.5).timeout
+		# Issue #1334: After await, verify this node is still valid (scene may have reloaded)
+		if not is_instance_valid(self):
+			return
 		GameManager.on_player_death()
 
 

@@ -201,14 +201,14 @@ func start_recording(level: Node2D, player: Node2D, enemies: Array) -> void:
 		else:
 			_log_to_file("  Enemy %d: INVALID" % i)
 
-	print("[ReplayManager] Recording started: Level=%s, Player=%s, Enemies=%d" % [level_name, player_name, enemies.size()])
+	if OS.is_debug_build():  # Issue #1293: gate print() to debug builds
+		print("[ReplayManager] Recording started: Level=%s, Player=%s, Enemies=%d" % [level_name, player_name, enemies.size()])
 
 
 ## Stops recording and saves the replay data.
 func stop_recording() -> void:
 	if not _is_recording:
 		_log_to_file("stop_recording called but was not recording")
-		print("[ReplayManager] stop_recording called but was not recording")
 		return
 
 	_is_recording = false
@@ -218,7 +218,6 @@ func stop_recording() -> void:
 	_log_to_file("Total frames recorded: %d" % _frames.size())
 	_log_to_file("Total duration: %.2fs" % _recording_time)
 	_log_to_file("has_replay() will return: %s" % (_frames.size() > 0))
-	print("[ReplayManager] Recording stopped: %d frames, %.2fs duration" % [_frames.size(), _recording_time])
 
 
 ## Returns true if there is a recorded replay available.
@@ -1357,9 +1356,10 @@ func clear_replay() -> void:
 
 
 ## Log a message to the file logger if available.
+## Issue #1293: print() fallback gated to debug builds to avoid FPS drops.
 func _log_to_file(message: String) -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("log_info"):
 		file_logger.log_info("[ReplayManager] " + message)
-	else:
+	elif OS.is_debug_build():
 		print("[ReplayManager] " + message)

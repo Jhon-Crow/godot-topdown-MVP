@@ -2,8 +2,9 @@ extends GutTest
 ## Regression tests for sniper rifle (ASVK) sound detection range.
 ##
 ## Issue #828: Make enemies hear the sniper rifle shot from further away.
-## The rifle's Loudness must be 2.2x the original value (3000.0 * 2.2 = 6600.0),
-## so enemies can detect the shot from a greater distance.
+## The rifle's Loudness was 2.2x the original value (3000.0 * 2.2 = 6600.0).
+## Issue #1269: All weapon loudness values scaled by factor 800/1469 (~0.5446).
+## New ASVK Loudness: 6600.0 * (800/1469) = 3594.3 (still loudest firearm, proportional scaling preserved).
 
 
 # ============================================================================
@@ -23,7 +24,7 @@ class MockWeaponData:
 	var SpreadAngle: float = 0.0
 	var BulletsPerShot: int = 1
 	var IsAutomatic: bool = false
-	var Loudness: float = 6600.0
+	var Loudness: float = 3594.3
 	var Sensitivity: float = 8.0
 	var ScreenShakeIntensity: float = 25.0
 	var ScreenShakeMinRecoveryTime: float = 0.5
@@ -56,28 +57,30 @@ func test_weapon_name() -> void:
 # ============================================================================
 
 
-func test_loudness_is_6600() -> void:
-	assert_eq(weapon.Loudness, 6600.0,
-		"Sniper rifle Loudness must be 6600.0 (3000.0 * 2.2) as required by issue #828")
+func test_loudness_is_3594_3() -> void:
+	assert_almost_eq(weapon.Loudness, 3594.3, 0.1,
+		"Sniper rifle Loudness must be 3594.3 (6600.0 * 800/1469, Issue #1269 scaling)")
 
 
-func test_loudness_is_2_2_times_original() -> void:
-	var original_loudness: float = 3000.0
-	var expected_loudness: float = original_loudness * 2.2
-	assert_almost_eq(weapon.Loudness, expected_loudness, 0.01,
-		"Sniper rifle Loudness must be 2.2 times the original 3000.0 (issue #828)")
+func test_loudness_is_2_2_times_scaled_original() -> void:
+	# Issue #828: ASVK must be 2.2x louder than the base 3000.0 value, after Issue #1269 scaling.
+	# Scaled base: 3000.0 * (800/1469) = 1633.8; scaled ASVK: 6600.0 * (800/1469) = 3594.3
+	var scaled_original: float = 3000.0 * (800.0 / 1469.0)  # 1633.8
+	assert_almost_eq(weapon.Loudness, scaled_original * 2.2, 1.0,
+		"Sniper rifle Loudness must be 2.2 times the scaled original (issue #828 ratio preserved)")
 
 
 func test_loudness_is_greater_than_revolver() -> void:
-	# Revolver has Loudness 2500.0, sniper rifle should be louder
-	var revolver_loudness: float = 2500.0
+	# Revolver Loudness is now 680.75 (Issue #1380: halved from 1361.5), sniper rifle should still be louder
+	var revolver_loudness: float = 680.75
 	assert_true(weapon.Loudness > revolver_loudness,
-		"Sniper rifle should be louder than the revolver (2500.0)")
+		"Sniper rifle should be louder than the revolver (680.75 after Issue #1380 halving)")
 
 
-func test_loudness_is_greater_than_original_3000() -> void:
-	assert_true(weapon.Loudness > 3000.0,
-		"Sniper rifle Loudness must be greater than the old value of 3000.0 (issue #828)")
+func test_loudness_is_greater_than_scaled_original_3000() -> void:
+	var scaled_base: float = 3000.0 * (800.0 / 1469.0)  # 1633.8
+	assert_true(weapon.Loudness > scaled_base,
+		"Sniper rifle Loudness must be greater than scaled 3000.0 baseline (issue #828 ratio preserved)")
 
 
 func test_loudness_is_positive() -> void:
@@ -101,5 +104,5 @@ func test_sniper_rifle_data_loudness_in_resource() -> void:
 	var content := file.get_as_text()
 	file.close()
 
-	assert_true(content.contains("Loudness = 6600.0"),
-		"SniperRifleData.tres must have Loudness = 6600.0 (issue #828: 3000.0 * 2.2)")
+	assert_true(content.contains("Loudness = 3594.3"),
+		"SniperRifleData.tres must have Loudness = 3594.3 (Issue #1269: scaled by 800/1469 from 6600.0)")
