@@ -711,6 +711,8 @@ func _spawn_selected_enemy_at_player() -> void:
 		{"name": "Force Field (Rifle)", "weapon_type": 0, "behavior": 1, "has_force_field": true},
 		{"name": "Grenadier (Rifle)", "weapon_type": 0, "behavior": 1, "is_grenadier": true},
 		{"name": "Invisible (Rifle)", "weapon_type": 0, "behavior": 1, "start_invisible": true},
+		{"name": "Gas Mask Enemy", "weapon_type": 0, "behavior": 1, "is_gas_mask": true},
+		{"name": "Drone Operator", "weapon_type": 0, "behavior": 1, "is_drone_operator": true, "scene": "res://scenes/objects/EnemyDroneOperator.tscn"},  # Issue #1397
 	]
 	if selected_idx < 0 or selected_idx >= types.size():
 		selected_idx = 0
@@ -742,6 +744,10 @@ func _spawn_selected_enemy_at_player() -> void:
 		enemy.set("is_grenadier", true)
 	if meta.get("start_invisible", false) and enemy.get("start_invisible") != null:
 		enemy.set("start_invisible", true)
+	if meta.get("is_gas_mask", false) and enemy.get("is_gas_mask") != null:
+		enemy.set("is_gas_mask", true)
+	if meta.get("is_drone_operator", false) and enemy.get("is_drone_operator") != null:
+		enemy.set("is_drone_operator", true)
 
 	# Add to Enemies node if it exists, otherwise directly to scene.
 	var enemies_node: Node = current_scene.find_child("Enemies", true, false)
