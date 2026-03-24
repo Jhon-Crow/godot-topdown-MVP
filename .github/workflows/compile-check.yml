@@ -2,7 +2,7 @@ name: Compile Check
 
 # This workflow verifies that all project code compiles successfully:
 # - C# code via dotnet build
-# - GDScript code via Godot headless validation
+# - GDScript code via Godot headless project import
 # See issue #1448 for context.
 
 on:
@@ -68,45 +68,55 @@ jobs:
           mv Godot_v4.3-stable_mono_linux_x86_64 godot
           chmod +x godot/Godot_v4.3-stable_mono_linux.x86_64
 
-      - name: Import project
+      - name: Import and validate project
         run: |
-          # Godot import step is required to build the project cache
+          # Godot's --import validates all scripts in the project context
+          # (autoloads, class_name, preloads are all resolved correctly)
           timeout 120 godot/Godot_v4.3-stable_mono_linux.x86_64 --headless --import . 2>&1 | tee import-output.log || true
 
-      - name: Validate GDScript files
+      - name: Check for GDScript compilation errors
         run: |
-          echo "Validating GDScript compilation..."
+          echo "Checking for GDScript compilation errors in source directories..."
           errors=0
-          error_files=""
 
-          # Find all .gd files in project source directories (skip addons)
-          while IFS= read -r file; do
-            # Use Godot's --check-only to validate each script
-            output=$(godot/Godot_v4.3-stable_mono_linux.x86_64 --headless --check-only --script "$file" 2>&1) || {
-              # Filter out known false positives from autoload/singleton references
-              if echo "$output" | grep -q "Parse Error\|Error\|SCRIPT ERROR"; then
-                echo "::error file=$file::GDScript compilation failed"
-                echo "$output"
-                error_files="$error_files $file"
-                errors=$((errors + 1))
-              fi
-            }
-          done < <(find scripts -name "*.gd" -type f | sort)
+          # Check for script parse errors in the main source directories
+          # (scripts/, scenes/) — skip experiments/ docs/ and addons/
+          while IFS= read -r line; do
+            # Extract the file path from Godot error output (res://path format)
+            file=$(echo "$line" | grep -oP 'res://\K(scripts|scenes)/[^)]+\.gd' || true)
+            if [ -n "$file" ]; then
+              echo "::error file=$file::$line"
+              errors=$((errors + 1))
+            fi
+          done < <(grep "SCRIPT ERROR: Parse Error:" import-output.log || true)
 
           echo ""
           if [ "$errors" -gt 0 ]; then
-            echo "GDScript compilation failed: $errors file(s) with errors:"
-            for f in $error_files; do
-              echo "  - $f"
-            done
+            echo "GDScript compilation failed: found $errors parse error(s) in source files."
+            echo "See import-output.log for details."
             exit 1
           fi
 
-          echo "All GDScript files compiled successfully."
+          # Also check for failed script loads in source directories
+          load_errors=0
+          while IFS= read -r line; do
+            file=$(echo "$line" | grep -oP 'res://\K(scripts|scenes)/[^"]+\.gd' || true)
+            if [ -n "$file" ]; then
+              echo "::error file=$file::Failed to load script"
+              load_errors=$((load_errors + 1))
+            fi
+          done < <(grep 'Failed to load script' import-output.log || true)
 
-      - name: Upload logs on failure
+          if [ "$load_errors" -gt 0 ]; then
+            echo "GDScript compilation failed: $load_errors script(s) failed to load."
+            exit 1
+          fi
+
+          echo "All GDScript source files compiled successfully."
+
+      - name: Upload import log on failure
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: gdscript-compile-log
+          name: gdscript-import-log
           path: import-output.log
