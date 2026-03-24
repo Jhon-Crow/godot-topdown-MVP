@@ -96,6 +96,22 @@ Changed `VerbosePelletLogging` from `true` to `false` in `Shotgun.cs`. The diagn
 - Issue #212: Pellet distribution fix (verbose logging origin)
 - Godot docs: [Physics ray queries](https://docs.godotengine.org/en/stable/tutorials/physics/ray-casting.html)
 - Godot docs: [Object pooling](https://docs.godotengine.org/en/stable/tutorials/best_practices/scenes_versus_scripts.html)
+- Godot docs: [Optimization using servers](https://docs.godotengine.org/en/stable/tutorials/performance/using_servers.html)
+- Godot docs: [When to avoid using nodes](https://docs.godotengine.org/en/stable/tutorials/best_practices/node_alternatives.html)
+- Community: [Collision pairs optimization in bullet-hell games](https://forum.godotengine.org/t/collision-pairs-optimizing-performance-of-bullet-hell-enemy-hell-games/35027)
+- Community: [Object pooling guide for Godot](https://uhiyama-lab.com/en/notes/godot/godot-object-pooling-basics/)
+- Community: [Raycast vs ShapeCast vs Area performance](https://forum.godotengine.org/t/raycast-vs-shapecast-vs-area/95569)
+
+## Research Findings (Online)
+
+Key performance data from the Godot community:
+
+- **Raycasts** are the cheapest physics query but degrade at scale (~50+ simultaneous raycasts cause noticeable slowdown)
+- **Object pooling** eliminates frame-time spikes: without pooling FPS fluctuates 10-50; with pooling stable 60 FPS
+- **Scene instantiation** is not just `Instantiate()` cost — includes `add_child()`, physics registration, tree notifications
+- **`GetNodesInGroup()`** is O(1) HashMap lookup + O(n) array copy; allocates new Array each call
+- **Community rule of thumb:** If spawning >10-20 objects/frame consistently, pooling helps
+- **Collision pair explosion** is the #1 bullet-hell bottleneck: N bullets * M enemies = O(N*M) pairs
 
 ## Attached Data
 
