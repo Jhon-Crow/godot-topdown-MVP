@@ -601,7 +601,10 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Updates the laser sight visualization (Power Fantasy mode only).
-    /// The laser shows where bullets will go, accounting for current recoil.
+    /// The laser always passes through the crosshair center:
+    /// - In scope mode: points toward the scope crosshair (screen center world position)
+    /// - In hip-fire mode: points toward the mouse cursor position
+    /// (Issue #1384: ensures laser aligns with crosshair in both modes.)
     /// </summary>
     private void UpdateLaserSight()
     {
@@ -610,12 +613,22 @@ public partial class SniperRifle : BaseWeapon
             return;
         }
 
-        // Apply recoil offset to aim direction for laser visualization
-        Vector2 laserDirection = _aimDirection.Rotated(_recoilOffset);
+        // Determine the target point the laser should pass through:
+        // In scope mode, the crosshair is at screen center (not at the mouse cursor),
+        // so use GetScopeAimTarget() which returns the world position at viewport center.
+        // In hip-fire mode, the crosshair follows the mouse cursor.
+        Vector2 targetPoint = _isScopeActive
+            ? GetScopeAimTarget()
+            : GetGlobalMousePosition();
 
-        // Calculate maximum laser length based on viewport size
-        Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
-        float maxLaserLength = viewportSize.Length();
+        Vector2 toTarget = targetPoint - GlobalPosition;
+        Vector2 laserDirection = toTarget.LengthSquared() > 0.001f
+            ? toTarget.Normalized()
+            : _aimDirection;
+
+        // Use weapon range for laser length so the beam is unlimited within shooting distance
+        // (Issue #1384: sniper laser should be unlimited length, not limited to viewport size)
+        float maxLaserLength = WeaponData?.Range ?? 5000.0f;
 
         // Calculate the end point of the laser
         Vector2 endPoint = laserDirection * maxLaserLength;
