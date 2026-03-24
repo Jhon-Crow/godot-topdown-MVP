@@ -5,11 +5,16 @@ extends CanvasLayer
 ## - Background loading using ResourceLoader.load_threaded_request()
 ## - Simple fade-to-black loading screen with progress indicator
 ## - Prevents FPS drops during level loading by loading scenes asynchronously
+## - Issue #1027 Fix 19: Minimum loading screen display time (1.5s) so the
+##   loading screen is visible even when the resource loads very quickly.
 ##
 ## Usage:
 ##   SceneLoader.load_level("res://scenes/levels/DocksLevel.tscn")
 
 const FADE_DURATION: float = 0.3  ## Duration of fade in/out transitions
+## Issue #1027 Fix 19: Minimum time the loading screen stays visible before
+## proceeding to the scene change. Prevents the screen from flashing briefly.
+const MIN_LOADING_SCREEN_DURATION: float = 1.5
 
 ## Reference to the loading screen overlay
 var _loading_overlay: ColorRect
@@ -17,6 +22,14 @@ var _loading_label: Label
 var _progress_bar: ProgressBar
 var _current_load_path: String = ""
 var _is_loading: bool = false
+
+## Issue #1027 Fix 19: Track when the loading screen became fully visible
+## so we can enforce the minimum display duration.
+var _loading_screen_start_time: float = 0.0
+## Whether background load has finished but we're waiting for min duration
+var _load_complete_pending: bool = false
+## The loaded scene waiting to be applied after min duration expires
+var _loaded_scene_pending: PackedScene = null
 
 ## Log a message to the file logger (consistent with other autoloads).
 ## Issue #1293: print() fallback gated to debug builds to avoid FPS drops.
@@ -86,6 +99,8 @@ func load_level(level_path: String) -> void:
 	_log("Starting background load for: %s" % level_path)
 	_is_loading = true
 	_current_load_path = level_path
+	_load_complete_pending = false
+	_loaded_scene_pending = null
 
 	# Show loading screen with fade
 	_loading_overlay.visible = true
@@ -99,6 +114,17 @@ func load_level(level_path: String) -> void:
 
 ## Start the background loading after fade in
 func _start_background_load() -> void:
+	# Issue #1027 Fix 19: Record when the loading screen became fully visible.
+	# This is the reference point for the minimum display duration.
+	_loading_screen_start_time = Time.get_ticks_msec() / 1000.0
+
+	# Issue #1027 Fix 20: Guard against the path being cleared by a
+	# concurrent INVALID_RESOURCE poll (race condition).
+	if _current_load_path.is_empty():
+		_log("ERROR: Load path was cleared before background load started")
+		_hide_loading_screen()
+		return
+
 	# Request background loading
 	var error := ResourceLoader.load_threaded_request(_current_load_path, "", true)
 	if error != OK:
@@ -110,8 +136,22 @@ func _start_background_load() -> void:
 	set_process(true)  # Enable process to poll loading status
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _is_loading:
+		set_process(false)
+		return
+
+	# Issue #1027 Fix 19: If load completed but minimum duration not yet met,
+	# wait here before proceeding to scene change.
+	if _load_complete_pending:
+		var elapsed := Time.get_ticks_msec() / 1000.0 - _loading_screen_start_time
+		if elapsed >= MIN_LOADING_SCREEN_DURATION:
+			_log("Minimum loading screen duration met (%.2fs), proceeding to scene change" % elapsed)
+			_load_complete_pending = false
+			_apply_loaded_scene()
+		return
+
+	if _current_load_path.is_empty():
 		set_process(false)
 		return
 
@@ -139,7 +179,7 @@ func _process(_delta: float) -> void:
 			_hide_loading_screen()
 
 
-## Called when background loading is complete
+## Called when background loading is complete — enforces minimum display time
 func _on_load_complete() -> void:
 	set_process(false)
 
@@ -150,11 +190,34 @@ func _on_load_complete() -> void:
 		_hide_loading_screen()
 		return
 
+	# Issue #1027 Fix 19: Check if we've shown the loading screen long enough.
+	_loaded_scene_pending = loaded_scene
+	var elapsed := Time.get_ticks_msec() / 1000.0 - _loading_screen_start_time
+	if elapsed < MIN_LOADING_SCREEN_DURATION:
+		# Store the loaded scene and wait for minimum duration in _process
+		_load_complete_pending = true
+		set_process(true)
+		_log("Load done in %.2fs, waiting for minimum display time (%.1fs)" % [elapsed, MIN_LOADING_SCREEN_DURATION])
+		return
+
+	_apply_loaded_scene()
+
+
+## Apply the loaded scene (change to it and fade out loading screen)
+func _apply_loaded_scene() -> void:
+	var scene_to_apply := _loaded_scene_pending
+	_loaded_scene_pending = null
+
+	if scene_to_apply == null:
+		_log("ERROR: No scene to apply")
+		_hide_loading_screen()
+		return
+
 	# Unpause before changing scene
 	get_tree().paused = false
 
 	# Change to the loaded scene
-	var error := get_tree().change_scene_to_packed(loaded_scene)
+	var error := get_tree().change_scene_to_packed(scene_to_apply)
 	if error != OK:
 		_log("ERROR: Failed to change to loaded scene: %s" % error)
 	else:
@@ -171,6 +234,8 @@ func _hide_loading_screen() -> void:
 	_loading_overlay.visible = false
 	_is_loading = false
 	_current_load_path = ""
+	_load_complete_pending = false
+	_loaded_scene_pending = null
 
 
 ## Fallback to synchronous loading if threaded loading fails

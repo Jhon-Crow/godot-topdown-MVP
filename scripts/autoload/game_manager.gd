@@ -441,6 +441,11 @@ func restart_scene() -> void:
 	_reloading = true
 	_reset_stats()
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+	var current_scene: Node = get_tree().current_scene
+	var current_path: String = ""
+	if current_scene and current_scene.scene_file_path:
+		current_path = current_scene.scene_file_path
+	_log_to_file("restart_scene called, reloading: %s" % current_path)
 	get_tree().reload_current_scene()
 	# Issue #1334: Reset the reload guard after the current frame ends.
 	# call_deferred runs at the end of the frame, after reload_current_scene()

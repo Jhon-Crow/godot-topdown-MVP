@@ -309,6 +309,8 @@ var _player_visibility_ratio: float = 0.0  ## Player visibility (0-1)
 ## Issue #883: Stagger vision raycasts; each enemy checks once every VISION_CHECK_INTERVAL frames.
 var _vision_frame_counter: int = 0; var _vision_frame_offset: int = 0  ## Frame stagger (set in _ready)
 const VISION_CHECK_INTERVAL: int = 6  ## Check vision every N frames (~10 fps at 60 fps physics)
+var _enemies_count_frame_counter: int = 0; const ENEMIES_COUNT_INTERVAL: int = 60  ## Issue #1027 Fix 26: Throttle O(n²) group query ~1/sec
+var _companion_frame_counter: int = 0; const COMPANION_CHECK_INTERVAL: int = 6  ## Issue #1027 Fix 26: Stagger companion vision (= VISION_CHECK_INTERVAL)
 var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target (Clear Shot Movement)
 var _seeking_clear_shot: bool = false  ## Moving to clear shot
 var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
@@ -874,13 +876,9 @@ func _physics_process(delta: float) -> void:
 		_global_stuck_timer = 0.0
 		_global_stuck_last_position = global_position
 
-	# Check for player visibility and try to find player if not found
-	if _player == null:
-		_find_player()
+	if _player == null: _find_player()  # Find player if not found
 	_check_player_visibility()
-	# Issue #934: Check BFF companion as secondary threat target
-	_find_companion()
-	_check_companion_visibility()
+	_find_companion(); _check_companion_visibility()  # Issue #934: BFF companion as secondary target
 	_select_best_target()
 	_update_memory(delta)
 	_update_goap_state()
@@ -930,10 +928,8 @@ func _physics_process(delta: float) -> void:
 	# Push any casings we collided with (Issue #341)
 	_push_casings()
 
-## Update GOAP world state based on current conditions.
+## Update GOAP world state. Issue #934: player_visible/close/can_hit_from_cover reflect best target (player or companion).
 func _update_goap_state() -> void:
-	# Issue #934: player_visible/player_close/can_hit_from_cover reflect the best target
-	# (either the main player or the BFF companion, whichever is more accessible).
 	_goap_world_state["player_visible"] = _can_see_player or _can_see_companion
 	_goap_world_state["under_fire"] = _under_fire
 	_goap_world_state["health_low"] = _get_health_percent() < 0.5
@@ -945,7 +941,9 @@ func _update_goap_state() -> void:
 	_goap_world_state["is_assaulting"] = _current_state == AIState.ASSAULT
 	_goap_world_state["player_close"] = _is_target_close()
 	_goap_world_state["can_hit_from_cover"] = _can_hit_target_from_current_position()
-	_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
+	_enemies_count_frame_counter += 1  # Issue #1027 Fix 26: Throttle O(n²) group query to ~1/sec
+	if _enemies_count_frame_counter >= ENEMIES_COUNT_INTERVAL or not _goap_world_state.has("enemies_in_combat"):
+		_enemies_count_frame_counter = 0; _goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
 	_goap_world_state["player_distracted"] = _is_player_distracted()
 
 	# Memory system states (Issue #297)
@@ -1799,10 +1797,12 @@ func _process_in_cover_state(delta: float) -> void:
 			_shoot()
 			_shoot_timer = 0.0
 
-	# If player (or companion) lost and not under fire, try suppressive fire then pursuing (Issue #934, #910).
+	# If player/companion lost and not under fire, try suppressive fire then pursue.
+	# Issues #934/#910/#1027(RCA-21): guard minimum duration to prevent instant IN_COVER→PURSUING cycling.
 	if not (_can_see_player or _can_see_companion) and not _under_fire and not (_suppressive_fire and _suppressive_fire.try_suppress_cover(_player, _last_known_player_position, _is_melee_weapon, _is_reloading, _shoot_timer, shoot_cooldown)):
-		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
-		_transition_to_pursuing()
+		if time_in_state >= IN_COVER_MIN_DURATION:
+			_log_debug("Lost sight of player from cover, transitioning to PURSUING")
+			_transition_to_pursuing()
 
 ## Process FLANKING state - flank player using cover-to-cover movement.
 func _process_flanking_state(delta: float) -> void:
@@ -3651,8 +3651,10 @@ func _check_player_visibility() -> void:
 	else:
 		_continuous_visibility_timer = 0.0; _player_visibility_ratio = 0.0
 
-## Check if the BFF companion is visible (Issue #934). Delegates to BffTargetingComponent.
+## Check if the BFF companion is visible (Issue #934/#1027 Fix 26: staggered every COMPANION_CHECK_INTERVAL frames).
 func _check_companion_visibility() -> void:
+	_companion_frame_counter += 1
+	if (_companion_frame_counter % COMPANION_CHECK_INTERVAL) != _vision_frame_offset: return
 	_bff_targeting.check_visibility(_is_blinded, _memory_reset_confusion_timer, detection_range,
 		_raycast, _get_player_check_points, _is_player_point_visible_to_enemy, _is_position_in_fov)
 	_can_see_companion = _bff_targeting.can_see_companion
