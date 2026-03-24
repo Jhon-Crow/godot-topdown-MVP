@@ -253,13 +253,13 @@ func test_afterimage_count_per_dash() -> void:
 
 
 func test_afterimage_alpha_is_semi_transparent() -> void:
-	var alpha := 0.6
+	var alpha := 0.7
 	assert_true(alpha > 0.0 and alpha < 1.0,
 		"Afterimage should be semi-transparent (between 0 and 1)")
 
 
 func test_afterimage_lifetime_is_short() -> void:
-	var lifetime := 0.35
+	var lifetime := 0.4
 	assert_true(lifetime > 0.0 and lifetime <= 1.0,
 		"Afterimage lifetime should be short (0-1 seconds)")
 

@@ -5283,12 +5283,8 @@ public partial class Player
             return;
         }
 
-        Vector2 dir = GetInputDirection();
-        if (dir == Vector2.Zero)
-        {
-            // Fall back to mouse cursor direction when stationary
-            dir = (GetGlobalMousePosition() - GlobalPosition).Normalized();
-        }
+        // Always dash toward aim/cursor direction (not movement direction)
+        Vector2 dir = (GetGlobalMousePosition() - GlobalPosition).Normalized();
 
         _dashEffect.Call("activate", dir);
     }

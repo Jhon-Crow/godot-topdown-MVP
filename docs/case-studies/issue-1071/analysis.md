@@ -142,6 +142,48 @@ The C# implementation delegates to the existing GDScript `DashEffect` node via `
 | `Scripts/Characters/Player.cs` | Added init, input, immunity, movement override (C# — the actual runtime player) |
 | `tests/unit/test_dash_effect.gd` | **New** — Unit tests |
 
+## Bug Report: Dash Direction and Trail (2026-03-24)
+
+### User Report
+
+Owner reported two issues:
+1. **Dash direction conflict** — dash follows WASD movement direction, but should follow **aim/cursor direction**
+2. **Missing visual trail** — no motion blur/afterimage effect visible during dash
+
+### Root Cause Analysis: Dash Direction
+
+Both `HandleDashInput()` (C# in `Player.ActiveItems.cs:5286`) and `_handle_dash_input()` (GDScript in `player.gd:4624`) used `GetInputDirection()` / `_get_input_direction()` as the primary direction source. This returns the WASD keyboard input vector. The mouse cursor was only used as a fallback when stationary.
+
+Evidence from game log — dash directions match exact cardinal/diagonal vectors:
+```
+[Dash] Activated! Dir: (1.00, 0.00)     ← pure right (D key)
+[Dash] Activated! Dir: (0.00, -1.00)    ← pure up (W key)
+[Dash] Activated! Dir: (0.71, -0.71)    ← diagonal (W+D keys)
+```
+
+These are normalized WASD inputs, not mouse aim vectors (which would have arbitrary floating-point components).
+
+**Fix**: Changed both C# and GDScript to always use `(GetGlobalMousePosition() - GlobalPosition).Normalized()` as the dash direction. This matches the owner's expectation: "dash should only follow aim direction."
+
+### Root Cause Analysis: Missing Afterimage Trail
+
+Two issues identified:
+
+1. **z_index too low** — `ghost_container.z_index = _player.z_index - 1` placed afterimages one layer below the player. If the player's z_index was 0 (default), the ghosts rendered at -1, potentially behind the tilemap/floor layer, making them invisible.
+
+2. **No immediate first afterimage** — The afterimage spawn timer started at 0 and only spawned after accumulating enough delta time (0.0375s interval). At 60fps, the first afterimage appeared on frame 2-3, meaning the ghost at the dash origin point was missed.
+
+**Fix**:
+- Changed z_index to match `_player.z_index` (same layer, not below)
+- Spawn first afterimage immediately on `activate()` before any physics frames
+- Increased `AFTERIMAGE_LIFETIME` from 0.35s to 0.4s for more visible persistence
+- Increased `AFTERIMAGE_ALPHA` from 0.6 to 0.7 for better visibility
+- Added diagnostic logging to `_spawn_afterimage()` for future debugging
+
+### Logs
+
+- `game_log_20260324_060424.txt` — Bug report game log showing direction values
+
 ## Testing
 
 Unit tests cover:
@@ -149,7 +191,7 @@ Unit tests cover:
 - Mock ActiveItemManager integration
 - Unlock status (freely available)
 - Constants validation (cooldown, duration, speed)
-- Unlimited charges behavior
+- 3-charge chain-dash behavior
 - Damage immunity logic (active/inactive states)
 - Afterimage visual parameters
 - Direction normalization

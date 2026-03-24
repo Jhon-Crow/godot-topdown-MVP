@@ -4621,7 +4621,8 @@ func _handle_dash_input() -> void:
 		return
 	if ActiveItemManager.is_active_item_jammed_verbose():
 		return
-	var dir := _get_input_direction()
+	# Always dash toward aim/cursor direction (not movement direction)
+	var dir := (get_global_mouse_position() - global_position).normalized()
 	_dash_effect.activate(dir)
 func is_dash_active() -> bool:
 	return _dash_equipped and _dash_effect != null and _dash_effect.is_dashing()

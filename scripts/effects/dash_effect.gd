@@ -24,14 +24,14 @@ const DASH_COOLDOWN: float = 1.2
 ## Maximum number of dash charges.
 const MAX_CHARGES: int = 3
 
-## Number of afterimage ghosts to spawn per dash.
+## Number of afterimage ghosts to spawn per dash (not counting the immediate first one).
 const AFTERIMAGE_COUNT: int = 4
 
 ## Afterimage lifetime in seconds.
-const AFTERIMAGE_LIFETIME: float = 0.35
+const AFTERIMAGE_LIFETIME: float = 0.4
 
 ## Afterimage initial alpha.
-const AFTERIMAGE_ALPHA: float = 0.6
+const AFTERIMAGE_ALPHA: float = 0.7
 
 ## Time window after a dash ends to chain the next dash (seconds).
 ## If the player doesn't dash within this window, remaining charges are forfeited
@@ -130,6 +130,10 @@ func activate(direction: Vector2) -> bool:
 		_dash_direction.x, _dash_direction.y, charges, MAX_CHARGES
 	])
 	dash_started.emit()
+
+	# Spawn the first afterimage immediately so the trail starts at the dash origin
+	_spawn_afterimage()
+
 	return true
 
 
@@ -241,12 +245,14 @@ func _spawn_afterimage() -> void:
 	# Find the PlayerModel to create afterimage from
 	var player_model: Node2D = _player.get_node_or_null("PlayerModel")
 	if player_model == null:
+		FileLogger.info("[Dash] Afterimage skipped: PlayerModel not found on %s" % _player.name)
 		return
 
 	# Create a container node for the full player afterimage
 	var ghost_container := Node2D.new()
 	ghost_container.global_position = _player.global_position
-	ghost_container.z_index = _player.z_index - 1
+	# Same z_index as the player so afterimages render on the same layer (not hidden behind floor)
+	ghost_container.z_index = _player.z_index
 
 	# Copy all visible Sprite2D children from PlayerModel (Body, LeftArm, RightArm, etc.)
 	var sprites_added: int = 0
@@ -270,6 +276,7 @@ func _spawn_afterimage() -> void:
 			sprites_added += 1
 
 	if sprites_added == 0:
+		FileLogger.info("[Dash] Afterimage skipped: no visible Sprite2D in PlayerModel (children: %d)" % player_model.get_child_count())
 		ghost_container.queue_free()
 		return
 
@@ -285,6 +292,11 @@ func _spawn_afterimage() -> void:
 		ghost_container.queue_free()
 		return
 	parent.add_child(ghost_container)
+
+	FileLogger.info("[Dash] Afterimage spawned at (%.1f, %.1f) with %d sprites, z_index=%d" % [
+		ghost_container.global_position.x, ghost_container.global_position.y,
+		sprites_added, ghost_container.z_index
+	])
 
 	# Fade out and remove afterimage
 	var tween := ghost_container.create_tween()
