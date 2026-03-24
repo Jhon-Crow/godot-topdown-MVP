@@ -165,7 +165,7 @@ func _ready() -> void:
 		push_error("[ArenaLevel] Could not load Enemy.tscn!")
 
 	# Setup navigation mesh.
-	_setup_navigation()
+	await _setup_navigation()
 
 	# Find and setup player.
 	_setup_player_tracking()

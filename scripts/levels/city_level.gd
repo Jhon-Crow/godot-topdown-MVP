@@ -80,7 +80,7 @@ func _ready() -> void:
 	print("City size: ~6000x5000 pixels")
 	print("Press Q for quick restart")
 
-	_setup_navigation()
+	await _setup_navigation()
 	_setup_enemy_tracking()
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()

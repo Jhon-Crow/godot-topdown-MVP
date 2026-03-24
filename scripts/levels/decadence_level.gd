@@ -43,7 +43,7 @@ func _ready() -> void:
 	print("DecadenceLevel loaded - Hotline Miami: Chapter Three - Decadence")
 	print("Nightclub size: ~2400x2000 pixels")
 	print("Clear all rooms to win!")
-	_setup_navigation()
+	await _setup_navigation()
 	_setup_enemy_tracking()
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()

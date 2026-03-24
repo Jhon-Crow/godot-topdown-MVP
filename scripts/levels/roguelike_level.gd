@@ -215,7 +215,7 @@ func _ready() -> void:
 		FileLogger.info(_log_tr)
 		_build_room_scene_treasure()
 		_spawn_player()
-		_setup_navigation()
+		await _setup_navigation()
 		_setup_player_tracking()
 		_setup_exit_zone()
 		_setup_debug_ui()
@@ -275,7 +275,7 @@ func _ready() -> void:
 		_room_type = RoomType.BEACH
 		_build_room_scene_treasure()
 		_spawn_player()
-		_setup_navigation()
+		await _setup_navigation()
 		_setup_player_tracking()
 		_setup_exit_zone()
 		_setup_debug_ui()
@@ -291,7 +291,7 @@ func _ready() -> void:
 
 	_build_room_scene()
 	_spawn_player()
-	_setup_navigation()
+	await _setup_navigation()
 	_setup_player_tracking()
 
 	# Start rooms and cleared-revisit rooms: no enemies, doors open immediately

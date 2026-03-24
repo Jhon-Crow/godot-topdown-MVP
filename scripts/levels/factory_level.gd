@@ -40,7 +40,7 @@ func _ready() -> void:
 	print("FactoryLevel loaded - Building Style (Issue #1037)")
 	print("Factory size: ~2400x2000 pixels")
 	print("Clear all enemies to win!")
-	_setup_navigation()
+	await _setup_navigation()
 	_setup_enemy_tracking()
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()

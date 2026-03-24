@@ -42,7 +42,7 @@ func _ready() -> void:
 	print("DocksLevel loaded - Industrial Docks Combat")
 	print("Docks size: ~5000x4000 pixels")
 	print("Clear all enemies to win!")
-	_setup_navigation()
+	await _setup_navigation()
 	_setup_enemy_tracking()
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()

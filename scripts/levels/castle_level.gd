@@ -70,7 +70,7 @@ func _ready() -> void:
 	print("Press Q for quick restart")
 
 	# Setup navigation mesh for enemy pathfinding
-	_setup_navigation()
+	await _setup_navigation()
 
 	# Find and connect to all enemies
 	_setup_enemy_tracking()
