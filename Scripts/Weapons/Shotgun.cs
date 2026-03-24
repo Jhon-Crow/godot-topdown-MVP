@@ -1797,7 +1797,8 @@ public partial class Shotgun : BaseWeapon
     /// Set to true to debug pellet grouping issues.
     /// Issue #212: Temporarily enabled to help diagnose pellet clustering reports.
     /// </summary>
-    private const bool VerbosePelletLogging = true;
+    /// Issue #1462: Disabled by default to avoid file I/O in the hot path during rapid fire.
+    private const bool VerbosePelletLogging = false;
 
     /// <summary>
     /// Spawns a pellet projectile with a spatial offset along its direction.

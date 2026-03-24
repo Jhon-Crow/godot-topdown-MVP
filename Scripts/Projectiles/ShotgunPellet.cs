@@ -266,6 +266,18 @@ public partial class ShotgunPellet : Area2D
         Rotation = Direction.Angle();
     }
 
+    /// <summary>
+    /// Cleanup when pellet exits the scene tree (Issue #1462).
+    /// Removes raycast throttling tracking data to prevent memory leaks.
+    /// </summary>
+    public override void _ExitTree()
+    {
+        if (IsBreakerBullet)
+        {
+            BreakerDetonation.CleanupTracking(GetInstanceId());
+        }
+    }
+
     public override void _PhysicsProcess(double delta)
     {
         // Apply homing steering if enabled (Issue #704)
@@ -296,9 +308,10 @@ public partial class ShotgunPellet : Area2D
         }
 
         // Check for breaker detonation (Issue #678)
+        // Issue #1462: Pass distance traveled this frame for raycast throttling
         if (IsBreakerBullet)
         {
-            if (BreakerDetonation.CheckAndDetonate(this, Direction, Damage, _damageMultiplier, ShooterId, false))
+            if (BreakerDetonation.CheckAndDetonate(this, Direction, Damage, _damageMultiplier, ShooterId, false, movement.Length()))
             {
                 return; // Pellet detonated and was freed
             }
