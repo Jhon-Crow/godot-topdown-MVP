@@ -213,6 +213,15 @@ func _ready() -> void:
 		var _log_tr := "[RoguelikeLevel] TREASURE ROOM — Level %d" % GameManager.roguelike_current_level
 		print(_log_tr)
 		FileLogger.info(_log_tr)
+		# Issue #1450: check if the treasure room map entry is already cleared
+		# (set to true by _navigate_to_map_room on first entry). If cleared, the
+		# player is re-entering and must not receive a new pedestal.
+		var _tr_map_idx: int = GameManager.roguelike_current_map_room
+		var _tr_already_cleared: bool = false
+		if GameManager.roguelike_room_map.size() > 0 and _tr_map_idx >= 0 and _tr_map_idx < GameManager.roguelike_room_map.size():
+			_tr_already_cleared = GameManager.roguelike_room_map[_tr_map_idx]["cleared"]
+			# Mark as cleared so any further re-entries also skip the pedestal.
+			GameManager.roguelike_room_map[_tr_map_idx]["cleared"] = true
 		_build_room_scene_treasure()
 		_spawn_player()
 		_setup_navigation()
@@ -224,9 +233,14 @@ func _ready() -> void:
 		_setup_minimap()
 		if GameManager:
 			GameManager.stats_updated.connect(_update_debug_ui)
-		# Spawn pedestal immediately (not deferred) so it is visible from the first frame.
-		# The monitoring flag is still set deferred so body_entered fires for existing overlaps.
-		_spawn_treasure_pedestal()
+		if not _tr_already_cleared:
+			# Spawn pedestal immediately (not deferred) so it is visible from the first frame.
+			# The monitoring flag is still set deferred so body_entered fires for existing overlaps.
+			_spawn_treasure_pedestal()
+		else:
+			var _log_tr_rev := "[RoguelikeLevel] Treasure room already cleared — skipping pedestal (Issue #1450)"
+			print(_log_tr_rev)
+			FileLogger.info(_log_tr_rev)
 		call_deferred("_activate_exit_zone")
 		var _log_tr2 := "[RoguelikeLevel] Treasure room ready — pedestal spawned: %s" % str(_treasure_pedestal != null)
 		print(_log_tr2)
@@ -273,6 +287,14 @@ func _ready() -> void:
 	if is_treasure_map_room:
 		GameManager.roguelike_in_treasure_room = true
 		_room_type = RoomType.BEACH
+		# Issue #1450: check if this treasure room was already cleared (player
+		# previously entered it). If so, skip the pedestal so re-entry doesn't
+		# generate a new item.
+		var treasure_already_cleared: bool = false
+		if map_room_idx >= 0 and map_room_idx < GameManager.roguelike_room_map.size():
+			treasure_already_cleared = GameManager.roguelike_room_map[map_room_idx]["cleared"]
+			# Mark as cleared now so subsequent re-entries skip the pedestal too.
+			GameManager.roguelike_room_map[map_room_idx]["cleared"] = true
 		_build_room_scene_treasure()
 		_spawn_player()
 		_setup_navigation()
@@ -284,9 +306,14 @@ func _ready() -> void:
 		_setup_minimap()
 		if GameManager:
 			GameManager.stats_updated.connect(_update_debug_ui)
-		_spawn_treasure_pedestal()
+		if not treasure_already_cleared:
+			_spawn_treasure_pedestal()
+		else:
+			var _log_tr_rev := "[RoguelikeLevel] Treasure map room already cleared — skipping pedestal (Issue #1450)"
+			print(_log_tr_rev)
+			FileLogger.info(_log_tr_rev)
 		call_deferred("_activate_exit_zone")
-		print("[RoguelikeLevel] Treasure map room ready")
+		print("[RoguelikeLevel] Treasure map room ready (already_cleared=%s)" % str(treasure_already_cleared))
 		return
 
 	_build_room_scene()
@@ -2409,6 +2436,11 @@ func _navigate_to_map_room(target_room_idx: int) -> void:
 		"treasure":
 			print("[RoguelikeLevel] Navigating to TREASURE room %d" % target_room_idx)
 			GameManager.roguelike_in_treasure_room = true
+			# Issue #1450: mark treasure room as cleared/visited on first entry so
+			# re-entry from any connected room is detected and no new pedestal spawns.
+			rooms[target_room_idx]["visited"] = true
+			if not (target_room_idx in GameManager.roguelike_visited_rooms):
+				GameManager.roguelike_visited_rooms.append(target_room_idx)
 			_show_map_room_transition(target_room_idx, "Сокровищница!", Color(1.0, 0.85, 0.3, 1.0))
 		"exit":
 			print("[RoguelikeLevel] Navigating to EXIT room %d — next level!" % target_room_idx)
