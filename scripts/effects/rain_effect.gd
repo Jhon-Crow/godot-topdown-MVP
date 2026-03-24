@@ -20,10 +20,10 @@ class_name RainEffect
 @export var max_duration: float = 40.0
 
 ## Whether rain starts automatically or waits for first interval.
-@export var start_raining: bool = false
+@export var start_raining: bool = true
 
 ## Seconds before the very first rain episode (shorter than normal interval).
-@export var initial_delay: float = 5.0
+@export var initial_delay: float = 0.0
 
 ## Indoor exclusion zones (rain stops when camera center is inside).
 ## Each Rect2 defines a rectangular area in global coordinates.

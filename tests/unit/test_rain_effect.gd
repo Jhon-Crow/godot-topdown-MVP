@@ -24,10 +24,10 @@ class MockRainEffect:
 	var max_duration: float = 40.0
 
 	## Whether rain starts immediately.
-	var start_raining: bool = false
+	var start_raining: bool = true
 
 	## Seconds before the very first rain episode.
-	var initial_delay: float = 5.0
+	var initial_delay: float = 0.0
 
 	## Indoor exclusion zones.
 	var exclusion_zones: Array = []
@@ -120,27 +120,29 @@ class MockRainEffect:
 
 func test_initial_state_not_emitting() -> void:
 	var rain := MockRainEffect.new()
+	rain.start_raining = false
 	rain.ready()
-	assert_false(rain.emitting, "Rain should not emit initially")
-	assert_false(rain._episode_active, "No episode should be active initially")
+	assert_false(rain.emitting, "Rain should not emit initially when start_raining is false")
+	assert_false(rain._episode_active, "No episode should be active initially when start_raining is false")
 
 
 func test_start_raining_flag() -> void:
 	var rain := MockRainEffect.new()
-	rain.start_raining = true
 	rain.ready()
-	assert_true(rain.emitting, "Rain should emit when start_raining is true")
-	assert_true(rain._episode_active, "Episode should be active when start_raining is true")
+	assert_true(rain.emitting, "Rain should emit when start_raining is true (default)")
+	assert_true(rain._episode_active, "Episode should be active when start_raining is true (default)")
 
 
 func test_schedule_timer_started_on_ready() -> void:
 	var rain := MockRainEffect.new()
+	rain.start_raining = false
 	rain.ready()
-	assert_true(rain.schedule_timer_started, "Schedule timer should start on ready")
+	assert_true(rain.schedule_timer_started, "Schedule timer should start on ready when start_raining is false")
 
 
 func test_schedule_wait_within_range() -> void:
 	var rain := MockRainEffect.new()
+	rain.start_raining = false
 	rain.min_interval = 10.0
 	rain.max_interval = 20.0
 	rain.ready()
@@ -150,6 +152,7 @@ func test_schedule_wait_within_range() -> void:
 
 func test_start_episode_enables_emitting() -> void:
 	var rain := MockRainEffect.new()
+	rain.start_raining = false
 	rain.ready()
 	rain._start_rain_episode()
 	assert_true(rain.emitting, "Rain should emit during episode")
@@ -159,6 +162,7 @@ func test_start_episode_enables_emitting() -> void:
 
 func test_stop_episode_disables_emitting() -> void:
 	var rain := MockRainEffect.new()
+	rain.start_raining = false
 	rain.ready()
 	rain._start_rain_episode()
 	rain._stop_rain_episode()
@@ -169,6 +173,7 @@ func test_stop_episode_disables_emitting() -> void:
 
 func test_duration_within_range() -> void:
 	var rain := MockRainEffect.new()
+	rain.start_raining = false
 	rain.min_duration = 5.0
 	rain.max_duration = 15.0
 	rain.ready()
@@ -225,7 +230,6 @@ func test_multiple_exclusion_zones() -> void:
 func test_rain_stops_when_entering_building() -> void:
 	var rain := MockRainEffect.new()
 	rain.ready()
-	rain._start_rain_episode()
 	assert_true(rain.emitting, "Rain should emit outside buildings")
 
 	# Move camera into exclusion zone
@@ -239,7 +243,6 @@ func test_rain_resumes_when_leaving_building() -> void:
 	var rain := MockRainEffect.new()
 	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
 	rain.ready()
-	rain._start_rain_episode()
 
 	# Enter building
 	rain.simulate_camera_move(Vector2(150, 150))
@@ -252,6 +255,7 @@ func test_rain_resumes_when_leaving_building() -> void:
 
 func test_is_raining_returns_false_when_no_episode() -> void:
 	var rain := MockRainEffect.new()
+	rain.start_raining = false
 	rain.ready()
 	assert_false(rain.is_raining(), "is_raining should be false when no episode")
 
@@ -259,15 +263,13 @@ func test_is_raining_returns_false_when_no_episode() -> void:
 func test_is_raining_returns_true_during_episode_outside() -> void:
 	var rain := MockRainEffect.new()
 	rain.ready()
-	rain._start_rain_episode()
-	assert_true(rain.is_raining(), "is_raining should be true during episode outside")
+	assert_true(rain.is_raining(), "is_raining should be true during episode outside (starts immediately)")
 
 
 func test_is_raining_returns_false_during_episode_inside_building() -> void:
 	var rain := MockRainEffect.new()
 	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
 	rain.ready()
-	rain._start_rain_episode()
 	rain.simulate_camera_move(Vector2(150, 150))
 	assert_false(rain.is_raining(), "is_raining should be false inside building during episode")
 
@@ -312,6 +314,7 @@ func test_warehouse_b_exclusion_zone() -> void:
 
 func test_episode_cycle() -> void:
 	var rain := MockRainEffect.new()
+	rain.start_raining = false
 	rain.ready()
 	assert_false(rain._episode_active, "Initially no episode")
 	assert_true(rain.schedule_timer_started, "Schedule started")
