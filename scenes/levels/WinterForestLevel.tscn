@@ -172,21 +172,16 @@ shape = SubResource("RectangleShape2D_tree_trunk")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree1"]
 occluder = SubResource("OccluderPolygon2D_tree_trunk")
 
-[node name="Crown" type="ColorRect" parent="Environment/Cover/Tree1"]
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree1"]
 z_index = 10
-offset_left = -60.0
-offset_top = -70.0
-offset_right = 60.0
-offset_bottom = 50.0
-color = Color(0.2, 0.35, 0.2, 0.55)
+color = Color(0.18, 0.35, 0.18, 1)
+polygon = PackedVector2Array(110.0, 0.0, 95.3, 50.0, 55.0, 86.6, 0.0, 100.0, -55.0, 86.6, -95.3, 50.0, -110.0, 0.0, -95.3, -50.0, -55.0, -86.6, -0.0, -100.0, 55.0, -86.6, 95.3, -50.0)
 
-[node name="SnowCap" type="ColorRect" parent="Environment/Cover/Tree1"]
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree1"]
 z_index = 11
-offset_left = -55.0
-offset_top = -65.0
-offset_right = 55.0
-offset_bottom = -30.0
-color = Color(0.92, 0.94, 0.96, 0.5)
+position = Vector2(0, -15)
+color = Color(0.92, 0.94, 0.96, 0.7)
+polygon = PackedVector2Array(95.0, 0.0, 82.3, 42.5, 47.5, 73.6, 0.0, 85.0, -47.5, 73.6, -82.3, 42.5, -95.0, 0.0, -82.3, -42.5, -47.5, -73.6, -0.0, -85.0, 47.5, -73.6, 82.3, -42.5)
 
 [node name="Tree2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(600, 1500)
@@ -206,21 +201,16 @@ shape = SubResource("RectangleShape2D_tree_trunk")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree2"]
 occluder = SubResource("OccluderPolygon2D_tree_trunk")
 
-[node name="Crown" type="ColorRect" parent="Environment/Cover/Tree2"]
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree2"]
 z_index = 10
-offset_left = -65.0
-offset_top = -75.0
-offset_right = 65.0
-offset_bottom = 55.0
-color = Color(0.18, 0.33, 0.18, 0.55)
+color = Color(0.16, 0.33, 0.16, 1)
+polygon = PackedVector2Array(130.0, 0.0, 112.6, 60.0, 65.0, 103.9, 0.0, 120.0, -65.0, 103.9, -112.6, 60.0, -130.0, 0.0, -112.6, -60.0, -65.0, -103.9, -0.0, -120.0, 65.0, -103.9, 112.6, -60.0)
 
-[node name="SnowCap" type="ColorRect" parent="Environment/Cover/Tree2"]
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree2"]
 z_index = 11
-offset_left = -60.0
-offset_top = -70.0
-offset_right = 60.0
-offset_bottom = -30.0
-color = Color(0.9, 0.92, 0.95, 0.5)
+position = Vector2(0, -18)
+color = Color(0.9, 0.92, 0.95, 0.7)
+polygon = PackedVector2Array(112.0, 0.0, 97.0, 52.0, 56.0, 89.9, 0.0, 104.0, -56.0, 89.9, -97.0, 52.0, -112.0, 0.0, -97.0, -52.0, -56.0, -89.9, -0.0, -104.0, 56.0, -89.9, 97.0, -52.0)
 
 [node name="Tree3" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(900, 1600)
@@ -240,21 +230,16 @@ shape = SubResource("RectangleShape2D_tree_trunk")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree3"]
 occluder = SubResource("OccluderPolygon2D_tree_trunk")
 
-[node name="Crown" type="ColorRect" parent="Environment/Cover/Tree3"]
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree3"]
 z_index = 10
-offset_left = -55.0
-offset_top = -65.0
-offset_right = 55.0
-offset_bottom = 45.0
-color = Color(0.22, 0.37, 0.22, 0.55)
+color = Color(0.2, 0.37, 0.2, 1)
+polygon = PackedVector2Array(95.0, 0.0, 82.3, 45.0, 47.5, 77.9, 0.0, 90.0, -47.5, 77.9, -82.3, 45.0, -95.0, 0.0, -82.3, -45.0, -47.5, -77.9, -0.0, -90.0, 47.5, -77.9, 82.3, -45.0)
 
-[node name="SnowCap" type="ColorRect" parent="Environment/Cover/Tree3"]
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree3"]
 z_index = 11
-offset_left = -50.0
-offset_top = -60.0
-offset_right = 50.0
-offset_bottom = -25.0
-color = Color(0.91, 0.93, 0.96, 0.5)
+position = Vector2(0, -12)
+color = Color(0.91, 0.93, 0.96, 0.7)
+polygon = PackedVector2Array(80.0, 0.0, 69.3, 38.0, 40.0, 65.7, 0.0, 76.0, -40.0, 65.7, -69.3, 38.0, -80.0, 0.0, -69.3, -38.0, -40.0, -65.7, -0.0, -76.0, 40.0, -65.7, 69.3, -38.0)
 
 [node name="Tree4" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(500, 1100)
@@ -274,21 +259,16 @@ shape = SubResource("RectangleShape2D_tree_trunk")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree4"]
 occluder = SubResource("OccluderPolygon2D_tree_trunk")
 
-[node name="Crown" type="ColorRect" parent="Environment/Cover/Tree4"]
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree4"]
 z_index = 10
-offset_left = -70.0
-offset_top = -80.0
-offset_right = 70.0
-offset_bottom = 60.0
-color = Color(0.2, 0.34, 0.2, 0.55)
+color = Color(0.17, 0.34, 0.17, 1)
+polygon = PackedVector2Array(140.0, 0.0, 121.2, 65.0, 70.0, 112.6, 0.0, 130.0, -70.0, 112.6, -121.2, 65.0, -140.0, 0.0, -121.2, -65.0, -70.0, -112.6, -0.0, -130.0, 70.0, -112.6, 121.2, -65.0)
 
-[node name="SnowCap" type="ColorRect" parent="Environment/Cover/Tree4"]
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree4"]
 z_index = 11
-offset_left = -65.0
-offset_top = -75.0
-offset_right = 65.0
-offset_bottom = -35.0
-color = Color(0.92, 0.94, 0.97, 0.5)
+position = Vector2(0, -20)
+color = Color(0.92, 0.94, 0.97, 0.7)
+polygon = PackedVector2Array(122.0, 0.0, 105.7, 57.0, 61.0, 98.1, 0.0, 113.0, -61.0, 98.1, -105.7, 57.0, -122.0, 0.0, -105.7, -57.0, -61.0, -98.1, -0.0, -113.0, 61.0, -98.1, 105.7, -57.0)
 
 [node name="Tree5" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(1100, 1300)
@@ -308,21 +288,16 @@ shape = SubResource("RectangleShape2D_tree_trunk")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree5"]
 occluder = SubResource("OccluderPolygon2D_tree_trunk")
 
-[node name="Crown" type="ColorRect" parent="Environment/Cover/Tree5"]
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree5"]
 z_index = 10
-offset_left = -60.0
-offset_top = -70.0
-offset_right = 60.0
-offset_bottom = 50.0
-color = Color(0.19, 0.32, 0.19, 0.55)
+color = Color(0.19, 0.32, 0.19, 1)
+polygon = PackedVector2Array(105.0, 0.0, 90.9, 47.5, 52.5, 82.3, 0.0, 95.0, -52.5, 82.3, -90.9, 47.5, -105.0, 0.0, -90.9, -47.5, -52.5, -82.3, -0.0, -95.0, 52.5, -82.3, 90.9, -47.5)
 
-[node name="SnowCap" type="ColorRect" parent="Environment/Cover/Tree5"]
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree5"]
 z_index = 11
-offset_left = -55.0
-offset_top = -65.0
-offset_right = 55.0
-offset_bottom = -28.0
-color = Color(0.9, 0.92, 0.95, 0.5)
+position = Vector2(0, -14)
+color = Color(0.9, 0.92, 0.95, 0.7)
+polygon = PackedVector2Array(88.0, 0.0, 76.2, 40.0, 44.0, 69.3, 0.0, 80.0, -44.0, 69.3, -76.2, 40.0, -88.0, 0.0, -76.2, -40.0, -44.0, -69.3, -0.0, -80.0, 44.0, -69.3, 76.2, -40.0)
 
 [node name="Tree6" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(800, 900)
@@ -342,21 +317,16 @@ shape = SubResource("RectangleShape2D_tree_trunk")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree6"]
 occluder = SubResource("OccluderPolygon2D_tree_trunk")
 
-[node name="Crown" type="ColorRect" parent="Environment/Cover/Tree6"]
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree6"]
 z_index = 10
-offset_left = -65.0
-offset_top = -75.0
-offset_right = 65.0
-offset_bottom = 55.0
-color = Color(0.21, 0.36, 0.21, 0.55)
+color = Color(0.21, 0.36, 0.21, 1)
+polygon = PackedVector2Array(120.0, 0.0, 103.9, 57.5, 60.0, 99.6, 0.0, 115.0, -60.0, 99.6, -103.9, 57.5, -120.0, 0.0, -103.9, -57.5, -60.0, -99.6, -0.0, -115.0, 60.0, -99.6, 103.9, -57.5)
 
-[node name="SnowCap" type="ColorRect" parent="Environment/Cover/Tree6"]
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree6"]
 z_index = 11
-offset_left = -60.0
-offset_top = -70.0
-offset_right = 60.0
-offset_bottom = -30.0
-color = Color(0.91, 0.93, 0.96, 0.5)
+position = Vector2(0, -16)
+color = Color(0.91, 0.93, 0.96, 0.7)
+polygon = PackedVector2Array(104.0, 0.0, 90.1, 50.0, 52.0, 86.6, 0.0, 100.0, -52.0, 86.6, -90.1, 50.0, -104.0, 0.0, -90.1, -50.0, -52.0, -86.6, -0.0, -100.0, 52.0, -86.6, 90.1, -50.0)
 
 [node name="Tree7" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(1400, 1100)
@@ -376,21 +346,16 @@ shape = SubResource("RectangleShape2D_tree_trunk")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree7"]
 occluder = SubResource("OccluderPolygon2D_tree_trunk")
 
-[node name="Crown" type="ColorRect" parent="Environment/Cover/Tree7"]
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree7"]
 z_index = 10
-offset_left = -55.0
-offset_top = -65.0
-offset_right = 55.0
-offset_bottom = 45.0
-color = Color(0.2, 0.35, 0.2, 0.55)
+color = Color(0.18, 0.35, 0.18, 1)
+polygon = PackedVector2Array(135.0, 0.0, 116.9, 62.5, 67.5, 108.3, 0.0, 125.0, -67.5, 108.3, -116.9, 62.5, -135.0, 0.0, -116.9, -62.5, -67.5, -108.3, -0.0, -125.0, 67.5, -108.3, 116.9, -62.5)
 
-[node name="SnowCap" type="ColorRect" parent="Environment/Cover/Tree7"]
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree7"]
 z_index = 11
-offset_left = -50.0
-offset_top = -60.0
-offset_right = 50.0
-offset_bottom = -25.0
-color = Color(0.92, 0.94, 0.96, 0.5)
+position = Vector2(0, -18)
+color = Color(0.92, 0.94, 0.96, 0.7)
+polygon = PackedVector2Array(118.0, 0.0, 102.2, 54.5, 59.0, 94.3, 0.0, 109.0, -59.0, 94.3, -102.2, 54.5, -118.0, 0.0, -102.2, -54.5, -59.0, -94.3, -0.0, -109.0, 59.0, -94.3, 102.2, -54.5)
 
 [node name="Tree8" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(1800, 1400)
@@ -410,21 +375,16 @@ shape = SubResource("RectangleShape2D_tree_trunk")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree8"]
 occluder = SubResource("OccluderPolygon2D_tree_trunk")
 
-[node name="Crown" type="ColorRect" parent="Environment/Cover/Tree8"]
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree8"]
 z_index = 10
-offset_left = -60.0
-offset_top = -70.0
-offset_right = 60.0
-offset_bottom = 50.0
-color = Color(0.18, 0.33, 0.18, 0.55)
+color = Color(0.16, 0.33, 0.16, 1)
+polygon = PackedVector2Array(100.0, 0.0, 86.6, 47.5, 50.0, 82.3, 0.0, 95.0, -50.0, 82.3, -86.6, 47.5, -100.0, 0.0, -86.6, -47.5, -50.0, -82.3, -0.0, -95.0, 50.0, -82.3, 86.6, -47.5)
 
-[node name="SnowCap" type="ColorRect" parent="Environment/Cover/Tree8"]
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree8"]
 z_index = 11
-offset_left = -55.0
-offset_top = -65.0
-offset_right = 55.0
-offset_bottom = -28.0
-color = Color(0.9, 0.92, 0.95, 0.5)
+position = Vector2(0, -13)
+color = Color(0.9, 0.92, 0.95, 0.7)
+polygon = PackedVector2Array(84.0, 0.0, 72.7, 40.0, 42.0, 69.3, 0.0, 80.0, -42.0, 69.3, -72.7, 40.0, -84.0, 0.0, -72.7, -40.0, -42.0, -69.3, -0.0, -80.0, 42.0, -69.3, 72.7, -40.0)
 
 [node name="Tree9" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2200, 1200)
@@ -444,21 +404,16 @@ shape = SubResource("RectangleShape2D_tree_trunk")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree9"]
 occluder = SubResource("OccluderPolygon2D_tree_trunk")
 
-[node name="Crown" type="ColorRect" parent="Environment/Cover/Tree9"]
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree9"]
 z_index = 10
-offset_left = -65.0
-offset_top = -75.0
-offset_right = 65.0
-offset_bottom = 55.0
-color = Color(0.22, 0.37, 0.22, 0.55)
+color = Color(0.2, 0.37, 0.2, 1)
+polygon = PackedVector2Array(125.0, 0.0, 108.3, 55.0, 62.5, 95.3, 0.0, 110.0, -62.5, 95.3, -108.3, 55.0, -125.0, 0.0, -108.3, -55.0, -62.5, -95.3, -0.0, -110.0, 62.5, -95.3, 108.3, -55.0)
 
-[node name="SnowCap" type="ColorRect" parent="Environment/Cover/Tree9"]
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree9"]
 z_index = 11
-offset_left = -60.0
-offset_top = -70.0
-offset_right = 60.0
-offset_bottom = -30.0
-color = Color(0.91, 0.93, 0.96, 0.5)
+position = Vector2(0, -16)
+color = Color(0.91, 0.93, 0.96, 0.7)
+polygon = PackedVector2Array(108.0, 0.0, 93.5, 47.5, 54.0, 82.3, 0.0, 95.0, -54.0, 82.3, -93.5, 47.5, -108.0, 0.0, -93.5, -47.5, -54.0, -82.3, -0.0, -95.0, 54.0, -82.3, 93.5, -47.5)
 
 [node name="Tree10" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2600, 1500)
@@ -478,21 +433,161 @@ shape = SubResource("RectangleShape2D_tree_trunk")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree10"]
 occluder = SubResource("OccluderPolygon2D_tree_trunk")
 
-[node name="Crown" type="ColorRect" parent="Environment/Cover/Tree10"]
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree10"]
 z_index = 10
-offset_left = -55.0
-offset_top = -65.0
-offset_right = 55.0
-offset_bottom = 45.0
-color = Color(0.2, 0.34, 0.2, 0.55)
+color = Color(0.19, 0.34, 0.19, 1)
+polygon = PackedVector2Array(115.0, 0.0, 99.6, 52.5, 57.5, 90.9, 0.0, 105.0, -57.5, 90.9, -99.6, 52.5, -115.0, 0.0, -99.6, -52.5, -57.5, -90.9, -0.0, -105.0, 57.5, -90.9, 99.6, -52.5)
 
-[node name="SnowCap" type="ColorRect" parent="Environment/Cover/Tree10"]
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree10"]
 z_index = 11
-offset_left = -50.0
-offset_top = -60.0
-offset_right = 50.0
-offset_bottom = -25.0
-color = Color(0.92, 0.94, 0.97, 0.5)
+position = Vector2(0, -15)
+color = Color(0.92, 0.94, 0.97, 0.7)
+polygon = PackedVector2Array(100.0, 0.0, 86.6, 45.5, 50.0, 78.8, 0.0, 91.0, -50.0, 78.8, -86.6, 45.5, -100.0, 0.0, -86.6, -45.5, -50.0, -78.8, -0.0, -91.0, 50.0, -78.8, 86.6, -45.5)
+
+[node name="Tree11" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(2500, 300)
+collision_layer = 4
+collision_mask = 0
+
+[node name="Trunk" type="ColorRect" parent="Environment/Cover/Tree11"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.35, 0.25, 0.18, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Tree11"]
+shape = SubResource("RectangleShape2D_tree_trunk")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree11"]
+occluder = SubResource("OccluderPolygon2D_tree_trunk")
+
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree11"]
+z_index = 10
+color = Color(0.17, 0.35, 0.17, 1)
+polygon = PackedVector2Array(130.0, 0.0, 112.6, 62.5, 65.0, 108.3, 0.0, 125.0, -65.0, 108.3, -112.6, 62.5, -130.0, 0.0, -112.6, -62.5, -65.0, -108.3, -0.0, -125.0, 65.0, -108.3, 112.6, -62.5)
+
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree11"]
+z_index = 11
+position = Vector2(0, -18)
+color = Color(0.91, 0.93, 0.96, 0.7)
+polygon = PackedVector2Array(112.0, 0.0, 97.0, 54.0, 56.0, 93.5, 0.0, 108.0, -56.0, 93.5, -97.0, 54.0, -112.0, 0.0, -97.0, -54.0, -56.0, -93.5, -0.0, -108.0, 56.0, -93.5, 97.0, -54.0)
+
+[node name="Tree12" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(2900, 500)
+collision_layer = 4
+collision_mask = 0
+
+[node name="Trunk" type="ColorRect" parent="Environment/Cover/Tree12"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.33, 0.23, 0.16, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Tree12"]
+shape = SubResource("RectangleShape2D_tree_trunk")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree12"]
+occluder = SubResource("OccluderPolygon2D_tree_trunk")
+
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree12"]
+z_index = 10
+color = Color(0.2, 0.36, 0.2, 1)
+polygon = PackedVector2Array(110.0, 0.0, 95.3, 50.0, 55.0, 86.6, 0.0, 100.0, -55.0, 86.6, -95.3, 50.0, -110.0, 0.0, -95.3, -50.0, -55.0, -86.6, -0.0, -100.0, 55.0, -86.6, 95.3, -50.0)
+
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree12"]
+z_index = 11
+position = Vector2(0, -14)
+color = Color(0.92, 0.94, 0.95, 0.7)
+polygon = PackedVector2Array(95.0, 0.0, 82.3, 43.0, 47.5, 74.5, 0.0, 86.0, -47.5, 74.5, -82.3, 43.0, -95.0, 0.0, -82.3, -43.0, -47.5, -74.5, -0.0, -86.0, 47.5, -74.5, 82.3, -43.0)
+
+[node name="Tree13" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(3050, 250)
+collision_layer = 4
+collision_mask = 0
+
+[node name="Trunk" type="ColorRect" parent="Environment/Cover/Tree13"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.36, 0.26, 0.19, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Tree13"]
+shape = SubResource("RectangleShape2D_tree_trunk")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree13"]
+occluder = SubResource("OccluderPolygon2D_tree_trunk")
+
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree13"]
+z_index = 10
+color = Color(0.18, 0.34, 0.18, 1)
+polygon = PackedVector2Array(140.0, 0.0, 121.2, 67.5, 70.0, 116.9, 0.0, 135.0, -70.0, 116.9, -121.2, 67.5, -140.0, 0.0, -121.2, -67.5, -70.0, -116.9, -0.0, -135.0, 70.0, -116.9, 121.2, -67.5)
+
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree13"]
+z_index = 11
+position = Vector2(0, -20)
+color = Color(0.9, 0.92, 0.95, 0.7)
+polygon = PackedVector2Array(122.0, 0.0, 105.7, 59.0, 61.0, 102.2, 0.0, 118.0, -61.0, 102.2, -105.7, 59.0, -122.0, 0.0, -105.7, -59.0, -61.0, -102.2, -0.0, -118.0, 61.0, -102.2, 105.7, -59.0)
+
+[node name="Tree14" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(2700, 650)
+collision_layer = 4
+collision_mask = 0
+
+[node name="Trunk" type="ColorRect" parent="Environment/Cover/Tree14"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.34, 0.24, 0.17, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Tree14"]
+shape = SubResource("RectangleShape2D_tree_trunk")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree14"]
+occluder = SubResource("OccluderPolygon2D_tree_trunk")
+
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree14"]
+z_index = 10
+color = Color(0.21, 0.37, 0.21, 1)
+polygon = PackedVector2Array(105.0, 0.0, 90.9, 50.0, 52.5, 86.6, 0.0, 100.0, -52.5, 86.6, -90.9, 50.0, -105.0, 0.0, -90.9, -50.0, -52.5, -86.6, -0.0, -100.0, 52.5, -86.6, 90.9, -50.0)
+
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree14"]
+z_index = 11
+position = Vector2(0, -14)
+color = Color(0.92, 0.94, 0.96, 0.7)
+polygon = PackedVector2Array(90.0, 0.0, 77.9, 43.0, 45.0, 74.5, 0.0, 86.0, -45.0, 74.5, -77.9, 43.0, -90.0, 0.0, -77.9, -43.0, -45.0, -74.5, -0.0, -86.0, 45.0, -74.5, 77.9, -43.0)
+
+[node name="Tree15" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(3100, 700)
+collision_layer = 4
+collision_mask = 0
+
+[node name="Trunk" type="ColorRect" parent="Environment/Cover/Tree15"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.37, 0.27, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Tree15"]
+shape = SubResource("RectangleShape2D_tree_trunk")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Tree15"]
+occluder = SubResource("OccluderPolygon2D_tree_trunk")
+
+[node name="Crown" type="Polygon2D" parent="Environment/Cover/Tree15"]
+z_index = 10
+color = Color(0.19, 0.35, 0.19, 1)
+polygon = PackedVector2Array(120.0, 0.0, 103.9, 55.0, 60.0, 95.3, 0.0, 110.0, -60.0, 95.3, -103.9, 55.0, -120.0, 0.0, -103.9, -55.0, -60.0, -95.3, -0.0, -110.0, 60.0, -95.3, 103.9, -55.0)
+
+[node name="SnowCap" type="Polygon2D" parent="Environment/Cover/Tree15"]
+z_index = 11
+position = Vector2(0, -16)
+color = Color(0.91, 0.93, 0.96, 0.7)
+polygon = PackedVector2Array(104.0, 0.0, 90.1, 47.5, 52.0, 82.3, 0.0, 95.0, -52.0, 82.3, -90.1, 47.5, -104.0, 0.0, -90.1, -47.5, -52.0, -82.3, -0.0, -95.0, 52.0, -82.3, 90.1, -47.5)
 
 [node name="Rock1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(1800, 500)
@@ -660,89 +755,6 @@ text = "CLEARING"
 
 [node name="Enemies" type="Node2D" parent="Environment"]
 
-[node name="ForestEnemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(700, 1400)
-behavior_mode = 0
-weapon_type = 3
-move_speed = 250.0
-combat_move_speed = 380.0
-patrol_offsets = Array[Vector2]([Vector2(80, 0), Vector2(-80, 0)])
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-min_health = 3
-max_health = 5
-
-[node name="ForestEnemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(1000, 1200)
-behavior_mode = 1
-weapon_type = 3
-move_speed = 250.0
-combat_move_speed = 380.0
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-min_health = 3
-max_health = 5
-
-[node name="ForestRifle1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(1300, 1000)
-behavior_mode = 1
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="ForestRifle2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(1700, 1300)
-behavior_mode = 0
-patrol_offsets = Array[Vector2]([Vector2(0, 100), Vector2(0, -100)])
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="ClearingEnemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(2000, 500)
-behavior_mode = 1
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="ClearingEnemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(2500, 600)
-behavior_mode = 1
-weapon_type = 1
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="ClearingEnemy3" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(2800, 400)
-behavior_mode = 0
-weapon_type = 3
-move_speed = 250.0
-combat_move_speed = 380.0
-patrol_offsets = Array[Vector2]([Vector2(100, 0), Vector2(-100, 0)])
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-min_health = 3
-max_health = 5
-
-[node name="ClearingRifle1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(3000, 800)
-behavior_mode = 1
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="EdgeForestEnemy" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(2400, 1100)
-behavior_mode = 0
-patrol_offsets = Array[Vector2]([Vector2(0, 80), Vector2(0, -80)])
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
 navigation_polygon = SubResource("NavigationPolygon_winter_forest")
 
@@ -784,7 +796,7 @@ offset_top = 45.0
 offset_right = -10.0
 offset_bottom = 75.0
 grow_horizontal = 0
-text = "Enemies: 9"
+text = "Enemies: 0"
 horizontal_alignment = 2
 
 [node name="AmmoLabel" type="Label" parent="CanvasLayer/UI"]
@@ -837,6 +849,12 @@ position = Vector2(2200, 1200)
 
 [node name="Tree10_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
 position = Vector2(2600, 1500)
+
+[node name="Tree11_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2500, 300)
+
+[node name="Tree13_Vicinity" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3050, 250)
 
 [node name="Clearing_West" type="Marker2D" parent="SearchPathWaypoints"]
 position = Vector2(1600, 500)
