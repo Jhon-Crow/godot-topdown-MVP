@@ -121,6 +121,16 @@ const LEVELS: Array[Dictionary] = [
 		"map_size": "3200x2400"
 	},
 	{
+		"name": "Winter Forest",
+		"name_ru": "Зимний лес",
+		"path": "res://scenes/levels/WinterForestLevel.tscn",
+		"description": "Winter forest with sewer exit start, sparse trees hiding players and enemies, and an open clearing with small cover.",
+		"preview_color": Color(0.6, 0.65, 0.72, 1.0),
+		"preview_accent": Color(0.88, 0.9, 0.93, 1.0),
+		"enemy_count": 9,
+		"map_size": "3200x2400"
+	},
+	{
 		"name": "Arena",
 		"name_ru": "Арена",
 		"path": "res://scenes/levels/ArenaLevel.tscn",
