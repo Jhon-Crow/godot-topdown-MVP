@@ -12,19 +12,22 @@ extends GutTest
 
 class MockRainEffect:
 	## Minimum seconds between rain episodes.
-	var min_interval: float = 30.0
+	var min_interval: float = 15.0
 
 	## Maximum seconds between rain episodes.
-	var max_interval: float = 90.0
+	var max_interval: float = 45.0
 
 	## Minimum duration of a rain episode in seconds.
-	var min_duration: float = 10.0
+	var min_duration: float = 15.0
 
 	## Maximum duration of a rain episode in seconds.
-	var max_duration: float = 30.0
+	var max_duration: float = 40.0
 
 	## Whether rain starts immediately.
 	var start_raining: bool = false
+
+	## Seconds before the very first rain episode.
+	var initial_delay: float = 5.0
 
 	## Indoor exclusion zones.
 	var exclusion_zones: Array = []

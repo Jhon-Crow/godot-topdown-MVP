@@ -8,19 +8,22 @@ class_name RainEffect
 ## The effect follows the camera so rain covers the visible viewport area.
 
 ## Minimum seconds between rain episodes.
-@export var min_interval: float = 30.0
+@export var min_interval: float = 15.0
 
 ## Maximum seconds between rain episodes.
-@export var max_interval: float = 90.0
+@export var max_interval: float = 45.0
 
 ## Minimum duration of a rain episode in seconds.
-@export var min_duration: float = 10.0
+@export var min_duration: float = 15.0
 
 ## Maximum duration of a rain episode in seconds.
-@export var max_duration: float = 30.0
+@export var max_duration: float = 40.0
 
 ## Whether rain starts automatically or waits for first interval.
 @export var start_raining: bool = false
+
+## Seconds before the very first rain episode (shorter than normal interval).
+@export var initial_delay: float = 5.0
 
 ## Indoor exclusion zones (rain stops when camera center is inside).
 ## Each Rect2 defines a rectangular area in global coordinates.
@@ -52,7 +55,9 @@ func _ready() -> void:
 	if start_raining:
 		_start_rain_episode()
 	else:
-		_schedule_next_episode()
+		# Use shorter initial delay so rain appears sooner in the level
+		_schedule_timer.start(initial_delay)
+		_log("Scheduled first rain episode in %.1f seconds" % initial_delay)
 
 
 func _setup_timers() -> void:
@@ -86,9 +91,11 @@ func _process(_delta: float) -> void:
 		if _inside_exclusion and not was_inside:
 			# Entered a building - hide rain
 			emitting = false
+			_log("Rain hidden (entered exclusion zone)")
 		elif not _inside_exclusion and was_inside:
 			# Left a building - show rain again
 			emitting = true
+			_log("Rain visible (left exclusion zone)")
 
 
 ## Adds a rectangular exclusion zone where rain will not appear.
@@ -134,6 +141,7 @@ func _is_point_in_exclusion_zone(point: Vector2) -> bool:
 func _schedule_next_episode() -> void:
 	var wait_time := randf_range(min_interval, max_interval)
 	_schedule_timer.start(wait_time)
+	_log("Next rain episode scheduled in %.1f seconds" % wait_time)
 
 
 func _start_rain_episode() -> void:
@@ -143,12 +151,14 @@ func _start_rain_episode() -> void:
 	var duration := randf_range(min_duration, max_duration)
 	_duration_timer.start(duration)
 	_schedule_timer.stop()
+	_log("Rain episode STARTED (duration: %.1f seconds, emitting: %s)" % [duration, str(emitting)])
 
 
 func _stop_rain_episode() -> void:
 	_episode_active = false
 	emitting = false
 	_schedule_next_episode()
+	_log("Rain episode STOPPED")
 
 
 func _on_schedule_timeout() -> void:
@@ -157,3 +167,14 @@ func _on_schedule_timeout() -> void:
 
 func _on_duration_timeout() -> void:
 	_stop_rain_episode()
+
+
+## Logs a rain effect message through the FileLogger autoload if available.
+func _log(message: String) -> void:
+	var file_logger: Node = Engine.get_singleton("FileLogger") if Engine.has_singleton("FileLogger") else null
+	if file_logger == null:
+		file_logger = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[RainEffect] " + message)
+	else:
+		print("[RainEffect] " + message)

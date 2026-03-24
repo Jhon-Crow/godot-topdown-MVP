@@ -1031,7 +1031,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="RainEffect" parent="." instance=ExtResource("6_rain_effect")]
-z_index = 10
+z_index = 100
 
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
 navigation_polygon = SubResource("NavigationPolygon_docks")
