@@ -4741,13 +4741,7 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 		target_pos = _tactical_group.get_adjusted_target(target_pos, get_physics_process_delta_time())
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
-	var nav_direction := direction  # Issue #1357: preserve nav direction before wall avoidance
-	direction = _apply_wall_avoidance(direction)
-	# Issue #1357: If wall avoidance steers >90° from nav path (dot < 0), blend back toward nav
-	# direction. NavigationAgent2D already accounts for walls via navmesh; wall avoidance fighting
-	# the nav direction in corridors/doorways is the primary cause of wall-sticking.
-	if nav_direction.dot(direction) < 0.0:
-		direction = (nav_direction * 0.7 + direction * 0.3).normalized()
+	var nav_direction := direction; direction = _apply_wall_avoidance(direction); if nav_direction.dot(direction) < 0.0: direction = (nav_direction * 0.7 + direction * 0.3).normalized()  # Issue #1357: blend back to prevent wall-sticking
 	# Issue #1107: Corner escape — use escape-dominant weight (1.5) when wall opposes nav dir
 	var _esc: Vector2 = Vector2.ZERO
 	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
