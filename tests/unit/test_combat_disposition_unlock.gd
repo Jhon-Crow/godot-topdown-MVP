@@ -1,10 +1,10 @@
 extends GutTest
-## Unit tests for the Combat Disposition kill-without-laser unlock condition (Issue #1389).
+## Unit tests for the Combat Disposition no-damage-level unlock condition (Issue #1389).
 ##
 ## Tests that:
 ## - COMBAT_DISPOSITION starts locked (no longer freely available from start)
-## - The condition requires 1 kill without laser sight
-## - is_kill_condition_met returns correct values based on kills_without_laser_sight
+## - The condition requires 1 level completed without damage
+## - is_kill_condition_met returns correct values based on no_damage_levels_completed
 ## - KILL_UNLOCK_CONDITIONS contains the correct entry for Combat Disposition
 
 
@@ -14,18 +14,18 @@ extends GutTest
 
 
 class MockGameManager:
-	var kills_without_laser_sight: int = 0
+	var no_damage_levels_completed: int = 0
 
-	func register_kill_without_laser() -> void:
-		kills_without_laser_sight += 1
+	func register_no_damage_level() -> void:
+		no_damage_levels_completed += 1
 
 
 class MockUnlockManager:
 	## Kill-based unlock conditions (mirrors the real KILL_UNLOCK_CONDITIONS).
 	const KILL_UNLOCK_CONDITIONS: Array = [
 		{
-			# 1 kill without Laser Sight → unlock Combat Disposition (Issue #1389)
-			"stat": "kills_without_laser_sight",
+			# 1 level completed without damage → unlock Combat Disposition (Issue #1389)
+			"stat": "no_damage_levels_completed",
 			"min_kills": 1,
 			"weapons": [],
 			"grenades": [],
@@ -81,55 +81,55 @@ func test_combat_disposition_starts_locked() -> void:
 		17: false  # COMBAT_DISPOSITION — locked by default (Issue #1389)
 	}
 	assert_false(unlocked_active_items[17],
-		"COMBAT_DISPOSITION should start locked — requires 1 kill without laser sight (Issue #1389)")
+		"COMBAT_DISPOSITION should start locked — requires 1 level without damage (Issue #1389)")
 
 
 # ============================================================================
-# kills_without_laser_sight Counter Tests
+# no_damage_levels_completed Counter Tests
 # ============================================================================
 
 
-func test_kills_without_laser_starts_at_zero() -> void:
-	assert_eq(game_manager.kills_without_laser_sight, 0,
-		"kills_without_laser_sight should start at 0")
+func test_no_damage_levels_starts_at_zero() -> void:
+	assert_eq(game_manager.no_damage_levels_completed, 0,
+		"no_damage_levels_completed should start at 0")
 
 
-func test_kill_without_laser_increments_counter() -> void:
-	game_manager.register_kill_without_laser()
-	assert_eq(game_manager.kills_without_laser_sight, 1,
-		"kills_without_laser_sight should increment after one kill")
+func test_no_damage_level_increments_counter() -> void:
+	game_manager.register_no_damage_level()
+	assert_eq(game_manager.no_damage_levels_completed, 1,
+		"no_damage_levels_completed should increment after one no-damage level")
 
 
-func test_multiple_kills_without_laser_accumulate() -> void:
+func test_multiple_no_damage_levels_accumulate() -> void:
 	for i in range(3):
-		game_manager.register_kill_without_laser()
-	assert_eq(game_manager.kills_without_laser_sight, 3,
-		"kills_without_laser_sight should accumulate correctly")
+		game_manager.register_no_damage_level()
+	assert_eq(game_manager.no_damage_levels_completed, 3,
+		"no_damage_levels_completed should accumulate correctly")
 
 
 # ============================================================================
-# Kill Condition Met / Not Met Tests
+# Condition Met / Not Met Tests
 # ============================================================================
 
 
-func test_kill_condition_not_met_at_zero_kills() -> void:
+func test_condition_not_met_at_zero_no_damage_levels() -> void:
 	assert_false(unlock_manager.is_kill_condition_met(
 			unlock_manager.KILL_UNLOCK_CONDITIONS[0]),
-		"Combat Disposition condition should not be met at 0 kills without laser sight")
+		"Combat Disposition condition should not be met at 0 no-damage levels completed")
 
 
-func test_kill_condition_met_at_one_kill() -> void:
-	game_manager.kills_without_laser_sight = 1
+func test_condition_met_at_one_no_damage_level() -> void:
+	game_manager.no_damage_levels_completed = 1
 	assert_true(unlock_manager.is_kill_condition_met(
 			unlock_manager.KILL_UNLOCK_CONDITIONS[0]),
-		"Combat Disposition condition should be met after 1 kill without laser sight (Issue #1389)")
+		"Combat Disposition condition should be met after 1 level without damage (Issue #1389)")
 
 
-func test_kill_condition_met_above_one_kill() -> void:
-	game_manager.kills_without_laser_sight = 5
+func test_condition_met_above_one_no_damage_level() -> void:
+	game_manager.no_damage_levels_completed = 5
 	assert_true(unlock_manager.is_kill_condition_met(
 			unlock_manager.KILL_UNLOCK_CONDITIONS[0]),
-		"Combat Disposition condition should remain met above 1 kill")
+		"Combat Disposition condition should remain met above 1 no-damage level")
 
 
 # ============================================================================
@@ -147,13 +147,13 @@ func test_kill_unlock_conditions_has_combat_disposition_entry() -> void:
 		"KILL_UNLOCK_CONDITIONS should contain an entry for COMBAT_DISPOSITION (type 17)")
 
 
-func test_combat_disposition_condition_requires_1_kill_without_laser() -> void:
+func test_combat_disposition_condition_requires_1_no_damage_level() -> void:
 	for cond in unlock_manager.KILL_UNLOCK_CONDITIONS:
 		if 17 in cond.get("active_items", []):
 			assert_eq(cond.get("min_kills", 0), 1,
-				"Combat Disposition unlock should require 1 kill without laser sight (Issue #1389)")
-			assert_eq(cond.get("stat", ""), "kills_without_laser_sight",
-				"Combat Disposition unlock should track 'kills_without_laser_sight' stat")
+				"Combat Disposition unlock should require 1 level without damage (Issue #1389)")
+			assert_eq(cond.get("stat", ""), "no_damage_levels_completed",
+				"Combat Disposition unlock should track 'no_damage_levels_completed' stat")
 			return
 	fail_test("No condition entry found for Combat Disposition in KILL_UNLOCK_CONDITIONS")
 
@@ -173,13 +173,13 @@ func test_combat_disposition_condition_has_no_weapons_or_grenades() -> void:
 # ============================================================================
 
 
-func test_active_item_condition_not_met_before_any_kill() -> void:
-	game_manager.kills_without_laser_sight = 0
+func test_active_item_condition_not_met_before_any_no_damage_level() -> void:
+	game_manager.no_damage_levels_completed = 0
 	assert_false(unlock_manager.is_active_item_condition_met(17),
-		"Combat Disposition condition should not be met with 0 kills without laser sight (Issue #1389)")
+		"Combat Disposition condition should not be met with 0 no-damage levels (Issue #1389)")
 
 
-func test_active_item_condition_met_after_one_kill_without_laser() -> void:
-	game_manager.kills_without_laser_sight = 1
+func test_active_item_condition_met_after_one_no_damage_level() -> void:
+	game_manager.no_damage_levels_completed = 1
 	assert_true(unlock_manager.is_active_item_condition_met(17),
-		"Combat Disposition condition should be met after 1 kill without laser sight (Issue #1389)")
+		"Combat Disposition condition should be met after 1 level without damage (Issue #1389)")

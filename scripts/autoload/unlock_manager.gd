@@ -117,8 +117,8 @@ const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
 		"active_items": [13]  # ActiveItemManager.ActiveItemType.ARMORED_SKIN = 13
 	},
 	{
-		# 1 kill without Laser Sight → unlock Combat Disposition (Issue #1389)
-		"stat": "kills_without_laser_sight",
+		# 1 level completed without damage → unlock Combat Disposition (Issue #1389)
+		"stat": "no_damage_levels_completed",
 		"min_kills": 1,
 		"weapons": [],
 		"grenades": [],
@@ -180,6 +180,8 @@ func _ready() -> void:
 			game_manager.shots_fired_special_weapons_updated.connect(_on_shots_fired_special_weapons_updated)
 		if game_manager.has_signal("total_deaths_updated"):
 			game_manager.total_deaths_updated.connect(_on_total_deaths_updated)
+		if game_manager.has_signal("no_damage_levels_completed_updated"):
+			game_manager.no_damage_levels_completed_updated.connect(_on_no_damage_levels_completed_updated)
 	# Reset condition-gated items to locked state first (in case old save data has them incorrectly
 	# marked as unlocked), then re-apply earned unlocks from progress. This ensures the unlock
 	# state is always consistent with actual level completion progress.
@@ -241,6 +243,16 @@ func _on_total_deaths_updated(_new_count: int) -> void:
 			_log("Death condition met — Armored Skin now available to unlock in armory")
 			break
 
+
+## Called when GameManager emits no_damage_levels_completed_updated.
+## Checks if the Combat Disposition no-damage-level condition is now satisfied.
+## Issue #1389.
+func _on_no_damage_levels_completed_updated(_new_count: int) -> void:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if kill_condition.get("stat", "") == "no_damage_levels_completed" and is_kill_condition_met(kill_condition):
+			items_unlocked_by_kill_condition.emit()
+			_log("No-damage level condition met — Combat Disposition now available to unlock in armory")
+			break
 
 
 ## Get the best rank for a level across all difficulties.
