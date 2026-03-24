@@ -3,7 +3,7 @@ extends GutTest
 ##
 ## Tests rain episode scheduling, exclusion zone logic, and state transitions.
 ## The actual RainEffect extends Node2D with two child GPUParticles2D layers
-## (diagonal streaks + splash ripples). Uses a mock to test logic without
+## (vertical streaks + splash ripples). Uses a mock to test logic without
 ## requiring GPUParticles2D rendering.
 
 

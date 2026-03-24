@@ -2,7 +2,7 @@ extends Node2D
 class_name RainEffect
 ## Hotline Miami 2-style top-down rain effect (Issue #1394).
 ##
-## Two-layer particle system: diagonal rain streaks falling across the screen
+## Two-layer particle system: vertical rain streaks falling straight down
 ## and circular splash ripples where drops hit the ground.
 ## Supports configurable rain intensity, intermittent (rare) rain timing,
 ## and indoor exclusion zones where rain should not appear.
@@ -48,7 +48,7 @@ var _duration_timer: Timer = null
 ## Tracks if the system has been set up.
 var _initialized: bool = false
 
-## Diagonal rain streaks particle node (defined in .tscn).
+## Vertical rain streaks particle node (defined in .tscn).
 @onready var _streaks: GPUParticles2D = $RainStreaks
 
 ## Ground splash ripples particle node (defined in .tscn).
