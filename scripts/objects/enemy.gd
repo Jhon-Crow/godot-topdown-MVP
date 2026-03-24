@@ -167,6 +167,12 @@ const SEEKING_COVER_MIN_DURATION: float = 0.3; var _seeking_cover_entry_time: fl
 const RETREATING_MIN_DURATION: float = 0.3; var _retreating_entry_time: float = -999.0  ## Issue #997 RCA-17
 const IN_COVER_MIN_DURATION: float = 0.3; var _in_cover_entry_time: float = -999.0  ## Issue #997 RCA-18: prevent instant IN_COVER→SUPPRESSED cycling
 var _cached_visible_from_player: bool = false; var _visible_from_player_cache_frame: int = -1
+## Issue #1411: Per-frame visibility cache for _is_position_visible_from_player to avoid redundant raycasts.
+var _visibility_cache: Dictionary = {}; var _visibility_cache_frame: int = -1
+## Issue #1411: Throttle timers for cover functions that previously had no cooldown.
+var _last_distant_cover_search_time: float = -999.0; var _last_closest_cover_search_time: float = -999.0
+## Issue #1411: Maximum candidates to collect before early termination in cover search.
+const COVER_MAX_CANDIDATES: int = 8
 var _current_ammo: int = 0  ## Ammo in magazine
 var _reserve_ammo: int = 0  ## Reserve ammo
 var _is_reloading: bool = false  ## Currently reloading
@@ -532,10 +538,12 @@ func _setup_wall_detection() -> void:
 		_wall_raycasts.append(raycast)
 
 ## Setup cover detection raycasts for finding cover positions.
+## Issue #1411: Raycasts start disabled to reduce per-frame physics overhead.
+## They are enabled on-demand by _force_cover_raycasts_update() during cover searches.
 func _setup_cover_detection() -> void:
 	for i in range(COVER_CHECK_COUNT):
 		var raycast := RayCast2D.new()
-		raycast.enabled = true
+		raycast.enabled = false  ## Issue #1411: disabled by default, enabled only during cover search
 		raycast.collision_mask = 4  # Only detect obstacles (layer 3)
 		raycast.exclude_parent = true
 		add_child(raycast)
@@ -1240,6 +1248,10 @@ func _activate_machine_gunner_pm_fallback() -> void:
 ## [#1033] Find cover far from player for machine gunner PM fallback (prefers hidden + far, opposite of normal).
 func _find_distant_cover_position() -> void:
 	if _player == null: _has_valid_cover = false; return
+	## Issue #1411: Throttle distant cover search with same cooldown as normal cover search.
+	var current_time := Time.get_ticks_msec() / 1000.0
+	if _has_valid_cover and current_time - _last_distant_cover_search_time < COVER_SEARCH_COOLDOWN: return
+	_last_distant_cover_search_time = current_time
 	var player_pos := _player.global_position
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
@@ -2946,9 +2958,16 @@ func _is_point_visible_from_player(pt: Vector2) -> bool:  ## Single point visibl
 	return r.is_empty() or _player.global_position.distance_to(r["position"]) >= _player.global_position.distance_to(pt) - 10.0
 func _is_position_visible_from_player(pos: Vector2) -> bool:  ## Enemy at pos visible to player
 	if not _player: return true
+	## Issue #1411: Per-frame cache to avoid redundant multi-point visibility checks.
+	var frame := Engine.get_physics_frames()
+	if frame != _visibility_cache_frame: _visibility_cache.clear(); _visibility_cache_frame = frame
+	var key := Vector2i(roundi(pos.x), roundi(pos.y))
+	if _visibility_cache.has(key): return _visibility_cache[key]
+	var visible := false
 	for pt in _get_enemy_check_points(pos):
-		if _is_point_visible_from_player(pt): return true
-	return false
+		if _is_point_visible_from_player(pt): visible = true; break
+	_visibility_cache[key] = visible
+	return visible
 
 ## Check if target is visible from enemy (raycast for LOS). For lead prediction validation.
 func _is_position_visible_to_enemy(target_pos: Vector2) -> bool:
@@ -3246,6 +3265,10 @@ func _find_cover_closest_to_player() -> void:
 	if _player == null:
 		_has_valid_cover = false
 		return
+	## Issue #1411: Throttle closest-to-player cover search with same cooldown as normal cover search.
+	var current_time := Time.get_ticks_msec() / 1000.0
+	if _has_valid_cover and current_time - _last_closest_cover_search_time < COVER_SEARCH_COOLDOWN: return
+	_last_closest_cover_search_time = current_time
 	var wp_a := _combat_waypoint(_player.global_position)  # Issue #1227
 	if wp_a != Vector2.ZERO: _cover_position = wp_a; _has_valid_cover = true; return
 	var player_pos := _player.global_position
@@ -3330,6 +3353,9 @@ func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue
 		if has_nav: cover_pos = NavigationServer2D.map_get_closest_point(nav_map, cover_pos)
 		if not _is_position_visible_from_player(cover_pos): candidates.append(cover_pos)
+		## Issue #1411: Early termination — once we have enough candidates, stop searching.
+		## Debug rays may still be incomplete but cover quality is preserved (closest is picked later).
+		if candidates.size() >= COVER_MAX_CANDIDATES and not store_debug_rays: break
 	return candidates
 
 ## Find cover hidden from player. Issue #969: throttled. Issue #1338/1378: rays from player.
@@ -3354,13 +3380,15 @@ func _find_cover_position() -> void:
 ## Get far-side cover behind obstacle (Issue #1338/1378). Probes outward with intersect_point().
 func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, direction: Vector2, space_state: PhysicsDirectSpaceState2D, effective_ray_dist: float = 300.0) -> Vector2:
 	var near_dist := collision_point.distance_to(player_pos)
-	var step_size := 30.0
-	var max_probe_dist := effective_ray_dist * 3.0
+	var step_size := 45.0  ## Issue #1411: increased from 30 to 45 to reduce physics queries per probe
+	var max_probe_dist := effective_ray_dist * 2.0  ## Issue #1411: reduced from 3x to 2x — diminishing returns beyond 2x
 	var probe_dist := near_dist + 5.0
 	var was_inside := false
 	var point_query := PhysicsPointQueryParameters2D.new()
 	point_query.collision_mask = 4; point_query.collide_with_areas = false; point_query.collide_with_bodies = true
-	while probe_dist < max_probe_dist:
+	var iterations := 0  ## Issue #1411: cap iterations to prevent runaway probing
+	while probe_dist < max_probe_dist and iterations < 15:
+		iterations += 1
 		var probe_point := player_pos + direction * probe_dist
 		point_query.position = probe_point
 		if space_state.intersect_point(point_query, 1).is_empty():
