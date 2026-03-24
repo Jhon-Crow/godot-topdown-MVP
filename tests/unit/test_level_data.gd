@@ -2,7 +2,7 @@ extends GutTest
 ## Unit tests for LevelData (Issue #1442 - Level Editor).
 ##
 ## Tests JSON serialization/deserialization, data integrity,
-## grid snapping, and edge cases for the level data model.
+## grid snapping, edge cases, undo, and v1->v2 migration.
 
 
 # ============================================================================
@@ -81,12 +81,12 @@ func test_to_dict_contains_walls() -> void:
 	assert_eq(dict["walls"][0]["x"], 100.0, "Wall x should be preserved")
 
 
-func test_to_dict_contains_enemies() -> void:
+func test_to_dict_contains_enemies_v2() -> void:
 	var data := LevelData.new()
-	data.enemies.append({"x": 400.0, "y": 500.0, "weapon": "m16", "patrol": true})
+	data.enemies.append({"x": 400.0, "y": 500.0, "weapon_type": 0, "behavior": 1})
 	var dict: Dictionary = data.to_dict()
 	assert_eq(dict["enemies"].size(), 1, "Should serialize 1 enemy")
-	assert_eq(dict["enemies"][0]["weapon"], "m16", "Enemy weapon should be preserved")
+	assert_eq(dict["enemies"][0]["weapon_type"], 0, "Enemy weapon_type should be preserved")
 
 
 func test_to_dict_contains_cover_objects() -> void:
@@ -154,15 +154,15 @@ func test_from_dict_loads_walls() -> void:
 	assert_eq(loaded.walls.size(), 2, "Should load 2 walls")
 
 
-func test_from_dict_loads_enemies() -> void:
+func test_from_dict_loads_enemies_v2() -> void:
 	var data := LevelData.new()
-	data.enemies.append({"x": 400.0, "y": 500.0, "weapon": "shotgun", "patrol": false})
+	data.enemies.append({"x": 400.0, "y": 500.0, "weapon_type": 1, "behavior": 1})
 	var dict: Dictionary = data.to_dict()
 
 	var loaded := LevelData.new()
 	loaded.from_dict(dict)
 	assert_eq(loaded.enemies.size(), 1, "Should load 1 enemy")
-	assert_eq(loaded.enemies[0]["weapon"], "shotgun", "Enemy weapon should be loaded")
+	assert_eq(loaded.enemies[0]["weapon_type"], 1, "Enemy weapon_type should be loaded")
 
 
 func test_from_dict_loads_cover_objects() -> void:
@@ -190,7 +190,7 @@ func test_from_dict_rejects_invalid_format_version() -> void:
 	assert_false(success, "from_dict should reject dict with future format version")
 
 
-func test_from_json_roundtrip() -> void:
+func test_from_json_roundtrip_v2() -> void:
 	var original := LevelData.new()
 	original.level_name = "Roundtrip Test"
 	original.author = "TestRunner"
@@ -199,7 +199,7 @@ func test_from_json_roundtrip() -> void:
 	original.map_height = 2400
 	original.player_spawn = Vector2(640, 480)
 	original.walls.append({"x": 100.0, "y": 200.0, "w": 500.0, "h": 32.0})
-	original.enemies.append({"x": 800.0, "y": 600.0, "weapon": "m16", "patrol": true})
+	original.enemies.append({"x": 800.0, "y": 600.0, "weapon_type": 0, "behavior": 0})
 	original.cover_objects.append({"x": 400.0, "y": 300.0, "w": 64.0, "h": 64.0, "type": "crate"})
 
 	var json_str: String = original.to_json()
@@ -215,6 +215,7 @@ func test_from_json_roundtrip() -> void:
 	assert_eq(loaded.player_spawn, Vector2(640, 480), "Player spawn should survive roundtrip")
 	assert_eq(loaded.walls.size(), 1, "Walls should survive roundtrip")
 	assert_eq(loaded.enemies.size(), 1, "Enemies should survive roundtrip")
+	assert_eq(loaded.enemies[0]["weapon_type"], 0, "Enemy weapon_type should survive roundtrip")
 	assert_eq(loaded.cover_objects.size(), 1, "Cover objects should survive roundtrip")
 
 
@@ -228,6 +229,48 @@ func test_from_json_rejects_non_dict_json() -> void:
 	var data := LevelData.new()
 	var success: bool = data.from_json("[1, 2, 3]")
 	assert_false(success, "from_json should reject JSON that is not a dictionary")
+
+
+# ============================================================================
+# v1 -> v2 Migration Tests
+# ============================================================================
+
+
+func test_migrate_v1_weapon_m16_to_weapon_type_0() -> void:
+	var v1_json := '{"format_version": 1, "level_name": "v1test", "enemies": [{"x": 100, "y": 200, "weapon": "m16", "patrol": true}]}'
+	var data := LevelData.new()
+	var success: bool = data.from_json(v1_json)
+	assert_true(success, "v1 JSON should be loadable")
+	assert_eq(data.enemies[0]["weapon_type"], 0, "m16 should migrate to weapon_type 0 (RIFLE)")
+	assert_false(data.enemies[0].has("weapon"), "Old 'weapon' key should be removed")
+
+
+func test_migrate_v1_weapon_shotgun_to_weapon_type_1() -> void:
+	var v1_json := '{"format_version": 1, "enemies": [{"x": 0, "y": 0, "weapon": "shotgun", "patrol": false}]}'
+	var data := LevelData.new()
+	data.from_json(v1_json)
+	assert_eq(data.enemies[0]["weapon_type"], 1, "shotgun should migrate to weapon_type 1")
+
+
+func test_migrate_v1_weapon_mini_uzi_to_weapon_type_2() -> void:
+	var v1_json := '{"format_version": 1, "enemies": [{"x": 0, "y": 0, "weapon": "mini_uzi", "patrol": false}]}'
+	var data := LevelData.new()
+	data.from_json(v1_json)
+	assert_eq(data.enemies[0]["weapon_type"], 2, "mini_uzi should migrate to weapon_type 2 (UZI)")
+
+
+func test_migrate_v1_weapon_makarov_pm_to_weapon_type_5() -> void:
+	var v1_json := '{"format_version": 1, "enemies": [{"x": 0, "y": 0, "weapon": "makarov_pm", "patrol": false}]}'
+	var data := LevelData.new()
+	data.from_json(v1_json)
+	assert_eq(data.enemies[0]["weapon_type"], 5, "makarov_pm should migrate to weapon_type 5 (PM)")
+
+
+func test_migrate_v1_weapon_sniper_to_weapon_type_7() -> void:
+	var v1_json := '{"format_version": 1, "enemies": [{"x": 0, "y": 0, "weapon": "sniper", "patrol": false}]}'
+	var data := LevelData.new()
+	data.from_json(v1_json)
+	assert_eq(data.enemies[0]["weapon_type"], 7, "sniper should migrate to weapon_type 7 (SNIPER_RIFLE)")
 
 
 # ============================================================================
@@ -289,6 +332,86 @@ func test_wall_color_survives_roundtrip() -> void:
 
 
 # ============================================================================
+# Undo Tests
+# ============================================================================
+
+
+func test_undo_restores_walls() -> void:
+	var data := LevelData.new()
+	data.push_undo()
+	data.walls.append({"x": 100.0, "y": 200.0, "w": 300.0, "h": 32.0})
+	assert_eq(data.walls.size(), 1, "Should have 1 wall after adding")
+	assert_true(data.pop_undo(), "Undo should succeed")
+	assert_eq(data.walls.size(), 0, "Should have 0 walls after undo")
+
+
+func test_undo_restores_enemies() -> void:
+	var data := LevelData.new()
+	data.push_undo()
+	data.enemies.append({"x": 400.0, "y": 500.0, "weapon_type": 0, "behavior": 1})
+	assert_true(data.pop_undo(), "Undo should succeed")
+	assert_eq(data.enemies.size(), 0, "Should have 0 enemies after undo")
+
+
+func test_undo_returns_false_when_empty() -> void:
+	var data := LevelData.new()
+	assert_false(data.pop_undo(), "Undo should fail when empty")
+
+
+func test_can_undo_is_false_initially() -> void:
+	var data := LevelData.new()
+	assert_false(data.can_undo(), "can_undo should be false initially")
+
+
+func test_can_undo_is_true_after_push() -> void:
+	var data := LevelData.new()
+	data.push_undo()
+	assert_true(data.can_undo(), "can_undo should be true after push")
+
+
+func test_multiple_undos() -> void:
+	var data := LevelData.new()
+	data.push_undo()
+	data.walls.append({"x": 0.0, "y": 0.0, "w": 32.0, "h": 32.0})
+	data.push_undo()
+	data.walls.append({"x": 100.0, "y": 0.0, "w": 32.0, "h": 32.0})
+	assert_eq(data.walls.size(), 2, "Should have 2 walls")
+	data.pop_undo()
+	assert_eq(data.walls.size(), 1, "Should have 1 wall after first undo")
+	data.pop_undo()
+	assert_eq(data.walls.size(), 0, "Should have 0 walls after second undo")
+
+
+# ============================================================================
+# Enemy Special Flags Tests
+# ============================================================================
+
+
+func test_enemy_special_flags_survive_roundtrip() -> void:
+	var data := LevelData.new()
+	data.enemies.append({
+		"x": 100.0, "y": 200.0, "weapon_type": 0, "behavior": 1,
+		"is_teleporter": true, "has_force_field": true
+	})
+	var loaded := LevelData.new()
+	loaded.from_json(data.to_json())
+	assert_true(loaded.enemies[0].get("is_teleporter", false), "Teleporter flag should survive")
+	assert_true(loaded.enemies[0].get("has_force_field", false), "Force field flag should survive")
+
+
+func test_enemy_custom_scene_survives_roundtrip() -> void:
+	var data := LevelData.new()
+	data.enemies.append({
+		"x": 100.0, "y": 200.0, "weapon_type": 8, "behavior": 1,
+		"has_swat_shield": true, "scene": "res://scenes/objects/EnemySwatShield.tscn"
+	})
+	var loaded := LevelData.new()
+	loaded.from_json(data.to_json())
+	assert_eq(loaded.enemies[0].get("scene", ""), "res://scenes/objects/EnemySwatShield.tscn",
+		"Custom scene path should survive roundtrip")
+
+
+# ============================================================================
 # Constants Tests
 # ============================================================================
 
@@ -303,5 +426,4 @@ func test_cell_size_is_positive() -> void:
 
 func test_cell_size_is_power_of_two() -> void:
 	var cell := LevelData.CELL_SIZE
-	# 32 is 2^5
 	assert_eq(cell & (cell - 1), 0, "CELL_SIZE should be a power of 2")

@@ -109,17 +109,8 @@ func _build_level() -> void:
 	add_child(enemies_node)
 
 	# Create enemies
-	var enemy_scene: PackedScene = load("res://scenes/objects/Enemy.tscn")
-	if enemy_scene:
-		for e in _level_data.enemies:
-			var enemy: Node2D = enemy_scene.instantiate()
-			enemy.position = Vector2(e["x"], e["y"])
-			# Set weapon if the enemy supports it
-			if enemy.has_method("set_weapon_type"):
-				enemy.set_weapon_type(e.get("weapon", "m16"))
-			elif "weapon_type" in enemy:
-				enemy.weapon_type = e.get("weapon", "m16")
-			enemies_node.add_child(enemy)
+	for e in _level_data.enemies:
+		_spawn_enemy(enemies_node, e)
 
 	# Player
 	var player_scene: PackedScene = load("res://scenes/characters/csharp/Player.tscn")
@@ -149,19 +140,65 @@ func _build_level() -> void:
 		add_child(pause_menu)
 
 
+## Spawn a single enemy from level data dictionary.
+func _spawn_enemy(parent: Node2D, data: Dictionary) -> void:
+	# Use custom scene if specified (e.g. EnemySwatShield, EnemyDroneOperator)
+	var scene_path: String = data.get("scene", "res://scenes/objects/Enemy.tscn")
+	if not ResourceLoader.exists(scene_path):
+		scene_path = "res://scenes/objects/Enemy.tscn"
+
+	var enemy_scene: PackedScene = load(scene_path)
+	if enemy_scene == null:
+		push_warning("CustomLevel: Failed to load enemy scene: %s" % scene_path)
+		return
+
+	var enemy: Node2D = enemy_scene.instantiate()
+	enemy.position = Vector2(data["x"], data["y"])
+
+	# Set weapon_type as integer (matches enemy.gd WeaponType enum)
+	var weapon_type_val: int = data.get("weapon_type", 0)
+	if enemy.get("weapon_type") != null:
+		enemy.set("weapon_type", weapon_type_val)
+
+	# Set behavior mode (0=PATROL, 1=GUARD)
+	var behavior_val: int = data.get("behavior", 1)
+	if enemy.get("behavior_mode") != null:
+		enemy.set("behavior_mode", behavior_val)
+
+	# Apply special flags
+	if data.get("is_teleporter", false) and enemy.get("is_teleporter") != null:
+		enemy.set("is_teleporter", true)
+	if data.get("has_armored_skin", false) and enemy.get("has_armored_skin") != null:
+		enemy.set("has_armored_skin", true)
+	if data.get("has_force_field", false) and enemy.get("has_force_field") != null:
+		enemy.set("has_force_field", true)
+	if data.get("is_grenadier", false) and enemy.get("is_grenadier") != null:
+		enemy.set("is_grenadier", true)
+	if data.get("start_invisible", false) and enemy.get("start_invisible") != null:
+		enemy.set("start_invisible", true)
+	if data.get("is_gas_mask", false) and enemy.get("is_gas_mask") != null:
+		enemy.set("is_gas_mask", true)
+	if data.get("is_drone_operator", false) and enemy.get("is_drone_operator") != null:
+		enemy.set("is_drone_operator", true)
+	if data.get("has_swat_shield", false) and enemy.get("has_swat_shield") != null:
+		enemy.set("has_swat_shield", true)
+
+	# Destroy on death for spawned enemies
+	if enemy.get("destroy_on_death") != null:
+		enemy.set("destroy_on_death", true)
+
+	parent.add_child(enemy)
+
+
 ## Create boundary walls around the map.
 func _create_boundary_walls(parent: Node2D) -> void:
 	var w: float = _level_data.map_width
 	var h: float = _level_data.map_height
 	var thickness: float = 32.0
 
-	# Top wall
 	_create_wall(parent, Vector2(0, -thickness), Vector2(w, thickness))
-	# Bottom wall
 	_create_wall(parent, Vector2(0, h), Vector2(w, thickness))
-	# Left wall
 	_create_wall(parent, Vector2(-thickness, -thickness), Vector2(thickness, h + thickness * 2))
-	# Right wall
 	_create_wall(parent, Vector2(w, -thickness), Vector2(thickness, h + thickness * 2))
 
 
@@ -169,24 +206,21 @@ func _create_boundary_walls(parent: Node2D) -> void:
 func _create_wall(parent: Node2D, pos: Vector2, size: Vector2) -> void:
 	var wall := StaticBody2D.new()
 	wall.position = pos + size / 2.0
-	wall.collision_layer = 4  # obstacles layer
+	wall.collision_layer = 4
 	wall.collision_mask = 0
 
-	# Collision shape
 	var collision := CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
 	shape.size = size
 	collision.shape = shape
 	wall.add_child(collision)
 
-	# Visual
 	var visual := ColorRect.new()
 	visual.position = -size / 2.0
 	visual.size = size
 	visual.color = _level_data.wall_color
 	wall.add_child(visual)
 
-	# Light occluder
 	var occluder := LightOccluder2D.new()
 	var occluder_polygon := OccluderPolygon2D.new()
 	var half := size / 2.0
@@ -210,21 +244,18 @@ func _create_cover(parent: Node2D, data: Dictionary) -> void:
 
 	var cover := StaticBody2D.new()
 	cover.position = pos + size / 2.0
-	cover.collision_layer = 4  # obstacles layer
+	cover.collision_layer = 4
 	cover.collision_mask = 0
 
-	# Collision shape
 	var collision := CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
 	shape.size = size
 	collision.shape = shape
 	cover.add_child(collision)
 
-	# Visual
 	var visual := ColorRect.new()
 	visual.position = -size / 2.0
 	visual.size = size
-	# Use the editor's color for the cover type
 	var color_map: Dictionary = {
 		"desk": Color(0.55, 0.4, 0.25, 1.0),
 		"crate": Color(0.5, 0.45, 0.3, 1.0),
@@ -245,7 +276,6 @@ func _create_navigation_region() -> void:
 	var nav_polygon := NavigationPolygon.new()
 	nav_polygon.agent_radius = 24.0
 
-	# Create outline covering the map
 	var outline := PackedVector2Array([
 		Vector2(0, 0),
 		Vector2(_level_data.map_width, 0),
@@ -254,7 +284,6 @@ func _create_navigation_region() -> void:
 	])
 	nav_polygon.add_outline(outline)
 
-	# Bake the navigation polygon (will carve out obstacles automatically if rebaked)
 	nav_polygon.make_polygons_from_outlines()
 	nav_region.navigation_polygon = nav_polygon
 
@@ -268,7 +297,6 @@ func _setup_ui() -> void:
 	ui_layer.layer = 5
 	add_child(ui_layer)
 
-	# Level name label
 	var title_label := Label.new()
 	title_label.text = _level_data.level_name
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -281,7 +309,6 @@ func _setup_ui() -> void:
 	title_label.offset_top = 8
 	ui_layer.add_child(title_label)
 
-	# Enemy count
 	_enemy_count_label = Label.new()
 	_enemy_count_label.add_theme_font_size_override("font_size", 14)
 	_enemy_count_label.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3, 1.0))
@@ -291,7 +318,6 @@ func _setup_ui() -> void:
 	_enemy_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	ui_layer.add_child(_enemy_count_label)
 
-	# Ammo label
 	_ammo_label = Label.new()
 	_ammo_label.add_theme_font_size_override("font_size", 14)
 	_ammo_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
@@ -301,7 +327,6 @@ func _setup_ui() -> void:
 	_ammo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	ui_layer.add_child(_ammo_label)
 
-	# Author info
 	if not _level_data.author.is_empty():
 		var author_label := Label.new()
 		author_label.text = "by %s" % _level_data.author
@@ -331,7 +356,6 @@ func _setup_enemies() -> void:
 	_current_enemy_count = _initial_enemy_count
 	_update_enemy_count_label()
 
-	# Register with GameManager
 	var game_manager: Node = get_node_or_null("/root/GameManager")
 	if game_manager:
 		game_manager.kills = 0
@@ -344,13 +368,11 @@ func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
 
-	# Saturation flash effect
 	if _saturation_overlay:
 		_saturation_overlay.color.a = SATURATION_INTENSITY
 		var tween := create_tween()
 		tween.tween_property(_saturation_overlay, "color:a", 0.0, SATURATION_DURATION)
 
-	# Check for level clear
 	if _current_enemy_count <= 0 and not _level_cleared:
 		_level_cleared = true
 		_show_level_complete()
@@ -380,7 +402,6 @@ func _show_level_complete() -> void:
 	complete_label.offset_right = 200
 	ui_layer.add_child(complete_label)
 
-	# Hint to return to editor
 	var hint_label := Label.new()
 	hint_label.text = "Press ESC to return"
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -395,14 +416,12 @@ func _show_level_complete() -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	# Update ammo display
 	if _player and is_instance_valid(_player) and _ammo_label:
 		if _player.has_method("GetCurrentAmmo"):
 			var ammo: int = _player.GetCurrentAmmo()
 			var max_ammo: int = _player.GetMaxAmmo() if _player.has_method("GetMaxAmmo") else 0
 			_ammo_label.text = "Ammo: %d / %d" % [ammo, max_ammo]
 
-	# Check player death
 	var game_manager: Node = get_node_or_null("/root/GameManager")
 	if game_manager and not game_manager.player_alive and not _game_over_shown:
 		_game_over_shown = true
@@ -443,5 +462,4 @@ func _show_game_over() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_Q:
-			# Quick restart
 			get_tree().reload_current_scene()

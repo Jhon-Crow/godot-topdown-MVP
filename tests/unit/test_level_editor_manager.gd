@@ -10,7 +10,6 @@ const TEST_DIR: String = "user://custom_levels/"
 
 
 func after_each() -> void:
-	# Clean up test files
 	_cleanup_test_files()
 
 
@@ -28,13 +27,13 @@ func _cleanup_test_files() -> void:
 	dir.list_dir_end()
 
 
-## Helper: create a LevelData with a given name.
-func _create_test_level(name: String) -> LevelData:
+## Helper: create a LevelData with a given name (v2 format).
+func _create_test_level(lname: String) -> LevelData:
 	var data := LevelData.new()
-	data.level_name = name
+	data.level_name = lname
 	data.author = "TestRunner"
 	data.walls.append({"x": 100.0, "y": 200.0, "w": 300.0, "h": 32.0})
-	data.enemies.append({"x": 400.0, "y": 500.0, "weapon": "m16", "patrol": true})
+	data.enemies.append({"x": 400.0, "y": 500.0, "weapon_type": 0, "behavior": 1})
 	return data
 
 
@@ -44,17 +43,14 @@ func _create_test_level(name: String) -> LevelData:
 
 
 func test_sanitize_filename_replaces_slashes() -> void:
-	# Test that the manager sanitizes filenames properly
 	var data := _create_test_level("test/level\\name")
 	var json_str: String = data.to_json()
-	# Verify JSON contains the name as-is (sanitization is in the manager)
 	assert_true(json_str.contains("test/level\\\\name"), "JSON should contain the original name")
 
 
 func test_sanitize_filename_handles_empty() -> void:
 	var data := LevelData.new()
 	data.level_name = ""
-	# Empty name should still produce valid JSON
 	var json_str: String = data.to_json()
 	assert_true(json_str.length() > 0, "Empty name level should still serialize")
 
@@ -90,15 +86,15 @@ func test_import_from_invalid_json() -> void:
 	assert_false(success, "Import should fail with invalid JSON")
 
 
-func test_import_preserves_enemy_weapon() -> void:
+func test_import_preserves_enemy_weapon_type() -> void:
 	var original := LevelData.new()
 	original.level_name = "test_weapon"
-	original.enemies.append({"x": 100.0, "y": 200.0, "weapon": "shotgun", "patrol": false})
+	original.enemies.append({"x": 100.0, "y": 200.0, "weapon_type": 1, "behavior": 1})
 	var json_str: String = original.to_json()
 
 	var imported := LevelData.new()
 	imported.from_json(json_str)
-	assert_eq(imported.enemies[0]["weapon"], "shotgun", "Enemy weapon should be preserved")
+	assert_eq(imported.enemies[0]["weapon_type"], 1, "Enemy weapon_type should be preserved")
 
 
 func test_import_preserves_cover_type() -> void:
@@ -128,18 +124,22 @@ func test_multiple_walls_survive_roundtrip() -> void:
 	assert_eq(loaded.walls.size(), 10, "All 10 walls should survive roundtrip")
 
 
-func test_multiple_enemies_survive_roundtrip() -> void:
+func test_multiple_enemies_v2_survive_roundtrip() -> void:
 	var data := LevelData.new()
 	data.level_name = "test_multi_enemies"
-	var weapons: Array[String] = ["m16", "shotgun", "makarov_pm", "mini_uzi", "sniper"]
-	for i in range(weapons.size()):
-		data.enemies.append({"x": float(i * 200), "y": 500.0, "weapon": weapons[i], "patrol": i % 2 == 0})
+	# weapon_type: 0=RIFLE, 1=SHOTGUN, 2=UZI, 5=PM, 7=SNIPER
+	var weapon_types: Array[int] = [0, 1, 2, 5, 7]
+	for i in range(weapon_types.size()):
+		data.enemies.append({
+			"x": float(i * 200), "y": 500.0,
+			"weapon_type": weapon_types[i], "behavior": 1 if i % 2 == 0 else 0
+		})
 
 	var loaded := LevelData.new()
 	loaded.from_json(data.to_json())
 	assert_eq(loaded.enemies.size(), 5, "All 5 enemies should survive roundtrip")
-	assert_eq(loaded.enemies[1]["weapon"], "shotgun", "Second enemy weapon should be shotgun")
-	assert_eq(loaded.enemies[2]["patrol"], true, "Third enemy should patrol (even index)")
+	assert_eq(loaded.enemies[1]["weapon_type"], 1, "Second enemy weapon_type should be 1 (SHOTGUN)")
+	assert_eq(loaded.enemies[2]["behavior"], 1, "Third enemy behavior should be GUARD (even index)")
 
 
 func test_empty_level_roundtrip() -> void:

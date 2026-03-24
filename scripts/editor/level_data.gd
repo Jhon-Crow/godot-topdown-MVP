@@ -7,7 +7,7 @@ extends RefCounted
 ## export/import and sharing between players.
 
 ## Current format version for forward compatibility.
-const FORMAT_VERSION: int = 1
+const FORMAT_VERSION: int = 2
 
 ## Grid cell size in pixels (matches Hotline Miami 2 tile size x2).
 const CELL_SIZE: int = 32
@@ -27,7 +27,10 @@ var player_spawn: Vector2 = Vector2(200, 200)
 var walls: Array[Dictionary] = []
 
 ## Enemy placements: Array of dictionaries with position and config.
-## Each enemy: {"x": float, "y": float, "weapon": String, "patrol": bool}
+## Each enemy: {"x": float, "y": float, "weapon_type": int, "behavior": int,
+##   "is_grenadier": bool, "is_teleporter": bool, "has_force_field": bool,
+##   "has_armored_skin": bool, "start_invisible": bool, "is_gas_mask": bool,
+##   "is_drone_operator": bool, "has_swat_shield": bool, "scene": String}
 var enemies: Array[Dictionary] = []
 
 ## Cover objects: Array of dictionaries with position, size, and type.
@@ -40,6 +43,34 @@ var floor_color: Color = Color(0.25, 0.25, 0.28, 1.0)
 
 ## Wall color.
 var wall_color: Color = Color(0.35, 0.35, 0.4, 1.0)
+
+## Undo history stack (not serialized).
+var _undo_stack: Array[Dictionary] = []
+
+## Maximum undo history size.
+const MAX_UNDO: int = 50
+
+
+## Save current state to undo stack before making changes.
+func push_undo() -> void:
+	var snapshot: Dictionary = to_dict()
+	_undo_stack.append(snapshot)
+	if _undo_stack.size() > MAX_UNDO:
+		_undo_stack.remove_at(0)
+
+
+## Restore the last saved state. Returns true if undo was successful.
+func pop_undo() -> bool:
+	if _undo_stack.is_empty():
+		return false
+	var snapshot: Dictionary = _undo_stack.pop_back()
+	from_dict(snapshot)
+	return true
+
+
+## Returns true if there are undo states available.
+func can_undo() -> bool:
+	return not _undo_stack.is_empty()
 
 
 ## Convert the level data to a JSON-compatible dictionary.
@@ -92,6 +123,12 @@ func from_dict(data: Dictionary) -> bool:
 
 	enemies.clear()
 	for e in data.get("enemies", []):
+		# Migrate v1 format (string weapon names) to v2 (int weapon_type)
+		if version == 1 and e.has("weapon") and not e.has("weapon_type"):
+			e["weapon_type"] = _migrate_weapon_string(e["weapon"])
+			e["behavior"] = 1 if e.get("patrol", false) else 1
+			e.erase("weapon")
+			e.erase("patrol")
 		enemies.append(e)
 
 	cover_objects.clear()
@@ -99,6 +136,31 @@ func from_dict(data: Dictionary) -> bool:
 		cover_objects.append(c)
 
 	return true
+
+
+## Migrate v1 weapon string names to v2 integer weapon_type.
+static func _migrate_weapon_string(weapon: String) -> int:
+	match weapon:
+		"m16":
+			return 0
+		"shotgun":
+			return 1
+		"mini_uzi":
+			return 2
+		"machete":
+			return 3
+		"rpg":
+			return 4
+		"makarov_pm":
+			return 5
+		"machine_gun":
+			return 6
+		"sniper":
+			return 7
+		"revolver":
+			return 8
+		_:
+			return 0
 
 
 ## Serialize this level to a JSON string.

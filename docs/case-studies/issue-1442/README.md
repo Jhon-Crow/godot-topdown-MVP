@@ -49,7 +49,7 @@ Chose JSON over Godot's native `.tscn` format because:
 | `LevelEditor.tscn` | `scenes/editor/LevelEditor.tscn` | Editor scene |
 | `CustomLevel.tscn` | `scenes/editor/CustomLevel.tscn` | Custom level scene |
 
-### Level Data Format (v1)
+### Level Data Format (v1, deprecated — auto-migrated to v2)
 
 ```json
 {
@@ -106,9 +106,67 @@ Chose JSON over Godot's native `.tscn` format because:
 - Pro: Smaller file size, faster parsing
 - Con: Not human-readable, harder to debug, version migration is complex
 
+## Bug Report: Canvas Placement Not Working (2026-03-24)
+
+### Problem
+User reported objects could not be added to the editor canvas (PR #1443 comment).
+Game log: `docs/case-studies/issue-1442/logs/game_log_20260324_181447.txt`
+
+### Root Cause Analysis
+The level editor used `_unhandled_input()` for mouse event handling. In Godot 4's
+input processing pipeline, `_unhandled_input()` only receives events not consumed by
+earlier stages (`_input()`, GUI input). Multiple autoload singletons (GameManager,
+ReplaySystem) use `_input()` which runs before `_unhandled_input()`. While these
+autoloads only handle keyboard events, the input processing order combined with
+CanvasLayer UI controls created conditions where mouse click events were not reliably
+delivered to `_unhandled_input()`.
+
+This is a known pattern in this codebase — Issue #568 had the same root cause and
+was fixed by switching from `_unhandled_input()` to `_input()` with
+`set_input_as_handled()`.
+
+### Additional Issues Found
+1. **Weapon type mismatch**: Editor stored weapons as strings ("m16", "shotgun") but
+   the enemy.gd uses `WeaponType` enum integers (0=RIFLE, 1=SHOTGUN, etc.)
+2. **Limited enemy types**: Only 5 of 17 spawnable enemy types were available
+3. **No visual feedback**: No cursor preview showing what would be placed
+4. **No context menu**: No way to edit placed objects without deleting and re-placing
+
+### Fix (v2)
+1. Switched from `_unhandled_input()` to `_input()` with `set_input_as_handled()`
+2. Added cursor preview showing selected object under mouse
+3. Added right-click context menu for editing/deleting placed objects
+4. Added all 17 enemy types from experimental spawner (9 weapons + special flags)
+5. Migrated to integer weapon_type format (v2) with v1 backward compatibility
+6. Added undo support (Ctrl+Z) and "Clear All" button
+7. Fixed custom_level.gd to use integer weapon_type and apply all special enemy flags
+
+### Level Data Format (v2)
+
+```json
+{
+  "format_version": 2,
+  "level_name": "My Level",
+  "author": "Player",
+  "map_width": 2400,
+  "map_height": 2000,
+  "player_spawn": {"x": 200, "y": 200},
+  "enemies": [
+    {"x": 400, "y": 500, "weapon_type": 0, "behavior": 1,
+     "is_teleporter": false, "has_force_field": false}
+  ]
+}
+```
+
+Weapon types: 0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE, 4=RPG, 5=PM,
+6=MACHINE_GUN, 7=SNIPER_RIFLE, 8=REVOLVER
+
 ## Testing
 
-- 35+ unit tests covering LevelData serialization, grid snapping, roundtrip integrity
+- 40+ unit tests covering LevelData serialization, grid snapping, roundtrip integrity
+- Tests for v1→v2 migration of weapon string names to integer weapon_type
+- Tests for undo functionality
+- Tests for enemy special flags (teleporter, force field, etc.)
 - Tests for edge cases: empty levels, invalid JSON, missing format version
 - Tests for all element types: walls, enemies, cover objects, player spawn
 
@@ -117,6 +175,8 @@ Chose JSON over Godot's native `.tscn` format because:
 - Accessible from pause menu via "Level Editor" button
 - Uses existing SceneLoader for scene transitions
 - Uses existing PauseMenu in custom levels
-- Enemies use existing Enemy.tscn scene
+- Enemies use existing Enemy.tscn scene (+ EnemySwatShield.tscn, EnemyDroneOperator.tscn)
 - Player uses existing Player.tscn scene
 - Navigation mesh auto-generated for pathfinding
+- Enemy weapon_type mapping matches enemy.gd WeaponType enum
+- Enemy special flags match experimental_menu.gd spawner configuration
