@@ -12,8 +12,7 @@ var _player: Node2D = null
 var _initial_enemy_count: int = 0
 var _current_enemy_count: int = 0
 var _game_over_shown: bool = false
-var _kills_label: Label = null
-var _accuracy_label: Label = null
+var _difficulty_label: Label = null
 var _magazines_label: Label = null
 var _saturation_overlay: ColorRect = null
 var _combo_label: Label = null
@@ -352,25 +351,15 @@ func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null: return
 
-	_kills_label = Label.new()
-	_kills_label.name = "KillsLabel"
-	_kills_label.text = "Kills: 0"
-	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left = 10
-	_kills_label.offset_top = 45
-	_kills_label.offset_right = 200
-	_kills_label.offset_bottom = 75
-	ui.add_child(_kills_label)
-
-	_accuracy_label = Label.new()
-	_accuracy_label.name = "AccuracyLabel"
-	_accuracy_label.text = "Accuracy: 0%"
-	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left = 10
-	_accuracy_label.offset_top = 75
-	_accuracy_label.offset_right = 200
-	_accuracy_label.offset_bottom = 105
-	ui.add_child(_accuracy_label)
+	_difficulty_label = Label.new()
+	_difficulty_label.name = "DifficultyLabel"
+	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_difficulty_label.offset_left = 10
+	_difficulty_label.offset_top = 45
+	_difficulty_label.offset_right = 200
+	_difficulty_label.offset_bottom = 75
+	ui.add_child(_difficulty_label)
 
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
@@ -568,10 +557,8 @@ func _update_enemy_count_label() -> void:
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
-	if _kills_label:
-		_kills_label.text = "Kills: %d" % GameManager.kills
-	if _accuracy_label:
-		_accuracy_label.text = "Accuracy: %.1f%%" % GameManager.get_accuracy()
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 
 
 func _update_ammo_label(current: int, maximum: int) -> void:
@@ -918,7 +905,8 @@ func _setup_selected_weapon() -> void:
 			var expected_name: String = weapon_names[selected_weapon_id]
 			var existing_weapon = _player.get_node_or_null(expected_name)
 			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
-				_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % expected_name)
+				_log_to_file("%s already equipped by C# Player - applying factory ammo config" % expected_name)
+				_configure_factory_weapon_ammo(existing_weapon, selected_weapon_id)
 				return
 
 	if selected_weapon_id == "shotgun":
@@ -941,9 +929,12 @@ func _setup_selected_weapon() -> void:
 		if mini_uzi_scene:
 			var mini_uzi = mini_uzi_scene.instantiate()
 			mini_uzi.name = "MiniUzi"
+			if mini_uzi.get("StartingMagazineCount") != null:
+				mini_uzi.StartingMagazineCount = 2
 			_player.add_child(mini_uzi)
 			if _player.has_method("EquipWeapon"): _player.EquipWeapon(mini_uzi)
 			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = mini_uzi
+			_configure_factory_weapon_ammo(mini_uzi, "mini_uzi")
 			_log_to_file("Mini UZI equipped")
 		else:
 			push_error("[FactoryLevel] Failed to load MiniUzi scene!")
@@ -957,6 +948,7 @@ func _setup_selected_weapon() -> void:
 			_player.add_child(pistol)
 			if _player.has_method("EquipWeapon"): _player.EquipWeapon(pistol)
 			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = pistol
+			_configure_factory_weapon_ammo(pistol, "silenced_pistol")
 			_log_to_file("Silenced Pistol equipped")
 		else:
 			push_error("[FactoryLevel] Failed to load SilencedPistol scene!")
@@ -983,6 +975,7 @@ func _setup_selected_weapon() -> void:
 			_player.add_child(m16)
 			if _player.has_method("EquipWeapon"): _player.EquipWeapon(m16)
 			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = m16
+			_configure_factory_weapon_ammo(m16, "m16")
 			_log_to_file("M16 Assault Rifle equipped")
 		else:
 			push_error("[FactoryLevel] Failed to load AssaultRifle scene!")
@@ -996,6 +989,7 @@ func _setup_selected_weapon() -> void:
 			_player.add_child(akgl)
 			if _player.has_method("EquipWeapon"): _player.EquipWeapon(akgl)
 			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = akgl
+			_configure_factory_weapon_ammo(akgl, "ak_gl")
 			_log_to_file("AK + GL equipped")
 		else:
 			push_error("[FactoryLevel] Failed to load AKGL scene!")
@@ -1017,6 +1011,7 @@ func _setup_selected_weapon() -> void:
 		if makarov and _player.get("CurrentWeapon") == null:
 			if _player.has_method("EquipWeapon"): _player.EquipWeapon(makarov)
 			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = makarov
+			_configure_makarov_pm_ammo(makarov)
 
 
 func _disable_player_controls() -> void:
@@ -1037,3 +1032,72 @@ func _log_to_file(message: String) -> void:
 		file_logger.log_info("[FactoryLevel] " + message)
 	else:
 		print("[FactoryLevel] " + message)
+
+
+## Configure silenced pistol ammo to match enemy count (Issue #1422).
+## The silenced pistol gets exactly as many bullets as there are enemies.
+func _configure_silenced_pistol_ammo(weapon: Node) -> void:
+	if weapon.name != "SilencedPistol":
+		return
+	if weapon.has_method("ConfigureAmmoForEnemyCount"):
+		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
+		_log_to_file("Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+
+
+## Configure Makarov PM ammo - 2.5x magazines (Issue #1422).
+func _configure_makarov_pm_ammo(weapon: Node) -> void:
+	if weapon == null:
+		return
+	if weapon.name != "MakarovPM":
+		return
+	var starting_magazines: int = 4
+	if weapon.get("StartingMagazineCount") != null:
+		starting_magazines = weapon.StartingMagazineCount
+	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	if weapon.has_method("ReinitializeMagazines"):
+		weapon.ReinitializeMagazines(pm_magazines, true)
+		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
+
+
+## Apply Factory level ammo configuration to a weapon (Issue #1422).
+## Silenced pistol: exactly as many bullets as enemies.
+## Mini UZI and rifles: 2 magazines to match level difficulty.
+## Shotgun, sniper, revolver: defaults are sufficient for 13 enemies.
+func _configure_factory_weapon_ammo(weapon: Node, weapon_id: String) -> void:
+	if weapon == null:
+		return
+
+	if weapon_id == "silenced_pistol":
+		_configure_silenced_pistol_ammo(weapon)
+	elif weapon_id == "mini_uzi" or weapon_id == "m16" or weapon_id == "ak_gl":
+		var base_magazines: int = 2
+		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+		if difficulty_manager:
+			var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+			if ammo_multiplier > 1:
+				base_magazines *= ammo_multiplier
+				_log_to_file("Power Fantasy mode - %s magazines multiplied by %dx" % [weapon.name, ammo_multiplier])
+		if weapon.has_method("ReinitializeMagazines"):
+			weapon.ReinitializeMagazines(base_magazines, true)
+			_log_to_file("%s magazines reinitialized to %d" % [weapon.name, base_magazines])
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
+		_log_to_file("Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)

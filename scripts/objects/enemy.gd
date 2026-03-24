@@ -81,7 +81,8 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIF
 @export var initial_state: AIState = AIState.IDLE  ## Initial AI state on spawn (Issue #1121). SEARCHING starts enemy in search mode.
 @export var has_armored_skin: bool = false  ## Whether this enemy has Armored Skin passive item (Issue #1123).
 @export var has_swat_shield: bool = false  ## Whether this enemy is a SWAT shieldbearer with a blocking shield (Issue #1242).
-@export var is_gas_mask: bool = false  ## Whether this enemy is a Gas Mask type with chemical grenades (Issue #1353).
+@export var is_gas_mask: bool = false  ## Gas Mask type with chemical grenades (Issue #1353).
+@export var is_drone_operator: bool = false  ## Drone Operator with dash evasion (Issue #1397).
 @export var search_path_node: NodePath = NodePath("")  ## SearchPathWaypoints node path; when set, uses pre-planned waypoints in SEARCHING instead of spiral (Issue #1225).
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
@@ -167,6 +168,9 @@ const SEEKING_COVER_MIN_DURATION: float = 0.3; var _seeking_cover_entry_time: fl
 const RETREATING_MIN_DURATION: float = 0.3; var _retreating_entry_time: float = -999.0  ## Issue #997 RCA-17
 const IN_COVER_MIN_DURATION: float = 0.3; var _in_cover_entry_time: float = -999.0  ## Issue #997 RCA-18: prevent instant IN_COVER→SUPPRESSED cycling
 var _cached_visible_from_player: bool = false; var _visible_from_player_cache_frame: int = -1
+var _visibility_cache: Dictionary = {}; var _visibility_cache_frame: int = -1  ## Issue #1411: per-frame visibility cache
+var _last_distant_cover_search_time: float = -999.0; var _last_closest_cover_search_time: float = -999.0  ## Issue #1411: throttle timers
+const COVER_MAX_CANDIDATES: int = 8  ## Issue #1411: early termination threshold for cover candidate search
 var _current_ammo: int = 0  ## Ammo in magazine
 var _reserve_ammo: int = 0  ## Reserve ammo
 var _is_reloading: bool = false  ## Currently reloading
@@ -380,7 +384,7 @@ var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenad
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
-var _gas_mask_grenade: GasMaskGrenadeComponent = null  ## Issue #1353: Chemical grenade component for gas mask enemies.
+var _gas_mask_grenade: GasMaskGrenadeComponent = null; var _drone_operator: DroneOperatorComponent = null  ## Issues #1353, #1397
 var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
 var _tactical_group: TacticalGroupComponent = null  ## Issue #1287: Tactical group movement — enemies within 500 px spread around the player.
 var _pursuit_component: PursuitComponent = null  ## Issue #1289: Cover-finding logic for PURSUING state.
@@ -468,7 +472,7 @@ func _ready() -> void:
 	if is_gas_mask:  # Issue #1353: chemical grenades with illusion copies
 		_gas_mask_grenade = GasMaskGrenadeComponent.new(); _gas_mask_grenade.name = "GasMaskGrenadeComponent"; add_child(_gas_mask_grenade)
 		if _head_sprite: var _gm_tex := load("res://assets/sprites/characters/enemy/gas_mask_head.png"); if _gm_tex: _head_sprite.texture = _gm_tex; _head_sprite.rotation_degrees = -90.0  # Issue #1363: sprite drawn facing up, rotate to face right
-
+	if is_drone_operator: _drone_operator = DroneOperatorComponent.new(); _drone_operator.name = "DroneOperatorComponent"; add_child(_drone_operator); _drone_operator.setup(); if _weapon_sprite: _weapon_sprite.visible = false; if initial_state == AIState.IDLE: _transition_to_seeking_cover()  # Issue #1397
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
 	_max_health = 2 if is_grenadier else randi_range(min_health, max_health)  # Issue #604: Grenadiers always 2 HP
@@ -531,11 +535,11 @@ func _setup_wall_detection() -> void:
 		add_child(raycast)
 		_wall_raycasts.append(raycast)
 
-## Setup cover detection raycasts for finding cover positions.
+## Setup cover detection raycasts. Issue #1411: disabled by default, force_raycast_update() used on demand.
 func _setup_cover_detection() -> void:
 	for i in range(COVER_CHECK_COUNT):
 		var raycast := RayCast2D.new()
-		raycast.enabled = true
+		raycast.enabled = false  ## Issue #1411: avoids per-frame physics overhead
 		raycast.collision_mask = 4  # Only detect obstacles (layer 3)
 		raycast.exclude_parent = true
 		add_child(raycast)
@@ -795,21 +799,19 @@ func _physics_process(delta: float) -> void:
 	# native crashes from physics queries on dead/freed player nodes.
 	var _gm_r9: Node = get_node_or_null("/root/GameManager")
 	if _gm_r9 and not _gm_r9.player_alive: return
-	if _player and not is_instance_valid(_player):
-		_player = null
-		return
+	if _player and not is_instance_valid(_player): _player = null; return
 
 	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
 	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if _perf_settings and not _perf_settings.is_ai_enabled(): return
-
-	# Update flashbang status effect timers (Issue #432)
-	if _flashbang_status:
-		_flashbang_status.update(delta)
-
-	# Issue #959: Pacifist stays in PACIFIST state; retaliation is a temporary sub-behavior within it.
-	if _pacifist and _pacifist.update(delta): _log_to_file("[#959] Pacifist retaliation ended"); if _current_state != AIState.PACIFIST: _transition_to_pacifist(false)
-
+	if _drone_operator and _drone_operator.get_phase() != DroneOperatorComponent.Phase.ACTIVE:  # Issue #1397: drone operator phase control
+		_drone_operator.update(delta)
+		if _drone_operator.is_controlling_drone(): velocity = Vector2.ZERO; move_and_slide(); return  # CONTROLLING: fully frozen
+		if _current_state == AIState.SEEKING_COVER: _process_seeking_cover_state(delta)  # DEPLOYING: seek cover only, no combat
+		elif _current_state != AIState.IN_COVER: _transition_to_seeking_cover()
+		move_and_slide(); return
+	if _flashbang_status: _flashbang_status.update(delta)  # Issue #432
+	if _pacifist and _pacifist.update(delta): _log_to_file("[#959] Pacifist retaliation ended"); if _current_state != AIState.PACIFIST: _transition_to_pacifist(false)  # Issue #959
 	if _invisibility: _invisibility.update(delta)  # Issue #1121: tick re-cloak timer
 	_shoot_timer += delta
 	if _is_bolt_cycling:  # [#1177] 4-step sniper bolt cycle
@@ -882,7 +884,7 @@ func _physics_process(delta: float) -> void:
 	_select_best_target()
 	_update_memory(delta)
 	_update_goap_state()
-	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null)); if _shield_component: _shield_component.update(delta)  # Issues #1034, #1242
+	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null)); if _shield_component: _shield_component.update(delta); if _drone_operator: _drone_operator.update(delta)  # Issues #1034, #1242, #1397
 	if _hit_reaction_timer > 0: _hit_reaction_timer -= delta  # Issue #1242: decay hit reaction rotation timer
 	# Issue #1242: delayed player tracking for shield enemy — update facing angle periodically, not continuously
 	if _shield_component and _shield_component.is_active():
@@ -1143,11 +1145,10 @@ func _update_suppression(delta: float) -> void:
 			if _threat_reaction_timer >= threat_reaction_delay:
 				_threat_reaction_delay_elapsed = true
 				_log_debug("Threat reaction delay elapsed, now reacting to bullets")
-
-		# Only set under_fire after delay; Issue #1034: ignore if force field is active.
+		# Only set under_fire after delay; Issues #1034, #1397: ignore if force field active; drone operator dashes instead.
 		if _threat_reaction_delay_elapsed and not (_force_field_component and _force_field_component.is_active()):
-			_under_fire = true
-			_suppression_timer = 0.0
+			if _drone_operator and _drone_operator.should_dash_instead_of_suppress(): _drone_operator.try_dash_from_threat(_bullets_in_threat_sphere, _player, global_position)
+			else: _under_fire = true; _suppression_timer = 0.0
 
 ## Update reload state.
 func _update_reload(delta: float) -> void:
@@ -1183,6 +1184,7 @@ func _finish_reload() -> void:
 
 ## Check if the enemy can shoot (has ammo and not reloading). Machete: melee cooldown (Issue #579).
 func _can_shoot() -> bool:
+	if _drone_operator and _drone_operator.get_phase() != DroneOperatorComponent.Phase.ACTIVE: return false  # Issue #1397: no shooting during DEPLOYING/CONTROLLING
 	if _is_melee_weapon: return _machete != null and _machete.is_attack_ready()
 	if _is_reloading: return false
 
@@ -1240,28 +1242,22 @@ func _activate_machine_gunner_pm_fallback() -> void:
 ## [#1033] Find cover far from player for machine gunner PM fallback (prefers hidden + far, opposite of normal).
 func _find_distant_cover_position() -> void:
 	if _player == null: _has_valid_cover = false; return
-	var player_pos := _player.global_position
-	var best_cover: Vector2 = Vector2.ZERO
-	var best_score: float = -INF
-	var found_hidden: bool = false
+	var current_time := Time.get_ticks_msec() / 1000.0  ## Issue #1411: throttle
+	if current_time - _last_distant_cover_search_time < COVER_SEARCH_COOLDOWN: return  ## Issue #1411: cooldown applies even without valid cover
+	_last_distant_cover_search_time = current_time; var player_pos := _player.global_position
+	var best_cover: Vector2 = Vector2.ZERO; var best_score: float = -INF; var found_hidden: bool = false
 	for i in range(COVER_CHECK_COUNT):
-		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
 		var raycast := _cover_raycasts[i]
-		raycast.target_position = Vector2.from_angle(angle) * COVER_CHECK_DISTANCE
+		raycast.target_position = Vector2.from_angle((float(i) / COVER_CHECK_COUNT) * TAU) * COVER_CHECK_DISTANCE
 		raycast.force_raycast_update()
 		if not raycast.is_colliding(): continue
-		var cp := raycast.get_collision_point()
-		var cn := raycast.get_collision_normal()
-		var cover_pos := cp + cn * 35.0
+		var cover_pos := raycast.get_collision_point() + raycast.get_collision_normal() * 35.0
 		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue  # Issue #1355
 		if not _can_reach_position(cover_pos): continue
 		var is_hidden := not _is_position_visible_from_player(cover_pos)
 		if not is_hidden and found_hidden: continue
-		# Score: prefer FAR positions (invert distance score) + hidden
 		var dist_to_player := cover_pos.distance_to(player_pos)
-		var far_score := dist_to_player / COVER_CHECK_DISTANCE  # Higher = farther from player
-		var hidden_score: float = 10.0 if is_hidden else 0.0
-		var total_score := hidden_score + far_score
+		var total_score := (10.0 if is_hidden else 0.0) + dist_to_player / COVER_CHECK_DISTANCE
 		if is_hidden and not found_hidden: found_hidden = true; best_score = total_score; best_cover = cover_pos
 		elif (is_hidden or not found_hidden) and total_score > best_score: best_score = total_score; best_cover = cover_pos
 	if best_score > 0:
@@ -1708,12 +1704,12 @@ func _process_seeking_cover_state(_delta: float) -> void:
 
 	if distance < 10.0:
 		# Reached the cover position, but still visible - try to find better cover
-		if _is_visible_from_player():
-			_has_valid_cover = false
-			_find_cover_position()
-			if not _has_valid_cover:
-				if time_in_state >= SEEKING_COVER_MIN_DURATION: _transition_to_combat()  # RCA-17
-				return
+		## Issue #1411: don't invalidate current cover before searching — keep it as fallback
+		## if the cooldown-throttled search doesn't find a new one yet
+		_find_cover_position()
+		if not _has_valid_cover:
+			if time_in_state >= SEEKING_COVER_MIN_DURATION: _transition_to_combat()  # RCA-17
+			return
 
 	# Use navigation-based pathfinding to move toward cover
 	_move_to_target_nav(_cover_position, combat_move_speed)
@@ -1899,16 +1895,17 @@ func _process_suppressed_state(delta: float) -> void:
 		_transition_to_seeking_cover()
 		return
 	# Issue #1338: move toward cover while suppressed
+	## Issue #1411: when hidden from player (cover is working), do NOT recalculate cover position.
+	## The cover was found at suppression time and should be kept until the situation changes.
 	if _has_valid_cover:
 		var distance_to_cover := global_position.distance_to(_cover_position)
 		if distance_to_cover < 10.0:
-			if _is_visible_from_player():
-				_has_valid_cover = false; _find_cover_position()
-				if _has_valid_cover: _move_to_target_nav(_cover_position, combat_move_speed)
-				else: velocity = Vector2.ZERO
-			else: velocity = Vector2.ZERO
+			velocity = Vector2.ZERO  ## Issue #1411: at cover and hidden — stay put, no recalculation
 		else: _move_to_target_nav(_cover_position, combat_move_speed)
-	else: velocity = Vector2.ZERO
+	else:
+		_find_cover_position()  ## Only search when we truly have no cover
+		if _has_valid_cover: _move_to_target_nav(_cover_position, combat_move_speed)
+		else: velocity = Vector2.ZERO
 	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 		_aim_at_player()
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
@@ -1951,7 +1948,7 @@ func _process_retreating_state(delta: float) -> void:
 	# Check if reached cover position
 	if distance_to_cover < 10.0:
 		if _is_visible_from_player():
-			_has_valid_cover = false
+			## Issue #1411: don't invalidate current cover before searching — cooldown-throttled
 			_find_cover_position()
 			if not _has_valid_cover:
 				if time_in_state >= RETREATING_MIN_DURATION:  # RCA-17
@@ -2776,10 +2773,15 @@ func _is_flank_target_reachable() -> bool:
 
 func _transition_to_suppressed() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_suppressed_enabled(): _transition_to_idle(); return  # Issue #1186
+	var _prev_state := _current_state  ## Issue #1411: remember previous state
 	_current_state = AIState.SUPPRESSED
 	_has_left_idle = true; _in_alarm_mode = true  # Issue #330
 	_suppressed_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #969 RCA-11
-	_has_valid_cover = false; _last_cover_search_time = -999.0  # Issue #1338: force new cover search
+	## Issue #1411: only force new cover search if NOT coming from a cover-related state.
+	## When transitioning from IN_COVER/SEEKING_COVER, the enemy already has a valid cover position
+	## and re-searching every frame causes massive performance drops (6-10 FPS with 4+ enemies).
+	if _prev_state not in [AIState.IN_COVER, AIState.SEEKING_COVER, AIState.RETREATING]:
+		_has_valid_cover = false; _last_cover_search_time = -999.0  # Issue #1338: force new cover search
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 func _transition_to_pursuing() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_pursuing_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -2944,11 +2946,16 @@ func _is_point_visible_from_player(pt: Vector2) -> bool:  ## Single point visibl
 	var q := PhysicsRayQueryParameters2D.new(); q.from = _player.global_position; q.to = pt; q.collision_mask = 4
 	var r := get_world_2d().direct_space_state.intersect_ray(q)
 	return r.is_empty() or _player.global_position.distance_to(r["position"]) >= _player.global_position.distance_to(pt) - 10.0
-func _is_position_visible_from_player(pos: Vector2) -> bool:  ## Enemy at pos visible to player
+func _is_position_visible_from_player(pos: Vector2) -> bool:  ## Enemy at pos visible to player (Issue #1411: per-frame cache)
 	if not _player: return true
+	var frame := Engine.get_physics_frames()
+	if frame != _visibility_cache_frame: _visibility_cache.clear(); _visibility_cache_frame = frame
+	var key := Vector2i(roundi(pos.x), roundi(pos.y))
+	if _visibility_cache.has(key): return _visibility_cache[key]
+	var vis := false
 	for pt in _get_enemy_check_points(pos):
-		if _is_point_visible_from_player(pt): return true
-	return false
+		if _is_point_visible_from_player(pt): vis = true; break
+	_visibility_cache[key] = vis; return vis
 
 ## Check if target is visible from enemy (raycast for LOS). For lead prediction validation.
 func _is_position_visible_to_enemy(target_pos: Vector2) -> bool:
@@ -3246,47 +3253,23 @@ func _find_cover_closest_to_player() -> void:
 	if _player == null:
 		_has_valid_cover = false
 		return
-	var wp_a := _combat_waypoint(_player.global_position)  # Issue #1227
+	var current_time := Time.get_ticks_msec() / 1000.0  ## Issue #1411: throttle
+	if current_time - _last_closest_cover_search_time < COVER_SEARCH_COOLDOWN: return  ## Issue #1411: cooldown applies even without valid cover
+	_last_closest_cover_search_time = current_time; var wp_a := _combat_waypoint(_player.global_position)  # Issue #1227
 	if wp_a != Vector2.ZERO: _cover_position = wp_a; _has_valid_cover = true; return
 	var player_pos := _player.global_position
-	var best_cover: Vector2 = Vector2.ZERO
-	var best_distance: float = INF
-	var found_cover: bool = false
-
-	# Cast rays in all directions to find obstacles
-	for i in range(COVER_CHECK_COUNT):
-		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
-		var direction := Vector2.from_angle(angle)
-
+	var best_cover: Vector2 = Vector2.ZERO; var best_distance: float = INF; var found_cover: bool = false
+	for i in range(COVER_CHECK_COUNT):  # Cast rays in all directions to find obstacles
 		var raycast := _cover_raycasts[i]
-		raycast.target_position = direction * COVER_CHECK_DISTANCE
+		raycast.target_position = Vector2.from_angle((float(i) / COVER_CHECK_COUNT) * TAU) * COVER_CHECK_DISTANCE
 		raycast.force_raycast_update()
-
-		if raycast.is_colliding():
-			var collision_point := raycast.get_collision_point()
-			var collision_normal := raycast.get_collision_normal()
-
-			# Cover position is offset from collision point along normal
-			var cover_pos := collision_point + collision_normal * 35.0
-
-			# CRITICAL: Verify we can actually reach this cover position
-			# This prevents selecting cover positions on the opposite side of walls
-			if not _can_reach_position(cover_pos):
-				continue
-
-			# Check if this position is hidden from player (safe cover)
-			var is_hidden := not _is_position_visible_from_player(cover_pos)
-
-			if is_hidden:
-				# Calculate distance from this cover to the player
-				var distance_to_player := cover_pos.distance_to(player_pos)
-
-				# We want the cover closest to the player
-				if distance_to_player < best_distance:
-					best_distance = distance_to_player
-					best_cover = cover_pos
-					found_cover = true
-
+		if not raycast.is_colliding(): continue
+		var cover_pos := raycast.get_collision_point() + raycast.get_collision_normal() * 35.0
+		if not _can_reach_position(cover_pos): continue  # Can't reach = opposite side of wall
+		if not _is_position_visible_from_player(cover_pos):  # Hidden from player = safe cover
+			var distance_to_player := cover_pos.distance_to(player_pos)
+			if distance_to_player < best_distance:
+				best_distance = distance_to_player; best_cover = cover_pos; found_cover = true
 	if found_cover:
 		_cover_position = best_cover
 		_has_valid_cover = true
@@ -3330,13 +3313,14 @@ func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue
 		if has_nav: cover_pos = NavigationServer2D.map_get_closest_point(nav_map, cover_pos)
 		if not _is_position_visible_from_player(cover_pos): candidates.append(cover_pos)
+		if candidates.size() >= COVER_MAX_CANDIDATES and not store_debug_rays: break  ## Issue #1411: early exit
 	return candidates
 
 ## Find cover hidden from player. Issue #969: throttled. Issue #1338/1378: rays from player.
 func _find_cover_position() -> void:
 	if _player == null: _has_valid_cover = false; return
 	var current_time := Time.get_ticks_msec() / 1000.0
-	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
+	if current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return  ## Issue #1411: cooldown applies even without valid cover to prevent frame-burst searches
 	_last_cover_search_time = current_time
 	var candidates := _get_hidden_cover_candidates(true)
 	if candidates.is_empty():
@@ -3354,13 +3338,12 @@ func _find_cover_position() -> void:
 ## Get far-side cover behind obstacle (Issue #1338/1378). Probes outward with intersect_point().
 func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, direction: Vector2, space_state: PhysicsDirectSpaceState2D, effective_ray_dist: float = 300.0) -> Vector2:
 	var near_dist := collision_point.distance_to(player_pos)
-	var step_size := 30.0
-	var max_probe_dist := effective_ray_dist * 3.0
-	var probe_dist := near_dist + 5.0
-	var was_inside := false
+	var step_size := 45.0; var max_probe_dist := effective_ray_dist * 2.0  ## Issue #1411: was 30/3x
+	var probe_dist := near_dist + 5.0; var was_inside := false; var iterations := 0
 	var point_query := PhysicsPointQueryParameters2D.new()
 	point_query.collision_mask = 4; point_query.collide_with_areas = false; point_query.collide_with_bodies = true
-	while probe_dist < max_probe_dist:
+	while probe_dist < max_probe_dist and iterations < 15:  ## Issue #1411: cap iterations
+		iterations += 1
 		var probe_point := player_pos + direction * probe_dist
 		point_query.position = probe_point
 		if space_state.intersect_point(point_query, 1).is_empty():
@@ -3778,14 +3761,24 @@ func reset_memory() -> void:
 	if _prediction: _prediction.reset()  # [#298]
 	_log_to_file("Memory reset: confusion=%.1fs, had_target=%s" % [MEMORY_RESET_CONFUSION_DURATION, had_target])
 	if had_target:
-		# Set LOW confidence (0.35) - puts enemy in search mode at old position
-		if _memory != null:
-			_memory.suspected_position = old_position
-			_memory.confidence = 0.35
-			_memory.last_updated = Time.get_ticks_msec()
-		_last_known_player_position = old_position
-		_log_to_file("Search mode: %s -> SEARCHING at %s" % [AIState.keys()[_current_state], old_position])
-		_transition_to_searching(old_position)
+		# Issue #1419: Only transition to SEARCHING if enemy has previously engaged the player.
+		# Enemies that never left IDLE (e.g. received intel via ally-share only) must not enter
+		# SEARCHING on teleport — they have never personally seen or heard the player.
+		if _has_left_idle:
+			# Set LOW confidence (0.35) - puts enemy in search mode at old position
+			if _memory != null:
+				_memory.suspected_position = old_position
+				_memory.confidence = 0.35
+				_memory.last_updated = Time.get_ticks_msec()
+			_last_known_player_position = old_position
+			_log_to_file("Search mode: %s -> SEARCHING at %s" % [AIState.keys()[_current_state], old_position])
+			_transition_to_searching(old_position)
+		else:
+			if _memory != null:
+				_memory.reset()
+			_last_known_player_position = Vector2.ZERO
+			_log_to_file("Memory reset: %s -> IDLE (never engaged, had target via intel only)" % AIState.keys()[_current_state])
+			_transition_to_idle()
 	else:
 		if _memory != null:
 			_memory.reset()
@@ -4208,7 +4201,7 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0, is_from_player: bool = false) -> void:
 	if not _is_alive:
 		return
-	if _force_field_component and _force_field_component.is_active(): _log_to_file("Hit blocked by force field"); return  # Issue #1034: invulnerable while force field active
+	if (_force_field_component and _force_field_component.is_active()) or (_drone_operator and _drone_operator.is_dashing()): _log_to_file("Hit blocked by force field/dash"); return  # Issues #1034, #1397
 	# Issue #1242: Shield blocking — collision-based + direction fallback; shield enemy slowly turns toward attacker.
 	if _shield_component and _shield_component.did_intercept_this_frame(): _set_hit_reaction_target(-hit_direction.normalized()); return
 	if _shield_component and _shield_component.is_active() and _enemy_model and Vector2.from_angle(_enemy_model.global_rotation).dot(-hit_direction.normalized()) > 0.5:
