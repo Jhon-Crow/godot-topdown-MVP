@@ -147,7 +147,10 @@ class _EnemyPathOverlay extends CanvasLayer:
 	var _draw_node: _EnemyPathDrawNode = null
 
 	func _init() -> void:
-		layer = 10
+		# Render above ALL visual effects (cinema=99, hit=100, penultimate=101,
+		# last_chance=102, flashbang=103) so debug overlays are always visible.
+		# Below FPS counter (200). Issue #1392: raised from 10 to 150.
+		layer = 150
 		follow_viewport_enabled = true
 		_draw_node = _EnemyPathDrawNode.new()
 		_draw_node.waypoint_radius = waypoint_radius

@@ -134,8 +134,10 @@ class _SearchPathOverlay extends CanvasLayer:
 	var _draw_node: _SearchPathDrawNode = null
 
 	func _init() -> void:
-		# Render above game world (layer 10) but below UI (layer 100+)
-		layer = 10
+		# Render above ALL visual effects (cinema=99, hit=100, penultimate=101,
+		# last_chance=102, flashbang=103) so debug overlays are always visible.
+		# Below FPS counter (200). Issue #1392: raised from 10 to 150.
+		layer = 150
 		# Follow the viewport camera so world-space coordinates in _draw() align correctly
 		follow_viewport_enabled = true
 		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().

@@ -117,9 +117,10 @@ class _NavMeshOverlay extends CanvasLayer:
 	var _draw_node: _NavMeshDrawNode = null
 
 	func _init() -> void:
-		# Render above all game world elements (layer 50) and above most UI (default layer 1).
-		# CinemaEffects uses layer 99; we stay below that so debug overlay doesn't cover vignette.
-		layer = 50
+		# Render above ALL visual effects (cinema=99, hit=100, penultimate=101,
+		# last_chance=102, flashbang=103) so debug overlays are always visible.
+		# Below FPS counter (200). Issue #1392: raised from 50 to 150.
+		layer = 150
 		# Follow the viewport camera so world-space coordinates in _draw() align correctly.
 		# With follow_viewport_enabled=true, drawing at world coordinates maps directly
 		# to the correct screen position regardless of camera position.

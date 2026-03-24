@@ -76,8 +76,10 @@ class _WaypointOverlay extends CanvasLayer:
 	var _draw_node: _WaypointDrawNode = null
 
 	func _init() -> void:
-		# Render above game world (layer 11, just above NavMeshMonitor at 10)
-		layer = 11
+		# Render above ALL visual effects (cinema=99, hit=100, penultimate=101,
+		# last_chance=102, flashbang=103) so debug overlays are always visible.
+		# Below FPS counter (200). Issue #1392: raised from 11 to 151.
+		layer = 151
 		# Follow the viewport camera so world-space coordinates align correctly
 		follow_viewport_enabled = true
 		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().
