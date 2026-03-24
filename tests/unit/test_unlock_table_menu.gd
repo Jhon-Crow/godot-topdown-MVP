@@ -21,6 +21,7 @@ class MockUnlockTableMenu:
 		"res://scenes/levels/BeachLevel.tscn": "Beach",
 		"res://scenes/levels/DocksLevel.tscn": "Docks",
 		"res://scenes/levels/CityLevel.tscn": "City",
+		"res://scenes/levels/DecadenceLevel.tscn": "Decadence",
 	}
 
 	## Weapon ID to display name mapping.
@@ -112,8 +113,8 @@ func after_each() -> void:
 
 
 func test_level_names_count() -> void:
-	assert_eq(menu.LEVEL_NAMES.size(), 8,
-		"LEVEL_NAMES should have 8 entries")
+	assert_eq(menu.LEVEL_NAMES.size(), 9,
+		"LEVEL_NAMES should have 9 entries")
 
 
 func test_level_names_all_valid_paths() -> void:
@@ -122,6 +123,11 @@ func test_level_names_all_valid_paths() -> void:
 			"Path '%s' should start with res://" % path)
 		assert_true(path.ends_with(".tscn"),
 			"Path '%s' should end with .tscn" % path)
+
+
+func test_level_names_contains_decadence() -> void:
+	assert_eq(menu.LEVEL_NAMES["res://scenes/levels/DecadenceLevel.tscn"], "Decadence",
+		"Decadence level display name should be Decadence (Issue #1423)")
 
 
 # ============================================================================

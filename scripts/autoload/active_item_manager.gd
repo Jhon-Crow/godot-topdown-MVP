@@ -47,8 +47,9 @@ var collected_passive_items: Array = []
 ## INVISIBILITY_SUIT (Beach S + Building S), HOMING_BULLETS
 ## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S),
 ## TRAJECTORY_GLASSES (City D+), LASER_SIGHT (1000 kills without laser sight equipped),
-## and FINE_MOTOR_SKILLS (650 shots with shotgun, sniper rifle, or revolver)
-## have unlock conditions (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346).
+## FINE_MOTOR_SKILLS (650 shots with shotgun, sniper rifle, or revolver),
+## and RECOIL_COMPENSATOR (Labyrinth S)
+## have unlock conditions (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346, Issue #1423).
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
 	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
@@ -66,7 +67,7 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.ARMORED_SKIN: true,         # No unlock condition — freely available from start (Issue #1045)
 	ActiveItemType.AUTO_RELOAD: true,          # No unlock condition — freely available from start (Issue #1067)
 	ActiveItemType.DRILLING_BULLETS: true,     # No unlock condition — freely available from start (Issue #751)
-	ActiveItemType.RECOIL_COMPENSATOR: true,   # No unlock condition — freely available from start (Issue #1073)
+	ActiveItemType.RECOIL_COMPENSATOR: false,  # Condition: Labyrinth S (Issue #1423 req.2)
 	ActiveItemType.COMBAT_DISPOSITION: true,   # No unlock condition — freely available from start (Issue #1047)
 	ActiveItemType.EXPERIMENTAL_SAMPLE: true,   # No unlock condition — freely available from start (Issue #1127)
 	ActiveItemType.FINE_MOTOR_SKILLS: false,    # Condition: 300 shots with shotgun, sniper rifle, or revolver (Issue #1346)
