@@ -46,6 +46,9 @@ const AFTERIMAGE_ALPHA: float = 0.7
 ## Time to wait at cover before deploying drone (seconds).
 const DEPLOY_DELAY: float = 0.5
 
+## Maximum time to spend seeking cover before deploying drone anyway (seconds).
+const MAX_COVER_SEEK_TIME: float = 3.0
+
 ## Drone scene path.
 const DRONE_SCENE_PATH: String = "res://scenes/objects/Drone.tscn"
 
@@ -70,6 +73,9 @@ var _deploy_timer: float = 0.0
 ## Whether we've reached initial cover.
 var _reached_cover: bool = false
 
+## Timer for how long we've been seeking cover (deploy anyway if exceeded).
+var _cover_seek_timer: float = 0.0
+
 ## Dash state variables.
 var _dash_charges: int = DASH_CHARGES
 var _dash_cooldown_timer: float = 0.0
@@ -84,6 +90,12 @@ var _afterimage_interval: float = 0.0
 
 ## VR headset visual node.
 var _vr_headset: Node2D = null
+
+## Tablet visual node (shown during DEPLOYING/CONTROLLING phases).
+var _tablet: Node2D = null
+
+## Cached reference to weapon mount for hide/show.
+var _weapon_mount: Node2D = null
 
 ## Signal when drone is destroyed and operator switches to active.
 signal phase_changed(new_phase: Phase)
@@ -100,7 +112,10 @@ func setup() -> void:
 	_drone_deployed = false
 	_reached_cover = false
 	_deploy_timer = 0.0
+	_cover_seek_timer = 0.0
 	_setup_vr_headset_visual()
+	_setup_tablet_visual()
+	_hide_weapon_show_tablet()
 	FileLogger.info("[DroneOperator] Setup complete (dash_charges=%d, cooldown=%.1fs)" % [DASH_CHARGES, DASH_COOLDOWN])
 
 
@@ -115,34 +130,95 @@ func _setup_vr_headset_visual() -> void:
 	if head == null:
 		return
 
-	# VR headset: a small rectangular overlay on the head
+	# VR headset: a horizontal band across the face (enemy sprites face right)
 	_vr_headset = Node2D.new()
 	_vr_headset.name = "VRHeadset"
 	_vr_headset.z_index = 5  # Above head sprite
 
 	var visor := Polygon2D.new()
 	visor.polygon = PackedVector2Array([
-		Vector2(3, -5),
-		Vector2(7, -5),
-		Vector2(7, 5),
-		Vector2(3, 5),
+		Vector2(-5, -2),
+		Vector2(5, -2),
+		Vector2(5, 2),
+		Vector2(-5, 2),
 	])
 	visor.color = Color(0.1, 0.1, 0.15, 0.95)  # Dark visor
 	_vr_headset.add_child(visor)
 
-	# Glowing lens
+	# Glowing lens strip across the front
 	var lens := Polygon2D.new()
+	lens.name = "Lens"
 	lens.polygon = PackedVector2Array([
-		Vector2(5, -3),
-		Vector2(8, -3),
-		Vector2(8, 3),
-		Vector2(5, 3),
+		Vector2(-4, -1),
+		Vector2(4, -1),
+		Vector2(4, 1),
+		Vector2(-4, 1),
 	])
-	lens.color = Color(0.2, 0.8, 0.3, 0.8)  # Green glow
+	lens.color = Color(0.2, 0.8, 0.3, 0.8)  # Green glow = controlling
 	_vr_headset.add_child(lens)
 
 	head.add_child(_vr_headset)
 	FileLogger.info("[DroneOperator] VR headset visual created")
+
+
+## Create tablet visual on the weapon mount (shown during DEPLOYING/CONTROLLING).
+func _setup_tablet_visual() -> void:
+	if _parent == null:
+		return
+	_weapon_mount = _parent.get_node_or_null("EnemyModel/WeaponMount") as Node2D
+	if _weapon_mount == null:
+		return
+
+	_tablet = Node2D.new()
+	_tablet.name = "Tablet"
+	_tablet.z_index = 2
+
+	# Tablet body — dark rectangle held in hands
+	var body := Polygon2D.new()
+	body.polygon = PackedVector2Array([
+		Vector2(-6, -8),
+		Vector2(6, -8),
+		Vector2(6, 8),
+		Vector2(-6, 8),
+	])
+	body.color = Color(0.15, 0.15, 0.2, 0.95)  # Dark tablet body
+	_tablet.add_child(body)
+
+	# Tablet screen — glowing green
+	var screen := Polygon2D.new()
+	screen.polygon = PackedVector2Array([
+		Vector2(-4, -6),
+		Vector2(4, -6),
+		Vector2(4, 6),
+		Vector2(-4, 6),
+	])
+	screen.color = Color(0.1, 0.6, 0.2, 0.8)  # Green screen
+	_tablet.add_child(screen)
+
+	_tablet.position = Vector2(10, 0)  # Held in front
+	_weapon_mount.add_child(_tablet)
+	_tablet.visible = true
+	FileLogger.info("[DroneOperator] Tablet visual created")
+
+
+## Hide the weapon sprite and show the tablet (DEPLOYING/CONTROLLING phases).
+func _hide_weapon_show_tablet() -> void:
+	if _weapon_mount:
+		var weapon_sprite: Sprite2D = _weapon_mount.get_node_or_null("WeaponSprite") as Sprite2D
+		if weapon_sprite:
+			weapon_sprite.visible = false
+	if _tablet:
+		_tablet.visible = true
+
+
+## Show the weapon sprite and hide the tablet (ACTIVE phase).
+func _show_weapon_hide_tablet() -> void:
+	if _weapon_mount:
+		var weapon_sprite: Sprite2D = _weapon_mount.get_node_or_null("WeaponSprite") as Sprite2D
+		if weapon_sprite:
+			weapon_sprite.visible = true
+	if _tablet:
+		_tablet.visible = false
 
 
 ## Update called each physics frame from enemy._physics_process().
@@ -238,20 +314,26 @@ func _update_deploying(delta: float) -> void:
 
 	# Check if we've arrived at cover position
 	if not _reached_cover:
-		# The enemy's own AI will handle moving to cover via SEEKING_COVER state.
-		# We check if the enemy is IN_COVER state.
+		_cover_seek_timer += delta
+
+		var current_state: int = -1
 		if _parent.has_method("get_current_state"):
-			var state = _parent.get_current_state()
-			# AIState.IN_COVER = 3
-			if state == 3:
-				_reached_cover = true
-				_deploy_timer = DEPLOY_DELAY
-				FileLogger.info("[DroneOperator] Reached cover, deploying drone in %.1fs" % DEPLOY_DELAY)
+			current_state = _parent.get_current_state()
 		elif _parent.get("_current_state") != null:
-			if _parent._current_state == 3:  # IN_COVER
-				_reached_cover = true
-				_deploy_timer = DEPLOY_DELAY
-		return
+			current_state = _parent._current_state
+
+		# AIState.IN_COVER = 3, AIState.COMBAT = 1
+		if current_state == 3:  # IN_COVER — found cover
+			_reached_cover = true
+			_deploy_timer = DEPLOY_DELAY
+			FileLogger.info("[DroneOperator] Reached cover, deploying drone in %.1fs" % DEPLOY_DELAY)
+		elif _cover_seek_timer >= MAX_COVER_SEEK_TIME or current_state == 1:
+			# Timed out seeking cover or AI gave up and went to COMBAT — deploy at current position
+			_reached_cover = true
+			_deploy_timer = DEPLOY_DELAY
+			FileLogger.info("[DroneOperator] Cover seek timeout (%.1fs) or state=%d, deploying drone at current position" % [_cover_seek_timer, current_state])
+		else:
+			return
 
 	# Wait for deploy delay
 	_deploy_timer -= delta
@@ -294,11 +376,11 @@ func _deploy_drone() -> void:
 ## Transition to CONTROLLING phase.
 func _transition_to_controlling() -> void:
 	_phase = Phase.CONTROLLING
-	# Hide VR headset glow (turn on the active indicator)
+	# Set VR headset lens to bright green = actively controlling
 	if _vr_headset:
-		for child in _vr_headset.get_children():
-			if child is Polygon2D and child.color.g > 0.5:
-				child.color = Color(0.0, 1.0, 0.2, 0.9)  # Bright green = actively controlling
+		var lens: Polygon2D = _vr_headset.get_node_or_null("Lens") as Polygon2D
+		if lens:
+			lens.color = Color(0.0, 1.0, 0.2, 0.9)  # Bright green = actively controlling
 	phase_changed.emit(Phase.CONTROLLING)
 	FileLogger.info("[DroneOperator] Phase: CONTROLLING (defenseless)")
 
@@ -332,6 +414,9 @@ func _transition_to_active() -> void:
 	_dash_charges = DASH_CHARGES
 	_dash_cooldown_timer = 0.0
 
+	# Show weapon, hide tablet
+	_show_weapon_hide_tablet()
+
 	# Switch weapon to PM (type 5) — closest to silenced pistol with laser
 	if _parent and _parent.has_method("switch_weapon"):
 		_parent.switch_weapon(5)  # PM = WeaponType 5
@@ -342,11 +427,11 @@ func _transition_to_active() -> void:
 		if _parent.has_method("_initialize_ammo"):
 			_parent._initialize_ammo()
 
-	# Change VR headset to inactive look (red = disconnected)
+	# Change VR headset lens to red = disconnected
 	if _vr_headset:
-		for child in _vr_headset.get_children():
-			if child is Polygon2D and child.color.g > 0.5:
-				child.color = Color(0.8, 0.1, 0.1, 0.6)  # Red = disconnected
+		var lens: Polygon2D = _vr_headset.get_node_or_null("Lens") as Polygon2D
+		if lens:
+			lens.color = Color(0.8, 0.1, 0.1, 0.6)  # Red = disconnected
 
 	# Force transition to COMBAT state
 	if _parent and _parent.has_method("_transition_to_combat"):

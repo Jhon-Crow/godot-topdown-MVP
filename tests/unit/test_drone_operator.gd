@@ -270,6 +270,79 @@ func test_operator_chain_window_after_partial_charges() -> void:
 
 
 # ============================================================================
+# DroneOperatorComponent deployment tests (cover seek timeout)
+# ============================================================================
+
+
+class MockDeploymentTracker:
+	## Simulates the cover-seeking deployment logic.
+	const MAX_COVER_SEEK_TIME: float = 3.0
+	const DEPLOY_DELAY: float = 0.5
+
+	var _reached_cover: bool = false
+	var _cover_seek_timer: float = 0.0
+	var _deploy_timer: float = 0.0
+	var _drone_deployed: bool = false
+
+	## Simulate update with a given enemy AI state.
+	## Returns true when drone gets deployed.
+	func update_deploying(delta: float, current_state: int) -> bool:
+		if not _reached_cover:
+			_cover_seek_timer += delta
+			if current_state == 3:  # IN_COVER
+				_reached_cover = true
+				_deploy_timer = DEPLOY_DELAY
+			elif _cover_seek_timer >= MAX_COVER_SEEK_TIME or current_state == 1:  # COMBAT
+				_reached_cover = true
+				_deploy_timer = DEPLOY_DELAY
+			else:
+				return false
+
+		_deploy_timer -= delta
+		if _deploy_timer <= 0.0 and not _drone_deployed:
+			_drone_deployed = true
+			return true
+		return false
+
+
+func test_deployment_when_cover_found() -> void:
+	var tracker := MockDeploymentTracker.new()
+	# Simulate reaching IN_COVER state after 1 second
+	tracker.update_deploying(1.0, 2)  # SEEKING_COVER
+	assert_false(tracker._drone_deployed, "Should not deploy while seeking cover")
+	tracker.update_deploying(0.5, 3)  # IN_COVER
+	assert_true(tracker._reached_cover, "Should detect cover reached")
+	tracker.update_deploying(0.6, 3)  # Wait for deploy delay
+	assert_true(tracker._drone_deployed, "Should deploy drone after reaching cover")
+
+
+func test_deployment_on_cover_seek_timeout() -> void:
+	var tracker := MockDeploymentTracker.new()
+	# Keep seeking cover for 3+ seconds — should deploy anyway
+	tracker.update_deploying(1.0, 2)  # SEEKING_COVER
+	tracker.update_deploying(1.0, 2)
+	tracker.update_deploying(1.1, 2)  # Total > 3.0s
+	assert_true(tracker._reached_cover, "Should give up seeking cover after timeout")
+	tracker.update_deploying(0.6, 2)  # Wait for deploy delay
+	assert_true(tracker._drone_deployed, "Should deploy drone after cover seek timeout")
+
+
+func test_deployment_when_ai_transitions_to_combat() -> void:
+	var tracker := MockDeploymentTracker.new()
+	# AI transitions to COMBAT (state 1) when no cover available
+	tracker.update_deploying(0.5, 1)  # COMBAT
+	assert_true(tracker._reached_cover, "Should deploy when AI goes to COMBAT")
+	tracker.update_deploying(0.6, 1)  # Wait for deploy delay
+	assert_true(tracker._drone_deployed, "Should deploy drone after combat transition")
+
+
+func test_deployment_max_cover_seek_time_is_three_seconds() -> void:
+	var tracker := MockDeploymentTracker.new()
+	assert_eq(tracker.MAX_COVER_SEEK_TIME, 3.0,
+		"Max cover seek time should be 3 seconds")
+
+
+# ============================================================================
 # Spawner integration tests
 # ============================================================================
 
