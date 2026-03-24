@@ -2,8 +2,10 @@ extends Node2D
 class_name RainEffect
 ## Hotline Miami 2-style top-down rain effect (Issue #1394).
 ##
-## Two-layer particle system: vertical rain streaks falling straight down
-## and circular splash ripples where drops hit the ground.
+## Two-layer particle system with perspective projection: rain streaks
+## radiate outward from screen center (as if falling from the camera)
+## with downward gravity, and circular splash ripples appear across the
+## viewport where drops land.
 ## Rain is always active (continuous) while outdoors.
 ## Supports indoor exclusion zones where rain should not appear.
 ## The effect follows the camera so rain covers the visible viewport area.
