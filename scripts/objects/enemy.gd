@@ -167,12 +167,9 @@ const SEEKING_COVER_MIN_DURATION: float = 0.3; var _seeking_cover_entry_time: fl
 const RETREATING_MIN_DURATION: float = 0.3; var _retreating_entry_time: float = -999.0  ## Issue #997 RCA-17
 const IN_COVER_MIN_DURATION: float = 0.3; var _in_cover_entry_time: float = -999.0  ## Issue #997 RCA-18: prevent instant IN_COVER→SUPPRESSED cycling
 var _cached_visible_from_player: bool = false; var _visible_from_player_cache_frame: int = -1
-## Issue #1411: Per-frame visibility cache for _is_position_visible_from_player to avoid redundant raycasts.
-var _visibility_cache: Dictionary = {}; var _visibility_cache_frame: int = -1
-## Issue #1411: Throttle timers for cover functions that previously had no cooldown.
-var _last_distant_cover_search_time: float = -999.0; var _last_closest_cover_search_time: float = -999.0
-## Issue #1411: Maximum candidates to collect before early termination in cover search.
-const COVER_MAX_CANDIDATES: int = 8
+var _visibility_cache: Dictionary = {}; var _visibility_cache_frame: int = -1  ## Issue #1411: per-frame visibility cache
+var _last_distant_cover_search_time: float = -999.0; var _last_closest_cover_search_time: float = -999.0  ## Issue #1411: throttle timers
+const COVER_MAX_CANDIDATES: int = 8  ## Issue #1411: early termination threshold for cover candidate search
 var _current_ammo: int = 0  ## Ammo in magazine
 var _reserve_ammo: int = 0  ## Reserve ammo
 var _is_reloading: bool = false  ## Currently reloading
@@ -537,13 +534,11 @@ func _setup_wall_detection() -> void:
 		add_child(raycast)
 		_wall_raycasts.append(raycast)
 
-## Setup cover detection raycasts for finding cover positions.
-## Issue #1411: Raycasts start disabled to reduce per-frame physics overhead.
-## They are enabled on-demand by _force_cover_raycasts_update() during cover searches.
+## Setup cover detection raycasts. Issue #1411: disabled by default, force_raycast_update() used on demand.
 func _setup_cover_detection() -> void:
 	for i in range(COVER_CHECK_COUNT):
 		var raycast := RayCast2D.new()
-		raycast.enabled = false  ## Issue #1411: disabled by default, enabled only during cover search
+		raycast.enabled = false  ## Issue #1411: avoids per-frame physics overhead
 		raycast.collision_mask = 4  # Only detect obstacles (layer 3)
 		raycast.exclude_parent = true
 		add_child(raycast)
@@ -1248,32 +1243,22 @@ func _activate_machine_gunner_pm_fallback() -> void:
 ## [#1033] Find cover far from player for machine gunner PM fallback (prefers hidden + far, opposite of normal).
 func _find_distant_cover_position() -> void:
 	if _player == null: _has_valid_cover = false; return
-	## Issue #1411: Throttle distant cover search with same cooldown as normal cover search.
-	var current_time := Time.get_ticks_msec() / 1000.0
+	var current_time := Time.get_ticks_msec() / 1000.0  ## Issue #1411: throttle
 	if _has_valid_cover and current_time - _last_distant_cover_search_time < COVER_SEARCH_COOLDOWN: return
-	_last_distant_cover_search_time = current_time
-	var player_pos := _player.global_position
-	var best_cover: Vector2 = Vector2.ZERO
-	var best_score: float = -INF
-	var found_hidden: bool = false
+	_last_distant_cover_search_time = current_time; var player_pos := _player.global_position
+	var best_cover: Vector2 = Vector2.ZERO; var best_score: float = -INF; var found_hidden: bool = false
 	for i in range(COVER_CHECK_COUNT):
-		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
 		var raycast := _cover_raycasts[i]
-		raycast.target_position = Vector2.from_angle(angle) * COVER_CHECK_DISTANCE
+		raycast.target_position = Vector2.from_angle((float(i) / COVER_CHECK_COUNT) * TAU) * COVER_CHECK_DISTANCE
 		raycast.force_raycast_update()
 		if not raycast.is_colliding(): continue
-		var cp := raycast.get_collision_point()
-		var cn := raycast.get_collision_normal()
-		var cover_pos := cp + cn * 35.0
+		var cover_pos := raycast.get_collision_point() + raycast.get_collision_normal() * 35.0
 		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue  # Issue #1355
 		if not _can_reach_position(cover_pos): continue
 		var is_hidden := not _is_position_visible_from_player(cover_pos)
 		if not is_hidden and found_hidden: continue
-		# Score: prefer FAR positions (invert distance score) + hidden
 		var dist_to_player := cover_pos.distance_to(player_pos)
-		var far_score := dist_to_player / COVER_CHECK_DISTANCE  # Higher = farther from player
-		var hidden_score: float = 10.0 if is_hidden else 0.0
-		var total_score := hidden_score + far_score
+		var total_score := (10.0 if is_hidden else 0.0) + dist_to_player / COVER_CHECK_DISTANCE
 		if is_hidden and not found_hidden: found_hidden = true; best_score = total_score; best_cover = cover_pos
 		elif (is_hidden or not found_hidden) and total_score > best_score: best_score = total_score; best_cover = cover_pos
 	if best_score > 0:
@@ -2956,18 +2941,16 @@ func _is_point_visible_from_player(pt: Vector2) -> bool:  ## Single point visibl
 	var q := PhysicsRayQueryParameters2D.new(); q.from = _player.global_position; q.to = pt; q.collision_mask = 4
 	var r := get_world_2d().direct_space_state.intersect_ray(q)
 	return r.is_empty() or _player.global_position.distance_to(r["position"]) >= _player.global_position.distance_to(pt) - 10.0
-func _is_position_visible_from_player(pos: Vector2) -> bool:  ## Enemy at pos visible to player
+func _is_position_visible_from_player(pos: Vector2) -> bool:  ## Enemy at pos visible to player (Issue #1411: per-frame cache)
 	if not _player: return true
-	## Issue #1411: Per-frame cache to avoid redundant multi-point visibility checks.
 	var frame := Engine.get_physics_frames()
 	if frame != _visibility_cache_frame: _visibility_cache.clear(); _visibility_cache_frame = frame
 	var key := Vector2i(roundi(pos.x), roundi(pos.y))
 	if _visibility_cache.has(key): return _visibility_cache[key]
-	var visible := false
+	var vis := false
 	for pt in _get_enemy_check_points(pos):
-		if _is_point_visible_from_player(pt): visible = true; break
-	_visibility_cache[key] = visible
-	return visible
+		if _is_point_visible_from_player(pt): vis = true; break
+	_visibility_cache[key] = vis; return vis
 
 ## Check if target is visible from enemy (raycast for LOS). For lead prediction validation.
 func _is_position_visible_to_enemy(target_pos: Vector2) -> bool:
@@ -3265,51 +3248,23 @@ func _find_cover_closest_to_player() -> void:
 	if _player == null:
 		_has_valid_cover = false
 		return
-	## Issue #1411: Throttle closest-to-player cover search with same cooldown as normal cover search.
-	var current_time := Time.get_ticks_msec() / 1000.0
+	var current_time := Time.get_ticks_msec() / 1000.0  ## Issue #1411: throttle
 	if _has_valid_cover and current_time - _last_closest_cover_search_time < COVER_SEARCH_COOLDOWN: return
-	_last_closest_cover_search_time = current_time
-	var wp_a := _combat_waypoint(_player.global_position)  # Issue #1227
+	_last_closest_cover_search_time = current_time; var wp_a := _combat_waypoint(_player.global_position)  # Issue #1227
 	if wp_a != Vector2.ZERO: _cover_position = wp_a; _has_valid_cover = true; return
 	var player_pos := _player.global_position
-	var best_cover: Vector2 = Vector2.ZERO
-	var best_distance: float = INF
-	var found_cover: bool = false
-
-	# Cast rays in all directions to find obstacles
-	for i in range(COVER_CHECK_COUNT):
-		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
-		var direction := Vector2.from_angle(angle)
-
+	var best_cover: Vector2 = Vector2.ZERO; var best_distance: float = INF; var found_cover: bool = false
+	for i in range(COVER_CHECK_COUNT):  # Cast rays in all directions to find obstacles
 		var raycast := _cover_raycasts[i]
-		raycast.target_position = direction * COVER_CHECK_DISTANCE
+		raycast.target_position = Vector2.from_angle((float(i) / COVER_CHECK_COUNT) * TAU) * COVER_CHECK_DISTANCE
 		raycast.force_raycast_update()
-
-		if raycast.is_colliding():
-			var collision_point := raycast.get_collision_point()
-			var collision_normal := raycast.get_collision_normal()
-
-			# Cover position is offset from collision point along normal
-			var cover_pos := collision_point + collision_normal * 35.0
-
-			# CRITICAL: Verify we can actually reach this cover position
-			# This prevents selecting cover positions on the opposite side of walls
-			if not _can_reach_position(cover_pos):
-				continue
-
-			# Check if this position is hidden from player (safe cover)
-			var is_hidden := not _is_position_visible_from_player(cover_pos)
-
-			if is_hidden:
-				# Calculate distance from this cover to the player
-				var distance_to_player := cover_pos.distance_to(player_pos)
-
-				# We want the cover closest to the player
-				if distance_to_player < best_distance:
-					best_distance = distance_to_player
-					best_cover = cover_pos
-					found_cover = true
-
+		if not raycast.is_colliding(): continue
+		var cover_pos := raycast.get_collision_point() + raycast.get_collision_normal() * 35.0
+		if not _can_reach_position(cover_pos): continue  # Can't reach = opposite side of wall
+		if not _is_position_visible_from_player(cover_pos):  # Hidden from player = safe cover
+			var distance_to_player := cover_pos.distance_to(player_pos)
+			if distance_to_player < best_distance:
+				best_distance = distance_to_player; best_cover = cover_pos; found_cover = true
 	if found_cover:
 		_cover_position = best_cover
 		_has_valid_cover = true
@@ -3353,9 +3308,7 @@ func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue
 		if has_nav: cover_pos = NavigationServer2D.map_get_closest_point(nav_map, cover_pos)
 		if not _is_position_visible_from_player(cover_pos): candidates.append(cover_pos)
-		## Issue #1411: Early termination — once we have enough candidates, stop searching.
-		## Debug rays may still be incomplete but cover quality is preserved (closest is picked later).
-		if candidates.size() >= COVER_MAX_CANDIDATES and not store_debug_rays: break
+		if candidates.size() >= COVER_MAX_CANDIDATES and not store_debug_rays: break  ## Issue #1411: early exit
 	return candidates
 
 ## Find cover hidden from player. Issue #969: throttled. Issue #1338/1378: rays from player.
@@ -3380,14 +3333,11 @@ func _find_cover_position() -> void:
 ## Get far-side cover behind obstacle (Issue #1338/1378). Probes outward with intersect_point().
 func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, direction: Vector2, space_state: PhysicsDirectSpaceState2D, effective_ray_dist: float = 300.0) -> Vector2:
 	var near_dist := collision_point.distance_to(player_pos)
-	var step_size := 45.0  ## Issue #1411: increased from 30 to 45 to reduce physics queries per probe
-	var max_probe_dist := effective_ray_dist * 2.0  ## Issue #1411: reduced from 3x to 2x — diminishing returns beyond 2x
-	var probe_dist := near_dist + 5.0
-	var was_inside := false
+	var step_size := 45.0; var max_probe_dist := effective_ray_dist * 2.0  ## Issue #1411: was 30/3x
+	var probe_dist := near_dist + 5.0; var was_inside := false; var iterations := 0
 	var point_query := PhysicsPointQueryParameters2D.new()
 	point_query.collision_mask = 4; point_query.collide_with_areas = false; point_query.collide_with_bodies = true
-	var iterations := 0  ## Issue #1411: cap iterations to prevent runaway probing
-	while probe_dist < max_probe_dist and iterations < 15:
+	while probe_dist < max_probe_dist and iterations < 15:  ## Issue #1411: cap iterations
 		iterations += 1
 		var probe_point := player_pos + direction * probe_dist
 		point_query.position = probe_point
