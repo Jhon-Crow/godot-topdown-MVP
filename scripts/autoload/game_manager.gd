@@ -781,10 +781,11 @@ func _spawn_selected_enemy_at_player() -> void:
 ## Tracks levels completed without taking any damage for Combat Disposition unlock (Issue #1389).
 func _on_score_calculated(score_data: Dictionary) -> void:
 	var damage_taken: int = score_data.get("damage_taken", -1)
+	_log_to_file("Level completed — damage_taken: %d" % damage_taken)
 	if damage_taken == 0:
 		no_damage_levels_completed += 1
 		no_damage_levels_completed_updated.emit(no_damage_levels_completed)
-		_log_to_file("no_damage_levels_completed: %d" % no_damage_levels_completed)
+		_log_to_file("No-damage level condition met — no_damage_levels_completed: %d" % no_damage_levels_completed)
 
 
 ## Log a message to the file logger if available.

@@ -37,32 +37,29 @@
 | 2026-03-24T03:01:49Z | Third AI commit: reverts Combat Disposition back to `no_damage_levels_completed ≥ 1`, adds missing signal handler, fixes unlock table label |
 | 2026-03-24T03:52:05Z | **Jhon-Crow reviews again** — Combat Disposition still unlocks even when player takes damage. Owner says to use a damage-taken flag, not HP-based logic. Provides `game_log_20260324_064838.txt` |
 | 2026-03-24T03:52:57Z | AI work session started (session 4) |
-| 2026-03-24T(current) | **Fourth AI commit (this session)**: fixes root cause — C# Player.TakeDamage() was not calling ScoreManager.register_damage_taken(), so `_damage_taken` was always 0 at level completion |
+| 2026-03-24T04:02:45Z | Fourth AI commit (session 4): adds `register_damage_taken(1)` call to C# Player.TakeDamage(), but places it AFTER invincibility/force-field guards — only fires when damage actually goes through |
+| 2026-03-24T07:01:26Z | **Jhon-Crow reviews again** — Combat Disposition still unlocks on power fantasy difficulty (invincibility enabled). Provides `game_log_20260324_095856.txt` showing `[Player] Hit blocked by invincibility mode` but no ScoreManager damage registration. Owner says to use a hit flag, not HP-based logic. |
+| 2026-03-24T(current) | **Fifth AI commit (session 5)**: moves `register_damage_taken(1)` call to TOP of TakeDamage(), BEFORE all immunity guards (dash, force field, invincibility, armored skin). Any call to TakeDamage now registers as "was hit" for no-damage level tracking. |
 
 ---
 
 ## 3. Root Cause Analysis
 
-### Primary Root Cause (Session 4): C# Player never registers damage with ScoreManager
+### Primary Root Cause (Session 5): register_damage_taken placed after immunity guards
 
-The **actual** root cause of the persistent "unlocks even with damage" bug is in `Scripts/Characters/Player.cs`. The C# `TakeDamage()` method handles damage correctly (health reduction, effects, sounds), but **never calls `ScoreManager.register_damage_taken()`**.
+Session 4 added `ScoreManager.register_damage_taken(1)` to C# `Player.TakeDamage()`, but placed it **after** all immunity early-return guards (dash, force field, invincibility, armored skin). On "power fantasy" difficulty, the player has `_invincibilityEnabled = true`, so `TakeDamage()` returns at the invincibility check before reaching `register_damage_taken()`.
 
-The GDScript version of the player (`scripts/characters/player.gd`, lines 1107-1109) correctly calls:
-```gdscript
-var score_manager: Node = get_node_or_null("/root/ScoreManager")
-if score_manager and score_manager.has_method("register_damage_taken"):
-    score_manager.register_damage_taken(1)
-```
+**Evidence from `game_log_20260324_095856.txt`**:
+- Line 669: `Connected to GameManager, invincibility mode: True` — power fantasy enables invincibility
+- Lines 1021, 1024, 1027, 1764, 1900: `[Player] Hit blocked by invincibility mode (C#)` — player IS being hit by enemies
+- **No `[ScoreManager] Damage taken:` log entries** — `register_damage_taken()` never called because invincibility guard returns early
+- Line 2105: `No-damage level condition met` — fires incorrectly because `_damage_taken` is still 0
 
-But the C# version — which is the **active player in the running game** (evidenced by "C# Damaged" signals in game logs) — has no equivalent call.
+**Fix**: Move `register_damage_taken(1)` to the very top of `TakeDamage()`, right after the `!IsAlive` null check, BEFORE all immunity guards. This treats any call to `TakeDamage()` as "the player was hit" regardless of whether the damage is ultimately absorbed.
 
-**Consequence**: `ScoreManager._damage_taken` stays at 0 for the entire level. When `complete_level()` is called, the score data always contains `"damage_taken": 0`. `GameManager._on_score_calculated()` then always increments `no_damage_levels_completed`, even if the player took multiple hits.
+### Previous Root Cause (Session 4): C# Player never registers damage with ScoreManager
 
-**Evidence from `game_log_20260324_064838.txt`**:
-- Lines 678-687: Player takes 3 hits (health drops 9→8→7) — `PenultimateHit` and `LastChance` both log the C# `Damaged` signal
-- **No `[ScoreManager] Damage taken:` log entries appear** — confirming `register_damage_taken()` was never called
-- Line 1794: `"No-damage level condition met"` — incorrectly triggered despite player taking damage
-- Line 1797: `"Level completed! Final score: 10374, Rank: B"` — damage penalty is 0 (despite 3 hits)
+Session 4 correctly identified that C# `Player.TakeDamage()` had no `register_damage_taken()` call (while GDScript `player.gd` did). However, the fix placed the call too late in the method — after immunity guards that can return early.
 
 ### Secondary Root Cause (Session 2): Misinterpretation of Review Feedback
 
@@ -82,7 +79,8 @@ The owner's save file contained `kills_without_laser_sight: 153`, which masked b
 
 | # | Description | Root Cause | Session Fixed |
 |---|---|---|---|
-| Bug 1 | C# Player.TakeDamage() never calls ScoreManager.register_damage_taken() — damage_taken always 0 | Missing cross-language bridge between C# damage system and GDScript ScoreManager | Session 4 (this) |
+| Bug 1a | C# Player.TakeDamage() never calls ScoreManager.register_damage_taken() — damage_taken always 0 | Missing cross-language bridge between C# damage system and GDScript ScoreManager | Session 4 |
+| Bug 1b | register_damage_taken() placed after invincibility guard — still always 0 on power fantasy difficulty | Call placed after early-return guards; invincibility blocks execution path | Session 5 (this) |
 | Bug 2 | Combat Disposition condition used wrong stat (`kills_without_laser_sight` instead of `no_damage_levels_completed`) | Session 2 misread review feedback | Session 3 |
 | Bug 3 | No signal handler for `no_damage_levels_completed_updated` in UnlockManager | Omission in session 1 implementation | Session 3 |
 | Bug 4 | Armored Skin label showed "kills (no Laser Sight)" instead of "deaths" | Display label not updated for new stat type | Session 2 |
@@ -91,8 +89,11 @@ The owner's save file contained `kills_without_laser_sight: 153`, which masked b
 
 ## 5. Files Changed
 
-### `Scripts/Characters/Player.cs` (Session 4 — key fix)
-- `TakeDamage()` — added call to `ScoreManager.register_damage_taken(1)` after all early-return guards (invincibility, force field, armored skin immunity), right before `base.TakeDamage(amount)`. This ensures the GDScript ScoreManager tracks actual damage taken during a level, enabling correct no-damage level detection.
+### `Scripts/Characters/Player.cs` (Sessions 4 & 5 — key fix)
+- `TakeDamage()` — Session 4 added `ScoreManager.register_damage_taken(1)` but placed it after immunity guards. Session 5 moved it to the TOP of the method, right after the `!IsAlive` null check, BEFORE all immunity guards (dash, force field, invincibility, armored skin). Any enemy hit now registers as "damage taken" for scoring/unlock tracking, regardless of whether the hit was absorbed.
+
+### `scripts/autoload/game_manager.gd` (Session 5)
+- `_on_score_calculated()` — added `damage_taken` value log line for debugging. Changed "No-damage level condition met" log to be more descriptive.
 
 ### `scripts/autoload/active_item_manager.gd` (Session 4)
 - Resolved merge conflict with main (added `DASH` entry)
@@ -159,6 +160,7 @@ func _on_no_damage_levels_completed_updated(_new_count: int) -> void:
 
 - [`game_log_20260324_054949.txt`](./game_log_20260324_054949.txt) — Game log from the owner's test session on 2026-03-24 05:49 (Windows build, Godot 4.3-stable)
 - [`game_log_20260324_064838.txt`](./game_log_20260324_064838.txt) — Game log from the owner's test session on 2026-03-24 06:48 — proves damage is detected by C# Damaged signal but never reaches ScoreManager
+- [`game_log_20260324_095856.txt`](./game_log_20260324_095856.txt) — Game log from the owner's test session on 2026-03-24 09:58 — proves invincibility mode blocks register_damage_taken() when placed after guards
 - [`issue.json`](./issue.json) — GitHub issue metadata
 
 ---
@@ -168,7 +170,9 @@ func _on_no_damage_levels_completed_updated(_new_count: int) -> void:
 Key learnings from this multi-session debugging process:
 
 1. **Cross-language bridges**: In mixed GDScript/C# Godot projects, when one language system (C# Player) performs an action (taking damage), it must explicitly notify systems in the other language (GDScript ScoreManager). The GDScript Player had this bridge; the C# Player did not. Always check both language implementations.
-2. **Read the game logs carefully**: The absence of expected log lines (`[ScoreManager] Damage taken:`) was the key evidence. The bug was not in the condition logic or signal handling — it was in the damage registration path.
-3. **Ambiguous feedback**: When an owner says "X opens not when Y, but when Z", they may be describing observed broken behavior, not desired behavior. Cross-reference the original requirements.
-4. **Save data pollution**: Pre-existing save data can mask bugs by satisfying conditions that should not yet be met.
-5. **Signal-driven unlock systems**: Adding a stat to a condition array is not sufficient — the system must also subscribe to the stat's update signal.
+2. **Guard ordering matters**: When registering side effects (metrics, stats, flags) in a method with multiple early-return guards, the registration must happen BEFORE the guards — not after. If a guard returns early, any code after it is unreachable for that code path. In this case, `register_damage_taken()` was placed after invincibility/force-field/dash guards, so hits blocked by these mechanisms were never counted.
+3. **"Hit" vs "damage applied"**: For unlock conditions like "complete a level without taking damage", the semantically correct check is "was the player hit at all?" — not "did the player's HP decrease?". On easy difficulty modes with invincibility, the player is still hit even though HP doesn't change.
+4. **Read the game logs carefully**: The absence of expected log lines (`[ScoreManager] Damage taken:`) was the key evidence. The bug was not in the condition logic or signal handling — it was in the damage registration path.
+5. **Ambiguous feedback**: When an owner says "X opens not when Y, but when Z", they may be describing observed broken behavior, not desired behavior. Cross-reference the original requirements.
+6. **Save data pollution**: Pre-existing save data can mask bugs by satisfying conditions that should not yet be met.
+7. **Signal-driven unlock systems**: Adding a stat to a condition array is not sufficient — the system must also subscribe to the stat's update signal.
