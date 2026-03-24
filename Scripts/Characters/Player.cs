@@ -1248,6 +1248,9 @@ public partial class Player : BaseCharacter
         // Initialize fine motor skills if active item manager has it selected (Issue #1315)
         InitFineMotorSkills();
 
+        // Initialize dash if active item manager has it selected (Issue #1071)
+        InitDash();
+
         // Initialize jammer HUD prohibition sign (always created; visibility toggled at runtime) (Issue #1036)
         InitJammerHud();
 
@@ -1456,7 +1459,17 @@ public partial class Player : BaseCharacter
         }
 
         Vector2 inputDirection = GetInputDirection();
-        ApplyMovement(inputDirection, (float)delta);
+
+        // Skip normal movement during dash — DashEffect controls velocity (Issue #1071)
+        if (!IsDashActive())
+        {
+            ApplyMovement(inputDirection, (float)delta);
+        }
+        else
+        {
+            // DashEffect sets velocity in its own _physics_process; just slide here
+            MoveAndSlide();
+        }
 
         // Push any casings we're overlapping with using Area2D detection (Issue #392 Iteration 8)
         PushCasingsWithArea2D();
@@ -1581,6 +1594,9 @@ public partial class Player : BaseCharacter
 
         // Handle fine motor skills input (press Space to instantly reload) (Issue #1315)
         HandleFineMotorSkillsInput();
+
+        // Handle dash input (press Space to dash in movement direction) (Issue #1071)
+        HandleDashInput();
 
         // Update jammer HUD visibility (Issue #1036)
         UpdateJammerHud();
@@ -2576,6 +2592,14 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Check dash immunity (Issue #1071)
+        // Player is immune to all damage during dash
+        if (IsDashActive())
+        {
+            LogToFile("[Player] Hit blocked by dash immunity (C#)");
+            return;
+        }
+
         // Check force field protection (Issue #676)
         // Force field makes player invulnerable while active
         if (is_force_field_active())
@@ -3244,5 +3268,6 @@ public partial class Player : BaseCharacter
     }
 
     #endregion
+
 
 }
