@@ -12,8 +12,15 @@ extends Node
 ## the camera correctly — same pattern as NavMeshMonitor (Issue #1187).
 ##
 ## Issue #1255: Added as a dedicated debug toggle in the Experimental menu.
+## Issue #1392: Replaced Node2D._draw() with Line2D/Label scene nodes to fix
+##              invisible overlays in gl_compatibility exported builds.
 
-## The overlay node used for custom drawing.
+## Number of segments for circle approximations.
+const CIRCLE_SEGMENTS := 16
+## Radius of waypoint circles.
+const WAYPOINT_RADIUS := 12.0
+
+## The overlay node used for rendering.
 var _overlay: _WaypointOverlay = null
 
 
@@ -68,33 +75,45 @@ func _deferred_refresh() -> void:
 		_overlay.refresh()
 
 
-## Inner class: a CanvasLayer that draws all waypoint circles each frame.
+## Generate circle outline points as a PackedVector2Array for use with Line2D.
+static func _circle_points(center: Vector2, radius: float, segments: int = CIRCLE_SEGMENTS) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in range(segments + 1):
+		var angle := (TAU * i) / segments
+		pts.append(center + Vector2(cos(angle), sin(angle)) * radius)
+	return pts
+
+
+## Inner class: a CanvasLayer that renders waypoint markers using Line2D and Label nodes.
+## Issue #1392: Node2D._draw() is unreliable in gl_compatibility exported builds;
+## Line2D and Label scene nodes use Godot's built-in rendering pipeline reliably.
 class _WaypointOverlay extends CanvasLayer:
-	## The Node2D child that performs the actual draw calls.
-	## Initialized in _init() so it is available immediately after .new(),
-	## before _ready() fires (which is deferred to the next frame by add_child).
-	var _draw_node: _WaypointDrawNode = null
+	## Container node for all child nodes.
+	var _container: Node2D = null
 
 	func _init() -> void:
 		# Render above game world (layer 11, just above NavMeshMonitor at 10)
 		layer = 11
 		# Follow the viewport camera so world-space coordinates align correctly
 		follow_viewport_enabled = true
-		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().
-		# _ready() is deferred to the next frame after add_child(), so if refresh()
-		# is called immediately after _WaypointOverlay.new() + add_child(), _draw_node
-		# would still be null and the overlay would silently draw nothing.
-		_draw_node = _WaypointDrawNode.new()
-		add_child(_draw_node)
+		_container = Node2D.new()
+		_container.name = "WaypointContainer"
+		add_child(_container)
 
-	## Collect all waypoint positions from both groups and pass them to the draw node.
+	## Collect all waypoint positions from both groups and create Line2D/Label nodes.
 	func refresh() -> void:
-		if _draw_node == null:
+		if _container == null:
 			return
-		var waypoints: Array = []
+		# Clear previous nodes
+		for child in _container.get_children():
+			child.queue_free()
+
 		var tree: SceneTree = Engine.get_main_loop() as SceneTree
 		if tree == null:
 			return
+
+		# Collect waypoints from both groups
+		var waypoints: Array = []
 		for wp in tree.get_nodes_in_group("passage_waypoints"):
 			if wp is Node2D:
 				waypoints.append({"pos": wp.global_position, "name": wp.name,
@@ -103,21 +122,22 @@ class _WaypointOverlay extends CanvasLayer:
 			if wp is Node2D:
 				waypoints.append({"pos": wp.global_position, "name": wp.name,
 						"color": Color(1.0, 0.85, 0.1, 0.85)})
-		_draw_node.set_waypoints(waypoints)
 
-
-## Inner draw node: performs the actual draw calls each frame.
-class _WaypointDrawNode extends Node2D:
-	var _waypoints: Array = []
-
-	func set_waypoints(waypoints: Array) -> void:
-		_waypoints = waypoints
-		queue_redraw()
-
-	func _draw() -> void:
-		var font: Font = ThemeDB.fallback_font
-		for wp in _waypoints:
+		for wp in waypoints:
 			var pos: Vector2 = wp["pos"]
-			draw_circle(pos, 12.0, wp["color"])
-			draw_string(font, pos + Vector2(14, 4), wp["name"],
-					HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+			var color: Color = wp["color"]
+
+			# Filled circle (thick Line2D circle)
+			var fill_circle := Line2D.new()
+			fill_circle.points = WaypointMonitor._circle_points(pos, WaypointMonitor.WAYPOINT_RADIUS)
+			fill_circle.default_color = color
+			fill_circle.width = WaypointMonitor.WAYPOINT_RADIUS
+			_container.add_child(fill_circle)
+
+			# Label with waypoint name
+			var label := Label.new()
+			label.text = wp["name"]
+			label.position = pos + Vector2(14, -6)
+			label.add_theme_font_size_override("font_size", 11)
+			label.add_theme_color_override("font_color", Color.WHITE)
+			_container.add_child(label)

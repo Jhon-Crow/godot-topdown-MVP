@@ -22,6 +22,9 @@ extends Node
 ## Depends on:
 ##   - SoundPropagation autoload (connects to its sound_emitted signal)
 ##   - ExperimentalSettings autoload (checked before drawing)
+##
+## Issue #1392: Replaced Node2D._draw() with Line2D/Label scene nodes to fix
+##              invisible overlays in gl_compatibility exported builds.
 
 # ---------------------------------------------------------------------------
 # Timing constants
@@ -90,8 +93,15 @@ class SoundEvent:
 # ---------------------------------------------------------------------------
 
 var _canvas_layer: CanvasLayer = null
-var _draw_node: Node2D = null
+var _container: Node2D = null
 var _events: Array[SoundEvent] = []
+## Pool of reusable Line2D nodes.
+var _line_pool: Array[Line2D] = []
+## Pool of reusable Label nodes.
+var _label_pool: Array[Label] = []
+## How many pool nodes are currently in use.
+var _lines_used: int = 0
+var _labels_used: int = 0
 
 
 func _ready() -> void:
@@ -101,11 +111,9 @@ func _ready() -> void:
 	_canvas_layer.follow_viewport_enabled = true
 	add_child(_canvas_layer)
 
-	_draw_node = Node2D.new()
-	_draw_node.name = "SoundVisualizerDraw"
-	_canvas_layer.add_child(_draw_node)
-	_draw_node.draw.connect(_on_draw)
-	_draw_node.set_process(true)
+	_container = Node2D.new()
+	_container.name = "SoundVisualizerContainer"
+	_canvas_layer.add_child(_container)
 
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 	if sound_propagation and sound_propagation.has_signal("sound_emitted"):
@@ -118,7 +126,7 @@ func _process(delta: float) -> void:
 	for ev in _events:
 		ev.age += delta
 	_events = _events.filter(func(e: SoundEvent) -> bool: return e.age < EVENT_LIFETIME)
-	_draw_node.queue_redraw()
+	_refresh()
 
 
 ## Called by SoundPropagation whenever a sound is emitted.
@@ -148,37 +156,95 @@ func _on_sound_emitted(sound_type: int, position: Vector2, source_type: int,
 		ev.ripples.append(r)
 
 	_events.append(ev)
-	_draw_node.queue_redraw()
+	_refresh()
 
 
 # ---------------------------------------------------------------------------
-# Drawing
+# Pool management
 # ---------------------------------------------------------------------------
 
-func _on_draw() -> void:
+## Get a Line2D from the pool (reuse or create).
+func _get_line() -> Line2D:
+	if _lines_used < _line_pool.size():
+		var line: Line2D = _line_pool[_lines_used]
+		line.show()
+		_lines_used += 1
+		return line
+	var line := Line2D.new()
+	_container.add_child(line)
+	_line_pool.append(line)
+	_lines_used += 1
+	return line
+
+
+## Get a Label from the pool (reuse or create).
+func _get_label() -> Label:
+	if _labels_used < _label_pool.size():
+		var lbl: Label = _label_pool[_labels_used]
+		lbl.show()
+		_labels_used += 1
+		return lbl
+	var lbl := Label.new()
+	_container.add_child(lbl)
+	_label_pool.append(lbl)
+	_labels_used += 1
+	return lbl
+
+
+## Hide all unused pool nodes after refresh.
+func _finish_refresh() -> void:
+	for i in range(_lines_used, _line_pool.size()):
+		_line_pool[i].hide()
+	for i in range(_labels_used, _label_pool.size()):
+		_label_pool[i].hide()
+
+
+## Generate circle outline points as a PackedVector2Array for use with Line2D.
+static func _circle_points(center: Vector2, radius: float, segments: int = ARC_SEGMENTS) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in range(segments + 1):
+		var angle := (TAU * i) / segments
+		pts.append(center + Vector2(cos(angle), sin(angle)) * radius)
+	return pts
+
+
+# ---------------------------------------------------------------------------
+# Rendering
+# ---------------------------------------------------------------------------
+
+func _refresh() -> void:
+	_lines_used = 0
+	_labels_used = 0
 	for ev in _events:
-		_draw_event(ev)
+		_render_event(ev)
+	_finish_refresh()
 
 
-func _draw_event(ev: SoundEvent) -> void:
+func _render_event(ev: SoundEvent) -> void:
 	# 1. Boundary ring — visible from the moment the first ripple would reach
 	#    it until the event expires.
 	var boundary_alpha: float = _boundary_alpha(ev)
 	if boundary_alpha > 0.0:
 		var bc: Color = ev.color
 		bc.a = boundary_alpha
+
 		# Outer glow (wider, more transparent).
 		var glow_c: Color = bc
 		glow_c.a *= 0.35
-		_draw_node.draw_arc(ev.position, ev.max_radius, 0.0, TAU, ARC_SEGMENTS,
-				glow_c, BOUNDARY_WIDTH * 2.5, true)
+		var glow_ring: Line2D = _get_line()
+		glow_ring.points = _circle_points(ev.position, ev.max_radius)
+		glow_ring.default_color = glow_c
+		glow_ring.width = BOUNDARY_WIDTH * 2.5
+
 		# Main boundary ring.
-		_draw_node.draw_arc(ev.position, ev.max_radius, 0.0, TAU, ARC_SEGMENTS,
-				bc, BOUNDARY_WIDTH, true)
+		var main_ring: Line2D = _get_line()
+		main_ring.points = _circle_points(ev.position, ev.max_radius)
+		main_ring.default_color = bc
+		main_ring.width = BOUNDARY_WIDTH
 
 	# 2. Travelling ripple rings.
 	for ripple in ev.ripples:
-		_draw_ripple(ev, ripple)
+		_render_ripple(ev, ripple)
 
 	# 3. Origin dot.
 	if ev.age < DOT_LIFETIME:
@@ -186,28 +252,32 @@ func _draw_event(ev: SoundEvent) -> void:
 		dot_alpha = clampf(dot_alpha, 0.0, 1.0)
 		var dc: Color = ev.color
 		dc.a = dot_alpha
-		_draw_node.draw_circle(ev.position, ORIGIN_DOT_RADIUS, dc)
+		var dot: Line2D = _get_line()
+		dot.points = _circle_points(ev.position, ORIGIN_DOT_RADIUS)
+		dot.default_color = dc
+		dot.width = ORIGIN_DOT_RADIUS
 
 	# 4. Labels (sound type + radius value) — anchored near the boundary.
 	if boundary_alpha > 0.1:
-		var font: Font = ThemeDB.fallback_font
-		if font:
-			# Sound type label at origin (offset slightly so it does not overlap the dot).
-			var origin_label_pos: Vector2 = ev.position + Vector2(ORIGIN_DOT_RADIUS + 5.0, -10.0)
-			_draw_node.draw_string(font, origin_label_pos, ev.label,
-					HORIZONTAL_ALIGNMENT_LEFT, -1, 13,
-					Color(1.0, 1.0, 1.0, boundary_alpha))
+		# Sound type label at origin
+		var type_label: Label = _get_label()
+		type_label.text = ev.label
+		type_label.position = ev.position + Vector2(ORIGIN_DOT_RADIUS + 5.0, -10.0)
+		type_label.add_theme_font_size_override("font_size", 13)
+		type_label.add_theme_color_override("font_color",
+				Color(1.0, 1.0, 1.0, boundary_alpha))
 
-			# Radius value label — placed to the right of the boundary ring.
-			var radius_text: String = "%.0f px" % ev.max_radius
-			var radius_label_pos: Vector2 = ev.position + Vector2(ev.max_radius + 6.0, 0.0)
-			var lc: Color = ev.color
-			lc.a = boundary_alpha
-			_draw_node.draw_string(font, radius_label_pos, radius_text,
-					HORIZONTAL_ALIGNMENT_LEFT, -1, 13, lc)
+		# Radius value label — placed to the right of the boundary ring.
+		var radius_label: Label = _get_label()
+		radius_label.text = "%.0f px" % ev.max_radius
+		radius_label.position = ev.position + Vector2(ev.max_radius + 6.0, 0.0)
+		var lc: Color = ev.color
+		lc.a = boundary_alpha
+		radius_label.add_theme_font_size_override("font_size", 13)
+		radius_label.add_theme_color_override("font_color", lc)
 
 
-func _draw_ripple(ev: SoundEvent, ripple: Ripple) -> void:
+func _render_ripple(ev: SoundEvent, ripple: Ripple) -> void:
 	## Age of this particular ripple relative to its birth_time.
 	var ripple_age: float = ev.age - ripple.birth_time
 	if ripple_age <= 0.0:
@@ -232,8 +302,10 @@ func _draw_ripple(ev: SoundEvent, ripple: Ripple) -> void:
 
 	var rc: Color = ev.color
 	rc.a = alpha * 0.85
-	_draw_node.draw_arc(ev.position, current_radius, 0.0, TAU, ARC_SEGMENTS,
-			rc, RIPPLE_WIDTH, true)
+	var ripple_ring: Line2D = _get_line()
+	ripple_ring.points = _circle_points(ev.position, current_radius)
+	ripple_ring.default_color = rc
+	ripple_ring.width = RIPPLE_WIDTH
 
 
 ## Compute alpha for the static boundary ring.
