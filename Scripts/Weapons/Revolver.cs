@@ -465,7 +465,7 @@ public partial class Revolver : BaseWeapon
         _cylinderUI.OffsetLeft = 10;
         _cylinderUI.OffsetTop = 30;
         _cylinderUI.OffsetRight = 200;
-        _cylinderUI.OffsetBottom = 62;
+        _cylinderUI.OffsetBottom = 68;
         ui.AddChild(_cylinderUI);
 
         _cylinderUI.ConnectToRevolver(this);

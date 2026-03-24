@@ -470,31 +470,41 @@ public partial class LevelInitFallback : Node
 
     /// <summary>
     /// Setup debug UI elements.
+    /// KillsLabel and AccuracyLabel are only created when debug mode is enabled
+    /// (ExperimentalSettings.debug_mode_enabled). MagazinesLabel is always shown.
     /// </summary>
     private void SetupDebugUI(Node levelRoot)
     {
         var ui = levelRoot.GetNodeOrNull("CanvasLayer/UI");
         if (ui == null) return;
 
-        _killsLabel = new Label();
-        _killsLabel.Name = "KillsLabel";
-        _killsLabel.Text = "Kills: 0";
-        _killsLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
-        _killsLabel.OffsetLeft = 10;
-        _killsLabel.OffsetTop = 65;
-        _killsLabel.OffsetRight = 200;
-        _killsLabel.OffsetBottom = 95;
-        ui.AddChild(_killsLabel);
+        var experimentalSettings = GetNodeOrNull("/root/ExperimentalSettings");
+        bool debugMode = experimentalSettings != null &&
+                         experimentalSettings.HasMethod("is_debug_mode_enabled") &&
+                         experimentalSettings.Call("is_debug_mode_enabled").AsBool();
 
-        _accuracyLabel = new Label();
-        _accuracyLabel.Name = "AccuracyLabel";
-        _accuracyLabel.Text = "Accuracy: 0%";
-        _accuracyLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
-        _accuracyLabel.OffsetLeft = 10;
-        _accuracyLabel.OffsetTop = 95;
-        _accuracyLabel.OffsetRight = 200;
-        _accuracyLabel.OffsetBottom = 125;
-        ui.AddChild(_accuracyLabel);
+        if (debugMode)
+        {
+            _killsLabel = new Label();
+            _killsLabel.Name = "KillsLabel";
+            _killsLabel.Text = "Kills: 0";
+            _killsLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+            _killsLabel.OffsetLeft = 10;
+            _killsLabel.OffsetTop = 70;
+            _killsLabel.OffsetRight = 200;
+            _killsLabel.OffsetBottom = 100;
+            ui.AddChild(_killsLabel);
+
+            _accuracyLabel = new Label();
+            _accuracyLabel.Name = "AccuracyLabel";
+            _accuracyLabel.Text = "Accuracy: 0%";
+            _accuracyLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+            _accuracyLabel.OffsetLeft = 10;
+            _accuracyLabel.OffsetTop = 100;
+            _accuracyLabel.OffsetRight = 200;
+            _accuracyLabel.OffsetBottom = 130;
+            ui.AddChild(_accuracyLabel);
+        }
 
         _magazinesLabel = new Label();
         _magazinesLabel.Name = "MagazinesLabel";
@@ -526,7 +536,7 @@ public partial class LevelInitFallback : Node
         _cylinderUI.OffsetLeft = 10;
         _cylinderUI.OffsetTop = 30;
         _cylinderUI.OffsetRight = 200;
-        _cylinderUI.OffsetBottom = 62;
+        _cylinderUI.OffsetBottom = 68;
         ui.AddChild(_cylinderUI);
 
         _cylinderUI.ConnectToRevolver(revolver);
