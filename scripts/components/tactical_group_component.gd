@@ -1,8 +1,8 @@
 class_name TacticalGroupComponent
 extends RefCounted
-## Tactical group movement for enemies within 500 px (Issue #1287).
+## Tactical group movement for enemies within 1000 px (Issue #1287, #1373).
 ##
-## When multiple enemies are within GROUP_RADIUS (500 px) of the player they
+## When multiple enemies are within GROUP_RADIUS (1000 px) of the player they
 ## form a temporary "tactical group" and coordinate their approach so they
 ## encircle the player instead of all rushing from the same direction.
 ##
@@ -28,7 +28,8 @@ extends RefCounted
 ##     # use adjusted instead of player_pos for _move_to_target_nav()
 
 ## Radius within which enemies unite into a tactical group (px).
-const GROUP_RADIUS: float = 500.0
+## Increased from 500 to 1000 per Issue #1373.
+const GROUP_RADIUS: float = 1000.0
 
 ## Minimum number of allies (including self) to form a group.
 const MIN_GROUP_SIZE: int = 2
