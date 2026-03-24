@@ -560,6 +560,8 @@ func _setup_player_tracking() -> void:
 		push_warning("Player not found")
 		return
 
+	_setup_selected_weapon()
+
 	# Register player with GameManager
 	if GameManager:
 		GameManager.set_player(_player)
@@ -595,6 +597,9 @@ func _setup_player_tracking() -> void:
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
 		if weapon.has_signal("Fired"):
 			weapon.Fired.connect(_on_shot_fired)
+		# Apply ammo config (silenced pistol and makarov_pm handled here as well)
+		_configure_silenced_pistol_ammo(weapon)
+		_configure_makarov_pm_ammo(weapon)
 		# Initial ammo display from weapon
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
@@ -1137,6 +1142,200 @@ func _setup_weapon_hints() -> void:
 	if _weapon_hints_component.has_method("setup"):
 		_weapon_hints_component.setup(_player, canvas_layer)
 		print("[Labyrinth2Level] Weapon hints component added and setup")
+
+
+## Configure silenced pistol ammo to match enemy count (Issue #1422).
+## The silenced pistol gets exactly as many bullets as there are enemies.
+func _configure_silenced_pistol_ammo(weapon: Node) -> void:
+	if weapon.name != "SilencedPistol":
+		return
+	if weapon.has_method("ConfigureAmmoForEnemyCount"):
+		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
+		_log_to_file("Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+
+
+## Configure Makarov PM ammo - 2.5x magazines (Issue #1422).
+func _configure_makarov_pm_ammo(weapon: Node) -> void:
+	if weapon == null:
+		return
+	if weapon.name != "MakarovPM":
+		return
+	var starting_magazines: int = 4
+	if weapon.get("StartingMagazineCount") != null:
+		starting_magazines = weapon.StartingMagazineCount
+	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	if weapon.has_method("ReinitializeMagazines"):
+		weapon.ReinitializeMagazines(pm_magazines, true)
+		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
+
+
+## Apply Labyrinth2 level ammo configuration to a weapon (Issue #1422).
+## Silenced pistol: exactly as many bullets as enemies.
+## Mini UZI and rifles: 2 magazines to match level difficulty.
+## Shotgun, sniper, revolver: defaults are sufficient for 17 enemies.
+func _configure_labyrinth2_weapon_ammo(weapon: Node, weapon_id: String) -> void:
+	if weapon == null:
+		return
+
+	if weapon_id == "silenced_pistol":
+		_configure_silenced_pistol_ammo(weapon)
+	elif weapon_id == "mini_uzi" or weapon_id == "m16" or weapon_id == "ak_gl":
+		var base_magazines: int = 2
+		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+		if difficulty_manager:
+			var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+			if ammo_multiplier > 1:
+				base_magazines *= ammo_multiplier
+				_log_to_file("Power Fantasy mode - %s magazines multiplied by %dx" % [weapon.name, ammo_multiplier])
+		if weapon.has_method("ReinitializeMagazines"):
+			weapon.ReinitializeMagazines(base_magazines, true)
+			_log_to_file("%s magazines reinitialized to %d" % [weapon.name, base_magazines])
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
+		_log_to_file("Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+
+
+## Setup and equip the weapon selected by the player (Issue #1422).
+func _setup_selected_weapon() -> void:
+	if _player == null:
+		return
+
+	var selected_weapon_id: String = "makarov_pm"
+	if GameManager:
+		selected_weapon_id = GameManager.get_selected_weapon()
+
+	_log_to_file("Setting up weapon: %s" % selected_weapon_id)
+
+	if selected_weapon_id != "makarov_pm":
+		var weapon_names: Dictionary = {
+			"shotgun": "Shotgun",
+			"mini_uzi": "MiniUzi",
+			"silenced_pistol": "SilencedPistol",
+			"sniper": "SniperRifle",
+			"m16": "AssaultRifle",
+			"ak_gl": "AKGL",
+			"revolver": "Revolver"
+		}
+		if selected_weapon_id in weapon_names:
+			var expected_name: String = weapon_names[selected_weapon_id]
+			var existing_weapon = _player.get_node_or_null(expected_name)
+			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
+				_log_to_file("%s already equipped by C# Player - applying labyrinth2 ammo config" % expected_name)
+				_configure_labyrinth2_weapon_ammo(existing_weapon, selected_weapon_id)
+				return
+
+	if selected_weapon_id == "shotgun":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var shotgun_scene = load("res://scenes/weapons/csharp/Shotgun.tscn")
+		if shotgun_scene:
+			var shotgun = shotgun_scene.instantiate()
+			shotgun.name = "Shotgun"
+			_player.add_child(shotgun)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(shotgun)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = shotgun
+			_log_to_file("Shotgun equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load Shotgun scene!")
+	elif selected_weapon_id == "mini_uzi":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var mini_uzi_scene = load("res://scenes/weapons/csharp/MiniUzi.tscn")
+		if mini_uzi_scene:
+			var mini_uzi = mini_uzi_scene.instantiate()
+			mini_uzi.name = "MiniUzi"
+			if mini_uzi.get("StartingMagazineCount") != null:
+				mini_uzi.StartingMagazineCount = 2
+			_player.add_child(mini_uzi)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(mini_uzi)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = mini_uzi
+			_configure_labyrinth2_weapon_ammo(mini_uzi, "mini_uzi")
+			_log_to_file("Mini UZI equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load MiniUzi scene!")
+	elif selected_weapon_id == "silenced_pistol":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var pistol_scene = load("res://scenes/weapons/csharp/SilencedPistol.tscn")
+		if pistol_scene:
+			var pistol = pistol_scene.instantiate()
+			pistol.name = "SilencedPistol"
+			_player.add_child(pistol)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(pistol)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = pistol
+			_configure_labyrinth2_weapon_ammo(pistol, "silenced_pistol")
+			_log_to_file("Silenced Pistol equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load SilencedPistol scene!")
+	elif selected_weapon_id == "sniper":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
+		if sniper_scene:
+			var sniper = sniper_scene.instantiate()
+			sniper.name = "SniperRifle"
+			_player.add_child(sniper)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(sniper)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = sniper
+			_log_to_file("ASVK Sniper Rifle equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load SniperRifle scene!")
+	elif selected_weapon_id == "m16":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var m16_scene = load("res://scenes/weapons/csharp/AssaultRifle.tscn")
+		if m16_scene:
+			var m16 = m16_scene.instantiate()
+			m16.name = "AssaultRifle"
+			_player.add_child(m16)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(m16)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = m16
+			_configure_labyrinth2_weapon_ammo(m16, "m16")
+			_log_to_file("M16 Assault Rifle equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load AssaultRifle scene!")
+	elif selected_weapon_id == "ak_gl":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var akgl_scene = load("res://scenes/weapons/csharp/AKGL.tscn")
+		if akgl_scene:
+			var akgl = akgl_scene.instantiate()
+			akgl.name = "AKGL"
+			_player.add_child(akgl)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(akgl)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = akgl
+			_configure_labyrinth2_weapon_ammo(akgl, "ak_gl")
+			_log_to_file("AK + GL equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load AKGL scene!")
+	elif selected_weapon_id == "revolver":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var revolver_scene = load("res://scenes/weapons/csharp/Revolver.tscn")
+		if revolver_scene:
+			var revolver = revolver_scene.instantiate()
+			revolver.name = "Revolver"
+			_player.add_child(revolver)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(revolver)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = revolver
+			_log_to_file("RSh-12 Revolver equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load Revolver scene!")
+	else:
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov and _player.get("CurrentWeapon") == null:
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(makarov)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = makarov
+			_configure_makarov_pm_ammo(makarov)
 
 
 ## Log a message to the level log file for debugging.

@@ -932,6 +932,38 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
+## Apply Labyrinth level ammo configuration to a weapon (Issue #1422).
+## Silenced pistol: exactly as many bullets as enemies.
+## Mini UZI and rifles: 2 magazines to match level difficulty.
+## Shotgun, sniper, revolver: defaults are sufficient for 5 enemies.
+func _configure_labyrinth_weapon_ammo(weapon: Node, weapon_id: String) -> void:
+	if weapon == null:
+		return
+
+	if weapon_id == "silenced_pistol":
+		_configure_silenced_pistol_ammo(weapon)
+	elif weapon_id == "mini_uzi" or weapon_id == "m16" or weapon_id == "ak_gl":
+		var base_magazines: int = 2
+		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+		if difficulty_manager:
+			var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+			if ammo_multiplier > 1:
+				base_magazines *= ammo_multiplier
+				print("[LabyrinthLevel] Power Fantasy mode - %s magazines multiplied by %dx" % [weapon.name, ammo_multiplier])
+		if weapon.has_method("ReinitializeMagazines"):
+			weapon.ReinitializeMagazines(base_magazines, true)
+			print("[LabyrinthLevel] %s magazines reinitialized to %d" % [weapon.name, base_magazines])
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
+		_log_to_file("Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+
+
 ## Setup debug UI elements for kills and accuracy.
 func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
@@ -1608,7 +1640,8 @@ func _setup_selected_weapon() -> void:
 			var expected_name: String = weapon_names[selected_weapon_id]
 			var existing_weapon = _player.get_node_or_null(expected_name)
 			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
-				_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % expected_name)
+				_log_to_file("%s already equipped by C# Player - applying labyrinth ammo config" % expected_name)
+				_configure_labyrinth_weapon_ammo(existing_weapon, selected_weapon_id)
 				return
 
 	if selected_weapon_id == "shotgun":
@@ -1749,6 +1782,7 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = akgl
 
+			_configure_labyrinth_weapon_ammo(akgl, "ak_gl")
 			print("LabyrinthLevel: AK + GL equipped successfully")
 		else:
 			push_error("LabyrinthLevel: Failed to load AKGL scene!")
