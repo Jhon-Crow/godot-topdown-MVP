@@ -78,12 +78,17 @@ func _ready() -> void:
 
 
 func _setup_particles() -> void:
+	# Additive blending material so rain appears as bright streaks, not dark
+	var additive_mat := CanvasItemMaterial.new()
+	additive_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+
 	# --- Layer 1: Diagonal rain streaks (falling raindrops) ---
 	_streaks = GPUParticles2D.new()
 	_streaks.name = "RainStreaks"
 	_streaks.emitting = false
 	_streaks.amount = 180
 	_streaks.lifetime = 0.4
+	_streaks.material = additive_mat
 
 	var streak_mat := ParticleProcessMaterial.new()
 	streak_mat.particle_flag_disable_z = true
@@ -98,17 +103,17 @@ func _setup_particles() -> void:
 	streak_mat.scale_min = 0.8
 	streak_mat.scale_max = 1.5
 	streak_mat.lifetime_randomness = 0.3
-	streak_mat.color = Color(0.85, 0.88, 0.95, 0.5)
+	streak_mat.color = Color(0.7, 0.75, 0.9, 0.45)
 	_streaks.process_material = streak_mat
 
 	# Streak texture: thin diagonal line (elongated rectangle)
 	var streak_gradient := Gradient.new()
 	streak_gradient.offsets = PackedFloat32Array([0, 0.1, 0.9, 1])
 	streak_gradient.colors = PackedColorArray([
-		0.9, 0.92, 1.0, 0.0,
-		0.9, 0.92, 1.0, 0.7,
-		0.9, 0.92, 1.0, 0.7,
-		0.9, 0.92, 1.0, 0.0
+		0.7, 0.75, 0.9, 0.0,
+		0.7, 0.75, 0.9, 0.6,
+		0.7, 0.75, 0.9, 0.6,
+		0.7, 0.75, 0.9, 0.0
 	])
 	var streak_tex := GradientTexture2D.new()
 	streak_tex.gradient = streak_gradient
@@ -122,12 +127,18 @@ func _setup_particles() -> void:
 	_streaks.visibility_rect = Rect2(-900, -600, 1800, 1200)
 	add_child(_streaks)
 
-	# --- Layer 2: Ground splash ripples (circular dots where rain hits) ---
+	# --- Layer 2: Ground splash ripples where streaks land ---
+	# Offset splash emission area to match where streaks end up after their
+	# lifetime. Streaks travel direction (0.5, 1.0) normalized ≈ (0.447, 0.894)
+	# at avg velocity ~425 px/s for 0.4s = ~76px right, ~152px down.
 	_splashes = GPUParticles2D.new()
 	_splashes.name = "RainSplashes"
 	_splashes.emitting = false
 	_splashes.amount = 100
 	_splashes.lifetime = 0.5
+	_splashes.material = additive_mat
+	# Offset splash layer so splashes appear at streak landing positions
+	_splashes.position = Vector2(76, 152)
 
 	var splash_mat := ParticleProcessMaterial.new()
 	splash_mat.particle_flag_disable_z = true
@@ -142,17 +153,17 @@ func _setup_particles() -> void:
 	splash_mat.scale_min = 0.4
 	splash_mat.scale_max = 2.0
 	splash_mat.lifetime_randomness = 0.4
-	splash_mat.color = Color(0.8, 0.85, 0.95, 0.4)
+	splash_mat.color = Color(0.65, 0.7, 0.85, 0.35)
 	_splashes.process_material = splash_mat
 
 	# Splash texture: radial circle (ripple dot)
 	var splash_gradient := Gradient.new()
 	splash_gradient.offsets = PackedFloat32Array([0, 0.4, 0.7, 1])
 	splash_gradient.colors = PackedColorArray([
-		0.9, 0.92, 1.0, 0.0,
-		0.9, 0.92, 1.0, 0.5,
-		0.85, 0.9, 1.0, 0.4,
-		0.8, 0.88, 1.0, 0.0
+		0.7, 0.75, 0.9, 0.0,
+		0.7, 0.75, 0.9, 0.45,
+		0.65, 0.7, 0.85, 0.35,
+		0.6, 0.68, 0.85, 0.0
 	])
 	var splash_tex := GradientTexture2D.new()
 	splash_tex.gradient = splash_gradient
