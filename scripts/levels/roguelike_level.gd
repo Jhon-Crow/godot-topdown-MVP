@@ -498,10 +498,14 @@ func _generate_room_map(room_count: int, room_types_pool: Array) -> Array:
 		if rooms[i]["connections"].size() == 1:
 			dead_ends.append(i)
 
-	# Sort dead ends by distance from start (farthest first)
+	# Issue #1451: Sort dead ends by BFS path distance from start (farthest first).
+	# Uses graph distance (number of rooms to traverse) instead of Euclidean distance,
+	# matching The Binding of Isaac's boss room placement algorithm. This ensures the
+	# exit is always at the end of the longest path through the dungeon.
+	var bfs_dist: Dictionary = _bfs_distances(rooms, 0)
 	dead_ends.sort_custom(func(a, b):
-		var da: float = Vector2(rooms[a]["grid_pos"]).distance_to(Vector2(start_pos))
-		var db: float = Vector2(rooms[b]["grid_pos"]).distance_to(Vector2(start_pos))
+		var da: int = bfs_dist.get(a, 0)
+		var db: int = bfs_dist.get(b, 0)
 		return da > db
 	)
 
@@ -534,6 +538,23 @@ func _generate_room_map(room_count: int, room_types_pool: Array) -> Array:
 			r["map_room_type"], str(r["connections"])])
 
 	return rooms
+
+
+## Issue #1451: Compute BFS shortest-path distances from a source room to all other rooms.
+## Returns a Dictionary mapping room index → distance (int). Rooms unreachable from
+## the source will not appear in the result.
+static func _bfs_distances(rooms: Array, source: int) -> Dictionary:
+	var dist: Dictionary = {source: 0}
+	var queue: Array = [source]
+	var head: int = 0
+	while head < queue.size():
+		var current: int = queue[head]
+		head += 1
+		for neighbor in rooms[current]["connections"]:
+			if not dist.has(neighbor):
+				dist[neighbor] = dist[current] + 1
+				queue.append(neighbor)
+	return dist
 
 
 ## Get the direction from room A to room B (returns DIR_NORTH..DIR_WEST or -1).
