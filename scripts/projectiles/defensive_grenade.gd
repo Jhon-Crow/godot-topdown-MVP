@@ -182,21 +182,29 @@ func _has_line_of_sight_to(target: Node2D) -> bool:
 
 ## Apply direct explosion damage to an enemy.
 ## Flat damage to ALL enemies in the blast zone (no distance scaling).
+## Issue #1460: Uses bulk damage via on_hit_with_bullet_info() instead of calling
+## on_hit_with_info() in a loop. The old approach called on_hit 99 times per enemy,
+## each spawning blood particles — causing 198+ GPUParticles2D instantiations in one
+## frame and a 22-fps drop. The new approach applies all damage in a single call.
 func _apply_explosion_damage(enemy: Node2D) -> void:
 	var distance := global_position.distance_to(enemy.global_position)
 
 	# Flat damage to all enemies in blast zone - no distance scaling
 	var final_damage := explosion_damage
 
-	# Try to apply damage through various methods
-	if enemy.has_method("on_hit_with_info"):
-		# Calculate direction from explosion to enemy
-		var hit_direction := (enemy.global_position - global_position).normalized()
-		for i in range(final_damage):
-			enemy.on_hit_with_info(hit_direction, null)
+	# Calculate direction from explosion to enemy
+	var hit_direction := (enemy.global_position - global_position).normalized()
+
+	# Issue #1460: Apply all damage in a single call to avoid spawning hundreds of
+	# blood particle effects per enemy. on_hit_with_bullet_info supports a damage
+	# parameter that applies the full amount at once.
+	if enemy.has_method("on_hit_with_bullet_info"):
+		enemy.on_hit_with_bullet_info(hit_direction, null, false, false, float(final_damage))
+	elif enemy.has_method("on_hit_with_info"):
+		# Fallback for entities without bulk damage support
+		enemy.on_hit_with_info(hit_direction, null)
 	elif enemy.has_method("on_hit"):
-		for i in range(final_damage):
-			enemy.on_hit()
+		enemy.on_hit()
 
 	FileLogger.info("[DefensiveGrenade] Applied %d HE damage to enemy at distance %.1f" % [final_damage, distance])
 

@@ -252,17 +252,18 @@ func _has_line_of_sight_to(target: Node2D) -> bool:
 
 
 ## Apply direct explosion damage to an entity.
+## Issue #1460: Uses bulk damage via on_hit_with_bullet_info() instead of per-hit loop.
 func _apply_explosion_damage(enemy: Node2D) -> void:
 	var distance := global_position.distance_to(enemy.global_position)
 	var final_damage := explosion_damage
+	var hit_direction := (enemy.global_position - global_position).normalized()
 
-	if enemy.has_method("on_hit_with_info"):
-		var hit_direction := (enemy.global_position - global_position).normalized()
-		for i in range(final_damage):
-			enemy.on_hit_with_info(hit_direction, null)
+	if enemy.has_method("on_hit_with_bullet_info"):
+		enemy.on_hit_with_bullet_info(hit_direction, null, false, false, float(final_damage))
+	elif enemy.has_method("on_hit_with_info"):
+		enemy.on_hit_with_info(hit_direction, null)
 	elif enemy.has_method("on_hit"):
-		for i in range(final_damage):
-			enemy.on_hit()
+		enemy.on_hit()
 
 	FileLogger.info("[VOGGrenade] Applied %d HE damage to enemy at distance %.1f" % [final_damage, distance])
 
