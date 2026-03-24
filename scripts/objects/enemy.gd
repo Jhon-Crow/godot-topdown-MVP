@@ -81,8 +81,8 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIF
 @export var initial_state: AIState = AIState.IDLE  ## Initial AI state on spawn (Issue #1121). SEARCHING starts enemy in search mode.
 @export var has_armored_skin: bool = false  ## Whether this enemy has Armored Skin passive item (Issue #1123).
 @export var has_swat_shield: bool = false  ## Whether this enemy is a SWAT shieldbearer with a blocking shield (Issue #1242).
-@export var is_gas_mask: bool = false  ## Whether this enemy is a Gas Mask type with chemical grenades (Issue #1353).
-@export var is_drone_operator: bool = false  ## Whether this enemy is a Drone Operator with VR headset and dash evasion (Issue #1397).
+@export var is_gas_mask: bool = false  ## Gas Mask type with chemical grenades (Issue #1353).
+@export var is_drone_operator: bool = false  ## Drone Operator with dash evasion (Issue #1397).
 @export var search_path_node: NodePath = NodePath("")  ## SearchPathWaypoints node path; when set, uses pre-planned waypoints in SEARCHING instead of spiral (Issue #1225).
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
@@ -376,8 +376,7 @@ var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenad
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
-var _gas_mask_grenade: GasMaskGrenadeComponent = null  ## Issue #1353: Chemical grenade component for gas mask enemies.
-var _drone_operator: DroneOperatorComponent = null  ## Issue #1397: Drone operator component.
+var _gas_mask_grenade: GasMaskGrenadeComponent = null; var _drone_operator: DroneOperatorComponent = null  ## Issues #1353, #1397
 var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
 var _tactical_group: TacticalGroupComponent = null  ## Issue #1287: Tactical group movement — enemies within 500 px spread around the player.
 var _pursuit_component: PursuitComponent = null  ## Issue #1289: Cover-finding logic for PURSUING state.
@@ -465,10 +464,7 @@ func _ready() -> void:
 	if is_gas_mask:  # Issue #1353: chemical grenades with illusion copies
 		_gas_mask_grenade = GasMaskGrenadeComponent.new(); _gas_mask_grenade.name = "GasMaskGrenadeComponent"; add_child(_gas_mask_grenade)
 		if _head_sprite: var _gm_tex := load("res://assets/sprites/characters/enemy/gas_mask_head.png"); if _gm_tex: _head_sprite.texture = _gm_tex; _head_sprite.rotation_degrees = -90.0  # Issue #1363: sprite drawn facing up, rotate to face right
-	if is_drone_operator:  # Issue #1397: Drone operator with VR headset and dash evasion
-		_drone_operator = DroneOperatorComponent.new(); _drone_operator.name = "DroneOperatorComponent"; add_child(_drone_operator); _drone_operator.setup()
-		if initial_state == AIState.IDLE: _transition_to_seeking_cover()  # Issue #1397: seek cover immediately to deploy drone
-
+	if is_drone_operator: _drone_operator = DroneOperatorComponent.new(); _drone_operator.name = "DroneOperatorComponent"; add_child(_drone_operator); _drone_operator.setup(); if initial_state == AIState.IDLE: _transition_to_seeking_cover()  # Issue #1397
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
 	_max_health = 2 if is_grenadier else randi_range(min_health, max_health)  # Issue #604: Grenadiers always 2 HP
@@ -802,14 +798,7 @@ func _physics_process(delta: float) -> void:
 	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
 	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if _perf_settings and not _perf_settings.is_ai_enabled(): return
-
-	# Issue #1397: Drone operator is frozen while controlling the drone (defenseless).
-	if _drone_operator and _drone_operator.is_controlling_drone():
-		_drone_operator.update(delta)
-		velocity = Vector2.ZERO
-		move_and_slide()
-		return
-
+	if _drone_operator and _drone_operator.is_controlling_drone(): _drone_operator.update(delta); velocity = Vector2.ZERO; move_and_slide(); return  # Issue #1397: frozen while controlling drone
 	# Update flashbang status effect timers (Issue #432)
 	if _flashbang_status:
 		_flashbang_status.update(delta)
@@ -1150,22 +1139,10 @@ func _update_suppression(delta: float) -> void:
 			if _threat_reaction_timer >= threat_reaction_delay:
 				_threat_reaction_delay_elapsed = true
 				_log_debug("Threat reaction delay elapsed, now reacting to bullets")
-
-		# Only set under_fire after delay; Issue #1034: ignore if force field is active.
+		# Only set under_fire after delay; Issues #1034, #1397: ignore if force field active; drone operator dashes instead.
 		if _threat_reaction_delay_elapsed and not (_force_field_component and _force_field_component.is_active()):
-			# Issue #1397: Drone operator dashes instead of being suppressed.
-			if _drone_operator and _drone_operator.should_dash_instead_of_suppress():
-				var dash_dir := Vector2.ZERO
-				if not _bullets_in_threat_sphere.is_empty():
-					var bullet = _bullets_in_threat_sphere[0]
-					if is_instance_valid(bullet) and "velocity" in bullet:
-						dash_dir = -bullet.velocity.normalized().rotated(PI / 4.0 * (1 if randf() > 0.5 else -1))  # Dodge perpendicular-ish to bullet
-				if dash_dir == Vector2.ZERO and _player:
-					dash_dir = (global_position - _player.global_position).normalized()
-				_drone_operator.try_dash(dash_dir)
-			else:
-				_under_fire = true
-				_suppression_timer = 0.0
+			if _drone_operator and _drone_operator.should_dash_instead_of_suppress(): _drone_operator.try_dash_from_threat(_bullets_in_threat_sphere, _player, global_position)
+			else: _under_fire = true; _suppression_timer = 0.0
 
 ## Update reload state.
 func _update_reload(delta: float) -> void:
@@ -4220,8 +4197,7 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0, is_from_player: bool = false) -> void:
 	if not _is_alive:
 		return
-	if _force_field_component and _force_field_component.is_active(): _log_to_file("Hit blocked by force field"); return  # Issue #1034: invulnerable while force field active
-	if _drone_operator and _drone_operator.is_dashing(): _log_to_file("Hit blocked by drone operator dash"); return  # Issue #1397: invulnerable during dash
+	if (_force_field_component and _force_field_component.is_active()) or (_drone_operator and _drone_operator.is_dashing()): _log_to_file("Hit blocked by force field/dash"); return  # Issues #1034, #1397
 	# Issue #1242: Shield blocking — collision-based + direction fallback; shield enemy slowly turns toward attacker.
 	if _shield_component and _shield_component.did_intercept_this_frame(): _set_hit_reaction_target(-hit_direction.normalized()); return
 	if _shield_component and _shield_component.is_active() and _enemy_model and Vector2.from_angle(_enemy_model.global_rotation).dot(-hit_direction.normalized()) > 0.5:

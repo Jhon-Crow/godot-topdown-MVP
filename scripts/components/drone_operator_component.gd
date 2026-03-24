@@ -177,6 +177,19 @@ func should_dash_instead_of_suppress() -> bool:
 	return _phase == Phase.ACTIVE and not _dash_active
 
 
+## Calculate dash direction from threat and attempt to dash.
+## Called from enemy._update_suppression() when bullets are in threat sphere.
+func try_dash_from_threat(bullets_in_sphere: Array, player: Node2D, enemy_pos: Vector2) -> void:
+	var dash_dir := Vector2.ZERO
+	if not bullets_in_sphere.is_empty():
+		var bullet = bullets_in_sphere[0]
+		if is_instance_valid(bullet) and "velocity" in bullet:
+			dash_dir = -bullet.velocity.normalized().rotated(PI / 4.0 * (1 if randf() > 0.5 else -1))
+	if dash_dir == Vector2.ZERO and player:
+		dash_dir = (enemy_pos - player.global_position).normalized()
+	try_dash(dash_dir)
+
+
 ## Attempt to activate a dash in a given direction (called when bullets enter threat sphere).
 ## Returns true if dash started successfully.
 func try_dash(direction: Vector2) -> bool:
