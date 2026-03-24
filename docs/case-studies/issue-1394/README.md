@@ -4,7 +4,7 @@
 
 The Docks level needed a weather precipitation system that:
 1. Adds atmospheric top-down rain visual effect
-2. Supports "rare rain" — intermittent episodes rather than constant rain
+2. Continuous rain — always active while outdoors
 3. Excludes rain from indoor areas (WarehouseA, WarehouseB)
 4. Is reusable for other maps and future precipitation types
 
@@ -78,19 +78,35 @@ After fixing rain to fall straight down (Iteration 4 changed direction from diag
 
 **Root cause:** The `RainSplashes` node had `position = Vector2(0, 180)`, which was calculated for the old diagonal trajectory. Even after making rain vertical, the splash emission box was displaced 180px below the streak emission box. Since both boxes covered a 700×450 area, the two layers were visually disconnected.
 
-**Fix:** Removed the position offset entirely — both `RainStreaks` and `RainSplashes` now emit from the exact same area (centered on camera). Since streaks fall downward through this area and splashes appear in-place within the same area, the visual result is that drops appear to land and splash within the same region. Both layers share matching visibility rects `Rect2(-900, -600, 1800, 1200)`.
+**Fix (Iteration 5):** Removed the position offset entirely — both `RainStreaks` and `RainSplashes` emit from the exact same area (centered on camera).
 
-| Parameter | Before | After |
+### Splash Still Misaligned + Rain Stops (2026-03-24, Iteration 6)
+
+The user reported two remaining issues:
+1. **Splash/streak misalignment persists**: The end point of falling rain drops still doesn't match where splashes appear. With both layers at offset=0, streaks travel ~180px downward (avg velocity 450 px/s × lifetime 0.4s) but splashes appear at the emission origin — not at the landing point.
+2. **Rain stops**: The episodic timer system causes rain to stop after each episode duration (15-40s) and wait for the next episode (15-45s). The user wants rain to be **continuous** — always active.
+
+**Root cause 1 (splash alignment):** With both layers emitting from the same origin, a streak starting at position Y emits downward ~180px, but its splash appears at position Y (the origin), not Y+180 (where the streak ends). The splash emission area needs to be offset downward by the streak travel distance.
+
+**Root cause 2 (rain stops):** The `_duration_timer` fires `_stop_rain_episode()` which sets `emitting = false` and schedules the next episode. This episodic design was from the original "rare rain" requirement, but the user wants continuous rain.
+
+**Fix:**
+- **Splash alignment**: Restored `position = Vector2(0, 180)` on `RainSplashes` — offset matches the average streak travel distance (450 px/s × 0.4s = 180px). Updated splash `visibility_rect` to `Rect2(-900, -780, 1800, 1380)` to account for the offset.
+- **Continuous rain**: Removed the entire episodic timer system (`_schedule_timer`, `_duration_timer`, episode scheduling). Rain starts immediately in `_ready()` and never stops. The only toggle is exclusion zone enter/exit.
+
+| Parameter | Before (Iteration 5) | After (Iteration 6) |
 |---|---|---|
-| Splash position offset | `Vector2(0, 180)` | `Vector2(0, 0)` (no offset) |
-| Splash visibility_rect | `Rect2(-800, -500, 1600, 1000)` | `Rect2(-900, -600, 1800, 1200)` (matches streaks) |
+| Splash position | `Vector2(0, 0)` | `Vector2(0, 180)` — matches streak travel distance |
+| Rain mode | Episodic (15-40s on, 15-45s off) | Continuous (always on) |
+| Timer system | Schedule + duration timers | Removed entirely |
+| Export properties | 6 timing exports | None needed |
 
 ### Key Technical Challenges
 
 1. **Large map coverage**: The Docks map is ~5000x4000 pixels, much larger than the viewport (1280x720). Rain must follow the camera.
 2. **Building detection**: WarehouseA (500x600px at position 400,1800) and WarehouseB (700x840px at position 4400,2800) have roofs — rain should not appear when the camera is inside.
 3. **Performance**: Continuous particle effects must be lightweight. GPUParticles2D processes particles on the GPU, so even 200 particles have minimal CPU impact.
-4. **Intermittent rain**: "Rare rain" means rain episodes occur randomly, not constantly.
+4. **Continuous rain**: Rain is always active outdoors — originally designed as intermittent "rare rain" but changed to continuous per user feedback.
 5. **Visibility**: Rain must be visible enough to be noticed but not so opaque as to obstruct gameplay.
 
 ## Solution
@@ -100,17 +116,16 @@ After fixing rain to fall straight down (Iteration 4 changed direction from diag
 The solution consists of three parts:
 
 1. **`scripts/effects/rain_effect.gd`** — Reusable rain controller script (extends Node2D)
-   - Manages rain episodes with configurable timing (interval between episodes, duration)
-   - Creates two child GPUParticles2D nodes programmatically (streaks + splashes)
+   - Continuous rain — always emitting, no episodic timers
    - Follows the active camera automatically
    - Supports rectangular exclusion zones for indoor areas
-   - Toggles particle emission on both layers based on camera position relative to exclusion zones
+   - Toggles particle emission based on camera position relative to exclusion zones
 
 2. **`scenes/effects/RainEffect.tscn`** — Reusable rain scene (Node2D)
    - Two-layer Hotline Miami 2-style rain:
      - **RainStreaks**: 180 vertical falling raindrop particles (2×12px gradient line, 400-500 px/s)
-     - **RainSplashes**: 100 ground ripple particles (6×6px radial circle, near-zero velocity)
-   - Both layers emit from the same overlapping area for unified drop-and-splash appearance
+     - **RainSplashes**: 100 ground ripple particles (6×6px radial circle, near-zero velocity), offset 180px downward to align with streak landing points
+   - Splash emission area is offset to match where streaks end, creating a unified drop-and-splash effect
 
 3. **Level integration** — DocksLevel.tscn includes the RainEffect scene, and docks_level.gd configures exclusion zones
 
@@ -121,13 +136,9 @@ Rather than using collision-based detection (which would require physics setup),
 - **Simple**: No physics layers or collision shapes needed
 - **Configurable**: Each level defines its own zones in its setup script
 
-### Rain Episode Timing
+### Continuous Rain
 
-For "rare rain" on the Docks:
-- **Initial delay**: 5 seconds (so first rain appears quickly)
-- **Interval between episodes**: 15-45 seconds (randomized)
-- **Episode duration**: 15-40 seconds (randomized)
-- All timing is configurable via exported properties
+Rain is always active while the player is outdoors. The episodic "rare rain" timer system was removed based on user feedback — rain should never stop. The only state change is when the player enters/exits exclusion zones (buildings).
 
 ## Existing Solutions Considered
 
@@ -151,13 +162,11 @@ For "rare rain" on the Docks:
 ## Testing
 
 Unit tests cover:
-- Initial state (not emitting, no active episode)
-- Episode lifecycle (start, stop, scheduling)
-- Timing ranges (interval and duration within configured bounds)
+- Continuous rain (always emitting from ready)
 - Exclusion zone detection (add, clear, point-in-zone checks)
 - Building enter/exit behavior (rain stops/resumes)
 - Warehouse-specific zone coordinates
-- Edge cases (starting inside building, boundary points)
+- Edge cases (boundary points, multiple zones)
 
 ## References
 
@@ -171,5 +180,4 @@ Unit tests cover:
 The `RainEffect` scene and script are designed to be reusable:
 - Any level can instance `RainEffect.tscn` and configure exclusion zones
 - Different precipitation types (snow, hail) can be created by duplicating the scene with different particle materials
-- The timing properties are all exported, so each level can have different weather patterns
-- The `start_raining` flag allows levels to begin with rain already active
+- Rain starts automatically — no configuration needed for basic use

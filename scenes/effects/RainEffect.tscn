@@ -57,16 +57,10 @@ color = Color(0.7, 0.75, 0.9, 0.4)
 
 [node name="RainEffect" type="Node2D"]
 script = ExtResource("1_rain_effect")
-min_interval = 15.0
-max_interval = 45.0
-min_duration = 15.0
-max_duration = 40.0
-start_raining = true
-initial_delay = 0.0
 
 [node name="RainStreaks" type="GPUParticles2D" parent="."]
 material = SubResource("CanvasItemMaterial_additive")
-emitting = false
+emitting = true
 amount = 180
 process_material = SubResource("ParticleProcessMaterial_streak")
 texture = SubResource("GradientTexture2D_streak")
@@ -75,9 +69,10 @@ visibility_rect = Rect2(-900, -600, 1800, 1200)
 
 [node name="RainSplashes" type="GPUParticles2D" parent="."]
 material = SubResource("CanvasItemMaterial_additive")
-emitting = false
+position = Vector2(0, 180)
+emitting = true
 amount = 100
 process_material = SubResource("ParticleProcessMaterial_splash")
 texture = SubResource("GradientTexture2D_splash")
 lifetime = 0.5
-visibility_rect = Rect2(-900, -600, 1800, 1200)
+visibility_rect = Rect2(-900, -780, 1800, 1380)
