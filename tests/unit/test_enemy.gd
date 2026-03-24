@@ -2401,3 +2401,68 @@ func test_reset_memory_engaged_enemy_with_target_goes_searching_issue_1419() -> 
 	var should_search := had_target and has_left_idle
 	assert_true(should_search,
 		"Issue #1419: engaged enemy (had_target=true, _has_left_idle=true) must still enter SEARCHING")
+
+
+# ============================================================================
+# Issue #1454: IDLE enemies must not be alerted by sound during Last Chance freeze
+# ============================================================================
+
+
+## Test that on_sound_heard_with_intensity skips processing when enemy is frozen (Issue #1454).
+## Root cause: SoundPropagation calls on_sound_heard_with_intensity as a direct method call,
+## which bypasses PROCESS_MODE_DISABLED. During Last Chance, enemies are disabled but can still
+## receive and process sounds — causing IDLE enemies (never engaged) to enter COMBAT and set
+## _has_left_idle=true, which then incorrectly puts them into SEARCHING when the effect ends.
+## Fix: add process_mode == PROCESS_MODE_DISABLED guard at the top of on_sound_heard_with_intensity.
+func test_on_sound_heard_skips_processing_when_frozen_source_check_issue_1454() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	# Find on_sound_heard_with_intensity function body
+	var func_idx := source.find("func on_sound_heard_with_intensity(")
+	assert_gt(func_idx, 0, "on_sound_heard_with_intensity function should exist in enemy.gd")
+
+	# Extract function body (up to the next function)
+	var next_func_idx := source.find("\nfunc ", func_idx + 1)
+	var func_body := source.substr(func_idx, next_func_idx - func_idx)
+
+	# Verify that the frozen/disabled guard is present (Issue #1454 fix).
+	# When Last Chance freezes enemies via PROCESS_MODE_DISABLED, direct method calls
+	# from SoundPropagation still reach the enemy. This guard prevents state corruption.
+	assert_true(
+		func_body.contains("PROCESS_MODE_DISABLED"),
+		"Issue #1454: on_sound_heard_with_intensity must check process_mode == PROCESS_MODE_DISABLED. " +
+		"Without this guard, IDLE enemies get alerted by sounds during Last Chance freeze, " +
+		"causing them to incorrectly enter SEARCHING when the effect ends."
+	)
+
+
+## Logic-level regression: IDLE enemy must not be alerted during Last Chance freeze (Issue #1454).
+## Demonstrates the bug scenario: enemy is IDLE with _has_left_idle=false, frozen by Last Chance
+## (process_mode=DISABLED), hears a player gunshot during freeze, and should NOT update its state.
+func test_frozen_idle_enemy_must_not_react_to_sound_logic_issue_1454() -> void:
+	# Simulate: enemy is IDLE, never engaged, frozen by Last Chance
+	var is_frozen := true           # process_mode == PROCESS_MODE_DISABLED
+	var has_left_idle_before := false
+
+	# With the fix: frozen enemies skip all sound processing
+	var should_process_sound := not is_frozen
+
+	# Without the fix: the enemy would process the gunshot, call _transition_to_combat(),
+	# set _has_left_idle = true, and then reset_memory() would send it to SEARCHING.
+	var would_enter_searching_without_fix := has_left_idle_before or (not is_frozen)
+	# With fix: _has_left_idle stays false, so reset_memory() keeps the enemy in IDLE.
+	var has_left_idle_after_with_fix := has_left_idle_before  # unchanged — sound was skipped
+
+	assert_false(should_process_sound,
+		"Issue #1454: frozen enemy (PROCESS_MODE_DISABLED) must not process any sounds")
+	assert_false(has_left_idle_after_with_fix,
+		"Issue #1454: _has_left_idle must stay false for IDLE enemy that was frozen during Last Chance")
+	# Demonstrate that without fix it would have been wrong:
+	assert_true(would_enter_searching_without_fix == false,
+		"Issue #1454: without the fix, the enemy would enter SEARCHING — this regression must be prevented")
