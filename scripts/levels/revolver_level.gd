@@ -30,11 +30,8 @@ var _current_enemy_count: int = 0
 ## Whether game over has been shown.
 var _game_over_shown: bool = false
 
-## Reference to the kills label.
-var _kills_label: Label = null
-
-## Reference to the accuracy label.
-var _accuracy_label: Label = null
+## Reference to the difficulty label.
+var _difficulty_label: Label = null
 
 ## Reference to the magazines label.
 var _magazines_label: Label = null
@@ -434,25 +431,15 @@ func _setup_debug_ui() -> void:
 	if ui == null:
 		return
 
-	_kills_label = Label.new()
-	_kills_label.name = "KillsLabel"
-	_kills_label.text = "Kills: 0"
-	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left = 10
-	_kills_label.offset_top = 45
-	_kills_label.offset_right = 200
-	_kills_label.offset_bottom = 75
-	ui.add_child(_kills_label)
-
-	_accuracy_label = Label.new()
-	_accuracy_label.name = "AccuracyLabel"
-	_accuracy_label.text = "Accuracy: 0%"
-	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left = 10
-	_accuracy_label.offset_top = 75
-	_accuracy_label.offset_right = 200
-	_accuracy_label.offset_bottom = 105
-	ui.add_child(_accuracy_label)
+	_difficulty_label = Label.new()
+	_difficulty_label.name = "DifficultyLabel"
+	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_difficulty_label.offset_left = 10
+	_difficulty_label.offset_top = 45
+	_difficulty_label.offset_right = 200
+	_difficulty_label.offset_bottom = 75
+	ui.add_child(_difficulty_label)
 
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
@@ -499,11 +486,8 @@ func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
 
-	if _kills_label:
-		_kills_label.text = "Kills: %d" % GameManager.kills
-
-	if _accuracy_label:
-		_accuracy_label.text = "Accuracy: %.1f%%" % GameManager.get_accuracy()
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 
 
 ## Called when an enemy dies.
