@@ -1,10 +1,15 @@
 extends Node2D
-## Factory level scene (Issue #1037).
+## Railway Station level scene (Issue #1463).
 ##
-## A building-style map with interconnected rooms and corridors, placed after
-## the Docks level. Features 13 enemies distributed across rooms (at most 2 per
-## room) with 4-6 HP each. No special force-field enemy types.
-## Map layout: ~2400x2000 pixels.
+## ЖД Станция — the level after Winter Forest.
+## Player enters from the bottom and must cross the map upward through:
+## 1. Station building + platform (almost no cover)
+## 2. Two rows of railway tracks with trains
+## 3. A narrow walkway
+## 4. Two more rows of railway tracks with trains
+## 5. Embankment with snowdrift (narrow player-sized passages)
+## Exit at the top center-right (direction of sunlight).
+## Map size: ~4000x4000 pixels. No enemies for now.
 
 var _enemy_count_label: Label = null
 var _ammo_label: Label = null
@@ -25,6 +30,9 @@ const SATURATION_INTENSITY: float = 0.25
 var _enemies: Array = []
 var _replay_manager: Node = null
 
+## Weapon hints component instance (Issue #809).
+var _weapon_hints_component: Node = null
+
 
 func _get_or_create_replay_manager() -> Node:
 	if _replay_manager != null and is_instance_valid(_replay_manager):
@@ -37,15 +45,14 @@ func _get_or_create_replay_manager() -> Node:
 
 
 func _ready() -> void:
-	print("FactoryLevel loaded - Building Style (Issue #1037)")
-	print("Factory size: ~2400x2000 pixels")
-	print("Clear all enemies to win!")
+	print("RailwayStationLevel loaded - Railway Station (ЖД Станция)")
+	print("Map size: ~4000x4000 pixels")
+	print("No enemies — explore and reach the exit!")
 	_setup_navigation()
 	_setup_enemy_tracking()
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()
 	_setup_player_tracking()
-	_configure_camera()
 	_setup_debug_ui()
 	_setup_saturation_overlay()
 	if GameManager:
@@ -54,6 +61,17 @@ func _ready() -> void:
 	_initialize_score_manager()
 	_setup_exit_zone()
 	_start_replay_recording()
+
+	# Setup weapon hints (Issue #809)
+	_setup_weapon_hints()
+
+	# Add sunlight source off-screen in the top-right corner
+	_setup_sunlight()
+
+	# No enemies: immediately mark level as cleared so exit zone activates
+	if _initial_enemy_count <= 0:
+		_level_cleared = true
+		call_deferred("_activate_exit_zone")
 
 
 func _initialize_score_manager() -> void:
@@ -79,8 +97,9 @@ func _setup_exit_zone() -> void:
 		push_warning("ExitZone scene not found")
 		return
 	_exit_zone = exit_zone_scene.instantiate()
-	_exit_zone.position = Vector2(120, 1000)
-	_exit_zone.zone_width = 60.0; _exit_zone.zone_height = 100.0
+	# Exit at top center-right (sunlight direction)
+	_exit_zone.position = Vector2(2200, 120)
+	_exit_zone.zone_width = 80.0; _exit_zone.zone_height = 60.0
 	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
 	var environment := get_node_or_null("Environment")
 	if environment: environment.add_child(_exit_zone)
@@ -107,12 +126,37 @@ func _setup_realistic_visibility() -> void:
 	_player.add_child(visibility_component)
 
 
+## Setup weapon hints component (Issue #809).
+func _setup_weapon_hints() -> void:
+	if _player == null:
+		return
+
+	var canvas_layer: Node = get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		push_warning("[RailwayStationLevel] CanvasLayer node not found for weapon hints")
+		return
+
+	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
+	if hints_script == null:
+		push_warning("[RailwayStationLevel] WeaponHintsComponent script not found")
+		return
+
+	_weapon_hints_component = Node.new()
+	_weapon_hints_component.name = "WeaponHintsComponent"
+	_weapon_hints_component.set_script(hints_script)
+	add_child(_weapon_hints_component)
+
+	if _weapon_hints_component.has_method("setup"):
+		_weapon_hints_component.setup(_player, canvas_layer)
+		print("[RailwayStationLevel] Weapon hints component added and setup")
+
+
 func _process(_delta: float) -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("update_enemy_positions"):
 		score_manager.update_enemy_positions(_enemies)
-	# Issue #959: Re-check level completion when a retaliating pacifist finishes retaliation.
 	if _current_enemy_count <= 0 and not _level_cleared and not _has_retaliating_pacifists():
+		print("All enemies eliminated or pacified! Level cleared!")
 		_level_cleared = true
 		call_deferred("_activate_exit_zone")
 
@@ -145,31 +189,13 @@ func _setup_navigation() -> void:
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		return
-	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
-	# with PhysicsServer2D before parsing source geometry for navmesh carving.
 	await get_tree().physics_frame
 	nav_poly.agent_radius = 24.0
-	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-	# Issue #1289: push updated polygon back into the NavigationServer's live map.
-	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
 	nav_region.navigation_polygon = nav_poly
 	nav_region.emit_signal("bake_finished")
-
-
-func _configure_camera() -> void:
-	if _player == null:
-		return
-	var camera: Camera2D = _player.get_node_or_null("Camera2D")
-	if camera == null:
-		return
-	camera.limit_left = -10000000
-	camera.limit_top = -10000000
-	camera.limit_right = 10000000
-	camera.limit_bottom = 10000000
-	print("Camera configured: limits removed")
 
 
 func _setup_player_tracking() -> void:
@@ -192,13 +218,20 @@ func _setup_player_tracking() -> void:
 		_player.Died.connect(_on_player_died)
 
 	var weapon = _player.get_node_or_null("Shotgun")
-	if weapon == null: weapon = _player.get_node_or_null("MiniUzi")
-	if weapon == null: weapon = _player.get_node_or_null("SilencedPistol")
-	if weapon == null: weapon = _player.get_node_or_null("SniperRifle")
-	if weapon == null: weapon = _player.get_node_or_null("AssaultRifle")
-	if weapon == null: weapon = _player.get_node_or_null("AKGL")
-	if weapon == null: weapon = _player.get_node_or_null("Revolver")
-	if weapon == null: weapon = _player.get_node_or_null("MakarovPM")
+	if weapon == null:
+		weapon = _player.get_node_or_null("MiniUzi")
+	if weapon == null:
+		weapon = _player.get_node_or_null("SilencedPistol")
+	if weapon == null:
+		weapon = _player.get_node_or_null("SniperRifle")
+	if weapon == null:
+		weapon = _player.get_node_or_null("AssaultRifle")
+	if weapon == null:
+		weapon = _player.get_node_or_null("AKGL")
+	if weapon == null:
+		weapon = _player.get_node_or_null("Revolver")
+	if weapon == null:
+		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
 		if weapon.has_signal("AmmoChanged"):
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
@@ -213,6 +246,8 @@ func _setup_player_tracking() -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+		_configure_silenced_pistol_ammo(weapon)
+		_configure_makarov_pm_ammo(weapon)
 	else:
 		if _player.has_signal("ammo_changed"):
 			_player.ammo_changed.connect(_on_player_ammo_changed)
@@ -233,6 +268,40 @@ func _setup_player_tracking() -> void:
 		_player.AmmoDepleted.connect(_on_player_ammo_depleted)
 	elif _player.has_signal("ammo_depleted"):
 		_player.ammo_depleted.connect(_on_player_ammo_depleted)
+
+
+func _configure_silenced_pistol_ammo(weapon: Node) -> void:
+	if weapon.name != "SilencedPistol":
+		return
+	if weapon.has_method("ConfigureAmmoForEnemyCount"):
+		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
+		_log_to_file("Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+
+
+func _configure_makarov_pm_ammo(weapon: Node) -> void:
+	if weapon == null:
+		return
+	if weapon.name != "MakarovPM":
+		return
+	var starting_magazines: int = 4
+	if weapon.get("StartingMagazineCount") != null:
+		starting_magazines = weapon.StartingMagazineCount
+	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	if weapon.has_method("ReinitializeMagazines"):
+		weapon.ReinitializeMagazines(pm_magazines, true)
+		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
 func _on_player_ammo_changed(current: int, maximum: int) -> void:
@@ -267,9 +336,6 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 
 
 func _on_player_ammo_depleted() -> void:
-	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
-	# sound range system and lets out-of-earshot enemies react to the empty click.
-	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
@@ -315,7 +381,6 @@ func _on_player_died() -> void:
 	_show_death_message()
 	if GameManager:
 		await get_tree().create_timer(0.5).timeout
-		# Issue #1334: After await, verify this node is still valid (scene may have reloaded)
 		if not is_instance_valid(self):
 			return
 		GameManager.on_player_death()
@@ -324,13 +389,15 @@ func _on_player_died() -> void:
 func _setup_enemy_tracking() -> void:
 	var enemies_node := get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
-		_log_to_file("ERROR: Environment/Enemies node not found!")
+		_log_to_file("Environment/Enemies node not found (no enemies on this level)")
 		return
 
 	_log_to_file("Found Environment/Enemies node with %d children" % enemies_node.get_child_count())
 	_enemies.clear()
 	for child in enemies_node.get_children():
 		var has_died_signal := child.has_signal("died")
+		var script_attached := child.get_script() != null
+		_log_to_file("Child '%s': script=%s, has_died_signal=%s" % [child.name, script_attached, has_died_signal])
 		if has_died_signal:
 			_enemies.append(child)
 			child.died.connect(_on_enemy_died)
@@ -338,7 +405,6 @@ func _setup_enemy_tracking() -> void:
 				child.died_with_info.connect(_on_enemy_died_with_info)
 		if child.has_signal("hit"):
 			child.hit.connect(_on_enemy_hit)
-		# Issue #959: Connect to pacifist signal - pacifists count as eliminated for level completion
 		if child.has_signal("became_pacifist"):
 			child.became_pacifist.connect(_on_enemy_became_pacifist.bind(child))
 
@@ -403,14 +469,12 @@ func _setup_saturation_overlay() -> void:
 func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
-
 	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		_level_cleared = true
 		call_deferred("_activate_exit_zone")
 
 
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
-	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
 		GameManager.register_kill(is_player_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
@@ -419,20 +483,17 @@ func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool,
 
 
 func _on_enemy_became_pacifist(enemy: Node) -> void:
-	# Issue #959: Pacifists count as eliminated for level completion
 	_current_enemy_count -= 1
-	# Issue #959: Do not count pacifist again when it dies - already counted here
 	if is_instance_valid(enemy) and enemy.died.is_connected(_on_enemy_died):
 		enemy.died.disconnect(_on_enemy_died)
 	_update_enemy_count_label()
-	_log_to_file("[FactoryLevel] Enemy became pacifist - counting as eliminated")
+	print("[RailwayStation] Enemy became pacifist - counting as eliminated")
 	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
+		print("All enemies eliminated or pacified! Level cleared!")
 		_level_cleared = true
 		call_deferred("_activate_exit_zone")
 
 
-## Returns true if any enemy is a pacifist who is currently retaliating (attacking the player).
-## Level should not complete while any enemy is still a threat (Issue #959).
 func _has_retaliating_pacifists() -> bool:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if is_instance_valid(enemy) and enemy.has_method("is_alive") and enemy.is_alive():
@@ -449,20 +510,15 @@ func _on_enemy_hit() -> void:
 func _complete_level_with_score() -> void:
 	if _level_completed: return
 	_level_completed = true
-
 	_disable_player_controls()
-
 	if _exit_zone and _exit_zone.has_method("deactivate"):
 		_exit_zone.deactivate()
-
 	var replay_manager: Node = _get_or_create_replay_manager()
 	if replay_manager and replay_manager.has_method("StopRecording"):
 		replay_manager.StopRecording()
-
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):
 		var score_data: Dictionary = score_manager.complete_level()
-		# Notify loudspeaker progression (Issue #959)
 		var aim: Node = get_node_or_null("/root/ActiveItemManager")
 		if aim and aim.has_method("notify_level_completed"):
 			aim.notify_level_completed(score_data.get("kills", 0) > 0)
@@ -476,7 +532,6 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	if ui == null:
 		_show_victory_message()
 		return
-
 	var animated_score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
 	if animated_score_screen_script:
 		var score_screen = animated_score_screen_script.new()
@@ -513,7 +568,7 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	ui.add_child(container)
 
 	var title_label := Label.new()
-	title_label.text = "FACTORY CLEARED!"
+	title_label.text = "LEVEL CLEARED!"
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 42)
 	title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
@@ -591,21 +646,22 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	var weapon = null
 	if _player:
 		weapon = _player.get_node_or_null("Shotgun")
-		if weapon == null: weapon = _player.get_node_or_null("AssaultRifle")
-		if weapon == null: weapon = _player.get_node_or_null("AKGL")
-		if weapon == null: weapon = _player.get_node_or_null("Revolver")
-		if weapon == null: weapon = _player.get_node_or_null("MakarovPM")
-
+		if weapon == null:
+			weapon = _player.get_node_or_null("AssaultRifle")
+		if weapon == null:
+			weapon = _player.get_node_or_null("AKGL")
+		if weapon == null:
+			weapon = _player.get_node_or_null("Revolver")
+		if weapon == null:
+			weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
 		_magazines_label.visible = false
 		return
 	else:
 		_magazines_label.visible = true
-
 	if magazine_ammo_counts.is_empty():
 		_magazines_label.text = "MAGS: -"
 		return
-
 	var parts: Array = []
 	for i in range(magazine_ammo_counts.size()):
 		var ammo: int = magazine_ammo_counts[i]
@@ -664,7 +720,7 @@ func _show_victory_message() -> void:
 		return
 	var victory_label := Label.new()
 	victory_label.name = "VictoryLabel"
-	victory_label.text = "FACTORY CLEARED!"
+	victory_label.text = "RAILWAY STATION CLEARED!"
 	victory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	victory_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	victory_label.add_theme_font_size_override("font_size", 48)
@@ -675,7 +731,6 @@ func _show_victory_message() -> void:
 	victory_label.offset_top = -50
 	victory_label.offset_bottom = 50
 	ui.add_child(victory_label)
-
 	var stats_label := Label.new()
 	stats_label.name = "StatsLabel"
 	if GameManager:
@@ -733,23 +788,24 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	level_select_button.pressed.connect(_on_level_select_pressed)
 	buttons_container.add_child(level_select_button)
 
-	var replay_button := Button.new()
-	replay_button.name = "ReplayButton"
-	replay_button.text = "▶ Watch Replay (W)"
-	replay_button.custom_minimum_size = Vector2(200, 40)
-	replay_button.add_theme_font_size_override("font_size", 18)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var replay_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled()
 
-	var replay_manager: Node = _get_or_create_replay_manager()
-	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
-
-	if has_replay_data:
-		replay_button.pressed.connect(_on_watch_replay_pressed)
-	else:
-		replay_button.disabled = true
-		replay_button.text = "▶ Watch Replay (W) - no data"
-		replay_button.tooltip_text = "Replay recording was not available for this session"
-
-	buttons_container.add_child(replay_button)
+	if replay_enabled:
+		var replay_button := Button.new()
+		replay_button.name = "ReplayButton"
+		replay_button.text = "▶ Watch Replay (W)"
+		replay_button.custom_minimum_size = Vector2(200, 40)
+		replay_button.add_theme_font_size_override("font_size", 18)
+		var replay_manager: Node = _get_or_create_replay_manager()
+		var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+		if has_replay_data:
+			replay_button.pressed.connect(_on_watch_replay_pressed)
+		else:
+			replay_button.disabled = true
+			replay_button.text = "▶ Watch Replay (W) - no data"
+			replay_button.tooltip_text = "Replay recording was not available for this session"
+		buttons_container.add_child(replay_button)
 
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
 	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
@@ -784,18 +840,24 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 
 func _get_rank_color(rank: String) -> Color:
 	match rank:
-		"S": return Color(1.0, 0.84, 0.0, 1.0)
-		"A+": return Color(0.0, 1.0, 0.5, 1.0)
-		"A": return Color(0.2, 0.8, 0.2, 1.0)
-		"B": return Color(0.3, 0.7, 1.0, 1.0)
-		"C": return Color(1.0, 1.0, 1.0, 1.0)
-		"D": return Color(1.0, 0.6, 0.2, 1.0)
-		"F": return Color(1.0, 0.2, 0.2, 1.0)
-		_: return Color(1.0, 1.0, 1.0, 1.0)
+		"S":
+			return Color(1.0, 0.84, 0.0, 1.0)
+		"A+":
+			return Color(0.0, 1.0, 0.5, 1.0)
+		"A":
+			return Color(0.2, 0.8, 0.2, 1.0)
+		"B":
+			return Color(0.3, 0.7, 1.0, 1.0)
+		"C":
+			return Color(1.0, 1.0, 1.0, 1.0)
+		"D":
+			return Color(1.0, 0.6, 0.2, 1.0)
+		"F":
+			return Color(1.0, 0.2, 0.2, 1.0)
+		_:
+			return Color(1.0, 1.0, 1.0, 1.0)
 
 
-## Get the next level path based on the level ordering from LevelsMenu.
-## Returns empty string if this is the last level or level not found.
 func _get_next_level_path() -> String:
 	var level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
@@ -877,19 +939,35 @@ func _on_armory_button_pressed() -> void:
 		armory_menu.layer = 100
 		armory_menu.opened_from_score_screen = true
 		get_tree().root.add_child(armory_menu)
-		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+		armory_menu.back_pressed.connect(func():
+			armory_menu.queue_free()
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
+		armory_menu.apply_pressed_from_score_screen.connect(func():
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
 	else:
 		_log_to_file("ERROR: Could not load armory menu scene")
+
+
+func _remove_armory_button_gold_style() -> void:
+	var armory_btn := get_tree().current_scene.find_child("ArmoryButton", true, false)
+	if armory_btn:
+		armory_btn.text = "Armory"
+		armory_btn.remove_theme_color_override("font_color")
+		armory_btn.remove_theme_stylebox_override("normal")
 
 
 func _setup_selected_weapon() -> void:
 	if _player == null:
 		return
-
 	var selected_weapon_id: String = "makarov_pm"
 	if GameManager:
 		selected_weapon_id = GameManager.get_selected_weapon()
-
 	_log_to_file("Setting up weapon: %s" % selected_weapon_id)
 
 	if selected_weapon_id != "makarov_pm":
@@ -906,112 +984,128 @@ func _setup_selected_weapon() -> void:
 			var expected_name: String = weapon_names[selected_weapon_id]
 			var existing_weapon = _player.get_node_or_null(expected_name)
 			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
-				_log_to_file("%s already equipped by C# Player - applying factory ammo config" % expected_name)
-				_configure_factory_weapon_ammo(existing_weapon, selected_weapon_id)
+				_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % expected_name)
 				return
 
 	if selected_weapon_id == "shotgun":
 		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov: makarov.queue_free()
+		if makarov:
+			makarov.queue_free()
 		var shotgun_scene = load("res://scenes/weapons/csharp/Shotgun.tscn")
 		if shotgun_scene:
 			var shotgun = shotgun_scene.instantiate()
 			shotgun.name = "Shotgun"
 			_player.add_child(shotgun)
-			if _player.has_method("EquipWeapon"): _player.EquipWeapon(shotgun)
-			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = shotgun
-			_log_to_file("Shotgun equipped")
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(shotgun)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = shotgun
+			_log_to_file("Shotgun equipped successfully")
 		else:
-			push_error("[FactoryLevel] Failed to load Shotgun scene!")
+			push_error("[RailwayStationLevel] Failed to load Shotgun scene!")
 	elif selected_weapon_id == "mini_uzi":
 		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov: makarov.queue_free()
+		if makarov:
+			makarov.queue_free()
 		var mini_uzi_scene = load("res://scenes/weapons/csharp/MiniUzi.tscn")
 		if mini_uzi_scene:
 			var mini_uzi = mini_uzi_scene.instantiate()
 			mini_uzi.name = "MiniUzi"
-			if mini_uzi.get("StartingMagazineCount") != null:
-				mini_uzi.StartingMagazineCount = 2
 			_player.add_child(mini_uzi)
-			if _player.has_method("EquipWeapon"): _player.EquipWeapon(mini_uzi)
-			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = mini_uzi
-			_configure_factory_weapon_ammo(mini_uzi, "mini_uzi")
-			_log_to_file("Mini UZI equipped")
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(mini_uzi)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = mini_uzi
+			_log_to_file("Mini UZI equipped successfully")
 		else:
-			push_error("[FactoryLevel] Failed to load MiniUzi scene!")
+			push_error("[RailwayStationLevel] Failed to load MiniUzi scene!")
 	elif selected_weapon_id == "silenced_pistol":
 		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov: makarov.queue_free()
+		if makarov:
+			makarov.queue_free()
 		var pistol_scene = load("res://scenes/weapons/csharp/SilencedPistol.tscn")
 		if pistol_scene:
 			var pistol = pistol_scene.instantiate()
 			pistol.name = "SilencedPistol"
 			_player.add_child(pistol)
-			if _player.has_method("EquipWeapon"): _player.EquipWeapon(pistol)
-			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = pistol
-			_configure_factory_weapon_ammo(pistol, "silenced_pistol")
-			_log_to_file("Silenced Pistol equipped")
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(pistol)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = pistol
+			_log_to_file("Silenced Pistol equipped successfully")
 		else:
-			push_error("[FactoryLevel] Failed to load SilencedPistol scene!")
+			push_error("[RailwayStationLevel] Failed to load SilencedPistol scene!")
 	elif selected_weapon_id == "sniper":
 		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov: makarov.queue_free()
+		if makarov:
+			makarov.queue_free()
 		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
 		if sniper_scene:
 			var sniper = sniper_scene.instantiate()
 			sniper.name = "SniperRifle"
 			_player.add_child(sniper)
-			if _player.has_method("EquipWeapon"): _player.EquipWeapon(sniper)
-			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = sniper
-			_log_to_file("Sniper Rifle equipped")
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(sniper)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = sniper
+			_log_to_file("ASVK Sniper Rifle equipped successfully")
 		else:
-			push_error("[FactoryLevel] Failed to load SniperRifle scene!")
+			push_error("[RailwayStationLevel] Failed to load SniperRifle scene!")
 	elif selected_weapon_id == "m16":
 		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov: makarov.queue_free()
+		if makarov:
+			makarov.queue_free()
 		var m16_scene = load("res://scenes/weapons/csharp/AssaultRifle.tscn")
 		if m16_scene:
 			var m16 = m16_scene.instantiate()
 			m16.name = "AssaultRifle"
 			_player.add_child(m16)
-			if _player.has_method("EquipWeapon"): _player.EquipWeapon(m16)
-			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = m16
-			_configure_factory_weapon_ammo(m16, "m16")
-			_log_to_file("M16 Assault Rifle equipped")
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(m16)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = m16
+			_log_to_file("M16 Assault Rifle equipped successfully")
 		else:
-			push_error("[FactoryLevel] Failed to load AssaultRifle scene!")
+			push_error("[RailwayStationLevel] Failed to load AssaultRifle scene!")
 	elif selected_weapon_id == "ak_gl":
 		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov: makarov.queue_free()
+		if makarov:
+			makarov.queue_free()
 		var akgl_scene = load("res://scenes/weapons/csharp/AKGL.tscn")
 		if akgl_scene:
 			var akgl = akgl_scene.instantiate()
 			akgl.name = "AKGL"
 			_player.add_child(akgl)
-			if _player.has_method("EquipWeapon"): _player.EquipWeapon(akgl)
-			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = akgl
-			_configure_factory_weapon_ammo(akgl, "ak_gl")
-			_log_to_file("AK + GL equipped")
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(akgl)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = akgl
+			_log_to_file("AK + GL equipped successfully")
 		else:
-			push_error("[FactoryLevel] Failed to load AKGL scene!")
+			push_error("[RailwayStationLevel] Failed to load AKGL scene!")
 	elif selected_weapon_id == "revolver":
 		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov: makarov.queue_free()
+		if makarov:
+			makarov.queue_free()
 		var revolver_scene = load("res://scenes/weapons/csharp/Revolver.tscn")
 		if revolver_scene:
 			var revolver = revolver_scene.instantiate()
 			revolver.name = "Revolver"
 			_player.add_child(revolver)
-			if _player.has_method("EquipWeapon"): _player.EquipWeapon(revolver)
-			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = revolver
-			_log_to_file("Revolver equipped")
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(revolver)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = revolver
+			_log_to_file("RSh-12 Revolver equipped successfully")
 		else:
-			push_error("[FactoryLevel] Failed to load Revolver scene!")
+			push_error("[RailwayStationLevel] Failed to load Revolver scene!")
 	else:
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov and _player.get("CurrentWeapon") == null:
-			if _player.has_method("EquipWeapon"): _player.EquipWeapon(makarov)
-			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = makarov
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(makarov)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = makarov
 			_configure_makarov_pm_ammo(makarov)
 
 
@@ -1027,78 +1121,47 @@ func _disable_player_controls() -> void:
 	_log_to_file("Player controls disabled (level completed)")
 
 
+func _setup_sunlight() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+	var sun_node := Node2D.new()
+	sun_node.name = "Sunlight"
+	# Off-screen top-right — sunlight comes from top (issue says exit is where sun shines)
+	sun_node.position = Vector2(2600, -400)
+	environment.add_child(sun_node)
+	var light := PointLight2D.new()
+	light.name = "SunPointLight"
+	# Cold winter sunlight — slightly blue-white
+	light.color = Color(0.9, 0.92, 1.0, 1.0)
+	light.energy = 1.0
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_NONE
+	light.shadow_color = Color(0.0, 0.0, 0.0, 0.5)
+	light.texture = _create_sunlight_texture()
+	# Scale large enough to cover the entire 4000x4000 map
+	light.texture_scale = 20.0
+	sun_node.add_child(light)
+	print("[RailwayStationLevel] Sunlight placed off-screen at top-right corner")
+
+
+func _create_sunlight_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+	return ImageTexture.create_from_image(image)
+
+
 func _log_to_file(message: String) -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("log_info"):
-		file_logger.log_info("[FactoryLevel] " + message)
+		file_logger.log_info("[RailwayStationLevel] " + message)
 	else:
-		print("[FactoryLevel] " + message)
-
-
-## Configure silenced pistol ammo to match enemy count (Issue #1422).
-## The silenced pistol gets exactly as many bullets as there are enemies.
-func _configure_silenced_pistol_ammo(weapon: Node) -> void:
-	if weapon.name != "SilencedPistol":
-		return
-	if weapon.has_method("ConfigureAmmoForEnemyCount"):
-		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
-		_log_to_file("Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
-
-
-## Configure Makarov PM ammo - 2.5x magazines (Issue #1422).
-func _configure_makarov_pm_ammo(weapon: Node) -> void:
-	if weapon == null:
-		return
-	if weapon.name != "MakarovPM":
-		return
-	var starting_magazines: int = 4
-	if weapon.get("StartingMagazineCount") != null:
-		starting_magazines = weapon.StartingMagazineCount
-	var pm_magazines: int = int(round(starting_magazines * 2.5))
-	if weapon.has_method("ReinitializeMagazines"):
-		weapon.ReinitializeMagazines(pm_magazines, true)
-		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
-	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
-		_player.ApplyAutoReloadAfterLevelAmmoConfig()
-
-
-## Apply Factory level ammo configuration to a weapon (Issue #1422).
-## Silenced pistol: exactly as many bullets as enemies.
-## Mini UZI and rifles: 2 magazines to match level difficulty.
-## Shotgun, sniper, revolver: defaults are sufficient for 13 enemies.
-func _configure_factory_weapon_ammo(weapon: Node, weapon_id: String) -> void:
-	if weapon == null:
-		return
-
-	if weapon_id == "silenced_pistol":
-		_configure_silenced_pistol_ammo(weapon)
-	elif weapon_id == "mini_uzi" or weapon_id == "m16" or weapon_id == "ak_gl":
-		var base_magazines: int = 2
-		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
-		if difficulty_manager:
-			var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
-			if ammo_multiplier > 1:
-				base_magazines *= ammo_multiplier
-				_log_to_file("Power Fantasy mode - %s magazines multiplied by %dx" % [weapon.name, ammo_multiplier])
-		if weapon.has_method("ReinitializeMagazines"):
-			weapon.ReinitializeMagazines(base_magazines, true)
-			_log_to_file("%s magazines reinitialized to %d" % [weapon.name, base_magazines])
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
-
-	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
-		_player.ApplyAutoReloadAfterLevelAmmoConfig()
-		_log_to_file("Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+		print("[RailwayStationLevel] " + message)
