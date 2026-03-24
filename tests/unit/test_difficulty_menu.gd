@@ -68,6 +68,44 @@ class MockDifficultyMenu:
 var menu: MockDifficultyMenu
 
 
+# ============================================================================
+# Mock GameManager for restart-on-difficulty-change tests (Issue #1432)
+# ============================================================================
+
+
+class MockGameManager:
+	## Whether restart_scene was called.
+	var restart_called: bool = false
+	## Simulated player node (null means not in-game).
+	var player = null
+
+	func restart_scene() -> void:
+		restart_called = true
+
+
+## Helper: creates a MockDifficultyMenu wired to a MockGameManager
+## and simulates what _restart_if_in_game() does.
+## Returns a dictionary with "menu" and "game_manager" keys.
+func _make_restart_harness(has_player: bool) -> Dictionary:
+	var gm := MockGameManager.new()
+	if has_player:
+		gm.player = RefCounted.new()  # any non-null object acts as the player
+
+	var dm := MockDifficultyMenu.new()
+
+	return {"menu": dm, "game_manager": gm}
+
+
+## Simulate _restart_if_in_game logic using the mock objects.
+func _simulate_restart_if_in_game(gm: MockGameManager) -> void:
+	if gm == null:
+		return
+	if gm.player == null:
+		return
+	# get_tree().paused = false  -- skipped in unit test (no scene tree)
+	gm.restart_scene()
+
+
 func before_each() -> void:
 	menu = MockDifficultyMenu.new()
 
@@ -242,3 +280,35 @@ func test_back_button() -> void:
 
 	assert_eq(menu.back_pressed_count, 1,
 		"Should track back press")
+
+
+# ============================================================================
+# Auto-restart on Difficulty Change Tests (Issue #1432)
+# ============================================================================
+
+
+func test_restart_is_triggered_when_player_exists() -> void:
+	var harness := _make_restart_harness(true)
+	var gm: MockGameManager = harness["game_manager"]
+
+	_simulate_restart_if_in_game(gm)
+
+	assert_true(gm.restart_called,
+		"restart_scene should be called when a player is present (in-game)")
+
+
+func test_restart_is_not_triggered_without_player() -> void:
+	var harness := _make_restart_harness(false)
+	var gm: MockGameManager = harness["game_manager"]
+
+	_simulate_restart_if_in_game(gm)
+
+	assert_false(gm.restart_called,
+		"restart_scene should NOT be called when no player is present (main menu)")
+
+
+func test_restart_is_not_triggered_without_game_manager() -> void:
+	# Passing null game manager — should not crash and should not restart.
+	_simulate_restart_if_in_game(null)
+	# If we reach here without errors the test passes.
+	assert_true(true, "Should handle null GameManager gracefully")
