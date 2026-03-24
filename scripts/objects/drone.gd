@@ -35,11 +35,26 @@ var _led_sprite: Polygon2D = null
 func _ready() -> void:
 	add_to_group("enemies")
 	_drone_component = $DroneComponent as DroneComponent
+	if not _drone_component:
+		FileLogger.info("[Drone] ERROR: DroneComponent not found!")
 	_setup_drone_visual()
 
 	# Connect combat mode signal to update LED
 	if _drone_component:
 		_drone_component.combat_entered.connect(_on_combat_entered)
+		_drone_component.drone_destroyed.connect(_on_drone_destroyed)
+		_drone_component.drone_exploded.connect(_on_drone_exploded)
+	FileLogger.info("[Drone] _ready complete, component=%s" % str(_drone_component != null))
+
+
+## Called when drone is destroyed (shot down).
+func _on_drone_destroyed() -> void:
+	_is_alive = false
+
+
+## Called when drone explodes on contact.
+func _on_drone_exploded() -> void:
+	_is_alive = false
 
 
 ## Create the top-down drone visual using Polygon2D shapes.

@@ -21,56 +21,75 @@ The original drone was a minimal implementation ("residual principle" per Issue 
 - No NavigationAgent2D for obstacle avoidance
 - No audio feedback
 
+### User-Reported Bug: "Drone not released" (2026-03-24)
+
+**Symptom**: User reported "теперь не выпускает дрона" (now doesn't release the drone).
+
+**Investigation** (from `game_log_20260324_125142.txt`):
+- Drone operator IS deploying the drone (logs show "Drone deployed at (X, Y)")
+- Drone entity IS present in the scene (grenade collision with "Drone" detected)
+- But NO drone behavior logs appear — no "Visual setup complete", no "Initialized by operator", no "COMBAT mode activated"
+
+**Root Causes Identified**:
+1. **RayCast2D `enabled = false` in scene** — While `force_raycast_update()` should work with disabled raycasts, this is fragile. Set to `enabled = true` for reliability.
+2. **Missing deferred player search** — `_find_player()` was called in `_ready()` before the scene tree might be fully settled after dynamic spawning via `add_child()`. Changed to `call_deferred("_deferred_find_player")` for robustness.
+3. **Insufficient logging** — No diagnostic logs in `_ready()`, `_physics_process()`, or player search. Without logs, impossible to diagnose why the drone appears inert.
+4. **NavigationAgent2D usage** — Combat code had redundant/confused navigation logic. Simplified to single path with proper fallback to direct movement.
+5. **No player reference from operator** — When `initialize(operator)` is called, the operator already has a `_player` reference that could be shared, avoiding the need for the drone to independently search for the player.
+
+**Fixes Applied**:
+- Enabled RayCast2D in scene file
+- Deferred player search with comprehensive logging
+- Added player reference sharing from operator during initialization
+- Simplified NavigationAgent2D combat movement logic
+- Added periodic logging when player not found
+- Added ready/initialization status logging
+
 ## Solution Design
 
 ### 1. Drone AI States
 
-Add a state machine to `DroneComponent`:
-- **SEARCHING**: Drone moves in a pattern (patrol or hover), checks for player visibility using line-of-sight with unlimited range and 360° FOV. LED is green/blue.
-- **COMBAT**: Triggered when player is detected. LED turns red, beeping starts, drone accelerates to 3x speed and navigates toward player with collision intent.
+State machine in `DroneComponent`:
+- **SEARCHING**: Drone patrols near spawn position, checks for player visibility using line-of-sight with unlimited range and 360° FOV. LED is green.
+- **COMBAT**: Triggered when player is detected (after 0.3s confirmation). LED turns red, beeping starts, drone accelerates to 3x speed and navigates toward player.
 
 ### 2. Player Detection
 
-- Use raycasting for line-of-sight checks (similar to enemy vision)
+- Use raycasting for line-of-sight checks (RayCast2D, collision_mask = 4 = obstacles only)
 - Detection range: unlimited (0)
 - FOV angle: 360° (no angle restriction, as specified in issue)
-- Detection delay: short (0.3s) to give player brief reaction window
+- Detection delay: 0.3s to give player brief reaction window
 
 ### 3. Combat Movement
 
 - Combat speed: `DRONE_SPEED * 3.0` = 450 px/s
 - Use NavigationAgent2D for pathfinding around obstacles
-- Apply drift on turns: when turning, the drone's velocity lags behind the desired direction, creating a sliding/drifting effect using linear interpolation with a turn factor
+- Drift on turns via lerp with factor 0.03
 
-### 4. Drift Mechanics
-
-- Track desired direction vs actual velocity direction
-- Use `lerp` with a drift factor (0.02-0.05 per frame) so the drone gradually turns
-- At 3x speed, the momentum carries the drone past turn points
-- Visual: drone body rotates toward target but velocity trails behind
-
-### 5. Explosion on Contact
+### 4. Explosion on Contact
 
 - Reuse RPG rocket explosion mechanics (radius: 150px, damage: 3)
-- No wall penetration (unlike RPG rocket)
-- Line-of-sight check for damage (blocked by obstacles)
+- No wall penetration (line-of-sight check for damage)
 - Explosion visual effects and sound
 
-### 6. Audio Feedback
+### 5. Audio Feedback
 
-- Generate beeping sound using AudioStreamGenerator (sine wave pattern)
-- Morse-code-like pattern: short beeps with varying intervals
+- Generate beeping sound using AudioStreamGenerator (880Hz sine wave)
+- Morse-code-like pattern: 3 short beeps + pause
 - Play continuously while in COMBAT mode
 
 ## Implementation Components
 
 ### Modified Files
 - `scripts/components/drone_component.gd` — Full AI state machine, detection, combat movement, drift, explosion
-- `scripts/objects/drone.gd` — LED color changes, collision handling, audio player setup
-- `scenes/objects/Drone.tscn` — Add NavigationAgent2D, RayCast2D nodes
+- `scripts/objects/drone.gd` — LED color changes, collision handling, lifecycle signals
+- `scenes/objects/Drone.tscn` — Add NavigationAgent2D, RayCast2D nodes (enabled)
 
 ### New Files
 - `tests/unit/test_drone_combat.gd` — Unit tests for drone combat behavior
+
+### Log Data
+- `docs/case-studies/issue-1417/game_log_20260324_125142.txt` — User-provided game log showing drone deployment but no behavior
 
 ## References
 

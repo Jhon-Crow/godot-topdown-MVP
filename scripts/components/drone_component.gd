@@ -147,7 +147,6 @@ var debug_logging: bool = false
 
 func _ready() -> void:
 	_drone_body = get_parent() as CharacterBody2D
-	_find_player()
 	if _drone_body:
 		_home_position = _drone_body.global_position
 		_nav_agent = _drone_body.get_node_or_null("NavigationAgent2D") as NavigationAgent2D
@@ -157,15 +156,36 @@ func _ready() -> void:
 		_audio_player.name = "DroneBeepPlayer"
 		_audio_player.bus = "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master"
 		_drone_body.add_child(_audio_player)
+		FileLogger.info("[Drone] _ready: body=%s, nav=%s, ray=%s, pos=%s" % [
+			str(_drone_body != null), str(_nav_agent != null), str(_raycast != null),
+			str(_drone_body.global_position)])
+	else:
+		FileLogger.info("[Drone] _ready: ERROR - no CharacterBody2D parent!")
 	if _nav_agent:
 		_nav_agent.path_desired_distance = 20.0
 		_nav_agent.target_desired_distance = 20.0
+	# Defer player search to ensure scene tree is fully ready
+	call_deferred("_deferred_find_player")
+
+
+## Deferred player search — runs after the scene tree is fully ready.
+func _deferred_find_player() -> void:
+	_find_player()
+	if _player:
+		FileLogger.info("[Drone] Player found: %s at %s" % [_player.name, str(_player.global_position)])
+	else:
+		FileLogger.info("[Drone] WARNING: Player not found in scene tree!")
 
 
 ## Initialize the drone with operator reference.
 func initialize(operator: Node2D) -> void:
 	_operator = operator
-	FileLogger.info("[Drone] Initialized by operator: %s" % (operator.name if operator else "null"))
+	# Try to get player reference from operator's enemy AI
+	if _player == null and operator and operator.get("_player") != null:
+		_player = operator.get("_player")
+	FileLogger.info("[Drone] Initialized by operator: %s, player found: %s" % [
+		operator.name if operator else "null",
+		str(_player != null)])
 
 
 ## Find the player in the scene tree.
@@ -182,13 +202,21 @@ func _find_player() -> void:
 			_player = root.find_child("Player", true, false)
 
 
+## Periodic log timer to avoid spamming.
+var _log_timer: float = 0.0
+
 func _physics_process(delta: float) -> void:
 	if not _is_alive or _drone_body == null or _has_exploded:
 		return
 
 	if _player == null:
 		_find_player()
-		return
+		if _player == null:
+			_log_timer += delta
+			if _log_timer >= 2.0:
+				_log_timer = 0.0
+				FileLogger.info("[Drone] Still searching for player node...")
+			return
 
 	match _state:
 		DroneState.SEARCHING:
@@ -208,6 +236,8 @@ func _process_searching(delta: float) -> void:
 			_transition_to_combat()
 			return
 	else:
+		if _detection_timer > 0.0:
+			FileLogger.info("[Drone] Lost sight of player (detection timer was %.2f)" % _detection_timer)
 		_detection_timer = 0.0
 
 	# Patrol: circle around home position
@@ -282,6 +312,9 @@ func _transition_to_combat() -> void:
 	_beep_timer = 0.0
 	_beep_count = 0
 	_actual_direction = (_player.global_position - _drone_body.global_position).normalized()
+	# Initialize navigation target immediately
+	if _nav_agent:
+		_nav_agent.target_position = _player.global_position
 	combat_entered.emit()
 	FileLogger.info("[Drone] COMBAT mode activated! Target: player at %s" % str(_player.global_position))
 
@@ -303,22 +336,22 @@ func _process_combat(delta: float) -> void:
 	# Calculate desired direction toward player
 	var desired_direction: Vector2
 
-	# Use NavigationAgent2D for pathfinding if available
-	if _nav_agent and _nav_agent.is_navigation_finished() == false:
-		_nav_timer += delta
-		if _nav_timer >= NAV_UPDATE_INTERVAL:
-			_nav_timer = 0.0
+	# Update navigation target periodically
+	_nav_timer += delta
+	if _nav_timer >= NAV_UPDATE_INTERVAL:
+		_nav_timer = 0.0
+		if _nav_agent:
 			_nav_agent.target_position = _player.global_position
 
+	# Use NavigationAgent2D for pathfinding if available and has a valid path
+	if _nav_agent:
 		var next_pos := _nav_agent.get_next_path_position()
-		desired_direction = (_drone_body.global_position.direction_to(next_pos))
-	elif _nav_agent:
-		_nav_timer += delta
-		if _nav_timer >= NAV_UPDATE_INTERVAL:
-			_nav_timer = 0.0
-			_nav_agent.target_position = _player.global_position
-		var next_pos := _nav_agent.get_next_path_position()
-		desired_direction = (_drone_body.global_position.direction_to(next_pos))
+		var nav_dir := _drone_body.global_position.direction_to(next_pos)
+		# Only use nav path if it gives a meaningful direction
+		if nav_dir.length() > 0.01:
+			desired_direction = nav_dir
+		else:
+			desired_direction = (_player.global_position - _drone_body.global_position).normalized()
 	else:
 		# Direct path to player (no navigation)
 		desired_direction = (_player.global_position - _drone_body.global_position).normalized()

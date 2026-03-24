@@ -35,5 +35,5 @@ radius = 16.0
 avoidance_enabled = false
 
 [node name="RayCast2D" type="RayCast2D" parent="."]
-enabled = false
+enabled = true
 collision_mask = 4
