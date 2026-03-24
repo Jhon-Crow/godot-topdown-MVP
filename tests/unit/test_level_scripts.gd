@@ -210,7 +210,7 @@ class MockBuildingLevel extends MockLevelBase:
 	## Next level path for building level.
 	var _next_level_path: String = "res://scenes/levels/TestTier.tscn"
 
-	## Level ordering (matching LevelsMenu.LEVELS).
+	## Level ordering (matching LevelsMenu.LEVELS) — Labyrinth Complex is last.
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
@@ -220,6 +220,9 @@ class MockBuildingLevel extends MockLevelBase:
 		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
 		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
+		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -238,6 +241,44 @@ class MockBuildingLevel extends MockLevelBase:
 				return ""  # Last level
 		return ""  # Not found
 
+	# -------------------------------------------------------------------------
+	# Ammo label simulation (Issue #1259)
+	# -------------------------------------------------------------------------
+
+	## Simulated ammo label text (null means label not yet initialized).
+	var _ammo_label_text: Variant = null  # null = not initialized, String = initialized
+
+	## Initialize ammo label before weapon setup (mirrors the fix in _setup_player_tracking).
+	func init_ammo_label() -> void:
+		_ammo_label_text = "AMMO: 0/0"
+
+	## Simulate updating the ammo label (mirrors _update_ammo_label_magazine).
+	## Returns true if update succeeded (label was initialized), false if label was null.
+	func update_ammo_label_magazine(current_mag: int, reserve: int) -> bool:
+		if _ammo_label_text == null:
+			return false
+		_ammo_label_text = "AMMO: %d/%d" % [current_mag, reserve]
+		return true
+
+	## Simulate the full player setup sequence, optionally initializing ammo label first.
+	## ammo_label_before_weapon: if true, mimics the FIXED order (label init before weapon setup).
+	## ammo_label_before_weapon: if false, mimics the BUGGY order (label init after weapon setup).
+	func simulate_player_setup(current_mag: int, reserve: int, ammo_label_before_weapon: bool) -> void:
+		if ammo_label_before_weapon:
+			init_ammo_label()
+		# Weapon setup calls update_ammo_label_magazine during _apply_building_ammo_config
+		update_ammo_label_magazine(current_mag, reserve)
+		if not ammo_label_before_weapon:
+			init_ammo_label()
+
+	# -------------------------------------------------------------------------
+	# Player death simulation (Issue #1259)
+	# -------------------------------------------------------------------------
+
+	## Simulate player dying: triggers death message (mirrors _on_player_died → _show_death_screen).
+	func on_player_died() -> void:
+		show_death_message()
+
 
 # ============================================================================
 # Mock CastleLevel for Testing
@@ -252,8 +293,8 @@ class MockCastleLevel extends MockLevelBase:
 	var map_width: int = 6000
 	var map_height: int = 2560
 
-	## Default enemy count for castle level.
-	var default_enemy_count: int = 15
+	## Default enemy count for castle level (13 enemies: shotguns, uzis, patrols, lower).
+	var default_enemy_count: int = 13
 
 	## Castle-specific weapon ammo multiplier (2x for all weapons).
 	var ammo_multiplier: int = 2
@@ -265,7 +306,7 @@ class MockCastleLevel extends MockLevelBase:
 	func get_pm_magazine_count(starting_magazines: int) -> int:
 		return int(round(starting_magazines * pm_ammo_multiplier))
 
-	## Level ordering.
+	## Level ordering — Labyrinth Complex is last.
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
@@ -275,6 +316,9 @@ class MockCastleLevel extends MockLevelBase:
 		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
 		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
+		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -318,13 +362,13 @@ class MockTestTier extends MockLevelBase:
 	func get_pm_magazine_count(starting_magazines: int) -> int:
 		return int(round(starting_magazines * pm_ammo_multiplier))
 
-	## Default enemy count for test tier (10 enemies).
-	var default_enemy_count: int = 10
+	## Default enemy count for test tier (12 enemies: 6 guards, 4 patrols, 2 RPG).
+	var default_enemy_count: int = 12
 
 	## Whether the score screen is currently shown (for W key shortcut).
 	var _score_shown: bool = false
 
-	## Level ordering.
+	## Level ordering — Labyrinth Complex is last.
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
@@ -334,6 +378,9 @@ class MockTestTier extends MockLevelBase:
 		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
 		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
+		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -378,7 +425,15 @@ class MockBeachLevel extends MockLevelBase:
 	## Whether the score screen is currently shown.
 	var _score_shown: bool = false
 
-	## Level ordering.
+	## Sunlight configuration (Issue #1234).
+	## The sun is placed off-screen in the top-right corner to simulate outdoor daylight.
+	var sunlight_position: Vector2 = Vector2(2700, -200)
+	var sunlight_color: Color = Color(1.0, 0.95, 0.5, 1.0)
+	var sunlight_energy: float = 1.2
+	var sunlight_texture_scale: float = 14.0
+	var sunlight_shadow_enabled: bool = true
+
+	## Level ordering — Labyrinth Complex is last.
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
@@ -388,6 +443,9 @@ class MockBeachLevel extends MockLevelBase:
 		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
 		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
+		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -714,11 +772,11 @@ func test_building_level_prevents_duplicate_completion() -> void:
 # ============================================================================
 
 
-func test_building_level_next_is_test_tier() -> void:
+func test_building_level_next_is_testtier() -> void:
 	var next := building_level.get_next_level_path("res://scenes/levels/BuildingLevel.tscn")
 
 	assert_eq(next, "res://scenes/levels/TestTier.tscn",
-		"Next level after BuildingLevel should be TestTier")
+		"Next level after BuildingLevel should be TestTier (Labyrinth Complex is now last)")
 
 
 func test_building_level_unknown_scene_returns_empty() -> void:
@@ -753,8 +811,8 @@ func test_castle_level_map_larger_than_building() -> void:
 
 
 func test_castle_level_default_enemy_count() -> void:
-	assert_eq(castle_level.default_enemy_count, 15,
-		"Castle level should have 15 enemies by default")
+	assert_eq(castle_level.default_enemy_count, 13,
+		"Castle level should have 13 enemies by default")
 
 
 func test_castle_level_more_enemies_than_building() -> void:
@@ -770,16 +828,16 @@ func test_castle_level_more_enemies_than_building() -> void:
 func test_castle_level_initialize_sets_enemy_count() -> void:
 	castle_level.initialize()
 
-	assert_eq(castle_level._initial_enemy_count, 15,
-		"Should track 15 enemies after initialization")
-	assert_eq(castle_level._current_enemy_count, 15,
+	assert_eq(castle_level._initial_enemy_count, 13,
+		"Should track 13 enemies after initialization")
+	assert_eq(castle_level._current_enemy_count, 13,
 		"Current enemy count should match initial count")
 
 
 func test_castle_level_all_enemies_killed() -> void:
 	castle_level.initialize()
 
-	for i in range(15):
+	for i in range(13):
 		castle_level.on_enemy_died()
 
 	assert_eq(castle_level._current_enemy_count, 0,
@@ -796,8 +854,8 @@ func test_castle_level_partial_kills() -> void:
 	for i in range(7):
 		castle_level.on_enemy_died()
 
-	assert_eq(castle_level._current_enemy_count, 8,
-		"8 enemies should remain after killing 7 of 15")
+	assert_eq(castle_level._current_enemy_count, 6,
+		"6 enemies should remain after killing 7 of 13")
 	assert_false(castle_level._level_cleared,
 		"Level should NOT be cleared with enemies remaining")
 
@@ -934,13 +992,13 @@ func test_test_tier_map_dimensions() -> void:
 
 
 func test_test_tier_default_enemy_count() -> void:
-	assert_eq(test_tier.default_enemy_count, 10,
-		"TestTier should have 10 enemies by default")
+	assert_eq(test_tier.default_enemy_count, 12,
+		"TestTier should have 12 enemies by default")
 
 
-func test_test_tier_same_enemy_count_as_building() -> void:
-	assert_eq(test_tier.default_enemy_count, building_level.default_enemy_count,
-		"TestTier and Building should have the same default enemy count (10)")
+func test_test_tier_more_enemies_than_building() -> void:
+	assert_gt(test_tier.default_enemy_count, building_level.default_enemy_count,
+		"TestTier should have more enemies than Building (12 vs 10, includes RPG enemies)")
 
 
 # ============================================================================
@@ -951,14 +1009,14 @@ func test_test_tier_same_enemy_count_as_building() -> void:
 func test_test_tier_initialize_sets_enemy_count() -> void:
 	test_tier.initialize()
 
-	assert_eq(test_tier._initial_enemy_count, 10,
-		"Should track 10 enemies after initialization")
+	assert_eq(test_tier._initial_enemy_count, 12,
+		"Should track 12 enemies after initialization")
 
 
 func test_test_tier_all_enemies_killed_clears_level() -> void:
 	test_tier.initialize()
 
-	for i in range(10):
+	for i in range(12):
 		test_tier.on_enemy_died()
 
 	assert_eq(test_tier._current_enemy_count, 0,
@@ -978,8 +1036,8 @@ func test_test_tier_kill_tracking() -> void:
 
 	assert_eq(test_tier._kills, 3,
 		"Kill count should be 3 after 3 enemy deaths")
-	assert_eq(test_tier._current_enemy_count, 7,
-		"7 enemies should remain")
+	assert_eq(test_tier._current_enemy_count, 9,
+		"9 enemies should remain")
 
 
 # ============================================================================
@@ -1328,7 +1386,7 @@ func test_castle_level_full_flow() -> void:
 	castle_level.initialize()
 
 	# Kill all enemies
-	for i in range(15):
+	for i in range(13):
 		castle_level.on_enemy_died()
 
 	assert_true(castle_level._level_cleared, "Level should be cleared")
@@ -1345,7 +1403,7 @@ func test_test_tier_full_flow() -> void:
 	test_tier.initialize()
 
 	# Kill all enemies
-	for i in range(10):
+	for i in range(12):
 		test_tier.on_enemy_died()
 
 	assert_true(test_tier._level_cleared, "Level should be cleared")
@@ -1366,19 +1424,19 @@ func test_test_tier_full_flow() -> void:
 func test_level_complete_with_accuracy_tracking() -> void:
 	test_tier.initialize()
 
-	# Simulate combat: 15 shots, 10 hits, 10 kills
+	# Simulate combat: 15 shots, 12 hits, 12 kills
 	for i in range(15):
 		test_tier.register_shot()
-	for i in range(10):
+	for i in range(12):
 		test_tier.register_hit()
 		test_tier.on_enemy_died()
 
 	assert_true(test_tier.is_level_complete(),
 		"Level should be complete")
-	assert_almost_eq(test_tier.get_accuracy(), 66.67, 0.1,
-		"Accuracy should be ~66.67%")
-	assert_eq(test_tier._kills, 10,
-		"Kill count should be 10")
+	assert_almost_eq(test_tier.get_accuracy(), 80.0, 0.1,
+		"Accuracy should be ~80.0%")
+	assert_eq(test_tier._kills, 12,
+		"Kill count should be 12")
 
 
 func test_all_levels_track_accuracy_consistently() -> void:
@@ -1403,10 +1461,10 @@ func test_all_levels_track_accuracy_consistently() -> void:
 # ============================================================================
 
 
-func test_level_order_building_to_testtier_to_castle_to_revolver() -> void:
+func test_level_order_building_to_testtier_to_castle_to_revolver_labyrinth2_is_last() -> void:
 	var first := building_level.get_next_level_path("res://scenes/levels/BuildingLevel.tscn")
 	assert_eq(first, "res://scenes/levels/TestTier.tscn",
-		"BuildingLevel -> TestTier")
+		"BuildingLevel -> TestTier (Labyrinth Complex moved to last)")
 
 	var second := test_tier.get_next_level_path("res://scenes/levels/TestTier.tscn")
 	assert_eq(second, "res://scenes/levels/CastleLevel.tscn",
@@ -1415,6 +1473,10 @@ func test_level_order_building_to_testtier_to_castle_to_revolver() -> void:
 	var third := castle_level.get_next_level_path("res://scenes/levels/CastleLevel.tscn")
 	assert_eq(third, "res://scenes/levels/RevolverLevel.tscn",
 		"CastleLevel -> Double Corridor (RevolverLevel) — Issue #952")
+
+	var last := building_level.get_next_level_path("res://scenes/levels/DecadenceLevel.tscn")
+	assert_eq(last, "res://scenes/levels/Labyrinth2Level.tscn",
+		"DecadenceLevel -> Labyrinth2Level (Labyrinth Complex is last in progression)")
 
 
 # ============================================================================
@@ -1539,6 +1601,51 @@ func test_beach_level_saturation_constants() -> void:
 		"Beach level saturation duration should be 0.15 seconds")
 	assert_eq(beach_level.SATURATION_INTENSITY, 0.25,
 		"Beach level saturation intensity should be 0.25")
+
+
+# ============================================================================
+# BeachLevel Sunlight Tests (Issue #1234)
+# ============================================================================
+
+
+func test_beach_level_sunlight_position_is_offscreen_top_right() -> void:
+	## Sunlight must be off-screen in the top-right corner (outside map bounds 64–2464 x, 64–2064 y).
+	assert_true(beach_level.sunlight_position.x > 2464,
+		"Sunlight x position should be outside right map boundary (>2464)")
+	assert_true(beach_level.sunlight_position.y < 64,
+		"Sunlight y position should be above top map boundary (<64)")
+
+
+func test_beach_level_sunlight_color_is_warm() -> void:
+	## Sunlight should be warm (golden-yellow), not cold blue.
+	assert_almost_eq(beach_level.sunlight_color.r, 1.0, 0.01,
+		"Sunlight red channel should be 1.0 (full)")
+	assert_true(beach_level.sunlight_color.g > 0.85,
+		"Sunlight green channel should be high (warm golden)")
+	assert_true(beach_level.sunlight_color.b < 0.85,
+		"Sunlight blue channel should be lower than green (warm, not cold)")
+
+
+func test_beach_level_sunlight_energy_is_bright() -> void:
+	## Sunlight must be bright enough to illuminate the whole outdoor scene.
+	assert_true(beach_level.sunlight_energy >= 1.0,
+		"Sunlight energy should be at least 1.0 for outdoor daylight")
+
+
+func test_beach_level_sunlight_covers_whole_map() -> void:
+	## texture_scale * 256 must reach the farthest map corner from the sun position.
+	## Bottom-left corner of the map is approximately (64, 2064).
+	var far_corner := Vector2(64, 2064)
+	var dist := beach_level.sunlight_position.distance_to(far_corner)
+	var light_radius := beach_level.sunlight_texture_scale * 256.0
+	assert_true(light_radius >= dist,
+		"Sunlight radius (scale*256=%.0f) must reach farthest corner (dist=%.0f)" % [light_radius, dist])
+
+
+func test_beach_level_sunlight_shadows_enabled() -> void:
+	## Shadows must be enabled so obstacles (rocks, huts) block the sunlight.
+	assert_true(beach_level.sunlight_shadow_enabled,
+		"Sunlight shadows must be enabled for obstacles to cast shadows")
 
 
 # ============================================================================
@@ -1931,3 +2038,121 @@ func test_labyrinth_thresholds_descending_order() -> void:
 	assert_true(t["B"] > t["C"], "B threshold must be greater than C")
 	assert_true(t["C"] > t["D"], "C threshold must be greater than D")
 	assert_true(t["D"] > t["F"], "D threshold must be greater than F")
+
+
+# ============================================================================
+# Building Level Player Death Tests (Issue #1259)
+# ============================================================================
+
+
+func test_building_player_death_shows_death_message() -> void:
+	## When player dies, the death message ("YOU DIED") must be shown.
+	building_level.initialize()
+
+	building_level.on_player_died()
+
+	assert_true(building_level.death_message_shown,
+		"Player death should trigger the death message (Issue #1259)")
+
+
+func test_building_player_death_sets_game_over() -> void:
+	## Player death sets _game_over_shown so no further death/game-over messages fire.
+	building_level.initialize()
+
+	building_level.on_player_died()
+
+	assert_true(building_level._game_over_shown,
+		"Player death should mark _game_over_shown to prevent duplicate messages (Issue #1259)")
+
+
+func test_building_player_death_does_not_show_game_over_message() -> void:
+	## on_player_died uses show_death_message, NOT show_game_over_message.
+	building_level.initialize()
+
+	building_level.on_player_died()
+
+	assert_false(building_level.game_over_message_shown,
+		"Player death should not trigger game-over-message (only death message)")
+
+
+func test_building_player_second_death_ignored() -> void:
+	## Dying twice should not re-show the death message.
+	building_level.initialize()
+
+	building_level.on_player_died()
+	building_level.death_message_shown = false  # Reset flag to detect second trigger
+	building_level.on_player_died()
+
+	assert_false(building_level.death_message_shown,
+		"Second player death call should be ignored after _game_over_shown is true (Issue #1259)")
+
+
+# ============================================================================
+# Building Level Ammo Counter Tests (Issue #1259)
+# ============================================================================
+
+
+func test_building_ammo_label_initialized_before_weapon_setup() -> void:
+	## In the FIXED code, _ammo_label is initialized before _setup_selected_weapon,
+	## so the first ammo update call during weapon setup succeeds.
+	# Simulate the fixed order: label initialized BEFORE weapon setup runs
+	building_level.simulate_player_setup(30, 60, true)  # ammo_label_before = true (fixed order)
+
+	assert_true(building_level._ammo_label_text != null,
+		"Ammo label must be initialized before weapon setup (Issue #1259)")
+	assert_eq(building_level._ammo_label_text, "AMMO: 30/60",
+		"Ammo label must show weapon ammo after weapon setup (Issue #1259)")
+
+
+func test_building_ammo_label_buggy_order_misses_initial_update() -> void:
+	## In the BUGGY code (before fix), _ammo_label was null when weapon setup called
+	## _update_ammo_label_magazine, so the initial ammo display was skipped.
+	# Simulate buggy order: label initialized AFTER weapon setup
+	building_level.simulate_player_setup(30, 60, false)
+
+	# The label is initialized after, but the ammo update during weapon setup was lost
+	assert_true(building_level._ammo_label_text != null,
+		"Label gets initialized eventually even in buggy order")
+	# In buggy order the weapon setup update call returns false (label was null then)
+	# We verify this by directly simulating the buggy sequence
+	var buggy_level := MockBuildingLevel.new()
+	# Weapon setup fires: label still null → update returns false
+	var update_succeeded := buggy_level.update_ammo_label_magazine(30, 60)
+	# Label initialized afterwards
+	buggy_level.init_ammo_label()
+
+	assert_false(update_succeeded,
+		"Ammo update during weapon setup fails when label is not yet initialized (bug proof)")
+	assert_eq(buggy_level._ammo_label_text, "AMMO: 0/0",
+		"After buggy init, label shows default 0/0 instead of actual ammo (bug proof)")
+
+
+func test_building_ammo_label_update_reflects_magazine_ammo() -> void:
+	## Ammo counter must display current/reserve ammo correctly.
+	building_level.init_ammo_label()
+
+	var updated := building_level.update_ammo_label_magazine(15, 30)
+
+	assert_true(updated, "Ammo label update should succeed when label is initialized")
+	assert_eq(building_level._ammo_label_text, "AMMO: 15/30",
+		"Ammo label should show 'AMMO: current/reserve'")
+
+
+func test_building_ammo_label_update_empty_magazine() -> void:
+	## When magazine is empty, counter should show 0.
+	building_level.init_ammo_label()
+
+	building_level.update_ammo_label_magazine(0, 30)
+
+	assert_eq(building_level._ammo_label_text, "AMMO: 0/30",
+		"Ammo label should show 0 in magazine when empty")
+
+
+func test_building_ammo_label_update_fails_when_not_initialized() -> void:
+	## If label is not initialized, update is silently skipped (null guard in real code).
+	var updated := building_level.update_ammo_label_magazine(30, 60)
+
+	assert_false(updated,
+		"Ammo update must be skipped when label is null (Issue #1259 root cause)")
+	assert_null(building_level._ammo_label_text,
+		"Ammo label text must remain null when not initialized")

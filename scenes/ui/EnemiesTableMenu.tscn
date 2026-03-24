@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://en3m13st4bl3m3nu"]
+
+[ext_resource type="Script" path="res://scripts/ui/enemies_table_menu.gd" id="1_enemies_table"]
+
+[node name="EnemiesTableMenu" type="CanvasLayer"]
+layer = 102
+process_mode = 2
+script = ExtResource("1_enemies_table")

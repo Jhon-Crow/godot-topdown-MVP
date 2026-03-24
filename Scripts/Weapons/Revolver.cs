@@ -1,5 +1,7 @@
+using System.Threading.Tasks;
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Characters;
 using GodotTopDownTemplate.Components;
 using GodotTopDownTemplate.Projectiles;
 
@@ -380,6 +382,31 @@ public partial class Revolver : BaseWeapon
         }
 
         int cylinderSize = CylinderSize;
+
+        // Apply extended magazine passive item to revolver cylinder size (Issue #1065).
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null && activeItemManager.HasMethod("has_extended_magazine")
+            && activeItemManager.Call("has_extended_magazine").AsBool())
+        {
+            float magSizeMultiplier = activeItemManager.Call("get_magazine_size_multiplier").AsSingle();
+            float totalAmmoMultiplier = activeItemManager.Call("get_total_ammo_multiplier").AsSingle();
+
+            int originalTotal = magazineCount * cylinderSize;
+            int newCylinderSize = Mathf.Max(1, Mathf.RoundToInt(cylinderSize * magSizeMultiplier));
+            int newTotal = Mathf.Max(newCylinderSize, Mathf.RoundToInt(originalTotal * totalAmmoMultiplier));
+            int newMagCount = Mathf.Max(1, Mathf.CeilToInt((float)newTotal / newCylinderSize));
+
+            GD.Print($"[Revolver] Extended Magazine: cylinderSize {cylinderSize}->{newCylinderSize}, " +
+                     $"magazines {magazineCount}->{newMagCount} (total ammo {originalTotal}->{newMagCount * newCylinderSize})");
+
+            cylinderSize = newCylinderSize;
+            magazineCount = newMagCount;
+
+            // Persist the scaled cylinder size so that CylinderCapacity returns the correct value
+            // for all subsequent code (_chamberOccupied[], visual cylinder HUD, reload logic).
+            CylinderSize = cylinderSize;
+        }
+
         GD.Print($"[Revolver] Initializing cylinder magazines: count={magazineCount}, cylinderSize={cylinderSize} (from CylinderSize export, not WeaponData)");
 
         MagazineInventory.Initialize(magazineCount, cylinderSize, fillAllMagazines: true);
@@ -936,6 +963,10 @@ public partial class Revolver : BaseWeapon
     /// </summary>
     private Vector2 ApplySpread(Vector2 direction)
     {
+        // Suppress spread entirely when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return direction;
+
         // Apply the current recoil offset to the direction
         Vector2 result = direction.Rotated(_recoilOffset);
 
@@ -1012,7 +1043,7 @@ public partial class Revolver : BaseWeapon
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            float loudness = WeaponData?.Loudness ?? 2500.0f;
+            float loudness = WeaponData?.Loudness ?? 680.75f;  // Issue #1380: halved from 1361.5 (Issue #1269: scaled 800/1469 from 2500)
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
         }
     }
@@ -1023,6 +1054,10 @@ public partial class Revolver : BaseWeapon
     /// </summary>
     private void TriggerScreenShake(Vector2 shootDirection)
     {
+        // Suppress screen shake when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return;
+
         if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
         {
             return;
@@ -1092,6 +1127,67 @@ public partial class Revolver : BaseWeapon
     {
         // Intentionally empty - revolvers don't eject casings when firing.
         // Spent casings stay in the cylinder until the player opens it.
+    }
+
+    /// <summary>
+    /// Steering speed (radians/sec) for the revolver's built-in slight homing (Issue #1332).
+    /// Very low value gives barely-noticeable bullet correction toward enemies near the crosshair.
+    /// </summary>
+    private const float RevolverHomingSteerSpeed = 0.3f;
+
+    /// <summary>
+    /// Override SpawnBullet to enable slight built-in homing for the RSh-12 revolver (Issue #1332).
+    /// After the bullet is spawned by the base class, weak aim-line homing is applied so that
+    /// bullets nudge toward the nearest enemy near the crosshair without fully tracking them.
+    /// </summary>
+    protected override void SpawnBullet(Vector2 direction)
+    {
+        base.SpawnBullet(direction);
+
+        // Check if revolver aim assist is enabled in GameplaySettings (Issue #1332).
+        var gameplaySettings = GetNodeOrNull("/root/GameplaySettings");
+        if (gameplaySettings != null && !((bool)gameplaySettings.Call("is_revolver_aim_assist_enabled")))
+            return;
+
+        // Find the bullet that was just spawned (last Bullet child of CurrentScene)
+        // and apply weak homing so it gently steers toward nearby enemies.
+        var scene = GetTree().CurrentScene;
+        if (scene == null)
+            return;
+
+        // Only add weak homing if player homing effect is NOT already active
+        // (base.SpawnBullet already enables full-strength homing when player buff is on)
+        if (GetParent() is GodotTopDownTemplate.Characters.Player player && player.IsHomingActive())
+            return;
+
+        // Walk children in reverse to find the most recently added bullet.
+        // The bullet may be a C# Bullet or a GDScript bullet.gd (Area2D), so we check both.
+        var children = scene.GetChildren();
+        for (int i = children.Count - 1; i >= 0; i--)
+        {
+            var child = children[i];
+
+            // C# bullet path
+            if (child is GodotTopDownTemplate.Projectiles.Bullet csBullet && !csBullet.HomingEnabled)
+            {
+                Vector2 aimDir = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+                csBullet.EnableHomingWithAimLine(GlobalPosition, aimDir, RevolverHomingSteerSpeed);
+                break;
+            }
+
+            // GDScript bullet path — bullet.gd is an Area2D with homing_enabled property
+            if (child is Godot.Area2D area && child.HasMethod("enable_homing_with_aim_line"))
+            {
+                bool homingAlreadyOn = (bool)child.Get("homing_enabled");
+                if (!homingAlreadyOn)
+                {
+                    Vector2 aimDir = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+                    child.Set("homing_steer_speed", RevolverHomingSteerSpeed);
+                    child.Call("enable_homing_with_aim_line", GlobalPosition, aimDir);
+                }
+                break;
+            }
+        }
     }
 
     /// <summary>
@@ -1195,6 +1291,26 @@ public partial class Revolver : BaseWeapon
     /// Uses the exported CylinderSize property as the authoritative source (Issue #950).
     /// </summary>
     public int CylinderCapacity => CylinderSize;
+
+    /// <summary>
+    /// Rebuilds the _chamberOccupied tracking array to match the current CylinderSize.
+    /// Called by the auto-reload system (Issue #1067) after CylinderSize is reduced so that
+    /// the per-chamber display and reload logic use the new (smaller) cylinder capacity.
+    /// Marks the first CurrentAmmo chambers as occupied (same logic as _Ready).
+    /// </summary>
+    public void ReinitializeCylinder()
+    {
+        int cylinderCapacity = CylinderCapacity;
+        _chamberOccupied = new bool[cylinderCapacity];
+        int ammo = CurrentAmmo;
+        for (int i = 0; i < cylinderCapacity; i++)
+        {
+            _chamberOccupied[i] = i < ammo;
+        }
+        _currentChamberIndex = 0;
+        GD.Print($"[Revolver] ReinitializeCylinder: cylinderCapacity={cylinderCapacity}, ammo={ammo}");
+        EmitSignal(SignalName.CylinderStateChanged);
+    }
 
     /// <summary>
     /// Whether the cylinder can be opened for reloading.
@@ -1555,6 +1671,141 @@ public partial class Revolver : BaseWeapon
         // Revolver uses multi-step cylinder reload, not timed reload
         // This method is intentionally empty - reload is handled by
         // OpenCylinder(), InsertCartridge(), and CloseCylinder()
+    }
+
+    /// <summary>
+    /// Instantly reloads the revolver: opens cylinder, fills all empty chambers, closes cylinder (Issue #1315).
+    /// Used by the Fine Motor Skills active item. Plays condensed reload sounds.
+    /// </summary>
+    public void FineMotorSkillsReload()
+    {
+        // If in the middle of a reload, close first to reset state
+        if (ReloadState != RevolverReloadState.NotReloading)
+        {
+            CloseCylinder();
+        }
+
+        // Check if cylinder needs reloading
+        int cylinderCapacity = CylinderCapacity;
+        if (CurrentAmmo >= cylinderCapacity)
+        {
+            GD.Print("[Revolver.FineMotorSkills] Cylinder already full — no reload needed");
+            return;
+        }
+
+        if (!MagazineInventory.HasSpareAmmo)
+        {
+            GD.Print("[Revolver.FineMotorSkills] No spare ammo — cannot reload");
+            return;
+        }
+
+        // Open cylinder (plays sound + ejects casings)
+        if (!OpenCylinder())
+        {
+            GD.Print("[Revolver.FineMotorSkills] Cannot open cylinder");
+            return;
+        }
+
+        // Insert cartridges into all empty chambers
+        int inserted = 0;
+        for (int i = 0; i < cylinderCapacity; i++)
+        {
+            if (CanInsertCartridge)
+            {
+                if (InsertCartridge())
+                {
+                    inserted++;
+                }
+            }
+            // Rotate to next chamber to find empty ones
+            if (i < cylinderCapacity - 1)
+            {
+                RotateCylinder(1);
+            }
+        }
+
+        // Play cartridge insert sound once (represents the rapid insertion)
+        if (inserted > 0)
+        {
+            PlayCartridgeInsertSound();
+        }
+
+        // Close cylinder (plays sound)
+        CloseCylinder();
+
+        GD.Print($"[Revolver.FineMotorSkills] Instant reload complete: inserted {inserted} cartridges, {CurrentAmmo}/{cylinderCapacity} loaded");
+    }
+
+    /// <summary>
+    /// Sequentially reloads the revolver with delays between each stage (Issue #1337).
+    /// Plays: open cylinder → insert cartridges one by one → close cylinder.
+    /// Each stage has an audible sound with a configurable delay between them.
+    /// </summary>
+    /// <param name="stageDelay">Delay in seconds between each reload stage.</param>
+    public async Task FineMotorSkillsReloadAsync(float stageDelay)
+    {
+        // If in the middle of a reload, close first to reset state
+        if (ReloadState != RevolverReloadState.NotReloading)
+        {
+            CloseCylinder();
+        }
+
+        // Check if cylinder needs reloading
+        int cylinderCapacity = CylinderCapacity;
+        if (CurrentAmmo >= cylinderCapacity)
+        {
+            GD.Print("[Revolver.FineMotorSkills] Cylinder already full — no reload needed");
+            return;
+        }
+
+        if (!MagazineInventory.HasSpareAmmo)
+        {
+            GD.Print("[Revolver.FineMotorSkills] No spare ammo — cannot reload");
+            return;
+        }
+
+        // Stage 1: Open cylinder (plays sound + ejects casings)
+        if (!OpenCylinder())
+        {
+            GD.Print("[Revolver.FineMotorSkills] Cannot open cylinder");
+            return;
+        }
+        GD.Print("[Revolver.FineMotorSkills] Stage: cylinder open");
+
+        if (stageDelay > 0)
+        {
+            await ToSignal(GetTree().CreateTimer(stageDelay), "timeout");
+        }
+
+        // Stage 2: Insert cartridges one by one with sounds between each
+        int inserted = 0;
+        for (int i = 0; i < cylinderCapacity; i++)
+        {
+            if (CanInsertCartridge)
+            {
+                if (InsertCartridge())
+                {
+                    inserted++;
+                    GD.Print($"[Revolver.FineMotorSkills] Stage: inserted cartridge {inserted}");
+
+                    if (stageDelay > 0)
+                    {
+                        await ToSignal(GetTree().CreateTimer(stageDelay), "timeout");
+                    }
+                }
+            }
+            // Rotate to next chamber to find empty ones
+            if (i < cylinderCapacity - 1)
+            {
+                RotateCylinder(1);
+            }
+        }
+
+        // Stage 3: Close cylinder (plays sound)
+        CloseCylinder();
+        GD.Print($"[Revolver.FineMotorSkills] Stage: cylinder close — {CurrentAmmo}/{cylinderCapacity} loaded");
+
+        GD.Print($"[Revolver.FineMotorSkills] Sequential reload complete: inserted {inserted} cartridges");
     }
 
     #endregion

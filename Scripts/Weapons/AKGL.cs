@@ -1,5 +1,6 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Characters;
 
 namespace GodotTopDownTemplate.Weapons;
 
@@ -462,7 +463,7 @@ public partial class AKGL : BaseWeapon
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            float loudness = WeaponData?.Loudness ?? 1600.0f;
+            float loudness = WeaponData?.Loudness ?? 871.3f;  // Issue #1269: scaled 800/1469 from 1600
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
         }
     }
@@ -503,6 +504,10 @@ public partial class AKGL : BaseWeapon
 
     private void TriggerScreenShake(Vector2 shootDirection)
     {
+        // Suppress screen shake when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return;
+
         if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
         {
             return;
@@ -648,6 +653,10 @@ public partial class AKGL : BaseWeapon
     /// </summary>
     private Vector2 ApplySpread(Vector2 direction)
     {
+        // Suppress spread entirely when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return direction;
+
         // Start with current recoil offset applied
         Vector2 result = direction.Rotated(_recoilOffset);
 

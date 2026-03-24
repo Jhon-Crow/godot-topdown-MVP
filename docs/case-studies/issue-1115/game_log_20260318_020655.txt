@@ -1,0 +1,1683 @@
+[02:06:55] [INFO] ============================================================
+[02:06:55] [INFO] GAME LOG STARTED
+[02:06:55] [INFO] ============================================================
+[02:06:55] [INFO] Timestamp: 2026-03-18T02:06:55
+[02:06:55] [INFO] Log file: I:/Загрузки/godot exe/радио враг/game_log_20260318_020655.txt
+[02:06:55] [INFO] Executable: I:/Загрузки/godot exe/радио враг/Godot-Top-Down-Template.exe
+[02:06:55] [INFO] OS: Windows
+[02:06:55] [INFO] Debug build: false
+[02:06:55] [INFO] Engine version: 4.3-stable (official)
+[02:06:55] [INFO] Project: Godot Top-Down Template
+[02:06:55] [INFO] ------------------------------------------------------------
+[02:06:55] [INFO] [GameManager] GameManager ready
+[02:06:55] [INFO] [ScoreManager] ScoreManager ready
+[02:06:55] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[02:06:55] [INFO] [DifficultyManager] Loaded difficulty: Normal (value: 1)
+[02:06:55] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[02:06:56] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[02:06:56] [INFO] [ImpactEffects] Explosion light pool initialized: 12 lights pre-created
+[02:06:56] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[02:06:56] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[02:06:56] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[02:06:56] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[02:06:56] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[02:06:56] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[02:06:56] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[02:06:56] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[02:06:56] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[02:06:56] [INFO] [LastChance] Resetting all effects (scene change detected)
+[02:06:56] [INFO] [LastChance] Last chance shader loaded successfully
+[02:06:56] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[02:06:56] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[02:06:56] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[02:06:56] [INFO] [LastChance]   Sepia intensity: 0.70
+[02:06:56] [INFO] [LastChance]   Brightness: 0.60
+[02:06:56] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[02:06:56] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[02:06:56] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[02:06:56] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn
+[02:06:56] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: true, Invincibility: true, Realistic visibility: false, Replay: false, Logging: true, Enemy flashlight blinding: false, FPS counter: true, FPS drop logging: true, All weapons unlocked: true, All maps unlocked: true
+[02:06:56] [INFO] [SoundSettings] SoundSettings initialized - effects: 0.29, music: 1.00
+[02:06:56] [INFO] [GameplaySettings] GameplaySettings initialized - blood_amount: 0.00
+[02:06:56] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[02:06:56] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[02:06:56] [INFO] [CinemaEffects] Created effects layer at layer 99
+[02:06:56] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[02:06:56] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[02:06:56] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[02:06:56] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[02:06:56] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[02:06:56] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[02:06:56] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[02:06:56] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[02:06:56] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[02:06:56] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[02:06:56] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[02:06:56] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[02:06:56] [INFO] [GrenadeTimerHelper] Autoload ready
+[02:06:56] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[02:06:56] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[02:06:56] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[02:06:56] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+[02:06:56] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[02:06:56] [INFO] [BlackMetalEffectsManager] BlackMetalEffectsManager initializing...
+[02:06:56] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+[02:06:56] [INFO] [BlackMetalEffectsManager] Black Metal shader loaded (B&W+red, hint_screen_texture approach)
+[02:06:56] [INFO] [BlackMetalEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[02:06:56] [INFO] [BlackMetalEffectsManager] Black Metal filter DISABLED
+[02:06:56] [INFO] [BlackMetalLightningEffectsManager] BlackMetalLightningEffectsManager initializing...
+[02:06:56] [INFO] [BlackMetalLightningEffectsManager] Lightning bolt drawer created (v10 - no shader, pure draw calls)
+[02:06:56] [INFO] [BlackMetalLightningEffectsManager] Connected to GameManager.enemy_killed signal
+[02:06:56] [INFO] [BlackMetalLightningEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[02:06:56] [INFO] [ProgressManager] ProgressManager ready, loaded 21 entries
+[02:06:56] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[02:06:56] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[02:06:57] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
+[02:06:57] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
+[02:06:57] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
+[02:06:57] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
+[02:06:57] [INFO] [SceneLoader] SceneLoader initialized
+[02:06:57] [INFO] [PersistManager] Loading saved state from user://game_state.cfg
+[02:06:57] [INFO] [PersistManager] Restored unlocked weapon: makarov_pm
+[02:06:57] [INFO] [PersistManager] Restored unlocked weapon: m16
+[02:06:57] [INFO] [PersistManager] Restored unlocked weapon: silenced_pistol
+[02:06:57] [INFO] [PersistManager] Restored unlocked weapon: ak_gl
+[02:06:57] [INFO] [GameManager] Weapon selected: ak_gl
+[02:06:57] [INFO] [PersistManager] Restored selected weapon: ak_gl
+[02:06:57] [INFO] [PersistManager] Restored unlocked grenade type: 0
+[02:06:57] [INFO] [PersistManager] Restored unlocked grenade type: 3
+[02:06:57] [INFO] [GrenadeManager] Grenade type changed from Flashbang to F-1 Grenade
+[02:06:57] [INFO] [PersistManager] Restored selected grenade type: 2
+[02:06:57] [INFO] [PersistManager] Restored unlocked active item type: 0
+[02:06:57] [INFO] [PersistManager] Restored unlocked active item type: 4
+[02:06:57] [INFO] [PersistManager] Restored unlocked active item type: 6
+[02:06:57] [INFO] [PersistManager] Restored unlocked active item type: 7
+[02:06:57] [INFO] [PersistManager] Restored unlocked active item type: 8
+[02:06:57] [INFO] [PersistManager] Restored unlocked active item type: 9
+[02:06:57] [INFO] [PersistManager] Restored unlocked active item type: 10
+[02:06:57] [INFO] [PersistManager] Restored unlocked active item type: 11
+[02:06:57] [INFO] [PersistManager] Restored unlocked active item type: 12
+[02:06:57] [INFO] [PersistManager] Restored unlocked active item type: 13
+[02:06:57] [INFO] [PersistManager] Restored unlocked active item type: 14
+[02:06:57] [INFO] [ActiveItemManager] Active item changed from None to Loudspeaker
+[02:06:57] [INFO] [PersistManager] Restored selected active item type: 10
+[02:06:57] [INFO] [PersistManager] State loaded successfully
+[02:06:57] [INFO] [PersistManager] PersistManager ready
+[02:06:57] [INFO] [UnlockManager] UnlockManager ready
+[02:06:57] [INFO] [WeaponHintsSettings] WeaponHintsSettings initialized - mode: ALWAYS, weapons seen: ["m16", "makarov_pm", "ak_gl", "shotgun", "revolver", "mini_uzi", "sniper"]
+[02:06:57] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:06:57] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[02:06:57] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[02:06:57] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[02:06:57] [ENEMY] [Enemy1] Death animation component initialized
+[02:06:57] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:06:57] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[02:06:57] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[02:06:57] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[02:06:57] [ENEMY] [Enemy2] Death animation component initialized
+[02:06:57] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:06:57] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[02:06:57] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[02:06:57] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[02:06:57] [ENEMY] [Enemy3] Death animation component initialized
+[02:06:57] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:06:57] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[02:06:57] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[02:06:57] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[02:06:57] [ENEMY] [Enemy4] Death animation component initialized
+[02:06:57] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:06:57] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[02:06:57] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[02:06:57] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[02:06:57] [ENEMY] [Enemy5] Death animation component initialized
+[02:06:57] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:06:57] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[02:06:57] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[02:06:57] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[02:06:57] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[02:06:57] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[02:06:57] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[02:06:57] [INFO] [Player.Weapon] Removed default MakarovPM
+[02:06:57] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[02:06:57] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[02:06:57] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[02:06:57] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[02:06:57] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[02:06:57] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[02:06:57] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[02:06:57] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[02:06:57] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[02:06:57] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[02:06:57] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[02:06:57] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[02:06:57] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[02:06:57] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[02:06:57] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[02:06:57] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[02:06:57] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[02:06:57] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[02:06:57] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[02:06:57] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[02:06:57] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[02:06:57] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[02:06:57] [INFO] [Player.Loudspeaker] Loudspeaker selected, initializing...
+[02:06:57] [INFO] [Player.Loudspeaker] Loudspeaker equipped, charges: 2/2
+[02:06:57] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[02:06:57] [INFO] [Player.Jammer] JammerHUD initialized
+[02:06:57] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[02:06:57] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[02:06:57] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[02:06:57] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[02:06:57] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[02:06:57] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[02:06:57] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[02:06:57] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[02:06:57] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[02:06:57] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[02:06:57] [INFO] [LabyrinthLevel] Setting up weapon: ak_gl
+[02:06:57] [INFO] [LabyrinthLevel] AKGL already equipped by C# Player - skipping GDScript weapon swap
+[02:06:57] [INFO] [ScoreManager] Level started with 5 enemies
+[02:06:57] [INFO] [ScoreManager] Custom rank thresholds set: S=0.70 A+=0.55 A=0.38 B=0.22 C=0.12 D=0.06
+[02:06:58] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[02:06:58] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[02:06:58] [INFO] [ReplayManager] Replay data cleared
+[02:06:58] [INFO] [LabyrinthLevel] Previous replay data cleared
+[02:06:58] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[02:06:58] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[02:06:58] [INFO] [ReplayManager] Level: LabyrinthLevel
+[02:06:58] [INFO] [ReplayManager] Player: Player (valid: True)
+[02:06:58] [INFO] [ReplayManager] Enemies count: 5
+[02:06:58] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[02:06:58] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[02:06:58] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[02:06:58] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[02:06:58] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[02:06:58] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[02:06:58] [INFO] [LabyrinthLevel] Replay recording started successfully
+[02:06:58] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[02:06:58] [INFO] [CinemaEffects] Found player node: Player
+[02:06:58] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[02:06:58] [INFO] [PersistManager] Navigating to last played level: res://scenes/levels/TestTier.tscn
+[02:06:58] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/TestTier.tscn
+[02:06:58] [INFO] [UnlockManager] Reset condition-gated items to locked state
+[02:06:58] [INFO] [UnlockManager] Restored saved unlock for weapon: silenced_pistol
+[02:06:58] [INFO] [UnlockManager] Restored saved unlock for weapon: ak_gl
+[02:06:58] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[02:06:58] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[02:06:58] [ENEMY] [Enemy1] Registered as sound listener
+[02:06:58] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 1, behavior: GUARD
+[02:06:58] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[02:06:58] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[02:06:58] [ENEMY] [Enemy2] Registered as sound listener
+[02:06:58] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 1, behavior: GUARD
+[02:06:58] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[02:06:58] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[02:06:58] [ENEMY] [Enemy3] Registered as sound listener
+[02:06:58] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 1, behavior: PATROL
+[02:06:58] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[02:06:58] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[02:06:58] [ENEMY] [Enemy4] Registered as sound listener
+[02:06:58] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 2, behavior: GUARD
+[02:06:58] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[02:06:58] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[02:06:58] [ENEMY] [Enemy5] Registered as sound listener
+[02:06:58] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 2, behavior: GUARD
+[02:06:58] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[02:06:58] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(150,1000), corner_timer=0.00
+[02:06:58] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=236.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[02:06:58] [INFO] [Player] Detecting weapon pose (frame 3)...
+[02:06:58] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[02:06:58] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[02:06:58] [INFO] [PenultimateHit] Shader warmup complete in 2490 ms
+[02:06:58] [INFO] [LastChance] Shader warmup complete in 2482 ms
+[02:06:58] [INFO] [CinemaEffects] Cinema shader warmup complete in 1572 ms
+[02:06:58] [INFO] [BlackMetalEffectsManager] Shader warmup complete in 1544 ms
+[02:06:58] [INFO] [BlackMetalLightningEffectsManager] Shader warmup complete in 0 ms
+[02:06:58] [INFO] [FlashbangPlayer] Shader warmup complete in 1520 ms
+[02:06:58] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[02:06:58] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[02:06:58] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[02:06:58] [INFO] [LastChance] Found player: Player
+[02:06:58] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[02:06:58] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[02:06:58] [INFO] [LastChance] Connected to player Died signal (C#)
+[02:06:58] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[02:06:58] [INFO] [SceneLoader] ERROR: Invalid resource: res://scenes/levels/TestTier.tscn
+[02:06:59] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 3056 ms
+[02:06:59] [INFO] [SceneLoader] Background load started successfully
+[02:06:59] [WARN] [FPS] Drop detected: 2 fps (threshold: 30)
+[02:06:59] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
+[02:07:00] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[02:07:00] [ENEMY] [Enemy3] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-90.0°, current=0.0°, player=(150,1000), corner_timer=0.30
+[02:07:00] [ENEMY] [Enemy3] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=-54.4°, player=(150,1000), corner_timer=-0.02
+[02:07:00] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[02:07:00] [ENEMY] [Enemy3] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=-51.6°, player=(150,1000), corner_timer=0.30
+[02:07:00] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=5
+[02:07:01] [INFO] [Player] Invincibility mode: ON
+[02:07:01] [INFO] [GameManager] Invincibility mode toggled: ON
+[02:07:01] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=5
+[02:07:03] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=5
+[02:07:04] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=5
+[02:07:04] [INFO] [PersistManager] State saved to user://game_state.cfg
+[02:07:04] [INFO] [PersistManager] Last level saved: res://scenes/levels/DecadenceLevel.tscn
+[02:07:04] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/DecadenceLevel.tscn
+[02:07:05] [INFO] [SceneLoader] Background load started successfully
+[02:07:05] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=True, enemies=5
+[02:07:05] [INFO] [SceneLoader] Background load complete: res://scenes/levels/DecadenceLevel.tscn
+[02:07:05] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[02:07:05] [INFO] [SceneLoader] Scene changed successfully
+[02:07:06] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:06] [INFO] [BloodyFeet:VIPGuard1] Footprint scene loaded
+[02:07:06] [INFO] [BloodyFeet:VIPGuard1] Found EnemyModel for facing direction
+[02:07:06] [INFO] [BloodyFeet:VIPGuard1] BloodyFeetComponent ready on VIPGuard1
+[02:07:06] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[02:07:06] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[02:07:06] [INFO] [LastChance] Resetting all effects (scene change detected)
+[02:07:06] [INFO] [CinemaEffects] Scene changed to: DecadenceLevel
+[02:07:06] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[02:07:06] [INFO] [BlackMetalEffectsManager] Scene changed to: DecadenceLevel
+[02:07:06] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[02:07:06] [ENEMY] [VIPGuard1] Death animation component initialized
+[02:07:06] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:06] [INFO] [BloodyFeet:VIPGuard2] Footprint scene loaded
+[02:07:06] [INFO] [BloodyFeet:VIPGuard2] Found EnemyModel for facing direction
+[02:07:06] [INFO] [BloodyFeet:VIPGuard2] BloodyFeetComponent ready on VIPGuard2
+[02:07:06] [ENEMY] [VIPGuard2] Death animation component initialized
+[02:07:06] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:06] [INFO] [BloodyFeet:BarBouncer1] Footprint scene loaded
+[02:07:06] [INFO] [BloodyFeet:BarBouncer1] Found EnemyModel for facing direction
+[02:07:06] [INFO] [BloodyFeet:BarBouncer1] BloodyFeetComponent ready on BarBouncer1
+[02:07:06] [ENEMY] [BarBouncer1] Death animation component initialized
+[02:07:06] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:06] [INFO] [BloodyFeet:BarBouncer2] Footprint scene loaded
+[02:07:06] [INFO] [BloodyFeet:BarBouncer2] Found EnemyModel for facing direction
+[02:07:06] [INFO] [BloodyFeet:BarBouncer2] BloodyFeetComponent ready on BarBouncer2
+[02:07:06] [ENEMY] [BarBouncer2] Death animation component initialized
+[02:07:06] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:06] [INFO] [BloodyFeet:BarGunman] Footprint scene loaded
+[02:07:06] [INFO] [BloodyFeet:BarGunman] Found EnemyModel for facing direction
+[02:07:06] [INFO] [BloodyFeet:BarGunman] BloodyFeetComponent ready on BarGunman
+[02:07:06] [ENEMY] [BarGunman] Death animation component initialized
+[02:07:06] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:06] [INFO] [BloodyFeet:DanceFloorThug1] Footprint scene loaded
+[02:07:06] [INFO] [BloodyFeet:DanceFloorThug1] Found EnemyModel for facing direction
+[02:07:06] [INFO] [BloodyFeet:DanceFloorThug1] BloodyFeetComponent ready on DanceFloorThug1
+[02:07:06] [ENEMY] [DanceFloorThug1] Death animation component initialized
+[02:07:06] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:06] [INFO] [BloodyFeet:DanceFloorThug2] Footprint scene loaded
+[02:07:06] [INFO] [BloodyFeet:DanceFloorThug2] Found EnemyModel for facing direction
+[02:07:06] [INFO] [BloodyFeet:DanceFloorThug2] BloodyFeetComponent ready on DanceFloorThug2
+[02:07:06] [ENEMY] [DanceFloorThug2] Death animation component initialized
+[02:07:06] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:06] [INFO] [BloodyFeet:DanceFloorGunman] Footprint scene loaded
+[02:07:06] [INFO] [BloodyFeet:DanceFloorGunman] Found EnemyModel for facing direction
+[02:07:06] [INFO] [BloodyFeet:DanceFloorGunman] BloodyFeetComponent ready on DanceFloorGunman
+[02:07:06] [ENEMY] [DanceFloorGunman] Death animation component initialized
+[02:07:06] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:06] [INFO] [BloodyFeet:BackAlleyThug1] Footprint scene loaded
+[02:07:06] [INFO] [BloodyFeet:BackAlleyThug1] Found EnemyModel for facing direction
+[02:07:06] [INFO] [BloodyFeet:BackAlleyThug1] BloodyFeetComponent ready on BackAlleyThug1
+[02:07:06] [ENEMY] [BackAlleyThug1] Death animation component initialized
+[02:07:06] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:06] [INFO] [BloodyFeet:BackAlleyGunman] Footprint scene loaded
+[02:07:06] [INFO] [BloodyFeet:BackAlleyGunman] Found EnemyModel for facing direction
+[02:07:06] [INFO] [BloodyFeet:BackAlleyGunman] BloodyFeetComponent ready on BackAlleyGunman
+[02:07:06] [ENEMY] [BackAlleyGunman] Death animation component initialized
+[02:07:06] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:06] [INFO] [BloodyFeet:StorageGuard1] Footprint scene loaded
+[02:07:06] [INFO] [BloodyFeet:StorageGuard1] Found EnemyModel for facing direction
+[02:07:06] [INFO] [BloodyFeet:StorageGuard1] BloodyFeetComponent ready on StorageGuard1
+[02:07:06] [ENEMY] [StorageGuard1] Death animation component initialized
+[02:07:06] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:06] [INFO] [BloodyFeet:StorageGuard2] Footprint scene loaded
+[02:07:06] [INFO] [BloodyFeet:StorageGuard2] Found EnemyModel for facing direction
+[02:07:06] [INFO] [BloodyFeet:StorageGuard2] BloodyFeetComponent ready on StorageGuard2
+[02:07:06] [ENEMY] [StorageGuard2] Death animation component initialized
+[02:07:06] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:06] [INFO] [BloodyFeet:RadioJammer] Footprint scene loaded
+[02:07:06] [INFO] [BloodyFeet:RadioJammer] Found EnemyModel for facing direction
+[02:07:06] [INFO] [BloodyFeet:RadioJammer] BloodyFeetComponent ready on RadioJammer
+[02:07:06] [ENEMY] [RadioJammer] Death animation component initialized
+[02:07:06] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:06] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[02:07:06] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[02:07:06] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[02:07:06] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[02:07:06] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[02:07:06] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[02:07:06] [INFO] [Player.Weapon] Removed default MakarovPM
+[02:07:06] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[02:07:06] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[02:07:06] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[02:07:06] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[02:07:06] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[02:07:06] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[02:07:06] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[02:07:06] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[02:07:06] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[02:07:06] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[02:07:06] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[02:07:06] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[02:07:06] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[02:07:06] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[02:07:06] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[02:07:06] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[02:07:06] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[02:07:06] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[02:07:06] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[02:07:06] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[02:07:06] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[02:07:06] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[02:07:06] [INFO] [Player.Loudspeaker] Loudspeaker selected, initializing...
+[02:07:06] [INFO] [Player.Loudspeaker] Loudspeaker equipped, charges: 2/2
+[02:07:06] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[02:07:06] [INFO] [Player.Jammer] JammerHUD initialized
+[02:07:06] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[02:07:06] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[02:07:06] [INFO] [DecadenceLevel] Enemy tracking complete: 13 enemies registered
+[02:07:06] [INFO] [ScoreManager] Level started with 13 enemies
+[02:07:06] [INFO] [DecadenceLevel] ReplayManager found as C# autoload
+[02:07:06] [INFO] [DecadenceLevel] Starting replay recording - Player: Player, Enemies count: 13
+[02:07:06] [INFO] [ReplayManager] Replay data cleared
+[02:07:06] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[02:07:06] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[02:07:06] [INFO] [ReplayManager] Level: DecadenceLevel
+[02:07:06] [INFO] [ReplayManager] Player: Player (valid: True)
+[02:07:06] [INFO] [ReplayManager] Enemies count: 13
+[02:07:06] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[02:07:06] [INFO] [ReplayManager]   Enemy 0: VIPGuard1
+[02:07:06] [INFO] [ReplayManager]   Enemy 1: VIPGuard2
+[02:07:06] [INFO] [ReplayManager]   Enemy 2: BarBouncer1
+[02:07:06] [INFO] [ReplayManager]   Enemy 3: BarBouncer2
+[02:07:06] [INFO] [ReplayManager]   Enemy 4: BarGunman
+[02:07:06] [INFO] [ReplayManager]   Enemy 5: DanceFloorThug1
+[02:07:06] [INFO] [ReplayManager]   Enemy 6: DanceFloorThug2
+[02:07:06] [INFO] [ReplayManager]   Enemy 7: DanceFloorGunman
+[02:07:06] [INFO] [ReplayManager]   Enemy 8: BackAlleyThug1
+[02:07:06] [INFO] [ReplayManager]   Enemy 9: BackAlleyGunman
+[02:07:06] [INFO] [ReplayManager]   Enemy 10: StorageGuard1
+[02:07:06] [INFO] [ReplayManager]   Enemy 11: StorageGuard2
+[02:07:06] [INFO] [ReplayManager]   Enemy 12: RadioJammer
+[02:07:06] [INFO] [DecadenceLevel] Replay recording started successfully
+[02:07:06] [INFO] [WeaponHintsComponent] Connected weapon signals for: ak_gl (node: AKGL)
+[02:07:06] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: ak_gl
+[02:07:06] [INFO] [BloodyFeet:VIPGuard1] Blood detector created and attached to VIPGuard1
+[02:07:06] [INFO] [CinemaEffects] Found player node: Player
+[02:07:06] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[02:07:06] [INFO] [SoundPropagation] Registered listener: VIPGuard1 (total: 6)
+[02:07:06] [ENEMY] [VIPGuard1] Registered as sound listener
+[02:07:06] [ENEMY] [VIPGuard1] Spawned at (250, 200), hp: 2, behavior: GUARD
+[02:07:06] [INFO] [BloodyFeet:VIPGuard2] Blood detector created and attached to VIPGuard2
+[02:07:06] [INFO] [SoundPropagation] Registered listener: VIPGuard2 (total: 7)
+[02:07:06] [ENEMY] [VIPGuard2] Registered as sound listener
+[02:07:06] [ENEMY] [VIPGuard2] Spawned at (380, 480), hp: 2, behavior: PATROL
+[02:07:06] [INFO] [BloodyFeet:BarBouncer1] Blood detector created and attached to BarBouncer1
+[02:07:06] [INFO] [SoundPropagation] Registered listener: BarBouncer1 (total: 8)
+[02:07:06] [ENEMY] [BarBouncer1] Registered as sound listener
+[02:07:06] [ENEMY] [BarBouncer1] Spawned at (1650, 200), hp: 4, behavior: GUARD
+[02:07:06] [INFO] [BloodyFeet:BarBouncer2] Blood detector created and attached to BarBouncer2
+[02:07:06] [INFO] [SoundPropagation] Registered listener: BarBouncer2 (total: 9)
+[02:07:06] [ENEMY] [BarBouncer2] Registered as sound listener
+[02:07:06] [ENEMY] [BarBouncer2] Spawned at (2200, 200), hp: 2, behavior: PATROL
+[02:07:06] [INFO] [BloodyFeet:BarGunman] Blood detector created and attached to BarGunman
+[02:07:06] [INFO] [SoundPropagation] Registered listener: BarGunman (total: 10)
+[02:07:06] [ENEMY] [BarGunman] Registered as sound listener
+[02:07:06] [ENEMY] [BarGunman] Spawned at (1900, 480), hp: 4, behavior: GUARD
+[02:07:06] [INFO] [BloodyFeet:DanceFloorThug1] Blood detector created and attached to DanceFloorThug1
+[02:07:06] [INFO] [SoundPropagation] Registered listener: DanceFloorThug1 (total: 11)
+[02:07:06] [ENEMY] [DanceFloorThug1] Registered as sound listener
+[02:07:06] [ENEMY] [DanceFloorThug1] Spawned at (700, 800), hp: 2, behavior: PATROL
+[02:07:06] [INFO] [BloodyFeet:DanceFloorThug2] Blood detector created and attached to DanceFloorThug2
+[02:07:06] [INFO] [SoundPropagation] Registered listener: DanceFloorThug2 (total: 12)
+[02:07:06] [ENEMY] [DanceFloorThug2] Registered as sound listener
+[02:07:06] [ENEMY] [DanceFloorThug2] Spawned at (1150, 650), hp: 2, behavior: GUARD
+[02:07:06] [INFO] [BloodyFeet:DanceFloorGunman] Blood detector created and attached to DanceFloorGunman
+[02:07:06] [INFO] [SoundPropagation] Registered listener: DanceFloorGunman (total: 13)
+[02:07:06] [ENEMY] [DanceFloorGunman] Registered as sound listener
+[02:07:06] [ENEMY] [DanceFloorGunman] Spawned at (950, 1050), hp: 3, behavior: PATROL
+[02:07:06] [INFO] [BloodyFeet:BackAlleyThug1] Blood detector created and attached to BackAlleyThug1
+[02:07:06] [INFO] [SoundPropagation] Registered listener: BackAlleyThug1 (total: 14)
+[02:07:06] [ENEMY] [BackAlleyThug1] Registered as sound listener
+[02:07:06] [ENEMY] [BackAlleyThug1] Spawned at (200, 1500), hp: 2, behavior: PATROL
+[02:07:06] [INFO] [BloodyFeet:BackAlleyGunman] Blood detector created and attached to BackAlleyGunman
+[02:07:06] [INFO] [SoundPropagation] Registered listener: BackAlleyGunman (total: 15)
+[02:07:06] [ENEMY] [BackAlleyGunman] Registered as sound listener
+[02:07:06] [ENEMY] [BackAlleyGunman] Spawned at (400, 1800), hp: 3, behavior: GUARD
+[02:07:06] [INFO] [BloodyFeet:StorageGuard1] Blood detector created and attached to StorageGuard1
+[02:07:06] [INFO] [SoundPropagation] Registered listener: StorageGuard1 (total: 16)
+[02:07:06] [ENEMY] [StorageGuard1] Registered as sound listener
+[02:07:06] [ENEMY] [StorageGuard1] Spawned at (1700, 1500), hp: 4, behavior: PATROL
+[02:07:06] [INFO] [BloodyFeet:StorageGuard2] Blood detector created and attached to StorageGuard2
+[02:07:06] [INFO] [SoundPropagation] Registered listener: StorageGuard2 (total: 17)
+[02:07:06] [ENEMY] [StorageGuard2] Registered as sound listener
+[02:07:06] [ENEMY] [StorageGuard2] Spawned at (2200, 1800), hp: 2, behavior: GUARD
+[02:07:06] [INFO] [BloodyFeet:RadioJammer] Blood detector created and attached to RadioJammer
+[02:07:06] [INFO] [SoundPropagation] Registered listener: RadioJammer (total: 18)
+[02:07:06] [ENEMY] [RadioJammer] Registered as sound listener
+[02:07:06] [ENEMY] [RadioJammer] Spawned at (1100, 900), hp: 4, behavior: GUARD
+[02:07:06] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[02:07:06] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=13
+[02:07:06] [ENEMY] [VIPGuard1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=337.5°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:06] [ENEMY] [BarBouncer1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=191.3°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:06] [ENEMY] [BarGunman] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:06] [ENEMY] [DanceFloorThug2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:06] [ENEMY] [BackAlleyGunman] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:06] [ENEMY] [StorageGuard2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=225.0°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:06] [ENEMY] [RadioJammer] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=315.0°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:06] [INFO] [Player] Detecting weapon pose (frame 3)...
+[02:07:06] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[02:07:06] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[02:07:07] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[02:07:07] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[02:07:07] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[02:07:07] [INFO] [LastChance] Found player: Player
+[02:07:07] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[02:07:07] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[02:07:07] [INFO] [LastChance] Connected to player Died signal (C#)
+[02:07:07] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[02:07:07] [ENEMY] [DanceFloorThug2] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=128.7°, current=85.9°, player=(150,1900), corner_timer=0.00
+[02:07:07] [ENEMY] [DanceFloorThug2] State: IDLE -> PURSUING
+[02:07:07] [ENEMY] [DanceFloorThug2] FLANKING started: target=(87.99997, 1713.713), side=left, pos=(1150, 650)
+[02:07:07] [ENEMY] [DanceFloorThug2] State: PURSUING -> FLANKING
+[02:07:07] [ENEMY] [DanceFloorThug2] State: FLANKING -> COMBAT
+[02:07:07] [ENEMY] [DanceFloorThug2] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=128.9°, current=-162.7°, player=(150,1900), corner_timer=0.00
+[02:07:07] [ENEMY] [BackAlleyGunman] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=158.2°, current=120.3°, player=(150,1900), corner_timer=0.00
+[02:07:07] [ENEMY] [BackAlleyGunman] State: IDLE -> COMBAT
+[02:07:07] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=13
+[02:07:08] [INFO] [PauseMenu] Armory button pressed
+[02:07:08] [INFO] [PauseMenu] Creating new armory menu instance
+[02:07:08] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[02:07:08] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[02:07:08] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[02:07:08] [INFO] [PauseMenu] back_pressed signal exists on instance
+[02:07:08] [INFO] [PauseMenu] back_pressed signal connected
+[02:07:08] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[02:07:08] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[02:07:08] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=13
+[02:07:09] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=13
+[02:07:10] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=13
+[02:07:11] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=13
+[02:07:12] [INFO] [ActiveItemManager] Active item changed from Loudspeaker to Trajectory Glasses
+[02:07:12] [INFO] [PersistManager] State saved to user://game_state.cfg
+[02:07:12] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[02:07:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:13] [INFO] [BloodyFeet:VIPGuard1] Footprint scene loaded
+[02:07:13] [INFO] [BloodyFeet:VIPGuard1] Found EnemyModel for facing direction
+[02:07:13] [INFO] [BloodyFeet:VIPGuard1] BloodyFeetComponent ready on VIPGuard1
+[02:07:13] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[02:07:13] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[02:07:13] [INFO] [LastChance] Resetting all effects (scene change detected)
+[02:07:13] [INFO] [CinemaEffects] Scene changed to: DecadenceLevel
+[02:07:13] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[02:07:13] [INFO] [BlackMetalEffectsManager] Scene changed to: DecadenceLevel
+[02:07:13] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[02:07:13] [ENEMY] [VIPGuard1] Death animation component initialized
+[02:07:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:13] [INFO] [BloodyFeet:VIPGuard2] Footprint scene loaded
+[02:07:13] [INFO] [BloodyFeet:VIPGuard2] Found EnemyModel for facing direction
+[02:07:13] [INFO] [BloodyFeet:VIPGuard2] BloodyFeetComponent ready on VIPGuard2
+[02:07:13] [ENEMY] [VIPGuard2] Death animation component initialized
+[02:07:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:13] [INFO] [BloodyFeet:BarBouncer1] Footprint scene loaded
+[02:07:13] [INFO] [BloodyFeet:BarBouncer1] Found EnemyModel for facing direction
+[02:07:13] [INFO] [BloodyFeet:BarBouncer1] BloodyFeetComponent ready on BarBouncer1
+[02:07:13] [ENEMY] [BarBouncer1] Death animation component initialized
+[02:07:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:13] [INFO] [BloodyFeet:BarBouncer2] Footprint scene loaded
+[02:07:13] [INFO] [BloodyFeet:BarBouncer2] Found EnemyModel for facing direction
+[02:07:13] [INFO] [BloodyFeet:BarBouncer2] BloodyFeetComponent ready on BarBouncer2
+[02:07:13] [ENEMY] [BarBouncer2] Death animation component initialized
+[02:07:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:13] [INFO] [BloodyFeet:BarGunman] Footprint scene loaded
+[02:07:13] [INFO] [BloodyFeet:BarGunman] Found EnemyModel for facing direction
+[02:07:13] [INFO] [BloodyFeet:BarGunman] BloodyFeetComponent ready on BarGunman
+[02:07:13] [ENEMY] [BarGunman] Death animation component initialized
+[02:07:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:13] [INFO] [BloodyFeet:DanceFloorThug1] Footprint scene loaded
+[02:07:13] [INFO] [BloodyFeet:DanceFloorThug1] Found EnemyModel for facing direction
+[02:07:13] [INFO] [BloodyFeet:DanceFloorThug1] BloodyFeetComponent ready on DanceFloorThug1
+[02:07:13] [ENEMY] [DanceFloorThug1] Death animation component initialized
+[02:07:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:13] [INFO] [BloodyFeet:DanceFloorThug2] Footprint scene loaded
+[02:07:13] [INFO] [BloodyFeet:DanceFloorThug2] Found EnemyModel for facing direction
+[02:07:13] [INFO] [BloodyFeet:DanceFloorThug2] BloodyFeetComponent ready on DanceFloorThug2
+[02:07:13] [ENEMY] [DanceFloorThug2] Death animation component initialized
+[02:07:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:13] [INFO] [BloodyFeet:DanceFloorGunman] Footprint scene loaded
+[02:07:13] [INFO] [BloodyFeet:DanceFloorGunman] Found EnemyModel for facing direction
+[02:07:13] [INFO] [BloodyFeet:DanceFloorGunman] BloodyFeetComponent ready on DanceFloorGunman
+[02:07:13] [ENEMY] [DanceFloorGunman] Death animation component initialized
+[02:07:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:13] [INFO] [BloodyFeet:BackAlleyThug1] Footprint scene loaded
+[02:07:13] [INFO] [BloodyFeet:BackAlleyThug1] Found EnemyModel for facing direction
+[02:07:13] [INFO] [BloodyFeet:BackAlleyThug1] BloodyFeetComponent ready on BackAlleyThug1
+[02:07:13] [ENEMY] [BackAlleyThug1] Death animation component initialized
+[02:07:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:13] [INFO] [BloodyFeet:BackAlleyGunman] Footprint scene loaded
+[02:07:13] [INFO] [BloodyFeet:BackAlleyGunman] Found EnemyModel for facing direction
+[02:07:13] [INFO] [BloodyFeet:BackAlleyGunman] BloodyFeetComponent ready on BackAlleyGunman
+[02:07:13] [ENEMY] [BackAlleyGunman] Death animation component initialized
+[02:07:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:13] [INFO] [BloodyFeet:StorageGuard1] Footprint scene loaded
+[02:07:13] [INFO] [BloodyFeet:StorageGuard1] Found EnemyModel for facing direction
+[02:07:13] [INFO] [BloodyFeet:StorageGuard1] BloodyFeetComponent ready on StorageGuard1
+[02:07:13] [ENEMY] [StorageGuard1] Death animation component initialized
+[02:07:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:13] [INFO] [BloodyFeet:StorageGuard2] Footprint scene loaded
+[02:07:13] [INFO] [BloodyFeet:StorageGuard2] Found EnemyModel for facing direction
+[02:07:13] [INFO] [BloodyFeet:StorageGuard2] BloodyFeetComponent ready on StorageGuard2
+[02:07:13] [ENEMY] [StorageGuard2] Death animation component initialized
+[02:07:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:13] [INFO] [BloodyFeet:RadioJammer] Footprint scene loaded
+[02:07:13] [INFO] [BloodyFeet:RadioJammer] Found EnemyModel for facing direction
+[02:07:13] [INFO] [BloodyFeet:RadioJammer] BloodyFeetComponent ready on RadioJammer
+[02:07:13] [ENEMY] [RadioJammer] Death animation component initialized
+[02:07:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:13] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[02:07:13] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[02:07:13] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[02:07:13] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[02:07:13] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[02:07:13] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[02:07:13] [INFO] [Player.Weapon] Removed default MakarovPM
+[02:07:13] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[02:07:13] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[02:07:13] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[02:07:13] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[02:07:13] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[02:07:13] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[02:07:13] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[02:07:13] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[02:07:13] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[02:07:13] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[02:07:13] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[02:07:13] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[02:07:13] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[02:07:13] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[02:07:13] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[02:07:13] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[02:07:13] [INFO] [Player.TrajectoryGlasses] Trajectory glasses selected, initializing...
+[02:07:13] [INFO] [TrajectoryGlasses] Effect ready, charges: 2/2
+[02:07:13] [INFO] [TrajectoryGlasses] Initialized with player: Player, viewport diagonal: 1469
+[02:07:13] [INFO] [TrajectoryGlasses] Weapon set: AKGL
+[02:07:13] [INFO] [Player.TrajectoryGlasses] Weapon set: AKGL
+[02:07:13] [INFO] [Player.TrajectoryGlasses] Trajectory glasses equipped, charges: 2
+[02:07:13] [INFO] [Player.TrajectoryGlasses] HUD created
+[02:07:13] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[02:07:13] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[02:07:13] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[02:07:13] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[02:07:13] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[02:07:13] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[02:07:13] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[02:07:13] [INFO] [Player.Jammer] JammerHUD initialized
+[02:07:13] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[02:07:13] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[02:07:13] [INFO] [DecadenceLevel] Enemy tracking complete: 13 enemies registered
+[02:07:13] [INFO] [ScoreManager] Level started with 13 enemies
+[02:07:13] [INFO] [DecadenceLevel] ReplayManager found as C# autoload
+[02:07:13] [INFO] [DecadenceLevel] Starting replay recording - Player: Player, Enemies count: 13
+[02:07:13] [INFO] [ReplayManager] Replay data cleared
+[02:07:13] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[02:07:13] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[02:07:13] [INFO] [ReplayManager] Level: DecadenceLevel
+[02:07:13] [INFO] [ReplayManager] Player: Player (valid: True)
+[02:07:13] [INFO] [ReplayManager] Enemies count: 13
+[02:07:13] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[02:07:13] [INFO] [ReplayManager]   Enemy 0: VIPGuard1
+[02:07:13] [INFO] [ReplayManager]   Enemy 1: VIPGuard2
+[02:07:13] [INFO] [ReplayManager]   Enemy 2: BarBouncer1
+[02:07:13] [INFO] [ReplayManager]   Enemy 3: BarBouncer2
+[02:07:13] [INFO] [ReplayManager]   Enemy 4: BarGunman
+[02:07:13] [INFO] [ReplayManager]   Enemy 5: DanceFloorThug1
+[02:07:13] [INFO] [ReplayManager]   Enemy 6: DanceFloorThug2
+[02:07:13] [INFO] [ReplayManager]   Enemy 7: DanceFloorGunman
+[02:07:13] [INFO] [ReplayManager]   Enemy 8: BackAlleyThug1
+[02:07:13] [INFO] [ReplayManager]   Enemy 9: BackAlleyGunman
+[02:07:13] [INFO] [ReplayManager]   Enemy 10: StorageGuard1
+[02:07:13] [INFO] [ReplayManager]   Enemy 11: StorageGuard2
+[02:07:13] [INFO] [ReplayManager]   Enemy 12: RadioJammer
+[02:07:13] [INFO] [DecadenceLevel] Replay recording started successfully
+[02:07:13] [INFO] [WeaponHintsComponent] Connected weapon signals for: ak_gl (node: AKGL)
+[02:07:13] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: ak_gl
+[02:07:13] [INFO] [BloodyFeet:VIPGuard1] Blood detector created and attached to VIPGuard1
+[02:07:13] [INFO] [CinemaEffects] Found player node: Player
+[02:07:13] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[02:07:13] [INFO] [SoundPropagation] Registered listener: VIPGuard1 (total: 19)
+[02:07:13] [ENEMY] [VIPGuard1] Registered as sound listener
+[02:07:13] [ENEMY] [VIPGuard1] Spawned at (250, 200), hp: 2, behavior: GUARD
+[02:07:13] [INFO] [BloodyFeet:VIPGuard2] Blood detector created and attached to VIPGuard2
+[02:07:13] [INFO] [SoundPropagation] Registered listener: VIPGuard2 (total: 20)
+[02:07:13] [ENEMY] [VIPGuard2] Registered as sound listener
+[02:07:13] [ENEMY] [VIPGuard2] Spawned at (380, 480), hp: 2, behavior: PATROL
+[02:07:13] [INFO] [BloodyFeet:BarBouncer1] Blood detector created and attached to BarBouncer1
+[02:07:13] [INFO] [SoundPropagation] Registered listener: BarBouncer1 (total: 21)
+[02:07:13] [ENEMY] [BarBouncer1] Registered as sound listener
+[02:07:13] [ENEMY] [BarBouncer1] Spawned at (1650, 200), hp: 4, behavior: GUARD
+[02:07:13] [INFO] [BloodyFeet:BarBouncer2] Blood detector created and attached to BarBouncer2
+[02:07:13] [INFO] [SoundPropagation] Registered listener: BarBouncer2 (total: 22)
+[02:07:13] [ENEMY] [BarBouncer2] Registered as sound listener
+[02:07:13] [ENEMY] [BarBouncer2] Spawned at (2200, 200), hp: 3, behavior: PATROL
+[02:07:13] [INFO] [BloodyFeet:BarGunman] Blood detector created and attached to BarGunman
+[02:07:13] [INFO] [SoundPropagation] Registered listener: BarGunman (total: 23)
+[02:07:13] [ENEMY] [BarGunman] Registered as sound listener
+[02:07:13] [ENEMY] [BarGunman] Spawned at (1900, 480), hp: 3, behavior: GUARD
+[02:07:13] [INFO] [BloodyFeet:DanceFloorThug1] Blood detector created and attached to DanceFloorThug1
+[02:07:13] [INFO] [SoundPropagation] Registered listener: DanceFloorThug1 (total: 24)
+[02:07:13] [ENEMY] [DanceFloorThug1] Registered as sound listener
+[02:07:13] [ENEMY] [DanceFloorThug1] Spawned at (700, 800), hp: 3, behavior: PATROL
+[02:07:13] [INFO] [BloodyFeet:DanceFloorThug2] Blood detector created and attached to DanceFloorThug2
+[02:07:13] [INFO] [SoundPropagation] Registered listener: DanceFloorThug2 (total: 25)
+[02:07:13] [ENEMY] [DanceFloorThug2] Registered as sound listener
+[02:07:13] [ENEMY] [DanceFloorThug2] Spawned at (1150, 650), hp: 2, behavior: GUARD
+[02:07:13] [INFO] [BloodyFeet:DanceFloorGunman] Blood detector created and attached to DanceFloorGunman
+[02:07:13] [INFO] [SoundPropagation] Registered listener: DanceFloorGunman (total: 26)
+[02:07:13] [ENEMY] [DanceFloorGunman] Registered as sound listener
+[02:07:13] [ENEMY] [DanceFloorGunman] Spawned at (950, 1050), hp: 2, behavior: PATROL
+[02:07:13] [INFO] [BloodyFeet:BackAlleyThug1] Blood detector created and attached to BackAlleyThug1
+[02:07:13] [INFO] [SoundPropagation] Registered listener: BackAlleyThug1 (total: 27)
+[02:07:13] [ENEMY] [BackAlleyThug1] Registered as sound listener
+[02:07:13] [ENEMY] [BackAlleyThug1] Spawned at (200, 1500), hp: 2, behavior: PATROL
+[02:07:13] [INFO] [BloodyFeet:BackAlleyGunman] Blood detector created and attached to BackAlleyGunman
+[02:07:13] [INFO] [SoundPropagation] Registered listener: BackAlleyGunman (total: 28)
+[02:07:13] [ENEMY] [BackAlleyGunman] Registered as sound listener
+[02:07:13] [ENEMY] [BackAlleyGunman] Spawned at (400, 1800), hp: 2, behavior: GUARD
+[02:07:13] [INFO] [BloodyFeet:StorageGuard1] Blood detector created and attached to StorageGuard1
+[02:07:13] [INFO] [SoundPropagation] Registered listener: StorageGuard1 (total: 29)
+[02:07:13] [ENEMY] [StorageGuard1] Registered as sound listener
+[02:07:13] [ENEMY] [StorageGuard1] Spawned at (1700, 1500), hp: 3, behavior: PATROL
+[02:07:13] [INFO] [BloodyFeet:StorageGuard2] Blood detector created and attached to StorageGuard2
+[02:07:13] [INFO] [SoundPropagation] Registered listener: StorageGuard2 (total: 30)
+[02:07:13] [ENEMY] [StorageGuard2] Registered as sound listener
+[02:07:13] [ENEMY] [StorageGuard2] Spawned at (2200, 1800), hp: 4, behavior: GUARD
+[02:07:13] [INFO] [BloodyFeet:RadioJammer] Blood detector created and attached to RadioJammer
+[02:07:13] [INFO] [SoundPropagation] Registered listener: RadioJammer (total: 31)
+[02:07:13] [ENEMY] [RadioJammer] Registered as sound listener
+[02:07:13] [ENEMY] [RadioJammer] Spawned at (1100, 900), hp: 2, behavior: GUARD
+[02:07:13] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[02:07:13] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=13
+[02:07:13] [ENEMY] [VIPGuard1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=157.5°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:13] [ENEMY] [BarBouncer1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:13] [ENEMY] [BarGunman] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=337.5°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:13] [ENEMY] [DanceFloorThug2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:13] [ENEMY] [BackAlleyGunman] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=213.8°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:13] [ENEMY] [StorageGuard2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=56.3°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:13] [ENEMY] [RadioJammer] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:13] [INFO] [Player] Detecting weapon pose (frame 3)...
+[02:07:13] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[02:07:13] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[02:07:13] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[02:07:13] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[02:07:13] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[02:07:13] [INFO] [LastChance] Found player: Player
+[02:07:13] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[02:07:13] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[02:07:13] [INFO] [LastChance] Connected to player Died signal (C#)
+[02:07:13] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[02:07:14] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=13
+[02:07:14] [INFO] [ActiveItemManager.Jammer] VERBOSE: 1 jammer(s) in group, player=(150,1885)
+[02:07:14] [INFO] [ActiveItemManager.Jammer] VERBOSE: jammer='RadioJammer' alive=true pos=(1100,900) dist=1368.5 radius=1000.0 => clear
+[02:07:14] [INFO] [TrajectoryGlasses] Weapon set: AKGL
+[02:07:14] [INFO] [Player.TrajectoryGlasses] Space pressed - activating (charges: 2)
+[02:07:14] [INFO] [TrajectoryGlasses] Activated! Duration: 10.0s, Charges remaining: 1/2, Player: Player
+[02:07:14] [INFO] [Player.TrajectoryGlasses] Activation result: True
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:14] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=70.9, weapon_max_angle=70.0, is_valid=false, final_seg=false
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:14] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=71.4, weapon_max_angle=70.0, is_valid=false, final_seg=false
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:14] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=71.8, weapon_max_angle=70.0, is_valid=false, final_seg=false
+[02:07:14] [ENEMY] [BackAlleyGunman] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=166.5°, current=-146.2°, player=(150,1860), corner_timer=0.00
+[02:07:14] [ENEMY] [BackAlleyGunman] State: IDLE -> COMBAT
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:14] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=72.2, weapon_max_angle=70.0, is_valid=false, final_seg=false
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:14] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=72.6, weapon_max_angle=70.0, is_valid=false, final_seg=false
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:14] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=72.9, weapon_max_angle=70.0, is_valid=false, final_seg=false
+[02:07:14] [ENEMY] [BackAlleyGunman] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=174.1°, current=32.3°, player=(150,1827), corner_timer=0.00
+[02:07:14] [ENEMY] [RadioJammer] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=135.7°, current=101.3°, player=(150,1827), corner_timer=0.00
+[02:07:14] [ENEMY] [RadioJammer] State: IDLE -> COMBAT
+[02:07:14] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:14] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=73.2, weapon_max_angle=70.0, is_valid=false, final_seg=false
+[02:07:14] [INFO] [ActiveItemManager.Jammer] Periodic: jammer='RadioJammer' (alive) player=(150,1822) dist=1318.3 radius=1000
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:14] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=73.5, weapon_max_angle=70.0, is_valid=false, final_seg=false
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:14] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:14] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=73.7, weapon_max_angle=70.0, is_valid=false, final_seg=false
+[02:07:15] [ENEMY] [RadioJammer] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=136.7°, current=-127.9°, player=(150,1794), corner_timer=0.00
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=72.2, weapon_max_angle=70.0, is_valid=false, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=69.4, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=69.4, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=66.6, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=66.6, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=23.4, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=65.1, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=65.1, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=24.9, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=64.6, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=64.6, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=25.4, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=64.6, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=64.6, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=25.4, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [ENEMY] [VIPGuard2] PATROL corner check: angle -88.2°
+[02:07:15] [ENEMY] [BarBouncer2] PATROL corner check: angle 90.0°
+[02:07:15] [ENEMY] [DanceFloorThug1] PATROL corner check: angle 90.0°
+[02:07:15] [ENEMY] [DanceFloorGunman] PATROL corner check: angle -0.0°
+[02:07:15] [ENEMY] [BackAlleyThug1] PATROL corner check: angle -0.0°
+[02:07:15] [ENEMY] [StorageGuard1] PATROL corner check: angle -90.0°
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=64.9, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=64.9, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=25.1, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [ENEMY] [VIPGuard2] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-88.2°, current=1.8°, player=(150,1722), corner_timer=0.30
+[02:07:15] [ENEMY] [BarBouncer2] ROT_CHANGE: none -> P3:corner, state=IDLE, target=90.0°, current=0.0°, player=(150,1722), corner_timer=0.30
+[02:07:15] [ENEMY] [DanceFloorThug1] ROT_CHANGE: none -> P3:corner, state=IDLE, target=90.0°, current=0.0°, player=(150,1722), corner_timer=0.30
+[02:07:15] [ENEMY] [DanceFloorThug2] Memory: high confidence (0.88) - transitioning to PURSUING
+[02:07:15] [ENEMY] [DanceFloorThug2] State: IDLE -> PURSUING
+[02:07:15] [ENEMY] [DanceFloorGunman] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-0.0°, current=90.0°, player=(150,1722), corner_timer=0.30
+[02:07:15] [ENEMY] [DanceFloorGunman] Memory: high confidence (0.88) - transitioning to PURSUING
+[02:07:15] [ENEMY] [DanceFloorGunman] State: IDLE -> PURSUING
+[02:07:15] [ENEMY] [BackAlleyThug1] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-0.0°, current=90.0°, player=(150,1722), corner_timer=0.30
+[02:07:15] [ENEMY] [StorageGuard1] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-90.0°, current=0.0°, player=(150,1722), corner_timer=0.30
+[02:07:15] [ENEMY] [DanceFloorThug2] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=PURSUING, target=133.1°, current=11.3°, player=(150,1717), corner_timer=0.00
+[02:07:15] [ENEMY] [DanceFloorThug2] PURSUING_MEMORY corner check: angle 41.0°
+[02:07:15] [ENEMY] [DanceFloorGunman] ROT_CHANGE: P3:corner -> P2:combat_state, state=PURSUING, target=140.5°, current=87.1°, player=(150,1717), corner_timer=0.30
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=69.8, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=69.8, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=20.2, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 3 (bounce 3/5): impact_angle=69.8, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 4 (bounce 4/5): impact_angle=20.2, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 5 (bounce 5/5): impact_angle=69.8, weapon_max_angle=70.0, is_valid=true, final_seg=true
+[02:07:15] [ENEMY] [BackAlleyThug1] ROT_CHANGE: P3:corner -> P1:visible, state=IDLE, target=104.7°, current=81.4°, player=(150,1706), corner_timer=0.25
+[02:07:15] [ENEMY] [BackAlleyThug1] State: IDLE -> PURSUING
+[02:07:15] [ENEMY] [BackAlleyThug1] State: PURSUING -> COMBAT
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=69.9, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=69.9, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=20.1, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 3 (bounce 3/5): impact_angle=69.9, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 4 (bounce 4/5): impact_angle=20.1, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 5 (bounce 5/5): impact_angle=69.9, weapon_max_angle=70.0, is_valid=true, final_seg=true
+[02:07:15] [ENEMY] [RadioJammer] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=140.3°, current=-176.0°, player=(150,1695), corner_timer=0.00
+[02:07:15] [ENEMY] [BackAlleyGunman] State: COMBAT -> PURSUING
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=69.9, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=69.9, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=20.1, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 3 (bounce 3/5): impact_angle=69.9, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 4 (bounce 4/5): impact_angle=20.1, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 5 (bounce 5/5): impact_angle=69.9, weapon_max_angle=70.0, is_valid=true, final_seg=true
+[02:07:15] [ENEMY] [DanceFloorGunman] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=141.1°, current=172.6°, player=(150,1684), corner_timer=0.22
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=70.0, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=70.0, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=20.0, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 3 (bounce 3/5): impact_angle=70.0, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 4 (bounce 4/5): impact_angle=20.0, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] seg 5 (bounce 5/5): impact_angle=70.0, weapon_max_angle=70.0, is_valid=true, final_seg=true
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=70.1, weapon_max_angle=70.0, is_valid=false, final_seg=false
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=70.1, weapon_max_angle=70.0, is_valid=false, final_seg=false
+[02:07:15] [ENEMY] [BackAlleyGunman] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=-144.1°, current=166.7°, player=(150,1629), corner_timer=0.00
+[02:07:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(958.88, 1022), source=ENEMY (RadioJammer), range=1469, listeners=31
+[02:07:15] [INFO] [SoundPropagation] Cleaned up 18 invalid listeners
+[02:07:15] [ENEMY] [DanceFloorThug1] Heard gunshot at (958.88, 1022), intensity=0.03, distance=290
+[02:07:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=8
+[02:07:15] [ENEMY] [DanceFloorThug1] ROT_CHANGE: P3:corner -> P2:combat_state, state=COMBAT, target=127.1°, current=51.6°, player=(150,1623), corner_timer=0.00
+[02:07:15] [ENEMY] [DanceFloorGunman] State: PURSUING -> COMBAT
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [ENEMY] [VIPGuard2] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=144.6°, current=90.1°, player=(150,1618), corner_timer=-0.02
+[02:07:15] [ENEMY] [VIPGuard2] PATROL corner check: angle -170.9°
+[02:07:15] [ENEMY] [BarBouncer2] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=54.4°, player=(150,1618), corner_timer=-0.02
+[02:07:15] [ENEMY] [BarBouncer2] PATROL corner check: angle 90.0°
+[02:07:15] [ENEMY] [VIPGuard2] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-170.9°, current=47.6°, player=(150,1612), corner_timer=0.30
+[02:07:15] [ENEMY] [BarBouncer2] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=51.6°, player=(150,1612), corner_timer=0.30
+[02:07:15] [ENEMY] [BackAlleyThug1] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=43.8°, current=95.3°, player=(150,1607), corner_timer=0.25
+[02:07:15] [ENEMY] [DanceFloorThug2] PURSUING corner check: angle 74.4°
+[02:07:15] [ENEMY] [BackAlleyGunman] State: PURSUING -> COMBAT
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:15] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=13
+[02:07:15] [ENEMY] [DanceFloorGunman] State: COMBAT -> RETREATING
+[02:07:15] [ENEMY] [VIPGuard2] Memory: medium confidence (0.74) - transitioning to PURSUING
+[02:07:15] [ENEMY] [VIPGuard2] State: IDLE -> PURSUING
+[02:07:15] [ENEMY] [VIPGuard2] ROT_CHANGE: P3:corner -> P2:combat_state, state=PURSUING, target=103.6°, current=81.9°, player=(177,1558), corner_timer=0.30
+[02:07:15] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(907.1231, 1043.258), source=NEUTRAL (null), range=900, listeners=13
+[02:07:15] [ENEMY] [DanceFloorThug1] Heard CASING_KICK at (907.1231, 1043.258), intensity=0.04, dist=260
+[02:07:15] [ENEMY] [DanceFloorThug2] Heard CASING_KICK at (907.1231, 1043.258), intensity=0.01, dist=410
+[02:07:15] [ENEMY] [DanceFloorGunman] Heard CASING_KICK at (907.1231, 1043.258), intensity=0.19, dist=114
+[02:07:15] [ENEMY] [RadioJammer] Heard CASING_KICK at (907.1231, 1043.258), intensity=1.00, dist=33
+[02:07:15] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=8, self=0, below_threshold=1
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:15] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:16] [ENEMY] [BackAlleyThug1] Hit: dmg=1, hp=2/2->1/2
+[02:07:16] [INFO] [ImpactEffects] Blood decals scheduled: 0 to spawn at particle landing times
+[02:07:16] [ENEMY] [DanceFloorThug2] PURSUING corner check: angle 69.4°
+[02:07:16] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:16] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:16] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:16] [ENEMY] [DanceFloorGunman] ROT_CHANGE: P1:visible -> P3:corner, state=RETREATING, target=-0.0°, current=141.3°, player=(220,1515), corner_timer=0.03
+[02:07:16] [ENEMY] [DanceFloorGunman] State: RETREATING -> IN_COVER
+[02:07:16] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:16] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:16] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:16] [ENEMY] [VIPGuard2] PURSUING corner check: angle -43.5°
+[02:07:16] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:16] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:16] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(332.5829, 1732.267), source=ENEMY (BackAlleyGunman), range=1469, listeners=13
+[02:07:16] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=1, below_threshold=6
+[02:07:16] [ENEMY] [DanceFloorGunman] State: IN_COVER -> SUPPRESSED
+[02:07:16] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:16] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:16] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:16] [ENEMY] [BackAlleyGunman] State: COMBAT -> RETREATING
+[02:07:16] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(346.5257, 1710.173), source=NEUTRAL (null), range=900, listeners=13
+[02:07:16] [ENEMY] [BackAlleyThug1] Heard CASING_KICK at (346.5257, 1710.173), intensity=0.05, dist=217
+[02:07:16] [ENEMY] [BackAlleyGunman] Heard CASING_KICK at (346.5257, 1710.173), intensity=1.00, dist=24
+[02:07:16] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=8, self=0, below_threshold=3
+[02:07:16] [ENEMY] [VIPGuard2] PURSUING corner check: angle -170.5°
+[02:07:16] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:16] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:16] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:16] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=27.1, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:16] [ENEMY] [BackAlleyThug1] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=-53.2°, current=-20.1°, player=(371,1374), corner_timer=0.25
+[02:07:16] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:16] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:16] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:16] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=28.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:16] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=13
+[02:07:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(403.3059, 1726.807), source=ENEMY (BackAlleyGunman), range=1469, listeners=13
+[02:07:16] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=1, below_threshold=6
+[02:07:17] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:17] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:17] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:17] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=57.5, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=32.5, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=57.5, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 3 (bounce 3/5): impact_angle=32.5, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 4 (bounce 4/5): impact_angle=57.5, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 5 (bounce 5/5): impact_angle=32.5, weapon_max_angle=70.0, is_valid=true, final_seg=true
+[02:07:17] [ENEMY] [VIPGuard2] PURSUING corner check: angle -26.9°
+[02:07:17] [ENEMY] [VIPGuard1] Memory: medium confidence (0.76) - transitioning to PURSUING
+[02:07:17] [ENEMY] [VIPGuard1] State: IDLE -> PURSUING
+[02:07:17] [ENEMY] [VIPGuard1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=PURSUING, target=80.8°, current=157.5°, player=(440,1368), corner_timer=0.00
+[02:07:17] [ENEMY] [DanceFloorGunman] State: SUPPRESSED -> SEEKING_COVER
+[02:07:17] [ENEMY] [VIPGuard1] PURSUING corner check: angle -25.4°
+[02:07:17] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:17] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:17] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:17] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=36.4, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=36.4, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=36.4, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 3 (bounce 3/5): impact_angle=53.6, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 4 (bounce 4/5): impact_angle=36.4, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 5 (bounce 5/5): impact_angle=53.6, weapon_max_angle=70.0, is_valid=true, final_seg=true
+[02:07:17] [ENEMY] [VIPGuard2] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=98.9°, current=99.1°, player=(489,1368), corner_timer=0.13
+[02:07:17] [INFO] [ActiveItemManager.Jammer] Periodic: jammer='RadioJammer' (alive) player=(490,1368) dist=120.1 radius=1000
+[02:07:17] [ENEMY] [VIPGuard2] State: PURSUING -> COMBAT
+[02:07:17] [WARN] [FPS] Drop detected: 14 fps (threshold: 30)
+[02:07:17] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:17] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:17] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:17] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=49.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=49.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=40.3, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 3 (bounce 3/5): impact_angle=49.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 4 (bounce 4/5): impact_angle=49.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 5 (bounce 5/5): impact_angle=49.7, weapon_max_angle=70.0, is_valid=true, final_seg=true
+[02:07:17] [ENEMY] [BackAlleyGunman] State: RETREATING -> IN_COVER
+[02:07:17] [ENEMY] [StorageGuard1] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=84.3°, player=(533,1368), corner_timer=-0.02
+[02:07:17] [ENEMY] [StorageGuard1] PATROL corner check: angle 90.0°
+[02:07:17] [ENEMY] [StorageGuard1] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=87.1°, player=(539,1368), corner_timer=0.30
+[02:07:17] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:17] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:17] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:17] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=45.5, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=44.5, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=45.5, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 3 (bounce 3/5): impact_angle=44.5, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 4 (bounce 4/5): impact_angle=44.5, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 5 (bounce 5/5): impact_angle=44.5, weapon_max_angle=70.0, is_valid=true, final_seg=true
+[02:07:17] [ENEMY] [VIPGuard1] PURSUING corner check: angle -46.6°
+[02:07:17] [ENEMY] [RadioJammer] State: COMBAT -> RETREATING
+[02:07:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(525.0613, 1322.946), source=ENEMY (RadioJammer), range=1469, listeners=13
+[02:07:17] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=4, self=1, below_threshold=4
+[02:07:17] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:07:17] [INFO] [Player] Spawning blood effect at (566.7597, 1368.3506), dir=(1, 0), lethal=False (C#)
+[02:07:17] [INFO] [ImpactEffects] Blood decals scheduled: 0 to spawn at particle landing times
+[02:07:17] [ENEMY] [DanceFloorGunman] ROT_CHANGE: P3:corner -> P1:visible, state=SEEKING_COVER, target=118.1°, current=73.9°, player=(588,1368), corner_timer=0.03
+[02:07:17] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:17] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:17] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:17] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=40.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=49.3, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=49.3, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 3 (bounce 3/5): impact_angle=40.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 4 (bounce 4/5): impact_angle=49.3, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 5 (bounce 5/5): impact_angle=49.3, weapon_max_angle=70.0, is_valid=true, final_seg=true
+[02:07:17] [ENEMY] [DanceFloorThug1] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=37.5°, current=68.7°, player=(599,1368), corner_timer=0.00
+[02:07:17] [ENEMY] [BackAlleyGunman] State: IN_COVER -> SUPPRESSED
+[02:07:17] [ENEMY] [DanceFloorGunman] ROT_CHANGE: P1:visible -> P3:corner, state=SEEKING_COVER, target=-0.0°, current=65.7°, player=(621,1368), corner_timer=0.03
+[02:07:17] [ENEMY] [DanceFloorThug1] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=35.6°, current=-27.2°, player=(632,1368), corner_timer=0.00
+[02:07:17] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:17] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:17] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:17] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=54.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=54.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=54.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 3 (bounce 3/5): impact_angle=35.3, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 4 (bounce 4/5): impact_angle=54.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:17] [INFO] [TrajectoryGlasses] seg 5 (bounce 5/5): impact_angle=54.7, weapon_max_angle=70.0, is_valid=true, final_seg=true
+[02:07:17] [ENEMY] [BarBouncer2] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=-141.6°, player=(643,1368), corner_timer=-0.02
+[02:07:17] [ENEMY] [BarBouncer2] PATROL corner check: angle 90.0°
+[02:07:17] [ENEMY] [StorageGuard1] PATROL corner check: angle 90.0°
+[02:07:17] [ENEMY] [BarBouncer2] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=-144.4°, player=(649,1368), corner_timer=0.30
+[02:07:17] [ENEMY] [VIPGuard1] PURSUING corner check: angle -17.0°
+[02:07:17] [ENEMY] [DanceFloorThug1] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=34.4°, current=13.1°, player=(665,1368), corner_timer=0.00
+[02:07:17] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:07:17] [INFO] [Player] Spawning blood effect at (676.7597, 1368.3506), dir=(1, 0), lethal=False (C#)
+[02:07:17] [INFO] [ImpactEffects] Blood decals scheduled: 0 to spawn at particle landing times
+[02:07:17] [ENEMY] [DanceFloorThug2] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=103.7°, current=104.1°, player=(676,1368), corner_timer=0.15
+[02:07:17] [ENEMY] [DanceFloorThug2] State: PURSUING -> COMBAT
+[02:07:18] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:18] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:18] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:18] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=58.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=58.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=58.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 3 (bounce 3/5): impact_angle=31.3, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 4 (bounce 4/5): impact_angle=58.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 5 (bounce 5/5): impact_angle=58.7, weapon_max_angle=70.0, is_valid=true, final_seg=true
+[02:07:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(604.0154, 865.9245), source=ENEMY (VIPGuard2), range=1469, listeners=13
+[02:07:18] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=1, below_threshold=6
+[02:07:18] [ENEMY] [DanceFloorThug2] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=100.8°, current=14.7°, player=(706,1368), corner_timer=0.15
+[02:07:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(530.0264, 1285.145), source=ENEMY (RadioJammer), range=1469, listeners=13
+[02:07:18] [INFO] [SoundPropagation] Sound result: notified=5, out_of_range=4, self=1, below_threshold=3
+[02:07:18] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:18] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:18] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:18] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=59.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=59.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=59.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 3 (bounce 3/5): impact_angle=59.7, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 4 (bounce 4/5): impact_angle=30.3, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 5 (bounce 5/5): impact_angle=59.7, weapon_max_angle=70.0, is_valid=true, final_seg=true
+[02:07:18] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=13
+[02:07:18] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(593.5032, 884.7222), source=NEUTRAL (null), range=900, listeners=13
+[02:07:18] [ENEMY] [VIPGuard2] Heard CASING_KICK at (593.5032, 884.7222), intensity=1.00, dist=35
+[02:07:18] [ENEMY] [DanceFloorThug1] Heard CASING_KICK at (593.5032, 884.7222), intensity=0.02, dist=395
+[02:07:18] [ENEMY] [DanceFloorThug2] Heard CASING_KICK at (593.5032, 884.7222), intensity=0.02, dist=319
+[02:07:18] [ENEMY] [DanceFloorGunman] Heard CASING_KICK at (593.5032, 884.7222), intensity=0.09, dist=166
+[02:07:18] [ENEMY] [RadioJammer] Heard CASING_KICK at (593.5032, 884.7222), intensity=0.01, dist=410
+[02:07:18] [INFO] [SoundPropagation] Sound result: notified=5, out_of_range=5, self=0, below_threshold=3
+[02:07:18] [ENEMY] [DanceFloorThug2] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=99.5°, current=54.1°, player=(727,1368), corner_timer=0.15
+[02:07:18] [ENEMY] [BarBouncer2] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=161.1°, player=(732,1368), corner_timer=-0.02
+[02:07:18] [ENEMY] [BarBouncer2] PATROL corner check: angle 90.0°
+[02:07:18] [ENEMY] [StorageGuard1] PATROL corner check: angle 90.0°
+[02:07:18] [ENEMY] [BarBouncer2] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=164.0°, player=(733,1368), corner_timer=0.30
+[02:07:18] [ENEMY] [VIPGuard2] State: COMBAT -> RETREATING
+[02:07:18] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=70.0 (via C# helper)
+[02:07:18] [INFO] [TrajectoryGlasses] _get_weapon_max_ricochets: AKGL -> max_ricochets=-1 (via C# helper)
+[02:07:18] [INFO] [TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=70.0, weapon_max_ricochets=-1, bounce_limit=5
+[02:07:18] [INFO] [TrajectoryGlasses] seg 0 (bounce 0/5): impact_angle=58.4, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 1 (bounce 1/5): impact_angle=58.4, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 2 (bounce 2/5): impact_angle=58.4, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 3 (bounce 3/5): impact_angle=31.6, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 4 (bounce 4/5): impact_angle=31.6, weapon_max_angle=70.0, is_valid=true, final_seg=false
+[02:07:18] [INFO] [TrajectoryGlasses] seg 5 (bounce 5/5): impact_angle=31.6, weapon_max_angle=70.0, is_valid=true, final_seg=true
+[02:07:18] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[02:07:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:18] [INFO] [BloodyFeet:VIPGuard1] Footprint scene loaded
+[02:07:18] [INFO] [BloodyFeet:VIPGuard1] Found EnemyModel for facing direction
+[02:07:18] [INFO] [BloodyFeet:VIPGuard1] BloodyFeetComponent ready on VIPGuard1
+[02:07:18] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[02:07:18] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[02:07:18] [INFO] [LastChance] Resetting all effects (scene change detected)
+[02:07:18] [INFO] [CinemaEffects] Scene changed to: DecadenceLevel
+[02:07:18] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[02:07:18] [INFO] [BlackMetalEffectsManager] Scene changed to: DecadenceLevel
+[02:07:18] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[02:07:18] [ENEMY] [VIPGuard1] Death animation component initialized
+[02:07:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:18] [INFO] [BloodyFeet:VIPGuard2] Footprint scene loaded
+[02:07:18] [INFO] [BloodyFeet:VIPGuard2] Found EnemyModel for facing direction
+[02:07:18] [INFO] [BloodyFeet:VIPGuard2] BloodyFeetComponent ready on VIPGuard2
+[02:07:18] [ENEMY] [VIPGuard2] Death animation component initialized
+[02:07:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:18] [INFO] [BloodyFeet:BarBouncer1] Footprint scene loaded
+[02:07:18] [INFO] [BloodyFeet:BarBouncer1] Found EnemyModel for facing direction
+[02:07:18] [INFO] [BloodyFeet:BarBouncer1] BloodyFeetComponent ready on BarBouncer1
+[02:07:18] [ENEMY] [BarBouncer1] Death animation component initialized
+[02:07:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:18] [INFO] [BloodyFeet:BarBouncer2] Footprint scene loaded
+[02:07:18] [INFO] [BloodyFeet:BarBouncer2] Found EnemyModel for facing direction
+[02:07:18] [INFO] [BloodyFeet:BarBouncer2] BloodyFeetComponent ready on BarBouncer2
+[02:07:18] [ENEMY] [BarBouncer2] Death animation component initialized
+[02:07:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:18] [INFO] [BloodyFeet:BarGunman] Footprint scene loaded
+[02:07:18] [INFO] [BloodyFeet:BarGunman] Found EnemyModel for facing direction
+[02:07:18] [INFO] [BloodyFeet:BarGunman] BloodyFeetComponent ready on BarGunman
+[02:07:18] [ENEMY] [BarGunman] Death animation component initialized
+[02:07:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:18] [INFO] [BloodyFeet:DanceFloorThug1] Footprint scene loaded
+[02:07:18] [INFO] [BloodyFeet:DanceFloorThug1] Found EnemyModel for facing direction
+[02:07:18] [INFO] [BloodyFeet:DanceFloorThug1] BloodyFeetComponent ready on DanceFloorThug1
+[02:07:18] [ENEMY] [DanceFloorThug1] Death animation component initialized
+[02:07:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:18] [INFO] [BloodyFeet:DanceFloorThug2] Footprint scene loaded
+[02:07:18] [INFO] [BloodyFeet:DanceFloorThug2] Found EnemyModel for facing direction
+[02:07:18] [INFO] [BloodyFeet:DanceFloorThug2] BloodyFeetComponent ready on DanceFloorThug2
+[02:07:18] [ENEMY] [DanceFloorThug2] Death animation component initialized
+[02:07:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:18] [INFO] [BloodyFeet:DanceFloorGunman] Footprint scene loaded
+[02:07:18] [INFO] [BloodyFeet:DanceFloorGunman] Found EnemyModel for facing direction
+[02:07:18] [INFO] [BloodyFeet:DanceFloorGunman] BloodyFeetComponent ready on DanceFloorGunman
+[02:07:18] [ENEMY] [DanceFloorGunman] Death animation component initialized
+[02:07:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:18] [INFO] [BloodyFeet:BackAlleyThug1] Footprint scene loaded
+[02:07:18] [INFO] [BloodyFeet:BackAlleyThug1] Found EnemyModel for facing direction
+[02:07:18] [INFO] [BloodyFeet:BackAlleyThug1] BloodyFeetComponent ready on BackAlleyThug1
+[02:07:18] [ENEMY] [BackAlleyThug1] Death animation component initialized
+[02:07:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:18] [INFO] [BloodyFeet:BackAlleyGunman] Footprint scene loaded
+[02:07:18] [INFO] [BloodyFeet:BackAlleyGunman] Found EnemyModel for facing direction
+[02:07:18] [INFO] [BloodyFeet:BackAlleyGunman] BloodyFeetComponent ready on BackAlleyGunman
+[02:07:18] [ENEMY] [BackAlleyGunman] Death animation component initialized
+[02:07:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:18] [INFO] [BloodyFeet:StorageGuard1] Footprint scene loaded
+[02:07:18] [INFO] [BloodyFeet:StorageGuard1] Found EnemyModel for facing direction
+[02:07:18] [INFO] [BloodyFeet:StorageGuard1] BloodyFeetComponent ready on StorageGuard1
+[02:07:18] [ENEMY] [StorageGuard1] Death animation component initialized
+[02:07:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:18] [INFO] [BloodyFeet:StorageGuard2] Footprint scene loaded
+[02:07:18] [INFO] [BloodyFeet:StorageGuard2] Found EnemyModel for facing direction
+[02:07:18] [INFO] [BloodyFeet:StorageGuard2] BloodyFeetComponent ready on StorageGuard2
+[02:07:18] [ENEMY] [StorageGuard2] Death animation component initialized
+[02:07:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:18] [INFO] [BloodyFeet:RadioJammer] Footprint scene loaded
+[02:07:18] [INFO] [BloodyFeet:RadioJammer] Found EnemyModel for facing direction
+[02:07:18] [INFO] [BloodyFeet:RadioJammer] BloodyFeetComponent ready on RadioJammer
+[02:07:18] [ENEMY] [RadioJammer] Death animation component initialized
+[02:07:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:18] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[02:07:18] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[02:07:18] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[02:07:18] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[02:07:18] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[02:07:18] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[02:07:18] [INFO] [Player.Weapon] Removed default MakarovPM
+[02:07:18] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[02:07:18] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[02:07:18] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[02:07:18] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[02:07:18] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[02:07:18] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[02:07:18] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[02:07:18] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[02:07:18] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[02:07:18] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[02:07:18] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[02:07:18] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[02:07:18] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[02:07:18] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[02:07:18] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[02:07:18] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[02:07:18] [INFO] [Player.TrajectoryGlasses] Trajectory glasses selected, initializing...
+[02:07:18] [INFO] [TrajectoryGlasses] Effect ready, charges: 2/2
+[02:07:18] [INFO] [TrajectoryGlasses] Initialized with player: Player, viewport diagonal: 1469
+[02:07:18] [INFO] [TrajectoryGlasses] Weapon set: AKGL
+[02:07:18] [INFO] [Player.TrajectoryGlasses] Weapon set: AKGL
+[02:07:18] [INFO] [Player.TrajectoryGlasses] Trajectory glasses equipped, charges: 2
+[02:07:18] [INFO] [Player.TrajectoryGlasses] HUD created
+[02:07:18] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[02:07:18] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[02:07:18] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[02:07:18] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[02:07:18] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[02:07:18] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[02:07:18] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[02:07:18] [INFO] [Player.Jammer] JammerHUD initialized
+[02:07:18] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[02:07:18] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[02:07:18] [INFO] [DecadenceLevel] Enemy tracking complete: 13 enemies registered
+[02:07:18] [INFO] [ScoreManager] Level started with 13 enemies
+[02:07:18] [INFO] [DecadenceLevel] ReplayManager found as C# autoload
+[02:07:18] [INFO] [DecadenceLevel] Starting replay recording - Player: Player, Enemies count: 13
+[02:07:18] [INFO] [ReplayManager] Replay data cleared
+[02:07:18] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[02:07:18] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[02:07:18] [INFO] [ReplayManager] Level: DecadenceLevel
+[02:07:18] [INFO] [ReplayManager] Player: Player (valid: True)
+[02:07:18] [INFO] [ReplayManager] Enemies count: 13
+[02:07:18] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[02:07:18] [INFO] [ReplayManager]   Enemy 0: VIPGuard1
+[02:07:18] [INFO] [ReplayManager]   Enemy 1: VIPGuard2
+[02:07:18] [INFO] [ReplayManager]   Enemy 2: BarBouncer1
+[02:07:18] [INFO] [ReplayManager]   Enemy 3: BarBouncer2
+[02:07:18] [INFO] [ReplayManager]   Enemy 4: BarGunman
+[02:07:18] [INFO] [ReplayManager]   Enemy 5: DanceFloorThug1
+[02:07:18] [INFO] [ReplayManager]   Enemy 6: DanceFloorThug2
+[02:07:18] [INFO] [ReplayManager]   Enemy 7: DanceFloorGunman
+[02:07:18] [INFO] [ReplayManager]   Enemy 8: BackAlleyThug1
+[02:07:18] [INFO] [ReplayManager]   Enemy 9: BackAlleyGunman
+[02:07:18] [INFO] [ReplayManager]   Enemy 10: StorageGuard1
+[02:07:18] [INFO] [ReplayManager]   Enemy 11: StorageGuard2
+[02:07:18] [INFO] [ReplayManager]   Enemy 12: RadioJammer
+[02:07:18] [INFO] [DecadenceLevel] Replay recording started successfully
+[02:07:18] [INFO] [WeaponHintsComponent] Connected weapon signals for: ak_gl (node: AKGL)
+[02:07:18] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: ak_gl
+[02:07:18] [INFO] [BloodyFeet:VIPGuard1] Blood detector created and attached to VIPGuard1
+[02:07:18] [INFO] [CinemaEffects] Found player node: Player
+[02:07:18] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[02:07:18] [INFO] [SoundPropagation] Registered listener: VIPGuard1 (total: 14)
+[02:07:18] [ENEMY] [VIPGuard1] Registered as sound listener
+[02:07:18] [ENEMY] [VIPGuard1] Spawned at (250, 200), hp: 2, behavior: GUARD
+[02:07:18] [INFO] [BloodyFeet:VIPGuard2] Blood detector created and attached to VIPGuard2
+[02:07:18] [INFO] [SoundPropagation] Registered listener: VIPGuard2 (total: 15)
+[02:07:18] [ENEMY] [VIPGuard2] Registered as sound listener
+[02:07:18] [ENEMY] [VIPGuard2] Spawned at (380, 480), hp: 4, behavior: PATROL
+[02:07:18] [INFO] [BloodyFeet:BarBouncer1] Blood detector created and attached to BarBouncer1
+[02:07:18] [INFO] [SoundPropagation] Registered listener: BarBouncer1 (total: 16)
+[02:07:18] [ENEMY] [BarBouncer1] Registered as sound listener
+[02:07:18] [ENEMY] [BarBouncer1] Spawned at (1650, 200), hp: 3, behavior: GUARD
+[02:07:18] [INFO] [BloodyFeet:BarBouncer2] Blood detector created and attached to BarBouncer2
+[02:07:18] [INFO] [SoundPropagation] Registered listener: BarBouncer2 (total: 17)
+[02:07:18] [ENEMY] [BarBouncer2] Registered as sound listener
+[02:07:18] [ENEMY] [BarBouncer2] Spawned at (2200, 200), hp: 2, behavior: PATROL
+[02:07:18] [INFO] [BloodyFeet:BarGunman] Blood detector created and attached to BarGunman
+[02:07:18] [INFO] [SoundPropagation] Registered listener: BarGunman (total: 18)
+[02:07:18] [ENEMY] [BarGunman] Registered as sound listener
+[02:07:18] [ENEMY] [BarGunman] Spawned at (1900, 480), hp: 2, behavior: GUARD
+[02:07:18] [INFO] [BloodyFeet:DanceFloorThug1] Blood detector created and attached to DanceFloorThug1
+[02:07:18] [INFO] [SoundPropagation] Registered listener: DanceFloorThug1 (total: 19)
+[02:07:18] [ENEMY] [DanceFloorThug1] Registered as sound listener
+[02:07:18] [ENEMY] [DanceFloorThug1] Spawned at (700, 800), hp: 2, behavior: PATROL
+[02:07:18] [INFO] [BloodyFeet:DanceFloorThug2] Blood detector created and attached to DanceFloorThug2
+[02:07:18] [INFO] [SoundPropagation] Registered listener: DanceFloorThug2 (total: 20)
+[02:07:18] [ENEMY] [DanceFloorThug2] Registered as sound listener
+[02:07:18] [ENEMY] [DanceFloorThug2] Spawned at (1150, 650), hp: 4, behavior: GUARD
+[02:07:18] [INFO] [BloodyFeet:DanceFloorGunman] Blood detector created and attached to DanceFloorGunman
+[02:07:18] [INFO] [SoundPropagation] Registered listener: DanceFloorGunman (total: 21)
+[02:07:18] [ENEMY] [DanceFloorGunman] Registered as sound listener
+[02:07:18] [ENEMY] [DanceFloorGunman] Spawned at (950, 1050), hp: 2, behavior: PATROL
+[02:07:18] [INFO] [BloodyFeet:BackAlleyThug1] Blood detector created and attached to BackAlleyThug1
+[02:07:18] [INFO] [SoundPropagation] Registered listener: BackAlleyThug1 (total: 22)
+[02:07:18] [ENEMY] [BackAlleyThug1] Registered as sound listener
+[02:07:18] [ENEMY] [BackAlleyThug1] Spawned at (200, 1500), hp: 4, behavior: PATROL
+[02:07:18] [INFO] [BloodyFeet:BackAlleyGunman] Blood detector created and attached to BackAlleyGunman
+[02:07:18] [INFO] [SoundPropagation] Registered listener: BackAlleyGunman (total: 23)
+[02:07:18] [ENEMY] [BackAlleyGunman] Registered as sound listener
+[02:07:18] [ENEMY] [BackAlleyGunman] Spawned at (400, 1800), hp: 3, behavior: GUARD
+[02:07:18] [INFO] [BloodyFeet:StorageGuard1] Blood detector created and attached to StorageGuard1
+[02:07:18] [INFO] [SoundPropagation] Registered listener: StorageGuard1 (total: 24)
+[02:07:18] [ENEMY] [StorageGuard1] Registered as sound listener
+[02:07:18] [ENEMY] [StorageGuard1] Spawned at (1700, 1500), hp: 3, behavior: PATROL
+[02:07:18] [INFO] [BloodyFeet:StorageGuard2] Blood detector created and attached to StorageGuard2
+[02:07:18] [INFO] [SoundPropagation] Registered listener: StorageGuard2 (total: 25)
+[02:07:18] [ENEMY] [StorageGuard2] Registered as sound listener
+[02:07:18] [ENEMY] [StorageGuard2] Spawned at (2200, 1800), hp: 4, behavior: GUARD
+[02:07:18] [INFO] [BloodyFeet:RadioJammer] Blood detector created and attached to RadioJammer
+[02:07:18] [INFO] [SoundPropagation] Registered listener: RadioJammer (total: 26)
+[02:07:18] [ENEMY] [RadioJammer] Registered as sound listener
+[02:07:18] [ENEMY] [RadioJammer] Spawned at (1100, 900), hp: 2, behavior: GUARD
+[02:07:18] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[02:07:18] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=13
+[02:07:19] [ENEMY] [VIPGuard1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:19] [ENEMY] [BarBouncer1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=337.5°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:19] [ENEMY] [BarGunman] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=22.5°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:19] [ENEMY] [DanceFloorThug2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=56.3°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:19] [ENEMY] [BackAlleyGunman] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:19] [ENEMY] [StorageGuard2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:19] [ENEMY] [RadioJammer] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(150,1900), corner_timer=0.00
+[02:07:19] [INFO] [Player] Detecting weapon pose (frame 3)...
+[02:07:19] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[02:07:19] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[02:07:19] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[02:07:19] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[02:07:19] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[02:07:19] [INFO] [LastChance] Found player: Player
+[02:07:19] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[02:07:19] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[02:07:19] [INFO] [LastChance] Connected to player Died signal (C#)
+[02:07:19] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+[02:07:19] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[02:07:19] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=13
+[02:07:20] [INFO] [PauseMenu] Armory button pressed
+[02:07:20] [INFO] [PauseMenu] Creating new armory menu instance
+[02:07:20] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[02:07:20] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[02:07:20] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[02:07:20] [INFO] [PauseMenu] back_pressed signal exists on instance
+[02:07:20] [INFO] [PauseMenu] back_pressed signal connected
+[02:07:20] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[02:07:20] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[02:07:20] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=13
+[02:07:21] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=13
+[02:07:22] [INFO] [ActiveItemManager] Active item changed from Trajectory Glasses to Force Field
+[02:07:22] [INFO] [PersistManager] State saved to user://game_state.cfg
+[02:07:22] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[02:07:23] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:23] [INFO] [BloodyFeet:VIPGuard1] Footprint scene loaded
+[02:07:23] [INFO] [BloodyFeet:VIPGuard1] Found EnemyModel for facing direction
+[02:07:23] [INFO] [BloodyFeet:VIPGuard1] BloodyFeetComponent ready on VIPGuard1
+[02:07:23] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[02:07:23] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[02:07:23] [INFO] [LastChance] Resetting all effects (scene change detected)
+[02:07:23] [INFO] [CinemaEffects] Scene changed to: DecadenceLevel
+[02:07:23] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[02:07:23] [INFO] [BlackMetalEffectsManager] Scene changed to: DecadenceLevel
+[02:07:23] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[02:07:23] [ENEMY] [VIPGuard1] Death animation component initialized
+[02:07:23] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:23] [INFO] [BloodyFeet:VIPGuard2] Footprint scene loaded
+[02:07:23] [INFO] [BloodyFeet:VIPGuard2] Found EnemyModel for facing direction
+[02:07:23] [INFO] [BloodyFeet:VIPGuard2] BloodyFeetComponent ready on VIPGuard2
+[02:07:23] [ENEMY] [VIPGuard2] Death animation component initialized
+[02:07:23] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:23] [INFO] [BloodyFeet:BarBouncer1] Footprint scene loaded
+[02:07:23] [INFO] [BloodyFeet:BarBouncer1] Found EnemyModel for facing direction
+[02:07:23] [INFO] [BloodyFeet:BarBouncer1] BloodyFeetComponent ready on BarBouncer1
+[02:07:23] [ENEMY] [BarBouncer1] Death animation component initialized
+[02:07:23] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:23] [INFO] [BloodyFeet:BarBouncer2] Footprint scene loaded
+[02:07:23] [INFO] [BloodyFeet:BarBouncer2] Found EnemyModel for facing direction
+[02:07:23] [INFO] [BloodyFeet:BarBouncer2] BloodyFeetComponent ready on BarBouncer2
+[02:07:23] [ENEMY] [BarBouncer2] Death animation component initialized
+[02:07:23] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:23] [INFO] [BloodyFeet:BarGunman] Footprint scene loaded
+[02:07:23] [INFO] [BloodyFeet:BarGunman] Found EnemyModel for facing direction
+[02:07:23] [INFO] [BloodyFeet:BarGunman] BloodyFeetComponent ready on BarGunman
+[02:07:23] [ENEMY] [BarGunman] Death animation component initialized
+[02:07:23] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:23] [INFO] [BloodyFeet:DanceFloorThug1] Footprint scene loaded
+[02:07:23] [INFO] [BloodyFeet:DanceFloorThug1] Found EnemyModel for facing direction
+[02:07:23] [INFO] [BloodyFeet:DanceFloorThug1] BloodyFeetComponent ready on DanceFloorThug1
+[02:07:23] [ENEMY] [DanceFloorThug1] Death animation component initialized
+[02:07:23] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:23] [INFO] [BloodyFeet:DanceFloorThug2] Footprint scene loaded
+[02:07:23] [INFO] [BloodyFeet:DanceFloorThug2] Found EnemyModel for facing direction
+[02:07:23] [INFO] [BloodyFeet:DanceFloorThug2] BloodyFeetComponent ready on DanceFloorThug2
+[02:07:23] [ENEMY] [DanceFloorThug2] Death animation component initialized
+[02:07:23] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:23] [INFO] [BloodyFeet:DanceFloorGunman] Footprint scene loaded
+[02:07:23] [INFO] [BloodyFeet:DanceFloorGunman] Found EnemyModel for facing direction
+[02:07:23] [INFO] [BloodyFeet:DanceFloorGunman] BloodyFeetComponent ready on DanceFloorGunman
+[02:07:23] [ENEMY] [DanceFloorGunman] Death animation component initialized
+[02:07:23] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:23] [INFO] [BloodyFeet:BackAlleyThug1] Footprint scene loaded
+[02:07:23] [INFO] [BloodyFeet:BackAlleyThug1] Found EnemyModel for facing direction
+[02:07:23] [INFO] [BloodyFeet:BackAlleyThug1] BloodyFeetComponent ready on BackAlleyThug1
+[02:07:23] [ENEMY] [BackAlleyThug1] Death animation component initialized
+[02:07:23] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:23] [INFO] [BloodyFeet:BackAlleyGunman] Footprint scene loaded
+[02:07:23] [INFO] [BloodyFeet:BackAlleyGunman] Found EnemyModel for facing direction
+[02:07:23] [INFO] [BloodyFeet:BackAlleyGunman] BloodyFeetComponent ready on BackAlleyGunman
+[02:07:23] [ENEMY] [BackAlleyGunman] Death animation component initialized
+[02:07:23] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:23] [INFO] [BloodyFeet:StorageGuard1] Footprint scene loaded
+[02:07:23] [INFO] [BloodyFeet:StorageGuard1] Found EnemyModel for facing direction
+[02:07:23] [INFO] [BloodyFeet:StorageGuard1] BloodyFeetComponent ready on StorageGuard1
+[02:07:23] [ENEMY] [StorageGuard1] Death animation component initialized
+[02:07:23] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:23] [INFO] [BloodyFeet:StorageGuard2] Footprint scene loaded
+[02:07:23] [INFO] [BloodyFeet:StorageGuard2] Found EnemyModel for facing direction
+[02:07:23] [INFO] [BloodyFeet:StorageGuard2] BloodyFeetComponent ready on StorageGuard2
+[02:07:23] [ENEMY] [StorageGuard2] Death animation component initialized
+[02:07:23] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:23] [INFO] [BloodyFeet:RadioJammer] Footprint scene loaded
+[02:07:23] [INFO] [BloodyFeet:RadioJammer] Found EnemyModel for facing direction
+[02:07:23] [INFO] [BloodyFeet:RadioJammer] BloodyFeetComponent ready on RadioJammer
+[02:07:23] [ENEMY] [RadioJammer] Death animation component initialized
+[02:07:23] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:07:23] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[02:07:23] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[02:07:23] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[02:07:23] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[02:07:23] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[02:07:23] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[02:07:23] [INFO] [Player.Weapon] Removed default MakarovPM
+[02:07:23] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[02:07:23] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[02:07:23] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[02:07:23] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[02:07:23] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[02:07:23] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[02:07:23] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[02:07:23] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[02:07:23] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[02:07:23] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[02:07:23] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[02:07:23] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[02:07:23] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[02:07:23] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[02:07:23] [INFO] [Player.ForceField] Force field is selected, initializing...
+[02:07:23] [INFO] [ForceFieldEffect] Area2D setup with radius 35px
+[02:07:23] [INFO] [ForceFieldEffect] Shader loaded successfully (ring texture used as base)
+[02:07:23] [INFO] [ForceFieldEffect] Initialized with 8.0s charge
+[02:07:23] [INFO] [Player.ForceField] Force field initialized successfully
+[02:07:23] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[02:07:23] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[02:07:23] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[02:07:23] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[02:07:23] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[02:07:23] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[02:07:23] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[02:07:23] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[02:07:23] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[02:07:23] [INFO] [Player.Jammer] JammerHUD initialized
+[02:07:23] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[02:07:23] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[02:07:23] [INFO] [DecadenceLevel] Enemy tracking complete: 13 enemies registered
+[02:07:23] [INFO] [ScoreManager] Level started with 13 enemies
+[02:07:23] [INFO] [DecadenceLevel] ReplayManager found as C# autoload
+[02:07:23] [INFO] [DecadenceLevel] Starting replay recording - Player: Player, Enemies count: 13
+[02:07:23] [INFO] [ReplayManager] Replay data cleared
+[02:07:23] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[02:07:23] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[02:07:23] [INFO] [ReplayManager] Level: DecadenceLevel
+[02:07:23] [INFO] [ReplayManager] Player: Player (valid: True)
+[02:07:23] [INFO] [ReplayManager] Enemies count: 13
+[02:07:23] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[02:07:23] [INFO] [ReplayManager]   Enemy 0: VIPGuard1
+[02:07:23] [INFO] [ReplayManager]   Enemy 1: VIPGuard2
+[02:07:23] [INFO] [ReplayManager]   Enemy 2: BarBouncer1
+[02:07:23] [INFO] [ReplayManager]   Enemy 3: BarBouncer2
+[02:07:23] [INFO] [ReplayManager]   Enemy 4: BarGunman
+[02:07:23] [INFO] [ReplayManager]   Enemy 5: DanceFloorThug1
+[02:07:23] [INFO] [ReplayManager]   Enemy 6: DanceFloorThug2
+[02:07:23] [INFO] [ReplayManager]   Enemy 7: DanceFloorGunman
+[02:07:23] [INFO] [ReplayManager]   Enemy 8: BackAlleyThug1
+[02:07:23] [INFO] [ReplayManager]   Enemy 9: BackAlleyGunman
+[02:07:23] [INFO] [ReplayManager]   Enemy 10: StorageGuard1
+[02:07:23] [INFO] [ReplayManager]   Enemy 11: StorageGuard2
+[02:07:23] [INFO] [ReplayManager]   Enemy 12: RadioJammer
+[02:07:23] [INFO] [DecadenceLevel] Replay recording started successfully
+[02:07:23] [INFO] [WeaponHintsComponent] Connected weapon signals for: ak_gl (node: AKGL)
+[02:07:23] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: ak_gl
+[02:07:23] [INFO] [BloodyFeet:VIPGuard1] Blood detector created and attached to VIPGuard1
+[02:07:23] [INFO] [CinemaEffects] Found player node: Player
+[02:07:23] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[02:07:23] [INFO] [SoundPropagation] Registered listener: VIPGuard1 (total: 27)
+[02:07:23] [ENEMY] [VIPGuard1] Registered as sound listener
+[02:07:23] [ENEMY] [VIPGuard1] Spawned at (250, 200), hp: 4, behavior: GUARD
+[02:07:23] [INFO] [BloodyFeet:VIPGuard2] Blood detector created and attached to VIPGuard2
+[02:07:23] [INFO] [SoundPropagation] Registered listener: VIPGuard2 (total: 28)
+[02:07:23] [ENEMY] [VIPGuard2] Registered as sound listener
+[02:07:23] [ENEMY] [VIPGuard2] Spawned at (380, 480), hp: 4, behavior: PATROL
+[02:07:23] [INFO] [BloodyFeet:BarBouncer1] Blood detector created and attached to BarBouncer1
+[02:07:23] [INFO] [SoundPropagation] Registered listener: BarBouncer1 (total: 29)
+[02:07:23] [ENEMY] [BarBouncer1] Registered as sound listener
+[02:07:23] [ENEMY] [BarBouncer1] Spawned at (1650, 200), hp: 3, behavior: GUARD
+[02:07:23] [INFO] [BloodyFeet:BarBouncer2] Blood detector created and attached to BarBouncer2
+[02:07:23] [INFO] [SoundPropagation] Registered listener: BarBouncer2 (total: 30)
+[02:07:23] [ENEMY] [BarBouncer2] Registered as sound listener
+[02:07:23] [ENEMY] [BarBouncer2] Spawned at (2200, 200), hp: 2, behavior: PATROL
+[02:07:23] [INFO] [BloodyFeet:BarGunman] Blood detector created and attached to BarGunman
+[02:07:23] [INFO] [SoundPropagation] Registered listener: BarGunman (total: 31)
+[02:07:23] [ENEMY] [BarGunman] Registered as sound listener
+[02:07:23] [ENEMY] [BarGunman] Spawned at (1900, 480), hp: 2, behavior: GUARD
+[02:07:23] [INFO] [BloodyFeet:DanceFloorThug1] Blood detector created and attached to DanceFloorThug1
+[02:07:23] [INFO] [SoundPropagation] Registered listener: DanceFloorThug1 (total: 32)
+[02:07:23] [ENEMY] [DanceFloorThug1] Registered as sound listener
+[02:07:23] [ENEMY] [DanceFloorThug1] Spawned at (700, 800), hp: 4, behavior: PATROL
+[02:07:23] [INFO] [BloodyFeet:DanceFloorThug2] Blood detector created and attached to DanceFloorThug2
+[02:07:23] [INFO] [SoundPropagation] Registered listener: DanceFloorThug2 (total: 33)
+[02:07:23] [ENEMY] [DanceFloorThug2] Registered as sound listener
+[02:07:23] [ENEMY] [DanceFloorThug2] Spawned at (1150, 650), hp: 4, behavior: GUARD
+[02:07:23] [INFO] [BloodyFeet:DanceFloorGunman] Blood detector created and attached to DanceFloorGunman
+[02:07:23] [INFO] [SoundPropagation] Registered listener: DanceFloorGunman (total: 34)
+[02:07:23] [ENEMY] [DanceFloorGunman] Registered as sound listener
+[02:07:23] [ENEMY] [DanceFloorGunman] Spawned at (950, 1050), hp: 2, behavior: PATROL
+[02:07:23] [INFO] [BloodyFeet:BackAlleyThug1] Blood detector created and attached to BackAlleyThug1
+[02:07:23] [INFO] [SoundPropagation] Registered listener: BackAlleyThug1 (total: 35)
+[02:07:23] [ENEMY] [BackAlleyThug1] Registered as sound listener
+[02:07:23] [ENEMY] [BackAlleyThug1] Spawned at (200, 1500), hp: 2, behavior: PATROL
+[02:07:23] [INFO] [BloodyFeet:BackAlleyGunman] Blood detector created and attached to BackAlleyGunman
+[02:07:23] [INFO] [SoundPropagation] Registered listener: BackAlleyGunman (total: 36)
+[02:07:23] [ENEMY] [BackAlleyGunman] Registered as sound listener
+[02:07:23] [ENEMY] [BackAlleyGunman] Spawned at (400, 1800), hp: 2, behavior: GUARD
+[02:07:23] [INFO] [BloodyFeet:StorageGuard1] Blood detector created and attached to StorageGuard1
+[02:07:23] [INFO] [SoundPropagation] Registered listener: StorageGuard1 (total: 37)
+[02:07:23] [ENEMY] [StorageGuard1] Registered as sound listener
+[02:07:23] [ENEMY] [StorageGuard1] Spawned at (1700, 1500), hp: 4, behavior: PATROL
+[02:07:23] [INFO] [BloodyFeet:StorageGuard2] Blood detector created and attached to StorageGuard2
+[02:07:23] [INFO] [SoundPropagation] Registered listener: StorageGuard2 (total: 38)
+[02:07:23] [ENEMY] [StorageGuard2] Registered as sound listener
+[02:07:23] [ENEMY] [StorageGuard2] Spawned at (2200, 1800), hp: 4, behavior: GUARD
+[02:07:23] [INFO] [BloodyFeet:RadioJammer] Blood detector created and attached to RadioJammer
+[02:07:23] [INFO] [SoundPropagation] Registered listener: RadioJammer (total: 39)
+[02:07:23] [ENEMY] [RadioJammer] Registered as sound listener
+[02:07:23] [ENEMY] [RadioJammer] Spawned at (1100, 900), hp: 3, behavior: GUARD
+[02:07:23] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[02:07:23] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=13
+[02:07:23] [ENEMY] [VIPGuard1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=56.3°, current=0.0°, player=(150,1899), corner_timer=0.00
+[02:07:23] [ENEMY] [BarBouncer1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=337.5°, current=0.0°, player=(150,1899), corner_timer=0.00
+[02:07:23] [ENEMY] [BarGunman] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(150,1899), corner_timer=0.00
+[02:07:23] [ENEMY] [DanceFloorThug2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(150,1899), corner_timer=0.00
+[02:07:23] [ENEMY] [BackAlleyGunman] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(150,1899), corner_timer=0.00
+[02:07:23] [ENEMY] [StorageGuard2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=191.3°, current=0.0°, player=(150,1899), corner_timer=0.00
+[02:07:23] [ENEMY] [RadioJammer] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=191.3°, current=0.0°, player=(150,1899), corner_timer=0.00
+[02:07:23] [INFO] [Player] Detecting weapon pose (frame 3)...
+[02:07:23] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[02:07:23] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[02:07:23] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[02:07:23] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[02:07:23] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[02:07:23] [INFO] [LastChance] Found player: Player
+[02:07:23] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[02:07:23] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[02:07:23] [INFO] [LastChance] Connected to player Died signal (C#)
+[02:07:23] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[02:07:24] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+[02:07:24] [INFO] [ActiveItemManager.Jammer] Periodic: jammer='RadioJammer' (alive) player=(150,1865) dist=1353.8 radius=1000
+[02:07:24] [INFO] [ForceFieldEffect] Activated! Charge: 8.0s/8.0s
+[02:07:24] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=13
+[02:07:25] [ENEMY] [BackAlleyGunman] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=-146.8°, current=-101.3°, player=(158,1642), corner_timer=0.00
+[02:07:25] [ENEMY] [BackAlleyGunman] State: IDLE -> COMBAT
+[02:07:25] [ENEMY] [RadioJammer] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=141.8°, current=-168.8°, player=(161,1637), corner_timer=0.00
+[02:07:25] [ENEMY] [RadioJammer] State: IDLE -> COMBAT
+[02:07:25] [ENEMY] [BackAlleyGunman] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=-140.2°, current=123.1°, player=(177,1617), corner_timer=0.00
+[02:07:25] [ENEMY] [RadioJammer] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=142.2°, current=-20.9°, player=(181,1613), corner_timer=0.00
+[02:07:25] [ENEMY] [VIPGuard2] PATROL corner check: angle -88.2°
+[02:07:25] [ENEMY] [BarBouncer2] PATROL corner check: angle 90.0°
+[02:07:25] [ENEMY] [DanceFloorThug1] PATROL corner check: angle 90.0°
+[02:07:25] [ENEMY] [DanceFloorGunman] PATROL corner check: angle -0.0°
+[02:07:25] [ENEMY] [BackAlleyThug1] PATROL corner check: angle -0.0°
+[02:07:25] [ENEMY] [StorageGuard1] PATROL corner check: angle -90.0°
+[02:07:25] [ENEMY] [VIPGuard2] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-88.2°, current=1.8°, player=(216,1578), corner_timer=0.30
+[02:07:25] [ENEMY] [BarBouncer2] ROT_CHANGE: none -> P3:corner, state=IDLE, target=90.0°, current=0.0°, player=(216,1578), corner_timer=0.30
+[02:07:25] [ENEMY] [DanceFloorThug1] ROT_CHANGE: none -> P3:corner, state=IDLE, target=90.0°, current=0.0°, player=(216,1578), corner_timer=0.30
+[02:07:25] [ENEMY] [DanceFloorThug2] Memory: high confidence (0.88) - transitioning to PURSUING
+[02:07:25] [ENEMY] [DanceFloorThug2] State: IDLE -> PURSUING
+[02:07:25] [ENEMY] [DanceFloorGunman] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-0.0°, current=90.0°, player=(216,1578), corner_timer=0.30
+[02:07:25] [ENEMY] [DanceFloorGunman] Memory: high confidence (0.88) - transitioning to PURSUING
+[02:07:25] [ENEMY] [DanceFloorGunman] State: IDLE -> PURSUING
+[02:07:25] [ENEMY] [BackAlleyThug1] ROT_CHANGE: none -> P1:visible, state=IDLE, target=77.3°, current=90.0°, player=(216,1578), corner_timer=0.30
+[02:07:25] [ENEMY] [BackAlleyThug1] State: IDLE -> PURSUING
+[02:07:25] [ENEMY] [StorageGuard1] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-90.0°, current=0.0°, player=(216,1578), corner_timer=0.30
+[02:07:25] [ENEMY] [DanceFloorThug2] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=PURSUING, target=135.2°, current=11.3°, player=(220,1574), corner_timer=0.00
+[02:07:25] [ENEMY] [DanceFloorThug2] PURSUING_MEMORY corner check: angle 45.1°
+[02:07:25] [ENEMY] [DanceFloorGunman] ROT_CHANGE: P3:corner -> P2:combat_state, state=PURSUING, target=144.7°, current=87.1°, player=(220,1574), corner_timer=0.30
+[02:07:25] [ENEMY] [BackAlleyThug1] State: PURSUING -> COMBAT
+[02:07:25] [ENEMY] [DanceFloorGunman] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=144.6°, current=-178.8°, player=(232,1562), corner_timer=0.27
+[02:07:25] [ENEMY] [BackAlleyGunman] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=-117.6°, current=-162.7°, player=(247,1547), corner_timer=0.00
+[02:07:25] [ENEMY] [BackAlleyThug1] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=-16.0°, current=55.6°, player=(263,1531), corner_timer=0.30
+[02:07:25] [ENEMY] [RadioJammer] State: COMBAT -> PURSUING
+[02:07:25] [ENEMY] [DanceFloorGunman] State: PURSUING -> COMBAT
+[02:07:25] [ENEMY] [VIPGuard2] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=144.6°, current=90.1°, player=(290,1504), corner_timer=-0.02
+[02:07:25] [ENEMY] [VIPGuard2] PATROL corner check: angle -170.9°
+[02:07:25] [ENEMY] [BarBouncer2] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=54.4°, player=(290,1504), corner_timer=-0.02
+[02:07:25] [ENEMY] [BarBouncer2] PATROL corner check: angle 90.0°
+[02:07:25] [ENEMY] [DanceFloorThug1] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=54.4°, player=(290,1504), corner_timer=-0.02
+[02:07:25] [ENEMY] [DanceFloorThug1] PATROL corner check: angle -90.0°
+[02:07:25] [ENEMY] [VIPGuard2] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-170.9°, current=47.6°, player=(294,1500), corner_timer=0.30
+[02:07:25] [ENEMY] [BarBouncer2] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=51.6°, player=(294,1500), corner_timer=0.30
+[02:07:25] [ENEMY] [DanceFloorThug1] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=51.6°, player=(294,1500), corner_timer=0.30
+[02:07:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(366.3772, 1773.795), source=ENEMY (BackAlleyGunman), range=1469, listeners=39
+[02:07:25] [INFO] [SoundPropagation] Cleaned up 26 invalid listeners
+[02:07:25] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=1, below_threshold=6
+[02:07:25] [ENEMY] [DanceFloorThug2] PURSUING_MEMORY corner check: angle 44.0°
+[02:07:25] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=13
+[02:07:25] [ENEMY] [VIPGuard2] Memory: medium confidence (0.75) - transitioning to PURSUING
+[02:07:25] [ENEMY] [VIPGuard2] State: IDLE -> PURSUING
+[02:07:25] [ENEMY] [DanceFloorThug1] Memory: high confidence (0.90) - transitioning to PURSUING
+[02:07:25] [ENEMY] [DanceFloorThug1] State: IDLE -> PURSUING
+[02:07:25] [ENEMY] [VIPGuard2] ROT_CHANGE: P3:corner -> P2:combat_state, state=PURSUING, target=95.7°, current=81.9°, player=(341,1453), corner_timer=0.30
+[02:07:25] [ENEMY] [DanceFloorThug1] ROT_CHANGE: P3:corner -> P2:combat_state, state=PURSUING, target=124.8°, current=17.2°, player=(341,1453), corner_timer=0.23
+[02:07:25] [ENEMY] [BackAlleyGunman] State: COMBAT -> RETREATING
+[02:07:25] [ENEMY] [RadioJammer] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=144.2°, current=100.5°, player=(345,1449), corner_timer=0.00
+[02:07:25] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(385.9631, 1746.111), source=NEUTRAL (null), range=900, listeners=13
+[02:07:25] [ENEMY] [BackAlleyThug1] Heard CASING_KICK at (385.9631, 1746.111), intensity=0.05, dist=215
+[02:07:25] [ENEMY] [BackAlleyGunman] Heard CASING_KICK at (385.9631, 1746.111), intensity=1.00, dist=32
+[02:07:25] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=10, self=0, below_threshold=1
+[02:07:25] [ENEMY] [RadioJammer] State: PURSUING -> COMBAT
+[02:07:25] [ENEMY] [BackAlleyThug1] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=-52.4°, current=-13.1°, player=(356,1438), corner_timer=0.30
+[02:07:26] [ENEMY] [DanceFloorThug2] PURSUING corner check: angle 89.8°
+[02:07:26] [ENEMY] [DanceFloorThug1] PURSUING corner check: angle 26.4°
+[02:07:26] [ENEMY] [BackAlleyThug1] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=-55.0°, current=158.3°, player=(403,1391), corner_timer=0.30
+[02:07:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(418.329, 1768.066), source=ENEMY (BackAlleyGunman), range=1469, listeners=13
+[02:07:26] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=1, below_threshold=6
+[02:07:26] [INFO] [ForceFieldEffect] Area entered: @Area2D@2173 (script: res://Scripts/Projectiles/Bullet.cs)
+[02:07:26] [INFO] [ForceFieldEffect] Bullet trapped at boundary (class=Area2D). Total trapped: 1
+[02:07:26] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[02:07:26] [ENEMY] [VIPGuard2] PURSUING corner check: angle -5.1°
+[02:07:26] [WARN] [FPS] Drop detected: 17 fps (threshold: 30)
+[02:07:26] [ENEMY] [VIPGuard1] Memory: medium confidence (0.63) - transitioning to PURSUING
+[02:07:26] [ENEMY] [VIPGuard1] State: IDLE -> PURSUING
+[02:07:26] [ENEMY] [DanceFloorThug2] PURSUING corner check: angle 89.8°
+[02:07:26] [INFO] [ActiveItemManager.Jammer] Periodic: jammer='RadioJammer' (alive) player=(458,1337) dist=462.5 radius=1000
+[02:07:26] [ENEMY] [VIPGuard1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=PURSUING, target=79.4°, current=56.2°, player=(461,1333), corner_timer=0.00
+[02:07:26] [ENEMY] [VIPGuard1] PURSUING corner check: angle -25.4°
+[02:07:26] [ENEMY] [DanceFloorThug2] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=116.8°, current=117.1°, player=(481,1328), corner_timer=0.25
+[02:07:26] [INFO] [ForceFieldEffect] Area entered: @Area2D@2173 (script: res://Scripts/Projectiles/Bullet.cs)
+[02:07:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(814.4596, 1105.565), source=ENEMY (RadioJammer), range=1469, listeners=13
+[02:07:26] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=1, below_threshold=7
+[02:07:26] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[02:07:26] [ENEMY] [DanceFloorThug2] State: PURSUING -> COMBAT
+[02:07:26] [ENEMY] [VIPGuard2] PURSUING corner check: angle -42.1°
+[02:07:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(642.8497, 1158.468), source=ENEMY (DanceFloorGunman), range=1469, listeners=13
+[02:07:26] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=1, below_threshold=7
+[02:07:26] [ENEMY] [VIPGuard2] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=90.6°, current=56.1°, player=(520,1328), corner_timer=0.25
+[02:07:26] [ENEMY] [VIPGuard2] State: PURSUING -> COMBAT
+[02:07:26] [INFO] [ForceFieldEffect] Released projectile at angle 121.8°
+[02:07:26] [INFO] [ForceFieldEffect] Released 1 trapped projectiles
+[02:07:26] [INFO] [ForceFieldEffect] Deactivated. Charge remaining: 5.9s
+[02:07:26] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:07:26] [INFO] [Player] Spawning blood effect at (531.2603, 1328.0651), dir=(1, 0), lethal=False (C#)
+[02:07:26] [INFO] [ImpactEffects] Blood decals scheduled: 0 to spawn at particle landing times
+[02:07:26] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(794.9689, 1100.839), source=NEUTRAL (null), range=900, listeners=13
+[02:07:26] [ENEMY] [DanceFloorThug1] Heard CASING_KICK at (794.9689, 1100.839), intensity=0.11, dist=154
+[02:07:26] [ENEMY] [DanceFloorThug2] Heard CASING_KICK at (794.9689, 1100.839), intensity=0.02, dist=345
+[02:07:26] [ENEMY] [DanceFloorGunman] Heard CASING_KICK at (794.9689, 1100.839), intensity=0.09, dist=163
+[02:07:26] [ENEMY] [RadioJammer] Heard CASING_KICK at (794.9689, 1100.839), intensity=1.00, dist=37
+[02:07:26] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=6, self=0, below_threshold=3
+[02:07:26] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:07:26] [INFO] [Player] Spawning blood effect at (536.2048, 1328.0651), dir=(1, 0), lethal=False (C#)
+[02:07:26] [INFO] [ImpactEffects] Blood decals scheduled: 0 to spawn at particle landing times
+[02:07:26] [ENEMY] [BackAlleyGunman] State: RETREATING -> IN_COVER
+[02:07:26] [ENEMY] [DanceFloorThug2] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=110.7°, current=57.3°, player=(540,1328), corner_timer=0.25
+[02:07:26] [ENEMY] [BackAlleyGunman] ROT_CHANGE: P1:visible -> P4:velocity, state=IN_COVER, target=104.6°, current=-74.7°, player=(540,1328), corner_timer=0.00
+[02:07:26] [ENEMY] [RadioJammer] State: COMBAT -> RETREATING
+[02:07:26] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:07:26] [INFO] [Player] Spawning blood effect at (556.7603, 1328.0651), dir=(1, 0), lethal=False (C#)
+[02:07:26] [INFO] [ImpactEffects] Blood decals scheduled: 0 to spawn at particle landing times
+[02:07:26] [ENEMY] [VIPGuard1] PURSUING corner check: angle -46.6°
+[02:07:26] [ENEMY] [DanceFloorGunman] State: COMBAT -> RETREATING
+[02:07:26] [ENEMY] [BackAlleyThug1] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=-36.1°, current=-79.3°, player=(556,1328), corner_timer=0.30
+[02:07:26] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:07:26] [INFO] [Player] Spawning blood effect at (563.0381, 1328.0651), dir=(1, 0), lethal=False (C#)
+[02:07:26] [INFO] [ImpactEffects] Blood decals scheduled: 0 to spawn at particle landing times
+[02:07:27] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=13
+[02:07:27] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:07:27] [INFO] [Player] Spawning blood effect at (576.2603, 1328.0651), dir=(1, 0), lethal=False (C#)
+[02:07:27] [INFO] [ImpactEffects] Blood decals scheduled: 0 to spawn at particle landing times
+[02:07:27] [ENEMY] [BackAlleyGunman] State: IN_COVER -> SUPPRESSED
+[02:07:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(729.2283, 1114.067), source=ENEMY (RadioJammer), range=1469, listeners=13
+[02:07:27] [ENEMY] [DanceFloorGunman] Heard gunshot at (729.2283, 1114.067), intensity=0.73, distance=59
+[02:07:27] [INFO] [SoundPropagation] Sound result: notified=5, out_of_range=2, self=1, below_threshold=5
+[02:07:27] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:07:27] [INFO] [Player] Spawning blood effect at (577.7603, 1328.0651), dir=(1, 0), lethal=False (C#)
+[02:07:27] [INFO] [ImpactEffects] Blood decals scheduled: 0 to spawn at particle landing times
+[02:07:27] [ENEMY] [VIPGuard1] PURSUING corner check: angle -17.0°
+[02:07:27] [ENEMY] [DanceFloorGunman] State: COMBAT -> RETREATING
+[02:07:27] [ENEMY] [StorageGuard1] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=84.3°, player=(577,1328), corner_timer=-0.02
+[02:07:27] [ENEMY] [StorageGuard1] PATROL corner check: angle 90.0°
+[02:07:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(549.6896, 744.7829), source=ENEMY (VIPGuard2), range=1469, listeners=13
+[02:07:27] [INFO] [SoundPropagation] Sound result: notified=5, out_of_range=2, self=1, below_threshold=5
+[02:07:27] [ENEMY] [StorageGuard1] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=87.1°, player=(577,1328), corner_timer=0.30
+[02:07:27] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(536.0154, 759.5338), source=NEUTRAL (null), range=900, listeners=13
+[02:07:27] [ENEMY] [VIPGuard1] Heard CASING_KICK at (536.0154, 759.5338), intensity=0.02, dist=371
+[02:07:27] [ENEMY] [VIPGuard2] Heard CASING_KICK at (536.0154, 759.5338), intensity=1.00, dist=37
+[02:07:27] [ENEMY] [DanceFloorThug1] Heard CASING_KICK at (536.0154, 759.5338), intensity=0.03, dist=275
+[02:07:27] [ENEMY] [DanceFloorThug2] Heard CASING_KICK at (536.0154, 759.5338), intensity=0.04, dist=263
+[02:07:27] [ENEMY] [DanceFloorGunman] Heard CASING_KICK at (536.0154, 759.5338), intensity=0.02, dist=406
+[02:07:27] [ENEMY] [RadioJammer] Heard CASING_KICK at (536.0154, 759.5338), intensity=0.01, dist=411
+[02:07:27] [INFO] [SoundPropagation] Sound result: notified=6, out_of_range=6, self=0, below_threshold=1
+[02:07:27] [ENEMY] [DanceFloorThug2] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=104.6°, current=78.3°, player=(577,1328), corner_timer=0.25
+[02:07:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(712.7435, 1114.681), source=ENEMY (RadioJammer), range=1469, listeners=13
+[02:07:27] [ENEMY] [DanceFloorGunman] Heard gunshot at (712.7435, 1114.681), intensity=1.00, distance=18
+[02:07:27] [INFO] [SoundPropagation] Sound result: notified=5, out_of_range=2, self=1, below_threshold=5
+[02:07:27] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+[02:07:27] [INFO] ------------------------------------------------------------
+[02:07:27] [INFO] GAME LOG ENDED: 2026-03-18T02:07:27
+[02:07:27] [INFO] ============================================================

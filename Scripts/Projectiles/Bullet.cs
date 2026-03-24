@@ -259,6 +259,15 @@ public partial class Bullet : Area2D
     public bool IsBreakerBullet { get; set; } = false;
 
     /// <summary>
+    /// Whether this bullet ignores walls (Issue #751).
+    /// When true, the bullet passes through walls with full damage and no ricochet.
+    /// Set via Node.Set("is_drilling_bullet", true) by BaseWeapon.SpawnBullet().
+    /// Exported to allow setting via snake_case name.
+    /// </summary>
+    [Export]
+    public bool IsDrillingBullet { get; set; } = false;
+
+    /// <summary>
     /// Whether this bullet penetrates through enemies (Issue #829).
     /// When true, the bullet deals damage to enemies but continues flying through them.
     /// Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
@@ -643,6 +652,13 @@ public partial class Bullet : Area2D
             return;
         }
 
+        // Drilling bullets pass through walls completely (Issue #751)
+        // TileMapLayer is checked alongside TileMap for Godot 4.3+ compatibility
+        if (IsDrillingBullet && (body is StaticBody2D || body is TileMap || body is TileMapLayer))
+        {
+            return; // Wall ignored — bullet continues with full damage
+        }
+
         // Try to ricochet or penetrate off static bodies (walls/obstacles)
         if (body is StaticBody2D || body is TileMap)
         {
@@ -778,6 +794,16 @@ public partial class Bullet : Area2D
     {
         if (DebugHits) GD.Print($"[Bullet]: Hit {area.Name} (damage: {Damage})");
 
+        // Issue #1242: While the bullet is penetrating through a wall, it must not
+        // damage enemies whose areas overlap the wall.  The shield (and any other
+        // entity) should block the wall-penetration effect — a bullet inside a wall
+        // cannot hit anyone until it exits (at which point ExitPenetration destroys it).
+        if (_isPenetrating)
+        {
+            if (DebugHits) GD.Print($"[Bullet]: Currently penetrating wall — ignoring area hit on {area.Name}");
+            return;
+        }
+
         // Issue #912: If this area belongs to the force field, let the force field
         // GDScript handle trapping the bullet. Do NOT destroy this bullet here —
         // the force field's _on_projectile_entered will call set_physics_process(false)
@@ -840,9 +866,19 @@ public partial class Bullet : Area2D
 
         // Track if this is a valid hit on an enemy target
         bool hitEnemy = false;
+        bool fromPlayer = IsPlayerBullet(); // Issue #1196: track kill source for Laser Sight unlock
 
-        // Check if the target implements IDamageable
-        if (area is IDamageable damageable)
+        // Issue #1196: prefer on_hit_with_bullet_info_and_damage to pass is_from_player,
+        // so enemy.gd can attribute the kill to the player for the Laser Sight unlock condition.
+        if (area.HasMethod("on_hit_with_bullet_info_and_damage"))
+        {
+            float effectiveDamage = GetEffectiveDamage();
+            if (DebugHits) GD.Print($"[Bullet]: Target {area.Name} has on_hit_with_bullet_info_and_damage, applying {effectiveDamage} damage (from_player={fromPlayer})");
+            area.Call("on_hit_with_bullet_info_and_damage", Direction, (Godot.Resource?)null, _hasRicocheted, _hasPenetrated, effectiveDamage, fromPlayer);
+            hitEnemy = true;
+        }
+        // Check if the target implements IDamageable (C# targets)
+        else if (area is IDamageable damageable)
         {
             if (DebugHits) GD.Print($"[Bullet]: Target {area.Name} is IDamageable, applying {Damage} damage");
             damageable.TakeDamage(Damage);
@@ -1646,6 +1682,27 @@ public partial class Bullet : Area2D
         if (DebugHoming)
         {
             GD.Print($"[Bullet] Homing enabled with aim-line targeting, aim: {_shooterAimDirection}");
+        }
+    }
+
+    /// <summary>
+    /// Enables weak homing on this bullet with aim-line targeting and a custom steer speed (Issue #1332).
+    /// Used by the RSh-12 revolver for slight bullet correction toward enemies.
+    /// </summary>
+    /// <param name="shooterPos">The player's position when firing.</param>
+    /// <param name="aimDir">The player's aim direction when firing.</param>
+    /// <param name="steerSpeed">Steering speed in radians per second (lower = weaker homing).</param>
+    public void EnableHomingWithAimLine(Vector2 shooterPos, Vector2 aimDir, float steerSpeed)
+    {
+        _homingEnabled = true;
+        _homingOriginalDirection = Direction.Normalized();
+        _useAimLineTargeting = true;
+        _shooterOrigin = shooterPos;
+        _shooterAimDirection = aimDir.Normalized();
+        _homingSteerSpeed = steerSpeed;
+        if (DebugHoming)
+        {
+            GD.Print($"[Bullet] Weak homing enabled with aim-line targeting, aim: {_shooterAimDirection}, steerSpeed: {steerSpeed}");
         }
     }
 

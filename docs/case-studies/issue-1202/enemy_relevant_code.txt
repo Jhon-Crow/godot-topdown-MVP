@@ -1,0 +1,64 @@
+81:@export var initial_state: AIState = AIState.IDLE  ## Initial AI state on spawn (Issue #1121). SEARCHING starts enemy in search mode.
+191:var _current_state: AIState = AIState.IDLE  ## AI state
+258:var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
+288:var _vision_frame_counter: int = 0; var _vision_frame_offset: int = 0  ## Frame stagger (set in _ready)
+333:var _pre_evasion_state: AIState = AIState.IDLE  ## State to return to after grenade evasion
+360:func _ready() -> void:
+428:	if initial_state != AIState.IDLE: _current_state = initial_state  # Issue #1121: initial state override
+429:	if initial_state == AIState.SEARCHING: _has_left_idle = true; _transition_to_searching(global_position)  # Issue #1121
+567:		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921
+582:		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921
+602:		if _current_state == AIState.IDLE: _transition_to_pursuing()
+633:	var should_react := (_current_state == AIState.IDLE and intensity >= 0.01) or (_current_state in [AIState.FLANKING, AIState.RETREATING] and intensity >= 0.3)
+686:		"grenadier_throw_ready": false  # Issue #657: Grenadier GOAP throw
+809:					_transition_to_searching(global_position)
+928:	elif _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
+1102:	if _is_melee_weapon: return _machete != null and _machete.is_attack_ready()
+1219:			if _current_state == AIState.IDLE:
+1278:			if _current_state == AIState.IDLE:
+1302:	if _teleport_component and _teleport_component.is_ready() and _under_fire and _current_state != AIState.IN_COVER:  # #752: cover-teleport
+1305:	if _teleport_component and _teleport_component.is_ready() and not _can_see_player and _current_state == AIState.FLANKING: _teleport_component.try_teleport(_flank_target)  # #752: flank-teleport
+1313:		AIState.IDLE: _process_idle_state(delta)
+1797:			_transition_to_searching(global_position)
+1799:			_transition_to_idle()
+2126:					_transition_to_searching(global_position)
+2128:					_transition_to_idle()  # No valid target
+2214:						_transition_to_searching(target_pos)
+2217:						_transition_to_idle()
+2239:	_assault_ready = false
+2293:		_transition_to_idle()
+2316:			_transition_to_idle(); return
+2325:		_transition_to_idle(); return
+2410:		AIState.IDLE: _transition_to_idle()
+2419:		AIState.SEARCHING: _transition_to_searching(global_position)
+2421:		_: _transition_to_combat() if _can_see_player else _transition_to_idle()
+2562:func _transition_to_idle() -> void:
+2564:	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
+2566:	_current_state = AIState.IDLE
+2572:	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_combat_enabled(): _transition_to_idle(); return  # Issue #1186
+2585:	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_seeking_cover_enabled(): _transition_to_idle(); return  # Issue #1186
+2593:	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_in_cover_enabled(): _transition_to_idle(); return  # Issue #1186
+2615:	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_flanking_enabled(): _transition_to_idle(); return false  # Issue #1186
+2688:	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_suppressed_enabled(): _transition_to_idle(); return  # Issue #1186
+2693:	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_pursuing_enabled(): _transition_to_idle(); return  # Issue #1186
+2712:	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_assault_enabled(): _transition_to_idle(); return  # Issue #1186
+2717:	_assault_ready = false
+2725:func _transition_to_searching(center_position: Vector2) -> void:
+2726:	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_searching_enabled(): _transition_to_idle(); return  # Issue #1186
+2753:	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_retreating_enabled(): _transition_to_idle(); return  # Issue #1186
+2835:	if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:
+3710:			if _current_state == AIState.IDLE:
+3793:		_transition_to_searching(old_position)
+3802:				_transition_to_searching(global_position)
+3805:				_transition_to_idle()
+4222:		if _current_state in [AIState.IDLE, AIState.SEARCHING, AIState.RETREATING, AIState.SEEKING_COVER]:
+4385:	_current_state = AIState.IDLE
+4424:	_assault_ready = false
+4537:		AIState.ASSAULT: t += "\n(RUSHING)" if _assault_ready else "\n(%.1fs)" % (ASSAULT_WAIT_DURATION - _assault_wait_timer)
+4804:	_aggression.aggression_changed.connect(func(a): if _status_effect_anim: _status_effect_anim.set_aggressive(a); if a and _current_state in [AIState.IDLE, AIState.IN_COVER]: _transition_to_combat())
+4812:## Setup the grenade component. Called from _ready(). Grenadiers use GrenadierGrenadeComponent (Issue #604).
+4864:	_transition_to_searching(ally_position)
+4885:		_goap_world_state["ready_to_throw_grenade"] = false; _goap_world_state["grenadier_throw_ready"] = false; return
+4886:	var rdy := _grenade_component.is_ready(_can_see_player, _under_fire, _current_health)
+4889:	_goap_world_state["ready_to_throw_grenade"] = rdy; _goap_world_state["grenadier_throw_ready"] = is_grenadier and rdy
+4943:	if is_grenadier or _current_state == AIState.IDLE: return false

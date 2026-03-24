@@ -368,6 +368,18 @@ func _on_explode() -> void:
 	pass
 
 
+## Damage RPG rockets within the explosion radius (Issue #1133).
+## Allows grenades and other explosions to intercept enemy rockets.
+func _damage_rpg_rockets_in_radius() -> void:
+	var radius := _get_effect_radius()
+	var rockets := get_tree().get_nodes_in_group("rpg_rockets")
+	for rocket in rockets:
+		if rocket is Node2D and global_position.distance_to(rocket.global_position) <= radius:
+			if rocket.has_method("on_hit"):
+				FileLogger.info("[GrenadeBase] Blast hit RPG rocket at %s" % str(rocket.global_position))
+				rocket.on_hit()
+
+
 ## Internal explosion handling.
 func _explode() -> void:
 	if _has_exploded:
@@ -386,6 +398,9 @@ func _explode() -> void:
 
 	# Call subclass explosion effect
 	_on_explode()
+
+	# Intercept RPG rockets in blast radius (Issue #1133)
+	_damage_rpg_rockets_in_radius()
 
 	# Emit signal
 	exploded.emit(global_position, self)

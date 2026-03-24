@@ -736,6 +736,24 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
+[node name="ForceFieldEnemy" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(1600, 850)
+behavior_mode = 1
+detection_range = 400.0
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+has_force_field = true
+
+[node name="ArmoredSkinEnemy" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(1700, 1050)
+behavior_mode = 1
+detection_range = 400.0
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+has_armored_skin = true
+
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
 navigation_polygon = SubResource("NavigationPolygon_level")
 
@@ -793,3 +811,67 @@ text = "AMMO: -"
 
 [node name="LevelInitFallback" type="Node" parent="."]
 script = ExtResource("6_fallback")
+
+[node name="SearchPathWaypoints" type="Node2D" parent="."]
+editor_description = "Pre-planned search path waypoints for enemy SEARCHING state (Issue #1246). Enemies traverse these in order starting from the nearest point to their current position."
+groups = ["search_path_waypoints"]
+
+[node name="Spawn_Zone_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(200, 600)
+
+[node name="Spawn_Cover1" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(280, 780)
+
+[node name="Spawn_Cover2" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(280, 950)
+
+[node name="Spawn_Zone_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(420, 1200)
+
+[node name="TopCorridor_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(550, 550)
+
+[node name="TopCorridor_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(750, 550)
+
+[node name="TopCorridor_Cover" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(600, 550)
+
+[node name="TopCorridor_Exit" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1050, 500)
+
+[node name="ReloadZone1_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1150, 550)
+
+[node name="ReloadZone1_Cover" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1150, 700)
+
+[node name="BotCorridor_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(550, 1150)
+
+[node name="BotCorridor_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(750, 1150)
+
+[node name="BotCorridor_Exit" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1050, 1100)
+
+[node name="ReloadZone2_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1150, 1150)
+
+[node name="ReloadZone2_Cover" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1150, 1000)
+
+[node name="FinalZone_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1450, 850)
+
+[node name="FinalZone_TopLeft" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1500, 600)
+
+[node name="FinalZone_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1850, 850)
+
+[node name="FinalZone_TopRight" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1900, 600)
+
+[node name="FinalZone_BottomRight" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1900, 1100)

@@ -1,0 +1,2117 @@
+[06:32:47] [INFO] ============================================================
+[06:32:47] [INFO] GAME LOG STARTED
+[06:32:47] [INFO] ============================================================
+[06:32:47] [INFO] Timestamp: 2026-03-17T06:32:47
+[06:32:47] [INFO] Log file: I:/Загрузки/godot exe/новая сложность/game_log_20260317_063247.txt
+[06:32:47] [INFO] Executable: I:/Загрузки/godot exe/новая сложность/Godot-Top-Down-Template.exe
+[06:32:47] [INFO] OS: Windows
+[06:32:47] [INFO] Debug build: false
+[06:32:47] [INFO] Engine version: 4.3-stable (official)
+[06:32:47] [INFO] Project: Godot Top-Down Template
+[06:32:47] [INFO] ------------------------------------------------------------
+[06:32:47] [INFO] [GameManager] GameManager ready
+[06:32:47] [INFO] [ScoreManager] ScoreManager ready
+[06:32:47] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[06:32:47] [INFO] [DifficultyManager] Loaded difficulty: Easy (value: 0)
+[06:32:47] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[06:32:47] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[06:32:47] [INFO] [ImpactEffects] Explosion light pool initialized: 12 lights pre-created
+[06:32:47] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[06:32:47] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[06:32:47] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[06:32:47] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[06:32:47] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[06:32:47] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[06:32:47] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[06:32:47] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[06:32:47] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[06:32:47] [INFO] [LastChance] Resetting all effects (scene change detected)
+[06:32:47] [INFO] [LastChance] Last chance shader loaded successfully
+[06:32:47] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[06:32:47] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[06:32:47] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[06:32:47] [INFO] [LastChance]   Sepia intensity: 0.70
+[06:32:47] [INFO] [LastChance]   Brightness: 0.60
+[06:32:47] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[06:32:47] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[06:32:47] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[06:32:47] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn
+[06:32:47] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: false, Invincibility: false, Realistic visibility: false, Replay: false, Logging: true, Enemy flashlight blinding: false, FPS counter: true, FPS drop logging: true, All weapons unlocked: false
+[06:32:47] [INFO] [SoundSettings] SoundSettings initialized - effects: 0.29, music: 1.00
+[06:32:47] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[06:32:47] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[06:32:47] [INFO] [CinemaEffects] Created effects layer at layer 99
+[06:32:47] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[06:32:47] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[06:32:47] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[06:32:47] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[06:32:47] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[06:32:47] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[06:32:47] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[06:32:47] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[06:32:47] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[06:32:47] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[06:32:47] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[06:32:47] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[06:32:47] [INFO] [GrenadeTimerHelper] Autoload ready
+[06:32:47] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[06:32:47] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[06:32:47] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[06:32:47] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+[06:32:47] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[06:32:47] [INFO] [BlackMetalEffectsManager] BlackMetalEffectsManager initializing...
+[06:32:47] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+[06:32:47] [INFO] [BlackMetalEffectsManager] Black Metal shader loaded (B&W+red, hint_screen_texture approach)
+[06:32:47] [INFO] [BlackMetalEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[06:32:47] [INFO] [BlackMetalEffectsManager] Black Metal filter DISABLED
+[06:32:47] [INFO] [BlackMetalLightningEffectsManager] BlackMetalLightningEffectsManager initializing...
+[06:32:47] [INFO] [BlackMetalLightningEffectsManager] Scene changed to: LabyrinthLevel
+[06:32:47] [INFO] [BlackMetalLightningEffectsManager] Lightning bolt shader loaded
+[06:32:47] [INFO] [BlackMetalLightningEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[06:32:47] [INFO] [ProgressManager] ProgressManager ready, loaded 5 entries
+[06:32:47] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[06:32:47] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[06:32:47] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
+[06:32:47] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
+[06:32:47] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
+[06:32:47] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
+[06:32:47] [INFO] [PersistManager] Loading saved state from user://game_state.cfg
+[06:32:47] [INFO] [PersistManager] Restored unlocked weapon: makarov_pm
+[06:32:47] [INFO] [PersistManager] Restored unlocked weapon: m16
+[06:32:47] [INFO] [PersistManager] Restored unlocked weapon: silenced_pistol
+[06:32:47] [INFO] [PersistManager] Restored unlocked weapon: ak_gl
+[06:32:47] [INFO] [GameManager] Weapon selected: ak_gl
+[06:32:47] [INFO] [PersistManager] Restored selected weapon: ak_gl
+[06:32:47] [INFO] [PersistManager] Restored unlocked grenade type: 0
+[06:32:47] [INFO] [PersistManager] Restored unlocked grenade type: 1
+[06:32:47] [INFO] [PersistManager] Restored unlocked grenade type: 2
+[06:32:47] [INFO] [PersistManager] Restored unlocked grenade type: 3
+[06:32:47] [INFO] [GrenadeManager] Grenade type changed from Flashbang to F-1 Grenade
+[06:32:47] [INFO] [PersistManager] Restored selected grenade type: 2
+[06:32:47] [INFO] [PersistManager] Restored unlocked active item type: 0
+[06:32:47] [INFO] [PersistManager] Restored unlocked active item type: 2
+[06:32:47] [INFO] [PersistManager] Restored unlocked active item type: 4
+[06:32:47] [INFO] [PersistManager] Restored unlocked active item type: 5
+[06:32:47] [INFO] [PersistManager] Restored unlocked active item type: 6
+[06:32:47] [INFO] [PersistManager] Restored unlocked active item type: 7
+[06:32:47] [INFO] [PersistManager] Restored unlocked active item type: 8
+[06:32:47] [INFO] [PersistManager] Restored unlocked active item type: 9
+[06:32:47] [INFO] [PersistManager] Restored unlocked active item type: 10
+[06:32:47] [INFO] [ActiveItemManager] Active item changed from None to Homing Bullets
+[06:32:47] [INFO] [PersistManager] Restored selected active item type: 2
+[06:32:47] [INFO] [PersistManager] State loaded successfully
+[06:32:47] [INFO] [PersistManager] PersistManager ready
+[06:32:47] [INFO] [UnlockManager] UnlockManager ready
+[06:32:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:47] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[06:32:47] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[06:32:47] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[06:32:47] [ENEMY] [Enemy1] Death animation component initialized
+[06:32:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:47] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[06:32:47] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[06:32:47] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[06:32:47] [ENEMY] [Enemy2] Death animation component initialized
+[06:32:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:47] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[06:32:47] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[06:32:47] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[06:32:47] [ENEMY] [Enemy3] Death animation component initialized
+[06:32:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:47] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[06:32:47] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[06:32:47] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[06:32:47] [ENEMY] [Enemy4] Death animation component initialized
+[06:32:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:47] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[06:32:47] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[06:32:47] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[06:32:47] [ENEMY] [Enemy5] Death animation component initialized
+[06:32:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:47] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[06:32:47] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[06:32:47] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[06:32:47] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[06:32:47] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[06:32:47] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[06:32:47] [INFO] [Player.Weapon] Removed default MakarovPM
+[06:32:47] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[06:32:47] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[06:32:47] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[06:32:47] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[06:32:47] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[06:32:47] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[06:32:47] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[06:32:47] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[06:32:47] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[06:32:47] [INFO] [Player.Homing] Homing activation sound loaded
+[06:32:47] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[06:32:47] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[06:32:47] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[06:32:47] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[06:32:47] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[06:32:47] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[06:32:47] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[06:32:47] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[06:32:47] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[06:32:47] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[06:32:47] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[06:32:47] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[06:32:47] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[06:32:47] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[06:32:47] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[06:32:47] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[06:32:47] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[06:32:47] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[06:32:47] [INFO] [LabyrinthLevel] Setting up weapon: ak_gl
+[06:32:47] [INFO] [LabyrinthLevel] AKGL already equipped by C# Player - skipping GDScript weapon swap
+[06:32:47] [INFO] [ScoreManager] Level started with 5 enemies
+[06:32:47] [INFO] [ScoreManager] Custom rank thresholds set: S=0.70 A+=0.55 A=0.38 B=0.22 C=0.12 D=0.06
+[06:32:47] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[06:32:47] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[06:32:47] [INFO] [ReplayManager] Replay data cleared
+[06:32:47] [INFO] [LabyrinthLevel] Previous replay data cleared
+[06:32:47] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[06:32:47] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[06:32:47] [INFO] [ReplayManager] Level: LabyrinthLevel
+[06:32:47] [INFO] [ReplayManager] Player: Player (valid: True)
+[06:32:47] [INFO] [ReplayManager] Enemies count: 5
+[06:32:47] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[06:32:47] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[06:32:47] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[06:32:47] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[06:32:47] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[06:32:47] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[06:32:47] [INFO] [LabyrinthLevel] Replay recording started successfully
+[06:32:47] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[06:32:47] [INFO] [CinemaEffects] Found player node: Player
+[06:32:47] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[06:32:47] [INFO] [PersistManager] Navigating to last played level: res://scenes/levels/BuildingLevel.tscn
+[06:32:48] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[06:32:48] [INFO] [UnlockManager] Reset condition-gated items to locked state
+[06:32:48] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[06:32:48] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[06:32:48] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[06:32:48] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[06:32:48] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[06:32:48] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[06:32:48] [INFO] [PenultimateHit] Shader warmup complete in 738 ms
+[06:32:48] [INFO] [LastChance] Shader warmup complete in 736 ms
+[06:32:48] [INFO] [CinemaEffects] Cinema shader warmup complete in 647 ms
+[06:32:48] [INFO] [BlackMetalEffectsManager] Shader warmup complete in 638 ms
+[06:32:48] [INFO] [BlackMetalLightningEffectsManager] Shader warmup complete in 634 ms
+[06:32:48] [INFO] [FlashbangPlayer] Shader warmup complete in 631 ms
+[06:32:48] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[06:32:48] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:48] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[06:32:48] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[06:32:48] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[06:32:48] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[06:32:48] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[06:32:48] [INFO] [LastChance] Resetting all effects (scene change detected)
+[06:32:48] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[06:32:48] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[06:32:48] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+[06:32:48] [INFO] [BlackMetalLightningEffectsManager] Scene changed to: BuildingLevel
+[06:32:48] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[06:32:48] [ENEMY] [Enemy1] Death animation component initialized
+[06:32:48] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:48] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[06:32:48] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[06:32:48] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[06:32:48] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[06:32:48] [ENEMY] [Enemy2] Death animation component initialized
+[06:32:48] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:48] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[06:32:48] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[06:32:48] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[06:32:48] [ENEMY] [Enemy3] Death animation component initialized
+[06:32:48] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:48] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[06:32:48] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[06:32:48] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[06:32:48] [ENEMY] [Enemy4] Death animation component initialized
+[06:32:48] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:48] [INFO] [BloodyFeet:Grenadier] Footprint scene loaded
+[06:32:48] [INFO] [BloodyFeet:Grenadier] Found EnemyModel for facing direction
+[06:32:48] [INFO] [BloodyFeet:Grenadier] BloodyFeetComponent ready on Grenadier
+[06:32:48] [INFO] [EnemyGrenade] Grenade bag built (normal): [Flashbang, Flashbang, Flashbang, Offensive, Offensive, Offensive, Offensive, Offensive]
+[06:32:48] [INFO] [EnemyGrenade] Grenadier initialized: 8 grenades in bag
+[06:32:48] [ENEMY] [Grenadier] Death animation component initialized
+[06:32:48] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:48] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[06:32:48] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[06:32:48] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[06:32:48] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[06:32:48] [ENEMY] [Enemy6] Death animation component initialized
+[06:32:48] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:48] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[06:32:48] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[06:32:48] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[06:32:48] [ENEMY] [Enemy7] Death animation component initialized
+[06:32:48] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:48] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[06:32:48] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[06:32:48] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[06:32:48] [ENEMY] [Enemy8] Death animation component initialized
+[06:32:48] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:48] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[06:32:48] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[06:32:48] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[06:32:48] [ENEMY] [Enemy9] Death animation component initialized
+[06:32:48] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:48] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[06:32:48] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[06:32:48] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[06:32:48] [ENEMY] [Enemy10] Death animation component initialized
+[06:32:48] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:48] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[06:32:48] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[06:32:48] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[06:32:48] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[06:32:48] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[06:32:48] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[06:32:48] [INFO] [Player.Weapon] Removed default MakarovPM
+[06:32:48] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[06:32:48] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[06:32:48] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[06:32:48] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[06:32:48] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[06:32:48] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[06:32:48] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[06:32:48] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[06:32:48] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[06:32:48] [INFO] [Player.Homing] Homing activation sound loaded
+[06:32:48] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[06:32:48] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[06:32:48] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[06:32:48] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[06:32:48] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[06:32:48] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[06:32:48] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[06:32:48] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[06:32:48] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[06:32:48] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[06:32:48] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[06:32:48] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[06:32:48] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[06:32:48] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[06:32:48] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[06:32:48] [INFO] [BuildingLevel] Child 'Grenadier': script=true, has_died_signal=true
+[06:32:48] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[06:32:48] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[06:32:48] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[06:32:48] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[06:32:48] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[06:32:48] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[06:32:48] [INFO] [BuildingLevel] Setting up weapon: ak_gl
+[06:32:48] [INFO] [BuildingLevel] AKGL already equipped by C# Player - skipping GDScript weapon swap
+[06:32:48] [INFO] [ScoreManager] Level started with 10 enemies
+[06:32:48] [INFO] [BuildingLevel] ReplayManager found as C# autoload - verified OK
+[06:32:48] [INFO] [BuildingLevel] Starting replay recording - Player: Player, Enemies count: 10
+[06:32:48] [INFO] [ReplayManager] Replay data cleared
+[06:32:48] [INFO] [BuildingLevel] Previous replay data cleared
+[06:32:48] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[06:32:48] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[06:32:48] [INFO] [ReplayManager] Level: BuildingLevel
+[06:32:48] [INFO] [ReplayManager] Player: Player (valid: True)
+[06:32:48] [INFO] [ReplayManager] Enemies count: 10
+[06:32:48] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[06:32:48] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[06:32:48] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[06:32:48] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[06:32:48] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[06:32:48] [INFO] [ReplayManager]   Enemy 4: Grenadier
+[06:32:48] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[06:32:48] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[06:32:48] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[06:32:48] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[06:32:48] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[06:32:48] [INFO] [BuildingLevel] Replay recording started successfully
+[06:32:48] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[06:32:48] [INFO] [CinemaEffects] Found player node: Player
+[06:32:48] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[06:32:48] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[06:32:48] [ENEMY] [Enemy1] Registered as sound listener
+[06:32:48] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 4, behavior: GUARD
+[06:32:48] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[06:32:48] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[06:32:48] [ENEMY] [Enemy2] Registered as sound listener
+[06:32:48] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 3, behavior: GUARD
+[06:32:48] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[06:32:48] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[06:32:48] [ENEMY] [Enemy3] Registered as sound listener
+[06:32:48] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 3, behavior: GUARD
+[06:32:48] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[06:32:48] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[06:32:48] [ENEMY] [Enemy4] Registered as sound listener
+[06:32:48] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 2, behavior: GUARD
+[06:32:48] [INFO] [BloodyFeet:Grenadier] Blood detector created and attached to Grenadier
+[06:32:48] [INFO] [SoundPropagation] Registered listener: Grenadier (total: 5)
+[06:32:48] [ENEMY] [Grenadier] Registered as sound listener
+[06:32:48] [ENEMY] [Grenadier] Spawned at (1700, 350), hp: 2, behavior: GUARD
+[06:32:48] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[06:32:48] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[06:32:48] [ENEMY] [Enemy6] Registered as sound listener
+[06:32:48] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 2, behavior: GUARD
+[06:32:48] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[06:32:48] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[06:32:48] [ENEMY] [Enemy7] Registered as sound listener
+[06:32:48] [ENEMY] [Enemy7] Spawned at (1600, 900), hp: 2, behavior: PATROL
+[06:32:48] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[06:32:48] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[06:32:48] [ENEMY] [Enemy8] Registered as sound listener
+[06:32:48] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 3, behavior: GUARD
+[06:32:48] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[06:32:48] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[06:32:48] [ENEMY] [Enemy9] Registered as sound listener
+[06:32:48] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 2, behavior: GUARD
+[06:32:48] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[06:32:48] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[06:32:48] [ENEMY] [Enemy10] Registered as sound listener
+[06:32:48] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 3, behavior: PATROL
+[06:32:48] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[06:32:48] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[06:32:48] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=33.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:48] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:48] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:48] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:48] [ENEMY] [Grenadier] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=303.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:48] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:48] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=213.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:48] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:48] [INFO] [Player] Detecting weapon pose (frame 3)...
+[06:32:48] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[06:32:48] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[06:32:48] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[06:32:48] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[06:32:48] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[06:32:48] [INFO] [LastChance] Found player: Player
+[06:32:48] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[06:32:48] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[06:32:48] [INFO] [LastChance] Connected to player Died signal (C#)
+[06:32:48] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[06:32:48] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 1161 ms
+[06:32:49] [WARN] [FPS] Drop detected: 9 fps (threshold: 30)
+[06:32:49] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[06:32:49] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[06:32:49] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[06:32:50] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[06:32:51] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=10
+[06:32:52] [INFO] [DifficultyManager] Difficulty changed: Easy -> Black Metal
+[06:32:52] [INFO] [BlackMetalEffectsManager] Black Metal filter ENABLED (will show after 3 frames)
+[06:32:52] [INFO] [BlackMetalLightningEffectsManager] Lightning effects ENABLED (Black Metal mode)
+[06:32:52] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=10
+[06:32:52] [ENEMY] [Enemy7] ROT_CHANGE: none -> P3:corner, state=IDLE, target=94.3°, current=4.3°, player=(450,1250), corner_timer=0.30
+[06:32:52] [ENEMY] [Enemy10] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-0.0°, current=90.0°, player=(450,1250), corner_timer=0.30
+[06:32:52] [INFO] [BlackMetalEffectsManager] Black Metal filter now visible (after 3 frames delay)
+[06:32:53] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=4.3°, current=58.7°, player=(450,1250), corner_timer=-0.02
+[06:32:53] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[06:32:53] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=50.4°, player=(450,1250), corner_timer=-0.02
+[06:32:53] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[06:32:53] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=94.3°, current=55.9°, player=(450,1250), corner_timer=0.30
+[06:32:53] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=14.3°, current=52.7°, player=(450,1250), corner_timer=0.30
+[06:32:53] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[06:32:53] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:53] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[06:32:53] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[06:32:53] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[06:32:53] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[06:32:53] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[06:32:53] [INFO] [LastChance] Resetting all effects (scene change detected)
+[06:32:53] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[06:32:53] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[06:32:53] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+[06:32:53] [INFO] [BlackMetalLightningEffectsManager] Scene changed to: BuildingLevel
+[06:32:53] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[06:32:53] [ENEMY] [Enemy1] Death animation component initialized
+[06:32:53] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:53] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[06:32:53] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[06:32:53] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[06:32:53] [ENEMY] [Enemy2] Death animation component initialized
+[06:32:53] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:53] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[06:32:53] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[06:32:53] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[06:32:53] [ENEMY] [Enemy3] Death animation component initialized
+[06:32:53] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:53] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[06:32:53] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[06:32:53] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[06:32:53] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[06:32:53] [ENEMY] [Enemy4] Death animation component initialized
+[06:32:53] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:53] [INFO] [BloodyFeet:Grenadier] Footprint scene loaded
+[06:32:53] [INFO] [BloodyFeet:Grenadier] Found EnemyModel for facing direction
+[06:32:53] [INFO] [BloodyFeet:Grenadier] BloodyFeetComponent ready on Grenadier
+[06:32:53] [INFO] [EnemyGrenade] Grenade bag built (normal): [Flashbang, Flashbang, Flashbang, Offensive, Offensive, Offensive, Offensive, Offensive]
+[06:32:53] [INFO] [EnemyGrenade] Grenadier initialized: 8 grenades in bag
+[06:32:53] [ENEMY] [Grenadier] Death animation component initialized
+[06:32:53] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:53] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[06:32:53] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[06:32:53] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[06:32:53] [ENEMY] [Enemy6] Death animation component initialized
+[06:32:53] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:53] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[06:32:53] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[06:32:53] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[06:32:53] [ENEMY] [Enemy7] Death animation component initialized
+[06:32:53] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:53] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[06:32:53] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[06:32:53] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[06:32:53] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[06:32:53] [ENEMY] [Enemy8] Death animation component initialized
+[06:32:53] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:53] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[06:32:53] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[06:32:53] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[06:32:53] [ENEMY] [Enemy9] Death animation component initialized
+[06:32:53] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:53] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[06:32:53] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[06:32:53] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[06:32:53] [ENEMY] [Enemy10] Death animation component initialized
+[06:32:53] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[06:32:53] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[06:32:53] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[06:32:53] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[06:32:53] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[06:32:53] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[06:32:53] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[06:32:53] [INFO] [Player.Weapon] Removed default MakarovPM
+[06:32:53] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[06:32:53] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[06:32:53] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[06:32:53] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[06:32:53] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[06:32:53] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[06:32:53] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[06:32:53] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[06:32:53] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[06:32:53] [INFO] [Player.Homing] Homing activation sound loaded
+[06:32:53] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[06:32:53] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[06:32:53] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[06:32:53] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[06:32:53] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[06:32:53] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[06:32:53] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[06:32:53] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[06:32:53] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/3
+[06:32:53] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[06:32:53] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[06:32:53] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[06:32:53] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[06:32:53] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[06:32:53] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[06:32:53] [INFO] [BuildingLevel] Child 'Grenadier': script=true, has_died_signal=true
+[06:32:53] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[06:32:53] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[06:32:53] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[06:32:53] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[06:32:53] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[06:32:53] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[06:32:53] [INFO] [BuildingLevel] Setting up weapon: ak_gl
+[06:32:53] [INFO] [BuildingLevel] AKGL already equipped by C# Player - skipping GDScript weapon swap
+[06:32:53] [INFO] [ScoreManager] Level started with 10 enemies
+[06:32:53] [INFO] [BuildingLevel] ReplayManager found as C# autoload - verified OK
+[06:32:53] [INFO] [BuildingLevel] Starting replay recording - Player: Player, Enemies count: 10
+[06:32:53] [INFO] [ReplayManager] Replay data cleared
+[06:32:53] [INFO] [BuildingLevel] Previous replay data cleared
+[06:32:53] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[06:32:53] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[06:32:53] [INFO] [ReplayManager] Level: BuildingLevel
+[06:32:53] [INFO] [ReplayManager] Player: Player (valid: True)
+[06:32:53] [INFO] [ReplayManager] Enemies count: 10
+[06:32:53] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[06:32:53] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[06:32:53] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[06:32:53] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[06:32:53] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[06:32:53] [INFO] [ReplayManager]   Enemy 4: Grenadier
+[06:32:53] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[06:32:53] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[06:32:53] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[06:32:53] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[06:32:53] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[06:32:53] [INFO] [BuildingLevel] Replay recording started successfully
+[06:32:53] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[06:32:53] [INFO] [CinemaEffects] Found player node: Player
+[06:32:53] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[06:32:53] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[06:32:53] [ENEMY] [Enemy1] Registered as sound listener
+[06:32:53] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 3, behavior: GUARD
+[06:32:53] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[06:32:53] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[06:32:53] [ENEMY] [Enemy2] Registered as sound listener
+[06:32:53] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 1, behavior: GUARD
+[06:32:53] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[06:32:53] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[06:32:53] [ENEMY] [Enemy3] Registered as sound listener
+[06:32:53] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 2, behavior: GUARD
+[06:32:53] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[06:32:53] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[06:32:53] [ENEMY] [Enemy4] Registered as sound listener
+[06:32:53] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 2, behavior: GUARD
+[06:32:53] [INFO] [BloodyFeet:Grenadier] Blood detector created and attached to Grenadier
+[06:32:53] [INFO] [SoundPropagation] Registered listener: Grenadier (total: 15)
+[06:32:53] [ENEMY] [Grenadier] Registered as sound listener
+[06:32:53] [ENEMY] [Grenadier] Spawned at (1700, 350), hp: 1, behavior: GUARD
+[06:32:53] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[06:32:53] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[06:32:53] [ENEMY] [Enemy6] Registered as sound listener
+[06:32:53] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 2, behavior: GUARD
+[06:32:53] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[06:32:53] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[06:32:53] [ENEMY] [Enemy7] Registered as sound listener
+[06:32:53] [ENEMY] [Enemy7] Spawned at (1600, 900), hp: 1, behavior: PATROL
+[06:32:53] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[06:32:53] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[06:32:53] [ENEMY] [Enemy8] Registered as sound listener
+[06:32:53] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 2, behavior: GUARD
+[06:32:53] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[06:32:53] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[06:32:53] [ENEMY] [Enemy9] Registered as sound listener
+[06:32:53] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 1, behavior: GUARD
+[06:32:53] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[06:32:53] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[06:32:53] [ENEMY] [Enemy10] Registered as sound listener
+[06:32:53] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 1, behavior: PATROL
+[06:32:53] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[06:32:53] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:53] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:53] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=191.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:53] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=292.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=303.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:53] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=78.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:53] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [Player] Detecting weapon pose (frame 3)...
+[06:32:53] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[06:32:53] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[06:32:53] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[06:32:53] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[06:32:53] [INFO] [LastChance] Found player: Player
+[06:32:53] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[06:32:53] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[06:32:53] [INFO] [LastChance] Connected to player Died signal (C#)
+[06:32:53] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [BlackMetalEffectsManager] Black Metal filter now visible (after 3 frames delay)
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.079, 700.5828) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1213.018, 700.4973) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1212.895, 700.3262) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1212.71, 700.0692) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1212.464, 699.7261) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1212.156, 699.2964) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1211.786, 698.7799) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1211.355, 698.1757) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1210.863, 697.4832) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1210.308, 696.7017) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1209.693, 695.8302) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1209.015, 694.8678) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1208.276, 693.8134) - skipping throw
+[06:32:53] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1207.476, 692.6656) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1206.614, 691.4233) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1205.69, 690.0851) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1204.706, 688.6494) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1203.66, 687.1144) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1202.552, 685.4786) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1201.384, 683.7401) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1200.156, 681.8967) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1198.911, 680.0146) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1197.652, 678.0947) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1196.379, 676.1378) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1195.094, 674.1448) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1193.798, 672.1167) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1192.491, 670.0547) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1191.176, 667.9598) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1189.854, 665.8335) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1188.525, 663.6768) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1187.191, 661.4911) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1185.853, 659.2778) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1184.512, 657.0383) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1183.191, 654.8096) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1181.889, 652.5905) - skipping throw
+[06:32:54] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[06:32:54] [INFO] [EnemyGrenade] Target not visible for Flashbang at (1180.604, 650.3795) - skipping throw
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1179.336, 648.1755)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1178.083, 645.9773)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1176.845, 643.7836)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1175.621, 641.5931)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1174.41, 639.4045)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1173.211, 637.2167)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1172.024, 635.0281)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1170.847, 632.8376)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1169.68, 630.6437)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1168.519, 628.4377)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1167.361, 626.2174)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1166.208, 623.9825)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1165.06, 621.7332)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1163.916, 619.4692)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1162.777, 617.1908)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1161.642, 614.8979)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1160.513, 612.5905)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1159.389, 610.2686)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1158.27, 607.9321)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1157.157, 605.5812)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1156.05, 603.2159)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1154.948, 600.8361)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1153.853, 598.4418)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1152.764, 596.0332)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1151.681, 593.6101)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1150.604, 591.1727)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1149.534, 588.7209)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1148.472, 586.2549)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1147.416, 583.7747)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1146.367, 581.2802)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1145.326, 578.7716)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1144.292, 576.2488)
+[06:32:54] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[06:32:54] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1143.266, 573.712)
+[06:32:54] [ENEMY] [Enemy7] ROT_CHANGE: none -> P3:corner, state=IDLE, target=94.3°, current=4.3°, player=(404,870), corner_timer=0.30
+[06:32:54] [ENEMY] [Enemy10] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-0.0°, current=90.0°, player=(404,870), corner_timer=0.30
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1142.248, 571.1611)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1141.237, 568.5963)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1140.235, 566.0177)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1139.242, 563.4252)
+[06:32:54] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1138.257, 560.8189)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1137.281, 558.1989)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1136.313, 555.5654)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1135.355, 552.9183)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1134.406, 550.2578)
+[06:32:55] [ENEMY] [Enemy3] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=170.0°, current=-168.8°, player=(404,801), corner_timer=0.00
+[06:32:55] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1133.469, 547.5917)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1132.545, 544.9223)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1131.653, 542.3071)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1130.794, 539.7487)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1129.967, 537.249)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1129.187, 534.859)
+[06:32:55] [ENEMY] [Enemy3] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=177.3°, current=13.1°, player=(397,765), corner_timer=0.00
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1128.454, 532.5795)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.766, 530.4112)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.122, 528.355)
+[06:32:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(394.7801, 751.5066), source=PLAYER (AKGL), range=1600, listeners=20
+[06:32:55] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[06:32:55] [ENEMY] [Enemy1] Heard gunshot at (394.7801, 751.5066), intensity=0.01, distance=413
+[06:32:55] [ENEMY] [Enemy2] Heard gunshot at (394.7801, 751.5066), intensity=0.06, distance=202
+[06:32:55] [ENEMY] [Enemy3] Heard gunshot at (394.7801, 751.5066), intensity=0.04, distance=263
+[06:32:55] [ENEMY] [Enemy4] Heard gunshot at (394.7801, 751.5066), intensity=0.01, distance=432
+[06:32:55] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[06:32:55] [ENEMY] [Enemy1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=76.7°, current=-33.8°, player=(394,751), corner_timer=0.00
+[06:32:55] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=91.5°, current=168.8°, player=(394,751), corner_timer=0.00
+[06:32:55] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=-159.9°, current=-67.5°, player=(394,751), corner_timer=0.00
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.52, 526.4116)
+[06:32:55] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=4.3°, current=58.7°, player=(394,751), corner_timer=-0.02
+[06:32:55] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[06:32:55] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=50.4°, player=(394,751), corner_timer=-0.02
+[06:32:55] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.96, 524.5815)
+[06:32:55] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=94.3°, current=55.9°, player=(393,747), corner_timer=0.30
+[06:32:55] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=14.3°, current=52.7°, player=(393,747), corner_timer=0.30
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.441, 522.8653)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.962, 521.2635)
+[06:32:55] [ENEMY] [Enemy3] Hit: dmg=2, hp=2/2->0/2
+[06:32:55] [INFO] [ImpactEffects] spawn_blood_effect called at (636.1878, 752.7729), dir=(1, 0), lethal=true
+[06:32:55] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[06:32:55] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[06:32:55] [INFO] [ImpactEffects] Blood effect spawned at (636.1878, 752.7729) (scale=1.5)
+[06:32:55] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false)
+[06:32:55] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[06:32:55] [ENEMY] [Enemy3] [AllyDeath] Notified 2 enemies
+[06:32:55] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[06:32:55] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[06:32:55] [ENEMY] [Enemy3] Death animation started with hit direction: (1, 0)
+[06:32:55] [INFO] [BlackMetalLightningEffectsManager] DOUBLE lightning strike (2 flash(es))
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.521, 519.7767)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.118, 518.4052)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.753, 517.1495)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.508, 516.3043)
+[06:32:55] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.498, 516.2685)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(389.104, 728.0663), source=PLAYER (AKGL), range=1600, listeners=9
+[06:32:55] [ENEMY] [Enemy1] Heard gunshot at (389.104, 728.0663), intensity=0.02, distance=349
+[06:32:55] [ENEMY] [Enemy2] Heard gunshot at (389.104, 728.0663), intensity=0.08, distance=178
+[06:32:55] [ENEMY] [Enemy4] Heard gunshot at (389.104, 728.0663), intensity=0.01, distance=419
+[06:32:55] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=4
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=14.1°, player=(389,728), corner_timer=-0.00
+[06:32:55] [ENEMY] [Enemy10] PATROL corner check: angle 7.2°
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=7.2°, current=16.2°, player=(389,728), corner_timer=0.30
+[06:32:55] [ENEMY] [Enemy4] Hit: dmg=2, hp=2/2->0/2
+[06:32:55] [INFO] [ImpactEffects] spawn_blood_effect called at (784.0654, 830.3513), dir=(1, 0), lethal=true
+[06:32:55] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[06:32:55] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[06:32:55] [INFO] [ImpactEffects] Blood effect spawned at (784.0654, 830.3513) (scale=1.5)
+[06:32:55] [ENEMY] [Enemy4] Enemy died (ricochet: false, penetration: false)
+[06:32:55] [INFO] [ScoreManager] Kill registered. Combo: 2 (points: 1500)
+[06:32:55] [ENEMY] [Enemy4] [AllyDeath] Notified 1 enemies
+[06:32:55] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 8)
+[06:32:55] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[06:32:55] [ENEMY] [Enemy4] Death animation started with hit direction: (1, 0)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(389.104, 728.0663), source=PLAYER (AKGL), range=1600, listeners=8
+[06:32:55] [ENEMY] [Enemy1] Heard gunshot at (389.104, 728.0663), intensity=0.02, distance=335
+[06:32:55] [ENEMY] [Enemy2] Heard gunshot at (389.104, 728.0663), intensity=0.08, distance=178
+[06:32:55] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=2, self=0, below_threshold=4
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (696.7604, 801.5022) (added to group)
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (722.7346, 777.4506) (added to group)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (744.4939, 750.3768) (added to group)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (702.6265, 789.4238) (added to group)
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (694.5108, 768.1997) (added to group)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (702.3599, 777.5419) (added to group)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (727.2092, 769.3196) (added to group)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(389.104, 728.0663), source=PLAYER (AKGL), range=1600, listeners=8
+[06:32:55] [ENEMY] [Enemy1] Heard gunshot at (389.104, 728.0663), intensity=0.02, distance=346
+[06:32:55] [ENEMY] [Enemy2] Heard gunshot at (389.104, 728.0663), intensity=0.08, distance=178
+[06:32:55] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=2, self=0, below_threshold=4
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(389.10403, 728.0663), shooter_id=143831076078, bullet_pos=(919.8284, 812.08057)
+[06:32:55] [INFO] [Bullet] Using shooter_position, distance=537,333
+[06:32:55] [INFO] [Bullet] Distance to wall: 537,333 (36,587994% of viewport)
+[06:32:55] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[06:32:55] [INFO] [Bullet] Starting wall penetration at (919.8284, 812.08057)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [Bullet] Raycast backward hit penetrating body at distance 25,960339
+[06:32:55] [INFO] [Bullet] Body exited signal received for penetrating body
+[06:32:55] [INFO] [Bullet] Exiting penetration at (961.64105, 818.6996) after traveling 37,333336 pixels through wall
+[06:32:55] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [ENEMY] [Enemy3] Ragdoll activated
+[06:32:55] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (744.1314, 767.6842) (added to group)
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (791.6686, 816.9816) (added to group)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [BloodyFeet:Enemy4] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (768.6212, 747.989) (added to group)
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (728.5079, 793.8632) (added to group)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (782.1505, 792.3399) (added to group)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:55] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=7.1°, player=(389,728), corner_timer=-0.01
+[06:32:55] [ENEMY] [Enemy10] PATROL corner check: angle 3.7°
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (869.1348, 837.5591) (added to group)
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (860.3069, 844.936) (added to group)
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (842.2334, 873.1799) (added to group)
+[06:32:55] [INFO] [BloodDecal] Blood puddle created at (858.203, 882.1417) (added to group)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=3.7°, current=9.3°, player=(389,728), corner_timer=0.30
+[06:32:56] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(389.10403, 728.0663), shooter_id=143831076078, bullet_pos=(917.7489, 824.30536)
+[06:32:56] [INFO] [Bullet] Using shooter_position, distance=537,3336
+[06:32:56] [INFO] [Bullet] Distance to wall: 537,3336 (36,588036% of viewport)
+[06:32:56] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[06:32:56] [INFO] [Bullet] Starting wall penetration at (917.7489, 824.30536)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [Bullet] Raycast backward hit penetrating body at distance 23,782263
+[06:32:56] [INFO] [BloodDecal] Blood puddle created at (891.8741, 840.8537) (added to group)
+[06:32:56] [INFO] [BloodDecal] Blood puddle created at (843.6893, 846.8845) (added to group)
+[06:32:56] [INFO] [Bullet] Body exited signal received for penetrating body
+[06:32:56] [INFO] [Bullet] Exiting penetration at (959.3977, 831.88745) after traveling 37,333336 pixels through wall
+[06:32:56] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [BloodDecal] Blood puddle created at (823.6757, 783.1019) (added to group)
+[06:32:56] [INFO] [BloodDecal] Blood puddle created at (837.247, 834.8111) (added to group)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [BloodDecal] Blood puddle created at (868.6588, 879.8837) (added to group)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [BloodDecal] Blood puddle created at (835.1362, 819.0951) (added to group)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [BloodDecal] Blood puddle created at (876.1323, 896.8578) (added to group)
+[06:32:56] [INFO] [BloodDecal] Blood puddle created at (854.7231, 859.6933) (added to group)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [ENEMY] [Enemy4] Ragdoll activated
+[06:32:56] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [BloodDecal] Blood puddle created at (898.4769, 852.6621) (added to group)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [ReplayManager] Recording frame 180 (2,8s): player_valid=True, enemies=10
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [BloodDecal] Blood puddle created at (911.5952, 881.4614) (added to group)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=3.7°, player=(389,728), corner_timer=-0.01
+[06:32:56] [ENEMY] [Enemy10] PATROL corner check: angle 2.0°
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=2.0°, current=5.9°, player=(389,728), corner_timer=0.30
+[06:32:56] [INFO] [BloodDecal] Blood puddle created at (895.7197, 866.2957) (added to group)
+[06:32:56] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[06:32:56] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.497, 516.2652)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.504, 516.2902)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.519, 516.3402)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.54, 516.4152)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.569, 516.5154)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.605, 516.6407)
+[06:32:56] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=1.9°, player=(392,728), corner_timer=-0.01
+[06:32:56] [ENEMY] [Enemy10] PATROL corner check: angle 1.0°
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.649, 516.7914)
+[06:32:56] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=1.0°, current=4.2°, player=(393,728), corner_timer=0.30
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.7, 516.9675)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.758, 517.1692)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.824, 517.3967)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.898, 517.6501)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.979, 517.9297)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.069, 518.2358)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.166, 518.5686)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.271, 518.9283)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.385, 519.3155)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.507, 519.7303)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.638, 520.1732)
+[06:32:56] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.778, 520.6445)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.927, 521.1448)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.084, 521.6744)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.252, 522.2338)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.429, 522.8237)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.616, 523.4445)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.813, 524.0968)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.021, 524.7814)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.239, 525.4927)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.455, 526.1983)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.671, 526.8995)
+[06:32:57] [ENEMY] [Enemy3] Death animation completed
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.886, 527.5964)
+[06:32:57] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=1.0°, player=(479,728), corner_timer=-0.01
+[06:32:57] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.101, 528.2888)
+[06:32:57] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=0.6°, current=3.3°, player=(485,728), corner_timer=0.30
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.316, 528.9772)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.53, 529.662)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.745, 530.3434)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.93, 530.9323)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1128.087, 531.4277)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1128.215, 531.8289)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1128.312, 532.1346)
+[06:32:57] [ENEMY] [Enemy2] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=54.6°, current=55.8°, player=(524,724), corner_timer=0.00
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1128.379, 532.3439)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1128.415, 532.4557)
+[06:32:57] [INFO] [ReplayManager] Recording frame 240 (3,6s): player_valid=True, enemies=10
+[06:32:57] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1128.419, 532.4688)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1128.391, 532.3819)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1128.331, 532.194)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1128.239, 531.9039)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1128.114, 531.5102)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.956, 531.0116)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.771, 530.4275)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.593, 529.8602)
+[06:32:57] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=-129.0°, player=(563,706), corner_timer=-0.01
+[06:32:57] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[06:32:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(567.6942, 704.5947), source=PLAYER (AKGL), range=1600, listeners=8
+[06:32:57] [ENEMY] [Enemy1] Heard gunshot at (567.6942, 704.5947), intensity=0.01, distance=465
+[06:32:57] [ENEMY] [Enemy2] Heard gunshot at (567.6942, 704.5947), intensity=0.05, distance=228
+[06:32:57] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=5
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.42, 529.3101)
+[06:32:57] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=-131.3°, player=(567,704), corner_timer=0.30
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.253, 528.7777)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.093, 528.2635)
+[06:32:57] [ENEMY] [Enemy4] Death animation completed
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.939, 527.7678)
+[06:32:57] [ENEMY] [Enemy2] Hit: dmg=2, hp=1/1->-1/1
+[06:32:57] [INFO] [ImpactEffects] spawn_blood_effect called at (400, 550), dir=(1, 0), lethal=true
+[06:32:57] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[06:32:57] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[06:32:57] [INFO] [ImpactEffects] Wall found for blood splatter at (500, 550) (dist=100 px)
+[06:32:57] [INFO] [BloodDecal] Blood puddle created at (499, 550) (added to group)
+[06:32:57] [INFO] [ImpactEffects] Blood effect spawned at (400, 550) (scale=1.5)
+[06:32:57] [ENEMY] [Enemy2] Enemy died (ricochet: false, penetration: false)
+[06:32:57] [INFO] [ScoreManager] Kill registered. Combo: 3 (points: 3000)
+[06:32:57] [ENEMY] [Enemy2] [AllyDeath] Notified 1 enemies
+[06:32:57] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 7)
+[06:32:57] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[06:32:57] [ENEMY] [Enemy2] Death animation started with hit direction: (1, 0)
+[06:32:57] [INFO] [BlackMetalLightningEffectsManager] SINGLE lightning strike (1 flash(es))
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.792, 527.2913)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.65, 526.834)
+[06:32:57] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.516, 526.3965)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.387, 525.9792)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.266, 525.5824)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.151, 525.2065)
+[06:32:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(597.6255, 685.8304), source=PLAYER (AKGL), range=1600, listeners=7
+[06:32:57] [ENEMY] [Enemy1] Heard gunshot at (597.6255, 685.8304), intensity=0.01, distance=479
+[06:32:57] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=5
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.043, 524.8519)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.941, 524.5188)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.847, 524.2075)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.759, 523.9183)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.678, 523.6516)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.605, 523.4075)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.538, 523.1862)
+[06:32:57] [ENEMY] [Enemy1] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=27.5°, current=27.5°, player=(609,678), corner_timer=0.00
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.478, 522.988)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.426, 522.813)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.38, 522.6615)
+[06:32:57] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(597.62555, 685.8304), shooter_id=143831076078, bullet_pos=(231.20374, 469.85965)
+[06:32:57] [INFO] [Bullet] Using shooter_position, distance=425,3332
+[06:32:57] [INFO] [Bullet] Distance to wall: 425,3332 (28,961721% of viewport)
+[06:32:57] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.342, 522.5334)
+[06:32:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(613.1528, 676.0962), source=PLAYER (AKGL), range=1600, listeners=7
+[06:32:57] [ENEMY] [Enemy1] Heard gunshot at (613.1528, 676.0962), intensity=0.01, distance=463
+[06:32:57] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=5
+[06:32:57] [ENEMY] [Enemy1] Hit: dmg=1, hp=3/3->2/3
+[06:32:57] [INFO] [ImpactEffects] spawn_blood_effect called at (195.9336, 474.5488), dir=(1, 0), lethal=false
+[06:32:57] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[06:32:57] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[06:32:57] [INFO] [ImpactEffects] Blood effect spawned at (195.9336, 474.5488) (scale=1)
+[06:32:57] [INFO] [BlackMetalLightningEffectsManager] SINGLE lightning strike (1 flash(es))
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.31, 522.4291)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.286, 522.3486)
+[06:32:57] [INFO] [BloodDecal] Blood puddle created at (439.3138, 548.5009) (added to group)
+[06:32:57] [ENEMY] [Enemy1] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=25.0°, current=174.6°, player=(614,675), corner_timer=0.00
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.269, 522.2919)
+[06:32:57] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=179.0°, current=175.9°, player=(614,675), corner_timer=-0.01
+[06:32:57] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.259, 522.259)
+[06:32:57] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.8°, current=178.1°, player=(614,675), corner_timer=0.30
+[06:32:57] [INFO] [BloodDecal] Blood puddle created at (477.104, 597.7152) (added to group)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:57] [INFO] [BloodDecal] Blood puddle created at (491.8343, 559.7139) (added to group)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:57] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (496.5187, 609.223) (added to group)
+[06:32:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(613.1528, 676.0962), shooter_id=143831076078, bullet_pos=(237.84706, 475.96103)
+[06:32:58] [INFO] [Bullet] Using shooter_position, distance=425,33337
+[06:32:58] [INFO] [Bullet] Distance to wall: 425,33337 (28,961733% of viewport)
+[06:32:58] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [ENEMY] [Enemy1] Hit: dmg=1, hp=2/3->1/3
+[06:32:58] [INFO] [ImpactEffects] spawn_blood_effect called at (221.4854, 503.5233), dir=(1, 0), lethal=false
+[06:32:58] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[06:32:58] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[06:32:58] [INFO] [ImpactEffects] Blood effect spawned at (221.4854, 503.5233) (scale=1)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (486.2218, 565.4515) (added to group)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (495.0275, 550.6322) (added to group)
+[06:32:58] [ENEMY] [Enemy1] State: COMBAT -> RETREATING
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [ENEMY] [Enemy1] ROT_CHANGE: P2:combat_state -> P4:velocity, state=RETREATING, target=23.6°, current=175.4°, player=(614,675), corner_timer=0.00
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [ENEMY] [Enemy2] Ragdoll activated
+[06:32:58] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (522.4877, 635.9635) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (489.3709, 626.8259) (added to group)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (486.9574, 582.0062) (added to group)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (557.5668, 631.6346) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (500.3016, 656.8147) (added to group)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (295.0262, 538.8286) (added to group)
+[06:32:58] [ENEMY] [Enemy1] ROT_CHANGE: P4:velocity -> P1:visible, state=RETREATING, target=23.2°, current=7.3°, player=(614,675), corner_timer=0.00
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=178.0°, current=125.2°, player=(614,675), corner_timer=-0.01
+[06:32:58] [ENEMY] [Enemy7] PATROL corner check: angle 89.6°
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.6°, current=127.5°, player=(614,675), corner_timer=0.30
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (277.7914, 508.9263) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [ReplayManager] Recording frame 300 (4,4s): player_valid=True, enemies=10
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (529.2838, 681.7021) (added to group)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (503.1053, 617.5674) (added to group)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (287.9853, 512.0806) (added to group)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (305.3235, 503.8929) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (581.7513, 674.4692) (added to group)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (544.0858, 647.1833) (added to group)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (283.555, 557.8292) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (578.2341, 675.2916) (added to group)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (329.374, 584.3283) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (321.3407, 584.5674) (added to group)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (277.3378, 499.1266) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (336.5261, 571.8015) (added to group)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (289.0043, 513.9501) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [ENEMY] [Enemy1] ROT_CHANGE: P1:visible -> P4:velocity, state=RETREATING, target=-121.7°, current=27.9°, player=(614,675), corner_timer=0.00
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (390.0766, 512.1971) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (317.5413, 548.1589) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (388.351, 565.087) (added to group)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (360.2349, 485.8484) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (348.0052, 568.0032) (added to group)
+[06:32:58] [INFO] [BloodyFeet:Enemy2] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [ENEMY] [Enemy1] State: RETREATING -> IN_COVER
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.5°, current=89.6°, player=(614,675), corner_timer=-0.01
+[06:32:58] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[06:32:58] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=91.9°, player=(614,675), corner_timer=0.30
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (402.0261, 573.0085) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (402.9385, 573.6998) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (351.105, 649.8946) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (426.2112, 607.3278) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [BloodDecal] Blood puddle created at (404.8055, 607.7361) (added to group)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:58] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.257, 522.2501)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.247, 522.219)
+[06:32:59] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.1°, current=89.5°, player=(614,675), corner_timer=-0.01
+[06:32:59] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.229, 522.157)
+[06:32:59] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=91.8°, player=(613,675), corner_timer=0.30
+[06:32:59] [INFO] [BloodyFeet:Player] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.201, 522.064)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.164, 521.9401)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.118, 521.7854)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.062, 521.6003)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.998, 521.3847)
+[06:32:59] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.925, 521.1389)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.843, 520.8633)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.752, 520.558)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.653, 520.2234)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.546, 519.8599)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.43, 519.4677)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.306, 519.0471)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.175, 518.5989)
+[06:32:59] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(577.4146, 656.2299), source=NEUTRAL (null), range=900, listeners=7
+[06:32:59] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=1
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.036, 518.1232)
+[06:32:59] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(577.1782, 655.6118), source=NEUTRAL (null), range=900, listeners=7
+[06:32:59] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=1
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.89, 517.6206)
+[06:32:59] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(576.7985, 654.3409), source=NEUTRAL (null), range=900, listeners=7
+[06:32:59] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=1
+[06:32:59] [INFO] [ReplayManager] Recording frame 360 (5,2s): player_valid=True, enemies=10
+[06:32:59] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.736, 517.0916)
+[06:32:59] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(576.3995, 652.3871), source=NEUTRAL (null), range=900, listeners=7
+[06:32:59] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=1
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.575, 516.5366)
+[06:32:59] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(576.1061, 649.742), source=NEUTRAL (null), range=900, listeners=7
+[06:32:59] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=1
+[06:32:59] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.408, 515.9563)
+[06:32:59] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(576.0294, 646.4142), source=NEUTRAL (null), range=900, listeners=7
+[06:32:59] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=1
+[06:32:59] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.234, 515.3511)
+[06:32:59] [ENEMY] [Enemy2] Death animation completed
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.054, 514.7216)
+[06:32:59] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1122.868, 514.0684)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1122.676, 513.392)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1122.479, 512.6931)
+[06:32:59] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.9°, current=89.4°, player=(544,675), corner_timer=-0.01
+[06:32:59] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1122.278, 511.9785)
+[06:32:59] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=91.7°, player=(539,675), corner_timer=0.30
+[06:32:59] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1122.08, 511.2698)
+[06:32:59] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1121.862, 510.4871)
+[06:32:59] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1121.625, 509.631)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1121.369, 508.7021)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1121.095, 507.7009)
+[06:32:59] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1120.804, 506.6277)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1120.496, 505.483)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1120.171, 504.2671)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1119.83, 502.9802)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1119.474, 501.6225)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1119.103, 500.1942)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1118.717, 498.6955)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1118.318, 497.1264)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1117.906, 495.4869)
+[06:32:59] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1117.481, 493.7772)
+[06:32:59] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1117.045, 491.997)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1116.597, 490.1464)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1116.139, 488.2253)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1115.671, 486.2335)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1115.194, 484.1707)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1114.713, 482.0581)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1114.242, 479.9534)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1113.781, 477.8566)
+[06:32:59] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.8°, current=89.3°, player=(433,626), corner_timer=-0.01
+[06:32:59] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1113.329, 475.7677)
+[06:32:59] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=91.6°, player=(429,622), corner_timer=0.30
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1112.887, 473.6869)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1112.454, 471.6141)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1112.031, 469.5493)
+[06:32:59] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1111.616, 467.4927)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1111.211, 465.4442)
+[06:33:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1110.814, 463.4038)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1110.427, 461.3716)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1110.048, 459.3476)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1109.678, 457.3318)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1109.317, 455.3243)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1108.964, 453.325)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1108.619, 451.334)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1108.283, 449.3513)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1107.955, 447.377)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1107.635, 445.4109)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1107.335, 443.5332)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1107.056, 441.7437)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1106.795, 440.0424)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1106.552, 438.4291)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1106.327, 436.9037)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1106.118, 435.466)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1105.925, 434.1156)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1105.748, 432.8522)
+[06:33:00] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.7°, current=89.3°, player=(337,540), corner_timer=-0.01
+[06:33:00] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1105.585, 431.6754)
+[06:33:00] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=91.6°, player=(332,537), corner_timer=0.30
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1105.436, 430.5847)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1105.301, 429.5796)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1105.178, 428.6596)
+[06:33:00] [INFO] [ReplayManager] Recording frame 420 (6,0s): player_valid=True, enemies=10
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1105.069, 427.8242)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.971, 427.0726)
+[06:33:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.885, 426.4043)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.81, 425.8186)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.746, 425.3147)
+[06:33:00] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.692, 424.892)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.649, 424.5496)
+[06:33:00] [ENEMY] [Enemy1] ROT_CHANGE: P4:velocity -> P1:visible, state=SEEKING_COVER, target=44.6°, current=87.4°, player=(276,527), corner_timer=0.00
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.614, 424.266)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.579, 423.9846)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.544, 423.7053)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.501, 423.3519)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.448, 422.9251)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.387, 422.4257)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.318, 421.8542)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.241, 421.2112)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.156, 420.4974)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.064, 419.7132)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.964, 418.859)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.858, 417.9355)
+[06:33:00] [ENEMY] [Enemy1] ROT_CHANGE: P1:visible -> P4:velocity, state=SEEKING_COVER, target=30.0°, current=133.7°, player=(214,516), corner_timer=0.00
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.746, 416.9428)
+[06:33:00] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.7°, current=89.3°, player=(214,516), corner_timer=-0.01
+[06:33:00] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.644, 416.0302)
+[06:33:00] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=91.6°, player=(209,514), corner_timer=0.30
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.553, 415.1971)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.471, 414.4431)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.398, 413.7676)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.335, 413.1699)
+[06:33:00] [ENEMY] [Enemy1] ROT_CHANGE: P4:velocity -> P1:visible, state=SEEKING_COVER, target=73.4°, current=120.0°, player=(184,509), corner_timer=0.00
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.28, 412.6495)
+[06:33:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(179.5802, 508.4856), source=PLAYER (AKGL), range=1600, listeners=7
+[06:33:00] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=3
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.233, 412.2058)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.195, 411.838)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.15, 411.3999)
+[06:33:00] [ENEMY] [Enemy1] Hit: dmg=2, hp=1/3->-1/3
+[06:33:00] [INFO] [ImpactEffects] spawn_blood_effect called at (148.3081, 345.4926), dir=(1, 0), lethal=true
+[06:33:00] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[06:33:00] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[06:33:00] [INFO] [ImpactEffects] Blood effect spawned at (148.3081, 345.4926) (scale=1.5)
+[06:33:00] [ENEMY] [Enemy1] Enemy died (ricochet: false, penetration: false)
+[06:33:00] [INFO] [ScoreManager] Kill registered. Combo: 4 (points: 5000)
+[06:33:00] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 6)
+[06:33:00] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[06:33:00] [ENEMY] [Enemy1] Death animation started with hit direction: (1, 0)
+[06:33:00] [INFO] [BlackMetalLightningEffectsManager] SINGLE lightning strike (1 flash(es))
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.098, 410.8921)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.039, 410.3152)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.974, 409.6697)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.904, 408.9561)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.829, 408.2009)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.752, 407.4041)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.672, 406.5657)
+[06:33:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(130.7071, 496.277), source=PLAYER (AKGL), range=1600, listeners=6
+[06:33:00] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=3
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.59, 405.6859)
+[06:33:00] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.505, 404.7646)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.417, 403.8018)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.327, 402.7976)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.236, 401.7518)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.143, 400.6643)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.048, 399.535)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.952, 398.3639)
+[06:33:01] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.3°, player=(105,478), corner_timer=-0.01
+[06:33:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.855, 397.1506)
+[06:33:01] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(102,475), corner_timer=0.30
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.758, 395.8951)
+[06:33:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(96.97054, 469.4814), source=PLAYER (AKGL), range=1600, listeners=6
+[06:33:01] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=2
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.66, 394.5972)
+[06:33:01] [INFO] [BloodDecal] Blood puddle created at (187.3456, 349.8692) (added to group)
+[06:33:01] [INFO] [BloodDecal] Blood puddle created at (231.0392, 338.7267) (added to group)
+[06:33:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(130.70708, 496.27704), shooter_id=143831076078, bullet_pos=(155.10475, 34.25418)
+[06:33:01] [INFO] [Bullet] Using shooter_position, distance=462,6666
+[06:33:01] [INFO] [Bullet] Distance to wall: 462,6666 (31,50382% of viewport)
+[06:33:01] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[06:33:01] [INFO] [Bullet] Starting wall penetration at (155.10475, 34.25418)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.561, 393.2565)
+[06:33:01] [INFO] [Bullet] Raycast backward hit penetrating body at distance 40,076008
+[06:33:01] [INFO] [Bullet] Body exited signal received for penetrating body
+[06:33:01] [INFO] [Bullet] Exiting penetration at (157.3371, -8.020248) after traveling 37,333332 pixels through wall
+[06:33:01] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.463, 391.8728)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.365, 390.4459)
+[06:33:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.267, 388.9755)
+[06:33:01] [INFO] [BloodDecal] Blood puddle created at (202.8454, 349.7762) (added to group)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.171, 387.4611)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.075, 385.9026)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.981, 384.2994)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.889, 382.6513)
+[06:33:01] [INFO] [BloodDecal] Blood puddle created at (243.863, 379.9601) (added to group)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.799, 380.9577)
+[06:33:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.06805, 429.0025), source=PLAYER (AKGL), range=1600, listeners=6
+[06:33:01] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=1
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.712, 379.2267)
+[06:33:01] [INFO] [BloodDecal] Blood puddle created at (210.6687, 407.4651) (added to group)
+[06:33:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(96.970535, 469.4814), shooter_id=143831076078, bullet_pos=(261.2209, 36.951374)
+[06:33:01] [INFO] [Bullet] Using shooter_position, distance=462,6666
+[06:33:01] [INFO] [Bullet] Distance to wall: 462,6666 (31,50382% of viewport)
+[06:33:01] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[06:33:01] [INFO] [Bullet] Starting wall penetration at (261.2209, 36.951374)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.627, 377.4264)
+[06:33:01] [INFO] [Bullet] Raycast backward hit penetrating body at distance 37,03697
+[06:33:01] [INFO] [Bullet] Body exited signal received for penetrating body
+[06:33:01] [INFO] [Bullet] Exiting penetration at (276.24954, -2.624504) after traveling 37,333332 pixels through wall
+[06:33:01] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.544, 375.5466)
+[06:33:01] [INFO] [BloodDecal] Blood puddle created at (276.8675, 397.3966) (added to group)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.464, 373.5871)
+[06:33:01] [INFO] [ReplayManager] Recording frame 480 (6,8s): player_valid=True, enemies=10
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.392, 371.6926)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.329, 369.8633)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.273, 368.099)
+[06:33:01] [INFO] [BloodDecal] Blood puddle created at (272.0063, 412.1985) (added to group)
+[06:33:01] [INFO] [BloodDecal] Blood puddle created at (283.9895, 358.7626) (added to group)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.224, 366.4001)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.182, 364.7666)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.145, 363.1986)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.114, 361.6961)
+[06:33:01] [ENEMY] [Enemy1] Ragdoll activated
+[06:33:01] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[06:33:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(80.06805, 429.00247), shooter_id=143831076078, bullet_pos=(333.54852, 41.951866)
+[06:33:01] [INFO] [Bullet] Using shooter_position, distance=462,66675
+[06:33:01] [INFO] [Bullet] Distance to wall: 462,66675 (31,50383% of viewport)
+[06:33:01] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[06:33:01] [INFO] [Bullet] Starting wall penetration at (333.54852, 41.951866)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.088, 360.2592)
+[06:33:01] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(80,377), corner_timer=-0.01
+[06:33:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[06:33:01] [INFO] [Bullet] Raycast backward hit penetrating body at distance 30,437223
+[06:33:01] [INFO] [Bullet] Body exited signal received for penetrating body
+[06:33:01] [INFO] [Bullet] Exiting penetration at (356.74164, 6.5373) after traveling 37,333336 pixels through wall
+[06:33:01] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.066, 358.8879)
+[06:33:01] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(80,373), corner_timer=0.30
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.048, 357.5824)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.034, 356.3426)
+[06:33:01] [INFO] [BloodDecal] Blood puddle created at (294.199, 382.8527) (added to group)
+[06:33:01] [INFO] [BloodDecal] Blood puddle created at (274.5409, 420.1697) (added to group)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.022, 355.1685)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.014, 354.0602)
+[06:33:01] [INFO] [BloodDecal] Blood puddle created at (328.7101, 398.5776) (added to group)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.008, 353.0177)
+[06:33:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.003, 352.041)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.001, 351.1302)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100, 350.2852)
+[06:33:01] [INFO] [BloodDecal] Blood puddle created at (336.0076, 406.6137) (added to group)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100, 349.506)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.001, 348.7927)
+[06:33:01] [INFO] [BloodDecal] Blood puddle created at (326.4855, 413.0969) (added to group)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.003, 348.1453)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.005, 347.5637)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.007, 347.0479)
+[06:33:01] [INFO] [BloodDecal] Blood puddle created at (321.3067, 398.1185) (added to group)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.01, 346.598)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.013, 346.0691)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.017, 345.4612)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.023, 344.7743)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.03, 344.0084)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.039, 343.1635)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.05, 342.2397)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.064, 341.237)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.081, 340.1553)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.101, 338.9948)
+[06:33:01] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(80,320), corner_timer=-0.01
+[06:33:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.125, 337.7554)
+[06:33:01] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(80,316), corner_timer=0.30
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.153, 336.4372)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.187, 335.0403)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.225, 333.5647)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.267, 332.089)
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.313, 330.6127)
+[06:33:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:01] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.363, 329.1353)
+[06:33:01] [INFO] [BloodyFeet:Player] Blood ran out - no more footprints
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.416, 327.6561)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.473, 326.1747)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.534, 324.6904)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.599, 323.2028)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.667, 321.7111)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.74, 320.2149)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.816, 318.7135)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.897, 317.2065)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1100.982, 315.6931)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.071, 314.1728)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.164, 312.645)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.262, 311.109)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.364, 309.5643)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.471, 308.0102)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.583, 306.446)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.699, 304.8742)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.821, 303.2955)
+[06:33:02] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(124,226), corner_timer=-0.01
+[06:33:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1101.947, 301.7101)
+[06:33:02] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(128,223), corner_timer=0.30
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.077, 300.1178)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.213, 298.5186)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.353, 296.9126)
+[06:33:02] [INFO] [ReplayManager] Recording frame 540 (7,6s): player_valid=True, enemies=10
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.499, 295.2997)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.649, 293.6799)
+[06:33:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.805, 292.0533)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1102.966, 290.4197)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.131, 288.7793)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.303, 287.1319)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.479, 285.4777)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.661, 283.8165)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1103.849, 282.1484)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.042, 280.4733)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.241, 278.7914)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.445, 277.1025)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.655, 275.4067)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1104.871, 273.7039)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1105.092, 271.9943)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1105.32, 270.2776)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1105.554, 268.5541)
+[06:33:02] [ENEMY] [Enemy1] Death animation completed
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1105.793, 266.8236)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1106.039, 265.0862)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1106.291, 263.3419)
+[06:33:02] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(217,133), corner_timer=-0.01
+[06:33:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1106.549, 261.5906)
+[06:33:02] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(221,129), corner_timer=0.30
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1106.814, 259.8325)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1107.085, 258.0674)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1107.351, 256.3681)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1107.611, 254.7344)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1107.865, 253.1666)
+[06:33:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1108.113, 251.6646)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1108.354, 250.2284)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1108.586, 248.8583)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1108.811, 247.5543)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1109.026, 246.3167)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1109.233, 245.1457)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1109.43, 244.0414)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1109.617, 243.0042)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1109.794, 242.0344)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1109.959, 241.1323)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1110.114, 240.2983)
+[06:33:02] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1110.257, 239.5328)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1110.388, 238.8363)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1110.506, 238.2093)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1110.612, 237.6524)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1110.705, 237.1661)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1110.789, 236.7311)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1110.873, 236.2928)
+[06:33:03] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.5°, current=89.2°, player=(329,85), corner_timer=-0.01
+[06:33:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1110.958, 235.8511)
+[06:33:03] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(335,85), corner_timer=0.30
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1111.045, 235.406)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1111.132, 234.9575)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1111.221, 234.5056)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1111.31, 234.0501)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1111.401, 233.5912)
+[06:33:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1111.492, 233.1286)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1111.585, 232.6625)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1111.679, 232.1927)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1111.774, 231.7191)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1111.87, 231.2419)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1111.968, 230.7608)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1112.066, 230.2759)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1112.166, 229.7872)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1112.267, 229.2945)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1112.369, 228.7978)
+[06:33:03] [INFO] [ReplayManager] Recording frame 600 (8,4s): player_valid=True, enemies=10
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1112.473, 228.2971)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1112.577, 227.7924)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1112.683, 227.2836)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1112.791, 226.7706)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1112.9, 226.2533)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1113.01, 225.7318)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1113.121, 225.2061)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1113.234, 224.6759)
+[06:33:03] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.5°, current=89.2°, player=(461,85), corner_timer=-0.01
+[06:33:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1113.349, 224.1413)
+[06:33:03] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(467,85), corner_timer=0.30
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1113.465, 223.6022)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1113.582, 223.0587)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1113.701, 222.5105)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1113.822, 221.9577)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1113.944, 221.4002)
+[06:33:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1114.067, 220.8379)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1114.193, 220.2708)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1114.32, 219.6989)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1114.448, 219.1219)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1114.579, 218.54)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1114.711, 217.9531)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1114.844, 217.361)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1114.98, 216.7637)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1115.118, 216.1611)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1115.257, 215.5532)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1115.399, 214.9399)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1115.542, 214.3212)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1115.687, 213.6969)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1115.834, 213.067)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1115.984, 212.4314)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1116.135, 211.79)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1116.328, 210.9801)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1116.523, 210.1609)
+[06:33:03] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(596,85), corner_timer=-0.01
+[06:33:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1116.723, 209.3323)
+[06:33:03] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=92.1°, player=(603,85), corner_timer=0.30
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1116.925, 208.494)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1117.132, 207.6461)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1117.342, 206.7882)
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1117.556, 205.9203)
+[06:33:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:03] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1117.774, 205.042)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1117.996, 204.1534)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1118.222, 203.2541)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1118.452, 202.344)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1118.687, 201.423)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1118.926, 200.4908)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1119.17, 199.5471)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1119.418, 198.5919)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1119.671, 197.625)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1119.929, 196.646)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1120.192, 195.6548)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1120.46, 194.6512)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1120.733, 193.6349)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1121.012, 192.6057)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1121.296, 191.5634)
+[06:33:04] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.8°, current=89.2°, player=(733,85), corner_timer=-0.02
+[06:33:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1121.586, 190.5077)
+[06:33:04] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=92.1°, player=(740,85), corner_timer=0.30
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1121.882, 189.4385)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1122.184, 188.3553)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1122.492, 187.258)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1122.807, 186.1463)
+[06:33:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.128, 185.02)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.455, 183.8787)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1123.79, 182.7222)
+[06:33:04] [INFO] [ReplayManager] Recording frame 660 (9,3s): player_valid=True, enemies=10
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.131, 181.5501)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.48, 180.3622)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1124.836, 179.1582)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.2, 177.9378)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.572, 176.7006)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1125.952, 175.4463)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.34, 174.1745)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1126.737, 172.885)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.143, 171.5774)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.557, 170.2512)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1127.982, 168.9062)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1128.415, 167.5419)
+[06:33:04] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.9°, current=89.3°, player=(871,85), corner_timer=-0.02
+[06:33:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1128.859, 166.158)
+[06:33:04] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=92.2°, player=(878,85), corner_timer=0.30
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1129.313, 164.7541)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1129.777, 163.3297)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1130.252, 161.8844)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1130.739, 160.4179)
+[06:33:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1131.236, 158.9295)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1131.746, 157.419)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1132.268, 155.8858)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1132.802, 154.3294)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1133.35, 152.7495)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1133.911, 151.1453)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1134.486, 149.5165)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1135.075, 147.8625)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1135.679, 146.1828)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1136.298, 144.4769)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1136.933, 142.744)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1137.584, 140.9837)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1138.251, 139.1954)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1138.937, 137.3784)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1139.64, 135.5322)
+[06:33:04] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.1°, current=89.3°, player=(1008,85), corner_timer=-0.02
+[06:33:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1140.362, 133.656)
+[06:33:04] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.2°, player=(1015,85), corner_timer=0.30
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1141.102, 131.7491)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1141.863, 129.811)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1142.644, 127.841)
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1143.447, 125.8382)
+[06:33:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:04] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1144.271, 123.802)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1145.118, 121.7316)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1145.989, 119.6263)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1146.884, 117.4851)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1147.805, 115.3075)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1148.752, 113.0924)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1149.725, 110.8391)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1150.728, 108.5467)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1151.759, 106.2143)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1152.82, 103.8409)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1153.913, 101.4257)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1155.039, 98.96767)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1156.198, 96.46584)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1157.393, 93.91922)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1158.624, 91.32675)
+[06:33:05] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.1°, current=89.4°, player=(1146,85), corner_timer=-0.02
+[06:33:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1159.893, 88.68744)
+[06:33:05] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.2°, player=(1153,85), corner_timer=0.30
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1161.201, 86.00024)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1167.106, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1173.981, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1180.856, 85.5247)
+[06:33:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1187.731, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1194.606, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1201.481, 85.5247)
+[06:33:05] [INFO] [ReplayManager] Recording frame 720 (10,3s): player_valid=True, enemies=10
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1208.356, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1215.231, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1222.106, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1228.981, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1235.856, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1242.731, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1249.606, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1256.481, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1263.356, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1270.231, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1277.106, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1283.981, 85.5247)
+[06:33:05] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1283,85), corner_timer=-0.02
+[06:33:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1290.856, 85.5247)
+[06:33:05] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1290,85), corner_timer=0.30
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1297.731, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1304.606, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1311.481, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1318.356, 85.5247)
+[06:33:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1324.953, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1331.217, 85.5247)
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (449 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (444 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (440 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[06:33:05] [INFO] [GrenadeBase] Grenade created at (1402.292, 101.9043) (frozen)
+[06:33:05] [INFO] [VOGGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[06:33:05] [INFO] [VOGGrenade] Launched - waiting for impact (no timer, impact-triggered only)
+[06:33:05] [INFO] [VOGGrenade] Grenade launched from underbarrel - impact detection enabled
+[06:33:05] [INFO] [GrenadeTimer] Initialized for Frag grenade, effect radius: 337
+[06:33:05] [INFO] [GrenadeTimerHelper] Attached GrenadeTimer to VOGGrenade (type: Frag)
+[06:33:05] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+[06:33:05] [INFO] [GrenadeTimer] Grenade marked as thrown - impact detection enabled
+[06:33:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1352.939, 85.5247), source=PLAYER (AKGL), range=1600, listeners=6
+[06:33:05] [ENEMY] [Grenadier] Heard gunshot at (1352.939, 85.5247), intensity=0.01, distance=436
+[06:33:05] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[06:33:05] [INFO] [Player] AKGL grenade launcher fired!
+[06:33:05] [ENEMY] [Grenadier] ROT_CHANGE: none -> P2:combat_state, state=COMBAT, target=-142.7°, current=0.0°, player=(1352,85), corner_timer=0.00
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (436 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (433 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [ENEMY] [Enemy6] Memory: medium confidence (0.63) - transitioning to PURSUING
+[06:33:05] [ENEMY] [Enemy6] State: IDLE -> PURSUING
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (429 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [ENEMY] [Enemy6] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=PURSUING, target=-148.2°, current=-22.5°, player=(1361,85), corner_timer=0.00
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (426 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [ENEMY] [Enemy6] PURSUING corner check: angle 150.2°
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (423 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (421 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (419 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [ENEMY] [Enemy6] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=-148.2°, current=-148.2°, player=(1375,85), corner_timer=0.27
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (417 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (415 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (413 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1382,85), corner_timer=-0.02
+[06:33:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (412 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1383,85), corner_timer=0.30
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (411 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (410 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (410 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (410 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (410 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:05] [INFO] [GrenadeBase] Collision detected with Desk4 (type: StaticBody2D)
+[06:33:05] [INFO] [VOGGrenade] Impact detected! Body: Desk4 (type: StaticBody2D), triggering explosion
+[06:33:05] [INFO] [VOGGrenade] Impact detected - exploding immediately!
+[06:33:05] [INFO] [GrenadeBase] EXPLODED at (1940.583, 266.4587)!
+[06:33:05] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(1940.583, 266.4587), source=NEUTRAL (VOGGrenade), range=2937, listeners=6
+[06:33:05] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=4
+[06:33:05] [INFO] [VOGGrenade] Spawned shrapnel #1 at angle -20.8 degrees
+[06:33:05] [INFO] [VOGGrenade] Spawned shrapnel #2 at angle 54.1 degrees
+[06:33:05] [INFO] [VOGGrenade] Spawned shrapnel #3 at angle 91.6 degrees
+[06:33:05] [INFO] [VOGGrenade] Spawned shrapnel #4 at angle 139.6 degrees
+[06:33:05] [INFO] [VOGGrenade] Spawned shrapnel #5 at angle 167.3 degrees
+[06:33:05] [INFO] [VOGGrenade] Spawned shrapnel #6 at angle 223.6 degrees
+[06:33:05] [INFO] [VOGGrenade] Spawned shrapnel #7 at angle 265.5 degrees
+[06:33:05] [INFO] [VOGGrenade] Spawned shrapnel #8 at angle 307.8 degrees
+[06:33:05] [INFO] [GrenadeTimer] Impact detected with Desk4 - EXPLODING!
+[06:33:05] [INFO] [GrenadeTimer] GDScript already handled Frag explosion - skipping C# duplicate (Issue #886)
+[06:33:05] [INFO] [EnemyGrenade] Unsafe throw distance (410 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (411 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (412 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (413 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [ENEMY] [Enemy6] State: PURSUING -> COMBAT
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (414 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (416 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (417 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (420 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (422 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (425 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (427 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (431 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (434 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (438 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [ENEMY] [Enemy6] State: COMBAT -> RETREATING
+[06:33:06] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1350,85), corner_timer=-0.02
+[06:33:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (442 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1345,85), corner_timer=0.30
+[06:33:06] [INFO] [EnemyGrenade] Unsafe throw distance (446 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1334.716, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1328.647, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1322.244, 85.5247)
+[06:33:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1315.508, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1308.633, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1301.758, 85.5247)
+[06:33:06] [INFO] [ReplayManager] Recording frame 780 (11,3s): player_valid=True, enemies=10
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1294.883, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1288.008, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1281.133, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1274.258, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1267.383, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1260.508, 85.5247)
+[06:33:06] [INFO] [ScoreManager] Combo ended at 4. Max combo: 4
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1253.633, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1246.758, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1239.883, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1233.008, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1226.411, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1220.091, 85.5247)
+[06:33:06] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1220,85), corner_timer=-0.02
+[06:33:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1214.05, 85.5247)
+[06:33:06] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1214,85), corner_timer=0.30
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1208.286, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1202.8, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1197.647, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1192.827, 85.5247)
+[06:33:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1188.341, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1184.188, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1180.369, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1176.883, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1173.73, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1170.911, 85.5247)
+[06:33:06] [ENEMY] [Enemy6] ROT_CHANGE: P1:visible -> P3:corner, state=RETREATING, target=150.2°, current=-156.9°, player=(1170,85), corner_timer=0.05
+[06:33:06] [ENEMY] [Enemy6] State: RETREATING -> IN_COVER
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1168.425, 85.5247)
+[06:33:06] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1166.272, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1164.452, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1162.966, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1161.813, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1161.349, 85.69894)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1161.255, 85.8909)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1161.225, 85.95123)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1161.26, 85.88)
+[06:33:06] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1160,85), corner_timer=-0.02
+[06:33:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1161.36, 85.677)
+[06:33:06] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1161,85), corner_timer=0.30
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1161.897, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1163.077, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1164.591, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1166.438, 85.5247)
+[06:33:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1168.619, 85.5247)
+[06:33:06] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1171.133, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1173.98, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1177.16, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1180.674, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1184.521, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1188.702, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1193.216, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1198.063, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1203.244, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1208.758, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1214.605, 85.5247)
+[06:33:07] [ENEMY] [Enemy6] State: SUPPRESSED -> SEEKING_COVER
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1220.785, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1227.299, 85.5247)
+[06:33:07] [ENEMY] [Enemy6] State: SEEKING_COVER -> IN_COVER
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1234.146, 85.5247)
+[06:33:07] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[06:33:07] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1234,85), corner_timer=-0.02
+[06:33:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1241.021, 85.5247)
+[06:33:07] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1241,85), corner_timer=0.30
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1247.896, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1254.771, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1261.646, 85.5247)
+[06:33:07] [ENEMY] [Enemy6] State: SUPPRESSED -> SEEKING_COVER
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1268.521, 85.5247)
+[06:33:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1275.396, 85.5247)
+[06:33:07] [ENEMY] [Enemy6] State: SEEKING_COVER -> IN_COVER
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1282.271, 85.5247)
+[06:33:07] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1289.146, 85.5247)
+[06:33:07] [INFO] [ReplayManager] Recording frame 840 (12,3s): player_valid=True, enemies=10
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1296.021, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1302.896, 85.5247)
+[06:33:07] [ENEMY] [Enemy6] State: SUPPRESSED -> SEEKING_COVER
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1309.771, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1316.646, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1323.521, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Throw path blocked for Flashbang to (1330.396, 85.5247)
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (449 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (443 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (438 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (432 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (427 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [ENEMY] [Enemy6] ROT_CHANGE: P3:corner -> P1:visible, state=SEEKING_COVER, target=-150.5°, current=-113.0°, player=(1364,86), corner_timer=0.05
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (421 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1370,87), corner_timer=-0.02
+[06:33:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (415 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1377,88), corner_timer=0.30
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (410 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (404 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (398 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (392 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (385 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (379 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (373 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (367 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (360 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (354 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (348 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (342 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (337 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (331 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (325 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (320 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [ENEMY] [Enemy6] ROT_CHANGE: P1:visible -> P3:corner, state=SEEKING_COVER, target=150.2°, current=64.4°, player=(1454,144), corner_timer=0.05
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (315 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (309 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (304 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1461,160), corner_timer=-0.02
+[06:33:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (299 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [ENEMY] [Enemy6] State: SEEKING_COVER -> IN_COVER
+[06:33:07] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1463,166), corner_timer=0.30
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (294 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (290 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (285 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (281 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:07] [INFO] [EnemyGrenade] Unsafe throw distance (277 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (273 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (270 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (263 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (260 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (257 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (254 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (251 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (248 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (246 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (244 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (242 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (240 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (238 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1468,293), corner_timer=-0.02
+[06:33:08] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (237 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [ENEMY] [Enemy6] State: SUPPRESSED -> SEEKING_COVER
+[06:33:08] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1467,300), corner_timer=0.30
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (237 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (237 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [ENEMY] [Grenadier] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=-172.6°, current=-171.0°, player=(1464,319), corner_timer=0.00
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (238 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (239 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (241 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (243 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [ENEMY] [Enemy7] Memory: high confidence (0.85) - transitioning to PURSUING
+[06:33:08] [ENEMY] [Enemy7] State: IDLE -> PURSUING
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (245 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P2:combat_state, state=PURSUING, target=-105.7°, current=89.4°, player=(1454,342), corner_timer=0.20
+[06:33:08] [INFO] [ReplayManager] Recording frame 900 (13,3s): player_valid=True, enemies=10
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (248 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (252 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1444.892, 359.1498), source=PLAYER (AKGL), range=1600, listeners=6
+[06:33:08] [ENEMY] [Grenadier] Heard gunshot at (1444.892, 359.1498), intensity=0.04, distance=255
+[06:33:08] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=4
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (255 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (259 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1444.8916, 359.1498), shooter_id=143831076078, bullet_pos=(1586.2411, 325.35486)
+[06:33:08] [INFO] [Bullet] Using shooter_position, distance=145,33333
+[06:33:08] [INFO] [Bullet] Distance to wall: 145,33333 (9,896014% of viewport)
+[06:33:08] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (263 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [ENEMY] [Enemy6] ROT_CHANGE: P3:corner -> P1:visible, state=SEEKING_COVER, target=178.6°, current=-173.7°, player=(1437,368), corner_timer=0.05
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (268 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [INFO] [EnemyGrenade] Unsafe throw distance (273 < 450 safe, blast=400) for Flashbang - skipping
+[06:33:08] [ENEMY] [Grenadier] Hit: dmg=1, hp=1/1->0/1
+[06:33:08] [INFO] [ImpactEffects] spawn_blood_effect called at (1700, 350), dir=(1, 0), lethal=true
+[06:33:08] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[06:33:08] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[06:33:08] [INFO] [ImpactEffects] Blood effect spawned at (1700, 350) (scale=1.5)
+[06:33:08] [ENEMY] [Grenadier] Enemy died (ricochet: false, penetration: false)
+[06:33:08] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[06:33:08] [ENEMY] [Enemy6] [AllyDeath] Witnessed at (1700, 350), entering SEARCHING
+[06:33:08] [ENEMY] [Enemy6] SEARCHING started: center=(1700, 350), radius=100, waypoints=5
+[06:33:08] [ENEMY] [Grenadier] [AllyDeath] Notified 1 enemies
+[06:33:08] [INFO] [SoundPropagation] Unregistered listener: Grenadier (remaining: 5)
+[06:33:08] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[06:33:08] [ENEMY] [Grenadier] Death animation started with hit direction: (1, 0)
+[06:33:08] [INFO] [BlackMetalLightningEffectsManager] DOUBLE lightning strike (2 flash(es))
+[06:33:08] [ENEMY] [Enemy6] SEARCHING: Player spotted! Transitioning to COMBAT
+[06:33:08] [ENEMY] [Enemy6] State: SEARCHING -> COMBAT
+[06:33:08] [ENEMY] [Enemy6] State: COMBAT -> RETREATING
+[06:33:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1412.928, 390.4605), source=PLAYER (AKGL), range=1600, listeners=5
+[06:33:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=4
+[06:33:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1404.067, 404.5456), source=PLAYER (AKGL), range=1600, listeners=5
+[06:33:08] [ENEMY] [Enemy7] Heard gunshot at (1404.067, 404.5456), intensity=0.01, distance=483
+[06:33:08] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[06:33:08] [ENEMY] [Enemy6] Hit: dmg=2, hp=2/2->0/2
+[06:33:08] [INFO] [ImpactEffects] spawn_blood_effect called at (1814.874, 313.9156), dir=(1, 0), lethal=true
+[06:33:08] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[06:33:08] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[06:33:08] [INFO] [ImpactEffects] Wall found for blood splatter at (1840, 313.9156) (dist=25 px)
+[06:33:08] [INFO] [BloodDecal] Blood puddle created at (1839, 313.9156) (added to group)
+[06:33:08] [INFO] [ImpactEffects] Blood effect spawned at (1814.874, 313.9156) (scale=1.5)
+[06:33:08] [ENEMY] [Enemy6] Enemy died (ricochet: false, penetration: false)
+[06:33:08] [INFO] [ScoreManager] Kill registered. Combo: 2 (points: 1500)
+[06:33:08] [INFO] [SoundPropagation] Unregistered listener: Enemy6 (remaining: 4)
+[06:33:08] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[06:33:08] [ENEMY] [Enemy6] Death animation started with hit direction: (1, 0)
+[06:33:08] [INFO] [BloodyFeet:Enemy6] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[06:33:08] [INFO] [BloodDecal] Blood puddle created at (1750.642, 368.5062) (added to group)
+[06:33:08] [INFO] [BloodDecal] Blood puddle created at (1750.975, 356.9409) (added to group)
+[06:33:08] [INFO] [BloodDecal] Blood puddle created at (1744.337, 387.8951) (added to group)
+[06:33:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1404.067, 397.3414), source=PLAYER (AKGL), range=1600, listeners=4
+[06:33:08] [ENEMY] [Enemy7] Heard gunshot at (1404.067, 397.3414), intensity=0.01, distance=463
+[06:33:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=3
+[06:33:08] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1404.067, 404.54556), shooter_id=143831076078, bullet_pos=(1850.3232, 282.41306)
+[06:33:08] [INFO] [Bullet] Using shooter_position, distance=462,66724
+[06:33:08] [INFO] [Bullet] Distance to wall: 462,66724 (31,503864% of viewport)
+[06:33:08] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[06:33:08] [INFO] [BloodDecal] Blood puddle created at (1750.204, 385.2996) (added to group)
+[06:33:08] [INFO] [BloodDecal] Blood puddle created at (1760.032, 381.7855) (added to group)
+[06:33:08] [INFO] [BloodDecal] Blood puddle created at (1800.926, 354.3101) (added to group)
+[06:33:08] [INFO] [BloodDecal] Blood puddle created at (1821.65, 362.685) (added to group)
+[06:33:08] [INFO] [BloodDecal] Blood puddle created at (1825.255, 415.9617) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1805.057, 419.8514) (added to group)
+[06:33:09] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1404.067, 397.34143), shooter_id=143831076078, bullet_pos=(1854.7074, 292.5373)
+[06:33:09] [INFO] [Bullet] Using shooter_position, distance=462,6669
+[06:33:09] [INFO] [Bullet] Distance to wall: 462,6669 (31,503841% of viewport)
+[06:33:09] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[06:33:09] [INFO] [Bullet] Starting wall penetration at (1854.7074, 292.5373)
+[06:33:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:09] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[06:33:09] [INFO] [Bullet] Exiting penetration at (1895.9403, 282.94788) after traveling 37,333336 pixels through wall
+[06:33:09] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[06:33:09] [ENEMY] [Grenadier] Ragdoll activated
+[06:33:09] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1817.482, 426.5695) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1788.856, 402.1082) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1842.863, 435.102) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1870.439, 341.1187) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1816.435, 462.2852) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1796.251, 454.4775) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1855.496, 379.4633) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1809.017, 428.7148) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1903.784, 355.452) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1907.835, 382.1169) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1895.562, 367.0005) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1874.817, 465.5441) (added to group)
+[06:33:09] [ENEMY] [Enemy6] Ragdoll activated
+[06:33:09] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1920.538, 397.0007) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1870.444, 399.8924) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (2001.349, 399.1886) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1964.282, 374.0195) (added to group)
+[06:33:09] [INFO] [ReplayManager] Recording frame 960 (14,2s): player_valid=True, enemies=10
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1979.113, 437.5098) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1902.498, 363.0011) (added to group)
+[06:33:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (2001.284, 481.4513) (added to group)
+[06:33:09] [INFO] [BloodDecal] Blood puddle created at (1911.447, 376.2354) (added to group)
+[06:33:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[06:33:10] [ENEMY] [Grenadier] Death animation completed
+[06:33:10] [INFO] [ReplayManager] Recording frame 1020 (15,0s): player_valid=True, enemies=10
+[06:33:10] [ENEMY] [Enemy6] Death animation completed
+[06:33:10] [INFO] ------------------------------------------------------------
+[06:33:10] [INFO] GAME LOG ENDED: 2026-03-17T06:33:10
+[06:33:10] [INFO] ============================================================

@@ -1,0 +1,44 @@
+8abf2a3d Revert "Initial commit with task details"
+cac9e301 docs: add game_log_20260317_101421.txt and analysis of round 4 test (Issue #959)
+15267fc3 Initial commit with task details
+910694dd fix: absorb all explosion damage when Armored Skin triggers (Issue #1095)
+e48c36e5 fix: convert RpgRocket to RigidBody2D with linear_velocity (Issue #583)
+fa171306 Merge pull request #1013 from konard/issue-809-a3b91a0ec33d
+87ab7fb9 Initial commit with task details
+e5f1cb0e Merge pull request #1046 from konard/issue-1045-f828e39993bd
+bccb73b3 fix: set rocket direction as property before add_child (fix rocket not flying, Issue #583)
+67d839a8 Revert "Initial commit with task details"
+2b9c30f8 fix: open passage in both walls when charge placed at corner (#1093)
+bbbdf8cd Merge pull request #1086 from konard/issue-1085-c0fe0f43e613
+7382b1ba fix: remove machine gunner from Building map, add PKM sprite and enemy spawner (Issue #1033)
+48ad1a92 fix(issue-809): remove duplicate variable/function declarations in pause_menu.gd
+adcc15ba Merge remote-tracking branch 'upstream/main' into issue-809-a3b91a0ec33d
+56f13f67 Initial commit with task details
+34ab1e88 Merge pull request #1089 from konard/issue-1087-9a424f751569
+8a2afa06 fix: use call_deferred for rocket launch to fix rocket not flying in exports (Issue #583)
+aa67350d docs: update case study with second game log and double-trigger analysis (Issue #1045)
+172c2f15 Merge main into branch, fix ArmoredSkin double-trigger and damage absorption (Issue #1045)
+commit 2b9c30f8ab2e23fab55852de4002eda71e765dd6
+Author: konard <drakonard@gmail.com>
+Date:   Tue Mar 17 07:06:05 2026 +0000
+
+    fix: open passage in both walls when charge placed at corner (#1093)
+    
+    When a breaching charge is placed at the corner between two walls, only
+    one wall's collision was opened on detonation, leaving the corner blocked.
+    
+    - Replace _find_nearest_wall_with_hit() (returns 1 wall) with
+      _find_walls_with_hits() (returns all unique walls within PLACEMENT_RADIUS,
+      sorted nearest-first)
+    - Change _charged_wall: Node → _charged_walls: Array to store multiple walls
+    - Update try_place_charge() to store all found wall results
+    - Update detonate() to call _open_wall_passage() for each charged wall
+    - Add unit tests for corner placement (two walls stored, both opened)
+    
+    Closes #1093
+    
+    Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+ scripts/effects/breaching_charges_effect.gd |  94 +++++++++++++++----------
+ tests/unit/test_breaching_charges_effect.gd | 103 +++++++++++++++++++++++++---
+ 2 files changed, 152 insertions(+), 45 deletions(-)

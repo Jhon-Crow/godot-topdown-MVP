@@ -11,8 +11,7 @@ var _player: Node2D = null
 var _initial_enemy_count: int = 0
 var _current_enemy_count: int = 0
 var _game_over_shown: bool = false
-var _kills_label: Label = null
-var _accuracy_label: Label = null
+var _difficulty_label: Label = null
 var _magazines_label: Label = null
 var _saturation_overlay: ColorRect = null
 var _combo_label: Label = null
@@ -24,6 +23,9 @@ const SATURATION_DURATION: float = 0.15
 const SATURATION_INTENSITY: float = 0.25
 var _enemies: Array = []
 var _replay_manager: Node = null
+
+## Weapon hints component instance (Issue #809).
+var _weapon_hints_component: Node = null
 
 
 func _get_or_create_replay_manager() -> Node:
@@ -53,6 +55,12 @@ func _ready() -> void:
 	_initialize_score_manager()
 	_setup_exit_zone()
 	_start_replay_recording()
+
+	# Setup weapon hints (Issue #809)
+	_setup_weapon_hints()
+
+	# Add sunlight source off-screen in the top-right corner (Issue #1234)
+	_setup_sunlight()
 
 
 func _initialize_score_manager() -> void:
@@ -106,10 +114,42 @@ func _setup_realistic_visibility() -> void:
 	_player.add_child(visibility_component)
 
 
+## Setup weapon hints component (Issue #809).
+## Shows weapon-specific tutorial hints when player uses a new weapon.
+func _setup_weapon_hints() -> void:
+	if _player == null:
+		return
+
+	var canvas_layer: Node = get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		push_warning("[BeachLevel] CanvasLayer node not found for weapon hints")
+		return
+
+	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
+	if hints_script == null:
+		push_warning("[BeachLevel] WeaponHintsComponent script not found")
+		return
+
+	_weapon_hints_component = Node.new()
+	_weapon_hints_component.name = "WeaponHintsComponent"
+	_weapon_hints_component.set_script(hints_script)
+	add_child(_weapon_hints_component)
+
+	# Setup the component with player and CanvasLayer references (Issue #809)
+	if _weapon_hints_component.has_method("setup"):
+		_weapon_hints_component.setup(_player, canvas_layer)
+		print("[BeachLevel] Weapon hints component added and setup")
+
+
 func _process(_delta: float) -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("update_enemy_positions"):
 		score_manager.update_enemy_positions(_enemies)
+	# Issue #959: Re-check level completion when a retaliating pacifist finishes retaliation.
+	if _current_enemy_count <= 0 and not _level_cleared and not _has_retaliating_pacifists():
+		print("All enemies eliminated or pacified! Level cleared!")
+		_level_cleared = true
+		call_deferred("_activate_exit_zone")
 
 
 func _on_combo_changed(combo: int, points: int) -> void:
@@ -135,9 +175,23 @@ func _get_combo_color(combo: int) -> Color:
 
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
-	if nav_region:
-		nav_region.navigation_polygon.agent_radius = 24.0
-		nav_region.bake_navigation_polygon(false)
+	if nav_region == null:
+		return
+	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
+	if nav_poly == null:
+		return
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
+	nav_poly.agent_radius = 24.0
+	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
+	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
+	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# Issue #1289: push updated polygon back into the NavigationServer's live map.
+	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 
 
 func _setup_player_tracking() -> void:
@@ -268,6 +322,9 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+	# Reapply auto-reload magazine size reduction if active (Issue #1067).
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
 ## Called when player ammo changes (GDScript Player).
@@ -308,7 +365,9 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 
 ## Called when player runs out of ammo in current magazine.
 func _on_player_ammo_depleted() -> void:
-	_broadcast_player_ammo_empty(true)
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
@@ -362,6 +421,9 @@ func _on_player_died() -> void:
 	_show_death_message()
 	if GameManager:
 		await get_tree().create_timer(0.5).timeout
+		# Issue #1334: After await, verify this node is still valid (scene may have reloaded)
+		if not is_instance_valid(self):
+			return
 		GameManager.on_player_death()
 
 
@@ -386,6 +448,9 @@ func _setup_enemy_tracking() -> void:
 		# Track when enemy is hit for accuracy
 		if child.has_signal("hit"):
 			child.hit.connect(_on_enemy_hit)
+		# Issue #959: Connect to pacifist signal - pacifists count as killed for level completion
+		if child.has_signal("became_pacifist"):
+			child.became_pacifist.connect(_on_enemy_became_pacifist.bind(child))
 
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
@@ -396,27 +461,16 @@ func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null: return
 
-	# Create kills label
-	_kills_label = Label.new()
-	_kills_label.name = "KillsLabel"
-	_kills_label.text = "Kills: 0"
-	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left = 10
-	_kills_label.offset_top = 45
-	_kills_label.offset_right = 200
-	_kills_label.offset_bottom = 75
-	ui.add_child(_kills_label)
-
-	# Create accuracy label
-	_accuracy_label = Label.new()
-	_accuracy_label.name = "AccuracyLabel"
-	_accuracy_label.text = "Accuracy: 0%"
-	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left = 10
-	_accuracy_label.offset_top = 75
-	_accuracy_label.offset_right = 200
-	_accuracy_label.offset_bottom = 105
-	ui.add_child(_accuracy_label)
+	# Create difficulty label
+	_difficulty_label = Label.new()
+	_difficulty_label.name = "DifficultyLabel"
+	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_difficulty_label.offset_left = 10
+	_difficulty_label.offset_top = 45
+	_difficulty_label.offset_right = 200
+	_difficulty_label.offset_bottom = 75
+	ui.add_child(_difficulty_label)
 
 	# Create magazines label
 	_magazines_label = Label.new()
@@ -463,20 +517,44 @@ func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
 
-	# Register kill with GameManager
-	if GameManager:
-		GameManager.register_kill()
-
-	if _current_enemy_count <= 0:
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		_level_cleared = true
 		call_deferred("_activate_exit_zone")
 
 
 ## Called when an enemy dies with special kill information.
-func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
+func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
+	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
+	if GameManager:
+		GameManager.register_kill(is_player_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
+
+
+## Issue #959: Called when an enemy becomes a pacifist via loudspeaker.
+## Pacifists count as "killed" for level completion purposes.
+func _on_enemy_became_pacifist(enemy: Node) -> void:
+	_current_enemy_count -= 1
+	# Issue #959: Do not count pacifist again when it dies - already counted here
+	if is_instance_valid(enemy) and enemy.died.is_connected(_on_enemy_died):
+		enemy.died.disconnect(_on_enemy_died)
+	_update_enemy_count_label()
+	print("[Beach] Enemy became pacifist - counting as eliminated")
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
+		print("All enemies eliminated or pacified! Level cleared!")
+		_level_cleared = true
+		call_deferred("_activate_exit_zone")
+
+
+## Returns true if any enemy is a pacifist who is currently retaliating (attacking the player).
+## Level should not complete while any enemy is still a threat (Issue #959).
+func _has_retaliating_pacifists() -> bool:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and enemy.has_method("is_alive") and enemy.is_alive():
+			if enemy.has_method("is_retaliating") and enemy.is_retaliating():
+				return true
+	return false
 
 
 ## Called when an enemy is hit (for accuracy tracking).
@@ -504,6 +582,10 @@ func _complete_level_with_score() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):
 		var score_data: Dictionary = score_manager.complete_level()
+		# Notify loudspeaker progression (Issue #959)
+		var aim: Node = get_node_or_null("/root/ActiveItemManager")
+		if aim and aim.has_method("notify_level_completed"):
+			aim.notify_level_completed(score_data.get("kills", 0) > 0)
 		_show_score_screen(score_data)
 	else:
 		_show_victory_message()
@@ -599,11 +681,8 @@ func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
 
-	if _kills_label:
-		_kills_label.text = "Kills: %d" % GameManager.kills
-
-	if _accuracy_label:
-		_accuracy_label.text = "Accuracy: %.1f%%" % GameManager.get_accuracy()
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 
 
 ## Update the ammo label with color coding (simple format for GDScript Player).
@@ -903,6 +982,9 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
 		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
+		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 	]
 	var current_scene_path: String = get_tree().current_scene.scene_file_path
 	for i in range(level_paths.size()):
@@ -978,9 +1060,31 @@ func _on_armory_button_pressed() -> void:
 		# Issue #1006: Mark as opened from score screen to prevent level restart on Apply
 		armory_menu.opened_from_score_screen = true
 		get_tree().root.add_child(armory_menu)
-		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+		armory_menu.back_pressed.connect(func():
+			armory_menu.queue_free()
+			# Issue #1050: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
+		armory_menu.apply_pressed_from_score_screen.connect(func():
+			# Issue #1050: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
 	else:
 		_log_to_file("ERROR: Could not load armory menu scene")
+
+
+## Issue #1050: Remove gold highlight from the ArmoryButton when no items remain to unlock.
+## The button stays visible but loses its gold styling and reverts to plain "Armory" text.
+func _remove_armory_button_gold_style() -> void:
+	var armory_btn := get_tree().current_scene.find_child("ArmoryButton", true, false)
+	if armory_btn:
+		armory_btn.text = "Armory"
+		armory_btn.remove_theme_color_override("font_color")
+		armory_btn.remove_theme_stylebox_override("normal")
 
 
 ## Setup the weapon based on GameManager's selected weapon.
@@ -1172,6 +1276,61 @@ func _disable_player_controls() -> void:
 		_player.velocity = Vector2.ZERO
 
 	_log_to_file("Player controls disabled (level completed)")
+
+
+## Place a single sunlight source off-screen in the top-right corner.
+## The light simulates sunlight illuminating the whole beach map.
+## Obstacles with LightOccluder2D (rocks, huts) will cast shadows.
+## Position (2700, -200) is outside the map frame (map bounds: 64–2464 x, 64–2064 y).
+func _setup_sunlight() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	var sun_node := Node2D.new()
+	sun_node.name = "Sunlight"
+	# Off-screen top-right corner — outside the visible map frame.
+	sun_node.position = Vector2(2700, -200)
+	environment.add_child(sun_node)
+
+	var light := PointLight2D.new()
+	light.name = "SunPointLight"
+	# Bright yellow sunlight color — more yellow per user feedback.
+	light.color = Color(1.0, 0.95, 0.5, 1.0)
+	# Bright but not overwhelming — keeps the outdoor daylight feel.
+	light.energy = 1.2
+	light.shadow_enabled = true
+	# SHADOW_FILTER_NONE gives crisp single shadows without PCF5's ghost duplicates.
+	# (Godot 4.3 valid values: NONE=0, PCF5=1, PCF13=2 — PCF3 does not exist.)
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_NONE
+	# Slight warm tint in shadows for a realistic sun effect.
+	light.shadow_color = Color(0.0, 0.0, 0.0, 0.5)
+	light.texture = _create_sunlight_texture()
+	# Scale large enough to cover the entire map from the off-screen position.
+	# The farthest corner (bottom-left ~64,2064) is ~3500 px away; scale 14 * 256 = 3584 px.
+	light.texture_scale = 14.0
+	sun_node.add_child(light)
+
+	print("[BeachLevel] Sunlight placed off-screen at top-right corner (Issue #1234)")
+
+
+## Create a smooth radial gradient texture for the sunlight.
+## Uses power-law falloff so the light fades naturally with no hard edge.
+func _create_sunlight_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # 256 px
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)  # 0 = centre, 1 = edge
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+
+	return ImageTexture.create_from_image(image)
 
 
 func _log_to_file(message: String) -> void:

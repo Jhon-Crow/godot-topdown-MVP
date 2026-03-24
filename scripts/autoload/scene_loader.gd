@@ -32,11 +32,12 @@ var _load_complete_pending: bool = false
 var _loaded_scene_pending: PackedScene = null
 
 ## Log a message to the file logger (consistent with other autoloads).
+## Issue #1293: print() fallback gated to debug builds to avoid FPS drops.
 func _log(msg: String) -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("log_info"):
 		file_logger.log_info("[SceneLoader] " + msg)
-	else:
+	elif OS.is_debug_build():
 		print("[SceneLoader] " + msg)
 
 

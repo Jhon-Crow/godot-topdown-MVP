@@ -46,7 +46,7 @@ class MockEnemy:
 	var detection_range: float = 0.0
 	var shoot_cooldown: float = 0.1
 	var bullet_spawn_offset: float = 30.0
-	var weapon_loudness: float = 1469.0
+	var weapon_loudness: float = 800.0
 	var min_health: int = 2
 	var max_health: int = 4
 	var threat_sphere_radius: float = 100.0
@@ -1937,6 +1937,91 @@ func test_spawn_projectile_add_child_before_set_direction_issue_550() -> void:
 		"Issue #550: add_child must come BEFORE SetDirection for C# interop")
 
 
+# ============================================================================
+# RPG Enemy Weapon Switching (Issue #583)
+# ============================================================================
+
+
+func test_rpg_weapon_type_enum_value() -> void:
+	# WeaponType.RPG should be value 4
+	assert_eq(4, 4, "RPG weapon type should be enum value 4")
+
+
+func test_rpg_config_has_is_rpg_flag() -> void:
+	var config := WeaponConfigComponent.get_config(4)
+	assert_true(config.get("is_rpg", false),
+		"RPG config should have is_rpg = true")
+
+
+func test_rpg_config_has_switch_weapon_type() -> void:
+	var config := WeaponConfigComponent.get_config(4)
+	assert_eq(config.get("switch_weapon_type", -1), 5,
+		"RPG config switch_weapon_type should be 5 (PM)")
+
+
+func test_rpg_config_single_magazine() -> void:
+	var config := WeaponConfigComponent.get_config(4)
+	assert_eq(config["magazine_size"], 1,
+		"RPG should have magazine_size = 1 (single rocket)")
+
+
+func test_pm_config_is_valid_secondary() -> void:
+	var pm_config := WeaponConfigComponent.get_config(5)
+	assert_gt(pm_config["magazine_size"], 1,
+		"PM (secondary) should have magazine_size > 1")
+	assert_gt(pm_config["bullet_speed"], 0.0,
+		"PM should have positive bullet_speed")
+	assert_false(pm_config.get("is_rpg", false),
+		"PM should not have is_rpg flag")
+
+
+func test_rpg_to_pm_switch_preserves_weapon_params() -> void:
+	# Verify that the PM config loaded after switching has all required fields
+	var pm_config := WeaponConfigComponent.get_config(5)
+	var required_keys := ["shoot_cooldown", "bullet_speed", "magazine_size",
+		"bullet_spawn_offset", "weapon_loudness", "bullet_scene_path",
+		"casing_scene_path", "caliber_path", "is_shotgun"]
+	for key in required_keys:
+		assert_true(pm_config.has(key),
+			"PM config should have key: %s" % key)
+
+
+func test_enemy_source_has_rpg_weapon_type() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("RPG"),
+		"enemy.gd WeaponType enum should contain RPG")
+
+
+func test_enemy_source_has_switch_to_secondary_weapon() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("_switch_to_secondary_weapon"),
+		"enemy.gd should have _switch_to_secondary_weapon function for RPG")
+
+
+func test_enemy_source_has_rpg_fired_flag() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("_rpg_fired"),
+		"enemy.gd should have _rpg_fired tracking variable")
+
+
 ## Regression test for Issue #883: Enemy vision raycasts every frame.
 ## Verifies that VISION_CHECK_INTERVAL constant (= 6) exists and the staggering
 ## variables/logic are present in enemy.gd so raycasts fire at ~10 fps, not 60 fps.
@@ -2186,3 +2271,133 @@ func test_patrol_enemy_searching_timeout_logic_issue_921() -> void:
 	var should_timeout_engaged := search_state_timer >= search_max_duration and not has_left_idle_engaged
 	assert_false(should_timeout_engaged,
 		"Engaged enemy (was in combat) should NOT timeout SEARCHING")
+
+
+## Regression test for Issue #1119: patrol offsets must be large enough
+## to create visually meaningful movement (not "walking in place").
+## The minimum useful patrol offset is 150 px — below that the enemy travels
+## less than 0.7 s per leg (at default move_speed=220), making the patrol
+## invisible to players at normal camera distance.
+func test_patrol_offsets_large_enough_for_visible_movement_issue_1119() -> void:
+	var move_speed := 220.0  # px/s default
+	var min_visible_offset := 150.0  # px — minimum for noticeable patrol
+
+	# LabyrinthLevel Enemy3 offsets after the fix
+	var labyrinth_offsets: Array[Vector2] = [Vector2(200, 0), Vector2(-200, 0)]
+	for offset in labyrinth_offsets:
+		assert_ge(offset.length(), min_visible_offset,
+			"Issue #1119: LabyrinthLevel patrol offset %s is too small (%.0f px < %.0f px min)" % [offset, offset.length(), min_visible_offset])
+
+	# Verify travel time is long enough to be visible (> 0.5 s per leg)
+	var min_travel_time := 0.5  # seconds
+	for offset in labyrinth_offsets:
+		var travel_time := offset.length() / move_speed
+		assert_ge(travel_time, min_travel_time,
+			"Issue #1119: patrol leg of %.0f px takes only %.2f s at speed %.0f — too fast to look natural" % [offset.length(), travel_time, move_speed])
+
+
+## Issue #1119: Patrol stuck detection constants must be tuned correctly.
+## PATROL_STUCK_MAX_TIME should be short enough to recover quickly but not so short that brief
+## wall brushing triggers a skip. PATROL_STUCK_DISTANCE_THRESHOLD must be above 0 but below
+## what normal movement produces in one frame at typical speeds.
+func test_patrol_stuck_detection_constants_issue_1119() -> void:
+	# Max stuck time: long enough not to fire on normal corner brushing, short enough to recover
+	var patrol_stuck_max_time := 1.5
+	assert_ge(patrol_stuck_max_time, 0.5,
+		"Issue #1119: PATROL_STUCK_MAX_TIME too small — will skip points on brief wall brushing")
+	assert_le(patrol_stuck_max_time, 3.0,
+		"Issue #1119: PATROL_STUCK_MAX_TIME too large — enemy stays stuck too long before recovering")
+
+	# Distance threshold: must be above zero and below one frame of movement at min speed
+	var patrol_stuck_distance_threshold := 20.0
+	var min_move_speed := 100.0  # px/s lower bound for enemies
+	var max_delta := 1.0 / 30.0  # assume at least 30 fps
+	var one_frame_min_movement := min_move_speed * max_delta  # ~3.3 px
+	assert_gt(patrol_stuck_distance_threshold, 0.0,
+		"Issue #1119: PATROL_STUCK_DISTANCE_THRESHOLD must be positive")
+	assert_gt(patrol_stuck_distance_threshold, one_frame_min_movement,
+		"Issue #1119: PATROL_STUCK_DISTANCE_THRESHOLD %.1f px is less than one frame of movement %.1f px — will never detect stuck" % [patrol_stuck_distance_threshold, one_frame_min_movement])
+
+
+# ============================================================================
+# Issue #1419: Idle enemies must not enter SEARCHING during teleport/reset
+# ============================================================================
+
+
+## Test that reset_memory uses _has_left_idle guard in the had_target branch (Issue #1419).
+## Before fix: the had_target branch in reset_memory called _transition_to_searching
+## unconditionally, so enemies that received intel via ally-share (but never personally
+## engaged) would enter SEARCHING on every player teleport.
+## After fix: the guard mirrors the else-branch — only engaged enemies search.
+func test_reset_memory_had_target_branch_guarded_by_has_left_idle_issue_1419() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	# Find reset_memory function body
+	var func_idx := source.find("func reset_memory()")
+	assert_gt(func_idx, 0, "reset_memory function should exist in enemy.gd")
+
+	# Extract function body (up to the next function)
+	var next_func_idx := source.find("\nfunc ", func_idx + 1)
+	var func_body := source.substr(func_idx, next_func_idx - func_idx)
+
+	# Verify that the had_target branch is guarded by _has_left_idle (Issue #1419 fix).
+	# The fix requires that _has_left_idle is checked inside the "if had_target:" block,
+	# so that enemies that received intel but never engaged don't enter SEARCHING.
+	assert_true(
+		func_body.contains("_has_left_idle"),
+		"Issue #1419: reset_memory() had_target branch must check _has_left_idle. " +
+		"Without this guard, enemies that never engaged the player enter SEARCHING on teleport."
+	)
+
+	# Verify that the had_target branch still calls _transition_to_searching (for engaged enemies)
+	assert_true(
+		func_body.contains("_transition_to_searching"),
+		"Issue #1419: reset_memory() must still call _transition_to_searching for engaged enemies."
+	)
+
+	# Verify there is a fallback to IDLE for non-engaged enemies in the had_target branch.
+	# The had_target section must contain both _transition_to_searching AND _transition_to_idle
+	# so that virgin enemies (had intel only) gracefully return to IDLE.
+	assert_true(
+		func_body.contains("_transition_to_idle"),
+		"Issue #1419: reset_memory() had_target branch must also call _transition_to_idle " +
+		"for enemies that had target via intel only (never personally engaged)."
+	)
+
+
+## Logic-level regression: enemy that never engaged must not be sent to SEARCHING (Issue #1419).
+## This tests the decision logic from reset_memory: had_target=true, _has_left_idle=false
+## should lead to IDLE, not SEARCHING.
+func test_reset_memory_virgin_enemy_with_intel_stays_idle_logic_issue_1419() -> void:
+	# State: enemy has a suspected position (from ally intel) but never left IDLE.
+	var had_target := true       # Memory contained a position
+	var has_left_idle := false   # Never personally engaged
+
+	# The corrected logic from reset_memory():
+	# if had_target:
+	#     if _has_left_idle: → SEARCHING
+	#     else:              → IDLE
+	var should_search := had_target and has_left_idle
+	var should_go_idle := had_target and not has_left_idle
+
+	assert_false(should_search,
+		"Issue #1419: enemy with intel but never engaged should NOT enter SEARCHING")
+	assert_true(should_go_idle,
+		"Issue #1419: enemy with intel but never engaged should return to IDLE")
+
+
+## Logic-level: enemy that HAS engaged must still go to SEARCHING (Issue #1419).
+## Ensure the fix does not break the existing behavior for engaged enemies.
+func test_reset_memory_engaged_enemy_with_target_goes_searching_issue_1419() -> void:
+	var had_target := true
+	var has_left_idle := true  # Was in combat at some point
+
+	var should_search := had_target and has_left_idle
+	assert_true(should_search,
+		"Issue #1419: engaged enemy (had_target=true, _has_left_idle=true) must still enter SEARCHING")

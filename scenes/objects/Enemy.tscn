@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://cx5m8np6u3bwd"]
+[gd_scene load_steps=15 format=3 uid="uid://cx5m8np6u3bwd"]
 
 [ext_resource type="Script" path="res://scripts/objects/enemy.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="2_hit_area"]
@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_right_arm.png" id="7_right_arm"]
 [ext_resource type="PackedScene" uid="uid://casing_scene" path="res://scenes/effects/Casing.tscn" id="8_casing"]
 [ext_resource type="Script" path="res://scripts/components/bloody_feet_component.gd" id="9_bloody_feet"]
+[ext_resource type="Texture2D" path="res://assets/sprites/weapons/force_field_icon.png" id="10_force_field_icon"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_enemy"]
 radius = 24.0
@@ -21,7 +22,7 @@ radius = 28.0
 
 [node name="Enemy" type="CharacterBody2D" groups=["enemies"]]
 collision_layer = 2
-collision_mask = 4
+collision_mask = 6
 script = ExtResource("1_enemy")
 
 [node name="EnemyModel" type="Node2D" parent="."]
@@ -54,6 +55,14 @@ z_index = 2
 texture = ExtResource("3_rifle_sprite")
 offset = Vector2(20, 0)
 
+[node name="ShieldIcon" type="Sprite2D" parent="EnemyModel/WeaponMount"]
+visible = false
+z_index = 5
+scale = Vector2(0.12, 0.12)
+modulate = Color(0.4, 0.7, 1.0, 1.0)
+texture = ExtResource("10_force_field_icon")
+offset = Vector2(8, 0)
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_enemy")
 
@@ -70,13 +79,13 @@ script = ExtResource("2_hit_area")
 shape = SubResource("CircleShape2D_enemy")
 
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
-path_desired_distance = 4.0
+path_desired_distance = 40.0
 target_desired_distance = 10.0
 avoidance_enabled = true
 radius = 24.0
 neighbor_distance = 100.0
-max_neighbors = 5
-time_horizon_agents = 1.0
+max_neighbors = 10
+time_horizon_agents = 0.8
 time_horizon_obstacles = 1.0
 max_speed = 320.0
 debug_enabled = false

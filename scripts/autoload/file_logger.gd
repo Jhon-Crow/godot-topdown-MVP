@@ -103,7 +103,27 @@ func _log_startup_info() -> void:
 	log_info("Debug build: %s" % OS.is_debug_build())
 	log_info("Engine version: %s" % Engine.get_version_info().get("string", "unknown"))
 	log_info("Project: %s" % ProjectSettings.get_setting("application/config/name", "unknown"))
+	_log_build_info()
 	log_info("-" .repeat(60))
+
+
+## Log build information (branch, commit, date) from build_info.cfg if it exists.
+func _log_build_info() -> void:
+	const BUILD_INFO_PATH: String = "res://build_info.cfg"
+	if not ResourceLoader.exists(BUILD_INFO_PATH):
+		log_info("Build info: not available (build_info.cfg not found)")
+		return
+	var cfg := ConfigFile.new()
+	var err := cfg.load(BUILD_INFO_PATH)
+	if err != OK:
+		log_info("Build info: not available (failed to load build_info.cfg)")
+		return
+	var branch: String = cfg.get_value("build", "branch", "unknown")
+	var commit: String = cfg.get_value("build", "commit", "unknown")
+	var date: String = cfg.get_value("build", "date", "unknown")
+	log_info("Build branch: %s" % branch)
+	log_info("Build commit: %s" % commit)
+	log_info("Build date: %s" % date)
 
 
 ## Close the log file properly.
@@ -120,6 +140,10 @@ func _close_log_file() -> void:
 ## Write a message to the log file with timestamp.
 ## Writes are batched and flushed every FLUSH_INTERVAL seconds (Issue #885).
 ## ERROR-level messages bypass the buffer and flush immediately.
+## Issue #1293: print() is gated to debug builds only. In release/export builds,
+## stdout writes cause variable FPS drops (1–9 fps) depending on how the OS
+## handles the unconnected stdout pipe. With 40–70 log messages/second the
+## overhead is significant and non-deterministic across launches.
 func _write_log(level: String, message: String) -> void:
 	if not _logging_enabled:
 		return
@@ -127,8 +151,9 @@ func _write_log(level: String, message: String) -> void:
 	var timestamp := Time.get_time_string_from_system()
 	var log_line := "[%s] [%s] %s" % [timestamp, level, message]
 
-	# Also print to console
-	print(log_line)
+	# Only print to console in debug builds to avoid FPS drops (Issue #1293).
+	if OS.is_debug_build():
+		print(log_line)
 
 	if _log_file != null:
 		_write_buffer.append(log_line)

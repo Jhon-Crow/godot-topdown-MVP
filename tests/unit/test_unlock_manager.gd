@@ -5,6 +5,7 @@ extends GutTest
 ## logic works as expected.  Items are NOT auto-unlocked when conditions are
 ## met — the player must hold LMB on the gold slot in the armory instead.
 ## Issue #894: добавь систему анлоков (Add an unlock system)
+## Issue #1000: update unlock system
 
 
 # ============================================================================
@@ -25,6 +26,9 @@ class MockProgressManager:
 		var key: String = "%s:%s" % [level_path, difficulty_name]
 		_progress[key] = rank
 
+	func get_all_progress() -> Dictionary:
+		return _progress.duplicate()
+
 	func fire_progress_updated(level_path: String, difficulty_name: String) -> void:
 		progress_updated.emit(level_path, difficulty_name)
 
@@ -32,13 +36,13 @@ class MockProgressManager:
 class MockGameManager:
 	var unlocked_weapons: Dictionary = {
 		"makarov_pm": true,
-		"m16": true,             # No condition — freely available from start
-		"shotgun": false,        # Condition: Building D+
-		"mini_uzi": false,       # Condition: Labyrinth D+
-		"silenced_pistol": true, # No condition — freely available from start
-		"sniper": false,         # Condition: Polygon D+
-		"revolver": false,       # Condition: Castle F+
-		"ak_gl": true            # No condition — freely available from start
+		"m16": false,             # Condition: Beach D+ (Issue #1053 req.3)
+		"shotgun": false,         # Condition: Building D+
+		"mini_uzi": false,        # Condition: Labyrinth D+
+		"silenced_pistol": false, # Condition: Building S OR Docks D+ (Issue #1000)
+		"sniper": false,          # Condition: Polygon D+
+		"revolver": false,        # Condition: Castle F+
+		"ak_gl": true             # No condition — freely available from start (Issue #1053)
 	}
 
 	var unlocked_signals: Array = []
@@ -56,14 +60,23 @@ class MockActiveItemManager:
 	var unlocked_active_items: Dictionary = {
 		0: true,   # NONE — always unlocked
 		1: false,  # FLASHLIGHT — condition: Polygon D+
-		2: true,   # HOMING_BULLETS — no condition, freely available from start
-		3: false,  # TELEPORT_BRACERS — condition: Castle F+
+		2: false,  # HOMING_BULLETS — condition: Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S (Issue #1000)
+		3: false,  # TELEPORT_BRACERS — condition: Double Corridor D+ (Issue #1000)
 		4: true,   # BFF_PENDANT — no condition, freely available from start (Issue #674)
-		5: true,   # INVISIBILITY_SUIT — no condition, freely available from start
+		5: false,  # INVISIBILITY_SUIT — condition: Beach S + Building S (Issue #1000)
 		6: true,   # BREAKER_BULLETS — no condition, freely available from start
 		7: true,   # FORCE_FIELD — no condition, freely available from start
-		8: true,   # TRAJECTORY_GLASSES — no condition, freely available from start (Issue #744)
-		9: true    # LASER_SIGHT — no condition, freely available from start (Issue #947)
+		8: false,  # TRAJECTORY_GLASSES — condition: City D+ (Issue #1053 req.1)
+		9: true,   # LASER_SIGHT — no condition, freely available from start (Issue #947)
+		10: true,  # EXTENDED_MAGAZINE — no condition, freely available from start (Issue #1065)
+		11: true,  # LOUDSPEAKER — no condition, freely available from start (Issue #959)
+		12: true,  # BREACHING_CHARGES — no condition, freely available from start (Issue #1043)
+		13: true,  # ARMORED_SKIN — no condition, freely available from start (Issue #1045)
+		14: true,  # AUTO_RELOAD — no condition, freely available from start (Issue #1067)
+		15: true,  # DRILLING_BULLETS — no condition, freely available from start (Issue #751)
+		16: true,  # RECOIL_COMPENSATOR — no condition, freely available from start (Issue #1073)
+		17: true,  # COMBAT_DISPOSITION — no condition, freely available from start (Issue #1047)
+		18: false  # EXPERIMENTAL_SAMPLE — condition: one level on every difficulty (Issue #1426)
 	}
 
 	var unlocked_signals: Array = []
@@ -80,8 +93,8 @@ class MockActiveItemManager:
 class MockGrenadeManager:
 	var unlocked_grenades: Dictionary = {
 		0: true,  # FLASHBANG — always unlocked
-		1: true,  # FRAG — no condition, freely available from start
-		2: true,  # DEFENSIVE — no condition, freely available from start
+		1: false, # FRAG — condition: Building D+ (Issue #1000)
+		2: false, # DEFENSIVE — condition: Beach S (Issue #1000)
 		3: true   # AGGRESSION_GAS — no condition, freely available from start
 	}
 
@@ -115,6 +128,12 @@ class TestableUnlockManager extends Node:
 		"res://scenes/levels/BuildingLevel.tscn": {
 			"min_rank": "D",
 			"weapons": ["shotgun"],
+			"grenades": [1],    # FRAG = 1
+			"active_items": []
+		},
+		"res://scenes/levels/BuildingLevel.tscn:S": {
+			"min_rank": "S",
+			"weapons": ["silenced_pistol"],
 			"grenades": [],
 			"active_items": []
 		},
@@ -128,9 +147,72 @@ class TestableUnlockManager extends Node:
 			"min_rank": "F",
 			"weapons": ["revolver"],
 			"grenades": [],
+			"active_items": []
+		},
+		"res://scenes/levels/RevolverLevel.tscn": {
+			"min_rank": "D",
+			"weapons": [],
+			"grenades": [],
 			"active_items": [3]  # TELEPORT_BRACERS
+		},
+		"res://scenes/levels/CityLevel.tscn": {
+			"min_rank": "D",
+			"weapons": [],
+			"grenades": [],
+			"active_items": [8]  # TRAJECTORY_GLASSES (Issue #1053 req.1)
+		},
+		"res://scenes/levels/BeachLevel.tscn": {
+			"min_rank": "D",
+			"weapons": ["m16"],  # Issue #1053 req.3: changed from ak_gl to m16
+			"grenades": [],
+			"active_items": []
+		},
+		"res://scenes/levels/BeachLevel.tscn:S": {
+			"min_rank": "S",
+			"weapons": [],
+			"grenades": [2],    # DEFENSIVE = 2
+			"active_items": []
+		},
+		"res://scenes/levels/DocksLevel.tscn": {
+			"min_rank": "D",
+			"weapons": ["silenced_pistol"],
+			"grenades": [],
+			"active_items": []
 		}
 	}
+
+	const MULTI_UNLOCK_CONDITIONS: Array[Dictionary] = [
+		{
+			"levels": [
+				{"path": "res://scenes/levels/BeachLevel.tscn", "min_rank": "S"},
+				{"path": "res://scenes/levels/BuildingLevel.tscn", "min_rank": "S"}
+			],
+			"weapons": [],
+			"grenades": [],
+			"active_items": [5]  # INVISIBILITY_SUIT
+		},
+		{
+			"levels": [
+				{"path": "res://scenes/levels/LabyrinthLevel.tscn", "min_rank": "S"},
+				{"path": "res://scenes/levels/BuildingLevel.tscn", "min_rank": "S"},
+				{"path": "res://scenes/levels/TestTier.tscn", "min_rank": "S"},
+				{"path": "res://scenes/levels/CastleLevel.tscn", "min_rank": "S"},
+				{"path": "res://scenes/levels/RevolverLevel.tscn", "min_rank": "S"}
+			],
+			"weapons": [],
+			"grenades": [],
+			"active_items": [2]  # HOMING_BULLETS
+		}
+	]
+
+	const ALL_DIFFICULTIES_UNLOCK_CONDITIONS: Array[Dictionary] = [
+		{
+			# Complete at least one level on each difficulty → unlock Experimental Sample (Issue #1426)
+			"weapons": [],
+			"grenades": [],
+			"active_items": [18]  # EXPERIMENTAL_SAMPLE
+		}
+	]
 
 	var mock_progress_manager: MockProgressManager
 	var mock_game_manager: MockGameManager
@@ -176,41 +258,107 @@ class TestableUnlockManager extends Node:
 			return not rank.is_empty()
 		return not _is_rank_better(min_rank, rank)
 
-	func is_level_condition_met(level_path: String) -> bool:
-		if level_path not in UNLOCK_CONDITIONS:
+	func _extract_scene_path(condition_key: String) -> String:
+		var last_colon: int = condition_key.rfind(":")
+		if last_colon > 0 and not condition_key.substr(0, last_colon).ends_with("//"):
+			var suffix: String = condition_key.substr(last_colon + 1)
+			if suffix in RANK_ORDER:
+				return condition_key.substr(0, last_colon)
+		return condition_key
+
+	func is_condition_key_met(condition_key: String) -> bool:
+		if condition_key not in UNLOCK_CONDITIONS:
 			return false
-		var condition: Dictionary = UNLOCK_CONDITIONS[level_path]
+		var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
 		var min_rank: String = condition.get("min_rank", "D")
-		var best_rank: String = _get_best_rank_any_difficulty(level_path)
+		var scene_path: String = _extract_scene_path(condition_key)
+		var best_rank: String = _get_best_rank_any_difficulty(scene_path)
 		return _is_rank_sufficient(best_rank, min_rank)
 
+	func is_level_condition_met(level_path: String) -> bool:
+		for condition_key in UNLOCK_CONDITIONS:
+			if _extract_scene_path(condition_key) == level_path:
+				if is_condition_key_met(condition_key):
+					return true
+		return false
+
+	func is_multi_condition_met(multi_condition: Dictionary) -> bool:
+		for level_entry in multi_condition.get("levels", []):
+			var path: String = level_entry.get("path", "")
+			var min_rank: String = level_entry.get("min_rank", "D")
+			var best_rank: String = _get_best_rank_any_difficulty(path)
+			if not _is_rank_sufficient(best_rank, min_rank):
+				return false
+		return true
+
+	func _get_all_difficulty_names() -> Array[String]:
+		return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
+
+	func is_all_difficulties_condition_met() -> bool:
+		if mock_progress_manager == null:
+			return false
+		var all_progress: Dictionary = mock_progress_manager.get_all_progress()
+		for difficulty_name in _get_all_difficulty_names():
+			var found: bool = false
+			for key in all_progress:
+				if key.ends_with(":" + difficulty_name):
+					found = true
+					break
+			if not found:
+				return false
+		return true
+
 	func is_weapon_condition_met(weapon_id: String) -> bool:
-		for level_path in UNLOCK_CONDITIONS:
-			var condition: Dictionary = UNLOCK_CONDITIONS[level_path]
+		for condition_key in UNLOCK_CONDITIONS:
+			var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
 			if weapon_id in condition.get("weapons", []):
-				if is_level_condition_met(level_path):
+				if is_condition_key_met(condition_key):
+					return true
+		for multi_condition in MULTI_UNLOCK_CONDITIONS:
+			if weapon_id in multi_condition.get("weapons", []):
+				if is_multi_condition_met(multi_condition):
+					return true
+		for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+			if weapon_id in all_diff_condition.get("weapons", []):
+				if is_all_difficulties_condition_met():
 					return true
 		return false
 
 	func is_active_item_condition_met(item_type: int) -> bool:
-		for level_path in UNLOCK_CONDITIONS:
-			var condition: Dictionary = UNLOCK_CONDITIONS[level_path]
+		for condition_key in UNLOCK_CONDITIONS:
+			var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
 			if item_type in condition.get("active_items", []):
-				if is_level_condition_met(level_path):
+				if is_condition_key_met(condition_key):
+					return true
+		for multi_condition in MULTI_UNLOCK_CONDITIONS:
+			if item_type in multi_condition.get("active_items", []):
+				if is_multi_condition_met(multi_condition):
+					return true
+		for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+			if item_type in all_diff_condition.get("active_items", []):
+				if is_all_difficulties_condition_met():
 					return true
 		return false
 
 	func is_grenade_condition_met(grenade_type: int) -> bool:
-		for level_path in UNLOCK_CONDITIONS:
-			var condition: Dictionary = UNLOCK_CONDITIONS[level_path]
+		for condition_key in UNLOCK_CONDITIONS:
+			var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
 			if grenade_type in condition.get("grenades", []):
-				if is_level_condition_met(level_path):
+				if is_condition_key_met(condition_key):
+					return true
+		for multi_condition in MULTI_UNLOCK_CONDITIONS:
+			if grenade_type in multi_condition.get("grenades", []):
+				if is_multi_condition_met(multi_condition):
+					return true
+		for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+			if grenade_type in all_diff_condition.get("grenades", []):
+				if is_all_difficulties_condition_met():
 					return true
 		return false
 
 	func reset_condition_gated_items() -> void:
-		for level_path in UNLOCK_CONDITIONS:
-			var condition: Dictionary = UNLOCK_CONDITIONS[level_path]
+		for condition_key in UNLOCK_CONDITIONS:
+			var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
 			if mock_game_manager:
 				for weapon_id in condition.get("weapons", []):
 					if weapon_id in mock_game_manager.unlocked_weapons:
@@ -219,19 +367,100 @@ class TestableUnlockManager extends Node:
 				for item_type in condition.get("active_items", []):
 					if item_type in mock_active_item_manager.unlocked_active_items:
 						mock_active_item_manager.unlocked_active_items[item_type] = false
+			if mock_grenade_manager:
+				for grenade_type in condition.get("grenades", []):
+					if grenade_type in mock_grenade_manager.unlocked_grenades:
+						mock_grenade_manager.unlocked_grenades[grenade_type] = false
+		for multi_condition in MULTI_UNLOCK_CONDITIONS:
+			if mock_active_item_manager:
+				for item_type in multi_condition.get("active_items", []):
+					if item_type in mock_active_item_manager.unlocked_active_items:
+						mock_active_item_manager.unlocked_active_items[item_type] = false
+		for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+			if mock_active_item_manager:
+				for item_type in all_diff_condition.get("active_items", []):
+					if item_type in mock_active_item_manager.unlocked_active_items:
+						mock_active_item_manager.unlocked_active_items[item_type] = false
 
-	# reset_and_apply_all_unlocks now only resets (no auto-applying).
-	# Items stay locked until the player holds LMB on the gold armory slot.
+	# reset_and_apply_all_unlocks snapshots saved unlock state, resets, then restores
+	# items that were saved AND whose condition is met (Issue #1052).
 	func reset_and_apply_all_unlocks() -> void:
+		var saved_weapons: Array[String] = _get_unlocked_condition_gated_weapons()
+		var saved_grenades: Array[int] = _get_unlocked_condition_gated_grenades()
+		var saved_active_items: Array[int] = _get_unlocked_condition_gated_active_items()
 		reset_condition_gated_items()
+		_restore_saved_unlocks(saved_weapons, saved_grenades, saved_active_items)
+
+	func _get_unlocked_condition_gated_weapons() -> Array[String]:
+		var result: Array[String] = []
+		if not mock_game_manager:
+			return result
+		for condition_key in UNLOCK_CONDITIONS:
+			for weapon_id in UNLOCK_CONDITIONS[condition_key].get("weapons", []):
+				if weapon_id not in result and mock_game_manager.unlocked_weapons.get(weapon_id, false):
+					result.append(weapon_id)
+		for multi_condition in MULTI_UNLOCK_CONDITIONS:
+			for weapon_id in multi_condition.get("weapons", []):
+				if weapon_id not in result and mock_game_manager.unlocked_weapons.get(weapon_id, false):
+					result.append(weapon_id)
+		return result
+
+	func _get_unlocked_condition_gated_grenades() -> Array[int]:
+		var result: Array[int] = []
+		if not mock_grenade_manager:
+			return result
+		for condition_key in UNLOCK_CONDITIONS:
+			for grenade_type in UNLOCK_CONDITIONS[condition_key].get("grenades", []):
+				if grenade_type not in result and mock_grenade_manager.unlocked_grenades.get(grenade_type, false):
+					result.append(grenade_type)
+		for multi_condition in MULTI_UNLOCK_CONDITIONS:
+			for grenade_type in multi_condition.get("grenades", []):
+				if grenade_type not in result and mock_grenade_manager.unlocked_grenades.get(grenade_type, false):
+					result.append(grenade_type)
+		return result
+
+	func _get_unlocked_condition_gated_active_items() -> Array[int]:
+		var result: Array[int] = []
+		if not mock_active_item_manager:
+			return result
+		for condition_key in UNLOCK_CONDITIONS:
+			for item_type in UNLOCK_CONDITIONS[condition_key].get("active_items", []):
+				if item_type not in result and mock_active_item_manager.unlocked_active_items.get(item_type, false):
+					result.append(item_type)
+		for multi_condition in MULTI_UNLOCK_CONDITIONS:
+			for item_type in multi_condition.get("active_items", []):
+				if item_type not in result and mock_active_item_manager.unlocked_active_items.get(item_type, false):
+					result.append(item_type)
+		for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+			for item_type in all_diff_condition.get("active_items", []):
+				if item_type not in result and mock_active_item_manager.unlocked_active_items.get(item_type, false):
+					result.append(item_type)
+		return result
+
+	func _restore_saved_unlocks(
+			weapons: Array[String],
+			grenades: Array[int],
+			active_items: Array[int]) -> void:
+		for weapon_id in weapons:
+			if mock_game_manager and is_weapon_condition_met(weapon_id):
+				if weapon_id in mock_game_manager.unlocked_weapons:
+					mock_game_manager.unlocked_weapons[weapon_id] = true
+		for grenade_type in grenades:
+			if mock_grenade_manager and is_grenade_condition_met(grenade_type):
+				if grenade_type in mock_grenade_manager.unlocked_grenades:
+					mock_grenade_manager.unlocked_grenades[grenade_type] = true
+		for item_type in active_items:
+			if mock_active_item_manager and is_active_item_condition_met(item_type):
+				if item_type in mock_active_item_manager.unlocked_active_items:
+					mock_active_item_manager.unlocked_active_items[item_type] = true
 
 	## Check if any item has its unlock condition met but is not yet unlocked.
 	## Used to highlight the Armory button in the pause menu and score screen (Issue #897).
 	func has_any_available_unlock() -> bool:
-		for level_path in UNLOCK_CONDITIONS:
-			if not is_level_condition_met(level_path):
+		for condition_key in UNLOCK_CONDITIONS:
+			if not is_condition_key_met(condition_key):
 				continue
-			var condition: Dictionary = UNLOCK_CONDITIONS[level_path]
+			var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
 
 			if mock_game_manager:
 				for weapon_id in condition.get("weapons", []):
@@ -247,6 +476,22 @@ class TestableUnlockManager extends Node:
 				for grenade_type in condition.get("grenades", []):
 					if not mock_grenade_manager.is_grenade_unlocked(grenade_type):
 						return true
+
+		for multi_condition in MULTI_UNLOCK_CONDITIONS:
+			if not is_multi_condition_met(multi_condition):
+				continue
+
+			if mock_active_item_manager:
+				for item_type in multi_condition.get("active_items", []):
+					if not mock_active_item_manager.is_active_item_unlocked(item_type):
+						return true
+
+		if is_all_difficulties_condition_met():
+			for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+				if mock_active_item_manager:
+					for item_type in all_diff_condition.get("active_items", []):
+						if not mock_active_item_manager.is_active_item_unlocked(item_type):
+							return true
 
 		return false
 
@@ -335,6 +580,29 @@ func test_rank_insufficient_empty_for_f_minimum() -> void:
 
 
 # ============================================================================
+# _extract_scene_path tests
+# ============================================================================
+
+
+func test_extract_scene_path_no_suffix() -> void:
+	var path: String = "res://scenes/levels/BuildingLevel.tscn"
+	assert_eq(unlock_manager._extract_scene_path(path), path,
+		"Path without rank suffix should be returned unchanged")
+
+
+func test_extract_scene_path_with_s_suffix() -> void:
+	var key: String = "res://scenes/levels/BuildingLevel.tscn:S"
+	assert_eq(unlock_manager._extract_scene_path(key), "res://scenes/levels/BuildingLevel.tscn",
+		"Rank suffix :S should be stripped")
+
+
+func test_extract_scene_path_with_d_suffix() -> void:
+	var key: String = "res://scenes/levels/BeachLevel.tscn:D"
+	assert_eq(unlock_manager._extract_scene_path(key), "res://scenes/levels/BeachLevel.tscn",
+		"Rank suffix :D should be stripped")
+
+
+# ============================================================================
 # Condition met check tests
 # ============================================================================
 
@@ -359,8 +627,8 @@ func test_labyrinth_condition_met_with_s_rank() -> void:
 
 func test_labyrinth_condition_not_met_with_f_rank() -> void:
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
-	assert_false(unlock_manager.is_level_condition_met("res://scenes/levels/LabyrinthLevel.tscn"),
-		"Labyrinth condition should NOT be met with grade F (requires D or higher)")
+	assert_false(unlock_manager.is_condition_key_met("res://scenes/levels/LabyrinthLevel.tscn"),
+		"Labyrinth D condition should NOT be met with grade F (requires D or higher)")
 
 
 func test_castle_condition_met_with_f_rank() -> void:
@@ -378,12 +646,148 @@ func test_castle_condition_met_with_d_rank() -> void:
 func test_condition_met_on_any_difficulty() -> void:
 	# Set rank only on Hard difficulty (not Normal)
 	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Hard", "D")
-	assert_true(unlock_manager.is_level_condition_met("res://scenes/levels/BuildingLevel.tscn"),
+	assert_true(unlock_manager.is_condition_key_met("res://scenes/levels/BuildingLevel.tscn"),
 		"Condition should be met if any difficulty has qualifying rank")
 
 
 # ============================================================================
-# Weapon condition met tests
+# New unlock condition tests (Issue #1000)
+# ============================================================================
+
+
+func test_building_d_unlocks_frag_grenade() -> void:
+	# req.1: Building D+ → FRAG grenade
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	assert_true(unlock_manager.is_grenade_condition_met(1),
+		"Frag grenade condition should be met after Building grade D")
+
+
+func test_building_f_does_not_unlock_frag_grenade() -> void:
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "F")
+	assert_false(unlock_manager.is_grenade_condition_met(1),
+		"Frag grenade condition should NOT be met with Building grade F")
+
+
+func test_building_s_unlocks_silenced_pistol() -> void:
+	# req.2: Building S → silenced_pistol
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "S")
+	assert_true(unlock_manager.is_weapon_condition_met("silenced_pistol"),
+		"Silenced pistol condition should be met after Building grade S")
+
+
+func test_building_a_does_not_unlock_silenced_pistol_via_building() -> void:
+	# Building A is not S — silenced_pistol not yet unlocked via building
+	# (still locked until Docks D+ or Building S)
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "A")
+	assert_false(unlock_manager.is_condition_key_met("res://scenes/levels/BuildingLevel.tscn:S"),
+		"Building :S condition should NOT be met with grade A")
+
+
+func test_teleport_unlocks_after_double_corridor() -> void:
+	# req.3: Teleport unlocks after Double Corridor (RevolverLevel), NOT Castle
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "D")
+	assert_true(unlock_manager.is_active_item_condition_met(3),
+		"Teleport Bracers condition should be met after Double Corridor grade D")
+
+
+func test_teleport_not_unlocked_by_castle_alone() -> void:
+	# Completing Castle no longer unlocks Teleport (Issue #1000 req.3)
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
+	assert_false(unlock_manager.is_active_item_condition_met(3),
+		"Teleport Bracers should NOT be unlocked by Castle completion alone (moved to Double Corridor)")
+
+
+func test_city_d_unlocks_trajectory_glasses() -> void:
+	# Issue #1053 req.1: City D+ → Trajectory Glasses
+	progress_manager.set_rank("res://scenes/levels/CityLevel.tscn", "Normal", "D")
+	assert_true(unlock_manager.is_active_item_condition_met(8),
+		"Trajectory Glasses condition should be met after City grade D (Issue #1053)")
+
+
+func test_city_f_does_not_unlock_trajectory_glasses() -> void:
+	progress_manager.set_rank("res://scenes/levels/CityLevel.tscn", "Normal", "F")
+	assert_false(unlock_manager.is_active_item_condition_met(8),
+		"Trajectory Glasses condition should NOT be met with City grade F (requires D+)")
+
+
+func test_beach_d_unlocks_m16() -> void:
+	# Issue #1053 req.3: Beach D+ → M16 (changed from AK+GL)
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Normal", "D")
+	assert_true(unlock_manager.is_weapon_condition_met("m16"),
+		"M16 condition should be met after Beach grade D (Issue #1053)")
+
+
+func test_beach_f_does_not_unlock_m16() -> void:
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Normal", "F")
+	assert_false(unlock_manager.is_weapon_condition_met("m16"),
+		"M16 condition should NOT be met with Beach grade F (requires D+)")
+
+
+func test_beach_s_and_building_s_unlock_invisibility() -> void:
+	# req.5: Beach S + Building S → Invisibility
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Normal", "S")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "S")
+	assert_true(unlock_manager.is_active_item_condition_met(5),
+		"Invisibility condition should be met after Beach S and Building S")
+
+
+func test_beach_s_alone_does_not_unlock_invisibility() -> void:
+	# req.5: both Beach S AND Building S required
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Normal", "S")
+	assert_false(unlock_manager.is_active_item_condition_met(5),
+		"Invisibility should NOT unlock with Beach S alone (Building S also required)")
+
+
+func test_building_s_alone_does_not_unlock_invisibility() -> void:
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "S")
+	assert_false(unlock_manager.is_active_item_condition_met(5),
+		"Invisibility should NOT unlock with Building S alone (Beach S also required)")
+
+
+func test_beach_s_unlocks_defensive_grenade() -> void:
+	# req.6: Beach S → F-1 grenade (DEFENSIVE = 2)
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Normal", "S")
+	assert_true(unlock_manager.is_grenade_condition_met(2),
+		"F-1 grenade condition should be met after Beach grade S")
+
+
+func test_beach_a_does_not_unlock_defensive_grenade() -> void:
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Normal", "A")
+	assert_false(unlock_manager.is_condition_key_met("res://scenes/levels/BeachLevel.tscn:S"),
+		"Beach :S condition should NOT be met with grade A")
+
+
+func test_docks_d_unlocks_silenced_pistol() -> void:
+	# req.7: Docks D+ → silenced_pistol
+	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Normal", "D")
+	assert_true(unlock_manager.is_weapon_condition_met("silenced_pistol"),
+		"Silenced pistol condition should be met after Docks grade D")
+
+
+func test_all_five_s_unlock_homing_bullets() -> void:
+	# req.8: Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S → Homing Bullets
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "S")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "S")
+	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "S")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "S")
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "S")
+	assert_true(unlock_manager.is_active_item_condition_met(2),
+		"Homing Bullets condition should be met after all 5 levels at S rank")
+
+
+func test_four_of_five_s_does_not_unlock_homing_bullets() -> void:
+	# All 5 required — missing Double Corridor S
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "S")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "S")
+	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "S")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "S")
+	# RevolverLevel not yet completed at S
+	assert_false(unlock_manager.is_active_item_condition_met(2),
+		"Homing Bullets should NOT unlock with only 4 of 5 levels at S rank")
+
+
+# ============================================================================
+# Weapon condition met tests (existing)
 # ============================================================================
 
 
@@ -418,13 +822,13 @@ func test_revolver_condition_met_after_castle_f() -> void:
 
 
 func test_m16_has_no_condition() -> void:
-	# M16 has no defined unlock condition (available by default or manually)
+	# M16 has no defined unlock condition (available by default)
 	assert_false(unlock_manager.is_weapon_condition_met("m16"),
 		"M16 has no unlock condition defined")
 
 
 # ============================================================================
-# Active item condition met tests
+# Active item condition met tests (existing)
 # ============================================================================
 
 
@@ -434,16 +838,10 @@ func test_flashlight_condition_met_after_polygon_d() -> void:
 		"Flashlight condition should be met after Polygon (TestTier) grade D")
 
 
-func test_teleport_condition_met_after_castle_f() -> void:
-	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
+func test_teleport_condition_met_after_double_corridor_d() -> void:
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "D")
 	assert_true(unlock_manager.is_active_item_condition_met(3),  # TELEPORT_BRACERS = 3
-		"Teleport Bracers condition should be met after Castle grade F")
-
-
-func test_homing_bullets_has_no_condition() -> void:
-	# Homing Bullets has no defined condition
-	assert_false(unlock_manager.is_active_item_condition_met(2),  # HOMING_BULLETS = 2
-		"Homing Bullets has no unlock condition defined")
+		"Teleport Bracers condition should be met after Double Corridor (RevolverLevel) grade D")
 
 
 # ============================================================================
@@ -499,17 +897,12 @@ func test_sniper_and_flashlight_condition_met_after_polygon_d() -> void:
 		"Flashlight should stay locked until LMB hold")
 
 
-func test_revolver_and_teleport_condition_met_after_castle_f() -> void:
+func test_revolver_condition_met_after_castle_f() -> void:
 	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
 	assert_true(unlock_manager.is_weapon_condition_met("revolver"),
 		"Revolver condition should be met after Castle F")
-	assert_true(unlock_manager.is_active_item_condition_met(3),
-		"Teleport Bracers condition should be met after Castle F")
-	# Neither item auto-unlocks
 	assert_false(game_manager.is_weapon_unlocked("revolver"),
 		"Revolver should stay locked until LMB hold")
-	assert_false(active_item_manager.is_active_item_unlocked(3),
-		"Teleport Bracers should stay locked until LMB hold")
 
 
 func test_condition_met_on_easy_difficulty() -> void:
@@ -552,17 +945,38 @@ func test_flashbang_is_unlocked_by_default() -> void:
 
 func test_condition_locked_weapons_locked_by_default() -> void:
 	# These weapons have explicit unlock conditions and must start locked
-	for weapon_id in ["shotgun", "mini_uzi", "sniper", "revolver"]:
+	for weapon_id in ["shotgun", "mini_uzi", "sniper", "revolver", "m16", "silenced_pistol"]:
 		assert_false(game_manager.is_weapon_unlocked(weapon_id),
 			"%s should be locked by default (has unlock condition)" % weapon_id)
 
 
 func test_free_weapons_unlocked_by_default() -> void:
 	# These weapons have no conditions — they are freely available from the start
-	# Issue #894: "all unspecified items can be opened from the start"
-	for weapon_id in ["m16", "silenced_pistol", "ak_gl"]:
+	for weapon_id in ["ak_gl", "makarov_pm"]:
 		assert_true(game_manager.is_weapon_unlocked(weapon_id),
 			"%s should be unlocked by default (no unlock condition)" % weapon_id)
+
+
+func test_condition_locked_grenades_locked_by_default() -> void:
+	# FRAG (1) and DEFENSIVE (2) have unlock conditions (Issue #1000)
+	assert_false(grenade_manager.is_grenade_unlocked(1),
+		"Frag grenade should be locked by default (has unlock condition)")
+	assert_false(grenade_manager.is_grenade_unlocked(2),
+		"F-1 grenade should be locked by default (has unlock condition)")
+
+
+func test_condition_locked_active_items_locked_by_default() -> void:
+	# FLASHLIGHT (1), HOMING_BULLETS (2), TELEPORT_BRACERS (3), INVISIBILITY_SUIT (5), TRAJECTORY_GLASSES (8)
+	assert_false(active_item_manager.is_active_item_unlocked(1),
+		"Flashlight should be locked by default")
+	assert_false(active_item_manager.is_active_item_unlocked(2),
+		"Homing Bullets should be locked by default (Issue #1000)")
+	assert_false(active_item_manager.is_active_item_unlocked(3),
+		"Teleport Bracers should be locked by default")
+	assert_false(active_item_manager.is_active_item_unlocked(5),
+		"Invisibility should be locked by default (Issue #1000)")
+	assert_false(active_item_manager.is_active_item_unlocked(8),
+		"Trajectory Glasses should be locked by default (Issue #1053)")
 
 
 # ============================================================================
@@ -576,53 +990,54 @@ func test_reset_condition_gated_resets_weapons_to_locked() -> void:
 	game_manager.unlocked_weapons["shotgun"] = true
 	game_manager.unlocked_weapons["sniper"] = true
 	game_manager.unlocked_weapons["revolver"] = true
+	game_manager.unlocked_weapons["m16"] = true
+	game_manager.unlocked_weapons["silenced_pistol"] = true
 
 	# Reset should lock them back
 	unlock_manager.reset_condition_gated_items()
 
-	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
-		"mini_uzi should be re-locked after reset (conditions not met)")
-	assert_false(game_manager.is_weapon_unlocked("shotgun"),
-		"shotgun should be re-locked after reset (conditions not met)")
-	assert_false(game_manager.is_weapon_unlocked("sniper"),
-		"sniper should be re-locked after reset (conditions not met)")
-	assert_false(game_manager.is_weapon_unlocked("revolver"),
-		"revolver should be re-locked after reset (conditions not met)")
+	for weapon_id in ["mini_uzi", "shotgun", "sniper", "revolver", "m16", "silenced_pistol"]:
+		assert_false(game_manager.is_weapon_unlocked(weapon_id),
+			"%s should be re-locked after reset" % weapon_id)
 
 
 func test_reset_does_not_affect_free_weapons() -> void:
 	# Free weapons (no conditions) should NOT be reset
 	unlock_manager.reset_condition_gated_items()
 
-	assert_true(game_manager.is_weapon_unlocked("m16"),
-		"m16 should remain unlocked after reset (no condition)")
-	assert_true(game_manager.is_weapon_unlocked("silenced_pistol"),
-		"silenced_pistol should remain unlocked after reset (no condition)")
 	assert_true(game_manager.is_weapon_unlocked("ak_gl"),
 		"ak_gl should remain unlocked after reset (no condition)")
 	assert_true(game_manager.is_weapon_unlocked("makarov_pm"),
 		"makarov_pm should remain unlocked after reset (always available)")
 
 
-func test_reset_and_apply_removes_invalid_unlocks_condition_met() -> void:
-	# Simulate corrupt save: revolver incorrectly unlocked
-	game_manager.unlocked_weapons["revolver"] = true
+func test_reset_condition_gated_resets_grenades_to_locked() -> void:
+	# Simulate corrupt save: condition-gated grenades incorrectly marked as unlocked
+	grenade_manager.unlocked_grenades[1] = true  # FRAG
+	grenade_manager.unlocked_grenades[2] = true  # DEFENSIVE
 
-	# Set Castle progress to F (condition met)
-	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
+	unlock_manager.reset_condition_gated_items()
 
-	# reset_and_apply now ONLY resets — no auto-applying.
-	# Revolver ends up locked; the player must use LMB in the armory.
-	unlock_manager.reset_and_apply_all_unlocks()
-
-	assert_false(game_manager.is_weapon_unlocked("revolver"),
-		"Revolver should be locked after reset — player must hold LMB to unlock")
-	# But the condition IS met (gold slot shows in armory)
-	assert_true(unlock_manager.is_weapon_condition_met("revolver"),
-		"Revolver condition IS met — the slot will show gold in the armory")
+	assert_false(grenade_manager.is_grenade_unlocked(1),
+		"Frag grenade should be re-locked after reset")
+	assert_false(grenade_manager.is_grenade_unlocked(2),
+		"F-1 grenade should be re-locked after reset")
 
 
-func test_reset_and_apply_removes_invalid_unlocks() -> void:
+func test_reset_condition_gated_resets_active_items_to_locked() -> void:
+	# Simulate corrupt save
+	active_item_manager.unlocked_active_items[5] = true  # INVISIBILITY_SUIT
+	active_item_manager.unlocked_active_items[2] = true  # HOMING_BULLETS
+
+	unlock_manager.reset_condition_gated_items()
+
+	assert_false(active_item_manager.is_active_item_unlocked(5),
+		"Invisibility should be re-locked after reset")
+	assert_false(active_item_manager.is_active_item_unlocked(2),
+		"Homing Bullets should be re-locked after reset")
+
+
+func test_reset_and_apply_removes_invalid_unlocks_condition_not_met() -> void:
 	# Simulate corrupt save: mini_uzi incorrectly unlocked (no Labyrinth progress)
 	game_manager.unlocked_weapons["mini_uzi"] = true
 
@@ -630,9 +1045,85 @@ func test_reset_and_apply_removes_invalid_unlocks() -> void:
 	unlock_manager.reset_and_apply_all_unlocks()
 
 	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
-		"mini_uzi should be locked after reset (Labyrinth condition not met)")
+		"mini_uzi should be locked after reset (Labyrinth condition not met — corrupt save)")
 	assert_false(unlock_manager.is_weapon_condition_met("mini_uzi"),
 		"mini_uzi condition is also not met — slot stays plain locked (no gold)")
+
+
+func test_reset_and_apply_removes_invalid_unlocks() -> void:
+	# Alias kept for compatibility — same scenario as above.
+	test_reset_and_apply_removes_invalid_unlocks_condition_not_met()
+
+
+# ============================================================================
+# Issue #1052: Saved unlocks must survive reset on game restart
+# ============================================================================
+
+
+func test_saved_weapon_unlock_survives_restart_when_condition_met() -> void:
+	# Player earned the condition AND held LMB (item now saved as unlocked).
+	# Simulate: PersistManager already restored this from save file.
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
+	game_manager.unlocked_weapons["revolver"] = true  # saved state
+
+	# Simulate game restart: _reset_and_apply_all_unlocks fires deferred.
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_true(game_manager.is_weapon_unlocked("revolver"),
+		"Revolver should remain unlocked after restart — player already opened the case (Issue #1052)")
+
+
+func test_saved_grenade_unlock_survives_restart_when_condition_met() -> void:
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	grenade_manager.unlocked_grenades[1] = true  # FRAG, saved state
+
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_true(grenade_manager.is_grenade_unlocked(1),
+		"Frag grenade should remain unlocked after restart — player already opened the case (Issue #1052)")
+
+
+func test_saved_active_item_unlock_survives_restart_when_condition_met() -> void:
+	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "D")
+	active_item_manager.unlocked_active_items[1] = true  # FLASHLIGHT, saved state
+
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_true(active_item_manager.is_active_item_unlocked(1),
+		"Flashlight should remain unlocked after restart — player already opened the case (Issue #1052)")
+
+
+func test_corrupt_save_weapon_stays_locked_when_condition_not_met() -> void:
+	# Corrupt save: revolver unlocked but Castle was never completed.
+	# No progress set — condition not met.
+	game_manager.unlocked_weapons["revolver"] = true
+
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_false(game_manager.is_weapon_unlocked("revolver"),
+		"Revolver should be locked — condition not met, treating save as corrupt (Issue #1052)")
+
+
+func test_multi_condition_item_survives_restart_when_conditions_met() -> void:
+	# INVISIBILITY_SUIT requires Beach S + Building S.
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Normal", "S")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "S")
+	active_item_manager.unlocked_active_items[5] = true  # INVISIBILITY_SUIT, saved state
+
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_true(active_item_manager.is_active_item_unlocked(5),
+		"Invisibility should remain unlocked after restart — player already opened the case (Issue #1052)")
+
+
+func test_multi_condition_item_stays_locked_when_condition_not_met() -> void:
+	# Corrupt save: INVISIBILITY_SUIT saved as unlocked but conditions not met.
+	active_item_manager.unlocked_active_items[5] = true
+
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_false(active_item_manager.is_active_item_unlocked(5),
+		"Invisibility should be locked — multi-conditions not met, treating save as corrupt (Issue #1052)")
 
 
 # ============================================================================
@@ -669,49 +1160,126 @@ func test_no_available_unlocks_when_weapon_already_unlocked() -> void:
 		"Should return false when mini_uzi condition is met and item is already unlocked")
 
 
-func test_has_available_unlock_when_active_item_condition_met() -> void:
-	# Castle F+ unlocks teleport bracers — condition met, item still locked
-	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
-	assert_true(unlock_manager.has_any_available_unlock(),
-		"Should return true when teleport bracers condition is met but item is locked")
-
-
-func test_no_available_unlocks_when_all_items_unlocked() -> void:
-	# Conditions met for multiple levels, but all items already unlocked
-	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "D")
+func test_has_available_unlock_when_grenade_condition_met() -> void:
+	# Building D+ unlocks frag grenade — condition met, item still locked
 	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
-	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "D")
-	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
-
-	game_manager.unlocked_weapons["mini_uzi"] = true
-	game_manager.unlocked_weapons["shotgun"] = true
-	game_manager.unlocked_weapons["sniper"] = true
-	game_manager.unlocked_weapons["revolver"] = true
-	active_item_manager.unlocked_active_items[1] = true   # FLASHLIGHT
-	active_item_manager.unlocked_active_items[3] = true   # TELEPORT_BRACERS
-
-	assert_false(unlock_manager.has_any_available_unlock(),
-		"Should return false when all condition-gated items are already unlocked")
-
-
-func test_has_available_unlock_when_some_unlocked_some_not() -> void:
-	# Conditions met for multiple levels, some items unlocked, some not
-	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "D")
-	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
-
-	game_manager.unlocked_weapons["mini_uzi"] = true   # Already unlocked
-	# shotgun still locked
-
 	assert_true(unlock_manager.has_any_available_unlock(),
-		"Should return true when some condition-met items are still locked (shotgun)")
+		"Should return true when frag grenade condition is met but item is locked")
+
+
+func test_has_available_unlock_when_multi_condition_met() -> void:
+	# Beach S + Building S → Invisibility
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Normal", "S")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "S")
+	assert_true(unlock_manager.has_any_available_unlock(),
+		"Should return true when multi-condition (invisibility) is met but item is locked")
 
 
 func test_has_available_unlock_after_new_level_completion() -> void:
-	# Player completes Castle level — revolver and teleport bracers become available
+	# Player completes Castle level — revolver becomes available
 	assert_false(unlock_manager.has_any_available_unlock(),
 		"No available unlocks before Castle completion")
 
 	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
 
 	assert_true(unlock_manager.has_any_available_unlock(),
-		"After Castle F completion: revolver and teleport bracers are available to unlock")
+		"After Castle F completion: revolver is available to unlock")
+
+
+# ============================================================================
+# All-difficulties condition tests (Issue #1426 — Experimental Sample)
+# ============================================================================
+
+
+func test_all_difficulties_condition_not_met_when_no_progress() -> void:
+	assert_false(unlock_manager.is_all_difficulties_condition_met(),
+		"All-difficulties condition should not be met when no levels completed")
+
+
+func test_all_difficulties_condition_not_met_when_only_some_difficulties() -> void:
+	# Only Easy and Normal — missing Hard, Power Fantasy, Black Metal
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	assert_false(unlock_manager.is_all_difficulties_condition_met(),
+		"All-difficulties condition should not be met when only 2 of 5 difficulties have progress")
+
+
+func test_all_difficulties_condition_met_when_all_five_difficulties_have_progress() -> void:
+	# Complete one level on each of the 5 difficulties (can be different levels)
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
+	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Black Metal", "D")
+	assert_true(unlock_manager.is_all_difficulties_condition_met(),
+		"All-difficulties condition should be met when at least one level completed on each difficulty")
+
+
+func test_all_difficulties_condition_met_with_same_level_on_all_difficulties() -> void:
+	# Same level completed on every difficulty
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "S")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "A")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Hard", "B")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Power Fantasy", "C")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Black Metal", "D")
+	assert_true(unlock_manager.is_all_difficulties_condition_met(),
+		"All-difficulties condition should be met when same level completed on all difficulties")
+
+
+func test_experimental_sample_active_item_condition_met_when_all_difficulties_complete() -> void:
+	# Complete one level on each difficulty — EXPERIMENTAL_SAMPLE (type 18) condition should be met
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
+	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Black Metal", "D")
+	assert_true(unlock_manager.is_active_item_condition_met(18),
+		"EXPERIMENTAL_SAMPLE condition should be met when all difficulties have progress (Issue #1426)")
+
+
+func test_experimental_sample_condition_not_met_before_all_difficulties() -> void:
+	# Only 4 difficulties — condition not met yet
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
+	# Missing Black Metal
+	assert_false(unlock_manager.is_active_item_condition_met(18),
+		"EXPERIMENTAL_SAMPLE condition should NOT be met when Black Metal difficulty is missing (Issue #1426)")
+
+
+func test_has_available_unlock_when_all_difficulties_condition_met() -> void:
+	# Complete one level on each difficulty — Experimental Sample should appear as available
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
+	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Black Metal", "D")
+	assert_true(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return true when Experimental Sample is unlockable (Issue #1426)")
+
+
+func test_experimental_sample_stays_unlocked_after_restart_when_condition_met() -> void:
+	# Simulate saved state: all difficulties done and EXPERIMENTAL_SAMPLE (18) already unlocked
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
+	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Black Metal", "D")
+	active_item_manager.unlocked_active_items[18] = true  # Saved as unlocked
+
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_true(active_item_manager.is_active_item_unlocked(18),
+		"EXPERIMENTAL_SAMPLE should remain unlocked after restart when all-difficulties condition is met (Issue #1426)")
+
+
+func test_experimental_sample_stays_locked_after_restart_when_condition_not_met() -> void:
+	# Corrupt save: EXPERIMENTAL_SAMPLE saved as unlocked but not all difficulties are done
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	active_item_manager.unlocked_active_items[18] = true  # Corrupt save
+
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_false(active_item_manager.is_active_item_unlocked(18),
+		"EXPERIMENTAL_SAMPLE should be locked — all-difficulties condition not met, treating save as corrupt (Issue #1426)")

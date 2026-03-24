@@ -401,13 +401,24 @@ func _create_ragdoll_body(sprite: Sprite2D, mass: float, collision_radius: float
 	rb.collision_layer = 32  # Custom layer for ragdoll
 	rb.collision_mask = 4    # Collide with obstacles only
 
-	# Add to scene
-	get_tree().current_scene.add_child(rb)
+	# Issue #1413: Mark ragdoll as dead enemy part so bullets can pass through
+	rb.add_to_group("dead_enemy_ragdoll")
+
+	# Issue #1334 Round 11: Guard against scene tree unavailability during physics callbacks.
+	# Ragdoll creation can be triggered during _physics_process via death → ragdoll_activated signal.
+	# Adding new physics bodies during active physics processing can corrupt the physics server's
+	# internal collision pair list. Use call_deferred for add_child to defer to end of frame.
+	if not is_inside_tree(): return null
+	var current_scene := get_tree().current_scene
+	if current_scene == null: return null
+
+	# Add to scene (deferred to avoid physics corruption)
+	current_scene.call_deferred("add_child", rb)
 	_ragdoll_bodies.append(rb)
 
-	# Reparent sprite to rigid body
-	sprite.get_parent().remove_child(sprite)
-	rb.add_child(sprite)
+	# Reparent sprite to rigid body (also deferred since rb isn't in tree yet)
+	sprite.get_parent().call_deferred("remove_child", sprite)
+	rb.call_deferred("add_child", sprite)
 	sprite.position = Vector2.ZERO
 	sprite.rotation = 0.0
 
@@ -425,8 +436,11 @@ func _create_ragdoll_joint(body_a: RigidBody2D, body_b: RigidBody2D, anchor_offs
 	# Position joint at the connection point
 	joint.global_position = body_a.global_position + anchor_offset.rotated(body_a.rotation)
 
-	# Add to scene
-	get_tree().current_scene.add_child(joint)
+	# Issue #1334 Round 11: Defer add_child to avoid physics corruption during callbacks
+	if not is_inside_tree(): return joint
+	var current_scene := get_tree().current_scene
+	if current_scene != null:
+		current_scene.call_deferred("add_child", joint)
 
 	return joint
 

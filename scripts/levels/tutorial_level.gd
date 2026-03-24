@@ -147,6 +147,35 @@ var _hint_labels: Dictionary = {}
 ## Increased to 60 to prevent overlap when hints wrap to 2 lines (Bug fix #1 round 3).
 const HINT_SPACING := 60
 
+## Issue #944: Animation durations for tutorial hint transitions.
+## Fade-in duration for new hints appearing (seconds).
+const HINT_FADE_IN_DURATION := 0.3
+## Strikethrough display duration before fade-out (seconds).
+const HINT_STRIKETHROUGH_DURATION := 0.4
+## Fade-out duration after strikethrough (seconds).
+const HINT_FADE_OUT_DURATION := 0.3
+
+## Issue #944: Track hints that are currently animating (strikethrough + fade-out).
+## These hints should not be updated or re-dismissed while animating.
+var _animating_hints: Dictionary = {}
+
+## Issue #944: Track Line2D strikethrough nodes for each hint (hint_key -> Array[Line2D]).
+## Each hint has one Line2D per text line, so lines animate independently without connectors.
+var _hint_strike_lines: Dictionary = {}
+
+## Issue #944: Track current strikethrough progress for each hint (hint_key -> float 0.0-1.0).
+## Progress increases as each step completes; used to animate Line2D extension.
+var _hint_strike_progress: Dictionary = {}
+
+## Issue #944 Session 4: Track line count for each hint (hint_key -> int).
+## Multi-line hints need multiple Line2D segments, one per line.
+var _hint_line_counts: Dictionary = {}
+
+## Issue #1080: Track per-line text widths for each hint (hint_key -> Array[float]).
+## Each entry is the rendered pixel width of the corresponding text line,
+## so strikethrough lines match the actual text length instead of the label width.
+var _hint_line_widths: Dictionary = {}
+
 ## Number of shots fired by the player (Issue #945: reload hint appears after 2 shots).
 var _shots_fired: int = 0
 
@@ -791,6 +820,10 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 ## This allows the ammo counter to update immediately as each shell is loaded.
 ## Bug fix #7: also updates the bolt-cycle hint to reflect the remaining shells to load.
 ## Bug fix round 4: updates using full reload hint builder that also tracks reload state.
+## Issue #1025 fix: skip hint update when ShellCountChanged fires due to a shot (reload_state=0)
+##   while the full-reload hint is active. Without this guard, firing extra shots after the
+##   2nd shot overwrites the full-reload hint with the state=0 (open-bolt highlighted) format,
+##   causing the one-step lag: bolt-open no longer advances the highlight until a shell loads.
 func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 	# Get the reserve ammo from the weapon for display
 	var reserve_ammo: int = 0
@@ -802,8 +835,10 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 		if shotgun != null and shotgun.get("ReloadState") != null:
 			reload_state = int(shotgun.ReloadState)
 	_update_ammo_label_magazine(shell_count, reserve_ammo)
-	# Bug fix #7 + round 4: update bolt-cycle hint with new shell count and current reload state
-	if _hint_labels.has(HINT_BOLT_CYCLE):
+	# Bug fix #7 + round 4: update bolt-cycle hint with new shell count and current reload state.
+	# Issue #1025: skip update when reload_state=0 (shot fired, not reloading) and the full-reload
+	# hint is active — otherwise the hint resets to state=0 (open-bolt highlighted) on every shot.
+	if _hint_labels.has(HINT_BOLT_CYCLE) and (reload_state != 0 or not _shotgun_full_reload_active):
 		var label: RichTextLabel = _hint_labels[HINT_BOLT_CYCLE]
 		if is_instance_valid(label):
 			label.text = _build_shotgun_full_reload_hint_bbcode(reload_state)
@@ -843,6 +878,9 @@ func _setup_targets() -> void:
 func _on_weapon_fired() -> void:
 	_shots_fired += 1
 	print("Tutorial: Shot fired (%d total)" % _shots_fired)
+	# Track shot in GameManager for unlock conditions (Issue #1346).
+	if GameManager:
+		GameManager.register_shot()
 
 	# Bug fix: bolt-cycle hint (sniper bolt-action, shotgun bolt) shown after 1st shot.
 	if _shots_fired >= 1 and not _bolt_cycle_hint_revealed:
@@ -890,6 +928,7 @@ func _on_reload_sequence_progress(step: int, total: int) -> void:
 ## Bug fix #2: `step` is the LAST COMPLETED step (0 = nothing done yet, 1 = first press done, etc.).
 ##   So we highlight step+1 as the next action to perform.
 ## Bug fix #5: Revolver and shotgun use separate hint builders.
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_reload_hint_bbcode(step: int, total: int) -> String:
 	# Guard: shotgun uses static/ActionState-based hints
 	if _has_shotgun:
@@ -902,8 +941,12 @@ func _build_reload_hint_bbcode(step: int, total: int) -> String:
 			0:
 				return "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"
 			1:
+				# Step 1 completed: extend strikethrough to 50%
+				_extend_hint_strikethrough(HINT_RELOAD, 0.25)
 				return "[color=#888888][R][/color] [color=#ff4444][R][/color] Перезарядись"
 			_:
+				# All steps done: extend strikethrough to cover both [R] keys (~50%)
+				_extend_hint_strikethrough(HINT_RELOAD, 0.5)
 				return "[color=#888888][R] [R][/color] Перезарядись"
 	else:
 		# Standard 3-step reload: R -> F -> R
@@ -912,10 +955,16 @@ func _build_reload_hint_bbcode(step: int, total: int) -> String:
 			0:
 				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"
 			1:
+				# Step 1 completed: extend strikethrough to ~17%
+				_extend_hint_strikethrough(HINT_RELOAD, 0.17)
 				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
 			2:
+				# Step 2 completed: extend strikethrough to ~33%
+				_extend_hint_strikethrough(HINT_RELOAD, 0.33)
 				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
 			_:
+				# All steps done: extend strikethrough to ~50%
+				_extend_hint_strikethrough(HINT_RELOAD, 0.5)
 				return "[color=#888888][R] [F] [R][/color] Перезарядись"
 
 
@@ -1010,17 +1059,28 @@ func _on_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
 
 ## Build BBCode for sniper bolt-cycle hint showing 4-step sequence with NEXT step in red.
 ## step = last COMPLETED step: 0=nothing done, 1=bolt up done, 2=bolt back done, etc.
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_sniper_bolt_hint_bbcode(step: int) -> String:
 	# 4 steps: ← (bolt up/open), ↓ (bolt back), ↑ (bolt forward), → (bolt down/close)
 	const STEPS := ["←", "↓", "↑", "→"]
 	var parts: PackedStringArray = []
 	for i in range(STEPS.size()):
 		if i < step:
+			# Completed step: grey (strikethrough animated via Line2D)
 			parts.append("[color=#888888][%s][/color]" % STEPS[i])
 		elif i == step:
+			# Current step: highlighted in red
 			parts.append("[color=#ff4444][%s][/color]" % STEPS[i])
 		else:
+			# Future step: grey
 			parts.append("[color=#888888][%s][/color]" % STEPS[i])
+
+	# Extend strikethrough progressively based on completed steps
+	# Each step is ~12.5% of the total hint width (4 steps + text = ~50% for keys)
+	if step > 0:
+		var progress := float(step) * 0.125  # 12.5% per step
+		_extend_hint_strikethrough(HINT_BOLT_CYCLE, progress)
+
 	return " ".join(parts) + " Передёрни затвор"
 
 
@@ -1047,19 +1107,23 @@ func _get_shotgun_shells_to_load() -> int:
 ## Build BBCode for the revolver reload hint with step-based highlighting (Bug fix round 4).
 ## step=1: cylinder opened → highlight insert-cartridge action
 ## step=3: cylinder closed → all grey (done)
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_revolver_reload_hint_bbcode(step: int) -> String:
 	match step:
 		0:
 			# Nothing done yet: highlight open-cylinder (R)
 			return "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]"
 		1:
-			# Cylinder opened: next is insert cartridges
+			# Cylinder opened: next is insert cartridges (open is completed)
+			_extend_hint_strikethrough(HINT_RELOAD, 0.15)  # ~15% for first segment
 			return "[color=#888888][R открыть][/color] [color=#ff4444][ПКМ↑ патрон][/color] [color=#888888][скролл] [R закрыть][/color]"
 		2:
-			# Scrolled (cylinder rotated): next is close cylinder
+			# Scrolled (cylinder rotated): next is close cylinder (open and insert completed)
+			_extend_hint_strikethrough(HINT_RELOAD, 0.55)  # ~55% for first three segments
 			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл][/color] [color=#ff4444][R закрыть][/color]"
 		_:
-			# Done
+			# All steps done
+			_extend_hint_strikethrough(HINT_RELOAD, 0.75)  # ~75% for all key segments
 			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/color]"
 
 
@@ -1091,13 +1155,17 @@ func _on_shotgun_action_state_changed(new_state: int) -> void:
 
 ## Build BBCode for the shotgun between-shots pump hint.
 ## state=1 (NeedsPumpUp): highlight drag-up; state=2 (NeedsPumpDown): highlight drag-down.
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_shotgun_pump_hint_bbcode(state: int) -> String:
 	match state:
-		1:  # NeedsPumpUp
+		1:  # NeedsPumpUp (nothing completed yet)
 			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор"
-		2:  # NeedsPumpDown
+		2:  # NeedsPumpDown (pump-up completed)
+			_extend_hint_strikethrough(HINT_BOLT_CYCLE, 0.2)  # ~20% for first key
 			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] Передёрни затвор"
 		_:
+			# Both completed
+			_extend_hint_strikethrough(HINT_BOLT_CYCLE, 0.4)  # ~40% for both keys
 			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] Передёрни затвор"
 
 
@@ -1136,16 +1204,21 @@ func _on_shotgun_reload_state_changed(new_state: int) -> void:
 ## state=1: WaitingToOpen → highlight open-bolt [ПКМ↑]
 ## state=2: Loading → highlight load-shells [СКМ+ПКМ↓]
 ## state=3: WaitingToClose → highlight close-bolt [ПКМ↓]
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_shotgun_full_reload_hint_bbcode(state: int) -> String:
 	var shells_needed: int = _get_shotgun_shells_to_load()
 	match state:
 		0, 1:  # Not reloading or waiting to open
 			return "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
-		2:  # Loading shells
+		2:  # Loading shells (open is completed)
+			_extend_hint_strikethrough(HINT_BOLT_CYCLE, 0.25)  # ~25% for first segment
 			return "[color=#888888][ПКМ↑ открыть][/color] [color=#ff4444][СКМ+ПКМ↓ x%d][/color] [color=#888888][ПКМ↓ закрыть][/color]" % shells_needed
-		3:  # Waiting to close
+		3:  # Waiting to close (open and loading completed)
+			_extend_hint_strikethrough(HINT_BOLT_CYCLE, 0.55)  # ~55% for first two segments
 			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d][/color] [color=#ff4444][ПКМ↓ закрыть][/color]" % shells_needed
 		_:
+			# All steps completed
+			_extend_hint_strikethrough(HINT_BOLT_CYCLE, 0.8)  # ~80% for all key segments
 			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
 
 
@@ -1266,13 +1339,18 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 ## step=0: arm grenade (G+ПКМ вправо highlighted)
 ## step=1: G held, aim with RMB (G+ПКМ→отпусти G highlighted)
 ## step=2: G released, RMB still held, throw (ПКМ highlighted)
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_grenade_hint_bbcode(step: int) -> String:
 	match step:
 		0:
 			return "[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]"
 		1:
+			# First step completed
+			_extend_hint_strikethrough(HINT_GRENADE, 0.25)  # ~25% for first segment
 			return "[color=#888888][G+ПКМ вправо][/color] [color=#ff4444][G+ПКМ→отпусти G][/color] [color=#888888][ПКМ бросок][/color]"
 		_:
+			# First two steps completed
+			_extend_hint_strikethrough(HINT_GRENADE, 0.6)  # ~60% for first two segments
 			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G][/color] [color=#ff4444][ПКМ бросок][/color]"
 
 
@@ -1314,6 +1392,7 @@ func _on_player_grenade_thrown() -> void:
 		_has_thrown_grenade = true
 		print("Tutorial: Player threw grenade")
 		# Dismiss only the grenade hint (Issue #808)
+		# Issue #944: Strikethrough will animate to 100% during dismiss
 		_dismiss_hint(HINT_GRENADE)
 		# Bug fix round 5: show M16 fire-mode [B] hint after grenade (as the last training hint).
 		if _m16_needs_fire_mode_hint:
@@ -1482,10 +1561,12 @@ func _get_hint_color(hint_key: String) -> Color:
 
 ## Create and register a hint RichTextLabel with the given key and BBCode text.
 ## Issue #945: Uses RichTextLabel for BBCode color support (per-hint unique colors + red key highlights).
+## Issue #944: Adds fade-in animation when new hints appear + creates Line2D for progressive strikethrough.
 func _add_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
 	if _hint_labels.has(hint_key):
-		# Already exists - just update text
-		_hint_labels[hint_key].text = text
+		# Already exists - just update text (don't animate)
+		if not _animating_hints.has(hint_key):
+			_hint_labels[hint_key].text = text
 		return
 
 	var label := RichTextLabel.new()
@@ -1503,26 +1584,243 @@ func _add_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
 	label.fit_content = true
 	label.scroll_active = false
 
+	# Issue #944: Start transparent for fade-in animation
+	label.modulate.a = 0.0
+
 	canvas_layer.add_child(label)
 	_hint_labels[hint_key] = label
+
+	# Issue #944 Session 5: Initialize empty array; Line2D nodes created per-line in deferred setup.
+	_hint_strike_lines[hint_key] = []
+	_hint_strike_progress[hint_key] = 0.0
+
+	# Session 5: Calculate line count and create one Line2D per text line after layout.
+	# Font size 20 with default line spacing gives ~26px per line.
+	# We need to wait a frame for RichTextLabel to calculate its content size.
+	_setup_strikethrough_lines.call_deferred(hint_key, label)
+
 	print("Tutorial: Added hint '%s': %s" % [hint_key, text])
 
 	# Position immediately
 	_update_hint_position(hint_key, label)
 
+	# Issue #944: Animate fade-in
+	var tween := create_tween()
+	tween.tween_property(label, "modulate:a", 1.0, HINT_FADE_IN_DURATION).set_ease(Tween.EASE_OUT)
+
+
+## Issue #944 Session 5: Set up one Line2D per text line after label layout is ready.
+## Each line gets its own Line2D node so there are no diagonal connectors between lines.
+## Issue #1080: Also computes per-line text widths so strikethrough matches actual text length.
+func _setup_strikethrough_lines(hint_key: String, label: RichTextLabel) -> void:
+	if not is_instance_valid(label):
+		return
+
+	# Get font metrics. Font size is 20, typical line height with spacing is ~26px.
+	const LINE_HEIGHT := 26.0  # Font size + default line spacing
+
+	# Calculate number of lines based on content height vs line height.
+	var content_height := label.get_content_height()
+	var line_count := maxi(1, roundi(content_height / LINE_HEIGHT))
+	_hint_line_counts[hint_key] = line_count
+
+	# Issue #1080: Compute per-line text widths using font metrics.
+	# Map each character in the plain text to its visual line, then measure each line's width.
+	var line_widths: Array = []
+	var font: Font = label.get_theme_font("normal_font")
+	var font_size: int = label.get_theme_font_size("normal_font_size")
+	if is_instance_valid(font) and font_size > 0:
+		var plain_text: String = label.get_parsed_text()
+		# Build per-line text strings by mapping character indices to visual lines.
+		var per_line_text: Array = []
+		for _i in range(line_count):
+			per_line_text.append("")
+		var char_count: int = plain_text.length()
+		for char_idx in range(char_count):
+			var visual_line: int = label.get_character_line(char_idx)
+			if visual_line >= 0 and visual_line < line_count:
+				per_line_text[visual_line] += plain_text[char_idx]
+		for line_idx in range(line_count):
+			var w: float = font.get_string_size(per_line_text[line_idx], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+			line_widths.append(maxf(w, 1.0))
+	else:
+		# Fallback: use label content width for all lines.
+		var fallback_width: float = label.get_content_width()
+		if fallback_width <= 0:
+			fallback_width = label.custom_minimum_size.x
+		if fallback_width <= 0:
+			fallback_width = 300.0
+		for _i in range(line_count):
+			line_widths.append(fallback_width)
+	_hint_line_widths[hint_key] = line_widths
+
+	# Create one Line2D per text line to avoid diagonal connectors between lines.
+	var lines: Array = []
+	for line_idx in range(line_count):
+		# Vertical center of each line: ~55% of line height.
+		var line_y := line_idx * LINE_HEIGHT + LINE_HEIGHT * 0.55
+		var seg := Line2D.new()
+		seg.name = "StrikeLine_%s_%d" % [hint_key, line_idx]
+		seg.width = 1.5
+		seg.default_color = Color(0.6, 0.6, 0.6, 0.6)
+		seg.z_index = 1
+		# Start and end both at x=0 (invisible until animation begins).
+		seg.add_point(Vector2(0, line_y))
+		seg.add_point(Vector2(0, line_y))
+		label.add_child(seg)
+		lines.append(seg)
+
+	_hint_strike_lines[hint_key] = lines
+	print("Tutorial: Setup strikethrough for '%s': %d lines, widths: %s" % [hint_key, line_count, str(line_widths)])
+
+
+## Issue #944 Session 5: Animate the strikethrough lines to extend progressively as steps complete.
+## target_progress: 0.0-1.0 representing how much of the hint text should be struck through.
+## For multi-line text, progress spans all lines (e.g., 2 lines: 0.5 = line 1 fully struck).
+func _extend_hint_strikethrough(hint_key: String, target_progress: float) -> void:
+	if not _hint_strike_lines.has(hint_key):
+		return
+
+	var strike_lines: Array = _hint_strike_lines[hint_key]
+	if strike_lines.is_empty():
+		return
+
+	var current_progress: float = _hint_strike_progress.get(hint_key, 0.0)
+	if target_progress <= current_progress:
+		return  # Already at or past this progress
+
+	# Issue #1080: Use per-line widths if available, otherwise fall back to content width.
+	var line_widths: Array = _hint_line_widths.get(hint_key, [])
+	if line_widths.is_empty():
+		var fallback_width := 300.0
+		if _hint_labels.has(hint_key):
+			var label: RichTextLabel = _hint_labels[hint_key]
+			if is_instance_valid(label):
+				var content_width := label.get_content_width()
+				if content_width > 0:
+					fallback_width = content_width
+				elif label.custom_minimum_size.x > 0:
+					fallback_width = label.custom_minimum_size.x
+		var line_count: int = _hint_line_counts.get(hint_key, 1)
+		for _i in range(line_count):
+			line_widths.append(fallback_width)
+
+	var line_count: int = _hint_line_counts.get(hint_key, 1)
+
+	# Animate the line extension from current position to new position.
+	var tween := create_tween()
+	tween.tween_method(
+		func(progress: float):
+			_update_strikethrough_points(strike_lines, line_count, line_widths, progress),
+		current_progress, target_progress, HINT_STRIKETHROUGH_DURATION * 0.5
+	).set_ease(Tween.EASE_OUT)
+
+	_hint_strike_progress[hint_key] = target_progress
+	print("Tutorial: Strikethrough extended for '%s': %.0f%% -> %.0f%%" % [hint_key, current_progress * 100, target_progress * 100])
+
+
+## Issue #944 Session 5: Update per-line Line2D end points for multi-line strikethrough.
+## progress: 0.0-1.0 overall progress across all lines.
+## Each Line2D in the array represents one text line and is animated independently.
+## Issue #1080: line_widths is an Array[float] with the pixel width of each text line,
+## so the strikethrough only extends over the actual text, not over empty space.
+func _update_strikethrough_points(strike_lines: Array, line_count: int, line_widths: Array, progress: float) -> void:
+	for line_idx in range(line_count):
+		if line_idx >= strike_lines.size():
+			break
+		var seg: Line2D = strike_lines[line_idx]
+		if not is_instance_valid(seg):
+			continue
+
+		# Calculate how much of this line should be struck through.
+		var line_start_progress := float(line_idx) / line_count
+		var line_end_progress := float(line_idx + 1) / line_count
+		var line_progress: float
+
+		if progress <= line_start_progress:
+			line_progress = 0.0
+		elif progress >= line_end_progress:
+			line_progress = 1.0
+		else:
+			line_progress = (progress - line_start_progress) / (line_end_progress - line_start_progress)
+
+		# Issue #1080: Use per-line width so the strikethrough matches the actual text length.
+		var line_width: float = line_widths[line_idx] if line_idx < line_widths.size() else 300.0
+		seg.set_point_position(1, Vector2(line_width * line_progress, seg.get_point_position(0).y))
+
 
 ## Dismiss (remove) a single hint by key, leaving other hints visible.
+## Issue #944: Extends strikethrough to 100% before fade-out for all hints.
+## Uses the persistent Line2D attached to the hint (created in _add_hint).
 func _dismiss_hint(hint_key: String) -> void:
 	if not _hint_labels.has(hint_key):
 		return
 
+	# Issue #944: Prevent double-dismiss while animating
+	if _animating_hints.has(hint_key):
+		return
+
 	var label: RichTextLabel = _hint_labels[hint_key]
-	# Hide immediately so the label does not overlap new hints during the same frame
-	# before queue_free() is processed.
-	label.visible = false
-	label.queue_free()
+	if not is_instance_valid(label):
+		_hint_labels.erase(hint_key)
+		return
+
+	# Mark as animating to prevent updates during animation
+	_animating_hints[hint_key] = true
+
+	print("Tutorial: Dismissing hint '%s' (with strikethrough animation)" % hint_key)
+	_animate_hint_strikethrough_and_fade(hint_key, label)
+
+
+## Issue #944 Session 5: Extend the per-line Line2D strikethroughs to 100% and then fade out.
+## Uses the persistent Line2D array created per text line in _setup_strikethrough_lines.
+func _animate_hint_strikethrough_and_fade(hint_key: String, label: RichTextLabel) -> void:
+	# Get the existing strike lines for this hint
+	var strike_lines: Array = []
+	if _hint_strike_lines.has(hint_key):
+		strike_lines = _hint_strike_lines[hint_key]
+
+	# Issue #1080: Use per-line widths if available, otherwise fall back to content width.
+	var line_widths: Array = _hint_line_widths.get(hint_key, [])
+	if line_widths.is_empty():
+		var fallback_width: float = label.get_content_width()
+		if fallback_width <= 0:
+			fallback_width = label.custom_minimum_size.x
+		if fallback_width <= 0:
+			fallback_width = 300.0
+		var line_count_fb: int = _hint_line_counts.get(hint_key, 1)
+		for _i in range(line_count_fb):
+			line_widths.append(fallback_width)
+
+	var line_count: int = _hint_line_counts.get(hint_key, 1)
+	var current_progress: float = _hint_strike_progress.get(hint_key, 0.0)
+
+	# Animate the lines from current position to full width (100%)
+	var tween := create_tween()
+
+	if not strike_lines.is_empty():
+		tween.tween_method(
+			func(progress: float):
+				_update_strikethrough_points(strike_lines, line_count, line_widths, progress),
+			current_progress, 1.0, HINT_STRIKETHROUGH_DURATION
+		).set_ease(Tween.EASE_OUT)
+
+	# After strikethrough animation completes, fade out the whole label
+	tween.tween_property(label, "modulate:a", 0.0, HINT_FADE_OUT_DURATION).set_ease(Tween.EASE_IN)
+	tween.tween_callback(_finalize_hint_dismiss.bind(hint_key, label))
+
+
+## Issue #944 Session 4: Finalize hint dismissal after animation completes.
+func _finalize_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
+	_animating_hints.erase(hint_key)
 	_hint_labels.erase(hint_key)
-	print("Tutorial: Dismissed hint '%s'" % hint_key)
+	_hint_strike_lines.erase(hint_key)
+	_hint_strike_progress.erase(hint_key)
+	_hint_line_counts.erase(hint_key)
+	_hint_line_widths.erase(hint_key)
+	if is_instance_valid(label):
+		label.queue_free()
+	print("Tutorial: Hint '%s' dismissed (animation complete)" % hint_key)
 
 
 ## Update positions of all active hints to follow the player.

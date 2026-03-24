@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Weapons;
 using GodotTopdown.Scripts.Projectiles;
@@ -657,6 +658,13 @@ public partial class Player : BaseCharacter
     private Vector2 _teleportTargetPosition = Vector2.Zero;
 
     /// <summary>
+    /// When true, teleport is being aimed via Experimental Sample effect.
+    /// HandleTeleportBracersInput must skip its own logic while this is active
+    /// to avoid instantly executing the teleport on the next frame (Space not held).
+    /// </summary>
+    private bool _teleportExperimentalActive = false;
+
+    /// <summary>
     /// Player collision radius for teleport safety checks (matches Player.tscn CircleShape2D).
     /// </summary>
     private const float PlayerCollisionRadius = 16.0f;
@@ -741,6 +749,16 @@ public partial class Player : BaseCharacter
     [Signal]
     public delegate void HomingDeactivatedEventHandler();
 
+    // Progress bar state for homing bullets (Issue #974)
+    /// <summary>Whether the homing combined progress bar is visible.</summary>
+    private bool _homingBarVisible = false;
+    /// <summary>Whether the homing charge bar should show briefly after deactivation.</summary>
+    private bool _homingChargeBarPending = false;
+    /// <summary>Timer for auto-hiding homing charge bar after deactivation (300ms).</summary>
+    private float _homingChargeBarHideTimer = 0.0f;
+    /// <summary>Duration to show charge bar after deactivation before auto-hiding.</summary>
+    private const float HomingChargeBarHideDelay = 0.3f;
+
     #endregion
 
     #region BFF Pendant System (Issue #674)
@@ -803,6 +821,97 @@ public partial class Player : BaseCharacter
     /// Reference to the GDScript force field effect node.
     /// </summary>
     private Node? _forceFieldEffect = null;
+
+    #endregion
+
+    #region Breaching Charges System (Issue #1043)
+
+    /// <summary>
+    /// Whether breaching charges are equipped (active item selected in armory).
+    /// </summary>
+    private bool _breachingChargesEquipped = false;
+
+    /// <summary>
+    /// Reference to the GDScript breaching charges effect node.
+    /// </summary>
+    private Node? _breachingChargesEffect = null;
+
+    /// <summary>
+    /// Whether Space is currently held for placement detection.
+    /// </summary>
+    private bool _breachingHoldingForPlacement = false;
+
+    #endregion
+
+    #region Loudspeaker System (Issue #959)
+
+    /// <summary>
+    /// Whether the loudspeaker is equipped (active item selected in armory).
+    /// </summary>
+    private bool _loudspeakerEquipped = false;
+
+    /// <summary>
+    /// Reference to the GDScript loudspeaker cone visual effect node.
+    /// </summary>
+    private Node2D? _loudspeakerConeEffect = null;
+
+    /// <summary>
+    /// Reference to the GDScript loudspeaker progress tracker.
+    /// </summary>
+    private Node? _loudspeakerProgress = null;
+
+    /// <summary>
+    /// Sprite shown in player's hands while loudspeaker is held after activation.
+    /// </summary>
+    private Sprite2D? _loudspeakerHandSprite = null;
+
+    /// <summary>
+    /// Timer controlling how long the loudspeaker sprite stays visible.
+    /// </summary>
+    private float _loudspeakerHoldTimer = 0.0f;
+
+    /// <summary>
+    /// Duration (seconds) the loudspeaker sprite is shown after activation.
+    /// </summary>
+    private const float LoudspeakerHoldDuration = 0.6f;
+
+    // Recoil Compensator fields (Issue #1073)
+    /// <summary>Whether the recoil compensator is equipped (active item selected in armory).</summary>
+    private bool _recoilCompensatorEquipped = false;
+
+    /// <summary>Whether the recoil compensator is currently active (Space held and charge > 0).</summary>
+    private bool _recoilCompensatorActive = false;
+
+    /// <summary>Remaining charge in seconds (depletes at 1 s/s while active).</summary>
+    private float _recoilCompensatorCharge = 0.0f;
+
+    /// <summary>Maximum charge duration in seconds.</summary>
+    private const float RecoilCompensatorMaxCharge = 15.0f;
+
+    /// <summary>
+    /// When > 0, the recoil compensator is active via Experimental Sample (does not require Space held).
+    /// Counts down each frame and deactivates when it reaches 0.
+    /// </summary>
+    private float _recoilCompensatorExperimentalTimer = 0.0f;
+
+    // Experimental Sample fields (Issue #1127)
+    /// <summary>Whether the experimental sample is equipped (active item selected in armory).</summary>
+    private bool _experimentalSampleEquipped = false;
+
+    /// <summary>Remaining charges for this battle (1–5, randomised on level start).</summary>
+    private int _experimentalSampleCharges = 0;
+
+    /// <summary>Minimum charges assigned at level start.</summary>
+    private const int ExperimentalSampleMinCharges = 1;
+
+    /// <summary>Maximum charges assigned at level start.</summary>
+    private const int ExperimentalSampleMaxCharges = 5;
+
+    /// <summary>Whether the experimental sample charge bar should be drawn.</summary>
+    private bool _experimentalSampleChargeBarVisible = false;
+
+    /// <summary>Floating item icon popup node (GDScript) spawned on each effect fire.</summary>
+    private GodotObject _experimentalSamplePopup = null;
 
     #endregion
 
@@ -875,6 +984,22 @@ public partial class Player : BaseCharacter
 
             // Connect to health changed signal for visual feedback
             HealthComponent.HealthChanged += OnPlayerHealthChanged;
+
+            // Apply Armored Skin +1 HP bonus if selected (Issue #1045)
+            // Must be applied after InitializeHealth() so we add on top of the rolled value
+            var activeItemManagerForHp = GetNodeOrNull("/root/ActiveItemManager");
+            if (activeItemManagerForHp != null && activeItemManagerForHp.HasMethod("has_armored_skin"))
+            {
+                bool hasArmoredSkin = (bool)activeItemManagerForHp.Call("has_armored_skin");
+                if (hasArmoredSkin)
+                {
+                    float newMax = HealthComponent.MaxHealth + 1;
+                    float newCurrent = HealthComponent.CurrentHealth + 1;
+                    HealthComponent.MaxHealth = newMax;
+                    HealthComponent.SetHealth(newCurrent);
+                    LogToFile($"[Player.ArmoredSkin] +1 HP bonus applied, health now {HealthComponent.CurrentHealth}/{HealthComponent.MaxHealth}");
+                }
+            }
         }
 
         // Update visual based on initial health
@@ -1087,11 +1212,52 @@ public partial class Player : BaseCharacter
         // Initialize breaker bullets if active item manager has them selected (Issue #678)
         InitBreakerBullets();
 
+        // Initialize drilling bullets if active item manager has them selected (Issue #751)
+        InitDrillingBullets();
+
+        // Initialize combat disposition if active item manager has it selected (Issue #1047)
+        InitCombatDisposition();
+
         // Initialize force field if active item manager has it selected (Issue #676)
         InitForceField();
 
         // Initialize trajectory glasses if active item manager has them selected (Issue #744)
         InitTrajectoryGlasses();
+
+        // Initialize breaching charges if active item manager has them selected (Issue #1043)
+        InitBreachingCharges();
+
+        // Initialize armored skin if active item manager has it selected (Issue #1045)
+        InitArmoredSkin();
+
+        // Apply item-specific player visual based on the equipped passive item (Issue #1142)
+        ApplyItemVisual();
+
+        // Initialize loudspeaker if active item manager has it selected (Issue #959)
+        InitLoudspeaker();
+
+        // Initialize auto-reload if active item manager has it selected (Issue #1067)
+        InitAutoReload();
+
+        // Initialize recoil compensator if active item manager has it selected (Issue #1073)
+        InitRecoilCompensator();
+
+        // Initialize experimental sample if active item manager has it selected (Issue #1127)
+        InitExperimentalSample();
+
+        // Initialize fine motor skills if active item manager has it selected (Issue #1315)
+        InitFineMotorSkills();
+
+        // Initialize dash if active item manager has it selected (Issue #1071)
+        InitDash();
+
+        // Initialize jammer HUD prohibition sign (always created; visibility toggled at runtime) (Issue #1036)
+        InitJammerHud();
+
+        // Connect to ActiveItemManager's active_item_changed signal so that picking up
+        // a new active item in roguelike mode (no scene restart) immediately initialises
+        // the item's subsystem on the player (Issue #1325).
+        ConnectActiveItemChangedSignal();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -1274,6 +1440,13 @@ public partial class Player : BaseCharacter
 
     public override void _PhysicsProcess(double delta)
     {
+        // Issue #1334 Round 10: Stop all player processing after death.
+        // Without this guard, the dead player continues processing input, movement,
+        // and shooting on the same frame as death. Weapon Fire() calls on a dead player
+        // can cause native crashes (e.g., spawning bullets from freed/invalid state).
+        if (!IsAlive)
+            return;
+
         // Detect weapon pose after waiting a few frames for level scripts to add weapons
         if (!_weaponPoseApplied)
         {
@@ -1286,7 +1459,17 @@ public partial class Player : BaseCharacter
         }
 
         Vector2 inputDirection = GetInputDirection();
-        ApplyMovement(inputDirection, (float)delta);
+
+        // Skip normal movement during dash — DashEffect controls velocity (Issue #1071)
+        if (!IsDashActive())
+        {
+            ApplyMovement(inputDirection, (float)delta);
+        }
+        else
+        {
+            // DashEffect sets velocity in its own _physics_process; just slide here
+            MoveAndSlide();
+        }
 
         // Push any casings we're overlapping with using Area2D detection (Issue #392 Iteration 8)
         PushCasingsWithArea2D();
@@ -1376,6 +1559,9 @@ public partial class Player : BaseCharacter
         // Handle homing bullets input (press Space to activate for 1 second) (Issue #677)
         HandleHomingBulletsInput((float)delta);
 
+        // Update homing progress bar auto-hide timer (Issue #974)
+        UpdateHomingBarTimer((float)delta);
+
         // Handle BFF pendant input (press Space to summon companion) (Issue #674)
         HandleBffPendantInput();
 
@@ -1387,6 +1573,33 @@ public partial class Player : BaseCharacter
 
         // Handle trajectory glasses input (press Space to activate) (Issue #744)
         HandleTrajectoryGlassesInput();
+
+        // Handle breaching charges input (hold Space near wall to place, press Space to detonate) (Issue #1043)
+        HandleBreachingChargesInput();
+
+        // Handle loudspeaker input (press Space to emit sound cone) (Issue #959)
+        HandleLoudspeakerInput((float)delta);
+
+        // Handle recoil compensator input (hold Space to eliminate recoil/spread and boost fire rate) (Issue #1073)
+        HandleRecoilCompensatorInput((float)delta);
+
+        // Handle experimental sample input (press Space to trigger random effect) (Issue #1127)
+        HandleExperimentalSampleInput();
+
+        // Update trajectory glasses progress bar auto-hide timer (Issue #974)
+        UpdateTrajectoryBarTimer((float)delta);
+
+        // Handle drilling bullets input (press Space to activate, Issue #751)
+        HandleDrillingBulletsInput();
+
+        // Handle fine motor skills input (press Space to instantly reload) (Issue #1315)
+        HandleFineMotorSkillsInput();
+
+        // Handle dash input (press Space to dash in movement direction) (Issue #1071)
+        HandleDashInput();
+
+        // Update jammer HUD visibility (Issue #1036)
+        UpdateJammerHud();
     }
 
     /// <summary>
@@ -2316,6 +2529,10 @@ public partial class Player : BaseCharacter
             bullet.Set("is_breaker_bullet", true);
         }
 
+        // Set drilling bullet flag if drilling bullets are active for this magazine (Issue #751)
+        // Note: direct SpawnBullet is only used when CurrentWeapon == null (no weapon system)
+        // so we don't decrement DrillingBulletsRemaining here; BaseWeapon.SpawnBullet handles it.
+
         // Add bullet to the scene tree
         GetTree().CurrentScene.AddChild(bullet);
 
@@ -2375,6 +2592,14 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Check dash immunity (Issue #1071)
+        // Player is immune to all damage during dash
+        if (IsDashActive())
+        {
+            LogToFile("[Player] Hit blocked by dash immunity (C#)");
+            return;
+        }
+
         // Check force field protection (Issue #676)
         // Force field makes player invulnerable while active
         if (is_force_field_active())
@@ -2398,6 +2623,30 @@ public partial class Player : BaseCharacter
         // Show hit flash effect
         ShowHitFlash();
 
+        // Armored Skin: spawn glass/crystal shards when at low HP (Issue #1045)
+        // One-time trigger: deactivate after spawning so it only fires once per life.
+        // The triggering projectile's damage is fully absorbed (return early).
+        if (_armoredSkinActive && HealthComponent.CurrentHealth <= 2)
+        {
+            _armoredSkinActive = false;
+            _armoredSkinImmune = true;
+            SpawnArmoredSkinShards();
+            // Start 0.1s immunity window to absorb remaining calls from multi-hit explosions.
+            // Explosion sources (GrenadeTimer, BreakerDetonation) call on_hit_with_info in a
+            // loop (up to 99 times) — all calls after the trigger must also be absorbed (Issue #1095).
+            GetTree().CreateTimer(0.1f).Timeout += () => _armoredSkinImmune = false;
+            // Absorb the triggering hit — no damage applied
+            return;
+        }
+
+        // Absorb damage while post-trigger immunity is active (Issue #1095).
+        // This covers the remaining loop iterations from multi-hit explosion damage.
+        if (_armoredSkinImmune)
+        {
+            LogToFile("[Player.ArmoredSkin] Damage absorbed by post-trigger immunity");
+            return;
+        }
+
         // Determine if this hit will be lethal before applying damage
         bool willBeFatal = HealthComponent.CurrentHealth <= amount;
 
@@ -2414,6 +2663,9 @@ public partial class Player : BaseCharacter
         }
 
         base.TakeDamage(amount);
+
+        // Apply combat disposition hit penalty (Issue #1047)
+        ApplyCombatDispositionHitPenalty();
     }
 
     /// <summary>
@@ -2480,12 +2732,57 @@ public partial class Player : BaseCharacter
         }
     }
 
+    /// <summary>
+    /// Issue #1334 Round 10: GDScript-compatible is_alive() method.
+    /// GDScript code (bullets, enemies) uses has_method("is_alive") to check if a target
+    /// is alive before applying damage or physics interactions. The C# IsAlive property
+    /// is not accessible via has_method() from GDScript. Without this bridge method,
+    /// bullets pass through the is_alive check (returns true by default) and hit dead
+    /// players, causing crashes from physics state mutations on freed/invalid nodes.
+    /// </summary>
+    public bool is_alive() => IsAlive;
+
     /// <inheritdoc/>
     public override void OnDeath()
     {
         base.OnDeath();
-        // Handle player death
+        // Issue #1334 Round 10: Defer collision disabling to avoid modifying physics state
+        // during active physics callbacks. Setting CollisionLayer/CollisionMask during
+        // body_entered/area_entered callbacks corrupts the physics server's internal collision
+        // pair list, causing native segfaults. CallDeferred ensures the changes happen at the
+        // end of the frame, after all physics callbacks have completed.
+        CallDeferred(MethodName._DisableDeadPlayerCollision);
         GD.Print("Player died!");
+    }
+
+    /// <summary>
+    /// Issue #1334 Round 10: Deferred method to disable all collision on the dead player.
+    /// Called via CallDeferred from OnDeath to avoid modifying physics state during
+    /// active physics callbacks (body_entered, area_entered) which causes native crashes.
+    /// </summary>
+    private void _DisableDeadPlayerCollision()
+    {
+        CollisionLayer = 0;
+        CollisionMask = 0;
+
+        // Disable the HitArea (Area2D) so bullets in flight cannot trigger
+        // on_area_entered callbacks on the dead player's hit detection area.
+        var hitArea = GetNodeOrNull<Area2D>("HitArea");
+        if (hitArea != null)
+        {
+            hitArea.CollisionLayer = 0;
+            hitArea.CollisionMask = 0;
+            hitArea.Monitoring = false;
+            hitArea.Monitorable = false;
+        }
+
+        // Disable the ThreatSphere too so LastChance doesn't process new threats.
+        var threatSphere = GetNodeOrNull<Area2D>("ThreatSphere");
+        if (threatSphere != null)
+        {
+            threatSphere.Monitoring = false;
+            threatSphere.Monitorable = false;
+        }
     }
 
     /// <summary>
@@ -2506,6 +2803,15 @@ public partial class Player : BaseCharacter
         if (_breakerBulletsActive)
         {
             CurrentWeapon.IsBreakerBulletActive = true;
+        }
+
+        // Propagate Combat Disposition bonuses to new weapon (Issue #1047)
+        // This ensures the penalty persists when the weapon is swapped during a run.
+        if (_combatDispositionActive)
+        {
+            CurrentWeapon.DamageBonus = _combatDispositionDamageBonus;
+            CurrentWeapon.FireRateBonus = _combatDispositionFireRateBonus;
+            LogToFile($"[Player.CombatDisposition] Propagated bonuses to new weapon {CurrentWeapon.Name}: damage {_combatDispositionDamageBonus:F1}, fire rate {_combatDispositionFireRateBonus:F1}");
         }
 
         // Add weapon as child if not already in scene tree
@@ -2544,9 +2850,8 @@ public partial class Player : BaseCharacter
 
         // Get selected weapon ID from GameManager (GDScript autoload)
         var selectedWeaponId = gameManager.Call("get_selected_weapon").AsString();
-        if (string.IsNullOrEmpty(selectedWeaponId) || selectedWeaponId == "makarov_pm")
+        if (string.IsNullOrEmpty(selectedWeaponId))
         {
-            // Default weapon (MakarovPM) - already equipped, nothing to do
             return;
         }
 
@@ -2594,15 +2899,28 @@ public partial class Player : BaseCharacter
 
         LogToFile($"[Player.Weapon] GameManager weapon selection: {selectedWeaponId} ({weaponNodeName})");
 
-        // Remove the default MakarovPM immediately
-        var defaultWeapon = GetNodeOrNull<BaseWeapon>("MakarovPM");
-        if (defaultWeapon != null)
+        // Guard: if the correct weapon is already equipped, nothing to do.
+        // This prevents unnecessary remove/re-add of the scene-placed MakarovPM on _Ready()
+        // and avoids a crash when body_entered fires synchronously during physics processing
+        // (Issue #1323 regression fix).
+        if (CurrentWeapon != null && CurrentWeapon.Name == weaponNodeName)
         {
-            RemoveChild(defaultWeapon);
-            defaultWeapon.QueueFree();
-            LogToFile("[Player.Weapon] Removed default MakarovPM");
+            LogToFile($"[Player.Weapon] Already equipped {weaponNodeName}, no change needed");
+            return;
         }
-        CurrentWeapon = null;
+
+        // Remove the current weapon (whatever it is) before equipping the new one.
+        // Issue #1323: previously only MakarovPM was removed by name, so picking up a
+        // new weapon while already holding a non-default weapon left the old weapon node
+        // alive as a child, and picking up makarov_pm was a no-op due to an early return.
+        if (CurrentWeapon != null)
+        {
+            var oldWeaponName = CurrentWeapon.Name;
+            RemoveChild(CurrentWeapon);
+            CurrentWeapon.QueueFree();
+            CurrentWeapon = null;
+            LogToFile($"[Player.Weapon] Removed current weapon: {oldWeaponName}");
+        }
 
         // Load and instantiate the selected weapon
         var weaponScene = GD.Load<PackedScene>(scenePath);
@@ -2613,6 +2931,9 @@ public partial class Player : BaseCharacter
             AddChild(weapon);
             CurrentWeapon = weapon;
             LogToFile($"[Player.Weapon] Equipped {weaponNodeName} (ammo: {weapon.CurrentAmmo}/{weapon.WeaponData?.MagazineSize ?? 0})");
+            // Re-detect arm pose so the player's arms match the new weapon immediately.
+            _weaponPoseApplied = false;
+            _weaponDetectFrameCount = 0;
         }
         else
         {
@@ -2747,1195 +3068,6 @@ public partial class Player : BaseCharacter
 
     #endregion
 
-    #region Grenade System
-
-    /// <summary>
-    /// Handle grenade input with either simple or complex mechanic.
-    /// Simple mode (default): Hold RMB to aim with trajectory preview, release to throw.
-    /// Complex mode (experimental): G + RMB drag right → hold G+RMB → release G → drag and release RMB.
-    /// </summary>
-    private void HandleGrenadeInput()
-    {
-        // Handle throw rotation animation
-        HandleThrowRotationAnimation((float)GetPhysicsProcessDeltaTime());
-
-        // Check for active grenade explosion (explodes in hand after 4 seconds)
-        if (_activeGrenade != null && !IsInstanceValid(_activeGrenade))
-        {
-            // Grenade exploded while held - return arms to idle
-            StartGrenadeAnimPhase(GrenadeAnimPhase.ReturnIdle, AnimReturnDuration);
-            ResetGrenadeState();
-            return;
-        }
-
-        // Check if complex grenade throwing is enabled (experimental setting)
-        var experimentalSettings = GetNodeOrNull("/root/ExperimentalSettings");
-        bool useComplexThrowing = false;
-        if (experimentalSettings != null && experimentalSettings.HasMethod("is_complex_grenade_throwing"))
-        {
-            useComplexThrowing = (bool)experimentalSettings.Call("is_complex_grenade_throwing");
-        }
-
-        // Debug log once per state change to track mode (logged once when grenade action starts)
-        if (_grenadeState == GrenadeState.Idle && (Input.IsActionJustPressed("grenade_throw") || Input.IsActionJustPressed("grenade_prepare")))
-        {
-            LogToFile($"[Player.Grenade] Mode check: complex={useComplexThrowing}, settings_node={experimentalSettings != null}");
-        }
-
-        if (useComplexThrowing)
-        {
-            // Complex 3-step throwing mechanic
-            switch (_grenadeState)
-            {
-                case GrenadeState.Idle:
-                    HandleGrenadeIdleState();
-                    break;
-                case GrenadeState.TimerStarted:
-                    HandleGrenadeTimerStartedState();
-                    break;
-                case GrenadeState.WaitingForGRelease:
-                    HandleGrenadeWaitingForGReleaseState();
-                    break;
-                case GrenadeState.Aiming:
-                    HandleGrenadeAimingState();
-                    break;
-            }
-        }
-        else
-        {
-            // Simple trajectory aiming mode - uses same pin-pull mechanic (G+RMB drag)
-            // but replaces mouse-velocity throwing with trajectory-to-cursor aiming
-            switch (_grenadeState)
-            {
-                case GrenadeState.Idle:
-                    // Use same G+RMB drag mechanic as complex mode for pin pull (Step 1)
-                    HandleGrenadeIdleState();
-                    break;
-                case GrenadeState.TimerStarted:
-                    // After pin is pulled, RMB starts trajectory aiming (instead of Step 2)
-                    HandleSimpleGrenadeTimerStartedState();
-                    break;
-                case GrenadeState.SimpleAiming:
-                    // RMB held: show trajectory preview, release to throw to cursor
-                    HandleSimpleGrenadeAimingState();
-                    break;
-                default:
-                    // If we're in a complex-mode state but simple mode is now enabled,
-                    // reset to allow starting fresh (handles mode switch mid-throw)
-                    if (_grenadeState == GrenadeState.WaitingForGRelease ||
-                        _grenadeState == GrenadeState.Aiming)
-                    {
-                        LogToFile($"[Player.Grenade] Mode mismatch: resetting from complex state {_grenadeState} to IDLE");
-                        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
-                        {
-                            DropGrenadeAtFeet();
-                        }
-                        else
-                        {
-                            ResetGrenadeState();
-                        }
-                    }
-                    break;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Handle grenade input in Idle state.
-    /// Waiting for G + RMB drag right to start timer (Step 1).
-    /// </summary>
-    private void HandleGrenadeIdleState()
-    {
-        // Start grab animation when G is first pressed (check before the is_action_pressed block)
-        if (Input.IsActionJustPressed("grenade_prepare") && _currentGrenades > 0)
-        {
-            StartGrenadeAnimPhase(GrenadeAnimPhase.GrabGrenade, AnimGrabDuration);
-            LogToFile("[Player.Grenade] G pressed - starting grab animation");
-        }
-
-        // Check if G key is held and player has grenades
-        if (Input.IsActionPressed("grenade_prepare") && _currentGrenades > 0)
-        {
-            // Check if RMB was just pressed (start of drag)
-            if (Input.IsActionJustPressed("grenade_throw"))
-            {
-                _grenadeDragStart = GetGlobalMousePosition();
-                _grenadeDragActive = true;
-                LogToFile($"[Player.Grenade] Step 1 started: G held, RMB pressed at {_grenadeDragStart}");
-            }
-
-            // Check if RMB was released (end of drag)
-            if (_grenadeDragActive && Input.IsActionJustReleased("grenade_throw"))
-            {
-                Vector2 dragEnd = GetGlobalMousePosition();
-                Vector2 dragVector = dragEnd - _grenadeDragStart;
-
-                // Check if drag was to the right and long enough
-                if (dragVector.X > MinDragDistanceForStep1)
-                {
-                    StartGrenadeTimer();
-                    // Start pull pin animation
-                    StartGrenadeAnimPhase(GrenadeAnimPhase.PullPin, AnimPinDuration);
-                    LogToFile($"[Player.Grenade] Step 1 complete! Drag: {dragVector}");
-                }
-                else
-                {
-                    LogToFile($"[Player.Grenade] Step 1 failed: drag not far enough right ({dragVector.X} < {MinDragDistanceForStep1})");
-                }
-                _grenadeDragActive = false;
-            }
-        }
-        else
-        {
-            _grenadeDragActive = false;
-            // If G was released and we were in grab animation, return to idle
-            if (_grenadeAnimPhase == GrenadeAnimPhase.GrabGrenade)
-            {
-                StartGrenadeAnimPhase(GrenadeAnimPhase.ReturnIdle, AnimReturnDuration);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Handle grenade input in TimerStarted state.
-    /// Waiting for RMB to be pressed while G is held (Step 2 part 1).
-    /// </summary>
-    private void HandleGrenadeTimerStartedState()
-    {
-        // If G is released, drop grenade at feet
-        if (!Input.IsActionPressed("grenade_prepare"))
-        {
-            LogToFile("[Player.Grenade] G released - dropping grenade at feet");
-            DropGrenadeAtFeet();
-            return;
-        }
-
-        // Check if RMB is pressed to enter WaitingForGRelease state
-        if (Input.IsActionJustPressed("grenade_throw"))
-        {
-            _grenadeState = GrenadeState.WaitingForGRelease;
-            // Start hands approach animation
-            StartGrenadeAnimPhase(GrenadeAnimPhase.HandsApproach, AnimApproachDuration);
-            LogToFile("[Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw");
-        }
-    }
-
-    /// <summary>
-    /// Handle grenade input in WaitingForGRelease state.
-    /// G+RMB are both held, waiting for G to be released (Step 2 part 2).
-    /// </summary>
-    private void HandleGrenadeWaitingForGReleaseState()
-    {
-        // If RMB is released before G, go back to TimerStarted
-        if (!Input.IsActionPressed("grenade_throw"))
-        {
-            _grenadeState = GrenadeState.TimerStarted;
-            LogToFile("[Player.Grenade] RMB released before G - back to waiting for RMB");
-            return;
-        }
-
-        // If G is released while RMB is still held, enter Aiming state
-        if (!Input.IsActionPressed("grenade_prepare"))
-        {
-            _grenadeState = GrenadeState.Aiming;
-            _grenadeDragStart = GetGlobalMousePosition();
-            _prevMousePos = _grenadeDragStart;
-            // Initialize velocity tracking for realistic throwing
-            _mouseVelocityHistory.Clear();
-            _currentMouseVelocity = Vector2.Zero;
-            _totalSwingDistance = 0.0f;
-            _prevFrameTime = Time.GetTicksMsec() / 1000.0;
-            // Start transfer animation (grenade to throwing hand)
-            StartGrenadeAnimPhase(GrenadeAnimPhase.Transfer, AnimTransferDuration);
-            LogToFile("[Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)");
-        }
-    }
-
-    /// <summary>
-    /// Handle grenade input in Aiming state.
-    /// Only RMB is held (G was released), waiting for drag and release to throw.
-    /// </summary>
-    private void HandleGrenadeAimingState()
-    {
-        // In this state, G is already released (that's how we got here)
-        // We only care about RMB
-
-        // Transition from transfer to wind-up after transfer completes
-        if (_grenadeAnimPhase == GrenadeAnimPhase.Transfer && _grenadeAnimTimer <= 0)
-        {
-            StartGrenadeAnimPhase(GrenadeAnimPhase.WindUp, 0); // Wind-up is continuous
-            LogToFile("[Player.Grenade.Anim] Entered wind-up phase");
-        }
-
-        // Update wind-up intensity while in wind-up phase
-        if (_grenadeAnimPhase == GrenadeAnimPhase.WindUp)
-        {
-            UpdateWindUpIntensity();
-        }
-
-        // Request redraw for debug trajectory visualization
-        if (_debugModeEnabled)
-        {
-            QueueRedraw();
-        }
-
-        // If RMB is released, throw the grenade
-        if (Input.IsActionJustReleased("grenade_throw"))
-        {
-            // Start throw animation
-            StartGrenadeAnimPhase(GrenadeAnimPhase.Throw, AnimThrowDuration);
-            Vector2 dragEnd = GetGlobalMousePosition();
-            ThrowGrenade(dragEnd);
-        }
-    }
-
-    #region Simple Grenade Throwing Mode
-
-    /// <summary>
-    /// Handle TIMER_STARTED state for simple grenade throwing mode.
-    /// After pin is pulled (G+RMB drag), wait for RMB to start trajectory aiming.
-    /// If G is released, drop grenade at feet.
-    /// </summary>
-    private void HandleSimpleGrenadeTimerStartedState()
-    {
-        // Make grenade follow player while G is held
-        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
-        {
-            _activeGrenade.GlobalPosition = GlobalPosition;
-        }
-
-        // If G is released, drop grenade at feet
-        if (!Input.IsActionPressed("grenade_prepare"))
-        {
-            LogToFile("[Player.Grenade.Simple] G released - dropping grenade at feet");
-            DropGrenadeAtFeet();
-            return;
-        }
-
-        // Check if RMB is pressed to enter SimpleAiming state
-        if (Input.IsActionJustPressed("grenade_throw"))
-        {
-            _grenadeState = GrenadeState.SimpleAiming;
-            _isPreparingGrenade = true;
-            // Store initial mouse position for aiming
-            _aimDragStart = GetGlobalMousePosition();
-            // Start hands approach animation
-            StartGrenadeAnimPhase(GrenadeAnimPhase.HandsApproach, AnimApproachDuration);
-            LogToFile("[Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming");
-        }
-    }
-
-    /// <summary>
-    /// Handle SIMPLE_AIMING state: RMB held, showing trajectory preview.
-    /// Cursor position = landing point. Release RMB to throw.
-    /// G can be released while RMB is held - grenade stays ready.
-    /// </summary>
-    private void HandleSimpleGrenadeAimingState()
-    {
-        // Request redraw for trajectory visualization (always show in simple mode)
-        QueueRedraw();
-
-        // Make grenade follow player
-        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
-        {
-            _activeGrenade.GlobalPosition = GlobalPosition;
-        }
-
-        // Update arm animation based on wind-up
-        UpdateSimpleWindUpAnimation();
-
-        // If animation phases need to transition
-        if (_grenadeAnimPhase == GrenadeAnimPhase.HandsApproach && _grenadeAnimTimer <= 0)
-        {
-            _grenadeAnimPhase = GrenadeAnimPhase.WindUp;
-        }
-
-        // Check for RMB release - throw the grenade!
-        if (Input.IsActionJustReleased("grenade_throw"))
-        {
-            ThrowSimpleGrenade();
-        }
-
-        // Check for cancellation (if grenade was somehow destroyed)
-        if (_activeGrenade == null || !IsInstanceValid(_activeGrenade))
-        {
-            ResetGrenadeState();
-            StartGrenadeAnimPhase(GrenadeAnimPhase.ReturnIdle, AnimReturnDuration);
-        }
-    }
-
-    /// <summary>
-    /// Update wind-up animation based on distance from player to cursor.
-    /// </summary>
-    private void UpdateSimpleWindUpAnimation()
-    {
-        Vector2 currentMouse = GetGlobalMousePosition();
-        float distance = GlobalPosition.DistanceTo(currentMouse);
-
-        // Calculate wind-up intensity based on distance (0-500 pixels = 0-1 intensity)
-        const float maxDistance = 500.0f;
-        _windUpIntensity = Mathf.Clamp(distance / maxDistance, 0.0f, 1.0f);
-    }
-
-    /// <summary>
-    /// Throw the grenade in simple mode.
-    /// Direction and distance based on cursor position relative to player.
-    /// </summary>
-    private void ThrowSimpleGrenade()
-    {
-        if (_activeGrenade == null || !IsInstanceValid(_activeGrenade))
-        {
-            LogToFile("[Player.Grenade.Simple] Cannot throw: no active grenade");
-            ResetGrenadeState();
-            return;
-        }
-
-        Vector2 targetPos = GetGlobalMousePosition();
-        Vector2 toTarget = targetPos - GlobalPosition;
-
-        // Calculate throw direction
-        Vector2 throwDirection = toTarget.Length() > 10.0f ? toTarget.Normalized() : new Vector2(1, 0);
-
-        // FIX for issue #398: Account for spawn offset in distance calculation
-        // The grenade starts 60 pixels ahead of the player in the throw direction,
-        // so we need to calculate distance from spawn position to target, not from player to target
-        const float spawnOffset = 60.0f;
-        Vector2 spawnPosition = GlobalPosition + throwDirection * spawnOffset;
-        float throwDistance = (targetPos - spawnPosition).Length();
-
-        // Ensure minimum throw distance
-        if (throwDistance < 10.0f) throwDistance = 10.0f;
-
-        // Get grenade's actual physics properties for accurate calculation
-        // FIX for issue #398: Use actual grenade properties instead of hardcoded values
-        float groundFriction = 300.0f; // Default
-        float maxThrowSpeed = 850.0f;  // Default
-        if (_activeGrenade.Get("ground_friction").VariantType != Variant.Type.Nil)
-        {
-            groundFriction = (float)_activeGrenade.Get("ground_friction");
-        }
-        if (_activeGrenade.Get("max_throw_speed").VariantType != Variant.Type.Nil)
-        {
-            maxThrowSpeed = (float)_activeGrenade.Get("max_throw_speed");
-        }
-
-        // Calculate throw speed needed to reach target (using physics)
-        // Distance = v^2 / (2 * friction) → v = sqrt(2 * friction * distance)
-        // FIX for issue #615: Removed the 1.16x compensation factor.
-        // Root causes: (1) GDScript + C# were BOTH applying friction (double friction), and
-        // (2) Godot's default linear_damp=0.1 in COMBINE mode added hidden damping.
-        // Fix: GDScript friction removed entirely (C# GrenadeTimer is sole friction source),
-        // and linear_damp_mode set to REPLACE so linear_damp=0 means zero damping.
-        // v = sqrt(2*F*d) now works correctly without any compensation factor.
-        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
-
-        // Clamp to grenade's max throw speed
-        float throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
-
-        // Calculate actual landing distance with clamped speed (for logging)
-        float actualDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
-
-        LogToFile($"[Player.Grenade.Simple] Throwing! Target: {targetPos}, Distance: {actualDistance:F1}, Speed: {throwSpeed:F1}, Friction: {groundFriction:F1}");
-
-        // Rotate player to face throw direction
-        RotatePlayerForThrow(throwDirection);
-
-        // Calculate safe spawn position with wall check
-        Vector2 intendedSpawnPosition = GlobalPosition + throwDirection * spawnOffset;
-        Vector2 safeSpawnPosition = GetSafeGrenadeSpawnPosition(GlobalPosition, intendedSpawnPosition, throwDirection);
-
-        // FIX for issue #398: Set grenade position to spawn point BEFORE throwing
-        // The grenade follows the player during aiming at GlobalPosition,
-        // but the distance calculation assumes it starts from spawnPosition (60px ahead).
-        // Without this fix, the grenade lands ~60px short of the target.
-        _activeGrenade.GlobalPosition = safeSpawnPosition;
-
-        // FIX for Issue #432: Mark grenade as thrown BEFORE unfreezing to avoid race condition.
-        // If MarkAsThrown() is called after unfreezing, the BodyEntered signal could fire
-        // before IsThrown is set, causing impact detection to fail.
-        var grenadeTimer = _activeGrenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
-        if (grenadeTimer != null)
-        {
-            grenadeTimer.MarkAsThrown();
-        }
-
-        // Unfreeze and throw the grenade
-        _activeGrenade.Freeze = false;
-
-        // FIX for Issue #432: ALWAYS set velocity directly in C# as primary mechanism.
-        // GDScript methods called via Call() may silently fail in exported builds,
-        // causing grenades to fly infinitely (no velocity set) or not move at all.
-        // By setting velocity directly in C#, we guarantee the grenade moves correctly.
-        _activeGrenade.LinearVelocity = throwDirection * throwSpeed;
-        _activeGrenade.Rotation = throwDirection.Angle();
-
-        LogToFile($"[Player.Grenade.Simple] C# set velocity directly: dir={throwDirection}, speed={throwSpeed:F1}, spawn={safeSpawnPosition}");
-
-        // Also try to call GDScript method for any additional setup it might do
-        // (visual effects, sound, etc.), but the velocity is already set above
-        if (_activeGrenade.HasMethod("throw_grenade_simple"))
-        {
-            _activeGrenade.Call("throw_grenade_simple", throwDirection, throwSpeed);
-        }
-
-        // Start throw animation
-        StartGrenadeAnimPhase(GrenadeAnimPhase.Throw, AnimThrowDuration);
-
-        // Emit signal and play sound
-        EmitSignal(SignalName.GrenadeThrown);
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_grenade_throw"))
-        {
-            audioManager.Call("play_grenade_throw", GlobalPosition);
-        }
-
-        LogToFile("[Player.Grenade.Simple] Grenade thrown!");
-
-        // Reset state
-        ResetGrenadeState();
-    }
-
-    #endregion
-
-    /// <summary>
-    /// Start the grenade timer (step 1 complete - pin pulled).
-    /// Creates the grenade instance and starts its 4-second fuse.
-    /// </summary>
-    private void StartGrenadeTimer()
-    {
-        if (_currentGrenades <= 0)
-        {
-            LogToFile("[Player.Grenade] Cannot start timer: no grenades");
-            return;
-        }
-
-        if (GrenadeScene == null)
-        {
-            LogToFile("[Player.Grenade] Cannot start timer: GrenadeScene is null");
-            return;
-        }
-
-        // Create grenade instance (held by player)
-        _activeGrenade = GrenadeScene.Instantiate<RigidBody2D>();
-        if (_activeGrenade == null)
-        {
-            LogToFile("[Player.Grenade] Failed to instantiate grenade scene");
-            return;
-        }
-
-        // Add grenade to scene first (must be in tree before setting GlobalPosition)
-        GetTree().CurrentScene.AddChild(_activeGrenade);
-
-        // FIX for Issue #432 (activation position bug): Freeze the grenade IMMEDIATELY after creation.
-        // This MUST happen before setting position to prevent physics engine interference.
-        // Root cause: GDScript _ready() sets freeze=true, but GDScript doesn't run in exports!
-        // Without this fix, the physics engine can move the unfrozen grenade while player moves,
-        // causing the grenade to be thrown from the activation position instead of player's current position.
-        // See commit 60f7cae for original fix and docs/case-studies/issue-183/ for detailed analysis.
-        _activeGrenade.FreezeMode = RigidBody2D.FreezeModeEnum.Kinematic;
-        _activeGrenade.Freeze = true;
-
-        // Set position AFTER AddChild and AFTER freezing (GlobalPosition only works when node is in the scene tree)
-        _activeGrenade.GlobalPosition = GlobalPosition;
-
-        // FIX for Issue #432: Add C# GrenadeTimer component for reliable explosion handling.
-        // GDScript methods called via Call() may silently fail in exports, causing grenades
-        // to fly infinitely without exploding. This C# component provides a reliable fallback.
-        AddGrenadeTimerComponent(_activeGrenade);
-
-        // Activate the grenade timer (starts 4s countdown)
-        // Try GDScript first, but C# GrenadeTimer will handle it if this fails
-        if (_activeGrenade.HasMethod("activate_timer"))
-        {
-            _activeGrenade.Call("activate_timer");
-        }
-        // Also activate C# timer as reliable fallback
-        var grenadeTimer = _activeGrenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
-        if (grenadeTimer != null)
-        {
-            grenadeTimer.ActivateTimer();
-        }
-
-        _grenadeState = GrenadeState.TimerStarted;
-
-        // Decrement grenade count now (pin is pulled) - but not on tutorial level (infinite)
-        if (!_isTutorialLevel)
-        {
-            _currentGrenades--;
-        }
-        EmitSignal(SignalName.GrenadeChanged, _currentGrenades, MaxGrenades);
-
-        // Play grenade prepare sound
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_grenade_prepare"))
-        {
-            audioManager.Call("play_grenade_prepare", GlobalPosition);
-        }
-
-        LogToFile($"[Player.Grenade] Timer started, grenade created at {GlobalPosition}");
-    }
-
-    /// <summary>
-    /// Add C# GrenadeTimer component to grenade for reliable explosion handling.
-    /// FIX for Issue #432: GDScript methods called via Call() may silently fail in exports.
-    /// </summary>
-    private void AddGrenadeTimerComponent(RigidBody2D grenade)
-    {
-        // Determine grenade type from scene name
-        var grenadeType = GrenadeTimer.GrenadeType.Flashbang;
-        var scenePath = grenade.SceneFilePath;
-        if (scenePath.Contains("Frag", StringComparison.OrdinalIgnoreCase))
-        {
-            grenadeType = GrenadeTimer.GrenadeType.Frag;
-        }
-        else if (scenePath.Contains("Aggression", StringComparison.OrdinalIgnoreCase))
-        {
-            grenadeType = GrenadeTimer.GrenadeType.AggressionGas;
-        }
-
-        // Create and configure the GrenadeTimer component
-        var timer = new GrenadeTimer();
-        timer.Name = "GrenadeTimer";
-        timer.Type = grenadeType;
-
-        // Copy relevant properties from grenade (if they exist as exported properties)
-        if (grenade.HasMeta("fuse_time") || grenade.Get("fuse_time").VariantType != Variant.Type.Nil)
-        {
-            timer.FuseTime = (float)grenade.Get("fuse_time");
-        }
-        if (grenade.HasMeta("effect_radius") || grenade.Get("effect_radius").VariantType != Variant.Type.Nil)
-        {
-            timer.EffectRadius = (float)grenade.Get("effect_radius");
-        }
-        if (grenade.HasMeta("explosion_damage") || grenade.Get("explosion_damage").VariantType != Variant.Type.Nil)
-        {
-            timer.ExplosionDamage = (int)grenade.Get("explosion_damage");
-        }
-        if (grenade.HasMeta("blindness_duration") || grenade.Get("blindness_duration").VariantType != Variant.Type.Nil)
-        {
-            timer.BlindnessDuration = (float)grenade.Get("blindness_duration");
-        }
-        if (grenade.HasMeta("stun_duration") || grenade.Get("stun_duration").VariantType != Variant.Type.Nil)
-        {
-            timer.StunDuration = (float)grenade.Get("stun_duration");
-        }
-        // FIX for Issue #432: Copy ground_friction for C# friction handling
-        // GDScript _physics_process() may not run in exports, so we need C# to apply friction
-        if (grenade.HasMeta("ground_friction") || grenade.Get("ground_friction").VariantType != Variant.Type.Nil)
-        {
-            timer.GroundFriction = (float)grenade.Get("ground_friction");
-        }
-
-        // FIX for Issue #432: Apply type-based defaults BEFORE adding to scene.
-        // GDScript Get() calls may fail silently in exported builds, leaving us with
-        // incorrect values (e.g., Frag grenade using Flashbang's 400 radius instead of 225).
-        timer.SetTypeBasedDefaults();
-
-        // Add the timer component to the grenade
-        grenade.AddChild(timer);
-        LogToFile($"[Player.Grenade] Added GrenadeTimer component (type: {grenadeType})");
-    }
-
-    /// <summary>
-    /// Drop the grenade at player's feet (when G is released before throwing).
-    /// </summary>
-    private void DropGrenadeAtFeet()
-    {
-        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
-        {
-            // Set position to current player position before unfreezing
-            _activeGrenade.GlobalPosition = GlobalPosition;
-            // Unfreeze the grenade so physics works and it can explode
-            _activeGrenade.Freeze = false;
-            // The grenade stays where it is (at player's feet)
-            LogToFile($"[Player.Grenade] Grenade dropped at feet at {_activeGrenade.GlobalPosition} (unfrozen)");
-        }
-        // Start return animation
-        StartGrenadeAnimPhase(GrenadeAnimPhase.ReturnIdle, AnimReturnDuration);
-        ResetGrenadeState();
-    }
-
-    /// <summary>
-    /// Reset grenade state to idle.
-    /// </summary>
-    private void ResetGrenadeState()
-    {
-        _grenadeState = GrenadeState.Idle;
-        _grenadeDragActive = false;
-        _grenadeDragStart = Vector2.Zero;
-        // Don't null out _activeGrenade - it's now an independent object in the scene
-        _activeGrenade = null;
-        // Reset wind-up intensity
-        _windUpIntensity = 0.0f;
-        // Reset velocity tracking for next throw
-        _mouseVelocityHistory.Clear();
-        _currentMouseVelocity = Vector2.Zero;
-        _totalSwingDistance = 0.0f;
-        LogToFile("[Player.Grenade] State reset to IDLE");
-    }
-
-    /// <summary>
-    /// Sensitivity multiplier for throw distance calculation.
-    /// Higher value = farther throw for same drag distance.
-    /// Must match the value used in debug visualization.
-    /// </summary>
-    private const float ThrowSensitivityMultiplier = 9.0f;
-
-    /// <summary>
-    /// Throw the grenade using realistic velocity-based physics.
-    /// The throw velocity is determined by mouse velocity at release moment, not drag distance.
-    /// FIX for issue #313: Direction is now determined by MOUSE VELOCITY (how user moves the mouse)
-    /// with snapping to 4 cardinal directions to compensate for imprecise human mouse movement.
-    /// </summary>
-    /// <param name="dragEnd">The end position of the drag (used for direction fallback).</param>
-    private void ThrowGrenade(Vector2 dragEnd)
-    {
-        if (_activeGrenade == null || !IsInstanceValid(_activeGrenade))
-        {
-            LogToFile("[Player.Grenade] Cannot throw: no active grenade");
-            ResetGrenadeState();
-            return;
-        }
-
-        // Get the mouse velocity at moment of release (for determining throw speed AND direction)
-        Vector2 releaseVelocity = _currentMouseVelocity;
-        float velocityMagnitude = releaseVelocity.Length();
-
-        // FIX for issue #313: Use MOUSE VELOCITY DIRECTION (how the mouse is MOVING)
-        // User requirement: grenade flies in the direction the mouse is moving at release
-        // NOT toward where the mouse cursor is positioned
-        // Example: If user moves mouse DOWN, grenade flies DOWN (regardless of where cursor is)
-        Vector2 throwDirection;
-
-        if (velocityMagnitude > 10.0f)
-        {
-            // Primary direction: the direction the mouse is MOVING (velocity direction)
-            // FIX for issue #313 v4: Snap to 8 directions (4 cardinal + 4 diagonal)
-            // This compensates for imprecise human mouse movement while allowing diagonal throws
-            Vector2 rawDirection = releaseVelocity.Normalized();
-            throwDirection = SnapToOctantDirection(rawDirection);
-            LogToFile($"[Player.Grenade] Raw direction: {rawDirection}, Snapped direction: {throwDirection}");
-        }
-        else
-        {
-            // Fallback when mouse is not moving - use player-to-mouse as fallback direction
-            // FIX for issue #313 v4: Also snap fallback to 8 directions
-            Vector2 playerToMouse = dragEnd - GlobalPosition;
-            if (playerToMouse.Length() > 10.0f)
-            {
-                throwDirection = SnapToOctantDirection(playerToMouse.Normalized());
-            }
-            else
-            {
-                throwDirection = new Vector2(1, 0);  // Default direction (right)
-            }
-            // FIX for issue #313 v4: When velocity is 0, use a minimum throw speed
-            // This prevents grenade from getting "stuck" when user stops mouse before release
-            float minFallbackVelocity = 2000.0f;  // Minimum velocity to ensure grenade travels
-            velocityMagnitude = minFallbackVelocity;
-            LogToFile($"[Player.Grenade] Fallback mode: Using minimum velocity {minFallbackVelocity:F1} px/s");
-        }
-
-        LogToFile($"[Player.Grenade] Throwing in mouse velocity direction! Direction: {throwDirection}, Mouse velocity: {velocityMagnitude:F1} px/s, Swing: {_totalSwingDistance:F1}");
-
-        // Rotate player to face throw direction (prevents grenade hitting player when throwing upward)
-        RotatePlayerForThrow(throwDirection);
-
-        // Calculate intended spawn position (60px in front of player in throw direction)
-        float spawnOffset = 60.0f;
-        Vector2 intendedSpawnPosition = GlobalPosition + throwDirection * spawnOffset;
-
-        // FIXED: Raycast check to prevent spawning grenade behind/inside walls
-        // This fixes grenades passing through walls when thrown at close range ("в упор")
-        Vector2 spawnPosition = GetSafeGrenadeSpawnPosition(GlobalPosition, intendedSpawnPosition, throwDirection);
-        _activeGrenade.GlobalPosition = spawnPosition;
-
-        // FIX for Issue #432: ALWAYS set velocity directly in C# as primary mechanism.
-        // GDScript methods called via Call() may silently fail in exported builds.
-        // Calculate throw speed using the same formula as GDScript
-        float multiplier = 0.5f;
-        float minSwing = 80.0f;
-        float maxSpeed = 850.0f;
-        float swingTransfer = Mathf.Clamp(_totalSwingDistance / minSwing, 0.0f, 0.65f);
-        float finalSpeed = Mathf.Min(velocityMagnitude * multiplier * (0.35f + swingTransfer), maxSpeed);
-
-        // FIX for Issue #432: Mark grenade as thrown BEFORE unfreezing to avoid race condition.
-        // If MarkAsThrown() is called after unfreezing, the BodyEntered signal could fire
-        // before IsThrown is set, causing impact detection to fail.
-        var grenadeTimer = _activeGrenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
-        if (grenadeTimer != null)
-        {
-            grenadeTimer.MarkAsThrown();
-        }
-
-        // Unfreeze and set velocity directly
-        _activeGrenade.Freeze = false;
-        _activeGrenade.LinearVelocity = throwDirection * finalSpeed;
-        _activeGrenade.Rotation = throwDirection.Angle();
-
-        LogToFile($"[Player.Grenade] C# set velocity directly: dir={throwDirection}, speed={finalSpeed:F1}, spawn={spawnPosition}");
-
-        // Also try to call GDScript method for any additional setup
-        if (_activeGrenade.HasMethod("throw_grenade_with_direction"))
-        {
-            _activeGrenade.Call("throw_grenade_with_direction", throwDirection, velocityMagnitude, _totalSwingDistance);
-        }
-        else if (_activeGrenade.HasMethod("throw_grenade_velocity_based"))
-        {
-            Vector2 directionalVelocity = throwDirection * velocityMagnitude;
-            _activeGrenade.Call("throw_grenade_velocity_based", directionalVelocity, _totalSwingDistance);
-        }
-        else if (_activeGrenade.HasMethod("throw_grenade"))
-        {
-            float legacyDistance = velocityMagnitude * 0.5f;
-            _activeGrenade.Call("throw_grenade", throwDirection, legacyDistance);
-        }
-
-        // Emit signal
-        EmitSignal(SignalName.GrenadeThrown);
-
-        // Play grenade throw sound
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_grenade_throw"))
-        {
-            audioManager.Call("play_grenade_throw", GlobalPosition);
-        }
-
-        LogToFile($"[Player.Grenade] Thrown! Velocity: {velocityMagnitude:F1}, Swing: {_totalSwingDistance:F1}");
-
-        // Reset state (grenade is now independent)
-        ResetGrenadeState();
-    }
-
-    /// <summary>
-    /// Rotate player to face throw direction (with swing animation).
-    /// Prevents grenade from hitting player when throwing upward.
-    /// </summary>
-    /// <param name="throwDirection">The direction of the throw.</param>
-    private void RotatePlayerForThrow(Vector2 throwDirection)
-    {
-        // Store current rotation to restore later
-        _playerRotationBeforeThrow = Rotation;
-
-        // Calculate target rotation (face throw direction)
-        _throwTargetRotation = throwDirection.Angle();
-
-        // Apply rotation immediately
-        Rotation = _throwTargetRotation;
-
-        // Start restore timer
-        _isThrowRotating = true;
-        _throwRotationRestoreTimer = ThrowRotationDuration;
-
-        LogToFile($"[Player.Grenade] Player rotated for throw: {_playerRotationBeforeThrow} -> {_throwTargetRotation}");
-    }
-
-    /// <summary>
-    /// Handle throw rotation animation - restore player rotation after throw.
-    /// </summary>
-    /// <param name="delta">Time since last frame.</param>
-    private void HandleThrowRotationAnimation(float delta)
-    {
-        if (!_isThrowRotating)
-        {
-            return;
-        }
-
-        _throwRotationRestoreTimer -= delta;
-        if (_throwRotationRestoreTimer <= 0)
-        {
-            // Restore original rotation
-            Rotation = _playerRotationBeforeThrow;
-            _isThrowRotating = false;
-            LogToFile($"[Player.Grenade] Player rotation restored to {_playerRotationBeforeThrow}");
-        }
-    }
-
-    /// <summary>
-    /// Get a safe spawn position for the grenade that doesn't spawn behind/inside walls.
-    /// Uses raycast from player position to intended spawn position to detect walls.
-    /// If a wall is detected, spawns the grenade just before the wall (5px safety margin).
-    /// </summary>
-    /// <param name="fromPos">The player's current position.</param>
-    /// <param name="intendedPos">The intended spawn position (player + offset in throw direction).</param>
-    /// <param name="throwDirection">The normalized throw direction.</param>
-    /// <returns>The safe spawn position for the grenade.</returns>
-    private Vector2 GetSafeGrenadeSpawnPosition(Vector2 fromPos, Vector2 intendedPos, Vector2 throwDirection)
-    {
-        // Get physics space state for raycasting
-        var spaceState = GetWorld2D().DirectSpaceState;
-        if (spaceState == null)
-        {
-            LogToFile("[Player.Grenade] Warning: Could not get DirectSpaceState for raycast");
-            return intendedPos;
-        }
-
-        // Create raycast query from player to intended spawn position
-        // Collision mask 4 = obstacles layer (walls)
-        var query = PhysicsRayQueryParameters2D.Create(fromPos, intendedPos, 4);
-        query.Exclude = new Godot.Collections.Array<Rid> { GetRid() }; // Exclude self
-
-        var result = spaceState.IntersectRay(query);
-
-        // If no wall detected, use intended position
-        if (result.Count == 0)
-        {
-            return intendedPos;
-        }
-
-        // Wall detected! Calculate safe position (5px before the wall)
-        Vector2 wallPosition = (Vector2)result["position"];
-        string colliderName = "Unknown";
-        if (result.ContainsKey("collider"))
-        {
-            var collider = result["collider"].AsGodotObject();
-            if (collider is Node node)
-            {
-                colliderName = node.Name;
-            }
-        }
-
-        float distanceToWall = fromPos.DistanceTo(wallPosition);
-        float safeDistance = Mathf.Max(distanceToWall - 5.0f, 10.0f); // At least 10px from player
-        Vector2 safePosition = fromPos + throwDirection * safeDistance;
-
-        LogToFile($"[Player.Grenade] Wall detected at {wallPosition} (collider: {colliderName})! Adjusting spawn from {intendedPos} to {safePosition}");
-
-        return safePosition;
-    }
-
-    /// <summary>
-    /// FIX for issue #313 v4: Snap raw mouse velocity direction to the nearest of 8 directions.
-    /// This compensates for imprecise human mouse movement while allowing diagonal throws.
-    ///
-    /// Uses 8 directions (45° sectors each):
-    /// - RIGHT (0°): 0°
-    /// - DOWN-RIGHT (45°): 45°
-    /// - DOWN (90°): 90°
-    /// - DOWN-LEFT (135°): 135°
-    /// - LEFT (180°): 180°
-    /// - UP-LEFT (-135°): -135°
-    /// - UP (-90°): -90°
-    /// - UP-RIGHT (-45°): -45°
-    /// </summary>
-    /// <param name="rawDirection">The raw normalized direction from mouse velocity.</param>
-    /// <returns>The snapped direction (one of 8 unit vectors).</returns>
-    private Vector2 SnapToOctantDirection(Vector2 rawDirection)
-    {
-        float angle = rawDirection.Angle();  // Returns angle in radians (-PI to PI)
-        float sectorSize = Mathf.Pi / 4.0f;  // 45 degrees per sector (8 directions)
-        int sectorIndex = Mathf.RoundToInt(angle / sectorSize);
-        float snappedAngle = sectorIndex * sectorSize;
-        return new Vector2(Mathf.Cos(snappedAngle), Mathf.Sin(snappedAngle));
-    }
-
-    /// <summary>
-    /// Get current grenade count.
-    /// </summary>
-    public int GetCurrentGrenades()
-    {
-        return _currentGrenades;
-    }
-
-    /// <summary>
-    /// Get maximum grenade count.
-    /// </summary>
-    public int GetMaxGrenades()
-    {
-        return MaxGrenades;
-    }
-
-    /// <summary>
-    /// Add grenades to inventory (e.g., from pickup).
-    /// </summary>
-    /// <param name="count">Number of grenades to add.</param>
-    public void AddGrenades(int count)
-    {
-        _currentGrenades = Mathf.Min(_currentGrenades + count, MaxGrenades);
-        EmitSignal(SignalName.GrenadeChanged, _currentGrenades, MaxGrenades);
-    }
-
-    /// <summary>
-    /// Check if player is preparing to throw a grenade.
-    /// </summary>
-    public bool IsPreparingGrenade()
-    {
-        return _grenadeState != GrenadeState.Idle;
-    }
-
-    #endregion
-
-    #region Grenade Animation Methods
-
-    /// <summary>
-    /// Start a new grenade animation phase.
-    /// </summary>
-    /// <param name="phase">The GrenadeAnimPhase to transition to.</param>
-    /// <param name="duration">How long this phase should last (for timed phases).</param>
-    private void StartGrenadeAnimPhase(GrenadeAnimPhase phase, float duration)
-    {
-        _grenadeAnimPhase = phase;
-        _grenadeAnimTimer = duration;
-        _grenadeAnimDuration = duration;
-
-        // Enable weapon sling when handling grenade
-        if (phase != GrenadeAnimPhase.None && phase != GrenadeAnimPhase.ReturnIdle)
-        {
-            _weaponSlung = true;
-        }
-        // RETURN_IDLE will unset _weaponSlung when animation completes
-
-        LogToFile($"[Player.Grenade.Anim] Phase changed to: {phase} (duration: {duration:F2}s)");
-    }
-
-    /// <summary>
-    /// Update grenade animation based on current phase.
-    /// Called every frame from _PhysicsProcess.
-    /// </summary>
-    /// <param name="delta">Time since last frame.</param>
-    private void UpdateGrenadeAnimation(float delta)
-    {
-        // Early exit if no animation active
-        if (_grenadeAnimPhase == GrenadeAnimPhase.None)
-        {
-            // Restore normal z-index when not animating
-            RestoreArmZIndex();
-            return;
-        }
-
-        // Update phase timer
-        if (_grenadeAnimTimer > 0)
-        {
-            _grenadeAnimTimer -= delta;
-        }
-
-        // Calculate animation progress (0.0 to 1.0)
-        float progress = 1.0f;
-        if (_grenadeAnimDuration > 0)
-        {
-            progress = Mathf.Clamp(1.0f - (_grenadeAnimTimer / _grenadeAnimDuration), 0.0f, 1.0f);
-        }
-
-        // Calculate target positions based on current phase
-        Vector2 leftArmTarget = _baseLeftArmPos;
-        Vector2 rightArmTarget = _baseRightArmPos;
-        float leftArmRot = 0.0f;
-        float rightArmRot = 0.0f;
-        float lerpSpeed = AnimLerpSpeed * delta;
-
-        // Set arms to lower z-index during grenade operations (below weapon)
-        // This ensures arms appear below the weapon as user requested
-        SetGrenadeAnimZIndex();
-
-        switch (_grenadeAnimPhase)
-        {
-            case GrenadeAnimPhase.GrabGrenade:
-                // Left arm moves back to shoulder/chest area (away from weapon) to grab grenade
-                // Large negative X offset pulls the arm from weapon front (x=24) toward body (x~5)
-                leftArmTarget = _baseLeftArmPos + ArmLeftChest;
-                leftArmRot = Mathf.DegToRad(ArmRotGrab);
-                lerpSpeed = AnimLerpSpeedFast * delta;
-                break;
-
-            case GrenadeAnimPhase.PullPin:
-                // Left hand holds grenade at chest level, right hand pulls pin
-                leftArmTarget = _baseLeftArmPos + ArmLeftExtended;
-                leftArmRot = Mathf.DegToRad(ArmRotLeftAtChest);
-                rightArmTarget = _baseRightArmPos + ArmRightPin;
-                rightArmRot = Mathf.DegToRad(ArmRotPinPull);
-                lerpSpeed = AnimLerpSpeedFast * delta;
-                break;
-
-            case GrenadeAnimPhase.HandsApproach:
-                // Both hands at chest level, preparing for transfer
-                leftArmTarget = _baseLeftArmPos + ArmLeftExtended;
-                leftArmRot = Mathf.DegToRad(ArmRotLeftAtChest);
-                rightArmTarget = _baseRightArmPos + ArmRightApproach;
-                break;
-
-            case GrenadeAnimPhase.Transfer:
-                // Left arm drops back toward body, right hand takes grenade
-                leftArmTarget = _baseLeftArmPos + ArmLeftTransfer;
-                leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed * 0.5f);
-                rightArmTarget = _baseRightArmPos + ArmRightHold;
-                lerpSpeed = AnimLerpSpeed * delta;
-                break;
-
-            case GrenadeAnimPhase.WindUp:
-                // LEFT ARM: Fully retracted to shoulder/body area, hangs at side
-                // This is the key position - arm must be clearly NOT on the weapon
-                leftArmTarget = _baseLeftArmPos + ArmLeftRelaxed;
-                leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed);
-                // RIGHT ARM: Interpolate between min and max wind-up based on intensity
-                Vector2 windUpOffset = ArmRightWindMin.Lerp(ArmRightWindMax, _windUpIntensity);
-                rightArmTarget = _baseRightArmPos + windUpOffset;
-                float windUpRot = Mathf.Lerp(ArmRotWindMin, ArmRotWindMax, _windUpIntensity);
-                rightArmRot = Mathf.DegToRad(windUpRot);
-                lerpSpeed = AnimLerpSpeedFast * delta; // Responsive to input
-                break;
-
-            case GrenadeAnimPhase.Throw:
-                // Throwing motion - right arm swings forward, left stays at body
-                leftArmTarget = _baseLeftArmPos + ArmLeftRelaxed;
-                leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed);
-                rightArmTarget = _baseRightArmPos + ArmRightThrow;
-                rightArmRot = Mathf.DegToRad(ArmRotThrow);
-                lerpSpeed = AnimLerpSpeedFast * delta;
-
-                // When throw animation completes, transition to return
-                if (_grenadeAnimTimer <= 0)
-                {
-                    StartGrenadeAnimPhase(GrenadeAnimPhase.ReturnIdle, AnimReturnDuration);
-                }
-                break;
-
-            case GrenadeAnimPhase.ReturnIdle:
-                // Arms returning to base positions (back to holding weapon)
-                leftArmTarget = _baseLeftArmPos;
-                rightArmTarget = _baseRightArmPos;
-                lerpSpeed = AnimLerpSpeed * delta;
-
-                // When return animation completes, end animation
-                if (_grenadeAnimTimer <= 0)
-                {
-                    _grenadeAnimPhase = GrenadeAnimPhase.None;
-                    _weaponSlung = false;
-                    RestoreArmZIndex();
-                    LogToFile("[Player.Grenade.Anim] Animation complete, returning to normal");
-                }
-                break;
-        }
-
-        // Apply arm positions with smooth interpolation
-        if (_leftArmSprite != null)
-        {
-            _leftArmSprite.Position = _leftArmSprite.Position.Lerp(leftArmTarget, lerpSpeed);
-            _leftArmSprite.Rotation = Mathf.Lerp(_leftArmSprite.Rotation, leftArmRot, lerpSpeed);
-        }
-
-        if (_rightArmSprite != null)
-        {
-            _rightArmSprite.Position = _rightArmSprite.Position.Lerp(rightArmTarget, lerpSpeed);
-            _rightArmSprite.Rotation = Mathf.Lerp(_rightArmSprite.Rotation, rightArmRot, lerpSpeed);
-        }
-
-        // Update weapon sling animation
-        UpdateWeaponSling(delta);
-    }
-
-    /// <summary>
-    /// Set arm z-index for grenade animation (arms below weapon).
-    /// </summary>
-    private void SetGrenadeAnimZIndex()
-    {
-        // During grenade operations, arms should appear below the weapon
-        // Weapon has z_index = 1, so set arms to 0
-        if (_leftArmSprite != null)
-        {
-            _leftArmSprite.ZIndex = 0;
-        }
-        if (_rightArmSprite != null)
-        {
-            _rightArmSprite.ZIndex = 0;
-        }
-    }
-
-    /// <summary>
-    /// Restore normal arm z-index (arms above weapon for normal aiming).
-    /// </summary>
-    private void RestoreArmZIndex()
-    {
-        // Normal state: arms at z_index 2 (between body and head)
-        if (_leftArmSprite != null)
-        {
-            _leftArmSprite.ZIndex = 2;
-        }
-        if (_rightArmSprite != null)
-        {
-            _rightArmSprite.ZIndex = 2;
-        }
-    }
-
-    /// <summary>
-    /// Update weapon sling position (lower weapon when handling grenade).
-    /// </summary>
-    /// <param name="delta">Time since last frame.</param>
-    private void UpdateWeaponSling(float delta)
-    {
-        if (_weaponMount == null)
-        {
-            return;
-        }
-
-        Vector2 targetPos = _baseWeaponMountPos;
-        float targetRot = _baseWeaponMountRot;
-
-        if (_weaponSlung)
-        {
-            // Lower weapon to chest/sling position
-            targetPos = _baseWeaponMountPos + WeaponSlingOffset;
-            targetRot = _baseWeaponMountRot + WeaponSlingRotation;
-        }
-
-        float lerpSpeed = AnimLerpSpeed * delta;
-        _weaponMount.Position = _weaponMount.Position.Lerp(targetPos, lerpSpeed);
-        _weaponMount.Rotation = Mathf.Lerp(_weaponMount.Rotation, targetRot, lerpSpeed);
-    }
-
-    /// <summary>
-    /// Update wind-up intensity and track mouse velocity during aiming.
-    /// Uses velocity-based physics for realistic throwing.
-    /// </summary>
-    private void UpdateWindUpIntensity()
-    {
-        Vector2 currentMouse = GetGlobalMousePosition();
-        double currentTime = Time.GetTicksMsec() / 1000.0;
-
-        // Calculate time delta since last frame
-        double deltaTime = currentTime - _prevFrameTime;
-        if (deltaTime <= 0.0)
-        {
-            deltaTime = 0.016; // Default to ~60fps if first frame
-        }
-
-        // Calculate mouse displacement since last frame
-        Vector2 mouseDelta = currentMouse - _prevMousePos;
-
-        // Accumulate total swing distance for momentum transfer calculation
-        _totalSwingDistance += mouseDelta.Length();
-
-        // Calculate instantaneous mouse velocity (pixels per second)
-        Vector2 instantaneousVelocity = mouseDelta / (float)deltaTime;
-
-        // Add to velocity history for smoothing
-        _mouseVelocityHistory.Add(instantaneousVelocity);
-        if (_mouseVelocityHistory.Count > MouseVelocityHistorySize)
-        {
-            _mouseVelocityHistory.RemoveAt(0);
-        }
-
-        // Calculate average velocity from history (smoothed velocity)
-        Vector2 velocitySum = Vector2.Zero;
-        foreach (Vector2 vel in _mouseVelocityHistory)
-        {
-            velocitySum += vel;
-        }
-        _currentMouseVelocity = velocitySum / Math.Max(_mouseVelocityHistory.Count, 1);
-
-        // Calculate wind-up intensity based on velocity (for animation)
-        // Higher velocity = more wind-up visual effect
-        float velocityMagnitude = _currentMouseVelocity.Length();
-        // Normalize to a reasonable range (0-2000 pixels/second typical for fast mouse movement)
-        float velocityIntensity = Mathf.Clamp(velocityMagnitude / 1500.0f, 0.0f, 1.0f);
-
-        _windUpIntensity = velocityIntensity;
-
-        // Update tracking for next frame
-        _prevMousePos = currentMouse;
-        _prevFrameTime = currentTime;
-    }
-
-    #endregion
 
     #region Reload Animation Methods
 
@@ -4137,2034 +3269,5 @@ public partial class Player : BaseCharacter
 
     #endregion
 
-    #region Flashlight Methods (Issue #546)
 
-    /// <summary>
-    /// Initialize the flashlight if the ActiveItemManager has it selected.
-    /// Loads and attaches the FlashlightEffect scene to PlayerModel.
-    /// </summary>
-    private void InitFlashlight()
-    {
-        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
-        if (activeItemManager == null)
-        {
-            LogToFile("[Player.Flashlight] ActiveItemManager not found");
-            return;
-        }
-
-        if (!activeItemManager.HasMethod("has_flashlight"))
-        {
-            LogToFile("[Player.Flashlight] ActiveItemManager missing has_flashlight method");
-            return;
-        }
-
-        bool hasFlashlight = (bool)activeItemManager.Call("has_flashlight");
-        if (!hasFlashlight)
-        {
-            LogToFile("[Player.Flashlight] No flashlight selected in ActiveItemManager");
-            return;
-        }
-
-        LogToFile("[Player.Flashlight] Flashlight is selected, initializing...");
-
-        // Load and instantiate the flashlight effect scene
-        if (!ResourceLoader.Exists(FlashlightScenePath))
-        {
-            LogToFile($"[Player.Flashlight] WARNING: Flashlight scene not found: {FlashlightScenePath}");
-            return;
-        }
-
-        var flashlightScene = GD.Load<PackedScene>(FlashlightScenePath);
-        if (flashlightScene == null)
-        {
-            LogToFile("[Player.Flashlight] WARNING: Failed to load flashlight scene");
-            return;
-        }
-
-        _flashlightNode = flashlightScene.Instantiate<Node2D>();
-        _flashlightNode.Name = "FlashlightEffect";
-
-        // Add as child of PlayerModel so it rotates with aiming direction
-        if (_playerModel != null)
-        {
-            _playerModel.AddChild(_flashlightNode);
-            // Position at the weapon barrel (forward from center, matching BulletSpawnOffset)
-            _flashlightNode.Position = new Vector2(BulletSpawnOffset, 0);
-            _flashlightEquipped = true;
-            LogToFile($"[Player.Flashlight] Flashlight equipped and attached to PlayerModel at offset ({(int)BulletSpawnOffset}, 0)");
-
-            // Check if GDScript methods are available
-            _flashlightHasScript = _flashlightNode.HasMethod("turn_on");
-            LogToFile($"[Player.Flashlight] GDScript methods available: {_flashlightHasScript}");
-
-            // Get direct reference to PointLight2D for fallback control
-            _flashlightPointLight = _flashlightNode.GetNodeOrNull<PointLight2D>("PointLight2D");
-            if (_flashlightPointLight != null)
-            {
-                // Start with light off
-                _flashlightPointLight.Visible = false;
-                _flashlightPointLight.Energy = 0.0f;
-                LogToFile($"[Player.Flashlight] PointLight2D found, shadow={_flashlightPointLight.ShadowEnabled}");
-            }
-            else
-            {
-                LogToFile("[Player.Flashlight] WARNING: PointLight2D child not found in flashlight scene");
-            }
-        }
-        else
-        {
-            LogToFile("[Player.Flashlight] WARNING: _playerModel is null, flashlight not attached");
-            _flashlightNode.QueueFree();
-            _flashlightNode = null;
-        }
-    }
-
-    /// <summary>
-    /// Handle flashlight input: hold Space to turn on, release to turn off.
-    /// Uses GDScript methods when available, falls back to direct PointLight2D control.
-    /// </summary>
-    private void HandleFlashlightInput()
-    {
-        if (!_flashlightEquipped || _flashlightNode == null)
-        {
-            return;
-        }
-
-        if (!IsInstanceValid(_flashlightNode))
-        {
-            return;
-        }
-
-        if (Input.IsActionPressed("flashlight_toggle"))
-        {
-            if (_flashlightHasScript)
-            {
-                _flashlightNode.Call("turn_on");
-            }
-            else if (!_flashlightIsOn)
-            {
-                // C# fallback: directly control PointLight2D
-                _flashlightIsOn = true;
-                if (_flashlightPointLight != null)
-                {
-                    _flashlightPointLight.Visible = true;
-                    _flashlightPointLight.Energy = FlashlightEnergy;
-                }
-            }
-        }
-        else
-        {
-            if (_flashlightHasScript)
-            {
-                _flashlightNode.Call("turn_off");
-            }
-            else if (_flashlightIsOn)
-            {
-                // C# fallback: directly control PointLight2D
-                _flashlightIsOn = false;
-                if (_flashlightPointLight != null)
-                {
-                    _flashlightPointLight.Visible = false;
-                    _flashlightPointLight.Energy = 0.0f;
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Check if the player's flashlight is currently on (Issue #574).
-    /// Used by enemy AI to detect the flashlight beam and estimate player position.
-    /// Method name follows GDScript naming convention for cross-language compatibility
-    /// with the flashlight detection system that uses has_method("is_flashlight_on") checks.
-    /// </summary>
-    public bool is_flashlight_on()
-    {
-        if (!_flashlightEquipped || _flashlightNode == null)
-            return false;
-        if (!IsInstanceValid(_flashlightNode))
-            return false;
-        if (_flashlightHasScript && _flashlightNode.HasMethod("is_on"))
-            return (bool)_flashlightNode.Call("is_on");
-        return _flashlightIsOn;
-    }
-
-    /// <summary>
-    /// Get the flashlight beam direction as a normalized Vector2 (Issue #574).
-    /// The beam direction matches the player model's facing direction.
-    /// Returns Vector2.Zero if flashlight is off or not equipped.
-    /// Method name follows GDScript naming convention for cross-language compatibility.
-    /// </summary>
-    public Vector2 get_flashlight_direction()
-    {
-        if (!is_flashlight_on())
-            return Vector2.Zero;
-        if (_playerModel == null)
-            return Vector2.Zero;
-        return Vector2.Right.Rotated(_playerModel.GlobalRotation);
-    }
-
-    /// <summary>
-    /// Get the flashlight beam origin position in global coordinates (Issue #574).
-    /// This is the weapon barrel position where the flashlight is attached.
-    /// Returns GlobalPosition if flashlight is off or not equipped.
-    /// Method name follows GDScript naming convention for cross-language compatibility.
-    /// </summary>
-    public Vector2 get_flashlight_origin()
-    {
-        if (!is_flashlight_on() || _flashlightNode == null)
-            return GlobalPosition;
-        if (!IsInstanceValid(_flashlightNode))
-            return GlobalPosition;
-        return _flashlightNode.GlobalPosition;
-    }
-
-    #endregion
-
-    #region Teleport Bracers Methods (Issue #672)
-
-    /// <summary>
-    /// Initialize the teleport bracers if the ActiveItemManager has them selected.
-    /// </summary>
-    private void InitTeleportBracers()
-    {
-        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
-        if (activeItemManager == null)
-        {
-            LogToFile("[Player.TeleportBracers] ActiveItemManager not found");
-            return;
-        }
-
-        if (!activeItemManager.HasMethod("has_teleport_bracers"))
-        {
-            LogToFile("[Player.TeleportBracers] ActiveItemManager missing has_teleport_bracers method");
-            return;
-        }
-
-        bool hasTeleportBracers = (bool)activeItemManager.Call("has_teleport_bracers");
-        if (!hasTeleportBracers)
-        {
-            LogToFile("[Player.TeleportBracers] No teleport bracers selected in ActiveItemManager");
-            return;
-        }
-
-        _teleportBracersEquipped = true;
-        _teleportCharges = MaxTeleportCharges;
-        LogToFile($"[Player.TeleportBracers] Teleport bracers equipped with {_teleportCharges} charges");
-
-        // Emit initial charge count for UI
-        EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
-
-        // Draw initial charge progress bar (Issue #700)
-        QueueRedraw();
-    }
-
-    /// <summary>
-    /// Handle teleport bracers input: hold Space to aim, release to teleport.
-    /// While Space is held, shows targeting reticle with player silhouette.
-    /// On release, teleports player to the safe target position.
-    /// </summary>
-    private void HandleTeleportBracersInput()
-    {
-        if (!_teleportBracersEquipped)
-        {
-            return;
-        }
-
-        if (Input.IsActionPressed("flashlight_toggle"))
-        {
-            // Space held — enter/continue aiming mode
-            if (!_teleportAiming && _teleportCharges > 0)
-            {
-                _teleportAiming = true;
-                LogToFile("[Player.TeleportBracers] Aiming started");
-            }
-
-            if (_teleportAiming)
-            {
-                // Update target position each frame
-                _teleportTargetPosition = GetSafeTeleportPosition(GlobalPosition, GetGlobalMousePosition());
-                QueueRedraw();
-            }
-        }
-        else if (_teleportAiming)
-        {
-            // Space released — execute teleport
-            _teleportAiming = false;
-            ExecuteTeleport();
-        }
-    }
-
-    /// <summary>
-    /// Execute the teleport to the current target position.
-    /// Decrements charges and emits signal for UI update.
-    /// </summary>
-    private void ExecuteTeleport()
-    {
-        if (_teleportCharges <= 0)
-        {
-            LogToFile("[Player.TeleportBracers] No charges remaining");
-            QueueRedraw();
-            return;
-        }
-
-        Vector2 oldPosition = GlobalPosition;
-        GlobalPosition = _teleportTargetPosition;
-        _teleportCharges--;
-
-        EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
-        LogToFile($"[Player.TeleportBracers] Teleported from {oldPosition} to {_teleportTargetPosition}, charges: {_teleportCharges}/{MaxTeleportCharges}");
-
-        // Issue #723: Reset enemy memory when player teleports - enemies lose track and enter search mode
-        ResetAllEnemyMemories("teleport");
-
-        QueueRedraw();
-    }
-
-    /// <summary>
-    /// Reset memory for all enemies in the scene (Issue #723).
-    /// Called when player teleports or becomes invisible, causing enemies to lose track and enter search mode.
-    /// </summary>
-    /// <param name="reason">The reason for the memory reset (for logging purposes).</param>
-    private void ResetAllEnemyMemories(string reason = "teleport")
-    {
-        var enemies = GetTree().GetNodesInGroup("enemies");
-        int resetCount = 0;
-
-        foreach (var node in enemies)
-        {
-            if (node.HasMethod("reset_memory"))
-            {
-                node.Call("reset_memory");
-                resetCount++;
-            }
-        }
-
-        if (resetCount > 0)
-        {
-            LogToFile($"[Player] Reset memory for {resetCount} enemies ({reason} - Issue #723)");
-        }
-    }
-
-    /// <summary>
-    /// Find a safe teleport destination that doesn't place the player inside walls.
-    /// The reticle should "skip through" walls — if the cursor is past a wall,
-    /// the teleport lands on the far side of the wall, not before it.
-    /// Uses multiple raycasts to find clear space beyond obstacles.
-    /// The result is always clamped to the navigation mesh to prevent teleporting
-    /// outside the map boundary walls (Issue #939).
-    /// </summary>
-    /// <param name="fromPos">The player's current position.</param>
-    /// <param name="cursorPos">The mouse cursor position (intended target).</param>
-    /// <returns>A safe teleport destination position within the map bounds.</returns>
-    private Vector2 GetSafeTeleportPosition(Vector2 fromPos, Vector2 cursorPos)
-    {
-        var spaceState = GetWorld2D().DirectSpaceState;
-        if (spaceState == null)
-        {
-            LogToFile("[Player.TeleportBracers] Warning: Could not get DirectSpaceState");
-            return cursorPos;
-        }
-
-        // Check if cursor position is directly accessible (no wall between player and cursor)
-        var directQuery = PhysicsRayQueryParameters2D.Create(fromPos, cursorPos, 4); // mask 4 = obstacles
-        directQuery.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
-        var directResult = spaceState.IntersectRay(directQuery);
-
-        Vector2 candidatePos;
-        if (directResult.Count == 0)
-        {
-            // No wall in the way — check if cursor position itself is inside a wall
-            candidatePos = EnsureNotInsideWall(spaceState, cursorPos);
-        }
-        else
-        {
-            // Wall detected between player and cursor.
-            // "Skip through" the wall: find clear space on the far side.
-            Vector2 wallHitPos = (Vector2)directResult["position"];
-            Vector2 direction = (cursorPos - fromPos).Normalized();
-            float totalDistance = fromPos.DistanceTo(cursorPos);
-            float wallDistance = fromPos.DistanceTo(wallHitPos);
-
-            // Probe from just past the wall hit point to the cursor, looking for open space
-            float probeStart = wallDistance + PlayerCollisionRadius + 2.0f;
-            float step = PlayerCollisionRadius;
-
-            // Start from cursor position and work backward to find the closest valid position to cursor
-            candidatePos = fromPos + direction * Mathf.Max(wallDistance - PlayerCollisionRadius - 2.0f, 0.0f);
-
-            for (float dist = probeStart; dist <= totalDistance + step; dist += step)
-            {
-                float clampedDist = Mathf.Min(dist, totalDistance);
-                Vector2 testPos = fromPos + direction * clampedDist;
-
-                // Check if this position is inside a wall using shape query
-                if (!IsPositionInsideWall(spaceState, testPos))
-                {
-                    // Found clear space beyond the wall — verify we can raycast from there
-                    // back to the cursor (no additional walls in between)
-                    candidatePos = testPos;
-
-                    // Now find the best position closest to the cursor
-                    // Continue scanning forward to get as close to cursor as possible
-                    Vector2 lastGoodPos = testPos;
-                    for (float fwdDist = clampedDist + step; fwdDist <= totalDistance; fwdDist += step)
-                    {
-                        Vector2 fwdTestPos = fromPos + direction * fwdDist;
-                        if (!IsPositionInsideWall(spaceState, fwdTestPos))
-                        {
-                            lastGoodPos = fwdTestPos;
-                        }
-                        else
-                        {
-                            // Hit another wall, stop here
-                            break;
-                        }
-                    }
-
-                    // Also test exact cursor position
-                    if (!IsPositionInsideWall(spaceState, cursorPos))
-                    {
-                        lastGoodPos = cursorPos;
-                    }
-
-                    candidatePos = lastGoodPos;
-                    break;
-                }
-            }
-        }
-
-        // Clamp the final position to the navigation mesh to prevent teleporting
-        // outside the map boundary walls (Issue #939).
-        return ClampToNavigationMesh(candidatePos);
-    }
-
-    /// <summary>
-    /// Clamp a position to the navigation mesh so the player cannot teleport
-    /// outside the solid boundary walls surrounding the map (Issue #939).
-    /// Uses NavigationServer2D to find the closest valid point on the nav mesh.
-    /// </summary>
-    /// <param name="position">The candidate teleport position.</param>
-    /// <returns>The closest valid position within the navigation mesh.</returns>
-    private Vector2 ClampToNavigationMesh(Vector2 position)
-    {
-        var navMap = GetWorld2D().NavigationMap;
-        if (!navMap.IsValid)
-        {
-            LogToFile("[Player.TeleportBracers] Warning: Could not get NavigationMap for boundary check");
-            return position;
-        }
-
-        Vector2 closest = NavigationServer2D.MapGetClosestPoint(navMap, position);
-        if (!closest.IsEqualApprox(position))
-        {
-            LogToFile($"[Player.TeleportBracers] Clamped teleport from {position} to {closest} (outside map bounds)");
-        }
-        return closest;
-    }
-
-    /// <summary>
-    /// Check if a position is inside a wall using a point shape query.
-    /// Tests 4 points around the position at the player's collision radius.
-    /// </summary>
-    private bool IsPositionInsideWall(PhysicsDirectSpaceState2D spaceState, Vector2 position)
-    {
-        // Test points at cardinal directions from position (at player radius)
-        Vector2[] testOffsets = {
-            new Vector2(PlayerCollisionRadius, 0),
-            new Vector2(-PlayerCollisionRadius, 0),
-            new Vector2(0, PlayerCollisionRadius),
-            new Vector2(0, -PlayerCollisionRadius)
-        };
-
-        // Use a short raycast from center to each offset point
-        // If any hits a wall, the position is too close to/inside a wall
-        foreach (var offset in testOffsets)
-        {
-            var query = PhysicsRayQueryParameters2D.Create(position, position + offset, 4);
-            query.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
-            var result = spaceState.IntersectRay(query);
-            if (result.Count > 0)
-            {
-                float hitDist = position.DistanceTo((Vector2)result["position"]);
-                if (hitDist < PlayerCollisionRadius)
-                {
-                    return true;
-                }
-            }
-        }
-
-        // Also test from the center outward in more directions for better coverage
-        var centerQuery = PhysicsRayQueryParameters2D.Create(
-            position + new Vector2(0, -1), position + new Vector2(0, 1), 4);
-        centerQuery.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
-        var centerResult = spaceState.IntersectRay(centerQuery);
-        if (centerResult.Count > 0)
-        {
-            float hitDist = position.DistanceTo((Vector2)centerResult["position"]);
-            if (hitDist < 2.0f)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Ensure a position is not inside a wall. If it is, nudge it to safety.
-    /// </summary>
-    private Vector2 EnsureNotInsideWall(PhysicsDirectSpaceState2D spaceState, Vector2 position)
-    {
-        if (!IsPositionInsideWall(spaceState, position))
-        {
-            return position;
-        }
-
-        // Position is inside wall — try nudging in cardinal directions
-        float nudgeDistance = PlayerCollisionRadius + 5.0f;
-        Vector2[] nudgeDirections = {
-            Vector2.Up, Vector2.Down, Vector2.Left, Vector2.Right,
-            new Vector2(-1, -1).Normalized(), new Vector2(1, -1).Normalized(),
-            new Vector2(-1, 1).Normalized(), new Vector2(1, 1).Normalized()
-        };
-
-        foreach (var dir in nudgeDirections)
-        {
-            Vector2 nudgedPos = position + dir * nudgeDistance;
-            if (!IsPositionInsideWall(spaceState, nudgedPos))
-            {
-                return nudgedPos;
-            }
-        }
-
-        // Could not find safe position, return original
-        return position;
-    }
-
-    #endregion
-
-    #region Homing Bullets Methods (Issue #677)
-
-    /// <summary>
-    /// Initialize the homing bullets if the ActiveItemManager has them selected.
-    /// </summary>
-    private void InitHomingBullets()
-    {
-        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
-        if (activeItemManager == null)
-        {
-            LogToFile("[Player.Homing] ActiveItemManager not found");
-            return;
-        }
-
-        if (!activeItemManager.HasMethod("has_homing_bullets"))
-        {
-            LogToFile("[Player.Homing] ActiveItemManager missing has_homing_bullets method");
-            return;
-        }
-
-        bool hasHomingBullets = (bool)activeItemManager.Call("has_homing_bullets");
-        if (!hasHomingBullets)
-        {
-            LogToFile("[Player.Homing] No homing bullets selected in ActiveItemManager");
-            return;
-        }
-
-        _homingBulletsEquipped = true;
-        _homingCharges = MaxHomingCharges;
-        _homingActive = false;
-        _homingTimer = 0.0f;
-        SetupHomingAudio();
-
-        LogToFile($"[Player.Homing] Homing bullets equipped, charges: {_homingCharges}/{MaxHomingCharges}");
-    }
-
-    /// <summary>
-    /// Handle homing bullets input: press Space to activate for 1 second.
-    /// When activated, all bullets fired during the activation window steer toward enemies.
-    /// Also enables homing on already-airborne player bullets.
-    /// </summary>
-    private void HandleHomingBulletsInput(float delta)
-    {
-        if (!_homingBulletsEquipped)
-        {
-            return;
-        }
-
-        // Handle active timer countdown
-        if (_homingActive)
-        {
-            _homingTimer -= delta;
-            if (_homingTimer <= 0.0f)
-            {
-                _homingActive = false;
-                _homingTimer = 0.0f;
-                StopHomingScanner();
-                EmitSignal(SignalName.HomingDeactivated);
-                LogToFile($"[Player.Homing] Homing effect expired, charges remaining: {_homingCharges}/{MaxHomingCharges}");
-            }
-        }
-
-        // Activate on Space press (only if not already active and has charges)
-        if (Input.IsActionJustPressed("flashlight_toggle"))
-        {
-            if (_homingCharges > 0 && !_homingActive)
-            {
-                _homingActive = true;
-                _homingTimer = HomingDuration;
-                _homingCharges--;
-                PlayHomingSound();
-                StartHomingScanner();
-                EmitSignal(SignalName.HomingActivated);
-                EmitSignal(SignalName.HomingChargesChanged, _homingCharges, MaxHomingCharges);
-                LogToFile($"[Player.Homing] Homing activated! Duration: {HomingDuration}s, charges remaining: {_homingCharges}/{MaxHomingCharges}");
-
-                // Enable homing on all already-airborne player bullets
-                EnableHomingOnAirborneBullets();
-            }
-        }
-    }
-
-    /// <summary>
-    /// Enable homing on all player bullets currently in the scene.
-    /// Called when the player activates homing so that bullets already in flight
-    /// also start steering toward enemies.
-    /// </summary>
-    private void EnableHomingOnAirborneBullets()
-    {
-        var tree = GetTree();
-        if (tree == null)
-        {
-            return;
-        }
-
-        var currentScene = tree.CurrentScene;
-        if (currentScene == null)
-        {
-            return;
-        }
-
-        int enabledCount = 0;
-        ulong myId = GetInstanceId();
-
-        // Find all Bullet nodes in the scene
-        EnableHomingRecursive(currentScene, myId, ref enabledCount);
-
-        if (enabledCount > 0)
-        {
-            LogToFile($"[Player.Homing] Enabled homing on {enabledCount} airborne bullets");
-        }
-    }
-
-    /// <summary>
-    /// Recursively find Bullet and ShotgunPellet nodes and enable homing on player projectiles.
-    /// </summary>
-    private void EnableHomingRecursive(Node node, ulong playerId, ref int count)
-    {
-        // Check if this is a C# Bullet
-        if (node is CSharpBullet csBullet)
-        {
-            if (csBullet.ShooterId == playerId && !csBullet.HomingEnabled)
-            {
-                csBullet.EnableHoming();
-                count++;
-            }
-        }
-        // Check if this is a C# ShotgunPellet (Issue #704)
-        else if (node is CSharpShotgunPellet csPellet)
-        {
-            if (csPellet.ShooterId == playerId && !csPellet.HomingEnabled)
-            {
-                csPellet.EnableHoming();
-                count++;
-            }
-        }
-        // Check if this is a GDScript bullet (has enable_homing method and shooter_id property)
-        else if (node is Area2D area && node.HasMethod("enable_homing"))
-        {
-            var shooterId = node.Get("shooter_id");
-            if (shooterId.VariantType != Variant.Type.Nil)
-            {
-                ulong bulletShooterId = shooterId.AsUInt64();
-                if (bulletShooterId == playerId)
-                {
-                    var homingEnabled = node.Get("homing_enabled");
-                    if (homingEnabled.VariantType == Variant.Type.Nil || !(bool)homingEnabled)
-                    {
-                        node.Call("enable_homing");
-                        count++;
-                    }
-                }
-            }
-        }
-
-        // Recurse into children
-        foreach (var child in node.GetChildren())
-        {
-            EnableHomingRecursive(child, playerId, ref count);
-        }
-    }
-
-    /// <summary>
-    /// Set up the audio players for homing activation sound and scanner loop (Issue #890).
-    /// </summary>
-    private void SetupHomingAudio()
-    {
-        if (ResourceLoader.Exists(HomingSoundPath))
-        {
-            var stream = GD.Load<AudioStream>(HomingSoundPath);
-            if (stream != null)
-            {
-                _homingAudioPlayer = new AudioStreamPlayer();
-                _homingAudioPlayer.Stream = stream;
-                _homingAudioPlayer.VolumeDb = -3.0f;
-                AddChild(_homingAudioPlayer);
-                LogToFile("[Player.Homing] Homing activation sound loaded");
-            }
-        }
-        else
-        {
-            LogToFile($"[Player.Homing] Homing activation sound not found: {HomingSoundPath}");
-        }
-
-        // Set up the looping scanner ambient sound (Issue #890).
-        if (ResourceLoader.Exists(HomingScannerLoopPath))
-        {
-            var scannerStream = GD.Load<AudioStreamWav>(HomingScannerLoopPath);
-            if (scannerStream != null)
-            {
-                scannerStream.LoopMode = AudioStreamWav.LoopModeEnum.Forward;
-                // Set loop endpoints so the stream actually loops the full clip.
-                // Without LoopEnd, Godot defaults to 0 → loops a zero-length region (silence).
-                int bytesPerSample = (scannerStream.Format == AudioStreamWav.FormatEnum.Format16Bits) ? 2 : 1;
-                int channels = scannerStream.Stereo ? 2 : 1;
-                int totalSamples = scannerStream.Data.Length / (bytesPerSample * channels);
-                scannerStream.LoopBegin = 0;
-                scannerStream.LoopEnd = totalSamples;
-                _homingScannerPlayer = new AudioStreamPlayer();
-                _homingScannerPlayer.Stream = scannerStream;
-                // 3x quieter than original -18 dB: 20*log10(1/3) ≈ -9.54 dB → -18 - 9.54 ≈ -27.5 dB
-                _homingScannerPlayer.VolumeDb = -27.5f;
-                AddChild(_homingScannerPlayer);
-                // Do NOT play here — scanner starts only when homing is activated (Issue #890).
-                LogToFile($"[Player.Homing] Homing scanner loop ready (Issue #890), samples={totalSamples}");
-            }
-        }
-        else
-        {
-            LogToFile($"[Player.Homing] Homing scanner loop sound not found: {HomingScannerLoopPath}");
-        }
-    }
-
-    /// <summary>
-    /// Play the homing activation sound.
-    /// </summary>
-    private void PlayHomingSound()
-    {
-        if (_homingAudioPlayer != null && IsInstanceValid(_homingAudioPlayer))
-        {
-            _homingAudioPlayer.Play();
-        }
-    }
-
-    /// <summary>
-    /// Start the looping scanner sound. Called when homing is activated (Issue #890).
-    /// </summary>
-    private void StartHomingScanner()
-    {
-        if (_homingScannerPlayer != null && IsInstanceValid(_homingScannerPlayer) && !_homingScannerPlayer.Playing)
-        {
-            _homingScannerPlayer.Play();
-            LogToFile("[Player.Homing] Homing scanner loop started (Issue #890)");
-        }
-    }
-
-    /// <summary>
-    /// Stop the looping scanner sound. Called when homing effect expires (Issue #890).
-    /// </summary>
-    private void StopHomingScanner()
-    {
-        if (_homingScannerPlayer != null && IsInstanceValid(_homingScannerPlayer) && _homingScannerPlayer.Playing)
-        {
-            _homingScannerPlayer.Stop();
-            LogToFile("[Player.Homing] Homing scanner loop stopped (Issue #890)");
-        }
-    }
-
-    /// <summary>
-    /// Check if homing bullets effect is currently active.
-    /// </summary>
-    public bool IsHomingActive()
-    {
-        return _homingActive;
-    }
-
-    #endregion
-
-    #region BFF Pendant Methods (Issue #674)
-
-    /// <summary>
-    /// Initialize the BFF pendant if the ActiveItemManager has it selected.
-    /// </summary>
-    private void InitBffPendant()
-    {
-        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
-        if (activeItemManager == null)
-        {
-            LogToFile("[Player.BffPendant] ActiveItemManager not found");
-            return;
-        }
-
-        if (!activeItemManager.HasMethod("has_bff_pendant"))
-        {
-            LogToFile("[Player.BffPendant] ActiveItemManager missing has_bff_pendant method");
-            return;
-        }
-
-        bool hasBffPendant = (bool)activeItemManager.Call("has_bff_pendant");
-        if (!hasBffPendant)
-        {
-            LogToFile("[Player.BffPendant] No BFF pendant selected in ActiveItemManager");
-            return;
-        }
-
-        LogToFile("[Player.BffPendant] BFF pendant is selected, ready to summon companion");
-
-        // Verify enemy scene exists (we spawn an actual enemy as companion)
-        if (!ResourceLoader.Exists(BffEnemyScenePath))
-        {
-            LogToFile($"[Player.BffPendant] WARNING: Enemy scene not found: {BffEnemyScenePath}");
-            return;
-        }
-
-        _bffPendantEquipped = true;
-        _bffCompanionSummoned = false;
-        LogToFile("[Player.BffPendant] BFF pendant equipped — press Space to summon companion");
-    }
-
-    /// <summary>
-    /// Handle BFF pendant input: press Space to summon a companion (one charge per battle).
-    /// </summary>
-    private void HandleBffPendantInput()
-    {
-        if (!_bffPendantEquipped)
-        {
-            return;
-        }
-
-        if (_bffCompanionSummoned)
-        {
-            return;
-        }
-
-        if (Input.IsActionJustPressed("flashlight_toggle"))
-        {
-            SummonBffCompanion();
-        }
-    }
-
-    /// <summary>
-    /// Summon the BFF companion near the player.
-    /// Issue #674: Spawns an actual Enemy in permanent aggressive state.
-    /// User feedback: "copy enemy AI but make it aggressive and not treat player as enemy"
-    /// </summary>
-    private void SummonBffCompanion()
-    {
-        if (_bffCompanionSummoned)
-        {
-            return;
-        }
-
-        if (!ResourceLoader.Exists(BffEnemyScenePath))
-        {
-            LogToFile($"[Player.BffPendant] WARNING: Enemy scene not found: {BffEnemyScenePath}");
-            return;
-        }
-
-        var enemyScene = GD.Load<PackedScene>(BffEnemyScenePath);
-        if (enemyScene == null)
-        {
-            LogToFile("[Player.BffPendant] WARNING: Failed to load enemy scene");
-            return;
-        }
-
-        var companion = enemyScene.Instantiate<Node2D>();
-
-        // Configure health range to 2-4 HP as per issue requirements (before adding to scene)
-        if (companion.HasMethod("set") && companion.Get("min_health").VariantType != Variant.Type.Nil)
-        {
-            companion.Set("min_health", 2);
-            companion.Set("max_health", 4);
-        }
-
-        // Issue #926: BFF companion has 50% slower reaction speed than enemies.
-        // Multiply all reaction/detection delays by 1.5 (150% of normal = 50% slower).
-        const float BffReactionMultiplier = 1.5f;
-        companion.Set("detection_delay", 0.2f * BffReactionMultiplier);       // 0.2s * 1.5 = 0.3s
-        companion.Set("threat_reaction_delay", 0.2f * BffReactionMultiplier); // 0.2s * 1.5 = 0.3s
-        companion.Set("lead_prediction_delay", 0.3f * BffReactionMultiplier); // 0.3s * 1.5 = 0.45s
-
-        // Add to the current scene (not as child of player, so it moves independently)
-        var tree = GetTree();
-        if (tree?.CurrentScene == null)
-        {
-            LogToFile("[Player.BffPendant] WARNING: No current scene to add companion to");
-            companion.QueueFree();
-            return;
-        }
-
-        tree.CurrentScene.AddChild(companion);
-
-        // CRITICAL: Remove from "enemies" group so other enemies don't target it
-        // and so it doesn't count toward level enemy counter
-        companion.RemoveFromGroup("enemies");
-
-        // Add to "bff_companions" group for identification
-        companion.AddToGroup("bff_companions");
-
-        // Set companion name for logging
-        companion.Name = "BffCompanion";
-
-        // Make companion permanently aggressive (uses AggressionComponent AI to attack enemies)
-        if (companion.HasMethod("set_aggressive"))
-        {
-            companion.Call("set_aggressive", true);
-            LogToFile("[Player.BffPendant] Companion set to aggressive state");
-        }
-
-        // Apply green-cyan tint to distinguish from regular enemies
-        ApplyBffCompanionVisualTint(companion);
-
-        // Find a valid spawn position that is not inside a wall
-        var spawnPos = FindValidBffCompanionSpawnPosition();
-        companion.GlobalPosition = spawnPos;
-
-        _bffCompanionNode = companion;
-        _bffCompanionSummoned = true;
-
-        // Connect companion death signal if it exists
-        if (companion.HasSignal("died"))
-        {
-            companion.Connect("died", Callable.From(OnBffCompanionDied));
-        }
-
-        LogToFile($"[Player.BffPendant] Companion spawned at {companion.GlobalPosition} (aggressive enemy)");
-    }
-
-    /// <summary>
-    /// Apply a green-cyan tint to the companion to distinguish it from regular enemies.
-    /// </summary>
-    private static void ApplyBffCompanionVisualTint(Node2D companion)
-    {
-        var model = companion.GetNodeOrNull("EnemyModel");
-        if (model == null)
-        {
-            return;
-        }
-
-        var tint = new Color(0.3f, 1.0f, 0.7f, 1.0f);
-        foreach (var spriteName in new[] { "Body", "Head", "LeftArm", "RightArm" })
-        {
-            var sprite = model.GetNodeOrNull(spriteName);
-            if (sprite is Sprite2D sprite2D)
-            {
-                sprite2D.Modulate = tint;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Find a valid spawn position for the companion that is not inside a wall.
-    /// Tries multiple offsets around the player until a valid position is found.
-    /// Issue #674: Prevents companion from spawning inside/behind walls.
-    /// </summary>
-    private Vector2 FindValidBffCompanionSpawnPosition()
-    {
-        var spaceState = GetWorld2D().DirectSpaceState;
-        if (spaceState == null)
-        {
-            LogToFile("[Player.BffPendant] WARNING: Physics state unavailable, using default spawn");
-            return GlobalPosition + new Vector2(-50, 30);
-        }
-
-        const float CompanionRadius = 24.0f;
-
-        float baseRotation = _playerModel?.Rotation ?? 0.0f;
-        var offsets = new Vector2[]
-        {
-            new Vector2(-50, 30).Rotated(baseRotation),
-            new Vector2(-60, 0).Rotated(baseRotation),
-            new Vector2(-50, -30).Rotated(baseRotation),
-            new Vector2(0, 50).Rotated(baseRotation),
-            new Vector2(0, -50).Rotated(baseRotation),
-            new Vector2(50, 30).Rotated(baseRotation),
-            new Vector2(50, -30).Rotated(baseRotation),
-            new Vector2(-30, 0).Rotated(baseRotation),
-        };
-
-        foreach (var offset in offsets)
-        {
-            var testPos = GlobalPosition + offset;
-            if (IsBffSpawnPositionValid(spaceState, testPos, CompanionRadius))
-            {
-                LogToFile($"[Player.BffPendant] Found valid spawn at offset {offset}");
-                return testPos;
-            }
-        }
-
-        LogToFile("[Player.BffPendant] WARNING: No valid spawn position found, spawning at player");
-        return GlobalPosition;
-    }
-
-    /// <summary>
-    /// Check if a position is valid for spawning the companion.
-    /// Returns true if the position is not inside a wall and has line of sight from player.
-    /// </summary>
-    private bool IsBffSpawnPositionValid(PhysicsDirectSpaceState2D spaceState, Vector2 pos, float radius)
-    {
-        // First check: line of sight from player to spawn position
-        var losQuery = new PhysicsRayQueryParameters2D
-        {
-            From = GlobalPosition,
-            To = pos,
-            CollisionMask = 1  // Walls only (layer 1)
-        };
-        var losResult = spaceState.IntersectRay(losQuery);
-        if (losResult.Count > 0)
-        {
-            return false; // Wall blocks line of sight
-        }
-
-        // Second check: position itself is not inside a wall
-        var shapeQuery = new PhysicsShapeQueryParameters2D
-        {
-            Shape = new CircleShape2D { Radius = radius },
-            Transform = new Transform2D(0, pos),
-            CollisionMask = 1  // Walls only (layer 1)
-        };
-        var overlapResult = spaceState.IntersectShape(shapeQuery);
-        return overlapResult.Count == 0;
-    }
-
-    /// <summary>
-    /// Called when the BFF companion dies.
-    /// </summary>
-    private void OnBffCompanionDied()
-    {
-        LogToFile("[Player.BffPendant] Companion has been killed");
-        _bffCompanionNode = null;
-    }
-
-    #endregion
-
-    #region Invisibility Suit Methods (Issue #673)
-
-    /// <summary>
-    /// Initialize the invisibility suit if the ActiveItemManager has it selected.
-    /// Loads the GDScript effect and HUD nodes and wires up signal callbacks.
-    /// </summary>
-    private void InitInvisibilitySuit()
-    {
-        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
-        if (activeItemManager == null)
-        {
-            LogToFile("[Player.InvisibilitySuit] ActiveItemManager not found");
-            return;
-        }
-
-        if (!activeItemManager.HasMethod("has_invisibility_suit"))
-        {
-            LogToFile("[Player.InvisibilitySuit] ActiveItemManager missing has_invisibility_suit method");
-            return;
-        }
-
-        bool hasInvisibilitySuit = (bool)activeItemManager.Call("has_invisibility_suit");
-        if (!hasInvisibilitySuit)
-        {
-            LogToFile("[Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager");
-            return;
-        }
-
-        LogToFile("[Player.InvisibilitySuit] Invisibility suit is selected, initializing...");
-
-        // Load and instantiate the GDScript effect controller
-        var effectScript = GD.Load<Script>("res://scripts/effects/invisibility_suit_effect.gd");
-        if (effectScript == null)
-        {
-            LogToFile("[Player.InvisibilitySuit] WARNING: Failed to load invisibility_suit_effect.gd");
-            return;
-        }
-
-        _invisibilitySuitEffect = new Node();
-        _invisibilitySuitEffect.SetScript(effectScript);
-        _invisibilitySuitEffect.Name = "InvisibilitySuitEffect";
-        AddChild(_invisibilitySuitEffect);
-
-        // Initialize with player reference
-        _invisibilitySuitEffect.Call("initialize", this);
-
-        // Connect signals for HUD updates
-        _invisibilitySuitEffect.Connect("invisibility_activated", Callable.From<int>(OnInvisibilityActivated));
-        _invisibilitySuitEffect.Connect("invisibility_deactivated", Callable.From<int>(OnInvisibilityDeactivated));
-
-        _invisibilitySuitEquipped = true;
-        int charges = (int)_invisibilitySuitEffect.Call("get_charges");
-        LogToFile($"[Player.InvisibilitySuit] Invisibility suit equipped, charges: {charges}");
-
-        // Load and instantiate the GDScript charge bar (Node2D positioned above player)
-        var hudScript = GD.Load<Script>("res://scripts/ui/invisibility_hud.gd");
-        if (hudScript != null)
-        {
-            _invisibilityHud = new Node2D();
-            _invisibilityHud.SetScript(hudScript);
-            _invisibilityHud.Name = "InvisibilityHUD";
-            AddChild(_invisibilityHud);
-            _invisibilityHud.Call("initialize", _invisibilitySuitEffect);
-            LogToFile("[Player.InvisibilitySuit] Charge bar created");
-        }
-        else
-        {
-            LogToFile("[Player.InvisibilitySuit] WARNING: Failed to load invisibility_hud.gd");
-        }
-    }
-
-    /// <summary>
-    /// Handle invisibility suit input: press Space to activate.
-    /// Single press activates for full duration (4 seconds), auto-deactivates.
-    /// </summary>
-    private void HandleInvisibilitySuitInput()
-    {
-        if (!_invisibilitySuitEquipped || _invisibilitySuitEffect == null)
-        {
-            return;
-        }
-
-        if (!IsInstanceValid(_invisibilitySuitEffect))
-        {
-            return;
-        }
-
-        if (Input.IsActionJustPressed("flashlight_toggle"))
-        {
-            bool isActive = (bool)_invisibilitySuitEffect.Get("is_active");
-            if (!isActive)
-            {
-                _invisibilitySuitEffect.Call("activate");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Check if the player is currently invisible (Issue #673).
-    /// Called by enemy AI via duck typing (has_method + call).
-    /// </summary>
-    public bool is_invisible()
-    {
-        if (!_invisibilitySuitEquipped || _invisibilitySuitEffect == null)
-            return false;
-        if (!IsInstanceValid(_invisibilitySuitEffect))
-            return false;
-        return (bool)_invisibilitySuitEffect.Call("is_invisible");
-    }
-
-    /// <summary>
-    /// Callback when invisibility activates.
-    /// </summary>
-    private void OnInvisibilityActivated(int chargesRemaining)
-    {
-        if (_invisibilityHud != null && IsInstanceValid(_invisibilityHud))
-        {
-            _invisibilityHud.Call("set_active", true);
-            _invisibilityHud.Call("update_charges", chargesRemaining, InvisibilityMaxCharges);
-        }
-
-        // Issue #723: Reset enemy memory when player becomes invisible
-        // Enemies lose track and enter search mode at last known position
-        ResetAllEnemyMemories("invisibility activation");
-    }
-
-    /// <summary>
-    /// Callback when invisibility deactivates.
-    /// </summary>
-    private void OnInvisibilityDeactivated(int chargesRemaining)
-    {
-        if (_invisibilityHud != null && IsInstanceValid(_invisibilityHud))
-        {
-            _invisibilityHud.Call("set_active", false);
-            _invisibilityHud.Call("update_charges", chargesRemaining, InvisibilityMaxCharges);
-        }
-    }
-
-    #endregion
-
-    #region Trajectory Glasses System (Issue #744)
-
-    /// <summary>
-    /// Whether trajectory glasses are equipped (active item selected in armory).
-    /// </summary>
-    private bool _trajectoryGlassesEquipped = false;
-
-    /// <summary>
-    /// Reference to the GDScript trajectory glasses effect node.
-    /// </summary>
-    private Node? _trajectoryGlassesEffect = null;
-
-    /// <summary>
-    /// Reference to the GDScript trajectory glasses HUD node.
-    /// </summary>
-    private Node? _trajectoryGlassesHud = null;
-
-    /// <summary>
-    /// Initialize trajectory glasses if the ActiveItemManager has them selected (Issue #744).
-    /// Loads and instantiates the GDScript trajectory_glasses_effect.gd controller.
-    /// </summary>
-    private void InitTrajectoryGlasses()
-    {
-        LogToFile("[Player.TrajectoryGlasses] Checking trajectory glasses...");
-
-        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
-        if (activeItemManager == null)
-        {
-            LogToFile("[Player.TrajectoryGlasses] ActiveItemManager not found");
-            return;
-        }
-
-        if (!activeItemManager.HasMethod("has_trajectory_glasses"))
-        {
-            LogToFile("[Player.TrajectoryGlasses] ActiveItemManager missing has_trajectory_glasses method");
-            return;
-        }
-
-        bool hasTrajectoryGlasses = (bool)activeItemManager.Call("has_trajectory_glasses");
-        if (!hasTrajectoryGlasses)
-        {
-            LogToFile("[Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager");
-            return;
-        }
-
-        LogToFile("[Player.TrajectoryGlasses] Trajectory glasses selected, initializing...");
-
-        // Load and instantiate the GDScript effect controller
-        var effectScript = GD.Load<Script>("res://scripts/effects/trajectory_glasses_effect.gd");
-        if (effectScript == null)
-        {
-            LogToFile("[Player.TrajectoryGlasses] WARNING: Failed to load trajectory_glasses_effect.gd");
-            return;
-        }
-
-        _trajectoryGlassesEffect = new Node();
-        _trajectoryGlassesEffect.SetScript(effectScript);
-        _trajectoryGlassesEffect.Name = "TrajectoryGlassesEffect";
-        AddChild(_trajectoryGlassesEffect);
-
-        // Initialize with player reference
-        _trajectoryGlassesEffect.Call("initialize", this);
-
-        // Pass current weapon so ricochet angle is weapon-specific (Issue #744)
-        if (CurrentWeapon != null)
-        {
-            _trajectoryGlassesEffect.Call("set_weapon", CurrentWeapon);
-            LogToFile($"[Player.TrajectoryGlasses] Weapon set: {CurrentWeapon.Name}");
-        }
-
-        // Connect signals
-        _trajectoryGlassesEffect.Connect("trajectory_activated", Callable.From<int>(OnTrajectoryActivated));
-        _trajectoryGlassesEffect.Connect("trajectory_deactivated", Callable.From<int>(OnTrajectoryDeactivated));
-
-        _trajectoryGlassesEquipped = true;
-        int charges = (int)_trajectoryGlassesEffect.Get("charges");
-        LogToFile($"[Player.TrajectoryGlasses] Trajectory glasses equipped, charges: {charges}");
-
-        // Load and instantiate the GDScript HUD
-        var hudScript = GD.Load<Script>("res://scripts/ui/trajectory_glasses_hud.gd");
-        if (hudScript != null)
-        {
-            _trajectoryGlassesHud = new Node2D();
-            _trajectoryGlassesHud.SetScript(hudScript);
-            _trajectoryGlassesHud.Name = "TrajectoryGlassesHUD";
-            AddChild(_trajectoryGlassesHud);
-            _trajectoryGlassesHud.Call("initialize", _trajectoryGlassesEffect);
-            LogToFile("[Player.TrajectoryGlasses] HUD created");
-        }
-        else
-        {
-            LogToFile("[Player.TrajectoryGlasses] WARNING: Failed to load trajectory_glasses_hud.gd");
-        }
-    }
-
-    /// <summary>
-    /// Handle trajectory glasses input: press Space to activate (Issue #744).
-    /// Single press activates for full duration (10 seconds), auto-deactivates.
-    /// </summary>
-    private void HandleTrajectoryGlassesInput()
-    {
-        if (!_trajectoryGlassesEquipped || _trajectoryGlassesEffect == null)
-        {
-            return;
-        }
-
-        if (!IsInstanceValid(_trajectoryGlassesEffect))
-        {
-            return;
-        }
-
-        if (Input.IsActionJustPressed("flashlight_toggle"))
-        {
-            bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
-            if (!isActive)
-            {
-                // Update weapon reference in case player switched weapons (Issue #744)
-                if (CurrentWeapon != null)
-                {
-                    _trajectoryGlassesEffect.Call("set_weapon", CurrentWeapon);
-                }
-
-                int charges = (int)_trajectoryGlassesEffect.Get("charges");
-                LogToFile($"[Player.TrajectoryGlasses] Space pressed - activating (charges: {charges})");
-                bool activated = (bool)_trajectoryGlassesEffect.Call("activate");
-                LogToFile($"[Player.TrajectoryGlasses] Activation result: {activated}");
-                QueueRedraw();
-            }
-        }
-    }
-
-    /// <summary>
-    /// Called when trajectory glasses activate.
-    /// </summary>
-    private void OnTrajectoryActivated(int chargesRemaining)
-    {
-        QueueRedraw();
-    }
-
-    /// <summary>
-    /// Called when trajectory glasses deactivate.
-    /// </summary>
-    private void OnTrajectoryDeactivated(int chargesRemaining)
-    {
-        QueueRedraw();
-    }
-
-    #endregion
-
-    #region Breaker Bullets System (Issue #678)
-
-    /// <summary>
-    /// Whether breaker bullets are active (passive item, Issue #678).
-    /// When true, all spawned bullets will have is_breaker_bullet = true.
-    /// </summary>
-    private bool _breakerBulletsActive = false;
-
-    /// <summary>
-    /// Initialize breaker bullets if the ActiveItemManager has them selected.
-    /// Breaker bullets are a passive item — no special nodes needed,
-    /// just a flag that modifies bullet behavior on spawn.
-    /// </summary>
-    private void InitBreakerBullets()
-    {
-        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
-        if (activeItemManager == null)
-        {
-            LogToFile("[Player.BreakerBullets] ActiveItemManager not found");
-            return;
-        }
-
-        if (!activeItemManager.HasMethod("has_breaker_bullets"))
-        {
-            LogToFile("[Player.BreakerBullets] ActiveItemManager missing has_breaker_bullets method");
-            return;
-        }
-
-        bool hasBreakerBullets = (bool)activeItemManager.Call("has_breaker_bullets");
-        if (!hasBreakerBullets)
-        {
-            LogToFile("[Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager");
-            return;
-        }
-
-        _breakerBulletsActive = true;
-        LogToFile("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls");
-
-        // Set breaker bullet flag on current weapon so all spawned bullets get the flag
-        if (CurrentWeapon != null)
-        {
-            CurrentWeapon.IsBreakerBulletActive = true;
-            LogToFile($"[Player.BreakerBullets] Set IsBreakerBulletActive on weapon: {CurrentWeapon.Name}");
-        }
-    }
-
-    #endregion
-
-    #region Force Field System (Issue #676)
-
-    /// <summary>
-    /// Initialize the force field if the ActiveItemManager has it selected.
-    /// Loads the GDScript effect node and attaches it as a child.
-    /// </summary>
-    private void InitForceField()
-    {
-        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
-        if (activeItemManager == null)
-        {
-            LogToFile("[Player.ForceField] ActiveItemManager not found");
-            return;
-        }
-
-        if (!activeItemManager.HasMethod("has_force_field"))
-        {
-            LogToFile("[Player.ForceField] ActiveItemManager missing has_force_field method");
-            return;
-        }
-
-        bool hasForceField = (bool)activeItemManager.Call("has_force_field");
-        if (!hasForceField)
-        {
-            LogToFile("[Player.ForceField] Force field not selected in ActiveItemManager");
-            return;
-        }
-
-        LogToFile("[Player.ForceField] Force field is selected, initializing...");
-
-        // Load the GDScript effect scene
-        const string ForceFieldScenePath = "res://scenes/effects/ForceFieldEffect.tscn";
-        var forceFieldScene = GD.Load<PackedScene>(ForceFieldScenePath);
-        if (forceFieldScene == null)
-        {
-            LogToFile($"[Player.ForceField] WARNING: Failed to load ForceFieldEffect scene: {ForceFieldScenePath}");
-            return;
-        }
-
-        _forceFieldEffect = forceFieldScene.Instantiate();
-        _forceFieldEffect.Name = "ForceFieldEffect";
-        AddChild(_forceFieldEffect);
-        _forceFieldEquipped = true;
-
-        LogToFile("[Player.ForceField] Force field initialized successfully");
-    }
-
-    /// <summary>
-    /// Handle force field input: hold Space to activate, release to deactivate.
-    /// </summary>
-    /// <param name="delta">Physics frame delta time.</param>
-    private void HandleForceFieldInput(float delta)
-    {
-        if (!_forceFieldEquipped || _forceFieldEffect == null)
-        {
-            return;
-        }
-
-        if (!IsInstanceValid(_forceFieldEffect))
-        {
-            return;
-        }
-
-        if (Input.IsActionPressed("flashlight_toggle"))
-        {
-            bool isActive = (bool)_forceFieldEffect.Get("is_active");
-            if (!isActive)
-            {
-                _forceFieldEffect.Call("activate");
-            }
-        }
-        else
-        {
-            bool isActive = (bool)_forceFieldEffect.Get("is_active");
-            if (isActive)
-            {
-                _forceFieldEffect.Call("deactivate");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Check if force field is currently protecting the player (Issue #676).
-    /// Called by bullet/projectile code via duck typing.
-    /// </summary>
-    public bool is_force_field_active()
-    {
-        if (!_forceFieldEquipped || _forceFieldEffect == null)
-            return false;
-        if (!IsInstanceValid(_forceFieldEffect))
-            return false;
-        return (bool)_forceFieldEffect.Call("is_protecting");
-    }
-
-    #endregion
-
-    #region Logging
-
-    /// <summary>
-    /// Logs a message to the FileLogger (GDScript autoload) for debugging.
-    /// </summary>
-    /// <param name="message">The message to log.</param>
-    private void LogToFile(string message)
-    {
-        // Print to console
-        GD.Print(message);
-
-        // Also log to FileLogger if available
-        var fileLogger = GetNodeOrNull("/root/FileLogger");
-        if (fileLogger != null && fileLogger.HasMethod("log_info"))
-        {
-            fileLogger.Call("log_info", message);
-        }
-    }
-
-    #endregion
-
-    #region Debug Trajectory Visualization
-
-    /// <summary>
-    /// Connects to GameManager's debug_mode_toggled and invincibility_toggled signals.
-    /// </summary>
-    private void ConnectDebugModeSignal()
-    {
-        var gameManager = GetNodeOrNull("/root/GameManager");
-        if (gameManager == null)
-        {
-            LogToFile("[Player.Debug] WARNING: GameManager not found, debug visualization disabled");
-            return;
-        }
-
-        // Connect to debug mode signal (F7)
-        if (gameManager.HasSignal("debug_mode_toggled"))
-        {
-            gameManager.Connect("debug_mode_toggled", Callable.From<bool>(OnDebugModeToggled));
-
-            // Check if debug mode is already enabled
-            if (gameManager.HasMethod("is_debug_mode_enabled"))
-            {
-                _debugModeEnabled = (bool)gameManager.Call("is_debug_mode_enabled");
-                LogToFile($"[Player.Debug] Connected to GameManager, debug mode: {_debugModeEnabled}");
-            }
-        }
-        else
-        {
-            LogToFile("[Player.Debug] WARNING: GameManager doesn't have debug_mode_toggled signal");
-        }
-
-        // Connect to invincibility mode signal (F6)
-        if (gameManager.HasSignal("invincibility_toggled"))
-        {
-            gameManager.Connect("invincibility_toggled", Callable.From<bool>(OnInvincibilityToggled));
-
-            // Check if invincibility mode is already enabled
-            if (gameManager.HasMethod("is_invincibility_enabled"))
-            {
-                _invincibilityEnabled = (bool)gameManager.Call("is_invincibility_enabled");
-                LogToFile($"[Player.Debug] Connected to GameManager, invincibility mode: {_invincibilityEnabled}");
-                UpdateInvincibilityIndicator();
-            }
-        }
-        else
-        {
-            LogToFile("[Player.Debug] WARNING: GameManager doesn't have invincibility_toggled signal");
-        }
-    }
-
-    /// <summary>
-    /// Called when debug mode is toggled via F7 key.
-    /// </summary>
-    /// <param name="enabled">True if debug mode is now enabled.</param>
-    private void OnDebugModeToggled(bool enabled)
-    {
-        _debugModeEnabled = enabled;
-        QueueRedraw();
-        LogToFile($"[Player.Debug] Debug mode toggled: {(enabled ? "ON" : "OFF")}");
-    }
-
-    /// <summary>
-    /// Called when invincibility mode is toggled via F6 key.
-    /// </summary>
-    /// <param name="enabled">True if invincibility mode is now enabled.</param>
-    private void OnInvincibilityToggled(bool enabled)
-    {
-        _invincibilityEnabled = enabled;
-        UpdateInvincibilityIndicator();
-        LogToFile($"[Player] Invincibility mode: {(enabled ? "ON" : "OFF")}");
-    }
-
-    /// <summary>
-    /// Updates the visual indicator for invincibility mode.
-    /// Shows "INVINCIBLE" label when enabled, hides it when disabled.
-    /// </summary>
-    private void UpdateInvincibilityIndicator()
-    {
-        // Create label if it doesn't exist
-        if (_invincibilityLabel == null)
-        {
-            _invincibilityLabel = new Label();
-            _invincibilityLabel.Name = "InvincibilityLabel";
-            _invincibilityLabel.Text = "БЕССМЕРТИЕ";
-            _invincibilityLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            _invincibilityLabel.VerticalAlignment = VerticalAlignment.Center;
-
-            // Position above the player
-            _invincibilityLabel.Position = new Vector2(-60, -80);
-            _invincibilityLabel.Size = new Vector2(120, 30);
-
-            // Style: bright yellow/gold color with outline for visibility
-            _invincibilityLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.9f, 0.2f, 1.0f));
-            _invincibilityLabel.AddThemeColorOverride("font_outline_color", new Color(0.0f, 0.0f, 0.0f, 1.0f));
-            _invincibilityLabel.AddThemeFontSizeOverride("font_size", 14);
-            _invincibilityLabel.AddThemeConstantOverride("outline_size", 3);
-
-            AddChild(_invincibilityLabel);
-        }
-
-        // Show/hide based on invincibility state
-        _invincibilityLabel.Visible = _invincibilityEnabled;
-    }
-
-    /// <summary>
-    /// Override _Draw to visualize grenade trajectory and teleport reticle.
-    /// In simple mode: Always shows trajectory preview (semi-transparent arc).
-    /// In complex mode: Only shows when debug mode is enabled (F7).
-    /// Teleport bracers: Shows targeting line and player silhouette at target.
-    /// </summary>
-    public override void _Draw()
-    {
-        // Draw teleport targeting reticle if aiming (Issue #672)
-        // Note: Charge count is displayed on the reticle itself (Issue #972)
-        if (_teleportAiming && _teleportBracersEquipped)
-        {
-            DrawTeleportReticle();
-        }
-
-        // Draw trajectory glasses laser (Issue #744)
-        DrawTrajectoryGlasses();
-
-        // Determine if we should draw trajectory
-        bool isSimpleAiming = _grenadeState == GrenadeState.SimpleAiming;
-        bool isComplexAiming = _grenadeState == GrenadeState.Aiming;
-
-        // In simple mode: always show trajectory
-        // In complex mode: only show if debug mode is enabled
-        if (!isSimpleAiming && !(isComplexAiming && _debugModeEnabled))
-        {
-            return;
-        }
-
-        // Use different colors for simple mode (more subtle) vs debug mode (bright)
-        Color colorTrajectory;
-        Color colorLanding;
-        Color colorRadius;
-        float lineWidth;
-
-        if (isSimpleAiming)
-        {
-            // Semi-transparent colors for simple mode
-            colorTrajectory = new Color(1.0f, 1.0f, 1.0f, 0.4f); // White semi-transparent
-            colorLanding = new Color(1.0f, 0.8f, 0.2f, 0.6f); // Yellow-orange
-            colorRadius = new Color(1.0f, 0.5f, 0.0f, 0.2f); // Effect radius
-            lineWidth = 2.0f;
-        }
-        else
-        {
-            // Bright colors for debug mode
-            colorTrajectory = new Color(1.0f, 0.8f, 0.2f, 0.9f);
-            colorLanding = new Color(1.0f, 0.3f, 0.1f, 0.9f);
-            colorRadius = new Color(1.0f, 0.5f, 0.0f, 0.3f);
-            lineWidth = 3.0f;
-        }
-
-        // Calculate throw parameters
-        Vector2 currentMousePos = GetGlobalMousePosition();
-        Vector2 throwDirection;
-        float throwSpeed;
-        float landingDistance;
-        const float SpawnOffset = 60.0f;
-
-        // Get grenade's actual physics properties for accurate visualization
-        // FIX for issue #398: Use actual grenade properties instead of hardcoded values
-        float groundFriction = 300.0f; // Default
-        float maxThrowSpeed = 850.0f;  // Default
-        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
-        {
-            if (_activeGrenade.Get("ground_friction").VariantType != Variant.Type.Nil)
-            {
-                groundFriction = (float)_activeGrenade.Get("ground_friction");
-            }
-            if (_activeGrenade.Get("max_throw_speed").VariantType != Variant.Type.Nil)
-            {
-                maxThrowSpeed = (float)_activeGrenade.Get("max_throw_speed");
-            }
-        }
-
-        if (isSimpleAiming)
-        {
-            // Simple mode: direction and distance based on cursor position
-            Vector2 toTarget = currentMousePos - GlobalPosition;
-            throwDirection = toTarget.Length() > 10.0f ? toTarget.Normalized() : new Vector2(1, 0);
-
-            // FIX for issue #398: Account for spawn offset in distance calculation
-            // The grenade starts 60 pixels ahead of the player
-            Vector2 spawnPos = GlobalPosition + throwDirection * SpawnOffset;
-            float throwDistance = (currentMousePos - spawnPos).Length();
-            if (throwDistance < 10.0f) throwDistance = 10.0f;
-
-            // Calculate throw speed needed to reach target
-            // FIX for issue #615: No compensation factor needed. Root causes were double friction
-            // (GDScript + C# both applying) and Godot default linear_damp=0.1. GDScript friction
-            // was removed entirely; C# GrenadeTimer is sole friction source. v = sqrt(2*F*d) works.
-            float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
-            throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
-
-            // Calculate actual landing distance with clamped speed
-            landingDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
-        }
-        else
-        {
-            // Complex mode: direction based on mouse velocity
-            Vector2 releaseVelocity = _currentMouseVelocity;
-            float velocityMagnitude = releaseVelocity.Length();
-            Vector2 dragVector = currentMousePos - _grenadeDragStart;
-
-            if (velocityMagnitude > 10.0f)
-            {
-                throwDirection = SnapToOctantDirection(releaseVelocity.Normalized());
-            }
-            else if (dragVector.Length() > 5.0f)
-            {
-                throwDirection = SnapToOctantDirection(dragVector.Normalized());
-            }
-            else
-            {
-                throwDirection = new Vector2(1, 0);
-            }
-
-            // Calculate velocity-based throw speed
-            const float GrenadeMass = 0.36f;
-            const float MouseVelocityMultiplier = 1.5f;
-            const float MinSwingDistance = 180.0f;
-            const float MinThrowSpeed = 100.0f;
-            const float MaxThrowSpeed = 2500.0f;
-
-            float massRatio = GrenadeMass / 0.4f;
-            float adjustedMinSwing = MinSwingDistance * massRatio;
-            float transferEfficiency = Mathf.Clamp(_totalSwingDistance / adjustedMinSwing, 0.0f, 1.0f);
-            float massMultiplier = 1.0f / Mathf.Sqrt(massRatio);
-
-            throwSpeed = velocityMagnitude * MouseVelocityMultiplier * transferEfficiency * massMultiplier;
-            throwSpeed = Mathf.Clamp(throwSpeed, MinThrowSpeed, MaxThrowSpeed);
-
-            if (velocityMagnitude < 10.0f)
-            {
-                throwSpeed = MinThrowSpeed * 0.5f;
-            }
-
-            // FIX for issue #615: No compensation factor needed. Double friction was the root
-            // cause. With single C# friction, the formula works correctly.
-            landingDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
-        }
-
-        // Calculate spawn and landing positions
-        Vector2 spawnPosition = GlobalPosition + throwDirection * SpawnOffset;
-        Vector2 landingPosition = spawnPosition + throwDirection * landingDistance;
-
-        // Convert to local coordinates for drawing
-        Vector2 localStart = ToLocal(spawnPosition);
-        Vector2 localEnd = ToLocal(landingPosition);
-
-        // Draw trajectory line with dashes
-        DrawTrajectoryLine(localStart, localEnd, colorTrajectory, lineWidth);
-
-        // Draw landing point indicator (circle with X)
-        DrawLandingIndicator(localEnd, colorLanding, 12.0f);
-
-        // Draw effect radius circle at landing position
-        float effectRadius = GetGrenadeEffectRadius();
-        DrawCircleOutline(localEnd, effectRadius, colorRadius, 2.0f);
-
-        // In complex mode, also draw velocity direction arrow
-        if (isComplexAiming)
-        {
-            Vector2 localPlayerCenter = Vector2.Zero;
-            Vector2 arrowEnd = localPlayerCenter + throwDirection * 40.0f;
-            DrawArrow(localPlayerCenter, arrowEnd, new Color(0.2f, 1.0f, 0.2f, 0.7f), 2.0f);
-        }
-    }
-
-    /// <summary>
-    /// Get the effect radius of the current grenade type.
-    /// FIX for Issue #432: Use type-based defaults when GDScript Call() fails in exports.
-    /// </summary>
-    private float GetGrenadeEffectRadius()
-    {
-        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
-        {
-            // Try to call GDScript method first
-            if (_activeGrenade.HasMethod("_get_effect_radius"))
-            {
-                var result = _activeGrenade.Call("_get_effect_radius");
-                if (result.VariantType != Variant.Type.Nil)
-                {
-                    return (float)result;
-                }
-            }
-
-            // Try to read effect_radius property directly
-            if (_activeGrenade.Get("effect_radius").VariantType != Variant.Type.Nil)
-            {
-                return (float)_activeGrenade.Get("effect_radius");
-            }
-
-            // FIX for Issue #432: Use type-based defaults matching scene files
-            // GDScript property access may fail silently in exported builds
-            var script = _activeGrenade.GetScript();
-            if (script.Obj != null)
-            {
-                string scriptPath = ((Script)script.Obj).ResourcePath;
-                if (scriptPath.Contains("frag_grenade"))
-                {
-                    return 225.0f;  // FragGrenade.tscn default
-                }
-            }
-        }
-        // Default: Flashbang effect radius (FlashbangGrenade.tscn)
-        return 400.0f;
-    }
-
-    /// <summary>
-    /// Draw the teleport targeting reticle with player silhouette at target position (Issue #672).
-    /// Shows a dashed line from player to target and a player-shaped outline at the destination.
-    /// </summary>
-    private void DrawTeleportReticle()
-    {
-        Vector2 localTarget = ToLocal(_teleportTargetPosition);
-
-        // Colors for the teleport reticle
-        Color lineColor = new Color(0.4f, 0.8f, 1.0f, 0.5f);  // Cyan semi-transparent
-        Color silhouetteColor;
-        if (_teleportCharges > 0)
-        {
-            silhouetteColor = new Color(0.4f, 0.8f, 1.0f, 0.6f);  // Cyan
-        }
-        else
-        {
-            silhouetteColor = new Color(1.0f, 0.3f, 0.3f, 0.4f);  // Red (no charges)
-        }
-
-        // Draw dashed line from player to target
-        DrawTrajectoryLine(Vector2.Zero, localTarget, lineColor, 2.0f);
-
-        // Draw player silhouette at target position
-        // Body circle (matches PlayerCollisionRadius = 16)
-        DrawCircleOutline(localTarget, PlayerCollisionRadius, silhouetteColor, 2.5f);
-
-        // Draw body shape inside the circle (simplified player contour)
-        // Head (small circle above center)
-        Vector2 headOffset = new Vector2(-6, -2);  // Matches Player.tscn Head position
-        DrawCircleOutline(localTarget + headOffset, 6.0f, silhouetteColor, 2.0f);
-
-        // Body (rectangle shape)
-        Vector2 bodyCenter = localTarget + new Vector2(-4, 0);  // Matches Body position
-        float bw = 5.0f, bh = 8.0f;
-        DrawLine(bodyCenter + new Vector2(-bw, -bh), bodyCenter + new Vector2(bw, -bh), silhouetteColor, 2.0f);
-        DrawLine(bodyCenter + new Vector2(bw, -bh), bodyCenter + new Vector2(bw, bh), silhouetteColor, 2.0f);
-        DrawLine(bodyCenter + new Vector2(bw, bh), bodyCenter + new Vector2(-bw, bh), silhouetteColor, 2.0f);
-        DrawLine(bodyCenter + new Vector2(-bw, bh), bodyCenter + new Vector2(-bw, -bh), silhouetteColor, 2.0f);
-
-        // Arms (two small lines)
-        // Left arm
-        DrawLine(localTarget + new Vector2(18, 4), localTarget + new Vector2(24, 8), silhouetteColor, 2.0f);
-        // Right arm
-        DrawLine(localTarget + new Vector2(-8, 4), localTarget + new Vector2(-2, 8), silhouetteColor, 2.0f);
-
-        // Draw charge count near the target
-        // Show remaining charges as small dots around the silhouette
-        for (int i = 0; i < MaxTeleportCharges; i++)
-        {
-            float angle = (float)i / MaxTeleportCharges * Mathf.Tau - Mathf.Pi / 2.0f;
-            Vector2 dotPos = localTarget + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (PlayerCollisionRadius + 10.0f);
-            Color dotColor;
-            if (i < _teleportCharges)
-            {
-                dotColor = new Color(0.4f, 1.0f, 0.8f, 0.8f);  // Green-cyan (available)
-            }
-            else
-            {
-                dotColor = new Color(0.5f, 0.5f, 0.5f, 0.3f);  // Gray (used)
-            }
-            DrawCircleOutline(dotPos, 3.0f, dotColor, 2.0f);
-        }
-    }
-
-    /// <summary>
-    /// Draw a circle outline at the specified position.
-    /// </summary>
-    private void DrawCircleOutline(Vector2 position, float radius, Color color, float width)
-    {
-        const int segments = 32;
-        var points = new List<Vector2>();
-        for (int i = 0; i <= segments; i++)
-        {
-            float angle = (float)i / segments * Mathf.Tau;
-            points.Add(position + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius);
-        }
-        for (int i = 0; i < points.Count - 1; i++)
-        {
-            DrawLine(points[i], points[i + 1], color, width);
-        }
-    }
-
-    /// <summary>
-    /// Draw a dashed trajectory line from start to end.
-    /// </summary>
-    private void DrawTrajectoryLine(Vector2 start, Vector2 end, Color color, float width)
-    {
-        Vector2 direction = (end - start).Normalized();
-        float totalLength = start.DistanceTo(end);
-        const float DashLength = 15.0f;
-        const float GapLength = 8.0f;
-
-        float currentPos = 0.0f;
-        while (currentPos < totalLength)
-        {
-            float dashEnd = Mathf.Min(currentPos + DashLength, totalLength);
-            Vector2 dashStart = start + direction * currentPos;
-            Vector2 dashEndPos = start + direction * dashEnd;
-            DrawLine(dashStart, dashEndPos, color, width);
-            currentPos = dashEnd + GapLength;
-        }
-    }
-
-    /// <summary>
-    /// Draw a landing indicator (circle with X) at the target position.
-    /// </summary>
-    private void DrawLandingIndicator(Vector2 position, Color color, float radius)
-    {
-        // Draw outer circle
-        const int CirclePoints = 24;
-        Vector2[] circlePoints = new Vector2[CirclePoints + 1];
-        for (int i = 0; i <= CirclePoints; i++)
-        {
-            float angle = i * Mathf.Tau / CirclePoints;
-            circlePoints[i] = position + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
-        }
-        for (int i = 0; i < CirclePoints; i++)
-        {
-            DrawLine(circlePoints[i], circlePoints[i + 1], color, 2.0f);
-        }
-
-        // Draw X inside
-        float xSize = radius * 0.6f;
-        DrawLine(position + new Vector2(-xSize, -xSize), position + new Vector2(xSize, xSize), color, 2.0f);
-        DrawLine(position + new Vector2(-xSize, xSize), position + new Vector2(xSize, -xSize), color, 2.0f);
-    }
-
-    /// <summary>
-    /// Draw an arrow from start to end with an arrowhead.
-    /// </summary>
-    private void DrawArrow(Vector2 start, Vector2 end, Color color, float width)
-    {
-        // Draw main line
-        DrawLine(start, end, color, width);
-
-        // Draw arrowhead
-        Vector2 direction = (end - start).Normalized();
-        float arrowSize = 8.0f;
-        float arrowAngle = Mathf.Pi / 6.0f; // 30 degrees
-
-        Vector2 arrowLeft = end - direction.Rotated(arrowAngle) * arrowSize;
-        Vector2 arrowRight = end - direction.Rotated(-arrowAngle) * arrowSize;
-
-        DrawLine(end, arrowLeft, color, width);
-        DrawLine(end, arrowRight, color, width);
-    }
-
-    /// <summary>
-    /// Draw trajectory glasses laser lines in local player coordinates (Issue #744).
-    /// Uses the same _draw() approach as grenade trajectory: reads local-coordinate points
-    /// stored by trajectory_glasses_effect.gd and draws them here in Player's _Draw().
-    /// </summary>
-    private void DrawTrajectoryGlasses()
-    {
-        if (!_trajectoryGlassesEquipped || _trajectoryGlassesEffect == null)
-        {
-            return;
-        }
-
-        if (!IsInstanceValid(_trajectoryGlassesEffect))
-        {
-            return;
-        }
-
-        bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
-        if (!isActive)
-        {
-            return;
-        }
-
-        // Read trajectory points (in local player coordinates) from the GDScript effect
-        var pointsVariant = _trajectoryGlassesEffect.Get("trajectory_local_points");
-        if (pointsVariant.VariantType == Variant.Type.Nil)
-        {
-            return;
-        }
-
-        var pointsArray = pointsVariant.AsGodotArray();
-        if (pointsArray.Count < 2)
-        {
-            return;
-        }
-
-        // Read the index where the invalid (red) terminal segment starts.
-        // -1 means all segments are valid (green).
-        var invalidIdxVariant = _trajectoryGlassesEffect.Get("trajectory_invalid_start_index");
-        int invalidStartIndex = invalidIdxVariant.VariantType != Variant.Type.Nil
-            ? invalidIdxVariant.AsInt32()
-            : -1;
-
-        Color validColor = new Color(0.0f, 1.0f, 0.0f, 0.8f);   // Green
-        Color invalidColor = new Color(1.0f, 0.0f, 0.0f, 0.8f); // Red
-
-        // Determine up to which index valid (green) segments run.
-        // If invalidStartIndex == -1: all segments are green (0..Count-2).
-        // If invalidStartIndex >= 1: green segments are 0..invalidStartIndex-2,
-        //   and segment (invalidStartIndex-1) -> (invalidStartIndex) is red.
-        int lastValidSegmentEnd = invalidStartIndex >= 1 ? invalidStartIndex - 1 : pointsArray.Count - 1;
-
-        // Draw glow for valid segments
-        for (int i = 0; i < lastValidSegmentEnd; i++)
-        {
-            Color glowValid = new Color(0.0f, 1.0f, 0.0f, 0.3f);
-            DrawLine(pointsArray[i].As<Vector2>(), pointsArray[i + 1].As<Vector2>(), glowValid, 6.0f);
-        }
-
-        // Draw glow for terminal invalid segment (if any)
-        if (invalidStartIndex >= 1 && invalidStartIndex < pointsArray.Count)
-        {
-            Color glowInvalid = new Color(1.0f, 0.0f, 0.0f, 0.3f);
-            DrawLine(pointsArray[invalidStartIndex - 1].As<Vector2>(), pointsArray[invalidStartIndex].As<Vector2>(), glowInvalid, 6.0f);
-        }
-
-        // Draw main laser for valid segments (green)
-        for (int i = 0; i < lastValidSegmentEnd; i++)
-        {
-            DrawLine(pointsArray[i].As<Vector2>(), pointsArray[i + 1].As<Vector2>(), validColor, 2.0f);
-        }
-
-        // Draw main laser for terminal invalid segment (red)
-        if (invalidStartIndex >= 1 && invalidStartIndex < pointsArray.Count)
-        {
-            DrawLine(pointsArray[invalidStartIndex - 1].As<Vector2>(), pointsArray[invalidStartIndex].As<Vector2>(), invalidColor, 2.0f);
-        }
-
-        // Draw dot at start (bullet spawn point)
-        DrawCircle(pointsArray[0].As<Vector2>(), 3.0f, validColor);
-
-        // Draw small diamonds at valid bounce points (not at the terminal red point)
-        int lastDiamond = invalidStartIndex >= 1 ? invalidStartIndex - 1 : pointsArray.Count - 1;
-        for (int i = 1; i < lastDiamond; i++)
-        {
-            float s = 4.0f;
-            Vector2 p = pointsArray[i].As<Vector2>();
-            DrawLine(p + new Vector2(0, -s), p + new Vector2(s, 0), validColor, 2.0f);
-            DrawLine(p + new Vector2(s, 0), p + new Vector2(0, s), validColor, 2.0f);
-            DrawLine(p + new Vector2(0, s), p + new Vector2(-s, 0), validColor, 2.0f);
-            DrawLine(p + new Vector2(-s, 0), p + new Vector2(0, -s), validColor, 2.0f);
-        }
-    }
-
-    #endregion
 }

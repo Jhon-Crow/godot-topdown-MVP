@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Characters;
@@ -343,6 +344,25 @@ public partial class Shotgun : BaseWeapon
                 maxReserve *= ammoMultiplier;
                 GD.Print($"[Shotgun] Power Fantasy mode: reserve shells multiplied by {ammoMultiplier}x ({WeaponData.MaxReserveAmmo} -> {maxReserve})");
             }
+        }
+
+        // Apply extended magazine passive item (Issue #1065):
+        // 2.5x tube capacity, 5% less total ammo.
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null && activeItemManager.HasMethod("has_extended_magazine")
+            && activeItemManager.Call("has_extended_magazine").AsBool())
+        {
+            float magSizeMultiplier = activeItemManager.Call("get_magazine_size_multiplier").AsSingle();
+            float totalAmmoMultiplier = activeItemManager.Call("get_total_ammo_multiplier").AsSingle();
+
+            int originalTube = TubeMagazineCapacity;
+            int newTubeCapacity = Mathf.Max(1, Mathf.RoundToInt(TubeMagazineCapacity * magSizeMultiplier));
+            int newReserve = Mathf.Max(0, Mathf.RoundToInt(maxReserve * totalAmmoMultiplier));
+
+            GD.Print($"[Shotgun] Extended Magazine: tube {originalTube}->{newTubeCapacity}, reserve {maxReserve}->{newReserve}");
+
+            TubeMagazineCapacity = newTubeCapacity;
+            maxReserve = newReserve;
         }
 
         // Create 2 magazines:
@@ -1403,6 +1423,15 @@ public partial class Shotgun : BaseWeapon
         PlayShellLoadSound();
         EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
         LogToFile($"[Shotgun.FIX#243] Shell LOADED - {ShellsInTube}/{TubeMagazineCapacity} shells in tube");
+
+        // Issue #1025: Transition to WaitingToClose when tube is full so the tutorial
+        // hint advances from "load shells" [СКМ+ПКМ↓] to "close bolt" [ПКМ↓].
+        if (ShellsInTube >= TubeMagazineCapacity)
+        {
+            ReloadState = ShotgunReloadState.WaitingToClose;
+            EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+            LogToFile($"[Shotgun.FIX#1025] Tube full after loading - transitioning to WaitingToClose");
+        }
     }
 
     /// <summary>
@@ -1428,6 +1457,51 @@ public partial class Shotgun : BaseWeapon
         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
         EmitSignal(SignalName.ReloadFinished);
         LogToFile($"[Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with {ShellsInTube} shells");
+    }
+
+    /// <summary>
+    /// Instantly refills the tube magazine by the given number of shells from the reserve.
+    /// Used by the auto-reload passive item (Issue #1105): on each enemy kill the tube is
+    /// topped up from spare magazines without requiring the manual pump/bolt gestures.
+    ///
+    /// Unlike LoadShell(), this method works regardless of ReloadState and does not
+    /// require the bolt to be open — the auto-reload item is a passive "magic" effect.
+    /// </summary>
+    /// <param name="count">Maximum number of shells to load (capped by tube capacity and reserve).</param>
+    /// <returns>Actual number of shells loaded.</returns>
+    public int AutoRefillTube(int count)
+    {
+        if (count <= 0) return 0;
+
+        int spaceInTube = TubeMagazineCapacity - ShellsInTube;
+        int available = Math.Min(count, Math.Min(spaceInTube, ReserveAmmo));
+
+        if (available <= 0)
+        {
+            LogToFile($"[Shotgun.AutoReload] AutoRefillTube: no space or reserve (ShellsInTube={ShellsInTube}/{TubeMagazineCapacity}, Reserve={ReserveAmmo})");
+            return 0;
+        }
+
+        int added = 0;
+        foreach (var mag in MagazineInventory.SpareMagazines)
+        {
+            while (mag.CurrentAmmo > 0 && added < available)
+            {
+                mag.CurrentAmmo--;
+                ShellsInTube++;
+                added++;
+            }
+            if (added >= available) break;
+        }
+
+        if (added > 0)
+        {
+            EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
+            EmitSignal(SignalName.AmmoChanged, ShellsInTube, ReserveAmmo);
+            LogToFile($"[Shotgun.AutoReload] AutoRefillTube: loaded {added} shells ({ShellsInTube}/{TubeMagazineCapacity}), reserve={ReserveAmmo}");
+        }
+
+        return added;
     }
 
     /// <summary>
@@ -1460,6 +1534,104 @@ public partial class Shotgun : BaseWeapon
             EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
             GD.Print("[Shotgun] Reload cancelled");
         }
+    }
+
+    /// <summary>
+    /// Resets the action state to Ready, bringing the weapon to combat-ready state (Issue #1315).
+    /// Used by the Fine Motor Skills active item to bypass the pump cycle after firing.
+    /// Also cancels any in-progress reload and fills the tube from reserve.
+    /// </summary>
+    public void FineMotorSkillsReload()
+    {
+        // Cancel any in-progress reload
+        if (ReloadState != ShotgunReloadState.NotReloading)
+        {
+            ReloadState = ShotgunReloadState.NotReloading;
+            EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+        }
+
+        // Fill tube from reserve
+        int spaceInTube = TubeMagazineCapacity - ShellsInTube;
+        if (spaceInTube > 0)
+        {
+            int loaded = AutoRefillTube(spaceInTube);
+            if (loaded > 0)
+            {
+                PlayShellLoadSound();
+                GD.Print($"[Shotgun.FineMotorSkills] Loaded {loaded} shells into tube ({ShellsInTube}/{TubeMagazineCapacity})");
+            }
+        }
+
+        // Reset action state to Ready (bypasses pump cycle)
+        if (ActionState != ShotgunActionState.Ready)
+        {
+            ActionState = ShotgunActionState.Ready;
+            PlayActionCloseSound();
+            EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+            GD.Print("[Shotgun.FineMotorSkills] Action state reset to Ready");
+        }
+
+        EmitSignal(SignalName.ReloadFinished);
+        EmitSignal(SignalName.AmmoChanged, ShellsInTube, ReserveAmmo);
+        GD.Print($"[Shotgun.FineMotorSkills] Combat-ready: {ShellsInTube}/{TubeMagazineCapacity} shells");
+    }
+
+    /// <summary>
+    /// Sequentially reloads the shotgun with delays between each stage (Issue #1337).
+    /// Plays: action open → shell load (one by one) → action close.
+    /// Each stage has an audible sound with a configurable delay between them.
+    /// </summary>
+    /// <param name="stageDelay">Delay in seconds between each reload stage.</param>
+    public async Task FineMotorSkillsReloadAsync(float stageDelay)
+    {
+        // Cancel any in-progress reload
+        if (ReloadState != ShotgunReloadState.NotReloading)
+        {
+            ReloadState = ShotgunReloadState.NotReloading;
+            EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+        }
+
+        // Stage 1: Play action open sound (cock/open bolt)
+        PlayActionOpenSound();
+        GD.Print("[Shotgun.FineMotorSkills] Stage: action open");
+
+        if (stageDelay > 0)
+        {
+            await ToSignal(GetTree().CreateTimer(stageDelay), "timeout");
+        }
+
+        // Stage 2: Load shells one by one with sounds between each
+        int spaceInTube = TubeMagazineCapacity - ShellsInTube;
+        if (spaceInTube > 0)
+        {
+            for (int i = 0; i < spaceInTube; i++)
+            {
+                int loaded = AutoRefillTube(1);
+                if (loaded <= 0)
+                    break;
+
+                PlayShellLoadSound();
+                GD.Print($"[Shotgun.FineMotorSkills] Stage: loaded shell {i + 1} ({ShellsInTube}/{TubeMagazineCapacity})");
+
+                if (stageDelay > 0)
+                {
+                    await ToSignal(GetTree().CreateTimer(stageDelay), "timeout");
+                }
+            }
+        }
+
+        // Stage 3: Close action (ready to fire)
+        if (ActionState != ShotgunActionState.Ready)
+        {
+            ActionState = ShotgunActionState.Ready;
+            EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+        }
+        PlayActionCloseSound();
+        GD.Print("[Shotgun.FineMotorSkills] Stage: action close — combat-ready");
+
+        EmitSignal(SignalName.ReloadFinished);
+        EmitSignal(SignalName.AmmoChanged, ShellsInTube, ReserveAmmo);
+        GD.Print($"[Shotgun.FineMotorSkills] Sequential reload complete: {ShellsInTube}/{TubeMagazineCapacity} shells");
     }
 
     #endregion
@@ -1518,7 +1690,9 @@ public partial class Shotgun : BaseWeapon
         int pelletCount = GD.RandRange(MinPellets, MaxPellets);
 
         // Get spread angle from weapon data
-        float spreadAngle = WeaponData.SpreadAngle;
+        // Suppress spread when recoil compensator is active (Issue #1073)
+        bool compensatorActive = GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive();
+        float spreadAngle = compensatorActive ? 0.0f : WeaponData.SpreadAngle;
         float spreadRadians = Mathf.DegToRad(spreadAngle);
         float halfSpread = spreadRadians / 2.0f;
 
@@ -1526,6 +1700,12 @@ public partial class Shotgun : BaseWeapon
 
         // Fire all pellets simultaneously with spatial distribution (cloud effect)
         FirePelletsAsCloud(fireDirection, pelletCount, spreadRadians, halfSpread, projectileScene);
+
+        // Decrement drilling bullets counter once per shot (not per pellet) (Issue #751)
+        if (DrillingBulletsRemaining > 0)
+        {
+            DrillingBulletsRemaining--;
+        }
 
         // Spawn muzzle flash at the barrel position (same as M16)
         Vector2 muzzleFlashPosition = GlobalPosition + fireDirection * BulletSpawnOffset;
@@ -1763,6 +1943,22 @@ public partial class Shotgun : BaseWeapon
             }
         }
 
+        // Set drilling bullet flag if drilling bullets are active for this magazine (Issue #751)
+        // Note: each call to SpawnPelletWithOffset is for one pellet of the same shotgun blast.
+        // We only decrement the counter once per Fire() call (not per pellet), so we check
+        // DrillingBulletsRemaining WITHOUT decrementing here — decrement happens in Fire().
+        if (DrillingBulletsRemaining > 0)
+        {
+            if (pellet is GodotTopDownTemplate.Projectiles.ShotgunPellet drillingPellet)
+            {
+                drillingPellet.IsDrillingBullet = true;
+            }
+            else
+            {
+                pellet.Set("is_drilling_bullet", true);
+            }
+        }
+
         GetTree().CurrentScene.AddChild(pellet);
 
         // Enable homing on the pellet if the player's homing effect is active (Issue #704)
@@ -1902,7 +2098,7 @@ public partial class Shotgun : BaseWeapon
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            float loudness = WeaponData?.Loudness ?? 1469.0f;
+            float loudness = WeaponData?.Loudness ?? 800.0f;  // Issue #1269: scaled 800/1469
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
         }
     }
@@ -1912,6 +2108,10 @@ public partial class Shotgun : BaseWeapon
     /// </summary>
     private void TriggerScreenShake(Vector2 shootDirection)
     {
+        // Suppress screen shake when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return;
+
         if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
         {
             return;
@@ -1938,6 +2138,47 @@ public partial class Shotgun : BaseWeapon
     /// Gets the current aim direction.
     /// </summary>
     public Vector2 AimDirection => _aimDirection;
+
+    /// <summary>
+    /// Override ReinitializeMagazines to preserve the Shotgun's tube magazine model.
+    /// The Shotgun uses ShellsInTube for its active ammo; the MagazineInventory
+    /// CurrentMagazine is always kept at 0 (it is a placeholder for reserve shells only).
+    /// Without this override, the base ReinitializeMagazines sets CurrentAmmo = magazineSize,
+    /// which breaks auto-reload: OnEnemyKilledForAutoReload reads CurrentAmmo and thinks
+    /// the magazine is full, skipping the ShellsInTube refill entirely (Issue #1105).
+    /// </summary>
+    public override void ReinitializeMagazines(int magazineCount, int magazineSize, bool fillAllMagazines = true)
+    {
+        base.ReinitializeMagazines(magazineCount, magazineSize, fillAllMagazines);
+        // Keep CurrentMagazine at 0 — ShellsInTube is the authoritative ammo source for the shotgun.
+        if (MagazineInventory.CurrentMagazine != null)
+        {
+            MagazineInventory.CurrentMagazine.CurrentAmmo = 0;
+        }
+        GD.Print($"[Shotgun] ReinitializeMagazines override: CurrentMagazine reset to 0 (reserve={ReserveAmmo})");
+    }
+
+    /// <summary>
+    /// Reduces the tube magazine capacity for the auto-reload passive item (Issue #1105).
+    /// Sets TubeMagazineCapacity and trims ShellsInTube to the new capacity if needed,
+    /// then emits ShellCountChanged so the HUD reflects the updated tube size.
+    /// Called by Player.ReduceMagazineSizeForAutoReload() after ReinitializeMagazines().
+    /// </summary>
+    /// <param name="newCapacity">The reduced tube capacity (must be &gt; 0).</param>
+    public void SetAutoReloadTubeCapacity(int newCapacity)
+    {
+        if (newCapacity <= 0) return;
+
+        TubeMagazineCapacity = newCapacity;
+        // Trim current shells to the new (smaller) capacity
+        if (ShellsInTube > TubeMagazineCapacity)
+        {
+            ShellsInTube = TubeMagazineCapacity;
+        }
+
+        EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
+        GD.Print($"[Shotgun.AutoReload] SetAutoReloadTubeCapacity: TubeMagazineCapacity={TubeMagazineCapacity}, ShellsInTube={ShellsInTube}");
+    }
 
     /// <summary>
     /// Override CanFire for the shotgun's tube magazine system.

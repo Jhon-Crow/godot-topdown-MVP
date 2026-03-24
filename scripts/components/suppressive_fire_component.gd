@@ -48,13 +48,14 @@ func shoot(target_pos: Vector2) -> void:
 	var to_target := (target_pos - _enemy.global_position).normalized()
 	if to_target == Vector2.ZERO: return
 	var direction := to_target.rotated(randf_range(-FAN_SPREAD, FAN_SPREAD))
-	var spawn_pos := _enemy._get_bullet_spawn_position(_enemy._get_weapon_forward_direction())
+	var spawn_pos: Vector2 = _enemy._get_bullet_spawn_position(_enemy._get_weapon_forward_direction())
 	if not _enemy._is_bullet_spawn_clear(direction): _enemy._log_debug("[#910] Suppressive blocked: wall"); return
 	_enemy._spawn_projectile(direction, spawn_pos); _enemy._spawn_muzzle_flash(spawn_pos, direction)
 	_enemy._log_to_file("[#910] Suppressive shot toward invisible player sound at %s" % target_pos)
 	var audio: Node = _enemy.get_node_or_null("/root/AudioManager")
 	if audio:
 		if _enemy._is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(_enemy.global_position)
+		elif _enemy.weapon_type == 4 and audio.has_method("play_ak_shot"): audio.play_ak_shot(_enemy.global_position)  # [#1033] MACHINE_GUN(4) = AK sound
 		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(_enemy.global_position)
 	var sp: Node = _enemy.get_node_or_null("/root/SoundPropagation")
 	if sp and sp.has_method("emit_sound"): sp.emit_sound(0, _enemy.global_position, 1, _enemy, _enemy.weapon_loudness)

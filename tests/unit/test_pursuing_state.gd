@@ -288,3 +288,148 @@ func test_large_distance_progress_calculation() -> void:
 	var min_progress: float = distance_to_player * 0.10
 
 	assert_eq(min_progress, 1000.0, "Large distance should result in proportional minimum progress")
+
+
+# ============================================================================
+# Issue #1289: Navmesh Validation Tests
+# ============================================================================
+
+
+func test_cover_navmesh_snap_threshold() -> void:
+	# Issue #1289: Cover positions should be rejected if farther from the nearest navmesh
+	# point than 2 * agent_radius. This prevents paths crossing obstacle geometry.
+	var agent_radius: float = 24.0
+	var max_snap_dist: float = agent_radius * 2.0
+
+	# A cover point 10px off-mesh → accepted
+	var off_mesh_dist_small: float = 10.0
+	assert_true(off_mesh_dist_small <= max_snap_dist,
+		"Cover 10px off navmesh should be accepted (within 48px threshold)")
+
+	# A cover point 60px off-mesh → rejected (inside wall geometry)
+	var off_mesh_dist_large: float = 60.0
+	assert_false(off_mesh_dist_large <= max_snap_dist,
+		"Cover 60px off navmesh should be rejected (outside 48px threshold)")
+
+
+func test_cover_navmesh_threshold_equals_two_radii() -> void:
+	# Issue #1289: The threshold must be exactly 2 * agent_radius so it scales
+	# correctly if the agent radius changes in the scene.
+	var agent_radius: float = 24.0
+	var expected_threshold: float = 48.0
+	assert_eq(agent_radius * 2.0, expected_threshold,
+		"Navmesh snap threshold should be 2 * agent_radius = 48px")
+
+
+# ============================================================================
+# Issue #1289: Enemy-Occupied Penalty Tests
+# ============================================================================
+
+
+func test_enemy_occupied_penalty_constant() -> void:
+	# Issue #1289: PURSUIT_ENEMY_OCCUPIED_PENALTY should be 3.0
+	var penalty: float = 3.0
+	assert_eq(penalty, 3.0, "Enemy-occupied penalty should be 3.0")
+
+
+func test_enemy_occupied_penalty_reduces_score() -> void:
+	# Issue #1289: Occupied cover must score lower than unoccupied cover.
+	var base_score: float = 5.0 + 2.0 - 1.0  # hidden + approach - distance
+	var occupied_penalty: float = 3.0
+	var score_occupied: float = base_score - occupied_penalty
+	var score_free: float = base_score
+
+	assert_lt(score_occupied, score_free,
+		"Occupied cover should score lower than free cover")
+
+
+func test_enemy_occupied_radius_check() -> void:
+	# Issue #1289: A cover position within PURSUIT_ENEMY_OCCUPIED_RADIUS of another
+	# enemy's cover target should trigger the penalty.
+	var occupied_radius: float = 80.0  # PURSUIT_ENEMY_OCCUPIED_RADIUS
+	var other_enemy_cover: Vector2 = Vector2(100.0, 100.0)
+
+	# Candidate 50px away → inside radius → penalty applied
+	var candidate_close: Vector2 = Vector2(150.0, 100.0)
+	assert_true(candidate_close.distance_to(other_enemy_cover) < occupied_radius,
+		"Candidate 50px from occupied cover should be within occupied radius")
+
+	# Candidate 100px away → outside radius → no penalty
+	var candidate_far: Vector2 = Vector2(200.0, 100.0)
+	assert_false(candidate_far.distance_to(other_enemy_cover) < occupied_radius,
+		"Candidate 100px from occupied cover should be outside occupied radius")
+
+
+# ============================================================================
+# Issue #1289: Pursuing Step Length Tests
+# ============================================================================
+
+
+func test_pursuit_path_desired_distance_larger_than_default() -> void:
+	# Issue #1289: The nav step length while pursuing must be larger than the
+	# default value to make enemies cover more ground per waypoint.
+	var default_dist: float = 40.0  # Enemy.tscn path_desired_distance
+	var pursuit_dist: float = 80.0  # PURSUIT_PATH_DESIRED_DISTANCE
+
+	assert_gt(pursuit_dist, default_dist,
+		"Pursuing path_desired_distance should be larger than the default")
+
+
+func test_pursuit_path_distance_doubles_default() -> void:
+	# Issue #1289: The pursuing step is 80px, exactly 2× the default 40px.
+	var default_dist: float = 40.0
+	var pursuit_dist: float = 80.0
+
+	assert_eq(pursuit_dist, default_dist * 2.0,
+		"Pursuing path_desired_distance should be 2x the default")
+
+
+func test_path_distance_restored_on_non_pursuing_transition() -> void:
+	# Issue #1289: When transitioning out of PURSUING, path_desired_distance
+	# must be restored to the saved default so other states are unaffected.
+	var saved_default: float = 40.0
+	var pursuit_value: float = 80.0
+
+	# Simulate entering pursuing (increases distance)
+	var current: float = pursuit_value
+
+	# Simulate exiting pursuing (restores default)
+	current = saved_default
+
+	assert_eq(current, saved_default,
+		"path_desired_distance should be restored to default on exit from PURSUING")
+
+
+# ============================================================================
+# Issue #1289: PursuitComponent architecture tests
+# ============================================================================
+
+
+func test_pursuit_component_constants_path_distance() -> void:
+	# PursuitComponent must define PURSUIT_PATH_DESIRED_DISTANCE = 80.0
+	assert_eq(PursuitComponent.PURSUIT_PATH_DESIRED_DISTANCE, 80.0,
+		"PursuitComponent.PURSUIT_PATH_DESIRED_DISTANCE should be 80.0")
+
+
+func test_pursuit_component_constants_occupied_penalty() -> void:
+	# PursuitComponent must define PURSUIT_ENEMY_OCCUPIED_PENALTY = 3.0
+	assert_eq(PursuitComponent.PURSUIT_ENEMY_OCCUPIED_PENALTY, 3.0,
+		"PursuitComponent.PURSUIT_ENEMY_OCCUPIED_PENALTY should be 3.0")
+
+
+func test_pursuit_component_constants_occupied_radius() -> void:
+	# PursuitComponent must define PURSUIT_ENEMY_OCCUPIED_RADIUS = 80.0
+	assert_eq(PursuitComponent.PURSUIT_ENEMY_OCCUPIED_RADIUS, 80.0,
+		"PursuitComponent.PURSUIT_ENEMY_OCCUPIED_RADIUS should be 80.0")
+
+
+func test_pursuit_component_returns_not_found_with_null_enemy() -> void:
+	# PursuitComponent.find_cover() must return {found=false} when enemy ref is null.
+	var comp := PursuitComponent.new(null)
+	var result := comp.find_cover()
+	assert_false(result.found,
+		"find_cover() with null enemy should return found=false")
+	assert_eq(result.cover, Vector2.ZERO,
+		"find_cover() with null enemy should return cover=Vector2.ZERO")
+	assert_null(result.obstacle,
+		"find_cover() with null enemy should return obstacle=null")

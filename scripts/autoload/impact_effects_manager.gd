@@ -48,14 +48,17 @@ const WALL_COLLISION_LAYER: int = 4
 ## Set to 0 to disable cleanup limit.
 const MAX_BULLET_HOLES: int = 0
 
-## Number of blood decals spawned per lethal hit (Issue #969 optimization).
-## Reduced from 20 to 8 to limit file-write and node-add overhead at high fire rates.
-## Each decal add triggers SceneTree.tree_changed, causing scene-change checks in all managers.
-const BLOOD_DECALS_PER_LETHAL_HIT: int = 8
+## Number of blood decals spawned per lethal hit.
+## Issue #1090 Round 2: Increased to 30 (50% above the Feb 16 backup value of 20)
+## per owner request for more visible blood on floor.
+## Note: Issue #1027 removed per-puddle Area2D physics, eliminating the main FPS bottleneck.
+## 30 Sprite2D decals are trivially cheap to render.
+const BLOOD_DECALS_PER_LETHAL_HIT: int = 30
 
-## Number of blood decals spawned per non-lethal hit (Issue #969 optimization).
-## Reduced from 10 to 4 to limit overhead at high fire rates.
-const BLOOD_DECALS_PER_NONLETHAL_HIT: int = 4
+## Number of blood decals spawned per non-lethal hit.
+## Issue #1090 Round 2: Increased to 15 (50% above the Feb 16 backup value of 10)
+## per owner request for more visible blood on floor.
+const BLOOD_DECALS_PER_NONLETHAL_HIT: int = 15
 
 ## Issue #997 RCA-16: Per-second rate limiting for blood decals.
 ## When multiple enemies die in the same second, limit total decals to prevent tree_changed floods.
@@ -88,6 +91,24 @@ const MAX_CONCURRENT_EXPLOSION_LIGHTS: int = 8
 
 ## Initial pool size for explosion lights (pre-created at startup).
 const EXPLOSION_LIGHT_POOL_SIZE: int = 12
+
+## Pool of reusable GPUParticles2D nodes for dust effects (Issue #1145 optimization).
+## Instantiating a new GPUParticles2D per wall-hit causes first-emit stutter (Godot issue
+## #103308) and CPU allocation overhead, leading to FPS drops at high fire rates.
+## Pre-creating nodes and reusing them by resetting position/rotation/emitting eliminates
+## this overhead. Pooled nodes are hidden (invisible) when idle.
+var _dust_effect_pool: Array[GPUParticles2D] = []
+
+## Count of dust effect nodes currently checked out (active / emitting).
+var _dust_effects_active: int = 0
+
+## Maximum number of concurrent dust effects allowed.
+## Mini UZI fires ~15 rounds/sec; DustEffect lifetime = 2.5s → up to 37 active at once
+## without limiting. Cap at 16 to bound GPU particle work while keeping visuals dense.
+const MAX_CONCURRENT_DUST_EFFECTS: int = 16
+
+## Initial pool size for dust effects (pre-created at startup).
+const DUST_EFFECT_POOL_SIZE: int = 16
 
 ## Active bullet holes for cleanup management (visual only).
 var _bullet_holes = []
@@ -144,16 +165,21 @@ func _ready() -> void:
 	# Initialize explosion light pool (Issue #724 optimization)
 	_init_explosion_light_pool()
 
+	# Initialize dust effect pool (Issue #1145 optimization)
+	_init_dust_effect_pool()
+
 	# Perform shader warmup to prevent first-shot lag (Issue #343)
 	# This pre-compiles GPU shaders for particle effects during loading
 	_warmup_particle_shaders()
 
 
-## Logs to FileLogger and always prints to console for diagnostics.
+## Logs to FileLogger and prints to console in debug builds only.
+## Issue #1293: print() in release builds causes variable FPS drops.
 func _log_info(message: String) -> void:
 	var log_message := "[ImpactEffects] " + message
-	# Always print to console for debugging exported builds
-	print(log_message)
+	# Only print to console in debug builds to avoid FPS drops (Issue #1293).
+	if OS.is_debug_build():
+		print(log_message)
 	# Also write to file logger if available
 	if _file_logger and _file_logger.has_method("log_info"):
 		_file_logger.log_info(log_message)
@@ -270,23 +296,40 @@ func _preload_effect_scenes() -> void:
 
 
 ## Spawns a dust effect at the given position when a bullet hits a wall.
+## Issue #1145: Uses a pre-allocated pool to avoid GPUParticles2D first-emit stutter
+## (Godot issue #103308) and CPU allocation overhead at high fire rates.
 ## @param position: World position where the bullet hit the wall.
 ## @param surface_normal: Normal vector of the surface (particles scatter away from it).
 ## @param caliber_data: Optional caliber data for effect scaling.
 func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data: Resource = null) -> void:
+	# Issue #1145: Respect the wall hit particles optimization setting.
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	if gameplay_settings and not gameplay_settings.is_wall_hit_particles_enabled():
+		return
+	# Issue #1186: performance toggle
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	if perf_settings and not perf_settings.is_particles_enabled():
+		return
+
 	if _debug_effects:
 		print("[ImpactEffectsManager] spawn_dust_effect at ", position, " normal=", surface_normal)
 
-	if _dust_effect_scene == null:
-		if _debug_effects:
-			print("[ImpactEffectsManager] ERROR: _dust_effect_scene is null")
-		return
-
-	var effect: GPUParticles2D = _dust_effect_scene.instantiate() as GPUParticles2D
+	# Issue #1145: Get a pooled effect node instead of instantiating a new one.
+	var effect := _get_dust_effect_from_pool()
 	if effect == null:
 		if _debug_effects:
-			print("[ImpactEffectsManager] ERROR: Failed to instantiate dust effect")
+			print("[ImpactEffectsManager] Dust effect skipped - pool exhausted (concurrent limit reached)")
 		return
+
+	# GPUParticles2D must be in the scene tree (under a CanvasItem/Viewport) to render.
+	# Pooled nodes are parked as children of this autoload (a plain Node with no canvas
+	# context) while idle. Move the node to the current game scene before emitting so
+	# that Godot assigns it a proper canvas layer and it is actually drawn on screen.
+	var scene := get_tree().current_scene
+	if scene:
+		effect.reparent(scene, false)
+	# If there is no current scene (unlikely), leave parented to self — effect may not
+	# be visible but at least it won't crash.
 
 	effect.global_position = position
 
@@ -299,14 +342,23 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 	# Use smaller visual scale for more realistic dust particles
 	effect.scale = Vector2(effect_scale * 0.8, effect_scale * 0.8)
 
-	# Add to scene tree
-	_add_effect_to_scene(effect)
+	effect.visible = true
 
-	# Start emitting
-	effect.emitting = true
+	# Use restart() to re-trigger a pooled one-shot effect.
+	# Toggling emitting=false/true is unreliable: Godot bug #58778 causes emissions to be
+	# silently dropped when the GPU-side inactive_time window has not yet expired after the
+	# previous one-shot cycle. restart() bypasses that window and always starts a fresh cycle.
+	effect.restart()
 
 	if _debug_effects:
-		print("[ImpactEffectsManager] Dust effect spawned successfully")
+		print("[ImpactEffectsManager] Dust effect spawned from pool successfully")
+
+	# Schedule return to pool after lifetime + cleanup_delay.
+	# Matches DustEffect.tscn: lifetime=2.5, cleanup_delay=1.0 → 3.5s total.
+	var return_delay := effect.lifetime + 1.0
+	get_tree().create_timer(return_delay).timeout.connect(
+		func() -> void: _return_dust_effect_to_pool(effect)
+	)
 
 
 ## Spawns a blood splatter effect at the given position for lethal hits.
@@ -315,51 +367,67 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 ## @param caliber_data: Optional caliber data for effect scaling.
 ## @param is_lethal: Whether the hit was lethal (affects intensity and decal spawning).
 func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data: Resource = null, is_lethal: bool = true) -> void:
+	# Issue #1186: performance toggle for particles
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	var _particles_on: bool = perf_settings == null or perf_settings.is_particles_enabled()
+	var _decals_on: bool = perf_settings == null or perf_settings.is_blood_decals_enabled()
+
+	if not _particles_on and not _decals_on:
+		return
+
 	# Issue #969: gate per-hit logging behind debug flag to prevent file write spam at high fire rates
 	if _debug_effects:
 		_log_info("spawn_blood_effect called at %s, dir=%s, lethal=%s" % [position, hit_direction, is_lethal])
 		print("[ImpactEffectsManager] spawn_blood_effect at ", position, " dir=", hit_direction, " lethal=", is_lethal)
 
-	if _blood_effect_scene == null:
-		_log_info("ERROR: _blood_effect_scene is null - cannot spawn blood effect")
-		print("[ImpactEffectsManager] ERROR: _blood_effect_scene is null - blood effect NOT spawned")
-		return
-
-	var effect: GPUParticles2D = _blood_effect_scene.instantiate() as GPUParticles2D
-	if effect == null:
-		_log_info("ERROR: Failed to instantiate blood effect from scene")
-		print("[ImpactEffectsManager] ERROR: Failed to instantiate blood effect - casting failed")
-		return
-
-	if _debug_effects:
-		_log_info("Blood particle effect instantiated successfully")
-
-	effect.global_position = position
-
-	# Blood splatters in the direction the bullet was traveling
-	effect.rotation = hit_direction.angle()
-
-	# Scale effect based on caliber (larger calibers = more blood)
+	# Calculate effect scale once - used for both particles and decals
 	var effect_scale := _get_effect_scale(caliber_data)
-	# Lethal hits produce more blood
 	if is_lethal:
 		effect_scale *= 1.5
-	effect.amount_ratio = clampf(effect_scale, MIN_EFFECT_SCALE, MAX_EFFECT_SCALE)
-	effect.scale = Vector2(effect_scale, effect_scale)
 
-	# Add to scene tree
-	_add_effect_to_scene(effect)
+	# Spawn GPU particle effect only when particles are enabled (Issue #1186)
+	var effect: GPUParticles2D = null
+	if _particles_on:
+		if _blood_effect_scene == null:
+			_log_info("ERROR: _blood_effect_scene is null - cannot spawn blood effect")
+			print("[ImpactEffectsManager] ERROR: _blood_effect_scene is null - blood effect NOT spawned")
+		else:
+			effect = _blood_effect_scene.instantiate() as GPUParticles2D
+			if effect == null:
+				_log_info("ERROR: Failed to instantiate blood effect from scene")
+				print("[ImpactEffectsManager] ERROR: Failed to instantiate blood effect - casting failed")
+			else:
+				if _debug_effects:
+					_log_info("Blood particle effect instantiated successfully")
 
-	# Start emitting
-	effect.emitting = true
+				effect.global_position = position
 
-	# Spawn small blood decals that simulate where particles land
-	# Issue #969: reduced decal count to limit tree_changed signal spam at high fire rates
-	var num_decals := BLOOD_DECALS_PER_LETHAL_HIT if is_lethal else BLOOD_DECALS_PER_NONLETHAL_HIT
-	_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
+				# Blood splatters in the direction the bullet was traveling
+				effect.rotation = hit_direction.angle()
 
-	# Check for nearby walls and spawn wall splatters
-	_spawn_wall_blood_splatter(position, hit_direction, effect_scale, is_lethal)
+				# Scale effect based on caliber (larger calibers = more blood)
+				effect.amount_ratio = clampf(effect_scale, MIN_EFFECT_SCALE, MAX_EFFECT_SCALE)
+				effect.scale = Vector2(effect_scale, effect_scale)
+
+				# Add to scene tree
+				_add_effect_to_scene(effect)
+
+				# Start emitting
+				effect.emitting = true
+
+	# Spawn blood decals only when decals are enabled (Issue #1186)
+	if _decals_on:
+		# Spawn small blood decals that simulate where particles land
+		# Issue #969: reduced decal count to limit tree_changed signal spam at high fire rates
+		# Issue #1090: scale by GameplaySettings blood_amount multiplier
+		var base_decals := BLOOD_DECALS_PER_LETHAL_HIT if is_lethal else BLOOD_DECALS_PER_NONLETHAL_HIT
+		var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+		var blood_multiplier: float = gameplay_settings.get_blood_amount() if gameplay_settings else 1.0
+		var num_decals := maxi(0, roundi(base_decals * blood_multiplier))
+		_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
+
+		# Check for nearby walls and spawn wall splatters
+		_spawn_wall_blood_splatter(position, hit_direction, effect_scale, is_lethal)
 
 	# Issue #969: gate per-hit log behind debug flag
 	if _debug_effects:
@@ -372,6 +440,11 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 ## @param hit_direction: Direction the bullet was traveling.
 ## @param caliber_data: Optional caliber data for effect scaling.
 func spawn_sparks_effect(position: Vector2, hit_direction: Vector2, caliber_data: Resource = null) -> void:
+	# Issue #1186: performance toggle
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	if perf_settings and not perf_settings.is_particles_enabled():
+		return
+
 	if _debug_effects:
 		print("[ImpactEffectsManager] spawn_sparks_effect at ", position, " dir=", hit_direction)
 
@@ -416,6 +489,11 @@ func spawn_sparks_effect(position: Vector2, hit_direction: Vector2, caliber_data
 ## @param scale_override: Optional explicit scale override (ignores caliber_data if > 0).
 ##                        Use this for silenced weapons that need very small flash (e.g., 0.2 for ~100x100 pixels).
 func spawn_muzzle_flash(position: Vector2, direction: Vector2, caliber_data: Resource = null, scale_override: float = 0.0) -> void:
+	# Issue #1186: performance toggle
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	if perf_settings and not perf_settings.is_particles_enabled():
+		return
+
 	if _debug_effects:
 		print("[ImpactEffectsManager] spawn_muzzle_flash at ", position, " dir=", direction, " scale_override=", scale_override)
 
@@ -609,9 +687,9 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		_schedule_delayed_decal(origin, landing_pos, decal_rotation, decal_scale, land_time)
 		decals_scheduled += 1
 
-	# Issue #969: gate per-hit log behind debug flag
+	# Log scheduled count unconditionally (matches Feb 16 backup behavior, enables log verification)
+	_log_info("Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
 	if _debug_effects:
-		_log_info("Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
 		print("[ImpactEffectsManager] Blood decals scheduled: ", decals_scheduled)
 
 
@@ -664,6 +742,7 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 		# Rate limit exceeded, skip this decal
 		return
 	_blood_decals_this_second += 1
+
 
 	# Create the decal
 	var decal := _blood_decal_scene.instantiate() as Node2D
@@ -1183,6 +1262,11 @@ func spawn_explosion_effect(position: Vector2, radius: float) -> void:
 ## @param flash_color: Color of the flash effect.
 ## @param effect_type: Type name for logging ("flashbang" or "explosion").
 func _spawn_grenade_visual_effect(position: Vector2, radius: float, flash_color: Color, effect_type: String) -> void:
+	# Issue #1186: performance toggle for explosion lights
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	if perf_settings and not perf_settings.is_explosion_lights_enabled():
+		return
+
 	# Check if we've hit the concurrent light limit (Issue #724 optimization)
 	if _active_explosion_lights.size() >= MAX_CONCURRENT_EXPLOSION_LIGHTS:
 		if _debug_effects:
@@ -1272,6 +1356,98 @@ func _create_light_texture() -> GradientTexture2D:
 	texture.height = 256
 
 	return texture
+
+
+# =============================================================================
+# Dust Effect Pool Management (Issue #1145 Optimization)
+# =============================================================================
+
+
+## Initializes the dust effect pool with pre-created GPUParticles2D nodes.
+## Called once during _ready() so all allocations happen at load time, not during gameplay.
+func _init_dust_effect_pool() -> void:
+	if _dust_effect_scene == null:
+		_log_info("Dust effect pool: scene not loaded, skipping pool init")
+		return
+
+	for i in range(DUST_EFFECT_POOL_SIZE):
+		var effect := _create_pooled_dust_effect()
+		if effect != null:
+			_dust_effect_pool.append(effect)
+
+	_log_info("Dust effect pool initialized: %d effects pre-created" % _dust_effect_pool.size())
+
+
+## Creates a single pooled GPUParticles2D dust node, parented to the autoload so it persists
+## across scene changes. The node is hidden and not emitting while idle.
+func _create_pooled_dust_effect() -> GPUParticles2D:
+	if _dust_effect_scene == null:
+		return null
+
+	var effect: GPUParticles2D = _dust_effect_scene.instantiate() as GPUParticles2D
+	if effect == null:
+		return null
+
+	# Remove auto-cleanup script to prevent queue_free — the pool manages lifetime.
+	# The effect_cleanup.gd script calls queue_free() after lifetime+delay which would
+	# destroy our pooled node. We use a Timer-based return-to-pool instead.
+	if effect.get_script() != null:
+		effect.set_script(null)
+
+	effect.visible = false
+	effect.emitting = false
+
+	# Add to autoload so it persists across scene changes
+	add_child(effect)
+
+	return effect
+
+
+## Returns a dust effect node from the pool, or null if the pool is exhausted
+## and the concurrent cap is reached (oldest active node is recycled in that case).
+func _get_dust_effect_from_pool() -> GPUParticles2D:
+	# Enforce concurrent limit to prevent FPS drops at high fire rates.
+	if _dust_effects_active >= MAX_CONCURRENT_DUST_EFFECTS:
+		if _debug_effects:
+			print("[ImpactEffectsManager] Dust pool: concurrent limit %d reached, skipping" % MAX_CONCURRENT_DUST_EFFECTS)
+		return null
+
+	var effect: GPUParticles2D = null
+	if _dust_effect_pool.size() > 0:
+		effect = _dust_effect_pool.pop_back()
+	else:
+		# Pool empty but under cap — create a new node on-demand.
+		effect = _create_pooled_dust_effect()
+		if _debug_effects and effect != null:
+			print("[ImpactEffectsManager] Dust pool empty, created new node")
+
+	if effect != null:
+		_dust_effects_active += 1
+
+	return effect
+
+
+## Returns a dust effect node to the pool after it finishes emitting.
+## Reparents the node back to the autoload so it persists across scene changes.
+func _return_dust_effect_to_pool(effect: GPUParticles2D) -> void:
+	_dust_effects_active = maxi(0, _dust_effects_active - 1)
+
+	if not is_instance_valid(effect):
+		return
+
+	effect.emitting = false
+	effect.visible = false
+
+	# Move back to the autoload so it survives scene transitions.
+	# get_parent() may be null if the scene was freed while the effect was active.
+	if effect.get_parent() != self:
+		effect.reparent(self, false)
+
+	_dust_effect_pool.append(effect)
+
+	if _debug_effects:
+		print("[ImpactEffectsManager] Dust effect returned to pool (pool: %d, active: %d)" % [
+			_dust_effect_pool.size(), _dust_effects_active])
 
 
 # =============================================================================

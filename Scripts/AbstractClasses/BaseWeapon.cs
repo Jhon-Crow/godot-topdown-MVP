@@ -118,6 +118,25 @@ public abstract partial class BaseWeapon : Node2D
     /// </summary>
     public bool IsBreakerBulletActive { get; set; } = false;
 
+    /// <summary>
+    /// Remaining drilling bullet count for the current magazine (Issue #751).
+    /// When > 0, spawned bullets will have is_drilling_bullet = true (pass through walls).
+    /// Decremented on each shot; player.gd sets this to CurrentAmmo on activation.
+    /// </summary>
+    public int DrillingBulletsRemaining { get; set; } = 0;
+
+    /// <summary>
+    /// Extra damage bonus added to every bullet spawned (Issue #1047, Combat Disposition passive item).
+    /// Can be negative (penalty after taking damage).
+    /// </summary>
+    public float DamageBonus { get; set; } = 0.0f;
+
+    /// <summary>
+    /// Extra fire rate bonus added to fire rate (shots/sec) for every shot (Issue #1047, Combat Disposition passive item).
+    /// Can be negative (penalty after taking damage).
+    /// </summary>
+    public float FireRateBonus { get; set; } = 0.0f;
+
     protected float _fireTimer;
     private float _reloadTimer;
 
@@ -217,13 +236,37 @@ public abstract partial class BaseWeapon : Node2D
             }
         }
 
+        int magazineSize = WeaponData.MagazineSize;
+
+        // Apply extended magazine passive item (Issue #1065):
+        // 2.5x magazine size, 5% less total ammo.
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null && activeItemManager.HasMethod("has_extended_magazine")
+            && activeItemManager.Call("has_extended_magazine").AsBool())
+        {
+            float magSizeMultiplier = activeItemManager.Call("get_magazine_size_multiplier").AsSingle();
+            float totalAmmoMultiplier = activeItemManager.Call("get_total_ammo_multiplier").AsSingle();
+
+            int originalTotal = magazineCount * magazineSize;
+            int newMagSize = Mathf.Max(1, Mathf.RoundToInt(magazineSize * magSizeMultiplier));
+            int newTotal = Mathf.Max(newMagSize, Mathf.RoundToInt(originalTotal * totalAmmoMultiplier));
+            // Derive magazine count from new total / new magazine size (at least 1)
+            int newMagCount = Mathf.Max(1, Mathf.CeilToInt((float)newTotal / newMagSize));
+
+            GD.Print($"[BaseWeapon] Extended Magazine: magSize {magazineSize}->{newMagSize}, " +
+                     $"magazines {magazineCount}->{newMagCount} (total ammo {originalTotal}->{newMagCount * newMagSize})");
+
+            magazineSize = newMagSize;
+            magazineCount = newMagCount;
+        }
+
         // Diagnostic logging for Issue #765
         GD.Print($"[BaseWeapon] Initializing magazines for {Name}:");
         GD.Print($"[BaseWeapon]   Magazine count: {magazineCount}");
-        GD.Print($"[BaseWeapon]   Magazine size: {WeaponData.MagazineSize}");
+        GD.Print($"[BaseWeapon]   Magazine size: {magazineSize}");
 
         // Initialize magazine inventory with the starting magazines
-        MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines: true);
+        MagazineInventory.Initialize(magazineCount, magazineSize, fillAllMagazines: true);
 
         // Emit initial magazine state
         EmitMagazinesChanged();
@@ -285,6 +328,16 @@ public abstract partial class BaseWeapon : Node2D
     }
 
     /// <summary>
+    /// Accelerates the fire cooldown timer by the given extra delta.
+    /// Called by the recoil compensator to apply a 10% fire rate boost (Issue #1073).
+    /// </summary>
+    public void AccelerateFireTimer(float extraDelta)
+    {
+        if (_fireTimer > 0)
+            _fireTimer -= extraDelta;
+    }
+
+    /// <summary>
     /// Attempts to fire the weapon in the specified direction.
     /// </summary>
     /// <param name="direction">Direction to fire.</param>
@@ -298,7 +351,8 @@ public abstract partial class BaseWeapon : Node2D
 
         // Consume ammo from current magazine
         MagazineInventory.ConsumeAmmo();
-        _fireTimer = 1.0f / WeaponData.FireRate;
+        float effectiveFireRate = WeaponData.FireRate + FireRateBonus;
+        _fireTimer = 1.0f / Mathf.Max(effectiveFireRate, 0.1f);
 
         SpawnBullet(direction);
 
@@ -445,7 +499,7 @@ public abstract partial class BaseWeapon : Node2D
             if (WeaponData != null)
             {
                 csBulletDirect.Speed = WeaponData.BulletSpeed;
-                csBulletDirect.Damage = WeaponData.Damage;
+                csBulletDirect.Damage = WeaponData.Damage + DamageBonus;
                 // Pass caliber data so Bullet.cs reads correct ricochet parameters (Issue #915)
                 csBulletDirect.CaliberData = WeaponData.Caliber;
             }
@@ -463,7 +517,7 @@ public abstract partial class BaseWeapon : Node2D
             if (WeaponData != null)
             {
                 pelletDirect.Speed = WeaponData.BulletSpeed;
-                pelletDirect.Damage = WeaponData.Damage;
+                pelletDirect.Damage = WeaponData.Damage + DamageBonus;
             }
             var owner = GetParent();
             if (owner != null)
@@ -480,7 +534,7 @@ public abstract partial class BaseWeapon : Node2D
             if (WeaponData != null)
             {
                 bullet.Call("set_speed", WeaponData.BulletSpeed);
-                bullet.Call("set_damage", WeaponData.Damage);
+                bullet.Call("set_damage", WeaponData.Damage + DamageBonus);
             }
             var owner = GetParent();
             if (owner != null)
@@ -506,6 +560,22 @@ public abstract partial class BaseWeapon : Node2D
             {
                 // GDScript bullet — use setter method (Issue #781)
                 bullet.Call("set_is_breaker_bullet", true);
+            }
+        }
+
+        // Set drilling bullet flag if drilling bullets are active for this magazine (Issue #751)
+        // Decrements the counter; when it reaches 0, drilling effect ends naturally.
+        if (DrillingBulletsRemaining > 0)
+        {
+            DrillingBulletsRemaining--;
+            if (bullet is CSharpBullet csBulletDrilling)
+            {
+                csBulletDrilling.IsDrillingBullet = true;
+            }
+            else
+            {
+                // GDScript bullet — use setter method (Issue #781)
+                bullet.Call("set_is_drilling_bullet", true);
             }
         }
 
@@ -774,7 +844,15 @@ public abstract partial class BaseWeapon : Node2D
         }
 
         // Fire the chamber bullet
-        _fireTimer = WeaponData != null ? 1.0f / WeaponData.FireRate : 0.1f;
+        if (WeaponData != null)
+        {
+            float effectiveFireRate = WeaponData.FireRate + FireRateBonus;
+            _fireTimer = 1.0f / Mathf.Max(effectiveFireRate, 0.1f);
+        }
+        else
+        {
+            _fireTimer = 0.1f;
+        }
         ChamberBulletFired = true;
         HasBulletInChamber = false;
 
@@ -877,11 +955,74 @@ public abstract partial class BaseWeapon : Node2D
             return;
         }
 
-        MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines);
+        int magazineSize = WeaponData.MagazineSize;
+
+        // Respect Extended Magazine passive item (Issue #1065): scale magazine size.
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null && activeItemManager.HasMethod("has_extended_magazine")
+            && activeItemManager.Call("has_extended_magazine").AsBool())
+        {
+            float magSizeMultiplier = activeItemManager.Call("get_magazine_size_multiplier").AsSingle();
+            magazineSize = Mathf.Max(1, Mathf.RoundToInt(magazineSize * magSizeMultiplier));
+            GD.Print($"[BaseWeapon] ReinitializeMagazines: Extended Magazine applied, magazineSize {WeaponData.MagazineSize}->{magazineSize}");
+        }
+
+        MagazineInventory.Initialize(magazineCount, magazineSize, fillAllMagazines);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
         EmitMagazinesChanged();
 
-        GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines, fillAll={fillAllMagazines}");
+        GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines of size {magazineSize}, fillAll={fillAllMagazines}");
+    }
+
+    /// <summary>
+    /// Reinitializes the magazine inventory with a custom magazine size.
+    /// Used by the auto-reload passive item (Issue #1067) to reduce magazine capacity.
+    /// </summary>
+    /// <param name="magazineCount">Number of magazines to initialize with.</param>
+    /// <param name="magazineSize">Custom magazine capacity (overrides WeaponData.MagazineSize).</param>
+    /// <param name="fillAllMagazines">If true, all magazines start full. Otherwise, only current is full.</param>
+    public virtual void ReinitializeMagazines(int magazineCount, int magazineSize, bool fillAllMagazines = true)
+    {
+        if (WeaponData == null)
+        {
+            GD.PrintErr("[BaseWeapon] Cannot reinitialize magazines: WeaponData is null");
+            return;
+        }
+
+        MagazineInventory.Initialize(magazineCount, magazineSize, fillAllMagazines);
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
+
+        GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines of size {magazineSize}, fillAll={fillAllMagazines}");
+    }
+
+    /// <summary>
+    /// Consumes a specified number of rounds from the spare (reserve) magazines.
+    /// Used by the auto-reload passive item to deduct bullets transferred to the current magazine.
+    /// Removes bullets starting from the magazines with the least ammo.
+    /// </summary>
+    /// <param name="amount">Number of rounds to consume from reserve.</param>
+    public virtual void ConsumeReserveAmmo(int amount)
+    {
+        int remaining = amount;
+
+        // Consume from spare magazines starting from the least-loaded ones
+        // (prefer to empty partial magazines first to reduce clutter)
+        var sparesSortedAscending = MagazineInventory.SpareMagazines
+            .OrderBy(m => m.CurrentAmmo)
+            .ToList();
+
+        foreach (var mag in sparesSortedAscending)
+        {
+            if (remaining <= 0) break;
+
+            int toConsume = Math.Min(mag.CurrentAmmo, remaining);
+            mag.CurrentAmmo -= toConsume;
+            remaining -= toConsume;
+        }
+
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
     }
 
     // =========================================================================

@@ -268,7 +268,7 @@ func _is_player_in_beam(player: Node2D) -> bool:
 		return false
 
 	# Check angle: player must be within the beam half-angle
-	var angle_to_player := abs(beam_direction.angle_to(to_player))
+	var angle_to_player: float = abs(beam_direction.angle_to(to_player))
 	if angle_to_player > deg_to_rad(BEAM_HALF_ANGLE_DEG):
 		return false
 
@@ -337,7 +337,7 @@ func _log_debug(message: String) -> void:
 	if not debug_logging:
 		return
 
-	var enemy_name := _enemy.name if _enemy else "Unknown"
+	var enemy_name: String = str(_enemy.name) if _enemy else "Unknown"
 	var log_msg := "[EnemyFlashlight:%s] %s" % [enemy_name, message]
 
 	var file_logger: Node = get_node_or_null("/root/FileLogger")

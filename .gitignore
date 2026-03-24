@@ -42,3 +42,7 @@ Thumbs.db
 
 # CI diagnostic logs
 ci-logs/
+
+# Game runtime logs
+game-logs/
+game_log*.txt

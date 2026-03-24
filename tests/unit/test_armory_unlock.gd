@@ -12,11 +12,11 @@ extends GutTest
 
 class MockGameManager:
 	# Issue #894: "all unspecified items can be opened from the start"
-	# m16, silenced_pistol, ak_gl have no conditions — freely available from start
-	# shotgun, mini_uzi, sniper, revolver require level completion conditions
+	# silenced_pistol, ak_gl have no conditions — freely available from start
+	# shotgun, mini_uzi, sniper, revolver, m16 require level completion conditions
 	var unlocked_weapons: Dictionary = {
 		"makarov_pm": true,
-		"m16": true,             # No condition — freely available from start
+		"m16": false,            # Condition: Beach D+ (Issue #1053 req.3)
 		"shotgun": false,        # Condition: Building D+
 		"mini_uzi": false,       # Condition: Labyrinth D+
 		"silenced_pistol": true, # No condition — freely available from start
@@ -83,7 +83,11 @@ class MockActiveItemManager:
 		BREAKER_BULLETS,
 		FORCE_FIELD,
 		TRAJECTORY_GLASSES, # Issue #744
-		LASER_SIGHT         # Issue #947
+		LASER_SIGHT,        # Issue #947
+		LOUDSPEAKER,        # Issue #959
+		BREACHING_CHARGES,  # Issue #1043
+		ARMORED_SKIN,       # Issue #1045
+		AUTO_RELOAD         # Issue #1067
 	}
 
 	# Issue #894: only FLASHLIGHT and TELEPORT_BRACERS have conditions
@@ -97,8 +101,12 @@ class MockActiveItemManager:
 		ActiveItemType.INVISIBILITY_SUIT: true,    # No condition — freely available from start
 		ActiveItemType.BREAKER_BULLETS: true,      # No condition — freely available from start
 		ActiveItemType.FORCE_FIELD: true,          # No condition — freely available from start
-		ActiveItemType.TRAJECTORY_GLASSES: true,   # No condition — freely available from start (Issue #744)
-		ActiveItemType.LASER_SIGHT: true           # No condition — freely available from start (Issue #947)
+		ActiveItemType.TRAJECTORY_GLASSES: false,  # Condition: City D+ (Issue #1053 req.1)
+		ActiveItemType.LASER_SIGHT: true,          # No condition — freely available from start (Issue #947)
+		ActiveItemType.LOUDSPEAKER: true,          # No condition — freely available from start (Issue #959)
+		ActiveItemType.BREACHING_CHARGES: true,    # No condition — freely available from start (Issue #1043)
+		ActiveItemType.ARMORED_SKIN: true,         # No condition — freely available from start (Issue #1045)
+		ActiveItemType.AUTO_RELOAD: true           # No condition — freely available from start (Issue #1067)
 	}
 
 	var unlock_signals: Array = []
@@ -144,13 +152,13 @@ func test_default_weapon_unlock_state() -> void:
 		"PM should be unlocked by default")
 	# Free weapons (no conditions) should be unlocked from start
 	# Issue #894: "all unspecified items can be opened from the start"
-	assert_true(game_manager.is_weapon_unlocked("m16"),
-		"M16 should be unlocked by default (no unlock condition)")
 	assert_true(game_manager.is_weapon_unlocked("silenced_pistol"),
 		"Silenced Pistol should be unlocked by default (no unlock condition)")
 	assert_true(game_manager.is_weapon_unlocked("ak_gl"),
 		"AK+GL should be unlocked by default (no unlock condition)")
 	# Condition-gated weapons should be locked until conditions are met
+	assert_false(game_manager.is_weapon_unlocked("m16"),
+		"M16 should be locked by default (requires Beach D+, Issue #1053)")
 	assert_false(game_manager.is_weapon_unlocked("shotgun"),
 		"Shotgun should be locked by default (requires Building D+)")
 	assert_false(game_manager.is_weapon_unlocked("sniper"),

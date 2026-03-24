@@ -1,8 +1,16 @@
-[gd_scene load_steps=4 format=3 uid="uid://dxqmk8f3nw5pe"]
+[gd_scene load_steps=13 format=3 uid="uid://dxqmk8f3nw5pe"]
 
 [ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="1_pause"]
 [ext_resource type="LabelSettings" uid="uid://c3qneonlabel01" path="res://resources/themes/neon_label_settings.tres" id="2_neon_label"]
 [ext_resource type="Theme" uid="uid://c3qneonbtn01" path="res://resources/themes/neon_button_theme.tres" id="4_neon_theme"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/menu_icons/icon_resume.svg" id="5_icon_resume"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/menu_icons/icon_armory.svg" id="6_icon_armory"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/menu_icons/icon_levels.svg" id="7_icon_levels"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/menu_icons/icon_training.svg" id="8_icon_training"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/menu_icons/icon_roguelike.svg" id="9_icon_roguelike"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/menu_icons/icon_arena.svg" id="10_icon_arena"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/menu_icons/icon_settings.svg" id="11_icon_settings"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/menu_icons/icon_quit.svg" id="12_icon_quit"]
 
 [node name="PauseMenu" type="CanvasLayer"]
 layer = 100
@@ -50,44 +58,47 @@ horizontal_alignment = 1
 [node name="ResumeButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
+icon = ExtResource("5_icon_resume")
 text = "Resume"
-
-[node name="ControlsButton" type="Button" parent="MenuContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 40)
-layout_mode = 2
-text = "Controls"
-
-[node name="DifficultyButton" type="Button" parent="MenuContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 40)
-layout_mode = 2
-text = "Difficulty"
 
 [node name="ArmoryButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
+icon = ExtResource("6_icon_armory")
 text = "Armory"
 
 [node name="LevelsButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
+icon = ExtResource("7_icon_levels")
 text = "Levels"
 
 [node name="TrainingButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
+icon = ExtResource("8_icon_training")
 text = "Training"
 
-[node name="SoundButton" type="Button" parent="MenuContainer/VBoxContainer"]
+[node name="RoguelikeButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "Sound"
+icon = ExtResource("9_icon_roguelike")
+text = "Рогалик"
 
-[node name="ExperimentalButton" type="Button" parent="MenuContainer/VBoxContainer"]
+[node name="ArenaButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "Experimental"
+icon = ExtResource("10_icon_arena")
+text = "Arena"
+
+[node name="SettingsButton" type="Button" parent="MenuContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+icon = ExtResource("11_icon_settings")
+text = "Settings"
 
 [node name="QuitButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
+icon = ExtResource("12_icon_quit")
 text = "Quit"

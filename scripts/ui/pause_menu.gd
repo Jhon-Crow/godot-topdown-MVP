@@ -1,100 +1,72 @@
 extends CanvasLayer
-## Pause menu controller.
+## Pause menu controller (Issue #1139).
 ##
-## Handles game pausing and provides access to controls menu and resume/quit options.
+## Handles game pausing. Settings (Controls, Difficulty, Sound, Gameplay,
+## Experimental) are grouped under the Settings submenu.
 ## This menu pauses the game tree when visible.
-
-## Reference to the controls menu scene.
-@export var controls_menu_scene: PackedScene
 
 ## Reference to the main menu container.
 @onready var menu_container: Control = $MenuContainer
 @onready var resume_button: Button = $MenuContainer/VBoxContainer/ResumeButton
-@onready var controls_button: Button = $MenuContainer/VBoxContainer/ControlsButton
-@onready var difficulty_button: Button = $MenuContainer/VBoxContainer/DifficultyButton
 @onready var armory_button: Button = $MenuContainer/VBoxContainer/ArmoryButton
 @onready var levels_button: Button = $MenuContainer/VBoxContainer/LevelsButton
 @onready var training_button: Button = $MenuContainer/VBoxContainer/TrainingButton
-@onready var sound_button: Button = $MenuContainer/VBoxContainer/SoundButton
-@onready var experimental_button: Button = $MenuContainer/VBoxContainer/ExperimentalButton
+@onready var roguelike_button: Button = $MenuContainer/VBoxContainer/RoguelikeButton
+@onready var arena_button: Button = $MenuContainer/VBoxContainer/ArenaButton
+@onready var settings_button: Button = $MenuContainer/VBoxContainer/SettingsButton
 @onready var quit_button: Button = $MenuContainer/VBoxContainer/QuitButton
-
-## The instantiated controls menu.
-var _controls_menu: CanvasLayer = null
-
-## The instantiated difficulty menu.
-var _difficulty_menu: CanvasLayer = null
 
 ## The instantiated levels menu.
 var _levels_menu: CanvasLayer = null
 
-## The instantiated experimental menu.
-var _experimental_menu: CanvasLayer = null
-
 ## The instantiated armory menu.
 var _armory_menu: CanvasLayer = null
 
-## The instantiated sound menu.
-var _sound_menu: CanvasLayer = null
-
-## Reference to the difficulty menu scene.
-@export var difficulty_menu_scene: PackedScene
+## The instantiated settings menu.
+var _settings_menu: CanvasLayer = null
 
 ## Reference to the levels menu scene.
 @export var levels_menu_scene: PackedScene
 
-## Reference to the experimental menu scene.
-@export var experimental_menu_scene: PackedScene
-
 ## Reference to the armory menu scene.
 @export var armory_menu_scene: PackedScene
 
-## Reference to the sound menu scene.
-@export var sound_menu_scene: PackedScene
+## Reference to the settings menu scene.
+@export var settings_menu_scene: PackedScene
 
 
 func _ready() -> void:
 	# Start hidden
 	hide()
 	set_process_unhandled_input(true)
+	# Must process even when tree is paused so ESC can toggle the menu.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 	# Connect button signals
 	resume_button.pressed.connect(_on_resume_pressed)
-	controls_button.pressed.connect(_on_controls_pressed)
-	difficulty_button.pressed.connect(_on_difficulty_pressed)
 	armory_button.pressed.connect(_on_armory_pressed)
 	levels_button.pressed.connect(_on_levels_pressed)
 	training_button.pressed.connect(_on_training_pressed)
-	sound_button.pressed.connect(_on_sound_pressed)
-	experimental_button.pressed.connect(_on_experimental_pressed)
+	roguelike_button.pressed.connect(_on_roguelike_pressed)
+	arena_button.pressed.connect(_on_arena_pressed)
+	settings_button.pressed.connect(_on_settings_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 
 	# Highlight armory button if there are available unlocks
-	_refresh_armory_button_highlight()
-
-	# Preload controls menu if not set
-	if controls_menu_scene == null:
-		controls_menu_scene = preload("res://scenes/ui/ControlsMenu.tscn")
-
-	# Preload difficulty menu if not set
-	if difficulty_menu_scene == null:
-		difficulty_menu_scene = preload("res://scenes/ui/DifficultyMenu.tscn")
+	# Disable it entirely in roguelike mode (Issue #1166)
+	_refresh_armory_button_state()
 
 	# Preload levels menu if not set
 	if levels_menu_scene == null:
 		levels_menu_scene = preload("res://scenes/ui/LevelsMenu.tscn")
 
-	# Preload experimental menu if not set
-	if experimental_menu_scene == null:
-		experimental_menu_scene = preload("res://scenes/ui/ExperimentalMenu.tscn")
-
 	# Preload armory menu if not set
 	if armory_menu_scene == null:
 		armory_menu_scene = preload("res://scenes/ui/ArmoryMenu.tscn")
 
-	# Preload sound menu if not set
-	if sound_menu_scene == null:
-		sound_menu_scene = preload("res://scenes/ui/SoundMenu.tscn")
+	# Preload settings menu if not set
+	if settings_menu_scene == null:
+		settings_menu_scene = preload("res://scenes/ui/SettingsMenu.tscn")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -118,24 +90,18 @@ func pause_game() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 	# Close any open submenus and restore main menu container
-	if _controls_menu and _controls_menu.visible:
-		_controls_menu.hide()
-	if _difficulty_menu and _difficulty_menu.visible:
-		_difficulty_menu.hide()
-	if _levels_menu and _levels_menu.visible:
-		_levels_menu.hide()
-	if _experimental_menu and _experimental_menu.visible:
-		_experimental_menu.hide()
 	if _armory_menu and _armory_menu.visible:
 		_armory_menu.hide()
-	if _sound_menu and _sound_menu.visible:
-		_sound_menu.hide()
+	if _levels_menu and _levels_menu.visible:
+		_levels_menu.hide()
+	if _settings_menu and _settings_menu.visible:
+		_settings_menu.hide()
 
 	# Ensure main menu container is visible
 	menu_container.show()
 
-	# Refresh armory highlight each time the menu opens
-	_refresh_armory_button_highlight()
+	# Refresh armory button state each time the menu opens
+	_refresh_armory_button_state()
 
 	show()
 	resume_button.grab_focus()
@@ -148,73 +114,37 @@ func resume_game() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 	hide()
 
-	# Also close controls menu if open
-	if _controls_menu and _controls_menu.visible:
-		_controls_menu.hide()
-
-	# Also close difficulty menu if open
-	if _difficulty_menu and _difficulty_menu.visible:
-		_difficulty_menu.hide()
-
-	# Also close levels menu if open
-	if _levels_menu and _levels_menu.visible:
-		_levels_menu.hide()
-
-	# Also close experimental menu if open
-	if _experimental_menu and _experimental_menu.visible:
-		_experimental_menu.hide()
-
-	# Also close armory menu if open
+	# Also close submenus if open
 	if _armory_menu and _armory_menu.visible:
 		_armory_menu.hide()
-
-	# Also close sound menu if open
-	if _sound_menu and _sound_menu.visible:
-		_sound_menu.hide()
+	if _levels_menu and _levels_menu.visible:
+		_levels_menu.hide()
+	if _settings_menu and _settings_menu.visible:
+		_settings_menu.hide()
 
 
 func _on_resume_pressed() -> void:
 	resume_game()
 
 
-func _on_controls_pressed() -> void:
-	# Hide main menu, show controls menu
+func _on_settings_pressed() -> void:
+	# Hide main menu, show settings submenu
 	menu_container.hide()
 
-	if _controls_menu == null:
-		_controls_menu = controls_menu_scene.instantiate()
-		_controls_menu.back_pressed.connect(_on_controls_back)
-		add_child(_controls_menu)
+	if _settings_menu == null:
+		_settings_menu = settings_menu_scene.instantiate()
+		_settings_menu.back_pressed.connect(_on_settings_back)
+		add_child(_settings_menu)
 	else:
-		_controls_menu.show()
+		_settings_menu.show()
 
 
-func _on_controls_back() -> void:
+func _on_settings_back() -> void:
 	# Show main menu again
-	if _controls_menu:
-		_controls_menu.hide()
+	if _settings_menu:
+		_settings_menu.hide()
 	menu_container.show()
-	controls_button.grab_focus()
-
-
-func _on_difficulty_pressed() -> void:
-	# Hide main menu, show difficulty menu
-	menu_container.hide()
-
-	if _difficulty_menu == null:
-		_difficulty_menu = difficulty_menu_scene.instantiate()
-		_difficulty_menu.back_pressed.connect(_on_difficulty_back)
-		add_child(_difficulty_menu)
-	else:
-		_difficulty_menu.show()
-
-
-func _on_difficulty_back() -> void:
-	# Show main menu again
-	if _difficulty_menu:
-		_difficulty_menu.hide()
-	menu_container.show()
-	difficulty_button.grab_focus()
+	settings_button.grab_focus()
 
 
 func _on_armory_pressed() -> void:
@@ -260,8 +190,8 @@ func _on_armory_back() -> void:
 	if _armory_menu:
 		_armory_menu.hide()
 	menu_container.show()
-	# Refresh highlight in case the player just unlocked an item
-	_refresh_armory_button_highlight()
+	# Refresh armory button state in case the player just unlocked an item
+	_refresh_armory_button_state()
 	armory_button.grab_focus()
 
 
@@ -288,46 +218,6 @@ func _on_levels_back() -> void:
 	levels_button.grab_focus()
 
 
-func _on_sound_pressed() -> void:
-	# Hide main menu, show sound menu
-	menu_container.hide()
-
-	if _sound_menu == null:
-		_sound_menu = sound_menu_scene.instantiate()
-		_sound_menu.back_pressed.connect(_on_sound_back)
-		add_child(_sound_menu)
-	else:
-		_sound_menu.show()
-
-
-func _on_sound_back() -> void:
-	# Show main menu again
-	if _sound_menu:
-		_sound_menu.hide()
-	menu_container.show()
-	sound_button.grab_focus()
-
-
-func _on_experimental_pressed() -> void:
-	# Hide main menu, show experimental menu
-	menu_container.hide()
-
-	if _experimental_menu == null:
-		_experimental_menu = experimental_menu_scene.instantiate()
-		_experimental_menu.back_pressed.connect(_on_experimental_back)
-		add_child(_experimental_menu)
-	else:
-		_experimental_menu.show()
-
-
-func _on_experimental_back() -> void:
-	# Show main menu again
-	if _experimental_menu:
-		_experimental_menu.hide()
-	menu_container.show()
-	experimental_button.grab_focus()
-
-
 func _on_training_pressed() -> void:
 	# Load the tutorial level directly
 	get_tree().paused = false
@@ -344,15 +234,61 @@ func _on_training_pressed() -> void:
 		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 
+func _on_roguelike_pressed() -> void:
+	# Load the roguelike level directly (Issue #1061)
+	get_tree().paused = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+
+	var roguelike_path: String = "res://scenes/levels/RoguelikeLevel.tscn"
+	var scene_loader: Node = get_node_or_null("/root/SceneLoader")
+	if scene_loader and scene_loader.has_method("load_level"):
+		scene_loader.load_level(roguelike_path)
+	else:
+		var error := get_tree().change_scene_to_file(roguelike_path)
+		if error != OK:
+			push_error("Failed to load roguelike level: %s" % error)
+			get_tree().paused = true
+			Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+
+func _on_arena_pressed() -> void:
+	# Load the Arena level directly (same pattern as Training button).
+	get_tree().paused = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+
+	var arena_path: String = "res://scenes/levels/ArenaLevel.tscn"
+	var error := get_tree().change_scene_to_file(arena_path)
+	if error != OK:
+		push_error("Failed to load arena level: %s" % error)
+		get_tree().paused = true
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+
 func _on_quit_pressed() -> void:
 	get_tree().paused = false
 	get_tree().quit()
 
 
-## Refresh the armory button highlight to indicate if there are items available to unlock.
-## The button turns gold when the player has earned the right to unlock an item in the armory
-## but has not yet done so. The highlight disappears once all available items are opened.
-func _refresh_armory_button_highlight() -> void:
+## Refresh the armory button state:
+## - Disabled (greyed out) in roguelike mode (Issue #1166) — armory is not available during a run.
+## - Gold highlight when available unlocks exist (normal mode).
+## - No highlight when all available items are already unlocked.
+func _refresh_armory_button_state() -> void:
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	var in_roguelike: bool = game_manager != null and game_manager.get("roguelike_active") == true
+
+	if in_roguelike:
+		# Disable armory button entirely in roguelike mode
+		armory_button.disabled = true
+		armory_button.tooltip_text = "Арсенал недоступен в режиме рогалика"
+		armory_button.remove_theme_stylebox_override("normal")
+		armory_button.remove_theme_color_override("font_color")
+		return
+
+	# Normal mode — re-enable and check for available unlocks
+	armory_button.disabled = false
+	armory_button.tooltip_text = ""
+
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
 	if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock"):
 		return

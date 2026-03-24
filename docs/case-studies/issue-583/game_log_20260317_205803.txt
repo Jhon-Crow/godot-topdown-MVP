@@ -1,0 +1,1029 @@
+[20:58:03] [INFO] ============================================================
+[20:58:03] [INFO] GAME LOG STARTED
+[20:58:03] [INFO] ============================================================
+[20:58:03] [INFO] Timestamp: 2026-03-17T20:58:03
+[20:58:03] [INFO] Log file: I:/Загрузки/godot exe/врга с РПГ/game_log_20260317_205803.txt
+[20:58:03] [INFO] Executable: I:/Загрузки/godot exe/врга с РПГ/Godot-Top-Down-Template.exe
+[20:58:03] [INFO] OS: Windows
+[20:58:03] [INFO] Debug build: false
+[20:58:03] [INFO] Engine version: 4.3-stable (official)
+[20:58:03] [INFO] Project: Godot Top-Down Template
+[20:58:03] [INFO] ------------------------------------------------------------
+[20:58:03] [INFO] [GameManager] GameManager ready
+[20:58:03] [INFO] [ScoreManager] ScoreManager ready
+[20:58:03] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[20:58:03] [INFO] [DifficultyManager] Loaded difficulty: Power Fantasy (value: 3)
+[20:58:03] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[20:58:03] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[20:58:03] [INFO] [ImpactEffects] Explosion light pool initialized: 12 lights pre-created
+[20:58:03] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[20:58:03] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[20:58:03] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[20:58:03] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[20:58:03] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[20:58:03] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[20:58:03] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[20:58:03] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[20:58:03] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[20:58:03] [INFO] [LastChance] Resetting all effects (scene change detected)
+[20:58:03] [INFO] [LastChance] Last chance shader loaded successfully
+[20:58:03] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[20:58:03] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[20:58:03] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[20:58:03] [INFO] [LastChance]   Sepia intensity: 0.70
+[20:58:03] [INFO] [LastChance]   Brightness: 0.60
+[20:58:03] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[20:58:03] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[20:58:04] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[20:58:04] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn
+[20:58:04] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: true, Invincibility: true, Realistic visibility: false, Replay: false, Logging: true, Enemy flashlight blinding: false, FPS counter: true, FPS drop logging: true, All weapons unlocked: true, All maps unlocked: true
+[20:58:04] [INFO] [SoundSettings] SoundSettings initialized - effects: 0.29, music: 1.00
+[20:58:04] [INFO] [GameplaySettings] GameplaySettings initialized - blood_amount: 1.00
+[20:58:04] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[20:58:04] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[20:58:04] [INFO] [CinemaEffects] Created effects layer at layer 99
+[20:58:04] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[20:58:04] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[20:58:04] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[20:58:04] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[20:58:04] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[20:58:04] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[20:58:04] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[20:58:04] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[20:58:04] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[20:58:04] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[20:58:04] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[20:58:04] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[20:58:04] [INFO] [GrenadeTimerHelper] Autoload ready
+[20:58:04] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[20:58:04] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[20:58:04] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[20:58:04] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+[20:58:04] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[20:58:04] [INFO] [BlackMetalEffectsManager] BlackMetalEffectsManager initializing...
+[20:58:04] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+[20:58:04] [INFO] [BlackMetalEffectsManager] Black Metal shader loaded (B&W+red, hint_screen_texture approach)
+[20:58:04] [INFO] [BlackMetalEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[20:58:04] [INFO] [BlackMetalEffectsManager] Black Metal filter DISABLED
+[20:58:04] [INFO] [BlackMetalLightningEffectsManager] BlackMetalLightningEffectsManager initializing...
+[20:58:04] [INFO] [BlackMetalLightningEffectsManager] Lightning bolt drawer created (v10 - no shader, pure draw calls)
+[20:58:04] [INFO] [BlackMetalLightningEffectsManager] Connected to GameManager.enemy_killed signal
+[20:58:04] [INFO] [BlackMetalLightningEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[20:58:04] [INFO] [ProgressManager] ProgressManager ready, loaded 10 entries
+[20:58:04] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[20:58:04] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[20:58:04] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
+[20:58:04] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
+[20:58:04] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
+[20:58:04] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
+[20:58:04] [INFO] [SceneLoader] SceneLoader initialized
+[20:58:04] [INFO] [PersistManager] Loading saved state from user://game_state.cfg
+[20:58:04] [INFO] [PersistManager] Restored unlocked weapon: makarov_pm
+[20:58:04] [INFO] [PersistManager] Restored unlocked weapon: m16
+[20:58:04] [INFO] [GameManager] Weapon selected: ak_gl
+[20:58:04] [INFO] [PersistManager] Restored selected weapon: ak_gl
+[20:58:04] [INFO] [PersistManager] Restored unlocked grenade type: 0
+[20:58:04] [INFO] [PersistManager] Restored unlocked grenade type: 3
+[20:58:04] [INFO] [GrenadeManager] Grenade type changed from Flashbang to F-1 Grenade
+[20:58:04] [INFO] [PersistManager] Restored selected grenade type: 2
+[20:58:04] [INFO] [PersistManager] Restored unlocked active item type: 0
+[20:58:04] [INFO] [PersistManager] Restored unlocked active item type: 4
+[20:58:04] [INFO] [PersistManager] Restored unlocked active item type: 6
+[20:58:04] [INFO] [PersistManager] Restored unlocked active item type: 7
+[20:58:04] [INFO] [PersistManager] Restored unlocked active item type: 8
+[20:58:04] [INFO] [PersistManager] Restored unlocked active item type: 9
+[20:58:04] [INFO] [ActiveItemManager] Active item changed from None to Homing Bullets
+[20:58:04] [INFO] [PersistManager] Restored selected active item type: 2
+[20:58:04] [INFO] [PersistManager] State loaded successfully
+[20:58:04] [INFO] [PersistManager] PersistManager ready
+[20:58:04] [INFO] [UnlockManager] UnlockManager ready
+[20:58:04] [INFO] [WeaponHintsSettings] WeaponHintsSettings initialized - mode: ALWAYS, weapons seen: ["m16", "makarov_pm", "ak_gl", "shotgun", "revolver", "mini_uzi", "sniper"]
+[20:58:04] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[20:58:04] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[20:58:04] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[20:58:04] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[20:58:04] [ENEMY] [Enemy1] Death animation component initialized
+[20:58:04] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[20:58:04] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[20:58:04] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[20:58:04] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[20:58:04] [ENEMY] [Enemy2] Death animation component initialized
+[20:58:04] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[20:58:04] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[20:58:04] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[20:58:04] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[20:58:04] [ENEMY] [Enemy3] Death animation component initialized
+[20:58:04] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[20:58:04] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[20:58:04] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[20:58:04] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[20:58:04] [ENEMY] [Enemy4] Death animation component initialized
+[20:58:04] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[20:58:04] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[20:58:04] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[20:58:04] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[20:58:04] [ENEMY] [Enemy5] Death animation component initialized
+[20:58:04] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[20:58:04] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[20:58:04] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[20:58:04] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[20:58:04] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[20:58:04] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[20:58:04] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[20:58:04] [INFO] [Player.Weapon] Removed default MakarovPM
+[20:58:05] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[20:58:05] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[20:58:05] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[20:58:05] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[20:58:05] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[20:58:05] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[20:58:05] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[20:58:05] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[20:58:05] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[20:58:05] [INFO] [Player.Homing] Homing activation sound loaded
+[20:58:05] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[20:58:05] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[20:58:05] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[20:58:05] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[20:58:05] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[20:58:05] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[20:58:05] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[20:58:05] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[20:58:05] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[20:58:05] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[20:58:05] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[20:58:05] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[20:58:05] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[20:58:05] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[20:58:05] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[20:58:05] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 10/10
+[20:58:05] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[20:58:05] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[20:58:05] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[20:58:05] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[20:58:05] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[20:58:05] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[20:58:05] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[20:58:05] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[20:58:05] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[20:58:05] [INFO] [LabyrinthLevel] Setting up weapon: ak_gl
+[20:58:05] [INFO] [LabyrinthLevel] AKGL already equipped by C# Player - skipping GDScript weapon swap
+[20:58:05] [INFO] [ScoreManager] Level started with 5 enemies
+[20:58:05] [INFO] [ScoreManager] Custom rank thresholds set: S=0.70 A+=0.55 A=0.38 B=0.22 C=0.12 D=0.06
+[20:58:05] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[20:58:05] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[20:58:05] [INFO] [ReplayManager] Replay data cleared
+[20:58:05] [INFO] [LabyrinthLevel] Previous replay data cleared
+[20:58:05] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[20:58:05] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[20:58:05] [INFO] [ReplayManager] Level: LabyrinthLevel
+[20:58:05] [INFO] [ReplayManager] Player: Player (valid: True)
+[20:58:05] [INFO] [ReplayManager] Enemies count: 5
+[20:58:05] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[20:58:05] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[20:58:05] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[20:58:05] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[20:58:05] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[20:58:05] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[20:58:05] [INFO] [LabyrinthLevel] Replay recording started successfully
+[20:58:05] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[20:58:05] [INFO] [CinemaEffects] Found player node: Player
+[20:58:05] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[20:58:05] [INFO] [PersistManager] Navigating to last played level: res://scenes/levels/BuildingLevel.tscn
+[20:58:05] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/BuildingLevel.tscn
+[20:58:05] [INFO] [UnlockManager] Reset condition-gated items to locked state
+[20:58:05] [INFO] [UnlockManager] Restored saved unlock for weapon: silenced_pistol
+[20:58:05] [INFO] [UnlockManager] Restored saved unlock for weapon: ak_gl
+[20:58:05] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[20:58:05] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[20:58:05] [ENEMY] [Enemy1] Registered as sound listener
+[20:58:05] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 2, behavior: GUARD
+[20:58:05] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[20:58:05] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[20:58:05] [ENEMY] [Enemy2] Registered as sound listener
+[20:58:05] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 1, behavior: GUARD
+[20:58:05] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[20:58:05] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[20:58:05] [ENEMY] [Enemy3] Registered as sound listener
+[20:58:05] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 1, behavior: PATROL
+[20:58:05] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[20:58:05] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[20:58:05] [ENEMY] [Enemy4] Registered as sound listener
+[20:58:05] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 1, behavior: GUARD
+[20:58:05] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[20:58:05] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[20:58:05] [ENEMY] [Enemy5] Registered as sound listener
+[20:58:05] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 2, behavior: GUARD
+[20:58:05] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[20:58:06] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=303.8°, current=0.0°, player=(150,1000), corner_timer=0.00
+[20:58:06] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=45.0°, current=0.0°, player=(150,1000), corner_timer=0.00
+[20:58:06] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=315.0°, current=0.0°, player=(150,1000), corner_timer=0.00
+[20:58:06] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=67.5°, current=0.0°, player=(150,1000), corner_timer=0.00
+[20:58:06] [INFO] [Player] Detecting weapon pose (frame 3)...
+[20:58:06] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[20:58:06] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[20:58:06] [INFO] [PenultimateHit] Shader warmup complete in 2488 ms
+[20:58:06] [INFO] [LastChance] Shader warmup complete in 2481 ms
+[20:58:06] [INFO] [CinemaEffects] Cinema shader warmup complete in 1563 ms
+[20:58:06] [INFO] [BlackMetalEffectsManager] Shader warmup complete in 1533 ms
+[20:58:06] [INFO] [BlackMetalLightningEffectsManager] Shader warmup complete in 0 ms
+[20:58:06] [INFO] [FlashbangPlayer] Shader warmup complete in 1514 ms
+[20:58:06] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[20:58:06] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[20:58:06] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[20:58:06] [INFO] [LastChance] Found player: Player
+[20:58:06] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[20:58:06] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[20:58:06] [INFO] [LastChance] Connected to player Died signal (C#)
+[20:58:06] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[20:58:06] [INFO] [SceneLoader] ERROR: Invalid resource: res://scenes/levels/BuildingLevel.tscn
+[20:58:06] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 3285 ms
+[20:58:06] [INFO] [SceneLoader] Background load started successfully
+[20:58:07] [WARN] [FPS] Drop detected: 1 fps (threshold: 30)
+[20:58:07] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
+[20:58:08] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[20:58:08] [ENEMY] [Enemy3] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-90.0°, current=0.0°, player=(150,1000), corner_timer=0.30
+[20:58:08] [ENEMY] [Enemy3] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=-54.4°, player=(150,1000), corner_timer=-0.02
+[20:58:08] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[20:58:08] [ENEMY] [Enemy3] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=-51.6°, player=(150,1000), corner_timer=0.30
+[20:58:08] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=5
+[20:58:09] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=5
+[20:58:10] [ENEMY] [Enemy3] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=52.8°, player=(150,1000), corner_timer=-0.02
+[20:58:10] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[20:58:10] [ENEMY] [Enemy3] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=55.6°, player=(150,1000), corner_timer=0.30
+[20:58:10] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=5
+[20:58:10] [ENEMY] [Enemy3] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=1.2°, player=(150,1000), corner_timer=-0.02
+[20:58:10] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[20:58:10] [ENEMY] [Enemy3] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=4.1°, player=(150,1000), corner_timer=0.30
+[20:58:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 1000), source=PLAYER (AKGL), range=1600, listeners=5
+[20:58:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=5
+[20:58:11] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=5
+[20:58:11] [INFO] [Player] Invincibility mode: ON
+[20:58:11] [INFO] [GameManager] Invincibility mode toggled: ON
+[20:58:12] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=True, enemies=5
+[20:58:14] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[20:58:14] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[20:58:14] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[20:58:14] [INFO] [LastChance] Resetting all effects (scene change detected)
+[20:58:14] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[20:58:14] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[20:58:14] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+[20:58:14] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[20:58:14] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[20:58:14] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[20:58:14] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[20:58:14] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[20:58:14] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[20:58:14] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[20:58:14] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[20:58:14] [INFO] [Player.Weapon] Removed default MakarovPM
+[20:58:14] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[20:58:14] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[20:58:14] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[20:58:14] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[20:58:14] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[20:58:14] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[20:58:14] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[20:58:14] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[20:58:14] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[20:58:14] [INFO] [Player.Homing] Homing activation sound loaded
+[20:58:14] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[20:58:14] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[20:58:14] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[20:58:14] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[20:58:14] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[20:58:14] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[20:58:14] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[20:58:14] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[20:58:14] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[20:58:14] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[20:58:14] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[20:58:14] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[20:58:14] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[20:58:14] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[20:58:14] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[20:58:14] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 10/10
+[20:58:14] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[20:58:14] [INFO] [CinemaEffects] Found player node: Player
+[20:58:14] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[20:58:14] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[20:58:14] [INFO] [Player] Detecting weapon pose (frame 3)...
+[20:58:14] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[20:58:14] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[20:58:14] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[20:58:14] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[20:58:14] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[20:58:14] [INFO] [LastChance] Found player: Player
+[20:58:14] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[20:58:14] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[20:58:14] [INFO] [LastChance] Connected to player Died signal (C#)
+[20:58:14] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[20:58:15] [INFO] [ReplayManager] Recording frame 420 (7,2s): player_valid=False, enemies=5
+[20:58:15] [WARN] [FPS] Drop detected: 1 fps (threshold: 30)
+[20:58:16] [INFO] [ReplayManager] Recording frame 480 (8,2s): player_valid=False, enemies=5
+[20:58:17] [INFO] [ReplayManager] Recording frame 540 (9,2s): player_valid=False, enemies=5
+[20:58:17] [INFO] [Player.Debug] Debug mode toggled: ON
+[20:58:18] [INFO] [ReplayManager] Recording frame 600 (10,2s): player_valid=False, enemies=5
+[20:58:19] [INFO] [ReplayManager] Recording frame 660 (11,2s): player_valid=False, enemies=5
+[20:58:20] [INFO] [ReplayManager] Recording frame 720 (12,1s): player_valid=False, enemies=5
+[20:58:21] [INFO] [ReplayManager] Recording frame 780 (13,1s): player_valid=False, enemies=5
+[20:58:22] [INFO] [ReplayManager] Recording frame 840 (14,1s): player_valid=False, enemies=5
+[20:58:23] [INFO] [ReplayManager] Recording frame 900 (15,1s): player_valid=False, enemies=5
+[20:58:24] [INFO] [ReplayManager] Recording frame 960 (16,1s): player_valid=False, enemies=5
+[20:58:25] [INFO] [ReplayManager] Recording frame 1020 (17,1s): player_valid=False, enemies=5
+[20:58:26] [INFO] [ReplayManager] Recording frame 1080 (18,1s): player_valid=False, enemies=5
+[20:58:27] [INFO] [ReplayManager] Recording frame 1140 (19,1s): player_valid=False, enemies=5
+[20:58:28] [INFO] [ReplayManager] Recording frame 1200 (20,1s): player_valid=False, enemies=5
+[20:58:29] [INFO] [ReplayManager] Recording frame 1260 (21,1s): player_valid=False, enemies=5
+[20:58:30] [INFO] [ReplayManager] Recording frame 1320 (22,1s): player_valid=False, enemies=5
+[20:58:31] [INFO] [ReplayManager] Recording frame 1380 (23,1s): player_valid=False, enemies=5
+[20:58:32] [INFO] [ReplayManager] Recording frame 1440 (24,1s): player_valid=False, enemies=5
+[20:58:33] [INFO] [ReplayManager] Recording frame 1500 (25,1s): player_valid=False, enemies=5
+[20:58:34] [INFO] [ReplayManager] Recording frame 1560 (26,1s): player_valid=False, enemies=5
+[20:58:35] [INFO] [ReplayManager] Recording frame 1620 (27,1s): player_valid=False, enemies=5
+[20:58:36] [INFO] [ReplayManager] Recording frame 1680 (28,1s): player_valid=False, enemies=5
+[20:58:37] [INFO] [ReplayManager] Recording frame 1740 (29,1s): player_valid=False, enemies=5
+[20:58:38] [INFO] [ReplayManager] Recording frame 1800 (30,1s): player_valid=False, enemies=5
+[20:58:39] [INFO] [ReplayManager] Recording frame 1860 (31,1s): player_valid=False, enemies=5
+[20:58:40] [INFO] [ReplayManager] Recording frame 1920 (32,1s): player_valid=False, enemies=5
+[20:58:41] [INFO] [ReplayManager] Recording frame 1980 (33,1s): player_valid=False, enemies=5
+[20:58:42] [INFO] [ReplayManager] Recording frame 2040 (34,1s): player_valid=False, enemies=5
+[20:58:43] [INFO] [ReplayManager] Recording frame 2100 (35,1s): player_valid=False, enemies=5
+[20:58:44] [INFO] [ReplayManager] Recording frame 2160 (36,1s): player_valid=False, enemies=5
+[20:58:45] [INFO] [ReplayManager] Recording frame 2220 (37,1s): player_valid=False, enemies=5
+[20:58:46] [INFO] [ReplayManager] Recording frame 2280 (38,1s): player_valid=False, enemies=5
+[20:58:47] [INFO] [ReplayManager] Recording frame 2340 (39,1s): player_valid=False, enemies=5
+[20:58:48] [INFO] [ReplayManager] Recording frame 2400 (40,1s): player_valid=False, enemies=5
+[20:58:49] [INFO] [ReplayManager] Recording frame 2460 (41,1s): player_valid=False, enemies=5
+[20:58:50] [INFO] [ReplayManager] Recording frame 2520 (42,1s): player_valid=False, enemies=5
+[20:58:51] [INFO] [ReplayManager] Recording frame 2580 (43,1s): player_valid=False, enemies=5
+[20:58:52] [INFO] [ReplayManager] Recording frame 2640 (44,1s): player_valid=False, enemies=5
+[20:58:53] [INFO] [ReplayManager] Recording frame 2700 (45,1s): player_valid=False, enemies=5
+[20:58:54] [INFO] [ReplayManager] Recording frame 2760 (46,1s): player_valid=False, enemies=5
+[20:58:55] [INFO] [ReplayManager] Recording frame 2820 (47,1s): player_valid=False, enemies=5
+[20:58:56] [INFO] [ReplayManager] Recording frame 2880 (48,1s): player_valid=False, enemies=5
+[20:58:57] [INFO] [ReplayManager] Recording frame 2940 (49,1s): player_valid=False, enemies=5
+[20:58:58] [INFO] [ReplayManager] Recording frame 3000 (50,1s): player_valid=False, enemies=5
+[20:58:59] [INFO] [ReplayManager] Recording frame 3060 (51,1s): player_valid=False, enemies=5
+[20:59:00] [INFO] [ReplayManager] Recording frame 3120 (52,1s): player_valid=False, enemies=5
+[20:59:01] [INFO] [ReplayManager] Recording frame 3180 (53,1s): player_valid=False, enemies=5
+[20:59:02] [INFO] [ReplayManager] Recording frame 3240 (54,1s): player_valid=False, enemies=5
+[20:59:03] [INFO] [ReplayManager] Recording frame 3300 (55,1s): player_valid=False, enemies=5
+[20:59:04] [INFO] [ReplayManager] Recording frame 3360 (56,1s): player_valid=False, enemies=5
+[20:59:05] [INFO] [ReplayManager] Recording frame 3420 (57,1s): player_valid=False, enemies=5
+[20:59:06] [INFO] [ReplayManager] Recording frame 3480 (58,1s): player_valid=False, enemies=5
+[20:59:07] [INFO] [ReplayManager] Recording frame 3540 (59,1s): player_valid=False, enemies=5
+[20:59:08] [INFO] [ReplayManager] Recording frame 3600 (60,1s): player_valid=False, enemies=5
+[20:59:09] [INFO] [ReplayManager] Recording frame 3660 (61,1s): player_valid=False, enemies=5
+[20:59:10] [INFO] [ReplayManager] Recording frame 3720 (62,1s): player_valid=False, enemies=5
+[20:59:11] [INFO] [ReplayManager] Recording frame 3780 (63,1s): player_valid=False, enemies=5
+[20:59:12] [INFO] [ReplayManager] Recording frame 3840 (64,1s): player_valid=False, enemies=5
+[20:59:13] [INFO] [ReplayManager] Recording frame 3900 (65,1s): player_valid=False, enemies=5
+[20:59:14] [INFO] [ReplayManager] Recording frame 3960 (66,1s): player_valid=False, enemies=5
+[20:59:15] [INFO] [ReplayManager] Recording frame 4020 (67,1s): player_valid=False, enemies=5
+[20:59:16] [INFO] [ReplayManager] Recording frame 4080 (68,2s): player_valid=False, enemies=5
+[20:59:17] [INFO] [ReplayManager] Recording frame 4140 (69,2s): player_valid=False, enemies=5
+[20:59:18] [INFO] [ReplayManager] Recording frame 4200 (70,2s): player_valid=False, enemies=5
+[20:59:19] [INFO] [ReplayManager] Recording frame 4260 (71,2s): player_valid=False, enemies=5
+[20:59:20] [INFO] [ReplayManager] Recording frame 4320 (72,2s): player_valid=False, enemies=5
+[20:59:21] [INFO] [ReplayManager] Recording frame 4380 (73,2s): player_valid=False, enemies=5
+[20:59:22] [INFO] [ReplayManager] Recording frame 4440 (74,2s): player_valid=False, enemies=5
+[20:59:23] [INFO] [ReplayManager] Recording frame 4500 (75,2s): player_valid=False, enemies=5
+[20:59:24] [INFO] [ReplayManager] Recording frame 4560 (76,2s): player_valid=False, enemies=5
+[20:59:25] [INFO] [ReplayManager] Recording frame 4620 (77,2s): player_valid=False, enemies=5
+[20:59:26] [INFO] [ReplayManager] Recording frame 4680 (78,2s): player_valid=False, enemies=5
+[20:59:27] [INFO] [ReplayManager] Recording frame 4740 (79,2s): player_valid=False, enemies=5
+[20:59:28] [INFO] [ReplayManager] Recording frame 4800 (80,2s): player_valid=False, enemies=5
+[20:59:29] [INFO] [ReplayManager] Recording frame 4860 (81,2s): player_valid=False, enemies=5
+[20:59:30] [INFO] [ReplayManager] Recording frame 4920 (82,2s): player_valid=False, enemies=5
+[20:59:31] [INFO] [ReplayManager] Recording frame 4980 (83,2s): player_valid=False, enemies=5
+[20:59:32] [INFO] [ReplayManager] Recording frame 5040 (84,2s): player_valid=False, enemies=5
+[20:59:33] [INFO] [ReplayManager] Recording frame 5100 (85,2s): player_valid=False, enemies=5
+[20:59:34] [INFO] [ReplayManager] Recording frame 5160 (86,2s): player_valid=False, enemies=5
+[20:59:35] [INFO] [ReplayManager] Recording frame 5220 (87,2s): player_valid=False, enemies=5
+[20:59:36] [INFO] [ReplayManager] Recording frame 5280 (88,2s): player_valid=False, enemies=5
+[20:59:37] [INFO] [ReplayManager] Recording frame 5340 (89,2s): player_valid=False, enemies=5
+[20:59:38] [INFO] [ReplayManager] Recording frame 5400 (90,2s): player_valid=False, enemies=5
+[20:59:39] [INFO] [ReplayManager] Recording frame 5460 (91,2s): player_valid=False, enemies=5
+[20:59:40] [INFO] [ReplayManager] Recording frame 5520 (92,2s): player_valid=False, enemies=5
+[20:59:41] [INFO] [ReplayManager] Recording frame 5580 (93,2s): player_valid=False, enemies=5
+[20:59:42] [INFO] [ReplayManager] Recording frame 5640 (94,2s): player_valid=False, enemies=5
+[20:59:43] [INFO] [ReplayManager] Recording frame 5700 (95,2s): player_valid=False, enemies=5
+[20:59:44] [INFO] [ReplayManager] Recording frame 5760 (96,2s): player_valid=False, enemies=5
+[20:59:45] [INFO] [ReplayManager] Recording frame 5820 (97,2s): player_valid=False, enemies=5
+[20:59:46] [INFO] [ReplayManager] Recording frame 5880 (98,2s): player_valid=False, enemies=5
+[20:59:47] [INFO] [ReplayManager] Recording frame 5940 (99,2s): player_valid=False, enemies=5
+[20:59:48] [INFO] [ReplayManager] Recording frame 6000 (100,2s): player_valid=False, enemies=5
+[20:59:49] [INFO] [ReplayManager] Recording frame 6060 (101,2s): player_valid=False, enemies=5
+[20:59:50] [INFO] [ReplayManager] Recording frame 6120 (102,2s): player_valid=False, enemies=5
+[20:59:51] [INFO] [ReplayManager] Recording frame 6180 (103,2s): player_valid=False, enemies=5
+[20:59:52] [INFO] [ReplayManager] Recording frame 6240 (104,2s): player_valid=False, enemies=5
+[20:59:53] [INFO] [ReplayManager] Recording frame 6300 (105,2s): player_valid=False, enemies=5
+[20:59:54] [INFO] [ReplayManager] Recording frame 6360 (106,2s): player_valid=False, enemies=5
+[20:59:55] [INFO] [ReplayManager] Recording frame 6420 (107,2s): player_valid=False, enemies=5
+[20:59:56] [INFO] [ReplayManager] Recording frame 6480 (108,2s): player_valid=False, enemies=5
+[20:59:57] [INFO] [ReplayManager] Recording frame 6540 (109,2s): player_valid=False, enemies=5
+[20:59:58] [INFO] [ReplayManager] Recording frame 6600 (110,2s): player_valid=False, enemies=5
+[20:59:59] [INFO] [ReplayManager] Recording frame 6660 (111,2s): player_valid=False, enemies=5
+[21:00:00] [INFO] [ReplayManager] Recording frame 6720 (112,2s): player_valid=False, enemies=5
+[21:00:01] [INFO] [ReplayManager] Recording frame 6780 (113,2s): player_valid=False, enemies=5
+[21:00:02] [INFO] [ReplayManager] Recording frame 6840 (114,2s): player_valid=False, enemies=5
+[21:00:03] [INFO] [ReplayManager] Recording frame 6900 (115,2s): player_valid=False, enemies=5
+[21:00:04] [INFO] [ReplayManager] Recording frame 6960 (116,2s): player_valid=False, enemies=5
+[21:00:05] [INFO] [ReplayManager] Recording frame 7020 (117,2s): player_valid=False, enemies=5
+[21:00:06] [INFO] [ReplayManager] Recording frame 7080 (118,2s): player_valid=False, enemies=5
+[21:00:07] [INFO] [ReplayManager] Recording frame 7140 (119,2s): player_valid=False, enemies=5
+[21:00:08] [INFO] [ReplayManager] Recording frame 7200 (120,2s): player_valid=False, enemies=5
+[21:00:09] [INFO] [ReplayManager] Recording frame 7260 (121,2s): player_valid=False, enemies=5
+[21:00:10] [INFO] [ReplayManager] Recording frame 7320 (122,2s): player_valid=False, enemies=5
+[21:00:11] [INFO] [ReplayManager] Recording frame 7380 (123,2s): player_valid=False, enemies=5
+[21:00:12] [INFO] [ReplayManager] Recording frame 7440 (124,2s): player_valid=False, enemies=5
+[21:00:13] [INFO] [ReplayManager] Recording frame 7500 (125,2s): player_valid=False, enemies=5
+[21:00:14] [INFO] [ReplayManager] Recording frame 7560 (126,2s): player_valid=False, enemies=5
+[21:00:15] [INFO] [ReplayManager] Recording frame 7620 (127,2s): player_valid=False, enemies=5
+[21:00:16] [INFO] [ReplayManager] Recording frame 7680 (128,2s): player_valid=False, enemies=5
+[21:00:17] [INFO] [ReplayManager] Recording frame 7740 (129,2s): player_valid=False, enemies=5
+[21:00:18] [INFO] [ReplayManager] Recording frame 7800 (130,2s): player_valid=False, enemies=5
+[21:00:19] [INFO] [ReplayManager] Recording frame 7860 (131,2s): player_valid=False, enemies=5
+[21:00:20] [INFO] [ReplayManager] Recording frame 7920 (132,2s): player_valid=False, enemies=5
+[21:00:21] [INFO] [ReplayManager] Recording frame 7980 (133,2s): player_valid=False, enemies=5
+[21:00:22] [INFO] [ReplayManager] Recording frame 8040 (134,2s): player_valid=False, enemies=5
+[21:00:23] [INFO] [ReplayManager] Recording frame 8100 (135,2s): player_valid=False, enemies=5
+[21:00:24] [INFO] [ReplayManager] Recording frame 8160 (136,2s): player_valid=False, enemies=5
+[21:00:25] [INFO] [ReplayManager] Recording frame 8220 (137,2s): player_valid=False, enemies=5
+[21:00:26] [INFO] [ReplayManager] Recording frame 8280 (138,2s): player_valid=False, enemies=5
+[21:00:27] [INFO] [ReplayManager] Recording frame 8340 (139,2s): player_valid=False, enemies=5
+[21:00:28] [INFO] [ReplayManager] Recording frame 8400 (140,2s): player_valid=False, enemies=5
+[21:00:29] [INFO] [ReplayManager] Recording frame 8460 (141,2s): player_valid=False, enemies=5
+[21:00:30] [INFO] [ReplayManager] Recording frame 8520 (142,2s): player_valid=False, enemies=5
+[21:00:31] [INFO] [ReplayManager] Recording frame 8580 (143,2s): player_valid=False, enemies=5
+[21:00:32] [INFO] [ReplayManager] Recording frame 8640 (144,2s): player_valid=False, enemies=5
+[21:00:33] [INFO] [ReplayManager] Recording frame 8700 (145,2s): player_valid=False, enemies=5
+[21:00:34] [INFO] [ReplayManager] Recording frame 8760 (146,2s): player_valid=False, enemies=5
+[21:00:35] [INFO] [ReplayManager] Recording frame 8820 (147,2s): player_valid=False, enemies=5
+[21:00:36] [INFO] [ReplayManager] Recording frame 8880 (148,2s): player_valid=False, enemies=5
+[21:00:37] [INFO] [ReplayManager] Recording frame 8940 (149,2s): player_valid=False, enemies=5
+[21:00:38] [INFO] [ReplayManager] Recording frame 9000 (150,2s): player_valid=False, enemies=5
+[21:00:39] [INFO] [ReplayManager] Recording frame 9060 (151,2s): player_valid=False, enemies=5
+[21:00:40] [INFO] [ReplayManager] Recording frame 9120 (152,2s): player_valid=False, enemies=5
+[21:00:41] [INFO] [ReplayManager] Recording frame 9180 (153,2s): player_valid=False, enemies=5
+[21:00:42] [INFO] [ReplayManager] Recording frame 9240 (154,2s): player_valid=False, enemies=5
+[21:00:43] [INFO] [ReplayManager] Recording frame 9300 (155,2s): player_valid=False, enemies=5
+[21:00:44] [INFO] [ReplayManager] Recording frame 9360 (156,2s): player_valid=False, enemies=5
+[21:00:45] [INFO] [ReplayManager] Recording frame 9420 (157,2s): player_valid=False, enemies=5
+[21:00:46] [INFO] [ReplayManager] Recording frame 9480 (158,2s): player_valid=False, enemies=5
+[21:00:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:00:47] [INFO] [BloodyFeet:Enemy] Footprint scene loaded
+[21:00:47] [INFO] [BloodyFeet:Enemy] Found EnemyModel for facing direction
+[21:00:47] [INFO] [BloodyFeet:Enemy] BloodyFeetComponent ready on Enemy
+[21:00:47] [ENEMY] [Enemy] Death animation component initialized
+[21:00:47] [INFO] [ExperimentalMenu] Enemy spawner: spawned 'RPG + PM pistol' at (350, 360)
+[21:00:47] [INFO] [BloodyFeet:Enemy] Blood detector created and attached to Enemy
+[21:00:47] [INFO] [SoundPropagation] Registered listener: Enemy (total: 6)
+[21:00:47] [ENEMY] [Enemy] Registered as sound listener
+[21:00:47] [ENEMY] [Enemy] Spawned at (350, 360), hp: 2, behavior: GUARD
+[21:00:47] [INFO] [ReplayManager] Recording frame 9540 (159,2s): player_valid=False, enemies=5
+[21:00:47] [ENEMY] [Enemy] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(150,360), corner_timer=0.00
+[21:00:48] [INFO] [ReplayManager] Recording frame 9600 (160,2s): player_valid=False, enemies=5
+[21:00:48] [ENEMY] [Enemy] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=180.0°, current=131.8°, player=(150,360), corner_timer=0.00
+[21:00:48] [ENEMY] [Enemy] State: IDLE -> COMBAT
+[21:00:48] [ENEMY] [Enemy] [RPG] Rocket launched at (289.5456, 363.1273) dir=(-1, 0)
+[21:00:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(350, 360), source=ENEMY (Enemy), range=2500, listeners=6
+[21:00:48] [INFO] [SoundPropagation] Cleaned up 5 invalid listeners
+[21:00:48] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:00:48] [ENEMY] [Enemy] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=180.0°, current=53.5°, player=(150,360), corner_timer=0.00
+[21:00:48] [ENEMY] [Enemy] State: COMBAT -> PURSUING
+[21:00:48] [ENEMY] [Enemy] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=173.6°, current=-138.4°, player=(150,360), corner_timer=0.00
+[21:00:48] [ENEMY] [Enemy] State: PURSUING -> COMBAT
+[21:00:49] [INFO] [ReplayManager] Recording frame 9660 (161,2s): player_valid=False, enemies=5
+[21:00:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(349.0254, 337.6299), source=ENEMY (Enemy), range=1469, listeners=1
+[21:00:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:00:49] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:00:49] [INFO] [Player] Spawning blood effect at (150, 360), dir=(1, 0), lethal=False (C#)
+[21:00:49] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:00:50] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:00:50] [INFO] [Player] Spawning blood effect at (185, 360), dir=(1, 0), lethal=False (C#)
+[21:00:50] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:00:50] [INFO] [ReplayManager] Recording frame 9720 (162,2s): player_valid=False, enemies=5
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (205.1048, 391.5719) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (205.4404, 405.774) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (255.9132, 347.1947) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (205.6051, 420.5164) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (241.2686, 395.9975) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (273.2431, 455.0106) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (297.1299, 435.5656) (added to group)
+[21:00:50] [INFO] [BloodyFeet:Player] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (283.3336, 398.6387) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (266.0747, 388.7305) (added to group)
+[21:00:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(349.0254, 337.6299), source=ENEMY (Enemy), range=1469, listeners=1
+[21:00:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (252.2457, 374.6952) (added to group)
+[21:00:50] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:00:50] [INFO] [Player] Spawning blood effect at (272.33334, 360), dir=(1, 0), lethal=False (C#)
+[21:00:50] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (241.756, 406.1012) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (230.0439, 365.5833) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (234.4309, 371.2927) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (281.0037, 392.3882) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (255.8232, 343.946) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (252.9478, 362.205) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (316.5102, 380.1967) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (371.2892, 388.12) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (304.0925, 371.063) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (260.8224, 425.2234) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (321.337, 378.6231) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (306.4601, 387.1576) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (333.8335, 395.8119) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (341.1915, 419.8839) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (390.2159, 363.8797) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (359.227, 375.7972) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (382.2994, 406.3072) (added to group)
+[21:00:50] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(336.178, 353.0083), source=NEUTRAL (null), range=900, listeners=1
+[21:00:50] [ENEMY] [Enemy] Heard CASING_KICK at (336.178, 353.0083), intensity=1.00, dist=20
+[21:00:50] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=0
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (341.663, 417.1184) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (348.368, 404.3535) (added to group)
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (438.1895, 416.1476) (added to group)
+[21:00:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(349.0254, 337.6299), source=ENEMY (Enemy), range=1469, listeners=1
+[21:00:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:00:50] [INFO] [BloodDecal] Blood puddle created at (374.9512, 415.0281) (added to group)
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (505.8954, 469.8128) (added to group)
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (451.4476, 399.1088) (added to group)
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (422.6583, 416.1341) (added to group)
+[21:00:51] [INFO] [ReplayManager] Recording frame 9780 (163,2s): player_valid=False, enemies=5
+[21:00:51] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:00:51] [INFO] [Player] Spawning blood effect at (232.05548, 360), dir=(1, 0), lethal=False (C#)
+[21:00:51] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:00:51] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(349.0254, 337.6299), source=ENEMY (Enemy), range=1469, listeners=1
+[21:00:51] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (317.7668, 409.9808) (added to group)
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (285.7594, 367.3183) (added to group)
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (288.2356, 361.8621) (added to group)
+[21:00:51] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:00:51] [INFO] [Player] Spawning blood effect at (203.6666, 360), dir=(1, 0), lethal=False (C#)
+[21:00:51] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (300.7796, 413.6815) (added to group)
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (350.1227, 370.7876) (added to group)
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (339.7931, 370.0962) (added to group)
+[21:00:51] [INFO] [BloodyFeet:Enemy] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[21:00:51] [ENEMY] [Enemy] State: COMBAT -> SEEKING_COVER
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (427.8452, 396.9745) (added to group)
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (289.7224, 419.073) (added to group)
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (286.1293, 383.2483) (added to group)
+[21:00:51] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:00:51] [INFO] [Player] Spawning blood effect at (203.6666, 360), dir=(1, 0), lethal=False (C#)
+[21:00:51] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (446.7739, 396.7477) (added to group)
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (261.9265, 382.5309) (added to group)
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (305.1487, 413.5616) (added to group)
+[21:00:51] [INFO] [BloodDecal] Blood puddle created at (296.2384, 401.9496) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (303.966, 389.3495) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (278.8305, 360.7599) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (264.0278, 420.6346) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (304.2627, 362.7661) (added to group)
+[21:00:52] [INFO] [ReplayManager] Recording frame 9840 (164,2s): player_valid=False, enemies=5
+[21:00:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(349.0254, 337.6299), source=ENEMY (Enemy), range=1469, listeners=1
+[21:00:52] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (240.645, 382.5574) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (248.6595, 395.9954) (added to group)
+[21:00:52] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:00:52] [INFO] [Player] Spawning blood effect at (203.6666, 360), dir=(1, 0), lethal=False (C#)
+[21:00:52] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (297.7598, 445.529) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (266.1744, 362.7312) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (366.9458, 382.8489) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (378.8183, 374.4727) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (305.2431, 410.8028) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (251.5015, 363.5171) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (279.0258, 389.2474) (added to group)
+[21:00:52] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[21:00:52] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[21:00:52] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:00:52] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:00:52] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[21:00:52] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[21:00:52] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+[21:00:52] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[21:00:52] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:00:52] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[21:00:52] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[21:00:52] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[21:00:52] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[21:00:52] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:00:52] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[21:00:52] [INFO] [Player.Weapon] Removed default MakarovPM
+[21:00:52] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[21:00:52] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:00:52] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:00:52] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:00:52] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:00:52] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[21:00:52] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[21:00:52] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[21:00:52] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[21:00:52] [INFO] [Player.Homing] Homing activation sound loaded
+[21:00:52] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[21:00:52] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[21:00:52] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[21:00:52] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[21:00:52] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[21:00:52] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[21:00:52] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[21:00:52] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[21:00:52] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[21:00:52] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[21:00:52] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[21:00:52] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[21:00:52] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[21:00:52] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[21:00:52] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[21:00:52] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 10/10
+[21:00:52] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (322.7592, 388.7115) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (345.2128, 358.3449) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (296.8485, 366.0459) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (267.5132, 403.9867) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (285.1151, 349.3456) (added to group)
+[21:00:52] [INFO] [CinemaEffects] Found player node: Player
+[21:00:52] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[21:00:52] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[21:00:52] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:00:52] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[21:00:52] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:00:52] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:00:52] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:00:52] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:00:52] [INFO] [LastChance] Found player: Player
+[21:00:52] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:00:52] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:00:52] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:00:52] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (355.6314, 407.3469) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (297.838, 392.5752) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (272.4033, 370.2638) (added to group)
+[21:00:52] [WARN] [FPS] Drop detected: 20 fps (threshold: 30)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (305.4036, 405.3196) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (330.9962, 369.1465) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (302.6923, 393.248) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (319.9077, 419.3772) (added to group)
+[21:00:52] [INFO] [BloodDecal] Blood puddle created at (332.3332, 379.9312) (added to group)
+[21:00:53] [INFO] [ReplayManager] Recording frame 9900 (165,2s): player_valid=False, enemies=5
+[21:00:53] [INFO] [BloodyFeet:Player] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[21:00:54] [INFO] [ReplayManager] Recording frame 9960 (166,2s): player_valid=False, enemies=5
+[21:00:55] [INFO] [ReplayManager] Recording frame 10020 (167,2s): player_valid=False, enemies=5
+[21:00:56] [INFO] [ReplayManager] Recording frame 10080 (168,2s): player_valid=False, enemies=5
+[21:00:57] [INFO] [ReplayManager] Recording frame 10140 (169,2s): player_valid=False, enemies=5
+[21:00:58] [INFO] [ReplayManager] Recording frame 10200 (170,2s): player_valid=False, enemies=5
+[21:00:59] [INFO] [ReplayManager] Recording frame 10260 (171,2s): player_valid=False, enemies=5
+[21:01:00] [INFO] [ReplayManager] Recording frame 10320 (172,2s): player_valid=False, enemies=5
+[21:01:01] [INFO] [ReplayManager] Recording frame 10380 (173,2s): player_valid=False, enemies=5
+[21:01:02] [INFO] [ReplayManager] Recording frame 10440 (174,2s): player_valid=False, enemies=5
+[21:01:03] [INFO] [ReplayManager] Recording frame 10500 (175,2s): player_valid=False, enemies=5
+[21:01:03] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:01:03] [INFO] [BloodyFeet:Enemy] Footprint scene loaded
+[21:01:03] [INFO] [BloodyFeet:Enemy] Found EnemyModel for facing direction
+[21:01:03] [INFO] [BloodyFeet:Enemy] BloodyFeetComponent ready on Enemy
+[21:01:03] [ENEMY] [Enemy] Death animation component initialized
+[21:01:03] [INFO] [ExperimentalMenu] Enemy spawner: spawned 'RPG + PM pistol' at (878.8566, 342.9873)
+[21:01:03] [INFO] [BloodyFeet:Enemy] Blood detector created and attached to Enemy
+[21:01:03] [INFO] [SoundPropagation] Registered listener: Enemy (total: 2)
+[21:01:03] [ENEMY] [Enemy] Registered as sound listener
+[21:01:03] [ENEMY] [Enemy] Spawned at (878.8566, 342.9873), hp: 2, behavior: GUARD
+[21:01:03] [ENEMY] [Enemy] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(678,342), corner_timer=0.00
+[21:01:04] [INFO] [ReplayManager] Recording frame 10560 (176,2s): player_valid=False, enemies=5
+[21:01:05] [INFO] [BloodyFeet:Player] Blood ran out - no more footprints
+[21:01:05] [INFO] [ReplayManager] Recording frame 10620 (177,2s): player_valid=False, enemies=5
+[21:01:05] [ENEMY] [Enemy] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=145.9°, current=101.3°, player=(641,503), corner_timer=0.00
+[21:01:05] [ENEMY] [Enemy] State: IDLE -> COMBAT
+[21:01:05] [ENEMY] [Enemy] [RPG] Rocket launched at (829.3186, 386.7729) dir=(-0.820086, 0.57224)
+[21:01:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(878.8566, 342.9873), source=ENEMY (Enemy), range=2500, listeners=2
+[21:01:05] [INFO] [SoundPropagation] Cleaned up 1 invalid listeners
+[21:01:05] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:01:05] [ENEMY] [Enemy] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=141.8°, current=-116.4°, player=(641,528), corner_timer=0.00
+[21:01:06] [ENEMY] [Enemy] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=138.3°, current=-172.1°, player=(641,549), corner_timer=0.00
+[21:01:06] [INFO] [ReplayManager] Recording frame 10680 (178,2s): player_valid=False, enemies=5
+[21:01:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(824.9469, 386.5346), source=ENEMY (Enemy), range=1469, listeners=1
+[21:01:06] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:01:06] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:06] [INFO] [Player] Spawning blood effect at (641.856, 549.91736), dir=(1, 0), lethal=False (C#)
+[21:01:06] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:06] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:06] [INFO] [Player] Spawning blood effect at (641.856, 549.91736), dir=(1, 0), lethal=False (C#)
+[21:01:06] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:06] [INFO] [BloodDecal] Blood puddle created at (742.6659, 561.6649) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (762.6856, 579.6614) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (746.4634, 611.1256) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (744.706, 548.0809) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (791.6034, 565.2147) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (711.0552, 612.0044) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (760.3984, 570.828) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (778.1028, 584.6701) (added to group)
+[21:01:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(824.9469, 386.5346), source=ENEMY (Enemy), range=1469, listeners=1
+[21:01:07] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (728.0655, 654.6797) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (740.8651, 607.3524) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (710.326, 583.4854) (added to group)
+[21:01:07] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:07] [INFO] [Player] Spawning blood effect at (641.856, 549.91736), dir=(1, 0), lethal=False (C#)
+[21:01:07] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (853.6512, 623.6962) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (721.1752, 555.8417) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (726.9535, 569.5779) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (740.7758, 576.1588) (added to group)
+[21:01:07] [INFO] [ReplayManager] Recording frame 10740 (179,2s): player_valid=False, enemies=5
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (844.7137, 589.1632) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (825.0576, 638.0378) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (773.7932, 725.3709) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (786.892, 676.6862) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (757.897, 639.3495) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (756.0032, 578.8468) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (712.1936, 583.2755) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (738.5267, 541.8674) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (775.5247, 640.5564) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (786.7581, 641.3419) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (744.0419, 580.3216) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (753.6399, 609.6659) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (685.3842, 552.7565) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (778.5039, 621.5278) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (695.184, 570.5737) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (705.358, 573.3475) (added to group)
+[21:01:07] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:07] [INFO] [Player] Spawning blood effect at (641.856, 549.91736), dir=(1, 0), lethal=False (C#)
+[21:01:07] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (728.7696, 544.0081) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (705.8913, 546.1888) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (834.5286, 650.3047) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (823.7877, 730.7441) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (763.1187, 559.1921) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (752.5008, 571.5138) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (734.181, 637.2236) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (706.7409, 562.4473) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (741.5421, 593.5159) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (801.1553, 574.4157) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (725.9186, 576.6483) (added to group)
+[21:01:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(824.9469, 386.5346), source=ENEMY (Enemy), range=1469, listeners=1
+[21:01:07] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (745.0596, 646.3597) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (712.0779, 561.829) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (715.1534, 589.4064) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (687.2734, 563.806) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (721.2382, 607.9488) (added to group)
+[21:01:07] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:07] [INFO] [Player] Spawning blood effect at (641.856, 549.91736), dir=(1, 0), lethal=False (C#)
+[21:01:07] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (832.7551, 548.8635) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (815.251, 592.1272) (added to group)
+[21:01:07] [INFO] [BloodDecal] Blood puddle created at (748.6624, 616.5009) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (739.3443, 563.9803) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (779.2247, 606.9875) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (788.6852, 668.7807) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (804.3024, 581.941) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (692.4418, 572.5026) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (837.1503, 611.5753) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (784.492, 696.7318) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (734.5975, 577.8095) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (724.9897, 536.0583) (added to group)
+[21:01:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:08] [INFO] [Player] Spawning blood effect at (641.856, 549.91736), dir=(1, 0), lethal=False (C#)
+[21:01:08] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (720.4423, 582.0112) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (761.0615, 654.3942) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (863.3585, 669.0437) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (884.9314, 676.5724) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (832.5967, 712.3079) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (732.5226, 553.0791) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (731.8949, 638.7487) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (730.3654, 555.8936) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (719.7206, 602.1154) (added to group)
+[21:01:08] [INFO] [ReplayManager] Recording frame 10800 (180,2s): player_valid=False, enemies=5
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (792.9128, 553.2656) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (796.8829, 621.3052) (added to group)
+[21:01:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(824.9469, 386.5346), source=ENEMY (Enemy), range=1469, listeners=1
+[21:01:08] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (734.4049, 621.1324) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (719.7358, 537.8716) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (719.1622, 581.2671) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (721.3646, 535.3107) (added to group)
+[21:01:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:08] [INFO] [Player] Spawning blood effect at (641.856, 549.91736), dir=(1, 0), lethal=False (C#)
+[21:01:08] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (798.3708, 661.0122) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (690.7814, 575.4883) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (758.2401, 623.5399) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (723.9525, 554.1357) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (744.2123, 526.8564) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (749.9708, 561.0024) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (812.759, 705.6028) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (794.6644, 590.8381) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (734.9203, 545.2841) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (778.7704, 616.6232) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (801.0242, 654.0831) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (751.6331, 582.3804) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (740.9536, 628.8284) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (766.955, 664.5875) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (696.9705, 577.437) (added to group)
+[21:01:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:08] [INFO] [Player] Spawning blood effect at (641.856, 549.91736), dir=(1, 0), lethal=False (C#)
+[21:01:08] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (704.0099, 592.7123) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (823.3764, 571.125) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (790.9951, 573.0096) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (715.0467, 604.8619) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (718.5192, 619.3813) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (705.9213, 552.7095) (added to group)
+[21:01:08] [ENEMY] [Enemy] State: COMBAT -> SEEKING_COVER
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (705.48, 611.1572) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (727.6223, 582.9078) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (802.4242, 585.4211) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (778.7065, 575.3788) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (757.4401, 625.1454) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (780.1191, 587.6711) (added to group)
+[21:01:08] [INFO] [BloodDecal] Blood puddle created at (788.7551, 534.6452) (added to group)
+[21:01:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(824.9469, 386.5346), source=ENEMY (Enemy), range=1469, listeners=1
+[21:01:09] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (709.2635, 585.6606) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (704.3403, 539.3352) (added to group)
+[21:01:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:09] [INFO] [Player] Spawning blood effect at (641.856, 549.91736), dir=(1, 0), lethal=False (C#)
+[21:01:09] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (760.7695, 635.9095) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (749.1702, 603.8505) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (809.7009, 566.9373) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (717.3846, 606.9684) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (718.2192, 554.2506) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (790.5496, 666.848) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (714.5028, 578.4158) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (726.5552, 606.4255) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (811.8517, 574.7518) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (773.0477, 595.9774) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (717.4024, 582.8994) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (743.1321, 601.242) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (693.5842, 549.5693) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (702.4468, 559.6863) (added to group)
+[21:01:09] [INFO] [ReplayManager] Recording frame 10860 (181,1s): player_valid=False, enemies=5
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (696.0527, 549.0014) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (808.7433, 668.0755) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (713.3931, 593.4099) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (824.0009, 687.9631) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (782.1318, 631.4277) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (743.6058, 618.3837) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (730.8868, 617.0009) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (778.2859, 628.7816) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (722.8617, 616.3116) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (705.5779, 556.2422) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (775.7987, 590.7886) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (735.7609, 603.7141) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (810.6118, 586.5206) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (759.2907, 605.6458) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (838.4603, 551.8817) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (831.5546, 605.0226) (added to group)
+[21:01:09] [INFO] [BloodDecal] Blood puddle created at (782.9589, 702.4067) (added to group)
+[21:01:10] [INFO] [ReplayManager] Recording frame 10920 (182,1s): player_valid=False, enemies=5
+[21:01:11] [INFO] [ReplayManager] Recording frame 10980 (183,1s): player_valid=False, enemies=5
+[21:01:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(824.9469, 386.5346), source=ENEMY (Enemy), range=1469, listeners=1
+[21:01:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:01:12] [INFO] [ReplayManager] Recording frame 11040 (184,1s): player_valid=False, enemies=5
+[21:01:12] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:12] [INFO] [Player] Spawning blood effect at (260.7555, 618.2163), dir=(1, 0), lethal=False (C#)
+[21:01:12] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:12] [INFO] [BloodDecal] Blood puddle created at (332.0554, 622.8332) (added to group)
+[21:01:12] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:12] [INFO] [Player] Spawning blood effect at (260.7555, 636.5496), dir=(1, 0), lethal=False (C#)
+[21:01:12] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:12] [INFO] [BloodDecal] Blood puddle created at (369.3253, 655.421) (added to group)
+[21:01:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(824.9469, 386.5346), source=ENEMY (Enemy), range=1469, listeners=1
+[21:01:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:01:12] [INFO] [BloodDecal] Blood puddle created at (355.6985, 695.1182) (added to group)
+[21:01:12] [INFO] [BloodDecal] Blood puddle created at (365.3145, 667.9556) (added to group)
+[21:01:12] [INFO] [BloodDecal] Blood puddle created at (322.1225, 631.4216) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (418.3235, 699.6875) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (392.5757, 676.8297) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (341.5378, 670.1) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (398.5246, 644.584) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (351.3683, 674.7944) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (391.7825, 744.3007) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (390.6968, 727.4094) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (455.0518, 783.2514) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (492.2259, 753.1428) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (352.7753, 710.7906) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (366.3148, 721.7976) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (326.5819, 652.2223) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (409.7526, 653.2278) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (353.7039, 716.4644) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (363.1992, 657.0812) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (363.8148, 709.6469) (added to group)
+[21:01:13] [INFO] [ReplayManager] Recording frame 11100 (185,1s): player_valid=False, enemies=5
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (366.7851, 720.6285) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (382.3203, 755.6446) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (419.1096, 648.9742) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (393.3621, 687.4462) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (429.2036, 699.4329) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (451.7844, 682.9073) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (444.3619, 765.4503) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (377.613, 699.2159) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (417.3478, 743.0239) (added to group)
+[21:01:13] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:13] [INFO] [Player] Spawning blood effect at (178.39836, 816.43616), dir=(1, 0), lethal=False (C#)
+[21:01:13] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(824.9469, 386.5346), source=ENEMY (Enemy), range=1469, listeners=1
+[21:01:13] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (238.9236, 842.92) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (223.499, 813.4787) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (268.1711, 823.4421) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (261.5168, 834.0028) (added to group)
+[21:01:13] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:13] [INFO] [Player] Spawning blood effect at (95.451935, 895.0276), dir=(1, 0), lethal=False (C#)
+[21:01:13] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (286.1355, 820.3021) (added to group)
+[21:01:13] [INFO] [BloodDecal] Blood puddle created at (251.9256, 852.8102) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (303.2395, 849.9979) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (326.5779, 864.6379) (added to group)
+[21:01:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(824.9469, 386.5346), source=ENEMY (Enemy), range=1469, listeners=1
+[21:01:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (369.5488, 877.688) (added to group)
+[21:01:14] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:14] [INFO] [Player] Spawning blood effect at (80.06559, 912.28784), dir=(1, 0), lethal=False (C#)
+[21:01:14] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (272.1625, 958.5365) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (152.9563, 941.8193) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (153.0046, 945.1376) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (203.7313, 893.4254) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (202.9118, 976.9398) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (154.3857, 912.9062) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (207.9514, 961.621) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (182.2519, 951.5855) (added to group)
+[21:01:14] [INFO] [ReplayManager] Recording frame 11160 (186,1s): player_valid=False, enemies=5
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (201.6099, 994.7661) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (229.7052, 899.678) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (220.4985, 1019.655) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (135.7675, 925.8482) (added to group)
+[21:01:14] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:14] [INFO] [Player] Spawning blood effect at (80.06559, 912.28784), dir=(1, 0), lethal=False (C#)
+[21:01:14] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (178.4595, 911.9302) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (138.0918, 912.2036) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (192.4047, 1026.731) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (256.7525, 1004.614) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (208.2899, 967.309) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (198.1617, 1050.295) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (205.9601, 894.0388) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (229.081, 1023.086) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (164.5292, 1004.545) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (255.503, 1014.454) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (198.3073, 952.4681) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (191.6151, 1022.061) (added to group)
+[21:01:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(824.9469, 386.5346), source=ENEMY (Enemy), range=1469, listeners=1
+[21:01:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (265.9734, 944.1281) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (148.6019, 942.9146) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (155.8154, 903.5732) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (144.2984, 924.3472) (added to group)
+[21:01:14] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[21:01:14] [INFO] [Player] Spawning blood effect at (92.07465, 912.28784), dir=(1, 0), lethal=False (C#)
+[21:01:14] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (125.9745, 914.663) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (173.1859, 965.1066) (added to group)
+[21:01:14] [INFO] [BloodyFeet:Player] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (174.7105, 1059.137) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (250.2018, 1017.143) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (183.5142, 938.739) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (202.3079, 983.5443) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (267.0769, 1063.112) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (286.4502, 935.8324) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (232.4129, 1066.972) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (189.6635, 997.1977) (added to group)
+[21:01:14] [INFO] [BloodDecal] Blood puddle created at (184.3352, 912.0175) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (258.524, 939.245) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (200.4824, 1008.377) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (164.4772, 962.2405) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (151.3344, 927.2796) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (133.2125, 912.8744) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (189.216, 968.3203) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (161.1536, 912.9182) (added to group)
+[21:01:15] [ENEMY] [Enemy] State: SEEKING_COVER -> IN_COVER
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (298.9475, 993.0582) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (195.5397, 975.1693) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (202.1797, 964.6236) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (168.8642, 917.2578) (added to group)
+[21:01:15] [ENEMY] [Enemy] State: IN_COVER -> PURSUING
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (228.7995, 943.5569) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (209.1841, 948.1731) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (225.7091, 975.5741) (added to group)
+[21:01:15] [ENEMY] [Enemy] ROT_CHANGE: P1:visible -> P2:combat_state, state=PURSUING, target=136.4°, current=136.9°, player=(172,1007), corner_timer=0.00
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (179.4867, 986.5474) (added to group)
+[21:01:15] [INFO] [ReplayManager] Recording frame 11220 (187,1s): player_valid=False, enemies=5
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (186.6476, 995.0225) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (235.048, 1009.49) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (258.2745, 1064.28) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (239.9144, 1010.611) (added to group)
+[21:01:15] [INFO] [BloodDecal] Blood puddle created at (335.7191, 990.8571) (added to group)
+[21:01:15] [ENEMY] [Enemy] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=132.6°, current=132.6°, player=(172,1096), corner_timer=0.00
+[21:01:16] [ENEMY] [Enemy] State: PURSUING -> COMBAT
+[21:01:16] [INFO] [ReplayManager] Recording frame 11280 (188,1s): player_valid=False, enemies=5
+[21:01:16] [INFO] [BloodyFeet:Enemy] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[21:01:17] [INFO] [ReplayManager] Recording frame 11340 (189,1s): player_valid=False, enemies=5
+[21:01:18] [INFO] [ReplayManager] Recording frame 11400 (190,1s): player_valid=False, enemies=5
+[21:01:19] [INFO] [ReplayManager] Recording frame 11460 (191,1s): player_valid=False, enemies=5
+[21:01:20] [INFO] ------------------------------------------------------------
+[21:01:20] [INFO] GAME LOG ENDED: 2026-03-17T21:01:20
+[21:01:20] [INFO] ============================================================

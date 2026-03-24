@@ -284,6 +284,10 @@ public partial class MakarovPM : BaseWeapon
     /// </summary>
     private Vector2 ApplySpread(Vector2 direction)
     {
+        // Suppress spread entirely when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return direction;
+
         // Apply the current recoil offset to the direction
         Vector2 result = direction.Rotated(_recoilOffset);
 
@@ -345,7 +349,7 @@ public partial class MakarovPM : BaseWeapon
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            float loudness = WeaponData?.Loudness ?? 1469.0f;
+            float loudness = WeaponData?.Loudness ?? 800.0f;  // Issue #1269: scaled 800/1469
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
         }
     }
@@ -368,6 +372,10 @@ public partial class MakarovPM : BaseWeapon
     /// </summary>
     private void TriggerScreenShake(Vector2 shootDirection)
     {
+        // Suppress screen shake when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return;
+
         if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
         {
             return;
@@ -497,6 +505,20 @@ public partial class MakarovPM : BaseWeapon
             else
             {
                 bulletNode.Call("set_is_breaker_bullet", true);
+            }
+        }
+
+        // Set drilling bullet flag if drilling bullets are active for this magazine (Issue #751)
+        if (DrillingBulletsRemaining > 0)
+        {
+            DrillingBulletsRemaining--;
+            if (bullet != null)
+            {
+                bullet.IsDrillingBullet = true;
+            }
+            else
+            {
+                bulletNode.Call("set_is_drilling_bullet", true);
             }
         }
 

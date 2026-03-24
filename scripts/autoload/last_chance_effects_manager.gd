@@ -171,6 +171,10 @@ func _ready() -> void:
 	_log("  Sepia intensity: %.2f" % SEPIA_INTENSITY)
 	_log("  Brightness: %.2f" % BRIGHTNESS)
 
+	# Issue #1157: Disable _process by default to avoid per-frame overhead when idle.
+	# _process is re-enabled only when an effect is active or player needs to be found.
+	set_process(false)
+
 
 func _process(delta: float) -> void:
 	# Check if we need to find the player
@@ -199,11 +203,12 @@ func _process(delta: float) -> void:
 
 
 ## Log a message with the LastChance prefix (always written).
+## Issue #1293: print() fallback gated to debug builds to avoid FPS drops.
 func _log(message: String) -> void:
 	var logger: Node = get_node_or_null("/root/FileLogger")
 	if logger and logger.has_method("log_info"):
 		logger.log_info("[LastChance] " + message)
-	else:
+	elif OS.is_debug_build():
 		print("[LastChance] " + message)
 
 
@@ -272,6 +277,10 @@ func _find_player() -> void:
 			_log("Connected to HealthComponent HealthChanged signal (C#)")
 
 	_connected_to_player = true
+
+	# Issue #1157: Player found and connected — stop per-frame polling.
+	# _process will be re-enabled only when an effect needs to run.
+	set_process(false)
 
 
 ## Called when player health changes (GDScript).
@@ -421,6 +430,8 @@ func _start_last_chance_effect(duration_seconds: float = FREEZE_DURATION_REAL_SE
 	if not is_grenade:
 		_effect_used = true  # Mark as used (only triggers once per life, not for grenade)
 	_effect_start_time = Time.get_ticks_msec() / 1000.0
+	# Issue #1157: Enable _process to track effect duration and animate shader.
+	set_process(true)
 
 	_log("Starting last chance effect:")
 	_log("  - Time will be frozen (except player)")
@@ -741,6 +752,9 @@ func _complete_fade_out() -> void:
 
 	# Now fully remove the visual effects
 	_remove_visual_effects()
+
+	# Issue #1157: Disable _process after effect is fully done — nothing to update.
+	set_process(false)
 
 
 ## Unfreezes time and restores normal processing.
@@ -1359,6 +1373,9 @@ func reset_effects() -> void:
 	_original_process_modes.clear()
 	_player_original_colors.clear()
 	_player_was_invulnerable = false
+
+	# Issue #1157: Re-enable _process to search for the player in the new scene.
+	set_process(true)
 
 
 ## Called when the scene tree structure changes.

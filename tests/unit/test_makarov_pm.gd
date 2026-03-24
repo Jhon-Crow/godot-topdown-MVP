@@ -27,7 +27,7 @@ class MockWeaponData:
 	var SpreadAngle: float = 2.0
 	var BulletsPerShot: int = 1
 	var IsAutomatic: bool = false
-	var Loudness: float = 1469.0
+	var Loudness: float = 800.0
 	var Sensitivity: float = 3.0
 	var ScreenShakeIntensity: float = 8.0
 	var ScreenShakeMinRecoveryTime: float = 0.35
@@ -224,8 +224,8 @@ func test_loudness_is_standard() -> void:
 
 
 func test_loudness_matches_standard() -> void:
-	assert_eq(weapon.Loudness, 1469.0,
-		"Loudness should be standard (1469 pixels, same as assault rifle)")
+	assert_eq(weapon.Loudness, 800.0,
+		"Loudness should be 800px (Issue #1269: PM is the baseline weapon, others scaled by same factor)")
 
 
 # ============================================================================

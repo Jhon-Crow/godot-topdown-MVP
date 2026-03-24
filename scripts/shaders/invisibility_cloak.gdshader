@@ -14,6 +14,9 @@ uniform float distortion_strength : hint_range(0.0, 64.0) = 28.0;
 // Speed multiplier for the ripple animation.
 uniform float ripple_speed : hint_range(0.1, 8.0) = 2.5;
 
+// Intensity of the pulsing shimmer tint overlay (0.0 = no shimmer, 1.0 = full shimmer).
+uniform float shimmer_intensity : hint_range(0.0, 1.0) = 1.0;
+
 // Screen texture sampler for reading the rendered scene behind the sprite.
 // Use filter_nearest and textureLod for gl_compatibility mode support.
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
@@ -54,7 +57,7 @@ void fragment() {
 
 	// Add a pulsing shimmer tint that makes the ripple more visually obvious
 	float pulse = 0.5 + 0.5 * sin(t * 3.0 + UV.y * 12.0);
-	vec3 shimmer_tint = vec3(0.3, 0.6, 1.0) * pulse * 0.15 * mix_amount;
+	vec3 shimmer_tint = vec3(0.3, 0.6, 1.0) * pulse * 0.15 * mix_amount * shimmer_intensity;
 	cloaked_color.rgb += shimmer_tint;
 
 	// Mix between original sprite and cloaked version

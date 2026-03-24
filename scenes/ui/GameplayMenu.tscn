@@ -1,0 +1,114 @@
+[gd_scene load_steps=4 format=3 uid="uid://gm3nug4m3pl4y"]
+
+[ext_resource type="Script" path="res://scripts/ui/gameplay_menu.gd" id="1_gameplay"]
+[ext_resource type="LabelSettings" uid="uid://c3qneonlabel01" path="res://resources/themes/neon_label_settings.tres" id="2_neon_label"]
+[ext_resource type="Theme" uid="uid://c3qneonbtn01" path="res://resources/themes/neon_button_theme.tres" id="3_neon_theme"]
+
+[node name="GameplayMenu" type="CanvasLayer"]
+layer = 101
+process_mode = 3
+script = ExtResource("1_gameplay")
+
+[node name="MenuContainer" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("3_neon_theme")
+
+[node name="PanelContainer" type="PanelContainer" parent="MenuContainer"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -200.0
+offset_right = 200.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="TitleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Gameplay Settings"
+label_settings = ExtResource("2_neon_label")
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BloodLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Blood Amount"
+
+[node name="BloodContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BloodSlider" type="HSlider" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BloodContainer"]
+custom_minimum_size = Vector2(250, 30)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+max_value = 300.0
+step = 10.0
+value = 100.0
+
+[node name="BloodValueLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BloodContainer"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "100%"
+horizontal_alignment = 2
+
+[node name="HSeparator2" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WeaponHintsContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WeaponHintsLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WeaponHintsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Weapon Hints"
+
+[node name="WeaponHintsOption" type="OptionButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WeaponHintsContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 0)
+
+[node name="HSeparator3" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AimAssistContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AimAssistLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AimAssistContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Revolver Aim Assist"
+
+[node name="AimAssistToggle" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AimAssistContainer"]
+layout_mode = 2
+button_pressed = true
+
+[node name="HSeparator4" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Back"

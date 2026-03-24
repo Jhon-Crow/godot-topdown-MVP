@@ -26,11 +26,19 @@ StatusEffectsManager="*res://scripts/autoload/status_effects_manager.gd"
 GrenadeManager="*res://scripts/autoload/grenade_manager.gd"
 ExperimentalSettings="*res://scripts/autoload/experimental_settings.gd"
 FpsMonitor="*res://scripts/autoload/fps_monitor.gd"
+NavMeshMonitor="*res://scripts/autoload/nav_mesh_monitor.gd"
+SearchPathMonitor="*res://scripts/autoload/search_path_monitor.gd"
+WaypointMonitor="*res://scripts/autoload/waypoint_monitor.gd"
+EnemyPathMonitor="*res://scripts/autoload/enemy_path_monitor.gd"
+CoverRaycastMonitor="*res://scripts/autoload/cover_raycast_monitor.gd"
+SoundVisualizer="*res://scripts/autoload/sound_visualizer.gd"
 SoundSettings="*res://scripts/autoload/sound_settings.gd"
+GameplaySettings="*res://scripts/autoload/gameplay_settings.gd"
 CinemaEffectsManager="*res://scripts/autoload/cinema_effects_manager.gd"
 GrenadeTimerHelper="*res://Scripts/Autoload/GrenadeTimerHelper.cs"
 PowerFantasyEffectsManager="*res://scripts/autoload/power_fantasy_effects_manager.gd"
 BlackMetalEffectsManager="*res://scripts/autoload/black_metal_effects_manager.gd"
+BlackMetalLightningEffectsManager="*res://scripts/autoload/black_metal_lightning_effects_manager.gd"
 ProgressManager="*res://scripts/autoload/progress_manager.gd"
 ReplayManager="*res://Scripts/Autoload/ReplayManager.cs"
 ActiveItemManager="*res://scripts/autoload/active_item_manager.gd"
@@ -39,6 +47,8 @@ ProjectilePoolManager="*res://scripts/autoload/projectile_pool_manager.gd"
 SceneLoader="*res://scripts/autoload/scene_loader.gd"
 PersistManager="*res://scripts/autoload/persist_manager.gd"
 UnlockManager="*res://scripts/autoload/unlock_manager.gd"
+WeaponHintsSettings="*res://scripts/autoload/weapon_hints_settings.gd"
+PerformanceSettings="*res://scripts/autoload/performance_settings.gd"
 
 [application]
 
@@ -49,6 +59,10 @@ config/tags=PackedStringArray("2d", "template", "topdown")
 run/main_scene="res://scenes/levels/LabyrinthLevel.tscn"
 config/features=PackedStringArray("4.3", "C#")
 config/icon="res://icon.svg"
+
+[gui]
+
+timers/tooltip_delay_sec=0.0
 
 [display]
 

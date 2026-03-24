@@ -315,6 +315,30 @@ func is_in_melee_range(target: Node2D) -> bool:
 	return _parent.global_position.distance_to(target.global_position) <= melee_range
 
 
+## Check if the path to target is clear of walls/obstacles (Issue #1083).
+## Uses a raycast on the obstacles layer to prevent attacks through walls.
+## Returns true if no wall blocks the path.
+func is_melee_path_clear(target: Node2D) -> bool:
+	if target == null or _parent == null:
+		return false
+	var world_2d := _parent.get_world_2d()
+	if world_2d == null:
+		return true
+	var space_state := world_2d.direct_space_state
+	if space_state == null:
+		return true
+	var query := PhysicsRayQueryParameters2D.new()
+	query.from = _parent.global_position
+	query.to = target.global_position
+	query.collision_mask = 4  # Only check obstacles (layer 3)
+	query.exclude = [_parent.get_rid()]
+	var result := space_state.intersect_ray(query)
+	if result.is_empty():
+		return true
+	_log("Melee path blocked by wall at %.0f,%.0f" % [result["position"].x, result["position"].y])
+	return false
+
+
 ## Configure from weapon config dictionary.
 func configure_from_weapon_config(config: Dictionary) -> void:
 	melee_range = config.get("melee_range", 80.0)
@@ -392,6 +416,11 @@ func _apply_strike_damage() -> void:
 	var distance := _parent.global_position.distance_to(_attack_target.global_position)
 	if distance > melee_range * 1.5:  # Generous range during strike animation
 		_log("Strike damage skipped: target moved out of range (%.1f > %.1f)" % [distance, melee_range * 1.5])
+		return
+
+	# Check wall is not blocking the strike (Issue #1083)
+	if not is_melee_path_clear(_attack_target):
+		_log("Strike damage skipped: wall between enemy and target")
 		return
 
 	# Deal damage to player
