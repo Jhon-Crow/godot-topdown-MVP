@@ -218,13 +218,14 @@ const SHRAPNEL_BATCH_SIZE: int = 10
 
 ## Spawn shrapnel pieces in all directions, staggered across multiple frames.
 ## Issue #1460: Spawning all 40 shrapnel in one frame caused CPU spikes. Now
-## spawns in batches of SHRAPNEL_BATCH_SIZE per frame.
+## spawns in batches of SHRAPNEL_BATCH_SIZE per frame using SceneTree timers
+## so spawning continues even after the grenade node is freed.
 func _spawn_shrapnel() -> void:
 	if shrapnel_scene == null:
 		FileLogger.info("[DefensiveGrenade] Cannot spawn shrapnel: scene is null")
 		return
 
-	# Pre-calculate all shrapnel data before spawning (grenade may be freed during await).
+	# Pre-calculate all shrapnel data before spawning (grenade will be freed shortly).
 	var spawn_origin := global_position
 	var grenade_instance_id := get_instance_id()
 	var grenade_thrower_id := thrower_id
@@ -237,29 +238,50 @@ func _spawn_shrapnel() -> void:
 		var final_angle := base_angle + deviation
 		var direction := Vector2(cos(final_angle), sin(final_angle))
 		var spawn_pos := spawn_origin + direction * 10.0
-		shrapnel_data.append({"pos": spawn_pos, "dir": direction, "angle": final_angle, "index": i})
+		shrapnel_data.append({"pos": spawn_pos, "dir": direction})
 
-	# Spawn in batches to spread CPU load across frames.
+	# Capture references that survive grenade being freed.
 	var scene_ref := shrapnel_scene
 	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
 	var tree := get_tree()
+	if tree == null:
+		return
 
+	# Spawn first batch immediately, schedule remaining batches via SceneTree timers.
+	# Using create_timer(0.0) schedules execution on the next frame, independent of
+	# the grenade node's lifetime (timers are owned by SceneTree, not this node).
+	var batch_index := 0
 	for batch_start in range(0, shrapnel_data.size(), SHRAPNEL_BATCH_SIZE):
 		var batch_end := mini(batch_start + SHRAPNEL_BATCH_SIZE, shrapnel_data.size())
+		var batch_slice := shrapnel_data.slice(batch_start, batch_end)
 
-		for j in range(batch_start, batch_end):
-			var data: Dictionary = shrapnel_data[j]
-			_spawn_single_shrapnel(data, scene_ref, pool_manager, grenade_instance_id, grenade_thrower_id)
-
-		# Yield to next frame between batches (skip yield after last batch).
-		if batch_end < shrapnel_data.size() and tree != null:
-			await tree.process_frame
+		if batch_index == 0:
+			# Spawn first batch immediately (same frame as explosion).
+			for data in batch_slice:
+				_spawn_single_shrapnel_static(data, scene_ref, pool_manager, grenade_instance_id, grenade_thrower_id, tree)
+		else:
+			# Schedule subsequent batches with increasing delays (~1 frame apart).
+			# At 60fps one frame is ~0.017s. Using batch_index * 0.02s ensures each
+			# batch fires on a separate frame. SceneTree timers survive node destruction.
+			var delay := batch_index * 0.02
+			var captured_batch := batch_slice
+			var captured_scene := scene_ref
+			var captured_pool := pool_manager
+			var captured_source := grenade_instance_id
+			var captured_thrower := grenade_thrower_id
+			var captured_tree := tree
+			tree.create_timer(delay).timeout.connect(func() -> void:
+				for data in captured_batch:
+					_spawn_single_shrapnel_static(data, captured_scene, captured_pool, captured_source, captured_thrower, captured_tree)
+			)
+		batch_index += 1
 
 
 ## Spawns a single shrapnel piece using pooling when available.
-func _spawn_single_shrapnel(data: Dictionary, scene_ref: PackedScene, pool_manager: Node, source_id_val: int, thrower_id_val: int) -> void:
+## Static-safe: does not depend on the grenade node being alive.
+static func _spawn_single_shrapnel_static(data: Dictionary, scene_ref: PackedScene, pool_manager: Node, source_id_val: int, thrower_id_val: int, tree: SceneTree) -> void:
 	# Try pooled shrapnel first for performance (Issue #724)
-	if pool_manager and pool_manager.has_method("get_shrapnel"):
+	if is_instance_valid(pool_manager) and pool_manager.has_method("get_shrapnel"):
 		var shrapnel: Node = pool_manager.get_shrapnel()
 		if shrapnel and shrapnel.has_method("pool_activate"):
 			shrapnel.pool_activate(data["pos"], data["dir"], source_id_val, thrower_id_val)
@@ -275,7 +297,6 @@ func _spawn_single_shrapnel(data: Dictionary, scene_ref: PackedScene, pool_manag
 	shrapnel.source_id = source_id_val
 	shrapnel.thrower_id = thrower_id_val
 
-	var tree := Engine.get_main_loop() as SceneTree
 	if tree and tree.current_scene:
 		tree.current_scene.add_child(shrapnel)
 
