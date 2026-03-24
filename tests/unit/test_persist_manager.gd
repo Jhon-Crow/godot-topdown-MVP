@@ -288,3 +288,81 @@ func test_clear_resets_to_defaults() -> void:
 		"Weapon should reset to default after clear")
 	assert_eq(pm.get_last_level(), "res://scenes/levels/LabyrinthLevel.tscn",
 		"Level should reset to default after clear")
+
+
+# ============================================================================
+# Issue #1456 — Auto-save level on scene change (_is_level_scene helper)
+# ============================================================================
+
+
+class MockPersistManagerWithIsLevel extends MockPersistManager:
+	## Expose the is_level_scene logic for unit testing.
+	func is_level_scene(scene_path: String) -> bool:
+		return scene_path.begins_with("res://scenes/levels/") and scene_path.ends_with(".tscn")
+
+
+var pm2: MockPersistManagerWithIsLevel
+
+
+func before_each_is_level() -> void:
+	pm2 = MockPersistManagerWithIsLevel.new()
+
+
+func after_each_is_level() -> void:
+	pm2 = null
+
+
+func test_is_level_scene_returns_true_for_level_paths() -> void:
+	var helper := MockPersistManagerWithIsLevel.new()
+	var level_paths := [
+		"res://scenes/levels/LabyrinthLevel.tscn",
+		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/RoguelikeLevel.tscn",
+		"res://scenes/levels/ArenaLevel.tscn",
+	]
+	for path in level_paths:
+		assert_true(helper.is_level_scene(path),
+			"Should be recognised as a level scene: %s" % path)
+
+
+func test_is_level_scene_returns_false_for_ui_paths() -> void:
+	var helper := MockPersistManagerWithIsLevel.new()
+	var non_level_paths := [
+		"res://scenes/ui/LevelsMenu.tscn",
+		"res://scenes/ui/PauseMenu.tscn",
+		"res://scenes/main/Main.tscn",
+		"",
+		"res://scenes/levels/SomeScript.gd",
+	]
+	for path in non_level_paths:
+		assert_false(helper.is_level_scene(path),
+			"Should NOT be recognised as a level scene: '%s'" % path)
+
+
+func test_auto_save_updates_last_level() -> void:
+	# Simulate what _on_tree_changed does: save_last_level when a level scene becomes current.
+	pm.save_last_level("res://scenes/levels/LabyrinthLevel.tscn")
+	assert_eq(pm.get_last_level(), "res://scenes/levels/LabyrinthLevel.tscn",
+		"Initial level should be Labyrinth")
+
+	# Player navigates to Beach via Next Level (scene changes, auto-save fires)
+	pm.save_last_level("res://scenes/levels/BeachLevel.tscn")
+	assert_eq(pm.get_last_level(), "res://scenes/levels/BeachLevel.tscn",
+		"Auto-saved level should update to Beach after scene change")
+
+
+func test_auto_save_does_not_overwrite_with_non_level_path() -> void:
+	# Simulate: level saved, then a non-level scene change occurs (should not overwrite).
+	pm.save_last_level("res://scenes/levels/CastleLevel.tscn")
+
+	var helper := MockPersistManagerWithIsLevel.new()
+	var ui_path := "res://scenes/ui/LevelsMenu.tscn"
+	assert_false(helper.is_level_scene(ui_path),
+		"UI scene path must not qualify as a level scene")
+
+	# Level path must be unchanged because the UI path is filtered out.
+	assert_eq(pm.get_last_level(), "res://scenes/levels/CastleLevel.tscn",
+		"Last level should remain Castle — UI scene changes must not overwrite it")

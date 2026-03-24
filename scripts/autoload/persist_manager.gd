@@ -74,8 +74,15 @@ func _navigate_to_last_level() -> void:
 		_log_to_file("Already at last played level: %s" % current_path)
 
 
+## Tracks the previous scene to detect level changes (Issue #1456).
+var _previous_scene: Node = null
+
+
 ## Connect to manager signals to auto-save on changes.
 func _connect_signals() -> void:
+	# Track scene changes to auto-save the current level (Issue #1456)
+	get_tree().tree_changed.connect(_on_tree_changed)
+
 	# GameManager signals
 	var game_manager: Node = get_node_or_null("/root/GameManager")
 	if game_manager:
@@ -165,6 +172,27 @@ func _on_kills_without_laser_sight_updated(_new_count: int) -> void:
 
 func _on_shots_fired_special_weapons_updated(_new_count: int) -> void:
 	_save_state()
+
+
+## Called when the scene tree structure changes.
+## Detects level scene changes and auto-saves the current level path (Issue #1456).
+func _on_tree_changed() -> void:
+	var current_scene := get_tree().current_scene
+	if current_scene == null or current_scene == _previous_scene:
+		return
+	_previous_scene = current_scene
+	var scene_path: String = current_scene.scene_file_path
+	if _is_level_scene(scene_path):
+		_save_state_with_level(scene_path)
+		_log_to_file("Auto-saved current level on scene change: %s" % scene_path)
+
+
+## Return true if the given resource path is a playable level scene.
+## Only paths under res://scenes/levels/ qualify — UI and other scenes are excluded.
+## @param scene_path: The scene_file_path of the current root scene.
+## @return: True if the path represents a level.
+func _is_level_scene(scene_path: String) -> bool:
+	return scene_path.begins_with("res://scenes/levels/") and scene_path.ends_with(".tscn")
 
 
 # ============================================================================
