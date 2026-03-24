@@ -2507,7 +2507,7 @@ func test_nav_mode_wall_avoidance_weight_is_reduced_issue_1457() -> void:
 		"Issue #1457: nav-mode max weight (%.3f) must be < 0.5 so nav path dominates" % nav_max_weight)
 
 
-## Issue #1457: Verify _apply_wall_avoidance_nav_mode exists in enemy.gd source.
+## Issue #1457: Verify reduced-weight wall avoidance is applied in _move_to_target_nav.
 func test_nav_mode_avoidance_function_exists_in_source_issue_1457() -> void:
 	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
 	if file == null:
@@ -2517,11 +2517,11 @@ func test_nav_mode_avoidance_function_exists_in_source_issue_1457() -> void:
 	var source := file.get_as_text()
 	file.close()
 
-	assert_true(source.contains("func _apply_wall_avoidance_nav_mode"),
-		"Issue #1457: _apply_wall_avoidance_nav_mode function must exist in enemy.gd")
+	assert_true(source.contains("weight_scale"),
+		"Issue #1457: _apply_wall_avoidance must have a weight_scale parameter for nav-guided mode")
 	assert_true(source.contains("_pursuing_stuck_timer"),
 		"Issue #1457: _pursuing_stuck_timer variable must exist in enemy.gd")
 	assert_true(source.contains("PURSUING_STUCK_MAX_TIME"),
 		"Issue #1457: PURSUING_STUCK_MAX_TIME constant must exist in enemy.gd")
-	assert_true(source.contains("_apply_wall_avoidance_nav_mode(direction)"),
-		"Issue #1457: _move_to_target_nav must call _apply_wall_avoidance_nav_mode")
+	assert_true(source.contains("_apply_wall_avoidance(direction, 0.5)"),
+		"Issue #1457: _move_to_target_nav must call _apply_wall_avoidance with 0.5 weight_scale")

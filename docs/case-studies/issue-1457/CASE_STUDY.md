@@ -164,9 +164,9 @@ normal pursuit behavior (the enemy still navigates normally).
 
 ### Solution B: Reduce Wall Avoidance Weight When Using NavigationAgent2D
 
-Add an `_apply_wall_avoidance_nav_mode(direction)` variant that uses reduced weight
-(e.g., 0.3 instead of 0.7) for nav-agent-guided movement, since the nav mesh already
-provides wall margin.
+Add a `weight_scale` parameter to `_apply_wall_avoidance(direction, weight_scale=1.0)`
+so callers can pass `0.5` for nav-agent-guided movement, since the nav mesh already
+provides wall margin (avoids over-steering without a separate function).
 
 ### Solution C: `NavigationAgent2D.path_postprocessing = CORRIDORFUNNEL` (Already Default)
 

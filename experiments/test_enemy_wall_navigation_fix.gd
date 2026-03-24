@@ -2,7 +2,7 @@
 ## Verifies that:
 ## 1. PURSUING_STUCK_MAX_TIME and PURSUING_STUCK_DIST_THRESHOLD constants exist
 ## 2. _pursuing_stuck_timer and _pursuing_stuck_last_pos variables exist
-## 3. _apply_wall_avoidance_nav_mode function exists and returns a direction
+## 3. _apply_wall_avoidance accepts a weight_scale param (0.5 for nav-guided movement)
 ## 4. The fix doesn't break the enemy state machine (can still transition)
 ##
 ## Usage: Run in Godot with GUT addon or as a standalone script.

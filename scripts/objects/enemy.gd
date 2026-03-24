@@ -2235,24 +2235,15 @@ func _process_pursuing_state(delta: float) -> void:
 		# Corner checking during PURSUING (Issue #332)
 		if velocity.length_squared() > 1.0:
 			_process_corner_check(delta, velocity.normalized(), "PURSUING")
-
-		# Issue #1457: Fast stuck detection — reroute if wall-caught for PURSUING_STUCK_MAX_TIME
-		if global_position.distance_to(_pursuing_stuck_last_pos) < PURSUING_STUCK_DIST_THRESHOLD:
+		if global_position.distance_to(_pursuing_stuck_last_pos) < PURSUING_STUCK_DIST_THRESHOLD:  # Issue #1457: fast stuck detection
 			_pursuing_stuck_timer += delta
 			if _pursuing_stuck_timer >= PURSUING_STUCK_MAX_TIME:
-				_log_to_file("[#1457] PURSUING stuck (%.1fs) at %s, rerouting" % [_pursuing_stuck_timer, global_position])
-				_pursuing_stuck_timer = 0.0
-				_pursuing_stuck_last_pos = global_position
-				_has_pursuit_cover = false  # Force cover re-search
+				_log_to_file("[#1457] PURSUING stuck (%.1fs) at %s, rerouting" % [_pursuing_stuck_timer, global_position]); _pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position
 				_find_pursuit_cover_toward_player()
 				if not _has_pursuit_cover:
-					if _can_attempt_flanking() and _player:
-						_transition_to_flanking()
-					else:
-						_transition_to_combat()
-		else:
-			_pursuing_stuck_timer = 0.0
-			_pursuing_stuck_last_pos = global_position
+					if _can_attempt_flanking() and _player: _transition_to_flanking()
+					else: _transition_to_combat()
+		else: _pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position
 		return
 
 	# No cover and no pursuit target - find initial pursuit cover
@@ -2818,9 +2809,7 @@ func _transition_to_pursuing() -> void:
 	# Reset global stuck detection (Issue #367)
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
-	# Reset PURSUING stuck detection (Issue #1457)
-	_pursuing_stuck_timer = 0.0
-	_pursuing_stuck_last_pos = global_position
+	_pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position  ## Issue #1457: Reset PURSUING stuck detection
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
@@ -3585,29 +3574,11 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 
 	return avoidance.normalized() if avoidance.length() > 0 else Vector2.ZERO
 
-## Apply wall avoidance to a movement direction. Returns adjusted direction.
-func _apply_wall_avoidance(direction: Vector2) -> Vector2:
+## Apply wall avoidance to a movement direction. weight_scale multiplies avoidance weight (use 0.5 for nav-guided movement where navmesh margin prevents over-steering). Returns adjusted direction.
+func _apply_wall_avoidance(direction: Vector2, weight_scale: float = 1.0) -> Vector2:
 	var avoidance: Vector2 = _check_wall_ahead(direction)
-	if avoidance == Vector2.ZERO:
-		return direction
-
-	var weight: float = _get_wall_avoidance_weight(direction)
-	# Blend original direction with avoidance, stronger avoidance when close to walls
-	return (direction * (1.0 - weight) + avoidance * weight).normalized()
-
-## Issue #1457: Apply wall avoidance optimised for nav-agent-guided movement.
-## The NavigationAgent2D already keeps the path ≥ agent_radius (24px) from walls, so the
-## standard 60px look-ahead over-steers in corridors and causes wall-rubbing oscillation.
-## This variant uses a reduced weight cap so the nav path dominates direction in corridors.
-## The Issue #1107 collision-escape logic in _move_to_target_nav handles genuine wall contacts.
-func _apply_wall_avoidance_nav_mode(direction: Vector2) -> Vector2:
-	var avoidance: Vector2 = _check_wall_ahead(direction)
-	if avoidance == Vector2.ZERO:
-		return direction
-	# Use half the normal avoidance weight to let the nav agent's computed path dominate.
-	# The standard weight reaches 0.7 (very close) to 0.3 (far). In nav mode we cap at 0.3
-	# so corridor walls that are already accounted for by the nav mesh don't over-steer.
-	var weight: float = _get_wall_avoidance_weight(direction) * 0.5
+	if avoidance == Vector2.ZERO: return direction
+	var weight: float = _get_wall_avoidance_weight(direction) * weight_scale
 	return (direction * (1.0 - weight) + avoidance * weight).normalized()
 
 ## Calculate wall avoidance weight based on distance to nearest wall.
@@ -4770,10 +4741,7 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 		target_pos = _tactical_group.get_adjusted_target(target_pos, get_physics_process_delta_time())
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
-	# Issue #1457: Use reduced-weight wall avoidance when nav agent is guiding movement.
-	# The navmesh already has agent_radius margin (24px), so strong avoidance at 60px conflicts
-	# with the computed path in corridors and causes wall-rubbing oscillation.
-	direction = _apply_wall_avoidance_nav_mode(direction)
+	direction = _apply_wall_avoidance(direction, 0.5)  # Issue #1457: half-weight avoidance for nav-guided movement (navmesh margin prevents over-steering)
 	# Issue #1107: Corner escape — use escape-dominant weight (1.5) when wall opposes nav dir
 	var _esc: Vector2 = Vector2.ZERO
 	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
