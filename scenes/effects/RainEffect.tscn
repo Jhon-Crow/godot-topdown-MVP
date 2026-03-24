@@ -1,0 +1,42 @@
+[gd_scene load_steps=5 format=3 uid="uid://rain_effect_scene_1394"]
+
+[ext_resource type="Script" path="res://scripts/effects/rain_effect.gd" id="1_rain_effect"]
+
+[sub_resource type="Gradient" id="Gradient_rain"]
+offsets = PackedFloat32Array(0, 0.4, 1)
+colors = PackedColorArray(0.6, 0.7, 0.85, 0.0, 0.5, 0.6, 0.75, 0.5, 0.4, 0.5, 0.65, 0.0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_rain"]
+gradient = SubResource("Gradient_rain")
+width = 2
+height = 12
+fill_from = Vector2(0.5, 0)
+fill_to = Vector2(0.5, 1)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_rain"]
+lifetime_randomness = 0.3
+particle_flag_disable_z = true
+emission_shape = 3
+emission_box_extents = Vector3(700, 10, 0)
+direction = Vector3(0.15, 1, 0)
+spread = 8.0
+initial_velocity_min = 400.0
+initial_velocity_max = 600.0
+gravity = Vector3(20, 800, 0)
+scale_min = 0.8
+scale_max = 1.5
+color = Color(0.55, 0.65, 0.8, 0.35)
+
+[node name="RainEffect" type="GPUParticles2D"]
+emitting = false
+amount = 120
+process_material = SubResource("ParticleProcessMaterial_rain")
+texture = SubResource("GradientTexture2D_rain")
+lifetime = 1.2
+visibility_rect = Rect2(-800, -100, 1600, 900)
+script = ExtResource("1_rain_effect")
+min_interval = 30.0
+max_interval = 90.0
+min_duration = 10.0
+max_duration = 30.0
+start_raining = false
