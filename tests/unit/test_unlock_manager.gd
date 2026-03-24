@@ -26,6 +26,9 @@ class MockProgressManager:
 		var key: String = "%s:%s" % [level_path, difficulty_name]
 		_progress[key] = rank
 
+	func get_all_progress() -> Dictionary:
+		return _progress.duplicate()
+
 	func fire_progress_updated(level_path: String, difficulty_name: String) -> void:
 		progress_updated.emit(level_path, difficulty_name)
 
@@ -72,7 +75,8 @@ class MockActiveItemManager:
 		14: true,  # AUTO_RELOAD — no condition, freely available from start (Issue #1067)
 		15: true,  # DRILLING_BULLETS — no condition, freely available from start (Issue #751)
 		16: true,  # RECOIL_COMPENSATOR — no condition, freely available from start (Issue #1073)
-		17: false  # COMBAT_DISPOSITION — condition: complete any level without damage (Issue #1389)
+		17: false, # COMBAT_DISPOSITION — condition: complete any level without damage (Issue #1389)
+		18: false  # EXPERIMENTAL_SAMPLE — condition: one level on every difficulty (Issue #1426)
 	}
 
 	var unlocked_signals: Array = []
@@ -201,6 +205,15 @@ class TestableUnlockManager extends Node:
 		}
 	]
 
+	const ALL_DIFFICULTIES_UNLOCK_CONDITIONS: Array[Dictionary] = [
+		{
+			# Complete at least one level on each difficulty → unlock Experimental Sample (Issue #1426)
+			"weapons": [],
+			"grenades": [],
+			"active_items": [18]  # EXPERIMENTAL_SAMPLE
+		}
+	]
+
 	var mock_progress_manager: MockProgressManager
 	var mock_game_manager: MockGameManager
 	var mock_active_item_manager: MockActiveItemManager
@@ -278,6 +291,23 @@ class TestableUnlockManager extends Node:
 				return false
 		return true
 
+	func _get_all_difficulty_names() -> Array[String]:
+		return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
+
+	func is_all_difficulties_condition_met() -> bool:
+		if mock_progress_manager == null:
+			return false
+		var all_progress: Dictionary = mock_progress_manager.get_all_progress()
+		for difficulty_name in _get_all_difficulty_names():
+			var found: bool = false
+			for key in all_progress:
+				if key.ends_with(":" + difficulty_name):
+					found = true
+					break
+			if not found:
+				return false
+		return true
+
 	func is_weapon_condition_met(weapon_id: String) -> bool:
 		for condition_key in UNLOCK_CONDITIONS:
 			var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
@@ -287,6 +317,10 @@ class TestableUnlockManager extends Node:
 		for multi_condition in MULTI_UNLOCK_CONDITIONS:
 			if weapon_id in multi_condition.get("weapons", []):
 				if is_multi_condition_met(multi_condition):
+					return true
+		for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+			if weapon_id in all_diff_condition.get("weapons", []):
+				if is_all_difficulties_condition_met():
 					return true
 		return false
 
@@ -300,6 +334,10 @@ class TestableUnlockManager extends Node:
 			if item_type in multi_condition.get("active_items", []):
 				if is_multi_condition_met(multi_condition):
 					return true
+		for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+			if item_type in all_diff_condition.get("active_items", []):
+				if is_all_difficulties_condition_met():
+					return true
 		return false
 
 	func is_grenade_condition_met(grenade_type: int) -> bool:
@@ -311,6 +349,10 @@ class TestableUnlockManager extends Node:
 		for multi_condition in MULTI_UNLOCK_CONDITIONS:
 			if grenade_type in multi_condition.get("grenades", []):
 				if is_multi_condition_met(multi_condition):
+					return true
+		for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+			if grenade_type in all_diff_condition.get("grenades", []):
+				if is_all_difficulties_condition_met():
 					return true
 		return false
 
@@ -332,6 +374,11 @@ class TestableUnlockManager extends Node:
 		for multi_condition in MULTI_UNLOCK_CONDITIONS:
 			if mock_active_item_manager:
 				for item_type in multi_condition.get("active_items", []):
+					if item_type in mock_active_item_manager.unlocked_active_items:
+						mock_active_item_manager.unlocked_active_items[item_type] = false
+		for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+			if mock_active_item_manager:
+				for item_type in all_diff_condition.get("active_items", []):
 					if item_type in mock_active_item_manager.unlocked_active_items:
 						mock_active_item_manager.unlocked_active_items[item_type] = false
 
@@ -384,6 +431,10 @@ class TestableUnlockManager extends Node:
 			for item_type in multi_condition.get("active_items", []):
 				if item_type not in result and mock_active_item_manager.unlocked_active_items.get(item_type, false):
 					result.append(item_type)
+		for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+			for item_type in all_diff_condition.get("active_items", []):
+				if item_type not in result and mock_active_item_manager.unlocked_active_items.get(item_type, false):
+					result.append(item_type)
 		return result
 
 	func _restore_saved_unlocks(
@@ -434,6 +485,13 @@ class TestableUnlockManager extends Node:
 				for item_type in multi_condition.get("active_items", []):
 					if not mock_active_item_manager.is_active_item_unlocked(item_type):
 						return true
+
+		if is_all_difficulties_condition_met():
+			for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+				if mock_active_item_manager:
+					for item_type in all_diff_condition.get("active_items", []):
+						if not mock_active_item_manager.is_active_item_unlocked(item_type):
+							return true
 
 		return false
 
@@ -1131,3 +1189,102 @@ func test_has_available_unlock_after_new_level_completion() -> void:
 
 	assert_true(unlock_manager.has_any_available_unlock(),
 		"After Castle F completion: revolver is available to unlock")
+
+
+# ============================================================================
+# All-difficulties condition tests (Issue #1426 — Experimental Sample)
+# ============================================================================
+
+
+func test_all_difficulties_condition_not_met_when_no_progress() -> void:
+	assert_false(unlock_manager.is_all_difficulties_condition_met(),
+		"All-difficulties condition should not be met when no levels completed")
+
+
+func test_all_difficulties_condition_not_met_when_only_some_difficulties() -> void:
+	# Only Easy and Normal — missing Hard, Power Fantasy, Black Metal
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	assert_false(unlock_manager.is_all_difficulties_condition_met(),
+		"All-difficulties condition should not be met when only 2 of 5 difficulties have progress")
+
+
+func test_all_difficulties_condition_met_when_all_five_difficulties_have_progress() -> void:
+	# Complete one level on each of the 5 difficulties (can be different levels)
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
+	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Black Metal", "D")
+	assert_true(unlock_manager.is_all_difficulties_condition_met(),
+		"All-difficulties condition should be met when at least one level completed on each difficulty")
+
+
+func test_all_difficulties_condition_met_with_same_level_on_all_difficulties() -> void:
+	# Same level completed on every difficulty
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "S")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "A")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Hard", "B")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Power Fantasy", "C")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Black Metal", "D")
+	assert_true(unlock_manager.is_all_difficulties_condition_met(),
+		"All-difficulties condition should be met when same level completed on all difficulties")
+
+
+func test_experimental_sample_active_item_condition_met_when_all_difficulties_complete() -> void:
+	# Complete one level on each difficulty — EXPERIMENTAL_SAMPLE (type 18) condition should be met
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
+	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Black Metal", "D")
+	assert_true(unlock_manager.is_active_item_condition_met(18),
+		"EXPERIMENTAL_SAMPLE condition should be met when all difficulties have progress (Issue #1426)")
+
+
+func test_experimental_sample_condition_not_met_before_all_difficulties() -> void:
+	# Only 4 difficulties — condition not met yet
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
+	# Missing Black Metal
+	assert_false(unlock_manager.is_active_item_condition_met(18),
+		"EXPERIMENTAL_SAMPLE condition should NOT be met when Black Metal difficulty is missing (Issue #1426)")
+
+
+func test_has_available_unlock_when_all_difficulties_condition_met() -> void:
+	# Complete one level on each difficulty — Experimental Sample should appear as available
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
+	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Black Metal", "D")
+	assert_true(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return true when Experimental Sample is unlockable (Issue #1426)")
+
+
+func test_experimental_sample_stays_unlocked_after_restart_when_condition_met() -> void:
+	# Simulate saved state: all difficulties done and EXPERIMENTAL_SAMPLE (18) already unlocked
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
+	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Black Metal", "D")
+	active_item_manager.unlocked_active_items[18] = true  # Saved as unlocked
+
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_true(active_item_manager.is_active_item_unlocked(18),
+		"EXPERIMENTAL_SAMPLE should remain unlocked after restart when all-difficulties condition is met (Issue #1426)")
+
+
+func test_experimental_sample_stays_locked_after_restart_when_condition_not_met() -> void:
+	# Corrupt save: EXPERIMENTAL_SAMPLE saved as unlocked but not all difficulties are done
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	active_item_manager.unlocked_active_items[18] = true  # Corrupt save
+
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_false(active_item_manager.is_active_item_unlocked(18),
+		"EXPERIMENTAL_SAMPLE should be locked — all-difficulties condition not met, treating save as corrupt (Issue #1426)")

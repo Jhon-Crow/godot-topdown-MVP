@@ -190,6 +190,30 @@ var roguelike_run_weapon: String = ""
 ## Used to prevent the same item from appearing on a pedestal twice in one run.
 var roguelike_offered_items: Array = []
 
+## ── Branching room map state (Issue #1399) ───────────────────────────────
+## Each level generates an Isaac-style grid map of rooms with branching paths.
+## Players can navigate freely between connected rooms and skip optional ones.
+
+## Array of room dictionaries for the current level.
+## Each entry: {grid_pos: Vector2i, room_type: int, connections: Array[int],
+##              map_room_type: String, cleared: bool, visited: bool}
+## map_room_type is one of: "start", "combat", "treasure", "exit"
+## connections is an array of room indices this room connects to.
+var roguelike_room_map: Array = []
+
+## Index into roguelike_room_map for the room currently being played.
+var roguelike_current_map_room: int = 0
+
+## Set of room indices that have been visited (so minimap can show them).
+var roguelike_visited_rooms: Array = []
+
+## Target room index when player enters a door (used during scene reload).
+var roguelike_target_room: int = -1
+
+## Source room index — the room player was in before navigating (Issue #1399).
+## Used to determine spawn position in the new room.
+var roguelike_source_room: int = -1
+
 ## Resets all roguelike session variables to their default (not-in-run) state.
 func roguelike_reset_session() -> void:
 	roguelike_active = false
@@ -205,6 +229,11 @@ func roguelike_reset_session() -> void:
 	roguelike_in_treasure_room = false
 	roguelike_run_weapon = ""
 	roguelike_offered_items = []
+	roguelike_room_map = []
+	roguelike_current_map_room = 0
+	roguelike_visited_rooms = []
+	roguelike_target_room = -1
+	roguelike_source_room = -1
 
 
 func _ready() -> void:

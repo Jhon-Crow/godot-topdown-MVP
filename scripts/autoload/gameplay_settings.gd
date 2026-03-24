@@ -18,6 +18,10 @@ var blood_amount: float = 1.0
 ## When disabled, no dust particles are spawned — improves FPS on low-end hardware.
 var wall_hit_particles_enabled: bool = true
 
+## Whether revolver aim assist (slight bullet homing) is enabled (Issue #1332).
+## When enabled (default), revolver bullets gently steer toward enemies near the crosshair.
+var revolver_aim_assist_enabled: bool = true
+
 ## Settings file path for persistence.
 const SETTINGS_PATH: String = "user://gameplay_settings.cfg"
 
@@ -30,7 +34,7 @@ const MAX_BLOOD_AMOUNT: float = 3.0
 
 func _ready() -> void:
 	_load_settings()
-	_log_to_file("GameplaySettings initialized - blood_amount: %.2f, wall_hit_particles: %s" % [blood_amount, wall_hit_particles_enabled])
+	_log_to_file("GameplaySettings initialized - blood_amount: %.2f, wall_hit_particles: %s, revolver_aim_assist: %s" % [blood_amount, wall_hit_particles_enabled, revolver_aim_assist_enabled])
 
 
 ## Sets the blood amount multiplier.
@@ -64,11 +68,27 @@ func is_wall_hit_particles_enabled() -> bool:
 	return wall_hit_particles_enabled
 
 
+## Sets whether revolver aim assist (slight bullet homing) is enabled (Issue #1332).
+## @param enabled: true to enable aim assist, false to disable it.
+func set_revolver_aim_assist_enabled(enabled: bool) -> void:
+	if revolver_aim_assist_enabled != enabled:
+		revolver_aim_assist_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Revolver aim assist %s" % ("enabled" if enabled else "disabled"))
+
+
+## Returns whether revolver aim assist is enabled (Issue #1332).
+func is_revolver_aim_assist_enabled() -> bool:
+	return revolver_aim_assist_enabled
+
+
 ## Saves settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
 	config.set_value("gameplay", "blood_amount", blood_amount)
 	config.set_value("gameplay", "wall_hit_particles_enabled", wall_hit_particles_enabled)
+	config.set_value("gameplay", "revolver_aim_assist_enabled", revolver_aim_assist_enabled)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("GameplaySettings: Failed to save settings: " + str(error))
@@ -82,9 +102,11 @@ func _load_settings() -> void:
 		blood_amount = config.get_value("gameplay", "blood_amount", 1.0)
 		blood_amount = clamp(blood_amount, MIN_BLOOD_AMOUNT, MAX_BLOOD_AMOUNT)
 		wall_hit_particles_enabled = config.get_value("gameplay", "wall_hit_particles_enabled", true)
+		revolver_aim_assist_enabled = config.get_value("gameplay", "revolver_aim_assist_enabled", true)
 	else:
 		blood_amount = 1.0
 		wall_hit_particles_enabled = true
+		revolver_aim_assist_enabled = true
 
 
 ## Logs a message via FileLogger if available.

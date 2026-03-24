@@ -48,8 +48,9 @@ var collected_passive_items: Array = []
 ## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S),
 ## TRAJECTORY_GLASSES (City D+), LASER_SIGHT (1000 kills without laser sight equipped),
 ## FINE_MOTOR_SKILLS (650 shots with shotgun, sniper rifle, or revolver),
-## ARMORED_SKIN (100 total deaths), and COMBAT_DISPOSITION (1 kill without laser sight)
-## have unlock conditions (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346, Issue #1389).
+## ARMORED_SKIN (100 total deaths), COMBAT_DISPOSITION (complete 1 level without damage),
+## and EXPERIMENTAL_SAMPLE (complete at least one level on every difficulty)
+## have unlock conditions (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346, Issue #1389, Issue #1426).
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
 	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
@@ -69,7 +70,7 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.DRILLING_BULLETS: true,     # No unlock condition — freely available from start (Issue #751)
 	ActiveItemType.RECOIL_COMPENSATOR: true,   # No unlock condition — freely available from start (Issue #1073)
 	ActiveItemType.COMBAT_DISPOSITION: false,  # Condition: complete 1 level without taking damage (Issue #1389)
-	ActiveItemType.EXPERIMENTAL_SAMPLE: true,   # No unlock condition — freely available from start (Issue #1127)
+	ActiveItemType.EXPERIMENTAL_SAMPLE: false,   # Condition: complete at least one level on every difficulty (Issue #1426)
 	ActiveItemType.FINE_MOTOR_SKILLS: false,    # Condition: 300 shots with shotgun, sniper rifle, or revolver (Issue #1346)
 	ActiveItemType.DASH: true                   # No unlock condition — freely available from start (Issue #1071)
 }
