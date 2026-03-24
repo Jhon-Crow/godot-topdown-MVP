@@ -21,6 +21,8 @@ const COLLISION_DOT_RADIUS := 4.0
 const RAY_LINE_WIDTH := 1.5
 ## Width of the player-to-cover LOS line.
 const LOS_LINE_WIDTH := 2.0
+## Max display length for non-colliding rays (Issue #1378: infinite rays would draw 10 000 px lines).
+const RAY_DISPLAY_MAX_LENGTH := 800.0
 
 ## The overlay node used for custom drawing.
 var _overlay: _CoverRaycastOverlay = null
@@ -67,7 +69,7 @@ func _ensure_overlay() -> void:
 	if _overlay != null and is_instance_valid(_overlay):
 		return
 	_overlay = _CoverRaycastOverlay.new()
-	get_tree().root.add_child(_overlay)
+	add_child(_overlay)
 	_log("CoverRaycastMonitor: overlay created")
 
 
@@ -97,10 +99,18 @@ class _CoverRaycastOverlay extends CanvasLayer:
 	var _draw_node: _CoverRaycastDrawNode = null
 
 	func _init() -> void:
-		layer = 10
+		# Issue #1392: raised above visual effects (layers 97-103) to remain visible.
+		layer = 150
 		follow_viewport_enabled = true
 		_draw_node = _CoverRaycastDrawNode.new()
 		add_child(_draw_node)
+		# Issue #1392: diagnostic label
+		var _diag_label := Label.new()
+		_diag_label.text = "[CoverRaycast overlay active]"
+		_diag_label.position = Vector2(10, 70)
+		_diag_label.add_theme_color_override("font_color", Color(1, 0.5, 0, 1))
+		_diag_label.add_theme_font_size_override("font_size", 14)
+		add_child(_diag_label)
 
 	## Collect cover raycast data from all active enemies and pass to the draw node.
 	func refresh() -> void:
@@ -169,8 +179,11 @@ class _CoverRaycastDrawNode extends Node2D:
 					# Small dot at collision point
 					draw_circle(point, CoverRaycastMonitor.COLLISION_DOT_RADIUS, Color(1.0, 0.8, 0.0, 0.7))
 				else:
-					# Thin gray line for miss
-					draw_line(origin, target, Color(0.5, 0.5, 0.5, 0.2), CoverRaycastMonitor.RAY_LINE_WIDTH * 0.5)
+					# Thin gray line for miss — clamp display length so infinite rays (10 000 px) don't
+					# draw far off-screen and make the overlay unreadable (Issue #1378).
+					var dir := (target - origin)
+					var display_target := origin + dir.normalized() * minf(dir.length(), CoverRaycastMonitor.RAY_DISPLAY_MAX_LENGTH)
+					draw_line(origin, display_target, Color(0.5, 0.5, 0.5, 0.2), CoverRaycastMonitor.RAY_LINE_WIDTH * 0.5)
 
 			# Draw chosen cover position
 			if cover_valid:

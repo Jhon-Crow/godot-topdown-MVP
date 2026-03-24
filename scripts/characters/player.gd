@@ -376,6 +376,8 @@ func _ready() -> void:
 
 	# Initialize fine motor skills if active item manager has it selected (Issue #1315)
 	_init_fine_motor_skills()
+	# Initialize dash if active item manager has it selected (Issue #1071)
+	_init_dash()
 
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
@@ -408,12 +410,11 @@ func _physics_process(delta: float) -> void:
 
 	var input_direction := _get_input_direction()
 
-	if input_direction != Vector2.ZERO:
-		# Apply acceleration towards the input direction
-		velocity = velocity.move_toward(input_direction * max_speed, acceleration * delta)
-	else:
-		# Apply friction to slow down
-		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
+	if not is_dash_active():
+		if input_direction != Vector2.ZERO:
+			velocity = velocity.move_toward(input_direction * max_speed, acceleration * delta)
+		else:
+			velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
 
 	move_and_slide()
 
@@ -525,6 +526,8 @@ func _physics_process(delta: float) -> void:
 
 	# Handle fine motor skills input (press Space to instantly reload) (Issue #1315)
 	_handle_fine_motor_skills_input()
+	# Handle dash input (press Space to dash) (Issue #1071)
+	_handle_dash_input()
 
 	# Update jammer HUD icon visibility (Issue #1036)
 	_update_jammer_hud()
@@ -1071,6 +1074,10 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	if not _is_alive:
 		return
 
+	# Check dash immunity (Issue #1071)
+	if is_dash_active():
+		FileLogger.info("[Player] Hit blocked by dash immunity")
+		return
 	# Check force field protection (Issue #676)
 	if is_force_field_active():
 		FileLogger.info("[Player] Hit blocked by force field")
@@ -3600,10 +3607,7 @@ func _init_breaker_bullets() -> void:
 	_breaker_bullets_active = true
 	FileLogger.info("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls")
 
-# ============================================================================
 # Force Field (Issue #676)
-# ============================================================================
-
 ## Whether force field is equipped.
 var _force_field_equipped: bool = false
 
@@ -3668,10 +3672,7 @@ func _handle_force_field_input(delta: float) -> void:
 func is_force_field_active() -> bool:
 	return _force_field_equipped and _force_field != null and _force_field.is_protecting()
 
-# ============================================================================
 # Trajectory Glasses (Issue #744)
-# ============================================================================
-
 ## Preload the trajectory glasses effect script.
 const TrajectoryGlassesEffectScript = preload("res://scripts/effects/trajectory_glasses_effect.gd")
 
@@ -3823,10 +3824,7 @@ func is_trajectory_glasses_active() -> bool:
 func get_trajectory_glasses() -> Node:
 	return _trajectory_glasses
 
-# ============================================================================
 # Radio Jammer HUD (Issue #1036)
-# ============================================================================
-
 ## Preloaded jammer HUD script (prohibition sign shown when active items are jammed).
 const JammerHudScript = preload("res://scripts/ui/jammer_hud.gd")
 
@@ -3902,10 +3900,7 @@ func get_loudspeaker_progress() -> LoudspeakerProgress:
 		return _loudspeaker_component.get_loudspeaker_progress()
 	return null
 
-# ============================================================================
 # Active Item Progress Bar (Issue #700)
-# ============================================================================
-
 ## Reference to the progress bar node displayed above the player.
 var _active_item_progress_bar: Node2D = null
 
@@ -4033,10 +4028,7 @@ func _on_homing_deactivated_hide_bar() -> void:
 func _on_homing_charges_changed(_current: int, _maximum: int) -> void:
 	pass
 
-# ============================================================================
 # Breaching Charges (Issue #1043)
-# ============================================================================
-
 ## Preload the breaching charges effect script.
 const BreachingChargesEffectScript = preload("res://scripts/effects/breaching_charges_effect.gd")
 
@@ -4154,10 +4146,7 @@ func _on_breaching_charges_changed(current: int, maximum: int) -> void:
 func get_breaching_charges() -> Node:
 	return _breaching_charges
 
-# ============================================================================
 # Armored Skin (Issue #1045)
-# ============================================================================
-
 ## Whether armored skin is active (passive item, Issue #1045).
 var _armored_skin_active: bool = false
 
@@ -4229,10 +4218,7 @@ func _spawn_armored_skin_shards() -> void:
 		parent.add_child(shard)
 		shard.global_position = global_position
 
-# ============================================================================
 # Item Visual System (Issue #1142)
-# ============================================================================
-
 ## Connect to active_item_changed signal for roguelike pedestal pickup (Issue #1325).
 func _connect_active_item_changed_signal() -> void:
 	var aim: Node = get_node_or_null("/root/ActiveItemManager")
@@ -4260,6 +4246,8 @@ func _deequip_all_active_items() -> void:
 	_armored_skin_active = false; _recoil_compensator_equipped = false
 	_experimental_sample_equipped = false
 	_fine_motor_skills_equipped = false; _fine_motor_skills_active = false
+	if _dash_effect != null and is_instance_valid(_dash_effect): _dash_effect.queue_free()
+	_dash_effect = null; _dash_equipped = false
 
 ## Initialise the newly picked-up item subsystem (Issue #1325, #1317).
 func _on_active_item_picked_up(item_type: int) -> void:
@@ -4282,6 +4270,7 @@ func _on_active_item_picked_up(item_type: int) -> void:
 		16: _init_recoil_compensator()
 		18: _init_experimental_sample()
 		19: _init_fine_motor_skills()
+		20: _init_dash()
 
 ## Apply a passive visual effect to the player based on the equipped active item.
 ## Single entry point for item-specific player visuals; called once from _ready().
@@ -4295,17 +4284,10 @@ func _apply_item_visual() -> void:
 			_apply_armored_skin_visual()
 	FileLogger.info("[Player.ItemVisual] Visual applied for item type: %d" % item_type)
 
-# ============================================================================
 # Recoil Compensator (Issue #1073)
-# ============================================================================
-
-## Whether the recoil compensator is equipped.
 var _recoil_compensator_equipped: bool = false
-## Whether the recoil compensator is currently active (Space held and charge > 0).
 var _recoil_compensator_active: bool = false
-## Remaining charge in seconds (max 15 seconds).
 var _recoil_compensator_charge: float = 0.0
-## Maximum charge duration in seconds.
 const RECOIL_COMPENSATOR_MAX_CHARGE: float = 15.0
 ## Fire rate multiplier when compensator is active (10% boost).
 const RECOIL_COMPENSATOR_FIRE_RATE_BOOST: float = 1.1
@@ -4356,15 +4338,9 @@ func _handle_recoil_compensator_input(delta: float) -> void:
 func is_recoil_compensator_active() -> bool:
 	return _recoil_compensator_equipped and _recoil_compensator_active
 
-# ============================================================================
 # Experimental Sample (Issue #1127)
-# ============================================================================
-
-## Whether the experimental sample is equipped.
 var _experimental_sample_equipped: bool = false
-## Remaining experimental sample charges (1–5 per battle, randomised on level start).
 var _experimental_sample_charges: int = 0
-## Minimum / maximum charges per battle.
 const EXPERIMENTAL_SAMPLE_MIN_CHARGES: int = 1
 const EXPERIMENTAL_SAMPLE_MAX_CHARGES: int = 5
 ## Preloaded icon popup script for the experimental sample (Issue #1127).
@@ -4506,13 +4482,8 @@ func get_max_experimental_sample_charges() -> int:
 
 # =========================================================================
 # Fine Motor Skills Active Item (Issue #1315)
-# =========================================================================
-
-## Whether fine motor skills item is equipped.
 var _fine_motor_skills_equipped: bool = false
-## Whether a fine motor skills reload sequence is currently in progress (Issue #1337).
 var _fine_motor_skills_active: bool = false
-## Delay before activation / between stages in seconds (Issue #1337). Set to 0 to disable.
 const FINE_MOTOR_SKILLS_ACTIVATION_DELAY: float = 0.2
 const FINE_MOTOR_SKILLS_STAGE_DELAY: float = 0.2
 
@@ -4625,3 +4596,33 @@ func _fine_motor_skills_complete_sniper_bolt(audio_manager: Node) -> void:
 	_is_reloading_sequence = false
 	_is_reloading_simple = false
 	reload_completed.emit()
+
+# Dash Active Item (Issue #1071)
+var _dash_effect: Node = null
+var _dash_equipped: bool = false
+const DASH_EFFECT_SCENE: String = "res://scenes/effects/DashEffect.tscn"
+func _init_dash() -> void:
+	var aim: Node = get_node_or_null("/root/ActiveItemManager")
+	if aim == null or not aim.has_method("has_dash"):
+		return
+	if not aim.has_dash():
+		return
+	var scene: PackedScene = load(DASH_EFFECT_SCENE) if ResourceLoader.exists(DASH_EFFECT_SCENE) else null
+	if scene:
+		_dash_effect = scene.instantiate()
+		add_child(_dash_effect)
+		_dash_effect.initialize(self)
+	_dash_equipped = true
+	FileLogger.info("[Player.Dash] Initialized — 3 charges, cooldown after all charges spent")
+func _handle_dash_input() -> void:
+	if not _dash_equipped or _dash_effect == null:
+		return
+	if not Input.is_action_just_pressed("flashlight_toggle"):
+		return
+	if ActiveItemManager.is_active_item_jammed_verbose():
+		return
+	# Always dash toward aim/cursor direction (not movement direction)
+	var dir := (get_global_mouse_position() - global_position).normalized()
+	_dash_effect.activate(dir)
+func is_dash_active() -> bool:
+	return _dash_equipped and _dash_effect != null and _dash_effect.is_dashing()

@@ -524,6 +524,14 @@ func _on_body_entered(body: Node2D) -> void:
 	if body.has_method("is_alive") and not body.is_alive():
 		return  # Pass through dead entities
 
+	# Issue #1413: Pass through ragdoll body parts of dead enemies.
+	# When an enemy dies, its death animation creates RigidBody2D ragdoll parts
+	# marked with the "dead_enemy_ragdoll" group. These parts have collision_layer=32
+	# which is included in the bullet's collision mask, causing bullets to stop on
+	# dead enemy bodies. Bullets should pass through ragdoll parts freely.
+	if body.is_in_group("dead_enemy_ragdoll"):
+		return  # Pass through dead enemy ragdoll parts
+
 	# Issue #829: If enemy penetration is enabled and this is an alive enemy CharacterBody2D,
 	# allow the bullet to pass through without being destroyed.
 	# The _on_area_entered handler takes care of dealing damage via the enemy's HitArea.

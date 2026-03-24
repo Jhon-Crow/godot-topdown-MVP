@@ -97,7 +97,8 @@ var _events: Array[SoundEvent] = []
 func _ready() -> void:
 	_canvas_layer = CanvasLayer.new()
 	_canvas_layer.name = "SoundVisualizerCanvas"
-	_canvas_layer.layer = 50
+	# Issue #1392: raised above visual effects (layers 97-103) to remain visible.
+	_canvas_layer.layer = 150
 	_canvas_layer.follow_viewport_enabled = true
 	add_child(_canvas_layer)
 
@@ -188,7 +189,7 @@ func _draw_event(ev: SoundEvent) -> void:
 		dc.a = dot_alpha
 		_draw_node.draw_circle(ev.position, ORIGIN_DOT_RADIUS, dc)
 
-	# 4. Labels (sound type + radius value) — anchored near the boundary.
+	# 4. Labels (sound type + radius value) — anchored near the origin.
 	if boundary_alpha > 0.1:
 		var font: Font = ThemeDB.fallback_font
 		if font:
@@ -198,9 +199,10 @@ func _draw_event(ev: SoundEvent) -> void:
 					HORIZONTAL_ALIGNMENT_LEFT, -1, 13,
 					Color(1.0, 1.0, 1.0, boundary_alpha))
 
-			# Radius value label — placed to the right of the boundary ring.
+			# Radius value label — placed near the origin so it stays on screen
+			# even when the boundary ring extends beyond the viewport (Issue #1429).
 			var radius_text: String = "%.0f px" % ev.max_radius
-			var radius_label_pos: Vector2 = ev.position + Vector2(ev.max_radius + 6.0, 0.0)
+			var radius_label_pos: Vector2 = ev.position + Vector2(ORIGIN_DOT_RADIUS + 5.0, 6.0)
 			var lc: Color = ev.color
 			lc.a = boundary_alpha
 			_draw_node.draw_string(font, radius_label_pos, radius_text,

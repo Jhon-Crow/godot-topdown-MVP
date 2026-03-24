@@ -140,8 +140,7 @@ var _player: Node2D = null
 ## HUD refs
 var _enemy_count_label:  Label = null
 var _ammo_label:         Label = null
-var _kills_label:        Label = null
-var _accuracy_label:     Label = null
+var _difficulty_label:   Label = null
 var _magazines_label:    Label = null
 var _combo_label:        Label = null
 var _room_progress_label: Label = null
@@ -1127,27 +1126,16 @@ func _setup_debug_ui() -> void:
 	_ammo_label.offset_bottom = 40
 	ui.add_child(_ammo_label)
 
-	# Kills (top-left, below ammo)
-	_kills_label = Label.new()
-	_kills_label.name = "KillsLabel"
-	_kills_label.text = "Kills: 0"
-	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left   = 10
-	_kills_label.offset_top    = 45
-	_kills_label.offset_right  = 200
-	_kills_label.offset_bottom = 75
-	ui.add_child(_kills_label)
-
-	# Accuracy
-	_accuracy_label = Label.new()
-	_accuracy_label.name = "AccuracyLabel"
-	_accuracy_label.text = "Accuracy: 0%"
-	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left   = 10
-	_accuracy_label.offset_top    = 75
-	_accuracy_label.offset_right  = 200
-	_accuracy_label.offset_bottom = 105
-	ui.add_child(_accuracy_label)
+	# Difficulty (top-left, below ammo)
+	_difficulty_label = Label.new()
+	_difficulty_label.name = "DifficultyLabel"
+	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_difficulty_label.offset_left   = 10
+	_difficulty_label.offset_top    = 45
+	_difficulty_label.offset_right  = 200
+	_difficulty_label.offset_bottom = 75
+	ui.add_child(_difficulty_label)
 
 	# Magazines
 	_magazines_label = Label.new()
@@ -2219,10 +2207,8 @@ func _update_magazines_label(mag_counts: Array) -> void:
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
-	if _kills_label:
-		_kills_label.text = "Kills: %d" % GameManager.kills
-	if _accuracy_label:
-		_accuracy_label.text = "Accuracy: %.1f%%" % GameManager.get_accuracy()
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 
 
 func _show_saturation_effect() -> void:
