@@ -826,11 +826,20 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 	name_label.add_theme_font_size_override("font_size", 11)
 	vbox.add_child(name_label)
 
-	# Tooltip - hidden for locked items
+	# Tooltip: description for unlocked items, unlock condition for locked items
 	if is_unlocked:
 		slot.tooltip_text = item_data.get("description", "")
 	else:
-		slot.tooltip_text = ""  # No tooltip for locked items
+		var unlock_desc: String = ""
+		if _unlock_manager:
+			if is_grenade:
+				var grenade_type: int = item_data.get("grenade_type", int(item_id))
+				if _unlock_manager.has_method("get_grenade_unlock_description"):
+					unlock_desc = _unlock_manager.get_grenade_unlock_description(grenade_type)
+			else:
+				if _unlock_manager.has_method("get_weapon_unlock_description"):
+					unlock_desc = _unlock_manager.get_weapon_unlock_description(item_id)
+		slot.tooltip_text = unlock_desc
 
 	# Make all items clickable (unlocked for selection, locked for unlocking)
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -920,11 +929,14 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 	name_label.add_theme_font_size_override("font_size", 11)
 	vbox.add_child(name_label)
 
-	# Tooltip - hidden for locked items
+	# Tooltip: description for unlocked items, unlock condition for locked items
 	if is_unlocked:
 		slot.tooltip_text = item_data.get("description", "")
 	else:
-		slot.tooltip_text = ""
+		var unlock_desc: String = ""
+		if _unlock_manager and _unlock_manager.has_method("get_active_item_unlock_description"):
+			unlock_desc = _unlock_manager.get_active_item_unlock_description(item_type)
+		slot.tooltip_text = unlock_desc
 
 	# Make all items clickable (unlocked for selection, locked for unlocking)
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
