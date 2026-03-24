@@ -1,0 +1,29 @@
+[gd_scene load_steps=5 format=3 uid="uid://drone_entity_1397"]
+
+[ext_resource type="Script" path="res://scripts/objects/drone.gd" id="1_drone"]
+[ext_resource type="Script" path="res://scripts/components/drone_component.gd" id="2_drone_comp"]
+[ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="3_hit_area"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_drone"]
+radius = 16.0
+
+[node name="Drone" type="CharacterBody2D" groups=["enemies"]]
+collision_layer = 2
+collision_mask = 6
+script = ExtResource("1_drone")
+
+[node name="DroneComponent" type="Node" parent="."]
+script = ExtResource("2_drone_comp")
+
+[node name="DroneModel" type="Node2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_drone")
+
+[node name="HitArea" type="Area2D" parent="."]
+collision_layer = 2
+collision_mask = 16
+script = ExtResource("3_hit_area")
+
+[node name="HitCollisionShape" type="CollisionShape2D" parent="HitArea"]
+shape = SubResource("CircleShape2D_drone")

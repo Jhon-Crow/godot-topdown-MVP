@@ -35,6 +35,8 @@ class MockEnemySpawner:
 		{"name": "Force Field (Rifle)", "weapon_type": 0, "behavior": 1, "has_force_field": true},
 		{"name": "Grenadier (Rifle)", "weapon_type": 0, "behavior": 1, "is_grenadier": true},
 		{"name": "Invisible (Rifle)", "weapon_type": 0, "behavior": 1, "start_invisible": true},
+		{"name": "Gas Mask Enemy", "weapon_type": 0, "behavior": 1, "is_gas_mask": true},
+		{"name": "Drone Operator", "weapon_type": 0, "behavior": 1, "is_drone_operator": true, "scene": "res://scenes/objects/EnemyDroneOperator.tscn"},
 	]
 
 	## Return a list of all weapon_type values present in the spawner.
@@ -143,10 +145,10 @@ func test_pm_entry_has_guard_behavior() -> void:
 # ============================================================================
 
 
-func test_spawner_has_at_least_fourteen_entries() -> void:
-	## 8 weapon types + 1 patrol variant + 5 special enemy types = minimum 14 entries.
-	assert_gte(MockEnemySpawner.TYPES.size(), 14,
-		"Spawner should have at least 14 entries (8 weapon types + patrol + 5 special types)")
+func test_spawner_has_at_least_sixteen_entries() -> void:
+	## 8 weapon types + 1 patrol variant + 7 special enemy types = minimum 16 entries.
+	assert_gte(MockEnemySpawner.TYPES.size(), 16,
+		"Spawner should have at least 16 entries (8 weapon types + patrol + 7 special types)")
 
 
 func test_all_entries_have_name_field() -> void:
@@ -168,11 +170,11 @@ func test_all_entries_have_behavior_field() -> void:
 
 
 func test_all_weapon_types_are_valid_enum_values() -> void:
-	## Valid values: 0–7 (matching WeaponType enum in enemy.gd).
+	## Valid values: 0–8 (matching WeaponType enum in enemy.gd: RIFLE=0 .. REVOLVER=8).
 	for entry in MockEnemySpawner.TYPES:
 		var wt: int = entry.get("weapon_type", -1)
-		assert_true(wt >= 0 and wt <= 7,
-			"weapon_type %d is outside the valid range 0–7" % wt)
+		assert_true(wt >= 0 and wt <= 8,
+			"weapon_type %d is outside the valid range 0–8" % wt)
 
 
 func test_spawner_source_contains_pm_entry() -> void:
@@ -412,3 +414,38 @@ func test_f8_spawn_source_applies_special_flags() -> void:
 	file.close()
 	assert_true(source.contains('enemy.set("is_teleporter"') or source.contains("enemy.set(\"is_teleporter\""),
 		"game_manager.gd F8 spawn must apply is_teleporter flag to enemy")
+
+
+# ============================================================================
+# Drone Operator spawner checks (Issue #1397)
+# ============================================================================
+
+
+func test_spawner_contains_drone_operator_entry() -> void:
+	var entries := spawner.get_entries_with_flag("is_drone_operator")
+	assert_gte(entries.size(), 1,
+		"Spawner must include at least one Drone Operator enemy entry")
+
+
+func test_spawner_source_contains_drone_operator_entry() -> void:
+	var file := FileAccess.open("res://scripts/ui/experimental_menu.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open experimental_menu.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("is_drone_operator"),
+		"experimental_menu.gd spawner list must contain an is_drone_operator entry")
+
+
+func test_f8_spawn_source_contains_drone_operator_entry() -> void:
+	var file := FileAccess.open("res://scripts/autoload/game_manager.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open game_manager.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("is_drone_operator"),
+		"game_manager.gd F8 spawn list must contain an is_drone_operator entry")
