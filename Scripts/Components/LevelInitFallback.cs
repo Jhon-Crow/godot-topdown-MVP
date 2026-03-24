@@ -490,9 +490,9 @@ public partial class LevelInitFallback : Node
             _killsLabel.Text = "Kills: 0";
             _killsLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
             _killsLabel.OffsetLeft = 10;
-            _killsLabel.OffsetTop = 70;
+            _killsLabel.OffsetTop = 80;
             _killsLabel.OffsetRight = 200;
-            _killsLabel.OffsetBottom = 100;
+            _killsLabel.OffsetBottom = 110;
             ui.AddChild(_killsLabel);
 
             _accuracyLabel = new Label();
@@ -500,9 +500,9 @@ public partial class LevelInitFallback : Node
             _accuracyLabel.Text = "Accuracy: 0%";
             _accuracyLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
             _accuracyLabel.OffsetLeft = 10;
-            _accuracyLabel.OffsetTop = 100;
+            _accuracyLabel.OffsetTop = 115;
             _accuracyLabel.OffsetRight = 200;
-            _accuracyLabel.OffsetBottom = 130;
+            _accuracyLabel.OffsetBottom = 145;
             ui.AddChild(_accuracyLabel);
         }
 
@@ -511,9 +511,9 @@ public partial class LevelInitFallback : Node
         _magazinesLabel.Text = "MAGS: -";
         _magazinesLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         _magazinesLabel.OffsetLeft = 10;
-        _magazinesLabel.OffsetTop = 125;
+        _magazinesLabel.OffsetTop = 150;
         _magazinesLabel.OffsetRight = 400;
-        _magazinesLabel.OffsetBottom = 155;
+        _magazinesLabel.OffsetBottom = 180;
         ui.AddChild(_magazinesLabel);
     }
 

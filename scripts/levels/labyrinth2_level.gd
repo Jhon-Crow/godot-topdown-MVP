@@ -616,9 +616,9 @@ func _setup_debug_ui() -> void:
 		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 		_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		_difficulty_label.offset_left = 10
-		_difficulty_label.offset_top = 45
+		_difficulty_label.offset_top = 80
 		_difficulty_label.offset_right = 200
-		_difficulty_label.offset_bottom = 75
+		_difficulty_label.offset_bottom = 110
 		ui.add_child(_difficulty_label)
 	_magazines_label = get_node_or_null("CanvasLayer/UI/MagazinesLabel")
 	_combo_label = get_node_or_null("CanvasLayer/UI/ComboLabel")
