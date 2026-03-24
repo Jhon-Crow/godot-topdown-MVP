@@ -81,6 +81,22 @@ const UNLOCK_CONDITIONS: Dictionary = {
 	}
 }
 
+## All-difficulties unlock conditions: unlocks that require completing at least one level on EVERY
+## available difficulty (not necessarily the same level — just at least one level per difficulty).
+## Each entry has:
+##   - "weapons": List of weapon IDs to unlock
+##   - "grenades": List of grenade type ints to unlock
+##   - "active_items": List of active item type ints to unlock
+## Issue #1426: открывать Экспериментальный Образец за прохождение хотя бы одного уровня на всех сложностях
+const ALL_DIFFICULTIES_UNLOCK_CONDITIONS: Array[Dictionary] = [
+	{
+		# Complete at least one level on each difficulty → unlock Experimental Sample (Issue #1426)
+		"weapons": [],
+		"grenades": [],
+		"active_items": [18]  # ActiveItemManager.ActiveItemType.EXPERIMENTAL_SAMPLE = 18
+	}
+]
+
 ## Kill-based unlock conditions: unlocks that require accumulating kills WITHOUT a specific item equipped.
 ## Each entry has:
 ##   - "stat": The GameManager variable to read (e.g. "kills_without_laser_sight")
@@ -189,6 +205,10 @@ func _on_progress_updated(level_path: String, difficulty_name: String) -> void:
 					items_unlocked_by_condition.emit(level_path)
 					_log("Multi-condition met involving level: %s" % level_path)
 				break
+	# Check all-difficulties conditions.
+	if is_all_difficulties_condition_met():
+		items_unlocked_by_condition.emit(level_path)
+		_log("All-difficulties condition met — Experimental Sample now available to unlock in armory")
 
 
 ## Called when GameManager emits kills_without_laser_sight_updated.
@@ -305,6 +325,25 @@ func is_multi_condition_met(multi_condition: Dictionary) -> bool:
 	return true
 
 
+## Check if the all-difficulties unlock condition is currently met.
+## The condition is met when at least one level has been completed on every available difficulty.
+## @return: true if at least one level has been completed on each difficulty.
+func is_all_difficulties_condition_met() -> bool:
+	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
+	if not progress_manager:
+		return false
+	for difficulty_name in _get_all_difficulty_names():
+		var found: bool = false
+		for key in progress_manager.get_all_progress():
+			# Key format: "level_path:difficulty_name"
+			if key.ends_with(":" + difficulty_name):
+				found = true
+				break
+		if not found:
+			return false
+	return true
+
+
 ## Check if a kill-based unlock condition is currently met.
 ## @param kill_condition: A dictionary from KILL_UNLOCK_CONDITIONS.
 ## @return: true if the qualifying kill count meets or exceeds min_kills.
@@ -337,6 +376,10 @@ func get_weapons_with_conditions() -> Array[String]:
 		for weapon_id in kill_condition.get("weapons", []):
 			if weapon_id not in result:
 				result.append(weapon_id)
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		for weapon_id in all_diff_condition.get("weapons", []):
+			if weapon_id not in result:
+				result.append(weapon_id)
 	return result
 
 
@@ -357,6 +400,10 @@ func get_active_items_with_conditions() -> Array[int]:
 		for item_type in kill_condition.get("active_items", []):
 			if item_type not in result:
 				result.append(item_type)
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		for item_type in all_diff_condition.get("active_items", []):
+			if item_type not in result:
+				result.append(item_type)
 	return result
 
 
@@ -375,6 +422,10 @@ func get_grenades_with_conditions() -> Array[int]:
 				result.append(grenade_type)
 	for kill_condition in KILL_UNLOCK_CONDITIONS:
 		for grenade_type in kill_condition.get("grenades", []):
+			if grenade_type not in result:
+				result.append(grenade_type)
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		for grenade_type in all_diff_condition.get("grenades", []):
 			if grenade_type not in result:
 				result.append(grenade_type)
 	return result
@@ -400,6 +451,10 @@ func is_weapon_condition_met(weapon_id: String) -> bool:
 		if weapon_id in kill_condition.get("weapons", []):
 			if is_kill_condition_met(kill_condition):
 				return true
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		if weapon_id in all_diff_condition.get("weapons", []):
+			if is_all_difficulties_condition_met():
+				return true
 	return false
 
 
@@ -420,6 +475,10 @@ func is_active_item_condition_met(item_type: int) -> bool:
 		if item_type in kill_condition.get("active_items", []):
 			if is_kill_condition_met(kill_condition):
 				return true
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		if item_type in all_diff_condition.get("active_items", []):
+			if is_all_difficulties_condition_met():
+				return true
 	return false
 
 
@@ -439,6 +498,10 @@ func is_grenade_condition_met(grenade_type: int) -> bool:
 	for kill_condition in KILL_UNLOCK_CONDITIONS:
 		if grenade_type in kill_condition.get("grenades", []):
 			if is_kill_condition_met(kill_condition):
+				return true
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		if grenade_type in all_diff_condition.get("grenades", []):
+			if is_all_difficulties_condition_met():
 				return true
 	return false
 
@@ -515,6 +578,24 @@ func has_any_available_unlock() -> bool:
 				if grenade_manager.has_method("is_grenade_unlocked") and not grenade_manager.is_grenade_unlocked(grenade_type):
 					return true
 
+	# Check all-difficulties conditions
+	if is_all_difficulties_condition_met():
+		for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+			if game_manager:
+				for weapon_id in all_diff_condition.get("weapons", []):
+					if game_manager.has_method("is_weapon_unlocked") and not game_manager.is_weapon_unlocked(weapon_id):
+						return true
+
+			if active_item_manager:
+				for item_type in all_diff_condition.get("active_items", []):
+					if active_item_manager.has_method("is_active_item_unlocked") and not active_item_manager.is_active_item_unlocked(item_type):
+						return true
+
+			if grenade_manager:
+				for grenade_type in all_diff_condition.get("grenades", []):
+					if grenade_manager.has_method("is_grenade_unlocked") and not grenade_manager.is_grenade_unlocked(grenade_type):
+						return true
+
 	return false
 
 
@@ -581,6 +662,23 @@ func _reset_condition_gated_items() -> void:
 				if grenade_type in grenade_manager.unlocked_grenades:
 					grenade_manager.unlocked_grenades[grenade_type] = false
 
+	# Also reset items from all-difficulties conditions
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		if game_manager:
+			for weapon_id in all_diff_condition.get("weapons", []):
+				if weapon_id in game_manager.unlocked_weapons:
+					game_manager.unlocked_weapons[weapon_id] = false
+
+		if active_item_manager:
+			for item_type in all_diff_condition.get("active_items", []):
+				if item_type in active_item_manager.unlocked_active_items:
+					active_item_manager.unlocked_active_items[item_type] = false
+
+		if grenade_manager:
+			for grenade_type in all_diff_condition.get("grenades", []):
+				if grenade_type in grenade_manager.unlocked_grenades:
+					grenade_manager.unlocked_grenades[grenade_type] = false
+
 	_log("Reset condition-gated items to locked state")
 
 
@@ -603,8 +701,7 @@ func _reset_and_apply_all_unlocks() -> void:
 	_restore_saved_unlocks(saved_weapons, saved_grenades, saved_active_items)
 
 
-## Collect weapon IDs from UNLOCK_CONDITIONS, MULTI_UNLOCK_CONDITIONS, and KILL_UNLOCK_CONDITIONS
-## that are currently marked as unlocked in GameManager.
+## Collect weapon IDs from all condition tables that are currently marked as unlocked in GameManager.
 func _get_unlocked_condition_gated_weapons() -> Array[String]:
 	var result: Array[String] = []
 	var game_manager: Node = get_node_or_null("/root/GameManager")
@@ -622,10 +719,14 @@ func _get_unlocked_condition_gated_weapons() -> Array[String]:
 		for weapon_id in kill_condition.get("weapons", []):
 			if weapon_id not in result and game_manager.unlocked_weapons.get(weapon_id, false):
 				result.append(weapon_id)
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		for weapon_id in all_diff_condition.get("weapons", []):
+			if weapon_id not in result and game_manager.unlocked_weapons.get(weapon_id, false):
+				result.append(weapon_id)
 	return result
 
 
-## Collect grenade types from conditions that are currently marked as unlocked.
+## Collect grenade types from all condition tables that are currently marked as unlocked.
 func _get_unlocked_condition_gated_grenades() -> Array[int]:
 	var result: Array[int] = []
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -643,10 +744,14 @@ func _get_unlocked_condition_gated_grenades() -> Array[int]:
 		for grenade_type in kill_condition.get("grenades", []):
 			if grenade_type not in result and grenade_manager.unlocked_grenades.get(grenade_type, false):
 				result.append(grenade_type)
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		for grenade_type in all_diff_condition.get("grenades", []):
+			if grenade_type not in result and grenade_manager.unlocked_grenades.get(grenade_type, false):
+				result.append(grenade_type)
 	return result
 
 
-## Collect active item types from conditions that are currently marked as unlocked.
+## Collect active item types from all condition tables that are currently marked as unlocked.
 func _get_unlocked_condition_gated_active_items() -> Array[int]:
 	var result: Array[int] = []
 	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
@@ -662,6 +767,10 @@ func _get_unlocked_condition_gated_active_items() -> Array[int]:
 				result.append(item_type)
 	for kill_condition in KILL_UNLOCK_CONDITIONS:
 		for item_type in kill_condition.get("active_items", []):
+			if item_type not in result and active_item_manager.unlocked_active_items.get(item_type, false):
+				result.append(item_type)
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		for item_type in all_diff_condition.get("active_items", []):
 			if item_type not in result and active_item_manager.unlocked_active_items.get(item_type, false):
 				result.append(item_type)
 	return result
@@ -717,6 +826,9 @@ func get_weapon_unlock_description(weapon_id: String) -> String:
 	for kill_condition in KILL_UNLOCK_CONDITIONS:
 		if weapon_id in kill_condition.get("weapons", []):
 			return _build_kill_condition_description(kill_condition)
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		if weapon_id in all_diff_condition.get("weapons", []):
+			return "Complete at least one level on every difficulty"
 	return ""
 
 
@@ -734,6 +846,9 @@ func get_grenade_unlock_description(grenade_type: int) -> String:
 	for kill_condition in KILL_UNLOCK_CONDITIONS:
 		if grenade_type in kill_condition.get("grenades", []):
 			return _build_kill_condition_description(kill_condition)
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		if grenade_type in all_diff_condition.get("grenades", []):
+			return "Complete at least one level on every difficulty"
 	return ""
 
 
@@ -751,6 +866,9 @@ func get_active_item_unlock_description(item_type: int) -> String:
 	for kill_condition in KILL_UNLOCK_CONDITIONS:
 		if item_type in kill_condition.get("active_items", []):
 			return _build_kill_condition_description(kill_condition)
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		if item_type in all_diff_condition.get("active_items", []):
+			return "Complete at least one level on every difficulty"
 	return ""
 
 
