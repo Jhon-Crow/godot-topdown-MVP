@@ -42,6 +42,15 @@ signal back_pressed
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
 
+## NavBar references.
+@onready var scroll_container: ScrollContainer = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer
+@onready var nav_visualisation_button: Button = $MenuContainer/NavBar/NavVBox/NavVisualisationButton
+@onready var nav_ai_button: Button = $MenuContainer/NavBar/NavVBox/NavAIButton
+@onready var nav_cheats_button: Button = $MenuContainer/NavBar/NavVBox/NavCheatsButton
+@onready var nav_perf_button: Button = $MenuContainer/NavBar/NavVBox/NavPerfButton
+@onready var nav_debug_button: Button = $MenuContainer/NavBar/NavVBox/NavDebugButton
+@onready var nav_utilities_button: Button = $MenuContainer/NavBar/NavVBox/NavUtilitiesButton
+
 ## Reference to the unlock table menu scene.
 var unlock_table_menu_scene: PackedScene = preload("res://scenes/ui/UnlockTableMenu.tscn")
 
@@ -168,6 +177,14 @@ func _ready() -> void:
 	enemy_type_option.item_selected.connect(_on_enemy_type_selected)
 	spawn_enemy_button.pressed.connect(_on_spawn_enemy_pressed)
 	back_button.pressed.connect(_on_back_pressed)
+
+	# Connect navbar buttons
+	nav_visualisation_button.pressed.connect(_on_nav_visualisation_pressed)
+	nav_ai_button.pressed.connect(_on_nav_ai_pressed)
+	nav_cheats_button.pressed.connect(_on_nav_cheats_pressed)
+	nav_perf_button.pressed.connect(_on_nav_perf_pressed)
+	nav_debug_button.pressed.connect(_on_nav_debug_pressed)
+	nav_utilities_button.pressed.connect(_on_nav_utilities_pressed)
 
 	# Update UI based on current settings
 	_update_ui()
@@ -713,3 +730,42 @@ func _on_row_gui_input(event: InputEvent, container: Control) -> void:
 				child.show_popup()
 				container.accept_event()
 				return
+
+
+## Scroll the ScrollContainer so the given VBoxContainer child is visible at the top.
+func _scroll_to_node(target_node: Control) -> void:
+	# Wait one frame so layout is settled before reading positions.
+	await get_tree().process_frame
+	var vbox: Control = scroll_container.get_node("VBoxContainer")
+	var target_pos: float = target_node.position.y
+	scroll_container.scroll_vertical = int(target_pos)
+
+
+func _on_nav_visualisation_pressed() -> void:
+	var vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_scroll_to_node(vbox.get_node("ShowCategoryLabel"))
+
+
+func _on_nav_ai_pressed() -> void:
+	var vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_scroll_to_node(vbox.get_node("AICategoryLabel"))
+
+
+func _on_nav_cheats_pressed() -> void:
+	var vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_scroll_to_node(vbox.get_node("CheatsCategoryLabel"))
+
+
+func _on_nav_perf_pressed() -> void:
+	var vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_scroll_to_node(vbox.get_node("PerfCategoryLabel"))
+
+
+func _on_nav_debug_pressed() -> void:
+	var vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_scroll_to_node(vbox.get_node("DebugCategoryLabel"))
+
+
+func _on_nav_utilities_pressed() -> void:
+	var vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_scroll_to_node(vbox.get_node("UtilitiesCategoryLabel"))
