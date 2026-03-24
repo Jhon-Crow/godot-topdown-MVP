@@ -151,7 +151,7 @@ var _avoidance_velocity: Vector2 = Vector2.ZERO  ## Issue #1146: ORCA-computed s
 var _cover_raycasts: Array[RayCast2D] = []  ## Cover detection raycasts (used for flank cover)
 var _last_cover_search_rays: Array = []  ## Issue #1338: cached ray data for debug visualization (rays from player)
 const COVER_CHECK_COUNT: int = 120  ## Number of cover rays from player (Issue #1338: 120 rays for 3° resolution)
-const COVER_CHECK_DISTANCE: float = 10000.0  ## Cover check distance (Issue #1338: infinite rays)
+const COVER_CHECK_DISTANCE: float = 300.0  ## Cover check distance (Issue #1338: 300px range, matching reference commit c740ff7b)
 const FLANK_COVER_RAYCAST_COUNT: int = 16  ## Number of raycasts for flank cover (enemy-origin, cheaper)
 const FLANK_COVER_RAYCAST_RANGE: float = 300.0  ## Flank cover raycast range
 var _current_health: int = 0; var _max_health: int = 0  ## Current / max health (set at spawn)
@@ -3312,10 +3312,18 @@ func _find_cover_closest_to_player() -> void:
 ## Issue #969: throttled. Issue #1227: combat waypoints checked first.
 func _find_cover_position() -> void:
 	if _player == null: _has_valid_cover = false; return
+	# Issue #1373: check if debug visualization is enabled — always generate rays when visible
+	var _es_cv: Node = get_node_or_null("/root/ExperimentalSettings")
+	var _debug_rays_wanted: bool = _es_cv != null and _es_cv.has_method("is_cover_raycast_visible_enabled") and _es_cv.is_cover_raycast_visible_enabled()
 	var wp_r := _combat_waypoint(_player.global_position, true)  # Issue #1227: retreat path
-	if wp_r != Vector2.ZERO: _cover_position = wp_r; _has_valid_cover = true; _last_cover_search_time = Time.get_ticks_msec() / 1000.0; return
+	if wp_r != Vector2.ZERO:
+		_cover_position = wp_r; _has_valid_cover = true; _last_cover_search_time = Time.get_ticks_msec() / 1000.0
+		if _debug_rays_wanted: _get_hidden_cover_candidates(true)  # Issue #1373: populate debug rays even for waypoint cover
+		return
 	var current_time := Time.get_ticks_msec() / 1000.0
-	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
+	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN:
+		if _debug_rays_wanted: _get_hidden_cover_candidates(true)  # Issue #1373: populate debug rays even during cooldown
+		return
 	_last_cover_search_time = current_time
 	var candidates := _get_hidden_cover_candidates(true)
 	if candidates.is_empty():

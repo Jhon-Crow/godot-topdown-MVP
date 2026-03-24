@@ -189,8 +189,8 @@ func test_mock_enemy_valid_cover_info() -> void:
 	assert_eq(info["position"], Vector2(200, 150), "Cover position should match")
 
 
-func test_raycast_data_with_16_rays() -> void:
-	# Enemy uses 16 raycasts for cover detection
+func test_raycast_data_with_120_rays() -> void:
+	# Enemy uses 120 raycasts for cover detection (COVER_CHECK_COUNT = 120, 3° resolution)
 	var enemy := MockEnemy.new()
 	var rays: Array = []
 	var player_pos := Vector2(500, 500)  # Issue #1338: rays originate from player
@@ -199,11 +199,11 @@ func test_raycast_data_with_16_rays() -> void:
 		var direction := Vector2.from_angle(angle)
 		rays.append({
 			"origin": player_pos,
-			"target": player_pos + direction * 10000.0,
+			"target": player_pos + direction * 300.0,  # COVER_CHECK_DISTANCE = 300.0 (matching reference c740ff7b)
 			"colliding": i % 3 == 0,  # Every 3rd ray hits
 		})
 		if i % 3 == 0:
-			rays[i]["point"] = player_pos + direction * 500.0
+			rays[i]["point"] = player_pos + direction * 150.0
 			rays[i]["normal"] = -direction
 	enemy._cover_raycast_data = rays
 	var data := enemy.get_cover_raycast_data()

@@ -21,7 +21,7 @@ child RayCast2D nodes instead of physics queries from the player position.
 | Ray origin | Player position | Enemy position |
 | Method | Physics queries (intersect_ray) | Child RayCast2D nodes |
 | Ray count | 120 (3° resolution) | 16 (22.5° resolution) |
-| Ray range | 10,000 px (infinite) | 300 px |
+| Ray range | 300 px | 300 px |
 | Far-side probing | _get_far_side_cover() (intersect_point) | collision_normal * 35px offset |
 | Navmesh snapping | Yes (NavigationServer2D) | No |
 | Debug visualization | Cached player-origin ray data | Child raycast state |
@@ -36,6 +36,42 @@ obstacles near the enemy, but doesn't guarantee the enemy will be hidden from th
   because selected cover positions don't actually hide them from the player
 - Enemies in IN_COVER immediately transition to SUPPRESSED (still visible to player)
 - No explicit raycast errors — the code works, but selects wrong positions
+
+### Root Cause 2: COVER_CHECK_DISTANCE regression + Debug rays not showing (identified 2026-03-24)
+
+Owner feedback: "сохраняется старая проблема. не отображается дэбаг лучей, не правильно
+определяется укрытие (широкие укрытия не считаются, а должны)."
+("same old problem persists. debug rays are not displaying, cover detection is wrong
+— wide covers are not counted, but they should be.")
+
+Evidence from game_log_20260324_063315.txt:
+- `Cover raycast visible: true` is enabled in ExperimentalSettings (line 41)
+- CoverRaycastMonitor overlay is created (line 49)
+- But debug rays were NOT visible to the user
+- State oscillation still present: IN_COVER → SUPPRESSED → IN_COVER → PURSUING cycles
+- No "Found cover" or "No valid cover" log messages appear — cover search was being skipped
+
+**Bug 1: COVER_CHECK_DISTANCE was 10000.0 instead of 300.0**
+
+The reference commit c740ff7b has `COVER_CHECK_DISTANCE = 300.0`. A previous session
+incorrectly changed it to `10000.0`, causing:
+- `_get_far_side_cover()` to probe up to 30,000 px (1000 iterations per ray × 120 rays)
+- Extremely slow cover search due to massive probe distance
+- Far-side positions placed at wrong distances for wide obstacles
+- Debug rays extending far beyond meaningful range, making visualization useless
+
+**Bug 2: Debug rays never populated due to early returns in _find_cover_position()**
+
+`_find_cover_position()` had two early-return paths that skipped `_get_hidden_cover_candidates()`:
+1. `_combat_waypoint()` returning a non-zero waypoint (line 3316) — returns immediately
+   without calling ray generation, so `_last_cover_search_rays` stays empty
+2. Cooldown throttle (line 3318) — skips ray generation when cover is still valid
+
+The CoverRaycastMonitor reads ray data from `get_cover_raycast_data()` which returns
+`_last_cover_search_rays`. If this array is never populated, no rays are drawn.
+
+**Fix**: Always generate debug rays when `cover_raycast_visible_enabled` is true,
+even during waypoint/cooldown early returns. Restore `COVER_CHECK_DISTANCE = 300.0`.
 
 ## Existing Systems (pre-#1373)
 
