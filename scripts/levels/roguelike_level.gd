@@ -182,23 +182,34 @@ func _ready() -> void:
 		var _log_tr := "[RoguelikeLevel] TREASURE ROOM — Level %d" % GameManager.roguelike_current_level
 		print(_log_tr)
 		FileLogger.info(_log_tr)
+		FileLogger.flush()  # Issue #1194: flush early so crash context is visible in log
+		FileLogger.info("[RoguelikeLevel] Treasure room step 1/7: building scene")
 		_build_room_scene_treasure()
+		FileLogger.info("[RoguelikeLevel] Treasure room step 2/7: spawning player")
 		_spawn_player()
-		_setup_navigation()
+		# Issue #1194 Bug 3: treasure room has no enemies — navmesh is not needed.
+		# Skipping _setup_navigation() eliminates the await+NavigationServer crash
+		# that occurred when the coroutine resumed after the scene was freed.
+		FileLogger.info("[RoguelikeLevel] Treasure room step 3/7: player tracking")
 		_setup_player_tracking()
+		FileLogger.info("[RoguelikeLevel] Treasure room step 4/7: exit zone")
 		_setup_exit_zone()
+		FileLogger.info("[RoguelikeLevel] Treasure room step 5/7: debug UI")
 		_setup_debug_ui()
 		_setup_saturation_overlay()
 		_setup_debug_ui_treasure()
 		if GameManager:
 			GameManager.stats_updated.connect(_update_debug_ui)
+		FileLogger.info("[RoguelikeLevel] Treasure room step 6/7: pedestal")
 		# Spawn pedestal immediately (not deferred) so it is visible from the first frame.
 		# The monitoring flag is still set deferred so body_entered fires for existing overlaps.
 		_spawn_treasure_pedestal()
+		FileLogger.info("[RoguelikeLevel] Treasure room step 7/7: activating exit zone (deferred)")
 		call_deferred("_activate_exit_zone")
 		var _log_tr2 := "[RoguelikeLevel] Treasure room ready — pedestal spawned: %s" % str(_treasure_pedestal != null)
 		print(_log_tr2)
 		FileLogger.info(_log_tr2)
+		FileLogger.flush()  # Issue #1194: flush after setup to capture state before physics frames
 		return
 
 	# ── Normal combat room ────────────────────────────────────
@@ -1881,6 +1892,7 @@ func _enter_treasure_room() -> void:
 
 	var ui: Node = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
+		FileLogger.flush()  # Issue #1194: flush log before scene change so crash context survives
 		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn")
 		return
 
@@ -1904,6 +1916,7 @@ func _enter_treasure_room() -> void:
 	tween.tween_property(bg, "color:a", 0.85, 0.4)
 	tween.tween_interval(1.5)
 	tween.tween_callback(func():
+		FileLogger.flush()  # Issue #1194: flush log before scene change
 		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn"))
 
 
@@ -1945,6 +1958,7 @@ func _start_next_level() -> void:
 
 	var ui: Node = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
+		FileLogger.flush()  # Issue #1194: flush log before scene change
 		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn")
 		return
 
@@ -1967,6 +1981,7 @@ func _start_next_level() -> void:
 	tween.tween_property(bg, "color:a", 0.85, 0.4)
 	tween.tween_interval(1.5)
 	tween.tween_callback(func():
+		FileLogger.flush()  # Issue #1194: flush log before scene change
 		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn"))
 
 
@@ -2027,6 +2042,7 @@ func _show_room_transition(next_room_idx: int) -> void:
 	## Brief "КОМНАТА ПРОЙДЕНА" flash before loading the next room.
 	var ui: Node = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
+		FileLogger.flush()  # Issue #1194: flush log before scene change
 		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn")
 		return
 
@@ -2055,6 +2071,7 @@ func _show_room_transition(next_room_idx: int) -> void:
 	tween.tween_property(bg, "color:a", 0.85, 0.4)
 	tween.tween_interval(1.0)
 	tween.tween_callback(func():
+		FileLogger.flush()  # Issue #1194: flush log before scene change
 		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn"))
 
 

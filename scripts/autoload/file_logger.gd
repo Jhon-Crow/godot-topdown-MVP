@@ -242,3 +242,9 @@ func error(message: String) -> void:
 
 func debug(message: String) -> void:
 	log_debug(message)
+
+
+## Flush the write buffer to disk immediately.
+## Call before a scene change so buffered log lines survive a crash during transition.
+func flush() -> void:
+	_flush_write_buffer()

@@ -158,47 +158,87 @@ The single-slot `current_active_item` integer was never designed to hold multipl
 
 ---
 
-## Bug 3: Crash when entering treasure room (2026-03-24)
+## Bug 3: Crash when entering treasure room (2026-03-24, ongoing)
 
 ### Symptom
 
-Game crashes "sometimes" when transitioning between roguelike rooms, often when entering
-the treasure room. The crash is non-deterministic and depends on timing.
+Game crashes "sometimes" when transitioning between roguelike rooms, specifically when
+entering the treasure room after clearing all combat rooms. The crash is non-deterministic.
 
 ### Evidence from game logs
 
-Two crash logs provided: `game_log_20260324_061109.txt` and `game_log_20260324_061451.txt`.
+Three crash logs (all sharing the same pattern):
+- `game_log_20260324_061109.txt` — crashes immediately after exit signal
+- `game_log_20260324_061451.txt` — crashes ~1s after exit signal
+- `game_log_20260324_175149.txt` — crashes ~1.8s after exit signal (NEW — provided 2026-03-24 14:53)
 
-Both logs end abruptly after `[RoguelikeLevel] Player reached exit — advancing (treasure_room=false)`.
-After this line, the normal "Scene changed" and room initialization messages never appear —
-the game process terminates (segfault).
+All three logs end after `[RoguelikeLevel] Player reached exit — advancing (treasure_room=false)`.
+The log lines `Treasure room ready — pedestal spawned` and `TREASURE ROOM — Level N` never
+appear in the flushed log — even though they may have been logged — because `FileLogger`
+buffers writes for 1 second and the crash occurs before the next flush.
 
-### Root Cause: Unguarded coroutine after await in `_setup_navigation()`
+### Timeline Reconstruction (from `game_log_20260324_175149.txt`)
 
-`_setup_navigation()` contains `await get_tree().physics_frame` (line 936). After the await,
-the coroutine accesses `self`, `nav_region`, and `nav_poly` — all of which are bound to the
-current RoguelikeLevel scene node.
+| Time | Event |
+|---|---|
+| 17:51:50 | Game starts on LabyrinthLevel with 5 enemies |
+| 17:52:23 | SceneLoader transitions to RoguelikeLevel (roguelike combat room 1) |
+| 17:52:23 | `player_valid=False` in ReplayManager — stale reference from LabyrinthLevel |
+| 17:52:41 | Room 1 cleared → `Player reached exit — advancing (treasure_room=false)` |
+| 17:52:42 | Room 2 loads (3 enemies) ← transition worked fine |
+| 17:52:51 | Room 2 cleared → `Player reached exit` |
+| 17:52:52 | Room 3 loads (5 enemies) ← transition worked fine |
+| 17:53:06 | Room 3 cleared → `Player reached exit — advancing (treasure_room=false)` |
+| 17:53:06 | ReplayManager frame 4560 — game still running |
+| 17:53:07 | ReplayManager frame 4620 — **last log entry, game crashes** |
 
-When a room transition occurs (`change_scene_to_file()`), the old scene tree is freed. However,
-Godot 4.x does NOT cancel pending coroutines when nodes are freed. The coroutine resumes on
-the next `physics_frame`, but `self` is now a freed reference. The call to
-`NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)` passes this
-freed reference to the C++ engine, causing a segfault.
+The crash occurs within ~1.9s after the 3rd exit signal. No treasure room messages appear.
 
-**Why "sometimes"**: The crash only occurs when the room transition happens before the
-navigation bake completes (within 1 physics frame of room load). This timing window is
-narrow but consistently hit in fast-paced play — e.g., the player clearing the last enemy
-while standing near the exit zone.
+### Root Cause Analysis
 
-### Additional risk: Double scene transitions
+#### Attempt 1 (PR commit `92e413fc`): Unguarded coroutine after await
 
-`_on_player_reached_exit()` → `call_deferred("_advance_to_next_room")` had no guard against
-being called multiple times. Although `body_entered` normally fires once, deferred calls
-during rapid scene changes could queue multiple transitions.
+Initially blamed `_setup_navigation()` in the OLD combat room: when a room transition fires
+during `await get_tree().physics_frame`, the old scene node is freed, and
+`NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)` receives
+a freed `self` → segfault.
 
-### Fix
+**Fix applied:** `is_instance_valid(self) or not is_inside_tree()` guard after the await.
+Also added `_transitioning` flag to prevent double scene transitions.
 
-1. **Guard coroutine after await** (`_setup_navigation()`):
+**Result:** Crash persists (confirmed by `game_log_20260324_175149.txt` submitted after fix).
+
+#### Attempt 2 (this PR): Navigation not needed in treasure room
+
+The guard in Attempt 1 only protects the OLD combat room's navigation coroutine. But the
+combat room's navigation bake completes within 1 physics frame (~16ms) of room load, long
+before the player even sees enemies. By the time the player reaches the exit, the coroutine
+is done — the guard never needs to fire for combat rooms.
+
+**The actual crash site is in the TREASURE ROOM's `_setup_navigation()` call.**
+
+When the treasure room's `_ready()` runs:
+1. `_setup_navigation()` is called and awaits `physics_frame`
+2. `FileLogger` buffer contains "TREASURE ROOM — Level N" but hasn't flushed (< 1s since write)
+3. Next physics frame: guard passes (self is valid, in tree), baking proceeds
+4. `NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)` → **crash**
+
+The exact crash trigger is uncertain — possible causes include:
+- A child node being in an inconsistent state during `parse_source_geometry_data` traversal
+- A Godot 4.3 engine bug in navigation parsing with freshly-instantiated C# player nodes
+- A threading interaction between the NavMeshMonitor timer and the navigation bake
+
+**Key insight:** The treasure room has NO enemies — navigation mesh is completely unused.
+Enemy pathfinding agents only exist in combat rooms. Baking a navmesh in the treasure room
+serves no purpose.
+
+**Fix:** Remove `_setup_navigation()` from the treasure room path in `_ready()`.
+This eliminates the crash entirely by not running the problematic async navigation code
+in a context where it provides no value.
+
+### Additional Fixes
+
+1. **Guard coroutine after await** (`_setup_navigation()` — still present for combat rooms):
    ```gdscript
    await get_tree().physics_frame
    if not is_instance_valid(self) or not is_inside_tree():
@@ -206,8 +246,11 @@ during rapid scene changes could queue multiple transitions.
    ```
 
 2. **Transition guard flag** (`_transitioning: bool`):
-   - Set `true` at the start of `_advance_to_next_room()`
-   - Checked in `_on_player_reached_exit()` and `_advance_to_next_room()` to prevent double calls
+   - Prevents `_advance_to_next_room()` from being called multiple times
 
-This follows the existing pattern in `_on_player_died()` (line 1350) which already uses
-`is_instance_valid(self)` after an `await`.
+3. **FileLogger.flush() before scene changes**: Added `flush()` calls in all
+   `change_scene_to_file()` paths (`_enter_treasure_room`, `_show_room_transition`,
+   `_start_next_level`) so that log messages written just before a crash are preserved.
+
+4. **Step-by-step logging** in treasure room `_ready()`: Logs each initialization phase
+   with immediate flush, making future crash location precise in the log file.
