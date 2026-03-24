@@ -145,6 +145,7 @@ func _on_power_fantasy_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.POWER_FANTASY)
 	_update_button_states()
+	_restart_if_in_game()
 
 
 func _on_easy_pressed() -> void:
@@ -152,6 +153,7 @@ func _on_easy_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.EASY)
 	_update_button_states()
+	_restart_if_in_game()
 
 
 func _on_normal_pressed() -> void:
@@ -159,6 +161,7 @@ func _on_normal_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.NORMAL)
 	_update_button_states()
+	_restart_if_in_game()
 
 
 func _on_hard_pressed() -> void:
@@ -166,6 +169,7 @@ func _on_hard_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.HARD)
 	_update_button_states()
+	_restart_if_in_game()
 
 
 func _on_black_metal_pressed() -> void:
@@ -173,6 +177,21 @@ func _on_black_metal_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.BLACK_METAL)
 	_update_button_states()
+	_restart_if_in_game()
+
+
+## Restarts the current scene when difficulty changes mid-game (Issue #1432).
+## Only restarts if a level is actually running (player node is present).
+## Unpauses the tree first so the reload can proceed cleanly.
+func _restart_if_in_game() -> void:
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager == null:
+		return
+	# Only restart when the game is actually in-progress (a player exists in the scene).
+	if game_manager.get("player") == null:
+		return
+	get_tree().paused = false
+	game_manager.restart_scene()
 
 
 func _unhandled_input(event: InputEvent) -> void:
