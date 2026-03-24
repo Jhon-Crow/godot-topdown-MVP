@@ -1,8 +1,9 @@
-extends GPUParticles2D
+extends Node2D
 class_name RainEffect
-## Top-down rain precipitation effect (Issue #1394).
+## Hotline Miami 2-style top-down rain effect (Issue #1394).
 ##
-## Provides a reusable rain particle system for top-down levels.
+## Two-layer particle system: diagonal rain streaks falling across the screen
+## and circular splash ripples where drops hit the ground.
 ## Supports configurable rain intensity, intermittent (rare) rain timing,
 ## and indoor exclusion zones where rain should not appear.
 ## The effect follows the camera so rain covers the visible viewport area.
@@ -47,9 +48,25 @@ var _duration_timer: Timer = null
 ## Tracks if the system has been set up.
 var _initialized: bool = false
 
+## Diagonal rain streaks particle node.
+var _streaks: GPUParticles2D = null
+
+## Ground splash ripples particle node.
+var _splashes: GPUParticles2D = null
+
+## Controls emission state (compatibility property).
+var emitting: bool = false:
+	set(value):
+		emitting = value
+		if _streaks:
+			_streaks.emitting = value
+		if _splashes:
+			_splashes.emitting = value
+
 
 func _ready() -> void:
 	emitting = false
+	_setup_particles()
 	_setup_timers()
 	_initialized = true
 	if start_raining:
@@ -58,6 +75,96 @@ func _ready() -> void:
 		# Use shorter initial delay so rain appears sooner in the level
 		_schedule_timer.start(initial_delay)
 		_log("Scheduled first rain episode in %.1f seconds" % initial_delay)
+
+
+func _setup_particles() -> void:
+	# --- Layer 1: Diagonal rain streaks (falling raindrops) ---
+	_streaks = GPUParticles2D.new()
+	_streaks.name = "RainStreaks"
+	_streaks.emitting = false
+	_streaks.amount = 180
+	_streaks.lifetime = 0.4
+
+	var streak_mat := ParticleProcessMaterial.new()
+	streak_mat.particle_flag_disable_z = true
+	streak_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	streak_mat.emission_box_extents = Vector3(700, 450, 0)
+	# Diagonal direction: down-right at ~30 degrees from vertical
+	streak_mat.direction = Vector3(0.5, 1.0, 0)
+	streak_mat.spread = 5.0
+	streak_mat.initial_velocity_min = 350.0
+	streak_mat.initial_velocity_max = 500.0
+	streak_mat.gravity = Vector3(0, 0, 0)
+	streak_mat.scale_min = 0.8
+	streak_mat.scale_max = 1.5
+	streak_mat.lifetime_randomness = 0.3
+	streak_mat.color = Color(0.85, 0.88, 0.95, 0.5)
+	_streaks.process_material = streak_mat
+
+	# Streak texture: thin diagonal line (elongated rectangle)
+	var streak_gradient := Gradient.new()
+	streak_gradient.offsets = PackedFloat32Array([0, 0.1, 0.9, 1])
+	streak_gradient.colors = PackedColorArray([
+		0.9, 0.92, 1.0, 0.0,
+		0.9, 0.92, 1.0, 0.7,
+		0.9, 0.92, 1.0, 0.7,
+		0.9, 0.92, 1.0, 0.0
+	])
+	var streak_tex := GradientTexture2D.new()
+	streak_tex.gradient = streak_gradient
+	streak_tex.width = 2
+	streak_tex.height = 12
+	streak_tex.fill = GradientTexture2D.FILL_LINEAR
+	streak_tex.fill_from = Vector2(0.5, 0)
+	streak_tex.fill_to = Vector2(0.5, 1)
+	_streaks.texture = streak_tex
+
+	_streaks.visibility_rect = Rect2(-900, -600, 1800, 1200)
+	add_child(_streaks)
+
+	# --- Layer 2: Ground splash ripples (circular dots where rain hits) ---
+	_splashes = GPUParticles2D.new()
+	_splashes.name = "RainSplashes"
+	_splashes.emitting = false
+	_splashes.amount = 100
+	_splashes.lifetime = 0.5
+
+	var splash_mat := ParticleProcessMaterial.new()
+	splash_mat.particle_flag_disable_z = true
+	splash_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	splash_mat.emission_box_extents = Vector3(650, 400, 0)
+	# Splashes appear in place (no movement)
+	splash_mat.direction = Vector3(0, 0, 0)
+	splash_mat.spread = 180.0
+	splash_mat.initial_velocity_min = 0.0
+	splash_mat.initial_velocity_max = 3.0
+	splash_mat.gravity = Vector3(0, 0, 0)
+	splash_mat.scale_min = 0.4
+	splash_mat.scale_max = 2.0
+	splash_mat.lifetime_randomness = 0.4
+	splash_mat.color = Color(0.8, 0.85, 0.95, 0.4)
+	_splashes.process_material = splash_mat
+
+	# Splash texture: radial circle (ripple dot)
+	var splash_gradient := Gradient.new()
+	splash_gradient.offsets = PackedFloat32Array([0, 0.4, 0.7, 1])
+	splash_gradient.colors = PackedColorArray([
+		0.9, 0.92, 1.0, 0.0,
+		0.9, 0.92, 1.0, 0.5,
+		0.85, 0.9, 1.0, 0.4,
+		0.8, 0.88, 1.0, 0.0
+	])
+	var splash_tex := GradientTexture2D.new()
+	splash_tex.gradient = splash_gradient
+	splash_tex.width = 6
+	splash_tex.height = 6
+	splash_tex.fill = GradientTexture2D.FILL_RADIAL
+	splash_tex.fill_from = Vector2(0.5, 0.5)
+	splash_tex.fill_to = Vector2(0.5, 1)
+	_splashes.texture = splash_tex
+
+	_splashes.visibility_rect = Rect2(-800, -500, 1600, 1000)
+	add_child(_splashes)
 
 
 func _setup_timers() -> void:

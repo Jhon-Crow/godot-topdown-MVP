@@ -21,7 +21,7 @@ The first implementation was reported as "not visible" by the project owner (gam
 3. **No logging**: The rain effect had zero log output, making it impossible to verify whether rain episodes started at all. The only log line was from `docks_level.gd` confirming setup: `"Rain precipitation setup with 2 exclusion zones"`.
 4. **z_index too low**: Rain was at z_index=10, which might not render above all game elements.
 
-### Fix Applied
+### Fix Applied (Iteration 1: Visibility)
 
 - Added `initial_delay` export (default 5s) — first rain episode starts much sooner
 - Reduced interval between episodes: 15-45s (was 30-90s)
@@ -32,6 +32,45 @@ The first implementation was reported as "not visible" by the project owner (gam
 - Increased texture size: 3x16px (was 2x12px)
 - Increased z_index to 100 (was 10) for reliable rendering above all game elements
 - Added comprehensive logging to track rain episode lifecycle
+
+### Perspective Issue (2026-03-24, game log: `game_log_20260324_090934.txt`)
+
+After the visibility fix, the project owner reported two remaining issues:
+1. Rain should start **immediately** — even a 5s delay was too long
+2. Rain looked like **side-view** falling streaks, but the game is top-down — rain should appear as drops falling from above (onto the camera)
+
+### Fix Applied (Iteration 2: Immediate Start + Top-Down Perspective)
+
+- Changed `start_raining = true` with `initial_delay = 0` for immediate rain on level load
+- Replaced side-view streak particles with top-down splash dots (circular ripples)
+- Removed gravity and downward velocity — splashes appear in-place across viewport
+
+### Hotline Miami 2 Reference Request (2026-03-24)
+
+The project owner provided a reference screenshot from **Hotline Miami 2** (`hm2-rain-reference.png`) showing the desired rain style. Analysis of the HM2 rain reveals a **two-layer particle system**:
+
+![HM2 Rain Reference](hm2-rain-reference.png)
+
+1. **Diagonal rain streaks**: Short white lines falling at ~30° angle (upper-left to lower-right). These represent raindrops in motion, rendered as thin elongated particles moving diagonally across the screen.
+2. **Circular splash ripples**: Small ring-shaped dots scattered across the ground. These represent raindrops hitting the ground surface, rendered as short-lived radial gradient circles.
+
+The combination creates a convincing top-down rain effect: you see both the falling drops (streaks) and their impact on the ground (splashes).
+
+### Fix Applied (Iteration 3: Hotline Miami 2-Style Two-Layer Rain)
+
+Completely restructured the rain effect from a single GPUParticles2D to a **Node2D with two child GPUParticles2D** nodes:
+
+| Layer | Particles | Texture | Movement | Purpose |
+|-------|-----------|---------|----------|---------|
+| RainStreaks | 180 | 2×12px vertical line | Diagonal (350-500 px/s, ~30°) | Falling raindrops |
+| RainSplashes | 100 | 6×6px radial circle | Near-zero (in-place) | Ground impact ripples |
+
+Key parameters matching HM2 style:
+- Streaks use a thin gradient line texture with alpha fade at both ends
+- Streaks move diagonally (direction Vector3(0.5, 1.0, 0)) at high speed with tight spread (5°)
+- Splashes use a radial gradient creating a ring/dot effect
+- Splashes have very low velocity, appearing and fading in-place
+- Both layers use cool blue-white tint (Color ~0.85-0.95 RGB) matching HM2's palette
 
 ### Key Technical Challenges
 
@@ -47,18 +86,18 @@ The first implementation was reported as "not visible" by the project owner (gam
 
 The solution consists of three parts:
 
-1. **`scripts/effects/rain_effect.gd`** — Reusable rain controller script (extends GPUParticles2D)
+1. **`scripts/effects/rain_effect.gd`** — Reusable rain controller script (extends Node2D)
    - Manages rain episodes with configurable timing (interval between episodes, duration)
+   - Creates two child GPUParticles2D nodes programmatically (streaks + splashes)
    - Follows the active camera automatically
    - Supports rectangular exclusion zones for indoor areas
-   - Toggles particle emission based on camera position relative to exclusion zones
+   - Toggles particle emission on both layers based on camera position relative to exclusion zones
 
-2. **`scenes/effects/RainEffect.tscn`** — Reusable rain particle scene
-   - GPUParticles2D with ParticleProcessMaterial configured for top-down rain appearance
-   - Box emission shape (700px wide) for even rain distribution across viewport
-   - Downward + slight diagonal direction for natural rain appearance
-   - Semi-transparent blue-gray raindrop texture (3x16px gradient)
-   - 200 particles with 1.2s lifetime, gravity 800 on Y-axis
+2. **`scenes/effects/RainEffect.tscn`** — Reusable rain scene (Node2D)
+   - Two-layer Hotline Miami 2-style rain:
+     - **RainStreaks**: 180 diagonal falling raindrop particles (2×12px gradient line, 350-500 px/s)
+     - **RainSplashes**: 100 ground ripple particles (6×6px radial circle, near-zero velocity)
+   - Box emission covering full viewport area for even rain distribution
 
 3. **Level integration** — DocksLevel.tscn includes the RainEffect scene, and docks_level.gd configures exclusion zones
 

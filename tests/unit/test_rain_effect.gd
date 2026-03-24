@@ -1,8 +1,10 @@
 extends GutTest
-## Unit tests for rain_effect.gd precipitation system (Issue #1394).
+## Unit tests for rain_effect.gd HM2-style precipitation system (Issue #1394).
 ##
 ## Tests rain episode scheduling, exclusion zone logic, and state transitions.
-## Uses a mock to test logic without requiring GPUParticles2D rendering.
+## The actual RainEffect extends Node2D with two child GPUParticles2D layers
+## (diagonal streaks + splash ripples). Uses a mock to test logic without
+## requiring GPUParticles2D rendering.
 
 
 # ============================================================================
