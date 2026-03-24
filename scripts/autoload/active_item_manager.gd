@@ -48,7 +48,6 @@ var collected_passive_items: Array = []
 ## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S),
 ## TRAJECTORY_GLASSES (City D+), LASER_SIGHT (1000 kills without laser sight equipped),
 ## FINE_MOTOR_SKILLS (650 shots with shotgun, sniper rifle, or revolver),
-<<<<<<< HEAD
 ## RECOIL_COMPENSATOR (Labyrinth S) and EXPERIMENTAL_SAMPLE (complete at least one level on every difficulty)
 ## have unlock conditions (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346, Issue #1423, Issue #1426).
 var unlocked_active_items: Dictionary = {
