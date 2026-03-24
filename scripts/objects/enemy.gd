@@ -300,6 +300,9 @@ const SEARCH_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
 var _has_left_idle: bool = false  ## Issue #330: Never returns to IDLE
 var _search_path_node: Node2D = null  ## SearchPathWaypoints node cache (Issue #1225)
 var _using_predefined_search_path: bool = false  ## Using predefined path instead of spiral (Issue #1225)
+const SEARCH_MIN_TIME_BEFORE_COMBAT: float = 0.3  ## Issue #1458: min seconds in SEARCHING before COMBAT transition to prevent oscillation
+var _search_last_nav_target: Vector2 = Vector2.ZERO  ## Issue #1458: cached nav target to avoid redundant path recalculations
+var _search_combat_transition_logged: bool = false  ## Issue #1458: throttle "Player spotted" log to once per search session
 const CLOSE_COMBAT_DISTANCE: float = 400.0  ## Close combat threshold
 var _goap_world_state: Dictionary = {}  ## GOAP world state
 var _detection_timer: float = 0.0  ## Combat detection timer
@@ -2363,9 +2366,14 @@ func _process_searching_state(delta: float) -> void:
 		_transition_to_idle()
 		return
 	if _can_see_player:
-		_log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
-		_transition_to_combat()
-		return
+		# Issue #1458: Require minimum time in SEARCHING before combat transition to prevent
+		# rapid SEARCHING↔COMBAT oscillation that causes 30 fps drop with many enemies.
+		if _search_state_timer >= SEARCH_MIN_TIME_BEFORE_COMBAT:
+			if not _search_combat_transition_logged:
+				_log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
+				_search_combat_transition_logged = true
+			_transition_to_combat()
+			return
 	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
 		if _using_predefined_search_path and not _search_waypoints.is_empty():  # Issue #1225: loop predefined path
 			_search_current_waypoint_index = 0; _search_moving_to_waypoint = true; return
@@ -2405,7 +2413,10 @@ func _process_searching_state(delta: float) -> void:
 			_search_moving_to_waypoint = false; _search_scan_timer = 0.0; _search_stuck_timer = 0.0
 			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
-			_nav_agent.target_position = target_waypoint
+			# Issue #1458: Only update nav target when waypoint changes to avoid redundant path recalculations
+			if _search_last_nav_target.distance_squared_to(target_waypoint) > 1.0:
+				_nav_agent.target_position = target_waypoint
+				_search_last_nav_target = target_waypoint
 			if _nav_agent.is_navigation_finished():
 				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
@@ -2640,7 +2651,11 @@ func _shoot_burst_shot() -> void:
 func _transition_to_idle() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings")
 	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
-		_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _generate_search_waypoints(); return
+		# Issue #1458: Only regenerate waypoints if not already in SEARCHING to prevent
+		# per-frame waypoint regeneration in COMBAT(disabled)→IDLE(disabled)→SEARCHING redirect chain.
+		if _current_state != AIState.SEARCHING:
+			_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _search_last_nav_target = Vector2.ZERO; _search_combat_transition_logged = false; _generate_search_waypoints()
+		return
 	_current_state = AIState.IDLE
 	# Reset various state tracking when returning to idle
 	_hits_taken_in_encounter = 0; _in_alarm_mode = false; _cover_burst_pending = false
@@ -2831,6 +2846,8 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
 	# Issue #354: Initialize stuck detection. #1249: clear yield on SEARCHING entry.
 	_search_stuck_timer = 0.0; _search_last_progress_position = global_position; if _tactical_movement: _tactical_movement.reset_yield()
+	# Issue #1458: Reset nav target cache and combat transition throttle
+	_search_last_nav_target = Vector2.ZERO; _search_combat_transition_logged = false
 	_using_predefined_search_path = _load_predefined_search_path(center_position)  # Issue #1225
 	if not _using_predefined_search_path: _generate_search_waypoints()
 	var msg := "SEARCHING started (%s): center=%s, radius=%.0f, waypoints=%d" % ["predefined" if _using_predefined_search_path else "spiral", _search_center, _search_radius, _search_waypoints.size()]
