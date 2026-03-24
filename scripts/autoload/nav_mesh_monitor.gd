@@ -121,6 +121,8 @@ class _NavMeshOverlay extends CanvasLayer:
 	## Initialized in _init() so it is available immediately after .new(),
 	## before _ready() fires (which is deferred to the next frame by add_child).
 	var _draw_node: _NavMeshDrawNode = null
+	## Diagnostic label to test if Control-based rendering works in CanvasLayer.
+	var _diag_label: Label = null
 
 	func _init() -> void:
 		# Render above ALL visual effects (cinema=99, hit=100, penultimate=101,
@@ -140,6 +142,19 @@ class _NavMeshOverlay extends CanvasLayer:
 		_draw_node.fill_color = fill_color
 		_draw_node.outline_color = outline_color
 		add_child(_draw_node)
+		# Diagnostic: add a visible Label on a separate untransformed CanvasLayer
+		# to test whether CanvasLayer rendering works at all in exported builds.
+		# If this label is visible but the draw calls are not, the issue is
+		# specifically with Node2D._draw() inside CanvasLayers.
+		var diag_layer := CanvasLayer.new()
+		diag_layer.layer = 199  # Just below FPS counter
+		_diag_label = Label.new()
+		_diag_label.text = "[NavMesh DEBUG OVERLAY ACTIVE]"
+		_diag_label.position = Vector2(10, 40)
+		_diag_label.add_theme_color_override("font_color", Color(1, 0, 1, 1))
+		_diag_label.add_theme_font_size_override("font_size", 18)
+		diag_layer.add_child(_diag_label)
+		add_child(diag_layer)
 
 	func _process(_delta: float) -> void:
 		# Sync CanvasLayer transform with the viewport's canvas transform so
@@ -147,6 +162,15 @@ class _NavMeshOverlay extends CanvasLayer:
 		var vp: Viewport = get_viewport()
 		if vp:
 			transform = vp.canvas_transform
+		# Diagnostic: ensure draw node is queued for redraw each frame when visible
+		if _draw_node and visible:
+			_draw_node.queue_redraw()
+		# Diagnostic: update label with polygon count and draw call status
+		if _diag_label and _draw_node:
+			var count: int = _draw_node._polygons.size()
+			var draws: int = _draw_node._draw_call_count
+			_diag_label.text = "[NavMesh OVERLAY: %d polys, %d draws, CL_xform=%s]" % [
+				count, draws, str(transform != Transform2D.IDENTITY)]
 
 	## Return the number of polygons currently drawn (for logging).
 	func get_polygon_count() -> int:
@@ -246,12 +270,64 @@ class _NavMeshDrawNode extends Node2D:
 	var fill_color: Color = Color(0.0, 0.5, 1.0, 0.25)
 	var outline_color: Color = Color(0.0, 0.8, 1.0, 0.85)
 	var _polygons: Array = []
+	## Diagnostic: how many times _draw() has been called since last set_polygons.
+	var _draw_call_count: int = 0
+	## Diagnostic: logged flag to avoid spamming.
+	var _diag_logged: bool = false
 
 	func set_polygons(polygons: Array) -> void:
 		_polygons = polygons
+		_draw_call_count = 0
+		_diag_logged = false
 		queue_redraw()
 
 	func _draw() -> void:
+		_draw_call_count += 1
+		# Diagnostic: log once per refresh cycle to verify _draw() is called
+		# and report transform chain state.
+		if not _diag_logged and _polygons.size() > 0:
+			_diag_logged = true
+			var diag_msg: String = "_draw() called: %d polygons, draw_call #%d" % [
+				_polygons.size(), _draw_call_count]
+			# Report first polygon's first vertex (world-space)
+			var first_poly: Dictionary = _polygons[0]
+			var fv: PackedVector2Array = first_poly["vertices"]
+			var fx: Transform2D = first_poly["global_transform"]
+			if fv.size() > 0:
+				var world_v: Vector2 = fx * fv[0]
+				diag_msg += ", first_vert_world=(%d,%d)" % [int(world_v.x), int(world_v.y)]
+			# Report node visibility and tree state
+			diag_msg += ", visible=%s, in_tree=%s" % [str(visible), str(is_inside_tree())]
+			# Report parent CanvasLayer info
+			var parent_layer: Node = get_parent()
+			if parent_layer is CanvasLayer:
+				var cl: CanvasLayer = parent_layer as CanvasLayer
+				diag_msg += ", CL_layer=%d, CL_visible=%s" % [cl.layer, str(cl.visible)]
+				diag_msg += ", CL_follow_vp=%s" % str(cl.follow_viewport_enabled)
+				diag_msg += ", CL_transform=%s" % str(cl.transform)
+			# Report viewport transforms
+			var vp: Viewport = get_viewport()
+			if vp:
+				diag_msg += ", vp_canvas_xform=%s" % str(vp.canvas_transform)
+				diag_msg += ", vp_size=%s" % str(vp.get_visible_rect().size)
+			# Log via FileLogger (works in release builds)
+			var tree: SceneTree = Engine.get_main_loop() as SceneTree
+			if tree:
+				var fl: Node = tree.root.get_node_or_null("/root/FileLogger")
+				if fl and fl.has_method("log_info"):
+					fl.log_info("[NavMeshMonitor] " + diag_msg)
+		# Diagnostic: draw a bright test marker at a fixed world position
+		# to verify the CanvasLayer + Node2D rendering pipeline works at all.
+		# This should appear as a bright magenta circle near top-left of the
+		# nav mesh area. If this is invisible too, the issue is in the
+		# rendering pipeline, not the polygon data.
+		if _polygons.size() > 0:
+			var test_poly: Dictionary = _polygons[0]
+			var test_verts: PackedVector2Array = test_poly["vertices"]
+			var test_xform: Transform2D = test_poly["global_transform"]
+			if test_verts.size() > 0:
+				var test_world: Vector2 = test_xform * test_verts[0]
+				draw_circle(test_world, 30.0, Color(1.0, 0.0, 1.0, 1.0))
 		for poly_data in _polygons:
 			var verts: PackedVector2Array = poly_data["vertices"]
 			var xform: Transform2D = poly_data["global_transform"]
