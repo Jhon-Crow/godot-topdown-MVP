@@ -50,25 +50,37 @@ The patrol snap code checks distance only — it does NOT verify there is no wal
 
 ## Solution
 
-Three targeted fixes, all in `scripts/objects/enemy.gd`:
+**Single minimal fix** in `scripts/objects/enemy.gd`, function `_move_to_target_nav()` (line ~4744):
 
-### Fix 1: Nav Direction Guard (`_move_to_target_nav`)
-Preserve the original NavigationAgent2D direction before wall avoidance. If wall avoidance steers >90° away (dot product < 0), blend back toward the nav direction (70% nav, 30% avoidance). This prevents wall avoidance from overriding the pathfinder in corridors.
+### Nav Direction Guard
+Preserve the original NavigationAgent2D direction before wall avoidance is applied. After wall avoidance, check the dot product between the original nav direction and the adjusted direction. If wall avoidance has steered >90° away (dot product < 0), blend back toward the nav direction (70% nav / 30% avoidance). This prevents wall avoidance from overriding the pathfinder in corridors and doorways — the primary cause of wall-sticking.
 
-### Fix 2: Navmesh Polygon Count Guard (`_process_patrol`)
-Before snapping patrol points, check `NavigationServer2D.map_get_polygon_count(nav_map) == 0`. If the navmesh has no polygons yet (bake not complete), return early and retry next frame.
+```gdscript
+var nav_direction := direction
+direction = _apply_wall_avoidance(direction)
+if nav_direction.dot(direction) < 0.0:
+    direction = (nav_direction * 0.7 + direction * 0.3).normalized()
+```
 
-### Fix 3: Wall-Check Raycast for Snap (`_process_patrol`)
-Before accepting a snapped patrol point, cast a physics ray between the original and snapped positions on the obstacle layer (mask `0b100`). If the ray hits a wall, keep the original position.
+**What this does NOT change:**
+- Wall avoidance still works normally in open areas (dot product >= 0)
+- Patrol point snapping logic is untouched
+- No blank lines, comments, or formatting changes
+- No changes to any other functions
 
-## Previous Attempt (PR #1358)
+### Known secondary issues (not fixed here)
+- Patrol point snapping on empty navmesh (async bake) — can cause garbage snap positions
+- Cross-wall patrol point snapping — no wall-check raycast between original and snapped point
 
-PR #1358 attempted the same fixes but was rejected because the AI was "completely broken". Analysis of the game log (`game_log_20260324_062132.txt`) from that build shows:
-- Level: LabyrinthLevel (5 enemies)
-- `has_died_signal=false` for all enemies — enemy script failed to initialize properly
-- Game session lasted only 3 seconds before ending
+These are deferred to avoid risk of breaking AI behavior.
 
-The current fix applies the same logical changes more conservatively, with careful attention to not breaking existing AI behavior.
+## Previous Attempts
+
+### PR #1358 (closed)
+First attempt with three fixes (nav guard + navmesh polygon guard + wall-check raycast + unreachable point filtering). Owner reported AI was "completely broken."
+
+### PR #1396 first commit
+Second attempt with the same three fixes but less patrol filtering. Reverted to single minimal fix after owner feedback.
 
 ## Related Issues and Prior Work
 

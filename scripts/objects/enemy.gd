@@ -4064,22 +4064,14 @@ func _process_patrol(delta: float) -> void:
 	# Issue #1119: NavigationAgent2D routing replaces direct direction+wall avoidance (wall-rubbing fix).
 	if _patrol_points.is_empty(): return
 	# Issue #1216: Snap patrol points after 1 physics frame; only if within agent_radius*2 (avoid cross-wall snap).
-	# Issue #1357: Guard against navmesh not yet baked — if map has 0 polygons, defer snap; wall-check raycast.
 	if not _patrol_points_snapped and _nav_agent != null and Engine.get_physics_frames() > _spawn_physics_frame:
 		var nav_map: RID = _nav_agent.get_navigation_map()
 		if nav_map.is_valid():
-			if NavigationServer2D.map_get_polygon_count(nav_map) == 0: return  # #1357: defer until navmesh baked
 			var snap_thr := ((_nav_agent.path_desired_distance if _nav_agent.path_desired_distance > 0.0 else 50.0) * 2.0)
-			var space_state := get_world_2d().direct_space_state
 			for i in range(_patrol_points.size()):
 				var snapped := NavigationServer2D.map_get_closest_point(nav_map, _patrol_points[i])
-				if _patrol_points[i].distance_to(snapped) <= snap_thr:
-					# Issue #1357: Verify no wall between original point and snapped point.
-					var query := PhysicsRayQueryParameters2D.create(_patrol_points[i], snapped)
-					query.collision_mask = 0b100; query.exclude = [self]
-					if space_state.intersect_ray(query).is_empty(): _patrol_points[i] = snapped
-					else: _log_to_file("Patrol point %d: wall blocks snap, keeping original (#1357)" % i)
-			_patrol_points_snapped = true; _log_to_file("Patrol points snapped to navmesh (%d points) (#1216, #1357)" % _patrol_points.size())
+				if _patrol_points[i].distance_to(snapped) <= snap_thr: _patrol_points[i] = snapped
+			_patrol_points_snapped = true; _log_to_file("Patrol points snapped to navmesh (Issue #1216)")
 	if _is_waiting_at_patrol_point:
 		_patrol_wait_timer += delta
 		if _patrol_wait_timer >= patrol_wait_time:
@@ -4707,6 +4699,7 @@ func _draw_fov_cone(fill_color: Color, edge_color: Color) -> void:
 		draw_line(Vector2.ZERO, ray_endpoints[ray_endpoints.size() - 1], edge_color, 2.0)
 	for i in range(ray_endpoints.size() - 1):
 		draw_line(ray_endpoints[i], ray_endpoints[i + 1], edge_color, 1.5)
+
 ## Check if player is distracted (aim >23° away from this enemy). Used for priority attacks.
 func _is_player_distracted() -> bool:
 	if not _can_see_player or _player == null:
@@ -4724,12 +4717,14 @@ func _is_player_distracted() -> bool:
 	if is_distracted:
 		_log_debug("Player distracted: aim angle %.1f° > %.1f° threshold" % [rad_to_deg(angle), rad_to_deg(PLAYER_DISTRACTION_ANGLE)])
 	return is_distracted
+
 ## Get direction to follow NavigationAgent2D path toward target_pos. Returns Vector2.ZERO if finished.
 func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 	if _nav_agent == null: return (target_pos - global_position).normalized()
 	_nav_agent.target_position = target_pos
 	if _nav_agent.is_navigation_finished(): return Vector2.ZERO
 	return (_nav_agent.get_next_path_position() - global_position).normalized()
+
 ## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	# Issue #1249: Tactical yielding — let closest enemy pass first. Skip in FLANKING (#1249 s4).
@@ -4748,8 +4743,11 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
 	var nav_direction := direction  # Issue #1357: preserve nav direction before wall avoidance
 	direction = _apply_wall_avoidance(direction)
-	# Issue #1357: If wall avoidance steers >90° from nav path, reduce its influence to prevent wall-sticking.
-	if nav_direction.dot(direction) < 0.0: direction = (nav_direction * 0.7 + direction * 0.3).normalized()
+	# Issue #1357: If wall avoidance steers >90° from nav path (dot < 0), blend back toward nav
+	# direction. NavigationAgent2D already accounts for walls via navmesh; wall avoidance fighting
+	# the nav direction in corridors/doorways is the primary cause of wall-sticking.
+	if nav_direction.dot(direction) < 0.0:
+		direction = (nav_direction * 0.7 + direction * 0.3).normalized()
 	# Issue #1107: Corner escape — use escape-dominant weight (1.5) when wall opposes nav dir
 	var _esc: Vector2 = Vector2.ZERO
 	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
@@ -4771,6 +4769,7 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 ## Issue #1146: Called by NavigationAgent2D when ORCA computes a safe avoidance velocity.
 func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
 	_avoidance_velocity = safe_velocity
+
 ## Issue #1146: Separation steering — push away from nearby allies.
 ## Issue #1249: Skip separation while yielding so the passing enemy isn't pushed aside.
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
@@ -4783,6 +4782,7 @@ func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
 		if dist < SEPARATION_RADIUS and dist > 0.1: sep_force += diff.normalized() * (SEPARATION_RADIUS - dist) / SEPARATION_RADIUS
 	if sep_force != Vector2.ZERO: vel += sep_force * SEPARATION_STRENGTH * delta
 	return vel
+
 ## Check if the navigation agent has a valid path to the target.
 func _has_nav_path_to(target_pos: Vector2) -> bool:
 	if _nav_agent == null: return false
@@ -4793,6 +4793,7 @@ func _get_nav_path_distance(target_pos: Vector2) -> float:
 	if _nav_agent == null: return global_position.distance_to(target_pos)
 	_nav_agent.target_position = target_pos
 	return _nav_agent.distance_to_target()
+
 # Status Effects (Blindness, Stun) - delegated to FlashbangStatusComponent (Issue #328)
 func _setup_flashbang_status() -> void:
 	_flashbang_status = FlashbangStatusComponent.new()
@@ -4800,6 +4801,7 @@ func _setup_flashbang_status() -> void:
 	_flashbang_status.blinded_changed.connect(_on_blinded_changed)
 	_flashbang_status.stunned_changed.connect(_on_stunned_changed)
 	add_child(_flashbang_status)
+
 func _on_blinded_changed(blinded: bool) -> void:
 	_is_blinded = blinded
 	if _status_effect_anim: _status_effect_anim.set_blinded(blinded)
@@ -4808,6 +4810,7 @@ func _on_stunned_changed(stunned: bool) -> void:
 	_is_stunned = stunned
 	if _status_effect_anim: _status_effect_anim.set_stunned(stunned)
 	if stunned: velocity = Vector2.ZERO
+
 func set_blinded(blinded: bool) -> void:
 	if _flashbang_status: _flashbang_status.set_blinded(blinded)
 func set_stunned(stunned: bool) -> void:
@@ -4819,12 +4822,14 @@ func _setup_aggression_component() -> void:  ## [Issue #675]
 	_aggression.aggression_changed.connect(func(a): if _status_effect_anim: _status_effect_anim.set_aggressive(a); if a and _current_state in [AIState.IDLE, AIState.IN_COVER]: _transition_to_combat())
 func set_aggressive(a: bool) -> void: if _aggression: _aggression.set_aggressive(a)
 func is_aggressive() -> bool: return _aggression != null and _aggression.is_aggressive()
-func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:  ## Issue #432
+## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
+func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
 	if _flashbang_status: _flashbang_status.apply_flashbang_effect(blindness_duration, stun_duration)
 func is_shield_active() -> bool: return _shield_component != null and _shield_component.is_active()  ## Issue #1242
 func apply_knockback(impulse: Vector2) -> void: _knockback_velocity = impulse  ## Issue #1242: shield break stagger
 func set_formation_follow_target(shielder: Node2D, pos: Vector2) -> void: _formation_shielder = shielder; _formation_target_pos = pos  ## Issue #1242
-## Setup grenade component (Issue #363/#377). Grenadiers use GrenadierGrenadeComponent (#604).
+# Grenade System (Issue #363) - Component-based (extracted for Issue #377)
+## Setup the grenade component. Called from _ready(). Grenadiers use GrenadierGrenadeComponent (Issue #604).
 func _setup_grenade_component() -> void:
 	if not enable_grenade_throwing: return
 	if is_grenadier:
@@ -4852,6 +4857,7 @@ func _update_grenade_triggers(delta: float) -> void:
 	var can_see_target := _can_see_player or _can_see_companion
 	_grenade_component.update(delta, can_see_target, _under_fire, grenade_target, _current_health, _memory)
 	_update_grenade_world_state()
+
 func _on_gunshot_heard_for_grenade(position: Vector2) -> void:
 	if _grenade_component: _grenade_component.on_gunshot(position)
 func _on_vulnerable_sound_heard_for_grenade(position: Vector2) -> void:
