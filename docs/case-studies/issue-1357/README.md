@@ -38,12 +38,16 @@ Both previous attempts focused on wall avoidance weights or patrol point initial
 
 ## Fix
 
-**Change `collision_mask` from `6` to `4`** in `scenes/objects/Enemy.tscn`.
+**Change `collision_mask` from `6` to `4`** in all four enemy scene files:
+- `scenes/objects/Enemy.tscn`
+- `scenes/objects/EnemySwatShield.tscn`
+- `scenes/objects/EnemyDroneOperator.tscn`
+- `scenes/objects/RadioJammerEnemy.tscn`
 
-This removes enemy-enemy physical collision (layer 2) while keeping wall collision (layer 3). Enemy-enemy avoidance continues to work through the three existing soft mechanisms (ORCA, separation, tactical yielding), which cooperate with the navigation path rather than fighting it.
+All four use the same `enemy.gd` script and had `collision_mask = 6`. This removes enemy-enemy physical collision (layer 2) while keeping wall collision (layer 3). Enemy-enemy avoidance continues to work through the three existing soft mechanisms (ORCA, separation, tactical yielding), which cooperate with the navigation path rather than fighting it.
 
 ### What changes:
-- `collision_mask = 6` → `collision_mask = 4` (only collide with walls/obstacles)
+- `collision_mask = 6` → `collision_mask = 4` (only collide with walls/obstacles) in all enemy CharacterBody2D scenes
 - Zero lines added to `enemy.gd` (critical: file is at 4991/5000 line limit)
 
 ### What stays the same:
