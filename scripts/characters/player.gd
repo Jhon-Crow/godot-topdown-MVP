@@ -376,6 +376,8 @@ func _ready() -> void:
 
 	# Initialize fine motor skills if active item manager has it selected (Issue #1315)
 	_init_fine_motor_skills()
+	# Initialize dash if active item manager has it selected (Issue #1071)
+	_init_dash()
 
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
@@ -408,12 +410,11 @@ func _physics_process(delta: float) -> void:
 
 	var input_direction := _get_input_direction()
 
-	if input_direction != Vector2.ZERO:
-		# Apply acceleration towards the input direction
-		velocity = velocity.move_toward(input_direction * max_speed, acceleration * delta)
-	else:
-		# Apply friction to slow down
-		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
+	if not is_dash_active():
+		if input_direction != Vector2.ZERO:
+			velocity = velocity.move_toward(input_direction * max_speed, acceleration * delta)
+		else:
+			velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
 
 	move_and_slide()
 
@@ -525,6 +526,8 @@ func _physics_process(delta: float) -> void:
 
 	# Handle fine motor skills input (press Space to instantly reload) (Issue #1315)
 	_handle_fine_motor_skills_input()
+	# Handle dash input (press Space to dash) (Issue #1071)
+	_handle_dash_input()
 
 	# Update jammer HUD icon visibility (Issue #1036)
 	_update_jammer_hud()
@@ -1071,6 +1074,10 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	if not _is_alive:
 		return
 
+	# Check dash immunity (Issue #1071)
+	if is_dash_active():
+		FileLogger.info("[Player] Hit blocked by dash immunity")
+		return
 	# Check force field protection (Issue #676)
 	if is_force_field_active():
 		FileLogger.info("[Player] Hit blocked by force field")
@@ -3600,10 +3607,7 @@ func _init_breaker_bullets() -> void:
 	_breaker_bullets_active = true
 	FileLogger.info("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls")
 
-# ============================================================================
 # Force Field (Issue #676)
-# ============================================================================
-
 ## Whether force field is equipped.
 var _force_field_equipped: bool = false
 
@@ -3668,10 +3672,7 @@ func _handle_force_field_input(delta: float) -> void:
 func is_force_field_active() -> bool:
 	return _force_field_equipped and _force_field != null and _force_field.is_protecting()
 
-# ============================================================================
 # Trajectory Glasses (Issue #744)
-# ============================================================================
-
 ## Preload the trajectory glasses effect script.
 const TrajectoryGlassesEffectScript = preload("res://scripts/effects/trajectory_glasses_effect.gd")
 
@@ -3823,10 +3824,7 @@ func is_trajectory_glasses_active() -> bool:
 func get_trajectory_glasses() -> Node:
 	return _trajectory_glasses
 
-# ============================================================================
 # Radio Jammer HUD (Issue #1036)
-# ============================================================================
-
 ## Preloaded jammer HUD script (prohibition sign shown when active items are jammed).
 const JammerHudScript = preload("res://scripts/ui/jammer_hud.gd")
 
@@ -3848,29 +3846,11 @@ func _update_jammer_hud() -> void:
 	_jammer_hud.set_jammed_visible(ActiveItemManager.is_active_item_jammed() and has_item)
 
 # ============================================================================
-# Loudspeaker Active Item (Issue #959)
+# Loudspeaker Active Item (Issue #959) — Delegated to PlayerLoudspeakerComponent
 # ============================================================================
 
-## Preloaded loudspeaker cone effect script.
-const LoudspeakerConeEffectScript = preload("res://scripts/effects/loudspeaker_cone_effect.gd")
-
-## Whether the loudspeaker is equipped (active item selected in armory).
-var _loudspeaker_equipped: bool = false
-
-## Reference to the loudspeaker cone visual effect node.
-var _loudspeaker_cone: Node2D = null
-
-## Loudspeaker progress tracker (7-level system).
-var _loudspeaker_progress: LoudspeakerProgress = null
-
-## Sprite shown in player's hands during loudspeaker activation (Issue #959).
-var _loudspeaker_hand_sprite: Sprite2D = null
-
-## Timer for how long to show loudspeaker in hands (seconds).
-var _loudspeaker_hold_timer: float = 0.0
-
-## Duration to show loudspeaker in hands during activation (matches cone expand duration).
-const LOUDSPEAKER_HOLD_DURATION: float = 0.6
+## Loudspeaker component reference (extracted to scripts/components/player_loudspeaker_component.gd).
+var _loudspeaker_component: PlayerLoudspeakerComponent = null
 
 ## Signal emitted when the loudspeaker is activated (for level scripts to apply effect).
 signal loudspeaker_activated(position: Vector2, direction: Vector2, effect_chance: float)
@@ -3878,408 +3858,49 @@ signal loudspeaker_activated(position: Vector2, direction: Vector2, effect_chanc
 ## Signal emitted when loudspeaker charges change.
 signal loudspeaker_charges_changed(current: int, maximum: int)
 
-## Initialize the loudspeaker if the ActiveItemManager has it selected.
+## Initialize the loudspeaker via the extracted component (Issue #959).
 func _init_loudspeaker() -> void:
-	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
-	if active_item_manager == null:
-		FileLogger.info("[Player.Loudspeaker] ActiveItemManager not found")
-		return
+	_loudspeaker_component = PlayerLoudspeakerComponent.new()
+	_loudspeaker_component.name = "PlayerLoudspeakerComponent"
+	add_child(_loudspeaker_component)
+	_loudspeaker_component.initialize()
+	# Forward component signals to player signals for external compatibility
+	_loudspeaker_component.loudspeaker_activated.connect(func(pos, dir, chance): loudspeaker_activated.emit(pos, dir, chance))
+	_loudspeaker_component.loudspeaker_charges_changed.connect(func(cur, mx): loudspeaker_charges_changed.emit(cur, mx))
 
-	if not active_item_manager.has_method("has_loudspeaker"):
-		FileLogger.info("[Player.Loudspeaker] ActiveItemManager missing has_loudspeaker method")
-		return
-
-	if not active_item_manager.has_loudspeaker():
-		FileLogger.info("[Player.Loudspeaker] No loudspeaker selected in ActiveItemManager")
-		return
-
-	FileLogger.info("[Player.Loudspeaker] Loudspeaker selected, initializing...")
-
-	# Reuse the persistent progress tracker from ActiveItemManager (Issue #959).
-	# Do NOT create a new one here — that would reset all progression on every scene load.
-	_loudspeaker_progress = active_item_manager.loudspeaker_progress
-	# Reset only per-run state (charges/cooldown/all_charges_used) on respawn.
-	# used_this_level is NOT reset here — it persists across deaths on the same map
-	# so the first-use 100% only fires once per level visit (Issue #959).
-	_loudspeaker_progress.reset_for_respawn()
-
-	# Create the cone visual effect node
-	_loudspeaker_cone = LoudspeakerConeEffectScript.new()
-	_loudspeaker_cone.name = "LoudspeakerConeEffect"
-	_loudspeaker_cone.z_index = 1  # Draw above floor, below UI
-	add_child(_loudspeaker_cone)
-	_loudspeaker_cone.initialize(self)
-
-	_loudspeaker_equipped = true
-
-	# Create a sprite to show loudspeaker in player's hands during activation (Issue #959)
-	var loudspeaker_texture_path := "res://assets/sprites/weapons/loudspeaker_icon.png"
-	if ResourceLoader.exists(loudspeaker_texture_path):
-		_loudspeaker_hand_sprite = Sprite2D.new()
-		_loudspeaker_hand_sprite.texture = load(loudspeaker_texture_path)
-		_loudspeaker_hand_sprite.name = "LoudspeakerHandSprite"
-		_loudspeaker_hand_sprite.visible = false
-		_loudspeaker_hand_sprite.scale = Vector2(0.6, 0.6)
-		_loudspeaker_hand_sprite.position = Vector2(10, 0)
-		_loudspeaker_hand_sprite.z_index = 2
-		if _weapon_mount:
-			_weapon_mount.add_child(_loudspeaker_hand_sprite)
-		else:
-			add_child(_loudspeaker_hand_sprite)
-
-	var max_charges := _loudspeaker_progress.get_max_charges()
-	FileLogger.info("[Player.Loudspeaker] Loudspeaker equipped, level: %d, charges: %s, effect: %.0f%%, used_this_level: %s, all_charges_used: %s" % [
-		_loudspeaker_progress.current_level,
-		str(max_charges) + "/" + str(max_charges) if max_charges != -1 else "unlimited",
-		_loudspeaker_progress.get_effect_chance() * 100.0,
-		_loudspeaker_progress.used_this_level,
-		_loudspeaker_progress.all_charges_used_this_level
-	])
-
-	# Apply level start states for levels 6 and 7 (Issue #959)
-	if _loudspeaker_progress.should_start_with_pacifists() or _loudspeaker_progress.is_victory_state():
-		call_deferred("_apply_loudspeaker_level_start_state")
-
-## Handle loudspeaker input: press Space to emit sound cone (Issue #959).
+## Handle loudspeaker input via the extracted component (Issue #959).
 func _handle_loudspeaker_input() -> void:
-	if not _loudspeaker_equipped or _loudspeaker_progress == null:
-		return
-
-	# Update cooldown timer every frame
-	_loudspeaker_progress.update(get_process_delta_time())
-
-	# Update loudspeaker hold timer (show loudspeaker sprite in hands during activation)
-	if _loudspeaker_hold_timer > 0.0:
-		_loudspeaker_hold_timer -= get_process_delta_time()
-		if _loudspeaker_hold_timer <= 0.0:
-			_loudspeaker_hold_timer = 0.0
-			# Restore weapon visibility
-			if _weapon_mount:
-				for child in _weapon_mount.get_children():
-					if child != _loudspeaker_hand_sprite:
-						child.visible = true
-			if _loudspeaker_hand_sprite and is_instance_valid(_loudspeaker_hand_sprite):
-				_loudspeaker_hand_sprite.visible = false
-
-	if not Input.is_action_just_pressed("flashlight_toggle"):
-		return
-
-	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
-	if ActiveItemManager.is_active_item_jammed_verbose():
-		FileLogger.info("[Player.Loudspeaker] Space blocked by Radio Jammer (Issue #1036)")
-		return
-
-	if not _loudspeaker_progress.can_activate():
-		FileLogger.info("[Player.Loudspeaker] Cannot activate: no charges or cooldown active")
-		return
-
-	# Determine if this is the first use before consuming the charge
-	var is_first_use: bool = not _loudspeaker_progress.used_this_level
-
-	# Consume charge / start cooldown
-	_loudspeaker_progress.use()
-
-	# Get aim direction (toward mouse cursor)
-	var aim_dir := _get_aim_direction()
-
-	# Show loudspeaker in player's hands: hide weapon, show loudspeaker sprite (Issue #959)
-	if _loudspeaker_hand_sprite and is_instance_valid(_loudspeaker_hand_sprite):
-		_loudspeaker_hand_sprite.visible = true
-		if _weapon_mount:
-			for child in _weapon_mount.get_children():
-				if child != _loudspeaker_hand_sprite:
-					child.visible = false
-		_loudspeaker_hold_timer = LOUDSPEAKER_HOLD_DURATION
-
-	# Show the cone visual effect
-	if _loudspeaker_cone and is_instance_valid(_loudspeaker_cone):
-		_loudspeaker_cone.play(aim_dir)
-
-	# Effect chance: only first use at level 1 gets 100% (exactly 1 enemy); all other uses use level chance
-	var is_level1_first_use: bool = is_first_use and _loudspeaker_progress.current_level == 1
-	var effect_chance := 1.0 if is_level1_first_use else _loudspeaker_progress.get_effect_chance()
-	var max_pacify := 1 if is_level1_first_use else -1
-
-	# Notify all enemies on the map that a loud sound was made (they all hear it)
-	_alert_all_enemies_loudspeaker()
-
-	# Apply pacifism effect to enemies in the cone sector (Stage 5)
-	var hostility_chance := _loudspeaker_progress.get_hostility_chance()
-	_apply_loudspeaker_effect(aim_dir, effect_chance, hostility_chance, max_pacify)
-
-	# Emit signal so level scripts can track loudspeaker activations
-	loudspeaker_activated.emit(global_position, aim_dir, effect_chance)
-
-	# Update charge display
-	var max_charges := _loudspeaker_progress.get_max_charges()
-	var current_charges := _loudspeaker_progress.charges_remaining
-	loudspeaker_charges_changed.emit(current_charges, max_charges if max_charges != -1 else 0)
-
-	var charges_str := "%d/%d" % [current_charges, max_charges] if max_charges != -1 else "unlimited"
-	FileLogger.info("[Player.Loudspeaker] Activated! Direction: %s, Effect chance: %.0f%%, Charges: %s" % [
-		aim_dir, effect_chance * 100.0, charges_str
-	])
+	if _loudspeaker_component != null:
+		_loudspeaker_component.handle_input()
 
 ## Get the current aim direction (toward mouse cursor, or last move direction).
 func _get_aim_direction() -> Vector2:
-	# Aim toward mouse cursor
+	if _loudspeaker_component != null:
+		return _loudspeaker_component.get_aim_direction()
 	var mouse_pos := get_global_mouse_position()
 	var diff := mouse_pos - global_position
 	if diff.length() > 1.0:
 		return diff.normalized()
-	# Fallback: use current velocity direction
 	if velocity.length() > 1.0:
 		return velocity.normalized()
 	return Vector2.RIGHT
 
-## Apply the loudspeaker pacifism effect to enemies in the cone sector (Issue #959, Stage 5).
-##
-## Rules (from issue spec):
-## - Cone half-angle: 50 degrees (same as LoudspeakerConeEffect)
-## - Not behind a wall: raycasted (collision mask 4 = walls)
-## - Behind cover but within 500px: still gets effect
-## - Only enemies NOT previously attacked by player (not wounded/suppressed)
-## - Effect chance: 100% on first use, per-level chance on subsequent uses
-## - Hostility: each enemy independently rolls hostility toward any pacifist created
-## - max_pacify: maximum enemies to pacify this activation (-1 = unlimited)
-func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostility_chance: float, max_pacify: int = -1) -> void:
-	const CONE_HALF_ANGLE: float = 0.872664625997  # 50 degrees in radians
-	const COVER_MAX_DISTANCE: float = 500.0
-	var wall_mask: int = 4  # Physics layer for walls
-
-	var enemies := get_tree().get_nodes_in_group("enemies")
-	var pacified_count := 0
-
-	for enemy in enemies:
-		if not enemy.has_method("apply_pacifism"):
-			continue
-		if not enemy.has_method("is_alive") or not enemy.is_alive():
-			continue
-		if not enemy.has_method("is_pacifist") or enemy.is_pacifist():
-			continue  # Already pacifist
-
-		# Issue #959: Skip enemies who were actually shot/hit by the player.
-		# Note: was_attacked_by_player() also returns true for _in_alarm_mode (merely alerted),
-		# but the loudspeaker itself alerts all enemies, which would block level 6+ pacification.
-		# Use was_hit_by_player() which checks only actual hits (_hits_taken_in_encounter > 0).
-		if enemy.has_method("was_hit_by_player") and enemy.was_hit_by_player():
-			continue
-
-		var to_enemy: Vector2 = enemy.global_position - global_position
-		var dist: float = to_enemy.length()
-
-		if dist < 0.1:
-			continue
-
-		# Check cone angle
-		var angle_to_enemy := abs(direction.angle_to(to_enemy.normalized()))
-		if angle_to_enemy > CONE_HALF_ANGLE:
-			continue
-
-		# Line-of-sight check (raycast to enemy)
-		var space_state := get_world_2d().direct_space_state
-		var ray := PhysicsRayQueryParameters2D.new()
-		ray.from = global_position
-		ray.to = enemy.global_position
-		ray.collision_mask = wall_mask
-		ray.exclude = [self]
-		var result := space_state.intersect_ray(ray)
-		var behind_wall := not result.is_empty()
-
-		# If behind a wall (not just cover), skip — unless within 500px (cover rule)
-		if behind_wall and dist > COVER_MAX_DISTANCE:
-			continue
-
-		# Roll effect chance
-		if randf() > effect_chance:
-			continue
-
-		# Apply pacifism
-		if enemy.apply_pacifism(hostility_chance):
-			pacified_count += 1
-			FileLogger.info("[Player.Loudspeaker] Pacified enemy at %s (dist=%.0f, cover=%s)" % [
-				enemy.global_position, dist, str(behind_wall)
-			])
-			# Stop after reaching the per-activation limit (e.g. 1 on very first use at level 1)
-			if max_pacify != -1 and pacified_count >= max_pacify:
-				break
-
-	FileLogger.info("[Player.Loudspeaker] Effect applied: %d/%d enemies pacified" % [
-		pacified_count, enemies.size()
-	])
-
-## Alert all enemies on the map that the loudspeaker was used (they hear a loud sound).
-## Per issue spec: "enemies on the whole map hear the player when this item is used".
-func _alert_all_enemies_loudspeaker() -> void:
-	var enemies := get_tree().get_nodes_in_group("enemies")
-	var alerted := 0
-	for enemy in enemies:
-		if enemy.has_method("alert_from_loudspeaker"):
-			enemy.alert_from_loudspeaker(global_position)
-			alerted += 1
-		elif enemy.has_method("alert"):
-			enemy.alert(global_position)
-			alerted += 1
-	FileLogger.info("[Player.Loudspeaker] Alerted %d enemies" % alerted)
-
-## Apply loudspeaker level start state for levels 6 and 7 (Issue #959).
-## Level 6: 50% of enemies start as pacifists; 1 random enemy is immune.
-## Level 7: ALL enemies start as pacifists; show victory message.
-## Called deferred from _init_loudspeaker so all enemy nodes are ready.
+## Delegate loudspeaker level start state to the component (Issue #959).
 func _apply_loudspeaker_level_start_state() -> void:
-	if _loudspeaker_progress == null:
-		return
-
-	var enemies := get_tree().get_nodes_in_group("enemies")
-	if enemies.is_empty():
-		return
-
-	if _loudspeaker_progress.is_victory_state():
-		# Level 7: ALL enemies become pacifists
-		FileLogger.info("[Player.Loudspeaker] Level 7 victory state — all enemies start as pacifists!")
-		for enemy in enemies:
-			if enemy.has_method("apply_pacifism") and enemy.has_method("is_alive") and enemy.is_alive():
-				enemy.apply_pacifism(0.0)
-		# Show victory message via a label in the UI
-		_show_loudspeaker_victory_message()
-
-	elif _loudspeaker_progress.should_start_with_pacifists():
-		# Level 6: 50% enemies start as pacifists; designate 1 as immune
-		var alive_enemies: Array = []
-		for enemy in enemies:
-			if enemy.has_method("is_alive") and enemy.is_alive():
-				alive_enemies.append(enemy)
-
-		# Pick 1 random immune enemy first (before pacifying others)
-		if not alive_enemies.is_empty() and _loudspeaker_progress.has_immune_enemy():
-			var immune_idx := randi() % alive_enemies.size()
-			var immune_enemy: Node = alive_enemies[immune_idx]
-			if immune_enemy.has_method("set_immune_to_pacifism"):
-				immune_enemy.set_immune_to_pacifism(true)
-				FileLogger.info("[Player.Loudspeaker] Level 6: enemy at %s is immune to pacifism" % immune_enemy.global_position)
-			alive_enemies.remove_at(immune_idx)
-
-		# Pacify 50% of remaining enemies
-		alive_enemies.shuffle()
-		var pacify_count: int = int(alive_enemies.size() * 0.5)
-		var pacified := 0
-		for i in range(pacify_count):
-			var enemy: Node = alive_enemies[i]
-			if enemy.has_method("apply_pacifism"):
-				enemy.apply_pacifism(0.0)
-				pacified += 1
-		FileLogger.info("[Player.Loudspeaker] Level 6: %d/%d enemies start as pacifists" % [pacified, alive_enemies.size() + 1])
-
-## Show the victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
-func _show_loudspeaker_victory_message() -> void:
-	var canvas := CanvasLayer.new()
-	canvas.name = "LoudspeakerVictoryCanvas"
-	canvas.layer = 100
-	add_child(canvas)
-
-	# Victory message label
-	var label := Label.new()
-	label.text = "Нам нечего делить по этому мы не будем стрелять друг в друга."
-	label.add_theme_font_size_override("font_size", 36)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.set_anchor(SIDE_LEFT, 0.0)
-	label.set_anchor(SIDE_RIGHT, 1.0)
-	label.set_anchor(SIDE_TOP, 0.3)
-	label.set_anchor(SIDE_BOTTOM, 0.7)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	canvas.add_child(label)
-
-	# "Click to continue" hint
-	var hint := Label.new()
-	hint.text = "[ нажмите, чтобы продолжить ]"
-	hint.add_theme_font_size_override("font_size", 18)
-	hint.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8, 0.8))
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	hint.set_anchor(SIDE_LEFT, 0.0)
-	hint.set_anchor(SIDE_RIGHT, 1.0)
-	hint.set_anchor(SIDE_TOP, 0.65)
-	hint.set_anchor(SIDE_BOTTOM, 0.75)
-	canvas.add_child(hint)
-
-	# Invisible click-catcher panel
-	var panel := ColorRect.new()
-	panel.color = Color(0, 0, 0, 0)
-	panel.set_anchor(SIDE_LEFT, 0.0)
-	panel.set_anchor(SIDE_RIGHT, 1.0)
-	panel.set_anchor(SIDE_TOP, 0.0)
-	panel.set_anchor(SIDE_BOTTOM, 1.0)
-	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	panel.gui_input.connect(func(ev):
-		if ev is InputEventMouseButton and ev.pressed:
-			_show_loudspeaker_end_screen(canvas)
-	)
-	canvas.add_child(panel)
-
-	FileLogger.info("[Player.Loudspeaker] Victory message shown (Level 7)")
-
-## Show end screen after player clicks on victory message (Issue #959).
-func _show_loudspeaker_end_screen(victory_canvas: CanvasLayer) -> void:
-	# Remove victory screen
-	if is_instance_valid(victory_canvas):
-		victory_canvas.queue_free()
-
-	# Create end screen canvas
-	var canvas := CanvasLayer.new()
-	canvas.name = "LoudspeakerEndCanvas"
-	canvas.layer = 101
-	add_child(canvas)
-
-	# Black background
-	var bg := ColorRect.new()
-	bg.color = Color(0, 0, 0, 1)
-	bg.set_anchor(SIDE_LEFT, 0.0)
-	bg.set_anchor(SIDE_RIGHT, 1.0)
-	bg.set_anchor(SIDE_TOP, 0.0)
-	bg.set_anchor(SIDE_BOTTOM, 1.0)
-	canvas.add_child(bg)
-
-	# "Конец" title
-	var title := Label.new()
-	title.text = "Конец"
-	title.add_theme_font_size_override("font_size", 72)
-	title.add_theme_color_override("font_color", Color(1, 1, 1, 1))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title.set_anchor(SIDE_LEFT, 0.0)
-	title.set_anchor(SIDE_RIGHT, 1.0)
-	title.set_anchor(SIDE_TOP, 0.2)
-	title.set_anchor(SIDE_BOTTOM, 0.45)
-	canvas.add_child(title)
-
-	# Thank you message
-	var thanks := Label.new()
-	thanks.text = "Спасибо за игру!"
-	thanks.add_theme_font_size_override("font_size", 32)
-	thanks.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85, 1))
-	thanks.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	thanks.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	thanks.set_anchor(SIDE_LEFT, 0.0)
-	thanks.set_anchor(SIDE_RIGHT, 1.0)
-	thanks.set_anchor(SIDE_TOP, 0.5)
-	thanks.set_anchor(SIDE_BOTTOM, 0.7)
-	canvas.add_child(thanks)
-
-	FileLogger.info("[Player.Loudspeaker] End screen shown (Level 7)")
+	if _loudspeaker_component != null:
+		_loudspeaker_component.apply_level_start_state()
 
 ## Check if the loudspeaker is equipped (Issue #959).
 func has_loudspeaker() -> bool:
-	return _loudspeaker_equipped
+	return _loudspeaker_component != null and _loudspeaker_component.has_loudspeaker()
 
 ## Get the loudspeaker progress tracker (Issue #959).
 func get_loudspeaker_progress() -> LoudspeakerProgress:
-	return _loudspeaker_progress
+	if _loudspeaker_component != null:
+		return _loudspeaker_component.get_loudspeaker_progress()
+	return null
 
-# ============================================================================
 # Active Item Progress Bar (Issue #700)
-# ============================================================================
-
 ## Reference to the progress bar node displayed above the player.
 var _active_item_progress_bar: Node2D = null
 
@@ -4407,10 +4028,7 @@ func _on_homing_deactivated_hide_bar() -> void:
 func _on_homing_charges_changed(_current: int, _maximum: int) -> void:
 	pass
 
-# ============================================================================
 # Breaching Charges (Issue #1043)
-# ============================================================================
-
 ## Preload the breaching charges effect script.
 const BreachingChargesEffectScript = preload("res://scripts/effects/breaching_charges_effect.gd")
 
@@ -4528,10 +4146,7 @@ func _on_breaching_charges_changed(current: int, maximum: int) -> void:
 func get_breaching_charges() -> Node:
 	return _breaching_charges
 
-# ============================================================================
 # Armored Skin (Issue #1045)
-# ============================================================================
-
 ## Whether armored skin is active (passive item, Issue #1045).
 var _armored_skin_active: bool = false
 
@@ -4560,7 +4175,6 @@ func _init_armored_skin() -> void:
 	_armored_skin_active = true
 	FileLogger.info("[Player.ArmoredSkin] Armored skin active — shards will spawn at low HP")
 
-
 ## Apply the glassy armor shader to all player body sprites (Issue #1142).
 func _apply_armored_skin_visual() -> void:
 	const ARMOR_SHADER_PATH: String = "res://scripts/shaders/armored_skin.gdshader"
@@ -4579,7 +4193,6 @@ func _apply_armored_skin_visual() -> void:
 			child.material = mat
 			applied_count += 1
 	FileLogger.info("[Player.ArmoredSkin] Armor shader applied to %d sprites" % applied_count)
-
 
 ## Spawn glass/crystal shards from the player position (Issue #1142).
 ## Called when armored skin is active and player is at ≤2 HP while being hit.
@@ -4605,10 +4218,7 @@ func _spawn_armored_skin_shards() -> void:
 		parent.add_child(shard)
 		shard.global_position = global_position
 
-# ============================================================================
 # Item Visual System (Issue #1142)
-# ============================================================================
-
 ## Connect to active_item_changed signal for roguelike pedestal pickup (Issue #1325).
 func _connect_active_item_changed_signal() -> void:
 	var aim: Node = get_node_or_null("/root/ActiveItemManager")
@@ -4629,11 +4239,15 @@ func _deequip_all_active_items() -> void:
 	_breaker_bullets_active = false
 	_force_field = null; _force_field_equipped = false
 	_trajectory_glasses = null; _trajectory_glasses_hud = null; _trajectory_glasses_equipped = false
-	_loudspeaker_equipped = false; _loudspeaker_progress = null
+	if _loudspeaker_component != null and is_instance_valid(_loudspeaker_component):
+		_loudspeaker_component.queue_free()
+	_loudspeaker_component = null
 	_breaching_charges = null; _breaching_charges_equipped = false
 	_armored_skin_active = false; _recoil_compensator_equipped = false
 	_experimental_sample_equipped = false
 	_fine_motor_skills_equipped = false; _fine_motor_skills_active = false
+	if _dash_effect != null and is_instance_valid(_dash_effect): _dash_effect.queue_free()
+	_dash_effect = null; _dash_equipped = false
 
 ## Initialise the newly picked-up item subsystem (Issue #1325, #1317).
 func _on_active_item_picked_up(item_type: int) -> void:
@@ -4656,7 +4270,7 @@ func _on_active_item_picked_up(item_type: int) -> void:
 		16: _init_recoil_compensator()
 		18: _init_experimental_sample()
 		19: _init_fine_motor_skills()
-
+		20: _init_dash()
 
 ## Apply a passive visual effect to the player based on the equipped active item.
 ## Single entry point for item-specific player visuals; called once from _ready().
@@ -4670,17 +4284,10 @@ func _apply_item_visual() -> void:
 			_apply_armored_skin_visual()
 	FileLogger.info("[Player.ItemVisual] Visual applied for item type: %d" % item_type)
 
-# ============================================================================
 # Recoil Compensator (Issue #1073)
-# ============================================================================
-
-## Whether the recoil compensator is equipped.
 var _recoil_compensator_equipped: bool = false
-## Whether the recoil compensator is currently active (Space held and charge > 0).
 var _recoil_compensator_active: bool = false
-## Remaining charge in seconds (max 15 seconds).
 var _recoil_compensator_charge: float = 0.0
-## Maximum charge duration in seconds.
 const RECOIL_COMPENSATOR_MAX_CHARGE: float = 15.0
 ## Fire rate multiplier when compensator is active (10% boost).
 const RECOIL_COMPENSATOR_FIRE_RATE_BOOST: float = 1.1
@@ -4731,15 +4338,9 @@ func _handle_recoil_compensator_input(delta: float) -> void:
 func is_recoil_compensator_active() -> bool:
 	return _recoil_compensator_equipped and _recoil_compensator_active
 
-# ============================================================================
 # Experimental Sample (Issue #1127)
-# ============================================================================
-
-## Whether the experimental sample is equipped.
 var _experimental_sample_equipped: bool = false
-## Remaining experimental sample charges (1–5 per battle, randomised on level start).
 var _experimental_sample_charges: int = 0
-## Minimum / maximum charges per battle.
 const EXPERIMENTAL_SAMPLE_MIN_CHARGES: int = 1
 const EXPERIMENTAL_SAMPLE_MAX_CHARGES: int = 5
 ## Preloaded icon popup script for the experimental sample (Issue #1127).
@@ -4851,12 +4452,13 @@ func _trigger_experimental_sample_effect(item_type: int) -> bool:
 			FileLogger.info("[Player.ExperimentalSample] Trajectory glasses not equipped or already active; re-roll")
 			return false
 		11: # LOUDSPEAKER — trigger loudspeaker effect if progress system allows it
-			if _loudspeaker_equipped and _loudspeaker_progress != null and _loudspeaker_progress.can_activate():
-				var is_first_use: bool = not _loudspeaker_progress.used_this_level
-				_loudspeaker_progress.use()
-				_apply_loudspeaker_effect(_get_aim_direction(),
-					1.0 if is_first_use else _loudspeaker_progress.get_effect_chance(),
-					_loudspeaker_progress.get_hostility_chance())
+			var lp := get_loudspeaker_progress()
+			if has_loudspeaker() and lp != null and lp.can_activate():
+				var is_first_use: bool = not lp.used_this_level
+				lp.use()
+				_loudspeaker_component.apply_loudspeaker_effect(_get_aim_direction(),
+					1.0 if is_first_use else lp.get_effect_chance(),
+					lp.get_hostility_chance())
 				FileLogger.info("[Player.ExperimentalSample] Loudspeaker activated via experimental sample")
 				return true
 			FileLogger.info("[Player.ExperimentalSample] Loudspeaker not equipped or no charges; re-roll")
@@ -4878,16 +4480,10 @@ func get_experimental_sample_charges() -> int:
 func get_max_experimental_sample_charges() -> int:
 	return EXPERIMENTAL_SAMPLE_MAX_CHARGES
 
-
 # =========================================================================
 # Fine Motor Skills Active Item (Issue #1315)
-# =========================================================================
-
-## Whether fine motor skills item is equipped.
 var _fine_motor_skills_equipped: bool = false
-## Whether a fine motor skills reload sequence is currently in progress (Issue #1337).
 var _fine_motor_skills_active: bool = false
-## Delay before activation / between stages in seconds (Issue #1337). Set to 0 to disable.
 const FINE_MOTOR_SKILLS_ACTIVATION_DELAY: float = 0.2
 const FINE_MOTOR_SKILLS_STAGE_DELAY: float = 0.2
 
@@ -5000,3 +4596,33 @@ func _fine_motor_skills_complete_sniper_bolt(audio_manager: Node) -> void:
 	_is_reloading_sequence = false
 	_is_reloading_simple = false
 	reload_completed.emit()
+
+# Dash Active Item (Issue #1071)
+var _dash_effect: Node = null
+var _dash_equipped: bool = false
+const DASH_EFFECT_SCENE: String = "res://scenes/effects/DashEffect.tscn"
+func _init_dash() -> void:
+	var aim: Node = get_node_or_null("/root/ActiveItemManager")
+	if aim == null or not aim.has_method("has_dash"):
+		return
+	if not aim.has_dash():
+		return
+	var scene: PackedScene = load(DASH_EFFECT_SCENE) if ResourceLoader.exists(DASH_EFFECT_SCENE) else null
+	if scene:
+		_dash_effect = scene.instantiate()
+		add_child(_dash_effect)
+		_dash_effect.initialize(self)
+	_dash_equipped = true
+	FileLogger.info("[Player.Dash] Initialized — 3 charges, cooldown after all charges spent")
+func _handle_dash_input() -> void:
+	if not _dash_equipped or _dash_effect == null:
+		return
+	if not Input.is_action_just_pressed("flashlight_toggle"):
+		return
+	if ActiveItemManager.is_active_item_jammed_verbose():
+		return
+	# Always dash toward aim/cursor direction (not movement direction)
+	var dir := (get_global_mouse_position() - global_position).normalized()
+	_dash_effect.activate(dir)
+func is_dash_active() -> bool:
+	return _dash_equipped and _dash_effect != null and _dash_effect.is_dashing()

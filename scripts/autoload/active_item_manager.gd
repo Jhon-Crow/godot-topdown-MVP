@@ -28,7 +28,8 @@ enum ActiveItemType {
 	RECOIL_COMPENSATOR, # Recoil compensator - hold Space to eliminate recoil/spread and boost fire rate 10% (Issue #1073)
 	COMBAT_DISPOSITION, # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
 	EXPERIMENTAL_SAMPLE, # Experimental Sample - press Space to fire a random active item effect (even unowned). 1–5 charges per battle, randomised on level start (Issue #1127)
-	FINE_MOTOR_SKILLS  # Fine Motor Skills - press Space to instantly reload weapon and bring to combat-ready state. Unlimited charges, no cooldown (Issue #1315)
+	FINE_MOTOR_SKILLS, # Fine Motor Skills - press Space to instantly reload weapon and bring to combat-ready state. Unlimited charges, no cooldown (Issue #1315)
+	DASH               # Dash - press Space to dash in movement direction with damage immunity. 3 charges, cooldown after 3rd dash (Issue #1071)
 }
 
 ## Currently selected active item type.
@@ -45,9 +46,9 @@ var collected_passive_items: Array = []
 ## FLASHLIGHT (Polygon D+), TELEPORT_BRACERS (Double Corridor D+),
 ## INVISIBILITY_SUIT (Beach S + Building S), HOMING_BULLETS
 ## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S),
-## LASER_SIGHT (1000 kills without laser sight equipped),
-## and FINE_MOTOR_SKILLS (300 shots with shotgun, sniper rifle, or revolver)
-## have unlock conditions (Issue #894, Issue #1000, Issue #1196, Issue #1346).
+## TRAJECTORY_GLASSES (City D+), LASER_SIGHT (1000 kills without laser sight equipped),
+## and FINE_MOTOR_SKILLS (650 shots with shotgun, sniper rifle, or revolver)
+## have unlock conditions (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346).
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
 	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
@@ -57,7 +58,7 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.INVISIBILITY_SUIT: false,   # Condition: Beach S + Building S (Issue #1000 req.5)
 	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
-	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
+	ActiveItemType.TRAJECTORY_GLASSES: false,  # Condition: City D+ (Issue #1053 req.1)
 	ActiveItemType.LASER_SIGHT: false,         # Condition: 1000 kills without laser sight equipped (Issue #1196)
 	ActiveItemType.EXTENDED_MAGAZINE: true,    # No unlock condition — freely available from start (Issue #1065)
 	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
@@ -68,7 +69,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.RECOIL_COMPENSATOR: true,   # No unlock condition — freely available from start (Issue #1073)
 	ActiveItemType.COMBAT_DISPOSITION: true,   # No unlock condition — freely available from start (Issue #1047)
 	ActiveItemType.EXPERIMENTAL_SAMPLE: true,   # No unlock condition — freely available from start (Issue #1127)
-	ActiveItemType.FINE_MOTOR_SKILLS: false     # Condition: 300 shots with shotgun, sniper rifle, or revolver (Issue #1346)
+	ActiveItemType.FINE_MOTOR_SKILLS: false,    # Condition: 300 shots with shotgun, sniper rifle, or revolver (Issue #1346)
+	ActiveItemType.DASH: true                   # No unlock condition — freely available from start (Issue #1071)
 }
 
 ## Active item data for UI and selection.
@@ -184,6 +186,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/fine_motor_skills_icon.png",
 		"description": "Fine Motor Skills — press Space to instantly reload weapon and bring it to combat-ready state. Works with all weapons including revolver, shotgun, and sniper rifle. Unlimited charges, no cooldown.",
 		"activation_hint": "Press Space to reload"
+	},
+	ActiveItemType.DASH: {
+		"name": "Dash",
+		"icon_path": "res://assets/sprites/weapons/dash_icon.png",
+		"description": "Dash — press Space to dash in movement direction (Hyper Light Drifter style). Immune to all damage during dash. 3 charges with chain-dash, cooldown after all charges spent.",
+		"activation_hint": "Press Space to dash"
 	}
 }
 
@@ -419,6 +427,11 @@ func has_experimental_sample() -> bool:
 ## Check if fine motor skills is currently equipped (Issue #1315).
 func has_fine_motor_skills() -> bool:
 	return current_active_item == ActiveItemType.FINE_MOTOR_SKILLS
+
+
+## Check if dash is currently equipped (Issue #1071).
+func has_dash() -> bool:
+	return current_active_item == ActiveItemType.DASH
 
 
 ## Get the laser sight color (purple).
