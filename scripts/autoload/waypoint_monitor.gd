@@ -53,7 +53,7 @@ func _ensure_overlay() -> void:
 	if _overlay != null and is_instance_valid(_overlay):
 		return
 	_overlay = _WaypointOverlay.new()
-	get_tree().root.add_child(_overlay)
+	add_child(_overlay)
 
 
 ## Re-apply after a new Marker2D is added (e.g. after scene load).

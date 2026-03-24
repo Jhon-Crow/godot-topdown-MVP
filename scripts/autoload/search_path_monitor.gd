@@ -93,7 +93,7 @@ func _ensure_overlay() -> void:
 	_overlay.active_fill_color = ACTIVE_FILL_COLOR
 	_overlay.active_target_color = ACTIVE_TARGET_COLOR
 	_overlay.waypoint_radius = WAYPOINT_RADIUS
-	get_tree().root.add_child(_overlay)
+	add_child(_overlay)
 	_log_info("SearchPathMonitor: overlay created")
 
 
@@ -150,6 +150,13 @@ class _SearchPathOverlay extends CanvasLayer:
 		_draw_node.active_target_color = active_target_color
 		_draw_node.waypoint_radius = waypoint_radius
 		add_child(_draw_node)
+		# Issue #1392: diagnostic label
+		var _diag_label := Label.new()
+		_diag_label.text = "[SearchPath overlay active]"
+		_diag_label.position = Vector2(10, 90)
+		_diag_label.add_theme_color_override("font_color", Color(0, 1, 0.8, 1))
+		_diag_label.add_theme_font_size_override("font_size", 14)
+		add_child(_diag_label)
 
 	## Collect all search path data and pass it to the draw node.
 	func refresh() -> void:

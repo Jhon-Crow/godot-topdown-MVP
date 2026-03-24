@@ -69,7 +69,7 @@ func _ensure_overlay() -> void:
 	if _overlay != null and is_instance_valid(_overlay):
 		return
 	_overlay = _CoverRaycastOverlay.new()
-	get_tree().root.add_child(_overlay)
+	add_child(_overlay)
 	_log("CoverRaycastMonitor: overlay created")
 
 
@@ -104,6 +104,13 @@ class _CoverRaycastOverlay extends CanvasLayer:
 		follow_viewport_enabled = true
 		_draw_node = _CoverRaycastDrawNode.new()
 		add_child(_draw_node)
+		# Issue #1392: diagnostic label
+		var _diag_label := Label.new()
+		_diag_label.text = "[CoverRaycast overlay active]"
+		_diag_label.position = Vector2(10, 70)
+		_diag_label.add_theme_color_override("font_color", Color(1, 0.5, 0, 1))
+		_diag_label.add_theme_font_size_override("font_size", 14)
+		add_child(_diag_label)
 
 	## Collect cover raycast data from all active enemies and pass to the draw node.
 	func refresh() -> void:
