@@ -38,11 +38,8 @@ var _current_enemy_count: int = 0
 ## Whether game over has been shown.
 var _game_over_shown: bool = false
 
-## Reference to the kills label.
-var _kills_label: Label = null
-
-## Reference to the accuracy label.
-var _accuracy_label: Label = null
+## Reference to the difficulty label.
+var _difficulty_label: Label = null
 
 ## Reference to the magazines label (shows individual magazine ammo counts).
 var _magazines_label: Label = null
@@ -208,32 +205,22 @@ func _setup_navigation() -> void:
 	if nav_region == null:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
-
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
 		return
-
-	# Bake the navigation mesh to include physics obstacles from collision layer 4
-	# This is needed because we set parsed_geometry_type = 1 (static colliders)
-	# and parsed_collision_mask = 4 (walls layer) in the NavigationPolygon resource
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
+	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	print("Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Re-add the outline for the walkable floor area
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(64, 64),
-		Vector2(4064, 64),
-		Vector2(4064, 3024),
-		Vector2(64, 3024)
-	])
-	nav_poly.add_outline(floor_outline)
-
-	# Use NavigationServer2D to bake from source geometry
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-
+	# Issue #1289: push updated polygon back into the NavigationServer's live map.
+	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 	print("Navigation mesh baked successfully")
 
 
@@ -506,27 +493,16 @@ func _setup_debug_ui() -> void:
 	if ui == null:
 		return
 
-	# Create kills label
-	_kills_label = Label.new()
-	_kills_label.name = "KillsLabel"
-	_kills_label.text = "Kills: 0"
-	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left = 10
-	_kills_label.offset_top = 45
-	_kills_label.offset_right = 200
-	_kills_label.offset_bottom = 75
-	ui.add_child(_kills_label)
-
-	# Create accuracy label
-	_accuracy_label = Label.new()
-	_accuracy_label.name = "AccuracyLabel"
-	_accuracy_label.text = "Accuracy: 0%"
-	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left = 10
-	_accuracy_label.offset_top = 75
-	_accuracy_label.offset_right = 200
-	_accuracy_label.offset_bottom = 105
-	ui.add_child(_accuracy_label)
+	# Create difficulty label
+	_difficulty_label = Label.new()
+	_difficulty_label.name = "DifficultyLabel"
+	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_difficulty_label.offset_left = 10
+	_difficulty_label.offset_top = 45
+	_difficulty_label.offset_right = 200
+	_difficulty_label.offset_bottom = 75
+	ui.add_child(_difficulty_label)
 
 	# Create magazines label (shows individual magazine ammo counts)
 	_magazines_label = Label.new()
@@ -563,21 +539,14 @@ func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
 
-	if _kills_label:
-		_kills_label.text = "Kills: %d" % GameManager.kills
-
-	if _accuracy_label:
-		_accuracy_label.text = "Accuracy: %.1f%%" % GameManager.get_accuracy()
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 
 
 ## Called when an enemy dies.
 func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
-
-	# Register kill with GameManager
-	if GameManager:
-		GameManager.register_kill()
 
 	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		print("All enemies eliminated! Arena cleared!")
@@ -591,7 +560,10 @@ func _on_enemy_died() -> void:
 
 
 ## Called when an enemy dies with special kill information (for score tracking).
-func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
+func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
+	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
+	if GameManager:
+		GameManager.register_kill(is_player_kill)
 	# Register kill with ScoreManager including special kill info
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
@@ -675,10 +647,9 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 ## (handled in _on_weapon_ammo_changed for C# player, or when GDScript player
 ## truly has no ammo left).
 func _on_player_ammo_depleted() -> void:
-	# Notify all enemies that player tried to shoot with empty weapon
-	_broadcast_player_ammo_empty(true)
-	# Emit empty click sound via SoundPropagation system so enemies can hear through walls
-	# This has shorter range than reload sound but still propagates through obstacles
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
@@ -743,6 +714,9 @@ func _on_player_died() -> void:
 	if GameManager:
 		# Small delay to show death message
 		await get_tree().create_timer(0.5).timeout
+		# Issue #1334: After await, verify this node is still valid (scene may have reloaded)
+		if not is_instance_valid(self):
+			return
 		GameManager.on_player_death()
 
 

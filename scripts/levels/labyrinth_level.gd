@@ -29,11 +29,8 @@ var _current_enemy_count: int = 0
 ## Whether game over has been shown.
 var _game_over_shown: bool = false
 
-## Reference to the kills label.
-var _kills_label: Label = null
-
-## Reference to the accuracy label.
-var _accuracy_label: Label = null
+## Reference to the difficulty label.
+var _difficulty_label: Label = null
 
 ## Reference to the magazines label (shows individual magazine ammo counts).
 var _magazines_label: Label = null
@@ -267,6 +264,9 @@ func _ready() -> void:
 	# Setup window lights in corridors without enemies
 	_setup_window_lights()
 
+	# Setup cold ceiling lights in all rooms (Issue #1208)
+	_setup_room_cold_lights()
+
 	# Show tutorial hints for basic controls (Issue #808)
 	_setup_tutorial_hints()
 
@@ -388,6 +388,14 @@ func _setup_realistic_visibility() -> void:
 	visibility_component.name = "RealisticVisibilityComponent"
 	visibility_component.set_script(visibility_script)
 	_player.add_child(visibility_component)
+
+	# Tint the visibility light to match the cold-blue laboratory atmosphere
+	# so it blends with the room cold lights (Color(0.55, 0.75, 1.0)) instead
+	# of washing them out with a warm-white glow (Issue #1263).
+	# Color is deeper blue (lower R) to avoid white cast; energy is reduced
+	# from the default 1.5 so it no longer overpowers the room cold lights (≤0.65).
+	visibility_component.set_light_color(Color(0.45, 0.65, 1.0))
+	visibility_component.set_light_energy(0.8)
 	print("[LabyrinthLevel] Realistic visibility component added to player")
 
 
@@ -504,6 +512,131 @@ func _create_ambient_moonlight(parent: Node2D) -> void:
 	parent.add_child(ambient)
 
 
+## Setup cold ceiling lights in all rooms (Issue #1208).
+## Adds dim PointLight2D nodes with a cold blue tint to simulate fluorescent
+## laboratory lighting. Energy and scale are lower than the warm BuildingLevel
+## lights to keep the atmosphere tense and cold.
+##
+## Room centers (derived from InteriorWall positions in the scene):
+## - Generator Room:  ~(400, 270)   — upper-left, left of x=750 wall
+## - Control Room:    ~(1500, 220)  — upper-right, between x=1050 and x=1920
+## - Storage Hall:    ~(220, 840)   — lower-left, left of x=450 wall
+## - Corridor Area:   ~(700, 380)   — centre passage between rooms
+## - Server Room:     ~(1100, 900)  — lower-centre, below y=680 wall
+## - Pipe/Elec Room:  ~(1700, 700)  — right side, between pipe and elec walls
+func _setup_room_cold_lights() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	# Container node for all room lights
+	var room_lights_node := Node2D.new()
+	room_lights_node.name = "RoomLights"
+	environment.add_child(room_lights_node)
+
+	# Cold blue-tinted dim lights for each room.
+	# Energy is ~25% lower than the warm BuildingLevel equivalents.
+	# Format: [position, energy, texture_scale, label]
+	var room_configs: Array = [
+		# Upper-left — Generator Room
+		[Vector2(400, 270),  0.65, 3.5, "GeneratorRoom"],
+		# Upper-right — Control Room (larger space)
+		[Vector2(1500, 220), 0.65, 4.0, "ControlRoom"],
+		# Lower-left — Storage Hall
+		[Vector2(220, 840),  0.55, 3.0, "StorageHall"],
+		# Centre passage
+		[Vector2(700, 380),  0.50, 3.0, "Corridor"],
+		# Lower-centre — Server Room
+		[Vector2(1100, 900), 0.65, 3.5, "ServerRoom"],
+		# Right side — Pipe/Electrical Room
+		[Vector2(1700, 700), 0.55, 3.0, "PipeElecRoom"],
+	]
+
+	for cfg in room_configs:
+		_create_room_cold_light(room_lights_node, cfg[0], cfg[1], cfg[2], cfg[3])
+
+	print("[LabyrinthLevel] Cold ceiling lights placed in all rooms (Issue #1208)")
+
+
+## Create a single cold ceiling light at the given room-center position.
+## Uses a Sprite2D fixture (not ColorRect/Control) so it never intercepts mouse
+## events and cannot break pause-menu clicks.
+## @param parent: Container node.
+## @param pos: World-space position (room center).
+## @param energy: Light brightness (lower → dimmer and more atmospheric).
+## @param scale: Texture scale controlling the light radius.
+## @param room_name: Name suffix for the node (debug convenience).
+func _create_room_cold_light(parent: Node2D, pos: Vector2, energy: float, scale: float, room_name: String) -> void:
+	var light_node := Node2D.new()
+	light_node.name = "ColdLight_%s" % room_name
+	light_node.position = pos
+	parent.add_child(light_node)
+
+	# Small round ceiling lamp fixture — cold white-blue tint, semi-transparent.
+	# Sprite2D is a Node2D and never blocks input, unlike Control-based nodes.
+	var fixture := Sprite2D.new()
+	fixture.name = "Fixture"
+	fixture.texture = _create_lamp_fixture_texture()
+	fixture.modulate = Color(0.7, 0.85, 1.0, 0.45)  # Pale cold blue, semi-transparent
+	light_node.add_child(fixture)
+
+	# The actual PointLight2D — cold blue tint, shadows on.
+	var light := PointLight2D.new()
+	light.name = "PointLight"
+	light.color = Color(0.55, 0.75, 1.0, 1.0)   # Cold blue-white
+	light.energy = energy
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 3.0
+	light.shadow_color = Color(0.0, 0.0, 0.05, 0.65)
+	light.texture = _create_cold_light_texture()
+	light.texture_scale = scale
+	light_node.add_child(light)
+
+
+## Create a soft radial gradient texture for the cold room lights.
+## Uses the same power-law circular falloff as the warm BuildingLevel lights
+## so there are no hard visible edges — the light fades naturally to black.
+func _create_cold_light_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # 256 px
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)  # 0 = centre, 1 = edge
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+
+	return ImageTexture.create_from_image(image)
+
+
+## Create a small circular texture for the ceiling lamp fixture visual.
+## Draws a soft-edged disc so the fixture looks round, matching the
+## circular PointLight2D pool beneath it.
+func _create_lamp_fixture_texture() -> ImageTexture:
+	var size := 32
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # full disc radius
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			if dist >= outer_r:
+				image.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			else:
+				var t := clampf(dist / outer_r, 0.0, 1.0)
+				var alpha := pow(1.0 - t, 1.5)
+				image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+
+	return ImageTexture.create_from_image(image)
+
+
 func _process(_delta: float) -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("update_enemy_positions"):
@@ -562,27 +695,22 @@ func _setup_navigation() -> void:
 	if nav_region == null:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
-
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
 		return
-
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
+	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	print("Baking navigation mesh...")
-	nav_poly.clear()
-
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(48, 48),
-		Vector2(1968, 48),
-		Vector2(1968, 1128),
-		Vector2(48, 1128)
-	])
-	nav_poly.add_outline(floor_outline)
-
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-
+	# Issue #1289: push updated polygon back into the NavigationServer's live map.
+	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 	print("Navigation mesh baked successfully")
 
 
@@ -804,31 +932,53 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
+## Apply Labyrinth level ammo configuration to a weapon (Issue #1422).
+## Silenced pistol: exactly as many bullets as enemies.
+## Mini UZI and rifles: 2 magazines to match level difficulty.
+## Shotgun, sniper, revolver: defaults are sufficient for 5 enemies.
+func _configure_labyrinth_weapon_ammo(weapon: Node, weapon_id: String) -> void:
+	if weapon == null:
+		return
+
+	if weapon_id == "silenced_pistol":
+		_configure_silenced_pistol_ammo(weapon)
+	elif weapon_id == "mini_uzi" or weapon_id == "m16" or weapon_id == "ak_gl":
+		var base_magazines: int = 2
+		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+		if difficulty_manager:
+			var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+			if ammo_multiplier > 1:
+				base_magazines *= ammo_multiplier
+				print("[LabyrinthLevel] Power Fantasy mode - %s magazines multiplied by %dx" % [weapon.name, ammo_multiplier])
+		if weapon.has_method("ReinitializeMagazines"):
+			weapon.ReinitializeMagazines(base_magazines, true)
+			print("[LabyrinthLevel] %s magazines reinitialized to %d" % [weapon.name, base_magazines])
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
+		_log_to_file("Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+
+
 ## Setup debug UI elements for kills and accuracy.
 func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
 
-	_kills_label = Label.new()
-	_kills_label.name = "KillsLabel"
-	_kills_label.text = "Kills: 0"
-	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left = 10
-	_kills_label.offset_top = 45
-	_kills_label.offset_right = 200
-	_kills_label.offset_bottom = 75
-	ui.add_child(_kills_label)
-
-	_accuracy_label = Label.new()
-	_accuracy_label.name = "AccuracyLabel"
-	_accuracy_label.text = "Accuracy: 0%"
-	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left = 10
-	_accuracy_label.offset_top = 75
-	_accuracy_label.offset_right = 200
-	_accuracy_label.offset_bottom = 105
-	ui.add_child(_accuracy_label)
+	_difficulty_label = Label.new()
+	_difficulty_label.name = "DifficultyLabel"
+	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_difficulty_label.offset_left = 10
+	_difficulty_label.offset_top = 45
+	_difficulty_label.offset_right = 200
+	_difficulty_label.offset_bottom = 75
+	ui.add_child(_difficulty_label)
 
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
@@ -875,20 +1025,14 @@ func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
 
-	if _kills_label:
-		_kills_label.text = "Kills: %d" % GameManager.kills
-
-	if _accuracy_label:
-		_accuracy_label.text = "Accuracy: %.1f%%" % GameManager.get_accuracy()
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 
 
 ## Called when an enemy dies.
 func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
-
-	if GameManager:
-		GameManager.register_kill()
 
 	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		print("All enemies eliminated! Labyrinth cleared!")
@@ -897,7 +1041,10 @@ func _on_enemy_died() -> void:
 
 
 ## Called when an enemy dies with special kill information.
-func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
+func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
+	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
+	if GameManager:
+		GameManager.register_kill(is_player_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
@@ -1025,7 +1172,9 @@ func _on_shell_count_changed(shell_count: int, capacity: int) -> void:
 
 ## Called when player runs out of ammo in current magazine.
 func _on_player_ammo_depleted() -> void:
-	_broadcast_player_ammo_empty(true)
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
@@ -1081,6 +1230,9 @@ func _on_player_died() -> void:
 	_show_death_message()
 	if GameManager:
 		await get_tree().create_timer(0.5).timeout
+		# Issue #1334: After await, verify this node is still valid (scene may have reloaded)
+		if not is_instance_valid(self):
+			return
 		GameManager.on_player_death()
 
 
@@ -1488,7 +1640,8 @@ func _setup_selected_weapon() -> void:
 			var expected_name: String = weapon_names[selected_weapon_id]
 			var existing_weapon = _player.get_node_or_null(expected_name)
 			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
-				_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % expected_name)
+				_log_to_file("%s already equipped by C# Player - applying labyrinth ammo config" % expected_name)
+				_configure_labyrinth_weapon_ammo(existing_weapon, selected_weapon_id)
 				return
 
 	if selected_weapon_id == "shotgun":
@@ -1629,6 +1782,7 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = akgl
 
+			_configure_labyrinth_weapon_ammo(akgl, "ak_gl")
 			print("LabyrinthLevel: AK + GL equipped successfully")
 		else:
 			push_error("LabyrinthLevel: Failed to load AKGL scene!")

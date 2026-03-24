@@ -762,9 +762,18 @@ public partial class ShotgunPellet : Area2D
 
         bool hitEnemy = false;
         float effectiveDamage = Damage * _damageMultiplier;
+        bool fromPlayer = IsPlayerPellet();
 
-        // Check if the target implements IDamageable
-        if (area is IDamageable damageable)
+        // Issue #1196: prefer on_hit_with_bullet_info_and_damage to propagate is_from_player,
+        // so the kill-source tracking in enemy.gd works correctly for the Laser Sight unlock.
+        if (area.HasMethod("on_hit_with_bullet_info_and_damage"))
+        {
+            GD.Print($"[ShotgunPellet]: Target {area.Name} has on_hit_with_bullet_info_and_damage, calling with from_player={fromPlayer}");
+            area.Call("on_hit_with_bullet_info_and_damage", Direction, (Godot.Resource?)null, _hasRicocheted, false, effectiveDamage, fromPlayer);
+            hitEnemy = true;
+        }
+        // Check if the target implements IDamageable (C# enemies / non-GDScript targets)
+        else if (area is IDamageable damageable)
         {
             GD.Print($"[ShotgunPellet]: Target {area.Name} is IDamageable, applying {effectiveDamage} damage");
             damageable.TakeDamage(effectiveDamage);

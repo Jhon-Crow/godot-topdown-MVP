@@ -271,7 +271,13 @@ public partial class AssaultRifle : BaseWeapon
         // Always update aim direction and rifle sprite rotation
         UpdateAimDirection();
 
-        // Update laser sight to point towards mouse (with recoil offset)
+    }
+
+    public override void _PhysicsProcess(double delta)
+    {
+        base._PhysicsProcess(delta);
+
+        // Update laser sight raycast in physics thread — safe with 2d/run_on_separate_thread (Issue #1189).
         if (LaserSightEnabled && _laserSight != null)
         {
             UpdateLaserSight();
@@ -596,8 +602,8 @@ public partial class AssaultRifle : BaseWeapon
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            // Determine weapon loudness from WeaponData, or use viewport diagonal as default
-            float loudness = WeaponData?.Loudness ?? 1469.0f;
+            // Determine weapon loudness from WeaponData, or use PM-level default (Issue #1269: scaled 800/1469)
+            float loudness = WeaponData?.Loudness ?? 800.0f;
             // emit_sound(sound_type, position, source_type, source_node, custom_range)
             // sound_type 0 = GUNSHOT, source_type 0 = PLAYER
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);

@@ -164,8 +164,11 @@ public static class BreakerDetonation
     {
         var center = projectile.GlobalPosition;
 
+        // Issue #1196: determine if the shooter is the player so kills are counted toward Laser Sight unlock.
+        bool isFromPlayer = IsShooterPlayer(shooterId);
+
         // 1. Apply explosion damage in radius
-        ApplyExplosionDamage(projectile, center, shooterId);
+        ApplyExplosionDamage(projectile, center, shooterId, isFromPlayer);
 
         // 2. Spawn visual explosion effect
         SpawnExplosionEffect(projectile, center);
@@ -183,7 +186,7 @@ public static class BreakerDetonation
     /// <summary>
     /// Applies explosion damage to all enemies within explosion radius.
     /// </summary>
-    private static void ApplyExplosionDamage(Node projectile, Vector2 center, ulong shooterId)
+    private static void ApplyExplosionDamage(Node projectile, Vector2 center, ulong shooterId, bool isFromPlayer = false)
     {
         var tree = projectile.GetTree();
         if (tree == null)
@@ -202,7 +205,7 @@ public static class BreakerDetonation
                 {
                     if (HasLineOfSight(projectile, center, enemyNode.GlobalPosition))
                     {
-                        ApplyDamage(enemyNode, center, ExplosionDamage);
+                        ApplyDamage(enemyNode, center, ExplosionDamage, isFromPlayer);
                     }
                 }
             }
@@ -233,14 +236,15 @@ public static class BreakerDetonation
     /// <summary>
     /// Applies damage to a target using available methods.
     /// </summary>
-    private static void ApplyDamage(Node2D target, Vector2 center, float amount)
+    private static void ApplyDamage(Node2D target, Vector2 center, float amount, bool isFromPlayer = false)
     {
         var hitDirection = (target.GlobalPosition - center).Normalized();
 
+        // Issue #1196: pass is_from_player so enemy.gd tracks kill source for Laser Sight unlock.
         if (target.HasMethod("on_hit_with_bullet_info_and_damage"))
         {
             target.Call("on_hit_with_bullet_info_and_damage", hitDirection,
-                Variant.CreateFrom((Resource?)null), false, false, amount);
+                Variant.CreateFrom((Resource?)null), false, false, amount, isFromPlayer);
         }
         else if (target.HasMethod("take_damage"))
         {
@@ -254,6 +258,18 @@ public static class BreakerDetonation
         {
             target.Call("on_hit");
         }
+    }
+
+    /// <summary>
+    /// Checks if the shooter with the given instance ID is the player.
+    /// </summary>
+    private static bool IsShooterPlayer(ulong shooterId)
+    {
+        if (shooterId == 0) return false;
+        var shooter = GodotObject.InstanceFromId(shooterId) as Node;
+        if (shooter == null) return false;
+        // Check group membership (consistent with Bullet.cs and ShotgunPellet.cs)
+        return shooter.IsInGroup("player");
     }
 
     /// <summary>

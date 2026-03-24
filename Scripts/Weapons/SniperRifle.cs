@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Characters;
@@ -331,14 +332,19 @@ public partial class SniperRifle : BaseWeapon
         // Handle bolt-action input
         HandleBoltActionInput();
 
-        // Update laser sight (Power Fantasy mode)
+        // Update scope system (sway, camera offset, overlay)
+        UpdateScope((float)delta);
+    }
+
+    public override void _PhysicsProcess(double delta)
+    {
+        base._PhysicsProcess(delta);
+
+        // Update laser sight raycast in physics thread — safe with 2d/run_on_separate_thread (Issue #1189).
         if (_laserSightEnabled && _laserSight != null)
         {
             UpdateLaserSight();
         }
-
-        // Update scope system (sway, camera offset, overlay)
-        UpdateScope((float)delta);
     }
 
     // =========================================================================
@@ -600,7 +606,11 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Updates the laser sight visualization (Power Fantasy mode only).
-    /// The laser shows where bullets will go, accounting for current recoil.
+    /// The laser always passes through the crosshair center:
+    /// - In scope mode: points toward the scope crosshair (screen center world position)
+    /// - In hip-fire mode: follows the rifle's aim direction (synchronized with rifle rotation)
+    /// (Issue #1384: ensures laser aligns with crosshair in both modes.)
+    /// (Issue #1405: laser rotation synchronized with rifle rotation in hip-fire mode.)
     /// </summary>
     private void UpdateLaserSight()
     {
@@ -609,12 +619,29 @@ public partial class SniperRifle : BaseWeapon
             return;
         }
 
-        // Apply recoil offset to aim direction for laser visualization
-        Vector2 laserDirection = _aimDirection.Rotated(_recoilOffset);
+        Vector2 laserDirection;
 
-        // Calculate maximum laser length based on viewport size
-        Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
-        float maxLaserLength = viewportSize.Length();
+        if (_isScopeActive)
+        {
+            // In scope mode, the crosshair is at screen center (not at the mouse cursor),
+            // so use GetScopeAimTarget() which returns the world position at viewport center.
+            Vector2 targetPoint = GetScopeAimTarget();
+            Vector2 toTarget = targetPoint - GlobalPosition;
+            laserDirection = toTarget.LengthSquared() > 0.001f
+                ? toTarget.Normalized()
+                : _aimDirection;
+        }
+        else
+        {
+            // In hip-fire mode, the laser follows the rifle's aim direction
+            // (which rotates slowly via NonAimingSensitivityFactor), keeping
+            // the laser synchronized with the rifle sprite rotation.
+            laserDirection = _aimDirection;
+        }
+
+        // Use weapon range for laser length so the beam is unlimited within shooting distance
+        // (Issue #1384: sniper laser should be unlimited length, not limited to viewport size)
+        float maxLaserLength = WeaponData?.Range ?? 5000.0f;
 
         // Calculate the end point of the laser
         Vector2 endPoint = laserDirection * maxLaserLength;
@@ -2035,7 +2062,7 @@ public partial class SniperRifle : BaseWeapon
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            float loudness = WeaponData?.Loudness ?? 3000.0f;
+            float loudness = WeaponData?.Loudness ?? 1633.8f;  // Issue #1269: scaled 800/1469 from 3000
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
         }
     }
@@ -2115,6 +2142,118 @@ public partial class SniperRifle : BaseWeapon
     /// Gets the current bolt-action step.
     /// </summary>
     public BoltActionStep CurrentBoltStep => _boltStep;
+
+    /// <summary>
+    /// Instantly completes the bolt cycle, bringing the weapon to combat-ready state (Issue #1315).
+    /// Used by the Fine Motor Skills active item. Plays all bolt step sounds rapidly
+    /// and transitions directly to Ready state if ammo is available.
+    /// </summary>
+    public void FineBoltCycle()
+    {
+        if (_boltStep == BoltActionStep.Ready)
+        {
+            GD.Print("[SniperRifle.FineMotorSkills] Bolt already ready — no cycle needed");
+            return;
+        }
+
+        GD.Print($"[SniperRifle.FineMotorSkills] Instant bolt cycle from step {_boltStep}");
+
+        // Play all remaining bolt step sounds rapidly
+        int startStep = _boltStep switch
+        {
+            BoltActionStep.NeedsBoltCycle => 1,
+            BoltActionStep.WaitExtractCasing => 2,
+            BoltActionStep.WaitChamberRound => 3,
+            BoltActionStep.WaitCloseBolt => 4,
+            _ => 1
+        };
+
+        for (int step = startStep; step <= 4; step++)
+        {
+            PlayBoltStepSound(step);
+        }
+
+        // Eject casing if needed
+        if (_hasCasingToEject)
+        {
+            SpawnCasing(_lastFireDirection, WeaponData?.Caliber);
+            _hasCasingToEject = false;
+        }
+
+        // Transition to Ready if ammo available, otherwise NeedsBoltCycle
+        if (CurrentAmmo > 0)
+        {
+            _boltStep = BoltActionStep.Ready;
+            EmitSignal(SignalName.BoltStepChanged, 4, 4);
+            GD.Print("[SniperRifle.FineMotorSkills] Bolt cycle complete — READY TO FIRE");
+        }
+        else
+        {
+            _boltStep = BoltActionStep.NeedsBoltCycle;
+            EmitSignal(SignalName.BoltStepChanged, 0, 4);
+            GD.Print("[SniperRifle.FineMotorSkills] Bolt cycle complete but NO ammo — needs reload");
+        }
+    }
+
+    /// <summary>
+    /// Sequentially completes the bolt cycle with delays between each step (Issue #1337).
+    /// Each bolt step sound plays and waits before proceeding to the next,
+    /// creating an audible reload sequence instead of instant completion.
+    /// </summary>
+    /// <param name="stageDelay">Delay in seconds between each bolt step.</param>
+    public async Task FineBoltCycleAsync(float stageDelay)
+    {
+        if (_boltStep == BoltActionStep.Ready)
+        {
+            GD.Print("[SniperRifle.FineMotorSkills] Bolt already ready — no cycle needed");
+            return;
+        }
+
+        GD.Print($"[SniperRifle.FineMotorSkills] Sequential bolt cycle from step {_boltStep} (delay={stageDelay}s)");
+
+        int startStep = _boltStep switch
+        {
+            BoltActionStep.NeedsBoltCycle => 1,
+            BoltActionStep.WaitExtractCasing => 2,
+            BoltActionStep.WaitChamberRound => 3,
+            BoltActionStep.WaitCloseBolt => 4,
+            _ => 1
+        };
+
+        for (int step = startStep; step <= 4; step++)
+        {
+            PlayBoltStepSound(step);
+            EmitSignal(SignalName.BoltStepChanged, step, 4);
+            GD.Print($"[SniperRifle.FineMotorSkills] Bolt step {step}/4 complete");
+
+            // Eject casing during step 2 (extract casing)
+            if (step == 2 && _hasCasingToEject)
+            {
+                SpawnCasing(_lastFireDirection, WeaponData?.Caliber);
+                _hasCasingToEject = false;
+            }
+
+            // Wait between steps (except after the last step)
+            if (step < 4 && stageDelay > 0)
+            {
+                await ToSignal(GetTree().CreateTimer(stageDelay), "timeout");
+            }
+        }
+
+        // Transition to Ready if ammo available, otherwise NeedsBoltCycle
+        if (CurrentAmmo > 0)
+        {
+            _boltStep = BoltActionStep.Ready;
+            EmitSignal(SignalName.BoltStepChanged, 4, 4);
+            GD.Print("[SniperRifle.FineMotorSkills] Sequential bolt cycle complete — READY TO FIRE");
+        }
+        else
+        {
+            _boltStep = BoltActionStep.NeedsBoltCycle;
+            EmitSignal(SignalName.BoltStepChanged, 0, 4);
+            GD.Print("[SniperRifle.FineMotorSkills] Sequential bolt cycle complete but NO ammo — needs reload");
+        }
+    }
 
     // =========================================================================
     // Scope / Aiming System (RMB)

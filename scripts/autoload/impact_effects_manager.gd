@@ -161,11 +161,13 @@ func _ready() -> void:
 	_warmup_particle_shaders()
 
 
-## Logs to FileLogger and always prints to console for diagnostics.
+## Logs to FileLogger and prints to console in debug builds only.
+## Issue #1293: print() in release builds causes variable FPS drops.
 func _log_info(message: String) -> void:
 	var log_message := "[ImpactEffects] " + message
-	# Always print to console for debugging exported builds
-	print(log_message)
+	# Only print to console in debug builds to avoid FPS drops (Issue #1293).
+	if OS.is_debug_build():
+		print(log_message)
 	# Also write to file logger if available
 	if _file_logger and _file_logger.has_method("log_info"):
 		_file_logger.log_info(log_message)
@@ -292,6 +294,10 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
 	if gameplay_settings and not gameplay_settings.is_wall_hit_particles_enabled():
 		return
+	# Issue #1186: performance toggle
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	if perf_settings and not perf_settings.is_particles_enabled():
+		return
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] spawn_dust_effect at ", position, " normal=", surface_normal)
@@ -349,55 +355,67 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 ## @param caliber_data: Optional caliber data for effect scaling.
 ## @param is_lethal: Whether the hit was lethal (affects intensity and decal spawning).
 func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data: Resource = null, is_lethal: bool = true) -> void:
+	# Issue #1186: performance toggle for particles
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	var _particles_on: bool = perf_settings == null or perf_settings.is_particles_enabled()
+	var _decals_on: bool = perf_settings == null or perf_settings.is_blood_decals_enabled()
+
+	if not _particles_on and not _decals_on:
+		return
+
 	# Issue #969: gate per-hit logging behind debug flag to prevent file write spam at high fire rates
 	if _debug_effects:
 		_log_info("spawn_blood_effect called at %s, dir=%s, lethal=%s" % [position, hit_direction, is_lethal])
 		print("[ImpactEffectsManager] spawn_blood_effect at ", position, " dir=", hit_direction, " lethal=", is_lethal)
 
-	if _blood_effect_scene == null:
-		_log_info("ERROR: _blood_effect_scene is null - cannot spawn blood effect")
-		print("[ImpactEffectsManager] ERROR: _blood_effect_scene is null - blood effect NOT spawned")
-		return
-
-	var effect: GPUParticles2D = _blood_effect_scene.instantiate() as GPUParticles2D
-	if effect == null:
-		_log_info("ERROR: Failed to instantiate blood effect from scene")
-		print("[ImpactEffectsManager] ERROR: Failed to instantiate blood effect - casting failed")
-		return
-
-	if _debug_effects:
-		_log_info("Blood particle effect instantiated successfully")
-
-	effect.global_position = position
-
-	# Blood splatters in the direction the bullet was traveling
-	effect.rotation = hit_direction.angle()
-
-	# Scale effect based on caliber (larger calibers = more blood)
+	# Calculate effect scale once - used for both particles and decals
 	var effect_scale := _get_effect_scale(caliber_data)
-	# Lethal hits produce more blood
 	if is_lethal:
 		effect_scale *= 1.5
-	effect.amount_ratio = clampf(effect_scale, MIN_EFFECT_SCALE, MAX_EFFECT_SCALE)
-	effect.scale = Vector2(effect_scale, effect_scale)
 
-	# Add to scene tree
-	_add_effect_to_scene(effect)
+	# Spawn GPU particle effect only when particles are enabled (Issue #1186)
+	var effect: GPUParticles2D = null
+	if _particles_on:
+		if _blood_effect_scene == null:
+			_log_info("ERROR: _blood_effect_scene is null - cannot spawn blood effect")
+			print("[ImpactEffectsManager] ERROR: _blood_effect_scene is null - blood effect NOT spawned")
+		else:
+			effect = _blood_effect_scene.instantiate() as GPUParticles2D
+			if effect == null:
+				_log_info("ERROR: Failed to instantiate blood effect from scene")
+				print("[ImpactEffectsManager] ERROR: Failed to instantiate blood effect - casting failed")
+			else:
+				if _debug_effects:
+					_log_info("Blood particle effect instantiated successfully")
 
-	# Start emitting
-	effect.emitting = true
+				effect.global_position = position
 
-	# Spawn small blood decals that simulate where particles land
-	# Issue #969: reduced decal count to limit tree_changed signal spam at high fire rates
-	# Issue #1090: scale by GameplaySettings blood_amount multiplier
-	var base_decals := BLOOD_DECALS_PER_LETHAL_HIT if is_lethal else BLOOD_DECALS_PER_NONLETHAL_HIT
-	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
-	var blood_multiplier: float = gameplay_settings.get_blood_amount() if gameplay_settings else 1.0
-	var num_decals := maxi(0, roundi(base_decals * blood_multiplier))
-	_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
+				# Blood splatters in the direction the bullet was traveling
+				effect.rotation = hit_direction.angle()
 
-	# Check for nearby walls and spawn wall splatters
-	_spawn_wall_blood_splatter(position, hit_direction, effect_scale, is_lethal)
+				# Scale effect based on caliber (larger calibers = more blood)
+				effect.amount_ratio = clampf(effect_scale, MIN_EFFECT_SCALE, MAX_EFFECT_SCALE)
+				effect.scale = Vector2(effect_scale, effect_scale)
+
+				# Add to scene tree
+				_add_effect_to_scene(effect)
+
+				# Start emitting
+				effect.emitting = true
+
+	# Spawn blood decals only when decals are enabled (Issue #1186)
+	if _decals_on:
+		# Spawn small blood decals that simulate where particles land
+		# Issue #969: reduced decal count to limit tree_changed signal spam at high fire rates
+		# Issue #1090: scale by GameplaySettings blood_amount multiplier
+		var base_decals := BLOOD_DECALS_PER_LETHAL_HIT if is_lethal else BLOOD_DECALS_PER_NONLETHAL_HIT
+		var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+		var blood_multiplier: float = gameplay_settings.get_blood_amount() if gameplay_settings else 1.0
+		var num_decals := maxi(0, roundi(base_decals * blood_multiplier))
+		_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
+
+		# Check for nearby walls and spawn wall splatters
+		_spawn_wall_blood_splatter(position, hit_direction, effect_scale, is_lethal)
 
 	# Issue #969: gate per-hit log behind debug flag
 	if _debug_effects:
@@ -410,6 +428,11 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 ## @param hit_direction: Direction the bullet was traveling.
 ## @param caliber_data: Optional caliber data for effect scaling.
 func spawn_sparks_effect(position: Vector2, hit_direction: Vector2, caliber_data: Resource = null) -> void:
+	# Issue #1186: performance toggle
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	if perf_settings and not perf_settings.is_particles_enabled():
+		return
+
 	if _debug_effects:
 		print("[ImpactEffectsManager] spawn_sparks_effect at ", position, " dir=", hit_direction)
 
@@ -454,6 +477,11 @@ func spawn_sparks_effect(position: Vector2, hit_direction: Vector2, caliber_data
 ## @param scale_override: Optional explicit scale override (ignores caliber_data if > 0).
 ##                        Use this for silenced weapons that need very small flash (e.g., 0.2 for ~100x100 pixels).
 func spawn_muzzle_flash(position: Vector2, direction: Vector2, caliber_data: Resource = null, scale_override: float = 0.0) -> void:
+	# Issue #1186: performance toggle
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	if perf_settings and not perf_settings.is_particles_enabled():
+		return
+
 	if _debug_effects:
 		print("[ImpactEffectsManager] spawn_muzzle_flash at ", position, " dir=", direction, " scale_override=", scale_override)
 
@@ -1193,6 +1221,11 @@ func spawn_explosion_effect(position: Vector2, radius: float) -> void:
 ## @param flash_color: Color of the flash effect.
 ## @param effect_type: Type name for logging ("flashbang" or "explosion").
 func _spawn_grenade_visual_effect(position: Vector2, radius: float, flash_color: Color, effect_type: String) -> void:
+	# Issue #1186: performance toggle for explosion lights
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	if perf_settings and not perf_settings.is_explosion_lights_enabled():
+		return
+
 	# Check if we've hit the concurrent light limit (Issue #724 optimization)
 	if _active_explosion_lights.size() >= MAX_CONCURRENT_EXPLOSION_LIGHTS:
 		if _debug_effects:

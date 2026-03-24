@@ -9,6 +9,7 @@ extends Node2D
 ## - 17 enemies distributed across many rooms (more than BuildingLevel), including a machine gunner and 2 invisible searching enemies (Issue #1121)
 ## - More rooms with narrower corridors for a true labyrinth feel
 ## - Score tracking with Hotline Miami style ranking system
+## - Warm ceiling lights in all zones (Issue #1291)
 
 ## Reference to the enemy count label.
 var _enemy_count_label: Label = null
@@ -31,11 +32,8 @@ var _current_enemy_count: int = 0
 ## Whether game over has been shown.
 var _game_over_shown: bool = false
 
-## Reference to the kills label.
-var _kills_label: Label = null
-
-## Reference to the accuracy label.
-var _accuracy_label: Label = null
+## Reference to the difficulty label.
+var _difficulty_label: Label = null
 
 ## Reference to the magazines label (shows individual magazine ammo counts).
 var _magazines_label: Label = null
@@ -126,6 +124,9 @@ func _ready() -> void:
 
 	# Setup window lights in corridors without enemies
 	_setup_window_lights()
+
+	# Setup warm ceiling lights in the center of each zone (Issue #1291)
+	_setup_room_warm_lights()
 
 	# Start replay recording
 	_start_replay_recording()
@@ -232,6 +233,115 @@ func _activate_exit_zone() -> void:
 	else:
 		push_warning("Exit zone not available - showing score immediately")
 		_complete_level_with_score()
+
+
+## Setup warm ceiling lights in the centers of all zones (Issue #1291).
+## Adds PointLight2D nodes with warm yellow-orange color — the same style as
+## BuildingLevel (Здание) — so the map has consistent interior illumination.
+##
+## Zone centers (derived from RoomLabel bounds in the scene):
+## - Entry Hall:        ~(334,  290)  — left entry zone
+## - West Wing:         ~(906,  290)  — upper-left wing
+## - Central Hub:       ~(1512, 440)  — upper-centre hub (taller room)
+## - North Sector:      ~(2112, 290)  — upper-right sector
+## - East Wing:         ~(2836, 290)  — far-right wing
+## - Central Corridor:  3 lights spread across the wide corridor
+## - Lower Labyrinth:   3 lights spread across the wide lower zone
+func _setup_room_warm_lights() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	var room_lights_node := Node2D.new()
+	room_lights_node.name = "RoomLights"
+	environment.add_child(room_lights_node)
+
+	# Format: [position, energy, texture_scale, label]
+	var room_configs: Array = [
+		# Upper zones — smaller rooms, softer lights
+		[Vector2(334,  290),  0.7, 3.5, "EntryHall"],
+		[Vector2(906,  290),  0.7, 3.5, "WestWing"],
+		[Vector2(1512, 440),  0.85, 4.5, "CentralHub"],
+		[Vector2(2112, 290),  0.7, 3.5, "NorthSector"],
+		[Vector2(2836, 290),  0.7, 3.5, "EastWing"],
+		# Wide zones — multiple lights spread across the length
+		[Vector2(800,  1512), 0.85, 4.5, "CentralCorridor_W"],
+		[Vector2(1664, 1512), 0.85, 4.5, "CentralCorridor_C"],
+		[Vector2(2528, 1512), 0.85, 4.5, "CentralCorridor_E"],
+		[Vector2(800,  2136), 0.85, 4.5, "LowerLabyrinth_W"],
+		[Vector2(1664, 2136), 0.85, 4.5, "LowerLabyrinth_C"],
+		[Vector2(2528, 2136), 0.85, 4.5, "LowerLabyrinth_E"],
+	]
+
+	for cfg in room_configs:
+		_create_room_warm_light(room_lights_node, cfg[0], cfg[1], cfg[2], cfg[3])
+
+	print("[Labyrinth2Level] Warm ceiling lights placed in all zones (Issue #1291)")
+
+
+## Create a single warm ceiling light at the given room-center position.
+func _create_room_warm_light(parent: Node2D, pos: Vector2, energy: float, scale: float, room_name: String) -> void:
+	var light_node := Node2D.new()
+	light_node.name = "WarmLight_%s" % room_name
+	light_node.position = pos
+	parent.add_child(light_node)
+
+	# Small visual indicator — a dim warm-colored circle representing the lamp fixture.
+	var fixture := Sprite2D.new()
+	fixture.name = "Fixture"
+	fixture.texture = _create_lamp_fixture_texture()
+	fixture.modulate = Color(1.0, 0.85, 0.5, 0.5)
+	light_node.add_child(fixture)
+
+	var light := PointLight2D.new()
+	light.name = "PointLight"
+	light.color = Color(1.0, 0.75, 0.3, 1.0)
+	light.energy = energy
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 4.0
+	light.texture = _create_warm_light_texture()
+	light.texture_scale = scale
+	light_node.add_child(light)
+
+
+## Create a soft radial gradient texture for the warm room lights.
+func _create_warm_light_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+
+	return ImageTexture.create_from_image(image)
+
+
+## Create a small circular texture for the lamp fixture visual indicator.
+func _create_lamp_fixture_texture() -> ImageTexture:
+	var size := 32
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			if dist >= outer_r:
+				image.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			else:
+				var t := clampf(dist / outer_r, 0.0, 1.0)
+				var alpha := pow(1.0 - t, 1.5)
+				image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+
+	return ImageTexture.create_from_image(image)
 
 
 ## Setup window lights in corridors without enemies.
@@ -397,20 +507,29 @@ func _get_combo_color(combo: int) -> Color:
 
 
 ## Setup the navigation mesh for enemy pathfinding.
+## Issue #1216: Fixed baking — parse source geometry (walls, collision layer 4)
+## then bake synchronously so walls are excluded from the walkable area.
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
-
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
 		return
-
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
+	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	print("Baking navigation mesh...")
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, NavigationMeshSourceGeometryData2D.new())
-	nav_region.bake_navigation_polygon()
+	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
+	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# Issue #1289: push updated polygon back into the NavigationServer's live map.
+	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 	print("Navigation mesh baked successfully")
 
 
@@ -440,6 +559,8 @@ func _setup_player_tracking() -> void:
 	if _player == null:
 		push_warning("Player not found")
 		return
+
+	_setup_selected_weapon()
 
 	# Register player with GameManager
 	if GameManager:
@@ -476,6 +597,9 @@ func _setup_player_tracking() -> void:
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
 		if weapon.has_signal("Fired"):
 			weapon.Fired.connect(_on_shot_fired)
+		# Apply ammo config (silenced pistol and makarov_pm handled here as well)
+		_configure_silenced_pistol_ammo(weapon)
+		_configure_makarov_pm_ammo(weapon)
 		# Initial ammo display from weapon
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
@@ -490,8 +614,17 @@ func _setup_player_tracking() -> void:
 
 ## Setup debug UI labels.
 func _setup_debug_ui() -> void:
-	_kills_label = get_node_or_null("CanvasLayer/UI/KillsLabel")
-	_accuracy_label = get_node_or_null("CanvasLayer/UI/AccuracyLabel")
+	var ui := get_node_or_null("CanvasLayer/UI")
+	if ui != null:
+		_difficulty_label = Label.new()
+		_difficulty_label.name = "DifficultyLabel"
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		_difficulty_label.offset_left = 10
+		_difficulty_label.offset_top = 45
+		_difficulty_label.offset_right = 200
+		_difficulty_label.offset_bottom = 75
+		ui.add_child(_difficulty_label)
 	_magazines_label = get_node_or_null("CanvasLayer/UI/MagazinesLabel")
 	_combo_label = get_node_or_null("CanvasLayer/UI/ComboLabel")
 	_update_debug_ui()
@@ -557,12 +690,8 @@ func _update_debug_ui() -> void:
 	if not GameManager:
 		return
 
-	if _kills_label and GameManager.has_method("get_kill_count"):
-		_kills_label.text = "Kills: %d" % GameManager.get_kill_count()
-
-	if _accuracy_label and GameManager.has_method("get_accuracy"):
-		var acc: float = GameManager.get_accuracy()
-		_accuracy_label.text = "Accuracy: %.0f%%" % (acc * 100.0)
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 
 
 ## Called when player ammo changes.
@@ -1013,6 +1142,200 @@ func _setup_weapon_hints() -> void:
 	if _weapon_hints_component.has_method("setup"):
 		_weapon_hints_component.setup(_player, canvas_layer)
 		print("[Labyrinth2Level] Weapon hints component added and setup")
+
+
+## Configure silenced pistol ammo to match enemy count (Issue #1422).
+## The silenced pistol gets exactly as many bullets as there are enemies.
+func _configure_silenced_pistol_ammo(weapon: Node) -> void:
+	if weapon.name != "SilencedPistol":
+		return
+	if weapon.has_method("ConfigureAmmoForEnemyCount"):
+		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
+		_log_to_file("Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+
+
+## Configure Makarov PM ammo - 2.5x magazines (Issue #1422).
+func _configure_makarov_pm_ammo(weapon: Node) -> void:
+	if weapon == null:
+		return
+	if weapon.name != "MakarovPM":
+		return
+	var starting_magazines: int = 4
+	if weapon.get("StartingMagazineCount") != null:
+		starting_magazines = weapon.StartingMagazineCount
+	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	if weapon.has_method("ReinitializeMagazines"):
+		weapon.ReinitializeMagazines(pm_magazines, true)
+		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
+
+
+## Apply Labyrinth2 level ammo configuration to a weapon (Issue #1422).
+## Silenced pistol: exactly as many bullets as enemies.
+## Mini UZI and rifles: 2 magazines to match level difficulty.
+## Shotgun, sniper, revolver: defaults are sufficient for 17 enemies.
+func _configure_labyrinth2_weapon_ammo(weapon: Node, weapon_id: String) -> void:
+	if weapon == null:
+		return
+
+	if weapon_id == "silenced_pistol":
+		_configure_silenced_pistol_ammo(weapon)
+	elif weapon_id == "mini_uzi" or weapon_id == "m16" or weapon_id == "ak_gl":
+		var base_magazines: int = 2
+		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+		if difficulty_manager:
+			var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+			if ammo_multiplier > 1:
+				base_magazines *= ammo_multiplier
+				_log_to_file("Power Fantasy mode - %s magazines multiplied by %dx" % [weapon.name, ammo_multiplier])
+		if weapon.has_method("ReinitializeMagazines"):
+			weapon.ReinitializeMagazines(base_magazines, true)
+			_log_to_file("%s magazines reinitialized to %d" % [weapon.name, base_magazines])
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
+		_log_to_file("Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+
+
+## Setup and equip the weapon selected by the player (Issue #1422).
+func _setup_selected_weapon() -> void:
+	if _player == null:
+		return
+
+	var selected_weapon_id: String = "makarov_pm"
+	if GameManager:
+		selected_weapon_id = GameManager.get_selected_weapon()
+
+	_log_to_file("Setting up weapon: %s" % selected_weapon_id)
+
+	if selected_weapon_id != "makarov_pm":
+		var weapon_names: Dictionary = {
+			"shotgun": "Shotgun",
+			"mini_uzi": "MiniUzi",
+			"silenced_pistol": "SilencedPistol",
+			"sniper": "SniperRifle",
+			"m16": "AssaultRifle",
+			"ak_gl": "AKGL",
+			"revolver": "Revolver"
+		}
+		if selected_weapon_id in weapon_names:
+			var expected_name: String = weapon_names[selected_weapon_id]
+			var existing_weapon = _player.get_node_or_null(expected_name)
+			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
+				_log_to_file("%s already equipped by C# Player - applying labyrinth2 ammo config" % expected_name)
+				_configure_labyrinth2_weapon_ammo(existing_weapon, selected_weapon_id)
+				return
+
+	if selected_weapon_id == "shotgun":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var shotgun_scene = load("res://scenes/weapons/csharp/Shotgun.tscn")
+		if shotgun_scene:
+			var shotgun = shotgun_scene.instantiate()
+			shotgun.name = "Shotgun"
+			_player.add_child(shotgun)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(shotgun)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = shotgun
+			_log_to_file("Shotgun equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load Shotgun scene!")
+	elif selected_weapon_id == "mini_uzi":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var mini_uzi_scene = load("res://scenes/weapons/csharp/MiniUzi.tscn")
+		if mini_uzi_scene:
+			var mini_uzi = mini_uzi_scene.instantiate()
+			mini_uzi.name = "MiniUzi"
+			if mini_uzi.get("StartingMagazineCount") != null:
+				mini_uzi.StartingMagazineCount = 2
+			_player.add_child(mini_uzi)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(mini_uzi)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = mini_uzi
+			_configure_labyrinth2_weapon_ammo(mini_uzi, "mini_uzi")
+			_log_to_file("Mini UZI equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load MiniUzi scene!")
+	elif selected_weapon_id == "silenced_pistol":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var pistol_scene = load("res://scenes/weapons/csharp/SilencedPistol.tscn")
+		if pistol_scene:
+			var pistol = pistol_scene.instantiate()
+			pistol.name = "SilencedPistol"
+			_player.add_child(pistol)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(pistol)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = pistol
+			_configure_labyrinth2_weapon_ammo(pistol, "silenced_pistol")
+			_log_to_file("Silenced Pistol equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load SilencedPistol scene!")
+	elif selected_weapon_id == "sniper":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
+		if sniper_scene:
+			var sniper = sniper_scene.instantiate()
+			sniper.name = "SniperRifle"
+			_player.add_child(sniper)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(sniper)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = sniper
+			_log_to_file("ASVK Sniper Rifle equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load SniperRifle scene!")
+	elif selected_weapon_id == "m16":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var m16_scene = load("res://scenes/weapons/csharp/AssaultRifle.tscn")
+		if m16_scene:
+			var m16 = m16_scene.instantiate()
+			m16.name = "AssaultRifle"
+			_player.add_child(m16)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(m16)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = m16
+			_configure_labyrinth2_weapon_ammo(m16, "m16")
+			_log_to_file("M16 Assault Rifle equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load AssaultRifle scene!")
+	elif selected_weapon_id == "ak_gl":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var akgl_scene = load("res://scenes/weapons/csharp/AKGL.tscn")
+		if akgl_scene:
+			var akgl = akgl_scene.instantiate()
+			akgl.name = "AKGL"
+			_player.add_child(akgl)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(akgl)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = akgl
+			_configure_labyrinth2_weapon_ammo(akgl, "ak_gl")
+			_log_to_file("AK + GL equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load AKGL scene!")
+	elif selected_weapon_id == "revolver":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var revolver_scene = load("res://scenes/weapons/csharp/Revolver.tscn")
+		if revolver_scene:
+			var revolver = revolver_scene.instantiate()
+			revolver.name = "Revolver"
+			_player.add_child(revolver)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(revolver)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = revolver
+			_log_to_file("RSh-12 Revolver equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load Revolver scene!")
+	else:
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov and _player.get("CurrentWeapon") == null:
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(makarov)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = makarov
+			_configure_makarov_pm_ammo(makarov)
 
 
 ## Log a message to the level log file for debugging.

@@ -32,10 +32,11 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 ## @param caliber_data: Caliber resource for effect scaling.
 ## @param has_ricocheted: Whether the bullet had ricocheted before this hit.
 ## @param has_penetrated: Whether the bullet had penetrated a wall before this hit.
-func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool) -> void:
+## @param is_from_player: Whether the hit came from the player (Issue #1196).
+func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, is_from_player: bool = false) -> void:
 	var parent := get_parent()
 	if parent and parent.has_method("on_hit_with_bullet_info"):
-		parent.on_hit_with_bullet_info(hit_direction, caliber_data, has_ricocheted, has_penetrated)
+		parent.on_hit_with_bullet_info(hit_direction, caliber_data, has_ricocheted, has_penetrated, 1.0, is_from_player)
 	elif parent and parent.has_method("on_hit_with_info"):
 		# Fallback to on_hit_with_info if extended method not available
 		parent.on_hit_with_info(hit_direction, caliber_data)
@@ -52,11 +53,12 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 ## @param has_ricocheted: Whether the bullet had ricocheted before this hit.
 ## @param has_penetrated: Whether the bullet had penetrated a wall before this hit.
 ## @param bullet_damage: The damage amount to apply (from bullet.damage × damage_multiplier).
-func on_hit_with_bullet_info_and_damage(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, bullet_damage: float) -> void:
+## @param is_from_player: Whether the hit came from the player (Issue #1196).
+func on_hit_with_bullet_info_and_damage(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, bullet_damage: float, is_from_player: bool = false) -> void:
 	var parent := get_parent()
 	if parent and parent.has_method("on_hit_with_bullet_info"):
-		# Pass damage as the 5th parameter - enemy.on_hit_with_bullet_info supports this
-		parent.on_hit_with_bullet_info(hit_direction, caliber_data, has_ricocheted, has_penetrated, bullet_damage)
+		# Pass all parameters including damage and player source - enemy.on_hit_with_bullet_info supports this
+		parent.on_hit_with_bullet_info(hit_direction, caliber_data, has_ricocheted, has_penetrated, bullet_damage, is_from_player)
 	elif parent and parent.has_method("take_damage"):
 		# Fallback: call take_damage directly if extended method not available
 		parent.take_damage(bullet_damage)

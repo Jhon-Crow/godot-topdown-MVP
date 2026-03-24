@@ -207,7 +207,13 @@ public partial class SilencedPistol : BaseWeapon
         // Update aim direction and weapon sprite rotation
         UpdateAimDirection();
 
-        // Update laser sight to point towards mouse (with recoil offset)
+    }
+
+    public override void _PhysicsProcess(double delta)
+    {
+        base._PhysicsProcess(delta);
+
+        // Update laser sight raycast in physics thread — safe with 2d/run_on_separate_thread (Issue #1189).
         if (LaserSightEnabled && _laserSight != null)
         {
             UpdateLaserSight();

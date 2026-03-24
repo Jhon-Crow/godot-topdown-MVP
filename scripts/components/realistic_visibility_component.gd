@@ -261,6 +261,23 @@ func _on_settings_changed() -> void:
 		_apply_visibility_state(experimental_settings.is_realistic_visibility_enabled())
 
 
+## Override the visibility light color to match the level atmosphere.
+## Call this after adding the component to the player node and before
+## the first frame so the tint takes effect immediately when enabled.
+## Example: set_light_color(Color(0.45, 0.65, 1.0)) for a cold-blue lab.
+func set_light_color(color: Color) -> void:
+	if _point_light:
+		_point_light.color = color
+
+
+## Override the visibility light energy to match the level atmosphere.
+## Call this after adding the component to the player node.
+## Lower values blend better with dim atmospheric lighting (Issue #1263).
+func set_light_energy(energy: float) -> void:
+	if _point_light:
+		_point_light.energy = energy
+
+
 ## Check if the visibility system is currently active.
 func is_active() -> bool:
 	return _is_active

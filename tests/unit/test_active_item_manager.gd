@@ -128,7 +128,8 @@ class MockActiveItemManager:
 		AUTO_RELOAD = 14,
 		DRILLING_BULLETS = 15,
 		RECOIL_COMPENSATOR = 16,
-		COMBAT_DISPOSITION = 17
+		COMBAT_DISPOSITION = 17,
+		EXPERIMENTAL_SAMPLE = 18
 	}
 
 	## Currently selected active item type
@@ -226,6 +227,12 @@ class MockActiveItemManager:
 			"name": "Combat Disposition",
 			"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
 			"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 3.0 and fire rate by 3.6."
+		},
+		18: {
+			"name": "Experimental Sample",
+			"icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png",
+			"description": "Experimental Sample — press Space to trigger a random active item effect (including items not yet unlocked). 1–5 charges per battle, randomised on level start.",
+			"activation_hint": "Press Space to trigger random effect"
 		}
 	}
 
@@ -485,8 +492,8 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 18,
-		"Should return 18 active item types (NONE + 17 items including Extended Magazine, Drilling Bullets, Recoil Compensator, and Combat Disposition)")
+	assert_eq(types.size(), 19,
+		"Should return 19 active item types (NONE + 18 items including Extended Magazine, Drilling Bullets, Recoil Compensator, Combat Disposition, and Experimental Sample)")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
@@ -505,6 +512,7 @@ func test_get_all_active_item_types() -> void:
 	assert_true(15 in types)  # DRILLING_BULLETS (Issue #751)
 	assert_true(16 in types)  # RECOIL_COMPENSATOR (Issue #1073)
 	assert_true(17 in types)  # COMBAT_DISPOSITION (Issue #1047)
+	assert_true(18 in types)  # EXPERIMENTAL_SAMPLE (Issue #1127)
 
 
 func test_get_active_item_name_none() -> void:

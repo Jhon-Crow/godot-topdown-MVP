@@ -45,6 +45,10 @@ var _power_fantasy_label: RichTextLabel = null
 
 
 func _ready() -> void:
+	# Setup tooltips and label behaviour for settings rows (Issue #1200)
+	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NightModeContainer,
+			"Night Mode")
+
 	# Load gothic font for Black Metal button (Issue #1014)
 	_load_gothic_font()
 
@@ -141,6 +145,7 @@ func _on_power_fantasy_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.POWER_FANTASY)
 	_update_button_states()
+	_restart_if_in_game()
 
 
 func _on_easy_pressed() -> void:
@@ -148,6 +153,7 @@ func _on_easy_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.EASY)
 	_update_button_states()
+	_restart_if_in_game()
 
 
 func _on_normal_pressed() -> void:
@@ -155,6 +161,7 @@ func _on_normal_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.NORMAL)
 	_update_button_states()
+	_restart_if_in_game()
 
 
 func _on_hard_pressed() -> void:
@@ -162,6 +169,7 @@ func _on_hard_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.HARD)
 	_update_button_states()
+	_restart_if_in_game()
 
 
 func _on_black_metal_pressed() -> void:
@@ -169,6 +177,21 @@ func _on_black_metal_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.BLACK_METAL)
 	_update_button_states()
+	_restart_if_in_game()
+
+
+## Restarts the current scene when difficulty changes mid-game (Issue #1432).
+## Only restarts if a level is actually running (player node is present).
+## Unpauses the tree first so the reload can proceed cleanly.
+func _restart_if_in_game() -> void:
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager == null:
+		return
+	# Only restart when the game is actually in-progress (a player exists in the scene).
+	if game_manager.get("player") == null:
+		return
+	get_tree().paused = false
+	game_manager.restart_scene()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -297,6 +320,78 @@ func _sample_gradient(t: float) -> Color:
 
 	# Interpolate between the two colors
 	return colors[segment_index].lerp(colors[segment_index + 1], segment_t)
+
+
+## Semi-transparent background colour drawn over a settings row on hover (Issue #1200).
+const ROW_HOVER_BG: Color = Color(1.0, 1.0, 1.0, 0.08)
+
+## Tracks which Control nodes currently have a hover background drawn on them.
+var _row_hover_bg: Dictionary = {}
+
+
+## Draw the hover background rect for a registered row node.
+func _draw_row_bg(node: Control) -> void:
+	if _row_hover_bg.get(node, false):
+		node.draw_rect(Rect2(Vector2.ZERO, node.size), ROW_HOVER_BG)
+
+
+## Setup tooltip, hover highlight, and label behaviour for a settings row (Issue #1200).
+## @param container   The HBoxContainer that holds the label + interactive control.
+## @param tooltip     Short name shown in the tooltip and applied to all child nodes.
+## @param description Optional sibling Label with the long description text.
+##                    When provided it receives the same tooltip, hover highlight,
+##                    and click-forwarding as the main container.
+func _setup_row_hover(container: Control, tooltip: String,
+		description: Control = null) -> void:
+	container.tooltip_text = tooltip
+	container.mouse_filter = Control.MOUSE_FILTER_STOP
+	for child in container.get_children():
+		if child is Control:
+			child.tooltip_text = tooltip
+	_row_hover_bg[container] = false
+	container.draw.connect(_draw_row_bg.bind(container))
+	container.mouse_entered.connect(_on_row_hovered.bind(container, description, true))
+	container.mouse_exited.connect(_on_row_hovered.bind(container, description, false))
+	container.gui_input.connect(_on_row_gui_input.bind(container))
+	if description != null:
+		description.tooltip_text = tooltip
+		description.mouse_filter = Control.MOUSE_FILTER_STOP
+		_row_hover_bg[description] = false
+		description.draw.connect(_draw_row_bg.bind(description))
+		description.mouse_entered.connect(_on_row_hovered.bind(container, description, true))
+		description.mouse_exited.connect(_on_row_hovered.bind(container, description, false))
+		description.gui_input.connect(_on_row_gui_input.bind(container))
+
+
+## Apply or remove hover background on the row container and its description label.
+func _on_row_hovered(container: Control, description: Control,
+		hovered: bool) -> void:
+	_row_hover_bg[container] = hovered
+	container.queue_redraw()
+	if description != null:
+		_row_hover_bg[description] = hovered
+		description.queue_redraw()
+
+
+## Forward a left-click on the row container to the first interactive control inside.
+func _on_row_gui_input(event: InputEvent, container: Control) -> void:
+	if event is InputEventMouseButton \
+			and event.button_index == MOUSE_BUTTON_LEFT \
+			and event.pressed:
+		for child in container.get_children():
+			if child is CheckButton:
+				# Setting button_pressed automatically emits toggled signal.
+				child.button_pressed = not child.button_pressed
+				container.accept_event()
+				return
+			if child is Button:
+				child.pressed.emit()
+				container.accept_event()
+				return
+			if child is OptionButton:
+				child.show_popup()
+				container.accept_event()
+				return
 
 
 ## Sets up the Black Metal button with gothic font styling (Issue #1014).

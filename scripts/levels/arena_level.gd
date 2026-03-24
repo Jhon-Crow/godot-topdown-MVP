@@ -116,11 +116,8 @@ var _wave_label: Label = null
 ## Reference to the ammo count label.
 var _ammo_label: Label = null
 
-## Reference to the kills label.
-var _kills_label: Label = null
-
-## Reference to the accuracy label.
-var _accuracy_label: Label = null
+## Reference to the difficulty label.
+var _difficulty_label: Label = null
 
 ## Reference to the magazines label.
 var _magazines_label: Label = null
@@ -267,10 +264,6 @@ func _on_enemy_died() -> void:
 	_enemies_alive -= 1
 	_update_enemy_count_label()
 
-	# Register kill.
-	if GameManager:
-		GameManager.register_kill()
-
 	# If more enemies still need to be spawned, spawn the next one.
 	if _enemies_spawned < _wave_enemy_target:
 		_spawn_enemy()
@@ -281,7 +274,10 @@ func _on_enemy_died() -> void:
 
 
 ## Called when an enemy dies with special kill info.
-func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
+func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
+	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
+	if GameManager:
+		GameManager.register_kill(is_player_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
@@ -791,32 +787,29 @@ func _reconnect_weapon_signals(player: Node2D) -> void:
 # ---------------------------------------------------------------------------
 
 ## Bake NavigationRegion2D for enemy pathfinding.
+## Issue #1289: use explicit parse+bake API so all obstacle StaticBody2D nodes are
+## reliably found and carved out of the walkable area (bake_navigation_polygon can
+## miss dynamic/runtime geometry when called from _ready()).
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
 		push_warning("[ArenaLevel] NavigationRegion2D not found")
 		return
-
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		push_warning("[ArenaLevel] NavigationPolygon not found")
 		return
-
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
 	print("[ArenaLevel] Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Arena playable area: 128 to 1792 (x), 128 to 952 (y).
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(128, 128),
-		Vector2(1792, 128),
-		Vector2(1792, 952),
-		Vector2(128, 952)
-	])
-	nav_poly.add_outline(floor_outline)
-
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# Issue #1289: push updated polygon back into the NavigationServer's live map.
+	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 	print("[ArenaLevel] Navigation mesh baked")
 
 
@@ -1064,27 +1057,16 @@ func _setup_ui() -> void:
 	_health_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4, 1.0))
 	ui.add_child(_health_label)
 
-	# Kills label.
-	_kills_label = Label.new()
-	_kills_label.name = "KillsLabel"
-	_kills_label.text = "Убийства: 0"
-	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left = 10
-	_kills_label.offset_top = 72
-	_kills_label.offset_right = 250
-	_kills_label.offset_bottom = 102
-	ui.add_child(_kills_label)
-
-	# Accuracy label.
-	_accuracy_label = Label.new()
-	_accuracy_label.name = "AccuracyLabel"
-	_accuracy_label.text = "Точность: 0%"
-	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left = 10
-	_accuracy_label.offset_top = 102
-	_accuracy_label.offset_right = 250
-	_accuracy_label.offset_bottom = 132
-	ui.add_child(_accuracy_label)
+	# Difficulty label.
+	_difficulty_label = Label.new()
+	_difficulty_label.name = "DifficultyLabel"
+	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_difficulty_label.offset_left = 10
+	_difficulty_label.offset_top = 72
+	_difficulty_label.offset_right = 250
+	_difficulty_label.offset_bottom = 102
+	ui.add_child(_difficulty_label)
 
 	# Magazines label.
 	_magazines_label = Label.new()
@@ -1268,10 +1250,8 @@ func _update_health_label() -> void:
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
-	if _kills_label:
-		_kills_label.text = "Убийства: %d" % GameManager.kills
-	if _accuracy_label:
-		_accuracy_label.text = "Точность: %.1f%%" % GameManager.get_accuracy()
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 	_update_health_label()
 
 
@@ -1307,10 +1287,11 @@ func _complete_level_with_score() -> void:
 	_score_shown = true
 
 	# Disable player controls.
-	if _player != null and is_instance_valid(_player) and _player.has_method("SetProcessInput"):
-		_player.SetProcessInput(false)
-	elif _player != null and is_instance_valid(_player) and _player.has_method("set_process_input"):
+	if _player != null and is_instance_valid(_player):
+		_player.set_physics_process(false)
+		_player.set_process(false)
 		_player.set_process_input(false)
+		_player.set_process_unhandled_input(false)
 
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):

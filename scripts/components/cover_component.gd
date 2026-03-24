@@ -45,10 +45,12 @@ func _ready() -> void:
 
 
 ## Setup cover detection raycasts.
+## Issue #1411: Raycasts start disabled to reduce per-frame physics overhead.
+## force_raycast_update() is used on-demand during cover searches.
 func _setup_cover_detection() -> void:
 	for i in range(cover_check_count):
 		var raycast := RayCast2D.new()
-		raycast.enabled = true
+		raycast.enabled = false  ## Issue #1411: disabled by default, force_raycast_update() used on demand
 		raycast.collision_mask = 4  # Obstacles layer
 		raycast.exclude_parent = true
 		add_child(raycast)

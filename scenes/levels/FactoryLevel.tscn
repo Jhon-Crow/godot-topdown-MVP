@@ -1033,3 +1033,70 @@ offset_bottom = 45.0
 text = "AMMO: 30/30"
 
 [node name="PauseMenu" parent="." instance=ExtResource("3_pause_menu")]
+
+[node name="SearchPathWaypoints" type="Node2D" parent="."]
+editor_description = "Pre-planned search path waypoints for enemy SEARCHING state (Issue #1246). Enemies traverse these in order starting from the nearest point to their current position."
+groups = ["search_path_waypoints"]
+
+[node name="TopLeft_Section" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 250)
+
+[node name="TopLeft_Cover" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(500, 450)
+
+[node name="TopLeft_Corner" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(150, 450)
+
+[node name="TopCenter_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(900, 250)
+
+[node name="TopCenter_Cover" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1050, 450)
+
+[node name="RowTop_Gap1" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(970, 650)
+
+[node name="TopRight_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1800, 300)
+
+[node name="TopRight_Cover" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2100, 500)
+
+[node name="TopRight_Corner" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2350, 300)
+
+[node name="MidLeft_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 900)
+
+[node name="MidLeft_Cover" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(600, 1100)
+
+[node name="MidLeft_Corner" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(150, 1100)
+
+[node name="RowMid_Gap1" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(970, 1250)
+
+[node name="MidRight_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1800, 1000)
+
+[node name="MidRight_Cover" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2200, 1100)
+
+[node name="MidRight_Corner" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2350, 1100)
+
+[node name="BotLeft_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 1700)
+
+[node name="BotLeft_Cover" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(550, 1900)
+
+[node name="BotLeft_Corner" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(150, 1900)
+
+[node name="BotRight_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2000, 1700)
+
+[node name="BotRight_Corner" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2350, 1900)

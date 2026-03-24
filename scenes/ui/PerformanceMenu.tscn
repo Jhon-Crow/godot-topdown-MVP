@@ -1,0 +1,343 @@
+[gd_scene load_steps=4 format=3 uid="uid://p3rf0rm4nc3m3nu"]
+
+[ext_resource type="Script" path="res://scripts/ui/performance_menu.gd" id="1_performance"]
+[ext_resource type="LabelSettings" uid="uid://c3qneonlabel01" path="res://resources/themes/neon_label_settings.tres" id="2_neon_label"]
+[ext_resource type="Theme" uid="uid://c3qneonbtn01" path="res://resources/themes/neon_button_theme.tres" id="3_neon_theme"]
+
+[node name="PerformanceMenu" type="CanvasLayer"]
+layer = 101
+process_mode = 3
+script = ExtResource("1_performance")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.7)
+
+[node name="MenuContainer" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("3_neon_theme")
+
+[node name="PanelContainer" type="PanelContainer" parent="MenuContainer"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.1
+anchor_top = 0.05
+anchor_right = 0.9
+anchor_bottom = 0.95
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MenuContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MenuContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/separation = 15
+
+[node name="TitleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Performance"
+label_settings = ExtResource("2_neon_label")
+horizontal_alignment = 1
+
+[node name="DescriptionLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Toggle subsystems to measure their performance impact."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ParticlesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ParticlesLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ParticlesContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Particle Effects"
+autowrap_mode = 2
+
+[node name="ParticlesCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ParticlesContainer"]
+layout_mode = 2
+
+[node name="ParticlesDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled (default), GPU particle effects are spawned
+on bullet impacts: dust, blood spray, sparks, muzzle flash."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BloodDecalsContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BloodDecalsLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BloodDecalsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Blood Decals on Floor/Walls"
+autowrap_mode = 2
+
+[node name="BloodDecalsCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BloodDecalsContainer"]
+layout_mode = 2
+
+[node name="BloodDecalsDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled (default), blood stains are placed on floors
+and walls after hits. Disable to reduce Sprite2D node count."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator3" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScreenShakeContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScreenShakeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ScreenShakeContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Screen Shake"
+autowrap_mode = 2
+
+[node name="ScreenShakeCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ScreenShakeContainer"]
+layout_mode = 2
+
+[node name="ScreenShakeDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled (default), the camera shakes on weapon fire
+to simulate recoil. Disable to keep the camera still."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator4" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ExplosionLightsContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ExplosionLightsLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ExplosionLightsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Explosion/Flashbang Lights"
+autowrap_mode = 2
+
+[node name="ExplosionLightsCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ExplosionLightsContainer"]
+layout_mode = 2
+
+[node name="ExplosionLightsDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled (default), grenades and flashbangs produce
+a dynamic PointLight2D flash. These are a known GPU bottleneck."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator5" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WallHitParticlesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WallHitParticlesLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WallHitParticlesContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Wall Hit Particles"
+autowrap_mode = 2
+
+[node name="WallHitParticlesCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WallHitParticlesContainer"]
+layout_mode = 2
+
+[node name="WallHitParticlesDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled (default), dust particles appear when bullets
+hit walls. Disable to reduce GPU particle spawning."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator5b" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AIContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AILabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Enemy AI"
+autowrap_mode = 2
+
+[node name="AICheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIContainer"]
+layout_mode = 2
+
+[node name="AIDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled (default), enemies run full AI logic each
+physics frame. Disable to measure AI CPU cost (enemies freeze)."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="AIStatesSectionLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "  AI States (disable individual states for profiling):"
+autowrap_mode = 2
+
+[node name="AIIdleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AIIdleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIIdleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  IDLE (patrol/guard scan) — disable to force active states"
+autowrap_mode = 2
+
+[node name="AIIdleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIIdleContainer"]
+layout_mode = 2
+
+[node name="AICombatContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AICombatLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AICombatContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  COMBAT (peek, shoot, return)"
+autowrap_mode = 2
+
+[node name="AICombatCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AICombatContainer"]
+layout_mode = 2
+
+[node name="AISeekingCoverContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AISeekingCoverLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISeekingCoverContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  SEEKING_COVER (pathfind to cover)"
+autowrap_mode = 2
+
+[node name="AISeekingCoverCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISeekingCoverContainer"]
+layout_mode = 2
+
+[node name="AIInCoverContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AIInCoverLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIInCoverContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  IN_COVER (wait and peek)"
+autowrap_mode = 2
+
+[node name="AIInCoverCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIInCoverContainer"]
+layout_mode = 2
+
+[node name="AIFlankingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AIFlankingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIFlankingContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  FLANKING (flank movement)"
+autowrap_mode = 2
+
+[node name="AIFlankingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIFlankingContainer"]
+layout_mode = 2
+
+[node name="AISuppressedContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AISuppressedLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISuppressedContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  SUPPRESSED (pinned under fire)"
+autowrap_mode = 2
+
+[node name="AISuppressedCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISuppressedContainer"]
+layout_mode = 2
+
+[node name="AIRetreatingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AIRetreatingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIRetreatingContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  RETREATING (fall back to cover)"
+autowrap_mode = 2
+
+[node name="AIRetreatingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIRetreatingContainer"]
+layout_mode = 2
+
+[node name="AIPursuingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AIPursuingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIPursuingContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  PURSUING (cover-to-cover advance)"
+autowrap_mode = 2
+
+[node name="AIPursuingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIPursuingContainer"]
+layout_mode = 2
+
+[node name="AIAssaultContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AIAssaultLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIAssaultContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  ASSAULT (coordinated rush)"
+autowrap_mode = 2
+
+[node name="AIAssaultCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIAssaultContainer"]
+layout_mode = 2
+
+[node name="AISearchingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AISearchingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISearchingContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  SEARCHING (hunt last known position)"
+autowrap_mode = 2
+
+[node name="AISearchingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISearchingContainer"]
+layout_mode = 2
+
+[node name="HSeparator6" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "All performance features enabled"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="BackButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Back"

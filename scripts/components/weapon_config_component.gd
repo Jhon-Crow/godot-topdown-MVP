@@ -19,7 +19,7 @@ const WEAPON_CONFIGS := {
 		"bullet_speed": 2500.0,
 		"magazine_size": 30,
 		"bullet_spawn_offset": 30.0,
-		"weapon_loudness": 1469.0,
+		"weapon_loudness": 800.0,
 		"sprite_path": "",  # Default sprite already in scene
 		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",
@@ -40,7 +40,7 @@ const WEAPON_CONFIGS := {
 		"bullet_speed": 1800.0,
 		"magazine_size": 8,
 		"bullet_spawn_offset": 35.0,
-		"weapon_loudness": 2000.0,
+		"weapon_loudness": 1089.2,
 		"sprite_path": "res://assets/sprites/weapons/shotgun_topdown.png",
 		"bullet_scene_path": "res://scenes/projectiles/csharp/ShotgunPellet.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",
@@ -62,7 +62,7 @@ const WEAPON_CONFIGS := {
 		"magazine_size": 32,
 		"total_magazines": 20,  # Issue #1137: 4x increase from default 5
 		"bullet_spawn_offset": 25.0,
-		"weapon_loudness": 1200.0,
+		"weapon_loudness": 653.5,
 		"sprite_path": "res://assets/sprites/weapons/mini_uzi_topdown.png",
 		"bullet_scene_path": "res://scenes/projectiles/Bullet9mm.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",
@@ -84,7 +84,7 @@ const WEAPON_CONFIGS := {
 		"bullet_speed": 0.0,  # No projectiles
 		"magazine_size": 0,  # No ammo needed
 		"bullet_spawn_offset": 0.0,
-		"weapon_loudness": 200.0,  # Quiet melee swing sound
+		"weapon_loudness": 108.9,  # Quiet melee swing sound
 		"sprite_path": "res://assets/sprites/weapons/machete_topdown.png",
 		"bullet_scene_path": "",  # No bullets
 		"casing_scene_path": "",  # No casings
@@ -111,7 +111,7 @@ const WEAPON_CONFIGS := {
 		"bullet_speed": 800.0,  # Rocket speed (slower than bullets)
 		"magazine_size": 1,  # Only 1 RPG round
 		"bullet_spawn_offset": 35.0,
-		"weapon_loudness": 2500.0,  # Very loud rocket launch
+		"weapon_loudness": 1361.5,  # Very loud rocket launch
 		"sprite_path": "res://assets/sprites/weapons/rpg_topdown.png",  # RPG sprite
 		"bullet_scene_path": "res://scenes/projectiles/RpgRocket.tscn",
 		"casing_scene_path": "",  # No casings for RPG
@@ -137,7 +137,7 @@ const WEAPON_CONFIGS := {
 		"bullet_speed": 1000.0,  # Makarov PM speed
 		"magazine_size": 9,  # PM magazine
 		"bullet_spawn_offset": 25.0,
-		"weapon_loudness": 1469.0,
+		"weapon_loudness": 800.0,
 		"sprite_path": "res://assets/sprites/weapons/makarov_pm_topdown.png",  # PM sprite (Issue #583)
 		"bullet_scene_path": "res://scenes/projectiles/Bullet9mm.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",
@@ -159,7 +159,7 @@ const WEAPON_CONFIGS := {
 		"total_magazines": 2,       # 500 + 500 (one spare belt)
 		"reload_time": 9.0,         # Long belt reload
 		"bullet_spawn_offset": 40.0,
-		"weapon_loudness": 2200.0,
+		"weapon_loudness": 1198.1,
 		"sprite_path": "res://assets/sprites/weapons/pkm_topdown.png",  # PKM machine gun top-down sprite (#1033)
 		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",
@@ -182,7 +182,7 @@ const WEAPON_CONFIGS := {
 		"total_magazines": 14,      # 5 + 65 extra rounds = 70 total (Issue #1161)
 		"reload_time": 4.0,         # Long reload for heavy rifle
 		"bullet_spawn_offset": 60.0,
-		"weapon_loudness": 3000.0,  # Very loud anti-materiel rifle
+		"weapon_loudness": 1633.8,  # Very loud anti-materiel rifle
 		"sprite_path": "res://assets/sprites/weapons/asvk_topdown.png",
 		"bullet_scene_path": "res://scenes/projectiles/csharp/SniperBulletEnemy.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",
@@ -197,6 +197,29 @@ const WEAPON_CONFIGS := {
 		"spread_increment": 0.0,
 		"max_spread": 0.0,
 		"spread_reset_time": 0.0
+	},
+	8: {  # REVOLVER (RSh-12) - heavy semi-auto revolver used by SWAT shieldbearer (Issue #1242)
+		"shoot_cooldown": 0.35,     # Semi-auto revolver pace
+		"bullet_speed": 2000.0,     # 12.7mm pistol muzzle velocity
+		"magazine_size": 5,         # 5-chamber cylinder (same as player revolver)
+		"total_magazines": 4,       # 4 reloads (20 extra rounds in pouches)
+		"reload_time": 5.0,         # Cylinder reload (longer than semi-auto pistol)
+		"bullet_spawn_offset": 30.0,
+		"weapon_loudness": 2000.0,  # Loud heavy caliber revolver
+		"sprite_path": "res://assets/sprites/weapons/revolver_topdown.png",
+		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet12p7mm.tscn",
+		"casing_scene_path": "res://scenes/effects/Casing.tscn",
+		"caliber_path": "res://resources/calibers/caliber_12p7x55.tres",
+		"is_shotgun": false,
+		"pellet_count_min": 1,
+		"pellet_count_max": 1,
+		"spread_angle": 0.0,
+		# Minimal spread — heavy caliber, semi-auto
+		"spread_threshold": 2,
+		"initial_spread": 0.5,
+		"spread_increment": 0.5,
+		"max_spread": 3.0,
+		"spread_reset_time": 0.4
 	}
 }
 
@@ -219,4 +242,5 @@ static func get_type_name(weapon_type: int) -> String:
 		5: return "PM"
 		6: return "MACHINE_GUN"
 		7: return "SNIPER_RIFLE"
+		8: return "REVOLVER"
 		_: return "UNKNOWN"

@@ -1,10 +1,30 @@
-[gd_scene load_steps=24 format=3 uid="uid://decadence_level_1035"]
+[gd_scene load_steps=31 format=3 uid="uid://decadence_level_1035"]
 
 [ext_resource type="Script" path="res://scripts/levels/decadence_level.gd" id="1_decadence_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="3_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="4_enemy"]
 [ext_resource type="PackedScene" uid="uid://radio_jammer_enemy" path="res://scenes/objects/RadioJammerEnemy.tscn" id="5_radio_jammer"]
+
+[sub_resource type="Gradient" id="Gradient_neon_pink"]
+offsets = PackedFloat32Array(0.0, 0.1, 0.3, 0.6, 1.0)
+colors = PackedColorArray(1.0, 0.2, 0.8, 1.0, 1.0, 0.2, 0.8, 0.85, 1.0, 0.2, 0.8, 0.5, 1.0, 0.2, 0.8, 0.15, 1.0, 0.2, 0.8, 0.0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_neon_pink"]
+gradient = SubResource("Gradient_neon_pink")
+width = 256
+height = 256
+fill = 1
+
+[sub_resource type="Gradient" id="Gradient_neon_purple"]
+offsets = PackedFloat32Array(0.0, 0.1, 0.3, 0.6, 1.0)
+colors = PackedColorArray(0.5, 0.1, 1.0, 1.0, 0.5, 0.1, 1.0, 0.85, 0.5, 0.1, 1.0, 0.5, 0.5, 0.1, 1.0, 0.15, 0.5, 0.1, 1.0, 0.0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_neon_purple"]
+gradient = SubResource("Gradient_neon_purple")
+width = 256
+height = 256
+fill = 1
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_h"]
 size = Vector2(2464, 32)
@@ -35,6 +55,15 @@ size = Vector2(200, 48)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cover_sofa"]
 size = Vector2(120, 48)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_cover_table"]
+polygon = PackedVector2Array(-40, -40, 40, -40, 40, 40, -40, 40)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_cover_bar"]
+polygon = PackedVector2Array(-100, -24, 100, -24, 100, 24, -100, 24)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_cover_sofa"]
+polygon = PackedVector2Array(-60, -24, 60, -24, 60, 24, -60, 24)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_wall_h"]
 polygon = PackedVector2Array(-1232, -16, 1232, -16, 1232, 16, -1232, 16)
@@ -135,12 +164,26 @@ offset_right = 2464.0
 offset_bottom = 70.0
 color = Color(1.0, 0.2, 0.8, 0.8)
 
+[node name="GlowLight_NeonTop" type="PointLight2D" parent="Environment/NeonAccents/NeonTop"]
+position = Vector2(1264, 55)
+color = Color(1.0, 0.2, 0.8, 1)
+energy = 2.0
+texture = SubResource("GradientTexture2D_neon_pink")
+texture_scale = 20.0
+
 [node name="NeonBottom" type="ColorRect" parent="Environment/NeonAccents"]
 offset_left = 64.0
 offset_top = 2058.0
 offset_right = 2464.0
 offset_bottom = 2064.0
 color = Color(0.4, 0.1, 1.0, 0.8)
+
+[node name="GlowLight_NeonBottom" type="PointLight2D" parent="Environment/NeonAccents/NeonBottom"]
+position = Vector2(1264, 2075)
+color = Color(0.5, 0.1, 1.0, 1)
+energy = 2.0
+texture = SubResource("GradientTexture2D_neon_purple")
+texture_scale = 20.0
 
 [node name="NeonLeft" type="ColorRect" parent="Environment/NeonAccents"]
 offset_left = 64.0
@@ -149,12 +192,26 @@ offset_right = 70.0
 offset_bottom = 2064.0
 color = Color(1.0, 0.2, 0.8, 0.8)
 
+[node name="GlowLight_NeonLeft" type="PointLight2D" parent="Environment/NeonAccents/NeonLeft"]
+position = Vector2(55, 1064)
+color = Color(1.0, 0.2, 0.8, 1)
+energy = 2.0
+texture = SubResource("GradientTexture2D_neon_pink")
+texture_scale = 20.0
+
 [node name="NeonRight" type="ColorRect" parent="Environment/NeonAccents"]
 offset_left = 2458.0
 offset_top = 64.0
 offset_right = 2464.0
 offset_bottom = 2064.0
 color = Color(0.4, 0.1, 1.0, 0.8)
+
+[node name="GlowLight_NeonRight" type="PointLight2D" parent="Environment/NeonAccents/NeonRight"]
+position = Vector2(2475, 1064)
+color = Color(0.5, 0.1, 1.0, 1)
+energy = 2.0
+texture = SubResource("GradientTexture2D_neon_purple")
+texture_scale = 20.0
 
 [node name="DanceFloorNeon1" type="ColorRect" parent="Environment/NeonAccents"]
 offset_left = 500.0
@@ -163,12 +220,26 @@ offset_right = 1400.0
 offset_bottom = 406.0
 color = Color(1.0, 0.1, 0.6, 1.0)
 
+[node name="GlowLight_DanceNeon1" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon1"]
+position = Vector2(950, 403)
+color = Color(1.0, 0.1, 0.6, 1)
+energy = 2.5
+texture = SubResource("GradientTexture2D_neon_pink")
+texture_scale = 14.0
+
 [node name="DanceFloorNeon2" type="ColorRect" parent="Environment/NeonAccents"]
 offset_left = 500.0
 offset_top = 1194.0
 offset_right = 1400.0
 offset_bottom = 1200.0
 color = Color(0.5, 0.0, 1.0, 1.0)
+
+[node name="GlowLight_DanceNeon2" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon2"]
+position = Vector2(950, 1197)
+color = Color(0.5, 0.1, 1.0, 1)
+energy = 2.5
+texture = SubResource("GradientTexture2D_neon_purple")
+texture_scale = 14.0
 
 [node name="DanceFloorNeon3" type="ColorRect" parent="Environment/NeonAccents"]
 offset_left = 500.0
@@ -177,12 +248,26 @@ offset_right = 506.0
 offset_bottom = 1200.0
 color = Color(1.0, 0.1, 0.6, 1.0)
 
+[node name="GlowLight_DanceNeon3" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon3"]
+position = Vector2(503, 800)
+color = Color(1.0, 0.1, 0.6, 1)
+energy = 2.5
+texture = SubResource("GradientTexture2D_neon_pink")
+texture_scale = 14.0
+
 [node name="DanceFloorNeon4" type="ColorRect" parent="Environment/NeonAccents"]
 offset_left = 1394.0
 offset_top = 400.0
 offset_right = 1400.0
 offset_bottom = 1200.0
 color = Color(0.5, 0.0, 1.0, 1.0)
+
+[node name="GlowLight_DanceNeon4" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon4"]
+position = Vector2(1397, 800)
+color = Color(0.5, 0.1, 1.0, 1)
+energy = 2.5
+texture = SubResource("GradientTexture2D_neon_purple")
+texture_scale = 14.0
 
 [node name="Walls" type="Node2D" parent="Environment"]
 
@@ -437,6 +522,9 @@ color = Color(0.4, 0.15, 0.1, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/BarCounter"]
 shape = SubResource("RectangleShape2D_cover_bar")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/BarCounter"]
+occluder = SubResource("OccluderPolygon2D_cover_bar")
+
 [node name="BarTable1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(1600, 480)
 collision_layer = 4
@@ -451,6 +539,9 @@ color = Color(0.3, 0.1, 0.15, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/BarTable1"]
 shape = SubResource("RectangleShape2D_cover_table")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/BarTable1"]
+occluder = SubResource("OccluderPolygon2D_cover_table")
 
 [node name="BarTable2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2100, 480)
@@ -467,6 +558,9 @@ color = Color(0.3, 0.1, 0.15, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/BarTable2"]
 shape = SubResource("RectangleShape2D_cover_table")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/BarTable2"]
+occluder = SubResource("OccluderPolygon2D_cover_table")
+
 [node name="VIPSofa1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(200, 300)
 collision_layer = 4
@@ -481,6 +575,9 @@ color = Color(0.5, 0.05, 0.3, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/VIPSofa1"]
 shape = SubResource("RectangleShape2D_cover_sofa")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/VIPSofa1"]
+occluder = SubResource("OccluderPolygon2D_cover_sofa")
 
 [node name="VIPSofa2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(350, 500)
@@ -497,6 +594,9 @@ color = Color(0.5, 0.05, 0.3, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/VIPSofa2"]
 shape = SubResource("RectangleShape2D_cover_sofa")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/VIPSofa2"]
+occluder = SubResource("OccluderPolygon2D_cover_sofa")
+
 [node name="DanceTable1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(700, 700)
 collision_layer = 4
@@ -511,6 +611,9 @@ color = Color(0.2, 0.05, 0.3, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/DanceTable1"]
 shape = SubResource("RectangleShape2D_cover_table")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/DanceTable1"]
+occluder = SubResource("OccluderPolygon2D_cover_table")
 
 [node name="DanceTable2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(1200, 900)
@@ -527,6 +630,9 @@ color = Color(0.2, 0.05, 0.3, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/DanceTable2"]
 shape = SubResource("RectangleShape2D_cover_table")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/DanceTable2"]
+occluder = SubResource("OccluderPolygon2D_cover_table")
+
 [node name="DanceTable3" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(700, 1050)
 collision_layer = 4
@@ -541,6 +647,9 @@ color = Color(0.2, 0.05, 0.3, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/DanceTable3"]
 shape = SubResource("RectangleShape2D_cover_table")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/DanceTable3"]
+occluder = SubResource("OccluderPolygon2D_cover_table")
 
 [node name="StorageCrate1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(1650, 1500)
@@ -557,6 +666,9 @@ color = Color(0.3, 0.2, 0.1, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/StorageCrate1"]
 shape = SubResource("RectangleShape2D_cover_table")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/StorageCrate1"]
+occluder = SubResource("OccluderPolygon2D_cover_table")
+
 [node name="StorageCrate2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2200, 1700)
 collision_layer = 4
@@ -571,6 +683,9 @@ color = Color(0.3, 0.2, 0.1, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/StorageCrate2"]
 shape = SubResource("RectangleShape2D_cover_table")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/StorageCrate2"]
+occluder = SubResource("OccluderPolygon2D_cover_table")
 
 [node name="AreaLabels" type="Node2D" parent="Environment"]
 
@@ -812,3 +927,67 @@ offset_bottom = 45.0
 text = "AMMO: 30/30"
 
 [node name="PauseMenu" parent="." instance=ExtResource("3_pause_menu")]
+
+[node name="SearchPathWaypoints" type="Node2D" parent="."]
+editor_description = "Pre-planned search path waypoints for enemy SEARCHING state (Issue #1246). Enemies traverse these in order starting from the nearest point to their current position."
+groups = ["search_path_waypoints"]
+
+[node name="VIPRoom_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 150)
+
+[node name="VIPRoom_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(200, 350)
+
+[node name="VIPRoom_Corner_BL" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(150, 500)
+
+[node name="Bar_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1600, 150)
+
+[node name="Bar_Counter" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1800, 350)
+
+[node name="Bar_Corner_TR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2300, 150)
+
+[node name="Bar_Corner_BR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2300, 500)
+
+[node name="DanceFloor_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(950, 650)
+
+[node name="DanceFloor_TopLeft" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(600, 750)
+
+[node name="DanceFloor_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(950, 900)
+
+[node name="DanceFloor_TopRight" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1300, 750)
+
+[node name="DanceFloor_BottomLeft" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(600, 1100)
+
+[node name="DanceFloor_BottomRight" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1300, 1100)
+
+[node name="BackAlley_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(300, 1400)
+
+[node name="BackAlley_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(350, 1700)
+
+[node name="BackAlley_Corner" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(150, 1900)
+
+[node name="Storage_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1600, 1400)
+
+[node name="Storage_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1900, 1600)
+
+[node name="Storage_Corner_TR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2300, 1400)
+
+[node name="Storage_Corner_BR" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2300, 1900)

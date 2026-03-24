@@ -159,7 +159,13 @@ public partial class MakarovPM : BaseWeapon
         // Update aim direction and weapon sprite rotation
         UpdateAimDirection();
 
-        // Update laser sight (Power Fantasy mode)
+    }
+
+    public override void _PhysicsProcess(double delta)
+    {
+        base._PhysicsProcess(delta);
+
+        // Update laser sight raycast in physics thread — safe with 2d/run_on_separate_thread (Issue #1189).
         if (_laserSightEnabled && _laserSight != null)
         {
             UpdateLaserSight();
@@ -349,7 +355,7 @@ public partial class MakarovPM : BaseWeapon
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            float loudness = WeaponData?.Loudness ?? 1469.0f;
+            float loudness = WeaponData?.Loudness ?? 800.0f;  // Issue #1269: scaled 800/1469
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
         }
     }

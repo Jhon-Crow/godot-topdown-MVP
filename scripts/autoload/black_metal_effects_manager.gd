@@ -192,9 +192,10 @@ func _warmup_shader() -> void:
 
 
 ## Log a message with the BlackMetal prefix.
+## Issue #1293: print() fallback gated to debug builds to avoid FPS drops.
 func _log(message: String) -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("log_info"):
 		file_logger.log_info("[BlackMetalEffectsManager] " + message)
-	else:
+	elif OS.is_debug_build():
 		print("[BlackMetalEffectsManager] " + message)
