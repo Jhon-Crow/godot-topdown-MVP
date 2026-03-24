@@ -164,6 +164,39 @@ var _treasure_pedestal: Area2D = null
 ## Item type stored on the current pedestal ("weapon" or an int ActiveItemType).
 var _pedestal_item = null
 
+## ── Branching map state (Issue #1399) ────────────────────────────────────
+## Door zones for branching navigation (one per connected direction).
+var _door_zones: Array = []  # Array of Area2D door zones
+
+## Directions: 0=North, 1=East, 2=South, 3=West
+const DIR_NORTH: int = 0
+const DIR_EAST:  int = 1
+const DIR_SOUTH: int = 2
+const DIR_WEST:  int = 3
+
+## Grid offsets for each direction
+const DIR_OFFSETS: Array = [
+	Vector2i(0, -1),  # North
+	Vector2i(1, 0),   # East
+	Vector2i(0, 1),   # South
+	Vector2i(-1, 0),  # West
+]
+
+## Door color constants (Issue #1399)
+const DOOR_COLOR_NORMAL:   Color = Color(0.5, 0.5, 0.55, 0.7)   ## Grey — normal combat room
+const DOOR_COLOR_TREASURE: Color = Color(1.0, 0.85, 0.2, 0.8)   ## Gold — treasure room
+const DOOR_COLOR_EXIT:     Color = Color(1.0, 0.3, 0.2, 0.8)    ## Red — next level exit
+const DOOR_COLOR_CLEARED:  Color = Color(0.3, 0.8, 0.3, 0.6)    ## Green — already cleared room
+const DOOR_COLOR_START:    Color = Color(0.4, 0.6, 1.0, 0.7)    ## Blue — start room
+
+## Minimap constants (Issue #1399)
+const MINIMAP_CELL_SIZE: float = 18.0
+const MINIMAP_GAP:       float = 4.0
+const MINIMAP_MARGIN:    float = 12.0
+
+## Doorway gap size in wall (pixels)
+const DOOR_GAP: float = 120.0
+
 
 ## ============================================================
 ## _ready: entry point
@@ -188,6 +221,7 @@ func _ready() -> void:
 		_setup_debug_ui()
 		_setup_saturation_overlay()
 		_setup_debug_ui_treasure()
+		_setup_minimap()
 		if GameManager:
 			GameManager.stats_updated.connect(_update_debug_ui)
 		# Spawn pedestal immediately (not deferred) so it is visible from the first frame.
@@ -208,24 +242,78 @@ func _ready() -> void:
 	# Load session into local vars for convenience
 	_current_room_idx = GameManager.roguelike_current_room
 	_total_rooms       = GameManager.roguelike_total_rooms
-	_room_type         = GameManager.roguelike_room_types[_current_room_idx]
 
-	print("[RoguelikeLevel] Level %d — Room %d/%d — type: %s" % [
+	# Issue #1399: Get room type from the map if available
+	var map_room_idx: int = GameManager.roguelike_current_map_room
+	if GameManager.roguelike_room_map.size() > 0 and map_room_idx >= 0 and map_room_idx < GameManager.roguelike_room_map.size():
+		_room_type = GameManager.roguelike_room_map[map_room_idx]["room_type"]
+	elif _current_room_idx < GameManager.roguelike_room_types.size():
+		_room_type = GameManager.roguelike_room_types[_current_room_idx]
+	else:
+		_room_type = RoomType.LABYRINTH
+
+	print("[RoguelikeLevel] Level %d — Map Room %d — type: %s" % [
 		GameManager.roguelike_current_level,
-		_current_room_idx + 1, _total_rooms,
+		map_room_idx,
 		ROOM_TYPE_NAMES.get(_room_type, "?")])
 
 	_force_roguelike_loadout()
+
+	# Issue #1399: Determine if this room should have enemies
+	var is_start_room: bool = false
+	var is_cleared_revisit: bool = false
+	var is_treasure_map_room: bool = false
+	if GameManager.roguelike_room_map.size() > 0 and map_room_idx >= 0 and map_room_idx < GameManager.roguelike_room_map.size():
+		var map_room: Dictionary = GameManager.roguelike_room_map[map_room_idx]
+		is_start_room = (map_room["map_room_type"] == "start")
+		is_cleared_revisit = map_room["cleared"]
+		is_treasure_map_room = (map_room["map_room_type"] == "treasure")
+
+	# Treasure rooms on the map use the treasure room scene builder
+	if is_treasure_map_room:
+		GameManager.roguelike_in_treasure_room = true
+		_room_type = RoomType.BEACH
+		_build_room_scene_treasure()
+		_spawn_player()
+		_setup_navigation()
+		_setup_player_tracking()
+		_setup_exit_zone()
+		_setup_debug_ui()
+		_setup_saturation_overlay()
+		_setup_debug_ui_treasure()
+		_setup_minimap()
+		if GameManager:
+			GameManager.stats_updated.connect(_update_debug_ui)
+		_spawn_treasure_pedestal()
+		call_deferred("_activate_exit_zone")
+		print("[RoguelikeLevel] Treasure map room ready")
+		return
+
 	_build_room_scene()
 	_spawn_player()
 	_setup_navigation()
 	_setup_player_tracking()
+
+	# Start rooms and cleared-revisit rooms: no enemies, doors open immediately
+	if is_start_room or is_cleared_revisit:
+		_room_cleared = true
+		_setup_debug_ui()
+		_setup_saturation_overlay()
+		_setup_exit_zone()
+		_setup_minimap()
+		call_deferred("_activate_exit_zone")
+		if GameManager:
+			GameManager.stats_updated.connect(_update_debug_ui)
+		print("[RoguelikeLevel] %s room ready — no enemies, doors open" % ("Start" if is_start_room else "Revisited"))
+		return
+
 	_setup_enemy_tracking()
 	_setup_debug_ui()
 	_setup_saturation_overlay()
 	_update_enemy_count_label()
 	_initialize_score_manager()
 	_setup_exit_zone()
+	_setup_minimap()
 	# Intentionally skip ReplayManager — reduces memory and CPU overhead
 
 	if GameManager:
@@ -282,6 +370,13 @@ func _start_new_run() -> void:
 	# Clear carried-weapon tracker — player always starts a fresh run with PM
 	GameManager.roguelike_run_weapon = ""
 
+	# Issue #1399: Generate branching room map
+	GameManager.roguelike_room_map = _generate_room_map(count, all_types)
+	GameManager.roguelike_current_map_room = 0  # Start room
+	GameManager.roguelike_visited_rooms = [0]
+	GameManager.roguelike_room_map[0]["visited"] = true
+	GameManager.roguelike_target_room = -1
+
 	var names: Array = []
 	for t in GameManager.roguelike_room_types:
 		names.append(ROOM_TYPE_NAMES.get(t, "?"))
@@ -290,12 +385,211 @@ func _start_new_run() -> void:
 
 func _continue_run() -> void:
 	## Resuming mid-run: restore the seed offset so room geometry varies per room.
-	## We re-seed with (run_seed + current_room_idx) so each room is different but
-	## the sequence is reproducible from the original run seed.
-	seed(GameManager.roguelike_run_seed + GameManager.roguelike_current_room)
-	print("[RoguelikeLevel] Continuing run at room %d/%d" % [
+	## Issue #1399: use map room index for seed so each room on the map is unique.
+	var map_room_idx: int = GameManager.roguelike_current_map_room
+	seed(GameManager.roguelike_run_seed + map_room_idx)
+
+	# Mark current map room as visited
+	if map_room_idx >= 0 and map_room_idx < GameManager.roguelike_room_map.size():
+		GameManager.roguelike_room_map[map_room_idx]["visited"] = true
+		if not (map_room_idx in GameManager.roguelike_visited_rooms):
+			GameManager.roguelike_visited_rooms.append(map_room_idx)
+
+	print("[RoguelikeLevel] Continuing run at map room %d (room %d/%d)" % [
+		map_room_idx,
 		GameManager.roguelike_current_room + 1,
 		GameManager.roguelike_total_rooms])
+
+
+## ============================================================
+## Branching room map generation (Issue #1399)
+## ============================================================
+
+## Generate an Isaac-style grid map with branching paths for one level.
+## Places combat rooms via BFS expansion from a central start room,
+## then adds a treasure room and an exit room on dead-end branches.
+func _generate_room_map(room_count: int, room_types_pool: Array) -> Array:
+	var grid: Dictionary = {}  # Vector2i → room index
+	var rooms: Array = []
+
+	# Start room at center
+	var start_pos := Vector2i(3, 3)
+	rooms.append({
+		"grid_pos": start_pos,
+		"room_type": room_types_pool[0] if room_types_pool.size() > 0 else RoomType.LABYRINTH,
+		"connections": [],
+		"map_room_type": "start",
+		"cleared": false,
+		"visited": false,
+	})
+	grid[start_pos] = 0
+
+	# BFS expansion — add combat rooms branching outward
+	var frontier: Array = [0]  # Room indices to expand from
+	var combat_rooms_needed: int = room_count  # Total combat rooms (excluding start)
+	var combat_rooms_placed: int = 0
+	var type_idx: int = 1  # Index into room_types_pool (0 is used by start)
+
+	while combat_rooms_placed < combat_rooms_needed and frontier.size() > 0:
+		# Pick a random frontier room to expand from
+		var fi: int = randi() % frontier.size()
+		var parent_idx: int = frontier[fi]
+		var parent_pos: Vector2i = rooms[parent_idx]["grid_pos"]
+
+		# Shuffle directions
+		var dirs: Array = [0, 1, 2, 3]
+		for i in range(3, 0, -1):
+			var j: int = randi_range(0, i)
+			var tmp: int = dirs[i]
+			dirs[i] = dirs[j]
+			dirs[j] = tmp
+
+		var expanded: bool = false
+		for d in dirs:
+			if combat_rooms_placed >= combat_rooms_needed:
+				break
+			var new_pos: Vector2i = parent_pos + DIR_OFFSETS[d]
+			# Stay within grid bounds (0..6)
+			if new_pos.x < 0 or new_pos.x > 6 or new_pos.y < 0 or new_pos.y > 6:
+				continue
+			# Cell must be empty
+			if grid.has(new_pos):
+				continue
+			# Isaac branching constraint: don't place if it would have 2+ existing neighbors
+			var neighbor_count: int = 0
+			for nd in range(4):
+				var adj: Vector2i = new_pos + DIR_OFFSETS[nd]
+				if grid.has(adj):
+					neighbor_count += 1
+			if neighbor_count > 1:
+				continue
+
+			# Place the room
+			var new_idx: int = rooms.size()
+			var rtype: int = room_types_pool[type_idx % room_types_pool.size()] if type_idx < room_types_pool.size() else room_types_pool[randi() % room_types_pool.size()]
+			type_idx += 1
+			rooms.append({
+				"grid_pos": new_pos,
+				"room_type": rtype,
+				"connections": [],
+				"map_room_type": "combat",
+				"cleared": false,
+				"visited": false,
+			})
+			grid[new_pos] = new_idx
+
+			# Connect parent ↔ child
+			rooms[parent_idx]["connections"].append(new_idx)
+			rooms[new_idx]["connections"].append(parent_idx)
+
+			frontier.append(new_idx)
+			combat_rooms_placed += 1
+			expanded = true
+
+		# If this room can't expand anymore, remove from frontier
+		if not expanded:
+			frontier.remove_at(fi)
+
+	# Find dead-end rooms (exactly 1 connection, not start) for special rooms
+	var dead_ends: Array = []
+	for i in range(rooms.size()):
+		if rooms[i]["map_room_type"] == "start":
+			continue
+		if rooms[i]["connections"].size() == 1:
+			dead_ends.append(i)
+
+	# Sort dead ends by distance from start (farthest first)
+	dead_ends.sort_custom(func(a, b):
+		var da: float = Vector2(rooms[a]["grid_pos"]).distance_to(Vector2(start_pos))
+		var db: float = Vector2(rooms[b]["grid_pos"]).distance_to(Vector2(start_pos))
+		return da > db
+	)
+
+	# Place exit room (red) on the farthest dead end
+	if dead_ends.size() > 0:
+		var exit_idx: int = dead_ends[0]
+		rooms[exit_idx]["map_room_type"] = "exit"
+		dead_ends.remove_at(0)
+
+	# Place treasure room (gold) on the next farthest dead end
+	if dead_ends.size() > 0:
+		var treasure_idx: int = dead_ends[0]
+		rooms[treasure_idx]["map_room_type"] = "treasure"
+		dead_ends.remove_at(0)
+	else:
+		# No dead end left — add a treasure room branching off the exit's parent
+		# or just tag the second-to-last room
+		if rooms.size() > 2:
+			# Find a combat room that isn't the exit to become treasure
+			for i in range(rooms.size() - 1, 0, -1):
+				if rooms[i]["map_room_type"] == "combat":
+					rooms[i]["map_room_type"] = "treasure"
+					break
+
+	print("[RoguelikeLevel] Map generated: %d rooms" % rooms.size())
+	for i in range(rooms.size()):
+		var r: Dictionary = rooms[i]
+		print("  Room %d: pos=%s type=%s map_type=%s connections=%s" % [
+			i, str(r["grid_pos"]), ROOM_TYPE_NAMES.get(r["room_type"], "?"),
+			r["map_room_type"], str(r["connections"])])
+
+	return rooms
+
+
+## Get the direction from room A to room B (returns DIR_NORTH..DIR_WEST or -1).
+func _get_direction_between(room_a_idx: int, room_b_idx: int) -> int:
+	var rooms: Array = GameManager.roguelike_room_map
+	if room_a_idx < 0 or room_a_idx >= rooms.size():
+		return -1
+	if room_b_idx < 0 or room_b_idx >= rooms.size():
+		return -1
+	var diff: Vector2i = rooms[room_b_idx]["grid_pos"] - rooms[room_a_idx]["grid_pos"]
+	for d in range(4):
+		if DIR_OFFSETS[d] == diff:
+			return d
+	return -1
+
+
+## Get the opposite direction.
+func _opposite_dir(d: int) -> int:
+	return (d + 2) % 4
+
+
+## Get the door color for a connected room based on its map_room_type.
+func _get_door_color(connected_room_idx: int) -> Color:
+	var rooms: Array = GameManager.roguelike_room_map
+	if connected_room_idx < 0 or connected_room_idx >= rooms.size():
+		return DOOR_COLOR_NORMAL
+	var room: Dictionary = rooms[connected_room_idx]
+	if room["cleared"]:
+		return DOOR_COLOR_CLEARED
+	match room["map_room_type"]:
+		"treasure":
+			return DOOR_COLOR_TREASURE
+		"exit":
+			return DOOR_COLOR_EXIT
+		"start":
+			return DOOR_COLOR_START
+		_:
+			return DOOR_COLOR_NORMAL
+
+
+## Get the door label for a connected room.
+func _get_door_label(connected_room_idx: int) -> String:
+	var rooms: Array = GameManager.roguelike_room_map
+	if connected_room_idx < 0 or connected_room_idx >= rooms.size():
+		return "?"
+	match rooms[connected_room_idx]["map_room_type"]:
+		"treasure":
+			return "СОКРОВ."
+		"exit":
+			return "ВЫХОД"
+		"start":
+			return "СТАРТ"
+		_:
+			if rooms[connected_room_idx]["cleared"]:
+				return "ПРОЙД."
+			return "КОМНАТА"
 
 
 ## ============================================================
@@ -392,14 +686,62 @@ func _build_room(parent: Node) -> void:
 
 
 ## Fully-enclosed boundary walls (no corridor openings — single room).
+## Issue #1399: Now creates gaps (doorways) on sides where the current room
+## has connections to other rooms on the branching map.
 func _build_room_boundary_closed(room_node: Node2D) -> void:
 	var w: float = _room_w
 	var h: float = _room_h
 	var t: float = 24.0  ## Wall thickness
-	_create_wall(room_node, Rect2(0,     0,     w, t))   ## Top
-	_create_wall(room_node, Rect2(0,     h - t, w, t))   ## Bottom
-	_create_wall(room_node, Rect2(0,     0,     t, h))   ## Left
-	_create_wall(room_node, Rect2(w - t, 0,     t, h))   ## Right
+
+	# Determine which directions have doors (from the branching map)
+	var door_dirs: Array = _get_current_room_door_directions()
+
+	# Top wall (North)
+	if DIR_NORTH in door_dirs:
+		var gap_center: float = w * 0.5
+		_create_wall(room_node, Rect2(0, 0, gap_center - DOOR_GAP * 0.5, t))
+		_create_wall(room_node, Rect2(gap_center + DOOR_GAP * 0.5, 0, w - gap_center - DOOR_GAP * 0.5, t))
+	else:
+		_create_wall(room_node, Rect2(0, 0, w, t))
+
+	# Bottom wall (South)
+	if DIR_SOUTH in door_dirs:
+		var gap_center: float = w * 0.5
+		_create_wall(room_node, Rect2(0, h - t, gap_center - DOOR_GAP * 0.5, t))
+		_create_wall(room_node, Rect2(gap_center + DOOR_GAP * 0.5, h - t, w - gap_center - DOOR_GAP * 0.5, t))
+	else:
+		_create_wall(room_node, Rect2(0, h - t, w, t))
+
+	# Left wall (West)
+	if DIR_WEST in door_dirs:
+		var gap_center: float = h * 0.5
+		_create_wall(room_node, Rect2(0, 0, t, gap_center - DOOR_GAP * 0.5))
+		_create_wall(room_node, Rect2(0, gap_center + DOOR_GAP * 0.5, t, h - gap_center - DOOR_GAP * 0.5))
+	else:
+		_create_wall(room_node, Rect2(0, 0, t, h))
+
+	# Right wall (East)
+	if DIR_EAST in door_dirs:
+		var gap_center: float = h * 0.5
+		_create_wall(room_node, Rect2(w - t, 0, t, gap_center - DOOR_GAP * 0.5))
+		_create_wall(room_node, Rect2(w - t, gap_center + DOOR_GAP * 0.5, t, h - gap_center - DOOR_GAP * 0.5))
+	else:
+		_create_wall(room_node, Rect2(w - t, 0, t, h))
+
+
+## Get directions that have doors in the current map room.
+func _get_current_room_door_directions() -> Array:
+	var directions: Array = []
+	var rooms: Array = GameManager.roguelike_room_map
+	var current_idx: int = GameManager.roguelike_current_map_room
+	if rooms.size() == 0 or current_idx < 0 or current_idx >= rooms.size():
+		return directions
+	var current_room: Dictionary = rooms[current_idx]
+	for conn_idx in current_room["connections"]:
+		var d: int = _get_direction_between(current_idx, conn_idx)
+		if d >= 0:
+			directions.append(d)
+	return directions
 
 
 ## ─── Labyrinth: horizontal and vertical divider walls ───────────────────────
@@ -900,8 +1242,28 @@ func _spawn_player() -> void:
 	var player: Node2D = player_scene.instantiate()
 	player.name = "Player"
 
-	# Spawn at the left-centre of the room, just inside the boundary wall
-	player.position = Vector2(80.0, _room_h * 0.5)
+	# Issue #1399: Spawn player near the door they entered from.
+	# Use roguelike_source_room to know exactly which room the player came from.
+	var spawn_pos := Vector2(80.0, _room_h * 0.5)  # Default: left-centre
+	var source_idx: int = GameManager.roguelike_source_room
+	var current_idx: int = GameManager.roguelike_current_map_room
+	if source_idx >= 0 and GameManager.roguelike_room_map.size() > 0:
+		var rooms: Array = GameManager.roguelike_room_map
+		if current_idx >= 0 and current_idx < rooms.size() and source_idx < rooms.size():
+			var arrival_dir: int = _get_direction_between(current_idx, source_idx)
+			if arrival_dir >= 0:
+				# Spawn near the wall of the arrival direction (the door they came through)
+				match arrival_dir:
+					DIR_NORTH:
+						spawn_pos = Vector2(_room_w * 0.5, 80.0)
+					DIR_SOUTH:
+						spawn_pos = Vector2(_room_w * 0.5, _room_h - 80.0)
+					DIR_EAST:
+						spawn_pos = Vector2(_room_w - 80.0, _room_h * 0.5)
+					DIR_WEST:
+						spawn_pos = Vector2(80.0, _room_h * 0.5)
+
+	player.position = spawn_pos
 	entities_node.add_child(player)
 	print("[RoguelikeLevel] Player spawned at (%.0f, %.0f)" % [player.position.x, player.position.y])
 
@@ -1054,25 +1416,152 @@ func _initialize_score_manager() -> void:
 
 
 func _setup_exit_zone() -> void:
-	var exit_scene: PackedScene = load("res://scenes/objects/ExitZone.tscn")
-	if exit_scene == null:
-		push_warning("[RoguelikeLevel] ExitZone.tscn not found")
+	# Issue #1399: Create colored door zones for each connection on the branching map.
+	# Falls back to single east-side exit if no map data.
+	var rooms: Array = GameManager.roguelike_room_map
+	var current_idx: int = GameManager.roguelike_current_map_room
+	if rooms.size() > 0 and current_idx >= 0 and current_idx < rooms.size():
+		var current_room: Dictionary = rooms[current_idx]
+		for conn_idx in current_room["connections"]:
+			var d: int = _get_direction_between(current_idx, conn_idx)
+			if d < 0:
+				continue
+			_create_door_zone(d, conn_idx)
+		print("[RoguelikeLevel] Created %d door zones for map room %d" % [_door_zones.size(), current_idx])
+	else:
+		# Fallback: single exit on the right wall (legacy behavior)
+		var exit_scene: PackedScene = load("res://scenes/objects/ExitZone.tscn")
+		if exit_scene == null:
+			push_warning("[RoguelikeLevel] ExitZone.tscn not found")
+			return
+		_exit_zone = exit_scene.instantiate()
+		var exit_x: float = _room_w - 120.0
+		var exit_y: float = _room_h * 0.5
+		_exit_zone.position    = Vector2(exit_x, exit_y)
+		_exit_zone.zone_width  = 100.0
+		_exit_zone.zone_height = 100.0
+		if _exit_zone.has_signal("player_reached_exit"):
+			_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
+		add_child(_exit_zone)
+		print("[RoguelikeLevel] Fallback exit zone at (%.0f, %.0f)" % [_exit_zone.position.x, _exit_zone.position.y])
+
+
+## Create a colored door zone at the given wall direction leading to target_room_idx.
+func _create_door_zone(direction: int, target_room_idx: int) -> void:
+	var door_color: Color = _get_door_color(target_room_idx)
+	var door_label_text: String = _get_door_label(target_room_idx)
+
+	# Calculate door position at the wall gap
+	var door_pos := Vector2.ZERO
+	var door_w: float = 80.0
+	var door_h: float = 80.0
+	match direction:
+		DIR_NORTH:
+			door_pos = Vector2(_room_w * 0.5, 12.0)
+			door_w = DOOR_GAP - 20.0
+			door_h = 40.0
+		DIR_SOUTH:
+			door_pos = Vector2(_room_w * 0.5, _room_h - 12.0)
+			door_w = DOOR_GAP - 20.0
+			door_h = 40.0
+		DIR_EAST:
+			door_pos = Vector2(_room_w - 12.0, _room_h * 0.5)
+			door_w = 40.0
+			door_h = DOOR_GAP - 20.0
+		DIR_WEST:
+			door_pos = Vector2(12.0, _room_h * 0.5)
+			door_w = 40.0
+			door_h = DOOR_GAP - 20.0
+
+	var door_zone := Area2D.new()
+	door_zone.name = "DoorZone_%d_%d" % [direction, target_room_idx]
+	door_zone.position = door_pos
+	door_zone.collision_layer = 0
+	door_zone.collision_mask = 1  # Detect player
+
+	# Collision shape
+	var coll := CollisionShape2D.new()
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(door_w, door_h)
+	coll.shape = shape
+	door_zone.add_child(coll)
+
+	# Visual: colored glow rect
+	var glow := ColorRect.new()
+	glow.color = Color(door_color.r, door_color.g, door_color.b, 0.3)
+	glow.size = Vector2(door_w + 12, door_h + 12)
+	glow.position = -Vector2(door_w * 0.5 + 6, door_h * 0.5 + 6)
+	door_zone.add_child(glow)
+
+	# Visual: inner solid rect
+	var inner := ColorRect.new()
+	inner.color = door_color
+	inner.size = Vector2(door_w, door_h)
+	inner.position = -Vector2(door_w * 0.5, door_h * 0.5)
+	door_zone.add_child(inner)
+
+	# Door label
+	var lbl := Label.new()
+	lbl.text = door_label_text
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 14)
+	lbl.add_theme_color_override("font_color", Color.WHITE)
+	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	lbl.add_theme_constant_override("shadow_offset_x", 1)
+	lbl.add_theme_constant_override("shadow_offset_y", 1)
+	lbl.size = Vector2(door_w + 20, 24)
+	# Position label above/below/beside the door
+	match direction:
+		DIR_NORTH:
+			lbl.position = Vector2(-door_w * 0.5 - 10, door_h * 0.5 + 4)
+		DIR_SOUTH:
+			lbl.position = Vector2(-door_w * 0.5 - 10, -door_h * 0.5 - 28)
+		DIR_EAST:
+			lbl.position = Vector2(-door_w * 0.5 - 40, -12)
+		DIR_WEST:
+			lbl.position = Vector2(door_w * 0.5 - 10, -12)
+	door_zone.add_child(lbl)
+
+	# Direction arrow
+	var arrow := Label.new()
+	arrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	arrow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	arrow.add_theme_font_size_override("font_size", 28)
+	arrow.add_theme_color_override("font_color", Color.WHITE)
+	match direction:
+		DIR_NORTH: arrow.text = "^"
+		DIR_SOUTH: arrow.text = "v"
+		DIR_EAST:  arrow.text = ">"
+		DIR_WEST:  arrow.text = "<"
+	arrow.size = Vector2(40, 40)
+	arrow.position = Vector2(-20, -20)
+	door_zone.add_child(arrow)
+
+	# Start hidden (activated after room is cleared)
+	door_zone.monitoring = false
+	for child in door_zone.get_children():
+		if child is CanvasItem:
+			child.visible = false
+
+	# Connect signal
+	door_zone.body_entered.connect(_on_door_entered.bind(target_room_idx))
+	add_child(door_zone)
+	_door_zones.append(door_zone)
+
+
+## Called when the player enters a door zone leading to a specific room.
+func _on_door_entered(body: Node2D, target_room_idx: int) -> void:
+	if body.name != "Player" and not body.is_in_group("player"):
+		return
+	# Doors are only active after room is cleared (start rooms and revisits
+	# are marked as cleared during _ready, so this check covers all cases).
+	if not _room_cleared and not GameManager.roguelike_in_treasure_room:
 		return
 
-	_exit_zone = exit_scene.instantiate()
-
-	# Place near the right wall, vertically centred (use dynamic room size)
-	var exit_x: float = _room_w - 120.0
-	var exit_y: float = _room_h * 0.5
-	_exit_zone.position    = Vector2(exit_x, exit_y)
-	_exit_zone.zone_width  = 100.0
-	_exit_zone.zone_height = 100.0
-
-	if _exit_zone.has_signal("player_reached_exit"):
-		_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
-	add_child(_exit_zone)
-
-	print("[RoguelikeLevel] Exit zone at (%.0f, %.0f)" % [_exit_zone.position.x, _exit_zone.position.y])
+	print("[RoguelikeLevel] Player entered door to room %d" % target_room_idx)
+	GameManager.roguelike_target_room = target_room_idx
+	_navigate_to_map_room(target_room_idx)
 
 
 func _setup_debug_ui() -> void:
@@ -1151,6 +1640,24 @@ func _setup_debug_ui() -> void:
 
 func _get_room_progress_text() -> String:
 	var type_name: String = ROOM_TYPE_NAMES.get(_room_type, "?")
+	# Issue #1399: Show map room info if available
+	var rooms: Array = GameManager.roguelike_room_map
+	var map_idx: int = GameManager.roguelike_current_map_room
+	if rooms.size() > 0 and map_idx >= 0 and map_idx < rooms.size():
+		var map_room: Dictionary = rooms[map_idx]
+		var map_type: String = map_room["map_room_type"]
+		var visited_count: int = GameManager.roguelike_visited_rooms.size()
+		var total_count: int = rooms.size()
+		var map_type_label: String = ""
+		match map_type:
+			"start": map_type_label = "СТАРТ"
+			"treasure": map_type_label = "СОКРОВИЩНИЦА"
+			"exit": map_type_label = "ВЫХОД"
+			_: map_type_label = type_name
+		return "РОГАЛИК — Ур.%d — %s — Комнат: %d/%d" % [
+			GameManager.roguelike_current_level,
+			map_type_label,
+			visited_count, total_count]
 	return "РОГАЛИК — Уровень %d — Комната %d / %d — %s" % [
 		GameManager.roguelike_current_level,
 		_current_room_idx + 1, _total_rooms, type_name]
@@ -1235,6 +1742,10 @@ func _on_enemy_died() -> void:
 	if _current_enemy_count <= 0:
 		print("[RoguelikeLevel] All enemies in room %d eliminated!" % (_current_room_idx + 1))
 		_room_cleared = true
+		# Issue #1399: Mark room as cleared on the map
+		var map_idx: int = GameManager.roguelike_current_map_room
+		if map_idx >= 0 and map_idx < GameManager.roguelike_room_map.size():
+			GameManager.roguelike_room_map[map_idx]["cleared"] = true
 		# After the last combat room, the exit leads to the treasure room (not another combat room).
 		# No pedestal in combat rooms — the pedestal is in the dedicated treasure room.
 		call_deferred("_activate_exit_zone")
@@ -1815,7 +2326,23 @@ func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2
 ## ============================================================
 
 func _activate_exit_zone() -> void:
-	if _exit_zone and _exit_zone.has_method("activate"):
+	# Issue #1399: Activate all door zones (branching map)
+	if _door_zones.size() > 0:
+		for door in _door_zones:
+			if is_instance_valid(door):
+				door.monitoring = true
+				for child in door.get_children():
+					if child is CanvasItem:
+						child.visible = true
+				# Fade-in animation
+				var tween := create_tween()
+				tween.set_parallel(true)
+				for child in door.get_children():
+					if child is CanvasItem:
+						child.modulate = Color(1, 1, 1, 0)
+						tween.tween_property(child, "modulate:a", 1.0, 0.5)
+		print("[RoguelikeLevel] %d door zones activated" % _door_zones.size())
+	elif _exit_zone and _exit_zone.has_method("activate"):
 		_exit_zone.activate()
 		print("[RoguelikeLevel] Exit zone activated — proceed to next room!")
 	else:
@@ -1828,6 +2355,10 @@ func _advance_to_next_room() -> void:
 		## Leaving the treasure room → start the next level
 		_start_next_level()
 		return
+
+	# Issue #1399: This legacy path is used only when _on_player_reached_exit fires
+	# (from the fallback single ExitZone). With branching map, _navigate_to_map_room
+	# handles navigation. Keep for backwards compatibility.
 
 	## Accumulate this room's stats into the run totals in GameManager
 	if GameManager:
@@ -1846,6 +2377,85 @@ func _advance_to_next_room() -> void:
 		GameManager.roguelike_current_room = next_room
 		print("[RoguelikeLevel] Advancing to room %d/%d" % [next_room + 1, _total_rooms])
 		_show_room_transition(next_room)
+
+
+## Issue #1399: Navigate to a specific room on the branching map.
+func _navigate_to_map_room(target_room_idx: int) -> void:
+	var rooms: Array = GameManager.roguelike_room_map
+	if target_room_idx < 0 or target_room_idx >= rooms.size():
+		return
+
+	var current_idx: int = GameManager.roguelike_current_map_room
+
+	# Accumulate stats
+	if GameManager:
+		GameManager.roguelike_total_kills += GameManager.kills
+		GameManager.roguelike_total_shots += GameManager.shots_fired
+		GameManager.roguelike_total_hits  += GameManager.hits_landed
+
+	# Mark current room as cleared
+	if current_idx >= 0 and current_idx < rooms.size():
+		rooms[current_idx]["cleared"] = true
+
+	# Update state for the target room
+	GameManager.roguelike_source_room = current_idx  # Track where we came from
+	GameManager.roguelike_current_map_room = target_room_idx
+	GameManager.roguelike_target_room = target_room_idx
+
+	var target_room: Dictionary = rooms[target_room_idx]
+
+	# Handle special room types
+	match target_room["map_room_type"]:
+		"treasure":
+			print("[RoguelikeLevel] Navigating to TREASURE room %d" % target_room_idx)
+			GameManager.roguelike_in_treasure_room = true
+			_show_map_room_transition(target_room_idx, "Сокровищница!", Color(1.0, 0.85, 0.3, 1.0))
+		"exit":
+			print("[RoguelikeLevel] Navigating to EXIT room %d — next level!" % target_room_idx)
+			# Mark as visited and cleared, then start next level
+			rooms[target_room_idx]["visited"] = true
+			rooms[target_room_idx]["cleared"] = true
+			if not (target_room_idx in GameManager.roguelike_visited_rooms):
+				GameManager.roguelike_visited_rooms.append(target_room_idx)
+			_start_next_level()
+			return
+		_:
+			if target_room["cleared"]:
+				print("[RoguelikeLevel] Revisiting cleared room %d" % target_room_idx)
+			else:
+				print("[RoguelikeLevel] Navigating to combat room %d" % target_room_idx)
+
+			var type_name: String = ROOM_TYPE_NAMES.get(target_room["room_type"], "?")
+			_show_map_room_transition(target_room_idx, type_name, Color(0.5, 1.0, 0.5, 1.0))
+
+
+## Show a brief transition overlay when moving between map rooms.
+func _show_map_room_transition(target_room_idx: int, room_name: String, color: Color) -> void:
+	var ui: Node = get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn")
+		return
+
+	var bg := ColorRect.new()
+	bg.color = Color(0.0, 0.0, 0.0, 0.0)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(bg)
+
+	var lbl := Label.new()
+	lbl.text = room_name
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 40)
+	lbl.add_theme_color_override("font_color", color)
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ui.add_child(lbl)
+
+	var tween := create_tween()
+	tween.tween_property(bg, "color:a", 0.85, 0.3)
+	tween.tween_interval(0.7)
+	tween.tween_callback(func():
+		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn"))
 
 
 ## Transition into the treasure room after all combat rooms are cleared.
@@ -1912,6 +2522,13 @@ func _start_next_level() -> void:
 	GameManager.roguelike_room_types   = all_types.slice(0, count)
 	GameManager.roguelike_current_room = 0
 	# Keep roguelike_active = true; the run continues
+
+	# Issue #1399: Generate new branching map for the next level
+	GameManager.roguelike_room_map = _generate_room_map(count, all_types)
+	GameManager.roguelike_current_map_room = 0
+	GameManager.roguelike_visited_rooms = [0]
+	GameManager.roguelike_room_map[0]["visited"] = true
+	GameManager.roguelike_target_room = -1
 
 	print("[RoguelikeLevel] Starting Level %d — %d rooms, difficulty ×%d" % [
 		GameManager.roguelike_current_level, count, GameManager.roguelike_current_level])
@@ -1994,6 +2611,151 @@ func _setup_debug_ui_treasure() -> void:
 	lbl.add_theme_font_size_override("font_size", 20)
 	lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3, 1.0))
 	ui.add_child(lbl)
+
+
+## ============================================================
+## Minimap UI (Issue #1399) — shows branching room layout
+## ============================================================
+
+func _setup_minimap() -> void:
+	var rooms: Array = GameManager.roguelike_room_map
+	if rooms.size() == 0:
+		return
+
+	var ui: Node = get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		return
+
+	var current_idx: int = GameManager.roguelike_current_map_room
+
+	# Calculate grid bounds to center the minimap
+	var min_pos := Vector2i(99, 99)
+	var max_pos := Vector2i(-99, -99)
+	for room in rooms:
+		var gp: Vector2i = room["grid_pos"]
+		min_pos.x = min(min_pos.x, gp.x)
+		min_pos.y = min(min_pos.y, gp.y)
+		max_pos.x = max(max_pos.x, gp.x)
+		max_pos.y = max(max_pos.y, gp.y)
+
+	var grid_w: int = max_pos.x - min_pos.x + 1
+	var grid_h: int = max_pos.y - min_pos.y + 1
+	var cell_total: float = MINIMAP_CELL_SIZE + MINIMAP_GAP
+	var minimap_w: float = grid_w * cell_total + MINIMAP_MARGIN * 2
+	var minimap_h: float = grid_h * cell_total + MINIMAP_MARGIN * 2
+
+	# Container panel (bottom-right corner)
+	var panel := ColorRect.new()
+	panel.name = "MinimapPanel"
+	panel.color = Color(0.0, 0.0, 0.0, 0.55)
+	panel.size = Vector2(minimap_w, minimap_h)
+	panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	panel.offset_left   = -minimap_w - 10
+	panel.offset_top    = -minimap_h - 10
+	panel.offset_right  = -10
+	panel.offset_bottom = -10
+	panel.mouse_filter  = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(panel)
+
+	# Build a grid lookup for connection drawing
+	var grid_to_idx: Dictionary = {}
+	for i in range(rooms.size()):
+		grid_to_idx[rooms[i]["grid_pos"]] = i
+
+	# Draw connections (lines between rooms)
+	for i in range(rooms.size()):
+		var room: Dictionary = rooms[i]
+		var gp: Vector2i = room["grid_pos"]
+		var cell_x: float = (gp.x - min_pos.x) * cell_total + MINIMAP_MARGIN + MINIMAP_CELL_SIZE * 0.5
+		var cell_y: float = (gp.y - min_pos.y) * cell_total + MINIMAP_MARGIN + MINIMAP_CELL_SIZE * 0.5
+
+		for conn_idx in room["connections"]:
+			if conn_idx <= i:  # Draw each connection once
+				continue
+			var conn_room: Dictionary = rooms[conn_idx]
+			var cgp: Vector2i = conn_room["grid_pos"]
+			var cx: float = (cgp.x - min_pos.x) * cell_total + MINIMAP_MARGIN + MINIMAP_CELL_SIZE * 0.5
+			var cy: float = (cgp.y - min_pos.y) * cell_total + MINIMAP_MARGIN + MINIMAP_CELL_SIZE * 0.5
+
+			# Determine connection color based on destination room type
+			var conn_color: Color = _get_minimap_connection_color(i, conn_idx)
+
+			# Draw connection as a thin rect
+			var line := ColorRect.new()
+			line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			if abs(cx - cell_x) > abs(cy - cell_y):
+				# Horizontal connection
+				var lx: float = min(cell_x, cx)
+				line.position = Vector2(lx, cell_y - 2)
+				line.size = Vector2(abs(cx - cell_x), 4)
+			else:
+				# Vertical connection
+				var ly: float = min(cell_y, cy)
+				line.position = Vector2(cell_x - 2, ly)
+				line.size = Vector2(4, abs(cy - cell_y))
+			line.color = conn_color
+			panel.add_child(line)
+
+	# Draw rooms
+	for i in range(rooms.size()):
+		var room: Dictionary = rooms[i]
+		var gp: Vector2i = room["grid_pos"]
+		var cell_x: float = (gp.x - min_pos.x) * cell_total + MINIMAP_MARGIN
+		var cell_y: float = (gp.y - min_pos.y) * cell_total + MINIMAP_MARGIN
+
+		var cell := ColorRect.new()
+		cell.position = Vector2(cell_x, cell_y)
+		cell.size = Vector2(MINIMAP_CELL_SIZE, MINIMAP_CELL_SIZE)
+		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+		# Color based on room type and state
+		if i == current_idx:
+			cell.color = Color.WHITE  # Current room — bright
+		elif room["visited"] or (i in GameManager.roguelike_visited_rooms):
+			cell.color = _get_minimap_room_color(room)
+		else:
+			# Unvisited — dim outline
+			cell.color = Color(0.3, 0.3, 0.3, 0.5)
+
+		panel.add_child(cell)
+
+		# Inner indicator for current room
+		if i == current_idx:
+			var inner := ColorRect.new()
+			inner.position = Vector2(cell_x + 3, cell_y + 3)
+			inner.size = Vector2(MINIMAP_CELL_SIZE - 6, MINIMAP_CELL_SIZE - 6)
+			inner.color = _get_minimap_room_color(room)
+			inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			panel.add_child(inner)
+
+
+## Get color for a room cell on the minimap.
+func _get_minimap_room_color(room: Dictionary) -> Color:
+	match room["map_room_type"]:
+		"start":
+			return Color(0.4, 0.6, 1.0, 1.0)   # Blue
+		"treasure":
+			return Color(1.0, 0.85, 0.2, 1.0)   # Gold
+		"exit":
+			return Color(1.0, 0.3, 0.2, 1.0)    # Red
+		_:
+			if room["cleared"]:
+				return Color(0.3, 0.8, 0.3, 0.9)  # Green (cleared)
+			return Color(0.6, 0.6, 0.65, 0.8)    # Grey (normal)
+
+
+## Get color for a connection line between two rooms on the minimap.
+func _get_minimap_connection_color(room_a_idx: int, room_b_idx: int) -> Color:
+	var rooms: Array = GameManager.roguelike_room_map
+	var room_a: Dictionary = rooms[room_a_idx]
+	var room_b: Dictionary = rooms[room_b_idx]
+	# Use the more "special" of the two rooms for the color
+	for r in [room_a, room_b]:
+		if r["map_room_type"] == "treasure":
+			return Color(1.0, 0.85, 0.2, 0.8)  # Gold
+		if r["map_room_type"] == "exit":
+			return Color(1.0, 0.3, 0.2, 0.8)   # Red
+	return Color(0.5, 0.5, 0.55, 0.6)  # Grey
 
 
 func _show_room_transition(next_room_idx: int) -> void:
