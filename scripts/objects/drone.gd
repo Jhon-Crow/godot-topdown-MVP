@@ -25,7 +25,7 @@ const ROTOR_RADIUS: float = 4.0
 ## Rotor rotation speed (radians/sec).
 const ROTOR_SPEED: float = 20.0
 
-var _drone_component: DroneComponent = null
+var _drone_component: Node = null  # DroneComponent (use Node type to avoid class_name load issues)
 var _rotor_angle: float = 0.0
 var _rotor_sprites: Array[Polygon2D] = []
 var _is_alive: bool = true
@@ -33,17 +33,28 @@ var _led_sprite: Polygon2D = null
 
 
 func _ready() -> void:
+	FileLogger.info("[Drone] _ready started at %s" % str(global_position))
 	add_to_group("enemies")
-	_drone_component = $DroneComponent as DroneComponent
-	if not _drone_component:
-		FileLogger.info("[Drone] ERROR: DroneComponent not found!")
+
+	# Get component using duck typing to avoid class_name resolution issues
+	var comp_node: Node = get_node_or_null("DroneComponent")
+	if comp_node:
+		_drone_component = comp_node
+		var comp_script: Script = comp_node.get_script() as Script
+		FileLogger.info("[Drone] DroneComponent found: script=%s" % str(comp_script != null))
+	else:
+		FileLogger.info("[Drone] ERROR: DroneComponent node not found!")
+
 	_setup_drone_visual()
 
-	# Connect combat mode signal to update LED
+	# Connect combat mode signals using duck typing
 	if _drone_component:
-		_drone_component.combat_entered.connect(_on_combat_entered)
-		_drone_component.drone_destroyed.connect(_on_drone_destroyed)
-		_drone_component.drone_exploded.connect(_on_drone_exploded)
+		if _drone_component.has_signal("combat_entered"):
+			_drone_component.combat_entered.connect(_on_combat_entered)
+		if _drone_component.has_signal("drone_destroyed"):
+			_drone_component.drone_destroyed.connect(_on_drone_destroyed)
+		if _drone_component.has_signal("drone_exploded"):
+			_drone_component.drone_exploded.connect(_on_drone_exploded)
 	FileLogger.info("[Drone] _ready complete, component=%s" % str(_drone_component != null))
 
 
@@ -141,7 +152,7 @@ func _physics_process(_delta: float) -> void:
 			rotor.color.a = 0.2 + 0.15 * abs(sin(_rotor_angle))
 
 	# Pulse LED in combat mode for dramatic effect
-	if _drone_component and _drone_component.is_in_combat() and _led_sprite:
+	if _drone_component and _drone_component.has_method("is_in_combat") and _drone_component.is_in_combat() and _led_sprite:
 		var pulse := 0.6 + 0.4 * abs(sin(_rotor_angle * 2.0))
 		_led_sprite.color = Color(1.0, 0.0, 0.0, pulse)
 
@@ -158,7 +169,7 @@ func on_hit() -> void:
 	if not _is_alive:
 		return
 	hit.emit()
-	if _drone_component:
+	if _drone_component and _drone_component.has_method("take_damage"):
 		var destroyed: bool = _drone_component.take_damage(1)
 		if destroyed:
 			_die(false, false, false)
@@ -174,7 +185,7 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	if not _is_alive:
 		return
 	hit.emit()
-	if _drone_component:
+	if _drone_component and _drone_component.has_method("take_damage"):
 		var destroyed: bool = _drone_component.take_damage(maxi(int(round(bullet_damage)), 1))
 		if destroyed:
 			_die(has_ricocheted, has_penetrated, is_from_player)

@@ -89,7 +89,41 @@ State machine in `DroneComponent`:
 - `tests/unit/test_drone_combat.gd` — Unit tests for drone combat behavior
 
 ### Log Data
-- `docs/case-studies/issue-1417/game_log_20260324_125142.txt` — User-provided game log showing drone deployment but no behavior
+- `docs/case-studies/issue-1417/game_log_20260324_125142.txt` — User-provided game log (first report: drone not released)
+- `docs/case-studies/issue-1417/game_log_20260324_132647.txt` — User-provided game log (second report: still not released after first fix)
+
+## Deep Investigation: "Drone Not Released" Bug (Round 2)
+
+### Second Report Analysis (game_log_20260324_132647.txt)
+
+The user reported "всё ещё не выпускает дрона" (still doesn't release the drone) after the first fix (commit 01e1f2d9).
+
+**Key findings from log analysis:**
+- 6 drone deployments logged: `[DroneOperator] Drone deployed at (X, Y)` at timestamps 13:27:06, 13:27:19, 13:27:35, 13:27:38, 13:27:44, 13:27:54
+- **ZERO** `[Drone]` log entries in the entire log (searched all 2282 lines)
+- **ZERO** `[Drone] Initialized by operator` entries — meaning `drone_comp.initialize()` was NEVER called
+- **ZERO** `[Drone] Visual setup complete` entries — meaning `_setup_drone_visual()` never ran
+
+**Diagnosis:**
+The drone operator code works correctly — it loads the scene, instantiates it, adds it to the tree, and logs the deployment. However:
+1. `drone.gd._ready()` never executes (no `[Drone] _ready complete` log)
+2. `drone_component.gd._ready()` never executes (no `[Drone] _ready: body=...` log)
+3. The `as DroneComponent` cast returns null, so `initialize()` is never called
+
+**Root cause hypothesis:**
+The drone scripts (`drone.gd` and `drone_component.gd`) fail to load/compile at runtime in Godot 4.3 release builds. Possible causes:
+- `class_name DroneComponent` reference in `drone.gd` (`var _drone_component: DroneComponent = null`) may fail if the class isn't registered in the specific load order
+- `add_child()` during `DroneComponent._ready()` (adding `AudioStreamPlayer`) may cause issues during dynamic scene instantiation
+- Signal connections using typed references (`_drone_component.combat_entered.connect(...)`) may fail if signals don't match
+
+**Fix applied (Round 2):**
+1. Changed `drone.gd` to use `Node` type instead of `DroneComponent` for the component variable — avoids class_name resolution dependency
+2. All method calls on the component now use `has_method()` checks (duck typing)
+3. All signal connections use `has_signal()` checks
+4. Moved `add_child(AudioStreamPlayer)` to deferred call to avoid add_child-during-_ready issues
+5. Moved `_home_position` initialization to deferred call (runs after position is set)
+6. Added diagnostic logging in `_deploy_drone()` to check script attachment status on the drone
+7. Changed operator code to use duck typing for DroneComponent access (avoids `as DroneComponent` cast failures)
 
 ## References
 

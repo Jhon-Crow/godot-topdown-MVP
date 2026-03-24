@@ -346,30 +346,54 @@ func _deploy_drone() -> void:
 	_drone_deployed = true
 
 	# Try to load and instantiate the drone scene
-	if ResourceLoader.exists(DRONE_SCENE_PATH):
-		var drone_scene: PackedScene = load(DRONE_SCENE_PATH)
-		if drone_scene:
-			_drone = drone_scene.instantiate()
-			_drone.global_position = _parent.global_position + DRONE_SPAWN_OFFSET
-			# Add drone to the same parent as the operator
-			var enemies_node: Node = _parent.get_parent()
-			if enemies_node:
-				enemies_node.add_child(_drone)
-			else:
-				_parent.get_tree().current_scene.add_child(_drone)
-
-			# Connect drone destruction signal
-			var drone_comp: DroneComponent = _drone.get_node_or_null("DroneComponent") as DroneComponent
-			if drone_comp:
-				drone_comp.initialize(_parent)
-				drone_comp.drone_destroyed.connect(_on_drone_destroyed)
-			FileLogger.info("[DroneOperator] Drone deployed at (%d, %d)" % [int(_drone.global_position.x), int(_drone.global_position.y)])
-	else:
+	if not ResourceLoader.exists(DRONE_SCENE_PATH):
 		FileLogger.info("[DroneOperator] WARNING: Drone scene not found at %s, skipping deployment" % DRONE_SCENE_PATH)
-		# If no drone scene, go directly to active mode
 		_transition_to_active()
 		return
 
+	var drone_scene: PackedScene = load(DRONE_SCENE_PATH)
+	if drone_scene == null:
+		FileLogger.info("[DroneOperator] WARNING: Failed to load drone scene at %s" % DRONE_SCENE_PATH)
+		_transition_to_active()
+		return
+
+	_drone = drone_scene.instantiate()
+	if _drone == null:
+		FileLogger.info("[DroneOperator] WARNING: Failed to instantiate drone scene")
+		_transition_to_active()
+		return
+
+	# Set position before adding to tree (standard Godot pattern)
+	_drone.global_position = _parent.global_position + DRONE_SPAWN_OFFSET
+	# Add drone to the same parent as the operator
+	var enemies_node: Node = _parent.get_parent()
+	if enemies_node:
+		enemies_node.add_child(_drone)
+	else:
+		_parent.get_tree().current_scene.add_child(_drone)
+
+	# Diagnostic logging: check if scripts loaded correctly
+	var drone_script: Script = _drone.get_script() as Script
+	FileLogger.info("[DroneOperator] Drone node created: script=%s, children=%d" % [
+		str(drone_script != null), _drone.get_child_count()])
+
+	# Get drone component - try typed cast first, fall back to untyped
+	var drone_comp_node: Node = _drone.get_node_or_null("DroneComponent")
+	if drone_comp_node:
+		var comp_script: Script = drone_comp_node.get_script() as Script
+		FileLogger.info("[DroneOperator] DroneComponent node: script=%s, script_path=%s" % [
+			str(comp_script != null),
+			comp_script.resource_path if comp_script else "none"])
+		# Use duck typing to avoid class_name cast issues
+		if drone_comp_node.has_method("initialize"):
+			drone_comp_node.initialize(_parent)
+		if drone_comp_node.has_signal("drone_destroyed"):
+			drone_comp_node.drone_destroyed.connect(_on_drone_destroyed)
+	else:
+		FileLogger.info("[DroneOperator] WARNING: DroneComponent node not found in drone!")
+
+	FileLogger.info("[DroneOperator] Drone deployed at (%d, %d)" % [
+		int(_drone.global_position.x), int(_drone.global_position.y)])
 	_transition_to_controlling()
 
 
@@ -396,6 +420,12 @@ func _update_controlling(_delta: float) -> void:
 
 	# Check if drone is still alive
 	if _drone == null or not is_instance_valid(_drone):
+		_on_drone_destroyed()
+		return
+
+	# Also check if drone component reports dead (in case drone node still valid but AI died)
+	var drone_comp_node: Node = _drone.get_node_or_null("DroneComponent")
+	if drone_comp_node and drone_comp_node.has_method("is_alive") and not drone_comp_node.is_alive():
 		_on_drone_destroyed()
 
 

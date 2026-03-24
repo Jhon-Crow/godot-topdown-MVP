@@ -146,16 +146,13 @@ var debug_logging: bool = false
 
 
 func _ready() -> void:
+	FileLogger.info("[Drone] DroneComponent _ready started")
 	_drone_body = get_parent() as CharacterBody2D
 	if _drone_body:
-		_home_position = _drone_body.global_position
 		_nav_agent = _drone_body.get_node_or_null("NavigationAgent2D") as NavigationAgent2D
 		_raycast = _drone_body.get_node_or_null("RayCast2D") as RayCast2D
-		# Setup audio player for beeping
-		_audio_player = AudioStreamPlayer.new()
-		_audio_player.name = "DroneBeepPlayer"
-		_audio_player.bus = "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master"
-		_drone_body.add_child(_audio_player)
+		# Setup audio player for beeping (defer to avoid add_child during _ready issues)
+		call_deferred("_setup_audio_player")
 		FileLogger.info("[Drone] _ready: body=%s, nav=%s, ray=%s, pos=%s" % [
 			str(_drone_body != null), str(_nav_agent != null), str(_raycast != null),
 			str(_drone_body.global_position)])
@@ -164,12 +161,25 @@ func _ready() -> void:
 	if _nav_agent:
 		_nav_agent.path_desired_distance = 20.0
 		_nav_agent.target_desired_distance = 20.0
-	# Defer player search to ensure scene tree is fully ready
-	call_deferred("_deferred_find_player")
+	# Defer player search and home position to ensure scene tree is fully ready
+	call_deferred("_deferred_init")
 
 
-## Deferred player search — runs after the scene tree is fully ready.
-func _deferred_find_player() -> void:
+## Deferred audio player setup — avoids add_child during _ready.
+func _setup_audio_player() -> void:
+	if _drone_body == null or not is_instance_valid(_drone_body):
+		return
+	_audio_player = AudioStreamPlayer.new()
+	_audio_player.name = "DroneBeepPlayer"
+	_audio_player.bus = "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master"
+	_drone_body.add_child(_audio_player)
+
+
+## Deferred initialization — runs after the scene tree is fully ready.
+func _deferred_init() -> void:
+	if _drone_body and is_instance_valid(_drone_body):
+		_home_position = _drone_body.global_position
+		FileLogger.info("[Drone] Deferred init: home_position=%s" % str(_home_position))
 	_find_player()
 	if _player:
 		FileLogger.info("[Drone] Player found: %s at %s" % [_player.name, str(_player.global_position)])
