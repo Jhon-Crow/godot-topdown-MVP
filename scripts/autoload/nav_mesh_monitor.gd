@@ -106,8 +106,14 @@ func _log(message: String) -> void:
 
 
 ## Inner class: a CanvasLayer that draws all NavigationRegion2D polygons.
-## Using a CanvasLayer ensures the overlay renders above the game world
-## and is not affected by the camera transform.
+## Using a CanvasLayer ensures the overlay renders above the game world's
+## visual effect layers (cinema, hit, etc.).
+##
+## Issue #1392: Removed follow_viewport_enabled and instead manually apply
+## the camera transform via CanvasLayer.transform each frame. This avoids
+## a known Godot 4.3 issue where follow_viewport_enabled can silently fail
+## to track the camera in exported (release) builds with gl_compatibility
+## renderer and canvas_items stretch mode.
 class _NavMeshOverlay extends CanvasLayer:
 	var fill_color: Color = Color(0.0, 0.5, 1.0, 0.25)
 	var outline_color: Color = Color(0.0, 0.8, 1.0, 0.85)
@@ -119,12 +125,13 @@ class _NavMeshOverlay extends CanvasLayer:
 	func _init() -> void:
 		# Render above ALL visual effects (cinema=99, hit=100, penultimate=101,
 		# last_chance=102, flashbang=103) so debug overlays are always visible.
-		# Below FPS counter (200). Issue #1392: raised from 50 to 150.
+		# Below FPS counter (200).
 		layer = 150
-		# Follow the viewport camera so world-space coordinates in _draw() align correctly.
-		# With follow_viewport_enabled=true, drawing at world coordinates maps directly
-		# to the correct screen position regardless of camera position.
-		follow_viewport_enabled = true
+		# Issue #1392: Do NOT use follow_viewport_enabled — it has unreliable
+		# behavior in Godot 4.3 gl_compatibility exported builds. Instead we
+		# sync the CanvasLayer.transform to the viewport canvas transform each
+		# frame in _process(). This gives identical results but works reliably.
+		follow_viewport_enabled = false
 		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().
 		# _ready() is deferred to the next frame after add_child(), so if refresh()
 		# is called immediately after _NavMeshOverlay.new() + add_child(), _draw_node
@@ -133,6 +140,13 @@ class _NavMeshOverlay extends CanvasLayer:
 		_draw_node.fill_color = fill_color
 		_draw_node.outline_color = outline_color
 		add_child(_draw_node)
+
+	func _process(_delta: float) -> void:
+		# Sync CanvasLayer transform with the viewport's canvas transform so
+		# world-space coordinates in _draw() map to correct screen positions.
+		var vp: Viewport = get_viewport()
+		if vp:
+			transform = vp.canvas_transform
 
 	## Return the number of polygons currently drawn (for logging).
 	func get_polygon_count() -> int:

@@ -136,10 +136,13 @@ class _SearchPathOverlay extends CanvasLayer:
 	func _init() -> void:
 		# Render above ALL visual effects (cinema=99, hit=100, penultimate=101,
 		# last_chance=102, flashbang=103) so debug overlays are always visible.
-		# Below FPS counter (200). Issue #1392: raised from 10 to 150.
+		# Below FPS counter (200).
 		layer = 150
-		# Follow the viewport camera so world-space coordinates in _draw() align correctly
-		follow_viewport_enabled = true
+		# Issue #1392: Do NOT use follow_viewport_enabled — it has unreliable
+		# behavior in Godot 4.3 gl_compatibility exported builds. Instead we
+		# sync the CanvasLayer.transform to the viewport canvas transform each
+		# frame in _process().
+		follow_viewport_enabled = false
 		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().
 		# _ready() is deferred to the next frame after add_child(), so if refresh()
 		# is called immediately after _SearchPathOverlay.new() + add_child(), _draw_node
@@ -152,6 +155,11 @@ class _SearchPathOverlay extends CanvasLayer:
 		_draw_node.active_target_color = active_target_color
 		_draw_node.waypoint_radius = waypoint_radius
 		add_child(_draw_node)
+
+	func _process(_delta: float) -> void:
+		var vp: Viewport = get_viewport()
+		if vp:
+			transform = vp.canvas_transform
 
 	## Collect all search path data and pass it to the draw node.
 	func refresh() -> void:

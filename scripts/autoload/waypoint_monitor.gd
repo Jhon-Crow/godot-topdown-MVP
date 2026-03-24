@@ -8,8 +8,8 @@ extends Node
 ##   - "passage_waypoints" group  → green circles  (BuildingLevel doorway waypoints)
 ##   - "search_path_waypoints" group → yellow circles (all-levels search path waypoints)
 ##
-## Uses a CanvasLayer with follow_viewport_enabled so world-space positions track
-## the camera correctly — same pattern as NavMeshMonitor (Issue #1187).
+## Uses a CanvasLayer with manual canvas_transform sync so world-space positions
+## track the camera correctly (Issue #1392: replaced follow_viewport_enabled).
 ##
 ## Issue #1255: Added as a dedicated debug toggle in the Experimental menu.
 
@@ -78,16 +78,24 @@ class _WaypointOverlay extends CanvasLayer:
 	func _init() -> void:
 		# Render above ALL visual effects (cinema=99, hit=100, penultimate=101,
 		# last_chance=102, flashbang=103) so debug overlays are always visible.
-		# Below FPS counter (200). Issue #1392: raised from 11 to 151.
+		# Below FPS counter (200).
 		layer = 151
-		# Follow the viewport camera so world-space coordinates align correctly
-		follow_viewport_enabled = true
+		# Issue #1392: Do NOT use follow_viewport_enabled — it has unreliable
+		# behavior in Godot 4.3 gl_compatibility exported builds. Instead we
+		# sync the CanvasLayer.transform to the viewport canvas transform each
+		# frame in _process().
+		follow_viewport_enabled = false
 		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().
 		# _ready() is deferred to the next frame after add_child(), so if refresh()
 		# is called immediately after _WaypointOverlay.new() + add_child(), _draw_node
 		# would still be null and the overlay would silently draw nothing.
 		_draw_node = _WaypointDrawNode.new()
 		add_child(_draw_node)
+
+	func _process(_delta: float) -> void:
+		var vp: Viewport = get_viewport()
+		if vp:
+			transform = vp.canvas_transform
 
 	## Collect all waypoint positions from both groups and pass them to the draw node.
 	func refresh() -> void:

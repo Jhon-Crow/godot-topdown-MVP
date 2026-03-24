@@ -99,9 +99,13 @@ func _ready() -> void:
 	_canvas_layer.name = "SoundVisualizerCanvas"
 	# Render above ALL visual effects (cinema=99, hit=100, penultimate=101,
 	# last_chance=102, flashbang=103) so debug overlays are always visible.
-	# Below FPS counter (200). Issue #1392: raised from 50 to 150.
+	# Below FPS counter (200).
 	_canvas_layer.layer = 150
-	_canvas_layer.follow_viewport_enabled = true
+	# Issue #1392: Do NOT use follow_viewport_enabled — it has unreliable
+	# behavior in Godot 4.3 gl_compatibility exported builds. Instead we
+	# sync the CanvasLayer.transform to the viewport canvas transform each
+	# frame in _process().
+	_canvas_layer.follow_viewport_enabled = false
 	add_child(_canvas_layer)
 
 	_draw_node = Node2D.new()
@@ -116,6 +120,12 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# Issue #1392: Sync CanvasLayer transform with the viewport's canvas
+	# transform so world-space coordinates in _draw() map correctly.
+	if _canvas_layer:
+		var vp: Viewport = get_viewport()
+		if vp:
+			_canvas_layer.transform = vp.canvas_transform
 	if _events.is_empty():
 		return
 	for ev in _events:

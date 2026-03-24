@@ -149,14 +149,23 @@ class _EnemyPathOverlay extends CanvasLayer:
 	func _init() -> void:
 		# Render above ALL visual effects (cinema=99, hit=100, penultimate=101,
 		# last_chance=102, flashbang=103) so debug overlays are always visible.
-		# Below FPS counter (200). Issue #1392: raised from 10 to 150.
+		# Below FPS counter (200).
 		layer = 150
-		follow_viewport_enabled = true
+		# Issue #1392: Do NOT use follow_viewport_enabled — it has unreliable
+		# behavior in Godot 4.3 gl_compatibility exported builds. Instead we
+		# sync the CanvasLayer.transform to the viewport canvas transform each
+		# frame in _process().
+		follow_viewport_enabled = false
 		_draw_node = _EnemyPathDrawNode.new()
 		_draw_node.waypoint_radius = waypoint_radius
 		_draw_node.target_radius = target_radius
 		_draw_node.line_width = line_width
 		add_child(_draw_node)
+
+	func _process(_delta: float) -> void:
+		var vp: Viewport = get_viewport()
+		if vp:
+			transform = vp.canvas_transform
 
 	## Collect nav path data from all active enemies and pass to the draw node.
 	func refresh() -> void:
