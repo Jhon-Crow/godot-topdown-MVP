@@ -464,7 +464,7 @@ func _ready() -> void:
 	if is_gas_mask:  # Issue #1353: chemical grenades with illusion copies
 		_gas_mask_grenade = GasMaskGrenadeComponent.new(); _gas_mask_grenade.name = "GasMaskGrenadeComponent"; add_child(_gas_mask_grenade)
 		if _head_sprite: var _gm_tex := load("res://assets/sprites/characters/enemy/gas_mask_head.png"); if _gm_tex: _head_sprite.texture = _gm_tex; _head_sprite.rotation_degrees = -90.0  # Issue #1363: sprite drawn facing up, rotate to face right
-	if is_drone_operator: _drone_operator = DroneOperatorComponent.new(); _drone_operator.name = "DroneOperatorComponent"; add_child(_drone_operator); _drone_operator.setup(); if initial_state == AIState.IDLE: _transition_to_seeking_cover()  # Issue #1397
+	if is_drone_operator: _drone_operator = DroneOperatorComponent.new(); _drone_operator.name = "DroneOperatorComponent"; add_child(_drone_operator); _drone_operator.setup(); if _weapon_sprite: _weapon_sprite.visible = false; if initial_state == AIState.IDLE: _transition_to_seeking_cover()  # Issue #1397
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
 	_max_health = 2 if is_grenadier else randi_range(min_health, max_health)  # Issue #604: Grenadiers always 2 HP
@@ -791,21 +791,19 @@ func _physics_process(delta: float) -> void:
 	# native crashes from physics queries on dead/freed player nodes.
 	var _gm_r9: Node = get_node_or_null("/root/GameManager")
 	if _gm_r9 and not _gm_r9.player_alive: return
-	if _player and not is_instance_valid(_player):
-		_player = null
-		return
+	if _player and not is_instance_valid(_player): _player = null; return
 
 	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
 	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if _perf_settings and not _perf_settings.is_ai_enabled(): return
-	if _drone_operator and _drone_operator.is_controlling_drone(): _drone_operator.update(delta); velocity = Vector2.ZERO; move_and_slide(); return  # Issue #1397: frozen while controlling drone
-	# Update flashbang status effect timers (Issue #432)
-	if _flashbang_status:
-		_flashbang_status.update(delta)
-
-	# Issue #959: Pacifist stays in PACIFIST state; retaliation is a temporary sub-behavior within it.
-	if _pacifist and _pacifist.update(delta): _log_to_file("[#959] Pacifist retaliation ended"); if _current_state != AIState.PACIFIST: _transition_to_pacifist(false)
-
+	if _drone_operator and _drone_operator.get_phase() != DroneOperatorComponent.Phase.ACTIVE:  # Issue #1397: drone operator phase control
+		_drone_operator.update(delta)
+		if _drone_operator.is_controlling_drone(): velocity = Vector2.ZERO; move_and_slide(); return  # CONTROLLING: fully frozen
+		if _current_state == AIState.SEEKING_COVER: _process_seeking_cover_state(delta)  # DEPLOYING: seek cover only, no combat
+		elif _current_state != AIState.IN_COVER: _transition_to_seeking_cover()
+		move_and_slide(); return
+	if _flashbang_status: _flashbang_status.update(delta)  # Issue #432
+	if _pacifist and _pacifist.update(delta): _log_to_file("[#959] Pacifist retaliation ended"); if _current_state != AIState.PACIFIST: _transition_to_pacifist(false)  # Issue #959
 	if _invisibility: _invisibility.update(delta)  # Issue #1121: tick re-cloak timer
 	_shoot_timer += delta
 	if _is_bolt_cycling:  # [#1177] 4-step sniper bolt cycle
@@ -1178,6 +1176,7 @@ func _finish_reload() -> void:
 
 ## Check if the enemy can shoot (has ammo and not reloading). Machete: melee cooldown (Issue #579).
 func _can_shoot() -> bool:
+	if _drone_operator and _drone_operator.get_phase() != DroneOperatorComponent.Phase.ACTIVE: return false  # Issue #1397: no shooting during DEPLOYING/CONTROLLING
 	if _is_melee_weapon: return _machete != null and _machete.is_attack_ready()
 	if _is_reloading: return false
 
