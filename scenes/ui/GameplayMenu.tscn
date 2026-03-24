@@ -92,6 +92,21 @@ custom_minimum_size = Vector2(140, 0)
 [node name="HSeparator3" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="AimAssistContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AimAssistLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AimAssistContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Revolver Aim Assist"
+
+[node name="AimAssistToggle" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AimAssistContainer"]
+layout_mode = 2
+button_pressed = true
+
+[node name="HSeparator4" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="BackButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2

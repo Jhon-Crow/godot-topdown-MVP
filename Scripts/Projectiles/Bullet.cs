@@ -1686,6 +1686,27 @@ public partial class Bullet : Area2D
     }
 
     /// <summary>
+    /// Enables weak homing on this bullet with aim-line targeting and a custom steer speed (Issue #1332).
+    /// Used by the RSh-12 revolver for slight bullet correction toward enemies.
+    /// </summary>
+    /// <param name="shooterPos">The player's position when firing.</param>
+    /// <param name="aimDir">The player's aim direction when firing.</param>
+    /// <param name="steerSpeed">Steering speed in radians per second (lower = weaker homing).</param>
+    public void EnableHomingWithAimLine(Vector2 shooterPos, Vector2 aimDir, float steerSpeed)
+    {
+        _homingEnabled = true;
+        _homingOriginalDirection = Direction.Normalized();
+        _useAimLineTargeting = true;
+        _shooterOrigin = shooterPos;
+        _shooterAimDirection = aimDir.Normalized();
+        _homingSteerSpeed = steerSpeed;
+        if (DebugHoming)
+        {
+            GD.Print($"[Bullet] Weak homing enabled with aim-line targeting, aim: {_shooterAimDirection}, steerSpeed: {steerSpeed}");
+        }
+    }
+
+    /// <summary>
     /// Applies homing steering toward the nearest alive enemy.
     /// The bullet turns toward the nearest enemy but cannot exceed the max turn angle
     /// from its original firing direction (170 degrees each side, Issue #737).
