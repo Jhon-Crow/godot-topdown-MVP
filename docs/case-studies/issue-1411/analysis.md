@@ -96,9 +96,82 @@ The following estimates assume a physics tick rate of 60 Hz, 10 active enemies, 
 | Active combat (10 enemies) | ~85-92% fewer physics queries per frame |
 | Worst-case burst | ~75-80% reduction |
 
+### 6. Cooldown Bypass via Cover Invalidation (Primary Root Cause)
+
+The 0.3-second cooldown guard in `_find_cover_position()` was conditioned on `_has_valid_cover`:
+
+```gdscript
+if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
+```
+
+However, every call site that wanted to re-search would first set `_has_valid_cover = false`, bypassing the cooldown entirely. This pattern appeared in:
+
+- `_transition_to_suppressed()`: `_has_valid_cover = false; _last_cover_search_time = -999.0`
+- `_process_seeking_cover_state()`: `_has_valid_cover = false; _find_cover_position()`
+- `_process_suppressed_state()`: `_has_valid_cover = false; _find_cover_position()`
+- `_process_retreating_state()`: `_has_valid_cover = false; _find_cover_position()`
+
+**Game log evidence:** Enemy3 logged 40+ "Found cover at" messages within 1 second (09:25:10-09:25:11), each at a slightly different position because the player was moving. This correlates with FPS drops to 6-10 FPS.
+
+### 7. Unnecessary Cover Recalculation in Suppressed State
+
+When transitioning from IN_COVER → SUPPRESSED (triggered by `_under_fire`), the enemy was already at a valid cover position. However, `_transition_to_suppressed()` unconditionally set `_has_valid_cover = false`, forcing an immediate expensive re-search. The enemy would find essentially the same position, then repeat the search next frame.
+
+Additionally, in `_process_suppressed_state()`, when the enemy was hidden from the player (cover was working correctly), it would still recalculate cover if it reached the cover position, due to a redundant visibility check that could never be true at that code path.
+
 ---
 
-## Solutions
+## Solutions (Iteration 2 — Cooldown Bypass Fix)
+
+### Solution 6: Time-Only Cooldown (Remove `_has_valid_cover` Guard)
+
+Changed all three cover search functions to use time-only cooldown:
+
+```gdscript
+# Before (bypassed when _has_valid_cover is false):
+if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
+
+# After (always respected):
+if current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
+```
+
+**Impact:** Guarantees maximum 3.3 searches/second per enemy regardless of how many times `_has_valid_cover` is toggled.
+
+### Solution 7: Preserve Cover on Suppression from Cover-Related States
+
+When transitioning to SUPPRESSED from IN_COVER, SEEKING_COVER, or RETREATING, the enemy already has valid cover. The fix preserves it:
+
+```gdscript
+var _prev_state := _current_state
+_current_state = AIState.SUPPRESSED
+if _prev_state not in [AIState.IN_COVER, AIState.SEEKING_COVER, AIState.RETREATING]:
+    _has_valid_cover = false; _last_cover_search_time = -999.0  # Force search only for new suppressions
+```
+
+**Impact:** Eliminates the entire cover search when the enemy is already in cover and gets suppressed — the most common scenario causing the performance drop.
+
+### Solution 8: No Recalculation When Hidden in Suppressed State
+
+When the enemy is at cover and hidden from the player (cover is working), stop recalculating. The previous code had a redundant visibility check that triggered re-searches:
+
+```gdscript
+# Before: checked visibility at cover position and re-searched if visible
+# (but this code path was only reachable when NOT visible — dead logic)
+if distance_to_cover < 10.0:
+    if _is_visible_from_player():
+        _has_valid_cover = false; _find_cover_position()  # This caused frame-burst searches
+    else: velocity = Vector2.ZERO
+
+# After: simply stay put when at cover and hidden
+if distance_to_cover < 10.0:
+    velocity = Vector2.ZERO  # At cover and hidden — stay put
+```
+
+**Impact:** Eliminates all cover search overhead while enemy is successfully hiding.
+
+---
+
+## Solutions (Iteration 1 — Initial Optimizations)
 
 All proposed changes preserve the existing cover-finding logic. No behavioral changes are introduced -- only throttling, caching, and algorithmic tightening.
 

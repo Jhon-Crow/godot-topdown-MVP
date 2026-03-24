@@ -1244,7 +1244,7 @@ func _activate_machine_gunner_pm_fallback() -> void:
 func _find_distant_cover_position() -> void:
 	if _player == null: _has_valid_cover = false; return
 	var current_time := Time.get_ticks_msec() / 1000.0  ## Issue #1411: throttle
-	if _has_valid_cover and current_time - _last_distant_cover_search_time < COVER_SEARCH_COOLDOWN: return
+	if current_time - _last_distant_cover_search_time < COVER_SEARCH_COOLDOWN: return  ## Issue #1411: cooldown applies even without valid cover
 	_last_distant_cover_search_time = current_time; var player_pos := _player.global_position
 	var best_cover: Vector2 = Vector2.ZERO; var best_score: float = -INF; var found_hidden: bool = false
 	for i in range(COVER_CHECK_COUNT):
@@ -1705,12 +1705,12 @@ func _process_seeking_cover_state(_delta: float) -> void:
 
 	if distance < 10.0:
 		# Reached the cover position, but still visible - try to find better cover
-		if _is_visible_from_player():
-			_has_valid_cover = false
-			_find_cover_position()
-			if not _has_valid_cover:
-				if time_in_state >= SEEKING_COVER_MIN_DURATION: _transition_to_combat()  # RCA-17
-				return
+		## Issue #1411: don't invalidate current cover before searching — keep it as fallback
+		## if the cooldown-throttled search doesn't find a new one yet
+		_find_cover_position()
+		if not _has_valid_cover:
+			if time_in_state >= SEEKING_COVER_MIN_DURATION: _transition_to_combat()  # RCA-17
+			return
 
 	# Use navigation-based pathfinding to move toward cover
 	_move_to_target_nav(_cover_position, combat_move_speed)
@@ -1896,16 +1896,17 @@ func _process_suppressed_state(delta: float) -> void:
 		_transition_to_seeking_cover()
 		return
 	# Issue #1338: move toward cover while suppressed
+	## Issue #1411: when hidden from player (cover is working), do NOT recalculate cover position.
+	## The cover was found at suppression time and should be kept until the situation changes.
 	if _has_valid_cover:
 		var distance_to_cover := global_position.distance_to(_cover_position)
 		if distance_to_cover < 10.0:
-			if _is_visible_from_player():
-				_has_valid_cover = false; _find_cover_position()
-				if _has_valid_cover: _move_to_target_nav(_cover_position, combat_move_speed)
-				else: velocity = Vector2.ZERO
-			else: velocity = Vector2.ZERO
+			velocity = Vector2.ZERO  ## Issue #1411: at cover and hidden — stay put, no recalculation
 		else: _move_to_target_nav(_cover_position, combat_move_speed)
-	else: velocity = Vector2.ZERO
+	else:
+		_find_cover_position()  ## Only search when we truly have no cover
+		if _has_valid_cover: _move_to_target_nav(_cover_position, combat_move_speed)
+		else: velocity = Vector2.ZERO
 	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 		_aim_at_player()
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
@@ -1948,7 +1949,7 @@ func _process_retreating_state(delta: float) -> void:
 	# Check if reached cover position
 	if distance_to_cover < 10.0:
 		if _is_visible_from_player():
-			_has_valid_cover = false
+			## Issue #1411: don't invalidate current cover before searching — cooldown-throttled
 			_find_cover_position()
 			if not _has_valid_cover:
 				if time_in_state >= RETREATING_MIN_DURATION:  # RCA-17
@@ -2773,10 +2774,15 @@ func _is_flank_target_reachable() -> bool:
 
 func _transition_to_suppressed() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_suppressed_enabled(): _transition_to_idle(); return  # Issue #1186
+	var _prev_state := _current_state  ## Issue #1411: remember previous state
 	_current_state = AIState.SUPPRESSED
 	_has_left_idle = true; _in_alarm_mode = true  # Issue #330
 	_suppressed_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #969 RCA-11
-	_has_valid_cover = false; _last_cover_search_time = -999.0  # Issue #1338: force new cover search
+	## Issue #1411: only force new cover search if NOT coming from a cover-related state.
+	## When transitioning from IN_COVER/SEEKING_COVER, the enemy already has a valid cover position
+	## and re-searching every frame causes massive performance drops (6-10 FPS with 4+ enemies).
+	if _prev_state not in [AIState.IN_COVER, AIState.SEEKING_COVER, AIState.RETREATING]:
+		_has_valid_cover = false; _last_cover_search_time = -999.0  # Issue #1338: force new cover search
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 func _transition_to_pursuing() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_pursuing_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -3249,7 +3255,7 @@ func _find_cover_closest_to_player() -> void:
 		_has_valid_cover = false
 		return
 	var current_time := Time.get_ticks_msec() / 1000.0  ## Issue #1411: throttle
-	if _has_valid_cover and current_time - _last_closest_cover_search_time < COVER_SEARCH_COOLDOWN: return
+	if current_time - _last_closest_cover_search_time < COVER_SEARCH_COOLDOWN: return  ## Issue #1411: cooldown applies even without valid cover
 	_last_closest_cover_search_time = current_time; var wp_a := _combat_waypoint(_player.global_position)  # Issue #1227
 	if wp_a != Vector2.ZERO: _cover_position = wp_a; _has_valid_cover = true; return
 	var player_pos := _player.global_position
@@ -3315,7 +3321,7 @@ func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 func _find_cover_position() -> void:
 	if _player == null: _has_valid_cover = false; return
 	var current_time := Time.get_ticks_msec() / 1000.0
-	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
+	if current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return  ## Issue #1411: cooldown applies even without valid cover to prevent frame-burst searches
 	_last_cover_search_time = current_time
 	var candidates := _get_hidden_cover_candidates(true)
 	if candidates.is_empty():
