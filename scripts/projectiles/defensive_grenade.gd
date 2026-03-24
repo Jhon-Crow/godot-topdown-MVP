@@ -209,53 +209,75 @@ func _apply_explosion_damage(enemy: Node2D) -> void:
 	FileLogger.info("[DefensiveGrenade] Applied %d HE damage to enemy at distance %.1f" % [final_damage, distance])
 
 
-## Spawn shrapnel pieces in all directions.
+## Maximum shrapnel pieces to spawn per frame to avoid single-frame CPU spike.
+## Issue #1460: Spawning all 40 shrapnel in one frame caused FPS drops. Spreading
+## across frames (10 per frame × 4 frames = ~67ms at 60fps) is imperceptible to
+## the player but prevents the spike.
+const SHRAPNEL_BATCH_SIZE: int = 10
+
+
+## Spawn shrapnel pieces in all directions, staggered across multiple frames.
+## Issue #1460: Spawning all 40 shrapnel in one frame caused CPU spikes. Now
+## spawns in batches of SHRAPNEL_BATCH_SIZE per frame.
 func _spawn_shrapnel() -> void:
 	if shrapnel_scene == null:
 		FileLogger.info("[DefensiveGrenade] Cannot spawn shrapnel: scene is null")
 		return
 
-	# Calculate base angle step for even distribution
-	var angle_step := TAU / shrapnel_count  # TAU = 2*PI
+	# Pre-calculate all shrapnel data before spawning (grenade may be freed during await).
+	var spawn_origin := global_position
+	var grenade_instance_id := get_instance_id()
+	var grenade_thrower_id := thrower_id
+	var angle_step := TAU / shrapnel_count
+	var shrapnel_data: Array = []
 
 	for i in range(shrapnel_count):
-		# Base direction for this shrapnel piece
 		var base_angle := i * angle_step
-
-		# Add random deviation
 		var deviation := deg_to_rad(randf_range(-shrapnel_spread_deviation, shrapnel_spread_deviation))
 		var final_angle := base_angle + deviation
-
-		# Calculate direction vector
 		var direction := Vector2(cos(final_angle), sin(final_angle))
-		var spawn_pos := global_position + direction * 10.0  # Slight offset from center
+		var spawn_pos := spawn_origin + direction * 10.0
+		shrapnel_data.append({"pos": spawn_pos, "dir": direction, "angle": final_angle, "index": i})
 
-		# Try pooled shrapnel first for performance (Issue #724)
-		var shrapnel: Node = null
-		var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+	# Spawn in batches to spread CPU load across frames.
+	var scene_ref := shrapnel_scene
+	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+	var tree := get_tree()
 
-		if pool_manager and pool_manager.has_method("get_shrapnel"):
-			shrapnel = pool_manager.get_shrapnel()
-			if shrapnel and shrapnel.has_method("pool_activate"):
-				shrapnel.pool_activate(spawn_pos, direction, get_instance_id(), thrower_id)
-				continue  # Shrapnel is ready, skip to next
+	for batch_start in range(0, shrapnel_data.size(), SHRAPNEL_BATCH_SIZE):
+		var batch_end := mini(batch_start + SHRAPNEL_BATCH_SIZE, shrapnel_data.size())
 
-		# Fallback to instantiation
-		shrapnel = shrapnel_scene.instantiate()
-		if shrapnel == null:
-			continue
+		for j in range(batch_start, batch_end):
+			var data: Dictionary = shrapnel_data[j]
+			_spawn_single_shrapnel(data, scene_ref, pool_manager, grenade_instance_id, grenade_thrower_id)
 
-		# Set shrapnel properties
-		shrapnel.global_position = spawn_pos
-		shrapnel.direction = direction
-		shrapnel.source_id = get_instance_id()
-		# Issue #692: Pass thrower_id so shrapnel doesn't hit the enemy who threw it
-		shrapnel.thrower_id = thrower_id
+		# Yield to next frame between batches (skip yield after last batch).
+		if batch_end < shrapnel_data.size() and tree != null:
+			await tree.process_frame
 
-		# Add to scene
-		get_tree().current_scene.add_child(shrapnel)
 
-		FileLogger.info("[DefensiveGrenade] Spawned shrapnel #%d at angle %.1f degrees" % [i + 1, rad_to_deg(final_angle)])
+## Spawns a single shrapnel piece using pooling when available.
+func _spawn_single_shrapnel(data: Dictionary, scene_ref: PackedScene, pool_manager: Node, source_id_val: int, thrower_id_val: int) -> void:
+	# Try pooled shrapnel first for performance (Issue #724)
+	if pool_manager and pool_manager.has_method("get_shrapnel"):
+		var shrapnel: Node = pool_manager.get_shrapnel()
+		if shrapnel and shrapnel.has_method("pool_activate"):
+			shrapnel.pool_activate(data["pos"], data["dir"], source_id_val, thrower_id_val)
+			return
+
+	# Fallback to instantiation
+	var shrapnel: Node = scene_ref.instantiate()
+	if shrapnel == null:
+		return
+
+	shrapnel.global_position = data["pos"]
+	shrapnel.direction = data["dir"]
+	shrapnel.source_id = source_id_val
+	shrapnel.thrower_id = thrower_id_val
+
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree and tree.current_scene:
+		tree.current_scene.add_child(shrapnel)
 
 
 ## Spawn visual explosion effect at explosion position.
