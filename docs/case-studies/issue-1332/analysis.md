@@ -7,14 +7,18 @@
 | 2026-03-22 | Issue #1332 opened: "добавь небольшое наведение пули на врага" (add slight bullet homing toward enemies) |
 | 2026-03-22 | Initial implementation: weak aim-line homing at 4 rad/s steer speed added to Revolver.cs and Bullet.cs |
 | 2026-03-22 | PR #1333 created and marked ready |
-| 2026-03-24 | Owner feedback: requested verification of homing, stronger effect, and gameplay menu toggle |
+| 2026-03-24 | Owner feedback (round 1): requested verification of homing, stronger effect, and gameplay menu toggle |
+| 2026-03-24 | Steer speed increased to 12 rad/s, gameplay menu toggle added |
+| 2026-03-24 | Owner feedback (round 2): "похоже асист не работает" — aim assist still not working |
+| 2026-03-24 | **Real root cause found**: C#/GDScript type mismatch — homing never applied to GDScript bullets |
 
 ## Data Sources
 
-- `game_log_20260324_085906.txt` — Full game log from owner's test session (23,943 lines)
-- Source code: `Scripts/Projectiles/Bullet.cs`, `Scripts/Weapons/Revolver.cs`
+- `game_log_20260324_085906.txt` — Game log from owner's first test session
+- `game_log_20260324_093450.txt` — Game log from owner's second test session (confirming assist still broken)
+- Source code: `Scripts/Projectiles/Bullet.cs` (C#), `scripts/projectiles/bullet.gd` (GDScript), `Scripts/Weapons/Revolver.cs`
 
-## Analysis of Game Log
+## Analysis of Game Logs
 
 ### Environment
 - OS: Windows
@@ -22,31 +26,51 @@
 - Difficulty: Hard
 - Weapon: Revolver (RSh-12)
 
-### Findings
+### Findings from Second Log (game_log_20260324_093450.txt)
 
-1. **36 revolver shots fired** during the test session
-2. **227 bullet-enemy threat sphere interactions** recorded
-3. **Player homing buff was NOT active** — every shot logged `[Player.Homing] No homing bullets selected in ActiveItemManager`
-4. **No homing debug output** — `DebugHoming = false` in Bullet.cs, so homing activation/steering is silent in logs
+1. GameplaySettings initialized correctly: `revolver_aim_assist: true`
+2. Multiple revolver shots fired — no homing behavior observed by the player
+3. No homing debug output — confirms homing was never activated on the bullets
 
-### Root Cause Analysis
+## Root Cause Analysis
 
-The homing implementation was technically correct but had two issues:
+### The Real Bug: C#/GDScript Type Mismatch
 
-1. **Too weak to notice**: 4 rad/s steer speed is ~229 degrees/sec, but bullets travel at 2500 px/s and live 3 seconds max. At typical combat distances (200-600px), bullets reach enemies in 0.08-0.24 seconds. A 4 rad/s correction over 0.1s only deflects the bullet by ~0.4 radians (23 degrees), which at close range is barely perceptible.
+The revolver bullet scene (`scenes/projectiles/Bullet12p7mm.tscn`) uses **GDScript** (`scripts/projectiles/bullet.gd`), not the C# `Bullet.cs` class. Both implement the same homing interface but are separate types.
 
-2. **No user control**: No setting existed to enable/disable the feature, making it impossible for users to verify it was working or adjust behavior.
+In `Revolver.SpawnBullet()`, the code searched for the just-spawned bullet using:
+
+```csharp
+if (children[i] is GodotTopDownTemplate.Projectiles.Bullet bullet && !bullet.HomingEnabled)
+```
+
+This C# `is` type check **always fails** for GDScript bullets because they are `Area2D` nodes with a GDScript attached — not instances of the C# `Bullet` class. The homing code was never reached.
+
+Interestingly, `BaseWeapon.SpawnBullet()` already handled this correctly for the player homing buff — it has a GDScript fallback using `HasMethod("enable_homing_with_aim_line")` and `Call()`. But the Revolver override only had the C# path.
+
+### Why Previous Analysis Was Wrong
+
+The first analysis concluded the homing was "too weak to notice" (4 rad/s). In reality, the homing was **never applied at all**. The steer speed increase to 12 rad/s was also ineffective for the same reason.
 
 ## Solution
 
-1. **Increased steer speed** from 4 rad/s to 12 rad/s — noticeable correction without full homing missile behavior
-2. **Added gameplay menu toggle** "Revolver Aim Assist" (default: ON) in GameplaySettings
-3. **Revolver.cs reads the setting** and only applies homing when enabled
+The fix adds GDScript bullet support to `Revolver.SpawnBullet()`:
+
+1. **C# bullet path**: Uses direct property access (`csBullet.EnableHomingWithAimLine(...)`) — unchanged
+2. **GDScript bullet path** (new): Detects `Area2D` nodes with `enable_homing_with_aim_line` method, sets `homing_steer_speed` property, then calls the method via `Call()`
+
+This mirrors the pattern already used in `BaseWeapon.SpawnBullet()` for the full homing buff.
 
 ## Comparison: Steer Speed Values
 
 | Value | Effect | Use Case |
 |-------|--------|----------|
-| 4 rad/s | Barely perceptible nudge | Original (too weak) |
-| 12 rad/s | Noticeable correction, still feels natural | New default |
+| 4 rad/s | Gentle nudge | Original design (never actually applied) |
+| 12 rad/s | Noticeable correction, still feels natural | Revolver aim assist |
 | 50 rad/s | Sharp tracking, guided missile feel | Player homing buff |
+
+## Lessons Learned
+
+1. **C#/GDScript interop requires explicit handling** — `is` type checks in C# cannot match GDScript types. Always provide a `HasMethod()`/`Call()` fallback path.
+2. **Silent failures are dangerous** — the homing activation had no logging when `DebugHoming = false`, making it impossible to tell from logs whether homing was applied or just ineffective.
+3. **Test with the actual bullet scene** — the bug would have been caught immediately if testing verified that `Bullet12p7mm.tscn` (GDScript) received the homing call.
