@@ -128,7 +128,7 @@ class _SearchPathOverlay extends CanvasLayer:
 	var active_fill_color: Color = Color(1.0, 0.55, 0.0, 0.25)
 	var active_target_color: Color = Color(1.0, 1.0, 0.0, 1.0)
 	var waypoint_radius: float = 10.0
-	## The Node2D child that does the actual drawing.
+	## The Control child that does the actual drawing in screen space.
 	## Initialized in _init() so it is available immediately after .new(),
 	## before _ready() fires (which is deferred to the next frame by add_child).
 	var _draw_node: _SearchPathDrawNode = null
@@ -139,9 +139,9 @@ class _SearchPathOverlay extends CanvasLayer:
 		# Below FPS counter (200).
 		layer = 150
 		# Issue #1392: Do NOT use follow_viewport_enabled — it has unreliable
-		# behavior in Godot 4.3 gl_compatibility exported builds. Instead we
-		# sync the CanvasLayer.transform to the viewport canvas transform each
-		# frame in _process().
+		# behavior in Godot 4.3 gl_compatibility exported builds.
+		# Do NOT set CanvasLayer.transform either — the Control._draw() method
+		# handles world-to-screen transform per-vertex using canvas_transform.
 		follow_viewport_enabled = false
 		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().
 		# _ready() is deferred to the next frame after add_child(), so if refresh()
@@ -155,11 +155,6 @@ class _SearchPathOverlay extends CanvasLayer:
 		_draw_node.active_target_color = active_target_color
 		_draw_node.waypoint_radius = waypoint_radius
 		add_child(_draw_node)
-
-	func _process(_delta: float) -> void:
-		var vp: Viewport = get_viewport()
-		if vp:
-			transform = vp.canvas_transform
 
 	## Collect all search path data and pass it to the draw node.
 	func refresh() -> void:
@@ -211,8 +206,12 @@ class _SearchPathOverlay extends CanvasLayer:
 		_draw_node.set_path_data(predefined_sets, active_paths)
 
 
-## Inner draw node: performs the actual draw calls each frame.
-class _SearchPathDrawNode extends Node2D:
+## Inner draw control: performs the actual draw calls each frame in screen space.
+## Issue #1392: Uses Control instead of Node2D because Control._draw() shares the
+## same rendering path as Label/Button/FpsMonitor which work reliably in exported
+## builds with gl_compatibility renderer. World-to-screen transform is applied
+## per-vertex using viewport.canvas_transform.
+class _SearchPathDrawNode extends Control:
 	var predefined_path_color: Color = Color(0.0, 1.0, 0.8, 0.9)
 	var predefined_fill_color: Color = Color(0.0, 1.0, 0.8, 0.25)
 	var active_path_color: Color = Color(1.0, 0.55, 0.0, 0.9)
@@ -222,25 +221,38 @@ class _SearchPathDrawNode extends Node2D:
 	var _predefined_sets: Array = []
 	var _active_paths: Array = []
 
+	func _init() -> void:
+		# Cover the full viewport so draw calls can paint anywhere on screen.
+		set_anchors_preset(Control.PRESET_FULL_RECT)
+		# Don't intercept mouse events.
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 	func set_path_data(predefined_sets: Array, active_paths: Array) -> void:
 		_predefined_sets = predefined_sets
 		_active_paths = active_paths
 		queue_redraw()
 
 	func _draw() -> void:
+		# Get viewport canvas_transform to convert world coords → screen coords.
+		var vp: Viewport = get_viewport()
+		if vp == null:
+			return
+		var cam_xform: Transform2D = vp.canvas_transform
+
 		# Draw predefined SearchPathWaypoints (cyan, closed loop)
 		for waypoints in _predefined_sets:
 			if waypoints.size() == 0:
 				continue
 			# Draw connecting lines (closed loop)
 			for i in range(waypoints.size()):
-				var from: Vector2 = waypoints[i]
-				var to: Vector2 = waypoints[(i + 1) % waypoints.size()]
+				var from: Vector2 = cam_xform * waypoints[i]
+				var to: Vector2 = cam_xform * waypoints[(i + 1) % waypoints.size()]
 				draw_line(from, to, predefined_path_color, 2.0)
 			# Draw waypoint circles
 			for pos in waypoints:
-				draw_circle(pos, waypoint_radius, predefined_fill_color)
-				_draw_circle_outline(pos, waypoint_radius, predefined_path_color, 2.0)
+				var screen_pos: Vector2 = cam_xform * pos
+				draw_circle(screen_pos, waypoint_radius, predefined_fill_color)
+				_draw_circle_outline(screen_pos, waypoint_radius, predefined_path_color, 2.0)
 
 		# Draw active enemy search paths (orange, open sequence + current target highlighted)
 		for path_data in _active_paths:
@@ -251,20 +263,21 @@ class _SearchPathDrawNode extends Node2D:
 				continue
 			# Draw connecting lines between waypoints (open path, not closed loop)
 			for i in range(waypoints.size() - 1):
-				var from: Vector2 = waypoints[i]
-				var to: Vector2 = waypoints[i + 1]
+				var from: Vector2 = cam_xform * waypoints[i]
+				var to: Vector2 = cam_xform * waypoints[i + 1]
 				draw_line(from, to, active_path_color, 2.0)
 			# Draw waypoint circles
 			for i in range(waypoints.size()):
-				var pos: Vector2 = waypoints[i]
-				draw_circle(pos, waypoint_radius, active_fill_color)
-				_draw_circle_outline(pos, waypoint_radius, active_path_color, 2.0)
+				var screen_pos: Vector2 = cam_xform * waypoints[i]
+				draw_circle(screen_pos, waypoint_radius, active_fill_color)
+				_draw_circle_outline(screen_pos, waypoint_radius, active_path_color, 2.0)
 			# Highlight current target waypoint in yellow
 			if current_idx < waypoints.size():
-				var target_pos: Vector2 = waypoints[current_idx]
-				draw_circle(target_pos, waypoint_radius * 0.6, active_target_color)
+				var screen_target: Vector2 = cam_xform * waypoints[current_idx]
+				draw_circle(screen_target, waypoint_radius * 0.6, active_target_color)
 				# Draw line from enemy to current target
-				draw_line(enemy_pos, target_pos, active_target_color, 1.5)
+				var screen_enemy: Vector2 = cam_xform * enemy_pos
+				draw_line(screen_enemy, screen_target, active_target_color, 1.5)
 
 	## Draw a circle outline using line segments.
 	func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: float) -> void:

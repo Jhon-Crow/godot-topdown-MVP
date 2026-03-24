@@ -14,6 +14,11 @@ extends Node
 ## Issue #1187: Added as part of AI navigation debugging tools.
 ## Issue #1224: Fixed to read baked polygon data (get_polygon/get_vertices) instead of
 ##              raw input outlines (get_outline), and to refresh after bake_finished.
+## Issue #1392: Replaced Node2D._draw() with Control._draw() in screen space.
+##              Node2D._draw() inside CanvasLayer proved unreliable in exported builds
+##              with gl_compatibility renderer. Control._draw() uses the same rendering
+##              path as Label/Button which works reliably. World-to-screen coordinate
+##              transform is applied per-vertex inside _draw().
 
 ## Color for the nav mesh polygon fill.
 const NAV_MESH_FILL_COLOR := Color(0.0, 0.5, 1.0, 0.25)
@@ -109,20 +114,18 @@ func _log(message: String) -> void:
 ## Using a CanvasLayer ensures the overlay renders above the game world's
 ## visual effect layers (cinema, hit, etc.).
 ##
-## Issue #1392: Removed follow_viewport_enabled and instead manually apply
-## the camera transform via CanvasLayer.transform each frame. This avoids
-## a known Godot 4.3 issue where follow_viewport_enabled can silently fail
-## to track the camera in exported (release) builds with gl_compatibility
-## renderer and canvas_items stretch mode.
+## Issue #1392: Uses Control._draw() in screen-space instead of Node2D._draw()
+## with follow_viewport_enabled. Control._draw() is the same rendering path
+## used by Label, Button, and FpsMonitor (which all work reliably in exported
+## builds). World coordinates are transformed to screen coordinates per-vertex
+## using the viewport's canvas_transform inside _draw().
 class _NavMeshOverlay extends CanvasLayer:
 	var fill_color: Color = Color(0.0, 0.5, 1.0, 0.25)
 	var outline_color: Color = Color(0.0, 0.8, 1.0, 0.85)
-	## The Node2D child that does the actual drawing.
+	## The Control child that does the actual drawing in screen space.
 	## Initialized in _init() so it is available immediately after .new(),
 	## before _ready() fires (which is deferred to the next frame by add_child).
-	var _draw_node: _NavMeshDrawNode = null
-	## Diagnostic label to test if Control-based rendering works in CanvasLayer.
-	var _diag_label: Label = null
+	var _draw_ctrl: _NavMeshDrawControl = null
 
 	func _init() -> void:
 		# Render above ALL visual effects (cinema=99, hit=100, penultimate=101,
@@ -130,61 +133,32 @@ class _NavMeshOverlay extends CanvasLayer:
 		# Below FPS counter (200).
 		layer = 150
 		# Issue #1392: Do NOT use follow_viewport_enabled — it has unreliable
-		# behavior in Godot 4.3 gl_compatibility exported builds. Instead we
-		# sync the CanvasLayer.transform to the viewport canvas transform each
-		# frame in _process(). This gives identical results but works reliably.
+		# behavior in Godot 4.3 gl_compatibility exported builds.
+		# Do NOT set CanvasLayer.transform either — the Control._draw() method
+		# handles world-to-screen transform per-vertex using canvas_transform.
 		follow_viewport_enabled = false
-		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().
+		# IMPORTANT: _draw_ctrl must be created here in _init(), NOT in _ready().
 		# _ready() is deferred to the next frame after add_child(), so if refresh()
-		# is called immediately after _NavMeshOverlay.new() + add_child(), _draw_node
+		# is called immediately after _NavMeshOverlay.new() + add_child(), _draw_ctrl
 		# would still be null. _init() runs synchronously during .new().
-		_draw_node = _NavMeshDrawNode.new()
-		_draw_node.fill_color = fill_color
-		_draw_node.outline_color = outline_color
-		add_child(_draw_node)
-		# Diagnostic: add a visible Label on a separate untransformed CanvasLayer
-		# to test whether CanvasLayer rendering works at all in exported builds.
-		# If this label is visible but the draw calls are not, the issue is
-		# specifically with Node2D._draw() inside CanvasLayers.
-		var diag_layer := CanvasLayer.new()
-		diag_layer.layer = 199  # Just below FPS counter
-		_diag_label = Label.new()
-		_diag_label.text = "[NavMesh DEBUG OVERLAY ACTIVE]"
-		_diag_label.position = Vector2(10, 40)
-		_diag_label.add_theme_color_override("font_color", Color(1, 0, 1, 1))
-		_diag_label.add_theme_font_size_override("font_size", 18)
-		diag_layer.add_child(_diag_label)
-		add_child(diag_layer)
-
-	func _process(_delta: float) -> void:
-		# Sync CanvasLayer transform with the viewport's canvas transform so
-		# world-space coordinates in _draw() map to correct screen positions.
-		var vp: Viewport = get_viewport()
-		if vp:
-			transform = vp.canvas_transform
-		# Diagnostic: ensure draw node is queued for redraw each frame when visible
-		if _draw_node and visible:
-			_draw_node.queue_redraw()
-		# Diagnostic: update label with polygon count and draw call status
-		if _diag_label and _draw_node:
-			var count: int = _draw_node._polygons.size()
-			var draws: int = _draw_node._draw_call_count
-			_diag_label.text = "[NavMesh OVERLAY: %d polys, %d draws, CL_xform=%s]" % [
-				count, draws, str(transform != Transform2D.IDENTITY)]
+		_draw_ctrl = _NavMeshDrawControl.new()
+		_draw_ctrl.fill_color = fill_color
+		_draw_ctrl.outline_color = outline_color
+		add_child(_draw_ctrl)
 
 	## Return the number of polygons currently drawn (for logging).
 	func get_polygon_count() -> int:
-		if _draw_node == null:
+		if _draw_ctrl == null:
 			return 0
-		return _draw_node._polygons.size()
+		return _draw_ctrl._polygons.size()
 
-	## Collect all NavigationRegion2D nodes and pass their baked polygons to the draw node.
+	## Collect all NavigationRegion2D nodes and pass their baked polygons to the draw control.
 	## Reads triangulated baked data (get_polygon_count / get_polygon / get_vertices)
 	## which reflects the actual walkable area after walls are carved out — not the raw
 	## input outlines which only show the floor boundary.
 	func refresh() -> void:
-		if _draw_node == null:
-			_log_inner("refresh: _draw_node is null, skipping")
+		if _draw_ctrl == null:
+			_log_inner("refresh: _draw_ctrl is null, skipping")
 			return
 		var polygons: Array = []
 		var tree: SceneTree = Engine.get_main_loop() as SceneTree
@@ -235,7 +209,7 @@ class _NavMeshOverlay extends CanvasLayer:
 							"global_transform": region.global_transform
 						})
 				outline_count_total += outline_count
-		_draw_node.set_polygons(polygons)
+		_draw_ctrl.set_polygons(polygons)
 		_log_inner("refresh done: %d region(s), %d baked poly(s), %d outline(s), %d draw polys" % [
 			nav_regions.size(), baked_count, outline_count_total, polygons.size()])
 
@@ -265,84 +239,49 @@ class _NavMeshOverlay extends CanvasLayer:
 		return result
 
 
-## Inner draw node: performs the actual draw calls each frame.
-class _NavMeshDrawNode extends Node2D:
+## Inner draw control: performs the actual draw calls each frame in screen space.
+## Issue #1392: Uses Control instead of Node2D because Control._draw() shares the
+## same rendering path as Label/Button/FpsMonitor which work reliably in exported
+## builds with gl_compatibility renderer. World-to-screen transform is applied
+## per-vertex using viewport.canvas_transform.
+class _NavMeshDrawControl extends Control:
 	var fill_color: Color = Color(0.0, 0.5, 1.0, 0.25)
 	var outline_color: Color = Color(0.0, 0.8, 1.0, 0.85)
 	var _polygons: Array = []
-	## Diagnostic: how many times _draw() has been called since last set_polygons.
-	var _draw_call_count: int = 0
-	## Diagnostic: logged flag to avoid spamming.
-	var _diag_logged: bool = false
+
+	func _init() -> void:
+		# Cover the full viewport so draw calls can paint anywhere on screen.
+		set_anchors_preset(Control.PRESET_FULL_RECT)
+		# Don't intercept mouse events.
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	func set_polygons(polygons: Array) -> void:
 		_polygons = polygons
-		_draw_call_count = 0
-		_diag_logged = false
 		queue_redraw()
 
 	func _draw() -> void:
-		_draw_call_count += 1
-		# Diagnostic: log once per refresh cycle to verify _draw() is called
-		# and report transform chain state.
-		if not _diag_logged and _polygons.size() > 0:
-			_diag_logged = true
-			var diag_msg: String = "_draw() called: %d polygons, draw_call #%d" % [
-				_polygons.size(), _draw_call_count]
-			# Report first polygon's first vertex (world-space)
-			var first_poly: Dictionary = _polygons[0]
-			var fv: PackedVector2Array = first_poly["vertices"]
-			var fx: Transform2D = first_poly["global_transform"]
-			if fv.size() > 0:
-				var world_v: Vector2 = fx * fv[0]
-				diag_msg += ", first_vert_world=(%d,%d)" % [int(world_v.x), int(world_v.y)]
-			# Report node visibility and tree state
-			diag_msg += ", visible=%s, in_tree=%s" % [str(visible), str(is_inside_tree())]
-			# Report parent CanvasLayer info
-			var parent_layer: Node = get_parent()
-			if parent_layer is CanvasLayer:
-				var cl: CanvasLayer = parent_layer as CanvasLayer
-				diag_msg += ", CL_layer=%d, CL_visible=%s" % [cl.layer, str(cl.visible)]
-				diag_msg += ", CL_follow_vp=%s" % str(cl.follow_viewport_enabled)
-				diag_msg += ", CL_transform=%s" % str(cl.transform)
-			# Report viewport transforms
-			var vp: Viewport = get_viewport()
-			if vp:
-				diag_msg += ", vp_canvas_xform=%s" % str(vp.canvas_transform)
-				diag_msg += ", vp_size=%s" % str(vp.get_visible_rect().size)
-			# Log via FileLogger (works in release builds)
-			var tree: SceneTree = Engine.get_main_loop() as SceneTree
-			if tree:
-				var fl: Node = tree.root.get_node_or_null("/root/FileLogger")
-				if fl and fl.has_method("log_info"):
-					fl.log_info("[NavMeshMonitor] " + diag_msg)
-		# Diagnostic: draw a bright test marker at a fixed world position
-		# to verify the CanvasLayer + Node2D rendering pipeline works at all.
-		# This should appear as a bright magenta circle near top-left of the
-		# nav mesh area. If this is invisible too, the issue is in the
-		# rendering pipeline, not the polygon data.
-		if _polygons.size() > 0:
-			var test_poly: Dictionary = _polygons[0]
-			var test_verts: PackedVector2Array = test_poly["vertices"]
-			var test_xform: Transform2D = test_poly["global_transform"]
-			if test_verts.size() > 0:
-				var test_world: Vector2 = test_xform * test_verts[0]
-				draw_circle(test_world, 30.0, Color(1.0, 0.0, 1.0, 1.0))
+		# Get viewport canvas_transform to convert world coords → screen coords.
+		# The CanvasLayer (follow_viewport_enabled=false) renders in screen space,
+		# so we must manually apply the camera transform to each vertex.
+		var vp: Viewport = get_viewport()
+		if vp == null:
+			return
+		var cam_xform: Transform2D = vp.canvas_transform
 		for poly_data in _polygons:
 			var verts: PackedVector2Array = poly_data["vertices"]
-			var xform: Transform2D = poly_data["global_transform"]
-			# Transform vertices from NavigationRegion2D local space to world space,
-			# then to this node's local space (identity since it's at root level)
-			var world_verts: PackedVector2Array = PackedVector2Array()
+			var region_xform: Transform2D = poly_data["global_transform"]
+			# Transform: local → world → screen
+			var screen_verts: PackedVector2Array = PackedVector2Array()
 			for v in verts:
-				world_verts.append(xform * v)
+				var world_v: Vector2 = region_xform * v
+				screen_verts.append(cam_xform * world_v)
 			# Colors array for draw_polygon (one per vertex)
 			var colors: PackedColorArray = PackedColorArray()
-			colors.resize(world_verts.size())
+			colors.resize(screen_verts.size())
 			colors.fill(fill_color)
-			draw_polygon(world_verts, colors)
+			draw_polygon(screen_verts, colors)
 			# Draw outline
-			draw_polyline(world_verts, outline_color, 1.5)
+			draw_polyline(screen_verts, outline_color, 1.5)
 			# Close the outline loop
-			if world_verts.size() >= 2:
-				draw_line(world_verts[world_verts.size() - 1], world_verts[0], outline_color, 1.5)
+			if screen_verts.size() >= 2:
+				draw_line(screen_verts[screen_verts.size() - 1], screen_verts[0], outline_color, 1.5)

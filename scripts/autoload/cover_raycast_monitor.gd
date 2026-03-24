@@ -102,17 +102,12 @@ class _CoverRaycastOverlay extends CanvasLayer:
 		# Below FPS counter (200).
 		layer = 150
 		# Issue #1392: Do NOT use follow_viewport_enabled — it has unreliable
-		# behavior in Godot 4.3 gl_compatibility exported builds. Instead we
-		# sync the CanvasLayer.transform to the viewport canvas transform each
-		# frame in _process().
+		# behavior in Godot 4.3 gl_compatibility exported builds.
+		# Do NOT set CanvasLayer.transform either — the Control._draw() method
+		# handles world-to-screen transform per-vertex using canvas_transform.
 		follow_viewport_enabled = false
 		_draw_node = _CoverRaycastDrawNode.new()
 		add_child(_draw_node)
-
-	func _process(_delta: float) -> void:
-		var vp: Viewport = get_viewport()
-		if vp:
-			transform = vp.canvas_transform
 
 	## Collect cover raycast data from all active enemies and pass to the draw node.
 	func refresh() -> void:
@@ -150,11 +145,21 @@ class _CoverRaycastOverlay extends CanvasLayer:
 		_draw_node.set_data(enemy_data, player_pos, has_player)
 
 
-## Inner draw node: performs the actual draw calls each frame.
-class _CoverRaycastDrawNode extends Node2D:
+## Inner draw control: performs the actual draw calls each frame in screen space.
+## Issue #1392: Uses Control instead of Node2D because Control._draw() shares the
+## same rendering path as Label/Button/FpsMonitor which work reliably in exported
+## builds with gl_compatibility renderer. World-to-screen transform is applied
+## per-vertex using viewport.canvas_transform.
+class _CoverRaycastDrawNode extends Control:
 	var _enemy_data: Array = []
 	var _player_pos: Vector2 = Vector2.ZERO
 	var _has_player: bool = false
+
+	func _init() -> void:
+		# Cover the full viewport so draw calls can paint anywhere on screen.
+		set_anchors_preset(Control.PRESET_FULL_RECT)
+		# Don't intercept mouse events.
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	func set_data(data: Array, player_pos: Vector2, has_player: bool) -> void:
 		_enemy_data = data
@@ -163,6 +168,12 @@ class _CoverRaycastDrawNode extends Node2D:
 		queue_redraw()
 
 	func _draw() -> void:
+		# Get viewport canvas_transform to convert world coords → screen coords.
+		var vp: Viewport = get_viewport()
+		if vp == null:
+			return
+		var cam_xform: Transform2D = vp.canvas_transform
+
 		for entry in _enemy_data:
 			var rays: Array = entry["rays"]
 			var cover_pos: Vector2 = entry["cover_position"]
@@ -177,22 +188,23 @@ class _CoverRaycastDrawNode extends Node2D:
 				if colliding:
 					var point: Vector2 = ray_data["point"]
 					# Yellow line from origin to collision point
-					draw_line(origin, point, Color(1.0, 1.0, 0.0, 0.5), CoverRaycastMonitor.RAY_LINE_WIDTH)
+					draw_line(cam_xform * origin, cam_xform * point, Color(1.0, 1.0, 0.0, 0.5), CoverRaycastMonitor.RAY_LINE_WIDTH)
 					# Small dot at collision point
-					draw_circle(point, CoverRaycastMonitor.COLLISION_DOT_RADIUS, Color(1.0, 0.8, 0.0, 0.7))
+					draw_circle(cam_xform * point, CoverRaycastMonitor.COLLISION_DOT_RADIUS, Color(1.0, 0.8, 0.0, 0.7))
 				else:
 					# Thin gray line for miss
-					draw_line(origin, target, Color(0.5, 0.5, 0.5, 0.2), CoverRaycastMonitor.RAY_LINE_WIDTH * 0.5)
+					draw_line(cam_xform * origin, cam_xform * target, Color(0.5, 0.5, 0.5, 0.2), CoverRaycastMonitor.RAY_LINE_WIDTH * 0.5)
 
 			# Draw chosen cover position
 			if cover_valid:
+				var screen_cover: Vector2 = cam_xform * cover_pos
 				# Green filled circle with outline
-				draw_circle(cover_pos, CoverRaycastMonitor.COVER_MARKER_RADIUS, Color(0.0, 1.0, 0.0, 0.3))
-				_draw_circle_outline(cover_pos, CoverRaycastMonitor.COVER_MARKER_RADIUS, Color(0.0, 1.0, 0.0, 0.9), CoverRaycastMonitor.LOS_LINE_WIDTH)
+				draw_circle(screen_cover, CoverRaycastMonitor.COVER_MARKER_RADIUS, Color(0.0, 1.0, 0.0, 0.3))
+				_draw_circle_outline(screen_cover, CoverRaycastMonitor.COVER_MARKER_RADIUS, Color(0.0, 1.0, 0.0, 0.9), CoverRaycastMonitor.LOS_LINE_WIDTH)
 
 				# Red dashed line from player to cover position (LOS check)
 				if _has_player:
-					draw_line(_player_pos, cover_pos, Color(1.0, 0.0, 0.0, 0.4), CoverRaycastMonitor.LOS_LINE_WIDTH)
+					draw_line(cam_xform * _player_pos, screen_cover, Color(1.0, 0.0, 0.0, 0.4), CoverRaycastMonitor.LOS_LINE_WIDTH)
 
 	## Draw a circle outline using line segments.
 	func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: float) -> void:

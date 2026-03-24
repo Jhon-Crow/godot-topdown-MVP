@@ -152,20 +152,15 @@ class _EnemyPathOverlay extends CanvasLayer:
 		# Below FPS counter (200).
 		layer = 150
 		# Issue #1392: Do NOT use follow_viewport_enabled — it has unreliable
-		# behavior in Godot 4.3 gl_compatibility exported builds. Instead we
-		# sync the CanvasLayer.transform to the viewport canvas transform each
-		# frame in _process().
+		# behavior in Godot 4.3 gl_compatibility exported builds.
+		# Do NOT set CanvasLayer.transform either — the Control._draw() method
+		# handles world-to-screen transform per-vertex using canvas_transform.
 		follow_viewport_enabled = false
 		_draw_node = _EnemyPathDrawNode.new()
 		_draw_node.waypoint_radius = waypoint_radius
 		_draw_node.target_radius = target_radius
 		_draw_node.line_width = line_width
 		add_child(_draw_node)
-
-	func _process(_delta: float) -> void:
-		var vp: Viewport = get_viewport()
-		if vp:
-			transform = vp.canvas_transform
 
 	## Collect nav path data from all active enemies and pass to the draw node.
 	func refresh() -> void:
@@ -197,18 +192,34 @@ class _EnemyPathOverlay extends CanvasLayer:
 		_draw_node.set_path_data(paths)
 
 
-## Inner draw node: performs the actual draw calls each frame.
-class _EnemyPathDrawNode extends Node2D:
+## Inner draw control: performs the actual draw calls each frame in screen space.
+## Issue #1392: Uses Control instead of Node2D because Control._draw() shares the
+## same rendering path as Label/Button/FpsMonitor which work reliably in exported
+## builds with gl_compatibility renderer. World-to-screen transform is applied
+## per-vertex using viewport.canvas_transform.
+class _EnemyPathDrawNode extends Control:
 	var waypoint_radius: float = 6.0
 	var target_radius: float = 10.0
 	var line_width: float = 2.0
 	var _paths: Array = []
+
+	func _init() -> void:
+		# Cover the full viewport so draw calls can paint anywhere on screen.
+		set_anchors_preset(Control.PRESET_FULL_RECT)
+		# Don't intercept mouse events.
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	func set_path_data(paths: Array) -> void:
 		_paths = paths
 		queue_redraw()
 
 	func _draw() -> void:
+		# Get viewport canvas_transform to convert world coords → screen coords.
+		var vp: Viewport = get_viewport()
+		if vp == null:
+			return
+		var cam_xform: Transform2D = vp.canvas_transform
+
 		for path_data in _paths:
 			var path: PackedVector2Array = path_data["path"]
 			var state: int = path_data["state"]
@@ -220,19 +231,20 @@ class _EnemyPathDrawNode extends Node2D:
 			var fill_color: Color = Color(color.r, color.g, color.b, 0.25)
 
 			# Draw path line from enemy to first waypoint, then between waypoints
-			draw_line(enemy_pos, path[0], color, line_width)
+			draw_line(cam_xform * enemy_pos, cam_xform * path[0], color, line_width)
 			for i in range(path.size() - 1):
-				draw_line(path[i], path[i + 1], color, line_width)
+				draw_line(cam_xform * path[i], cam_xform * path[i + 1], color, line_width)
 
 			# Draw small dots at intermediate waypoints
 			for i in range(path.size() - 1):
-				draw_circle(path[i], waypoint_radius, fill_color)
-				_draw_circle_outline(path[i], waypoint_radius, color, line_width)
+				var sp: Vector2 = cam_xform * path[i]
+				draw_circle(sp, waypoint_radius, fill_color)
+				_draw_circle_outline(sp, waypoint_radius, color, line_width)
 
 			# Draw larger dot at the final target
-			var dest: Vector2 = path[path.size() - 1]
-			draw_circle(dest, target_radius, fill_color)
-			_draw_circle_outline(dest, target_radius, color, line_width)
+			var screen_dest: Vector2 = cam_xform * path[path.size() - 1]
+			draw_circle(screen_dest, target_radius, fill_color)
+			_draw_circle_outline(screen_dest, target_radius, color, line_width)
 
 	## Draw a circle outline using line segments.
 	func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: float) -> void:

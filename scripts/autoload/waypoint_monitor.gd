@@ -70,7 +70,7 @@ func _deferred_refresh() -> void:
 
 ## Inner class: a CanvasLayer that draws all waypoint circles each frame.
 class _WaypointOverlay extends CanvasLayer:
-	## The Node2D child that performs the actual draw calls.
+	## The Control child that performs the actual draw calls in screen space.
 	## Initialized in _init() so it is available immediately after .new(),
 	## before _ready() fires (which is deferred to the next frame by add_child).
 	var _draw_node: _WaypointDrawNode = null
@@ -81,9 +81,9 @@ class _WaypointOverlay extends CanvasLayer:
 		# Below FPS counter (200).
 		layer = 151
 		# Issue #1392: Do NOT use follow_viewport_enabled — it has unreliable
-		# behavior in Godot 4.3 gl_compatibility exported builds. Instead we
-		# sync the CanvasLayer.transform to the viewport canvas transform each
-		# frame in _process().
+		# behavior in Godot 4.3 gl_compatibility exported builds.
+		# Do NOT set CanvasLayer.transform either — the Control._draw() method
+		# handles world-to-screen transform per-vertex using canvas_transform.
 		follow_viewport_enabled = false
 		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().
 		# _ready() is deferred to the next frame after add_child(), so if refresh()
@@ -91,11 +91,6 @@ class _WaypointOverlay extends CanvasLayer:
 		# would still be null and the overlay would silently draw nothing.
 		_draw_node = _WaypointDrawNode.new()
 		add_child(_draw_node)
-
-	func _process(_delta: float) -> void:
-		var vp: Viewport = get_viewport()
-		if vp:
-			transform = vp.canvas_transform
 
 	## Collect all waypoint positions from both groups and pass them to the draw node.
 	func refresh() -> void:
@@ -116,18 +111,33 @@ class _WaypointOverlay extends CanvasLayer:
 		_draw_node.set_waypoints(waypoints)
 
 
-## Inner draw node: performs the actual draw calls each frame.
-class _WaypointDrawNode extends Node2D:
+## Inner draw control: performs the actual draw calls each frame in screen space.
+## Issue #1392: Uses Control instead of Node2D because Control._draw() shares the
+## same rendering path as Label/Button/FpsMonitor which work reliably in exported
+## builds with gl_compatibility renderer. World-to-screen transform is applied
+## per-vertex using viewport.canvas_transform.
+class _WaypointDrawNode extends Control:
 	var _waypoints: Array = []
+
+	func _init() -> void:
+		# Cover the full viewport so draw calls can paint anywhere on screen.
+		set_anchors_preset(Control.PRESET_FULL_RECT)
+		# Don't intercept mouse events.
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	func set_waypoints(waypoints: Array) -> void:
 		_waypoints = waypoints
 		queue_redraw()
 
 	func _draw() -> void:
+		# Get viewport canvas_transform to convert world coords → screen coords.
+		var vp: Viewport = get_viewport()
+		if vp == null:
+			return
+		var cam_xform: Transform2D = vp.canvas_transform
 		var font: Font = ThemeDB.fallback_font
 		for wp in _waypoints:
-			var pos: Vector2 = wp["pos"]
-			draw_circle(pos, 12.0, wp["color"])
-			draw_string(font, pos + Vector2(14, 4), wp["name"],
+			var screen_pos: Vector2 = cam_xform * wp["pos"]
+			draw_circle(screen_pos, 12.0, wp["color"])
+			draw_string(font, screen_pos + Vector2(14, 4), wp["name"],
 					HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
