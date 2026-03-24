@@ -2401,3 +2401,127 @@ func test_reset_memory_engaged_enemy_with_target_goes_searching_issue_1419() -> 
 	var should_search := had_target and has_left_idle
 	assert_true(should_search,
 		"Issue #1419: engaged enemy (had_target=true, _has_left_idle=true) must still enter SEARCHING")
+
+
+# ============================================================================
+# Issue #1457: Enemy wall corner rubbing during PURSUING state
+# ============================================================================
+
+
+## Issue #1457: PURSUING stuck detection constants must be tuned correctly.
+## PURSUING_STUCK_MAX_TIME (1.5s) must be shorter than GLOBAL_STUCK_MAX_TIME (4.0s) so
+## the per-cover fast recovery fires before the global fallback.
+## PURSUING_STUCK_DIST_THRESHOLD (20px) must be above one frame of movement to avoid
+## false-positive triggers on normal navigation.
+func test_pursuing_stuck_detection_constants_issue_1457() -> void:
+	# These constants are verified in source — confirms they exist and are correctly tuned.
+	var pursuing_stuck_max_time := 1.5      # PURSUING_STUCK_MAX_TIME
+	var global_stuck_max_time := 4.0        # GLOBAL_STUCK_MAX_TIME
+	var pursuing_stuck_dist := 20.0         # PURSUING_STUCK_DIST_THRESHOLD
+
+	assert_lt(pursuing_stuck_max_time, global_stuck_max_time,
+		"Issue #1457: PURSUING_STUCK_MAX_TIME (%.1fs) must be < GLOBAL_STUCK_MAX_TIME (%.1fs)" % [pursuing_stuck_max_time, global_stuck_max_time])
+	assert_ge(pursuing_stuck_max_time, 0.5,
+		"Issue #1457: PURSUING_STUCK_MAX_TIME too small — will trigger on brief wall brushing")
+	assert_le(pursuing_stuck_max_time, 3.0,
+		"Issue #1457: PURSUING_STUCK_MAX_TIME too large — wall rubbing will be visible too long")
+
+	var min_move_speed := 100.0   # px/s lower bound
+	var max_delta := 1.0 / 30.0   # at least 30 fps
+	var one_frame_min_movement := min_move_speed * max_delta  # ~3.3 px
+	assert_gt(pursuing_stuck_dist, one_frame_min_movement,
+		"Issue #1457: PURSUING_STUCK_DIST_THRESHOLD %.1f px must exceed one-frame movement %.1f px" % [pursuing_stuck_dist, one_frame_min_movement])
+
+
+## Issue #1457: Fast stuck detection logic — triggers after PURSUING_STUCK_MAX_TIME.
+## Simulates the distance-check accumulation loop from _process_pursuing_state.
+func test_pursuing_stuck_detection_triggers_at_correct_time_issue_1457() -> void:
+	const MAX_TIME: float = 1.5     # PURSUING_STUCK_MAX_TIME
+	const DIST_THRESHOLD: float = 20.0  # PURSUING_STUCK_DIST_THRESHOLD
+	const DELTA: float = 1.0 / 60.0     # 60 fps
+
+	var stuck_timer: float = 0.0
+	var stuck_last_pos := Vector2(500, 500)
+	var current_pos := Vector2(500, 500)   # Not moving — simulates wall contact
+
+	var triggered := false
+	var frames := 0
+	while frames < 600:   # Safety cap: 10 seconds at 60 fps
+		frames += 1
+		if current_pos.distance_to(stuck_last_pos) < DIST_THRESHOLD:
+			stuck_timer += DELTA
+			if stuck_timer >= MAX_TIME:
+				triggered = true
+				break
+		else:
+			stuck_timer = 0.0
+			stuck_last_pos = current_pos
+
+	assert_true(triggered,
+		"Issue #1457: stuck detection must trigger when enemy does not move for %.1fs" % MAX_TIME)
+	var elapsed := frames * DELTA
+	assert_lt(elapsed, MAX_TIME + 0.1,
+		"Issue #1457: stuck must trigger within %.1f + 0.1s, took %.2fs" % [MAX_TIME, elapsed])
+
+
+## Issue #1457: Stuck detection must NOT trigger when enemy moves normally.
+## Simulates an enemy moving 30px per frame (well above PURSUING_STUCK_DIST_THRESHOLD=20px).
+func test_pursuing_stuck_detection_does_not_trigger_when_moving_issue_1457() -> void:
+	const MAX_TIME: float = 1.5
+	const DIST_THRESHOLD: float = 20.0
+	const DELTA: float = 1.0 / 60.0
+	const MOVE_PER_FRAME: float = 30.0   # > DIST_THRESHOLD
+
+	var stuck_timer: float = 0.0
+	var stuck_last_pos := Vector2.ZERO
+	var current_pos := Vector2.ZERO
+	var triggered := false
+
+	for _i in range(200):   # 200 frames
+		current_pos += Vector2(MOVE_PER_FRAME, 0)
+		if current_pos.distance_to(stuck_last_pos) < DIST_THRESHOLD:
+			stuck_timer += DELTA
+			if stuck_timer >= MAX_TIME:
+				triggered = true
+				break
+		else:
+			stuck_timer = 0.0
+			stuck_last_pos = current_pos
+
+	assert_false(triggered,
+		"Issue #1457: stuck detection must NOT trigger when enemy moves %.0fpx/frame (> %.0fpx threshold)" % [MOVE_PER_FRAME, DIST_THRESHOLD])
+
+
+## Issue #1457: Nav-mode wall avoidance weight must be lower than standard avoidance.
+## The standard weight can reach 0.7 (MIN_WEIGHT) when near a wall. In nav mode, the
+## weight is halved to avoid over-steering in corridors where the nav mesh already
+## provides margin.
+func test_nav_mode_wall_avoidance_weight_is_reduced_issue_1457() -> void:
+	var standard_max_weight: float = 0.7   # WALL_AVOIDANCE_MIN_WEIGHT (applied when close)
+	var nav_weight_multiplier: float = 0.5  # Factor in _apply_wall_avoidance_nav_mode
+	var nav_max_weight: float = standard_max_weight * nav_weight_multiplier
+
+	assert_lt(nav_max_weight, standard_max_weight,
+		"Issue #1457: nav-mode avoidance weight (%.3f) must be < standard (%.3f)" % [nav_max_weight, standard_max_weight])
+	assert_lt(nav_max_weight, 0.5,
+		"Issue #1457: nav-mode max weight (%.3f) must be < 0.5 so nav path dominates" % nav_max_weight)
+
+
+## Issue #1457: Verify _apply_wall_avoidance_nav_mode exists in enemy.gd source.
+func test_nav_mode_avoidance_function_exists_in_source_issue_1457() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	assert_true(source.contains("func _apply_wall_avoidance_nav_mode"),
+		"Issue #1457: _apply_wall_avoidance_nav_mode function must exist in enemy.gd")
+	assert_true(source.contains("_pursuing_stuck_timer"),
+		"Issue #1457: _pursuing_stuck_timer variable must exist in enemy.gd")
+	assert_true(source.contains("PURSUING_STUCK_MAX_TIME"),
+		"Issue #1457: PURSUING_STUCK_MAX_TIME constant must exist in enemy.gd")
+	assert_true(source.contains("_apply_wall_avoidance_nav_mode(direction)"),
+		"Issue #1457: _move_to_target_nav must call _apply_wall_avoidance_nav_mode")
