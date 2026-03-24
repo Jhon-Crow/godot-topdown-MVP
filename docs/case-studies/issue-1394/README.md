@@ -72,6 +72,19 @@ Key parameters matching HM2 style:
 - Splashes have very low velocity, appearing and fading in-place
 - Both layers use cool blue-white tint (Color ~0.85-0.95 RGB) matching HM2's palette
 
+### Splash Misalignment Issue (2026-03-24, Iteration 5)
+
+After fixing rain to fall straight down (Iteration 4 changed direction from diagonal to vertical), the user reported that splashes still don't land where streaks fall. The screenshot showed two clearly separated particle areas — streaks in one region, splashes offset below.
+
+**Root cause:** The `RainSplashes` node had `position = Vector2(0, 180)`, which was calculated for the old diagonal trajectory. Even after making rain vertical, the splash emission box was displaced 180px below the streak emission box. Since both boxes covered a 700×450 area, the two layers were visually disconnected.
+
+**Fix:** Removed the position offset entirely — both `RainStreaks` and `RainSplashes` now emit from the exact same area (centered on camera). Since streaks fall downward through this area and splashes appear in-place within the same area, the visual result is that drops appear to land and splash within the same region. Both layers share matching visibility rects `Rect2(-900, -600, 1800, 1200)`.
+
+| Parameter | Before | After |
+|---|---|---|
+| Splash position offset | `Vector2(0, 180)` | `Vector2(0, 0)` (no offset) |
+| Splash visibility_rect | `Rect2(-800, -500, 1600, 1000)` | `Rect2(-900, -600, 1800, 1200)` (matches streaks) |
+
 ### Key Technical Challenges
 
 1. **Large map coverage**: The Docks map is ~5000x4000 pixels, much larger than the viewport (1280x720). Rain must follow the camera.
@@ -95,9 +108,9 @@ The solution consists of three parts:
 
 2. **`scenes/effects/RainEffect.tscn`** — Reusable rain scene (Node2D)
    - Two-layer Hotline Miami 2-style rain:
-     - **RainStreaks**: 180 diagonal falling raindrop particles (2×12px gradient line, 350-500 px/s)
+     - **RainStreaks**: 180 vertical falling raindrop particles (2×12px gradient line, 400-500 px/s)
      - **RainSplashes**: 100 ground ripple particles (6×6px radial circle, near-zero velocity)
-   - Box emission covering full viewport area for even rain distribution
+   - Both layers emit from the same overlapping area for unified drop-and-splash appearance
 
 3. **Level integration** — DocksLevel.tscn includes the RainEffect scene, and docks_level.gd configures exclusion zones
 

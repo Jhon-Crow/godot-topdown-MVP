@@ -74,11 +74,10 @@ lifetime = 0.4
 visibility_rect = Rect2(-900, -600, 1800, 1200)
 
 [node name="RainSplashes" type="GPUParticles2D" parent="."]
-position = Vector2(0, 180)
 material = SubResource("CanvasItemMaterial_additive")
 emitting = false
 amount = 100
 process_material = SubResource("ParticleProcessMaterial_splash")
 texture = SubResource("GradientTexture2D_splash")
 lifetime = 0.5
-visibility_rect = Rect2(-800, -500, 1600, 1000)
+visibility_rect = Rect2(-900, -600, 1800, 1200)
