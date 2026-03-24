@@ -65,13 +65,16 @@ func _set_overlay_visible(visible: bool) -> void:
 
 
 ## Create the overlay node if it doesn't exist yet.
+## Issue #1392: add as child of this autoload (like FpsMonitor does) rather than
+## get_tree().root — ensures the CanvasLayer stays in the scene tree across
+## scene changes and renders correctly in exported builds.
 func _ensure_overlay() -> void:
 	if _overlay != null and is_instance_valid(_overlay):
 		return
 	_overlay = _NavMeshOverlay.new()
 	_overlay.fill_color = NAV_MESH_FILL_COLOR
 	_overlay.outline_color = NAV_MESH_OUTLINE_COLOR
-	get_tree().root.add_child(_overlay)
+	add_child(_overlay)
 	_log("Overlay node created")
 
 
@@ -115,23 +118,26 @@ class _NavMeshOverlay extends CanvasLayer:
 	## Initialized in _init() so it is available immediately after .new(),
 	## before _ready() fires (which is deferred to the next frame by add_child).
 	var _draw_node: _NavMeshDrawNode = null
+	## Issue #1392: diagnostic label to verify CanvasLayer renders at all.
+	var _diag_label: Label = null
 
 	func _init() -> void:
-		# Render above all game world elements (layer 50) and above most UI (default layer 1).
-		# CinemaEffects uses layer 99; we stay below that so debug overlay doesn't cover vignette.
-		layer = 50
+		# Issue #1392: render above all visual effects (layers 97-103).
+		layer = 150
 		# Follow the viewport camera so world-space coordinates in _draw() align correctly.
-		# With follow_viewport_enabled=true, drawing at world coordinates maps directly
-		# to the correct screen position regardless of camera position.
 		follow_viewport_enabled = true
-		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().
-		# _ready() is deferred to the next frame after add_child(), so if refresh()
-		# is called immediately after _NavMeshOverlay.new() + add_child(), _draw_node
-		# would still be null. _init() runs synchronously during .new().
 		_draw_node = _NavMeshDrawNode.new()
 		_draw_node.fill_color = fill_color
 		_draw_node.outline_color = outline_color
 		add_child(_draw_node)
+		# Issue #1392: diagnostic label — if this text is visible but polygons aren't,
+		# the issue is in _draw(), not in CanvasLayer rendering.
+		_diag_label = Label.new()
+		_diag_label.text = "[NavMesh overlay active]"
+		_diag_label.position = Vector2(10, 30)
+		_diag_label.add_theme_color_override("font_color", Color(0, 1, 1, 1))
+		_diag_label.add_theme_font_size_override("font_size", 14)
+		add_child(_diag_label)
 
 	## Return the number of polygons currently drawn (for logging).
 	func get_polygon_count() -> int:
@@ -231,12 +237,33 @@ class _NavMeshDrawNode extends Node2D:
 	var fill_color: Color = Color(0.0, 0.5, 1.0, 0.25)
 	var outline_color: Color = Color(0.0, 0.8, 1.0, 0.85)
 	var _polygons: Array = []
+	## Issue #1392: diagnostic counter.
+	var _draw_call_count: int = 0
+	var _logged_first_draw: bool = false
 
 	func set_polygons(polygons: Array) -> void:
 		_polygons = polygons
 		queue_redraw()
 
 	func _draw() -> void:
+		_draw_call_count += 1
+		# Issue #1392: log first draw call with coordinate info for debugging.
+		if not _logged_first_draw and _polygons.size() > 0:
+			_logged_first_draw = true
+			var first_poly: Dictionary = _polygons[0]
+			var verts: PackedVector2Array = first_poly["vertices"]
+			var xform: Transform2D = first_poly["global_transform"]
+			var first_world: Vector2 = xform * verts[0] if verts.size() > 0 else Vector2.ZERO
+			var tree: SceneTree = Engine.get_main_loop() as SceneTree
+			if tree != null:
+				var fl: Node = tree.root.get_node_or_null("/root/FileLogger")
+				if fl and fl.has_method("log_info"):
+					fl.log_info("[NavMeshMonitor] _draw() called: polys=%d, first_vert_world=%s, draw_count=%d, is_visible=%s, parent_layer=%s" % [
+						_polygons.size(), str(first_world), _draw_call_count,
+						str(is_visible_in_tree()),
+						str(get_parent().layer if get_parent() is CanvasLayer else "N/A")])
+		# Draw a bright test rectangle at screen origin to verify rendering works.
+		draw_rect(Rect2(0, 0, 50, 50), Color(1, 0, 0, 0.8))
 		for poly_data in _polygons:
 			var verts: PackedVector2Array = poly_data["vertices"]
 			var xform: Transform2D = poly_data["global_transform"]
