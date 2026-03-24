@@ -45,6 +45,9 @@ const LINE_WIDTH := 2.0
 
 ## The overlay node used for custom drawing.
 var _overlay: _EnemyPathOverlay = null
+## Issue #1392: diagnostic counter — log stats periodically instead of every frame.
+var _diag_frame_count: int = 0
+var _diag_last_path_count: int = -1
 
 
 func _ready() -> void:
@@ -59,6 +62,16 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if _overlay != null and is_instance_valid(_overlay) and _overlay.visible:
 		_overlay.refresh()
+		# Issue #1392: periodic diagnostic logging (every 60 frames ≈ 1s)
+		_diag_frame_count += 1
+		if _diag_frame_count % 60 == 1:
+			var path_count: int = _overlay.get_path_count()
+			if path_count != _diag_last_path_count:
+				_diag_last_path_count = path_count
+				var enemies_count: int = get_tree().get_nodes_in_group("enemies").size()
+				_log("diag: overlay.visible=%s, paths=%d, enemies=%d, draw_node=%s, draw_count=%d" % [
+					_overlay.visible, path_count, enemies_count,
+					str(_overlay._draw_node != null), _overlay.get_draw_count()])
 
 
 ## Apply current enemy path visibility setting.
@@ -91,7 +104,7 @@ func _ensure_overlay() -> void:
 	_overlay.waypoint_radius = WAYPOINT_RADIUS
 	_overlay.target_radius = TARGET_RADIUS
 	_overlay.line_width = LINE_WIDTH
-	get_tree().root.add_child(_overlay)
+	add_child(_overlay)
 	_log("EnemyPathMonitor: overlay created")
 
 
@@ -147,13 +160,28 @@ class _EnemyPathOverlay extends CanvasLayer:
 	var _draw_node: _EnemyPathDrawNode = null
 
 	func _init() -> void:
-		layer = 10
+		# Issue #1392: raised above visual effects (layers 97-103) to remain visible.
+		layer = 150
 		follow_viewport_enabled = true
 		_draw_node = _EnemyPathDrawNode.new()
 		_draw_node.waypoint_radius = waypoint_radius
 		_draw_node.target_radius = target_radius
 		_draw_node.line_width = line_width
 		add_child(_draw_node)
+		# Issue #1392: diagnostic label
+		var _diag_label := Label.new()
+		_diag_label.text = "[EnemyPath overlay active]"
+		_diag_label.position = Vector2(10, 50)
+		_diag_label.add_theme_color_override("font_color", Color(1, 1, 0, 1))
+		_diag_label.add_theme_font_size_override("font_size", 14)
+		add_child(_diag_label)
+
+	## Issue #1392: diagnostic helpers.
+	func get_path_count() -> int:
+		return _draw_node._paths.size() if _draw_node != null else -1
+
+	func get_draw_count() -> int:
+		return _draw_node._draw_call_count if _draw_node != null else -1
 
 	## Collect nav path data from all active enemies and pass to the draw node.
 	func refresh() -> void:
@@ -191,12 +219,17 @@ class _EnemyPathDrawNode extends Node2D:
 	var target_radius: float = 10.0
 	var line_width: float = 2.0
 	var _paths: Array = []
+	## Issue #1392: count _draw() invocations for diagnostics.
+	var _draw_call_count: int = 0
 
 	func set_path_data(paths: Array) -> void:
 		_paths = paths
 		queue_redraw()
 
 	func _draw() -> void:
+		_draw_call_count += 1
+		# Issue #1392: test rectangle at screen origin to verify _draw() rendering works.
+		draw_rect(Rect2(60, 0, 50, 50), Color(1, 1, 0, 0.8))
 		for path_data in _paths:
 			var path: PackedVector2Array = path_data["path"]
 			var state: int = path_data["state"]

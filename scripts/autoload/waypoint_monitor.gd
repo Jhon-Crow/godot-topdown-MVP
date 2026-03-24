@@ -53,7 +53,7 @@ func _ensure_overlay() -> void:
 	if _overlay != null and is_instance_valid(_overlay):
 		return
 	_overlay = _WaypointOverlay.new()
-	get_tree().root.add_child(_overlay)
+	add_child(_overlay)
 
 
 ## Re-apply after a new Marker2D is added (e.g. after scene load).
@@ -76,8 +76,8 @@ class _WaypointOverlay extends CanvasLayer:
 	var _draw_node: _WaypointDrawNode = null
 
 	func _init() -> void:
-		# Render above game world (layer 11, just above NavMeshMonitor at 10)
-		layer = 11
+		# Issue #1392: raised above visual effects (layers 97-103) to remain visible.
+		layer = 150
 		# Follow the viewport camera so world-space coordinates align correctly
 		follow_viewport_enabled = true
 		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().

@@ -745,6 +745,101 @@ func _restore_saved_unlocks(
 			_log("Skipped restore for active item type %d (condition not met — treating as corrupt save)" % item_type)
 
 
+## Return a human-readable description of the unlock condition for a weapon.
+## Used by the armory tooltip to show locked-item unlock requirements.
+## @param weapon_id: The weapon ID to look up.
+## @return: A string describing how to unlock this weapon, or "" if not found.
+func get_weapon_unlock_description(weapon_id: String) -> String:
+	for condition_key in UNLOCK_CONDITIONS:
+		var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
+		if weapon_id in condition.get("weapons", []):
+			return _build_single_level_description(condition_key, condition)
+	for multi_condition in MULTI_UNLOCK_CONDITIONS:
+		if weapon_id in multi_condition.get("weapons", []):
+			return _build_multi_level_description(multi_condition)
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if weapon_id in kill_condition.get("weapons", []):
+			return _build_kill_condition_description(kill_condition)
+	return ""
+
+
+## Return a human-readable description of the unlock condition for a grenade type.
+## @param grenade_type: The grenade type int to look up.
+## @return: A string describing how to unlock this grenade, or "" if not found.
+func get_grenade_unlock_description(grenade_type: int) -> String:
+	for condition_key in UNLOCK_CONDITIONS:
+		var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
+		if grenade_type in condition.get("grenades", []):
+			return _build_single_level_description(condition_key, condition)
+	for multi_condition in MULTI_UNLOCK_CONDITIONS:
+		if grenade_type in multi_condition.get("grenades", []):
+			return _build_multi_level_description(multi_condition)
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if grenade_type in kill_condition.get("grenades", []):
+			return _build_kill_condition_description(kill_condition)
+	return ""
+
+
+## Return a human-readable description of the unlock condition for an active item type.
+## @param item_type: The active item type int to look up.
+## @return: A string describing how to unlock this item, or "" if not found.
+func get_active_item_unlock_description(item_type: int) -> String:
+	for condition_key in UNLOCK_CONDITIONS:
+		var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
+		if item_type in condition.get("active_items", []):
+			return _build_single_level_description(condition_key, condition)
+	for multi_condition in MULTI_UNLOCK_CONDITIONS:
+		if item_type in multi_condition.get("active_items", []):
+			return _build_multi_level_description(multi_condition)
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if item_type in kill_condition.get("active_items", []):
+			return _build_kill_condition_description(kill_condition)
+	return ""
+
+
+## Level scene path to display name mapping (mirrors UnlockTableMenu.LEVEL_NAMES).
+const _LEVEL_NAMES: Dictionary = {
+	"res://scenes/levels/LabyrinthLevel.tscn": "Labyrinth",
+	"res://scenes/levels/BuildingLevel.tscn": "Building",
+	"res://scenes/levels/TestTier.tscn": "Polygon",
+	"res://scenes/levels/CastleLevel.tscn": "Castle",
+	"res://scenes/levels/RevolverLevel.tscn": "Double Corridor",
+	"res://scenes/levels/BeachLevel.tscn": "Beach",
+	"res://scenes/levels/DocksLevel.tscn": "Docks",
+	"res://scenes/levels/CityLevel.tscn": "City"
+}
+
+
+## Build a description string for a single-level UNLOCK_CONDITIONS entry.
+func _build_single_level_description(condition_key: String, condition: Dictionary) -> String:
+	var scene_path: String = _extract_scene_path(condition_key)
+	var level_name: String = _LEVEL_NAMES.get(scene_path, scene_path.get_file().get_basename())
+	var min_rank: String = condition.get("min_rank", "D")
+	if min_rank == "F":
+		return "Complete %s" % level_name
+	return "Complete %s at rank %s or higher" % [level_name, min_rank]
+
+
+## Build a description string for a MULTI_UNLOCK_CONDITIONS entry.
+func _build_multi_level_description(multi_condition: Dictionary) -> String:
+	var parts: Array[String] = []
+	for level_entry in multi_condition.get("levels", []):
+		var path: String = level_entry.get("path", "")
+		var min_rank: String = level_entry.get("min_rank", "S")
+		var level_name: String = _LEVEL_NAMES.get(path, path.get_file().get_basename())
+		parts.append("%s %s" % [level_name, min_rank])
+	return "Complete: " + " + ".join(parts)
+
+
+## Build a description string for a KILL_UNLOCK_CONDITIONS entry.
+func _build_kill_condition_description(kill_condition: Dictionary) -> String:
+	var stat: String = kill_condition.get("stat", "")
+	var min_kills: int = kill_condition.get("min_kills", 0)
+	if stat == "shots_fired_special_weapons":
+		return "Fire %d shots with shotgun, rifle, or revolver" % min_kills
+	return "Get %d kills without Laser Sight" % min_kills
+
+
 ## Get all available difficulty names from DifficultyManager (with static fallback).
 ## Uses DifficultyManager as the single source of truth so new difficulties are
 ## automatically picked up without needing to update this file.
