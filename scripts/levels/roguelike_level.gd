@@ -1244,34 +1244,25 @@ func _spawn_player() -> void:
 	player.name = "Player"
 
 	# Issue #1399: Spawn player near the door they entered from.
-	# If target_room was set, find the direction from target to the source room
-	# and spawn near the opposite wall.
+	# Use roguelike_source_room to know exactly which room the player came from.
 	var spawn_pos := Vector2(80.0, _room_h * 0.5)  # Default: left-centre
-	var target_idx: int = GameManager.roguelike_target_room
+	var source_idx: int = GameManager.roguelike_source_room
 	var current_idx: int = GameManager.roguelike_current_map_room
-	if target_idx >= 0 and target_idx == current_idx and GameManager.roguelike_room_map.size() > 0:
-		# Find which room we came from (the previously visited room that connects to this one)
+	if source_idx >= 0 and GameManager.roguelike_room_map.size() > 0:
 		var rooms: Array = GameManager.roguelike_room_map
-		if current_idx >= 0 and current_idx < rooms.size():
-			var current_room: Dictionary = rooms[current_idx]
-			# The arrival direction is where the source room is relative to current
-			for conn_idx in current_room["connections"]:
-				# Check if this was the source (it should be the room that's cleared/visited
-				# and was current just before). We use visited_rooms to help.
-				if conn_idx in GameManager.roguelike_visited_rooms or (conn_idx >= 0 and conn_idx < rooms.size() and rooms[conn_idx]["visited"]):
-					var arrival_dir: int = _get_direction_between(current_idx, conn_idx)
-					if arrival_dir >= 0:
-						# Spawn near the wall of the arrival direction
-						match arrival_dir:
-							DIR_NORTH:
-								spawn_pos = Vector2(_room_w * 0.5, 80.0)
-							DIR_SOUTH:
-								spawn_pos = Vector2(_room_w * 0.5, _room_h - 80.0)
-							DIR_EAST:
-								spawn_pos = Vector2(_room_w - 80.0, _room_h * 0.5)
-							DIR_WEST:
-								spawn_pos = Vector2(80.0, _room_h * 0.5)
-						break  # Use first matching visited connection
+		if current_idx >= 0 and current_idx < rooms.size() and source_idx < rooms.size():
+			var arrival_dir: int = _get_direction_between(current_idx, source_idx)
+			if arrival_dir >= 0:
+				# Spawn near the wall of the arrival direction (the door they came through)
+				match arrival_dir:
+					DIR_NORTH:
+						spawn_pos = Vector2(_room_w * 0.5, 80.0)
+					DIR_SOUTH:
+						spawn_pos = Vector2(_room_w * 0.5, _room_h - 80.0)
+					DIR_EAST:
+						spawn_pos = Vector2(_room_w - 80.0, _room_h * 0.5)
+					DIR_WEST:
+						spawn_pos = Vector2(80.0, _room_h * 0.5)
 
 	player.position = spawn_pos
 	entities_node.add_child(player)
@@ -1564,14 +1555,10 @@ func _create_door_zone(direction: int, target_room_idx: int) -> void:
 func _on_door_entered(body: Node2D, target_room_idx: int) -> void:
 	if body.name != "Player" and not body.is_in_group("player"):
 		return
+	# Doors are only active after room is cleared (start rooms and revisits
+	# are marked as cleared during _ready, so this check covers all cases).
 	if not _room_cleared and not GameManager.roguelike_in_treasure_room:
-		# Room not cleared yet — start room is auto-cleared
-		var rooms: Array = GameManager.roguelike_room_map
-		var current_idx: int = GameManager.roguelike_current_map_room
-		if current_idx >= 0 and current_idx < rooms.size() and rooms[current_idx]["map_room_type"] == "start":
-			pass  # Start room — doors always active
-		else:
-			return
+		return
 
 	print("[RoguelikeLevel] Player entered door to room %d" % target_room_idx)
 	GameManager.roguelike_target_room = target_room_idx
@@ -2423,6 +2410,7 @@ func _navigate_to_map_room(target_room_idx: int) -> void:
 		rooms[current_idx]["cleared"] = true
 
 	# Update state for the target room
+	GameManager.roguelike_source_room = current_idx  # Track where we came from
 	GameManager.roguelike_current_map_room = target_room_idx
 	GameManager.roguelike_target_room = target_room_idx
 

@@ -194,6 +194,10 @@ var roguelike_visited_rooms: Array = []
 ## Target room index when player enters a door (used during scene reload).
 var roguelike_target_room: int = -1
 
+## Source room index — the room player was in before navigating (Issue #1399).
+## Used to determine spawn position in the new room.
+var roguelike_source_room: int = -1
+
 ## Resets all roguelike session variables to their default (not-in-run) state.
 func roguelike_reset_session() -> void:
 	roguelike_active = false
@@ -213,6 +217,7 @@ func roguelike_reset_session() -> void:
 	roguelike_current_map_room = 0
 	roguelike_visited_rooms = []
 	roguelike_target_room = -1
+	roguelike_source_room = -1
 
 
 func _ready() -> void:
