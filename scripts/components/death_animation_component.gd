@@ -401,6 +401,9 @@ func _create_ragdoll_body(sprite: Sprite2D, mass: float, collision_radius: float
 	rb.collision_layer = 32  # Custom layer for ragdoll
 	rb.collision_mask = 4    # Collide with obstacles only
 
+	# Issue #1413: Mark ragdoll as dead enemy part so bullets can pass through
+	rb.add_to_group("dead_enemy_ragdoll")
+
 	# Issue #1334 Round 11: Guard against scene tree unavailability during physics callbacks.
 	# Ragdoll creation can be triggered during _physics_process via death → ragdoll_activated signal.
 	# Adding new physics bodies during active physics processing can corrupt the physics server's

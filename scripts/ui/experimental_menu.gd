@@ -30,6 +30,8 @@ signal back_pressed
 @onready var sound_visualizer_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SoundVisualizerContainer/SoundVisualizerCheckbox
 @onready var enemy_path_visible_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyPathVisibleContainer/EnemyPathVisibleCheckbox
 @onready var cover_raycast_visible_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverRaycastVisibleContainer/CoverRaycastVisibleCheckbox
+@onready var cover_infinite_rays_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverInfiniteRaysContainer/CoverInfiniteRaysCheckbox
+@onready var cover_sector_rays_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/CoverSectorRaysContainer/CoverSectorRaysCheckbox
 @onready var tactical_group_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TacticalGroupContainer/TacticalGroupCheckbox
 @onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var unlock_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer/UnlockTableButton
@@ -39,6 +41,15 @@ signal back_pressed
 @onready var spawn_status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SpawnStatusLabel
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
+
+## NavBar references.
+@onready var scroll_container: ScrollContainer = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer
+@onready var nav_visualisation_button: Button = $MenuContainer/NavBar/NavVBox/NavVisualisationButton
+@onready var nav_ai_button: Button = $MenuContainer/NavBar/NavVBox/NavAIButton
+@onready var nav_cheats_button: Button = $MenuContainer/NavBar/NavVBox/NavCheatsButton
+@onready var nav_perf_button: Button = $MenuContainer/NavBar/NavVBox/NavPerfButton
+@onready var nav_debug_button: Button = $MenuContainer/NavBar/NavVBox/NavDebugButton
+@onready var nav_utilities_button: Button = $MenuContainer/NavBar/NavVBox/NavUtilitiesButton
 
 ## Reference to the unlock table menu scene.
 var unlock_table_menu_scene: PackedScene = preload("res://scenes/ui/UnlockTableMenu.tscn")
@@ -114,6 +125,12 @@ func _ready() -> void:
 	_setup_row_hover(_vbox.get_node("CoverRaycastVisibleContainer"),
 			"Show Cover Raycasts",
 			_vbox.get_node("CoverRaycastVisibleDescription"))
+	_setup_row_hover(_vbox.get_node("CoverInfiniteRaysContainer"),
+			"Cover Infinite Rays",
+			_vbox.get_node("CoverInfiniteRaysDescription"))
+	_setup_row_hover(_vbox.get_node("CoverSectorRaysContainer"),
+			"Cover Sector Rays",
+			_vbox.get_node("CoverSectorRaysDescription"))
 	_setup_row_hover(_vbox.get_node("TacticalGroupContainer"),
 			"Tactical Group Movement",
 			_vbox.get_node("TacticalGroupDescription"))
@@ -150,6 +167,8 @@ func _ready() -> void:
 	sound_visualizer_checkbox.toggled.connect(_on_sound_visualizer_toggled)
 	enemy_path_visible_checkbox.toggled.connect(_on_enemy_path_visible_toggled)
 	cover_raycast_visible_checkbox.toggled.connect(_on_cover_raycast_visible_toggled)
+	cover_infinite_rays_checkbox.toggled.connect(_on_cover_infinite_rays_toggled)
+	cover_sector_rays_checkbox.toggled.connect(_on_cover_sector_rays_toggled)
 	tactical_group_checkbox.toggled.connect(_on_tactical_group_toggled)
 	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
@@ -158,6 +177,14 @@ func _ready() -> void:
 	enemy_type_option.item_selected.connect(_on_enemy_type_selected)
 	spawn_enemy_button.pressed.connect(_on_spawn_enemy_pressed)
 	back_button.pressed.connect(_on_back_pressed)
+
+	# Connect navbar buttons
+	nav_visualisation_button.pressed.connect(_on_nav_visualisation_pressed)
+	nav_ai_button.pressed.connect(_on_nav_ai_pressed)
+	nav_cheats_button.pressed.connect(_on_nav_cheats_pressed)
+	nav_perf_button.pressed.connect(_on_nav_perf_pressed)
+	nav_debug_button.pressed.connect(_on_nav_debug_pressed)
+	nav_utilities_button.pressed.connect(_on_nav_utilities_pressed)
 
 	# Update UI based on current settings
 	_update_ui()
@@ -197,6 +224,8 @@ func _update_ui() -> void:
 	sound_visualizer_checkbox.button_pressed = experimental_settings.is_sound_visualizer_enabled()
 	enemy_path_visible_checkbox.button_pressed = experimental_settings.is_enemy_path_visible_enabled()
 	cover_raycast_visible_checkbox.button_pressed = experimental_settings.has_method("is_cover_raycast_visible_enabled") and experimental_settings.is_cover_raycast_visible_enabled()
+	cover_infinite_rays_checkbox.button_pressed = experimental_settings.has_method("is_cover_infinite_rays_enabled") and experimental_settings.is_cover_infinite_rays_enabled()
+	cover_sector_rays_checkbox.button_pressed = experimental_settings.has_method("is_cover_sector_rays_enabled") and experimental_settings.is_cover_sector_rays_enabled()
 	tactical_group_checkbox.button_pressed = experimental_settings.has_method("is_tactical_group_enabled") and experimental_settings.is_tactical_group_enabled()
 
 	# Update global stuck max time slider
@@ -246,6 +275,10 @@ func _update_ui() -> void:
 		status_parts.append("Enemy nav paths")
 	if experimental_settings.has_method("is_cover_raycast_visible_enabled") and experimental_settings.is_cover_raycast_visible_enabled():
 		status_parts.append("Cover raycasts visible")
+	if experimental_settings.has_method("is_cover_infinite_rays_enabled") and experimental_settings.is_cover_infinite_rays_enabled():
+		status_parts.append("Cover infinite rays")
+	if experimental_settings.has_method("is_cover_sector_rays_enabled") and experimental_settings.is_cover_sector_rays_enabled():
+		status_parts.append("Cover sector rays")
 	if experimental_settings.has_method("is_tactical_group_enabled") and experimental_settings.is_tactical_group_enabled():
 		status_parts.append("Tactical group movement")
 
@@ -408,6 +441,20 @@ func _on_cover_raycast_visible_toggled(enabled: bool) -> void:
 	_update_ui()
 
 
+func _on_cover_infinite_rays_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_cover_infinite_rays_enabled(enabled)
+	_update_ui()
+
+
+func _on_cover_sector_rays_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_cover_sector_rays_enabled(enabled)
+	_update_ui()
+
+
 func _on_tactical_group_toggled(enabled: bool) -> void:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
@@ -521,6 +568,7 @@ func _setup_enemy_spawner() -> void:
 		{"name": "Grenadier (Rifle)", "weapon_type": 0, "behavior": 1, "is_grenadier": true},
 		{"name": "Invisible (Rifle)", "weapon_type": 0, "behavior": 1, "start_invisible": true},
 		{"name": "Gas Mask Enemy", "weapon_type": 0, "behavior": 1, "is_gas_mask": true},
+		{"name": "Drone Operator", "weapon_type": 0, "behavior": 1, "is_drone_operator": true, "scene": "res://scenes/objects/EnemyDroneOperator.tscn"},  # Issue #1397
 	]
 	for t in types:
 		enemy_type_option.add_item(t["name"])
@@ -584,6 +632,8 @@ func _on_spawn_enemy_pressed() -> void:
 		enemy.set("start_invisible", true)
 	if meta.get("is_gas_mask", false) and enemy.get("is_gas_mask") != null:
 		enemy.set("is_gas_mask", true)
+	if meta.get("is_drone_operator", false) and enemy.get("is_drone_operator") != null:
+		enemy.set("is_drone_operator", true)
 
 	# Add to Environment/Enemies node if it exists, otherwise directly to scene.
 	var enemies_node: Node = current_scene.find_child("Enemies", true, false)
@@ -683,3 +733,42 @@ func _on_row_gui_input(event: InputEvent, container: Control) -> void:
 				child.show_popup()
 				container.accept_event()
 				return
+
+
+## Scroll the ScrollContainer so the given VBoxContainer child is visible at the top.
+func _scroll_to_node(target_node: Control) -> void:
+	# Wait one frame so layout is settled before reading positions.
+	await get_tree().process_frame
+	var vbox: Control = scroll_container.get_node("VBoxContainer")
+	var target_pos: float = target_node.position.y
+	scroll_container.scroll_vertical = int(target_pos)
+
+
+func _on_nav_visualisation_pressed() -> void:
+	var vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_scroll_to_node(vbox.get_node("ShowCategoryLabel"))
+
+
+func _on_nav_ai_pressed() -> void:
+	var vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_scroll_to_node(vbox.get_node("AICategoryLabel"))
+
+
+func _on_nav_cheats_pressed() -> void:
+	var vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_scroll_to_node(vbox.get_node("CheatsCategoryLabel"))
+
+
+func _on_nav_perf_pressed() -> void:
+	var vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_scroll_to_node(vbox.get_node("PerfCategoryLabel"))
+
+
+func _on_nav_debug_pressed() -> void:
+	var vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_scroll_to_node(vbox.get_node("DebugCategoryLabel"))
+
+
+func _on_nav_utilities_pressed() -> void:
+	var vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_scroll_to_node(vbox.get_node("UtilitiesCategoryLabel"))
