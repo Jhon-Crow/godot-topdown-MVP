@@ -13,6 +13,7 @@ extends CanvasLayer
 @onready var training_button: Button = $MenuContainer/VBoxContainer/TrainingButton
 @onready var roguelike_button: Button = $MenuContainer/VBoxContainer/RoguelikeButton
 @onready var arena_button: Button = $MenuContainer/VBoxContainer/ArenaButton
+@onready var editor_button: Button = $MenuContainer/VBoxContainer/EditorButton
 @onready var settings_button: Button = $MenuContainer/VBoxContainer/SettingsButton
 @onready var quit_button: Button = $MenuContainer/VBoxContainer/QuitButton
 
@@ -49,6 +50,7 @@ func _ready() -> void:
 	training_button.pressed.connect(_on_training_pressed)
 	roguelike_button.pressed.connect(_on_roguelike_pressed)
 	arena_button.pressed.connect(_on_arena_pressed)
+	editor_button.pressed.connect(_on_editor_pressed)
 	settings_button.pressed.connect(_on_settings_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 
@@ -247,6 +249,23 @@ func _on_roguelike_pressed() -> void:
 		var error := get_tree().change_scene_to_file(roguelike_path)
 		if error != OK:
 			push_error("Failed to load roguelike level: %s" % error)
+			get_tree().paused = true
+			Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+
+func _on_editor_pressed() -> void:
+	# Load the level editor (Issue #1452)
+	get_tree().paused = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+	var editor_path: String = "res://scenes/editor/LevelEditor.tscn"
+	var scene_loader: Node = get_node_or_null("/root/SceneLoader")
+	if scene_loader and scene_loader.has_method("load_level"):
+		scene_loader.load_level(editor_path)
+	else:
+		var error := get_tree().change_scene_to_file(editor_path)
+		if error != OK:
+			push_error("Failed to load level editor: %s" % error)
 			get_tree().paused = true
 			Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 

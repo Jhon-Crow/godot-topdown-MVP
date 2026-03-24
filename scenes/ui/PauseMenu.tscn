@@ -91,6 +91,11 @@ layout_mode = 2
 icon = ExtResource("10_icon_arena")
 text = "Arena"
 
+[node name="EditorButton" type="Button" parent="MenuContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+text = "Level Editor"
+
 [node name="SettingsButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
