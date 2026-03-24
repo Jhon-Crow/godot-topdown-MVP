@@ -62,6 +62,9 @@ func _ready() -> void:
 	# Add sunlight source off-screen in the top-right corner (Issue #1234)
 	_setup_sunlight()
 
+	# Setup realistic water on the Beach level (Issue #1445)
+	_setup_water()
+
 
 func _initialize_score_manager() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
@@ -1331,6 +1334,17 @@ func _create_sunlight_texture() -> ImageTexture:
 			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
 
 	return ImageTexture.create_from_image(image)
+
+
+## Setup realistic water on the Beach level (Issue #1445).
+## The WaterBody node is already present in the scene (Environment/Water).
+## This function verifies it loaded correctly and prints a confirmation.
+func _setup_water() -> void:
+	var water: Node = get_node_or_null("Environment/Water")
+	if water == null:
+		push_warning("[BeachLevel] Water node not found — water effect disabled")
+		return
+	print("[BeachLevel] Realistic water initialized (Issue #1445)")
 
 
 func _log_to_file(message: String) -> void:

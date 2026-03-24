@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://water_body_1445"]
+
+[ext_resource type="Script" path="res://scripts/objects/water_body.gd" id="1_water_body"]
+
+[node name="WaterBody" type="Area2D"]
+script = ExtResource("1_water_body")
+water_width = 2400.0
+water_height = 356.0
+splash_interval = 36.0
