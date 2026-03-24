@@ -1,7 +1,7 @@
 extends GutTest
-## Unit tests for Drone scene object (Issue #1397).
+## Unit tests for Drone scene object (Issue #1397, #1417).
 ##
-## Tests the drone visual constants and group membership.
+## Tests the drone visual constants, group membership, and combat visuals.
 
 
 # ============================================================================
@@ -18,6 +18,8 @@ class MockDrone:
 	var _is_alive: bool = true
 	var _rotor_angle: float = 0.0
 	var _groups: Array[String] = []
+	var _led_color: Color = Color(0.2, 0.8, 0.2, 0.9)  # Green = searching
+	var _is_combat: bool = false
 
 	func _init() -> void:
 		_groups.append("enemies")
@@ -29,7 +31,12 @@ class MockDrone:
 		return _is_alive
 
 	func update_rotors(delta: float) -> void:
-		_rotor_angle += ROTOR_SPEED * delta
+		var speed_mult: float = 3.0 if _is_combat else 1.0
+		_rotor_angle += ROTOR_SPEED * delta * speed_mult
+
+	func activate_combat() -> void:
+		_is_combat = true
+		_led_color = Color(1.0, 0.1, 0.05, 0.95)  # Red = combat
 
 
 # ============================================================================
@@ -94,3 +101,33 @@ func test_rotor_continues_rotating() -> void:
 	drone.update_rotors(1.0)
 	drone.update_rotors(1.0)
 	assert_almost_eq(drone._rotor_angle, 40.0, 0.001, "Rotor angle should accumulate")
+
+
+# ============================================================================
+# Combat Visual Tests (Issue #1417)
+# ============================================================================
+
+
+func test_led_starts_green() -> void:
+	var drone := MockDrone.new()
+	assert_almost_eq(drone._led_color.g, 0.8, 0.01, "LED should start green (searching)")
+	assert_lt(drone._led_color.r, 0.5, "LED should not be red when searching")
+
+
+func test_led_turns_red_in_combat() -> void:
+	var drone := MockDrone.new()
+	drone.activate_combat()
+	assert_gt(drone._led_color.r, 0.9, "LED should be red in combat")
+	assert_lt(drone._led_color.g, 0.2, "LED green component should be low in combat")
+
+
+func test_rotors_spin_faster_in_combat() -> void:
+	var drone_search := MockDrone.new()
+	var drone_combat := MockDrone.new()
+	drone_combat.activate_combat()
+
+	drone_search.update_rotors(1.0)
+	drone_combat.update_rotors(1.0)
+
+	assert_gt(drone_combat._rotor_angle, drone_search._rotor_angle, "Rotors should spin faster in combat")
+	assert_almost_eq(drone_combat._rotor_angle, drone_search._rotor_angle * 3.0, 0.001, "Combat rotors should be 3× faster")

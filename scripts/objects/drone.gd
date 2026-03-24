@@ -1,8 +1,11 @@
 extends CharacterBody2D
-## Drone entity spawned by the Drone Operator enemy (Issue #1397).
+## Drone entity spawned by the Drone Operator enemy (Issue #1397, #1417).
 ##
-## Minimal implementation: a small flying drone that moves toward the player
-## and can be destroyed. Uses DroneComponent for behavior logic.
+## Two-phase drone: starts in SEARCHING mode with 360° vision,
+## transitions to COMBAT mode when player is detected.
+## In combat: red LED, beeping sound, 3× speed kamikaze, drift on turns,
+## explodes like RPG on player collision (no wall penetration).
+## Uses DroneComponent for behavior logic.
 ## Includes on_hit methods so the HitArea can forward bullet damage.
 
 ## Signals matching the standard enemy interface for level tracking.
@@ -27,11 +30,20 @@ var _rotor_angle: float = 0.0
 var _rotor_sprites: Array[Polygon2D] = []
 var _is_alive: bool = true
 
+## LED indicator polygon (changes color: green=searching, red=combat).
+var _led: Polygon2D = null
+
+## PointLight2D for LED glow in combat mode.
+var _led_light: PointLight2D = null
+
 
 func _ready() -> void:
 	add_to_group("enemies")
 	_drone_component = $DroneComponent as DroneComponent
 	_setup_drone_visual()
+	# Connect combat_activated signal to update visuals
+	if _drone_component:
+		_drone_component.combat_activated.connect(_on_combat_activated)
 
 
 ## Create the top-down drone visual using Polygon2D shapes.
@@ -95,27 +107,73 @@ func _setup_drone_visual() -> void:
 		model.add_child(rotor)
 		_rotor_sprites.append(rotor)
 
-	# LED indicator light
-	var led := Polygon2D.new()
-	led.polygon = PackedVector2Array([
+	# LED indicator light (green = searching, switches to red in combat)
+	_led = Polygon2D.new()
+	_led.polygon = PackedVector2Array([
 		Vector2(-2, -2),
 		Vector2(2, -2),
 		Vector2(2, 2),
 		Vector2(-2, 2),
 	])
-	led.color = Color(1.0, 0.0, 0.0, 0.9)  # Red LED
-	led.z_index = 4
-	model.add_child(led)
+	_led.color = Color(0.2, 0.8, 0.2, 0.9)  # Green = searching
+	_led.z_index = 4
+	model.add_child(_led)
 
-	FileLogger.info("[Drone] Visual setup complete (quadcopter style)")
+	# Prepare PointLight2D for combat mode glow (hidden initially)
+	_led_light = PointLight2D.new()
+	_led_light.name = "LEDGlow"
+	_led_light.color = Color(1.0, 0.1, 0.1, 1.0)  # Red glow
+	_led_light.energy = 0.0  # Hidden initially
+	_led_light.texture = _create_light_texture()
+	_led_light.texture_scale = 0.3
+	_led_light.z_index = 5
+	model.add_child(_led_light)
+
+	FileLogger.info("[Drone] Visual setup complete (quadcopter style, LED=green/searching)")
 
 
-func _physics_process(_delta: float) -> void:
+## Create a simple radial gradient texture for the LED glow light.
+func _create_light_texture() -> ImageTexture:
+	var size: int = 64
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var center := Vector2(size / 2.0, size / 2.0)
+	var radius: float = size / 2.0
+	for x in range(size):
+		for y in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			if dist <= radius:
+				var alpha := 1.0 - (dist / radius)
+				image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha * alpha))
+			else:
+				image.set_pixel(x, y, Color(0, 0, 0, 0))
+	return ImageTexture.create_from_image(image)
+
+
+func _physics_process(delta: float) -> void:
 	# Animate rotor rotation (just modulate alpha for spinning effect)
-	_rotor_angle += 20.0 * _delta
+	_rotor_angle += 20.0 * delta
+	# In combat mode, rotors spin faster visually
+	var speed_mult: float = 3.0 if (_drone_component and _drone_component.is_in_combat()) else 1.0
 	for rotor in _rotor_sprites:
 		if is_instance_valid(rotor):
-			rotor.color.a = 0.2 + 0.15 * abs(sin(_rotor_angle))
+			rotor.color.a = 0.2 + 0.15 * abs(sin(_rotor_angle * speed_mult))
+
+	# In combat mode: pulse the red LED light
+	if _drone_component and _drone_component.is_in_combat() and _led_light:
+		_led_light.energy = 2.0 + 1.5 * abs(sin(_rotor_angle * 2.0))
+		if _led:
+			_led.color.a = 0.7 + 0.3 * abs(sin(_rotor_angle * 2.0))
+
+
+## Called when drone enters combat mode — update visuals.
+func _on_combat_activated() -> void:
+	# Switch LED to red
+	if _led:
+		_led.color = Color(1.0, 0.1, 0.05, 0.95)  # Bright red
+	# Activate LED glow
+	if _led_light:
+		_led_light.energy = 3.0
+	FileLogger.info("[Drone] Visual updated: LED=RED, glow ON (combat mode)")
 
 
 ## Called when hit by a projectile (basic).
@@ -130,12 +188,12 @@ func on_hit() -> void:
 
 
 ## Called when hit by a projectile with direction and caliber info.
-func on_hit_with_info(hit_direction: Vector2, _caliber_data: Resource) -> void:
+func on_hit_with_info(_hit_direction: Vector2, _caliber_data: Resource) -> void:
 	on_hit()
 
 
 ## Called when hit by a projectile with full bullet info.
-func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, bullet_damage: float = 1.0, is_from_player: bool = false) -> void:
+func on_hit_with_bullet_info(_hit_direction: Vector2, _caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, bullet_damage: float = 1.0, is_from_player: bool = false) -> void:
 	if not _is_alive:
 		return
 	hit.emit()
@@ -153,3 +211,8 @@ func _die(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: boo
 	FileLogger.info("[Drone] Died (ricochet=%s, penetration=%s, player=%s)" % [
 		str(is_ricochet_kill), str(is_penetration_kill), str(is_player_kill)
 	])
+
+
+## Check if the drone is alive (used by collision system).
+func is_alive() -> bool:
+	return _is_alive

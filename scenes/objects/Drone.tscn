@@ -9,7 +9,7 @@ radius = 16.0
 
 [node name="Drone" type="CharacterBody2D" groups=["enemies"]]
 collision_layer = 2
-collision_mask = 6
+collision_mask = 7
 script = ExtResource("1_drone")
 
 [node name="DroneComponent" type="Node" parent="."]
@@ -27,3 +27,9 @@ script = ExtResource("3_hit_area")
 
 [node name="HitCollisionShape" type="CollisionShape2D" parent="HitArea"]
 shape = SubResource("CircleShape2D_drone")
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+path_desired_distance = 8.0
+target_desired_distance = 8.0
+avoidance_enabled = true
+radius = 20.0
