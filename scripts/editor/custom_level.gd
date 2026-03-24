@@ -100,6 +100,33 @@ func _build_level() -> void:
 	for c in _level_data.cover_objects:
 		_create_cover(cover_node, c)
 
+	# Decorations container
+	var decorations_node := Node2D.new()
+	decorations_node.name = "Decorations"
+	add_child(decorations_node)
+
+	# Create decorations
+	for d in _level_data.decorations:
+		_create_decoration(decorations_node, d)
+
+	# Trees container
+	var trees_node := Node2D.new()
+	trees_node.name = "Trees"
+	add_child(trees_node)
+
+	# Create trees (trunk = collision/cover, crown = visual overlay)
+	for t in _level_data.trees:
+		_create_tree(trees_node, t)
+
+	# Lights container
+	var lights_node := Node2D.new()
+	lights_node.name = "Lights"
+	add_child(lights_node)
+
+	# Create light sources
+	for l in _level_data.lights:
+		_create_light(lights_node, l)
+
 	# Navigation region
 	_create_navigation_region()
 
@@ -235,6 +262,198 @@ func _create_cover(parent: Node2D, data: Dictionary) -> void:
 	cover.add_child(visual)
 
 	parent.add_child(cover)
+
+
+## Tree type properties matching the editor definitions.
+const TREE_TYPE_PROPS: Dictionary = {
+	"oak": {
+		"trunk_w": 40.0, "trunk_h": 40.0,
+		"crown_radius": 56.0,
+		"trunk_color": Color(0.35, 0.25, 0.18, 1.0),
+		"crown_color": Color(0.2, 0.35, 0.2, 0.55),
+	},
+	"pine": {
+		"trunk_w": 32.0, "trunk_h": 32.0,
+		"crown_radius": 44.0,
+		"trunk_color": Color(0.33, 0.23, 0.16, 1.0),
+		"crown_color": Color(0.15, 0.32, 0.15, 0.6),
+	},
+	"birch": {
+		"trunk_w": 24.0, "trunk_h": 36.0,
+		"crown_radius": 48.0,
+		"trunk_color": Color(0.85, 0.82, 0.75, 1.0),
+		"crown_color": Color(0.3, 0.45, 0.2, 0.5),
+	},
+	"dead": {
+		"trunk_w": 36.0, "trunk_h": 36.0,
+		"crown_radius": 0.0,
+		"trunk_color": Color(0.3, 0.25, 0.2, 1.0),
+		"crown_color": Color(0.0, 0.0, 0.0, 0.0),
+	},
+}
+
+## Light type default properties.
+const LIGHT_TYPE_PROPS: Dictionary = {
+	"street_lamp": {"shadow": true},
+	"campfire": {"shadow": true},
+	"spotlight": {"shadow": true},
+	"ambient": {"shadow": false},
+	"neon": {"shadow": false},
+}
+
+## Decoration type properties.
+const DECORATION_TYPE_PROPS: Dictionary = {
+	"rock": {"w": 40.0, "h": 32.0, "color": Color(0.5, 0.48, 0.45, 1.0), "collision": true},
+	"stump": {"w": 32.0, "h": 32.0, "color": Color(0.4, 0.3, 0.2, 1.0), "collision": true},
+	"log": {"w": 80.0, "h": 24.0, "color": Color(0.45, 0.33, 0.2, 1.0), "collision": true},
+	"bush": {"w": 48.0, "h": 40.0, "color": Color(0.25, 0.4, 0.2, 0.7), "collision": false},
+	"crate_small": {"w": 32.0, "h": 32.0, "color": Color(0.55, 0.48, 0.3, 1.0), "collision": true},
+	"trash": {"w": 24.0, "h": 24.0, "color": Color(0.35, 0.35, 0.3, 0.8), "collision": false},
+}
+
+
+## Create a tree with trunk (StaticBody2D + LightOccluder2D) and crown overlay.
+func _create_tree(parent: Node2D, data: Dictionary) -> void:
+	var pos := Vector2(data["x"], data["y"])
+	var ttype: String = data.get("type", "oak")
+	var props: Dictionary = TREE_TYPE_PROPS.get(ttype, TREE_TYPE_PROPS["oak"])
+	var tw: float = props["trunk_w"]
+	var th: float = props["trunk_h"]
+
+	# Trunk as StaticBody2D (provides cover/collision)
+	var trunk := StaticBody2D.new()
+	trunk.position = pos
+	trunk.collision_layer = 4  # obstacles layer
+	trunk.collision_mask = 0
+
+	# Collision shape
+	var collision := CollisionShape2D.new()
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(tw, th)
+	collision.shape = shape
+	trunk.add_child(collision)
+
+	# Trunk visual
+	var trunk_visual := ColorRect.new()
+	trunk_visual.position = Vector2(-tw / 2.0, -th / 2.0)
+	trunk_visual.size = Vector2(tw, th)
+	trunk_visual.color = props["trunk_color"]
+	trunk.add_child(trunk_visual)
+
+	# Light occluder for trunk
+	var occluder := LightOccluder2D.new()
+	var occluder_polygon := OccluderPolygon2D.new()
+	var half_w: float = tw / 2.0
+	var half_h: float = th / 2.0
+	occluder_polygon.polygon = PackedVector2Array([
+		Vector2(-half_w, -half_h),
+		Vector2(half_w, -half_h),
+		Vector2(half_w, half_h),
+		Vector2(-half_w, half_h),
+	])
+	occluder.occluder = occluder_polygon
+	trunk.add_child(occluder)
+
+	parent.add_child(trunk)
+
+	# Crown (semi-transparent overlay at z_index 10, hides characters underneath)
+	var crown_radius: float = props["crown_radius"]
+	if crown_radius > 0.0:
+		var crown := Polygon2D.new()
+		crown.position = pos
+		crown.z_index = 10
+		var points: PackedVector2Array = PackedVector2Array()
+		var segments: int = 20
+		for i in range(segments):
+			var angle: float = TAU * i / segments
+			points.append(Vector2(cos(angle), sin(angle)) * crown_radius)
+		crown.polygon = points
+		crown.color = props["crown_color"]
+		parent.add_child(crown)
+
+
+## Create a PointLight2D light source.
+func _create_light(parent: Node2D, data: Dictionary) -> void:
+	var pos := Vector2(data["x"], data["y"])
+	var ltype: String = data.get("type", "street_lamp")
+	var lprops: Dictionary = LIGHT_TYPE_PROPS.get(ltype, LIGHT_TYPE_PROPS["street_lamp"])
+
+	# Parse color from data
+	var c_data: Dictionary = data.get("color", {})
+	var light_color := Color(
+		c_data.get("r", 1.0), c_data.get("g", 1.0),
+		c_data.get("b", 1.0), c_data.get("a", 1.0)
+	)
+	var energy: float = data.get("energy", 1.5)
+	var radius: float = data.get("radius", 256.0)
+
+	# Create PointLight2D
+	var light := PointLight2D.new()
+	light.position = pos
+	light.color = light_color
+	light.energy = energy
+	light.shadow_enabled = lprops.get("shadow", true)
+	light.shadow_color = Color(0, 0, 0, 0.7)
+
+	# Generate a radial gradient texture for the light
+	var gradient := GradientTexture2D.new()
+	gradient.width = int(radius * 2)
+	gradient.height = int(radius * 2)
+	gradient.fill = GradientTexture2D.FILL_RADIAL
+	gradient.fill_from = Vector2(0.5, 0.5)
+	gradient.fill_to = Vector2(0.5, 0.0)
+	var grad := Gradient.new()
+	grad.set_color(0, Color.WHITE)
+	grad.set_color(1, Color(1, 1, 1, 0))
+	gradient.gradient = grad
+	light.texture = gradient
+	light.texture_scale = 1.0
+
+	parent.add_child(light)
+
+	# Visual base indicator (small colored rectangle for the light fixture)
+	var base := ColorRect.new()
+	base.position = pos + Vector2(-8, -8)
+	base.size = Vector2(16, 16)
+	base.color = Color(light_color.r * 0.5, light_color.g * 0.5, light_color.b * 0.5, 0.8)
+	parent.add_child(base)
+
+
+## Create a decoration object (visual, optionally with collision).
+func _create_decoration(parent: Node2D, data: Dictionary) -> void:
+	var pos := Vector2(data["x"], data["y"])
+	var dtype: String = data.get("type", "rock")
+	var props: Dictionary = DECORATION_TYPE_PROPS.get(dtype, DECORATION_TYPE_PROPS["rock"])
+	var dw: float = props["w"]
+	var dh: float = props["h"]
+
+	if props.get("collision", false):
+		# Decoration with collision (rock, stump, log, etc.)
+		var body := StaticBody2D.new()
+		body.position = pos
+		body.collision_layer = 4  # obstacles layer
+		body.collision_mask = 0
+
+		var collision := CollisionShape2D.new()
+		var shape := RectangleShape2D.new()
+		shape.size = Vector2(dw, dh)
+		collision.shape = shape
+		body.add_child(collision)
+
+		var visual := ColorRect.new()
+		visual.position = Vector2(-dw / 2.0, -dh / 2.0)
+		visual.size = Vector2(dw, dh)
+		visual.color = props["color"]
+		body.add_child(visual)
+
+		parent.add_child(body)
+	else:
+		# Decorative-only (bush, trash — no collision)
+		var visual := ColorRect.new()
+		visual.position = pos + Vector2(-dw / 2.0, -dh / 2.0)
+		visual.size = Vector2(dw, dh)
+		visual.color = props["color"]
+		parent.add_child(visual)
 
 
 ## Create navigation region covering the entire map.

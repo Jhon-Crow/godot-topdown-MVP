@@ -3,11 +3,11 @@ extends RefCounted
 ## Data model for custom levels created in the level editor.
 ##
 ## Stores all elements of a custom level: walls, enemies, cover objects,
-## player spawn point, and metadata. Supports JSON serialization for
-## export/import and sharing between players.
+## trees, lights, decorations, player spawn point, and metadata.
+## Supports JSON serialization for export/import and sharing between players.
 
 ## Current format version for forward compatibility.
-const FORMAT_VERSION: int = 1
+const FORMAT_VERSION: int = 2
 
 ## Grid cell size in pixels (matches Hotline Miami 2 tile size x2).
 const CELL_SIZE: int = 32
@@ -35,6 +35,21 @@ var enemies: Array[Dictionary] = []
 ## Types: "desk", "crate", "barrel", "table"
 var cover_objects: Array[Dictionary] = []
 
+## Tree placements: Array of dictionaries with position, trunk size, crown radius, and colors.
+## Each tree: {"x": float, "y": float, "type": String}
+## Types: "oak", "pine", "birch", "dead"
+var trees: Array[Dictionary] = []
+
+## Light source placements: Array of dictionaries with position, type, and config.
+## Each light: {"x": float, "y": float, "type": String, "color": Dict, "energy": float, "radius": float}
+## Types: "street_lamp", "campfire", "spotlight", "ambient", "neon"
+var lights: Array[Dictionary] = []
+
+## Decorations: Array of dictionaries with position and type.
+## Each decoration: {"x": float, "y": float, "type": String}
+## Types: "rock", "stump", "log", "bush", "crate_small", "trash"
+var decorations: Array[Dictionary] = []
+
 ## Floor color (used for background).
 var floor_color: Color = Color(0.25, 0.25, 0.28, 1.0)
 
@@ -57,6 +72,9 @@ func to_dict() -> Dictionary:
 		"walls": walls.duplicate(true),
 		"enemies": enemies.duplicate(true),
 		"cover_objects": cover_objects.duplicate(true),
+		"trees": trees.duplicate(true),
+		"lights": lights.duplicate(true),
+		"decorations": decorations.duplicate(true),
 	}
 	return result
 
@@ -97,6 +115,19 @@ func from_dict(data: Dictionary) -> bool:
 	cover_objects.clear()
 	for c in data.get("cover_objects", []):
 		cover_objects.append(c)
+
+	# v2 fields — gracefully default to empty for v1 levels
+	trees.clear()
+	for t in data.get("trees", []):
+		trees.append(t)
+
+	lights.clear()
+	for l in data.get("lights", []):
+		lights.append(l)
+
+	decorations.clear()
+	for d in data.get("decorations", []):
+		decorations.append(d)
 
 	return true
 
