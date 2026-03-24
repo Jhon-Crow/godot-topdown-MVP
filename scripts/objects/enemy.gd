@@ -2356,6 +2356,7 @@ func _mark_zone_visited(pos: Vector2) -> void:
 
 ## Process SEARCHING state - waypoint scanning (#322, #330: engaged enemies search infinitely).
 func _process_searching_state(delta: float) -> void:
+	var _ps_srch := get_node_or_null("/root/PerformanceSettings"); if _ps_srch and not _ps_srch.is_ai_state_searching_enabled(): _transition_to_idle(); return  # Issue #1459: redirect if toggled off while already in SEARCHING
 	_search_state_timer += delta
 	# Issue #330: Only timeout for patrol enemies; engaged enemies search infinitely
 	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle:
@@ -2639,7 +2640,7 @@ func _shoot_burst_shot() -> void:
 
 func _transition_to_idle() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings")
-	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
+	if _ps and not _ps.is_ai_state_idle_enabled() and _ps.is_ai_state_searching_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING; Issue #1459: only if SEARCHING is also enabled
 		_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _generate_search_waypoints(); return
 	_current_state = AIState.IDLE
 	# Reset various state tracking when returning to idle
