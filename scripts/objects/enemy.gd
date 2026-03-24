@@ -596,6 +596,7 @@ func on_sound_heard(sound_type: int, position: Vector2, source_type: int, source
 ## Called by SoundPropagation with intensity. Reacts to reload/empty_click/gunshot sounds.
 func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_type: int, source_node: Node2D, intensity: float) -> void:
 	if not _is_alive: return
+	if process_mode == Node.PROCESS_MODE_DISABLED: return  # Issue #1454: skip sounds when frozen by Last Chance (direct call bypasses DISABLED check)
 	var is_player_gunshot := sound_type == 0 and source_type == 0  # GUNSHOT from PLAYER (#910)
 	if _memory_reset_confusion_timer > 0.0 and not is_player_gunshot: return  # #318 + #910: allow gunshots during confusion
 	var distance := global_position.distance_to(position)
