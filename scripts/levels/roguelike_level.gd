@@ -773,6 +773,8 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 			enemy.died_with_info.connect(_on_enemy_died_with_info)
 		if enemy.has_signal("hit"):
 			enemy.hit.connect(_on_enemy_hit)
+		if enemy.has_signal("became_pacifist"):
+			enemy.became_pacifist.connect(_on_enemy_became_pacifist.bind(enemy))
 
 
 func _get_enemy_positions(room_type: int) -> Array[Vector2]:
@@ -1012,6 +1014,29 @@ func _setup_player_tracking() -> void:
 		_player.ammo_depleted.connect(_on_player_ammo_depleted)
 
 
+## Reconnect weapon signal handlers to the current player weapon.
+## Called after a mid-game weapon swap (e.g. pedestal pickup in Issue #1323) so the
+## ammo/shot counter UI stays in sync with the new weapon node.
+func _reconnect_weapon_signals() -> void:
+	var weapon: Node = _find_player_weapon()
+	if weapon == null:
+		return
+	if weapon.has_signal("AmmoChanged") and not weapon.AmmoChanged.is_connected(_on_weapon_ammo_changed):
+		weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
+	if weapon.has_signal("MagazinesChanged") and not weapon.MagazinesChanged.is_connected(_on_magazines_changed):
+		weapon.MagazinesChanged.connect(_on_magazines_changed)
+	if weapon.has_signal("Fired") and not weapon.Fired.is_connected(_on_shot_fired):
+		weapon.Fired.connect(_on_shot_fired)
+	if weapon.has_signal("ShellCountChanged") and not weapon.ShellCountChanged.is_connected(_on_shell_count_changed):
+		weapon.ShellCountChanged.connect(_on_shell_count_changed)
+	if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+		_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+	if weapon.has_method("GetMagazineAmmoCounts"):
+		var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+		_update_magazines_label(mag_counts)
+	print("[RoguelikeLevel] Reconnected weapon signals to %s" % weapon.name)
+
+
 func _setup_enemy_tracking() -> void:
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
@@ -1227,6 +1252,19 @@ func _on_enemy_died() -> void:
 		call_deferred("_activate_exit_zone")
 
 
+func _on_enemy_became_pacifist(enemy: Node) -> void:
+	_current_enemy_count -= 1
+	# Issue #1369: Do not double-count pacifist when it dies - already counted here
+	if is_instance_valid(enemy) and enemy.died.is_connected(_on_enemy_died):
+		enemy.died.disconnect(_on_enemy_died)
+	_update_enemy_count_label()
+	print("[RoguelikeLevel] Enemy became pacifist - counting as eliminated")
+	if _current_enemy_count <= 0:
+		print("[RoguelikeLevel] All enemies in room %d eliminated or pacified!" % (_current_room_idx + 1))
+		_room_cleared = true
+		call_deferred("_activate_exit_zone")
+
+
 func _on_enemy_died_with_info(is_ricochet: bool, is_penetration: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
@@ -1361,7 +1399,7 @@ const WEAPON_ICON_PATHS: Dictionary = {
 	"shotgun":       "res://assets/sprites/weapons/shotgun_icon.png",
 	"mini_uzi":      "res://assets/sprites/weapons/mini_uzi_icon.png",
 	"silenced_pistol": "res://assets/sprites/weapons/silenced_pistol_icon.png",
-	"sniper":        "res://assets/sprites/weapons/weapon_case_icon.png",
+	"sniper":        "res://assets/sprites/weapons/asvk_topdown.png",
 	"revolver":      "res://assets/sprites/weapons/revolver_icon.png",
 	"ak_gl":         "res://assets/sprites/weapons/ak_gl_icon.png",
 }
@@ -1527,7 +1565,11 @@ func _spawn_treasure_pedestal() -> void:
 		float_node.add_child(orb)
 
 	# Issue #1299: gentle floating animation — item bobs ±4 px over 1.4 s, looping.
-	var float_tween := create_tween()
+	# Bind the tween to the pedestal (not the level) so it is automatically killed
+	# when the pedestal is queue_free()-d.  Using `create_tween()` (bound to self/level)
+	# caused a crash: the tween survived pedestal removal and tried to animate the
+	# freed float_node → engine segfault (Issue #1323 regression).
+	var float_tween := pedestal.create_tween()
 	float_tween.set_loops()
 	float_tween.tween_property(float_node, "position:y", -PEDESTAL_SIZE * 1.1 - 4.0, 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	float_tween.tween_property(float_node, "position:y", -PEDESTAL_SIZE * 1.1 + 4.0, 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
@@ -1649,6 +1691,9 @@ func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 
 	if player.has_method("ApplySelectedWeaponFromGameManager"):
 		player.ApplySelectedWeaponFromGameManager()
+	# Reconnect level signal handlers to the new weapon after the swap,
+	# so the ammo/shot counter UI stays in sync (Issue #1323 regression fix).
+	_reconnect_weapon_signals()
 
 	print("[RoguelikeLevel] Weapon pedestal: player took %s, old weapon %s returned to pedestal" % [new_weapon_id, old_weapon_id])
 

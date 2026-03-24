@@ -878,6 +878,9 @@ func _setup_targets() -> void:
 func _on_weapon_fired() -> void:
 	_shots_fired += 1
 	print("Tutorial: Shot fired (%d total)" % _shots_fired)
+	# Track shot in GameManager for unlock conditions (Issue #1346).
+	if GameManager:
+		GameManager.register_shot()
 
 	# Bug fix: bolt-cycle hint (sniper bolt-action, shotgun bolt) shown after 1st shot.
 	if _shots_fired >= 1 and not _bolt_cycle_hint_revealed:
