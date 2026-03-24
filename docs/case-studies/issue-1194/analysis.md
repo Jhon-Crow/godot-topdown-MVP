@@ -155,3 +155,59 @@ The single-slot `current_active_item` integer was never designed to hold multipl
 4. **Array in GameManager:** Less cohesive than keeping it in ActiveItemManager which already owns item state.
 
 **Chosen approach** (Array in ActiveItemManager) is minimal, backward-compatible, and follows existing patterns.
+
+---
+
+## Bug 3: Crash when entering treasure room (2026-03-24)
+
+### Symptom
+
+Game crashes "sometimes" when transitioning between roguelike rooms, often when entering
+the treasure room. The crash is non-deterministic and depends on timing.
+
+### Evidence from game logs
+
+Two crash logs provided: `game_log_20260324_061109.txt` and `game_log_20260324_061451.txt`.
+
+Both logs end abruptly after `[RoguelikeLevel] Player reached exit — advancing (treasure_room=false)`.
+After this line, the normal "Scene changed" and room initialization messages never appear —
+the game process terminates (segfault).
+
+### Root Cause: Unguarded coroutine after await in `_setup_navigation()`
+
+`_setup_navigation()` contains `await get_tree().physics_frame` (line 936). After the await,
+the coroutine accesses `self`, `nav_region`, and `nav_poly` — all of which are bound to the
+current RoguelikeLevel scene node.
+
+When a room transition occurs (`change_scene_to_file()`), the old scene tree is freed. However,
+Godot 4.x does NOT cancel pending coroutines when nodes are freed. The coroutine resumes on
+the next `physics_frame`, but `self` is now a freed reference. The call to
+`NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)` passes this
+freed reference to the C++ engine, causing a segfault.
+
+**Why "sometimes"**: The crash only occurs when the room transition happens before the
+navigation bake completes (within 1 physics frame of room load). This timing window is
+narrow but consistently hit in fast-paced play — e.g., the player clearing the last enemy
+while standing near the exit zone.
+
+### Additional risk: Double scene transitions
+
+`_on_player_reached_exit()` → `call_deferred("_advance_to_next_room")` had no guard against
+being called multiple times. Although `body_entered` normally fires once, deferred calls
+during rapid scene changes could queue multiple transitions.
+
+### Fix
+
+1. **Guard coroutine after await** (`_setup_navigation()`):
+   ```gdscript
+   await get_tree().physics_frame
+   if not is_instance_valid(self) or not is_inside_tree():
+       return
+   ```
+
+2. **Transition guard flag** (`_transitioning: bool`):
+   - Set `true` at the start of `_advance_to_next_room()`
+   - Checked in `_on_player_reached_exit()` and `_advance_to_next_room()` to prevent double calls
+
+This follows the existing pattern in `_on_player_died()` (line 1350) which already uses
+`is_instance_valid(self)` after an `await`.

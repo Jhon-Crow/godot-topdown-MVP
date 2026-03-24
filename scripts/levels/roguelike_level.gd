@@ -157,6 +157,7 @@ var _room_cleared:    bool = false
 var _game_over_shown: bool = false
 var _score_shown:     bool = false
 var _player_dead:     bool = false
+var _transitioning:   bool = false  ## Issue #1194: prevents double scene transitions
 
 var _exit_zone: Area2D = null
 
@@ -935,6 +936,12 @@ func _setup_navigation() -> void:
 	# with PhysicsServer2D before parsing source geometry for navmesh carving.
 	await get_tree().physics_frame
 
+	# Issue #1194: guard against scene change during the await above.
+	# If the scene was freed while we were waiting for the physics frame,
+	# `self` is no longer valid — accessing any member would crash the engine.
+	if not is_instance_valid(self) or not is_inside_tree():
+		return
+
 	# Define the walkable floor area outline for the room.
 	var floor_outline: PackedVector2Array = PackedVector2Array([
 		Vector2(0, 0),
@@ -1349,6 +1356,9 @@ func _on_game_manager_enemy_killed() -> void:
 
 
 func _on_player_reached_exit() -> void:
+	# Issue #1194: prevent double transitions (e.g. signal fires while tween is running)
+	if _transitioning:
+		return
 	# Treasure room is always "cleared" (no enemies)
 	if not _room_cleared and not GameManager.roguelike_in_treasure_room:
 		return
@@ -1836,6 +1846,11 @@ func _activate_exit_zone() -> void:
 
 
 func _advance_to_next_room() -> void:
+	# Issue #1194: prevent double scene transitions.
+	if _transitioning:
+		return
+	_transitioning = true
+
 	if GameManager.roguelike_in_treasure_room:
 		## Leaving the treasure room → start the next level
 		_start_next_level()
