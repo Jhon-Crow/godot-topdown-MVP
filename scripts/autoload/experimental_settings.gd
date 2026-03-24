@@ -559,6 +559,7 @@ func _load_settings() -> void:
 		sound_visualizer_enabled = false
 		enemy_path_visible_enabled = false
 		cover_raycast_visible_enabled = false
+		tactical_group_enabled = false
 
 
 ## Log a message to the file logger if available.
