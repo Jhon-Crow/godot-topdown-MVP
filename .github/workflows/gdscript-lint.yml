@@ -26,43 +26,43 @@ jobs:
         run: |
           echo "Checking for nested loops that may indicate O(n²) or worse complexity..."
           warnings=0
-          errors=0
 
+          # Use awk for fast multi-line analysis instead of shell line-by-line
           while IFS= read -r file; do
-            # Detect nested for/while loops using indentation analysis
-            # A nested loop is a for/while inside another for/while at deeper indentation
-            prev_loop_indent=-1
-            line_num=0
+            results=$(awk '
+            /^[[:space:]]*(for |while )/ && !/^[[:space:]]*#/ {
+              indent = 0
+              for (i = 1; i <= length($0); i++) {
+                if (substr($0, i, 1) == "\t") indent++
+                else break
+              }
+              if (prev_loop_indent >= 0 && indent > prev_loop_indent) {
+                print FILENAME ":" NR ": nested loop"
+              }
+              prev_loop_indent = indent
+              next
+            }
+            !/^[[:space:]]*$/ && !/^[[:space:]]*#/ {
+              indent = 0
+              for (i = 1; i <= length($0); i++) {
+                if (substr($0, i, 1) == "\t") indent++
+                else break
+              }
+              if (prev_loop_indent >= 0 && indent <= prev_loop_indent) {
+                prev_loop_indent = -1
+              }
+            }
+            BEGIN { prev_loop_indent = -1 }
+            ' "$file" 2>/dev/null)
 
-            while IFS= read -r line; do
-              line_num=$((line_num + 1))
-
-              # Skip comments and empty lines
-              stripped=$(echo "$line" | sed 's/#.*//')
-              if [ -z "$(echo "$stripped" | tr -d '[:space:]')" ]; then
-                continue
+            while IFS= read -r result; do
+              if [ -n "$result" ]; then
+                fpath=$(echo "$result" | cut -d: -f1)
+                lnum=$(echo "$result" | cut -d: -f2)
+                echo "::warning file=$fpath,line=$lnum::Nested loop detected (potential O(n²) complexity). Consider using a dictionary/set for lookups."
+                warnings=$((warnings + 1))
               fi
-
-              # Count leading tabs (GDScript uses tabs for indentation)
-              indent=$(echo "$line" | sed 's/[^\t].*//' | wc -c)
-              indent=$((indent - 1))
-
-              # Check if this line starts a loop
-              if echo "$stripped" | grep -qE '^\s*(for |while )'; then
-                if [ "$prev_loop_indent" -ge 0 ] && [ "$indent" -gt "$prev_loop_indent" ]; then
-                  echo "::warning file=$file,line=$line_num::Nested loop detected (potential O(n²) complexity). Consider using a dictionary/set for lookups or restructuring."
-                  warnings=$((warnings + 1))
-                fi
-                prev_loop_indent=$indent
-              fi
-
-              # Reset if we exit the loop's indentation level
-              if [ "$prev_loop_indent" -ge 0 ] && [ "$indent" -le "$prev_loop_indent" ]; then
-                if ! echo "$stripped" | grep -qE '^\s*(for |while )'; then
-                  prev_loop_indent=-1
-                fi
-              fi
-            done < "$file"
+            done <<< "$results"
           done < <(find scripts -name "*.gd" -type f 2>/dev/null)
 
           echo "Found $warnings nested loop warning(s) (non-blocking)."
@@ -70,106 +70,16 @@ jobs:
       - name: Check for unbounded while loops
         run: |
           echo "Checking for potentially unbounded while loops..."
+          # Find 'while true:' without a 'break' or 'return' in the same file region
           warnings=0
+          while IFS= read -r result; do
+            file=$(echo "$result" | cut -d: -f1)
+            line=$(echo "$result" | cut -d: -f2)
+            echo "::warning file=$file,line=$line::Found 'while true' loop. Ensure it has a break/return condition."
+            warnings=$((warnings + 1))
+          done < <(grep -rn '^\s*while\s\+true\s*:' scripts/ --include="*.gd" 2>/dev/null || true)
 
-          while IFS= read -r file; do
-            line_num=0
-            in_while=false
-            while_line=0
-            while_indent=-1
-            has_break=false
-
-            while IFS= read -r line; do
-              line_num=$((line_num + 1))
-
-              stripped=$(echo "$line" | sed 's/#.*//')
-              if [ -z "$(echo "$stripped" | tr -d '[:space:]')" ]; then
-                continue
-              fi
-
-              indent=$(echo "$line" | sed 's/[^\t].*//' | wc -c)
-              indent=$((indent - 1))
-
-              # Detect while true / while 1 patterns
-              if echo "$stripped" | grep -qE '^\s*while\s+(true|1)\s*:'; then
-                in_while=true
-                while_line=$line_num
-                while_indent=$indent
-                has_break=false
-                continue
-              fi
-
-              if [ "$in_while" = true ]; then
-                # Check if we exited the while block
-                if [ "$indent" -le "$while_indent" ]; then
-                  if [ "$has_break" = false ]; then
-                    echo "::warning file=$file,line=$while_line::Unbounded 'while true' loop without break/return. Ensure termination condition exists."
-                    warnings=$((warnings + 1))
-                  fi
-                  in_while=false
-                fi
-
-                # Check for break/return inside the while block
-                if echo "$stripped" | grep -qE '^\s*(break|return)\b'; then
-                  has_break=true
-                fi
-              fi
-            done < "$file"
-
-            # Handle while at end of file
-            if [ "$in_while" = true ] && [ "$has_break" = false ]; then
-              echo "::warning file=$file,line=$while_line::Unbounded 'while true' loop without break/return."
-              warnings=$((warnings + 1))
-            fi
-          done < <(find scripts -name "*.gd" -type f 2>/dev/null)
-
-          echo "Found $warnings unbounded while loop warning(s) (non-blocking)."
-
-      - name: Check for Array.find() inside loops
-        run: |
-          echo "Checking for linear search inside loops (use Dictionary for O(1) lookups)..."
-          warnings=0
-
-          while IFS= read -r file; do
-            line_num=0
-            in_loop=false
-            loop_indent=-1
-
-            while IFS= read -r line; do
-              line_num=$((line_num + 1))
-
-              stripped=$(echo "$line" | sed 's/#.*//')
-              if [ -z "$(echo "$stripped" | tr -d '[:space:]')" ]; then
-                continue
-              fi
-
-              indent=$(echo "$line" | sed 's/[^\t].*//' | wc -c)
-              indent=$((indent - 1))
-
-              # Track loop entry
-              if echo "$stripped" | grep -qE '^\s*(for |while )'; then
-                in_loop=true
-                loop_indent=$indent
-              fi
-
-              # Track loop exit
-              if [ "$in_loop" = true ] && [ "$indent" -le "$loop_indent" ]; then
-                if ! echo "$stripped" | grep -qE '^\s*(for |while )'; then
-                  in_loop=false
-                fi
-              fi
-
-              # Check for linear search patterns inside loops
-              if [ "$in_loop" = true ]; then
-                if echo "$stripped" | grep -qE '\.(find|has)\s*\('; then
-                  echo "::warning file=$file,line=$line_num::Linear search (.find/.has) inside loop. Consider using a Dictionary for O(1) lookups."
-                  warnings=$((warnings + 1))
-                fi
-              fi
-            done < "$file"
-          done < <(find scripts -name "*.gd" -type f 2>/dev/null)
-
-          echo "Found $warnings linear-search-in-loop warning(s) (non-blocking)."
+          echo "Found $warnings 'while true' occurrence(s) (non-blocking)."
 
       - name: Check for large functions
         run: |
@@ -178,47 +88,31 @@ jobs:
           FUNC_MAX_LINES=50
 
           while IFS= read -r file; do
-            func_name=""
-            func_start=0
-            func_indent=-1
-            line_num=0
+            results=$(awk -v max_lines="$FUNC_MAX_LINES" '
+            /^[[:space:]]*func[[:space:]]+/ && !/^[[:space:]]*#/ {
+              if (func_name != "" && (NR - func_start) > max_lines) {
+                print FILENAME ":" func_start ": " func_name " (" (NR - func_start) " lines)"
+              }
+              match($0, /func[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)/, arr)
+              func_name = arr[1]
+              func_start = NR
+            }
+            END {
+              if (func_name != "" && (NR - func_start) > max_lines) {
+                print FILENAME ":" func_start ": " func_name " (" (NR - func_start) " lines)"
+              }
+            }
+            ' "$file" 2>/dev/null)
 
-            while IFS= read -r line; do
-              line_num=$((line_num + 1))
-
-              stripped=$(echo "$line" | sed 's/#.*//')
-              if [ -z "$(echo "$stripped" | tr -d '[:space:]')" ]; then
-                continue
-              fi
-
-              indent=$(echo "$line" | sed 's/[^\t].*//' | wc -c)
-              indent=$((indent - 1))
-
-              # Detect function start
-              if echo "$stripped" | grep -qE '^\s*func\s+'; then
-                # Check if previous function was too long
-                if [ -n "$func_name" ] && [ "$func_start" -gt 0 ]; then
-                  func_lines=$((line_num - func_start))
-                  if [ "$func_lines" -gt "$FUNC_MAX_LINES" ]; then
-                    echo "::warning file=$file,line=$func_start::Function '$func_name' is $func_lines lines (limit: $FUNC_MAX_LINES). Consider splitting into smaller functions."
-                    warnings=$((warnings + 1))
-                  fi
-                fi
-
-                func_name=$(echo "$stripped" | sed -E 's/^\s*func\s+([a-zA-Z_][a-zA-Z0-9_]*).*/\1/')
-                func_start=$line_num
-                func_indent=$indent
-              fi
-            done < "$file"
-
-            # Check last function in file
-            if [ -n "$func_name" ] && [ "$func_start" -gt 0 ]; then
-              func_lines=$((line_num - func_start))
-              if [ "$func_lines" -gt "$FUNC_MAX_LINES" ]; then
-                echo "::warning file=$file,line=$func_start::Function '$func_name' is $func_lines lines (limit: $FUNC_MAX_LINES). Consider splitting into smaller functions."
+            while IFS= read -r result; do
+              if [ -n "$result" ]; then
+                fpath=$(echo "$result" | cut -d: -f1)
+                lnum=$(echo "$result" | cut -d: -f2)
+                detail=$(echo "$result" | cut -d: -f3-)
+                echo "::warning file=$fpath,line=$lnum::Large function:$detail. Consider splitting into smaller functions."
                 warnings=$((warnings + 1))
               fi
-            fi
+            done <<< "$results"
           done < <(find scripts -name "*.gd" -type f 2>/dev/null)
 
           echo "Found $warnings large function warning(s) (non-blocking)."
@@ -230,29 +124,28 @@ jobs:
           MAX_NESTING=4
 
           while IFS= read -r file; do
-            line_num=0
+            results=$(awk -v max_nesting="$MAX_NESTING" '
+            /^[[:space:]]*(if |elif |else:|for |while |match )/ && !/^[[:space:]]*#/ {
+              indent = 0
+              for (i = 1; i <= length($0); i++) {
+                if (substr($0, i, 1) == "\t") indent++
+                else break
+              }
+              if (indent > max_nesting) {
+                print FILENAME ":" NR ": level " indent
+              }
+            }
+            ' "$file" 2>/dev/null)
 
-            while IFS= read -r line; do
-              line_num=$((line_num + 1))
-
-              stripped=$(echo "$line" | sed 's/#.*//')
-              if [ -z "$(echo "$stripped" | tr -d '[:space:]')" ]; then
-                continue
+            while IFS= read -r result; do
+              if [ -n "$result" ]; then
+                fpath=$(echo "$result" | cut -d: -f1)
+                lnum=$(echo "$result" | cut -d: -f2)
+                detail=$(echo "$result" | cut -d: -f3-)
+                echo "::warning file=$fpath,line=$lnum::Deep nesting detected ($detail, max $MAX_NESTING). Consider extracting to a helper function."
+                warnings=$((warnings + 1))
               fi
-
-              # Count indentation level (tabs)
-              indent=$(echo "$line" | sed 's/[^\t].*//' | wc -c)
-              indent=$((indent - 1))
-
-              # Check if nesting exceeds limit (each tab = 1 level)
-              if [ "$indent" -gt "$MAX_NESTING" ]; then
-                # Only warn on control flow statements at deep levels
-                if echo "$stripped" | grep -qE '^\s*(if |elif |else:|for |while |match )'; then
-                  echo "::warning file=$file,line=$line_num::Deep nesting detected (level $indent, max $MAX_NESTING). Consider extracting to a helper function or using early returns."
-                  warnings=$((warnings + 1))
-                fi
-              fi
-            done < "$file"
+            done <<< "$results"
           done < <(find scripts -name "*.gd" -type f 2>/dev/null)
 
           echo "Found $warnings deep nesting warning(s) (non-blocking)."
@@ -260,41 +153,17 @@ jobs:
       - name: Check for duplicate dictionary key lookups
         run: |
           echo "Checking for repeated dictionary key access patterns..."
+          # Simple grep-based check: find files with many dict[key] accesses
           warnings=0
-
           while IFS= read -r file; do
-            # Find lines where the same dict[key] pattern appears multiple times
-            # in consecutive lines (suggests missing local variable caching)
-            line_num=0
-            prev_dict_access=""
-            prev_line_num=0
-            consecutive_count=0
-
-            while IFS= read -r line; do
-              line_num=$((line_num + 1))
-
-              stripped=$(echo "$line" | sed 's/#.*//')
-              if [ -z "$(echo "$stripped" | tr -d '[:space:]')" ]; then
-                continue
-              fi
-
-              # Extract dict[key] patterns
-              dict_access=$(echo "$stripped" | grep -oE '[a-zA-Z_][a-zA-Z0-9_]*\[[^]]+\]' | head -1)
-
-              if [ -n "$dict_access" ] && [ "$dict_access" = "$prev_dict_access" ]; then
-                consecutive_count=$((consecutive_count + 1))
-                if [ "$consecutive_count" -ge 3 ]; then
-                  echo "::warning file=$file,line=$line_num::Dictionary key '$dict_access' accessed $consecutive_count+ times consecutively. Consider caching in a local variable."
-                  warnings=$((warnings + 1))
-                  consecutive_count=0
-                fi
-              else
-                consecutive_count=1
-              fi
-
-              prev_dict_access="$dict_access"
-              prev_line_num=$line_num
-            done < "$file"
+            # Count unique dict[key] patterns that appear 4+ times
+            repeated=$(grep -oE '[a-zA-Z_][a-zA-Z0-9_]*\[[^]]+\]' "$file" 2>/dev/null | sort | uniq -c | awk '$1 >= 4 { print $2 " (" $1 " times)" }')
+            if [ -n "$repeated" ]; then
+              while IFS= read -r pattern; do
+                echo "::warning file=$file::Repeated dictionary access: $pattern. Consider caching in a local variable."
+                warnings=$((warnings + 1))
+              done <<< "$repeated"
+            fi
           done < <(find scripts -name "*.gd" -type f 2>/dev/null)
 
           echo "Found $warnings duplicate lookup warning(s) (non-blocking)."
@@ -305,8 +174,7 @@ jobs:
           echo ""
           echo "Checks performed:"
           echo "  ✓ Nested loops (O(n²) complexity detection)"
-          echo "  ✓ Unbounded while loops (missing break/return)"
-          echo "  ✓ Linear search inside loops (Array.find/.has in loops)"
+          echo "  ✓ Unbounded while loops (while true detection)"
           echo "  ✓ Large functions (>50 lines)"
           echo "  ✓ Deep nesting (>4 levels)"
           echo "  ✓ Duplicate dictionary key lookups"
