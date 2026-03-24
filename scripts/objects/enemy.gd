@@ -3761,14 +3761,24 @@ func reset_memory() -> void:
 	if _prediction: _prediction.reset()  # [#298]
 	_log_to_file("Memory reset: confusion=%.1fs, had_target=%s" % [MEMORY_RESET_CONFUSION_DURATION, had_target])
 	if had_target:
-		# Set LOW confidence (0.35) - puts enemy in search mode at old position
-		if _memory != null:
-			_memory.suspected_position = old_position
-			_memory.confidence = 0.35
-			_memory.last_updated = Time.get_ticks_msec()
-		_last_known_player_position = old_position
-		_log_to_file("Search mode: %s -> SEARCHING at %s" % [AIState.keys()[_current_state], old_position])
-		_transition_to_searching(old_position)
+		# Issue #1419: Only transition to SEARCHING if enemy has previously engaged the player.
+		# Enemies that never left IDLE (e.g. received intel via ally-share only) must not enter
+		# SEARCHING on teleport — they have never personally seen or heard the player.
+		if _has_left_idle:
+			# Set LOW confidence (0.35) - puts enemy in search mode at old position
+			if _memory != null:
+				_memory.suspected_position = old_position
+				_memory.confidence = 0.35
+				_memory.last_updated = Time.get_ticks_msec()
+			_last_known_player_position = old_position
+			_log_to_file("Search mode: %s -> SEARCHING at %s" % [AIState.keys()[_current_state], old_position])
+			_transition_to_searching(old_position)
+		else:
+			if _memory != null:
+				_memory.reset()
+			_last_known_player_position = Vector2.ZERO
+			_log_to_file("Memory reset: %s -> IDLE (never engaged, had target via intel only)" % AIState.keys()[_current_state])
+			_transition_to_idle()
 	else:
 		if _memory != null:
 			_memory.reset()
