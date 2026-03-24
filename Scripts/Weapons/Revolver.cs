@@ -1133,7 +1133,7 @@ public partial class Revolver : BaseWeapon
     /// Steering speed (radians/sec) for the revolver's built-in slight homing (Issue #1332).
     /// Very low value gives barely-noticeable bullet correction toward enemies near the crosshair.
     /// </summary>
-    private const float RevolverHomingSteerSpeed = 1.2f;
+    private const float RevolverHomingSteerSpeed = 0.3f;
 
     /// <summary>
     /// Override SpawnBullet to enable slight built-in homing for the RSh-12 revolver (Issue #1332).
