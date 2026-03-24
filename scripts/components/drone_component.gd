@@ -99,7 +99,7 @@ var _beep_pattern_index: int = 0
 
 ## Morse-code-like beep pattern: short=0.08s, long=0.2s, pause=silence.
 ## Repeats: dot-dot-dash-dot (like letter "F" in morse) for "hostile drone" feel.
-var _beep_pattern: Array[float] = [0.08, 0.08, 0.2, 0.08, 0.08, 0.2, 0.08, 0.08]
+var _beep_pattern: Array = [0.08, 0.08, 0.2, 0.08, 0.08, 0.2, 0.08, 0.08]
 
 ## Whether the drone has exploded (prevents double-explosion).
 var _has_exploded: bool = false
@@ -113,6 +113,11 @@ var debug_logging: bool = false
 
 func _ready() -> void:
 	_drone_body = get_parent() as CharacterBody2D
+	if _drone_body == null:
+		FileLogger.info("[Drone] ERROR: DroneComponent parent is not CharacterBody2D (parent=%s)" % (get_parent().name if get_parent() else "null"))
+		return
+	FileLogger.info("[Drone] DroneComponent _ready: parent=%s" % _drone_body.name)
+	set_physics_process(true)
 	_find_player()
 	_find_nav_agent()
 	_setup_beep_player()
@@ -128,14 +133,28 @@ func initialize(operator: Node2D) -> void:
 func _find_player() -> void:
 	if _drone_body == null:
 		return
-	var players: Array = _drone_body.get_tree().get_nodes_in_group("player")
+	# Method 1: search by group
+	var tree := _drone_body.get_tree()
+	if tree == null:
+		return
+	var players: Array = tree.get_nodes_in_group("player")
 	if players.size() > 0:
 		_player = players[0]
-	else:
-		# Fallback: search for Player node
-		var root: Node = _drone_body.get_tree().current_scene
-		if root:
-			_player = root.find_child("Player", true, false)
+		FileLogger.info("[Drone] Player found via group: %s" % _player.name)
+		return
+	# Method 2: GameManager autoload
+	var gm: Node = _drone_body.get_node_or_null("/root/GameManager")
+	if gm and gm.get("player") and is_instance_valid(gm.player):
+		_player = gm.player
+		FileLogger.info("[Drone] Player found via GameManager: %s" % _player.name)
+		return
+	# Method 3: search by node name
+	var root: Node = tree.current_scene
+	if root:
+		_player = root.find_child("Player", true, false)
+		if _player:
+			FileLogger.info("[Drone] Player found via find_child: %s" % _player.name)
+			return
 
 
 ## Find the NavigationAgent2D child node.
@@ -167,8 +186,16 @@ func _physics_process(delta: float) -> void:
 	if not _is_alive or _drone_body == null:
 		return
 
-	if _player == null:
+	if _player == null or not is_instance_valid(_player):
+		_player = null
 		_find_player()
+		return
+
+	# Check if player is alive via GameManager (most reliable)
+	var gm: Node = _drone_body.get_node_or_null("/root/GameManager")
+	if gm and not gm.player_alive:
+		_drone_body.velocity = Vector2.ZERO
+		_drone_body.move_and_slide()
 		return
 
 	match _state:
@@ -179,14 +206,8 @@ func _physics_process(delta: float) -> void:
 
 
 ## SEARCHING state: scan for player with 360° vision (no FOV limit).
-func _update_searching(delta: float) -> void:
+func _update_searching(_delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
-		return
-
-	# Check if player is alive
-	if _player.has_method("is_alive") and not _player.is_alive():
-		_drone_body.velocity = Vector2.ZERO
-		_drone_body.move_and_slide()
 		return
 
 	# Check if player is invisible
@@ -195,17 +216,13 @@ func _update_searching(delta: float) -> void:
 		_drone_body.move_and_slide()
 		return
 
-	var to_player: Vector2 = _player.global_position - _drone_body.global_position
-	var distance: float = to_player.length()
-
 	# 360° vision: only need line-of-sight check, no FOV angle restriction
 	if _has_line_of_sight_to_player():
 		# Player detected! Transition to COMBAT.
 		_transition_to_combat()
 		return
 
-	# Not detected yet: hover/patrol slowly in random direction
-	# Simple wandering behavior while searching
+	# Not detected yet: hover in place while searching
 	_drone_body.velocity = Vector2.ZERO
 	_drone_body.move_and_slide()
 

@@ -29,6 +29,7 @@ var _drone_component: DroneComponent = null
 var _rotor_angle: float = 0.0
 var _rotor_sprites: Array[Polygon2D] = []
 var _is_alive: bool = true
+var _fallback_hp: int = DroneComponent.DRONE_HP
 
 ## LED indicator polygon (changes color: green=searching, red=combat).
 var _led: Polygon2D = null
@@ -40,6 +41,14 @@ var _led_light: PointLight2D = null
 func _ready() -> void:
 	add_to_group("enemies")
 	_drone_component = $DroneComponent as DroneComponent
+	if _drone_component == null:
+		# Fallback: try to get component without type cast (script may fail to load as DroneComponent)
+		var comp_node: Node = get_node_or_null("DroneComponent")
+		if comp_node and comp_node.has_method("is_in_combat"):
+			_drone_component = comp_node as DroneComponent
+		FileLogger.info("[Drone] WARNING: DroneComponent cast returned null (node=%s)" % (comp_node != null))
+	else:
+		FileLogger.info("[Drone] DroneComponent found: %s" % _drone_component.name)
 	_setup_drone_visual()
 	# Connect combat_activated signal to update visuals
 	if _drone_component:
@@ -185,6 +194,12 @@ func on_hit() -> void:
 		var destroyed: bool = _drone_component.take_damage(1)
 		if destroyed:
 			_die(false, false, false)
+	else:
+		# Fallback: handle damage directly if component is unavailable
+		_fallback_hp -= 1
+		FileLogger.info("[Drone] Fallback on_hit: hp=%d/%d" % [_fallback_hp, DroneComponent.DRONE_HP])
+		if _fallback_hp <= 0:
+			_die(false, false, false)
 
 
 ## Called when hit by a projectile with direction and caliber info.
@@ -197,9 +212,16 @@ func on_hit_with_bullet_info(_hit_direction: Vector2, _caliber_data: Resource, h
 	if not _is_alive:
 		return
 	hit.emit()
+	var dmg: int = maxi(int(round(bullet_damage)), 1)
 	if _drone_component:
-		var destroyed: bool = _drone_component.take_damage(maxi(int(round(bullet_damage)), 1))
+		var destroyed: bool = _drone_component.take_damage(dmg)
 		if destroyed:
+			_die(has_ricocheted, has_penetrated, is_from_player)
+	else:
+		# Fallback: handle damage directly if component is unavailable
+		_fallback_hp -= dmg
+		FileLogger.info("[Drone] Fallback on_hit_with_bullet_info: dmg=%d, hp=%d/%d" % [dmg, _fallback_hp, DroneComponent.DRONE_HP])
+		if _fallback_hp <= 0:
 			_die(has_ricocheted, has_penetrated, is_from_player)
 
 
@@ -211,6 +233,12 @@ func _die(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: boo
 	FileLogger.info("[Drone] Died (ricochet=%s, penetration=%s, player=%s)" % [
 		str(is_ricochet_kill), str(is_penetration_kill), str(is_player_kill)
 	])
+	# Visual death: fade out and remove (fallback if DroneComponent doesn't handle it)
+	if not _drone_component or not _drone_component.is_alive():
+		set_physics_process(false)
+		var tween: Tween = create_tween()
+		tween.tween_property(self, "modulate:a", 0.0, 0.3)
+		tween.tween_callback(queue_free)
 
 
 ## Check if the drone is alive (used by collision system).
