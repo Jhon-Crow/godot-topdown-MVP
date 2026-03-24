@@ -353,40 +353,46 @@ func _fade_sniper_tracer(tracer: Line2D) -> void:
 # Issue #1336 — Laser sight (same red laser as player M16)
 # ============================================================================
 
-## [#1336] Round 9: Create laser sight lazily on first update_laser_sight() call.
-## Previous rounds failed because _create_laser_sight() ran during _ready(), where
-## scene tree state, current_scene, and FileLogger may not be fully initialized.
-## Lazy creation runs during _physics_process when the scene is guaranteed to be active.
-##
-## Laser is parented to current_scene (scene root) — the same pattern used by
-## SniperEnemyTracer (line 336) which renders correctly. No top_level needed since
-## scene root local coords == global coords. This avoids CanvasItem chain issues
-## that plagued the previous enemy.add_child + top_level approach.
+## [#1336] Round 10: Create laser sight using the EXACT same pattern as _spawn_sniper_tracer()
+## which is proven to render in the user's build. Key properties copied from the tracer:
+##   - top_level = true, position = Vector2.ZERO (global coordinate rendering)
+##   - Points set to actual coordinates at creation time (not Vector2.ZERO placeholders)
+##   - current_scene.add_child() (same parent as tracer)
+## Previous rounds 5-9 all failed because the Line2D never appeared on screen despite
+## being added to the tree. This round exactly mirrors the tracer pattern that works.
 func _create_laser_sight() -> void:
 	_laser_created = true
 	if enemy == null:
-		print("[#1336] ERROR: _create_laser_sight called with null enemy")
+		_log("[#1336] ERROR: _create_laser_sight called with null enemy")
 		return
 	if enemy.weapon_type != enemy.WeaponType.SNIPER_RIFLE:
 		return
 	var current_scene := get_tree().current_scene if is_inside_tree() else null
 	if current_scene == null:
-		print("[#1336] ERROR: current_scene is null, cannot create laser")
+		_log("[#1336] ERROR: current_scene is null, cannot create laser")
 		_laser_created = false  # Retry next frame
 		return
 
+	# Compute initial positions so the Line2D is born with real geometry (not zero-length).
+	var direction: Vector2 = get_visual_barrel_direction()
+	var start_pos: Vector2 = _get_barrel_spawn_position(direction)
+	var end_pos: Vector2 = start_pos + direction * LASER_MAX_LENGTH
+
+	# --- Core laser line: exact same setup as _spawn_sniper_tracer() ---
 	_laser_sight = Line2D.new()
 	_laser_sight.name = "SniperLaser_%s" % enemy.name
 	_laser_sight.width = LASER_WIDTH
 	_laser_sight.default_color = LASER_COLOR
 	_laser_sight.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	_laser_sight.end_cap_mode = Line2D.LINE_CAP_ROUND
-	_laser_sight.z_index = 10
-	_laser_sight.add_point(Vector2.ZERO)
-	_laser_sight.add_point(Vector2.ZERO)
+	_laser_sight.top_level = true          # <-- same as tracer
+	_laser_sight.position = Vector2.ZERO   # <-- same as tracer
+	_laser_sight.z_index = 10              # <-- same as tracer
+	_laser_sight.add_point(start_pos)      # <-- real coords, not Vector2.ZERO
+	_laser_sight.add_point(end_pos)        # <-- real coords, not Vector2.ZERO
 	current_scene.add_child(_laser_sight)
 
-	# Glow layers: additive-blended wider lines for volumetric look (like LaserGlowEffect.cs).
+	# --- Glow layers: additive-blended wider lines for volumetric look ---
 	var glow_configs := [
 		{"width": 6.0, "alpha": 0.15},
 		{"width": 14.0, "alpha": 0.05},
@@ -399,26 +405,26 @@ func _create_laser_sight() -> void:
 		glow.default_color = Color(LASER_COLOR.r, LASER_COLOR.g, LASER_COLOR.b, cfg["alpha"])
 		glow.begin_cap_mode = Line2D.LINE_CAP_ROUND
 		glow.end_cap_mode = Line2D.LINE_CAP_ROUND
+		glow.top_level = true
+		glow.position = Vector2.ZERO
 		glow.z_index = 9
 		var mat := CanvasItemMaterial.new()
 		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 		glow.material = mat
-		glow.add_point(Vector2.ZERO)
-		glow.add_point(Vector2.ZERO)
+		glow.add_point(start_pos)
+		glow.add_point(end_pos)
 		current_scene.add_child(glow)
 		_laser_glow_layers.append(glow)
 
-	print("[#1336] Laser sight created on %s (weapon=%d, scene=%s)" % [enemy.name, enemy.weapon_type, current_scene.name])
-	_log("[#1336] Laser sight created on %s (weapon=%d)" % [enemy.name, enemy.weapon_type])
+	_log("[#1336] Laser created on %s (weapon=%d, scene=%s, start=%v, dir=%v)" % [enemy.name, enemy.weapon_type, current_scene.name, start_pos, direction])
 
 
-## Update laser sight position and endpoint every frame.
+## Update laser sight position and endpoint every physics frame.
 ## Called from enemy.gd _physics_process when weapon_type == SNIPER_RIFLE.
 func update_laser_sight() -> void:
 	if enemy == null:
 		return
-	# [#1336] Round 9: Lazy creation — create laser on first update call instead of _ready().
-	# This guarantees the scene tree is fully initialized and current_scene is valid.
+	# Lazy creation — create laser on first update call instead of _ready().
 	if not _laser_created:
 		_create_laser_sight()
 	if _laser_sight == null:
@@ -429,16 +435,13 @@ func update_laser_sight() -> void:
 
 	_set_laser_visible(true)
 
-	# [#1336] Use the visual barrel direction so the laser matches the weapon model.
 	var direction: Vector2 = get_visual_barrel_direction()
 	var start_pos: Vector2 = _get_barrel_spawn_position(direction)
 	if not _laser_logged_once:
 		_laser_logged_once = true
-		print("[#1336] Laser update: dir=%v, start=%v, visible=%s, in_tree=%s" % [direction, start_pos, _laser_sight.visible, _laser_sight.is_inside_tree()])
-		_log("[#1336] Laser update: dir=%v, start=%v, visible=%s" % [direction, start_pos, _laser_sight.visible])
+		_log("[#1336] Laser update: dir=%v, start=%v, vis=%s, tree=%s" % [direction, start_pos, _laser_sight.visible, _laser_sight.is_inside_tree()])
 
-	# Raycast to find the first wall or character hit.
-	# Collision mask 5 = walls (layer 3, value 4) + characters (layer 1, value 1).
+	# Raycast against walls (layer 3, mask 4) + characters (layer 1, mask 1) = mask 5.
 	var end_pos := start_pos + direction * LASER_MAX_LENGTH
 	var world_2d := enemy.get_world_2d()
 	if world_2d == null:
@@ -448,13 +451,12 @@ func update_laser_sight() -> void:
 		return
 
 	var query := PhysicsRayQueryParameters2D.create(start_pos, end_pos, 5)
-	query.exclude = [enemy.get_rid()]  # Exclude own collider
+	query.exclude = [enemy.get_rid()]
 	var result := space_state.intersect_ray(query)
 	var laser_end := end_pos
 	if not result.is_empty():
 		laser_end = result["position"] + direction * 4.0
 
-	# Update Line2D points (scene root local coords == global coords).
 	_laser_sight.set_point_position(0, start_pos)
 	_laser_sight.set_point_position(1, laser_end)
 
@@ -517,7 +519,15 @@ func _get_barrel_spawn_position(direction: Vector2) -> Vector2:
 	return enemy.global_position + direction * enemy.bullet_spawn_offset
 
 
-## Forward message to enemy file logger if available.
+## Forward message to enemy file logger. Uses multiple strategies to ensure delivery:
+## 1. Bound callable (set by enemy.gd during setup)
+## 2. Direct FileLogger autoload access (fallback if callable binding failed)
+## 3. print() to stdout (always works, even in release builds with console)
 func _log(message: String) -> void:
+	var enemy_name: String = enemy.name if enemy else "unknown"
 	if log_to_file_fn.is_valid():
 		log_to_file_fn.call(message)
+	elif is_inside_tree():
+		var fl := get_node_or_null("/root/FileLogger")
+		if fl and fl.has_method("log_enemy"): fl.log_enemy(enemy_name, message)
+	print("[SniperComponent] [%s] %s" % [enemy_name, message])

@@ -27,9 +27,13 @@ User feedback (translated from Russian):
 | 2026-03-23 | Owner: "теперь лазера вообще нет" — laser completely invisible |
 | 2026-03-23 | **Fix: re-parent laser CanvasItem nodes to enemy (CharacterBody2D) instead of EnemySniperComponent (Node), add debug logging, restore accidentally removed `bullet_damage_multiplier`** |
 | 2026-03-23 | Owner: "сейчас всё ещё нет лазера" — laser still invisible with enemy node parenting |
-| 2026-03-23 | Fix: direct `_is_alive` access, scene root parenting via `call_deferred` |
+| 2026-03-23 | Fix (Round 7): direct `_is_alive` access, scene root parenting via `call_deferred` |
 | 2026-03-23 | Owner: "всё ещё нет лазера" — laser still invisible with scene root parenting |
-| 2026-03-23 | **Fix: parent laser to enemy with `top_level=true` + synchronous `add_child()` (same as SniperEnemyTracer)** |
+| 2026-03-23 | Fix (Round 8): parent laser to enemy with `top_level=true` + synchronous `add_child()` |
+| 2026-03-23 | Owner: "всё ещё не отображается лазер" — laser still not displaying |
+| 2026-03-23 | Fix (Round 9): lazy creation during `_physics_process`, scene root parenting, removed PointLight2D |
+| 2026-03-24 | Owner: "лазера у снайпера всё ещё нет" — laser still absent, with screenshot |
+| 2026-03-24 | Fix (Round 10): exact SniperEnemyTracer pattern (top_level=true, real coords at creation, triple logging) |
 
 ## Data Sources
 
@@ -293,3 +297,55 @@ The working reference implementations show the pattern:
 - `game_log_20260323_154948.txt` — Game log confirming zero laser output after Round 8 fix
 - `Scripts/Weapons/AssaultRifle.cs` — Working player M16 laser reference implementation
 - `enemy_sniper_component.gd` lines 323-338 — Working SniperEnemyTracer implementation
+
+## Round 10: Laser Still Invisible (2026-03-24, user feedback)
+
+### Symptom
+User reports "лазера у снайпера всё ещё нет" (sniper still has no laser). Screenshot shows sniper enemy without any laser beam. Game log `game_log_20260324_054152.txt` confirms:
+- ContainerYardA_Sniper is active (weapon_type=7=SNIPER_RIFLE), enters COMBAT, fires shots
+- **Zero** `[#1336]` log entries — neither creation nor update logged
+- **Zero** `[SniperHitscan]` or `[#1163]` entries from the sniper component
+- Sniper fires GUNSHOT events at 05:42:20 and 05:42:31 (confirmed via SoundPropagation)
+- Release build (Debug build: false)
+
+### Deep Investigation
+
+Key finding: **Not a single log entry from the sniper component's `_log()` function appears in the game log.** The `_log()` function uses `log_to_file_fn` (a Callable bound to `enemy._log_to_file`), but no output from it ever appears. Meanwhile, `enemy._log_to_file()` works perfectly for other log calls made directly from `enemy.gd` (e.g., `Spawned at`, state transitions, death events).
+
+This raises two hypotheses:
+1. **Callable binding issue**: `log_to_file_fn.is_valid()` returns false, silently skipping all log output
+2. **The code is running but logs don't include the specific triggered paths**: For hitscan without character hits, and combat without retreat, the `_log()` calls on those code paths simply aren't reached
+
+We cannot distinguish between these hypotheses from the game log alone, since the specific log paths that would prove `_log()` works (retreat, blind-fire, hitscan hit) were not triggered in this gameplay session.
+
+### Root Cause Hypothesis
+
+The Round 9 laser creation code uses `current_scene.add_child(_laser_sight)` WITHOUT `top_level = true`. The SniperEnemyTracer (which renders) uses BOTH `current_scene.add_child(tracer)` AND `top_level = true`. The absence of `top_level` is a difference from the proven working pattern.
+
+Additionally, Round 9 initialized the Line2D with `add_point(Vector2.ZERO)` × 2 (zero-length line), then updated positions in the same frame via `set_point_position()`. The tracer initializes with REAL coordinates at creation time: `tracer.add_point(from_pos); tracer.add_point(end_pos)`.
+
+### Fix (Round 10)
+
+Three changes to exactly mirror the SniperEnemyTracer:
+
+1. **`top_level = true` + `position = Vector2.ZERO`**: Added to laser Line2D and all glow layers, exactly matching the tracer's properties. This ensures global coordinate rendering independent of parent transform.
+
+2. **Real coordinates at creation time**: Instead of creating with `Vector2.ZERO` placeholders and updating later, the laser is now born with actual start/end positions computed from the barrel direction. This mirrors how the tracer is created with `from_pos` and `end_pos`.
+
+3. **Triple-redundant logging**: The `_log()` function now uses three strategies to ensure messages appear:
+   - Primary: `log_to_file_fn.call(message)` (bound callable)
+   - Fallback: Direct `get_node_or_null("/root/FileLogger").log_enemy()` access
+   - Always: `print()` to stdout
+   This guarantees that if the laser code runs, we WILL see diagnostic output regardless of callable binding state.
+
+### What This Tells Us If It Still Fails
+
+If the user tests this build and:
+- **No `[#1336]` entries in game log AND no `[SniperComponent]` in stdout**: `update_laser_sight()` is never called. Root cause is in `enemy.gd`'s `_physics_process` — the `weapon_type` check fails or `_sniper_component` is null for this enemy.
+- **`[#1336]` entries appear but laser invisible**: The Line2D is being created and updated correctly but Godot's rendering pipeline doesn't show it. Would indicate a Godot 4.3 rendering bug with dynamically created Line2D nodes.
+- **Laser appears**: Fix works.
+
+### Data Sources
+- `game_log_20260324_054152.txt` — Game log confirming zero laser output after Round 9 fix
+- Screenshot showing sniper enemy without laser beam
+- Comparison with SniperEnemyTracer properties (top_level, position, add_point pattern)

@@ -233,6 +233,36 @@ func test_sniper_laser_parented_to_scene_root() -> void:
 		"Glow layers must be parented to current_scene [#1336]")
 
 
+func test_sniper_laser_uses_top_level_like_tracer() -> void:
+	# [#1336] Round 10: Laser Line2D must use top_level=true and position=Vector2.ZERO,
+	# exactly matching the proven SniperEnemyTracer pattern that renders correctly.
+	var src := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
+	assert_not_null(src, "enemy_sniper_component.gd must be readable")
+	if src == null:
+		return
+	var text := src.get_as_text()
+	src.close()
+	assert_true(text.contains("_laser_sight.top_level = true"),
+		"Laser must use top_level=true for global coordinate rendering [#1336]")
+	assert_true(text.contains("_laser_sight.position = Vector2.ZERO"),
+		"Laser must set position=Vector2.ZERO with top_level=true [#1336]")
+
+
+func test_sniper_laser_log_uses_multiple_strategies() -> void:
+	# [#1336] Round 10: _log() must use multiple delivery strategies (callable + FileLogger + print)
+	# to ensure diagnostic messages appear in game logs regardless of callable binding state.
+	var src := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
+	assert_not_null(src, "enemy_sniper_component.gd must be readable")
+	if src == null:
+		return
+	var text := src.get_as_text()
+	src.close()
+	assert_true(text.contains("log_to_file_fn.is_valid()"),
+		"_log must try bound callable first [#1336]")
+	assert_true(text.contains('get_node_or_null("/root/FileLogger")'),
+		"_log must fall back to direct FileLogger access [#1336]")
+
+
 func test_sniper_laser_cleanup_on_exit_tree() -> void:
 	# _exit_tree must free laser nodes to handle edge cases. [#1336]
 	var src := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
