@@ -1132,7 +1132,7 @@ public partial class Revolver : BaseWeapon
     /// Steering speed (radians/sec) for the revolver's built-in slight homing (Issue #1332).
     /// Low value gives gentle bullet correction toward enemies without feeling like a homing missile.
     /// </summary>
-    private const float RevolverHomingSteerSpeed = 4.0f;
+    private const float RevolverHomingSteerSpeed = 12.0f;
 
     /// <summary>
     /// Override SpawnBullet to enable slight built-in homing for the RSh-12 revolver (Issue #1332).
@@ -1142,6 +1142,11 @@ public partial class Revolver : BaseWeapon
     protected override void SpawnBullet(Vector2 direction)
     {
         base.SpawnBullet(direction);
+
+        // Check if revolver aim assist is enabled in GameplaySettings (Issue #1332).
+        var gameplaySettings = GetNodeOrNull("/root/GameplaySettings");
+        if (gameplaySettings != null && !((bool)gameplaySettings.Call("is_revolver_aim_assist_enabled")))
+            return;
 
         // Find the bullet that was just spawned (last Bullet child of CurrentScene)
         // and apply weak homing so it gently steers toward nearby enemies.
