@@ -168,6 +168,12 @@ var _pedestal_item = null
 ## Door zones for branching navigation (one per connected direction).
 var _door_zones: Array = []  # Array of Area2D door zones
 
+## Issue #1451: Physical door barriers that block doorway gaps during combat.
+## In The Binding of Isaac, doors lock (close) when the player enters a room
+## with enemies, and unlock (open) after all enemies are eliminated.
+## Each entry is a StaticBody2D placed in a doorway gap.
+var _door_barriers: Array = []  # Array of StaticBody2D barriers
+
 ## Directions: 0=North, 1=East, 2=South, 3=West
 const DIR_NORTH: int = 0
 const DIR_EAST:  int = 1
@@ -315,6 +321,13 @@ func _ready() -> void:
 	_setup_exit_zone()
 	_setup_minimap()
 	# Intentionally skip ReplayManager — reduces memory and CPU overhead
+
+	# Issue #1451: Lock doors (create physical barriers) in uncleared combat rooms.
+	# In The Binding of Isaac, doors shut when the player enters a room with enemies
+	# and only open after all enemies are eliminated.
+	var room_node: Node2D = get_node_or_null("Room")
+	if room_node:
+		_create_door_barriers(room_node)
 
 	if GameManager:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
@@ -748,6 +761,81 @@ func _build_room_boundary_closed(room_node: Node2D) -> void:
 		_create_wall(room_node, Rect2(w - t, gap_center + DOOR_GAP * 0.5, t, h - gap_center - DOOR_GAP * 0.5))
 	else:
 		_create_wall(room_node, Rect2(w - t, 0, t, h))
+
+
+## Issue #1451: Create physical barriers (StaticBody2D) in all doorway gaps.
+## Called when the player enters an uncleared combat room — doors "lock" like
+## in The Binding of Isaac. Barriers are removed when the room is cleared.
+func _create_door_barriers(room_node: Node2D) -> void:
+	var w: float = _room_w
+	var h: float = _room_h
+	var t: float = 24.0  ## Wall thickness (must match _build_room_boundary_closed)
+	var door_dirs: Array = _get_current_room_door_directions()
+
+	for d in door_dirs:
+		var rect: Rect2
+		match d:
+			DIR_NORTH:
+				var gap_center: float = w * 0.5
+				rect = Rect2(gap_center - DOOR_GAP * 0.5, 0, DOOR_GAP, t)
+			DIR_SOUTH:
+				var gap_center: float = w * 0.5
+				rect = Rect2(gap_center - DOOR_GAP * 0.5, h - t, DOOR_GAP, t)
+			DIR_WEST:
+				var gap_center: float = h * 0.5
+				rect = Rect2(0, gap_center - DOOR_GAP * 0.5, t, DOOR_GAP)
+			DIR_EAST:
+				var gap_center: float = h * 0.5
+				rect = Rect2(w - t, gap_center - DOOR_GAP * 0.5, t, DOOR_GAP)
+
+		# Create a StaticBody2D barrier matching the doorway gap
+		var barrier := StaticBody2D.new()
+		barrier.name = "DoorBarrier_%d" % d
+		barrier.position = rect.position + rect.size / 2.0
+		barrier.collision_layer = 4  # Obstacles layer (same as walls)
+		barrier.collision_mask  = 0
+
+		var shape_node := CollisionShape2D.new()
+		var shape := RectangleShape2D.new()
+		shape.size = rect.size
+		shape_node.shape = shape
+		barrier.add_child(shape_node)
+
+		# Visual: red-tinted wall to indicate locked door
+		var visual := ColorRect.new()
+		visual.color = Color(0.55, 0.15, 0.10, 0.9)
+		visual.size = rect.size
+		visual.position = -rect.size / 2.0
+		barrier.add_child(visual)
+
+		room_node.add_child(barrier)
+		_door_barriers.append(barrier)
+
+	if _door_barriers.size() > 0:
+		print("[RoguelikeLevel] %d door barriers created — room locked" % _door_barriers.size())
+
+
+## Issue #1451: Remove all door barriers (unlock doors) after room is cleared.
+## Plays a brief fade-out animation before freeing the barrier nodes.
+func _remove_door_barriers() -> void:
+	for barrier in _door_barriers:
+		if is_instance_valid(barrier):
+			# Disable collision immediately so player can walk through
+			barrier.collision_layer = 0
+			# Fade out the visual
+			var visual: ColorRect = null
+			for child in barrier.get_children():
+				if child is ColorRect:
+					visual = child
+					break
+			if visual:
+				var tween := create_tween()
+				tween.tween_property(visual, "color:a", 0.0, 0.3)
+				tween.tween_callback(barrier.queue_free)
+			else:
+				barrier.queue_free()
+	_door_barriers = []
+	print("[RoguelikeLevel] Door barriers removed — room unlocked")
 
 
 ## Get directions that have doors in the current map room.
@@ -1767,6 +1855,8 @@ func _on_enemy_died() -> void:
 		var map_idx: int = GameManager.roguelike_current_map_room
 		if map_idx >= 0 and map_idx < GameManager.roguelike_room_map.size():
 			GameManager.roguelike_room_map[map_idx]["cleared"] = true
+		# Issue #1451: Unlock doors (remove physical barriers)
+		_remove_door_barriers()
 		# After the last combat room, the exit leads to the treasure room (not another combat room).
 		# No pedestal in combat rooms — the pedestal is in the dedicated treasure room.
 		call_deferred("_activate_exit_zone")
@@ -1782,6 +1872,8 @@ func _on_enemy_became_pacifist(enemy: Node) -> void:
 	if _current_enemy_count <= 0:
 		print("[RoguelikeLevel] All enemies in room %d eliminated or pacified!" % (_current_room_idx + 1))
 		_room_cleared = true
+		# Issue #1451: Unlock doors (remove physical barriers)
+		_remove_door_barriers()
 		call_deferred("_activate_exit_zone")
 
 
