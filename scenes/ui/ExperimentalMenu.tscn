@@ -741,3 +741,50 @@ custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Back"
+
+[node name="NavBar" type="PanelContainer" parent="MenuContainer"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -160.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 8.0
+grow_horizontal = 0
+grow_vertical = 1
+
+[node name="NavVBox" type="VBoxContainer" parent="MenuContainer/NavBar"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="NavTitle" type="Label" parent="MenuContainer/NavBar/NavVBox"]
+layout_mode = 2
+text = "Sections"
+horizontal_alignment = 1
+
+[node name="NavVisualisationButton" type="Button" parent="MenuContainer/NavBar/NavVBox"]
+layout_mode = 2
+text = "Visualisation"
+
+[node name="NavAIButton" type="Button" parent="MenuContainer/NavBar/NavVBox"]
+layout_mode = 2
+text = "AI & Gameplay"
+
+[node name="NavCheatsButton" type="Button" parent="MenuContainer/NavBar/NavVBox"]
+layout_mode = 2
+text = "Cheats"
+
+[node name="NavPerfButton" type="Button" parent="MenuContainer/NavBar/NavVBox"]
+layout_mode = 2
+text = "Performance"
+
+[node name="NavDebugButton" type="Button" parent="MenuContainer/NavBar/NavVBox"]
+layout_mode = 2
+text = "Debug"
+
+[node name="NavUtilitiesButton" type="Button" parent="MenuContainer/NavBar/NavVBox"]
+layout_mode = 2
+text = "Utilities"
