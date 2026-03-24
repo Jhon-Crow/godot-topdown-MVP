@@ -13,6 +13,7 @@ namespace GodotTopdown.Scripts.Projectiles
     /// whether GDScript is executing properly. It handles:
     /// - Timer-based explosion (Flashbang grenades)
     /// - Impact-based explosion (Frag grenades)
+    /// - Timer-based gas release (AggressionGas grenades — defers to GDScript)
     /// - Explosion effects and damage
     /// </summary>
     [GlobalClass]
@@ -22,11 +23,13 @@ namespace GodotTopdown.Scripts.Projectiles
         /// The grenade type determines explosion behavior.
         /// Flashbang: Timer-based (4 seconds after activation)
         /// Frag: Impact-based (explodes on contact with walls/enemies)
+        /// AggressionGas: Timer-based (4 seconds), defers to GDScript for gas cloud spawning
         /// </summary>
         public enum GrenadeType
         {
             Flashbang,
-            Frag
+            Frag,
+            AggressionGas
         }
 
         [Export]
@@ -79,6 +82,13 @@ namespace GodotTopdown.Scripts.Projectiles
         /// </summary>
         public bool HasExploded { get; private set; } = false;
 
+        /// <summary>
+        /// Issue #692: Instance ID of the enemy who threw this grenade.
+        /// Used to prevent self-damage from own grenade explosion and shrapnel.
+        /// -1 means no thrower tracked (e.g., player-thrown grenades).
+        /// </summary>
+        public long ThrowerId { get; private set; } = -1;
+
         private float _timeRemaining = 0.0f;
         private RigidBody2D? _grenadeBody = null;
         private Vector2 _previousVelocity = Vector2.Zero;
@@ -87,12 +97,23 @@ namespace GodotTopdown.Scripts.Projectiles
         // Landing detection threshold (same as GDScript)
         private const float LandingVelocityThreshold = 50.0f;
 
+        // Issue #692: Minimum arming distance (must match GDScript MIN_ARMING_DISTANCE in frag_grenade.gd)
+        private const float MinArmingDistance = 80.0f;
+
+        // Issue #692: Spawn position for arming distance calculation
+        private Vector2 _spawnPosition = Vector2.Zero;
+
+        // Issue #692: Whether the grenade has traveled far enough to arm impact explosion
+        private bool _impactArmed = false;
+
         // Type-specific default values from scene files
         // These are used as fallback when GDScript property access fails in exports
         private const float DefaultFragEffectRadius = 225.0f;    // From FragGrenade.tscn
         private const float DefaultFlashbangEffectRadius = 400.0f; // From FlashbangGrenade.tscn
         private const float DefaultFragGroundFriction = 280.0f;  // From FragGrenade.tscn
         private const float DefaultFlashbangGroundFriction = 300.0f; // From FlashbangGrenade.tscn
+        private const float DefaultAggressionGasEffectRadius = 300.0f; // From AggressionGasGrenade.tscn
+        private const float DefaultAggressionGasGroundFriction = 300.0f; // From AggressionGasGrenade.tscn
 
         /// <summary>
         /// Track whether type-based defaults have been applied.
@@ -125,6 +146,17 @@ namespace GodotTopdown.Scripts.Projectiles
                 {
                     GroundFriction = DefaultFragGroundFriction;
                 }
+            }
+            else if (Type == GrenadeType.AggressionGas)
+            {
+                // AggressionGas grenade defaults (from AggressionGasGrenade.tscn)
+                // FIX for Issue #675: Gas grenade has 300px radius (not 400 like flashbang)
+                if (EffectRadius >= 400.0f - 0.01f)
+                {
+                    EffectRadius = DefaultAggressionGasEffectRadius;
+                    LogToFile($"[GrenadeTimer] Applied AggressionGas default effect_radius: {EffectRadius}");
+                }
+                GroundFriction = DefaultAggressionGasGroundFriction;
             }
             else
             {
@@ -161,6 +193,9 @@ namespace GodotTopdown.Scripts.Projectiles
             // incorrect default values (e.g., Frag using Flashbang's 400 radius).
             SetTypeBasedDefaults();
 
+            // Issue #692: Record spawn position for arming distance calculation
+            _spawnPosition = _grenadeBody.GlobalPosition;
+
             // Connect to body_entered signal for impact detection
             _grenadeBody.BodyEntered += OnBodyEntered;
 
@@ -188,15 +223,24 @@ namespace GodotTopdown.Scripts.Projectiles
             if (IsThrown && !_grenadeBody.Freeze)
             {
                 ApplyGroundFriction((float)delta);
+
+                // Issue #692: Check if grenade has traveled far enough to arm impact explosion
+                if (!_impactArmed && Type == GrenadeType.Frag)
+                {
+                    if (_grenadeBody.GlobalPosition.DistanceTo(_spawnPosition) >= MinArmingDistance)
+                    {
+                        _impactArmed = true;
+                    }
+                }
             }
 
-            // Timer countdown for Flashbang grenades
-            if (IsTimerActive && Type == GrenadeType.Flashbang)
+            // Timer countdown for Flashbang and AggressionGas grenades (both are timer-based)
+            if (IsTimerActive && (Type == GrenadeType.Flashbang || Type == GrenadeType.AggressionGas))
             {
                 _timeRemaining -= (float)delta;
                 if (_timeRemaining <= 0)
                 {
-                    LogToFile("[GrenadeTimer] Timer expired - EXPLODING!");
+                    LogToFile($"[GrenadeTimer] Timer expired for {Type} grenade!");
                     Explode();
                     return;
                 }
@@ -224,8 +268,8 @@ namespace GodotTopdown.Scripts.Projectiles
                     }
                     else
                     {
-                        // Flashbang grenades emit landing sound for enemy awareness (Issue #432)
-                        LogToFile($"[GrenadeTimer] Flashbang grenade landed at {_grenadeBody.GlobalPosition}");
+                        // Flashbang and AggressionGas grenades emit landing sound for enemy awareness
+                        LogToFile($"[GrenadeTimer] {Type} grenade landed at {_grenadeBody.GlobalPosition}");
                         EmitGrenadeLandingSound(_grenadeBody.GlobalPosition);
                     }
                 }
@@ -260,6 +304,16 @@ namespace GodotTopdown.Scripts.Projectiles
 
             IsThrown = true;
             LogToFile("[GrenadeTimer] Grenade marked as thrown - impact detection enabled");
+        }
+
+        /// <summary>
+        /// Issue #692: Set the instance ID of the enemy who threw this grenade.
+        /// The thrower will be excluded from explosion damage and shrapnel hits.
+        /// </summary>
+        public void SetThrower(long throwerId)
+        {
+            ThrowerId = throwerId;
+            LogToFile($"[GrenadeTimer] Thrower set to instance ID: {throwerId}");
         }
 
         /// <summary>
@@ -307,6 +361,19 @@ namespace GodotTopdown.Scripts.Projectiles
             if (!IsThrown)
                 return;
 
+            // Issue #692: Don't explode on impact until grenade has traveled MIN_ARMING_DISTANCE
+            // from spawn point. This prevents self-kills when grenade hits nearby furniture/obstacles.
+            // Must match the GDScript check in frag_grenade.gd.
+            if (!_impactArmed)
+            {
+                if (_grenadeBody != null)
+                {
+                    float dist = _grenadeBody.GlobalPosition.DistanceTo(_spawnPosition);
+                    LogToFile($"[GrenadeTimer] Impact with {body.Name} ignored - not armed yet (dist={dist:F1} < {MinArmingDistance:F1})");
+                }
+                return;
+            }
+
             // Trigger explosion on solid body contact
             // Note: Check TileMap for legacy Godot 4 and TileMapLayer for newer versions
             if (body is StaticBody2D || body is TileMap || body is TileMapLayer || body is CharacterBody2D)
@@ -324,58 +391,117 @@ namespace GodotTopdown.Scripts.Projectiles
             if (HasExploded)
                 return;
 
+            // FIX for Issue #886: When a Frag/VOG grenade hits a solid body, BOTH the GDScript
+            // handler (frag_grenade._on_body_entered → GrenadeBase._explode) and this C# handler
+            // (GrenadeTimer.OnBodyEntered → Explode) receive the same body_entered signal.
+            // GDScript fires first (connected in _ready() before C# _Ready()), setting
+            // _has_exploded=true. C# has a separate HasExploded bool that is still false.
+            // Without this guard, C# would spawn a second set of shrapnel, apply damage twice,
+            // and call QueueFree() a second time — causing the lag spike at explosion moment.
+            // Solution: call GDScript's has_exploded() method (more reliable than Get("_has_exploded")
+            // in exported builds — non-@export GDScript properties may not be accessible via Get()
+            // in release exports, but methods are always accessible via Call()).
+            if (_grenadeBody != null && Type == GrenadeType.Frag)
+            {
+                if (_grenadeBody.HasMethod("has_exploded") && _grenadeBody.Call("has_exploded").AsBool())
+                {
+                    LogToFile($"[GrenadeTimer] GDScript already handled {Type} explosion - skipping C# duplicate (Issue #886)");
+                    HasExploded = true; // Sync C# state to prevent future triggers
+                    return;
+                }
+            }
+
             HasExploded = true;
 
             if (_grenadeBody == null)
                 return;
 
             Vector2 explosionPosition = _grenadeBody.GlobalPosition;
-            LogToFile($"[GrenadeTimer] EXPLODED at {explosionPosition}!");
+            LogToFile($"[GrenadeTimer] {Type} grenade activated at {explosionPosition}!");
+
+            // FIX for Issue #886: Trigger Power Fantasy time-freeze effect from C# path.
+            // GrenadeBase._explode() already calls on_grenade_exploded() in GDScript, but if C#
+            // somehow runs first (race condition) or GDScript _explode() is unavailable (export
+            // builds where GDScript execution is unreliable), the PF effect must still trigger.
+            // on_grenade_exploded() internally checks is_power_fantasy_mode(), so calling it
+            // twice is safe — the second call is a no-op if PF effect is already active.
+            if (Type == GrenadeType.Frag || Type == GrenadeType.Flashbang)
+            {
+                var pfManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
+                if (pfManager != null && pfManager.HasMethod("on_grenade_exploded"))
+                {
+                    pfManager.Call("on_grenade_exploded");
+                }
+            }
 
             // Apply explosion effects based on type
             if (Type == GrenadeType.Frag)
             {
                 ApplyFragExplosion(explosionPosition);
+                // Play explosion sound
+                PlayExplosionSound(explosionPosition);
+                // Spawn visual effect
+                SpawnExplosionEffect(explosionPosition);
+                // Scatter shell casings
+                ScatterCasings(explosionPosition);
+                // Destroy the grenade
+                _grenadeBody.QueueFree();
+            }
+            else if (Type == GrenadeType.AggressionGas)
+            {
+                // FIX for Issue #675: AggressionGas does NOT explode like flashbang.
+                // GDScript _explode() handles gas cloud spawning, sound, and cleanup.
+                // C# only marks HasExploded=true to prevent double-activation.
+                // No flashbang effects, no explosion visual, no casing scatter.
+                LogToFile("[GrenadeTimer] AggressionGas grenade - deferring to GDScript for gas release");
+                // Do NOT call QueueFree — GDScript _explode() handles cleanup with delay
             }
             else
             {
                 ApplyFlashbangExplosion(explosionPosition);
+                // Play explosion sound
+                PlayExplosionSound(explosionPosition);
+                // Spawn visual effect
+                SpawnExplosionEffect(explosionPosition);
+                // Scatter shell casings
+                ScatterCasings(explosionPosition);
+                // Destroy the grenade
+                _grenadeBody.QueueFree();
             }
-
-            // Play explosion sound
-            PlayExplosionSound(explosionPosition);
-
-            // Spawn visual effect
-            SpawnExplosionEffect(explosionPosition);
-
-            // Scatter shell casings
-            ScatterCasings(explosionPosition);
-
-            // Destroy the grenade
-            _grenadeBody.QueueFree();
         }
 
         /// <summary>
         /// Apply Frag grenade explosion damage.
+        /// Issue #692: When thrown by an enemy (ThrowerId >= 0), excludes ALL enemies
+        /// from explosion damage to prevent both self-kills and friendly fire.
         /// </summary>
         private void ApplyFragExplosion(Vector2 position)
         {
             LogToFile($"[GrenadeTimer] Applying frag explosion damage (radius: {EffectRadius}, damage: {ExplosionDamage})");
 
-            // Damage enemies in radius
-            var enemies = GetTree().GetNodesInGroup("enemies");
-            foreach (var enemy in enemies)
+            // Issue #692: If this grenade was thrown by an enemy, skip ALL enemies
+            // to prevent both self-damage and friendly fire between allies.
+            if (ThrowerId >= 0)
             {
-                if (enemy is Node2D enemyNode)
+                LogToFile($"[GrenadeTimer] Skipping all enemies - enemy-thrown grenade (thrower ID: {ThrowerId})");
+            }
+            else
+            {
+                // Damage enemies in radius (only for player-thrown grenades)
+                var enemies = GetTree().GetNodesInGroup("enemies");
+                foreach (var enemy in enemies)
                 {
-                    float distance = position.DistanceTo(enemyNode.GlobalPosition);
-                    if (distance <= EffectRadius)
+                    if (enemy is Node2D enemyNode)
                     {
-                        // Check line of sight
-                        if (HasLineOfSightTo(position, enemyNode.GlobalPosition))
+                        float distance = position.DistanceTo(enemyNode.GlobalPosition);
+                        if (distance <= EffectRadius)
                         {
-                            ApplyDamage(enemyNode, position);
-                            LogToFile($"[GrenadeTimer] Damaged enemy at distance {distance:F1}");
+                            // Check line of sight
+                            if (HasLineOfSightTo(position, enemyNode.GlobalPosition))
+                            {
+                                ApplyDamage(enemyNode, position);
+                                LogToFile($"[GrenadeTimer] Damaged enemy at distance {distance:F1}");
+                            }
                         }
                     }
                 }
@@ -604,12 +730,12 @@ namespace GodotTopdown.Scripts.Projectiles
         }
 
         /// <summary>
-        /// Spawn visual explosion effect using PointLight2D with shadow_enabled for wall occlusion.
+        /// Spawn visual explosion effect using PointLight2D.
         /// FIX for Issue #432: GDScript Call() silently fails in exports, so we implement
         /// the explosion effect directly in C# to ensure it always works.
-        /// FIX for Issue #469: Flashbang uses shadow-enabled PointLight2D so flash doesn't pass through walls.
-        /// FIX for Issue #470: Frag grenade uses PointLight2D with shadow_enabled=true to automatically
-        /// respect wall geometry through Godot's native 2D lighting/shadow system.
+        /// FIX for Issue #724: Shadows are DISABLED on PointLight2D because shadow rendering
+        /// causes severe FPS drops (4 draw lists per light + 4 × lights × occluders).
+        /// Brief explosion flashes (0.3-0.4s) don't need accurate shadow casting anyway.
         /// </summary>
         private void SpawnExplosionEffect(Vector2 position)
         {
@@ -626,8 +752,8 @@ namespace GodotTopdown.Scripts.Projectiles
 
         /// <summary>
         /// Loads and instantiates the FlashbangEffect.tscn scene directly from C#.
-        /// FIX for Issue #469: Uses shadow-enabled PointLight2D so flash doesn't pass through walls.
         /// FIX for Issue #432: Bypasses GDScript Call() which fails silently in exports.
+        /// FIX for Issue #724: FlashbangEffect.tscn now has shadow_enabled=false for performance.
         /// </summary>
         private void SpawnFlashbangEffectScene(Vector2 position)
         {
@@ -663,12 +789,12 @@ namespace GodotTopdown.Scripts.Projectiles
             // Add to the current scene
             GetTree().CurrentScene?.AddChild(effect);
 
-            LogToFile($"[GrenadeTimer] Spawned shadow-enabled flashbang effect at {position} (radius: {EffectRadius})");
+            LogToFile($"[GrenadeTimer] Spawned flashbang effect at {position} (radius: {EffectRadius})");
         }
 
         /// <summary>
         /// Spawn frag grenade explosion flash using ExplosionFlash.tscn.
-        /// FIX for Issue #470: Uses PointLight2D with shadow_enabled=true for wall occlusion.
+        /// FIX for Issue #724: Shadows are disabled on PointLight2D for performance.
         /// </summary>
         private void SpawnFragExplosionFlash(Vector2 position)
         {
@@ -688,7 +814,7 @@ namespace GodotTopdown.Scripts.Projectiles
                     flashNode.Set("effect_radius", EffectRadius);
 
                     GetTree().CurrentScene.AddChild(flash);
-                    LogToFile($"[GrenadeTimer] Spawned PointLight2D frag explosion flash at {position} (shadow-based wall occlusion)");
+                    LogToFile($"[GrenadeTimer] Spawned PointLight2D frag explosion flash at {position}");
                     return;
                 }
             }
@@ -701,20 +827,21 @@ namespace GodotTopdown.Scripts.Projectiles
         /// <summary>
         /// Fallback explosion flash using PointLight2D directly.
         /// Used when ExplosionFlash.tscn cannot be loaded.
-        /// Uses shadow_enabled=true to respect wall geometry.
+        /// FIX for Issue #724: Shadows are DISABLED because shadow-enabled PointLight2D
+        /// causes severe FPS drops (4 draw lists per light + 4 × lights × occluders).
+        /// Brief explosion flashes (0.3-0.4s) don't need accurate shadow casting.
         /// </summary>
         private void CreateFallbackExplosionFlash(Vector2 position)
         {
-            // Create PointLight2D with shadow enabled for wall occlusion
+            // Create PointLight2D WITHOUT shadows for performance (Issue #724)
             var light = new PointLight2D();
             light.GlobalPosition = position;
             light.ZIndex = 10;
 
-            // Enable shadows so light respects wall geometry
-            light.ShadowEnabled = true;
-            light.ShadowColor = new Color(0, 0, 0, 0.9f);
-            light.ShadowFilter = PointLight2D.ShadowFilterEnum.Pcf5;
-            light.ShadowFilterSmooth = 6.0f;
+            // FIX Issue #724: Shadows DISABLED - they cause severe FPS drops
+            // Shadow rendering creates 4 draw lists per light + 4 × lights × occluders
+            // Brief explosion flashes don't need accurate shadow casting
+            light.ShadowEnabled = false;
 
             // Create gradient texture for the light
             light.Texture = CreateLightGradientTexture();
@@ -778,6 +905,8 @@ namespace GodotTopdown.Scripts.Projectiles
 
         /// <summary>
         /// Spawn shrapnel for Frag grenades.
+        /// Issue #692: Sets source_id and thrower_id on shrapnel. When thrower_id >= 0
+        /// (enemy-thrown), shrapnel skips ALL enemies to prevent friendly fire.
         /// </summary>
         private void SpawnShrapnel(Vector2 position)
         {
@@ -792,6 +921,9 @@ namespace GodotTopdown.Scripts.Projectiles
             int shrapnelCount = 4;
             float angleStep = Mathf.Tau / shrapnelCount;
 
+            // Issue #692: Get grenade instance ID for shrapnel source tracking
+            long grenadeInstanceId = _grenadeBody != null ? (long)_grenadeBody.GetInstanceId() : -1;
+
             for (int i = 0; i < shrapnelCount; i++)
             {
                 float baseAngle = i * angleStep;
@@ -805,12 +937,19 @@ namespace GodotTopdown.Scripts.Projectiles
                 {
                     shrapnelNode.GlobalPosition = position + direction * 10.0f;
                     shrapnelNode.Set("direction", direction);
+                    // Issue #692: Set source_id so shrapnel doesn't hit the grenade itself
+                    shrapnelNode.Set("source_id", grenadeInstanceId);
+                    // Issue #692: Set thrower_id so shrapnel doesn't hit the enemy who threw it
+                    if (ThrowerId >= 0)
+                    {
+                        shrapnelNode.Set("thrower_id", ThrowerId);
+                    }
 
                     GetTree().CurrentScene.AddChild(shrapnel);
                 }
             }
 
-            LogToFile($"[GrenadeTimer] Spawned {shrapnelCount} shrapnel pieces");
+            LogToFile($"[GrenadeTimer] Spawned {shrapnelCount} shrapnel pieces (source_id: {grenadeInstanceId}, thrower_id: {ThrowerId})");
         }
 
         /// <summary>

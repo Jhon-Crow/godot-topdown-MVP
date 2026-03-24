@@ -4,6 +4,9 @@ extends Node
 ## This logger automatically captures print output and errors,
 ## writing them to a log file for debugging exported builds.
 ## The log file is created in the same directory as the executable.
+##
+## Performance: writes are batched and flushed every FLUSH_INTERVAL seconds
+## (Issue #885). Error-level messages are flushed immediately.
 
 ## The log file handle.
 var _log_file: FileAccess = null
@@ -11,7 +14,8 @@ var _log_file: FileAccess = null
 ## Path to the log file.
 var _log_path: String = ""
 
-## Whether logging is enabled.
+## Whether logging is enabled (controlled by ExperimentalSettings, Issue #848).
+## When false, no log file is written and console output is suppressed for performance.
 var _logging_enabled: bool = true
 
 ## Buffer for log messages before file is ready.
@@ -20,10 +24,30 @@ var _log_buffer = []
 ## Maximum buffer size before flush.
 const MAX_BUFFER_SIZE: int = 100
 
+## Write buffer: accumulates log lines between timed flushes (Issue #885).
+var _write_buffer: Array[String] = []
+
+## How often (in seconds) to flush buffered writes to disk (Issue #885).
+const FLUSH_INTERVAL: float = 1.0
+
+## Timer node that triggers periodic batch flush (Issue #885).
+var _flush_timer: Timer = null
+
 
 func _ready() -> void:
+	_setup_flush_timer()
 	_setup_log_file()
 	_log_startup_info()
+
+
+## Create and start the periodic flush timer (Issue #885).
+func _setup_flush_timer() -> void:
+	_flush_timer = Timer.new()
+	_flush_timer.wait_time = FLUSH_INTERVAL
+	_flush_timer.autostart = true
+	_flush_timer.one_shot = false
+	add_child(_flush_timer)
+	_flush_timer.timeout.connect(_flush_write_buffer)
 
 
 func _notification(what: int) -> void:
@@ -79,7 +103,27 @@ func _log_startup_info() -> void:
 	log_info("Debug build: %s" % OS.is_debug_build())
 	log_info("Engine version: %s" % Engine.get_version_info().get("string", "unknown"))
 	log_info("Project: %s" % ProjectSettings.get_setting("application/config/name", "unknown"))
+	_log_build_info()
 	log_info("-" .repeat(60))
+
+
+## Log build information (branch, commit, date) from build_info.cfg if it exists.
+func _log_build_info() -> void:
+	const BUILD_INFO_PATH: String = "res://build_info.cfg"
+	if not ResourceLoader.exists(BUILD_INFO_PATH):
+		log_info("Build info: not available (build_info.cfg not found)")
+		return
+	var cfg := ConfigFile.new()
+	var err := cfg.load(BUILD_INFO_PATH)
+	if err != OK:
+		log_info("Build info: not available (failed to load build_info.cfg)")
+		return
+	var branch: String = cfg.get_value("build", "branch", "unknown")
+	var commit: String = cfg.get_value("build", "commit", "unknown")
+	var date: String = cfg.get_value("build", "date", "unknown")
+	log_info("Build branch: %s" % branch)
+	log_info("Build commit: %s" % commit)
+	log_info("Build date: %s" % date)
 
 
 ## Close the log file properly.
@@ -88,29 +132,51 @@ func _close_log_file() -> void:
 		log_info("-" .repeat(60))
 		log_info("GAME LOG ENDED: %s" % Time.get_datetime_string_from_system())
 		log_info("=" .repeat(60))
+		_flush_write_buffer()
 		_log_file.close()
 		_log_file = null
 
 
 ## Write a message to the log file with timestamp.
+## Writes are batched and flushed every FLUSH_INTERVAL seconds (Issue #885).
+## ERROR-level messages bypass the buffer and flush immediately.
+## Issue #1293: print() is gated to debug builds only. In release/export builds,
+## stdout writes cause variable FPS drops (1–9 fps) depending on how the OS
+## handles the unconnected stdout pipe. With 40–70 log messages/second the
+## overhead is significant and non-deterministic across launches.
 func _write_log(level: String, message: String) -> void:
-	var timestamp := Time.get_time_string_from_system()
-	var log_line := "[%s] [%s] %s" % [timestamp, level, message]
-
-	# Also print to console
-	print(log_line)
-
 	if not _logging_enabled:
 		return
 
+	var timestamp := Time.get_time_string_from_system()
+	var log_line := "[%s] [%s] %s" % [timestamp, level, message]
+
+	# Only print to console in debug builds to avoid FPS drops (Issue #1293).
+	if OS.is_debug_build():
+		print(log_line)
+
 	if _log_file != null:
-		_log_file.store_line(log_line)
-		_log_file.flush()
+		_write_buffer.append(log_line)
+		# Flush errors immediately so they are not lost on crash (Issue #885).
+		if level == "ERROR":
+			_flush_write_buffer()
 	else:
 		# Buffer messages if file not ready yet
 		_log_buffer.append(log_line)
 		if _log_buffer.size() > MAX_BUFFER_SIZE:
 			_log_buffer.pop_front()
+
+
+## Flush all buffered log lines to disk (Issue #885).
+## Called automatically by _flush_timer every FLUSH_INTERVAL seconds,
+## immediately for ERROR messages, and on file close.
+func _flush_write_buffer() -> void:
+	if _log_file == null or _write_buffer.is_empty():
+		return
+	for line in _write_buffer:
+		_log_file.store_line(line)
+	_write_buffer.clear()
+	_log_file.flush()
 
 
 ## Log an info message.
@@ -152,6 +218,12 @@ func get_log_path() -> String:
 ## Check if logging is enabled and working.
 func is_logging_enabled() -> bool:
 	return _logging_enabled and _log_file != null
+
+
+## Enable or disable logging (Issue #848).
+## Called by ExperimentalSettings when the logging toggle changes.
+func set_logging_enabled(enabled: bool) -> void:
+	_logging_enabled = enabled
 
 
 ## Alias methods for compatibility with different calling conventions.

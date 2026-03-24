@@ -1,5 +1,6 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Characters;
 
 namespace GodotTopDownTemplate.Weapons;
 
@@ -145,6 +146,22 @@ public partial class MiniUzi : BaseWeapon
                 _laserSightColor = blueColorVariant.AsColor();
                 CreateLaserSight();
                 GD.Print($"[MiniUzi] Power Fantasy mode: blue laser sight enabled with color {_laserSightColor}");
+            }
+        }
+
+        // Check for Laser Sight active item - adds purple laser regardless of difficulty (Issue #947)
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null)
+        {
+            var shouldForceLaser = activeItemManager.Call("should_force_laser_sight");
+            if (shouldForceLaser.AsBool())
+            {
+                _laserSightEnabled = true;
+                var purpleColorVariant = activeItemManager.Call("get_laser_sight_color");
+                _laserSightColor = purpleColorVariant.AsColor();
+                if (GetNodeOrNull<Line2D>("LaserSight") == null)
+                    CreateLaserSight();
+                GD.Print($"[MiniUzi] Laser Sight active item: purple laser sight enabled with color {_laserSightColor}");
             }
         }
     }
@@ -301,6 +318,10 @@ public partial class MiniUzi : BaseWeapon
     /// </summary>
     private Vector2 ApplySpread(Vector2 direction)
     {
+        // Suppress spread entirely when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return direction;
+
         // Apply the current recoil offset to the direction
         Vector2 result = direction.Rotated(_recoilOffset);
 
@@ -352,9 +373,14 @@ public partial class MiniUzi : BaseWeapon
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
+        if (audioManager != null && audioManager.HasMethod("play_pistol_empty_click"))
         {
-            audioManager.Call("play_empty_click", GlobalPosition);
+            GD.Print("[MiniUzi] Playing pistol empty click sound (Issue #840)");
+            audioManager.Call("play_pistol_empty_click", GlobalPosition);
+        }
+        else
+        {
+            GD.Print($"[MiniUzi] play_pistol_empty_click not available: audioManager={(audioManager != null ? "found" : "null")}, hasMethod={(audioManager?.HasMethod("play_pistol_empty_click") ?? false)}");
         }
     }
 
@@ -379,7 +405,7 @@ public partial class MiniUzi : BaseWeapon
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            float loudness = WeaponData?.Loudness ?? 1469.0f;
+            float loudness = WeaponData?.Loudness ?? 800.0f;  // Issue #1269: scaled 800/1469
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
         }
     }
@@ -405,6 +431,10 @@ public partial class MiniUzi : BaseWeapon
     /// </summary>
     private void TriggerScreenShake(Vector2 shootDirection)
     {
+        // Suppress screen shake when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return;
+
         if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
         {
             return;
@@ -525,14 +555,15 @@ public partial class MiniUzi : BaseWeapon
             var query = PhysicsRayQueryParameters2D.Create(
                 GlobalPosition,
                 GlobalPosition + endPoint,
-                4 // Collision mask for obstacles
+                6 // Collision mask: obstacles (layer 3 = 4) | enemies (layer 2 = 2)
             );
 
             var result = spaceState.IntersectRay(query);
             if (result.Count > 0)
             {
+                // Extend 4px into the hit body so the laser visually penetrates the surface
                 Vector2 hitPosition = (Vector2)result["position"];
-                endPoint = hitPosition - GlobalPosition;
+                endPoint = hitPosition - GlobalPosition + laserDirection * 4.0f;
             }
         }
 

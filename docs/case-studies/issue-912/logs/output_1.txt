@@ -1,0 +1,100 @@
+[01:34:24] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[01:34:24] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[01:34:24] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[01:34:24] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn
+[01:34:25] [INFO] [Player.ForceField] Force field is selected, initializing...
+[01:34:25] [INFO] [ForceFieldEffect] Area2D setup with radius 35px
+[01:34:25] [INFO] [ForceFieldEffect] Shader loaded successfully
+[01:34:25] [INFO] [ForceFieldEffect] Initialized with 8.0s charge
+[01:34:25] [INFO] [Player.ForceField] Force field initialized successfully
+[01:34:25] [INFO] [Player.ForceField] Force field is selected, initializing...
+[01:34:25] [INFO] [ForceFieldEffect] Area2D setup with radius 35px
+[01:34:25] [INFO] [ForceFieldEffect] Shader loaded successfully
+[01:34:25] [INFO] [ForceFieldEffect] Initialized with 8.0s charge
+[01:34:25] [INFO] [Player.ForceField] Force field initialized successfully
+[01:34:30] [INFO] [ForceFieldEffect] Activated! Charge: 8.0s/8.0s
+[01:34:31] [INFO] [ForceFieldEffect] Released 0 trapped projectiles
+[01:34:31] [INFO] [ForceFieldEffect] Deactivated. Charge remaining: 7.5s
+[01:34:31] [INFO] [Player.ForceField] Force field is selected, initializing...
+[01:34:31] [INFO] [ForceFieldEffect] Area2D setup with radius 35px
+[01:34:31] [INFO] [ForceFieldEffect] Shader loaded successfully
+[01:34:31] [INFO] [ForceFieldEffect] Initialized with 8.0s charge
+[01:34:31] [INFO] [Player.ForceField] Force field initialized successfully
+[01:34:32] [INFO] [ForceFieldEffect] Activated! Charge: 8.0s/8.0s
+[01:34:33] [INFO] [ForceFieldEffect] Released 0 trapped projectiles
+[01:34:33] [INFO] [ForceFieldEffect] Deactivated. Charge remaining: 7.4s
+[01:34:33] [INFO] [Player.ForceField] Force field is selected, initializing...
+[01:34:33] [INFO] [ForceFieldEffect] Area2D setup with radius 35px
+[01:34:33] [INFO] [ForceFieldEffect] Shader loaded successfully
+[01:34:33] [INFO] [ForceFieldEffect] Initialized with 8.0s charge
+[01:34:33] [INFO] [Player.ForceField] Force field initialized successfully
+[01:34:35] [INFO] [ForceFieldEffect] Activated! Charge: 8.0s/8.0s
+[01:34:35] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:36] [INFO] [ForceFieldEffect] Area entered: @Area2D@1112 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:36] [INFO] [ForceFieldEffect] Area entered: @Area2D@1115 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:36] [INFO] [ForceFieldEffect] Area entered: @Area2D@1118 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:36] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:36] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:36] [INFO] [ForceFieldEffect] Area entered: @Area2D@1134 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:36] [INFO] [ForceFieldEffect] Area entered: @Area2D@1142 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:36] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:36] [INFO] [ForceFieldEffect] Area entered: @Area2D@1147 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:36] [INFO] [ForceFieldEffect] Area entered: @Area2D@1158 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:37] [INFO] [ForceFieldEffect] Area entered: @Area2D@1161 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:37] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:37] [INFO] [ForceFieldEffect] Area entered: @Area2D@1171 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:37] [INFO] [ForceFieldEffect] Area entered: @Area2D@1174 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:37] [INFO] [ForceFieldEffect] Area entered: @Area2D@1180 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:37] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:37] [INFO] [ForceFieldEffect] Area entered: @Area2D@1189 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:37] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:37] [INFO] [ForceFieldEffect] Area entered: @Area2D@1197 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:37] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:37] [INFO] [ForceFieldEffect] Area entered: @Area2D@1205 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:37] [INFO] [ForceFieldEffect] Area entered: @Area2D@1218 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:38] [INFO] [ForceFieldEffect] Area entered: @Area2D@1222 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:38] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:38] [INFO] [ForceFieldEffect] Area entered: @Area2D@1225 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:38] [INFO] [ForceFieldEffect] Area entered: @Area2D@1227 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:38] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:38] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:38] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:41] [INFO] [ForceFieldEffect] Area entered: @Area2D@1239 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:41] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:41] [INFO] [ForceFieldEffect] Area entered: @Area2D@1252 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:41] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:41] [INFO] [ForceFieldEffect] Area entered: @Area2D@1260 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:41] [INFO] [ForceFieldEffect] Area entered: @Area2D@1258 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:41] [INFO] [ForceFieldEffect] Area entered: @Area2D@1272 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:42] [INFO] [ForceFieldEffect] Area entered: @Area2D@1269 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:42] [INFO] [ForceFieldEffect] Area entered: @Area2D@1280 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:42] [INFO] [ForceFieldEffect] Area entered: @Area2D@1278 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:42] [INFO] [ForceFieldEffect] Area entered: @Area2D@1294 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:42] [INFO] [ForceFieldEffect] Area entered: @Area2D@1290 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:42] [INFO] [ForceFieldEffect] Area entered: @Area2D@1306 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:42] [INFO] [ForceFieldEffect] Area entered: @Area2D@1303 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:42] [INFO] [ForceFieldEffect] Area entered: @Area2D@1316 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:42] [INFO] [ForceFieldEffect] Area entered: @Area2D@1312 (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:42] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:42] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:42] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:42] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:43] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:43] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:43] [INFO] [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[01:34:43] [INFO] [ForceFieldEffect] Released 0 trapped projectiles
+[01:34:43] [INFO] [ForceFieldEffect] Deactivated. Charge remaining: 0.0s
+[01:34:43] [INFO] [ForceFieldEffect] Charge depleted
+[01:34:43] [INFO] [ForceFieldEffect] No charge remaining
+[01:34:43] [INFO] [ForceFieldEffect] No charge remaining
+[01:34:43] [INFO] [ForceFieldEffect] No charge remaining
+[01:34:43] [INFO] [ForceFieldEffect] No charge remaining
+[01:34:43] [INFO] [ForceFieldEffect] No charge remaining
+[01:34:43] [INFO] [ForceFieldEffect] No charge remaining
+[01:34:43] [INFO] [ForceFieldEffect] No charge remaining
+[01:34:43] [INFO] [ForceFieldEffect] No charge remaining
+[01:34:43] [INFO] [ForceFieldEffect] No charge remaining
+[01:34:43] [INFO] [ForceFieldEffect] No charge remaining
+[01:34:43] [INFO] [ForceFieldEffect] No charge remaining
+[01:34:43] [INFO] [ForceFieldEffect] No charge remaining
+[01:34:43] [INFO] [ForceFieldEffect] No charge remaining

@@ -119,6 +119,11 @@ public partial class SniperBullet : Area2D
             _trail.ClearPoints();
             _trail.TopLevel = true;
             _trail.Position = Vector2.Zero;
+            // Pre-populate with barrel (spawn) position so the trail starts exactly
+            // at the muzzle. Without this, the first recorded position is already
+            // one physics frame (~167px at 10000px/s) ahead of the barrel, making
+            // the tracer appear to start away from the barrel. (Issue #1171 fix)
+            _positionHistory.Add(GlobalPosition);
         }
 
         // Set initial rotation
@@ -283,9 +288,19 @@ public partial class SniperBullet : Area2D
         }
 
         bool hitEnemy = false;
+        bool fromPlayer = IsPlayerBullet(); // Issue #1196: track kill source
 
         // Deal damage to target
-        if (parent != null && parent.HasMethod("take_damage"))
+        // Prefer on_hit_with_bullet_info_and_damage so HitArea forwards the correct Damage
+        // value instead of the hardcoded 1 HP used by the plain on_hit() fallback.
+        // Pass is_from_player (Issue #1196) so enemy.gd can track kill source for Laser Sight unlock.
+        if (area.HasMethod("on_hit_with_bullet_info_and_damage"))
+        {
+            GD.Print($"[SniperBullet]: Applying {Damage} damage to {area.Name} via on_hit_with_bullet_info_and_damage (from_player={fromPlayer})");
+            area.Call("on_hit_with_bullet_info_and_damage", Direction, (Godot.Resource?)null, false, true, Damage, fromPlayer);
+            hitEnemy = true;
+        }
+        else if (parent != null && parent.HasMethod("take_damage"))
         {
             GD.Print($"[SniperBullet]: Penetrating through {parent.Name}, applying {Damage} damage");
             parent.Call("take_damage", Damage);

@@ -1,5 +1,6 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Characters;
 
 namespace GodotTopDownTemplate.Weapons;
 
@@ -202,6 +203,19 @@ public partial class AssaultRifle : BaseWeapon
             }
         }
 
+        // Check for Laser Sight active item - adds purple laser regardless of difficulty (Issue #947)
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null)
+        {
+            var shouldForceLaser = activeItemManager.Call("should_force_laser_sight");
+            if (shouldForceLaser.AsBool())
+            {
+                var purpleColorVariant = activeItemManager.Call("get_laser_sight_color");
+                LaserSightColor = purpleColorVariant.AsColor();
+                GD.Print($"[AssaultRifle] Laser Sight active item: laser color set to purple {LaserSightColor}");
+            }
+        }
+
         // Get or create the laser sight Line2D
         _laserSight = GetNodeOrNull<Line2D>("LaserSight");
 
@@ -380,16 +394,17 @@ public partial class AssaultRifle : BaseWeapon
         var query = PhysicsRayQueryParameters2D.Create(
             GlobalPosition,
             GlobalPosition + endPoint,
-            4 // Collision mask for obstacles (layer 3 = value 4)
+            6 // Collision mask: obstacles (layer 3 = 4) | enemies (layer 2 = 2)
         );
 
         var result = spaceState.IntersectRay(query);
 
         if (result.Count > 0)
         {
-            // Hit an obstacle, shorten the laser
+            // Hit an obstacle or enemy, shorten the laser
+            // Extend 4px into the hit body so the laser visually penetrates the surface
             Vector2 hitPosition = (Vector2)result["position"];
-            endPoint = hitPosition - GlobalPosition;
+            endPoint = hitPosition - GlobalPosition + laserDirection * 4.0f;
         }
 
         // Update the laser sight line points (in local coordinates)
@@ -581,8 +596,8 @@ public partial class AssaultRifle : BaseWeapon
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            // Determine weapon loudness from WeaponData, or use viewport diagonal as default
-            float loudness = WeaponData?.Loudness ?? 1469.0f;
+            // Determine weapon loudness from WeaponData, or use PM-level default (Issue #1269: scaled 800/1469)
+            float loudness = WeaponData?.Loudness ?? 800.0f;
             // emit_sound(sound_type, position, source_type, source_node, custom_range)
             // sound_type 0 = GUNSHOT, source_type 0 = PLAYER
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
@@ -730,6 +745,10 @@ public partial class AssaultRifle : BaseWeapon
     /// <param name="shootDirection">The direction the bullet is traveling.</param>
     private void TriggerScreenShake(Vector2 shootDirection)
     {
+        // Suppress screen shake when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return;
+
         if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
         {
             return;
@@ -776,19 +795,22 @@ public partial class AssaultRifle : BaseWeapon
     }
 
     /// <summary>
-    /// Applies recoil offset to the shooting direction and adds new recoil.
-    /// The bullet is fired in the same direction shown by the laser sight,
-    /// then recoil is added for the next shot.
+    /// Applies recoil offset and random spread to the shooting direction, then updates recoil for next shot.
+    /// The laser sight shows the accumulated recoil direction; each bullet also gets additional
+    /// random spread within the configured SpreadAngle, restoring visible bullet dispersion.
     /// </summary>
     /// <param name="direction">Original direction.</param>
-    /// <returns>Direction with current recoil applied.</returns>
+    /// <returns>Direction with current recoil and random spread applied.</returns>
     private Vector2 ApplySpread(Vector2 direction)
     {
+        // Suppress spread entirely when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return direction;
+
         // Apply the current recoil offset to the direction
         // This matches where the laser is pointing
         Vector2 result = direction.Rotated(_recoilOffset);
 
-        // Add recoil for the next shot
         if (WeaponData != null && WeaponData.SpreadAngle > 0)
         {
             // Convert spread angle from degrees to radians
@@ -803,11 +825,13 @@ public partial class AssaultRifle : BaseWeapon
                 spreadRadians *= recoilMultiplier;
             }
 
-            // Generate random recoil direction (-1 or 1) with small variation
+            // Apply random spread for this bullet so each shot has visible dispersion
+            float randomSpread = (float)GD.RandRange(-spreadRadians, spreadRadians);
+            result = result.Rotated(randomSpread * 0.5f);
+
+            // Also update recoil accumulator for the next shot (affects laser sight)
             float recoilDirection = (float)GD.RandRange(-1.0, 1.0);
             float recoilAmount = spreadRadians * Mathf.Abs(recoilDirection);
-
-            // Add to current recoil, clamped to maximum
             _recoilOffset += recoilDirection * recoilAmount * 0.5f;
             _recoilOffset = Mathf.Clamp(_recoilOffset, -MaxRecoilOffset, MaxRecoilOffset);
         }

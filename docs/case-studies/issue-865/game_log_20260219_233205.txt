@@ -1,0 +1,36 @@
+[23:32:05] [INFO] ============================================================
+[23:32:05] [INFO] GAME LOG STARTED
+[23:32:05] [INFO] ============================================================
+[23:32:05] [INFO] Timestamp: 2026-02-19T23:32:05
+[23:32:05] [INFO] Log file: I:/Загрузки/godot exe/микро фиксы/game_log_20260219_233205.txt
+[23:32:05] [INFO] Executable: I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe
+[23:32:05] [INFO] OS: Windows
+[23:32:05] [INFO] Debug build: false
+[23:32:05] [INFO] Engine version: 4.3-stable (official)
+[23:32:05] [INFO] Project: Godot Top-Down Template
+[23:32:05] [INFO] ------------------------------------------------------------
+[23:32:05] [INFO] [GameManager] GameManager ready
+[23:32:05] [INFO] [ScoreManager] ScoreManager ready
+[23:32:05] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[23:32:05] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[23:32:05] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[23:32:05] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[23:32:05] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[23:32:05] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[23:32:05] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[23:32:05] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[23:32:05] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[23:32:05] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[23:32:05] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[23:32:05] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[23:32:05] [INFO] [LastChance] Resetting all effects (scene change detected)
+[23:32:05] [INFO] [LastChance] Last chance shader loaded successfully
+[23:32:05] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[23:32:05] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[23:32:05] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[23:32:05] [INFO] [LastChance]   Sepia intensity: 0.70
+[23:32:05] [INFO] [LastChance]   Brightness: 0.60
+[23:32:05] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[23:32:05] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[23:32:05] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[23:32:05] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn

@@ -1,6 +1,8 @@
 using Godot;
+using GodotTopDownTemplate.Characters;
 using GodotTopDownTemplate.Data;
 using System.Linq;
+using CSharpBullet = GodotTopDownTemplate.Projectiles.Bullet;
 
 namespace GodotTopDownTemplate.AbstractClasses;
 
@@ -47,11 +49,14 @@ public abstract partial class BaseWeapon : Node2D
 
     /// <summary>
     /// Current ammunition in the magazine.
+    /// Exported so GDScript can read it via weapon.get("CurrentAmmo") (Issue #950).
+    /// The setter is only called internally from C# code.
     /// </summary>
+    [Export]
     public int CurrentAmmo
     {
         get => MagazineInventory.CurrentMagazine?.CurrentAmmo ?? 0;
-        protected set
+        set
         {
             if (MagazineInventory.CurrentMagazine != null)
             {
@@ -63,14 +68,17 @@ public abstract partial class BaseWeapon : Node2D
     /// <summary>
     /// Total reserve ammunition across all spare magazines.
     /// Note: This now represents total ammo in spare magazines, not a simple counter.
+    /// Exported so GDScript can read it via weapon.get("ReserveAmmo") (Issue #950).
+    /// The setter is kept for backward compatibility but is a no-op.
     /// </summary>
+    [Export]
     public int ReserveAmmo
     {
         get => MagazineInventory.TotalSpareAmmo;
-        protected set
+        set
         {
-            // This setter is kept for backward compatibility but does nothing
-            // The reserve ammo is now calculated from individual magazines
+            // This setter is kept for backward compatibility but does nothing.
+            // Reserve ammo is calculated from individual magazines.
         }
     }
 
@@ -103,6 +111,31 @@ public abstract partial class BaseWeapon : Node2D
     /// </summary>
     public bool IsInReloadSequence { get; set; }
 
+
+    /// <summary>
+    /// Whether breaker bullets are active (passive item, Issue #678).
+    /// When true, spawned bullets will have is_breaker_bullet = true.
+    /// </summary>
+    public bool IsBreakerBulletActive { get; set; } = false;
+
+    /// <summary>
+    /// Remaining drilling bullet count for the current magazine (Issue #751).
+    /// When > 0, spawned bullets will have is_drilling_bullet = true (pass through walls).
+    /// Decremented on each shot; player.gd sets this to CurrentAmmo on activation.
+    /// </summary>
+    public int DrillingBulletsRemaining { get; set; } = 0;
+
+    /// <summary>
+    /// Extra damage bonus added to every bullet spawned (Issue #1047, Combat Disposition passive item).
+    /// Can be negative (penalty after taking damage).
+    /// </summary>
+    public float DamageBonus { get; set; } = 0.0f;
+
+    /// <summary>
+    /// Extra fire rate bonus added to fire rate (shots/sec) for every shot (Issue #1047, Combat Disposition passive item).
+    /// Can be negative (penalty after taking damage).
+    /// </summary>
+    public float FireRateBonus { get; set; } = 0.0f;
 
     protected float _fireTimer;
     private float _reloadTimer;
@@ -141,10 +174,34 @@ public abstract partial class BaseWeapon : Node2D
 
     public override void _Ready()
     {
-        if (WeaponData != null)
+        // Diagnostic logging for Issue #765 (weapon data corruption after restart)
+        GD.Print($"[BaseWeapon] _Ready() called for weapon: {Name}");
+        GD.Print($"[BaseWeapon]   WeaponData: {(WeaponData != null ? "Present" : "NULL")}");
+
+        // Issue #765 Fix: Validate WeaponData and provide clear error if missing
+        if (WeaponData == null)
         {
-            InitializeMagazinesWithDifficulty();
+            GD.PrintErr($"[BaseWeapon] CRITICAL ERROR: WeaponData is NULL for weapon {Name}!");
+            GD.PrintErr($"[BaseWeapon] This weapon will not function correctly. Check that:");
+            GD.PrintErr($"[BaseWeapon]   1. The weapon scene (.tscn) has WeaponData resource assigned");
+            GD.PrintErr($"[BaseWeapon]   2. The .tres file exists and is not corrupted");
+            GD.PrintErr($"[BaseWeapon]   3. Scene reload hasn't cleared the resource reference");
+            // Don't initialize if WeaponData is missing - prevents using wrong defaults
+            return;
         }
+
+        // Log weapon data for diagnostics
+        GD.Print($"[BaseWeapon]   WeaponData.Name: {WeaponData.Name}");
+        GD.Print($"[BaseWeapon]   WeaponData.MagazineSize: {WeaponData.MagazineSize}");
+        GD.Print($"[BaseWeapon]   WeaponData.Caliber: {(WeaponData.Caliber != null ? "Present" : "NULL")}");
+        if (WeaponData.Caliber != null)
+        {
+            var caliberName = WeaponData.Caliber.Get("caliber_name");
+            GD.Print($"[BaseWeapon]   Caliber.caliber_name: {caliberName}");
+        }
+        GD.Print($"[BaseWeapon]   WeaponData resource path: {WeaponData.ResourcePath}");
+
+        InitializeMagazinesWithDifficulty();
 
         // Connect to difficulty_changed signal to re-initialize ammo when difficulty changes
         var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
@@ -160,7 +217,11 @@ public abstract partial class BaseWeapon : Node2D
     /// </summary>
     protected virtual void InitializeMagazinesWithDifficulty()
     {
-        if (WeaponData == null) return;
+        if (WeaponData == null)
+        {
+            GD.PrintErr($"[BaseWeapon] InitializeMagazinesWithDifficulty: WeaponData is NULL for {Name}! Cannot initialize.");
+            return;
+        }
 
         int magazineCount = StartingMagazineCount;
         var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
@@ -175,8 +236,37 @@ public abstract partial class BaseWeapon : Node2D
             }
         }
 
+        int magazineSize = WeaponData.MagazineSize;
+
+        // Apply extended magazine passive item (Issue #1065):
+        // 2.5x magazine size, 5% less total ammo.
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null && activeItemManager.HasMethod("has_extended_magazine")
+            && activeItemManager.Call("has_extended_magazine").AsBool())
+        {
+            float magSizeMultiplier = activeItemManager.Call("get_magazine_size_multiplier").AsSingle();
+            float totalAmmoMultiplier = activeItemManager.Call("get_total_ammo_multiplier").AsSingle();
+
+            int originalTotal = magazineCount * magazineSize;
+            int newMagSize = Mathf.Max(1, Mathf.RoundToInt(magazineSize * magSizeMultiplier));
+            int newTotal = Mathf.Max(newMagSize, Mathf.RoundToInt(originalTotal * totalAmmoMultiplier));
+            // Derive magazine count from new total / new magazine size (at least 1)
+            int newMagCount = Mathf.Max(1, Mathf.CeilToInt((float)newTotal / newMagSize));
+
+            GD.Print($"[BaseWeapon] Extended Magazine: magSize {magazineSize}->{newMagSize}, " +
+                     $"magazines {magazineCount}->{newMagCount} (total ammo {originalTotal}->{newMagCount * newMagSize})");
+
+            magazineSize = newMagSize;
+            magazineCount = newMagCount;
+        }
+
+        // Diagnostic logging for Issue #765
+        GD.Print($"[BaseWeapon] Initializing magazines for {Name}:");
+        GD.Print($"[BaseWeapon]   Magazine count: {magazineCount}");
+        GD.Print($"[BaseWeapon]   Magazine size: {magazineSize}");
+
         // Initialize magazine inventory with the starting magazines
-        MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines: true);
+        MagazineInventory.Initialize(magazineCount, magazineSize, fillAllMagazines: true);
 
         // Emit initial magazine state
         EmitMagazinesChanged();
@@ -238,6 +328,16 @@ public abstract partial class BaseWeapon : Node2D
     }
 
     /// <summary>
+    /// Accelerates the fire cooldown timer by the given extra delta.
+    /// Called by the recoil compensator to apply a 10% fire rate boost (Issue #1073).
+    /// </summary>
+    public void AccelerateFireTimer(float extraDelta)
+    {
+        if (_fireTimer > 0)
+            _fireTimer -= extraDelta;
+    }
+
+    /// <summary>
     /// Attempts to fire the weapon in the specified direction.
     /// </summary>
     /// <param name="direction">Direction to fire.</param>
@@ -251,7 +351,8 @@ public abstract partial class BaseWeapon : Node2D
 
         // Consume ammo from current magazine
         MagazineInventory.ConsumeAmmo();
-        _fireTimer = 1.0f / WeaponData.FireRate;
+        float effectiveFireRate = WeaponData.FireRate + FireRateBonus;
+        _fireTimer = 1.0f / Mathf.Max(effectiveFireRate, 0.1f);
 
         SpawnBullet(direction);
 
@@ -388,47 +489,132 @@ public abstract partial class BaseWeapon : Node2D
         var bullet = BulletScene.Instantiate<Node2D>();
         bullet.GlobalPosition = spawnPosition;
 
-        // Set bullet properties - try both PascalCase (C#) and snake_case (GDScript)
-        // C# bullets use PascalCase (Direction, Speed, ShooterId, ShooterPosition)
-        // GDScript bullets use snake_case (direction, speed, shooter_id, shooter_position)
-        if (bullet.HasMethod("SetDirection"))
+        // Set bullet properties BEFORE AddChild() so _ready() sees correct values.
+        // Issue #781: Node.Set() silently fails for non-@export GDScript properties.
+        // C# bullets support direct property access; GDScript bullets use Call() setter methods.
+        if (bullet is CSharpBullet csBulletDirect)
         {
-            bullet.Call("SetDirection", direction);
+            // C# bullet: direct property assignment
+            csBulletDirect.Direction = direction;
+            if (WeaponData != null)
+            {
+                csBulletDirect.Speed = WeaponData.BulletSpeed;
+                csBulletDirect.Damage = WeaponData.Damage + DamageBonus;
+                // Pass caliber data so Bullet.cs reads correct ricochet parameters (Issue #915)
+                csBulletDirect.CaliberData = WeaponData.Caliber;
+            }
+            var owner = GetParent();
+            if (owner != null)
+            {
+                csBulletDirect.ShooterId = owner.GetInstanceId();
+            }
+            csBulletDirect.ShooterPosition = GlobalPosition;
+        }
+        else if (bullet is GodotTopDownTemplate.Projectiles.ShotgunPellet pelletDirect)
+        {
+            // ShotgunPellet (C#): direct property assignment
+            pelletDirect.Direction = direction;
+            if (WeaponData != null)
+            {
+                pelletDirect.Speed = WeaponData.BulletSpeed;
+                pelletDirect.Damage = WeaponData.Damage + DamageBonus;
+            }
+            var owner = GetParent();
+            if (owner != null)
+            {
+                pelletDirect.ShooterId = owner.GetInstanceId();
+            }
+            // Note: ShotgunPellet does not have ShooterPosition property
         }
         else
         {
-            // Try PascalCase first (C# Bullet.cs), then snake_case (GDScript bullet.gd)
-            bullet.Set("Direction", direction);
-            bullet.Set("direction", direction);
+            // GDScript bullet: use Call() setter methods (Issue #781).
+            // These methods exist in bullet.gd and work before AddChild().
+            bullet.Call("set_direction", direction);
+            if (WeaponData != null)
+            {
+                bullet.Call("set_speed", WeaponData.BulletSpeed);
+                bullet.Call("set_damage", WeaponData.Damage + DamageBonus);
+            }
+            var owner = GetParent();
+            if (owner != null)
+            {
+                bullet.Call("set_shooter_id", (long)owner.GetInstanceId());
+            }
+            bullet.Call("set_shooter_position", GlobalPosition);
         }
 
-        // Set bullet speed and damage from weapon data
-        if (WeaponData != null)
+        // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
+        // Must be set BEFORE AddChild() so _ready() can load the shrapnel scene.
+        if (IsBreakerBulletActive)
         {
-            // Try both cases for compatibility with C# and GDScript bullets
-            bullet.Set("Speed", WeaponData.BulletSpeed);
-            bullet.Set("speed", WeaponData.BulletSpeed);
-            // Set damage - critical for weapons with custom damage values
-            bullet.Set("Damage", WeaponData.Damage);
-            bullet.Set("damage", WeaponData.Damage);
+            if (bullet is CSharpBullet csBulletBreaker)
+            {
+                csBulletBreaker.IsBreakerBullet = true;
+            }
+            else if (bullet is GodotTopDownTemplate.Projectiles.ShotgunPellet pelletBreaker)
+            {
+                pelletBreaker.IsBreakerBullet = true;
+            }
+            else
+            {
+                // GDScript bullet — use setter method (Issue #781)
+                bullet.Call("set_is_breaker_bullet", true);
+            }
         }
 
-        // Set shooter ID to prevent self-damage
-        // The shooter is the owner of the weapon (parent node)
-        var owner = GetParent();
-        if (owner != null)
+        // Set drilling bullet flag if drilling bullets are active for this magazine (Issue #751)
+        // Decrements the counter; when it reaches 0, drilling effect ends naturally.
+        if (DrillingBulletsRemaining > 0)
         {
-            // Try both cases for compatibility with C# and GDScript bullets
-            bullet.Set("ShooterId", owner.GetInstanceId());
-            bullet.Set("shooter_id", owner.GetInstanceId());
+            DrillingBulletsRemaining--;
+            if (bullet is CSharpBullet csBulletDrilling)
+            {
+                csBulletDrilling.IsDrillingBullet = true;
+            }
+            else
+            {
+                // GDScript bullet — use setter method (Issue #781)
+                bullet.Call("set_is_drilling_bullet", true);
+            }
         }
 
-        // Set shooter position for distance-based penetration calculations
-        // Try both cases for compatibility with C# and GDScript bullets
-        bullet.Set("ShooterPosition", GlobalPosition);
-        bullet.Set("shooter_position", GlobalPosition);
+        // Set enemy penetration flag if weapon penetrates enemies (Issue #829)
+        // This is used by the RSh-12 revolver - bullets pass through enemies
+        if (WeaponData != null && WeaponData.PenetratesEnemies)
+        {
+            if (bullet is CSharpBullet csBulletPenetrate)
+            {
+                csBulletPenetrate.PenetratesEnemies = true;
+            }
+            else
+            {
+                // GDScript bullet — use setter method (Issue #781)
+                bullet.Call("set_penetrates_enemies", true);
+            }
+        }
 
         GetTree().CurrentScene.AddChild(bullet);
+
+        // Enable homing on the bullet if the player's homing effect is active (Issue #677, #704)
+        // When firing during activation, use aim-line targeting (nearest to crosshair)
+        var weaponOwner = GetParent();
+        if (weaponOwner is Player player && player.IsHomingActive())
+        {
+            Vector2 aimDir = (GetGlobalMousePosition() - player.GlobalPosition).Normalized();
+            if (bullet is CSharpBullet csBullet)
+            {
+                csBullet.EnableHomingWithAimLine(player.GlobalPosition, aimDir);
+            }
+            else if (bullet.HasMethod("enable_homing_with_aim_line"))
+            {
+                bullet.Call("enable_homing_with_aim_line", player.GlobalPosition, aimDir);
+            }
+            else if (bullet.HasMethod("enable_homing"))
+            {
+                bullet.Call("enable_homing");
+            }
+        }
 
         // Spawn muzzle flash effect at the bullet spawn position
         SpawnMuzzleFlash(spawnPosition, direction, WeaponData?.Caliber);
@@ -463,6 +649,24 @@ public abstract partial class BaseWeapon : Node2D
         if (CasingScene == null)
         {
             return;
+        }
+
+        // Diagnostic logging for Issue #765 (verify caliber data is correct)
+        // Issue #969: These prints fire on EVERY shot. Disabled by default to prevent
+        // console flooding (which causes measurable FPS drops at high fire rates).
+        // Re-enable DebugCasing = true in BaseWeapon if you need to diagnose casing issues.
+        const bool DebugCasing = false;
+        if (DebugCasing)
+        {
+            if (caliber != null)
+            {
+                var caliberName = caliber.Get("caliber_name");
+                GD.Print($"[BaseWeapon] Spawning casing for {Name} with caliber: {caliberName}");
+            }
+            else
+            {
+                GD.PrintErr($"[BaseWeapon] WARNING: Spawning casing for {Name} with NULL caliber!");
+            }
         }
 
         // Calculate casing spawn position (near the weapon, slightly offset)
@@ -640,7 +844,15 @@ public abstract partial class BaseWeapon : Node2D
         }
 
         // Fire the chamber bullet
-        _fireTimer = WeaponData != null ? 1.0f / WeaponData.FireRate : 0.1f;
+        if (WeaponData != null)
+        {
+            float effectiveFireRate = WeaponData.FireRate + FireRateBonus;
+            _fireTimer = 1.0f / Mathf.Max(effectiveFireRate, 0.1f);
+        }
+        else
+        {
+            _fireTimer = 0.1f;
+        }
         ChamberBulletFired = true;
         HasBulletInChamber = false;
 
@@ -743,10 +955,129 @@ public abstract partial class BaseWeapon : Node2D
             return;
         }
 
-        MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines);
+        int magazineSize = WeaponData.MagazineSize;
+
+        // Respect Extended Magazine passive item (Issue #1065): scale magazine size.
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null && activeItemManager.HasMethod("has_extended_magazine")
+            && activeItemManager.Call("has_extended_magazine").AsBool())
+        {
+            float magSizeMultiplier = activeItemManager.Call("get_magazine_size_multiplier").AsSingle();
+            magazineSize = Mathf.Max(1, Mathf.RoundToInt(magazineSize * magSizeMultiplier));
+            GD.Print($"[BaseWeapon] ReinitializeMagazines: Extended Magazine applied, magazineSize {WeaponData.MagazineSize}->{magazineSize}");
+        }
+
+        MagazineInventory.Initialize(magazineCount, magazineSize, fillAllMagazines);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
         EmitMagazinesChanged();
 
-        GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines, fillAll={fillAllMagazines}");
+        GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines of size {magazineSize}, fillAll={fillAllMagazines}");
+    }
+
+    /// <summary>
+    /// Reinitializes the magazine inventory with a custom magazine size.
+    /// Used by the auto-reload passive item (Issue #1067) to reduce magazine capacity.
+    /// </summary>
+    /// <param name="magazineCount">Number of magazines to initialize with.</param>
+    /// <param name="magazineSize">Custom magazine capacity (overrides WeaponData.MagazineSize).</param>
+    /// <param name="fillAllMagazines">If true, all magazines start full. Otherwise, only current is full.</param>
+    public virtual void ReinitializeMagazines(int magazineCount, int magazineSize, bool fillAllMagazines = true)
+    {
+        if (WeaponData == null)
+        {
+            GD.PrintErr("[BaseWeapon] Cannot reinitialize magazines: WeaponData is null");
+            return;
+        }
+
+        MagazineInventory.Initialize(magazineCount, magazineSize, fillAllMagazines);
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
+
+        GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines of size {magazineSize}, fillAll={fillAllMagazines}");
+    }
+
+    /// <summary>
+    /// Consumes a specified number of rounds from the spare (reserve) magazines.
+    /// Used by the auto-reload passive item to deduct bullets transferred to the current magazine.
+    /// Removes bullets starting from the magazines with the least ammo.
+    /// </summary>
+    /// <param name="amount">Number of rounds to consume from reserve.</param>
+    public virtual void ConsumeReserveAmmo(int amount)
+    {
+        int remaining = amount;
+
+        // Consume from spare magazines starting from the least-loaded ones
+        // (prefer to empty partial magazines first to reduce clutter)
+        var sparesSortedAscending = MagazineInventory.SpareMagazines
+            .OrderBy(m => m.CurrentAmmo)
+            .ToList();
+
+        foreach (var mag in sparesSortedAscending)
+        {
+            if (remaining <= 0) break;
+
+            int toConsume = Math.Min(mag.CurrentAmmo, remaining);
+            mag.CurrentAmmo -= toConsume;
+            remaining -= toConsume;
+        }
+
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
+    }
+
+    // =========================================================================
+    // Caliber Data Accessors (Issue #935)
+    // These C# methods expose caliber properties to GDScript callers.
+    //
+    // Root cause of Issue #935 (v3 analysis):
+    // All previous approaches (duck-typing .get(), "as CaliberData" cast, and
+    // reading WeaponData.Caliber.Get() from C#) returned 90.0 (the GDScript
+    // script default) instead of the serialized .tres value (70.0).
+    //
+    // This happens because in Godot 4.3, calling .Get() from C# on a GDScript-
+    // backed Resource returns the GDScript script-level default, not the
+    // deserialized .tres property value.
+    //
+    // Fix: Store caliber ricochet parameters directly in WeaponData.cs as C#
+    // [Export] properties (CaliberCanRicochet, CaliberMaxRicochetAngle,
+    // CaliberMaxRicochets). Being native C# properties on a C# resource, they
+    // are always read correctly from .tres files with no GDScript interop.
+    // The corresponding weapon .tres files are updated to set the correct values.
+    // =========================================================================
+
+    /// <summary>
+    /// Returns the maximum ricochet angle in degrees for this weapon's caliber.
+    /// Returns 90.0 (default) if no weapon data is set.
+    /// Called by trajectory_glasses_effect.gd to correctly color ricochet segments.
+    /// </summary>
+    public float GetCaliberMaxRicochetAngle()
+    {
+        if (WeaponData == null)
+            return 90.0f;
+        return WeaponData.CaliberMaxRicochetAngle;
+    }
+
+    /// <summary>
+    /// Returns the maximum number of ricochets allowed for this weapon's caliber.
+    /// Returns -1 (unlimited) if no weapon data is set.
+    /// Called by trajectory_glasses_effect.gd to determine bounce limit.
+    /// </summary>
+    public int GetCaliberMaxRicochets()
+    {
+        if (WeaponData == null)
+            return -1;
+        return WeaponData.CaliberMaxRicochets;
+    }
+
+    /// <summary>
+    /// Returns whether this weapon's caliber can ricochet.
+    /// Returns true (default) if no weapon data is set.
+    /// Called by trajectory_glasses_effect.gd to check ricochet capability.
+    /// </summary>
+    public bool GetCaliberCanRicochet()
+    {
+        if (WeaponData == null)
+            return true;
+        return WeaponData.CaliberCanRicochet;
     }
 }

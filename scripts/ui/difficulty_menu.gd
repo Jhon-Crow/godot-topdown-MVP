@@ -1,12 +1,15 @@
 extends CanvasLayer
 ## Difficulty selection menu.
 ##
-## Allows the player to select between Power Fantasy, Easy, Normal, and Hard difficulty modes.
+## Allows the player to select between Power Fantasy, Easy, Normal, Hard, and Black Metal modes.
 ## Power Fantasy mode: 10 HP, 3x ammo, reduced recoil, blue laser sights, special effects
 ## Easy mode: Longer enemy reaction delay - enemies take more time to shoot after spotting player
 ## Normal mode: Classic game behavior
 ## Hard mode: Enemies react when player looks away, reduced ammo
+## Black Metal mode: 25% less HP, 25% faster movement, black-and-white-red visual filter (Issue #958)
 ## Also includes a Night Mode toggle right under the Difficulty title.
+##
+## Issue #1014: Power Fantasy uses bright gradient text, Black Metal uses gothic font.
 
 ## Signal emitted when the back button is pressed.
 signal back_pressed
@@ -17,17 +20,48 @@ signal back_pressed
 @onready var easy_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/EasyButton
 @onready var normal_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NormalButton
 @onready var hard_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/HardButton
+@onready var black_metal_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BlackMetalButton
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/StatusLabel
 
+## Gothic bitmap font for Black Metal button (Issue #1014).
+var _gothic_font: Font = null
+
+## Path to the Gothic bitmap font file.
+const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
+
+## Gradient colors for Power Fantasy text (Issue #1014).
+## Bright vibrant gradient from cyan through magenta to yellow.
+const POWER_FANTASY_GRADIENT_COLORS: Array[Color] = [
+	Color(0.0, 1.0, 1.0),    # Cyan
+	Color(0.5, 0.0, 1.0),    # Purple
+	Color(1.0, 0.0, 1.0),    # Magenta
+	Color(1.0, 0.5, 0.0),    # Orange
+	Color(1.0, 1.0, 0.0),    # Yellow
+]
+
+## RichTextLabel for Power Fantasy gradient text (Issue #1014).
+var _power_fantasy_label: RichTextLabel = null
+
 
 func _ready() -> void:
+	# Setup tooltips and label behaviour for settings rows (Issue #1200)
+	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NightModeContainer,
+			"Night Mode")
+
+	# Load gothic font for Black Metal button (Issue #1014)
+	_load_gothic_font()
+
+	# Apply special styling to Power Fantasy and Black Metal buttons (Issue #1014)
+	_setup_power_fantasy_button()
+	_setup_black_metal_button()
 	# Connect button signals
 	night_mode_checkbox.toggled.connect(_on_night_mode_toggled)
 	power_fantasy_button.pressed.connect(_on_power_fantasy_pressed)
 	easy_button.pressed.connect(_on_easy_pressed)
 	normal_button.pressed.connect(_on_normal_pressed)
 	hard_button.pressed.connect(_on_hard_pressed)
+	black_metal_button.pressed.connect(_on_black_metal_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update button states based on current difficulty
@@ -56,18 +90,24 @@ func _update_button_states() -> void:
 	var is_normal: bool = difficulty_manager.is_normal_mode()
 	var is_hard: bool = difficulty_manager.is_hard_mode()
 	var is_power_fantasy: bool = difficulty_manager.is_power_fantasy_mode()
+	var is_black_metal: bool = difficulty_manager.is_black_metal_mode()
 
 	# Highlight current difficulty - disable the selected button
 	power_fantasy_button.disabled = is_power_fantasy
 	easy_button.disabled = is_easy
 	normal_button.disabled = is_normal
 	hard_button.disabled = is_hard
+	black_metal_button.disabled = is_black_metal
 
 	# Update button text to show selection
-	power_fantasy_button.text = "Power Fantasy (Selected)" if is_power_fantasy else "Power Fantasy"
+	# Power Fantasy uses gradient text via RichTextLabel (Issue #1014)
+	_update_power_fantasy_text(is_power_fantasy)
 	easy_button.text = "Easy (Selected)" if is_easy else "Easy"
 	normal_button.text = "Normal (Selected)" if is_normal else "Normal"
 	hard_button.text = "Hard (Selected)" if is_hard else "Hard"
+	# Use uppercase for Black Metal because the gothic font only has uppercase glyphs (Issue #1014)
+	# Use dash instead of parentheses since the gothic font doesn't have those characters (Issue #1020)
+	black_metal_button.text = "BLACK METAL - SELECTED" if is_black_metal else "BLACK METAL"
 
 	# Update night mode checkbox
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
@@ -82,6 +122,8 @@ func _update_button_states() -> void:
 		status_text = "Easy mode: Enemies react slower"
 	elif is_hard:
 		status_text = "Hard mode: Enemies react when you look away"
+	elif is_black_metal:
+		status_text = "Black Metal: 25% less HP, 25% faster, B&W filter"
 	else:
 		status_text = "Normal mode: Classic gameplay"
 
@@ -126,6 +168,19 @@ func _on_hard_pressed() -> void:
 	_update_button_states()
 
 
+func _on_black_metal_pressed() -> void:
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager:
+		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.BLACK_METAL)
+	_update_button_states()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("pause"):
+		_on_back_pressed()
+		get_viewport().set_input_as_handled()
+
+
 func _on_back_pressed() -> void:
 	back_pressed.emit()
 
@@ -136,3 +191,229 @@ func _on_difficulty_changed(_new_difficulty: int) -> void:
 
 func _on_settings_changed() -> void:
 	_update_button_states()
+
+
+## Loads the Gothic bitmap font for Black Metal button (Issue #1014).
+func _load_gothic_font() -> void:
+	if ResourceLoader.exists(GOTHIC_FONT_PATH):
+		var font = load(GOTHIC_FONT_PATH)
+		if font != null:
+			_gothic_font = font
+		else:
+			push_warning("[DifficultyMenu] Failed to load Gothic font from: " + GOTHIC_FONT_PATH)
+	else:
+		push_warning("[DifficultyMenu] Gothic font file not found: " + GOTHIC_FONT_PATH)
+
+
+## Sets up the Power Fantasy button with gradient text (Issue #1014).
+## Creates a RichTextLabel overlay on the button for the gradient effect.
+func _setup_power_fantasy_button() -> void:
+	# Hide the button's default text - we'll use a RichTextLabel overlay
+	power_fantasy_button.text = ""
+
+	# Create a CenterContainer to vertically center the RichTextLabel
+	var center_container := CenterContainer.new()
+	center_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# Create RichTextLabel for gradient text
+	_power_fantasy_label = RichTextLabel.new()
+	_power_fantasy_label.bbcode_enabled = true
+	_power_fantasy_label.scroll_active = false
+	_power_fantasy_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_power_fantasy_label.fit_content = true
+	_power_fantasy_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+
+	center_container.add_child(_power_fantasy_label)
+	power_fantasy_button.add_child(center_container)
+
+	# Apply initial gradient text
+	_update_power_fantasy_text(false)
+
+
+## Updates the Power Fantasy button text with gradient effect (Issue #1014).
+## @param is_selected: Whether Power Fantasy mode is currently selected.
+func _update_power_fantasy_text(is_selected: bool) -> void:
+	if _power_fantasy_label == null:
+		return
+
+	var base_text: String = "Power Fantasy (Selected)" if is_selected else "Power Fantasy"
+	var gradient_text: String = _create_gradient_bbcode(base_text)
+	_power_fantasy_label.text = "[center]" + gradient_text + "[/center]"
+
+
+## Creates BBCode text with per-character gradient coloring (Issue #1014).
+## @param text: The text to apply gradient to.
+## @returns: BBCode formatted text with color tags for each character.
+func _create_gradient_bbcode(text: String) -> String:
+	if text.is_empty():
+		return ""
+
+	var result: String = ""
+	var text_length: int = text.length()
+
+	for i in range(text_length):
+		var char: String = text[i]
+
+		# Skip whitespace characters (no color needed)
+		if char == " ":
+			result += " "
+			continue
+
+		# Calculate gradient position (0.0 to 1.0)
+		var t: float = float(i) / float(text_length - 1) if text_length > 1 else 0.0
+
+		# Interpolate color along the gradient
+		var color: Color = _sample_gradient(t)
+
+		# Convert to hex and wrap character in color tag
+		var hex_color: String = color.to_html(false)
+		result += "[color=#" + hex_color + "]" + char + "[/color]"
+
+	return result
+
+
+## Samples a color from the Power Fantasy gradient at position t (Issue #1014).
+## @param t: Position along gradient (0.0 to 1.0).
+## @returns: Interpolated color at the given position.
+func _sample_gradient(t: float) -> Color:
+	var colors: Array[Color] = POWER_FANTASY_GRADIENT_COLORS
+	var num_colors: int = colors.size()
+
+	if num_colors == 0:
+		return Color.WHITE
+	if num_colors == 1:
+		return colors[0]
+
+	# Clamp t to valid range
+	t = clampf(t, 0.0, 1.0)
+
+	# Calculate which segment we're in
+	var segment_size: float = 1.0 / float(num_colors - 1)
+	var segment_index: int = int(t / segment_size)
+
+	# Clamp to valid segment index
+	if segment_index >= num_colors - 1:
+		segment_index = num_colors - 2
+
+	# Calculate position within segment
+	var segment_t: float = (t - (float(segment_index) * segment_size)) / segment_size
+
+	# Interpolate between the two colors
+	return colors[segment_index].lerp(colors[segment_index + 1], segment_t)
+
+
+## Semi-transparent background colour drawn over a settings row on hover (Issue #1200).
+const ROW_HOVER_BG: Color = Color(1.0, 1.0, 1.0, 0.08)
+
+## Tracks which Control nodes currently have a hover background drawn on them.
+var _row_hover_bg: Dictionary = {}
+
+
+## Draw the hover background rect for a registered row node.
+func _draw_row_bg(node: Control) -> void:
+	if _row_hover_bg.get(node, false):
+		node.draw_rect(Rect2(Vector2.ZERO, node.size), ROW_HOVER_BG)
+
+
+## Setup tooltip, hover highlight, and label behaviour for a settings row (Issue #1200).
+## @param container   The HBoxContainer that holds the label + interactive control.
+## @param tooltip     Short name shown in the tooltip and applied to all child nodes.
+## @param description Optional sibling Label with the long description text.
+##                    When provided it receives the same tooltip, hover highlight,
+##                    and click-forwarding as the main container.
+func _setup_row_hover(container: Control, tooltip: String,
+		description: Control = null) -> void:
+	container.tooltip_text = tooltip
+	container.mouse_filter = Control.MOUSE_FILTER_STOP
+	for child in container.get_children():
+		if child is Control:
+			child.tooltip_text = tooltip
+	_row_hover_bg[container] = false
+	container.draw.connect(_draw_row_bg.bind(container))
+	container.mouse_entered.connect(_on_row_hovered.bind(container, description, true))
+	container.mouse_exited.connect(_on_row_hovered.bind(container, description, false))
+	container.gui_input.connect(_on_row_gui_input.bind(container))
+	if description != null:
+		description.tooltip_text = tooltip
+		description.mouse_filter = Control.MOUSE_FILTER_STOP
+		_row_hover_bg[description] = false
+		description.draw.connect(_draw_row_bg.bind(description))
+		description.mouse_entered.connect(_on_row_hovered.bind(container, description, true))
+		description.mouse_exited.connect(_on_row_hovered.bind(container, description, false))
+		description.gui_input.connect(_on_row_gui_input.bind(container))
+
+
+## Apply or remove hover background on the row container and its description label.
+func _on_row_hovered(container: Control, description: Control,
+		hovered: bool) -> void:
+	_row_hover_bg[container] = hovered
+	container.queue_redraw()
+	if description != null:
+		_row_hover_bg[description] = hovered
+		description.queue_redraw()
+
+
+## Forward a left-click on the row container to the first interactive control inside.
+func _on_row_gui_input(event: InputEvent, container: Control) -> void:
+	if event is InputEventMouseButton \
+			and event.button_index == MOUSE_BUTTON_LEFT \
+			and event.pressed:
+		for child in container.get_children():
+			if child is CheckButton:
+				# Setting button_pressed automatically emits toggled signal.
+				child.button_pressed = not child.button_pressed
+				container.accept_event()
+				return
+			if child is Button:
+				child.pressed.emit()
+				container.accept_event()
+				return
+			if child is OptionButton:
+				child.show_popup()
+				container.accept_event()
+				return
+
+
+## Sets up the Black Metal button with gothic font styling (Issue #1014).
+## Issue #1020: Increased font size, added black background.
+func _setup_black_metal_button() -> void:
+	if _gothic_font != null:
+		black_metal_button.add_theme_font_override("font", _gothic_font)
+		# Use a silver/gray color that fits the Black Metal aesthetic
+		black_metal_button.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
+		black_metal_button.add_theme_color_override("font_hover_color", Color(1.0, 0.9, 0.9))
+		black_metal_button.add_theme_color_override("font_pressed_color", Color(0.7, 0.6, 0.6))
+		black_metal_button.add_theme_color_override("font_disabled_color", Color(0.5, 0.5, 0.5))
+		# Increase font size for better visibility (Issue #1020)
+		black_metal_button.add_theme_font_size_override("font_size", 24)
+
+	# Add black background to the Black Metal button (Issue #1020)
+	var black_style := StyleBoxFlat.new()
+	black_style.bg_color = Color(0.05, 0.05, 0.05)  # Near-black background
+	black_style.set_corner_radius_all(4)
+	black_style.set_content_margin_all(8)
+	black_metal_button.add_theme_stylebox_override("normal", black_style)
+
+	# Create hover style with slightly lighter background
+	var hover_style := StyleBoxFlat.new()
+	hover_style.bg_color = Color(0.12, 0.12, 0.12)
+	hover_style.set_corner_radius_all(4)
+	hover_style.set_content_margin_all(8)
+	black_metal_button.add_theme_stylebox_override("hover", hover_style)
+
+	# Create pressed style with darker background
+	var pressed_style := StyleBoxFlat.new()
+	pressed_style.bg_color = Color(0.02, 0.02, 0.02)
+	pressed_style.set_corner_radius_all(4)
+	pressed_style.set_content_margin_all(8)
+	black_metal_button.add_theme_stylebox_override("pressed", pressed_style)
+
+	# Create disabled style for when Black Metal is selected
+	var disabled_style := StyleBoxFlat.new()
+	disabled_style.bg_color = Color(0.08, 0.08, 0.08)
+	disabled_style.set_corner_radius_all(4)
+	disabled_style.set_content_margin_all(8)
+	black_metal_button.add_theme_stylebox_override("disabled", disabled_style)
+
+

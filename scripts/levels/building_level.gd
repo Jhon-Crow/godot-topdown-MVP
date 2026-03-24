@@ -68,6 +68,12 @@ var _enemies: Array = []
 ## Cached reference to the ReplayManager autoload (C# singleton).
 var _replay_manager: Node = null
 
+## Weapon hints component instance (Issue #809).
+var _weapon_hints_component: Node = null
+
+## Whether debug mode (F7) is active — controls passage waypoint visualization (#1226).
+var _debug_mode: bool = false
+
 
 ## Gets the ReplayManager autoload node.
 ## The ReplayManager is now a C# autoload that works reliably in exported builds,
@@ -119,6 +125,10 @@ func _ready() -> void:
 	if GameManager:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
+		if GameManager.has_signal("debug_mode_toggled"):
+			GameManager.debug_mode_toggled.connect(_on_debug_mode_toggled)
+		if GameManager.has_method("is_debug_mode_enabled"):
+			_debug_mode = GameManager.is_debug_mode_enabled(); if _debug_mode: queue_redraw()
 
 	# Initialize ScoreManager for this level
 	_initialize_score_manager()
@@ -129,8 +139,14 @@ func _ready() -> void:
 	# Setup window lights in corridors without enemies (Issue #593)
 	_setup_window_lights()
 
+	# Setup warm ceiling lights in the center of large rooms (Issue #1206)
+	_setup_room_warm_lights()
+
 	# Start replay recording
 	_start_replay_recording()
+
+	# Setup weapon hints (Issue #809)
+	_setup_weapon_hints()
 
 
 ## Initialize the ScoreManager for this level.
@@ -259,6 +275,168 @@ func _setup_realistic_visibility() -> void:
 	visibility_component.set_script(visibility_script)
 	_player.add_child(visibility_component)
 	print("[BuildingLevel] Realistic visibility component added to player")
+
+
+## Setup weapon hints component (Issue #809).
+## Shows weapon-specific tutorial hints when player uses a new weapon.
+func _setup_weapon_hints() -> void:
+	if _player == null:
+		return
+
+	var canvas_layer: Node = get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		push_warning("[BuildingLevel] CanvasLayer node not found for weapon hints")
+		return
+
+	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
+	if hints_script == null:
+		push_warning("[BuildingLevel] WeaponHintsComponent script not found")
+		return
+
+	_weapon_hints_component = Node.new()
+	_weapon_hints_component.name = "WeaponHintsComponent"
+	_weapon_hints_component.set_script(hints_script)
+	add_child(_weapon_hints_component)
+
+	# Setup the component with player and CanvasLayer references (Issue #809)
+	if _weapon_hints_component.has_method("setup"):
+		_weapon_hints_component.setup(_player, canvas_layer)
+		print("[BuildingLevel] Weapon hints component added and setup")
+
+
+## Setup warm ceiling lights in the centers of large rooms (Issue #1206).
+## Adds PointLight2D nodes with warm yellow-orange color to make the rooms
+## look cozy and aesthetically pleasing.
+##
+## ## Light placement rules
+## 1. Default position: geometric center of the room (average of its bounding box).
+## 2. If a large obstacle (table, server rack, wall junction, etc.) sits at the
+##    geometric center, shift the light to the nearest open area — typically
+##    offset toward the side that has the most free floor space.
+## 3. If a wall junction or shadow-casting surface is close (< 30 px) to the
+##    light source, move the light inward until it is fully inside the open
+##    floor area so shadows don't block the cone.
+## 4. Prefer the upper half of a room when the lower half is crowded or when
+##    the room label ("OFFICE 2", etc.) already anchors the top edge visually.
+##
+## Room centers (derived from RoomLabel bounds in the scene):
+## - Conference Room: ~(1918, 340)  — geometric center, no obstacles
+## - Break Room:      ~(1918, 994)  — geometric center, no obstacles
+## - Server Room:     ~(2200, 1638) — shifted right, away from right-wall junction
+## - Main Hall:       ~(1200, 1724) — geometric center, no obstacles
+## - Office 1:        ~(290, 384)   — geometric center, no obstacles
+## - Office 2:        ~(718, 780)   — shifted up from center (856) to upper half
+func _setup_room_warm_lights() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	# Container node for all room lights
+	var room_lights_node := Node2D.new()
+	room_lights_node.name = "RoomLights"
+	environment.add_child(room_lights_node)
+
+	# Large rooms get prominent warm lights; smaller rooms get subtler ones.
+	# Format: [position, energy, texture_scale, label]
+	var room_configs: Array = [
+		# Large rooms — bigger lights
+		[Vector2(1918, 340),  0.9, 5.0, "ConferenceRoom"],
+		[Vector2(1918, 994),  0.9, 5.0, "BreakRoom"],
+		[Vector2(2200, 1638), 0.9, 5.0, "ServerRoom"],
+		[Vector2(1200, 1724), 0.85, 4.5, "MainHall"],
+		# Smaller rooms — softer lights
+		[Vector2(290, 384),   0.7, 3.5, "Office1"],
+		# Office 2: shifted to upper half (y=780 instead of centre y=856)
+		# so the glow covers the label zone and the lower-half corridor approach.
+		[Vector2(718, 780),   0.7, 3.5, "Office2"],
+	]
+
+	for cfg in room_configs:
+		_create_room_warm_light(room_lights_node, cfg[0], cfg[1], cfg[2], cfg[3])
+
+	print("[BuildingLevel] Warm ceiling lights placed in all rooms (Issue #1206)")
+
+
+## Create a single warm ceiling light at the given room-center position.
+## Uses a soft radial gradient that fades smoothly to black, producing a natural
+## "overhead lamp" feel with no hard visible edge.
+## @param parent: Container node.
+## @param pos: World-space position (room center).
+## @param energy: Light brightness (0–1 range, typical 0.7–0.9).
+## @param scale: Texture scale controlling the light radius.
+## @param room_name: Name suffix for the node (debug convenience).
+func _create_room_warm_light(parent: Node2D, pos: Vector2, energy: float, scale: float, room_name: String) -> void:
+	var light_node := Node2D.new()
+	light_node.name = "WarmLight_%s" % room_name
+	light_node.position = pos
+	parent.add_child(light_node)
+
+	# Small visual indicator — a dim warm-colored circle representing the lamp fixture.
+	# Uses Sprite2D (not Control/ColorRect) so it does NOT intercept mouse events and
+	# cannot break pause-menu or UI clicks.
+	var fixture := Sprite2D.new()
+	fixture.name = "Fixture"
+	fixture.texture = _create_lamp_fixture_texture()
+	fixture.modulate = Color(1.0, 0.85, 0.5, 0.5)  # Pale warm amber, semi-transparent
+	light_node.add_child(fixture)
+
+	# The actual PointLight2D
+	var light := PointLight2D.new()
+	light.name = "PointLight"
+	light.color = Color(1.0, 0.75, 0.3, 1.0)   # Warm amber-orange
+	light.energy = energy
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 4.0  # Soft shadow edges
+	light.texture = _create_warm_light_texture()
+	light.texture_scale = scale
+	light_node.add_child(light)
+
+
+## Create a soft radial gradient texture for the warm room lights.
+## Uses a smooth natural falloff (bright core → gentle taper → complete black).
+## No abrupt cutoff — the light fades organically like a real overhead lamp.
+func _create_warm_light_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # 256 px
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)  # 0 = center, 1 = edge
+			# Smooth inverse-square-ish falloff using a cosine curve:
+			# bright centre → smooth mid-field → natural fade at rim
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+
+	return ImageTexture.create_from_image(image)
+
+
+## Create a small circular texture for the lamp fixture visual indicator.
+## Returns a soft-edged disc so the fixture looks like a round ceiling lamp,
+## not a square. Drawn with per-pixel math so the disc has smooth anti-aliased edges.
+func _create_lamp_fixture_texture() -> ImageTexture:
+	var size := 32
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # full disc radius
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			if dist >= outer_r:
+				image.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			else:
+				# Full brightness in the core, soft fade toward the rim
+				var t := clampf(dist / outer_r, 0.0, 1.0)
+				var alpha := pow(1.0 - t, 1.5)
+				image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+
+	return ImageTexture.create_from_image(image)
 
 
 ## Setup window lights in corridors and rooms without enemies (Issue #593).
@@ -440,6 +618,11 @@ func _process(_delta: float) -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("update_enemy_positions"):
 		score_manager.update_enemy_positions(_enemies)
+	# Issue #959: Re-check level completion when a retaliating pacifist finishes retaliation.
+	if _current_enemy_count <= 0 and not _level_cleared and not _has_retaliating_pacifists():
+		print("All enemies eliminated or pacified! Level cleared!")
+		_level_cleared = true
+		call_deferred("_activate_exit_zone")
 
 
 ## Called when combo changes.
@@ -487,32 +670,22 @@ func _setup_navigation() -> void:
 	if nav_region == null:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
-
 	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
 	if nav_poly == null:
 		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
 		return
-
-	# Bake the navigation mesh to include physics obstacles from collision layer 4
-	# This is needed because we set parsed_geometry_type = 1 (static colliders)
-	# and parsed_collision_mask = 4 (walls layer) in the NavigationPolygon resource
+	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
+	# with PhysicsServer2D before parsing source geometry for navmesh carving.
+	await get_tree().physics_frame
+	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	print("Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Re-add the outline for the walkable floor area
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(64, 64),
-		Vector2(2464, 64),
-		Vector2(2464, 2064),
-		Vector2(64, 2064)
-	])
-	nav_poly.add_outline(floor_outline)
-
-	# Use NavigationServer2D to bake from source geometry
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-
+	# Issue #1289: push updated polygon back into the NavigationServer's live map.
+	# Without this reassignment, agents still use the pre-bake (uncarved) navmesh.
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
 	print("Navigation mesh baked successfully")
 
 
@@ -521,6 +694,9 @@ func _setup_player_tracking() -> void:
 	_player = get_node_or_null("Entities/Player")
 	if _player == null:
 		return
+
+	# Find the ammo label early so _apply_building_ammo_config can update it (Issue #1259)
+	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
 	# Setup realistic visibility component (Issue #540)
 	_setup_realistic_visibility()
@@ -531,9 +707,6 @@ func _setup_player_tracking() -> void:
 	# Register player with GameManager
 	if GameManager:
 		GameManager.set_player(_player)
-
-	# Find the ammo label
-	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
 	# Connect to player death signal (handles both GDScript "died" and C# "Died")
 	if _player.has_signal("died"):
@@ -552,6 +725,10 @@ func _setup_player_tracking() -> void:
 		weapon = _player.get_node_or_null("SniperRifle")
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
+	if weapon == null:
+		weapon = _player.get_node_or_null("AKGL")
+	if weapon == null:
+		weapon = _player.get_node_or_null("Revolver")
 	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
@@ -626,6 +803,9 @@ func _setup_enemy_tracking() -> void:
 		# Track when enemy is hit for accuracy
 		if child.has_signal("hit"):
 			child.hit.connect(_on_enemy_hit)
+		# Issue #959: Connect to pacifist signal - pacifists count as killed for level completion
+		if child.has_signal("became_pacifist"):
+			child.became_pacifist.connect(_on_enemy_became_pacifist.bind(child))
 
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
@@ -672,11 +852,70 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		print("[BuildingLevel] 2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
 
+		# Re-apply auto-reload magazine size reduction if active (Issue #1105).
+		# ReinitializeMagazines resets magazine size to the original value, overriding
+		# the reduction that Player._Ready() applied for the auto-reload passive item.
+		if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+			_player.ApplyAutoReloadAfterLevelAmmoConfig()
+			_log_to_file("[BuildingLevel] Re-applied auto-reload magazine reduction after ammo config for makarov_pm")
+
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+
+
+## Apply building-level ammo configuration to weapons already equipped by C# Player (Issue #949).
+## This is called when C# Player.ApplySelectedWeaponFromGameManager() has already equipped the weapon
+## but we still need to apply building-specific ammo limits (30+30 for M16/AK instead of 30+90).
+func _apply_building_ammo_config(weapon: Node, weapon_id: String) -> void:
+	if weapon == null:
+		return
+
+	# M16 and AK+GL should have 2 magazines (30+30) on Building level (Issue #949)
+	if weapon_id == "m16" or weapon_id == "ak_gl":
+		var base_magazines: int = 2
+		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+		if difficulty_manager:
+			var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+			if ammo_multiplier > 1:
+				base_magazines *= ammo_multiplier
+				print("BuildingLevel: Power Fantasy mode - %s magazines multiplied by %dx" % [weapon.name, ammo_multiplier])
+		if weapon.has_method("ReinitializeMagazines"):
+			weapon.ReinitializeMagazines(base_magazines, true)
+			print("BuildingLevel: %s magazines reinitialized to %d (C# weapon)" % [weapon.name, base_magazines])
+
+		# Update ammo display
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+
+	# Silenced pistol: configure ammo for enemy count
+	elif weapon_id == "silenced_pistol":
+		_configure_silenced_pistol_ammo(weapon)
+
+	# Mini UZI: should also have reduced magazines
+	elif weapon_id == "mini_uzi":
+		var base_magazines: int = 2
+		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+		if difficulty_manager:
+			var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+			if ammo_multiplier > 1:
+				base_magazines *= ammo_multiplier
+		if weapon.has_method("ReinitializeMagazines"):
+			weapon.ReinitializeMagazines(base_magazines, true)
+			print("BuildingLevel: MiniUzi magazines reinitialized to %d (C# weapon)" % base_magazines)
+
+	# After any ammo reinitialization, reapply auto-reload magazine size reduction
+	# if the player has the auto-reload passive item active (Issue #1067).
+	# ReinitializeMagazines resets to full magazine size, overriding the reduction
+	# that Player._Ready() applied. We must re-reduce after each level ammo setup.
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
+		_log_to_file("[BuildingLevel] Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
 
 
 ## Setup debug UI elements for kills and accuracy.
@@ -770,11 +1009,7 @@ func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
 
-	# Register kill with GameManager
-	if GameManager:
-		GameManager.register_kill()
-
-	if _current_enemy_count <= 0:
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		print("All enemies eliminated! Building cleared!")
 		_level_cleared = true
 		# Activate exit zone - score will show when player reaches it
@@ -782,11 +1017,39 @@ func _on_enemy_died() -> void:
 
 
 ## Called when an enemy dies with special kill information.
-func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
+func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
+	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
+	if GameManager:
+		GameManager.register_kill(is_player_kill)
 	# Register kill with ScoreManager including special kill info
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
+
+
+## Issue #959: Called when an enemy becomes a pacifist via loudspeaker.
+## Pacifists count as "killed" for level completion purposes.
+func _on_enemy_became_pacifist(enemy: Node) -> void:
+	_current_enemy_count -= 1
+	# Issue #959: Do not count pacifist again when it dies - already counted here
+	if is_instance_valid(enemy) and enemy.died.is_connected(_on_enemy_died):
+		enemy.died.disconnect(_on_enemy_died)
+	_update_enemy_count_label()
+	print("[Building] Enemy became pacifist - counting as eliminated")
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
+		print("All enemies eliminated or pacified! Level cleared!")
+		_level_cleared = true
+		call_deferred("_activate_exit_zone")
+
+
+## Returns true if any enemy is a pacifist who is currently retaliating (attacking the player).
+## Level should not complete while any enemy is still a threat (Issue #959).
+func _has_retaliating_pacifists() -> bool:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and enemy.has_method("is_alive") and enemy.is_alive():
+			if enemy.has_method("is_retaliating") and enemy.is_retaliating():
+				return true
+	return false
 
 
 ## Complete the level and show the score screen.
@@ -825,6 +1088,10 @@ func _complete_level_with_score() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):
 		var score_data: Dictionary = score_manager.complete_level()
+		# Notify loudspeaker progression (Issue #959)
+		var aim: Node = get_node_or_null("/root/ActiveItemManager")
+		if aim and aim.has_method("notify_level_completed"):
+			aim.notify_level_completed(score_data.get("kills", 0) > 0)
 		_show_score_screen(score_data)
 	else:
 		# Fallback to simple victory message if ScoreManager not available
@@ -884,10 +1151,9 @@ func _on_shell_count_changed(shell_count: int, capacity: int) -> void:
 ## (handled in _on_weapon_ammo_changed for C# player, or when GDScript player
 ## truly has no ammo left).
 func _on_player_ammo_depleted() -> void:
-	# Notify all enemies that player tried to shoot with empty weapon
-	_broadcast_player_ammo_empty(true)
-	# Emit empty click sound via SoundPropagation system so enemies can hear through walls
-	# This has shorter range than reload sound but still propagates through obstacles
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
@@ -952,6 +1218,9 @@ func _on_player_died() -> void:
 	if GameManager:
 		# Small delay to show death message
 		await get_tree().create_timer(0.5).timeout
+		# Issue #1334: After await, verify this node is still valid (scene may have reloaded)
+		if not is_instance_valid(self):
+			return
 		GameManager.on_player_death()
 
 
@@ -1020,6 +1289,10 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		weapon = _player.get_node_or_null("Shotgun")
 		if weapon == null:
 			weapon = _player.get_node_or_null("AssaultRifle")
+		if weapon == null:
+			weapon = _player.get_node_or_null("AKGL")
+		if weapon == null:
+			weapon = _player.get_node_or_null("Revolver")
 		if weapon == null:
 			weapon = _player.get_node_or_null("MakarovPM")
 
@@ -1252,27 +1525,57 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	level_select_button.pressed.connect(_on_level_select_pressed)
 	buttons_container.add_child(level_select_button)
 
-	# Watch Replay button
-	var replay_button := Button.new()
-	replay_button.name = "ReplayButton"
-	replay_button.text = "▶ Watch Replay (W)"
-	replay_button.custom_minimum_size = Vector2(200, 40)
-	replay_button.add_theme_font_size_override("font_size", 18)
+	# Watch Replay button (Issue #807: only shown if replay viewing is enabled in experimental settings)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var replay_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled()
 
-	# Check if replay data is available
-	var replay_manager: Node = _get_or_create_replay_manager()
-	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+	if replay_enabled:
+		var replay_button := Button.new()
+		replay_button.name = "ReplayButton"
+		replay_button.text = "▶ Watch Replay (W)"
+		replay_button.custom_minimum_size = Vector2(200, 40)
+		replay_button.add_theme_font_size_override("font_size", 18)
 
-	if has_replay_data:
-		replay_button.pressed.connect(_on_watch_replay_pressed)
-		_log_to_file("Watch Replay button created (replay data available)")
+		# Check if replay data is available
+		var replay_manager: Node = _get_or_create_replay_manager()
+		var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+
+		if has_replay_data:
+			replay_button.pressed.connect(_on_watch_replay_pressed)
+			_log_to_file("Watch Replay button created (replay data available)")
+		else:
+			replay_button.disabled = true
+			replay_button.text = "▶ Watch Replay (W) - no data"
+			replay_button.tooltip_text = "Replay recording was not available for this session"
+			_log_to_file("Watch Replay button created (disabled - no replay data)")
+
+		buttons_container.add_child(replay_button)
 	else:
-		replay_button.disabled = true
-		replay_button.text = "▶ Watch Replay (W) - no data"
-		replay_button.tooltip_text = "Replay recording was not available for this session"
-		_log_to_file("Watch Replay button created (disabled - no replay data)")
+		_log_to_file("Watch Replay button not shown (replay viewing disabled in experimental settings)")
 
-	buttons_container.add_child(replay_button)
+	# Armory button (Issue #897: shown highlighted when items are available to unlock)
+	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
+		var armory_button := Button.new()
+		armory_button.name = "ArmoryButton"
+		armory_button.text = "★ Armory — Items Available!"
+		armory_button.custom_minimum_size = Vector2(200, 40)
+		armory_button.add_theme_font_size_override("font_size", 18)
+		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
+		var armory_style := StyleBoxFlat.new()
+		armory_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
+		armory_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
+		armory_style.border_width_left = 2
+		armory_style.border_width_right = 2
+		armory_style.border_width_top = 2
+		armory_style.border_width_bottom = 2
+		armory_style.corner_radius_top_left = 4
+		armory_style.corner_radius_top_right = 4
+		armory_style.corner_radius_bottom_left = 4
+		armory_style.corner_radius_bottom_right = 4
+		armory_button.add_theme_stylebox_override("normal", armory_style)
+		armory_button.pressed.connect(_on_armory_button_pressed)
+		buttons_container.add_child(armory_button)
 
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
@@ -1346,19 +1649,24 @@ func _setup_selected_weapon() -> void:
 
 	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager)
 	# This prevents double-equipping when both C# and GDScript weapon setup run
+	# BUT we still need to apply building-level ammo configuration (Issue #949)
 	if selected_weapon_id != "makarov_pm":
 		var weapon_names: Dictionary = {
 			"shotgun": "Shotgun",
 			"mini_uzi": "MiniUzi",
 			"silenced_pistol": "SilencedPistol",
 			"sniper": "SniperRifle",
-			"m16": "AssaultRifle"
+			"m16": "AssaultRifle",
+			"ak_gl": "AKGL",
+			"revolver": "Revolver"
 		}
 		if selected_weapon_id in weapon_names:
 			var expected_name: String = weapon_names[selected_weapon_id]
 			var existing_weapon = _player.get_node_or_null(expected_name)
 			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
-				_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % expected_name)
+				_log_to_file("%s already equipped by C# Player - applying building-level ammo config" % expected_name)
+				# Apply building-level ammo configuration to already-equipped weapon (Issue #949)
+				_apply_building_ammo_config(existing_weapon, selected_weapon_id)
 				return
 
 	# If shotgun is selected, we need to swap weapons
@@ -1502,6 +1810,65 @@ func _setup_selected_weapon() -> void:
 			print("BuildingLevel: M16 Assault Rifle equipped successfully")
 		else:
 			push_error("BuildingLevel: Failed to load AssaultRifle scene!")
+	# If AK + GL is selected, swap weapons
+	elif selected_weapon_id == "ak_gl":
+		# Remove the default MakarovPM
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("BuildingLevel: Removed default MakarovPM")
+
+		# Load and add the AKGL
+		var akgl_scene = load("res://scenes/weapons/csharp/AKGL.tscn")
+		if akgl_scene:
+			var akgl = akgl_scene.instantiate()
+			akgl.name = "AKGL"
+			_player.add_child(akgl)
+
+			# Set the CurrentWeapon reference in C# Player
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(akgl)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = akgl
+
+			# Reduce AKGL ammunition by half for Building level (Issue #949)
+			# Same as M16: base_magazines = 2 gives 30+30 ammo instead of 30+90
+			# In Power Fantasy mode, apply ammo multiplier
+			var base_magazines: int = 2
+			var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+			if difficulty_manager:
+				var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+				if ammo_multiplier > 1:
+					base_magazines *= ammo_multiplier
+					print("BuildingLevel: Power Fantasy mode - AKGL magazines multiplied by %dx" % ammo_multiplier)
+			if akgl.has_method("ReinitializeMagazines"):
+				akgl.ReinitializeMagazines(base_magazines, true)
+				print("BuildingLevel: AKGL magazines reinitialized to %d" % base_magazines)
+
+			print("BuildingLevel: AK + GL equipped successfully")
+		else:
+			push_error("BuildingLevel: Failed to load AKGL scene!")
+	# If Revolver is selected, swap weapons
+	elif selected_weapon_id == "revolver":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("BuildingLevel: Removed default MakarovPM")
+
+		var revolver_scene = load("res://scenes/weapons/csharp/Revolver.tscn")
+		if revolver_scene:
+			var revolver = revolver_scene.instantiate()
+			revolver.name = "Revolver"
+			_player.add_child(revolver)
+
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(revolver)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = revolver
+
+			print("BuildingLevel: RSh-12 Revolver equipped successfully")
+		else:
+			push_error("BuildingLevel: Failed to load Revolver scene!")
 	# For Makarov PM, it's already in the scene
 	else:
 		var makarov = _player.get_node_or_null("MakarovPM")
@@ -1515,14 +1882,17 @@ func _setup_selected_weapon() -> void:
 			_configure_makarov_pm_ammo(makarov)
 
 
-## Handle W key shortcut for Watch Replay when score is shown.
+## Handle W key shortcut for Watch Replay when score is shown (Issue #807: check experimental setting).
 func _unhandled_input(event: InputEvent) -> void:
 	if not _score_shown:
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_W:
-			_on_watch_replay_pressed()
+			# Issue #807: Only trigger replay if enabled in experimental settings
+			var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+			if experimental_settings and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled():
+				_on_watch_replay_pressed()
 
 
 ## Called when the Watch Replay button is pressed (or W key).
@@ -1571,6 +1941,45 @@ func _on_level_select_pressed() -> void:
 		_log_to_file("ERROR: Could not load levels menu script")
 
 
+## Called when the Armory button is pressed on the score screen (Issue #897).
+func _on_armory_button_pressed() -> void:
+	_log_to_file("Armory button pressed from score screen")
+	# Load the armory menu as a CanvasLayer overlay
+	var armory_menu_scene = load("res://scenes/ui/ArmoryMenu.tscn")
+	if armory_menu_scene:
+		var armory_menu = armory_menu_scene.instantiate()
+		armory_menu.layer = 100  # On top of everything
+		# Issue #1006: Mark as opened from score screen to prevent level restart on Apply
+		armory_menu.opened_from_score_screen = true
+		get_tree().root.add_child(armory_menu)
+		# Connect back button to close the overlay
+		armory_menu.back_pressed.connect(func():
+			armory_menu.queue_free()
+			# Issue #1050: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
+		armory_menu.apply_pressed_from_score_screen.connect(func():
+			# Issue #1050: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
+	else:
+		_log_to_file("ERROR: Could not load armory menu scene")
+
+
+## Issue #1050: Remove gold highlight from the ArmoryButton when no items remain to unlock.
+## The button stays visible but loses its gold styling and reverts to plain "Armory" text.
+func _remove_armory_button_gold_style() -> void:
+	var armory_btn := get_tree().current_scene.find_child("ArmoryButton", true, false)
+	if armory_btn:
+		armory_btn.text = "Armory"
+		armory_btn.remove_theme_color_override("font_color")
+		armory_btn.remove_theme_stylebox_override("normal")
+
+
 ## Get the next level path based on the level ordering from LevelsMenu (Issue #568).
 ## Returns empty string if this is the last level or level not found.
 func _get_next_level_path() -> String:
@@ -1581,9 +1990,17 @@ func _get_next_level_path() -> String:
 
 	# Level ordering (matching LevelsMenu.LEVELS)
 	var level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
+		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 	]
 
 	for i in range(level_paths.size()):
@@ -1613,6 +2030,20 @@ func _disable_player_controls() -> void:
 
 	_log_to_file("Player controls disabled (level completed)")
 
+
+## Toggle debug mode (F7) — redraws passage waypoints (#1226).
+func _on_debug_mode_toggled(enabled: bool) -> void:
+	_debug_mode = enabled
+	queue_redraw()
+
+## Draw passage waypoints as green circles when debug mode (F7) is active (#1226).
+func _draw() -> void:
+	if not _debug_mode:
+		return
+	for wp in get_tree().get_nodes_in_group("passage_waypoints"):
+		var local_pos := wp.global_position - global_position
+		draw_circle(local_pos, 12.0, Color(0.2, 1.0, 0.3, 0.85))
+		draw_string(ThemeDB.fallback_font, local_pos + Vector2(14, 4), wp.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 
 ## Log a message to the file logger if available.
 func _log_to_file(message: String) -> void:

@@ -122,4 +122,36 @@ public partial class WeaponData : Resource
     /// </summary>
     [Export]
     public Resource? Caliber { get; set; }
+
+    /// <summary>
+    /// Whether this weapon's caliber can ricochet off surfaces (Issue #935).
+    /// Mirrors CaliberData.can_ricochet as a C# property to avoid GDScript resource interop issues.
+    /// When false, trajectory glasses will show all segments as red (no ricochet).
+    /// </summary>
+    [Export]
+    public bool CaliberCanRicochet { get; set; } = true;
+
+    /// <summary>
+    /// Maximum angle in degrees from the surface at which ricochet is possible (Issue #935).
+    /// Mirrors CaliberData.max_ricochet_angle as a C# property to avoid GDScript resource interop issues.
+    /// Default 90.0 means any angle can ricochet. Set to 70.0 for rifle calibers.
+    /// </summary>
+    [Export(PropertyHint.Range, "0.0,90.0,1.0")]
+    public float CaliberMaxRicochetAngle { get; set; } = 90.0f;
+
+    /// <summary>
+    /// Maximum number of ricochets allowed for this weapon's caliber (Issue #935).
+    /// Mirrors CaliberData.max_ricochets as a C# property to avoid GDScript resource interop issues.
+    /// -1 means unlimited. 0 means no ricochet even if CaliberCanRicochet is true.
+    /// </summary>
+    [Export]
+    public int CaliberMaxRicochets { get; set; } = -1;
+
+    /// <summary>
+    /// Whether bullets from this weapon penetrate through enemies (Issue #829).
+    /// When true, bullets deal damage to enemies but continue flying through them.
+    /// Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+    /// </summary>
+    [Export]
+    public bool PenetratesEnemies { get; set; } = false;
 }

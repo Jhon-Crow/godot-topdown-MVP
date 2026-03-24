@@ -465,6 +465,27 @@ class AvoidFlashlightPassageAction extends GOAPAction:
 		return 100.0  # Should never happen if preconditions are correct
 
 
+## Action to throw a grenade at the player or suspected position (Issue #657).
+## Used by grenadier enemies to integrate grenade throwing into GOAP planning.
+## High priority when grenadier has grenades and a trigger condition is met.
+class ThrowGrenadeAction extends GOAPAction:
+	func _init() -> void:
+		super._init("throw_grenade", 0.3)
+		preconditions = {
+			"has_grenades": true,
+			"grenadier_throw_ready": true
+		}
+		effects = {
+			"grenade_thrown": true,
+			"player_engaged": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		if world_state.get("grenadier_throw_ready", false):
+			return 0.2
+		return 100.0
+
+
 ## Create and return all enemy actions.
 static func create_all_actions() -> Array[GOAPAction]:
 	var actions: Array[GOAPAction] = []
@@ -495,4 +516,6 @@ static func create_all_actions() -> Array[GOAPAction]:
 	# Flashlight detection actions (Issue #574)
 	actions.append(InvestigateFlashlightAction.new())
 	actions.append(AvoidFlashlightPassageAction.new())
+	# Grenadier grenade throw action (Issue #657)
+	actions.append(ThrowGrenadeAction.new())
 	return actions

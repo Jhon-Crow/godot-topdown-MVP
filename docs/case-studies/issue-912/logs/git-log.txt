@@ -1,0 +1,10 @@
+08c90ce5 fix: use 'in' operator for property checks, remove inner glow in force field (Issue #912)
+a888e463 Revert "Initial commit with task details"
+0b29bef9 fix: force field traps and scatters bullets, fix bubble visual (#912)
+548da06a Initial commit with task details
+fc2e739d Merge pull request #902 from konard/issue-896-6724536e3909
+7aca6d75 Merge pull request #870 from konard/issue-830-0f47361f766c
+11bd6120 Merge pull request #907 from konard/issue-906-d8ce56a563f2
+af1b5b4b Revert "Initial commit with task details"
+0a4fc765 docs: add bubble shader preview screenshot for force field (Issue #906)
+14454e45 feat: update force field to trap bullets and release them on deactivation (Issue #906)

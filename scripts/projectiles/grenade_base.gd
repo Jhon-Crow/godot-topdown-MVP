@@ -190,7 +190,13 @@ func _physics_process(delta: float) -> void:
 	# This matches the throw speed formula: v = sqrt(2 * F * d), d = v² / (2 * F)
 
 	# Check for landing (grenade comes to near-stop after being thrown)
-	if not _has_landed and _timer_active:
+	# FIX for Issue #855: Only check for landing when grenade is actually in flight (not frozen).
+	# When the grenade is frozen and follows the player, FREEZE_MODE_KINEMATIC causes
+	# linear_velocity to reflect the position changes from player movement. This was
+	# triggering the landing sound when the player paused, even though the grenade
+	# had never been thrown. Guard with is_thrown() (which returns `not freeze`) to
+	# match the correct behavior already implemented in C# GrenadeTimer.cs (IsThrown guard).
+	if not _has_landed and _timer_active and is_thrown():
 		var current_speed := linear_velocity.length()
 		var previous_speed := _previous_velocity.length()
 		# Grenade has landed when it was moving fast and now nearly stopped
@@ -362,6 +368,18 @@ func _on_explode() -> void:
 	pass
 
 
+## Damage RPG rockets within the explosion radius (Issue #1133).
+## Allows grenades and other explosions to intercept enemy rockets.
+func _damage_rpg_rockets_in_radius() -> void:
+	var radius := _get_effect_radius()
+	var rockets := get_tree().get_nodes_in_group("rpg_rockets")
+	for rocket in rockets:
+		if rocket is Node2D and global_position.distance_to(rocket.global_position) <= radius:
+			if rocket.has_method("on_hit"):
+				FileLogger.info("[GrenadeBase] Blast hit RPG rocket at %s" % str(rocket.global_position))
+				rocket.on_hit()
+
+
 ## Internal explosion handling.
 func _explode() -> void:
 	if _has_exploded:
@@ -380,6 +398,9 @@ func _explode() -> void:
 
 	# Call subclass explosion effect
 	_on_explode()
+
+	# Intercept RPG rockets in blast radius (Issue #1133)
+	_damage_rpg_rockets_in_radius()
 
 	# Emit signal
 	exploded.emit(global_position, self)
@@ -615,3 +636,44 @@ func _scatter_casings(effect_radius: float) -> void:
 
 	if scattered_count > 0 or proximity_count > 0:
 		FileLogger.info("[GrenadeBase] Scattered %d casings (lethal zone) + %d casings (proximity) from explosion" % [scattered_count, proximity_count])
+
+
+## Spawn a scorch mark on the floor after explosion (Issue #1005).
+## Scorch marks persist as visual evidence of the explosion.
+## @param scorch_radius: Radius of the scorch mark in pixels.
+## @param scorch_alpha: Opacity of the scorch mark (0.0 to 1.0).
+## @param grenade_type_name: Name of the grenade type for logging.
+func _spawn_scorch_mark(scorch_radius: float, scorch_alpha: float, grenade_type_name: String) -> void:
+	# Try to use ImpactEffectsManager if available
+	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+	if impact_manager and impact_manager.has_method("spawn_explosion_scorch_mark"):
+		impact_manager.spawn_explosion_scorch_mark(global_position, scorch_radius, scorch_alpha, grenade_type_name)
+		return
+
+	# Fallback: instantiate scorch mark directly
+	var scorch_scene_path := "res://scenes/effects/ExplosionScorchMark.tscn"
+	if not ResourceLoader.exists(scorch_scene_path):
+		FileLogger.info("[GrenadeBase] ExplosionScorchMark scene not found at: %s" % scorch_scene_path)
+		return
+
+	var scorch_scene: PackedScene = load(scorch_scene_path)
+	if scorch_scene == null:
+		return
+
+	var scorch_mark: Node = scorch_scene.instantiate()
+	if scorch_mark == null:
+		return
+
+	# Configure scorch mark properties
+	scorch_mark.global_position = global_position
+	scorch_mark.scorch_radius = scorch_radius
+	scorch_mark.scorch_alpha = scorch_alpha
+	scorch_mark.grenade_type = grenade_type_name
+
+	# Add to current scene
+	var scene := get_tree().current_scene
+	if scene:
+		scene.add_child(scorch_mark)
+		FileLogger.info("[GrenadeBase] Spawned %s scorch mark at %s (radius: %.1f, alpha: %.2f)" % [
+			grenade_type_name, str(global_position), scorch_radius, scorch_alpha
+		])

@@ -1,5 +1,6 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Characters;
 using GodotTopDownTemplate.Projectiles;
 
 namespace GodotTopDownTemplate.Weapons;
@@ -121,6 +122,22 @@ public partial class MakarovPM : BaseWeapon
                 _laserSightColor = blueColorVariant.AsColor();
                 CreateLaserSight();
                 GD.Print($"[MakarovPM] Power Fantasy mode: blue laser sight enabled with color {_laserSightColor}");
+            }
+        }
+
+        // Check for Laser Sight active item - adds purple laser regardless of difficulty (Issue #947)
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null)
+        {
+            var shouldForceLaser = activeItemManager.Call("should_force_laser_sight");
+            if (shouldForceLaser.AsBool())
+            {
+                _laserSightEnabled = true;
+                var purpleColorVariant = activeItemManager.Call("get_laser_sight_color");
+                _laserSightColor = purpleColorVariant.AsColor();
+                if (GetNodeOrNull<Line2D>("LaserSight") == null)
+                    CreateLaserSight();
+                GD.Print($"[MakarovPM] Laser Sight active item: purple laser sight enabled with color {_laserSightColor}");
             }
         }
     }
@@ -267,6 +284,10 @@ public partial class MakarovPM : BaseWeapon
     /// </summary>
     private Vector2 ApplySpread(Vector2 direction)
     {
+        // Suppress spread entirely when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return direction;
+
         // Apply the current recoil offset to the direction
         Vector2 result = direction.Rotated(_recoilOffset);
 
@@ -297,9 +318,14 @@ public partial class MakarovPM : BaseWeapon
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
+        if (audioManager != null && audioManager.HasMethod("play_pistol_empty_click"))
         {
-            audioManager.Call("play_empty_click", GlobalPosition);
+            GD.Print("[MakarovPM] Playing pistol empty click sound (Issue #840)");
+            audioManager.Call("play_pistol_empty_click", GlobalPosition);
+        }
+        else
+        {
+            GD.Print($"[MakarovPM] play_pistol_empty_click not available: audioManager={(audioManager != null ? "found" : "null")}, hasMethod={(audioManager?.HasMethod("play_pistol_empty_click") ?? false)}");
         }
     }
 
@@ -323,7 +349,7 @@ public partial class MakarovPM : BaseWeapon
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            float loudness = WeaponData?.Loudness ?? 1469.0f;
+            float loudness = WeaponData?.Loudness ?? 800.0f;  // Issue #1269: scaled 800/1469
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
         }
     }
@@ -346,6 +372,10 @@ public partial class MakarovPM : BaseWeapon
     /// </summary>
     private void TriggerScreenShake(Vector2 shootDirection)
     {
+        // Suppress screen shake when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return;
+
         if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
         {
             return;
@@ -426,11 +456,13 @@ public partial class MakarovPM : BaseWeapon
         var bulletNode = BulletScene.Instantiate<Node2D>();
         bulletNode.GlobalPosition = spawnPosition;
 
-        // Try to cast to C# Bullet type for direct property access
+        // Set bullet properties BEFORE AddChild() so _ready() sees correct values.
+        // Issue #781: Node.Set() silently fails for non-@export GDScript properties.
         var bullet = bulletNode as Bullet;
 
         if (bullet != null)
         {
+            // C# Bullet: direct property assignment works before AddChild
             bullet.Direction = direction;
             if (WeaponData != null)
             {
@@ -447,39 +479,69 @@ public partial class MakarovPM : BaseWeapon
         }
         else
         {
-            // GDScript bullet fallback
-            if (bulletNode.HasMethod("SetDirection"))
-            {
-                bulletNode.Call("SetDirection", direction);
-            }
-            else
-            {
-                bulletNode.Set("Direction", direction);
-                bulletNode.Set("direction", direction);
-            }
-
+            // GDScript bullet: use Call() setter methods BEFORE AddChild() (Issue #781)
+            bulletNode.Call("set_direction", direction);
             if (WeaponData != null)
             {
-                bulletNode.Set("Speed", WeaponData.BulletSpeed);
-                bulletNode.Set("speed", WeaponData.BulletSpeed);
-                bulletNode.Set("Damage", WeaponData.Damage);
-                bulletNode.Set("damage", WeaponData.Damage);
+                bulletNode.Call("set_speed", WeaponData.BulletSpeed);
+                bulletNode.Call("set_damage", WeaponData.Damage);
             }
-
             var owner = GetParent();
             if (owner != null)
             {
-                bulletNode.Set("ShooterId", owner.GetInstanceId());
-                bulletNode.Set("shooter_id", owner.GetInstanceId());
+                bulletNode.Call("set_shooter_id", (long)owner.GetInstanceId());
             }
+            bulletNode.Call("set_shooter_position", GlobalPosition);
+            bulletNode.Call("set_stun_duration", StunDurationOnHit);
+        }
 
-            bulletNode.Set("ShooterPosition", GlobalPosition);
-            bulletNode.Set("shooter_position", GlobalPosition);
-            bulletNode.Set("StunDuration", StunDurationOnHit);
-            bulletNode.Set("stun_duration", StunDurationOnHit);
+        // Set breaker bullet flag BEFORE AddChild() so _ready() loads shrapnel scene (Issue #678)
+        if (IsBreakerBulletActive)
+        {
+            if (bullet != null)
+            {
+                bullet.IsBreakerBullet = true;
+            }
+            else
+            {
+                bulletNode.Call("set_is_breaker_bullet", true);
+            }
+        }
+
+        // Set drilling bullet flag if drilling bullets are active for this magazine (Issue #751)
+        if (DrillingBulletsRemaining > 0)
+        {
+            DrillingBulletsRemaining--;
+            if (bullet != null)
+            {
+                bullet.IsDrillingBullet = true;
+            }
+            else
+            {
+                bulletNode.Call("set_is_drilling_bullet", true);
+            }
         }
 
         GetTree().CurrentScene.AddChild(bulletNode);
+
+        // Enable homing AFTER AddChild() - requires scene tree for physics raycasts (Issue #704, #781)
+        var weaponOwner = GetParent();
+        if (weaponOwner is Player player && player.IsHomingActive())
+        {
+            Vector2 aimDir = (GetGlobalMousePosition() - player.GlobalPosition).Normalized();
+            if (bullet != null)
+            {
+                bullet.EnableHomingWithAimLine(player.GlobalPosition, aimDir);
+            }
+            else if (bulletNode.HasMethod("enable_homing_with_aim_line"))
+            {
+                bulletNode.Call("enable_homing_with_aim_line", player.GlobalPosition, aimDir);
+            }
+            else if (bulletNode.HasMethod("enable_homing"))
+            {
+                bulletNode.Call("enable_homing");
+            }
+        }
 
         // Spawn muzzle flash effect
         SpawnMuzzleFlash(spawnPosition, direction, WeaponData?.Caliber);
@@ -547,14 +609,15 @@ public partial class MakarovPM : BaseWeapon
             var query = PhysicsRayQueryParameters2D.Create(
                 GlobalPosition,
                 GlobalPosition + endPoint,
-                4 // Collision mask for obstacles
+                6 // Collision mask: obstacles (layer 3 = 4) | enemies (layer 2 = 2)
             );
 
             var result = spaceState.IntersectRay(query);
             if (result.Count > 0)
             {
+                // Extend 4px into the hit body so the laser visually penetrates the surface
                 Vector2 hitPosition = (Vector2)result["position"];
-                endPoint = hitPosition - GlobalPosition;
+                endPoint = hitPosition - GlobalPosition + laserDirection * 4.0f;
             }
         }
 

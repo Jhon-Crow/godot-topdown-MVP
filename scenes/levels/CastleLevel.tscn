@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://dkl8m4wq7r3y2"]
+[gd_scene load_steps=21 format=3 uid="uid://dkl8m4wq7r3y2"]
 
 [ext_resource type="Script" path="res://scripts/levels/castle_level.gd" id="1_castle_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -55,6 +55,12 @@ size = Vector2(200, 24)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_castle_wall_short_v"]
 size = Vector2(24, 150)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_boundary_horizontal"]
+size = Vector2(6000, 200)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_boundary_vertical"]
+size = Vector2(600, 2560)
+
 [node name="CastleLevel" type="Node2D"]
 script = ExtResource("1_castle_level")
 
@@ -102,6 +108,40 @@ offset_right = 5950.0
 offset_bottom = 60.0
 text = "ЛЕС"
 horizontal_alignment = 1
+
+[node name="BoundaryWalls" type="Node2D" parent="Environment"]
+
+[node name="BoundaryTop" type="StaticBody2D" parent="Environment/BoundaryWalls"]
+position = Vector2(3000, -100)
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/BoundaryWalls/BoundaryTop"]
+shape = SubResource("RectangleShape2D_boundary_horizontal")
+
+[node name="BoundaryBottom" type="StaticBody2D" parent="Environment/BoundaryWalls"]
+position = Vector2(3000, 2660)
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/BoundaryWalls/BoundaryBottom"]
+shape = SubResource("RectangleShape2D_boundary_horizontal")
+
+[node name="BoundaryLeft" type="StaticBody2D" parent="Environment/BoundaryWalls"]
+position = Vector2(100, 1280)
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/BoundaryWalls/BoundaryLeft"]
+shape = SubResource("RectangleShape2D_boundary_vertical")
+
+[node name="BoundaryRight" type="StaticBody2D" parent="Environment/BoundaryWalls"]
+position = Vector2(5900, 1280)
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/BoundaryWalls/BoundaryRight"]
+shape = SubResource("RectangleShape2D_boundary_vertical")
 
 [node name="CastleWalls" type="Node2D" parent="Environment"]
 
@@ -567,6 +607,51 @@ color = Color(0.3, 0.25, 0.18, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverBottom2"]
 shape = SubResource("RectangleShape2D_cover_large")
 
+[node name="CoverBottom3" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(3000, 1950)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverBottom3"]
+offset_left = -80.0
+offset_top = -24.0
+offset_right = 80.0
+offset_bottom = 24.0
+color = Color(0.3, 0.25, 0.18, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverBottom3"]
+shape = SubResource("RectangleShape2D_cover_large")
+
+[node name="CoverBottom4" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(2850, 1950)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverBottom4"]
+offset_left = -80.0
+offset_top = -24.0
+offset_right = 80.0
+offset_bottom = 24.0
+color = Color(0.3, 0.25, 0.18, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverBottom4"]
+shape = SubResource("RectangleShape2D_cover_large")
+
+[node name="CoverBottom5" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(3150, 1950)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverBottom5"]
+offset_left = -80.0
+offset_top = -24.0
+offset_right = 80.0
+offset_bottom = 24.0
+color = Color(0.3, 0.25, 0.18, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverBottom5"]
+shape = SubResource("RectangleShape2D_cover_large")
+
 [node name="PatrolZones" type="Node2D" parent="Environment"]
 
 [node name="PatrolZoneLeft" type="ColorRect" parent="Environment/PatrolZones"]
@@ -828,3 +913,73 @@ offset_bottom = 45.0
 text = "AMMO: 30/30"
 
 [node name="PauseMenu" parent="." instance=ExtResource("3_pause_menu")]
+
+[node name="SearchPathWaypoints" type="Node2D" parent="."]
+editor_description = "Pre-planned search path waypoints for enemy SEARCHING state (Issue #1246). Enemies traverse these in order starting from the nearest point to their current position."
+groups = ["search_path_waypoints"]
+
+[node name="LeftWing_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1200, 500)
+
+[node name="LeftWing_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1400, 500)
+
+[node name="LeftWing_End" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(800, 500)
+
+[node name="LeftWing_Front" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2200, 500)
+
+[node name="CenterTower_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2600, 300)
+
+[node name="CenterTower_Top" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3000, 200)
+
+[node name="CenterTower_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3400, 300)
+
+[node name="RightWing_Front" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3800, 500)
+
+[node name="RightWing_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4600, 500)
+
+[node name="RightWing_End" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(5200, 500)
+
+[node name="CoverLower_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1100, 1150)
+
+[node name="CoverCenter_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2300, 1350)
+
+[node name="CoverCenter_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3700, 1350)
+
+[node name="CoverLower_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(4900, 1150)
+
+[node name="CoverMiddle_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2300, 1550)
+
+[node name="CoverMiddle_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3700, 1550)
+
+[node name="CoverBottom_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2700, 1950)
+
+[node name="CoverBottom_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3000, 1950)
+
+[node name="CoverBottom_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3300, 1950)
+
+[node name="LowerArea_Left" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1000, 2200)
+
+[node name="LowerArea_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3000, 2400)
+
+[node name="LowerArea_Right" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(5000, 2200)

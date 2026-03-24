@@ -9,13 +9,17 @@ extends RefCounted
 ## Added: "bullet_scene_path", "casing_scene_path", "caliber_path", "is_shotgun", "pellet_count_min", "pellet_count_max", "spread_angle"
 ## Added (Issue #516): "spread_threshold", "initial_spread", "spread_increment", "max_spread", "spread_reset_time"
 ## for progressive spread on single-bullet weapons (same as player weapons).
+## Added (Issue #583): RPG (type 4) with "is_rpg", "rpg_explosion_radius", "rpg_explosion_damage", "switch_weapon_type"
+## and PM pistol (type 5) for RPG enemy weapon switching.
+## Added (Issue #1033): MACHINE_GUN (PKM belt-fed, type 6).
+## Added (Issue #1125): SNIPER_RIFLE (ASVK, type 7).
 const WEAPON_CONFIGS := {
 	0: {  # RIFLE (M16) - uses same bullets as player's AssaultRifle
 		"shoot_cooldown": 0.1,
 		"bullet_speed": 2500.0,
 		"magazine_size": 30,
 		"bullet_spawn_offset": 30.0,
-		"weapon_loudness": 1469.0,
+		"weapon_loudness": 800.0,
 		"sprite_path": "",  # Default sprite already in scene
 		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",
@@ -36,7 +40,7 @@ const WEAPON_CONFIGS := {
 		"bullet_speed": 1800.0,
 		"magazine_size": 8,
 		"bullet_spawn_offset": 35.0,
-		"weapon_loudness": 2000.0,
+		"weapon_loudness": 1089.2,
 		"sprite_path": "res://assets/sprites/weapons/shotgun_topdown.png",
 		"bullet_scene_path": "res://scenes/projectiles/csharp/ShotgunPellet.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",
@@ -56,8 +60,9 @@ const WEAPON_CONFIGS := {
 		"shoot_cooldown": 0.06,
 		"bullet_speed": 2200.0,
 		"magazine_size": 32,
+		"total_magazines": 20,  # Issue #1137: 4x increase from default 5
 		"bullet_spawn_offset": 25.0,
-		"weapon_loudness": 1200.0,
+		"weapon_loudness": 653.5,
 		"sprite_path": "res://assets/sprites/weapons/mini_uzi_topdown.png",
 		"bullet_scene_path": "res://scenes/projectiles/Bullet9mm.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",
@@ -79,7 +84,7 @@ const WEAPON_CONFIGS := {
 		"bullet_speed": 0.0,  # No projectiles
 		"magazine_size": 0,  # No ammo needed
 		"bullet_spawn_offset": 0.0,
-		"weapon_loudness": 200.0,  # Quiet melee swing sound
+		"weapon_loudness": 108.9,  # Quiet melee swing sound
 		"sprite_path": "res://assets/sprites/weapons/machete_topdown.png",
 		"bullet_scene_path": "",  # No bullets
 		"casing_scene_path": "",  # No casings
@@ -100,6 +105,121 @@ const WEAPON_CONFIGS := {
 		"dodge_speed": 400.0,
 		"dodge_distance": 120.0,
 		"sneak_speed_multiplier": 0.6
+	},
+	4: {  # RPG - rocket launcher, single shot then switches to PM (Issue #583)
+		"shoot_cooldown": 2.0,  # Slow RPG fire (only 1 shot anyway)
+		"bullet_speed": 800.0,  # Rocket speed (slower than bullets)
+		"magazine_size": 1,  # Only 1 RPG round
+		"bullet_spawn_offset": 35.0,
+		"weapon_loudness": 1361.5,  # Very loud rocket launch
+		"sprite_path": "res://assets/sprites/weapons/rpg_topdown.png",  # RPG sprite
+		"bullet_scene_path": "res://scenes/projectiles/RpgRocket.tscn",
+		"casing_scene_path": "",  # No casings for RPG
+		"caliber_path": "",  # Rocket has no caliber
+		"is_shotgun": false,
+		"pellet_count_min": 1,
+		"pellet_count_max": 1,
+		"spread_angle": 0.0,
+		"spread_threshold": 0,
+		"initial_spread": 0.0,
+		"spread_increment": 0.0,
+		"max_spread": 0.0,
+		"spread_reset_time": 0.0,
+		# RPG-specific config
+		"is_rpg": true,
+		"rpg_explosion_radius": 150.0,
+		"rpg_explosion_damage": 3,
+		# PM config to switch to after RPG shot
+		"switch_weapon_type": 5
+	},
+	5: {  # PM (Makarov pistol) - used by RPG enemy after switching (Issue #583)
+		"shoot_cooldown": 0.3,  # Semi-auto pistol
+		"bullet_speed": 1000.0,  # Makarov PM speed
+		"magazine_size": 9,  # PM magazine
+		"bullet_spawn_offset": 25.0,
+		"weapon_loudness": 800.0,
+		"sprite_path": "res://assets/sprites/weapons/makarov_pm_topdown.png",  # PM sprite (Issue #583)
+		"bullet_scene_path": "res://scenes/projectiles/Bullet9mm.tscn",
+		"casing_scene_path": "res://scenes/effects/Casing.tscn",
+		"caliber_path": "res://resources/calibers/caliber_9x18.tres",
+		"is_shotgun": false,
+		"pellet_count_min": 1,
+		"pellet_count_max": 1,
+		"spread_angle": 0.0,
+		"spread_threshold": 2,
+		"initial_spread": 1.0,
+		"spread_increment": 0.8,
+		"max_spread": 5.0,
+		"spread_reset_time": 0.3
+	},
+	6: {  # MACHINE_GUN (PKM) - belt-fed heavy machine gun (Issue #1033)
+		"shoot_cooldown": 0.12,     # Slightly slower than rifle (~8.3 rps)
+		"bullet_speed": 2800.0,     # High muzzle velocity
+		"magazine_size": 500,       # Full belt
+		"total_magazines": 2,       # 500 + 500 (one spare belt)
+		"reload_time": 9.0,         # Long belt reload
+		"bullet_spawn_offset": 40.0,
+		"weapon_loudness": 1198.1,
+		"sprite_path": "res://assets/sprites/weapons/pkm_topdown.png",  # PKM machine gun top-down sprite (#1033)
+		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet.tscn",
+		"casing_scene_path": "res://scenes/effects/Casing.tscn",
+		"caliber_path": "res://resources/calibers/caliber_762x39.tres",
+		"is_shotgun": false,
+		"pellet_count_min": 1,
+		"pellet_count_max": 1,
+		"spread_angle": 0.0,
+		# Progressive spread: sustained fire degrades accuracy
+		"spread_threshold": 5,
+		"initial_spread": 0.3,
+		"spread_increment": 0.4,
+		"max_spread": 6.0,
+		"spread_reset_time": 0.4
+	},
+	7: {  # SNIPER_RIFLE (ASVK) - anti-materiel bolt-action sniper rifle (Issue #1125)
+		"shoot_cooldown": 3.0,      # Slow bolt-action rate (~0.33 rps)
+		"bullet_speed": 10000.0,    # Near-instant (same as player ASVK)
+		"magazine_size": 5,         # 5-round magazine (same as player ASVK)
+		"total_magazines": 14,      # 5 + 65 extra rounds = 70 total (Issue #1161)
+		"reload_time": 4.0,         # Long reload for heavy rifle
+		"bullet_spawn_offset": 60.0,
+		"weapon_loudness": 1633.8,  # Very loud anti-materiel rifle
+		"sprite_path": "res://assets/sprites/weapons/asvk_topdown.png",
+		"bullet_scene_path": "res://scenes/projectiles/csharp/SniperBulletEnemy.tscn",
+		"casing_scene_path": "res://scenes/effects/Casing.tscn",
+		"caliber_path": "res://resources/calibers/caliber_127x108.tres",
+		"is_shotgun": false,
+		"pellet_count_min": 1,
+		"pellet_count_max": 1,
+		"spread_angle": 0.0,
+		# No spread — sniper rifle is perfectly accurate
+		"spread_threshold": 999,
+		"initial_spread": 0.0,
+		"spread_increment": 0.0,
+		"max_spread": 0.0,
+		"spread_reset_time": 0.0
+	},
+	8: {  # REVOLVER (RSh-12) - heavy semi-auto revolver used by SWAT shieldbearer (Issue #1242)
+		"shoot_cooldown": 0.35,     # Semi-auto revolver pace
+		"bullet_speed": 2000.0,     # 12.7mm pistol muzzle velocity
+		"magazine_size": 5,         # 5-chamber cylinder (same as player revolver)
+		"total_magazines": 4,       # 4 reloads (20 extra rounds in pouches)
+		"reload_time": 5.0,         # Cylinder reload (longer than semi-auto pistol)
+		"bullet_spawn_offset": 30.0,
+		"weapon_loudness": 2000.0,  # Loud heavy caliber revolver
+		"sprite_path": "res://assets/sprites/weapons/revolver_topdown.png",
+		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet12p7mm.tscn",
+		"casing_scene_path": "res://scenes/effects/Casing.tscn",
+		"caliber_path": "res://resources/calibers/caliber_12p7x55.tres",
+		"is_shotgun": false,
+		"pellet_count_min": 1,
+		"pellet_count_max": 1,
+		"spread_angle": 0.0,
+		# Minimal spread — heavy caliber, semi-auto
+		"spread_threshold": 2,
+		"initial_spread": 0.5,
+		"spread_increment": 0.5,
+		"max_spread": 3.0,
+		"spread_reset_time": 0.4
 	}
 }
 
@@ -118,4 +238,9 @@ static func get_type_name(weapon_type: int) -> String:
 		1: return "SHOTGUN"
 		2: return "UZI"
 		3: return "MACHETE"
+		4: return "RPG"
+		5: return "PM"
+		6: return "MACHINE_GUN"
+		7: return "SNIPER_RIFLE"
+		8: return "REVOLVER"
 		_: return "UNKNOWN"

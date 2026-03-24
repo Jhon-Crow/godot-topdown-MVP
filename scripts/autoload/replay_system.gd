@@ -139,6 +139,9 @@ func _create_frame_data() -> Dictionary:
 func _ready() -> void:
 	# Run in PROCESS_MODE_ALWAYS to work during pause
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# Issue #1157: Disable _physics_process by default to avoid per-frame overhead when idle.
+	# Enabled only during active recording or playback.
+	set_physics_process(false)
 	_log_to_file("ReplayManager ready (script loaded and _ready called)")
 	_log_to_file("ReplayManager methods: start_recording=%s, stop_recording=%s, has_replay=%s, start_playback=%s" % [
 		has_method("start_recording"),
@@ -177,6 +180,8 @@ func start_recording(level: Node2D, player: Node2D, enemies: Array) -> void:
 	_level_node = level
 	_player = player
 	_enemies = enemies.duplicate()
+	# Issue #1157: Enable physics process only while actively recording.
+	set_physics_process(true)
 
 	# Detailed logging for debugging
 	var player_name: String = player.name if player else "NULL"
@@ -196,22 +201,23 @@ func start_recording(level: Node2D, player: Node2D, enemies: Array) -> void:
 		else:
 			_log_to_file("  Enemy %d: INVALID" % i)
 
-	print("[ReplayManager] Recording started: Level=%s, Player=%s, Enemies=%d" % [level_name, player_name, enemies.size()])
+	if OS.is_debug_build():  # Issue #1293: gate print() to debug builds
+		print("[ReplayManager] Recording started: Level=%s, Player=%s, Enemies=%d" % [level_name, player_name, enemies.size()])
 
 
 ## Stops recording and saves the replay data.
 func stop_recording() -> void:
 	if not _is_recording:
 		_log_to_file("stop_recording called but was not recording")
-		print("[ReplayManager] stop_recording called but was not recording")
 		return
 
 	_is_recording = false
+	# Issue #1157: Disable physics process when not recording or playing back.
+	set_physics_process(false)
 	_log_to_file("=== REPLAY RECORDING STOPPED ===")
 	_log_to_file("Total frames recorded: %d" % _frames.size())
 	_log_to_file("Total duration: %.2fs" % _recording_time)
 	_log_to_file("has_replay() will return: %s" % (_frames.size() > 0))
-	print("[ReplayManager] Recording stopped: %d frames, %.2fs duration" % [_frames.size(), _recording_time])
 
 
 ## Returns true if there is a recorded replay available.
@@ -268,6 +274,9 @@ func start_playback(level: Node2D) -> void:
 	# But we need our replay ghosts to update, so they should be PROCESS_MODE_ALWAYS
 	level.get_tree().paused = true
 
+	# Issue #1157: Enable physics process during playback to update ghost entities.
+	set_physics_process(true)
+
 	replay_started.emit()
 	_log_to_file("Started replay playback. Frames: %d, Duration: %.2fs" % [
 		_frames.size(),
@@ -296,6 +305,9 @@ func stop_playback() -> void:
 	# Unpause the game
 	if _level_node and is_instance_valid(_level_node):
 		_level_node.get_tree().paused = false
+
+	# Issue #1157: Disable physics process when playback is done — nothing to update.
+	set_physics_process(false)
 
 	replay_ended.emit()
 	_log_to_file("Stopped replay playback")
@@ -630,6 +642,7 @@ func _play_frame_events(frame: Dictionary) -> void:
 ## Triggers hit saturation effect during replay without modifying Engine.time_scale.
 ## In normal gameplay, HitEffectsManager.on_player_hit_enemy() slows time to 0.8x,
 ## but during replay we only want the saturation boost visual (Issue #544 fix 4).
+## Issue #1023: Also triggers lightning flash in Black Metal mode.
 func _trigger_replay_hit_effect() -> void:
 	var hit_effects: Node = get_node_or_null("/root/HitEffectsManager")
 	if hit_effects == null:
@@ -644,6 +657,7 @@ func _trigger_replay_hit_effect() -> void:
 		var saved_time_scale := Engine.time_scale
 		hit_effects.on_player_hit_enemy()
 		Engine.time_scale = saved_time_scale
+
 
 
 ## Triggers penultimate hit visual effects during replay (Issue #544 fix 4).
@@ -1342,9 +1356,10 @@ func clear_replay() -> void:
 
 
 ## Log a message to the file logger if available.
+## Issue #1293: print() fallback gated to debug builds to avoid FPS drops.
 func _log_to_file(message: String) -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("log_info"):
 		file_logger.log_info("[ReplayManager] " + message)
-	else:
+	elif OS.is_debug_build():
 		print("[ReplayManager] " + message)

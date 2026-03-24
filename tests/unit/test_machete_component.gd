@@ -92,6 +92,16 @@ class MockMacheteComponent:
 	func is_in_melee_range(target_position: Vector2) -> bool:
 		return _parent_position.distance_to(target_position) <= melee_range
 
+	## Simulated wall state for testing (Issue #1083).
+	var _wall_blocks_path: bool = false
+
+	## Simulate wall obstruction (Issue #1083).
+	func set_wall_blocking(blocking: bool) -> void:
+		_wall_blocks_path = blocking
+
+	func is_melee_path_clear(_target_position: Vector2) -> bool:
+		return not _wall_blocks_path
+
 	func is_backstab_opportunity(player_position: Vector2, player_rotation: float) -> bool:
 		var player_facing := Vector2.RIGHT.rotated(player_rotation)
 		var player_to_enemy := (_parent_position - player_position).normalized()
@@ -723,9 +733,59 @@ func test_machete_magazine_size_is_zero() -> void:
 
 func test_machete_weapon_loudness() -> void:
 	var config := WeaponConfigComponent.get_config(3)
-	assert_eq(config["weapon_loudness"], 200.0, "MACHETE weapon loudness should be 200.0")
+	assert_eq(config["weapon_loudness"], 108.9, "MACHETE weapon loudness should be 108.9 (Issue #1269: scaled by 800/1469 factor)")
 
 
 func test_machete_is_melee() -> void:
 	var config := WeaponConfigComponent.get_config(3)
 	assert_true(config["is_melee"], "MACHETE should be a melee weapon")
+
+
+# --- Wall Obstruction Tests (Issue #1083) ---
+
+
+func test_melee_path_clear_when_no_wall() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.set_wall_blocking(false)
+	assert_true(_component.is_melee_path_clear(Vector2(150, 100)),
+		"Melee path should be clear when no wall blocks it")
+
+
+func test_melee_path_blocked_when_wall_present() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.set_wall_blocking(true)
+	assert_false(_component.is_melee_path_clear(Vector2(150, 100)),
+		"Melee path should be blocked when a wall is present")
+
+
+func test_cannot_attack_through_wall_when_in_range() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.set_wall_blocking(true)
+	# Even though target is in range and cooldown elapsed, wall blocks the attack
+	var target_pos := Vector2(150, 100)
+	var in_range := _component.is_in_melee_range(target_pos)
+	var path_clear := _component.is_melee_path_clear(target_pos)
+	assert_true(in_range, "Target is in melee range")
+	assert_false(path_clear, "But wall blocks the path")
+	assert_false(in_range and path_clear,
+		"Attack should NOT proceed when wall blocks path despite being in range")
+
+
+func test_can_attack_when_in_range_and_path_clear() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.set_wall_blocking(false)
+	var target_pos := Vector2(150, 100)
+	var in_range := _component.is_in_melee_range(target_pos)
+	var path_clear := _component.is_melee_path_clear(target_pos)
+	assert_true(in_range and path_clear,
+		"Attack should proceed when in range and path is clear")
+
+
+func test_wall_state_independent_of_distance() -> void:
+	_component.set_parent_position(Vector2(0, 0))
+	_component.set_wall_blocking(true)
+	# Wall check is independent of distance
+	assert_false(_component.is_melee_path_clear(Vector2(10, 0)),
+		"Very close target still blocked by wall")
+	assert_false(_component.is_melee_path_clear(Vector2(79, 0)),
+		"Target just inside range still blocked by wall")

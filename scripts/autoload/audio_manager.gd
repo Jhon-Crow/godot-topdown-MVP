@@ -50,6 +50,9 @@ const PISTOL_BOLT: String = "res://assets/audio/взвод затвора пис
 ## Empty gun click sound (used for all weapons when out of ammo).
 const EMPTY_GUN_CLICK: String = "res://assets/audio/кончились патроны в пистолете.wav"
 
+## Empty gun click sound for pistols (PM, UZI, silenced pistol) - Issue #840.
+const PISTOL_EMPTY_CLICK: String = "res://assets/audio/попытка выстрелить без заряда ПМ.mp3"
+
 ## Hit sounds.
 const HIT_LETHAL: String = "res://assets/audio/звук смертельного попадания.wav"
 const HIT_NON_LETHAL: String = "res://assets/audio/звук попадания не смертельного попадания.wav"
@@ -182,8 +185,37 @@ const VOLUME_REVOLVER_RELOAD: float = -3.0
 ## Volume for revolver shot.
 const VOLUME_REVOLVER_SHOT: float = 0.0
 
+## AK rifle shots (5 variants) - randomly selected for variety.
+const AK_SHOTS: Array[String] = [
+	"res://assets/audio/выстрел из АК 1.mp3",
+	"res://assets/audio/выстрел из АК 2.mp3",
+	"res://assets/audio/выстрел из АК 3.mp3",
+	"res://assets/audio/выстрел из АК 4.mp3",
+	"res://assets/audio/выстрел из АК 5.mp3"
+]
+
+## Volume for AK shots.
+const VOLUME_AK_SHOT: float = -5.0
+
+## Underbarrel grenade launcher shot sound (GP-25).
+const GRENADE_LAUNCHER_SHOT: String = "res://assets/audio/выстрел из подствольного гранатомёта.mp3"
+
+## Volume for grenade launcher shot.
+const VOLUME_GRENADE_LAUNCHER: float = -3.0
+
 ## Fire mode toggle sound (B key - switch between burst/automatic on assault rifle).
 const FIRE_MODE_TOGGLE: String = "res://assets/audio/игрок изменил режим стрельбы (нажал b).mp3"
+
+## Homing Bullets active item sounds (Issue #890).
+## Activation chirp played once when the player activates homing bullets.
+const HOMING_ACTIVATION: String = "res://assets/audio/homing_activation.wav"
+## Scanner loop played continuously while the Homing Bullets item is equipped.
+const HOMING_SCANNER_LOOP: String = "res://assets/audio/homing_scanner_loop.wav"
+
+## Volume for homing bullets activation chirp.
+const VOLUME_HOMING_ACTIVATION: float = -3.0
+## Volume for homing bullets scanner loop (very quiet ambient).
+const VOLUME_HOMING_SCANNER: float = -18.0
 
 ## Volume settings (in dB).
 const VOLUME_FIRE_MODE_TOGGLE: float = -3.0
@@ -324,6 +356,7 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(RELOAD_FULL)
 	all_sounds.append(PISTOL_BOLT)
 	all_sounds.append(EMPTY_GUN_CLICK)
+	all_sounds.append(PISTOL_EMPTY_CLICK)
 	all_sounds.append(FIRE_MODE_TOGGLE)
 	all_sounds.append(HIT_LETHAL)
 	all_sounds.append(HIT_NON_LETHAL)
@@ -361,6 +394,9 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(ASVK_BOLT_STEP_2)
 	all_sounds.append(ASVK_BOLT_STEP_3)
 	all_sounds.append(ASVK_BOLT_STEP_4)
+	# AK rifle sounds (Issue #617)
+	all_sounds.append_array(AK_SHOTS)
+	all_sounds.append(GRENADE_LAUNCHER_SHOT)
 	# RSh-12 revolver sounds (Issue #626)
 	all_sounds.append(REVOLVER_CYLINDER_OPEN)
 	all_sounds.append(REVOLVER_CYLINDER_CLOSE)
@@ -375,6 +411,9 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(REVOLVER_SHOT_2)
 	all_sounds.append(REVOLVER_SHOT_3)
 	all_sounds.append(REVOLVER_SHOT_4)
+	# Homing Bullets sounds (Issue #890)
+	all_sounds.append(HOMING_ACTIVATION)
+	all_sounds.append(HOMING_SCANNER_LOOP)
 
 	for path in all_sounds:
 		if not _audio_cache.has(path):
@@ -623,6 +662,18 @@ func play_m16_bolt(position: Vector2) -> void:
 	play_random_sound_2d_with_priority(M16_BOLT_SOUNDS, position, VOLUME_RELOAD, SoundPriority.CRITICAL)
 
 
+## Plays a random AK rifle shot sound at the given position.
+## Uses CRITICAL priority for player shooting sounds.
+func play_ak_shot(position: Vector2) -> void:
+	play_random_sound_2d_with_priority(AK_SHOTS, position, VOLUME_AK_SHOT, SoundPriority.CRITICAL)
+
+
+## Plays grenade launcher shot sound at the given position.
+## Uses CRITICAL priority for player shooting sounds.
+func play_grenade_launch(position: Vector2) -> void:
+	play_sound_2d_with_priority(GRENADE_LAUNCHER_SHOT, position, VOLUME_GRENADE_LAUNCHER, SoundPriority.CRITICAL)
+
+
 ## Plays magazine removal sound (first phase of reload).
 ## Uses CRITICAL priority for reload sounds.
 func play_reload_mag_out(position: Vector2) -> void:
@@ -645,6 +696,13 @@ func play_reload_full(position: Vector2) -> void:
 ## Uses CRITICAL priority for player feedback sounds.
 func play_empty_click(position: Vector2) -> void:
 	play_sound_2d_with_priority(EMPTY_GUN_CLICK, position, VOLUME_EMPTY_CLICK, SoundPriority.CRITICAL)
+
+
+## Plays pistol empty click sound for PM, UZI, and silenced pistol (Issue #840).
+## Uses CRITICAL priority for player feedback sounds.
+func play_pistol_empty_click(position: Vector2) -> void:
+	print("[AudioManager] play_pistol_empty_click called (Issue #840): ", PISTOL_EMPTY_CLICK)
+	play_sound_2d_with_priority(PISTOL_EMPTY_CLICK, position, VOLUME_EMPTY_CLICK, SoundPriority.CRITICAL)
 
 
 ## Plays fire mode toggle sound (B key) at the given position.
