@@ -98,6 +98,22 @@ const MAX_CONCURRENT_DUST_EFFECTS: int = 16
 ## Initial pool size for dust effects (pre-created at startup).
 const DUST_EFFECT_POOL_SIZE: int = 16
 
+## Pool of reusable GPUParticles2D nodes for blood effects (Issue #1460 optimization).
+## Blood effects were instantiated per-hit without pooling, causing FPS drops during
+## grenade explosions (198+ instantiations in one frame). Same pattern as dust pool.
+var _blood_effect_pool: Array[GPUParticles2D] = []
+
+## Count of blood effect nodes currently checked out (active / emitting).
+var _blood_effects_active: int = 0
+
+## Maximum number of concurrent blood effects allowed.
+## BloodEffect lifetime = 0.8s. During intense combat (grenade + shrapnel hitting
+## multiple enemies), many blood effects can spawn. Cap at 12 to bound GPU work.
+const MAX_CONCURRENT_BLOOD_EFFECTS: int = 12
+
+## Initial pool size for blood effects (pre-created at startup).
+const BLOOD_EFFECT_POOL_SIZE: int = 12
+
 ## Active bullet holes for cleanup management (visual only).
 var _bullet_holes = []
 
@@ -155,6 +171,9 @@ func _ready() -> void:
 
 	# Initialize dust effect pool (Issue #1145 optimization)
 	_init_dust_effect_pool()
+
+	# Initialize blood effect pool (Issue #1460 optimization)
+	_init_blood_effect_pool()
 
 	# Perform shader warmup to prevent first-shot lag (Issue #343)
 	# This pre-compiles GPU shaders for particle effects during loading
@@ -374,34 +393,39 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 		effect_scale *= 1.5
 
 	# Spawn GPU particle effect only when particles are enabled (Issue #1186)
+	# Issue #1460: Uses pooled blood effects instead of instantiating new ones each time.
 	var effect: GPUParticles2D = null
 	if _particles_on:
-		if _blood_effect_scene == null:
-			_log_info("ERROR: _blood_effect_scene is null - cannot spawn blood effect")
-			print("[ImpactEffectsManager] ERROR: _blood_effect_scene is null - blood effect NOT spawned")
+		effect = _get_blood_effect_from_pool()
+		if effect == null:
+			if _debug_effects:
+				print("[ImpactEffectsManager] Blood effect skipped - pool exhausted (concurrent limit reached)")
 		else:
-			effect = _blood_effect_scene.instantiate() as GPUParticles2D
-			if effect == null:
-				_log_info("ERROR: Failed to instantiate blood effect from scene")
-				print("[ImpactEffectsManager] ERROR: Failed to instantiate blood effect - casting failed")
-			else:
-				if _debug_effects:
-					_log_info("Blood particle effect instantiated successfully")
+			# Move pooled node to current scene for rendering
+			var scene := get_tree().current_scene
+			if scene:
+				effect.reparent(scene, false)
 
-				effect.global_position = position
+			effect.global_position = position
 
-				# Blood splatters in the direction the bullet was traveling
-				effect.rotation = hit_direction.angle()
+			# Blood splatters in the direction the bullet was traveling
+			effect.rotation = hit_direction.angle()
 
-				# Scale effect based on caliber (larger calibers = more blood)
-				effect.amount_ratio = clampf(effect_scale, MIN_EFFECT_SCALE, MAX_EFFECT_SCALE)
-				effect.scale = Vector2(effect_scale, effect_scale)
+			# Scale effect based on caliber (larger calibers = more blood)
+			effect.amount_ratio = clampf(effect_scale, MIN_EFFECT_SCALE, MAX_EFFECT_SCALE)
+			effect.scale = Vector2(effect_scale, effect_scale)
 
-				# Add to scene tree
-				_add_effect_to_scene(effect)
+			effect.visible = true
 
-				# Start emitting
-				effect.emitting = true
+			# Use restart() to re-trigger a pooled one-shot effect reliably.
+			effect.restart()
+
+			# Schedule return to pool after lifetime + cleanup buffer.
+			# BloodEffect.tscn: lifetime=0.8, cleanup_delay=0.3 → 1.1s total.
+			var return_delay := effect.lifetime + 0.3
+			get_tree().create_timer(return_delay).timeout.connect(
+				func() -> void: _return_blood_effect_to_pool(effect)
+			)
 
 	# Spawn blood decals only when decals are enabled (Issue #1186)
 	if _decals_on:
@@ -1407,6 +1431,94 @@ func _return_dust_effect_to_pool(effect: GPUParticles2D) -> void:
 	if _debug_effects:
 		print("[ImpactEffectsManager] Dust effect returned to pool (pool: %d, active: %d)" % [
 			_dust_effect_pool.size(), _dust_effects_active])
+
+
+# =============================================================================
+# Blood Effect Pool Management (Issue #1460 Optimization)
+# =============================================================================
+
+
+## Initializes the blood effect pool with pre-created GPUParticles2D nodes.
+## Called once during _ready() so all allocations happen at load time, not during gameplay.
+## Same pattern as dust effect pool (Issue #1145).
+func _init_blood_effect_pool() -> void:
+	if _blood_effect_scene == null:
+		_log_info("Blood effect pool: scene not loaded, skipping pool init")
+		return
+
+	for i in range(BLOOD_EFFECT_POOL_SIZE):
+		var effect := _create_pooled_blood_effect()
+		if effect != null:
+			_blood_effect_pool.append(effect)
+
+	_log_info("Blood effect pool initialized: %d effects pre-created" % _blood_effect_pool.size())
+
+
+## Creates a single pooled GPUParticles2D blood node, parented to the autoload so it persists
+## across scene changes. The node is hidden and not emitting while idle.
+func _create_pooled_blood_effect() -> GPUParticles2D:
+	if _blood_effect_scene == null:
+		return null
+
+	var effect: GPUParticles2D = _blood_effect_scene.instantiate() as GPUParticles2D
+	if effect == null:
+		return null
+
+	# Remove auto-cleanup script to prevent queue_free — the pool manages lifetime.
+	if effect.get_script() != null:
+		effect.set_script(null)
+
+	effect.visible = false
+	effect.emitting = false
+
+	# Add to autoload so it persists across scene changes
+	add_child(effect)
+
+	return effect
+
+
+## Returns a blood effect node from the pool, or null if the concurrent cap is reached.
+func _get_blood_effect_from_pool() -> GPUParticles2D:
+	if _blood_effects_active >= MAX_CONCURRENT_BLOOD_EFFECTS:
+		if _debug_effects:
+			print("[ImpactEffectsManager] Blood pool: concurrent limit %d reached, skipping" % MAX_CONCURRENT_BLOOD_EFFECTS)
+		return null
+
+	var effect: GPUParticles2D = null
+	if _blood_effect_pool.size() > 0:
+		effect = _blood_effect_pool.pop_back()
+	else:
+		# Pool empty but under cap — create a new node on-demand.
+		effect = _create_pooled_blood_effect()
+		if _debug_effects and effect != null:
+			print("[ImpactEffectsManager] Blood pool empty, created new node")
+
+	if effect != null:
+		_blood_effects_active += 1
+
+	return effect
+
+
+## Returns a blood effect node to the pool after it finishes emitting.
+## Reparents the node back to the autoload so it persists across scene changes.
+func _return_blood_effect_to_pool(effect: GPUParticles2D) -> void:
+	_blood_effects_active = maxi(0, _blood_effects_active - 1)
+
+	if not is_instance_valid(effect):
+		return
+
+	effect.emitting = false
+	effect.visible = false
+
+	# Move back to the autoload so it survives scene transitions.
+	if effect.get_parent() != self:
+		effect.reparent(self, false)
+
+	_blood_effect_pool.append(effect)
+
+	if _debug_effects:
+		print("[ImpactEffectsManager] Blood effect returned to pool (pool: %d, active: %d)" % [
+			_blood_effect_pool.size(), _blood_effects_active])
 
 
 # =============================================================================
