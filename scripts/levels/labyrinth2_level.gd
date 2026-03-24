@@ -32,11 +32,8 @@ var _current_enemy_count: int = 0
 ## Whether game over has been shown.
 var _game_over_shown: bool = false
 
-## Reference to the kills label.
-var _kills_label: Label = null
-
-## Reference to the accuracy label.
-var _accuracy_label: Label = null
+## Reference to the difficulty label.
+var _difficulty_label: Label = null
 
 ## Reference to the magazines label (shows individual magazine ammo counts).
 var _magazines_label: Label = null
@@ -612,8 +609,17 @@ func _setup_player_tracking() -> void:
 
 ## Setup debug UI labels.
 func _setup_debug_ui() -> void:
-	_kills_label = get_node_or_null("CanvasLayer/UI/KillsLabel")
-	_accuracy_label = get_node_or_null("CanvasLayer/UI/AccuracyLabel")
+	var ui := get_node_or_null("CanvasLayer/UI")
+	if ui != null:
+		_difficulty_label = Label.new()
+		_difficulty_label.name = "DifficultyLabel"
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		_difficulty_label.offset_left = 10
+		_difficulty_label.offset_top = 45
+		_difficulty_label.offset_right = 200
+		_difficulty_label.offset_bottom = 75
+		ui.add_child(_difficulty_label)
 	_magazines_label = get_node_or_null("CanvasLayer/UI/MagazinesLabel")
 	_combo_label = get_node_or_null("CanvasLayer/UI/ComboLabel")
 	_update_debug_ui()
@@ -679,12 +685,8 @@ func _update_debug_ui() -> void:
 	if not GameManager:
 		return
 
-	if _kills_label and GameManager.has_method("get_kill_count"):
-		_kills_label.text = "Kills: %d" % GameManager.get_kill_count()
-
-	if _accuracy_label and GameManager.has_method("get_accuracy"):
-		var acc: float = GameManager.get_accuracy()
-		_accuracy_label.text = "Accuracy: %.0f%%" % (acc * 100.0)
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 
 
 ## Called when player ammo changes.

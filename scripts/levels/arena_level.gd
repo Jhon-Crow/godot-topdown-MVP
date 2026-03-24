@@ -116,11 +116,8 @@ var _wave_label: Label = null
 ## Reference to the ammo count label.
 var _ammo_label: Label = null
 
-## Reference to the kills label.
-var _kills_label: Label = null
-
-## Reference to the accuracy label.
-var _accuracy_label: Label = null
+## Reference to the difficulty label.
+var _difficulty_label: Label = null
 
 ## Reference to the magazines label.
 var _magazines_label: Label = null
@@ -1060,27 +1057,16 @@ func _setup_ui() -> void:
 	_health_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4, 1.0))
 	ui.add_child(_health_label)
 
-	# Kills label.
-	_kills_label = Label.new()
-	_kills_label.name = "KillsLabel"
-	_kills_label.text = "Убийства: 0"
-	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left = 10
-	_kills_label.offset_top = 72
-	_kills_label.offset_right = 250
-	_kills_label.offset_bottom = 102
-	ui.add_child(_kills_label)
-
-	# Accuracy label.
-	_accuracy_label = Label.new()
-	_accuracy_label.name = "AccuracyLabel"
-	_accuracy_label.text = "Точность: 0%"
-	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left = 10
-	_accuracy_label.offset_top = 102
-	_accuracy_label.offset_right = 250
-	_accuracy_label.offset_bottom = 132
-	ui.add_child(_accuracy_label)
+	# Difficulty label.
+	_difficulty_label = Label.new()
+	_difficulty_label.name = "DifficultyLabel"
+	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_difficulty_label.offset_left = 10
+	_difficulty_label.offset_top = 72
+	_difficulty_label.offset_right = 250
+	_difficulty_label.offset_bottom = 102
+	ui.add_child(_difficulty_label)
 
 	# Magazines label.
 	_magazines_label = Label.new()
@@ -1264,10 +1250,8 @@ func _update_health_label() -> void:
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
-	if _kills_label:
-		_kills_label.text = "Убийства: %d" % GameManager.kills
-	if _accuracy_label:
-		_accuracy_label.text = "Точность: %.1f%%" % GameManager.get_accuracy()
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 	_update_health_label()
 
 
