@@ -112,6 +112,31 @@ Added a slider in the Experimental Menu to let developers tune the vision check 
 
 ---
 
+---
+
+## Bug: Laser Sight Broken by Physics Thread Separation
+
+**Report** (2026-03-20, `game_log_20260320_080136.txt`): After enabling `2d/run_on_separate_thread=true`, the laser sight (`LaserSight` Line2D on all weapons) stopped working correctly.
+
+### Root Cause
+
+All weapon classes (`MakarovPM`, `AKGL`, `Shotgun`, `Revolver`, `MiniUzi`, `SniperRifle`, `AssaultRifle`, `SilencedPistol`) called `UpdateLaserSight()` inside `_Process()` (the **render/main thread**). Inside `UpdateLaserSight()`, each weapon called:
+
+```csharp
+var spaceState = GetWorld2D()?.DirectSpaceState;
+var result = spaceState.IntersectRay(query);
+```
+
+`DirectSpaceState` is owned by the **physics thread**. Calling it from `_Process()` (render thread) while `2d/run_on_separate_thread=true` is a **thread-safety violation** — it can produce incorrect results, crashes, or silent failures.
+
+**Source:** Godot docs on [Thread-safe APIs](https://docs.godotengine.org/en/stable/tutorials/performance/thread_safe_apis.html) — physics space state must only be accessed from `_physics_process()` when using a separate physics thread.
+
+### Fix
+
+Moved all `UpdateLaserSight()` calls from `_Process()` to `_PhysicsProcess()` in each of the 8 weapon files. The laser sight runs at 60 Hz physics rate — sufficient for a visual aim indicator.
+
+---
+
 ## Files Changed
 
 | File | Change |
@@ -121,3 +146,11 @@ Added a slider in the Experimental Menu to let developers tune the vision check 
 | `scripts/autoload/experimental_settings.gd` | Added `vision_check_interval_seconds` setting with save/load |
 | `scripts/ui/experimental_menu.gd` | Added slider for vision check interval |
 | `scenes/ui/ExperimentalMenu.tscn` | Added UI nodes for vision check interval slider |
+| `Scripts/Weapons/MakarovPM.cs` | Moved `UpdateLaserSight()` to `_PhysicsProcess()` (thread safety) |
+| `Scripts/Weapons/AKGL.cs` | Moved `UpdateLaserSight()` to `_PhysicsProcess()` (thread safety) |
+| `Scripts/Weapons/Shotgun.cs` | Moved `UpdateLaserSight()` to `_PhysicsProcess()` (thread safety) |
+| `Scripts/Weapons/Revolver.cs` | Moved `UpdateLaserSight()` to `_PhysicsProcess()` (thread safety) |
+| `Scripts/Weapons/MiniUzi.cs` | Moved `UpdateLaserSight()` to `_PhysicsProcess()` (thread safety) |
+| `Scripts/Weapons/SniperRifle.cs` | Moved `UpdateLaserSight()` to `_PhysicsProcess()` (thread safety) |
+| `Scripts/Weapons/AssaultRifle.cs` | Moved `UpdateLaserSight()` to `_PhysicsProcess()` (thread safety) |
+| `Scripts/Weapons/SilencedPistol.cs` | Moved `UpdateLaserSight()` to `_PhysicsProcess()` (thread safety) |
