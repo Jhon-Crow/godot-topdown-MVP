@@ -71,10 +71,10 @@ func test_loudness_is_2_2_times_scaled_original() -> void:
 
 
 func test_loudness_is_greater_than_revolver() -> void:
-	# Revolver Loudness is now 1361.5 (Issue #1269 scaling), sniper rifle should still be louder
-	var revolver_loudness: float = 1361.5
+	# Revolver Loudness is now 680.75 (Issue #1380: halved from 1361.5), sniper rifle should still be louder
+	var revolver_loudness: float = 680.75
 	assert_true(weapon.Loudness > revolver_loudness,
-		"Sniper rifle should be louder than the revolver (1361.5 after Issue #1269 scaling)")
+		"Sniper rifle should be louder than the revolver (680.75 after Issue #1380 halving)")
 
 
 func test_loudness_is_greater_than_scaled_original_3000() -> void:
