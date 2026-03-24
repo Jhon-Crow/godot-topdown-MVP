@@ -149,13 +149,11 @@ const SEPARATION_RADIUS: float = 60.0  ## Distance within which separation force
 const SEPARATION_STRENGTH: float = 280.0  ## Maximum separation impulse magnitude (px/s²)
 var _avoidance_velocity: Vector2 = Vector2.ZERO  ## Issue #1146: ORCA-computed safe velocity
 var _cover_raycasts: Array[RayCast2D] = []  ## Cover detection raycasts
-const COVER_CHECK_COUNT: int = 16  ## Number of cover raycasts
+const COVER_CHECK_COUNT: int = 120  ## Number of cover raycasts (Issue #1338: 120 rays = 3° apart for dense coverage)
 const COVER_CHECK_DISTANCE: float = 300.0  ## Cover check distance (default, used when infinite rays disabled)
 const COVER_INFINITE_RAY_DISTANCE: float = 10000.0  ## Extended ray distance for infinite rays (Issue #1378)
 const COVER_SECTOR_HALF_ANGLE: float = 50.0 * PI / 180.0  ## 50° half-angle = 100° total cone (Issue #1378)
 const COVER_SECTOR_RAY_COUNT: int = 120  ## Number of rays in sector mode (Issue #1378)
-const COVER_FAR_SIDE_PROBE_DISTANCE: float = 30000.0  ## Far-side probe distance for thick obstacles (Issue #1378)
-const COVER_FAR_SIDE_STEP: float = 30.0  ## Step size for intersect_point probing (Issue #1378)
 var _current_health: int = 0; var _max_health: int = 0  ## Current / max health (set at spawn)
 var _is_alive: bool = true  ## Is alive
 var _player: Node2D = null  ## Player reference
@@ -164,6 +162,7 @@ var _shoot_timer: float = 0.0  ## Time since last shot
 const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5; var _last_gunshot_propagation_time: float = -999.0
 const COVER_SEARCH_COOLDOWN: float = 0.3; var _last_cover_search_time: float = -999.0
 const SUPPRESSED_MIN_DURATION: float = 0.5; var _suppressed_entry_time: float = -999.0  ## RCA-11: prevent SUPPRESSED→SEEKING_COVER cycling
+const POST_SUPPRESSION_COVER_DURATION: float = 3.0; var _post_suppression_timer: float = 0.0  ## Issue #1338: stay in cover after being suppressed
 const SEEKING_COVER_MIN_DURATION: float = 0.3; var _seeking_cover_entry_time: float = -999.0  ## Issue #997 RCA-17
 const RETREATING_MIN_DURATION: float = 0.3; var _retreating_entry_time: float = -999.0  ## Issue #997 RCA-17
 const IN_COVER_MIN_DURATION: float = 0.3; var _in_cover_entry_time: float = -999.0  ## Issue #997 RCA-18: prevent instant IN_COVER→SUPPRESSED cycling
@@ -204,7 +203,7 @@ var _current_target: Node2D = null  ## Best current target: player or companion 
 var _current_state: AIState = AIState.IDLE  ## AI state
 var _cover_position: Vector2 = Vector2.ZERO  ## Cover position
 var _has_valid_cover: bool = false  ## Has valid cover
-var _player_origin_ray_data: Array = []  ## Cached player-origin ray data for debug overlay (Issue #1378)
+var _last_cover_search_rays: Array = []  ## Issue #1338: cached ray data for debug visualization (rays from player)
 var _suppression_timer: float = 0.0  ## Suppression cooldown
 var _under_fire: bool = false  ## Under fire (bullets in threat sphere)
 var _flank_target: Vector2 = Vector2.ZERO  ## Flank target position
@@ -1870,24 +1869,19 @@ func _process_flanking_state(delta: float) -> void:
 	if velocity.length_squared() > 1.0:
 		_process_corner_check(delta, velocity.normalized(), "FLANKING")
 
-## Process SUPPRESSED state - staying in cover under fire.
+## Process SUPPRESSED state - staying in cover under fire. Issue #1338: actively seek cover.
 func _process_suppressed_state(delta: float) -> void:
-	velocity = Vector2.ZERO
-
-	# Check if player has flanked us - if we're now visible from player's position,
-	# we need to find new cover even while suppressed
+	if not _has_valid_cover:
+		_find_cover_position()
 	if _is_visible_from_player():
 		# Fire burst before escaping if visible (#934 companion, #1161/#1242 skip bolt/single-action)
 		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and weapon_type != WeaponType.SNIPER_RIFLE and weapon_type != WeaponType.REVOLVER:
 			if not _cover_burst_pending:
-				# Start the cover burst
 				_cover_burst_pending = true
 				_retreat_burst_remaining = randi_range(2, 4)
 				_retreat_burst_timer = 0.0
 				_retreat_burst_angle_offset = -RETREAT_BURST_ARC / 2.0
 				_log_debug("SUPPRESSED alarm: starting burst before escaping (%d shots)" % _retreat_burst_remaining)
-
-			# Fire the burst
 			if _retreat_burst_remaining > 0:
 				_retreat_burst_timer += delta
 				if _retreat_burst_timer >= RETREAT_BURST_COOLDOWN:
@@ -1898,27 +1892,36 @@ func _process_suppressed_state(delta: float) -> void:
 					if _retreat_burst_remaining > 0:
 						_retreat_burst_angle_offset += RETREAT_BURST_ARC / 3.0
 				return  # Stay suppressed while firing burst
-
-		# Issue #969 RCA-11: minimum stay prevents SUPPRESSED→SEEKING_COVER rapid cycle
 		if Time.get_ticks_msec() / 1000.0 - _suppressed_entry_time < SUPPRESSED_MIN_DURATION: return
-		# Burst complete or can't see player, seek new cover
 		_log_debug("Player flanked our cover position while suppressed, seeking new cover")
-		_has_valid_cover = false  # Invalidate current cover
+		_has_valid_cover = false
 		_cover_burst_pending = false
 		_transition_to_seeking_cover()
 		return
-
-	# Can still shoot while suppressed (only after detection delay); also at companion (Issue #934).
+	# Issue #1338: move toward cover while suppressed
+	if _has_valid_cover:
+		var distance_to_cover := global_position.distance_to(_cover_position)
+		if distance_to_cover < 10.0:
+			if _is_visible_from_player():
+				_has_valid_cover = false; _find_cover_position()
+				if _has_valid_cover: _move_to_target_nav(_cover_position, combat_move_speed)
+				else: velocity = Vector2.ZERO
+			else: velocity = Vector2.ZERO
+		else: _move_to_target_nav(_cover_position, combat_move_speed)
+	else: velocity = Vector2.ZERO
 	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 		_aim_at_player()
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
-
-	# RCA-19: Apply minimum duration to prevent rapid cycling
 	if not _under_fire:
 		if Time.get_ticks_msec() / 1000.0 - _suppressed_entry_time >= SUPPRESSED_MIN_DURATION:
-			_transition_to_in_cover()
+			if not _is_visible_from_player():
+				_post_suppression_timer = POST_SUPPRESSION_COVER_DURATION
+				_transition_to_in_cover()
+			else:
+				_post_suppression_timer = POST_SUPPRESSION_COVER_DURATION
+				_transition_to_seeking_cover()
 
 ## Process RETREATING state - moving to cover with behavior based on damage taken.
 func _process_retreating_state(delta: float) -> void:
@@ -2776,6 +2779,7 @@ func _transition_to_suppressed() -> void:
 	_current_state = AIState.SUPPRESSED
 	_has_left_idle = true; _in_alarm_mode = true  # Issue #330
 	_suppressed_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #969 RCA-11
+	_has_valid_cover = false; _last_cover_search_time = -999.0  # Issue #1338: force new cover search
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 func _transition_to_pursuing() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_pursuing_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -3291,68 +3295,85 @@ func _find_cover_closest_to_player() -> void:
 		# Fall back to normal cover finding
 		_find_cover_position()
 
-## Find cover hidden from player. Issue #969: throttled. Issue #1378: infinite rays + 100° sector.
-func _find_cover_position() -> void:
-	if _player == null: _has_valid_cover = false; return
-	var wp_r := _combat_waypoint(_player.global_position, true)
-	if wp_r != Vector2.ZERO: _cover_position = wp_r; _has_valid_cover = true; _last_cover_search_time = Time.get_ticks_msec() / 1000.0; return
-	var current_time := Time.get_ticks_msec() / 1000.0
-	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
-	_last_cover_search_time = current_time
+## Shared helper: cast rays from player position, find hidden cover candidates. Issue #1338/1378.
+## If store_debug_rays is true, updates _last_cover_search_rays for visualization (Issue #1359).
+func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
+	var candidates: Array[Vector2] = []
+	if _player == null: return candidates
+	var player_pos := _player.global_position
+	var space_state := get_world_2d().direct_space_state
+	var nav_map: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
+	var has_nav := nav_map.is_valid()
 	var exp_s: Node = get_node_or_null("/root/ExperimentalSettings")
 	var inf_rays: bool = exp_s != null and exp_s.has_method("is_cover_infinite_rays_enabled") and exp_s.is_cover_infinite_rays_enabled()
 	var sec_rays: bool = exp_s != null and exp_s.has_method("is_cover_sector_rays_enabled") and exp_s.is_cover_sector_rays_enabled()
 	var ray_dist: float = COVER_INFINITE_RAY_DISTANCE if inf_rays else COVER_CHECK_DISTANCE
-	var p_pos := _player.global_position; var e_pos := global_position
-	var best_cover := Vector2.ZERO; var best_score := -INF; var found_hidden := false
 	var ray_count: int = COVER_SECTOR_RAY_COUNT if sec_rays else COVER_CHECK_COUNT
-	var sec_ctr: Vector2 = (e_pos - p_pos).normalized()
-	_player_origin_ray_data.clear()
+	var sec_ctr: Vector2 = (global_position - player_pos).normalized() if sec_rays else Vector2.ZERO
+	if store_debug_rays: _last_cover_search_rays.clear()
 	for i in range(ray_count):
 		var direction: Vector2
 		if sec_rays:
 			var frac := float(i) / float(ray_count - 1) if ray_count > 1 else 0.5
 			direction = Vector2.from_angle(sec_ctr.angle() + (frac - 0.5) * 2.0 * COVER_SECTOR_HALF_ANGLE)
 		else: direction = Vector2.from_angle((float(i) / float(ray_count)) * TAU)
-		var rc := _cover_raycasts[i % COVER_CHECK_COUNT]
-		rc.global_position = p_pos; rc.target_position = direction * ray_dist; rc.force_raycast_update()
-		var ray_e: Dictionary = {"origin": p_pos, "target": p_pos + direction * ray_dist, "colliding": rc.is_colliding()}
-		if rc.is_colliding():
-			var cp := rc.get_collision_point(); var cn := rc.get_collision_normal()
-			ray_e["point"] = cp; ray_e["normal"] = cn
-			var cover_pos := _get_far_side_cover(cp, direction, inf_rays)
-			if is_teleporter and e_pos.distance_to(cover_pos) < 10.0: _player_origin_ray_data.append(ray_e); continue
-			var maps := NavigationServer2D.get_maps()
-			if maps.size() > 0: cover_pos = NavigationServer2D.map_get_closest_point(maps[0], cover_pos)
-			if not _can_reach_position(cover_pos): _player_origin_ray_data.append(ray_e); continue
-			var is_hidden := not _is_position_visible_from_player(cover_pos)
-			if is_hidden or not found_hidden:
-				var h_sc: float = 10.0 if is_hidden else 0.0
-				var d_sc := 1.0 - minf(e_pos.distance_to(cover_pos) / ray_dist, 1.0)
-				var dfp := (cp - p_pos).normalized(); var cdir := (cover_pos - p_pos).normalized()
-				var b_sc: float = maxf(0.0, dfp.dot(cdir))
-				var total: float = h_sc + d_sc * 0.3 + b_sc * 0.7
-				if is_hidden and not found_hidden: found_hidden = true; best_score = total; best_cover = cover_pos
-				elif (is_hidden or not found_hidden) and total > best_score: best_score = total; best_cover = cover_pos
-		_player_origin_ray_data.append(ray_e)
-	for rc in _cover_raycasts: rc.global_position = global_position
-	if best_score > 0:
-		_cover_position = best_cover; _has_valid_cover = true
-		_log_debug("Found cover at: %s (hidden: %s, infinite: %s, sector: %s)" % [_cover_position, found_hidden, inf_rays, sec_rays])
-	else: _has_valid_cover = false
+		var ray_end := player_pos + direction * ray_dist
+		var query := PhysicsRayQueryParameters2D.new()
+		query.from = player_pos; query.to = ray_end; query.collision_mask = 4
+		var result := space_state.intersect_ray(query)
+		if store_debug_rays:
+			var ray_info := {"origin": player_pos, "target": ray_end, "colliding": not result.is_empty()}
+			if not result.is_empty(): ray_info["point"] = result["position"]; ray_info["normal"] = result["normal"]
+			_last_cover_search_rays.append(ray_info)
+		if result.is_empty(): continue
+		var cover_pos := _get_far_side_cover(player_pos, result["position"], direction, space_state, ray_dist)
+		if is_teleporter and global_position.distance_to(cover_pos) < 10.0: continue
+		if has_nav: cover_pos = NavigationServer2D.map_get_closest_point(nav_map, cover_pos)
+		if not _is_position_visible_from_player(cover_pos): candidates.append(cover_pos)
+	return candidates
 
-## Get far-side cover behind obstacle (Issue #1378). Probes outward with intersect_point().
-func _get_far_side_cover(collision_point: Vector2, ray_dir: Vector2, infinite: bool) -> Vector2:
-	var probe_dist: float = COVER_FAR_SIDE_PROBE_DISTANCE if infinite else 900.0
-	var ss := get_world_2d().direct_space_state; var was_in := true
-	for s in range(1, int(probe_dist / COVER_FAR_SIDE_STEP) + 1):
-		var pp := collision_point + ray_dir * (COVER_FAR_SIDE_STEP * s)
-		var q := PhysicsPointQueryParameters2D.new()
-		q.position = pp; q.collision_mask = 4; q.collide_with_areas = false; q.collide_with_bodies = true
-		var is_in: bool = ss.intersect_point(q, 1).size() > 0
-		if was_in and not is_in: return pp + ray_dir * 35.0
-		was_in = is_in
-	return collision_point + ray_dir * 35.0
+## Find cover hidden from player. Issue #969: throttled. Issue #1338/1378: rays from player.
+func _find_cover_position() -> void:
+	if _player == null: _has_valid_cover = false; return
+	var current_time := Time.get_ticks_msec() / 1000.0
+	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
+	_last_cover_search_time = current_time
+	var candidates := _get_hidden_cover_candidates(true)
+	if candidates.is_empty():
+		_has_valid_cover = false
+		_log_to_file("No valid cover found (player at %s, enemy at %s)" % [_player.global_position, global_position])
+		return
+	var best_cover := candidates[0]
+	var best_dist := global_position.distance_to(best_cover)
+	for c in candidates:
+		var d := global_position.distance_to(c)
+		if d < best_dist: best_dist = d; best_cover = c
+	_cover_position = best_cover; _has_valid_cover = true
+	_log_to_file("Found cover at %s (distance: %.1f, player at %s)" % [_cover_position, best_dist, _player.global_position])
+
+## Get far-side cover behind obstacle (Issue #1338/1378). Probes outward with intersect_point().
+func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, direction: Vector2, space_state: PhysicsDirectSpaceState2D, effective_ray_dist: float = 300.0) -> Vector2:
+	var near_dist := collision_point.distance_to(player_pos)
+	var step_size := 30.0
+	var max_probe_dist := effective_ray_dist * 3.0
+	var probe_dist := near_dist + 5.0
+	var was_inside := false
+	var point_query := PhysicsPointQueryParameters2D.new()
+	point_query.collision_mask = 4; point_query.collide_with_areas = false; point_query.collide_with_bodies = true
+	while probe_dist < max_probe_dist:
+		var probe_point := player_pos + direction * probe_dist
+		point_query.position = probe_point
+		if space_state.intersect_point(point_query, 1).is_empty():
+			if was_inside: return probe_point + direction * 35.0
+			var rev_q := PhysicsRayQueryParameters2D.new()
+			rev_q.from = probe_point; rev_q.to = player_pos; rev_q.collision_mask = 4
+			var rev_r := space_state.intersect_ray(rev_q)
+			if not rev_r.is_empty() and rev_r["position"].distance_to(player_pos) > near_dist + 5.0:
+				return rev_r["position"] + direction * 35.0
+			return probe_point + direction * 35.0
+		else: was_inside = true
+		probe_dist += step_size
+	return collision_point + direction * 35.0
 
 ## Calculate flank position based on player location and stored _flank_side.
 func _calculate_flank_position() -> void:
@@ -4560,24 +4581,8 @@ func get_nav_path() -> PackedVector2Array:
 	return _nav_agent.get_current_navigation_path()
 
 ## Returns cover raycast collision data for debug visualization (Issue #1359: CoverRaycastMonitor).
-## Each entry: { "origin": Vector2, "target": Vector2, "colliding": bool, "point": Vector2, "normal": Vector2 }
 func get_cover_raycast_data() -> Array:
-	# Issue #1378: return cached player-origin ray data when available
-	if _player_origin_ray_data.size() > 0:
-		return _player_origin_ray_data
-	var data: Array = []
-	for i in range(_cover_raycasts.size()):
-		var rc: RayCast2D = _cover_raycasts[i]
-		var entry: Dictionary = {
-			"origin": rc.global_position,
-			"target": rc.global_position + rc.target_position,
-			"colliding": rc.is_colliding(),
-		}
-		if rc.is_colliding():
-			entry["point"] = rc.get_collision_point()
-			entry["normal"] = rc.get_collision_normal()
-		data.append(entry)
-	return data
+	return _last_cover_search_rays
 
 ## Returns the current cover position and whether it is valid (Issue #1359: CoverRaycastMonitor).
 func get_cover_info() -> Dictionary:
