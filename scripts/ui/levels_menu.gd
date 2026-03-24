@@ -121,6 +121,16 @@ const LEVELS: Array[Dictionary] = [
 		"map_size": "3200x2400"
 	},
 	{
+		"name": "Sewer",
+		"name_ru": "Канализация",
+		"path": "res://scenes/levels/SewerLevel.tscn",
+		"description": "Underground sewer with a long corridor, one fork splitting into two branches, and small rooms before the split. Sparse cover.",
+		"preview_color": Color(0.1, 0.14, 0.1, 1.0),
+		"preview_accent": Color(0.2, 0.28, 0.18, 1.0),
+		"enemy_count": 10,
+		"map_size": "3200x2000"
+	},
+	{
 		"name": "Arena",
 		"name_ru": "Арена",
 		"path": "res://scenes/levels/ArenaLevel.tscn",

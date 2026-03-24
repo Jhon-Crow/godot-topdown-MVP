@@ -223,6 +223,7 @@ class MockBuildingLevel extends MockLevelBase:
 		"res://scenes/levels/FactoryLevel.tscn",
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
+		"res://scenes/levels/SewerLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -319,6 +320,7 @@ class MockCastleLevel extends MockLevelBase:
 		"res://scenes/levels/FactoryLevel.tscn",
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
+		"res://scenes/levels/SewerLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -381,6 +383,7 @@ class MockTestTier extends MockLevelBase:
 		"res://scenes/levels/FactoryLevel.tscn",
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
+		"res://scenes/levels/SewerLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -446,6 +449,7 @@ class MockBeachLevel extends MockLevelBase:
 		"res://scenes/levels/FactoryLevel.tscn",
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
+		"res://scenes/levels/SewerLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -1476,7 +1480,11 @@ func test_level_order_building_to_testtier_to_castle_to_revolver_labyrinth2_is_l
 
 	var last := building_level.get_next_level_path("res://scenes/levels/DecadenceLevel.tscn")
 	assert_eq(last, "res://scenes/levels/Labyrinth2Level.tscn",
-		"DecadenceLevel -> Labyrinth2Level (Labyrinth Complex is last in progression)")
+		"DecadenceLevel -> Labyrinth2Level")
+
+	var sewer := building_level.get_next_level_path("res://scenes/levels/Labyrinth2Level.tscn")
+	assert_eq(sewer, "res://scenes/levels/SewerLevel.tscn",
+		"Labyrinth2Level -> SewerLevel (Sewer is last in progression)")
 
 
 # ============================================================================

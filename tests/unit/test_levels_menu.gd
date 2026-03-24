@@ -24,6 +24,7 @@ class MockLevelsMenu:
 		{"name": "Factory", "path": "res://scenes/levels/FactoryLevel.tscn", "enemy_count": 13},
 		{"name": "Decadence", "path": "res://scenes/levels/DecadenceLevel.tscn", "enemy_count": 12},
 		{"name": "Labyrinth Complex", "path": "res://scenes/levels/Labyrinth2Level.tscn", "enemy_count": 15},
+		{"name": "Sewer", "path": "res://scenes/levels/SewerLevel.tscn", "enemy_count": 10},
 		{"name": "Arena", "path": "res://scenes/levels/ArenaLevel.tscn", "enemy_count": 0, "endless": true, "always_unlocked": true},
 	]
 
@@ -72,8 +73,8 @@ func after_each() -> void:
 
 
 func test_levels_count() -> void:
-	assert_eq(menu.LEVELS.size(), 12,
-		"Should have 12 levels")
+	assert_eq(menu.LEVELS.size(), 13,
+		"Should have 13 levels")
 
 
 func test_first_level_is_labyrinth() -> void:
@@ -82,7 +83,7 @@ func test_first_level_is_labyrinth() -> void:
 
 
 func test_last_level_is_arena() -> void:
-	assert_eq(menu.LEVELS[11]["name"], "Arena",
+	assert_eq(menu.LEVELS[12]["name"], "Arena",
 		"Last level should be Arena")
 
 
@@ -107,12 +108,12 @@ func test_all_levels_have_enemy_count() -> void:
 
 
 func test_arena_is_endless() -> void:
-	assert_true(menu.LEVELS[11].get("endless", false),
+	assert_true(menu.LEVELS[12].get("endless", false),
 		"Arena should be marked as endless")
 
 
 func test_arena_always_unlocked() -> void:
-	assert_true(menu.LEVELS[11].get("always_unlocked", false),
+	assert_true(menu.LEVELS[12].get("always_unlocked", false),
 		"Arena should be always unlocked")
 
 
