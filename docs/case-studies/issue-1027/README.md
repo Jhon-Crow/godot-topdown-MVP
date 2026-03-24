@@ -717,3 +717,56 @@ func _check_companion_visibility() -> void:
 | Fix 26 (companion visibility stagger) | 83% reduction in companion raycasts; reduces overall raycast budget |
 
 **Estimated total impact:** The two throttling fixes target the highest-frequency CPU bottlenecks in the 20-enemy scenario. Combined reduction: ~97% fewer group scan operations and ~83% fewer companion raycasts per second during heavy combat. This should raise the worst-case FPS floor from 5fps to 15-20fps during peak combat intensity.
+
+---
+
+## Session 6 — 2026-03-24: Main Branch Investigation & Conflict Resolution
+
+### User Feedback
+
+> проверь, есть ли эта оптимизация в main и можно ли использовать её без конфликтов. если можно то обновись и используй
+>
+> ("Check if this optimization is in main and if it can be used without conflicts. If yes, update and use it.")
+
+### Investigation: O(n²) Fix in main?
+
+**Finding: The Fix 26 O(n²) throttle is NOT in `main`.**
+
+In `main`, `enemy.gd` line 948 still calls `_count_enemies_in_combat()` unconditionally every physics frame:
+
+```gdscript
+# main branch (unoptimized):
+_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
+```
+
+Our branch has the throttled version:
+
+```gdscript
+# issue-1027 branch (optimized):
+_enemies_count_frame_counter += 1  # Issue #1027 Fix 26: Throttle O(n²) group query to ~1/sec
+if _enemies_count_frame_counter >= ENEMIES_COUNT_INTERVAL or not _goap_world_state.has("enemies_in_combat"):
+    _enemies_count_frame_counter = 0; _goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
+```
+
+Similarly, the companion vision stagger is also only in our branch.
+
+### Merge Conflicts Found
+
+When merging `origin/main` into our branch, two files had conflicts:
+
+1. **`scripts/autoload/impact_effects_manager.gd`** — Two conflict zones:
+   - Conflict 1 (line 58): `BLOOD_DECALS_PER_NONLETHAL_HIT` — main raised it from 4→15 (Issue #1090). Resolution: took main's value (15) while preserving our rate-limiting vars.
+   - Conflict 2 (line 736): Rate-limiting block — main removed it entirely. Resolution: kept our rate-limiting code (essential for Issue #997/#1027 Fix 16).
+
+2. **`scripts/objects/enemy.gd`** — One conflict zone:
+   - Line 1800: Comment text difference — our branch had extended comment referencing `#1027(RCA-21)`. Resolution: kept our more informative comment.
+
+### Resolution
+
+- Merged `origin/main` into branch, resolved all 3 conflict zones
+- The Fix 26 O(n²) optimization is preserved and remains our branch's contribution
+- PR is now MERGEABLE (no more merge conflicts)
+
+### Key Architectural Insight
+
+The Fix 26 optimization reduces `_count_enemies_in_combat()` from 20×60=1200 calls/sec to ~20/sec — a 98.3% reduction. Since this is not in main, our PR is essential for fixing the FPS bottleneck in the 20-enemy scenario.
