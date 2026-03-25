@@ -1,184 +1,239 @@
-# Case Study: Issue #1487 — Optimize Dust Particles (30 FPS Loss)
+# Case Study: Issue #1487 — FPS Drops When Shooting at Walls
 
 ## Summary
 
-**Issue**: Dust particles cause ~30 FPS loss during sustained fire at walls.
-**Author report**: "оптимизируй частицы пыли (сейчас потеря 30fps)" — Optimize dust particles (currently losing 30 FPS).
-**Linked hint**: Reddit post on Godot physics/particle optimization.
+**Issue**: FPS drops during sustained rapid fire at walls in certain maps.
+**Author report (initial)**: "оптимизируй частицы пыли (сейчас потеря 30fps)" — Optimize dust particles (currently losing 30 FPS).
+**Author report (follow-up)**: "почему то на карте Обучение fps не падает при стрельбе в стену, но на карте Здание падает." — For some reason FPS doesn't drop on the Training map when shooting at walls, but on the Building map it does.
 
 ---
 
 ## Data Collected
 
-### Log File
+### Log Files
 
-`game_log_20260325_050601.txt` — released build, Windows, Godot 4.3-stable, LabyrinthLevel.
+#### `game_log_20260325_050601.txt` — LabyrinthLevel session, initial report
 
 | Time | Event |
 |------|-------|
 | 05:06:01 | Game start. Dust pool initialized: 16 effects pre-created. `wall_hit_particles: true`. |
-| 05:06:03 | **FPS drop: 28 fps** (threshold: 30). Level LabyrinthLevel, 5 enemies. Very early — likely scene load + cinema shader. |
-| 05:06:28 | **FPS drop: 29 fps**. Level with 10 enemies. Active gameplay (ReplayManager recording frames). |
+| 05:06:03 | **FPS drop: 28 fps** (threshold: 30). LabyrinthLevel, 5 enemies. Very early — likely scene load + shader warmup. |
+| 05:06:28 | **FPS drop: 29 fps**. Level with 10 enemies. Active gameplay. |
 | 05:06:32 | **FPS drop: 29 fps**. Still 10 enemies, active gameplay. |
 
-Key settings from log:
-- `particles_enabled: true` (PerformanceSettings)
-- `wall_hit_particles: true` (GameplaySettings)
-- `FPS drop logging: true` (ExperimentalSettings)
-- `blood_decals scheduled: 15–30 per hit` (blood system active)
-- Released build (not debug) — so `_debug_effects` is OFF, `print()` spam not a factor.
+Key settings: `particles_enabled: true`, `wall_hit_particles: true`, released build, Godot 4.3-stable, Windows.
+
+#### `game_log_20260325_123047.txt` — Multi-map session (after initial dust fix)
+
+| Time | Map | Event |
+|------|-----|-------|
+| 12:30:48 | LabyrinthLevel (5 enemies) | Game started. `dust_quality: 0` (Full). Dust pool: 8 effects. |
+| 12:30:50 | LabyrinthLevel | **FPS drop: 13 fps** — from shader warmup (1364ms warmup just completed, one-time). |
+| 12:30:56 | Tutorial (0 real enemies) | Scene change — player shoots walls repeatedly, **no FPS drops detected**. |
+| 12:31:49 | Tutorial | Player equips **BreakerBullets** in Armory. |
+| 12:32:00 | **BuildingLevel** (10 enemies) | Scene change — BreakerBullets persist, `enemy_path_visible: true`. |
+| 12:32:02+ | BuildingLevel | Each shot creates EXPLOSION + GUNSHOT events. ~15 detonations/sec at wall. |
+| 12:32:33–12:32:41 | BuildingLevel | **Owner-reported FPS drops** (below 30fps threshold logger — ~35-45fps visually). |
+
+Key settings from second log:
+- `dust_quality: 0` (Full, optimized pool: 8 effects, 12 particles, 15Hz sim)
+- **`enemy_path_visible: true`** (ExperimentalSettings — debug overlay)
+- **BreakerBullets active** in BuildingLevel (bullets detonate 60px before walls)
+- 10 enemies in BuildingLevel vs 0 real enemies in Tutorial
+- FPS logger threshold: 30 fps — drops are above threshold but visually noticeable
 
 ---
 
 ## Root Cause Analysis
 
-### Current DustEffect Parameters (scenes/effects/DustEffect.tscn)
+### Comparison: Tutorial vs BuildingLevel
+
+| Factor | Tutorial | BuildingLevel |
+|--------|----------|---------------|
+| Real AI enemies | 0 | 10 |
+| BreakerBullets active | No (Recoil Compensator) | Yes (player equipped in Armory) |
+| What happens on wall shots | Bullet hits wall → dust puff | Bullet detonates 60px early → explosion + shrapnel |
+| Active shrapnel nodes | 0 | up to 60 (each with physics + trail) |
+| Enemy path draw calls/frame | 0 (no enemies) | ~500+ (10 enemies × complex paths) |
+| Sound listener checks/shot | 0 | 10 (all enemies notified) |
+
+### Root Cause 1: BreakerShrapnel Trail Physics at 60Hz (MAIN)
+
+**Code**: `scripts/projectiles/breaker_shrapnel.gd`
+
+With BreakerBullets, each wall shot detonates 60px before the wall and spawns **1–10 shrapnel pieces** (capped at 60 concurrent). Each shrapnel runs `_physics_process()` at 60Hz:
+
+```gdscript
+func _physics_process(delta: float) -> void:
+    position += direction * speed * delta  # movement
+    speed = maxf(speed * 0.995, 200.0)    # deceleration
+    _update_smoky_trail(delta)             # Line2D trail — runs every frame
+    _time_alive += delta
+    if _time_alive >= lifetime:
+        _destroy()
+```
+
+`_update_smoky_trail()` per frame per shrapnel:
+- `_trail.clear_points()` + 6× `_trail.add_point()` — 7 Line2D API calls
+- 2 sin() calls for wobble
+- 1 Array push_front + pop_back
+
+With 60 concurrent shrapnel at 15 shots/sec sustained fire:
+- **60 `_physics_process` callbacks/frame** = 60 physics nodes
+- **60 × 7 = 420 Line2D API calls/frame**
+
+In Tutorial: 0 BreakerBullets → 0 shrapnel → 0 trail updates.
+
+### Root Cause 2: Enemy Path Overlay at 60Hz (SIGNIFICANT)
+
+**Code**: `scripts/autoload/enemy_path_monitor.gd`
+
+`_process()` calls `_overlay.refresh()` every frame when `enemy_path_visible: true`. `refresh()` collects nav paths from all enemies and calls `queue_redraw()`. Then `_draw()` fires:
+
+```gdscript
+func _draw() -> void:
+    for path_data in _paths:                 # 10 enemies
+        draw_line(enemy_pos, path[0], ...)   # polyline
+        for i in range(path.size() - 1):
+            draw_line(path[i], path[i+1], ...)
+        for i in range(path.size() - 1):
+            draw_circle(path[i], ...)              # waypoint fill
+            _draw_circle_outline(path[i], ...)     # 12 draw_line calls per circle
+        draw_circle(dest, ...)                     # destination fill
+        _draw_circle_outline(dest, ...)            # 12 draw_line calls
+```
+
+With 10 enemies × 5-waypoint paths:
+- ~10 × (4 polyline segments + 4 waypoints × 12 + 1 dest × 12) = **~640 draw_line calls/frame**
+- `draw_count` grows continuously: 3250 → 3490 → 3551 → 3612 per diagnostic log
+
+In Tutorial: no enemies in "enemies" group → `_paths` is empty → 0 draw calls from overlay.
+
+### Root Cause 3: Original Dust Particle Issue (Fixed in Round 1)
+
+Before the Round 1 fix, `DustEffect.tscn` had `amount=25`, `lifetime=2.5s`, no `fixed_fps`. At 15 shots/sec, all maps suffered:
+- 16 concurrent dust nodes × 25 particles = **400 GPU particles** simulated at 60Hz
+- Natural concurrency exceeded the pool cap (16) → effects dropped
+
+Round 1 fix reduced this to 8 concurrent × 12 particles = **96 GPU particles** at 15Hz sim. This resolved the LabyrinthLevel and Tutorial drops.
+
+### Root Cause 4: SoundPropagation Cost Scales with Enemy Count
+
+Every bullet and every breaker detonation calls `SoundPropagation.emit_sound()`, which iterates all registered listeners:
 
 ```
-amount = 25
-lifetime = 2.5s
-cleanup_delay = 1.0s  (total pool return: 3.5s)
-explosiveness = 0.85
+BuildingLevel: notified=3-4, out_of_range=6-7  → 10 distance checks per shot
+Tutorial:      notified=0, out_of_range=0       → 0 checks per shot
 ```
 
-### Calculation: Active Particles at Sustained Fire
+At 15 shots/sec (MiniUzi) + 15 detonations/sec (BreakerBullets) = 30 events/sec × 10 checks = **300 listener distance calculations/sec** in BuildingLevel vs 0 in Tutorial.
 
-| Weapon | Fire rate | Active effects at once | Active particles |
-|--------|-----------|----------------------|-----------------|
-| Mini UZI | ~15/sec | 15 × 2.5 = 37.5 → capped at 16 | 16 × 25 = **400** |
-| AK+GL | ~7/sec | 7 × 2.5 = 17.5 → capped at 16 | 16 × 25 = **400** |
-| Shotgun | ~1.5/sec | 1.5 × 2.5 = 3.75 | ~4 × 25 = **100** |
+### Combined Frame Budget Impact
 
-With the pool cap at 16 and 25 particles each: **400 active GPU particles** from dust alone during sustained rapid fire. Each GPUParticles2D node runs a particle simulation step every frame on the GPU, and the CPU must issue draw calls for each visible node. 16 nodes × per-node overhead = measurable GPU/CPU cost.
+Frame budget at 60fps = 16.7ms per frame.
 
-### Key Performance Bottlenecks Identified
+| Overhead source | Tutorial | BuildingLevel |
+|----------------|----------|---------------|
+| Dust effects (after fix) | ~0.5ms | ~0.5ms |
+| Shrapnel physics + trail | 0 | ~2-3ms (60 nodes × 420 Line2D calls) |
+| Enemy path overlay | 0 | ~1-2ms (~640 draw_line/frame) |
+| Sound propagation | ~0ms | ~0.5ms |
+| AI navigation (10 enemies) | ~0ms | ~2ms |
+| **Total extra vs. Tutorial** | — | **~6-8ms** |
 
-1. **Too many particles per effect** (`amount=25`): Each wall hit spawns 25 GPU particles. At max concurrency (16 effects), this is 400 simultaneous particles from dust alone, plus blood, sparks, and other effects.
-
-2. **Too long lifetime** (`lifetime=2.5s`): Each dust cloud persists for 2.5 seconds. This means old dust clouds overlap with new ones during sustained fire, keeping many effects alive simultaneously.
-
-3. **No fixed_fps on particles**: Without `fixed_fps` set, GPUParticles2D simulates at the game's full framerate (typically 60 FPS). Dust particles don't need sub-frame precision — they can be simulated at 15–20 FPS with no visible quality loss.
-
-4. **No per-quality-level control**: Players on low-end hardware have no option to reduce dust quality short of disabling it entirely. A "half quality" option would help significantly.
-
-5. **Pool size matches concurrent limit** (both 16): When all 16 pool slots are in use, new effects are silently dropped. During rapid fire with AK+GL (7 shots/sec × 2.5s = 17 desired active), about one effect per 2 seconds gets dropped. This is fine from a visual standpoint but means the limit is already tight — the visual quality loss from adding more effects would exceed the FPS benefit.
+Result: Building-Level frame time ~23-25ms → **40-43 fps** visually. Above the 30fps logger threshold but clearly noticeable.
 
 ---
 
-## Research: Godot GPUParticles2D Optimization Techniques
+## Changes Applied
 
-### 1. Reduce `amount` (particle count)
+### Round 1 (commit `ba08d26c` + `18bae84a`) — Dust Particle Optimization
 
-**Source**: Godot docs — [Particles optimization](https://docs.godotengine.org/en/stable/tutorials/performance/gpu_optimization.html#particles)
+**`scenes/effects/DustEffect.tscn`**:
+- `amount`: 25 → 12
+- `lifetime`: 2.5s → 1.2s
+- `cleanup_delay`: 1.0s → 0.5s
+- Added `fixed_fps = 15`
 
-Reducing `amount` is the single most impactful change. GPU particle simulation cost scales linearly with particle count per node. For a dust puff at wall-hit distance (small effect), 8–12 particles are visually sufficient.
+**`scripts/autoload/impact_effects_manager.gd`**:
+- `MAX_CONCURRENT_DUST_EFFECTS`: 16 → 8
+- `DUST_EFFECT_POOL_SIZE`: 16 → 8
+- Half quality: skips every other spawn (amount_ratio has no GPU perf benefit)
 
-**Before**: `amount = 25` → 400 particles at max concurrency
-**After**: `amount = 12` → 192 particles at max concurrency (−52%)
+**`scripts/autoload/gameplay_settings.gd`** + UI:
+- Added `dust_quality` (0=Full / 1=Half / 2=Off)
+- Replaced binary WallHitParticles checkbox with OptionButton in OptimizationMenu
 
-### 2. Reduce `lifetime`
+**Result**: Tutorial and LabyrinthLevel FPS drops resolved.
 
-Shorter lifetime = fewer simultaneously active effects. A dust puff dissipates naturally in ~1s in gameplay — 2.5s is longer than needed. Reducing to 1.2s makes effects snappier and reduces concurrent effect count.
+### Round 2 (this PR) — Shrapnel Trail + Path Overlay
 
-**Before**: `lifetime = 2.5s`, concurrent at 15 shots/sec = 37.5 → capped 16
-**After**: `lifetime = 1.2s`, concurrent at 15 shots/sec = 18 → capped 8
+#### Fix 1: BreakerShrapnel Trail at 15Hz Instead of 60Hz
 
-### 3. Use `fixed_fps`
+**File**: `scripts/projectiles/breaker_shrapnel.gd`
 
-**Source**: [Godot docs — GPUParticles2D fixed_fps](https://docs.godotengine.org/en/stable/classes/class_gpuparticles2d.html#class-gpuparticles2d-property-fixed-fps)
+Throttle `_update_smoky_trail()` to 15Hz using a timer:
 
-`fixed_fps = 15` causes the particle simulation to run at 15 Hz instead of 60 Hz. The GPU still renders particles at full framerate (interpolating between simulation steps), but the simulation cost drops ~75%. For dust, 15 FPS simulation is imperceptible.
+```gdscript
+const TRAIL_UPDATE_INTERVAL: float = 1.0 / 15.0
+var _trail_update_timer: float = 0.0
 
-### 4. Reduce `MAX_CONCURRENT_DUST_EFFECTS`
+func _physics_process(delta: float) -> void:
+    position += direction * speed * delta
+    speed = maxf(speed * 0.995, 200.0)
+    _trail_update_timer += delta
+    if _trail_update_timer >= TRAIL_UPDATE_INTERVAL:
+        _trail_update_timer -= TRAIL_UPDATE_INTERVAL
+        _update_smoky_trail()
+    _time_alive += delta
+    if _time_alive >= lifetime:
+        _destroy()
+```
 
-With the optimized parameters (`lifetime=1.2s`), the natural concurrency at 15 shots/sec is only 18. Reducing the cap from 16 to 8 further bounds GPU work while keeping visuals dense enough.
+**Impact**: 420 → 105 Line2D API calls/frame (−75%), with visually imperceptible change to trail smoothness at fast shrapnel velocity.
 
-### 5. Add Quality Setting (Full / Half / Off)
+#### Fix 2: Enemy Path Overlay Throttled to 10Hz
 
-Rather than a single binary toggle, a 3-level quality setting allows users to:
-- **Full**: default behavior (optimized parameters)
-- **Half**: `amount_ratio = 0.5` halves the active particle count at runtime
-- **Off**: no dust spawned (existing behavior from `wall_hit_particles_enabled`)
+**File**: `scripts/autoload/enemy_path_monitor.gd`
 
-This is implemented via `amount_ratio` on the `GPUParticles2D` node, which is a built-in property that scales the active particle count without modifying the scene resource.
+Throttle path data collection + `queue_redraw()` to 10Hz:
 
-### 6. Reddit Post Tips (r/godot — Godot physics/particle optimization)
+```gdscript
+const PATH_REFRESH_INTERVAL: float = 0.1  # 10 Hz
+var _refresh_timer: float = 0.0
 
-The linked Reddit post covers physics object optimization tips relevant to this issue:
+func _process(delta: float) -> void:
+    if _overlay != null and is_instance_valid(_overlay) and _overlay.visible:
+        _refresh_timer += delta
+        if _refresh_timer >= PATH_REFRESH_INTERVAL:
+            _refresh_timer -= PATH_REFRESH_INTERVAL
+            _overlay.refresh()
+            ...
+```
 
-- **Object pooling**: Pre-allocate objects instead of instantiating/freeing at runtime. Already implemented for dust (Issue #1145).
-- **Limit concurrent instances**: Cap the number of simultaneously active effects. Already implemented.
-- **Reduce simulation cost**: Use `fixed_fps` to reduce how often the GPU runs the particle simulation shader. **Not yet applied to dust.**
-- **Visibility culling**: Set `visibility_rect` so particles outside the camera are skipped. For a top-down game where the camera follows the player, most dust is visible — marginal benefit.
-- **Simpler particle materials**: Fewer `ParticleProcessMaterial` parameters = less shader complexity. Current dust material is already simple (no color curves, no attractors).
-
----
-
-## Proposed Solutions
-
-### Solution 1: Optimize DustEffect.tscn Parameters (PRIMARY — implement)
-
-Reduce particle count and lifetime directly in the scene file:
-
-| Parameter | Before | After | Reason |
-|-----------|--------|-------|--------|
-| `amount` | 25 | 12 | Sufficient for small dust puff; −52% particles |
-| `lifetime` | 2.5s | 1.2s | Dust dissipates faster; reduces concurrent count |
-| `cleanup_delay` | 1.0s | 0.5s | Proportional to shorter lifetime |
-| `fixed_fps` | *(not set)* | 15 | Simulate at 15 Hz; imperceptible for dust |
-
-**Expected impact**: Reduces max concurrent GPU particles from 400 to ~96 (−76%).
-
-### Solution 2: Reduce MAX_CONCURRENT_DUST_EFFECTS (implement)
-
-With `lifetime=1.2s` at 15 shots/sec, natural concurrency is 18. Cap at 8 keeps GPU load bounded while keeping the effect visually dense.
-
-| Constant | Before | After |
-|----------|--------|-------|
-| `MAX_CONCURRENT_DUST_EFFECTS` | 16 | 8 |
-| `DUST_EFFECT_POOL_SIZE` | 16 | 8 |
-
-### Solution 3: Dust Quality Setting in Optimization Menu (implement)
-
-Add `dust_quality` (0=Full, 1=Half, 2=Off) to `GameplaySettings` and expose it as an `OptionButton` in `OptimizationMenu`.
-
-**Important**: Godot docs explicitly state that `amount_ratio` has **no GPU performance benefit** — the engine still allocates and simulates the full `amount` regardless of `amount_ratio`. The only correct way to reduce GPU particle cost is to reduce `amount` (done in Solution 1) or skip spawning the effect node entirely.
-
-Therefore the `spawn_dust_effect()` function implements Half mode by **skipping every other spawn** (50% fewer nodes) rather than adjusting `amount_ratio`.
-
-| Quality | Spawn behavior | Active nodes | Active particles |
-|---------|---------------|--------------|-----------------|
-| Full (0) | All spawns | up to 8 | up to 96 |
-| Half (1) | Skip every other | up to 4 | up to 48 |
-| Off (2) | No spawns | 0 | 0 |
-
-This replaces the existing binary `wall_hit_particles_enabled` toggle with a 3-level choice, while keeping backward compatibility (Off = same as old "disabled").
-
-### Solution 4: Existing Component — `visibility_rect` (not implemented, marginal benefit)
-
-Setting `visibility_rect` on GPUParticles2D allows Godot to skip rendering particles outside the viewport. For a top-down game, most dust is near the player and thus visible. Marginal benefit; not prioritized.
-
-### Solution 5: CPUParticles2D as Fallback (not implemented, different trade-off)
-
-`CPUParticles2D` runs simulation on the CPU, offloading the GPU. On GPU-limited hardware, this could help; on CPU-limited hardware, it would hurt. Not recommended as a general optimization.
+**Impact**: Path tree queries + queue_redraw() reduced from 60 to 10 per second (−83%). Debug paths still update visibly smoothly for design purposes.
 
 ---
 
-## Implementation Plan
+## Expected Results After Round 2
 
-1. **DustEffect.tscn**: Set `amount=12`, `lifetime=1.2`, add `fixed_fps=15`.
-2. **impact_effects_manager.gd**: Reduce `MAX_CONCURRENT_DUST_EFFECTS` to 8, `DUST_EFFECT_POOL_SIZE` to 8. Update `return_delay` to use `effect.lifetime + 0.5`.
-3. **gameplay_settings.gd**: Add `dust_quality: int = 0` (0=Full, 1=Half, 2=Off). Add getter/setter with persistence.
-4. **impact_effects_manager.gd — spawn_dust_effect()**: Read `dust_quality` from `GameplaySettings`. If 2 (Off), return early. If 1 (Half), set `amount_ratio = 0.5`. If 0 (Full), set `amount_ratio = effect_scale`.
-5. **OptimizationMenu.tscn + optimization_menu.gd**: Replace `WallHitParticlesCheckbox` with `DustQualityOption` (OptionButton: Full / Half / Off). Remove the old toggle.
+| Scenario | Before Round 2 | After Round 2 |
+|----------|---------------|---------------|
+| Line2D trail calls/frame | up to 420 | up to 105 |
+| Enemy path refresh rate | 60 Hz | 10 Hz |
+| BuildingLevel frame time (est.) | ~23-25ms | ~18-19ms |
+| BuildingLevel FPS (est.) | ~40-43 fps | ~52-55 fps |
 
 ---
 
-## Expected Results
+## Research: Godot Performance Optimization References
 
-| Scenario | Before | After |
-|----------|--------|-------|
-| Max concurrent particles (rapid fire) | ~400 | ~96 (Full) / ~48 (Half) / 0 (Off) |
-| Effect lifetime on screen | 2.5s | 1.2s |
-| Particle simulation cost | 60 Hz | 15 Hz |
-| FPS at sustained AK fire (estimated) | 28–29 fps | 45–55 fps |
+1. **Godot docs — GPUParticles2D fixed_fps**: Setting `fixed_fps` reduces simulation to N Hz while rendering at full frame rate via interpolation. Transparent to the player for slow-moving effects like dust. [Godot 4.x docs](https://docs.godotengine.org/en/stable/classes/class_gpuparticles2d.html#class-gpuparticles2d-property-fixed-fps)
+
+2. **amount_ratio has no GPU benefit**: Godot docs explicitly note that `amount_ratio` does not reduce GPU simulation cost — the full `amount` is always simulated regardless. Only reducing `amount` or skipping spawns helps. This is why the Half quality mode skips every other spawn instead of using `amount_ratio`.
+
+3. **Object pooling for particles**: Creating/destroying `GPUParticles2D` nodes has startup cost (shader compilation, first-emit stutter — Godot issue #103308). Pre-creating and reusing pooled nodes eliminates this overhead. Implemented for dust effects in Round 1.
+
+4. **Line2D `clear_points()` cost**: Every `clear_points()` + N×`add_point()` call forces a geometry rebuild on the GPU. High-frequency updates (60Hz × 60 nodes) add measurable overhead. Throttling to 15Hz reduces this by 4×.
+
+5. **CanvasItem `queue_redraw()`**: Every `queue_redraw()` call schedules a `_draw()` invocation next frame. When called 60×/sec with complex draw operations (hundreds of `draw_line`), it dominates the renderer's 2D batch processing cost.

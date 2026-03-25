@@ -48,6 +48,14 @@ var _trail_noise_speed: float = 0.0
 ## Enable/disable debug logging.
 var _debug: bool = false
 
+## Trail update interval in seconds (Issue #1487: throttle to 15 Hz to reduce Line2D overhead).
+## At 60 fps with up to 60 concurrent shrapnel, updating every frame causes 360+ add_point()
+## calls per frame. Capping at 15 Hz cuts this by 75% with no visible trail quality loss.
+const TRAIL_UPDATE_INTERVAL: float = 1.0 / 15.0
+
+## Timer counting time since the last trail update.
+var _trail_update_timer: float = 0.0
+
 
 func _ready() -> void:
 	if _debug:
@@ -83,8 +91,11 @@ func _physics_process(delta: float) -> void:
 	# Slow down gradually (air resistance / deceleration)
 	speed = maxf(speed * 0.995, 200.0)
 
-	# Update smoky trail effect
-	_update_smoky_trail(delta)
+	# Update smoky trail at 15 Hz to limit Line2D API overhead (Issue #1487).
+	_trail_update_timer += delta
+	if _trail_update_timer >= TRAIL_UPDATE_INTERVAL:
+		_trail_update_timer -= TRAIL_UPDATE_INTERVAL
+		_update_smoky_trail(delta)
 
 	# Track lifetime and auto-destroy if exceeded
 	_time_alive += delta
@@ -307,6 +318,7 @@ func _reset_state() -> void:
 	# Reset trail noise
 	_trail_noise_offset = 0.0
 	_trail_noise_speed = 10.0
+	_trail_update_timer = 0.0
 
 	# Clear position history
 	_position_history.clear()

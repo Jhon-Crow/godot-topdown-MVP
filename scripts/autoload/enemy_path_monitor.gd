@@ -49,6 +49,12 @@ var _overlay: _EnemyPathOverlay = null
 var _diag_frame_count: int = 0
 var _diag_last_path_count: int = -1
 
+## Issue #1487: Throttle path data refresh to 10 Hz to reduce per-frame overhead.
+## At 60 fps with 10 enemies, refreshing every frame causes hundreds of draw_line() calls
+## per frame. Capping at 10 Hz cuts overhead ~83% while paths still update visibly smoothly.
+const PATH_REFRESH_INTERVAL: float = 0.1  # 10 Hz
+var _path_refresh_timer: float = 0.0
+
 
 func _ready() -> void:
 	_apply_settings()
@@ -58,10 +64,16 @@ func _ready() -> void:
 	get_tree().node_added.connect(_on_node_added)
 
 
-## Refresh the path overlay every frame while visible.
-func _process(_delta: float) -> void:
+## Refresh the path overlay at a throttled rate while visible (Issue #1487).
+## Previously refreshed every frame; with 10 enemies this caused hundreds of draw_line()
+## calls per frame. Now refreshes at PATH_REFRESH_INTERVAL (10 Hz) to reduce overhead.
+func _process(delta: float) -> void:
 	if _overlay != null and is_instance_valid(_overlay) and _overlay.visible:
-		_overlay.refresh()
+		# Issue #1487: throttle to PATH_REFRESH_INTERVAL (10 Hz) to cap draw overhead
+		_path_refresh_timer += delta
+		if _path_refresh_timer >= PATH_REFRESH_INTERVAL:
+			_path_refresh_timer -= PATH_REFRESH_INTERVAL
+			_overlay.refresh()
 		# Issue #1392: periodic diagnostic logging (every 60 frames ≈ 1s)
 		_diag_frame_count += 1
 		if _diag_frame_count % 60 == 1:
