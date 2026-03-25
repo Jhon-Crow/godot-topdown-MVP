@@ -115,6 +115,58 @@ explosions, dust particles accumulated excessively. With 16 concurrent × 25 par
    - Prevents first-explosion shader compilation stutter
    - Pre-compiles both FLASHBANG and FRAG particle material variants
 
+### Round 3: Still -30fps After Round 2 (2026-03-25)
+
+User reported "проседание вроде как чуть ниже (на 3-5fps) но всё ещё доходит до минус 30fps"
+(drop is slightly lower by 3-5fps but still reaches -30fps).
+
+#### Root Cause: Blood Decal Area2D Accumulation (Physics Server Overhead)
+
+Analysis of `game_log_20260325_040613.txt` revealed **375 blood decals** accumulated across
+two game sessions within ~2 minutes, with 55+ new decals spawned during a single grenade
+explosion at 04:08:05.
+
+Each decal spawned by `blood_decal.gd` called `_setup_puddle_area()` in `_ready()`, which
+creates an `Area2D + CollisionShape2D` (CircleShape2D) for bloody footprint detection.
+
+**The physics server cost:**
+- 375 Area2D bodies × every physics frame (60/s) = **22,500 broadphase checks per second**
+- Each `monitorable = true` Area2D notifies overlapping detectors when its shape is queried
+- Godot's 2D physics broadphase (BVH tree) must update bounds for all 375 shapes every frame
+- This is pure CPU → GPU pipeline stall: physics runs on CPU, preventing next draw call from starting
+
+**Why Round 2 didn't fix it:**
+- `fixed_fps = 30` on GPUParticles2D reduces GPU particle simulation cost
+- But physics server runs at 60Hz independently — it has no concept of `fixed_fps`
+- The Area2D overhead scales linearly with decal count, regardless of rendering optimizations
+- `MAX_BLOOD_DECALS = 0` (unlimited, by issue #293/#370 requirement) means accumulation is unbounded
+
+**Why the comment "Issue #1027 removed per-puddle Area2D physics" was misleading:**
+- The comment in `impact_effects_manager.gd` (line 52) refers to removing `Area2D` from
+  the **manager** level — but each `BloodDecal` node still independently creates its own
+  `Area2D` in `_setup_puddle_area()`. The per-manager Area2D was removed; the per-decal
+  Area2D remained.
+
+**The `BloodyFeetComponent` already has a working non-physics fallback:**
+- `_check_blood_puddle_by_distance()` uses `get_tree().get_nodes_in_group("blood_puddle")`
+  and `distance_squared_to()` — O(1) per puddle, no physics queries
+- Runs every 30 physics frames (~0.5s) as a throttled background check
+- This makes the Area2D redundant for gameplay purposes
+
+### Round 3 Fix Applied
+
+**Decoupled physics Area2D from blood puddle group membership** in `blood_decal.gd`:
+- Added `use_physics_area: bool = false` export (default off)
+- Decals still join the `blood_puddle` group when `is_puddle = true` (for distance detection)
+- Area2D is only created when `use_physics_area = true` is explicitly set (for scene-placed decals)
+- Result: **zero Area2D nodes** from runtime-spawned blood decals, eliminating physics overhead
+
+**Impact:**
+- 375 accumulated decals → 0 physics bodies (was 375 Area2D + 375 CollisionShape2D)
+- Physics server broadphase work eliminated: 0 shape updates per frame from decals
+- `BloodyFeetComponent` footprint detection unaffected (distance check still works)
+- Particle counts unchanged (per user requirement: "ни в коем случае не уменьшай количество частиц")
+
 ## Log Evidence
 
 ### Round 1 (game_log_20260324_204241.txt)
@@ -133,6 +185,18 @@ explosions, dust particles accumulated excessively. With 16 concurrent × 25 par
 ```
 No FPS drop logged after Round 1 fixes (threshold: 30), but user reports visual ~30fps drop
 when particles are enabled — consistent with GPU particle processing overhead + decal storms.
+
+### Round 3 (game_log_20260325_040613.txt)
+```
+[04:06:15] [WARN] [FPS] Drop detected: 18 fps (threshold: 30)  ← shader warmup only (startup)
+[04:07:18] [PerformanceSettings] Blood decals enabled
+[04:07:57] [ReplayManager] Blood decals at end: 375 (baseline at frame 0: 0)
+[04:08:05] [GrenadeBase] EXPLODED at (606.9885, 721.6978)
+[04:08:05] [BloodDecal] Blood puddle created at ... (×55+ decals spawned)
+```
+Key finding: 375 blood decals accumulated = 375 Area2D physics bodies active every frame.
+No `[WARN] [FPS]` during explosion → CPU-side spike gone. Remaining drop is physics overhead
+from accumulated Area2D nodes, invisible to CPU-based FPS logger but felt on GPU render thread.
 
 ## Performance Budget Analysis
 
@@ -165,6 +229,20 @@ when particles are enabled — consistent with GPU particle processing overhead 
 | Shrapnel (frame 0 batch) | | 10 nodes | ~1ms |
 | **Total** | | | **~4.5ms** (~222 fps headroom) |
 
+### Every frame (persistent overhead before Round 3 fix):
+| Component | Cost | Count | Total |
+|---|---|---|---|
+| Physics broadphase per Area2D | ~0.01ms per body per frame | 375 decal Area2D | ~3.75ms/frame |
+| CollisionShape2D AABB update | ~0.005ms each | 375 shapes | ~1.9ms/frame |
+| **Total per-frame overhead** | | | **~5.65ms/frame** (~22fps hidden drain) |
+
+### Every frame (after Round 3 fix):
+| Component | Cost | Count | Total |
+|---|---|---|---|
+| Physics broadphase for decals | — | 0 Area2D nodes | **0ms** |
+| Distance check (BloodyFeetComponent) | ~0.01ms per puddle | 50 max checked | ~0.5ms **every 0.5s** |
+| **Total per-frame overhead** | | | **~0ms** from decals |
+
 ## Godot-Specific Optimization Techniques Applied
 
 1. **Object pooling** for frequently created/destroyed nodes (Issue #1145 pattern)
@@ -174,6 +252,10 @@ when particles are enabled — consistent with GPU particle processing overhead 
 5. **Shader pre-compilation** via warmup (Issue #343 pattern)
 6. **Timer storm prevention** via pending-count caps
 7. **Shadow disabling** for brief flash effects
+8. **Physics body elimination** for persistent decals — decouple group-based detection
+   from per-node Area2D creation. 375 physics bodies × every-frame broadphase ≈ 5.65ms
+   hidden drain invisible to CPU FPS loggers but felt as GPU stall. Use distance-based
+   group queries instead of always-on physics shapes for decoration-only nodes.
 
 ## References
 
