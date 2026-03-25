@@ -73,6 +73,14 @@ func _ready() -> void:
 	if ResourceLoader.exists(BLOOD_DIFFUSION_SCRIPT_PATH):
 		_blood_diffusion_script = load(BLOOD_DIFFUSION_SCRIPT_PATH)
 
+	var shader_ok: bool = _visual != null and _visual.material != null
+	_log("[WaterBody] Ready — size=%s shader=%s splash=%s blood=%s" % [
+		Vector2(water_width, water_height),
+		"OK" if shader_ok else "FALLBACK",
+		"OK" if _splash_script != null else "MISSING",
+		"OK" if _blood_diffusion_script != null else "MISSING"
+	])
+
 
 func _process(_delta: float) -> void:
 	# Check movement of all bodies currently inside the water.
@@ -97,10 +105,10 @@ func _process(_delta: float) -> void:
 func _create_visual() -> void:
 	_visual = ColorRect.new()
 	_visual.name = "WaterVisual"
-	_visual.offset_left   = -water_width  * 0.5
-	_visual.offset_top    = -water_height * 0.5
-	_visual.offset_right  =  water_width  * 0.5
-	_visual.offset_bottom =  water_height * 0.5
+	# ColorRect is a Control node — when added to a Node2D parent, use position+size
+	# (not offset_* which only work inside Control containers).
+	_visual.position = Vector2(-water_width * 0.5, -water_height * 0.5)
+	_visual.size     = Vector2(water_width, water_height)
 	# Set base color to transparent — shader fully controls the visual
 	_visual.color = Color(0.0, 0.0, 0.0, 0.0)
 	_visual.z_index = 1
@@ -267,6 +275,15 @@ func _spawn_blood_diffusion(world_pos: Vector2, blood_color: Color) -> void:
 	diffusion.global_position = world_pos
 	if diffusion.has_method("set_blood_color"):
 		diffusion.set_blood_color(blood_color)
+
+
+## Log a message via the FileLogger autoload (mirrors beach_level.gd pattern).
+func _log(message: String) -> void:
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info(message)
+	else:
+		print(message)
 
 
 ## Clean up references to freed grenades.

@@ -157,6 +157,63 @@ Key parameters (all tunable via shader uniforms):
 
 ---
 
+## Iteration 3: "No physical water — just a blue background" (2026-03-25)
+
+### User Feedback
+
+After the Iteration 2 fixes were merged into the branch, the user reported:
+> "сейчас вообще нет физической воды (просто голубой фон)" ("There is no physical water at all — just a blue background")
+>
+> Log file: `docs/case-studies/issue-1445/game_log_20260325_123952.txt`
+
+### Timeline Reconstruction (from game_log_20260325_123952.txt)
+
+| Time | Event |
+|---|---|
+| 12:39:52 | Game started on LabyrinthLevel |
+| 12:39:57 | PersistManager saved last level: BeachLevel |
+| 12:39:58 | Scene loaded: BeachLevel |
+| 12:39:58 | BeachLevel._ready() fired; 8 enemies tracked; weapon set up |
+| 12:39:58 | **No WaterBody log messages appear** |
+| 12:40:05 | Scene restarted (BeachLevel again) |
+| 12:40:05 | **Again: no WaterBody log messages** |
+
+The WaterBody node is present in the scene file (`scenes/levels/BeachLevel.tscn` line 60), the `WaterBody.tscn` packed scene exists, and `beach_level.gd` calls `_setup_water()`. However, there are no log entries from the WaterBody. Since `_ready()` used `print()` rather than the file logger's `log_info()` for some messages, some could be missing from the log. But the visual effect (animated water waves) was completely absent from the user's view.
+
+### Root Cause Analysis
+
+**Root cause: `ColorRect.offset_*` properties are no-ops when the node's parent is a `Node2D`.**
+
+The water visual is a `ColorRect` (a `Control` node) added as a child of `Area2D` (a `Node2D`). In Godot 4:
+
+- `ColorRect.offset_left/right/top/bottom` only have effect within a `Control` container hierarchy (e.g., inside a `VBoxContainer`, `CanvasLayer`, or root Control).
+- When a `Control` is placed inside a `Node2D`, positioning must use `position` and `size` instead.
+- Setting `offset_*` on a `Control` whose parent is a `Node2D` results in a **zero-sized or default-positioned rectangle** that renders nothing visible.
+
+Evidence from the codebase: every other place that creates a `ColorRect` as a child of a `Node2D` (e.g., `roguelike_level.gd` floor rects) correctly uses `floor_rect.position = ...` and `floor_rect.size = ...`. Every `ColorRect` using `offset_*` / `set_anchors_preset()` is inside a `CanvasLayer` or `Control` container.
+
+The resulting visual: a `ColorRect` of effectively zero size (or pinned to top-left with wrong dimensions) rendered on top of the solid-blue `Background` ColorRect in the scene. The `Background` (`Color(0.15, 0.55, 0.85, 1)`, full 2528×2128px) filled the screen with solid blue, making the invisible water area indistinguishable.
+
+### Fix (Iteration 3)
+
+**`scripts/objects/water_body.gd` — `_create_visual()`**: Changed from `offset_*` to `position + size`:
+
+```gdscript
+# Before (broken):
+_visual.offset_left   = -water_width  * 0.5
+_visual.offset_top    = -water_height * 0.5
+_visual.offset_right  =  water_width  * 0.5
+_visual.offset_bottom =  water_height * 0.5
+
+# After (correct):
+_visual.position = Vector2(-water_width * 0.5, -water_height * 0.5)
+_visual.size     = Vector2(water_width, water_height)
+```
+
+Added structured `_log()` helper in `WaterBody` (mirrors `beach_level.gd` pattern) so future game logs will capture WaterBody initialization status.
+
+---
+
 ## References
 
 - GodotShaders.com — 2D Water Distortion Effect: https://godotshaders.com/shader/2d-water-distortion-effect-godot-4/
