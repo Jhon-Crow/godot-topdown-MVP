@@ -316,7 +316,7 @@ func test_multiple_seeds_produce_valid_maps() -> void:
 
 	for s in range(100):
 		seed(s * 31 + 7)
-		var rooms: Array = _generate_test_map(randi_range(3, 5), types)
+		var rooms: Array = _generate_test_map(randi_range(7, 10), types)
 
 		# Basic validity checks
 		if rooms.size() < 2:

@@ -57,9 +57,12 @@ const ROOM_HEIGHT: float = 720.0
 const ENEMIES_PER_ROOM_MIN: int = 3
 const ENEMIES_PER_ROOM_MAX: int = 5
 
-## Number of rooms per run
-const MIN_ROOMS: int = 3
-const MAX_ROOMS: int = 5
+## Number of rooms per run (Issue #1451: many regular rooms so the exit is far from start)
+const MIN_ROOMS: int = 7
+const MAX_ROOMS: int = 10
+
+## Minimum BFS distance from start to the exit room (Issue #1451: exit must be in a far room)
+const EXIT_MIN_DISTANCE: int = 3
 
 ## Wall / visual colour constants
 const WALL_COLOR:  Color = Color(0.3,  0.3,  0.35, 1.0)
@@ -365,13 +368,14 @@ func _start_new_run() -> void:
 		all_types[i] = all_types[j]
 		all_types[j] = tmp
 
+	# Issue #1451: Do NOT cap count by all_types.size() — with many rooms (7-10),
+	# room types cycle/repeat. The type pool is used modulo its size in _generate_room_map.
 	var count: int = randi_range(MIN_ROOMS, MAX_ROOMS)
-	count = min(count, all_types.size())
 
 	GameManager.roguelike_active           = true
 	GameManager.roguelike_current_room     = 0
 	GameManager.roguelike_total_rooms      = count
-	GameManager.roguelike_room_types       = all_types.slice(0, count)
+	GameManager.roguelike_room_types       = all_types.slice(0, min(count, all_types.size()))
 	GameManager.roguelike_run_seed         = run_seed
 	GameManager.roguelike_total_kills      = 0
 	GameManager.roguelike_total_shots      = 0
@@ -522,11 +526,20 @@ func _generate_room_map(room_count: int, room_types_pool: Array) -> Array:
 		return da > db
 	)
 
-	# Place exit room (red) on the farthest dead end
+	# Issue #1451: Place exit room (red) on a dead end that is at least EXIT_MIN_DISTANCE
+	# rooms away from start. This prevents the exit from being directly adjacent to the
+	# start room. Always use the farthest qualifying dead end; fall back to the overall
+	# farthest dead end if none meets the threshold (e.g. very small map).
 	if dead_ends.size() > 0:
-		var exit_idx: int = dead_ends[0]
+		var exit_idx: int = dead_ends[0]  # Default: farthest dead end overall
+		for de in dead_ends:
+			if bfs_dist.get(de, 0) >= EXIT_MIN_DISTANCE:
+				exit_idx = de
+				break
 		rooms[exit_idx]["map_room_type"] = "exit"
-		dead_ends.remove_at(0)
+		dead_ends.erase(exit_idx)
+		var exit_dist: int = bfs_dist.get(exit_idx, 0)
+		print("[RoguelikeLevel] Exit placed at room %d (BFS distance=%d from start)" % [exit_idx, exit_dist])
 
 	# Place treasure room (gold) on the next farthest dead end
 	if dead_ends.size() > 0:
@@ -2628,11 +2641,12 @@ func _start_next_level() -> void:
 		all_types[i] = all_types[j]
 		all_types[j] = tmp
 
+	# Issue #1451: Do NOT cap count by all_types.size() — with many rooms (7-10),
+	# room types cycle/repeat. The type pool is used modulo its size in _generate_room_map.
 	var count: int = randi_range(MIN_ROOMS, MAX_ROOMS)
-	count = min(count, all_types.size())
 
 	GameManager.roguelike_total_rooms  = count
-	GameManager.roguelike_room_types   = all_types.slice(0, count)
+	GameManager.roguelike_room_types   = all_types.slice(0, min(count, all_types.size()))
 	GameManager.roguelike_current_room = 0
 	# Keep roguelike_active = true; the run continues
 

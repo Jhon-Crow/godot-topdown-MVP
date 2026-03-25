@@ -4,6 +4,7 @@ extends GutTest
 ## Tests cover:
 ##  - BFS distance calculation correctness
 ##  - Exit room placed at the room with longest BFS path from start
+##  - Exit room is at least EXIT_MIN_DISTANCE rooms away from start
 ##  - Door barrier creation and removal logic
 ##  - Room clearing unlocks doors
 
@@ -16,6 +17,11 @@ const DIR_NORTH: int = 0
 const DIR_EAST:  int = 1
 const DIR_SOUTH: int = 2
 const DIR_WEST:  int = 3
+
+## Mirrored from roguelike_level.gd (Issue #1451)
+const MIN_ROOMS: int = 7
+const MAX_ROOMS: int = 10
+const EXIT_MIN_DISTANCE: int = 3
 
 const DIR_OFFSETS: Array = [
 	Vector2i(0, -1),  # North
@@ -134,9 +140,15 @@ func _generate_test_map_bfs(room_count: int, room_types_pool: Array) -> Array:
 		return da > db
 	)
 
+	# Issue #1451: Place exit at farthest dead end that meets EXIT_MIN_DISTANCE
 	if dead_ends.size() > 0:
-		rooms[dead_ends[0]]["map_room_type"] = "exit"
-		dead_ends.remove_at(0)
+		var exit_idx: int = dead_ends[0]  # fallback: farthest overall
+		for de in dead_ends:
+			if bfs_dist.get(de, 0) >= EXIT_MIN_DISTANCE:
+				exit_idx = de
+				break
+		rooms[exit_idx]["map_room_type"] = "exit"
+		dead_ends.erase(exit_idx)
 
 	if dead_ends.size() > 0:
 		rooms[dead_ends[0]]["map_room_type"] = "treasure"
@@ -204,7 +216,7 @@ func test_bfs_distances_L_shaped_path() -> void:
 func test_bfs_distances_covers_all_rooms() -> void:
 	seed(42)
 	var types := [RoomType.LABYRINTH, RoomType.BUILDING, RoomType.BEACH, RoomType.DOCKS, RoomType.CITY]
-	var rooms: Array = _generate_test_map_bfs(5, types)
+	var rooms: Array = _generate_test_map_bfs(MIN_ROOMS, types)
 
 	var dist: Dictionary = _bfs_distances(rooms, 0)
 	assert_eq(dist.size(), rooms.size(),
@@ -220,7 +232,7 @@ func test_exit_is_at_farthest_bfs_dead_end() -> void:
 	var types := [RoomType.LABYRINTH, RoomType.BUILDING, RoomType.BEACH, RoomType.DOCKS, RoomType.CITY]
 	for test_seed in [42, 77, 123, 256, 999, 1451]:
 		seed(test_seed)
-		var rooms: Array = _generate_test_map_bfs(5, types)
+		var rooms: Array = _generate_test_map_bfs(MIN_ROOMS, types)
 
 		# Find exit room and all dead ends
 		var exit_idx: int = -1
@@ -297,6 +309,51 @@ func test_exit_uses_graph_distance_not_euclidean() -> void:
 	# Exit should be room 4 (BFS=4), not room 5 (BFS=3, Euclidean-farther)
 	assert_eq(dead_ends[0], 4, "Exit should be at room 4 (longest BFS path), not room 5 (Euclidean-farther)")
 	gut.p("Verified: BFS distance correctly places exit at room 4 (dist=4), not room 5 (Euclidean=%.2f, BFS=3)" % euclid_5)
+
+
+func test_exit_is_not_adjacent_to_start() -> void:
+	# Issue #1451: The exit must be at least EXIT_MIN_DISTANCE rooms away from start.
+	# With MIN_ROOMS=7 this should always be achievable, but we verify explicitly.
+	var types := [RoomType.LABYRINTH, RoomType.BUILDING, RoomType.BEACH, RoomType.DOCKS, RoomType.CITY]
+	for test_seed in [1, 42, 77, 123, 256, 999, 1451, 2000, 3141, 9999]:
+		seed(test_seed)
+		var rooms: Array = _generate_test_map_bfs(MIN_ROOMS, types)
+
+		# Find exit room
+		var exit_idx: int = -1
+		for i in range(rooms.size()):
+			if rooms[i]["map_room_type"] == "exit":
+				exit_idx = i
+				break
+
+		assert_ne(exit_idx, -1, "Seed %d: Exit room must exist" % test_seed)
+
+		var dist: Dictionary = _bfs_distances(rooms, 0)
+		var exit_dist: int = dist.get(exit_idx, 0)
+
+		assert_gte(exit_dist, EXIT_MIN_DISTANCE,
+			"Seed %d: Exit (room %d) is only %d hops from start — must be >= %d" % [
+				test_seed, exit_idx, exit_dist, EXIT_MIN_DISTANCE])
+
+		# Also verify exit is NOT directly connected to start
+		var start_connections: Array = rooms[0]["connections"]
+		assert_false(exit_idx in start_connections,
+			"Seed %d: Exit room %d must not be directly connected to the start room" % [test_seed, exit_idx])
+
+		gut.p("Seed %d: Exit at room %d (BFS dist=%d) — not adjacent to start" % [test_seed, exit_idx, exit_dist])
+
+
+func test_room_count_at_least_min_rooms() -> void:
+	# Issue #1451: With MIN_ROOMS=7, each run should generate enough regular rooms
+	# so the player must traverse multiple rooms before reaching the exit.
+	var types := [RoomType.LABYRINTH, RoomType.BUILDING, RoomType.BEACH, RoomType.DOCKS, RoomType.CITY]
+	for test_seed in [1, 42, 1451]:
+		seed(test_seed)
+		var rooms: Array = _generate_test_map_bfs(MIN_ROOMS, types)
+		# start(1) + MIN_ROOMS combat rooms + exit + treasure = MIN_ROOMS + 1 minimum
+		assert_gte(rooms.size(), MIN_ROOMS + 1,
+			"Seed %d: Map should have at least %d rooms, got %d" % [test_seed, MIN_ROOMS + 1, rooms.size()])
+		gut.p("Seed %d: Map has %d rooms total" % [test_seed, rooms.size()])
 
 
 # ============================================================================
