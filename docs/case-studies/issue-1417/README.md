@@ -205,9 +205,56 @@ One change:
 
 Note: `class_name DroneComponent` is kept in `drone_component.gd` stub because the architecture CI check requires all scripts in `scripts/components/` to declare a class_name. This is safe as long as the script is not loaded as a scene child node.
 
+---
+
+# Session 5: Drone Still Not Spawning (game_log_20260325_132256.txt)
+
+## User Report
+
+> "дрон не спавнится" (drone doesn't spawn)
+> — game_log_20260325_132256.txt (2026-03-25 13:22)
+
+## Session 5 Log Analysis
+
+Identical pattern to session 4: operator deploys 12 drones, but **zero** `[Drone]` log entries appear:
+
+```
+[DroneOperator] Drone deployed at (372, 357)   ← operator deploys
+[DroneOperator] Phase: CONTROLLING (defenseless) ← operator transitions
+# ... NO [Drone] entries at all ...
+# ... NO "Drone initialized via initialize_drone()" ...
+# ... NO "Connected to drone.died signal" ...
+```
+
+`_drone.has_method("initialize_drone")` returns false — the drone script is not executing.
+
+## Root Cause: User Running Main Branch Build (PR Not Yet Merged)
+
+Session 5 log was taken at **13:22** on 2026-03-25. Our session 4 fixes (removing DroneComponent from Drone.tscn, restoring class_name in stub) were committed at ~10:11 UTC. **However, our fix is on branch `issue-1417-3b85e682d9ed` which has NOT been merged into main.**
+
+The user's game binary is built from the **main branch**, where:
+- `drone.gd` still has `var _drone_component: DroneComponent = null` (typed class_name reference at parse time)
+- `Drone.tscn` still has `DroneComponent` as a child node with script attached
+
+This is exactly the root cause documented in Sessions 3 & 4. The user is testing with an old build.
+
+**Evidence:**
+- `Build info: not available (build_info.cfg not found)` — the build has no version info embedded
+- The same `[Drone]` log silence pattern as session 4
+
+## Resolution
+
+The fix is already implemented in our PR branch. The PR (#1444) needs to be **merged into main** so the user can test with a build that includes the fixes.
+
+Current state of our fix (verified in PR branch):
+- `drone.gd`: All AI merged in, no class_name references
+- `Drone.tscn`: No DroneComponent child node
+- `drone_component.gd`: class_name kept for CI compliance, not loaded in any scene
+
 ## Archived Logs
 
 - `game_log_20260324_145336.txt` — Session 1: drone inactive, no damage
 - `game_log_20260324_182702.txt` — Session 2: drone inactive, no damage (duck typing attempted)
 - `game_log_20260325_064620.txt` — Session 3: drone inactive, damage now works
 - `game_log_20260325_125524.txt` — Session 4: drone stopped spawning (regression from class_name conflict in scene)
+- `game_log_20260325_132256.txt` — Session 5: same as session 4 — user running old main branch build; PR not yet merged
