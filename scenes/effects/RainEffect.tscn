@@ -21,15 +21,15 @@ lifetime_randomness = 0.3
 particle_flag_disable_z = true
 particle_flag_align_y = true
 emission_shape = 3
-emission_box_extents = Vector3(960, 600, 0)
-direction = Vector3(0.15, 1, 0)
-spread = 3.0
-initial_velocity_min = 400.0
-initial_velocity_max = 550.0
+emission_box_extents = Vector3(640, 360, 0)
+direction = Vector3(0, 1, 0)
+spread = 2.0
+initial_velocity_min = 500.0
+initial_velocity_max = 700.0
 gravity = Vector3(0, 0, 0)
 scale_min = 0.8
 scale_max = 1.5
-color = Color(0.7, 0.75, 0.9, 0.5)
+color = Color(0.7, 0.75, 0.9, 0.55)
 
 [sub_resource type="Gradient" id="Gradient_splash"]
 offsets = PackedFloat32Array(0, 0.4, 0.7, 1)
@@ -46,7 +46,7 @@ fill_from = Vector2(0.5, 0.5)
 lifetime_randomness = 0.4
 particle_flag_disable_z = true
 emission_shape = 3
-emission_box_extents = Vector3(960, 600, 0)
+emission_box_extents = Vector3(640, 200, 0)
 direction = Vector3(0, 0, 0)
 spread = 180.0
 initial_velocity_min = 0.0
@@ -59,21 +59,25 @@ color = Color(0.7, 0.75, 0.9, 0.4)
 [node name="RainEffect" type="Node2D"]
 script = ExtResource("1_rain_effect")
 
-[node name="RainStreaks" type="GPUParticles2D" parent="."]
+[node name="RainCanvas" type="CanvasLayer" parent="."]
+layer = 5
+
+[node name="RainStreaks" type="GPUParticles2D" parent="RainCanvas"]
+position = Vector2(640, 360)
 material = SubResource("CanvasItemMaterial_additive")
 emitting = true
 amount = 200
 process_material = SubResource("ParticleProcessMaterial_streak")
 texture = SubResource("GradientTexture2D_streak")
 lifetime = 0.6
-visibility_rect = Rect2(-1000, -700, 2000, 1500)
+visibility_rect = Rect2(-700, -400, 1400, 900)
 
-[node name="RainSplashes" type="GPUParticles2D" parent="."]
-position = Vector2(35, 235)
+[node name="RainSplashes" type="GPUParticles2D" parent="RainCanvas"]
+position = Vector2(640, 660)
 material = SubResource("CanvasItemMaterial_additive")
 emitting = true
 amount = 120
 process_material = SubResource("ParticleProcessMaterial_splash")
 texture = SubResource("GradientTexture2D_splash")
 lifetime = 0.5
-visibility_rect = Rect2(-1000, -800, 2000, 1600)
+visibility_rect = Rect2(-700, -400, 1400, 500)

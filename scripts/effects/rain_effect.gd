@@ -2,29 +2,33 @@ extends Node2D
 class_name RainEffect
 ## Hotline Miami 2-style top-down rain effect (Issue #1394).
 ##
-## Two-layer particle system: rain streaks spawn across the full screen
-## and move in a consistent diagonal direction (slight angle for perspective),
-## and circular splash ripples appear across the viewport offset to match
-## where the streaks land.
+## Two-layer particle system rendered on a CanvasLayer (screen space) so rain
+## always covers the visible viewport regardless of camera position:
+##   - RainStreaks: uniform vertical rain drops across the full screen
+##   - RainSplashes: circular ripples at the lower part of the screen where drops land
+##
 ## Rain is always active (continuous) while outdoors.
 ## Supports indoor exclusion zones where rain should not appear.
-## The effect follows the camera so rain covers the visible viewport area.
+## Camera position is checked each frame to detect building entry/exit.
 
 ## Indoor exclusion zones (rain stops when camera center is inside).
 ## Each Rect2 defines a rectangular area in global coordinates.
 var exclusion_zones: Array[Rect2] = []
 
-## Current camera reference for following and zone checks.
+## Current camera reference for zone checks.
 var _camera: Camera2D = null
 
 ## Whether rain is hidden due to being inside an exclusion zone.
 var _inside_exclusion: bool = false
 
+## Rain canvas layer node (defined in .tscn).
+@onready var _rain_canvas: CanvasLayer = $RainCanvas
+
 ## Vertical rain streaks particle node (defined in .tscn).
-@onready var _streaks: GPUParticles2D = $RainStreaks
+@onready var _streaks: GPUParticles2D = $RainCanvas/RainStreaks
 
 ## Ground splash ripples particle node (defined in .tscn).
-@onready var _splashes: GPUParticles2D = $RainSplashes
+@onready var _splashes: GPUParticles2D = $RainCanvas/RainSplashes
 
 ## Controls emission state of both particle layers.
 var emitting: bool = false:
@@ -47,10 +51,7 @@ func _process(_delta: float) -> void:
 		_find_camera()
 		return
 
-	# Follow camera position so rain always covers the visible area
-	global_position = _camera.get_screen_center_position()
-
-	# Check exclusion zones
+	# Check exclusion zones using camera world position
 	var camera_center := _camera.get_screen_center_position()
 	var was_inside := _inside_exclusion
 	_inside_exclusion = _is_point_in_exclusion_zone(camera_center)
