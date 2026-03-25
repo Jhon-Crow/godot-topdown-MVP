@@ -273,9 +273,8 @@ var _global_stuck_timer: float = 0.0; var _global_stuck_last_position: Vector2 =
 const GLOBAL_STUCK_MAX_TIME: float = 4.0; const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Max stuck time / min move distance  ## Issue #1173: restored 1.5→4.0; machete wall-escape is handled by MACHETE_COMBAT_STUCK_MAX_TIME
 var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1107: Stuck detection for machete COMBAT state
 const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
-var _pursuing_stuck_timer: float = 0.0; var _pursuing_stuck_last_pos: Vector2 = Vector2.ZERO; var _pursuing_stuck_count: int = 0; var _pursuing_stuck_cover_blacklist: Array[Vector2] = []; var _pursuing_stuck_pos_blacklist: Array[Vector2] = []  ## Issue #1457
-const PURSUING_STUCK_MAX_TIME: float = 1.5; const PURSUING_STUCK_DIST_THRESHOLD: float = 20.0; const PURSUING_STUCK_BLACKLIST_RADIUS: float = 80.0; const PURSUING_STUCK_ESCALATE_COUNT: int = 2; const PURSUING_STUCK_POS_BLACKLIST_RADIUS: float = 30.0  ## Issue #1457
-var _pursuing_corner_escape_timer: float = 0.0; var _pursuing_corner_escape_dir: Vector2 = Vector2.ZERO; const PURSUING_CORNER_ESCAPE_DURATION: float = 0.5; const PURSUING_CORNER_ESCAPE_SPEED: float = 300.0  ## Issue #1457 v3-v4: escape impulse (0.5s @300px/s)
+var _pursuing_stuck_timer: float = 0.0; var _pursuing_stuck_last_pos: Vector2 = Vector2.ZERO; var _pursuing_stuck_count: int = 0  ## Issue #1457: pursuing-specific stuck detection
+const PURSUING_STUCK_MAX_TIME: float = 1.5; const PURSUING_STUCK_DIST_THRESHOLD: float = 20.0; const PURSUING_STUCK_ESCALATE_COUNT: int = 2  ## Issue #1457: reroute after 1.5s within 20px; escalate after 2 consecutive stucks
 var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
@@ -394,7 +393,7 @@ var _pursuit_component: PursuitComponent = null  ## Issue #1289: Cover-finding l
 
 func _ready() -> void:
 	add_to_group("enemies")
-	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING  # Issue #1457 v5: top-down game — FLOATING disables floor-detection so wall corners are never classified as floors (fixes physics corner-gluing)
+	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING  # Issue #1457: top-down game must use FLOATING; GROUNDED causes physics corner-gluing (godotengine/godot#109926)
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
 	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
@@ -799,7 +798,8 @@ func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
 
-	# Issue #1334: Freeze all enemy AI when player is dead/freed — prevents native crashes from physics queries.
+	# Issue #1334 Round 8-9: Freeze all enemy AI when player is dead or freed to prevent
+	# native crashes from physics queries on dead/freed player nodes.
 	var _gm_r9: Node = get_node_or_null("/root/GameManager")
 	if _gm_r9 and not _gm_r9.player_alive: return
 	if _player and not is_instance_valid(_player): _player = null; return
@@ -839,7 +839,8 @@ func _physics_process(delta: float) -> void:
 	if _memory_reset_confusion_timer > 0.0:
 		_memory_reset_confusion_timer = maxf(0.0, _memory_reset_confusion_timer - delta)
 
-	# Issue #367: Stuck detection for PURSUING/FLANKING — force SEARCHING if no progress. Skip on contact or yield (#1249).
+	# Issue #367: Stuck detection for PURSUING/FLANKING — force SEARCHING if no progress.
+	# Skip when in direct contact (can hit player) or intentionally yielding (#1249).
 	if _current_state == AIState.PURSUING or _current_state == AIState.FLANKING:
 		var moved_distance := global_position.distance_to(_global_stuck_last_position)
 		if moved_distance < GLOBAL_STUCK_DISTANCE_THRESHOLD:
@@ -859,7 +860,9 @@ func _physics_process(delta: float) -> void:
 						_flank_side_initialized = false
 						_flank_fail_count += 1
 						_flank_cooldown_timer = FLANK_COOLDOWN_DURATION
-					# #1249: search from last known player position (not stuck spot) so we don't waste time.
+					# #1249 session 4: search from last known player position, not the stuck position.
+					# When stuck while pursuing, the enemy may be far from the player; searching from
+					# the stuck spot wastes time. Use the last known player position instead if available.
 					var _search_start := global_position
 					if _last_known_player_position != Vector2.ZERO:
 						_search_start = _last_known_player_position
@@ -932,7 +935,8 @@ func _physics_process(delta: float) -> void:
 
 ## Update GOAP world state based on current conditions.
 func _update_goap_state() -> void:
-	# Issue #934: player_visible/player_close/can_hit_from_cover reflect the best target (player or BFF companion).
+	# Issue #934: player_visible/player_close/can_hit_from_cover reflect the best target
+	# (either the main player or the BFF companion, whichever is more accessible).
 	_goap_world_state["player_visible"] = _can_see_player or _can_see_companion
 	_goap_world_state["under_fire"] = _under_fire
 	_goap_world_state["health_low"] = _get_health_percent() < 0.5
@@ -1309,7 +1313,8 @@ func _process_ai_state(delta: float) -> void:
 				_transition_to_combat()
 				_detection_delay_elapsed = true
 
-			# Return early — highest priority action taken; state machine continues next frame.
+			# Return early - we've taken the highest priority action
+			# The state machine will continue normally in the next frame
 			return
 
 	# HIGHEST PRIORITY: Attack immediately if player is reloading or out of ammo (Issue #318)
@@ -1730,7 +1735,8 @@ func _process_in_cover_state(delta: float) -> void:
 			_transition_to_suppressed()
 		return
 
-	# Check if player has flanked us — if now visible from player's position, find new cover
+	# Check if player has flanked us - if we're now visible from player's position,
+	# we need to find new cover
 	if _is_visible_from_player():
 		# If in alarm mode and can see player, fire a burst before escaping
 		# [#1161] Sniper rifle is bolt-action: no burst fire (flee immediately)
@@ -2179,70 +2185,59 @@ func _process_pursuing_state(delta: float) -> void:
 
 	# Check if we're waiting at cover
 	if _has_valid_cover and not _has_pursuit_cover:
-		_pursuit_cover_wait_timer += delta; velocity = Vector2.ZERO
-		if _pursuit_cover_wait_timer >= PURSUIT_COVER_WAIT_DURATION:
-			_pursuit_cover_wait_timer = 0.0; _find_pursuit_cover_toward_player()
-			if not _has_pursuit_cover:
-				if (_can_see_player and _player) or (_can_see_companion and _companion != null):  # Issue #934
-					_pursuit_approaching = true; _pursuit_approach_timer = 0.0; return
-				if _can_attempt_flanking() and _player: _transition_to_flanking(); return
-				_transition_to_combat(); return
-		return
+		# Currently at cover, wait for 1-2 seconds before moving to next cover
+		_pursuit_cover_wait_timer += delta
+		velocity = Vector2.ZERO
 
-	if _pursuing_corner_escape_timer > 0.0:  # Issue #1457 v4: physical corner escape impulse (simulate being bumped)
-		_pursuing_corner_escape_timer -= delta
-		velocity = _pursuing_corner_escape_dir * PURSUING_CORNER_ESCAPE_SPEED
-		_log_to_file("[#1457] corner escape impulse: dir=%s remaining=%.2fs" % [_pursuing_corner_escape_dir, _pursuing_corner_escape_timer])
-		if _pursuing_corner_escape_timer <= 0.0:  # Issue #1457 v4: impulse just ended — discard stale cover so nav finds a fresh path
-			_has_pursuit_cover = false; _pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position
-			_log_to_file("[#1457] v4: impulse done, resetting cover + stuck timer to force reroute")
+		if _pursuit_cover_wait_timer >= PURSUIT_COVER_WAIT_DURATION:
+			# Done waiting, find next cover closer to player
+			_log_debug("Pursuit wait complete, finding next cover")
+			_pursuit_cover_wait_timer = 0.0
+			_find_pursuit_cover_toward_player()
+			if _has_pursuit_cover:
+				_log_debug("Found pursuit cover at %s" % _pursuit_next_cover)
+			else:
+				# No pursuit cover found - start approach phase if we can see player/companion
+				# Issue #934: also consider companion visibility
+				_log_debug("No pursuit cover found, checking fallback options")
+				if (_can_see_player and _player) or (_can_see_companion and _companion != null):
+					# Can see but can't hit (at last cover) - start approach phase
+					_log_debug("Can see target but can't hit, starting approach phase")
+					_pursuit_approaching = true
+					_pursuit_approach_timer = 0.0
+					return
+				# Try flanking if player not visible
+				if _can_attempt_flanking() and _player:
+					_log_debug("Attempting flanking maneuver")
+					_transition_to_flanking()
+					return
+				# Last resort: move directly toward player
+				_log_debug("No cover options, transitioning to COMBAT")
+				_transition_to_combat()
+				return
 		return
 
 	# If we have a pursuit cover target, move toward it
 	if _has_pursuit_cover:
 		var distance: float = global_position.distance_to(_pursuit_next_cover)
-		if distance < 15.0:
+		if distance < 15.0:  # Reached pursuit cover (distance only, not visibility)
 			_has_pursuit_cover = false; _pursuit_cover_wait_timer = 0.0
 			_cover_position = _pursuit_next_cover; _has_valid_cover = true; return
-		_move_to_target_nav(_pursuit_next_cover, combat_move_speed)  # Issue #332
-		if velocity.length_squared() > 1.0:
-			_process_corner_check(delta, velocity.normalized(), "PURSUING")
-		if global_position.distance_to(_pursuing_stuck_last_pos) < PURSUING_STUCK_DIST_THRESHOLD:  # Issue #1457
+		_move_to_target_nav(_pursuit_next_cover, combat_move_speed)
+		if velocity.length_squared() > 1.0: _process_corner_check(delta, velocity.normalized(), "PURSUING")  # Issue #332
+		# Issue #1457: Pursuing-specific stuck detection — reroute if wedged at wall corner
+		if global_position.distance_to(_pursuing_stuck_last_pos) < PURSUING_STUCK_DIST_THRESHOLD:
 			_pursuing_stuck_timer += delta
 			if _pursuing_stuck_timer >= PURSUING_STUCK_MAX_TIME:
 				_pursuing_stuck_count += 1; _pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position
-				_log_to_file("[#1457] PURSUING stuck #%d at %s" % [_pursuing_stuck_count, global_position])
-				if _pursuit_next_cover != Vector2.ZERO: _pursuing_stuck_cover_blacklist.append(_pursuit_next_cover)
-				# #1457 v7: blacklist stuck position — escalate immediately if stuck at same spot again
-				var _pos_already_bl: bool = _pursuing_stuck_pos_blacklist.any(func(p): return global_position.distance_to(p) < PURSUING_STUCK_POS_BLACKLIST_RADIUS)
-				if not _pos_already_bl: _pursuing_stuck_pos_blacklist.append(global_position); else: _log_to_file("[#1457] v7: re-stuck at same pos — escalating")
-				if _pos_already_bl or _pursuing_stuck_count >= PURSUING_STUCK_ESCALATE_COUNT:
-					_has_pursuit_cover = false; _pursuing_stuck_cover_blacklist.clear(); _pursuing_stuck_pos_blacklist.clear(); _pursuing_stuck_count = 0
-					if _can_attempt_flanking() and _player: _transition_to_flanking(); else: _transition_to_combat(); return
-				var _esc_dir: Vector2 = Vector2.ZERO  # Issue #1457 v4: probe 8 dirs for clearest escape
-				for _si: int in range(get_slide_collision_count()): _esc_dir += get_slide_collision(_si).get_normal()
-				if _esc_dir.length_squared() < 0.01:  # Stationary — probe 8 dirs for most clearance
-					var _best_dist: float = -1.0
-					for _pd: Vector2 in [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN, Vector2(1,1).normalized(), Vector2(1,-1).normalized(), Vector2(-1,1).normalized(), Vector2(-1,-1).normalized()]:
-						var _pr := move_and_collide(_pd * 4.0, true); var _d: float = 4.0 if _pr == null else _pr.get_travel().length()
-						if _d > _best_dist: _best_dist = _d; _esc_dir = _pd
-					_log_to_file("[#1457] v4: probe dir=%s clr=%.1f" % [_esc_dir, _best_dist])
-					if _best_dist <= 4.0 and _nav_agent:  # v7: snap to navmesh when inside wall geometry
-						var _npt := NavigationServer2D.map_get_closest_point(_nav_agent.get_navigation_map(), global_position)
-						if _npt != Vector2.ZERO and global_position.distance_to(_npt) > 2.0: global_position = _npt; _log_to_file("[#1457] v7: snapped to navmesh %s" % _npt)
-					if _best_dist <= 4.0 and _pursuit_next_cover != Vector2.ZERO: _esc_dir = (global_position - _pursuit_next_cover).normalized(); _log_to_file("[#1457] v6: all dirs blocked — reverse escape")
-				if _esc_dir.length_squared() < 0.01 and _corner_check_angle != 0.0: _esc_dir = Vector2.from_angle(_corner_check_angle)
-				if _esc_dir.length_squared() > 0.01:
-					_pursuing_corner_escape_dir = _esc_dir.normalized(); _pursuing_corner_escape_timer = PURSUING_CORNER_ESCAPE_DURATION
-					_log_to_file("[#1457] v4: corner escape dir=%s" % _pursuing_corner_escape_dir); return
-				_find_pursuit_cover_toward_player()
-				if _has_pursuit_cover:  # Reject new cover if it's still in the blacklist zone
-					for bl_pos: Vector2 in _pursuing_stuck_cover_blacklist:
-						if _pursuit_next_cover.distance_to(bl_pos) < PURSUING_STUCK_BLACKLIST_RADIUS:
-							_has_pursuit_cover = false; _pursuing_stuck_cover_blacklist.clear(); _pursuing_stuck_count = 0; break
-				if not _has_pursuit_cover:
+				_log_to_file("[#1457] PURSUING stuck #%d at %s, rerouting" % [_pursuing_stuck_count, global_position])
+				_has_pursuit_cover = false
+				if _pursuing_stuck_count >= PURSUING_STUCK_ESCALATE_COUNT:
+					_pursuing_stuck_count = 0
 					if _can_attempt_flanking() and _player: _transition_to_flanking()
 					else: _transition_to_combat()
+					return
+				_find_pursuit_cover_toward_player()
 		else: _pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position
 		return
 
@@ -2809,7 +2804,7 @@ func _transition_to_pursuing() -> void:
 	# Reset global stuck detection (Issue #367)
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
-	_pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position; _pursuing_stuck_count = 0; _pursuing_stuck_cover_blacklist.clear(); _pursuing_stuck_pos_blacklist.clear(); _pursuing_corner_escape_timer = 0.0; _pursuing_corner_escape_dir = Vector2.ZERO  ## Issue #1457 v3/v7: reset stuck detection
+	_pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position; _pursuing_stuck_count = 0  # Issue #1457
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
@@ -3574,11 +3569,14 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 
 	return avoidance.normalized() if avoidance.length() > 0 else Vector2.ZERO
 
-## Apply wall avoidance to a movement direction. weight_scale multiplies avoidance weight (use 0.5 for nav-guided movement where navmesh margin prevents over-steering). Returns adjusted direction.
-func _apply_wall_avoidance(direction: Vector2, weight_scale: float = 1.0) -> Vector2:
+## Apply wall avoidance to a movement direction. Returns adjusted direction.
+func _apply_wall_avoidance(direction: Vector2) -> Vector2:
 	var avoidance: Vector2 = _check_wall_ahead(direction)
-	if avoidance == Vector2.ZERO: return direction
-	var weight: float = _get_wall_avoidance_weight(direction) * weight_scale
+	if avoidance == Vector2.ZERO:
+		return direction
+
+	var weight: float = _get_wall_avoidance_weight(direction)
+	# Blend original direction with avoidance, stronger avoidance when close to walls
 	return (direction * (1.0 - weight) + avoidance * weight).normalized()
 
 ## Calculate wall avoidance weight based on distance to nearest wall.
@@ -4727,7 +4725,8 @@ func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 
 ## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
-	if _tactical_movement and _current_state in [AIState.PURSUING, AIState.COMBAT]:  # #1249: Tactical yielding
+	# Issue #1249: Tactical yielding — let closest enemy pass first. Skip in FLANKING (#1249 s4).
+	if _tactical_movement and _current_state in [AIState.PURSUING, AIState.COMBAT]:
 		if _tactical_movement.check_and_yield(target_pos, speed, get_physics_process_delta_time()):
 			var _wp: Vector2 = _tactical_movement.get_yield_position()
 			if _wp != Vector2.ZERO and global_position.distance_to(_wp) > 20.0:
@@ -4735,27 +4734,27 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 				velocity = _wd * speed * 0.6; if velocity.length_squared() > 0.01: _rotate_body_toward(velocity.angle(), get_physics_process_delta_time())
 			else: velocity = Vector2.ZERO
 			return true
-	if _tactical_group and _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:  # #1287: encirclement
+	# Issue #1287: Tactical group encirclement — offset approach target so enemies spread around the player.
+	if _tactical_group and _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
 		target_pos = _tactical_group.get_adjusted_target(target_pos, get_physics_process_delta_time())
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
-	direction = _apply_wall_avoidance(direction, 0.5)  # #1457: half-weight for nav-guided movement
-	# #1457 v5: 3-probe forward steering (Reynolds) — proactively steer around corners before getting wedged
-	var _pd: float = minf(WALL_CHECK_DISTANCE, 64.0); var _pc := move_and_collide(direction * _pd, true); var _pl := move_and_collide(direction.rotated(-0.524) * _pd, true); var _pr := move_and_collide(direction.rotated(0.524) * _pd, true)
-	if _pc == null and _pl != null and _pr == null: direction = (direction + direction.rotated(0.524).normalized() * 0.6).normalized()
-	elif _pc == null and _pr != null and _pl == null: direction = (direction + direction.rotated(-0.524).normalized() * 0.6).normalized()
-	elif _pc != null: direction = (direction + _pc.get_normal() * 1.2).normalized()
-	# #1457 v6: half speed if wall within 32px ahead — helps move_and_slide find a slide angle in narrow passages
-	if move_and_collide(direction * 32.0, true) != null: speed *= 0.5
-	var _esc: Vector2 = Vector2.ZERO  # #1107: escape-dominant weight when wall opposes nav dir
+	direction = _apply_wall_avoidance(direction)
+	# Issue #1107: Corner escape — use escape-dominant weight (1.5) when wall opposes nav dir
+	var _esc: Vector2 = Vector2.ZERO
 	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
 	if _esc.length_squared() > 0.01: var _en := _esc.normalized(); direction = (direction + _en * (1.5 if _en.dot(direction) < -0.5 else 0.6)).normalized()
 	elif velocity.length_squared() < 1.0:
 		var _p := move_and_collide(direction * 2.0, true); if _p: direction = (direction + _p.get_normal() * 0.8).normalized()
 	var intended_vel: Vector2 = direction * speed
-	if _nav_agent and _nav_agent.avoidance_enabled:  # #1146: feed to ORCA for agent separation
-		_nav_agent.set_velocity(intended_vel); velocity = _avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else intended_vel
-	else: velocity = intended_vel
+	# Issue #1146: Feed intended velocity to NavigationAgent2D ORCA so it can steer us away from other agents.
+	if _nav_agent and _nav_agent.avoidance_enabled:
+		_nav_agent.set_velocity(intended_vel)
+		# _avoidance_velocity is set asynchronously via _on_avoidance_velocity_computed.
+		# Fall back to intended_vel on the first frame before the callback fires.
+		velocity = _avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else intended_vel
+	else:
+		velocity = intended_vel
 	if velocity.length_squared() > 0.01: _rotate_body_toward(velocity.angle(), get_physics_process_delta_time())
 	return true
 
@@ -4767,7 +4766,6 @@ func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
 ## Issue #1249: Skip separation while yielding so the passing enemy isn't pushed aside.
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
 	if _tactical_movement and _tactical_movement.is_yielding: return vel  # #1249: yielding — don't push
-	if _pursuing_corner_escape_timer > 0.0: return vel  # Issue #1457 v4: corner escape impulse — don't deflect with separation force
 	var sep_force: Vector2 = Vector2.ZERO
 	for body in get_tree().get_nodes_in_group("enemies"):
 		if body == self or not is_instance_valid(body): continue

@@ -2414,7 +2414,6 @@ func test_reset_memory_engaged_enemy_with_target_goes_searching_issue_1419() -> 
 ## PURSUING_STUCK_DIST_THRESHOLD (20px) must be above one frame of movement to avoid
 ## false-positive triggers on normal navigation.
 func test_pursuing_stuck_detection_constants_issue_1457() -> void:
-	# These constants are verified in source — confirms they exist and are correctly tuned.
 	var pursuing_stuck_max_time := 1.5      # PURSUING_STUCK_MAX_TIME
 	var global_stuck_max_time := 4.0        # GLOBAL_STUCK_MAX_TIME
 	var pursuing_stuck_dist := 20.0         # PURSUING_STUCK_DIST_THRESHOLD
@@ -2492,23 +2491,8 @@ func test_pursuing_stuck_detection_does_not_trigger_when_moving_issue_1457() -> 
 		"Issue #1457: stuck detection must NOT trigger when enemy moves %.0fpx/frame (> %.0fpx threshold)" % [MOVE_PER_FRAME, DIST_THRESHOLD])
 
 
-## Issue #1457: Nav-mode wall avoidance weight must be lower than standard avoidance.
-## The standard weight can reach 0.7 (MIN_WEIGHT) when near a wall. In nav mode, the
-## weight is halved to avoid over-steering in corridors where the nav mesh already
-## provides margin.
-func test_nav_mode_wall_avoidance_weight_is_reduced_issue_1457() -> void:
-	var standard_max_weight: float = 0.7   # WALL_AVOIDANCE_MIN_WEIGHT (applied when close)
-	var nav_weight_multiplier: float = 0.5  # Factor in _apply_wall_avoidance_nav_mode
-	var nav_max_weight: float = standard_max_weight * nav_weight_multiplier
-
-	assert_lt(nav_max_weight, standard_max_weight,
-		"Issue #1457: nav-mode avoidance weight (%.3f) must be < standard (%.3f)" % [nav_max_weight, standard_max_weight])
-	assert_lt(nav_max_weight, 0.5,
-		"Issue #1457: nav-mode max weight (%.3f) must be < 0.5 so nav path dominates" % nav_max_weight)
-
-
-## Issue #1457: Verify reduced-weight wall avoidance is applied in _move_to_target_nav.
-func test_nav_mode_avoidance_function_exists_in_source_issue_1457() -> void:
+## Issue #1457: Verify pursuing stuck detection variables and MOTION_MODE_FLOATING exist in source.
+func test_pursuing_stuck_source_exists_issue_1457() -> void:
 	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
 	if file == null:
 		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
@@ -2517,215 +2501,23 @@ func test_nav_mode_avoidance_function_exists_in_source_issue_1457() -> void:
 	var source := file.get_as_text()
 	file.close()
 
-	assert_true(source.contains("weight_scale"),
-		"Issue #1457: _apply_wall_avoidance must have a weight_scale parameter for nav-guided mode")
 	assert_true(source.contains("_pursuing_stuck_timer"),
 		"Issue #1457: _pursuing_stuck_timer variable must exist in enemy.gd")
 	assert_true(source.contains("PURSUING_STUCK_MAX_TIME"),
 		"Issue #1457: PURSUING_STUCK_MAX_TIME constant must exist in enemy.gd")
-	assert_true(source.contains("_apply_wall_avoidance(direction, 0.5)"),
-		"Issue #1457: _move_to_target_nav must call _apply_wall_avoidance with 0.5 weight_scale")
 	assert_true(source.contains("_pursuing_stuck_count"),
 		"Issue #1457: _pursuing_stuck_count variable must exist — tracks repeated stucks for escalation")
-	assert_true(source.contains("_pursuing_stuck_cover_blacklist"),
-		"Issue #1457: _pursuing_stuck_cover_blacklist must exist — prevents re-selecting same blocked cover")
 	assert_true(source.contains("PURSUING_STUCK_ESCALATE_COUNT"),
 		"Issue #1457: PURSUING_STUCK_ESCALATE_COUNT must exist — defines when to skip cover and go direct")
-	assert_true(source.contains("PURSUING_STUCK_BLACKLIST_RADIUS"),
-		"Issue #1457: PURSUING_STUCK_BLACKLIST_RADIUS must exist — radius for rejecting blacklisted cover")
+	assert_true(source.contains("MOTION_MODE_FLOATING"),
+		"Issue #1457: enemy must set motion_mode = MOTION_MODE_FLOATING — prevents corner-gluing physics bug")
 
 
-## Issue #1457 v2: Blacklist escalation constants must be correctly tuned.
+## Issue #1457: Stuck escalation constants must be correctly tuned.
 ## After PURSUING_STUCK_ESCALATE_COUNT stucks, the enemy must abandon cover seeking.
 func test_pursuing_stuck_escalation_constants_issue_1457() -> void:
-	var escalate_count := 2       # PURSUING_STUCK_ESCALATE_COUNT
-	var blacklist_radius := 80.0  # PURSUING_STUCK_BLACKLIST_RADIUS
-
+	var escalate_count := 2  # PURSUING_STUCK_ESCALATE_COUNT
 	assert_ge(escalate_count, 1,
 		"Issue #1457: PURSUING_STUCK_ESCALATE_COUNT must be >= 1 — must escalate after at least one retry")
 	assert_le(escalate_count, 4,
 		"Issue #1457: PURSUING_STUCK_ESCALATE_COUNT must be <= 4 — more than 4 retries adds ~6s of visible stuck")
-	assert_gt(blacklist_radius, 30.0,
-		"Issue #1457: PURSUING_STUCK_BLACKLIST_RADIUS must be > 30px — must cover more than the cover's own position")
-	assert_le(blacklist_radius, 200.0,
-		"Issue #1457: PURSUING_STUCK_BLACKLIST_RADIUS must be <= 200px — too large and it rejects valid far cover")
-
-
-## Issue #1457 v2: Blacklist logic — if new cover is within blacklist radius, escalate.
-func test_pursuing_stuck_blacklist_logic_issue_1457() -> void:
-	var BLACKLIST_RADIUS: float = 80.0
-	var stuck_cover := Vector2(1760.0, 824.0)
-	var blacklist: Array[Vector2] = [stuck_cover]
-
-	# Cover near the stuck position should be rejected
-	var nearby_cover := stuck_cover + Vector2(40.0, 20.0)  # 45px away — within blacklist
-	var is_blacklisted := false
-	for bl_pos: Vector2 in blacklist:
-		if nearby_cover.distance_to(bl_pos) < BLACKLIST_RADIUS:
-			is_blacklisted = true; break
-	assert_true(is_blacklisted,
-		"Issue #1457: cover %.0fpx from stuck position should be rejected (blacklist radius %.0fpx)" % [
-			nearby_cover.distance_to(stuck_cover), BLACKLIST_RADIUS])
-
-	# Cover far from the stuck position should be allowed
-	var far_cover := Vector2(900.0, 600.0)  # Different area
-	var far_blacklisted := false
-	for bl_pos: Vector2 in blacklist:
-		if far_cover.distance_to(bl_pos) < BLACKLIST_RADIUS:
-			far_blacklisted = true; break
-	assert_false(far_blacklisted,
-		"Issue #1457: cover in a different area should NOT be blacklisted (dist=%.0fpx, radius=%.0fpx)" % [
-			far_cover.distance_to(stuck_cover), BLACKLIST_RADIUS])
-
-
-## Issue #1457 v3: Corner escape impulse constants must be correctly tuned.
-## Duration: long enough to move 40+ px out of the corner but short enough to not over-steer.
-## Speed: must move enemy meaningfully (~70px in 0.35s) to clear a convex corner.
-func test_pursuing_corner_escape_constants_issue_1457() -> void:
-	var escape_dur := 0.35   # PURSUING_CORNER_ESCAPE_DURATION
-	var escape_spd := 200.0  # PURSUING_CORNER_ESCAPE_SPEED
-
-	assert_ge(escape_dur, 0.2,
-		"Issue #1457 v3: PURSUING_CORNER_ESCAPE_DURATION must be >= 0.2s — too short won't clear the corner")
-	assert_le(escape_dur, 0.6,
-		"Issue #1457 v3: PURSUING_CORNER_ESCAPE_DURATION must be <= 0.6s — too long causes visible stutter")
-	assert_ge(escape_spd, 100.0,
-		"Issue #1457 v3: PURSUING_CORNER_ESCAPE_SPEED must be >= 100 px/s — must actually move the body")
-	assert_le(escape_spd, 400.0,
-		"Issue #1457 v3: PURSUING_CORNER_ESCAPE_SPEED must be <= 400 px/s — too fast would skip walls")
-
-	var distance_moved := escape_spd * escape_dur
-	assert_gt(distance_moved, 40.0,
-		"Issue #1457 v3: escape impulse must move enemy > 40px (moves %.1fpx) — enough to clear convex corner" % distance_moved)
-
-
-## Issue #1457 v3: Source code must contain corner escape variables and be activated on escape.
-func test_pursuing_corner_escape_source_exists_issue_1457() -> void:
-	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
-	if file == null:
-		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
-		pass_test("Skipped in export build")
-		return
-	var source := file.get_as_text()
-	file.close()
-
-	assert_true(source.contains("_pursuing_corner_escape_timer"),
-		"Issue #1457 v3: _pursuing_corner_escape_timer must exist — controls escape impulse duration")
-	assert_true(source.contains("_pursuing_corner_escape_dir"),
-		"Issue #1457 v3: _pursuing_corner_escape_dir must exist — direction of escape impulse")
-	assert_true(source.contains("PURSUING_CORNER_ESCAPE_DURATION"),
-		"Issue #1457 v3: PURSUING_CORNER_ESCAPE_DURATION constant must exist")
-	assert_true(source.contains("PURSUING_CORNER_ESCAPE_SPEED"),
-		"Issue #1457 v3: PURSUING_CORNER_ESCAPE_SPEED constant must exist")
-	assert_true(source.contains("Vector2.from_angle(_corner_check_angle)"),
-		"Issue #1457 v3: corner_check_angle must be used as fallback escape direction when no slide collision")
-
-
-## Issue #1457 v3: Corner escape impulse simulation — verify it moves > STUCK_DIST_THRESHOLD in 0.35s.
-## Confirms that after the impulse fires, the stuck timer resets (enemy made progress).
-func test_pursuing_corner_escape_clears_stuck_position_issue_1457() -> void:
-	const ESCAPE_SPEED: float = 200.0
-	const ESCAPE_DURATION: float = 0.35
-	const STUCK_THRESHOLD: float = 20.0
-	const DELTA: float = 1.0 / 60.0
-
-	var escape_dir := Vector2(1.0, 0.0)  # East — simulates corner_check_angle ~89.8° from log
-	var escape_timer := ESCAPE_DURATION
-	var pos := Vector2(1760.0, 824.0)   # Exact stuck position from game log
-	var start_pos := pos
-
-	# Simulate escape impulse frames
-	while escape_timer > 0.0:
-		escape_timer -= DELTA
-		pos += escape_dir * ESCAPE_SPEED * DELTA
-
-	var distance_moved := pos.distance_to(start_pos)
-	assert_gt(distance_moved, STUCK_THRESHOLD,
-		"Issue #1457 v3: escape impulse must move enemy > %.0fpx stuck threshold (moved %.1fpx in %.2fs)" % [
-			STUCK_THRESHOLD, distance_moved, ESCAPE_DURATION])
-
-
-## Issue #1457 v5: enemy.gd must use MOTION_MODE_FLOATING so wall corners are not classified as floors.
-## MOTION_MODE_GROUNDED (default) causes corner-gluing in top-down games — see Godot issue #109926.
-func test_enemy_uses_floating_motion_mode_issue_1457() -> void:
-	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
-	if file == null:
-		gut.p("Cannot open enemy.gd — skipping (export build)")
-		pass_test("Skipped in export build")
-		return
-	var source := file.get_as_text()
-	file.close()
-	assert_true(source.contains("MOTION_MODE_FLOATING"),
-		"Issue #1457 v5: enemy must set motion_mode = MOTION_MODE_FLOATING in _ready() — prevents corner-gluing physics bug")
-
-
-## Issue #1457 v5: 3-probe forward steering must exist in _move_to_target_nav.
-## Probes forward-left (-30°=−0.524rad), forward, forward-right (+30°=+0.524rad) to detect and steer around walls.
-func test_three_probe_steering_exists_issue_1457() -> void:
-	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
-	if file == null:
-		gut.p("Cannot open enemy.gd — skipping (export build)")
-		pass_test("Skipped in export build")
-		return
-	var source := file.get_as_text()
-	file.close()
-	assert_true(source.contains("0.524"),
-		"Issue #1457 v5: 3-probe steering must use ±0.524 rad (30°) probe angles — forward-left and forward-right probes")
-	assert_true(source.contains("_pc") and source.contains("_pl") and source.contains("_pr"),
-		"Issue #1457 v5: 3-probe steering must declare center (_pc), left (_pl), and right (_pr) probe results")
-
-
-## Issue #1457 v6: enemy.gd must slow down when a close wall is detected ahead.
-## This gives move_and_slide more time to compute a valid slide angle in narrow passages.
-func test_narrow_passage_speed_reduction_issue_1457() -> void:
-	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
-	if file == null:
-		gut.p("Cannot open enemy.gd — skipping (export build)")
-		pass_test("Skipped in export build")
-		return
-	var source := file.get_as_text()
-	file.close()
-	assert_true(source.contains("32.0") and source.contains("speed *= 0.5"),
-		"Issue #1457 v6: must reduce speed to 50% when wall is within 32px ahead in _move_to_target_nav")
-
-
-## Issue #1457 v6: reverse-escape must be used when all 8 probe directions show ≤ 4px clearance.
-## This backs the enemy out of a narrow passage entrance so it can re-approach at a better angle.
-func test_reverse_escape_when_all_dirs_blocked_issue_1457() -> void:
-	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
-	if file == null:
-		gut.p("Cannot open enemy.gd — skipping (export build)")
-		pass_test("Skipped in export build")
-		return
-	var source := file.get_as_text()
-	file.close()
-	assert_true(source.contains("_best_dist <= 4.0") and source.contains("reverse escape"),
-		"Issue #1457 v6: when all 8 probe dirs are blocked (clr ≤ 4px), must reverse escape away from cover target")
-
-
-## Issue #1457 v7: stuck-position blacklist must exist to detect repeated stuck at same location.
-## When an enemy gets stuck at a position already in the blacklist, it escalates immediately.
-func test_stuck_position_blacklist_exists_issue_1457() -> void:
-	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
-	if file == null:
-		gut.p("Cannot open enemy.gd — skipping (export build)")
-		pass_test("Skipped in export build")
-		return
-	var source := file.get_as_text()
-	file.close()
-	assert_true(source.contains("_pursuing_stuck_pos_blacklist") and source.contains("PURSUING_STUCK_POS_BLACKLIST_RADIUS"),
-		"Issue #1457 v7: position blacklist variable and constant must exist to track repeated stuck locations")
-
-
-## Issue #1457 v7: navmesh snap must be attempted when enemy is inside wall geometry (clr <= 4px).
-## Uses NavigationServer2D.map_get_closest_point to teleport enemy to valid nav position.
-func test_navmesh_snap_on_wall_overlap_issue_1457() -> void:
-	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
-	if file == null:
-		gut.p("Cannot open enemy.gd — skipping (export build)")
-		pass_test("Skipped in export build")
-		return
-	var source := file.get_as_text()
-	file.close()
-	assert_true(source.contains("map_get_closest_point") and source.contains("snapped to navmesh"),
-		"Issue #1457 v7: must snap to navmesh when clr <= 4px (enemy inside wall geometry) using NavigationServer2D.map_get_closest_point")

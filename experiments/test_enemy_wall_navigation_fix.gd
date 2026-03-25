@@ -2,7 +2,7 @@
 ## Verifies that:
 ## 1. PURSUING_STUCK_MAX_TIME and PURSUING_STUCK_DIST_THRESHOLD constants exist
 ## 2. _pursuing_stuck_timer and _pursuing_stuck_last_pos variables exist
-## 3. _apply_wall_avoidance accepts a weight_scale param (0.5 for nav-guided movement)
+## 3. MOTION_MODE_FLOATING is set to prevent corner-gluing physics bug
 ## 4. The fix doesn't break the enemy state machine (can still transition)
 ##
 ## Usage: Run in Godot with GUT addon or as a standalone script.
@@ -38,19 +38,17 @@ func test_pursuing_stuck_timing_is_less_than_global() -> void:
 		"PURSUING stuck timeout (%.1fs) should be less than GLOBAL stuck timeout (%.1fs)" % [pursuing_max, global_max])
 	print("[#1457 test] Timing check: PURSUING_STUCK=%.1fs < GLOBAL_STUCK=%.1fs OK" % [pursuing_max, global_max])
 
-## Verify the wall avoidance weight reduction is meaningful.
-func test_nav_mode_avoidance_weight_is_reduced() -> void:
-	# In nav mode, weight = _get_wall_avoidance_weight(dir) * 0.5
-	# The max weight from _get_wall_avoidance_weight is 0.7 (MIN_WEIGHT)
-	# So in nav mode: max weight = 0.7 * 0.5 = 0.35
-	var max_standard_weight: float = 0.7  # WALL_AVOIDANCE_MIN_WEIGHT
-	var nav_weight_multiplier: float = 0.5
-	var max_nav_weight: float = max_standard_weight * nav_weight_multiplier
-	assert_lt(max_nav_weight, max_standard_weight,
-		"Nav mode avoidance weight (%.2f) should be less than standard (%.2f)" % [max_nav_weight, max_standard_weight])
-	assert_lt(max_nav_weight, 0.5,
-		"Nav mode max avoidance weight (%.2f) should be < 0.5 to let nav path dominate" % max_nav_weight)
-	print("[#1457 test] Nav weight reduction: %.2f * %.2f = %.2f (< 0.5) OK" % [max_standard_weight, nav_weight_multiplier, max_nav_weight])
+## Verify MOTION_MODE_FLOATING is referenced in enemy.gd source.
+func test_motion_mode_floating_exists() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		assert_true(true, "Cannot open enemy.gd — skipping (export build)")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("MOTION_MODE_FLOATING"),
+		"enemy.gd must set MOTION_MODE_FLOATING to prevent corner-gluing")
+	print("[#1457 test] MOTION_MODE_FLOATING found in source OK")
 
 ## Simulate the stuck detection logic inline.
 func test_stuck_detection_triggers_after_timeout() -> void:
