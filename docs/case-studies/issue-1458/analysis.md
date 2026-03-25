@@ -350,3 +350,52 @@ Even when AI is enabled and the r6/r7 bugs are fixed, the SEARCHING state still 
 - All points cleared → relocation blocked for 3s → enemies keep patrolling near center
 - After 3s → one relocation allowed → 24 raycasts for new area → etc.
 - FPS impact: at most 24 raycasts every 3 seconds per search area (not per enemy)
+
+## Round 9: Compile-Safety Fix + Raycast Reduction (2026-03-25)
+
+### Root Cause: `var` Inside One-Liner `if` Block (GDScript Compile Risk)
+
+**Log**: `game_log_20260325_131354.txt`
+**Symptom**: `has_died_signal=false` for all 5 enemies in LabyrinthLevel → `0 enemies registered`
+
+In Godot 4.3, `Object::has_signal()` delegates to `GDScript::has_script_signal()`, which looks up the `_signals` HashMap. This map is populated only by `GDScriptCompiler::compile()`. If the script has **any parse or compile error**, `_signals` remains empty and `has_signal("died")` returns `false` even though `signal died` appears in the source.
+
+**Problematic code (r8, line 2319)**:
+```gdscript
+if _shared_search_pool.has(sk): var ep:=_shared_search_pool[sk]; if ep.get("creating",false): return; ...
+```
+In GDScript 4.3, declaring `var ep:=` inside a one-liner `if:` block is technically parseable but is a known footgun pattern. While the GDScript parser does allow it, the behavior in release builds (pre-compiled `.gdc` files) can differ from editor mode. The Godot team has an open proposal (#6924) to disallow this syntax entirely.
+
+**Same issue on line 2326**:
+```gdscript
+if hn: var sn:=NavigationServer2D.map_get_closest_point(nm,ip); if ip.distance_to(sn)>=...: continue; ip=sn
+```
+Double `if` with `var` declarations in one-liner is especially risky.
+
+### Fix Applied (r9)
+
+Both `var`-in-one-liner-`if` patterns replaced with explicit multi-line `if` blocks:
+```gdscript
+# Before (risky — var in one-liner if):
+if _shared_search_pool.has(sk): var ep:=_shared_search_pool[sk]; if ep.get("creating",false): return; ...
+
+# After (safe — var in proper indented block):
+if _shared_search_pool.has(sk):
+    var ep:=_shared_search_pool[sk]
+    if ep.get("creating",false): return
+    _search_inspection_points=ep["points"]; ...
+```
+
+### Performance: Raycast Count Reduced
+
+Also reduced in r9:
+- `SEARCH_INSPECT_RAY_COUNT`: 24 → **16** (33% fewer raycasts per pool creation)
+- `SEARCH_INSPECT_MAX_POINTS`: 12 → **8** (33% fewer inspection points per pool)
+
+At 16 rays per pool build and one pool per 3s (per area), this reduces peak raycast load from 24 to 16 physics raycasts per pool creation event.
+
+### Logs Saved
+
+- `game_log_20260325_054557.txt` — r5 round: AI broken (empty pool infinite relocation)
+- `game_log_20260325_124627.txt` — r7 round: AI still broken (same root cause)
+- `game_log_20260325_131354.txt` — r8 round: 0 enemies registered (var-in-if compile risk)

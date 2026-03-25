@@ -25,11 +25,11 @@ const SEARCH_MAX_DURATION: float = 30.0
 const SEARCH_INITIAL_RADIUS: float = 150.0
 const SEARCH_MAX_RADIUS: float = 600.0
 const SEARCH_RADIUS_EXPANSION: float = 100.0
-const SEARCH_INSPECT_RAY_COUNT: int = 24  ## #1458r4: 24 rays (15° apart)
+const SEARCH_INSPECT_RAY_COUNT: int = 16  ## #1458r9: 16 rays (22.5° apart), reduced from 24 for performance
 const SEARCH_INSPECT_RAY_DISTANCE: float = 600.0  ## #1458r4: reduced to 600px
 const SEARCH_INSPECT_CLEAR_RADIUS: float = 80.0  ## #1458r4: increased to 80px
 const SEARCH_INSPECT_MIN_DIST: float = 100.0  ## #1458r4: minimum distance between points
-const SEARCH_INSPECT_MAX_POINTS: int = 12  ## #1458r4: max points per session
+const SEARCH_INSPECT_MAX_POINTS: int = 8  ## #1458r9: max points per session, reduced from 12 for performance
 const SEARCH_ZONE_SNAP_SIZE: float = 50.0
 const SEARCH_FOV_CLEAR_INTERVAL: float = 0.15  ## #1458r4: throttle interval
 
@@ -149,8 +149,8 @@ func test_timeout_log_fires_only_once() -> void:
 
 
 func test_inspection_ray_count_reasonable() -> void:
-	# 24 rays at 15° apart gives full 360° coverage with fewer raycasts (#1458r4: reduced from 36)
-	assert_eq(SEARCH_INSPECT_RAY_COUNT, 24, "Should use 24 rays (15° apart) — #1458r4 reduced from 36")
+	# 16 rays at 22.5° apart gives full 360° coverage with fewer raycasts (#1458r9: reduced from 24)
+	assert_eq(SEARCH_INSPECT_RAY_COUNT, 16, "Should use 16 rays (22.5° apart) — #1458r9 reduced from 24")
 	assert_gt(SEARCH_INSPECT_RAY_COUNT, 8, "Need enough rays for good coverage")
 	assert_lte(SEARCH_INSPECT_RAY_COUNT, 72, "Too many rays is wasteful")
 
@@ -184,7 +184,7 @@ func test_inspection_point_distinct_points_kept() -> void:
 func test_max_inspection_points_cap() -> void:
 	## #1458r4: Pool must not exceed SEARCH_INSPECT_MAX_POINTS
 	assert_gt(SEARCH_INSPECT_MAX_POINTS, 0, "Max points must be positive")
-	assert_lte(SEARCH_INSPECT_MAX_POINTS, 24, "Max points must be bounded to prevent performance issues")
+	assert_lte(SEARCH_INSPECT_MAX_POINTS, 16, "Max points must be bounded to prevent performance issues")
 	var simulated_points_generated: int = 15  # Simulates a large open area
 	var actual_points: int = mini(simulated_points_generated, SEARCH_INSPECT_MAX_POINTS)
 	assert_lte(actual_points, SEARCH_INSPECT_MAX_POINTS, "Should not exceed max point cap")
@@ -436,7 +436,7 @@ func test_nonempty_all_true_flags_is_cleared() -> void:
 func test_relocation_blocked_within_cooldown() -> void:
 	## #1458r8: _relocate_search_center must not trigger new raycasts when
 	## _search_relocate_timer < SEARCH_RELOCATE_MIN_INTERVAL (3.0s).
-	## Rapid relocation was causing 24 raycasts per enemy per second → FPS drop.
+	## Rapid relocation was causing 16 raycasts per enemy per second → FPS drop.
 	var relocate_timer := 1.5  # Less than 3.0s cooldown
 	var min_interval := 3.0
 	var should_relocate := relocate_timer >= min_interval
@@ -456,7 +456,7 @@ func test_relocation_allowed_after_cooldown() -> void:
 func test_creation_lock_prevents_duplicate_pool_creation() -> void:
 	## #1458r8: When pool entry has creating:true, a second enemy calling
 	## _get_or_create_shared_pool should detect the lock and skip raycasting.
-	## This prevents 5 enemies each doing 24 raycasts for the same pool key.
+	## This prevents 5 enemies each doing 16 raycasts for the same pool key.
 	var pool: Dictionary = {"creating": true, "points": [], "flags": [], "next_idx": 0}
 	var is_being_created := pool.get("creating", false)
 	assert_true(is_being_created,
@@ -473,7 +473,7 @@ func test_creation_lock_cleared_after_pool_built() -> void:
 
 func test_expansion_blocked_within_cooldown() -> void:
 	## #1458r8: The empty-pool expansion path (open area, no cover) must also
-	## respect the relocation cooldown to prevent repeated 24-raycast expansions.
+	## respect the relocation cooldown to prevent repeated 16-raycast expansions.
 	var relocate_timer := 0.5  # Way below 3.0s
 	var min_interval := 3.0
 	var should_expand := relocate_timer >= min_interval

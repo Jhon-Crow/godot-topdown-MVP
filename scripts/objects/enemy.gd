@@ -280,8 +280,8 @@ var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 150.0  #
 const SEARCH_INITIAL_RADIUS: float = 150.0; const SEARCH_RADIUS_EXPANSION: float = 100.0  ## Initial radius / radius expansion per batch
 const SEARCH_MAX_RADIUS: float = 600.0; const SEARCH_WAYPOINT_COUNT: int = 5  ## Issue #1458: max radius / waypoints per batch
 const SEARCH_NAV_SNAP_THRESHOLD: float = 100.0  ## Max distance from navmesh for waypoint snapping (#1458r4: increased for better hit)
-const SEARCH_INSPECT_RAY_COUNT: int = 24; const SEARCH_INSPECT_RAY_DISTANCE: float = 600.0  ## #1458r4: 24 rays (15° apart) / max distance
-const SEARCH_INSPECT_CLEAR_RADIUS: float = 80.0; const SEARCH_INSPECT_MIN_DIST: float = 100.0; const SEARCH_INSPECT_MAX_POINTS: int = 12  ## #1458r4
+const SEARCH_INSPECT_RAY_COUNT: int = 16; const SEARCH_INSPECT_RAY_DISTANCE: float = 600.0  ## #1458r9: 16 rays (22.5° apart) / max distance
+const SEARCH_INSPECT_CLEAR_RADIUS: float = 80.0; const SEARCH_INSPECT_MIN_DIST: float = 100.0; const SEARCH_INSPECT_MAX_POINTS: int = 8  ## #1458r4/#1458r9
 static var _shared_search_pool: Dictionary = {}  ## #1458r5: shared pool {points,flags,next_idx} keyed by 200px grid
 var _search_inspection_points: Array = []; var _search_inspected_flags: Array = []  ## untyped plain Array refs (ref-safe, no typed-cast crash)
 var _search_pool_key: String = ""; var _search_assigned_point_index: int = -1; var _search_fov_clear_timer: float = 0.0  ## pool key / assigned idx / FOV timer
@@ -2314,32 +2314,37 @@ func _load_predefined_search_path(_near_pos: Vector2) -> bool:
 	_log_debug("SEARCHING: Loaded %d predefined waypoints (start=%d)" % [_search_waypoints.size(), si])
 	return true
 
-func _get_or_create_shared_pool() -> void:  ## #1458r5/#1458r8: untyped Arrays + creation lock prevents duplicate raycasts
+func _get_or_create_shared_pool() -> void:  ## #1458r9: no var-in-if (compile-safe); 16 rays from last known player pos
 	var snap:=200.0; var sk:="%d,%d"%[int(_search_center.x/snap)*int(snap),int(_search_center.y/snap)*int(snap)]; _search_pool_key=sk
-	if _shared_search_pool.has(sk): var ep:=_shared_search_pool[sk]; if ep.get("creating",false): return; _search_inspection_points=ep["points"]; _search_inspected_flags=ep["flags"]; _log_to_file("SEARCHING: Reuse pool %s pts=%d"%[sk,_search_inspection_points.size()]); return  ## #1458r8: lock guard
-	_shared_search_pool[sk]={"creating":true,"points":[],"flags":[],"next_idx":0}; var pts:=[]; var fl:=[]; var ss:=get_world_2d().direct_space_state; var nm:=get_world_2d().navigation_map; var hn:=nm.is_valid()  ## #1458r8: lock+init
+	if _shared_search_pool.has(sk):
+		var ep:=_shared_search_pool[sk]
+		if ep.get("creating",false): return
+		_search_inspection_points=ep["points"]; _search_inspected_flags=ep["flags"]; _log_to_file("SEARCHING: Reuse pool %s pts=%d"%[sk,_search_inspection_points.size()]); return
+	_shared_search_pool[sk]={"creating":true,"points":[],"flags":[],"next_idx":0}; var pts:=[]; var fl:=[]; var ss:=get_world_2d().direct_space_state; var nm:=get_world_2d().navigation_map; var hn:=nm.is_valid()
 	for i in range(SEARCH_INSPECT_RAY_COUNT):
 		if pts.size()>=SEARCH_INSPECT_MAX_POINTS: break
 		var dir:=Vector2.from_angle((float(i)/float(SEARCH_INSPECT_RAY_COUNT))*TAU); var q:=PhysicsRayQueryParameters2D.new(); q.from=_search_center; q.to=_search_center+dir*SEARCH_INSPECT_RAY_DISTANCE; q.collision_mask=4
 		var r:=ss.intersect_ray(q); if r.is_empty(): continue
 		var ip:Vector2=r["position"]+(Vector2(r["normal"]) if r.has("normal") else -dir).normalized()*40.0
-		if hn: var sn:=NavigationServer2D.map_get_closest_point(nm,ip); if ip.distance_to(sn)>=SEARCH_NAV_SNAP_THRESHOLD: continue; ip=sn
+		if hn:
+			var sn:=NavigationServer2D.map_get_closest_point(nm,ip)
+			if ip.distance_to(sn)>=SEARCH_NAV_SNAP_THRESHOLD: continue
+			ip=sn
 		var tc:=false; for ex in pts: if (ip as Vector2).distance_to(ex as Vector2)<SEARCH_INSPECT_MIN_DIST: tc=true; break
 		if not tc and ip.distance_to(_search_center)>=80.0: pts.append(ip); fl.append(false)
-	_shared_search_pool[sk]={"creating":false,"points":pts,"flags":fl,"next_idx":0}; _search_inspection_points=_shared_search_pool[sk]["points"]; _search_inspected_flags=_shared_search_pool[sk]["flags"]; _log_to_file("SEARCHING: New pool %s pts=%d"%[sk,pts.size()])  ## #1458r8: unlock
-## #1458r5: Load pool; fallback to random wps if empty so enemy never stalls.
-func _generate_search_waypoints() -> void:
+	_shared_search_pool[sk]={"creating":false,"points":pts,"flags":fl,"next_idx":0}; _search_inspection_points=_shared_search_pool[sk]["points"]; _search_inspected_flags=_shared_search_pool[sk]["flags"]; _log_to_file("SEARCHING: New pool %s pts=%d"%[sk,pts.size()])
+func _generate_search_waypoints() -> void:  ## #1458r5/#1458r9: pool load; fallback to random wps if empty
 	_search_waypoints.clear(); _search_current_waypoint_index=0; _search_assigned_point_index=-1; _search_fov_clear_timer=0.0; _get_or_create_shared_pool()
 	if _search_inspection_points.is_empty():
 		var nm2:=get_world_2d().navigation_map
 		for _a in range(SEARCH_WAYPOINT_COUNT*2):
 			if _search_waypoints.size()>=SEARCH_WAYPOINT_COUNT: break
-			var cand:=_search_center+Vector2.from_angle(randf()*TAU)*randf_range(_search_radius*0.3,_search_radius); var sn:=NavigationServer2D.map_get_closest_point(nm2,cand)
+			var cand:=_search_center+Vector2.from_angle(randf()*TAU)*randf_range(_search_radius*0.3,_search_radius)
+			var sn:=NavigationServer2D.map_get_closest_point(nm2,cand)
 			if cand.distance_to(sn)<SEARCH_NAV_SNAP_THRESHOLD and not _is_zone_visited(sn): _search_waypoints.append(sn)
-		if _search_waypoints.is_empty(): _search_waypoints.append(_search_center)  ## #1458r7: last-resort center fallback
-		_log_to_file("SEARCHING: Pool empty, fallback %d random wps" % _search_waypoints.size()); return
-	_assign_nearest_inspection_point(); if _search_waypoints.is_empty(): _search_waypoints.append(NavigationServer2D.map_get_closest_point(get_world_2d().navigation_map,_search_center))  ## #1458r7 center fallback; _log_to_file("SEARCHING: %d pts pool=%s wps=%d"%[_search_inspection_points.size(),_search_pool_key,_search_waypoints.size()])
-
+		if _search_waypoints.is_empty(): _search_waypoints.append(_search_center)
+		_log_to_file("SEARCHING: Pool empty, fallback %d random wps"%_search_waypoints.size()); return
+	_assign_nearest_inspection_point(); if _search_waypoints.is_empty(): _search_waypoints.append(NavigationServer2D.map_get_closest_point(get_world_2d().navigation_map,_search_center))
 func _is_waypoint_navigable(pos: Vector2) -> bool:  ## Check if position is on navmesh
 	return pos.distance_to(NavigationServer2D.map_get_closest_point(get_world_2d().navigation_map, pos)) < 50.0
 ## Zone tracking helpers for visited areas (Issue #322): snaps to 50px grid.
@@ -2349,9 +2354,7 @@ func _is_zone_visited(pos: Vector2) -> bool: return _search_visited_zones.has(_g
 func _mark_zone_visited(pos: Vector2) -> void:
 	var k := _get_zone_key(pos)
 	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone %s as visited (total: %d)" % [k, _search_visited_zones.size()])
-
-## #1458r5: Claim next unique point (round-robin next_idx); fallback to nearest uninspected.
-func _assign_nearest_inspection_point() -> void:
+func _assign_nearest_inspection_point() -> void:  ## #1458r5: round-robin next_idx; fallback to nearest uninspected
 	_search_assigned_point_index = -1; if _search_inspection_points.is_empty(): return
 	if _shared_search_pool.has(_search_pool_key):  ## round-robin unique claim
 		var pool := _shared_search_pool[_search_pool_key]; var ni: int = pool["next_idx"]
@@ -2369,9 +2372,7 @@ func _assign_nearest_inspection_point() -> void:
 		if _search_waypoints.size() <= _search_current_waypoint_index: _search_waypoints.append(pt)
 		else: _search_waypoints[_search_current_waypoint_index] = pt
 		_search_moving_to_waypoint = true; _search_last_nav_target = Vector2.ZERO
-
-## #1458r5: FOV-clear throttled to 0.15s. Uses untyped arrays; explicit Vector2 casts for safety.
-func _clear_visible_inspection_points(delta: float) -> void:
+func _clear_visible_inspection_points(delta: float) -> void:  ## #1458r5: FOV-clear throttled to 0.15s
 	_search_fov_clear_timer -= delta; if _search_fov_clear_timer > 0.0 or _search_inspection_points.is_empty(): return
 	_search_fov_clear_timer = 0.15
 	var fd := Vector2.from_angle(_enemy_model.global_rotation if _enemy_model else rotation)
@@ -2392,7 +2393,6 @@ func _relocate_search_center(reason: String) -> void:  ## #1458r5/#1458r8: coold
 	_generate_search_waypoints(); _log_to_file("SEARCHING: %s, relocated %s->%s (pts=%d)" % [reason, oc, _search_center, _search_inspection_points.size()])
 func _mark_inspection_done(idx: int) -> void:
 	if idx >= 0 and idx < _search_inspected_flags.size(): _search_inspected_flags[idx] = true
-
 func _process_searching_state(delta: float) -> void:  ## Cover-inspection search (#1458r4, #322, #330)
 	_search_state_timer += delta; _search_relocate_timer += delta; _clear_visible_inspection_points(delta)
 	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle:
