@@ -2584,13 +2584,39 @@ public partial class Player : BaseCharacter
         TakeDamage(1);
     }
 
+    /// <summary>
+    /// Called when hit by a high-damage projectile with full bullet info (Issue #1453).
+    /// This method is invoked by enemy_sniper_component.gd and other sources that call
+    /// has_method("on_hit_with_bullet_info") before delivering explicit damage values.
+    /// Without this method, those callers fell through to TakeDamage(damage) directly,
+    /// bypassing the armored-skin lethal-hit check for sniper rifle shots.
+    /// </summary>
+    /// <param name="hitDirection">Direction the bullet was traveling.</param>
+    /// <param name="caliberData">Caliber resource for effect scaling (can be null).</param>
+    /// <param name="hasRicocheted">Whether the bullet had ricocheted before this hit (unused for player).</param>
+    /// <param name="hasPenetrated">Whether the bullet had penetrated a wall before this hit (unused for player).</param>
+    /// <param name="damage">Explicit damage to apply.</param>
+    /// <param name="isFromPlayer">Unused — hits to the player always come from enemies.</param>
+    // Godot 4's GDScript call() does not resolve C# default parameters via reflection.
+    // The sniper (and any other GDScript caller) passes exactly 5 args (no isFromPlayer),
+    // so an explicit 5-parameter overload is required to ensure the correct method is found. (Issue #1453)
+    public void on_hit_with_bullet_info(Vector2 hitDirection, Godot.Resource? caliberData,
+        bool hasRicocheted, bool hasPenetrated, float damage)
+        => on_hit_with_bullet_info(hitDirection, caliberData, hasRicocheted, hasPenetrated, damage, false);
+
+    public void on_hit_with_bullet_info(Vector2 hitDirection, Godot.Resource? caliberData,
+        bool hasRicocheted, bool hasPenetrated, float damage, bool isFromPlayer)
+    {
+        _lastHitDirection = hitDirection;
+        _lastCaliberData = caliberData;
+        TakeDamage(damage);
+    }
+
     /// <inheritdoc/>
     public override void TakeDamage(float amount)
     {
         if (HealthComponent == null || !IsAlive)
-        {
             return;
-        }
 
         // Register that the player was hit, BEFORE any immunity/guard checks.
         // This ensures no-damage level tracking works even when hits are blocked
@@ -2632,14 +2658,17 @@ public partial class Player : BaseCharacter
         // Show hit flash effect
         ShowHitFlash();
 
-        // Armored Skin: spawn glass/crystal shards when at low HP (Issue #1045)
+        // Armored Skin: spawn glass/crystal shards when at low HP OR when hit would be lethal (Issue #1045, #1453).
+        // Trigger when HP is already at/below threshold (≤2) OR when the incoming damage would kill the player
+        // at any HP (e.g. sniper rifle deals 50 damage — one-shots from full health must also be intercepted).
         // One-time trigger: deactivate after spawning so it only fires once per life.
         // The triggering projectile's damage is fully absorbed (return early).
-        if (_armoredSkinActive && HealthComponent.CurrentHealth <= 2)
+        if (_armoredSkinActive && (HealthComponent.CurrentHealth <= 2 || HealthComponent.CurrentHealth - amount <= 0))
         {
             _armoredSkinActive = false;
             _armoredSkinImmune = true;
             SpawnArmoredSkinShards();
+            LogToFile("[Player.ArmoredSkin] Triggering hit absorbed — damage ignored (Issue #1453)");
             // Start 0.1s immunity window to absorb remaining calls from multi-hit explosions.
             // Explosion sources (GrenadeTimer, BreakerDetonation) call on_hit_with_info in a
             // loop (up to 99 times) — all calls after the trigger must also be absorbed (Issue #1095).
