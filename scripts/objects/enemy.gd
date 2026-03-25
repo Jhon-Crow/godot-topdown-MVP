@@ -158,6 +158,9 @@ const COVER_SECTOR_RAY_COUNT: int = 120  ## Number of rays in sector mode (Issue
 var _current_health: int = 0; var _max_health: int = 0  ## Current / max health (set at spawn)
 var _is_alive: bool = true  ## Is alive
 var _player: Node2D = null  ## Player reference
+## Issue #1487: Cache autoload references to avoid repeated get_node_or_null() lookups every physics frame.
+var _game_manager_cached: Node = null
+var _perf_settings_cached: Node = null
 var _shoot_timer: float = 0.0  ## Time since last shot
 ## Issue #969: throttle constants/trackers — prevent raycast floods with 20+ active enemies
 const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5; var _last_gunshot_propagation_time: float = -999.0
@@ -309,6 +312,13 @@ var _player_visibility_ratio: float = 0.0  ## Player visibility (0-1)
 ## Issue #883: Stagger vision raycasts; each enemy checks once every VISION_CHECK_INTERVAL frames.
 var _vision_frame_counter: int = 0; var _vision_frame_offset: int = 0  ## Frame stagger (set in _ready)
 const VISION_CHECK_INTERVAL: int = 6  ## Check vision every N frames (~10 fps at 60 fps physics)
+## Issue #1487: Throttle expensive GOAP state computations (cover raycast + group scan) to 10 Hz.
+## At 60 fps physics with 10 enemies, calling these every frame = 600 raycasts/sec + 600 group scans/sec.
+const GOAP_SLOW_INTERVAL: int = 6  ## Same as VISION_CHECK_INTERVAL (~10 Hz at 60 Hz physics)
+var _goap_slow_frame_counter: int = 0  ## Counts up; slow computations run when (counter % interval) == offset
+var _goap_slow_frame_offset: int = 0   ## Per-enemy stagger offset (set in _ready alongside vision offset)
+var _cached_can_hit_from_cover: bool = false  ## Cached result of _can_hit_target_from_current_position()
+var _cached_enemies_in_combat: int = 0        ## Cached result of _count_enemies_in_combat()
 var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target (Clear Shot Movement)
 var _seeking_clear_shot: bool = false  ## Moving to clear shot
 var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
@@ -393,6 +403,11 @@ func _ready() -> void:
 	add_to_group("enemies")
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
+	# Issue #1487: Stagger GOAP slow-path (cover raycast + combat count) independently from vision.
+	_goap_slow_frame_offset = (get_instance_id() >> 1) % GOAP_SLOW_INTERVAL
+	# Issue #1487: Cache frequently-used autoload references to avoid per-frame get_node_or_null() overhead.
+	_game_manager_cached = get_node_or_null("/root/GameManager")
+	_perf_settings_cached = get_node_or_null("/root/PerformanceSettings")
 	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
 
 	# Issue #934: Initialize BFF companion targeting component
@@ -797,13 +812,13 @@ func _physics_process(delta: float) -> void:
 
 	# Issue #1334 Round 8-9: Freeze all enemy AI when player is dead or freed to prevent
 	# native crashes from physics queries on dead/freed player nodes.
-	var _gm_r9: Node = get_node_or_null("/root/GameManager")
-	if _gm_r9 and not _gm_r9.player_alive: return
+	# Issue #1487: Use cached autoload reference instead of get_node_or_null() every frame.
+	if _game_manager_cached and not _game_manager_cached.player_alive: return
 	if _player and not is_instance_valid(_player): _player = null; return
 
 	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
-	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
-	if _perf_settings and not _perf_settings.is_ai_enabled(): return
+	# Issue #1487: Use cached autoload reference instead of get_node_or_null() every frame.
+	if _perf_settings_cached and not _perf_settings_cached.is_ai_enabled(): return
 	if _drone_operator and _drone_operator.get_phase() != DroneOperatorComponent.Phase.ACTIVE:  # Issue #1397: drone operator phase control
 		_drone_operator.update(delta)
 		if _drone_operator.is_controlling_drone(): velocity = Vector2.ZERO; move_and_slide(); return  # CONTROLLING: fully frozen
@@ -944,9 +959,17 @@ func _update_goap_state() -> void:
 	_goap_world_state["is_pursuing"] = _current_state == AIState.PURSUING
 	_goap_world_state["is_assaulting"] = _current_state == AIState.ASSAULT
 	_goap_world_state["player_close"] = _is_target_close()
-	_goap_world_state["can_hit_from_cover"] = _can_hit_target_from_current_position()
-	_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
 	_goap_world_state["player_distracted"] = _is_player_distracted()
+	# Issue #1487: Throttle expensive GOAP queries to ~10 Hz (same as vision check).
+	# _can_hit_target_from_current_position() does a physics raycast each call.
+	# _count_enemies_in_combat() calls get_nodes_in_group() on every physics frame.
+	# With 10 enemies at 60 Hz physics both add up to 600 raycasts/sec + 600 group lookups/sec.
+	_goap_slow_frame_counter += 1
+	if (_goap_slow_frame_counter % GOAP_SLOW_INTERVAL) == _goap_slow_frame_offset:
+		_cached_can_hit_from_cover = _can_hit_target_from_current_position()
+		_cached_enemies_in_combat = _count_enemies_in_combat()
+	_goap_world_state["can_hit_from_cover"] = _cached_can_hit_from_cover
+	_goap_world_state["enemies_in_combat"] = _cached_enemies_in_combat
 
 	# Memory system states (Issue #297)
 	if _memory:

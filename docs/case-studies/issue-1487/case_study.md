@@ -450,3 +450,145 @@ After Round 4, the GUNSHOT throttle is confirmed working:
 | Explosion audio/sec | 15 | ~4 (−73%) |
 | Shrapnel wall-hit audio/sec | ~45 | ~11 (−75%) |
 | Dust particles | 0 (removed) | ~11/sec throttled (restored) |
+
+---
+
+## Round 6 — AI GOAP Overhead: Per-Frame Raycasts + Group Scans
+
+### User Feedback
+
+> "частицы есть. на карте Обучение просадок нет, на карте Здание просадки в 30 fps. возможно это связано с ии или ещё какой то внешней системой?"
+> Translation: "Particles are there. No drops on Tutorial map, drops to 30 fps on Building map. Maybe this is related to AI or some other external system?"
+
+The owner correctly identified AI as a candidate cause, and disabled it during testing (log line: `[PerformanceSettings] AI disabled`).
+
+### Log Analysis: `game_log_20260325_141523.txt`
+
+Key observations:
+- BuildingLevel: 10 enemies registered as sound listeners
+- GUNSHOT propagation is correctly throttled (~3-7 per second observed)
+- EXPLOSION propagation similarly throttled
+- **No FPS drop entries logged during the captured session** — yet owner reports 30fps drops
+
+The absence of logged FPS drops in this session suggests the drop happens during active shooting when all AI is processing simultaneously. The logging threshold (30fps) may just barely be missed, or the drop is intermittent.
+
+### Root Cause 12: GOAP World State — Per-Frame Physics Raycasts
+
+**Code**: `scripts/objects/enemy.gd:_update_goap_state()`
+
+`_update_goap_state()` is called every `_physics_process()` frame (60Hz) for every enemy. It calls:
+
+```gdscript
+_goap_world_state["can_hit_from_cover"] = _can_hit_target_from_current_position()
+```
+
+`_can_hit_target_from_current_position()` → `_is_shot_clear_of_cover()`:
+
+```gdscript
+func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
+    var space_state := get_world_2d().direct_space_state
+    var query := PhysicsRayQueryParameters2D.new()
+    query.from = muzzle_pos; query.to = target_position
+    query.collision_mask = 4
+    var result := space_state.intersect_ray(query)  # <-- physics raycast every frame!
+    ...
+```
+
+**Cost with 10 enemies at 60Hz physics**:
+- 10 × 60 = **600 physics raycasts/sec** from GOAP alone
+- Each `intersect_ray()` traverses the broad-phase collision structure for layer 3 (walls)
+- In BuildingLevel with its complex collision mesh, this is particularly expensive
+
+In Tutorial: 0 enemies → 0 GOAP raycasts.
+
+### Root Cause 13: GOAP World State — Per-Frame Group Scans
+
+Also in `_update_goap_state()`:
+
+```gdscript
+_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
+```
+
+`_count_enemies_in_combat()`:
+
+```gdscript
+func _count_enemies_in_combat() -> int:
+    var enemies := get_tree().get_nodes_in_group("enemies")  # scans all group members
+    for enemy in enemies:
+        if not enemy.has_method("get_current_state"):
+            continue
+        var state: AIState = enemy.get_current_state()
+        ...
+```
+
+**Cost with 10 enemies at 60Hz physics**:
+- 10 × 60 = **600 `get_nodes_in_group("enemies")` calls/sec** (each traverses the scene tree)
+- Each call returns 10 nodes that are then iterated
+- Result: ~6000 enemy node checks/sec
+
+### Root Cause 14: Per-Frame Autoload Lookups
+
+Also in `_physics_process()`, called every frame:
+
+```gdscript
+var _gm_r9: Node = get_node_or_null("/root/GameManager")
+var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+```
+
+With 10 enemies × 60Hz = **1200 `get_node_or_null()` calls/sec** just for these two lookups.
+
+### Fixes (Round 6)
+
+#### Fix 1: Throttle GOAP expensive queries to 10Hz
+
+Added `GOAP_SLOW_INTERVAL = 6` frames (same rate as `VISION_CHECK_INTERVAL`) and cached results:
+
+```gdscript
+# New variables:
+const GOAP_SLOW_INTERVAL: int = 6
+var _goap_slow_frame_counter: int = 0
+var _goap_slow_frame_offset: int = 0   # Staggered per enemy in _ready()
+var _cached_can_hit_from_cover: bool = false
+var _cached_enemies_in_combat: int = 0
+
+# In _ready():
+_goap_slow_frame_offset = (get_instance_id() >> 1) % GOAP_SLOW_INTERVAL
+
+# In _update_goap_state():
+_goap_slow_frame_counter += 1
+if (_goap_slow_frame_counter % GOAP_SLOW_INTERVAL) == _goap_slow_frame_offset:
+    _cached_can_hit_from_cover = _can_hit_target_from_current_position()
+    _cached_enemies_in_combat = _count_enemies_in_combat()
+_goap_world_state["can_hit_from_cover"] = _cached_can_hit_from_cover
+_goap_world_state["enemies_in_combat"] = _cached_enemies_in_combat
+```
+
+Like vision checks, enemies are staggered so they don't all run the expensive query on the same frame.
+
+#### Fix 2: Cache autoload references
+
+```gdscript
+# New variables:
+var _game_manager_cached: Node = null
+var _perf_settings_cached: Node = null
+
+# In _ready():
+_game_manager_cached = get_node_or_null("/root/GameManager")
+_perf_settings_cached = get_node_or_null("/root/PerformanceSettings")
+
+# In _physics_process():
+if _game_manager_cached and not _game_manager_cached.player_alive: return
+if _perf_settings_cached and not _perf_settings_cached.is_ai_enabled(): return
+```
+
+### Expected Impact (Round 6)
+
+| Factor | Before Round 6 | After Round 6 |
+|--------|---------------|---------------|
+| GOAP cover raycasts/sec | 600 (10 enemies × 60Hz) | 100 (10 enemies × 10Hz, staggered) |
+| GOAP group scans/sec | 600 | 100 |
+| Autoload lookups/sec (2 per enemy per frame) | 1200 | 120 (once at _ready, then cached) |
+| **Total expensive GOAP calls savings** | — | −83% |
+
+Combined with all previous rounds, the BuildingLevel frame budget should now fit within the 16.7ms target consistently.
+
