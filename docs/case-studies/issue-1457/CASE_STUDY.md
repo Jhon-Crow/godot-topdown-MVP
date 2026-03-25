@@ -2,9 +2,9 @@
 
 **Issue:** #1457 — fix враг не может обогнуть препятствие
 **PR:** #1477
-**Status:** Fixed
+**Status:** Investigation Ongoing — second log confirms partial fix, deeper root cause found
 **Analyst:** konard (AI)
-**Date:** 2026-03-24
+**Date:** 2026-03-24, updated 2026-03-25
 
 ---
 
@@ -180,7 +180,7 @@ micro-waypoints. This partially helps but doesn't prevent wall rubbing in corrid
 
 ---
 
-## 6. Implemented Fix
+## 6. Implemented Fix (v1, 2026-03-24)
 
 The fix implements **Solution A** (fast PURSUING stuck detection) and **Solution B**
 (reduced wall avoidance weight in nav mode) to address both the slow recovery and
@@ -190,7 +190,81 @@ See `scripts/objects/enemy.gd` for changes marked with `## Issue #1457`.
 
 ---
 
-## 7. References
+## 7. Second Investigation — Log `game_log_20260325_042027.txt`
+
+**Date:** 2026-03-25
+**Build:** Release (Godot 4.3-stable, Windows) — confirms this is a **post-fix build** since
+the `[#1457] PURSUING stuck` log lines appear, which were added in the v1 fix.
+
+### 7.1 Observed Symptom (post-fix)
+
+Owner Jhon-Crow reported: "враг застрял в том же месте (не исправлено)" — enemy still stuck
+in the same place (not fixed). Screenshot shows enemies clustered near a doorway corridor.
+
+### 7.2 Reconstruction of Events (Enemy7)
+
+| Time    | Event |
+|---------|-------|
+| 04:20:31 | Enemy7 spawned at (1700, 870), PATROL |
+| 04:20:57 | Heard gunshot, COMBAT, `Found cover at (584.99, 877) distance 1206px` |
+| 04:20:58 | COMBAT → PURSUING |
+| 04:20:59–04:21:01 | PURSUING, corner checks 82°→58°→-172°→38°→38°→39° **oscillating** |
+| 04:21:01 | `[#1457] PURSUING stuck #1 at (1760.785, 824.068)` — **fast stuck fires at 1.5s** |
+| 04:21:01–04:21:02 | PURSUING continues (reroute found a new cover nearby) |
+| 04:21:02 | Enemy7 re-**respawned** (killed while still near stuck position) |
+| 04:21:06 | New Enemy7 instance: same cycle, PATROL → COMBAT → PURSUING |
+| 04:21:10 | `[#1457] PURSUING stuck #1 at (1770.635, 824.302)` — **same wall!** |
+
+### 7.3 New Root Cause Found: Stuck Reroute Selects Same Unreachable Cover
+
+The v1 fix fires the stuck detector at 1.5s — correctly. But when `_find_pursuit_cover_toward_player()`
+is called from the **exact stuck position**, it:
+
+1. Casts raycasts in all directions within `COVER_CHECK_DISTANCE` radius
+2. From position ~(1760, 824) surrounded by the same wall geometry, finds the same nearby
+   cover positions blocked by the same wall
+3. If it finds *any* cover (even the same one), `_has_pursuit_cover = true` and the code
+   returns — **the enemy stays in PURSUING, still pointing at unreachable cover**
+4. The stuck timer resets because `_pursuing_stuck_last_pos = global_position` was just set
+5. Enemy runs for 1.5s more, hits the same wall, stuck fires again — infinite loop
+
+The key signature: enemy corner checks locked to **58.8°, 58.8°, 58.8°** — exact repetition
+means no progress at all after each reroute.
+
+### 7.4 Why Cover Search Fails From the Stuck Position
+
+Enemy7 at (1760, 824) with player at (483, 878). Distance ~1277px. The `COVER_CHECK_DISTANCE`
+raycasts only find nearby obstacles. All nearby cover candidates are:
+- Behind the same walls that block westward movement
+- Passage waypoints that may also be unreachable from the exact stuck corner
+
+The `PursuitComponent.find_cover()` filters candidates by `_can_reach_position()` (line-of-sight
+check), but a ray from (1760, 824) going west hits the wall immediately. Candidates to the
+**east** (behind the enemy) score poorly because they don't make progress toward the player.
+So the only viable candidates are in the narrow passage just ahead — but the enemy can't
+navigate to them because it's pinned by wall avoidance forces against the corner.
+
+### 7.5 Fix v2: Stuck-Cover Blacklisting + Escalation
+
+When stuck fires, blacklist the current `_pursuit_next_cover` position. If the next
+`find_cover()` call returns a position within `PURSUING_STUCK_BLACKLIST_RADIUS = 80px`
+of any blacklisted cover, reject it and escalate immediately to flanking/combat.
+
+After `PURSUING_STUCK_ESCALATE_COUNT = 2` consecutive stucks from approximately the same
+position, skip cover-seeking entirely and go directly to flanking or combat state.
+
+This prevents the infinite stuck-reroute-stuck loop while still allowing the first
+stuck detection to attempt a legitimate reroute.
+
+---
+
+## 8. References
+
+- Godot 4 NavigationAgent2D documentation: https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_introduction_2d.html
+- Godot CharacterBody2D corner sliding: https://github.com/godotengine/godot/issues/74140
+- Wall avoidance in top-down AI: Steering Behaviors for Autonomous Characters (Craig Reynolds, 1999)
+- Original log: `game_log_20260324_200849.txt`
+- Second log: `game_log_20260325_042027.txt` (post-v1-fix evidence)
 
 - Godot 4 NavigationAgent2D documentation: https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_introduction_2d.html
 - Godot charcterbody2D corner sliding: https://github.com/godotengine/godot/issues/74140

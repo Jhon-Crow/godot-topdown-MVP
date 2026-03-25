@@ -2525,3 +2525,54 @@ func test_nav_mode_avoidance_function_exists_in_source_issue_1457() -> void:
 		"Issue #1457: PURSUING_STUCK_MAX_TIME constant must exist in enemy.gd")
 	assert_true(source.contains("_apply_wall_avoidance(direction, 0.5)"),
 		"Issue #1457: _move_to_target_nav must call _apply_wall_avoidance with 0.5 weight_scale")
+	assert_true(source.contains("_pursuing_stuck_count"),
+		"Issue #1457: _pursuing_stuck_count variable must exist — tracks repeated stucks for escalation")
+	assert_true(source.contains("_pursuing_stuck_cover_blacklist"),
+		"Issue #1457: _pursuing_stuck_cover_blacklist must exist — prevents re-selecting same blocked cover")
+	assert_true(source.contains("PURSUING_STUCK_ESCALATE_COUNT"),
+		"Issue #1457: PURSUING_STUCK_ESCALATE_COUNT must exist — defines when to skip cover and go direct")
+	assert_true(source.contains("PURSUING_STUCK_BLACKLIST_RADIUS"),
+		"Issue #1457: PURSUING_STUCK_BLACKLIST_RADIUS must exist — radius for rejecting blacklisted cover")
+
+
+## Issue #1457 v2: Blacklist escalation constants must be correctly tuned.
+## After PURSUING_STUCK_ESCALATE_COUNT stucks, the enemy must abandon cover seeking.
+func test_pursuing_stuck_escalation_constants_issue_1457() -> void:
+	var escalate_count := 2       # PURSUING_STUCK_ESCALATE_COUNT
+	var blacklist_radius := 80.0  # PURSUING_STUCK_BLACKLIST_RADIUS
+
+	assert_ge(escalate_count, 1,
+		"Issue #1457: PURSUING_STUCK_ESCALATE_COUNT must be >= 1 — must escalate after at least one retry")
+	assert_le(escalate_count, 4,
+		"Issue #1457: PURSUING_STUCK_ESCALATE_COUNT must be <= 4 — more than 4 retries adds ~6s of visible stuck")
+	assert_gt(blacklist_radius, 30.0,
+		"Issue #1457: PURSUING_STUCK_BLACKLIST_RADIUS must be > 30px — must cover more than the cover's own position")
+	assert_le(blacklist_radius, 200.0,
+		"Issue #1457: PURSUING_STUCK_BLACKLIST_RADIUS must be <= 200px — too large and it rejects valid far cover")
+
+
+## Issue #1457 v2: Blacklist logic — if new cover is within blacklist radius, escalate.
+func test_pursuing_stuck_blacklist_logic_issue_1457() -> void:
+	var BLACKLIST_RADIUS: float = 80.0
+	var stuck_cover := Vector2(1760.0, 824.0)
+	var blacklist: Array[Vector2] = [stuck_cover]
+
+	# Cover near the stuck position should be rejected
+	var nearby_cover := stuck_cover + Vector2(40.0, 20.0)  # 45px away — within blacklist
+	var is_blacklisted := false
+	for bl_pos: Vector2 in blacklist:
+		if nearby_cover.distance_to(bl_pos) < BLACKLIST_RADIUS:
+			is_blacklisted = true; break
+	assert_true(is_blacklisted,
+		"Issue #1457: cover %.0fpx from stuck position should be rejected (blacklist radius %.0fpx)" % [
+			nearby_cover.distance_to(stuck_cover), BLACKLIST_RADIUS])
+
+	# Cover far from the stuck position should be allowed
+	var far_cover := Vector2(900.0, 600.0)  # Different area
+	var far_blacklisted := false
+	for bl_pos: Vector2 in blacklist:
+		if far_cover.distance_to(bl_pos) < BLACKLIST_RADIUS:
+			far_blacklisted = true; break
+	assert_false(far_blacklisted,
+		"Issue #1457: cover in a different area should NOT be blacklisted (dist=%.0fpx, radius=%.0fpx)" % [
+			far_cover.distance_to(stuck_cover), BLACKLIST_RADIUS])

@@ -273,8 +273,8 @@ var _global_stuck_timer: float = 0.0; var _global_stuck_last_position: Vector2 =
 const GLOBAL_STUCK_MAX_TIME: float = 4.0; const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Max stuck time / min move distance  ## Issue #1173: restored 1.5→4.0; machete wall-escape is handled by MACHETE_COMBAT_STUCK_MAX_TIME
 var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1107: Stuck detection for machete COMBAT state
 const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
-var _pursuing_stuck_timer: float = 0.0; var _pursuing_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1457: Stuck detection for PURSUING state
-const PURSUING_STUCK_MAX_TIME: float = 1.5; const PURSUING_STUCK_DIST_THRESHOLD: float = 20.0  ## Issue #1457: Reroute after 1.5s stuck within 20px
+var _pursuing_stuck_timer: float = 0.0; var _pursuing_stuck_last_pos: Vector2 = Vector2.ZERO; var _pursuing_stuck_count: int = 0; var _pursuing_stuck_cover_blacklist: Array[Vector2] = []  ## Issue #1457
+const PURSUING_STUCK_MAX_TIME: float = 1.5; const PURSUING_STUCK_DIST_THRESHOLD: float = 20.0; const PURSUING_STUCK_BLACKLIST_RADIUS: float = 80.0; const PURSUING_STUCK_ESCALATE_COUNT: int = 2  ## Issue #1457
 var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
@@ -2184,62 +2184,41 @@ func _process_pursuing_state(delta: float) -> void:
 
 	# Check if we're waiting at cover
 	if _has_valid_cover and not _has_pursuit_cover:
-		# Currently at cover, wait for 1-2 seconds before moving to next cover
-		_pursuit_cover_wait_timer += delta
-		velocity = Vector2.ZERO
-
+		_pursuit_cover_wait_timer += delta; velocity = Vector2.ZERO
 		if _pursuit_cover_wait_timer >= PURSUIT_COVER_WAIT_DURATION:
-			# Done waiting, find next cover closer to player
-			_log_debug("Pursuit wait complete, finding next cover")
-			_pursuit_cover_wait_timer = 0.0
-			_find_pursuit_cover_toward_player()
-			if _has_pursuit_cover:
-				_log_debug("Found pursuit cover at %s" % _pursuit_next_cover)
-			else:
-				# No pursuit cover found - start approach phase if we can see player/companion
-				# Issue #934: also consider companion visibility
-				_log_debug("No pursuit cover found, checking fallback options")
-				if (_can_see_player and _player) or (_can_see_companion and _companion != null):
-					# Can see but can't hit (at last cover) - start approach phase
-					_log_debug("Can see target but can't hit, starting approach phase")
-					_pursuit_approaching = true
-					_pursuit_approach_timer = 0.0
-					return
-				# Try flanking if player not visible
-				if _can_attempt_flanking() and _player:
-					_log_debug("Attempting flanking maneuver")
-					_transition_to_flanking()
-					return
-				# Last resort: move directly toward player
-				_log_debug("No cover options, transitioning to COMBAT")
-				_transition_to_combat()
-				return
+			_pursuit_cover_wait_timer = 0.0; _find_pursuit_cover_toward_player()
+			if not _has_pursuit_cover:
+				if (_can_see_player and _player) or (_can_see_companion and _companion != null):  # Issue #934
+					_pursuit_approaching = true; _pursuit_approach_timer = 0.0; return
+				if _can_attempt_flanking() and _player: _transition_to_flanking(); return
+				_transition_to_combat(); return
 		return
 
 	# If we have a pursuit cover target, move toward it
 	if _has_pursuit_cover:
 		var distance: float = global_position.distance_to(_pursuit_next_cover)
-
-		# Check if we've reached the pursuit cover (distance only, not visibility)
 		if distance < 15.0:
-			_log_debug("Reached pursuit cover at distance %.1f" % distance)
-			_has_pursuit_cover = false
-			_pursuit_cover_wait_timer = 0.0
-			_cover_position = _pursuit_next_cover
-			_has_valid_cover = true
-			# Start waiting at this cover
-			return
-
-		# Use navigation-based pathfinding to move toward pursuit cover
-		_move_to_target_nav(_pursuit_next_cover, combat_move_speed)
-		# Corner checking during PURSUING (Issue #332)
+			_has_pursuit_cover = false; _pursuit_cover_wait_timer = 0.0
+			_cover_position = _pursuit_next_cover; _has_valid_cover = true; return
+		_move_to_target_nav(_pursuit_next_cover, combat_move_speed)  # Issue #332
 		if velocity.length_squared() > 1.0:
 			_process_corner_check(delta, velocity.normalized(), "PURSUING")
-		if global_position.distance_to(_pursuing_stuck_last_pos) < PURSUING_STUCK_DIST_THRESHOLD:  # Issue #1457: fast stuck detection
+		if global_position.distance_to(_pursuing_stuck_last_pos) < PURSUING_STUCK_DIST_THRESHOLD:  # Issue #1457
 			_pursuing_stuck_timer += delta
 			if _pursuing_stuck_timer >= PURSUING_STUCK_MAX_TIME:
-				_log_to_file("[#1457] PURSUING stuck (%.1fs) at %s, rerouting" % [_pursuing_stuck_timer, global_position]); _pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position
+				_pursuing_stuck_count += 1; _pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position
+				_log_to_file("[#1457] PURSUING stuck #%d at %s" % [_pursuing_stuck_count, global_position])
+				if _pursuit_next_cover != Vector2.ZERO: _pursuing_stuck_cover_blacklist.append(_pursuit_next_cover)
+				if _pursuing_stuck_count >= PURSUING_STUCK_ESCALATE_COUNT:  # Too many stucks: skip cover entirely
+					_has_pursuit_cover = false; _pursuing_stuck_cover_blacklist.clear(); _pursuing_stuck_count = 0
+					if _can_attempt_flanking() and _player: _transition_to_flanking()
+					else: _transition_to_combat()
+					return
 				_find_pursuit_cover_toward_player()
+				if _has_pursuit_cover:  # Reject new cover if it's still in the blacklist zone
+					for bl_pos: Vector2 in _pursuing_stuck_cover_blacklist:
+						if _pursuit_next_cover.distance_to(bl_pos) < PURSUING_STUCK_BLACKLIST_RADIUS:
+							_has_pursuit_cover = false; _pursuing_stuck_cover_blacklist.clear(); _pursuing_stuck_count = 0; break
 				if not _has_pursuit_cover:
 					if _can_attempt_flanking() and _player: _transition_to_flanking()
 					else: _transition_to_combat()
@@ -2809,7 +2788,7 @@ func _transition_to_pursuing() -> void:
 	# Reset global stuck detection (Issue #367)
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
-	_pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position  ## Issue #1457: Reset PURSUING stuck detection
+	_pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position; _pursuing_stuck_count = 0; _pursuing_stuck_cover_blacklist.clear()  ## Issue #1457: Reset PURSUING stuck detection
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
