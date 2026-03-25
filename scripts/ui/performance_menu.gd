@@ -29,8 +29,55 @@ signal back_pressed
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
 
+## Semi-transparent background colour drawn over a settings row on hover (Issue #1461).
+const ROW_HOVER_BG: Color = Color(1.0, 1.0, 1.0, 0.08)
+
+## Tracks which Control nodes currently have a hover background drawn on them.
+var _row_hover_bg: Dictionary = {}
+
 
 func _ready() -> void:
+	# Setup tooltips, hover highlight, and label behaviour for settings rows (Issue #1461)
+	var _vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_setup_row_hover(_vbox.get_node("ParticlesContainer"),
+			"Particle Effects",
+			_vbox.get_node("ParticlesDescription"))
+	_setup_row_hover(_vbox.get_node("BloodDecalsContainer"),
+			"Blood Decals on Floor/Walls",
+			_vbox.get_node("BloodDecalsDescription"))
+	_setup_row_hover(_vbox.get_node("ScreenShakeContainer"),
+			"Screen Shake",
+			_vbox.get_node("ScreenShakeDescription"))
+	_setup_row_hover(_vbox.get_node("ExplosionLightsContainer"),
+			"Explosion/Flashbang Lights",
+			_vbox.get_node("ExplosionLightsDescription"))
+	_setup_row_hover(_vbox.get_node("WallHitParticlesContainer"),
+			"Wall Hit Particles",
+			_vbox.get_node("WallHitParticlesDescription"))
+	_setup_row_hover(_vbox.get_node("AIContainer"),
+			"Enemy AI",
+			_vbox.get_node("AIDescription"))
+	_setup_row_hover(_vbox.get_node("AIIdleContainer"),
+			"AI: IDLE state (patrol/guard scan)")
+	_setup_row_hover(_vbox.get_node("AICombatContainer"),
+			"AI: COMBAT state (peek, shoot, return)")
+	_setup_row_hover(_vbox.get_node("AISeekingCoverContainer"),
+			"AI: SEEKING_COVER state (pathfind to cover)")
+	_setup_row_hover(_vbox.get_node("AIInCoverContainer"),
+			"AI: IN_COVER state (wait and peek)")
+	_setup_row_hover(_vbox.get_node("AIFlankingContainer"),
+			"AI: FLANKING state (flank movement)")
+	_setup_row_hover(_vbox.get_node("AISuppressedContainer"),
+			"AI: SUPPRESSED state (pinned under fire)")
+	_setup_row_hover(_vbox.get_node("AIRetreatingContainer"),
+			"AI: RETREATING state (fall back to cover)")
+	_setup_row_hover(_vbox.get_node("AIPursuingContainer"),
+			"AI: PURSUING state (cover-to-cover advance)")
+	_setup_row_hover(_vbox.get_node("AIAssaultContainer"),
+			"AI: ASSAULT state (coordinated rush)")
+	_setup_row_hover(_vbox.get_node("AISearchingContainer"),
+			"AI: SEARCHING state (hunt last known position)")
+
 	# Connect checkbox signals
 	particles_checkbox.toggled.connect(_on_particles_toggled)
 	blood_decals_checkbox.toggled.connect(_on_blood_decals_toggled)
@@ -183,3 +230,59 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _on_back_pressed() -> void:
 	back_pressed.emit()
+
+
+## Draw the hover background rect for a registered row node.
+func _draw_row_bg(node: Control) -> void:
+	if _row_hover_bg.get(node, false):
+		node.draw_rect(Rect2(Vector2.ZERO, node.size), ROW_HOVER_BG)
+
+
+## Setup tooltip, hover highlight, and label behaviour for a settings row (Issue #1461).
+## @param container   The HBoxContainer that holds the label + interactive control.
+## @param tooltip     Short name shown in the tooltip and applied to all child nodes.
+## @param description Optional sibling Label with the long description text.
+##                    When provided it receives the same tooltip, hover highlight,
+##                    and click-forwarding as the main container.
+func _setup_row_hover(container: Control, tooltip: String,
+		description: Control = null) -> void:
+	container.tooltip_text = tooltip
+	container.mouse_filter = Control.MOUSE_FILTER_STOP
+	for child in container.get_children():
+		if child is Control:
+			child.tooltip_text = tooltip
+	_row_hover_bg[container] = false
+	container.draw.connect(_draw_row_bg.bind(container))
+	container.mouse_entered.connect(_on_row_hovered.bind(container, description, true))
+	container.mouse_exited.connect(_on_row_hovered.bind(container, description, false))
+	container.gui_input.connect(_on_row_gui_input.bind(container))
+	if description != null:
+		description.tooltip_text = tooltip
+		description.mouse_filter = Control.MOUSE_FILTER_STOP
+		_row_hover_bg[description] = false
+		description.draw.connect(_draw_row_bg.bind(description))
+		description.mouse_entered.connect(_on_row_hovered.bind(container, description, true))
+		description.mouse_exited.connect(_on_row_hovered.bind(container, description, false))
+		description.gui_input.connect(_on_row_gui_input.bind(container))
+
+
+## Apply or remove hover background on the row container and its description label.
+func _on_row_hovered(container: Control, description: Control,
+		hovered: bool) -> void:
+	_row_hover_bg[container] = hovered
+	container.queue_redraw()
+	if description != null:
+		_row_hover_bg[description] = hovered
+		description.queue_redraw()
+
+
+## Forward a left-click on the row container to the first interactive control inside.
+func _on_row_gui_input(event: InputEvent, container: Control) -> void:
+	if event is InputEventMouseButton \
+			and event.button_index == MOUSE_BUTTON_LEFT \
+			and event.pressed:
+		for child in container.get_children():
+			if child is CheckButton:
+				child.button_pressed = not child.button_pressed
+				container.accept_event()
+				return
