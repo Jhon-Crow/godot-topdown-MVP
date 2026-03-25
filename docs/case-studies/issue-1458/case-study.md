@@ -56,32 +56,34 @@ Key correlations between FPS drops and search activity (from `game_log_20260324_
 
 The first approach staggered NavigationAgent2D path queries across frames using `SEARCH_NAV_UPDATE_INTERVAL = 3`, reducing queries from 20/frame to ~7/frame. However, **this was insufficient** — FPS still dropped to 19-20 fps (log `game_log_20260325_140936.txt` shows sustained 20 fps from 14:10:05 to 14:10:29). Each enemy still independently generated its own spiral waypoints and computed its own paths.
 
-### Iteration 2 (Current): SharedSearchPath — One Path For All Searchers
+### Iteration 2 (Reverted): SharedSearchPath — One Path For All Searchers
 
 The owner requested: *"сделай чтоб для всех участников поиска создавался один путь поиска"* (create one search path for all search participants).
 
-**Architecture**: New `SharedSearchPath` autoload generates ONE shared set of waypoints. All searching enemies claim the nearest unclaimed waypoint from this shared pool.
+**Architecture**: `SharedSearchPath` autoload generated ONE shared set of waypoints with a claim system. All searching enemies claimed the nearest unclaimed waypoint from this shared pool.
+
+**Outcome**: **FPS dropped further** (worse than before). Feedback: *"просадка fps ещё больше стала"* (FPS drop became even larger). The claim system, centralized zone tracking, spiral generation, and per-frame claim lookups added overhead rather than reducing it.
+
+**Root cause of failure**: The centralized approach introduced new per-frame overhead (claim lookups, zone dictionary access, spiral generation on expansion) that outweighed the savings from shared waypoints. The real problem is simply having too many enemies in SEARCHING state at all.
+
+### Iteration 3 (Current): Slot Limiter — Maximum 2 Simultaneous Searchers
+
+The owner requested: *"используй самый простой и оптимальный способ реализовать поиск. (например чтоб 1-2 врага максимум учавствовали в поиске) в общем делай максимально оптимизированный вариант"* (use the simplest/most optimal way — max 1-2 enemies searching).
+
+**Architecture**: `SharedSearchPath` autoload is replaced with a minimal slot limiter (42 lines). Max `MAX_SEARCHERS = 2` enemies can hold SEARCHING slots at any time. Excess enemies trying to enter SEARCHING go to IDLE instead.
 
 ```gdscript
-# SharedSearchPath autoload — centralized waypoint management
-func register_searcher(enemy_id: int, center_position: Vector2) -> int
-func claim_nearest(enemy_id: int, from_pos: Vector2) -> int
-func complete_waypoint(enemy_id: int, wp_idx: int, enemy_pos: Vector2) -> int
-func is_nav_update_frame(enemy_id: int) -> bool  # stagger interval = 6
+# SharedSearchPath autoload — minimal slot limiter
+const MAX_SEARCHERS: int = 2
+func try_acquire(enemy_id: int) -> bool  # true = slot granted, false = go IDLE
+func release(enemy_id: int) -> void       # free slot on SEARCHING exit/death/tree exit
+func get_active_count() -> int
+func is_active(enemy_id: int) -> bool
 ```
 
-**Enemy-side simplification** (removed 150+ lines from enemy.gd):
-- Removed: `_generate_search_waypoints()`, `_load_predefined_search_path()`, `_is_waypoint_navigable()`, `_get_zone_key()`, `_is_zone_visited()`, `_mark_zone_visited()`
-- Removed: 12 per-enemy search state variables (spiral state, zone tracking, etc.)
-- Added: `_search_claimed_wp` — single int pointing to claimed waypoint in shared pool
+**Per-enemy search logic is fully preserved** (spiral waypoints, predefined paths, zone tracking, stagger) — it works fine for 1-2 enemies.
 
-**Key optimizations**:
-1. Waypoint generation happens ONCE centrally (not per-enemy)
-2. NavigationServer2D navigability checks happen ONCE per waypoint (not per-enemy)
-3. Nav stagger interval increased from 3 to 6 frames (shared path needs fewer updates)
-4. Enemies spread out naturally via claim system (no overlapping search areas)
-5. Zone tracking is centralized (visited zones shared across all enemies)
-6. Integer zone keys (no string allocation, same formula: `gx * 100003 + gy`)
+**Key insight**: With only 2 searchers active, total nav queries drop from 20/frame to ≤2/frame — a 10x reduction, regardless of stagger. This is the simplest possible approach with maximum effect.
 
 ## Evidence from Game Logs
 
@@ -101,17 +103,16 @@ func is_nav_update_frame(enemy_id: int) -> bool  # stagger interval = 6
 | 14:10:07   | 19   | Sustained searching — **still too many queries**  |
 | 14:10:10-29| **19-20** | 20 seconds of sustained 20fps — stagger alone is not enough |
 
-**Conclusion**: Per-enemy staggering reduced queries by 3x but FPS still dropped from ~57 to 20. The shared path approach eliminates redundant work entirely.
+## Expected Performance Improvement (Slot Limiter)
 
-## Expected Performance Improvement (Shared Path)
-
-| Metric                          | Before (per-enemy) | Stagger-only | Shared Path      |
-|---------------------------------|---------------------|--------------|------------------|
-| Waypoint generators             | 20                  | 20           | **1**            |
-| Nav queries/frame               | 20                  | ~7           | **~3** (interval=6) |
-| NavigationServer2D checks/expansion | 20x100=2000    | 2000         | **100** (once)   |
-| Zone tracking dictionaries      | 20                  | 20           | **1**            |
-| enemy.gd lines                  | 4999                | 4999         | **4887** (-112)  |
+| Metric                          | Before (per-enemy) | Stagger-only | Shared Path (iter 2) | **Slot Limiter (iter 3)** |
+|---------------------------------|---------------------|--------------|----------------------|---------------------------|
+| Active searchers                | 20                  | 20           | 20                   | **2**                     |
+| Waypoint generators             | 20                  | 20           | 1 (but heavier)      | **2** (lightweight)       |
+| Nav queries/frame               | 20                  | ~7           | ~3 (but more overhead) | **≤2**                  |
+| NavigationServer2D checks/expansion | 20x100=2000    | 2000         | 100                  | **2x100=200**             |
+| SharedSearchPath overhead/frame | 0                   | 0            | high (claims+zones)  | **minimal (dict lookup)** |
+| enemy.gd lines                  | 4999                | 4999         | 4887                 | **5000**                  |
 
 ## References
 

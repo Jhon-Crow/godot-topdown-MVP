@@ -276,18 +276,31 @@ const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIS
 var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
+var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 100.0  ## Search center / current radius (Search State - Issue #322)
+const SEARCH_INITIAL_RADIUS: float = 100.0; const SEARCH_RADIUS_EXPANSION: float = 75.0  ## Initial radius / radius expansion
+const SEARCH_MAX_RADIUS: float = 2000.0  ## Max radius before relocating center (Issue #405: search continues indefinitely)
+var _search_waypoints: Array[Vector2] = []  ## Search waypoints
+var _search_current_waypoint_index: int = 0  ## Current waypoint index
 var _search_scan_timer: float = 0.0  ## Timer for scanning at waypoint
 const SEARCH_SCAN_DURATION: float = 1.0  ## Seconds to scan at each waypoint
 var _search_state_timer: float = 0.0  ## Total time in SEARCHING state
 const SEARCH_MAX_DURATION: float = 30.0  ## Max time searching before idle
+var _search_direction: int = 0  ## Direction: 0=N, 1=E, 2=S, 3=W
+var _search_leg_length: float = 50.0  ## Current leg length for spiral
+var _search_legs_completed: int = 0  ## Legs completed in pattern
 const SEARCH_WAYPOINT_REACHED_DISTANCE: float = 20.0  ## Waypoint reached threshold
 var _search_moving_to_waypoint: bool = true  ## Moving (vs scanning)
+const SEARCH_WAYPOINT_SPACING: float = 75.0  ## Spacing between waypoints
+var _search_visited_zones: Dictionary = {}  ## Tracks visited positions (key=snapped pos, val=true)
+const SEARCH_ZONE_SNAP_SIZE: float = 50.0  ## Grid size for snapping positions to zones
 var _search_stuck_timer: float = 0.0  ## Stuck timer (Issue #354: Stuck detection for SEARCHING)
 var _search_last_progress_position: Vector2 = Vector2.ZERO  ## Last progress pos
 const SEARCH_STUCK_MAX_TIME: float = 0.8  ## Max stuck time (#1249: 2.0→0.8 s, faster skip of blocked search waypoints)
 const SEARCH_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
 var _has_left_idle: bool = false  ## Issue #330: Never returns to IDLE
-var _search_claimed_wp: int = -1  ## Issue #1458: index of claimed waypoint in SharedSearchPath
+var _search_path_node: Node2D = null  ## SearchPathWaypoints node cache (Issue #1225)
+var _using_predefined_search_path: bool = false  ## Using predefined path instead of spiral (Issue #1225)
+var _search_nav_frame_counter: int = 0; var _search_nav_frame_offset: int = 0; const SEARCH_NAV_UPDATE_INTERVAL: int = 3  ## Issue #1458: stagger nav updates (~20fps at 60fps physics)
 var _search_cached_nav_target: Vector2 = Vector2.ZERO  ## Issue #1458: cached nav target to skip redundant path queries
 const CLOSE_COMBAT_DISTANCE: float = 400.0  ## Close combat threshold
 var _goap_world_state: Dictionary = {}  ## GOAP world state
@@ -382,6 +395,8 @@ func _ready() -> void:
 	add_to_group("enemies")
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
+	# Issue #1458: Stagger search nav updates across enemies to avoid simultaneous pathfinding spikes.
+	_search_nav_frame_offset = get_instance_id() % SEARCH_NAV_UPDATE_INTERVAL
 	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
 
 	# Issue #934: Initialize BFF companion targeting component
@@ -575,7 +590,7 @@ func _unregister_sound_listener() -> void:
 
 ## Unregister from SoundPropagation on scene change / node removal (Issue #1163: FPS fix). Prevents stale listener accumulation across level reloads.
 func _exit_tree() -> void:
-	SharedSearchPath.unregister_searcher(get_instance_id())  # Issue #1458: cleanup shared search on exit
+	if _current_state == AIState.SEARCHING: SharedSearchPath.release(get_instance_id())  # Issue #1458: free search slot on exit
 	_unregister_sound_listener()
 
 ## Called by SoundPropagation when a sound is heard. Delegates to on_sound_heard_with_intensity.
@@ -1382,7 +1397,7 @@ func _process_ai_state(delta: float) -> void:
 		AIState.EVADING_GRENADE: _process_evading_grenade_state(delta)
 		AIState.PACIFIST: _process_pacifist_state(delta)
 	if previous_state != _current_state:
-		if previous_state == AIState.SEARCHING: SharedSearchPath.unregister_searcher(get_instance_id())  # Issue #1458: cleanup shared search on state exit
+		if previous_state == AIState.SEARCHING: SharedSearchPath.release(get_instance_id())  # Issue #1458: free slot on SEARCHING exit
 		state_changed.emit(_current_state)
 		_log_debug("State changed: %s -> %s" % [AIState.keys()[previous_state], AIState.keys()[_current_state]])
 		# Also log to file for exported build debugging
@@ -2279,59 +2294,155 @@ func _process_assault_state(_delta: float) -> void:
 	_assault_ready = false
 	_transition_to_combat()
 
-## Process SEARCHING state - shared path (#1458: one path for all searchers, #322, #330: engaged enemies search infinitely).
+## Load predefined search waypoints from SearchPathWaypoints node (Issue #1225). Returns true if loaded.
+func _load_predefined_search_path(_near_pos: Vector2) -> bool:
+	if _search_path_node == null or not is_instance_valid(_search_path_node):
+		if search_path_node != NodePath(""): _search_path_node = get_node_or_null(search_path_node)
+		if _search_path_node == null:
+			var found := get_tree().get_nodes_in_group("search_path_waypoints")
+			if found.size() > 0: _search_path_node = found[0]
+	if _search_path_node == null: return false
+	var wps: Array[Vector2] = []
+	for c in _search_path_node.get_children():
+		if c is Marker2D: wps.append(c.global_position)
+	if wps.is_empty(): return false
+	var si := 0; var md := INF
+	for i in range(wps.size()):
+		var d := global_position.distance_to(wps[i])
+		if d < md: md = d; si = i
+	_search_waypoints.clear(); _search_current_waypoint_index = 0
+	for i in range(wps.size()): _search_waypoints.append(wps[(si + i) % wps.size()])
+	_log_debug("SEARCHING: Loaded %d predefined waypoints (start=%d)" % [_search_waypoints.size(), si])
+	return true
+
+## Generate search waypoints in expanding square spiral (Issue #322). Skips visited zones.
+func _generate_search_waypoints() -> void:
+	_search_waypoints.clear()
+	_search_current_waypoint_index = 0
+	_search_direction = 0
+	_search_leg_length = SEARCH_WAYPOINT_SPACING
+	_search_legs_completed = 0
+	if not _is_zone_visited(_search_center):
+		_search_waypoints.append(_search_center)
+	var current_pos := _search_center
+	var waypoints_generated := _search_waypoints.size()
+	var iters := 0
+	while waypoints_generated < 20 and _search_leg_length <= _search_radius * 2 and iters < 100:
+		iters += 1
+		var offset := Vector2.ZERO
+		match _search_direction:
+			0: offset = Vector2(0, -_search_leg_length)
+			1: offset = Vector2(_search_leg_length, 0)
+			2: offset = Vector2(0, _search_leg_length)
+			3: offset = Vector2(-_search_leg_length, 0)
+		var next_pos := current_pos + offset
+		if _is_waypoint_navigable(next_pos) and not _is_zone_visited(next_pos):
+			_search_waypoints.append(next_pos)
+			waypoints_generated += 1
+		current_pos = next_pos
+		_search_legs_completed += 1
+		_search_direction = (_search_direction + 1) % 4
+		if _search_legs_completed % 2 == 0:
+			_search_leg_length += SEARCH_WAYPOINT_SPACING
+	_log_debug("Generated %d unvisited waypoints (radius=%.0f, visited=%d)" % [_search_waypoints.size(), _search_radius, _search_visited_zones.size()])
+
+## Check if position is navigable via NavigationServer2D.
+func _is_waypoint_navigable(pos: Vector2) -> bool:
+	var nav_map := get_world_2d().navigation_map
+	var closest := NavigationServer2D.map_get_closest_point(nav_map, pos)
+	return pos.distance_to(closest) < 50.0
+
+## Zone tracking helpers for visited areas (Issue #322): snaps to 50px grid.
+## Issue #1458: Use integer key instead of string formatting — avoids GC pressure from string allocations.
+func _get_zone_key(pos: Vector2) -> int: return int(pos.x / SEARCH_ZONE_SNAP_SIZE) * 100003 + int(pos.y / SEARCH_ZONE_SNAP_SIZE)  ## Issue #1458: int key (no String alloc)
+func _is_zone_visited(pos: Vector2) -> bool: return _search_visited_zones.has(_get_zone_key(pos))
+func _mark_zone_visited(pos: Vector2) -> void:
+	var k := _get_zone_key(pos)
+	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone (%d,%d) as visited (total: %d)" % [int(pos.x / SEARCH_ZONE_SNAP_SIZE), int(pos.y / SEARCH_ZONE_SNAP_SIZE), _search_visited_zones.size()])
+
+## Process SEARCHING state - waypoint scanning (#322, #330: engaged enemies search infinitely).
 func _process_searching_state(delta: float) -> void:
 	_search_state_timer += delta
-	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle:  # #330: timeout for patrol enemies only
+	# Issue #330: Only timeout for patrol enemies; engaged enemies search infinitely
+	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle:
 		_log_to_file("SEARCHING timeout after %.1fs, returning to IDLE (patrol enemy)" % _search_state_timer)
-		SharedSearchPath.unregister_searcher(get_instance_id()); _transition_to_idle(); return
+		_transition_to_idle()
+		return
 	if _can_see_player:
 		_log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
-		SharedSearchPath.unregister_searcher(get_instance_id()); _transition_to_combat(); return
-	# Issue #1458: Get target from shared search path (one path for all searchers)
-	if _search_claimed_wp < 0:
-		_search_claimed_wp = SharedSearchPath.claim_nearest(get_instance_id(), global_position)
-		if _search_claimed_wp < 0:
-			if _has_left_idle: _search_claimed_wp = SharedSearchPath.complete_waypoint(get_instance_id(), -1, global_position)  # triggers expansion
-			if _search_claimed_wp < 0: SharedSearchPath.unregister_searcher(get_instance_id()); _transition_to_idle(); return
-		_search_moving_to_waypoint = true
-	var target_waypoint := SharedSearchPath.get_waypoint(_search_claimed_wp)
+		_transition_to_combat()
+		return
+	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
+		if _using_predefined_search_path and not _search_waypoints.is_empty():  # Issue #1225: loop predefined path
+			_search_current_waypoint_index = 0; _search_moving_to_waypoint = true; return
+		if _search_radius < SEARCH_MAX_RADIUS:
+			_search_radius += SEARCH_RADIUS_EXPANSION
+			_generate_search_waypoints()
+			_log_to_file("SEARCHING: Expand outer ring r=%.0f wps=%d" % [_search_radius, _search_waypoints.size()])
+			if _search_waypoints.is_empty() and _search_radius < SEARCH_MAX_RADIUS:
+				return
+		else:
+			if _has_left_idle:  # Issue #330/#405: Engaged enemy - move center, clear old zones, continue searching
+				var old_center := _search_center; _search_center = global_position
+				_search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0
+				# Issue #405: Clear visited zones to allow exploring new areas
+				_search_visited_zones.clear()
+				_generate_search_waypoints()
+				_log_to_file("SEARCHING: Max radius reached, relocated center %s->%s, cleared zones (wps=%d)" % [old_center, _search_center, _search_waypoints.size()])
+				return
+			_log_to_file("SEARCHING: Max radius, returning to IDLE (patrol enemy)")
+			_transition_to_idle(); return
+	if _search_waypoints.is_empty():
+		if _using_predefined_search_path:  # Issue #1225: reload predefined path
+			_using_predefined_search_path = _load_predefined_search_path(_search_center)
+			if _using_predefined_search_path: return
+		if _has_left_idle:  # Issue #330/#405: Regenerate from current position, clear old zones
+			var old := _search_center; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS
+			# Issue #405: Clear visited zones to allow exploring new areas
+			_search_visited_zones.clear()
+			_generate_search_waypoints()
+			_log_to_file("SEARCHING: No waypoints, relocated center %s->%s, cleared zones (wps=%d)" % [old, _search_center, _search_waypoints.size()])
+			return
+		_transition_to_idle(); return
+	var target_waypoint := _search_waypoints[_search_current_waypoint_index]
 	var dist := global_position.distance_to(target_waypoint)
 	if _search_moving_to_waypoint:
 		if dist <= SEARCH_WAYPOINT_REACHED_DISTANCE:
 			_search_moving_to_waypoint = false; _search_scan_timer = 0.0; _search_stuck_timer = 0.0
-			_log_debug("SEARCHING: Reached shared wp %d, scanning..." % _search_claimed_wp)
+			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
-			if SharedSearchPath.is_nav_update_frame(get_instance_id()) or _search_cached_nav_target.distance_squared_to(target_waypoint) > 1.0:
+			_search_nav_frame_counter += 1  # Issue #1458: stagger nav updates to avoid simultaneous pathfinding spikes
+			var is_nav_update_frame := (_search_nav_frame_counter % SEARCH_NAV_UPDATE_INTERVAL) == _search_nav_frame_offset
+			if is_nav_update_frame or _search_cached_nav_target.distance_squared_to(target_waypoint) > 1.0:
 				_search_cached_nav_target = target_waypoint; _nav_agent.target_position = target_waypoint
 			if _nav_agent.is_navigation_finished():
-				_search_claimed_wp = SharedSearchPath.complete_waypoint(get_instance_id(), _search_claimed_wp, global_position)
+				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
 			else:
 				var next_pos := _nav_agent.get_next_path_position()
 				var dir := (next_pos - global_position).normalized()
-				if _tactical_movement and _tactical_movement.check_and_yield(target_waypoint, move_speed * 0.7, get_physics_process_delta_time()):
+				if _tactical_movement and _tactical_movement.check_and_yield(target_waypoint, move_speed * 0.7, get_physics_process_delta_time()):  # #1249: yield in SEARCHING too
 					velocity = Vector2.ZERO; move_and_slide(); _push_casings(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; return
-				var _sv := dir * move_speed * 0.7; if _nav_agent and _nav_agent.avoidance_enabled: _nav_agent.set_velocity(_sv)
+				var _sv := dir * move_speed * 0.7; if _nav_agent and _nav_agent.avoidance_enabled: _nav_agent.set_velocity(_sv)  # #1249: ORCA for searching
 				velocity = (_avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else _sv) if (_nav_agent and _nav_agent.avoidance_enabled) else _sv
-				move_and_slide(); _push_casings()
-				var progress := global_position.distance_to(_search_last_progress_position)
+				move_and_slide(); _push_casings()  # Issue #341
+				var progress := global_position.distance_to(_search_last_progress_position)  # #354: Stuck detection
 				if progress < SEARCH_PROGRESS_THRESHOLD:
 					_search_stuck_timer += delta
-					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:
-						_log_to_file("SEARCHING: Stuck at shared wp %d, skipping" % _search_claimed_wp)
-						_search_claimed_wp = SharedSearchPath.complete_waypoint(get_instance_id(), _search_claimed_wp, global_position)
+					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:  # Stuck - skip waypoint
+						_log_to_file("SEARCHING: Stuck at wp %d, skipping" % _search_current_waypoint_index)
+						_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0; _search_last_progress_position = global_position; return
 				else: _search_stuck_timer = 0.0; _search_last_progress_position = global_position
 				if dir.length() > 0.1:
 					_rotate_body_toward(dir.angle(), delta)
-					_process_corner_check(delta, dir, "SEARCHING")
+					_process_corner_check(delta, dir, "SEARCHING")  # Issue #332
 	else:
 		_search_scan_timer += delta; rotation += delta * 1.5 * (_shield_component.get_rotation_multiplier() if _shield_component and _shield_component.is_active() else 1.0)
 		if _search_scan_timer >= SEARCH_SCAN_DURATION:
-			_search_claimed_wp = SharedSearchPath.complete_waypoint(get_instance_id(), _search_claimed_wp, global_position)
+			_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 			_search_moving_to_waypoint = true
-			_log_debug("SEARCHING: Scan done, claiming next shared wp")
+			_log_debug("SEARCHING: Scan done, next wp %d" % _search_current_waypoint_index)
 
 ## Process EVADING_GRENADE state - flee to guaranteed safe distance (Issue #407, #426).
 func _process_evading_grenade_state(delta: float) -> void:
@@ -2538,7 +2649,7 @@ func _shoot_burst_shot() -> void:
 func _transition_to_idle() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings")
 	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
-		_transition_to_searching(global_position); return  # Issue #1186: IDLE disabled -> stay in SEARCHING via shared path
+		_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _search_nav_frame_counter = 0; _search_cached_nav_target = Vector2.ZERO; _generate_search_waypoints(); return  # Issue #1458: reset nav cache
 	_current_state = AIState.IDLE
 	# Reset various state tracking when returning to idle
 	_hits_taken_in_encounter = 0; _in_alarm_mode = false; _cover_burst_pending = false
@@ -2719,17 +2830,19 @@ func _transition_to_assault() -> void:
 
 func _transition_to_searching(center_position: Vector2) -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_searching_enabled(): _transition_to_idle(); return  # Issue #1186
+	if not SharedSearchPath.try_acquire(get_instance_id()): _log_to_file("SEARCHING denied: slot limit reached, going IDLE"); _transition_to_idle(); return  # Issue #1458: cap simultaneous searchers
 	_current_state = AIState.SEARCHING
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
-	# Issue #921: Do NOT set _has_left_idle = true here; let it retain whatever value it had.
-	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_moving_to_waypoint = true
-	# Issue #354: Initialize stuck detection. #1249: clear yield on SEARCHING entry.
-	_search_stuck_timer = 0.0; _search_last_progress_position = global_position; if _tactical_movement: _tactical_movement.reset_yield()
-	_search_cached_nav_target = Vector2.ZERO
-	# Issue #1458: Register with SharedSearchPath (one path for all searchers)
-	_search_claimed_wp = SharedSearchPath.register_searcher(get_instance_id(), center_position)
-	_log_debug("SEARCHING started (shared): center=%s, claimed_wp=%d" % [center_position, _search_claimed_wp])
-	_log_to_file("SEARCHING started (shared): center=%s, claimed_wp=%d" % [center_position, _search_claimed_wp])
+	_search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS  # Issue #921: retain _has_left_idle
+	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
+	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
+	_search_moving_to_waypoint = true; _search_visited_zones.clear()
+	_search_stuck_timer = 0.0; _search_last_progress_position = global_position; if _tactical_movement: _tactical_movement.reset_yield()  # Issue #354 #1249
+	_search_nav_frame_counter = 0; _search_cached_nav_target = Vector2.ZERO  # Issue #1458: reset nav cache
+	_using_predefined_search_path = _load_predefined_search_path(center_position)  # Issue #1225
+	if not _using_predefined_search_path: _generate_search_waypoints()
+	var msg := "SEARCHING started (%s): center=%s, radius=%.0f, waypoints=%d" % ["predefined" if _using_predefined_search_path else "spiral", _search_center, _search_radius, _search_waypoints.size()]
+	_log_debug(msg); _log_to_file(msg)
 
 ## Transition to EVADING_GRENADE state - flee from grenade danger zone (Issue #407).
 func _transition_to_evading_grenade() -> void:
@@ -4267,7 +4380,7 @@ func _notify_nearby_enemies_of_death() -> void:
 ## Called when the enemy dies.
 func _on_death() -> void:
 	_is_alive = false
-	SharedSearchPath.unregister_searcher(get_instance_id())  # Issue #1458: cleanup shared search on death
+	if _current_state == AIState.SEARCHING: SharedSearchPath.release(get_instance_id())  # Issue #1458: free search slot on death
 	if _invisibility and _invisibility.is_cloaked: _invisibility.remove()  # Issue #1121: reveal enemy on death
 	_log_to_file("Enemy died (ricochet: %s, penetration: %s, player_kill: %s)" % [_killed_by_ricochet, _killed_by_penetration, _killed_by_player])
 	died.emit()
@@ -4460,9 +4573,9 @@ func _update_debug_label() -> void:
 func get_current_state() -> AIState: return _current_state
 func get_goap_world_state() -> Dictionary: return _goap_world_state.duplicate()
 ## Returns a copy of the active search waypoints (Issue #1251: used by SearchPathMonitor for visualization).
-func get_search_waypoints() -> Array[Vector2]: return SharedSearchPath.get_all_waypoints()  ## Issue #1458: shared path
-## Returns the current claimed waypoint index (Issue #1458: shared path).
-func get_search_current_waypoint_index() -> int: return _search_claimed_wp
+func get_search_waypoints() -> Array[Vector2]: return _search_waypoints.duplicate()
+## Returns the current search waypoint index (Issue #1251: used by SearchPathMonitor for visualization).
+func get_search_current_waypoint_index() -> int: return _search_current_waypoint_index
 ## Returns the current NavigationAgent2D computed path in global coordinates (Issue #1277: used by EnemyPathMonitor for visualization).
 ## Returns an empty array if the navigation agent is unavailable or no path is computed.
 func get_nav_path() -> PackedVector2Array:
