@@ -56,6 +56,40 @@ All four use the same `enemy.gd` script and had `collision_mask = 6`. This remov
 - Wall avoidance raycasts, corner escape logic — all unchanged
 - `HitArea` collision — unchanged (layer 2, mask 16 for projectiles)
 
+## Update: Fast Corner Escape Fix (v2)
+
+### Owner Feedback
+
+The owner reported the problem persists even after removing enemy-enemy collision (`collision_mask = 4`). The v1 fix helps the multi-enemy pileup case but does not address the single-enemy physics wedge at concave wall corners.
+
+### Game Log Analysis
+
+A new game log (`game_log_20260325_064110.txt`) was analyzed. The log covers approximately 12 seconds of combat, showing Enemy2 in PURSUING state making multiple corner checks without becoming fully stuck during that window. This indicates the stuck condition is intermittent and timing-dependent — the log was too short to capture the 4s (or 20s experimental) global stuck timer firing.
+
+### Root Cause for Single-Enemy Corner Stuck
+
+When a single enemy navigates a concave 90° wall corner while pursuing cover, `move_and_slide()` can wedge it physically. The existing recovery mechanism, `_global_stuck_timer`, fires at:
+- **4s** (default setting)
+- **20s** (experimental setting currently in use)
+
+Both thresholds are too slow for responsive corner recovery during active pursuit. The enemy remains wedged and unresponsive for an unacceptable duration before the global timer finally triggers a recovery.
+
+### Fix
+
+Added a **fast corner escape** block inside the `_has_pursuit_cover` section of `_process_pursuing_state` in `enemy.gd` (after the `_move_to_target_nav` call, before corner checking):
+
+- When `_global_stuck_timer > 2.0` AND the enemy is still more than 30px from its destination:
+  - Accumulate collision normals from all current `move_and_slide()` contacts
+  - Reset the stuck timer and last-known position
+  - If valid collision normals exist: apply escape velocity at `2x combat_move_speed` along the averaged normal direction
+  - If no collision normals (obstacle is not a physics body): abandon the current cover target (`_has_pursuit_cover = false`) so a new cover is selected
+
+This check fires at 2 seconds of being stuck — well before the global 4s or 20s timer — and is scoped only to the pursuit-cover navigation phase where corner wedging occurs.
+
+### Lines Added
+
+6 lines added to `enemy.gd` (file was at 4991/5000 limit; now at 4997 effective code lines, within the ≤5000 CI limit).
+
 ## References
 
 - [Godot docs: CharacterBody2D collision](https://docs.godotengine.org/en/stable/classes/class_characterbody2d.html)

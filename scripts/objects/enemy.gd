@@ -2230,6 +2230,13 @@ func _process_pursuing_state(delta: float) -> void:
 
 		# Use navigation-based pathfinding to move toward pursuit cover
 		_move_to_target_nav(_pursuit_next_cover, combat_move_speed)
+		# Issue #1357: Fast corner escape — if stuck >2s while pursuing cover, apply escape velocity or abandon cover
+		if _global_stuck_timer > 2.0 and distance > 30.0:
+			var _n: Vector2 = Vector2.ZERO
+			for _i: int in range(get_slide_collision_count()): _n += get_slide_collision(_i).get_normal()
+			_global_stuck_timer = 0.0; _global_stuck_last_position = global_position
+			if _n.length_squared() > 0.01: velocity = _n.normalized() * combat_move_speed * 2.0
+			else: _has_pursuit_cover = false
 		# Corner checking during PURSUING (Issue #332)
 		if velocity.length_squared() > 1.0:
 			_process_corner_check(delta, velocity.normalized(), "PURSUING")
