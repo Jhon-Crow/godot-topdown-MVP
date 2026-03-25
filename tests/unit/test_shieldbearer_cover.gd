@@ -251,3 +251,75 @@ func test_shieldbearer_cover_offset_distance() -> void:
 	var dist := shielder_pos.distance_to(behind_pos)
 	assert_almost_eq(dist, ShieldComponent.FORMATION_OFFSET, 0.01,
 		"Cover position should be FORMATION_OFFSET pixels behind the shieldbearer")
+
+
+# =============================================================================
+# RCA-1/RCA-2 Fix: Early Return — No State-Machine Fall-Through (Issue #1446 bug)
+# =============================================================================
+
+
+## Verify arrive_at_formation does NOT run full state machine for formation enemies.
+## Regression test for RCA-1: prior code fell through to state machine after cover setup.
+func test_arrive_at_formation_sets_cover_and_returns_early() -> void:
+	var shielder := MockShieldbearer.new()
+	add_child_autofree(shielder)
+
+	var follower := MockFormationEnemy.new()
+	follower.set_formation_follow_target(shielder, Vector2(100, 0))
+	follower.arrive_at_formation()
+
+	# After arriving, must have cover data set
+	assert_true(follower.has_valid_cover(), "Must have valid cover after arriving at formation")
+	assert_eq(follower._cover_position, Vector2(100, 0), "Cover position must match formation target")
+	# Must have entered IN_COVER (not stayed IDLE or jumped to COMBAT)
+	assert_true(follower.is_in_cover(), "Must be IN_COVER after arriving at formation")
+
+
+## Verify that a formation enemy already in COMBAT state keeps COMBAT after arrive.
+## Regression test for RCA-2 ping-pong: previously, enemies oscillated between IN_COVER and COMBAT.
+func test_formation_enemy_in_combat_stays_combat_on_arrive() -> void:
+	var shielder := MockShieldbearer.new()
+	add_child_autofree(shielder)
+
+	var follower := MockFormationEnemy.new()
+	follower._current_state = MockFormationEnemy.AIState.COMBAT
+	follower.set_formation_follow_target(shielder, Vector2(100, 0))
+
+	# Arrive while in COMBAT — should keep COMBAT (cover data updated, state preserved)
+	follower.arrive_at_formation()
+
+	assert_eq(follower._current_state, MockFormationEnemy.AIState.COMBAT,
+		"COMBAT state must be preserved when formation enemy arrives (no ping-pong to IN_COVER)")
+	# Cover data must still be updated
+	assert_true(follower.has_valid_cover(), "Cover data must still be set even when staying in COMBAT")
+
+
+## Verify that SUPPRESSED state is preserved on arrival (no forced IN_COVER override).
+func test_formation_enemy_in_suppressed_stays_suppressed_on_arrive() -> void:
+	var shielder := MockShieldbearer.new()
+	add_child_autofree(shielder)
+
+	var follower := MockFormationEnemy.new()
+	follower._current_state = MockFormationEnemy.AIState.SUPPRESSED
+	follower.set_formation_follow_target(shielder, Vector2(100, 0))
+	follower.arrive_at_formation()
+
+	assert_eq(follower._current_state, MockFormationEnemy.AIState.SUPPRESSED,
+		"SUPPRESSED state must be preserved when formation enemy arrives")
+
+
+## Verify that cover data is still set even when state is preserved (COMBAT/SUPPRESSED).
+func test_cover_data_set_even_when_state_preserved() -> void:
+	var shielder := MockShieldbearer.new()
+	add_child_autofree(shielder)
+
+	var formation_pos := Vector2(300, 150)
+	var follower := MockFormationEnemy.new()
+	follower._current_state = MockFormationEnemy.AIState.COMBAT
+	follower.set_formation_follow_target(shielder, formation_pos)
+	follower.arrive_at_formation()
+
+	assert_eq(follower._cover_position, formation_pos,
+		"Cover position must be updated even when state is not changed to IN_COVER")
+	assert_true(follower.has_valid_cover(),
+		"has_valid_cover must be true even when state is not changed to IN_COVER")

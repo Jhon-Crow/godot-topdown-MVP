@@ -1274,8 +1274,7 @@ func _process_ai_state(delta: float) -> void:
 		_move_to_target_nav(_formation_target_pos, move_speed)
 		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown: _aim_at_player(); _shoot(); _shoot_timer = 0.0
 		return
-	if _formation_shielder != null: _cover_position = _formation_target_pos; _has_valid_cover = true  # Issue #1446
-	if _formation_shielder != null and _current_state not in [AIState.IN_COVER, AIState.COMBAT, AIState.SUPPRESSED]: _transition_to_in_cover()
+	if _formation_shielder != null: _cover_position = _formation_target_pos; _has_valid_cover = true; if _current_state not in [AIState.IN_COVER, AIState.COMBAT, AIState.SUPPRESSED]: _transition_to_in_cover(); return  # Issue #1446: arrived — shieldbearer is cover, return early
 	var previous_state := _current_state
 	# ABSOLUTE HIGHEST PRIORITY: Grenade danger zone evasion (Issue #407)
 	var in_grenade_danger := _grenade_avoidance.in_danger_zone if _grenade_avoidance else false
@@ -1768,9 +1767,10 @@ func _process_in_cover_state(delta: float) -> void:
 		return
 
 	# Decision making (#934): ASSAULT removed per #169; use distance+visibility
+	# Issue #1446: formation enemies stay in cover behind shieldbearer; skip COMBAT/PURSUING transitions
 	var can_see_target := _can_see_player or _can_see_companion
 	var has_target := (_player != null) or (_companion != null and _can_see_companion)
-	if has_target:
+	if has_target and _formation_shielder == null:
 		var target_close := _is_target_close()
 		var can_hit := _can_hit_target_from_current_position()
 		if can_see_target:
