@@ -308,3 +308,51 @@ This avoids the inner enum access entirely, using the raw integer value `7` (SNI
 |---|---|---|
 | 02:48 | Owner feedback | "still no laser" complaint; provides `game_log_20260325_054723.txt` |
 | ~09:00 | Session 5 | Root cause: `enemy.WeaponType.SNIPER_RIFLE` silently fails at runtime (no `class_name`); fix: compare `enemy.get("weapon_type") == WEAPON_TYPE_SNIPER_RIFLE` |
+| 09:38 | Owner feedback | "нет лазера у снайпера" ("no laser on sniper"); provides `game_log_20260325_123746.txt` (Moscow UTC+3 = 09:37 UTC) — Session 5 build confirmed running, still no `[#1336] Laser sight created` in log |
+| ~09:40 | Session 6 | Root cause: `enemy.get("weapon_type") == WEAPON_TYPE_SNIPER_RIFLE` still fails; fix: move laser creation to `enemy.gd` using direct `WeaponType.SNIPER_RIFLE` enum comparison |
+
+---
+
+## Bug F: Session 5 Fix (`enemy.get("weapon_type") == 7`) Also Silent-Fails
+
+### Description
+
+After Session 5, the owner tested again (game log `game_log_20260325_123746.txt`, 09:37 UTC) and reported **"нет лазера у снайпера"** ("no laser on sniper"). The log confirms the sniper was spawned (F8 spawn at 12:38:15 local) and functioned as a sniper (entered COMBAT/PURSUING states, fired hitscan shots). However, there is NO `[#1336] Laser sight created` log line, confirming `_create_laser_sight()` was never called.
+
+### Confirmed Test Facts
+
+1. Session 5 CI build ran at `09:14:11 UTC`, completing in 1m46s → available at `~09:16 UTC`
+2. Owner ran game at `09:37 UTC` — 21 minutes after build was available
+3. Owner is running the Session 5 build; the Session 5 fix was applied
+4. The `[#1336]` log line is absent — not silently dropped; `_log_to_file` IS working during `_ready()` (confirmed by `[ENEMY] [Enemy] Death animation component initialized` which uses the same function)
+5. The Session 5 condition `enemy.get("weapon_type") == WEAPON_TYPE_SNIPER_RIFLE` (== 7) is evaluating to `false`
+
+### Root Cause (Session 6 Finding)
+
+The Session 5 fix introduced `enemy.get("weapon_type") == WEAPON_TYPE_SNIPER_RIFLE` to avoid the inner-enum crash. This uses Godot's `Object.get()` API to read a typed `@export var weapon_type: WeaponType` property from another script file.
+
+In GDScript 4, when accessing a **typed enum property** via `get()` from a separate script (without direct access to the declaring script's class), the return value's type and the comparison behavior can be unreliable — particularly in **release (exported) builds** where the GDScript runtime's typed variable coercion may differ from the debug editor build.
+
+The most probable explanation: in the release export (which Godot 4's export template uses), `enemy.get("weapon_type")` returns a value that does not equal the plain `int 7` via `==` comparison when the property is statically typed as a GDScript enum. The comparison silently returns `false`, preventing laser creation.
+
+**The root cause of all sessions** is that `EnemySniperComponent` — a separate script without access to `enemy.gd`'s type system — cannot reliably query `enemy.gd`'s enum-typed properties. Whether via inner-enum access (`enemy.WeaponType.SNIPER_RIFLE`) or via `get()` with integer comparison, cross-script enum queries are fragile in Godot 4 release builds.
+
+### Fix (Session 6)
+
+Move the weapon-type guard to `enemy.gd`, which has direct access to its own `WeaponType` enum:
+
+```gdscript
+# In enemy.gd _ready(), AFTER add_child(_sniper_component):
+if weapon_type == WeaponType.SNIPER_RIFLE:
+    _sniper_component._create_laser_sight()  # [#1336]
+```
+
+Remove the weapon-type check from `EnemySniperComponent._ready()` entirely. The component no longer needs to guess its enemy's weapon type — the enemy itself is responsible for calling `_create_laser_sight()` when appropriate. This uses the direct enum comparison (`weapon_type == WeaponType.SNIPER_RIFLE`) which is always reliable since it runs inside `enemy.gd` with full access to its own type system.
+
+### Why This Is The Definitive Fix
+
+| Approach | Problem |
+|---|---|
+| `enemy.WeaponType.SNIPER_RIFLE` (Session 2–4) | `enemy.gd` has no `class_name`, so `WeaponType` is not an instance property; returns `null` → crash in release builds |
+| `enemy.get("weapon_type") == 7` (Session 5) | Typed enum property via `get()` in a cross-script context is unreliable in Godot 4 release exports; returns value that doesn't `==` 7 |
+| `weapon_type == WeaponType.SNIPER_RIFLE` in `enemy.gd` (Session 6) | **Definitive**: direct property access in the declaring script, no cross-script type query, works identically in debug and release builds |

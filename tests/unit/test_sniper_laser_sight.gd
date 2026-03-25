@@ -9,23 +9,33 @@ const SniperComponent := preload("res://scripts/components/enemy_sniper_componen
 const EnemyScript := preload("res://scripts/objects/enemy.gd")
 
 
-## Helper: create a minimal sniper enemy mock so _ready() sees weapon_type == SNIPER_RIFLE.
-## CharacterBody2D.weapon_type is an @export from enemy.gd. We fake the value via set().
-## [#1336] Use integer value 7 directly — enemy.gd has no class_name so inner enums
-## cannot be accessed as `instance.WeaponType.X` from external code at runtime.
-## The sniper component now compares against WEAPON_TYPE_SNIPER_RIFLE (int 7) via get().
-func _make_sniper_parent() -> CharacterBody2D:
+## Helper: create a minimal parent and attach a sniper component with the laser already created.
+## [#1336 Session 6] Laser creation was moved to enemy.gd (which uses the direct enum comparison
+## `weapon_type == WeaponType.SNIPER_RIFLE`). The component no longer creates the laser in
+## _ready() — enemy.gd calls _create_laser_sight() explicitly after add_child(_sniper_component).
+## Tests that verify laser properties must call _create_laser_sight() explicitly (simulating
+## what enemy.gd does at runtime).
+func _make_sniper_comp_with_laser() -> EnemySniperComponent:
 	var parent := CharacterBody2D.new()
-	# Expose the weapon_type value the sniper component checks in _ready().
-	parent.set("weapon_type", 7)  # WeaponType.SNIPER_RIFLE == 7 (enum index in enemy.gd)
-	return parent
+	parent.set("weapon_type", 7)  # WeaponType.SNIPER_RIFLE == 7 (for _update_laser_sight checks)
+	var comp := SniperComponent.new()
+	comp.enemy = parent
+	parent.add_child(comp)
+	add_child_autofree(parent)
+	comp._create_laser_sight()  # Simulates what enemy.gd does for sniper enemies
+	return comp
 
 
-## Helper: create a non-sniper parent (e.g. RIFLE == 0).
-func _make_rifle_parent() -> CharacterBody2D:
+## Helper: create a non-sniper parent (RIFLE == 0). Laser is NOT created (enemy.gd guards it).
+func _make_non_sniper_comp() -> EnemySniperComponent:
 	var parent := CharacterBody2D.new()
 	parent.set("weapon_type", 0)  # WeaponType.RIFLE == 0
-	return parent
+	var comp := SniperComponent.new()
+	comp.enemy = parent
+	parent.add_child(comp)
+	add_child_autofree(parent)
+	# enemy.gd does NOT call _create_laser_sight() for non-sniper weapons
+	return comp
 
 
 # =============================================================================
@@ -63,98 +73,52 @@ func test_laser_wall_layer_is_4() -> void:
 # Laser Sight Creation — sniper only (Issue #1336 fix)
 # =============================================================================
 
-func test_laser_line_created_on_ready_for_sniper() -> void:
-	## [#1336] Laser must be created for sniper enemies.
-	var comp := SniperComponent.new()
-	var parent := _make_sniper_parent()
-	parent.add_child(comp)
-	add_child_autofree(parent)
-
-	await wait_frames(2)
-
-	assert_not_null(comp._laser_line, "Laser Line2D should be created for sniper enemy in _ready")
+func test_laser_line_created_when_enemy_gd_calls_create() -> void:
+	## [#1336 Session 6] Laser must be created when enemy.gd calls _create_laser_sight().
+	## enemy.gd guards creation with `weapon_type == WeaponType.SNIPER_RIFLE` (direct enum, reliable).
+	var comp := _make_sniper_comp_with_laser()
+	assert_not_null(comp._laser_line, "Laser Line2D should be created when enemy.gd calls _create_laser_sight()")
 
 
-func test_laser_line_NOT_created_for_non_sniper() -> void:
+func test_laser_line_NOT_created_when_enemy_gd_skips_it() -> void:
 	## [#1336] Bug A fix: laser must NOT appear on non-sniper enemies.
-	var comp := SniperComponent.new()
-	var parent := _make_rifle_parent()
-	parent.add_child(comp)
-	add_child_autofree(parent)
-
-	await wait_frames(2)
-
+	## enemy.gd only calls _create_laser_sight() for WeaponType.SNIPER_RIFLE; non-snipers get none.
+	var comp := _make_non_sniper_comp()
 	assert_null(comp._laser_line,
-		"Laser Line2D must NOT be created for non-sniper enemies (Bug A fix)")
+		"Laser Line2D must NOT exist when enemy.gd does not call _create_laser_sight() (Bug A fix)")
 
 
 func test_laser_line_is_line2d() -> void:
-	var comp := SniperComponent.new()
-	var parent := _make_sniper_parent()
-	parent.add_child(comp)
-	add_child_autofree(parent)
-
-	await wait_frames(2)
-
+	var comp := _make_sniper_comp_with_laser()
 	assert_true(comp._laser_line is Line2D, "Laser sight should be a Line2D node")
 
 
 func test_laser_line_has_correct_name() -> void:
-	var comp := SniperComponent.new()
-	var parent := _make_sniper_parent()
-	parent.add_child(comp)
-	add_child_autofree(parent)
-
-	await wait_frames(2)
-
+	var comp := _make_sniper_comp_with_laser()
 	assert_eq(comp._laser_line.name, "SniperLaserSight",
 		"Laser Line2D should be named 'SniperLaserSight'")
 
 
 func test_laser_line_is_top_level() -> void:
-	var comp := SniperComponent.new()
-	var parent := _make_sniper_parent()
-	parent.add_child(comp)
-	add_child_autofree(parent)
-
-	await wait_frames(2)
-
+	var comp := _make_sniper_comp_with_laser()
 	assert_true(comp._laser_line.top_level,
 		"Laser Line2D should be top_level for world-space positioning")
 
 
 func test_laser_line_has_two_points() -> void:
-	var comp := SniperComponent.new()
-	var parent := _make_sniper_parent()
-	parent.add_child(comp)
-	add_child_autofree(parent)
-
-	await wait_frames(2)
-
+	var comp := _make_sniper_comp_with_laser()
 	assert_eq(comp._laser_line.get_point_count(), 2,
 		"Laser Line2D should have exactly 2 points (start and end)")
 
 
 func test_laser_line_width() -> void:
-	var comp := SniperComponent.new()
-	var parent := _make_sniper_parent()
-	parent.add_child(comp)
-	add_child_autofree(parent)
-
-	await wait_frames(2)
-
+	var comp := _make_sniper_comp_with_laser()
 	assert_eq(comp._laser_line.width, SniperComponent.LASER_WIDTH,
 		"Laser Line2D width should match LASER_WIDTH constant")
 
 
 func test_laser_line_z_index_below_tracer() -> void:
-	var comp := SniperComponent.new()
-	var parent := _make_sniper_parent()
-	parent.add_child(comp)
-	add_child_autofree(parent)
-
-	await wait_frames(2)
-
+	var comp := _make_sniper_comp_with_laser()
 	assert_eq(comp._laser_line.z_index, 9,
 		"Laser z_index should be 9 (below tracer at 10)")
 
@@ -195,12 +159,14 @@ func test_blind_fire_target_starts_at_zero() -> void:
 
 func test_rotate_toward_sets_blind_fire_target() -> void:
 	## [#1336] Bug B fix: _rotate_toward must store the target so laser can point there.
-	var comp := SniperComponent.new()
-	var parent := _make_sniper_parent()
+	var parent := CharacterBody2D.new()
+	parent.set("weapon_type", 7)
 	# Provide minimal properties _rotate_toward() reads.
 	parent.set("_enemy_model", null)
 	parent.set("rotation_speed", 5.0)
 	parent.position = Vector2(100.0, 100.0)
+	var comp := SniperComponent.new()
+	comp.enemy = parent
 	parent.add_child(comp)
 	add_child_autofree(parent)
 	await wait_frames(2)
