@@ -2219,8 +2219,7 @@ func _process_pursuing_state(delta: float) -> void:
 					if _can_attempt_flanking() and _player: _transition_to_flanking()
 					else: _transition_to_combat()
 					return
-				# Issue #1457 v4: compute escape dir — probe 8 directions to find the clearest path away from wall
-				var _esc_dir: Vector2 = Vector2.ZERO
+				var _esc_dir: Vector2 = Vector2.ZERO  # Issue #1457 v4: compute escape dir — probe 8 directions to find the clearest path away from wall
 				for _si: int in range(get_slide_collision_count()): _esc_dir += get_slide_collision(_si).get_normal()
 				if _esc_dir.length_squared() < 0.01:  # Stationary — probe 8 dirs for most clearance
 					var _best_dist: float = -1.0
@@ -2229,6 +2228,8 @@ func _process_pursuing_state(delta: float) -> void:
 						var _d: float = 4.0 if _pr == null else _pr.get_travel().length()
 						if _d > _best_dist: _best_dist = _d; _esc_dir = _pd
 					_log_to_file("[#1457] v4: probe dir=%s clr=%.1f" % [_esc_dir, _best_dist])
+					# #1457 v6: if max clearance is ≤ 4px (inside narrow passage), reverse away from target to back out
+					if _best_dist <= 4.0 and _pursuit_next_cover != Vector2.ZERO: _esc_dir = (global_position - _pursuit_next_cover).normalized(); _log_to_file("[#1457] v6: all dirs blocked — reverse escape away from cover")
 				if _esc_dir.length_squared() < 0.01 and _corner_check_angle != 0.0: _esc_dir = Vector2.from_angle(_corner_check_angle)
 				if _esc_dir.length_squared() > 0.01:
 					_pursuing_corner_escape_dir = _esc_dir.normalized(); _pursuing_corner_escape_timer = PURSUING_CORNER_ESCAPE_DURATION
@@ -4744,6 +4745,8 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	if _pc == null and _pl != null and _pr == null: direction = (direction + direction.rotated(0.524).normalized() * 0.6).normalized()
 	elif _pc == null and _pr != null and _pl == null: direction = (direction + direction.rotated(-0.524).normalized() * 0.6).normalized()
 	elif _pc != null: direction = (direction + _pc.get_normal() * 1.2).normalized()
+	# #1457 v6: half speed if wall within 32px ahead — helps move_and_slide find a slide angle in narrow passages
+	if move_and_collide(direction * 32.0, true) != null: speed *= 0.5
 	var _esc: Vector2 = Vector2.ZERO  # #1107: escape-dominant weight when wall opposes nav dir
 	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
 	if _esc.length_squared() > 0.01: var _en := _esc.normalized(); direction = (direction + _en * (1.5 if _en.dot(direction) < -0.5 else 0.6)).normalized()

@@ -2673,3 +2673,31 @@ func test_three_probe_steering_exists_issue_1457() -> void:
 		"Issue #1457 v5: 3-probe steering must use ±0.524 rad (30°) probe angles — forward-left and forward-right probes")
 	assert_true(source.contains("_pc") and source.contains("_pl") and source.contains("_pr"),
 		"Issue #1457 v5: 3-probe steering must declare center (_pc), left (_pl), and right (_pr) probe results")
+
+
+## Issue #1457 v6: enemy.gd must slow down when a close wall is detected ahead.
+## This gives move_and_slide more time to compute a valid slide angle in narrow passages.
+func test_narrow_passage_speed_reduction_issue_1457() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("32.0") and source.contains("speed *= 0.5"),
+		"Issue #1457 v6: must reduce speed to 50% when wall is within 32px ahead in _move_to_target_nav")
+
+
+## Issue #1457 v6: reverse-escape must be used when all 8 probe directions show ≤ 4px clearance.
+## This backs the enemy out of a narrow passage entrance so it can re-approach at a better angle.
+func test_reverse_escape_when_all_dirs_blocked_issue_1457() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("_best_dist <= 4.0") and source.contains("reverse escape"),
+		"Issue #1457 v6: when all 8 probe dirs are blocked (clr ≤ 4px), must reverse escape away from cover target")
