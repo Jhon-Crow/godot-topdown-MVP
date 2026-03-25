@@ -135,8 +135,10 @@ func _process(_delta: float) -> void:
 			_fallback_sync_load()
 
 		ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
-			_log("ERROR: Invalid resource: %s" % _current_load_path)
-			_hide_loading_screen()
+			# Issue #1456: treat invalid-resource the same as failed — fall back to
+			# synchronous loading so the scene transition still completes.
+			_log("ERROR: Invalid resource (falling back to sync): %s" % _current_load_path)
+			_fallback_sync_load()
 
 
 ## Called when background loading is complete
