@@ -226,11 +226,49 @@ func _all_inspection_points_cleared() -> bool:
 - `test_all_points_cleared_correct_when_truly_all_done`: Verifies all-true still returns true
 - `test_all_points_cleared_false_for_last_flag_false`: Verifies last-remaining uninspected point is detected
 
+## External Research: Godot 4 AI & Navigation Performance
+
+### NavigationServer2D Known Issues
+
+- **Full navmesh rebuild on every change**: NavigationServer2D synchronously rebuilds its entire polygon structure on every update — no incremental updates. With ~40,000 polygons this freezes a full frame. Best practice: avoid dynamic navmesh changes; use `call_deferred()` for any region changes.
+- **Unreachable target cost**: When a nav target is unreachable, the pathfinder exhausts the **full polygon graph** before giving up. On large maps this is O(polygons) per frame per enemy.
+- **Godot 4.4 regression** (issue #104283): NavigationServer2D with procedurally-generated regions regressed in 4.4 vs 4.3 — important for projects targeting 4.3 specifically.
+- **`map_get_random_point()` only in 4.4+**: Not available in this project's Godot 4.3 target, hence the need for the custom cover-inspection approach.
+
+### GDScript Typed Array / Dictionary Cast (Issue #72627)
+
+The root bug from round 5 (`Array[bool]` cast from Dictionary) is a **confirmed open Godot issue** (#72627):
+- `as Array[T]` silently returns the untyped array without conversion (no error, no cast)
+- Confirmed by Godot core member KoBeWi: no plans to support typed array casting via `as`
+- The typed array constructor syntax `Array[T](source)` is the intended workaround, but was not yet implemented in 4.3
+- Typed Dictionaries (proposal #56) would solve this at the language level — still open
+- Our fix (plain `Array` variables, no typed cast) is the correct approach for Godot 4.3
+
+### Static Variable Performance Notes
+
+- Godot 4 **static typing** (not static vars) gives 28–59% performance gains in arithmetic/Vector ops — the interpreter uses `ptrcall` instead of `varcall` (avoids boxing overhead)
+- **Hot-reload caveat** (issue #105667): Static variables do not update correctly during hot-reload in Godot 4.3+; `_static_init()` reruns but instances see old values — relevant for the `_shared_search_pool` static var
+- Static vars keep the entire script loaded until app exit. The `_shared_search_pool: Dictionary` in enemy.gd is cleared per-session but the Dictionary itself is permanent
+
+### AI Update Performance Best Practices (Online Sources)
+
+- **Stagger AI updates**: Update only a fraction of enemies per frame (timer or frame counter). Accumulate skipped delta for smooth movement
+- **Distance-based culling**: Only update enemies within range of the player
+- **Limit path recalculation**: Recalculate paths every 0.2–0.5s (we use 0.15s for FOV clearing — consistent with best practice)
+- **Break navmesh into tiles**: Prevents full-graph pathfinding when target is unreachable
+
 ## References
 
 - Godot docs: [Optimizing Navigation Performance](https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_optimizing_performance.html)
 - Godot docs: [NavigationServer2D](https://docs.godotengine.org/en/stable/classes/class_navigationserver2d.html)
 - Godot Forum: [Nav Agent tanks my fps](https://forum.godotengine.org/t/nav-agent-tanks-my-fps/115578)
+- Godot Forum: [Optimizing multiple enemies pathfinding](https://forum.godotengine.org/t/how-to-optimize-multiple-pathfinding-optimizing-a-huge-number-of-enemies/50709)
+- Godot Issue #72627: [Cannot cast typed arrays using type hints](https://github.com/godotengine/godot/issues/72627)
+- Godot Issue #68642: [NavigationServer rebaking performance too low](https://github.com/godotengine/godot/issues/68642)
+- Godot Issue #104283: [NavigationServer2D 4.4 vs 4.3 regression](https://github.com/godotengine/godot/issues/104283)
+- Godot Issue #105667: [Static vars don't update on hot-reload](https://github.com/godotengine/godot/issues/105667)
+- Godot Issue #77098: [GDScript static variable bugs (fixed in 4.1)](https://github.com/godotengine/godot/issues/77098)
+- beep.blog: [Yes, your Godot game runs faster with static types](https://www.beep.blog/2024-02-14-gdscript-typing/)
 - Issue #1186: PerformanceSettings state redirect chain
 - Issue #322: SEARCHING state implementation
 - Issue #330: Engaged enemies search indefinitely
