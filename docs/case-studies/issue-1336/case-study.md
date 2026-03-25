@@ -251,3 +251,60 @@ This creates the **appearance of a mismatch even though the laser is actually co
 | `docs/case-studies/issue-1336/game_log_20260325_034213.txt` | — | Session 1: hitscan hits, blind fire events; original bug reproduction |
 | `docs/case-studies/issue-1336/game_log_20260325_044209.txt` | — | Session 4: "no laser" report; sniper spawned but no shots fired |
 | `docs/case-studies/issue-1336/screenshot_laser_tracer_mismatch_20260325.png` | — | Bug C evidence: laser (upper-right) diverging from tracer (right) |
+| `docs/case-studies/issue-1336/screenshot_laser_mismatch_owner_20260325.png` | — | Owner screenshot showing laser direction mismatch (red laser vs yellow tracer) |
+| `docs/case-studies/issue-1336/game_log_20260325_054723.txt` | — | Session 5: "still no laser" report — laser silently absent due to Bug E (enum access crash) |
+
+---
+
+## Bug E: Laser Never Created — Silent Runtime Error from Inner Enum Access (Session 5, 2026-03-25)
+
+### Description
+
+After all previous fixes (Sessions 1–4), the owner tested again and reported: **"всё ещё нет лазера"** ("still no laser"). The log at `game_log_20260325_054723.txt` (05:47 local, after the Session 4 build at 01:58 UTC) shows snipers spawned and active but **no laser-related log messages appear at all**, confirming the laser was never created.
+
+### Root Cause
+
+The Bug A fix (Session 2) added this check to `EnemySniperComponent._ready()`:
+
+```gdscript
+if enemy != null and enemy.weapon_type == enemy.WeaponType.SNIPER_RIFLE:
+    _create_laser_sight()
+```
+
+This code accesses `enemy.WeaponType.SNIPER_RIFLE` — an inner enum value from `enemy.gd`. However, **`enemy.gd` does not declare `class_name`**. Without a `class_name`, inner enum types are not exposed as accessible properties on instances. In GDScript 4:
+
+- `enemy.weapon_type` → returns `int` (works — it's an `@export var`)
+- `enemy.WeaponType` → returns `null` (no such property; the enum is a compile-time construct, not a runtime property)
+- `enemy.WeaponType.SNIPER_RIFLE` → **null reference crash** → silently swallowed in release builds
+
+In release builds (which the owner uses: `Debug build: false`), GDScript null-reference crashes are swallowed without printing to stdout or the game log. The condition evaluates to a crash → the `if` branch is never taken → `_create_laser_sight()` is never called → `_laser_line` remains `null` → the laser is never visible.
+
+### Evidence
+
+1. The test file `tests/unit/test_sniper_laser_sight.gd` manually sets `parent.set("WeaponType", {"SNIPER_RIFLE": 7})` on the mock parent, making the enum comparison work in tests while silently masking the real-game failure.
+2. In the game logs for sessions 3–5 (F8 spawn), no `[#1336] Laser sight created` message appears (the log message was added in the Session 5 fix), confirming the laser was never instantiated.
+3. In session 1 logs (ExperimentalMenu spawn), the `[#1163] Sniper: player too close` messages appear, confirming the sniper component is running but the laser initialization code path is never reached due to the enum crash.
+
+### Fix
+
+Replace `enemy.WeaponType.SNIPER_RIFLE` with a local integer constant:
+
+```gdscript
+## Integer value of WeaponType.SNIPER_RIFLE from enemy.gd.
+## enemy.gd has no class_name, so inner enums cannot be accessed via
+## instance.EnumName at runtime — they return null, causing a silent crash.
+const WEAPON_TYPE_SNIPER_RIFLE: int = 7
+
+# In _ready():
+if enemy != null and enemy.get("weapon_type") == WEAPON_TYPE_SNIPER_RIFLE:
+    _create_laser_sight()
+```
+
+This avoids the inner enum access entirely, using the raw integer value `7` (SNIPER_RIFLE = 7th enum value, 0-indexed in the `WeaponType` enum).
+
+### Update to Session Chronology
+
+| Timestamp (UTC) | Session | Event |
+|---|---|---|
+| 02:48 | Owner feedback | "still no laser" complaint; provides `game_log_20260325_054723.txt` |
+| ~09:00 | Session 5 | Root cause: `enemy.WeaponType.SNIPER_RIFLE` silently fails at runtime (no `class_name`); fix: compare `enemy.get("weapon_type") == WEAPON_TYPE_SNIPER_RIFLE` |

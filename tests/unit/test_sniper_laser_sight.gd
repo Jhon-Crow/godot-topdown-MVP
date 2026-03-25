@@ -11,12 +11,13 @@ const EnemyScript := preload("res://scripts/objects/enemy.gd")
 
 ## Helper: create a minimal sniper enemy mock so _ready() sees weapon_type == SNIPER_RIFLE.
 ## CharacterBody2D.weapon_type is an @export from enemy.gd. We fake the value via set().
+## [#1336] Use integer value 7 directly — enemy.gd has no class_name so inner enums
+## cannot be accessed as `instance.WeaponType.X` from external code at runtime.
+## The sniper component now compares against WEAPON_TYPE_SNIPER_RIFLE (int 7) via get().
 func _make_sniper_parent() -> CharacterBody2D:
 	var parent := CharacterBody2D.new()
 	# Expose the weapon_type value the sniper component checks in _ready().
 	parent.set("weapon_type", 7)  # WeaponType.SNIPER_RIFLE == 7 (enum index in enemy.gd)
-	# Also expose WeaponType enum so the component can resolve the constant.
-	parent.set("WeaponType", {"SNIPER_RIFLE": 7})
 	return parent
 
 
@@ -24,7 +25,6 @@ func _make_sniper_parent() -> CharacterBody2D:
 func _make_rifle_parent() -> CharacterBody2D:
 	var parent := CharacterBody2D.new()
 	parent.set("weapon_type", 0)  # WeaponType.RIFLE == 0
-	parent.set("WeaponType", {"SNIPER_RIFLE": 7})
 	return parent
 
 

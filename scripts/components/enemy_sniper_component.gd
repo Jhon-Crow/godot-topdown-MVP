@@ -59,13 +59,23 @@ var _laser_line: Line2D = null
 var _blind_fire_target: Vector2 = Vector2.ZERO
 
 
+## [#1336] Integer value of WeaponType.SNIPER_RIFLE from enemy.gd enum.
+## Used to guard laser creation — enemy.gd has no class_name, so inner enums
+## cannot be safely accessed as `enemy.WeaponType.SNIPER_RIFLE` at runtime
+## (returns null → null.SNIPER_RIFLE crashes silently in release builds).
+## Compare against the raw int instead.  Value = 7 (0-indexed enum position:
+## RIFLE=0, SHOTGUN=1, UZI=2, MACHETE=3, RPG=4, PM=5, MACHINE_GUN=6, SNIPER_RIFLE=7).
+const WEAPON_TYPE_SNIPER_RIFLE: int = 7
+
 func _ready() -> void:
 	if enemy == null:
 		enemy = get_parent() as CharacterBody2D
 	# [#1336] Only create the laser sight on sniper enemies.
 	# EnemySniperComponent is added to all enemies (for hitscan/AI reuse), but
 	# the visible laser belongs only to the sniper rifle.
-	if enemy != null and enemy.weapon_type == enemy.WeaponType.SNIPER_RIFLE:
+	# Use integer comparison (WEAPON_TYPE_SNIPER_RIFLE = 7) instead of
+	# enemy.WeaponType.SNIPER_RIFLE — see constant declaration above for details.
+	if enemy != null and enemy.get("weapon_type") == WEAPON_TYPE_SNIPER_RIFLE:
 		_create_laser_sight()
 
 
@@ -395,6 +405,7 @@ func _create_laser_sight() -> void:
 	_laser_line.add_point(Vector2.ZERO)
 	_laser_line.add_point(Vector2.ZERO)
 	add_child(_laser_line)
+	_log("[#1336] Laser sight created for sniper enemy")
 
 
 ## Called every frame to update laser sight position and direction.
