@@ -120,6 +120,16 @@ const LEVELS: Array[Dictionary] = [
 		"enemy_count": 15,
 		"map_size": "3200x2400"
 	},
+	{
+		"name": "Sewer",
+		"name_ru": "Канализация",
+		"path": "res://scenes/levels/SewerLevel.tscn",
+		"description": "Underground sewer corridor with narrow passages and a fork. Dark, tight, and dangerous.",
+		"preview_color": Color(0.1, 0.15, 0.1, 1.0),
+		"preview_accent": Color(0.2, 0.35, 0.2, 1.0),
+		"enemy_count": 10,
+		"map_size": "1650x3200"
+	}
 ]
 
 ## Difficulty names in display order (must match DifficultyManager.get_all_difficulty_names()).

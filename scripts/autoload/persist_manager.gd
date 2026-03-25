@@ -50,11 +50,25 @@ func _ready() -> void:
 	_log_to_file("PersistManager ready")
 
 
+## Tracks the previous scene to detect level changes (Issue #1456).
+var _previous_scene: Node = null
+
+## Guards against overwriting the saved level during startup.
+## When SceneLoader performs background loading, tree_changed fires while current_scene
+## is still LabyrinthLevel. Auto-saving is suppressed until current_scene has actually
+## changed to _startup_navigation_target (Issue #1456).
+var _navigation_ready: bool = false
+
+## The level we are navigating to on startup. Empty once startup navigation completes.
+var _startup_navigation_target: String = ""
+
+
 ## Navigate to the last played level if saved state exists.
 ## Called deferred so the default main scene finishes loading first.
 func _navigate_to_last_level() -> void:
 	if not has_saved_state():
 		_log_to_file("No saved level — starting at default level")
+		_navigation_ready = true
 		return
 
 	var last_level := get_last_level()
@@ -66,6 +80,11 @@ func _navigate_to_last_level() -> void:
 	# Only navigate if the last level is different from current
 	if last_level != current_path and last_level != "" and ResourceLoader.exists(last_level):
 		_log_to_file("Navigating to last played level: %s" % last_level)
+		# Record the destination so _on_tree_changed can detect when we actually arrive.
+		# SceneLoader performs background loading which fires tree_changed events while
+		# current_scene is still LabyrinthLevel — we must not auto-save until current_scene
+		# has actually changed to the target level (Issue #1456).
+		_startup_navigation_target = last_level
 		# Issue #997: Use SceneLoader for background loading with loading screen
 		var scene_loader: Node = get_node_or_null("/root/SceneLoader")
 		if scene_loader and scene_loader.has_method("load_level"):
@@ -74,10 +93,14 @@ func _navigate_to_last_level() -> void:
 			get_tree().change_scene_to_file(last_level)
 	else:
 		_log_to_file("Already at last played level: %s" % current_path)
+		_navigation_ready = true
 
 
 ## Connect to manager signals to auto-save on changes.
 func _connect_signals() -> void:
+	# Track scene changes to auto-save the current level (Issue #1456)
+	get_tree().tree_changed.connect(_on_tree_changed)
+
 	# GameManager signals
 	var game_manager: Node = get_node_or_null("/root/GameManager")
 	if game_manager:
@@ -179,6 +202,46 @@ func _on_total_deaths_updated(_new_count: int) -> void:
 
 func _on_no_damage_levels_completed_updated(_new_count: int) -> void:
 	_save_state()
+
+
+## Called when the scene tree structure changes.
+## Detects level scene changes and auto-saves the current level path (Issue #1456).
+## During startup navigation, waits until current_scene has actually changed to the
+## target level before lifting the guard — this prevents SceneLoader's background
+## loading events from overwriting the saved level with LabyrinthLevel.
+func _on_tree_changed() -> void:
+	var current_scene := get_tree().current_scene
+	if current_scene == null or current_scene == _previous_scene:
+		return
+
+	# Startup guard: if we are waiting for the scene to change to the target level,
+	# check whether we have arrived. Lift the guard only when current_scene IS the
+	# target, so that intermediate tree_changed events (fired by SceneLoader during
+	# background loading while current_scene is still LabyrinthLevel) are ignored.
+	if not _navigation_ready:
+		if _startup_navigation_target == "":
+			return
+		var current_path: String = current_scene.scene_file_path
+		if current_path != _startup_navigation_target:
+			return
+		# We have arrived at the target level — lift the guard.
+		_navigation_ready = true
+		_startup_navigation_target = ""
+		_log_to_file("Startup navigation complete — arrived at: %s" % current_path)
+
+	_previous_scene = current_scene
+	var scene_path: String = current_scene.scene_file_path
+	if _is_level_scene(scene_path):
+		_save_state_with_level(scene_path)
+		_log_to_file("Auto-saved current level on scene change: %s" % scene_path)
+
+
+## Return true if the given resource path is a playable level scene.
+## Only paths under res://scenes/levels/ qualify — UI and other scenes are excluded.
+## @param scene_path: The scene_file_path of the current root scene.
+## @return: True if the path represents a level.
+func _is_level_scene(scene_path: String) -> bool:
+	return scene_path.begins_with("res://scenes/levels/") and scene_path.ends_with(".tscn")
 
 
 # ============================================================================

@@ -288,3 +288,143 @@ func test_clear_resets_to_defaults() -> void:
 		"Weapon should reset to default after clear")
 	assert_eq(pm.get_last_level(), "res://scenes/levels/LabyrinthLevel.tscn",
 		"Level should reset to default after clear")
+
+
+# ============================================================================
+# Startup Guard Tests (Issue #1456)
+# ============================================================================
+# These tests use a MockStartupGuard that mirrors the _navigation_ready /
+# _startup_navigation_target / _on_tree_changed logic without requiring a
+# live SceneTree.  They document the exact scenarios that caused the three
+# previous fix attempts to fail.
+# ============================================================================
+
+class MockStartupGuard:
+	## Mirrors the startup-guard fields in PersistManager.
+	var navigation_ready: bool = false
+	var startup_navigation_target: String = ""
+
+	## Saved level (represents the last entry in game_state.cfg).
+	var saved_level: String = "res://scenes/levels/LabyrinthLevel.tscn"
+
+	const DEFAULT_LEVEL := "res://scenes/levels/LabyrinthLevel.tscn"
+
+	## Simulate _navigate_to_last_level() when a non-default level is saved.
+	## @param saved: the level path from the save file.
+	## @param current: the scene that is currently active (LabyrinthLevel at startup).
+	func start_navigation(saved: String, current: String) -> void:
+		if saved == current or saved == "":
+			navigation_ready = true
+			return
+		startup_navigation_target = saved
+
+	## Simulate _navigate_to_last_level() when no save file exists (first launch).
+	func start_navigation_no_save() -> void:
+		navigation_ready = true
+
+	## Simulate _on_tree_changed(current_scene.scene_file_path).
+	## Returns true if an auto-save was performed, false if the guard blocked it.
+	func on_tree_changed(incoming_path: String) -> bool:
+		if incoming_path == "" or incoming_path == saved_level:
+			return false  # same scene or empty — no save needed
+
+		if not navigation_ready:
+			if startup_navigation_target == "":
+				return false  # guard active but no target — ignore
+			if incoming_path != startup_navigation_target:
+				return false  # still waiting — ignore LabyrinthLevel events
+			# Arrived at target — lift the guard
+			navigation_ready = true
+			startup_navigation_target = ""
+
+		# Guard is lifted — auto-save
+		saved_level = incoming_path
+		return true
+
+
+var guard: MockStartupGuard
+
+
+func before_each_guard() -> void:
+	guard = MockStartupGuard.new()
+
+
+func after_each_guard() -> void:
+	guard = null
+
+
+## Scenario: background-loader fires tree_changed while still on LabyrinthLevel.
+## The guard must block the save to prevent overwriting BeachLevel with LabyrinthLevel.
+func test_startup_guard_blocks_labyrinth_overwrite_during_background_load() -> void:
+	var g := MockStartupGuard.new()
+	g.saved_level = "res://scenes/levels/BeachLevel.tscn"
+	g.start_navigation("res://scenes/levels/BeachLevel.tscn",
+			"res://scenes/levels/LabyrinthLevel.tscn")
+
+	# SceneLoader background loading fires tree_changed, current_scene is still Labyrinth
+	var saved := g.on_tree_changed("res://scenes/levels/LabyrinthLevel.tscn")
+	assert_false(saved, "Guard should block save of LabyrinthLevel during background load")
+	assert_eq(g.saved_level, "res://scenes/levels/BeachLevel.tscn",
+		"Saved level must not be overwritten during startup navigation")
+
+
+## Scenario: current_scene actually changes to BeachLevel — guard should lift and save.
+func test_startup_guard_lifts_when_target_scene_arrives() -> void:
+	var g := MockStartupGuard.new()
+	g.saved_level = "res://scenes/levels/BeachLevel.tscn"
+	g.start_navigation("res://scenes/levels/BeachLevel.tscn",
+			"res://scenes/levels/LabyrinthLevel.tscn")
+
+	# First: intermediate Labyrinth event — blocked
+	var blocked := g.on_tree_changed("res://scenes/levels/LabyrinthLevel.tscn")
+	assert_false(blocked, "Intermediate Labyrinth event should be blocked")
+
+	# Then: target arrives
+	var saved := g.on_tree_changed("res://scenes/levels/BeachLevel.tscn")
+	assert_true(saved, "Guard should lift and save when target scene arrives")
+	assert_true(g.navigation_ready, "navigation_ready should be true after target arrives")
+	assert_eq(g.startup_navigation_target, "", "startup_navigation_target should be cleared")
+	assert_eq(g.saved_level, "res://scenes/levels/BeachLevel.tscn",
+		"Saved level should remain BeachLevel after guard lifts")
+
+
+## Scenario: after startup guard lifts, subsequent scene changes are auto-saved normally.
+func test_startup_guard_allows_auto_save_after_subsequent_level_change() -> void:
+	var g := MockStartupGuard.new()
+	g.saved_level = "res://scenes/levels/BeachLevel.tscn"
+	g.start_navigation("res://scenes/levels/BeachLevel.tscn",
+			"res://scenes/levels/LabyrinthLevel.tscn")
+
+	# Target arrives — lifts guard
+	g.on_tree_changed("res://scenes/levels/BeachLevel.tscn")
+	assert_true(g.navigation_ready, "Guard should be lifted")
+
+	# Player navigates to CastleLevel via LevelsMenu
+	var saved := g.on_tree_changed("res://scenes/levels/CastleLevel.tscn")
+	assert_true(saved, "Should auto-save subsequent level changes after guard is lifted")
+	assert_eq(g.saved_level, "res://scenes/levels/CastleLevel.tscn",
+		"CastleLevel should be the new saved level")
+
+
+## Scenario: no save file exists (first launch) — guard should be ready immediately.
+func test_startup_guard_ready_immediately_when_no_saved_state() -> void:
+	var g := MockStartupGuard.new()
+	g.start_navigation_no_save()
+
+	assert_true(g.navigation_ready,
+		"navigation_ready should be true immediately on first launch")
+	assert_eq(g.startup_navigation_target, "",
+		"startup_navigation_target should be empty on first launch")
+
+
+## Scenario: saved level == current scene at startup (LabyrinthLevel saved, starts on Labyrinth).
+func test_startup_guard_ready_immediately_when_already_at_saved_level() -> void:
+	var g := MockStartupGuard.new()
+	g.saved_level = "res://scenes/levels/LabyrinthLevel.tscn"
+	g.start_navigation("res://scenes/levels/LabyrinthLevel.tscn",
+			"res://scenes/levels/LabyrinthLevel.tscn")
+
+	assert_true(g.navigation_ready,
+		"navigation_ready should be true immediately when already at saved level")
+	assert_eq(g.startup_navigation_target, "",
+		"startup_navigation_target should be empty when no navigation needed")

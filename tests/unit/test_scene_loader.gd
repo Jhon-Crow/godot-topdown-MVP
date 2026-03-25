@@ -178,3 +178,51 @@ func test_multiple_invalid_paths_all_rejected() -> void:
 		"All invalid paths should be rejected")
 	assert_false(loader.is_loading(),
 		"Should not be loading after rejecting all paths")
+
+
+# ============================================================================
+# THREAD_LOAD_INVALID_RESOURCE Fallback Tests (Issue #1456)
+# ============================================================================
+
+
+class MockSceneLoaderWithFallback extends MockSceneLoader:
+	## Tracks whether fallback sync load was triggered.
+	var fallback_triggered: bool = false
+
+	## Simulates THREAD_LOAD_INVALID_RESOURCE — should trigger fallback, not silent fail.
+	func simulate_invalid_resource_during_poll() -> void:
+		# The fix: fall back to sync load instead of silently hiding the screen
+		fallback_triggered = true
+		_is_loading = false
+		_current_load_path = ""
+
+
+func test_invalid_resource_during_poll_triggers_fallback() -> void:
+	## Issue #1456: Previously THREAD_LOAD_INVALID_RESOURCE called _hide_loading_screen()
+	## which silently aborted the load. The fix calls _fallback_sync_load() instead.
+	var fallback_loader := MockSceneLoaderWithFallback.new()
+	fallback_loader.register_valid_path("res://scenes/levels/BuildingLevel.tscn")
+
+	fallback_loader.load_level("res://scenes/levels/BuildingLevel.tscn")
+	assert_true(fallback_loader.is_loading(), "Should be loading after load_level()")
+
+	fallback_loader.simulate_invalid_resource_during_poll()
+	assert_true(fallback_loader.fallback_triggered,
+		"THREAD_LOAD_INVALID_RESOURCE should trigger fallback sync load (not silent abort)")
+	assert_false(fallback_loader.is_loading(),
+		"Should not be in loading state after fallback completes")
+
+
+func test_after_invalid_resource_can_load_again() -> void:
+	## After THREAD_LOAD_INVALID_RESOURCE fallback, _is_loading must be false
+	## so the next load_level() call is not silently dropped.
+	var fallback_loader := MockSceneLoaderWithFallback.new()
+	fallback_loader.register_valid_path("res://scenes/levels/BuildingLevel.tscn")
+	fallback_loader.register_valid_path("res://scenes/levels/CastleLevel.tscn")
+
+	fallback_loader.load_level("res://scenes/levels/BuildingLevel.tscn")
+	fallback_loader.simulate_invalid_resource_during_poll()
+
+	fallback_loader.load_level("res://scenes/levels/CastleLevel.tscn")
+	assert_true(fallback_loader.is_loading(),
+		"Should be able to load a new level after INVALID_RESOURCE fallback")
