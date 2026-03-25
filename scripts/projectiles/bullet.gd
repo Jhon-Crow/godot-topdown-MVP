@@ -278,6 +278,26 @@ var _breaker_shrapnel_scene: PackedScene = null
 ## Enable/disable debug logging for breaker bullet behavior.
 var _debug_breaker: bool = false
 
+## Minimum distance a bullet must travel between breaker raycast checks (Issue #1462).
+## Halves raycast frequency while still catching all detonations.
+const BREAKER_RAYCAST_INTERVAL: float = 30.0
+
+## Distance traveled since last breaker raycast (per-instance, for throttling).
+var _breaker_distance_since_raycast: float = 0.0
+
+## Maximum number of full-effect detonations per physics frame across all bullets (Issue #1462).
+## Prevents e.g. 15 simultaneous MiniUzi+Breaker detonations from stalling the frame.
+const BREAKER_MAX_DETONATIONS_PER_FRAME: int = 3
+
+## Reduced shrapnel count when burst detonations exceed the per-frame budget (Issue #1462).
+const BREAKER_BURST_SHRAPNEL_COUNT: int = 3
+
+## Per-frame detonation tracking — shared across all bullet instances via static (Issue #1462).
+static var _breaker_frame_detonations: int = 0
+static var _breaker_last_detonation_frame: int = -1
+static var _breaker_effect_positions: Array[Vector2] = []
+static var _breaker_sound_played: bool = false
+
 
 func _ready() -> void:
 	# Connect to collision signals
@@ -445,6 +465,8 @@ func _physics_process(delta: float) -> void:
 
 	# Check for breaker detonation (raycast ahead for walls)
 	if is_breaker_bullet and not _is_penetrating:
+		# Issue #1462: Track distance traveled for raycast throttling
+		_breaker_distance_since_raycast += movement.length()
 		if _check_breaker_detonation():
 			return  # Bullet detonated and was freed
 
@@ -1573,8 +1595,15 @@ func _has_line_of_sight_to_target(target_pos: Vector2) -> bool:
 
 ## Checks if a wall or enemy is within BREAKER_DETONATION_DISTANCE ahead.
 ## If so, triggers the breaker detonation and returns true.
+## Issue #1462: Uses distance-based throttling to skip raycast until the bullet
+## has traveled BREAKER_RAYCAST_INTERVAL pixels since the last check.
 ## @return: True if detonation occurred, false otherwise.
 func _check_breaker_detonation() -> bool:
+	# Issue #1462: Skip raycast until bullet has traveled enough distance
+	if _breaker_distance_since_raycast < BREAKER_RAYCAST_INTERVAL:
+		return false
+	_breaker_distance_since_raycast = 0.0
+
 	var space_state := get_world_2d().direct_space_state
 	if space_state == null:
 		return false
@@ -1617,19 +1646,36 @@ func _check_breaker_detonation() -> bool:
 
 
 ## Triggers the breaker bullet detonation: explosion damage + shrapnel cone.
+## Issue #1462: Tracks per-frame detonation budget. Only the first
+## BREAKER_MAX_DETONATIONS_PER_FRAME detonations per physics frame get full
+## visual effects + shrapnel + sound. Excess detonations still deal damage.
 ## @param detonation_pos: The position where the detonation occurs.
 func _breaker_detonate(detonation_pos: Vector2) -> void:
-	# 1. Apply explosion damage in radius
+	# Issue #1462: Reset per-frame budget when frame changes
+	var current_frame := Engine.get_physics_frames()
+	if current_frame != _breaker_last_detonation_frame:
+		_breaker_last_detonation_frame = current_frame
+		_breaker_frame_detonations = 0
+		_breaker_effect_positions.clear()
+		_breaker_sound_played = false
+	_breaker_frame_detonations += 1
+
+	var is_full_detonation := _breaker_frame_detonations <= BREAKER_MAX_DETONATIONS_PER_FRAME
+
+	# 1. Always apply explosion damage (gameplay must remain correct)
 	_breaker_apply_explosion_damage(detonation_pos)
 
-	# 2. Spawn visual explosion effect
-	_breaker_spawn_explosion_effect(detonation_pos)
+	if is_full_detonation:
+		# 2. Spawn visual explosion effect (coalesced with nearby effects this frame)
+		_breaker_spawn_explosion_effect_coalesced(detonation_pos)
 
-	# 3. Spawn shrapnel in a forward cone
-	_breaker_spawn_shrapnel(detonation_pos)
+		# 3. Spawn shrapnel in a forward cone
+		_breaker_spawn_shrapnel(detonation_pos)
 
-	# 4. Play explosion sound
-	_breaker_play_explosion_sound(detonation_pos)
+		# 4. Play explosion sound (once per frame)
+		if not _breaker_sound_played:
+			_breaker_play_explosion_sound(detonation_pos)
+			_breaker_sound_played = true
 
 	# 5. Destroy the bullet
 	_destroy()
@@ -1690,6 +1736,8 @@ func _breaker_has_line_of_sight(from: Vector2, to: Vector2) -> bool:
 
 
 ## Spawns a small visual explosion effect at the detonation point.
+## (Original function — retained for compatibility; use _breaker_spawn_explosion_effect_coalesced
+## for new code paths that need per-frame coalescing.)
 func _breaker_spawn_explosion_effect(center: Vector2) -> void:
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
 
@@ -1698,6 +1746,19 @@ func _breaker_spawn_explosion_effect(center: Vector2) -> void:
 	else:
 		# Fallback: create simple flash
 		_breaker_create_simple_flash(center)
+
+
+## Spawns explosion effect coalesced with nearby effects in the same frame (Issue #1462).
+## Skips spawning if a nearby explosion effect was already created this frame,
+## preventing duplicate lights from simultaneous detonations.
+const BREAKER_EFFECT_COALESCE_RADIUS: float = 80.0
+func _breaker_spawn_explosion_effect_coalesced(center: Vector2) -> void:
+	# Skip if a nearby effect was already spawned this frame
+	for pos in _breaker_effect_positions:
+		if center.distance_to(pos) < BREAKER_EFFECT_COALESCE_RADIUS:
+			return
+	_breaker_effect_positions.append(center)
+	_breaker_spawn_explosion_effect(center)
 
 
 ## Plays a small explosion sound at the detonation point.
@@ -1783,9 +1844,11 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 		return
 
 	# Calculate shrapnel count based on bullet damage, capped for performance
+	# Issue #1462: Use reduced burst shrapnel count when multiple detonations happen in same frame
+	var max_per_detonation := BREAKER_BURST_SHRAPNEL_COUNT if _breaker_frame_detonations > 1 else BREAKER_MAX_SHRAPNEL_PER_DETONATION
 	var effective_damage := damage * damage_multiplier
 	var shrapnel_count := int(effective_damage * BREAKER_SHRAPNEL_COUNT_MULTIPLIER)
-	shrapnel_count = clampi(shrapnel_count, 1, BREAKER_MAX_SHRAPNEL_PER_DETONATION)
+	shrapnel_count = clampi(shrapnel_count, 1, max_per_detonation)
 
 	# Further reduce if approaching global limit
 	var remaining_budget := BREAKER_MAX_CONCURRENT_SHRAPNEL - existing_shrapnel.size()

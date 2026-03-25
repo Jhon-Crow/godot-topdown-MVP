@@ -9,6 +9,13 @@ class_name BreakerShrapnel
 ## - Has an uneven smoky tracer trail
 ## - Travels in a forward cone from the bullet's direction
 
+## Issue #1462: Per-frame budget for shrapnel wall-hit sounds.
+## Many shrapnel hitting walls in the same frame creates AudioStreamPlayer2D spam.
+## Limit to a few sounds per frame while keeping visual dust effects.
+const MAX_WALL_HIT_SOUNDS_PER_FRAME: int = 3
+static var _wall_hit_sounds_frame: int = -1
+static var _wall_hit_sounds_this_frame: int = 0
+
 ## Speed of the shrapnel in pixels per second.
 @export var speed: float = 1800.0
 
@@ -139,10 +146,16 @@ func _on_body_entered(body: Node2D) -> void:
 		# Spawn wall hit effect
 		_spawn_wall_hit_effect(body)
 
-		# Play wall impact sound and destroy
-		var audio_manager: Node = get_node_or_null("/root/AudioManager")
-		if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
-			audio_manager.play_bullet_wall_hit(global_position)
+		# Issue #1462: Per-frame budget for wall-hit sounds to avoid AudioStreamPlayer2D spam
+		var current_frame := Engine.get_physics_frames()
+		if current_frame != _wall_hit_sounds_frame:
+			_wall_hit_sounds_frame = current_frame
+			_wall_hit_sounds_this_frame = 0
+		_wall_hit_sounds_this_frame += 1
+		if _wall_hit_sounds_this_frame <= MAX_WALL_HIT_SOUNDS_PER_FRAME:
+			var audio_manager: Node = get_node_or_null("/root/AudioManager")
+			if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
+				audio_manager.play_bullet_wall_hit(global_position)
 		_destroy()
 		return
 

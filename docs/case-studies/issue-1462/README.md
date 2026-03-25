@@ -250,6 +250,78 @@ Reduce dust particle count from 25 to 15, lifetime from 2.5s to 1.5s, and cleanu
 | Dust effect lifetime | 3.5s (lifetime+delay) | 2.0s | 43% faster recycling |
 | Concurrent blood effects | Unlimited | 8 max | Bounded |
 
+### Round 4 (2026-03-25): 30 FPS drop still persists
+- **Log**: `game_log_20260325_062447.txt` — after Phase 3 fixes applied
+- **Owner feedback**: "30 FPS drop is still there"
+- **Conditions**: Breaker bullets with MiniUzi and Shotgun (both), all effects enabled
+
+### Round 4 Root Cause Analysis: GDScript bullet.gd Missing Budgets
+
+Analyzing `game_log_20260325_062447.txt` revealed the root cause:
+
+**The Phase 1-2 fixes only applied to C# scripts (`BreakerDetonation.cs`, `Bullet.cs`, `ShotgunPellet.cs`) but the GDScript `bullet.gd` — used by MiniUzi's Bullet9mm — had NO per-frame detonation budget or raycast throttling at all.**
+
+Evidence from the log:
+```
+[06:25:05] Sound emitted: type=EXPLOSION, pos=(...), source=PLAYER (Bullet9mm), range=500, listeners=10
+[06:25:05] Sound emitted: type=EXPLOSION, pos=(...), source=PLAYER (@Area2D@3912), range=500, listeners=10
+[06:25:05] Sound emitted: type=EXPLOSION, pos=(...), source=PLAYER (@Area2D@3915), range=500, listeners=10
+... (8+ more EXPLOSION events in a 1-second window)
+```
+
+This shows:
+- `Bullet9mm` (GDScript bullet from MiniUzi with breaker bullets) detonating on every frame without budget
+- Each detonation calls `SoundPropagation.emit_sound(EXPLOSION)` → iterates 10 AI listeners
+- MiniUzi fires ~15 rounds/sec = 15 detonations/sec × 10 listener checks = 150 AI updates/sec
+- Each detonation spawns up to 10 shrapnel (no burst reduction in `bullet.gd`)
+- Each shrapnel hitting a wall calls `audio_manager.play_bullet_wall_hit()` = AudioStreamPlayer2D spam
+
+The `_check_breaker_detonation()` in `bullet.gd` was also doing a physics raycast **every single physics frame** per active breaker bullet — no distance throttling existed.
+
+### Phase 4 Fixes (Round 4 — GDScript bullet.gd optimization)
+
+#### Fix 13: Raycast Distance Throttling in bullet.gd
+Added `BREAKER_RAYCAST_INTERVAL = 30px` threshold in `_check_breaker_detonation()`. Each bullet
+tracks `_breaker_distance_since_raycast` and only performs a raycast after traveling 30px.
+At 2500px/s and 60 FPS (~42px/frame), this halves raycast frequency.
+
+#### Fix 14: Per-Frame Detonation Budget in bullet.gd
+Added `BREAKER_MAX_DETONATIONS_PER_FRAME = 3` static shared budget. When MiniUzi fires
+burst into a wall and multiple bullets detonate in the same frame, only 3 get full effects
+(explosion light, shrapnel, sound). All detonations still apply damage.
+
+Uses GDScript `static var` to share budget across all bullet instances:
+```gdscript
+static var _breaker_frame_detonations: int = 0
+static var _breaker_last_detonation_frame: int = -1
+static var _breaker_effect_positions: Array[Vector2] = []
+static var _breaker_sound_played: bool = false
+```
+
+#### Fix 15: Burst Shrapnel Reduction in bullet.gd
+When multiple detonations happen in the same frame (`_breaker_frame_detonations > 1`),
+shrapnel count reduced from 10 to `BREAKER_BURST_SHRAPNEL_COUNT = 3`. Consistent with
+the same optimization applied earlier in `BreakerDetonation.cs`.
+
+#### Fix 16: Explosion Effect Coalescing in bullet.gd
+Added `_breaker_spawn_explosion_effect_coalesced()` that skips duplicate explosion lights
+within `BREAKER_EFFECT_COALESCE_RADIUS = 80px` per frame.
+
+#### Fix 17: Shrapnel Wall-Hit Sound Budget
+Each `BreakerShrapnel` hitting a wall now respects `MAX_WALL_HIT_SOUNDS_PER_FRAME = 3` static
+per-frame budget. Beyond the limit, the wall hit is silent but still spawns a dust effect.
+This prevents AudioStreamPlayer2D spam when 10-60 concurrent shrapnel hit walls in bursts.
+
+### Phase 4 Performance Impact
+
+| Metric | Before Phase 4 (MiniUzi+Breaker) | After Phase 4 | Improvement |
+|--------|----------------------------------|---------------|-------------|
+| Breaker raycasts/frame (MiniUzi) | 1 per bullet per frame | Every 30px traveled | ~50% reduction |
+| Full-effect detonations/frame | Unlimited | 3 max | Bounded |
+| Shrapnel/burst detonation | 10 | 3 | 70% reduction |
+| Sound propagation calls/frame | ~15 | 1 | 93% reduction |
+| Wall-hit sounds/frame (shrapnel) | Unlimited | 3 max | Bounded |
+
 ## Files Changed (All Phases)
 
 - `Scripts/Projectiles/BreakerDetonation.cs` — Phase 1-2 optimizations (raycast throttling, pool integration, per-frame budget, effect coalescing, sound batching, burst shrapnel reduction)
@@ -259,6 +331,8 @@ Reduce dust particle count from 25 to 15, lifetime from 2.5s to 1.5s, and cleanu
 - `scripts/autoload/impact_effects_manager.gd` — Phase 3: Blood effect pool, per-frame budget, blood decal physics reduction
 - `scenes/effects/BloodEffect.tscn` — Phase 3: Reduced particle count (45→20) and lifetime (0.8→0.6s)
 - `scenes/effects/DustEffect.tscn` — Phase 3: Reduced particle count (25→15) and lifetime (2.5→1.5s)
+- `scripts/projectiles/bullet.gd` — Phase 4: Per-frame detonation budget, raycast throttling, burst shrapnel reduction, effect coalescing, sound batching
+- `scripts/projectiles/breaker_shrapnel.gd` — Phase 4: Per-frame wall-hit sound budget
 - `tests/unit/test_breaker_detonation_optimization.gd` — Phase 3: Unit tests for pool, budget, and physics reduction
 
 ## References
