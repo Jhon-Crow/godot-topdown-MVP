@@ -1070,7 +1070,9 @@ func on_hit() -> void:
 ## Called when hit by a projectile with extended hit information.
 ## @param hit_direction: Direction the bullet was traveling.
 ## @param caliber_data: Caliber resource for effect scaling.
-func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
+## @param incoming_damage: Damage amount about to be applied (default 1). Used to detect
+##   lethal hits from high-damage weapons (e.g. sniper rifle) that skip the low-HP threshold (Issue #1453).
+func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource, incoming_damage: float = 1.0) -> void:
 	if not _is_alive:
 		return
 
@@ -1094,6 +1096,29 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		return
 
+	# Armored Skin: absorb triggering hit and same-frame burst hits (Issue #1453).
+	# Trigger when HP is already at/below threshold OR when this hit would be lethal
+	# (e.g. sniper rifle with high damage can one-shot past the HP threshold).
+	if _armored_skin_active:
+		var int_damage: int = maxi(int(round(incoming_damage)), 1)
+		# Absorb all hits on the same physics frame as the trigger (burst protection).
+		if _armored_skin_triggered and Engine.get_physics_frames() == _armored_skin_trigger_frame:
+			FileLogger.info("[Player.ArmoredSkin] Same-frame burst hit absorbed (Issue #1453)")
+			hit.emit()
+			_show_hit_flash()
+			return
+		if not _armored_skin_triggered:
+			# Trigger when HP is at/below threshold OR when the hit would be lethal.
+			if _current_health <= ARMORED_SKIN_HP_THRESHOLD or _current_health - int_damage <= 0:
+				_armored_skin_triggered = true
+				_armored_skin_trigger_frame = Engine.get_physics_frames()
+				_spawn_armored_skin_shards()
+				_remove_armored_skin_visual()
+				FileLogger.info("[Player.ArmoredSkin] Triggering hit absorbed — damage ignored (Issue #1453)")
+				hit.emit()
+				_show_hit_flash()
+				return
+
 	hit.emit()
 
 	# Store hit direction for death animation
@@ -1102,12 +1127,8 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	# Show hit flash effect
 	_show_hit_flash()
 
-	# Armored Skin: spawn glass shards when at low HP (Issue #1045)
-	if _armored_skin_active and _current_health <= 2:
-		_spawn_armored_skin_shards()
-
 	# Apply damage
-	_current_health -= 1
+	_current_health -= maxi(int(round(incoming_damage)), 1)
 	health_changed.emit(_current_health, max_health)
 
 	# Register damage with ScoreManager
@@ -1135,6 +1156,21 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()
+
+## Called when hit by a projectile with full bullet information including explicit damage.
+## Handles high-damage weapons (e.g. sniper rifle, silenced pistol) that would otherwise
+## bypass the armored skin low-HP threshold check (Issue #1453).
+## @param hit_direction: Direction the bullet was traveling.
+## @param caliber_data: Caliber resource for effect scaling.
+## @param has_ricocheted: Whether the bullet had ricocheted before this hit.
+## @param has_penetrated: Whether the bullet had penetrated a wall before this hit.
+## @param damage: Damage amount to apply.
+## @param is_from_player: Unused for the player (hits to the player come from enemies).
+func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource,
+		_has_ricocheted: bool, _has_penetrated: bool, damage: float = 1.0,
+		_is_from_player: bool = false) -> void:
+	on_hit_with_info(hit_direction, caliber_data, damage)
+
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
@@ -4149,6 +4185,10 @@ func get_breaching_charges() -> Node:
 # Armored Skin (Issue #1045)
 ## Whether armored skin is active (passive item, Issue #1045).
 var _armored_skin_active: bool = false
+## True after armored skin has triggered once — prevents re-triggering (Issue #1453).
+var _armored_skin_triggered: bool = false
+## Physics frame when armored skin triggered; used to absorb same-frame burst hits (Issue #1453).
+var _armored_skin_trigger_frame: int = -1
 
 ## Scene path for the armored skin shard projectile.
 const ARMORED_SKIN_SHARD_SCENE_PATH: String = "res://scenes/projectiles/ArmoredSkinShard.tscn"
@@ -4218,6 +4258,18 @@ func _spawn_armored_skin_shards() -> void:
 		parent.add_child(shard)
 		shard.global_position = global_position
 
+## Remove the armor visual shader from all player sprites when shards are spawned.
+## The player becomes a regular (unarmored) player after the effect triggers (Issue #1453).
+func _remove_armored_skin_visual() -> void:
+	if _player_model == null:
+		return
+	var removed_count: int = 0
+	for child in _player_model.get_children():
+		if child is Sprite2D and child.material is ShaderMaterial:
+			child.material = null
+			removed_count += 1
+	FileLogger.info("[Player.ArmoredSkin] Armor visual removed from %d sprites (triggered)" % removed_count)
+
 # Item Visual System (Issue #1142)
 ## Connect to active_item_changed signal for roguelike pedestal pickup (Issue #1325).
 func _connect_active_item_changed_signal() -> void:
@@ -4243,7 +4295,7 @@ func _deequip_all_active_items() -> void:
 		_loudspeaker_component.queue_free()
 	_loudspeaker_component = null
 	_breaching_charges = null; _breaching_charges_equipped = false
-	_armored_skin_active = false; _recoil_compensator_equipped = false
+	_armored_skin_active = false; _armored_skin_triggered = false; _armored_skin_trigger_frame = -1; _recoil_compensator_equipped = false
 	_experimental_sample_equipped = false
 	_fine_motor_skills_equipped = false; _fine_motor_skills_active = false
 	if _dash_effect != null and is_instance_valid(_dash_effect): _dash_effect.queue_free()

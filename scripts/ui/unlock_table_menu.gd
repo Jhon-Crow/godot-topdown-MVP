@@ -25,7 +25,8 @@ const LEVEL_NAMES: Dictionary = {
 	"res://scenes/levels/RevolverLevel.tscn": "Double Corridor",
 	"res://scenes/levels/BeachLevel.tscn": "Beach",
 	"res://scenes/levels/DocksLevel.tscn": "Docks",
-	"res://scenes/levels/CityLevel.tscn": "City"
+	"res://scenes/levels/CityLevel.tscn": "City",
+	"res://scenes/levels/DecadenceLevel.tscn": "Decadence"
 }
 
 ## Weapon ID to display name mapping.
@@ -332,7 +333,11 @@ func _populate_table() -> void:
 
 		var map_display: String
 		if stat == "shots_fired_special_weapons":
-			map_display = "%d / %d shots (shotgun/rifle/revolver)" % [current_kills, min_kills]
+			map_display = "%d / %d shots (shotgun/ASVK/revolver)" % [current_kills, min_kills]
+		elif stat == "total_deaths":
+			map_display = "%d / %d deaths" % [current_kills, min_kills]
+		elif stat == "no_damage_levels_completed":
+			map_display = "%d / %d levels without damage" % [current_kills, min_kills]
 		else:
 			map_display = "%d / %d kills (no Laser Sight)" % [current_kills, min_kills]
 

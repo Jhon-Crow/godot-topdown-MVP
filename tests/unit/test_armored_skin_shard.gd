@@ -18,7 +18,7 @@ class MockArmoredSkinShard:
 	var lifetime: float = 0.7
 
 	## Damage dealt on hit.
-	var damage: int = 1
+	var damage: int = 5
 
 	## Maximum number of trail points to maintain.
 	var trail_length: int = 5
@@ -99,8 +99,8 @@ func test_default_lifetime() -> void:
 
 
 func test_default_damage() -> void:
-	assert_eq(shard.damage, 1,
-		"Default damage should be 1")
+	assert_eq(shard.damage, 5,
+		"Default damage should be 5 (Issue #1488)")
 
 
 func test_default_trail_length() -> void:
