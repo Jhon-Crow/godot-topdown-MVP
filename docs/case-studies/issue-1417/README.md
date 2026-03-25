@@ -258,3 +258,40 @@ Current state of our fix (verified in PR branch):
 - `game_log_20260325_064620.txt` — Session 3: drone inactive, damage now works
 - `game_log_20260325_125524.txt` — Session 4: drone stopped spawning (regression from class_name conflict in scene)
 - `game_log_20260325_132256.txt` — Session 5: same as session 4 — user running old main branch build; PR not yet merged
+- `game_log_20260325_134300.txt` — Session 6: identical pattern — user still running main branch build
+
+---
+
+# Session 6: Drone Still Not Spawning (game_log_20260325_134300.txt)
+
+## User Report
+
+> "всё ещё не спавнится дрон" (drone still doesn't spawn)
+> — game_log_20260325_134300.txt (2026-03-25 13:43)
+
+## Session 6 Log Analysis
+
+Identical pattern to sessions 4-5: operator deploys 4 drones, zero `[Drone]` log entries appear:
+
+```
+[DroneOperator] Drone deployed at (422, 548)   ← operator deploys
+[DroneOperator] Phase: CONTROLLING (defenseless) ← operator transitions
+# ... NO [Drone] entries at all ...
+# ... NO "Drone initialized via initialize_drone()" ...
+# ... NO "Connected to drone.died signal" ...
+# ... NO "Drone node created, script=..." ...
+```
+
+## Root Cause: User Still Running Main Branch Build
+
+**Definitive evidence** that this is a main branch build, not our PR branch:
+
+1. `Build info: not available (build_info.cfg not found)` — no version info
+2. The log shows `[DroneOperator] Drone deployed at...` → `[DroneOperator] Phase: CONTROLLING` with NO intermediate messages. On our branch, the `_deploy_drone()` function logs `Drone node created, script=...`, `Drone initialized via initialize_drone()`, and `Connected to drone.died signal` between deployment and phase transition. These messages are ABSENT because the build uses the main branch code.
+3. Main branch's `_deploy_drone()` uses `drone_comp: DroneComponent = _drone.get_node_or_null("DroneComponent") as DroneComponent` — a cast that fails silently in exported builds due to the class_name loading issue.
+
+## Corrective Actions (Session 6)
+
+1. **Added `build_info.cfg` generation** to the Windows build CI workflow — future builds will log `Build branch: issue-1417-3b85e682d9ed` and `Build commit: <sha>` at startup, making it immediately clear which build is running
+2. **Added diagnostic logging** to `_deploy_drone()` — logs the drone's script path and explicit warnings when `initialize_drone()` or `died` signal are missing
+3. **Clear instructions to user**: download the CI artifact from the PR branch, not rebuild from main
