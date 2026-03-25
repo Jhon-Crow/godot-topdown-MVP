@@ -141,12 +141,72 @@ class_name dependency. This follows the same pattern as `enemy.gd` (~5000 lines,
 
 Key changes in final fix:
 - `drone.gd`: All AI state logic (SEARCHING/COMBAT) merged in, no `DroneComponent` references
-- `drone_component.gd`: Kept as minimal stub with `class_name DroneComponent` for backwards
-  compatibility with DroneOperatorComponent (future refactor can remove it)
+- `drone_component.gd`: Kept as minimal stub (no class_name, no active code) — legacy file
+- `Drone.tscn`: DroneComponent child node removed, class_name dependency eliminated
 - `drone_operator_component.gd`: Uses duck typing / `has_method()` instead of typed cast
+
+---
+
+# Session 4 Regression: Drone Stopped Spawning (game_log_20260325_125524.txt)
+
+## User Report
+
+> "опять перестал спавниться дрон" (drone stopped spawning again)
+> — game_log_20260325_125524.txt
+
+## Session 4 Log Analysis
+
+The operator deploys drones (11 times), but **zero** `[Drone]` log entries appear:
+
+```
+[DroneOperator] Drone deployed at (363, 357)   ← operator runs
+[DroneOperator] Phase: CONTROLLING (defenseless) ← operator runs
+# ... NO [Drone] entries at all ...
+```
+
+Neither `[DroneOperator] Drone initialized via initialize_drone()` nor `[DroneOperator] Connected to drone.died signal` appear, meaning `_drone.has_method("initialize_drone")` returned false.
+
+This confirms that `drone.gd` **failed to load/attach** to the drone node in the exported build.
+
+## Root Cause: DroneComponent child node + class_name in Drone.tscn
+
+The `Drone.tscn` scene (commit 382e3a03) still contained a `DroneComponent` child node:
+
+```ini
+[ext_resource type="Script" path="res://scripts/components/drone_component.gd" id="2_drone_comp"]
+...
+[node name="DroneComponent" type="Node" parent="."]
+script = ExtResource("2_drone_comp")
+```
+
+And `drone_component.gd` (even as a stub) kept `class_name DroneComponent`:
+
+```gdscript
+class_name DroneComponent
+extends Node
+const DRONE_HP: int = 2
+```
+
+In Godot 4 exported builds, when the scene is loaded, the `class_name DroneComponent` in the child node's script can interfere with the global class registry in ways that prevent the parent node's script (`drone.gd`) from loading correctly. This manifests as a silent failure: the node exists but has no script behavior.
+
+## Why This Differs from DroneOperatorComponent
+
+`DroneOperatorComponent` (also uses `class_name`) works correctly because:
+- It is instantiated via `DroneOperatorComponent.new()` in `enemy.gd` (not loaded via scene child)
+- The class is registered globally before any scene instantiation
+- No circular or same-scene class_name dependency exists
+
+`DroneComponent` in `Drone.tscn` creates a **same-scene class_name dependency**: the scene tries to load two scripts simultaneously, one of which has a class_name that gets re-registered as part of scene loading, causing the primary script (`drone.gd`) to fail silently.
+
+## Fix Applied (Session 5)
+
+Two changes:
+1. **Removed `DroneComponent` child node from `Drone.tscn`** — the node was unused (all logic is in drone.gd now)
+2. **Removed `class_name DroneComponent` from `drone_component.gd`** — eliminates global class registry conflict
 
 ## Archived Logs
 
 - `game_log_20260324_145336.txt` — Session 1: drone inactive, no damage
 - `game_log_20260324_182702.txt` — Session 2: drone inactive, no damage (duck typing attempted)
 - `game_log_20260325_064620.txt` — Session 3: drone inactive, damage now works
+- `game_log_20260325_125524.txt` — Session 4: drone stopped spawning (regression from class_name conflict in scene)

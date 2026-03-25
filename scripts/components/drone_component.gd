@@ -1,10 +1,10 @@
-class_name DroneComponent
 extends Node
-## Minimal stub for DroneComponent — kept for backwards compatibility.
+## Empty stub for DroneComponent — retained only so existing scene references
+## in any pre-existing .tscn files do not cause load errors.
 ##
 ## All drone AI logic has been moved into drone.gd (Issue #1417 fix).
-## This stub exists so that any code referencing DroneComponent by class_name
-## does not break. The drone entity (drone.gd) now handles all behavior directly.
-
-## Health points of the drone (kept as constant for any external references).
-const DRONE_HP: int = 2
+## class_name removed to eliminate cross-script dependency that caused
+## silent script load failures in exported builds.
+##
+## The Drone.tscn scene no longer includes this as a child node.
+## This file is kept for reference only and has no runtime effect.
