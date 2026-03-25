@@ -2383,7 +2383,10 @@ func _clear_visible_inspection_points(delta: float) -> void:
 		if acos(clampf(fd.dot((ip - global_position).normalized()), -1.0, 1.0)) <= hf:
 			_search_inspected_flags[i] = true
 func _all_inspection_points_cleared() -> bool:
-	for f in _search_inspected_flags: if not f: return false; return true
+	for f in _search_inspected_flags:
+		if not f:
+			return false
+	return true
 func _relocate_search_center(reason: String) -> void:  ## #1458r5: erase own pool entry only
 	var oc := _search_center; _search_center = global_position; _search_state_timer = 0.0; _search_visited_zones.clear()
 	if _search_pool_key != "" and _shared_search_pool.has(_search_pool_key): _shared_search_pool.erase(_search_pool_key); _search_pool_key = ""

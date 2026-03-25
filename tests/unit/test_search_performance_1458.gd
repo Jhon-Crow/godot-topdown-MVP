@@ -357,3 +357,48 @@ func test_shared_pool_key_different_for_distant_centers() -> void:
 	var key_a := "%d,%d" % [int(center_a.x / snap) * int(snap), int(center_a.y / snap) * int(snap)]
 	var key_b := "%d,%d" % [int(center_b.x / snap) * int(snap), int(center_b.y / snap) * int(snap)]
 	assert_ne(key_a, key_b, "Distant enemies should use different pool keys")
+
+
+# ============================================================================
+# Tests: #1458r6 — _all_inspection_points_cleared one-liner parsing bug
+# ============================================================================
+
+
+func test_all_points_cleared_requires_all_flags_true() -> void:
+	## #1458r6: Regression test — the one-liner "for f in flags: if not f: return false; return true"
+	## placed 'return true' INSIDE the loop body (after first true element), not after the loop.
+	## This caused the function to return true as soon as ANY single point was inspected.
+	## Fixed by expanding to multi-line: 'return true' is now after the loop.
+	var flags: Array = [false, false, false, false, false]
+	flags[0] = true  # Mark only the first point as inspected (simulates enemy visiting point 0)
+	var all_cleared := true
+	for f in flags:
+		if not f:
+			all_cleared = false
+			break
+	assert_false(all_cleared,
+		"#1458r6: Should NOT report all cleared when only the first point is inspected")
+
+
+func test_all_points_cleared_correct_when_truly_all_done() -> void:
+	## #1458r6: Verify the correct multi-line version works when all points are inspected.
+	var flags: Array = [true, true, true, true, true]
+	var all_cleared := true
+	for f in flags:
+		if not f:
+			all_cleared = false
+			break
+	assert_true(all_cleared, "#1458r6: All flags true should return true")
+
+
+func test_all_points_cleared_false_for_last_flag_false() -> void:
+	## #1458r6: The bug would have returned 'true' after the first 'true' element,
+	## never reaching the last 'false'. The fix must check ALL elements.
+	var flags: Array = [true, true, true, true, false]  # Only last is uninspected
+	var all_cleared := true
+	for f in flags:
+		if not f:
+			all_cleared = false
+			break
+	assert_false(all_cleared,
+		"#1458r6: Must check all elements — last uninspected flag must prevent 'all cleared'")

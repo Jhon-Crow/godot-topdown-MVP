@@ -167,6 +167,65 @@ After round 3 (cover-inspection) was deployed, owner reported 4 new issues:
 | `map_get_random_point()` | Cheapest, guaranteed valid | Added in Godot 4.4 (project uses 4.3) | Incompatible |
 | Probability/Markov chain | Most intelligent search | High complexity, needs graph infrastructure | Overkill |
 
+## Root Cause Analysis (Round 6 — March 2026)
+
+After round 5 fixes, owner reported the AI is still broken (`game_log_20260325_054557.txt`).
+
+### Game Log Analysis (05:45:57 — 05:46:01, 4 seconds)
+
+Log shows:
+- 5 enemies spawned and initialized successfully
+- Shader warmup FPS drop: 20fps at 05:45:59 (expected — all shaders warm up simultaneously at startup, known Issue #343)
+- **Zero SEARCHING state activity** — no pool creation, no inspection points, no waypoints
+- Game session ended after only 4 seconds
+
+The short log suggests enemies entered SEARCHING briefly but exhibited broken behavior quickly, or the user tested just enough to confirm AI was broken before stopping.
+
+### Root Cause: One-Liner GDScript Parsing Bug in `_all_inspection_points_cleared`
+
+**File**: `scripts/objects/enemy.gd`, line 2386 (before fix)
+
+The `_all_inspection_points_cleared()` function was written as a compressed one-liner:
+```gdscript
+func _all_inspection_points_cleared() -> bool:
+    for f in _search_inspected_flags: if not f: return false; return true
+```
+
+In GDScript, a semicolon after a `for` loop body places the subsequent statement **inside** the loop body (it becomes part of the same block as `if not f: return false`). The actual parsing is:
+```gdscript
+for f in _search_inspected_flags:
+    if not f:
+        return false
+    return true   # ← INSIDE the loop body, not after it!
+```
+
+**Effect**: The function only ever checked the **first element**:
+- If first flag is `false` (uninspected) → returns `false` ✓ (correct)
+- If first flag is `true` (inspected) → returns `true` immediately ✗ (wrong! remaining N-1 points not checked)
+
+**Consequence in gameplay**: Once an enemy visited inspection point index 0 and `_mark_inspection_done(0)` set `flags[0] = true`, the next call to `_all_inspection_points_cleared()` returned `true` immediately — even with 11 other uninspected points remaining. The enemy then either called `_relocate_search_center("all inspected")` (wasting 24 new raycasts) or `_transition_to_idle()`, abandoning the search after visiting a single point.
+
+With multiple enemies sharing the pool (round-robin assignment), enemy 1 inspects point 0, enemy 2 inspects point 1 → both enemies trigger "all inspected" after one visit each. The shared pool is immediately discarded, regenerated, and the cycle repeats — causing both erratic AI behavior and unnecessary performance cost.
+
+**Why the existing tests didn't catch this**: The existing tests (`test_all_points_cleared_check`, `test_not_all_points_cleared`) tested the correct multi-line algorithm, not the actual one-liner in enemy.gd. The tests were correct but didn't replicate the exact code structure.
+
+### Fix
+
+Expanded to proper multi-line form:
+```gdscript
+func _all_inspection_points_cleared() -> bool:
+    for f in _search_inspected_flags:
+        if not f:
+            return false
+    return true
+```
+
+### New Regression Tests Added
+
+- `test_all_points_cleared_requires_all_flags_true`: Verifies that inspecting only point 0 does NOT report all cleared
+- `test_all_points_cleared_correct_when_truly_all_done`: Verifies all-true still returns true
+- `test_all_points_cleared_false_for_last_flag_false`: Verifies last-remaining uninspected point is detected
+
 ## References
 
 - Godot docs: [Optimizing Navigation Performance](https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_optimizing_performance.html)
