@@ -2600,6 +2600,7 @@ public partial class Player : BaseCharacter
     public void on_hit_with_bullet_info(Vector2 hitDirection, Godot.Resource? caliberData,
         bool hasRicocheted, bool hasPenetrated, float damage = 1.0f, bool isFromPlayer = false)
     {
+        LogToFile($"[Player.Hit] on_hit_with_bullet_info called: damage={damage}, HP={HealthComponent?.CurrentHealth ?? -1}, IsAlive={IsAlive} (Issue #1453)");
         _lastHitDirection = hitDirection;
         _lastCaliberData = caliberData;
         TakeDamage(damage);
@@ -2610,6 +2611,7 @@ public partial class Player : BaseCharacter
     {
         if (HealthComponent == null || !IsAlive)
         {
+            LogToFile($"[Player.Hit] TakeDamage({amount}) early-exit: HealthComponent={(HealthComponent == null ? "null" : "ok")}, IsAlive={IsAlive} (Issue #1453)");
             return;
         }
 
