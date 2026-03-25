@@ -1271,13 +1271,11 @@ func _process_ai_state(delta: float) -> void:
 	if _is_stunned: velocity = Vector2.ZERO; return  # Stunned: stop all movement
 	if _formation_shielder != null and (not is_instance_valid(_formation_shielder) or not _formation_shielder.has_method("is_shield_active") or not _formation_shielder.is_shield_active()): _formation_shielder = null  # Issue #1242
 	if _formation_shielder != null and global_position.distance_to(_formation_target_pos) > 25.0:  # Issue #1446: moving to shieldbearer cover
-		_move_to_target_nav(_formation_target_pos, move_speed)
-		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown: _aim_at_player(); _shoot(); _shoot_timer = 0.0
+		_move_to_target_nav(_formation_target_pos, move_speed); if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown: _aim_at_player(); _shoot(); _shoot_timer = 0.0
 		return
-	if _formation_shielder != null:  # Issue #1446: arrived — always return early (shieldbearer is cover)
-		_cover_position = _formation_target_pos; _has_valid_cover = true  # track shieldbearer position
-		if _current_state not in [AIState.IN_COVER, AIState.COMBAT, AIState.SUPPRESSED]: _transition_to_in_cover()
-		return  # never fall through to main state machine for formation enemies
+	if _formation_shielder != null:  # Issue #1446: arrived — shieldbearer is cover; always return early
+		_cover_position = _formation_target_pos; _has_valid_cover = true; if _current_state not in [AIState.IN_COVER, AIState.COMBAT, AIState.SUPPRESSED]: _transition_to_in_cover()
+		return
 	var previous_state := _current_state
 	# ABSOLUTE HIGHEST PRIORITY: Grenade danger zone evasion (Issue #407)
 	var in_grenade_danger := _grenade_avoidance.in_danger_zone if _grenade_avoidance else false
@@ -1726,8 +1724,8 @@ func _process_seeking_cover_state(_delta: float) -> void:
 
 ## Process IN_COVER state. Under fire->suppressed, close->COMBAT, far+can hit->stay and shoot, far+can't hit->PURSUING.
 func _process_in_cover_state(delta: float) -> void:
-	if _formation_shielder != null: _cover_position = _formation_target_pos  # Issue #1446: track shieldbearer
-	if _formation_shielder != null and global_position.distance_to(_formation_target_pos) > 25.0: _move_to_target_nav(_formation_target_pos, move_speed)
+	if _formation_shielder != null and global_position.distance_to(_formation_target_pos) > 25.0: _cover_position = _formation_target_pos; _move_to_target_nav(_formation_target_pos, move_speed)  # Issue #1446: track + move
+	elif _formation_shielder != null: _cover_position = _formation_target_pos; velocity = Vector2.ZERO  # Issue #1446: arrived, stay
 	else: velocity = Vector2.ZERO
 	var time_in_state := Time.get_ticks_msec() / 1000.0 - _in_cover_entry_time  # Issue #997 RCA-18
 	if _under_fire:  # Under fire: transition to suppressed (with minimum duration check)
@@ -3342,9 +3340,8 @@ func _get_shieldbearer_cover_candidates() -> Array[Vector2]:  ## Issue #1446
 	var candidates: Array[Vector2] = []; if _player == null: return candidates
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e == self or not is_instance_valid(e) or not e.has_method("is_shield_active") or not e.is_shield_active() or global_position.distance_to(e.global_position) > EnemyShieldComponent.FORMATION_RADIUS: continue
-		var behind_pos := e.global_position - (_player.global_position - e.global_position).normalized() * EnemyShieldComponent.FORMATION_OFFSET
-		if _nav_agent: behind_pos = NavigationServer2D.map_get_closest_point(_nav_agent.get_navigation_map(), behind_pos)
-		candidates.append(behind_pos)
+		var bp := e.global_position - (_player.global_position - e.global_position).normalized() * EnemyShieldComponent.FORMATION_OFFSET
+		candidates.append(NavigationServer2D.map_get_closest_point(_nav_agent.get_navigation_map(), bp) if _nav_agent else bp)
 	return candidates
 
 ## Get far-side cover behind obstacle (Issue #1338/1378). Probes outward with intersect_point().
