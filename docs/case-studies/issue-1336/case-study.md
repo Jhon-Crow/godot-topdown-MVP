@@ -355,4 +355,57 @@ Remove the weapon-type check from `EnemySniperComponent._ready()` entirely. The 
 |---|---|
 | `enemy.WeaponType.SNIPER_RIFLE` (Session 2–4) | `enemy.gd` has no `class_name`, so `WeaponType` is not an instance property; returns `null` → crash in release builds |
 | `enemy.get("weapon_type") == 7` (Session 5) | Typed enum property via `get()` in a cross-script context is unreliable in Godot 4 release exports; returns value that doesn't `==` 7 |
-| `weapon_type == WeaponType.SNIPER_RIFLE` in `enemy.gd` (Session 6) | **Definitive**: direct property access in the declaring script, no cross-script type query, works identically in debug and release builds |
+| `weapon_type == WeaponType.SNIPER_RIFLE` in `enemy.gd` (Session 6) | Still failed — owner game log `game_log_20260325_132454.txt` (10:24 UTC, confirmed Session 6 build) shows NO `[#1336] Laser sight created` log |
+| `int(weapon_type) == 7` in `enemy.gd` (Session 7) | **Explicit int cast** — eliminates any GDScript enum type coercion issue; diagnostic log added to show both comparisons |
+
+---
+
+## Bug G: Session 6 Fix (`weapon_type == WeaponType.SNIPER_RIFLE` in `enemy.gd`) Still Fails (Session 7, 2026-03-25)
+
+### Description
+
+After Session 6, the owner tested again (game log `game_log_20260325_132454.txt`, 10:24 UTC). The log shows:
+- `[ENEMY] [Enemy] Death animation component initialized` → `_ready()` completes
+- `[ExperimentalMenu] Enemy spawner: spawned 'Sniper (ASVK)'` → ExperimentalMenu confirms SNIPER_RIFLE spawn
+- **NO** `[#1336] Laser sight created for sniper enemy`
+
+This confirms the Session 6 fix (`weapon_type == WeaponType.SNIPER_RIFLE` inside `enemy.gd`) ALSO silently fails.
+
+### Timeline Verification
+
+| Event | Time (UTC) |
+|---|---|
+| Session 6 commit pushed (`723b00c8`) | 09:51 |
+| CI "Build Windows Portable EXE" artifact created | 09:53 |
+| Owner's game log timestamp | 10:24 |
+
+The owner had 31 minutes to download Session 6's build. The game was run from `I:/Загрузки/godot exe/снайпер/` (sniper folder), confirming a dedicated test build.
+
+### Root Cause Hypothesis (Session 7)
+
+**Enum type coercion issue in Godot 4 release build.** The comparison `weapon_type == WeaponType.SNIPER_RIFLE` may behave differently depending on how `weapon_type` was stored. When `experimental_menu.gd` calls `enemy.set("weapon_type", 7)` (plain `int 7`), Godot may store it differently than when the value is assigned directly from the enum constant. In a release build, the comparison `weapon_type == WeaponType.SNIPER_RIFLE` might compare a raw int (7) against an enum-typed value (also 7 in int terms) but fail due to type mismatch.
+
+The `int(weapon_type) == 7` comparison forces both sides to plain integers before comparison, bypassing any potential enum coercion issue.
+
+### Diagnostic Added (Session 7)
+
+```
+[ENEMY] [Enemy] [#1336] _configure_weapon_type: weapon_type=N (TYPE_NAME)
+[ENEMY] [Enemy] [#1336] weapon_type=N SNIPER_RIFLE=7 match_enum=true/false match_int=true/false
+```
+
+The first log (at `_configure_weapon_type()`) shows the weapon type when it's first read in `_ready()`. The second log shows both comparison results at the point of laser creation check.
+
+### Fix (Session 7)
+
+Replace `weapon_type == WeaponType.SNIPER_RIFLE` with `int(weapon_type) == 7`:
+
+```gdscript
+# Before (Session 6 — still failed):
+if weapon_type == WeaponType.SNIPER_RIFLE: _sniper_component._create_laser_sight()
+
+# After (Session 7):
+if int(weapon_type) == 7: _sniper_component._create_laser_sight()
+```
+
+The explicit `int()` cast eliminates any enum coercion issue by forcing a plain integer comparison. Session 7 also adds comprehensive diagnostic logging to reveal the exact weapon_type value and comparison results in the owner's release build.

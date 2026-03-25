@@ -420,7 +420,8 @@ func _ready() -> void:
 	_pacifist = PacifistComponent.new(self)  # Issue #959
 	_setup_machete_component(); if has_force_field: _force_field_component = EnemyForceFieldComponent.new(); _force_field_component.name = "ForceFieldComponent"; add_child(_force_field_component); _force_field_component.setup(); if _shield_icon: _shield_icon.visible = true  # Issue #579, #1034, #1079
 	_sniper_component = EnemySniperComponent.new(); _sniper_component.enemy = self; _sniper_component.log_to_file_fn = _log_to_file; _sniper_component.name = "SniperComponent"; add_child(_sniper_component)  # Issues #1171, #1163
-	if weapon_type == WeaponType.SNIPER_RIFLE: _sniper_component._create_laser_sight()  # [#1336] Create laser here using direct enum (reliable in all builds)
+	_log_to_file("[#1336] weapon_type=%d SNIPER_RIFLE=%d match_enum=%s match_int=%s" % [int(weapon_type), int(WeaponType.SNIPER_RIFLE), str(weapon_type == WeaponType.SNIPER_RIFLE), str(int(weapon_type) == 7)])  # [#1336] Session 7 diagnostic
+	if int(weapon_type) == 7: _sniper_component._create_laser_sight()  # [#1336] Create laser: int(weapon_type)==7 avoids any enum coercion issues in release builds
 	if has_armored_skin: _armored_skin_component = EnemyArmoredSkinComponent.new(); _armored_skin_component.name = "ArmoredSkinComponent"; add_child(_armored_skin_component); _current_health += 1; _max_health += 1; _update_health_visual()  # Issue #1123: +1 HP bonus from Armored Skin
 	if has_swat_shield: _shield_component = EnemyShieldComponent.new(); _shield_component.name = "ShieldComponent"; add_child(_shield_component); _shield_component.setup()  # Issue #1242: SWAT shieldbearer
 	if weapon_type == WeaponType.REVOLVER: _revolver_component = EnemyRevolverComponent.new(); _revolver_component.enemy = self; _revolver_component.name = "RevolverComponent"; add_child(_revolver_component)  # Issue #1242: revolver reload
@@ -517,6 +518,7 @@ func _configure_weapon_type() -> void:
 	if c.has("total_magazines"): total_magazines = c["total_magazines"]  # #1033
 	if c.has("reload_time"): reload_time = c["reload_time"]  # #1033
 	if OS.is_debug_build(): print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
+	_log_to_file("[#1336] _configure_weapon_type: weapon_type=%d (%s)" % [int(weapon_type), WeaponConfigComponent.get_type_name(int(weapon_type))])  # [#1336] Session 7 diagnostic
 
 ## Setup patrol points based on patrol offsets from initial position.
 func _setup_patrol_points() -> void:
