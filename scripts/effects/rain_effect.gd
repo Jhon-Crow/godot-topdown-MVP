@@ -4,8 +4,8 @@ class_name RainEffect
 ##
 ## Two-layer particle system rendered on a CanvasLayer (screen space) so rain
 ## always covers the visible viewport regardless of camera position:
-##   - RainStreaks: uniform vertical rain drops across the full screen
-##   - RainSplashes: circular ripples at the lower part of the screen where drops land
+##   - RainStreaks: short radial dashes (fish-eye perspective from screen center)
+##   - RainSplashes: circular ring ripples across the full screen
 ##
 ## Rain is always active (continuous) while outdoors.
 ## Supports indoor exclusion zones where rain should not appear.
