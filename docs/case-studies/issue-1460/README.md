@@ -256,6 +256,15 @@ from accumulated Area2D nodes, invisible to CPU-based FPS logger but felt on GPU
    from per-node Area2D creation. 375 physics bodies × every-frame broadphase ≈ 5.65ms
    hidden drain invisible to CPU FPS loggers but felt as GPU stall. Use distance-based
    group queries instead of always-on physics shapes for decoration-only nodes.
+9. **Frame-budgeted scene instantiation** — replace per-decal SceneTree timers with a
+   queue processed at a controlled rate (4/frame). 120+ timers firing in 0.5s clusters
+   caused burst instantiation spikes; spreading across frames eliminates them.
+10. **Scene node pooling for decals** — BloodDecal nodes pre-created at startup and recycled
+    via pool instead of instantiate()/queue_free() per explosion. Eliminates scene
+    instantiation cost (Godot 4 node creation is ~4x slower than Godot 3, see #71182).
+11. **Draw call reduction via trail frame-skipping** — 40 shrapnel Line2D trails updated
+    every other physics frame instead of every frame, halving Line2D draw operations
+    (imperceptible at 5000px/s shrapnel speed).
 
 ## References
 
