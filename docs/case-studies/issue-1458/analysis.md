@@ -274,3 +274,37 @@ The root bug from round 5 (`Array[bool]` cast from Dictionary) is a **confirmed 
 - Issue #330: Engaged enemies search indefinitely
 - Issue #405: Search continues indefinitely after engagement
 - Issue #1225: Predefined search path waypoints
+
+## Round 7 Analysis: Empty Inspection Pool → Infinite Relocation Loop
+
+**Reported**: game_log_20260325_122313.txt (r6 build) — "AI still completely broken"
+
+### Root Cause
+
+`_all_inspection_points_cleared()` iterates over `_search_inspected_flags`. In GDScript (and most languages), iterating over an **empty array runs zero iterations** and falls through to `return true`. This made an empty flags array look like "all points inspected."
+
+**Conditions triggering this bug:**
+1. Enemy enters SEARCHING in an open area (courtyard, corridor without cover)
+2. 24 raycasts fire from search center — no wall hits within 600px → zero inspection points
+3. `_search_inspection_points` = empty, `_search_inspected_flags` = empty
+4. Random waypoints generated, enemy starts moving
+5. All waypoints visited → `_search_current_waypoint_index >= size`
+6. `_all_inspection_points_cleared()` returns `true` (empty array = 0 iterations = `return true`)
+7. `_relocate_search_center("all inspected")` called → erases pool, regenerates from current pos
+8. New pool also empty → back to step 3 → infinite relocation loop every few frames
+
+**Visual result**: Enemy either freezes (relocation takes 0 frames) or jiggles rapidly in place.
+
+### Fixes Applied (r7)
+
+1. **`_all_inspection_points_cleared()`**: Added `if _search_inspected_flags.is_empty(): return false` guard. Empty = nothing inspected yet. Also replaced manual loop with `not flags.has(false)` to avoid re-introducing the for-semicolon trap from r6.
+
+2. **`_generate_search_waypoints()` center fallback**: Added `if _search_waypoints.is_empty(): _search_waypoints.append(_search_center)` after random waypoint generation fails. Ensures enemy always has at least one waypoint to navigate to.
+
+3. **`_generate_search_waypoints()` inspection path fallback**: Added center fallback when inspection points exist but `_assign_nearest_inspection_point()` returns -1 (all flagged by other enemies).
+
+4. **`_process_searching_state` empty-pool branch**: When `_search_inspection_points.is_empty()` and waypoints run out, expand `_search_radius` and erase the pool before regenerating (forces fresh raycasts from expanded range rather than reusing the cached empty pool).
+
+### Why r6 Didn't Fully Fix It
+
+Round 6 fixed the GDScript for-semicolon parsing trap that caused `_all_inspection_points_cleared()` to return `true` after visiting ONE point. But it didn't address the **empty pool** case where the flags array is empty from the start. Both bugs caused immediate relocation, just via slightly different paths.

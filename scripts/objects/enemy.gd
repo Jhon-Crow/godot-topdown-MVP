@@ -2332,13 +2332,14 @@ func _get_or_create_shared_pool() -> void:  ## #1458r5: untyped Arrays (ref-safe
 func _generate_search_waypoints() -> void:
 	_search_waypoints.clear(); _search_current_waypoint_index=0; _search_assigned_point_index=-1; _search_fov_clear_timer=0.0; _get_or_create_shared_pool()
 	if _search_inspection_points.is_empty():
-		var nm2 := get_world_2d().navigation_map
+		var nm2:=get_world_2d().navigation_map
 		for _a in range(SEARCH_WAYPOINT_COUNT*2):
 			if _search_waypoints.size()>=SEARCH_WAYPOINT_COUNT: break
 			var cand:=_search_center+Vector2.from_angle(randf()*TAU)*randf_range(_search_radius*0.3,_search_radius); var sn:=NavigationServer2D.map_get_closest_point(nm2,cand)
 			if cand.distance_to(sn)<SEARCH_NAV_SNAP_THRESHOLD and not _is_zone_visited(sn): _search_waypoints.append(sn)
+		if _search_waypoints.is_empty(): _search_waypoints.append(_search_center)  ## #1458r7: last-resort center fallback
 		_log_to_file("SEARCHING: Pool empty, fallback %d random wps" % _search_waypoints.size()); return
-	_assign_nearest_inspection_point(); _log_to_file("SEARCHING: %d pts pool=%s" % [_search_inspection_points.size(),_search_pool_key])
+	_assign_nearest_inspection_point(); if _search_waypoints.is_empty(): _search_waypoints.append(NavigationServer2D.map_get_closest_point(get_world_2d().navigation_map,_search_center))  ## #1458r7 center fallback; _log_to_file("SEARCHING: %d pts pool=%s wps=%d"%[_search_inspection_points.size(),_search_pool_key,_search_waypoints.size()])
 
 func _is_waypoint_navigable(pos: Vector2) -> bool:  ## Check if position is on navmesh
 	return pos.distance_to(NavigationServer2D.map_get_closest_point(get_world_2d().navigation_map, pos)) < 50.0
@@ -2382,11 +2383,9 @@ func _clear_visible_inspection_points(delta: float) -> void:
 		if global_position.distance_to(ip) > SEARCH_INSPECT_CLEAR_RADIUS: continue
 		if acos(clampf(fd.dot((ip - global_position).normalized()), -1.0, 1.0)) <= hf:
 			_search_inspected_flags[i] = true
-func _all_inspection_points_cleared() -> bool:
-	for f in _search_inspected_flags:
-		if not f:
-			return false
-	return true
+func _all_inspection_points_cleared() -> bool:  ## #1458r7: empty flags=not cleared; avoid for-semicolon trap
+	if _search_inspected_flags.is_empty(): return false
+	return not _search_inspected_flags.has(false)
 func _relocate_search_center(reason: String) -> void:  ## #1458r5: erase own pool entry only
 	var oc := _search_center; _search_center = global_position; _search_state_timer = 0.0; _search_visited_zones.clear()
 	if _search_pool_key != "" and _shared_search_pool.has(_search_pool_key): _shared_search_pool.erase(_search_pool_key); _search_pool_key = ""
@@ -2405,6 +2404,7 @@ func _process_searching_state(delta: float) -> void:  ## Cover-inspection search
 	if _search_assigned_point_index >= 0 and _search_assigned_point_index < _search_inspected_flags.size() and _search_inspected_flags[_search_assigned_point_index]: _assign_nearest_inspection_point()
 	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
 		if _using_predefined_search_path and not _search_waypoints.is_empty(): _search_current_waypoint_index = 0; _search_moving_to_waypoint = true; return
+		if _search_inspection_points.is_empty(): _search_radius=minf(_search_radius+SEARCH_RADIUS_EXPANSION,SEARCH_MAX_RADIUS); if _search_pool_key!="" and _shared_search_pool.has(_search_pool_key): _shared_search_pool.erase(_search_pool_key); _search_pool_key=""; _generate_search_waypoints(); return  ## #1458r7: expand, re-raycast
 		if not _all_inspection_points_cleared():
 			_assign_nearest_inspection_point()
 			if _search_assigned_point_index < 0:

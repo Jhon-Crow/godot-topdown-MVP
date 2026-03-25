@@ -402,3 +402,27 @@ func test_all_points_cleared_false_for_last_flag_false() -> void:
 			break
 	assert_false(all_cleared,
 		"#1458r6: Must check all elements — last uninspected flag must prevent 'all cleared'")
+
+
+# ============================================================================
+# Tests: #1458r7 — empty flags array causes false "all cleared" infinite loop
+# ============================================================================
+
+
+func test_empty_flags_not_all_cleared() -> void:
+	## #1458r7: Empty _search_inspected_flags (pool empty / no cover found) used to return
+	## true from _all_inspection_points_cleared() — the for loop ran 0 iterations and fell
+	## through to "return true". This caused immediate _relocate_search_center("all inspected")
+	## on every frame, making the enemy jitter endlessly without ever searching.
+	## Fix: explicitly return false when flags is empty.
+	var flags: Array = []  # Empty pool
+	var all_cleared: bool = not flags.is_empty() and not flags.has(false)
+	assert_false(all_cleared,
+		"#1458r7: Empty flags should return false (nothing inspected yet, not 'all cleared')")
+
+
+func test_nonempty_all_true_flags_is_cleared() -> void:
+	## #1458r7: Verify that non-empty all-true array still correctly returns true.
+	var flags: Array = [true, true, true]
+	var all_cleared: bool = not flags.is_empty() and not flags.has(false)
+	assert_true(all_cleared, "#1458r7: Non-empty all-true flags should be 'all cleared'")
