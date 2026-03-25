@@ -1,9 +1,10 @@
 extends Node
-## Sniper rifle enemy component (Issues #1163, #1171).
-## Handles two responsibilities:
+## Sniper rifle enemy component (Issues #1163, #1171, #1336).
+## Handles three responsibilities:
 ##   1. AI behaviour: kiting (standoff range), retreat when player closes in,
 ##      and blind-fire through cover at last-known / predicted player positions.
 ##   2. Hitscan shooting: instant raycast avoids physics tunnelling at 10000px/s.
+##   3. Laser sight: always points where the next shot will travel (Issue #1336).
 ## Extracted from enemy.gd to keep the file below the 5000-line CI limit.
 class_name EnemySniperComponent
 
@@ -18,6 +19,11 @@ const MIN_DISTANCE: float = 350.0
 ## Seconds between blind-fire shots through cover.
 const BLIND_FIRE_COOLDOWN: float = 5.0
 
+## Laser sight maximum range (px). Issue #1336.
+const LASER_MAX_RANGE: float = 5000.0
+## Muzzle offset from weapon sprite origin to barrel tip (px, before scale).
+const MUZZLE_LOCAL_OFFSET: float = 52.0
+
 # ============================================================================
 # State
 # ============================================================================
@@ -31,10 +37,32 @@ var enemy: Node2D = null
 ## Enable file logging (forwarded from enemy debug setting).
 var log_to_file_fn: Callable = Callable()
 
+## Issue #1336: Current blind-fire target position (Vector2.ZERO when not blind-firing).
+## Updated by process_combat/process_pursuing so the laser always shows where the
+## next bullet will actually fly — matching the direction used in fire_at_predicted_position().
+var _blind_fire_target: Vector2 = Vector2.ZERO
+
+## Issue #1336: Laser sight Line2D node (only created for SNIPER_RIFLE enemies).
+var _laser_line: Line2D = null
+## Issue #1336: Laser endpoint dot (PointLight2D for glow at hit point).
+var _laser_dot: Sprite2D = null
+
 
 func _ready() -> void:
 	if enemy == null:
 		enemy = get_parent() as CharacterBody2D
+	# Issue #1336: Only create laser sight for sniper rifle enemies.
+	# EnemySniperComponent is added to ALL enemies (line 422 of enemy.gd) but
+	# the laser must only appear on snipers. Check weapon_type after enemy is set.
+	if enemy != null and enemy.get("weapon_type") != null:
+		# WeaponType.SNIPER_RIFLE == 7 (enum int value)
+		if int(enemy.weapon_type) == 7:
+			_create_laser_sight()
+
+
+func _process(_delta: float) -> void:
+	if _laser_line != null:
+		_update_laser_sight()
 
 
 # ============================================================================
@@ -55,6 +83,7 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 	blind_fire_timer += delta
 
 	if can_see_player:
+		_blind_fire_target = Vector2.ZERO  # Issue #1336: clear blind-fire target when player visible
 		if distance_to_player < MIN_DISTANCE:
 			var retreat_dir := -direction_to_player
 			retreat_dir = (enemy._apply_wall_avoidance(retreat_dir) as Vector2)
@@ -80,9 +109,11 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 			blind_target = predicted
 
 	if blind_target == Vector2.ZERO:
+		_blind_fire_target = Vector2.ZERO  # Issue #1336: no target
 		enemy._transition_to_pursuing()
 		return true
 
+	_blind_fire_target = blind_target  # Issue #1336: track for laser direction
 	_rotate_toward(blind_target, delta)
 
 	if blind_fire_timer >= BLIND_FIRE_COOLDOWN and enemy._shoot_timer >= enemy.shoot_cooldown and enemy._can_shoot():
@@ -100,6 +131,7 @@ func process_pursuing(delta: float, can_see_player: bool, player: Node,
 	# When player is visible and at safe range: shoot directly and let normal
 	# PURSUING code transition to COMBAT (return false so enemy.gd continues).
 	if can_see_player and player != null:
+		_blind_fire_target = Vector2.ZERO  # Issue #1336: clear when player visible
 		var dist := enemy.global_position.distance_to((player as Node2D).global_position)
 		if dist >= MIN_DISTANCE:
 			return false  # Fall through: normal pursuit will transition to COMBAT
@@ -112,10 +144,13 @@ func process_pursuing(delta: float, can_see_player: bool, player: Node,
 		if ph != Vector2.ZERO:
 			blind_pos = ph
 	if blind_pos == Vector2.ZERO:
+		_blind_fire_target = Vector2.ZERO  # Issue #1336: no target
 		return false
 	if enemy.global_position.distance_to(blind_pos) < MIN_DISTANCE:
+		_blind_fire_target = Vector2.ZERO  # Issue #1336: too close, will reposition
 		return false  # Too close — fall through to normal pursuit to reposition
 
+	_blind_fire_target = blind_pos  # Issue #1336: track for laser direction
 	enemy.velocity = Vector2.ZERO
 	_rotate_toward(blind_pos, delta)
 	if blind_fire_timer >= BLIND_FIRE_COOLDOWN and enemy._shoot_timer >= enemy.shoot_cooldown and enemy._can_shoot():
@@ -322,6 +357,119 @@ func _fade_sniper_tracer(tracer: Line2D) -> void:
 		grad.set_color(grad.get_point_count() - 1, Color(0.5, 0.5, 0.5, a * 0.3))
 		tracer.gradient = grad; await get_tree().process_frame
 	if is_instance_valid(tracer): tracer.queue_free()
+
+
+# ============================================================================
+# Issue #1336 — Laser sight: always points where the next shot will travel
+# ============================================================================
+
+## Create the laser sight Line2D. Only called for SNIPER_RIFLE enemies.
+func _create_laser_sight() -> void:
+	_laser_line = Line2D.new()
+	_laser_line.name = "SniperLaserSight"
+	_laser_line.width = 1.5
+	_laser_line.default_color = Color(1.0, 0.0, 0.0, 0.45)
+	_laser_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_laser_line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_laser_line.top_level = true
+	_laser_line.z_index = 9  # Below tracers (z=10) but above most sprites
+	_laser_line.add_point(Vector2.ZERO)
+	_laser_line.add_point(Vector2.ZERO)
+	# Add as child of current scene so it renders in world space
+	call_deferred("_add_laser_to_scene")
+
+
+## Deferred add to scene tree — ensures current_scene is available.
+func _add_laser_to_scene() -> void:
+	if _laser_line == null: return
+	if not is_inside_tree(): _laser_line.queue_free(); _laser_line = null; return
+	var current_scene := get_tree().current_scene
+	if current_scene == null: _laser_line.queue_free(); _laser_line = null; return
+	current_scene.add_child(_laser_line)
+
+
+## Compute the direction the laser should point.
+## This MUST match the exact direction the next bullet will travel.
+##   - Direct fire: same as _get_weapon_forward_direction() which returns
+##     (player.global_position - enemy.global_position).normalized() when player visible.
+##   - Blind fire: (blind_target - enemy.global_position).normalized() — the exact
+##     same vector used by fire_at_predicted_position() for to_target.
+##   - No target: use the enemy model's current rotation (idle/patrol).
+func _get_laser_direction() -> Vector2:
+	# Blind-fire mode: use exact blind-fire target direction
+	if _blind_fire_target != Vector2.ZERO:
+		return (_blind_fire_target - enemy.global_position).normalized()
+	# Direct-fire mode: use the same logic as _get_weapon_forward_direction()
+	# which is what _execute_shoot() uses for the bullet direction.
+	var player: Node2D = enemy.get("_player") as Node2D
+	var can_see: bool = enemy.get("_can_see_player") if enemy.get("_can_see_player") != null else false
+	if player and is_instance_valid(player) and can_see:
+		return (player.global_position - enemy.global_position).normalized()
+	# Check for current target (companion, aggression target)
+	var current_target: Node2D = enemy.get("_current_target") as Node2D
+	if current_target and is_instance_valid(current_target):
+		var can_see_companion: bool = enemy.get("_can_see_companion") if enemy.get("_can_see_companion") != null else false
+		if can_see_companion:
+			return (current_target.global_position - enemy.global_position).normalized()
+	# Fallback: weapon sprite direction or model rotation
+	var weapon_sprite: Node2D = enemy.get("_weapon_sprite") as Node2D
+	if weapon_sprite and is_instance_valid(weapon_sprite):
+		return weapon_sprite.global_transform.x.normalized()
+	var enemy_model: Node2D = enemy.get("_enemy_model") as Node2D
+	if enemy_model and is_instance_valid(enemy_model):
+		return Vector2.from_angle(enemy_model.global_rotation)
+	return Vector2.RIGHT
+
+
+## Compute muzzle position using the laser direction (not the lerped sprite transform).
+## This avoids Bug C from previous attempts: muzzle offset in lerped direction while
+## laser points in target direction, creating a diagonal mismatch.
+func _get_laser_muzzle_pos(weapon_forward: Vector2) -> Vector2:
+	var weapon_sprite: Node2D = enemy.get("_weapon_sprite") as Node2D
+	if weapon_sprite and is_instance_valid(weapon_sprite):
+		var scale_val: float = enemy.enemy_model_scale if enemy.get("enemy_model_scale") != null else 1.3
+		return weapon_sprite.global_position + weapon_forward * (MUZZLE_LOCAL_OFFSET * scale_val)
+	return enemy.global_position + weapon_forward * enemy.bullet_spawn_offset
+
+
+## Update laser sight position and direction every frame.
+func _update_laser_sight() -> void:
+	if not is_instance_valid(enemy) or not enemy.is_inside_tree():
+		return
+	# Hide laser when enemy is dead
+	if enemy.has_method("is_alive") and not enemy.is_alive():
+		_laser_line.visible = false
+		return
+	# Hide laser during reload
+	var is_reloading: bool = enemy.get("_is_reloading") if enemy.get("_is_reloading") != null else false
+	if is_reloading:
+		_laser_line.visible = false
+		return
+	_laser_line.visible = true
+
+	var weapon_forward := _get_laser_direction()
+	var muzzle_pos := _get_laser_muzzle_pos(weapon_forward)
+	var laser_end := muzzle_pos + weapon_forward * LASER_MAX_RANGE
+
+	# Raycast to find the first wall the laser hits (layer 4 = walls/obstacles)
+	var world_2d := enemy.get_world_2d()
+	if world_2d:
+		var space_state := world_2d.direct_space_state
+		if space_state:
+			var query := PhysicsRayQueryParameters2D.create(muzzle_pos, laser_end, 4)
+			var result := space_state.intersect_ray(query)
+			if not result.is_empty():
+				laser_end = result["position"]
+
+	_laser_line.set_point_position(0, muzzle_pos)
+	_laser_line.set_point_position(1, laser_end)
+
+
+## Clean up laser sight when enemy dies or component is removed.
+func _exit_tree() -> void:
+	if _laser_line and is_instance_valid(_laser_line):
+		_laser_line.queue_free()
+		_laser_line = null
 
 
 # ============================================================================
