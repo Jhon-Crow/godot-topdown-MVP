@@ -30,6 +30,10 @@ const ACTIVE_PATH_COLOR := Color(1.0, 0.55, 0.0, 0.9)
 const ACTIVE_FILL_COLOR := Color(1.0, 0.55, 0.0, 0.25)
 ## Color for the current target waypoint in an active search path (yellow).
 const ACTIVE_TARGET_COLOR := Color(1.0, 1.0, 0.0, 1.0)
+## Issue #1458: Color for uninspected inspection points (green).
+const INSPECT_POINT_COLOR := Color(0.2, 1.0, 0.2, 0.9)
+## Issue #1458: Color for inspected (cleared) inspection points (gray).
+const INSPECT_CLEARED_COLOR := Color(0.5, 0.5, 0.5, 0.4)
 ## Radius of each waypoint circle in world pixels.
 const WAYPOINT_RADIUS := 10.0
 
@@ -92,6 +96,8 @@ func _ensure_overlay() -> void:
 	_overlay.active_path_color = ACTIVE_PATH_COLOR
 	_overlay.active_fill_color = ACTIVE_FILL_COLOR
 	_overlay.active_target_color = ACTIVE_TARGET_COLOR
+	_overlay.inspect_point_color = INSPECT_POINT_COLOR
+	_overlay.inspect_cleared_color = INSPECT_CLEARED_COLOR
 	_overlay.waypoint_radius = WAYPOINT_RADIUS
 	add_child(_overlay)
 	_log_info("SearchPathMonitor: overlay created")
@@ -127,6 +133,8 @@ class _SearchPathOverlay extends CanvasLayer:
 	var active_path_color: Color = Color(1.0, 0.55, 0.0, 0.9)
 	var active_fill_color: Color = Color(1.0, 0.55, 0.0, 0.25)
 	var active_target_color: Color = Color(1.0, 1.0, 0.0, 1.0)
+	var inspect_point_color: Color = Color(0.2, 1.0, 0.2, 0.9)
+	var inspect_cleared_color: Color = Color(0.5, 0.5, 0.5, 0.4)
 	var waypoint_radius: float = 10.0
 	## The Node2D child that does the actual drawing.
 	## Initialized in _init() so it is available immediately after .new(),
@@ -148,6 +156,8 @@ class _SearchPathOverlay extends CanvasLayer:
 		_draw_node.active_path_color = active_path_color
 		_draw_node.active_fill_color = active_fill_color
 		_draw_node.active_target_color = active_target_color
+		_draw_node.inspect_point_color = inspect_point_color
+		_draw_node.inspect_cleared_color = inspect_cleared_color
 		_draw_node.waypoint_radius = waypoint_radius
 		add_child(_draw_node)
 		# Issue #1392: diagnostic label
@@ -179,10 +189,11 @@ class _SearchPathOverlay extends CanvasLayer:
 			if positions.size() > 0:
 				predefined_sets.append(positions)
 
-		# --- Active enemy search paths (dynamic spiral/predefined waypoints) ---
+		# --- Active enemy search paths (dynamic waypoints) ---
 		# Collect from all enemies currently in SEARCHING state.
 		# AIState.SEARCHING == 9 (0-indexed enum from enemy.gd: IDLE=0..ASSAULT=8, SEARCHING=9)
 		var active_paths: Array = []
+		var inspection_data: Array = []  ## Issue #1458: inspection point data
 		var enemies: Array = tree.get_nodes_in_group("enemies")
 		for enemy in enemies:
 			if not is_instance_valid(enemy):
@@ -194,18 +205,31 @@ class _SearchPathOverlay extends CanvasLayer:
 			if not enemy.has_method("get_search_waypoints"):
 				continue
 			var waypoints: Array = enemy.get_search_waypoints()
-			if waypoints.size() == 0:
+			if waypoints.size() == 0 and not enemy.has_method("get_search_inspection_points"):
 				continue
-			var current_idx: int = 0
-			if enemy.has_method("get_search_current_waypoint_index"):
-				current_idx = enemy.get_search_current_waypoint_index()
-			active_paths.append({
-				"waypoints": waypoints,
-				"current_idx": current_idx,
-				"enemy_pos": enemy.global_position
-			})
+			if waypoints.size() > 0:
+				var current_idx: int = 0
+				if enemy.has_method("get_search_current_waypoint_index"):
+					current_idx = enemy.get_search_current_waypoint_index()
+				active_paths.append({
+					"waypoints": waypoints,
+					"current_idx": current_idx,
+					"enemy_pos": enemy.global_position
+				})
+			# Issue #1458 round 3: Collect inspection point data
+			if enemy.has_method("get_search_inspection_points"):
+				var ipoints: Array = enemy.get_search_inspection_points()
+				if ipoints.size() > 0:
+					var iflags: Array = enemy.get_search_inspected_flags() if enemy.has_method("get_search_inspected_flags") else []
+					var assigned: int = enemy.get_search_assigned_point_index() if enemy.has_method("get_search_assigned_point_index") else -1
+					inspection_data.append({
+						"points": ipoints,
+						"flags": iflags,
+						"assigned_idx": assigned,
+						"enemy_pos": enemy.global_position
+					})
 
-		_draw_node.set_path_data(predefined_sets, active_paths)
+		_draw_node.set_path_data(predefined_sets, active_paths, inspection_data)
 
 
 ## Inner draw node: performs the actual draw calls each frame.
@@ -215,13 +239,17 @@ class _SearchPathDrawNode extends Node2D:
 	var active_path_color: Color = Color(1.0, 0.55, 0.0, 0.9)
 	var active_fill_color: Color = Color(1.0, 0.55, 0.0, 0.25)
 	var active_target_color: Color = Color(1.0, 1.0, 0.0, 1.0)
+	var inspect_point_color: Color = Color(0.2, 1.0, 0.2, 0.9)
+	var inspect_cleared_color: Color = Color(0.5, 0.5, 0.5, 0.4)
 	var waypoint_radius: float = 10.0
 	var _predefined_sets: Array = []
 	var _active_paths: Array = []
+	var _inspection_data: Array = []  ## Issue #1458: inspection point visualization data
 
-	func set_path_data(predefined_sets: Array, active_paths: Array) -> void:
+	func set_path_data(predefined_sets: Array, active_paths: Array, inspection_data: Array = []) -> void:
 		_predefined_sets = predefined_sets
 		_active_paths = active_paths
+		_inspection_data = inspection_data
 		queue_redraw()
 
 	func _draw() -> void:
@@ -262,6 +290,22 @@ class _SearchPathDrawNode extends Node2D:
 				draw_circle(target_pos, waypoint_radius * 0.6, active_target_color)
 				# Draw line from enemy to current target
 				draw_line(enemy_pos, target_pos, active_target_color, 1.5)
+
+		# Issue #1458 round 3: Draw inspection points (green = uninspected, gray = cleared)
+		for idata in _inspection_data:
+			var points: Array = idata["points"]
+			var flags: Array = idata["flags"]
+			var assigned_idx: int = idata.get("assigned_idx", -1)
+			var enemy_pos: Vector2 = idata["enemy_pos"]
+			for i in range(points.size()):
+				var pos: Vector2 = points[i]
+				var cleared: bool = flags[i] if i < flags.size() else false
+				var color: Color = inspect_cleared_color if cleared else inspect_point_color
+				draw_circle(pos, waypoint_radius * 0.7, color)
+				_draw_circle_outline(pos, waypoint_radius * 0.7, color, 1.5)
+			# Draw line from enemy to assigned inspection point
+			if assigned_idx >= 0 and assigned_idx < points.size():
+				draw_line(enemy_pos, points[assigned_idx], active_target_color, 2.0)
 
 	## Draw a circle outline using line segments.
 	func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: float) -> void:
