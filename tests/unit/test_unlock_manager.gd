@@ -71,11 +71,11 @@ class MockActiveItemManager:
 		10: true,  # EXTENDED_MAGAZINE — no condition, freely available from start (Issue #1065)
 		11: true,  # LOUDSPEAKER — no condition, freely available from start (Issue #959)
 		12: true,  # BREACHING_CHARGES — no condition, freely available from start (Issue #1043)
-		13: true,  # ARMORED_SKIN — no condition, freely available from start (Issue #1045)
+		13: false, # ARMORED_SKIN — condition: 100 total deaths (Issue #1389)
 		14: true,  # AUTO_RELOAD — no condition, freely available from start (Issue #1067)
 		15: true,  # DRILLING_BULLETS — no condition, freely available from start (Issue #751)
 		16: true,  # RECOIL_COMPENSATOR — no condition, freely available from start (Issue #1073)
-		17: true,  # COMBAT_DISPOSITION — no condition, freely available from start (Issue #1047)
+		17: false, # COMBAT_DISPOSITION — condition: complete any level without damage (Issue #1389)
 		18: false  # EXPERIMENTAL_SAMPLE — condition: one level on every difficulty (Issue #1426)
 	}
 
@@ -967,6 +967,7 @@ func test_condition_locked_grenades_locked_by_default() -> void:
 
 func test_condition_locked_active_items_locked_by_default() -> void:
 	# FLASHLIGHT (1), HOMING_BULLETS (2), TELEPORT_BRACERS (3), INVISIBILITY_SUIT (5), TRAJECTORY_GLASSES (8)
+	# ARMORED_SKIN (13), COMBAT_DISPOSITION (17)
 	assert_false(active_item_manager.is_active_item_unlocked(1),
 		"Flashlight should be locked by default")
 	assert_false(active_item_manager.is_active_item_unlocked(2),
@@ -977,6 +978,10 @@ func test_condition_locked_active_items_locked_by_default() -> void:
 		"Invisibility should be locked by default (Issue #1000)")
 	assert_false(active_item_manager.is_active_item_unlocked(8),
 		"Trajectory Glasses should be locked by default (Issue #1053)")
+	assert_false(active_item_manager.is_active_item_unlocked(13),
+		"Armored Skin should be locked by default — requires 100 deaths (Issue #1389)")
+	assert_false(active_item_manager.is_active_item_unlocked(17),
+		"Combat Disposition should be locked by default — requires no-damage level completion (Issue #1389)")
 
 
 # ============================================================================

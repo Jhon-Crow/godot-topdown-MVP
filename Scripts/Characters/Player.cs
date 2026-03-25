@@ -2592,6 +2592,15 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Register that the player was hit, BEFORE any immunity/guard checks.
+        // This ensures no-damage level tracking works even when hits are blocked
+        // by invincibility, force field, dash, or armored skin (Issue #1389).
+        var scoreManager = GetNodeOrNull("/root/ScoreManager");
+        if (scoreManager != null && scoreManager.HasMethod("register_damage_taken"))
+        {
+            scoreManager.Call("register_damage_taken", 1);
+        }
+
         // Check dash immunity (Issue #1071)
         // Player is immune to all damage during dash
         if (IsDashActive())
