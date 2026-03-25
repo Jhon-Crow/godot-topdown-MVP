@@ -49,6 +49,7 @@ PersistManager="*res://scripts/autoload/persist_manager.gd"
 UnlockManager="*res://scripts/autoload/unlock_manager.gd"
 WeaponHintsSettings="*res://scripts/autoload/weapon_hints_settings.gd"
 PerformanceSettings="*res://scripts/autoload/performance_settings.gd"
+SharedSearchPath="*res://scripts/autoload/shared_search_path.gd"
 
 [application]
 
