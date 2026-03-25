@@ -302,10 +302,9 @@ const SEARCH_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
 var _has_left_idle: bool = false  ## Issue #330: Never returns to IDLE
 var _search_path_node: Node2D = null  ## SearchPathWaypoints node cache (Issue #1225)
 var _using_predefined_search_path: bool = false  ## Using predefined path instead of spiral (Issue #1225)
-const SEARCH_MIN_TIME_BEFORE_COMBAT: float = 0.3  ## Issue #1458: min seconds in SEARCHING before COMBAT transition to prevent oscillation
-var _search_last_nav_target: Vector2 = Vector2.ZERO  ## Issue #1458: cached nav target to avoid redundant path recalculations
-var _search_combat_transition_logged: bool = false  ## Issue #1458: throttle "Player spotted" log to once per search session
-var _search_timeout_logged: bool = false  ## Issue #1458: throttle timeout log to once per search session
+const SEARCH_MIN_TIME_BEFORE_COMBAT: float = 0.3; const SEARCH_RELOCATE_MIN_INTERVAL: float = 3.0  ## #1458/#1458r8: min-combat-delay/min-relocation-interval
+var _search_relocate_timer: float = 0.0; var _search_last_nav_target: Vector2 = Vector2.ZERO  ## #1458r8 relocation timer / #1458 nav target cache
+var _search_combat_transition_logged: bool = false; var _search_timeout_logged: bool = false  ## Issue #1458: throttle log flags
 const CLOSE_COMBAT_DISTANCE: float = 400.0  ## Close combat threshold
 var _goap_world_state: Dictionary = {}  ## GOAP world state
 var _detection_timer: float = 0.0  ## Combat detection timer
@@ -2315,10 +2314,10 @@ func _load_predefined_search_path(_near_pos: Vector2) -> bool:
 	_log_debug("SEARCHING: Loaded %d predefined waypoints (start=%d)" % [_search_waypoints.size(), si])
 	return true
 
-func _get_or_create_shared_pool() -> void:  ## #1458r5: untyped Arrays (ref-safe, no typed-cast crash). next_idx spreads enemies.
+func _get_or_create_shared_pool() -> void:  ## #1458r5/#1458r8: untyped Arrays + creation lock prevents duplicate raycasts
 	var snap:=200.0; var sk:="%d,%d"%[int(_search_center.x/snap)*int(snap),int(_search_center.y/snap)*int(snap)]; _search_pool_key=sk
-	if _shared_search_pool.has(sk): _search_inspection_points=_shared_search_pool[sk]["points"]; _search_inspected_flags=_shared_search_pool[sk]["flags"]; _log_to_file("SEARCHING: Reuse pool %s pts=%d"%[sk,_search_inspection_points.size()]); return
-	var pts:=[]; var fl:=[]; var ss:=get_world_2d().direct_space_state; var nm:=get_world_2d().navigation_map; var hn:=nm.is_valid()
+	if _shared_search_pool.has(sk): var ep:=_shared_search_pool[sk]; if ep.get("creating",false): return; _search_inspection_points=ep["points"]; _search_inspected_flags=ep["flags"]; _log_to_file("SEARCHING: Reuse pool %s pts=%d"%[sk,_search_inspection_points.size()]); return  ## #1458r8: lock guard
+	_shared_search_pool[sk]={"creating":true,"points":[],"flags":[],"next_idx":0}; var pts:=[]; var fl:=[]; var ss:=get_world_2d().direct_space_state; var nm:=get_world_2d().navigation_map; var hn:=nm.is_valid()  ## #1458r8: lock+init
 	for i in range(SEARCH_INSPECT_RAY_COUNT):
 		if pts.size()>=SEARCH_INSPECT_MAX_POINTS: break
 		var dir:=Vector2.from_angle((float(i)/float(SEARCH_INSPECT_RAY_COUNT))*TAU); var q:=PhysicsRayQueryParameters2D.new(); q.from=_search_center; q.to=_search_center+dir*SEARCH_INSPECT_RAY_DISTANCE; q.collision_mask=4
@@ -2327,7 +2326,7 @@ func _get_or_create_shared_pool() -> void:  ## #1458r5: untyped Arrays (ref-safe
 		if hn: var sn:=NavigationServer2D.map_get_closest_point(nm,ip); if ip.distance_to(sn)>=SEARCH_NAV_SNAP_THRESHOLD: continue; ip=sn
 		var tc:=false; for ex in pts: if (ip as Vector2).distance_to(ex as Vector2)<SEARCH_INSPECT_MIN_DIST: tc=true; break
 		if not tc and ip.distance_to(_search_center)>=80.0: pts.append(ip); fl.append(false)
-	_shared_search_pool[sk]={"points":pts,"flags":fl,"next_idx":0}; _search_inspection_points=_shared_search_pool[sk]["points"]; _search_inspected_flags=_shared_search_pool[sk]["flags"]; _log_to_file("SEARCHING: New pool %s pts=%d"%[sk,pts.size()])
+	_shared_search_pool[sk]={"creating":false,"points":pts,"flags":fl,"next_idx":0}; _search_inspection_points=_shared_search_pool[sk]["points"]; _search_inspected_flags=_shared_search_pool[sk]["flags"]; _log_to_file("SEARCHING: New pool %s pts=%d"%[sk,pts.size()])  ## #1458r8: unlock
 ## #1458r5: Load pool; fallback to random wps if empty so enemy never stalls.
 func _generate_search_waypoints() -> void:
 	_search_waypoints.clear(); _search_current_waypoint_index=0; _search_assigned_point_index=-1; _search_fov_clear_timer=0.0; _get_or_create_shared_pool()
@@ -2386,15 +2385,16 @@ func _clear_visible_inspection_points(delta: float) -> void:
 func _all_inspection_points_cleared() -> bool:  ## #1458r7: empty flags=not cleared; avoid for-semicolon trap
 	if _search_inspected_flags.is_empty(): return false
 	return not _search_inspected_flags.has(false)
-func _relocate_search_center(reason: String) -> void:  ## #1458r5: erase own pool entry only
-	var oc := _search_center; _search_center = global_position; _search_state_timer = 0.0; _search_visited_zones.clear()
+func _relocate_search_center(reason: String) -> void:  ## #1458r5/#1458r8: cooldown + erase own pool only
+	if _search_relocate_timer < SEARCH_RELOCATE_MIN_INTERVAL: _assign_nearest_inspection_point(); return  ## #1458r8: rate-limit raycasting
+	var oc := _search_center; _search_center = global_position; _search_state_timer = 0.0; _search_relocate_timer = 0.0; _search_visited_zones.clear()
 	if _search_pool_key != "" and _shared_search_pool.has(_search_pool_key): _shared_search_pool.erase(_search_pool_key); _search_pool_key = ""
 	_generate_search_waypoints(); _log_to_file("SEARCHING: %s, relocated %s->%s (pts=%d)" % [reason, oc, _search_center, _search_inspection_points.size()])
 func _mark_inspection_done(idx: int) -> void:
 	if idx >= 0 and idx < _search_inspected_flags.size(): _search_inspected_flags[idx] = true
 
 func _process_searching_state(delta: float) -> void:  ## Cover-inspection search (#1458r4, #322, #330)
-	_search_state_timer += delta; _clear_visible_inspection_points(delta)
+	_search_state_timer += delta; _search_relocate_timer += delta; _clear_visible_inspection_points(delta)
 	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle:
 		if not _search_timeout_logged: _log_to_file("SEARCHING timeout %.1fs" % _search_state_timer); _search_timeout_logged = true
 		_transition_to_idle(); return
@@ -2404,7 +2404,7 @@ func _process_searching_state(delta: float) -> void:  ## Cover-inspection search
 	if _search_assigned_point_index >= 0 and _search_assigned_point_index < _search_inspected_flags.size() and _search_inspected_flags[_search_assigned_point_index]: _assign_nearest_inspection_point()
 	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
 		if _using_predefined_search_path and not _search_waypoints.is_empty(): _search_current_waypoint_index = 0; _search_moving_to_waypoint = true; return
-		if _search_inspection_points.is_empty(): _search_radius=minf(_search_radius+SEARCH_RADIUS_EXPANSION,SEARCH_MAX_RADIUS); if _search_pool_key!="" and _shared_search_pool.has(_search_pool_key): _shared_search_pool.erase(_search_pool_key); _search_pool_key=""; _generate_search_waypoints(); return  ## #1458r7: expand, re-raycast
+		if _search_inspection_points.is_empty(): if _search_relocate_timer < SEARCH_RELOCATE_MIN_INTERVAL: return; _search_radius=minf(_search_radius+SEARCH_RADIUS_EXPANSION,SEARCH_MAX_RADIUS); if _search_pool_key!="" and _shared_search_pool.has(_search_pool_key): _shared_search_pool.erase(_search_pool_key); _search_pool_key=""; _search_relocate_timer=0.0; _generate_search_waypoints(); return  ## #1458r7/#1458r8
 		if not _all_inspection_points_cleared():
 			_assign_nearest_inspection_point()
 			if _search_assigned_point_index < 0:
@@ -2649,7 +2649,7 @@ func _transition_to_idle() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings")
 	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
 		if _current_state != AIState.SEARCHING:  # Issue #1458: skip regeneration if already SEARCHING (prevents per-frame waypoint regen in redirect chain)
-			_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _search_last_nav_target = Vector2.ZERO; _search_combat_transition_logged = false; _search_timeout_logged = false; if _search_pool_key != "" and _shared_search_pool.has(_search_pool_key): _shared_search_pool.erase(_search_pool_key); _search_pool_key = ""; _generate_search_waypoints()  # #1458r5: erase only own pool entry
+			_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _search_last_nav_target = Vector2.ZERO; _search_combat_transition_logged = false; _search_timeout_logged = false; _search_relocate_timer = 0.0; if _search_pool_key != "" and _shared_search_pool.has(_search_pool_key): _shared_search_pool.erase(_search_pool_key); _search_pool_key = ""; _generate_search_waypoints()  # #1458r5/#1458r8
 		return
 	_current_state = AIState.IDLE
 	# Reset various state tracking when returning to idle
@@ -2835,7 +2835,7 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 	## #921: Do NOT set _has_left_idle here. Combat enemies keep true (search forever); patrol keep false (timeout).
 	_search_center=center_position; _search_radius=SEARCH_INITIAL_RADIUS; _search_state_timer=0.0; _search_scan_timer=0.0; _search_current_waypoint_index=0; _search_moving_to_waypoint=true; _search_visited_zones.clear()
-	_search_stuck_timer=0.0; _search_last_progress_position=global_position; _search_last_nav_target=Vector2.ZERO; _search_combat_transition_logged=false; _search_timeout_logged=false; if _tactical_movement: _tactical_movement.reset_yield()  ## #354/#1249/#1458
+	_search_stuck_timer=0.0; _search_last_progress_position=global_position; _search_last_nav_target=Vector2.ZERO; _search_combat_transition_logged=false; _search_timeout_logged=false; _search_relocate_timer=0.0; if _tactical_movement: _tactical_movement.reset_yield()  ## #354/#1249/#1458/#1458r8
 	if _search_pool_key!="" and _shared_search_pool.has(_search_pool_key): _shared_search_pool.erase(_search_pool_key); _search_pool_key=""  ## #1458r5: erase own pool entry
 	_using_predefined_search_path = _load_predefined_search_path(center_position)  # Issue #1225
 	if not _using_predefined_search_path: _generate_search_waypoints()

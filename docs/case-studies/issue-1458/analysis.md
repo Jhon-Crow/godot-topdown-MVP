@@ -308,3 +308,45 @@ The root bug from round 5 (`Array[bool]` cast from Dictionary) is a **confirmed 
 ### Why r6 Didn't Fully Fix It
 
 Round 6 fixed the GDScript for-semicolon parsing trap that caused `_all_inspection_points_cleared()` to return `true` after visiting ONE point. But it didn't address the **empty pool** case where the flags array is empty from the start. Both bugs caused immediate relocation, just via slightly different paths.
+
+## Round 8 Analysis: Frequent Re-Raycasting → Sustained FPS Drop
+
+**Reported**: game_log_20260325_124627.txt — "AI still completely broken"
+
+**Note**: This log shows `ai: false` in PerformanceSettings (line 113). With AI disabled, all enemy AI is skipped at `_physics_process` line 812. The `has_died_signal=false` for all enemies is a consequence (enemy `_ready()` doesn't complete when AI is off). The user had AI disabled for performance testing, explaining why no SEARCHING activity appears in this 3-second log.
+
+### Root Cause of Sustained FPS Drop (ai:true sessions)
+
+Even when AI is enabled and the r6/r7 bugs are fixed, the SEARCHING state still causes FPS drops due to **rapid re-raycasting on relocation and expansion**:
+
+**The relocation loop (even with r7 fixes):**
+1. Enemy in open area: empty inspection pool → random fallback waypoints generated
+2. Fallback waypoints visited (takes ~5-10 seconds at walk speed)
+3. `_all_inspection_points_cleared()` returns `false` (empty flags → false now per r7)
+4. `_search_inspection_points.is_empty()` → triggers expansion: 24 raycasts, new pool, `return`
+5. Next session: pool still empty (no walls) → fallback waypoints again → run out → expand again
+6. **Each expansion = 24 `intersect_ray()` calls = ~1ms per expansion per enemy**
+7. With 5 enemies and expansions every ~10s: not terrible in isolation, but with relocation chains it compounds
+
+**The relocation race condition (when multiple enemies search the same area):**
+1. Pool reaches "all inspected" → 5 enemies call `_relocate_search_center("all inspected")` in the same frame
+2. Each enemy erases pool key `"X,Y"` and calls `_generate_search_waypoints()` → `_get_or_create_shared_pool()`
+3. Enemy 1 creates pool (24 raycasts) and stores it
+4. Enemy 2 ALSO erases and recreates (enemy 1's work is thrown away)
+5. **5 enemies × 24 raycasts = 120 raycasts per relocation wave**
+
+### Fixes Applied (r8)
+
+1. **Relocation cooldown** (`SEARCH_RELOCATE_MIN_INTERVAL = 3.0s`): `_relocate_search_center()` now checks `_search_relocate_timer < 3.0s` and blocks relocation (calls `_assign_nearest_inspection_point()` instead). This prevents rapid-fire relocation. Timer is reset on each actual relocation or on `_transition_to_searching`.
+
+2. **Expansion cooldown**: The empty-pool expansion path in `_process_searching_state` also respects `_search_relocate_timer < SEARCH_RELOCATE_MIN_INTERVAL`. Enemies in open areas wait ≥3s between expansion attempts instead of expanding every time waypoints run out.
+
+3. **Pool creation lock** (`"creating": true`): `_get_or_create_shared_pool()` now sets `pool["creating"] = true` before starting raycasts and `false` after. Other enemies calling the function for the same key while `creating` is true return early (skip raycasting). Only ONE enemy does the 24 raycasts; others wait for the pool to be ready on the next call.
+
+### Expected Behavior After r8
+
+- Enemy enters SEARCHING → 24 raycasts ONCE to build pool (only 1 enemy even for N enemies in same area)
+- Inspection points assigned round-robin across enemies
+- All points cleared → relocation blocked for 3s → enemies keep patrolling near center
+- After 3s → one relocation allowed → 24 raycasts for new area → etc.
+- FPS impact: at most 24 raycasts every 3 seconds per search area (not per enemy)

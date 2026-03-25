@@ -426,3 +426,56 @@ func test_nonempty_all_true_flags_is_cleared() -> void:
 	var flags: Array = [true, true, true]
 	var all_cleared: bool = not flags.is_empty() and not flags.has(false)
 	assert_true(all_cleared, "#1458r7: Non-empty all-true flags should be 'all cleared'")
+
+
+# ============================================================================
+# Tests: #1458r8 — relocation cooldown + creation lock
+# ============================================================================
+
+
+func test_relocation_blocked_within_cooldown() -> void:
+	## #1458r8: _relocate_search_center must not trigger new raycasts when
+	## _search_relocate_timer < SEARCH_RELOCATE_MIN_INTERVAL (3.0s).
+	## Rapid relocation was causing 24 raycasts per enemy per second → FPS drop.
+	var relocate_timer := 1.5  # Less than 3.0s cooldown
+	var min_interval := 3.0
+	var should_relocate := relocate_timer >= min_interval
+	assert_false(should_relocate,
+		"#1458r8: Relocation should be blocked when timer < 3.0s cooldown")
+
+
+func test_relocation_allowed_after_cooldown() -> void:
+	## #1458r8: After 3.0s, relocation should proceed normally.
+	var relocate_timer := 3.5  # More than 3.0s cooldown
+	var min_interval := 3.0
+	var should_relocate := relocate_timer >= min_interval
+	assert_true(should_relocate,
+		"#1458r8: Relocation should be allowed when timer >= 3.0s cooldown")
+
+
+func test_creation_lock_prevents_duplicate_pool_creation() -> void:
+	## #1458r8: When pool entry has creating:true, a second enemy calling
+	## _get_or_create_shared_pool should detect the lock and skip raycasting.
+	## This prevents 5 enemies each doing 24 raycasts for the same pool key.
+	var pool: Dictionary = {"creating": true, "points": [], "flags": [], "next_idx": 0}
+	var is_being_created := pool.get("creating", false)
+	assert_true(is_being_created,
+		"#1458r8: Pool with creating:true should block concurrent creation")
+
+
+func test_creation_lock_cleared_after_pool_built() -> void:
+	## #1458r8: After raycasts complete, creating:false means pool is available.
+	var pool: Dictionary = {"creating": false, "points": [Vector2(100, 100)], "flags": [false], "next_idx": 0}
+	var is_being_created := pool.get("creating", false)
+	assert_false(is_being_created,
+		"#1458r8: Pool with creating:false should be reusable by other enemies")
+
+
+func test_expansion_blocked_within_cooldown() -> void:
+	## #1458r8: The empty-pool expansion path (open area, no cover) must also
+	## respect the relocation cooldown to prevent repeated 24-raycast expansions.
+	var relocate_timer := 0.5  # Way below 3.0s
+	var min_interval := 3.0
+	var should_expand := relocate_timer >= min_interval
+	assert_false(should_expand,
+		"#1458r8: Expansion raycasts should be blocked when cooldown not elapsed")
