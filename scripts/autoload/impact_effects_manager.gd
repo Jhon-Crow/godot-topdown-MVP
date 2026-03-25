@@ -91,12 +91,12 @@ var _dust_effect_pool: Array[GPUParticles2D] = []
 var _dust_effects_active: int = 0
 
 ## Maximum number of concurrent dust effects allowed.
-## Mini UZI fires ~15 rounds/sec; DustEffect lifetime = 2.5s → up to 37 active at once
-## without limiting. Cap at 16 to bound GPU particle work while keeping visuals dense.
-const MAX_CONCURRENT_DUST_EFFECTS: int = 16
+## Issue #1487: DustEffect lifetime reduced to 1.2s; at 15 shots/sec → ~18 natural concurrency.
+## Cap at 8 to bound GPU particle work while keeping visuals dense.
+const MAX_CONCURRENT_DUST_EFFECTS: int = 8
 
 ## Initial pool size for dust effects (pre-created at startup).
-const DUST_EFFECT_POOL_SIZE: int = 16
+const DUST_EFFECT_POOL_SIZE: int = 8
 
 ## Active bullet holes for cleanup management (visual only).
 var _bullet_holes = []
@@ -291,9 +291,13 @@ func _preload_effect_scenes() -> void:
 ## @param caliber_data: Optional caliber data for effect scaling.
 func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data: Resource = null) -> void:
 	# Issue #1145: Respect the wall hit particles optimization setting.
+	# Issue #1487: Check dust_quality — Off (2) skips all dust spawning.
 	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
-	if gameplay_settings and not gameplay_settings.is_wall_hit_particles_enabled():
-		return
+	if gameplay_settings:
+		if not gameplay_settings.is_wall_hit_particles_enabled():
+			return
+		if gameplay_settings.get_dust_quality() == gameplay_settings.DUST_QUALITY_OFF:
+			return
 	# Issue #1186: performance toggle
 	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if perf_settings and not perf_settings.is_particles_enabled():
@@ -326,7 +330,11 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 
 	# Scale effect based on caliber
 	var effect_scale := _get_effect_scale(caliber_data)
-	effect.amount_ratio = effect_scale
+	# Issue #1487: Apply dust quality — Half mode halves amount_ratio for fewer particles.
+	var quality_ratio: float = 1.0
+	if gameplay_settings and gameplay_settings.get_dust_quality() == gameplay_settings.DUST_QUALITY_HALF:
+		quality_ratio = 0.5
+	effect.amount_ratio = clampf(effect_scale * quality_ratio, MIN_EFFECT_SCALE, MAX_EFFECT_SCALE)
 	# Use smaller visual scale for more realistic dust particles
 	effect.scale = Vector2(effect_scale * 0.8, effect_scale * 0.8)
 
@@ -342,8 +350,8 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 		print("[ImpactEffectsManager] Dust effect spawned from pool successfully")
 
 	# Schedule return to pool after lifetime + cleanup_delay.
-	# Matches DustEffect.tscn: lifetime=2.5, cleanup_delay=1.0 → 3.5s total.
-	var return_delay := effect.lifetime + 1.0
+	# Matches DustEffect.tscn: lifetime=1.2, cleanup_delay=0.5 → 1.7s total (Issue #1487).
+	var return_delay := effect.lifetime + 0.5
 	get_tree().create_timer(return_delay).timeout.connect(
 		func() -> void: _return_dust_effect_to_pool(effect)
 	)
