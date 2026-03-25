@@ -97,10 +97,12 @@ func _setup_exit_zone() -> void:
 		push_warning("ExitZone scene not found")
 		return
 	_exit_zone = exit_zone_scene.instantiate()
-	# Exit at top center-right — the gap in WallTop is x=2000..2400, centered at x=2200
-	# Position the zone at the entrance to the opening so player can walk into it
-	_exit_zone.position = Vector2(2200, 120)
-	_exit_zone.zone_width = 380.0; _exit_zone.zone_height = 120.0
+	# Exit is placed IN the gap of the top wall (x=2000..2400, y≈0..64).
+	# WallTopLeft ends at x=2000, WallTopRight starts at x=2400 — 400px opening.
+	# Zone is centered in the gap and covers the wall thickness so the player
+	# triggers it while walking through the opening.
+	_exit_zone.position = Vector2(2200, 32)
+	_exit_zone.zone_width = 380.0; _exit_zone.zone_height = 80.0
 	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
 	var environment := get_node_or_null("Environment")
 	if environment: environment.add_child(_exit_zone)
@@ -205,12 +207,13 @@ func _configure_camera() -> void:
 	var camera: Camera2D = _player.get_node_or_null("Camera2D")
 	if camera == null:
 		return
-	# Map is 4000x4000 — remove default camera limits so player is visible at y=3100+
-	camera.limit_left = -10000000
-	camera.limit_top = -10000000
-	camera.limit_right = 10000000
-	camera.limit_bottom = 10000000
-	print("[RailwayStationLevel] Camera limits removed for 4000x4000 map")
+	# Map is 4000x4000. Clamp camera to the map bounds so the view does not
+	# go outside the walls. Top wall is at y=0..64, bottom wall at y=3936..4000.
+	camera.limit_left = 0
+	camera.limit_top = 0
+	camera.limit_right = 4000
+	camera.limit_bottom = 4000
+	print("[RailwayStationLevel] Camera clamped to 4000x4000 map bounds")
 
 
 func _setup_player_tracking() -> void:
