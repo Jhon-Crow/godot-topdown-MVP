@@ -2401,3 +2401,69 @@ func test_reset_memory_engaged_enemy_with_target_goes_searching_issue_1419() -> 
 	var should_search := had_target and has_left_idle
 	assert_true(should_search,
 		"Issue #1419: engaged enemy (had_target=true, _has_left_idle=true) must still enter SEARCHING")
+
+
+## Issue #1458: Verify search nav update stagger constants exist for performance optimization.
+func test_search_nav_stagger_constants_exist_issue_1458() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	assert_true(source.contains("SEARCH_NAV_UPDATE_INTERVAL"),
+		"Issue #1458: SEARCH_NAV_UPDATE_INTERVAL constant should exist for nav stagger")
+	assert_true(source.contains("_search_nav_frame_counter"),
+		"Issue #1458: _search_nav_frame_counter variable should exist for staggered nav updates")
+	assert_true(source.contains("_search_nav_frame_offset"),
+		"Issue #1458: _search_nav_frame_offset should be set from instance_id for stagger distribution")
+	assert_true(source.contains("_search_cached_nav_target"),
+		"Issue #1458: _search_cached_nav_target should exist to skip redundant path queries")
+
+
+## Issue #1458: Verify nav target is only set conditionally (not every frame) in SEARCHING.
+func test_search_nav_target_not_set_every_frame_issue_1458() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	# Find _process_searching_state function body
+	var func_idx := source.find("func _process_searching_state(")
+	assert_gt(func_idx, 0, "_process_searching_state function should exist in enemy.gd")
+	var next_func_idx := source.find("\nfunc ", func_idx + 1)
+	var func_body := source.substr(func_idx, next_func_idx - func_idx)
+
+	# The nav target assignment should be inside a conditional (is_nav_update_frame or target_changed)
+	assert_true(func_body.contains("is_nav_update_frame"),
+		"Issue #1458: _process_searching_state should stagger nav updates across frames")
+	assert_true(func_body.contains("target_changed"),
+		"Issue #1458: _process_searching_state should detect when nav target actually changed")
+	assert_true(func_body.contains("_search_cached_nav_target"),
+		"Issue #1458: _process_searching_state should use cached nav target to skip redundant queries")
+
+
+## Issue #1458: Verify zone key uses integer hashing (not string formatting) for performance.
+func test_zone_key_uses_integer_hashing_issue_1458() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	# Find _get_zone_key function
+	var func_idx := source.find("func _get_zone_key(")
+	assert_gt(func_idx, 0, "_get_zone_key function should exist in enemy.gd")
+	var next_func_idx := source.find("\nfunc ", func_idx + 1)
+	var func_body := source.substr(func_idx, next_func_idx - func_idx)
+
+	# Should return int, not String
+	assert_true(func_body.contains("-> int"),
+		"Issue #1458: _get_zone_key should return int (not String) for faster hashing")

@@ -300,6 +300,8 @@ const SEARCH_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
 var _has_left_idle: bool = false  ## Issue #330: Never returns to IDLE
 var _search_path_node: Node2D = null  ## SearchPathWaypoints node cache (Issue #1225)
 var _using_predefined_search_path: bool = false  ## Using predefined path instead of spiral (Issue #1225)
+var _search_nav_frame_counter: int = 0; var _search_nav_frame_offset: int = 0; const SEARCH_NAV_UPDATE_INTERVAL: int = 3  ## Issue #1458: stagger nav updates (~20fps at 60fps physics)
+var _search_cached_nav_target: Vector2 = Vector2.ZERO  ## Issue #1458: cached nav target to skip redundant path queries
 const CLOSE_COMBAT_DISTANCE: float = 400.0  ## Close combat threshold
 var _goap_world_state: Dictionary = {}  ## GOAP world state
 var _detection_timer: float = 0.0  ## Combat detection timer
@@ -393,6 +395,8 @@ func _ready() -> void:
 	add_to_group("enemies")
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
+	# Issue #1458: Stagger search nav updates across enemies to avoid simultaneous pathfinding spikes.
+	_search_nav_frame_offset = get_instance_id() % SEARCH_NAV_UPDATE_INTERVAL
 	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
 
 	# Issue #934: Initialize BFF companion targeting component
@@ -586,6 +590,7 @@ func _unregister_sound_listener() -> void:
 
 ## Unregister from SoundPropagation on scene change / node removal (Issue #1163: FPS fix). Prevents stale listener accumulation across level reloads.
 func _exit_tree() -> void:
+	if _current_state == AIState.SEARCHING: SharedSearchPath.release(get_instance_id())  # Issue #1458: free search slot on exit
 	_unregister_sound_listener()
 
 ## Called by SoundPropagation when a sound is heard. Delegates to on_sound_heard_with_intensity.
@@ -1392,6 +1397,7 @@ func _process_ai_state(delta: float) -> void:
 		AIState.EVADING_GRENADE: _process_evading_grenade_state(delta)
 		AIState.PACIFIST: _process_pacifist_state(delta)
 	if previous_state != _current_state:
+		if previous_state == AIState.SEARCHING: SharedSearchPath.release(get_instance_id())  # Issue #1458: free slot on SEARCHING exit
 		state_changed.emit(_current_state)
 		_log_debug("State changed: %s -> %s" % [AIState.keys()[previous_state], AIState.keys()[_current_state]])
 		# Also log to file for exported build debugging
@@ -2347,12 +2353,12 @@ func _is_waypoint_navigable(pos: Vector2) -> bool:
 	return pos.distance_to(closest) < 50.0
 
 ## Zone tracking helpers for visited areas (Issue #322): snaps to 50px grid.
-func _get_zone_key(pos: Vector2) -> String:
-	return "%d,%d" % [int(pos.x / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE), int(pos.y / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE)]
+## Issue #1458: Use integer key instead of string formatting — avoids GC pressure from string allocations.
+func _get_zone_key(pos: Vector2) -> int: return int(pos.x / SEARCH_ZONE_SNAP_SIZE) * 100003 + int(pos.y / SEARCH_ZONE_SNAP_SIZE)  ## Issue #1458: int key (no String alloc)
 func _is_zone_visited(pos: Vector2) -> bool: return _search_visited_zones.has(_get_zone_key(pos))
 func _mark_zone_visited(pos: Vector2) -> void:
 	var k := _get_zone_key(pos)
-	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone %s as visited (total: %d)" % [k, _search_visited_zones.size()])
+	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone (%d,%d) as visited (total: %d)" % [int(pos.x / SEARCH_ZONE_SNAP_SIZE), int(pos.y / SEARCH_ZONE_SNAP_SIZE), _search_visited_zones.size()])
 
 ## Process SEARCHING state - waypoint scanning (#322, #330: engaged enemies search infinitely).
 func _process_searching_state(delta: float) -> void:
@@ -2405,7 +2411,10 @@ func _process_searching_state(delta: float) -> void:
 			_search_moving_to_waypoint = false; _search_scan_timer = 0.0; _search_stuck_timer = 0.0
 			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
-			_nav_agent.target_position = target_waypoint
+			_search_nav_frame_counter += 1  # Issue #1458: stagger nav updates to avoid simultaneous pathfinding spikes
+			var is_nav_update_frame := (_search_nav_frame_counter % SEARCH_NAV_UPDATE_INTERVAL) == _search_nav_frame_offset
+			if is_nav_update_frame or _search_cached_nav_target.distance_squared_to(target_waypoint) > 1.0:
+				_search_cached_nav_target = target_waypoint; _nav_agent.target_position = target_waypoint
 			if _nav_agent.is_navigation_finished():
 				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
@@ -2640,7 +2649,7 @@ func _shoot_burst_shot() -> void:
 func _transition_to_idle() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings")
 	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
-		_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _generate_search_waypoints(); return
+		_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _search_nav_frame_counter = 0; _search_cached_nav_target = Vector2.ZERO; _generate_search_waypoints(); return  # Issue #1458: reset nav cache
 	_current_state = AIState.IDLE
 	# Reset various state tracking when returning to idle
 	_hits_taken_in_encounter = 0; _in_alarm_mode = false; _cover_burst_pending = false
@@ -2821,16 +2830,15 @@ func _transition_to_assault() -> void:
 
 func _transition_to_searching(center_position: Vector2) -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_searching_enabled(): _transition_to_idle(); return  # Issue #1186
+	if not SharedSearchPath.try_acquire(get_instance_id()): _log_to_file("SEARCHING denied: slot limit reached, going IDLE"); _transition_to_idle(); return  # Issue #1458: cap simultaneous searchers
 	_current_state = AIState.SEARCHING
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
-	# Issue #921: Do NOT set _has_left_idle = true here; let it retain whatever value it had.
-	# Combat enemies already have it true (search indefinitely); patrol enemies have it false (timeout).
-	_search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS
+	_search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS  # Issue #921: retain _has_left_idle
 	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
 	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
-	# Issue #354: Initialize stuck detection. #1249: clear yield on SEARCHING entry.
-	_search_stuck_timer = 0.0; _search_last_progress_position = global_position; if _tactical_movement: _tactical_movement.reset_yield()
+	_search_stuck_timer = 0.0; _search_last_progress_position = global_position; if _tactical_movement: _tactical_movement.reset_yield()  # Issue #354 #1249
+	_search_nav_frame_counter = 0; _search_cached_nav_target = Vector2.ZERO  # Issue #1458: reset nav cache
 	_using_predefined_search_path = _load_predefined_search_path(center_position)  # Issue #1225
 	if not _using_predefined_search_path: _generate_search_waypoints()
 	var msg := "SEARCHING started (%s): center=%s, radius=%.0f, waypoints=%d" % ["predefined" if _using_predefined_search_path else "spiral", _search_center, _search_radius, _search_waypoints.size()]
@@ -4372,6 +4380,7 @@ func _notify_nearby_enemies_of_death() -> void:
 ## Called when the enemy dies.
 func _on_death() -> void:
 	_is_alive = false
+	if _current_state == AIState.SEARCHING: SharedSearchPath.release(get_instance_id())  # Issue #1458: free search slot on death
 	if _invisibility and _invisibility.is_cloaked: _invisibility.remove()  # Issue #1121: reveal enemy on death
 	_log_to_file("Enemy died (ricochet: %s, penetration: %s, player_kill: %s)" % [_killed_by_ricochet, _killed_by_penetration, _killed_by_player])
 	died.emit()
