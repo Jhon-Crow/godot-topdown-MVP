@@ -48,39 +48,79 @@ When all spiral waypoints were visited, `_search_radius` expanded by 75px and re
 | Radius expansion steps to max | 25 | 25 | ~5 |
 | Visual path quality | Mechanical grid | Mechanical grid | Natural random spread |
 
-## Solution (Round 2)
+## Solution (Round 2) — Random-Radius Approach
 
-### Fix 1: Replace spiral with random-radius waypoint generation
-Replaced the expanding square spiral (`_search_direction`, `_search_leg_length`, etc.) with random point generation:
-- Generate `SEARCH_WAYPOINT_COUNT` (5) random points within `_search_radius` of `_search_center`
-- Each point is a random angle + random distance (30%-100% of radius)
-- Snap to navmesh using `map_get_closest_point()`, reject if too far (>50px)
-- **Max ~10 nav calls per batch** vs 100 in the spiral
-- Points are naturally spread, no mechanical grid patterns
+Replaced expanding square spiral with random-radius waypoint generation. Reduced max radius from 2000→600, throttled timeout log, cached nav targets. This reduced nav calls from 100 to ~10 per batch.
 
-### Fix 2: Reduce max search radius
-Reduced `SEARCH_MAX_RADIUS` from 2000 to 600. Enemies now search locally near the last known player position instead of expanding across the entire map. This also reduces the number of expansion rounds from 25 to ~5.
+**Result**: FPS drop persisted — random waypoints still caused 30 FPS loss with 20 enemies. Paths looked random/illogical, duplicated between enemies.
 
-### Fix 3: Throttle timeout log
-Added `_search_timeout_logged` flag — the "SEARCHING timeout" message logs once per search session instead of every physics frame. This eliminated 97,860 redundant log writes.
+## Root Cause Analysis (Round 3 — March 2026)
 
-### Fix 4: Increased initial radius
-Changed `SEARCH_INITIAL_RADIUS` from 100 to 150 and `SEARCH_RADIUS_EXPANSION` from 75 to 100. Random points need a larger radius to find navigable positions that aren't clustered together.
+After round 2 fixes, owner reported:
+- **FPS drop still 30 fps** (game_log_20260325_034754.txt: FPS drops to 16-29)
+- **Paths look illogical** — random waypoints don't correspond to where the player could actually be hiding
+- **Paths duplicate between enemies** — each enemy independently generates waypoints
 
-## Fixes Retained from Round 1
+Analysis of game_log_20260325_034754.txt (2,679 lines):
+- FPS drops logged at 03:47:56 (17fps), 03:49:25 (16fps), and sustained 28-29fps from 03:49:29 onwards
+- All 5 enemies simultaneously expanding outer rings, generating overlapping waypoint sets
+- Corner check entries show constant scanning without purposeful direction
+- The random-radius approach generates points without considering where the player could actually be hiding
+
+### Core Problem: Per-frame cost of search management
+Even with fewer nav calls per generation, the _process_searching_state function runs every physics frame for every enemy. With random waypoints, enemies wander aimlessly, frequently hitting expansion triggers that regenerate waypoints, causing repeated NavigationServer calls.
+
+## Solution (Round 3) — Cover-Inspection Approach
+
+Complete redesign based on owner's feedback: instead of random/spiral waypoints, use a **ray-based obstacle inspection system** similar to the existing cover-finding mechanism.
+
+### How it works:
+1. **Ray casting from search center**: Cast 36 rays (10° apart) from the last known player position outward to find obstacles
+2. **Compute inspection points**: Each obstacle hit generates a point 45px past the obstacle edge (where the player could be hiding)
+3. **Snap to navmesh**: Points are validated and snapped to the navigation mesh
+4. **Deduplicate**: Points within 50px of each other are merged
+5. **Enemies inspect points**: Each enemy picks the nearest uninspected point and walks there
+6. **FOV clearing**: When an inspection point is within 60px of any enemy AND within their FOV cone, it's marked as "inspected" (no raycasts needed — pure math)
+7. **Cross-enemy sync**: Cleared flags are shared between all searching enemies
+
+### Performance characteristics:
+- **One-time cost**: 36 raycasts + ~36 nav snaps at search start = ~72 calls total (not per frame)
+- **Per-frame cost**: Simple distance + angle check for FOV clearing (no raycasts, no nav calls)
+- **No expanding radius**: All inspection points generated upfront
+- **No per-frame waypoint regeneration**: Points are pre-computed, enemies just walk to them
+
+### Debug visualization:
+- Green circles: uninspected points (potential hiding spots)
+- Gray circles: inspected/cleared points
+- Yellow line: enemy → assigned target
+
+## Quantified Impact
+
+| Metric | Round 1 (spiral) | Round 2 (random) | Round 3 (cover-inspect) |
+|--------|-------------------|-------------------|-------------------------|
+| Nav calls at search start | 100+ per enemy | ~10 per enemy | ~72 total (once) |
+| Nav calls per frame | 0 (cached) | 0 (cached) | 0 |
+| Per-frame raycast cost | 0 | 0 | 0 (pure math FOV check) |
+| Waypoint regeneration | Every expansion | Every expansion | Never (one-shot) |
+| Path logic | Mechanical grid | Random aimless | Purposeful obstacle inspection |
+| Cross-enemy coordination | None | None | Shared inspection flags |
+| Max search radius | 2000px | 600px | 800px (ray distance) |
+
+## Fixes Retained from Earlier Rounds
 
 - **SEARCH_MIN_TIME_BEFORE_COMBAT (0.3s)**: Prevents rapid SEARCHING↔COMBAT oscillation
 - **Nav target caching**: `_search_last_nav_target` prevents redundant `target_position` updates
 - **Redirect chain guard**: `_current_state != AIState.SEARCHING` check in `_transition_to_idle()`
-- **Combat log throttle**: "Player spotted" logged once per session
+- **Combat/timeout log throttle**: Logged once per session
 
 ## Research: Alternative Approaches Considered
 
 | Approach | Pros | Cons | Decision |
 |----------|------|------|----------|
+| Random-radius + snap | Simple, low nav calls | Random aimless paths, still causes FPS drop | Round 2 (failed) |
+| Predefined `Path2D` waypoints | Zero runtime cost | Requires level designer work, rigid | Supported as fallback |
+| **Cover-inspection (ray-based)** | **Purposeful paths, shared state, one-shot cost** | **Requires obstacle geometry** | **Chosen (Round 3)** |
 | `map_get_random_point()` | Cheapest, guaranteed valid | Added in Godot 4.4 (project uses 4.3) | Incompatible |
-| Predefined `Path2D` waypoints | Zero runtime cost | Requires level designer work, rigid | Already supported via `SearchPathWaypoints` |
-| Random-radius + snap to navmesh | Low nav calls (~10), natural paths | Rejection sampling may miss some points | **Chosen** |
 | Probability/Markov chain | Most intelligent search | High complexity, needs graph infrastructure | Overkill |
 
 ## References
