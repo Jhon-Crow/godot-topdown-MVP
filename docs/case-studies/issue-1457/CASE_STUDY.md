@@ -922,3 +922,41 @@ corner sticking much more likely regardless of `MOTION_MODE_FLOATING`.
 
 Source:
 - [Godot Forum — NavigationAgent2D keeps getting stuck on corners](https://forum.godotengine.org/t/navigationagent2d-keeps-geting-stuck-on-corners/126027)
+
+### 15.5 MOTION_MODE_FLOATING Behavior Differences (Important)
+
+Research confirmed key differences between FLOATING and GROUNDED mode that affect enemy code:
+
+**`get_slide_collision_count()` / `get_slide_collision()` — works in FLOATING ✅**
+
+Both methods are mode-agnostic and work identically in both modes. The collision normal
+escape at `_move_to_target_nav` line 4760 (`_esc += get_slide_collision(_si).get_normal()`)
+remains effective in FLOATING mode.
+
+**Velocity not zeroed on perpendicular collision — FLOATING difference ⚠️**
+
+Open bug [#60447](https://github.com/godotengine/godot/issues/60447): In FLOATING mode,
+`velocity` is NOT zeroed when the body hits a wall perpendicularly (unlike GROUNDED mode
+which zeroes velocity). This means the fallback at line 4762:
+
+```gdscript
+elif velocity.length_squared() < 1.0:
+    var _p := move_and_collide(direction * 2.0, true); ...
+```
+
+This branch **never fires in FLOATING mode** when the enemy is stuck against a wall,
+because `velocity` stays at `direction * speed` (high, non-zero) even though the body
+isn't actually moving. The `move_and_collide` probe is effectively dead code in FLOATING.
+
+**Impact:** The `get_slide_collision_count()` path (line 4760) is the active escape path.
+If the body is wedged but has NO active slide collisions (stationary, not actively colliding
+this frame), both escape paths fail silently. The stuck detection timer is the only reliable
+recovery mechanism.
+
+**Why stuck detection still works:** It's position-based (`global_position` distance), not
+velocity-based. If the body is pinned and not moving, `global_position` distance < 20px
+regardless of what `velocity` reports.
+
+Sources:
+- [GitHub #60447 — velocity not updated when CharacterBody2D collides in FLOATING mode](https://github.com/godotengine/godot/issues/60447)
+- [GitHub #101052 — CharacterBody2D accelerated by slides in FLOATING mode](https://github.com/godotengine/godot/issues/101052)
