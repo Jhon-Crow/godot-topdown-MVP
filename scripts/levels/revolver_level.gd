@@ -436,9 +436,9 @@ func _setup_debug_ui() -> void:
 	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
-	_difficulty_label.offset_top = 45
+	_difficulty_label.offset_top = 80
 	_difficulty_label.offset_right = 200
-	_difficulty_label.offset_bottom = 75
+	_difficulty_label.offset_bottom = 110
 	ui.add_child(_difficulty_label)
 
 	_magazines_label = Label.new()
@@ -446,9 +446,9 @@ func _setup_debug_ui() -> void:
 	_magazines_label.text = "MAGS: -"
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
-	_magazines_label.offset_top = 105
+	_magazines_label.offset_top = 115
 	_magazines_label.offset_right = 400
-	_magazines_label.offset_bottom = 135
+	_magazines_label.offset_bottom = 145
 	ui.add_child(_magazines_label)
 
 	_combo_label = Label.new()

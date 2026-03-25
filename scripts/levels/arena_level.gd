@@ -1063,9 +1063,9 @@ func _setup_ui() -> void:
 	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
-	_difficulty_label.offset_top = 72
+	_difficulty_label.offset_top = 80
 	_difficulty_label.offset_right = 250
-	_difficulty_label.offset_bottom = 102
+	_difficulty_label.offset_bottom = 110
 	ui.add_child(_difficulty_label)
 
 	# Magazines label.
