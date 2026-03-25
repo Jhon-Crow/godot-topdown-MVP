@@ -78,6 +78,18 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"weapons": ["silenced_pistol"],  # Issue #1000 req.7
 		"grenades": [],
 		"active_items": []
+	},
+	"res://scenes/levels/DecadenceLevel.tscn": {
+		"min_rank": "F",
+		"weapons": ["ak_gl"],  # Issue #1423 req.1: complete Decadence → unlock AK
+		"grenades": [],
+		"active_items": []
+	},
+	"res://scenes/levels/LabyrinthLevel.tscn:S": {
+		"min_rank": "S",
+		"weapons": [],
+		"grenades": [],
+		"active_items": [16]  # ActiveItemManager.ActiveItemType.RECOIL_COMPENSATOR = 16 (Issue #1423 req.2)
 	}
 }
 
