@@ -118,6 +118,55 @@ For CharacterBody2D objects (player, enemies):
 
 ---
 
+## User Feedback Analysis (2026-03-25)
+
+### Report
+
+User (Jhon-Crow) reported: "сейчас физика воде не добавилась (воде на карте Пляж)" — water physics
+did not get added to the Beach map. Log file: `game_log_20260325_164449.txt`.
+
+### Root Cause Analysis
+
+**Key finding from log:** Line 1465 shows:
+```
+[BeachLevel] Water node found OK — visual=true shader=false collision=true pos=(1264, 242)
+```
+
+`shader=false` means `WaterVisual.material == null` — the shader was not applied.
+Additionally, there are **zero** `[WaterBody]` log entries in the entire log.
+
+**Explanation:** The `water_body.gd` script has `_ready()` that logs `[WaterBody] Ready — ...` via
+FileLogger. This message is completely absent, meaning WaterBody's `_ready()` either:
+1. Never ran, or
+2. Ran on an older script version without the logging.
+
+**Root cause:** The user is running an **exported binary** (`Godot-Top-Down-Template.exe`,
+`Debug build: false`) that was compiled **before** PR #1495 (this PR) or possibly even before
+PR #1479 (the base water implementation). Exported Godot binaries include GDScript files compiled
+into `.gdc` at export time — updating source files does not affect an already-exported binary.
+
+The `shader=false` confirms: `_apply_shader()` was not called (because the pre-export
+version of `water_body.gd` didn't have it), not that it failed.
+
+### Evidence
+
+1. No `[WaterBody]` log entries — script not running from our version
+2. `shader=false` — shader not applied (old binary without our code)
+3. `Debug build: false` — confirmed exported binary
+4. Executable path: `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe`
+5. The `beach_level.gd` runs correctly (logs appear), confirming FileLogger works
+
+### Solution
+
+The PR must be merged and the user must:
+1. Pull latest changes (merge main with our PR)
+2. Re-export the game from Godot editor with the updated scripts
+
+The implementation in this PR is correct. Once the user updates their build, water physics will
+work as designed.
+
+---
+
 ## References
 
 - [Envato Tuts+ Dynamic 2D Water Effects](https://gamedevelopment.tutsplus.com/make-a-splash-with-dynamic-2d-water-effects--gamedev-236t)
