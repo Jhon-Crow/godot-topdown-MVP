@@ -300,11 +300,8 @@ const SEARCH_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
 var _has_left_idle: bool = false  ## Issue #330: Never returns to IDLE
 var _search_path_node: Node2D = null  ## SearchPathWaypoints node cache (Issue #1225)
 var _using_predefined_search_path: bool = false  ## Using predefined path instead of spiral (Issue #1225)
-## Issue #1458: Performance — stagger search nav updates across frames to avoid simultaneous pathfinding queries.
-var _search_nav_frame_counter: int = 0; var _search_nav_frame_offset: int = 0  ## Frame stagger for nav updates
-const SEARCH_NAV_UPDATE_INTERVAL: int = 3  ## Update nav target every N frames (~20 fps at 60 fps physics)
-var _search_cached_nav_target: Vector2 = Vector2.ZERO  ## Cached nav target to skip redundant path queries
-var _search_cached_velocity: Vector2 = Vector2.ZERO  ## Cached velocity for non-update frames
+var _search_nav_frame_counter: int = 0; var _search_nav_frame_offset: int = 0; const SEARCH_NAV_UPDATE_INTERVAL: int = 3  ## Issue #1458: stagger nav updates (~20fps at 60fps physics)
+var _search_cached_nav_target: Vector2 = Vector2.ZERO  ## Issue #1458: cached nav target to skip redundant path queries
 const CLOSE_COMBAT_DISTANCE: float = 400.0  ## Close combat threshold
 var _goap_world_state: Dictionary = {}  ## GOAP world state
 var _detection_timer: float = 0.0  ## Combat detection timer
@@ -2355,10 +2352,7 @@ func _is_waypoint_navigable(pos: Vector2) -> bool:
 
 ## Zone tracking helpers for visited areas (Issue #322): snaps to 50px grid.
 ## Issue #1458: Use integer key instead of string formatting — avoids GC pressure from string allocations.
-func _get_zone_key(pos: Vector2) -> int:
-	var gx := int(pos.x / SEARCH_ZONE_SNAP_SIZE)
-	var gy := int(pos.y / SEARCH_ZONE_SNAP_SIZE)
-	return gx * 100003 + gy  # large prime to avoid collisions between grid cells
+func _get_zone_key(pos: Vector2) -> int: return int(pos.x / SEARCH_ZONE_SNAP_SIZE) * 100003 + int(pos.y / SEARCH_ZONE_SNAP_SIZE)  ## Issue #1458: int key (no String alloc)
 func _is_zone_visited(pos: Vector2) -> bool: return _search_visited_zones.has(_get_zone_key(pos))
 func _mark_zone_visited(pos: Vector2) -> void:
 	var k := _get_zone_key(pos)
@@ -2415,14 +2409,10 @@ func _process_searching_state(delta: float) -> void:
 			_search_moving_to_waypoint = false; _search_scan_timer = 0.0; _search_stuck_timer = 0.0
 			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
-			# Issue #1458: Only update nav target on staggered frames or when target changed to avoid
-			# simultaneous pathfinding queries from all searching enemies every physics frame.
-			_search_nav_frame_counter += 1
+			_search_nav_frame_counter += 1  # Issue #1458: stagger nav updates to avoid simultaneous pathfinding spikes
 			var is_nav_update_frame := (_search_nav_frame_counter % SEARCH_NAV_UPDATE_INTERVAL) == _search_nav_frame_offset
-			var target_changed := _search_cached_nav_target.distance_squared_to(target_waypoint) > 1.0
-			if is_nav_update_frame or target_changed:
-				_search_cached_nav_target = target_waypoint
-				_nav_agent.target_position = target_waypoint
+			if is_nav_update_frame or _search_cached_nav_target.distance_squared_to(target_waypoint) > 1.0:
+				_search_cached_nav_target = target_waypoint; _nav_agent.target_position = target_waypoint
 			if _nav_agent.is_navigation_finished():
 				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
@@ -2432,7 +2422,6 @@ func _process_searching_state(delta: float) -> void:
 				if _tactical_movement and _tactical_movement.check_and_yield(target_waypoint, move_speed * 0.7, get_physics_process_delta_time()):  # #1249: yield in SEARCHING too
 					velocity = Vector2.ZERO; move_and_slide(); _push_casings(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; return
 				var _sv := dir * move_speed * 0.7; if _nav_agent and _nav_agent.avoidance_enabled: _nav_agent.set_velocity(_sv)  # #1249: ORCA for searching
-				_search_cached_velocity = _sv  # Issue #1458: cache velocity for interpolation
 				velocity = (_avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else _sv) if (_nav_agent and _nav_agent.avoidance_enabled) else _sv
 				move_and_slide(); _push_casings()  # Issue #341
 				var progress := global_position.distance_to(_search_last_progress_position)  # #354: Stuck detection
@@ -2658,7 +2647,7 @@ func _shoot_burst_shot() -> void:
 func _transition_to_idle() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings")
 	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
-		_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _search_nav_frame_counter = 0; _search_cached_nav_target = Vector2.ZERO; _search_cached_velocity = Vector2.ZERO; _generate_search_waypoints(); return  # Issue #1458: reset nav cache
+		_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _search_nav_frame_counter = 0; _search_cached_nav_target = Vector2.ZERO; _generate_search_waypoints(); return  # Issue #1458: reset nav cache
 	_current_state = AIState.IDLE
 	# Reset various state tracking when returning to idle
 	_hits_taken_in_encounter = 0; _in_alarm_mode = false; _cover_burst_pending = false
@@ -2849,7 +2838,7 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
 	# Issue #354: Initialize stuck detection. #1249: clear yield on SEARCHING entry.
 	_search_stuck_timer = 0.0; _search_last_progress_position = global_position; if _tactical_movement: _tactical_movement.reset_yield()
-	_search_nav_frame_counter = 0; _search_cached_nav_target = Vector2.ZERO; _search_cached_velocity = Vector2.ZERO  # Issue #1458: reset nav cache
+	_search_nav_frame_counter = 0; _search_cached_nav_target = Vector2.ZERO  # Issue #1458: reset nav cache
 	_using_predefined_search_path = _load_predefined_search_path(center_position)  # Issue #1225
 	if not _using_predefined_search_path: _generate_search_waypoints()
 	var msg := "SEARCHING started (%s): center=%s, radius=%.0f, waypoints=%d" % ["predefined" if _using_predefined_search_path else "spiral", _search_center, _search_radius, _search_waypoints.size()]
