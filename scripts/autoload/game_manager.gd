@@ -15,6 +15,14 @@ var kills_without_laser_sight: int = 0
 ## Persists across sessions — used as the unlock condition for Fine Motor Skills (Issue #1346).
 var shots_fired_special_weapons: int = 0
 
+## Cumulative total deaths across all sessions.
+## Persists across sessions — used as the unlock condition for Armored Skin (Issue #1389).
+var total_deaths: int = 0
+
+## Cumulative levels completed without taking any damage.
+## Persists across sessions — tracked for future use (Issue #1389).
+var no_damage_levels_completed: int = 0
+
 ## Weapon IDs that count toward the Fine Motor Skills unlock condition (Issue #1346).
 const FINE_MOTOR_SKILLS_WEAPONS: Array[String] = ["shotgun", "sniper", "revolver"]
 
@@ -91,6 +99,14 @@ signal kills_without_laser_sight_updated(new_count: int)
 ## Signal emitted when shots_fired_special_weapons changes (for shot-based unlock checks).
 ## Issue #1346.
 signal shots_fired_special_weapons_updated(new_count: int)
+
+## Signal emitted when total_deaths changes (for death-based unlock checks).
+## Issue #1389.
+signal total_deaths_updated(new_count: int)
+
+## Signal emitted when no_damage_levels_completed changes.
+## Issue #1389.
+signal no_damage_levels_completed_updated(new_count: int)
 
 ## Signal emitted when player dies.
 signal player_died
@@ -174,6 +190,30 @@ var roguelike_run_weapon: String = ""
 ## Used to prevent the same item from appearing on a pedestal twice in one run.
 var roguelike_offered_items: Array = []
 
+## ── Branching room map state (Issue #1399) ───────────────────────────────
+## Each level generates an Isaac-style grid map of rooms with branching paths.
+## Players can navigate freely between connected rooms and skip optional ones.
+
+## Array of room dictionaries for the current level.
+## Each entry: {grid_pos: Vector2i, room_type: int, connections: Array[int],
+##              map_room_type: String, cleared: bool, visited: bool}
+## map_room_type is one of: "start", "combat", "treasure", "exit"
+## connections is an array of room indices this room connects to.
+var roguelike_room_map: Array = []
+
+## Index into roguelike_room_map for the room currently being played.
+var roguelike_current_map_room: int = 0
+
+## Set of room indices that have been visited (so minimap can show them).
+var roguelike_visited_rooms: Array = []
+
+## Target room index when player enters a door (used during scene reload).
+var roguelike_target_room: int = -1
+
+## Source room index — the room player was in before navigating (Issue #1399).
+## Used to determine spawn position in the new room.
+var roguelike_source_room: int = -1
+
 ## Resets all roguelike session variables to their default (not-in-run) state.
 func roguelike_reset_session() -> void:
 	roguelike_active = false
@@ -189,6 +229,11 @@ func roguelike_reset_session() -> void:
 	roguelike_in_treasure_room = false
 	roguelike_run_weapon = ""
 	roguelike_offered_items = []
+	roguelike_room_map = []
+	roguelike_current_map_room = 0
+	roguelike_visited_rooms = []
+	roguelike_target_room = -1
+	roguelike_source_room = -1
 
 
 func _ready() -> void:
@@ -201,6 +246,10 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	# Sync debug/invincibility state from ExperimentalSettings (persisted)
 	_sync_from_experimental_settings()
+	# Connect to ScoreManager to track no-damage level completions (Issue #1389)
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_signal("score_calculated"):
+		score_manager.score_calculated.connect(_on_score_calculated)
 	# Log that GameManager is ready
 	_log_to_file("GameManager ready")
 
@@ -383,6 +432,10 @@ func on_player_death() -> void:
 		_log_to_file("on_player_death() — already reloading, skipping")
 		return
 	player_alive = false
+	# Track cumulative death count for Armored Skin unlock (Issue #1389)
+	total_deaths += 1
+	total_deaths_updated.emit(total_deaths)
+	_log_to_file("total_deaths: %d" % total_deaths)
 	# Issue #1334 Round 9: Record wall-clock timestamp of death for absolute failsafe
 	if _player_dead_since_ms <= 0:
 		_player_dead_since_ms = Time.get_ticks_msec()
@@ -757,6 +810,17 @@ func _spawn_selected_enemy_at_player() -> void:
 		current_scene.add_child(enemy)
 
 	_log_to_file("F8 spawn: '%s' at %s" % [meta.get("name", "Unknown"), str(spawn_pos)])
+
+
+## Called when ScoreManager emits score_calculated after level completion.
+## Tracks levels completed without taking any damage for Combat Disposition unlock (Issue #1389).
+func _on_score_calculated(score_data: Dictionary) -> void:
+	var damage_taken: int = score_data.get("damage_taken", -1)
+	_log_to_file("Level completed — damage_taken: %d" % damage_taken)
+	if damage_taken == 0:
+		no_damage_levels_completed += 1
+		no_damage_levels_completed_updated.emit(no_damage_levels_completed)
+		_log_to_file("No-damage level condition met — no_damage_levels_completed: %d" % no_damage_levels_completed)
 
 
 ## Log a message to the file logger if available.
