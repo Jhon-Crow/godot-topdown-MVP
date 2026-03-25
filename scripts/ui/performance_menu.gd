@@ -28,9 +28,17 @@ signal back_pressed
 @onready var ai_searching_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISearchingContainer/AISearchingCheckbox
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
+@onready var benchmark_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BenchmarkContainer/BenchmarkButton
+@onready var benchmark_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BenchmarkLabel
 
 ## Semi-transparent background colour drawn over a settings row on hover (Issue #1461).
 const ROW_HOVER_BG: Color = Color(1.0, 1.0, 1.0, 0.08)
+
+## Seconds to sample FPS for each benchmark step (Issue #1497).
+const BENCHMARK_SAMPLE_DURATION: float = 3.0
+
+## Whether a benchmark is currently running (Issue #1497).
+var _benchmark_running: bool = false
 
 ## Tracks which Control nodes currently have a hover background drawn on them.
 var _row_hover_bg: Dictionary = {}
@@ -95,6 +103,7 @@ func _ready() -> void:
 	ai_pursuing_checkbox.toggled.connect(func(e): _on_ai_state_toggled("pursuing", e))
 	ai_assault_checkbox.toggled.connect(func(e): _on_ai_state_toggled("assault", e))
 	ai_searching_checkbox.toggled.connect(func(e): _on_ai_state_toggled("searching", e))
+	benchmark_button.pressed.connect(_on_benchmark_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update UI from current settings
@@ -286,3 +295,159 @@ func _on_row_gui_input(event: InputEvent, container: Control) -> void:
 				child.button_pressed = not child.button_pressed
 				container.accept_event()
 				return
+
+
+## Start the benchmark sequence (Issue #1497).
+func _on_benchmark_pressed() -> void:
+	if _benchmark_running:
+		return
+	_benchmark_running = true
+	benchmark_button.disabled = true
+	benchmark_label.text = "Benchmark running..."
+	_run_benchmark()
+
+
+## Run the full benchmark sequence as a coroutine (Issue #1497).
+## Measures FPS with each subsystem disabled one at a time, plus a baseline.
+## Results are written to a dedicated benchmark log file.
+func _run_benchmark() -> void:
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	if perf_settings == null:
+		benchmark_label.text = "Benchmark failed: PerformanceSettings not found"
+		_benchmark_running = false
+		benchmark_button.disabled = false
+		return
+
+	# Open a dedicated benchmark log file
+	var datetime := Time.get_datetime_dict_from_system()
+	var timestamp := "%04d%02d%02d_%02d%02d%02d" % [
+		datetime["year"], datetime["month"], datetime["day"],
+		datetime["hour"], datetime["minute"], datetime["second"]
+	]
+	var exe_dir := OS.get_executable_path().get_base_dir()
+	var log_path := exe_dir.path_join("benchmark_log_%s.txt" % timestamp)
+	var log_file := FileAccess.open(log_path, FileAccess.WRITE)
+	if log_file == null:
+		log_path = "user://benchmark_log_%s.txt" % timestamp
+		log_file = FileAccess.open(log_path, FileAccess.WRITE)
+	if log_file == null:
+		benchmark_label.text = "Benchmark failed: cannot create log file"
+		_benchmark_running = false
+		benchmark_button.disabled = false
+		return
+
+	_bm_write(log_file, "=".repeat(60))
+	_bm_write(log_file, "BENCHMARK LOG")
+	_bm_write(log_file, "=".repeat(60))
+	_bm_write(log_file, "Started: %s" % Time.get_datetime_string_from_system())
+	_bm_write(log_file, "Sample duration per step: %.1f s" % BENCHMARK_SAMPLE_DURATION)
+	_bm_write(log_file, "-".repeat(60))
+
+	var results: Array[String] = []
+
+	# Define benchmark steps: [label, disable_fn, enable_fn]
+	# Each step disables one subsystem, samples FPS, then re-enables it.
+	var steps: Array = [
+		["Baseline (all enabled)", null, null],
+		["Particles disabled", func(): perf_settings.set_particles_enabled(false),
+			func(): perf_settings.set_particles_enabled(true)],
+		["Blood Decals disabled", func(): perf_settings.set_blood_decals_enabled(false),
+			func(): perf_settings.set_blood_decals_enabled(true)],
+		["Screen Shake disabled", func(): perf_settings.set_screen_shake_enabled(false),
+			func(): perf_settings.set_screen_shake_enabled(true)],
+		["Explosion Lights disabled", func(): perf_settings.set_explosion_lights_enabled(false),
+			func(): perf_settings.set_explosion_lights_enabled(true)],
+		["Wall Hit Particles disabled",
+			func(): if gameplay_settings: gameplay_settings.set_wall_hit_particles_enabled(false),
+			func(): if gameplay_settings: gameplay_settings.set_wall_hit_particles_enabled(true)],
+		["AI disabled", func(): perf_settings.set_ai_enabled(false),
+			func(): perf_settings.set_ai_enabled(true)],
+		["AI:IDLE disabled", func(): perf_settings.set_ai_state_idle_enabled(false),
+			func(): perf_settings.set_ai_state_idle_enabled(true)],
+		["AI:COMBAT disabled", func(): perf_settings.set_ai_state_combat_enabled(false),
+			func(): perf_settings.set_ai_state_combat_enabled(true)],
+		["AI:SEEKING_COVER disabled", func(): perf_settings.set_ai_state_seeking_cover_enabled(false),
+			func(): perf_settings.set_ai_state_seeking_cover_enabled(true)],
+		["AI:IN_COVER disabled", func(): perf_settings.set_ai_state_in_cover_enabled(false),
+			func(): perf_settings.set_ai_state_in_cover_enabled(true)],
+		["AI:FLANKING disabled", func(): perf_settings.set_ai_state_flanking_enabled(false),
+			func(): perf_settings.set_ai_state_flanking_enabled(true)],
+		["AI:SUPPRESSED disabled", func(): perf_settings.set_ai_state_suppressed_enabled(false),
+			func(): perf_settings.set_ai_state_suppressed_enabled(true)],
+		["AI:RETREATING disabled", func(): perf_settings.set_ai_state_retreating_enabled(false),
+			func(): perf_settings.set_ai_state_retreating_enabled(true)],
+		["AI:PURSUING disabled", func(): perf_settings.set_ai_state_pursuing_enabled(false),
+			func(): perf_settings.set_ai_state_pursuing_enabled(true)],
+		["AI:ASSAULT disabled", func(): perf_settings.set_ai_state_assault_enabled(false),
+			func(): perf_settings.set_ai_state_assault_enabled(true)],
+		["AI:SEARCHING disabled", func(): perf_settings.set_ai_state_searching_enabled(false),
+			func(): perf_settings.set_ai_state_searching_enabled(true)],
+	]
+
+	for i in steps.size():
+		var step: Array = steps[i]
+		var step_label: String = step[0]
+		var disable_fn = step[1]
+		var enable_fn = step[2]
+
+		benchmark_label.text = "Benchmarking %d/%d: %s..." % [i + 1, steps.size(), step_label]
+		_bm_write(log_file, "\n[Step %d/%d] %s" % [i + 1, steps.size(), step_label])
+
+		# Apply the disable function for this step
+		if disable_fn != null:
+			disable_fn.call()
+
+		# Sample FPS over BENCHMARK_SAMPLE_DURATION seconds
+		var fps_samples: Array[float] = []
+		var elapsed: float = 0.0
+		while elapsed < BENCHMARK_SAMPLE_DURATION:
+			await get_tree().process_frame
+			var delta: float = get_process_delta_time()
+			elapsed += delta
+			fps_samples.append(Engine.get_frames_per_second())
+
+		# Calculate stats
+		var fps_avg: float = 0.0
+		var fps_min: float = fps_samples[0]
+		var fps_max: float = fps_samples[0]
+		for fps in fps_samples:
+			fps_avg += fps
+			if fps < fps_min:
+				fps_min = fps
+			if fps > fps_max:
+				fps_max = fps
+		fps_avg /= fps_samples.size()
+
+		var result_line: String = "  avg=%.1f  min=%.1f  max=%.1f  samples=%d" % [
+			fps_avg, fps_min, fps_max, fps_samples.size()]
+		_bm_write(log_file, result_line)
+		results.append("%s: avg=%.1f min=%.1f max=%.1f" % [step_label, fps_avg, fps_min, fps_max])
+
+		# Re-enable the subsystem
+		if enable_fn != null:
+			enable_fn.call()
+
+		# Brief pause between steps so settings changes can propagate
+		await get_tree().create_timer(0.2).timeout
+
+	_bm_write(log_file, "\n" + "=".repeat(60))
+	_bm_write(log_file, "BENCHMARK COMPLETE: %s" % Time.get_datetime_string_from_system())
+	_bm_write(log_file, "=".repeat(60))
+	log_file.flush()
+	log_file.close()
+
+	# Log completion to main game log as well
+	var fl: Node = get_node_or_null("/root/FileLogger")
+	if fl and fl.has_method("log_info"):
+		fl.log_info("[Benchmark] Completed. Results saved to: %s" % log_path)
+
+	benchmark_label.text = "Benchmark done! Log: %s" % log_path.get_file()
+	_benchmark_running = false
+	benchmark_button.disabled = false
+	_update_ui()
+
+
+## Write a line to the benchmark log file (Issue #1497).
+func _bm_write(log_file: FileAccess, line: String) -> void:
+	log_file.store_line(line)
