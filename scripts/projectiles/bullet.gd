@@ -1776,10 +1776,16 @@ const BREAKER_EXPLOSION_EFFECT_COOLDOWN: float = 0.25
 ## Shared timestamp for breaker explosion visual effect throttling.
 static var _last_breaker_explosion_effect_time: float = -999.0
 
+
 ## Issue #1487 Round 5: Flag set per-detonation to sync audio with visual throttling.
 ## True when the visual effect was actually spawned (not throttled).
 var _last_breaker_explosion_played: bool = false
 
+
+## Issue #1487 Round 7: cached query object for _is_position_inside_wall to avoid allocating
+## a new PhysicsPointQueryParameters2D on each of the 3 shrapnel spawn checks per detonation
+## (~45 allocations/sec at 15 shots/sec). Only the position field changes between calls.
+var _wall_check_query: PhysicsPointQueryParameters2D = null
 
 ## Checks if a position is inside a wall or obstacle (Issue #740).
 ## Used to prevent spawning shrapnel inside walls.
@@ -1787,10 +1793,12 @@ var _last_breaker_explosion_played: bool = false
 ## @return: true if position is inside a wall, false otherwise.
 func _is_position_inside_wall(pos: Vector2) -> bool:
 	var space_state := get_world_2d().direct_space_state
-	var query := PhysicsPointQueryParameters2D.new()
-	query.position = pos
-	query.collision_mask = 4  # Layer 3 (obstacles/walls)
-	var result := space_state.intersect_point(query, 1)
+	# Issue #1487 Round 7: reuse cached query object; only update the position field.
+	if _wall_check_query == null:
+		_wall_check_query = PhysicsPointQueryParameters2D.new()
+		_wall_check_query.collision_mask = 4  # Layer 3 (obstacles/walls)
+	_wall_check_query.position = pos
+	var result := space_state.intersect_point(_wall_check_query, 1)
 	return not result.is_empty()
 
 
@@ -1803,9 +1811,11 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 			FileLogger.info("[Bullet.Breaker] Cannot spawn shrapnel: scene is null")
 		return
 
-	# Check global concurrent shrapnel limit
-	var existing_shrapnel := get_tree().get_nodes_in_group("breaker_shrapnel")
-	if existing_shrapnel.size() >= BREAKER_MAX_CONCURRENT_SHRAPNEL:
+	# Issue #1487 Round 7: use static counter instead of get_nodes_in_group("breaker_shrapnel")
+	# to check the concurrent shrapnel limit. Eliminates per-detonation scene-tree group scan
+	# (~15 scans/sec at max fire rate). Counter is incremented below and decremented in
+	# breaker_shrapnel.gd when each piece is destroyed.
+	if BreakerShrapnel.active_count >= BREAKER_MAX_CONCURRENT_SHRAPNEL:
 		if _debug_breaker:
 			FileLogger.info("[Bullet.Breaker] Skipping shrapnel spawn: global limit %d reached" % BREAKER_MAX_CONCURRENT_SHRAPNEL)
 		return
@@ -1816,7 +1826,7 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 	shrapnel_count = clampi(shrapnel_count, 1, BREAKER_MAX_SHRAPNEL_PER_DETONATION)
 
 	# Further reduce if approaching global limit
-	var remaining_budget := BREAKER_MAX_CONCURRENT_SHRAPNEL - existing_shrapnel.size()
+	var remaining_budget := BREAKER_MAX_CONCURRENT_SHRAPNEL - BreakerShrapnel.active_count
 	shrapnel_count = mini(shrapnel_count, remaining_budget)
 
 	var half_angle_rad := deg_to_rad(BREAKER_SHRAPNEL_HALF_ANGLE)
@@ -1854,6 +1864,8 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 				shrapnel.pool_activate(spawn_pos, shrapnel_direction, shooter_id)
 				shrapnel.damage = BREAKER_SHRAPNEL_DAMAGE
 				shrapnel.speed = randf_range(1400.0, 2200.0)
+				# Issue #1487 Round 7: increment static counter (decremented in breaker_shrapnel.gd)
+				BreakerShrapnel.active_count += 1
 				spawned_count += 1
 				continue  # Shrapnel is ready, skip to next
 
@@ -1873,6 +1885,8 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 
 		# Add to scene using call_deferred to batch scene tree changes (Issue #678 optimization)
 		scene.call_deferred("add_child", shrapnel)
+		# Issue #1487 Round 7: increment static counter (decremented in breaker_shrapnel.gd)
+		BreakerShrapnel.active_count += 1
 		spawned_count += 1
 
 	if _debug_breaker:

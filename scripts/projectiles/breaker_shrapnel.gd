@@ -63,6 +63,12 @@ var _trail_update_timer: float = 0.0
 static var _dust_spawn_counter: int = 0
 const DUST_SPAWN_EVERY_NTH: int = 4
 
+## Issue #1487 Round 7: Static counter tracking how many BreakerShrapnel instances are active.
+## Incremented in bullet.gd:_breaker_spawn_shrapnel(); decremented in _destroy() here.
+## Replaces get_nodes_in_group("breaker_shrapnel") scene-tree traversal in bullet.gd which
+## was called on every detonation (~15 traversals/sec at max fire rate, each scanning all nodes).
+static var active_count: int = 0
+
 
 func _ready() -> void:
 	if _debug:
@@ -315,6 +321,11 @@ func pool_deactivate() -> void:
 func _destroy() -> void:
 	if _is_pooled:
 		return
+
+	# Issue #1487 Round 7: decrement the static active counter (see active_count static var).
+	# Guards against going below 0 in edge cases (e.g., scene reload before all shrapnel die).
+	if active_count > 0:
+		active_count -= 1
 
 	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
 	if pool_manager:

@@ -592,3 +592,76 @@ if _perf_settings_cached and not _perf_settings_cached.is_ai_enabled(): return
 
 Combined with all previous rounds, the BuildingLevel frame budget should now fit within the 16.7ms target consistently.
 
+---
+
+## Round 7 — Batch draw_multiline + Static Shrapnel Counter + Cached Physics Query
+
+### User Feedback
+
+> "всё ещё падение на 30 кадров."
+> Translation: "Still a 30 fps drop."
+> Attached: `game_log_20260325_162828.txt`
+
+### Log Analysis: `game_log_20260325_162828.txt`
+
+Three BuildingLevel sessions captured. Two FPS drops logged:
+
+| Time | Level | FPS | Context |
+|------|-------|-----|---------|
+| 16:28:31 | LabyrinthLevel | 11 fps | Shader warmup (~1370ms) + background scene load of BuildingLevel started simultaneously. One-time startup spike, not a gameplay issue. |
+| 16:29:03 | BuildingLevel | 29 fps | During active shooting with BreakerBullets. Marginal drop (1 fps below 30fps threshold). |
+
+Key observations:
+- `draw_count=98` logged at 16:28:49 for EnemyPathMonitor — 80 additional `_draw()` calls in 12 seconds (≈6.7Hz), confirming the 10Hz throttle is working but draw node still calls `queue_redraw()` even when paths=0 (empty array still triggers redraw)
+- EnemyPathMonitor overlay visible (`overlay.visible=true`) throughout, with `enemy_path_visible: true` in ExperimentalSettings
+- Sound propagation correctly throttled: ~7-8 GUNSHOT events/sec (within 10Hz limit), ~5-7 EXPLOSION events/sec (within 5Hz limit)
+- `BreakerShrapnel.get_nodes_in_group()` called on every detonation (scene-tree traversal not visible in logs but still happening)
+- `PhysicsPointQueryParameters2D.new()` called 3 times per detonation for spawn-position wall checks
+
+### Remaining Root Causes Identified in Round 7
+
+#### Root Cause 15: EnemyPathMonitor `_draw()` Uses N×draw_line Instead of draw_multiline
+
+With 10 enemies × 5-waypoint paths:
+- **Path lines**: ~10 × (1 + 4 path segments) = **50 draw_line calls per _draw()**
+- **Circle outlines**: ~10 × (4 waypoints × 12 segments + 1 dest × 12 segments) = **600 draw_line calls per _draw()**
+- **Total**: ~650 draw_line calls per `_draw()` at up to 10Hz
+
+Godot 4 benchmark (godot-proposals #8618): `draw_multiline` with N point-pairs is **~30x faster** than N individual `draw_line` calls. The GPU command overhead per call is the bottleneck, not the geometry size.
+
+**Fix**: Replaced all `draw_line` calls with `draw_multiline` — accumulate all segment point-pairs into `PackedVector2Array` dictionaries keyed by color, then call one `draw_multiline` per unique color. With 10 enemies in 2-3 AI states, this reduces ~650 `draw_line` calls to **2-3 `draw_multiline` calls** per `_draw()` invocation.
+
+Additionally: skip `queue_redraw()` when paths is empty and was already empty (avoids ~6 redundant `_draw()` calls/sec when no enemies have active paths).
+
+#### Root Cause 16: Per-Detonation get_nodes_in_group("breaker_shrapnel") Scene-Tree Traversal
+
+`bullet.gd:_breaker_spawn_shrapnel()` calls `get_tree().get_nodes_in_group("breaker_shrapnel")` to check the concurrent shrapnel cap. At up to 10 detonations/sec (after throttling), this is **10 full scene-tree group scans/sec**.
+
+Each scan traverses the scene tree to find all nodes in the "breaker_shrapnel" group (which changes dynamically as shrapnel is spawned and destroyed). At 10 enemies and 15 shrapnel concurrently, this scan touches ~200+ scene nodes each time.
+
+**Fix**: Replaced with a static counter `BreakerShrapnel.active_count` on the `BreakerShrapnel` class. Incremented in `bullet.gd` when a shrapnel piece is spawned; decremented in `BreakerShrapnel._destroy()`. No scene-tree traversal needed. Eliminates 10 group scans/sec.
+
+#### Root Cause 17: Per-Shrapnel PhysicsPointQueryParameters2D Allocation
+
+`_is_position_inside_wall()` in `bullet.gd` allocates a new `PhysicsPointQueryParameters2D` object on every call. With 3 shrapnel per detonation × 10 detonations/sec = **30 object allocations/sec** from this function alone.
+
+In GDScript, object allocation triggers the GC and adds to per-frame allocation pressure.
+
+**Fix**: Cached the query object as `var _wall_check_query: PhysicsPointQueryParameters2D = null` in the bullet instance. Lazy-initialized on first call, reused thereafter. Only the `.position` field is updated between calls.
+
+### Expected Impact (Round 7)
+
+| Factor | Before Round 7 | After Round 7 |
+|--------|---------------|---------------|
+| draw_line calls per _draw() in EnemyPathMonitor | ~650 | ~2-3 draw_multiline calls (−99.5%) |
+| Redundant queue_redraw() calls when paths=0 | ~6/sec | 0 (skip if already empty) |
+| get_nodes_in_group("breaker_shrapnel") per sec | ~10 | 0 (static counter) |
+| PhysicsPointQueryParameters2D allocations/sec | ~30 | 0 (cached object) |
+
+### Research Reference: draw_multiline Performance
+
+From Godot community benchmarks and official proposals:
+- **[godot-proposals #8618](https://github.com/godotengine/godot-proposals/discussions/8618)**: "Review polyline/polygon usage to reduce overhead" — shows `draw_multiline` is ~30x faster than equivalent `draw_line` calls for the same geometry
+- **[Godot Forums](https://godotforums.org/d/22936-performance-issues-with-custom-2d-drawing)**: Confirmed that each `draw_line` is a separate GPU command; batching into `draw_multiline` gives the GPU one command with all geometry
+- **Principle**: Only call `queue_redraw()` when visual state actually changes — unnecessary redraws are free in terms of CPU but each triggers a full GPU command submission for all geometry in `_draw()`
+
