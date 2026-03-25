@@ -1,118 +1,157 @@
-# Case Study: Issue #1336 — Sniper Enemy Laser Sight
+# Case Study: Issue #1336 — Add Laser Sight to Sniper Enemy Rifle
 
-## Issue Summary
-
-**Title:** update враг снайпер (update sniper enemy)
-
-**Description:**
-Добавь лазерный прицел на винтовку врага снайпера.
-ВАЖНО: лазер должен всегда указывать то место, куда будет стрелять враг (совпадать с будущим трассером).
-
-(Add a laser sight to the sniper enemy's rifle.
-IMPORTANT: the laser must always point where the enemy will shoot — matching the future tracer.)
+**Date:** 2026-03-25
+**Status:** Bugs identified post-implementation, fixes proposed
+**Related Issues:** #1163, #1171, #1336
+**Related PR:** #1484
 
 ---
 
-## Data Collection
+## Summary
 
-### Existing Sniper Implementation (pre-fix)
+Issue #1336 requested a laser sight be added to the sniper enemy rifle, with the explicit requirement that the laser always points where the enemy will shoot (matching the future tracer). The laser was implemented in a previous session and placed inside `EnemySniperComponent`. Owner review of PR #1484 on 2026-03-25 identified two bugs:
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| AI behaviour | `scripts/components/enemy_sniper_component.gd` | Standoff range, blind-fire (Issues #1163, #1171) |
-| Hitscan shooting | Same file, `shoot_sniper_hitscan()` | Instant raycast avoids tunnelling at 10000px/s |
-| Tracer rendering | Same file, `_spawn_sniper_tracer()` | Fading smoke Line2D from muzzle to endpoint |
-| Weapon config | `scripts/components/weapon_config_component.gd` | Type 7: 3s cooldown, 5-round mag, 0 spread |
-| Enemy integration | `scripts/objects/enemy.gd` | `_execute_shoot()` dispatches to sniper hitscan |
-| Scene | `scenes/objects/Enemy.tscn` | Base enemy with EnemyModel/WeaponMount hierarchy |
-
-### Shooting Direction Flow
-
-The bullet direction chain in `enemy.gd._execute_shoot()`:
-1. `_get_weapon_forward_direction()` — determines actual barrel direction
-2. `_get_bullet_spawn_position(weapon_forward)` — muzzle world position
-3. `_sniper_component.shoot_sniper_hitscan(direction, bullet_spawn_pos)` — fires hitscan
-4. `_spawn_sniper_tracer(spawn_pos, bullet_end_point)` — renders tracer
-
-The laser must use **steps 1-2** to ensure it always matches the future tracer (step 4).
-
-### Existing Laser/Line2D Patterns in Codebase
-
-| Pattern | File | Technique |
-|---------|------|-----------|
-| Weapon laser sights | `trajectory_glasses_effect.gd` | Toggle `LaserSight` Line2D child visibility |
-| Sniper tracer | `enemy_sniper_component.gd` | Dynamic Line2D, top_level=true, fade-out coroutine |
-| Bullet trail | `SniperBulletEnemy.tscn` | Trail Line2D child on Area2D bullet |
-| Replay ghost | `replay_system.gd` | Persistent Line2D with point updates |
-
-### External Research: Laser Sights in Games
-
-Laser sights in top-down shooters commonly use:
-- **Line2D / LineRenderer** — thin line from muzzle, raycast to find endpoint
-- **RayCast2D** — built-in node for continuous collision detection
-- Typical visual: thin red line (1-3px), semi-transparent, with brighter dot at endpoint
-- Key constraint: must update every frame to track weapon rotation
-- Common approach: raycast against walls only (not characters) to show where bullet will hit terrain
-
-Godot-specific approaches:
-- `Line2D` with `top_level = true` for world-space coordinates
-- `PhysicsRayQueryParameters2D.create()` for per-frame raycasts (same API as hitscan)
-- Using `_process()` (not `_physics_process()`) for smoother visual updates
+- **Bug A**: The laser sight appears on ALL enemies, not just snipers, because `EnemySniperComponent` is instantiated unconditionally for every enemy in `enemy.gd`.
+- **Bug B**: During "blind fire" (shooting at a predicted or last-known player position through cover), the laser direction does not match where the bullet actually flies. The laser reads a partially-lerped weapon rotation while the bullet travels along the exact computed target direction.
 
 ---
 
-## Root Cause Analysis
+## Bug A: Laser Sight Appears on All Enemies
 
-The sniper enemy had no visual indicator of where it would shoot. Players had no way to anticipate incoming sniper fire, making it feel unfair — especially given the 50 damage hitscan that penetrates up to 2 walls.
+### Description
 
----
+The laser sight is rendered on every enemy in the game regardless of enemy type or weapon. Only sniper enemies should display the laser.
 
-## Solution
+### Affected File
 
-### Approach: Persistent Line2D with Per-Frame Raycast
+- `scripts/objects/enemy.gd`, line 422
 
-Added a laser sight as a persistent `Line2D` child of the `EnemySniperComponent`:
+### Root Cause
 
-1. **Created in `_ready()`** — single Line2D instance, reused every frame (no GC pressure)
-2. **Updated in `_process()`** — uses `_get_weapon_forward_direction()` and `_get_bullet_spawn_position()` from `enemy.gd` to compute muzzle position and direction
-3. **Raycasts against walls** (collision layer 4) to find the endpoint, matching hitscan behaviour
-4. **Hidden when enemy dies** — checks `enemy._is_alive`
+`EnemySniperComponent` is created unconditionally for every enemy at `enemy.gd:422`:
 
-### Key Design Decisions
+```gdscript
+_sniper_component = EnemySniperComponent.new(); _sniper_component.enemy = self; ...
+```
 
-| Decision | Rationale |
-|----------|-----------|
-| Same direction methods as `_execute_shoot()` | Guarantees laser matches future tracer (issue requirement) |
-| `_process()` not `_physics_process()` | Smoother visual updates; laser is visual-only, no physics |
-| Raycast walls only (layer 4), not characters | Standard laser sight behaviour; avoids spoiling character positions through cover |
-| Semi-transparent red (alpha 0.4-0.7) | Visible but not overwhelming; brighter dot at endpoint |
-| `top_level = true` | World-space positioning, same as tracer |
-| `z_index = 9` (below tracer at 10) | Laser visible but tracer renders on top when shot fires |
-| Width 1.5px with taper curve | Thin enough to look like a laser, not a beam weapon |
+The component was originally introduced to encapsulate hitscan shooting and sniper AI behavior. Because it was added unconditionally, any feature initialized inside the component — including the laser sight added to `_ready()` via `_create_laser_sight()` — is also applied to all enemies. No guard exists to check whether the enemy uses a sniper rifle before the component or laser is created.
 
-### Files Changed
+### Impact
 
-| File | Change |
-|------|--------|
-| `scripts/components/enemy_sniper_component.gd` | Added laser sight constants, `_create_laser_sight()`, `_process()`, `_update_laser_sight()` |
-| `tests/unit/test_sniper_laser_sight.gd` | New test file: constants, creation, visibility, structure |
+Every enemy type displays a laser sight. This contradicts the feature request, which explicitly scoped the laser to the sniper enemy rifle, and introduces visual noise and gameplay confusion on non-sniper enemies.
 
 ---
 
-## Testing
+## Bug B: Laser Direction Mismatch During Blind Fire
 
-### Unit Tests (`test_sniper_laser_sight.gd`)
+### Description
 
-- Constants validation (range, width, color, wall layer)
-- Line2D creation on `_ready()` (type, name, top_level, point count, width, z_index)
-- Visibility rules (hidden when enemy is null/dead)
-- Pre-ready state (null before `_ready()`)
+During blind fire events — when the sniper shoots at a predicted or last-known player position (typically through cover) — the laser sight points in a direction that does not correspond to where the bullet will actually travel. The laser direction and the tracer direction diverge visibly.
 
-### Manual Testing Checklist
+### Affected Files
 
-- [ ] Laser visible from sniper muzzle in-game
-- [ ] Laser tracks weapon rotation smoothly
-- [ ] Laser stops at walls (collision layer 4)
-- [ ] Laser matches tracer direction when shot fires
-- [ ] Laser hidden after enemy death
-- [ ] No performance impact (single Line2D update per frame)
+- `scripts/components/enemy_sniper_component.gd`, lines 148–186 — `fire_at_predicted_position()` method
+- `scripts/components/enemy_sniper_component.gd`, lines 379–423 — `_update_laser_sight()` method
+
+### Root Cause
+
+The mismatch arises from two separate direction-computation paths being used for the laser versus the bullet.
+
+**During direct fire** (player is visible):
+- The laser reads `_get_weapon_forward_direction()`, which reflects the current weapon rotation.
+- The bullet is also fired along `_get_weapon_forward_direction()`.
+- Both directions are identical, so the laser is correct.
+
+**During blind fire** (`fire_at_predicted_position()` is called):
+- The sniper rotates toward the target using `_rotate_toward()`, which applies `lerp_angle()` — a gradual, frame-by-frame interpolation. At any given frame the weapon rotation is only partially turned toward the target.
+- When the bullet is fired, `fire_at_predicted_position()` computes the shot direction independently: `to_target = (target_pos - enemy.global_position).normalized()`, then applies spread: `direction = to_target.rotated(spread)`.
+- The bullet therefore travels along the exact normalized vector from enemy to target (plus spread), independent of the lerped rotation.
+- The laser reads `_get_weapon_forward_direction()`, which at the moment of firing reflects the partial lerped rotation — not the actual `to_target` direction.
+
+The result: the laser points in the partially-rotated direction while the bullet flies toward the exact target. The divergence can be significant depending on how far through the lerp rotation has progressed when the shot fires.
+
+### Impact
+
+This directly violates the core requirement of Issue #1336: "laser must always point where the enemy will shoot (match the future tracer)." During blind fire — a common behavior documented extensively in the game log — the laser actively misleads the player about where the shot will land.
+
+---
+
+## Evidence from Game Log
+
+**File:** `docs/case-studies/issue-1336/game_log_20260325_034213.txt`
+
+- **Line 895:** `[#1163] Sniper blind-fire at predicted position (1581.633, 1406.331), ammo=4`
+- Multiple additional blind fire events appear throughout the log, confirming that snipers regularly fire through cover at predicted player positions.
+
+During each of these events, the laser would be pointing in the lerped rotation direction rather than toward the predicted target position `(1581.633, 1406.331)`. This is directly observable as a visual inconsistency: the laser sweeps gradually as the weapon lerps, while the bullet fires at a fixed computed point.
+
+---
+
+## Timeline of Events
+
+| Date / Event | Details |
+|---|---|
+| Issue #1163 | Sniper AI behavior added: kiting, blind fire through cover, predicted position targeting |
+| Issue #1171 | Hitscan shooting added to avoid physics tunneling on fast projectiles |
+| Issue #1336 | Laser sight requested with requirement: "laser must always point where the enemy will shoot (match the future tracer)" |
+| 2026-03-25 00:20 | Laser implemented inside `EnemySniperComponent`; placed in `_ready()` via `_create_laser_sight()`; direction sourced from `_get_weapon_forward_direction()` |
+| 2026-03-25 00:46 | Owner reviews PR #1484 and reports Bug A (laser on all enemies) and Bug B (laser direction mismatch during blind fire); requests case study |
+
+---
+
+## Root Causes
+
+### Bug A Root Cause
+
+`EnemySniperComponent` is instantiated unconditionally at `enemy.gd:422`. The laser sight is initialized inside `EnemySniperComponent._ready()` with no weapon type guard, so it is created and rendered on all enemies.
+
+### Bug B Root Cause
+
+`_update_laser_sight()` computes the laser direction using `_get_weapon_forward_direction()`, which reads the current lerped weapon rotation. During blind fire, the bullet direction is computed from a direct `to_target` vector that is independent of the lerped rotation. At the moment of firing the lerped rotation has not converged to `to_target`, so the two directions diverge. The laser fails to satisfy the issue requirement of matching the future tracer.
+
+---
+
+## Proposed Solutions
+
+### Fix A: Restrict Laser Sight to Sniper Enemies
+
+Add a weapon type guard inside `EnemySniperComponent._ready()` before `_create_laser_sight()` is called:
+
+```gdscript
+# In EnemySniperComponent._ready()
+if enemy == null or enemy.weapon_type != enemy.WeaponType.SNIPER_RIFLE:
+    return
+```
+
+This ensures the laser is never created for non-sniper enemies regardless of where `EnemySniperComponent` is instantiated. It localizes the guard to the component itself, making future changes to `enemy.gd` less likely to reintroduce the bug.
+
+An alternative is to wrap the `EnemySniperComponent` creation at `enemy.gd:422` inside a `weapon_type == WeaponType.SNIPER_RIFLE` condition. This is cleaner at the instantiation site but less robust if the instantiation is ever duplicated or moved.
+
+### Fix B: Match Laser Direction to Actual Blind-Fire Target
+
+The laser must show where the next bullet will actually travel. The recommended approach is to expose the current blind-fire target position from the sniper component and compute the laser direction from it directly in `_update_laser_sight()`, mirroring the math in `fire_at_predicted_position()`.
+
+**Implementation:**
+
+1. Add a variable `_blind_fire_target: Vector2` to `EnemySniperComponent`. Set it whenever `fire_at_predicted_position()` stores a target position; clear it when not in blind-fire mode.
+
+2. In `_update_laser_sight()`, check whether `_blind_fire_target` is set. If it is, compute the laser direction as:
+   ```gdscript
+   var direction = (_blind_fire_target - enemy.global_position).normalized()
+   ```
+   This is the same vector that `fire_at_predicted_position()` uses for `to_target`, ensuring the laser matches the actual bullet direction.
+
+3. If `_blind_fire_target` is not set (direct fire mode), continue using `_get_weapon_forward_direction()` as before.
+
+An alternative (option 1) is to store the last actual fire direction after each shot and use that for the laser. This is simpler but means the laser shows the direction of the previous shot rather than the direction of the next shot during the interval between shots, which may look incorrect.
+
+---
+
+## Key Files
+
+| File | Relevant Lines | Purpose |
+|---|---|---|
+| `scripts/objects/enemy.gd` | 422 | Unconditional `EnemySniperComponent` creation — root of Bug A |
+| `scripts/components/enemy_sniper_component.gd` | 353–423 | Laser creation (`_create_laser_sight()`) and update (`_update_laser_sight()`) |
+| `scripts/components/enemy_sniper_component.gd` | 148–186 | `fire_at_predicted_position()` — blind fire shot direction computation |
+| `scripts/components/enemy_sniper_component.gd` | 379–423 | `_update_laser_sight()` — current (incorrect) laser direction logic during blind fire |

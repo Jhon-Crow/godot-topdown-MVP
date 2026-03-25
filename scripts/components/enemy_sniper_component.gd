@@ -50,11 +50,21 @@ var log_to_file_fn: Callable = Callable()
 ## [#1336] Laser sight Line2D — persistent, updated every frame.
 var _laser_line: Line2D = null
 
+## [#1336] Current blind-fire target world position (Vector2.ZERO = not in blind-fire mode).
+## Set when the sniper is rotating toward a predicted position; cleared when player becomes
+## visible. Used by _update_laser_sight() to show where the bullet will actually fly,
+## which during blind fire is the straight line to this target (not the lerped rotation).
+var _blind_fire_target: Vector2 = Vector2.ZERO
+
 
 func _ready() -> void:
 	if enemy == null:
 		enemy = get_parent() as CharacterBody2D
-	_create_laser_sight()
+	# [#1336] Only create the laser sight on sniper enemies.
+	# EnemySniperComponent is added to all enemies (for hitscan/AI reuse), but
+	# the visible laser belongs only to the sniper rifle.
+	if enemy != null and enemy.weapon_type == enemy.WeaponType.SNIPER_RIFLE:
+		_create_laser_sight()
 
 
 # ============================================================================
@@ -75,6 +85,8 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 	blind_fire_timer += delta
 
 	if can_see_player:
+		# [#1336] Player visible — laser should follow weapon aim, not a blind target.
+		_blind_fire_target = Vector2.ZERO
 		if distance_to_player < MIN_DISTANCE:
 			var retreat_dir := -direction_to_player
 			retreat_dir = (enemy._apply_wall_avoidance(retreat_dir) as Vector2)
@@ -120,6 +132,8 @@ func process_pursuing(delta: float, can_see_player: bool, player: Node,
 	# When player is visible and at safe range: shoot directly and let normal
 	# PURSUING code transition to COMBAT (return false so enemy.gd continues).
 	if can_see_player and player != null:
+		# [#1336] Player visible — laser should follow weapon aim, not a blind target.
+		_blind_fire_target = Vector2.ZERO
 		var dist := enemy.global_position.distance_to((player as Node2D).global_position)
 		if dist >= MIN_DISTANCE:
 			return false  # Fall through: normal pursuit will transition to COMBAT
@@ -191,6 +205,8 @@ func fire_at_predicted_position(target_pos: Vector2) -> void:
 func _rotate_toward(target_pos: Vector2, delta: float) -> void:
 	var to_target := (target_pos - enemy.global_position).normalized()
 	if to_target == Vector2.ZERO: return
+	# [#1336] Track where the blind-fire shot will actually go so the laser matches.
+	_blind_fire_target = target_pos
 	var enemy_model: Node = enemy._enemy_model
 	if enemy_model:
 		enemy_model.global_rotation = lerp_angle(enemy_model.global_rotation, to_target.angle(), enemy.rotation_speed * delta)
@@ -395,9 +411,19 @@ func _update_laser_sight() -> void:
 		_laser_line.visible = false
 		return
 
-	# Get weapon forward direction — same method used by _execute_shoot() to determine
-	# the actual bullet direction. This ensures the laser matches the future tracer.
-	var weapon_forward: Vector2 = enemy._get_weapon_forward_direction()
+	# Determine the laser direction.
+	# During blind fire (_blind_fire_target is set), fire_at_predicted_position() shoots
+	# straight at the target (to_target = normalized direction to _blind_fire_target), NOT
+	# along the lerp-animated weapon rotation. Use the same computation so the laser
+	# matches the actual bullet trajectory. During direct fire (player visible), the
+	# weapon rotation IS the bullet direction, so use _get_weapon_forward_direction().
+	var weapon_forward: Vector2
+	if _blind_fire_target != Vector2.ZERO:
+		weapon_forward = (_blind_fire_target - enemy.global_position).normalized()
+		if weapon_forward == Vector2.ZERO:
+			weapon_forward = enemy._get_weapon_forward_direction()
+	else:
+		weapon_forward = enemy._get_weapon_forward_direction()
 	var muzzle_pos: Vector2 = enemy._get_bullet_spawn_position(weapon_forward)
 
 	# Raycast along weapon forward to find wall endpoint (collision layer 4 = walls)
