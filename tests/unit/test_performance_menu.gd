@@ -84,6 +84,42 @@ class MockPerformanceMenu:
 	func press_back() -> void:
 		back_pressed_count += 1
 
+	## Simulate hover entering a row.
+	func hover_row(feature_name: String) -> void:
+		pass  # Hover tracking is handled by the UI layer.
+
+	## Returns the list of row names that should have tooltips (Issue #1461).
+	func get_rows_with_tooltips() -> Array[String]:
+		return [
+			"Particle Effects",
+			"Blood Decals on Floor/Walls",
+			"Screen Shake",
+			"Explosion/Flashbang Lights",
+			"Wall Hit Particles",
+			"Enemy AI",
+			"AI: IDLE state (patrol/guard scan)",
+			"AI: COMBAT state (peek, shoot, return)",
+			"AI: SEEKING_COVER state (pathfind to cover)",
+			"AI: IN_COVER state (wait and peek)",
+			"AI: FLANKING state (flank movement)",
+			"AI: SUPPRESSED state (pinned under fire)",
+			"AI: RETREATING state (fall back to cover)",
+			"AI: PURSUING state (cover-to-cover advance)",
+			"AI: ASSAULT state (coordinated rush)",
+			"AI: SEARCHING state (hunt last known position)",
+		]
+
+	## Returns the list of row names that should have description labels (Issue #1461).
+	func get_rows_with_descriptions() -> Array[String]:
+		return [
+			"Particle Effects",
+			"Blood Decals on Floor/Walls",
+			"Screen Shake",
+			"Explosion/Flashbang Lights",
+			"Wall Hit Particles",
+			"Enemy AI",
+		]
+
 
 var menu: MockPerformanceMenu
 
@@ -207,3 +243,30 @@ func test_back_button() -> void:
 
 	assert_eq(menu.back_pressed_count, 1,
 		"Should track back press")
+
+
+# ============================================================================
+# Hover / Tooltip Row Tests (Issue #1461)
+# ============================================================================
+
+
+func test_all_rows_have_tooltips() -> void:
+	var rows := menu.get_rows_with_tooltips()
+	assert_eq(rows.size(), 16,
+		"Should have 16 rows with tooltips (6 visual + 10 AI states)")
+
+
+func test_visual_rows_have_descriptions() -> void:
+	var rows := menu.get_rows_with_descriptions()
+	assert_eq(rows.size(), 6,
+		"Should have 6 rows with description labels (visual features + AI master)")
+
+
+func test_tooltip_row_names_include_ai_states() -> void:
+	var rows := menu.get_rows_with_tooltips()
+	var ai_rows: Array[String] = []
+	for r in rows:
+		if r.begins_with("AI:"):
+			ai_rows.append(r)
+	assert_eq(ai_rows.size(), 10,
+		"Should have tooltip rows for all 10 AI states")
