@@ -2643,3 +2643,33 @@ func test_pursuing_corner_escape_clears_stuck_position_issue_1457() -> void:
 	assert_gt(distance_moved, STUCK_THRESHOLD,
 		"Issue #1457 v3: escape impulse must move enemy > %.0fpx stuck threshold (moved %.1fpx in %.2fs)" % [
 			STUCK_THRESHOLD, distance_moved, ESCAPE_DURATION])
+
+
+## Issue #1457 v5: enemy.gd must use MOTION_MODE_FLOATING so wall corners are not classified as floors.
+## MOTION_MODE_GROUNDED (default) causes corner-gluing in top-down games — see Godot issue #109926.
+func test_enemy_uses_floating_motion_mode_issue_1457() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("MOTION_MODE_FLOATING"),
+		"Issue #1457 v5: enemy must set motion_mode = MOTION_MODE_FLOATING in _ready() — prevents corner-gluing physics bug")
+
+
+## Issue #1457 v5: 3-probe forward steering must exist in _move_to_target_nav.
+## Probes forward-left (-30°=−0.524rad), forward, forward-right (+30°=+0.524rad) to detect and steer around walls.
+func test_three_probe_steering_exists_issue_1457() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("0.524"),
+		"Issue #1457 v5: 3-probe steering must use ±0.524 rad (30°) probe angles — forward-left and forward-right probes")
+	assert_true(source.contains("_pc") and source.contains("_pl") and source.contains("_pr"),
+		"Issue #1457 v5: 3-probe steering must declare center (_pc), left (_pl), and right (_pr) probe results")

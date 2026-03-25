@@ -395,6 +395,7 @@ var _pursuit_component: PursuitComponent = null  ## Issue #1289: Cover-finding l
 
 func _ready() -> void:
 	add_to_group("enemies")
+	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING  # Issue #1457 v5: top-down game — FLOATING disables floor-detection so wall corners are never classified as floors (fixes physics corner-gluing)
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
 	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
@@ -4725,8 +4726,7 @@ func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 
 ## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
-	# Issue #1249: Tactical yielding — let closest enemy pass first. Skip in FLANKING (#1249 s4).
-	if _tactical_movement and _current_state in [AIState.PURSUING, AIState.COMBAT]:
+	if _tactical_movement and _current_state in [AIState.PURSUING, AIState.COMBAT]:  # #1249: Tactical yielding
 		if _tactical_movement.check_and_yield(target_pos, speed, get_physics_process_delta_time()):
 			var _wp: Vector2 = _tactical_movement.get_yield_position()
 			if _wp != Vector2.ZERO and global_position.distance_to(_wp) > 20.0:
@@ -4734,27 +4734,25 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 				velocity = _wd * speed * 0.6; if velocity.length_squared() > 0.01: _rotate_body_toward(velocity.angle(), get_physics_process_delta_time())
 			else: velocity = Vector2.ZERO
 			return true
-	# Issue #1287: Tactical group encirclement — offset approach target so enemies spread around the player.
-	if _tactical_group and _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
+	if _tactical_group and _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:  # #1287: encirclement
 		target_pos = _tactical_group.get_adjusted_target(target_pos, get_physics_process_delta_time())
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
-	direction = _apply_wall_avoidance(direction, 0.5)  # Issue #1457: half-weight avoidance for nav-guided movement (navmesh margin prevents over-steering)
-	# Issue #1107: Corner escape — use escape-dominant weight (1.5) when wall opposes nav dir
-	var _esc: Vector2 = Vector2.ZERO
+	direction = _apply_wall_avoidance(direction, 0.5)  # #1457: half-weight for nav-guided movement
+	# #1457 v5: 3-probe forward steering (Reynolds) — proactively steer around corners before getting wedged
+	var _pd: float = minf(WALL_CHECK_DISTANCE, 64.0); var _pc := move_and_collide(direction * _pd, true); var _pl := move_and_collide(direction.rotated(-0.524) * _pd, true); var _pr := move_and_collide(direction.rotated(0.524) * _pd, true)
+	if _pc == null and _pl != null and _pr == null: direction = (direction + direction.rotated(0.524).normalized() * 0.6).normalized()
+	elif _pc == null and _pr != null and _pl == null: direction = (direction + direction.rotated(-0.524).normalized() * 0.6).normalized()
+	elif _pc != null: direction = (direction + _pc.get_normal() * 1.2).normalized()
+	var _esc: Vector2 = Vector2.ZERO  # #1107: escape-dominant weight when wall opposes nav dir
 	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
 	if _esc.length_squared() > 0.01: var _en := _esc.normalized(); direction = (direction + _en * (1.5 if _en.dot(direction) < -0.5 else 0.6)).normalized()
 	elif velocity.length_squared() < 1.0:
 		var _p := move_and_collide(direction * 2.0, true); if _p: direction = (direction + _p.get_normal() * 0.8).normalized()
 	var intended_vel: Vector2 = direction * speed
-	# Issue #1146: Feed intended velocity to NavigationAgent2D ORCA so it can steer us away from other agents.
-	if _nav_agent and _nav_agent.avoidance_enabled:
-		_nav_agent.set_velocity(intended_vel)
-		# _avoidance_velocity is set asynchronously via _on_avoidance_velocity_computed.
-		# Fall back to intended_vel on the first frame before the callback fires.
-		velocity = _avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else intended_vel
-	else:
-		velocity = intended_vel
+	if _nav_agent and _nav_agent.avoidance_enabled:  # #1146: feed to ORCA for agent separation
+		_nav_agent.set_velocity(intended_vel); velocity = _avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else intended_vel
+	else: velocity = intended_vel
 	if velocity.length_squared() > 0.01: _rotate_body_toward(velocity.angle(), get_physics_process_delta_time())
 	return true
 

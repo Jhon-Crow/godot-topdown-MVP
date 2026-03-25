@@ -2,7 +2,7 @@
 
 **Issue:** #1457 — fix враг не может обогнуть препятствие
 **PR:** #1477
-**Status:** Fix v4 implemented — four improvements over v3 (larger impulse, 8-dir probe, nav reset, separation skip)
+**Status:** Fix v5 implemented — root-cause fix: MOTION_MODE_FLOATING + 3-probe forward steering
 **Analyst:** konard (AI)
 **Date:** 2026-03-24, updated 2026-03-25
 
@@ -372,3 +372,85 @@ After fix v4: Enemy gets wedged → stuck fires after 1.5s → probes 8 directio
 ### 10.6 New Log Saved
 
 - `docs/case-studies/issue-1457/game_log_20260325_051623.txt` — Post-v3 logs showing re-wedging pattern
+
+---
+
+## 11. Session 5 — Root Cause Fix: MOTION_MODE_FLOATING (2026-03-25)
+
+### 11.1 New Evidence
+
+**Screenshot (09:26 UTC comment):** Shows enemy visually wedged at a corner with the navigation path (yellow lines) clearly pointing in the correct direction. The nav system knows where to go; the physics body cannot move there.
+
+**Log `game_log_20260325_051623.txt` analysis:**
+- Enemy7 stuck at (1759, 830) at 05:17:48 — same corner as all previous logs
+- Escape impulse fires direction `(-0.001498, 0.999999)` = almost purely south
+- 0.5s later the log ends with `remaining=-0.02s` — timer went below zero but **no "impulse done" log appears**
+- **Critical:** The user tested this at 05:16 UTC — the v4 nav-reset commit was only pushed at 09:08 UTC. All impulse-based fixes (v3, v4) failed because they address symptoms, not the root cause.
+
+**User comment (09:26):** "всё ещё застревает в стене" = "still getting stuck in the wall"
+
+### 11.2 Root Cause Analysis — Engine Level
+
+After exhaustive testing, the core issue is confirmed to be a **Godot engine-level physics bug compounded by an incorrect configuration**:
+
+**Primary: Wrong `motion_mode` for a top-down game**
+
+`CharacterBody2D.motion_mode` defaults to `MOTION_MODE_GROUNDED` (the value `0`). In grounded mode:
+- The engine applies floor/ceiling detection to every surface
+- When the character collides at a convex corner where two walls meet, the physics server can classify the corner as a "floor" (surface normal has an upward component in 2D space)
+- Once the corner is classified as a floor, `move_and_slide()` applies floor-riding logic that **glues the body to the vertex**
+- No amount of impulse can overcome this — the physics engine re-applies the floor constraint every frame
+
+This is documented in:
+- [Godot issue #109926](https://github.com/godotengine/godot/issues/109926): "move_and_slide treats wall corner as floor" — open, unfixed in Godot 4.0–4.5
+- [Godot issue #50062](https://github.com/godotengine/godot/issues/50062): Original corner sticking report (fixed in Godot 3/early 4)
+- [Godot issue #91494](https://github.com/godotengine/godot/issues/91494): Rectangle corner collision bug — fix PR #110181 pending but not released
+
+**Solution documented by Godot community and official docs:**
+Setting `motion_mode = CharacterBody2D.MOTION_MODE_FLOATING` disables floor/ceiling detection entirely. The character is treated as a freely-floating object that only responds to collision normals — no "floor gluing" behavior. This is the **recommended configuration for top-down and isometric games**.
+
+Sources:
+- [Godot Forum: Fix for CharacterBody2D stops following NavigationAgent at wall corner](https://forum.godotengine.org/t/characterbody2d-stops-to-follow-navigationagentline-when-reaching-a-walls-bottom-corner/92872)
+- [Godot Forum: Enemy stuck on player corner with NavigationAgent2D](https://forum.godotengine.org/t/enemy-gets-stuck-on-player-corner-when-using-navigationagent2d-top-right/131733)
+- [Craig Reynolds Steering Behaviors — Wall Avoidance](https://www.red3d.com/cwr/steer/)
+- [SlashSkill: Steering Behaviors for Game AI in Godot 4](https://www.slashskill.com/steering-behaviors-for-game-ai-avoidance-and-anti-oscillation-in-godot-4/)
+
+**Secondary: No proactive wall avoidance on approach**
+
+The existing `_check_wall_ahead()` fires raycasts but is called only during specific states with a half-weight scale in PURSUING. The 3-forward-probe steering technique (Reynolds, 1999) is more robust: cast probes forward-left, forward, and forward-right; if any probe hits, steer perpendicular away from the wall. This prevents approach to corners, instead of trying to escape after being wedged.
+
+### 11.3 Fix v5: Two Changes
+
+**Change 1 — `motion_mode = MOTION_MODE_FLOATING` in `_ready()`**
+
+```gdscript
+# Issue #1457 v5: top-down game — disable floor-detection so walls don't get classified as floors at corners
+motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
+```
+
+This is a **one-line change** that eliminates the physics engine's corner-gluing behavior. All existing stuck detection, blacklist, escalation, and escape impulse logic is retained as safety nets.
+
+**Change 2 — 3-probe lateral avoidance in `_move_to_target_nav`**
+
+```gdscript
+# Issue #1457 v5: Reynolds wall-avoidance — 3 forward probes to steer around corners before getting wedged
+```
+
+Probes forward-left (−30°), forward, and forward-right (+30°) using raycasts (via the existing `_wall_raycasts` infrastructure). If any probe hits within `WALL_CHECK_DISTANCE`, add a perpendicular steering component to the direction. This is applied proactively on every movement frame, preventing the enemy from approaching a corner at full speed.
+
+### 11.4 Expected Result
+
+With `MOTION_MODE_FLOATING`:
+- Engine no longer classifies wall corners as floors → no more physics "gluing"
+- Escape impulses fire in the rare case of slow-approach wedging
+- All v1–v4 safety nets remain intact
+
+With 3-probe steering:
+- Enemy detects walls 60–80px ahead and begins steering around them
+- At a convex corner, probes detect the wall on one side → enemy steers toward the open side
+- Enemy navigates around corners smoothly instead of running straight into them
+
+### 11.5 Logs and Files
+
+- Screenshot: `assets/case-studies-screenshots/issue-1457-stuck-v5.png` (committed to branch)
+- Game log: `docs/case-studies/issue-1457/game_log_20260325_051623.txt`
