@@ -214,6 +214,41 @@ Added structured `_log()` helper in `WaterBody` (mirrors `beach_level.gd` patter
 
 ---
 
+## Iteration 4 Investigation (game_log_20260325_130120.txt)
+
+### Timeline from Second Game Log
+
+| Time | Event |
+|---|---|
+| 13:01:20 | Game started on LabyrinthLevel |
+| 13:01:26 | Scene loaded: BeachLevel (after Iteration 3 fix was deployed) |
+| 13:01:26 | BeachLevel._ready() fired; 8 enemies tracked; weapon set up |
+| 13:01:26 | **Still no WaterBody log messages** |
+| 13:01:38 | Scene restarted; same result |
+
+### Root Cause Analysis (Iteration 4)
+
+Two compounding issues were identified:
+
+**1. Transparent fallback color makes water invisible on shader failure.**
+
+`_create_visual()` set `_visual.color = Color(0,0,0,0)` (fully transparent) before applying the shader. If the shader loads but renders with errors, or if the ShaderMaterial compiles to a no-op, the ColorRect is completely invisible. The fix sets a visible blue default `Color(0.15, 0.55, 0.85, 0.88)` that always shows water even if the shader fails.
+
+**2. `_log()` in WaterBody used `print()` as fallback but not alongside FileLogger.**
+
+The logging helper wrote EITHER to FileLogger OR to print(). Since `print()` output goes to Godot's console/stdout but NOT to the game log file, WaterBody messages never appeared in the game log even when `_ready()` was executing normally. The fix makes `_log()` always call `print()` AND additionally write to FileLogger when available.
+
+**3. `_setup_water()` in beach_level.gd used `print()` instead of `_log_to_file()`.**
+
+The `_setup_water()` function in beach_level.gd used bare `print()` statements, so no water diagnostics appeared in the game log. The fix switches all output to `_log_to_file()` and adds detailed status (visual node found, shader loaded, collision node, Water position) so future game logs will confirm water initialization state.
+
+### Fix (Iteration 4)
+
+- **`scripts/objects/water_body.gd`**: Changed default `_visual.color` from transparent `Color(0,0,0,0)` to visible blue `Color(0.15, 0.55, 0.85, 0.88)`. `_log()` now calls `print()` unconditionally and also writes to FileLogger.
+- **`scripts/levels/beach_level.gd`**: `_setup_water()` switched from `print()` to `_log_to_file()` with full diagnostic output.
+
+---
+
 ## References
 
 - GodotShaders.com — 2D Water Distortion Effect: https://godotshaders.com/shader/2d-water-distortion-effect-godot-4/
