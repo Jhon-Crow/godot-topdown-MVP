@@ -858,3 +858,67 @@ Second stuck (same position):
 
 - Screenshot: `assets/case-studies-screenshots/issue-1457-stuck-v8-session8.png`
 - Game log: `docs/case-studies/issue-1457/game_log_20260325_140630.txt`
+
+---
+
+## 15. Online Research Findings (2026-03-25)
+
+Research conducted to identify additional root causes and standard solutions.
+
+### 15.1 Bug Confirmation: godotengine/godot#109926
+
+The `MOTION_MODE_GROUNDED` corner-gluing is a confirmed, unfixed bug in **all versions from
+Godot 4.0 through Godot 4.5.beta6** (as of August 2025). The fix (`MOTION_MODE_FLOATING`)
+is the recommended configuration for all top-down 2D games — confirmed by:
+- [GitHub #109926](https://github.com/godotengine/godot/issues/109926)
+- [Godot Forum: Why MOTION_MODE_FLOATING solves sticking](https://forum.godotengine.org/t/why-changing-the-motion-mode-solves-the-collision-shapes-sticking-problem/71108)
+- [Godot Forum: Enemy stuck on player corner – fixed by FLOATING](https://forum.godotengine.org/t/enemy-gets-stuck-on-player-corner-when-using-navigationagent2d-top-right/131733)
+
+### 15.2 RVO Avoidance Compounds Wall Sticking (Important Finding)
+
+All enemy scene files have `avoidance_enabled = true` (set by Issue #1146 for enemy-enemy
+separation). Research confirms this is a contributing factor to wall sticking:
+
+> **RVO avoidance does not respect navmesh geometry or wall collision shapes.**
+> RVO can push agents sideways into walls. When pushed into a wall, `path_max_distance`
+> is exceeded → full path recalculation → pushed again → infinite repath loop.
+> This was acknowledged in Godot PR #69988 as a known limitation at merge time.
+
+Sources:
+- [GitHub godot-proposals #4522 — RVO NavMesh Obstacle Planes](https://github.com/godotengine/godot-proposals/issues/4522)
+- [PR #69988 — Rework Navigation Avoidance (merged 4.1)](https://github.com/godotengine/godot/pull/69988)
+- [GitHub #60354 — NavigationAgent wall collision when rounding corners](https://github.com/godotengine/godot/issues/60354)
+
+**Recommendation:** `avoidance_enabled` should ideally be `false` for navmesh-navigating
+enemies in narrow corridors. However, changing this affects Issue #1146 (enemy spread/separation)
+and is outside the scope of this fix. Left as a future improvement to investigate.
+
+### 15.3 NavigationAgent2D path_max_distance and Set-Target-Every-Frame
+
+Two additional potential sources of stuck behavior confirmed by research:
+
+1. **`path_max_distance`** (default 100px) — when RVO pushes an agent more than 100px off
+   the ideal path, a full recalculation triggers. In narrow corridors, repeated RVO pushes
+   can cause continuous recalculation, preventing forward progress.
+
+2. **Calling `set_target_position()` every frame** (via `_get_nav_direction_to()` at line 4722)
+   triggers a full path recalculation every physics frame. The current code does this on every
+   `_move_to_target_nav()` call. Per Godot docs recommendation, this should be gated behind
+   a distance threshold. However, changing this is a broader refactor.
+
+Sources:
+- [GitHub #95628 — NavigationAgent2D repath loop](https://github.com/godotengine/godot/issues/95628)
+- [Godot docs — Using NavigationAgents (latest)](https://docs.godotengine.org/en/latest/tutorials/navigation/navigation_using_navigationagents.html)
+
+### 15.4 Agent Radius and NavMesh Baking
+
+Research confirms that `agent_radius` in the baked navmesh (not in the NavigationAgent2D
+`radius` property) is what controls path clearance from walls. The code sets `agent_radius = 24.0`
+in the NavigationAgent2D node — this is the **RVO radius**, NOT the bake radius. The actual
+navmesh bake radius must be set separately in the `NavigationPolygon` bake parameters.
+
+If the navmesh was baked with `agent_radius = 0`, paths can run along wall edges, making
+corner sticking much more likely regardless of `MOTION_MODE_FLOATING`.
+
+Source:
+- [Godot Forum — NavigationAgent2D keeps getting stuck on corners](https://forum.godotengine.org/t/navigationagent2d-keeps-geting-stuck-on-corners/126027)
