@@ -126,6 +126,20 @@ public static class BreakerDetonation
     private static bool _soundPlayedThisFrame;
 
     /// <summary>
+    /// Issue #1462: Minimum interval (milliseconds) between breaker explosion AI propagations.
+    /// Shotgun fires 15 pellets simultaneously — each detonation without this throttle would
+    /// produce 15 × 10-listener = 150 on_sound_heard callbacks in one frame. With this cooldown,
+    /// enemies get at most one explosion alert per 400ms burst — matching the CASING_KICK
+    /// and EMPTY_CLICK patterns fixed in issues #969 and #1145.
+    /// </summary>
+    private const ulong ExplosionPropagationCooldownMs = 400;
+
+    /// <summary>
+    /// Timestamp (milliseconds) of the last breaker explosion AI propagation (Issue #1462).
+    /// </summary>
+    private static ulong _lastExplosionPropagationTimeMs;
+
+    /// <summary>
     /// Gets or loads the shrapnel scene.
     /// </summary>
     private static PackedScene? GetShrapnelScene()
@@ -443,6 +457,11 @@ public static class BreakerDetonation
 
     /// <summary>
     /// Plays explosion sound and emits sound for AI awareness.
+    ///
+    /// Issue #1462: The AI sound propagation (emit_sound) is throttled to at most once per
+    /// ExplosionPropagationCooldownMs. Shotgun fires 15 simultaneous pellets — without this,
+    /// 15 × N_listeners on_sound_heard callbacks fire per frame (same issue as #969, #1145).
+    /// The audio effect (play_bullet_wall_hit) is not throttled so the player still hears it.
     /// </summary>
     private static void PlayExplosionSound(Node projectile, Vector2 center)
     {
@@ -451,6 +470,14 @@ public static class BreakerDetonation
         {
             audioManager.Call("play_bullet_wall_hit", center);
         }
+
+        // Issue #1462: Throttle AI propagation — enemies only need one alert per burst
+        ulong nowMs = Time.GetTicksMsec();
+        if (nowMs - _lastExplosionPropagationTimeMs < ExplosionPropagationCooldownMs)
+        {
+            return; // Throttled: enemies already alerted this burst
+        }
+        _lastExplosionPropagationTimeMs = nowMs;
 
         var soundPropagation = projectile.GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))

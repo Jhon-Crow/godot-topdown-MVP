@@ -292,11 +292,22 @@ const BREAKER_MAX_DETONATIONS_PER_FRAME: int = 3
 ## Reduced shrapnel count when burst detonations exceed the per-frame budget (Issue #1462).
 const BREAKER_BURST_SHRAPNEL_COUNT: int = 3
 
+## Issue #1462: Minimum interval (seconds) between breaker explosion AI sound propagations.
+## MiniUzi+breaker fires ~15 rounds/sec — each detonation calls emit_sound(EXPLOSION, ...) which
+## notifies every AI listener in range (up to 10 enemies × 15 calls/sec = 150 callbacks/sec).
+## The EMPTY_CLICK fix (#1145) and CASING_KICK fix (#969) use the same 0.4s pattern.
+## Enemies only need one explosion alert per burst — the sound budget limits listener overload
+## without affecting gameplay (enemies still react to the first explosion heard).
+const BREAKER_EXPLOSION_PROPAGATION_COOLDOWN: float = 0.4
+
 ## Per-frame detonation tracking — shared across all bullet instances via static (Issue #1462).
 static var _breaker_frame_detonations: int = 0
 static var _breaker_last_detonation_frame: int = -1
 static var _breaker_effect_positions: Array[Vector2] = []
 static var _breaker_sound_played: bool = false
+
+## Timestamp of the last breaker explosion AI propagation (Issue #1462).
+static var _breaker_last_explosion_propagation_time: float = -999.0
 
 
 func _ready() -> void:
@@ -1767,6 +1778,14 @@ func _breaker_play_explosion_sound(center: Vector2) -> void:
 	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
 		# Use wall hit sound as explosion (small detonation)
 		audio_manager.play_bullet_wall_hit(center)
+
+	# Issue #1462: Throttle AI sound propagation to at most once per BREAKER_EXPLOSION_PROPAGATION_COOLDOWN.
+	# MiniUzi+breaker fires 15 rounds/sec — without this, each detonation notifies all AI listeners,
+	# producing up to 150 on_sound_heard callbacks/sec with 10 enemies (same issue as #1145, #969).
+	var current_time := Time.get_ticks_msec() / 1000.0
+	if current_time - _breaker_last_explosion_propagation_time < BREAKER_EXPLOSION_PROPAGATION_COOLDOWN:
+		return  # Throttled: enemies were already alerted recently
+	_breaker_last_explosion_propagation_time = current_time
 
 	# Emit sound for AI awareness
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
