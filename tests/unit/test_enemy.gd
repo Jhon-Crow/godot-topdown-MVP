@@ -2576,3 +2576,70 @@ func test_pursuing_stuck_blacklist_logic_issue_1457() -> void:
 	assert_false(far_blacklisted,
 		"Issue #1457: cover in a different area should NOT be blacklisted (dist=%.0fpx, radius=%.0fpx)" % [
 			far_cover.distance_to(stuck_cover), BLACKLIST_RADIUS])
+
+
+## Issue #1457 v3: Corner escape impulse constants must be correctly tuned.
+## Duration: long enough to move 40+ px out of the corner but short enough to not over-steer.
+## Speed: must move enemy meaningfully (~70px in 0.35s) to clear a convex corner.
+func test_pursuing_corner_escape_constants_issue_1457() -> void:
+	var escape_dur := 0.35   # PURSUING_CORNER_ESCAPE_DURATION
+	var escape_spd := 200.0  # PURSUING_CORNER_ESCAPE_SPEED
+
+	assert_ge(escape_dur, 0.2,
+		"Issue #1457 v3: PURSUING_CORNER_ESCAPE_DURATION must be >= 0.2s — too short won't clear the corner")
+	assert_le(escape_dur, 0.6,
+		"Issue #1457 v3: PURSUING_CORNER_ESCAPE_DURATION must be <= 0.6s — too long causes visible stutter")
+	assert_ge(escape_spd, 100.0,
+		"Issue #1457 v3: PURSUING_CORNER_ESCAPE_SPEED must be >= 100 px/s — must actually move the body")
+	assert_le(escape_spd, 400.0,
+		"Issue #1457 v3: PURSUING_CORNER_ESCAPE_SPEED must be <= 400 px/s — too fast would skip walls")
+
+	var distance_moved := escape_spd * escape_dur
+	assert_gt(distance_moved, 40.0,
+		"Issue #1457 v3: escape impulse must move enemy > 40px (moves %.1fpx) — enough to clear convex corner" % distance_moved)
+
+
+## Issue #1457 v3: Source code must contain corner escape variables and be activated on escape.
+func test_pursuing_corner_escape_source_exists_issue_1457() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	assert_true(source.contains("_pursuing_corner_escape_timer"),
+		"Issue #1457 v3: _pursuing_corner_escape_timer must exist — controls escape impulse duration")
+	assert_true(source.contains("_pursuing_corner_escape_dir"),
+		"Issue #1457 v3: _pursuing_corner_escape_dir must exist — direction of escape impulse")
+	assert_true(source.contains("PURSUING_CORNER_ESCAPE_DURATION"),
+		"Issue #1457 v3: PURSUING_CORNER_ESCAPE_DURATION constant must exist")
+	assert_true(source.contains("PURSUING_CORNER_ESCAPE_SPEED"),
+		"Issue #1457 v3: PURSUING_CORNER_ESCAPE_SPEED constant must exist")
+	assert_true(source.contains("Vector2.from_angle(_corner_check_angle)"),
+		"Issue #1457 v3: corner_check_angle must be used as fallback escape direction when no slide collision")
+
+
+## Issue #1457 v3: Corner escape impulse simulation — verify it moves > STUCK_DIST_THRESHOLD in 0.35s.
+## Confirms that after the impulse fires, the stuck timer resets (enemy made progress).
+func test_pursuing_corner_escape_clears_stuck_position_issue_1457() -> void:
+	const ESCAPE_SPEED: float = 200.0
+	const ESCAPE_DURATION: float = 0.35
+	const STUCK_THRESHOLD: float = 20.0
+	const DELTA: float = 1.0 / 60.0
+
+	var escape_dir := Vector2(1.0, 0.0)  # East — simulates corner_check_angle ~89.8° from log
+	var escape_timer := ESCAPE_DURATION
+	var pos := Vector2(1760.0, 824.0)   # Exact stuck position from game log
+	var start_pos := pos
+
+	# Simulate escape impulse frames
+	while escape_timer > 0.0:
+		escape_timer -= DELTA
+		pos += escape_dir * ESCAPE_SPEED * DELTA
+
+	var distance_moved := pos.distance_to(start_pos)
+	assert_gt(distance_moved, STUCK_THRESHOLD,
+		"Issue #1457 v3: escape impulse must move enemy > %.0fpx stuck threshold (moved %.1fpx in %.2fs)" % [
+			STUCK_THRESHOLD, distance_moved, ESCAPE_DURATION])

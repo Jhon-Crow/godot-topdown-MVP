@@ -275,6 +275,8 @@ var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos
 const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
 var _pursuing_stuck_timer: float = 0.0; var _pursuing_stuck_last_pos: Vector2 = Vector2.ZERO; var _pursuing_stuck_count: int = 0; var _pursuing_stuck_cover_blacklist: Array[Vector2] = []  ## Issue #1457
 const PURSUING_STUCK_MAX_TIME: float = 1.5; const PURSUING_STUCK_DIST_THRESHOLD: float = 20.0; const PURSUING_STUCK_BLACKLIST_RADIUS: float = 80.0; const PURSUING_STUCK_ESCALATE_COUNT: int = 2  ## Issue #1457
+var _pursuing_corner_escape_timer: float = 0.0; var _pursuing_corner_escape_dir: Vector2 = Vector2.ZERO  ## Issue #1457 v3: brief physical escape impulse on stuck
+const PURSUING_CORNER_ESCAPE_DURATION: float = 0.35; const PURSUING_CORNER_ESCAPE_SPEED: float = 200.0  ## Issue #1457 v3: 0.35s sidestep at 200px/s to physically dislodge from wall corner
 var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
@@ -2194,6 +2196,12 @@ func _process_pursuing_state(delta: float) -> void:
 				_transition_to_combat(); return
 		return
 
+	if _pursuing_corner_escape_timer > 0.0:  # Issue #1457 v3: physical corner escape impulse (simulate being bumped)
+		_pursuing_corner_escape_timer -= delta
+		velocity = _pursuing_corner_escape_dir * PURSUING_CORNER_ESCAPE_SPEED
+		_log_to_file("[#1457] corner escape impulse: dir=%s remaining=%.2fs" % [_pursuing_corner_escape_dir, _pursuing_corner_escape_timer])
+		return
+
 	# If we have a pursuit cover target, move toward it
 	if _has_pursuit_cover:
 		var distance: float = global_position.distance_to(_pursuit_next_cover)
@@ -2214,6 +2222,15 @@ func _process_pursuing_state(delta: float) -> void:
 					if _can_attempt_flanking() and _player: _transition_to_flanking()
 					else: _transition_to_combat()
 					return
+				var _esc_dir: Vector2 = Vector2.ZERO  # Issue #1457 v3: compute escape dir (slide normal or corner_check_angle)
+				for _si: int in range(get_slide_collision_count()): _esc_dir += get_slide_collision(_si).get_normal()
+				if _esc_dir.length_squared() < 0.01 and _corner_check_angle != 0.0:
+					_esc_dir = Vector2.from_angle(_corner_check_angle)  # Use last perpendicular opening
+				if _esc_dir.length_squared() > 0.01:
+					_pursuing_corner_escape_dir = _esc_dir.normalized()
+					_pursuing_corner_escape_timer = PURSUING_CORNER_ESCAPE_DURATION
+					_log_to_file("[#1457] v3: corner escape impulse dir=%s" % _pursuing_corner_escape_dir)
+					return  # Apply impulse in next frame; retry cover after timer expires
 				_find_pursuit_cover_toward_player()
 				if _has_pursuit_cover:  # Reject new cover if it's still in the blacklist zone
 					for bl_pos: Vector2 in _pursuing_stuck_cover_blacklist:
@@ -2789,6 +2806,7 @@ func _transition_to_pursuing() -> void:
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
 	_pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position; _pursuing_stuck_count = 0; _pursuing_stuck_cover_blacklist.clear()  ## Issue #1457: Reset PURSUING stuck detection
+	_pursuing_corner_escape_timer = 0.0; _pursuing_corner_escape_dir = Vector2.ZERO  ## Issue #1457 v3
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false

@@ -270,3 +270,46 @@ stuck detection to attempt a legitimate reroute.
 - Godot charcterbody2D corner sliding: https://github.com/godotengine/godot/issues/74140
 - Wall avoidance in top-down AI: Steering Behaviors for Autonomous Characters (Craig Reynolds, 1999)
 - Related game log: `game_log_20260324_200849.txt` (Enemy7 timeline, lines 1167-1416)
+
+---
+
+## 9. Third Evidence Log Analysis (game_log_20260325_044538.txt / game_log_20260325_044618.txt)
+
+**Owner comment (2026-03-25 01:49):** "this corner is only passed when another enemy bumps it, might be collision related?"
+
+### 9.1 What the Logs Show
+
+- **game_log_20260325_044538.txt:** Enemy2 stuck at (492, 663) → stuck #1 fires → FLANKING. Shows the new corner (492, 663) in the main map area, near a room entrance.
+- **game_log_20260325_044618.txt:** Both Enemy7 (at 1770, 824) and Enemy10 (at 1121, 1693) get stuck and escalate. Enemy7 spawns repeatedly from (1700, 870) and always hits the same wall corner at ~(1760-1770, 824) before being killed.
+
+### 9.2 Root Cause v3: Physical Collision Wedge
+
+The v2 fix correctly identifies and escapes the **navigation/cover** loop. However, a separate underlying problem remains: the enemy **physics body** gets mechanically wedged at **convex wall corners** (inner corner of two wall segments meeting).
+
+When two walls meet at a convex angle and the enemy's circular collision body is navigating past the inner corner, it can get physically pinned:
+- The nav mesh path routes through the corner (correct path, just tight)
+- The physics body's `CharacterBody2D` capsule gets caught at the exact corner vertex
+- `move_and_slide()` returns normals from both walls — these partially cancel each other
+- `get_slide_collision_count()` may return 0 if the body is "resting" against the corner with no active slide frame
+- Result: velocity is computed correctly by the nav system but the body doesn't actually move
+
+**Why another enemy's collision helps:** A nearby enemy's ORCA avoidance or separation force provides a lateral impulse that physically dislodges the stuck enemy from the corner vertex. This confirms the problem is purely physics — the navigation path is correct but the body is geometrically pinned.
+
+### 9.3 Evidence from Logs
+
+Corner check angle **89.8°** repeating 4× in a row before stuck fires at (1770, 824). The 89.8° angle is almost exactly east (90°), meaning `_detect_perpendicular_opening` found an opening directly east — there is clear space to the east. But the enemy isn't using it because the nav path says "go west/south-west to player", and the wall avoidance doesn't provide enough lateral force to escape the corner vertex.
+
+### 9.4 Fix v3: Corner Escape Physical Impulse
+
+When the stuck timer fires (1.5s without movement), compute an escape direction:
+1. **Primary:** Sum of slide collision normals from `get_slide_collision_count()` — these point away from each touching wall
+2. **Fallback:** `Vector2.from_angle(_corner_check_angle)` — uses the last perpendicular opening direction detected by `_detect_perpendicular_opening`
+
+Apply `PURSUING_CORNER_ESCAPE_SPEED = 200 px/s` for `PURSUING_CORNER_ESCAPE_DURATION = 0.35s` (moves ~70px). This directly simulates the collision push from another enemy.
+
+After the impulse, normal pursuit resumes. The enemy has cleared the corner vertex and can follow the nav path normally.
+
+### 9.5 Logs Saved
+
+- `docs/case-studies/issue-1457/game_log_20260325_044538.txt` — Enemy2 stuck at (492,663)
+- `docs/case-studies/issue-1457/game_log_20260325_044618.txt` — Enemy7 stuck at (1770,824), Enemy10 stuck at (1121,1693)
