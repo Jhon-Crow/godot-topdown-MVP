@@ -17,6 +17,7 @@ var _blood_decal_scene: PackedScene = null
 var _bullet_hole_scene: PackedScene = null
 var _muzzle_flash_scene: PackedScene = null
 var _flashbang_effect_scene: PackedScene = null
+var _explosion_flash_scene: PackedScene = null
 var _explosion_scorch_mark_scene: PackedScene = null
 
 ## Default effect scale for calibers without explicit setting.
@@ -179,6 +180,10 @@ func _ready() -> void:
 	# This pre-compiles GPU shaders for particle effects during loading
 	_warmup_particle_shaders()
 
+	# Issue #1460: Pre-generate scorch mark textures to avoid CPU pixel loops during explosions.
+	# Defensive=80px, Frag=40px, Flashbang=20px. Each texture is generated once and cached.
+	ExplosionScorchMark.warmup_textures([20, 40, 80])
+
 
 ## Logs to FileLogger and prints to console in debug builds only.
 ## Issue #1293: print() in release builds causes variable FPS drops.
@@ -289,6 +294,17 @@ func _preload_effect_scenes() -> void:
 		if _debug_effects:
 			print("[ImpactEffectsManager] FlashbangEffect scene not found (optional)")
 
+	# Issue #1460: Load ExplosionFlash scene for shader warmup and potential pooling
+	var explosion_flash_path := "res://scenes/effects/ExplosionFlash.tscn"
+	if ResourceLoader.exists(explosion_flash_path):
+		_explosion_flash_scene = load(explosion_flash_path)
+		loaded_scenes.append("ExplosionFlash")
+		if _debug_effects:
+			print("[ImpactEffectsManager] Loaded ExplosionFlash scene")
+	else:
+		if _debug_effects:
+			print("[ImpactEffectsManager] ExplosionFlash scene not found (optional)")
+
 	# Issue #1005: Load explosion scorch mark scene
 	var scorch_mark_path := "res://scenes/effects/ExplosionScorchMark.tscn"
 	if ResourceLoader.exists(scorch_mark_path):
@@ -361,7 +377,8 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 		print("[ImpactEffectsManager] Dust effect spawned from pool successfully")
 
 	# Schedule return to pool after lifetime + cleanup_delay.
-	# Matches DustEffect.tscn: lifetime=2.5, cleanup_delay=1.0 → 3.5s total.
+	# Matches DustEffect.tscn: lifetime=1.5 (reduced from 2.5 for Issue #1460),
+	# cleanup_delay=1.0 → 2.5s total.
 	var return_delay := effect.lifetime + 1.0
 	get_tree().create_timer(return_delay).timeout.connect(
 		func() -> void: _return_dust_effect_to_pool(effect)
@@ -1175,7 +1192,27 @@ func _warmup_particle_shaders() -> void:
 			warmed_up_count += 1
 			warmup_nodes.append(flash)
 
-	# --- PART 5: Warmup flashbang effect if available ---
+	# --- PART 5: Warmup ExplosionFlash effect if available ---
+	# ExplosionFlash uses GPUParticles2D + PointLight2D (Issue #1460)
+	if _explosion_flash_scene:
+		var explosion_flash: Node2D = _explosion_flash_scene.instantiate() as Node2D
+		if explosion_flash:
+			explosion_flash.global_position = warmup_pos
+			explosion_flash.modulate = Color(1, 1, 1, 0.01)
+			explosion_flash.z_index = -100
+
+			if scene_root:
+				scene_root.add_child(explosion_flash)
+			else:
+				add_child(explosion_flash)
+
+			if _debug_effects:
+				print("[ImpactEffectsManager] Warmup: ExplosionFlash at %s (alpha=0.01)" % warmup_pos)
+
+			warmed_up_count += 1
+			warmup_nodes.append(explosion_flash)
+
+	# --- PART 6: Warmup flashbang effect if available ---
 	# Flashbang effect uses PointLight2D with shadow_enabled (Issue #469)
 	if _flashbang_effect_scene:
 		var flashbang: Node2D = _flashbang_effect_scene.instantiate() as Node2D

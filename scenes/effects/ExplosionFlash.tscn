@@ -42,13 +42,12 @@ lifetime = 0.15
 one_shot = true
 explosiveness = 0.9
 randomness = 0.2
+fixed_fps = 30
+visibility_rect = Rect2(-300, -300, 600, 600)
 
 [node name="PointLight2D" type="PointLight2D" parent="."]
 color = Color(1, 0.85, 0.5, 1)
 energy = 0.0
-shadow_enabled = true
-shadow_color = Color(0, 0, 0, 0.9)
-shadow_filter = 1
-shadow_filter_smooth = 6.0
+shadow_enabled = false
 texture = SubResource("GradientTexture2D_explosion")
 texture_scale = 3.0

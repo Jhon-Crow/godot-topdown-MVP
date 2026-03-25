@@ -57,6 +57,8 @@ func _ready() -> void:
 
 
 ## Override to define the explosion effect.
+## Issue #1460 optimization: Scorch mark textures are pre-cached at startup,
+## particles use fixed_fps=30 and visibility_rect, shrapnel is staggered in batches.
 func _on_explode() -> void:
 	# Find all enemies within effect radius and apply direct explosion damage
 	var enemies := _get_enemies_in_radius()
@@ -72,13 +74,13 @@ func _on_explode() -> void:
 	# Scatter shell casings on the floor
 	_scatter_casings(effect_radius)
 
-	# Spawn shrapnel in all directions (40 pieces!)
+	# Spawn shrapnel in all directions (40 pieces, staggered in batches)
 	_spawn_shrapnel()
 
-	# Spawn visual explosion effect
+	# Spawn visual explosion effect (pooled PointLight2D, no shadows)
 	_spawn_explosion_effect()
 
-	# Issue #1005: Spawn scorch mark on floor
+	# Issue #1005: Spawn scorch mark on floor (texture is cached, Issue #1460)
 	# F-1 (defensive): 2x frag size (~80px), prominent burnt mark (alpha 0.7)
 	_spawn_scorch_mark(80.0, 0.7, "defensive")
 
