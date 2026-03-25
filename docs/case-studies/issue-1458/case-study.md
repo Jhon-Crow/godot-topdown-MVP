@@ -50,51 +50,68 @@ Key correlations between FPS drops and search activity (from `game_log_20260324_
 | 20:27:28   | **21** | 20              | **All enemies re-expand r=175**|
 | 20:27:29   | -    | 12                | 12 simultaneous expansions     |
 
-## Solution
+## Solution Iterations
 
-### Fix 1: Stagger Nav Target Updates Across Frames (Primary)
+### Iteration 1 (Reverted): Stagger Nav Updates Per-Enemy
 
-Inspired by the existing `VISION_CHECK_INTERVAL` pattern (Issue #883), we stagger NavigationAgent2D path queries across frames using `SEARCH_NAV_UPDATE_INTERVAL = 3`:
+The first approach staggered NavigationAgent2D path queries across frames using `SEARCH_NAV_UPDATE_INTERVAL = 3`, reducing queries from 20/frame to ~7/frame. However, **this was insufficient** — FPS still dropped to 19-20 fps (log `game_log_20260325_140936.txt` shows sustained 20 fps from 14:10:05 to 14:10:29). Each enemy still independently generated its own spiral waypoints and computed its own paths.
 
-```gdscript
-# Issue #1458: Only update nav target on staggered frames or when target changed
-_search_nav_frame_counter += 1
-var is_nav_update_frame := (_search_nav_frame_counter % SEARCH_NAV_UPDATE_INTERVAL) == _search_nav_frame_offset
-var target_changed := _search_cached_nav_target.distance_squared_to(target_waypoint) > 1.0
-if is_nav_update_frame or target_changed:
-    _search_cached_nav_target = target_waypoint
-    _nav_agent.target_position = target_waypoint
-```
+### Iteration 2 (Current): SharedSearchPath — One Path For All Searchers
 
-**Impact**: Reduces path queries from 20/frame to ~7/frame (3x reduction). Each enemy still gets smooth updates at ~20 fps (every 3rd frame at 60 fps physics), which is sufficient for the slow search movement speed (0.7x move_speed).
+The owner requested: *"сделай чтоб для всех участников поиска создавался один путь поиска"* (create one search path for all search participants).
 
-The `_search_nav_frame_offset` is set from `get_instance_id() % SEARCH_NAV_UPDATE_INTERVAL` in `_ready()`, ensuring enemies are evenly distributed across frames (same pattern as vision check staggering).
-
-### Fix 2: Integer Zone Keys Instead of String Formatting
-
-Replaced string-based zone keys with integer hashing:
+**Architecture**: New `SharedSearchPath` autoload generates ONE shared set of waypoints. All searching enemies claim the nearest unclaimed waypoint from this shared pool.
 
 ```gdscript
-# Before (allocates String every call):
-func _get_zone_key(pos: Vector2) -> String:
-    return "%d,%d" % [int(pos.x / SNAP) * int(SNAP), int(pos.y / SNAP) * int(SNAP)]
-
-# After (no allocation, integer arithmetic only):
-func _get_zone_key(pos: Vector2) -> int:
-    var gx := int(pos.x / SEARCH_ZONE_SNAP_SIZE)
-    var gy := int(pos.y / SEARCH_ZONE_SNAP_SIZE)
-    return gx * 100003 + gy  # large prime to avoid collisions
+# SharedSearchPath autoload — centralized waypoint management
+func register_searcher(enemy_id: int, center_position: Vector2) -> int
+func claim_nearest(enemy_id: int, from_pos: Vector2) -> int
+func complete_waypoint(enemy_id: int, wp_idx: int, enemy_pos: Vector2) -> int
+func is_nav_update_frame(enemy_id: int) -> bool  # stagger interval = 6
 ```
 
-**Impact**: Eliminates String allocations in hot path. Dictionary lookups with int keys are also faster than String keys.
+**Enemy-side simplification** (removed 150+ lines from enemy.gd):
+- Removed: `_generate_search_waypoints()`, `_load_predefined_search_path()`, `_is_waypoint_navigable()`, `_get_zone_key()`, `_is_zone_visited()`, `_mark_zone_visited()`
+- Removed: 12 per-enemy search state variables (spiral state, zone tracking, etc.)
+- Added: `_search_claimed_wp` — single int pointing to claimed waypoint in shared pool
 
-## Expected Performance Improvement
+**Key optimizations**:
+1. Waypoint generation happens ONCE centrally (not per-enemy)
+2. NavigationServer2D navigability checks happen ONCE per waypoint (not per-enemy)
+3. Nav stagger interval increased from 3 to 6 frames (shared path needs fewer updates)
+4. Enemies spread out naturally via claim system (no overlapping search areas)
+5. Zone tracking is centralized (visited zones shared across all enemies)
+6. Integer zone keys (no string allocation, same formula: `gx * 100003 + gy`)
 
-| Metric                    | Before          | After           | Improvement |
-|---------------------------|-----------------|-----------------|-------------|
-| Nav queries/frame (20 enemies) | 20         | ~7              | ~3x fewer   |
-| Zone key allocation       | String per call | int (no alloc)  | No GC       |
-| Estimated FPS with 20 enemies | 21-29 fps  | ~45-55 fps      | +15-25 fps  |
+## Evidence from Game Logs
+
+### Log 1: game_log_20260324_202643.txt (Pre-fix baseline)
+
+| Timestamp  | FPS  | Searching Enemies | Event                          |
+|------------|------|-------------------|--------------------------------|
+| 20:27:00   | 29   | ~17               | Multiple expand rings          |
+| 20:27:28   | **21** | 20              | **All enemies re-expand r=175**|
+
+### Log 2: game_log_20260325_140936.txt (After stagger-only fix — insufficient)
+
+| Timestamp  | FPS  | Event                                            |
+|------------|------|--------------------------------------------------|
+| 14:10:02   | 29   | First drop — enemies enter SEARCHING              |
+| 14:10:05   | 22   | 20 enemies searching with staggered nav (interval=3) |
+| 14:10:07   | 19   | Sustained searching — **still too many queries**  |
+| 14:10:10-29| **19-20** | 20 seconds of sustained 20fps — stagger alone is not enough |
+
+**Conclusion**: Per-enemy staggering reduced queries by 3x but FPS still dropped from ~57 to 20. The shared path approach eliminates redundant work entirely.
+
+## Expected Performance Improvement (Shared Path)
+
+| Metric                          | Before (per-enemy) | Stagger-only | Shared Path      |
+|---------------------------------|---------------------|--------------|------------------|
+| Waypoint generators             | 20                  | 20           | **1**            |
+| Nav queries/frame               | 20                  | ~7           | **~3** (interval=6) |
+| NavigationServer2D checks/expansion | 20x100=2000    | 2000         | **100** (once)   |
+| Zone tracking dictionaries      | 20                  | 20           | **1**            |
+| enemy.gd lines                  | 4999                | 4999         | **4887** (-112)  |
 
 ## References
 
@@ -106,5 +123,7 @@ func _get_zone_key(pos: Vector2) -> int:
 
 ## Files Changed
 
-- `scripts/objects/enemy.gd` — Core optimization (stagger nav updates, integer zone keys)
-- `tests/unit/test_enemy.gd` — Regression tests for optimization constants
+- `scripts/autoload/shared_search_path.gd` — New SharedSearchPath autoload (centralized waypoint generation, claim system)
+- `scripts/objects/enemy.gd` — Removed per-enemy search code, delegate to SharedSearchPath (-112 lines)
+- `project.godot` — Register SharedSearchPath autoload
+- `tests/unit/test_shared_search_path.gd` — Unit tests for shared search path system
