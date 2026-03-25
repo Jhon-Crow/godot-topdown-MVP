@@ -313,14 +313,29 @@ func test_nearest_skips_inspected_points() -> void:
 
 
 func test_shared_array_reference_semantics() -> void:
-	## #1458r4: When enemy B connects to the shared pool, writes from enemy A are visible to B.
-	## This simulates the reference-sharing behavior of the new shared pool mechanism.
-	var shared_flags: Array[bool] = [false, false, false]
-	# Enemy A marks index 0 as cleared
-	shared_flags[0] = true
-	# Enemy B reads the same array — should see the change
-	var enemy_b_sees_cleared: bool = shared_flags[0]
-	assert_true(enemy_b_sees_cleared, "Shared array: flag cleared by enemy A should be visible to enemy B (#1458r4)")
+	## #1458r5: Plain untyped Array assignment is by reference. Writes from one enemy are visible to all.
+	## The fix uses var arr: Array = dict["flags"] (no typed cast) which is always a reference.
+	var pool := {"flags": [false, false, false]}
+	var enemy_a_flags: Array = pool["flags"]  ## untyped — safe reference in Godot 4.3
+	var enemy_b_flags: Array = pool["flags"]  ## same reference
+	enemy_a_flags[0] = true
+	assert_true(enemy_b_flags[0], "Untyped plain Array: flag set by A must be visible to B (#1458r5)")
+
+
+func test_round_robin_point_assignment_spreads_enemies() -> void:
+	## #1458r5: next_idx counter ensures each enemy claims a different point.
+	var pool := {"points": [Vector2(100,0), Vector2(200,0), Vector2(300,0)], "flags": [false,false,false], "next_idx": 0}
+	var flags: Array = pool["flags"]
+	## Simulate 3 enemies each claiming next_idx
+	var claims := []
+	for _e in range(3):
+		var ni: int = pool["next_idx"]
+		for _a in range(pool["points"].size()):
+			var idx := ni % pool["points"].size(); ni += 1
+			if not flags[idx]: claims.append(idx); pool["next_idx"] = ni; break
+	assert_eq(claims.size(), 3, "3 enemies should each get a claim")
+	assert_ne(claims[0], claims[1], "Enemy 0 and 1 should claim different points")
+	assert_ne(claims[1], claims[2], "Enemy 1 and 2 should claim different points")
 
 
 func test_shared_pool_key_snapping() -> void:
