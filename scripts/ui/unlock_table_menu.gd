@@ -25,7 +25,8 @@ const LEVEL_NAMES: Dictionary = {
 	"res://scenes/levels/RevolverLevel.tscn": "Double Corridor",
 	"res://scenes/levels/BeachLevel.tscn": "Beach",
 	"res://scenes/levels/DocksLevel.tscn": "Docks",
-	"res://scenes/levels/CityLevel.tscn": "City"
+	"res://scenes/levels/CityLevel.tscn": "City",
+	"res://scenes/levels/DecadenceLevel.tscn": "Decadence"
 }
 
 ## Weapon ID to display name mapping.
