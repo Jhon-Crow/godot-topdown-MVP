@@ -127,20 +127,8 @@ const LEVELS: Array[Dictionary] = [
 		"description": "Underground sewer corridor with narrow passages and a fork. Dark, tight, and dangerous.",
 		"preview_color": Color(0.1, 0.15, 0.1, 1.0),
 		"preview_accent": Color(0.2, 0.35, 0.2, 1.0),
-		"enemy_count": 8,
-		"map_size": "400x3200"
-	},
-	{
-		"name": "Arena",
-		"name_ru": "Арена",
-		"path": "res://scenes/levels/ArenaLevel.tscn",
-		"description": "Endless wave survival arena. Fight off waves of enemies. Health, ammo, and weapon pickups spawn between waves.",
-		"preview_color": Color(0.35, 0.1, 0.1, 1.0),
-		"preview_accent": Color(0.8, 0.3, 0.2, 1.0),
-		"enemy_count": 0,
-		"endless": true,
-		"always_unlocked": true,
-		"map_size": "1920x1080"
+		"enemy_count": 10,
+		"map_size": "1650x3200"
 	}
 ]
 

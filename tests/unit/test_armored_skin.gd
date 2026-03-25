@@ -199,13 +199,20 @@ func test_armored_skin_mutually_exclusive_with_breaker_bullets() -> void:
 
 
 class MockArmoredSkinPlayer:
-	## Simulates the player's armored skin shard-spawn logic
+	## Simulates the player's armored skin shard-spawn logic (Issue #1045, #1453).
 	var _armored_skin_active: bool = false
 	var _current_health: int = 5
 	var max_health: int = 5
 
 	## Number of shard spawns triggered (for testing)
 	var shard_spawn_count: int = 0
+
+	## True after armored skin has triggered once — prevents re-triggering (Issue #1453).
+	var _armored_skin_triggered: bool = false
+	## Simulated physics frame counter (tests increment this to simulate frame changes).
+	var mock_frame: int = 0
+	## Physics frame when armored skin triggered.
+	var _armored_skin_trigger_frame: int = -1
 
 	## Shard count per spawn
 	const ARMORED_SKIN_SHARD_COUNT: int = 20
@@ -217,11 +224,20 @@ class MockArmoredSkinPlayer:
 			max_health += 1
 			_current_health = max_health
 
-	func take_hit() -> void:
-		# Mirror of the logic in player.gd on_hit_with_info
-		if _armored_skin_active and _current_health <= ARMORED_SKIN_HP_THRESHOLD:
-			shard_spawn_count += 1
-		_current_health -= 1
+	func take_hit(incoming_damage: int = 1) -> void:
+		# Mirror of the logic in player.gd on_hit_with_info (Issue #1453).
+		if _armored_skin_active:
+			# Absorb same-frame burst hits (Issue #1453).
+			if _armored_skin_triggered and mock_frame == _armored_skin_trigger_frame:
+				return
+			if not _armored_skin_triggered:
+				# Trigger when HP is at/below threshold OR when the hit would be lethal.
+				if _current_health <= ARMORED_SKIN_HP_THRESHOLD or _current_health - incoming_damage <= 0:
+					_armored_skin_triggered = true
+					_armored_skin_trigger_frame = mock_frame
+					shard_spawn_count += 1
+					return  # Absorb the triggering hit (Issue #1453)
+		_current_health -= incoming_damage
 		if _current_health < 0:
 			_current_health = 0
 
@@ -261,6 +277,18 @@ func test_shards_spawn_when_at_2hp_and_hit() -> void:
 
 	assert_eq(player.shard_spawn_count, 1,
 		"Shards should spawn once when hit at 2 HP")
+
+
+func test_triggering_hit_absorbed_at_2hp() -> void:
+	# Issue #1453: the hit that triggers shards must not reduce player HP.
+	var player := MockArmoredSkinPlayer.new()
+	player.init_armored_skin(true)
+	player._current_health = 2
+
+	player.take_hit()
+
+	assert_eq(player.get_current_health(), 2,
+		"Player HP must NOT decrease when armored skin absorbs the triggering hit at 2 HP (Issue #1453)")
 
 
 func test_shards_spawn_when_at_1hp_and_hit() -> void:
@@ -303,18 +331,21 @@ func test_shards_spawn_count_is_20() -> void:
 		"Armored skin should spawn exactly 20 shards")
 
 
-func test_shards_spawn_multiple_times_at_low_hp() -> void:
-	# Multiple hits below threshold should each trigger shards
+func test_shards_spawn_only_once_and_hit_absorbed() -> void:
+	# Armored skin triggers exactly once and absorbs the triggering hit (Issue #1453).
 	var player := MockArmoredSkinPlayer.new()
 	player.init_armored_skin(true)
 	player._current_health = 2
 
-	player.take_hit()  # At 2 HP → spawn, then HP becomes 1
-	player._current_health = 2  # Reset for test
-	player.take_hit()  # At 2 HP again → spawn
+	player.take_hit()  # At 2 HP → trigger: shards spawn, hit absorbed → HP stays 2
+	assert_eq(player.shard_spawn_count, 1, "Shards should spawn on triggering hit")
+	assert_eq(player.get_current_health(), 2,
+		"HP must NOT decrease when armored skin absorbs the triggering hit (Issue #1453)")
 
-	assert_eq(player.shard_spawn_count, 2,
-		"Shards should spawn on each hit when at or below threshold")
+	player.mock_frame = 1  # Advance to next frame
+	player.take_hit()  # Second hit (next frame): no re-trigger, damage applied → HP goes to 1
+	assert_eq(player.shard_spawn_count, 1,
+		"Shards must spawn exactly once — armored skin must not re-trigger (Issue #1453)")
 
 
 func test_hp_threshold_is_2() -> void:
@@ -339,3 +370,85 @@ func test_armored_skin_is_not_none() -> void:
 	var name := manager.get_active_item_name(10)
 	assert_ne(name, "None", "Armored Skin name should not be 'None'")
 	assert_ne(name, "Unknown", "Armored Skin name should not be 'Unknown'")
+
+
+# ============================================================================
+# Sniper Rifle Protection Tests (Issue #1453)
+# ============================================================================
+
+
+func test_sniper_rifle_lethal_hit_absorbed_above_threshold() -> void:
+	# Issue #1453: A sniper rifle deals 50 damage. If the player has 3 HP
+	# (above the 2 HP threshold), the hit would still be lethal.
+	# Armored skin must absorb it (trigger condition: current_health - damage <= 0).
+	var player := MockArmoredSkinPlayer.new()
+	player.init_armored_skin(true)
+	# Player starts at 4 HP (3 base + 1 bonus). Manually set to 3 HP.
+	player._current_health = 3
+
+	player.take_hit(50)  # Sniper rifle: 50 damage, lethal → trigger armored skin
+
+	assert_eq(player.shard_spawn_count, 1,
+		"Armored skin should trigger on lethal sniper hit above HP threshold (Issue #1453)")
+	assert_eq(player.get_current_health(), 3,
+		"Player HP must NOT decrease when sniper rifle lethal hit is absorbed by armored skin (Issue #1453)")
+
+
+func test_sniper_rifle_lethal_hit_absorbed_at_threshold() -> void:
+	# Issue #1453: Sniper rifle hit when player is at exactly 2 HP (the threshold).
+	var player := MockArmoredSkinPlayer.new()
+	player.init_armored_skin(true)
+	player._current_health = 2
+
+	player.take_hit(50)  # Sniper rifle: 50 damage, lethal
+
+	assert_eq(player.shard_spawn_count, 1,
+		"Armored skin should trigger on sniper hit at 2 HP (Issue #1453)")
+	assert_eq(player.get_current_health(), 2,
+		"Player HP must NOT decrease when sniper rifle hit is absorbed at 2 HP (Issue #1453)")
+
+
+func test_sniper_rifle_non_lethal_high_damage_above_threshold_no_trigger() -> void:
+	# A hit with 2 damage when player has 5 HP (above threshold, not lethal) — no trigger.
+	var player := MockArmoredSkinPlayer.new()
+	player.init_armored_skin(true)
+	player._current_health = 5
+
+	player.take_hit(2)  # 5 - 2 = 3 > 0, above threshold
+
+	assert_eq(player.shard_spawn_count, 0,
+		"Armored skin should NOT trigger for non-lethal hit above threshold")
+	assert_eq(player.get_current_health(), 3,
+		"Player HP should decrease normally for non-lethal hit above threshold")
+
+
+func test_sniper_rifle_protection_triggers_only_once() -> void:
+	# After the sniper absorbs one hit, subsequent sniper hits on later frames deal damage.
+	var player := MockArmoredSkinPlayer.new()
+	player.init_armored_skin(true)
+	player._current_health = 3
+
+	player.take_hit(50)  # Frame 0: lethal → absorbed, HP stays 3
+	assert_eq(player.get_current_health(), 3, "HP should stay 3 after first absorbed sniper hit")
+
+	player.mock_frame = 1
+	player.take_hit(50)  # Frame 1: no re-trigger, HP drops by 50 (min 0)
+	assert_eq(player.shard_spawn_count, 1,
+		"Sniper protection must fire exactly once (Issue #1453)")
+	assert_eq(player.get_current_health(), 0,
+		"Second sniper hit must deal normal damage after armored skin has triggered")
+
+
+func test_same_frame_sniper_burst_hits_absorbed() -> void:
+	# Same-frame burst: after armored skin triggers, all hits on the same frame are absorbed.
+	var player := MockArmoredSkinPlayer.new()
+	player.init_armored_skin(true)
+	player._current_health = 2
+	player.mock_frame = 5  # Some arbitrary frame
+
+	player.take_hit(50)  # Triggers armored skin at frame 5 → absorbed
+	player.take_hit(50)  # Same frame → absorbed
+	player.take_hit(50)  # Same frame → absorbed
+
+	assert_eq(player.get_current_health(), 2,
+		"Player must survive same-frame sniper burst after armored skin triggers (Issue #1453)")
