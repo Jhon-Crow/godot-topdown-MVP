@@ -96,6 +96,38 @@ Using actual sprite textures instead of ColorRect/Polygon2D primitives. Rejected
 ### Single "Object" Tool with Categories
 One generic placement tool with a category dropdown. Rejected in favor of dedicated tools because each object type has different properties (trees have crowns, lights have energy/radius, etc.).
 
+## Canvas Interaction Bug (Follow-up Fix)
+
+### Report
+
+After PR #1478 was submitted, the user reported that canvas interaction was not working in the level editor (comment: "сейчас не работает взаимодействие с холстом", 2026-03-25). A game log was attached (`game_log_20260325_071204.txt`) showing the editor loaded successfully and the user navigated to CustomLevel after ~36 seconds, but no placement interactions were logged.
+
+### Root Cause Analysis
+
+The `level_editor.gd` used `_unhandled_input()` for mouse event handling. In Godot 4's input processing pipeline:
+
+1. `_input()` runs first on all nodes (including autoloads)
+2. GUI/Control input processing happens
+3. `_unhandled_input()` only fires for events NOT consumed in steps 1–2
+
+Multiple autoload singletons (`GameManager`, `ReplayManager`) use `_input()` and process mouse/keyboard events. This meant `_unhandled_input()` in the level editor never received the mouse click events needed for canvas placement.
+
+This is the same root cause as Issue #568. PR #1443 (the base PR this work builds on) had documented and fixed this exact problem in a different version of the editor.
+
+**Evidence:** PR #1443 description explicitly states:
+> "Root cause: `_unhandled_input()` not receiving mouse events due to autoload singletons (GameManager, ReplaySystem) using `_input()` which consumes events before they reach `_unhandled_input()`."
+
+### Fix
+
+Changed `func _unhandled_input(event: InputEvent) -> void:` to `func _input(event: InputEvent) -> void:` and added `get_viewport().set_input_as_handled()` calls after handling canvas events. Keyboard hotkeys are guarded with `_name_input.has_focus()` check to prevent interference when the user is typing a level name.
+
+### Timeline
+
+- 2026-03-24: Initial PR #1478 submitted with `_unhandled_input()` (bug present)
+- 2026-03-25 07:12: User tested the editor, canvas placement not working
+- 2026-03-25: Bug reported with game log attached
+- 2026-03-25: Root cause identified, fix applied (PR #1478 updated)
+
 ## Testing
 
 - Unit tests for LevelData v2 serialization (trees, lights, decorations)

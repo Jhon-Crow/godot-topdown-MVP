@@ -455,42 +455,59 @@ func _build_option_selector(label_text: String, names: Array[String], callback: 
 	_subtype_container.add_child(option)
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	# Tool hotkeys
+## Use _input instead of _unhandled_input to ensure editor receives mouse events.
+## Autoload singletons (GameManager, ReplayManager) use _input() which runs before
+## _unhandled_input(), consuming events and preventing canvas interaction.
+## Fix: same pattern as Issue #568 and PR #1443.
+func _input(event: InputEvent) -> void:
+	# Tool hotkeys — skip if the name input has focus (user is typing)
 	if event is InputEventKey and event.pressed:
-		match event.keycode:
-			KEY_1:
-				_set_tool(Tool.WALL)
-			KEY_2:
-				_set_tool(Tool.ENEMY)
-			KEY_3:
-				_set_tool(Tool.COVER)
-			KEY_4:
-				_set_tool(Tool.PLAYER_SPAWN)
-			KEY_5:
-				_set_tool(Tool.ERASER)
-			KEY_6:
-				_set_tool(Tool.TREE)
-			KEY_7:
-				_set_tool(Tool.LIGHT)
-			KEY_8:
-				_set_tool(Tool.DECORATION)
-			KEY_G:
-				_show_grid = not _show_grid
-				_redraw_level()
-				_update_status()
-			KEY_ESCAPE:
-				if _is_drawing_wall:
-					_is_drawing_wall = false
-					queue_redraw()
-				else:
-					_on_back_pressed()
+		if not (_name_input and _name_input.has_focus()):
+			match event.keycode:
+				KEY_1:
+					_set_tool(Tool.WALL)
+					get_viewport().set_input_as_handled()
+				KEY_2:
+					_set_tool(Tool.ENEMY)
+					get_viewport().set_input_as_handled()
+				KEY_3:
+					_set_tool(Tool.COVER)
+					get_viewport().set_input_as_handled()
+				KEY_4:
+					_set_tool(Tool.PLAYER_SPAWN)
+					get_viewport().set_input_as_handled()
+				KEY_5:
+					_set_tool(Tool.ERASER)
+					get_viewport().set_input_as_handled()
+				KEY_6:
+					_set_tool(Tool.TREE)
+					get_viewport().set_input_as_handled()
+				KEY_7:
+					_set_tool(Tool.LIGHT)
+					get_viewport().set_input_as_handled()
+				KEY_8:
+					_set_tool(Tool.DECORATION)
+					get_viewport().set_input_as_handled()
+				KEY_G:
+					_show_grid = not _show_grid
+					_redraw_level()
+					_update_status()
+					get_viewport().set_input_as_handled()
+				KEY_ESCAPE:
+					if _is_drawing_wall:
+						_is_drawing_wall = false
+						queue_redraw()
+					else:
+						_on_back_pressed()
+					get_viewport().set_input_as_handled()
 
-	# Mouse input for placement
+	# Mouse input for placement — mark handled to prevent propagation to singletons
 	if event is InputEventMouseButton:
 		_handle_mouse_button(event)
+		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion:
 		_handle_mouse_motion(event)
+		get_viewport().set_input_as_handled()
 
 
 ## Handle mouse button events.
