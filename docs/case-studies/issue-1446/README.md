@@ -14,9 +14,13 @@ A game log was provided: `game_log_20260325_061123.txt`.
 |------|-------|
 | 2026-03-24 21:12 | PR #1480 opened with shieldbearer-as-cover feature |
 | 2026-03-24 21:15 | PR marked "ready to merge", all CI checks passing |
-| 2026-03-25 03:11 | Owner (Jhon-Crow) tests build, reports "AI completely broken" |
-| 2026-03-25 06:11 | Game log captured (DocksLevel, 5 enemies, 5-second session) |
-| 2026-03-25 09:01 | New AI work session started to investigate |
+| 2026-03-25 03:11 | Owner (Jhon-Crow) tests build, reports "ии полностью сломан" (AI completely broken) |
+| 2026-03-25 06:11 | First game log captured (`game_log_20260325_061123.txt`) |
+| 2026-03-25 09:01 | Second AI work session started — identified RCA-1 and RCA-2, applied partial fix |
+| 2026-03-25 09:10 | Second AI session marked PR ready to merge |
+| 2026-03-25 13:43 | Owner tests again, reports "ии сломан" (AI broken) — provides second log |
+| 2026-03-25 16:43 | Second game log captured (`game_log_20260325_164302.txt`) |
+| 2026-03-25 19:53 | Third AI work session started — identified RCA-3 (GDScript inline if bug) |
 
 ---
 
@@ -34,6 +38,43 @@ The log does NOT directly show AI breakage in action. However, the owner's subje
 ---
 
 ## Root Cause Analysis
+
+### RCA-0 (CRITICAL — NEW): GDScript Inline `if` Semicolon-Chaining Bug
+
+**Location**: `scripts/objects/enemy.gd`, commit `d6da24c` (second AI session fix), line 1277
+
+**The bug** was introduced by the second AI session's fix attempt. The "fixed" code was written as a single-line if with semicolons:
+
+```gdscript
+if _formation_shielder != null: _cover_position = _formation_target_pos; _has_valid_cover = true; if _current_state not in [AIState.IN_COVER, AIState.COMBAT, AIState.SUPPRESSED]: _transition_to_in_cover(); return  # Issue #1446: arrived — shieldbearer is cover, return early
+```
+
+In GDScript, this parses as:
+```
+if _formation_shielder != null:
+    _cover_position = _formation_target_pos
+    _has_valid_cover = true
+    if _current_state not in [IN_COVER, COMBAT, SUPPRESSED]:
+        _transition_to_in_cover()
+        return   ← ONLY executes when inner condition is TRUE
+```
+
+The `return` is inside the nested `if`. When `_current_state` IS IN_COVER, COMBAT, or SUPPRESSED, the inner `if` is false, so **no return happens** — execution falls through to the full state machine (line 1282+).
+
+This means formation enemies already in COMBAT or SUPPRESSED states (which is the normal operating state after arriving at a shieldbearer) still execute the complete AI state machine every frame: distraction attacks, grenade throws, pursuit decisions, etc.
+
+**Impact**: Same as RCA-1 — formation enemies run the full state machine instead of the limited shieldbearer-follow behavior.
+
+**Fix**: Expand the single-line if into a proper multi-line block with the `return` at the outer level:
+
+```gdscript
+if _formation_shielder != null:  # arrived — always return early (shieldbearer is cover)
+    _cover_position = _formation_target_pos; _has_valid_cover = true
+    if _current_state not in [AIState.IN_COVER, AIState.COMBAT, AIState.SUPPRESSED]: _transition_to_in_cover()
+    return  # never fall through to main state machine for formation enemies
+```
+
+---
 
 ### RCA-1 (CRITICAL): Formation Enemies Fall Through to Full State Machine
 
@@ -189,5 +230,6 @@ Line 1278 should also exclude PURSUING, RETREATING, EVADING_GRENADE, FLANKING so
 
 - `scripts/objects/enemy.gd` — Formation + cover state machine logic
 - `docs/case-studies/issue-1446/README.md` — This file
-- `docs/case-studies/issue-1446/game_log_20260325_061123.txt` — Owner-provided game log
+- `docs/case-studies/issue-1446/game_log_20260325_061123.txt` — Owner-provided game log (first report)
+- `docs/case-studies/issue-1446/game_log_20260325_164302.txt` — Owner-provided game log (second report)
 - `docs/case-studies/issue-1446/analysis.md` — Initial design analysis (pre-implementation)
