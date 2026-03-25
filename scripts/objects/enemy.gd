@@ -276,21 +276,19 @@ const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIS
 var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
-var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 100.0  ## Search center / current radius (Search State - Issue #322)
-const SEARCH_INITIAL_RADIUS: float = 100.0; const SEARCH_RADIUS_EXPANSION: float = 75.0  ## Initial radius / radius expansion
-const SEARCH_MAX_RADIUS: float = 2000.0  ## Max radius before relocating center (Issue #405: search continues indefinitely)
+var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 150.0  ## Search center / current radius (Search State - Issue #322)
+const SEARCH_INITIAL_RADIUS: float = 150.0; const SEARCH_RADIUS_EXPANSION: float = 100.0  ## Initial radius / radius expansion per batch
+const SEARCH_MAX_RADIUS: float = 600.0  ## Issue #1458: reduced from 2000 — max radius for random waypoint generation; keeps searches local
+const SEARCH_WAYPOINT_COUNT: int = 5  ## Issue #1458: number of random waypoints per generation batch (was up to 20 spiral points)
+const SEARCH_NAV_SNAP_THRESHOLD: float = 50.0  ## Issue #1458: max distance from navmesh for a waypoint to be considered navigable
 var _search_waypoints: Array[Vector2] = []  ## Search waypoints
 var _search_current_waypoint_index: int = 0  ## Current waypoint index
 var _search_scan_timer: float = 0.0  ## Timer for scanning at waypoint
 const SEARCH_SCAN_DURATION: float = 1.0  ## Seconds to scan at each waypoint
 var _search_state_timer: float = 0.0  ## Total time in SEARCHING state
 const SEARCH_MAX_DURATION: float = 30.0  ## Max time searching before idle
-var _search_direction: int = 0  ## Direction: 0=N, 1=E, 2=S, 3=W
-var _search_leg_length: float = 50.0  ## Current leg length for spiral
-var _search_legs_completed: int = 0  ## Legs completed in pattern
 const SEARCH_WAYPOINT_REACHED_DISTANCE: float = 20.0  ## Waypoint reached threshold
 var _search_moving_to_waypoint: bool = true  ## Moving (vs scanning)
-const SEARCH_WAYPOINT_SPACING: float = 75.0  ## Spacing between waypoints
 var _search_visited_zones: Dictionary = {}  ## Tracks visited positions (key=snapped pos, val=true)
 const SEARCH_ZONE_SNAP_SIZE: float = 50.0  ## Grid size for snapping positions to zones
 var _search_stuck_timer: float = 0.0  ## Stuck timer (Issue #354: Stuck detection for SEARCHING)
@@ -303,6 +301,7 @@ var _using_predefined_search_path: bool = false  ## Using predefined path instea
 const SEARCH_MIN_TIME_BEFORE_COMBAT: float = 0.3  ## Issue #1458: min seconds in SEARCHING before COMBAT transition to prevent oscillation
 var _search_last_nav_target: Vector2 = Vector2.ZERO  ## Issue #1458: cached nav target to avoid redundant path recalculations
 var _search_combat_transition_logged: bool = false  ## Issue #1458: throttle "Player spotted" log to once per search session
+var _search_timeout_logged: bool = false  ## Issue #1458: throttle timeout log to once per search session
 const CLOSE_COMBAT_DISTANCE: float = 400.0  ## Close combat threshold
 var _goap_world_state: Dictionary = {}  ## GOAP world state
 var _detection_timer: float = 0.0  ## Combat detection timer
@@ -2312,36 +2311,30 @@ func _load_predefined_search_path(_near_pos: Vector2) -> bool:
 	_log_debug("SEARCHING: Loaded %d predefined waypoints (start=%d)" % [_search_waypoints.size(), si])
 	return true
 
-## Generate search waypoints in expanding square spiral (Issue #322). Skips visited zones.
+## Issue #1458: Generate search waypoints as random points within radius, snapped to navmesh.
+## Replaces the old expanding square spiral which created overlapping grid patterns and
+## up to 100 NavigationServer2D.map_get_closest_point() calls per generation.
+## New approach: generate SEARCH_WAYPOINT_COUNT random points within _search_radius of
+## _search_center, snap each to navmesh, skip visited zones. Max ~2x SEARCH_WAYPOINT_COUNT nav calls.
 func _generate_search_waypoints() -> void:
 	_search_waypoints.clear()
 	_search_current_waypoint_index = 0
-	_search_direction = 0
-	_search_leg_length = SEARCH_WAYPOINT_SPACING
-	_search_legs_completed = 0
+	var nav_map := get_world_2d().navigation_map
 	if not _is_zone_visited(_search_center):
-		_search_waypoints.append(_search_center)
-	var current_pos := _search_center
-	var waypoints_generated := _search_waypoints.size()
-	var iters := 0
-	while waypoints_generated < 20 and _search_leg_length <= _search_radius * 2 and iters < 100:
-		iters += 1
-		var offset := Vector2.ZERO
-		match _search_direction:
-			0: offset = Vector2(0, -_search_leg_length)
-			1: offset = Vector2(_search_leg_length, 0)
-			2: offset = Vector2(0, _search_leg_length)
-			3: offset = Vector2(-_search_leg_length, 0)
-		var next_pos := current_pos + offset
-		if _is_waypoint_navigable(next_pos) and not _is_zone_visited(next_pos):
-			_search_waypoints.append(next_pos)
-			waypoints_generated += 1
-		current_pos = next_pos
-		_search_legs_completed += 1
-		_search_direction = (_search_direction + 1) % 4
-		if _search_legs_completed % 2 == 0:
-			_search_leg_length += SEARCH_WAYPOINT_SPACING
-	_log_debug("Generated %d unvisited waypoints (radius=%.0f, visited=%d)" % [_search_waypoints.size(), _search_radius, _search_visited_zones.size()])
+		var snapped := NavigationServer2D.map_get_closest_point(nav_map, _search_center)
+		if _search_center.distance_to(snapped) < SEARCH_NAV_SNAP_THRESHOLD:
+			_search_waypoints.append(snapped)
+	var attempts := 0
+	var max_attempts := SEARCH_WAYPOINT_COUNT * 2  # At most 10 nav calls for 5 waypoints
+	while _search_waypoints.size() < SEARCH_WAYPOINT_COUNT and attempts < max_attempts:
+		attempts += 1
+		var angle := randf() * TAU
+		var dist := randf_range(_search_radius * 0.3, _search_radius)  # Avoid clustering at center
+		var candidate := _search_center + Vector2(cos(angle), sin(angle)) * dist
+		var snapped := NavigationServer2D.map_get_closest_point(nav_map, candidate)
+		if candidate.distance_to(snapped) < SEARCH_NAV_SNAP_THRESHOLD and not _is_zone_visited(snapped):
+			_search_waypoints.append(snapped)
+	_log_debug("Generated %d search waypoints (radius=%.0f, attempts=%d, visited=%d)" % [_search_waypoints.size(), _search_radius, attempts, _search_visited_zones.size()])
 
 ## Check if position is navigable via NavigationServer2D.
 func _is_waypoint_navigable(pos: Vector2) -> bool:
@@ -2361,8 +2354,10 @@ func _mark_zone_visited(pos: Vector2) -> void:
 func _process_searching_state(delta: float) -> void:
 	_search_state_timer += delta
 	# Issue #330: Only timeout for patrol enemies; engaged enemies search infinitely
+	# Issue #1458: Throttle timeout log to once per session; if IDLE is disabled, stop moving instead of
+	# entering IDLE->SEARCHING redirect loop which caused 97K log writes and per-frame waypoint regen
 	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle:
-		_log_to_file("SEARCHING timeout after %.1fs, returning to IDLE (patrol enemy)" % _search_state_timer)
+		if not _search_timeout_logged: _log_to_file("SEARCHING timeout after %.1fs, returning to IDLE (patrol enemy)" % _search_state_timer); _search_timeout_logged = true
 		_transition_to_idle()
 		return
 	if _can_see_player and _search_state_timer >= SEARCH_MIN_TIME_BEFORE_COMBAT:  # Issue #1458: min time prevents rapid SEARCHING↔COMBAT oscillation (30 fps drop)
@@ -2644,7 +2639,7 @@ func _transition_to_idle() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings")
 	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
 		if _current_state != AIState.SEARCHING:  # Issue #1458: skip regeneration if already SEARCHING (prevents per-frame waypoint regen in redirect chain)
-			_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _search_last_nav_target = Vector2.ZERO; _search_combat_transition_logged = false; _generate_search_waypoints()
+			_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _search_last_nav_target = Vector2.ZERO; _search_combat_transition_logged = false; _search_timeout_logged = false; _generate_search_waypoints()
 		return
 	_current_state = AIState.IDLE
 	# Reset various state tracking when returning to idle
@@ -2832,13 +2827,12 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	# Combat enemies already have it true (search indefinitely); patrol enemies have it false (timeout).
 	_search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS
 	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
-	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
 	# Issue #354: Initialize stuck detection. #1249: clear yield on SEARCHING entry. #1458: reset nav cache & log throttle.
-	_search_stuck_timer = 0.0; _search_last_progress_position = global_position; _search_last_nav_target = Vector2.ZERO; _search_combat_transition_logged = false; if _tactical_movement: _tactical_movement.reset_yield()
+	_search_stuck_timer = 0.0; _search_last_progress_position = global_position; _search_last_nav_target = Vector2.ZERO; _search_combat_transition_logged = false; _search_timeout_logged = false; if _tactical_movement: _tactical_movement.reset_yield()
 	_using_predefined_search_path = _load_predefined_search_path(center_position)  # Issue #1225
 	if not _using_predefined_search_path: _generate_search_waypoints()
-	var msg := "SEARCHING started (%s): center=%s, radius=%.0f, waypoints=%d" % ["predefined" if _using_predefined_search_path else "spiral", _search_center, _search_radius, _search_waypoints.size()]
+	var msg := "SEARCHING started (%s): center=%s, radius=%.0f, waypoints=%d" % ["predefined" if _using_predefined_search_path else "random", _search_center, _search_radius, _search_waypoints.size()]
 	_log_debug(msg); _log_to_file(msg)
 
 ## Transition to EVADING_GRENADE state - flee from grenade danger zone (Issue #407).
