@@ -6,9 +6,19 @@ Issue #1445 requests adding realistic water to the Beach map (`BeachLevel.tscn`)
 
 1. **Wave animation** — waves resembling a real ocean beach.
 2. **Physical interaction** — water reacts when the player (or enemies) walk through it (ripple/splash effect).
-3. **Light refraction** — light bends as it passes through water (background distortion).
+3. **Light refraction** — light bends as it passes through water.
 
 Previously the water was represented by a plain `ColorRect` (`WaterEdge`), with no animation or interactivity.
+
+### Feedback from PR #1479 Review (Iteration 2)
+
+The repository owner identified 5 issues with the initial implementation:
+
+1. **Water is white** — The shader used `SCREEN_TEXTURE` which doesn't work properly without `BackBufferCopy` setup in 2D canvas. The `ColorRect` default white color showed through.
+2. **Ripple circles visible through player** — `WaterSplashEffect` z_index was 3, same as player head, causing ripples to render on top of the player.
+3. **Blood doesn't spread in water** — No interaction between blood effects and water body.
+4. **Bloody footprints shouldn't remain in water** — Only a spreading color change should occur, not discrete footprint decals.
+5. **No reaction to shell casings, grenades, or explosions** — Water only detected player/enemy bodies (collision layers 1 and 2), ignoring casings (layer 7) and grenades (layer 6).
 
 ---
 
@@ -24,6 +34,14 @@ Previously the water was represented by a plain `ColorRect` (`WaterEdge`), with 
 | Screen-space refraction | Distort `SCREEN_TEXTURE` UV by wave normal → bend background light | Low–Medium |
 | Foam / white-caps | Threshold the wave height value and blend a white foam color | Low |
 
+### SCREEN_TEXTURE Gotchas in Godot 4
+
+In Godot 4, `SCREEN_TEXTURE` in `canvas_item` shaders requires either:
+- A `BackBufferCopy` node to capture what's behind the object, or
+- The node to be rendered after the background in a specific rendering order.
+
+Without proper setup, `SCREEN_TEXTURE` returns white/transparent, which was the root cause of Issue #1 (white water). The fix was to make the shader self-contained — drawing water colors directly from the shader's depth gradient rather than relying on `SCREEN_TEXTURE` distortion.
+
 ### Known Libraries & Shaders
 
 - **GodotShaders.com** — "2D Water Distortion Effect", "Gerstner Wave Ocean Shader" (MIT license).
@@ -31,33 +49,72 @@ Previously the water was represented by a plain `ColorRect` (`WaterEdge`), with 
 - **[Godot4WaterShader](https://github.com/bramreth/Godot4WaterShader)** — Visual shader, beginner-friendly.
 - **[laverneth/water](https://github.com/laverneth/water)** — 2D splash node with Area2D interaction (direct analogue to our implementation).
 
-### Player Interaction Pattern
+### Z-Index Hierarchy in This Project
 
-Standard Godot 4 pattern:
-1. `Area2D` with `RectangleShape2D` covers the water region.
-2. `body_entered` / `body_exited` signals track which bodies are in the water.
-3. `_process` measures body displacement; when it exceeds a threshold, a splash is spawned.
-4. The splash is a short-lived `Node2D` that draws expanding arcs in `_draw()`.
+| Node | z_index | Purpose |
+|---|---|---|
+| Floor/background | 0 | Base layer |
+| Blood decals | 0 | Floor stains |
+| Water visual (ColorRect) | 1 | Water surface |
+| Blood footprints | 1 | Floor marks |
+| Player body | 1 | Character body sprite |
+| Player head | 3 | Head above body |
+| Player arms | 4 | Arms above head |
+| Armband/effects | 5 | Top layer |
+
+### Collision Layer Map
+
+| Layer | Bitmask | Usage |
+|---|---|---|
+| 1 | 1 | Player |
+| 2 | 2 | Enemies |
+| 3 | 4 | Obstacles (walls, terrain) |
+| 5 | 16 | Projectiles |
+| 6 | 32 | Grenades |
+| 7 | 64 | Blood puddles, shell casings |
 
 ---
 
 ## Solution Implemented
 
-### New Files
+### Files Added
 
 | File | Purpose |
 |---|---|
-| `scripts/shaders/realistic_water.gdshader` | `canvas_item` shader: animated sum-of-sines waves, light refraction via `SCREEN_TEXTURE`, foam, depth gradient, shore fade. |
-| `scripts/effects/water_splash_effect.gd` | `Node2D` that draws 3 expanding concentric ripple rings procedurally (no texture required). |
-| `scripts/objects/water_body.gd` | `Area2D` that creates the visual `ColorRect` + shader, the `CollisionShape2D`, and manages body tracking + splash spawning. |
+| `scripts/shaders/realistic_water.gdshader` | `canvas_item` shader: animated sum-of-sines waves, foam, depth gradient, shore fade. Self-contained (no `SCREEN_TEXTURE`). Blood tint uniform for diffusion. |
+| `scripts/effects/water_splash_effect.gd` | `Node2D` that draws expanding concentric ripple rings procedurally. Configurable for small (casings), normal (player), and large (explosions) splashes. z_index=0 to render below characters. |
+| `scripts/effects/water_blood_diffusion.gd` | `Node2D` that draws expanding, fading blood clouds in water. Replaces footprints for blood-in-water interaction. |
+| `scripts/objects/water_body.gd` | `Area2D` that manages water visual, collision, body/object tracking, splash spawning, bloody footprint suppression, and blood diffusion. Detects layers 1, 2, 6, 7. |
 | `scenes/objects/WaterBody.tscn` | Packed scene wrapping `water_body.gd`. |
 
-### Modified Files
+### Files Modified
 
 | File | Change |
 |---|---|
 | `scenes/levels/BeachLevel.tscn` | Replaced plain `WaterEdge` ColorRect with `WaterBody` instance at same position/size. |
 | `scripts/levels/beach_level.gd` | Added `_setup_water()` call in `_ready()` + function body that verifies the node. |
+
+### Fix Details
+
+#### Fix #1: Water is white
+- **Root cause**: Shader used `SCREEN_TEXTURE` which doesn't work without `BackBufferCopy` in 2D. `ColorRect` default color is white.
+- **Fix**: Removed `SCREEN_TEXTURE` dependency. Shader now draws water colors directly using depth gradient (shallow → deep blue). Set `ColorRect.color` to transparent so shader has full control.
+
+#### Fix #2: Ripple circles visible through player
+- **Root cause**: `WaterSplashEffect.z_index = 3`, same as player head sprite.
+- **Fix**: Set `z_index = 0` so ripples render at base level, below all character parts (body z=1, head z=3, arms z=4).
+
+#### Fix #3: Blood should spread in water
+- **Fix**: Added `WaterBloodDiffusion` effect — expanding, fading red circles drawn with `draw_circle()`. Spawned when blood puddles appear in water (via `area_entered` signal detecting blood puddle Area2Ds) and when characters with bloody feet enter water.
+
+#### Fix #4: No bloody footprints in water
+- **Fix**: `WaterBody._suppress_footprints_on_body()` finds the `BloodyFeetComponent` on characters in water and calls `set_blood_level(0)` to prevent footprint spawning. Blood diffusion is spawned instead.
+
+#### Fix #5: React to shell casings, grenades, and explosions
+- **Fix**: Expanded `collision_mask` to `0b01100011` (layers 1+2+6+7 = 99).
+  - **Casings** (group `"casings"`, RigidBody2D layer 7): Small splash on entry via `configure_small()`.
+  - **Grenades** (group `"grenades"`, RigidBody2D layer 6): Normal splash on entry + connected to `exploded` signal for large splash on detonation via `configure_large()`.
+  - Deduplication: Casings tracked in `_processed_casings` dict; grenades in `_connected_grenades` dict.
 
 ### Shader Design (realistic_water.gdshader)
 
@@ -69,27 +126,22 @@ float wave1 = sin(uv.x * wave_frequency + TIME * wave_speed)
 // Secondary ripple (diagonal)
 float wave2 = sin((uv.x + uv.y * 0.4) * ripple_frequency + TIME * ripple_speed) * ...;
 
-// Screen-space refraction
-vec2 refract_offset = vec2(dx, dy) * refraction_strength;
-vec4 screen_col = texture(SCREEN_TEXTURE, SCREEN_UV + refract_offset);
+// Depth gradient (no SCREEN_TEXTURE needed)
+vec4 water_base = mix(shallow_color, deep_color, depth);
 
 // Foam where wave crest > threshold
-float foam_val = smoothstep(foam_threshold, 1.0, pow(clamp(wave1*0.5+0.5, 0.0, 1.0), foam_sharpness));
+float foam_val = smoothstep(foam_threshold, 1.0, pow(...));
+
+// Blood diffusion via uniform tint
+vec3 final_rgb = mix(water_col.rgb, blood_tint.rgb, blood_tint.a);
 ```
 
 Key parameters (all tunable via shader uniforms):
 - `wave_speed`, `wave_frequency`, `wave_amplitude`
 - `ripple_speed`, `ripple_frequency`, `ripple_amplitude`
-- `refraction_strength`
 - `shallow_color`, `deep_color`, `foam_color`
 - `foam_threshold`, `shore_fade_width`
-
-### Interaction Design (water_body.gd)
-
-- `Area2D` collision mask covers player (layer 1) and enemies (layer 2).
-- On `body_entered` → immediate splash.
-- Per-frame distance check → new splash every `splash_interval` pixels of movement.
-- Splash nodes are parented to the level (not the water body) so they render correctly.
+- `blood_tint` (for global blood diffusion)
 
 ---
 
@@ -97,7 +149,8 @@ Key parameters (all tunable via shader uniforms):
 
 | Option | Pros | Cons | Decision |
 |---|---|---|---|
-| Use `AnimatedSprite2D` with sprite sheets | Easy, no GPU cost | Requires art assets, no refraction | Rejected |
+| Use `SCREEN_TEXTURE` refraction | True optical distortion | Requires `BackBufferCopy`, breaks in some 2D setups | Removed (caused white water) |
+| Use `AnimatedSprite2D` with sprite sheets | Easy, no GPU cost | Requires art assets, no dynamic effects | Rejected |
 | Godot `CPUParticles2D` for ripples | Built-in, no code | Hard to match exact position, less control | Rejected |
 | Custom `_draw()` arcs (chosen) | No assets needed, precise control | CPU side-draw call per frame | Accepted |
 | 3rd-party boujie_water_shader | Very realistic | External dependency, 3D-style API | Rejected for now |
@@ -111,4 +164,4 @@ Key parameters (all tunable via shader uniforms):
 - laverneth/water (Area2D interaction): https://github.com/laverneth/water
 - Porting Water Ripple Shader Unity→Godot: https://80.lv/articles/tutorial-porting-a-water-ripple-shader-from-unity-to-godot/
 - Ocean Waves and Shaders (math primer): https://peterbraden.co.uk/article/ocean-waves-2/
-- Water Simulation in GLSL: https://jayconrod.com/posts/34/water-simulation-in-glsl
+- Godot 4 SCREEN_TEXTURE docs: https://docs.godotengine.org/en/stable/tutorials/shaders/screen-reading_shaders.html
