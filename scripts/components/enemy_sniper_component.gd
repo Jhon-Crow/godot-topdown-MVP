@@ -289,7 +289,6 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 		elif hit_node.has_method("TakeDamage"): hit_node.call("TakeDamage", damage)
 		elif hit_node.has_method("take_damage"): hit_node.call("take_damage", damage)
 		elif hit_node.has_method("on_hit"): hit_node.call("on_hit")
-		if log_to_file_fn.is_valid(): log_to_file_fn.call("[SniperHitscan] Hit %s damage=%.0f" % [hit_node.name, damage])
 	_spawn_sniper_tracer(spawn_pos, bullet_end_point)
 
 ## Spawn a fading smoke tracer Line2D from muzzle to bullet endpoint.
