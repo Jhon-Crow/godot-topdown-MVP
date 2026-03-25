@@ -95,6 +95,31 @@ The level will have 0 enemies and the exit zone will be immediately active.
 3. Register in `levels_menu.gd` LEVELS array
 4. Update `_get_next_level_path()` in all level scripts that reference the progression chain
 
+## Iteration 2 — Feedback from PR #1481
+
+### Issues Reported
+
+Owner (Jhon-Crow) provided screenshot and feedback:
+
+1. **Trains too small and disconnected** — trains should be coupled carriages forming long trains, with only 1-2 narrow player-sized gaps between trains on each track
+2. **No visible rails** — need to draw railway tracks visually (two parallel rail lines + cross-ties/sleepers)
+3. **Player too far below camera** — at level start, the player was placed at y=3800 (near bottom wall at y=3952), so the camera was mostly showing empty space below. Platform (y=2900-3200) was not visible
+4. **Needs more detail** — station building lacked windows/doors, platform lacked edge markings, no signal lights, no lamps
+
+### Changes Made
+
+1. **Player spawn** moved from y=3800 to y=3100 (on the platform, where station building and tracks are visible)
+2. **Coupled carriages**: Each track now has long trains made of 240x100 carriages placed edge-to-edge (246px apart), with only 1-2 narrow (~54px) gaps per track. Total ~60 carriages across 4 tracks
+3. **Visual rails**: Each track has a pair of steel rail lines (6px wide) + wooden cross-ties every 100px spanning the full width
+4. **Station details**: Windows (8), doors (3), roof overhang, platform yellow safety line, concrete edge lip, platform stripe
+5. **Platform furniture**: 5 benches, 5 pillars with occluders, 5 lamp post bases
+6. **Track signals**: 4 red/green signal lights at track entrances
+7. **Snow patches**: 6 scattered snow detail patches on open ground
+8. **Walkway safety lines**: Yellow warning strips on walkway edges
+9. **Coupling lines**: Dark coupling connectors between carriages (visual detail)
+10. **Carriage window stripes**: Horizontal light lines across each train row
+11. **LevelInitFallback**: Added missing C# fallback component (present in other levels)
+
 ## References
 
 - Existing level patterns: `BeachLevel.tscn`, `DocksLevel.tscn` (industrial theme)
