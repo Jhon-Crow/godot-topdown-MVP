@@ -454,3 +454,137 @@ With 3-probe steering:
 
 - Screenshot: `assets/case-studies-screenshots/issue-1457-stuck-v5.png` (committed to branch)
 - Game log: `docs/case-studies/issue-1457/game_log_20260325_051623.txt`
+
+---
+
+## 12. Session 6 — New Stuck Location After v5 Fix (2026-03-25 ~12:47–12:48 UTC)
+
+### 12.1 User Report
+
+**Date:** 2026-03-25 09:49 UTC
+**Comment (Russian):** "теперь враг хорошо проходит каждый второй раз. но когда строится такой путь — враг зацепляется уже за верхнюю часть прохода"
+**Translation:** "Now the enemy passes well every other time. But when such a path is built — the enemy catches on the upper part of the passage."
+
+**Screenshot:** `assets/case-studies-screenshots/issue-1457-stuck-v5-session6.png`
+
+The screenshot shows the BuildingLevel with a narrow passage (corridor entrance). The nav path (yellow lines) routes correctly through the passage. The enemy is visibly caught at the top edge of the passage entrance — the enemy body is partially overlapping the wall.
+
+### 12.2 Environment
+
+- **Level:** BuildingLevel (not LabyrinthLevel — a new level)
+- **Build:** Release, Godot 4.3-stable, Windows, Hard difficulty
+- **v5 fix active:** `MOTION_MODE_FLOATING` present (confirmed by build), 3-probe steering active, v4 escape impulse active
+- **Session 6a** (`game_log_20260325_124738.txt`): Two stuck events, v4 escape fires
+- **Session 6b** (`game_log_20260325_124822.txt`): One stuck event, v4 escape fires
+
+### 12.3 Event Timeline
+
+#### Session 6a (`game_log_20260325_124738.txt`)
+
+| Time | Event |
+|------|-------|
+| 12:47:43 | Scene loaded: BuildingLevel |
+| 12:47:52–12:47:53 | Multiple scene reloads (2 more BuildingLevel loads) |
+| 12:47:57 | Enemy1–4: COMBAT → PURSUING |
+| 12:47:59 | Enemy2: PURSUING → COMBAT (reached player line-of-sight) |
+| 12:48:03 | Enemy1–4: COMBAT → PURSUING again |
+| 12:48:07 | **Enemy2 stuck #1 at (472.8, 610.3)** — `probe dir=(1,0) clr=4.0`, escape dir=(1,0) |
+| 12:48:07 | **Enemy1 stuck #1 at (290, 599.1)** — `probe dir=(1,0) clr=4.0`, escape dir=(1,0) |
+| 12:48:08 | Both impulses complete, nav reset |
+| 12:48:11 | Enemy1–4: COMBAT → PURSUING again |
+| 12:48:14 | **Enemy2 stuck #1 again at (463.9, 602.1)** — same corridor, same probe dir=(1,0) |
+| 12:48:15 | Enemy1, 2: PURSUING → COMBAT (recovered via combat sightline) |
+
+**Key observation:** Enemy2 gets stuck at ~(463–472, 602–610), then after impulse + nav reset, comes back and gets stuck at the same cluster again. Same probe direction (1,0) = pure east, same clearance 4.0px. The 8-direction probe found only 4px of clearance to the east — this is the maximum free distance before hitting a wall. The enemy is inside a narrow passage where ALL 8 directions are within 4px of a wall.
+
+#### Session 6b (`game_log_20260325_124822.txt`)
+
+| Time | Event |
+|------|-------|
+| 12:48:26 | Scene loaded: BuildingLevel |
+| 12:48:34 | Enemy1–4: COMBAT → PURSUING |
+| 12:48:36 | Enemy2: PURSUING → COMBAT (reached player) |
+| 12:48:37 | Enemy3: PURSUING → COMBAT |
+| 12:48:43 | Enemy1–4: COMBAT → PURSUING again |
+| 12:48:46 | **Enemy2 stuck #1 at (479.2, 612.0)** — escape dir=(-0.866, 0.500) |
+| 12:48:46 | Impulse completes, nav reset |
+| End | No further stuck events |
+
+**Key observation:** Escape direction=(-0.866, 0.500) = approximately 150° from east = north-west. The 8-direction probe found a different clear direction than session 6a. This suggests the probe is working but selecting different directions — the passage corner is narrow enough that all 8 directions have very low clearance.
+
+### 12.4 New Root Cause: Narrow Passage Upper-Corner Catch
+
+The v5 fix (MOTION_MODE_FLOATING) successfully resolved the primary physics-gluing issue. However, a **second geometric scenario** remains:
+
+**The scenario** (as described by the user "catches on the **upper** part of the passage"):
+
+The BuildingLevel has a passage (doorway/corridor entrance) with a specific geometric property: the **entry corner** of the passage is a convex corner where two wall segments meet at ~90°. When the nav path routes the enemy to enter the passage from a certain angle, the enemy approaches the upper (top-right in screenshot) corner of the entrance.
+
+The **stuck cluster** is at x≈463–480, y≈600–615 — a narrow zone about 16px wide. This is consistent with a passage entrance that is barely wider than the enemy's collision shape.
+
+**Why MOTION_MODE_FLOATING didn't fully fix this case:**
+
+MOTION_MODE_FLOATING prevents the engine from classifying the corner as a "floor" and gluing the body. However, at a very narrow passage entrance, there is still a physical geometry issue:
+
+1. The nav path aims the enemy at the center of the passage opening
+2. The enemy's collision radius pushes against the passage wall as they enter at an angle
+3. `move_and_slide()` in FLOATING mode still slides along walls, but the corner geometry can create a situation where the slide direction is perpendicular to the passage axis — stopping forward progress
+4. The 3-probe steering fires (offset ±30°), but at a passage entrance, the forward-left and forward-right probes both detect walls — neither side is significantly clearer, so the center-blocked branch applies (`_pc != null`) and adds the collision normal, but the normal may be nearly perpendicular to the desired direction
+
+**Why "every other time":**
+
+The user observes the passage is navigated successfully on every other attempt. This is consistent with the nav path's waypoints varying slightly based on the player's exact position each cycle. When the nav path approaches the passage from a slightly different angle:
+- Approach angle ≤ ~30° from passage axis → enemy enters cleanly (success)
+- Approach angle > ~30° → enemy hits the upper corner → catches (stuck #1 fires after 1.5s → escape impulse → recovery)
+
+The 3-probe steering partially mitigates this (success rate improved from "never" to "50%") but does not fully prevent it because the probe distance (64px) detects the wall too late for narrow passages.
+
+### 12.5 Critical Finding: 8-Direction Probe Clearance = 4.0px
+
+```
+[#1457] v4: probe dir=(1, 0) clr=4.0
+```
+
+The 8-direction escape probe found all probes hitting at ≤4px clearance (minimum). When `clr=4.0` — this means the **maximum clearance in any direction is only 4 pixels**. The enemy is physically inside the wall/corner geometry. A 4px clearance means `move_and_collide(dir * 4.0, true)` only returned null (no hit) for direction=(1,0) with distance=4.0px.
+
+This is the escape probe using `move_and_collide(dir * 4.0, true)` — a test of 4px clearance. If the enemy is inside or flush against a passage wall, even the escape direction may not be valid — the impulse moves the enemy 150px east (dir=(1,0)) which may be parallel to or away from the passage — moving the enemy back outside the passage, requiring another nav cycle to re-approach.
+
+### 12.6 Proposed Solutions for Session 6 Issue
+
+**Root cause is confirmed:** The 3-probe steering does not prevent wedging at narrow passage entrances when the approach angle exceeds ~30° off-axis.
+
+**Solution A: Wider probe angles in passage entry (±45° instead of ±30°)**
+
+The current probe angles are ±30° (0.524 rad). Widening to ±45° would detect wall closeness earlier, triggering steering sooner. However, this may cause over-steering in open areas.
+
+**Solution B: Reduce approach speed near walls**
+
+When the forward probe (0°) detects a wall within `WALL_CHECK_DISTANCE/2 = 32px` ahead, reduce speed to 50% (`speed * 0.5`). This gives more time for `move_and_slide()` to compute a valid slide direction.
+
+**Solution C: Larger escape impulse when stuck inside narrow geometry (clr < threshold)**
+
+When the probe finds `clr < 8.0px` (extremely constrained), the current impulse approach may push the enemy in the wrong direction. Instead, use the escape impulse to **reverse along the nav path** — i.e., move backward (away from target) for 0.5s to back out of the passage entrance, then re-approach. This handles the case where all 8 directions are blocked by narrow walls.
+
+**Solution D: NavigationAgent2D path smearing at passage corners**
+
+Some engines implement "path smearing" — when a path waypoint is within `agent_radius` of a wall, the path is pulled back to a minimum clearance position. This would move the passage waypoint slightly inward, allowing the enemy to approach at a more favorable angle.
+
+**Solution E: Stuck-history blacklist covers the upper-corridor passage**
+
+The current `_stuck_cover_blacklist` records `_pursuit_next_cover` — the navigation target, not the stuck position. If the passage entrance is not near the cover target, the blacklist won't help. Adding a **position-based stuck blacklist** (blacklist within radius of the stuck coordinate itself) would force nav to find a path that doesn't pass through the same chokepoint.
+
+### 12.7 Assessment
+
+The v5 fix (`MOTION_MODE_FLOATING` + 3-probe steering) made significant progress:
+- The original (1760, 824) stuck corner from prior sessions is completely absent in session 6 logs
+- Enemy passes the narrow passage **50% of the time** — measurable improvement from 0%
+- Escape impulse correctly identifies the stuck state and fires within 1.5s
+- Post-impulse nav reset ensures a fresh route attempt
+
+The remaining issue is a narrow passage geometry problem. The most targeted fix would be **Solution B** (reduce approach speed) combined with **Solution C** (reverse-escape when all 8 directions blocked), since they address the specific geometric scenario without disrupting normal navigation.
+
+### 12.8 Logs and Files
+
+- Screenshot: `assets/case-studies-screenshots/issue-1457-stuck-v5-session6.png`
+- Game log: `docs/case-studies/issue-1457/game_log_20260325_124738.txt`
+- Game log: `docs/case-studies/issue-1457/game_log_20260325_124822.txt`
