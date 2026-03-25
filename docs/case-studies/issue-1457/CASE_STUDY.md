@@ -960,3 +960,117 @@ regardless of what `velocity` reports.
 Sources:
 - [GitHub #60447 — velocity not updated when CharacterBody2D collides in FLOATING mode](https://github.com/godotengine/godot/issues/60447)
 - [GitHub #101052 — CharacterBody2D accelerated by slides in FLOATING mode](https://github.com/godotengine/godot/issues/101052)
+
+---
+
+## 16. Session 9 Analysis (2026-03-25 16:23) — "AI is completely broken"
+
+**User report:** "полностью сломан ии." (AI is completely broken)
+
+**Log:** `docs/case-studies/issue-1457/logs/game_log_20260325_162320.txt`
+**Duration:** ~4 seconds (16:23:20 → 16:23:24)
+**Level:** BuildingLevel (auto-navigated from last-played save)
+**Build:** Godot 4.3-stable, no build_info.cfg (user-built binary, not CI)
+
+### 16.1 Key Observations
+
+**Critical finding: 0 enemies registered in BOTH levels**
+
+LabyrinthLevel (startup):
+```
+[LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=false
+[LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=false
+...
+[LabyrinthLevel] Enemy tracking complete: 0 enemies registered
+```
+
+BuildingLevel (auto-navigated):
+```
+[LevelInitFallback] Child 'Enemy1': has_died_signal=False
+[LevelInitFallback] Child 'Enemy2': has_died_signal=False
+...
+[LevelInitFallback] Enemy tracking complete: 0 enemies registered
+```
+
+**Contrast with working Session 1 (2026-03-25 04:20):**
+```
+[LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+...
+[LevelInitFallback] Child 'Enemy1': has_died_signal=True
+[LevelInitFallback] Enemy tracking complete: 10 enemies registered
+```
+
+### 16.2 Root Cause: GDScript Parse/Compile Error
+
+When `has_signal("died")` returns `false` on a node where:
+- `get_script() != null` is true (script IS attached)
+- `signal died` IS declared in the script
+
+...this is a definitive indicator that **the GDScript file has a parse/compile error and the class body failed to load**. When a GDScript has a parse error, Godot attaches the script object to the node but the class — including all its `signal`, `var`, `const`, and `func` declarations — is not registered. Only the base class (`CharacterBody2D`) signals remain available.
+
+**Why `has_signal("died")` returns false on parse error:**
+- Signals declared with `signal keyword` are registered during class parse/compile
+- A parse error aborts class initialization before signal registration
+- The attached script object exists but has an empty signal/member table
+- `has_signal("died")` queries the script's signal table → returns false
+
+**Sources:**
+- [GitHub #85528 — Signals appear to be broken (script attached but signals missing)](https://github.com/godotengine/godot/issues/85528)
+- [Godot Forum — has_user_signal returning false though signal in get_signal_list](https://forum.godotengine.org/t/object-has-user-signal-returning-false-even-though-signal-in-object-get-signal-list/21492)
+
+### 16.3 The 4-Second Session
+
+The session lasted only ~4 seconds. The game:
+1. Started at LabyrinthLevel (startup screen)
+2. Detected last-played level = BuildingLevel → auto-navigated
+3. BuildingLevel loaded with 0 enemies registered
+4. User observed broken AI (no enemies) and closed the game
+
+The `has_died_signal=false` indicates the user was running a binary built from a version of `enemy.gd` that has a parse error. The specific enemy.gd version in that binary is unknown, but it is NOT the current PR branch version (which passes all CI checks including GDScript lint and compile checks).
+
+### 16.4 MOTION_MODE_FLOATING Velocity Bug (Additional Finding)
+
+Research surfaced a second issue relevant to v9 fix quality:
+
+**Godot #101052 — CharacterBody2D accelerated by slides in FLOATING mode:**
+
+In Godot 4.3+, `MOTION_MODE_FLOATING` has a velocity-magnitude conservation bug: when a body slides along a wall, the engine preserves the *total velocity magnitude* by redistributing the blocked component to the unblocked axes. This causes `get_real_velocity()` to exceed the intended speed during prolonged wall contact.
+
+Example: enemy set to move at 100 px/s, after sliding along a wall for several frames → `get_real_velocity()` can reach ~140 px/s or higher.
+
+**Impact on this fix:** The enemies in this game use `velocity = direction * combat_move_speed` followed by `move_and_slide()` in `_physics_process`. If an enemy slides along a wall (which still happens even with FLOATING mode when the navmesh routes near a wall), the velocity can build up. The separation force at `_apply_separation_force()` and the `_apply_wall_avoidance()` function partially compensate, but the velocity accumulation was not explicitly addressed.
+
+**Godot 4.3 status:** Issue #101052 was being addressed in PR #107266 (Godot engine PR). As of Godot 4.3-stable, this is unresolved.
+
+**Mitigation already present:** The stuck detection timer (`_update_pursuing_stuck`) is position-based, not velocity-based, so it correctly detects the enemy being pinned regardless of what `velocity` reports. The velocity buildup only causes cosmetic fast-movement during wall slides, not an infinite-stuck loop.
+
+Source: [GitHub #101052](https://github.com/godotengine/godot/issues/101052)
+
+### 16.5 Timeline Reconstruction
+
+| Time | Event |
+|------|-------|
+| 2026-03-24 | Issue #1457 opened — enemy catches on wall corners in PURSUING state |
+| 2026-03-24 | Sessions 1-3 analyzed — 3 logs showing Enemy7 stuck ≥4s in LabyrinthLevel |
+| 2026-03-24 | v1-v5 fixes attempted (wall avoidance tuning, probe steering, etc.) |
+| 2026-03-25 04:20 | Session 4-5: v5 fix tested with working build — 5 enemies in LabyrinthLevel, 10 in BuildingLevel, `has_died_signal=true` for all |
+| 2026-03-25 | v6-v7: position blacklist + navmesh snap (too many changes) |
+| 2026-03-25 | v8: minimal fix — MOTION_MODE_FLOATING + pursuing stuck detection |
+| 2026-03-25 14:06 | Session 8: v8 tested — Enemy2 stuck rescued once but then looped (no blacklist) |
+| 2026-03-25 | v9: added position blacklist to v8 — breaks reroute loop |
+| 2026-03-25 16:23 | Session 9: User reports "AI completely broken" — new log shows 0 enemies registered, `has_died_signal=false` — indicates GDScript parse error in user's binary |
+
+### 16.6 Proposed Next Steps
+
+**For user:** Please download and use the CI-built binary from the PR's GitHub Actions artifact, not a locally-built binary. The CI build has verified the `enemy.gd` compiles without errors. The artifact is available at:
+https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/23538832646 (workflow: "Build Windows Portable EXE")
+
+**For the fix itself:** v9 is the current best fix. The `has_died_signal=false` issue is unrelated to the wall-corner fix and appears to be a binary-level issue (wrong build).
+
+**Additional future improvements (outside current scope):**
+1. **Gate `set_target_position()` behind a distance threshold** (per Godot docs recommendation) to reduce per-frame path recalculation overhead
+2. **Investigate `avoidance_enabled=false` for narrow-corridor scenarios** — RVO avoidance can push agents sideways into walls (Issue #1146 scope)
+3. **Clamp velocity magnitude after `move_and_slide()`** to mitigate the FLOATING velocity buildup bug (#101052)
+
+---
