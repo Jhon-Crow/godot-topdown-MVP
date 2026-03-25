@@ -102,6 +102,26 @@ const EMPTY_CLICK_PROPAGATION_COOLDOWN: float = 0.4
 ## Timestamp of the last EMPTY_CLICK propagation (for throttling).
 var _last_empty_click_time: float = -999.0
 
+## Issue #1487: Minimum interval (seconds) between breaker-bullet EXPLOSION propagations.
+## BreakerBullets + MiniUzi fires ~15 detonations/sec, each emitting an EXPLOSION event
+## that iterates all 10 listeners. Since enemies already react to the GUNSHOT from the
+## same shot, the redundant EXPLOSION floods the system. Throttling to once per 0.2s
+## (5/sec max) reduces listener iterations by ~66% with no gameplay impact.
+const BREAKER_EXPLOSION_PROPAGATION_COOLDOWN: float = 0.2
+
+## Timestamp of the last breaker EXPLOSION propagation (for throttling).
+var _last_breaker_explosion_time: float = -999.0
+
+## Issue #1487: Minimum interval (seconds) between player GUNSHOT propagations.
+## MiniUzi fires at ~15 shots/sec. Each GUNSHOT iterates all 10 listeners on BuildingLevel.
+## Enemies transition to COMBAT on the first heard gunshot — subsequent shots within
+## 0.1s (10 Hz max) are redundant for AI reaction. Throttling to 10/sec reduces listener
+## iterations by ~33% while maintaining responsive AI alerting.
+const PLAYER_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.1
+
+## Timestamp of the last player GUNSHOT propagation (for throttling).
+var _last_player_gunshot_time: float = -999.0
+
 ## Reference to FileLogger for persistent logging.
 var _file_logger: Node = null
 
@@ -177,11 +197,17 @@ func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceTyp
 		_listeners.size()
 	])
 
-	# Clean up invalid listeners (destroyed nodes)
-	var prev_count := _listeners.size()
-	_listeners = _listeners.filter(func(l): return is_instance_valid(l))
-	if _listeners.size() < prev_count:
-		_log_to_file("Cleaned up %d invalid listeners" % (prev_count - _listeners.size()))
+	# Clean up invalid listeners in-place (Issue #1487: avoid lambda + array allocation per call)
+	var write_idx := 0
+	for read_idx in range(_listeners.size()):
+		if is_instance_valid(_listeners[read_idx]):
+			if write_idx != read_idx:
+				_listeners[write_idx] = _listeners[read_idx]
+			write_idx += 1
+	var removed_count := _listeners.size() - write_idx
+	if removed_count > 0:
+		_listeners.resize(write_idx)
+		_log_to_file("Cleaned up %d invalid listeners" % removed_count)
 
 	# Notify all listeners within range  (Issue #1261: below_threshold tracking removed)
 	var listeners_notified := 0
@@ -267,8 +293,18 @@ func calculate_intensity_with_absorption(distance: float, absorption_coefficient
 
 
 ## Convenience method to emit a gunshot sound from the player.
-func emit_player_gunshot(position: Vector2, source_node: Node2D = null) -> void:
-	emit_sound(SoundType.GUNSHOT, position, SourceType.PLAYER, source_node)
+## Issue #1487: Throttled to PLAYER_GUNSHOT_PROPAGATION_COOLDOWN to prevent flooding
+## listeners at high fire rates (MiniUzi ~15/sec). Enemies react on the first gunshot;
+## subsequent rapid shots are redundant for AI state transitions.
+func emit_player_gunshot(position: Vector2, source_node: Node2D = null, custom_range: float = -1.0) -> void:
+	var current_time := Time.get_ticks_msec() / 1000.0
+	if current_time - _last_player_gunshot_time < PLAYER_GUNSHOT_PROPAGATION_COOLDOWN:
+		return  # Throttled: too soon since last player GUNSHOT propagation
+	_last_player_gunshot_time = current_time
+	if custom_range > 0:
+		emit_sound(SoundType.GUNSHOT, position, SourceType.PLAYER, source_node, custom_range)
+	else:
+		emit_sound(SoundType.GUNSHOT, position, SourceType.PLAYER, source_node)
 
 
 ## Convenience method to emit a gunshot sound from an enemy.
@@ -327,6 +363,19 @@ func emit_casing_kick(position: Vector2, source_node: Node2D = null) -> void:
 	emit_sound(SoundType.CASING_KICK, position, SourceType.NEUTRAL, source_node)
 
 
+## Convenience method to emit a breaker-bullet explosion sound (Issue #1487).
+## Breaker detonations fire at the weapon's full rate (~15/sec for MiniUzi). Each would
+## iterate all 10 listeners for an EXPLOSION event that is redundant with the GUNSHOT
+## already emitted from the same shot. Throttling to 5/sec reduces listener iterations
+## by ~66% with no gameplay impact — enemies already react to the GUNSHOT.
+func emit_breaker_explosion(position: Vector2, source_node: Node2D = null, custom_range: float = 500.0) -> void:
+	var current_time := Time.get_ticks_msec() / 1000.0
+	if current_time - _last_breaker_explosion_time < BREAKER_EXPLOSION_PROPAGATION_COOLDOWN:
+		return  # Throttled: too soon since last breaker EXPLOSION propagation
+	_last_breaker_explosion_time = current_time
+	emit_sound(SoundType.EXPLOSION, position, SourceType.PLAYER, source_node, custom_range)
+
+
 ## Get the propagation distance for a sound type.
 func get_propagation_distance(sound_type: SoundType) -> float:
 	return PROPAGATION_DISTANCES.get(sound_type, 1000.0)
@@ -334,7 +383,6 @@ func get_propagation_distance(sound_type: SoundType) -> float:
 
 ## Get the number of registered listeners.
 func get_listener_count() -> int:
-	_listeners = _listeners.filter(func(l): return is_instance_valid(l))
 	return _listeners.size()
 
 

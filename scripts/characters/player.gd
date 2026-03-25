@@ -795,11 +795,10 @@ func _shoot() -> void:
 		audio_manager.play_m16_shot(global_position)
 
 	# Emit gunshot sound for in-game sound propagation (alerts enemies)
-	# Uses weapon_loudness to determine propagation range
+	# Issue #1487: Use throttled emit_player_gunshot to limit iterations at high fire rates
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-	if sound_propagation and sound_propagation.has_method("emit_sound"):
-		# Use emit_sound with custom range for weapon-specific loudness
-		sound_propagation.emit_sound(0, global_position, 0, self, weapon_loudness)  # 0 = GUNSHOT, 0 = PLAYER
+	if sound_propagation and sound_propagation.has_method("emit_player_gunshot"):
+		sound_propagation.emit_player_gunshot(global_position, self, weapon_loudness)
 
 	# Play shell casing sound with a small delay
 	if audio_manager and audio_manager.has_method("play_shell_rifle"):

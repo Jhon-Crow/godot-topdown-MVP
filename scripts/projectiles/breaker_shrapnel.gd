@@ -147,8 +147,10 @@ func _on_body_entered(body: Node2D) -> void:
 	if body is StaticBody2D or body is TileMap:
 		if _debug:
 			FileLogger.info("[BreakerShrapnel] Hit wall at %s, destroying (no ricochet)" % global_position)
-		# Spawn wall hit effect
-		_spawn_wall_hit_effect(body)
+		# Issue #1487: Skip dust effect for shrapnel — with 5 shrapnel/detonation at 15 shots/sec,
+		# the dust pool (8 effects) is saturated instantly and most spawn calls do nothing.
+		# Removing the raycast + dust spawn saves ~75 raycasts/sec and reduces pool contention.
+		# The breaker detonation itself already spawns an explosion effect at the impact point.
 
 		# Play wall impact sound and destroy
 		var audio_manager: Node = get_node_or_null("/root/AudioManager")

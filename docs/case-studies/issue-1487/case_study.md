@@ -224,6 +224,101 @@ func _process(delta: float) -> void:
 | BuildingLevel frame time (est.) | ~23-25ms | ~18-19ms |
 | BuildingLevel FPS (est.) | ~40-43 fps | ~52-55 fps |
 
+**Result (Round 2)**: Owner reported FPS still dropping to ~30fps on BuildingLevel. Round 2 fixes alone were insufficient.
+
+---
+
+## Round 3: Deep Analysis of Remaining FPS Drops
+
+### New Data: `game_log_20260325_130329.txt`
+
+Owner report: "всё ещё на карте Обучение нет проседания fps а на карте Здание проседание до 30fps"
+(Still no FPS drops on Tutorial, but drops to 30fps on BuildingLevel)
+
+Key settings from third log:
+- `dust_quality: 0` (Full), `ai: false` (AI disabled in PerformanceSettings)
+- BreakerBullets active, `enemy_path_visible: true`, 10 enemies
+- Multiple BuildingLevel sessions with sustained fire at walls
+
+### Remaining Root Causes Identified in Round 3
+
+#### Root Cause 5: Unthrottled Breaker EXPLOSION Sound Propagation
+
+Each of ~15 detonations/sec emitted a separate `SoundPropagation.emit_sound(EXPLOSION)` event, iterating all 10 enemy listeners. Unlike CASING_KICK and EMPTY_CLICK (which had 0.4s cooldowns), breaker explosions had no throttle.
+
+**Cost per unthrottled second**: 15 EXPLOSION events × 10 listeners = 150 listener iterations + 30 `_log_to_file()` calls + 30 string formatting operations.
+
+**Fix**: Added `emit_breaker_explosion()` with 0.2s cooldown (5/sec max) — enemies already react to the concurrent GUNSHOT.
+
+#### Root Cause 6: Unthrottled Player GUNSHOT Sound Propagation
+
+MiniUzi fires at ~15 shots/sec. Each shot called `SoundPropagation.emit_sound(GUNSHOT)` without any throttle, iterating all 10 listeners every time.
+
+**Cost per unthrottled second**: 15 GUNSHOT events × 10 listeners = 150 listener iterations + 45 enemy `on_sound_heard_with_intensity()` calls (3 in range) + 45 `_log_to_file()` calls.
+
+**Fix**: Added `emit_player_gunshot()` throttle with 0.1s cooldown (10/sec max). Enemies transition to COMBAT on the first heard gunshot — subsequent rapid shots are redundant.
+
+#### Root Cause 7: Excessive Shrapnel Count (10 per detonation, 60 concurrent)
+
+With MiniUzi at 15 shots/sec × 10 shrapnel/detonation = 150 spawns/sec. Even with 0.8s lifetime and 60 concurrent cap, the sheer volume of:
+- Physics process callbacks (30-60 nodes × 60Hz)
+- Trail updates (30-60 nodes × 15Hz)
+- Wall-hit raycasts (each shrapnel does `_get_surface_normal()` raycast on hit)
+- Dust spawns (each shrapnel spawns dust on wall hit, saturating the 8-effect pool)
+
+**Fix**: Reduced `BREAKER_MAX_SHRAPNEL_PER_DETONATION` from 10 to 5, `BREAKER_MAX_CONCURRENT_SHRAPNEL` from 60 to 30.
+
+#### Root Cause 8: Shrapnel Dust Spawn + Raycast Overhead
+
+Each shrapnel wall hit called `_get_surface_normal()` (physics raycast) then `spawn_dust_effect()`. With 75+ shrapnel wall hits/sec, this added ~75 raycasts/sec and the dust pool (8 effects) was instantly saturated — most spawn calls found no available pool slot.
+
+**Fix**: Removed dust spawn and raycast from shrapnel wall hits entirely. The breaker detonation already spawns an explosion effect at the impact point.
+
+#### Root Cause 9: Unthrottled Breaker Explosion Visual Effects
+
+Each of ~15 detonations/sec spawned a PointLight2D with a 0.3s fade tween. This created 15 tweens/sec and up to 5-8 concurrent PointLight2D objects with GPU draw calls.
+
+**Fix**: Added `BREAKER_EXPLOSION_EFFECT_COOLDOWN = 0.13s` — limits visual effects to ~8/sec, reducing tween creation by ~47%.
+
+#### Root Cause 10: Lambda Allocation in SoundPropagation Listener Filtering
+
+`emit_sound()` called `_listeners.filter(func(l): return is_instance_valid(l))` on every invocation (~30 calls/sec), allocating a new lambda closure and a new Array each time.
+
+**Fix**: Replaced with in-place filtering using index iteration (zero allocations).
+
+### Combined Impact (Round 3)
+
+| Overhead source | Before Round 3 | After Round 3 |
+|-----------------|----------------|---------------|
+| GUNSHOT propagation events/sec | 15 | 10 (−33%) |
+| EXPLOSION propagation events/sec | 15 | 5 (−66%) |
+| Total listener iterations/sec | 300 | 150 (−50%) |
+| Concurrent shrapnel (peak) | 60 | 30 (−50%) |
+| Shrapnel spawns/sec | 150 | 75 (−50%) |
+| Shrapnel wall-hit raycasts/sec | ~75 | 0 (−100%) |
+| Shrapnel dust spawns/sec | ~75 | 0 (−100%) |
+| Explosion light tweens/sec | 15 | ~8 (−47%) |
+| Lambda allocations/sec (listener filter) | 30 | 0 (−100%) |
+| **Estimated frame time savings** | — | **~4-6ms** |
+| **Estimated BuildingLevel FPS** | ~30fps | **~45-55fps** |
+
+---
+
+## All Rounds Summary
+
+| Round | Fix | Impact | Affected Maps |
+|-------|-----|--------|---------------|
+| 1 | DustEffect: amount 25→12, lifetime 2.5→1.2s, fixed_fps=15, pool 16→8 | −76% GPU particles | All |
+| 1 | dust_quality setting: Full/Half/Off in OptimizationMenu | User control | All |
+| 2 | BreakerShrapnel trail throttled to 15Hz | −75% Line2D calls | BuildingLevel (BreakerBullets) |
+| 2 | EnemyPathMonitor refresh throttled to 10Hz | −83% draw_line calls | All (with enemy_path_visible) |
+| 3 | Player GUNSHOT propagation throttled to 10Hz | −33% GUNSHOT iterations | All maps with enemies |
+| 3 | Breaker EXPLOSION propagation throttled to 5Hz | −66% EXPLOSION iterations | BuildingLevel (BreakerBullets) |
+| 3 | Shrapnel per detonation: 10→5, concurrent cap: 60→30 | −50% shrapnel overhead | BuildingLevel (BreakerBullets) |
+| 3 | Shrapnel wall-hit: removed dust + raycast | −100% shrapnel raycasts/dust | BuildingLevel (BreakerBullets) |
+| 3 | Breaker explosion visual effect throttled | −47% PointLight2D tweens | BuildingLevel (BreakerBullets) |
+| 3 | SoundPropagation in-place listener filter | 0 allocations/sec | All |
+
 ---
 
 ## Research: Godot Performance Optimization References

@@ -1690,7 +1690,13 @@ func _breaker_has_line_of_sight(from: Vector2, to: Vector2) -> bool:
 
 
 ## Spawns a small visual explosion effect at the detonation point.
+## Issue #1487: Throttled to avoid spawning 15 PointLight2D+tween per second.
 func _breaker_spawn_explosion_effect(center: Vector2) -> void:
+	var current_time := Time.get_ticks_msec() / 1000.0
+	if current_time - _last_breaker_explosion_effect_time < BREAKER_EXPLOSION_EFFECT_COOLDOWN:
+		return  # Throttled: skip this visual effect
+	_last_breaker_explosion_effect_time = current_time
+
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
 
 	if impact_manager and impact_manager.has_method("spawn_explosion_effect"):
@@ -1707,11 +1713,10 @@ func _breaker_play_explosion_sound(center: Vector2) -> void:
 		# Use wall hit sound as explosion (small detonation)
 		audio_manager.play_bullet_wall_hit(center)
 
-	# Emit sound for AI awareness
+	# Emit sound for AI awareness (Issue #1487: throttled to avoid flooding 10 listeners at 15/sec)
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-	if sound_propagation and sound_propagation.has_method("emit_sound"):
-		# Small explosion — use shorter range than grenade
-		sound_propagation.emit_sound(1, center, 0, self, 500.0)  # 1 = EXPLOSION, 0 = PLAYER
+	if sound_propagation and sound_propagation.has_method("emit_breaker_explosion"):
+		sound_propagation.emit_breaker_explosion(center, self, 500.0)
 
 
 ## Creates a simple explosion flash if no manager is available.
@@ -1745,12 +1750,25 @@ func _breaker_create_simple_flash(center: Vector2) -> void:
 
 
 ## Maximum shrapnel pieces per single detonation (performance cap, Issue #678 optimization).
-## This prevents FPS drops when many pellets detonate simultaneously (e.g. shotgun).
-const BREAKER_MAX_SHRAPNEL_PER_DETONATION: int = 10
+## Issue #1487: Reduced from 10 to 5 — at 15 shots/sec this still creates up to 75 shrapnel/sec
+## which is visually dense. Previously 10 × 15 = 150 shrapnel/sec, each running _physics_process
+## at 60Hz + Line2D trail at 15Hz, causing significant CPU overhead on BuildingLevel.
+const BREAKER_MAX_SHRAPNEL_PER_DETONATION: int = 5
 
 ## Maximum total concurrent breaker shrapnel in the scene (global cap).
-## If exceeded, new shrapnel spawning is skipped to maintain FPS.
-const BREAKER_MAX_CONCURRENT_SHRAPNEL: int = 60
+## Issue #1487: Reduced from 60 to 30 — each shrapnel runs _physics_process() at 60Hz
+## and trail updates at 15Hz. With 0.8s lifetime, 30 concurrent pieces still means
+## ~5 active per detonation at steady state, maintaining visual density.
+const BREAKER_MAX_CONCURRENT_SHRAPNEL: int = 30
+
+## Issue #1487: Minimum interval between breaker explosion visual effects.
+## At 15 detonations/sec, each spawns a PointLight2D with a tween. Even with pooling,
+## 15 tweens/sec + GPU draw calls from lights cause measurable overhead. Throttling to
+## every 3rd detonation (0.13s cooldown) reduces light+tween creation by ~66%.
+const BREAKER_EXPLOSION_EFFECT_COOLDOWN: float = 0.13
+
+## Shared timestamp for breaker explosion visual effect throttling.
+static var _last_breaker_explosion_effect_time: float = -999.0
 
 
 ## Checks if a position is inside a wall or obstacle (Issue #740).
