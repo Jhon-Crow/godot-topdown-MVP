@@ -78,3 +78,75 @@ This makes the drone overshoot on corners, creating the "заносит при �
 
 - `test_drone_component.gd`: 28 test cases covering constants, states, damage, combat transition, drift physics, explosion
 - `test_drone.gd`: 14 test cases covering visuals, groups, states, combat LED color, rotor speed in combat
+
+---
+
+# Post-Implementation Investigation: Drone AI Still Inactive (Sessions 2 & 3)
+
+## New Evidence (game_log_20260325_064620.txt)
+
+After the "Fix drone AI inactivity and damage immunity" commit was deployed, the user reported:
+> "у дрона всё ещё нет ии (но теперь он получает урон и убивается, хорошо)"
+> (drone still has no AI, but now takes damage and dies, good progress)
+
+### Session 3 Log Analysis
+
+Pattern in session 3 log (2026-03-25 06:46):
+```
+[Drone] WARNING: DroneComponent cast returned null (node=true)
+[Drone] Visual setup complete (quadcopter style, LED=green/searching)
+[DroneOperator] WARNING: DroneComponent not found on drone, using fallback signals
+```
+
+**Critical observation**: `DroneComponent._ready()` is NEVER called. Across all 3 sessions
+and all code versions (original, duck-typing, typed-cast), `_ready()` in `drone_component.gd`
+has never executed.
+
+## Root Cause: GDScript class_name Cross-Script Dependency (Static Reference)
+
+The actual root cause was identified in `drone.gd` line 32:
+```gdscript
+var _fallback_hp: int = DroneComponent.DRONE_HP  # Accesses const at class parse time!
+```
+
+And line 28:
+```gdscript
+var _drone_component: DroneComponent = null  # Typed var using class_name
+```
+
+In Godot 4 exported builds, class_name registration happens when scripts are parsed. The
+**order** scripts are parsed depends on the export process. When `drone.gd` is parsed and
+references `DroneComponent.DRONE_HP` as a class-level variable initializer, Godot must
+resolve `DroneComponent` at parse time. If `drone_component.gd` hasn't been compiled yet,
+this fails silently — leaving the drone scene in a broken state where:
+- `drone.gd`'s `_ready()` runs (enough to show the visual)
+- `drone_component.gd`'s `_ready()` is never called (script attached to node doesn't execute)
+
+### Why the Editor Didn't Show This
+
+In the Godot editor, all scripts are pre-compiled and class_names are pre-registered in the
+project cache. The issue only manifests in **exported builds** where script compilation order
+is not guaranteed to match the editor's order.
+
+### Evidence from Git History
+
+Commit `a189214a` (the duck-typing fix attempt) changed `drone.gd` to use duck typing but
+did NOT remove `var _fallback_hp: int = DroneComponent.DRONE_HP` — the static reference
+remained. Session 2's log confirms the AI was still broken after that fix.
+
+## Final Fix Applied
+
+Merged all DroneComponent AI logic directly into `drone.gd`, eliminating the cross-script
+class_name dependency. This follows the same pattern as `enemy.gd` (~5000 lines, single file).
+
+Key changes in final fix:
+- `drone.gd`: All AI state logic (SEARCHING/COMBAT) merged in, no `DroneComponent` references
+- `drone_component.gd`: Kept as minimal stub with `class_name DroneComponent` for backwards
+  compatibility with DroneOperatorComponent (future refactor can remove it)
+- `drone_operator_component.gd`: Uses duck typing / `has_method()` instead of typed cast
+
+## Archived Logs
+
+- `game_log_20260324_145336.txt` — Session 1: drone inactive, no damage
+- `game_log_20260324_182702.txt` — Session 2: drone inactive, no damage (duck typing attempted)
+- `game_log_20260325_064620.txt` — Session 3: drone inactive, damage now works
