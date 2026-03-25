@@ -997,16 +997,18 @@ occluder = SubResource("O_pipe_h")
 [node name="Enemies" type="Node2D" parent="Environment"]
 
 [node name="Corridor1Guard" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(200, 2950)
+position = Vector2(200, 2750)
 behavior_mode = 1
+has_swat_shield = true
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
 [node name="Room1Guard" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(390, 2700)
+position = Vector2(390, 2500)
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(40, 0), Vector2(-40, 0)])
+has_swat_shield = true
 destroy_on_death = true
 enable_flanking = false
 enable_cover = true
@@ -1014,6 +1016,7 @@ enable_cover = true
 [node name="Corridor2Guard" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(200, 2500)
 behavior_mode = 1
+is_gas_mask = true
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -1066,6 +1069,14 @@ enable_cover = true
 position = Vector2(1850, 1731)
 behavior_mode = 1
 weapon_type = 1
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="ExitRoomMachineGunner" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(2000, 1450)
+behavior_mode = 1
+weapon_type = 6
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -1134,7 +1145,7 @@ offset_left = 10.0
 offset_top = 10.0
 offset_right = 200.0
 offset_bottom = 40.0
-text = "Enemies: 11"
+text = "Enemies: 12"
 
 [node name="AmmoLabel" type="Label" parent="CanvasLayer/UI"]
 layout_mode = 0
