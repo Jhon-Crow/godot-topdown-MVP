@@ -97,9 +97,10 @@ func _setup_exit_zone() -> void:
 		push_warning("ExitZone scene not found")
 		return
 	_exit_zone = exit_zone_scene.instantiate()
-	# Exit at top center-right (sunlight direction)
+	# Exit at top center-right — the gap in WallTop is x=2000..2400, centered at x=2200
+	# Position the zone at the entrance to the opening so player can walk into it
 	_exit_zone.position = Vector2(2200, 120)
-	_exit_zone.zone_width = 80.0; _exit_zone.zone_height = 60.0
+	_exit_zone.zone_width = 380.0; _exit_zone.zone_height = 120.0
 	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
 	var environment := get_node_or_null("Environment")
 	if environment: environment.add_child(_exit_zone)
@@ -198,12 +199,27 @@ func _setup_navigation() -> void:
 	nav_region.emit_signal("bake_finished")
 
 
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		return
+	# Map is 4000x4000 — remove default camera limits so player is visible at y=3100+
+	camera.limit_left = -10000000
+	camera.limit_top = -10000000
+	camera.limit_right = 10000000
+	camera.limit_bottom = 10000000
+	print("[RailwayStationLevel] Camera limits removed for 4000x4000 map")
+
+
 func _setup_player_tracking() -> void:
 	_player = get_node_or_null("Entities/Player")
 	if _player == null:
 		push_warning("Player node not found")
 		return
 
+	_configure_camera()
 	_setup_realistic_visibility()
 	_setup_selected_weapon()
 
