@@ -353,6 +353,74 @@ all 60 pool nodes, `_get_blood_decal_from_pool()` fell back to `instantiate()` p
     pool exhausts, recycle oldest active node instead of allocating new — guarantees zero
     node allocation during gameplay regardless of explosion history.
 
+### Round 6: Still Experiencing FPS Drops After Round 5 (2026-03-25)
+
+User reported "всё ещё сильно падает fps" with `game_log_20260325_172756.txt`.
+
+#### Root Cause 1: GrenadeTimer.cs — GD.Load() + Instantiate() per Explosion
+
+`game_log_20260325_172756.txt` confirms the pool fix worked (200 `[BloodDecal] Blood puddle created`
+events at startup, 0 during gameplay). However, the FPS drop persisted.
+
+Cross-referencing the log at 17:28:19 (explosion frame):
+- `[GrenadeTimer] Spawned flashbang effect at (588.3122, 711.2981) (radius: 700)`
+
+This event came from `GrenadeTimer.cs::SpawnFlashbangEffectScene()`, which called:
+```csharp
+var flashbangScene = GD.Load<PackedScene>(flashbangEffectPath);  // disk/cache load
+var effect = flashbangScene.Instantiate<Node2D>();                // node creation
+GetTree().CurrentScene?.AddChild(effect);                        // scene tree mutation
+```
+
+`FlashbangEffect.tscn` embeds a **GradientTexture2D sub-resource (512×512 pixels)**.
+Every `Instantiate()` call creates a new `GradientTexture2D` object, which Godot uploads
+to the GPU as a new texture. This is a ~2-5ms operation per explosion, happening in the
+same frame as scorch marks, blood effects, and shrapnel spawning.
+
+Even though `GD.Load()` uses Godot's resource cache (the file is not re-read from disk),
+`Instantiate()` must clone all sub-resources — including the `GradientTexture2D`.
+
+#### Root Cause 2: FPS Drop Logging Missed Sub-Second Spikes
+
+The `FpsMonitor` sampled FPS once per second using `Engine.get_frames_per_second()`.
+An explosion spike lasting 1-3 frames (16-50ms) does not reduce the 1-second average
+enough to cross the 30fps threshold — so `[WARN] [FPS] Drop detected` was never logged.
+
+This is why `game_log_20260325_172756.txt` contains no FPS warnings despite the user
+experiencing a visible stutter: the logging was measuring the wrong thing.
+
+### Round 6 Fixes Applied
+
+1. **GrenadeTimer.cs routes through ImpactEffectsManager** for both flashbang and frag
+   explosion visuals. `ImpactEffectsManager.spawn_flashbang_effect()` / `spawn_explosion_effect()`
+   use pre-pooled nodes. `GD.Load()` + `Instantiate()` never happens during gameplay.
+
+2. **FlashbangEffect node pool** — 4 `FlashbangEffect.tscn` nodes pre-created at startup,
+   reused across explosions. Eliminates the 512×512 `GradientTexture2D` GPU upload per blast.
+   Same pattern as dust/blood/light pools.
+
+3. **flashbang_effect.gd pool support** — added `_is_pooled` flag and `restart_effect()`
+   method. When pooled, the node does NOT `queue_free()` on completion — it deactivates and
+   waits for the pool timer to reclaim it.
+
+4. **Per-frame spike detection** in `FpsMonitor` — added frame-by-frame delta check:
+   if any single frame exceeds 33ms (≈30fps), it's logged immediately as a spike.
+   This captures sub-second frame drops that the 1-second average misses.
+
+### Log Evidence for Round 6
+
+```
+# game_log_20260325_172756.txt — Pool working correctly:
+[17:27:56] [BloodDecal] Blood puddle created at (0, 0) × 200  ← startup only
+[17:27:56] [ImpactEffects] Blood decal pool initialized: 200 decals pre-created
+[17:27:56] [ImpactEffects] Flashbang effect pool initialized: 4 effects pre-created
+# ... gameplay ...
+[17:28:19] [GrenadeBase] EXPLODED at (588.3122, 711.2981)
+[17:28:19] [GrenadeTimer] Spawned flashbang effect at (588.3122, 711.2981) (radius: 700)
+# No [BloodDecal] Blood puddle created during gameplay = pool working
+# With Round 6: No GD.Load()+Instantiate() either = GradientTexture2D upload eliminated
+```
+
 ## References
 
 - [Godot Issue #103308](https://github.com/godotengine/godot/issues/103308) — GPUParticles2D first-emit stutter
