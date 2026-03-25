@@ -2,7 +2,7 @@
 
 **Issue:** #1457 — fix враг не может обогнуть препятствие
 **PR:** #1477
-**Status:** Investigation Ongoing — second log confirms partial fix, deeper root cause found
+**Status:** Fix v4 implemented — four improvements over v3 (larger impulse, 8-dir probe, nav reset, separation skip)
 **Analyst:** konard (AI)
 **Date:** 2026-03-24, updated 2026-03-25
 
@@ -313,3 +313,62 @@ After the impulse, normal pursuit resumes. The enemy has cleared the corner vert
 
 - `docs/case-studies/issue-1457/game_log_20260325_044538.txt` — Enemy2 stuck at (492,663)
 - `docs/case-studies/issue-1457/game_log_20260325_044618.txt` — Enemy7 stuck at (1770,824), Enemy10 stuck at (1121,1693)
+
+---
+
+## 10. Fourth Evidence Log Analysis (game_log_20260325_051623.txt)
+
+**Owner comment (2026-03-25 09:01):** "проблема сохранилась, возможно есть какая то сила трения между врагом и стеной?" = "the problem persists, maybe there's some friction force between the enemy and the wall?"
+
+### 10.1 What the Log Shows
+
+The v3 fix (0.35s escape impulse at 200px/s) fires correctly:
+- Enemy2 stuck #1 at (488.6, 663.9) → impulse dir=(0, -1) → fires 0.35s
+- Enemy6 stuck #1 at (1767.5, 571.7) → impulse dir=(0.996, -0.089) → fires 0.35s
+- Enemy7 stuck #1 at (1759.8, 830.4) → impulse dir=(-0.001, 0.999) → fires 0.35s
+- **Enemy7 stuck #2 at (1766.0, 829.1)** → escalates to FLANKING ← **SAME CORNER, 2 seconds later**
+- Enemy10 stuck #1 at (1279.3, 1696.4) → impulse fires
+- Enemy10 stuck #2 at (1279.1, 1688.6) → escalates to FLANKING ← **SAME CORNER, 2 seconds later**
+- Enemy9 stuck #1 at (1763.8, 825.7) → impulse fires 0.35s
+- Enemy7 (respawn) stuck #1 at (1767.5, 571.7) → impulse fires
+
+### 10.2 Root Cause v4: Three Compounding Problems
+
+**Problem 1 — Impulse fires but enemy returns to same corner**
+After the 0.35s impulse ends, the code does NOT reset `_has_pursuit_cover`. The enemy still holds the original cover target, and the nav system routes back through the same corner, getting stuck again within 1.5s.
+
+Enemy7 stuck at (1759, 830) → impulse direction (0, +1) = south → moves south for 0.35s → nav says "continue to pursuit cover target" → nav path goes through same corner → stuck again at (1766, 829).
+
+**Problem 2 — Impulse direction wrong/suboptimal**
+At the moment "stuck" fires, `get_slide_collision_count()` returns 0 (body is stationary, no active slide frame). Fallback uses `_corner_check_angle` which is the last perpendicular opening direction — this can be the correct direction, but it's stale (may point to a direction that worked before but not for the current position).
+
+For a wedge at (1759, 830), the perpendicular opening was east (90°) = Vector2.from_angle(1.5708) = (0, 1) = south (Godot's Y-axis is DOWN). This moved the enemy south, not east as intended. The confusion is that Godot's `Vector2.from_angle(angle)` uses standard math angles where 0 = right (+X), 90° = down (+Y in screen space), not the visual "east".
+
+**Problem 3 — Separation force overrides escape velocity**
+The escape impulse sets `velocity = dir * 300` but then `_apply_separation_force()` runs at line 928, adding the separation force from nearby enemies. This can deflect or reduce the escape velocity, causing the impulse to travel less distance than expected.
+
+### 10.3 User Insight: "Friction"
+
+The owner asks if there's "friction" between the enemy and the wall. This is physically accurate:
+- Godot's `CharacterBody2D.move_and_slide()` has a `wall_min_slide_angle` property (default ~15°) below which the body is blocked instead of sliding
+- At a convex inner corner, the angle between the two wall normals is ~90°. The body's velocity vector can land in the "blocked" zone of both walls simultaneously
+- The result is equivalent to high friction — the character sticks at the exact corner vertex
+- This is a known Godot engine bug: [#109926](https://github.com/godotengine/godot/issues/109926), [#50062](https://github.com/godotengine/godot/issues/50062)
+
+### 10.4 Fix v4: Four Improvements
+
+1. **Larger escape** — `PURSUING_CORNER_ESCAPE_DURATION: 0.35 → 0.5s`, `PURSUING_CORNER_ESCAPE_SPEED: 200 → 300 px/s` — total movement: 70px → 150px, reliably clears the corner vertex
+
+2. **Better escape direction** — When slide collisions = 0 (stationary), probe 8 directions with `move_and_collide(dir * 4.0, true)` to find the direction with most clearance. This proactively finds the clearest path rather than relying on stale angle data.
+
+3. **Post-impulse nav reset** — When the escape timer expires, clear `_has_pursuit_cover = false` and reset the stuck timer. This forces the enemy to find a fresh cover route that may avoid the problematic corner.
+
+4. **Separation force skip** — During corner escape impulse, skip `_apply_separation_force()` so nearby enemies don't deflect the escape direction.
+
+### 10.5 Expected Result
+
+After fix v4: Enemy gets wedged → stuck fires after 1.5s → probes 8 directions → finds clearest direction (away from wedge) → moves 150px clear → nav recalculates fresh route that may avoid the corner → if still stuck, escalates to FLANKING. No more immediate re-wedging at the same corner.
+
+### 10.6 New Log Saved
+
+- `docs/case-studies/issue-1457/game_log_20260325_051623.txt` — Post-v3 logs showing re-wedging pattern
