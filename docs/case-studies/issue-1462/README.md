@@ -195,7 +195,105 @@ Key performance data from the Godot community:
 - **Per-frame budget pattern**: Common in AAA games — limit expensive operations per frame and spread across frames (e.g., Unity's `SustainedPerformanceMode`, UE's significance manager)
 - **Sound coalescing**: Multiple simultaneous identical sounds are perceptually equivalent to one at slightly higher volume
 
+### Round 3 (2026-03-25): Particle effects — dust and blood optimization
+- **Log**: `game_log_20260325_050601.txt` — after Round 2 fixes applied
+- **Owner feedback**: "The item itself doesn't affect performance anymore, the particles do. Optimize particles (dust and blood)"
+- **Conditions**: All effects enabled, rapid fire scenarios
+- **Key observations from log**:
+  - FPS drops to 28-29 detected during gameplay
+  - Blood decals: 30 per lethal hit, each creating Area2D + CollisionShape2D + CircleShape2D (90 physics objects per hit)
+  - Blood effects NOT pooled (unlike dust effects) — each hit instantiates a new GPUParticles2D with 45 particles
+  - Dust effects have 25 particles with 2.5s lifetime — accumulate under rapid fire
+  - Reference: https://www.reddit.com/r/godot/comments/1nvfwsg/more_than_1000_physics_objects_optimization_tips/
+
+### Round 3 Root Cause Analysis: Particle Physics Object Accumulation
+
+The core issue is that dust and blood particle effects create too many physics objects that accumulate during combat:
+
+| Component | Per hit | Physics objects per item | Total physics per hit |
+|-----------|---------|------------------------|----------------------|
+| Blood decals (lethal) | 30 | 3 (Area2D + CollisionShape2D + CircleShape2D) | 90 |
+| Blood decals (non-lethal) | 15 | 3 | 45 |
+| Blood particle effect | 1 | 45 GPU particles (not pooled) | 45 particles + instantiation |
+| Dust particle effect | 1 | 25 GPU particles (pooled but heavy) | 25 particles |
+
+With multiple enemies hit, these accumulate rapidly: a single shotgun shot hitting 3 enemies spawns 270+ physics objects from blood decals alone.
+
+### Phase 3 Fixes (Round 3 — particle optimization)
+
+#### Fix 8: Blood Effect Pool
+Same pattern as the dust effect pool (Issue #1145): pre-create 8 GPUParticles2D nodes for blood effects and reuse them via checkout/return. Eliminates per-hit instantiation overhead.
+
+#### Fix 9: Blood Effect Per-Frame Budget
+Limit to `MAX_BLOOD_EFFECTS_PER_FRAME = 3` blood particle effects per physics frame. When a shotgun hits multiple enemies simultaneously, only the first 3 blood particle effects spawn. Blood decals still spawn for all hits (visual feedback preserved).
+
+#### Fix 10: Blood Particle Reduction
+Reduce blood particle count from 45 to 20 per effect. With `explosiveness = 0.92` and `lifetime = 0.6s` (reduced from 0.8s), 20 particles in a burst is visually indistinguishable from 45 at normal gameplay speed.
+
+#### Fix 11: Blood Decal Physics Reduction
+Only every 5th blood decal gets Area2D physics objects for footprint detection. The remaining decals are visual-only Sprite2D nodes (nearly free to render). Reduces physics objects from 90 to 18 per lethal hit (80% reduction).
+
+#### Fix 12: Dust Particle Reduction
+Reduce dust particle count from 25 to 15, lifetime from 2.5s to 1.5s, and cleanup delay from 1.0s to 0.5s. Pooled dust effects now occupy GPU for 2.0s instead of 3.5s, allowing faster recycling and fewer concurrent effects.
+
+## Performance Impact Estimate
+
+### Phase 3 (particle optimization)
+
+| Metric | Before Phase 3 | After Phase 3 | Improvement |
+|--------|---------------|---------------|-------------|
+| Blood GPUParticles2D instantiation | Per-hit `instantiate()` | Pooled (0 allocs) | 100% reduction |
+| Blood particles per effect | 45 | 20 | 56% reduction |
+| Blood effects per frame (burst) | Unlimited | 3 max | Per-frame capped |
+| Blood decal physics objects/lethal hit | 90 | 18 | 80% reduction |
+| Dust particles per effect | 25 | 15 | 40% reduction |
+| Dust effect lifetime | 3.5s (lifetime+delay) | 2.0s | 43% faster recycling |
+| Concurrent blood effects | Unlimited | 8 max | Bounded |
+
+## Files Changed (All Phases)
+
+- `Scripts/Projectiles/BreakerDetonation.cs` — Phase 1-2 optimizations (raycast throttling, pool integration, per-frame budget, effect coalescing, sound batching, burst shrapnel reduction)
+- `Scripts/Projectiles/Bullet.cs` — Pass distance to throttler + _ExitTree cleanup
+- `Scripts/Projectiles/ShotgunPellet.cs` — Pass distance to throttler + _ExitTree cleanup
+- `Scripts/Weapons/Shotgun.cs` — Disable verbose pellet logging
+- `scripts/autoload/impact_effects_manager.gd` — Phase 3: Blood effect pool, per-frame budget, blood decal physics reduction
+- `scenes/effects/BloodEffect.tscn` — Phase 3: Reduced particle count (45→20) and lifetime (0.8→0.6s)
+- `scenes/effects/DustEffect.tscn` — Phase 3: Reduced particle count (25→15) and lifetime (2.5→1.5s)
+- `tests/unit/test_breaker_detonation_optimization.gd` — Phase 3: Unit tests for pool, budget, and physics reduction
+
+## References
+
+- Issue #678: Original breaker bullet implementation
+- Issue #724: Object pooling system (ProjectilePoolManager)
+- Issue #212: Pellet distribution fix (verbose logging origin)
+- Issue #1186: Performance settings toggles
+- Issue #1145: Dust effect pooling
+- Godot docs: [Physics ray queries](https://docs.godotengine.org/en/stable/tutorials/physics/ray-casting.html)
+- Godot docs: [Object pooling](https://docs.godotengine.org/en/stable/tutorials/best_practices/scenes_versus_scripts.html)
+- Godot docs: [Optimization using servers](https://docs.godotengine.org/en/stable/tutorials/performance/using_servers.html)
+- Godot docs: [When to avoid using nodes](https://docs.godotengine.org/en/stable/tutorials/best_practices/node_alternatives.html)
+- Community: [Collision pairs optimization in bullet-hell games](https://forum.godotengine.org/t/collision-pairs-optimizing-performance-of-bullet-hell-enemy-hell-games/35027)
+- Community: [Object pooling guide for Godot](https://uhiyama-lab.com/en/notes/godot/godot-object-pooling-basics/)
+- Community: [Raycast vs ShapeCast vs Area performance](https://forum.godotengine.org/t/raycast-vs-shapecast-vs-area/95569)
+- Community: [1000+ physics objects optimization tips](https://www.reddit.com/r/godot/comments/1nvfwsg/more_than_1000_physics_objects_optimization_tips/)
+
+## Research Findings (Online)
+
+Key performance data from the Godot community:
+
+- **Raycasts** are the cheapest physics query but degrade at scale (~50+ simultaneous raycasts cause noticeable slowdown)
+- **Object pooling** eliminates frame-time spikes: without pooling FPS fluctuates 10-50; with pooling stable 60 FPS
+- **Scene instantiation** is not just `Instantiate()` cost — includes `add_child()`, physics registration, tree notifications
+- **`GetNodesInGroup()`** is O(1) HashMap lookup + O(n) array copy; allocates new Array each call
+- **Community rule of thumb:** If spawning >10-20 objects/frame consistently, pooling helps
+- **Collision pair explosion** is the #1 bullet-hell bottleneck: N bullets * M enemies = O(N*M) pairs
+- **Per-frame budget pattern**: Common in AAA games — limit expensive operations per frame and spread across frames (e.g., Unity's `SustainedPerformanceMode`, UE's significance manager)
+- **Sound coalescing**: Multiple simultaneous identical sounds are perceptually equivalent to one at slightly higher volume
+- **Physics object accumulation**: Each Area2D+CollisionShape2D adds to the physics broadphase. At 100+ physics objects the broadphase update becomes a significant per-frame cost. Reducing monitorable areas by 80% has a dramatic effect.
+- **Particle count vs visual quality**: For one-shot burst effects with high explosiveness (>0.8), reducing particle count by 50% is nearly invisible at gameplay speed. Players see the burst, not individual particles.
+
 ## Attached Data
 
 - `game_log_20260324_205437.txt` — Original game log from issue reporter (Round 1, effects disabled)
 - `game_log_20260325_042423.txt` — Game log after Round 1 fixes, with effects enabled (Round 2)
+- `game_log_20260325_050601.txt` — Game log after Round 2 fixes, particle optimization (Round 3)

@@ -32,11 +32,11 @@ color = Color(0.75, 0.08, 0.05, 1)
 [node name="BloodEffect" type="GPUParticles2D"]
 z_index = 2
 emitting = false
-amount = 45
+amount = 20
 process_material = SubResource("ParticleProcessMaterial_blood")
 texture = SubResource("GradientTexture2D_blood")
-lifetime = 0.8
+lifetime = 0.6
 one_shot = true
 explosiveness = 0.92
 script = ExtResource("1_effect_cleanup")
-cleanup_delay = 0.3
+cleanup_delay = 0.2

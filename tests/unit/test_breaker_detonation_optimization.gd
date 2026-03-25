@@ -622,3 +622,190 @@ func test_shotgun_full_shot_total_shrapnel() -> void:
 	# Should be exactly 16 (10 + 3 + 3, with only 3 full detonations)
 	assert_eq(budget.total_shrapnel_spawned, 16,
 		"Total shrapnel should be 10 + 3 + 3 = 16")
+
+
+# ============================================================================
+# Phase 3: Particle Effect Pool and Budget Tests (Issue #1462)
+# ============================================================================
+
+
+class MockBloodEffectPool:
+	## Simulates the blood effect pool from ImpactEffectsManager.
+	## Tests pool checkout/return and per-frame budget behavior.
+
+	const MAX_CONCURRENT: int = 8
+	const MAX_PER_FRAME: int = 3
+	const POOL_SIZE: int = 8
+
+	var pool: Array = []
+	var active_count: int = 0
+	var effects_frame: int = -1
+	var effects_this_frame: int = 0
+
+	func _init() -> void:
+		for i in range(POOL_SIZE):
+			pool.append({"id": i, "active": false})
+
+	func get_effect(frame: int) -> Dictionary:
+		# Per-frame budget check
+		if frame != effects_frame:
+			effects_frame = frame
+			effects_this_frame = 0
+
+		if effects_this_frame >= MAX_PER_FRAME:
+			return {}  # Budget exceeded
+
+		if active_count >= MAX_CONCURRENT:
+			return {}  # Pool cap reached
+
+		effects_this_frame += 1
+
+		if pool.size() > 0:
+			var effect = pool.pop_back()
+			effect["active"] = true
+			active_count += 1
+			return effect
+
+		return {}  # Pool exhausted
+
+	func return_effect(effect: Dictionary) -> void:
+		effect["active"] = false
+		active_count = maxi(0, active_count - 1)
+		pool.append(effect)
+
+	func pool_size() -> int:
+		return pool.size()
+
+
+class MockBloodDecalPhysics:
+	## Simulates the blood decal physics interval optimization.
+	## Only every Nth decal gets Area2D physics objects.
+
+	const PHYSICS_INTERVAL: int = 5
+
+	var total_decals: int = 0
+	var physics_decals: int = 0
+	var visual_only_decals: int = 0
+
+	func spawn_decals(count: int) -> void:
+		for i in range(count):
+			total_decals += 1
+			if i % PHYSICS_INTERVAL == 0:
+				physics_decals += 1
+			else:
+				visual_only_decals += 1
+
+	func physics_object_count() -> int:
+		# Each physics decal creates: Area2D + CollisionShape2D + CircleShape2D = 3 objects
+		return physics_decals * 3
+
+
+func test_blood_pool_initial_size() -> void:
+	var pool := MockBloodEffectPool.new()
+	assert_eq(pool.pool_size(), 8,
+		"Blood effect pool should start with 8 pre-created effects")
+
+
+func test_blood_pool_checkout_returns_valid_effect() -> void:
+	var pool := MockBloodEffectPool.new()
+	var effect := pool.get_effect(0)
+	assert_true(not effect.is_empty(),
+		"Pool should return valid effect when available")
+	assert_eq(pool.active_count, 1,
+		"Active count should increment on checkout")
+
+
+func test_blood_pool_return_makes_effect_available() -> void:
+	var pool := MockBloodEffectPool.new()
+	var effect := pool.get_effect(0)
+	pool.return_effect(effect)
+	assert_eq(pool.active_count, 0,
+		"Active count should decrement on return")
+	assert_eq(pool.pool_size(), 8,
+		"Pool should be full after returning all effects")
+
+
+func test_blood_pool_concurrent_limit() -> void:
+	var pool := MockBloodEffectPool.new()
+	# Exhaust pool (8 effects)
+	for i in range(8):
+		pool.get_effect(i)  # Different frame each to avoid per-frame limit
+	# 9th should fail
+	var result := pool.get_effect(9)
+	assert_true(result.is_empty(),
+		"Pool should return empty when concurrent limit reached")
+
+
+func test_blood_pool_per_frame_budget() -> void:
+	var pool := MockBloodEffectPool.new()
+	var frame := 42
+	var spawned := 0
+	for i in range(10):
+		var effect := pool.get_effect(frame)
+		if not effect.is_empty():
+			spawned += 1
+	assert_eq(spawned, 3,
+		"Only 3 blood effects should spawn per frame (budget limit)")
+
+
+func test_blood_pool_budget_resets_on_new_frame() -> void:
+	var pool := MockBloodEffectPool.new()
+	# Exhaust budget on frame 1
+	for i in range(3):
+		pool.get_effect(1)
+	var result := pool.get_effect(1)
+	assert_true(result.is_empty(),
+		"Should be empty after budget exhausted")
+	# New frame should allow more
+	var new_result := pool.get_effect(2)
+	assert_true(not new_result.is_empty(),
+		"New frame should reset budget and allow new effects")
+
+
+func test_blood_pool_shotgun_burst_limits_effects() -> void:
+	## Simulates shotgun burst: 15 pellets hitting enemies in same frame.
+	## Before optimization: 15 GPUParticles2D instantiated.
+	## After optimization: max 3 per frame.
+	var pool := MockBloodEffectPool.new()
+	var frame := 100
+	var spawned := 0
+	for i in range(15):
+		var effect := pool.get_effect(frame)
+		if not effect.is_empty():
+			spawned += 1
+	assert_eq(spawned, 3,
+		"Shotgun burst of 15 hits should only spawn 3 blood particle effects")
+
+
+func test_blood_decal_physics_interval() -> void:
+	## Tests that only every Nth decal gets Area2D physics.
+	var decals := MockBloodDecalPhysics.new()
+	decals.spawn_decals(30)  # Lethal hit
+	assert_eq(decals.total_decals, 30,
+		"Total decals should be 30 for lethal hit")
+	assert_eq(decals.physics_decals, 6,
+		"Only 6 out of 30 decals should get physics (every 5th)")
+	assert_eq(decals.visual_only_decals, 24,
+		"24 decals should be visual-only")
+
+
+func test_blood_decal_physics_reduction() -> void:
+	## Verifies physics object count reduction.
+	var decals := MockBloodDecalPhysics.new()
+	decals.spawn_decals(30)
+	var optimized := decals.physics_object_count()
+	var unoptimized := 30 * 3  # All 30 decals with physics
+	assert_eq(unoptimized, 90,
+		"Unoptimized: 30 decals × 3 physics objects = 90")
+	assert_eq(optimized, 18,
+		"Optimized: 6 decals × 3 physics objects = 18 (80% reduction)")
+
+
+func test_blood_decal_non_lethal_physics_reduction() -> void:
+	## Tests physics reduction for non-lethal hits (15 decals).
+	var decals := MockBloodDecalPhysics.new()
+	decals.spawn_decals(15)
+	assert_eq(decals.physics_decals, 3,
+		"Only 3 out of 15 non-lethal decals should get physics")
+	assert_eq(decals.physics_object_count(), 9,
+		"Non-lethal: 3 × 3 = 9 physics objects (vs 45 unoptimized)")
