@@ -110,8 +110,8 @@ func _setup_exit_zone() -> void:
 		push_warning("ExitZone scene not found")
 		return
 	_exit_zone = exit_zone_scene.instantiate()
-	# Exit is at the end of the right branch (X=1050, Y=1450)
-	_exit_zone.position = Vector2(1512, 2150)
+	# Exit is in Room B — the large room at the far right (X=1600-2100, Y=1362-2100)
+	_exit_zone.position = Vector2(2000, 2000)
 	_exit_zone.zone_width = 60.0
 	_exit_zone.zone_height = 60.0
 	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
