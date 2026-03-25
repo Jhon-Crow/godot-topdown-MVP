@@ -141,8 +141,8 @@ class_name dependency. This follows the same pattern as `enemy.gd` (~5000 lines,
 
 Key changes in final fix:
 - `drone.gd`: All AI state logic (SEARCHING/COMBAT) merged in, no `DroneComponent` references
-- `drone_component.gd`: Kept as minimal stub (no class_name, no active code) — legacy file
-- `Drone.tscn`: DroneComponent child node removed, class_name dependency eliminated
+- `drone_component.gd`: Kept as minimal stub with class_name (required by CI), no active code — legacy file
+- `Drone.tscn`: DroneComponent child node removed — eliminates same-scene class_name conflict
 - `drone_operator_component.gd`: Uses duck typing / `has_method()` instead of typed cast
 
 ---
@@ -200,9 +200,10 @@ In Godot 4 exported builds, when the scene is loaded, the `class_name DroneCompo
 
 ## Fix Applied (Session 5)
 
-Two changes:
-1. **Removed `DroneComponent` child node from `Drone.tscn`** — the node was unused (all logic is in drone.gd now)
-2. **Removed `class_name DroneComponent` from `drone_component.gd`** — eliminates global class registry conflict
+One change:
+1. **Removed `DroneComponent` child node from `Drone.tscn`** — the node was unused (all logic is in drone.gd now); removing it eliminates the same-scene class_name loading conflict
+
+Note: `class_name DroneComponent` is kept in `drone_component.gd` stub because the architecture CI check requires all scripts in `scripts/components/` to declare a class_name. This is safe as long as the script is not loaded as a scene child node.
 
 ## Archived Logs
 
