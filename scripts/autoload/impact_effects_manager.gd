@@ -134,6 +134,16 @@ const FLASH_TRACKING_MAX_AGE: float = 0.5
 ## Penetration hole scene.
 var _penetration_hole_scene: PackedScene = null
 
+## Issue #1460: Pending blood decal timer count to prevent timer/raycast storms.
+## With 40 shrapnel × 15 decals per hit = 600 timers created at once, each doing
+## a physics raycast when it fires. Cap pending decals to bound this cost.
+var _pending_blood_decals: int = 0
+
+## Maximum pending blood decal timers allowed at once.
+## Beyond this limit, new decals are silently dropped. At 15 decals/hit and 12
+## max concurrent blood effects, 120 pending decals covers 8 simultaneous hits.
+const MAX_PENDING_BLOOD_DECALS: int = 120
+
 ## Enable/disable debug logging for effect spawning.
 var _debug_effects: bool = false
 
@@ -693,6 +703,11 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 
 	var decals_scheduled := 0
 	for i in range(count):
+		# Issue #1460: Cap pending decal timers to prevent timer/raycast storms
+		# (40 shrapnel × 15 decals = 600 timers + raycasts without this cap)
+		if _pending_blood_decals >= MAX_PENDING_BLOOD_DECALS:
+			break
+
 		# Simulate a random particle trajectory
 		# Random angle within spread range
 		var angle_offset: float = randf_range(-spread_angle / 2.0, spread_angle / 2.0)
@@ -715,21 +730,21 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		# Schedule decal to spawn after land_time (when particle would land)
 		_schedule_delayed_decal(origin, landing_pos, decal_rotation, decal_scale, land_time)
 		decals_scheduled += 1
-
-	# Log scheduled count unconditionally (matches Feb 16 backup behavior, enables log verification)
-	_log_info("Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
 	if _debug_effects:
 		print("[ImpactEffectsManager] Blood decals scheduled: ", decals_scheduled)
 
 
 ## Schedules a single blood decal to spawn after a delay, checking for wall collisions at spawn time.
+## Issue #1460: Tracks pending decal count to prevent timer/raycast storms during explosions.
 func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotation: float, decal_scale: float, delay: float) -> void:
 	# Use a timer to delay the spawn
 	var tree := get_tree()
 	if tree == null:
 		return
 
+	_pending_blood_decals += 1
 	await tree.create_timer(delay).timeout
+	_pending_blood_decals = maxi(0, _pending_blood_decals - 1)
 
 	# Check if we're still valid after await (scene might have changed)
 	if not is_instance_valid(self):
@@ -1033,6 +1048,7 @@ func _on_tree_changed() -> void:
 		_bullet_holes.clear()
 		_penetration_holes.clear()
 		_scorch_marks.clear()
+		_pending_blood_decals = 0
 		_last_scene = current_scene
 
 
