@@ -12,26 +12,24 @@ colors = PackedColorArray(0.8, 0.85, 1.0, 0, 0.8, 0.85, 1.0, 0.6, 0.8, 0.85, 1.0
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_streak"]
 gradient = SubResource("Gradient_streak")
 width = 2
-height = 6
+height = 8
 fill_from = Vector2(0.5, 0)
 fill_to = Vector2(0.5, 1)
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_streak"]
-lifetime_randomness = 0.3
+lifetime_randomness = 0.2
 particle_flag_disable_z = true
 particle_flag_align_y = true
 emission_shape = 3
 emission_box_extents = Vector3(640, 360, 0)
-direction = Vector3(0, 0, 0)
-spread = 0.0
-initial_velocity_min = 0.0
-initial_velocity_max = 0.0
-radial_velocity_min = 80.0
-radial_velocity_max = 140.0
+direction = Vector3(0.4, 0.9, 0)
+spread = 5.0
+initial_velocity_min = 180.0
+initial_velocity_max = 240.0
 gravity = Vector3(0, 0, 0)
 scale_min = 0.8
-scale_max = 1.5
-color = Color(0.8, 0.85, 1.0, 0.55)
+scale_max = 1.4
+color = Color(0.8, 0.85, 1.0, 0.6)
 
 [sub_resource type="Gradient" id="Gradient_splash"]
 offsets = PackedFloat32Array(0, 0.3, 0.55, 0.75, 1)
@@ -75,7 +73,7 @@ lifetime = 0.15
 visibility_rect = Rect2(-700, -400, 1400, 900)
 
 [node name="RainSplashes" type="GPUParticles2D" parent="RainCanvas"]
-position = Vector2(640, 360)
+position = Vector2(653, 388)
 material = SubResource("CanvasItemMaterial_additive")
 emitting = true
 amount = 50
