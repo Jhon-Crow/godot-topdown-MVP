@@ -27,10 +27,12 @@ const BLIND_FIRE_COOLDOWN: float = 5.0
 const LASER_MAX_RANGE: float = 5000.0
 ## Laser beam width (px).
 const LASER_WIDTH: float = 1.5
-## Laser color: semi-transparent red.
-const LASER_COLOR: Color = Color(1.0, 0.0, 0.0, 0.4)
+## Laser color: semi-transparent red (0.55 alpha — visible enough to track, subtle enough
+## not to overpower the scene; increased from 0.4 after owner reported laser was too faint
+## to see clearly during testing on Issue #1336).
+const LASER_COLOR: Color = Color(1.0, 0.0, 0.0, 0.55)
 ## Laser dot color: brighter red at endpoint.
-const LASER_DOT_COLOR: Color = Color(1.0, 0.0, 0.0, 0.7)
+const LASER_DOT_COLOR: Color = Color(1.0, 0.0, 0.0, 0.85)
 ## Collision layer for walls (used by laser raycast).
 const LASER_WALL_LAYER: int = 4
 
@@ -347,12 +349,16 @@ func _spawn_sniper_tracer(from_pos: Vector2, end_pos: Vector2) -> void:
 	current_scene.add_child(tracer); _fade_sniper_tracer(tracer)
 
 ## Async fade-out for the sniper tracer.
+## [#1336] Fade in 0.4 s (down from 2 s) so the historical tracer disappears before the
+## laser sight has time to rotate toward a new blind-fire target, preventing the appearance
+## of laser/tracer divergence that confused the user in the original bug report.
 func _fade_sniper_tracer(tracer: Line2D) -> void:
+	const FADE_DURATION := 0.4
 	var elapsed := 0.0; var initial_width := tracer.width
-	while elapsed < 2.0 and is_instance_valid(tracer):
+	while elapsed < FADE_DURATION and is_instance_valid(tracer):
 		# Issue #1334 Round 11: Guard coroutine against freed enemy/scene after await
 		if not is_inside_tree(): break
-		elapsed += get_process_delta_time(); var p := elapsed / 2.0; var a := lerpf(0.7, 0.0, p)
+		elapsed += get_process_delta_time(); var p := elapsed / FADE_DURATION; var a := lerpf(0.7, 0.0, p)
 		tracer.default_color = Color(0.8, 0.8, 0.8, a); tracer.width = initial_width + p * 3.0
 		var grad := Gradient.new()
 		grad.set_color(0, Color(0.9, 0.9, 0.85, a)); grad.add_point(0.5, Color(0.7, 0.7, 0.65, a * 0.6))
@@ -425,19 +431,15 @@ func _update_laser_sight() -> void:
 	else:
 		weapon_forward = enemy._get_weapon_forward_direction()
 
-	# Compute muzzle position using weapon_forward directly so the laser line starts from
-	# the correct muzzle side and points in the correct direction. Using
-	# _get_bullet_spawn_position() would ignore the passed direction and fall back to the
-	# weapon sprite's current transform (lerped rotation), causing the start point to be
-	# offset in the wrong direction and the laser to appear diagonal (Issue #1336).
-	var muzzle_pos: Vector2
-	var weapon_sprite := enemy.get("_weapon_sprite") as Node2D
-	if weapon_sprite != null and is_instance_valid(weapon_sprite):
-		const MUZZLE_LOCAL_OFFSET := 52.0  # Matches _get_bullet_spawn_position constant
-		var scaled_muzzle_offset := MUZZLE_LOCAL_OFFSET * enemy.enemy_model_scale
-		muzzle_pos = weapon_sprite.global_position + weapon_forward * scaled_muzzle_offset
-	else:
-		muzzle_pos = enemy._get_bullet_spawn_position(weapon_forward)
+	# Compute muzzle position using enemy.global_position + weapon_forward * offset.
+	# This is fully consistent with weapon_forward regardless of the model's current
+	# lerped rotation — the WeaponMount (0,6) lateral offset is omitted intentionally
+	# because it shifts with the lerp and would cause the laser start-point to wobble
+	# relative to the weapon_forward direction, making the laser appear diagonal.
+	# The 52px barrel constant matches _get_bullet_spawn_position() (offset.x=20 +
+	# sprite half-width≈32). [#1336 Bug C — final fix]
+	const MUZZLE_FORWARD_OFFSET := 52.0  # Matches _get_bullet_spawn_position barrel length
+	var muzzle_pos := enemy.global_position + weapon_forward * MUZZLE_FORWARD_OFFSET * enemy.enemy_model_scale
 
 	# Raycast along weapon forward to find wall endpoint (collision layer 4 = walls)
 	var end_pos := muzzle_pos + weapon_forward * LASER_MAX_RANGE

@@ -195,11 +195,59 @@ This mirrors what `_get_bullet_spawn_position()` does when the player is visible
 
 ---
 
+## Bug D: Tracer Persists Too Long, Creating Apparent Laser/Tracer Mismatch (Session 4, 2026-03-25)
+
+### Description
+
+After Bug C was fixed (muzzle position consistent with `weapon_forward`), the owner reported a new symptom: **"теперь нет ни лазера ни трассера"** ("now there's no laser or tracer"). Analysis of the attached `game_log_20260325_044209.txt` revealed:
+
+- The sniper was spawned via F8 debug key at `04:43:17`
+- No hitscan shots were logged after the spawn
+- The game session ended within seconds of spawn
+
+**Root cause of "no laser" report**: The game session was too short to observe a shot (and therefore a tracer). The laser DOES appear immediately upon spawn, but it is subtle (semi-transparent red, 1.5px wide). If the user didn't focus on the enemy immediately, they may have missed the laser.
+
+**Root cause of the screenshot mismatch (Bug C/D combined)**: The screenshot from session 2 (01:14 UTC) shows a red laser (upper-right) and a tan tracer (right) diverging at ~30-45°. This occurs because:
+
+1. The sniper fires at the player (player visible, direct fire) → tan tracer goes RIGHT
+2. Player immediately hides in cover → `can_see_player = false`
+3. Next physics frame: `_rotate_toward(blind_target)` called → `_blind_fire_target = upper-right position`
+4. The laser in `_process` now uses `_blind_fire_target` → laser rotates to point upper-right
+5. The tan tracer from step 1 is still **fading for 2 seconds** → user sees: tracer going right + laser going upper-right
+
+This creates the **appearance of a mismatch even though the laser is actually correct** (showing where the next blind shot will go). The 2-second tracer fade is the root cause of the visual confusion.
+
+### Fix
+
+1. **Reduce tracer fade duration from 2.0 s to 0.4 s** — the historical tracer disappears before the laser has time to rotate significantly, eliminating the visible divergence window.
+2. **Improve laser visibility** — increase laser alpha from 0.4 to 0.55 and dot alpha from 0.7 to 0.85, so the laser is clearly visible on screen without being distracting.
+3. **Fix muzzle position consistency** (final Bug C correction) — replace `weapon_sprite.global_position + weapon_forward * offset` with `enemy.global_position + weapon_forward * offset`. The WeaponMount's 6px lateral offset shifts with the lerped model rotation, causing the laser start point to wobble off-axis. Using `enemy.global_position` as the anchor ensures the muzzle is always exactly `offset` pixels along `weapon_forward` from the enemy center, regardless of the current lerp state.
+
+---
+
+## Session Chronology
+
+| Timestamp (UTC) | Session | Event |
+|---|---|---|
+| ~2026-03-25 00:20 | Session 1 | Initial laser implementation added; all enemies showed laser; blind-fire direction wrong |
+| 00:46 | Owner feedback | Bug A (all enemies) + Bug B (blind fire direction) reported |
+| 00:47–00:54 | Session 2 | Bug A + B fixed: weapon_type guard + `_blind_fire_target`; Bug C remained |
+| 01:14 | Owner feedback | Screenshot showing laser/tracer divergence; Bug C identified |
+| 01:15–01:26 | Session 3 | Bug C fix: muzzle computed as `weapon_sprite.pos + weapon_forward * offset` |
+| 01:44 | Owner feedback | "no laser or tracer" complaint; provides `game_log_20260325_044209.txt` |
+| ~02:30+ | Session 4 | Root cause analysis: "no laser" = game ended before sniper fired; "no tracer" = tracer 2s fade created visual confusion. Bug D fix: tracer fade reduced to 0.4s, laser alpha increased, muzzle fixed to `enemy.global_position + weapon_forward * offset` |
+
+---
+
 ## Key Files
 
 | File | Relevant Lines | Purpose |
 |---|---|---|
 | `scripts/objects/enemy.gd` | 422 | Unconditional `EnemySniperComponent` creation — root of Bug A |
-| `scripts/components/enemy_sniper_component.gd` | 353–423 | Laser creation (`_create_laser_sight()`) and update (`_update_laser_sight()`) |
-| `scripts/components/enemy_sniper_component.gd` | 148–186 | `fire_at_predicted_position()` — blind fire shot direction computation |
-| `scripts/components/enemy_sniper_component.gd` | 379–423 | `_update_laser_sight()` — current (incorrect) laser direction logic during blind fire |
+| `scripts/components/enemy_sniper_component.gd` | 60–67 | `_ready()` with weapon type guard (Bug A fix) |
+| `scripts/components/enemy_sniper_component.gd` | 349–361 | `_fade_sniper_tracer()` — fade duration reduced to 0.4s (Bug D fix) |
+| `scripts/components/enemy_sniper_component.gd` | 405–465 | `_update_laser_sight()` — laser direction + muzzle position (Bugs B, C, D fixed) |
+| `scripts/components/enemy_sniper_component.gd` | 163–200 | `fire_at_predicted_position()` — blind fire shot direction computation |
+| `docs/case-studies/issue-1336/game_log_20260325_034213.txt` | — | Session 1: hitscan hits, blind fire events; original bug reproduction |
+| `docs/case-studies/issue-1336/game_log_20260325_044209.txt` | — | Session 4: "no laser" report; sniper spawned but no shots fired |
+| `docs/case-studies/issue-1336/screenshot_laser_tracer_mismatch_20260325.png` | — | Bug C evidence: laser (upper-right) diverging from tracer (right) |
