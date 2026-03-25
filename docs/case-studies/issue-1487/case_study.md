@@ -140,13 +140,17 @@ With `lifetime=1.2s` at 15 shots/sec, natural concurrency is 18. Cap at 8 keeps 
 
 ### Solution 3: Dust Quality Setting in Optimization Menu (implement)
 
-Add `dust_quality` (0=Full, 1=Half, 2=Off) to `GameplaySettings` and expose it as an `OptionButton` in `OptimizationMenu`. The `spawn_dust_effect()` function applies the quality by setting `amount_ratio`.
+Add `dust_quality` (0=Full, 1=Half, 2=Off) to `GameplaySettings` and expose it as an `OptionButton` in `OptimizationMenu`.
 
-| Quality | amount_ratio | Effect |
-|---------|-------------|--------|
-| Full (0) | 1.0 | All 12 particles visible |
-| Half (1) | 0.5 | 6 particles visible |
-| Off (2) | skip spawn | No dust |
+**Important**: Godot docs explicitly state that `amount_ratio` has **no GPU performance benefit** — the engine still allocates and simulates the full `amount` regardless of `amount_ratio`. The only correct way to reduce GPU particle cost is to reduce `amount` (done in Solution 1) or skip spawning the effect node entirely.
+
+Therefore the `spawn_dust_effect()` function implements Half mode by **skipping every other spawn** (50% fewer nodes) rather than adjusting `amount_ratio`.
+
+| Quality | Spawn behavior | Active nodes | Active particles |
+|---------|---------------|--------------|-----------------|
+| Full (0) | All spawns | up to 8 | up to 96 |
+| Half (1) | Skip every other | up to 4 | up to 48 |
+| Off (2) | No spawns | 0 | 0 |
 
 This replaces the existing binary `wall_hit_particles_enabled` toggle with a 3-level choice, while keeping backward compatibility (Off = same as old "disabled").
 

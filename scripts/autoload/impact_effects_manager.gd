@@ -90,6 +90,11 @@ var _dust_effect_pool: Array[GPUParticles2D] = []
 ## Count of dust effect nodes currently checked out (active / emitting).
 var _dust_effects_active: int = 0
 
+## Toggle used by Half quality mode — alternates between true/false to skip every
+## other spawn call. Godot docs warn that amount_ratio has no GPU performance
+## benefit; skipping every other spawn halves the actual node count instead.
+var _dust_half_skip: bool = false
+
 ## Maximum number of concurrent dust effects allowed.
 ## Issue #1487: DustEffect lifetime reduced to 1.2s; at 15 shots/sec → ~18 natural concurrency.
 ## Cap at 8 to bound GPU particle work while keeping visuals dense.
@@ -291,13 +296,20 @@ func _preload_effect_scenes() -> void:
 ## @param caliber_data: Optional caliber data for effect scaling.
 func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data: Resource = null) -> void:
 	# Issue #1145: Respect the wall hit particles optimization setting.
-	# Issue #1487: Check dust_quality — Off (2) skips all dust spawning.
+	# Issue #1487: Check dust_quality — Off skips all spawns; Half skips every other spawn.
+	# Note: amount_ratio has no GPU perf benefit per Godot docs — skipping spawns is the
+	# correct way to reduce particle node count and GPU workload.
 	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
 	if gameplay_settings:
 		if not gameplay_settings.is_wall_hit_particles_enabled():
 			return
-		if gameplay_settings.get_dust_quality() == gameplay_settings.DUST_QUALITY_OFF:
+		var dust_q: int = gameplay_settings.get_dust_quality()
+		if dust_q == gameplay_settings.DUST_QUALITY_OFF:
 			return
+		if dust_q == gameplay_settings.DUST_QUALITY_HALF:
+			_dust_half_skip = not _dust_half_skip
+			if _dust_half_skip:
+				return
 	# Issue #1186: performance toggle
 	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if perf_settings and not perf_settings.is_particles_enabled():
@@ -330,11 +342,7 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 
 	# Scale effect based on caliber
 	var effect_scale := _get_effect_scale(caliber_data)
-	# Issue #1487: Apply dust quality — Half mode halves amount_ratio for fewer particles.
-	var quality_ratio: float = 1.0
-	if gameplay_settings and gameplay_settings.get_dust_quality() == gameplay_settings.DUST_QUALITY_HALF:
-		quality_ratio = 0.5
-	effect.amount_ratio = clampf(effect_scale * quality_ratio, MIN_EFFECT_SCALE, MAX_EFFECT_SCALE)
+	effect.amount_ratio = clampf(effect_scale, MIN_EFFECT_SCALE, MAX_EFFECT_SCALE)
 	# Use smaller visual scale for more realistic dust particles
 	effect.scale = Vector2(effect_scale * 0.8, effect_scale * 0.8)
 
