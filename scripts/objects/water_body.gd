@@ -109,20 +109,21 @@ func _create_visual() -> void:
 	# (not offset_* which only work inside Control containers).
 	_visual.position = Vector2(-water_width * 0.5, -water_height * 0.5)
 	_visual.size     = Vector2(water_width, water_height)
-	# Set base color to transparent — shader fully controls the visual
-	_visual.color = Color(0.0, 0.0, 0.0, 0.0)
+	# Default to visible blue — shader will render on top; if shader fails we still see water.
+	_visual.color = Color(0.15, 0.55, 0.85, 0.88)
 	_visual.z_index = 1
 
 	# Apply water shader if available
 	if ResourceLoader.exists(WATER_SHADER_PATH):
 		var shader: Shader = load(WATER_SHADER_PATH)
-		var mat := ShaderMaterial.new()
-		mat.shader = shader
-		_visual.material = mat
+		if shader != null:
+			var mat := ShaderMaterial.new()
+			mat.shader = shader
+			_visual.material = mat
+		else:
+			push_warning("[WaterBody] Shader resource null — using plain colour fallback")
 	else:
-		# Fallback: simple semi-transparent blue rectangle
 		push_warning("[WaterBody] Water shader not found — using plain colour fallback")
-		_visual.color = Color(0.15, 0.55, 0.85, 0.88)
 
 	add_child(_visual)
 
@@ -279,11 +280,10 @@ func _spawn_blood_diffusion(world_pos: Vector2, blood_color: Color) -> void:
 
 ## Log a message via the FileLogger autoload (mirrors beach_level.gd pattern).
 func _log(message: String) -> void:
+	print(message)
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("log_info"):
 		file_logger.log_info(message)
-	else:
-		print(message)
 
 
 ## Clean up references to freed grenades.

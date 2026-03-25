@@ -1338,13 +1338,18 @@ func _create_sunlight_texture() -> ImageTexture:
 
 ## Setup realistic water on the Beach level (Issue #1445).
 ## The WaterBody node is already present in the scene (Environment/Water).
-## This function verifies it loaded correctly and prints a confirmation.
+## This function verifies it loaded correctly and logs diagnostic info.
 func _setup_water() -> void:
 	var water: Node = get_node_or_null("Environment/Water")
 	if water == null:
-		push_warning("[BeachLevel] Water node not found — water effect disabled")
+		_log_to_file("ERROR: Water node not found at Environment/Water — water effect disabled")
 		return
-	print("[BeachLevel] Realistic water initialized (Issue #1445)")
+	var visual: Node = water.get_node_or_null("WaterVisual")
+	var collision: Node = water.get_node_or_null("WaterCollision")
+	var has_shader: bool = (visual != null and visual.material != null)
+	_log_to_file("Water node found OK — visual=%s shader=%s collision=%s pos=%s" % [
+		str(visual != null), str(has_shader), str(collision != null), str(water.position)
+	])
 
 
 func _log_to_file(message: String) -> void:
