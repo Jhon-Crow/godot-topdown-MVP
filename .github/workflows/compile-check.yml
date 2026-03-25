@@ -1,0 +1,118 @@
+name: Compile Check
+
+# This workflow verifies that all project code compiles successfully:
+# - C# code via dotnet build (required to pass)
+# - GDScript code via Godot headless project import (reports errors as warnings)
+# See issue #1448 for context.
+
+on:
+  push:
+    branches: [ main, issue-* ]
+  pull_request_target:
+    branches: [ main ]
+  workflow_dispatch:
+
+# Note: Using pull_request_target instead of pull_request to allow CI to run
+# even when the PR branch has merge conflicts with main (Issue #459).
+
+jobs:
+  compile-csharp:
+    name: C# Compilation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build C# project
+        run: |
+          echo "Building C# project..."
+          if ! dotnet build --no-restore --configuration Debug 2>&1 | tee build-output.log; then
+            echo "::error::C# build failed!"
+            cat build-output.log
+            exit 1
+          fi
+          echo "C# compilation succeeded."
+
+      - name: Upload build log on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: csharp-build-log
+          path: build-output.log
+
+  compile-gdscript:
+    name: GDScript Compilation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Download Godot
+        run: |
+          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+          unzip -q Godot_v4.3-stable_mono_linux_x86_64.zip
+          mv Godot_v4.3-stable_mono_linux_x86_64 godot
+          chmod +x godot/Godot_v4.3-stable_mono_linux.x86_64
+
+      - name: Import and validate project
+        run: |
+          # Godot's --import validates all scripts in the project context
+          # (autoloads, class_name, preloads are all resolved correctly)
+          timeout 120 godot/Godot_v4.3-stable_mono_linux.x86_64 --headless --import . 2>&1 | tee import-output.log || true
+
+      - name: Check for GDScript compilation errors
+        run: |
+          echo "Checking for GDScript compilation errors in source directories..."
+
+          # Count parse errors in main source directories (scripts/, scenes/)
+          # Excludes: addons/ (third-party), experiments/, docs/, tests/
+          parse_errors=$(grep "SCRIPT ERROR:.*Parse Error\|SCRIPT ERROR:.*Compile Error" import-output.log \
+            | grep -c "res://scripts/\|res://scenes/" || echo "0")
+
+          load_errors=$(grep "Failed to load script" import-output.log \
+            | grep -c "res://scripts/\|res://scenes/" || echo "0")
+
+          echo "Parse errors in source files: $parse_errors"
+          echo "Load failures in source files: $load_errors"
+
+          if [ "$parse_errors" -gt 0 ] || [ "$load_errors" -gt 0 ]; then
+            echo ""
+            echo "=== GDScript errors in source directories ==="
+            grep "SCRIPT ERROR:" import-output.log | grep "res://scripts/\|res://scenes/" || true
+            grep "Failed to load script" import-output.log | grep "res://scripts/\|res://scenes/" || true
+            echo ""
+            echo "::warning::GDScript compilation has $parse_errors parse error(s) and $load_errors load failure(s) in source files."
+          fi
+
+          # Also report errors in other directories as informational
+          other_errors=$(grep "Failed to load script" import-output.log \
+            | grep -cv "res://scripts/\|res://scenes/" || echo "0")
+
+          if [ "$other_errors" -gt 0 ]; then
+            echo ""
+            echo "Note: $other_errors additional script(s) in non-source directories (tests/, experiments/, etc.) also have errors."
+          fi
+
+          echo ""
+          echo "GDScript compilation check completed."
+
+      - name: Upload import log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gdscript-import-log
+          path: import-output.log
