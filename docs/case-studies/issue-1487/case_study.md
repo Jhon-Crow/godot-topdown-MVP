@@ -402,3 +402,51 @@ Files changed:
 | Actual throttle coverage | player.gd only (unused when C# weapon equipped) | All weapon types |
 
 The Round 3 throttle was functionally a no-op for the MiniUzi scenario. Round 4 makes it effective.
+
+---
+
+## Round 5 — Restore Particles + Further Performance Reduction
+
+### User Feedback
+
+> "сейчас вообще исчезли частицы (верни их) но всё ещё проседание на 10-15 кадров на карте Здание."
+> Translation: "Now the particles have completely disappeared (bring them back) but there's still a 10-15 frame drop on the Building map."
+
+### Log Analysis: `game_log_20260325_135354.txt`
+
+After Round 4, the GUNSHOT throttle is confirmed working:
+- 94 GUNSHOT events over ~56 seconds ≈ 1.7/sec (within 10 Hz budget)
+- 56 EXPLOSION events logged (throttled via `emit_breaker_explosion`)
+- Only 1 FPS drop logged (18 fps at initial scene load — shader warmup, not gameplay)
+- **No FPS drops below 30 fps threshold during gameplay** — but user reports visible 10-15 frame drops (from ~60 to ~45-50 fps)
+
+### Remaining Bottlenecks Identified
+
+1. **Shrapnel node count**: 5 shrapnel/detonation × 15 shots/sec = 75 instantiations/sec, each running `_physics_process()` at 60Hz + trail at 15Hz. Peak concurrent: 30 nodes = 1800 physics ticks/sec.
+2. **Missing dust particles**: Round 3 completely removed shrapnel wall-hit dust effects. User wants them restored.
+3. **Explosion visual effects**: Still ~8 PointLight2D+tween/sec (0.13s cooldown). Each creates a tween with 0.3s fade-out.
+4. **Explosion audio**: `play_bullet_wall_hit()` called on every detonation (15/sec) — 15 overlapping AudioStreamPlayer2D per second.
+5. **Shrapnel wall-hit audio**: Each shrapnel hitting a wall calls `play_bullet_wall_hit()` — up to 45 calls/sec (5 shrapnel × ~9 wall hits/sec).
+
+### Fixes (Round 5)
+
+| Fix | File | Impact |
+|-----|------|--------|
+| Shrapnel per detonation: 5→3 | `bullet.gd` | −40% shrapnel instantiations (75→45/sec) |
+| Concurrent shrapnel cap: 30→15 | `bullet.gd` | −50% worst-case physics ticks (1800→900/sec) |
+| Explosion visual cooldown: 0.13→0.25s | `bullet.gd` | −50% PointLight2D+tween creations (~8→~4/sec) |
+| Explosion audio synced to visual throttle | `bullet.gd` | −73% audio stream instances (15→~4/sec) |
+| Restored shrapnel dust (every 4th hit) | `breaker_shrapnel.gd` | ~11 dust/sec (within pool budget of 8 concurrent) |
+| Shrapnel wall-hit audio (every 4th hit) | `breaker_shrapnel.gd` | −75% audio calls (45→~11/sec) |
+
+### Expected Impact (Round 5)
+
+| Factor | Before Round 5 | After Round 5 |
+|--------|---------------|---------------|
+| Shrapnel instantiations/sec | 75 | 45 (−40%) |
+| Concurrent shrapnel (peak) | 30 | 15 (−50%) |
+| Physics ticks/sec from shrapnel | 1800 | 900 (−50%) |
+| Explosion PointLight2D+tween/sec | ~8 | ~4 (−50%) |
+| Explosion audio/sec | 15 | ~4 (−73%) |
+| Shrapnel wall-hit audio/sec | ~45 | ~11 (−75%) |
+| Dust particles | 0 (removed) | ~11/sec throttled (restored) |

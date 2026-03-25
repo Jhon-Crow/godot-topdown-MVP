@@ -1691,11 +1691,14 @@ func _breaker_has_line_of_sight(from: Vector2, to: Vector2) -> bool:
 
 ## Spawns a small visual explosion effect at the detonation point.
 ## Issue #1487: Throttled to avoid spawning 15 PointLight2D+tween per second.
+## Sets _last_breaker_explosion_played flag so audio can be synced.
 func _breaker_spawn_explosion_effect(center: Vector2) -> void:
 	var current_time := Time.get_ticks_msec() / 1000.0
 	if current_time - _last_breaker_explosion_effect_time < BREAKER_EXPLOSION_EFFECT_COOLDOWN:
+		_last_breaker_explosion_played = false
 		return  # Throttled: skip this visual effect
 	_last_breaker_explosion_effect_time = current_time
+	_last_breaker_explosion_played = true
 
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
 
@@ -1707,11 +1710,15 @@ func _breaker_spawn_explosion_effect(center: Vector2) -> void:
 
 
 ## Plays a small explosion sound at the detonation point.
+## Issue #1487 Round 5: Audio playback is tied to the visual effect — when the visual is
+## throttled (skipped), the audio is also skipped. This keeps them in sync and prevents
+## 15 overlapping AudioStreamPlayer2D instances per second from saturating the audio bus.
+## The flag is set by _breaker_spawn_explosion_effect when a visual was actually spawned.
 func _breaker_play_explosion_sound(center: Vector2) -> void:
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
-		# Use wall hit sound as explosion (small detonation)
-		audio_manager.play_bullet_wall_hit(center)
+	if _last_breaker_explosion_played:
+		var audio_manager: Node = get_node_or_null("/root/AudioManager")
+		if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
+			audio_manager.play_bullet_wall_hit(center)
 
 	# Emit sound for AI awareness (Issue #1487: throttled to avoid flooding 10 listeners at 15/sec)
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
@@ -1750,25 +1757,28 @@ func _breaker_create_simple_flash(center: Vector2) -> void:
 
 
 ## Maximum shrapnel pieces per single detonation (performance cap, Issue #678 optimization).
-## Issue #1487: Reduced from 10 to 5 — at 15 shots/sec this still creates up to 75 shrapnel/sec
-## which is visually dense. Previously 10 × 15 = 150 shrapnel/sec, each running _physics_process
-## at 60Hz + Line2D trail at 15Hz, causing significant CPU overhead on BuildingLevel.
-const BREAKER_MAX_SHRAPNEL_PER_DETONATION: int = 5
+## Issue #1487 Round 5: Reduced from 5 to 3 — at 15 shots/sec this creates up to 45 shrapnel/sec.
+## Each runs _physics_process at 60Hz + Line2D trail at 15Hz. With 0.8s lifetime, the steady-state
+## count is ~36, which is manageable. 3 pieces still provides visible spread in the forward cone.
+const BREAKER_MAX_SHRAPNEL_PER_DETONATION: int = 3
 
 ## Maximum total concurrent breaker shrapnel in the scene (global cap).
-## Issue #1487: Reduced from 60 to 30 — each shrapnel runs _physics_process() at 60Hz
-## and trail updates at 15Hz. With 0.8s lifetime, 30 concurrent pieces still means
-## ~5 active per detonation at steady state, maintaining visual density.
-const BREAKER_MAX_CONCURRENT_SHRAPNEL: int = 30
+## Issue #1487 Round 5: Reduced from 30 to 15 — keeps physics process overhead bounded.
+## With 3 shrapnel/detonation at 15 shots/sec and 0.8s lifetime, theoretical max is ~36
+## but the cap ensures worst-case is 15 × 60Hz = 900 physics ticks/sec (was 1800 at cap 30).
+const BREAKER_MAX_CONCURRENT_SHRAPNEL: int = 15
 
-## Issue #1487: Minimum interval between breaker explosion visual effects.
-## At 15 detonations/sec, each spawns a PointLight2D with a tween. Even with pooling,
-## 15 tweens/sec + GPU draw calls from lights cause measurable overhead. Throttling to
-## every 3rd detonation (0.13s cooldown) reduces light+tween creation by ~66%.
-const BREAKER_EXPLOSION_EFFECT_COOLDOWN: float = 0.13
+## Issue #1487 Round 5: Minimum interval between breaker explosion visual effects.
+## Increased from 0.13s to 0.25s — at 15 detonations/sec, only ~4 PointLight2D+tween/sec
+## are created (was ~8). Each light fades over 0.3s, so at most 2 are active simultaneously.
+const BREAKER_EXPLOSION_EFFECT_COOLDOWN: float = 0.25
 
 ## Shared timestamp for breaker explosion visual effect throttling.
 static var _last_breaker_explosion_effect_time: float = -999.0
+
+## Issue #1487 Round 5: Flag set per-detonation to sync audio with visual throttling.
+## True when the visual effect was actually spawned (not throttled).
+var _last_breaker_explosion_played: bool = false
 
 
 ## Checks if a position is inside a wall or obstacle (Issue #740).

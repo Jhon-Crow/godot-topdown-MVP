@@ -56,6 +56,13 @@ const TRAIL_UPDATE_INTERVAL: float = 1.0 / 15.0
 ## Timer counting time since the last trail update.
 var _trail_update_timer: float = 0.0
 
+## Issue #1487 Round 5: Shared counter for throttling shrapnel wall-hit dust effects.
+## Only every Nth shrapnel spawns dust to keep the pool from saturating.
+## With 3 shrapnel/detonation at 15 shots/sec = 45 wall hits/sec,
+## spawning dust on every 4th hit = ~11 dust/sec (within pool budget of 8 concurrent).
+static var _dust_spawn_counter: int = 0
+const DUST_SPAWN_EVERY_NTH: int = 4
+
 
 func _ready() -> void:
 	if _debug:
@@ -147,15 +154,23 @@ func _on_body_entered(body: Node2D) -> void:
 	if body is StaticBody2D or body is TileMap:
 		if _debug:
 			FileLogger.info("[BreakerShrapnel] Hit wall at %s, destroying (no ricochet)" % global_position)
-		# Issue #1487: Skip dust effect for shrapnel — with 5 shrapnel/detonation at 15 shots/sec,
-		# the dust pool (8 effects) is saturated instantly and most spawn calls do nothing.
-		# Removing the raycast + dust spawn saves ~75 raycasts/sec and reduces pool contention.
-		# The breaker detonation itself already spawns an explosion effect at the impact point.
 
-		# Play wall impact sound and destroy
-		var audio_manager: Node = get_node_or_null("/root/AudioManager")
-		if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
-			audio_manager.play_bullet_wall_hit(global_position)
+		# Issue #1487 Round 5: Spawn dust on every Nth shrapnel wall hit (throttled).
+		# With 3 shrapnel/detonation at 15 shots/sec, spawning on every 4th hit keeps
+		# ~11 dust/sec — within pool budget (8 concurrent, 1.7s lifetime each).
+		# Uses direction-based normal estimate to avoid expensive raycasts.
+		# Wall-hit audio also throttled to same interval (was 45 calls/sec).
+		_dust_spawn_counter += 1
+		if _dust_spawn_counter >= DUST_SPAWN_EVERY_NTH:
+			_dust_spawn_counter = 0
+			var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+			if impact_manager and impact_manager.has_method("spawn_dust_effect"):
+				var surface_normal := -direction.normalized()
+				impact_manager.spawn_dust_effect(global_position, surface_normal, null)
+			var audio_manager: Node = get_node_or_null("/root/AudioManager")
+			if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
+				audio_manager.play_bullet_wall_hit(global_position)
+
 		_destroy()
 		return
 
