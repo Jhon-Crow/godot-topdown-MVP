@@ -279,11 +279,18 @@ var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait
 var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 150.0  ## Search center / current radius (Search State - Issue #322)
 const SEARCH_INITIAL_RADIUS: float = 150.0; const SEARCH_RADIUS_EXPANSION: float = 100.0  ## Initial radius / radius expansion per batch
 const SEARCH_MAX_RADIUS: float = 600.0; const SEARCH_WAYPOINT_COUNT: int = 5  ## Issue #1458: max radius / waypoints per batch
-const SEARCH_NAV_SNAP_THRESHOLD: float = 50.0  ## Max distance from navmesh for waypoint snapping
-const SEARCH_INSPECT_RAY_COUNT: int = 36; const SEARCH_INSPECT_RAY_DISTANCE: float = 800.0  ## #1458r3: rays (10° apart) / max distance
-const SEARCH_INSPECT_CLEAR_RADIUS: float = 60.0  ## #1458r3: distance to mark inspection point as "seen"
-var _search_inspection_points: Array[Vector2] = []; var _search_inspected_flags: Array[bool] = []  ## #1458r3: cover inspection points / flags
+const SEARCH_NAV_SNAP_THRESHOLD: float = 100.0  ## Max distance from navmesh for waypoint snapping (#1458r4: increased for better hit)
+const SEARCH_INSPECT_RAY_COUNT: int = 24; const SEARCH_INSPECT_RAY_DISTANCE: float = 600.0  ## #1458r4: 24 rays (15° apart) / max distance
+const SEARCH_INSPECT_CLEAR_RADIUS: float = 80.0  ## #1458r4: distance to mark inspection point as "seen"
+const SEARCH_INSPECT_MIN_DIST: float = 100.0  ## #1458r4: minimum distance between inspection points (prevents crowding)
+const SEARCH_INSPECT_MAX_POINTS: int = 12  ## #1458r4: max inspection points per search session
+## #1458r4: Shared static inspection point pool — generated once, all searching enemies share it.
+## Key: search_center snapped to 200px grid. Value: {points, flags, center}
+static var _shared_search_pool: Dictionary = {}
+static var _shared_search_pool_key: String = ""
+var _search_inspection_points: Array[Vector2] = []; var _search_inspected_flags: Array[bool] = []  ## local refs (point to shared pool arrays)
 var _search_assigned_point_index: int = -1  ## Current inspection point this enemy is heading toward
+var _search_fov_clear_timer: float = 0.0  ## #1458r4: throttle FOV clearing to every 0.15s
 var _search_waypoints: Array[Vector2] = []  ## Search waypoints
 var _search_current_waypoint_index: int = 0  ## Current waypoint index
 var _search_scan_timer: float = 0.0  ## Timer for scanning at waypoint
@@ -2314,31 +2321,60 @@ func _load_predefined_search_path(_near_pos: Vector2) -> bool:
 	_log_debug("SEARCHING: Loaded %d predefined waypoints (start=%d)" % [_search_waypoints.size(), si])
 	return true
 
-## #1458r3: Cast rays from search center, find obstacles, compute cover points behind them. Runs once.
-func _generate_search_waypoints() -> void:
-	_search_waypoints.clear(); _search_current_waypoint_index = 0
-	_search_inspection_points.clear(); _search_inspected_flags.clear(); _search_assigned_point_index = -1
+## #1458r4: Get or generate shared inspection point pool for the current search center.
+## All enemies in the same search session share one pool (no duplication, no per-enemy raycasts).
+func _get_or_create_shared_pool() -> void:
+	# Snap search center to 200px grid so nearby enemies share the same pool key
+	var snap := 200.0
+	var sk := "%d,%d" % [int(_search_center.x / snap) * int(snap), int(_search_center.y / snap) * int(snap)]
+	if _shared_search_pool.has(sk):
+		var pool: Dictionary = _shared_search_pool[sk]
+		# GDScript arrays are reference types — assign by reference so all enemies share the same data
+		_search_inspection_points = pool["points"] as Array[Vector2]
+		_search_inspected_flags = pool["flags"] as Array[bool]
+		_log_to_file("SEARCHING: Using shared pool key=%s pts=%d" % [sk, _search_inspection_points.size()])
+		return
+	# Generate new pool — only one raycast pass for all enemies
+	var points: Array[Vector2] = []; var flags: Array[bool] = []
 	var ss := get_world_2d().direct_space_state; var nm := get_world_2d().navigation_map; var hn := nm.is_valid()
 	for i in range(SEARCH_INSPECT_RAY_COUNT):
+		if points.size() >= SEARCH_INSPECT_MAX_POINTS: break
 		var dir := Vector2.from_angle((float(i) / float(SEARCH_INSPECT_RAY_COUNT)) * TAU)
 		var q := PhysicsRayQueryParameters2D.new(); q.from = _search_center; q.to = _search_center + dir * SEARCH_INSPECT_RAY_DISTANCE; q.collision_mask = 4
 		var r := ss.intersect_ray(q)
 		if r.is_empty(): continue
-		var ip := Vector2(r["position"]) + dir * 45.0  # 45px past obstacle
+		# #1458r4 fix: place point 40px BACK from wall (using wall normal = opposite of ray dir),
+		# so the point is on the navigable side of the obstacle, not inside/past the wall.
+		var wall_normal: Vector2 = Vector2(r["normal"]) if r.has("normal") else -dir
+		var ip := Vector2(r["position"]) + wall_normal.normalized() * 40.0
 		if hn:
 			var sn := NavigationServer2D.map_get_closest_point(nm, ip)
 			if ip.distance_to(sn) >= SEARCH_NAV_SNAP_THRESHOLD: continue
 			ip = sn
-		var dup := false
-		for ex in _search_inspection_points:
-			if ip.distance_to(ex) < SEARCH_ZONE_SNAP_SIZE: dup = true; break
-		if dup: continue
-		_search_inspection_points.append(ip); _search_inspected_flags.append(false)
-	if hn:  # Add search center as first waypoint
+		# #1458r4 fix: enforce minimum distance between points (prevents crowding)
+		var too_close := false
+		for ex in points:
+			if ip.distance_to(ex) < SEARCH_INSPECT_MIN_DIST: too_close = true; break
+		if too_close: continue
+		# #1458r4: also require point is not too close to search center (already visible area)
+		if ip.distance_to(_search_center) < 80.0: continue
+		points.append(ip); flags.append(false)
+	var pool := {"points": points, "flags": flags, "center": _search_center}
+	_shared_search_pool[sk] = pool
+	_search_inspection_points = points; _search_inspected_flags = flags
+	_log_to_file("SEARCHING: Generated shared pool key=%s pts=%d" % [sk, points.size()])
+
+## #1458r4: Generate search waypoints using shared inspection point pool.
+func _generate_search_waypoints() -> void:
+	_search_waypoints.clear(); _search_current_waypoint_index = 0
+	_search_assigned_point_index = -1; _search_fov_clear_timer = 0.0
+	_get_or_create_shared_pool()
+	var nm := get_world_2d().navigation_map; var hn := nm.is_valid()
+	if hn:  # Add search center snapped to navmesh as first waypoint (fallback if no points)
 		var cs := NavigationServer2D.map_get_closest_point(nm, _search_center)
 		if _search_center.distance_to(cs) < SEARCH_NAV_SNAP_THRESHOLD: _search_waypoints.append(cs)
 	_assign_nearest_inspection_point()
-	_log_to_file("SEARCHING: Generated %d inspection points from %s" % [_search_inspection_points.size(), _search_center])
+	_log_to_file("SEARCHING: Ready with %d inspection points from %s" % [_search_inspection_points.size(), _search_center])
 
 func _is_waypoint_navigable(pos: Vector2) -> bool:  ## Check if position is on navmesh
 	return pos.distance_to(NavigationServer2D.map_get_closest_point(get_world_2d().navigation_map, pos)) < 50.0
@@ -2362,36 +2398,34 @@ func _assign_nearest_inspection_point() -> void:  ## #1458r3: Assign nearest uni
 		else: _search_waypoints[_search_current_waypoint_index] = pt
 		_search_moving_to_waypoint = true; _search_last_nav_target = Vector2.ZERO
 
-## #1458r3: Clear nearby inspection points within FOV (no raycasts — pure math).
-func _clear_visible_inspection_points() -> void:
+## #1458r4: Clear nearby inspection points within FOV (throttled, no per-frame get_nodes_in_group).
+## Shared array means all enemies see the same cleared flags automatically — no sync needed.
+func _clear_visible_inspection_points(delta: float) -> void:
+	_search_fov_clear_timer -= delta
+	if _search_fov_clear_timer > 0.0: return  # throttle: run at most every 0.15s
+	_search_fov_clear_timer = 0.15
 	if _search_inspection_points.is_empty(): return
 	var fd := Vector2.from_angle(_enemy_model.global_rotation if _enemy_model else rotation)
-	var hf := deg_to_rad(fov_angle / 2.0) if fov_angle > 0.0 else PI; var clr := false
-	for i in range(_search_inspection_points.size()):
-		if _search_inspected_flags[i] or global_position.distance_to(_search_inspection_points[i]) > SEARCH_INSPECT_CLEAR_RADIUS: continue
-		if acos(clampf(fd.dot((_search_inspection_points[i] - global_position).normalized()), -1.0, 1.0)) <= hf:
-			_search_inspected_flags[i] = true; clr = true
-	if clr:
-		for e in get_tree().get_nodes_in_group("enemies"):
-			if e != self and is_instance_valid(e) and e.has_method("_sync_inspected_flags"): e._sync_inspected_flags(_search_inspection_points, _search_inspected_flags)
-func _sync_inspected_flags(pts: Array[Vector2], fl: Array[bool]) -> void:  ## #1458r3: Sync cleared flags from another enemy
-	if _current_state != AIState.SEARCHING or _search_inspection_points.is_empty(): return
+	var hf := deg_to_rad(fov_angle / 2.0) if fov_angle > 0.0 else PI
 	for i in range(_search_inspection_points.size()):
 		if _search_inspected_flags[i]: continue
-		for j in range(pts.size()):
-			if fl[j] and _search_inspection_points[i].distance_to(pts[j]) < SEARCH_ZONE_SNAP_SIZE: _search_inspected_flags[i] = true; break
+		if global_position.distance_to(_search_inspection_points[i]) > SEARCH_INSPECT_CLEAR_RADIUS: continue
+		if acos(clampf(fd.dot((_search_inspection_points[i] - global_position).normalized()), -1.0, 1.0)) <= hf:
+			_search_inspected_flags[i] = true
+			# Shared array: other enemies reading _search_inspected_flags see the change immediately
 func _all_inspection_points_cleared() -> bool:  ## #1458r3
 	for f in _search_inspected_flags:
 		if not f: return false
 	return true
-func _relocate_search_center(reason: String) -> void:  ## #1458r3: Move search center, regenerate
+func _relocate_search_center(reason: String) -> void:  ## #1458r4: Move search center, regenerate pool
 	var oc := _search_center; _search_center = global_position; _search_state_timer = 0.0; _search_visited_zones.clear()
+	_shared_search_pool.clear()  # #1458r4: clear pool so relocation generates fresh inspection points
 	_generate_search_waypoints(); _log_to_file("SEARCHING: %s, relocated %s->%s (pts=%d)" % [reason, oc, _search_center, _search_inspection_points.size()])
 func _mark_inspection_done(idx: int) -> void:  ## #1458r3: Mark point inspected (bounds-checked)
 	if idx >= 0 and idx < _search_inspected_flags.size(): _search_inspected_flags[idx] = true
 
-func _process_searching_state(delta: float) -> void:  ## Cover-inspection search (#1458r3, #322, #330)
-	_search_state_timer += delta; _clear_visible_inspection_points()
+func _process_searching_state(delta: float) -> void:  ## Cover-inspection search (#1458r4, #322, #330)
+	_search_state_timer += delta; _clear_visible_inspection_points(delta)
 	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle:
 		if not _search_timeout_logged: _log_to_file("SEARCHING timeout %.1fs" % _search_state_timer); _search_timeout_logged = true
 		_transition_to_idle(); return
@@ -2645,7 +2679,7 @@ func _transition_to_idle() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings")
 	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
 		if _current_state != AIState.SEARCHING:  # Issue #1458: skip regeneration if already SEARCHING (prevents per-frame waypoint regen in redirect chain)
-			_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _search_last_nav_target = Vector2.ZERO; _search_combat_transition_logged = false; _search_timeout_logged = false; _generate_search_waypoints()
+			_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _search_last_nav_target = Vector2.ZERO; _search_combat_transition_logged = false; _search_timeout_logged = false; _shared_search_pool.clear(); _generate_search_waypoints()  # #1458r4: clear pool for fresh session
 		return
 	_current_state = AIState.IDLE
 	# Reset various state tracking when returning to idle
@@ -2836,6 +2870,14 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
 	# Issue #354: Initialize stuck detection. #1249: clear yield on SEARCHING entry. #1458: reset nav cache & log throttle.
 	_search_stuck_timer = 0.0; _search_last_progress_position = global_position; _search_last_nav_target = Vector2.ZERO; _search_combat_transition_logged = false; _search_timeout_logged = false; if _tactical_movement: _tactical_movement.reset_yield()
+	# #1458r4: Clear shared pool when NO other enemy is currently searching (new search session).
+	# If other enemies are already searching, reuse their pool so points are shared.
+	var others_searching := false
+	if is_inside_tree():
+		for e in get_tree().get_nodes_in_group("enemies"):
+			if e != self and is_instance_valid(e) and e.has_method("get_current_state") and int(e.get_current_state()) == AIState.SEARCHING:
+				others_searching = true; break
+	if not others_searching: _shared_search_pool.clear()
 	_using_predefined_search_path = _load_predefined_search_path(center_position)  # Issue #1225
 	if not _using_predefined_search_path: _generate_search_waypoints()
 	var msg := "SEARCHING started (%s): center=%s, inspection_points=%d, waypoints=%d" % ["predefined" if _using_predefined_search_path else "cover-inspect", _search_center, _search_inspection_points.size(), _search_waypoints.size()]

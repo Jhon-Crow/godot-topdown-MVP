@@ -106,6 +106,50 @@ Complete redesign based on owner's feedback: instead of random/spiral waypoints,
 | Cross-enemy coordination | None | None | Shared inspection flags |
 | Max search radius | 2000px | 600px | 800px (ray distance) |
 
+## Root Cause Analysis (Round 4 — March 2026)
+
+After round 3 (cover-inspection) was deployed, owner reported 4 new issues:
+
+1. **Search sometimes not triggering (no points appear)**: Root cause: point placement at `hit + dir * 45px` placed points **inside or past the wall**. These were all rejected by the navmesh snap check (`distance >= 50px`), leaving an empty inspection array. No points → no waypoints → enemy stands still.
+
+2. **Too many points placed too close together**: Root cause: `SEARCH_ZONE_SNAP_SIZE = 50px` deduplication threshold too small. With 36 rays from a central location, many obstacles are adjacent; their computed points cluster within 50px. Result: 10-20 points all within 60px of each other.
+
+3. **Points placed outside the map (behind walls)**: Root cause: `ip = hit_point + direction * 45px` — the ray direction points **into** the wall (it's the ray travel direction), so adding it moves the point further along the ray — past the wall, into the void. The correct vector is the **wall normal** (outward face), which points back toward navigable space.
+
+4. **5 FPS drop (worst performance yet, −55 fps)**: Root causes:
+   - `_clear_visible_inspection_points()` called **every frame** for every enemy (no throttle)
+   - When any flag was cleared, it called `get_tree().get_nodes_in_group("enemies")` on the same frame — O(N) group scan + O(N×M) flag sync with 20 enemies × 36 points
+   - With 20 enemies this was **1,440 cross-enemy sync operations per frame** at 60fps = **86,400 per second**
+
+## Solution (Round 4) — Shared Pool + Wall Normal Fix
+
+### Changes:
+
+1. **Fix point placement**: Use `wall_normal` from raycast result instead of ray direction:
+   - Old: `ip = hit_point + ray_dir * 45px` → places point past/inside wall
+   - New: `ip = hit_point + wall_normal.normalized() * 40px` → places point on navigable side
+
+2. **Increase minimum distance**: `SEARCH_INSPECT_MIN_DIST = 100px` prevents crowded points.
+   Also cap at `SEARCH_INSPECT_MAX_POINTS = 12` total.
+
+3. **Shared static inspection pool**: Replace per-enemy arrays with a `static var _shared_search_pool: Dictionary`. All enemies in the same search zone share one pool (snapped to 200px grid key). Only the **first** enemy arriving generates the raycasts; all others reuse the result. Since GDScript arrays are reference types, flags cleared by one enemy are immediately visible to all others — **no sync call needed**.
+
+4. **Throttle FOV clearing**: Added `_search_fov_clear_timer` — FOV clearing runs at most every 0.15s per enemy (not every frame). With 20 enemies this reduces from 20×60 = 1,200 checks/sec to 20×6.7 = 134 checks/sec.
+
+5. **Removed `get_nodes_in_group` from per-frame path**: Shared array makes sync obsolete. The entire `_sync_inspected_flags` method was removed.
+
+### Performance comparison:
+
+| Metric | Round 3 (cover-inspect) | Round 4 (shared pool) |
+|--------|-------------------------|-----------------------|
+| Raycasts at search start (20 enemies) | 36 × 20 = 720 total | 24 × 1 = 24 total (first enemy only) |
+| Per-frame group scan | 20 × get_nodes_in_group | 0 (removed) |
+| Per-frame flag sync ops | Up to 1,440 | 0 (shared ref) |
+| FOV clearing calls/sec | 20 × 60 = 1,200 | 20 × 6.7 ≈ 134 |
+| Points per session | Up to 36 (crowded) | Up to 12 (spaced 100px+) |
+| Points inside walls | Yes (ray direction bug) | No (wall normal fix) |
+| Empty pools (no trigger) | Common | Rare (100px snap threshold) |
+
 ## Fixes Retained from Earlier Rounds
 
 - **SEARCH_MIN_TIME_BEFORE_COMBAT (0.3s)**: Prevents rapid SEARCHING↔COMBAT oscillation

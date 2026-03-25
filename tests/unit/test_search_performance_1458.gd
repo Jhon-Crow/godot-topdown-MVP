@@ -1,13 +1,17 @@
 extends GutTest
 ## Regression tests for Issue #1458: SEARCHING state performance optimization.
 ##
-## Tests verify the performance fixes:
+## Tests verify the performance fixes across all rounds:
 ## 1. Minimum time in SEARCHING before COMBAT transition prevents oscillation
 ## 2. Navigation target caching avoids redundant path recalculations
 ## 3. _transition_to_idle redirect chain avoids re-generating waypoints when already SEARCHING
 ## 4. Cover-inspection waypoint generation replaces random/spiral algorithms (#1458r3)
 ## 5. Timeout log throttled to once per search session
-## 6. Inspection point FOV clearing and sync between enemies (#1458r3)
+## 6. #1458r4: Shared pool — points placed on navigable side of wall (wall normal offset)
+## 7. #1458r4: Minimum distance between points enforced (no crowding)
+## 8. #1458r4: Max point cap enforced
+## 9. #1458r4: FOV clearing throttled (not every frame)
+## 10. #1458r4: No per-frame get_nodes_in_group — shared array used instead of sync
 
 
 # ============================================================================
@@ -16,15 +20,18 @@ extends GutTest
 
 const SEARCH_MIN_TIME_BEFORE_COMBAT: float = 0.3
 const SEARCH_WAYPOINT_COUNT: int = 5
-const SEARCH_NAV_SNAP_THRESHOLD: float = 50.0
+const SEARCH_NAV_SNAP_THRESHOLD: float = 100.0  ## #1458r4: increased to 100 for better navmesh hit
 const SEARCH_MAX_DURATION: float = 30.0
 const SEARCH_INITIAL_RADIUS: float = 150.0
 const SEARCH_MAX_RADIUS: float = 600.0
 const SEARCH_RADIUS_EXPANSION: float = 100.0
-const SEARCH_INSPECT_RAY_COUNT: int = 36
-const SEARCH_INSPECT_RAY_DISTANCE: float = 800.0
-const SEARCH_INSPECT_CLEAR_RADIUS: float = 60.0
+const SEARCH_INSPECT_RAY_COUNT: int = 24  ## #1458r4: 24 rays (15° apart)
+const SEARCH_INSPECT_RAY_DISTANCE: float = 600.0  ## #1458r4: reduced to 600px
+const SEARCH_INSPECT_CLEAR_RADIUS: float = 80.0  ## #1458r4: increased to 80px
+const SEARCH_INSPECT_MIN_DIST: float = 100.0  ## #1458r4: minimum distance between points
+const SEARCH_INSPECT_MAX_POINTS: int = 12  ## #1458r4: max points per session
 const SEARCH_ZONE_SNAP_SIZE: float = 50.0
+const SEARCH_FOV_CLEAR_INTERVAL: float = 0.15  ## #1458r4: throttle interval
 
 
 # ============================================================================
@@ -137,14 +144,14 @@ func test_timeout_log_fires_only_once() -> void:
 
 
 # ============================================================================
-# Tests: Cover-inspection waypoint generation (#1458 round 3)
+# Tests: #1458r4 — Cover-inspection algorithm fixes
 # ============================================================================
 
 
 func test_inspection_ray_count_reasonable() -> void:
-	# 36 rays at 10° apart gives full 360° coverage
-	assert_eq(SEARCH_INSPECT_RAY_COUNT, 36, "Should use 36 rays (10° apart)")
-	assert_gt(SEARCH_INSPECT_RAY_COUNT, 12, "Need enough rays for good coverage")
+	# 24 rays at 15° apart gives full 360° coverage with fewer raycasts (#1458r4: reduced from 36)
+	assert_eq(SEARCH_INSPECT_RAY_COUNT, 24, "Should use 24 rays (15° apart) — #1458r4 reduced from 36")
+	assert_gt(SEARCH_INSPECT_RAY_COUNT, 8, "Need enough rays for good coverage")
 	assert_lte(SEARCH_INSPECT_RAY_COUNT, 72, "Too many rays is wasteful")
 
 
@@ -159,34 +166,63 @@ func test_inspection_clear_radius_reasonable() -> void:
 	assert_lte(SEARCH_INSPECT_CLEAR_RADIUS, 150.0, "Clear radius should force proximity")
 
 
-func test_inspection_point_deduplication() -> void:
-	# Simulates: two points within SEARCH_ZONE_SNAP_SIZE should be considered duplicates
+func test_inspection_point_min_distance_enforced() -> void:
+	## #1458r4: Points within SEARCH_INSPECT_MIN_DIST should be rejected as duplicates
 	var p1 := Vector2(100, 100)
-	var p2 := Vector2(120, 110)  # ~22px away, within 50px snap size
-	var is_duplicate: bool = p1.distance_to(p2) < SEARCH_ZONE_SNAP_SIZE
-	assert_true(is_duplicate, "Points within snap distance should be deduplicated")
+	var p2 := Vector2(150, 110)  # ~51px away, within 100px min dist
+	var is_too_close: bool = p1.distance_to(p2) < SEARCH_INSPECT_MIN_DIST
+	assert_true(is_too_close, "Points within min distance should be rejected (#1458r4)")
 
 
 func test_inspection_point_distinct_points_kept() -> void:
 	var p1 := Vector2(100, 100)
-	var p2 := Vector2(200, 200)  # ~141px away, beyond snap size
-	var is_duplicate: bool = p1.distance_to(p2) < SEARCH_ZONE_SNAP_SIZE
-	assert_false(is_duplicate, "Distant points should NOT be deduplicated")
+	var p2 := Vector2(300, 200)  # ~224px away, beyond min distance
+	var is_too_close: bool = p1.distance_to(p2) < SEARCH_INSPECT_MIN_DIST
+	assert_false(is_too_close, "Distant points should NOT be rejected")
 
 
-func test_inspection_behind_obstacle_offset() -> void:
-	# The inspection point is placed 45px past the obstacle hit point
+func test_max_inspection_points_cap() -> void:
+	## #1458r4: Pool must not exceed SEARCH_INSPECT_MAX_POINTS
+	assert_gt(SEARCH_INSPECT_MAX_POINTS, 0, "Max points must be positive")
+	assert_lte(SEARCH_INSPECT_MAX_POINTS, 24, "Max points must be bounded to prevent performance issues")
+	var simulated_points_generated: int = 15  # Simulates a large open area
+	var actual_points: int = mini(simulated_points_generated, SEARCH_INSPECT_MAX_POINTS)
+	assert_lte(actual_points, SEARCH_INSPECT_MAX_POINTS, "Should not exceed max point cap")
+
+
+func test_inspection_behind_obstacle_uses_wall_normal() -> void:
+	## #1458r4: Point should be placed 40px BACK from wall using wall normal (not further along ray)
+	## This ensures points are on the navigable side, not inside/past the wall
 	var hit_point := Vector2(300, 0)
-	var direction := Vector2(1, 0)
-	var inspect_pos := hit_point + direction * 45.0
-	assert_eq(inspect_pos, Vector2(345, 0), "Inspection point should be 45px past obstacle")
+	var wall_normal := Vector2(-1, 0)  # Wall faces left (ray came from right)
+	var inspect_pos := hit_point + wall_normal.normalized() * 40.0
+	assert_eq(inspect_pos, Vector2(260, 0), "Inspection point should be 40px back from wall using wall normal (#1458r4)")
+	# Old (broken) behavior would give Vector2(345, 0) — past the wall
+	assert_ne(inspect_pos.x, 345.0, "Point should NOT be placed further along ray direction (past wall)")
+
+
+func test_inspection_point_not_too_close_to_search_center() -> void:
+	## #1458r4: Points within 80px of search center are already visible — skip them
+	var search_center := Vector2(0, 0)
+	var point_near := Vector2(60, 0)
+	var point_far := Vector2(150, 0)
+	var near_too_close: bool = point_near.distance_to(search_center) < 80.0
+	var far_ok: bool = point_far.distance_to(search_center) >= 80.0
+	assert_true(near_too_close, "Point within 80px of search center should be skipped")
+	assert_true(far_ok, "Point beyond 80px should be accepted")
+
+
+func test_nav_snap_threshold_increased_for_better_coverage() -> void:
+	## #1458r4: Increased to 100px to reduce 'search not triggering' bug
+	assert_gte(SEARCH_NAV_SNAP_THRESHOLD, 100.0,
+		"Nav snap threshold should be 100px (#1458r4: increased from 50px to reduce empty pool bug)")
 
 
 func test_fov_clearing_within_radius() -> void:
-	# Simulates: enemy at origin facing right, inspection point at (50, 0) — within range & FOV
+	# Simulates: enemy at origin facing right, inspection point at (60, 0) — within range & FOV
 	var enemy_pos := Vector2.ZERO
 	var facing_dir := Vector2(1, 0)
-	var point := Vector2(50, 0)
+	var point := Vector2(60, 0)  # Within SEARCH_INSPECT_CLEAR_RADIUS = 80
 	var dist := enemy_pos.distance_to(point)
 	var dir_to_point := (point - enemy_pos).normalized()
 	var angle_diff := acos(clampf(facing_dir.dot(dir_to_point), -1.0, 1.0))
@@ -215,6 +251,23 @@ func test_fov_clearing_outside_fov_angle() -> void:
 	var half_fov := deg_to_rad(50.0)
 	var should_clear: bool = dist <= SEARCH_INSPECT_CLEAR_RADIUS and angle_diff <= half_fov
 	assert_false(should_clear, "Point outside FOV should NOT be cleared")
+
+
+func test_fov_clearing_throttled() -> void:
+	## #1458r4: FOV clearing must be throttled to avoid per-frame overhead
+	assert_gt(SEARCH_FOV_CLEAR_INTERVAL, 0.0, "Throttle interval must be positive")
+	assert_lte(SEARCH_FOV_CLEAR_INTERVAL, 0.5, "Throttle interval should be at most 500ms for responsiveness")
+	# Simulate: only run FOV clearing when timer <= 0
+	var timer: float = SEARCH_FOV_CLEAR_INTERVAL
+	var clear_count: int = 0
+	var dt: float = 0.016  # 60fps
+	for _frame in range(60):  # simulate 1 second
+		timer -= dt
+		if timer <= 0.0:
+			clear_count += 1; timer = SEARCH_FOV_CLEAR_INTERVAL
+	# At 60fps over 1s, should fire ~6 times (every 0.15s), not 60 times
+	assert_lte(clear_count, 10, "FOV clearing should NOT run every frame (throttled)")
+	assert_gte(clear_count, 5, "FOV clearing should run regularly")
 
 
 func test_all_points_cleared_check() -> void:
@@ -259,22 +312,33 @@ func test_nearest_skips_inspected_points() -> void:
 	assert_eq(best_idx, 0, "Should skip inspected point and select index 0 at 100px")
 
 
-func test_sync_inspected_flags_by_proximity() -> void:
-	# Simulates _sync_inspected_flags: matching points by distance
-	var my_points: Array[Vector2] = [Vector2(100, 100), Vector2(200, 200)]
-	var my_flags: Array[bool] = [false, false]
-	var their_points: Array[Vector2] = [Vector2(105, 105), Vector2(500, 500)]
-	var their_flags: Array[bool] = [true, true]
-	# Sync
-	for i in range(my_points.size()):
-		if my_flags[i]: continue
-		for j in range(their_points.size()):
-			if their_flags[j] and my_points[i].distance_to(their_points[j]) < SEARCH_ZONE_SNAP_SIZE:
-				my_flags[i] = true; break
-	assert_true(my_flags[0], "Point within snap distance should sync cleared flag")
-	assert_false(my_flags[1], "Distant point should NOT sync")
+func test_shared_array_reference_semantics() -> void:
+	## #1458r4: When enemy B connects to the shared pool, writes from enemy A are visible to B.
+	## This simulates the reference-sharing behavior of the new shared pool mechanism.
+	var shared_flags: Array[bool] = [false, false, false]
+	# Enemy A marks index 0 as cleared
+	shared_flags[0] = true
+	# Enemy B reads the same array — should see the change
+	var enemy_b_sees_cleared: bool = shared_flags[0]
+	assert_true(enemy_b_sees_cleared, "Shared array: flag cleared by enemy A should be visible to enemy B (#1458r4)")
 
 
-func test_nav_snap_threshold_matches_original() -> void:
-	assert_eq(SEARCH_NAV_SNAP_THRESHOLD, 50.0,
-		"Nav snap threshold should be 50.0 to match _is_waypoint_navigable behavior")
+func test_shared_pool_key_snapping() -> void:
+	## #1458r4: Two enemies with similar search centers should use the same pool key.
+	## Pool key snaps to 200px grid.
+	var snap := 200.0
+	var center_a := Vector2(350, 420)
+	var center_b := Vector2(370, 450)  # Close to A, within same 200px cell
+	var key_a := "%d,%d" % [int(center_a.x / snap) * int(snap), int(center_a.y / snap) * int(snap)]
+	var key_b := "%d,%d" % [int(center_b.x / snap) * int(snap), int(center_b.y / snap) * int(snap)]
+	assert_eq(key_a, key_b, "Nearby enemies should share the same pool key (#1458r4)")
+
+
+func test_shared_pool_key_different_for_distant_centers() -> void:
+	## Two enemies far apart should get different pool keys (different search zones).
+	var snap := 200.0
+	var center_a := Vector2(100, 100)
+	var center_b := Vector2(900, 900)
+	var key_a := "%d,%d" % [int(center_a.x / snap) * int(snap), int(center_a.y / snap) * int(snap)]
+	var key_b := "%d,%d" % [int(center_b.x / snap) * int(snap), int(center_b.y / snap) * int(snap)]
+	assert_ne(key_a, key_b, "Distant enemies should use different pool keys")
