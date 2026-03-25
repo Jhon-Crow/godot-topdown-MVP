@@ -157,7 +157,11 @@ var _blood_decal_pool: Array = []
 var _blood_decals_active_pooled: int = 0
 
 ## Initial pool size for blood decals (pre-created at startup).
-const BLOOD_DECAL_POOL_SIZE: int = 60
+## Issue #1460 Round 5: Increased from 60 to 200 to match MAX_QUEUED_BLOOD_DECALS.
+## With pool=60 and queue=200, the pool depleted during first explosion, forcing
+## 140+ on-demand instantiate() calls — the same burst-creation we were preventing.
+## Sizing pool >= MAX_QUEUED_BLOOD_DECALS ensures no on-demand allocation is needed.
+const BLOOD_DECAL_POOL_SIZE: int = 200
 
 ## Maximum concurrent pooled blood decals. Beyond this, oldest are recycled.
 ## Prevents unbounded rendering overhead from accumulated decals.
@@ -1663,22 +1667,33 @@ func _create_pooled_blood_decal() -> Node2D:
 	return decal
 
 
-## Returns a blood decal node from the pool, or creates a new one if pool is empty.
+## Returns a blood decal node from the pool, or recycles the oldest active decal.
+## Issue #1460 Round 5: Never instantiates on-demand — on-demand instantiate() calls
+## during gameplay cause the same burst-creation spikes we used pooling to prevent.
+## When pool is empty, recycle the oldest active decal from _blood_decals instead.
 func _get_blood_decal_from_pool() -> Node2D:
 	var decal: Node2D = null
-	if _blood_decal_pool.size() > 0:
+	while _blood_decal_pool.size() > 0:
 		decal = _blood_decal_pool.pop_back()
-		if not is_instance_valid(decal):
-			# Stale reference — create new one
-			decal = _create_pooled_blood_decal()
-	else:
-		# Pool empty — create a new node on-demand
-		decal = _create_pooled_blood_decal()
-		if _debug_effects and decal != null:
-			print("[ImpactEffectsManager] Blood decal pool empty, created new node")
+		if is_instance_valid(decal):
+			break
+		decal = null  # Stale reference, try next
 
-	if decal != null:
-		_blood_decals_active_pooled += 1
+	if decal == null:
+		# Pool empty — recycle oldest active decal instead of instantiating.
+		# Instantiating on-demand causes FPS spikes (Godot 4 node creation is ~4x slower
+		# than Godot 3, see godotengine/godot#71182). Recycling is free — no allocation.
+		while _blood_decals.size() > 0:
+			var oldest := _blood_decals.pop_front() as Node2D
+			if oldest != null and is_instance_valid(oldest):
+				_return_blood_decal_to_pool(oldest)
+				decal = _blood_decal_pool.pop_back() if _blood_decal_pool.size() > 0 else null
+				break
+		if decal == null:
+			_log_info("Blood decal pool exhausted — decal skipped (no active decals to recycle)")
+			return null
+
+	_blood_decals_active_pooled += 1
 	return decal
 
 

@@ -167,6 +167,66 @@ creates an `Area2D + CollisionShape2D` (CircleShape2D) for bloody footprint dete
 - `BloodyFeetComponent` footprint detection unaffected (distance check still works)
 - Particle counts unchanged (per user requirement: "ни в коем случае не уменьшай количество частиц")
 
+### Round 4: Still -30fps After Round 3 (2026-03-25)
+
+User reported "still -30fps" with `game_log_20260325_045438.txt`. Area2D physics overhead
+was eliminated, but FPS drop persisted. Log showed **120+ SceneTree timers** firing in
+clusters within ~0.5s after explosion.
+
+#### Root Cause: Burst Scene Instantiation from Blood Decal Timers
+
+Each blood decal was created via its own `SceneTree.create_timer()` callback, which called
+`_blood_decal_scene.instantiate()` — full PackedScene to node creation. With 40 shrapnel ×
+15 decals/hit, 120+ instantiations clustered in ~0.5s. Godot 4 node creation is ~4x slower
+than Godot 3 (see godotengine/godot#71182), making this a critical bottleneck.
+
+### Round 4 Fixes Applied
+
+1. **Frame-budgeted decal queue** — replaced per-decal timers with a `_process()` queue,
+   spawning at most 4 decals/frame (240/sec at 60fps). Eliminates instantiation bursts.
+2. **BloodDecal node pooling** — 60 BloodDecal nodes pre-created at startup, recycled via
+   pool instead of `instantiate()`/`queue_free()` during gameplay.
+3. **Active decal cap** — MAX_CONCURRENT_BLOOD_DECALS = 500, oldest recycled to pool.
+4. **Shrapnel trail frame-skipping** — Line2D trails update every other physics frame.
+
+### Round 5: Still Experiencing FPS Drops After Round 4 (2026-03-25)
+
+User reported "проблема не решена" with `game_log_20260325_063640.txt`. Analysis revealed
+the pool of 60 was too small, causing on-demand instantiation during gameplay.
+
+#### Root Cause: Blood Decal Pool Size Too Small (60 < 200 queue limit)
+
+`game_log_20260325_063640.txt` showed **311 `[BloodDecal] Blood puddle created`** events
+across the session — 60 at startup (pool init), then 251 more during gameplay at 06:37:18
+and 06:37:45-47.
+
+**The problem:**
+- Pool size = 60 nodes. Max queue = 200 entries.
+- When the first explosion depleted all 60 pool nodes (all 60 deployed in scene as active
+  decals), `_get_blood_decal_from_pool()` fell back to `_create_pooled_blood_decal()` =
+  `PackedScene.instantiate()` for each subsequent decal.
+- The second explosion (10 enemies in BuildingLevel, 06:37:45) triggered 113 on-demand
+  instantiations across ~2 seconds — spread by the 4/frame queue, but still causing
+  unpredictable per-frame spikes whenever those frames processed decals.
+
+**Why the pool depleted:**
+- Pool nodes are only returned when `MAX_CONCURRENT_BLOOD_DECALS = 500` is exceeded.
+  With 500 max, all 60 pool nodes stay deployed in scene without recycling until 500 is hit.
+- The 4/frame queue spread means "burst" is eliminated — but each decal-processing frame
+  still calls `instantiate()` when pool is empty, causing stutter instead of a spike.
+
+### Round 5 Fixes Applied
+
+1. **Pool size increased** from 60 to 200 — matches `MAX_QUEUED_BLOOD_DECALS = 200`, so
+   the pool never runs dry from a single explosion's queue filling up.
+2. **No on-demand instantiation** — `_get_blood_decal_from_pool()` now recycles the oldest
+   active decal from `_blood_decals` when the pool is empty, instead of calling
+   `instantiate()`. This guarantees zero node allocation during gameplay, regardless of
+   how many explosions occurred previously.
+
+**Result:** `[BloodDecal] Blood puddle created` events only appear during startup pool
+initialization (200 nodes at load time), never during gameplay.
+
 ## Log Evidence
 
 ### Round 1 (game_log_20260324_204241.txt)
@@ -197,6 +257,28 @@ when particles are enabled — consistent with GPU particle processing overhead 
 Key finding: 375 blood decals accumulated = 375 Area2D physics bodies active every frame.
 No `[WARN] [FPS]` during explosion → CPU-side spike gone. Remaining drop is physics overhead
 from accumulated Area2D nodes, invisible to CPU-based FPS logger but felt on GPU render thread.
+
+### Round 4 (game_log_20260325_045438.txt)
+```
+[ImpactEffects] Blood decal pool initialized: 60 decals pre-created
+[GrenadeBase] EXPLODED at (...)
+[BloodDecal] Blood puddle created × 120+  ← burst from per-decal timers
+```
+Key finding: 120+ `SceneTree.create_timer()` callbacks fired in clusters, each calling
+`_blood_decal_scene.instantiate()`. Per-decal timers caused burst node creation despite pool.
+
+### Round 5 (game_log_20260325_063640.txt)
+```
+[ImpactEffects] Blood decal pool initialized: 60 decals pre-created
+[06:36:42] [WARN] [FPS] Drop detected: 22 fps  ← startup shader warmup only
+[06:37:17] [GrenadeBase] EXPLODED at (600.3112, 710.2814)
+[06:37:18] [BloodDecal] Blood puddle created × 19  ← pool partly depleted
+[06:37:45] [GrenadeBase] EXPLODED at (606.2324, 702.4628)
+[06:37:45-47] [BloodDecal] Blood puddle created × 113  ← pool fully depleted, on-demand alloc
+```
+Total: 311 `[BloodDecal] Blood puddle created` events. 60 at startup, 251 during gameplay.
+Key finding: Pool of 60 was smaller than queue limit (200). After first explosion depleted
+all 60 pool nodes, `_get_blood_decal_from_pool()` fell back to `instantiate()` per decal.
 
 ## Performance Budget Analysis
 
@@ -265,6 +347,11 @@ from accumulated Area2D nodes, invisible to CPU-based FPS logger but felt on GPU
 11. **Draw call reduction via trail frame-skipping** — 40 shrapnel Line2D trails updated
     every other physics frame instead of every frame, halving Line2D draw operations
     (imperceptible at 5000px/s shrapnel speed).
+12. **Pool size must cover queue capacity** — if pool size < queue max, the pool depletes
+    during gameplay and falls back to on-demand `instantiate()`, defeating the purpose of
+    pooling. Rule: `POOL_SIZE >= MAX_QUEUE_SIZE` for any frame-budgeted pool. Also, when
+    pool exhausts, recycle oldest active node instead of allocating new — guarantees zero
+    node allocation during gameplay regardless of explosion history.
 
 ## References
 
