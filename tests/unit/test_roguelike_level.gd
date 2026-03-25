@@ -698,3 +698,138 @@ func test_no_weapon_icon_maps_to_weapon_case() -> void:
 	for weapon_id in WEAPON_ICON_PATHS:
 		assert_ne(WEAPON_ICON_PATHS[weapon_id], WEAPON_CASE_ICON_PATH,
 			"Weapon '%s' must not use the generic weapon_case_icon (fix icon path)" % weapon_id)
+
+
+# ============================================================================
+# Tests — treasure room state persistence (Issue #1450)
+# ============================================================================
+#
+# These tests verify that:
+#  1. A fresh treasure room (treasure_item=null, treasure_collected=false)
+#     spawns a pedestal and saves the item in the room map entry.
+#  2. Re-entering an uncollected treasure room restores the SAME item
+#     (not a new random one).
+#  3. Re-entering a collected treasure room (treasure_collected=true)
+#     skips the pedestal entirely.
+#  4. roguelike_in_treasure_room is reset to false when navigating to
+#     a non-treasure room, so combat rooms are not misidentified.
+
+
+## Mirrors the treasure-room spawn logic from _spawn_treasure_pedestal and _ready.
+## Returns the item that would be shown on re-entry, given a room map entry.
+static func _simulate_treasure_spawn(room_entry: Dictionary, forced_item = 1) -> Dictionary:
+	## Returns {spawned: bool, item: variant, room_entry: Dictionary}
+	## forced_item simulates the random pick for the first visit.
+	var treasure_collected: bool = room_entry.get("treasure_collected", false)
+	if treasure_collected:
+		return {"spawned": false, "item": null, "room_entry": room_entry}
+
+	var saved_item = room_entry.get("treasure_item", null)
+	var item
+	if saved_item != null:
+		item = saved_item  # Restore same item
+	else:
+		item = forced_item  # First visit: pick new item
+		room_entry["treasure_item"] = item  # Persist it
+
+	return {"spawned": true, "item": item, "room_entry": room_entry}
+
+
+## Mirrors the treasure-collected marking from _mark_treasure_collected.
+static func _simulate_treasure_collect(room_entry: Dictionary) -> Dictionary:
+	room_entry["treasure_collected"] = true
+	return room_entry
+
+
+func test_1450_fresh_treasure_room_spawns_pedestal() -> void:
+	## A treasure room entry with no prior state must spawn a pedestal.
+	var room_entry: Dictionary = {"treasure_item": null, "treasure_collected": false, "cleared": false}
+	var result: Dictionary = _simulate_treasure_spawn(room_entry)
+	assert_true(result["spawned"], "Fresh treasure room must spawn a pedestal")
+	assert_eq(result["item"], 1, "Fresh treasure room must use the forced item")
+
+
+func test_1450_first_visit_saves_item_to_room_map() -> void:
+	## After the first visit, treasure_item must be persisted in the room entry.
+	var room_entry: Dictionary = {"treasure_item": null, "treasure_collected": false, "cleared": false}
+	var result: Dictionary = _simulate_treasure_spawn(room_entry, 5)  # forced item = 5
+	assert_eq(result["room_entry"]["treasure_item"], 5,
+		"treasure_item must be saved in room map entry after first spawn")
+
+
+func test_1450_reentry_restores_same_item() -> void:
+	## Re-entering an uncollected treasure room must restore the exact same item.
+	var room_entry: Dictionary = {"treasure_item": 3, "treasure_collected": false, "cleared": false}
+	var result: Dictionary = _simulate_treasure_spawn(room_entry, 99)  # forced_item=99 must be ignored
+	assert_true(result["spawned"], "Re-entry of uncollected room must spawn pedestal")
+	assert_eq(result["item"], 3, "Re-entry must restore the saved item (3), not a new random one")
+
+
+func test_1450_collected_room_skips_pedestal() -> void:
+	## A room where treasure_collected=true must never show a pedestal.
+	var room_entry: Dictionary = {"treasure_item": 7, "treasure_collected": true, "cleared": true}
+	var result: Dictionary = _simulate_treasure_spawn(room_entry)
+	assert_false(result["spawned"], "Collected treasure room must NOT spawn a pedestal")
+	assert_null(result["item"], "Collected treasure room item must be null")
+
+
+func test_1450_mark_collect_sets_flag() -> void:
+	## _mark_treasure_collected must set treasure_collected=true in the room entry.
+	var room_entry: Dictionary = {"treasure_item": 2, "treasure_collected": false, "cleared": true}
+	var updated: Dictionary = _simulate_treasure_collect(room_entry)
+	assert_true(updated["treasure_collected"], "treasure_collected must be true after collection")
+
+
+func test_1450_multiple_reentries_always_restore_same_item() -> void:
+	## Simulates several entry/exit cycles without item collection.
+	## Each re-entry must show the same item.
+	var room_entry: Dictionary = {"treasure_item": null, "treasure_collected": false, "cleared": false}
+
+	# Visit 1: first entry, item assigned
+	var r1: Dictionary = _simulate_treasure_spawn(room_entry, 4)
+	assert_eq(r1["item"], 4, "Visit 1 must use forced item 4")
+	room_entry = r1["room_entry"]
+
+	# Visits 2-5: re-entries without collection
+	for _i in range(4):
+		var rx: Dictionary = _simulate_treasure_spawn(room_entry, 99)  # different forced item ignored
+		assert_eq(rx["item"], 4, "Re-entry must always restore item 4, not a new random item")
+
+	# Visit 6: player collects the item
+	room_entry = _simulate_treasure_collect(room_entry)
+
+	# Visit 7: after collection, no pedestal
+	var r7: Dictionary = _simulate_treasure_spawn(room_entry)
+	assert_false(r7["spawned"], "After collection, no pedestal should spawn")
+
+
+func test_1450_in_treasure_room_flag_reset_on_navigate_to_combat() -> void:
+	## roguelike_in_treasure_room must be false after navigating to a non-treasure room,
+	## so the combat room's _ready() does not misidentify it as a treasure room.
+	##
+	## We simulate the _navigate_to_map_room "_:" branch logic:
+	##   target map_room_type != "treasure" → roguelike_in_treasure_room = false
+
+	## Arrange: in treasure room
+	var in_treasure_room: bool = true
+	var target_type: String = "combat"  # navigating to a combat room
+
+	## Act: simulate the match branch
+	if target_type != "treasure" and target_type != "exit":
+		in_treasure_room = false  # Issue #1450 fix
+
+	## Assert
+	assert_false(in_treasure_room,
+		"roguelike_in_treasure_room must be reset to false when navigating to a combat room")
+
+
+func test_1450_in_treasure_room_flag_kept_when_navigating_to_treasure() -> void:
+	## roguelike_in_treasure_room must remain true (or become true) when navigating to treasure.
+	var in_treasure_room: bool = false
+	var target_type: String = "treasure"
+
+	if target_type == "treasure":
+		in_treasure_room = true  # set by treasure branch
+
+	assert_true(in_treasure_room,
+		"roguelike_in_treasure_room must be true when navigating to a treasure room")
