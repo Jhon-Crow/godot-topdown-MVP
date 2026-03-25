@@ -746,3 +746,115 @@ Scenario: Enemy1 at (290, 595) — all 8 dirs blocked (clr=4.0)
 ### 13.9 Logs and Files
 
 - Game log: `docs/case-studies/issue-1457/logs-session7/game_log_20260325_131043.txt`
+
+---
+
+## 14. Session 8 — v8 Minimal Fix Still Fails (2026-03-25 ~14:06 UTC)
+
+### 14.1 User Report
+
+**Date:** 2026-03-25 14:07 UTC
+**Comment (Russian):** "враг опять застревает так же внизу прохода" = "enemy is getting stuck again at the bottom of the passage"
+**Level:** LabyrinthLevel
+**Build:** Release, Godot 4.3-stable, Windows, Hard difficulty, Invincibility enabled
+**Screenshot:** `assets/case-studies-screenshots/issue-1457-stuck-v8-session8.png`
+**Log:** `docs/case-studies/issue-1457/game_log_20260325_140630.txt`
+
+### 14.2 What v8 Changed
+
+v8 was a deliberate simplification: reverted all v1–v7 complexity (escape impulses, 3-probe
+steering, position blacklists, navmesh snap, wall avoidance weight scaling) and kept only:
+
+1. `motion_mode = MOTION_MODE_FLOATING` in `_ready()` (1 line)
+2. Simple stuck detection: 1.5s timer, reroute or escalate after 2 consecutive stucks
+
+### 14.3 Evidence from `game_log_20260325_140630.txt`
+
+| Time | Event |
+|------|-------|
+| 14:06:50 | Enemy1–4 COMBAT → PURSUING, covers found |
+| 14:06:52 | Enemy2: `PURSUING corner check: angle 5.0°` — moving normally |
+| 14:06:53 | Enemy2: `PURSUING corner check: angle -165.0°` — backwards-facing = stuck against wall |
+| 14:06:53 | Enemy2: `PURSUING corner check: angle -164.3°` — still stuck |
+| 14:06:53 | Enemy2: **`PURSUING stuck #1 at (483.3335, 663.9333), rerouting`** |
+| 14:06:54 | Enemy2: transitions to COMBAT (saw player after reroute) |
+| 14:06:54 | Enemy1: `PURSUING corner check: angle 173.3°` — oscillating at corner |
+| 14:06:55 | Enemy4: `PURSUING corner check: angle -179.2°` — backwards-facing at corner |
+| 14:06:56 | Enemy1: **`PURSUING stuck #1 at (472.7532, 640.0729), rerouting`** |
+
+**Key observations:**
+
+1. **Stuck detection fires correctly** (within 1.5s) — the timer mechanism works
+2. **Enemy2 resolved via COMBAT** (saw player after rerouting) — success in one case
+3. **Enemy4 corner angle = -179.2°** (backwards facing) but NO stuck detection fired for Enemy4 in this log window — the stuck timer may not have accumulated 1.5s before the log ended
+4. **Same corridor, same position pattern** — stucks at y≈640–664 (same narrow north-south corridor as all previous sessions)
+5. **Screenshot confirms**: enemy visibly wedged at a passage corner with navigation path (yellow lines) routing correctly around it
+
+### 14.4 Root Cause of v8 Failure
+
+The v8 stuck detection IS working — Enemy2 was rescued. The problem is:
+
+**After rerouting from a stuck position, `_find_pursuit_cover_toward_player()` may select a new
+cover that requires the enemy to pass through the SAME corridor again.** The stuck detection
+then fires again at the same position. This is the same "reroute loop" documented in sessions
+6, 7 — but v8 removed the position blacklist that was the fix for this.
+
+**Without position blacklisting:**
+1. Enemy gets stuck at (483, 663) — stuck #1 fires → reroutes
+2. New cover found → nav path routes through same corridor
+3. Enemy gets stuck at (483, ~663) again — stuck #1 fires again (count reset to 0 because `_transition_to_pursuing()` was called in the reroute cycle)
+4. Infinite loop until killed or random COMBAT transition
+
+The screenshot shows the enemy caught at the passage bottom — this is a recurring chokepoint in LabyrinthLevel.
+
+### 14.5 v9 Fix: Minimal Position Blacklist (2026-03-25)
+
+**Added to v8 minimal fix — two targeted changes:**
+
+**Change 1 — Position blacklist array** (2 new lines in variable declarations):
+```gdscript
+var _pursuing_stuck_pos_blacklist: Array[Vector2] = []  # Issue #1457 v9
+const PURSUING_STUCK_POS_BLACKLIST_RADIUS: float = 40.0  # Issue #1457 v9
+```
+
+**Change 2 — Blacklist check in stuck handler** (10 new lines in `_process_pursuing_state`):
+- When stuck fires, check if `global_position` is within 40px of any previously blacklisted stuck position
+- If blacklisted: **escalate immediately** to FLANKING or COMBAT (break the reroute loop)
+- If not blacklisted: record position, proceed with existing reroute logic
+- Blacklist clears on `_transition_to_pursuing()` (new engagement, fresh slate)
+
+**Change 3 — Clear blacklist on state entry** (1 character added to existing reset line):
+```gdscript
+_pursuing_stuck_pos_blacklist.clear()  # added to _transition_to_pursuing()
+```
+
+### 14.6 Why This Is Minimal
+
+- No escape impulses
+- No navmesh snapping
+- No 3-probe steering
+- No wall avoidance weight scaling
+- Just a small array of `Vector2` positions that forces escalation when enemy returns to the same stuck location
+
+Total additions: +4 lines of variables/constants + ~10 lines in stuck handler + 1 `.clear()` call
+
+### 14.7 Expected Behavior After v9
+
+**Scenario: Enemy1 routed through narrow passage at (290, 595)**
+
+First stuck (new position):
+1. Stuck fires at (290, 595) — not in blacklist
+2. Record (290, 595) in blacklist
+3. Log: `PURSUING stuck #1 at (290, 595), rerouting`
+4. `_find_pursuit_cover_toward_player()` — may find cover that re-routes through same corridor
+
+Second stuck (same position):
+1. Stuck fires at (290, ~597) — within 40px of blacklisted (290, 595)
+2. Log: `PURSUING stuck #2 at (290, 597) — blacklisted position, escalating`
+3. Transition to FLANKING or COMBAT
+4. **Loop broken** — enemy takes a different approach to reach player
+
+### 14.8 Logs and Files
+
+- Screenshot: `assets/case-studies-screenshots/issue-1457-stuck-v8-session8.png`
+- Game log: `docs/case-studies/issue-1457/game_log_20260325_140630.txt`

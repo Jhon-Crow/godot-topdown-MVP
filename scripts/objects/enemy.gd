@@ -275,6 +275,8 @@ var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos
 const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
 var _pursuing_stuck_timer: float = 0.0; var _pursuing_stuck_last_pos: Vector2 = Vector2.ZERO; var _pursuing_stuck_count: int = 0  ## Issue #1457: pursuing-specific stuck detection
 const PURSUING_STUCK_MAX_TIME: float = 1.5; const PURSUING_STUCK_DIST_THRESHOLD: float = 20.0; const PURSUING_STUCK_ESCALATE_COUNT: int = 2  ## Issue #1457: reroute after 1.5s within 20px; escalate after 2 consecutive stucks
+var _pursuing_stuck_pos_blacklist: Array[Vector2] = []  ## Issue #1457 v9: positions where enemy has already been stuck; escalate immediately if stuck here again
+const PURSUING_STUCK_POS_BLACKLIST_RADIUS: float = 40.0  ## Issue #1457 v9: radius around a blacklisted stuck position to trigger immediate escalation
 var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
@@ -2230,8 +2232,21 @@ func _process_pursuing_state(delta: float) -> void:
 			_pursuing_stuck_timer += delta
 			if _pursuing_stuck_timer >= PURSUING_STUCK_MAX_TIME:
 				_pursuing_stuck_count += 1; _pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position
-				_log_to_file("[#1457] PURSUING stuck #%d at %s, rerouting" % [_pursuing_stuck_count, global_position])
 				_has_pursuit_cover = false
+				# Issue #1457 v9: Check if this position was previously stuck — escalate immediately to break the loop
+				var _is_blacklisted := false
+				for _bp: Vector2 in _pursuing_stuck_pos_blacklist:
+					if global_position.distance_to(_bp) < PURSUING_STUCK_POS_BLACKLIST_RADIUS:
+						_is_blacklisted = true; break
+				if _is_blacklisted:
+					_log_to_file("[#1457] PURSUING stuck #%d at %s — blacklisted position, escalating" % [_pursuing_stuck_count, global_position])
+					_pursuing_stuck_pos_blacklist.clear()
+					if _can_attempt_flanking() and _player: _transition_to_flanking()
+					else: _transition_to_combat()
+					return
+				# First time stuck at this position — record it and try rerouting
+				_pursuing_stuck_pos_blacklist.append(global_position)
+				_log_to_file("[#1457] PURSUING stuck #%d at %s, rerouting" % [_pursuing_stuck_count, global_position])
 				if _pursuing_stuck_count >= PURSUING_STUCK_ESCALATE_COUNT:
 					_pursuing_stuck_count = 0
 					if _can_attempt_flanking() and _player: _transition_to_flanking()
@@ -2804,7 +2819,7 @@ func _transition_to_pursuing() -> void:
 	# Reset global stuck detection (Issue #367)
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
-	_pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position; _pursuing_stuck_count = 0  # Issue #1457
+	_pursuing_stuck_timer = 0.0; _pursuing_stuck_last_pos = global_position; _pursuing_stuck_count = 0; _pursuing_stuck_pos_blacklist.clear()  # Issue #1457
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
