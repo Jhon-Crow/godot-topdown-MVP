@@ -29,6 +29,8 @@ const KEY_CURRENT_GRENADE_TYPE := "current_type"
 const KEY_CURRENT_ACTIVE_ITEM := "current_type"
 const KEY_KILLS_WITHOUT_LASER_SIGHT := "kills_without_laser_sight"  # Issue #1196
 const KEY_SHOTS_FIRED_SPECIAL_WEAPONS := "shots_fired_special_weapons"  # Issue #1346
+const KEY_TOTAL_DEATHS := "total_deaths"  # Issue #1389
+const KEY_NO_DAMAGE_LEVELS_COMPLETED := "no_damage_levels_completed"  # Issue #1389
 
 ## Default level to load when no saved state exists.
 const DEFAULT_LEVEL := "res://scenes/levels/LabyrinthLevel.tscn"
@@ -45,7 +47,15 @@ func _ready() -> void:
 	_connect_signals()
 	# Deferred so the main scene is fully ready before we potentially change it
 	call_deferred("_navigate_to_last_level")
+	call_deferred("_set_navigation_ready")
 	_log_to_file("PersistManager ready")
+
+
+## Marks the navigation guard as complete.
+## Scheduled with call_deferred after _navigate_to_last_level so it runs in the
+## same deferred batch, but AFTER navigation has been requested.
+func _set_navigation_ready() -> void:
+	_navigation_ready = true
 
 
 ## Navigate to the last played level if saved state exists.
@@ -77,6 +87,12 @@ func _navigate_to_last_level() -> void:
 ## Tracks the previous scene to detect level changes (Issue #1456).
 var _previous_scene: Node = null
 
+## Guards against overwriting the saved level during startup.
+## _on_tree_changed fires immediately when LabyrinthLevel (the default scene) loads,
+## before _navigate_to_last_level() has had a chance to redirect to the saved level.
+## Auto-saving is suppressed until the initial navigation completes (Issue #1456).
+var _navigation_ready: bool = false
+
 
 ## Connect to manager signals to auto-save on changes.
 func _connect_signals() -> void:
@@ -94,6 +110,10 @@ func _connect_signals() -> void:
 			game_manager.kills_without_laser_sight_updated.connect(_on_kills_without_laser_sight_updated)
 		if game_manager.has_signal("shots_fired_special_weapons_updated"):
 			game_manager.shots_fired_special_weapons_updated.connect(_on_shots_fired_special_weapons_updated)
+		if game_manager.has_signal("total_deaths_updated"):
+			game_manager.total_deaths_updated.connect(_on_total_deaths_updated)
+		if game_manager.has_signal("no_damage_levels_completed_updated"):
+			game_manager.no_damage_levels_completed_updated.connect(_on_no_damage_levels_completed_updated)
 
 	# GrenadeManager signals
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -174,9 +194,21 @@ func _on_shots_fired_special_weapons_updated(_new_count: int) -> void:
 	_save_state()
 
 
+func _on_total_deaths_updated(_new_count: int) -> void:
+	_save_state()
+
+
+func _on_no_damage_levels_completed_updated(_new_count: int) -> void:
+	_save_state()
+
+
 ## Called when the scene tree structure changes.
 ## Detects level scene changes and auto-saves the current level path (Issue #1456).
+## Skipped during startup until _navigate_to_last_level() completes, to avoid
+## overwriting the saved level with the default LabyrinthLevel.
 func _on_tree_changed() -> void:
+	if not _navigation_ready:
+		return
 	var current_scene := get_tree().current_scene
 	if current_scene == null or current_scene == _previous_scene:
 		return
@@ -234,6 +266,12 @@ func _save_state_with_level(level_path: String) -> void:
 		# Save shot stats (Issue #1346)
 		config.set_value(SECTION_KILL_STATS, KEY_SHOTS_FIRED_SPECIAL_WEAPONS,
 				game_manager.get("shots_fired_special_weapons") if game_manager.get("shots_fired_special_weapons") != null else 0)
+		# Save death stats (Issue #1389)
+		config.set_value(SECTION_KILL_STATS, KEY_TOTAL_DEATHS,
+				game_manager.get("total_deaths") if game_manager.get("total_deaths") != null else 0)
+		# Save no-damage level stats (Issue #1389)
+		config.set_value(SECTION_KILL_STATS, KEY_NO_DAMAGE_LEVELS_COMPLETED,
+				game_manager.get("no_damage_levels_completed") if game_manager.get("no_damage_levels_completed") != null else 0)
 
 	# Save selected grenade type
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -303,6 +341,16 @@ func _load_state() -> void:
 			var saved_shots: int = config.get_value(SECTION_KILL_STATS, KEY_SHOTS_FIRED_SPECIAL_WEAPONS, 0)
 			game_manager.shots_fired_special_weapons = saved_shots
 			_log_to_file("Restored shots_fired_special_weapons: %d" % saved_shots)
+		# Restore death stats (Issue #1389)
+		if config.has_section_key(SECTION_KILL_STATS, KEY_TOTAL_DEATHS):
+			var saved_deaths: int = config.get_value(SECTION_KILL_STATS, KEY_TOTAL_DEATHS, 0)
+			game_manager.total_deaths = saved_deaths
+			_log_to_file("Restored total_deaths: %d" % saved_deaths)
+		# Restore no-damage level stats (Issue #1389)
+		if config.has_section_key(SECTION_KILL_STATS, KEY_NO_DAMAGE_LEVELS_COMPLETED):
+			var saved_no_damage: int = config.get_value(SECTION_KILL_STATS, KEY_NO_DAMAGE_LEVELS_COMPLETED, 0)
+			game_manager.no_damage_levels_completed = saved_no_damage
+			_log_to_file("Restored no_damage_levels_completed: %d" % saved_no_damage)
 
 		# Restore selected weapon
 		if config.has_section_key(SECTION_GAME, KEY_SELECTED_WEAPON):
@@ -395,6 +443,8 @@ func clear_all_saves() -> void:
 		game_manager.selected_weapon = "makarov_pm"
 		game_manager.kills_without_laser_sight = 0  # Issue #1196
 		game_manager.shots_fired_special_weapons = 0  # Issue #1346
+		game_manager.total_deaths = 0  # Issue #1389
+		game_manager.no_damage_levels_completed = 0  # Issue #1389
 
 	# Reset GrenadeManager to defaults
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")

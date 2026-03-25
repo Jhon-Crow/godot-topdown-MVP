@@ -1,10 +1,11 @@
-[gd_scene load_steps=42 format=3 uid="uid://factory_level_1037"]
+[gd_scene load_steps=43 format=3 uid="uid://factory_level_1037"]
 
 [ext_resource type="Script" path="res://scripts/levels/factory_level.gd" id="1_factory_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="3_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="4_enemy"]
 [ext_resource type="Script" path="res://Scripts/Components/LevelInitFallback.cs" id="5_fallback"]
+[ext_resource type="PackedScene" uid="uid://orange_blinking_light" path="res://scenes/effects/OrangeBlinkingLight.tscn" id="6_orange_blinking_light"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_h"]
 size = Vector2(2464, 32)
@@ -1100,3 +1101,32 @@ position = Vector2(2000, 1700)
 
 [node name="BotRight_Corner" type="Marker2D" parent="SearchPathWaypoints"]
 position = Vector2(2350, 1900)
+
+[node name="Lighting" type="Node2D" parent="."]
+
+[node name="EntryHallLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
+position = Vector2(422, 382)
+
+[node name="WorkshopLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
+position = Vector2(1165, 382)
+
+[node name="ControlRoomLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
+position = Vector2(2007, 382)
+
+[node name="StorageLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
+position = Vector2(422, 1000)
+
+[node name="CentralHallLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
+position = Vector2(1165, 1000)
+
+[node name="AssemblyLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
+position = Vector2(2007, 1000)
+
+[node name="BoilerRoomLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
+position = Vector2(422, 1682)
+
+[node name="MaintenanceLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
+position = Vector2(1165, 1682)
+
+[node name="ExitHallLight" parent="Lighting" instance=ExtResource("6_orange_blinking_light")]
+position = Vector2(2007, 1682)
