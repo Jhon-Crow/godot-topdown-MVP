@@ -269,12 +269,21 @@ func _rebuild_polygon() -> void:
 	_polygon.uv = uvs
 
 
-## Apply the realistic water shader to the polygon.
+## Apply the water surface shader to the polygon.
 func _apply_shader() -> void:
-	var shader_path: String = "res://scripts/shaders/realistic_water.gdshader"
+	var shader_path: String = "res://scripts/shaders/water_surface.gdshader"
 	if ResourceLoader.exists(shader_path):
 		var shader: Shader = load(shader_path)
 		if shader != null:
 			var mat := ShaderMaterial.new()
 			mat.shader = shader
 			_polygon.material = mat
+	else:
+		# Fallback to realistic_water shader if surface shader not found
+		var fallback_path: String = "res://scripts/shaders/realistic_water.gdshader"
+		if ResourceLoader.exists(fallback_path):
+			var shader: Shader = load(fallback_path)
+			if shader != null:
+				var mat := ShaderMaterial.new()
+				mat.shader = shader
+				_polygon.material = mat
