@@ -229,6 +229,12 @@ var _elements_node: Node2D = null
 ## Subtype options container (swapped per tool).
 var _subtype_container: VBoxContainer = null
 
+## Tool buttons stored for active highlight updates.
+var _tool_buttons: Array[Button] = []
+
+## Hint label showing active tool instructions.
+var _hint_label: Label = null
+
 
 func _ready() -> void:
 	# Create a new level if none loaded
@@ -340,6 +346,7 @@ func _build_ui() -> void:
 		"Wall [1]", "Enemy [2]", "Cover [3]", "Spawn [4]",
 		"Eraser [5]", "Tree [6]", "Light [7]", "Decor [8]",
 	]
+	_tool_buttons.clear()
 	for i in range(tool_names.size()):
 		var btn := Button.new()
 		btn.text = tool_names[i]
@@ -347,6 +354,8 @@ func _build_ui() -> void:
 		btn.pressed.connect(_on_tool_selected.bind(i))
 		btn.name = "ToolBtn_%d" % i
 		vbox.add_child(btn)
+		_tool_buttons.append(btn)
+	_update_tool_buttons()
 
 	vbox.add_child(HSeparator.new())
 
@@ -358,6 +367,45 @@ func _build_ui() -> void:
 
 	# Build initial subtype options
 	_rebuild_subtype_options()
+
+	vbox.add_child(HSeparator.new())
+
+	# Hint panel — describes what the active tool does
+	var hint_section_label := Label.new()
+	hint_section_label.text = "How to use:"
+	hint_section_label.add_theme_font_size_override("font_size", 11)
+	hint_section_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.85, 1.0))
+	vbox.add_child(hint_section_label)
+
+	var hint_panel := PanelContainer.new()
+	var hint_style := StyleBoxFlat.new()
+	hint_style.bg_color = Color(0.08, 0.1, 0.14, 0.9)
+	hint_style.corner_radius_top_left = 4
+	hint_style.corner_radius_top_right = 4
+	hint_style.corner_radius_bottom_left = 4
+	hint_style.corner_radius_bottom_right = 4
+	hint_style.border_color = Color(0.25, 0.25, 0.3, 1.0)
+	hint_style.border_width_left = 1
+	hint_style.border_width_right = 1
+	hint_style.border_width_top = 1
+	hint_style.border_width_bottom = 1
+	hint_panel.add_theme_stylebox_override("panel", hint_style)
+	vbox.add_child(hint_panel)
+
+	var hint_margin := MarginContainer.new()
+	hint_margin.add_theme_constant_override("margin_left", 6)
+	hint_margin.add_theme_constant_override("margin_top", 6)
+	hint_margin.add_theme_constant_override("margin_right", 6)
+	hint_margin.add_theme_constant_override("margin_bottom", 6)
+	hint_panel.add_child(hint_margin)
+
+	_hint_label = Label.new()
+	_hint_label.name = "HintLabel"
+	_hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_hint_label.add_theme_font_size_override("font_size", 10)
+	_hint_label.add_theme_color_override("font_color", Color(0.75, 0.8, 0.75, 1.0))
+	hint_margin.add_child(_hint_label)
+	_update_hint_label()
 
 	vbox.add_child(HSeparator.new())
 
@@ -586,12 +634,76 @@ func _screen_to_world(screen_pos: Vector2) -> Vector2:
 	return _camera.position + (screen_pos - get_viewport_rect().size / 2.0) / _zoom_level
 
 
+## Update visual highlight on tool buttons to show which is selected.
+func _update_tool_buttons() -> void:
+	var active_style := StyleBoxFlat.new()
+	active_style.bg_color = Color(0.25, 0.45, 0.65, 0.9)
+	active_style.corner_radius_top_left = 4
+	active_style.corner_radius_top_right = 4
+	active_style.corner_radius_bottom_left = 4
+	active_style.corner_radius_bottom_right = 4
+	active_style.border_color = Color(0.5, 0.75, 1.0, 1.0)
+	active_style.border_width_left = 1
+	active_style.border_width_right = 1
+	active_style.border_width_top = 1
+	active_style.border_width_bottom = 1
+
+	var normal_style := StyleBoxFlat.new()
+	normal_style.bg_color = Color(0.15, 0.15, 0.18, 0.0)
+	normal_style.corner_radius_top_left = 4
+	normal_style.corner_radius_top_right = 4
+	normal_style.corner_radius_bottom_left = 4
+	normal_style.corner_radius_bottom_right = 4
+
+	for i in range(_tool_buttons.size()):
+		var btn: Button = _tool_buttons[i]
+		if i == current_tool:
+			btn.add_theme_stylebox_override("normal", active_style.duplicate())
+			btn.add_theme_stylebox_override("hover", active_style.duplicate())
+			btn.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+		else:
+			btn.add_theme_stylebox_override("normal", normal_style.duplicate())
+			btn.remove_theme_stylebox_override("hover")
+			btn.remove_theme_color_override("font_color")
+
+
+## Return the hint text for the given tool type.
+func _get_tool_hint(tool_type: Tool) -> String:
+	match tool_type:
+		Tool.WALL:
+			return "Click to start a wall, click again to finish.\nRight-click cancels.\nHold and drag to see preview."
+		Tool.ENEMY:
+			return "Click on the canvas to place an enemy.\nChoose weapon type above.\nToggle patrol for roaming behavior."
+		Tool.COVER:
+			return "Click to place a cover object (desk, crate, barrel, table).\nEnemies and the player can hide behind cover."
+		Tool.PLAYER_SPAWN:
+			return "Click to set where the player starts.\nOnly one spawn point per level."
+		Tool.ERASER:
+			return "Click near any object to remove it.\nWorks on walls, enemies, cover, trees, lights, and decorations."
+		Tool.TREE:
+			return "Click to place a tree.\nThe crown overlay hides characters below it at runtime."
+		Tool.LIGHT:
+			return "Click to place a light source.\nChoose type above (street lamp, campfire, etc.)."
+		Tool.DECORATION:
+			return "Click to place a decoration (rock, bush, etc.).\nSome decorations have collision, others are purely visual."
+	return ""
+
+
+## Update the hint label text for the current tool.
+func _update_hint_label() -> void:
+	if _hint_label == null:
+		return
+	_hint_label.text = _get_tool_hint(current_tool)
+
+
 ## Set the current tool.
 func _set_tool(tool_type: Tool) -> void:
 	if _is_drawing_wall and tool_type != Tool.WALL:
 		_is_drawing_wall = false
 	current_tool = tool_type
 	_rebuild_subtype_options()
+	_update_tool_buttons()
+	_update_hint_label()
 	_update_status()
 
 
