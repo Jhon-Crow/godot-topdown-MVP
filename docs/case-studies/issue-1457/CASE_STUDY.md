@@ -588,3 +588,161 @@ The remaining issue is a narrow passage geometry problem. The most targeted fix 
 - Screenshot: `assets/case-studies-screenshots/issue-1457-stuck-v5-session6.png`
 - Game log: `docs/case-studies/issue-1457/game_log_20260325_124738.txt`
 - Game log: `docs/case-studies/issue-1457/game_log_20260325_124822.txt`
+
+---
+
+## 13. Session 7 Investigation — Log `game_log_20260325_131043.txt`
+
+**Date:** 2026-03-25 (13:10 UTC)
+**Level:** LabyrinthLevel (NOT BuildingLevel — different level than session 6)
+**Build:** Release (Godot 4.3-stable, Windows), v6 fix applied
+**Reported by:** User comment on PR #1477 with screenshot and log attachment
+
+### 13.1 Observed Symptom
+
+User screenshot and log show enemy still stuck at upper part of a passage entrance. The
+v6 fix (half-speed + reverse escape) was applied, but the enemy continues to get stuck.
+
+### 13.2 Timeline of Events (from `game_log_20260325_131043.txt`)
+
+| Time | Event |
+|------|-------|
+| 13:10:43 | Scene loaded: **LabyrinthLevel** |
+| 13:11:15 | Enemy1–4: COMBAT (player at ~(483, 873)) |
+| 13:11:24 | **Enemy1 stuck #1 at (290, 595.17)** — probe dir=(1,0) clr=4.0, v6: reverse escape → dir=(0,-1) |
+| 13:11:24 | Escape impulse: dir=(0,-1), 0.5s |
+| 13:11:24 | Impulse ends, nav reset |
+| 13:11:38 | **Enemy1 stuck #1 at (290, 601.61)** — probe dir=(1,0) clr=4.0, v6: reverse escape → dir=(0.000001,-1) |
+| 13:11:38 | Escape impulse: dir=(0.000001,-1), 0.5s |
+| 13:11:38 | Impulse ends, nav reset |
+| 13:11:45 | **Enemy1 stuck #1 at (290, 595.21)** — probe dir=(1,0) clr=4.0, v6: reverse escape → dir=(0,-1) |
+| 13:11:45 | **Enemy2 stuck #1 at (476.8, 606.5)** — different enemy, different position |
+| 13:11:45 | **Enemy4 stuck #1 at (647.4, 933.2)** — yet another enemy stuck |
+| 13:11:57 | **Enemy2 stuck #1 at (470.4, 612.9)** — Enemy2 returns to same area |
+| 13:11:58 | **Enemy1 stuck #1 at (290, 595.25)** — 4th consecutive stuck for Enemy1, same position |
+
+### 13.3 Critical Observations
+
+**1. Enemy1 returns to EXACT same position every time:** (290, 595) ± 6px. After each
+escape impulse + nav reset, the navigation system re-routes Enemy1 back through the same
+narrow geometry at the same coordinates. This means:
+- The escape worked mechanically (enemy moved ~150px north)
+- BUT: `_has_pursuit_cover = false` → `_find_pursuit_cover_toward_player()` finds a cover
+  target that requires passing through the same passage again
+- The cover target is south of (290, 595) → nav path goes through the same narrow corridor
+
+**2. The `_pursuing_stuck_cover_blacklist` records the cover TARGET** (not the stuck
+position). If the cover is not near (290, 595), the blacklist does not prevent re-routing
+through the same geometry. The enemy takes a different cover each time but the shortest
+path still passes through the same narrow corridor entrance at (290, 595).
+
+**3. Count always resets to #1 on each stuck event.** The `_pursuing_stuck_count` variable
+is shared across the PURSUING state session, but `_pursuing_stuck_last_pos` is reset to
+`global_position` each time stuck fires, allowing the count to increment. However, in
+the log, we see `stuck #1` every time — this means the escalation at `count >= 2` never
+fires because:
+- After each escape impulse, `_has_pursuit_cover = false` is set
+- Enemy re-transitions or re-finds cover, which resets `_pursuing_stuck_count` to 0?
+
+Actually no — looking at the code, `_pursuing_stuck_count` is only reset in the escalation
+branch (`_pursuing_stuck_count >= PURSUING_STUCK_ESCALATE_COUNT`) and in `_transition_to_pursuing()`.
+The log showing `stuck #1` four times means the PURSUING state is being re-entered between
+each stuck event (each time the enemy returns to PURSUING after nav reset, the count starts
+from 0). The state transitions that cause count reset: during each combat/reroute cycle,
+the enemy transitions back to PURSUING via `_transition_to_pursuing()`.
+
+**4. All probe directions show max 4px clearance** every single time — confirmed by `clr=4.0`
+on all four stuck events. The enemy is repeatedly entering invalid wall geometry at (290, 595).
+
+**5. Session 7 is LabyrinthLevel, not BuildingLevel.** The previous session 6 stucks at
+(463–480, 600–615) were in BuildingLevel. Session 7 shows a different passage in LabyrinthLevel
+at (290, ~595). Both levels have narrow passages that create the same stuck pattern.
+
+### 13.4 Root Cause Confirmed
+
+The escape impulse fires and moves the enemy out of the geometry. But when the PURSUING
+state is re-entered (or re-continues), `_find_pursuit_cover_toward_player()` finds a cover
+position that requires the nav path to pass through the SAME narrow passage at (290, 595).
+The cover blacklist (cover target positions) does not prevent this because the offending
+position is on the path TO the cover, not the cover itself.
+
+**This is the "loop" problem:** escape → nav reset → find same corridor path → stuck again.
+
+### 13.5 Why v6 Failed to Fix This
+
+The v6 "reverse escape" correctly identifies that all 8 directions are blocked (clr=4.0)
+and moves the enemy away from the cover target. This gets the enemy out of the stuck zone.
+However:
+- The escape duration is 0.5s at 300px/s = 150px clearance — sufficient to exit the passage
+- After impulse: `_has_pursuit_cover = false` triggers a new cover search
+- The new cover search finds a position requiring the enemy to pass through (290, 595) again
+- The enemy re-enters the stuck geometry within ~10 seconds
+
+The fundamental missing piece: **the stuck POSITION is never blacklisted** — only the
+cover target is. The position at (290, 595) is a chokepoint in the navmesh that cannot
+be avoided for certain cover positions. Since each new cover may still route through this
+chokepoint, the blacklisting of the cover target alone is insufficient.
+
+### 13.6 Online Research Findings (2026-03-25)
+
+Research into Godot 4 solutions for repeated stuck patterns confirmed:
+
+**`NavigationServer2D.map_get_closest_point()`** — when `clr=4.0` (enemy inside wall
+geometry), the enemy is likely off the navmesh. Calling `map_get_closest_point()` and
+teleporting to the result places the enemy back on valid nav geometry, preventing the
+physics overlap that causes `clr=4.0`.
+
+Sources confirming this pattern:
+- Godot Forum: "Characters stucked outside the navmesh" (2024) — confirmed fix
+- NavigationAgent2D GitHub issue #94709 — "gets stuck if you and it are on the opposite
+  sides of an obstacle"
+- Community consensus: snap to `map_get_closest_point` + force path recalculation
+
+**Position-based blacklisting** — game AI literature recommends blacklisting the physical
+stuck coordinate (not just the destination) with a spatial radius check. This prevents
+any path that passes through the chokepoint geometry, regardless of the final destination.
+
+### 13.7 v7 Fix Applied
+
+Two targeted changes in the stuck handler:
+
+**Change 1: Position-based stuck blacklist** (`_pursuing_stuck_pos_blacklist`)
+
+A new `Array[Vector2]` tracks the actual stuck positions (not just cover targets). When
+the stuck handler fires, it checks if `global_position` is within
+`PURSUING_STUCK_POS_BLACKLIST_RADIUS = 30px` of any previously recorded stuck position.
+If yes → **escalate immediately** to FLANKING or COMBAT (skip cover search entirely).
+This breaks the loop: on the second visit to (290, 595), the enemy escalates instead of
+attempting another failed cover path.
+
+If not yet blacklisted → record the position and proceed with existing escape impulse.
+
+**Change 2: Navmesh snap when inside wall geometry**
+
+When the 8-direction probe finds `max clr ≤ 4px` (enemy is inside wall geometry), before
+firing the escape impulse, call `NavigationServer2D.map_get_closest_point()` to find the
+nearest valid navmesh position and teleport the enemy there. This:
+- Gets the enemy out of the invalid physics overlap immediately
+- Makes the escape impulse more reliable (starting from valid position)
+- Logged as `[#1457] v7: snapped to navmesh at (x, y)`
+
+### 13.8 Expected Behavior After v7
+
+Scenario: Enemy1 at (290, 595) — all 8 dirs blocked (clr=4.0)
+
+**First stuck:**
+1. Stuck detected, pos (290, 595) recorded in `_pursuing_stuck_pos_blacklist`
+2. Navmesh snap: teleport to `map_get_closest_point(nav_map, (290,595))` ≈ valid passage point
+3. v6 reverse escape fires (dir away from cover, 150px)
+4. Nav reset: find new cover
+5. If nav routes through same geometry → stuck again at ~(290, 595)
+
+**Second stuck:**
+1. Stuck detected, pos (290, ~595) is within 30px of blacklisted pos
+2. → **Immediate escalation to FLANKING or COMBAT**
+3. Enemy no longer routes through narrow passage
+4. Loop broken
+
+### 13.9 Logs and Files
+
+- Game log: `docs/case-studies/issue-1457/logs-session7/game_log_20260325_131043.txt`

@@ -2701,3 +2701,31 @@ func test_reverse_escape_when_all_dirs_blocked_issue_1457() -> void:
 	file.close()
 	assert_true(source.contains("_best_dist <= 4.0") and source.contains("reverse escape"),
 		"Issue #1457 v6: when all 8 probe dirs are blocked (clr ≤ 4px), must reverse escape away from cover target")
+
+
+## Issue #1457 v7: stuck-position blacklist must exist to detect repeated stuck at same location.
+## When an enemy gets stuck at a position already in the blacklist, it escalates immediately.
+func test_stuck_position_blacklist_exists_issue_1457() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("_pursuing_stuck_pos_blacklist") and source.contains("PURSUING_STUCK_POS_BLACKLIST_RADIUS"),
+		"Issue #1457 v7: position blacklist variable and constant must exist to track repeated stuck locations")
+
+
+## Issue #1457 v7: navmesh snap must be attempted when enemy is inside wall geometry (clr <= 4px).
+## Uses NavigationServer2D.map_get_closest_point to teleport enemy to valid nav position.
+func test_navmesh_snap_on_wall_overlap_issue_1457() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("map_get_closest_point") and source.contains("snapped to navmesh"),
+		"Issue #1457 v7: must snap to navmesh when clr <= 4px (enemy inside wall geometry) using NavigationServer2D.map_get_closest_point")
