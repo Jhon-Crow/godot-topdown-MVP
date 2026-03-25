@@ -115,6 +115,22 @@ const MAX_CONCURRENT_BLOOD_EFFECTS: int = 12
 ## Initial pool size for blood effects (pre-created at startup).
 const BLOOD_EFFECT_POOL_SIZE: int = 12
 
+## Issue #1460 Round 6: Pool of reusable FlashbangEffect nodes.
+## GrenadeTimer.cs called GD.Load("FlashbangEffect.tscn") + Instantiate() on every
+## explosion, which created a new 512x512 GradientTexture2D GPU upload per blast.
+## Pre-pooling 4 nodes (max 4 simultaneous grenades = generous) eliminates all runtime
+## allocations. Same pattern as blood effect pool.
+var _flashbang_effect_pool: Array[Node2D] = []
+
+## Count of flashbang effect nodes currently active.
+var _flashbang_effects_active: int = 0
+
+## Maximum concurrent flashbang effects. At most 1-2 grenades explode simultaneously.
+const MAX_CONCURRENT_FLASHBANG_EFFECTS: int = 4
+
+## Initial pool size for flashbang effects (pre-created at startup).
+const FLASHBANG_EFFECT_POOL_SIZE: int = 4
+
 ## Active bullet holes for cleanup management (visual only).
 var _bullet_holes = []
 
@@ -211,6 +227,9 @@ func _ready() -> void:
 
 	# Initialize blood decal pool (Issue #1460 Round 4 optimization)
 	_init_blood_decal_pool()
+
+	# Initialize flashbang effect pool (Issue #1460 Round 6 optimization)
+	_init_flashbang_effect_pool()
 
 	# Perform shader warmup to prevent first-shot lag (Issue #343)
 	# This pre-compiles GPU shaders for particle effects during loading
@@ -709,23 +728,19 @@ func get_active_muzzle_flashes() -> Array:
 
 
 ## Spawns a flashbang visual effect at the given position.
-## Creates a bright flash of light that illuminates the area but respects walls.
-## Uses shadow_enabled PointLight2D so light doesn't pass through walls (Issue #469).
+## Issue #1460 Round 6: Uses pre-pooled FlashbangEffect nodes to eliminate
+## GD.Load() + Instantiate() at explosion time (which uploaded a 512x512 GPU texture).
 ## @param position: World position where the flashbang exploded.
 ## @param radius: Effect radius for scaling the light coverage.
 func spawn_flashbang_effect(position: Vector2, radius: float = 400.0) -> void:
 	if _debug_effects:
 		print("[ImpactEffectsManager] spawn_flashbang_effect at ", position, " radius=", radius)
 
-	if _flashbang_effect_scene == null:
-		if _debug_effects:
-			print("[ImpactEffectsManager] ERROR: _flashbang_effect_scene is null")
-		return
-
-	var effect: Node2D = _flashbang_effect_scene.instantiate() as Node2D
+	# Issue #1460 Round 6: Get a pooled effect node instead of instantiating.
+	var effect: Node2D = _get_flashbang_effect_from_pool()
 	if effect == null:
 		if _debug_effects:
-			print("[ImpactEffectsManager] ERROR: Failed to instantiate flashbang effect")
+			print("[ImpactEffectsManager] Flashbang effect skipped - pool exhausted (concurrent limit reached)")
 		return
 
 	effect.global_position = position
@@ -734,12 +749,27 @@ func spawn_flashbang_effect(position: Vector2, radius: float = 400.0) -> void:
 	if effect.has_method("set_effect_radius"):
 		effect.set_effect_radius(radius)
 
-	# Add to scene tree
-	_add_effect_to_scene(effect)
+	# Move pooled node to current scene for rendering
+	var scene := get_tree().current_scene
+	if scene:
+		if effect.get_parent() == self:
+			effect.reparent(scene, false)
+		elif not effect.is_inside_tree():
+			scene.add_child(effect)
+	effect.visible = true
+
+	# Re-trigger the effect by restarting it
+	if effect.has_method("restart_effect"):
+		effect.restart_effect()
+
+	# Schedule return to pool after effect duration (FLASH_DURATION=0.5s + buffer)
+	get_tree().create_timer(0.8).timeout.connect(
+		func() -> void: _return_flashbang_effect_to_pool(effect)
+	)
 
 	_log_info("Flashbang effect spawned at %s (radius=%d)" % [position, radius])
 	if _debug_effects:
-		print("[ImpactEffectsManager] Flashbang effect spawned at ", position)
+		print("[ImpactEffectsManager] Flashbang effect spawned from pool at ", position)
 
 
 ## Gets the effect scale from caliber data, or returns default if not available.
@@ -1629,6 +1659,92 @@ func _return_blood_effect_to_pool(effect: GPUParticles2D) -> void:
 	if _debug_effects:
 		print("[ImpactEffectsManager] Blood effect returned to pool (pool: %d, active: %d)" % [
 			_blood_effect_pool.size(), _blood_effects_active])
+
+
+# =============================================================================
+# FlashbangEffect Pool Management (Issue #1460 Round 6 Optimization)
+# =============================================================================
+
+
+## Initializes the flashbang effect pool with pre-created FlashbangEffect nodes.
+## Called once during _ready() so all allocations happen at load time, not during gameplay.
+## Eliminates GD.Load() + Instantiate() + 512x512 GPU texture upload per explosion.
+func _init_flashbang_effect_pool() -> void:
+	if _flashbang_effect_scene == null:
+		_log_info("Flashbang effect pool: scene not loaded, skipping pool init")
+		return
+
+	for i in range(FLASHBANG_EFFECT_POOL_SIZE):
+		var effect := _create_pooled_flashbang_effect()
+		if effect != null:
+			_flashbang_effect_pool.append(effect)
+
+	_log_info("Flashbang effect pool initialized: %d effects pre-created" % _flashbang_effect_pool.size())
+
+
+## Creates a single pooled FlashbangEffect node, parented to the autoload so it persists
+## across scene changes. Node is hidden and inactive while idle.
+func _create_pooled_flashbang_effect() -> Node2D:
+	if _flashbang_effect_scene == null:
+		return null
+
+	var effect: Node2D = _flashbang_effect_scene.instantiate() as Node2D
+	if effect == null:
+		return null
+
+	# Mark as pooled so the node doesn't self-destruct via queue_free()
+	if "_is_pooled" in effect:
+		effect.set("_is_pooled", true)
+
+	effect.visible = false
+
+	# Park in autoload so it persists across scene changes
+	add_child(effect)
+
+	return effect
+
+
+## Returns a flashbang effect node from the pool, or null if the concurrent cap is reached.
+func _get_flashbang_effect_from_pool() -> Node2D:
+	if _flashbang_effects_active >= MAX_CONCURRENT_FLASHBANG_EFFECTS:
+		if _debug_effects:
+			print("[ImpactEffectsManager] Flashbang pool: concurrent limit %d reached, skipping" % MAX_CONCURRENT_FLASHBANG_EFFECTS)
+		return null
+
+	var effect: Node2D = null
+	if _flashbang_effect_pool.size() > 0:
+		effect = _flashbang_effect_pool.pop_back()
+	else:
+		# Pool empty but under cap — create a new node on-demand.
+		effect = _create_pooled_flashbang_effect()
+		if _debug_effects and effect != null:
+			print("[ImpactEffectsManager] Flashbang pool empty, created new node")
+
+	if effect != null:
+		_flashbang_effects_active += 1
+
+	return effect
+
+
+## Returns a flashbang effect node to the pool after it finishes animating.
+## Reparents back to the autoload to survive scene transitions.
+func _return_flashbang_effect_to_pool(effect: Node2D) -> void:
+	_flashbang_effects_active = maxi(0, _flashbang_effects_active - 1)
+
+	if not is_instance_valid(effect):
+		return
+
+	effect.visible = false
+
+	# Park back in autoload to survive scene transitions
+	if effect.get_parent() != self:
+		effect.reparent(self, false)
+
+	_flashbang_effect_pool.append(effect)
+
+	if _debug_effects:
+		print("[ImpactEffectsManager] Flashbang effect returned to pool (pool: %d, active: %d)" % [
+			_flashbang_effect_pool.size(), _flashbang_effects_active])
 
 
 # =============================================================================
