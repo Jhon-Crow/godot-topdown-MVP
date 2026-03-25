@@ -41,7 +41,7 @@ func _get_or_create_replay_manager() -> Node:
 
 func _ready() -> void:
 	print("SewerLevel loaded - Underground Sewer Corridor")
-	print("Sewer layout: main corridor (bottom to Y=1362) + right branch (X=300-1100) + up branch (Y=1362 to top)")
+	print("Sewer layout: main corridor (bottom to Y=1362) + right branch (X=300-1600) bending down (Y=1362-2200) + up branch to large top room (50-550, Y=112-450)")
 	print("Clear the sewer to win!")
 	_setup_navigation()
 	_setup_enemy_tracking()
@@ -88,7 +88,7 @@ func _start_replay_recording() -> void:
 
 
 ## Configures camera limits to allow the player to move across the entire sewer map.
-## The sewer map is 1200x3200 pixels and the player starts at Y=3050, which is
+## The sewer map is 1650x3200 pixels and the player starts at Y=3050, which is
 ## outside the default camera limits (limit_bottom=3088 from Player.tscn).
 ## Setting limits to very large values allows the camera to follow the player everywhere.
 func _configure_camera() -> void:
@@ -111,7 +111,7 @@ func _setup_exit_zone() -> void:
 		return
 	_exit_zone = exit_zone_scene.instantiate()
 	# Exit is at the end of the right branch (X=1050, Y=1450)
-	_exit_zone.position = Vector2(1050, 1450)
+	_exit_zone.position = Vector2(1512, 2150)
 	_exit_zone.zone_width = 60.0
 	_exit_zone.zone_height = 60.0
 	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
