@@ -332,3 +332,73 @@ Each of ~15 detonations/sec spawned a PointLight2D with a 0.3s fade tween. This 
 4. **Line2D `clear_points()` cost**: Every `clear_points()` + N×`add_point()` call forces a geometry rebuild on the GPU. High-frequency updates (60Hz × 60 nodes) add measurable overhead. Throttling to 15Hz reduces this by 4×.
 
 5. **CanvasItem `queue_redraw()`**: Every `queue_redraw()` call schedules a `_draw()` invocation next frame. When called 60×/sec with complex draw operations (hundreds of `draw_line`), it dominates the renderer's 2D batch processing cost.
+
+---
+
+## Round 4: Critical Bug — C# Weapon Nodes Bypass the Throttle
+
+### New Data: `game_log_20260325_133018.txt`
+
+Owner report: "не вижу изменений" — "I don't see any changes."
+
+Analysis of `game_log_20260325_133018.txt` confirmed:
+- 17 GUNSHOT events per second were still logged at `source=PLAYER (MiniUzi)` during BuildingLevel combat
+- The `emit_player_gunshot()` throttle (max 10/sec) was clearly not being called
+
+### Root Cause 11: C# Weapon Nodes Call `emit_sound` Directly, Bypassing the Throttle
+
+The Round 3 fix added `emit_player_gunshot()` to `scripts/characters/player.gd:_shoot()`, but this function is **only called when no C# weapon is equipped** (`CurrentWeapon == null`). When a C# weapon node like MiniUzi is attached as a child, `Scripts/Characters/Player.cs:HandleShootingInput()` calls `CurrentWeapon.Fire()` directly — completely bypassing `player.gd`'s `_shoot()`.
+
+Each C# weapon class had its own `EmitGunshotSound()` method that called `emit_sound()` unthrottled:
+
+```csharp
+// BEFORE (MiniUzi.cs, AssaultRifle.cs, MakarovPM.cs, Shotgun.cs — all identical pattern):
+private void EmitGunshotSound()
+{
+    var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
+    if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
+    {
+        float loudness = WeaponData?.Loudness ?? 800.0f;
+        soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
+    }
+}
+```
+
+This meant:
+- `MiniUzi.Fire()` → `EmitGunshotSound()` → `emit_sound()` at full 15 shots/sec (unthrottled)
+- The `emit_player_gunshot()` throttle added to `player.gd` was **never reached** during MiniUzi use
+
+The log evidence: identical GUNSHOT entries 17× in 1 second from `(MiniUzi)` confirms the C# path was executing, not the GDScript `_shoot()`.
+
+### Fix (Round 4)
+
+Updated all C# weapons to call `emit_player_gunshot` (which has the 0.1s cooldown):
+
+```csharp
+// AFTER:
+private void EmitGunshotSound()
+{
+    var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
+    if (soundPropagation != null && soundPropagation.HasMethod("emit_player_gunshot"))
+    {
+        float loudness = WeaponData?.Loudness ?? 800.0f;
+        soundPropagation.Call("emit_player_gunshot", GlobalPosition, this, loudness);
+    }
+}
+```
+
+Files changed:
+- `Scripts/Weapons/MiniUzi.cs` — primary offender (15 shots/sec)
+- `Scripts/Weapons/AssaultRifle.cs` — automatic mode (~10 shots/sec)
+- `Scripts/Weapons/MakarovPM.cs` — semi-auto pistol
+- `Scripts/Weapons/Shotgun.cs` — slower fire rate but consistent with the pattern
+
+### Impact
+
+| Before Round 4 | After Round 4 |
+|----------------|---------------|
+| MiniUzi GUNSHOT events/sec | 15 (unthrottled) | ≤10 (throttled) |
+| BuildingLevel listener iterations from GUNSHOT/sec | 150 | ≤100 |
+| Actual throttle coverage | player.gd only (unused when C# weapon equipped) | All weapon types |
+
+The Round 3 throttle was functionally a no-op for the MiniUzi scenario. Round 4 makes it effective.
