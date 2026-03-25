@@ -2,13 +2,13 @@ extends Area2D
 ## Realistic water body for the Beach level (Issue #1445).
 ##
 ## Combines:
-##   - A ColorRect with the realistic_water.gdshader for visual waves
+##   - A ColorRect (WaterVisual) with the realistic_water.gdshader for visual waves
 ##   - Area2D physics detection to spawn WaterSplashEffect when bodies/objects interact
 ##   - Blood diffusion effect (blood spreads in water instead of leaving footprints)
 ##   - Reactions to shell casings, grenades, and explosions
 ##
-## Exported properties allow tuning width/height from the scene editor or
-## from beach_level.gd at runtime.
+## WaterVisual and WaterCollision are pre-baked in WaterBody.tscn so they
+## always exist regardless of script execution order.
 
 class_name WaterBody
 
@@ -28,9 +28,9 @@ const WATER_SHADER_PATH: String = "res://scripts/shaders/realistic_water.gdshade
 ## Blood diffusion effect path.
 const BLOOD_DIFFUSION_SCRIPT_PATH: String = "res://scripts/effects/water_blood_diffusion.gd"
 
-## Internal nodes created in _ready.
-var _visual: ColorRect = null
-var _collision: CollisionShape2D = null
+## Pre-baked child nodes from WaterBody.tscn (always present, no add_child needed).
+@onready var _visual: ColorRect = $WaterVisual
+@onready var _collision: CollisionShape2D = $WaterCollision
 
 ## Tracks bodies currently inside the water.
 ## key: Node → value: last_position (Vector2)
@@ -50,8 +50,15 @@ var _processed_casings: Dictionary = {}
 
 
 func _ready() -> void:
-	_create_visual()
-	_create_collision()
+	# Update pre-baked node dimensions in case water_width/height were overridden in the scene.
+	if _visual != null:
+		_visual.position = Vector2(-water_width * 0.5, -water_height * 0.5)
+		_visual.size = Vector2(water_width, water_height)
+	if _collision != null and _collision.shape is RectangleShape2D:
+		(_collision.shape as RectangleShape2D).size = Vector2(water_width, water_height)
+
+	# Apply animated water shader to the pre-baked ColorRect
+	_apply_shader()
 
 	# Detect physics bodies AND rigid bodies:
 	# Layer 1 (1) = player, Layer 2 (2) = enemies,
@@ -74,9 +81,10 @@ func _ready() -> void:
 		_blood_diffusion_script = load(BLOOD_DIFFUSION_SCRIPT_PATH)
 
 	var shader_ok: bool = _visual != null and _visual.material != null
-	_log("[WaterBody] Ready — size=%s shader=%s splash=%s blood=%s" % [
-		Vector2(water_width, water_height),
+	_log("[WaterBody] Ready — visual=%s shader=%s collision=%s splash=%s blood=%s" % [
+		str(_visual != null),
 		"OK" if shader_ok else "FALLBACK",
+		str(_collision != null),
 		"OK" if _splash_script != null else "MISSING",
 		"OK" if _blood_diffusion_script != null else "MISSING"
 	])
@@ -102,18 +110,12 @@ func _process(_delta: float) -> void:
 	_cleanup_grenades()
 
 
-func _create_visual() -> void:
-	_visual = ColorRect.new()
-	_visual.name = "WaterVisual"
-	# ColorRect is a Control node — when added to a Node2D parent, use position+size
-	# (not offset_* which only work inside Control containers).
-	_visual.position = Vector2(-water_width * 0.5, -water_height * 0.5)
-	_visual.size     = Vector2(water_width, water_height)
-	# Default to visible blue — shader will render on top; if shader fails we still see water.
-	_visual.color = Color(0.15, 0.55, 0.85, 0.88)
-	_visual.z_index = 1
+## Apply the animated water shader to the WaterVisual ColorRect.
+func _apply_shader() -> void:
+	if _visual == null:
+		push_warning("[WaterBody] WaterVisual node not found — water will show as plain blue")
+		return
 
-	# Apply water shader if available
 	if ResourceLoader.exists(WATER_SHADER_PATH):
 		var shader: Shader = load(WATER_SHADER_PATH)
 		if shader != null:
@@ -124,17 +126,6 @@ func _create_visual() -> void:
 			push_warning("[WaterBody] Shader resource null — using plain colour fallback")
 	else:
 		push_warning("[WaterBody] Water shader not found — using plain colour fallback")
-
-	add_child(_visual)
-
-
-func _create_collision() -> void:
-	_collision = CollisionShape2D.new()
-	_collision.name = "WaterCollision"
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(water_width, water_height)
-	_collision.shape = rect
-	add_child(_collision)
 
 
 func _on_body_entered(body: Node2D) -> void:

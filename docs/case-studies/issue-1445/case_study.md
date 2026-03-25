@@ -249,6 +249,75 @@ The `_setup_water()` function in beach_level.gd used bare `print()` statements, 
 
 ---
 
+## Iteration 5 Investigation (game_log_20260325_132645.txt)
+
+### Timeline from Third Game Log
+
+| Time | Event |
+|---|---|
+| 13:26:45 | Game started on LabyrinthLevel |
+| 13:26:58 | Scene loaded: BeachLevel (after Iteration 4 fix was deployed) |
+| 13:26:58 | BeachLevel._ready() fired; 8 enemies tracked; weapon set up |
+| 13:26:59 | `[BeachLevel] Water node found OK — visual=false shader=false collision=false pos=(1264, 242)` |
+| 13:26:59 | **Still no `[WaterBody]` log messages anywhere** |
+
+### Root Cause Analysis (Iteration 5)
+
+**The game log reveals the core problem**: `_setup_water()` finds the Water node but all three sub-nodes (`visual=false shader=false collision=false`) are missing. This means `WaterBody._ready()` either:
+1. Never ran (script error / not attached), OR
+2. Ran but the children aren't accessible via `get_node_or_null()` from the parent context
+
+**Confirmed root cause**: `WaterBody._ready()` creates `WaterVisual` and `WaterCollision` children via `add_child()` at runtime. The complete **absence** of any `[WaterBody]` log messages (both `print()` and FileLogger) across all three game logs indicates `_ready()` never executes.
+
+In Godot 4, when a script attached to a packed scene instance fails to compile or parse (even silently in an exported build), the node loads as a plain Area2D without executing the script's `_ready()`. The `_setup_water()` diagnostic correctly reflects this: the Area2D node exists at the right position, but has no script-created children.
+
+**Secondary issue confirmed**: `WaterBody._log()` uses `print()` (stdout) which goes to Godot's console but is NOT captured in the game log file. The game log only captures output from `FileLogger.log_info()`. Since `WaterBody._ready()` calls `_log()` at the end, if `_ready()` ran, we'd see the `[WaterBody] Ready` message in the game log only if FileLogger was reachable. The absence of this message confirms `_ready()` never ran.
+
+### Fix (Iteration 5)
+
+**Pre-bake visual and collision nodes into `WaterBody.tscn`** instead of creating them dynamically in `_ready()`.
+
+This is the idiomatic Godot approach: scene tree nodes should be defined in `.tscn` files, not created dynamically in scripts. Pre-baking eliminates:
+- Script execution dependency for basic visibility
+- `add_child()` timing issues in exported builds
+- Silent failures where `_ready()` doesn't run but the node still loads
+
+**Before (Iterations 1–4 — fragile dynamic creation)**:
+```gdscript
+# In _ready():
+func _create_visual() -> void:
+    _visual = ColorRect.new()
+    _visual.name = "WaterVisual"
+    _visual.position = Vector2(-water_width * 0.5, -water_height * 0.5)
+    _visual.size = Vector2(water_width, water_height)
+    _visual.color = Color(0.15, 0.55, 0.85, 0.88)
+    add_child(_visual)   # ← fails silently if _ready() never runs
+```
+
+**After (Iteration 5 — pre-baked in .tscn)**:
+```
+# WaterBody.tscn:
+[node name="WaterVisual" type="ColorRect" parent="."]
+position = Vector2(-1200, -178)
+size = Vector2(2400, 356)
+color = Color(0.15, 0.55, 0.85, 0.88)
+
+# water_body.gd:
+@onready var _visual: ColorRect = $WaterVisual   # always present
+```
+
+The water is now visible even if the script fails entirely: the `ColorRect` with the fallback blue color is in the scene unconditionally.
+
+The animated shader is still applied from `_ready()` (which is fine — shader enhances the pre-existing node), and `_ready()` also resizes the nodes if `water_width`/`water_height` were overridden in the scene inspector.
+
+### Files Changed (Iteration 5)
+
+- **`scenes/objects/WaterBody.tscn`**: Added `WaterVisual` (ColorRect) and `WaterCollision` (CollisionShape2D) as pre-baked child nodes with default 2400×356 dimensions.
+- **`scripts/objects/water_body.gd`**: Replaced `_create_visual()` / `_create_collision()` with `@onready var _visual = $WaterVisual` / `@onready var _collision = $WaterCollision`. Added `_apply_shader()` helper. `_ready()` now also resizes the pre-baked nodes if dimensions were overridden.
+- **`docs/case-studies/issue-1445/logs/game_log_20260325_132645.txt`**: Saved for analysis.
+
+---
+
 ## References
 
 - GodotShaders.com — 2D Water Distortion Effect: https://godotshaders.com/shader/2d-water-distortion-effect-godot-4/
