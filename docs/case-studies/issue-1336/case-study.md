@@ -1,7 +1,7 @@
 # Case Study: Issue #1336 — Add Laser Sight to Sniper Enemy Rifle
 
 **Date:** 2026-03-25
-**Status:** Bugs identified post-implementation, fixes proposed
+**Status:** All known bugs fixed
 **Related Issues:** #1163, #1171, #1336
 **Related PR:** #1484
 
@@ -76,6 +76,19 @@ This directly violates the core requirement of Issue #1336: "laser must always p
 
 ---
 
+## Evidence from Owner
+
+### Screenshot (2026-03-25)
+
+Owner provided screenshot `screenshot_laser_tracer_mismatch_20260325.png` showing:
+- **Red laser** (sniper enemy): points upper-right from the enemy
+- **Tan tracer** (sniper enemy hitscan, still fading): points roughly rightward
+- **Yellow laser** (player's own laser sight — ignore per owner's note): points left
+
+The large angular divergence (~30-45°) between the red laser and the tan tracer is explained by Bug C: the muzzle start point of the laser was offset in the lerped weapon rotation direction (right), but the laser end point was in the blind-fire target direction (upper-right). The resulting Line2D diagonal made the laser appear to aim in a completely different direction than the actual shot.
+
+---
+
 ## Evidence from Game Log
 
 **File:** `docs/case-studies/issue-1336/game_log_20260325_034213.txt`
@@ -96,6 +109,9 @@ During each of these events, the laser would be pointing in the lerped rotation 
 | Issue #1336 | Laser sight requested with requirement: "laser must always point where the enemy will shoot (match the future tracer)" |
 | 2026-03-25 00:20 | Laser implemented inside `EnemySniperComponent`; placed in `_ready()` via `_create_laser_sight()`; direction sourced from `_get_weapon_forward_direction()` |
 | 2026-03-25 00:46 | Owner reviews PR #1484 and reports Bug A (laser on all enemies) and Bug B (laser direction mismatch during blind fire); requests case study |
+| 2026-03-25 00:54 | Bug A fixed: weapon type guard added in `_ready()`. Bug B partially fixed: `_blind_fire_target` variable added; `_update_laser_sight()` reads target direction instead of lerped rotation. But Bug C (see below) remained. |
+| 2026-03-25 01:14 | Owner provides screenshot showing tracer and laser still diverging (see attached screenshot). Second AI session identifies Bug C: muzzle position is still computed from the lerped weapon sprite transform. |
+| 2026-03-25 01:15 | Bug C fixed: muzzle position now computed using `weapon_forward` directly via weapon sprite's global position + `weapon_forward * muzzle_offset`. |
 
 ---
 
@@ -108,6 +124,20 @@ During each of these events, the laser would be pointing in the lerped rotation 
 ### Bug B Root Cause
 
 `_update_laser_sight()` computes the laser direction using `_get_weapon_forward_direction()`, which reads the current lerped weapon rotation. During blind fire, the bullet direction is computed from a direct `to_target` vector that is independent of the lerped rotation. At the moment of firing the lerped rotation has not converged to `to_target`, so the two directions diverge. The laser fails to satisfy the issue requirement of matching the future tracer.
+
+### Bug C Root Cause (discovered 2026-03-25 after second owner review)
+
+Even after Bug B's fix added `_blind_fire_target` to compute the correct laser *direction*, the muzzle *position* was still computed using `_get_bullet_spawn_position()`, which internally uses `_weapon_sprite.global_transform.x.normalized()` (the lerped weapon sprite rotation) to offset the muzzle forward from the sprite's origin.
+
+Because the muzzle start point is offset in the *old* (lerped) direction while the laser end point is in the *new* (target) direction, the drawn `Line2D` is diagonal — it visually sweeps between the two directions. When the weapon has not yet lerped to the target angle, this diagonal is large enough to clearly diverge from where the bullet will fly.
+
+Concretely: if the weapon sprite faces right (angle 0) but the blind-fire target is to the upper-left, the muzzle point lands to the right of the enemy body, and the laser then draws from there toward the upper-left. The resulting line traverses the enemy sprite at an odd angle, appearing completely wrong.
+
+**Fix:** Compute the muzzle position using `weapon_forward` directly:
+```gdscript
+muzzle_pos = weapon_sprite.global_position + weapon_forward * scaled_muzzle_offset
+```
+This ensures both the muzzle start point and the laser direction are aligned with the same `weapon_forward` vector, making the laser a straight consistent line from gun to target.
 
 ---
 
@@ -144,6 +174,24 @@ The laser must show where the next bullet will actually travel. The recommended 
 3. If `_blind_fire_target` is not set (direct fire mode), continue using `_get_weapon_forward_direction()` as before.
 
 An alternative (option 1) is to store the last actual fire direction after each shot and use that for the laser. This is simpler but means the laser shows the direction of the previous shot rather than the direction of the next shot during the interval between shots, which may look incorrect.
+
+---
+
+### Fix C: Compute Muzzle Position Using weapon_forward
+
+In `_update_laser_sight()`, replace the call to `_get_bullet_spawn_position(weapon_forward)` with a direct calculation using the correct `weapon_forward`:
+
+```gdscript
+var weapon_sprite := enemy.get("_weapon_sprite") as Node2D
+if weapon_sprite != null and is_instance_valid(weapon_sprite):
+    const MUZZLE_LOCAL_OFFSET := 52.0
+    var scaled_muzzle_offset := MUZZLE_LOCAL_OFFSET * enemy.enemy_model_scale
+    muzzle_pos = weapon_sprite.global_position + weapon_forward * scaled_muzzle_offset
+else:
+    muzzle_pos = enemy._get_bullet_spawn_position(weapon_forward)
+```
+
+This mirrors what `_get_bullet_spawn_position()` does when the player is visible (it uses the direct calculated direction to player), but applies it universally to ensure the muzzle start and laser direction always agree.
 
 ---
 

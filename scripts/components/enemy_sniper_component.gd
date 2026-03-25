@@ -424,7 +424,20 @@ func _update_laser_sight() -> void:
 			weapon_forward = enemy._get_weapon_forward_direction()
 	else:
 		weapon_forward = enemy._get_weapon_forward_direction()
-	var muzzle_pos: Vector2 = enemy._get_bullet_spawn_position(weapon_forward)
+
+	# Compute muzzle position using weapon_forward directly so the laser line starts from
+	# the correct muzzle side and points in the correct direction. Using
+	# _get_bullet_spawn_position() would ignore the passed direction and fall back to the
+	# weapon sprite's current transform (lerped rotation), causing the start point to be
+	# offset in the wrong direction and the laser to appear diagonal (Issue #1336).
+	var muzzle_pos: Vector2
+	var weapon_sprite := enemy.get("_weapon_sprite") as Node2D
+	if weapon_sprite != null and is_instance_valid(weapon_sprite):
+		const MUZZLE_LOCAL_OFFSET := 52.0  # Matches _get_bullet_spawn_position constant
+		var scaled_muzzle_offset := MUZZLE_LOCAL_OFFSET * enemy.enemy_model_scale
+		muzzle_pos = weapon_sprite.global_position + weapon_forward * scaled_muzzle_offset
+	else:
+		muzzle_pos = enemy._get_bullet_spawn_position(weapon_forward)
 
 	# Raycast along weapon forward to find wall endpoint (collision layer 4 = walls)
 	var end_pos := muzzle_pos + weapon_forward * LASER_MAX_RANGE
