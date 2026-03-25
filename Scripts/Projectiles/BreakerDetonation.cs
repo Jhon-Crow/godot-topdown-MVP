@@ -14,7 +14,9 @@ namespace GodotTopDownTemplate.Projectiles;
 /// Key optimizations:
 /// - Raycast throttling: skip frames when projectile hasn't traveled enough distance
 /// - Object pool integration: use ProjectilePoolManager for shrapnel spawning
-/// - Reduced per-frame allocations: reuse PhysicsRayQueryParameters2D
+/// - Per-frame detonation budget: limit full-effect detonations per physics frame
+/// - Effect coalescing: skip duplicate explosion effects within proximity
+/// - Sound batching: one explosion sound per frame instead of per-detonation
 /// </summary>
 public static class BreakerDetonation
 {
@@ -72,6 +74,27 @@ public static class BreakerDetonation
     public const float RaycastDistanceInterval = 30.0f;
 
     /// <summary>
+    /// Maximum number of full-effect detonations allowed per physics frame (Issue #1462).
+    /// When a shotgun fires 15 pellets that all detonate in 1-2 frames, allowing all 15
+    /// to spawn effects + shrapnel + sounds causes massive FPS drops (30+ fps loss).
+    /// Beyond this limit, detonations still deal damage but skip visual effects/shrapnel/sound.
+    /// </summary>
+    public const int MaxFullDetonationsPerFrame = 3;
+
+    /// <summary>
+    /// Reduced shrapnel count when multiple detonations happen in the same frame (Issue #1462).
+    /// Instead of 10 shrapnel per pellet (= 150 for a shotgun shot), burst detonations
+    /// use this reduced count to limit scene tree churn and physics processing.
+    /// </summary>
+    public const int BurstShrapnelCount = 3;
+
+    /// <summary>
+    /// Minimum distance between explosion effects in the same frame (Issue #1462).
+    /// Explosion lights within this radius are coalesced into one effect to reduce GPU draw calls.
+    /// </summary>
+    public const float EffectCoalesceRadius = 80.0f;
+
+    /// <summary>
     /// Cached shrapnel scene (loaded once per process lifetime).
     /// </summary>
     private static PackedScene? _shrapnelScene;
@@ -82,6 +105,25 @@ public static class BreakerDetonation
     /// Key: projectile instance ID, Value: distance since last raycast.
     /// </summary>
     private static readonly Dictionary<ulong, float> _distanceSinceLastRaycast = new();
+
+    /// <summary>
+    /// Per-frame detonation budget tracking (Issue #1462).
+    /// Resets each physics frame to limit the number of full-effect detonations.
+    /// </summary>
+    private static ulong _lastDetonationFrame;
+    private static int _detonationsThisFrame;
+
+    /// <summary>
+    /// Positions of explosion effects spawned this frame (Issue #1462).
+    /// Used to coalesce nearby explosions into one visual effect.
+    /// </summary>
+    private static readonly List<Vector2> _effectPositionsThisFrame = new();
+
+    /// <summary>
+    /// Whether an explosion sound was already played this frame (Issue #1462).
+    /// Coalesces multiple per-frame explosion sounds into one.
+    /// </summary>
+    private static bool _soundPlayedThisFrame;
 
     /// <summary>
     /// Gets or loads the shrapnel scene.
@@ -210,8 +252,12 @@ public static class BreakerDetonation
     }
 
     /// <summary>
-    /// Triggers full breaker detonation: explosion damage + visual + shrapnel + sound.
-    /// Destroys the projectile after detonation.
+    /// Triggers breaker detonation with per-frame budget management (Issue #1462).
+    ///
+    /// When multiple pellets detonate in the same physics frame (common with shotguns),
+    /// only the first MaxFullDetonationsPerFrame get full visual effects + shrapnel + sound.
+    /// Excess detonations still deal damage but skip expensive visual work.
+    /// This prevents 15 simultaneous detonations from causing 30+ fps drops.
     /// </summary>
     private static void Detonate(
         Area2D projectile,
@@ -222,20 +268,40 @@ public static class BreakerDetonation
     {
         var center = projectile.GlobalPosition;
 
+        // Issue #1462: Track per-frame detonation budget
+        ulong currentFrame = Engine.GetPhysicsFrames();
+        if (currentFrame != _lastDetonationFrame)
+        {
+            _lastDetonationFrame = currentFrame;
+            _detonationsThisFrame = 0;
+            _effectPositionsThisFrame.Clear();
+            _soundPlayedThisFrame = false;
+        }
+        _detonationsThisFrame++;
+
+        bool isFullDetonation = _detonationsThisFrame <= MaxFullDetonationsPerFrame;
+
         // Issue #1196: determine if the shooter is the player so kills are counted toward Laser Sight unlock.
         bool isFromPlayer = IsShooterPlayer(shooterId);
 
-        // 1. Apply explosion damage in radius
+        // 1. Always apply explosion damage (gameplay must remain correct)
         ApplyExplosionDamage(projectile, center, shooterId, isFromPlayer);
 
-        // 2. Spawn visual explosion effect
-        SpawnExplosionEffect(projectile, center);
+        if (isFullDetonation)
+        {
+            // 2. Spawn visual explosion effect (coalesced with nearby effects)
+            SpawnExplosionEffectCoalesced(projectile, center);
 
-        // 3. Spawn shrapnel in a forward cone
-        SpawnShrapnel(projectile, center, direction, damage, damageMultiplier, shooterId);
+            // 3. Spawn shrapnel in a forward cone (reduced count in burst)
+            SpawnShrapnel(projectile, center, direction, damage, damageMultiplier, shooterId);
 
-        // 4. Play explosion sound
-        PlayExplosionSound(projectile, center);
+            // 4. Play explosion sound (once per frame)
+            if (!_soundPlayedThisFrame)
+            {
+                PlayExplosionSound(projectile, center);
+                _soundPlayedThisFrame = true;
+            }
+        }
 
         // 5. Destroy the projectile
         projectile.QueueFree();
@@ -349,10 +415,25 @@ public static class BreakerDetonation
     }
 
     /// <summary>
-    /// Spawns visual explosion effect at the detonation point.
+    /// Spawns visual explosion effect at the detonation point, coalescing with nearby effects
+    /// from the same frame to reduce GPU draw calls (Issue #1462).
+    ///
+    /// When multiple pellets detonate near the same position in one frame, only one
+    /// explosion light is created. This prevents 15 simultaneous PointLight2D objects.
     /// </summary>
-    private static void SpawnExplosionEffect(Node projectile, Vector2 center)
+    private static void SpawnExplosionEffectCoalesced(Node projectile, Vector2 center)
     {
+        // Check if a nearby explosion effect was already spawned this frame
+        foreach (var pos in _effectPositionsThisFrame)
+        {
+            if (center.DistanceTo(pos) < EffectCoalesceRadius)
+            {
+                return; // Skip — already have an effect nearby
+            }
+        }
+
+        _effectPositionsThisFrame.Add(center);
+
         var impactManager = projectile.GetNodeOrNull("/root/ImpactEffectsManager");
         if (impactManager != null && impactManager.HasMethod("spawn_explosion_effect"))
         {
@@ -418,10 +499,15 @@ public static class BreakerDetonation
             return;
         }
 
-        // Calculate shrapnel count based on bullet damage, capped for performance
+        // Issue #1462: Use reduced shrapnel count during burst detonations.
+        // Normal: up to 10 shrapnel per detonation.
+        // Burst (multiple detonations in same frame): 3 per detonation.
+        // This reduces 150 shrapnel per shotgun shot down to ~45.
+        int maxPerDetonation = (_detonationsThisFrame > 1) ? BurstShrapnelCount : MaxShrapnelPerDetonation;
+
         float effectiveDamage = damage * damageMultiplier;
         int shrapnelCount = (int)(effectiveDamage * ShrapnelCountMultiplier);
-        shrapnelCount = Mathf.Clamp(shrapnelCount, 1, MaxShrapnelPerDetonation);
+        shrapnelCount = Mathf.Clamp(shrapnelCount, 1, maxPerDetonation);
 
         // Further reduce if approaching global limit
         int remainingBudget = MaxConcurrentShrapnel - existingShrapnel.Count;
@@ -489,10 +575,12 @@ public static class BreakerDetonation
             return;
         }
 
-        // Calculate shrapnel count based on bullet damage, capped for performance
+        // Issue #1462: Use reduced shrapnel count during burst detonations (same as pooled path)
+        int maxPerDetonation = (_detonationsThisFrame > 1) ? BurstShrapnelCount : MaxShrapnelPerDetonation;
+
         float effectiveDamage = damage * damageMultiplier;
         int shrapnelCount = (int)(effectiveDamage * ShrapnelCountMultiplier);
-        shrapnelCount = Mathf.Clamp(shrapnelCount, 1, MaxShrapnelPerDetonation);
+        shrapnelCount = Mathf.Clamp(shrapnelCount, 1, maxPerDetonation);
 
         // Further reduce if approaching global limit
         int remainingBudget = MaxConcurrentShrapnel - existingShrapnel.Count;

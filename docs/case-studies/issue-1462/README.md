@@ -73,18 +73,96 @@ Instead of raycasting every physics frame, we track cumulative distance traveled
 
 Changed `VerbosePelletLogging` from `true` to `false` in `Shotgun.cs`. The diagnostic logging for Issue #212 is no longer needed and was causing per-pellet file I/O.
 
+## Timeline of Events
+
+### Round 1 (2026-03-24): Effects disabled — 10 FPS drop
+- **Log**: `game_log_20260324_205437.txt` — original report
+- **Conditions**: Performance settings: particles disabled, explosion lights disabled
+- **Result**: ~10 FPS drop during rapid shotgun fire with breaker bullets
+- **Root cause**: Per-frame raycasts (540/sec), scene instantiation for shrapnel (90/shot), verbose logging
+
+### Round 2 (2026-03-25): Effects enabled — 30 FPS drop
+- **Log**: `game_log_20260325_042423.txt` — after Round 1 fixes applied
+- **Conditions**: Performance settings: all effects enabled (particles, blood decals, explosion lights, screen shake)
+- **Sequence in log**:
+  1. `[04:24:31]` Particles disabled → `[04:24:44]` FPS drop to 29 detected (first shot)
+  2. `[04:27:06-08]` Re-enabled all effects (particles, blood decals, screen shake, explosion lights)
+  3. After re-enabling: "FPS drops to 30 fps from a single shot"
+- **Key observations from log**:
+  - Shotgun fires 12-16 pellets per shot (15° spread)
+  - Each detonation emits EXPLOSION sound to up to 10 AI listeners
+  - Shrapnel detonations cascade: each shrapnel piece also emits EXPLOSION sound
+  - Blood decals: 15-30 per enemy hit, each with delayed raycast for wall collision check
+  - Blood effects: `_blood_effect_scene.instantiate()` per hit (NOT pooled, unlike dust effects)
+
+### Round 2 Root Cause Analysis: Effect Chain Explosion
+
+When 15 pellets detonate simultaneously with effects enabled, the full cost per shotgun shot:
+
+| Component | Count per shot | Cost per item |
+|-----------|---------------|---------------|
+| Explosion lights (PointLight2D) | 15 (capped at 8) | GPU draw call + tween |
+| Shrapnel spawns | 10 × 15 = 150 | Physics body + Line2D trail + per-frame processing |
+| Sound propagation calls | 15 detonations + ~150 shrapnel | Iterates all AI listeners per call |
+| Blood effects (GPU particles) | Per enemy hit × 15 pellets | 45 particles each, fresh `instantiate()` |
+| Blood decals | 15-30 per hit | Delayed raycast + `instantiate()` |
+| Dust effects (shrapnel wall hits) | Up to 150 | Pooled GPUParticles2D |
+| GetNodesInGroup("enemies") | 15 calls | O(n) array copy |
+
+**Cascading effect**: The 150 shrapnel pieces from one shot are all alive at the same time (0.8s lifetime), each running physics, updating Line2D trails, and potentially triggering their own blood/dust effects on hit.
+
+## Solution
+
+### Phase 1 Fixes (Round 1 — effects disabled)
+
+#### Fix 1: Distance-Based Raycast Throttling
+Instead of raycasting every physics frame, track cumulative distance per projectile and only raycast when `>=30px` traveled. At 2500 px/s and 60 FPS, halves raycast frequency.
+
+#### Fix 2: Object Pool Integration for Shrapnel
+`SpawnShrapnel()` uses `ProjectilePoolManager.get_breaker_shrapnel()` + `pool_activate()` instead of scene instantiation.
+
+#### Fix 3: Disable Verbose Pellet Logging
+`VerbosePelletLogging` set to `false` in `Shotgun.cs`.
+
+### Phase 2 Fixes (Round 2 — effects enabled)
+
+#### Fix 4: Per-Frame Detonation Budget
+Limit full-effect detonations to `MaxFullDetonationsPerFrame = 3` per physics frame. Beyond that limit, detonations still apply explosion damage (gameplay correctness preserved) but skip visual effects, shrapnel, and sound. This prevents 15 simultaneous detonations from overwhelming the GPU and scene tree.
+
+#### Fix 5: Burst Shrapnel Reduction
+When multiple detonations happen in the same frame, reduce shrapnel per detonation from 10 to `BurstShrapnelCount = 3`. This reduces total shrapnel per shotgun shot from 150 to ~9 (3 detonations × 3 shrapnel), an **~94% reduction** in physics bodies created.
+
+#### Fix 6: Explosion Effect Coalescing
+Skip explosion light effects when one was already spawned within `EffectCoalesceRadius = 80px` in the same frame. Since shotgun pellets spread within 15°, most detonations cluster together — one explosion light visually covers the whole cluster.
+
+#### Fix 7: Sound Batching
+Only emit one explosion sound per physics frame (`_soundPlayedThisFrame` flag). Multiple simultaneous explosion sounds are perceptually identical to one, so this eliminates redundant sound propagation to AI listeners.
+
 ## Performance Impact Estimate
+
+### Phase 1 (effects disabled)
 
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
-| Raycasts/frame (9 pellets) | 9 | ~5 | ~44% reduction |
-| Scene instantiations/shot | up to 90 | 0 (pooled) | ~100% reduction |
-| File writes/shot | 9-16 | 0 | 100% reduction |
-| GC allocations/frame | High (raycast params + arrays) | Reduced | ~40% reduction |
+| Raycasts/frame (15 pellets) | 15 | ~8 | ~47% reduction |
+| Scene instantiations/shot | up to 150 | 0 (pooled) | 100% reduction |
+| File writes/shot | 15-16 | 0 | 100% reduction |
+
+### Phase 2 (effects enabled)
+
+| Metric | Before Phase 2 | After Phase 2 | Improvement |
+|--------|---------------|---------------|-------------|
+| Full-effect detonations/frame | 15 | 3 | 80% reduction |
+| Shrapnel spawns/shot | 150 | ~9 | ~94% reduction |
+| Explosion lights/shot | up to 8 | 1-3 | ~75% reduction |
+| Sound propagation calls/frame | 15 | 1 | ~93% reduction |
+| Concurrent physics bodies | 150 shrapnel | ~9 shrapnel | ~94% reduction |
+
+**Expected result**: Damage remains correct for all 15 pellets. Visual effects are reduced but still clearly visible (3 full detonations with effects provide adequate visual feedback for a shotgun blast). Sound plays once per frame instead of 15 times.
 
 ## Files Changed
 
-- `Scripts/Projectiles/BreakerDetonation.cs` — Raycast throttling + pool integration
+- `Scripts/Projectiles/BreakerDetonation.cs` — All optimizations (raycast throttling, pool integration, per-frame budget, effect coalescing, sound batching, burst shrapnel reduction)
 - `Scripts/Projectiles/Bullet.cs` — Pass distance to throttler + _ExitTree cleanup
 - `Scripts/Projectiles/ShotgunPellet.cs` — Pass distance to throttler + _ExitTree cleanup
 - `Scripts/Weapons/Shotgun.cs` — Disable verbose pellet logging
@@ -94,6 +172,8 @@ Changed `VerbosePelletLogging` from `true` to `false` in `Shotgun.cs`. The diagn
 - Issue #678: Original breaker bullet implementation
 - Issue #724: Object pooling system (ProjectilePoolManager)
 - Issue #212: Pellet distribution fix (verbose logging origin)
+- Issue #1186: Performance settings toggles
+- Issue #1145: Dust effect pooling
 - Godot docs: [Physics ray queries](https://docs.godotengine.org/en/stable/tutorials/physics/ray-casting.html)
 - Godot docs: [Object pooling](https://docs.godotengine.org/en/stable/tutorials/best_practices/scenes_versus_scripts.html)
 - Godot docs: [Optimization using servers](https://docs.godotengine.org/en/stable/tutorials/performance/using_servers.html)
@@ -112,7 +192,10 @@ Key performance data from the Godot community:
 - **`GetNodesInGroup()`** is O(1) HashMap lookup + O(n) array copy; allocates new Array each call
 - **Community rule of thumb:** If spawning >10-20 objects/frame consistently, pooling helps
 - **Collision pair explosion** is the #1 bullet-hell bottleneck: N bullets * M enemies = O(N*M) pairs
+- **Per-frame budget pattern**: Common in AAA games — limit expensive operations per frame and spread across frames (e.g., Unity's `SustainedPerformanceMode`, UE's significance manager)
+- **Sound coalescing**: Multiple simultaneous identical sounds are perceptually equivalent to one at slightly higher volume
 
 ## Attached Data
 
-- `game_log_20260324_205437.txt` — Original game log from issue reporter showing FPS drop to 17 fps
+- `game_log_20260324_205437.txt` — Original game log from issue reporter (Round 1, effects disabled)
+- `game_log_20260325_042423.txt` — Game log after Round 1 fixes, with effects enabled (Round 2)

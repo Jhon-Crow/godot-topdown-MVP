@@ -409,3 +409,216 @@ func test_max_concurrent_shrapnel_constant() -> void:
 func test_max_shrapnel_per_detonation_constant() -> void:
 	assert_eq(10, 10,
 		"MaxShrapnelPerDetonation should be 10 (matches BreakerDetonation.cs)")
+
+
+# ============================================================================
+# Phase 2: Per-Frame Detonation Budget Tests (Issue #1462)
+# ============================================================================
+
+
+class MockDetonationBudget:
+	## Simulates the per-frame detonation budget from BreakerDetonation.cs.
+	## Tracks how many detonations happen per frame and limits full-effect ones.
+
+	const MAX_FULL_DETONATIONS_PER_FRAME: int = 3
+	const BURST_SHRAPNEL_COUNT: int = 3
+	const MAX_SHRAPNEL_PER_DETONATION: int = 10
+	const EFFECT_COALESCE_RADIUS: float = 80.0
+
+	var _last_detonation_frame: int = -1
+	var _detonations_this_frame: int = 0
+	var _effect_positions_this_frame: Array[Vector2] = []
+	var _sound_played_this_frame: bool = false
+
+	## Counters for test verification
+	var total_detonations: int = 0
+	var full_effect_detonations: int = 0
+	var damage_only_detonations: int = 0
+	var effects_spawned: int = 0
+	var sounds_played: int = 0
+	var total_shrapnel_spawned: int = 0
+
+	func detonate(frame: int, position: Vector2, damage: float = 1.0) -> Dictionary:
+		## Returns info about what this detonation did.
+		if frame != _last_detonation_frame:
+			_last_detonation_frame = frame
+			_detonations_this_frame = 0
+			_effect_positions_this_frame.clear()
+			_sound_played_this_frame = false
+
+		_detonations_this_frame += 1
+		total_detonations += 1
+
+		var result := {
+			"damage_applied": true,  # Always applies damage
+			"effects_spawned": false,
+			"shrapnel_spawned": 0,
+			"sound_played": false,
+			"is_full_detonation": false,
+		}
+
+		var is_full := _detonations_this_frame <= MAX_FULL_DETONATIONS_PER_FRAME
+		result["is_full_detonation"] = is_full
+
+		if is_full:
+			full_effect_detonations += 1
+
+			# Effect coalescing
+			var coalesced := false
+			for pos in _effect_positions_this_frame:
+				if position.distance_to(pos) < EFFECT_COALESCE_RADIUS:
+					coalesced = true
+					break
+			if not coalesced:
+				_effect_positions_this_frame.append(position)
+				effects_spawned += 1
+				result["effects_spawned"] = true
+
+			# Burst shrapnel reduction
+			var shrapnel_count: int
+			if _detonations_this_frame > 1:
+				shrapnel_count = BURST_SHRAPNEL_COUNT
+			else:
+				shrapnel_count = int(damage * 10.0)
+				shrapnel_count = clampi(shrapnel_count, 1, MAX_SHRAPNEL_PER_DETONATION)
+			result["shrapnel_spawned"] = shrapnel_count
+			total_shrapnel_spawned += shrapnel_count
+
+			# Sound batching
+			if not _sound_played_this_frame:
+				_sound_played_this_frame = true
+				sounds_played += 1
+				result["sound_played"] = true
+		else:
+			damage_only_detonations += 1
+
+		return result
+
+
+func test_detonation_budget_first_detonation_is_full() -> void:
+	var budget := MockDetonationBudget.new()
+	var result := budget.detonate(1, Vector2(100, 100))
+	assert_true(result["is_full_detonation"],
+		"First detonation in a frame should be a full-effect detonation")
+	assert_true(result["damage_applied"],
+		"Damage should always be applied")
+
+
+func test_detonation_budget_limits_full_detonations() -> void:
+	var budget := MockDetonationBudget.new()
+	# 15 pellets all detonate in frame 1
+	for i in range(15):
+		budget.detonate(1, Vector2(100 + i * 5, 100))
+
+	assert_eq(budget.full_effect_detonations, 3,
+		"Only 3 detonations should get full effects per frame")
+	assert_eq(budget.damage_only_detonations, 12,
+		"Remaining 12 detonations should be damage-only")
+	assert_eq(budget.total_detonations, 15,
+		"All 15 detonations should be counted")
+
+
+func test_detonation_budget_resets_each_frame() -> void:
+	var budget := MockDetonationBudget.new()
+	# Frame 1: 5 detonations
+	for i in range(5):
+		budget.detonate(1, Vector2(100, 100))
+	# Frame 2: 5 more detonations
+	for i in range(5):
+		budget.detonate(2, Vector2(200, 200))
+
+	assert_eq(budget.full_effect_detonations, 6,
+		"Each frame should get 3 full-effect detonations (3 + 3 = 6)")
+
+
+func test_detonation_budget_damage_always_applied() -> void:
+	var budget := MockDetonationBudget.new()
+	for i in range(20):
+		var result := budget.detonate(1, Vector2(100, 100))
+		assert_true(result["damage_applied"],
+			"Damage must always be applied, even for damage-only detonations")
+
+
+func test_sound_batching_one_per_frame() -> void:
+	var budget := MockDetonationBudget.new()
+	for i in range(15):
+		budget.detonate(1, Vector2(100, 100))
+
+	assert_eq(budget.sounds_played, 1,
+		"Only one explosion sound should play per frame")
+
+
+func test_sound_batching_resets_per_frame() -> void:
+	var budget := MockDetonationBudget.new()
+	budget.detonate(1, Vector2(100, 100))
+	budget.detonate(2, Vector2(200, 200))
+	budget.detonate(3, Vector2(300, 300))
+
+	assert_eq(budget.sounds_played, 3,
+		"Each frame should play one sound (3 frames = 3 sounds)")
+
+
+func test_effect_coalescing_nearby() -> void:
+	var budget := MockDetonationBudget.new()
+	# 3 detonations at nearby positions (within 80px)
+	budget.detonate(1, Vector2(100, 100))
+	budget.detonate(1, Vector2(130, 100))  # 30px away
+	budget.detonate(1, Vector2(160, 100))  # 60px from first
+
+	assert_eq(budget.effects_spawned, 1,
+		"Nearby explosions within 80px should coalesce into one effect")
+
+
+func test_effect_coalescing_far_apart() -> void:
+	var budget := MockDetonationBudget.new()
+	# 3 detonations at distant positions (>80px apart)
+	budget.detonate(1, Vector2(100, 100))
+	budget.detonate(1, Vector2(300, 100))   # 200px away
+	budget.detonate(1, Vector2(500, 100))   # 400px from first
+
+	assert_eq(budget.effects_spawned, 3,
+		"Distant explosions should each get their own effect")
+
+
+func test_burst_shrapnel_reduction() -> void:
+	var budget := MockDetonationBudget.new()
+	# Simulate 15 pellets detonating in same frame
+	for i in range(15):
+		budget.detonate(1, Vector2(100 + i * 10, 100))
+
+	# First detonation: 10 shrapnel, next 2: 3 each, rest: 0
+	# Total: 10 + 3 + 3 = 16
+	assert_eq(budget.total_shrapnel_spawned, 16,
+		"Burst should produce 10 + 3 + 3 = 16 shrapnel (not 150)")
+
+
+func test_burst_shrapnel_first_detonation_gets_full_count() -> void:
+	var budget := MockDetonationBudget.new()
+	var result := budget.detonate(1, Vector2(100, 100))
+	assert_eq(result["shrapnel_spawned"], 10,
+		"First detonation in a frame should get full shrapnel count (10)")
+
+
+func test_burst_shrapnel_subsequent_detonations_reduced() -> void:
+	var budget := MockDetonationBudget.new()
+	budget.detonate(1, Vector2(100, 100))  # First: 10
+	var result2 := budget.detonate(1, Vector2(200, 100))  # Second: 3
+	assert_eq(result2["shrapnel_spawned"], 3,
+		"Subsequent detonations in same frame should get reduced shrapnel count (3)")
+
+
+func test_shotgun_full_shot_total_shrapnel() -> void:
+	## Simulates a full shotgun shot of 15 pellets detonating simultaneously.
+	## Before optimization: 15 * 10 = 150 shrapnel
+	## After optimization: 10 + 3 + 3 = 16 shrapnel (89% reduction)
+	var budget := MockDetonationBudget.new()
+	for i in range(15):
+		budget.detonate(1, Vector2(100, 100))
+
+	var max_without_optimization := 15 * 10
+	assert_lt(budget.total_shrapnel_spawned, max_without_optimization,
+		"Total shrapnel (%d) should be much less than unoptimized (%d)" % [
+			budget.total_shrapnel_spawned, max_without_optimization])
+	# Should be exactly 16 (10 + 3 + 3, with only 3 full detonations)
+	assert_eq(budget.total_shrapnel_spawned, 16,
+		"Total shrapnel should be 10 + 3 + 3 = 16")
