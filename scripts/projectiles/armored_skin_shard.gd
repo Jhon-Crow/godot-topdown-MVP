@@ -6,7 +6,7 @@ class_name ArmoredSkinShard
 ## directions. Unlike grenade shrapnel, these shards:
 ## - Do NOT ricochet off walls (destroyed on wall hit)
 ## - Do NOT penetrate walls
-## - Deals 1 damage per piece
+## - Deals up to 5 damage per piece (Issue #1488)
 ## - Has a glassy/crystalline visual appearance (cyan/blue-white tinted)
 ## - Does NOT hit the player who triggered them
 
@@ -17,7 +17,7 @@ class_name ArmoredSkinShard
 @export var lifetime: float = 0.7
 
 ## Damage dealt on hit.
-@export var damage: int = 1
+@export var damage: int = 5
 
 ## Maximum number of trail points to maintain.
 @export var trail_length: int = 5
