@@ -2,73 +2,94 @@
 
 ## Problem
 
-When all enemies enter the SEARCHING state simultaneously, the game drops from ~60 FPS to ~27-29 FPS. The issue was reported with 20 enemies on a large map (warehouse level) where enemies start in SEARCHING state and immediately detect the player.
+When all enemies enter the SEARCHING state simultaneously, the game drops from ~60 FPS to ~27-29 FPS. The issue was reported with 20 enemies on a large map (warehouse/docks level).
 
-## Root Cause Analysis
+## Root Cause Analysis (Round 2 — March 2026)
 
-### Primary Bottleneck: SEARCHING-COMBAT State Oscillation
+After the initial fixes (oscillation prevention, nav target caching, redirect guard), the owner reported the FPS drop **persisted**. Screenshots showed:
+- Dense overlapping grids of orange waypoints around containers
+- Long diagonal yellow lines crossing the entire map
+- Multiple enemies clustered with redundant overlapping waypoint networks
 
-Analysis of `game_log_20260324_202643.txt` (34,081 lines) revealed:
-- **32,371 "SEARCHING: Player spotted! Transitioning to COMBAT" log entries** in ~10 seconds
-- **Zero** "State: X -> Y" state change logs despite constant transition attempts
-- Multiple enemies (WarehouseA_UZI2, ContainerYardB_Machete, OpenArea_Patrol1, etc.) logging "Player spotted!" every physics frame
+Analysis of `game_log_20260325_031409.txt` (111,918 lines) revealed:
 
-The root cause is a rapid state oscillation cycle:
+### Primary Bottleneck: Timeout Log Spam (97,860 entries)
 
+The `_search_state_timer >= SEARCH_MAX_DURATION` check fires every physics frame once the 30s timeout is reached. When IDLE is disabled, `_transition_to_idle()` redirects back to SEARCHING via the `_current_state != AIState.SEARCHING` guard, which correctly prevents waypoint regeneration — but **does not reset the timer**. So the timeout condition continues to fire every frame, logging "SEARCHING timeout after X.Xs" with an ever-incrementing timer (30.0s → 52.6s). With 20 enemies, this produced:
+- **97,860 log file writes** in ~8 minutes
+- **97,860 `_transition_to_idle()` calls** (each doing a `get_node_or_null()` lookup)
+
+### Secondary Bottleneck: Expanding Square Spiral Algorithm
+
+The `_generate_search_waypoints()` function used an expanding square spiral:
 ```
-SEARCHING → _transition_to_combat()
-    → COMBAT disabled or LOS lost on next frame
-    → _transition_to_idle()
-    → IDLE disabled
-    → re-enter SEARCHING (with full waypoint regeneration)
-    → Player still visible → repeat
+while iters < 100:
+    NavigationServer2D.map_get_closest_point(nav_map, next_pos)  # Up to 100 calls
 ```
+Problems:
+- **Up to 100 `map_get_closest_point()` calls per generation** per enemy
+- **Mechanical grid patterns** visible as overlapping debug lines
+- **Waypoints at fixed 75px spacing** created identical grids for nearby enemies
+- **Max radius of 2000px** caused paths to cross the entire map (visible as long diagonal yellow lines in screenshots)
+- With 20 enemies, each generation batch = up to 2,000 NavigationServer queries
 
-This cycle occurs because:
-1. `_process_searching_state()` checks `_can_see_player` every frame (line 2365)
-2. `_transition_to_combat()` calls `_transition_to_idle()` when COMBAT is disabled (line 2662)
-3. `_transition_to_idle()` redirects back to SEARCHING when IDLE is disabled (line 2653)
-4. The redirect chain calls `_generate_search_waypoints()` which invokes `NavigationServer2D.map_get_closest_point()` up to 100 times
+### Tertiary Bottleneck: Excessive Ring Expansion
 
-Even when states are enabled, the transition SEARCHING→COMBAT resets `_combat_state_timer = 0`, and COMBAT requires `COMBAT_MIN_DURATION_BEFORE_PURSUE` (0.5s) before allowing PURSUING transition. Vision checks run every 6 frames, so the enemy can briefly lose and regain LOS, causing rapid cycling.
-
-### Secondary Bottleneck: Redundant Navigation Updates
-
-In `_process_searching_state()`, line 2408 sets `_nav_agent.target_position = target_waypoint` every physics frame. In Godot's NavigationServer2D, setting `target_position` triggers an internal path query even when the target hasn't changed. With 20 enemies, this means 20 redundant path calculations per frame.
-
-### Tertiary Bottleneck: Per-Frame File Logging
-
-`_log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")` at line 2366 writes to disk every physics frame for every enemy that can see the player. With 20 enemies at 60 FPS, this is up to 1,200 file writes per second.
+When all spiral waypoints were visited, `_search_radius` expanded by 75px and regenerated. With `SEARCH_MAX_RADIUS = 2000` and `SEARCH_INITIAL_RADIUS = 100`, this allowed 25+ expansion rounds, each generating another 100 nav queries.
 
 ## Quantified Impact
 
-| Metric | Before Fix | After Fix |
-|--------|-----------|-----------|
-| State transition attempts/sec (20 enemies) | ~1,200 | ~0 (after 0.3s cooldown) |
-| Waypoint regenerations/sec (disabled states) | ~1,200 | 0 (guard added) |
-| NavigationServer path queries/sec | ~1,200 (redundant) | ~20 (only on waypoint change) |
-| File log writes/sec (search→combat) | ~1,200 | 1 per enemy per search session |
+| Metric | Before (Round 1) | After Round 1 | After Round 2 |
+|--------|------------------|---------------|---------------|
+| Timeout log writes (8 min, 20 enemies) | 0 (timeout worked) | 97,860 (loop bug) | 20 (once per enemy) |
+| Nav calls per waypoint generation | 100 (spiral) | 100 (unchanged) | ~10 (random-radius) |
+| Max waypoints per batch | 20 | 20 | 5 |
+| Max search radius | 2000px | 2000px | 600px |
+| Radius expansion steps to max | 25 | 25 | ~5 |
+| Visual path quality | Mechanical grid | Mechanical grid | Natural random spread |
 
-## Solution
+## Solution (Round 2)
 
-Three targeted fixes in `scripts/objects/enemy.gd`:
+### Fix 1: Replace spiral with random-radius waypoint generation
+Replaced the expanding square spiral (`_search_direction`, `_search_leg_length`, etc.) with random point generation:
+- Generate `SEARCH_WAYPOINT_COUNT` (5) random points within `_search_radius` of `_search_center`
+- Each point is a random angle + random distance (30%-100% of radius)
+- Snap to navmesh using `map_get_closest_point()`, reject if too far (>50px)
+- **Max ~10 nav calls per batch** vs 100 in the spiral
+- Points are naturally spread, no mechanical grid patterns
 
-### Fix 1: Minimum SEARCHING duration before COMBAT transition
-Added `SEARCH_MIN_TIME_BEFORE_COMBAT = 0.3` seconds. The enemy must be in SEARCHING for at least 0.3s before transitioning to COMBAT when player is spotted. This prevents the rapid oscillation cycle while remaining short enough to not noticeably delay combat engagement.
+### Fix 2: Reduce max search radius
+Reduced `SEARCH_MAX_RADIUS` from 2000 to 600. Enemies now search locally near the last known player position instead of expanding across the entire map. This also reduces the number of expansion rounds from 25 to ~5.
 
-### Fix 2: Navigation target caching
-Added `_search_last_nav_target` to cache the last waypoint passed to `_nav_agent.target_position`. Only updates when the waypoint actually changes (distance > 1px), eliminating redundant path recalculations.
+### Fix 3: Throttle timeout log
+Added `_search_timeout_logged` flag — the "SEARCHING timeout" message logs once per search session instead of every physics frame. This eliminated 97,860 redundant log writes.
 
-### Fix 3: _transition_to_idle redirect chain guard
-Added a check `if _current_state != AIState.SEARCHING` before regenerating waypoints in the IDLE-disabled redirect path. When the enemy is already in SEARCHING and the redirect chain fires, it now returns immediately instead of clearing and regenerating all search waypoints.
+### Fix 4: Increased initial radius
+Changed `SEARCH_INITIAL_RADIUS` from 100 to 150 and `SEARCH_RADIUS_EXPANSION` from 75 to 100. Random points need a larger radius to find navigable positions that aren't clustered together.
 
-### Fix 4: Log throttling
-Added `_search_combat_transition_logged` flag to log "Player spotted! Transitioning to COMBAT" only once per search session instead of every frame.
+## Fixes Retained from Round 1
+
+- **SEARCH_MIN_TIME_BEFORE_COMBAT (0.3s)**: Prevents rapid SEARCHING↔COMBAT oscillation
+- **Nav target caching**: `_search_last_nav_target` prevents redundant `target_position` updates
+- **Redirect chain guard**: `_current_state != AIState.SEARCHING` check in `_transition_to_idle()`
+- **Combat log throttle**: "Player spotted" logged once per session
+
+## Research: Alternative Approaches Considered
+
+| Approach | Pros | Cons | Decision |
+|----------|------|------|----------|
+| `map_get_random_point()` | Cheapest, guaranteed valid | Added in Godot 4.4 (project uses 4.3) | Incompatible |
+| Predefined `Path2D` waypoints | Zero runtime cost | Requires level designer work, rigid | Already supported via `SearchPathWaypoints` |
+| Random-radius + snap to navmesh | Low nav calls (~10), natural paths | Rejection sampling may miss some points | **Chosen** |
+| Probability/Markov chain | Most intelligent search | High complexity, needs graph infrastructure | Overkill |
 
 ## References
 
-- Godot NavigationServer2D docs: setting `target_position` triggers internal path update
+- Godot docs: [Optimizing Navigation Performance](https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_optimizing_performance.html)
+- Godot docs: [NavigationServer2D](https://docs.godotengine.org/en/stable/classes/class_navigationserver2d.html)
+- Godot Forum: [Nav Agent tanks my fps](https://forum.godotengine.org/t/nav-agent-tanks-my-fps/115578)
 - Issue #1186: PerformanceSettings state redirect chain
 - Issue #322: SEARCHING state implementation
 - Issue #330: Engaged enemies search indefinitely
-- Issue #1249: Tactical movement / stuck detection optimization
+- Issue #405: Search continues indefinitely after engagement
+- Issue #1225: Predefined search path waypoints
