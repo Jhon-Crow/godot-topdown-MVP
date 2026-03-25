@@ -2,35 +2,39 @@
 
 ## Summary
 
-After the initial fix (PR #1476, commit `c3345806`) was deployed, the owner
-tested it and reported "не сработало" (it didn't work). The player still
-landed on the default `LabyrinthLevel` instead of the last played level on
-every game restart.
+After a first fix attempt (PR #1476, commit `c3345806`) and a second fix attempt
+(commit `f484d158`) were both deployed and tested, the owner reported "не сработало"
+(it didn't work) both times. The player still always landed on the default
+`LabyrinthLevel` instead of the last played level on every game restart.
 
-This document reconstructs the exact failure sequence from the attached game
-logs, identifies the root cause, and describes the corrective fix.
+This document reconstructs the full failure sequence from all four game logs,
+identifies the true root cause of each failure, and describes the final corrective fix.
 
 ---
 
 ## Logs Analysed
 
-| File | Session Start | Session End | Duration |
-|------|--------------|-------------|----------|
-| `game_log_20260325_070908.txt` | 07:09:08 | 07:09:14 | ~6 s |
-| `game_log_20260325_070919.txt` | 07:09:19 | 07:09:25 | ~6 s |
+| File | Session Start | Bug triggered? | Notes |
+|------|--------------|----------------|-------|
+| `game_log_20260325_070908.txt` | 07:09:08 | Yes (original) | First session — no save yet |
+| `game_log_20260325_070919.txt` | 07:09:19 | Yes (original) | Second session — shows overwrite |
+| `game_log_20260325_124153.txt` | 12:41:53 | Yes (2nd fix attempt) | SceneLoader race visible |
+| `game_log_20260325_124210.txt` | 12:42:10 | Yes (2nd fix attempt) | Same SceneLoader race |
 
 ---
 
-## Timeline Reconstruction
+## Bug 1 — Original Race Condition (commits `c3345806`)
 
-### Session 1 — `game_log_20260325_070908.txt`
+### Timeline Reconstruction
+
+**Session 1 — `game_log_20260325_070908.txt`**
 
 ```
 07:09:08  Game starts.  Default scene = LabyrinthLevel.
 07:09:08  [PersistManager] _load_state()   → loads save file (no last_level yet)
 07:09:08  [PersistManager] _connect_signals() → tree_changed connected
 07:09:08  *** tree_changed fires (LabyrinthLevel is the current root scene)
-          _on_tree_changed runs, _navigation_ready = false (bug: no guard yet)
+          _on_tree_changed runs — no guard exists yet
           _is_level_scene("res://scenes/levels/LabyrinthLevel.tscn") → true
           _save_state_with_level("LabyrinthLevel.tscn") called
           → WRITES last_level = LabyrinthLevel.tscn  ← CRITICAL OVERWRITE
@@ -39,156 +43,208 @@ logs, identifies the root cause, and describes the corrective fix.
 07:09:09  _navigate_to_last_level() runs (deferred)
           last_level = LabyrinthLevel.tscn (already overwritten by above)
           current_path = LabyrinthLevel.tscn
-          → "Already at last played level"  (no navigation — correct for this run)
+          → "Already at last played level"  (no navigation)
 
-07:09:12  Player or LevelsMenu triggers navigation to BuildingLevel.
-          log line 268: "Last level saved: res://scenes/levels/BuildingLevel.tscn"
-          log line 292: "Auto-saved current level: res://scenes/levels/BuildingLevel.tscn"
-          → save file now correctly holds last_level = BuildingLevel.tscn
+07:09:12  Player picks BuildingLevel from the menu.
+          log: "Last level saved: res://scenes/levels/BuildingLevel.tscn"
+          log: "Auto-saved current level: res://scenes/levels/BuildingLevel.tscn"
+          → Save file now correctly holds last_level = BuildingLevel.tscn
 
 07:09:14  Game exits.  Save file = BuildingLevel.tscn  ✓
 ```
 
-### Session 2 — `game_log_20260325_070919.txt` (5 s later)
+**Session 2 — `game_log_20260325_070919.txt` (5 s later)**
 
 ```
 07:09:19  Game starts again.  Default scene = LabyrinthLevel.
-07:09:20  [PersistManager] _load_state()   → reads save file: last_level = BuildingLevel.tscn ✓
-07:09:20  [PersistManager] _connect_signals() → tree_changed connected
+07:09:20  _load_state() → reads save file: last_level = BuildingLevel.tscn ✓
+07:09:20  _connect_signals() → tree_changed connected
 07:09:20  *** tree_changed fires (LabyrinthLevel is the current root scene)
-          _on_tree_changed runs, _navigation_ready = false (no guard)
-          _is_level_scene("res://scenes/levels/LabyrinthLevel.tscn") → true
-          _save_state_with_level("LabyrinthLevel.tscn") called
+          _on_tree_changed runs — still no guard
           → OVERWRITES last_level = LabyrinthLevel.tscn  ← BUG TRIGGERED
-          log line 121: "Auto-saved current level: res://scenes/levels/LabyrinthLevel.tscn"
+          log line 121: "Auto-saved current level: LabyrinthLevel.tscn"
 
 07:09:20  _navigate_to_last_level() runs (deferred)
-          get_last_level() now returns LabyrinthLevel.tscn (already overwritten!)
-          current_path = LabyrinthLevel.tscn
+          get_last_level() → LabyrinthLevel.tscn (already overwritten)
           → "Already at last played level: LabyrinthLevel.tscn"
           → NO navigation to BuildingLevel  ← USER-VISIBLE BUG
+```
 
-07:09:20  Auto-saved level = LabyrinthLevel (locked in again for next session)
+### Root Cause 1
+
+`tree_changed` fires **before** `_navigate_to_last_level()` (which is deferred),
+so `_on_tree_changed` ran and overwrote the saved level on every startup.
+
+### Fix Attempt 1 (not sufficient)
+
+A `_navigation_ready` flag was added. A second deferred call `_set_navigation_ready()`
+was queued immediately after `_navigate_to_last_level()` in `_ready()`, raising the
+flag in the same deferred batch. This prevented the very first `tree_changed` (which
+fires before the deferred queue flushes) from overwriting the save.
+
+---
+
+## Bug 2 — SceneLoader Background-Loading Race (commit `f484d158`)
+
+The first fix correctly blocked the initial `tree_changed` event, but introduced a
+second race: when SceneLoader performs **background** scene loading, it fires
+`tree_changed` multiple times **while `current_scene` is still `LabyrinthLevel`**.
+The guard was lifted too early (right after `_navigate_to_last_level()` called
+`SceneLoader.load_level()`) — allowing those intermediate events through.
+
+### Timeline Reconstruction
+
+**Session from `game_log_20260325_124153.txt`**
+
+```
+12:41:53  Game starts.  Default scene = LabyrinthLevel.
+12:41:53  _load_state() → last_level = BeachLevel.tscn ✓
+12:41:53  _connect_signals() → tree_changed connected
+12:41:53  _navigate_to_last_level() (deferred):
+            → SceneLoader.load_level("BeachLevel.tscn") called (background)
+12:41:53  _set_navigation_ready() (deferred):
+            → _navigation_ready = true  ← GUARD LIFTED TOO EARLY
+
+12:41:54  SceneLoader fires tree_changed while loading BeachLevel in the background.
+          current_scene is STILL LabyrinthLevel at this point.
+          _on_tree_changed():
+            _navigation_ready == true  (guard already lifted)
+            current_scene.scene_file_path = "LabyrinthLevel.tscn"
+            _is_level_scene → true
+            → SAVES LabyrinthLevel.tscn  ← OVERWRITES BeachLevel  ← BUG AGAIN
+          log line 227: "Auto-saved current level on scene change: LabyrinthLevel.tscn"
+
+12:42:01  Player manually picks BuildingLevel from the menu.
+          → Save file corrected to BuildingLevel.tscn (visible in log)
+```
+
+**Session from `game_log_20260325_124210.txt`** shows the identical pattern:
+```
+12:42:11  _navigate_to_last_level() → navigating to BuildingLevel.tscn
+12:42:11  SceneLoader starts background load
+12:42:11  tree_changed fires while current_scene = LabyrinthLevel
+          → log line 227: "Auto-saved current level: LabyrinthLevel.tscn"  ← OVERWRITE
+```
+
+### Root Cause 2
+
+`_set_navigation_ready()` was queued in the **same deferred batch** as
+`_navigate_to_last_level()`. `SceneLoader.load_level()` kicks off asynchronous
+background loading immediately. This generates `tree_changed` events in subsequent
+frames — **after** the deferred batch has flushed and `_navigation_ready` has been
+set to `true` — but **before** `current_scene` has actually changed from
+`LabyrinthLevel` to the target level. The guard was lifted before the scene
+actually arrived.
+
+```
+Frame N (deferred queue):
+  _navigate_to_last_level():
+    SceneLoader.load_level("BuildingLevel.tscn")  ← starts background load
+  _set_navigation_ready():
+    _navigation_ready = true  ← guard lifted immediately after requesting load
+
+Frame N+1, N+2, … (background loading in progress):
+  SceneLoader fires tree_changed (background load activity)
+  current_scene is STILL LabyrinthLevel
+  _on_tree_changed():
+    _navigation_ready == true  ← guard is already up
+    saves LabyrinthLevel.tscn  ← BUG: guard lifted before scene changed
 ```
 
 ---
 
-## Root Cause
+## Final Fix
 
-`_on_tree_changed` is connected in `_connect_signals()`, which is called
-**synchronously** in `_ready()`.  However, `_navigate_to_last_level()` is
-scheduled with `call_deferred`, so it runs **one frame later**.
+Instead of lifting the guard after *requesting* navigation, the guard is now lifted
+when `current_scene` **actually changes** to the target level.
 
-Because `tree_changed` fires during the same frame that `_ready()` runs —
-when the engine is setting up the default scene (`LabyrinthLevel`) — the
-auto-save in `_on_tree_changed` executes **before** `_navigate_to_last_level`
-has had a chance to read the saved level and redirect the player.
-
-Result: every game launch **overwrites** the previously saved level with
-`LabyrinthLevel.tscn` before the redirect can happen.
-
-### Why Was This a Race Condition?
-
-GDScript's `call_deferred` inserts a call into the end of the current frame's
-message queue.  Signal handlers connected via `signal.connect()` fire
-**immediately** when the signal is emitted — they are not deferred.
-`tree_changed` is emitted by the engine itself when scene tree structure
-changes, and the very first emission (for the initial main scene) happens
-during the same `_ready` phase, **before** the deferred queue is flushed.
-
-```
-Frame N (startup):
-  autoload._ready() runs:
-    _load_state()            → reads BuildingLevel.tscn from disk ✓
-    _connect_signals()       → tree_changed handler registered
-    call_deferred(_navigate) → queued for end of frame
-    call_deferred(_set_ready) → queued for end of frame (not yet in code)
-
-  engine emits tree_changed (LabyrinthLevel is root):
-    _on_tree_changed()       → saves LabyrinthLevel.tscn ← OVERWRITE
-                               (because no guard exists yet)
-
-  deferred queue flushes:
-    _navigate_to_last_level() → reads last_level = LabyrinthLevel.tscn (corrupted)
-                                 → no redirect needed (already there)
-```
-
----
-
-## Fix Applied
-
-A boolean guard `_navigation_ready` was introduced.  `_on_tree_changed`
-returns early while this flag is `false`.  A second deferred call,
-`_set_navigation_ready()`, is queued immediately after `_navigate_to_last_level`
-in `_ready()`.  Because both are in the same deferred batch, `_set_navigation_ready`
-runs right after navigation has been dispatched — from that point on, all
-subsequent scene changes are auto-saved normally.
+- `_navigate_to_last_level()` records the destination in `_startup_navigation_target`
+  and sets `_navigation_ready = true` directly when no navigation is needed.
+- `_on_tree_changed()` checks `_startup_navigation_target`: if the incoming
+  `current_scene.scene_file_path` does **not** match the target, the event is
+  ignored. When it does match, the guard is lifted and normal auto-saving resumes.
+- `_set_navigation_ready()` and the extra `call_deferred` in `_ready()` are removed.
 
 ```gdscript
-# In _ready():
-call_deferred("_navigate_to_last_level")
-call_deferred("_set_navigation_ready")   # ← new
+# _navigate_to_last_level() — sets target instead of lifting guard early
+_startup_navigation_target = last_level
+SceneLoader.load_level(last_level)   # async — does NOT lift guard
 
-# New guard in _on_tree_changed():
+# _on_tree_changed() — guard aware of target
 func _on_tree_changed() -> void:
-    if not _navigation_ready:             # ← new guard
+    var current_scene := get_tree().current_scene
+    if current_scene == null or current_scene == _previous_scene:
         return
-    ...
+    if not _navigation_ready:
+        if _startup_navigation_target == "":
+            return
+        var current_path = current_scene.scene_file_path
+        if current_path != _startup_navigation_target:
+            return   # still waiting — ignore LabyrinthLevel events
+        # Arrived! Lift the guard.
+        _navigation_ready = true
+        _startup_navigation_target = ""
+    _previous_scene = current_scene
+    ...auto-save...
 ```
 
 ### Corrected Execution Timeline
 
 ```
-Frame N (startup):
-  _ready():
-    _load_state()              → reads BuildingLevel.tscn ✓
-    _connect_signals()         → tree_changed handler registered
-    call_deferred(_navigate)   → queued
-    call_deferred(_set_ready)  → queued
+Frame N (deferred):
+  _navigate_to_last_level():
+    _startup_navigation_target = "BuildingLevel.tscn"
+    SceneLoader.load_level("BuildingLevel.tscn")
+  (no _set_navigation_ready call — guard stays down)
 
-  engine emits tree_changed (LabyrinthLevel):
-    _on_tree_changed():
-      _navigation_ready == false → return immediately  ← FIX
-      (NO overwrite)
+Frames N+1 … N+M (SceneLoader background loading):
+  tree_changed fires, current_scene = LabyrinthLevel
+  _on_tree_changed():
+    _navigation_ready == false
+    _startup_navigation_target == "BuildingLevel.tscn"
+    current_scene.scene_file_path == "LabyrinthLevel.tscn" ≠ target
+    → RETURN immediately  ← FIX: no overwrite
 
-  deferred queue flushes:
-    _navigate_to_last_level()  → reads last_level = BuildingLevel.tscn ✓
-                                  → navigates to BuildingLevel  ✓
-    _set_navigation_ready()    → _navigation_ready = true
-
-Frame N+M (BuildingLevel finishes loading):
-  engine emits tree_changed:
-    _on_tree_changed():
-      _navigation_ready == true
-      scene_path = BuildingLevel.tscn → _is_level_scene = true
-      → saves BuildingLevel.tscn  ✓ (correct and harmless)
+Frame N+M+1 (scene transition complete):
+  SceneLoader changes current_scene to BuildingLevel
+  tree_changed fires
+  _on_tree_changed():
+    _navigation_ready == false
+    current_scene.scene_file_path == "BuildingLevel.tscn" == target ✓
+    → _navigation_ready = true  (guard lifted)
+    → saves BuildingLevel.tscn  ✓
 ```
 
 ---
 
-## Impact
+## Impact Summary
 
-- **Affected versions:** all builds containing PR #1476 commit `c3345806`
-  through this fix
-- **Trigger:** every single game restart when the player had previously
-  navigated away from `LabyrinthLevel`
-- **User experience:** player always returned to `LabyrinthLevel` regardless
-  of last played level — the original reported bug was not fixed
+| Version | Trigger | Result |
+|---------|---------|--------|
+| Original (no fix) | Any game restart after playing a non-Labyrinth level | Always stuck on LabyrinthLevel |
+| Fix attempt 1 (`c3345806`) | Game restart when SceneLoader background-loads the saved level | Still stuck on LabyrinthLevel |
+| Fix attempt 2 (`f484d158`) | Game restart when SceneLoader background-loads the saved level | Still stuck on LabyrinthLevel |
+| Final fix | None | Correctly navigates to last played level on every restart |
 
 ---
 
 ## Additional Context (Online Research)
 
-The pattern of a startup signal racing with deferred initialisation is a
-well-known Godot footgun documented in the Godot community:
+The two-layer race condition uncovered here is a known pattern in Godot:
 
-- Godot signals connected in `_ready()` can fire within the same frame for
-  autoloads because the scene tree is already partially constructed when
-  autoloads initialise.
-- The standard mitigation is either (a) defer the signal connection itself,
-  or (b) add a "ready" guard flag — both achieve the same result.  Option (b)
-  was chosen here to keep the connection synchronous and avoid missing any
-  scene changes that happen between deferred calls.
+1. **Immediate signal emission during `_ready()`**: `tree_changed` can fire within
+   the same frame as `_ready()` for autoloads because the scene tree is partially
+   constructed when autoloads initialise. Deferred calls offer no protection against
+   signals that fire *before* the deferred queue flushes.
+
+2. **SceneLoader background events**: Godot's `ResourceLoader.load_threaded_request`
+   (used internally by `SceneLoader`) performs loading on a background thread and can
+   emit tree modifications as resources are assembled. The `tree_changed` signal is
+   not restricted to frame boundaries and can fire mid-load.
+
+The robust solution for this class of bug is to track the *expected destination* and
+lift the guard only when the destination has actually been reached — not when
+navigation has been *requested*.
 
 ---
 
@@ -196,6 +252,6 @@ well-known Godot footgun documented in the Godot community:
 
 | File | Change |
 |------|--------|
-| `scripts/autoload/persist_manager.gd` | Added `_navigation_ready` flag and `_set_navigation_ready()` method; guard in `_on_tree_changed()` |
-| `tests/unit/test_persist_manager.gd` | Three new tests covering the startup-guard logic |
-| `docs/case-studies/issue-1456/` | This analysis and the original game logs |
+| `scripts/autoload/persist_manager.gd` | `_startup_navigation_target` field; guard in `_on_tree_changed()` checks target path; `_set_navigation_ready()` removed; `_navigation_ready` set directly inside `_navigate_to_last_level()` |
+| `tests/unit/test_persist_manager.gd` | Five new tests covering the startup-guard logic (background-load race, guard lift, post-navigation saves, first-launch, already-at-saved-level) |
+| `docs/case-studies/issue-1456/` | This analysis and all four game logs |
