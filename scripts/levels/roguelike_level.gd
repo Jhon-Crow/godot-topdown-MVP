@@ -287,7 +287,8 @@ func _ready() -> void:
 		_room_type = RoomType.BEACH
 		_build_room_scene_treasure()
 		_spawn_player()
-		_setup_navigation()
+		# Issue #1194 Bug 3: treasure map rooms have no enemies — navmesh is not needed.
+		# Skipping _setup_navigation() eliminates the await+NavigationServer crash.
 		_setup_player_tracking()
 		_setup_exit_zone()
 		_setup_debug_ui()

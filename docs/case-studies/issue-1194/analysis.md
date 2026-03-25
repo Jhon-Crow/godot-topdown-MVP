@@ -254,3 +254,30 @@ in a context where it provides no value.
 
 4. **Step-by-step logging** in treasure room `_ready()`: Logs each initialization phase
    with immediate flush, making future crash location precise in the log file.
+
+#### Attempt 3 (2026-03-25): Second treasure room code path also calls _setup_navigation()
+
+**Result of Attempt 2:** Crash persists (confirmed by `game_log_20260325_172343.txt`).
+
+**Evidence from new log:**
+- Line 1622: `[ImpactEffects] Scene changed - clearing all stale effect references` — scene transitioned to treasure room
+- Line 1623: `[NavMeshMonitor] NavigationRegion2D added: NavigationRegion2D` — navmesh is being set up in treasure room → **CRASH HERE**
+
+The previous fix only removed `_setup_navigation()` from the `roguelike_in_treasure_room` branch
+(lines 209-246 in `_ready()`). But there is a **second** treasure room code path at lines 285-302:
+
+```gdscript
+if is_treasure_map_room:    # <-- Issue #1399 map system
+    GameManager.roguelike_in_treasure_room = true
+    _room_type = RoomType.BEACH
+    _build_room_scene_treasure()
+    _spawn_player()
+    _setup_navigation()   # ← still called here! (BUG)
+    _setup_player_tracking()
+```
+
+This path (`is_treasure_map_room`) is used when the roguelike room map system is active
+(Issue #1399). The log confirms this is the path taken in the new crash.
+
+**Fix (Attempt 3):** Remove `_setup_navigation()` from the `is_treasure_map_room` branch
+as well. Same rationale: treasure rooms have no enemies, navmesh serves no purpose.
