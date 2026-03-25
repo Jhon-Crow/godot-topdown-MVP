@@ -41,13 +41,14 @@ func _get_or_create_replay_manager() -> Node:
 
 func _ready() -> void:
 	print("SewerLevel loaded - Underground Sewer Corridor")
-	print("Sewer size: 400x3200 pixels")
+	print("Sewer layout: main corridor (bottom to Y=1362) + right branch (X=300-1100) + up branch (Y=1362 to top)")
 	print("Clear the sewer to win!")
 	_setup_navigation()
 	_setup_enemy_tracking()
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()
 	_setup_player_tracking()
+	_configure_camera()
 	_setup_debug_ui()
 	_setup_saturation_overlay()
 	if GameManager:
@@ -86,13 +87,31 @@ func _start_replay_recording() -> void:
 		_log_to_file("Replay recording started successfully")
 
 
+## Configures camera limits to allow the player to move across the entire sewer map.
+## The sewer map is 1200x3200 pixels and the player starts at Y=3050, which is
+## outside the default camera limits (limit_bottom=3088 from Player.tscn).
+## Setting limits to very large values allows the camera to follow the player everywhere.
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		return
+	camera.limit_left = -10000000
+	camera.limit_top = -10000000
+	camera.limit_right = 10000000
+	camera.limit_bottom = 10000000
+	print("SewerLevel: camera limits removed to follow player everywhere")
+
+
 func _setup_exit_zone() -> void:
 	var exit_zone_scene = load("res://scenes/objects/ExitZone.tscn")
 	if exit_zone_scene == null:
 		push_warning("ExitZone scene not found")
 		return
 	_exit_zone = exit_zone_scene.instantiate()
-	_exit_zone.position = Vector2(200, 100)
+	# Exit is at the end of the right branch (X=1050, Y=1450)
+	_exit_zone.position = Vector2(1050, 1450)
 	_exit_zone.zone_width = 60.0
 	_exit_zone.zone_height = 60.0
 	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
@@ -101,7 +120,7 @@ func _setup_exit_zone() -> void:
 		environment.add_child(_exit_zone)
 	else:
 		add_child(_exit_zone)
-	print("[SewerLevel] Exit zone created at position (200, 100)")
+	print("[SewerLevel] Exit zone created at position (1050, 1450) — end of right fork branch")
 
 
 func _on_player_reached_exit() -> void:

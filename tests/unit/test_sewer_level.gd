@@ -24,8 +24,8 @@ class MockSewerLevel:
 	var _score_shown: bool = false
 	var _enemies: Array = []
 
-	## Exit zone configuration.
-	var exit_zone_position: Vector2 = Vector2(200, 100)
+	## Exit zone configuration — at the end of the right fork branch.
+	var exit_zone_position: Vector2 = Vector2(1050, 1450)
 	var exit_zone_width: float = 60.0
 	var exit_zone_height: float = 60.0
 
@@ -35,8 +35,8 @@ class MockSewerLevel:
 	## Level name for identification.
 	var level_name: String = "SewerLevel"
 
-	## Sewer dimensions (400x3200 pixels — narrow vertical corridor).
-	var map_width: int = 400
+	## Sewer dimensions (1200x3200 pixels — vertical corridor with right branch fork).
+	var map_width: int = 1200
 	var map_height: int = 3200
 
 	## Initialize with enemies.
@@ -93,8 +93,8 @@ func test_saturation_intensity() -> void:
 
 
 func test_exit_zone_position() -> void:
-	assert_eq(level.exit_zone_position, Vector2(200, 100),
-		"Sewer level exit zone should be at (200, 100) — top of corridor")
+	assert_eq(level.exit_zone_position, Vector2(1050, 1450),
+		"Sewer level exit zone should be at (1050, 1450) — end of right fork branch")
 
 
 func test_exit_zone_dimensions() -> void:
@@ -152,7 +152,7 @@ func test_player_exit_blocked_before_clear() -> void:
 
 
 func test_map_dimensions() -> void:
-	assert_eq(level.map_width, 400, "Sewer map width should be 400 (narrow corridor)")
+	assert_eq(level.map_width, 1200, "Sewer map width should be 1200 (corridor + right branch)")
 	assert_eq(level.map_height, 3200, "Sewer map height should be 3200 (long corridor)")
 
 
