@@ -83,14 +83,9 @@ public partial class LevelInitFallback : Node
     private ColorRect? _saturationOverlay;
 
     /// <summary>
-    /// Kills label for UI.
+    /// Difficulty label for UI (Issue #1485: replaces old KillsLabel + AccuracyLabel).
     /// </summary>
-    private Label? _killsLabel;
-
-    /// <summary>
-    /// Accuracy label for UI.
-    /// </summary>
-    private Label? _accuracyLabel;
+    private Label? _difficultyLabel;
 
     /// <summary>
     /// Magazines label for UI.
@@ -470,50 +465,39 @@ public partial class LevelInitFallback : Node
 
     /// <summary>
     /// Setup debug UI elements.
-    /// KillsLabel and AccuracyLabel are only created when debug mode is enabled
-    /// (ExperimentalSettings.debug_mode_enabled). MagazinesLabel is always shown.
+    /// DifficultyLabel is always shown (Issue #1485: replaces old KillsLabel + AccuracyLabel).
+    /// MagazinesLabel is always shown.
     /// </summary>
     private void SetupDebugUI(Node levelRoot)
     {
         var ui = levelRoot.GetNodeOrNull("CanvasLayer/UI");
         if (ui == null) return;
 
-        var experimentalSettings = GetNodeOrNull("/root/ExperimentalSettings");
-        bool debugMode = experimentalSettings != null &&
-                         experimentalSettings.HasMethod("is_debug_mode_enabled") &&
-                         experimentalSettings.Call("is_debug_mode_enabled").AsBool();
+        // Issue #1485: Show difficulty instead of old kills/accuracy labels,
+        // matching the layout used by GDScript level scripts.
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        string difficultyName = difficultyManager != null && difficultyManager.HasMethod("get_difficulty_name")
+            ? difficultyManager.Call("get_difficulty_name").AsString()
+            : "";
 
-        if (debugMode)
-        {
-            _killsLabel = new Label();
-            _killsLabel.Name = "KillsLabel";
-            _killsLabel.Text = "Kills: 0";
-            _killsLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
-            _killsLabel.OffsetLeft = 10;
-            _killsLabel.OffsetTop = 80;
-            _killsLabel.OffsetRight = 200;
-            _killsLabel.OffsetBottom = 110;
-            ui.AddChild(_killsLabel);
-
-            _accuracyLabel = new Label();
-            _accuracyLabel.Name = "AccuracyLabel";
-            _accuracyLabel.Text = "Accuracy: 0%";
-            _accuracyLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
-            _accuracyLabel.OffsetLeft = 10;
-            _accuracyLabel.OffsetTop = 115;
-            _accuracyLabel.OffsetRight = 200;
-            _accuracyLabel.OffsetBottom = 145;
-            ui.AddChild(_accuracyLabel);
-        }
+        _difficultyLabel = new Label();
+        _difficultyLabel.Name = "DifficultyLabel";
+        _difficultyLabel.Text = "Difficulty: " + difficultyName;
+        _difficultyLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _difficultyLabel.OffsetLeft = 10;
+        _difficultyLabel.OffsetTop = 80;
+        _difficultyLabel.OffsetRight = 200;
+        _difficultyLabel.OffsetBottom = 110;
+        ui.AddChild(_difficultyLabel);
 
         _magazinesLabel = new Label();
         _magazinesLabel.Name = "MagazinesLabel";
         _magazinesLabel.Text = "MAGS: -";
         _magazinesLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         _magazinesLabel.OffsetLeft = 10;
-        _magazinesLabel.OffsetTop = 150;
+        _magazinesLabel.OffsetTop = 115;
         _magazinesLabel.OffsetRight = 400;
-        _magazinesLabel.OffsetBottom = 180;
+        _magazinesLabel.OffsetBottom = 145;
         ui.AddChild(_magazinesLabel);
     }
 
@@ -639,8 +623,7 @@ public partial class LevelInitFallback : Node
         levelRoot.Set("_ammo_label", _ammoLabel);
         if (_exitZone != null) levelRoot.Set("_exit_zone", _exitZone);
         if (_saturationOverlay != null) levelRoot.Set("_saturation_overlay", _saturationOverlay);
-        if (_killsLabel != null) levelRoot.Set("_kills_label", _killsLabel);
-        if (_accuracyLabel != null) levelRoot.Set("_accuracy_label", _accuracyLabel);
+        if (_difficultyLabel != null) levelRoot.Set("_difficulty_label", _difficultyLabel);
         if (_magazinesLabel != null) levelRoot.Set("_magazines_label", _magazinesLabel);
 
         LogToFile("GDScript properties synced");
@@ -1191,20 +1174,12 @@ public partial class LevelInitFallback : Node
 
     private void UpdateDebugUI()
     {
-        var gameManager = GetNodeOrNull("/root/GameManager");
-        if (gameManager == null) return;
-
-        if (_killsLabel != null)
+        // Issue #1485: Update difficulty label (replaces old kills/accuracy update).
+        if (_difficultyLabel != null)
         {
-            var kills = gameManager.Get("kills");
-            if (kills.VariantType != Variant.Type.Nil)
-                _killsLabel.Text = $"Kills: {kills.AsInt32()}";
-        }
-
-        if (_accuracyLabel != null && gameManager.HasMethod("get_accuracy"))
-        {
-            var accuracy = gameManager.Call("get_accuracy").AsDouble();
-            _accuracyLabel.Text = $"Accuracy: {accuracy:F1}%";
+            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+            if (difficultyManager != null && difficultyManager.HasMethod("get_difficulty_name"))
+                _difficultyLabel.Text = "Difficulty: " + difficultyManager.Call("get_difficulty_name").AsString();
         }
     }
 
