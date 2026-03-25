@@ -1,9 +1,10 @@
 extends Node
-## Sniper rifle enemy component (Issues #1163, #1171).
-## Handles two responsibilities:
+## Sniper rifle enemy component (Issues #1163, #1171, #1336).
+## Handles three responsibilities:
 ##   1. AI behaviour: kiting (standoff range), retreat when player closes in,
 ##      and blind-fire through cover at last-known / predicted player positions.
 ##   2. Hitscan shooting: instant raycast avoids physics tunnelling at 10000px/s.
+##   3. Laser sight: persistent red laser line from muzzle in weapon direction (Issue #1336).
 ## Extracted from enemy.gd to keep the file below the 5000-line CI limit.
 class_name EnemySniperComponent
 
@@ -19,6 +20,21 @@ const MIN_DISTANCE: float = 350.0
 const BLIND_FIRE_COOLDOWN: float = 5.0
 
 # ============================================================================
+# Configuration — Laser sight (Issue #1336)
+# ============================================================================
+
+## Maximum laser range (px). Matches hitscan tracer range.
+const LASER_MAX_RANGE: float = 5000.0
+## Laser beam width (px).
+const LASER_WIDTH: float = 1.5
+## Laser color: semi-transparent red.
+const LASER_COLOR: Color = Color(1.0, 0.0, 0.0, 0.4)
+## Laser dot color: brighter red at endpoint.
+const LASER_DOT_COLOR: Color = Color(1.0, 0.0, 0.0, 0.7)
+## Collision layer for walls (used by laser raycast).
+const LASER_WALL_LAYER: int = 4
+
+# ============================================================================
 # State
 # ============================================================================
 
@@ -31,10 +47,14 @@ var enemy: Node2D = null
 ## Enable file logging (forwarded from enemy debug setting).
 var log_to_file_fn: Callable = Callable()
 
+## [#1336] Laser sight Line2D — persistent, updated every frame.
+var _laser_line: Line2D = null
+
 
 func _ready() -> void:
 	if enemy == null:
 		enemy = get_parent() as CharacterBody2D
+	_create_laser_sight()
 
 
 # ============================================================================
@@ -323,6 +343,84 @@ func _fade_sniper_tracer(tracer: Line2D) -> void:
 		grad.set_color(grad.get_point_count() - 1, Color(0.5, 0.5, 0.5, a * 0.3))
 		tracer.gradient = grad; await get_tree().process_frame
 	if is_instance_valid(tracer): tracer.queue_free()
+
+
+# ============================================================================
+# Issue #1336 — Laser sight: red laser line from muzzle in weapon direction
+# ============================================================================
+
+## Create the laser sight Line2D node (called once in _ready).
+func _create_laser_sight() -> void:
+	_laser_line = Line2D.new()
+	_laser_line.name = "SniperLaserSight"
+	_laser_line.width = LASER_WIDTH
+	_laser_line.default_color = LASER_COLOR
+	_laser_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_laser_line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_laser_line.top_level = true
+	_laser_line.position = Vector2.ZERO
+	_laser_line.z_index = 9  # Below tracer (z_index=10) but above most sprites
+	# Width curve: full width at start, slightly thinner at end
+	var wc := Curve.new()
+	wc.add_point(Vector2(0.0, 1.0))
+	wc.add_point(Vector2(1.0, 0.7))
+	_laser_line.width_curve = wc
+	# Gradient: slightly brighter at the dot (end point)
+	var grad := Gradient.new()
+	grad.set_color(0, LASER_COLOR)
+	grad.set_color(grad.get_point_count() - 1, LASER_DOT_COLOR)
+	_laser_line.gradient = grad
+	_laser_line.add_point(Vector2.ZERO)
+	_laser_line.add_point(Vector2.ZERO)
+	add_child(_laser_line)
+
+
+## Called every frame to update laser sight position and direction.
+func _process(_delta: float) -> void:
+	_update_laser_sight()
+
+
+## Update the laser sight to point from the muzzle along the weapon forward direction.
+## The laser uses the same direction that the hitscan tracer will use, ensuring the
+## laser always indicates where the next shot will land (Issue #1336).
+func _update_laser_sight() -> void:
+	if _laser_line == null:
+		return
+	# Hide laser if enemy is dead or not in tree
+	if enemy == null or not is_instance_valid(enemy) or not enemy.is_inside_tree():
+		_laser_line.visible = false
+		return
+	# Hide laser if enemy is not alive
+	if not enemy.get("_is_alive"):
+		_laser_line.visible = false
+		return
+
+	# Get weapon forward direction — same method used by _execute_shoot() to determine
+	# the actual bullet direction. This ensures the laser matches the future tracer.
+	var weapon_forward: Vector2 = enemy._get_weapon_forward_direction()
+	var muzzle_pos: Vector2 = enemy._get_bullet_spawn_position(weapon_forward)
+
+	# Raycast along weapon forward to find wall endpoint (collision layer 4 = walls)
+	var end_pos := muzzle_pos + weapon_forward * LASER_MAX_RANGE
+	var world_2d := enemy.get_world_2d()
+	if world_2d == null:
+		_laser_line.visible = false
+		return
+	var space_state := world_2d.direct_space_state
+	if space_state == null:
+		_laser_line.visible = false
+		return
+
+	var laser_end := end_pos
+	var wall_query := PhysicsRayQueryParameters2D.create(muzzle_pos, end_pos, LASER_WALL_LAYER)
+	var wall_result := space_state.intersect_ray(wall_query)
+	if not wall_result.is_empty():
+		laser_end = wall_result["position"]
+
+	# Update the Line2D points
+	_laser_line.visible = true
+	_laser_line.set_point_position(0, muzzle_pos)
+	_laser_line.set_point_position(1, laser_end)
 
 
 # ============================================================================
