@@ -799,8 +799,7 @@ func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
 
-	# Issue #1334 Round 8-9: Freeze all enemy AI when player is dead or freed to prevent
-	# native crashes from physics queries on dead/freed player nodes.
+	# Issue #1334: Freeze all enemy AI when player is dead/freed — prevents native crashes from physics queries.
 	var _gm_r9: Node = get_node_or_null("/root/GameManager")
 	if _gm_r9 and not _gm_r9.player_alive: return
 	if _player and not is_instance_valid(_player): _player = null; return
@@ -840,8 +839,7 @@ func _physics_process(delta: float) -> void:
 	if _memory_reset_confusion_timer > 0.0:
 		_memory_reset_confusion_timer = maxf(0.0, _memory_reset_confusion_timer - delta)
 
-	# Issue #367: Stuck detection for PURSUING/FLANKING — force SEARCHING if no progress.
-	# Skip when in direct contact (can hit player) or intentionally yielding (#1249).
+	# Issue #367: Stuck detection for PURSUING/FLANKING — force SEARCHING if no progress. Skip on contact or yield (#1249).
 	if _current_state == AIState.PURSUING or _current_state == AIState.FLANKING:
 		var moved_distance := global_position.distance_to(_global_stuck_last_position)
 		if moved_distance < GLOBAL_STUCK_DISTANCE_THRESHOLD:
@@ -861,9 +859,7 @@ func _physics_process(delta: float) -> void:
 						_flank_side_initialized = false
 						_flank_fail_count += 1
 						_flank_cooldown_timer = FLANK_COOLDOWN_DURATION
-					# #1249 session 4: search from last known player position, not the stuck position.
-					# When stuck while pursuing, the enemy may be far from the player; searching from
-					# the stuck spot wastes time. Use the last known player position instead if available.
+					# #1249: search from last known player position (not stuck spot) so we don't waste time.
 					var _search_start := global_position
 					if _last_known_player_position != Vector2.ZERO:
 						_search_start = _last_known_player_position
@@ -936,8 +932,7 @@ func _physics_process(delta: float) -> void:
 
 ## Update GOAP world state based on current conditions.
 func _update_goap_state() -> void:
-	# Issue #934: player_visible/player_close/can_hit_from_cover reflect the best target
-	# (either the main player or the BFF companion, whichever is more accessible).
+	# Issue #934: player_visible/player_close/can_hit_from_cover reflect the best target (player or BFF companion).
 	_goap_world_state["player_visible"] = _can_see_player or _can_see_companion
 	_goap_world_state["under_fire"] = _under_fire
 	_goap_world_state["health_low"] = _get_health_percent() < 0.5
@@ -1314,8 +1309,7 @@ func _process_ai_state(delta: float) -> void:
 				_transition_to_combat()
 				_detection_delay_elapsed = true
 
-			# Return early - we've taken the highest priority action
-			# The state machine will continue normally in the next frame
+			# Return early — highest priority action taken; state machine continues next frame.
 			return
 
 	# HIGHEST PRIORITY: Attack immediately if player is reloading or out of ammo (Issue #318)
@@ -1736,8 +1730,7 @@ func _process_in_cover_state(delta: float) -> void:
 			_transition_to_suppressed()
 		return
 
-	# Check if player has flanked us - if we're now visible from player's position,
-	# we need to find new cover
+	# Check if player has flanked us — if now visible from player's position, find new cover
 	if _is_visible_from_player():
 		# If in alarm mode and can see player, fire a burst before escaping
 		# [#1161] Sniper rifle is bolt-action: no burst fire (flee immediately)
@@ -2228,22 +2221,17 @@ func _process_pursuing_state(delta: float) -> void:
 				# Issue #1457 v4: compute escape dir — probe 8 directions to find the clearest path away from wall
 				var _esc_dir: Vector2 = Vector2.ZERO
 				for _si: int in range(get_slide_collision_count()): _esc_dir += get_slide_collision(_si).get_normal()
-				if _esc_dir.length_squared() < 0.01:
-					# Body is stationary (no slide collisions). Probe 8 cardinal/diagonal directions to find which has the most clearance.
+				if _esc_dir.length_squared() < 0.01:  # Stationary — probe 8 dirs for most clearance
 					var _best_dist: float = -1.0
-					var _probe_dirs: Array[Vector2] = [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN, Vector2(1,1).normalized(), Vector2(1,-1).normalized(), Vector2(-1,1).normalized(), Vector2(-1,-1).normalized()]
-					for _pd: Vector2 in _probe_dirs:
+					for _pd: Vector2 in [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN, Vector2(1,1).normalized(), Vector2(1,-1).normalized(), Vector2(-1,1).normalized(), Vector2(-1,-1).normalized()]:
 						var _pr := move_and_collide(_pd * 4.0, true)
 						var _d: float = 4.0 if _pr == null else _pr.get_travel().length()
 						if _d > _best_dist: _best_dist = _d; _esc_dir = _pd
-					_log_to_file("[#1457] v4: probe-based escape dir=%s clearance=%.1f" % [_esc_dir, _best_dist])
-				if _esc_dir.length_squared() < 0.01 and _corner_check_angle != 0.0:
-					_esc_dir = Vector2.from_angle(_corner_check_angle)  # Fallback: last detected perpendicular opening
+					_log_to_file("[#1457] v4: probe dir=%s clr=%.1f" % [_esc_dir, _best_dist])
+				if _esc_dir.length_squared() < 0.01 and _corner_check_angle != 0.0: _esc_dir = Vector2.from_angle(_corner_check_angle)
 				if _esc_dir.length_squared() > 0.01:
-					_pursuing_corner_escape_dir = _esc_dir.normalized()
-					_pursuing_corner_escape_timer = PURSUING_CORNER_ESCAPE_DURATION
-					_log_to_file("[#1457] v4: corner escape impulse dir=%s" % _pursuing_corner_escape_dir)
-					return  # Impulse applied in this frame's move_and_slide; cover reset on timer expiry
+					_pursuing_corner_escape_dir = _esc_dir.normalized(); _pursuing_corner_escape_timer = PURSUING_CORNER_ESCAPE_DURATION
+					_log_to_file("[#1457] v4: corner escape dir=%s" % _pursuing_corner_escape_dir); return
 				_find_pursuit_cover_toward_player()
 				if _has_pursuit_cover:  # Reject new cover if it's still in the blacklist zone
 					for bl_pos: Vector2 in _pursuing_stuck_cover_blacklist:
