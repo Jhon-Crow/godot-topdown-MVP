@@ -2595,12 +2595,18 @@ public partial class Player : BaseCharacter
     /// <param name="caliberData">Caliber resource for effect scaling (can be null).</param>
     /// <param name="hasRicocheted">Whether the bullet had ricocheted before this hit (unused for player).</param>
     /// <param name="hasPenetrated">Whether the bullet had penetrated a wall before this hit (unused for player).</param>
-    /// <param name="damage">Explicit damage to apply (default 1).</param>
+    /// <param name="damage">Explicit damage to apply.</param>
     /// <param name="isFromPlayer">Unused — hits to the player always come from enemies.</param>
+    // Godot 4's GDScript call() does not resolve C# default parameters via reflection.
+    // The sniper (and any other GDScript caller) passes exactly 5 args (no isFromPlayer),
+    // so an explicit 5-parameter overload is required to ensure the correct method is found. (Issue #1453)
     public void on_hit_with_bullet_info(Vector2 hitDirection, Godot.Resource? caliberData,
-        bool hasRicocheted, bool hasPenetrated, float damage = 1.0f, bool isFromPlayer = false)
+        bool hasRicocheted, bool hasPenetrated, float damage)
+        => on_hit_with_bullet_info(hitDirection, caliberData, hasRicocheted, hasPenetrated, damage, false);
+
+    public void on_hit_with_bullet_info(Vector2 hitDirection, Godot.Resource? caliberData,
+        bool hasRicocheted, bool hasPenetrated, float damage, bool isFromPlayer)
     {
-        LogToFile($"[Player.Hit] on_hit_with_bullet_info called: damage={damage}, HP={HealthComponent?.CurrentHealth ?? -1}, IsAlive={IsAlive} (Issue #1453)");
         _lastHitDirection = hitDirection;
         _lastCaliberData = caliberData;
         TakeDamage(damage);
@@ -2610,10 +2616,7 @@ public partial class Player : BaseCharacter
     public override void TakeDamage(float amount)
     {
         if (HealthComponent == null || !IsAlive)
-        {
-            LogToFile($"[Player.Hit] TakeDamage({amount}) early-exit: HealthComponent={(HealthComponent == null ? "null" : "ok")}, IsAlive={IsAlive} (Issue #1453)");
             return;
-        }
 
         // Check dash immunity (Issue #1071)
         // Player is immune to all damage during dash

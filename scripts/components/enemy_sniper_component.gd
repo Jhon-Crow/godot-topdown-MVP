@@ -284,16 +284,11 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 		# Re-check alive status — a prior hit in this batch may have killed the target
 		if not _check_target_alive(hit_node): continue
 		var hit_walls: int = hit_info["walls_penetrated"]
-		var has_bullet_info := hit_node.has_method("on_hit_with_bullet_info")
-		var has_take_dmg_upper := hit_node.has_method("TakeDamage")
-		var has_take_dmg_lower := hit_node.has_method("take_damage")
-		var has_on_hit := hit_node.has_method("on_hit")
-		if log_to_file_fn.is_valid(): log_to_file_fn.call("[SniperHitscan] Hit %s (type=%s) damage=%.0f has_on_hit_with_bullet_info=%s has_TakeDamage=%s has_take_damage=%s has_on_hit=%s" % [hit_node.name, hit_node.get_class(), damage, has_bullet_info, has_take_dmg_upper, has_take_dmg_lower, has_on_hit])
-		if has_bullet_info:
+		if hit_node.has_method("on_hit_with_bullet_info"):
 			hit_node.call("on_hit_with_bullet_info", direction, enemy.get("_caliber_data"), false, hit_walls > 0, damage)
-		elif has_take_dmg_upper: hit_node.call("TakeDamage", damage)
-		elif has_take_dmg_lower: hit_node.call("take_damage", damage)
-		elif has_on_hit: hit_node.call("on_hit")
+		elif hit_node.has_method("TakeDamage"): hit_node.call("TakeDamage", damage)
+		elif hit_node.has_method("take_damage"): hit_node.call("take_damage", damage)
+		elif hit_node.has_method("on_hit"): hit_node.call("on_hit")
 	_spawn_sniper_tracer(spawn_pos, bullet_end_point)
 
 ## Spawn a fading smoke tracer Line2D from muzzle to bullet endpoint.
