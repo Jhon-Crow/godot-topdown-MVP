@@ -15,9 +15,9 @@ extends GutTest
 
 
 class MockWaterBody:
-	## Size of the water rectangle in pixels (matches BeachLevel defaults).
+	## Size of the water rectangle in pixels (matches BeachLevel defaults after Issue #1573).
 	var water_width: float = 2400.0
-	var water_height: float = 356.0
+	var water_height: float = 420.0
 
 	## Maximum obstacle UV slots passed to shader (must match shader array size).
 	const MAX_OBSTACLE_SHADER_SLOTS: int = 8
@@ -277,11 +277,86 @@ func test_camera_limit_not_zero_after_setup() -> void:
 		"After setup, camera_limit_top must not be 0 — WallTop must be hidden")
 
 
-func test_water_top_edge_equals_wall_bottom_edge() -> void:
-	# Water node in BeachLevel: position=(1264,242), height=356.
-	# Top edge = 242 - 356/2 = 242 - 178 = 64.
+func test_water_top_edge_above_wall_bottom_edge() -> void:
+	# Water node in BeachLevel: position=(1264,242), height=420 (Issue #1573 increased from 356).
+	# Top edge = 242 - 420/2 = 242 - 210 = 32.
+	# This is above (less than) WallTop bottom edge (64) — the water now visually overlaps
+	# the wall area at the top to allow the shore-wash gradient to work correctly.
 	var water_top_y: float = water.global_position.y - water.water_height * 0.5
-	assert_almost_eq(water_top_y, 64.0, 0.001,
-		"Water top edge (world y) should equal WallTop bottom edge (64)")
-	assert_eq(MockBeachLevelCamera.WALL_TOP_BOTTOM_EDGE, int(water_top_y),
-		"Camera limit_top constant should match water top edge")
+	assert_almost_eq(water_top_y, 32.0, 0.001,
+		"Water top edge (world y) should be 32 with water_height=420")
+	assert_lt(water_top_y, float(MockBeachLevelCamera.WALL_TOP_BOTTOM_EDGE),
+		"Water top edge (32) should be above WallTop bottom edge (64) — Issue #1573 shore wash")
+
+
+# ============================================================================
+# Bullet Pass-Through Tests (Issue #1577 — water must not block bullets)
+# ============================================================================
+
+
+class MockCollisionLayers:
+	## Collision layers from project.godot.
+	const LAYER_PLAYER: int = 1       # layer 1
+	const LAYER_ENEMIES: int = 2      # layer 2
+	const LAYER_OBSTACLES: int = 4    # layer 3
+	const LAYER_PROJECTILES: int = 16 # layer 5
+	const LAYER_TARGETS: int = 32     # layer 6
+	const LAYER_DECORATIVE: int = 64  # layer 7
+
+	## Water collision_layer (Area2D, set in _ready() and WaterBody.tscn).
+	const WATER_COLLISION_LAYER: int = 0
+	## Water collision_mask: detects player, enemies, targets, decorative — NOT projectiles.
+	const WATER_COLLISION_MASK: int = 99  # 1+2+32+64 = layers 1,2,6,7
+
+	## Bullet collision_layer (projectiles layer).
+	const BULLET_COLLISION_LAYER: int = 16  # layer 5
+	## Bullet collision_mask: detects player, enemies, obstacles, targets.
+	const BULLET_COLLISION_MASK: int = 39   # 1+2+4+32 = layers 1,2,3,6
+
+
+func test_water_collision_layer_is_zero() -> void:
+	# WaterBody must NOT be on any collision layer so nothing (including bullets)
+	# can detect it directly. Set in water_body.gd _ready() and WaterBody.tscn.
+	assert_eq(MockCollisionLayers.WATER_COLLISION_LAYER, 0,
+		"WaterBody collision_layer must be 0 — it has no layer, so bullets cannot detect it")
+
+
+func test_water_collision_mask_excludes_projectiles() -> void:
+	# Water detects player, enemies, targets, decorative — but NOT projectiles (layer 5 = 16).
+	# This was explicitly fixed in Issue #1495 to prevent water from stopping bullets.
+	var mask: int = MockCollisionLayers.WATER_COLLISION_MASK
+	var bullet_layer: int = MockCollisionLayers.BULLET_COLLISION_LAYER
+	assert_eq(mask & bullet_layer, 0,
+		"Water collision_mask must NOT include projectiles layer (5=16) — Issue #1495 fix")
+
+
+func test_bullet_cannot_interact_with_water_area2d() -> void:
+	# In Godot 4, two Area2D nodes interact via area_entered when:
+	#   A.collision_layer & B.collision_mask != 0  OR
+	#   B.collision_layer & A.collision_mask != 0
+	# Neither condition holds for bullet and water.
+	var bullet_layer: int = MockCollisionLayers.BULLET_COLLISION_LAYER
+	var bullet_mask: int = MockCollisionLayers.BULLET_COLLISION_MASK
+	var water_layer: int = MockCollisionLayers.WATER_COLLISION_LAYER
+	var water_mask: int = MockCollisionLayers.WATER_COLLISION_MASK
+
+	# Water cannot detect bullet: bullet.layer not in water.mask
+	assert_eq(water_mask & bullet_layer, 0,
+		"Water.collision_mask must not include bullet.collision_layer — bullet should not trigger water area_entered")
+
+	# Bullet cannot detect water: water.layer not in bullet.mask
+	assert_eq(bullet_mask & water_layer, 0,
+		"Bullet.collision_mask must not include water.collision_layer — water should not trigger bullet area_entered")
+
+
+func test_water_collision_mask_value_is_correct() -> void:
+	# 99 = 1 + 2 + 32 + 64 = layers 1(player) + 2(enemies) + 6(targets) + 7(decorative).
+	# This is the exact mask from water_body.gd: 0b01100011 = 99.
+	var expected_mask: int = (
+		MockCollisionLayers.LAYER_PLAYER +
+		MockCollisionLayers.LAYER_ENEMIES +
+		MockCollisionLayers.LAYER_TARGETS +
+		MockCollisionLayers.LAYER_DECORATIVE
+	)
+	assert_eq(MockCollisionLayers.WATER_COLLISION_MASK, expected_mask,
+		"Water collision_mask (99) should equal layers 1+2+6+7 = 1+2+32+64")
