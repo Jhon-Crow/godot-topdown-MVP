@@ -835,12 +835,8 @@ func _physics_process(delta: float) -> void:
 			# Reset failure count when cooldown expires
 			_flank_fail_count = 0
 
-	# Update memory reset confusion timer (Issue #318)
-	if _memory_reset_confusion_timer > 0.0:
-		_memory_reset_confusion_timer = maxf(0.0, _memory_reset_confusion_timer - delta)
-
-	# Issue #367: Stuck detection for PURSUING/FLANKING — force SEARCHING if no progress.
-	# Skip when in direct contact (can hit player) or intentionally yielding (#1249).
+	if _memory_reset_confusion_timer > 0.0: _memory_reset_confusion_timer = maxf(0.0, _memory_reset_confusion_timer - delta)  # Update memory reset confusion timer (Issue #318)
+	# Issue #367: Stuck detection for PURSUING/FLANKING — force SEARCHING if no progress. Skip when in direct contact or yielding (#1249).
 	if _current_state == AIState.PURSUING or _current_state == AIState.FLANKING:
 		var moved_distance := global_position.distance_to(_global_stuck_last_position)
 		if moved_distance < GLOBAL_STUCK_DISTANCE_THRESHOLD:
@@ -877,13 +873,9 @@ func _physics_process(delta: float) -> void:
 		_global_stuck_timer = 0.0
 		_global_stuck_last_position = global_position
 
-	# Check for player visibility and try to find player if not found
-	if _player == null:
-		_find_player()
+	if _player == null: _find_player()  # Check for player visibility and try to find player if not found
 	_check_player_visibility()
-	# Issue #934: Check BFF companion as secondary threat target
-	_find_companion()
-	_check_companion_visibility()
+	_find_companion(); _check_companion_visibility()  # Issue #934: Check BFF companion as secondary threat target
 	_select_best_target()
 	_update_memory(delta)
 	if _current_state == AIState.IDLE and not _can_see_player and not _can_see_companion and not _under_fire:  # #1520: throttle GOAP ~3Hz when idle
