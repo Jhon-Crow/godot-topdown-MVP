@@ -217,6 +217,13 @@ offset_right = 550.0
 offset_bottom = 450.0
 color = Color(0.12, 0.14, 0.12, 1)
 
+[node name="FloorTopRoomAlcove" type="ColorRect" parent="Environment"]
+offset_left = 288.0
+offset_top = 450.0
+offset_right = 550.0
+offset_bottom = 1362.0
+color = Color(0.12, 0.14, 0.12, 1)
+
 [node name="FloorRightBranch" type="ColorRect" parent="Environment"]
 offset_left = 288.0
 offset_top = 1362.0
@@ -1109,7 +1116,7 @@ enable_cover = true
 position = Vector2(200, 280)
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(100, 0), Vector2(-100, 0)])
-has_armored_skin = true
+has_force_field = true
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
