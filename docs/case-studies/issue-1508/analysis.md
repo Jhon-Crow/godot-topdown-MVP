@@ -120,10 +120,74 @@ The expanding spiral is the canonical algorithm for search-and-rescue drone cove
 
 ---
 
+---
+
+## Follow-up: Obstacle Avoidance & Enemy Non-Collision (PR #1509 comment, 2026-03-26)
+
+### New symptom reported (Jhon-Crow, 2026-03-26 07:01)
+
+> "The drone should navigate around obstacles and not have collisions with (not push) other enemies. Right now when the drone hits the first obstacle it gets stuck against the wall."
+>
+> Evidence: `game_log_20260326_070154.txt` — drone spirals normally until it reaches a wall, then stops moving.
+
+### Root cause (second issue)
+
+The initial spiral implementation computed the orbit target using pure trigonometry and then set velocity directly toward that target:
+
+```gdscript
+var orbit_target = operator_pos + Vector2(cos(angle), sin(angle)) * radius
+velocity = (orbit_target - global_position).normalized() * SEARCH_SPEED
+```
+
+This is a **straight-line move** — it does not use the navigation mesh. When the orbit target is on the other side of a wall, the drone tries to fly through the wall and `move_and_slide()` stops it cold.
+
+Additionally, while the scene (`Drone.tscn`) already had `NavigationAgent2D.avoidance_enabled = true`, the `velocity_computed` signal was never connected, so ORCA never influenced the drone's velocity. The drone could still physically push other enemies.
+
+### Fix applied (second iteration)
+
+**Wall avoidance:** `_update_searching()` now sets `_nav_agent.target_position = orbit_target` and moves toward `_nav_agent.get_next_path_position()` rather than directly toward `orbit_target`. The nav agent computes a path that routes around walls using the scene's NavigationRegion2D mesh.
+
+**Enemy non-collision (ORCA):** Added `_avoidance_velocity` state variable and `_on_avoidance_velocity_computed()` callback. The callback is connected to `_nav_agent.velocity_computed` in `_ready()` (only when `avoidance_enabled` is true). Each physics frame the intended velocity is fed to `_nav_agent.set_velocity()`, which triggers ORCA to compute a safe velocity that steers the drone away from other agents.
+
+```gdscript
+# Issue #1508 (second fix) — wall-avoiding + non-pushing spiral
+if _nav_agent:
+    _nav_agent.target_position = orbit_target
+    var next_pos = _nav_agent.get_next_path_position()
+    intended_dir = global_position.direction_to(next_pos)
+else:
+    intended_dir = global_position.direction_to(orbit_target)
+
+var intended_vel = intended_dir * SEARCH_SPEED
+if _nav_agent and _nav_agent.avoidance_enabled:
+    _nav_agent.set_velocity(intended_vel)
+    velocity = _avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else intended_vel
+else:
+    velocity = intended_vel
+```
+
+This pattern is identical to how `enemy.gd` handles ORCA-assisted searching movement (see `enemy.gd` line 2417).
+
+### Evidence from new log
+
+From `game_log_20260326_070154.txt`:
+
+```
+[07:02:07] [INFO] [Drone] NavigationAgent2D found and configured
+[07:02:07] [INFO] [Drone] _ready complete (state=SEARCHING spiral, player=Player, nav=found)
+[07:02:16] [INFO] [Drone] COMBAT mode activated — kamikaze flight toward player! (spiral_angle=16.20, spiral_radius=285.0)
+```
+
+The drone navigated for ~9 seconds (spiral_radius grew from 60 → 285 px, consistent with `SPIRAL_EXPAND_RATE=25 px/s × 9 s = 285`), suggesting the spiral itself worked. The stuck-at-wall issue is consistent with the direct-vector movement reaching a wall perpendicular to the orbit direction.
+
+---
+
 ## References
 
 - [Archimedean Spiral - Wikipedia](https://en.wikipedia.org/wiki/Archimedean_spiral)
 - [Drone Search Pattern – UAV search and rescue literature](https://www.mdpi.com/2504-446X/3/1/26) — expanding spiral is a standard coverage pattern for single-UAV area search
 - Godot 4 `CharacterBody2D.move_and_slide()` — used for collision-aware movement
+- Godot 4 `NavigationAgent2D` — pathfinding + ORCA velocity obstacle avoidance
 - Issue #1417 — original drone implementation (SEARCHING hover + COMBAT kamikaze)
 - PR #1444 — merged fix for issue #1417 (drone AI merged into drone.gd)
+- `scripts/objects/enemy.gd` line 2417 — reference pattern for ORCA-assisted searching movement

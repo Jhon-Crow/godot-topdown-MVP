@@ -51,6 +51,10 @@ var _current_move_dir: Vector2 = Vector2.ZERO
 var _spiral_angle: float = 0.0        # Current angle in the spiral orbit (radians)
 var _spiral_radius: float = SPIRAL_START_RADIUS  # Current orbit radius
 
+## ORCA-computed avoidance velocity (Issue #1508): set asynchronously via velocity_computed signal.
+## Prevents the drone from pushing other enemies during the spiral search.
+var _avoidance_velocity: Vector2 = Vector2.ZERO
+
 ## Beep state
 var _beep_timer: float = 0.0
 var _beep_idx: int = 0
@@ -72,7 +76,10 @@ func _ready() -> void:
 	if _nav_agent:
 		_nav_agent.path_desired_distance = 8.0
 		_nav_agent.target_desired_distance = 8.0
-		FileLogger.info("[Drone] NavigationAgent2D found and configured")
+		# Issue #1508: hook ORCA avoidance so drone doesn't push other enemies.
+		if _nav_agent.avoidance_enabled:
+			_nav_agent.velocity_computed.connect(_on_avoidance_velocity_computed)
+		FileLogger.info("[Drone] NavigationAgent2D found and configured (avoidance=%s)" % str(_nav_agent.avoidance_enabled))
 	else:
 		FileLogger.info("[Drone] WARNING: NavigationAgent2D not found")
 
@@ -136,8 +143,29 @@ func _update_searching(delta: float) -> void:
 	_spiral_radius = minf(_spiral_radius + SPIRAL_EXPAND_RATE * delta, SPIRAL_MAX_RADIUS)
 
 	var orbit_target: Vector2 = _operator.global_position + Vector2(cos(_spiral_angle), sin(_spiral_angle)) * _spiral_radius
-	var to_target: Vector2 = orbit_target - global_position
-	velocity = to_target.normalized() * SEARCH_SPEED
+
+	# Issue #1508: use NavigationAgent2D so the drone navigates *around* walls
+	# instead of flying straight into them.  Fall back to direct movement when
+	# the nav agent is unavailable (e.g. no NavMesh in test scenes).
+	var intended_dir: Vector2
+	if _nav_agent:
+		_nav_agent.target_position = orbit_target
+		var next_pos: Vector2 = _nav_agent.get_next_path_position()
+		intended_dir = global_position.direction_to(next_pos)
+	else:
+		intended_dir = global_position.direction_to(orbit_target)
+
+	var intended_vel: Vector2 = intended_dir * SEARCH_SPEED
+
+	# Feed ORCA so the drone avoids pushing other enemies (avoidance_enabled=true
+	# in Drone.tscn).  The computed safe velocity arrives asynchronously via
+	# _on_avoidance_velocity_computed and is applied on the next physics frame.
+	if _nav_agent and _nav_agent.avoidance_enabled:
+		_nav_agent.set_velocity(intended_vel)
+		velocity = _avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else intended_vel
+	else:
+		velocity = intended_vel
+
 	move_and_slide()
 
 
@@ -386,6 +414,12 @@ func is_alive() -> bool:
 
 func is_in_combat() -> bool:
 	return _state == DroneState.COMBAT
+
+
+## Called by NavigationAgent2D.velocity_computed when ORCA avoidance is enabled.
+## Stores the safe velocity; applied on the next physics frame in _update_searching().
+func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
+	_avoidance_velocity = safe_velocity
 
 
 ## --- Visual helpers ---
