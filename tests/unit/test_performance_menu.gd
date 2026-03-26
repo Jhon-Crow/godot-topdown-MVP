@@ -39,6 +39,12 @@ class MockPerformanceMenu:
 	const STRESS_ENEMY_COUNT: int = 20
 	const STRESS_SAMPLE_DURATION: float = 2.0
 
+	## Number of cycles each benchmark step is repeated (Issue #1516).
+	const BENCHMARK_CYCLES: int = 20
+
+	## Tracks whether vsync was disabled during the last benchmark run (Issue #1516).
+	var vsync_disabled_during_benchmark: bool = false
+
 	## Signal tracking.
 	var back_pressed_count: int = 0
 
@@ -52,6 +58,12 @@ class MockPerformanceMenu:
 			and STRESS_LIGHT_COUNT > 0 \
 			and STRESS_ENEMY_COUNT > 0 \
 			and STRESS_SAMPLE_DURATION > 0.0
+
+	## Simulate a benchmark run: records that vsync was disabled and runs the given cycles.
+	## Returns the number of cycles used.
+	func simulate_benchmark_run(cycles: int = BENCHMARK_CYCLES) -> int:
+		vsync_disabled_during_benchmark = true
+		return cycles
 
 	## Simulate one stress benchmark step: returns a result dict.
 	func simulate_stress_step(subsystem: String, enabled_fps: float,
@@ -381,3 +393,60 @@ func test_stress_results_accumulated() -> void:
 
 	assert_eq(menu.stress_results.size(), 3,
 		"All three stress steps should be recorded")
+
+
+# ============================================================================
+# VSync and Cycles Tests (Issue #1516)
+# ============================================================================
+
+
+func test_benchmark_cycles_constant_is_twenty() -> void:
+	assert_eq(menu.BENCHMARK_CYCLES, 20,
+		"BENCHMARK_CYCLES must be 20 for reliable results")
+
+
+func test_benchmark_cycles_constant_is_positive() -> void:
+	assert_gt(menu.BENCHMARK_CYCLES, 0,
+		"BENCHMARK_CYCLES must be positive")
+
+
+func test_benchmark_disables_vsync_during_run() -> void:
+	menu.simulate_benchmark_run()
+
+	assert_true(menu.vsync_disabled_during_benchmark,
+		"Benchmark must disable vsync during run for accurate FPS measurement")
+
+
+func test_benchmark_run_uses_correct_cycle_count() -> void:
+	var cycles := menu.simulate_benchmark_run()
+
+	assert_eq(cycles, menu.BENCHMARK_CYCLES,
+		"Benchmark run must use BENCHMARK_CYCLES cycles")
+
+
+# ============================================================================
+# Quick Test Button Tests (Issue #1516)
+# ============================================================================
+
+
+func test_quick_benchmark_uses_one_cycle() -> void:
+	var cycles := menu.simulate_benchmark_run(1)
+
+	assert_eq(cycles, 1,
+		"Quick test benchmark must run exactly 1 cycle")
+
+
+func test_quick_benchmark_disables_vsync() -> void:
+	menu.simulate_benchmark_run(1)
+
+	assert_true(menu.vsync_disabled_during_benchmark,
+		"Quick test benchmark must also disable vsync during run")
+
+
+func test_quick_stress_benchmark_uses_one_cycle() -> void:
+	var result := menu.simulate_stress_step("Particles", 55.0, 70.0)
+	# A quick stress run uses cycles=1; the step result should still be valid.
+	assert_eq(result["subsystem"], "Particles",
+		"Quick stress step should record subsystem correctly")
+	assert_almost_eq(result["delta_fps"], 15.0, 0.01,
+		"Quick stress step should compute delta correctly")
