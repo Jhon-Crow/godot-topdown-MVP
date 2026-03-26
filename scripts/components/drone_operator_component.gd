@@ -249,19 +249,10 @@ func is_controlling_drone() -> bool:
 
 
 ## Returns true if the operator should override suppression with dash.
-## Only in ACTIVE phase when bullets are in threat sphere AND charges are available OR currently dashing.
-## Prevents suppression while the operator still has dodge charges or is mid-dash.
-## When all charges are spent and on cooldown, fall back to normal suppression (Issue #1532 fix #5/#9).
+## In ACTIVE phase, always prevent _under_fire — even during cooldown the operator
+## stands its ground instead of retreating to cover (Issue #1540).
 func should_dash_instead_of_suppress() -> bool:
-	if _phase != Phase.ACTIVE:
-		return false
-	# If currently dashing, suppress suppression — no new dash starts but operator is not suppressed
-	if _dash_active:
-		return true
-	# If no charges left and cooldown running, let normal suppression apply (operator can be hit)
-	if _dash_charges <= 0 and _dash_cooldown_timer > 0.0:
-		return false
-	return true
+	return _phase == Phase.ACTIVE
 
 
 ## Calculate sideways dash direction and attempt to evade incoming bullets.
