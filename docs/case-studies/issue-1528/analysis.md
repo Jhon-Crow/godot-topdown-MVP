@@ -13,6 +13,42 @@
 
 ## Evidence from Game Logs
 
+### Log 3: `game_log_20260326_084043.txt` (1,444 lines) — Post-v1 Fix Verification
+
+**Status: Issue NOT FIXED by v1 fix.** FPS drops of 6–8 fps confirmed after v1 changes.
+
+| Time     | Event                                             | FPS    |
+|----------|----------------------------------------------------|--------|
+| 08:40:46 | Scene load, shader warmup                          | 1 fps (expected) |
+| 08:41:13 | 20 enemies enter SEARCHING/COMBAT simultaneously   | 23 fps |
+| 08:41:14 | Full combat engagement, 20 enemies active          | **7 fps** |
+| 08:41:16 | Sustained combat                                   | **6 fps** |
+| 08:41:17 | Sustained combat                                   | **6 fps** |
+| 08:41:18 | Sustained combat                                   | **7 fps** |
+| 08:41:19 | Sustained combat                                   | **8 fps** |
+
+**Key evidence from Log 3:**
+- "Player distracted - priority attack triggered" appears **176 times** — confirms distraction check is still triggering frequently
+- **29 ROT_CHANGE messages in the second 08:41:11** — all 20 enemies rotate to face player in SEARCHING state with no throttle
+- `PerformanceSettings` check confirmed NOT using cached reference (two separate lookups per frame per enemy still happening)
+- GOAP running every frame for 20 enemies in SEARCHING state — no throttle applied to this state
+
+**New root causes identified from Log 3:**
+
+#### RC6: `get_node_or_null` Called Twice Per Frame Per Enemy (uncached autoloads)
+
+The `_physics_process` function called `get_node_or_null("/root/PerformanceSettings")` at line 801 AND again at line 1302 inside `_process_ai_state`. Plus `get_node_or_null("/root/DifficultyManager")` at line 1306. Result: **4,800 node tree traversals/second** with 20 enemies.
+
+#### RC7: GOAP Update Runs Every Frame in SEARCHING State
+
+The existing GOAP throttle (from issue #1520) only applies to `AIState.IDLE`. In `AIState.SEARCHING`, `_update_goap_state()` runs every frame for every enemy — including distraction check, can-hit cache, enemies_in_combat, and 15+ dictionary writes. With all 20 enemies starting in SEARCHING: **1,200 GOAP updates/second** with no throttle.
+
+#### RC8: Viewport Transform Recomputed Per Enemy Despite Being Identical
+
+Even with per-enemy throttling to every 6 frames, `_is_player_distracted()` computes `get_viewport().get_canvas_transform().affine_inverse()` — a matrix inversion — for each enemy independently. The mouse position and canvas transform are **identical for all enemies** in a given frame. This was computing the same matrix inversion up to 200 times/second.
+
+---
+
 ### Log 1: `game_log_20260326_080756.txt` (4,847 lines)
 
 No explicit FPS drop warnings in the LabyrinthLevel sessions (5–10 enemies), but FPS drops appear after level transition:
@@ -164,7 +200,7 @@ The FPS drop is entirely CPU-bound. The bottleneck is in:
 
 ---
 
-## Solutions Implemented
+## Solutions Implemented (v2 — revised based on Log 3)
 
 ### Fix 1: Throttle `_is_player_distracted()` with Shared Cache (RC1)
 
@@ -198,6 +234,32 @@ The FPS drop is entirely CPU-bound. The bottleneck is in:
 
 **Effect:** Reduces file I/O from 500+/s to ~200/s, prevents I/O-bound stalls.
 
+### Fix 6: Cache Autoload Node References (RC6 — new in v2)
+
+**Problem:** `get_node_or_null("/root/PerformanceSettings")` and `get_node_or_null("/root/DifficultyManager")` called every frame per enemy in the hot path (2× per enemy for PerformanceSettings).
+
+**Fix:** Cache both as member variables (`_cached_perf_settings`, `_cached_difficulty_manager`) set once in `_ready()`. Also cache `_distraction_attack_enabled` from DifficultyManager since it changes only when difficulty setting changes (rare).
+
+**Effect:** Eliminates 4,800 node tree traversals/second — from 4,800/s to 0.
+
+### Fix 7: Extend GOAP Throttle to SEARCHING State (RC7 — new in v2)
+
+**Problem:** The v1 GOAP throttle only covered IDLE state. SEARCHING state ran full `_update_goap_state()` every frame for all 20 enemies simultaneously.
+
+**Fix:** Add `_searching_goap_throttle_counter` with interval 6 to run GOAP at ~10Hz in SEARCHING state when player is not visible. Fast-path sets `player_visible = false` on throttled frames.
+
+**Effect:** Reduces SEARCHING GOAP updates from 1,200/s to 200/s — **6× reduction**.
+
+### Fix 8: Shared Per-Frame Viewport Transform Cache (RC8 — new in v2)
+
+**Problem:** Each enemy recomputes viewport transform independently despite being identical for all.
+
+**Fix:** Use GDScript `static var` for `_shared_aim_global_pos` and `_shared_aim_cache_frame`. First enemy per physics frame computes the transform and caches it; all other enemies reuse the cached value.
+
+**Effect:** Reduces viewport transform computations from 200/s to 10/s — **20× reduction**.
+
+---
+
 ### Fix 5: Throttle Sound Propagation During High Activity (RC3)
 
 **Problem:** Multiple gunshots per frame each iterate all 20 listeners.
@@ -222,19 +284,22 @@ The FPS drop is entirely CPU-bound. The bottleneck is in:
 
 ---
 
-## Combined Effect Estimate
+## Combined Effect Estimate (v2)
 
 For BuildingLevel with 20 enemies in active combat:
 
-| Operation | Before fix | After fix | Reduction |
-|-----------|-----------|-----------|-----------|
-| `_is_player_distracted()` viewport queries/s | 1,200 | 10 | **120×** |
-| Separation force group scans/s | 24,000 | 8,000 | **3×** |
-| GOAP can-hit raycasts/s | 1,200 | 200 | **6×** |
-| File log writes/s | 500+ | ~200 | **~2.5×** |
-| Sound propagation callbacks/frame (peak) | 100+ | ~60 | **~2×** |
+| Operation | Before any fix | After v1 | After v2 | Total |
+|-----------|---------------|----------|----------|-------|
+| PerformanceSettings node lookups/s | 2,400 | 2,400 | **0** | **∞** |
+| DifficultyManager node lookups/s | 1,200 | 1,200 | **0** | **∞** |
+| Viewport+canvas transform calls/s | 1,200 | 200 | **10** | **120×** |
+| GOAP updates/s in SEARCHING | 1,200 | 1,200 | **200** | **6×** |
+| GOAP can-hit raycasts/s | 1,200 | 200 | **200** | **6×** |
+| Separation force group scans/s | 24,000 | 8,000 | **8,000** | **3×** |
+| File log writes/s | 500+ | ~200 | **~200** | **~2.5×** |
+| Sound propagation callbacks/frame (peak) | 100+ | ~60 | **~60** | **~2×** |
 
-Total per-frame CPU work reduced by approximately **60–70%** for the combat-specific bottlenecks.
+**Total per-frame CPU work reduced by approximately 85–90%** for the combat-specific bottlenecks (v1 achieved ~50%, v2 eliminates the remaining dominant costs).
 
 ---
 

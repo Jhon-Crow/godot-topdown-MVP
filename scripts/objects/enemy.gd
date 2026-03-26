@@ -109,6 +109,7 @@ signal grenade_thrown(grenade: Node, target_position: Vector2)  ## Grenade throw
 signal became_pacifist  ## Enemy became pacifist (Issue #959: counts as killed for level completion)
 
 const PLAYER_DISTRACTION_ANGLE: float = 0.4014  ## ~23° - player distracted threshold
+static var _shared_aim_global_pos: Vector2 = Vector2.ZERO; static var _shared_aim_cache_frame: int = -1  ## #1528: Shared aim direction cache — computed once per frame, reused by all enemies
 const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254/#264)
 @onready var _enemy_model: Node2D = $EnemyModel  ## Model node with all sprites
 @onready var _body_sprite: Sprite2D = $EnemyModel/Body  ## Body sprite
@@ -331,12 +332,11 @@ const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Intel range without LOS (px)
 var _intel_share_timer: float = 0.0; const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5s
 var _enemies_in_combat_cache: int = 0; var _enemies_in_combat_cache_timer: float = 0.0; const ENEMIES_IN_COMBAT_CACHE_INTERVAL: float = 0.5  ## #1520: Cache enemies_in_combat O(N²) scan, refresh 2Hz
 var _idle_goap_throttle_counter: int = 0; const IDLE_GOAP_UPDATE_INTERVAL: int = 20  ## #1520: IDLE GOAP throttle counter (~3Hz)
-## #1528: Combat performance throttles — reduce per-frame overhead when many enemies are in combat.
-var _separation_frame_counter: int = 0; const SEPARATION_THROTTLE_INTERVAL: int = 3  ## #1528: Separation force runs every 3 frames in combat
-var _can_hit_cache: bool = false; var _can_hit_cache_counter: int = 0; const CAN_HIT_CACHE_INTERVAL: int = 6  ## #1528: Cache can-hit raycast, refresh ~10Hz
-var _distracted_cache_value: bool = false; var _distracted_cache_counter: int = 0; const DISTRACTED_CHECK_INTERVAL: int = 6  ## #1528: Throttle distraction check to ~10Hz per enemy
-var _log_throttle_timer: float = 0.0; const LOG_THROTTLE_INTERVAL: float = 0.1  ## #1528: Rate-limit file logging to 10/s per enemy in combat
-var _log_throttle_count: int = 0; const LOG_THROTTLE_MAX_PER_INTERVAL: int = 1  ## #1528: Max log writes per throttle interval
+var _separation_frame_counter: int = 0; const SEPARATION_THROTTLE_INTERVAL: int = 3  ## #1528: Separation O(N²) every 3 frames (~20Hz)
+var _can_hit_cache: bool = false; var _can_hit_cache_counter: int = 0; const CAN_HIT_CACHE_INTERVAL: int = 6  ## #1528: Can-hit raycast cached ~10Hz
+var _distracted_cache_value: bool = false; var _distracted_cache_counter: int = 0; const DISTRACTED_CHECK_INTERVAL: int = 6  ## #1528: Distraction check throttled ~10Hz
+var _log_throttle_timer: float = 0.0; const LOG_THROTTLE_INTERVAL: float = 0.1; var _log_throttle_count: int = 0; const LOG_THROTTLE_MAX_PER_INTERVAL: int = 1  ## #1528: Log rate-limit 10/s per enemy
+var _searching_goap_throttle_counter: int = 0; const SEARCHING_GOAP_UPDATE_INTERVAL: int = 6  ## #1528: GOAP throttled ~10Hz in SEARCHING
 var _memory_reset_confusion_timer: float = 0.0  ## Issue #318: blocks visibility after teleport
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## 2s confusion for better player escape window
 ## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
@@ -396,6 +396,8 @@ var _gas_mask_grenade: GasMaskGrenadeComponent = null; var _drone_operator: Dron
 var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
 var _tactical_group: TacticalGroupComponent = null  ## Issue #1287: Tactical group movement — enemies within 500 px spread around the player.
 var _pursuit_component: PursuitComponent = null  ## Issue #1289: Cover-finding logic for PURSUING state.
+var _cached_perf_settings: Node = null; var _cached_difficulty_manager: Node = null  ## #1528: Cached autoloads — avoid per-frame get_node_or_null in hot path
+var _distraction_attack_enabled: bool = false  ## #1528: Cached difficulty flag — changes rarely, skip per-frame DifficultyManager lookup
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -448,6 +450,7 @@ func _ready() -> void:
 	_tactical_group = TacticalGroupComponent.new(self)  # Issue #1287: tactical group encirclement
 	_pursuit_component = PursuitComponent.new(self)  # Issue #1289: pursuit cover-finding component
 
+	_cached_perf_settings = get_node_or_null("/root/PerformanceSettings"); _cached_difficulty_manager = get_node_or_null("/root/DifficultyManager"); _distraction_attack_enabled = _cached_difficulty_manager != null and _cached_difficulty_manager.has_method("is_distraction_attack_enabled") and _cached_difficulty_manager.is_distraction_attack_enabled()  # #1528: cache autoloads once
 	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
 	if bullet_scene == null:  # Preload bullet scene if not set in inspector
 		bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
@@ -797,9 +800,7 @@ func _physics_process(delta: float) -> void:
 	if _gm_r9 and not _gm_r9.player_alive: return
 	if _player and not is_instance_valid(_player): _player = null; return
 
-	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
-	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
-	if _perf_settings and not _perf_settings.is_ai_enabled(): return
+	if _cached_perf_settings and not _cached_perf_settings.is_ai_enabled(): return  # Issue #1186: perf toggle; #1528: cached ref
 	if _drone_operator and _drone_operator.get_phase() != DroneOperatorComponent.Phase.ACTIVE:  # Issue #1397: drone operator phase control
 		_drone_operator.update(delta)
 		if _drone_operator.is_controlling_drone(): velocity = Vector2.ZERO; move_and_slide(); return  # CONTROLLING: fully frozen
@@ -879,10 +880,14 @@ func _physics_process(delta: float) -> void:
 	_select_best_target()
 	_update_memory(delta)
 	if _current_state == AIState.IDLE and not _can_see_player and not _can_see_companion and not _under_fire:  # #1520: throttle GOAP ~3Hz when idle
-		_idle_goap_throttle_counter += 1
+		_idle_goap_throttle_counter += 1; _searching_goap_throttle_counter = 0
 		if _idle_goap_throttle_counter < IDLE_GOAP_UPDATE_INTERVAL: _goap_world_state["player_visible"] = false; _goap_world_state["under_fire"] = false
 		else: _idle_goap_throttle_counter = 0; _update_goap_state()
-	else: _idle_goap_throttle_counter = 0; _update_goap_state()
+	elif _current_state == AIState.SEARCHING and not _can_see_player and not _can_see_companion and not _under_fire:  # #1528: throttle GOAP ~10Hz in SEARCHING (was running every frame for 20 enemies)
+		_idle_goap_throttle_counter = 0; _searching_goap_throttle_counter += 1
+		if _searching_goap_throttle_counter < SEARCHING_GOAP_UPDATE_INTERVAL: _goap_world_state["player_visible"] = false
+		else: _searching_goap_throttle_counter = 0; _update_goap_state()
+	else: _idle_goap_throttle_counter = 0; _searching_goap_throttle_counter = 0; _update_goap_state()
 	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null)); if _shield_component: _shield_component.update(delta); if _drone_operator: _drone_operator.update(delta)  # Issues #1034, #1242, #1397
 	if _hit_reaction_timer > 0: _hit_reaction_timer -= delta  # Issue #1242: decay hit reaction rotation timer
 	# Issue #1242: delayed player tracking for shield enemy — update facing angle periodically, not continuously
@@ -1290,16 +1295,9 @@ func _process_ai_state(delta: float) -> void:
 
 	if _aggression and _aggression.process_aggression_tick(delta, rotation_speed, shoot_cooldown, combat_move_speed): return  # [Issue #675,#919]
 
-	# Issue #1305: Check if COMBAT state is enabled — if disabled, skip all priority attack paths
-	# (distracted, vulnerable, etc.) so enemies truly stop attacking the player.
-	var _ps_ai := get_node_or_null("/root/PerformanceSettings")
-	var _combat_allowed: bool = _ps_ai == null or _ps_ai.is_ai_state_combat_enabled()
-
-	# HIGHEST PRIORITY: Player distracted (aim > 23° off) → shoot (Hard only; Issue #318: off during confusion).
-	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
-	var is_distraction_enabled: bool = difficulty_manager != null and difficulty_manager.is_distraction_attack_enabled()
-	var is_confused: bool = _memory_reset_confusion_timer > 0.0
-	if _combat_allowed and is_distraction_enabled and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _goap_world_state.get("player_distracted", false) and _can_see_player and _player and is_instance_valid(_player):
+	var _combat_allowed: bool = _cached_perf_settings == null or _cached_perf_settings.is_ai_state_combat_enabled()  # Issue #1305: #1528: cached ref
+	var is_confused: bool = _memory_reset_confusion_timer > 0.0  # Issue #318
+	if _combat_allowed and _distraction_attack_enabled and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _goap_world_state.get("player_distracted", false) and _can_see_player and _player and is_instance_valid(_player):
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
@@ -4700,14 +4698,16 @@ func _draw_fov_cone(fill_color: Color, edge_color: Color) -> void:
 func _is_player_distracted() -> bool:
 	if not _can_see_player or _player == null:
 		return false
-	var player_viewport: Viewport = _player.get_viewport()
-	if player_viewport == null:
-		return false
 	var player_pos := _player.global_position
-	var mouse_pos := player_viewport.get_mouse_position()
-	var global_mouse_pos := player_viewport.get_canvas_transform().affine_inverse() * mouse_pos
+	var cur_frame := Engine.get_physics_frames()  # #1528: per-frame shared viewport cache — avoids 20 viewport lookups + matrix inversions per frame
+	if _shared_aim_cache_frame != cur_frame:
+		var player_viewport: Viewport = _player.get_viewport()
+		if player_viewport == null: return false
+		var mouse_pos := player_viewport.get_mouse_position()
+		_shared_aim_global_pos = player_viewport.get_canvas_transform().affine_inverse() * mouse_pos
+		_shared_aim_cache_frame = cur_frame
 	var dir_to_enemy := (global_position - player_pos).normalized()
-	var aim_direction := (global_mouse_pos - player_pos).normalized()
+	var aim_direction := (_shared_aim_global_pos - player_pos).normalized()
 	var angle := acos(clampf(dir_to_enemy.dot(aim_direction), -1.0, 1.0))
 	var is_distracted := angle > PLAYER_DISTRACTION_ANGLE
 	if is_distracted:
