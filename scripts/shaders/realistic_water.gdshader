@@ -41,6 +41,11 @@ uniform float foam_sharpness : hint_range(1.0, 20.0) = 4.0;
 // --- Shore fade: top of the texture blends with transparent (shoreline edge) ---
 uniform float shore_fade_width : hint_range(0.0, 0.5) = 0.08;
 
+// --- Bottom shore wash (Issue #1573): wave gradient extends onto land at the bottom edge ---
+// The water ColorRect is extended past the sand boundary; this fade makes the
+// overlap transparent so only foam/wave crests show on the sand ("wet sand" look).
+uniform float shore_wash_width : hint_range(0.0, 0.5) = 0.18;
+
 // --- Blood diffusion overlay ---
 uniform vec4 blood_tint : source_color = vec4(0.6, 0.05, 0.05, 0.0);
 
@@ -130,5 +135,18 @@ void fragment() {
 	float shore_fade = smoothstep(0.0, shore_fade_width, uv.y);
 	alpha *= shore_fade;
 
-	COLOR = vec4(final_rgb, alpha);
+	// ---- Bottom shore wash (Issue #1573): wave gradient onto land ----
+	// In the bottom shore_wash_width fraction of the texture (the part that
+	// overlaps the sand), fade the base water colour to transparent so only
+	// the bright foam/surf bands remain visible — creating a "wave wash" look.
+	float bottom_t = smoothstep(1.0, 1.0 - shore_wash_width, uv.y);
+	// Attenuate the base water colour in the wash zone (foam already bright enough)
+	float wash_water_alpha = mix(alpha, 0.0, (1.0 - bottom_t));
+	// Surf foam in the wash zone: boost intensity so waves are clearly visible on sand
+	float surf_wash = surf_foam * surf_intensity * (1.0 - bottom_t) * 1.8;
+	// Blend: deep into wash zone = only foam, no base water
+	float final_alpha = mix(wash_water_alpha, surf_wash, clamp(1.0 - bottom_t, 0.0, 1.0));
+	final_alpha = max(final_alpha, surf_wash);  // foam always visible in wash zone
+
+	COLOR = vec4(final_rgb, final_alpha);
 }
