@@ -167,6 +167,60 @@ work as designed.
 
 ---
 
+## User Feedback Analysis (2026-03-26) — Second Report
+
+### Report
+
+User (Jhon-Crow) reported again: "физика воды не добавилась. добавь волны воде на карте Пляж."
+(Water physics was not added. Add waves to the water on the Beach map.)
+Log file: `game_log_20260326_080452.txt`.
+
+### Root Cause Analysis
+
+The log shows **identical symptoms** to the first report (2026-03-25):
+
+```
+[BeachLevel] Water node found OK — visual=true shader=false collision=true pos=(1264, 242)
+```
+
+Key diagnostic indicators:
+1. `Debug build: false` — confirmed exported binary (not running from editor)
+2. `shader=false` — `WaterVisual.material == null`, shader not applied
+3. **Zero** `[WaterBody]` log entries — `water_body.gd._ready()` from our PR never executed
+4. Executable: `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe`
+
+### Timeline Reconstruction
+
+| Date       | Event |
+|------------|-------|
+| 2026-03-25 | PR #1496 created with spring water physics implementation |
+| 2026-03-25 | User tests and reports "physics not added" (old binary, `game_log_20260325_164449.txt`) |
+| 2026-03-25 | Analysis performed: confirmed old binary, PR must be merged |
+| 2026-03-25 | CI builds windows artifact from our branch (run #23561379547) |
+| 2026-03-26 | User reports again "water physics not added" (still old binary, `game_log_20260326_080452.txt`) |
+| 2026-03-26 | PR #1496 still in DRAFT, not merged to `main` |
+
+### Why The Problem Persists
+
+The user downloads the Windows binary from the **upstream `main` branch CI**
+(run #23578386370, commit `1cda717e`). This binary was compiled from main, which does NOT
+include PR #1496 (still in draft). Our spring physics only exists in the `issue-1495-2a3050972b07`
+branch, not yet merged.
+
+**Our code is correct and complete.** The fix is to:
+1. Merge PR #1496 into `main`
+2. The CI will build a new `windows-build` artifact with spring physics included
+3. User re-exports or downloads the new artifact
+
+### Test Build Available
+
+A test build with our spring physics is available as a CI artifact from our fork:
+- Run: `konard/Jhon-Crow-godot-topdown-MVP` Actions, run ID 23561379547
+- Branch: `issue-1495-2a3050972b07`, commit `237383b9`
+- Artifact: `windows-build` (expires 2026-06-23)
+
+---
+
 ## References
 
 - [Envato Tuts+ Dynamic 2D Water Effects](https://gamedevelopment.tutsplus.com/make-a-splash-with-dynamic-2d-water-effects--gamedev-236t)
