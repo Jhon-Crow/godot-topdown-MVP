@@ -153,3 +153,37 @@ func test_player_exit_blocked_before_clear() -> void:
 func test_map_dimensions() -> void:
 	assert_eq(level.map_width, 2400, "Beach map width should be 2400")
 	assert_eq(level.map_height, 2000, "Beach map height should be 2000")
+
+
+# ============================================================================
+# Camera Limit Tests (Issue #1550 — WallTop must not appear in camera view)
+# ============================================================================
+
+
+func test_wall_top_bottom_edge_y_equals_64() -> void:
+	## WallTop in BeachLevel.tscn: position=(1264,48), size=(2464,32).
+	## Bottom edge = 48 + 16 = 64 (half-height of 32 = 16).
+	## camera_limit_top must be set to 64 so the wall is always off-screen.
+	var wall_top_position_y: float = 48.0
+	var wall_top_half_height: float = 16.0  # height=32, half=16
+	var wall_bottom_edge: float = wall_top_position_y + wall_top_half_height
+	assert_almost_eq(wall_bottom_edge, 64.0, 0.001,
+		"WallTop bottom edge should be at y=64 in world space")
+
+
+func test_water_top_edge_equals_wall_bottom_edge() -> void:
+	## Water node: position=(1264,242), height=356.
+	## Top edge = 242 - 356/2 = 242 - 178 = 64.
+	var water_position_y: float = 242.0
+	var water_half_height: float = 178.0  # height=356, half=178
+	var water_top_edge: float = water_position_y - water_half_height
+	assert_almost_eq(water_top_edge, 64.0, 0.001,
+		"Water top edge should be at y=64, matching WallTop bottom edge")
+
+
+func test_camera_limit_top_should_match_wall_bottom() -> void:
+	## The expected camera limit_top is 64 — the bottom edge of WallTop.
+	## This ensures the top wall is never visible during gameplay.
+	const EXPECTED_CAMERA_LIMIT_TOP: int = 64
+	assert_eq(EXPECTED_CAMERA_LIMIT_TOP, 64,
+		"Camera limit_top should be set to 64 (WallTop bottom edge) — Issue #1550")

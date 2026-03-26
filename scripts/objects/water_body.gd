@@ -1,8 +1,12 @@
 extends Area2D
-## Realistic water body for the Beach level (Issue #1445).
+## Realistic water body for the Beach level (Issue #1445, enhanced Issue #1550).
 ##
 ## Combines:
 ##   - A ColorRect (WaterVisual) with the realistic_water.gdshader for visual waves
+##     including animated surf-foam streaks marching toward the shore (Issue #1550)
+##   - Wave interruption by player/enemies: positions are pushed to the shader each
+##     frame so wave amplitude is attenuated around obstacles — same concept as
+##     LightOccluder2D blocking light rays (Issue #1550)
 ##   - Area2D physics detection to spawn WaterSplashEffect when bodies/objects interact
 ##   - Blood diffusion effect (blood spreads in water instead of leaving footprints)
 ##   - Reactions to shell casings, grenades, and explosions
@@ -47,6 +51,13 @@ var _connected_grenades: Dictionary = {}
 
 ## Track casings already processed (avoid duplicate splashes per casing).
 var _processed_casings: Dictionary = {}
+
+## Maximum number of obstacle positions passed to the shader (must match shader array size).
+const MAX_OBSTACLE_SHADER_SLOTS: int = 8
+
+## Throttle: only push obstacle UVs to shader every N frames to save GPU upload cost.
+var _obstacle_update_frame: int = 0
+const OBSTACLE_UPDATE_INTERVAL: int = 3  # update every 3 physics frames
 
 
 func _ready() -> void:
@@ -106,8 +117,55 @@ func _process(_delta: float) -> void:
 	# Suppress bloody footprints for characters inside water
 	_suppress_bloody_footprints()
 
+	# Push obstacle positions to shader for wave interruption (Issue #1550).
+	# Throttled to avoid unnecessary GPU uploads every frame.
+	_obstacle_update_frame += 1
+	if _obstacle_update_frame >= OBSTACLE_UPDATE_INTERVAL:
+		_obstacle_update_frame = 0
+		_update_obstacle_shader_params()
+
 	# Clean up stale grenade references
 	_cleanup_grenades()
+
+
+## Push current body positions inside water to the shader as UV-space coordinates.
+## This implements wave interruption by obstacles — the shader attenuates wave
+## amplitude within a radius around each UV position, mirroring the way
+## LightOccluder2D nodes block light rays (Issue #1550).
+func _update_obstacle_shader_params() -> void:
+	if _visual == null or not (_visual.material is ShaderMaterial):
+		return
+	var mat: ShaderMaterial = _visual.material as ShaderMaterial
+
+	# Collect valid body positions (up to MAX_OBSTACLE_SHADER_SLOTS)
+	var uvs: Array[Vector2] = []
+	for body in _bodies_in_water.keys():
+		if not is_instance_valid(body):
+			continue
+		# Skip grenades and casings — only player/enemy bodies cast "wave shadows"
+		if body.is_in_group("grenades") or body.is_in_group("casings"):
+			continue
+		var world_pos: Vector2 = body.global_position
+		# Convert world position → UV space [0..1] within the water rectangle.
+		# The water rectangle: centre = global_position, size = water_width × water_height
+		var local: Vector2 = world_pos - global_position
+		var uv: Vector2 = Vector2(
+			(local.x + water_width * 0.5) / water_width,
+			(local.y + water_height * 0.5) / water_height
+		)
+		# Clamp to valid UV range
+		uv = uv.clamp(Vector2.ZERO, Vector2.ONE)
+		uvs.append(uv)
+		if uvs.size() >= MAX_OBSTACLE_SHADER_SLOTS:
+			break
+
+	# The shader expects exactly MAX_OBSTACLE_SHADER_SLOTS entries in the array.
+	# Pad with out-of-range UVs (e.g. (-1,-1)) so unused slots don't affect rendering.
+	while uvs.size() < MAX_OBSTACLE_SHADER_SLOTS:
+		uvs.append(Vector2(-1.0, -1.0))
+
+	mat.set_shader_parameter("obstacle_count", mini(uvs.size(), MAX_OBSTACLE_SHADER_SLOTS))
+	mat.set_shader_parameter("obstacle_uvs", uvs)
 
 
 ## Apply the animated water shader to the WaterVisual ColorRect.

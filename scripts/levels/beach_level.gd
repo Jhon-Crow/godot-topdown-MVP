@@ -65,6 +65,10 @@ func _ready() -> void:
 	# Setup realistic water on the Beach level (Issue #1445)
 	_setup_water()
 
+	# Restrict camera top limit so WallTop (y=48, h=32 → bottom at y=64) is
+	# never visible — Issue #1550.
+	_setup_camera_limits()
+
 
 func _initialize_score_manager() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
@@ -1352,6 +1356,26 @@ func _setup_water() -> void:
 	_log_to_file("Water node found OK — visual=%s shader=%s collision=%s pos=%s" % [
 		str(visual != null), str(has_shader), str(collision != null), str(water.position)
 	])
+
+
+## Restrict the player camera's top boundary so WallTop (y ∈ [32, 64]) is
+## always off-screen (Issue #1550).
+##
+## WallTop is a StaticBody2D at position (1264, 48) with height 32 →
+## its bottom edge is at y=64, which equals the top of the water area.
+## Setting limit_top = 64 ensures the camera can never scroll above y=64,
+## keeping the wall invisible at all times.
+func _setup_camera_limits() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[BeachLevel] Camera2D not found on player — cannot set top limit")
+		return
+	# The top edge of the water / bottom edge of WallTop in world space.
+	const WALL_TOP_BOTTOM_EDGE: int = 64
+	camera.limit_top = WALL_TOP_BOTTOM_EDGE
+	_log_to_file("Camera2D limit_top set to %d (WallTop bottom edge) — Issue #1550" % WALL_TOP_BOTTOM_EDGE)
 
 
 func _log_to_file(message: String) -> void:
