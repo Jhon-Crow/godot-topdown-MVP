@@ -59,7 +59,17 @@ var _benchmark_running: bool = false
 var _row_hover_bg: Dictionary = {}
 
 
+## Log a message via FileLogger (Issue #1514 diagnostic).
+func _log(message: String) -> void:
+	var fl: Node = get_node_or_null("/root/FileLogger")
+	if fl and fl.has_method("log_info"):
+		fl.log_info("[PerformanceMenu] " + message)
+	else:
+		print("[PerformanceMenu] " + message)
+
+
 func _ready() -> void:
+	_log("_ready() started")
 	# Setup tooltips, hover highlight, and label behaviour for settings rows (Issue #1461)
 	var _vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
 	_setup_row_hover(_vbox.get_node("ParticlesContainer"),
@@ -113,6 +123,7 @@ func _ready() -> void:
 	fps_limit_option.add_item("30 FPS", 30)
 	fps_limit_option.add_item("60 FPS", 60)
 	fps_limit_option.add_item("120 FPS", 120)
+	_log("FPS limit items populated: %d items" % fps_limit_option.item_count)
 
 	# Connect checkbox signals
 	particles_checkbox.toggled.connect(_on_particles_toggled)
@@ -139,6 +150,7 @@ func _ready() -> void:
 
 	# Update UI from current settings
 	_update_ui()
+	_log("_ready() completed")
 
 	# Connect to settings changes so UI stays in sync
 	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
@@ -155,6 +167,7 @@ func _ready() -> void:
 func _update_ui() -> void:
 	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if perf_settings == null:
+		_log("_update_ui: PerformanceSettings not found!")
 		status_label.text = "Error: PerformanceSettings not found"
 		return
 
@@ -179,6 +192,8 @@ func _update_ui() -> void:
 	var fps_items := [0, 30, 60, 120]
 	var current_fps := perf_settings.get_fps_limit()
 	var fps_idx := fps_items.find(current_fps)
+	_log("_update_ui: vsync=%s fps_limit=%d fps_idx=%d item_count=%d" % [
+		perf_settings.is_vsync_enabled(), current_fps, fps_idx, fps_limit_option.item_count])
 	fps_limit_option.select(fps_idx if fps_idx >= 0 else 0)
 
 	# Show which features are currently disabled
@@ -271,6 +286,7 @@ func _on_ai_state_toggled(state_name: String, enabled: bool) -> void:
 
 
 func _on_vsync_toggled(enabled: bool) -> void:
+	_log("V-Sync toggled: %s" % enabled)
 	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if perf_settings:
 		perf_settings.set_vsync_enabled(enabled)
@@ -278,10 +294,11 @@ func _on_vsync_toggled(enabled: bool) -> void:
 
 
 func _on_fps_limit_selected(index: int) -> void:
+	var fps_items := [0, 30, 60, 120]
+	var limit: int = fps_items[index] if index < fps_items.size() else 0
+	_log("FPS limit selected: index=%d limit=%d" % [index, limit])
 	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if perf_settings:
-		var fps_items := [0, 30, 60, 120]
-		var limit: int = fps_items[index] if index < fps_items.size() else 0
 		perf_settings.set_fps_limit(limit)
 	_update_ui()
 
@@ -290,12 +307,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("pause"):
 		# Don't close the menu if the FPS limit popup is open — ESC should only close the popup.
 		if fps_limit_option.get_popup().visible:
+			_log("ESC pressed but FPS popup is open — letting popup handle it")
 			return
+		_log("ESC pressed — navigating back")
 		_on_back_pressed()
 		get_viewport().set_input_as_handled()
 
 
 func _on_back_pressed() -> void:
+	_log("Back pressed — emitting back_pressed signal")
 	back_pressed.emit()
 
 

@@ -11,19 +11,21 @@ After the V-Sync toggle and FPS limit selector were added to the Performance men
 
 ## Timeline / Sequence of Events
 
-| Time | Event |
+| Time (UTC) | Event |
 |------|-------|
 | 2026-03-26 03:51 | PR #1515 opened with V-Sync toggle and FPS limit selector |
 | 2026-03-26 03:52 | Auto-restart (merge conflict resolved) |
 | 2026-03-26 03:54 | PR marked ready, CI passes |
-| 2026-03-26 04:36 | Owner (Jhon-Crow) tests the feature in-game and reports bugs |
-| 2026-03-26 07:35 | Game log captured (see `game_log_20260326_073519.txt`) |
+| 2026-03-26 04:36 | Owner (Jhon-Crow) tests the feature in-game and reports bugs (log: 07:35 Moscow = 04:35 UTC) |
+| 2026-03-26 04:50 | Fix commit `d3487242` applied: `select()` instead of `selected=`, ESC popup guard |
+| 2026-03-26 04:50 | CI passes with new build artifact |
+| 2026-03-26 05:36 | Owner (Jhon-Crow) tests again and reports SAME bugs persist (log: 08:36 Moscow = 05:36 UTC) |
 
 ---
 
 ## Game Log Analysis
 
-**File**: `game_log_20260326_073519.txt`
+### Log 1: `game_log_20260326_073519.txt` (07:35 Moscow / 04:35 UTC)
 
 The log covers a gameplay session in the Sewer Level (07:35:19–07:35:59). Key observations:
 
@@ -34,7 +36,28 @@ The log covers a gameplay session in the Sewer Level (07:35:19–07:35:59). Key 
   ```
 - No errors related to PerformanceMenu during this session.
 - The user did NOT open the Performance menu during this session — it was a gameplay session.
-- The bugs were likely observed in a prior or separate session when the user opened Settings → Performance.
+- **Build info**: `not available (build_info.cfg not found)` — user is NOT running a CI build.
+
+### Log 2: `game_log_20260326_083603.txt` (08:36 Moscow / 05:36 UTC)
+
+Second test after our fix. Key observations:
+
+- `PerformanceSettings` autoload initialized correctly with new fields:
+  ```
+  [08:36:03] [INFO] [PerformanceSettings] PerformanceSettings initialized - particles: true,
+  blood_decals: false, screen_shake: false, explosion_lights: true, ai: true, vsync: true, fps_limit: 0
+  ```
+- No `[PerformanceMenu]` log entries — the performance menu script has no logging.
+- **Build info**: `not available (build_info.cfg not found)` — SAME build type without CI metadata.
+- The game ran ~20 seconds in Tutorial level then quit. No settings interactions were captured.
+
+### Critical Finding: Build Source Unknown
+
+Both game logs show `Build info: not available (build_info.cfg not found)`. CI builds from our workflow include `build_info.cfg` embedded in the PCK at `res://build_info.cfg`. The absence of this file means the user is running a build that was NOT produced by our CI pipeline.
+
+This means we cannot confirm whether the user tested our latest fix commits (`d3487242`). The user may have built the game locally from an older version of the branch, or downloaded an artifact from a different point in time.
+
+**Action taken**: Added `FileLogger`-based diagnostic logging throughout `performance_menu.gd` so the next game log will show exactly which code paths executed when the performance menu was opened.
 
 ---
 
