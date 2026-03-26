@@ -763,6 +763,60 @@ text = "CLEARING"
 
 [node name="Enemies" type="Node2D" parent="Environment"]
 
+[node name="Clearing_DroneOperator1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(2900, 250)
+behavior_mode = 1
+is_drone_operator = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+min_health = 2
+max_health = 4
+
+[node name="Clearing_DroneOperator2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(3050, 350)
+behavior_mode = 1
+is_drone_operator = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+min_health = 2
+max_health = 4
+
+[node name="Clearing_Sniper1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(2800, 150)
+behavior_mode = 1
+weapon_type = 7
+destroy_on_death = true
+enable_flanking = false
+enable_cover = true
+min_health = 2
+max_health = 3
+fov_angle = 120.0
+
+[node name="Clearing_Sniper2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(3100, 450)
+behavior_mode = 1
+weapon_type = 7
+destroy_on_death = true
+enable_flanking = false
+enable_cover = true
+min_health = 2
+max_health = 3
+fov_angle = 120.0
+
+[node name="BottomRight_MachineGunner" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(3000, 2200)
+behavior_mode = 1
+weapon_type = 6
+move_speed = 80.0
+combat_move_speed = 100.0
+min_health = 5
+max_health = 7
+destroy_on_death = true
+enable_flanking = false
+enable_cover = true
+
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
 navigation_polygon = SubResource("NavigationPolygon_winter_forest")
 
