@@ -9,10 +9,10 @@ shader_type canvas_item;
 //   0.06 – 0.18 s : narrow band sweeps left → right across the icon
 //   0.18 – 0.22 s : glint fades out
 //
-// Phase 2 – Radial burst from center outward (Issue #1563):
-//   0.22 – 0.26 s : burst fades in
-//   0.26 – 0.38 s : expanding ring radiates from weapon-tip area toward edges
-//   0.38 – 0.42 s : burst fades out
+// Phase 2 – Top-edge glint sweep (Issue #1563):
+//   0.22 – 0.26 s : edge glint fades in
+//   0.26 – 0.38 s : bright highlight runs left → right along the upper edge of the weapon
+//   0.38 – 0.42 s : edge glint fades out
 
 // Progress of the animation: 0.0 = start, 1.0 = end. Driven by GDScript tween.
 uniform float anim_progress : hint_range(0.0, 1.0) = 0.0;
@@ -20,8 +20,12 @@ uniform float anim_progress : hint_range(0.0, 1.0) = 0.0;
 // Colour of the diagonal glint stripe (Phase 1).
 uniform vec4 glint_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
 
-// Colour of the radial burst (Phase 2).
-uniform vec4 burst_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+// Colour of the top-edge glint sweep (Phase 2).
+uniform vec4 edge_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+
+// How many pixels to sample above/below a fragment to detect the top edge.
+// Passed in from GDScript as vec2(1/texture_width, 1/texture_height).
+uniform vec2 texel_size = vec2(0.015625, 0.015625);
 
 void fragment() {
 	vec4 tex = texture(TEXTURE, UV);
@@ -37,49 +41,45 @@ void fragment() {
 	float phase1_t = clamp(anim_progress / phase1_end, 0.0, 1.0);
 
 	// Sweep position: moves from -0.2 (off left) to 1.2 (off right) as phase1_t 0→1.
-	float sweep = mix(-0.2, 1.2, phase1_t);
+	float sweep1 = mix(-0.2, 1.2, phase1_t);
 
 	// Diagonal stripe: combination of X and (1-Y) so the band runs top-right → bottom-left.
 	float diag = UV.x * 0.8 + (1.0 - UV.y) * 0.2;
-	float dist_sweep = abs(diag - sweep);
+	float dist_sweep1 = abs(diag - sweep1);
 
 	// Narrow, soft-edged stripe.
-	float stripe = exp(-dist_sweep * dist_sweep * 200.0);
+	float stripe = exp(-dist_sweep1 * dist_sweep1 * 200.0);
 
 	// Fade in during first 20% and out during last 25% of phase 1.
 	float fade1 = smoothstep(0.0, 0.20, phase1_t) * smoothstep(1.0, 0.75, phase1_t);
 
 	float glint1 = stripe * fade1 * mask * 0.75;
 
-	// ---- Phase 2: radial burst from center outward (progress 0.524 → 1.0) ----
-	// 0.20 s burst phase out of total 0.42 s
+	// ---- Phase 2: top-edge glint sweep (progress 0.524 → 1.0) ----
+	// A bright narrow highlight runs left → right along the topmost edge of the weapon.
+	// The "top edge" is detected by checking whether the pixel just above is transparent —
+	// meaning this fragment is at (or very near) the silhouette boundary on the upper side.
 	float phase2_start = 0.524;  // 0.22 / 0.42
 
 	float phase2_t = clamp((anim_progress - phase2_start) / (1.0 - phase2_start), 0.0, 1.0);
 
-	// Distance from icon center (UV 0.5, 0.5).
-	float dx = UV.x - 0.5;
-	float dy = UV.y - 0.5;
-	float dist_center = sqrt(dx * dx + dy * dy);
+	// Sample pixel one texel above — if it is transparent, we are on the upper edge.
+	float above_alpha = texture(TEXTURE, UV + vec2(0.0, -texel_size.y)).a;
+	float is_top_edge = (1.0 - above_alpha) * mask;
 
-	// Expanding ring: expands from center (0) to corners (~0.7) over the phase.
-	float ring_radius = mix(0.0, 0.72, phase2_t);
-	float ring_dist = abs(dist_center - ring_radius);
-	float ring = exp(-ring_dist * ring_dist * 120.0);
+	// The glint spot sweeps from left (X=0) to right (X=1) along that edge row.
+	// Use a narrow Gaussian in X centred on the moving sweep position.
+	float sweep2 = mix(-0.1, 1.1, phase2_t);
+	float dist_x = UV.x - sweep2;
+	float spot = exp(-dist_x * dist_x * 180.0);
 
-	// Soft inner fill that collapses as ring expands (pixel-art "flash from center" feel).
-	float fill = (1.0 - smoothstep(0.0, ring_radius + 0.05, dist_center))
-	             * smoothstep(0.0, 0.2, phase2_t);
-
-	// Fade in at phase start, fade out at phase end.
+	// Fade in/out envelope around the sweep.
 	float fade2 = smoothstep(0.0, 0.2, phase2_t) * smoothstep(1.0, 0.75, phase2_t);
 
-	float glint2 = clamp(ring * 0.85 + fill * 0.4, 0.0, 1.0) * fade2 * mask;
+	float glint2 = spot * is_top_edge * fade2 * 1.0;
 
 	// Only one phase is active at a time — they do not overlap.
-	float glint = glint1 + glint2;
-
 	// Additive blend: brighten the existing pixel, do not cover it.
-	COLOR = tex + glint_color * glint1 + burst_color * glint2;
+	COLOR = tex + glint_color * glint1 + edge_color * glint2;
 	COLOR.a = tex.a;
 }
