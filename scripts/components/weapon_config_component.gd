@@ -20,7 +20,7 @@ const WEAPON_CONFIGS := {
 		"bullet_speed": 2500.0,
 		"magazine_size": 30,
 		"bullet_spawn_offset": 30.0,
-		"weapon_loudness": 800.0,
+		"weapon_loudness": 840.0,  # Issue #1524: M16 sound range set to 840px
 		"sprite_path": "",  # Default sprite already in scene
 		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",

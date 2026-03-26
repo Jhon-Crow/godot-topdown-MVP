@@ -77,10 +77,12 @@ public partial class WeaponData : Resource
 
     /// <summary>
     /// Loudness of the weapon in pixels - determines how far gunshots propagate for enemy detection.
-    /// Default is approximately viewport diagonal (~1469 pixels) for assault rifles.
+    /// Each weapon's .tres resource file should explicitly set this value.
+    /// Issue #1524: AssaultRifle (M16) Loudness = 840.0px.
+    /// Issue #1269: All values scaled by factor 800/1469 from original viewport-diagonal baseline.
     /// </summary>
     [Export]
-    public float Loudness { get; set; } = 1469.0f;
+    public float Loudness { get; set; } = 800.0f;
 
     /// <summary>
     /// Aiming sensitivity for the weapon. Controls how fast the weapon rotates toward the cursor.
