@@ -158,6 +158,7 @@ var _current_health: int = 0; var _max_health: int = 0  ## Current / max health 
 var _is_alive: bool = true  ## Is alive
 var _player: Node2D = null  ## Player reference
 var _game_manager_cached: Node = null; var _perf_settings_cached: Node = null  ## Issue #1487: cached autoloads
+var _sound_log_counter: int = 0  ## Issue #1487 Round 9: throttle sound event file logging
 var _shoot_timer: float = 0.0  ## Time since last shot
 ## Issue #969: throttle constants/trackers — prevent raycast floods with 20+ active enemies
 const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5; var _last_gunshot_propagation_time: float = -999.0
@@ -447,15 +448,9 @@ func _ready() -> void:
 	_tactical_movement = TacticalMovementComponent.new(self)  # Issue #1249: narrow passage queuing
 	_tactical_group = TacticalGroupComponent.new(self)  # Issue #1287: tactical group encirclement
 	_pursuit_component = PursuitComponent.new(self)  # Issue #1289: pursuit cover-finding component
-
 	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
-	if bullet_scene == null:  # Preload bullet scene if not set in inspector
-		bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
-
-	# Preload casing scene if not set in inspector
-	if casing_scene == null:
-		casing_scene = preload("res://scenes/effects/Casing.tscn")
-
+	if bullet_scene == null: bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
+	if casing_scene == null: casing_scene = preload("res://scenes/effects/Casing.tscn")
 	# Initialize walking animation base positions
 	if _body_sprite:
 		_base_body_pos = _body_sprite.position
@@ -604,6 +599,7 @@ func on_sound_heard(sound_type: int, position: Vector2, source_type: int, source
 ## Called by SoundPropagation with intensity. Reacts to reload/empty_click/gunshot sounds.
 func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_type: int, source_node: Node2D, intensity: float) -> void:
 	if not _is_alive: return
+	if _perf_settings_cached and not _perf_settings_cached.is_ai_enabled(): return  # Issue #1487 R9: skip sound when AI off
 	var is_player_gunshot := sound_type == 0 and source_type == 0  # GUNSHOT from PLAYER (#910)
 	if _memory_reset_confusion_timer > 0.0 and not is_player_gunshot: return  # #318 + #910: allow gunshots during confusion
 	var distance := global_position.distance_to(position)
@@ -690,7 +686,10 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 
 	var sound_name := "EXPLOSION" if sound_type == 1 else "gunshot"
 	_log_debug("Heard %s (intensity=%.2f, distance=%.0f) at %s" % [sound_name, intensity, distance, position])
-	_log_to_file("Heard %s at %s, intensity=%.2f, distance=%.0f" % [sound_name, position, intensity, distance])
+	_sound_log_counter += 1  # Issue #1487 R9: throttle file I/O to every 5th sound event
+	if _sound_log_counter >= 5:
+		_sound_log_counter = 0
+		_log_to_file("Heard %s at %s, intensity=%.2f, distance=%.0f" % [sound_name, position, intensity, distance])
 
 	if sound_type == 0: _on_gunshot_heard_for_grenade(position)  # #363: sustained fire detection
 

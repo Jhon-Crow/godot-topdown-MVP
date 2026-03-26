@@ -53,6 +53,12 @@ var _trail: Line2D = null
 ## History of global positions for the trail effect.
 var _position_history: Array[Vector2] = []
 
+## Issue #1487 Round 9: Throttle trail visual updates to 15 Hz.
+## At 60 fps with 5-10 concurrent bullets, unthrottled trail updates cause
+## 300-600 Line2D clear_points()+add_point() calls/sec. 15 Hz cuts this by 75%.
+const BULLET_TRAIL_UPDATE_INTERVAL: float = 1.0 / 15.0
+var _trail_update_timer: float = 0.0
+
 ## Number of ricochets that have occurred.
 var _ricochet_count: int = 0
 
@@ -278,6 +284,13 @@ var _breaker_shrapnel_scene: PackedScene = null
 ## Enable/disable debug logging for breaker bullet behavior.
 var _debug_breaker: bool = false
 
+## Issue #1487 Round 9: Cached autoload references for breaker detonation hot path.
+## Avoids get_node_or_null("/root/...") on every detonation (~15/sec with MiniUzi).
+var _impact_manager_cached: Node = null
+var _audio_manager_cached: Node = null
+var _sound_propagation_cached: Node = null
+var _pool_manager_cached: Node = null
+
 
 func _ready() -> void:
 	# Connect to collision signals
@@ -295,6 +308,12 @@ func _ready() -> void:
 		# (when top_level becomes true, the Line2D's position becomes its global position,
 		# so we need to reset it to (0,0) for added points to be at their true global positions)
 		_trail.position = Vector2.ZERO
+
+	# Issue #1487 Round 9: Cache autoload references once at spawn
+	_impact_manager_cached = get_node_or_null("/root/ImpactEffectsManager")
+	_audio_manager_cached = get_node_or_null("/root/AudioManager")
+	_sound_propagation_cached = get_node_or_null("/root/SoundPropagation")
+	_pool_manager_cached = get_node_or_null("/root/ProjectilePoolManager")
 
 	# Load default caliber data if not set
 	if caliber_data == null:
@@ -449,7 +468,7 @@ func _physics_process(delta: float) -> void:
 			return  # Bullet detonated and was freed
 
 	# Update trail effect
-	_update_trail()
+	_update_trail(delta)
 
 	# Track lifetime and auto-destroy if exceeded
 	_time_alive += delta
@@ -458,9 +477,15 @@ func _physics_process(delta: float) -> void:
 
 
 ## Updates the visual trail effect by maintaining position history.
-func _update_trail() -> void:
+## Issue #1487 Round 9: Throttled to 15 Hz to reduce Line2D API calls.
+func _update_trail(delta: float) -> void:
 	if not _trail:
 		return
+
+	_trail_update_timer += delta
+	if _trail_update_timer < BULLET_TRAIL_UPDATE_INTERVAL:
+		return
+	_trail_update_timer = 0.0
 
 	# Add current position to history
 	_position_history.push_front(global_position)
@@ -610,7 +635,7 @@ func _on_body_entered(body: Node2D) -> void:
 				_log_penetration("Penetration failed (distance roll)")
 
 	# Play wall impact sound and destroy bullet
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	var audio_manager: Node = _audio_manager_cached
 	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
 		audio_manager.play_bullet_wall_hit(global_position)
 	_destroy()
@@ -963,7 +988,7 @@ func _get_ricochet_deviation() -> float:
 
 ## Plays the ricochet sound effect.
 func _play_ricochet_sound() -> void:
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	var audio_manager: Node = _audio_manager_cached
 	if audio_manager and audio_manager.has_method("play_bullet_ricochet"):
 		audio_manager.play_bullet_ricochet(global_position)
 	elif audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
@@ -1031,15 +1056,14 @@ func can_ricochet() -> bool:
 ## @param precomputed_normal: Pre-computed surface normal from _on_body_entered (Issue #1145).
 ##   Pass a non-zero vector to skip the internal raycast (avoids a duplicate intersect_ray call).
 func _spawn_wall_hit_effect(body: Node2D, precomputed_normal: Vector2 = Vector2.ZERO) -> void:
-	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-	if impact_manager == null or not impact_manager.has_method("spawn_dust_effect"):
+	if _impact_manager_cached == null or not _impact_manager_cached.has_method("spawn_dust_effect"):
 		return
 
 	# Use pre-computed normal when available (Issue #1145: avoids duplicate raycast per wall hit)
 	var surface_normal := precomputed_normal if precomputed_normal != Vector2.ZERO else _get_surface_normal(body)
 
 	# Spawn dust effect at hit position
-	impact_manager.spawn_dust_effect(global_position, surface_normal, caliber_data)
+	_impact_manager_cached.spawn_dust_effect(global_position, surface_normal, caliber_data)
 
 
 # ============================================================================
@@ -1238,7 +1262,7 @@ func _exit_penetration() -> void:
 		_log_penetration("Damage multiplier after penetration: %s" % damage_multiplier)
 
 	# Play penetration exit sound (use wall hit sound for now)
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	var audio_manager: Node = _audio_manager_cached
 	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
 		audio_manager.play_bullet_wall_hit(exit_point)
 
@@ -1270,12 +1294,11 @@ func _spawn_penetration_hole_effect(_body: Node2D, _pos: Vector2, _is_entry: boo
 ## @param entry_point: Where the bullet entered the wall.
 ## @param exit_point: Where the bullet exited the wall.
 func _spawn_collision_hole(entry_point: Vector2, exit_point: Vector2) -> void:
-	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-	if impact_manager == null:
+	if _impact_manager_cached == null:
 		return
 
-	if impact_manager.has_method("spawn_collision_hole"):
-		impact_manager.spawn_collision_hole(entry_point, exit_point, direction, caliber_data)
+	if _impact_manager_cached.has_method("spawn_collision_hole"):
+		_impact_manager_cached.spawn_collision_hole(entry_point, exit_point, direction, caliber_data)
 		_log_penetration("Collision hole spawned from %s to %s" % [entry_point, exit_point])
 
 
@@ -1700,10 +1723,8 @@ func _breaker_spawn_explosion_effect(center: Vector2) -> void:
 	_last_breaker_explosion_effect_time = current_time
 	_last_breaker_explosion_played = true
 
-	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-
-	if impact_manager and impact_manager.has_method("spawn_explosion_effect"):
-		impact_manager.spawn_explosion_effect(center, BREAKER_EXPLOSION_RADIUS)
+	if _impact_manager_cached and _impact_manager_cached.has_method("spawn_explosion_effect"):
+		_impact_manager_cached.spawn_explosion_effect(center, BREAKER_EXPLOSION_RADIUS)
 	else:
 		# Fallback: create simple flash
 		_breaker_create_simple_flash(center)
@@ -1716,14 +1737,12 @@ func _breaker_spawn_explosion_effect(center: Vector2) -> void:
 ## The flag is set by _breaker_spawn_explosion_effect when a visual was actually spawned.
 func _breaker_play_explosion_sound(center: Vector2) -> void:
 	if _last_breaker_explosion_played:
-		var audio_manager: Node = get_node_or_null("/root/AudioManager")
-		if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
-			audio_manager.play_bullet_wall_hit(center)
+		if _audio_manager_cached and _audio_manager_cached.has_method("play_bullet_wall_hit"):
+			_audio_manager_cached.play_bullet_wall_hit(center)
 
 	# Emit sound for AI awareness (Issue #1487: throttled to avoid flooding 10 listeners at 15/sec)
-	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-	if sound_propagation and sound_propagation.has_method("emit_breaker_explosion"):
-		sound_propagation.emit_breaker_explosion(center, self, 500.0)
+	if _sound_propagation_cached and _sound_propagation_cached.has_method("emit_breaker_explosion"):
+		_sound_propagation_cached.emit_breaker_explosion(center, self, 500.0)
 
 
 ## Creates a simple explosion flash if no manager is available.
@@ -1856,10 +1875,9 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 
 		# Try pooled breaker shrapnel first for performance (Issue #724)
 		var shrapnel: Node = null
-		var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
 
-		if pool_manager and pool_manager.has_method("get_breaker_shrapnel"):
-			shrapnel = pool_manager.get_breaker_shrapnel()
+		if _pool_manager_cached and _pool_manager_cached.has_method("get_breaker_shrapnel"):
+			shrapnel = _pool_manager_cached.get_breaker_shrapnel()
 			if shrapnel and shrapnel.has_method("pool_activate"):
 				shrapnel.pool_activate(spawn_pos, shrapnel_direction, shooter_id)
 				shrapnel.damage = BREAKER_SHRAPNEL_DAMAGE
@@ -1965,9 +1983,8 @@ func pool_deactivate() -> void:
 	_position_history.clear()
 
 	# Return to pool manager
-	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
-	if pool_manager and pool_manager.has_method("return_bullet"):
-		pool_manager.return_bullet(self)
+	if _pool_manager_cached and _pool_manager_cached.has_method("return_bullet"):
+		_pool_manager_cached.return_bullet(self)
 
 
 ## Resets all bullet state to defaults for reuse.
@@ -2008,6 +2025,7 @@ func _reset_state() -> void:
 
 	# Clear position history
 	_position_history.clear()
+	_trail_update_timer = 0.0
 
 	# Clear trail
 	if _trail:
@@ -2026,8 +2044,7 @@ func _destroy() -> void:
 		return  # Already pooled
 
 	# Try to use pooling if pool manager is available
-	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
-	if pool_manager:
+	if _pool_manager_cached:
 		pool_deactivate()
 	else:
 		queue_free()
@@ -2095,12 +2112,12 @@ func _rpg_explode() -> void:
 		power_fantasy_manager.on_grenade_exploded()
 
 	# Explosion sound via AudioManager
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	var audio_manager: Node = _audio_manager_cached
 	if audio_manager and audio_manager.has_method("play_offensive_grenade_explosion"):
 		audio_manager.play_offensive_grenade_explosion(global_position)
 
 	# Sound propagation
-	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	var sound_propagation: Node = _sound_propagation_cached
 	if sound_propagation and sound_propagation.has_method("emit_sound"):
 		var viewport := get_viewport()
 		var vp_diagonal := 1469.0
@@ -2113,9 +2130,8 @@ func _rpg_explode() -> void:
 	_rpg_damage_in_radius()
 
 	# Spawn visual explosion effect
-	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-	if impact_manager and impact_manager.has_method("spawn_explosion_effect"):
-		impact_manager.spawn_explosion_effect(global_position, rpg_explosion_radius)
+	if _impact_manager_cached and _impact_manager_cached.has_method("spawn_explosion_effect"):
+		_impact_manager_cached.spawn_explosion_effect(global_position, rpg_explosion_radius)
 	else:
 		_rpg_simple_explosion_flash()
 

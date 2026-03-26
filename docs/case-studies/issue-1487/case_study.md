@@ -710,3 +710,67 @@ During this round, a merge conflict was resolved in `scripts/objects/enemy.gd`:
 
 **Resolution**: Kept our Issue #1487 throttle (frame-count based, 10Hz, with per-enemy stagger offset) since it has finer granularity and eliminates the timestamp allocation. The idle GOAP throttle from Issue #1520 (`_idle_goap_throttle_counter`) was preserved as an additional optimization. Removed dead `_enemies_in_combat_cache` / `_enemies_in_combat_cache_timer` variables superseded by our approach.
 
+---
+
+## Round 9 — `game_log_20260326_145022.txt` Analysis & Fixes
+
+### User Report
+
+> "на карте Доки так же почти нет просадки. просадка на карте Здание сохраняется"
+> (Docks map has almost no drops. Building map drops persist.)
+
+### Log Analysis (`game_log_20260326_145022.txt`)
+
+| Setting | Value |
+|---------|-------|
+| AI | **Disabled** (`ai: false`) |
+| Particles | Enabled |
+| Dust quality | 0 (Full) |
+| Weapon | MiniUzi + BreakerBullets |
+| BuildingLevel enemies | 10 |
+| Sound listeners | 10 |
+
+**Timeline on BuildingLevel (14:51:38 – 14:51:46, ~8 seconds):**
+
+- 14:51:39: Scene loaded, 10 enemies spawned as sound listeners
+- 14:51:41: Shooting begins — each MiniUzi shot emits GUNSHOT + EXPLOSION events
+- 16 GUNSHOT events propagated (throttled at 10Hz), each notifying 3 enemies in range
+- 9 EXPLOSION events propagated, 0 enemies notified (all out of 500px range)
+- 87 total "Heard gunshot" callbacks across all enemies
+- 14:51:43: Ammo exhausted, EMPTY_CLICK events
+
+**Key finding**: Despite AI being `false`, enemies were **still receiving and processing sound callbacks** (`on_sound_heard_with_intensity`). The `_physics_process` early return for AI-disabled only prevented state machine processing — sound callbacks bypassed this guard entirely.
+
+### Root Causes Identified (Round 9)
+
+| # | Bottleneck | Impact |
+|---|-----------|--------|
+| 16 | **Sound callbacks bypass AI-disabled check** | 10 enemies × ~10 events/sec = 100 callbacks/sec of wasted work (logging, state transitions, memory updates) |
+| 17 | **Bullet trail updates at 60 Hz** | 5-10 concurrent bullets × `clear_points()` + `add_point()` loop = 300-600 Line2D API calls/sec |
+| 18 | **`get_node_or_null()` per dust spawn** | `spawn_dust_effect()` does 2 tree lookups (GameplaySettings + PerformanceSettings) on every call (~11/sec) |
+| 19 | **`get_node_or_null()` per breaker detonation** | Each detonation does 3-4 tree lookups (ImpactEffects, AudioManager, SoundPropagation, PoolManager) at ~15/sec = 45-60 lookups/sec |
+| 20 | **File logging in sound propagation hot path** | `emit_sound()` writes 2 log lines per emission × 10/sec = 20 file writes/sec; enemy callbacks add ~30 more |
+
+### Fixes Applied
+
+1. **AI-enabled guard on `on_sound_heard_with_intensity()`** (`enemy.gd`): Early return when AI is disabled. Eliminates all 100+ callbacks/sec of wasted work.
+
+2. **Bullet trail throttle at 15 Hz** (`bullet.gd`): Added `BULLET_TRAIL_UPDATE_INTERVAL = 1.0/15.0` matching breaker shrapnel. Cuts Line2D API calls by 75%.
+
+3. **Cached autoload references in `impact_effects_manager.gd`**: `_gameplay_settings_cached` and `_perf_settings_cached` set once in `_ready()`. Eliminates `get_node_or_null()` on every dust/blood/spark spawn.
+
+4. **Cached autoload references in `bullet.gd`**: `_impact_manager_cached`, `_audio_manager_cached`, `_sound_propagation_cached`, `_pool_manager_cached` set once in `_ready()`. Eliminates 45-60 tree lookups/sec during breaker detonation chain.
+
+5. **Throttled file logging in `emit_sound()`** (`sound_propagation.gd`): Only log every 10th emission. Cuts file I/O from 20 writes/sec to 2/sec.
+
+6. **Throttled per-enemy sound logging** (`enemy.gd`): Only log every 5th sound notification. Cuts enemy file I/O from ~30 writes/sec to ~6/sec.
+
+### Estimated Impact
+
+| Metric | Before R9 | After R9 |
+|--------|-----------|----------|
+| Sound callbacks/sec (AI off) | ~100 | 0 |
+| Line2D API calls/sec (bullets) | 300-600 | 75-150 |
+| Tree lookups/sec (dust + detonation) | 55-70 | 0 |
+| File writes/sec (sound path) | ~50 | ~8 |
+

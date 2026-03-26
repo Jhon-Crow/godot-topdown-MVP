@@ -125,6 +125,12 @@ var _last_player_gunshot_time: float = -999.0
 ## Reference to FileLogger for persistent logging.
 var _file_logger: Node = null
 
+## Issue #1487 Round 9: Counter for throttling emit_sound file logging.
+## At 10 emissions/sec (gunshot + explosion), logging every call produces
+## 20+ file writes/sec. Only log every 10th call to cut I/O by 90%.
+var _emit_log_counter: int = 0
+const EMIT_LOG_EVERY_NTH: int = 10
+
 
 func _ready() -> void:
 	# Get FileLogger reference for persistent logging
@@ -181,6 +187,12 @@ func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceTyp
 	# Notify SoundVisualizer for debug overlay (Issue #1253).
 	sound_emitted.emit(sound_type, position, source_type, propagation_distance)
 
+	# Issue #1487 Round 9: Throttle file logging to every Nth emission.
+	_emit_log_counter += 1
+	var _should_log_this_emit := _emit_log_counter >= EMIT_LOG_EVERY_NTH
+	if _should_log_this_emit:
+		_emit_log_counter = 0
+
 	var source_name: String = source_node.name if source_node else "null"
 	_log_debug("Sound emitted: type=%s, pos=%s, source=%s, range=%.0f" % [
 		SoundType.keys()[sound_type],
@@ -188,14 +200,15 @@ func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceTyp
 		SourceType.keys()[source_type],
 		propagation_distance
 	])
-	_log_to_file("Sound emitted: type=%s, pos=%s, source=%s (%s), range=%.0f, listeners=%d" % [
-		SoundType.keys()[sound_type],
-		position,
-		SourceType.keys()[source_type],
-		source_name,
-		propagation_distance,
-		_listeners.size()
-	])
+	if _should_log_this_emit:
+		_log_to_file("Sound emitted: type=%s, pos=%s, source=%s (%s), range=%.0f, listeners=%d" % [
+			SoundType.keys()[sound_type],
+			position,
+			SourceType.keys()[source_type],
+			source_name,
+			propagation_distance,
+			_listeners.size()
+		])
 
 	# Clean up invalid listeners in-place (Issue #1487: avoid lambda + array allocation per call)
 	var write_idx := 0
@@ -244,9 +257,10 @@ func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceTyp
 		else:
 			listeners_out_of_range += 1
 
-	_log_to_file("Sound result: notified=%d, out_of_range=%d, self=%d" % [
-		listeners_notified, listeners_out_of_range, listeners_skipped_self
-	])
+	if _should_log_this_emit:
+		_log_to_file("Sound result: notified=%d, out_of_range=%d, self=%d" % [
+			listeners_notified, listeners_out_of_range, listeners_skipped_self
+		])
 
 	if listeners_notified > 0:
 		_log_debug("Sound notified %d listeners" % listeners_notified)
