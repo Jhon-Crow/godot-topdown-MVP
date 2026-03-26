@@ -4344,10 +4344,10 @@ func _update_weapon_sprite_rotation() -> void:
 	_weapon_sprite.flip_v = absf(aim_angle) > PI / 2.0
 
 ## Returns the effective detection delay based on difficulty setting.
+## #1528 v4: Use cached DifficultyManager ref — this is called every detection tick per enemy.
 func _get_effective_detection_delay() -> float:
-	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
-	if difficulty_manager and difficulty_manager.has_method("get_detection_delay"):
-		return difficulty_manager.get_detection_delay()
+	if _cached_difficulty_manager and _cached_difficulty_manager.has_method("get_detection_delay"):
+		return _cached_difficulty_manager.get_detection_delay()
 	# Fall back to export variable if DifficultyManager is not available
 	return detection_delay
 
@@ -4601,11 +4601,10 @@ func _draw() -> void:
 	var color_to_cover := Color.CYAN; var color_to_player := Color.RED
 	var color_clear_shot := Color.YELLOW; var color_pursuit := Color.ORANGE
 	var color_flank := Color.MAGENTA; var color_bullet_spawn := Color.GREEN; var color_blocked := Color.RED
-	# FOV cone: green=active, gray=disabled
-	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	# FOV cone: green=active, gray=disabled; #1528 v4: use cached ref — _draw() is per-frame
 	var global_fov_enabled := false
-	if experimental_settings and experimental_settings.has_method("is_fov_enabled"):
-		global_fov_enabled = experimental_settings.is_fov_enabled()
+	if _cached_experimental_settings and _cached_experimental_settings.has_method("is_fov_enabled"):
+		global_fov_enabled = _cached_experimental_settings.is_fov_enabled()
 	var fov_active := global_fov_enabled and fov_enabled and fov_angle > 0.0
 	var color_fov: Color; var color_fov_edge: Color
 	if fov_active:
