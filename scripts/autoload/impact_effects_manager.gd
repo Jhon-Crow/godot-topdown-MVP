@@ -239,6 +239,13 @@ func _ready() -> void:
 	# Defensive=80px, Frag=40px, Flashbang=20px. Each texture is generated once and cached.
 	ExplosionScorchMark.warmup_textures([20, 40, 80])
 
+	# Issue #1460 Round 7: Pre-warm the ProjectilePoolManager to avoid lazy instantiation
+	# on first grenade throw. Without this, the pool creates 150 shrapnel + 300 bullets
+	# all at once the first time get_shrapnel() or get_bullet() is called, causing a
+	# 40-100ms frame spike. Warming up here (during autoload init, before gameplay)
+	# spreads this cost to loading time where it is imperceptible to the player.
+	call_deferred("_warmup_projectile_pool")
+
 
 ## Logs to FileLogger and prints to console in debug builds only.
 ## Issue #1293: print() in release builds causes variable FPS drops.
@@ -2000,5 +2007,22 @@ func clear_scorch_marks() -> void:
 	_scorch_marks.clear()
 	if _debug_effects:
 		print("[ImpactEffectsManager] All scorch marks cleared")
+
+
+## Issue #1460 Round 7: Warm up ProjectilePoolManager at startup.
+## Without explicit warmup, the pool lazily creates 150 shrapnel + 300 bullets
+## on first use, causing a 40-100ms spike on the first grenade throw or shot.
+## Calling this during autoload initialization spreads the cost to loading time
+## where it is imperceptible to the player.
+func _warmup_projectile_pool() -> void:
+	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+	if pool_manager == null:
+		return
+	if not pool_manager.has_method("warmup"):
+		return
+	var start_ms := Time.get_ticks_msec()
+	pool_manager.warmup()
+	var elapsed := Time.get_ticks_msec() - start_ms
+	_log_info("ProjectilePoolManager warmup complete in %d ms (Issue #1460 Round 7)" % elapsed)
 
 

@@ -46,25 +46,38 @@ func _ready() -> void:
 	# This means slightly slower throw speed
 	grenade_mass = 0.6
 
-	# Load shrapnel scene if not set
+	# Issue #1460 Round 7: Get shrapnel scene from ProjectilePoolManager to avoid
+	# calling load() here. load() blocks the main thread and causes a frame spike
+	# every time a grenade is created. The pool manager pre-loads the scene at startup
+	# so we can reuse its cached reference at zero cost.
 	if shrapnel_scene == null:
-		var shrapnel_path := "res://scenes/projectiles/Shrapnel.tscn"
-		if ResourceLoader.exists(shrapnel_path):
-			shrapnel_scene = load(shrapnel_path)
-			FileLogger.info("[DefensiveGrenade] Shrapnel scene loaded from: %s" % shrapnel_path)
+		var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+		if pool_manager and pool_manager.get("_shrapnel_scene") != null:
+			shrapnel_scene = pool_manager._shrapnel_scene
+			FileLogger.info("[DefensiveGrenade] Shrapnel scene obtained from ProjectilePoolManager")
 		else:
-			FileLogger.info("[DefensiveGrenade] WARNING: Shrapnel scene not found at: %s" % shrapnel_path)
+			# Fallback: load only if pool manager is unavailable
+			var shrapnel_path := "res://scenes/projectiles/Shrapnel.tscn"
+			if ResourceLoader.exists(shrapnel_path):
+				shrapnel_scene = load(shrapnel_path)
+				FileLogger.info("[DefensiveGrenade] Shrapnel scene loaded from: %s (fallback)" % shrapnel_path)
+			else:
+				FileLogger.info("[DefensiveGrenade] WARNING: Shrapnel scene not found at: %s" % shrapnel_path)
 
 
 ## Override to define the explosion effect.
 ## Issue #1460 optimization: Scorch mark textures are pre-cached at startup,
 ## particles use fixed_fps=30 and visibility_rect, shrapnel is staggered in batches.
 func _on_explode() -> void:
+	var t0 := Time.get_ticks_msec()
+
 	# Find all enemies within effect radius and apply direct explosion damage
 	var enemies := _get_enemies_in_radius()
 
 	for enemy in enemies:
 		_apply_explosion_damage(enemy)
+
+	var t1 := Time.get_ticks_msec()
 
 	# Also damage the player if in blast radius (defensive grenade deals same damage to all)
 	var player := _get_player_in_radius()
@@ -74,15 +87,26 @@ func _on_explode() -> void:
 	# Scatter shell casings on the floor
 	_scatter_casings(effect_radius)
 
+	var t2 := Time.get_ticks_msec()
+
 	# Spawn shrapnel in all directions (40 pieces, staggered in batches)
 	_spawn_shrapnel()
+
+	var t3 := Time.get_ticks_msec()
 
 	# Spawn visual explosion effect (pooled PointLight2D, no shadows)
 	_spawn_explosion_effect()
 
+	var t4 := Time.get_ticks_msec()
+
 	# Issue #1005: Spawn scorch mark on floor (texture is cached, Issue #1460)
 	# F-1 (defensive): 2x frag size (~80px), prominent burnt mark (alpha 0.7)
 	_spawn_scorch_mark(80.0, 0.7, "defensive")
+
+	var t5 := Time.get_ticks_msec()
+	FileLogger.info("[DefensiveGrenade] Explosion timing (ms): damage=%d, casings=%d, shrapnel=%d, flash=%d, scorch=%d, total=%d" % [
+		t1 - t0, t2 - t1, t3 - t2, t4 - t3, t5 - t4, t5 - t0
+	])
 
 
 ## Override explosion sound to play defensive grenade specific sound.

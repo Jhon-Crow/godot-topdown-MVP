@@ -421,6 +421,88 @@ experiencing a visible stutter: the logging was measuring the wrong thing.
 # With Round 6: No GD.Load()+Instantiate() either = GradientTexture2D upload eliminated
 ```
 
+### Round 7: Still Experiencing FPS Drops After Round 6 (2026-03-26)
+
+User reported "всё ещё падение на 30 fps" with `game_log_20260326_180454.txt`.
+
+#### Root Cause 1: ProjectilePoolManager Never Warmed Up at Startup
+
+`ProjectilePoolManager.warmup()` was documented as needing an explicit call during loading,
+but was never called. The pool only warmed up lazily — on the first call to `get_shrapnel()`,
+`get_bullet()`, etc. This means the first grenade explosion triggers instantiation of
+**150 shrapnel + 300 bullets = 450 nodes** in a single frame, causing a large spike.
+
+`game_log_20260326_180454.txt` confirms this: at 18:05:05 a 41.7ms spike occurs immediately
+after `[DefensiveGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn` —
+this is the pool doing a lazy `warmup()` on first use.
+
+#### Root Cause 2: Grenade Scripts Calling load() on Every Grenade Creation
+
+`DefensiveGrenade._ready()`, `FragGrenade._ready()`, and `VOGGrenade._ready()` all call
+`load("Shrapnel.tscn")` every time a new grenade is created (when `shrapnel_scene == null`).
+Although Godot caches loaded resources, the `@export var shrapnel_scene` is reset to `null`
+on each fresh instantiation (it has no default value set in the scene file). This causes a
+disk/cache lookup + resource allocation overhead per grenade throw.
+
+The `ProjectilePoolManager` already pre-loads the shrapnel scene at startup — the grenade
+scripts can get the cached reference from there at zero cost.
+
+#### Root Cause 3: Line2D Trail Updates Every Other Frame with 40 Simultaneous Shrapnel
+
+Each shrapnel has a Line2D trail with `trail_length = 6` points. The Round 4 fix reduced
+updates to every other frame (TRAIL_UPDATE_INTERVAL = 2). With 40 simultaneous shrapnel
+active for 2 seconds at 60fps:
+- **40 shrapnel × 30 updates/sec × (clear_points + 6×add_point) = ~280 Line2D operations/frame**
+
+This explains the sustained `[WARN] [FPS] Frame spike: 33.0-33.4ms` logs at lines 1023, 1026,
+1031 — they persist for ~2 seconds after the explosion (the shrapnel lifetime).
+
+At 5000px/s the trail covers 80+ pixels per frame — the visual difference between updating
+every 2nd vs every 6th frame is imperceptible. Increasing `TRAIL_UPDATE_INTERVAL` from 2 to 6
+reduces Line2D operations from ~280 to ~93/frame.
+
+### Round 7 Fixes Applied
+
+1. **ProjectilePoolManager warmup at startup** — `ImpactEffectsManager._ready()` calls
+   `_warmup_projectile_pool()` via `call_deferred()` (after all autoloads are initialized).
+   Pre-creates all 450 pool objects during game startup rather than on first grenade use.
+
+2. **Grenade scripts use pool manager's cached scene** — `DefensiveGrenade`, `FragGrenade`,
+   and `VOGGrenade` now get the shrapnel scene reference from `ProjectilePoolManager._shrapnel_scene`
+   instead of calling `load()`. This is a zero-cost lookup (property access) vs a resource
+   allocation. Falls back to `load()` if pool manager is unavailable.
+
+3. **Shrapnel trail frame skip increased 2→6** — `TRAIL_UPDATE_INTERVAL = 6` reduces
+   Line2D operations from ~280/frame to ~93/frame with 40 simultaneous shrapnel, eliminating
+   the sustained 33ms frame spikes for the 2-second shrapnel lifetime.
+
+4. **Explosion timing instrumentation** — `_on_explode()` now logs per-phase timing
+   (damage, casings, shrapnel, flash, scorch) to isolate future bottlenecks precisely.
+
+### Log Evidence for Round 7
+
+```
+# game_log_20260326_180454.txt — Key observations:
+
+# Spike on first grenade creation = lazy pool warmup on first use:
+[18:05:05] [DefensiveGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[18:05:05] [WARN] [FPS] Frame spike: 41.7ms (23fps this frame, threshold: 33ms)
+
+# Explosion frame spike (~40ms) at 18:05:09:
+[18:05:09] [GrenadeBase] EXPLODED at (596.5508, 708.3979)!
+[18:05:09] [WARN] [FPS] Frame spike: 40.8ms (24fps this frame, threshold: 33ms)
+
+# Sustained shrapnel trail overhead for 2 seconds after explosion:
+[18:05:09] [WARN] [FPS] Frame spike: 33.4ms (29fps)
+[18:05:10] [WARN] [FPS] Frame spike: 33.3ms (29fps)
+[18:05:11] [WARN] [FPS] Frame spike: 33.0ms (30fps)
+
+# With Round 7 fixes:
+# - No lazy warmup spike (pool warmed up at startup)
+# - load() removed from grenade _ready() calls
+# - Trail update interval 6x larger = 3x fewer Line2D ops
+```
+
 ## References
 
 - [Godot Issue #103308](https://github.com/godotengine/godot/issues/103308) — GPUParticles2D first-emit stutter

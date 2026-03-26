@@ -67,14 +67,20 @@ func _ready() -> void:
 	# (5% increase for "slightly lighter")
 	max_throw_speed *= 1.05
 
-	# Load shrapnel scene if not set
+	# Issue #1460 Round 7: Get shrapnel scene from ProjectilePoolManager to avoid
+	# calling load() here which blocks the main thread and causes a frame spike.
 	if shrapnel_scene == null:
-		var shrapnel_path := "res://scenes/projectiles/Shrapnel.tscn"
-		if ResourceLoader.exists(shrapnel_path):
-			shrapnel_scene = load(shrapnel_path)
-			FileLogger.info("[FragGrenade] Shrapnel scene loaded from: %s" % shrapnel_path)
+		var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+		if pool_manager and pool_manager.get("_shrapnel_scene") != null:
+			shrapnel_scene = pool_manager._shrapnel_scene
+			FileLogger.info("[FragGrenade] Shrapnel scene obtained from ProjectilePoolManager")
 		else:
-			FileLogger.info("[FragGrenade] WARNING: Shrapnel scene not found at: %s" % shrapnel_path)
+			var shrapnel_path := "res://scenes/projectiles/Shrapnel.tscn"
+			if ResourceLoader.exists(shrapnel_path):
+				shrapnel_scene = load(shrapnel_path)
+				FileLogger.info("[FragGrenade] Shrapnel scene loaded from: %s (fallback)" % shrapnel_path)
+			else:
+				FileLogger.info("[FragGrenade] WARNING: Shrapnel scene not found at: %s" % shrapnel_path)
 
 
 ## Override to prevent timer countdown for frag grenades.
