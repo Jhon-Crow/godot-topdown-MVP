@@ -48,6 +48,7 @@ class MockDrone:
 	var _avoidance_enabled: bool = false
 	## Re-aiming state (Issue #1542)
 	var _is_reaiming: bool = false
+	var _prev_alignment: float = 1.0
 	var _current_move_dir: Vector2 = Vector2.ZERO
 	var _player_pos: Vector2 = Vector2.ZERO
 
@@ -110,10 +111,12 @@ class MockDrone:
 			_current_move_dir = (_current_move_dir * drift + desired_dir * (1.0 - drift)).normalized()
 
 		var alignment: float = _current_move_dir.dot(desired_dir)
-		if not _is_reaiming and alignment < MISS_DOT_THRESHOLD:
+		# Re-aim only after zanос bottoms out (alignment was falling, now rising).
+		if not _is_reaiming and alignment < MISS_DOT_THRESHOLD and alignment > _prev_alignment:
 			_is_reaiming = true
 		elif _is_reaiming and alignment >= REAIM_EXIT_DOT:
 			_is_reaiming = false
+		_prev_alignment = alignment
 
 		var speed: float = REAIM_SPEED if _is_reaiming else COMBAT_SPEED
 		_velocity = _current_move_dir * speed
@@ -409,16 +412,26 @@ func test_combat_full_speed_when_aligned() -> void:
 
 
 func test_miss_detection_enters_reaim_phase() -> void:
-	# When the drone is flying away from the player (negative dot product), it must enter re-aiming.
+	# After flying away from the player (miss), the drone must eventually enter re-aiming.
+	# Re-aim starts only after the zanос (overshoot/skid) bottoms out — i.e. once the
+	# alignment has stopped falling and has begun to rise again (Issue #1542 owner feedback).
 	var drone := MockDrone.new()
 	drone._drone_pos = Vector2(0.0, 0.0)
 	drone._player_pos = Vector2(500.0, 0.0)   # Player to the right
 	# Drone moving directly away from the player — extreme miss
 	drone._current_move_dir = Vector2(-1.0, 0.0)
 
-	drone.update_combat(0.016)
+	# Run enough ticks for the zanос to bottom out and re-aim to trigger.
+	# With DRIFT_FACTOR=0.93 the alignment will keep falling for a few frames,
+	# then slowly rise as the drone naturally turns back — re-aim triggers on that rise.
+	var entered_reaim := false
+	for _i in range(120):
+		drone.update_combat(0.016)
+		if drone._is_reaiming:
+			entered_reaim = true
+			break
 
-	assert_true(drone._is_reaiming, "Drone should enter re-aiming phase when flying away from player")
+	assert_true(entered_reaim, "Drone should enter re-aiming phase after the overshoot bottoms out")
 
 
 func test_reaim_phase_uses_reduced_speed() -> void:
@@ -486,3 +499,18 @@ func test_reaim_faster_steering_than_combat() -> void:
 
 	assert_gt(alignment_reaiming, alignment_normal,
 		"Drone in re-aiming mode should correct heading faster than normal combat mode")
+
+
+func test_reaim_does_not_start_mid_overshoot() -> void:
+	# Re-aim must NOT start while the alignment is still falling (zanос in progress).
+	# It should only start once alignment begins to recover (bottom of the skid).
+	var drone := MockDrone.new()
+	drone._drone_pos = Vector2(0.0, 0.0)
+	drone._player_pos = Vector2(500.0, 0.0)
+	# Start flying directly away — alignment will be falling for first several ticks.
+	drone._current_move_dir = Vector2(-1.0, 0.0)
+	# _prev_alignment starts at 1.0; alignment on tick 1 will be around -0.99 < 1.0,
+	# so the "alignment > _prev_alignment" guard prevents early re-aim entry.
+	drone.update_combat(0.016)
+	assert_false(drone._is_reaiming,
+		"Drone must NOT enter re-aim on the first tick — zanос is still in progress")

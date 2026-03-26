@@ -62,6 +62,9 @@ var _avoidance_velocity: Vector2 = Vector2.ZERO
 
 ## Re-aiming state (Issue #1542): true while drone is slowing down to re-aim after a miss.
 var _is_reaiming: bool = false
+## Previous-frame alignment used to detect when the overshoot (zanос) bottoms out.
+## Re-aim starts only once alignment stops falling and begins to recover (Issue #1542).
+var _prev_alignment: float = 1.0
 
 ## Beep state
 var _beep_timer: float = 0.0
@@ -199,6 +202,7 @@ func _transition_to_combat() -> void:
 	_beep_timer = 0.0
 	_beep_idx = 0
 	_is_reaiming = false
+	_prev_alignment = 1.0
 	if _led:
 		_led.color = Color(1.0, 0.1, 0.05, 0.95)
 	if _led_light:
@@ -238,14 +242,20 @@ func _update_combat(delta: float) -> void:
 		var drift: float = REAIM_DRIFT_FACTOR if _is_reaiming else DRIFT_FACTOR
 		_current_move_dir = (_current_move_dir * drift + desired_dir * (1.0 - drift)).normalized()
 
-	# Issue #1542: detect miss (drone flying away from player) and manage re-aim phase.
+	# Issue #1542: detect miss and manage re-aim phase.
+	# Re-aim starts only after the full zanос (overshoot/skid) is complete — i.e. once
+	# alignment has bottomed out and is now rising again.  This matches the owner's
+	# requirement: "замедление и re-aiming должно происходить после полного завершения
+	# заноса."  We track _prev_alignment to know when the minimum has passed.
 	var alignment: float = _current_move_dir.dot(desired_dir)
-	if not _is_reaiming and alignment < MISS_DOT_THRESHOLD:
+	if not _is_reaiming and alignment < MISS_DOT_THRESHOLD and alignment > _prev_alignment:
+		# Alignment was falling (overshoot in progress), now rising → zanос is complete.
 		_is_reaiming = true
 		FileLogger.info("[Drone] MISS detected — entering re-aim phase (alignment=%.2f)" % alignment)
 	elif _is_reaiming and alignment >= REAIM_EXIT_DOT:
 		_is_reaiming = false
 		FileLogger.info("[Drone] Re-aim complete — resuming full-speed attack (alignment=%.2f)" % alignment)
+	_prev_alignment = alignment
 
 	var speed: float = REAIM_SPEED if _is_reaiming else COMBAT_SPEED
 	velocity = _current_move_dir * speed

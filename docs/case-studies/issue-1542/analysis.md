@@ -62,8 +62,29 @@ This preserves the "dangerous kamikaze drone" feel while making misses meaningfu
 | `REAIM_SPEED` | 220.0 | Visible slowdown, still threatening |
 | `REAIM_EXIT_DOT` | 0.70 | Re-enters full attack when roughly aimed at player |
 
+## Post-Merge Feedback (PR #1543, 2026-03-26)
+
+The owner (Jhon-Crow) tested the initial fix and reported two additional bugs:
+
+### Bug 1: Re-aiming triggered mid-overshoot ("zanос")
+
+**Observed behavior:** Slowdown and re-aiming began as soon as `alignment < -0.2`, while the drone's skid/overshoot was still in progress. The owner expected re-aiming to begin only **after** the full zanос (skid) completes.
+
+**Root cause:** The original miss-detection condition `alignment < MISS_DOT_THRESHOLD` fires on the first frame the dot drops below threshold — but the drone's drift is still carrying it further away at that point. The overshoot bottom (where the drone naturally starts turning back under the existing drift) had not been reached yet.
+
+**Fix:** Added `_prev_alignment` tracking. Re-aim now triggers when `alignment < MISS_DOT_THRESHOLD AND alignment > _prev_alignment` — i.e., only after alignment has bottomed out and begun to recover. This ensures slowdown/re-aiming begins exactly when the zanос is complete.
+
+### Bug 2: Drone gets stuck inside enemy bodies
+
+**Observed behavior:** The drone could physically collide with and get stuck on other enemy characters.
+
+**Root cause:** The Drone's `collision_mask = 7` (bits 1+2+4) included bit 2 (enemy layer). Ground-level enemies have `collision_layer = 2`, so the drone would collide with them physically. A real quadcopter drone flies **over** ground-level obstacles — it should not be blocked by them.
+
+**Fix:** Changed `collision_mask` from `7` to `5` (bits 1+4 — walls and player only) in `Drone.tscn`. The drone's `HitArea` collision (mask=16 for bullet detection) is unchanged. Enemy bodies no longer block the drone's movement path.
+
 ## References
 
 - Issue #1508 (prior drone work): established DRIFT_FACTOR=0.93, COMBAT_SPEED=675
+- Game Log `game_log_20260326_113141.txt`: confirmed re-aim working in initial fix, revealed stuck-in-enemy and mid-zanос-trigger bugs
 - Game AI Pro (Greg Costikyan): pursuer steering corrections
 - "Programming Game AI by Example" (Buckland, Ch. 3): velocity-based steering behaviors
