@@ -127,6 +127,30 @@ class MockPerformanceMenu:
 	func hover_row(feature_name: String) -> void:
 		pass  # Hover tracking is handled by the UI layer.
 
+	## Simulate FPS option selection: mirrors the index→value mapping in performance_menu.gd.
+	## Returns the fps limit value for a given dropdown index (0=Unlimited, 1=30, 2=60, 3=120).
+	func fps_index_to_limit(index: int) -> int:
+		var fps_items: Array[int] = [0, 30, 60, 120]
+		return fps_items[index] if index < fps_items.size() else 0
+
+	## Simulate _update_ui fps index lookup: mirrors the find() logic in performance_menu.gd.
+	## Returns the dropdown index for a given fps limit value.
+	func fps_limit_to_index(limit: int) -> int:
+		var fps_items: Array[int] = [0, 30, 60, 120]
+		var idx := fps_items.find(limit)
+		return idx if idx >= 0 else 0
+
+	## Whether the fps popup is currently open (simulates OptionButton.get_popup().visible).
+	var fps_popup_open: bool = false
+
+	## Simulate pressing ESC: returns true if back was triggered (popup was not open).
+	func press_esc() -> bool:
+		if fps_popup_open:
+			fps_popup_open = false  # ESC closes the popup only
+			return false
+		back_pressed_count += 1
+		return true
+
 	## Returns the list of row names that should have tooltips (Issue #1461).
 	func get_rows_with_tooltips() -> Array[String]:
 		return [
@@ -368,6 +392,94 @@ func test_description_rows_include_vsync_and_fps() -> void:
 		"Description rows should include V-Sync")
 	assert_true(rows.has("FPS Limit"),
 		"Description rows should include FPS Limit")
+
+
+# ============================================================================
+# FPS OptionButton Index Mapping Tests (Issue #1514 Bug A fix)
+# ============================================================================
+
+
+func test_fps_index_0_maps_to_unlimited() -> void:
+	assert_eq(menu.fps_index_to_limit(0), 0,
+		"Index 0 should map to unlimited (0)")
+
+
+func test_fps_index_1_maps_to_30() -> void:
+	assert_eq(menu.fps_index_to_limit(1), 30,
+		"Index 1 should map to 30 FPS")
+
+
+func test_fps_index_2_maps_to_60() -> void:
+	assert_eq(menu.fps_index_to_limit(2), 60,
+		"Index 2 should map to 60 FPS")
+
+
+func test_fps_index_3_maps_to_120() -> void:
+	assert_eq(menu.fps_index_to_limit(3), 120,
+		"Index 3 should map to 120 FPS")
+
+
+func test_fps_limit_0_maps_to_index_0() -> void:
+	assert_eq(menu.fps_limit_to_index(0), 0,
+		"FPS limit 0 (unlimited) should map to dropdown index 0")
+
+
+func test_fps_limit_30_maps_to_index_1() -> void:
+	assert_eq(menu.fps_limit_to_index(30), 1,
+		"FPS limit 30 should map to dropdown index 1")
+
+
+func test_fps_limit_60_maps_to_index_2() -> void:
+	assert_eq(menu.fps_limit_to_index(60), 2,
+		"FPS limit 60 should map to dropdown index 2")
+
+
+func test_fps_limit_120_maps_to_index_3() -> void:
+	assert_eq(menu.fps_limit_to_index(120), 3,
+		"FPS limit 120 should map to dropdown index 3")
+
+
+func test_unknown_fps_limit_maps_to_index_0() -> void:
+	assert_eq(menu.fps_limit_to_index(999), 0,
+		"Unknown FPS limit should fall back to index 0 (unlimited)")
+
+
+# ============================================================================
+# ESC Popup Guard Tests (Issue #1514 Bug B fix)
+# ============================================================================
+
+
+func test_esc_closes_menu_when_popup_closed() -> void:
+	var navigated_back := menu.press_esc()
+
+	assert_true(navigated_back,
+		"ESC should navigate back when FPS popup is not open")
+	assert_eq(menu.back_pressed_count, 1,
+		"Back should be triggered once")
+
+
+func test_esc_closes_popup_not_menu_when_popup_open() -> void:
+	menu.fps_popup_open = true
+	var navigated_back := menu.press_esc()
+
+	assert_false(navigated_back,
+		"ESC should NOT navigate back when FPS popup is open")
+	assert_eq(menu.back_pressed_count, 0,
+		"Back should not be triggered when popup was open")
+	assert_false(menu.fps_popup_open,
+		"Popup should be closed after ESC")
+
+
+func test_esc_after_popup_close_navigates_back() -> void:
+	menu.fps_popup_open = true
+	menu.press_esc()  # Closes popup, does not navigate back
+
+	var navigated_back := menu.press_esc()  # Now should navigate back
+
+	assert_true(navigated_back,
+		"Second ESC (after popup closes) should navigate back")
+	assert_eq(menu.back_pressed_count, 1,
+		"Back should be triggered on the second ESC")
 
 
 # ============================================================================

@@ -179,7 +179,7 @@ func _update_ui() -> void:
 	var fps_items := [0, 30, 60, 120]
 	var current_fps := perf_settings.get_fps_limit()
 	var fps_idx := fps_items.find(current_fps)
-	fps_limit_option.selected = fps_idx if fps_idx >= 0 else 0
+	fps_limit_option.select(fps_idx if fps_idx >= 0 else 0)
 
 	# Show which features are currently disabled
 	var disabled_parts: Array[String] = []
@@ -288,6 +288,9 @@ func _on_fps_limit_selected(index: int) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("pause"):
+		# Don't close the menu if the FPS limit popup is open — ESC should only close the popup.
+		if fps_limit_option.get_popup().visible:
+			return
 		_on_back_pressed()
 		get_viewport().set_input_as_handled()
 
