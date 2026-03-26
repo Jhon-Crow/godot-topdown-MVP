@@ -86,7 +86,7 @@ func _ready() -> void:
 
 	# Create Polygon2D for the water body fill
 	_polygon = Polygon2D.new()
-	_polygon.color = Color(0.15, 0.55, 0.85, 0.0)  # Transparent — shader does the coloring
+	_polygon.color = Color(0.15, 0.55, 0.85, 0.75)  # Fallback color if shader is unavailable
 	add_child(_polygon)
 
 	# Create Line2D for surface foam/highlight

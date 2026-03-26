@@ -9,7 +9,7 @@ extends Area2D
 ##   - Buoyancy forces for RigidBody2D objects (casings, grenades)
 ##   - Movement drag for CharacterBody2D objects (player, enemies)
 ##   - Blood diffusion effect (blood spreads in water instead of leaving footprints)
-##   - Reactions to shell casings, grenades, explosions, and bullets
+##   - Reactions to shell casings, grenades, and explosions
 ##
 ## WaterVisual, WaterCollision, and WaterSurface are pre-baked in WaterBody.tscn
 ## so they always exist regardless of script execution order.
@@ -88,10 +88,10 @@ func _ready() -> void:
 
 	# Detect physics bodies AND rigid bodies:
 	# Layer 1 (1) = player, Layer 2 (2) = enemies,
-	# Layer 5 (16) = bullets/projectiles
 	# Layer 6 (32) = grenades, Layer 7 (64) = casings/blood puddles
+	# Bullets (layer 5) are NOT detected — they should pass through water freely.
 	collision_layer = 0
-	collision_mask = 0b01110011  # layers 1, 2, 5, 6, 7 = 1+2+16+32+64 = 115
+	collision_mask = 0b01100011  # layers 1, 2, 6, 7 = 1+2+32+64 = 99
 
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
@@ -256,26 +256,6 @@ func _on_area_entered(area: Area2D) -> void:
 		var blood_node: Node2D = area if area is Sprite2D else area.get_parent() as Node2D
 		if blood_node and blood_node is Sprite2D:
 			_spawn_blood_diffusion(blood_node.global_position, blood_node.modulate)
-
-	# Detect bullets (Area2D on layer 5) entering water
-	if area.is_in_group("bullets") or area.get("collision_layer") == 16:
-		_on_bullet_entered(area)
-
-
-## Handle bullet entering water — small splash + surface disturbance.
-func _on_bullet_entered(bullet: Area2D) -> void:
-	var bullet_pos: Vector2 = bullet.global_position
-	_spawn_splash_small(bullet_pos)
-
-	# Disturb surface at bullet impact point
-	if _surface != null and _surface.has_method("splash"):
-		var speed: float = 100.0  # Default bullet splash force
-		# Try to get bullet velocity for more accurate splash
-		if bullet.get("velocity") != null:
-			speed = bullet.get("velocity").length() * 0.05
-		elif bullet.get("speed") != null:
-			speed = float(bullet.get("speed")) * 0.03
-		_surface.splash(bullet_pos.x, clampf(speed, 30.0, 80.0), 0.5)
 
 
 ## Handle grenade entering water — splash on entry, connect for explosion.
