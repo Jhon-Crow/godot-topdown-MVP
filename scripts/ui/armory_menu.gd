@@ -192,6 +192,10 @@ var _slot_progress_overlays: Dictionary = {}
 ## Dictionary: slot -> tween reference
 var _active_reveal_tweens: Dictionary = {}
 
+## Tracks shine overlay ColorRect nodes added to condition-met slots (Issue #1536).
+## Dictionary: slot -> ColorRect
+var _shine_overlays: Dictionary = {}
+
 
 func _ready() -> void:
 	# Get GrenadeManager reference
@@ -1003,6 +1007,12 @@ func _apply_default_style(slot: PanelContainer) -> void:
 	style.corner_radius_bottom_left = 4
 	style.corner_radius_bottom_right = 4
 	slot.add_theme_stylebox_override("panel", style)
+	# Remove gold shine overlay if present (Issue #1536).
+	if slot in _shine_overlays:
+		var overlay: ColorRect = _shine_overlays[slot]
+		if is_instance_valid(overlay):
+			overlay.queue_free()
+		_shine_overlays.erase(slot)
 
 
 ## Apply selected (highlighted) style to a slot.
@@ -1019,23 +1029,45 @@ func _apply_selected_style(slot: PanelContainer) -> void:
 	selected_style.corner_radius_bottom_left = 4
 	selected_style.corner_radius_bottom_right = 4
 	slot.add_theme_stylebox_override("panel", selected_style)
+	# Remove gold shine overlay if present (Issue #1536).
+	if slot in _shine_overlays:
+		var overlay: ColorRect = _shine_overlays[slot]
+		if is_instance_valid(overlay):
+			overlay.queue_free()
+		_shine_overlays.erase(slot)
 
 
 ## Apply gold "condition met" style to a locked slot whose unlock condition has been satisfied.
 ## This highlights items in gold to indicate the player can now unlock them.
+## Adds an animated shine overlay (Issue #1536): diagonal sweep → border glow → gold wash.
 func _apply_condition_met_style(slot: PanelContainer) -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.28, 0.22, 0.08, 0.85)
-	style.border_color = Color(1.0, 0.8, 0.1, 1.0)
-	style.border_width_left = 2
-	style.border_width_right = 2
-	style.border_width_top = 2
-	style.border_width_bottom = 2
 	style.corner_radius_top_left = 4
 	style.corner_radius_top_right = 4
 	style.corner_radius_bottom_left = 4
 	style.corner_radius_bottom_right = 4
 	slot.add_theme_stylebox_override("panel", style)
+
+	# Remove any existing shine overlay before adding a new one.
+	if slot in _shine_overlays:
+		var old_overlay: ColorRect = _shine_overlays[slot]
+		if is_instance_valid(old_overlay):
+			old_overlay.queue_free()
+		_shine_overlays.erase(slot)
+
+	# Add a full-size ColorRect on top with the gold shine shader (Issue #1536).
+	var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+	if shine_shader:
+		var mat := ShaderMaterial.new()
+		mat.shader = shine_shader
+		var overlay := ColorRect.new()
+		overlay.name = "GoldShineOverlay"
+		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.material = mat
+		slot.add_child(overlay)
+		_shine_overlays[slot] = overlay
 
 
 ## Handle click on an item slot.
