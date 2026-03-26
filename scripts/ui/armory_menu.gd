@@ -1091,10 +1091,13 @@ func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String
 				else:
 					_pending_weapon_id = item_id
 
-				# Play click sound via AudioManager
+				# Play weapon reload preview sound or generic UI click via AudioManager
 				var audio_manager = get_node_or_null("/root/AudioManager")
-				if audio_manager and audio_manager.has_method("play_ui_click"):
-					audio_manager.play_ui_click()
+				if audio_manager:
+					if not is_grenade and audio_manager.has_method("play_weapon_reload_preview"):
+						audio_manager.play_weapon_reload_preview(item_id)
+					elif audio_manager.has_method("play_ui_click"):
+						audio_manager.play_ui_click()
 
 				# Update visuals to show pending selection
 				_highlight_selected_items()
