@@ -1,4 +1,4 @@
-[gd_scene load_steps=63 format=3 uid="uid://sewer_level_1438"]
+[gd_scene load_steps=65 format=3 uid="uid://sewer_level_1438"]
 
 [ext_resource type="Script" path="res://scripts/levels/sewer_level.gd" id="1_sewer_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -169,6 +169,9 @@ size = Vector2(24, 738)
 [sub_resource type="RectangleShape2D" id="S_h500"]
 size = Vector2(500, 24)
 
+[sub_resource type="RectangleShape2D" id="S_h262"]
+size = Vector2(262, 24)
+
 [sub_resource type="OccluderPolygon2D" id="O_h1800"]
 polygon = PackedVector2Array(-900, -12, 900, -12, 900, 12, -900, 12)
 
@@ -183,6 +186,9 @@ polygon = PackedVector2Array(-12, -369, 12, -369, 12, 369, -12, 369)
 
 [sub_resource type="OccluderPolygon2D" id="O_h500"]
 polygon = PackedVector2Array(-250, -12, 250, -12, 250, 12, -250, 12)
+
+[sub_resource type="OccluderPolygon2D" id="O_h262"]
+polygon = PackedVector2Array(-131, -12, 131, -12, 131, 12, -131, 12)
 
 [node name="SewerLevel" type="Node2D"]
 script = ExtResource("1_sewer_level")
@@ -209,6 +215,13 @@ offset_left = 50.0
 offset_top = 112.0
 offset_right = 550.0
 offset_bottom = 450.0
+color = Color(0.12, 0.14, 0.12, 1)
+
+[node name="FloorTopRoomAlcove" type="ColorRect" parent="Environment"]
+offset_left = 288.0
+offset_top = 450.0
+offset_right = 550.0
+offset_bottom = 1362.0
 color = Color(0.12, 0.14, 0.12, 1)
 
 [node name="FloorRightBranch" type="ColorRect" parent="Environment"]
@@ -684,6 +697,24 @@ shape = SubResource("S_v338")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallTopRoom_Right"]
 occluder = SubResource("O_v338")
 
+[node name="WallTopRoom_Bottom" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(419, 450)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallTopRoom_Bottom"]
+offset_left = -131.0
+offset_top = -12.0
+offset_right = 131.0
+offset_bottom = 12.0
+color = Color(0.18, 0.22, 0.18, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTopRoom_Bottom"]
+shape = SubResource("S_h262")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallTopRoom_Bottom"]
+occluder = SubResource("O_h262")
+
 [node name="InteriorWalls" type="Node2D" parent="Environment"]
 
 [node name="Room1_TopWall" type="StaticBody2D" parent="Environment/InteriorWalls"]
@@ -997,16 +1028,18 @@ occluder = SubResource("O_pipe_h")
 [node name="Enemies" type="Node2D" parent="Environment"]
 
 [node name="Corridor1Guard" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(200, 2950)
-behavior_mode = 1
+position = Vector2(200, 2750)
+behavior_mode = 0
+patrol_offsets = Array[Vector2]([Vector2(0, 100), Vector2(0, -100)])
+has_swat_shield = true
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
 [node name="Room1Guard" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(390, 2700)
-behavior_mode = 0
-patrol_offsets = Array[Vector2]([Vector2(40, 0), Vector2(-40, 0)])
+position = Vector2(200, 2600)
+behavior_mode = 1
+has_swat_shield = true
 destroy_on_death = true
 enable_flanking = false
 enable_cover = true
@@ -1014,6 +1047,7 @@ enable_cover = true
 [node name="Corridor2Guard" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(200, 2500)
 behavior_mode = 1
+is_gas_mask = true
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -1070,10 +1104,28 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
+[node name="ExitRoomMachineGunner" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(2000, 1450)
+behavior_mode = 1
+weapon_type = 6
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
 [node name="TopRoomGuard" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(300, 280)
+position = Vector2(200, 280)
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(100, 0), Vector2(-100, 0)])
+has_force_field = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="TopRoomGrenadier" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(400, 280)
+behavior_mode = 0
+patrol_offsets = Array[Vector2]([Vector2(100, 0), Vector2(-100, 0)])
+is_grenadier = true
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -1134,7 +1186,7 @@ offset_left = 10.0
 offset_top = 10.0
 offset_right = 200.0
 offset_bottom = 40.0
-text = "Enemies: 11"
+text = "Enemies: 13"
 
 [node name="AmmoLabel" type="Label" parent="CanvasLayer/UI"]
 layout_mode = 0
