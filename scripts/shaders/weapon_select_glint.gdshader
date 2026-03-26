@@ -10,9 +10,9 @@ shader_type canvas_item;
 //   0.18 – 0.22 s : glint fades out
 //
 // Phase 2 – Top-edge glint sweep (Issue #1563):
-//   0.22 – 0.26 s : edge glint fades in
-//   0.26 – 0.38 s : bright highlight runs left → right along the upper edge of the weapon
-//   0.38 – 0.42 s : edge glint fades out
+//   0.22 – 0.38 s : edge glint fades in
+//   0.38 – 0.84 s : bright highlight runs left → right along the upper edge of the weapon
+//   0.84 – 1.02 s : edge glint fades out
 
 // Progress of the animation: 0.0 = start, 1.0 = end. Driven by GDScript tween.
 uniform float anim_progress : hint_range(0.0, 1.0) = 0.0;
@@ -34,9 +34,9 @@ void fragment() {
 	// This keeps both effects strictly on the weapon sprite silhouette.
 	float mask = tex.a;
 
-	// ---- Phase 1: diagonal sweep (progress 0.0 → 0.524) ----
-	// 0.22 s out of total 0.42 s = 52.4% of anim_progress
-	float phase1_end = 0.524;  // 0.22 / 0.42
+	// ---- Phase 1: diagonal sweep (progress 0.0 → 0.216) ----
+	// 0.22 s out of total 1.02 s = 21.6% of anim_progress
+	float phase1_end = 0.216;  // 0.22 / 1.02
 
 	float phase1_t = clamp(anim_progress / phase1_end, 0.0, 1.0);
 
@@ -55,11 +55,11 @@ void fragment() {
 
 	float glint1 = stripe * fade1 * mask * 0.75;
 
-	// ---- Phase 2: top-edge glint sweep (progress 0.524 → 1.0) ----
+	// ---- Phase 2: top-edge glint sweep (progress 0.216 → 1.0) ----
 	// A bright narrow highlight runs left → right along the topmost edge of the weapon.
 	// The "top edge" is detected by checking whether the pixel just above is transparent —
 	// meaning this fragment is at (or very near) the silhouette boundary on the upper side.
-	float phase2_start = 0.524;  // 0.22 / 0.42
+	float phase2_start = 0.216;  // 0.22 / 1.02
 
 	float phase2_t = clamp((anim_progress - phase2_start) / (1.0 - phase2_start), 0.0, 1.0);
 
