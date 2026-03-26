@@ -4,7 +4,9 @@
 
 **Issue:** Add a laser sight to the sniper enemy rifle that always indicates where the next shot will travel (must match the tracer direction).
 
-**Follow-up feedback (2026-03-26):** The laser snaps abruptly from point to point; it must animate smoothly. Additionally, after computing the shot target, the laser must sweep to align with the shot direction — and the actual shot must only fire *once* the laser is already pointing in that direction.
+**Follow-up feedback 1 (2026-03-26 08:35):** The laser snaps abruptly from point to point; it must animate smoothly. Additionally, after computing the shot target, the laser must sweep to align with the shot direction — and the actual shot must only fire *once* the laser is already pointing in that direction.
+
+**Follow-up feedback 2 (2026-03-26 09:04):** "всё ещё не совпадает трассер и прицел" — the tracer and laser sight still don't match after the smoothing fix.
 
 ---
 
@@ -12,7 +14,8 @@
 
 | File | Source | Description |
 |------|--------|-------------|
-| `game_log_20260326_083206.txt` | Owner upload in PR #1501 | Runtime log from a real play session on Windows (Godot 4.3-stable) |
+| `game_log_20260326_083206.txt` | Owner upload in PR #1501 (comment 2026-03-26 05:35) | Runtime log: laser snap/premature-fire bug reproduction |
+| `game_log_20260326_090240.txt` | Owner upload in PR #1501 (comment 2026-03-26 06:04) | Runtime log: tracer/laser mismatch after smoothing fix |
 
 ---
 
@@ -66,10 +69,12 @@ Observations:
 
 ## Root Cause Analysis
 
-| # | Root Cause | Effect | Fix |
-|---|------------|--------|-----|
-| RC-1 | Laser endpoints set directly from final direction, no interpolation | Laser snaps/teleports each frame when target changes | Maintain a smoothly-interpolated `_current_laser_angle` using `lerp_angle()`, update it every frame toward `_get_laser_direction().angle()` |
-| RC-2 | Shooting decision (blind_fire_timer threshold) is independent of laser angle | Shot fires immediately when cooldown expires, before laser reaches target | Add a `_laser_aligned` flag / angle tolerance check; block the shot until `abs(angle_diff) < threshold` |
+| # | Root Cause | Effect | Fix | Status |
+|---|------------|--------|-----|--------|
+| RC-1 | Laser endpoints set directly from final direction, no interpolation | Laser snaps/teleports each frame when target changes | Maintain a smoothly-interpolated `_laser_current_angle` using `lerp_angle()`, update it every frame toward `_get_laser_direction().angle()` | Fixed in session 1 |
+| RC-2 | Shooting decision (blind_fire_timer threshold) is independent of laser angle | Shot fires immediately when cooldown expires, before laser reaches target | Check `abs(angle_diff) < LASER_ALIGNMENT_THRESHOLD` before firing | Fixed in session 1 |
+| RC-3 | At the moment of firing, `_laser_current_angle` is within threshold but NOT exactly at target angle (up to 0.05 rad = 3° off) | Tracer (exact direction) and laser (lerped direction within threshold) diverge by up to 3° | Set `_laser_snap_angle = target_angle` just before firing; `_update_laser_sight()` uses this exact angle on the next render frame, snapping the laser to match the tracer | Fixed in session 2 |
+| RC-4 | `fire_at_predicted_position()` applied ±3° random spread to blind-fire bullets | Blind-fire tracer deviates from laser direction by up to ±3° | Remove spread for sniper blind fire — sniper is a precision weapon, spread contradicts the laser-accuracy guarantee | Fixed in session 2 |
 
 ---
 
@@ -100,6 +105,31 @@ if laser_aligned:
 ```
 
 The shot is only released once the visible laser beam is pointing in the correct direction, making the laser a genuine telegraph for the player.
+
+### Laser snap at fire time (RC-3 fix)
+
+The `lerp_angle` interpolation means at the moment the shot fires, `_laser_current_angle` is within `LASER_ALIGNMENT_THRESHOLD` of the target but NOT exactly at it (up to 3° deviation). The hitscan tracer spawns in the **exact** direction, while the laser shows the lerped (slightly-off) angle. Fix: immediately before calling the shoot function, set `_laser_snap_angle = target_angle`. On the next render frame, `_update_laser_sight()` applies this exact angle to `_laser_current_angle` and draws the laser perfectly aligned with the tracer.
+
+```gdscript
+# Snap laser exactly to firing direction before shot fires
+_laser_snap_angle = target_angle
+enemy._shoot()
+```
+
+The snap is consumed immediately after one render frame and normal lerping resumes.
+
+### Remove spread from sniper blind fire (RC-4 fix)
+
+`fire_at_predicted_position()` was applying `randf_range(-3.0, 3.0)` degrees of spread to blind-fire bullets. The laser shows zero spread (exact center direction). A sniper rifle is a precision weapon — spread contradicts both gameplay expectations and the laser accuracy guarantee. Removed:
+
+```gdscript
+# Before (caused mismatch):
+var spread := deg_to_rad(randf_range(-3.0, 3.0))
+var direction := to_target.rotated(spread)
+
+# After (matches laser exactly):
+var direction := to_target
+```
 
 ---
 

@@ -54,6 +54,8 @@ const LASER_ROTATION_SPEED: float = 3.0
 ## Angle tolerance (rad) below which the laser is considered aligned with the target.
 ## ~3 degrees — tight enough to be accurate, loose enough to not feel broken.
 const LASER_ALIGNMENT_THRESHOLD: float = 0.05
+## Issue #1336 snap: exact firing angle set at shot time so tracer and laser match.
+var _laser_snap_angle: float = NAN  # NAN = not snapped; set just before shot fires
 
 
 func _ready() -> void:
@@ -106,6 +108,8 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 			var target_angle := direction_to_player.angle()
 			var angle_diff := absf(wrapf(_laser_current_angle - target_angle, -PI, PI))
 			if angle_diff < LASER_ALIGNMENT_THRESHOLD:
+				# Snap laser exactly to the firing direction so the tracer and laser match.
+				_laser_snap_angle = target_angle
 				enemy._shoot()
 				enemy._shoot_timer = 0.0
 				blind_fire_timer = 0.0
@@ -133,6 +137,8 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 		var target_angle := (_blind_fire_target - enemy.global_position).normalized().angle()
 		var angle_diff := absf(wrapf(_laser_current_angle - target_angle, -PI, PI))
 		if angle_diff < LASER_ALIGNMENT_THRESHOLD:
+			# Snap laser exactly to the firing direction so the tracer and laser match.
+			_laser_snap_angle = target_angle
 			fire_at_predicted_position(blind_target)
 			blind_fire_timer = 0.0
 	return true
@@ -174,6 +180,8 @@ func process_pursuing(delta: float, can_see_player: bool, player: Node,
 		var target_angle := (blind_pos - enemy.global_position).normalized().angle()
 		var angle_diff := absf(wrapf(_laser_current_angle - target_angle, -PI, PI))
 		if angle_diff < LASER_ALIGNMENT_THRESHOLD:
+			# Snap laser exactly to the firing direction so the tracer and laser match.
+			_laser_snap_angle = target_angle
 			fire_at_predicted_position(blind_pos)
 			blind_fire_timer = 0.0
 	return true
@@ -194,8 +202,9 @@ func fire_at_predicted_position(target_pos: Vector2) -> void:
 	enemy.rotation = to_target.angle()
 
 	var spawn_pos: Vector2 = enemy._get_bullet_spawn_position(to_target)
-	var spread := deg_to_rad(randf_range(-3.0, 3.0))
-	var direction := to_target.rotated(spread)
+	# Issue #1336: No spread for sniper blind fire — sniper is a precision weapon and
+	# the laser shows the exact target direction; applying spread would mismatch tracer vs laser.
+	var direction := to_target
 	enemy._spawn_projectile(direction, spawn_pos)
 	enemy._spawn_muzzle_flash(spawn_pos, direction)
 	enemy._spawn_casing(direction, to_target)
@@ -471,9 +480,14 @@ func _update_laser_sight() -> void:
 	_laser_line.visible = true
 
 	# Issue #1336 smooth laser: interpolate angle toward the target direction each frame.
+	# If a snap angle was set by the firing code, use it exactly so tracer matches laser.
 	var delta := get_process_delta_time()
 	var target_angle := _get_laser_direction().angle()
-	_laser_current_angle = lerp_angle(_laser_current_angle, target_angle, LASER_ROTATION_SPEED * delta)
+	if not is_nan(_laser_snap_angle):
+		_laser_current_angle = _laser_snap_angle
+		_laser_snap_angle = NAN  # consume the snap — resume normal lerp next frame
+	else:
+		_laser_current_angle = lerp_angle(_laser_current_angle, target_angle, LASER_ROTATION_SPEED * delta)
 	var weapon_forward := Vector2.from_angle(_laser_current_angle)
 
 	var muzzle_pos := _get_laser_muzzle_pos(weapon_forward)
