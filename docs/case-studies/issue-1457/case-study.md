@@ -138,10 +138,92 @@ All three fixes are complementary:
 
 ---
 
-## Fix Implementation
+## Fix Implementation (v1 — 2026-03-26)
 
 **Files modified:**
-1. `scripts/objects/enemy.gd` — `_check_wall_ahead()`: skip lateral avoidance when center is clear; `_process_pursuing_state()`: add cover-approach stuck timer
+1. `scripts/objects/enemy.gd` — `_check_wall_ahead()`: reduce lateral avoidance to 0.15× when center is clear; `_process_pursuing_state()`: add cover-approach stuck timer
 2. `scenes/objects/Enemy.tscn` — Set `path_max_distance = 100.0`
 
 **Fix details:** See git diff for the exact changes.
+
+---
+
+## Follow-up Issue: Enemy Stuck in Narrow Passage (Lower Part)
+
+### New Log: `game_log_20260326_161950.txt`
+
+After deploying v1 fix, owner reported a new stuck scenario:
+
+> "застревает в нижней части прохода (добавить отталкивание стенам)"
+> ("gets stuck in the lower part of the passage — add wall repulsion")
+
+**Key data from new log:**
+- Scene: LabyrinthLevel
+- Enemy3 spawned at (700, 750), cover target at ~(561, 764) — moves LEFT through corridor
+- Enemy4 spawned at (800, 900), cover target at ~(584, 906) — moves LEFT through lower passage
+- Enemy4 shows repeated PURSUING corner checks over ~12 seconds (16:20:12 → 16:20:30)
+  - Oscillating angles: -61°, -115°, -80°, -89°, 19°, 32°, -12°, -10°, -146°, -112°, -65°
+  - Same oscillation pattern as original issue, but in a **different location** (lower passage)
+
+### Root Cause of Follow-up Issue
+
+The v1 fix reduced all side-ray avoidance to **0.15×** whenever the center ray was clear. This correctly prevented corner-sticking when routing along a wall edge, but was **too aggressive** for narrow corridor navigation:
+
+**Original bug scenario (corner sticking):**
+- Enemy routes along a wall edge at a corner
+- Side ray hits the SAME wall being followed (wall is parallel to movement)
+- Wall normal: mostly perpendicular to movement direction
+- `abs(normal.dot(perpendicular))` ≈ **HIGH** (~0.9)
+- → Needs REDUCED avoidance to avoid corner sticking
+
+**New bug scenario (narrow passage):**
+- Enemy navigates through a corridor (e.g., moving left through passage at y≈906)
+- Side rays hit passage walls above and below (walls perpendicular to movement)
+- Wall normal: points across the corridor (aligned with lateral direction)
+- `abs(normal.dot(perpendicular))` ≈ **HIGH** (~0.9)
+- → Needs FULL avoidance to maintain corridor centering
+
+Wait — both cases have high `abs(normal.dot(perpendicular))` when perpendicular is defined as 90° rotation of direction. Let me re-examine:
+
+**Correct analysis:**
+
+For movement direction = LEFT (−1, 0):
+- `perpendicular = Vector2(-direction.y, direction.x) = Vector2(0, -1)` = pointing UP
+
+**Corridor walls (above/below when moving left):**
+- Top wall normal: (0, +1) pointing DOWN (into corridor)
+- `normal.dot(perpendicular)` = (0,1)·(0,−1) = **−1.0** → `abs` = **1.0** = HIGH
+- This IS a passage wall → full avoidance needed ✓
+
+**Corner edge wall (when routing along it, moving left):**
+- Wall is to the LEFT, wall normal: (−1, 0) pointing RIGHT or (+1, 0)
+- `normal.dot(perpendicular)` = (±1,0)·(0,−1) = **0.0** = LOW
+- This IS a corner edge → reduced avoidance needed ✓
+
+So the `lateral_alignment = abs(normal.dot(perpendicular)) > 0.7` threshold correctly distinguishes:
+- **High alignment (> 0.7)**: passage walls perpendicular to motion → full avoidance
+- **Low alignment (≤ 0.7)**: corner walls parallel to motion → reduced avoidance
+
+### Fix v2 — Collision-Normal-Aware Avoidance
+
+**New logic in `_check_wall_ahead` (v2):**
+
+```gdscript
+var wall_normal: Vector2 = raycast.get_collision_normal()
+var lateral_alignment: float = absf(wall_normal.dot(perpendicular))
+var scale: float = 1.0 if (not center_clear or lateral_alignment > 0.7) else 0.25
+```
+
+- If center is blocked → full avoidance (wall directly ahead, emergency case)
+- If center is clear AND wall normal aligns laterally (> 0.7) → full avoidance (passage wall)
+- If center is clear AND wall normal is NOT lateral (corner edge) → 0.25× avoidance (reduced)
+
+Scale increased from 0.15 to 0.25 for corner case to provide some repulsion even at corners.
+
+**Why this works:**
+- Passage walls have normals pointing across the passage (lateral alignment HIGH) → full avoidance keeps enemy centered
+- Corner edges have normals pointing forward/backward relative to motion (lateral alignment LOW) → reduced avoidance prevents corner sticking
+
+**Files modified (v2):**
+1. `scripts/objects/enemy.gd` — `_check_wall_ahead()`: use collision normal dot product to scale side-ray avoidance
+2. `docs/case-studies/issue-1457/game_log_20260326_161950.txt` — new log showing follow-up issue

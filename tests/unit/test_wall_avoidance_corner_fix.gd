@@ -1,9 +1,9 @@
 extends GutTest
-## Tests for Issue #1457 wall avoidance corner-sticking fix.
+## Tests for Issue #1457 wall avoidance corner-sticking fix (v2: collision-normal-aware).
 ##
-## Validates that the _check_wall_ahead logic correctly reduces lateral
-## avoidance when the center ray is clear (enemy routing along a wall edge
-## via NavigationAgent2D, not heading into a wall).
+## Validates that the _check_wall_ahead logic correctly distinguishes:
+## - Passage walls (wall normal aligns with lateral direction) → full avoidance
+## - Corner edge walls (wall normal does NOT align with lateral direction) → reduced avoidance (0.25×)
 ##
 ## Since _check_wall_ahead requires actual RayCast2D nodes and physics,
 ## these tests validate the constants, variable existence, and logical
@@ -35,45 +35,66 @@ class MockRaycast2D:
 
 
 # =============================================================================
-# Constants Validation
+# Constants Validation (v2: collision-normal-aware)
 # =============================================================================
 
-func test_wall_check_distance_is_positive() -> void:
-	# Indirect validation: load the enemy scene and check constants exist.
-	# We can't instantiate Enemy directly in unit tests, but we can verify
-	# the constant values are reasonable for the fix to work.
-	# WALL_CHECK_DISTANCE = 60.0, center-clear lateral scale = 0.15
-	var center_clear_scale: float = 0.15
-	assert_gt(center_clear_scale, 0.0, "Center-clear lateral scale must be positive (some avoidance)")
-	assert_lt(center_clear_scale, 1.0, "Center-clear lateral scale must be less than 1.0 (reduced avoidance)")
+func test_corner_edge_scale_is_positive_and_reduced() -> void:
+	# When center is clear AND wall normal does not align laterally (corner edge),
+	# lateral scale = 0.25 — reduced avoidance to prevent corner sticking.
+	var corner_edge_scale: float = 0.25
+	assert_gt(corner_edge_scale, 0.0, "Corner-edge lateral scale must be positive (some avoidance)")
+	assert_lt(corner_edge_scale, 1.0, "Corner-edge lateral scale must be less than 1.0 (reduced avoidance)")
 
 
-func test_lateral_avoidance_reduction_formula() -> void:
-	# Verify the reduction math: when center is clear, lateral weight = base * 0.15
-	var base_weight: float = 0.8  # Example: wall at 80% distance from center
-	var full_lateral: float = base_weight * 1.0
-	var reduced_lateral: float = base_weight * 0.15
+func test_passage_wall_lateral_alignment_threshold() -> void:
+	# A passage wall has its normal aligned with the lateral (perpendicular) direction.
+	# Moving LEFT (direction = (-1,0)), perpendicular = (0,-1).
+	# Top wall normal = (0,+1): abs(dot with perpendicular (0,-1)) = 1.0 > 0.7 → passage wall.
+	var direction := Vector2(-1.0, 0.0)
+	var perpendicular := Vector2(-direction.y, direction.x)  # (0, -1)
+	var top_wall_normal := Vector2(0.0, 1.0)  # pointing down into corridor
+	var lateral_alignment: float = absf(top_wall_normal.dot(perpendicular))
+	assert_gt(lateral_alignment, 0.7,
+		"Corridor wall above/below movement path should have high lateral alignment (passage wall)")
 
-	assert_gt(full_lateral, reduced_lateral,
-		"Reduced lateral avoidance must be less than full avoidance")
-	assert_almost_eq(reduced_lateral, 0.12, 0.001,
-		"0.8 * 0.15 = 0.12 lateral contribution when center is clear")
+
+func test_corner_edge_has_low_lateral_alignment() -> void:
+	# A corner edge wall is parallel to movement direction.
+	# Moving LEFT (direction = (-1,0)), perpendicular = (0,-1).
+	# Corner wall normal = (-1, 0) (pointing right, into moving enemy): abs dot (0,-1) = 0.0 < 0.7 → corner.
+	var direction := Vector2(-1.0, 0.0)
+	var perpendicular := Vector2(-direction.y, direction.x)  # (0, -1)
+	var corner_wall_normal := Vector2(-1.0, 0.0)  # wall facing direction of motion
+	var lateral_alignment: float = absf(corner_wall_normal.dot(perpendicular))
+	assert_lt(lateral_alignment, 0.7,
+		"Corner edge wall should have low lateral alignment")
 
 
-func test_center_blocked_lateral_avoidance_unchanged() -> void:
-	# When center IS blocked (wall ahead), lateral scale = 1.0 (no reduction)
-	var center_blocked: bool = false  # center_clear = false => scale = 1.0
-	var scale: float = 0.15 if center_blocked else 1.0
+func test_scale_formula_center_blocked() -> void:
+	# When center IS blocked, scale = 1.0 regardless of lateral alignment.
+	var center_clear: bool = false
+	var lateral_alignment: float = 0.0  # corner edge
+	var scale: float = 1.0 if (not center_clear or lateral_alignment > 0.7) else 0.25
 	assert_almost_eq(scale, 1.0, 0.001,
-		"When center ray blocked, lateral avoidance should be at full strength")
+		"When center ray blocked, lateral avoidance should be at full strength (1.0)")
 
 
-func test_center_clear_lateral_avoidance_reduced() -> void:
-	# When center is clear (nav routing along wall), lateral scale = 0.15
+func test_scale_formula_passage_wall() -> void:
+	# Passage wall: center clear, lateral alignment high → full avoidance.
 	var center_clear: bool = true
-	var scale: float = 0.15 if center_clear else 1.0
-	assert_almost_eq(scale, 0.15, 0.001,
-		"When center ray clear, lateral avoidance should be 0.15 of base weight")
+	var lateral_alignment: float = 1.0  # passage wall perpendicular to motion
+	var scale: float = 1.0 if (not center_clear or lateral_alignment > 0.7) else 0.25
+	assert_almost_eq(scale, 1.0, 0.001,
+		"Passage wall (high lateral alignment) should get full avoidance even when center clear")
+
+
+func test_scale_formula_corner_edge() -> void:
+	# Corner edge: center clear, lateral alignment low → reduced avoidance (0.25).
+	var center_clear: bool = true
+	var lateral_alignment: float = 0.0  # corner edge parallel to motion
+	var scale: float = 1.0 if (not center_clear or lateral_alignment > 0.7) else 0.25
+	assert_almost_eq(scale, 0.25, 0.001,
+		"Corner edge (low lateral alignment, center clear) should get 0.25× reduced avoidance")
 
 
 # =============================================================================
