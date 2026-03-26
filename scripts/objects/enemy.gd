@@ -2366,7 +2366,7 @@ func _process_searching_state(delta: float) -> void:
 		_transition_to_idle()
 		return
 	if _can_see_player:
-		_log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
+		var _ps2 := get_node_or_null("/root/PerformanceSettings"); if not _ps2 or _ps2.is_ai_state_combat_enabled(): _log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")  # #1526: skip log when COMBAT disabled to avoid per-frame spam
 		_transition_to_combat()
 		return
 	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
@@ -2643,6 +2643,7 @@ func _shoot_burst_shot() -> void:
 func _transition_to_idle() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings")
 	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
+		if _current_state == AIState.SEARCHING: return  # #1526: already searching — don't reset waypoints every frame
 		_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _generate_search_waypoints(); return
 	_current_state = AIState.IDLE
 	# Reset various state tracking when returning to idle
