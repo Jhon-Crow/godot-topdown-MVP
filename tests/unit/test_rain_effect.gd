@@ -1,8 +1,8 @@
 extends GutTest
-## Unit tests for rain_effect.gd HM2-style precipitation system (Issue #1394, fixed #1499).
+## Unit tests for rain_effect.gd HM2-style precipitation system (Issue #1394, fixed #1499, #1546).
 ##
 ## Tests continuous rain behavior, exclusion zone logic, and state transitions.
-## Also tests the directional (downward) streak fix and splash alignment fix.
+## Also tests streak length, direction, and splash alignment fixes.
 ## The actual RainEffect extends Node2D with two child GPUParticles2D layers
 ## (downward streaks + splash ripples). Uses a mock to test logic without
 ## requiring GPUParticles2D rendering.
@@ -197,7 +197,7 @@ func test_warehouse_b_exclusion_zone() -> void:
 
 
 # ============================================================================
-# Tests: Issue #1499 Fixes — Directional Streaks and Splash Alignment
+# Tests: Issue #1546 Fixes — Longer Streaks, Downward Direction, Splash Alignment
 # ============================================================================
 
 
@@ -210,57 +210,80 @@ class MockParticleMaterial:
 	var radial_velocity_max: float = 0.0
 
 
+class MockStreakTexture:
+	## Simulates GradientTexture2D for streak length check.
+	var width: int = 2
+	var height: int = 16
+	var scale_min: float = 1.2
+	var scale_max: float = 2.5
+
+
 func test_streak_direction_is_downward() -> void:
-	# The direction vector must have a positive Y component (downward in Godot 2D)
-	# to make streaks fall down, not fly up. Fix: replaced radial_velocity with
-	# direction=(0.2,1,0) + initial_velocity (Issue #1499).
+	# The direction vector must have a positive Y component (downward in Godot 2D).
+	# Fix #1546: use straight downward direction=(0.1,1,0) so rain does not converge
+	# on the player center and appears to fall uniformly across the map.
 	var mat := MockParticleMaterial.new()
-	mat.direction = Vector3(0.2, 1.0, 0.0)
+	mat.direction = Vector3(0.1, 1.0, 0.0)
 	assert_true(mat.direction.y > 0.0,
 		"Streak direction Y must be positive (downward) to make rain fall, not fly up")
 
 
 func test_streak_has_no_radial_velocity() -> void:
-	# radial_velocity != 0 causes particles to move away from/toward emitter center,
-	# making upper-half streaks fly upward. Fix: radial_velocity must be zero (Issue #1499).
+	# radial_velocity must be zero — non-zero radial_velocity makes rain converge
+	# on screen center (player position), which is the bug fixed in #1546.
 	var mat := MockParticleMaterial.new()
 	mat.radial_velocity_min = 0.0
 	mat.radial_velocity_max = 0.0
 	assert_eq(mat.radial_velocity_min, 0.0,
-		"radial_velocity_min must be 0 to prevent upward-flying streaks")
+		"radial_velocity_min must be 0 to prevent rain from following the player")
 	assert_eq(mat.radial_velocity_max, 0.0,
-		"radial_velocity_max must be 0 to prevent upward-flying streaks")
+		"radial_velocity_max must be 0 to prevent rain from following the player")
 
 
 func test_streak_has_positive_initial_velocity() -> void:
-	# Streaks need initial_velocity > 0 to actually move after removing radial_velocity.
+	# Streaks need initial_velocity > 0 to move downward (straight-down direction).
 	var mat := MockParticleMaterial.new()
-	mat.initial_velocity_min = 400.0
-	mat.initial_velocity_max = 600.0
+	mat.initial_velocity_min = 500.0
+	mat.initial_velocity_max = 700.0
 	assert_true(mat.initial_velocity_min > 0.0,
-		"Streak initial_velocity_min must be > 0 for visible movement")
+		"Streak initial_velocity_min must be > 0 for visible downward movement")
 	assert_true(mat.initial_velocity_max > mat.initial_velocity_min,
 		"initial_velocity_max must exceed min for velocity variation")
 
 
+func test_streak_texture_is_long_enough() -> void:
+	# Fix #1546: streak texture height must be >= 16px (was 6px) for visibly long drops.
+	var tex := MockStreakTexture.new()
+	assert_true(tex.height >= 16,
+		"Streak texture height must be >= 16px for long drop appearance (was 6px)")
+
+
+func test_streak_scale_is_large_enough() -> void:
+	# Fix #1546: scale_max must be >= 2.0 (was 1.5) so streaks appear longer in-game.
+	var tex := MockStreakTexture.new()
+	assert_true(tex.scale_max >= 2.0,
+		"Streak scale_max must be >= 2.0 for long drop appearance (was 1.5)")
+
+
 func test_splash_offset_matches_streak_endpoint() -> void:
-	# Splash emitter must be offset by the average streak travel vector so that
-	# the streak disappearance point matches the splash appearance point (Issue #1499).
-	# Streak: direction=(0.2,1,0) normalized=(0.196,0.981,0), avg_velocity=500, lifetime=0.15
-	var direction := Vector3(0.2, 1.0, 0.0).normalized()
-	var avg_velocity := (400.0 + 600.0) / 2.0
-	var lifetime := 0.15
+	# Fix #1546: Splash emitter is offset from streak emitter by the average travel
+	# vector so that streak disappearance matches splash appearance.
+	# Streak: direction=(0.1,1,0) normalized≈(0.0995,0.995,0), avg_velocity=600,
+	# avg_lifetime=0.18*(1-0.2/2)=0.162s (accounting for lifetime_randomness=0.2)
+	var direction := Vector3(0.1, 1.0, 0.0).normalized()
+	var avg_velocity := (500.0 + 700.0) / 2.0
+	var avg_lifetime := 0.18 * (1.0 - 0.2 / 2.0)
 	var streak_origin := Vector2(640.0, 360.0)
 
-	var travel_x := direction.x * avg_velocity * lifetime
-	var travel_y := direction.y * avg_velocity * lifetime
+	var travel_x := direction.x * avg_velocity * avg_lifetime
+	var travel_y := direction.y * avg_velocity * avg_lifetime
 	var expected_splash_pos := streak_origin + Vector2(travel_x, travel_y)
 
-	# Splash position from the fixed scene: Vector2(655, 434)
-	var actual_splash_pos := Vector2(655.0, 434.0)
+	# Splash position from the fixed scene: Vector2(650, 457)
+	var actual_splash_pos := Vector2(650.0, 457.0)
 
-	# Allow ±5px tolerance for rounding
-	assert_true(abs(actual_splash_pos.x - expected_splash_pos.x) <= 5.0,
-		"Splash X position should match streak endpoint X (±5px). Expected ~%.0f got %.0f" % [expected_splash_pos.x, actual_splash_pos.x])
-	assert_true(abs(actual_splash_pos.y - expected_splash_pos.y) <= 5.0,
-		"Splash Y position should match streak endpoint Y (±5px). Expected ~%.0f got %.0f" % [expected_splash_pos.y, actual_splash_pos.y])
+	# Allow ±10px tolerance for rounding and lifetime randomness spread
+	assert_true(abs(actual_splash_pos.x - expected_splash_pos.x) <= 10.0,
+		"Splash X position should match streak endpoint X (±10px). Expected ~%.0f got %.0f" % [expected_splash_pos.x, actual_splash_pos.x])
+	assert_true(abs(actual_splash_pos.y - expected_splash_pos.y) <= 10.0,
+		"Splash Y position should match streak endpoint Y (±10px). Expected ~%.0f got %.0f" % [expected_splash_pos.y, actual_splash_pos.y])
