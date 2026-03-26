@@ -422,3 +422,21 @@ func test_m16_bolt_uses_840_max_distance() -> void:
 
 	assert_eq(audio.played_sounds_2d[0]["max_distance"], 840.0,
 		"M16 bolt max_distance should be 840.0 px")
+
+
+func test_ak_max_distance_constant_is_2400() -> void:
+	# Issue #1549: AK/PKM machine gun sound range must be 2400px.
+	var ak_max_distance := 2400.0
+	assert_eq(ak_max_distance, 2400.0, "AK_MAX_DISTANCE should be 2400.0 px")
+
+
+func test_ak_shot_uses_2400_max_distance() -> void:
+	# Issue #1549: play_ak_shot must set audible range to 2400px.
+	var ak_shots := ["res://assets/audio/выстрел из АК 1.mp3"]
+	var position := Vector2(100, 100)
+	var ak_max_distance := 2400.0
+
+	audio.play_random_sound_2d(ak_shots, position, -5.0, ak_max_distance)
+
+	assert_eq(audio.played_sounds_2d[0]["max_distance"], 2400.0,
+		"AK shot max_distance should be 2400.0 px")

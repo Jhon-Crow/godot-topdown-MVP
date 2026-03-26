@@ -191,6 +191,23 @@ class MockArmoryMenu:
 	## Tracks weapon IDs passed to play_weapon_reload_preview.
 	var reload_preview_calls: Array = []
 
+	# ---- Accordion shine overlay simulation (Issue #1561) ----
+
+	## Tracks which mock button names have a shine overlay applied.
+	var accordion_shine_active: Dictionary = {}
+
+	## Simulate applying gold condition-met style (font color + shine overlay) to an accordion button.
+	func apply_accordion_button_condition_met_style(button_name: String) -> void:
+		accordion_shine_active[button_name] = true
+
+	## Simulate resetting accordion button to default style (removes shine overlay).
+	func apply_accordion_button_default_style(button_name: String) -> void:
+		accordion_shine_active.erase(button_name)
+
+	## Returns true if the given button has an active shine overlay.
+	func has_accordion_shine(button_name: String) -> bool:
+		return accordion_shine_active.get(button_name, false)
+
 
 ## Mock AudioManager that records play_weapon_reload_preview calls.
 class MockAudioManager:
@@ -721,3 +738,79 @@ func test_unknown_weapon_does_not_trigger_reload_preview() -> void:
 		"Selecting an unknown weapon should fail")
 	assert_eq(menu.reload_preview_calls.size(), 0,
 		"No reload preview should be recorded for an unknown weapon")
+
+
+# ============================================================================
+# Accordion Button Shine Overlay Tests (Issue #1561)
+# ============================================================================
+
+
+func test_accordion_button_has_no_shine_by_default() -> void:
+	assert_false(menu.has_accordion_shine("weapon_accordion"),
+		"Accordion button should have no shine overlay by default")
+
+
+func test_condition_met_style_adds_shine_overlay() -> void:
+	menu.apply_accordion_button_condition_met_style("weapon_accordion")
+
+	assert_true(menu.has_accordion_shine("weapon_accordion"),
+		"Applying condition-met style should add shine overlay to accordion button")
+
+
+func test_default_style_removes_shine_overlay() -> void:
+	menu.apply_accordion_button_condition_met_style("weapon_accordion")
+	menu.apply_accordion_button_default_style("weapon_accordion")
+
+	assert_false(menu.has_accordion_shine("weapon_accordion"),
+		"Resetting to default style should remove shine overlay from accordion button")
+
+
+func test_condition_met_style_applied_independently_per_button() -> void:
+	menu.apply_accordion_button_condition_met_style("weapon_accordion")
+
+	assert_true(menu.has_accordion_shine("weapon_accordion"),
+		"Weapon accordion button should have shine overlay")
+	assert_false(menu.has_accordion_shine("grenade_accordion"),
+		"Grenade accordion button should NOT have shine overlay")
+	assert_false(menu.has_accordion_shine("active_item_accordion"),
+		"Active item accordion button should NOT have shine overlay")
+
+
+func test_all_accordion_buttons_can_have_shine_independently() -> void:
+	menu.apply_accordion_button_condition_met_style("weapon_accordion")
+	menu.apply_accordion_button_condition_met_style("grenade_accordion")
+	menu.apply_accordion_button_condition_met_style("active_item_accordion")
+
+	assert_true(menu.has_accordion_shine("weapon_accordion"),
+		"Weapon accordion should have shine")
+	assert_true(menu.has_accordion_shine("grenade_accordion"),
+		"Grenade accordion should have shine")
+	assert_true(menu.has_accordion_shine("active_item_accordion"),
+		"Active item accordion should have shine")
+
+
+func test_default_style_removes_only_targeted_button_shine() -> void:
+	menu.apply_accordion_button_condition_met_style("weapon_accordion")
+	menu.apply_accordion_button_condition_met_style("grenade_accordion")
+	menu.apply_accordion_button_default_style("weapon_accordion")
+
+	assert_false(menu.has_accordion_shine("weapon_accordion"),
+		"Weapon accordion shine should be removed after default style reset")
+	assert_true(menu.has_accordion_shine("grenade_accordion"),
+		"Grenade accordion shine should remain untouched")
+
+
+func test_reapplying_condition_met_style_does_not_duplicate_shine() -> void:
+	menu.apply_accordion_button_condition_met_style("weapon_accordion")
+	menu.apply_accordion_button_condition_met_style("weapon_accordion")
+
+	assert_true(menu.has_accordion_shine("weapon_accordion"),
+		"Shine should still be active after re-applying condition-met style (no duplicate)")
+
+
+func test_default_style_on_button_with_no_shine_is_safe() -> void:
+	# Should not error when removing a non-existent shine overlay.
+	menu.apply_accordion_button_default_style("weapon_accordion")
+
+	assert_false(menu.has_accordion_shine("weapon_accordion"),
+		"Button with no shine should remain without shine after default reset")

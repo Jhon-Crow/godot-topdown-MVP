@@ -200,6 +200,10 @@ var _active_selection_tweens: Dictionary = {}
 ## Dictionary: slot -> ColorRect
 var _shine_overlays: Dictionary = {}
 
+## Tracks shine overlay ColorRect nodes added to condition-met accordion buttons (Issue #1561).
+## Dictionary: button -> ColorRect
+var _accordion_shine_overlays: Dictionary = {}
+
 
 func _ready() -> void:
 	# Get GrenadeManager reference
@@ -680,13 +684,42 @@ func _has_condition_met_in_overflow(overflow_slots: Array) -> bool:
 
 
 ## Apply gold style to an accordion button to indicate hidden condition-met items.
+## Also adds the animated gold shine overlay (Issue #1561).
 func _apply_accordion_button_condition_met_style(button: Button) -> void:
 	button.add_theme_color_override("font_color", Color(1.0, 0.8, 0.1, 1.0))
+	# Remove any existing shine overlay before adding a new one.
+	if button in _accordion_shine_overlays:
+		var old_overlay: ColorRect = _accordion_shine_overlays[button]
+		if is_instance_valid(old_overlay):
+			old_overlay.queue_free()
+		_accordion_shine_overlays.erase(button)
+	# Add a full-size ColorRect on top with the gold shine shader (Issue #1561).
+	# The accordion button is wide/long, so use horizontal_sweep to run the shine
+	# along the full length instead of the default corner-to-corner diagonal.
+	var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+	if shine_shader:
+		var mat := ShaderMaterial.new()
+		mat.shader = shine_shader
+		mat.set_shader_parameter("horizontal_sweep", true)
+		# Faster cycle and slightly tilted stripe per owner feedback (Issue #1561).
+		mat.set_shader_parameter("cycle_duration", 2.0)
+		var overlay := ColorRect.new()
+		overlay.name = "GoldShineOverlay"
+		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.material = mat
+		button.add_child(overlay)
+		_accordion_shine_overlays[button] = overlay
 
 
-## Reset accordion button to default font color.
+## Reset accordion button to default font color and remove shine overlay (Issue #1561).
 func _apply_accordion_button_default_style(button: Button) -> void:
 	button.remove_theme_color_override("font_color")
+	if button in _accordion_shine_overlays:
+		var overlay: ColorRect = _accordion_shine_overlays[button]
+		if is_instance_valid(overlay):
+			overlay.queue_free()
+		_accordion_shine_overlays.erase(button)
 
 
 ## Toggle weapon accordion (expand/collapse overflow items).

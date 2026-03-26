@@ -156,6 +156,9 @@ const ASVK_BOLT_STEP_4: String = "res://assets/audio/запирание затв
 ## Maximum audible distance for M16 sounds (Issue #1524).
 const M16_MAX_DISTANCE: float = 840.0
 
+## Maximum audible distance for AK/PKM machine gun sounds (Issue #1549).
+const AK_MAX_DISTANCE: float = 2400.0
+
 ## Volume for ASVK shots (louder than M16).
 const VOLUME_ASVK_SHOT: float = -2.0
 ## Volume for ASVK bolt-action sounds.
@@ -673,8 +676,9 @@ func play_m16_bolt(position: Vector2) -> void:
 
 ## Plays a random AK rifle shot sound at the given position.
 ## Uses CRITICAL priority for player shooting sounds.
+## Sound range is set to AK_MAX_DISTANCE (Issue #1549).
 func play_ak_shot(position: Vector2) -> void:
-	play_random_sound_2d_with_priority(AK_SHOTS, position, VOLUME_AK_SHOT, SoundPriority.CRITICAL)
+	play_random_sound_2d_with_priority(AK_SHOTS, position, VOLUME_AK_SHOT, SoundPriority.CRITICAL, AK_MAX_DISTANCE)
 
 
 ## Plays grenade launcher shot sound at the given position.
