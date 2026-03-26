@@ -26,8 +26,8 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579), RPG (rocket+pistol, Issue #583), PM (Makarov, Issue #583), MACHINE_GUN (PKM belt-fed, #1033), SNIPER_RIFLE (ASVK, #1125), REVOLVER (RSh-12, #1242).
-enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIFLE, REVOLVER }
+## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579), RPG (rocket+pistol, Issue #583), PM (Makarov, Issue #583), MACHINE_GUN (PKM belt-fed, #1033), SNIPER_RIFLE (ASVK, #1125), REVOLVER (RSh-12, #1242), SILENCED_PISTOL (suppressed 9mm w/ laser, #1532).
+enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIFLE, REVOLVER, SILENCED_PISTOL }
 
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
 @export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.

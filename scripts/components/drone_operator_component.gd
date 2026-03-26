@@ -253,16 +253,45 @@ func should_dash_instead_of_suppress() -> bool:
 	return _phase == Phase.ACTIVE and not _dash_active
 
 
-## Calculate dash direction from threat and attempt to dash.
+## Calculate dash direction for flanking and attempt to dash.
 ## Called from enemy._update_suppression() when bullets are in threat sphere.
+##
+## Dash strategy (Issue #1532): move to a flanking position so the operator can
+## immediately attack the player after the dash rather than retreating into a wall.
+## The dash direction is perpendicular to the enemy→player axis (left or right flank),
+## biased toward whichever side is not blocked by the incoming bullet trajectory.
 func try_dash_from_threat(bullets_in_sphere: Array, player: Node2D, enemy_pos: Vector2) -> void:
-	var dash_dir := Vector2.ZERO
+	if player == null:
+		return
+
+	# Axis from operator to player
+	var to_player: Vector2 = (player.global_position - enemy_pos).normalized()
+
+	# Two flanking directions: 90° left and right of the player axis
+	var flank_left: Vector2 = to_player.rotated(-PI / 2.0)
+	var flank_right: Vector2 = to_player.rotated(PI / 2.0)
+
+	# Pick the flank side that moves AWAY from the incoming bullet trajectory.
+	# If the bullet comes from the left, dash right (and vice versa), so the
+	# operator circles around the player rather than retreating backwards.
+	var dash_dir: Vector2 = flank_left  # Default to left flank
 	if not bullets_in_sphere.is_empty():
 		var bullet = bullets_in_sphere[0]
 		if is_instance_valid(bullet) and "velocity" in bullet:
-			dash_dir = -bullet.velocity.normalized().rotated(PI / 4.0 * (1 if randf() > 0.5 else -1))
-	if dash_dir == Vector2.ZERO and player:
-		dash_dir = (enemy_pos - player.global_position).normalized()
+			var bullet_dir: Vector2 = bullet.velocity.normalized()
+			# Dot product: if bullet comes from the left (positive cross-product), dash right
+			if bullet_dir.cross(to_player) > 0.0:
+				dash_dir = flank_right
+			else:
+				dash_dir = flank_left
+	else:
+		# No bullet info: alternate sides based on dash charge count for variety
+		if _dash_charges % 2 == 0:
+			dash_dir = flank_right
+
+	FileLogger.info("[DroneOperator] Flanking dash: dir=(%.2f, %.2f), player_dir=(%.2f, %.2f)" % [
+		dash_dir.x, dash_dir.y, to_player.x, to_player.y
+	])
 	try_dash(dash_dir)
 
 
@@ -417,6 +446,9 @@ func _on_drone_destroyed() -> void:
 	_transition_to_active()
 
 
+## Laser sight Line2D node (shown during ACTIVE phase).
+var _laser_sight: Line2D = null
+
 ## Transition to ACTIVE phase with silenced pistol.
 func _transition_to_active() -> void:
 	_phase = Phase.ACTIVE
@@ -426,21 +458,22 @@ func _transition_to_active() -> void:
 	# Show weapon, hide tablet
 	_show_weapon_hide_tablet()
 
-	# Switch weapon to PM (type 5) — closest to silenced pistol with laser
-	if _parent and _parent.has_method("switch_weapon"):
-		_parent.switch_weapon(5)  # PM = WeaponType 5
-	elif _parent and _parent.get("weapon_type") != null:
-		_parent.set("weapon_type", 5)
+	# Switch weapon to SILENCED_PISTOL (type 9) — Issue #1532
+	if _parent and _parent.get("weapon_type") != null:
+		_parent.set("weapon_type", 9)  # WeaponType.SILENCED_PISTOL
 		if _parent.has_method("_configure_weapon_type"):
 			_parent._configure_weapon_type()
 		if _parent.has_method("_initialize_ammo"):
 			_parent._initialize_ammo()
 
-	# Change VR headset lens to red = disconnected
+	# Add laser sight visual to weapon mount (Issue #1532)
+	_setup_laser_sight()
+
+	# Change VR headset lens to RED = drone destroyed / disconnected (Issue #1532)
 	if _vr_headset:
 		var lens: Polygon2D = _vr_headset.get_node_or_null("Lens") as Polygon2D
 		if lens:
-			lens.color = Color(0.8, 0.1, 0.1, 0.6)  # Red = disconnected
+			lens.color = Color(1.0, 0.05, 0.05, 1.0)  # Bright red = disconnected (Issue #1532)
 
 	# Force transition to COMBAT state
 	if _parent and _parent.has_method("_transition_to_combat"):
@@ -449,11 +482,39 @@ func _transition_to_active() -> void:
 		_parent._current_state = 1  # AIState.COMBAT
 
 	phase_changed.emit(Phase.ACTIVE)
-	FileLogger.info("[DroneOperator] Phase: ACTIVE (pistol drawn, dash evasion enabled)")
+	FileLogger.info("[DroneOperator] Phase: ACTIVE (silenced pistol + laser drawn, dash evasion enabled)")
+
+
+## Create a laser sight Line2D on the weapon mount (Issue #1532).
+func _setup_laser_sight() -> void:
+	if _weapon_mount == null or _laser_sight != null:
+		return
+	_laser_sight = Line2D.new()
+	_laser_sight.name = "LaserSight"
+	_laser_sight.default_color = Color(1.0, 0.0, 0.0, 0.6)  # Red laser, semi-transparent
+	_laser_sight.width = 1.0
+	_laser_sight.z_index = 10
+	# The laser runs from the muzzle forward — update each frame in _update_laser_sight()
+	_laser_sight.add_point(Vector2(10, 0))   # near the barrel
+	_laser_sight.add_point(Vector2(200, 0))  # extends forward
+	_weapon_mount.add_child(_laser_sight)
+	FileLogger.info("[DroneOperator] Laser sight visual added to weapon mount")
+
+
+## Update laser sight length each active frame (fade when suppressed).
+func _update_laser_sight(_delta: float) -> void:
+	if _laser_sight == null or not is_instance_valid(_laser_sight):
+		return
+	# Pulse the laser alpha slightly for a realistic effect
+	var pulse: float = 0.5 + 0.15 * sin(Time.get_ticks_msec() * 0.006)
+	_laser_sight.default_color = Color(1.0, 0.0, 0.0, pulse)
 
 
 ## ACTIVE phase: normal combat + dash evasion instead of suppression.
 func _update_active(delta: float) -> void:
+	# Update laser sight pulse (Issue #1532)
+	_update_laser_sight(delta)
+
 	# Update dash cooldown
 	if _dash_cooldown_timer > 0.0:
 		_dash_cooldown_timer -= delta
