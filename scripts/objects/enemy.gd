@@ -2420,7 +2420,11 @@ func _process_searching_state(delta: float) -> void:
 			_search_moving_to_waypoint = false; _search_scan_timer = 0.0; _search_stuck_timer = 0.0
 			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
-			_nav_agent.target_position = target_waypoint
+			# Issue #1526: Stagger navmesh target updates in SEARCHING to reduce CPU cost
+			var _frame := Engine.get_physics_frames()
+			if _frame - _nav_path_update_frame >= NAV_PATH_UPDATE_INTERVAL:
+				_nav_agent.target_position = target_waypoint
+				_nav_path_update_frame = _frame
 			if _nav_agent.is_navigation_finished():
 				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
@@ -4725,9 +4729,19 @@ func _is_player_distracted() -> bool:
 	return is_distracted
 
 ## Get direction to follow NavigationAgent2D path toward target_pos. Returns Vector2.ZERO if finished.
+## Issue #1526: In SEARCHING/PURSUING states, only update the navmesh target_position
+## every NAV_PATH_UPDATE_INTERVAL physics frames (~6×/sec) to reduce pathfinding CPU cost.
+## On intermediate frames, reuse the cached path from the last update.
 func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 	if _nav_agent == null: return (target_pos - global_position).normalized()
-	_nav_agent.target_position = target_pos
+	var frame := Engine.get_physics_frames()
+	# Stagger path updates for expensive AI states; other states update every frame.
+	if _current_state in [AIState.SEARCHING, AIState.PURSUING]:
+		if frame - _nav_path_update_frame >= NAV_PATH_UPDATE_INTERVAL:
+			_nav_agent.target_position = target_pos
+			_nav_path_update_frame = frame
+	else:
+		_nav_agent.target_position = target_pos
 	if _nav_agent.is_navigation_finished(): return Vector2.ZERO
 	return (_nav_agent.get_next_path_position() - global_position).normalized()
 
