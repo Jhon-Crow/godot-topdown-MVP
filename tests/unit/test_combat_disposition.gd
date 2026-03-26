@@ -1,10 +1,10 @@
 extends GutTest
-## Unit tests for the Combat Disposition passive item (Issue #1047).
+## Unit tests for the Combat Disposition passive item (Issue #1047, #1583).
 ##
 ## Tests the combat disposition item including:
 ## - Registration as active item type (index 15)
-## - Passive behavior: +0.77 damage and +1.1 fire rate on start
-## - On-hit penalty: -6.0 damage and -7.2 fire rate per hit
+## - Passive behavior: +0.77 damage, +1.1 fire rate, x2 speed on start (x4 on Black Metal)
+## - On-hit penalty: -6.0 damage, -7.2 fire rate, speed/2 on first hit
 ## - ActiveItemManager detection methods
 ## - No conflict with other items
 
@@ -60,7 +60,7 @@ class MockActiveItemManager:
 		14: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png", "description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."},
 		15: {"name": "Drilling Bullets", "icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png", "description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine."},
 		16: {"name": "Recoil Compensator", "icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png", "description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%."},
-		17: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces damage by 6.0 and fire rate by 7.2."},
+		17: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.77 damage, +1.1 fire rate, x2 speed on start (x4 on Black Metal). Taking damage reduces damage by 6.0, fire rate by 7.2, and halves movement speed."},
 		18: {"name": "Experimental Sample", "icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png", "description": "Experimental Sample — press Space to trigger a random active item effect (including items not yet unlocked). 1–5 charges per battle, randomised on level start.", "activation_hint": "Press Space to trigger random effect"}
 	}
 
@@ -121,13 +121,20 @@ class MockCombatDispositionSystem:
 	var damage_bonus: float = 0.0
 	## Current fire rate bonus (starts at +1.1, decreases by 7.2 on first hit)
 	var fire_rate_bonus: float = 0.0
+	## Current max speed (modified by speed bonus/penalty)
+	var max_speed: float = 200.0
+	## Base max speed stored before applying the speed bonus
+	var base_speed: float = 200.0
 
-	## Initialize with starting bonuses
-	func init_combat_disposition() -> void:
+	## Initialize with starting bonuses (normal difficulty: x2 speed)
+	func init_combat_disposition(is_black_metal: bool = false) -> void:
 		active = true
 		penalty_applied = false
 		damage_bonus = 0.77
 		fire_rate_bonus = 1.1
+		base_speed = max_speed
+		var speed_mult := 4.0 if is_black_metal else 2.0
+		max_speed = base_speed * speed_mult
 
 	## Apply hit penalty (called when player takes damage).
 	## The penalty is only applied once per run (on the first hit).
@@ -139,6 +146,7 @@ class MockCombatDispositionSystem:
 		penalty_applied = true
 		damage_bonus -= 6.0
 		fire_rate_bonus -= 7.2
+		max_speed = base_speed / 2.0
 
 	## Get effective damage for a weapon with base damage
 	func get_effective_damage(base_damage: float) -> float:
@@ -489,3 +497,77 @@ func test_active_item_count_is_nineteen() -> void:
 	var all_types := manager.get_all_active_item_types()
 	assert_eq(all_types.size(), 19,
 		"Should have 19 active item types total (NONE + 18 items including EXTENDED_MAGAZINE, DRILLING_BULLETS, RECOIL_COMPENSATOR, AUTO_RELOAD, COMBAT_DISPOSITION and EXPERIMENTAL_SAMPLE)")
+
+
+# ============================================================================
+# Speed Bonus Tests (Issue #1583)
+# ============================================================================
+
+
+func test_combat_disposition_doubles_speed_on_init_normal_difficulty() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 200.0
+	system.init_combat_disposition(false)
+	assert_almost_eq(system.max_speed, 400.0, 0.001,
+		"Normal difficulty: Combat Disposition should double movement speed (200 -> 400)")
+
+
+func test_combat_disposition_quadruples_speed_on_init_black_metal() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 200.0
+	system.init_combat_disposition(true)
+	assert_almost_eq(system.max_speed, 800.0, 0.001,
+		"Black Metal difficulty: Combat Disposition should multiply movement speed by 4 (200 -> 800)")
+
+
+func test_combat_disposition_speed_bonus_stores_base_speed() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 250.0
+	system.init_combat_disposition(false)
+	assert_almost_eq(system.base_speed, 250.0, 0.001,
+		"Base speed should be stored before applying the speed bonus")
+
+
+func test_combat_disposition_speed_penalty_halves_base_speed_on_first_hit() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 200.0
+	system.init_combat_disposition(false)
+	system.apply_hit_penalty()
+	assert_almost_eq(system.max_speed, 100.0, 0.001,
+		"After first hit: speed should be base_speed / 2 = 100 (not halved from the boosted value)")
+
+
+func test_combat_disposition_speed_penalty_not_applied_on_second_hit() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 200.0
+	system.init_combat_disposition(false)
+	system.apply_hit_penalty()
+	system.apply_hit_penalty()  # second call — should be ignored
+	assert_almost_eq(system.max_speed, 100.0, 0.001,
+		"After 2 hits: speed penalty applied only once, max_speed should remain 100")
+
+
+func test_combat_disposition_speed_penalty_not_applied_when_inactive() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 200.0
+	# Do NOT call init — system is not active
+	system.apply_hit_penalty()
+	assert_almost_eq(system.max_speed, 200.0, 0.001,
+		"Speed should not change when combat disposition is not active")
+
+
+func test_combat_disposition_black_metal_speed_penalty_halves_base_speed() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 200.0
+	system.init_combat_disposition(true)  # Black Metal: 200 * 4 = 800
+	system.apply_hit_penalty()
+	# penalty = base_speed / 2 = 200 / 2 = 100
+	assert_almost_eq(system.max_speed, 100.0, 0.001,
+		"Black Metal after first hit: speed should be base_speed / 2 = 100")
+
+
+func test_combat_disposition_description_mentions_speed() -> void:
+	var data := manager.get_active_item_data(manager.ActiveItemType.COMBAT_DISPOSITION)
+	var description: String = data.get("description", "")
+	assert_true(description.to_lower().contains("speed"),
+		"Description should mention movement speed")
