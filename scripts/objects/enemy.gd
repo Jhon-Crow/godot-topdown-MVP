@@ -275,8 +275,7 @@ var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos
 const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
 var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
 var _distraction_attack_logged: bool = false  ## Issue #1526: Rate-limit distraction-attack log to once per episode
-var _nav_path_update_frame: int = 0  ## Issue #1526: Last physics frame when navmesh path was updated (stagger optimization)
-const NAV_PATH_UPDATE_INTERVAL: int = 10  ## Issue #1526: Update navmesh path every N physics frames (~6×/sec at 60 Hz)
+var _nav_path_update_frame: int = 0; const NAV_PATH_UPDATE_INTERVAL: int = 10  ## Issue #1526: Stagger navmesh path updates (~6×/sec at 60 Hz)
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
 var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 100.0  ## Search center / current radius (Search State - Issue #322)
@@ -958,9 +957,7 @@ func _update_goap_state() -> void:
 	if _enemies_in_combat_cache_timer >= ENEMIES_IN_COMBAT_CACHE_INTERVAL: _enemies_in_combat_cache_timer = 0.0; _enemies_in_combat_cache = _count_enemies_in_combat()
 	_goap_world_state["enemies_in_combat"] = _enemies_in_combat_cache
 	_goap_world_state["player_distracted"] = _is_player_distracted()
-	if not _goap_world_state["player_distracted"]:  # Issue #1526: Reset log flag when distraction ends
-		_distraction_attack_logged = false
-
+	if not _goap_world_state["player_distracted"]: _distraction_attack_logged = false  # #1526: reset log flag
 	# Memory system states (Issue #297)
 	if _memory:
 		_goap_world_state["has_suspected_position"] = _memory.has_target()
@@ -1312,9 +1309,7 @@ func _process_ai_state(delta: float) -> void:
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
-			if not _distraction_attack_logged:  # Issue #1526: Log once per distraction episode, not every shot
-				_log_to_file("Player distracted - priority attack triggered")
-				_distraction_attack_logged = true
+			if not _distraction_attack_logged: _log_to_file("Player distracted - priority attack triggered"); _distraction_attack_logged = true  # #1526: once per episode
 			_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 			if _shield_component and _shield_component.get_rotation_multiplier() < 1.0: _set_hit_reaction_target(direction_to_player)  # Issue #1242: shield enemy slowly aims
 			else: _force_model_to_face_direction(direction_to_player)  # Fix issue #264: ensure correct aim
@@ -2063,10 +2058,8 @@ func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void
 		# After burst, run to cover without shooting using navigation
 		_move_to_target_nav(_cover_position, combat_move_speed)
 
-## Process MULTIPLE_HITS retreat: quick burst of 2-4 shots then run to cover (same as ONE_HIT).
-func _process_retreat_multiple_hits(delta: float, direction_to_cover: Vector2) -> void:
-	# Same behavior as ONE_HIT - quick burst then escape
-	_process_retreat_one_hit(delta, direction_to_cover)
+## Process MULTIPLE_HITS retreat: same as ONE_HIT — quick burst then escape.
+func _process_retreat_multiple_hits(delta: float, direction_to_cover: Vector2) -> void: _process_retreat_one_hit(delta, direction_to_cover)
 
 ## Process PURSUING state - move cover-to-cover toward player or vulnerability sound.
 func _process_pursuing_state(delta: float) -> void:
@@ -2295,13 +2288,7 @@ func _process_pursuing_state(delta: float) -> void:
 			_transition_to_combat()
 
 ## Process ASSAULT state - disabled per issue #169. Immediately transitions to COMBAT.
-func _process_assault_state(_delta: float) -> void:
-	# ASSAULT state is disabled per issue #169
-	# Immediately transition to COMBAT state
-	_log_debug("ASSAULT state disabled (issue #169), transitioning to COMBAT")
-	_in_assault = false
-	_assault_ready = false
-	_transition_to_combat()
+func _process_assault_state(_delta: float) -> void: _log_debug("ASSAULT state disabled (issue #169), transitioning to COMBAT"); _in_assault = false; _assault_ready = false; _transition_to_combat()
 
 ## Load predefined search waypoints from SearchPathWaypoints node (Issue #1225). Returns true if loaded.
 func _load_predefined_search_path(_near_pos: Vector2) -> bool:
@@ -2420,11 +2407,8 @@ func _process_searching_state(delta: float) -> void:
 			_search_moving_to_waypoint = false; _search_scan_timer = 0.0; _search_stuck_timer = 0.0
 			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
-			# Issue #1526: Stagger navmesh target updates in SEARCHING to reduce CPU cost
-			var _frame := Engine.get_physics_frames()
-			if _frame - _nav_path_update_frame >= NAV_PATH_UPDATE_INTERVAL:
-				_nav_agent.target_position = target_waypoint
-				_nav_path_update_frame = _frame
+			var _frame := Engine.get_physics_frames()  # #1526: stagger navmesh updates
+			if _frame - _nav_path_update_frame >= NAV_PATH_UPDATE_INTERVAL: _nav_agent.target_position = target_waypoint; _nav_path_update_frame = _frame
 			if _nav_agent.is_navigation_finished():
 				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
@@ -4729,19 +4713,13 @@ func _is_player_distracted() -> bool:
 	return is_distracted
 
 ## Get direction to follow NavigationAgent2D path toward target_pos. Returns Vector2.ZERO if finished.
-## Issue #1526: In SEARCHING/PURSUING states, only update the navmesh target_position
-## every NAV_PATH_UPDATE_INTERVAL physics frames (~6×/sec) to reduce pathfinding CPU cost.
-## On intermediate frames, reuse the cached path from the last update.
+## Issue #1526: Stagger path updates in SEARCHING/PURSUING (~6×/sec) to reduce CPU cost.
 func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 	if _nav_agent == null: return (target_pos - global_position).normalized()
 	var frame := Engine.get_physics_frames()
-	# Stagger path updates for expensive AI states; other states update every frame.
-	if _current_state in [AIState.SEARCHING, AIState.PURSUING]:
-		if frame - _nav_path_update_frame >= NAV_PATH_UPDATE_INTERVAL:
-			_nav_agent.target_position = target_pos
-			_nav_path_update_frame = frame
-	else:
-		_nav_agent.target_position = target_pos
+	if _current_state in [AIState.SEARCHING, AIState.PURSUING]:  # #1526: stagger expensive states
+		if frame - _nav_path_update_frame >= NAV_PATH_UPDATE_INTERVAL: _nav_agent.target_position = target_pos; _nav_path_update_frame = frame
+	else: _nav_agent.target_position = target_pos
 	if _nav_agent.is_navigation_finished(): return Vector2.ZERO
 	return (_nav_agent.get_next_path_position() - global_position).normalized()
 
