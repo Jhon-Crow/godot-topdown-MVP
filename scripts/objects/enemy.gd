@@ -1464,6 +1464,9 @@ func _process_combat_state(delta: float) -> void:
 
 	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:  # [#1163] Standoff + blind-fire through cover.
 		_sniper_component.process_combat(delta, _can_see_player, _player, _last_known_player_position, _prediction); return
+	# [#1552] MG firing-zone avoidance: retreat if currently standing in an active suppression cone.
+	if enable_cover and _mg_zone and _mg_zone.in_mg_firing_zone and not (_shield_component and _shield_component.is_active()):
+		_log_to_file("[#1552] COMBAT: in MG firing zone — retreating to cover"); _combat_exposed = false; _combat_approaching = false; _seeking_clear_shot = false; _transition_to_retreating(); return
 	# RCA-19: Add minimum combat duration before retreating to prevent rapid COMBAT→RETREATING cycling
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not (_shield_component and _shield_component.is_active()):  # Issue #1242: no retreat with shield up
 		if _combat_state_timer >= 0.15:  # Brief minimum (0.15s) to prevent instant cycling
@@ -2082,6 +2085,9 @@ func _process_pursuing_state(delta: float) -> void:
 
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not _is_melee_weapon and not (_shield_component and _shield_component.is_active()):  # Issue #1242: no retreat with shield up
 		_pursuit_approaching = false; _transition_to_retreating(); return
+	# [#1552] MG firing-zone avoidance: reroute to cover if path leads through active suppression cone.
+	if enable_cover and not _is_melee_weapon and _mg_zone and _mg_zone.in_mg_firing_zone and not (_shield_component and _shield_component.is_active()):
+		_log_to_file("[#1552] PURSUING: in MG firing zone — seeking safer cover"); _pursuit_approaching = false; _transition_to_seeking_cover(); return
 
 	# Issue #604: Grenadier proactive passage throw - throw before entering passage/cover
 	if is_grenadier and _grenade_component is GrenadierGrenadeComponent and _nav_agent and not _nav_agent.is_navigation_finished():

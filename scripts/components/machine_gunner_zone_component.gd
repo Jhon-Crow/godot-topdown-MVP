@@ -49,7 +49,15 @@ func update() -> void:
 	if _enemy == null or not is_instance_valid(_enemy):
 		in_mg_firing_zone = false
 		return
+	var was_in_zone: bool = in_mg_firing_zone
 	in_mg_firing_zone = is_position_in_any_mg_zone(_enemy, _enemy.global_position)
+	# Log zone entry/exit so game logs can confirm the feature is working [#1552].
+	if in_mg_firing_zone and not was_in_zone:
+		if _enemy.has_method("_log_to_file"):
+			_enemy._log_to_file("[#1552] Entered MG firing zone at %s" % str(_enemy.global_position))
+	elif not in_mg_firing_zone and was_in_zone:
+		if _enemy.has_method("_log_to_file"):
+			_enemy._log_to_file("[#1552] Exited MG firing zone at %s" % str(_enemy.global_position))
 
 
 ## Check whether a world-space position is inside any active machine gunner's firing sector.

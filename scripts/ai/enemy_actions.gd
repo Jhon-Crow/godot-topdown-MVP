@@ -485,6 +485,14 @@ class AvoidMachineGunnerZoneAction extends GOAPAction:
 			return 1.0  # Prefer avoidance — moving into the MG cone risks friendly fire
 		return 100.0  # Should never happen if preconditions are correct
 
+	## Trigger SEEKING_COVER so the enemy moves out of the machine gunner's firing sector. [#1552]
+	func execute(agent: Node) -> bool:
+		if agent == null or not is_instance_valid(agent):
+			return false
+		if agent.has_method("_transition_to_seeking_cover") and agent.get("enable_cover"):
+			agent._transition_to_seeking_cover()
+		return true
+
 
 ## Action to throw a grenade at the player or suspected position (Issue #657).
 ## Used by grenadier enemies to integrate grenade throwing into GOAP planning.
