@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3 uid="uid://railway_station_level_1463"]
+[gd_scene load_steps=25 format=3 uid="uid://railway_station_level_1463"]
 
 [ext_resource type="Script" path="res://scripts/levels/railway_station_level.gd" id="1_railway_station"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -7,6 +7,9 @@
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_horizontal"]
 size = Vector2(4064, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_exit_gap_wall"]
+size = Vector2(350, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_top_left"]
 size = Vector2(4064, 32)
@@ -1176,6 +1179,16 @@ collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTopLeft"]
 shape = SubResource("RectangleShape2D_wall_top_left")
+
+; Invisible wall blocking the exit gap at the north face of the embankment (y=900).
+; Prevents player from walking past the exit zone into empty space above the embankment.
+[node name="WallExitGap" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(2675, 900)
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallExitGap"]
+shape = SubResource("RectangleShape2D_exit_gap_wall")
 
 [node name="WallBottom" type="StaticBody2D" parent="Environment/Walls"]
 position = Vector2(2000, 3952)

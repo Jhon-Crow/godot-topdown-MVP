@@ -206,13 +206,14 @@ func _configure_camera() -> void:
 	var camera: Camera2D = _player.get_node_or_null("Camera2D")
 	if camera == null:
 		return
-	# Map is 4000x4000. Clamp camera to the map bounds so the view does not
-	# go outside the walls. Top wall is at y=0..64, bottom wall at y=3936..4000.
+	# Map is 4000x4000. Camera is clamped so the player cannot see above the
+	# embankment / exit zone. The exit gap is at y=900..1100 (embankment top y=900).
+	# limit_top=900 keeps the view from going above the embankment line.
 	camera.limit_left = 0
-	camera.limit_top = 0
+	camera.limit_top = 900
 	camera.limit_right = 4000
 	camera.limit_bottom = 4000
-	print("[RailwayStationLevel] Camera clamped to 4000x4000 map bounds")
+	print("[RailwayStationLevel] Camera clamped: limit_top=900 (embankment top), full width/bottom")
 
 
 func _setup_player_tracking() -> void:
@@ -889,7 +890,9 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/FactoryLevel.tscn",
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
+		"res://scenes/levels/WinterForestLevel.tscn",
 		"res://scenes/levels/RailwayStationLevel.tscn",
+		"res://scenes/levels/SewerLevel.tscn",
 	]
 	var current_scene_path: String = get_tree().current_scene.scene_file_path
 	for i in range(level_paths.size()):
