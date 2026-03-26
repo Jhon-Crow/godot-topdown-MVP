@@ -20,6 +20,9 @@ After the V-Sync toggle and FPS limit selector were added to the Performance men
 | 2026-03-26 04:50 | Fix commit `d3487242` applied: `select()` instead of `selected=`, ESC popup guard |
 | 2026-03-26 04:50 | CI passes with new build artifact |
 | 2026-03-26 05:36 | Owner (Jhon-Crow) tests again and reports SAME bugs persist (log: 08:36 Moscow = 05:36 UTC) |
+| 2026-03-26 05:47 | Diagnostic commit `34f2dfd1` applied: FileLogger entries added throughout `performance_menu.gd` |
+| 2026-03-26 05:50 | CI passes; comment posted asking owner to test the CI artifact build |
+| 2026-03-26 09:18 | Owner (Jhon-Crow) reports SAME bugs again (log: 12:17 Moscow = 09:17 UTC) — third log shows NO `[PerformanceMenu]` entries |
 
 ---
 
@@ -47,17 +50,31 @@ Second test after our fix. Key observations:
   [08:36:03] [INFO] [PerformanceSettings] PerformanceSettings initialized - particles: true,
   blood_decals: false, screen_shake: false, explosion_lights: true, ai: true, vsync: true, fps_limit: 0
   ```
-- No `[PerformanceMenu]` log entries — the performance menu script has no logging.
+- No `[PerformanceMenu]` log entries — the performance menu script has no logging at this point.
 - **Build info**: `not available (build_info.cfg not found)` — SAME build type without CI metadata.
 - The game ran ~20 seconds in Tutorial level then quit. No settings interactions were captured.
 
-### Critical Finding: Build Source Unknown
+### Log 3: `game_log_20260326_121731.txt` (12:17 Moscow / 09:17 UTC)
 
-Both game logs show `Build info: not available (build_info.cfg not found)`. CI builds from our workflow include `build_info.cfg` embedded in the PCK at `res://build_info.cfg`. The absence of this file means the user is running a build that was NOT produced by our CI pipeline.
+Third test after diagnostic commit `34f2dfd1`. Key observations:
 
-This means we cannot confirm whether the user tested our latest fix commits (`d3487242`). The user may have built the game locally from an older version of the branch, or downloaded an artifact from a different point in time.
+- `PerformanceSettings` initialized correctly:
+  ```
+  [12:17:31] [INFO] [PerformanceSettings] PerformanceSettings initialized - particles: true,
+  blood_decals: true, screen_shake: true, explosion_lights: true, ai: false, vsync: true, fps_limit: 0
+  ```
+- **Build info**: `not available (build_info.cfg not found)` — THIRD build without CI metadata.
+- **No `[PerformanceMenu]` log entries whatsoever** — commit `34f2dfd1` added these diagnostic entries, so their absence proves the executable does NOT contain our latest code.
+- Game ran for ~31 seconds in Tutorial level (TestTier) then quit. No Performance menu was opened OR the code running is the old version without any of our fixes.
+- `[SceneLoader] ERROR: Invalid resource (falling back to sync): res://scenes/levels/csharp/TestTier.tscn` appears — same as log 2, indicating the same executable.
 
-**Action taken**: Added `FileLogger`-based diagnostic logging throughout `performance_menu.gd` so the next game log will show exactly which code paths executed when the performance menu was opened.
+### Critical Finding: User Is Consistently Testing Old Builds
+
+All three game logs show `Build info: not available (build_info.cfg not found)`. The CI builds from our workflow embed `build_info.cfg` at `res://build_info.cfg`. Log 3 is definitive proof: since commit `34f2dfd1` added `[PerformanceMenu] _ready() started` logging and the log shows NO such entries, the user is NOT running our code at all.
+
+The user appears to be running a local build (self-exported or previously downloaded) that predates all our fixes. They are not testing the CI artifact from the Build Windows Portable EXE workflow.
+
+**Action taken for Log 3**: Updated analysis; posted PR comment with step-by-step download instructions for the exact CI artifact URL, with visual confirmation steps.
 
 ---
 
