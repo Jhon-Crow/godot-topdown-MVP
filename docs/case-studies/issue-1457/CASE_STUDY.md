@@ -1148,5 +1148,114 @@ The CI build is built directly from the current PR source code which passes all 
 | 2026-03-25 | v9: added position blacklist — breaks reroute loop |
 | 2026-03-25 16:23 | Session 9: "AI completely broken" — 0 enemies, `has_died_signal=false` — wrong binary |
 | 2026-03-26 06:31 | Session 10: "ии сломан полностью" — same symptom, same root cause: wrong binary |
+| 2026-03-26 06:52 | Session 11: "ии всё ещё полностью сломан" — 3 levels, ALL 35 enemies `has_died_signal=false`, 0 registered — same binary issue |
 
 ---
+
+## 18. Session 11 Analysis (2026-03-26 06:52) — "ии всё ещё полностью сломан" (AI is still completely broken)
+
+**User report:** "ии всё ещё полностью сломан" (AI is still completely broken)
+
+**Log:** `docs/case-studies/issue-1457/logs/game_log_20260326_065256.txt`
+**Duration:** ~8 seconds (06:52:56 → 06:53:04)
+**Levels visited:** LabyrinthLevel (startup) → DocksLevel (last played) → BuildingLevel (navigated)
+**Build:** Godot 4.3-stable official, `Debug build: false`, NO `build_info.cfg`
+**Executable path:** `I:/Загрузки/godot exe/ai стены/Godot-Top-Down-Template.exe`
+
+### 18.1 Key Observations
+
+**Critical: ALL enemies across ALL 3 levels show `has_died_signal=false` — 0 enemies registered**
+
+**LabyrinthLevel** (lines 179-184): 5 enemies, 0 registered
+```
+[LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=false
+...
+[LabyrinthLevel] Enemy tracking complete: 0 enemies registered
+```
+
+**DocksLevel** (lines 367-388): 20 enemies, 0 registered
+```
+[DocksLevel] Child 'CraneGuard1': script=true, has_died_signal=false
+...
+[DocksLevel] Enemy tracking complete: 0 enemies registered
+```
+
+**BuildingLevel** (lines 607-620): 10 enemies, 0 registered
+```
+[LevelInitFallback] Child 'Enemy1': has_died_signal=False
+...
+[LevelInitFallback] Enemy tracking complete: 0 enemies registered
+```
+
+Total: **35 enemies across 3 levels, every single one `has_died_signal=false`, 0 enemies registered**.
+
+### 18.2 New Evidence: DocksLevel Is Also Affected
+
+Session 11 is the first log that includes the DocksLevel. This rules out any hypothesis that only
+LabyrinthLevel or BuildingLevel scripts are broken — the `has_died_signal=false` pattern is universal
+across the entire enemy class in this binary.
+
+### 18.3 Root Cause (Confirmed — 3rd Consecutive Session)
+
+**The user is running the same wrong binary** from `I:/Загрузки/godot exe/ai стены/` — the manually
+downloaded "ai walls" build, not the CI artifact from the current PR branch.
+
+Evidence chain:
+1. **`build_info.cfg not found`** — CI-built binaries embed this file; absence = not a CI artifact
+2. **Same executable path as sessions 9 and 10** — `I:/Загрузки/godot exe/ai стены/`
+3. **`script=true, has_died_signal=false`** — the enemy script loads, but the `died` signal (defined
+   in `enemy.gd`) is absent → GDScript parse/compile error in this binary's version of `enemy.gd`
+4. **Universal failure across all 3 levels and all 35 enemies** — the entire `enemy.gd` class is
+   broken in this binary
+5. **All CI checks pass** on commit `9d4437f8` (the current PR HEAD, 2026-03-26 03:35:33 UTC)
+
+### 18.4 Why Does the Binary Have `has_died_signal=false`?
+
+The `died` signal is defined at the top of `enemy.gd`. If the GDScript engine fails to parse the
+script file (syntax error, missing `@tool`, broken `extends`, or a class-level error), Godot will
+still instantiate the node (using the `.tscn` file), but the script body is silently discarded.
+The result: the node exists, has the script _reference_ attached (`script=true`), but none of the
+script's signals, methods, or variables are available (`has_died_signal=false`).
+
+This happens when the binary contains an **older or corrupted version of `enemy.gd`** that fails
+to parse with Godot 4.3-stable's GDScript compiler. The `has_died_signal=false` is the symptom;
+the cause is a script parse failure at startup.
+
+### 18.5 The CI Build Is Known Good
+
+The latest CI "Build Windows Portable EXE" run is:
+- **Run ID:** 23576220923
+- **Commit:** `9d4437f8` (2026-03-26 03:35:33 UTC)
+- **Status:** ✅ success
+- **URL:** https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/23576220923
+
+All CI checks passed on this commit including `GDScript Code Quality Lint`, `Compile Check`,
+`C# Build Validation`, and `Run GUT Tests`. The binary produced by this run has `enemy.gd`
+compiled successfully.
+
+### 18.6 Updated Timeline
+
+| Time | Event |
+|------|-------|
+| 2026-03-24 | Issue #1457 opened — enemy catches on wall corners in PURSUING state |
+| 2026-03-24 | Sessions 1-3: 3 logs, Enemy7 stuck ≥4s in LabyrinthLevel |
+| 2026-03-24 | v1-v5 fixes attempted |
+| 2026-03-25 04:20 | Session 4-5: v5 fix tested — `has_died_signal=true` for all (CI build) |
+| 2026-03-25 | v6-v8: position blacklist, navmesh snap, minimal fix |
+| 2026-03-25 14:06 | Session 8: v8 tested — Enemy2 stuck once then looped |
+| 2026-03-25 | v9: position blacklist added |
+| 2026-03-25 16:23 | Session 9: "AI completely broken" — wrong binary (`has_died_signal=false`) |
+| 2026-03-26 06:31 | Session 10: "ии сломан полностью" — same wrong binary |
+| 2026-03-26 06:52 | Session 11: "ии всё ещё полностью сломан" — same wrong binary, now confirmed on 3 levels (35 enemies) |
+
+### 18.7 Action Required
+
+**The fix in the PR is correct. The binary the user is testing is wrong.**
+
+The user must download the CI-built artifact:
+1. Open: https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/23576220923
+2. Download the `windows-build` artifact
+3. Extract to a new folder (NOT `I:/Загрузки/godot exe/ai стены/`)
+4. Run `Godot-Top-Down-Template.exe` from the new folder
+
+The CI binary will have `build_info.cfg` present and all enemies will show `has_died_signal=true`.
