@@ -250,6 +250,43 @@ Note: Regular benchmark steps show minimal delta because the 5-enemy scene's ove
 | AI (20 enemies) | **17.9 FPS** | ~7.3 FPS | RC8: COMBAT not staggered |
 | Combined | 43.1 FPS | — | All three overhead costs accumulate |
 
+### Benchmark Results (2026-03-26 22:22 run — v5 build)
+
+**Regular benchmark (20 cycles, 3s/step):**
+
+| Step | avg FPS | delta vs baseline |
+|------|---------|-------------------|
+| Baseline (all enabled) | 57.7 (min=30) | — |
+| AI:SEEKING_COVER disabled | 66.3 | **+8.6 FPS** — biggest single AI state cost |
+| AI disabled | 69.4 | +11.7 FPS total AI cost |
+
+**Stress benchmark (20 enemies — two runs for variance):**
+
+| Subsystem | Run 1 delta | Run 2 delta |
+|-----------|------------|------------|
+| Particles | 6.9 FPS | 7.6 FPS |
+| AI (20 enemies) | **6.3 FPS** | **3.8 FPS** |
+| Combined | 11.9 FPS | 9.8 FPS |
+
+AI delta improved from 17.9 (pre-v5) to 3.8–6.3 FPS. However, the regular benchmark still shows **min=30** (instantaneous drops to 30 FPS) and the game log shows FPS drops to 6–11 fps.
+
+### RC10: `_find_cover_position()` blocks the main thread — SEEKING_COVER state (v6 fix)
+
+**Evidence:** Regular benchmark step 10 (AI:SEEKING_COVER disabled) shows **+8.6 FPS gain** — the largest single AI state cost. Game log shows FPS drops to 6–11 fps during active combat, correlated with SEEKING_COVER state transitions. The regular benchmark min=30 confirms instantaneous frame spikes.
+
+**Root cause:** `_find_cover_position()` calls `_get_hidden_cover_candidates()` which:
+1. Calls `get_node_or_null("/root/ExperimentalSettings")` **on every call** — a scene tree traversal each cover search
+2. With `Cover infinite rays: true` → `COVER_INFINITE_RAY_DISTANCE = 10000` — each of 120 rays covers 10,000 units
+3. `_get_far_side_cover()` runs up to 15 `intersect_point()` + 1 `intersect_ray()` per ray = up to 1,920 physics queries per cover search
+4. All 20 enemies search cover every `COVER_SEARCH_COOLDOWN = 0.3s`, potentially bunching searches within same frame window
+
+**Fix 9 (v6):** Three changes:
+1. **Increase `COVER_SEARCH_COOLDOWN` from 0.3s → 1.0s** — cover positions are stable (walls don't move); searching 3× less often
+2. **Per-enemy stagger offset** (`_cover_search_time_offset`) initialized from `get_instance_id() % 20 × (cooldown/20)` — spreads 20 enemies' first searches over the full cooldown window instead of all bunching in the same frame
+3. **Cache `ExperimentalSettings` flags** (`_cover_inf_rays`, `_cover_sec_rays`) at first access instead of calling `get_node_or_null` every search
+
+Expected improvement: Combined, these reduce the cover search CPU burst by ~10× for 20 enemies in COMBAT/SEEKING_COVER states.
+
 ## Verification Checklist
 
 - [x] Run regular benchmark: SEARCHING step delta dropped to ~0 FPS (was +8.2) — now ~6.9 (5-enemy scene, 60 Hz target)
@@ -260,7 +297,9 @@ Note: Regular benchmark steps show minimal delta because the 5-enemy scene's ove
 - [x] Fixed: waypoint spam during benchmark disabled-state steps (v4 fix)
 - [x] Fixed: separation force stagger missing in COMBAT state — extended to all states (v5 RC8)
 - [x] Fixed: blood decal timer-coroutine runaway during burst hit scenarios (v5 RC9)
+- [x] Stress benchmark AI delta: 3.8–6.3 FPS (was 17.9 pre-v5) — v5 RC8 fix confirmed working
 - [ ] Navigate to DocksLevel/SewerLevel: No `Invalid resource` error in log (v2 fix addresses this)
 - [ ] Enemy pathfinding in SEARCHING state still looks smooth (no visible stuttering)
 - [ ] Enemy pathfinding in PURSUING state still looks smooth
-- [ ] 20-enemy stress benchmark AI delta ≤ 10 FPS (v5 should resolve RC8)
+- [ ] Regular benchmark min FPS ≥ 50 (was 30, RC10 fix targets this)
+- [ ] Game log shows no FPS drops to 6–11 fps during normal combat (RC10 fix targets this)

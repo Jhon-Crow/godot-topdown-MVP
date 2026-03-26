@@ -161,7 +161,7 @@ var _player: Node2D = null  ## Player reference
 var _shoot_timer: float = 0.0  ## Time since last shot
 ## Issue #969: throttle constants/trackers — prevent raycast floods with 20+ active enemies
 const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5; var _last_gunshot_propagation_time: float = -999.0
-const COVER_SEARCH_COOLDOWN: float = 0.3; var _last_cover_search_time: float = -999.0
+const COVER_SEARCH_COOLDOWN: float = 1.0; var _last_cover_search_time: float = -999.0  ## Issue #1526 RC10: increased from 0.3→1.0s; cover positions are stable so less frequent searches are fine
 const SUPPRESSED_MIN_DURATION: float = 0.5; var _suppressed_entry_time: float = -999.0  ## RCA-11: prevent SUPPRESSED→SEEKING_COVER cycling
 const POST_SUPPRESSION_COVER_DURATION: float = 3.0; var _post_suppression_timer: float = 0.0  ## Issue #1338: stay in cover after being suppressed
 const SEEKING_COVER_MIN_DURATION: float = 0.3; var _seeking_cover_entry_time: float = -999.0  ## Issue #997 RCA-17
@@ -277,6 +277,7 @@ var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## I
 var _distraction_attack_logged: bool = false  ## Issue #1526: Rate-limit distraction-attack log to once per episode
 var _nav_path_update_frame: int = 0; const NAV_PATH_UPDATE_INTERVAL: int = 10; var _nav_dir_cached: Vector2 = Vector2.ZERO  ## Issue #1526: Stagger navmesh path updates (~6×/sec at 60 Hz); cache nav dir between updates
 var _sep_force_frame: int = 0; var _sep_force_cached: Vector2 = Vector2.ZERO; const SEP_FORCE_INTERVAL: int = 6  ## Issue #1526: Stagger O(N²) sep scan every 6 frames in SEARCHING/PURSUING (~10×/sec at 60 Hz)
+var _cover_search_time_offset: float = 0.0; var _cover_inf_rays: bool = false; var _cover_sec_rays: bool = false; var _cover_flags_cached: bool = false  ## Issue #1526 RC10: stagger+cache cover search: offset staggers 20 enemies; flags cached once instead of get_node_or_null per search
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
 var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 100.0  ## Search center / current radius (Search State - Issue #322)
@@ -399,6 +400,7 @@ func _ready() -> void:
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
 	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
+	_cover_search_time_offset = (get_instance_id() % 20) * (COVER_SEARCH_COOLDOWN / 20.0)  ## Issue #1526 RC10: stagger cover searches so 20 enemies don't all search simultaneously
 
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
@@ -3291,16 +3293,14 @@ func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 	var space_state := get_world_2d().direct_space_state
 	var nav_map: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
 	var has_nav := nav_map.is_valid()
-	var exp_s: Node = get_node_or_null("/root/ExperimentalSettings")
-	var inf_rays: bool = exp_s != null and exp_s.has_method("is_cover_infinite_rays_enabled") and exp_s.is_cover_infinite_rays_enabled()
-	var sec_rays: bool = exp_s != null and exp_s.has_method("is_cover_sector_rays_enabled") and exp_s.is_cover_sector_rays_enabled()
-	var ray_dist: float = COVER_INFINITE_RAY_DISTANCE if inf_rays else COVER_CHECK_DISTANCE
-	var ray_count: int = COVER_SECTOR_RAY_COUNT if sec_rays else COVER_CHECK_COUNT
-	var sec_ctr: Vector2 = (global_position - player_pos).normalized() if sec_rays else Vector2.ZERO
+	if not _cover_flags_cached: var _es := get_node_or_null("/root/ExperimentalSettings"); _cover_inf_rays = _es != null and _es.has_method("is_cover_infinite_rays_enabled") and _es.is_cover_infinite_rays_enabled(); _cover_sec_rays = _es != null and _es.has_method("is_cover_sector_rays_enabled") and _es.is_cover_sector_rays_enabled(); _cover_flags_cached = true  ## Issue #1526 RC10: cache cover flags once
+	var ray_dist: float = COVER_INFINITE_RAY_DISTANCE if _cover_inf_rays else COVER_CHECK_DISTANCE
+	var ray_count: int = COVER_SECTOR_RAY_COUNT if _cover_sec_rays else COVER_CHECK_COUNT
+	var sec_ctr: Vector2 = (global_position - player_pos).normalized() if _cover_sec_rays else Vector2.ZERO
 	if store_debug_rays: _last_cover_search_rays.clear()
 	for i in range(ray_count):
 		var direction: Vector2
-		if sec_rays:
+		if _cover_sec_rays:
 			var frac := float(i) / float(ray_count - 1) if ray_count > 1 else 0.5
 			direction = Vector2.from_angle(sec_ctr.angle() + (frac - 0.5) * 2.0 * COVER_SECTOR_HALF_ANGLE)
 		else: direction = Vector2.from_angle((float(i) / float(ray_count)) * TAU)
@@ -3324,8 +3324,8 @@ func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 func _find_cover_position() -> void:
 	if _player == null: _has_valid_cover = false; return
 	var current_time := Time.get_ticks_msec() / 1000.0
-	if current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return  ## Issue #1411: cooldown applies even without valid cover to prevent frame-burst searches
-	_last_cover_search_time = current_time
+	if current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN + _cover_search_time_offset: return  ## Issue #1411/1526 RC10: cooldown + per-enemy stagger offset (cleared after first search)
+	_cover_search_time_offset = 0.0; _last_cover_search_time = current_time
 	var candidates := _get_hidden_cover_candidates(true)
 	if candidates.is_empty():
 		_has_valid_cover = false
