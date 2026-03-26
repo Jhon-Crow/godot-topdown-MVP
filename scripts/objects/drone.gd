@@ -7,7 +7,7 @@ extends CharacterBody2D
 ## Behavior:
 ## - SEARCHING: 360° vision (no FOV), LOS raycast, expanding spiral orbit around operator.
 ## - COMBAT: Red LED, morse-code beeping, 3× speed kamikaze flight, drift.
-##   On player collision: RPG-rocket-style explosion (150px radius, 3 HP).
+##   On player collision: RPG-rocket-style explosion (150px radius, lethal — 5 HP).
 
 ## Signals matching standard enemy interface.
 signal hit
@@ -23,17 +23,17 @@ const ROTOR_ARM_LENGTH: float = 12.0
 const ROTOR_RADIUS: float = 4.0
 const DRONE_HP: int = 2
 const SEARCH_SPEED: float = 150.0
-const COMBAT_SPEED: float = 450.0   # 3× search speed (Issue #1417)
+const COMBAT_SPEED: float = 675.0   # 4.5× search speed — increased 50% per owner feedback (Issue #1508)
 const COLLISION_DISTANCE: float = 24.0
 const EXPLOSION_RADIUS: float = 150.0
-const EXPLOSION_DAMAGE: int = 3
-const DRIFT_FACTOR: float = 0.85
+const EXPLOSION_DAMAGE: int = 5     # Lethal — matches player max HP (Issue #1508)
+const DRIFT_FACTOR: float = 0.93   # High momentum for strong banking on turns (Issue #1508)
 const BEEP_INTERVAL: float = 0.3
 ## Spiral search constants (Issue #1508)
 const SPIRAL_START_RADIUS: float = 60.0     # Initial orbit radius around operator (px)
-const SPIRAL_MAX_RADIUS: float = 350.0      # Maximum spiral expansion radius (px)
-const SPIRAL_EXPAND_RATE: float = 25.0      # Radius growth per second (px/s)
-const SPIRAL_ANGULAR_SPEED: float = 1.8     # Angular velocity (rad/s)
+const SPIRAL_MAX_RADIUS: float = 600.0      # Maximum spiral expansion radius (px) — enlarged so drone keeps expanding longer
+const SPIRAL_EXPAND_RATE: float = 12.0      # Radius growth per second (px/s) — slower rate keeps spiral visually distinct
+const SPIRAL_ANGULAR_SPEED: float = 1.2     # Angular velocity (rad/s) — slower rotation makes spiral pattern more open
 const BEEP_FREQUENCY: float = 1200.0
 const BEEP_DURATION: float = 0.08
 

@@ -182,6 +182,60 @@ The drone navigated for ~9 seconds (spiral_radius grew from 60 → 285 px, consi
 
 ---
 
+---
+
+## Follow-up 2: Spiral Appears as Circling + Combat Tuning (PR #1509 comment, 2026-03-26 04:46 UTC)
+
+### Feedback from owner (Jhon-Crow, translated from Russian)
+
+1. The drone currently just circles around the drone operator (not in an expanding spiral)
+2. Increase the drone's drift/banking on turns
+3. Increase maximum speed by 50%
+4. Explosion damage should be lethal
+
+Evidence: `game_log_20260326_074324.txt`
+
+### Root cause analysis (third iteration)
+
+**Spiral appears as circling:**
+
+From `game_log_20260326_074324.txt`:
+```
+[07:43:36] [INFO] [Drone] _ready complete (state=SEARCHING spiral, player=Player, nav=found)
+[07:43:46] [INFO] [Drone] COMBAT mode activated — kamikaze flight toward player! (spiral_angle=18.81, spiral_radius=321.3)
+```
+
+The spiral IS expanding (radius grew from 60 → 321 in ~10 seconds), confirming the math works.
+The visual appearance of "just circling" has two causes:
+
+1. **Max radius reached too quickly**: With `SPIRAL_EXPAND_RATE = 25 px/s` and `SPIRAL_MAX_RADIUS = 350`, the drone reached max radius in `(350 - 60) / 25 = 11.6 seconds`. After reaching max, it orbits at a fixed radius — indistinguishable from simple circling.
+
+2. **Angular speed too high relative to expand rate**: With `SPIRAL_ANGULAR_SPEED = 1.8 rad/s`, the drone completes a full orbit in `2π / 1.8 ≈ 3.5 seconds`. During those 3.5 seconds, radius grows by only `25 × 3.5 = 87.5 px` — making the spiral visually tight but the per-orbit offset small relative to total radius.
+
+**Fix:** Reduce `SPIRAL_EXPAND_RATE` from 25 → 12 px/s and increase `SPIRAL_MAX_RADIUS` from 350 → 600 px. This gives a longer expansion phase (`(600-60)/12 = 45 seconds`), keeping the spiral visually dynamic for much longer. Also reduce `SPIRAL_ANGULAR_SPEED` from 1.8 → 1.2 rad/s to make each spiral loop wider and more visually open.
+
+**Drift on turns:**
+`DRIFT_FACTOR = 0.85` blends 85% current direction + 15% desired direction per frame. Increasing to 0.93 gives the drone more momentum and a stronger banking/sliding effect on turns.
+
+**Speed +50%:**
+`COMBAT_SPEED: 450 → 675 px/s`. Player max speed is approximately 200 px/s, so 675 ensures the drone closes quickly once it spots the target.
+
+**Lethal explosion:**
+Player has `max_health = 5` HP (player.gd line 30). `EXPLOSION_DAMAGE = 3` applied 3 separate `on_hit_with_info()` calls (each dealing 1 HP). Total: 3 HP damage — not lethal. Changed to `EXPLOSION_DAMAGE = 5` to match player max HP, ensuring a direct drone explosion kills the player instantly.
+
+### Constants updated
+
+| Constant | Before | After | Reason |
+|----------|--------|-------|--------|
+| `SPIRAL_MAX_RADIUS` | 350 px | 600 px | Longer expansion phase |
+| `SPIRAL_EXPAND_RATE` | 25 px/s | 12 px/s | Slower growth keeps spiral visible longer (45 s to max) |
+| `SPIRAL_ANGULAR_SPEED` | 1.8 rad/s | 1.2 rad/s | More open spiral loops, easier to visually distinguish from circling |
+| `COMBAT_SPEED` | 450 px/s | 675 px/s | +50% per owner request |
+| `DRIFT_FACTOR` | 0.85 | 0.93 | Stronger banking/drift on combat turns |
+| `EXPLOSION_DAMAGE` | 3 HP | 5 HP | Lethal (matches player max HP = 5) |
+
+---
+
 ## References
 
 - [Archimedean Spiral - Wikipedia](https://en.wikipedia.org/wiki/Archimedean_spiral)

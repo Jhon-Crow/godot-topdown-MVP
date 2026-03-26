@@ -17,9 +17,9 @@ class MockDrone:
 	const ROTOR_SPEED: float = 20.0
 	## Spiral constants (Issue #1508)
 	const SPIRAL_START_RADIUS: float = 60.0
-	const SPIRAL_MAX_RADIUS: float = 350.0
-	const SPIRAL_EXPAND_RATE: float = 25.0
-	const SPIRAL_ANGULAR_SPEED: float = 1.8
+	const SPIRAL_MAX_RADIUS: float = 600.0
+	const SPIRAL_EXPAND_RATE: float = 12.0
+	const SPIRAL_ANGULAR_SPEED: float = 1.2
 	const SEARCH_SPEED: float = 150.0
 
 	var _is_alive: bool = true
