@@ -379,6 +379,8 @@ func _ready() -> void:
 	_init_fine_motor_skills()
 	# Initialize dash if active item manager has it selected (Issue #1071)
 	_init_dash()
+	# Initialize combat knife if active item manager has it selected (Issue #1587)
+	_init_combat_knife()
 
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
@@ -529,6 +531,8 @@ func _physics_process(delta: float) -> void:
 	_handle_fine_motor_skills_input()
 	# Handle dash input (press Space to dash) (Issue #1071)
 	_handle_dash_input()
+	# Handle combat knife input (press Space to slash) (Issue #1587)
+	_handle_combat_knife_input()
 
 	# Update jammer HUD icon visibility (Issue #1036)
 	_update_jammer_hud()
@@ -4301,6 +4305,8 @@ func _deequip_all_active_items() -> void:
 	_fine_motor_skills_equipped = false; _fine_motor_skills_active = false
 	if _dash_effect != null and is_instance_valid(_dash_effect): _dash_effect.queue_free()
 	_dash_effect = null; _dash_equipped = false
+	if _combat_knife_effect != null and is_instance_valid(_combat_knife_effect): _combat_knife_effect.queue_free()
+	_combat_knife_effect = null; _combat_knife_equipped = false
 
 ## Initialise the newly picked-up item subsystem (Issue #1325, #1317).
 func _on_active_item_picked_up(item_type: int) -> void:
@@ -4324,6 +4330,7 @@ func _on_active_item_picked_up(item_type: int) -> void:
 		18: _init_experimental_sample()
 		19: _init_fine_motor_skills()
 		20: _init_dash()
+		21: _init_combat_knife()
 
 ## Apply a passive visual effect to the player based on the equipped active item.
 ## Single entry point for item-specific player visuals; called once from _ready().
@@ -4679,3 +4686,32 @@ func _handle_dash_input() -> void:
 	_dash_effect.activate(dir)
 func is_dash_active() -> bool:
 	return _dash_equipped and _dash_effect != null and _dash_effect.is_dashing()
+
+# Combat Knife Active Item (Issue #1587)
+var _combat_knife_effect: Node = null
+var _combat_knife_equipped: bool = false
+const COMBAT_KNIFE_EFFECT_SCENE: String = "res://scenes/effects/CombatKnifeEffect.tscn"
+func _init_combat_knife() -> void:
+	var aim: Node = get_node_or_null("/root/ActiveItemManager")
+	if aim == null or not aim.has_method("has_combat_knife"):
+		return
+	if not aim.has_combat_knife():
+		return
+	var scene: PackedScene = load(COMBAT_KNIFE_EFFECT_SCENE) if ResourceLoader.exists(COMBAT_KNIFE_EFFECT_SCENE) else null
+	if scene:
+		_combat_knife_effect = scene.instantiate()
+		add_child(_combat_knife_effect)
+		_combat_knife_effect.initialize(self)
+	_combat_knife_equipped = true
+	FileLogger.info("[Player.CombatKnife] Initialized — unlimited uses, melee fan/sweep, 7 damage")
+func _handle_combat_knife_input() -> void:
+	if not _combat_knife_equipped or _combat_knife_effect == null:
+		return
+	if not Input.is_action_just_pressed("flashlight_toggle"):
+		return
+	if ActiveItemManager.is_active_item_jammed_verbose():
+		return
+	if _combat_knife_effect.is_attacking():
+		return
+	var dir := (get_global_mouse_position() - global_position).normalized()
+	_combat_knife_effect.activate(dir)

@@ -29,7 +29,8 @@ enum ActiveItemType {
 	COMBAT_DISPOSITION, # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
 	EXPERIMENTAL_SAMPLE, # Experimental Sample - press Space to fire a random active item effect (even unowned). 1–5 charges per battle, randomised on level start (Issue #1127)
 	FINE_MOTOR_SKILLS, # Fine Motor Skills - press Space to instantly reload weapon and bring to combat-ready state. Unlimited charges, no cooldown (Issue #1315)
-	DASH               # Dash - press Space to dash in movement direction with damage immunity. 3 charges, cooldown after 3rd dash (Issue #1071)
+	DASH,              # Dash - press Space to dash in movement direction with damage immunity. 3 charges, cooldown after 3rd dash (Issue #1071)
+	COMBAT_KNIFE       # Combat Knife - press Space to perform a melee fan/sweep attack dealing 7 damage to all enemies hit. Unlimited uses (Issue #1587)
 }
 
 ## Currently selected active item type.
@@ -72,7 +73,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.COMBAT_DISPOSITION: false,  # Condition: complete 1 level without taking damage (Issue #1389)
 	ActiveItemType.EXPERIMENTAL_SAMPLE: false,   # Condition: complete at least one level on every difficulty (Issue #1426)
 	ActiveItemType.FINE_MOTOR_SKILLS: false,    # Condition: 300 shots with shotgun, sniper rifle, or revolver (Issue #1346)
-	ActiveItemType.DASH: true                   # No unlock condition — freely available from start (Issue #1071)
+	ActiveItemType.DASH: true,                  # No unlock condition — freely available from start (Issue #1071)
+	ActiveItemType.COMBAT_KNIFE: true           # No unlock condition — freely available from start (Issue #1587)
 }
 
 ## Active item data for UI and selection.
@@ -194,6 +196,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/dash_icon.png",
 		"description": "Dash — press Space to dash in movement direction (Hyper Light Drifter style). Immune to all damage during dash. 3 charges with chain-dash, cooldown after all charges spent.",
 		"activation_hint": "Press Space to dash"
+	},
+	ActiveItemType.COMBAT_KNIFE: {
+		"name": "Combat Knife",
+		"icon_path": "res://assets/sprites/weapons/combat_knife_icon.png",
+		"description": "Combat Knife — press Space to perform a melee fan/sweep attack. Any enemy caught in the arc takes 7 damage. Unlimited uses.",
+		"activation_hint": "Press Space to slash"
 	}
 }
 
@@ -434,6 +442,11 @@ func has_fine_motor_skills() -> bool:
 ## Check if dash is currently equipped (Issue #1071).
 func has_dash() -> bool:
 	return current_active_item == ActiveItemType.DASH
+
+
+## Check if combat knife is currently equipped (Issue #1587).
+func has_combat_knife() -> bool:
+	return current_active_item == ActiveItemType.COMBAT_KNIFE
 
 
 ## Get the laser sight color (purple).

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://combat_knife_effect01"]
+
+[ext_resource type="Script" path="res://scripts/effects/combat_knife_effect.gd" id="1"]
+
+[node name="CombatKnifeEffect" type="Node"]
+script = ExtResource("1")
