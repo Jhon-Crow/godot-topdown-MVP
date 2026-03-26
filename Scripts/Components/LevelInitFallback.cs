@@ -139,6 +139,15 @@ public partial class LevelInitFallback : Node
             return;
         }
 
+        // Check if GDScript created an exit zone (works for zero-enemy levels like RailwayStation).
+        // GDScript sets _exit_zone in _setup_exit_zone() which always runs in _ready().
+        var exitZoneVar = parent.Get("_exit_zone");
+        if (exitZoneVar.VariantType != Variant.Type.Nil && exitZoneVar.AsGodotObject() != null)
+        {
+            LogToFile("GDScript _ready() already ran (_exit_zone is set) - skipping fallback");
+            return;
+        }
+
         // GDScript didn't run - perform fallback initialization
         LogToFile("GDScript _ready() did NOT execute - performing C# fallback initialization");
         _didInitialize = true;
