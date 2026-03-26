@@ -1648,98 +1648,105 @@ func _rebuild_active_item_slot_animated(item_type: int) -> void:
 ## Based on the 4-step pixel art animation principle from saint11.art/blog/pixel-art-tutorials/:
 ## anticipation → action → follow-through → settle.
 func _play_weapon_selection_animation(slot: PanelContainer) -> void:
-	# Kill any in-progress selection tween for this slot to avoid conflicts
+	var vbox: VBoxContainer = slot.get_child(0) as VBoxContainer
+	if vbox == null:
+		return
+
+	# Get the weapon icon TextureRect — the card itself must NOT be deformed.
+	# All shake, scale, and glint animations target only the icon.
+	var icon_container: CenterContainer = vbox.get_child(0) as CenterContainer
+	if icon_container == null:
+		return
+	var icon_rect: TextureRect = icon_container.get_child(0) as TextureRect
+	if icon_rect == null:
+		return
+
+	# Kill any in-progress selection tween for this slot and reset icon state
 	if slot in _active_selection_tweens:
 		var old_tween = _active_selection_tweens[slot]
 		if old_tween and old_tween.is_valid():
 			old_tween.kill()
 		_active_selection_tweens.erase(slot)
-		# Reset any leftover modulate from a previous animation
-		slot.modulate = Color(1.0, 1.0, 1.0, 1.0)
+		# Reset icon to clean state so the new animation starts fresh
+		icon_rect.scale = Vector2(1.0, 1.0)
+		icon_rect.modulate = Color(1.0, 1.0, 1.0, 1.0)
 
-	var vbox: VBoxContainer = slot.get_child(0) as VBoxContainer
-	if vbox == null:
-		return
+	# Ensure the icon pivot is centred for scale/rotation animations
+	icon_rect.pivot_offset = icon_rect.size / 2.0
 
-	# Ensure pivot is at the centre of the vbox for scale animations
-	vbox.pivot_offset = vbox.size / 2.0
+	# --- GLINT OVERLAY (clipped inside icon_container, 48×48 weapon icon area) ---
+	# Simulates light reflecting off the weapon surface ("блик"/glint from the issue).
+	# Added directly to icon_container so clip_contents keeps it strictly on the weapon.
+	icon_container.clip_contents = true
 
-	# Store the original x position for the shake so we always return to it
-	var original_x: float = vbox.position.x
+	var glint := ColorRect.new()
+	glint.name = "_glint_overlay"
+	glint.color = Color(1.0, 1.0, 1.0, 0.0)
+	# Narrow diagonal band — rotated ~25° for a classic pixel-art shine sweep
+	glint.custom_minimum_size = Vector2(10, 80)
+	glint.size = Vector2(10, 80)
+	glint.rotation_degrees = 25.0
+	# Start off the left edge of the 48 px icon
+	glint.position = Vector2(-14, -16)
+	icon_container.add_child(glint)
 
-	# --- GLINT OVERLAY ---
-	# Create a short-lived ColorRect that sweeps diagonally across the icon to simulate
-	# light reflecting off the weapon surface (the "blick"/glint requested in the issue).
-	var icon_container: CenterContainer = vbox.get_child(0) as CenterContainer
-	if icon_container:
-		# Clip the glint to the icon bounds
-		icon_container.clip_contents = true
+	# 4-step shine sweep across the icon (pixel-art "Simple Shine" style):
+	#   Step 1 — appear: fade in quickly
+	#   Step 2 — sweep: slide diagonally across the icon left→right
+	#   Step 3 — hold at peak
+	#   Step 4 — vanish: fade out cleanly
+	var glint_tween := create_tween()
+	glint_tween.set_parallel(true)
+	glint_tween.tween_property(glint, "color:a", 0.70, 0.06)
+	glint_tween.tween_property(glint, "position:x", 52.0, 0.18).set_ease(Tween.EASE_OUT)
+	glint_tween.tween_property(glint, "color:a", 0.0, 0.10).set_delay(0.08)
+	glint_tween.tween_callback(glint.queue_free).set_delay(0.20)
 
-		var glint := ColorRect.new()
-		glint.name = "_glint_overlay"
-		glint.color = Color(1.0, 1.0, 1.0, 0.0)
-		# Make the glint a narrow vertical band, rotated ~30° for diagonal effect.
-		# Width is intentionally wider than the container; it enters from the left.
-		glint.custom_minimum_size = Vector2(12, 200)
-		glint.size = Vector2(12, 200)
-		glint.rotation_degrees = 30.0
-		# Start the glint to the left of the visible area
-		glint.position = Vector2(-20, -60)
-		icon_container.add_child(glint)
+	# --- ICON SHAKE + SCALE (4-step pixel-art punch, icon only, card is untouched) ---
+	# The TextureRect is inside a CenterContainer whose layout is managed by Godot, so
+	# position tweening is unreliable. Instead, the "shake" uses squash-and-stretch
+	# (asymmetric X/Y scale) — visually equivalent to a snap/punch without fighting
+	# the layout engine.
+	#
+	# 4 steps (mirrors saint11 pixel-art tutorial):
+	#   Step 1 — anticipation : squish wide & flat  (set immediately)
+	#   Step 2 — action       : stretch tall         (snappy upswing)
+	#   Step 3 — follow-through: slight over-squish  (rebound)
+	#   Step 4 — settle       : spring back to normal
 
-		# Animate the glint sweep: slide from left to right while fading in then out
-		var glint_tween := create_tween()
-		glint_tween.set_parallel(true)
-		# Fade in then out (two sequential steps)
-		glint_tween.tween_property(glint, "color:a", 0.65, 0.07)
-		glint_tween.tween_property(glint, "color:a", 0.0, 0.12).set_delay(0.07)
-		# Sweep from left (-20) to beyond right edge of icon container (~60)
-		glint_tween.tween_property(glint, "position:x", 64.0, 0.19).set_ease(Tween.EASE_OUT)
-		# Remove the glint node once the animation is done
-		glint_tween.tween_callback(glint.queue_free).set_delay(0.20)
+	# Step 1 — anticipation: set immediately (wide, flat)
+	icon_rect.scale = Vector2(1.15, 0.85)
 
-	# --- SCALE BUMP (4-step: squish start → overshoot → spring back → settle) ---
-	# Step 1 — anticipation: squish slightly
-	vbox.scale = Vector2(0.92, 0.92)
+	# Sequential tween for the 4-step scale punch
+	var scale_tween := create_tween()
+	_active_selection_tweens[slot] = scale_tween
 
-	# --- BUILD MAIN TWEEN (sequential shake + parallel scale spring) ---
-	var tween := create_tween()
-	_active_selection_tweens[slot] = tween
-
-	# Scale: spring back to normal with TRANS_BACK overshoot (settle naturally)
-	# Run in parallel with the shake below
-	tween.set_parallel(true)
-	tween.tween_property(vbox, "scale", Vector2(1.0, 1.0), 0.22) \
+	# Step 2 — action: stretch tall
+	scale_tween.tween_property(icon_rect, "scale", Vector2(0.85, 1.15), 0.06) \
+		.set_ease(Tween.EASE_OUT)
+	# Step 3 — follow-through: slight over-squish
+	scale_tween.tween_property(icon_rect, "scale", Vector2(1.08, 0.94), 0.05) \
+		.set_ease(Tween.EASE_IN_OUT)
+	# Step 4 — settle: spring back to normal with slight overshoot
+	scale_tween.tween_property(icon_rect, "scale", Vector2(1.0, 1.0), 0.12) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
-	# Brightness flash: slot briefly bleaches to near-white then fades back
-	tween.tween_property(slot, "modulate", Color(1.9, 1.9, 1.9, 1.0), 0.05) \
-		.set_ease(Tween.EASE_IN)
-	tween.tween_property(slot, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.18) \
-		.set_ease(Tween.EASE_OUT).set_delay(0.05)
-
-	# Horizontal shake (sequential, runs alongside the scale/brightness in parallel mode)
-	# Step 1 — action: jolt right
-	tween.tween_property(vbox, "position:x", original_x + 4.0, 0.04) \
-		.set_ease(Tween.EASE_OUT)
-	# Step 2 — follow-through: swing left past centre
-	tween.tween_property(vbox, "position:x", original_x - 5.0, 0.05) \
-		.set_ease(Tween.EASE_IN_OUT)
-	# Step 3 — rebound: move back right slightly
-	tween.tween_property(vbox, "position:x", original_x + 2.0, 0.04) \
-		.set_ease(Tween.EASE_IN_OUT)
-	# Step 4 — settle: return to original position
-	tween.tween_property(vbox, "position:x", original_x, 0.07) \
-		.set_ease(Tween.EASE_OUT)
-
-	# Clean up tracking entry when done
-	tween.tween_callback(func():
+	# Clean up when the scale animation finishes
+	scale_tween.tween_callback(func():
 		if slot in _active_selection_tweens:
 			_active_selection_tweens.erase(slot)
-		# Ensure position is exactly restored even if tween was interrupted
-		if is_instance_valid(vbox):
-			vbox.position.x = original_x
+		if is_instance_valid(icon_rect):
+			icon_rect.scale = Vector2(1.0, 1.0)
+			icon_rect.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	)
+
+	# Brightness flash on the icon only — separate parallel tween so it fires immediately
+	var flash_tween := create_tween()
+	flash_tween.set_parallel(true)
+	flash_tween.tween_property(icon_rect, "modulate", Color(1.9, 1.9, 1.9, 1.0), 0.05) \
+		.set_ease(Tween.EASE_IN)
+	flash_tween.tween_property(icon_rect, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.18) \
+		.set_ease(Tween.EASE_OUT).set_delay(0.05)
 
 
 ## Animates a newly created slot appearing with fade-in and scale pop.
