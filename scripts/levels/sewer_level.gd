@@ -818,6 +818,17 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	armory_button.add_theme_font_size_override("font_size", 18)
 	armory_button.pressed.connect(_on_armory_button_pressed)
 	buttons_container.add_child(armory_button)
+	# Add gold shine shader overlay (Issue #1536).
+	var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+	if _armory_shine_shader:
+		var _armory_shine_mat := ShaderMaterial.new()
+		_armory_shine_mat.shader = _armory_shine_shader
+		var _armory_shine_overlay := ColorRect.new()
+		_armory_shine_overlay.name = "ArmoryGoldShineOverlay"
+		_armory_shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_armory_shine_overlay.material = _armory_shine_mat
+		armory_button.add_child(_armory_shine_overlay)
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled():
 		var replay_manager: Node = _get_or_create_replay_manager()

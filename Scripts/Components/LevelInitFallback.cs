@@ -933,6 +933,19 @@ public partial class LevelInitFallback : Node
             armoryButton.AddThemeStyleboxOverride("normal", armoryStyle);
             armoryButton.Pressed += OnArmoryPressed;
             buttonsContainer.AddChild(armoryButton);
+            // Add gold shine shader overlay (Issue #1536).
+            var armoryShineShader = GD.Load<Shader>("res://scripts/shaders/gold_shine.gdshader");
+            if (armoryShineShader != null)
+            {
+                var armoryShinemat = new ShaderMaterial();
+                armoryShinemat.Shader = armoryShineShader;
+                var armoryShineOverlay = new ColorRect();
+                armoryShineOverlay.Name = "ArmoryGoldShineOverlay";
+                armoryShineOverlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+                armoryShineOverlay.MouseFilter = Control.MouseFilterEnum.Ignore;
+                armoryShineOverlay.Material = armoryShinemat;
+                armoryButton.AddChild(armoryShineOverlay);
+            }
         }
 
         Input.MouseMode = Input.MouseModeEnum.Confined;

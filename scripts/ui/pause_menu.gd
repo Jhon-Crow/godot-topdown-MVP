@@ -312,7 +312,8 @@ func _refresh_armory_button_state() -> void:
 				overlay.material = mat
 				armory_button.add_child(overlay)
 				_armory_shine_overlay = overlay
-		armory_button.add_theme_color_override("font_color", Color(0.1, 0.08, 0.0, 1.0))
+		# Keep text bright/gold so it stays visible over the additive shine overlay (Issue #1536).
+		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
 	else:
 		# Remove shine overlay — no available unlocks
 		if _armory_shine_overlay != null and is_instance_valid(_armory_shine_overlay):
