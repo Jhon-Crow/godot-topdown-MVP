@@ -93,8 +93,8 @@ func test_rifle_bullet_spawn_offset() -> void:
 
 func test_rifle_weapon_loudness() -> void:
 	var config := WeaponConfigComponent.WEAPON_CONFIGS[0]
-	assert_eq(config["weapon_loudness"], 800.0,
-		"RIFLE weapon_loudness should be 800.0 (Issue #1269: scaled by 800/1469 factor)")
+	assert_eq(config["weapon_loudness"], 840.0,
+		"RIFLE weapon_loudness should be 840.0 (Issue #1524: M16 sound range set to 840px)")
 
 
 func test_rifle_is_not_shotgun() -> void:

@@ -1,0 +1,287 @@
+extends GutTest
+## Unit tests for water_body.gd (Issue #1445, enhanced Issue #1550).
+##
+## Tests:
+##   - UV coordinate conversion of world positions to shader obstacle UVs
+##   - Clamping of UV values to [0..1] range
+##   - Obstacle slot limit (MAX_OBSTACLE_SHADER_SLOTS = 8)
+##   - Point-in-water boundary check logic
+##   - Camera limit constant (WallTop bottom edge at y=64)
+
+
+# ============================================================================
+# Mock WaterBody for UV conversion and obstacle logic tests
+# ============================================================================
+
+
+class MockWaterBody:
+	## Size of the water rectangle in pixels (matches BeachLevel defaults).
+	var water_width: float = 2400.0
+	var water_height: float = 356.0
+
+	## Maximum obstacle UV slots passed to shader (must match shader array size).
+	const MAX_OBSTACLE_SHADER_SLOTS: int = 8
+
+	## World-space centre of the water body (matches BeachLevel WaterBody position).
+	var global_position: Vector2 = Vector2(1264, 242)
+
+	## Bodies currently inside the water area: body → last_position.
+	var _bodies_in_water: Dictionary = {}
+
+	## Convert a world position to UV coordinates within the water rectangle.
+	## Mirrors _update_obstacle_shader_params() in water_body.gd.
+	func world_to_water_uv(world_pos: Vector2) -> Vector2:
+		var local: Vector2 = world_pos - global_position
+		var uv: Vector2 = Vector2(
+			(local.x + water_width * 0.5) / water_width,
+			(local.y + water_height * 0.5) / water_height
+		)
+		return uv.clamp(Vector2.ZERO, Vector2.ONE)
+
+	## Check if a world position is within the water area bounds.
+	## Mirrors _is_point_in_water() in water_body.gd.
+	func is_point_in_water(world_pos: Vector2) -> bool:
+		var local_pos: Vector2 = world_pos - global_position
+		var half_w: float = water_width * 0.5
+		var half_h: float = water_height * 0.5
+		return abs(local_pos.x) <= half_w and abs(local_pos.y) <= half_h
+
+	## Collect UV positions from _bodies_in_water up to MAX_OBSTACLE_SHADER_SLOTS.
+	## Mirrors the collection loop in _update_obstacle_shader_params().
+	func collect_obstacle_uvs() -> Array:
+		var uvs: Array = []
+		for body in _bodies_in_water.keys():
+			var world_pos: Vector2 = _bodies_in_water[body]
+			var uv: Vector2 = world_to_water_uv(world_pos)
+			uvs.append(uv)
+			if uvs.size() >= MAX_OBSTACLE_SHADER_SLOTS:
+				break
+		# Pad with sentinel out-of-range UVs
+		while uvs.size() < MAX_OBSTACLE_SHADER_SLOTS:
+			uvs.append(Vector2(-1.0, -1.0))
+		return uvs
+
+	## Add a fake body at a world position.
+	func add_body_at(key: String, world_pos: Vector2) -> void:
+		_bodies_in_water[key] = world_pos
+
+	## Remove a body.
+	func remove_body(key: String) -> void:
+		_bodies_in_water.erase(key)
+
+
+# ============================================================================
+# Camera limit constant (Issue #1550 — restrict camera top to hide WallTop)
+# ============================================================================
+
+
+class MockBeachLevelCamera:
+	## WallTop bottom edge in world space (matches BeachLevel.tscn):
+	## WallTop position = (1264, 48), height = 32 → bottom = 48 + 16 = 64.
+	const WALL_TOP_BOTTOM_EDGE: int = 64
+
+	## Camera limit_top as set by _setup_camera_limits() — Issue #1550.
+	var camera_limit_top: int = 0
+
+	func setup_camera_limits() -> void:
+		camera_limit_top = WALL_TOP_BOTTOM_EDGE
+
+
+var water: MockWaterBody
+var beach_cam: MockBeachLevelCamera
+
+
+func before_each() -> void:
+	water = MockWaterBody.new()
+	beach_cam = MockBeachLevelCamera.new()
+
+
+func after_each() -> void:
+	water = null
+	beach_cam = null
+
+
+# ============================================================================
+# UV Coordinate Conversion Tests (Issue #1550 wave interruption)
+# ============================================================================
+
+
+func test_water_centre_maps_to_uv_half() -> void:
+	# The centre of the water body in world space should map to UV (0.5, 0.5).
+	var uv: Vector2 = water.world_to_water_uv(water.global_position)
+	assert_almost_eq(uv.x, 0.5, 0.001, "Water centre X should map to UV 0.5")
+	assert_almost_eq(uv.y, 0.5, 0.001, "Water centre Y should map to UV 0.5")
+
+
+func test_water_left_edge_maps_to_uv_zero_x() -> void:
+	# Left edge = global_position.x - water_width/2
+	var left_edge: Vector2 = Vector2(water.global_position.x - water.water_width * 0.5,
+	                                  water.global_position.y)
+	var uv: Vector2 = water.world_to_water_uv(left_edge)
+	assert_almost_eq(uv.x, 0.0, 0.001, "Left edge should map to UV x=0")
+
+
+func test_water_right_edge_maps_to_uv_one_x() -> void:
+	var right_edge: Vector2 = Vector2(water.global_position.x + water.water_width * 0.5,
+	                                   water.global_position.y)
+	var uv: Vector2 = water.world_to_water_uv(right_edge)
+	assert_almost_eq(uv.x, 1.0, 0.001, "Right edge should map to UV x=1")
+
+
+func test_water_top_edge_maps_to_uv_zero_y() -> void:
+	var top_edge: Vector2 = Vector2(water.global_position.x,
+	                                 water.global_position.y - water.water_height * 0.5)
+	var uv: Vector2 = water.world_to_water_uv(top_edge)
+	assert_almost_eq(uv.y, 0.0, 0.001, "Top edge should map to UV y=0")
+
+
+func test_water_bottom_edge_maps_to_uv_one_y() -> void:
+	var bottom_edge: Vector2 = Vector2(water.global_position.x,
+	                                    water.global_position.y + water.water_height * 0.5)
+	var uv: Vector2 = water.world_to_water_uv(bottom_edge)
+	assert_almost_eq(uv.y, 1.0, 0.001, "Bottom edge should map to UV y=1")
+
+
+func test_uv_clamped_for_position_outside_water_left() -> void:
+	# A position far to the left should clamp UV x to 0.
+	var far_left: Vector2 = Vector2(-9999.0, water.global_position.y)
+	var uv: Vector2 = water.world_to_water_uv(far_left)
+	assert_eq(uv.x, 0.0, "UV x should be clamped to 0 for positions left of water")
+
+
+func test_uv_clamped_for_position_outside_water_right() -> void:
+	var far_right: Vector2 = Vector2(99999.0, water.global_position.y)
+	var uv: Vector2 = water.world_to_water_uv(far_right)
+	assert_eq(uv.x, 1.0, "UV x should be clamped to 1 for positions right of water")
+
+
+func test_uv_values_always_in_range() -> void:
+	# Arbitrary positions inside and around the water area.
+	var positions: Array = [
+		water.global_position,
+		water.global_position + Vector2(100, 50),
+		water.global_position - Vector2(300, 80),
+		Vector2(0, 0),
+		Vector2(9999, 9999),
+	]
+	for pos in positions:
+		var uv: Vector2 = water.world_to_water_uv(pos)
+		assert_gte(uv.x, 0.0, "UV.x must be >= 0")
+		assert_lte(uv.x, 1.0, "UV.x must be <= 1")
+		assert_gte(uv.y, 0.0, "UV.y must be >= 0")
+		assert_lte(uv.y, 1.0, "UV.y must be <= 1")
+
+
+# ============================================================================
+# Obstacle Slot Limit Tests (Issue #1550)
+# ============================================================================
+
+
+func test_no_bodies_produces_max_sentinel_uvs() -> void:
+	var uvs: Array = water.collect_obstacle_uvs()
+	assert_eq(uvs.size(), MockWaterBody.MAX_OBSTACLE_SHADER_SLOTS,
+		"UV array must always have MAX_OBSTACLE_SHADER_SLOTS entries")
+	for uv in uvs:
+		assert_eq(uv, Vector2(-1.0, -1.0),
+			"Empty slots should be padded with sentinel (-1, -1)")
+
+
+func test_one_body_in_water_produces_one_valid_uv() -> void:
+	water.add_body_at("player", water.global_position)
+	var uvs: Array = water.collect_obstacle_uvs()
+	assert_eq(uvs.size(), MockWaterBody.MAX_OBSTACLE_SHADER_SLOTS,
+		"UV array size must always equal MAX_OBSTACLE_SHADER_SLOTS")
+	# First entry should be valid (centre = 0.5, 0.5)
+	assert_almost_eq(uvs[0].x, 0.5, 0.001, "Player at centre → UV x=0.5")
+	assert_almost_eq(uvs[0].y, 0.5, 0.001, "Player at centre → UV y=0.5")
+	# Remaining slots must be sentinels
+	for i in range(1, uvs.size()):
+		assert_eq(uvs[i], Vector2(-1.0, -1.0),
+			"Unused slots should remain as sentinels")
+
+
+func test_obstacle_count_capped_at_max_slots() -> void:
+	# Add more than MAX_OBSTACLE_SHADER_SLOTS bodies.
+	for i in range(12):
+		water.add_body_at("body_%d" % i, water.global_position + Vector2(i * 10, 0))
+	var uvs: Array = water.collect_obstacle_uvs()
+	assert_eq(uvs.size(), MockWaterBody.MAX_OBSTACLE_SHADER_SLOTS,
+		"collect_obstacle_uvs must not exceed MAX_OBSTACLE_SHADER_SLOTS entries")
+	# None should be the sentinel value (all 8 slots filled)
+	var valid_count: int = 0
+	for uv in uvs:
+		if uv != Vector2(-1.0, -1.0):
+			valid_count += 1
+	assert_eq(valid_count, MockWaterBody.MAX_OBSTACLE_SHADER_SLOTS,
+		"All 8 slots should be valid positions when more than 8 bodies are present")
+
+
+func test_max_obstacle_shader_slots_is_eight() -> void:
+	assert_eq(MockWaterBody.MAX_OBSTACLE_SHADER_SLOTS, 8,
+		"MAX_OBSTACLE_SHADER_SLOTS must be 8 to match shader array size")
+
+
+# ============================================================================
+# Point-In-Water Boundary Tests
+# ============================================================================
+
+
+func test_centre_is_in_water() -> void:
+	assert_true(water.is_point_in_water(water.global_position),
+		"Water centre should be inside water bounds")
+
+
+func test_far_outside_is_not_in_water() -> void:
+	assert_false(water.is_point_in_water(Vector2(-9999, -9999)),
+		"Position far outside should not be in water")
+
+
+func test_exact_left_edge_is_in_water() -> void:
+	var edge: Vector2 = Vector2(water.global_position.x - water.water_width * 0.5,
+	                             water.global_position.y)
+	assert_true(water.is_point_in_water(edge),
+		"Exact left boundary should be considered inside water")
+
+
+func test_just_outside_right_edge_is_not_in_water() -> void:
+	var outside: Vector2 = Vector2(water.global_position.x + water.water_width * 0.5 + 1.0,
+	                                water.global_position.y)
+	assert_false(water.is_point_in_water(outside),
+		"1px outside right boundary should not be inside water")
+
+
+# ============================================================================
+# Camera Top Limit Tests (Issue #1550 — WallTop must not be visible)
+# ============================================================================
+
+
+func test_wall_top_bottom_edge_constant() -> void:
+	# WallTop in BeachLevel.tscn: position=(1264,48), size=(2464,32).
+	# Centre y=48, half-height=16 → bottom edge = 48 + 16 = 64.
+	assert_eq(MockBeachLevelCamera.WALL_TOP_BOTTOM_EDGE, 64,
+		"WALL_TOP_BOTTOM_EDGE should be 64 (WallTop bottom edge in world space)")
+
+
+func test_camera_limit_top_set_to_wall_bottom_edge() -> void:
+	beach_cam.setup_camera_limits()
+	assert_eq(beach_cam.camera_limit_top, 64,
+		"Camera limit_top must equal WALL_TOP_BOTTOM_EDGE (64) after setup")
+
+
+func test_camera_limit_not_zero_after_setup() -> void:
+	# Default value is 0 (shows wall). After setup it should be 64.
+	assert_eq(beach_cam.camera_limit_top, 0,
+		"Before setup, camera_limit_top should be 0 (default)")
+	beach_cam.setup_camera_limits()
+	assert_ne(beach_cam.camera_limit_top, 0,
+		"After setup, camera_limit_top must not be 0 — WallTop must be hidden")
+
+
+func test_water_top_edge_equals_wall_bottom_edge() -> void:
+	# Water node in BeachLevel: position=(1264,242), height=356.
+	# Top edge = 242 - 356/2 = 242 - 178 = 64.
+	var water_top_y: float = water.global_position.y - water.water_height * 0.5
+	assert_almost_eq(water_top_y, 64.0, 0.001,
+		"Water top edge (world y) should equal WallTop bottom edge (64)")
+	assert_eq(MockBeachLevelCamera.WALL_TOP_BOTTOM_EDGE, int(water_top_y),
+		"Camera limit_top constant should match water top edge")

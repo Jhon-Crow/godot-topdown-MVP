@@ -13,13 +13,14 @@ extends RefCounted
 ## and PM pistol (type 5) for RPG enemy weapon switching.
 ## Added (Issue #1033): MACHINE_GUN (PKM belt-fed, type 6).
 ## Added (Issue #1125): SNIPER_RIFLE (ASVK, type 7).
+## Added (Issue #1532): SILENCED_PISTOL (type 9) for Drone Operator active phase.
 const WEAPON_CONFIGS := {
 	0: {  # RIFLE (M16) - uses same bullets as player's AssaultRifle
 		"shoot_cooldown": 0.1,
 		"bullet_speed": 2500.0,
 		"magazine_size": 30,
 		"bullet_spawn_offset": 30.0,
-		"weapon_loudness": 800.0,
+		"weapon_loudness": 840.0,  # Issue #1524: M16 sound range set to 840px
 		"sprite_path": "",  # Default sprite already in scene
 		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",
@@ -159,7 +160,7 @@ const WEAPON_CONFIGS := {
 		"total_magazines": 2,       # 500 + 500 (one spare belt)
 		"reload_time": 9.0,         # Long belt reload
 		"bullet_spawn_offset": 40.0,
-		"weapon_loudness": 1198.1,
+		"weapon_loudness": 2400.0,  # Issue #1549: PKM sound range set to 2400px
 		"sprite_path": "res://assets/sprites/weapons/pkm_topdown.png",  # PKM machine gun top-down sprite (#1033)
 		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",
@@ -220,6 +221,31 @@ const WEAPON_CONFIGS := {
 		"spread_increment": 0.5,
 		"max_spread": 3.0,
 		"spread_reset_time": 0.4
+	},
+	9: {  # SILENCED_PISTOL — suppressed 9x19mm pistol with laser sight (Issue #1532, Drone Operator)
+		"shoot_cooldown": 0.2,      # Semi-auto, slightly faster than PM
+		"bullet_speed": 1350.0,     # Matches SilencedPistolData.tres BulletSpeed
+		"magazine_size": 13,        # Matches SilencedPistolData.tres MagazineSize
+		"total_magazines": 3,       # 3 reloads (39 extra rounds)
+		"reload_time": 2.0,         # Matches SilencedPistolData.tres ReloadTime
+		"bullet_spawn_offset": 33.0,  # Matches SilencedPistol.tscn BulletSpawnOffset
+		"weapon_loudness": 0.0,     # Silent — matches SilencedPistolData.tres Loudness=0
+		"sprite_path": "res://assets/sprites/weapons/silenced_pistol_topdown.png",
+		"bullet_scene_path": "res://scenes/projectiles/Bullet9mm.tscn",
+		"casing_scene_path": "res://scenes/effects/Casing.tscn",
+		"caliber_path": "res://resources/calibers/caliber_9x19.tres",
+		"is_shotgun": false,
+		"pellet_count_min": 1,
+		"pellet_count_max": 1,
+		"spread_angle": 0.0,
+		# Tight spread matching SilencedPistolData.tres SpreadAngle=1.5 (accurate weapon)
+		"spread_threshold": 2,
+		"initial_spread": 0.5,
+		"spread_increment": 0.4,
+		"max_spread": 2.5,
+		"spread_reset_time": 0.3,
+		# Laser sight visual flag (handled by DroneOperatorComponent)
+		"has_laser_sight": true
 	}
 }
 
@@ -243,4 +269,5 @@ static func get_type_name(weapon_type: int) -> String:
 		6: return "MACHINE_GUN"
 		7: return "SNIPER_RIFLE"
 		8: return "REVOLVER"
+		9: return "SILENCED_PISTOL"
 		_: return "UNKNOWN"

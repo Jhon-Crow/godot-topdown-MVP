@@ -1,0 +1,1629 @@
+[12:55:24] [INFO] ============================================================
+[12:55:24] [INFO] GAME LOG STARTED
+[12:55:24] [INFO] ============================================================
+[12:55:24] [INFO] Timestamp: 2026-03-25T12:55:24
+[12:55:24] [INFO] Log file: I:/Загрузки/godot exe/ДРОНОВОД/game_log_20260325_125524.txt
+[12:55:24] [INFO] Executable: I:/Загрузки/godot exe/ДРОНОВОД/Godot-Top-Down-Template.exe
+[12:55:24] [INFO] OS: Windows
+[12:55:24] [INFO] Debug build: false
+[12:55:24] [INFO] Engine version: 4.3-stable (official)
+[12:55:24] [INFO] Project: Godot Top-Down Template
+[12:55:24] [INFO] Build info: not available (build_info.cfg not found)
+[12:55:24] [INFO] ------------------------------------------------------------
+[12:55:24] [INFO] [GameManager] GameManager ready
+[12:55:24] [INFO] [ScoreManager] ScoreManager ready
+[12:55:24] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[12:55:24] [INFO] [DifficultyManager] Loaded difficulty: Hard (value: 2)
+[12:55:24] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[12:55:24] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[12:55:24] [INFO] [ImpactEffects] Explosion light pool initialized: 12 lights pre-created
+[12:55:24] [INFO] [ImpactEffects] Dust effect pool initialized: 16 effects pre-created
+[12:55:24] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[12:55:24] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[12:55:24] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[12:55:24] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[12:55:24] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[12:55:24] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[12:55:24] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[12:55:24] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[12:55:24] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[12:55:24] [INFO] [LastChance] Resetting all effects (scene change detected)
+[12:55:24] [INFO] [LastChance] Last chance shader loaded successfully
+[12:55:24] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[12:55:24] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[12:55:24] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[12:55:24] [INFO] [LastChance]   Sepia intensity: 0.70
+[12:55:24] [INFO] [LastChance]   Brightness: 0.60
+[12:55:24] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[12:55:24] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[12:55:24] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[12:55:24] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn
+[12:55:24] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: false, Invincibility: true, Realistic visibility: false, Replay: false, Logging: true, Enemy flashlight blinding: false, FPS counter: true, FPS drop logging: true, All weapons unlocked: false, All maps unlocked: true, Global stuck max time: 20.0s, Nav mesh visible: false, Search path visible: true, Passage waypoints visible: false, Passage waypoints: false, Sound visualizer: false, Enemy path visible: true, Cover raycast visible: false, Tactical group: false, Cover infinite rays: true, Cover sector rays: true
+[12:55:24] [INFO] [NavMeshMonitor] NavMeshMonitor ready
+[12:55:24] [INFO] [EnemyPathMonitor] EnemyPathMonitor: overlay created
+[12:55:24] [INFO] [SoundSettings] SoundSettings initialized - effects: 0.29, music: 1.00
+[12:55:24] [INFO] [GameplaySettings] GameplaySettings initialized - blood_amount: 1.00, wall_hit_particles: true, revolver_aim_assist: true
+[12:55:24] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[12:55:24] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[12:55:24] [INFO] [CinemaEffects] Created effects layer at layer 99
+[12:55:24] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[12:55:24] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[12:55:24] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[12:55:24] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[12:55:24] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[12:55:24] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[12:55:24] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[12:55:24] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[12:55:24] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[12:55:24] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[12:55:24] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[12:55:24] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[12:55:24] [INFO] [GrenadeTimerHelper] Autoload ready
+[12:55:24] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[12:55:24] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[12:55:24] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[12:55:24] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+[12:55:24] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[12:55:24] [INFO] [BlackMetalEffectsManager] BlackMetalEffectsManager initializing...
+[12:55:24] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+[12:55:24] [INFO] [BlackMetalEffectsManager] Black Metal shader loaded (B&W+red, hint_screen_texture approach)
+[12:55:24] [INFO] [BlackMetalEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[12:55:24] [INFO] [BlackMetalEffectsManager] Black Metal filter DISABLED
+[12:55:24] [INFO] [BlackMetalLightningEffectsManager] BlackMetalLightningEffectsManager initializing...
+[12:55:24] [INFO] [BlackMetalLightningEffectsManager] Lightning bolt drawer created (v10 - no shader, pure draw calls)
+[12:55:24] [INFO] [BlackMetalLightningEffectsManager] Connected to GameManager.enemy_killed signal
+[12:55:24] [INFO] [BlackMetalLightningEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[12:55:24] [INFO] [ProgressManager] ProgressManager ready, loaded 2 entries
+[12:55:24] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[12:55:24] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[12:55:24] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
+[12:55:24] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
+[12:55:24] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
+[12:55:24] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
+[12:55:24] [INFO] [SceneLoader] SceneLoader initialized
+[12:55:24] [INFO] [PersistManager] Loading saved state from user://game_state.cfg
+[12:55:24] [INFO] [PersistManager] Restored unlocked weapon: makarov_pm
+[12:55:24] [INFO] [PersistManager] Restored unlocked weapon: mini_uzi
+[12:55:24] [INFO] [PersistManager] Restored unlocked weapon: ak_gl
+[12:55:24] [INFO] [PersistManager] Restored kills_without_laser_sight: 39
+[12:55:24] [INFO] [PersistManager] Restored shots_fired_special_weapons: 0
+[12:55:24] [INFO] [GameManager] Weapon selected: mini_uzi
+[12:55:24] [INFO] [PersistManager] Restored selected weapon: mini_uzi
+[12:55:24] [INFO] [PersistManager] Restored unlocked grenade type: 0
+[12:55:24] [INFO] [PersistManager] Restored unlocked grenade type: 3
+[12:55:24] [INFO] [PersistManager] Restored selected grenade type: 0
+[12:55:24] [INFO] [PersistManager] Restored unlocked active item type: 0
+[12:55:24] [INFO] [PersistManager] Restored unlocked active item type: 4
+[12:55:24] [INFO] [PersistManager] Restored unlocked active item type: 6
+[12:55:24] [INFO] [PersistManager] Restored unlocked active item type: 7
+[12:55:24] [INFO] [PersistManager] Restored unlocked active item type: 10
+[12:55:24] [INFO] [PersistManager] Restored unlocked active item type: 11
+[12:55:24] [INFO] [PersistManager] Restored unlocked active item type: 12
+[12:55:24] [INFO] [PersistManager] Restored unlocked active item type: 13
+[12:55:24] [INFO] [PersistManager] Restored unlocked active item type: 14
+[12:55:24] [INFO] [PersistManager] Restored unlocked active item type: 15
+[12:55:24] [INFO] [PersistManager] Restored unlocked active item type: 16
+[12:55:24] [INFO] [PersistManager] Restored unlocked active item type: 17
+[12:55:24] [INFO] [PersistManager] Restored unlocked active item type: 20
+[12:55:24] [INFO] [ActiveItemManager] Active item changed from None to Breaker Bullets
+[12:55:24] [INFO] [PersistManager] Restored selected active item type: 6
+[12:55:24] [INFO] [PersistManager] Loudspeaker progress restored: level 1, levels_completed=0
+[12:55:24] [INFO] [PersistManager] State loaded successfully
+[12:55:24] [INFO] [PersistManager] PersistManager ready
+[12:55:24] [INFO] [UnlockManager] UnlockManager ready
+[12:55:24] [INFO] [WeaponHintsSettings] WeaponHintsSettings initialized - mode: ALWAYS, weapons seen: ["makarov_pm", "shotgun", "mini_uzi", "sniper", "revolver", "m16"]
+[12:55:24] [INFO] [PerformanceSettings] PerformanceSettings initialized - particles: true, blood_decals: true, screen_shake: true, explosion_lights: true, ai: false
+[12:55:24] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:55:24] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[12:55:24] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[12:55:24] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[12:55:24] [ENEMY] [Enemy1] Death animation component initialized
+[12:55:24] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:55:24] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[12:55:24] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[12:55:24] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[12:55:24] [ENEMY] [Enemy2] Death animation component initialized
+[12:55:24] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:55:24] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[12:55:24] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[12:55:24] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[12:55:24] [ENEMY] [Enemy3] Death animation component initialized
+[12:55:24] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:55:24] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[12:55:24] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[12:55:24] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[12:55:24] [ENEMY] [Enemy4] Death animation component initialized
+[12:55:24] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:55:24] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[12:55:24] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[12:55:24] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[12:55:24] [ENEMY] [Enemy5] Death animation component initialized
+[12:55:24] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:55:24] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[12:55:24] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[12:55:24] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[12:55:24] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[12:55:24] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[12:55:24] [INFO] [Player.Weapon] GameManager weapon selection: mini_uzi (MiniUzi)
+[12:55:24] [INFO] [Player.Weapon] Removed current weapon: MakarovPM
+[12:55:24] [INFO] [Player.Weapon] Equipped MiniUzi (ammo: 32/32)
+[12:55:24] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[12:55:24] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[12:55:24] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[12:55:24] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[12:55:24] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[12:55:24] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[12:55:24] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[12:55:24] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[12:55:24] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[12:55:24] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[12:55:24] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[12:55:24] [INFO] [Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls
+[12:55:24] [INFO] [Player.BreakerBullets] Set IsBreakerBulletActive on weapon: MiniUzi
+[12:55:24] [INFO] [Player.DrillingBullets] Drilling bullets not selected in ActiveItemManager
+[12:55:24] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[12:55:24] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[12:55:24] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[12:55:24] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[12:55:24] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[12:55:24] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[12:55:24] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[12:55:24] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[12:55:24] [INFO] [Player.ItemVisual] Visual applied for item type: 6
+[12:55:24] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[12:55:24] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[12:55:24] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[12:55:24] [INFO] [Player.RecoilCompensator] Recoil compensator not selected in ActiveItemManager
+[12:55:24] [INFO] [Player.ExperimentalSample] Experimental sample not selected
+[12:55:24] [INFO] [Player.FineMotorSkills] Fine motor skills not selected in ActiveItemManager
+[12:55:24] [INFO] [Player.Dash] No dash selected in ActiveItemManager
+[12:55:24] [INFO] [Player.Jammer] JammerHUD initialized
+[12:55:24] [INFO] [Player.ItemPickup] Connected to ActiveItemManager.active_item_changed
+[12:55:24] [INFO] [Player] Ready! Ammo: 32/32, Grenades: 1/3, Health: 3/4
+[12:55:24] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[12:55:24] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[12:55:24] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[12:55:24] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[12:55:24] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[12:55:24] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[12:55:24] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[12:55:24] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[12:55:24] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[12:55:24] [INFO] [LabyrinthLevel] Setting up weapon: mini_uzi
+[12:55:24] [INFO] [LabyrinthLevel] MiniUzi already equipped by C# Player - applying labyrinth ammo config
+[12:55:24] [INFO] [LabyrinthLevel] Re-applied auto-reload magazine reduction after ammo config for mini_uzi
+[12:55:24] [INFO] [GameManager] set_player() called with: <CharacterBody2D#82929780481> (class: CharacterBody2D)
+[12:55:24] [INFO] [GameManager] set_player: player_alive reset to true (new player registered)
+[12:55:24] [INFO] [GameManager] set_player: has_signal('Died')=true, has_signal('died')=false
+[12:55:24] [INFO] [GameManager] Connected to player 'Died' signal (C# naming)
+[12:55:24] [INFO] [GameManager] set_player: initial collision_layer=1 (poll expects 0 on death)
+[12:55:24] [INFO] [ScoreManager] Level started with 5 enemies
+[12:55:24] [INFO] [ScoreManager] Custom rank thresholds set: S=0.70 A+=0.55 A=0.38 B=0.22 C=0.12 D=0.06
+[12:55:25] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[12:55:25] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[12:55:25] [INFO] [ReplayManager] Replay data cleared
+[12:55:25] [INFO] [LabyrinthLevel] Previous replay data cleared
+[12:55:25] [INFO] [ReplayManager] Detected player weapon: Mini UZI
+[12:55:25] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[12:55:25] [INFO] [ReplayManager] Level: LabyrinthLevel
+[12:55:25] [INFO] [ReplayManager] Player: Player (valid: True)
+[12:55:25] [INFO] [ReplayManager] Enemies count: 5
+[12:55:25] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/mini_uzi_topdown.png
+[12:55:25] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[12:55:25] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[12:55:25] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[12:55:25] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[12:55:25] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[12:55:25] [INFO] [LabyrinthLevel] Replay recording started successfully
+[12:55:25] [INFO] [Player] Invincibility mode: ON
+[12:55:25] [INFO] [GameManager] Invincibility mode toggled: ON
+[12:55:25] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[12:55:25] [INFO] [CinemaEffects] Found player node: Player
+[12:55:25] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[12:55:25] [INFO] [PersistManager] Navigating to last played level: res://scenes/levels/DocksLevel.tscn
+[12:55:25] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/DocksLevel.tscn
+[12:55:25] [INFO] [UnlockManager] Reset condition-gated items to locked state
+[12:55:25] [INFO] [UnlockManager] Restored saved unlock for weapon: mini_uzi
+[12:55:25] [INFO] [UnlockManager] Skipped restore for weapon 'silenced_pistol' (condition not met — treating as corrupt save)
+[12:55:25] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[12:55:25] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[12:55:25] [ENEMY] [Enemy1] Registered as sound listener
+[12:55:25] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 1, behavior: GUARD
+[12:55:25] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[12:55:25] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[12:55:25] [ENEMY] [Enemy2] Registered as sound listener
+[12:55:25] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 2, behavior: GUARD
+[12:55:25] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[12:55:25] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[12:55:25] [ENEMY] [Enemy3] Registered as sound listener
+[12:55:25] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 2, behavior: PATROL
+[12:55:25] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[12:55:25] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[12:55:25] [ENEMY] [Enemy4] Registered as sound listener
+[12:55:25] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 1, behavior: GUARD
+[12:55:25] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[12:55:25] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[12:55:25] [ENEMY] [Enemy5] Registered as sound listener
+[12:55:25] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 4, behavior: GUARD
+[12:55:25] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[12:55:25] [INFO] [Player] Detecting weapon pose (frame 3)...
+[12:55:25] [INFO] [Player] Detected weapon: Mini UZI (SMG pose)
+[12:55:25] [INFO] [Player] Applied SMG arm pose: Left=(14, 6), Right=(1, 6)
+[12:55:25] [INFO] [PenultimateHit] Shader warmup complete in 1054 ms
+[12:55:25] [INFO] [LastChance] Shader warmup complete in 1053 ms
+[12:55:25] [INFO] [CinemaEffects] Cinema shader warmup complete in 961 ms
+[12:55:25] [INFO] [BlackMetalEffectsManager] Shader warmup complete in 953 ms
+[12:55:25] [INFO] [BlackMetalLightningEffectsManager] Shader warmup complete in 0 ms
+[12:55:25] [INFO] [FlashbangPlayer] Shader warmup complete in 950 ms
+[12:55:25] [INFO] [EnemyPathMonitor] diag: overlay.visible=true, paths=0, enemies=5, draw_node=true, draw_count=1
+[12:55:25] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[12:55:25] [INFO] [SceneLoader] ERROR: Invalid resource: res://scenes/levels/DocksLevel.tscn
+[12:55:25] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 1329 ms
+[12:55:25] [INFO] [SceneLoader] Background load started successfully
+[12:55:26] [WARN] [FPS] Drop detected: 27 fps (threshold: 30)
+[12:55:26] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
+[12:55:27] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=5
+[12:55:28] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=5
+[12:55:29] [INFO] [SoundPropagation] Unregistered listener: Enemy5 (remaining: 4)
+[12:55:29] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 3)
+[12:55:29] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 2)
+[12:55:29] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 1)
+[12:55:29] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 0)
+[12:55:29] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[12:55:29] [INFO] [NavMeshMonitor] NavigationRegion2D added: NavigationRegion2D
+[12:55:29] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[12:55:29] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[12:55:29] [INFO] [LastChance] Resetting all effects (scene change detected)
+[12:55:29] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[12:55:29] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[12:55:29] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+[12:55:29] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[12:55:29] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:55:29] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[12:55:29] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[12:55:29] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[12:55:29] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[12:55:29] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[12:55:29] [INFO] [Player.Weapon] GameManager weapon selection: mini_uzi (MiniUzi)
+[12:55:29] [INFO] [Player.Weapon] Removed current weapon: MakarovPM
+[12:55:29] [INFO] [Player.Weapon] Equipped MiniUzi (ammo: 32/32)
+[12:55:29] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[12:55:29] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[12:55:29] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[12:55:29] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[12:55:29] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[12:55:29] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[12:55:29] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[12:55:29] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[12:55:29] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[12:55:29] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[12:55:29] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[12:55:29] [INFO] [Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls
+[12:55:29] [INFO] [Player.BreakerBullets] Set IsBreakerBulletActive on weapon: MiniUzi
+[12:55:29] [INFO] [Player.DrillingBullets] Drilling bullets not selected in ActiveItemManager
+[12:55:29] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[12:55:29] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[12:55:29] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[12:55:29] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[12:55:29] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[12:55:29] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[12:55:29] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[12:55:29] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[12:55:29] [INFO] [Player.ItemVisual] Visual applied for item type: 6
+[12:55:29] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[12:55:29] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[12:55:29] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[12:55:29] [INFO] [Player.RecoilCompensator] Recoil compensator not selected in ActiveItemManager
+[12:55:29] [INFO] [Player.ExperimentalSample] Experimental sample not selected
+[12:55:29] [INFO] [Player.FineMotorSkills] Fine motor skills not selected in ActiveItemManager
+[12:55:29] [INFO] [Player.Dash] No dash selected in ActiveItemManager
+[12:55:29] [INFO] [Player.Jammer] JammerHUD initialized
+[12:55:29] [INFO] [Player.ItemPickup] Connected to ActiveItemManager.active_item_changed
+[12:55:29] [INFO] [Player] Ready! Ammo: 32/32, Grenades: 3/3, Health: 3/4
+[12:55:29] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[12:55:29] [INFO] [GameManager] set_player() called with: <CharacterBody2D#138328149145> (class: CharacterBody2D)
+[12:55:29] [INFO] [GameManager] set_player: player_alive reset to true (new player registered)
+[12:55:29] [INFO] [GameManager] set_player: has_signal('Died')=true, has_signal('died')=false
+[12:55:29] [INFO] [GameManager] Connected to player 'Died' signal (C# naming)
+[12:55:29] [INFO] [GameManager] set_player: initial collision_layer=1 (poll expects 0 on death)
+[12:55:29] [INFO] [CinemaEffects] Found player node: Player
+[12:55:29] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[12:55:29] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[12:55:29] [INFO] [Player] Detecting weapon pose (frame 3)...
+[12:55:29] [INFO] [Player] Detected weapon: Mini UZI (SMG pose)
+[12:55:29] [INFO] [Player] Applied SMG arm pose: Left=(14, 6), Right=(1, 6)
+[12:55:29] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[12:55:29] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[12:55:29] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[12:55:29] [INFO] [LastChance] Found player: Player
+[12:55:29] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[12:55:29] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[12:55:29] [INFO] [LastChance] Connected to player Died signal (C#)
+[12:55:29] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[12:55:29] [INFO] [ReplayManager] Recording frame 240 (4,1s): player_valid=False, enemies=5
+[12:55:30] [INFO] [ReplayManager] Recording frame 300 (5,1s): player_valid=False, enemies=5
+[12:55:31] [INFO] [ReplayManager] Recording frame 360 (6,1s): player_valid=False, enemies=5
+[12:55:32] [INFO] [ReplayManager] Recording frame 420 (7,1s): player_valid=False, enemies=5
+[12:55:33] [INFO] [ReplayManager] Recording frame 480 (8,1s): player_valid=False, enemies=5
+[12:55:34] [INFO] [ReplayManager] Recording frame 540 (9,1s): player_valid=False, enemies=5
+[12:55:35] [INFO] [ExperimentalSettings] Selected enemy type index set to 16
+[12:55:35] [INFO] [ReplayManager] Recording frame 600 (10,1s): player_valid=False, enemies=5
+[12:55:36] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:55:36] [INFO] [BloodyFeet:EnemyDroneOperator] Footprint scene loaded
+[12:55:36] [INFO] [BloodyFeet:EnemyDroneOperator] Found EnemyModel for facing direction
+[12:55:36] [INFO] [BloodyFeet:EnemyDroneOperator] BloodyFeetComponent ready on EnemyDroneOperator
+[12:55:36] [ENEMY] [EnemyDroneOperator] Death animation component initialized
+[12:55:36] [INFO] [DroneOperator] VR headset visual created
+[12:55:36] [INFO] [DroneOperator] Tablet visual created
+[12:55:36] [INFO] [DroneOperator] Setup complete (dash_charges=4, cooldown=1.2s)
+[12:55:36] [ENEMY] [EnemyDroneOperator] Found cover at (436.7484, 467.7144) (distance: 138.3, player at (150, 360))
+[12:55:36] [INFO] [ExperimentalMenu] Enemy spawner: spawned 'Drone Operator' at (350, 360)
+[12:55:36] [INFO] [BloodyFeet:EnemyDroneOperator] Blood detector created and attached to EnemyDroneOperator
+[12:55:36] [INFO] [SoundPropagation] Registered listener: EnemyDroneOperator (total: 1)
+[12:55:36] [ENEMY] [EnemyDroneOperator] Registered as sound listener
+[12:55:36] [ENEMY] [EnemyDroneOperator] Spawned at (350, 360), hp: 2, behavior: GUARD
+[12:55:36] [INFO] [ReplayManager] Recording frame 660 (11,1s): player_valid=False, enemies=5
+[12:55:37] [INFO] [ReplayManager] Recording frame 720 (12,1s): player_valid=False, enemies=5
+[12:55:38] [INFO] [ReplayManager] Recording frame 780 (13,1s): player_valid=False, enemies=5
+[12:55:39] [INFO] [ReplayManager] Recording frame 840 (14,1s): player_valid=False, enemies=5
+[12:55:40] [INFO] [ReplayManager] Recording frame 900 (15,1s): player_valid=False, enemies=5
+[12:55:41] [INFO] [ReplayManager] Recording frame 960 (16,1s): player_valid=False, enemies=5
+[12:55:42] [INFO] [PerformanceSettings] AI enabled
+[12:55:42] [INFO] [ReplayManager] Recording frame 1020 (17,1s): player_valid=False, enemies=5
+[12:55:43] [INFO] [EnemyPathMonitor] diag: overlay.visible=true, paths=1, enemies=11, draw_node=true, draw_count=183
+[12:55:43] [INFO] [ReplayManager] Recording frame 1080 (18,1s): player_valid=False, enemies=5
+[12:55:44] [INFO] [ReplayManager] Recording frame 1140 (19,1s): player_valid=False, enemies=5
+[12:55:44] [INFO] [DroneOperator] Reached cover, deploying drone in 0.5s
+[12:55:45] [INFO] [DroneOperator] Drone deployed at (363, 357)
+[12:55:45] [INFO] [DroneOperator] Phase: CONTROLLING (defenseless)
+[12:55:45] [INFO] [ReplayManager] Recording frame 1200 (20,1s): player_valid=False, enemies=5
+[12:55:46] [INFO] [ReplayManager] Recording frame 1260 (21,1s): player_valid=False, enemies=5
+[12:55:47] [INFO] [ReplayManager] Recording frame 1320 (22,1s): player_valid=False, enemies=5
+[12:55:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(442.6298, 360.97), source=PLAYER (MiniUzi), range=800, listeners=1
+[12:55:47] [ENEMY] [EnemyDroneOperator] Heard gunshot at (442.6298, 360.97), intensity=0.33, distance=87
+[12:55:47] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0
+[12:55:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(442.6298, 366.6366), source=PLAYER (MiniUzi), range=800, listeners=1
+[12:55:47] [ENEMY] [EnemyDroneOperator] Heard gunshot at (442.6298, 366.6366), intensity=0.35, distance=85
+[12:55:47] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0
+[12:55:48] [INFO] [ReplayManager] Recording frame 1380 (23,1s): player_valid=False, enemies=5
+[12:55:49] [INFO] [ReplayManager] Recording frame 1440 (24,1s): player_valid=False, enemies=5
+[12:55:49] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:55:49] [INFO] [BloodyFeet:@CharacterBody2D@930] Footprint scene loaded
+[12:55:49] [INFO] [BloodyFeet:@CharacterBody2D@930] Found EnemyModel for facing direction
+[12:55:49] [INFO] [BloodyFeet:@CharacterBody2D@930] BloodyFeetComponent ready on @CharacterBody2D@930
+[12:55:49] [ENEMY] [@CharacterBody2D@930] Death animation component initialized
+[12:55:49] [INFO] [DroneOperator] VR headset visual created
+[12:55:49] [INFO] [DroneOperator] Tablet visual created
+[12:55:49] [INFO] [DroneOperator] Setup complete (dash_charges=4, cooldown=1.2s)
+[12:55:49] [ENEMY] [@CharacterBody2D@930] Found cover at (660.9954, 369.125) (distance: 9.1, player at (469.9996, 370.5255))
+[12:55:49] [INFO] [GameManager] F8 spawn: 'Drone Operator' at (669.9996, 370.5255)
+[12:55:49] [INFO] [BloodyFeet:@CharacterBody2D@930] Blood detector created and attached to @CharacterBody2D@930
+[12:55:49] [INFO] [SoundPropagation] Registered listener: @CharacterBody2D@930 (total: 2)
+[12:55:49] [ENEMY] [@CharacterBody2D@930] Registered as sound listener
+[12:55:49] [ENEMY] [@CharacterBody2D@930] Spawned at (669.9996, 370.5255), hp: 3, behavior: GUARD
+[12:55:50] [INFO] [DroneOperator] Reached cover, deploying drone in 0.5s
+[12:55:50] [INFO] [ReplayManager] Recording frame 1500 (25,1s): player_valid=False, enemies=5
+[12:55:50] [INFO] [DroneOperator] Drone deployed at (669, 330)
+[12:55:50] [INFO] [DroneOperator] Phase: CONTROLLING (defenseless)
+[12:55:51] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(452.4843, 405.2713), source=NEUTRAL (null), range=900, listeners=2
+[12:55:51] [ENEMY] [EnemyDroneOperator] Heard CASING_KICK at (452.4843, 405.2713), intensity=0.31, dist=89
+[12:55:51] [ENEMY] [@CharacterBody2D@930] Heard CASING_KICK at (452.4843, 405.2713), intensity=0.05, dist=220
+[12:55:51] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0
+[12:55:51] [INFO] [ReplayManager] Recording frame 1560 (26,1s): player_valid=False, enemies=5
+[12:55:52] [INFO] [ReplayManager] Recording frame 1620 (27,1s): player_valid=False, enemies=5
+[12:55:53] [INFO] [ReplayManager] Recording frame 1680 (28,1s): player_valid=False, enemies=5
+[12:55:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(571.9024, 438.1935), source=PLAYER (MiniUzi), range=800, listeners=2
+[12:55:54] [ENEMY] [EnemyDroneOperator] Heard gunshot at (571.9024, 438.1935), intensity=0.06, distance=212
+[12:55:54] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (571.9024, 438.1935), intensity=0.18, distance=119
+[12:55:54] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0
+[12:55:54] [ENEMY] [@CharacterBody2D@930] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:55:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(571.9024, 438.1935), source=PLAYER (MiniUzi), range=800, listeners=2
+[12:55:54] [ENEMY] [EnemyDroneOperator] Heard gunshot at (571.9024, 438.1935), intensity=0.06, distance=212
+[12:55:54] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (571.9024, 438.1935), intensity=0.18, distance=119
+[12:55:54] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0
+[12:55:54] [ENEMY] [@CharacterBody2D@930] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:55:54] [INFO] [ReplayManager] Recording frame 1740 (29,1s): player_valid=False, enemies=5
+[12:55:55] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(1741.936, 681.1837), source=PLAYER (Bullet9mm), range=500, listeners=2
+[12:55:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0
+[12:55:55] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(1755.755, 711.5462), source=PLAYER (@Area2D@1067), range=500, listeners=2
+[12:55:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0
+[12:55:55] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(574.0032, 486.1442), source=NEUTRAL (null), range=900, listeners=2
+[12:55:55] [ENEMY] [EnemyDroneOperator] Heard CASING_KICK at (574.0032, 486.1442), intensity=0.05, dist=228
+[12:55:55] [ENEMY] [@CharacterBody2D@930] Heard CASING_KICK at (574.0032, 486.1442), intensity=0.11, dist=150
+[12:55:55] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0
+[12:55:55] [INFO] [ReplayManager] Recording frame 1800 (30,1s): player_valid=False, enemies=5
+[12:55:56] [INFO] [ReplayManager] Recording frame 1860 (31,1s): player_valid=False, enemies=5
+[12:55:57] [INFO] [ReplayManager] Recording frame 1920 (32,1s): player_valid=False, enemies=5
+[12:55:58] [INFO] [ReplayManager] Recording frame 1980 (33,1s): player_valid=False, enemies=5
+[12:55:59] [INFO] [ReplayManager] Recording frame 2040 (34,1s): player_valid=False, enemies=5
+[12:56:00] [INFO] [ReplayManager] Recording frame 2100 (35,1s): player_valid=False, enemies=5
+[12:56:01] [INFO] [ReplayManager] Recording frame 2160 (36,1s): player_valid=False, enemies=5
+[12:56:01] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:56:01] [INFO] [BloodyFeet:@CharacterBody2D@1096] Footprint scene loaded
+[12:56:01] [INFO] [BloodyFeet:@CharacterBody2D@1096] Found EnemyModel for facing direction
+[12:56:01] [INFO] [BloodyFeet:@CharacterBody2D@1096] BloodyFeetComponent ready on @CharacterBody2D@1096
+[12:56:01] [ENEMY] [@CharacterBody2D@1096] Death animation component initialized
+[12:56:01] [INFO] [DroneOperator] VR headset visual created
+[12:56:01] [INFO] [DroneOperator] Tablet visual created
+[12:56:01] [INFO] [DroneOperator] Setup complete (dash_charges=4, cooldown=1.2s)
+[12:56:01] [ENEMY] [@CharacterBody2D@1096] Found cover at (1003.281, 913.2281) (distance: 495.3, player at (495.5843, 525.1356))
+[12:56:01] [INFO] [GameManager] F8 spawn: 'Drone Operator' at (695.5842, 525.1356)
+[12:56:01] [INFO] [BloodyFeet:@CharacterBody2D@1096] Blood detector created and attached to @CharacterBody2D@1096
+[12:56:01] [INFO] [SoundPropagation] Registered listener: @CharacterBody2D@1096 (total: 3)
+[12:56:01] [ENEMY] [@CharacterBody2D@1096] Registered as sound listener
+[12:56:01] [ENEMY] [@CharacterBody2D@1096] Spawned at (695.5842, 525.1356), hp: 2, behavior: GUARD
+[12:56:02] [INFO] [ReplayManager] Recording frame 2220 (37,1s): player_valid=False, enemies=5
+[12:56:02] [INFO] [EnemyPathMonitor] diag: overlay.visible=true, paths=2, enemies=15, draw_node=true, draw_count=1085
+[12:56:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(611.4935, 602.4502), source=NEUTRAL (null), range=900, listeners=3
+[12:56:03] [ENEMY] [EnemyDroneOperator] Heard CASING_KICK at (611.4935, 602.4502), intensity=0.02, dist=321
+[12:56:03] [ENEMY] [@CharacterBody2D@930] Heard CASING_KICK at (611.4935, 602.4502), intensity=0.04, dist=239
+[12:56:03] [ENEMY] [@CharacterBody2D@1096] Heard CASING_KICK at (611.4935, 602.4502), intensity=0.02, dist=374
+[12:56:03] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=0
+[12:56:03] [INFO] [ReplayManager] Recording frame 2280 (38,1s): player_valid=False, enemies=5
+[12:56:04] [INFO] [ReplayManager] Recording frame 2340 (39,1s): player_valid=False, enemies=5
+[12:56:04] [INFO] [DroneOperator] Cover seek timeout (3.0s) or state=2, deploying drone at current position
+[12:56:05] [INFO] [DroneOperator] Drone deployed at (939, 769)
+[12:56:05] [INFO] [DroneOperator] Phase: CONTROLLING (defenseless)
+[12:56:05] [INFO] [ReplayManager] Recording frame 2400 (40,1s): player_valid=False, enemies=5
+[12:56:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:56:05] [INFO] [BloodyFeet:@CharacterBody2D@1232] Footprint scene loaded
+[12:56:05] [INFO] [BloodyFeet:@CharacterBody2D@1232] Found EnemyModel for facing direction
+[12:56:05] [INFO] [BloodyFeet:@CharacterBody2D@1232] BloodyFeetComponent ready on @CharacterBody2D@1232
+[12:56:05] [ENEMY] [@CharacterBody2D@1232] Death animation component initialized
+[12:56:05] [INFO] [DroneOperator] VR headset visual created
+[12:56:05] [INFO] [DroneOperator] Tablet visual created
+[12:56:05] [INFO] [DroneOperator] Setup complete (dash_charges=4, cooldown=1.2s)
+[12:56:05] [ENEMY] [@CharacterBody2D@1232] Found cover at (1022.233, 811.4586) (distance: 151.0, player at (843.5921, 960.9102))
+[12:56:05] [INFO] [GameManager] F8 spawn: 'Drone Operator' at (1043.592, 960.9102)
+[12:56:05] [INFO] [BloodyFeet:@CharacterBody2D@1232] Blood detector created and attached to @CharacterBody2D@1232
+[12:56:05] [INFO] [SoundPropagation] Registered listener: @CharacterBody2D@1232 (total: 4)
+[12:56:05] [ENEMY] [@CharacterBody2D@1232] Registered as sound listener
+[12:56:05] [ENEMY] [@CharacterBody2D@1232] Spawned at (1043.592, 960.9102), hp: 3, behavior: GUARD
+[12:56:06] [INFO] [ReplayManager] Recording frame 2460 (41,1s): player_valid=False, enemies=5
+[12:56:06] [INFO] [EnemyPathMonitor] diag: overlay.visible=true, paths=3, enemies=17, draw_node=true, draw_count=1326
+[12:56:07] [INFO] [DroneOperator] Reached cover, deploying drone in 0.5s
+[12:56:07] [INFO] [ReplayManager] Recording frame 2520 (42,1s): player_valid=False, enemies=5
+[12:56:07] [INFO] [DroneOperator] Drone deployed at (983, 850)
+[12:56:07] [INFO] [DroneOperator] Phase: CONTROLLING (defenseless)
+[12:56:08] [INFO] [ReplayManager] Recording frame 2580 (43,1s): player_valid=False, enemies=5
+[12:56:09] [INFO] [ReplayManager] Recording frame 2640 (44,1s): player_valid=False, enemies=5
+[12:56:10] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(451.8643, 421.0264), source=NEUTRAL (null), range=900, listeners=4
+[12:56:10] [ENEMY] [EnemyDroneOperator] Heard CASING_KICK at (451.8643, 421.0264), intensity=0.30, dist=91
+[12:56:10] [ENEMY] [@CharacterBody2D@930] Heard CASING_KICK at (451.8643, 421.0264), intensity=0.05, dist=224
+[12:56:10] [ENEMY] [@CharacterBody2D@1096] Heard CASING_KICK at (451.8643, 421.0264), intensity=0.01, dist=623
+[12:56:10] [ENEMY] [@CharacterBody2D@1232] Heard CASING_KICK at (451.8643, 421.0264), intensity=0.00, dist=709
+[12:56:10] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:10] [INFO] [ReplayManager] Recording frame 2700 (45,1s): player_valid=False, enemies=5
+[12:56:10] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(401.5819, 442.7873), source=NEUTRAL (null), range=900, listeners=4
+[12:56:10] [ENEMY] [EnemyDroneOperator] Heard CASING_KICK at (401.5819, 442.7873), intensity=0.72, dist=59
+[12:56:10] [ENEMY] [@CharacterBody2D@930] Heard CASING_KICK at (401.5819, 442.7873), intensity=0.03, dist=278
+[12:56:10] [ENEMY] [@CharacterBody2D@1096] Heard CASING_KICK at (401.5819, 442.7873), intensity=0.01, dist=651
+[12:56:10] [ENEMY] [@CharacterBody2D@1232] Heard CASING_KICK at (401.5819, 442.7873), intensity=0.00, dist=734
+[12:56:10] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:11] [INFO] [ReplayManager] Recording frame 2760 (46,1s): player_valid=False, enemies=5
+[12:56:12] [INFO] [ReplayManager] Recording frame 2820 (47,1s): player_valid=False, enemies=5
+[12:56:13] [INFO] [ReplayManager] Recording frame 2880 (48,1s): player_valid=False, enemies=5
+[12:56:14] [INFO] [ReplayManager] Recording frame 2940 (49,1s): player_valid=False, enemies=5
+[12:56:14] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:56:14] [INFO] [BloodyFeet:@CharacterBody2D@1370] Footprint scene loaded
+[12:56:14] [INFO] [BloodyFeet:@CharacterBody2D@1370] Found EnemyModel for facing direction
+[12:56:14] [INFO] [BloodyFeet:@CharacterBody2D@1370] BloodyFeetComponent ready on @CharacterBody2D@1370
+[12:56:14] [ENEMY] [@CharacterBody2D@1370] Death animation component initialized
+[12:56:14] [INFO] [DroneOperator] VR headset visual created
+[12:56:14] [INFO] [DroneOperator] Tablet visual created
+[12:56:14] [INFO] [DroneOperator] Setup complete (dash_charges=4, cooldown=1.2s)
+[12:56:14] [ENEMY] [@CharacterBody2D@1370] Found cover at (962.3667, 897.4833) (distance: 447.1, player at (593.6865, 483.4044))
+[12:56:14] [INFO] [GameManager] F8 spawn: 'Drone Operator' at (793.6865, 483.4044)
+[12:56:14] [INFO] [BloodyFeet:@CharacterBody2D@1370] Blood detector created and attached to @CharacterBody2D@1370
+[12:56:14] [INFO] [SoundPropagation] Registered listener: @CharacterBody2D@1370 (total: 5)
+[12:56:14] [ENEMY] [@CharacterBody2D@1370] Registered as sound listener
+[12:56:14] [ENEMY] [@CharacterBody2D@1370] Spawned at (793.6865, 483.4044), hp: 2, behavior: GUARD
+[12:56:15] [INFO] [ReplayManager] Recording frame 3000 (50,1s): player_valid=False, enemies=5
+[12:56:15] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:56:15] [INFO] [BloodyFeet:@CharacterBody2D@1505] Footprint scene loaded
+[12:56:15] [INFO] [BloodyFeet:@CharacterBody2D@1505] Found EnemyModel for facing direction
+[12:56:15] [INFO] [BloodyFeet:@CharacterBody2D@1505] BloodyFeetComponent ready on @CharacterBody2D@1505
+[12:56:15] [ENEMY] [@CharacterBody2D@1505] Death animation component initialized
+[12:56:15] [INFO] [DroneOperator] VR headset visual created
+[12:56:15] [INFO] [DroneOperator] Tablet visual created
+[12:56:15] [INFO] [DroneOperator] Setup complete (dash_charges=4, cooldown=1.2s)
+[12:56:15] [ENEMY] [@CharacterBody2D@1505] Found cover at (965.1938, 894.5419) (distance: 355.0, player at (593.6865, 583.7377))
+[12:56:15] [INFO] [GameManager] F8 spawn: 'Drone Operator' at (793.6865, 583.7377)
+[12:56:15] [INFO] [BloodyFeet:@CharacterBody2D@1505] Blood detector created and attached to @CharacterBody2D@1505
+[12:56:15] [INFO] [SoundPropagation] Registered listener: @CharacterBody2D@1505 (total: 6)
+[12:56:15] [ENEMY] [@CharacterBody2D@1505] Registered as sound listener
+[12:56:15] [ENEMY] [@CharacterBody2D@1505] Spawned at (793.6865, 583.7377), hp: 2, behavior: GUARD
+[12:56:15] [INFO] [EnemyPathMonitor] diag: overlay.visible=true, paths=5, enemies=20, draw_node=true, draw_count=1867
+[12:56:16] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:56:16] [INFO] [BloodyFeet:@CharacterBody2D@1640] Footprint scene loaded
+[12:56:16] [INFO] [BloodyFeet:@CharacterBody2D@1640] Found EnemyModel for facing direction
+[12:56:16] [INFO] [BloodyFeet:@CharacterBody2D@1640] BloodyFeetComponent ready on @CharacterBody2D@1640
+[12:56:16] [ENEMY] [@CharacterBody2D@1640] Death animation component initialized
+[12:56:16] [INFO] [DroneOperator] VR headset visual created
+[12:56:16] [INFO] [DroneOperator] Tablet visual created
+[12:56:16] [INFO] [DroneOperator] Setup complete (dash_charges=4, cooldown=1.2s)
+[12:56:16] [ENEMY] [@CharacterBody2D@1640] Found cover at (1024.719, 880.9877) (distance: 263.5, player at (593.6865, 754.2377))
+[12:56:16] [INFO] [GameManager] F8 spawn: 'Drone Operator' at (793.6865, 754.2377)
+[12:56:16] [INFO] [BloodyFeet:@CharacterBody2D@1640] Blood detector created and attached to @CharacterBody2D@1640
+[12:56:16] [INFO] [SoundPropagation] Registered listener: @CharacterBody2D@1640 (total: 7)
+[12:56:16] [ENEMY] [@CharacterBody2D@1640] Registered as sound listener
+[12:56:16] [ENEMY] [@CharacterBody2D@1640] Spawned at (793.6865, 754.2377), hp: 3, behavior: GUARD
+[12:56:16] [INFO] [ReplayManager] Recording frame 3060 (51,1s): player_valid=False, enemies=5
+[12:56:16] [INFO] [EnemyPathMonitor] diag: overlay.visible=true, paths=6, enemies=21, draw_node=true, draw_count=1927
+[12:56:17] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:56:17] [INFO] [BloodyFeet:@CharacterBody2D@1775] Footprint scene loaded
+[12:56:17] [INFO] [BloodyFeet:@CharacterBody2D@1775] Found EnemyModel for facing direction
+[12:56:17] [INFO] [BloodyFeet:@CharacterBody2D@1775] BloodyFeetComponent ready on @CharacterBody2D@1775
+[12:56:17] [ENEMY] [@CharacterBody2D@1775] Death animation component initialized
+[12:56:17] [INFO] [DroneOperator] VR headset visual created
+[12:56:17] [INFO] [DroneOperator] Tablet visual created
+[12:56:17] [INFO] [DroneOperator] Setup complete (dash_charges=4, cooldown=1.2s)
+[12:56:17] [ENEMY] [@CharacterBody2D@1775] Found cover at (776.1588, 922.5004) (distance: 59.6, player at (600.1752, 867.9338))
+[12:56:17] [INFO] [GameManager] F8 spawn: 'Drone Operator' at (800.1752, 867.9338)
+[12:56:17] [INFO] [BloodyFeet:@CharacterBody2D@1775] Blood detector created and attached to @CharacterBody2D@1775
+[12:56:17] [INFO] [SoundPropagation] Registered listener: @CharacterBody2D@1775 (total: 8)
+[12:56:17] [ENEMY] [@CharacterBody2D@1775] Registered as sound listener
+[12:56:17] [ENEMY] [@CharacterBody2D@1775] Spawned at (800.1752, 867.9338), hp: 2, behavior: GUARD
+[12:56:17] [INFO] [DroneOperator] Reached cover, deploying drone in 0.5s
+[12:56:17] [INFO] [DroneOperator] Reached cover, deploying drone in 0.5s
+[12:56:17] [INFO] [ReplayManager] Recording frame 3120 (52,1s): player_valid=False, enemies=5
+[12:56:17] [INFO] [DroneOperator] Reached cover, deploying drone in 0.5s
+[12:56:17] [INFO] [EnemyPathMonitor] diag: overlay.visible=true, paths=7, enemies=22, draw_node=true, draw_count=1987
+[12:56:17] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:56:17] [INFO] [BloodyFeet:@CharacterBody2D@1910] Footprint scene loaded
+[12:56:17] [INFO] [BloodyFeet:@CharacterBody2D@1910] Found EnemyModel for facing direction
+[12:56:17] [INFO] [BloodyFeet:@CharacterBody2D@1910] BloodyFeetComponent ready on @CharacterBody2D@1910
+[12:56:17] [ENEMY] [@CharacterBody2D@1910] Death animation component initialized
+[12:56:17] [INFO] [DroneOperator] VR headset visual created
+[12:56:17] [INFO] [DroneOperator] Tablet visual created
+[12:56:17] [INFO] [DroneOperator] Setup complete (dash_charges=4, cooldown=1.2s)
+[12:56:17] [ENEMY] [@CharacterBody2D@1910] Found cover at (624.1681, 928.0844) (distance: 60.4, player at (430.1751, 867.9338))
+[12:56:17] [INFO] [GameManager] F8 spawn: 'Drone Operator' at (630.175, 867.9338)
+[12:56:17] [INFO] [BloodyFeet:@CharacterBody2D@1910] Blood detector created and attached to @CharacterBody2D@1910
+[12:56:17] [INFO] [SoundPropagation] Registered listener: @CharacterBody2D@1910 (total: 9)
+[12:56:17] [ENEMY] [@CharacterBody2D@1910] Registered as sound listener
+[12:56:17] [ENEMY] [@CharacterBody2D@1910] Spawned at (630.175, 867.9338), hp: 3, behavior: GUARD
+[12:56:17] [INFO] [DroneOperator] Drone deployed at (921, 1004)
+[12:56:17] [INFO] [DroneOperator] Phase: CONTROLLING (defenseless)
+[12:56:17] [INFO] [DroneOperator] Drone deployed at (780, 873)
+[12:56:17] [INFO] [DroneOperator] Phase: CONTROLLING (defenseless)
+[12:56:18] [INFO] [DroneOperator] Drone deployed at (901, 929)
+[12:56:18] [INFO] [DroneOperator] Phase: CONTROLLING (defenseless)
+[12:56:18] [INFO] [ReplayManager] Recording frame 3180 (53,1s): player_valid=False, enemies=5
+[12:56:18] [INFO] [DroneOperator] Cover seek timeout (3.0s) or state=2, deploying drone at current position
+[12:56:18] [INFO] [EnemyPathMonitor] diag: overlay.visible=true, paths=8, enemies=26, draw_node=true, draw_count=2050
+[12:56:19] [INFO] [DroneOperator] Drone deployed at (875, 804)
+[12:56:19] [INFO] [DroneOperator] Phase: CONTROLLING (defenseless)
+[12:56:19] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:56:19] [INFO] [BloodyFeet:@CharacterBody2D@2049] Footprint scene loaded
+[12:56:19] [INFO] [BloodyFeet:@CharacterBody2D@2049] Found EnemyModel for facing direction
+[12:56:19] [INFO] [BloodyFeet:@CharacterBody2D@2049] BloodyFeetComponent ready on @CharacterBody2D@2049
+[12:56:19] [ENEMY] [@CharacterBody2D@2049] Death animation component initialized
+[12:56:19] [INFO] [DroneOperator] VR headset visual created
+[12:56:19] [INFO] [DroneOperator] Tablet visual created
+[12:56:19] [INFO] [DroneOperator] Setup complete (dash_charges=4, cooldown=1.2s)
+[12:56:19] [ENEMY] [@CharacterBody2D@2049] Found cover at (658.6937, 941.3561) (distance: 216.9, player at (424.4321, 727.1686))
+[12:56:19] [INFO] [GameManager] F8 spawn: 'Drone Operator' at (624.4321, 727.1686)
+[12:56:19] [INFO] [BloodyFeet:@CharacterBody2D@2049] Blood detector created and attached to @CharacterBody2D@2049
+[12:56:19] [INFO] [SoundPropagation] Registered listener: @CharacterBody2D@2049 (total: 10)
+[12:56:19] [ENEMY] [@CharacterBody2D@2049] Registered as sound listener
+[12:56:19] [ENEMY] [@CharacterBody2D@2049] Spawned at (624.4321, 727.1686), hp: 2, behavior: GUARD
+[12:56:19] [INFO] [ReplayManager] Recording frame 3240 (54,1s): player_valid=False, enemies=5
+[12:56:19] [INFO] [EnemyPathMonitor] diag: overlay.visible=true, paths=9, enemies=28, draw_node=true, draw_count=2111
+[12:56:20] [INFO] [ReplayManager] Recording frame 3300 (55,1s): player_valid=False, enemies=5
+[12:56:20] [INFO] [DroneOperator] Reached cover, deploying drone in 0.5s
+[12:56:20] [INFO] [DroneOperator] Cover seek timeout (3.0s) or state=2, deploying drone at current position
+[12:56:21] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:56:21] [INFO] [BloodyFeet:@CharacterBody2D@2184] Footprint scene loaded
+[12:56:21] [INFO] [BloodyFeet:@CharacterBody2D@2184] Found EnemyModel for facing direction
+[12:56:21] [INFO] [BloodyFeet:@CharacterBody2D@2184] BloodyFeetComponent ready on @CharacterBody2D@2184
+[12:56:21] [ENEMY] [@CharacterBody2D@2184] Death animation component initialized
+[12:56:21] [INFO] [DroneOperator] VR headset visual created
+[12:56:21] [INFO] [DroneOperator] Tablet visual created
+[12:56:21] [INFO] [DroneOperator] Setup complete (dash_charges=4, cooldown=1.2s)
+[12:56:21] [ENEMY] [@CharacterBody2D@2184] Found cover at (613.6401, 861.4586) (distance: 164.0, player at (417.6913, 1025.39))
+[12:56:21] [INFO] [GameManager] F8 spawn: 'Drone Operator' at (617.6913, 1025.39)
+[12:56:21] [INFO] [BloodyFeet:@CharacterBody2D@2184] Blood detector created and attached to @CharacterBody2D@2184
+[12:56:21] [INFO] [SoundPropagation] Registered listener: @CharacterBody2D@2184 (total: 11)
+[12:56:21] [ENEMY] [@CharacterBody2D@2184] Registered as sound listener
+[12:56:21] [ENEMY] [@CharacterBody2D@2184] Spawned at (617.6913, 1025.39), hp: 3, behavior: GUARD
+[12:56:21] [INFO] [DroneOperator] Drone deployed at (702, 776)
+[12:56:21] [INFO] [DroneOperator] Phase: CONTROLLING (defenseless)
+[12:56:21] [INFO] [DroneOperator] Drone deployed at (594, 819)
+[12:56:21] [INFO] [DroneOperator] Phase: CONTROLLING (defenseless)
+[12:56:21] [INFO] [ReplayManager] Recording frame 3360 (56,1s): player_valid=False, enemies=5
+[12:56:21] [INFO] [EnemyPathMonitor] diag: overlay.visible=true, paths=10, enemies=31, draw_node=true, draw_count=2233
+[12:56:22] [INFO] [DroneOperator] Reached cover, deploying drone in 0.5s
+[12:56:22] [INFO] [ReplayManager] Recording frame 3420 (57,1s): player_valid=False, enemies=5
+[12:56:22] [INFO] [DroneOperator] Drone deployed at (479, 934)
+[12:56:22] [INFO] [DroneOperator] Phase: CONTROLLING (defenseless)
+[12:56:23] [INFO] [ReplayManager] Recording frame 3480 (58,1s): player_valid=False, enemies=5
+[12:56:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(634.3155, 703.2947), source=PLAYER (MiniUzi), range=800, listeners=11
+[12:56:24] [ENEMY] [EnemyDroneOperator] Heard gunshot at (634.3155, 703.2947), intensity=0.02, distance=408
+[12:56:24] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (634.3155, 703.2947), intensity=0.02, distance=335
+[12:56:24] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (634.3155, 703.2947), intensity=0.02, distance=323
+[12:56:24] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (634.3155, 703.2947), intensity=0.02, distance=396
+[12:56:24] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (634.3155, 703.2947), intensity=0.01, distance=446
+[12:56:24] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (634.3155, 703.2947), intensity=0.02, distance=377
+[12:56:24] [ENEMY] [@CharacterBody2D@1775] Heard gunshot at (634.3155, 703.2947), intensity=0.04, distance=256
+[12:56:24] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (634.3155, 703.2947), intensity=0.10, distance=162
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] Heard gunshot at (634.3155, 703.2947), intensity=0.14, distance=132
+[12:56:24] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (634.3155, 703.2947), intensity=0.03, distance=312
+[12:56:24] [INFO] [SoundPropagation] Sound result: notified=11, out_of_range=0, self=0
+[12:56:24] [INFO] [ReplayManager] Recording frame 3540 (59,1s): player_valid=False, enemies=5
+[12:56:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(636.7926, 717.1255), source=PLAYER (MiniUzi), range=800, listeners=11
+[12:56:24] [ENEMY] [EnemyDroneOperator] Heard gunshot at (636.7926, 717.1255), intensity=0.01, distance=420
+[12:56:24] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (636.7926, 717.1255), intensity=0.02, distance=348
+[12:56:24] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (636.7926, 717.1255), intensity=0.03, distance=316
+[12:56:24] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (636.7926, 717.1255), intensity=0.02, distance=387
+[12:56:24] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (636.7926, 717.1255), intensity=0.01, distance=434
+[12:56:24] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (636.7926, 717.1255), intensity=0.02, distance=366
+[12:56:24] [ENEMY] [@CharacterBody2D@1775] Heard gunshot at (636.7926, 717.1255), intensity=0.04, distance=243
+[12:56:24] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (636.7926, 717.1255), intensity=0.11, distance=149
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] Heard gunshot at (636.7926, 717.1255), intensity=0.18, distance=119
+[12:56:24] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (636.7926, 717.1255), intensity=0.03, distance=302
+[12:56:24] [INFO] [SoundPropagation] Sound result: notified=11, out_of_range=0, self=0
+[12:56:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(636.3977, 730.7316), source=PLAYER (MiniUzi), range=800, listeners=11
+[12:56:24] [ENEMY] [EnemyDroneOperator] Heard gunshot at (636.3977, 730.7316), intensity=0.01, distance=430
+[12:56:24] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (636.3977, 730.7316), intensity=0.02, distance=362
+[12:56:24] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (636.3977, 730.7316), intensity=0.03, distance=313
+[12:56:24] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (636.3977, 730.7316), intensity=0.02, distance=382
+[12:56:24] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (636.3977, 730.7316), intensity=0.01, distance=424
+[12:56:24] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (636.3977, 730.7316), intensity=0.02, distance=357
+[12:56:24] [ENEMY] [@CharacterBody2D@1775] Heard gunshot at (636.3977, 730.7316), intensity=0.05, distance=233
+[12:56:24] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (636.3977, 730.7316), intensity=0.14, distance=136
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] Heard gunshot at (636.3977, 730.7316), intensity=0.21, distance=108
+[12:56:24] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (636.3977, 730.7316), intensity=0.03, distance=290
+[12:56:24] [INFO] [SoundPropagation] Sound result: notified=11, out_of_range=0, self=0
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(633.5965, 742.5575), source=PLAYER (MiniUzi), range=800, listeners=11
+[12:56:24] [ENEMY] [EnemyDroneOperator] Heard gunshot at (633.5965, 742.5575), intensity=0.01, distance=438
+[12:56:24] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (633.5965, 742.5575), intensity=0.02, distance=374
+[12:56:24] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (633.5965, 742.5575), intensity=0.03, distance=313
+[12:56:24] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (633.5965, 742.5575), intensity=0.02, distance=380
+[12:56:24] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (633.5965, 742.5575), intensity=0.01, distance=417
+[12:56:24] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (633.5965, 742.5575), intensity=0.02, distance=351
+[12:56:24] [ENEMY] [@CharacterBody2D@1775] Heard gunshot at (633.5965, 742.5575), intensity=0.05, distance=225
+[12:56:24] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (633.5965, 742.5575), intensity=0.16, distance=124
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] Heard gunshot at (633.5965, 742.5575), intensity=0.25, distance=101
+[12:56:24] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (633.5965, 742.5575), intensity=0.03, distance=279
+[12:56:24] [INFO] [SoundPropagation] Sound result: notified=11, out_of_range=0, self=0
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:24] [ENEMY] [@CharacterBody2D@1910] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(629.7206, 751.3096), source=PLAYER (MiniUzi), range=800, listeners=11
+[12:56:24] [ENEMY] [EnemyDroneOperator] Heard gunshot at (629.7206, 751.3096), intensity=0.01, distance=442
+[12:56:24] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (629.7206, 751.3096), intensity=0.02, distance=383
+[12:56:24] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (629.7206, 751.3096), intensity=0.03, distance=315
+[12:56:24] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (629.7206, 751.3096), intensity=0.02, distance=380
+[12:56:24] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (629.7206, 751.3096), intensity=0.01, distance=413
+[12:56:24] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (629.7206, 751.3096), intensity=0.02, distance=349
+[12:56:24] [ENEMY] [@CharacterBody2D@1775] Heard gunshot at (629.7206, 751.3096), intensity=0.05, distance=221
+[12:56:24] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (629.7206, 751.3096), intensity=0.19, distance=114
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] Heard gunshot at (629.7206, 751.3096), intensity=0.26, distance=98
+[12:56:24] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (629.7206, 751.3096), intensity=0.03, distance=269
+[12:56:24] [INFO] [SoundPropagation] Sound result: notified=11, out_of_range=0, self=0
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:24] [ENEMY] [@CharacterBody2D@1910] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:24] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(672.2204, 833.7124), source=PLAYER (Bullet9mm), range=500, listeners=11
+[12:56:24] [INFO] [SoundPropagation] Sound result: notified=10, out_of_range=1, self=0
+[12:56:24] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(652.6393, 747.2726), source=NEUTRAL (null), range=900, listeners=11
+[12:56:24] [ENEMY] [EnemyDroneOperator] Heard CASING_KICK at (652.6393, 747.2726), intensity=0.01, dist=453
+[12:56:24] [ENEMY] [@CharacterBody2D@930] Heard CASING_KICK at (652.6393, 747.2726), intensity=0.02, dist=377
+[12:56:24] [ENEMY] [@CharacterBody2D@1096] Heard CASING_KICK at (652.6393, 747.2726), intensity=0.03, dist=293
+[12:56:24] [ENEMY] [@CharacterBody2D@1232] Heard CASING_KICK at (652.6393, 747.2726), intensity=0.02, dist=360
+[12:56:24] [ENEMY] [@CharacterBody2D@1370] Heard CASING_KICK at (652.6393, 747.2726), intensity=0.02, dist=401
+[12:56:24] [ENEMY] [@CharacterBody2D@1505] Heard CASING_KICK at (652.6393, 747.2726), intensity=0.04, dist=243
+[12:56:24] [ENEMY] [@CharacterBody2D@1640] Heard CASING_KICK at (652.6393, 747.2726), intensity=0.02, dist=334
+[12:56:24] [ENEMY] [@CharacterBody2D@1775] Heard CASING_KICK at (652.6393, 747.2726), intensity=0.06, dist=210
+[12:56:24] [ENEMY] [@CharacterBody2D@1910] Heard CASING_KICK at (652.6393, 747.2726), intensity=0.16, dist=127
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] Heard CASING_KICK at (652.6393, 747.2726), intensity=0.34, dist=85
+[12:56:24] [ENEMY] [@CharacterBody2D@2184] Heard CASING_KICK at (652.6393, 747.2726), intensity=0.03, dist=286
+[12:56:24] [INFO] [SoundPropagation] Sound result: notified=11, out_of_range=0, self=0
+[12:56:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(624.4447, 758.7476), source=PLAYER (MiniUzi), range=800, listeners=11
+[12:56:24] [ENEMY] [EnemyDroneOperator] Heard gunshot at (624.4447, 758.7476), intensity=0.01, distance=445
+[12:56:24] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (624.4447, 758.7476), intensity=0.02, distance=391
+[12:56:24] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (624.4447, 758.7476), intensity=0.02, distance=319
+[12:56:24] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (624.4447, 758.7476), intensity=0.02, distance=382
+[12:56:24] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (624.4447, 758.7476), intensity=0.01, distance=412
+[12:56:24] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (624.4447, 758.7476), intensity=0.02, distance=348
+[12:56:24] [ENEMY] [@CharacterBody2D@1775] Heard gunshot at (624.4447, 758.7476), intensity=0.05, distance=220
+[12:56:24] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (624.4447, 758.7476), intensity=0.22, distance=106
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] Heard gunshot at (624.4447, 758.7476), intensity=0.27, distance=97
+[12:56:24] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (624.4447, 758.7476), intensity=0.04, distance=260
+[12:56:24] [INFO] [SoundPropagation] Sound result: notified=11, out_of_range=0, self=0
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:24] [ENEMY] [@CharacterBody2D@1910] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:24] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(674.9516, 839.373), source=PLAYER (@Area2D@2331), range=500, listeners=11
+[12:56:24] [INFO] [SoundPropagation] Sound result: notified=10, out_of_range=1, self=0
+[12:56:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(617.7689, 764.8716), source=PLAYER (MiniUzi), range=800, listeners=11
+[12:56:24] [ENEMY] [EnemyDroneOperator] Heard gunshot at (617.7689, 764.8716), intensity=0.01, distance=446
+[12:56:24] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (617.7689, 764.8716), intensity=0.02, distance=398
+[12:56:24] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (617.7689, 764.8716), intensity=0.02, distance=324
+[12:56:24] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (617.7689, 764.8716), intensity=0.02, distance=386
+[12:56:24] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (617.7689, 764.8716), intensity=0.01, distance=413
+[12:56:24] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (617.7689, 764.8716), intensity=0.02, distance=350
+[12:56:24] [ENEMY] [@CharacterBody2D@1775] Heard gunshot at (617.7689, 764.8716), intensity=0.05, distance=220
+[12:56:24] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (617.7689, 764.8716), intensity=0.26, distance=98
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] Heard gunshot at (617.7689, 764.8716), intensity=0.25, distance=99
+[12:56:24] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (617.7689, 764.8716), intensity=0.04, distance=251
+[12:56:24] [INFO] [SoundPropagation] Sound result: notified=11, out_of_range=0, self=0
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:24] [ENEMY] [@CharacterBody2D@1910] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:24] [ENEMY] [@CharacterBody2D@1775] Hit: dmg=1, hp=2/2->1/2
+[12:56:24] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[12:56:24] [ENEMY] [@CharacterBody2D@1096] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:24] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(672.2222, 845.4557), source=PLAYER (Bullet9mm), range=500, listeners=11
+[12:56:24] [INFO] [SoundPropagation] Sound result: notified=10, out_of_range=1, self=0
+[12:56:24] [ENEMY] [@CharacterBody2D@930] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:24] [ENEMY] [@CharacterBody2D@1775] Hit: dmg=1, hp=1/2->0/2
+[12:56:24] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[12:56:24] [ENEMY] [@CharacterBody2D@1775] Enemy died (ricochet: false, penetration: false, player_kill: false)
+[12:56:24] [ENEMY] [@CharacterBody2D@1775] [AllyDeath] Notified 8 enemies
+[12:56:24] [INFO] [SoundPropagation] Unregistered listener: @CharacterBody2D@1775 (remaining: 10)
+[12:56:24] [INFO] [DeathAnim] Started - Angle: 37.8 deg, Index: 14
+[12:56:24] [ENEMY] [@CharacterBody2D@1775] Death animation started with hit direction: (0.790291, 0.612732)
+[12:56:24] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(661.3022, 835.5389), source=PLAYER (@Area2D@2347), range=500, listeners=10
+[12:56:24] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=1, self=0
+[12:56:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(607.4731, 770.5978), source=PLAYER (MiniUzi), range=800, listeners=10
+[12:56:24] [ENEMY] [EnemyDroneOperator] Heard gunshot at (607.4731, 770.5978), intensity=0.01, distance=445
+[12:56:24] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (607.4731, 770.5978), intensity=0.02, distance=405
+[12:56:24] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (607.4731, 770.5978), intensity=0.02, distance=334
+[12:56:24] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (607.4731, 770.5978), intensity=0.02, distance=394
+[12:56:24] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (607.4731, 770.5978), intensity=0.01, distance=416
+[12:56:24] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (607.4731, 770.5978), intensity=0.02, distance=355
+[12:56:24] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (607.4731, 770.5978), intensity=0.31, distance=90
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] Heard gunshot at (607.4731, 770.5978), intensity=0.23, distance=105
+[12:56:24] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (607.4731, 770.5978), intensity=0.04, distance=241
+[12:56:24] [INFO] [SoundPropagation] Sound result: notified=10, out_of_range=0, self=0
+[12:56:24] [ENEMY] [@CharacterBody2D@1910] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:24] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:24] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(656.7031, 837.4214), source=PLAYER (Bullet9mm), range=500, listeners=10
+[12:56:24] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=1, self=0
+[12:56:24] [ENEMY] [@CharacterBody2D@1640] Hit: dmg=1, hp=3/3->2/3
+[12:56:24] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[12:56:25] [ENEMY] [@CharacterBody2D@1370] Hit: dmg=1, hp=2/2->1/2
+[12:56:25] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (807.3752, 991.9616) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (798.5283, 969.9636) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (834.5745, 976.4186) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (802.6725, 974.4365) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (825.7145, 991.8269) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (835.1758, 972.5078) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (836.3259, 1002.124) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (818.073, 968.0234) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (803.3638, 1010.005) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (827.9678, 971.1155) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (977.5452, 996.6013) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (839.5044, 1018.882) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (828.3542, 994.6669) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (815.4233, 987.7084) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (859.7664, 1010.185) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (960.7977, 1036.218) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (858.0703, 967.6867) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (808.6395, 999.9972) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (993.4218, 1026.536) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (825.9131, 1062.212) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (810.9932, 1008.491) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (1010.325, 1036.16) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (905.9547, 986.1338) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (956.3829, 1018.699) (added to group)
+[12:56:25] [INFO] [BloodyFeet:@CharacterBody2D@1640] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (887.1251, 1068.208) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (839.8638, 1059.689) (added to group)
+[12:56:25] [ENEMY] [@CharacterBody2D@1775] Ragdoll activated
+[12:56:25] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (853.3152, 1000.98) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (888.6716, 1008.019) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (855.0621, 997.9886) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (958.6044, 1075.035) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (844.9408, 1087.227) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (847.438, 1075.795) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (884.8467, 1010.822) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (863.1487, 1066.403) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (845.5601, 1013.98) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (982.8627, 1096.753) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (953.3427, 1104.78) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (836.3162, 1157.243) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (1024.857, 1081.736) (added to group)
+[12:56:25] [INFO] [ReplayManager] Recording frame 3600 (59,9s): player_valid=False, enemies=5
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (836.5757, 1074.689) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (882.6227, 1050.72) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (953.1067, 1109.845) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (983.1932, 1107.502) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (846.873, 1147.409) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (900.6144, 1098.956) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (876.8134, 1024.393) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (933.656, 1024.137) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (1068.694, 1092.434) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (978.7631, 1101.014) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (855.5303, 1117.47) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (925.4537, 1123.579) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (909.6567, 1097.401) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (960.6993, 1115.278) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (894.4719, 1031.751) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (997.9919, 1142.724) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (971.6599, 1162.42) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (1039.649, 1157.25) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (1025.084, 1149.314) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (906.5441, 1130.062) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (990.6829, 1083.409) (added to group)
+[12:56:25] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(1751.132, 755.1418), source=PLAYER (@Area2D@2326), range=500, listeners=10
+[12:56:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=10, self=0
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (916.2474, 1160.502) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (876.6018, 1131.216) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (988.6407, 1195.6) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (963.2388, 1191.492) (added to group)
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (1003.188, 1198.228) (added to group)
+[12:56:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.5473, 612.4025), source=PLAYER (MiniUzi), range=800, listeners=10
+[12:56:25] [ENEMY] [EnemyDroneOperator] Heard gunshot at (649.5473, 612.4025), intensity=0.02, distance=357
+[12:56:25] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (649.5473, 612.4025), intensity=0.04, distance=243
+[12:56:25] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (649.5473, 612.4025), intensity=0.02, distance=350
+[12:56:25] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (649.5473, 612.4025), intensity=0.01, distance=434
+[12:56:25] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (649.5473, 612.4025), intensity=0.01, distance=510
+[12:56:25] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (649.5473, 612.4025), intensity=0.01, distance=437
+[12:56:25] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (649.5473, 612.4025), intensity=0.04, distance=254
+[12:56:25] [ENEMY] [@CharacterBody2D@2049] Heard gunshot at (649.5473, 612.4025), intensity=0.06, distance=211
+[12:56:25] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (649.5473, 612.4025), intensity=0.02, distance=400
+[12:56:25] [INFO] [SoundPropagation] Sound result: notified=10, out_of_range=0, self=0
+[12:56:25] [INFO] [BloodDecal] Blood puddle created at (1012.09, 1186.284) (added to group)
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(661.4011, 599.7125), source=PLAYER (MiniUzi), range=800, listeners=10
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (661.4011, 599.7125), intensity=0.02, distance=360
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (661.4011, 599.7125), intensity=0.05, distance=229
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (661.4011, 599.7125), intensity=0.02, distance=348
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (661.4011, 599.7125), intensity=0.01, distance=434
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (661.4011, 599.7125), intensity=0.01, distance=515
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (661.4011, 599.7125), intensity=0.01, distance=441
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (661.4011, 599.7125), intensity=0.03, distance=269
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] Heard gunshot at (661.4011, 599.7125), intensity=0.05, distance=221
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (661.4011, 599.7125), intensity=0.01, distance=417
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=10, out_of_range=0, self=0
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(671.5201, 757.7511), source=PLAYER (Bullet9mm), range=500, listeners=10
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=10, out_of_range=0, self=0
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(670.2985, 585.798), source=PLAYER (MiniUzi), range=800, listeners=10
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (670.2985, 585.798), intensity=0.02, distance=360
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (670.2985, 585.798), intensity=0.05, distance=215
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (670.2985, 585.798), intensity=0.02, distance=350
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (670.2985, 585.798), intensity=0.01, distance=437
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (670.2985, 585.798), intensity=0.01, distance=523
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (670.2985, 585.798), intensity=0.01, distance=448
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (670.2985, 585.798), intensity=0.03, distance=284
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] Heard gunshot at (670.2985, 585.798), intensity=0.05, distance=233
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (670.2985, 585.798), intensity=0.01, distance=433
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=10, out_of_range=0, self=0
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] Hit: dmg=1, hp=2/2->1/2
+[12:56:26] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] Hit: dmg=1, hp=1/2->0/2
+[12:56:26] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] Enemy died (ricochet: false, penetration: false, player_kill: false)
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] [AllyDeath] Notified 8 enemies
+[12:56:26] [INFO] [SoundPropagation] Unregistered listener: @CharacterBody2D@2049 (remaining: 9)
+[12:56:26] [INFO] [DeathAnim] Started - Angle: 77.4 deg, Index: 17
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] Death animation started with hit direction: (0.21747, 0.976067)
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(675.9537, 571.217), source=PLAYER (MiniUzi), range=800, listeners=9
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (675.9537, 571.217), intensity=0.02, distance=357
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (675.9537, 571.217), intensity=0.06, distance=201
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (675.9537, 571.217), intensity=0.02, distance=355
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (675.9537, 571.217), intensity=0.01, distance=443
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (675.9537, 571.217), intensity=0.01, distance=533
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (675.9537, 571.217), intensity=0.01, distance=458
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (675.9537, 571.217), intensity=0.03, distance=300
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (675.9537, 571.217), intensity=0.01, distance=449
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(687.8921, 544.785), source=NEUTRAL (null), range=900, listeners=9
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard CASING_KICK at (687.8921, 544.785), intensity=0.02, dist=356
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard CASING_KICK at (687.8921, 544.785), intensity=0.08, dist=175
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard CASING_KICK at (687.8921, 544.785), intensity=0.02, dist=365
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard CASING_KICK at (687.8921, 544.785), intensity=0.01, dist=454
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard CASING_KICK at (687.8921, 544.785), intensity=0.01, dist=551
+[12:56:26] [ENEMY] [@CharacterBody2D@1505] Heard CASING_KICK at (687.8921, 544.785), intensity=0.02, dist=354
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard CASING_KICK at (687.8921, 544.785), intensity=0.01, dist=475
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard CASING_KICK at (687.8921, 544.785), intensity=0.02, dist=329
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard CASING_KICK at (687.8921, 544.785), intensity=0.01, dist=478
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(678.4309, 557.6044), source=PLAYER (MiniUzi), range=800, listeners=9
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (678.4309, 557.6044), intensity=0.02, distance=353
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (678.4309, 557.6044), intensity=0.07, distance=187
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (678.4309, 557.6044), intensity=0.02, distance=363
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (678.4309, 557.6044), intensity=0.01, distance=451
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (678.4309, 557.6044), intensity=0.01, distance=544
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (678.4309, 557.6044), intensity=0.01, distance=468
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (678.4309, 557.6044), intensity=0.03, distance=314
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (678.4309, 557.6044), intensity=0.01, distance=462
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(678.0829, 545.9072), source=PLAYER (MiniUzi), range=800, listeners=9
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (678.0829, 545.9072), intensity=0.02, distance=348
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (678.0829, 545.9072), intensity=0.08, distance=176
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (678.0829, 545.9072), intensity=0.02, distance=371
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (678.0829, 545.9072), intensity=0.01, distance=460
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (678.0829, 545.9072), intensity=0.01, distance=555
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (678.0829, 545.9072), intensity=0.01, distance=479
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (678.0829, 545.9072), intensity=0.02, distance=325
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (678.0829, 545.9072), intensity=0.01, distance=473
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(674.9097, 536.1256), source=PLAYER (MiniUzi), range=800, listeners=9
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (674.9097, 536.1256), intensity=0.02, distance=341
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (674.9097, 536.1256), intensity=0.09, distance=166
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (674.9097, 536.1256), intensity=0.02, distance=380
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (674.9097, 536.1256), intensity=0.01, distance=469
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (674.9097, 536.1256), intensity=0.01, distance=565
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (674.9097, 536.1256), intensity=0.01, distance=489
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (674.9097, 536.1256), intensity=0.02, distance=334
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (674.9097, 536.1256), intensity=0.01, distance=480
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(668.9113, 528.2595), source=PLAYER (MiniUzi), range=800, listeners=9
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (668.9113, 528.2595), intensity=0.02, distance=332
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (668.9113, 528.2595), intensity=0.10, distance=158
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (668.9113, 528.2595), intensity=0.02, distance=390
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (668.9113, 528.2595), intensity=0.01, distance=479
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (668.9113, 528.2595), intensity=0.01, distance=574
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (668.9113, 528.2595), intensity=0.01, distance=499
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (668.9113, 528.2595), intensity=0.02, distance=340
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (668.9113, 528.2595), intensity=0.01, distance=485
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (747.9006, 924.5282) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (709.8388, 931.1945) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (735.8802, 883.8622) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (714.6895, 872.8714) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (729.0743, 930.1067) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (717.3861, 908.3836) (added to group)
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(660.2264, 522.3992), source=PLAYER (MiniUzi), range=800, listeners=9
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (660.2264, 522.3992), intensity=0.02, distance=322
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (660.2264, 522.3992), intensity=0.11, distance=152
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (660.2264, 522.3992), intensity=0.02, distance=401
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (660.2264, 522.3992), intensity=0.01, distance=489
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (660.2264, 522.3992), intensity=0.01, distance=584
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (660.2264, 522.3992), intensity=0.01, distance=508
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (660.2264, 522.3992), intensity=0.02, distance=344
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (660.2264, 522.3992), intensity=0.01, distance=487
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[12:56:26] [INFO] [BloodyFeet:@CharacterBody2D@1775] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (749.8376, 939.7021) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (720.3661, 923.6656) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (719.1039, 932.037) (added to group)
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (716.2374, 896.7596) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (744.2783, 903.4534) (added to group)
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(650.5206, 519.6274), source=PLAYER (MiniUzi), range=800, listeners=9
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (650.5206, 519.6274), intensity=0.03, distance=312
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (650.5206, 519.6274), intensity=0.11, distance=150
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (650.5206, 519.6274), intensity=0.01, distance=409
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (650.5206, 519.6274), intensity=0.01, distance=498
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (650.5206, 519.6274), intensity=0.01, distance=590
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (650.5206, 519.6274), intensity=0.01, distance=515
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (650.5206, 519.6274), intensity=0.02, distance=345
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (650.5206, 519.6274), intensity=0.01, distance=486
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(674.4995, 836.885), source=PLAYER (Bullet9mm), range=500, listeners=9
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=8, out_of_range=1, self=0
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (722.4998, 901.9024) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (752.8145, 941.553) (added to group)
+[12:56:26] [INFO] [ReplayManager] Recording frame 3660 (60,7s): player_valid=False, enemies=5
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(640.2101, 520.2151), source=PLAYER (MiniUzi), range=800, listeners=9
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (640.2101, 520.2151), intensity=0.03, distance=302
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (640.2101, 520.2151), intensity=0.11, distance=153
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (640.2101, 520.2151), intensity=0.01, distance=416
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (640.2101, 520.2151), intensity=0.01, distance=504
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (640.2101, 520.2151), intensity=0.01, distance=595
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (640.2101, 520.2151), intensity=0.01, distance=520
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (640.2101, 520.2151), intensity=0.02, distance=343
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (640.2101, 520.2151), intensity=0.01, distance=482
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(660.533, 826.7704), source=PLAYER (@Area2D@2527), range=500, listeners=9
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=8, out_of_range=1, self=0
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(647.7177, 535.9088), source=NEUTRAL (null), range=900, listeners=9
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard CASING_KICK at (647.7177, 535.9088), intensity=0.03, dist=316
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard CASING_KICK at (647.7177, 535.9088), intensity=0.09, dist=167
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard CASING_KICK at (647.7177, 535.9088), intensity=0.02, dist=400
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard CASING_KICK at (647.7177, 535.9088), intensity=0.01, dist=488
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard CASING_KICK at (647.7177, 535.9088), intensity=0.01, dist=577
+[12:56:26] [ENEMY] [@CharacterBody2D@1505] Heard CASING_KICK at (647.7177, 535.9088), intensity=0.02, dist=384
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard CASING_KICK at (647.7177, 535.9088), intensity=0.01, dist=502
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard CASING_KICK at (647.7177, 535.9088), intensity=0.02, dist=328
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard CASING_KICK at (647.7177, 535.9088), intensity=0.01, dist=470
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (719.2055, 925.9094) (added to group)
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(629.2948, 524.1621), source=PLAYER (MiniUzi), range=800, listeners=9
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (629.2948, 524.1621), intensity=0.03, distance=294
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (629.2948, 524.1621), intensity=0.10, distance=159
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (629.2948, 524.1621), intensity=0.01, distance=421
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (629.2948, 524.1621), intensity=0.01, distance=509
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (629.2948, 524.1621), intensity=0.01, distance=596
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (629.2948, 524.1621), intensity=0.01, distance=522
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (629.2948, 524.1621), intensity=0.02, distance=338
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (629.2948, 524.1621), intensity=0.01, distance=475
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(657.9883, 835.0651), source=PLAYER (@Area2D@2530), range=500, listeners=9
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=8, out_of_range=1, self=0
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (698.2281, 1011.801) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (712.1285, 1017.086) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (753.8375, 946.384) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (767.7951, 980.4156) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (764.1498, 970.8237) (added to group)
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [ENEMY] [@CharacterBody2D@2049] Ragdoll activated
+[12:56:26] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (737.3022, 990.3685) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (711.4326, 979.8555) (added to group)
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(617.7748, 531.4685), source=PLAYER (MiniUzi), range=800, listeners=9
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (617.7748, 531.4685), intensity=0.03, distance=287
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (617.7748, 531.4685), intensity=0.09, distance=169
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (617.7748, 531.4685), intensity=0.01, distance=425
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (617.7748, 531.4685), intensity=0.01, distance=512
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (617.7748, 531.4685), intensity=0.01, distance=596
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (617.7748, 531.4685), intensity=0.01, distance=522
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (617.7748, 531.4685), intensity=0.02, distance=329
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (617.7748, 531.4685), intensity=0.01, distance=464
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(659.5765, 829.3981), source=PLAYER (@Area2D@2539), range=500, listeners=9
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=8, out_of_range=1, self=0
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(608.7379, 539.1527), source=PLAYER (MiniUzi), range=800, listeners=9
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (608.7379, 539.1527), intensity=0.03, distance=283
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (608.7379, 539.1527), intensity=0.08, distance=179
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (608.7379, 539.1527), intensity=0.01, distance=427
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (608.7379, 539.1527), intensity=0.01, distance=513
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (608.7379, 539.1527), intensity=0.01, distance=594
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (608.7379, 539.1527), intensity=0.01, distance=521
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (608.7379, 539.1527), intensity=0.02, distance=321
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (608.7379, 539.1527), intensity=0.01, distance=454
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[12:56:26] [ENEMY] [@CharacterBody2D@1775] Death animation completed
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (778.4307, 988.0632) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (784.3635, 1035.564) (added to group)
+[12:56:26] [ENEMY] [@CharacterBody2D@1505] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(824.697, 791.6412), source=PLAYER (@Area2D@2547), range=500, listeners=9
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=8, out_of_range=1, self=0
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (802.3126, 1059.671) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (756.393, 965.3358) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (710.515, 1038.339) (added to group)
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(596.3162, 551.4678), source=PLAYER (MiniUzi), range=800, listeners=9
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (596.3162, 551.4678), intensity=0.03, distance=279
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (596.3162, 551.4678), intensity=0.07, distance=195
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (596.3162, 551.4678), intensity=0.01, distance=429
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (596.3162, 551.4678), intensity=0.01, distance=514
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (596.3162, 551.4678), intensity=0.01, distance=590
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (596.3162, 551.4678), intensity=0.01, distance=518
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (596.3162, 551.4678), intensity=0.03, distance=308
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (596.3162, 551.4678), intensity=0.01, distance=439
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[12:56:26] [ENEMY] [@CharacterBody2D@1505] Hit: dmg=1, hp=2/2->1/2
+[12:56:26] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[12:56:26] [ENEMY] [@CharacterBody2D@1505] [#910] Hit triggered COMBAT from SEEKING_COVER
+[12:56:26] [ENEMY] [@CharacterBody2D@1505] Hit: dmg=1, hp=1/2->0/2
+[12:56:26] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[12:56:26] [ENEMY] [@CharacterBody2D@1505] Enemy died (ricochet: false, penetration: false, player_kill: false)
+[12:56:26] [ENEMY] [@CharacterBody2D@1505] [AllyDeath] Notified 6 enemies
+[12:56:26] [INFO] [SoundPropagation] Unregistered listener: @CharacterBody2D@1505 (remaining: 8)
+[12:56:26] [INFO] [DeathAnim] Started - Angle: 44.0 deg, Index: 14
+[12:56:26] [ENEMY] [@CharacterBody2D@1505] Death animation started with hit direction: (0.719857, 0.694122)
+[12:56:26] [ENEMY] [@CharacterBody2D@1505] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(583.8712, 563.9129), source=PLAYER (MiniUzi), range=800, listeners=8
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (583.8712, 563.9129), intensity=0.03, distance=276
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (583.8712, 563.9129), intensity=0.06, distance=212
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (583.8712, 563.9129), intensity=0.01, distance=432
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (583.8712, 563.9129), intensity=0.01, distance=516
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (583.8712, 563.9129), intensity=0.01, distance=587
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Heard gunshot at (583.8712, 563.9129), intensity=0.01, distance=515
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (583.8712, 563.9129), intensity=0.03, distance=296
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (583.8712, 563.9129), intensity=0.01, distance=424
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=8, out_of_range=0, self=0
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (816.6125, 1094.537) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (768.2767, 1057.105) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (742.6389, 1060.625) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (699.0146, 1089.755) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (732.0271, 1045.409) (added to group)
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (711.2706, 1056.861) (added to group)
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Hit: dmg=1, hp=2/3->1/3
+[12:56:26] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Hit: dmg=1, hp=1/3->0/3
+[12:56:26] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Enemy died (ricochet: false, penetration: false, player_kill: false)
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] [AllyDeath] Notified 5 enemies
+[12:56:26] [INFO] [SoundPropagation] Unregistered listener: @CharacterBody2D@1640 (remaining: 7)
+[12:56:26] [INFO] [DeathAnim] Started - Angle: 73.9 deg, Index: 16
+[12:56:26] [ENEMY] [@CharacterBody2D@1640] Death animation started with hit direction: (0.277643, 0.960684)
+[12:56:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(572.525, 576.6294), source=PLAYER (MiniUzi), range=800, listeners=7
+[12:56:26] [ENEMY] [EnemyDroneOperator] Heard gunshot at (572.525, 576.6294), intensity=0.03, distance=275
+[12:56:26] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (572.525, 576.6294), intensity=0.05, distance=228
+[12:56:26] [ENEMY] [@CharacterBody2D@1096] Heard gunshot at (572.525, 576.6294), intensity=0.01, distance=434
+[12:56:26] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (572.525, 576.6294), intensity=0.01, distance=517
+[12:56:26] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (572.525, 576.6294), intensity=0.01, distance=583
+[12:56:26] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (572.525, 576.6294), intensity=0.03, distance=284
+[12:56:26] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (572.525, 576.6294), intensity=0.01, distance=409
+[12:56:26] [INFO] [SoundPropagation] Sound result: notified=7, out_of_range=0, self=0
+[12:56:26] [INFO] [BloodDecal] Blood puddle created at (763.5018, 1106.839) (added to group)
+[12:56:27] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:27] [ENEMY] [@CharacterBody2D@1096] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:27] [ENEMY] [@CharacterBody2D@1505] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:27] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(582.8771, 585.1559), source=NEUTRAL (null), range=900, listeners=7
+[12:56:27] [ENEMY] [EnemyDroneOperator] Heard CASING_KICK at (582.8771, 585.1559), intensity=0.03, dist=288
+[12:56:27] [ENEMY] [@CharacterBody2D@930] Heard CASING_KICK at (582.8771, 585.1559), intensity=0.05, dist=232
+[12:56:27] [ENEMY] [@CharacterBody2D@1096] Heard CASING_KICK at (582.8771, 585.1559), intensity=0.01, dist=421
+[12:56:27] [ENEMY] [@CharacterBody2D@1232] Heard CASING_KICK at (582.8771, 585.1559), intensity=0.01, dist=503
+[12:56:27] [ENEMY] [@CharacterBody2D@1370] Heard CASING_KICK at (582.8771, 585.1559), intensity=0.01, dist=570
+[12:56:27] [ENEMY] [@CharacterBody2D@1910] Heard CASING_KICK at (582.8771, 585.1559), intensity=0.03, dist=275
+[12:56:27] [ENEMY] [@CharacterBody2D@2184] Heard CASING_KICK at (582.8771, 585.1559), intensity=0.02, dist=403
+[12:56:27] [INFO] [SoundPropagation] Sound result: notified=7, out_of_range=0, self=0
+[12:56:27] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(891.7303, 757.2409), source=PLAYER (@Area2D@2587), range=500, listeners=7
+[12:56:27] [INFO] [SoundPropagation] Sound result: notified=6, out_of_range=1, self=0
+[12:56:27] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:27] [ENEMY] [@CharacterBody2D@1505] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:27] [ENEMY] [@CharacterBody2D@1096] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:27] [ENEMY] [@CharacterBody2D@1096] Hit: dmg=1, hp=2/2->1/2
+[12:56:27] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (957.5541, 833) (added to group)
+[12:56:27] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(884.9252, 762.1896), source=PLAYER (@Area2D@2595), range=500, listeners=7
+[12:56:27] [INFO] [SoundPropagation] Sound result: notified=6, out_of_range=1, self=0
+[12:56:27] [ENEMY] [@CharacterBody2D@1096] Hit: dmg=1, hp=1/2->0/2
+[12:56:27] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (950.3677, 833) (added to group)
+[12:56:27] [ENEMY] [@CharacterBody2D@1096] Enemy died (ricochet: false, penetration: false, player_kill: false)
+[12:56:27] [ENEMY] [@CharacterBody2D@1096] [AllyDeath] Notified 4 enemies
+[12:56:27] [INFO] [SoundPropagation] Unregistered listener: @CharacterBody2D@1096 (remaining: 6)
+[12:56:27] [INFO] [DeathAnim] Started - Angle: 64.8 deg, Index: 16
+[12:56:27] [ENEMY] [@CharacterBody2D@1096] Death animation started with hit direction: (0.426027, 0.904711)
+[12:56:27] [INFO] [BloodyFeet:@CharacterBody2D@1096] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[12:56:27] [ENEMY] [@CharacterBody2D@2049] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:27] [ENEMY] [@CharacterBody2D@1775] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:27] [ENEMY] [@CharacterBody2D@1505] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (911.5667, 922.0579) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (935.5678, 925.6942) (added to group)
+[12:56:27] [ENEMY] [@CharacterBody2D@1640] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:27] [ENEMY] [@CharacterBody2D@1775] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (906.6866, 951.9547) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (907.2186, 935.5385) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (905.9588, 912.7386) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (928.8817, 901.994) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (921.6502, 1036.511) (added to group)
+[12:56:27] [INFO] [BloodyFeet:@CharacterBody2D@1370] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (930.285, 944.2525) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (939.804, 937.098) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (938.9978, 983.9601) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (913.2199, 1040.807) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (913.9509, 1077.109) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (949.8294, 1064.037) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (896.6502, 1066.088) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (893.9814, 1088.357) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (929.1441, 1025.798) (added to group)
+[12:56:27] [ENEMY] [@CharacterBody2D@1370] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (938.2276, 952.3425) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (932.7925, 1050.675) (added to group)
+[12:56:27] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(906.9981, 1001.673), source=PLAYER (@Area2D@2609), range=500, listeners=6
+[12:56:27] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (925.9951, 978.5801) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (963.3283, 1052.497) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (962.7606, 1083.967) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (929.3642, 1049.019) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (893.1031, 1049.345) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (966.9376, 973.8041) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (915.8705, 996.2786) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (932.6779, 1085.578) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (942.0892, 1075.31) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (915.9885, 1120.075) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (973.5773, 940.5687) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (935.6503, 953.4172) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (949.0043, 994.4662) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (950.6235, 952.9448) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (937.7481, 1001.858) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (898.452, 1115.417) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (926.7901, 1094.15) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (950.2692, 1127.953) (added to group)
+[12:56:27] [ENEMY] [@CharacterBody2D@1505] Ragdoll activated
+[12:56:27] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (970.8533, 1034.94) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (962.9258, 1014.888) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (924.2089, 1088.634) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (935.4994, 1099.3) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (903.2452, 1092.546) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (939.6879, 1052.238) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (982.8526, 984.6177) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (994.7395, 1033.701) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (932.3274, 1082.238) (added to group)
+[12:56:27] [ENEMY] [@CharacterBody2D@1370] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:27] [INFO] [ReplayManager] Recording frame 3720 (61,5s): player_valid=False, enemies=5
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (947.1321, 1066.807) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (926.1126, 1095.698) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (917.9933, 1095.685) (added to group)
+[12:56:27] [ENEMY] [@CharacterBody2D@1640] Ragdoll activated
+[12:56:27] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (975.975, 1009.98) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (1010.482, 1052.447) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (986.9167, 1040.746) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (965.7035, 1128.596) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (921.8925, 1102.726) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (933.6538, 1142.417) (added to group)
+[12:56:27] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(863.6464, 1149.951), source=PLAYER (Bullet9mm), range=500, listeners=6
+[12:56:27] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (1019.978, 1164.466) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (915.3051, 1183.091) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (952.5211, 1054.712) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (995.2842, 1009.78) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (888.7333, 1168.778) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (954.0485, 1129.883) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (952.8982, 1161.928) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (1013.857, 1163.184) (added to group)
+[12:56:27] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(596.4977, 587.1702), source=NEUTRAL (null), range=900, listeners=6
+[12:56:27] [ENEMY] [EnemyDroneOperator] Heard CASING_KICK at (596.4977, 587.1702), intensity=0.03, dist=300
+[12:56:27] [ENEMY] [@CharacterBody2D@930] Heard CASING_KICK at (596.4977, 587.1702), intensity=0.05, dist=229
+[12:56:27] [ENEMY] [@CharacterBody2D@1232] Heard CASING_KICK at (596.4977, 587.1702), intensity=0.01, dist=491
+[12:56:27] [ENEMY] [@CharacterBody2D@1370] Heard CASING_KICK at (596.4977, 587.1702), intensity=0.01, dist=561
+[12:56:27] [ENEMY] [@CharacterBody2D@1910] Heard CASING_KICK at (596.4977, 587.1702), intensity=0.03, dist=273
+[12:56:27] [ENEMY] [@CharacterBody2D@2184] Heard CASING_KICK at (596.4977, 587.1702), intensity=0.02, dist=405
+[12:56:27] [INFO] [SoundPropagation] Sound result: notified=6, out_of_range=0, self=0
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (923.203, 1024.024) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (1016.463, 1017.052) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (917.0532, 1136.292) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (880.0897, 1159.777) (added to group)
+[12:56:27] [ENEMY] [@CharacterBody2D@1096] Ragdoll activated
+[12:56:27] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (924.5613, 1046.493) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (970.7792, 1058.887) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (935.4072, 1194.988) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (975.2518, 1137.987) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (993.7183, 1060.964) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (961.2722, 1119.444) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (992.814, 1177.177) (added to group)
+[12:56:27] [INFO] [BloodDecal] Blood puddle created at (888.8015, 1199.455) (added to group)
+[12:56:28] [ENEMY] [@CharacterBody2D@2049] Death animation completed
+[12:56:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(673.3224, 563.5309), source=PLAYER (MiniUzi), range=800, listeners=6
+[12:56:28] [ENEMY] [EnemyDroneOperator] Heard gunshot at (673.3224, 563.5309), intensity=0.02, distance=351
+[12:56:28] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (673.3224, 563.5309), intensity=0.07, distance=193
+[12:56:28] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (673.3224, 563.5309), intensity=0.01, distance=450
+[12:56:28] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (673.3224, 563.5309), intensity=0.01, distance=541
+[12:56:28] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (673.3224, 563.5309), intensity=0.03, distance=307
+[12:56:28] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (673.3224, 563.5309), intensity=0.01, distance=455
+[12:56:28] [INFO] [SoundPropagation] Sound result: notified=6, out_of_range=0, self=0
+[12:56:28] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(686.1938, 583.2029), source=NEUTRAL (null), range=900, listeners=6
+[12:56:28] [ENEMY] [EnemyDroneOperator] Heard CASING_KICK at (686.1938, 583.2029), intensity=0.02, dist=372
+[12:56:28] [ENEMY] [@CharacterBody2D@930] Heard CASING_KICK at (686.1938, 583.2029), intensity=0.05, dist=213
+[12:56:28] [ENEMY] [@CharacterBody2D@1232] Heard CASING_KICK at (686.1938, 583.2029), intensity=0.01, dist=427
+[12:56:28] [ENEMY] [@CharacterBody2D@1370] Heard CASING_KICK at (686.1938, 583.2029), intensity=0.01, dist=518
+[12:56:28] [ENEMY] [@CharacterBody2D@1910] Heard CASING_KICK at (686.1938, 583.2029), intensity=0.03, dist=292
+[12:56:28] [ENEMY] [@CharacterBody2D@2184] Heard CASING_KICK at (686.1938, 583.2029), intensity=0.01, dist=443
+[12:56:28] [INFO] [SoundPropagation] Sound result: notified=6, out_of_range=0, self=0
+[12:56:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(688.8608, 563.393), source=PLAYER (MiniUzi), range=800, listeners=6
+[12:56:28] [ENEMY] [EnemyDroneOperator] Heard gunshot at (688.8608, 563.393), intensity=0.02, distance=365
+[12:56:28] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (688.8608, 563.393), intensity=0.07, distance=194
+[12:56:28] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (688.8608, 563.393), intensity=0.01, distance=440
+[12:56:28] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (688.8608, 563.393), intensity=0.01, distance=534
+[12:56:28] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (688.8608, 563.393), intensity=0.03, distance=311
+[12:56:28] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (688.8608, 563.393), intensity=0.01, distance=462
+[12:56:28] [INFO] [SoundPropagation] Sound result: notified=6, out_of_range=0, self=0
+[12:56:28] [ENEMY] [@CharacterBody2D@930] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(702.3882, 565.9384), source=PLAYER (MiniUzi), range=800, listeners=6
+[12:56:28] [ENEMY] [EnemyDroneOperator] Heard gunshot at (702.3882, 565.9384), intensity=0.02, distance=378
+[12:56:28] [ENEMY] [@CharacterBody2D@930] Heard gunshot at (702.3882, 565.9384), intensity=0.06, distance=198
+[12:56:28] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (702.3882, 565.9384), intensity=0.01, distance=429
+[12:56:28] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (702.3882, 565.9384), intensity=0.01, distance=526
+[12:56:28] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (702.3882, 565.9384), intensity=0.03, distance=313
+[12:56:28] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (702.3882, 565.9384), intensity=0.01, distance=466
+[12:56:28] [INFO] [SoundPropagation] Sound result: notified=6, out_of_range=0, self=0
+[12:56:28] [ENEMY] [@CharacterBody2D@930] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:28] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(662.4169, 435.0898), source=PLAYER (@Area2D@2805), range=500, listeners=6
+[12:56:28] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0
+[12:56:28] [ENEMY] [@CharacterBody2D@930] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:28] [ENEMY] [@CharacterBody2D@930] Hit: dmg=1, hp=3/3->2/3
+[12:56:28] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[12:56:28] [ENEMY] [@CharacterBody2D@930] Hit: dmg=1, hp=2/3->1/3
+[12:56:28] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[12:56:28] [ENEMY] [@CharacterBody2D@930] Hit: dmg=1, hp=1/3->0/3
+[12:56:28] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[12:56:28] [ENEMY] [@CharacterBody2D@930] Enemy died (ricochet: false, penetration: false, player_kill: false)
+[12:56:28] [ENEMY] [@CharacterBody2D@930] [AllyDeath] Notified 2 enemies
+[12:56:28] [INFO] [SoundPropagation] Unregistered listener: @CharacterBody2D@930 (remaining: 5)
+[12:56:28] [INFO] [DeathAnim] Started - Angle: -95.1 deg, Index: 5
+[12:56:28] [ENEMY] [@CharacterBody2D@930] Death animation started with hit direction: (-0.088672, -0.996061)
+[12:56:28] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(579.4283, 122.413), source=PLAYER (Bullet9mm), range=500, listeners=5
+[12:56:28] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=4, self=0
+[12:56:28] [INFO] [ReplayManager] Recording frame 3780 (62,3s): player_valid=False, enemies=5
+[12:56:28] [ENEMY] [@CharacterBody2D@1096] Death animation completed
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (633.7091, 309.1362) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (670.0376, 340.6503) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (660.6946, 345.9016) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (639.1342, 302.1699) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (642.6861, 318.5192) (added to group)
+[12:56:28] [INFO] [BloodyFeet:@CharacterBody2D@930] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (660.152, 304.4887) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (630.9863, 330.9965) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (687.3313, 334.6229) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (651.1551, 309.6924) (added to group)
+[12:56:28] [INFO] [EnemyPathMonitor] diag: overlay.visible=true, paths=8, enemies=30, draw_node=true, draw_count=2534
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (638.2631, 336.8151) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (645.8289, 310.9551) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (695.4402, 293.6566) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (655.8377, 323.5545) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (678.585, 296.7788) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (708.4452, 304.64) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (671.9366, 331.212) (added to group)
+[12:56:28] [ENEMY] [@CharacterBody2D@1505] Death animation completed
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (738.8898, 303.748) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (620.1353, 322.6743) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (599.1453, 300.6006) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (640.3223, 354.6179) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (675.6091, 302.8087) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (688.3748, 329.6176) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (635.8627, 316.2979) (added to group)
+[12:56:28] [ENEMY] [@CharacterBody2D@930] Ragdoll activated
+[12:56:28] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (633.1255, 338.8167) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (664.2432, 324.2353) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (686.74, 274.4312) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (704.076, 287.0047) (added to group)
+[12:56:28] [ENEMY] [@CharacterBody2D@1640] Death animation completed
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (666.1121, 350.1736) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (654.9602, 286.6179) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (635.2133, 321.7484) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (654.2626, 332.7753) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (660.4836, 350.5383) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (583.4485, 281.3469) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (643.7669, 284.1709) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (682.597, 353.4326) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (651.5259, 279.702) (added to group)
+[12:56:28] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (618.053, 364.7954) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (616.9234, 292.2689) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (645.6096, 264.0329) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (670.3932, 311.9458) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (697.8959, 261.9325) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (706.0128, 347.1985) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (738.8152, 287.3433) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (610.4302, 323.5518) (added to group)
+[12:56:28] [INFO] [BloodDecal] Blood puddle created at (657.5068, 289.1841) (added to group)
+[12:56:29] [INFO] [BloodDecal] Blood puddle created at (648.5282, 331.9896) (added to group)
+[12:56:29] [INFO] [BloodDecal] Blood puddle created at (635.4626, 274.1282) (added to group)
+[12:56:29] [INFO] [BloodDecal] Blood puddle created at (691.8764, 274.0968) (added to group)
+[12:56:29] [INFO] [BloodDecal] Blood puddle created at (728.5884, 337.098) (added to group)
+[12:56:29] [INFO] [BloodDecal] Blood puddle created at (651.6611, 329.9442) (added to group)
+[12:56:29] [INFO] [BloodDecal] Blood puddle created at (668.7537, 361.0044) (added to group)
+[12:56:29] [INFO] [BloodDecal] Blood puddle created at (694.9863, 323.6961) (added to group)
+[12:56:29] [INFO] [BloodDecal] Blood puddle created at (712.8606, 327.6113) (added to group)
+[12:56:29] [INFO] [BloodDecal] Blood puddle created at (700.1201, 338.2685) (added to group)
+[12:56:29] [INFO] [BloodDecal] Blood puddle created at (568.7822, 272.7447) (added to group)
+[12:56:29] [INFO] [BloodDecal] Blood puddle created at (686.6002, 349.3867) (added to group)
+[12:56:29] [INFO] [BloodDecal] Blood puddle created at (667.8242, 366.4941) (added to group)
+[12:56:29] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+[12:56:29] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+[12:56:29] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(663.0018, 445.8273), source=PLAYER (MiniUzi), range=800, listeners=5
+[12:56:29] [ENEMY] [EnemyDroneOperator] Heard gunshot at (663.0018, 445.8273), intensity=0.03, distance=303
+[12:56:29] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (663.0018, 445.8273), intensity=0.01, distance=548
+[12:56:29] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (663.0018, 445.8273), intensity=0.01, distance=652
+[12:56:29] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (663.0018, 445.8273), intensity=0.01, distance=420
+[12:56:29] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (663.0018, 445.8273), intensity=0.01, distance=560
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=5, out_of_range=0, self=0
+[12:56:29] [ENEMY] [@CharacterBody2D@930] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:29] [INFO] [ReplayManager] Recording frame 3840 (63,1s): player_valid=False, enemies=5
+[12:56:29] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(663.593, 432.8723), source=PLAYER (MiniUzi), range=800, listeners=5
+[12:56:29] [ENEMY] [EnemyDroneOperator] Heard gunshot at (663.593, 432.8723), intensity=0.03, distance=302
+[12:56:29] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (663.593, 432.8723), intensity=0.01, distance=558
+[12:56:29] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (663.593, 432.8723), intensity=0.01, distance=663
+[12:56:29] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (663.593, 432.8723), intensity=0.01, distance=433
+[12:56:29] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (663.593, 432.8723), intensity=0.01, distance=572
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=5, out_of_range=0, self=0
+[12:56:29] [ENEMY] [@CharacterBody2D@930] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(570.3475, 410.9539), source=PLAYER (Bullet9mm), range=500, listeners=5
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(666.9741, 416.9757), source=PLAYER (MiniUzi), range=800, listeners=5
+[12:56:29] [ENEMY] [EnemyDroneOperator] Heard gunshot at (666.9741, 416.9757), intensity=0.03, distance=304
+[12:56:29] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (666.9741, 416.9757), intensity=0.01, distance=569
+[12:56:29] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (666.9741, 416.9757), intensity=0.01, distance=677
+[12:56:29] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (666.9741, 416.9757), intensity=0.01, distance=449
+[12:56:29] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (666.9741, 416.9757), intensity=0.01, distance=588
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=5, out_of_range=0, self=0
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(568.3397, 405.8941), source=PLAYER (@Area2D@2891), range=500, listeners=5
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0
+[12:56:29] [ENEMY] [@CharacterBody2D@930] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(654.748, 430.9034), source=NEUTRAL (null), range=900, listeners=5
+[12:56:29] [ENEMY] [EnemyDroneOperator] Heard CASING_KICK at (654.748, 430.9034), intensity=0.03, dist=293
+[12:56:29] [ENEMY] [@CharacterBody2D@1232] Heard CASING_KICK at (654.748, 430.9034), intensity=0.01, dist=565
+[12:56:29] [ENEMY] [@CharacterBody2D@1370] Heard CASING_KICK at (654.748, 430.9034), intensity=0.01, dist=669
+[12:56:29] [ENEMY] [@CharacterBody2D@1910] Heard CASING_KICK at (654.748, 430.9034), intensity=0.01, dist=433
+[12:56:29] [ENEMY] [@CharacterBody2D@2184] Heard CASING_KICK at (654.748, 430.9034), intensity=0.01, dist=571
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=5, out_of_range=0, self=0
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(585.4574, 401.3542), source=PLAYER (Bullet9mm), range=500, listeners=5
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(672.6751, 403.5552), source=PLAYER (MiniUzi), range=800, listeners=5
+[12:56:29] [ENEMY] [EnemyDroneOperator] Heard gunshot at (672.6751, 403.5552), intensity=0.03, distance=309
+[12:56:29] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (672.6751, 403.5552), intensity=0.01, distance=577
+[12:56:29] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (672.6751, 403.5552), intensity=0.01, distance=687
+[12:56:29] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (672.6751, 403.5552), intensity=0.01, distance=463
+[12:56:29] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (672.6751, 403.5552), intensity=0.01, distance=603
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=5, out_of_range=0, self=0
+[12:56:29] [ENEMY] [@CharacterBody2D@930] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(622.8979, 392.4545), source=PLAYER (Bullet9mm), range=500, listeners=5
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0
+[12:56:29] [ENEMY] [EnemyDroneOperator] Hit: dmg=1, hp=2/2->1/2
+[12:56:29] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(678.4369, 395.1659), source=PLAYER (MiniUzi), range=800, listeners=5
+[12:56:29] [ENEMY] [EnemyDroneOperator] Heard gunshot at (678.4369, 395.1659), intensity=0.03, distance=315
+[12:56:29] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (678.4369, 395.1659), intensity=0.01, distance=581
+[12:56:29] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (678.4369, 395.1659), intensity=0.01, distance=693
+[12:56:29] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (678.4369, 395.1659), intensity=0.01, distance=472
+[12:56:29] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (678.4369, 395.1659), intensity=0.01, distance=613
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=5, out_of_range=0, self=0
+[12:56:29] [ENEMY] [EnemyDroneOperator] Hit: dmg=1, hp=1/2->0/2
+[12:56:29] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[12:56:29] [ENEMY] [EnemyDroneOperator] Enemy died (ricochet: false, penetration: false, player_kill: false)
+[12:56:29] [INFO] [SoundPropagation] Unregistered listener: EnemyDroneOperator (remaining: 4)
+[12:56:29] [INFO] [DeathAnim] Started - Angle: -172.9 deg, Index: 0
+[12:56:29] [ENEMY] [EnemyDroneOperator] Death animation started with hit direction: (-0.992434, -0.12278)
+[12:56:29] [ENEMY] [@CharacterBody2D@930] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(628.3544, 385.5356), source=PLAYER (Bullet9mm), range=500, listeners=4
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0
+[12:56:29] [INFO] [EnemyPathMonitor] diag: overlay.visible=true, paths=5, enemies=27, draw_node=true, draw_count=2594
+[12:56:29] [INFO] [BloodyFeet:Player] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(686.0854, 386.666), source=PLAYER (MiniUzi), range=800, listeners=4
+[12:56:29] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (686.0854, 386.666), intensity=0.01, distance=585
+[12:56:29] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (686.0854, 386.666), intensity=0.01, distance=698
+[12:56:29] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (686.0854, 386.666), intensity=0.01, distance=482
+[12:56:29] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (686.0854, 386.666), intensity=0.01, distance=623
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:29] [ENEMY] [@CharacterBody2D@930] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(635.1097, 385.0938), source=PLAYER (Bullet9mm), range=500, listeners=4
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(692.6761, 381.3802), source=PLAYER (MiniUzi), range=800, listeners=4
+[12:56:29] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (692.6761, 381.3802), intensity=0.01, distance=586
+[12:56:29] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (692.6761, 381.3802), intensity=0.01, distance=701
+[12:56:29] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (692.6761, 381.3802), intensity=0.01, distance=489
+[12:56:29] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (692.6761, 381.3802), intensity=0.01, distance=630
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:29] [ENEMY] [@CharacterBody2D@930] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(641.9965, 375.6724), source=PLAYER (Bullet9mm), range=500, listeners=4
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(697.0334, 378.5727), source=PLAYER (MiniUzi), range=800, listeners=4
+[12:56:29] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (697.0334, 378.5727), intensity=0.01, distance=586
+[12:56:29] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (697.0334, 378.5727), intensity=0.01, distance=702
+[12:56:29] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (697.0334, 378.5727), intensity=0.01, distance=492
+[12:56:29] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (697.0334, 378.5727), intensity=0.01, distance=635
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:29] [ENEMY] [@CharacterBody2D@930] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:29] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(647.3039, 367.2601), source=PLAYER (Bullet9mm), range=500, listeners=4
+[12:56:29] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0
+[12:56:30] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(680.6647, 362.703), source=NEUTRAL (null), range=900, listeners=4
+[12:56:30] [ENEMY] [@CharacterBody2D@1232] Heard CASING_KICK at (680.6647, 362.703), intensity=0.01, dist=608
+[12:56:30] [ENEMY] [@CharacterBody2D@1370] Heard CASING_KICK at (680.6647, 362.703), intensity=0.00, dist=723
+[12:56:30] [ENEMY] [@CharacterBody2D@1910] Heard CASING_KICK at (680.6647, 362.703), intensity=0.01, dist=505
+[12:56:30] [ENEMY] [@CharacterBody2D@2184] Heard CASING_KICK at (680.6647, 362.703), intensity=0.01, dist=644
+[12:56:30] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (302.0927, 402.7024) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (323.1207, 407.3526) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (318.0783, 385.485) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (323.5874, 403.2701) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (315.2492, 401.2589) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (290.8484, 367.0168) (added to group)
+[12:56:30] [ENEMY] [@CharacterBody2D@930] Death animation completed
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (258.9944, 422.8883) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (319.9403, 402.5693) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (311.4897, 415.6794) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (324.0871, 390.8145) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (293.0394, 400.1085) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (320.5925, 401.3429) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (251.1339, 377.7813) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (257.1654, 395.9217) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (298.0732, 418.9955) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (232.807, 448.5551) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (260.4404, 373.6846) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (239.1548, 410.118) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (285.2027, 422.1913) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (231.2243, 422.7694) (added to group)
+[12:56:30] [ENEMY] [EnemyDroneOperator] Ragdoll activated
+[12:56:30] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (223.5784, 391.8362) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (245.0414, 395.0336) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (209.3708, 408.4076) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (274.2628, 408.541) (added to group)
+[12:56:30] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(650.959, 445.8576), source=NEUTRAL (null), range=900, listeners=4
+[12:56:30] [ENEMY] [@CharacterBody2D@1232] Heard CASING_KICK at (650.959, 445.8576), intensity=0.01, dist=555
+[12:56:30] [ENEMY] [@CharacterBody2D@1370] Heard CASING_KICK at (650.959, 445.8576), intensity=0.01, dist=657
+[12:56:30] [ENEMY] [@CharacterBody2D@1910] Heard CASING_KICK at (650.959, 445.8576), intensity=0.01, dist=418
+[12:56:30] [ENEMY] [@CharacterBody2D@2184] Heard CASING_KICK at (650.959, 445.8576), intensity=0.01, dist=556
+[12:56:30] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (226.6077, 419.8687) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (225.1099, 419.3597) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (185.9553, 412.1806) (added to group)
+[12:56:30] [INFO] [ReplayManager] Recording frame 3900 (63,9s): player_valid=False, enemies=5
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (164.3518, 414.2482) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (229.735, 442.2627) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (201.0453, 417.7184) (added to group)
+[12:56:30] [INFO] [BloodDecal] Blood puddle created at (143.7389, 466.3511) (added to group)
+[12:56:30] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(624.4825, 549.2211), source=NEUTRAL (null), range=900, listeners=4
+[12:56:30] [ENEMY] [@CharacterBody2D@1232] Heard CASING_KICK at (624.4825, 549.2211), intensity=0.01, dist=495
+[12:56:30] [ENEMY] [@CharacterBody2D@1370] Heard CASING_KICK at (624.4825, 549.2211), intensity=0.01, dist=577
+[12:56:30] [ENEMY] [@CharacterBody2D@1910] Heard CASING_KICK at (624.4825, 549.2211), intensity=0.03, dist=312
+[12:56:30] [ENEMY] [@CharacterBody2D@2184] Heard CASING_KICK at (624.4825, 549.2211), intensity=0.01, dist=450
+[12:56:30] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(644.1575, 570.5962), source=PLAYER (MiniUzi), range=800, listeners=4
+[12:56:31] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (644.1575, 570.5962), intensity=0.01, distance=466
+[12:56:31] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (644.1575, 570.5962), intensity=0.01, distance=549
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (644.1575, 570.5962), intensity=0.03, distance=294
+[12:56:31] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (644.1575, 570.5962), intensity=0.01, distance=436
+[12:56:31] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(644.1575, 588.1963), source=PLAYER (MiniUzi), range=800, listeners=4
+[12:56:31] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (644.1575, 588.1963), intensity=0.01, distance=454
+[12:56:31] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (644.1575, 588.1963), intensity=0.01, distance=534
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (644.1575, 588.1963), intensity=0.03, distance=276
+[12:56:31] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (644.1575, 588.1963), intensity=0.01, distance=420
+[12:56:31] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(644.1575, 601.3964), source=PLAYER (MiniUzi), range=800, listeners=4
+[12:56:31] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (644.1575, 601.3964), intensity=0.01, distance=445
+[12:56:31] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (644.1575, 601.3964), intensity=0.01, distance=522
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (644.1575, 601.3964), intensity=0.04, distance=263
+[12:56:31] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (644.1575, 601.3964), intensity=0.02, distance=408
+[12:56:31] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(644.1575, 623.3965), source=PLAYER (MiniUzi), range=800, listeners=4
+[12:56:31] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (644.1575, 623.3965), intensity=0.01, distance=431
+[12:56:31] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (644.1575, 623.3965), intensity=0.01, distance=504
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (644.1575, 623.3965), intensity=0.04, distance=242
+[12:56:31] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (644.1575, 623.3965), intensity=0.02, distance=388
+[12:56:31] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:31] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(614.2177, 795.6132), source=PLAYER (Bullet9mm), range=500, listeners=4
+[12:56:31] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] Hit: dmg=1, hp=3/3->2/3
+[12:56:31] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[12:56:31] [INFO] [BloodDecal] Blood puddle created at (593.7498, 883) (added to group)
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(644.1575, 640.9966), source=PLAYER (MiniUzi), range=800, listeners=4
+[12:56:31] [ENEMY] [@CharacterBody2D@1232] Heard gunshot at (644.1575, 640.9966), intensity=0.01, distance=421
+[12:56:31] [ENEMY] [@CharacterBody2D@1370] Heard gunshot at (644.1575, 640.9966), intensity=0.01, distance=489
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] Heard gunshot at (644.1575, 640.9966), intensity=0.05, distance=225
+[12:56:31] [ENEMY] [@CharacterBody2D@2184] Heard gunshot at (644.1575, 640.9966), intensity=0.02, distance=372
+[12:56:31] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:31] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(627.3989, 654.1501), source=NEUTRAL (null), range=900, listeners=4
+[12:56:31] [ENEMY] [@CharacterBody2D@1232] Heard CASING_KICK at (627.3989, 654.1501), intensity=0.01, dist=427
+[12:56:31] [ENEMY] [@CharacterBody2D@1370] Heard CASING_KICK at (627.3989, 654.1501), intensity=0.01, dist=488
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] Heard CASING_KICK at (627.3989, 654.1501), intensity=0.06, dist=208
+[12:56:31] [ENEMY] [@CharacterBody2D@2184] Heard CASING_KICK at (627.3989, 654.1501), intensity=0.02, dist=353
+[12:56:31] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:31] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(607.8675, 828.471), source=PLAYER (@Area2D@2998), range=500, listeners=4
+[12:56:31] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:31] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(618.8601, 794.7487), source=PLAYER (@Area2D@3002), range=500, listeners=4
+[12:56:31] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] Hit: dmg=1, hp=2/3->1/3
+[12:56:31] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[12:56:31] [INFO] [BloodDecal] Blood puddle created at (591.1983, 883) (added to group)
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] Hit: dmg=1, hp=1/3->0/3
+[12:56:31] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[12:56:31] [INFO] [BloodDecal] Blood puddle created at (594.2469, 883) (added to group)
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] Enemy died (ricochet: false, penetration: false, player_kill: false)
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] [AllyDeath] Notified 3 enemies
+[12:56:31] [INFO] [SoundPropagation] Unregistered listener: @CharacterBody2D@1910 (remaining: 3)
+[12:56:31] [INFO] [DeathAnim] Started - Angle: 90.3 deg, Index: 18
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] Death animation started with hit direction: (-0.004769, 0.999989)
+[12:56:31] [INFO] [BloodyFeet:@CharacterBody2D@1910] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] [#1311] Player bullet entered threat sphere — suppression triggered
+[12:56:31] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(635.562, 834.2211), source=PLAYER (@Area2D@3006), range=500, listeners=3
+[12:56:31] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=0
+[12:56:31] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(644.162, 835.9966), source=PLAYER (Bullet9mm), range=500, listeners=3
+[12:56:31] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=0
+[12:56:31] [INFO] [ReplayManager] Recording frame 3960 (64,7s): player_valid=False, enemies=5
+[12:56:31] [INFO] [BloodyFeet:Player] Blood ran out - no more footprints
+[12:56:31] [ENEMY] [EnemyDroneOperator] Death animation completed
+[12:56:31] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(663.1031, 778.7697), source=NEUTRAL (null), range=900, listeners=3
+[12:56:31] [ENEMY] [@CharacterBody2D@1232] Heard CASING_KICK at (663.1031, 778.7697), intensity=0.02, dist=339
+[12:56:31] [ENEMY] [@CharacterBody2D@1370] Heard CASING_KICK at (663.1031, 778.7697), intensity=0.02, dist=370
+[12:56:31] [ENEMY] [@CharacterBody2D@2184] Heard CASING_KICK at (663.1031, 778.7697), intensity=0.03, dist=268
+[12:56:31] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=0
+[12:56:31] [ENEMY] [@CharacterBody2D@1910] Ragdoll activated
+[12:56:31] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[12:56:32] [ENEMY] [@CharacterBody2D@1910] Death animation completed
+[12:56:32] [INFO] [EnemyPathMonitor] diag: overlay.visible=true, paths=4, enemies=25, draw_node=true, draw_count=2714
+[12:56:32] [INFO] [ReplayManager] Recording frame 4020 (65,5s): player_valid=False, enemies=5
+[12:56:33] [INFO] [ReplayManager] Recording frame 4080 (66,3s): player_valid=False, enemies=5
+[12:56:33] [INFO] ------------------------------------------------------------
+[12:56:33] [INFO] GAME LOG ENDED: 2026-03-25T12:56:33
+[12:56:33] [INFO] ============================================================

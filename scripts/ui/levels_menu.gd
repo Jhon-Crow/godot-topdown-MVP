@@ -121,16 +121,34 @@ const LEVELS: Array[Dictionary] = [
 		"map_size": "3200x2400"
 	},
 	{
-		"name": "Arena",
-		"name_ru": "Арена",
-		"path": "res://scenes/levels/ArenaLevel.tscn",
-		"description": "Endless wave survival arena. Fight off waves of enemies. Health, ammo, and weapon pickups spawn between waves.",
-		"preview_color": Color(0.35, 0.1, 0.1, 1.0),
-		"preview_accent": Color(0.8, 0.3, 0.2, 1.0),
+		"name": "Sewer",
+		"name_ru": "Канализация",
+		"path": "res://scenes/levels/SewerLevel.tscn",
+		"description": "Underground sewer corridor with narrow passages and a fork. Dark, tight, and dangerous.",
+		"preview_color": Color(0.1, 0.15, 0.1, 1.0),
+		"preview_accent": Color(0.2, 0.35, 0.2, 1.0),
+		"enemy_count": 10,
+		"map_size": "1650x3200"
+	},
+	{
+		"name": "Winter Forest",
+		"name_ru": "Зимний лес",
+		"path": "res://scenes/levels/WinterForestLevel.tscn",
+		"description": "Winter forest with sewer exit start, sparse trees hiding players and enemies, and an open clearing with small cover.",
+		"preview_color": Color(0.6, 0.65, 0.72, 1.0),
+		"preview_accent": Color(0.88, 0.9, 0.93, 1.0),
+		"enemy_count": 5,
+		"map_size": "3200x2400"
+	},
+	{
+		"name": "Railway Station",
+		"name_ru": "ЖД Станция",
+		"path": "res://scenes/levels/RailwayStationLevel.tscn",
+		"description": "Cross the railway station: platform, train tracks, and snow embankment. No enemies — for now.",
+		"preview_color": Color(0.12, 0.14, 0.18, 1.0),
+		"preview_accent": Color(0.75, 0.78, 0.82, 1.0),
 		"enemy_count": 0,
-		"endless": true,
-		"always_unlocked": true,
-		"map_size": "1920x1080"
+		"map_size": "4000x4000"
 	}
 ]
 

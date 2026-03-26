@@ -38,7 +38,8 @@ enum RoomType {
 	BUILDING,    ## Indoor rooms: walled sub-rooms with doorways
 	BEACH,       ## Open area: scattered obstacles (barrels, crates)
 	DOCKS,       ## Container yard: long parallel walls (containers)
-	CITY         ## Urban: L-shaped cover blocks, car-like barriers
+	CITY,        ## Urban: L-shaped cover blocks, car-like barriers
+	SEWER        ## Underground: narrow corridor with pipe cover, minimal obstacles
 }
 
 ## Room size options for procedural generation (Issue #1240: larger, more varied rooms)
@@ -73,6 +74,7 @@ const ROOM_FLOOR_COLORS: Dictionary = {
 	RoomType.BEACH:     Color(0.22, 0.20, 0.14, 1.0),
 	RoomType.DOCKS:     Color(0.14, 0.18, 0.20, 1.0),
 	RoomType.CITY:      Color(0.20, 0.20, 0.20, 1.0),
+	RoomType.SEWER:     Color(0.12, 0.14, 0.12, 1.0),
 }
 
 const ROOM_TYPE_NAMES: Dictionary = {
@@ -81,6 +83,7 @@ const ROOM_TYPE_NAMES: Dictionary = {
 	RoomType.BEACH:     "Пляж",
 	RoomType.DOCKS:     "Доки",
 	RoomType.CITY:      "Город",
+	RoomType.SEWER:     "Канализация",
 }
 
 ## Saturation flash on kill
@@ -344,6 +347,7 @@ func _start_new_run() -> void:
 		RoomType.BEACH,
 		RoomType.DOCKS,
 		RoomType.CITY,
+		RoomType.SEWER,
 	]
 	# Fisher-Yates shuffle
 	for i in range(all_types.size() - 1, 0, -1):
@@ -680,6 +684,8 @@ func _build_room(parent: Node) -> void:
 			_build_docks_interior(parent)
 		RoomType.CITY:
 			_build_city_interior(parent)
+		RoomType.SEWER:
+			_build_sewer_interior(parent)
 
 	print("[RoguelikeLevel] Room built: type=%s variant=%d size=%.0f×%.0f" % [
 		ROOM_TYPE_NAMES.get(_room_type, "?"), _room_variant, _room_w, _room_h])
@@ -967,6 +973,39 @@ func _build_city_interior(room_node: Node2D) -> void:
 			_create_wall(room_node, Rect2(w * 0.64, h * 0.33 + 120, 20, h * 0.33))
 
 
+func _build_sewer_interior(room_node: Node2D) -> void:
+	var w: float = _room_w
+	var h: float = _room_h
+	match _room_variant:
+		0:
+			# Central corridor with pipe covers on sides
+			_create_wall(room_node, Rect2(w * 0.30, 60, 20, h * 0.35))
+			_create_wall(room_node, Rect2(w * 0.30, h * 0.55, 20, h * 0.35))
+			_create_wall(room_node, Rect2(w * 0.70, 60, 20, h * 0.35))
+			_create_wall(room_node, Rect2(w * 0.70, h * 0.55, 20, h * 0.35))
+			_create_cover(room_node, Rect2(w * 0.45, h * 0.30, 60, 24))
+			_create_cover(room_node, Rect2(w * 0.45, h * 0.65, 60, 24))
+			_create_cover(room_node, Rect2(w * 0.15, h * 0.50, 40, 40))
+			_create_cover(room_node, Rect2(w * 0.80, h * 0.50, 40, 40))
+		1:
+			# Fork layout: corridor splits into left and right paths
+			_create_wall(room_node, Rect2(w * 0.48, h * 0.30, 20, h * 0.40))
+			_create_wall(room_node, Rect2(w * 0.25, h * 0.30, w * 0.23, 20))
+			_create_wall(room_node, Rect2(w * 0.52, h * 0.30, w * 0.23, 20))
+			_create_cover(room_node, Rect2(w * 0.35, h * 0.50, 60, 24))
+			_create_cover(room_node, Rect2(w * 0.60, h * 0.50, 60, 24))
+			_create_cover(room_node, Rect2(w * 0.48, h * 0.15, 24, 60))
+		2:
+			# Tight tunnel: narrow passages with debris
+			_create_wall(room_node, Rect2(w * 0.22, 60, 20, h * 0.40))
+			_create_wall(room_node, Rect2(w * 0.22, h * 0.60, 20, h * 0.30))
+			_create_wall(room_node, Rect2(w * 0.78, 60, 20, h * 0.30))
+			_create_wall(room_node, Rect2(w * 0.78, h * 0.50, 20, h * 0.40))
+			_create_cover(room_node, Rect2(w * 0.40, h * 0.25, 40, 40))
+			_create_cover(room_node, Rect2(w * 0.56, h * 0.55, 40, 40))
+			_create_cover(room_node, Rect2(w * 0.48, h * 0.80, 60, 24))
+
+
 ## ============================================================
 ## Enemy spawning
 ## ============================================================
@@ -1178,6 +1217,17 @@ func _get_enemy_positions(room_type: int) -> Array[Vector2]:
 				Vector2(w * 0.60, h * 0.50),
 				Vector2(w * 0.30, h * 0.22),
 			]
+		RoomType.SEWER:
+			return [
+				Vector2(w * 0.50, h * 0.20),
+				Vector2(w * 0.50, h * 0.40),
+				Vector2(w * 0.50, h * 0.60),
+				Vector2(w * 0.50, h * 0.80),
+				Vector2(w * 0.30, h * 0.30),
+				Vector2(w * 0.70, h * 0.50),
+				Vector2(w * 0.30, h * 0.70),
+				Vector2(w * 0.70, h * 0.70),
+			]
 		_:
 			return [
 				Vector2(w * 0.30, h * 0.40),
@@ -1200,6 +1250,8 @@ func _random_enemy_weapon(room_type: int) -> int:
 			return [0, 2, 3][randi() % 3]
 		RoomType.CITY:
 			return [0, 1, 2][randi() % 3]
+		RoomType.SEWER:
+			return [0, 1][randi() % 2]
 		_:
 			return 0
 
@@ -1621,9 +1673,9 @@ func _setup_debug_ui() -> void:
 	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left   = 10
-	_difficulty_label.offset_top    = 45
+	_difficulty_label.offset_top    = 80
 	_difficulty_label.offset_right  = 200
-	_difficulty_label.offset_bottom = 75
+	_difficulty_label.offset_bottom = 110
 	ui.add_child(_difficulty_label)
 
 	# Magazines
@@ -1632,9 +1684,9 @@ func _setup_debug_ui() -> void:
 	_magazines_label.text = "MAGS: -"
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left   = 10
-	_magazines_label.offset_top    = 105
+	_magazines_label.offset_top    = 115
 	_magazines_label.offset_right  = 400
-	_magazines_label.offset_bottom = 135
+	_magazines_label.offset_bottom = 145
 	ui.add_child(_magazines_label)
 
 
@@ -2508,6 +2560,7 @@ func _start_next_level() -> void:
 		RoomType.BEACH,
 		RoomType.DOCKS,
 		RoomType.CITY,
+		RoomType.SEWER,
 	]
 	for i in range(all_types.size() - 1, 0, -1):
 		var j: int = randi_range(0, i)

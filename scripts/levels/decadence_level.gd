@@ -437,18 +437,18 @@ func _setup_debug_ui() -> void:
 	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
-	_difficulty_label.offset_top = 45
+	_difficulty_label.offset_top = 80
 	_difficulty_label.offset_right = 200
-	_difficulty_label.offset_bottom = 75
+	_difficulty_label.offset_bottom = 110
 	ui.add_child(_difficulty_label)
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
 	_magazines_label.text = "MAGS: -"
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
-	_magazines_label.offset_top = 105
+	_magazines_label.offset_top = 115
 	_magazines_label.offset_right = 400
-	_magazines_label.offset_bottom = 135
+	_magazines_label.offset_bottom = 145
 	ui.add_child(_magazines_label)
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
@@ -765,14 +765,18 @@ func _show_victory_message() -> void:
 
 func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	_score_shown = true
+
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = 10
 	container.add_child(spacer)
+
 	var buttons_container := VBoxContainer.new()
 	buttons_container.name = "ButtonsContainer"
 	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons_container.add_theme_constant_override("separation", 10)
 	container.add_child(buttons_container)
+
+	# Next Level button
 	var next_level_path: String = _get_next_level_path()
 	if next_level_path != "":
 		var next_button := Button.new()
@@ -782,38 +786,92 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		next_button.add_theme_font_size_override("font_size", 18)
 		next_button.pressed.connect(_on_next_level_pressed.bind(next_level_path))
 		buttons_container.add_child(next_button)
+
+	# Restart button
 	var restart_button := Button.new()
 	restart_button.name = "RestartButton"
-	restart_button.text = "Restart"
+	restart_button.text = "↻ Restart (Q)"
 	restart_button.custom_minimum_size = Vector2(200, 40)
 	restart_button.add_theme_font_size_override("font_size", 18)
 	restart_button.pressed.connect(_on_restart_pressed)
 	buttons_container.add_child(restart_button)
+
+	# Level Select button
 	var level_select_button := Button.new()
 	level_select_button.name = "LevelSelectButton"
-	level_select_button.text = "Level Select"
+	level_select_button.text = "☰ Level Select"
 	level_select_button.custom_minimum_size = Vector2(200, 40)
 	level_select_button.add_theme_font_size_override("font_size", 18)
 	level_select_button.pressed.connect(_on_level_select_pressed)
 	buttons_container.add_child(level_select_button)
-	var armory_button := Button.new()
-	armory_button.name = "ArmoryButton"
-	armory_button.text = "Armory"
-	armory_button.custom_minimum_size = Vector2(200, 40)
-	armory_button.add_theme_font_size_override("font_size", 18)
-	armory_button.pressed.connect(_on_armory_button_pressed)
-	buttons_container.add_child(armory_button)
+
+	# Watch Replay button (Issue #807: only shown if replay viewing is enabled in experimental settings)
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
-	if experimental_settings and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled():
+	var replay_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled()
+
+	if replay_enabled:
+		var replay_button := Button.new()
+		replay_button.name = "ReplayButton"
+		replay_button.text = "▶ Watch Replay (W)"
+		replay_button.custom_minimum_size = Vector2(200, 40)
+		replay_button.add_theme_font_size_override("font_size", 18)
+
 		var replay_manager: Node = _get_or_create_replay_manager()
-		if replay_manager and replay_manager.has_method("HasReplay") and replay_manager.HasReplay():
-			var replay_button := Button.new()
-			replay_button.name = "WatchReplayButton"
-			replay_button.text = "Watch Replay [W]"
-			replay_button.custom_minimum_size = Vector2(200, 40)
-			replay_button.add_theme_font_size_override("font_size", 18)
+		var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+
+		if has_replay_data:
 			replay_button.pressed.connect(_on_watch_replay_pressed)
-			buttons_container.add_child(replay_button)
+		else:
+			replay_button.disabled = true
+			replay_button.text = "▶ Watch Replay (W) - no data"
+			replay_button.tooltip_text = "Replay recording was not available for this session"
+
+		buttons_container.add_child(replay_button)
+	else:
+		_log_to_file("Watch Replay button not shown (replay viewing disabled in experimental settings)")
+
+	# Armory button (Issue #897: shown highlighted when items are available to unlock)
+	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
+		var armory_button := Button.new()
+		armory_button.name = "ArmoryButton"
+		armory_button.text = "★ Armory — Items Available!"
+		armory_button.custom_minimum_size = Vector2(200, 40)
+		armory_button.add_theme_font_size_override("font_size", 18)
+		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
+		var armory_style := StyleBoxFlat.new()
+		armory_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
+		armory_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
+		armory_style.border_width_left = 2
+		armory_style.border_width_right = 2
+		armory_style.border_width_top = 2
+		armory_style.border_width_bottom = 2
+		armory_style.corner_radius_top_left = 4
+		armory_style.corner_radius_top_right = 4
+		armory_style.corner_radius_bottom_left = 4
+		armory_style.corner_radius_bottom_right = 4
+		armory_button.add_theme_stylebox_override("normal", armory_style)
+		armory_button.pressed.connect(_on_armory_button_pressed)
+		buttons_container.add_child(armory_button)
+		# Add gold shine shader overlay (Issue #1536).
+		var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+		if _armory_shine_shader:
+			var _armory_shine_mat := ShaderMaterial.new()
+			_armory_shine_mat.shader = _armory_shine_shader
+			var _armory_shine_overlay := ColorRect.new()
+			_armory_shine_overlay.name = "ArmoryGoldShineOverlay"
+			_armory_shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_armory_shine_overlay.material = _armory_shine_mat
+			armory_button.add_child(_armory_shine_overlay)
+
+	# Show cursor for button interaction (Issue #1489: cursor was missing on Decadence score screen)
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+	if next_level_path != "":
+		buttons_container.get_node("NextLevelButton").grab_focus()
+	else:
+		restart_button.grab_focus()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -853,6 +911,7 @@ func _on_next_level_pressed(level_path: String) -> void:
 
 func _on_level_select_pressed() -> void:
 	_log_to_file("Level Select button pressed")
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 	var levels_menu_script = load("res://scripts/ui/levels_menu.gd")
 	if levels_menu_script:
 		var levels_menu = CanvasLayer.new()
@@ -864,17 +923,41 @@ func _on_level_select_pressed() -> void:
 		_log_to_file("ERROR: Could not load levels menu script")
 
 
+## Called when the Armory button is pressed on the score screen (Issue #897).
 func _on_armory_button_pressed() -> void:
 	_log_to_file("Armory button pressed from score screen")
 	var armory_menu_scene = load("res://scenes/ui/ArmoryMenu.tscn")
 	if armory_menu_scene:
 		var armory_menu = armory_menu_scene.instantiate()
 		armory_menu.layer = 100
+		# Issue #1006: Mark as opened from score screen to prevent level restart on Apply
 		armory_menu.opened_from_score_screen = true
 		get_tree().root.add_child(armory_menu)
-		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+		armory_menu.back_pressed.connect(func():
+			armory_menu.queue_free()
+			# Issue #1050: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
+		armory_menu.apply_pressed_from_score_screen.connect(func():
+			# Issue #1050: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
 	else:
 		_log_to_file("ERROR: Could not load armory menu scene")
+
+
+## Issue #1050: Remove gold highlight from the ArmoryButton when no items remain to unlock.
+## The button stays visible but loses its gold styling and reverts to plain "Armory" text.
+func _remove_armory_button_gold_style() -> void:
+	var armory_btn := get_tree().current_scene.find_child("ArmoryButton", true, false)
+	if armory_btn:
+		armory_btn.text = "Armory"
+		armory_btn.remove_theme_color_override("font_color")
+		armory_btn.remove_theme_stylebox_override("normal")
 
 
 func _get_next_level_path() -> String:
@@ -894,6 +977,9 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/FactoryLevel.tscn",
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
+		"res://scenes/levels/SewerLevel.tscn",
+		"res://scenes/levels/WinterForestLevel.tscn",
+		"res://scenes/levels/RailwayStationLevel.tscn",
 	]
 	for i in range(level_paths.size()):
 		if level_paths[i] == current_scene_path:

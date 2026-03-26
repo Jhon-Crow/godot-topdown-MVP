@@ -927,9 +927,9 @@ func _setup_debug_ui() -> void:
 	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
-	_difficulty_label.offset_top = 45
+	_difficulty_label.offset_top = 80
 	_difficulty_label.offset_right = 200
-	_difficulty_label.offset_bottom = 75
+	_difficulty_label.offset_bottom = 110
 	ui.add_child(_difficulty_label)
 
 	# Create magazines label (shows individual magazine ammo counts)
@@ -938,9 +938,9 @@ func _setup_debug_ui() -> void:
 	_magazines_label.text = "MAGS: -"
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
-	_magazines_label.offset_top = 105
+	_magazines_label.offset_top = 115
 	_magazines_label.offset_right = 400
-	_magazines_label.offset_bottom = 135
+	_magazines_label.offset_bottom = 145
 	ui.add_child(_magazines_label)
 
 	# Create combo label (shows current combo)
@@ -1559,6 +1559,17 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		armory_button.add_theme_stylebox_override("normal", armory_style)
 		armory_button.pressed.connect(_on_armory_button_pressed)
 		buttons_container.add_child(armory_button)
+		# Add gold shine shader overlay (Issue #1536).
+		var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+		if _armory_shine_shader:
+			var _armory_shine_mat := ShaderMaterial.new()
+			_armory_shine_mat.shader = _armory_shine_shader
+			var _armory_shine_overlay := ColorRect.new()
+			_armory_shine_overlay.name = "ArmoryGoldShineOverlay"
+			_armory_shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_armory_shine_overlay.material = _armory_shine_mat
+			armory_button.add_child(_armory_shine_overlay)
 
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
@@ -1984,6 +1995,9 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/FactoryLevel.tscn",
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
+		"res://scenes/levels/SewerLevel.tscn",
+		"res://scenes/levels/WinterForestLevel.tscn",
+		"res://scenes/levels/RailwayStationLevel.tscn",
 	]
 
 	for i in range(level_paths.size()):

@@ -42,7 +42,7 @@ class MockGameManager:
 		"silenced_pistol": false, # Condition: Building S OR Docks D+ (Issue #1000)
 		"sniper": false,          # Condition: Polygon D+
 		"revolver": false,        # Condition: Castle F+
-		"ak_gl": true             # No condition — freely available from start (Issue #1053)
+		"ak_gl": false            # Condition: Decadence F+ (Issue #1423 req.1)
 	}
 
 	var unlocked_signals: Array = []
@@ -71,11 +71,11 @@ class MockActiveItemManager:
 		10: true,  # EXTENDED_MAGAZINE — no condition, freely available from start (Issue #1065)
 		11: true,  # LOUDSPEAKER — no condition, freely available from start (Issue #959)
 		12: true,  # BREACHING_CHARGES — no condition, freely available from start (Issue #1043)
-		13: true,  # ARMORED_SKIN — no condition, freely available from start (Issue #1045)
+		13: false, # ARMORED_SKIN — condition: 100 total deaths (Issue #1389)
 		14: true,  # AUTO_RELOAD — no condition, freely available from start (Issue #1067)
 		15: true,  # DRILLING_BULLETS — no condition, freely available from start (Issue #751)
-		16: true,  # RECOIL_COMPENSATOR — no condition, freely available from start (Issue #1073)
-		17: true,  # COMBAT_DISPOSITION — no condition, freely available from start (Issue #1047)
+		16: false, # RECOIL_COMPENSATOR — condition: Labyrinth S (Issue #1423 req.2)
+		17: false, # COMBAT_DISPOSITION — condition: complete any level without damage (Issue #1389)
 		18: false  # EXPERIMENTAL_SAMPLE — condition: one level on every difficulty (Issue #1426)
 	}
 
@@ -178,6 +178,18 @@ class TestableUnlockManager extends Node:
 			"weapons": ["silenced_pistol"],
 			"grenades": [],
 			"active_items": []
+		},
+		"res://scenes/levels/DecadenceLevel.tscn": {
+			"min_rank": "F",
+			"weapons": ["ak_gl"],  # Issue #1423 req.1
+			"grenades": [],
+			"active_items": []
+		},
+		"res://scenes/levels/LabyrinthLevel.tscn:S": {
+			"min_rank": "S",
+			"weapons": [],
+			"grenades": [],
+			"active_items": [16]  # RECOIL_COMPENSATOR (Issue #1423 req.2)
 		}
 	}
 
@@ -764,6 +776,52 @@ func test_docks_d_unlocks_silenced_pistol() -> void:
 		"Silenced pistol condition should be met after Docks grade D")
 
 
+# ============================================================================
+# New unlock condition tests (Issue #1423)
+# ============================================================================
+
+
+func test_decadence_f_unlocks_ak_gl() -> void:
+	# Issue #1423 req.1: Decadence (any completion) → AK + GL
+	progress_manager.set_rank("res://scenes/levels/DecadenceLevel.tscn", "Normal", "F")
+	assert_true(unlock_manager.is_weapon_condition_met("ak_gl"),
+		"AK + GL condition should be met after Decadence grade F (any completion)")
+
+
+func test_decadence_s_unlocks_ak_gl() -> void:
+	# Issue #1423 req.1: Decadence S also satisfies the condition
+	progress_manager.set_rank("res://scenes/levels/DecadenceLevel.tscn", "Normal", "S")
+	assert_true(unlock_manager.is_weapon_condition_met("ak_gl"),
+		"AK + GL condition should be met after Decadence grade S")
+
+
+func test_ak_gl_not_unlocked_without_decadence() -> void:
+	# Issue #1423 req.1: AK + GL should NOT be available before completing Decadence
+	assert_false(unlock_manager.is_weapon_condition_met("ak_gl"),
+		"AK + GL should NOT be unlocked without completing Decadence")
+
+
+func test_labyrinth_s_unlocks_recoil_compensator() -> void:
+	# Issue #1423 req.2: Labyrinth S → Recoil Compensator (16)
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "S")
+	assert_true(unlock_manager.is_active_item_condition_met(16),
+		"Recoil Compensator condition should be met after Labyrinth grade S")
+
+
+func test_labyrinth_a_does_not_unlock_recoil_compensator() -> void:
+	# Issue #1423 req.2: S rank required, A is not enough
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "A+")
+	assert_false(unlock_manager.is_condition_key_met("res://scenes/levels/LabyrinthLevel.tscn:S"),
+		"Labyrinth :S condition should NOT be met with grade A+")
+
+
+func test_recoil_compensator_not_unlocked_without_labyrinth_s() -> void:
+	# Issue #1423 req.2: Recoil Compensator locked until Labyrinth S
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "D")
+	assert_false(unlock_manager.is_active_item_condition_met(16),
+		"Recoil Compensator should NOT be unlocked with Labyrinth grade D")
+
+
 func test_all_five_s_unlock_homing_bullets() -> void:
 	# req.8: Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S → Homing Bullets
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "S")
@@ -945,14 +1003,14 @@ func test_flashbang_is_unlocked_by_default() -> void:
 
 func test_condition_locked_weapons_locked_by_default() -> void:
 	# These weapons have explicit unlock conditions and must start locked
-	for weapon_id in ["shotgun", "mini_uzi", "sniper", "revolver", "m16", "silenced_pistol"]:
+	for weapon_id in ["shotgun", "mini_uzi", "sniper", "revolver", "m16", "silenced_pistol", "ak_gl"]:
 		assert_false(game_manager.is_weapon_unlocked(weapon_id),
 			"%s should be locked by default (has unlock condition)" % weapon_id)
 
 
 func test_free_weapons_unlocked_by_default() -> void:
 	# These weapons have no conditions — they are freely available from the start
-	for weapon_id in ["ak_gl", "makarov_pm"]:
+	for weapon_id in ["makarov_pm"]:
 		assert_true(game_manager.is_weapon_unlocked(weapon_id),
 			"%s should be unlocked by default (no unlock condition)" % weapon_id)
 
@@ -967,6 +1025,7 @@ func test_condition_locked_grenades_locked_by_default() -> void:
 
 func test_condition_locked_active_items_locked_by_default() -> void:
 	# FLASHLIGHT (1), HOMING_BULLETS (2), TELEPORT_BRACERS (3), INVISIBILITY_SUIT (5), TRAJECTORY_GLASSES (8)
+	# ARMORED_SKIN (13), RECOIL_COMPENSATOR (16), COMBAT_DISPOSITION (17)
 	assert_false(active_item_manager.is_active_item_unlocked(1),
 		"Flashlight should be locked by default")
 	assert_false(active_item_manager.is_active_item_unlocked(2),
@@ -977,6 +1036,12 @@ func test_condition_locked_active_items_locked_by_default() -> void:
 		"Invisibility should be locked by default (Issue #1000)")
 	assert_false(active_item_manager.is_active_item_unlocked(8),
 		"Trajectory Glasses should be locked by default (Issue #1053)")
+	assert_false(active_item_manager.is_active_item_unlocked(13),
+		"Armored Skin should be locked by default — requires 100 deaths (Issue #1389)")
+	assert_false(active_item_manager.is_active_item_unlocked(16),
+		"Recoil Compensator should be locked by default (Issue #1423)")
+	assert_false(active_item_manager.is_active_item_unlocked(17),
+		"Combat Disposition should be locked by default — requires no-damage level completion (Issue #1389)")
 
 
 # ============================================================================
@@ -992,11 +1057,12 @@ func test_reset_condition_gated_resets_weapons_to_locked() -> void:
 	game_manager.unlocked_weapons["revolver"] = true
 	game_manager.unlocked_weapons["m16"] = true
 	game_manager.unlocked_weapons["silenced_pistol"] = true
+	game_manager.unlocked_weapons["ak_gl"] = true
 
 	# Reset should lock them back
 	unlock_manager.reset_condition_gated_items()
 
-	for weapon_id in ["mini_uzi", "shotgun", "sniper", "revolver", "m16", "silenced_pistol"]:
+	for weapon_id in ["mini_uzi", "shotgun", "sniper", "revolver", "m16", "silenced_pistol", "ak_gl"]:
 		assert_false(game_manager.is_weapon_unlocked(weapon_id),
 			"%s should be re-locked after reset" % weapon_id)
 
@@ -1005,8 +1071,6 @@ func test_reset_does_not_affect_free_weapons() -> void:
 	# Free weapons (no conditions) should NOT be reset
 	unlock_manager.reset_condition_gated_items()
 
-	assert_true(game_manager.is_weapon_unlocked("ak_gl"),
-		"ak_gl should remain unlocked after reset (no condition)")
 	assert_true(game_manager.is_weapon_unlocked("makarov_pm"),
 		"makarov_pm should remain unlocked after reset (always available)")
 
