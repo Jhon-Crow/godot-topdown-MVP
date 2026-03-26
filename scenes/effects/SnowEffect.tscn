@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://snow_effect_scene_1548"]
+[gd_scene load_steps=11 format=3 uid="uid://snow_effect_scene_1548"]
 
 [ext_resource type="Script" path="res://scripts/effects/snow_effect.gd" id="1_snow_effect"]
 
@@ -15,6 +15,24 @@ width = 8
 height = 8
 fill = 1
 fill_from = Vector2(0.5, 0.5)
+
+[sub_resource type="Gradient" id="Gradient_flake_small"]
+offsets = PackedFloat32Array(0, 0.35, 0.65, 1)
+colors = PackedColorArray(1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.55, 0.95, 0.97, 1.0, 0.4, 0.95, 0.97, 1.0, 0.0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_flake_small"]
+gradient = SubResource("Gradient_flake_small")
+width = 4
+height = 4
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[sub_resource type="Gradient" id="Gradient_fade_out"]
+offsets = PackedFloat32Array(0.0, 0.7, 1.0)
+colors = PackedColorArray(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_fade_out"]
+gradient = SubResource("Gradient_fade_out")
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_large"]
 lifetime_randomness = 0.5
@@ -33,17 +51,6 @@ scale_max = 1.8
 color = Color(0.95, 0.97, 1.0, 0.65)
 color_ramp = SubResource("GradientTexture1D_fade_out")
 
-[sub_resource type="Gradient" id="Gradient_flake_small"]
-offsets = PackedFloat32Array(0, 0.35, 0.65, 1)
-colors = PackedColorArray(1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.55, 0.95, 0.97, 1.0, 0.4, 0.95, 0.97, 1.0, 0.0)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_flake_small"]
-gradient = SubResource("Gradient_flake_small")
-width = 4
-height = 4
-fill = 1
-fill_from = Vector2(0.5, 0.5)
-
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_small"]
 lifetime_randomness = 0.5
 particle_flag_disable_z = true
@@ -60,13 +67,6 @@ scale_min = 0.5
 scale_max = 1.2
 color = Color(1.0, 1.0, 1.0, 0.5)
 color_ramp = SubResource("GradientTexture1D_fade_out")
-
-[sub_resource type="Gradient" id="Gradient_fade_out"]
-offsets = PackedFloat32Array(0.0, 0.7, 1.0)
-colors = PackedColorArray(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0)
-
-[sub_resource type="GradientTexture1D" id="GradientTexture1D_fade_out"]
-gradient = SubResource("Gradient_fade_out")
 
 [node name="SnowEffect" type="Node2D"]
 script = ExtResource("1_snow_effect")
