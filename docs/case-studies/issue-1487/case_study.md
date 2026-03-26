@@ -665,3 +665,48 @@ From Godot community benchmarks and official proposals:
 - **[Godot Forums](https://godotforums.org/d/22936-performance-issues-with-custom-2d-drawing)**: Confirmed that each `draw_line` is a separate GPU command; batching into `draw_multiline` gives the GPU one command with all geometry
 - **Principle**: Only call `queue_redraw()` when visual state actually changes — unnecessary redraws are free in terms of CPU but each triggers a full GPU command submission for all geometry in `_draw()`
 
+---
+
+## Round 8 — Log Analysis: `game_log_20260326_121114.txt`
+
+### Session Timeline
+
+| Time | Map | Event |
+|------|-----|-------|
+| 12:11:14 | LabyrinthLevel | Game start. 5 enemies. `dust_quality: 0` (Off). |
+| 12:11:17 | SewerLevel | **FPS drop: 1 fps** — shader warmup (1818ms). One-time spike. |
+| 12:12:17 | BuildingLevel | Scene change. 10 enemies. MiniUzi + Breaker Bullets. |
+| 12:12:40 | BuildingLevel | **AI disabled** (`[PerformanceSettings] AI disabled`). Only 4 seconds after load. |
+| 12:12:43–12:12:52 | BuildingLevel | Player shoots at walls (GUNSHOT + EXPLOSION events). **No FPS drops logged.** |
+| 12:12:52 | Tutorial | Scene change back to Tutorial. |
+| 12:12:55–12:13:11 | Tutorial | Player shoots at walls extensively (0 enemies). No FPS drops. |
+
+### Key Observations
+
+1. **Only 1 FPS drop logged**: 1 fps at 12:11:17 — during shader warmup (one-time startup spike, expected behavior).
+
+2. **No FPS drops during BuildingLevel gameplay**: The game ran at **stable 60 fps** throughout the BuildingLevel session. ReplayManager logged frames at exact 1.0s intervals (frame 420 = 7.0s, frame 480 = 8.0s, etc.), confirming 60fps.
+
+3. **Critical testing gap**: The user disabled AI after only 4 seconds on BuildingLevel (12:12:40) and **never fired BreakerBullets with AI enabled on BuildingLevel**. The first GUNSHOT events appear at 12:12:43, which is after AI was disabled. This means the actual worst-case scenario (BreakerBullets + 10 active AI enemies in COMBAT state) was not captured in this log.
+
+4. **MiniUzi gunshot throttle is working**: Approximately 6 GUNSHOTs/second propagated to 3 listeners during the shooting window (12:12:43-12:12:52). The 10Hz throttle in `emit_player_gunshot()` is functioning correctly.
+
+5. **Particles disabled**: `dust_quality: 0` (Off) — no particle overhead in this session.
+
+### Conclusion
+
+The `game_log_20260326_121114.txt` **does not demonstrate FPS drops during BuildingLevel gameplay**. The improvements from Rounds 1-7 appear to be effective. To confirm, the user should:
+
+1. Keep **AI enabled** throughout the BuildingLevel test
+2. Use **BreakerBullets + MiniUzi** (the original problematic combination)
+3. Fire at walls continuously for 30+ seconds to allow shrapnel accumulation
+4. Check the FPS counter during active shooting (not just after)
+
+### Merge Conflict Resolution
+
+During this round, a merge conflict was resolved in `scripts/objects/enemy.gd`:
+- **Our branch** (Issue #1487): 10Hz frame-count throttle for `can_hit_from_cover` and `enemies_in_combat` GOAP states
+- **origin/main** (Issue #1520): timer-based 2Hz throttle for the same states, plus idle GOAP throttle
+
+**Resolution**: Kept our Issue #1487 throttle (frame-count based, 10Hz, with per-enemy stagger offset) since it has finer granularity and eliminates the timestamp allocation. The idle GOAP throttle from Issue #1520 (`_idle_goap_throttle_counter`) was preserved as an additional optimization. Removed dead `_enemies_in_combat_cache` / `_enemies_in_combat_cache_timer` variables superseded by our approach.
+
