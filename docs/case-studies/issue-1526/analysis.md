@@ -112,6 +112,34 @@ Post-fix results are capped at 30 FPS (the game's frame rate target), confirming
 
 2. **Regular benchmark FPS cap**: All regular benchmark steps show ~30 FPS, which means we can't measure further deltas unless the benchmark runs without the FPS cap (or on slower hardware). The optimizations are working — the game can now maintain the target frame rate with AI active.
 
+## Follow-up: SEARCHING/PURSUING FPS Drop in Real Gameplay (2026-03-26 09:11 run)
+
+**Log:** `game_log_20260326_091128.txt` — 20-enemy combat session on DocksLevel.
+
+**Finding:** Despite the navmesh path update stagger fix, FPS still drops to **19–28 FPS** during SEARCHING/PURSUING with 20 enemies. The FPS drop logging threshold is 30 FPS, but the **target FPS is 60** — meaning these drops represent a 2–3× shortfall from target.
+
+**Root cause analysis of remaining FPS drop:**
+
+The first fix only staggered `_nav_agent.target_position = ...` (the path request). However, two additional O(N) operations still ran every physics frame for all 20 enemies:
+
+### RC5: O(N²) separation force scan every frame in SEARCHING/PURSUING
+
+`_apply_separation_force()` calls `get_tree().get_nodes_in_group("enemies")` and computes distance to every other enemy on every physics frame. With 20 enemies: **20 × 20 = 400 distance calculations per frame × 60 Hz = 24,000 operations/sec** just for separation steering.
+
+### RC6: `get_next_path_position()` called every frame in SEARCHING/PURSUING
+
+`_get_nav_direction_to()` called `get_next_path_position()` every frame even when the path hadn't changed (path updates were staggered, but path queries were not). With 20 enemies at 60 Hz: **1,200 path queries/sec** that return the same answer each time.
+
+**Fix 5 (2026-03-26 v3):** Two-part stagger:
+
+1. **`_apply_separation_force` stagger**: Added `_sep_force_frame` counter and `_sep_force_cached` vector. In SEARCHING/PURSUING states, the O(N²) scan runs only every `SEP_FORCE_INTERVAL = 6` frames (~10×/sec), reusing the cached force vector on other frames. In COMBAT/ASSAULT states (where accuracy matters), it still runs every frame.
+
+2. **Nav direction caching**: Added `_nav_dir_cached` vector. In `_get_nav_direction_to()`, when a path update frame occurs, the new direction is cached. On non-update frames, the cached direction is returned directly, skipping the `get_next_path_position()` call entirely.
+
+**Expected impact:** Reduces per-frame work in 20-enemy SEARCHING/PURSUING from:
+- 400 separation calculations/frame → ~67/frame (6× reduction)
+- 20 `get_next_path_position()` calls/frame → ~3/frame (6× reduction, aligned with path update stagger)
+
 ## Verification Checklist
 
 - [x] Run regular benchmark: SEARCHING step delta dropped to ~0 FPS (was +8.2)
@@ -122,3 +150,4 @@ Post-fix results are capped at 30 FPS (the game's frame rate target), confirming
 - [ ] Navigate to DocksLevel/SewerLevel: No `Invalid resource` error in log (v2 fix addresses this)
 - [ ] Enemy pathfinding in SEARCHING state still looks smooth (no visible stuttering)
 - [ ] Enemy pathfinding in PURSUING state still looks smooth
+- [ ] 20-enemy SEARCHING/PURSUING maintains ≥60 FPS (v3 fix targets this)

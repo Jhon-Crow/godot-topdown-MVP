@@ -275,7 +275,8 @@ var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos
 const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
 var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
 var _distraction_attack_logged: bool = false  ## Issue #1526: Rate-limit distraction-attack log to once per episode
-var _nav_path_update_frame: int = 0; const NAV_PATH_UPDATE_INTERVAL: int = 10  ## Issue #1526: Stagger navmesh path updates (~6×/sec at 60 Hz)
+var _nav_path_update_frame: int = 0; const NAV_PATH_UPDATE_INTERVAL: int = 10; var _nav_dir_cached: Vector2 = Vector2.ZERO  ## Issue #1526: Stagger navmesh path updates (~6×/sec at 60 Hz); cache nav dir between updates
+var _sep_force_frame: int = 0; var _sep_force_cached: Vector2 = Vector2.ZERO; const SEP_FORCE_INTERVAL: int = 6  ## Issue #1526: Stagger O(N²) sep scan every 6 frames in SEARCHING/PURSUING (~10×/sec at 60 Hz)
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
 var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 100.0  ## Search center / current radius (Search State - Issue #322)
@@ -2407,8 +2408,7 @@ func _process_searching_state(delta: float) -> void:
 			_search_moving_to_waypoint = false; _search_scan_timer = 0.0; _search_stuck_timer = 0.0
 			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
-			var _frame := Engine.get_physics_frames()  # #1526: stagger navmesh updates
-			if _frame - _nav_path_update_frame >= NAV_PATH_UPDATE_INTERVAL: _nav_agent.target_position = target_waypoint; _nav_path_update_frame = _frame
+			var _frame := Engine.get_physics_frames(); if _frame - _nav_path_update_frame >= NAV_PATH_UPDATE_INTERVAL: _nav_agent.target_position = target_waypoint; _nav_path_update_frame = _frame  # #1526: stagger navmesh updates
 			if _nav_agent.is_navigation_finished():
 				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
@@ -4712,14 +4712,16 @@ func _is_player_distracted() -> bool:
 		_log_debug("Player distracted: aim angle %.1f° > %.1f° threshold" % [rad_to_deg(angle), rad_to_deg(PLAYER_DISTRACTION_ANGLE)])
 	return is_distracted
 
-## Get direction to follow NavigationAgent2D path toward target_pos. Returns Vector2.ZERO if finished.
-## Issue #1526: Stagger path updates in SEARCHING/PURSUING (~6×/sec) to reduce CPU cost.
+## Get direction to follow NavigationAgent2D path. #1526: stagger SEARCHING/PURSUING path updates; reuse cached dir between updates.
 func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 	if _nav_agent == null: return (target_pos - global_position).normalized()
 	var frame := Engine.get_physics_frames()
-	if _current_state in [AIState.SEARCHING, AIState.PURSUING]:  # #1526: stagger expensive states
-		if frame - _nav_path_update_frame >= NAV_PATH_UPDATE_INTERVAL: _nav_agent.target_position = target_pos; _nav_path_update_frame = frame
-	else: _nav_agent.target_position = target_pos
+	if _current_state in [AIState.SEARCHING, AIState.PURSUING]:  # #1526: stagger expensive path update
+		if frame - _nav_path_update_frame >= NAV_PATH_UPDATE_INTERVAL:
+			_nav_agent.target_position = target_pos; _nav_path_update_frame = frame
+			_nav_dir_cached = Vector2.ZERO if _nav_agent.is_navigation_finished() else (_nav_agent.get_next_path_position() - global_position).normalized()
+		return _nav_dir_cached  # Reuse cached direction on non-update frames
+	_nav_agent.target_position = target_pos
 	if _nav_agent.is_navigation_finished(): return Vector2.ZERO
 	return (_nav_agent.get_next_path_position() - global_position).normalized()
 
@@ -4758,22 +4760,20 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	if velocity.length_squared() > 0.01: _rotate_body_toward(velocity.angle(), get_physics_process_delta_time())
 	return true
 
-## Issue #1146: Called by NavigationAgent2D when ORCA computes a safe avoidance velocity.
-func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
-	_avoidance_velocity = safe_velocity
-
-## Issue #1146: Separation steering — push away from nearby allies.
-## Issue #1249: Skip separation while yielding so the passing enemy isn't pushed aside.
+func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void: _avoidance_velocity = safe_velocity  ## Issue #1146: ORCA safe velocity callback
+## Issue #1146: Separation steering. #1249: skip while yielding. #1526: stagger O(N²) scan in SEARCHING/PURSUING.
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
 	if _tactical_movement and _tactical_movement.is_yielding: return vel  # #1249: yielding — don't push
 	if _current_state == AIState.IDLE and behavior_mode == BehaviorMode.GUARD: return vel  # #1520: GUARD stands still — skip O(N) scan
-	var sep_force: Vector2 = Vector2.ZERO
-	for body in get_tree().get_nodes_in_group("enemies"):
-		if body == self or not is_instance_valid(body): continue
-		var diff: Vector2 = global_position - (body as Node2D).global_position
-		var dist: float = diff.length()
-		if dist < SEPARATION_RADIUS and dist > 0.1: sep_force += diff.normalized() * (SEPARATION_RADIUS - dist) / SEPARATION_RADIUS
-	if sep_force != Vector2.ZERO: vel += sep_force * SEPARATION_STRENGTH * delta
+	var frame := Engine.get_physics_frames()  # #1526: recompute O(N²) scan every SEP_FORCE_INTERVAL frames in SEARCHING/PURSUING; reuse cache otherwise
+	if not (_current_state in [AIState.SEARCHING, AIState.PURSUING]) or (frame - _sep_force_frame) >= SEP_FORCE_INTERVAL:
+		var sep_force: Vector2 = Vector2.ZERO
+		for body in get_tree().get_nodes_in_group("enemies"):
+			if body == self or not is_instance_valid(body): continue
+			var diff: Vector2 = global_position - (body as Node2D).global_position; var dist: float = diff.length()
+			if dist < SEPARATION_RADIUS and dist > 0.1: sep_force += diff.normalized() * (SEPARATION_RADIUS - dist) / SEPARATION_RADIUS
+		_sep_force_cached = sep_force; _sep_force_frame = frame
+	if _sep_force_cached != Vector2.ZERO: vel += _sep_force_cached * SEPARATION_STRENGTH * delta
 	return vel
 
 ## Check if the navigation agent has a valid path to the target.
