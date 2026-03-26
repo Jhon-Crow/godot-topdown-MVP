@@ -578,7 +578,6 @@ func _deferred_register_sound_listener() -> void:
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 	if sound_propagation and sound_propagation.has_method("register_listener"):
 		sound_propagation.register_listener(self)
-		_log_debug("Registered as sound listener")
 		_log_to_file("Registered as sound listener")
 	else:
 		_log_to_file("WARNING: Could not register as sound listener (SoundPropagation not found)")
@@ -586,22 +585,17 @@ func _deferred_register_sound_listener() -> void:
 
 func _combat_waypoint(t: Vector2, r: bool = false) -> Vector2:  ## Issue #1227: nearest pre-defined combat path waypoint.
 	var c: CombatPathComponent = get_tree().get_first_node_in_group("combat_path_components"); return (c.get_nearest_retreat_waypoint(global_position, t) if r else c.get_nearest_attacking_waypoint(global_position, t)) if c else Vector2.ZERO
-## Unregister this enemy from sound propagation when dying or being destroyed.
 func _unregister_sound_listener() -> void:
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 	if sound_propagation and sound_propagation.has_method("unregister_listener"):
 		sound_propagation.unregister_listener(self)
 
-## Unregister from SoundPropagation on scene change / node removal (Issue #1163: FPS fix). Prevents stale listener accumulation across level reloads.
-func _exit_tree() -> void:
+func _exit_tree() -> void:  ## Issue #1163: unregister sound listener on removal
 	_unregister_sound_listener()
 
-## Called by SoundPropagation when a sound is heard. Delegates to on_sound_heard_with_intensity.
 func on_sound_heard(sound_type: int, position: Vector2, source_type: int, source_node: Node2D) -> void:
-	# Default to full intensity if called without intensity parameter
 	on_sound_heard_with_intensity(sound_type, position, source_type, source_node, 1.0)
 
-## Called by SoundPropagation with intensity. Reacts to reload/empty_click/gunshot sounds.
 func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_type: int, source_node: Node2D, intensity: float) -> void:
 	if not _is_alive: return
 	var is_player_gunshot := sound_type == 0 and source_type == 0  # GUNSHOT from PLAYER (#910)
@@ -610,7 +604,6 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 
 	# Handle reload sound (sound_type 3 = RELOAD) - player is vulnerable, propagates through walls.
 	if sound_type == 3 and source_type == 0:  # RELOAD from PLAYER
-		_log_debug("Heard player RELOAD (intensity=%.2f, distance=%.0f) at %s" % [intensity, distance, position])
 		_log_to_file("Heard player RELOAD at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
 		_goap_world_state["player_reloading"] = true
 		_last_known_player_position = position
@@ -625,7 +618,6 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 
 	# Handle empty click sound (sound_type 5 = EMPTY_CLICK) - player is vulnerable, propagates through walls.
 	if sound_type == 5 and source_type == 0:  # EMPTY_CLICK from PLAYER
-		_log_debug("Heard player EMPTY_CLICK (intensity=%.2f, distance=%.0f) at %s" % [intensity, distance, position])
 		_log_to_file("Heard player EMPTY_CLICK at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
 		_goap_world_state["player_ammo_empty"] = true
 		_last_known_player_position = position
@@ -656,9 +648,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "CASING_KICK")  # Issue #910
 		return
 
-	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player no longer vulnerable.
-	if sound_type == 6 and source_type == 0:  # RELOAD_COMPLETE from PLAYER
-		_log_debug("Heard player RELOAD_COMPLETE (intensity=%.2f, dist=%.0f) at %s" % [intensity, distance, position])
+	if sound_type == 6 and source_type == 0:  # RELOAD_COMPLETE from PLAYER — player no longer vulnerable
 		_log_to_file("Heard player RELOAD_COMPLETE at %s, intensity=%.2f, dist=%.0f" % [position, intensity, distance])
 		_goap_world_state["player_reloading"] = false
 		_goap_world_state["player_ammo_empty"] = false
@@ -689,7 +679,6 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	if not should_react: return
 
 	var sound_name := "EXPLOSION" if sound_type == 1 else "gunshot"
-	_log_debug("Heard %s (intensity=%.2f, distance=%.0f) at %s" % [sound_name, intensity, distance, position])
 	_log_to_file("Heard %s at %s, intensity=%.2f, distance=%.0f" % [sound_name, position, intensity, distance])
 
 	if sound_type == 0: _on_gunshot_heard_for_grenade(position)  # #363: sustained fire detection
@@ -803,8 +792,7 @@ func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
 
-	# Issue #1334 Round 8-9: Freeze all enemy AI when player is dead or freed to prevent
-	# native crashes from physics queries on dead/freed player nodes.
+	# Issue #1334: Freeze AI when player is dead/freed to prevent native crashes.
 	var _gm_r9: Node = get_node_or_null("/root/GameManager")
 	if _gm_r9 and not _gm_r9.player_alive: return
 	if _player and not is_instance_valid(_player): _player = null; return
@@ -846,8 +834,7 @@ func _physics_process(delta: float) -> void:
 	if _memory_reset_confusion_timer > 0.0:
 		_memory_reset_confusion_timer = maxf(0.0, _memory_reset_confusion_timer - delta)
 
-	# Issue #367: Stuck detection for PURSUING/FLANKING — force SEARCHING if no progress.
-	# Skip when in direct contact (can hit player) or intentionally yielding (#1249).
+	# Issue #367: Stuck detection — force SEARCHING if no progress. #1249: skip when yielding.
 	if _current_state == AIState.PURSUING or _current_state == AIState.FLANKING:
 		var moved_distance := global_position.distance_to(_global_stuck_last_position)
 		if moved_distance < GLOBAL_STUCK_DISTANCE_THRESHOLD:
@@ -867,9 +854,7 @@ func _physics_process(delta: float) -> void:
 						_flank_side_initialized = false
 						_flank_fail_count += 1
 						_flank_cooldown_timer = FLANK_COOLDOWN_DURATION
-					# #1249 session 4: search from last known player position, not the stuck position.
-					# When stuck while pursuing, the enemy may be far from the player; searching from
-					# the stuck spot wastes time. Use the last known player position instead if available.
+					# #1249: search from last known player position, not stuck spot.
 					var _search_start := global_position
 					if _last_known_player_position != Vector2.ZERO:
 						_search_start = _last_known_player_position
@@ -4049,12 +4034,7 @@ func _calculate_lead_prediction() -> Vector2:
 		return player_pos
 
 	var player_velocity := Vector2.ZERO
-
-	# Get player velocity if they are a CharacterBody2D
-	if _player is CharacterBody2D:
-		player_velocity = _player.velocity
-
-	# If player is stationary, no need for prediction
+	if _player is CharacterBody2D: player_velocity = _player.velocity
 	if player_velocity.length_squared() < 1.0:
 		return player_pos
 
