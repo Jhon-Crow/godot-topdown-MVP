@@ -317,6 +317,33 @@ func test_ema_formula_single_step() -> void:
 		"EMA.y after one step: alpha*100 + (1-alpha)*0 [#1530]")
 
 
+# ============================================================================
+# SNIPER_AIM_ROTATION_SPEED — rotation speed constant and _ready() override
+# ============================================================================
+
+
+func test_sniper_aim_rotation_speed_constant_exists() -> void:
+	assert_true("SNIPER_AIM_ROTATION_SPEED" in SniperComponent,
+		"EnemySniperComponent must define SNIPER_AIM_ROTATION_SPEED constant [#1530]")
+
+
+func test_sniper_aim_rotation_speed_is_3_2() -> void:
+	assert_almost_eq(SniperComponent.SNIPER_AIM_ROTATION_SPEED, 3.2, 0.001,
+		"SNIPER_AIM_ROTATION_SPEED must equal 3.2 rad/s (matches player ASVK) [#1530]")
+
+
+func test_ready_sets_enemy_rotation_speed() -> void:
+	# _ready() must override enemy.rotation_speed to SNIPER_AIM_ROTATION_SPEED.
+	var src := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
+	assert_not_null(src, "enemy_sniper_component.gd must be readable")
+	if src == null:
+		return
+	var text := src.get_as_text()
+	src.close()
+	assert_true(text.contains("enemy.rotation_speed = SNIPER_AIM_ROTATION_SPEED"),
+		"_ready() must set enemy.rotation_speed = SNIPER_AIM_ROTATION_SPEED [#1530]")
+
+
 func test_ema_halves_error_in_expected_frames() -> void:
 	# At alpha = AIM_INERTIA_ALPHA, the number of frames to halve the error is
 	# roughly ceil(log(0.5) / log(1 - alpha)).  After that many frames, the EMA

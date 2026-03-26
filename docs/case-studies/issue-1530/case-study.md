@@ -87,6 +87,49 @@ Zero. The EMA lives entirely inside `EnemySniperComponent`. The branch in `_calc
 
 ---
 
+---
+
+## Additional Fix: Rotation Speed Override (owner feedback on PR #1531)
+
+After the initial implementation, the repository owner (Jhon-Crow) requested that the sniper's **weapon rotation speed** also be limited — not just the lead prediction velocity.
+
+### Problem
+
+The default `rotation_speed = 25.0 rad/s` (set in `enemy.gd`) caused the sniper's model to snap almost instantly to the player's position. Even with EMA inertia on the *prediction*, the sniper could still visually track rapid movement perfectly, making evasion feel impossible.
+
+### Fix
+
+In `_ready()` of `EnemySniperComponent`, the enemy's `rotation_speed` is now overridden:
+
+```gdscript
+const SNIPER_AIM_ROTATION_SPEED: float = 3.2  # rad/s — matches player's ASVK
+
+func _ready() -> void:
+    # ...
+    if enemy != null and enemy.get("rotation_speed") != null:
+        enemy.rotation_speed = SNIPER_AIM_ROTATION_SPEED
+```
+
+### Derivation of 3.2 rad/s
+
+The value matches the player's own ASVK sniper rifle rotation speed:
+
+- `SniperRifle.cs`: `NonAimingSensitivityFactor = 0.04f`
+- `SniperRifleData.tres`: `WeaponData.Sensitivity = 8.0`
+- `effectiveSensitivity = 8.0 * 0.04 = 0.32`
+- `rotationSpeed = 0.32 * 10.0 = 3.2 rad/s`
+
+### Combined Effect
+
+Both mechanisms now work together:
+
+| Mechanism | Effect |
+|---|---|
+| `rotation_speed = 3.2 rad/s` | Sniper can't visually track fast/erratic movement — aim physically lags behind |
+| EMA (`alpha = 0.12`) | Lead prediction uses smoothed velocity — bullet lands where player *was* heading |
+
+The sniper accurately hits stationary or slow-moving players (~1–2 seconds to lock on), but misses fast-moving or reversing players.
+
 ## References
 
 - [Predictive Aim Mathematics for AI Targeting — Game Developer](https://www.gamedeveloper.com/programming/predictive-aim-mathematics-for-ai-targeting)
