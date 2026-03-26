@@ -160,7 +160,7 @@ const WEAPON_CONFIGS := {
 		"total_magazines": 2,       # 500 + 500 (one spare belt)
 		"reload_time": 9.0,         # Long belt reload
 		"bullet_spawn_offset": 40.0,
-		"weapon_loudness": 1198.1,
+		"weapon_loudness": 2400.0,  # Issue #1549: PKM sound range set to 2400px
 		"sprite_path": "res://assets/sprites/weapons/pkm_topdown.png",  # PKM machine gun top-down sprite (#1033)
 		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",
