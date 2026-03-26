@@ -1074,3 +1074,79 @@ https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/23538832646 (workflo
 3. **Clamp velocity magnitude after `move_and_slide()`** to mitigate the FLOATING velocity buildup bug (#101052)
 
 ---
+
+## 17. Session 10 Analysis (2026-03-26 06:31) — "ии сломан полностью" (AI is completely broken)
+
+**User report:** "ии сломан полностью" (AI is completely broken)
+
+**Log:** `docs/case-studies/issue-1457/logs/game_log_20260326_063151.txt`
+**Duration:** ~4 seconds (06:31:51 → 06:31:55)
+**Levels:** LabyrinthLevel (startup) → BuildingLevel (auto-navigated from save)
+**Build:** Godot 4.3-stable official, `Debug build: false`, NO `build_info.cfg`
+**Executable path:** `I:/Загрузки/godot exe/ai стены/Godot-Top-Down-Template.exe`
+
+### 17.1 Key Observations
+
+**Critical finding: `has_died_signal=false` in BOTH levels — identical to Session 9**
+
+LabyrinthLevel (lines 179-184):
+```
+[LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=false
+[LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=false
+...
+[LabyrinthLevel] Enemy tracking complete: 0 enemies registered
+```
+
+BuildingLevel (lines 343-353):
+```
+[LevelInitFallback] Child 'Enemy1': has_died_signal=False
+[LevelInitFallback] Child 'Enemy2': has_died_signal=False
+...
+[LevelInitFallback] Enemy tracking complete: 0 enemies registered
+```
+
+### 17.2 Root Cause
+
+**Same root cause as Session 9:** The user is running a binary that was NOT built from the current PR branch (`issue-1457-628d0e149088`). The binary path `I:/Загрузки/godot exe/ai стены/` ("Downloads/godot exe/ai walls/") indicates a manually downloaded or built executable, not the CI artifact from our PR.
+
+Key evidence:
+- `build_info.cfg not found` — CI-built binaries include this file; absence confirms this is not a CI artifact
+- `script=true, has_died_signal=false` — script attached but signals missing → GDScript parse error in that binary's version of `enemy.gd`
+- The current PR version of `enemy.gd` passes all CI checks including GDScript lint and compile validation
+
+**This is NOT a regression from v9.** The v9 fix on the current PR branch has all CI checks passing.
+
+### 17.3 The 4-Second Session
+
+Identical pattern to Session 9:
+1. Started at LabyrinthLevel
+2. Detected last-played level = BuildingLevel → auto-navigated
+3. BuildingLevel loaded with 0 enemies registered (10 enemies found, none with `has_died_signal=true`)
+4. User observed broken AI (no enemies move, shoot, or react) and closed the game
+
+### 17.4 How to Get a Working Binary
+
+The user needs to use the **CI-built binary** from GitHub Actions:
+
+1. Go to: https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/23560771838
+2. Download the `windows-build` artifact
+3. Extract and test with that binary
+
+The CI build is built directly from the current PR source code which passes all compile checks.
+
+### 17.5 Updated Timeline
+
+| Time | Event |
+|------|-------|
+| 2026-03-24 | Issue #1457 opened — enemy catches on wall corners in PURSUING state |
+| 2026-03-24 | Sessions 1-3 analyzed — 3 logs showing Enemy7 stuck ≥4s in LabyrinthLevel |
+| 2026-03-24 | v1-v5 fixes attempted (wall avoidance tuning, probe steering, etc.) |
+| 2026-03-25 04:20 | Session 4-5: v5 fix tested with working build — `has_died_signal=true` for all |
+| 2026-03-25 | v6-v7: position blacklist + navmesh snap |
+| 2026-03-25 | v8: minimal fix — MOTION_MODE_FLOATING + pursuing stuck detection |
+| 2026-03-25 14:06 | Session 8: v8 tested — Enemy2 stuck rescued once but then looped (no blacklist) |
+| 2026-03-25 | v9: added position blacklist — breaks reroute loop |
+| 2026-03-25 16:23 | Session 9: "AI completely broken" — 0 enemies, `has_died_signal=false` — wrong binary |
+| 2026-03-26 06:31 | Session 10: "ии сломан полностью" — same symptom, same root cause: wrong binary |
+
+---
