@@ -19,6 +19,15 @@ const MIN_DISTANCE: float = 350.0
 const BLIND_FIRE_COOLDOWN: float = 5.0
 
 # ============================================================================
+# Configuration — Aim inertia (Issue #1530)
+# ============================================================================
+
+## EMA smoothing factor for player velocity (0..1).
+## Lower = more inertia (sniper takes longer to correct after player reverses direction).
+## 0.12 ≈ 5-frame half-life at 60 fps (~85 ms). Sniper misses for ~400 ms after a reversal.
+const AIM_INERTIA_ALPHA: float = 0.12
+
+# ============================================================================
 # State
 # ============================================================================
 
@@ -31,6 +40,18 @@ var enemy: Node2D = null
 ## Enable file logging (forwarded from enemy debug setting).
 var log_to_file_fn: Callable = Callable()
 
+# ============================================================================
+# State — Aim inertia (Issue #1530)
+# ============================================================================
+
+## Exponential moving average of player velocity.  Lags behind sudden direction changes,
+## causing the sniper's lead prediction to aim where the player *was* heading.
+var _smoothed_player_velocity: Vector2 = Vector2.ZERO
+## Whether the EMA has been seeded with at least one real sample.
+var _velocity_ema_initialised: bool = false
+## Whether the sniper had line-of-sight on the previous frame (used to detect re-acquisition).
+var _was_seeing_player: bool = false
+
 
 func _ready() -> void:
 	if enemy == null:
@@ -41,12 +62,38 @@ func _ready() -> void:
 # Issue #1163 — AI behaviour: standoff range + blind-fire through cover
 # ============================================================================
 
+## [Issue #1530] Update exponential moving average of player velocity.
+## Seeded cold on first sample or after losing and re-acquiring LOS.
+func _update_velocity_ema(player: Node, can_see_player: bool) -> void:
+	if player == null:
+		return
+	# Re-acquisition: player just came back into view — reset EMA so stale
+	# pre-disappearance velocity does not corrupt the fresh sighting.
+	if can_see_player and not _was_seeing_player:
+		_velocity_ema_initialised = false
+	_was_seeing_player = can_see_player
+	var current_vel := Vector2.ZERO
+	if player is CharacterBody2D:
+		current_vel = (player as CharacterBody2D).velocity
+	if not _velocity_ema_initialised:
+		# Cold-start: seed with the first sample so there is no initial lag on first sighting.
+		_smoothed_player_velocity = current_vel
+		_velocity_ema_initialised = true
+		return
+	# EMA formula: new_smoothed = alpha * sample + (1 - alpha) * old_smoothed
+	_smoothed_player_velocity = AIM_INERTIA_ALPHA * current_vel \
+		+ (1.0 - AIM_INERTIA_ALPHA) * _smoothed_player_velocity
+
+
 ## Process sniper rifle combat behaviour: maintain standoff distance and blind-fire through cover.
 ## Returns true if sniper handling was applied (caller should return early).
 func process_combat(delta: float, can_see_player: bool, player: Node,
 		last_known_pos: Vector2, prediction) -> bool:
 	if player == null:
 		return false
+
+	# [Issue #1530] Maintain smoothed velocity EMA for inertia-based lead prediction.
+	_update_velocity_ema(player, can_see_player)
 
 	var player_pos: Vector2 = (player as Node2D).global_position
 	var distance_to_player: float = enemy.global_position.distance_to(player_pos)
@@ -96,6 +143,9 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 func process_pursuing(delta: float, can_see_player: bool, player: Node,
 		last_known_pos: Vector2, prediction) -> bool:
 	blind_fire_timer += delta
+	# [Issue #1530] Keep EMA fresh even while pursuing so first shot after re-sighting uses
+	# smoothed velocity rather than the instantaneous value.
+	_update_velocity_ema(player, can_see_player)
 
 	# When player is visible and at safe range: shoot directly and let normal
 	# PURSUING code transition to COMBAT (return false so enemy.gd continues).

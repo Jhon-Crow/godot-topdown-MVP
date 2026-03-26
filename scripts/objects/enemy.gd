@@ -4036,11 +4036,8 @@ func _calculate_lead_prediction() -> Vector2:
 		_log_debug("Lead prediction disabled: visibility ratio %.2f < %.2f required (player at cover edge)" % [_player_visibility_ratio, lead_prediction_visibility_threshold])
 		return player_pos
 
-	var player_velocity := Vector2.ZERO
-
-	# Get player velocity if they are a CharacterBody2D
-	if _player is CharacterBody2D:
-		player_velocity = _player.velocity
+	# Issue #1530: Sniper uses EMA-smoothed velocity (inertia → miss on reversal); others use raw velocity.
+	var player_velocity: Vector2 = _sniper_component._smoothed_player_velocity if _sniper_component != null else ((_player as CharacterBody2D).velocity if _player is CharacterBody2D else Vector2.ZERO)
 
 	# If player is stationary, no need for prediction
 	if player_velocity.length_squared() < 1.0:
