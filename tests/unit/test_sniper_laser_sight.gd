@@ -16,8 +16,8 @@ const SniperComponent := preload("res://scripts/components/enemy_sniper_componen
 # =============================================================================
 
 func test_laser_max_range_constant() -> void:
-	assert_eq(SniperComponent.LASER_MAX_RANGE, 5000.0,
-		"LASER_MAX_RANGE should be 5000.0 px")
+	assert_eq(SniperComponent.LASER_MAX_RANGE, 10000.0,
+		"LASER_MAX_RANGE should be 10000.0 px (doubled from 5000 per Issue #1581)")
 
 
 func test_muzzle_local_offset_constant() -> void:
@@ -341,3 +341,37 @@ func test_blind_fire_no_spread_direction() -> void:
 		"Blind fire direction must exactly equal to_target (no spread) for laser match")
 	assert_almost_eq(direction.y, to_target.y, 0.001,
 		"Blind fire direction must exactly equal to_target (no spread) for laser match")
+
+
+# =============================================================================
+# Issue #1581 — Laser length doubled and player-style visuals
+# =============================================================================
+
+func test_laser_max_range_doubled_from_original() -> void:
+	# LASER_MAX_RANGE must be exactly twice the original 5000.0 value.
+	assert_eq(SniperComponent.LASER_MAX_RANGE, 10000.0,
+		"LASER_MAX_RANGE should be 10000.0 (2× the original 5000.0 per Issue #1581)")
+
+
+func test_laser_glow_lines_array_initially_empty() -> void:
+	var comp := SniperComponent.new()
+	add_child_autofree(comp)
+
+	assert_eq(comp._laser_glow_lines.size(), 0,
+		"_laser_glow_lines should be empty before laser is created")
+
+
+func test_laser_endpoint_light_initially_null() -> void:
+	var comp := SniperComponent.new()
+	add_child_autofree(comp)
+
+	assert_null(comp._laser_endpoint_light,
+		"_laser_endpoint_light should be null before laser is created")
+
+
+func test_laser_dust_particles_initially_null() -> void:
+	var comp := SniperComponent.new()
+	add_child_autofree(comp)
+
+	assert_null(comp._laser_dust_particles,
+		"_laser_dust_particles should be null before laser is created")
