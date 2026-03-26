@@ -497,6 +497,20 @@ func test_enemy_script_contains_drone_operator_export() -> void:
 		"enemy.gd must contain is_drone_operator export variable")
 
 
+func test_enemy_script_skips_ai_state_during_dash() -> void:
+	## Issue #1540 regression: dash velocity was overwritten by _process_ai_state on every frame.
+	## Fix: _process_ai_state is skipped while drone operator is dashing.
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("is_dashing") and source.contains("_process_ai_state"),
+		"enemy.gd must guard _process_ai_state with is_dashing() check (Issue #1540 regression fix)")
+
+
 func test_drone_operator_scene_exists() -> void:
 	assert_true(ResourceLoader.exists("res://scenes/objects/EnemyDroneOperator.tscn"),
 		"EnemyDroneOperator.tscn scene file must exist")

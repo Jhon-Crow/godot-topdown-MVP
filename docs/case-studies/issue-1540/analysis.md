@@ -85,8 +85,41 @@ This makes the evasion clearly visible — the operator visibly steps out of the
 
 ---
 
+## Follow-up Bug Report (2026-03-26): Operator Not Dodging At All
+
+After the perpendicular-sidestep fix was merged, the owner reported that the operator no longer dodges **at all** ("сейчас вообще не уворачивается").
+
+### Root Cause: Dash Velocity Overwritten by AI State Processor
+
+**Log evidence** (`game_log_20260326_105350.txt`):
+- `[DroneOperator] Dash activated!` is logged (dash activates correctly)
+- `[DroneOperator] Dash ended` is **never** logged
+- The operator takes damage immediately after the dash is activated and dies in seconds
+
+**Code path analysis** (`scripts/objects/enemy.gd`, `_physics_process`):
+
+1. Line 892: `_update_suppression(delta)` calls `try_dash_from_threat()` → `try_dash()` → sets `velocity` to sidestep direction + `_dash_active = true`
+2. Line 892 (continued): `_drone_operator.update(delta)` calls `_update_active()` → `_update_dash()` → maintains `velocity` at sidestep direction
+3. **Line 918: `_process_ai_state(delta)` is called AFTER the drone operator update** — it immediately overwrites `velocity` (e.g. `velocity = Vector2.ZERO` in `AIState.COMBAT`) before `move_and_slide()` is called at line 933
+
+The operator's sidestep velocity was set correctly in step 2 but **silently overwritten** in step 3 on every frame, resulting in zero movement. The operator appeared stuck in place while the dash timer was decrementing normally. After 0.15s `_end_dash()` fires and chain window / cooldown starts, but since the operator never moved, new dashes produce the same silent failure.
+
+### Fix Applied
+
+In `enemy.gd`, `_physics_process`, `_process_ai_state` is now conditionally skipped while the drone operator is mid-dash:
+
+```gdscript
+if not (_drone_operator and _drone_operator.is_dashing()):  # Issue #1540
+    _process_ai_state(delta)
+```
+
+This preserves the sidestep velocity through to `move_and_slide()` while `_update_walk_animation`, separation force, knockback, and the physics step itself still execute.
+
+---
+
 ## References
 
 - Issue: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1540
 - Related fix (changed direction to toward player): commit `3f67ac87` (Issue #1532)
-- Log file: `game_log_20260326_094908.txt`
+- Log file (original): `game_log_20260326_094908.txt`
+- Log file (regression): `game_log_20260326_105350.txt`
