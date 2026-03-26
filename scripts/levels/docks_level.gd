@@ -60,6 +60,9 @@ func _ready() -> void:
 	# Setup weapon hints (Issue #809)
 	_setup_weapon_hints()
 
+	# Setup rare rain precipitation (Issue #1394)
+	_setup_rain()
+
 
 func _initialize_score_manager() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
@@ -937,6 +940,17 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		armory_button.add_theme_stylebox_override("normal", armory_style)
 		armory_button.pressed.connect(_on_armory_button_pressed)
 		buttons_container.add_child(armory_button)
+		# Add gold shine shader overlay (Issue #1536).
+		var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+		if _armory_shine_shader:
+			var _armory_shine_mat := ShaderMaterial.new()
+			_armory_shine_mat.shader = _armory_shine_shader
+			var _armory_shine_overlay := ColorRect.new()
+			_armory_shine_overlay.name = "ArmoryGoldShineOverlay"
+			_armory_shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_armory_shine_overlay.material = _armory_shine_mat
+			armory_button.add_child(_armory_shine_overlay)
 
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
@@ -980,8 +994,9 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/FactoryLevel.tscn",
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
-		"res://scenes/levels/WinterForestLevel.tscn",
 		"res://scenes/levels/SewerLevel.tscn",
+		"res://scenes/levels/WinterForestLevel.tscn",
+		"res://scenes/levels/RailwayStationLevel.tscn",
 	]
 	var current_scene_path: String = get_tree().current_scene.scene_file_path
 	for i in range(level_paths.size()):
@@ -1282,6 +1297,34 @@ func _disable_player_controls() -> void:
 		_player.velocity = Vector2.ZERO
 
 	_log_to_file("Player controls disabled (level completed)")
+
+
+## Setup rare rain precipitation effect for the Docks level (Issue #1394).
+## Configures the RainEffect node with exclusion zones for indoor areas
+## (WarehouseA and WarehouseB) so rain does not appear inside buildings.
+func _setup_rain() -> void:
+	var rain: Node = get_node_or_null("RainEffect")
+	if rain == null:
+		push_warning("[DocksLevel] RainEffect node not found")
+		return
+
+	# WarehouseA: position (400, 1800), floor from (-250, -300) to (250, 300)
+	# Including walls, the covered area is approximately:
+	var warehouse_a_rect := Rect2(
+		400 - 270, 1800 - 320,  # top-left corner (global)
+		540, 640  # width, height (including walls)
+	)
+	rain.add_exclusion_zone(warehouse_a_rect)
+
+	# WarehouseB: position (4400, 2800), floor from (-350, -400) to (350, 400)
+	# Including walls, the covered area is approximately:
+	var warehouse_b_rect := Rect2(
+		4400 - 370, 2800 - 420,  # top-left corner (global)
+		740, 840  # width, height (including walls)
+	)
+	rain.add_exclusion_zone(warehouse_b_rect)
+
+	_log_to_file("Rain precipitation setup with 2 exclusion zones (WarehouseA, WarehouseB)")
 
 
 func _log_to_file(message: String) -> void:

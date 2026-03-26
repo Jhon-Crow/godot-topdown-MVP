@@ -25,6 +25,9 @@ var _armory_menu: CanvasLayer = null
 ## The instantiated settings menu.
 var _settings_menu: CanvasLayer = null
 
+## Gold shine overlay ColorRect on the armory button (Issue #1536).
+var _armory_shine_overlay: ColorRect = null
+
 ## Reference to the levels menu scene.
 @export var levels_menu_scene: PackedScene
 
@@ -281,7 +284,9 @@ func _refresh_armory_button_state() -> void:
 		# Disable armory button entirely in roguelike mode
 		armory_button.disabled = true
 		armory_button.tooltip_text = "Арсенал недоступен в режиме рогалика"
-		armory_button.remove_theme_stylebox_override("normal")
+		if _armory_shine_overlay != null and is_instance_valid(_armory_shine_overlay):
+			_armory_shine_overlay.queue_free()
+		_armory_shine_overlay = null
 		armory_button.remove_theme_color_override("font_color")
 		return
 
@@ -294,21 +299,24 @@ func _refresh_armory_button_state() -> void:
 		return
 
 	if unlock_manager.has_any_available_unlock():
-		# Highlight armory button in gold to draw attention to unlockable items
-		var highlight_style := StyleBoxFlat.new()
-		highlight_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
-		highlight_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
-		highlight_style.border_width_left = 2
-		highlight_style.border_width_right = 2
-		highlight_style.border_width_top = 2
-		highlight_style.border_width_bottom = 2
-		highlight_style.corner_radius_top_left = 4
-		highlight_style.corner_radius_top_right = 4
-		highlight_style.corner_radius_bottom_left = 4
-		highlight_style.corner_radius_bottom_right = 4
-		armory_button.add_theme_stylebox_override("normal", highlight_style)
+		# Add gold shine shader overlay if not already present (Issue #1536).
+		if _armory_shine_overlay == null or not is_instance_valid(_armory_shine_overlay):
+			var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+			if shine_shader:
+				var mat := ShaderMaterial.new()
+				mat.shader = shine_shader
+				var overlay := ColorRect.new()
+				overlay.name = "ArmoryGoldShineOverlay"
+				overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+				overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				overlay.material = mat
+				armory_button.add_child(overlay)
+				_armory_shine_overlay = overlay
+		# Keep text bright/gold so it stays visible over the additive shine overlay (Issue #1536).
 		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
 	else:
-		# Remove highlight — no available unlocks
-		armory_button.remove_theme_stylebox_override("normal")
+		# Remove shine overlay — no available unlocks
+		if _armory_shine_overlay != null and is_instance_valid(_armory_shine_overlay):
+			_armory_shine_overlay.queue_free()
+		_armory_shine_overlay = null
 		armory_button.remove_theme_color_override("font_color")

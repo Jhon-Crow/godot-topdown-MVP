@@ -196,6 +196,10 @@ var _active_reveal_tweens: Dictionary = {}
 ## Dictionary: slot -> tween reference — killed if the same slot is re-selected quickly.
 var _active_selection_tweens: Dictionary = {}
 
+## Tracks shine overlay ColorRect nodes added to condition-met slots (Issue #1536).
+## Dictionary: slot -> ColorRect
+var _shine_overlays: Dictionary = {}
+
 
 func _ready() -> void:
 	# Get GrenadeManager reference
@@ -1010,6 +1014,12 @@ func _apply_default_style(slot: PanelContainer) -> void:
 	style.corner_radius_bottom_left = 4
 	style.corner_radius_bottom_right = 4
 	slot.add_theme_stylebox_override("panel", style)
+	# Remove gold shine overlay if present (Issue #1536).
+	if slot in _shine_overlays:
+		var overlay: ColorRect = _shine_overlays[slot]
+		if is_instance_valid(overlay):
+			overlay.queue_free()
+		_shine_overlays.erase(slot)
 
 
 ## Apply selected (highlighted) style to a slot.
@@ -1026,23 +1036,45 @@ func _apply_selected_style(slot: PanelContainer) -> void:
 	selected_style.corner_radius_bottom_left = 4
 	selected_style.corner_radius_bottom_right = 4
 	slot.add_theme_stylebox_override("panel", selected_style)
+	# Remove gold shine overlay if present (Issue #1536).
+	if slot in _shine_overlays:
+		var overlay: ColorRect = _shine_overlays[slot]
+		if is_instance_valid(overlay):
+			overlay.queue_free()
+		_shine_overlays.erase(slot)
 
 
 ## Apply gold "condition met" style to a locked slot whose unlock condition has been satisfied.
 ## This highlights items in gold to indicate the player can now unlock them.
+## Adds an animated shine overlay (Issue #1536): diagonal sweep → border glow → gold wash.
 func _apply_condition_met_style(slot: PanelContainer) -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.28, 0.22, 0.08, 0.85)
-	style.border_color = Color(1.0, 0.8, 0.1, 1.0)
-	style.border_width_left = 2
-	style.border_width_right = 2
-	style.border_width_top = 2
-	style.border_width_bottom = 2
 	style.corner_radius_top_left = 4
 	style.corner_radius_top_right = 4
 	style.corner_radius_bottom_left = 4
 	style.corner_radius_bottom_right = 4
 	slot.add_theme_stylebox_override("panel", style)
+
+	# Remove any existing shine overlay before adding a new one.
+	if slot in _shine_overlays:
+		var old_overlay: ColorRect = _shine_overlays[slot]
+		if is_instance_valid(old_overlay):
+			old_overlay.queue_free()
+		_shine_overlays.erase(slot)
+
+	# Add a full-size ColorRect on top with the gold shine shader (Issue #1536).
+	var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+	if shine_shader:
+		var mat := ShaderMaterial.new()
+		mat.shader = shine_shader
+		var overlay := ColorRect.new()
+		overlay.name = "GoldShineOverlay"
+		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.material = mat
+		slot.add_child(overlay)
+		_shine_overlays[slot] = overlay
 
 
 ## Handle click on an item slot.
@@ -1641,9 +1673,11 @@ func _rebuild_active_item_slot_animated(item_type: int) -> void:
 
 ## Plays a shake + glint animation on a weapon/grenade/item slot when it is selected.
 ## The animation consists of:
-##   1. A 4-step horizontal shake (right → left → right → settle) for tactile "punch" feel.
-##   2. A simultaneous scale bump: slightly enlarge then spring back (TRANS_BACK ease).
-##   3. A brightness flash (modulate) that briefly bleaches the slot white then fades back.
+##   1. A 4-step squash-and-stretch scale punch on the weapon icon (saint11 pixel-art style).
+##   2. A diagonal glint sweep rendered via a ShaderMaterial on the icon TextureRect — the
+##      shader works in UV [0,1]² space so the effect is strictly confined to the icon pixels
+##      and cannot bleed onto the card, border, or label.
+##   3. A brightness flash (modulate) that briefly bleaches the icon white then fades back.
 ##
 ## Based on the 4-step pixel art animation principle from saint11.art/blog/pixel-art-tutorials/:
 ## anticipation → action → follow-through → settle.
@@ -1653,7 +1687,7 @@ func _play_weapon_selection_animation(slot: PanelContainer) -> void:
 		return
 
 	# Get the weapon icon TextureRect — the card itself must NOT be deformed.
-	# All shake, scale, and glint animations target only the icon.
+	# All scale, glint, and flash animations target only the icon TextureRect.
 	var icon_container: CenterContainer = vbox.get_child(0) as CenterContainer
 	if icon_container == null:
 		return
@@ -1674,33 +1708,31 @@ func _play_weapon_selection_animation(slot: PanelContainer) -> void:
 	# Ensure the icon pivot is centred for scale/rotation animations
 	icon_rect.pivot_offset = icon_rect.size / 2.0
 
-	# --- GLINT OVERLAY (clipped inside icon_container, 48×48 weapon icon area) ---
-	# Simulates light reflecting off the weapon surface ("блик"/glint from the issue).
-	# Added directly to icon_container so clip_contents keeps it strictly on the weapon.
-	icon_container.clip_contents = true
+	# --- GLINT SHADER (runs entirely in icon UV space — never bleeds onto the card) ---
+	# Using a ShaderMaterial on the TextureRect means the effect is computed per-pixel
+	# within the icon's own UV [0,1]² space. There is no separate overlay node and
+	# no clip_contents workaround needed — the glint is mathematically impossible to
+	# appear outside the icon bounds.
+	var glint_shader := load("res://scripts/shaders/weapon_select_glint.gdshader") as Shader
+	var glint_mat: ShaderMaterial = null
+	if glint_shader:
+		glint_mat = ShaderMaterial.new()
+		glint_mat.shader = glint_shader
+		glint_mat.set_shader_parameter("anim_progress", 0.0)
+		icon_rect.material = glint_mat
 
-	var glint := ColorRect.new()
-	glint.name = "_glint_overlay"
-	glint.color = Color(1.0, 1.0, 1.0, 0.0)
-	# Narrow diagonal band — rotated ~25° for a classic pixel-art shine sweep
-	glint.custom_minimum_size = Vector2(10, 80)
-	glint.size = Vector2(10, 80)
-	glint.rotation_degrees = 25.0
-	# Start off the left edge of the 48 px icon
-	glint.position = Vector2(-14, -16)
-	icon_container.add_child(glint)
-
-	# 4-step shine sweep across the icon (pixel-art "Simple Shine" style):
-	#   Step 1 — appear: fade in quickly
-	#   Step 2 — sweep: slide diagonally across the icon left→right
-	#   Step 3 — hold at peak
-	#   Step 4 — vanish: fade out cleanly
-	var glint_tween := create_tween()
-	glint_tween.set_parallel(true)
-	glint_tween.tween_property(glint, "color:a", 0.70, 0.06)
-	glint_tween.tween_property(glint, "position:x", 52.0, 0.18).set_ease(Tween.EASE_OUT)
-	glint_tween.tween_property(glint, "color:a", 0.0, 0.10).set_delay(0.08)
-	glint_tween.tween_callback(glint.queue_free).set_delay(0.20)
+	# Animate the shader `anim_progress` from 0 → 1 over 0.22 s (4-step pixel-art shine):
+	#   0.00 – 0.20 : glint fades in (smoothstep inside shader)
+	#   0.00 – 1.00 : stripe sweeps left → right across the icon
+	#   0.75 – 1.00 : glint fades out (smoothstep inside shader)
+	if glint_mat:
+		var glint_tween := create_tween()
+		glint_tween.tween_property(glint_mat, "shader_parameter/anim_progress", 1.0, 0.22) \
+			.set_ease(Tween.EASE_IN_OUT)
+		glint_tween.tween_callback(func():
+			if is_instance_valid(icon_rect):
+				icon_rect.material = null
+		)
 
 	# --- ICON SHAKE + SCALE (4-step pixel-art punch, icon only, card is untouched) ---
 	# The TextureRect is inside a CenterContainer whose layout is managed by Godot, so

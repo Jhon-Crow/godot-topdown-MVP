@@ -153,6 +153,9 @@ const ASVK_BOLT_STEP_3: String = "res://assets/audio/досылание патр
 ## Step 4: Close bolt (Right arrow).
 const ASVK_BOLT_STEP_4: String = "res://assets/audio/запирание затвора ASVK (4 шаг зарядки).wav"
 
+## Maximum audible distance for M16 sounds (Issue #1524).
+const M16_MAX_DISTANCE: float = 840.0
+
 ## Volume for ASVK shots (louder than M16).
 const VOLUME_ASVK_SHOT: float = -2.0
 ## Volume for ASVK bolt-action sounds.
@@ -594,7 +597,8 @@ func play_sound_2d(path: String, position: Vector2, volume_db: float = 0.0) -> v
 
 
 ## Plays a positional 2D sound at the given position with specified priority.
-func play_sound_2d_with_priority(path: String, position: Vector2, volume_db: float, priority: SoundPriority) -> void:
+## max_distance controls how far (in pixels) the sound is audible (default 2000.0).
+func play_sound_2d_with_priority(path: String, position: Vector2, volume_db: float, priority: SoundPriority, max_distance: float = 2000.0) -> void:
 	var stream := _get_stream(path)
 	if stream == null:
 		push_warning("AudioManager: Could not load sound: " + path)
@@ -603,6 +607,7 @@ func play_sound_2d_with_priority(path: String, position: Vector2, volume_db: flo
 	var player := _get_available_player_2d_with_priority(priority)
 	player.stream = stream
 	player.volume_db = volume_db
+	player.max_distance = max_distance
 	player.global_position = position
 	player.play()
 	_register_playing_sound_2d(player, priority)
@@ -627,11 +632,12 @@ func play_random_sound_2d(paths: Array, position: Vector2, volume_db: float = 0.
 
 
 ## Plays a random positional 2D sound from an array of paths with specified priority.
-func play_random_sound_2d_with_priority(paths: Array, position: Vector2, volume_db: float, priority: SoundPriority) -> void:
+## max_distance controls how far (in pixels) the sound is audible (default 2000.0).
+func play_random_sound_2d_with_priority(paths: Array, position: Vector2, volume_db: float, priority: SoundPriority, max_distance: float = 2000.0) -> void:
 	if paths.is_empty():
 		return
 	var path: String = paths[randi() % paths.size()]
-	play_sound_2d_with_priority(path, position, volume_db, priority)
+	play_sound_2d_with_priority(path, position, volume_db, priority, max_distance)
 
 
 # ============================================================================
@@ -646,20 +652,23 @@ func play_random_sound_2d_with_priority(paths: Array, position: Vector2, volume_
 
 ## Plays a random M16 shot sound at the given position.
 ## Uses CRITICAL priority for player shooting sounds.
+## Sound range is limited to M16_MAX_DISTANCE (Issue #1524).
 func play_m16_shot(position: Vector2) -> void:
-	play_random_sound_2d_with_priority(M16_SHOTS, position, VOLUME_SHOT, SoundPriority.CRITICAL)
+	play_random_sound_2d_with_priority(M16_SHOTS, position, VOLUME_SHOT, SoundPriority.CRITICAL, M16_MAX_DISTANCE)
 
 
 ## Plays M16 double shot sound (for burst fire) at the given position.
 ## Uses CRITICAL priority for player shooting sounds.
+## Sound range is limited to M16_MAX_DISTANCE (Issue #1524).
 func play_m16_double_shot(position: Vector2) -> void:
-	play_random_sound_2d_with_priority(M16_DOUBLE_SHOTS, position, VOLUME_SHOT, SoundPriority.CRITICAL)
+	play_random_sound_2d_with_priority(M16_DOUBLE_SHOTS, position, VOLUME_SHOT, SoundPriority.CRITICAL, M16_MAX_DISTANCE)
 
 
 ## Plays a random M16 bolt cycling sound at the given position.
 ## Uses CRITICAL priority for reload sounds.
+## Sound range is limited to M16_MAX_DISTANCE (Issue #1524).
 func play_m16_bolt(position: Vector2) -> void:
-	play_random_sound_2d_with_priority(M16_BOLT_SOUNDS, position, VOLUME_RELOAD, SoundPriority.CRITICAL)
+	play_random_sound_2d_with_priority(M16_BOLT_SOUNDS, position, VOLUME_RELOAD, SoundPriority.CRITICAL, M16_MAX_DISTANCE)
 
 
 ## Plays a random AK rifle shot sound at the given position.
