@@ -180,6 +180,17 @@ class MockArmoryMenu:
 	func press_back() -> void:
 		back_pressed_emitted += 1
 
+	## Select weapon and record which reload preview sound was requested.
+	## Mimics the armory menu logic: weapons call play_weapon_reload_preview(weapon_id).
+	func select_weapon_with_sound(weapon_id: String) -> bool:
+		if not select_weapon(weapon_id):
+			return false
+		reload_preview_calls.append(weapon_id)
+		return true
+
+	## Tracks weapon IDs passed to play_weapon_reload_preview.
+	var reload_preview_calls: Array = []
+
 	# ---- Accordion shine overlay simulation (Issue #1561) ----
 
 	## Tracks which mock button names have a shine overlay applied.
@@ -196,6 +207,23 @@ class MockArmoryMenu:
 	## Returns true if the given button has an active shine overlay.
 	func has_accordion_shine(button_name: String) -> bool:
 		return accordion_shine_active.get(button_name, false)
+
+
+## Mock AudioManager that records play_weapon_reload_preview calls.
+class MockAudioManager:
+	## Weapon IDs for which play_weapon_reload_preview was called.
+	var reload_preview_calls: Array = []
+	## Whether play_ui_click was called.
+	var ui_click_count: int = 0
+
+	func has_method(method_name: String) -> bool:
+		return method_name in ["play_weapon_reload_preview", "play_ui_click"]
+
+	func play_weapon_reload_preview(weapon_id: String) -> void:
+		reload_preview_calls.append(weapon_id)
+
+	func play_ui_click() -> void:
+		ui_click_count += 1
 
 
 var menu: MockArmoryMenu
@@ -640,6 +668,76 @@ func test_apply_weapon_grenade_and_active_item() -> void:
 	assert_eq(menu.applied_weapon, "sniper", "Weapon should be applied")
 	assert_eq(menu.applied_grenade_type, 2, "Grenade should be applied")
 	assert_eq(menu.applied_active_item, 1, "Active item should be applied")
+
+
+# ============================================================================
+# Reload Sound Preview Tests (Issue #1564)
+# ============================================================================
+
+
+func test_select_weapon_records_reload_preview_call() -> void:
+	var result := menu.select_weapon_with_sound("shotgun")
+	assert_true(result,
+		"Selecting shotgun should succeed")
+	assert_eq(menu.reload_preview_calls.size(), 1,
+		"One reload preview should be recorded when weapon is selected")
+	assert_eq(menu.reload_preview_calls[0], "shotgun",
+		"Reload preview should be called with the correct weapon ID")
+
+
+func test_select_each_weapon_records_its_own_reload_preview() -> void:
+	var weapons := ["makarov_pm", "m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper", "revolver"]
+	for weapon_id in weapons:
+		menu.reload_preview_calls.clear()
+		menu.select_weapon_with_sound(weapon_id)
+		assert_eq(menu.reload_preview_calls.size(), 1,
+			"Exactly one reload preview call expected for " + weapon_id)
+		assert_eq(menu.reload_preview_calls[0], weapon_id,
+			"Reload preview weapon_id should match selected weapon for " + weapon_id)
+
+
+func test_mock_audio_manager_play_weapon_reload_preview() -> void:
+	var audio_manager := MockAudioManager.new()
+	audio_manager.play_weapon_reload_preview("revolver")
+	assert_eq(audio_manager.reload_preview_calls.size(), 1,
+		"MockAudioManager should record play_weapon_reload_preview call")
+	assert_eq(audio_manager.reload_preview_calls[0], "revolver",
+		"Recorded weapon_id should be 'revolver'")
+
+
+func test_mock_audio_manager_play_ui_click() -> void:
+	var audio_manager := MockAudioManager.new()
+	audio_manager.play_ui_click()
+	assert_eq(audio_manager.ui_click_count, 1,
+		"MockAudioManager should record play_ui_click call")
+
+
+func test_mock_audio_manager_has_method_reload_preview() -> void:
+	var audio_manager := MockAudioManager.new()
+	assert_true(audio_manager.has_method("play_weapon_reload_preview"),
+		"MockAudioManager should report having play_weapon_reload_preview")
+
+
+func test_mock_audio_manager_has_method_ui_click() -> void:
+	var audio_manager := MockAudioManager.new()
+	assert_true(audio_manager.has_method("play_ui_click"),
+		"MockAudioManager should report having play_ui_click")
+
+
+func test_locked_weapon_does_not_trigger_reload_preview() -> void:
+	var result := menu.select_weapon_with_sound("ak47")  # locked
+	assert_false(result,
+		"Selecting a locked weapon should fail")
+	assert_eq(menu.reload_preview_calls.size(), 0,
+		"No reload preview should be recorded for a locked weapon")
+
+
+func test_unknown_weapon_does_not_trigger_reload_preview() -> void:
+	var result := menu.select_weapon_with_sound("unknown_weapon")
+	assert_false(result,
+		"Selecting an unknown weapon should fail")
+	assert_eq(menu.reload_preview_calls.size(), 0,
+		"No reload preview should be recorded for an unknown weapon")
 
 
 # ============================================================================
