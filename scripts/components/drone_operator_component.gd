@@ -358,11 +358,20 @@ func _deploy_drone() -> void:
 			else:
 				_parent.get_tree().current_scene.add_child(_drone)
 
-			# Connect drone destruction signal
-			var drone_comp: DroneComponent = _drone.get_node_or_null("DroneComponent") as DroneComponent
-			if drone_comp:
-				drone_comp.initialize(_parent)
-				drone_comp.drone_destroyed.connect(_on_drone_destroyed)
+			# Initialize drone and connect destruction signal using duck typing
+			# (drone.gd handles all AI directly — no DroneComponent class cast needed)
+			var drone_script: GDScript = _drone.get_script() as GDScript
+			FileLogger.info("[DroneOperator] Drone node created, script=%s" % (drone_script.resource_path if drone_script else "NONE"))
+			if _drone.has_method("initialize_drone"):
+				_drone.initialize_drone(_parent)
+				FileLogger.info("[DroneOperator] Drone initialized via initialize_drone()")
+			else:
+				FileLogger.info("[DroneOperator] WARNING: Drone has no initialize_drone() method! Script may have failed to load.")
+			if _drone.has_signal("died"):
+				_drone.died.connect(_on_drone_destroyed)
+				FileLogger.info("[DroneOperator] Connected to drone.died signal")
+			else:
+				FileLogger.info("[DroneOperator] WARNING: Drone has no 'died' signal! Script may have failed to load.")
 			FileLogger.info("[DroneOperator] Drone deployed at (%d, %d)" % [int(_drone.global_position.x), int(_drone.global_position.y)])
 	else:
 		FileLogger.info("[DroneOperator] WARNING: Drone scene not found at %s, skipping deployment" % DRONE_SCENE_PATH)

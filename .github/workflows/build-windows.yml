@@ -28,6 +28,20 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      # Generate build_info.cfg so the game log shows which branch/commit was used.
+      # This helps diagnose "wrong build" issues (e.g., Issue #1417 sessions 3-6).
+      - name: Generate build_info.cfg
+        run: |
+          cat > build_info.cfg <<EOF
+          [build]
+          branch="${{ github.head_ref || github.ref_name }}"
+          commit="${{ github.sha }}"
+          date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          pr="${{ github.event.pull_request.number || '' }}"
+          EOF
+          echo "Generated build_info.cfg:"
+          cat build_info.cfg
+
       # Required for C# projects: Godot's headless export doesn't compile C# sources
       # automatically, so we must build .NET assemblies first. Without this step,
       # the data_* folder with .NET assemblies will be missing in the export.
