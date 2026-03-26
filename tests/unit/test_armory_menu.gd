@@ -814,3 +814,65 @@ func test_default_style_on_button_with_no_shine_is_safe() -> void:
 
 	assert_false(menu.has_accordion_shine("weapon_accordion"),
 		"Button with no shine should remain without shine after default reset")
+
+
+# ============================================================================
+# Weapon Selection Animation Phase Order Tests (Issue #1575)
+# ============================================================================
+
+
+class MockGlintShaderPhaseOrder:
+	## Mirrors the phase boundary constants from weapon_select_glint.gdshader (Issue #1575).
+	## Phase 1 is the top-edge glint sweep (slow), Phase 2 is the diagonal sweep (fast).
+	const TOTAL_DURATION_S: float = 1.02
+	const PHASE1_END_PROGRESS: float = 0.784   # 0.80 / 1.02 — end of top-edge sweep
+	const PHASE2_START_PROGRESS: float = 0.784 # 0.80 / 1.02 — start of diagonal sweep
+
+	## Returns true if, at the given anim_progress, Phase 1 (top-edge) is active.
+	func is_phase1_active(anim_progress: float) -> bool:
+		return anim_progress < PHASE1_END_PROGRESS
+
+	## Returns true if, at the given anim_progress, Phase 2 (diagonal) is active.
+	func is_phase2_active(anim_progress: float) -> bool:
+		return anim_progress >= PHASE2_START_PROGRESS
+
+
+func test_phase1_top_edge_runs_first() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	# At progress 0.0 (very start), Phase 1 (top-edge) should be active, Phase 2 should not.
+	assert_true(shader.is_phase1_active(0.0),
+		"Phase 1 (top-edge glint) should be active at the very start of the animation")
+	assert_false(shader.is_phase2_active(0.0),
+		"Phase 2 (diagonal sweep) should NOT be active at the very start of the animation")
+
+
+func test_phase2_diagonal_runs_second() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	# At progress 0.9 (late in animation), Phase 2 (diagonal) should be active, Phase 1 should not.
+	assert_false(shader.is_phase1_active(0.9),
+		"Phase 1 (top-edge glint) should NOT be active late in the animation")
+	assert_true(shader.is_phase2_active(0.9),
+		"Phase 2 (diagonal sweep) should be active late in the animation")
+
+
+func test_phase1_occupies_majority_of_animation() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	# Phase 1 covers 0.0 → 0.784 (78.4% of total), Phase 2 covers 0.784 → 1.0 (21.6%).
+	assert_true(shader.PHASE1_END_PROGRESS > 0.5,
+		"Phase 1 (top-edge glint) should occupy more than half of the total animation duration")
+	assert_true(shader.PHASE2_START_PROGRESS > 0.5,
+		"Phase 2 (diagonal sweep) should start after the halfway point")
+
+
+func test_phases_do_not_overlap() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	assert_eq(shader.PHASE1_END_PROGRESS, shader.PHASE2_START_PROGRESS,
+		"Phase 1 end and Phase 2 start must be at the same boundary (no gap or overlap)")
+
+
+func test_phase_boundary_value() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	# 0.80 s / 1.02 s ≈ 0.784 — verify the constant is correct.
+	var expected_boundary: float = 0.80 / shader.TOTAL_DURATION_S
+	assert_almost_eq(shader.PHASE1_END_PROGRESS, expected_boundary, 0.001,
+		"Phase boundary should equal 0.80 s / 1.02 s ≈ 0.784")
