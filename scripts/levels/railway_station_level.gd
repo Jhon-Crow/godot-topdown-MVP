@@ -22,6 +22,7 @@ var _magazines_label: Label = null
 var _saturation_overlay: ColorRect = null
 var _combo_label: Label = null
 var _exit_zone: Area2D = null
+var _extra_exit_zones: Array = []
 var _level_cleared: bool = false
 var _score_shown: bool = false
 var _level_completed: bool = false
@@ -96,16 +97,33 @@ func _setup_exit_zone() -> void:
 	if exit_zone_scene == null:
 		push_warning("ExitZone scene not found")
 		return
-	_exit_zone = exit_zone_scene.instantiate()
-	# Exit is placed IN the gap of the snow embankment (Gap 3, x=2500..2850, y=900..1100).
-	# Embankment Block 3 ends at x≈2500, Block 4 starts at x≈2850 — 350px opening.
-	# Zone is centered in Gap 3 at the embankment center (y=1000).
-	_exit_zone.position = Vector2(2675, 1000)
-	_exit_zone.zone_width = 330.0; _exit_zone.zone_height = 200.0
-	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
+
+	# All 3 embankment gaps serve as exits:
+	# Gap 1: between Embankment1 (x=50..750) and Embankment2 (x=800..1500) → center x=775, width=50
+	# Gap 2: between Embankment2 (x=800..1500) and Embankment3 (x=1800..2500) → center x=1650, width=300
+	# Gap 3: between Embankment3 (x=1800..2500) and Embankment4 (x=2850..3550) → center x=2675, width=350
+	var exit_gaps: Array = [
+		{"pos": Vector2(775, 1000), "w": 50.0, "h": 200.0},
+		{"pos": Vector2(1650, 1000), "w": 300.0, "h": 200.0},
+		{"pos": Vector2(2675, 1000), "w": 350.0, "h": 200.0},
+	]
+
 	var environment := get_node_or_null("Environment")
-	if environment: environment.add_child(_exit_zone)
-	else: add_child(_exit_zone)
+	for idx in range(exit_gaps.size()):
+		var gap_data: Dictionary = exit_gaps[idx]
+		var zone: Area2D = exit_zone_scene.instantiate()
+		zone.position = gap_data["pos"]
+		zone.zone_width = gap_data["w"]
+		zone.zone_height = gap_data["h"]
+		zone.player_reached_exit.connect(_on_player_reached_exit)
+		if environment:
+			environment.add_child(zone)
+		else:
+			add_child(zone)
+		if idx == 0:
+			_exit_zone = zone
+		else:
+			_extra_exit_zones.append(zone)
 
 
 func _on_player_reached_exit() -> void:
@@ -114,8 +132,13 @@ func _on_player_reached_exit() -> void:
 
 
 func _activate_exit_zone() -> void:
-	if _exit_zone and _exit_zone.has_method("activate"): _exit_zone.activate()
-	else: _complete_level_with_score()
+	if _exit_zone and _exit_zone.has_method("activate"):
+		_exit_zone.activate()
+	for zone in _extra_exit_zones:
+		if zone and zone.has_method("activate"):
+			zone.activate()
+	if _exit_zone == null:
+		_complete_level_with_score()
 
 
 func _setup_realistic_visibility() -> void:
@@ -891,8 +914,8 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
 		"res://scenes/levels/WinterForestLevel.tscn",
-		"res://scenes/levels/RailwayStationLevel.tscn",
 		"res://scenes/levels/SewerLevel.tscn",
+		"res://scenes/levels/RailwayStationLevel.tscn",
 	]
 	var current_scene_path: String = get_tree().current_scene.scene_file_path
 	for i in range(level_paths.size()):
