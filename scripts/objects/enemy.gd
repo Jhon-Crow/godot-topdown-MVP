@@ -1799,8 +1799,7 @@ func _process_in_cover_state(delta: float) -> void:
 			_shoot()
 			_shoot_timer = 0.0
 
-	# If player (or companion) lost and not under fire, try suppressive fire then pursuing (Issue #934, #910).
-	# Issue #1446: formation enemies behind shieldbearer stay in cover — shieldbearer IS cover, no need to pursue.
+	# If player (or companion) lost and not under fire, pursue (Issue #934, #910). Issue #1446: skip for formation enemies (shieldbearer IS cover).
 	if _formation_shielder == null and not (_can_see_player or _can_see_companion) and not _under_fire and not (_suppressive_fire and _suppressive_fire.try_suppress_cover(_player, _last_known_player_position, _is_melee_weapon, _is_reloading, _shoot_timer, shoot_cooldown)):
 		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
 		_transition_to_pursuing()
