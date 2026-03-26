@@ -4209,7 +4209,7 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0, is_from_player: bool = false) -> void:
 	if not _is_alive:
 		return
-	if (_force_field_component and _force_field_component.is_active()) or (_drone_operator and _drone_operator.is_dashing()): _log_to_file("Hit blocked by force field/dash"); return  # Issues #1034, #1397
+	if (_force_field_component and _force_field_component.is_active()): _log_to_file("Hit blocked by force field"); return  # Issue #1034 (drone operator dash no longer grants invincibility — #1532 fix #9)
 	# Issue #1242: Shield blocking — collision-based + direction fallback; shield enemy slowly turns toward attacker.
 	if _shield_component and _shield_component.did_intercept_this_frame(): _set_hit_reaction_target(-hit_direction.normalized()); return
 	if _shield_component and _shield_component.is_active() and _enemy_model and Vector2.from_angle(_enemy_model.global_rotation).dot(-hit_direction.normalized()) > 0.5:

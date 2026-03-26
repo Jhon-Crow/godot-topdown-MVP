@@ -25,11 +25,11 @@ const DASH_CHARGES: int = 4
 ## Dash cooldown duration (same as player Dash).
 const DASH_COOLDOWN: float = 1.2
 
-## Dash duration per dash (same as player Dash).
-const DASH_DURATION: float = 0.15
+## Dash duration per dash — longer than player for a visible aggressive lunge (Issue #1532 fix #9).
+const DASH_DURATION: float = 0.2
 
-## Dash speed multiplier (same as player Dash).
-const DASH_SPEED_MULTIPLIER: float = 4.0
+## Dash speed multiplier — higher than player for a long closing dash (Issue #1532 fix #9).
+const DASH_SPEED_MULTIPLIER: float = 6.0
 
 ## Chain window for consecutive dashes.
 const DASH_CHAIN_WINDOW: float = 0.4
@@ -237,7 +237,7 @@ func get_phase() -> Phase:
 	return _phase
 
 
-## Returns true if the operator is currently dashing (immune to damage).
+## Returns true if the operator is currently dashing (no longer used for damage immunity — #1532 fix #9).
 func is_dashing() -> bool:
 	return _dash_active
 
@@ -248,60 +248,37 @@ func is_controlling_drone() -> bool:
 
 
 ## Returns true if the operator should override suppression with dash.
-## Only in ACTIVE phase when bullets are in threat sphere AND charges are available.
-## When all charges are spent and on cooldown, fall back to normal suppression so
-## bullets can still hit the operator (Issue #1532 fix #5).
+## Only in ACTIVE phase when bullets are in threat sphere AND charges are available OR currently dashing.
+## Prevents suppression while the operator still has dodge charges or is mid-dash.
+## When all charges are spent and on cooldown, fall back to normal suppression (Issue #1532 fix #5/#9).
 func should_dash_instead_of_suppress() -> bool:
 	if _phase != Phase.ACTIVE:
 		return false
+	# If currently dashing, suppress suppression — no new dash starts but operator is not suppressed
 	if _dash_active:
-		return false
+		return true
 	# If no charges left and cooldown running, let normal suppression apply (operator can be hit)
 	if _dash_charges <= 0 and _dash_cooldown_timer > 0.0:
 		return false
 	return true
 
 
-## Calculate dash direction for flanking and attempt to dash.
+## Calculate dash direction and attempt to dash toward the player.
 ## Called from enemy._update_suppression() when bullets are in threat sphere.
 ##
-## Dash strategy (Issue #1532): move to a flanking position so the operator can
-## immediately attack the player after the dash rather than retreating into a wall.
-## The dash direction is perpendicular to the enemy→player axis (left or right flank),
-## biased toward whichever side is not blocked by the incoming bullet trajectory.
+## Dash strategy (Issue #1532 fix #9): operator dashes TOWARD the player to close distance
+## aggressively, making it harder to track and turning the dodge into an attack opportunity.
 func try_dash_from_threat(bullets_in_sphere: Array, player: Node2D, enemy_pos: Vector2) -> void:
 	if player == null:
 		return
 
-	# Axis from operator to player
+	# Dash directly toward the player (aggressive closing dash)
 	var to_player: Vector2 = (player.global_position - enemy_pos).normalized()
 
-	# Two flanking directions: 90° left and right of the player axis
-	var flank_left: Vector2 = to_player.rotated(-PI / 2.0)
-	var flank_right: Vector2 = to_player.rotated(PI / 2.0)
-
-	# Pick the flank side that moves AWAY from the incoming bullet trajectory.
-	# If the bullet comes from the left, dash right (and vice versa), so the
-	# operator circles around the player rather than retreating backwards.
-	var dash_dir: Vector2 = flank_left  # Default to left flank
-	if not bullets_in_sphere.is_empty():
-		var bullet = bullets_in_sphere[0]
-		if is_instance_valid(bullet) and "velocity" in bullet:
-			var bullet_dir: Vector2 = bullet.velocity.normalized()
-			# Dot product: if bullet comes from the left (positive cross-product), dash right
-			if bullet_dir.cross(to_player) > 0.0:
-				dash_dir = flank_right
-			else:
-				dash_dir = flank_left
-	else:
-		# No bullet info: alternate sides based on dash charge count for variety
-		if _dash_charges % 2 == 0:
-			dash_dir = flank_right
-
-	FileLogger.info("[DroneOperator] Flanking dash: dir=(%.2f, %.2f), player_dir=(%.2f, %.2f)" % [
-		dash_dir.x, dash_dir.y, to_player.x, to_player.y
+	FileLogger.info("[DroneOperator] Aggressive dash toward player: dir=(%.2f, %.2f)" % [
+		to_player.x, to_player.y
 	])
-	try_dash(dash_dir)
+	try_dash(to_player)
 
 
 ## Attempt to activate a dash in a given direction (called when bullets enter threat sphere).

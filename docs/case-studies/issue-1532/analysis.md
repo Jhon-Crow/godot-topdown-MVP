@@ -16,6 +16,11 @@ Issue #1532 (and follow-up feedback on PR #1533) identifies bugs in the Drone Op
 7. **Dash doesn't guarantee first-bullet evasion** — `threat_reaction_delay=0.2s` is longer than the bullet's time-to-target (~74ms at 1350px/s)
 8. **No damage after drone destroyed** — when all dash charges exhausted (`should_dash_instead_of_suppress()` still returns `true`), normal suppression never sets `_under_fire`, and while not dashing damage should land via `on_hit_with_bullet_info`, but the operator appeared invincible
 
+**Second round of feedback bugs (3, from PR comment 2026-03-26, log `game_log_20260326_091825.txt`):**
+9. **Drone operator is immortal in combat mode** — root cause: `on_hit_with_bullet_info` blocked damage whenever `is_dashing()` returned `true`; `_dash_active` was stuck `true` because after any dash, bullets re-entering the threat sphere would keep triggering `should_dash_instead_of_suppress()` → but with `_dash_active=true` it returned `false`, setting `_under_fire=true` instead of a new dash — yet `is_dashing()` (still `true` during those frames) blocked the actual hit at `on_hit_with_bullet_info`. The fix: remove damage immunity from `is_dashing()` — the dash is physical evasion (movement), not intangibility.
+10. **Dash looks like hiding behind obstacle** — the perpendicular flanking direction made the operator slip sideways behind the nearest wall rather than rushing the player. Fix: change dash direction to directly toward the player for an aggressive closing lunge.
+11. **Operator enters suppressed state while charges remain** — `should_dash_instead_of_suppress()` returned `false` when `_dash_active=true`, allowing `_under_fire=true`. Fix: return `true` even when mid-dash so suppression is blocked as long as charges/active dash exist; only allow suppression when all charges are exhausted and cooldown is running.
+
 ---
 
 ## Logs and Evidence
@@ -158,6 +163,34 @@ for a clearly visible red — matching the player's understanding of "red lamp =
 - Root cause: `should_dash_instead_of_suppress()` returned `true` even when all dash charges were exhausted and cooldown was running, preventing `_under_fire` from being set.
 - While `_under_fire` doesn't block `on_hit_with_bullet_info` (direct bullet damage bypasses suppression), the perpetual "should dash" state may interact with other AI logic.
 - Fix: Added `if _dash_charges <= 0 and _dash_cooldown_timer > 0.0: return false` — when out of dashes, fall back to normal suppression so the AI correctly processes being hit.
+
+---
+
+### Fix 9 — Immortality in Combat Mode (second round feedback)
+
+**Log evidence** (`game_log_20260326_091825.txt`):
+```
+[09:19:06] [INFO] [DroneOperator] Dash activated! Dir: (-0.50, 0.86), charges left: 3/4
+[09:19:06] [ENEMY] [EnemyDroneOperator] Hit blocked by force field/dash
+[09:19:19] [ENEMY] [EnemyDroneOperator] Hit blocked by force field/dash   ← still blocked 13s later!
+```
+"Dash ended" is **never logged** across the entire 3-minute session.
+
+**Root cause:** `on_hit_with_bullet_info` in `enemy.gd` had: `if _drone_operator.is_dashing(): return`. Since `is_dashing()` returns `_dash_active`, if `_dash_active` was somehow true for an extended period, ALL damage was blocked. The underlying issue: while `_dash_active=true`, `should_dash_instead_of_suppress()` returned `false`, causing `_under_fire=true` — but the damage check happened before any update could end the dash, making the operator temporarily immune. Combined with the suppression logic, this created a window where damage was consistently blocked.
+
+**Fix:** Remove the `is_dashing()` damage check from `on_hit_with_bullet_info`. The dash is a movement evasion (the operator physically moves out of the bullet path), not a damage-immunity shield. If the bullet hits while the operator moves, the damage should apply normally.
+
+### Fix 10 — Dash Toward Player (second round feedback)
+
+**Root cause:** `try_dash_from_threat()` calculated flanking directions (±90° to player axis), making the operator dart sideways — this typically meant moving toward the nearest wall rather than engaging. Per user feedback: "рывок должен быть длинным в сторону игрока" (the dash should be long toward the player).
+
+**Fix:** Changed dash direction to `(player.global_position - enemy_pos).normalized()` — directly toward the player. Increased `DASH_SPEED_MULTIPLIER` from 4.0 to 6.0 and `DASH_DURATION` from 0.15s to 0.2s for a visibly long, aggressive lunge (≈384px distance vs previous ≈192px).
+
+### Fix 11 — No Suppression While Charges Remain (second round feedback)
+
+**Root cause:** When `_dash_active=true`, `should_dash_instead_of_suppress()` returned `false`, so `_under_fire=true` was set, triggering suppressed state while the operator still had dodge charges.
+
+**Fix:** Changed `should_dash_instead_of_suppress()` to return `true` even when `_dash_active=true`. This prevents `_under_fire` from being set while mid-dash or while charges exist. Only when `_dash_charges <= 0 and _dash_cooldown_timer > 0.0` (all spent, on cooldown) does suppression apply. Per user feedback: "пока у дроновода есть заряд уворота он не должен входить в подавленное состояние" (while the operator has dodge charges, it must not enter suppressed state).
 
 ---
 
