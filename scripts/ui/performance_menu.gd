@@ -38,6 +38,9 @@ const ROW_HOVER_BG: Color = Color(1.0, 1.0, 1.0, 0.08)
 ## Seconds to sample FPS for each benchmark step (Issue #1497).
 const BENCHMARK_SAMPLE_DURATION: float = 3.0
 
+## Number of cycles each benchmark step is repeated for reliable results (Issue #1516).
+const BENCHMARK_CYCLES: int = 20
+
 ## Number of particle emitters spawned per stress step (Issue #1504).
 const STRESS_PARTICLE_COUNT: int = 30
 
@@ -351,11 +354,17 @@ func _run_benchmark() -> void:
 		benchmark_button.disabled = false
 		return
 
+	# Disable vsync so frame-rate is not artificially capped during benchmarking (Issue #1516).
+	var vsync_mode_before := DisplayServer.window_get_vsync_mode()
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+
 	_bm_write(log_file, "=".repeat(60))
 	_bm_write(log_file, "BENCHMARK LOG")
 	_bm_write(log_file, "=".repeat(60))
 	_bm_write(log_file, "Started: %s" % Time.get_datetime_string_from_system())
 	_bm_write(log_file, "Sample duration per step: %.1f s" % BENCHMARK_SAMPLE_DURATION)
+	_bm_write(log_file, "Cycles per step: %d" % BENCHMARK_CYCLES)
+	_bm_write(log_file, "VSync: disabled for benchmark")
 	_bm_write(log_file, "-".repeat(60))
 
 	var results: Array[String] = []
@@ -412,14 +421,15 @@ func _run_benchmark() -> void:
 		if disable_fn != null:
 			disable_fn.call()
 
-		# Sample FPS over BENCHMARK_SAMPLE_DURATION seconds
+		# Run BENCHMARK_CYCLES cycles and accumulate samples (Issue #1516).
 		var fps_samples: Array[float] = []
-		var elapsed: float = 0.0
-		while elapsed < BENCHMARK_SAMPLE_DURATION:
-			await get_tree().process_frame
-			var delta: float = get_process_delta_time()
-			elapsed += delta
-			fps_samples.append(Engine.get_frames_per_second())
+		for _cycle in BENCHMARK_CYCLES:
+			var elapsed: float = 0.0
+			while elapsed < BENCHMARK_SAMPLE_DURATION:
+				await get_tree().process_frame
+				var delta: float = get_process_delta_time()
+				elapsed += delta
+				fps_samples.append(Engine.get_frames_per_second())
 
 		# Calculate stats
 		var fps_avg: float = 0.0
@@ -433,8 +443,8 @@ func _run_benchmark() -> void:
 				fps_max = fps
 		fps_avg /= fps_samples.size()
 
-		var result_line: String = "  avg=%.1f  min=%.1f  max=%.1f  samples=%d" % [
-			fps_avg, fps_min, fps_max, fps_samples.size()]
+		var result_line: String = "  avg=%.1f  min=%.1f  max=%.1f  samples=%d  cycles=%d" % [
+			fps_avg, fps_min, fps_max, fps_samples.size(), BENCHMARK_CYCLES]
 		_bm_write(log_file, result_line)
 		results.append("%s: avg=%.1f min=%.1f max=%.1f" % [step_label, fps_avg, fps_min, fps_max])
 
@@ -450,6 +460,9 @@ func _run_benchmark() -> void:
 	_bm_write(log_file, "=".repeat(60))
 	log_file.flush()
 	log_file.close()
+
+	# Restore vsync mode (Issue #1516).
+	DisplayServer.window_set_vsync_mode(vsync_mode_before)
 
 	# Log completion to main game log as well
 	var fl: Node = get_node_or_null("/root/FileLogger")
@@ -518,11 +531,17 @@ func _run_stress_benchmark() -> void:
 		stress_benchmark_button.disabled = false
 		return
 
+	# Disable vsync so frame-rate is not artificially capped during benchmarking (Issue #1516).
+	var vsync_mode_before_stress := DisplayServer.window_get_vsync_mode()
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+
 	_bm_write(log_file, "=".repeat(60))
 	_bm_write(log_file, "STRESS BENCHMARK LOG (Issue #1504)")
 	_bm_write(log_file, "=".repeat(60))
 	_bm_write(log_file, "Started: %s" % Time.get_datetime_string_from_system())
 	_bm_write(log_file, "Sample duration per half-step: %.1f s" % STRESS_SAMPLE_DURATION)
+	_bm_write(log_file, "Cycles per half-step: %d" % BENCHMARK_CYCLES)
+	_bm_write(log_file, "VSync: disabled for benchmark")
 	_bm_write(log_file, "Stress: %d particles, %d lights, %d enemies" % [
 		STRESS_PARTICLE_COUNT, STRESS_LIGHT_COUNT, STRESS_ENEMY_COUNT])
 	_bm_write(log_file, "-".repeat(60))
@@ -659,6 +678,9 @@ func _run_stress_benchmark() -> void:
 	log_file.flush()
 	log_file.close()
 
+	# Restore vsync mode (Issue #1516).
+	DisplayServer.window_set_vsync_mode(vsync_mode_before_stress)
+
 	var fl: Node = get_node_or_null("/root/FileLogger")
 	if fl and fl.has_method("log_info"):
 		fl.log_info("[StressBenchmark] Completed. Results saved to: %s" % log_path)
@@ -670,16 +692,18 @@ func _run_stress_benchmark() -> void:
 	_update_ui()
 
 
-## Sample average FPS over [duration] seconds (Issue #1504).
-func _sample_fps(duration: float) -> float:
+## Sample average FPS over [duration] seconds repeated for [cycles] cycles (Issue #1504, #1516).
+## Running multiple cycles improves result reliability.
+func _sample_fps(duration: float, cycles: int = BENCHMARK_CYCLES) -> float:
 	var fps_sum: float = 0.0
 	var count: int = 0
-	var elapsed: float = 0.0
-	while elapsed < duration:
-		await get_tree().process_frame
-		elapsed += get_process_delta_time()
-		fps_sum += Engine.get_frames_per_second()
-		count += 1
+	for _cycle in cycles:
+		var elapsed: float = 0.0
+		while elapsed < duration:
+			await get_tree().process_frame
+			elapsed += get_process_delta_time()
+			fps_sum += Engine.get_frames_per_second()
+			count += 1
 	if count == 0:
 		return 0.0
 	return fps_sum / count
