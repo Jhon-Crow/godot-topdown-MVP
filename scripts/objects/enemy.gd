@@ -397,6 +397,10 @@ var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactic
 var _tactical_group: TacticalGroupComponent = null  ## Issue #1287: Tactical group movement — enemies within 500 px spread around the player.
 var _pursuit_component: PursuitComponent = null  ## Issue #1289: Cover-finding logic for PURSUING state.
 var _cached_perf_settings: Node = null; var _cached_difficulty_manager: Node = null  ## #1528: Cached autoloads — avoid per-frame get_node_or_null in hot path
+var _cached_audio_manager: Node = null; var _cached_sound_propagation: Node = null  ## #1528 v3: cache audio/sound autoloads — avoid per-shot get_node_or_null
+var _cached_game_manager: Node = null; var _cached_projectile_pool: Node = null  ## #1528 v3: cache game manager and pool
+var _cached_impact_effects: Node = null; var _cached_file_logger: Node = null  ## #1528 v3: cache impact/logger autoloads
+var _cached_experimental_settings: Node = null  ## #1528 v3: cache experimental settings (used in FOV, stuck detection, flashlight)
 var _distraction_attack_enabled: bool = false  ## #1528: Cached difficulty flag — changes rarely, skip per-frame DifficultyManager lookup
 
 func _ready() -> void:
@@ -451,6 +455,10 @@ func _ready() -> void:
 	_pursuit_component = PursuitComponent.new(self)  # Issue #1289: pursuit cover-finding component
 
 	_cached_perf_settings = get_node_or_null("/root/PerformanceSettings"); _cached_difficulty_manager = get_node_or_null("/root/DifficultyManager"); _distraction_attack_enabled = _cached_difficulty_manager != null and _cached_difficulty_manager.has_method("is_distraction_attack_enabled") and _cached_difficulty_manager.is_distraction_attack_enabled()  # #1528: cache autoloads once
+	_cached_audio_manager = get_node_or_null("/root/AudioManager"); _cached_sound_propagation = get_node_or_null("/root/SoundPropagation")  # #1528 v3
+	_cached_game_manager = get_node_or_null("/root/GameManager"); _cached_projectile_pool = get_node_or_null("/root/ProjectilePoolManager")  # #1528 v3
+	_cached_impact_effects = get_node_or_null("/root/ImpactEffectsManager"); _cached_file_logger = get_node_or_null("/root/FileLogger")  # #1528 v3
+	_cached_experimental_settings = get_node_or_null("/root/ExperimentalSettings")  # #1528 v3
 	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
 	if bullet_scene == null:  # Preload bullet scene if not set in inspector
 		bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
@@ -796,8 +804,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# Issue #1334: Freeze AI when player is dead/freed to prevent native crashes.
-	var _gm_r9: Node = get_node_or_null("/root/GameManager")
-	if _gm_r9 and not _gm_r9.player_alive: return
+	if _cached_game_manager and not _cached_game_manager.player_alive: return  # #1528 v3: cached ref
 	if _player and not is_instance_valid(_player): _player = null; return
 
 	if _cached_perf_settings and not _cached_perf_settings.is_ai_enabled(): return  # Issue #1186: perf toggle; #1528: cached ref
@@ -816,8 +823,8 @@ func _physics_process(delta: float) -> void:
 	if _is_bolt_cycling:  # [#1177] 4-step sniper bolt cycle
 		_bolt_cycle_timer += delta
 		if _bolt_cycle_timer >= (SNIPER_BOLT_STEP_DELAYS[_bolt_cycle_step - 1] if _bolt_cycle_step >= 1 and _bolt_cycle_step <= 4 else SNIPER_BOLT_CYCLE_DELAY):
-			_bolt_cycle_timer = 0.0; var audio: Node = get_node_or_null("/root/AudioManager")
-			if audio and audio.has_method("play_asvk_bolt_step"): audio.play_asvk_bolt_step(_bolt_cycle_step)
+			_bolt_cycle_timer = 0.0
+			if _cached_audio_manager and _cached_audio_manager.has_method("play_asvk_bolt_step"): _cached_audio_manager.play_asvk_bolt_step(_bolt_cycle_step)  # #1528 v3
 			if _bolt_cycle_step >= 4: _is_bolt_cycling = false; _bolt_cycle_step = 0
 			else: _bolt_cycle_step += 1
 	_spread_timer += delta; if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0  # Issue #516
@@ -842,10 +849,9 @@ func _physics_process(delta: float) -> void:
 			if not (_can_see_player and _can_hit_player_from_current_position()) \
 					and not (_tactical_movement and _tactical_movement.is_yielding):
 				_global_stuck_timer += delta
-				var _experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 				var _effective_stuck_max_time: float = GLOBAL_STUCK_MAX_TIME
-				if _experimental_settings != null and _experimental_settings.has_method("get_global_stuck_max_time"):
-					_effective_stuck_max_time = _experimental_settings.get_global_stuck_max_time()
+				if _cached_experimental_settings != null and _cached_experimental_settings.has_method("get_global_stuck_max_time"):
+					_effective_stuck_max_time = _cached_experimental_settings.get_global_stuck_max_time()  # #1528 v3: cached ref
 				if _global_stuck_timer >= _effective_stuck_max_time:
 					_log_to_file("GLOBAL STUCK: pos=%s for %.1fs without player contact, State: %s -> SEARCHING" % [global_position, _global_stuck_timer, AIState.keys()[_current_state]])
 					_global_stuck_timer = 0.0
@@ -1210,8 +1216,7 @@ func _can_shoot() -> bool:
 func _machine_gunner_fire_at_corridor(target_pos: Vector2) -> void:
 	if bullet_scene == null: return
 	# Issue #1334 Round 5: Don't shoot at a dead player
-	var _gm3 := get_node_or_null("/root/GameManager")
-	if _gm3 and not _gm3.player_alive: return
+	if _cached_game_manager and not _cached_game_manager.player_alive: return  # #1528 v3: cached ref
 	var to_target := (target_pos - global_position).normalized()
 	if to_target == Vector2.ZERO: return
 	# Face toward the corridor
@@ -1225,12 +1230,10 @@ func _machine_gunner_fire_at_corridor(target_pos: Vector2) -> void:
 	_spawn_projectile(direction, spawn_pos)
 	_spawn_muzzle_flash(spawn_pos, direction)
 	_spawn_casing(direction, to_target)
-	var audio: Node = get_node_or_null("/root/AudioManager")
-	if audio and audio.has_method("play_ak_shot"): audio.play_ak_shot(global_position)
-	var sp: Node = get_node_or_null("/root/SoundPropagation")
+	if _cached_audio_manager and _cached_audio_manager.has_method("play_ak_shot"): _cached_audio_manager.play_ak_shot(global_position)  # #1528 v3
 	var _now_mg := Time.get_ticks_msec() / 1000.0
-	if sp and sp.has_method("emit_sound") and _now_mg - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
-		sp.emit_sound(0, global_position, 1, self, weapon_loudness)
+	if _cached_sound_propagation and _now_mg - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
+		_cached_sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # #1528 v3
 		_last_gunshot_propagation_time = _now_mg
 	_play_delayed_shell_sound()
 	_shoot_timer = 0.0
@@ -2514,8 +2517,7 @@ func _shoot_with_inaccuracy() -> void:
 	if bullet_scene == null or _player == null:
 		return
 	# Issue #1334 Round 5: Don't shoot at a dead player
-	var _gm2 := get_node_or_null("/root/GameManager")
-	if _gm2 and not _gm2.player_alive: return
+	if _cached_game_manager and not _cached_game_manager.player_alive: return  # #1528 v3: cached ref
 
 	if not _can_shoot():
 		return
@@ -2558,15 +2560,12 @@ func _shoot_with_inaccuracy() -> void:
 	# Fire bullet using _spawn_projectile (handles C# add_child-before-props, Issue #516, #550)
 	_spawn_projectile(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
-	# Play sounds
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_m16_shot"):
-		audio_manager.play_m16_shot(global_position)
-	# Emit gunshot sound (alerts other enemies); Issue #969: throttled
-	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	# Play sounds — #1528 v3: use cached refs
+	if _cached_audio_manager and _cached_audio_manager.has_method("play_m16_shot"):
+		_cached_audio_manager.play_m16_shot(global_position)
 	var _now := Time.get_ticks_msec() / 1000.0
-	if sound_propagation and sound_propagation.has_method("emit_sound") and _now - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
-		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
+	if _cached_sound_propagation and _now - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
+		_cached_sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)
 		_last_gunshot_propagation_time = _now
 	_play_delayed_shell_sound()
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
@@ -2622,16 +2621,12 @@ func _shoot_burst_shot() -> void:
 	_spawn_projectile(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 
-	# Play sounds
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_m16_shot"):
-		audio_manager.play_m16_shot(global_position)
-
-	# Emit gunshot sound for in-game sound propagation (Issue #969: throttled per-enemy)
-	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	# Play sounds — #1528 v3: use cached refs
+	if _cached_audio_manager and _cached_audio_manager.has_method("play_m16_shot"):
+		_cached_audio_manager.play_m16_shot(global_position)
 	var _now2 := Time.get_ticks_msec() / 1000.0
-	if sound_propagation and sound_propagation.has_method("emit_sound") and _now2 - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
-		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
+	if _cached_sound_propagation and _now2 - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
+		_cached_sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)
 		_last_gunshot_propagation_time = _now2
 
 	_play_delayed_shell_sound()
@@ -2641,7 +2636,7 @@ func _shoot_burst_shot() -> void:
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
 func _transition_to_idle() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings")
+	var _ps := _cached_perf_settings  # #1528 v3: use cached ref
 	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
 		_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _generate_search_waypoints(); return
 	_current_state = AIState.IDLE
@@ -2651,7 +2646,8 @@ func _transition_to_idle() -> void:
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 
 func _transition_to_combat() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_combat_enabled(): _transition_to_idle(); return  # Issue #1186
+	var _ps := _cached_perf_settings  # #1528 v3: cached ref
+	if _ps and not _ps.is_ai_state_combat_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.COMBAT
 	_has_left_idle = true  # Issue #330
 	_detection_timer = 0.0; _detection_delay_elapsed = false
@@ -2668,7 +2664,8 @@ func _transition_to_combat() -> void:
 		_gas_mask_grenade.try_throw(_player.global_position)
 
 func _transition_to_seeking_cover() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_seeking_cover_enabled(): _transition_to_idle(); return  # Issue #1186
+	var _ps := _cached_perf_settings  # #1528 v3: cached ref
+	if _ps and not _ps.is_ai_state_seeking_cover_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.SEEKING_COVER
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2677,7 +2674,8 @@ func _transition_to_seeking_cover() -> void:
 	_find_cover_position()
 
 func _transition_to_in_cover() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_in_cover_enabled(): _transition_to_idle(); return  # Issue #1186
+	var _ps := _cached_perf_settings  # #1528 v3: cached ref
+	if _ps and not _ps.is_ai_state_in_cover_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.IN_COVER
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2700,7 +2698,8 @@ func _can_attempt_flanking() -> bool:
 	return true
 
 func _transition_to_flanking() -> bool:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_flanking_enabled(): _transition_to_idle(); return false  # Issue #1186
+	var _ps := _cached_perf_settings  # #1528 v3: cached ref
+	if _ps and not _ps.is_ai_state_flanking_enabled(): _transition_to_idle(); return false  # Issue #1186
 	# Check if flanking is available
 	if not _can_attempt_flanking():
 		_log_debug("Cannot transition to FLANKING - disabled or on cooldown")
@@ -2775,7 +2774,8 @@ func _is_flank_target_reachable() -> bool:
 	return true
 
 func _transition_to_suppressed() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_suppressed_enabled(): _transition_to_idle(); return  # Issue #1186
+	var _ps := _cached_perf_settings  # #1528 v3: cached ref
+	if _ps and not _ps.is_ai_state_suppressed_enabled(): _transition_to_idle(); return  # Issue #1186
 	var _prev_state := _current_state  ## Issue #1411: remember previous state
 	_current_state = AIState.SUPPRESSED
 	_has_left_idle = true; _in_alarm_mode = true  # Issue #330
@@ -2787,7 +2787,8 @@ func _transition_to_suppressed() -> void:
 		_has_valid_cover = false; _last_cover_search_time = -999.0  # Issue #1338: force new cover search
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 func _transition_to_pursuing() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_pursuing_enabled(): _transition_to_idle(); return  # Issue #1186
+	var _ps := _cached_perf_settings  # #1528 v3: cached ref
+	if _ps and not _ps.is_ai_state_pursuing_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.PURSUING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2808,7 +2809,8 @@ func _transition_to_pursuing() -> void:
 	if _nav_agent: _nav_agent.path_desired_distance = PURSUIT_PATH_DESIRED_DISTANCE  # Issue #1289: larger nav step while pursuing
 
 func _transition_to_assault() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_assault_enabled(): _transition_to_idle(); return  # Issue #1186
+	var _ps := _cached_perf_settings  # #1528 v3: cached ref
+	if _ps and not _ps.is_ai_state_assault_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.ASSAULT
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2823,7 +2825,8 @@ func _transition_to_assault() -> void:
 	_find_cover_closest_to_player()
 
 func _transition_to_searching(center_position: Vector2) -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_searching_enabled(): _transition_to_idle(); return  # Issue #1186
+	var _ps := _cached_perf_settings  # #1528 v3: cached ref
+	if _ps and not _ps.is_ai_state_searching_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.SEARCHING
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 	# Issue #921: Do NOT set _has_left_idle = true here; let it retain whatever value it had.
@@ -2853,7 +2856,8 @@ func _transition_to_evading_grenade() -> void:
 	_log_to_file("EVADING_GRENADE started: escaping to %s" % str(evasion_target))
 
 func _transition_to_retreating() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_retreating_enabled(): _transition_to_idle(); return  # Issue #1186
+	var _ps := _cached_perf_settings  # #1528 v3: cached ref
+	if _ps and not _ps.is_ai_state_retreating_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.RETREATING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -3290,9 +3294,8 @@ func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 	var space_state := get_world_2d().direct_space_state
 	var nav_map: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
 	var has_nav := nav_map.is_valid()
-	var exp_s: Node = get_node_or_null("/root/ExperimentalSettings")
-	var inf_rays: bool = exp_s != null and exp_s.has_method("is_cover_infinite_rays_enabled") and exp_s.is_cover_infinite_rays_enabled()
-	var sec_rays: bool = exp_s != null and exp_s.has_method("is_cover_sector_rays_enabled") and exp_s.is_cover_sector_rays_enabled()
+	var inf_rays: bool = _cached_experimental_settings != null and _cached_experimental_settings.has_method("is_cover_infinite_rays_enabled") and _cached_experimental_settings.is_cover_infinite_rays_enabled()  # #1528 v3
+	var sec_rays: bool = _cached_experimental_settings != null and _cached_experimental_settings.has_method("is_cover_sector_rays_enabled") and _cached_experimental_settings.is_cover_sector_rays_enabled()  # #1528 v3
 	var ray_dist: float = COVER_INFINITE_RAY_DISTANCE if inf_rays else COVER_CHECK_DISTANCE
 	var ray_count: int = COVER_SECTOR_RAY_COUNT if sec_rays else COVER_CHECK_COUNT
 	var sec_ctr: Vector2 = (global_position - player_pos).normalized() if sec_rays else Vector2.ZERO
@@ -3598,8 +3601,7 @@ func _get_wall_avoidance_weight(direction: Vector2) -> float:
 
 ## Check if target is within FOV cone. FOV uses _enemy_model.global_rotation for facing.
 func _is_position_in_fov(target_pos: Vector2) -> bool:
-	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
-	var global_fov_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_fov_enabled") and experimental_settings.is_fov_enabled()
+	var global_fov_enabled: bool = _cached_experimental_settings != null and _cached_experimental_settings.has_method("is_fov_enabled") and _cached_experimental_settings.is_fov_enabled()  # #1528 v3: cached ref
 	if not global_fov_enabled or not fov_enabled or fov_angle <= 0.0:
 		return true  # FOV disabled - 360 degree vision
 	var facing_angle := _enemy_model.global_rotation if _enemy_model else rotation
@@ -3677,8 +3679,7 @@ func _update_memory(delta: float) -> void:
 
 	# [Issue #574] Flashlight beam detection: enemy detects beam when any part of it falls within their FOV
 	if _flashlight_detection and _player and not _can_see_player and not _is_blinded and _memory_reset_confusion_timer <= 0.0:
-		var _es: Node = get_node_or_null("/root/ExperimentalSettings")
-		var _fov_on: bool = fov_enabled and _es != null and _es.has_method("is_fov_enabled") and _es.is_fov_enabled()
+		var _fov_on: bool = fov_enabled and _cached_experimental_settings != null and _cached_experimental_settings.has_method("is_fov_enabled") and _cached_experimental_settings.is_fov_enabled()  # #1528 v3: cached ref
 		var flashlight_detected := _flashlight_detection.check_flashlight(global_position, _enemy_model.global_rotation if _enemy_model else rotation, fov_angle, _fov_on, _player, _raycast, delta)
 		if flashlight_detected:
 			# Update memory with flashlight-based detection
@@ -3875,13 +3876,11 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	# Issue #1334 Round 11: Guard against freed node during deferred shoot callbacks
 	if not is_inside_tree() or not _is_alive: return
 	# Issue #1334 Round 5: Don't shoot at a dead player — prevents crash from same-frame hitscan/damage
-	var _gm := get_node_or_null("/root/GameManager")
-	if _gm and not _gm.player_alive: return
+	if _cached_game_manager and not _cached_game_manager.player_alive: return  # #1528 v3: cached ref
 	# [Issue #1242] Revolver hammer cocking: 0.15s delay with cock sound before each shot (same as player Revolver.cs)
 	if weapon_type == WeaponType.REVOLVER and not _revolver_cocking:
 		_revolver_cocking = true
-		var audio_hc: Node = get_node_or_null("/root/AudioManager")
-		if audio_hc and audio_hc.has_method("play_revolver_hammer_cock"): audio_hc.play_revolver_hammer_cock(global_position)
+		if _cached_audio_manager and _cached_audio_manager.has_method("play_revolver_hammer_cock"): _cached_audio_manager.play_revolver_hammer_cock(global_position)  # #1528 v3
 		await get_tree().create_timer(0.15).timeout
 		_revolver_cocking = false
 		if not is_inside_tree() or not is_instance_valid(self) or not _is_alive: return  # Issue #1334 Round 11: guard freed node after await
@@ -3905,17 +3904,15 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	else: _shoot_single_bullet(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 	if not _is_rpg_weapon and weapon_type != WeaponType.REVOLVER: _spawn_casing(direction, weapon_forward)  # Issue #583: no casing for RPG; #1242: revolver ejects casings on reload, not per shot
-	var audio: Node = get_node_or_null("/root/AudioManager")
-	if audio:
-		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
-		elif weapon_type == WeaponType.MACHINE_GUN and audio.has_method("play_ak_shot"): audio.play_ak_shot(global_position)  # [#1033] PKM uses AK 7.62x39 sound
-		elif weapon_type == WeaponType.SNIPER_RIFLE and audio.has_method("play_asvk_shot"): audio.play_asvk_shot()  # [#1125] ASVK sniper rifle sound (non-positional, like player SniperRifle.cs)
-		elif weapon_type == WeaponType.REVOLVER and audio.has_method("play_revolver_shot"): audio.play_revolver_shot(global_position)  # [#1242] RSh-12 revolver shot sound
-		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
-	var sp: Node = get_node_or_null("/root/SoundPropagation")
+	if _cached_audio_manager:  # #1528 v3: cached ref
+		if _is_shotgun_weapon and _cached_audio_manager.has_method("play_shotgun_shot"): _cached_audio_manager.play_shotgun_shot(global_position)
+		elif weapon_type == WeaponType.MACHINE_GUN and _cached_audio_manager.has_method("play_ak_shot"): _cached_audio_manager.play_ak_shot(global_position)
+		elif weapon_type == WeaponType.SNIPER_RIFLE and _cached_audio_manager.has_method("play_asvk_shot"): _cached_audio_manager.play_asvk_shot()
+		elif weapon_type == WeaponType.REVOLVER and _cached_audio_manager.has_method("play_revolver_shot"): _cached_audio_manager.play_revolver_shot(global_position)
+		elif _cached_audio_manager.has_method("play_m16_shot"): _cached_audio_manager.play_m16_shot(global_position)
 	var _now3 := Time.get_ticks_msec() / 1000.0
-	if sp and sp.has_method("emit_sound") and _now3 - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
-		sp.emit_sound(0, global_position, 1, self, weapon_loudness)
+	if _cached_sound_propagation and _now3 - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
+		_cached_sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # #1528 v3: cached ref
 		_last_gunshot_propagation_time = _now3
 	if not _is_rpg_weapon: _play_delayed_shell_sound()  # Issue #583: no shell sound for RPG
 	if weapon_type == WeaponType.SNIPER_RIFLE:  # [#1177] Trigger 4-step bolt-action cycle
@@ -3932,7 +3929,7 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 	if not is_inside_tree(): return
 	var current_scene := get_tree().current_scene
 	if current_scene == null: return
-	var sid := get_instance_id(); var pm: Node = get_node_or_null("/root/ProjectilePoolManager")
+	var sid := get_instance_id(); var pm: Node = _cached_projectile_pool  # #1528 v3: cached ref
 	if pm and pm.has_method("get_bullet"):
 		var p = pm.get_bullet()
 		if p and p.has_method("pool_activate"): p.pool_activate(pos, dir, sid, null); if p.get("shooter_position") != null: p.shooter_position = pos; return
@@ -3979,17 +3976,15 @@ func _shoot_shotgun_pellets(base_direction: Vector2, spawn_pos: Vector2) -> void
 			angle = lerp(-half, half, float(i) / float(count - 1)) + randf_range(-spread_rad * 0.15, spread_rad * 0.15)
 		_spawn_projectile(base_direction.rotated(angle), spawn_pos)
 func _spawn_muzzle_flash(p: Vector2, d: Vector2) -> void:
-	var m = get_node_or_null("/root/ImpactEffectsManager")
-	if m: m.spawn_muzzle_flash(p, d)
+	if _cached_impact_effects: _cached_impact_effects.spawn_muzzle_flash(p, d)  # #1528 v3: cached ref
 ## Play shell casing sound with a delay to simulate the casing hitting the ground.
 func _play_delayed_shell_sound() -> void:
 	# Issue #1334 Round 11: Guard against freed node after await.
 	if not is_inside_tree(): return
 	await get_tree().create_timer(0.15).timeout
 	if not is_inside_tree() or not _is_alive: return
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_shell_rifle"):
-		audio_manager.play_shell_rifle(global_position)
+	if _cached_audio_manager and _cached_audio_manager.has_method("play_shell_rifle"):
+		_cached_audio_manager.play_shell_rifle(global_position)  # #1528 v3: cached ref
 
 ## Spawn bullet casing (based on BaseWeapon.cs for visual consistency with player).
 func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
@@ -4221,24 +4216,22 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	_show_hit_flash()
 	_current_health -= actual_damage  # Apply damage
 
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-	if _current_health <= 0:
+	if _current_health <= 0:  # #1528 v3: use cached refs for audio/impact managers
 		_killed_by_ricochet = has_ricocheted; _killed_by_penetration = has_penetrated; _killed_by_player = is_from_player  # Issue #1196: track kill source
 		# Play lethal hit sound
-		if audio_manager and audio_manager.has_method("play_hit_lethal"):
-			audio_manager.play_hit_lethal(global_position)
+		if _cached_audio_manager and _cached_audio_manager.has_method("play_hit_lethal"):
+			_cached_audio_manager.play_hit_lethal(global_position)
 		# Spawn blood splatter effect for lethal hit (with decal)
-		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
-			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, true)
+		if _cached_impact_effects and _cached_impact_effects.has_method("spawn_blood_effect"):
+			_cached_impact_effects.spawn_blood_effect(global_position, hit_direction, caliber_data, true)
 		_on_death()
 	else:
 		# Play non-lethal hit sound
-		if audio_manager and audio_manager.has_method("play_hit_non_lethal"):
-			audio_manager.play_hit_non_lethal(global_position)
+		if _cached_audio_manager and _cached_audio_manager.has_method("play_hit_non_lethal"):
+			_cached_audio_manager.play_hit_non_lethal(global_position)
 		# Spawn blood effect for non-lethal hit (smaller, no decal)
-		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
-			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
+		if _cached_impact_effects and _cached_impact_effects.has_method("spawn_blood_effect"):
+			_cached_impact_effects.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()  # [Issue #919] check_retaliation removed: aggression must not propagate to hit enemies
 		# Issue #959: Pacifist stays in PACIFIST state when hit; only attacks the attacker temporarily.
 		if _pacifist and _pacifist.is_pacifist and _current_state == AIState.PACIFIST:
@@ -4525,11 +4518,10 @@ func _log_to_file(message: String) -> void:
 	if not is_inside_tree(): return
 	# #1528: Rate-limit file logging during combat to reduce I/O overhead.
 	# State transitions ("State:") always pass through for debugging.
-	if _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.ASSAULT] and not message.begins_with("State:"):
+	if _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.ASSAULT, AIState.SEARCHING] and not message.begins_with("State:"):
 		if _log_throttle_count >= LOG_THROTTLE_MAX_PER_INTERVAL: return
 		_log_throttle_count += 1
-	var fl := get_node_or_null("/root/FileLogger")
-	if fl and fl.has_method("log_enemy"): fl.log_enemy(name, message)
+	if _cached_file_logger and _cached_file_logger.has_method("log_enemy"): _cached_file_logger.log_enemy(name, message)  # #1528 v3: cached ref (was get_node_or_null per call)
 func _log_spawn_info() -> void:
 	_log_to_file("Spawned at %s, hp: %d, behavior: %s" % [global_position, _max_health, BehaviorMode.keys()[behavior_mode]])
 func _get_state_name(state: AIState) -> String:

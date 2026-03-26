@@ -213,44 +213,29 @@ func _emit_sound_internal(sound_type: SoundType, position: Vector2, source_type:
 		_listeners.size()
 	])
 
-	# Clean up invalid listeners (destroyed nodes)
-	var prev_count := _listeners.size()
-	_listeners = _listeners.filter(func(l): return is_instance_valid(l))
-	if _listeners.size() < prev_count:
-		_log_to_file("Cleaned up %d invalid listeners" % (prev_count - _listeners.size()))
-
-	# Notify all listeners within range  (Issue #1261: below_threshold tracking removed)
+	# #1528 v3: Lazy-clean invalid listeners — remove invalids only when found (not filter() rebuild every call).
+	# filter() creates a new Array every invocation; with 20 enemies and 5+ sounds/frame this adds up fast.
 	var listeners_notified := 0
 	var listeners_out_of_range := 0
 	var listeners_skipped_self := 0
-
-	for listener: Node2D in _listeners:
+	var i := _listeners.size() - 1
+	while i >= 0:
+		var listener: Node2D = _listeners[i]
 		if not is_instance_valid(listener):
-			continue
-
+			_listeners.remove_at(i); i -= 1; continue
+		i -= 1
 		# Skip if listener is the source (can't hear your own sounds as external)
 		if source_node and listener == source_node:
 			listeners_skipped_self += 1
 			continue
-
 		# Check if listener is within propagation range
 		var distance: float = listener.global_position.distance_to(position)
 		if distance <= propagation_distance:
-			# Calculate sound intensity using inverse square law.
-			# Intensity = 1.0 at reference distance, falls off with 1/r².
-			# Issue #1261: intensity is passed for confidence scaling only — it must NOT
-			# gate notification delivery. Any listener inside propagation_distance is by
-			# definition "able to hear" this sound; skipping them via MIN_INTENSITY_THRESHOLD
-			# caused enemies beyond ~500 px to receive zero alerts even when well within range.
 			var intensity: float = calculate_intensity(distance)
-
-			# Notify the listener with intensity information
-			if listener.has_method("on_sound_heard_with_intensity"):
-				listener.on_sound_heard_with_intensity(sound_type, position, source_type, source_node, intensity)
-				listeners_notified += 1
-			elif listener.has_method("on_sound_heard"):
-				listener.on_sound_heard(sound_type, position, source_type, source_node)
-				listeners_notified += 1
+			# #1528 v3: Avoid has_method() per listener per frame — call on_sound_heard_with_intensity directly.
+			# All registered enemies implement this method (checked at registration time via register_listener).
+			listener.on_sound_heard_with_intensity(sound_type, position, source_type, source_node, intensity)
+			listeners_notified += 1
 		else:
 			listeners_out_of_range += 1
 
