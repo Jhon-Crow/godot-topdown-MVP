@@ -59,11 +59,11 @@ class MockPerformanceMenu:
 			and STRESS_ENEMY_COUNT > 0 \
 			and STRESS_SAMPLE_DURATION > 0.0
 
-	## Simulate a benchmark run: records that vsync was disabled and runs BENCHMARK_CYCLES cycles.
+	## Simulate a benchmark run: records that vsync was disabled and runs the given cycles.
 	## Returns the number of cycles used.
-	func simulate_benchmark_run() -> int:
+	func simulate_benchmark_run(cycles: int = BENCHMARK_CYCLES) -> int:
 		vsync_disabled_during_benchmark = true
-		return BENCHMARK_CYCLES
+		return cycles
 
 	## Simulate one stress benchmark step: returns a result dict.
 	func simulate_stress_step(subsystem: String, enabled_fps: float,
@@ -422,3 +422,31 @@ func test_benchmark_run_uses_correct_cycle_count() -> void:
 
 	assert_eq(cycles, menu.BENCHMARK_CYCLES,
 		"Benchmark run must use BENCHMARK_CYCLES cycles")
+
+
+# ============================================================================
+# Quick Test Button Tests (Issue #1516)
+# ============================================================================
+
+
+func test_quick_benchmark_uses_one_cycle() -> void:
+	var cycles := menu.simulate_benchmark_run(1)
+
+	assert_eq(cycles, 1,
+		"Quick test benchmark must run exactly 1 cycle")
+
+
+func test_quick_benchmark_disables_vsync() -> void:
+	menu.simulate_benchmark_run(1)
+
+	assert_true(menu.vsync_disabled_during_benchmark,
+		"Quick test benchmark must also disable vsync during run")
+
+
+func test_quick_stress_benchmark_uses_one_cycle() -> void:
+	var result := menu.simulate_stress_step("Particles", 55.0, 70.0)
+	# A quick stress run uses cycles=1; the step result should still be valid.
+	assert_eq(result["subsystem"], "Particles",
+		"Quick stress step should record subsystem correctly")
+	assert_almost_eq(result["delta_fps"], 15.0, 0.01,
+		"Quick stress step should compute delta correctly")

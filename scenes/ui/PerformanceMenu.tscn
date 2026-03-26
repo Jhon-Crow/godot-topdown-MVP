@@ -347,6 +347,11 @@ custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 text = "Run Benchmark"
 
+[node name="QuickBenchmarkButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BenchmarkContainer"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Quick Test (1 cycle)"
+
 [node name="BenchmarkLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 text = ""
@@ -366,6 +371,11 @@ autowrap_mode = 2
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 text = "Stress Benchmark"
+
+[node name="QuickStressBenchmarkButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StressBenchmarkContainer"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Quick Test (1 cycle)"
 
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
