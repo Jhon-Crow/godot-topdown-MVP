@@ -1012,18 +1012,12 @@ func _update_enemy_model_rotation() -> void:
 		var ppos := "(%d,%d)" % [int(_player.global_position.x), int(_player.global_position.y)] if _player else "null"
 		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f%s" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, _corner_check_timer, " [->companion]" if _current_target == _companion else ""])
 		_last_rotation_reason = rotation_reason
-	# [Issue #1530] Sniper: sync model rotation to the laser's interpolated angle.
-	# The laser already sweeps at LASER_ROTATION_SPEED; drive the weapon sprite from it
-	# so the visible model, laser, and bullet all point in the same direction.
+	# [Issue #1530] Sniper: sync model to laser angle (laser already sweeps at LASER_ROTATION_SPEED).
 	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:
 		target_angle = _sniper_component.get_aim_direction().angle()
 		_enemy_model.global_rotation = target_angle
-		var aiming_left_sniper := absf(target_angle) > PI / 2
-		_model_facing_left = aiming_left_sniper
-		if aiming_left_sniper:
-			_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
-		else:
-			_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
+		_model_facing_left = absf(target_angle) > PI / 2
+		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale if _model_facing_left else enemy_model_scale)
 		return
 	# Smooth rotation for visual polish (Issue #347)
 	var delta := get_physics_process_delta_time()
@@ -4321,20 +4315,11 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 	var muzzle_local_offset := 52.0  # Rifle: offset.x(20) + sprite_width/2(32) = 52px
 	if _weapon_sprite and _enemy_model:
 		var weapon_forward: Vector2
-
-		# [Issue #1530] Sniper: use the laser's interpolated angle for muzzle position.
-		if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:
-			weapon_forward = _sniper_component.get_aim_direction()
-		# Direct calc to player when visible to avoid transform delay (#264)
-		elif _player and is_instance_valid(_player) and _can_see_player:
-			weapon_forward = (_player.global_position - global_position).normalized()
-		else:
-			# Use global_transform.x (accounts for scale flip when aiming left)
-			weapon_forward = _weapon_sprite.global_transform.x.normalized()
-
-		# Calculate muzzle offset accounting for enemy model scale
+		# [#1530] Sniper uses laser angle; others direct calc when visible (#264); else transform
+		if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null: weapon_forward = _sniper_component.get_aim_direction()
+		elif _player and is_instance_valid(_player) and _can_see_player: weapon_forward = (_player.global_position - global_position).normalized()
+		else: weapon_forward = _weapon_sprite.global_transform.x.normalized()
 		var scaled_muzzle_offset := muzzle_local_offset * enemy_model_scale
-		# Use weapon sprite's global position as base, then offset to reach the muzzle
 		var result := _weapon_sprite.global_position + weapon_forward * scaled_muzzle_offset
 		if debug_logging:
 			var angle_forward := Vector2.from_angle(_enemy_model.rotation)
@@ -4347,9 +4332,7 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 
 ## Returns the weapon's forward direction (normalized, Issue #264).
 func _get_weapon_forward_direction() -> Vector2:
-	# [Issue #1530] Sniper: use the laser's interpolated angle so bullet and tracer match laser.
-	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:
-		return _sniper_component.get_aim_direction()
+	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null: return _sniper_component.get_aim_direction()  # [#1530] laser angle = bullet/tracer direction
 	# Direct calc to player when visible to avoid transform delay
 	if _player and is_instance_valid(_player) and _can_see_player:
 		return (_player.global_position - global_position).normalized()
