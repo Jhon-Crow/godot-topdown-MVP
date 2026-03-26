@@ -198,6 +198,9 @@ const HINT_COLOR_GRENADE_LAUNCHER := Color(1.0, 0.4, 0.2, 1.0)   ## Red-orange �
 func _ready() -> void:
 	print("Tutorial level loaded - Обучение")
 
+	# Issue #1534: bake navmesh so obstacles are carved out (same pattern as all other levels).
+	_setup_navigation()
+
 	# Find player
 	_player = get_node_or_null("Entities/Player")
 	if _player == null:
@@ -234,6 +237,32 @@ func _ready() -> void:
 	# Register player with GameManager
 	if GameManager:
 		GameManager.set_player(_player)
+
+
+## Bake the navigation mesh so StaticBody2D obstacles on collision layer 4 are carved
+## out of the walkable area (Issue #1534). Must await a physics frame so CollisionShape2D
+## nodes are registered before parsing (Issue #1289).
+func _setup_navigation() -> void:
+	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
+	if nav_region == null:
+		push_warning("NavigationRegion2D not found")
+		return
+	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
+	if nav_poly == null:
+		push_warning("NavigationPolygon not found")
+		return
+	# Wait for physics frame so CollisionShape2D nodes are registered with PhysicsServer2D
+	# before parsing source geometry for navmesh carving (Issue #1289).
+	await get_tree().physics_frame
+	# Explicit parse+bake so all wall/obstacle StaticBody2D nodes are found.
+	print("Baking navigation mesh...")
+	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
+	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# Push updated polygon back into the NavigationServer's live map (Issue #1289).
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
+	print("Navigation mesh baked successfully")
 
 
 ## Setup realistic visibility for the player (Issue #540).

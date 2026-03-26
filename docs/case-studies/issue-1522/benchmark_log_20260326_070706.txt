@@ -1,0 +1,63 @@
+============================================================
+BENCHMARK LOG
+============================================================
+Started: 2026-03-26T07:07:06
+Sample duration per step: 3.0 s
+Cycles per step: 20
+VSync: disabled for benchmark
+------------------------------------------------------------
+
+[Step 1/17] Baseline (all enabled)
+  avg=75.5  min=60.0  max=77.0  samples=4556  cycles=20
+
+[Step 2/17] Particles disabled
+  avg=73.3  min=68.0  max=76.0  samples=4406  cycles=20
+
+[Step 3/17] Blood Decals disabled
+  avg=71.9  min=68.0  max=74.0  samples=4327  cycles=20
+
+[Step 4/17] Screen Shake disabled
+  avg=72.4  min=69.0  max=75.0  samples=4354  cycles=20
+
+[Step 5/17] Explosion Lights disabled
+  avg=71.4  min=67.0  max=74.0  samples=4292  cycles=20
+
+[Step 6/17] Wall Hit Particles disabled
+  avg=73.4  min=71.0  max=75.0  samples=4414  cycles=20
+
+[Step 7/17] AI disabled
+  avg=77.6  min=70.0  max=79.0  samples=4670  cycles=20
+
+[Step 8/17] AI:IDLE disabled
+  avg=76.1  min=74.0  max=79.0  samples=4575  cycles=20
+
+[Step 9/17] AI:COMBAT disabled
+  avg=77.5  min=74.0  max=79.0  samples=4663  cycles=20
+
+[Step 10/17] AI:SEEKING_COVER disabled
+  avg=73.7  min=47.0  max=78.0  samples=4370  cycles=20
+
+[Step 11/17] AI:IN_COVER disabled
+  avg=73.4  min=65.0  max=77.0  samples=4414  cycles=20
+
+[Step 12/17] AI:FLANKING disabled
+  avg=75.6  min=72.0  max=77.0  samples=4547  cycles=20
+
+[Step 13/17] AI:SUPPRESSED disabled
+  avg=77.4  min=75.0  max=79.0  samples=4659  cycles=20
+
+[Step 14/17] AI:RETREATING disabled
+  avg=78.7  min=75.0  max=80.0  samples=4731  cycles=20
+
+[Step 15/17] AI:PURSUING disabled
+  avg=80.2  min=71.0  max=82.0  samples=4824  cycles=20
+
+[Step 16/17] AI:ASSAULT disabled
+  avg=82.8  min=80.0  max=84.0  samples=4982  cycles=20
+
+[Step 17/17] AI:SEARCHING disabled
+  avg=83.7  min=72.0  max=85.0  samples=5035  cycles=20
+
+============================================================
+BENCHMARK COMPLETE: 2026-03-26T07:24:11
+============================================================

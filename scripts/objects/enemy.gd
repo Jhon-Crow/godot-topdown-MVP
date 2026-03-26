@@ -26,8 +26,7 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579), RPG (rocket+pistol, Issue #583), PM (Makarov, Issue #583), MACHINE_GUN (PKM belt-fed, #1033), SNIPER_RIFLE (ASVK, #1125), REVOLVER (RSh-12, #1242).
-enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIFLE, REVOLVER }
+enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIFLE, REVOLVER, SILENCED_PISTOL }  ## RIFLE(M16), SHOTGUN, UZI, MACHETE(#579), RPG(#583), PM(#583), MACHINE_GUN(#1033), SNIPER_RIFLE(#1125), REVOLVER(#1242), SILENCED_PISTOL(#1532)
 
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
 @export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.
@@ -334,6 +333,7 @@ const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing inte
 const INTEL_SHARE_RANGE_LOS: float = 660.0  ## Intel range with LOS (px)
 const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Intel range without LOS (px)
 var _intel_share_timer: float = 0.0; const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5s
+var _idle_goap_throttle_counter: int = 0; const IDLE_GOAP_UPDATE_INTERVAL: int = 20  ## #1520: IDLE GOAP throttle counter (~3Hz)
 var _memory_reset_confusion_timer: float = 0.0  ## Issue #318: blocks visibility after teleport
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## 2s confusion for better player escape window
 ## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
@@ -886,7 +886,11 @@ func _physics_process(delta: float) -> void:
 	_check_companion_visibility()
 	_select_best_target()
 	_update_memory(delta)
-	_update_goap_state()
+	if _current_state == AIState.IDLE and not _can_see_player and not _can_see_companion and not _under_fire:  # #1520: throttle GOAP ~3Hz when idle
+		_idle_goap_throttle_counter += 1
+		if _idle_goap_throttle_counter < IDLE_GOAP_UPDATE_INTERVAL: _goap_world_state["player_visible"] = false; _goap_world_state["under_fire"] = false
+		else: _idle_goap_throttle_counter = 0; _update_goap_state()
+	else: _idle_goap_throttle_counter = 0; _update_goap_state()
 	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null)); if _shield_component: _shield_component.update(delta); if _drone_operator: _drone_operator.update(delta)  # Issues #1034, #1242, #1397
 	if _hit_reaction_timer > 0: _hit_reaction_timer -= delta  # Issue #1242: decay hit reaction rotation timer
 	# Issue #1242: delayed player tracking for shield enemy — update facing angle periodically, not continuously
@@ -3916,6 +3920,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 		elif weapon_type == WeaponType.MACHINE_GUN and audio.has_method("play_ak_shot"): audio.play_ak_shot(global_position)  # [#1033] PKM uses AK 7.62x39 sound
 		elif weapon_type == WeaponType.SNIPER_RIFLE and audio.has_method("play_asvk_shot"): audio.play_asvk_shot()  # [#1125] ASVK sniper rifle sound (non-positional, like player SniperRifle.cs)
 		elif weapon_type == WeaponType.REVOLVER and audio.has_method("play_revolver_shot"): audio.play_revolver_shot(global_position)  # [#1242] RSh-12 revolver shot sound
+		elif weapon_type == WeaponType.SILENCED_PISTOL and audio.has_method("play_silenced_shot"): audio.play_silenced_shot(global_position)  # [#1532] Drone Operator silenced pistol sound
 		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
 	var sp: Node = get_node_or_null("/root/SoundPropagation")
 	var _now3 := Time.get_ticks_msec() / 1000.0
@@ -4209,7 +4214,7 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0, is_from_player: bool = false) -> void:
 	if not _is_alive:
 		return
-	if (_force_field_component and _force_field_component.is_active()) or (_drone_operator and _drone_operator.is_dashing()): _log_to_file("Hit blocked by force field/dash"); return  # Issues #1034, #1397
+	if (_force_field_component and _force_field_component.is_active()): _log_to_file("Hit blocked by force field"); return  # Issue #1034 (drone operator dash no longer grants invincibility — #1532 fix #9)
 	# Issue #1242: Shield blocking — collision-based + direction fallback; shield enemy slowly turns toward attacker.
 	if _shield_component and _shield_component.did_intercept_this_frame(): _set_hit_reaction_target(-hit_direction.normalized()); return
 	if _shield_component and _shield_component.is_active() and _enemy_model and Vector2.from_angle(_enemy_model.global_rotation).dot(-hit_direction.normalized()) > 0.5:
@@ -4767,6 +4772,7 @@ func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
 ## Issue #1249: Skip separation while yielding so the passing enemy isn't pushed aside.
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
 	if _tactical_movement and _tactical_movement.is_yielding: return vel  # #1249: yielding — don't push
+	if _current_state == AIState.IDLE and behavior_mode == BehaviorMode.GUARD: return vel  # #1520: GUARD stands still — skip O(N) scan
 	var sep_force: Vector2 = Vector2.ZERO
 	for body in get_tree().get_nodes_in_group("enemies"):
 		if body == self or not is_instance_valid(body): continue

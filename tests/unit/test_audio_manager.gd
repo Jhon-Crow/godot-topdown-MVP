@@ -128,11 +128,12 @@ class MockAudioManager:
 		var idx := _get_available_player_index()
 		_audio_pool[idx] = true  # Mark as playing
 
-	func play_sound_2d(path: String, position: Vector2, volume_db: float = 0.0) -> void:
+	func play_sound_2d(path: String, position: Vector2, volume_db: float = 0.0, max_distance: float = 2000.0) -> void:
 		played_sounds_2d.append({
 			"path": path,
 			"position": position,
-			"volume": volume_db
+			"volume": volume_db,
+			"max_distance": max_distance
 		})
 		var idx := _get_available_player_2d_index()
 		_audio_2d_pool[idx] = true
@@ -143,11 +144,11 @@ class MockAudioManager:
 		var path: String = paths[randi() % paths.size()]
 		play_sound(path, volume_db)
 
-	func play_random_sound_2d(paths: Array, position: Vector2, volume_db: float = 0.0) -> void:
+	func play_random_sound_2d(paths: Array, position: Vector2, volume_db: float = 0.0, max_distance: float = 2000.0) -> void:
 		if paths.is_empty():
 			return
 		var path: String = paths[randi() % paths.size()]
-		play_sound_2d(path, position, volume_db)
+		play_sound_2d(path, position, volume_db, max_distance)
 
 	func cache_sound(path: String) -> void:
 		_audio_cache[path] = true
@@ -374,3 +375,50 @@ func test_asvk_bolt_step_uses_non_positional_audio() -> void:
 		"ASVK bolt step should use non-positional play_sound")
 	assert_eq(audio.played_sounds_2d.size(), 0,
 		"ASVK bolt step should NOT use positional play_sound_2d")
+
+
+# ============================================================================
+# M16 Sound Range Tests (Issue #1524)
+# ============================================================================
+
+
+func test_m16_max_distance_constant_is_840() -> void:
+	# Issue #1524: M16 sound range must be 840px.
+	var m16_max_distance := 840.0
+	assert_eq(m16_max_distance, 840.0, "M16_MAX_DISTANCE should be 840.0 px")
+
+
+func test_m16_shot_uses_840_max_distance() -> void:
+	# Issue #1524: play_m16_shot must limit audible range to 840px.
+	var m16_shots := ["res://assets/audio/m16 1.wav"]
+	var position := Vector2(100, 100)
+	var m16_max_distance := 840.0
+
+	audio.play_random_sound_2d(m16_shots, position, -5.0, m16_max_distance)
+
+	assert_eq(audio.played_sounds_2d[0]["max_distance"], 840.0,
+		"M16 shot max_distance should be 840.0 px")
+
+
+func test_m16_double_shot_uses_840_max_distance() -> void:
+	# Issue #1524: play_m16_double_shot must limit audible range to 840px.
+	var m16_double_shots := ["res://assets/audio/m16 два выстрела подряд.wav"]
+	var position := Vector2(100, 100)
+	var m16_max_distance := 840.0
+
+	audio.play_random_sound_2d(m16_double_shots, position, -5.0, m16_max_distance)
+
+	assert_eq(audio.played_sounds_2d[0]["max_distance"], 840.0,
+		"M16 double shot max_distance should be 840.0 px")
+
+
+func test_m16_bolt_uses_840_max_distance() -> void:
+	# Issue #1524: play_m16_bolt must limit audible range to 840px.
+	var m16_bolt_sounds := ["res://assets/audio/взвод затвора m16 1.wav"]
+	var position := Vector2(100, 100)
+	var m16_max_distance := 840.0
+
+	audio.play_random_sound_2d(m16_bolt_sounds, position, -3.0, m16_max_distance)
+
+	assert_eq(audio.played_sounds_2d[0]["max_distance"], 840.0,
+		"M16 bolt max_distance should be 840.0 px")

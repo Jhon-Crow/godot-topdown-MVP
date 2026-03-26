@@ -330,6 +330,53 @@ layout_mode = 2
 [node name="HSeparator6" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="HSeparator7" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BenchmarkContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BenchmarkDescriptionLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BenchmarkContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Run automated benchmark (measures FPS per subsystem)"
+autowrap_mode = 2
+
+[node name="BenchmarkButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BenchmarkContainer"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Run Benchmark"
+
+[node name="QuickBenchmarkButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BenchmarkContainer"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Quick Test (1 cycle)"
+
+[node name="BenchmarkLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="StressBenchmarkContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="StressBenchmarkDescriptionLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StressBenchmarkContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Run stress benchmark: applies extreme loads to each subsystem and measures FPS impact (Issue #1504)"
+autowrap_mode = 2
+
+[node name="StressBenchmarkButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StressBenchmarkContainer"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Stress Benchmark"
+
+[node name="QuickStressBenchmarkButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StressBenchmarkContainer"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Quick Test (1 cycle)"
+
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 text = "All performance features enabled"
