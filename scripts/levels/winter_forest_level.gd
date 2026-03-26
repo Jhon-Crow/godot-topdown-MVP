@@ -1,9 +1,10 @@
 extends Node2D
-## Docks level scene (Issue #753).
+## Winter Forest level scene (Issue #1440).
 ##
-## Large industrial docks environment with shipping containers, warehouses,
-## and open spaces. Features 20 enemies with varied weapons for tactical gameplay.
-## Map layout: ~5000x4000 pixels with water boundaries.
+## Outdoor winter forest with sparse trees, sewer exit start, and open clearing.
+## Trees hide player/enemies with their crowns (z_index=10), trunks provide cover.
+## Layout: Sewer exit (bottom-left) → forest trail → sparse trees → clearing (top-right).
+## Map size: ~3200x2400 pixels.
 
 var _enemy_count_label: Label = null
 var _ammo_label: Label = null
@@ -39,15 +40,14 @@ func _get_or_create_replay_manager() -> Node:
 
 
 func _ready() -> void:
-	print("DocksLevel loaded - Industrial Docks Combat")
-	print("Docks size: ~5000x4000 pixels")
+	print("WinterForestLevel loaded - Winter Forest Combat")
+	print("Forest size: ~3200x2400 pixels")
 	print("Clear all enemies to win!")
 	_setup_navigation()
 	_setup_enemy_tracking()
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()
 	_setup_player_tracking()
-	_configure_camera()
 	_setup_debug_ui()
 	_setup_saturation_overlay()
 	if GameManager:
@@ -59,6 +59,9 @@ func _ready() -> void:
 
 	# Setup weapon hints (Issue #809)
 	_setup_weapon_hints()
+
+	# Add cold winter sunlight from top-right corner
+	_setup_sunlight()
 
 
 func _initialize_score_manager() -> void:
@@ -84,7 +87,8 @@ func _setup_exit_zone() -> void:
 		push_warning("ExitZone scene not found")
 		return
 	_exit_zone = exit_zone_scene.instantiate()
-	_exit_zone.position = Vector2(120, 3800)
+	# Exit at the top-right of the clearing
+	_exit_zone.position = Vector2(3100, 200)
 	_exit_zone.zone_width = 60.0; _exit_zone.zone_height = 100.0
 	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
 	var environment := get_node_or_null("Environment")
@@ -120,12 +124,12 @@ func _setup_weapon_hints() -> void:
 
 	var canvas_layer: Node = get_node_or_null("CanvasLayer")
 	if canvas_layer == null:
-		push_warning("[DocksLevel] CanvasLayer node not found for weapon hints")
+		push_warning("[WinterForestLevel] CanvasLayer node not found for weapon hints")
 		return
 
 	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
 	if hints_script == null:
-		push_warning("[DocksLevel] WeaponHintsComponent script not found")
+		push_warning("[WinterForestLevel] WeaponHintsComponent script not found")
 		return
 
 	_weapon_hints_component = Node.new()
@@ -136,7 +140,7 @@ func _setup_weapon_hints() -> void:
 	# Setup the component with player and CanvasLayer references (Issue #809)
 	if _weapon_hints_component.has_method("setup"):
 		_weapon_hints_component.setup(_player, canvas_layer)
-		print("[DocksLevel] Weapon hints component added and setup")
+		print("[WinterForestLevel] Weapon hints component added and setup")
 
 
 func _process(_delta: float) -> void:
@@ -192,54 +196,32 @@ func _setup_navigation() -> void:
 	nav_region.emit_signal("bake_finished")
 
 
-## Configures camera limits to allow free movement across the entire Docks map.
-##
-## The Docks map is 5128x4128 pixels, which is larger than the default camera limits
-## set in Player.tscn (4128x3088). Without this configuration, the player spawns
-## at position (200, 3900) which is outside the camera's view range (max Y = 3088),
-## making the player invisible at game start.
-##
-## This function removes all camera limits by setting them to very large values
-## (±10,000,000), allowing the camera to follow the player everywhere on this large map.
-## This approach is consistent with other large maps (CastleLevel, CityLevel).
-func _configure_camera() -> void:
-	if _player == null:
-		return
-
-	var camera: Camera2D = _player.get_node_or_null("Camera2D")
-	if camera == null:
-		return
-
-	# Remove all camera limits so it follows the player everywhere
-	# This is important for large maps like the Docks where the map extends
-	# beyond the default camera limits set in Player.tscn
-	camera.limit_left = -10000000
-	camera.limit_top = -10000000
-	camera.limit_right = 10000000
-	camera.limit_bottom = 10000000
-
-	print("Camera configured: limits removed to follow player everywhere")
-
-
 func _setup_player_tracking() -> void:
 	_player = get_node_or_null("Entities/Player")
 	if _player == null:
 		push_warning("Player node not found")
 		return
 
+	# Setup realistic visibility component
 	_setup_realistic_visibility()
+
+	# Setup selected weapon based on GameManager selection
 	_setup_selected_weapon()
 
+	# Register player with GameManager
 	if GameManager:
 		GameManager.set_player(_player)
 
+	# Find the ammo label
 	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
+	# Connect to player death signal (handles both GDScript "died" and C# "Died")
 	if _player.has_signal("died"):
 		_player.died.connect(_on_player_died)
 	elif _player.has_signal("Died"):
 		_player.Died.connect(_on_player_died)
 
+	# Try to get the player's weapon for C# Player
 	var weapon = _player.get_node_or_null("Shotgun")
 	if weapon == null:
 		weapon = _player.get_node_or_null("MiniUzi")
@@ -256,27 +238,36 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
+		# C# Player with weapon - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
 		if weapon.has_signal("MagazinesChanged"):
 			weapon.MagazinesChanged.connect(_on_magazines_changed)
 		if weapon.has_signal("Fired"):
 			weapon.Fired.connect(_on_shot_fired)
+		# Connect to ShellCountChanged for shotgun
 		if weapon.has_signal("ShellCountChanged"):
 			weapon.ShellCountChanged.connect(_on_shell_count_changed)
+		# Initial ammo display from weapon
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		# Initial magazine display
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+		# Configure silenced pistol ammo based on enemy count
 		_configure_silenced_pistol_ammo(weapon)
+		# Configure 2.5x ammo for MakarovPM (Issue #636)
 		_configure_makarov_pm_ammo(weapon)
 	else:
+		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
 			_player.ammo_changed.connect(_on_player_ammo_changed)
+		# Initial ammo display
 		if _player.has_method("get_current_ammo") and _player.has_method("get_max_ammo"):
 			_update_ammo_label(_player.get_current_ammo(), _player.get_max_ammo())
 
+	# Connect reload/ammo depleted signals for enemy aggression behavior
 	if _player.has_signal("ReloadStarted"):
 		_player.ReloadStarted.connect(_on_player_reload_started)
 	elif _player.has_signal("reload_started"):
@@ -293,12 +284,15 @@ func _setup_player_tracking() -> void:
 		_player.ammo_depleted.connect(_on_player_ammo_depleted)
 
 
+## Configure silenced pistol ammo based on enemy count.
 func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 	if weapon.name != "SilencedPistol":
 		return
+
 	if weapon.has_method("ConfigureAmmoForEnemyCount"):
 		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
 		_log_to_file("Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
@@ -306,53 +300,25 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 			_update_magazines_label(mag_counts)
 
 
-## Configure weapon ammo for Docks level - 2x ammo for all weapons except SilencedPistol (Issue #866).
-func _configure_docks_weapon_ammo(weapon: Node) -> void:
-	if weapon == null:
-		return
-
-	# SilencedPistol uses enemy-count-based ammo instead (handled by _configure_silenced_pistol_ammo)
-	if weapon.name == "SilencedPistol":
-		return
-
-	# Get the default starting magazine count (usually 4)
-	var starting_magazines: int = 4
-	if weapon.get("StartingMagazineCount") != null:
-		starting_magazines = weapon.StartingMagazineCount
-
-	# Double the magazine count for Docks level
-	var docks_magazines: int = starting_magazines * 2
-
-	# Use ReinitializeMagazines to set the new magazine count
-	if weapon.has_method("ReinitializeMagazines"):
-		weapon.ReinitializeMagazines(docks_magazines, true)
-		_log_to_file("Doubled ammo for %s: %d magazines (was %d)" % [weapon.name, docks_magazines, starting_magazines])
-
-		# Update UI to reflect new ammo counts
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
-	else:
-		push_warning("[DocksLevel] Weapon %s doesn't have ReinitializeMagazines method" % weapon.name)
-	# Reapply auto-reload magazine size reduction if active (Issue #1067).
-	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
-		_player.ApplyAutoReloadAfterLevelAmmoConfig()
-
-
+## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
+## Applies to all difficulty modes including Hard.
 func _configure_makarov_pm_ammo(weapon: Node) -> void:
 	if weapon == null:
 		return
+
 	if weapon.name != "MakarovPM":
 		return
+
 	var starting_magazines: int = 4
 	if weapon.get("StartingMagazineCount") != null:
 		starting_magazines = weapon.StartingMagazineCount
+
 	var pm_magazines: int = int(round(starting_magazines * 2.5))
+
 	if weapon.has_method("ReinitializeMagazines"):
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
+
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
@@ -363,12 +329,14 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
+## Called when player ammo changes (GDScript Player).
 func _on_player_ammo_changed(current: int, maximum: int) -> void:
 	_update_ammo_label(current, maximum)
 	if GameManager:
 		GameManager.register_shot()
 
 
+## Called when weapon ammo changes (C# Player).
 func _on_weapon_ammo_changed(current_ammo: int, reserve_ammo: int) -> void:
 	_update_ammo_label_magazine(current_ammo, reserve_ammo)
 	if current_ammo <= 0 and reserve_ammo <= 0:
@@ -376,15 +344,18 @@ func _on_weapon_ammo_changed(current_ammo: int, reserve_ammo: int) -> void:
 			_show_game_over_message()
 
 
+## Called when magazine inventory changes (C# Player).
 func _on_magazines_changed(magazine_ammo_counts: Array) -> void:
 	_update_magazines_label(magazine_ammo_counts)
 
 
+## Called when a shot is fired (from C# weapon).
 func _on_shot_fired() -> void:
 	if GameManager:
 		GameManager.register_shot()
 
 
+## Called when shotgun shell count changes.
 func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 	var reserve_ammo: int = 0
 	if _player:
@@ -394,6 +365,7 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 	_update_ammo_label_magazine(shell_count, reserve_ammo)
 
 
+## Called when player runs out of ammo in current magazine.
 func _on_player_ammo_depleted() -> void:
 	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
 	# sound range system and lets out-of-earshot enemies react to the empty click.
@@ -409,6 +381,7 @@ func _on_player_ammo_depleted() -> void:
 			_show_game_over_message()
 
 
+## Called when player starts reloading.
 func _on_player_reload_started() -> void:
 	_broadcast_player_reloading(true)
 	if _player:
@@ -417,29 +390,35 @@ func _on_player_reload_started() -> void:
 			sound_propagation.emit_player_reload(_player.global_position, _player)
 
 
+## Called when player finishes reloading.
 func _on_player_reload_completed() -> void:
 	_broadcast_player_reloading(false)
 	_broadcast_player_ammo_empty(false)
 
 
+## Broadcast player reloading state to all enemies.
 func _broadcast_player_reloading(is_reloading: bool) -> void:
 	var enemies_node := get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
 		return
+
 	for enemy in enemies_node.get_children():
 		if enemy.has_method("set_player_reloading"):
 			enemy.set_player_reloading(is_reloading)
 
 
+## Broadcast player ammo empty state to all enemies.
 func _broadcast_player_ammo_empty(is_empty: bool) -> void:
 	var enemies_node := get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
 		return
+
 	for enemy in enemies_node.get_children():
 		if enemy.has_method("set_player_ammo_empty"):
 			enemy.set_player_ammo_empty(is_empty)
 
 
+## Called when player dies.
 func _on_player_died() -> void:
 	_show_death_message()
 	if GameManager:
@@ -465,8 +444,10 @@ func _setup_enemy_tracking() -> void:
 		if has_died_signal:
 			_enemies.append(child)
 			child.died.connect(_on_enemy_died)
+			# Connect to died_with_info for score tracking if available
 			if child.has_signal("died_with_info"):
 				child.died_with_info.connect(_on_enemy_died_with_info)
+		# Track when enemy is hit for accuracy
 		if child.has_signal("hit"):
 			child.hit.connect(_on_enemy_hit)
 		# Issue #959: Connect to pacifist signal - pacifists count as killed for level completion
@@ -482,26 +463,29 @@ func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null: return
 
+	# Create difficulty label
 	_difficulty_label = Label.new()
 	_difficulty_label.name = "DifficultyLabel"
 	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
-	_difficulty_label.offset_top = 80
+	_difficulty_label.offset_top = 45
 	_difficulty_label.offset_right = 200
-	_difficulty_label.offset_bottom = 110
+	_difficulty_label.offset_bottom = 75
 	ui.add_child(_difficulty_label)
 
+	# Create magazines label
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
 	_magazines_label.text = "MAGS: -"
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
-	_magazines_label.offset_top = 115
+	_magazines_label.offset_top = 105
 	_magazines_label.offset_right = 400
-	_magazines_label.offset_bottom = 145
+	_magazines_label.offset_bottom = 135
 	ui.add_child(_magazines_label)
 
+	# Create combo label
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
 	_combo_label.text = ""
@@ -540,6 +524,7 @@ func _on_enemy_died() -> void:
 		call_deferred("_activate_exit_zone")
 
 
+## Called when an enemy dies with special kill information.
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
@@ -557,7 +542,7 @@ func _on_enemy_became_pacifist(enemy: Node) -> void:
 	if is_instance_valid(enemy) and enemy.died.is_connected(_on_enemy_died):
 		enemy.died.disconnect(_on_enemy_died)
 	_update_enemy_count_label()
-	print("[Docks] Enemy became pacifist - counting as eliminated")
+	print("[WinterForest] Enemy became pacifist - counting as eliminated")
 	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		print("All enemies eliminated or pacified! Level cleared!")
 		_level_cleared = true
@@ -574,6 +559,7 @@ func _has_retaliating_pacifists() -> bool:
 	return false
 
 
+## Called when an enemy is hit (for accuracy tracking).
 func _on_enemy_hit() -> void:
 	if GameManager:
 		GameManager.register_hit()
@@ -583,11 +569,14 @@ func _complete_level_with_score() -> void:
 	if _level_completed: return
 	_level_completed = true
 
+	# Disable player controls immediately
 	_disable_player_controls()
 
+	# Deactivate exit zone to prevent further triggers
 	if _exit_zone and _exit_zone.has_method("deactivate"):
 		_exit_zone.deactivate()
 
+	# Stop replay recording
 	var replay_manager: Node = _get_or_create_replay_manager()
 	if replay_manager and replay_manager.has_method("StopRecording"):
 		replay_manager.StopRecording()
@@ -604,6 +593,7 @@ func _complete_level_with_score() -> void:
 		_show_victory_message()
 
 
+## Show the animated score screen.
 func _show_score_screen(score_data: Dictionary) -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
@@ -620,10 +610,12 @@ func _show_score_screen(score_data: Dictionary) -> void:
 		_show_fallback_score_screen(ui, score_data)
 
 
+## Called when the animated score screen finishes all animations.
 func _on_score_animation_completed(container: VBoxContainer) -> void:
 	_add_score_screen_buttons(container)
 
 
+## Fallback score screen if animated component is not available.
 func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	var gothic_font = load("res://assets/fonts/gothic_bitmap.fnt")
 	var _font_loaded := gothic_font != null
@@ -646,7 +638,7 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	ui.add_child(container)
 
 	var title_label := Label.new()
-	title_label.text = "DOCKS CLEARED!"
+	title_label.text = "LEVEL CLEARED!"
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 42)
 	title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
@@ -695,6 +687,7 @@ func _update_debug_ui() -> void:
 		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 
 
+## Update the ammo label with color coding (simple format for GDScript Player).
 func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
 		return
@@ -709,6 +702,7 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 
 
+## Update the ammo label with magazine format (for C# Player with weapon).
 func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 	if _ammo_label == null:
 		return
@@ -723,6 +717,7 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 
 
+## Update the magazines label showing individual magazine ammo counts.
 func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
@@ -760,6 +755,7 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	_magazines_label.text = "MAGS: " + " | ".join(parts)
 
 
+## Show death message when player dies.
 func _show_death_message() -> void:
 	if _game_over_shown:
 		return
@@ -787,6 +783,7 @@ func _show_death_message() -> void:
 	ui.add_child(death_label)
 
 
+## Show game over message when player runs out of ammo with enemies remaining.
 func _show_game_over_message() -> void:
 	_game_over_shown = true
 
@@ -811,6 +808,7 @@ func _show_game_over_message() -> void:
 	ui.add_child(game_over_label)
 
 
+## Show victory message when all enemies are eliminated.
 func _show_victory_message() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
@@ -818,7 +816,7 @@ func _show_victory_message() -> void:
 
 	var victory_label := Label.new()
 	victory_label.name = "VictoryLabel"
-	victory_label.text = "DOCKS CLEARED!"
+	victory_label.text = "WINTER FOREST CLEARED!"
 	victory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	victory_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	victory_label.add_theme_font_size_override("font_size", 48)
@@ -852,6 +850,7 @@ func _show_victory_message() -> void:
 	ui.add_child(stats_label)
 
 
+## Adds Restart, Next Level, Level Select, and Watch Replay buttons to a score screen container.
 func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	_score_shown = true
 
@@ -865,6 +864,7 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	buttons_container.add_theme_constant_override("separation", 10)
 	container.add_child(buttons_container)
 
+	# Next Level button
 	var next_level_path: String = _get_next_level_path()
 	if next_level_path != "":
 		var next_button := Button.new()
@@ -875,6 +875,7 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		next_button.pressed.connect(_on_next_level_pressed.bind(next_level_path))
 		buttons_container.add_child(next_button)
 
+	# Restart button
 	var restart_button := Button.new()
 	restart_button.name = "RestartButton"
 	restart_button.text = "↻ Restart (Q)"
@@ -883,6 +884,7 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	restart_button.pressed.connect(_on_restart_pressed)
 	buttons_container.add_child(restart_button)
 
+	# Level Select button
 	var level_select_button := Button.new()
 	level_select_button.name = "LevelSelectButton"
 	level_select_button.text = "☰ Level Select"
@@ -913,6 +915,8 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 			replay_button.tooltip_text = "Replay recording was not available for this session"
 
 		buttons_container.add_child(replay_button)
+	else:
+		_log_to_file("Watch Replay button not shown (replay viewing disabled in experimental settings)")
 
 	# Armory button (Issue #897: shown highlighted when items are available to unlock)
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
@@ -938,6 +942,7 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		armory_button.pressed.connect(_on_armory_button_pressed)
 		buttons_container.add_child(armory_button)
 
+	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 	if next_level_path != "":
@@ -946,6 +951,7 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		restart_button.grab_focus()
 
 
+## Get the color for a given rank.
 func _get_rank_color(rank: String) -> Color:
 	match rank:
 		"S":
@@ -966,6 +972,7 @@ func _get_rank_color(rank: String) -> Color:
 			return Color(1.0, 1.0, 1.0, 1.0)
 
 
+## Get the next level path for level progression.
 func _get_next_level_path() -> String:
 	# Level ordering (matching LevelsMenu.LEVELS)
 	var level_paths: Array[String] = [
@@ -981,7 +988,6 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
 		"res://scenes/levels/WinterForestLevel.tscn",
-		"res://scenes/levels/SewerLevel.tscn",
 	]
 	var current_scene_path: String = get_tree().current_scene.scene_file_path
 	for i in range(level_paths.size()):
@@ -992,18 +998,17 @@ func _get_next_level_path() -> String:
 	return ""
 
 
+## Handle W key shortcut for Watch Replay when score is shown.
 func _unhandled_input(event: InputEvent) -> void:
 	if not _score_shown:
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_W:
-			# Issue #807: Only trigger replay if enabled in experimental settings
-			var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
-			if experimental_settings and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled():
-				_on_watch_replay_pressed()
+			_on_watch_replay_pressed()
 
 
+## Called when the Watch Replay button is pressed (or W key).
 func _on_watch_replay_pressed() -> void:
 	_log_to_file("Watch Replay triggered")
 	var replay_manager: Node = _get_or_create_replay_manager()
@@ -1014,6 +1019,7 @@ func _on_watch_replay_pressed() -> void:
 		_log_to_file("Watch Replay: no replay data available")
 
 
+## Called when the Restart button is pressed.
 func _on_restart_pressed() -> void:
 	_log_to_file("Restart button pressed")
 	if GameManager:
@@ -1022,6 +1028,7 @@ func _on_restart_pressed() -> void:
 		get_tree().reload_current_scene()
 
 
+## Called when the Next Level button is pressed.
 func _on_next_level_pressed(level_path: String) -> void:
 	_log_to_file("Next Level button pressed: %s" % level_path)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
@@ -1031,6 +1038,7 @@ func _on_next_level_pressed(level_path: String) -> void:
 		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 
+## Called when the Level Select button is pressed.
 func _on_level_select_pressed() -> void:
 	_log_to_file("Level Select button pressed")
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
@@ -1082,6 +1090,7 @@ func _remove_armory_button_gold_style() -> void:
 		armory_btn.remove_theme_stylebox_override("normal")
 
 
+## Setup the weapon based on GameManager's selected weapon.
 func _setup_selected_weapon() -> void:
 	if _player == null:
 		return
@@ -1092,6 +1101,7 @@ func _setup_selected_weapon() -> void:
 
 	_log_to_file("Setting up weapon: %s" % selected_weapon_id)
 
+	# Check if C# Player already equipped the correct weapon
 	if selected_weapon_id != "makarov_pm":
 		var weapon_names: Dictionary = {
 			"shotgun": "Shotgun",
@@ -1107,8 +1117,6 @@ func _setup_selected_weapon() -> void:
 			var existing_weapon = _player.get_node_or_null(expected_name)
 			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
 				_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % expected_name)
-				# Still apply Docks-specific ammo configuration (Issue #866)
-				_configure_docks_weapon_ammo(existing_weapon)
 				return
 
 	if selected_weapon_id == "shotgun":
@@ -1127,12 +1135,9 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = shotgun
 
-			# Configure 2x ammo for Docks level (Issue #866)
-			_configure_docks_weapon_ammo(shotgun)
-
 			_log_to_file("Shotgun equipped successfully")
 		else:
-			push_error("[DocksLevel] Failed to load Shotgun scene!")
+			push_error("[WinterForestLevel] Failed to load Shotgun scene!")
 	elif selected_weapon_id == "mini_uzi":
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov:
@@ -1149,12 +1154,9 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = mini_uzi
 
-			# Configure 2x ammo for Docks level (Issue #866)
-			_configure_docks_weapon_ammo(mini_uzi)
-
 			_log_to_file("Mini UZI equipped successfully")
 		else:
-			push_error("[DocksLevel] Failed to load MiniUzi scene!")
+			push_error("[WinterForestLevel] Failed to load MiniUzi scene!")
 	elif selected_weapon_id == "silenced_pistol":
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov:
@@ -1173,7 +1175,7 @@ func _setup_selected_weapon() -> void:
 
 			_log_to_file("Silenced Pistol equipped successfully")
 		else:
-			push_error("[DocksLevel] Failed to load SilencedPistol scene!")
+			push_error("[WinterForestLevel] Failed to load SilencedPistol scene!")
 	elif selected_weapon_id == "sniper":
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov:
@@ -1190,12 +1192,9 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = sniper
 
-			# Configure 2x ammo for Docks level (Issue #866)
-			_configure_docks_weapon_ammo(sniper)
-
 			_log_to_file("ASVK Sniper Rifle equipped successfully")
 		else:
-			push_error("[DocksLevel] Failed to load SniperRifle scene!")
+			push_error("[WinterForestLevel] Failed to load SniperRifle scene!")
 	elif selected_weapon_id == "m16":
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov:
@@ -1212,12 +1211,9 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = m16
 
-			# Configure 2x ammo for Docks level (Issue #866)
-			_configure_docks_weapon_ammo(m16)
-
 			_log_to_file("M16 Assault Rifle equipped successfully")
 		else:
-			push_error("[DocksLevel] Failed to load AssaultRifle scene!")
+			push_error("[WinterForestLevel] Failed to load AssaultRifle scene!")
 	elif selected_weapon_id == "ak_gl":
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov:
@@ -1234,12 +1230,9 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = akgl
 
-			# Configure 2x ammo for Docks level (Issue #866)
-			_configure_docks_weapon_ammo(akgl)
-
-			_log_to_file("AK + GL equipped successfully")
+			_log_to_file("AKGL equipped successfully")
 		else:
-			push_error("[DocksLevel] Failed to load AKGL scene!")
+			push_error("[WinterForestLevel] Failed to load AKGL scene!")
 	elif selected_weapon_id == "revolver":
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov:
@@ -1256,19 +1249,12 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = revolver
 
-			_log_to_file("RSh-12 Revolver equipped successfully")
+			_log_to_file("Revolver equipped successfully")
 		else:
-			push_error("[DocksLevel] Failed to load Revolver scene!")
-	else:
-		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov and _player.get("CurrentWeapon") == null:
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(makarov)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = makarov
-			_configure_makarov_pm_ammo(makarov)
+			push_error("[WinterForestLevel] Failed to load Revolver scene!")
 
 
+## Disable player controls when level is completed.
 func _disable_player_controls() -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
@@ -1281,12 +1267,61 @@ func _disable_player_controls() -> void:
 	if _player is CharacterBody2D:
 		_player.velocity = Vector2.ZERO
 
-	_log_to_file("Player controls disabled (level completed)")
+
+## Setup cold winter sunlight from top-right corner.
+func _setup_sunlight() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	var sun_node := Node2D.new()
+	sun_node.name = "Sunlight"
+	# Off-screen top-right corner — outside the visible map frame.
+	sun_node.position = Vector2(3500, -200)
+	environment.add_child(sun_node)
+
+	var light := PointLight2D.new()
+	light.name = "SunPointLight"
+	# Cold winter sunlight — pale blue-white tint.
+	light.color = Color(0.85, 0.9, 1.0, 1.0)
+	# Slightly dimmer than beach — overcast winter day feel.
+	light.energy = 1.0
+	light.shadow_enabled = true
+	# SHADOW_FILTER_NONE gives crisp single shadows without PCF5's ghost duplicates.
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_NONE
+	# Cool blue tint in shadows for a winter effect.
+	light.shadow_color = Color(0.0, 0.0, 0.05, 0.5)
+	light.texture = _create_sunlight_texture()
+	# Scale large enough to cover the entire map from the off-screen position.
+	# The farthest corner (bottom-left ~64,2464) is ~4200 px away; scale 17 * 256 = 4352 px.
+	light.texture_scale = 17.0
+	sun_node.add_child(light)
+
+	print("[WinterForestLevel] Winter sunlight placed off-screen at top-right corner (Issue #1440)")
+
+
+## Create a smooth radial gradient texture for the sunlight.
+## Uses power-law falloff so the light fades naturally with no hard edge.
+func _create_sunlight_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # 256 px
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)  # 0 = centre, 1 = edge
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+
+	return ImageTexture.create_from_image(image)
 
 
 func _log_to_file(message: String) -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("log_info"):
-		file_logger.log_info("[DocksLevel] " + message)
+		file_logger.log_info("[WinterForestLevel] " + message)
 	else:
-		print("[DocksLevel] " + message)
+		print("[WinterForestLevel] " + message)
