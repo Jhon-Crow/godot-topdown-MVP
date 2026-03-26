@@ -1876,6 +1876,7 @@ func _on_player_reached_exit() -> void:
 	var _log_exit := "[RoguelikeLevel] Player reached exit — advancing (treasure_room=%s)" % str(GameManager.roguelike_in_treasure_room)
 	print(_log_exit)
 	FileLogger.info(_log_exit)
+	FileLogger.flush()  # Issue #1194: flush so this message survives a crash during transition
 	call_deferred("_advance_to_next_room")
 
 
@@ -2408,8 +2409,14 @@ func _advance_to_next_room() -> void:
 
 ## Issue #1399: Navigate to a specific room on the branching map.
 func _navigate_to_map_room(target_room_idx: int) -> void:
+	# Issue #1194: prevent double transitions when player hits two doors at once.
+	if _transitioning:
+		return
+	_transitioning = true
+
 	var rooms: Array = GameManager.roguelike_room_map
 	if target_room_idx < 0 or target_room_idx >= rooms.size():
+		_transitioning = false
 		return
 
 	var current_idx: int = GameManager.roguelike_current_map_room
@@ -2423,6 +2430,12 @@ func _navigate_to_map_room(target_room_idx: int) -> void:
 	# Mark current room as cleared
 	if current_idx >= 0 and current_idx < rooms.size():
 		rooms[current_idx]["cleared"] = true
+
+	# Issue #1194: always clear treasure-room flag when navigating away.
+	# The treasure room has exactly one connection (back to its parent combat room).
+	# Without this, navigating back from the treasure room keeps roguelike_in_treasure_room=true
+	# and the next scene loads as another treasure room instead of a combat room — crash.
+	GameManager.roguelike_in_treasure_room = false
 
 	# Update state for the target room
 	GameManager.roguelike_source_room = current_idx  # Track where we came from

@@ -281,3 +281,40 @@ This path (`is_treasure_map_room`) is used when the roguelike room map system is
 
 **Fix (Attempt 3):** Remove `_setup_navigation()` from the `is_treasure_map_room` branch
 as well. Same rationale: treasure rooms have no enemies, navmesh serves no purpose.
+
+#### Attempt 4 (2026-03-26): roguelike_in_treasure_room not cleared on door exit
+
+**Result of Attempt 3:** Crash persists (confirmed by `game_log_20260326_165920.txt`).
+
+**Report (RU):** "при выходе из сокровищницы - крашится игра"
+**Report (EN):** Game crashes when exiting the treasure room.
+
+**Evidence from `game_log_20260326_165920.txt`:**
+- Line 4155: `TREASURE ROOM — Level 2` — treasure room loaded at 16:59:55 (normal)
+- Line 4214: `Spawning treasure pedestal: Мини-Узи` — pedestal set up
+- Line 4236: `Weapon selected: mini_uzi` — player picked up the weapon at 16:59:56
+- Line 4245: `Scene changed` at 16:59:59 — scene change triggered 4 seconds after room load
+- Line 4246: `NavigationRegion2D added` — new scene loaded (the built-in scene node, not from _setup_navigation())
+- Line 4247: `TREASURE ROOM — Level 2` again — new scene entered treasure room path → **CRASH**
+
+**Root cause (Attempt 4):**
+
+The map generator places the treasure room as a **dead-end** with exactly 1 connection (back to its parent combat room). There is NO direct door from the treasure room to the exit room — the player must exit through the parent combat room first.
+
+When the player walks through the treasure room's only door (back to the parent combat room), `_on_door_entered(body, parent_combat_room_idx)` fires → `_navigate_to_map_room(parent_combat_room_idx)`.
+
+In `_navigate_to_map_room`, the default/combat room case was:
+```gdscript
+_:
+    ...
+    _show_map_room_transition(target_room_idx, type_name, Color(0.5, 1.0, 0.5, 1.0))
+```
+
+This called `_show_map_room_transition` WITHOUT clearing `GameManager.roguelike_in_treasure_room`. Since `roguelike_in_treasure_room` was `true` (set when entering the treasure room), the new scene loaded with this flag still `true` — and `_ready()` entered the treasure room code path again, causing an infinite treasure room loop and crash.
+
+Additionally, `_navigate_to_map_room` had no `_transitioning` guard, allowing double transitions if the player hit two doors simultaneously.
+
+**Fix (Attempt 4):**
+1. Add `_transitioning` guard at the start of `_navigate_to_map_room()`
+2. Clear `GameManager.roguelike_in_treasure_room = false` **before the match statement** in `_navigate_to_map_room()` — this correctly resets the flag for any room type we're navigating TO (the "treasure" case then re-sets it to `true` if needed)
+3. Add `FileLogger.flush()` in `_on_player_reached_exit()` to preserve that log line before the transition
