@@ -14,6 +14,7 @@ extends RefCounted
 ##      - Same obstacle as current cover.
 ##      - Lit by player flashlight (Issue #574).
 ##      - Already targeted by another enemy (Issue #1289: enemy spread).
+##      - Inside a machine gunner's firing sector (Issue #1552: MG zone avoidance).
 ##   5. Falls back to passage waypoints when no scored position is found.
 ##
 ## Usage:
@@ -139,11 +140,17 @@ func find_cover() -> Dictionary:
 				_enemy._flashlight_detection.is_position_lit(cover_pos, _enemy._player, _enemy._raycast):
 			flashlight_penalty = 8.0
 
+		# Issue #1552: Penalise cover inside a machine gunner's firing sector.
+		var mg_zone_penalty: float = 0.0
+		if MachineGunnerZoneComponent.is_position_in_any_mg_zone(_enemy, cover_pos):
+			mg_zone_penalty = MachineGunnerZoneComponent.MG_ZONE_COVER_PENALTY
+
 		var hidden_score: float      = 5.0 if is_hidden else 0.0
 		var approach_score: float    = progress / _enemy.CLOSE_COMBAT_DISTANCE
 		var distance_penalty: float  = cover_dist_from_me / _enemy.COVER_CHECK_DISTANCE
 		var total_score: float       = hidden_score + approach_score * 2.0 \
-			- distance_penalty - same_obstacle_penalty - flashlight_penalty - occupied_penalty
+			- distance_penalty - same_obstacle_penalty - flashlight_penalty - occupied_penalty \
+			- mg_zone_penalty
 
 		if total_score > best_score:
 			best_score    = total_score

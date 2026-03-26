@@ -465,6 +465,27 @@ class AvoidFlashlightPassageAction extends GOAPAction:
 		return 100.0  # Should never happen if preconditions are correct
 
 
+## Action to avoid a machine gunner's firing sector (Issue #1552).
+## When an enemy is inside the cone where an allied machine gunner is suppressing,
+## this action makes the enemy reroute to cover outside the firing sector so they
+## do not walk into the suppression fire.
+class AvoidMachineGunnerZoneAction extends GOAPAction:
+	func _init() -> void:
+		super._init("avoid_mg_firing_zone", 1.5)
+		preconditions = {
+			"in_mg_firing_zone": true
+		}
+		effects = {
+			"in_mg_firing_zone": false,
+			"is_pursuing": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		if world_state.get("in_mg_firing_zone", false):
+			return 1.0  # Prefer avoidance — moving into the MG cone risks friendly fire
+		return 100.0  # Should never happen if preconditions are correct
+
+
 ## Action to throw a grenade at the player or suspected position (Issue #657).
 ## Used by grenadier enemies to integrate grenade throwing into GOAP planning.
 ## High priority when grenadier has grenades and a trigger condition is met.
@@ -516,6 +537,8 @@ static func create_all_actions() -> Array[GOAPAction]:
 	# Flashlight detection actions (Issue #574)
 	actions.append(InvestigateFlashlightAction.new())
 	actions.append(AvoidFlashlightPassageAction.new())
+	# Machine gunner firing-zone avoidance action (Issue #1552)
+	actions.append(AvoidMachineGunnerZoneAction.new())
 	# Grenadier grenade throw action (Issue #657)
 	actions.append(ThrowGrenadeAction.new())
 	return actions

@@ -357,6 +357,8 @@ var _revolver_component: EnemyRevolverComponent = null  ## [Issue #1242] Revolve
 var _knockback_velocity: Vector2 = Vector2.ZERO  ## [Issue #1242] Knockback impulse that decays over time
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
+## [#1552] Machine gunner firing-zone avoidance component.
+var _mg_zone: MachineGunnerZoneComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
 const GRENADE_EVASION_MAX_TIME: float = 4.0  ## Max evasion time before giving up
 var _pre_evasion_state: AIState = AIState.IDLE  ## State to return to after grenade evasion
@@ -417,6 +419,7 @@ func _ready() -> void:
 	_setup_flashbang_status()
 	_setup_grenade_component()
 	_setup_grenade_avoidance()
+	_mg_zone = MachineGunnerZoneComponent.new(self)  # [#1552] MG firing-zone avoidance
 	_setup_aggression_component(); _suppressive_fire = SuppressiveFireComponent.new(); add_child(_suppressive_fire)  # Issue #675, #910
 	_pacifist = PacifistComponent.new(self)  # Issue #959
 	_setup_machete_component(); if has_force_field: _force_field_component = EnemyForceFieldComponent.new(); _force_field_component.name = "ForceFieldComponent"; add_child(_force_field_component); _force_field_component.setup(); if _shield_icon: _shield_icon.visible = true  # Issue #579, #1034, #1079
@@ -724,6 +727,8 @@ func _initialize_goap_state() -> void:
 		"confidence_low": false,
 		# Grenade avoidance state (Issue #407)
 		"in_grenade_danger_zone": false,
+		# Machine gunner firing-zone state (Issue #1552)
+		"in_mg_firing_zone": false,
 		# Ally death observation state (Issue #409)
 		"witnessed_ally_death": false,
 		"has_prediction": false, "prediction_confidence": 0.0,  # [#298]
@@ -965,6 +970,9 @@ func _update_goap_state() -> void:
 
 	# Grenade avoidance state (Issue #407)
 	_goap_world_state["in_grenade_danger_zone"] = _grenade_avoidance.in_danger_zone if _grenade_avoidance else false
+
+	# Machine gunner firing-zone state (Issue #1552)
+	if _mg_zone: _mg_zone.update(); _goap_world_state["in_mg_firing_zone"] = _mg_zone.in_mg_firing_zone
 
 	# Ally death observation state (Issue #409)
 	_goap_world_state["witnessed_ally_death"] = _witnessed_ally_death
