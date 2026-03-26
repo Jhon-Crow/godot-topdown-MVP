@@ -248,9 +248,18 @@ func is_controlling_drone() -> bool:
 
 
 ## Returns true if the operator should override suppression with dash.
-## Only in ACTIVE phase when bullets are in threat sphere.
+## Only in ACTIVE phase when bullets are in threat sphere AND charges are available.
+## When all charges are spent and on cooldown, fall back to normal suppression so
+## bullets can still hit the operator (Issue #1532 fix #5).
 func should_dash_instead_of_suppress() -> bool:
-	return _phase == Phase.ACTIVE and not _dash_active
+	if _phase != Phase.ACTIVE:
+		return false
+	if _dash_active:
+		return false
+	# If no charges left and cooldown running, let normal suppression apply (operator can be hit)
+	if _dash_charges <= 0 and _dash_cooldown_timer > 0.0:
+		return false
+	return true
 
 
 ## Calculate dash direction for flanking and attempt to dash.
@@ -466,6 +475,12 @@ func _transition_to_active() -> void:
 		if _parent.has_method("_initialize_ammo"):
 			_parent._initialize_ammo()
 
+	# Scale the weapon sprite down — silenced pistol is a compact sidearm (Issue #1532 fix #1)
+	if _weapon_mount:
+		var weapon_sprite: Sprite2D = _weapon_mount.get_node_or_null("WeaponSprite") as Sprite2D
+		if weapon_sprite:
+			weapon_sprite.scale = Vector2(0.65, 0.65)  # Smaller than the default rifle-sized weapon
+
 	# Add laser sight visual to weapon mount (Issue #1532)
 	_setup_laser_sight()
 
@@ -481,8 +496,18 @@ func _transition_to_active() -> void:
 	elif _parent and _parent.get("_current_state") != null:
 		_parent._current_state = 1  # AIState.COMBAT
 
+	# Set threat reaction delay to 0 so the operator dashes immediately on the first bullet
+	# (Issue #1532 fix #4): default delay=0.2s is too slow — at 1350px/s bullet speed the bullet
+	# crosses the 100px threat sphere in ~74ms, so a 200ms delay means the bullet already hit.
+	if _parent and _parent.get("threat_reaction_delay") != null:
+		_parent.set("threat_reaction_delay", 0.0)
+
+	# Also immediately mark reaction delay elapsed so the very first bullet triggers a dash
+	if _parent and _parent.get("_threat_reaction_delay_elapsed") != null:
+		_parent.set("_threat_reaction_delay_elapsed", true)
+
 	phase_changed.emit(Phase.ACTIVE)
-	FileLogger.info("[DroneOperator] Phase: ACTIVE (silenced pistol + laser drawn, dash evasion enabled)")
+	FileLogger.info("[DroneOperator] Phase: ACTIVE (silenced pistol + laser drawn, dash evasion enabled, reaction_delay=0)")
 
 
 ## Create a laser sight Line2D on the weapon mount (Issue #1532).
@@ -493,12 +518,15 @@ func _setup_laser_sight() -> void:
 	_laser_sight.name = "LaserSight"
 	_laser_sight.default_color = Color(1.0, 0.0, 0.0, 0.6)  # Red laser, semi-transparent
 	_laser_sight.width = 1.0
-	_laser_sight.z_index = 10
-	# The laser runs from the muzzle forward — update each frame in _update_laser_sight()
-	_laser_sight.add_point(Vector2(10, 0))   # near the barrel
-	_laser_sight.add_point(Vector2(200, 0))  # extends forward
+	# Render BEHIND the weapon sprite and arm — z_as_relative=true means z_index is relative
+	# to parent WeaponMount, so -2 puts it under the weapon/arm sprites (Issue #1532 fix #2)
+	_laser_sight.z_as_relative = true
+	_laser_sight.z_index = -2
+	# Start from under the pistol body (not at the muzzle tip), extends forward
+	_laser_sight.add_point(Vector2(0, 0))    # origin at weapon mount pivot
+	_laser_sight.add_point(Vector2(180, 0))  # extends forward from under the barrel
 	_weapon_mount.add_child(_laser_sight)
-	FileLogger.info("[DroneOperator] Laser sight visual added to weapon mount")
+	FileLogger.info("[DroneOperator] Laser sight visual added to weapon mount (z_index=-2, under arm)")
 
 
 ## Update laser sight length each active frame (fade when suppressed).

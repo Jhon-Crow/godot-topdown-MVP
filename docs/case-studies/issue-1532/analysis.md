@@ -2,11 +2,19 @@
 
 ## Overview
 
-Issue #1532 identifies three bugs in the Drone Operator enemy (added in #1397):
+Issue #1532 (and follow-up feedback on PR #1533) identifies bugs in the Drone Operator enemy (added in #1397):
 
+**Initial bugs (3):**
 1. **Wrong weapon** — uses PM (Makarov) instead of a silenced pistol with laser sight
 2. **Bad dash direction** — dashes toward walls instead of flanking around the player
 3. **Helmet LED stays green** — should turn red when the operator's drone is destroyed
+
+**Follow-up feedback bugs (5, from PR comment 2026-03-26):**
+4. **Silenced pistol sprite too large** — should be a compact sidearm, not rifle-sized
+5. **Laser renders over the arm** — should appear to come from under/behind the pistol
+6. **No silenced pistol sound** — enemy fires with M16 audio instead of suppressed "thwip"
+7. **Dash doesn't guarantee first-bullet evasion** — `threat_reaction_delay=0.2s` is longer than the bullet's time-to-target (~74ms at 1350px/s)
+8. **No damage after drone destroyed** — when all dash charges exhausted (`should_dash_instead_of_suppress()` still returns `true`), normal suppression never sets `_under_fire`, and while not dashing damage should land via `on_hit_with_bullet_info`, but the operator appeared invincible
 
 ---
 
@@ -129,8 +137,32 @@ for a clearly visible red — matching the player's understanding of "red lamp =
 
 ---
 
+### Fix 4 — Smaller Pistol Sprite (follow-up #1)
+- In `_transition_to_active()`, after loading the silenced pistol texture, set `weapon_sprite.scale = Vector2(0.65, 0.65)`
+- A silenced pistol is a compact sidearm — 65% of the default scale matches the visual expectation
+
+### Fix 5 — Laser Under the Arm (follow-up #2)
+- Changed `_laser_sight.z_index = 10` → `z_index = -2` with `z_as_relative = true`
+- This renders the laser **behind** the weapon sprite and arm geometry (relative z under parent WeaponMount)
+- Adjusted laser start point from `Vector2(10, 0)` to `Vector2(0, 0)` — starts from the weapon mount origin, visually from under the pistol
+
+### Fix 6 — Silenced Pistol Sound (follow-up #3)
+- Added `elif weapon_type == WeaponType.SILENCED_PISTOL and audio.has_method("play_silenced_shot"): audio.play_silenced_shot(global_position)` to the shooting audio chain in `enemy.gd`
+- `play_silenced_shot()` exists in `AudioManager` (line 865) — was just never wired to the enemy weapon type
+
+### Fix 7 — Guaranteed First-Bullet Dash (follow-up #4)
+- Root cause: `threat_reaction_delay = 0.2s` (line 58 enemy.gd). At 1350px/s bullet speed, crossing the 100px threat sphere takes ~74ms. The 200ms delay means the bullet hits before the dash starts.
+- Fix: In `_transition_to_active()`, set `parent.threat_reaction_delay = 0.0` and pre-set `_threat_reaction_delay_elapsed = true`, giving the drone operator instant threat response.
+
+### Fix 8 — Damage After Drone Destroyed (follow-up #5)
+- Root cause: `should_dash_instead_of_suppress()` returned `true` even when all dash charges were exhausted and cooldown was running, preventing `_under_fire` from being set.
+- While `_under_fire` doesn't block `on_hit_with_bullet_info` (direct bullet damage bypasses suppression), the perpetual "should dash" state may interact with other AI logic.
+- Fix: Added `if _dash_charges <= 0 and _dash_cooldown_timer > 0.0: return false` — when out of dashes, fall back to normal suppression so the AI correctly processes being hit.
+
+---
+
 ## Files Changed
 
 - `scripts/components/weapon_config_component.gd` — added SILENCED_PISTOL type 9
-- `scripts/objects/enemy.gd` — added SILENCED_PISTOL to WeaponType enum
-- `scripts/components/drone_operator_component.gd` — all three fixes
+- `scripts/objects/enemy.gd` — added SILENCED_PISTOL to WeaponType enum + silenced shot audio
+- `scripts/components/drone_operator_component.gd` — all fixes (initial 3 + follow-up 5)
