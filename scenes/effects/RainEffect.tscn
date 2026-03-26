@@ -6,57 +6,57 @@
 blend_mode = 1
 
 [sub_resource type="Gradient" id="Gradient_streak"]
-offsets = PackedFloat32Array(0, 0.2, 0.8, 1)
-colors = PackedColorArray(0.8, 0.85, 1.0, 0, 0.8, 0.85, 1.0, 0.6, 0.8, 0.85, 1.0, 0.6, 0.8, 0.85, 1.0, 0)
+offsets = PackedFloat32Array(0, 0.15, 0.85, 1)
+colors = PackedColorArray(0.8, 0.85, 1.0, 0, 0.8, 0.85, 1.0, 0.7, 0.8, 0.85, 1.0, 0.7, 0.8, 0.85, 1.0, 0)
 
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_streak"]
 gradient = SubResource("Gradient_streak")
 width = 2
-height = 6
+height = 16
 fill_from = Vector2(0.5, 0)
 fill_to = Vector2(0.5, 1)
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_streak"]
-lifetime_randomness = 0.3
+lifetime_randomness = 0.2
 particle_flag_disable_z = true
 particle_flag_align_y = true
 emission_shape = 3
-emission_box_extents = Vector3(640, 360, 0)
-direction = Vector3(0, 0, 0)
+emission_box_extents = Vector3(700, 400, 0)
+direction = Vector3(0.1, 1.0, 0.0)
 spread = 0.0
-initial_velocity_min = 0.0
-initial_velocity_max = 0.0
-radial_velocity_min = -140.0
-radial_velocity_max = -80.0
+initial_velocity_min = 500.0
+initial_velocity_max = 700.0
+radial_velocity_min = 0.0
+radial_velocity_max = 0.0
 gravity = Vector3(0, 0, 0)
-scale_min = 0.8
-scale_max = 1.5
-color = Color(0.8, 0.85, 1.0, 0.55)
+scale_min = 1.2
+scale_max = 2.5
+color = Color(0.8, 0.85, 1.0, 0.6)
 
 [sub_resource type="Gradient" id="Gradient_splash"]
-offsets = PackedFloat32Array(0, 0.3, 0.55, 0.75, 1)
-colors = PackedColorArray(0.8, 0.85, 1.0, 0, 0.8, 0.85, 1.0, 0, 0.75, 0.8, 0.95, 0.45, 0.75, 0.8, 0.95, 0.25, 0.7, 0.75, 0.9, 0)
+offsets = PackedFloat32Array(0, 0.25, 0.5, 0.75, 1)
+colors = PackedColorArray(0.8, 0.85, 1.0, 0, 0.8, 0.85, 1.0, 0, 0.75, 0.8, 0.95, 0.5, 0.75, 0.8, 0.95, 0.3, 0.7, 0.75, 0.9, 0)
 
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_splash"]
 gradient = SubResource("Gradient_splash")
-width = 12
-height = 12
+width = 14
+height = 14
 fill = 1
 fill_from = Vector2(0.5, 0.5)
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_splash"]
-lifetime_randomness = 0.3
+lifetime_randomness = 0.2
 particle_flag_disable_z = true
 emission_shape = 3
-emission_box_extents = Vector3(640, 360, 0)
+emission_box_extents = Vector3(700, 400, 0)
 direction = Vector3(0, 0, 0)
 spread = 180.0
 initial_velocity_min = 0.0
-initial_velocity_max = 2.0
+initial_velocity_max = 3.0
 gravity = Vector3(0, 0, 0)
-scale_min = 0.5
-scale_max = 1.8
-color = Color(0.75, 0.8, 0.95, 0.4)
+scale_min = 0.6
+scale_max = 2.0
+color = Color(0.75, 0.8, 0.95, 0.45)
 
 [node name="RainEffect" type="Node2D"]
 script = ExtResource("1_rain_effect")
@@ -68,18 +68,18 @@ layer = 5
 position = Vector2(640, 360)
 material = SubResource("CanvasItemMaterial_additive")
 emitting = true
-amount = 50
+amount = 80
 process_material = SubResource("ParticleProcessMaterial_streak")
 texture = SubResource("GradientTexture2D_streak")
-lifetime = 0.15
-visibility_rect = Rect2(-700, -400, 1400, 900)
+lifetime = 0.18
+visibility_rect = Rect2(-750, -430, 1500, 1000)
 
 [node name="RainSplashes" type="GPUParticles2D" parent="RainCanvas"]
-position = Vector2(640, 360)
+position = Vector2(650, 457)
 material = SubResource("CanvasItemMaterial_additive")
 emitting = true
-amount = 50
+amount = 80
 process_material = SubResource("ParticleProcessMaterial_splash")
 texture = SubResource("GradientTexture2D_splash")
 lifetime = 0.4
-visibility_rect = Rect2(-700, -400, 1400, 900)
+visibility_rect = Rect2(-750, -430, 1500, 1000)

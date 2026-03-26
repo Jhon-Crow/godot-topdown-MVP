@@ -1,19 +1,20 @@
 extends Node2D
 class_name RainEffect
-## Hotline Miami 2-style top-down rain effect (Issue #1394, fixed #1499).
+## Hotline Miami 2-style top-down rain effect (Issue #1394, fixed #1499, #1546).
 ##
 ## Two-layer particle system rendered on a CanvasLayer (screen space) so rain
 ## always covers the visible viewport regardless of camera position:
-##   - RainStreaks: short radial dashes converging toward screen center (fish-eye top-down perspective)
-##   - RainSplashes: circular ring ripples across the full screen
+##   - RainStreaks: long downward dashes falling across the full screen
+##   - RainSplashes: circular ring ripples at the point where streaks land
 ##
 ## Rain is always active (continuous) while outdoors.
 ## Supports indoor exclusion zones where rain should not appear.
 ## Camera position is checked each frame to detect building entry/exit.
 ##
-## Fix #1499: Streaks use negative radial_velocity so particles move inward
-## (toward screen center), giving the correct top-down falling appearance.
-## Splash emitter is co-located at screen center (640,360) matching streaks.
+## Fix #1546: Streaks use straight downward direction (not radial) so rain does
+## not appear to converge on the player. Splash emitter is offset to match the
+## average endpoint of falling streaks for a seamless drop animation.
+## Streak texture height increased (6→16px) and scale range widened for longer drops.
 
 ## Indoor exclusion zones (rain stops when camera center is inside).
 ## Each Rect2 defines a rectangular area in global coordinates.
