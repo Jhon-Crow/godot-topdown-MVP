@@ -20,6 +20,8 @@ class MockPerformanceSettings:
 	var screen_shake_enabled: bool = true
 	var explosion_lights_enabled: bool = true
 	var ai_enabled: bool = true
+	var vsync_enabled: bool = true
+	var fps_limit: int = 0
 
 	## Per-state AI toggles (all enabled by default).
 	var ai_state_idle_enabled: bool = true
@@ -72,6 +74,22 @@ class MockPerformanceSettings:
 
 	func is_ai_enabled() -> bool:
 		return ai_enabled
+
+	func set_vsync_enabled(enabled: bool) -> void:
+		if vsync_enabled != enabled:
+			vsync_enabled = enabled
+			settings_changed.emit()
+
+	func is_vsync_enabled() -> bool:
+		return vsync_enabled
+
+	func set_fps_limit(limit: int) -> void:
+		if fps_limit != limit:
+			fps_limit = limit
+			settings_changed.emit()
+
+	func get_fps_limit() -> int:
+		return fps_limit
 
 	## Filter AI state - redirects disabled states.
 	## IDLE disabled -> SEARCHING (keeps enemies busy); other states disabled -> IDLE.
@@ -328,3 +346,99 @@ func test_filter_searching_disabled_redirects_to_idle() -> void:
 func test_filter_unknown_state_returns_same() -> void:
 	assert_eq(settings.filter_ai_state(99), 99,
 		"Unknown state should pass through unchanged")
+
+
+# ============================================================================
+# V-Sync Tests (Issue #1514)
+# ============================================================================
+
+
+func test_default_vsync_enabled() -> void:
+	assert_true(settings.is_vsync_enabled(),
+		"V-Sync should be enabled by default")
+
+
+func test_set_vsync_disabled() -> void:
+	settings.set_vsync_enabled(false)
+	assert_false(settings.is_vsync_enabled(),
+		"V-Sync should be disabled after setter")
+
+
+func test_re_enable_vsync() -> void:
+	settings.set_vsync_enabled(false)
+	settings.set_vsync_enabled(true)
+	assert_true(settings.is_vsync_enabled(),
+		"V-Sync should be re-enabled")
+
+
+func test_signal_emitted_on_vsync_change() -> void:
+	var signal_count := 0
+	settings.settings_changed.connect(func(): signal_count += 1)
+
+	settings.set_vsync_enabled(false)
+
+	assert_eq(signal_count, 1, "Signal should be emitted when V-Sync changes")
+
+
+func test_no_signal_when_same_vsync_value() -> void:
+	var signal_count := 0
+	settings.settings_changed.connect(func(): signal_count += 1)
+
+	settings.set_vsync_enabled(true)  # same as default
+
+	assert_eq(signal_count, 0,
+		"Signal should not be emitted when setting same V-Sync value")
+
+
+# ============================================================================
+# FPS Limit Tests (Issue #1514)
+# ============================================================================
+
+
+func test_default_fps_limit_is_unlimited() -> void:
+	assert_eq(settings.get_fps_limit(), 0,
+		"FPS limit should default to 0 (unlimited)")
+
+
+func test_set_fps_limit_30() -> void:
+	settings.set_fps_limit(30)
+	assert_eq(settings.get_fps_limit(), 30,
+		"FPS limit should be 30 after setter")
+
+
+func test_set_fps_limit_60() -> void:
+	settings.set_fps_limit(60)
+	assert_eq(settings.get_fps_limit(), 60,
+		"FPS limit should be 60 after setter")
+
+
+func test_set_fps_limit_120() -> void:
+	settings.set_fps_limit(120)
+	assert_eq(settings.get_fps_limit(), 120,
+		"FPS limit should be 120 after setter")
+
+
+func test_set_fps_limit_unlimited() -> void:
+	settings.set_fps_limit(60)
+	settings.set_fps_limit(0)
+	assert_eq(settings.get_fps_limit(), 0,
+		"FPS limit should return to unlimited (0)")
+
+
+func test_signal_emitted_on_fps_limit_change() -> void:
+	var signal_count := 0
+	settings.settings_changed.connect(func(): signal_count += 1)
+
+	settings.set_fps_limit(60)
+
+	assert_eq(signal_count, 1, "Signal should be emitted when FPS limit changes")
+
+
+func test_no_signal_when_same_fps_limit_value() -> void:
+	var signal_count := 0
+	settings.settings_changed.connect(func(): signal_count += 1)
+
+	settings.set_fps_limit(0)  # same as default
+
+	assert_eq(signal_count, 0,
+		"Signal should not be emitted when setting same FPS limit value")

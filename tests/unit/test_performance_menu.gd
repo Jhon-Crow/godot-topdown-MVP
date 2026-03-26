@@ -18,6 +18,8 @@ class MockPerformanceMenu:
 	var explosion_lights_enabled: bool = true
 	var wall_hit_particles_enabled: bool = true
 	var ai_enabled: bool = true
+	var vsync_enabled: bool = true
+	var fps_limit: int = 0
 
 	## AI state toggles.
 	var ai_states: Dictionary = {
@@ -45,6 +47,7 @@ class MockPerformanceMenu:
 			"explosion_lights": explosion_lights_enabled = enabled
 			"wall_hit_particles": wall_hit_particles_enabled = enabled
 			"ai": ai_enabled = enabled
+			"vsync": vsync_enabled = enabled
 
 	## Toggle an AI state.
 	func set_ai_state(state_name: String, enabled: bool) -> void:
@@ -63,6 +66,8 @@ class MockPerformanceMenu:
 		for state_name in ai_states:
 			if not ai_states[state_name]:
 				disabled.append("AI:" + state_name.to_upper())
+		if not vsync_enabled: disabled.append("V-Sync")
+		if fps_limit > 0: disabled.append("FPS cap: %d" % fps_limit)
 		return disabled
 
 	## Get status text.
@@ -72,9 +77,9 @@ class MockPerformanceMenu:
 			return "All performance features enabled"
 		return "Disabled: " + ", ".join(disabled)
 
-	## Get total feature count (visual + AI master).
+	## Get total feature count (visual + AI master + display settings).
 	func get_visual_feature_count() -> int:
-		return 6  # particles, blood_decals, screen_shake, explosion_lights, wall_hit_particles, ai
+		return 8  # particles, blood_decals, screen_shake, explosion_lights, wall_hit_particles, ai, vsync, fps_limit
 
 	## Get AI state count.
 	func get_ai_state_count() -> int:
@@ -107,6 +112,8 @@ class MockPerformanceMenu:
 			"AI: PURSUING state (cover-to-cover advance)",
 			"AI: ASSAULT state (coordinated rush)",
 			"AI: SEARCHING state (hunt last known position)",
+			"Vertical Sync (V-Sync)",
+			"FPS Limit",
 		]
 
 	## Returns the list of row names that should have description labels (Issue #1461).
@@ -118,6 +125,8 @@ class MockPerformanceMenu:
 			"Explosion/Flashbang Lights",
 			"Wall Hit Particles",
 			"Enemy AI",
+			"Vertical Sync (V-Sync)",
+			"FPS Limit",
 		]
 
 
@@ -144,6 +153,8 @@ func test_all_features_enabled_by_default() -> void:
 	assert_true(menu.explosion_lights_enabled, "Explosion lights should be enabled by default")
 	assert_true(menu.wall_hit_particles_enabled, "Wall hit particles should be enabled by default")
 	assert_true(menu.ai_enabled, "AI should be enabled by default")
+	assert_true(menu.vsync_enabled, "V-Sync should be enabled by default")
+	assert_eq(menu.fps_limit, 0, "FPS limit should be unlimited (0) by default")
 
 
 func test_all_ai_states_enabled_by_default() -> void:
@@ -163,8 +174,8 @@ func test_default_status_text() -> void:
 
 
 func test_visual_feature_count() -> void:
-	assert_eq(menu.get_visual_feature_count(), 6,
-		"Should have 6 visual/master feature toggles")
+	assert_eq(menu.get_visual_feature_count(), 8,
+		"Should have 8 visual/master feature toggles")
 
 
 func test_ai_state_count() -> void:
@@ -252,14 +263,14 @@ func test_back_button() -> void:
 
 func test_all_rows_have_tooltips() -> void:
 	var rows := menu.get_rows_with_tooltips()
-	assert_eq(rows.size(), 16,
-		"Should have 16 rows with tooltips (6 visual + 10 AI states)")
+	assert_eq(rows.size(), 18,
+		"Should have 18 rows with tooltips (8 visual + 10 AI states)")
 
 
 func test_visual_rows_have_descriptions() -> void:
 	var rows := menu.get_rows_with_descriptions()
-	assert_eq(rows.size(), 6,
-		"Should have 6 rows with description labels (visual features + AI master)")
+	assert_eq(rows.size(), 8,
+		"Should have 8 rows with description labels (visual features + AI master + display settings)")
 
 
 func test_tooltip_row_names_include_ai_states() -> void:
@@ -270,3 +281,56 @@ func test_tooltip_row_names_include_ai_states() -> void:
 			ai_rows.append(r)
 	assert_eq(ai_rows.size(), 10,
 		"Should have tooltip rows for all 10 AI states")
+
+
+# ============================================================================
+# V-Sync and FPS Limit Tests (Issue #1514)
+# ============================================================================
+
+
+func test_disable_vsync() -> void:
+	menu.set_feature("vsync", false)
+
+	assert_false(menu.vsync_enabled,
+		"Should be able to disable V-Sync")
+
+
+func test_vsync_disabled_in_status() -> void:
+	menu.set_feature("vsync", false)
+
+	var status := menu.get_status_text()
+	assert_true(status.contains("V-Sync"),
+		"Status should mention V-Sync when disabled")
+
+
+func test_fps_limit_in_status() -> void:
+	menu.fps_limit = 60
+
+	var disabled := menu.get_disabled_features()
+	assert_true(disabled.has("FPS cap: 60"),
+		"Disabled features should mention the active FPS cap")
+
+
+func test_no_fps_cap_in_status_when_unlimited() -> void:
+	menu.fps_limit = 0
+
+	var disabled := menu.get_disabled_features()
+	for entry in disabled:
+		assert_false(entry.begins_with("FPS cap"),
+			"No FPS cap entry should appear when fps_limit is 0 (unlimited)")
+
+
+func test_tooltip_rows_include_vsync_and_fps() -> void:
+	var rows := menu.get_rows_with_tooltips()
+	assert_true(rows.has("Vertical Sync (V-Sync)"),
+		"Tooltip rows should include V-Sync")
+	assert_true(rows.has("FPS Limit"),
+		"Tooltip rows should include FPS Limit")
+
+
+func test_description_rows_include_vsync_and_fps() -> void:
+	var rows := menu.get_rows_with_descriptions()
+	assert_true(rows.has("Vertical Sync (V-Sync)"),
+		"Description rows should include V-Sync")
+	assert_true(rows.has("FPS Limit"),
+		"Description rows should include FPS Limit")

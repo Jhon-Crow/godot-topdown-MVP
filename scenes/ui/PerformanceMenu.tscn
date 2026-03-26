@@ -327,6 +327,52 @@ autowrap_mode = 2
 [node name="AISearchingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISearchingContainer"]
 layout_mode = 2
 
+[node name="HSeparator5c" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="VSyncContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="VSyncLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/VSyncContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Vertical Sync (V-Sync)"
+autowrap_mode = 2
+
+[node name="VSyncCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/VSyncContainer"]
+layout_mode = 2
+
+[node name="VSyncDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled (default), frames are synchronised with the
+display refresh rate to prevent screen tearing. Disable to
+allow higher frame rates at the cost of possible tearing."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator5d" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="FpsLimitContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="FpsLimitLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsLimitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "FPS Limit"
+autowrap_mode = 2
+
+[node name="FpsLimitOptionButton" type="OptionButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsLimitContainer"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+
+[node name="FpsLimitDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Cap the maximum frame rate. Unlimited lets the GPU run as
+fast as possible; lower caps reduce GPU load and power usage."
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="HSeparator6" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 

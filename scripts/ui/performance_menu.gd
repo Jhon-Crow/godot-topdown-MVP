@@ -26,6 +26,8 @@ signal back_pressed
 @onready var ai_pursuing_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIPursuingContainer/AIPursuingCheckbox
 @onready var ai_assault_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIAssaultContainer/AIAssaultCheckbox
 @onready var ai_searching_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISearchingContainer/AISearchingCheckbox
+@onready var vsync_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/VSyncContainer/VSyncCheckbox
+@onready var fps_limit_option: OptionButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsLimitContainer/FpsLimitOptionButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
 @onready var benchmark_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BenchmarkContainer/BenchmarkButton
@@ -85,6 +87,19 @@ func _ready() -> void:
 			"AI: ASSAULT state (coordinated rush)")
 	_setup_row_hover(_vbox.get_node("AISearchingContainer"),
 			"AI: SEARCHING state (hunt last known position)")
+	_setup_row_hover(_vbox.get_node("VSyncContainer"),
+			"Vertical Sync (V-Sync)",
+			_vbox.get_node("VSyncDescription"))
+	_setup_row_hover(_vbox.get_node("FpsLimitContainer"),
+			"FPS Limit",
+			_vbox.get_node("FpsLimitDescription"))
+
+	# Populate FPS limit options (Issue #1514)
+	fps_limit_option.clear()
+	fps_limit_option.add_item("Unlimited", 0)
+	fps_limit_option.add_item("30 FPS", 30)
+	fps_limit_option.add_item("60 FPS", 60)
+	fps_limit_option.add_item("120 FPS", 120)
 
 	# Connect checkbox signals
 	particles_checkbox.toggled.connect(_on_particles_toggled)
@@ -103,6 +118,8 @@ func _ready() -> void:
 	ai_pursuing_checkbox.toggled.connect(func(e): _on_ai_state_toggled("pursuing", e))
 	ai_assault_checkbox.toggled.connect(func(e): _on_ai_state_toggled("assault", e))
 	ai_searching_checkbox.toggled.connect(func(e): _on_ai_state_toggled("searching", e))
+	vsync_checkbox.toggled.connect(_on_vsync_toggled)
+	fps_limit_option.item_selected.connect(_on_fps_limit_selected)
 	benchmark_button.pressed.connect(_on_benchmark_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
@@ -144,6 +161,11 @@ func _update_ui() -> void:
 	ai_pursuing_checkbox.button_pressed = perf_settings.is_ai_state_pursuing_enabled()
 	ai_assault_checkbox.button_pressed = perf_settings.is_ai_state_assault_enabled()
 	ai_searching_checkbox.button_pressed = perf_settings.is_ai_state_searching_enabled()
+	vsync_checkbox.button_pressed = perf_settings.is_vsync_enabled()
+	var fps_items := [0, 30, 60, 120]
+	var current_fps := perf_settings.get_fps_limit()
+	var fps_idx := fps_items.find(current_fps)
+	fps_limit_option.selected = fps_idx if fps_idx >= 0 else 0
 
 	# Show which features are currently disabled
 	var disabled_parts: Array[String] = []
@@ -164,6 +186,9 @@ func _update_ui() -> void:
 	if not perf_settings.is_ai_state_pursuing_enabled(): disabled_parts.append("AI:PURSUING")
 	if not perf_settings.is_ai_state_assault_enabled(): disabled_parts.append("AI:ASSAULT")
 	if not perf_settings.is_ai_state_searching_enabled(): disabled_parts.append("AI:SEARCHING")
+	if not perf_settings.is_vsync_enabled(): disabled_parts.append("V-Sync")
+	var fps_cap := perf_settings.get_fps_limit()
+	if fps_cap > 0: disabled_parts.append("FPS cap: %d" % fps_cap)
 
 	if disabled_parts.is_empty():
 		status_label.text = "All performance features enabled"
@@ -231,6 +256,22 @@ func _on_ai_state_toggled(state_name: String, enabled: bool) -> void:
 	_update_ui()
 
 
+func _on_vsync_toggled(enabled: bool) -> void:
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	if perf_settings:
+		perf_settings.set_vsync_enabled(enabled)
+	_update_ui()
+
+
+func _on_fps_limit_selected(index: int) -> void:
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	if perf_settings:
+		var fps_items := [0, 30, 60, 120]
+		var limit: int = fps_items[index] if index < fps_items.size() else 0
+		perf_settings.set_fps_limit(limit)
+	_update_ui()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("pause"):
 		_on_back_pressed()
@@ -293,6 +334,10 @@ func _on_row_gui_input(event: InputEvent, container: Control) -> void:
 		for child in container.get_children():
 			if child is CheckButton:
 				child.button_pressed = not child.button_pressed
+				container.accept_event()
+				return
+			if child is OptionButton:
+				child.show_popup()
 				container.accept_event()
 				return
 

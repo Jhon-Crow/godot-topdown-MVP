@@ -28,6 +28,16 @@ var screen_shake_enabled: bool = true
 ## PointLight2D is a known GPU bottleneck (Issue #724).
 var explosion_lights_enabled: bool = true
 
+## Whether vertical sync is enabled (Issue #1514).
+## When disabled, the GPU renders frames without waiting for the display refresh.
+## Disabling V-Sync can increase FPS on high-end hardware but may cause screen tearing.
+var vsync_enabled: bool = true
+
+## Maximum frames per second cap (Issue #1514).
+## Valid values: 0 (unlimited), 30, 60, 120.
+## Uses Engine.max_fps; 0 means no cap (default Godot behaviour).
+var fps_limit: int = 0
+
 ## Whether AI is enabled for all enemies.
 ## When disabled, enemies do not process AI logic (they stand still).
 ## Disabling this helps identify the CPU cost of the AI system.
@@ -55,8 +65,11 @@ func _ready() -> void:
 	_load_settings()
 	# Apply screen shake setting immediately
 	_apply_screen_shake()
-	_log_to_file("PerformanceSettings initialized - particles: %s, blood_decals: %s, screen_shake: %s, explosion_lights: %s, ai: %s" % [
-		particles_enabled, blood_decals_enabled, screen_shake_enabled, explosion_lights_enabled, ai_enabled])
+	# Apply vsync and fps limit immediately (Issue #1514)
+	_apply_vsync()
+	_apply_fps_limit()
+	_log_to_file("PerformanceSettings initialized - particles: %s, blood_decals: %s, screen_shake: %s, explosion_lights: %s, ai: %s, vsync: %s, fps_limit: %s" % [
+		particles_enabled, blood_decals_enabled, screen_shake_enabled, explosion_lights_enabled, ai_enabled, vsync_enabled, fps_limit])
 
 
 ## Set particles enabled/disabled (Issue #1186).
@@ -128,6 +141,37 @@ func set_ai_enabled(enabled: bool) -> void:
 ## Check if AI is enabled (Issue #1186).
 func is_ai_enabled() -> bool:
 	return ai_enabled
+
+
+## Set vertical sync enabled/disabled (Issue #1514).
+func set_vsync_enabled(enabled: bool) -> void:
+	if vsync_enabled != enabled:
+		vsync_enabled = enabled
+		_apply_vsync()
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("V-Sync %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if V-Sync is enabled (Issue #1514).
+func is_vsync_enabled() -> bool:
+	return vsync_enabled
+
+
+## Set the FPS cap (Issue #1514).
+## @param limit  0 = unlimited, or one of: 30, 60, 120.
+func set_fps_limit(limit: int) -> void:
+	if fps_limit != limit:
+		fps_limit = limit
+		_apply_fps_limit()
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("FPS limit set to %s" % (str(limit) if limit > 0 else "unlimited"))
+
+
+## Get the current FPS cap (Issue #1514).
+func get_fps_limit() -> int:
+	return fps_limit
 
 
 ## Per-state AI toggle getters/setters (Issue #1186).
@@ -220,6 +264,17 @@ func filter_ai_state(state: int) -> int:
 	return state
 
 
+## Applies the V-Sync setting via DisplayServer (Issue #1514).
+func _apply_vsync() -> void:
+	var mode := DisplayServer.VSYNC_ENABLED if vsync_enabled else DisplayServer.VSYNC_DISABLED
+	DisplayServer.window_set_vsync_mode(mode)
+
+
+## Applies the FPS cap via Engine.max_fps (Issue #1514).
+func _apply_fps_limit() -> void:
+	Engine.max_fps = fps_limit
+
+
 ## Applies the screen shake setting to ScreenShakeManager.
 func _apply_screen_shake() -> void:
 	var ssm: Node = get_node_or_null("/root/ScreenShakeManager")
@@ -235,6 +290,8 @@ func _save_settings() -> void:
 	config.set_value("performance", "screen_shake_enabled", screen_shake_enabled)
 	config.set_value("performance", "explosion_lights_enabled", explosion_lights_enabled)
 	config.set_value("performance", "ai_enabled", ai_enabled)
+	config.set_value("performance", "vsync_enabled", vsync_enabled)
+	config.set_value("performance", "fps_limit", fps_limit)
 	config.set_value("ai_states", "idle", ai_state_idle_enabled)
 	config.set_value("ai_states", "combat", ai_state_combat_enabled)
 	config.set_value("ai_states", "seeking_cover", ai_state_seeking_cover_enabled)
@@ -260,6 +317,8 @@ func _load_settings() -> void:
 		screen_shake_enabled = config.get_value("performance", "screen_shake_enabled", true)
 		explosion_lights_enabled = config.get_value("performance", "explosion_lights_enabled", true)
 		ai_enabled = config.get_value("performance", "ai_enabled", true)
+		vsync_enabled = config.get_value("performance", "vsync_enabled", true)
+		fps_limit = config.get_value("performance", "fps_limit", 0)
 		ai_state_idle_enabled = config.get_value("ai_states", "idle", true)
 		ai_state_combat_enabled = config.get_value("ai_states", "combat", true)
 		ai_state_seeking_cover_enabled = config.get_value("ai_states", "seeking_cover", true)
@@ -276,6 +335,8 @@ func _load_settings() -> void:
 		screen_shake_enabled = true
 		explosion_lights_enabled = true
 		ai_enabled = true
+		vsync_enabled = true
+		fps_limit = 0
 		ai_state_idle_enabled = true
 		ai_state_combat_enabled = true
 		ai_state_seeking_cover_enabled = true
