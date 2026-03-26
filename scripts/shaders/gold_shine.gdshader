@@ -5,32 +5,45 @@ render_mode blend_add;
 // hiding text, icons, or borders underneath.
 //
 // Animation phases (repeats every `cycle_duration` seconds):
-//   Phase 0 (0.00–0.45): diagonal highlight stripe sweeps from top-right to bottom-left
+//   Phase 0 (0.00–0.45): highlight stripe sweeps across the element
+//                         (horizontal left→right when horizontal_sweep=true,
+//                          diagonal top-right→bottom-left otherwise)
 //   Phase 1 (0.45–0.65): radial gold burst expands from center, then contracts
 //   Phase 2 (0.65–1.00): smooth fade back to zero (dark = no contribution in additive mode)
 
 // Duration of one full shine cycle in seconds.
 uniform float cycle_duration : hint_range(1.0, 10.0) = 3.5;
 
-// Color of the diagonal sweep stripe.
+// Color of the sweep stripe.
 uniform vec4 sweep_color : source_color = vec4(1.0, 0.85, 0.2, 1.0);
 
 // Color of the radial burst.
 uniform vec4 burst_color : source_color = vec4(1.0, 0.75, 0.1, 1.0);
+
+// When true, Phase 0 sweeps horizontally (left → right) along UV.x.
+// Use for wide/long buttons so the shine runs the full length instead of corner to corner.
+uniform bool horizontal_sweep = false;
 
 void fragment() {
 	float phase = mod(TIME / cycle_duration, 1.0);
 
 	float glow = 0.0;
 
-	// ---- Phase 0 (0.00–0.45): diagonal stripe sweep top-right → bottom-left ----
-	// diag = 0 at top-right corner, 2 at bottom-left corner.
+	// ---- Phase 0 (0.00–0.45): stripe sweep ----
 	if (phase < 0.45) {
 		float t = phase / 0.45;  // 0 → 1
-		// Sweep centre goes from off-screen top-right (-0.3) to off-screen bottom-left (2.3).
-		float sweep_pos = mix(-0.3, 2.3, t);
-		float diag = (1.0 - UV.x) + UV.y;
-		float dist = abs(diag - sweep_pos);
+		float dist;
+		if (horizontal_sweep) {
+			// Horizontal sweep: stripe travels left → right along UV.x.
+			float sweep_pos = mix(-0.3, 1.3, t);
+			dist = abs(UV.x - sweep_pos);
+		} else {
+			// Diagonal sweep: stripe travels top-right → bottom-left.
+			// diag = 0 at top-right corner, 2 at bottom-left corner.
+			float sweep_pos = mix(-0.3, 2.3, t);
+			float diag = (1.0 - UV.x) + UV.y;
+			dist = abs(diag - sweep_pos);
+		}
 		// Narrow, bright stripe with soft edges.
 		float stripe = exp(-dist * dist * 30.0);
 		// Fade in at start and out at end of sweep.

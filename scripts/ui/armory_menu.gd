@@ -690,10 +690,13 @@ func _apply_accordion_button_condition_met_style(button: Button) -> void:
 			old_overlay.queue_free()
 		_accordion_shine_overlays.erase(button)
 	# Add a full-size ColorRect on top with the gold shine shader (Issue #1561).
+	# The accordion button is wide/long, so use horizontal_sweep to run the shine
+	# along the full length instead of the default corner-to-corner diagonal.
 	var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
 	if shine_shader:
 		var mat := ShaderMaterial.new()
 		mat.shader = shine_shader
+		mat.set_shader_parameter("horizontal_sweep", true)
 		var overlay := ColorRect.new()
 		overlay.name = "GoldShineOverlay"
 		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
