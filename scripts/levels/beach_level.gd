@@ -1358,24 +1358,32 @@ func _setup_water() -> void:
 	])
 
 
-## Restrict the player camera's top boundary so WallTop (y ∈ [32, 64]) is
-## always off-screen (Issue #1550).
+## Restrict the player camera to the playable area so all four invisible walls
+## (WallTop / WallBottom / WallLeft / WallRight) are always off-screen (Issue #1550).
 ##
-## WallTop is a StaticBody2D at position (1264, 48) with height 32 →
-## its bottom edge is at y=64, which equals the top of the water area.
-## Setting limit_top = 64 ensures the camera can never scroll above y=64,
-## keeping the wall invisible at all times.
+## Wall positions (from BeachLevel.tscn, shape size 2464×32 horizontal / 32×2064 vertical):
+##   WallTop    (1264,  48), h=32  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (1264, 2080), h=32 → top edge   y=2064  → limit_bottom = 2064
+##   WallLeft   (  48, 1064), w=32 → right edge x=64    → limit_left   = 64
+##   WallRight  (2480, 1064), w=32 → left edge  x=2464  → limit_right  = 2464
 func _setup_camera_limits() -> void:
 	if _player == null:
 		return
 	var camera: Camera2D = _player.get_node_or_null("Camera2D")
 	if camera == null:
-		push_warning("[BeachLevel] Camera2D not found on player — cannot set top limit")
+		push_warning("[BeachLevel] Camera2D not found on player — cannot set camera limits")
 		return
-	# The top edge of the water / bottom edge of WallTop in world space.
-	const WALL_TOP_BOTTOM_EDGE: int = 64
-	camera.limit_top = WALL_TOP_BOTTOM_EDGE
-	_log_to_file("Camera2D limit_top set to %d (WallTop bottom edge) — Issue #1550" % WALL_TOP_BOTTOM_EDGE)
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 2064   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 2464   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	_log_to_file("Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1550" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
 
 
 func _log_to_file(message: String) -> void:

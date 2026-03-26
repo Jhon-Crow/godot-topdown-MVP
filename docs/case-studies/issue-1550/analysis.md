@@ -118,8 +118,46 @@ However, since different levels use different coordinate ranges, this should be 
 | Parameter | Value |
 |-----------|-------|
 | WallTop position | `(1264, 48)`, height 32px → bottom edge at y=64 |
+| WallBottom position | `(1264, 2080)`, height 32px → top edge at y=2064 |
+| WallLeft position | `(48, 1064)`, width 32px → right edge at x=64 |
+| WallRight position | `(2480, 1064)`, width 32px → left edge at x=2464 |
 | Water node position | `(1264, 242)`, height 356px → top edge at y=64 |
 | Water top edge (world) | y = 242 - 178 = 64 |
-| Camera limit_top (current) | 0 (too high — shows wall) |
-| Camera limit_top (fix) | 64 (water top edge = wall bottom) |
+| Camera limit_top (fix) | 64 (water top edge = WallTop bottom) |
+| Camera limit_bottom (fix) | 2064 (WallBottom top edge) |
+| Camera limit_left (fix) | 64 (WallLeft right edge) |
+| Camera limit_right (fix) | 2464 (WallRight left edge) |
 | Viewport height (default 1080p) | 1080px |
+
+---
+
+## Second Feedback (2026-03-26 — owner @Jhon-Crow)
+
+After the shader fix commit (`d07c7491`) was deployed, the owner provided new feedback:
+
+**Original (Russian):**
+> хорошо. но сейчас мелкие волны слишком быстрые и непрозрачные (должны выглядеть как неровность воды, более широкие и медленные)
+> так же похоже большая волна (редкий градиент) не под тем углом
+> так же сделай так, чтоб границы карты (со всех старон) не попадали в поле зрения камеры (огранич)
+
+**Translated:**
+1. Small waves are too fast and opaque (should look like water irregularities — wider and slower)
+2. Large wave (rare gradient) appears to be at the wrong angle
+3. Restrict camera limits on **all sides** (not just top) so map borders never show
+
+**Root causes:**
+- `ripple_speed = 1.4` and `ripple_frequency = 18.0` produce fast, busy stripes
+- `surf_speed = 1.2` makes the foam streaks animate too quickly
+- `surf_intensity = 0.45` and `foam_sharpness = 8.0` make foam too opaque/sharp
+- The secondary ripple formula `sin((uv.x + uv.y * 0.4) * ripple_frequency + ...)` creates diagonal stripes that look like "wrong angle" gradients
+- Camera limits were only set on the top; the other 3 walls also needed limits
+
+**Game log evidence (game_log_20260326_131128.txt):**
+```
+[BeachLevel] Water node found OK — visual=true shader=false collision=true pos=(1264, 242)
+```
+Note: this log was from the build before `d07c7491` was applied. The new shader fix should resolve `shader=false`.
+
+**Fixes applied (second round):**
+1. **Shader parameters tuned** — ripple is slower, wider, more transparent; surf foam is gentler
+2. **All 4 camera limits** set in `_setup_camera_limits()` using WallTop/Bottom/Left/Right coordinates

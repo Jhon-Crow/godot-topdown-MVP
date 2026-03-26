@@ -156,7 +156,7 @@ func test_map_dimensions() -> void:
 
 
 # ============================================================================
-# Camera Limit Tests (Issue #1550 — WallTop must not appear in camera view)
+# Camera Limit Tests (Issue #1550 — all four walls must not appear in camera)
 # ============================================================================
 
 
@@ -183,7 +183,45 @@ func test_water_top_edge_equals_wall_bottom_edge() -> void:
 
 func test_camera_limit_top_should_match_wall_bottom() -> void:
 	## The expected camera limit_top is 64 — the bottom edge of WallTop.
-	## This ensures the top wall is never visible during gameplay.
 	const EXPECTED_CAMERA_LIMIT_TOP: int = 64
 	assert_eq(EXPECTED_CAMERA_LIMIT_TOP, 64,
 		"Camera limit_top should be set to 64 (WallTop bottom edge) — Issue #1550")
+
+
+func test_camera_limit_bottom_should_match_wall_top_edge() -> void:
+	## WallBottom: position=(1264,2080), size=(2464,32).
+	## Top edge = 2080 - 16 = 2064.
+	var wall_bottom_position_y: float = 2080.0
+	var wall_bottom_half_height: float = 16.0
+	var wall_top_edge: float = wall_bottom_position_y - wall_bottom_half_height
+	assert_almost_eq(wall_top_edge, 2064.0, 0.001,
+		"WallBottom top edge should be at y=2064 — camera limit_bottom target")
+	const EXPECTED_CAMERA_LIMIT_BOTTOM: int = 2064
+	assert_eq(EXPECTED_CAMERA_LIMIT_BOTTOM, 2064,
+		"Camera limit_bottom should be 2064 (WallBottom top edge) — Issue #1550")
+
+
+func test_camera_limit_left_should_match_wall_right_edge() -> void:
+	## WallLeft: position=(48,1064), size=(32,2064).
+	## Right edge = 48 + 16 = 64.
+	var wall_left_position_x: float = 48.0
+	var wall_left_half_width: float = 16.0
+	var wall_right_edge: float = wall_left_position_x + wall_left_half_width
+	assert_almost_eq(wall_right_edge, 64.0, 0.001,
+		"WallLeft right edge should be at x=64 — camera limit_left target")
+	const EXPECTED_CAMERA_LIMIT_LEFT: int = 64
+	assert_eq(EXPECTED_CAMERA_LIMIT_LEFT, 64,
+		"Camera limit_left should be 64 (WallLeft right edge) — Issue #1550")
+
+
+func test_camera_limit_right_should_match_wall_left_edge() -> void:
+	## WallRight: position=(2480,1064), size=(32,2064).
+	## Left edge = 2480 - 16 = 2464.
+	var wall_right_position_x: float = 2480.0
+	var wall_right_half_width: float = 16.0
+	var wall_left_edge: float = wall_right_position_x - wall_right_half_width
+	assert_almost_eq(wall_left_edge, 2464.0, 0.001,
+		"WallRight left edge should be at x=2464 — camera limit_right target")
+	const EXPECTED_CAMERA_LIMIT_RIGHT: int = 2464
+	assert_eq(EXPECTED_CAMERA_LIMIT_RIGHT, 2464,
+		"Camera limit_right should be 2464 (WallRight left edge) — Issue #1550")

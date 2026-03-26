@@ -11,23 +11,23 @@ shader_type canvas_item;
 //     Mirrors the light-ray occlusion logic: wave amplitude is attenuated
 //     within a radius around each obstacle UV coordinate.
 
-// --- Wave animation ---
-uniform float wave_speed : hint_range(0.0, 5.0) = 0.6;
-uniform float wave_frequency : hint_range(0.5, 20.0) = 6.0;
-uniform float wave_amplitude : hint_range(0.0, 0.05) = 0.012;
+// --- Wave animation (primary — broad horizontal bands) ---
+uniform float wave_speed : hint_range(0.0, 5.0) = 0.3;
+uniform float wave_frequency : hint_range(0.5, 20.0) = 4.0;
+uniform float wave_amplitude : hint_range(0.0, 0.05) = 0.010;
 
-// --- Secondary ripple (finer detail) ---
-uniform float ripple_speed : hint_range(0.0, 5.0) = 1.4;
-uniform float ripple_frequency : hint_range(1.0, 40.0) = 18.0;
-uniform float ripple_amplitude : hint_range(0.0, 0.02) = 0.005;
+// --- Secondary ripple (gentle surface undulation — wider, slower, subtler) ---
+uniform float ripple_speed : hint_range(0.0, 5.0) = 0.5;
+uniform float ripple_frequency : hint_range(1.0, 40.0) = 6.0;
+uniform float ripple_amplitude : hint_range(0.0, 0.02) = 0.003;
 
 // --- Surf-foam streaks marching toward shore (Issue #1550) ---
-// These are high-frequency bands with a y-component so they appear to
-// advance from the water body toward the top (shoreline) edge.
-uniform float surf_speed : hint_range(0.0, 5.0) = 1.2;
-uniform float surf_frequency : hint_range(1.0, 30.0) = 10.0;
-uniform float surf_width : hint_range(0.0, 0.3) = 0.08;
-uniform float surf_intensity : hint_range(0.0, 1.0) = 0.45;
+// These are horizontal bands that advance from the water body toward the top
+// (shoreline) edge, simulating incoming surf.
+uniform float surf_speed : hint_range(0.0, 5.0) = 0.5;
+uniform float surf_frequency : hint_range(1.0, 30.0) = 5.0;
+uniform float surf_width : hint_range(0.0, 0.3) = 0.12;
+uniform float surf_intensity : hint_range(0.0, 1.0) = 0.25;
 
 // --- Colors ---
 uniform vec4 shallow_color : source_color = vec4(0.15, 0.55, 0.85, 0.88);
@@ -35,8 +35,8 @@ uniform vec4 deep_color    : source_color = vec4(0.04, 0.22, 0.52, 0.94);
 uniform vec4 foam_color    : source_color = vec4(0.85, 0.92, 0.98, 0.70);
 
 // --- Foam / white-cap threshold ---
-uniform float foam_threshold : hint_range(0.0, 1.0) = 0.72;
-uniform float foam_sharpness : hint_range(1.0, 20.0) = 8.0;
+uniform float foam_threshold : hint_range(0.0, 1.0) = 0.80;
+uniform float foam_sharpness : hint_range(1.0, 20.0) = 4.0;
 
 // --- Shore fade: top of the texture blends with transparent (shoreline edge) ---
 uniform float shore_fade_width : hint_range(0.0, 0.5) = 0.08;
@@ -76,9 +76,11 @@ void fragment() {
 	            + sin(uv.x * wave_frequency * 0.73 - TIME * wave_speed * 0.6);
 	wave1 *= 0.5; // normalise to [-1, 1]
 
-	// ---- Secondary ripple (diagonal) ----
-	float wave2 = sin((uv.x + uv.y * 0.4) * ripple_frequency + TIME * ripple_speed)
-	            * sin((uv.x * 0.5 - uv.y) * ripple_frequency * 0.6 - TIME * ripple_speed * 0.8);
+	// ---- Secondary ripple (horizontal surface undulation) ----
+	// Kept horizontal (uv.x only) so it looks like gentle water surface texture,
+	// not diagonal lines at the wrong angle.
+	float wave2 = sin(uv.x * ripple_frequency + TIME * ripple_speed)
+	            * sin(uv.x * ripple_frequency * 0.7 - TIME * ripple_speed * 0.5);
 
 	// ---- Obstacle occlusion (wave interruption — Issue #1550) ----
 	// Reduce both primary and secondary wave amplitude near obstacles,
@@ -107,8 +109,8 @@ void fragment() {
 	// Create bands that travel from deep (y=1) toward the shore (y=0).
 	// Phase = uv.y * surf_frequency - TIME * surf_speed  →  bands move upward.
 	float surf_phase = uv.y * surf_frequency - TIME * surf_speed;
-	// Add x-variation so streaks are not perfectly horizontal — slightly diagonal
-	surf_phase += sin(uv.x * 4.0 + TIME * 0.3) * 0.4;
+	// Small x-variation for natural variation without creating diagonal artefacts
+	surf_phase += sin(uv.x * 2.0 + TIME * 0.15) * 0.15;
 	// Modulate into [0,1] and apply threshold to form discrete foam bands
 	float surf_band = fract(surf_phase);
 	float surf_foam = smoothstep(1.0 - surf_width, 1.0, surf_band)
