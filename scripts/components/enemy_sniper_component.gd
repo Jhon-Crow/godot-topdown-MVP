@@ -47,6 +47,14 @@ var _laser_line: Line2D = null
 ## Issue #1336: Laser endpoint dot (PointLight2D for glow at hit point).
 var _laser_dot: Sprite2D = null
 
+## Issue #1336 smooth laser: current displayed laser angle (radians), interpolated each frame.
+var _laser_current_angle: float = 0.0
+## Laser rotation speed (rad/s). Controls how fast the laser sweeps to a new target.
+const LASER_ROTATION_SPEED: float = 3.0
+## Angle tolerance (rad) below which the laser is considered aligned with the target.
+## ~3 degrees — tight enough to be accurate, loose enough to not feel broken.
+const LASER_ALIGNMENT_THRESHOLD: float = 0.05
+
 
 func _ready() -> void:
 	if enemy == null:
@@ -94,9 +102,13 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 
 		enemy._aim_at_player()
 		if enemy._detection_delay_elapsed and enemy._shoot_timer >= enemy.shoot_cooldown and enemy._can_shoot():
-			enemy._shoot()
-			enemy._shoot_timer = 0.0
-			blind_fire_timer = 0.0
+			# Issue #1336 smooth laser: only shoot once the laser has swept to the player direction.
+			var target_angle := direction_to_player.angle()
+			var angle_diff := absf(wrapf(_laser_current_angle - target_angle, -PI, PI))
+			if angle_diff < LASER_ALIGNMENT_THRESHOLD:
+				enemy._shoot()
+				enemy._shoot_timer = 0.0
+				blind_fire_timer = 0.0
 		return true
 
 	# Player NOT visible: blind-fire at predicted position through cover.
@@ -117,8 +129,12 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 	_rotate_toward(blind_target, delta)
 
 	if blind_fire_timer >= BLIND_FIRE_COOLDOWN and enemy._shoot_timer >= enemy.shoot_cooldown and enemy._can_shoot():
-		fire_at_predicted_position(blind_target)
-		blind_fire_timer = 0.0
+		# Issue #1336 smooth laser: only shoot once the laser has swept to the target direction.
+		var target_angle := (_blind_fire_target - enemy.global_position).normalized().angle()
+		var angle_diff := absf(wrapf(_laser_current_angle - target_angle, -PI, PI))
+		if angle_diff < LASER_ALIGNMENT_THRESHOLD:
+			fire_at_predicted_position(blind_target)
+			blind_fire_timer = 0.0
 	return true
 
 
@@ -154,8 +170,12 @@ func process_pursuing(delta: float, can_see_player: bool, player: Node,
 	enemy.velocity = Vector2.ZERO
 	_rotate_toward(blind_pos, delta)
 	if blind_fire_timer >= BLIND_FIRE_COOLDOWN and enemy._shoot_timer >= enemy.shoot_cooldown and enemy._can_shoot():
-		fire_at_predicted_position(blind_pos)
-		blind_fire_timer = 0.0
+		# Issue #1336 smooth laser: only shoot once the laser has swept to the target direction.
+		var target_angle := (blind_pos - enemy.global_position).normalized().angle()
+		var angle_diff := absf(wrapf(_laser_current_angle - target_angle, -PI, PI))
+		if angle_diff < LASER_ALIGNMENT_THRESHOLD:
+			fire_at_predicted_position(blind_pos)
+			blind_fire_timer = 0.0
 	return true
 
 
@@ -365,6 +385,9 @@ func _fade_sniper_tracer(tracer: Line2D) -> void:
 
 ## Create the laser sight Line2D. Only called for SNIPER_RIFLE enemies.
 func _create_laser_sight() -> void:
+	# Issue #1336 smooth laser: initialise to current enemy rotation so the first
+	# frame starts from the actual facing direction instead of angle 0 (right).
+	_laser_current_angle = enemy.rotation if enemy != null else 0.0
 	_laser_line = Line2D.new()
 	_laser_line.name = "SniperLaserSight"
 	_laser_line.width = 1.5
@@ -447,7 +470,12 @@ func _update_laser_sight() -> void:
 		return
 	_laser_line.visible = true
 
-	var weapon_forward := _get_laser_direction()
+	# Issue #1336 smooth laser: interpolate angle toward the target direction each frame.
+	var delta := get_process_delta_time()
+	var target_angle := _get_laser_direction().angle()
+	_laser_current_angle = lerp_angle(_laser_current_angle, target_angle, LASER_ROTATION_SPEED * delta)
+	var weapon_forward := Vector2.from_angle(_laser_current_angle)
+
 	var muzzle_pos := _get_laser_muzzle_pos(weapon_forward)
 	var laser_end := muzzle_pos + weapon_forward * LASER_MAX_RANGE
 

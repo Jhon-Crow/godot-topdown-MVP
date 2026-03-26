@@ -211,3 +211,77 @@ func test_weapon_type_sniper_enum_value() -> void:
 	# This is important because we use int(enemy.weapon_type) == 7
 	assert_eq(7, 7,
 		"SNIPER_RIFLE enum should be int value 7")
+
+
+# =============================================================================
+# Smooth Laser Animation (Issue #1336 follow-up)
+# =============================================================================
+
+func test_laser_rotation_speed_constant() -> void:
+	assert_gt(SniperComponent.LASER_ROTATION_SPEED, 0.0,
+		"LASER_ROTATION_SPEED should be positive")
+
+
+func test_laser_alignment_threshold_constant() -> void:
+	assert_gt(SniperComponent.LASER_ALIGNMENT_THRESHOLD, 0.0,
+		"LASER_ALIGNMENT_THRESHOLD should be positive")
+	assert_lt(SniperComponent.LASER_ALIGNMENT_THRESHOLD, 0.2,
+		"LASER_ALIGNMENT_THRESHOLD should be small (< ~11 degrees) for accuracy")
+
+
+func test_laser_current_angle_initial_zero() -> void:
+	var comp := SniperComponent.new()
+	add_child_autofree(comp)
+
+	assert_eq(comp._laser_current_angle, 0.0,
+		"_laser_current_angle should be initialised to 0.0 before enemy is attached")
+
+
+func test_laser_not_aligned_when_angle_differs() -> void:
+	# Verify the alignment check: large angle difference should NOT be aligned.
+	var comp := SniperComponent.new()
+	var parent := CharacterBody2D.new()
+	parent.global_position = Vector2(100.0, 100.0)
+	parent.add_child(comp)
+	add_child_autofree(parent)
+	await wait_frames(2)
+
+	# Point laser current angle right (+x)
+	comp._laser_current_angle = 0.0
+	# Target is directly below: angle = PI/2 (~1.57 rad, much > threshold)
+	var target_angle := PI / 2.0
+	var angle_diff := absf(wrapf(comp._laser_current_angle - target_angle, -PI, PI))
+
+	assert_gt(angle_diff, SniperComponent.LASER_ALIGNMENT_THRESHOLD,
+		"A 90-degree difference should not be within alignment threshold")
+
+
+func test_laser_aligned_when_angle_matches() -> void:
+	# Verify the alignment check: tiny angle difference IS aligned.
+	var comp := SniperComponent.new()
+	add_child_autofree(comp)
+
+	# Both angles nearly identical
+	comp._laser_current_angle = 1.0
+	var target_angle := 1.02  # 0.02 rad < 0.05 threshold
+	var angle_diff := absf(wrapf(comp._laser_current_angle - target_angle, -PI, PI))
+
+	assert_lt(angle_diff, SniperComponent.LASER_ALIGNMENT_THRESHOLD,
+		"A 0.02-radian difference should be within alignment threshold")
+
+
+func test_lerp_angle_converges_toward_target() -> void:
+	# Simulate a few frames of interpolation and verify the angle moves toward the target.
+	var current := 0.0
+	var target := PI / 2.0  # 90 degrees
+	var speed := SniperComponent.LASER_ROTATION_SPEED
+	var delta := 1.0 / 60.0  # 60 fps
+
+	for _i in range(10):
+		current = lerp_angle(current, target, speed * delta)
+
+	# After 10 frames at 60fps with speed=3.0, the angle should have moved substantially
+	assert_gt(current, 0.1,
+		"Laser angle should have moved toward target after 10 frames")
+	assert_lt(current, target + 0.01,
+		"Laser angle should not overshoot the target")
