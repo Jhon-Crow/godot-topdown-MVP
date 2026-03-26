@@ -21,6 +21,10 @@ A game log was provided: `game_log_20260325_061123.txt`.
 | 2026-03-25 13:43 | Owner tests again, reports "ии сломан" (AI broken) — provides second log |
 | 2026-03-25 16:43 | Second game log captured (`game_log_20260325_164302.txt`) |
 | 2026-03-25 19:53 | Third AI work session started — identified RCA-3 (GDScript inline if bug) |
+| 2026-03-25 20:06 | Third AI session marked PR ready to merge |
+| 2026-03-26 09:30 | Owner tests again, reports "ии полностью сломан" (AI completely broken) — provides third log |
+| 2026-03-26 12:29 | Third game log captured (`game_log_20260326_122942.txt`) |
+| 2026-03-26 09:31 | Fourth AI work session started — identified RCA-5 (PURSUING oscillation from IN_COVER) |
 
 ---
 
@@ -226,10 +230,60 @@ Line 1278 should also exclude PURSUING, RETREATING, EVADING_GRENADE, FLANKING so
 
 ---
 
+---
+
+## RCA-5 (CRITICAL — Fourth Session): Formation Enemy Oscillates IN_COVER ↔ PURSUING
+
+**Location**: `scripts/objects/enemy.gd`, `_process_in_cover_state`, line 1803 (before fix)
+
+**The bug**: When a formation enemy is in `IN_COVER` state behind a shieldbearer and loses sight of the player (e.g., player moves around a wall), `_process_in_cover_state` reached the "lost sight" branch:
+
+```gdscript
+if not (_can_see_player or _can_see_companion) and not _under_fire and not (suppressive_fire):
+    _transition_to_pursuing()  # ← no guard for formation enemies
+```
+
+This transitions the enemy to `PURSUING`. On the very next frame, `_process_ai_state` sees `_formation_shielder != null` with state = PURSUING (not in `[IN_COVER, COMBAT, SUPPRESSED]`), so it calls `_transition_to_in_cover()` again. This creates a 2-frame oscillation loop:
+
+```
+Frame N:   IN_COVER  → _process_in_cover_state → lost sight → PURSUING
+Frame N+1: PURSUING  → _process_ai_state       → force IN_COVER
+Frame N+2: IN_COVER  → _process_in_cover_state → lost sight → PURSUING
+…
+```
+
+**Impact**: Frozen/stuttering movement, no coherent navigation or shooting. The "AI completely broken" symptom described by the owner.
+
+**Fix**: Added `_formation_shielder == null` guard to the "lost sight → PURSUING" branch:
+
+```gdscript
+# Issue #1446: formation enemies behind shieldbearer stay in cover — shieldbearer IS cover, no need to pursue.
+if _formation_shielder == null and not (_can_see_player or _can_see_companion) and not _under_fire and ...:
+    _transition_to_pursuing()
+```
+
+Formation enemies that lose sight of the player remain in `IN_COVER` behind the shieldbearer — the shieldbearer provides mobile cover and will eventually move to reestablish line of fire.
+
+---
+
+## Game Log Analysis: Third Report (`game_log_20260326_122942.txt`)
+
+The log shows (same pattern as previous logs):
+- **Normal initialization**: LabyrinthLevel (menu/entry level), 5 enemies created
+- **0 enemies tracked**: All children lack the `died` signal — pre-existing LabyrinthLevel issue unrelated to #1446
+- **No gameplay logged**: Session ends after ~4 seconds when navigating to BuildingLevel
+- **BuildingLevel load error**: `ERROR: Invalid resource: res://scenes/levels/BuildingLevel.tscn` — same pre-existing SceneLoader issue
+- **Difficulty**: Power Fantasy (invincibility: true) — owner is testing in debug/dev mode
+
+The third log does not show enemy AI behavior directly — the actual gameplay with shieldbearer interactions happens in the level loaded after LabyrinthLevel. The "AI completely broken" report after the third session's fix indicates RCA-5 was still present.
+
+---
+
 ## Files Changed
 
 - `scripts/objects/enemy.gd` — Formation + cover state machine logic
 - `docs/case-studies/issue-1446/README.md` — This file
 - `docs/case-studies/issue-1446/game_log_20260325_061123.txt` — Owner-provided game log (first report)
 - `docs/case-studies/issue-1446/game_log_20260325_164302.txt` — Owner-provided game log (second report)
+- `docs/case-studies/issue-1446/game_log_20260326_122942.txt` — Owner-provided game log (third report)
 - `docs/case-studies/issue-1446/analysis.md` — Initial design analysis (pre-implementation)

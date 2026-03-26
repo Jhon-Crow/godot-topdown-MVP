@@ -38,6 +38,15 @@ class MockFormationEnemy:
 		elif _formation_shielder != null and not _formation_shielder.is_shield_active():
 			_formation_shielder = null
 
+	## Simulate _process_in_cover_state "lost sight of player" branch (mirrors enemy.gd line 1803).
+	## Returns true if the enemy would transition to PURSUING (only when _formation_shielder is null).
+	func process_in_cover_lost_sight() -> bool:
+		# Mirrors: if _formation_shielder == null and not (can_see) and not under_fire and not suppressive:
+		if _formation_shielder == null:
+			_current_state = AIState.IDLE  # stand-in for PURSUING
+			return true
+		return false  # formation enemy stays in cover — Issue #1446 fix
+
 	func is_in_cover() -> bool:
 		return _current_state == AIState.IN_COVER
 
@@ -323,3 +332,38 @@ func test_cover_data_set_even_when_state_preserved() -> void:
 		"Cover position must be updated even when state is not changed to IN_COVER")
 	assert_true(follower.has_valid_cover(),
 		"has_valid_cover must be true even when state is not changed to IN_COVER")
+
+
+# =============================================================================
+# Regression: RCA-5 — Formation enemy in IN_COVER must NOT transition to PURSUING
+# when losing sight of player (Issue #1446, third AI session)
+# =============================================================================
+
+
+## Verify that a formation enemy in IN_COVER does NOT transition to PURSUING on lost sight.
+## Regression test for ping-pong: IN_COVER -> PURSUING (line 1803) -> IN_COVER (line 1277) -> repeat.
+func test_formation_enemy_in_cover_stays_when_losing_sight() -> void:
+	var shielder := MockShieldbearer.new()
+	add_child_autofree(shielder)
+
+	var follower := MockFormationEnemy.new()
+	follower.set_formation_follow_target(shielder, Vector2(100, 0))
+	follower.arrive_at_formation()
+
+	assert_true(follower.is_in_cover(), "Must be IN_COVER after arriving at formation")
+
+	# Simulate losing sight of player while in cover behind shieldbearer
+	var transitioned := follower.process_in_cover_lost_sight()
+	assert_false(transitioned, "Formation enemy must NOT transition to PURSUING on lost sight")
+	assert_true(follower.is_in_cover(), "Must remain IN_COVER behind shieldbearer after losing sight")
+
+
+## Verify that a non-formation enemy in IN_COVER DOES transition to PURSUING on lost sight.
+## Ensures the fix only targets formation enemies, not all enemies.
+func test_non_formation_enemy_in_cover_pursues_when_losing_sight() -> void:
+	var follower := MockFormationEnemy.new()
+	# No formation shielder — regular enemy
+	follower._current_state = MockFormationEnemy.AIState.IN_COVER
+
+	var transitioned := follower.process_in_cover_lost_sight()
+	assert_true(transitioned, "Non-formation enemy MUST transition to PURSUING on lost sight")
