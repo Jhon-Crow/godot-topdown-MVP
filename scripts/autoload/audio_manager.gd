@@ -996,27 +996,34 @@ func play_ui_click() -> void:
 	play_sound_with_priority(PISTOL_BOLT, -8.0, SoundPriority.LOW)
 
 
-## Plays the characteristic reload sound for the given weapon_id (non-positional).
+## Plays the characteristic reload sound sequence for the given weapon_id (non-positional).
 ## Used in the armory menu to preview weapon reload audio when selecting a weapon.
+## Plays a two-step sequence: step 1 immediately, step 2 after a short delay.
 ## @param weapon_id: The weapon identifier string (e.g. "makarov_pm", "shotgun").
 func play_weapon_reload_preview(weapon_id: String) -> void:
 	match weapon_id:
 		"makarov_pm":
 			play_sound_with_priority(PM_RELOAD_ACTION_1, VOLUME_PM_RELOAD, SoundPriority.LOW)
-		"m16":
+			await get_tree().create_timer(0.6).timeout
+			if not is_inside_tree(): return
+			play_sound_with_priority(PM_RELOAD_ACTION_2, VOLUME_PM_RELOAD, SoundPriority.LOW)
+		"m16", "mini_uzi", "silenced_pistol", "ak_gl":
 			play_sound_with_priority(RELOAD_MAG_OUT, VOLUME_RELOAD, SoundPriority.LOW)
+			await get_tree().create_timer(0.8).timeout
+			if not is_inside_tree(): return
+			play_sound_with_priority(RELOAD_MAG_IN, VOLUME_RELOAD, SoundPriority.LOW)
 		"shotgun":
 			play_sound_with_priority(SHOTGUN_ACTION_OPEN, VOLUME_SHOTGUN_ACTION, SoundPriority.LOW)
-		"mini_uzi":
-			play_sound_with_priority(RELOAD_MAG_OUT, VOLUME_RELOAD, SoundPriority.LOW)
-		"silenced_pistol":
-			play_sound_with_priority(RELOAD_MAG_OUT, VOLUME_RELOAD, SoundPriority.LOW)
+			await get_tree().create_timer(0.33).timeout
+			if not is_inside_tree(): return
+			play_sound_with_priority(SHOTGUN_ACTION_CLOSE, VOLUME_SHOTGUN_ACTION, SoundPriority.LOW)
 		"sniper":
 			play_sound_with_priority(ASVK_BOLT_STEP_1, VOLUME_ASVK_BOLT, SoundPriority.LOW)
 		"revolver":
-			play_sound_with_priority(REVOLVER_CYLINDER_OPEN, VOLUME_REVOLVER_RELOAD, SoundPriority.LOW)
-		"ak_gl":
-			play_sound_with_priority(RELOAD_MAG_OUT, VOLUME_RELOAD, SoundPriority.LOW)
+			play_sound_with_priority(REVOLVER_CYLINDER_ROTATE_1, VOLUME_REVOLVER_RELOAD, SoundPriority.LOW)
+			await get_tree().create_timer(0.1).timeout
+			if not is_inside_tree(): return
+			play_sound_with_priority(REVOLVER_HAMMER_COCK, VOLUME_REVOLVER_RELOAD, SoundPriority.LOW)
 
 
 # ============================================================================
