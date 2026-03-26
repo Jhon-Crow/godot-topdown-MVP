@@ -247,6 +247,7 @@ var _has_pursuit_cover: bool = false  ## Has valid pursuit cover
 var _current_cover_obstacle: Object = null  ## Current cover obstacle
 var _pursuit_approaching: bool = false  ## Approaching with no cover
 var _pursuit_approach_timer: float = 0.0  ## Approach phase timer
+var _pursuit_cover_stuck_timer: float = 0.0  ## Issue #1457: stuck-at-cover approach timer
 var _pursuing_state_timer: float = 0.0  ## Total PURSUING time
 const PURSUIT_APPROACH_MAX_TIME: float = 3.0  ## Max approach time (sec)
 const PURSUING_MIN_DURATION_BEFORE_COMBAT: float = 0.3  ## Min before COMBAT
@@ -2240,6 +2241,11 @@ func _process_pursuing_state(delta: float) -> void:
 		# Corner checking during PURSUING (Issue #332)
 		if velocity.length_squared() > 1.0:
 			_process_corner_check(delta, velocity.normalized(), "PURSUING")
+		# Issue #1457: fast cover-approach stuck detection (2s) — find new cover if blocked.
+		_pursuit_cover_stuck_timer = (_pursuit_cover_stuck_timer + delta) if velocity.length_squared() < 10.0 else 0.0
+		if _pursuit_cover_stuck_timer >= 2.0:
+			_log_to_file("[#1457] PURSUING stuck en route to cover (2s), finding new cover pos=%s" % global_position)
+			_pursuit_cover_stuck_timer = 0.0; _has_pursuit_cover = false
 		return
 
 	# No cover and no pursuit target - find initial pursuit cover
@@ -2799,6 +2805,7 @@ func _transition_to_pursuing() -> void:
 	_has_pursuit_cover = false
 	_pursuit_approaching = false
 	_pursuit_approach_timer = 0.0
+	_pursuit_cover_stuck_timer = 0.0  ## Issue #1457: reset cover-approach stuck timer
 	_current_cover_obstacle = null
 	# Reset state duration timer (prevents rapid state thrashing)
 	_pursuing_state_timer = 0.0
@@ -3519,54 +3526,35 @@ func _find_flank_cover_toward_target() -> void:
 		_has_flank_cover = false
 
 ## Check for wall ahead and return avoidance direction (Vector2.ZERO if clear). Uses 8 distance-weighted raycasts.
+## Issue #1457: side-wall avoidance is reduced to 0.15× when center ray is clear (NavAgent routing along wall edge).
 func _check_wall_ahead(direction: Vector2) -> Vector2:
 	if _wall_raycasts.is_empty():
 		return Vector2.ZERO
-
 	var avoidance := Vector2.ZERO
 	var perpendicular := Vector2(-direction.y, direction.x)  # 90 degrees rotation
 	var closest_wall_distance: float = WALL_CHECK_DISTANCE
-	var hit_count: int = 0
-
 	# Raycast angles: center, left(-20°,-45°,-70°), right(+20°,+45°,+70°), rear(180°)
 	var angles: Array[float] = [0.0, -0.35, -0.79, -1.22, 0.35, 0.79, 1.22, PI]
-
+	# Issue #1457: pre-check center ray; if clear, side walls are nav-guided edges — reduce lateral push.
+	var center_clear: bool = true
+	if _wall_raycasts.size() > 0:
+		var _cr: RayCast2D = _wall_raycasts[0]; _cr.target_position = direction * WALL_CHECK_DISTANCE; _cr.force_raycast_update()
+		center_clear = not _cr.is_colliding()
 	var raycast_count: int = mini(WALL_CHECK_COUNT, _wall_raycasts.size())
 	for i: int in range(raycast_count):
-		# IMPORTANT: Use explicit float type to avoid type inference error
-		var angle_offset: float = angles[i] if i < angles.size() else 0.0
-		var check_direction: Vector2 = direction.rotated(angle_offset)
-
+		var angle_offset: float = angles[i] if i < angles.size() else 0.0  # IMPORTANT: explicit float
 		var raycast: RayCast2D = _wall_raycasts[i]
-		# Use shorter distance for rear check (wall sliding detection)
-		var check_distance: float = WALL_SLIDE_DISTANCE if i == 7 else WALL_CHECK_DISTANCE
-		raycast.target_position = check_direction * check_distance
+		raycast.target_position = direction.rotated(angle_offset) * (WALL_SLIDE_DISTANCE if i == 7 else WALL_CHECK_DISTANCE)
 		raycast.force_raycast_update()
-
 		if raycast.is_colliding():
-			hit_count += 1
-			var collision_point: Vector2 = raycast.get_collision_point()
-			var wall_distance: float = global_position.distance_to(collision_point)
-			var collision_normal: Vector2 = raycast.get_collision_normal()
-
-			# Track closest wall for weight calculation
-			if wall_distance < closest_wall_distance:
-				closest_wall_distance = wall_distance
-
-			# Calculate avoidance based on which raycast hit
-			# For better wall sliding, use collision normal when available
-			if i == 7:  # Rear raycast - wall sliding mode
-				# When touching wall from behind, slide along it
-				avoidance += collision_normal * 0.5
-			elif i <= 3:  # Left side raycasts (indices 0-3)
-				# Steer right, weighted by distance
-				var weight: float = 1.0 - (wall_distance / WALL_CHECK_DISTANCE)
-				avoidance += perpendicular * weight
-			else:  # Right side raycasts (indices 4-6)
-				# Steer left, weighted by distance
-				var weight: float = 1.0 - (wall_distance / WALL_CHECK_DISTANCE)
-				avoidance -= perpendicular * weight
-
+			var wall_distance: float = global_position.distance_to(raycast.get_collision_point())
+			if wall_distance < closest_wall_distance: closest_wall_distance = wall_distance
+			var base_weight: float = 1.0 - (wall_distance / WALL_CHECK_DISTANCE)
+			# Rear: slide along wall. Center: full avoidance. Sides: reduced when center clear (#1457).
+			if i == 7: avoidance += raycast.get_collision_normal() * 0.5
+			elif i == 0: avoidance += perpendicular * base_weight
+			elif i <= 3: avoidance += perpendicular * base_weight * (0.15 if center_clear else 1.0)
+			else: avoidance -= perpendicular * base_weight * (0.15 if center_clear else 1.0)
 	return avoidance.normalized() if avoidance.length() > 0 else Vector2.ZERO
 
 ## Apply wall avoidance to a movement direction. Returns adjusted direction.
