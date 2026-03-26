@@ -1,10 +1,11 @@
-[gd_scene load_steps=31 format=3 uid="uid://docks_level_753"]
+[gd_scene load_steps=32 format=3 uid="uid://docks_level_753"]
 
 [ext_resource type="Script" path="res://scripts/levels/docks_level.gd" id="1_docks_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="3_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="4_enemy"]
 [ext_resource type="Script" path="res://Scripts/Components/LevelInitFallback.cs" id="5_fallback"]
+[ext_resource type="PackedScene" uid="uid://rain_effect_scene_1394" path="res://scenes/effects/RainEffect.tscn" id="6_rain_effect"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_h"]
 size = Vector2(5064, 32)
@@ -1159,3 +1160,6 @@ position = Vector2(3500, 3500)
 
 [node name="Docks_Center" type="Marker2D" parent="SearchPathWaypoints"]
 position = Vector2(2500, 2000)
+
+[node name="RainEffect" parent="." instance=ExtResource("6_rain_effect")]
+z_index = 100
