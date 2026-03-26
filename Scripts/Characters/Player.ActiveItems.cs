@@ -3559,6 +3559,9 @@ public partial class Player
             case 20: // DASH (Issue #1071)
                 InitDash();
                 break;
+            case 21: // GRENADE_BAG (passive) (Issue #1590)
+                InitGrenadeBag();
+                break;
             default:
                 // NONE (0), LASER_SIGHT (9), EXTENDED_MAGAZINE (10): no player-side init needed
                 LogToFile($"[Player.ItemPickup] No player-side init required for item type {itemType}");
@@ -5300,6 +5303,61 @@ public partial class Player
         if (!IsInstanceValid(_dashEffect))
             return false;
         return (bool)_dashEffect.Call("is_dashing");
+    }
+
+    #endregion
+
+    #region Grenade Bag Passive Item (Issue #1590)
+
+    /// <summary>
+    /// Initialize the Grenade Bag passive item if ActiveItemManager has it selected.
+    /// Sets MaxGrenades and _currentGrenades based on the selected grenade type:
+    ///   FLASHBANG       → 12 grenades
+    ///   FRAG            → 6 grenades
+    ///   AGGRESSION_GAS  → 6 grenades
+    ///   DEFENSIVE (F-1) → 2 grenades
+    /// Does nothing in tutorial levels (they already grant unlimited grenades).
+    /// </summary>
+    private void InitGrenadeBag()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.GrenadeBag] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_grenade_bag"))
+        {
+            LogToFile("[Player.GrenadeBag] ActiveItemManager missing has_grenade_bag method");
+            return;
+        }
+
+        bool hasGrenadeBag = (bool)activeItemManager.Call("has_grenade_bag");
+        if (!hasGrenadeBag)
+        {
+            LogToFile("[Player.GrenadeBag] No grenade bag selected in ActiveItemManager");
+            return;
+        }
+
+        // Tutorial levels already grant MaxGrenades — no override needed
+        if (_isTutorialLevel)
+        {
+            LogToFile("[Player.GrenadeBag] Tutorial level — grenade bag has no additional effect");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("get_grenade_bag_count"))
+        {
+            LogToFile("[Player.GrenadeBag] ActiveItemManager missing get_grenade_bag_count method");
+            return;
+        }
+
+        int bagCount = (int)activeItemManager.Call("get_grenade_bag_count");
+        MaxGrenades = bagCount;
+        _currentGrenades = bagCount;
+        EmitSignal(SignalName.GrenadeChanged, _currentGrenades, MaxGrenades);
+        LogToFile($"[Player.GrenadeBag] Grenade Bag equipped — grenades set to {_currentGrenades}/{MaxGrenades}");
     }
 
     #endregion
