@@ -27,7 +27,14 @@ const COMBAT_SPEED: float = 450.0   # 3× search speed (Issue #1417)
 const COLLISION_DISTANCE: float = 24.0
 const EXPLOSION_RADIUS: float = 150.0
 const EXPLOSION_DAMAGE: int = 3
-const DRIFT_FACTOR: float = 0.85
+## Base direction-carry at zero speed (same feel as before at low speed).
+const BASE_DRIFT: float = 0.85
+## Extra drift added at full speed — air has less lateral resistance than ground.
+const AIR_DRIFT_EXTRA: float = 0.10
+## Acceleration rate px/s² — reaches COMBAT_SPEED in ~0.5 s.
+const COMBAT_ACCEL: float = 900.0
+## Deceleration rate px/s² — slower than accel gives overshoot/glide feel.
+const COMBAT_DECEL: float = 600.0
 const BEEP_INTERVAL: float = 0.3
 const BEEP_FREQUENCY: float = 1200.0
 const BEEP_DURATION: float = 0.08
@@ -41,6 +48,8 @@ var _operator: Node2D = null
 var _player: Node2D = null
 var _nav_agent: NavigationAgent2D = null
 var _current_move_dir: Vector2 = Vector2.ZERO
+## Current speed (px/s) — starts at 0 and ramps up via acceleration.
+var _current_speed: float = 0.0
 
 ## Beep state
 var _beep_timer: float = 0.0
@@ -141,6 +150,7 @@ func _transition_to_combat() -> void:
 	_state = DroneState.COMBAT
 	_beep_timer = 0.0
 	_beep_idx = 0
+	_current_speed = 0.0
 	if _led:
 		_led.color = Color(1.0, 0.1, 0.05, 0.95)
 	if _led_light:
@@ -173,12 +183,21 @@ func _update_combat(delta: float) -> void:
 	else:
 		desired_dir = to_player.normalized()
 
+	# Accelerate toward max combat speed; starting from zero avoids the
+	# instant-full-speed wall collision that occurred at spawn.
+	_current_speed = move_toward(_current_speed, COMBAT_SPEED, COMBAT_ACCEL * delta)
+
+	# Drift scales with speed: at full speed air inertia resists steering more,
+	# so the drone overshoots turns — stronger than a ground vehicle would.
+	var speed_ratio: float = _current_speed / COMBAT_SPEED
+	var drift: float = clampf(BASE_DRIFT + AIR_DRIFT_EXTRA * speed_ratio, 0.0, 0.97)
+
 	if _current_move_dir == Vector2.ZERO:
 		_current_move_dir = desired_dir
 	else:
-		_current_move_dir = (_current_move_dir * DRIFT_FACTOR + desired_dir * (1.0 - DRIFT_FACTOR)).normalized()
+		_current_move_dir = (_current_move_dir * drift + desired_dir * (1.0 - drift)).normalized()
 
-	velocity = _current_move_dir * COMBAT_SPEED
+	velocity = _current_move_dir * _current_speed
 	move_and_slide()
 
 	for i in range(get_slide_collision_count()):
