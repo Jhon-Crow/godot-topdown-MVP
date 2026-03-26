@@ -57,6 +57,12 @@ const BLOOD_DECALS_PER_LETHAL_HIT: int = 30
 ## per owner request for more visible blood on floor.
 const BLOOD_DECALS_PER_NONLETHAL_HIT: int = 15
 
+## Maximum blood decals before throttling new spawns. Issue #1526: prevents runaway
+## accumulation (e.g. 20 enemies shooting invincible player = 600+ decals in 5s).
+## Unlike MAX_BLOOD_DECALS (which removes old decals), this only skips *new* spawns once
+## the pool is large — existing puddles are kept (honors issue #293/#370 design).
+const MAX_BLOOD_DECALS_SPAWN_THROTTLE: int = 300
+
 ## Active blood decals for cleanup management.
 var _blood_decals = []
 
@@ -405,17 +411,22 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 
 	# Spawn blood decals only when decals are enabled (Issue #1186)
 	if _decals_on:
-		# Spawn small blood decals that simulate where particles land
-		# Issue #969: reduced decal count to limit tree_changed signal spam at high fire rates
-		# Issue #1090: scale by GameplaySettings blood_amount multiplier
-		var base_decals := BLOOD_DECALS_PER_LETHAL_HIT if is_lethal else BLOOD_DECALS_PER_NONLETHAL_HIT
-		var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
-		var blood_multiplier: float = gameplay_settings.get_blood_amount() if gameplay_settings else 1.0
-		var num_decals := maxi(0, roundi(base_decals * blood_multiplier))
-		_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
+		# Issue #1526: skip new spawns when pool already exceeds throttle limit — prevents
+		# runaway timer-coroutine accumulation (600+ decals in 5s with 20 enemies).
+		# Existing decals are kept (per issue #293/#370); only new ones are skipped.
+		if _blood_decals.size() < MAX_BLOOD_DECALS_SPAWN_THROTTLE:
+			# Spawn small blood decals that simulate where particles land
+			# Issue #969: reduced decal count to limit tree_changed signal spam at high fire rates
+			# Issue #1090: scale by GameplaySettings blood_amount multiplier
+			var base_decals := BLOOD_DECALS_PER_LETHAL_HIT if is_lethal else BLOOD_DECALS_PER_NONLETHAL_HIT
+			var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+			var blood_multiplier: float = gameplay_settings.get_blood_amount() if gameplay_settings else 1.0
+			var num_decals := maxi(0, roundi(base_decals * blood_multiplier))
+			_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
 
-		# Check for nearby walls and spawn wall splatters
-		_spawn_wall_blood_splatter(position, hit_direction, effect_scale, is_lethal)
+		# Check for nearby walls and spawn wall splatters (same throttle applies)
+		if _blood_decals.size() < MAX_BLOOD_DECALS_SPAWN_THROTTLE:
+			_spawn_wall_blood_splatter(position, hit_direction, effect_scale, is_lethal)
 
 	# Issue #969: gate per-hit log behind debug flag
 	if _debug_effects:

@@ -182,15 +182,85 @@ Also rate-limited the `SEARCHING: Player spotted!` log to only fire when COMBAT 
 
 Note: Game now runs at 60 FPS target (not 30 as previously). Regular benchmark baseline = 72.3 FPS shows the game runs above 60 with 5 enemies. Stress benchmark shows 7.3 FPS AI overhead with 20 enemies — better than 28.6 baseline.
 
+## Follow-up: FPS Still Drops in Real Gameplay (2026-03-26 16:26 run)
+
+**Logs:** `benchmark_log_20260326_163208.txt`, `stress_benchmark_20260326_162639.txt`, `game_log_20260326_162601.txt`
+
+**Finding:** Stress benchmark AI delta = **17.9 FPS** (expected ~7.3 after v3/v4 fixes). Regular benchmark shows all steps stable at ~70 FPS — the 5-enemy scene is fine. Game session shows severe FPS drops to **4–6 FPS** during combat with ~20 enemies on DocksLevel.
+
+**Root cause analysis:**
+
+### RC8: Separation force stagger only applied to SEARCHING/PURSUING — COMBAT left un-staggered
+
+In v3, `_apply_separation_force()` was updated to cache and stagger the O(N²) scan, but only in `SEARCHING` and `PURSUING` states:
+
+```gdscript
+# v3 (WRONG): condition means "skip stagger for SEARCHING/PURSUING"
+if not (_current_state in [AIState.SEARCHING, AIState.PURSUING]) or (frame - _sep_force_frame) >= SEP_FORCE_INTERVAL:
+```
+
+Due to De Morgan's law, this evaluates to:
+- In SEARCHING/PURSUING: scan runs every SEP_FORCE_INTERVAL frames ✓
+- **In ALL OTHER STATES (COMBAT, FLANKING, SEEKING_COVER, etc.): scan runs EVERY FRAME** ✗
+
+The stress benchmark spawns 20 enemies that immediately enter COMBAT (shooting the player). The v3 stagger **never applied** to this case. With 20 enemies in COMBAT: **20 × 20 = 400 distance scans/frame × 60 Hz = 24,000 ops/sec** — identical to the pre-fix behavior.
+
+**Fix 7 (v5):** Removed the state restriction — stagger now applies to ALL states:
+
+```gdscript
+# v5 (CORRECT): stagger applies universally
+if (frame - _sep_force_frame) >= SEP_FORCE_INTERVAL:
+```
+
+Expected improvement: ~6× reduction in separation force cost across all states. Stress benchmark AI delta should drop from 17.9 toward ~3–5 FPS.
+
+### RC9: Blood decal timer-coroutine accumulation during invincible-player combat
+
+The game session shows the player being hit ~40 times in 4 seconds by 20 enemies (invincibility mode active, so player survived). Each hit spawns:
+- `_spawn_blood_decals_at_particle_landing()`: 15 decals × 15 timer coroutines via `await create_timer(delay)`
+- `_spawn_wall_blood_splatter()`: potentially 1–2 more decals
+
+With 40 hits = **600+ pending timer coroutines** running concurrently, each creating an instantiated Sprite2D node when they fire. Godot's scene tree grows unboundedly. The comment "30 Sprite2D decals are trivially cheap" assumed steady-state, not burst accumulation.
+
+Additionally, `MAX_BLOOD_DECALS = 0` (unlimited by design per issue #293/#370). The pool check at spawn time only removes already-created nodes — it does NOT cancel pending timer coroutines.
+
+**Fix 8 (v5):** Added `MAX_BLOOD_DECALS_SPAWN_THROTTLE = 300`. When `_blood_decals.size() >= 300`, new hit decal spawning is skipped entirely. Existing puddles remain (preserves issue #293/#370 no-delete design). This caps both the scene node count and the number of concurrent timer coroutines.
+
+In normal gameplay (no invincibility, enemies die quickly), the threshold is never reached — this only activates in extreme burst scenarios.
+
+### Benchmark Results (2026-03-26 16:26 run — v3+v4 build, before v5)
+
+**Regular benchmark (20 cycles, 3s/step, DocksLevel with ~10 enemies):**
+
+| Step | avg FPS |
+|------|---------|
+| Baseline (all enabled) | 70.2 |
+| AI:SEARCHING disabled | 71.4 (+1.2) |
+| AI:PURSUING disabled | 70.8 (+0.6) |
+| All AI disabled | 73.0 (+2.8) |
+
+Note: Regular benchmark steps show minimal delta because the 5-enemy scene's overhead is within margin of error at 70 FPS.
+
+**Stress benchmark (20 enemies, 30 particles, 20 lights):**
+
+| Subsystem | v3/v4 delta | v3 expected | Gap |
+|-----------|------------|-------------|-----|
+| Particles | 26.1 FPS | ~10 FPS | Higher GPU cost on user's machine |
+| Explosion lights | 0.1 FPS | ~0 FPS | ✅ |
+| AI (20 enemies) | **17.9 FPS** | ~7.3 FPS | RC8: COMBAT not staggered |
+| Combined | 43.1 FPS | — | All three overhead costs accumulate |
+
 ## Verification Checklist
 
 - [x] Run regular benchmark: SEARCHING step delta dropped to ~0 FPS (was +8.2) — now ~6.9 (5-enemy scene, 60 Hz target)
 - [x] Run regular benchmark: PURSUING step delta dropped to ~0 FPS (was +4.7) — now ~5.0 (within expected range)
-- [x] Run stress benchmark: AI delta dropped from 28.6 to 7.3 FPS (−74%)
+- [x] Run stress benchmark: AI delta dropped from 28.6 to 7.3 FPS (−74%) [v3 result at 30 FPS cap]
 - [x] Run stress benchmark: Particle delta now positive (+10.1 FPS overhead measured at 60 Hz)
 - [x] Play on Hard difficulty: `Player distracted` log appears ~15 times over 3min (was 408 in 100s)
 - [x] Fixed: waypoint spam during benchmark disabled-state steps (v4 fix)
+- [x] Fixed: separation force stagger missing in COMBAT state — extended to all states (v5 RC8)
+- [x] Fixed: blood decal timer-coroutine runaway during burst hit scenarios (v5 RC9)
 - [ ] Navigate to DocksLevel/SewerLevel: No `Invalid resource` error in log (v2 fix addresses this)
 - [ ] Enemy pathfinding in SEARCHING state still looks smooth (no visible stuttering)
 - [ ] Enemy pathfinding in PURSUING state still looks smooth
-- [ ] 20-enemy SEARCHING/PURSUING maintains ≥60 FPS (v4 fix reduces benchmark-period spike; real gameplay overhead ~7.3 FPS)
+- [ ] 20-enemy stress benchmark AI delta ≤ 10 FPS (v5 should resolve RC8)

@@ -4762,12 +4762,12 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	return true
 
 func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void: _avoidance_velocity = safe_velocity  ## Issue #1146: ORCA safe velocity callback
-## Issue #1146: Separation steering. #1249: skip while yielding. #1526: stagger O(N²) scan in SEARCHING/PURSUING.
+## Issue #1146: Separation steering. #1249: skip while yielding. #1526: stagger O(N²) scan every SEP_FORCE_INTERVAL frames in ALL states.
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
 	if _tactical_movement and _tactical_movement.is_yielding: return vel  # #1249: yielding — don't push
 	if _current_state == AIState.IDLE and behavior_mode == BehaviorMode.GUARD: return vel  # #1520: GUARD stands still — skip O(N) scan
-	var frame := Engine.get_physics_frames()  # #1526: recompute O(N²) scan every SEP_FORCE_INTERVAL frames in SEARCHING/PURSUING; reuse cache otherwise
-	if not (_current_state in [AIState.SEARCHING, AIState.PURSUING]) or (frame - _sep_force_frame) >= SEP_FORCE_INTERVAL:
+	var frame := Engine.get_physics_frames()  # #1526: recompute O(N²) scan every SEP_FORCE_INTERVAL frames; reuse cache otherwise (applies to ALL states)
+	if (frame - _sep_force_frame) >= SEP_FORCE_INTERVAL:
 		var sep_force: Vector2 = Vector2.ZERO
 		for body in get_tree().get_nodes_in_group("enemies"):
 			if body == self or not is_instance_valid(body): continue
