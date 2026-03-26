@@ -4043,8 +4043,6 @@ func _calculate_lead_prediction() -> Vector2:
 		return player_pos
 
 	var player_velocity := Vector2.ZERO
-
-	# Get player velocity if they are a CharacterBody2D
 	if _player is CharacterBody2D:
 		player_velocity = _player.velocity
 
@@ -4317,17 +4315,12 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 	var muzzle_local_offset := 52.0  # Rifle: offset.x(20) + sprite_width/2(32) = 52px
 	if _weapon_sprite and _enemy_model:
 		var weapon_forward: Vector2
-
 		# Direct calc to player when visible to avoid transform delay (#264)
 		if _player and is_instance_valid(_player) and _can_see_player:
 			weapon_forward = (_player.global_position - global_position).normalized()
 		else:
-			# Use global_transform.x (accounts for scale flip when aiming left)
 			weapon_forward = _weapon_sprite.global_transform.x.normalized()
-
-		# Calculate muzzle offset accounting for enemy model scale
 		var scaled_muzzle_offset := muzzle_local_offset * enemy_model_scale
-		# Use weapon sprite's global position as base, then offset to reach the muzzle
 		var result := _weapon_sprite.global_position + weapon_forward * scaled_muzzle_offset
 		if debug_logging:
 			var angle_forward := Vector2.from_angle(_enemy_model.rotation)
@@ -4340,7 +4333,6 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 
 ## Returns the weapon's forward direction (normalized, Issue #264).
 func _get_weapon_forward_direction() -> Vector2:
-	# Direct calc to player when visible to avoid transform delay
 	if _player and is_instance_valid(_player) and _can_see_player:
 		return (_player.global_position - global_position).normalized()
 	# Fallback to transform-based direction
