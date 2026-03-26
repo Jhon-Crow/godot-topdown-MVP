@@ -336,7 +336,9 @@ func _ready() -> void:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
 
-	print("[RoguelikeLevel] Room ready — %d enemies" % _initial_enemy_count)
+	var _log_room_ready := "[RoguelikeLevel] Room ready — %d enemies" % _initial_enemy_count
+	print(_log_room_ready)
+	FileLogger.info(_log_room_ready)
 
 
 func _process(_delta: float) -> void:
@@ -397,7 +399,9 @@ func _start_new_run() -> void:
 	var names: Array = []
 	for t in GameManager.roguelike_room_types:
 		names.append(ROOM_TYPE_NAMES.get(t, "?"))
-	print("[RoguelikeLevel] New run — seed=%d, rooms: %s" % [run_seed, str(names)])
+	var _log_new_run := "[RoguelikeLevel] New run — seed=%d, rooms: %s" % [run_seed, str(names)]
+	print(_log_new_run)
+	FileLogger.info(_log_new_run)
 
 
 func _continue_run() -> void:
@@ -539,7 +543,9 @@ func _generate_room_map(room_count: int, room_types_pool: Array) -> Array:
 		rooms[exit_idx]["map_room_type"] = "exit"
 		dead_ends.erase(exit_idx)
 		var exit_dist: int = bfs_dist.get(exit_idx, 0)
-		print("[RoguelikeLevel] Exit placed at room %d (BFS distance=%d from start)" % [exit_idx, exit_dist])
+		var _log_exit_placed := "[RoguelikeLevel] Exit placed at room %d (BFS distance=%d from start)" % [exit_idx, exit_dist]
+		print(_log_exit_placed)
+		FileLogger.info(_log_exit_placed)
 
 	# Place treasure room (gold) on the next farthest dead end
 	if dead_ends.size() > 0:
@@ -556,7 +562,9 @@ func _generate_room_map(room_count: int, room_types_pool: Array) -> Array:
 					rooms[i]["map_room_type"] = "treasure"
 					break
 
-	print("[RoguelikeLevel] Map generated: %d rooms" % rooms.size())
+	var _log_map_generated := "[RoguelikeLevel] Map generated: %d rooms" % rooms.size()
+	print(_log_map_generated)
+	FileLogger.info(_log_map_generated)
 	for i in range(rooms.size()):
 		var r: Dictionary = rooms[i]
 		print("  Room %d: pos=%s type=%s map_type=%s connections=%s" % [
@@ -825,7 +833,9 @@ func _create_door_barriers(room_node: Node2D) -> void:
 		_door_barriers.append(barrier)
 
 	if _door_barriers.size() > 0:
-		print("[RoguelikeLevel] %d door barriers created — room locked" % _door_barriers.size())
+		var _log_barriers_created := "[RoguelikeLevel] %d door barriers created — room locked" % _door_barriers.size()
+		print(_log_barriers_created)
+		FileLogger.info(_log_barriers_created)
 
 
 ## Issue #1451: Remove all door barriers (unlock doors) after room is cleared.
@@ -848,7 +858,9 @@ func _remove_door_barriers() -> void:
 			else:
 				barrier.queue_free()
 	_door_barriers = []
-	print("[RoguelikeLevel] Door barriers removed — room unlocked")
+	var _log_barriers_removed := "[RoguelikeLevel] Door barriers removed — room unlocked"
+	print(_log_barriers_removed)
+	FileLogger.info(_log_barriers_removed)
 
 
 ## Get directions that have doors in the current map room.

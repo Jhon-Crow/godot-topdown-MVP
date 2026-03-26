@@ -190,6 +190,76 @@ but no room generation debug output was captured (the build was a non-debug rele
 export). The `print()` statements in `_generate_room_map` only appear in the editor
 console or when the logging system is active.
 
+## Second Feedback: "Changes Didn't Appear" (2026-03-26)
+
+### Owner's Report
+
+> "изменения не появились (двери не закрыты, генерация не изменилась)"
+>
+> (Translation: "changes didn't appear (doors not closed, generation not changed)")
+
+Game log attached: `game_log_20260326_174044.txt`
+
+### Root Cause Analysis
+
+#### Finding 1: Owner Is Testing From Main Branch (PR Not Yet Merged)
+
+The game log shows:
+```
+[17:40:44] [INFO] Log file: I:/Загрузки/godot exe/РОГАЛИК/game_log_20260326_174044.txt
+[17:40:44] [INFO] Executable: I:/Загрузки/godot exe/РОГАЛИК/Godot-Top-Down-Template.exe
+[17:40:44] [INFO] Build info: not available (build_info.cfg not found)
+```
+
+The owner is running a pre-built `.exe` file from their local downloads folder. This executable
+was built from the `main` branch — **not** from our `issue-1451-3feedf39c9ea` branch. Our
+changes are in a PR (#1475) that hasn't been merged yet.
+
+**The `main` branch still has `MIN_ROOMS=3` and `MAX_ROOMS=5`** (confirmed by reading
+`roguelike_level.gd` from `main`). Our PR has `MIN_ROOMS=7`, `MAX_ROOMS=10`, and
+`EXIT_MIN_DISTANCE=3`. None of those changes reach the owner until the PR is merged.
+
+#### Finding 2: Key Debug Messages Not Captured in Log File
+
+The game log shows zero `[RoguelikeLevel] New run`, `Map generated`, `Exit placed`, or
+`Room ready` entries. These are important diagnostic messages that exist in the code (both
+`main` and our branch), but they use only `print()` — not `FileLogger.info()`.
+
+In Godot, `print()` sends output to the editor console and stdout. The `FileLogger.info()`
+calls write to the game's log file. Since the owner runs an exported `.exe`, only `FileLogger`
+output is visible in the log. The critical room-generation messages were invisible to debugging.
+
+**Fix applied in this PR**: Added `FileLogger.info()` alongside every key diagnostic `print()`
+in `_generate_room_map`, `_start_new_run`, `_ready`, `_create_door_barriers`, and
+`_remove_door_barriers`. Future game logs will show these entries for easier verification.
+
+#### Finding 3: First Room in Log Has No RoguelikeLevel Output
+
+The first RoguelikeLevel scene loads at 17:40:55 but has no `[RoguelikeLevel]` log entries at all.
+This means the first room was loaded without triggering `_start_new_run` (no "New run" log),
+which means `GameManager.roguelike_active` was already `true` — the owner was continuing
+a run that was already in progress from a previous session. This is normal behavior (the game
+persists run state via `PersistManager`).
+
+### Timeline of Second Session (2026-03-26)
+
+| Time | Event |
+|------|-------|
+| 17:40:44 | Game started, old exported binary |
+| 17:40:55 | RoguelikeLevel loaded (continuing existing run) |
+| 17:40:55–17:41:00 | Combat room with 5 enemies |
+| 17:41:00 | Treasure Room loaded (Level 1) |
+| 17:41:03 | Treasure Room again (Level 1, re-entered) |
+| 17:41:07+ | More RoguelikeLevel scenes loaded |
+
+### What Needs To Happen
+
+1. **Merge PR #1475** — This will incorporate `MIN_ROOMS=7`, `MAX_ROOMS=10`,
+   `EXIT_MIN_DISTANCE=3`, door barriers, and the new `FileLogger.info()` diagnostics
+2. **Build new Windows EXE** — A CI artifact with our changes is already available at
+   run `23560912517` (artifact: `windows-build`, 98MB, created 2026-03-25T19:52:21Z)
+3. **Owner tests from the new build** — The new export will show the correct behavior
+
 ## References
 
 - The Binding of Isaac Wiki — Floor Generation
