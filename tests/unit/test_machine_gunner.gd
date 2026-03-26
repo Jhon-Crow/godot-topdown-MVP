@@ -270,7 +270,7 @@ func test_machine_gun_weapon_type_enum_is_4() -> void:
 
 
 func test_machine_gun_sound_range_is_2400px() -> void:
-	# Issue #1549: PKM machine gun sound range must be 2400px.
-	var ak_max_distance := 2400.0
-	assert_eq(ak_max_distance, 2400.0,
-		"AK_MAX_DISTANCE should be 2400.0 px for machine gun enemy")
+	# Issue #1549: PKM machine gun weapon_loudness (SoundPropagation range) must be 2400px.
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
+	assert_eq(config["weapon_loudness"], 2400.0,
+		"MACHINE_GUN weapon_loudness should be 2400.0 px (SoundPropagation alert range)")
