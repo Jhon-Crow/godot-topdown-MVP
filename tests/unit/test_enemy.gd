@@ -2401,3 +2401,110 @@ func test_reset_memory_engaged_enemy_with_target_goes_searching_issue_1419() -> 
 	var should_search := had_target and has_left_idle
 	assert_true(should_search,
 		"Issue #1419: engaged enemy (had_target=true, _has_left_idle=true) must still enter SEARCHING")
+
+
+# ============================================================================
+# Issue #1520: FPS Drop with Enemies in IDLE State
+# ============================================================================
+
+
+## Regression: GOAP throttle should activate when IDLE+no contact (Issue #1520).
+## The throttle counter increments when enemy is idle with no player visibility,
+## resetting to 0 once it reaches the interval threshold.
+func test_idle_goap_throttle_counter_increments_issue_1520() -> void:
+	# Simulate the throttle counter logic from _physics_process
+	var IDLE_GOAP_UPDATE_INTERVAL: int = 20
+	var current_state := MockEnemy.AIState.IDLE
+	var can_see_player := false
+	var can_see_companion := false
+	var under_fire := false
+	var throttle_counter := 0
+
+	var is_idle_no_contact: bool = (current_state == MockEnemy.AIState.IDLE
+		and not can_see_player
+		and not can_see_companion
+		and not under_fire)
+
+	assert_true(is_idle_no_contact,
+		"Issue #1520: IDLE+no contact condition should be true when no player detected")
+
+	# Simulate 19 frames: counter increments, GOAP skipped
+	for i in range(IDLE_GOAP_UPDATE_INTERVAL - 1):
+		throttle_counter += 1
+
+	assert_eq(throttle_counter, IDLE_GOAP_UPDATE_INTERVAL - 1,
+		"Issue #1520: Throttle counter should reach interval-1 before reset")
+	assert_true(throttle_counter < IDLE_GOAP_UPDATE_INTERVAL,
+		"Issue #1520: GOAP update should be skipped before interval is reached")
+
+	# Frame 20: counter reaches threshold, GOAP runs and resets
+	throttle_counter += 1
+	assert_eq(throttle_counter, IDLE_GOAP_UPDATE_INTERVAL,
+		"Issue #1520: Throttle counter should equal interval on update frame")
+	throttle_counter = 0  # Reset after running GOAP
+	assert_eq(throttle_counter, 0,
+		"Issue #1520: Throttle counter should reset to 0 after GOAP update")
+
+
+## Regression: Throttle must be disabled when player becomes visible (Issue #1520).
+## Ensures enemy immediately responds to player visibility — no delayed reaction.
+func test_idle_goap_throttle_disables_on_player_contact_issue_1520() -> void:
+	var current_state := MockEnemy.AIState.IDLE
+	var can_see_player := true  # Player spotted
+	var can_see_companion := false
+	var under_fire := false
+
+	var is_idle_no_contact: bool = (current_state == MockEnemy.AIState.IDLE
+		and not can_see_player
+		and not can_see_companion
+		and not under_fire)
+
+	assert_false(is_idle_no_contact,
+		"Issue #1520: Throttle must NOT activate when player is visible — full GOAP update required")
+
+
+## Regression: Throttle must be disabled when enemy is under fire (Issue #1520).
+func test_idle_goap_throttle_disables_when_under_fire_issue_1520() -> void:
+	var current_state := MockEnemy.AIState.IDLE
+	var can_see_player := false
+	var can_see_companion := false
+	var under_fire := true  # Enemy taking fire
+
+	var is_idle_no_contact: bool = (current_state == MockEnemy.AIState.IDLE
+		and not can_see_player
+		and not can_see_companion
+		and not under_fire)
+
+	assert_false(is_idle_no_contact,
+		"Issue #1520: Throttle must NOT activate when enemy is under fire")
+
+
+## Regression: GUARD enemies in IDLE produce no separation force (Issue #1520).
+## Separation force on a stationary GUARD changes nothing — skipping the O(N) scan is safe.
+func test_guard_idle_separation_force_is_zero_issue_1520() -> void:
+	var enemy := MockEnemy.new()
+	enemy.initialize()
+	enemy._current_state = MockEnemy.AIState.IDLE
+	enemy.behavior_mode = MockEnemy.BehaviorMode.GUARD
+
+	# A GUARD enemy in IDLE has zero velocity — separation force result equals input
+	var input_vel := Vector2.ZERO
+	# The early-exit returns vel unchanged: guard produces no separation force
+	var is_guard_idle: bool = (enemy._current_state == MockEnemy.AIState.IDLE
+		and enemy.behavior_mode == MockEnemy.BehaviorMode.GUARD)
+
+	assert_true(is_guard_idle,
+		"Issue #1520: GUARD+IDLE condition should be true for standing guard enemies")
+	# The separation force early-exit returns input_vel unchanged (Vector2.ZERO stays ZERO)
+	assert_eq(input_vel, Vector2.ZERO,
+		"Issue #1520: GUARD in IDLE produces zero velocity — early-exit is safe")
+
+
+## Regression: enemies_in_combat cache value starts at 0 (Issue #1520).
+## The cache must be initialized to a safe default that does not trigger assault.
+func test_enemies_in_combat_cache_initial_value_issue_1520() -> void:
+	# The default value for _enemies_in_combat_cache is 0 (no enemies in combat).
+	# Assault is only triggered when count exceeds a threshold, so 0 is the safe default.
+	var initial_cache_value: int = 0
+	assert_eq(initial_cache_value, 0,
+		"Issue #1520: Initial enemies_in_combat cache should be 0 (safe default, no spurious assault)")

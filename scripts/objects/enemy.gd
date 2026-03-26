@@ -329,6 +329,12 @@ const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing inte
 const INTEL_SHARE_RANGE_LOS: float = 660.0  ## Intel range with LOS (px)
 const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Intel range without LOS (px)
 var _intel_share_timer: float = 0.0; const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5s
+## Issue #1520: Throttle expensive per-frame GOAP ops in IDLE to reduce O(N²) CPU cost.
+var _enemies_in_combat_cache: int = 0  ## Cached result of _count_enemies_in_combat()
+var _enemies_in_combat_cache_timer: float = 0.0  ## Timer for cache refresh
+const ENEMIES_IN_COMBAT_CACHE_INTERVAL: float = 0.5  ## Refresh every 0.5s (assault trigger is not frame-sensitive)
+var _idle_goap_throttle_counter: int = 0  ## Frame counter for GOAP update throttle in IDLE state
+const IDLE_GOAP_UPDATE_INTERVAL: int = 20  ## Update GOAP every 20 physics frames (~3Hz at 60fps) when IDLE+no player
 var _memory_reset_confusion_timer: float = 0.0  ## Issue #318: blocks visibility after teleport
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## 2s confusion for better player escape window
 ## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
@@ -883,7 +889,21 @@ func _physics_process(delta: float) -> void:
 	_check_companion_visibility()
 	_select_best_target()
 	_update_memory(delta)
-	_update_goap_state()
+	# Issue #1520: Skip full GOAP update most frames while IDLE with no player contact.
+	# Expensive fields (can_hit_from_cover raycast, enemies_in_combat group scan) are
+	# irrelevant when the enemy can't see or hear the player, so we throttle to ~3 Hz.
+	var _is_idle_no_contact: bool = _current_state == AIState.IDLE and not _can_see_player and not _can_see_companion and not _under_fire
+	if _is_idle_no_contact:
+		_idle_goap_throttle_counter += 1
+		if _idle_goap_throttle_counter < IDLE_GOAP_UPDATE_INTERVAL:
+			_goap_world_state["player_visible"] = false  # Keep critical flags current
+			_goap_world_state["under_fire"] = false
+		else:
+			_idle_goap_throttle_counter = 0
+			_update_goap_state()
+	else:
+		_idle_goap_throttle_counter = 0
+		_update_goap_state()
 	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null)); if _shield_component: _shield_component.update(delta); if _drone_operator: _drone_operator.update(delta)  # Issues #1034, #1242, #1397
 	if _hit_reaction_timer > 0: _hit_reaction_timer -= delta  # Issue #1242: decay hit reaction rotation timer
 	# Issue #1242: delayed player tracking for shield enemy — update facing angle periodically, not continuously
@@ -945,7 +965,12 @@ func _update_goap_state() -> void:
 	_goap_world_state["is_assaulting"] = _current_state == AIState.ASSAULT
 	_goap_world_state["player_close"] = _is_target_close()
 	_goap_world_state["can_hit_from_cover"] = _can_hit_target_from_current_position()
-	_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
+	# Issue #1520: Cache _count_enemies_in_combat() — O(N²) group scan throttled to 2 Hz.
+	_enemies_in_combat_cache_timer += get_physics_process_delta_time()
+	if _enemies_in_combat_cache_timer >= ENEMIES_IN_COMBAT_CACHE_INTERVAL:
+		_enemies_in_combat_cache_timer = 0.0
+		_enemies_in_combat_cache = _count_enemies_in_combat()
+	_goap_world_state["enemies_in_combat"] = _enemies_in_combat_cache
 	_goap_world_state["player_distracted"] = _is_player_distracted()
 
 	# Memory system states (Issue #297)
@@ -4759,6 +4784,8 @@ func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
 ## Issue #1249: Skip separation while yielding so the passing enemy isn't pushed aside.
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
 	if _tactical_movement and _tactical_movement.is_yielding: return vel  # #1249: yielding — don't push
+	# Issue #1520: GUARD enemies stand still — skip the O(N) group scan entirely.
+	if _current_state == AIState.IDLE and behavior_mode == BehaviorMode.GUARD: return vel
 	var sep_force: Vector2 = Vector2.ZERO
 	for body in get_tree().get_nodes_in_group("enemies"):
 		if body == self or not is_instance_valid(body): continue
