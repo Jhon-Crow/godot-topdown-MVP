@@ -192,6 +192,10 @@ var _slot_progress_overlays: Dictionary = {}
 ## Dictionary: slot -> tween reference
 var _active_reveal_tweens: Dictionary = {}
 
+## Animation state tracking for selection animations (shake + glint).
+## Dictionary: slot -> tween reference — killed if the same slot is re-selected quickly.
+var _active_selection_tweens: Dictionary = {}
+
 
 func _ready() -> void:
 	# Get GrenadeManager reference
@@ -969,6 +973,9 @@ func _on_active_item_slot_gui_input(event: InputEvent, slot: PanelContainer, ite
 				_highlight_selected_items()
 				_update_loadout_panel()
 				_update_apply_button_state()
+
+				# Play shake + glint animation on the selected slot
+				_play_weapon_selection_animation(slot)
 			elif condition_met:
 				# Locked item with condition met: start tracking LMB hold for unlocking
 				_lmb_hold_tracking[slot] = {
@@ -1061,6 +1068,9 @@ func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String
 				_highlight_selected_items()
 				_update_loadout_panel()
 				_update_apply_button_state()
+
+				# Play shake + glint animation on the selected slot
+				_play_weapon_selection_animation(slot)
 			elif condition_met:
 				# Locked item with condition met: start tracking LMB hold for unlocking
 				_lmb_hold_tracking[slot] = {
@@ -1627,6 +1637,109 @@ func _rebuild_active_item_slot_animated(item_type: int) -> void:
 
 		# Update visuals
 		_highlight_selected_items()
+
+
+## Plays a shake + glint animation on a weapon/grenade/item slot when it is selected.
+## The animation consists of:
+##   1. A 4-step horizontal shake (right → left → right → settle) for tactile "punch" feel.
+##   2. A simultaneous scale bump: slightly enlarge then spring back (TRANS_BACK ease).
+##   3. A brightness flash (modulate) that briefly bleaches the slot white then fades back.
+##
+## Based on the 4-step pixel art animation principle from saint11.art/blog/pixel-art-tutorials/:
+## anticipation → action → follow-through → settle.
+func _play_weapon_selection_animation(slot: PanelContainer) -> void:
+	# Kill any in-progress selection tween for this slot to avoid conflicts
+	if slot in _active_selection_tweens:
+		var old_tween = _active_selection_tweens[slot]
+		if old_tween and old_tween.is_valid():
+			old_tween.kill()
+		_active_selection_tweens.erase(slot)
+		# Reset any leftover modulate from a previous animation
+		slot.modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+	var vbox: VBoxContainer = slot.get_child(0) as VBoxContainer
+	if vbox == null:
+		return
+
+	# Ensure pivot is at the centre of the vbox for scale animations
+	vbox.pivot_offset = vbox.size / 2.0
+
+	# Store the original x position for the shake so we always return to it
+	var original_x: float = vbox.position.x
+
+	# --- GLINT OVERLAY ---
+	# Create a short-lived ColorRect that sweeps diagonally across the icon to simulate
+	# light reflecting off the weapon surface (the "blick"/glint requested in the issue).
+	var icon_container: CenterContainer = vbox.get_child(0) as CenterContainer
+	if icon_container:
+		# Clip the glint to the icon bounds
+		icon_container.clip_contents = true
+
+		var glint := ColorRect.new()
+		glint.name = "_glint_overlay"
+		glint.color = Color(1.0, 1.0, 1.0, 0.0)
+		# Make the glint a narrow vertical band, rotated ~30° for diagonal effect.
+		# Width is intentionally wider than the container; it enters from the left.
+		glint.custom_minimum_size = Vector2(12, 200)
+		glint.size = Vector2(12, 200)
+		glint.rotation_degrees = 30.0
+		# Start the glint to the left of the visible area
+		glint.position = Vector2(-20, -60)
+		icon_container.add_child(glint)
+
+		# Animate the glint sweep: slide from left to right while fading in then out
+		var glint_tween := create_tween()
+		glint_tween.set_parallel(true)
+		# Fade in then out (two sequential steps)
+		glint_tween.tween_property(glint, "color:a", 0.65, 0.07)
+		glint_tween.tween_property(glint, "color:a", 0.0, 0.12).set_delay(0.07)
+		# Sweep from left (-20) to beyond right edge of icon container (~60)
+		glint_tween.tween_property(glint, "position:x", 64.0, 0.19).set_ease(Tween.EASE_OUT)
+		# Remove the glint node once the animation is done
+		glint_tween.tween_callback(glint.queue_free).set_delay(0.20)
+
+	# --- SCALE BUMP (4-step: squish start → overshoot → spring back → settle) ---
+	# Step 1 — anticipation: squish slightly
+	vbox.scale = Vector2(0.92, 0.92)
+
+	# --- BUILD MAIN TWEEN (sequential shake + parallel scale spring) ---
+	var tween := create_tween()
+	_active_selection_tweens[slot] = tween
+
+	# Scale: spring back to normal with TRANS_BACK overshoot (settle naturally)
+	# Run in parallel with the shake below
+	tween.set_parallel(true)
+	tween.tween_property(vbox, "scale", Vector2(1.0, 1.0), 0.22) \
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
+	# Brightness flash: slot briefly bleaches to near-white then fades back
+	tween.tween_property(slot, "modulate", Color(1.9, 1.9, 1.9, 1.0), 0.05) \
+		.set_ease(Tween.EASE_IN)
+	tween.tween_property(slot, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.18) \
+		.set_ease(Tween.EASE_OUT).set_delay(0.05)
+
+	# Horizontal shake (sequential, runs alongside the scale/brightness in parallel mode)
+	# Step 1 — action: jolt right
+	tween.tween_property(vbox, "position:x", original_x + 4.0, 0.04) \
+		.set_ease(Tween.EASE_OUT)
+	# Step 2 — follow-through: swing left past centre
+	tween.tween_property(vbox, "position:x", original_x - 5.0, 0.05) \
+		.set_ease(Tween.EASE_IN_OUT)
+	# Step 3 — rebound: move back right slightly
+	tween.tween_property(vbox, "position:x", original_x + 2.0, 0.04) \
+		.set_ease(Tween.EASE_IN_OUT)
+	# Step 4 — settle: return to original position
+	tween.tween_property(vbox, "position:x", original_x, 0.07) \
+		.set_ease(Tween.EASE_OUT)
+
+	# Clean up tracking entry when done
+	tween.tween_callback(func():
+		if slot in _active_selection_tweens:
+			_active_selection_tweens.erase(slot)
+		# Ensure position is exactly restored even if tween was interrupted
+		if is_instance_valid(vbox):
+			vbox.position.x = original_x
+	)
 
 
 ## Animates a newly created slot appearing with fade-in and scale pop.
