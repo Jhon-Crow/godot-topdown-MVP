@@ -544,6 +544,12 @@ func _run_stress_benchmark() -> void:
 	var particle_nodes: Array = _spawn_stress_particles()
 	var fps_particles_on := await _sample_fps(STRESS_SAMPLE_DURATION)
 	perf_settings.set_particles_enabled(false)
+	# Stop already-spawned emitters so the disabled sample reflects zero particle work.
+	# The PerformanceSettings toggle only guards future creation; existing nodes keep
+	# emitting unless explicitly stopped (Issue #1517).
+	for p in particle_nodes:
+		if is_instance_valid(p):
+			p.emitting = false
 	var fps_particles_off := await _sample_fps(STRESS_SAMPLE_DURATION)
 	perf_settings.set_particles_enabled(true)
 	_cleanup_stress_nodes(particle_nodes)
@@ -628,6 +634,10 @@ func _run_stress_benchmark() -> void:
 	perf_settings.set_particles_enabled(false)
 	perf_settings.set_explosion_lights_enabled(false)
 	perf_settings.set_ai_enabled(false)
+	# Stop already-spawned particle emitters (same fix as Step 1, Issue #1517).
+	for p in combo_particles:
+		if is_instance_valid(p):
+			p.emitting = false
 	for ln in combo_lights:
 		if is_instance_valid(ln):
 			ln.visible = false
