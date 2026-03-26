@@ -34,9 +34,11 @@ void fragment() {
 		float t = phase / 0.45;  // 0 → 1
 		float dist;
 		if (horizontal_sweep) {
-			// Horizontal sweep: stripe travels left → right along UV.x.
+			// Horizontal sweep with slight right tilt: stripe travels left → right
+			// along UV.x with a small UV.y component so it runs slightly diagonal
+			// (tilted right) across the full button length.
 			float sweep_pos = mix(-0.3, 1.3, t);
-			dist = abs(UV.x - sweep_pos);
+			dist = abs((UV.x + 0.15 * UV.y) - sweep_pos);
 		} else {
 			// Diagonal sweep: stripe travels top-right → bottom-left.
 			// diag = 0 at top-right corner, 2 at bottom-left corner.
@@ -45,7 +47,9 @@ void fragment() {
 			dist = abs(diag - sweep_pos);
 		}
 		// Narrow, bright stripe with soft edges.
-		float stripe = exp(-dist * dist * 30.0);
+		// Horizontal sweep uses a higher sharpness factor for a thinner stripe.
+		float sharpness = horizontal_sweep ? 60.0 : 30.0;
+		float stripe = exp(-dist * dist * sharpness);
 		// Fade in at start and out at end of sweep.
 		float edge = smoothstep(0.0, 0.07, t) * smoothstep(1.0, 0.93, t);
 		glow = stripe * edge * 0.85;

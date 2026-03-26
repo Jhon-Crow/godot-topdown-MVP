@@ -697,6 +697,8 @@ func _apply_accordion_button_condition_met_style(button: Button) -> void:
 		var mat := ShaderMaterial.new()
 		mat.shader = shine_shader
 		mat.set_shader_parameter("horizontal_sweep", true)
+		# Faster cycle and slightly tilted stripe per owner feedback (Issue #1561).
+		mat.set_shader_parameter("cycle_duration", 2.0)
 		var overlay := ColorRect.new()
 		overlay.name = "GoldShineOverlay"
 		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
