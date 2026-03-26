@@ -139,6 +139,16 @@ const LEVELS: Array[Dictionary] = [
 		"preview_accent": Color(0.88, 0.9, 0.93, 1.0),
 		"enemy_count": 5,
 		"map_size": "3200x2400"
+	},
+	{
+		"name": "Railway Station",
+		"name_ru": "ЖД Станция",
+		"path": "res://scenes/levels/RailwayStationLevel.tscn",
+		"description": "Cross the railway station: platform, train tracks, and snow embankment. No enemies — for now.",
+		"preview_color": Color(0.12, 0.14, 0.18, 1.0),
+		"preview_accent": Color(0.75, 0.78, 0.82, 1.0),
+		"enemy_count": 0,
+		"map_size": "4000x4000"
 	}
 ]
 

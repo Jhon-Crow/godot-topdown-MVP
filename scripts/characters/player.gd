@@ -31,8 +31,9 @@ extends CharacterBody2D
 
 ## Weapon loudness - determines how far gunshots propagate for enemy detection.
 ## Default is PM/AssaultRifle level (800px, scaled from original 1469px by factor 800/1469, Issue #1269).
+## Set to 840px for M16/AssaultRifle per Issue #1524.
 ## This affects how far enemies can hear the player's gunshots.
-@export var weapon_loudness: float = 800.0
+@export var weapon_loudness: float = 840.0
 
 ## Reload mode: simple (press R once) or sequence (R-F-R).
 @export_enum("Simple", "Sequence") var reload_mode: int = 1  # Default to Sequence mode

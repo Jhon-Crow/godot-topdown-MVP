@@ -1,9 +1,10 @@
-[gd_scene load_steps=30 format=3 uid="uid://winter_forest_level_1440"]
+[gd_scene load_steps=31 format=3 uid="uid://winter_forest_level_1440"]
 
 [ext_resource type="Script" path="res://scripts/levels/winter_forest_level.gd" id="1_winter_forest_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="3_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="4_enemy"]
+[ext_resource type="PackedScene" uid="uid://snow_effect_scene_1548" path="res://scenes/effects/SnowEffect.tscn" id="5_snow_effect"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_horizontal"]
 size = Vector2(3264, 32)
@@ -929,3 +930,5 @@ position = Vector2(3100, 2300)
 
 [node name="Map_Top_Right" type="Marker2D" parent="SearchPathWaypoints"]
 position = Vector2(3100, 200)
+
+[node name="SnowEffect" parent="." instance=ExtResource("5_snow_effect")]

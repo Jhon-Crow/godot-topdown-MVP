@@ -65,6 +65,10 @@ func _ready() -> void:
 	# Setup realistic water on the Beach level (Issue #1445)
 	_setup_water()
 
+	# Restrict camera top limit so WallTop (y=48, h=32 → bottom at y=64) is
+	# never visible — Issue #1550.
+	_setup_camera_limits()
+
 
 func _initialize_score_manager() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
@@ -942,6 +946,17 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		armory_button.add_theme_stylebox_override("normal", armory_style)
 		armory_button.pressed.connect(_on_armory_button_pressed)
 		buttons_container.add_child(armory_button)
+		# Add gold shine shader overlay (Issue #1536).
+		var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+		if _armory_shine_shader:
+			var _armory_shine_mat := ShaderMaterial.new()
+			_armory_shine_mat.shader = _armory_shine_shader
+			var _armory_shine_overlay := ColorRect.new()
+			_armory_shine_overlay.name = "ArmoryGoldShineOverlay"
+			_armory_shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_armory_shine_overlay.material = _armory_shine_mat
+			armory_button.add_child(_armory_shine_overlay)
 
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
@@ -988,8 +1003,9 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/FactoryLevel.tscn",
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
-		"res://scenes/levels/WinterForestLevel.tscn",
 		"res://scenes/levels/SewerLevel.tscn",
+		"res://scenes/levels/WinterForestLevel.tscn",
+		"res://scenes/levels/RailwayStationLevel.tscn",
 	]
 	var current_scene_path: String = get_tree().current_scene.scene_file_path
 	for i in range(level_paths.size()):
@@ -1351,6 +1367,34 @@ func _setup_water() -> void:
 	var has_shader: bool = (visual != null and visual.material != null)
 	_log_to_file("Water node found OK — visual=%s shader=%s collision=%s pos=%s" % [
 		str(visual != null), str(has_shader), str(collision != null), str(water.position)
+	])
+
+
+## Restrict the player camera to the playable area so all four invisible walls
+## (WallTop / WallBottom / WallLeft / WallRight) are always off-screen (Issue #1550).
+##
+## Wall positions (from BeachLevel.tscn, shape size 2464×32 horizontal / 32×2064 vertical):
+##   WallTop    (1264,  48), h=32  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (1264, 2080), h=32 → top edge   y=2064  → limit_bottom = 2064
+##   WallLeft   (  48, 1064), w=32 → right edge x=64    → limit_left   = 64
+##   WallRight  (2480, 1064), w=32 → left edge  x=2464  → limit_right  = 2464
+func _setup_camera_limits() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[BeachLevel] Camera2D not found on player — cannot set camera limits")
+		return
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 2064   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 2464   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	_log_to_file("Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1550" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
 	])
 
 

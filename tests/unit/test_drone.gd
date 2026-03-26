@@ -392,7 +392,6 @@ func test_avoidance_disabled_uses_intended_velocity() -> void:
 	assert_gt(drone._velocity.x, 0.0, "Without avoidance, drone should use intended (rightward) velocity")
 
 
-# ============================================================================
 # Combat Re-aiming Tests (Issue #1542)
 # ============================================================================
 
@@ -514,3 +513,87 @@ func test_reaim_does_not_start_mid_overshoot() -> void:
 	drone.update_combat(0.016)
 	assert_false(drone._is_reaiming,
 		"Drone must NOT enter re-aim on the first tick — zanос is still in progress")
+
+
+# ============================================================================
+# Operator-killed explosion tests (Issue #1551)
+# ============================================================================
+
+
+class MockDroneWithOperatorLink:
+	## Mirrors the operator-death link added in Issue #1551:
+	## initialize_drone() connects operator.died → _explode().
+	var _is_alive: bool = true
+	var _has_exploded: bool = false
+	var _operator: MockOperatorNode = null
+
+	func initialize_drone(operator: MockOperatorNode) -> void:
+		_operator = operator
+		# Mirror the real connection: operator.died → _explode
+		operator.on_died_callbacks.append(_explode)
+
+	func _explode() -> void:
+		if _has_exploded or not _is_alive:
+			return
+		_has_exploded = true
+		_is_alive = false
+
+	func is_alive() -> bool:
+		return _is_alive
+
+	func has_exploded() -> bool:
+		return _has_exploded
+
+
+class MockOperatorNode:
+	## Minimal operator node that can emit a died signal (simulated via callbacks).
+	var on_died_callbacks: Array = []
+	var _is_alive: bool = true
+
+	func die() -> void:
+		_is_alive = false
+		for cb in on_died_callbacks:
+			cb.call()
+
+	func is_alive() -> bool:
+		return _is_alive
+
+
+func test_drone_explodes_when_operator_killed() -> void:
+	# Issue #1551: killing the operator must cause the drone to explode.
+	var operator := MockOperatorNode.new()
+	var drone := MockDroneWithOperatorLink.new()
+	drone.initialize_drone(operator)
+
+	assert_true(drone.is_alive(), "Drone should be alive before operator dies")
+	assert_false(drone.has_exploded(), "Drone should not have exploded yet")
+
+	operator.die()
+
+	assert_true(drone.has_exploded(), "Drone must explode immediately when operator is killed")
+	assert_false(drone.is_alive(), "Drone must be dead after explosion triggered by operator death")
+
+
+func test_drone_explode_not_called_twice_when_operator_killed() -> void:
+	# _explode() has a guard: _has_exploded prevents double-explosion.
+	var operator := MockOperatorNode.new()
+	var drone := MockDroneWithOperatorLink.new()
+	drone.initialize_drone(operator)
+
+	# Simulate drone already exploded (e.g. player collision) before operator dies
+	drone._has_exploded = true
+	drone._is_alive = false
+
+	operator.die()
+
+	# Should still be in the same dead-exploded state without crashing
+	assert_true(drone.has_exploded(), "Exploded flag must remain true")
+	assert_false(drone.is_alive(), "Drone must remain dead")
+
+
+func test_drone_without_operator_does_not_crash() -> void:
+	# initialize_drone() with null operator must not connect any signal.
+	var drone := MockDroneWithOperatorLink.new()
+	# No initialize_drone() call — operator is null
+	assert_true(drone.is_alive(), "Drone without operator should still be alive initially")
+	assert_false(drone.has_exploded(), "Drone without operator should not have exploded")

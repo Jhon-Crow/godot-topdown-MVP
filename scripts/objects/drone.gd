@@ -107,6 +107,9 @@ func _ready() -> void:
 ## Called by DroneOperatorComponent after the drone is added to the scene tree.
 func initialize_drone(operator: Node2D) -> void:
 	_operator = operator
+	# Issue #1551: when the operator is killed, the drone must explode immediately.
+	if operator and operator.has_signal("died"):
+		operator.died.connect(_explode)
 	FileLogger.info("[Drone] Initialized by operator: %s" % (operator.name if operator else "null"))
 
 
