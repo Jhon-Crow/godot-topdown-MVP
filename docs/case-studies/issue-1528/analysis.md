@@ -303,6 +303,52 @@ For BuildingLevel with 20 enemies in active combat:
 
 ---
 
+---
+
+## V5 Follow-up Analysis (2026-03-26) — User Report: "не исправлено" (still not fixed)
+
+**New game logs:** `game_log_20260326_161418.txt` (5,021 lines, ~121 seconds), `game_log_20260326_161707.txt` (5,267 lines, ~94 seconds)
+
+**FPS Range observed:** 3–13 fps (Log 1), 2–29 fps (Log 2)
+
+### New Root Causes Identified (v5)
+
+#### RC-V5-1: SEARCHING Corner Check Log Flood (~22 file writes/sec)
+
+`_process_corner_check` triggered `_log_to_file()` every time a corner was detected. With 20 enemies searching, this produced 2,086 file writes in 94 seconds. Each write is a synchronous disk I/O operation.
+
+**Fix:** Changed `_log_to_file()` → `_log_debug()` (only active when `debug_logging=true`).
+
+#### RC-V5-2: SEARCHING Stuck Waypoint Log Flood (~7.8 file writes/sec)
+
+`SEARCHING: Stuck at wp N, skipping` fired every 0.8s per stuck enemy. With many enemies navigating dense areas, this produced 730 writes in 94 seconds.
+
+**Fix:** Changed `_log_to_file()` → `_log_debug()`.
+
+#### RC-V5-3: Priority Attack Log Flood (~8 file writes/sec)
+
+"Player distracted - priority attack triggered" fires on every priority shot. With 20 enemies in combat, this produced 983 file writes in 121 seconds. Similarly, "Player reloading/empty ammo - priority attack triggered" fires on every vulnerability shot.
+
+**Fix:** Changed both `_log_to_file()` → `_log_debug()`.
+
+#### RC-V5-4: Invincibility Mode Hit Log Flood (~2.3 file writes/sec during debug testing)
+
+`FileLogger.info("[Player] Hit blocked by invincibility mode")` fired on every hit while F6 invincibility was active — 278 times in 121 seconds during user testing.
+
+**Fix:** Changed `FileLogger.info()` → `FileLogger.debug()`.
+
+### V5 Combined Savings
+
+| Root Cause | Before v5 | After v5 |
+|------------|-----------|----------|
+| Corner check file writes/sec | ~22 | **0** |
+| Stuck waypoint file writes/sec | ~7.8 | **0** |
+| Priority attack file writes/sec | ~8 | **0** |
+| Invincibility hit file writes/sec | ~2.3 | **0** |
+| **Total file I/O eliminated/sec** | **~40** | **0** |
+
+---
+
 ## References
 
 - [Godot Docs: General Optimization Tips](https://docs.godotengine.org/en/stable/tutorials/performance/general_optimization.html)

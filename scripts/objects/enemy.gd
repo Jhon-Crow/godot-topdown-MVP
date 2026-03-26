@@ -1020,6 +1020,13 @@ func _update_enemy_model_rotation() -> void:
 		var ppos := "(%d,%d)" % [int(_player.global_position.x), int(_player.global_position.y)] if _player else "null"
 		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f%s" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, _corner_check_timer, " [->companion]" if _current_target == _companion else ""])
 		_last_rotation_reason = rotation_reason
+	# [Issue #1530] Sniper: sync model to laser angle (laser already sweeps at LASER_ROTATION_SPEED).
+	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:
+		target_angle = _sniper_component.get_aim_direction().angle()
+		_enemy_model.global_rotation = target_angle
+		_model_facing_left = absf(target_angle) > PI / 2
+		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale if _model_facing_left else enemy_model_scale)
+		return
 	# Smooth rotation for visual polish (Issue #347)
 	var delta := get_physics_process_delta_time()
 	var current_rot := _enemy_model.global_rotation
@@ -1304,7 +1311,7 @@ func _process_ai_state(delta: float) -> void:
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
-			_log_to_file("Player distracted - priority attack triggered")
+			_log_debug("Player distracted - priority attack triggered")  # #1528 v5: ~8/s file writes → debug-only
 			_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 			if _shield_component and _shield_component.get_rotation_multiplier() < 1.0: _set_hit_reaction_target(direction_to_player)  # Issue #1242: shield enemy slowly aims
 			else: _force_model_to_face_direction(direction_to_player)  # Fix issue #264: ensure correct aim
@@ -1346,7 +1353,7 @@ func _process_ai_state(delta: float) -> void:
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
 			var reason: String = "reloading" if player_reloading else "empty ammo"
-			_log_to_file("Player %s - priority attack triggered" % reason)
+			_log_debug("Player %s - priority attack triggered" % reason)  # #1528 v5: frequent in combat → debug-only
 
 			_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 			if _shield_component and _shield_component.get_rotation_multiplier() < 1.0: _set_hit_reaction_target(direction_to_player)  # Issue #1242: shield slowly aims
@@ -2426,7 +2433,7 @@ func _process_searching_state(delta: float) -> void:
 				if progress < SEARCH_PROGRESS_THRESHOLD:
 					_search_stuck_timer += delta
 					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:  # Stuck - skip waypoint
-						_log_to_file("SEARCHING: Stuck at wp %d, skipping" % _search_current_waypoint_index)
+						_log_debug("SEARCHING: Stuck at wp %d, skipping" % _search_current_waypoint_index)  # #1528 v5: 7.8/s during search → debug-only
 						_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0; _search_last_progress_position = global_position; return
 				else: _search_stuck_timer = 0.0; _search_last_progress_position = global_position
@@ -4026,8 +4033,10 @@ func _calculate_lead_prediction() -> Vector2:
 		_log_debug("Lead prediction disabled: visibility ratio %.2f < %.2f required (player at cover edge)" % [_player_visibility_ratio, lead_prediction_visibility_threshold])
 		return player_pos
 
-	var player_velocity := Vector2.ZERO
-	if _player is CharacterBody2D: player_velocity = _player.velocity
+	# Issue #1530: Sniper uses EMA-smoothed velocity (inertia → miss on reversal); others use raw velocity.
+	var player_velocity: Vector2 = _sniper_component._smoothed_player_velocity if _sniper_component != null else ((_player as CharacterBody2D).velocity if _player is CharacterBody2D else Vector2.ZERO)
+
+	# If player is stationary, no need for prediction
 	if player_velocity.length_squared() < 1.0:
 		return player_pos
 
@@ -4113,7 +4122,7 @@ func _process_corner_check(delta: float, move_dir: Vector2, state_name: String) 
 		_corner_check_timer -= delta  # #347: rotation via _update_enemy_model_rotation()
 	elif _detect_perpendicular_opening(move_dir):
 		_corner_check_timer = CORNER_CHECK_DURATION
-		_log_to_file("%s corner check: angle %.1f°" % [state_name, rad_to_deg(_corner_check_angle)])
+		_log_debug("%s corner check: angle %.1f°" % [state_name, rad_to_deg(_corner_check_angle)])  # #1528 v5: 22/s during search → debug-only
 
 ## Process guard behavior - scan for threats every IDLE_SCAN_INTERVAL seconds.
 func _process_guard(delta: float) -> void:
@@ -4294,17 +4303,11 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 	var muzzle_local_offset := 52.0  # Rifle: offset.x(20) + sprite_width/2(32) = 52px
 	if _weapon_sprite and _enemy_model:
 		var weapon_forward: Vector2
-
-		# Direct calc to player when visible to avoid transform delay (#264)
-		if _player and is_instance_valid(_player) and _can_see_player:
-			weapon_forward = (_player.global_position - global_position).normalized()
-		else:
-			# Use global_transform.x (accounts for scale flip when aiming left)
-			weapon_forward = _weapon_sprite.global_transform.x.normalized()
-
-		# Calculate muzzle offset accounting for enemy model scale
+		# [#1530] Sniper uses laser angle; others direct calc when visible (#264); else transform
+		if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null: weapon_forward = _sniper_component.get_aim_direction()
+		elif _player and is_instance_valid(_player) and _can_see_player: weapon_forward = (_player.global_position - global_position).normalized()
+		else: weapon_forward = _weapon_sprite.global_transform.x.normalized()
 		var scaled_muzzle_offset := muzzle_local_offset * enemy_model_scale
-		# Use weapon sprite's global position as base, then offset to reach the muzzle
 		var result := _weapon_sprite.global_position + weapon_forward * scaled_muzzle_offset
 		if debug_logging:
 			var angle_forward := Vector2.from_angle(_enemy_model.rotation)
@@ -4317,6 +4320,7 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 
 ## Returns the weapon's forward direction (normalized, Issue #264).
 func _get_weapon_forward_direction() -> Vector2:
+	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null: return _sniper_component.get_aim_direction()  # [#1530] laser angle = bullet/tracer direction
 	# Direct calc to player when visible to avoid transform delay
 	if _player and is_instance_valid(_player) and _can_see_player:
 		return (_player.global_position - global_position).normalized()
