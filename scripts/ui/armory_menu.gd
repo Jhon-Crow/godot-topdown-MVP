@@ -192,6 +192,10 @@ var _slot_progress_overlays: Dictionary = {}
 ## Dictionary: slot -> tween reference
 var _active_reveal_tweens: Dictionary = {}
 
+## Animation state tracking for selection animations (shake + glint).
+## Dictionary: slot -> tween reference — killed if the same slot is re-selected quickly.
+var _active_selection_tweens: Dictionary = {}
+
 ## Tracks shine overlay ColorRect nodes added to condition-met slots (Issue #1536).
 ## Dictionary: slot -> ColorRect
 var _shine_overlays: Dictionary = {}
@@ -973,6 +977,9 @@ func _on_active_item_slot_gui_input(event: InputEvent, slot: PanelContainer, ite
 				_highlight_selected_items()
 				_update_loadout_panel()
 				_update_apply_button_state()
+
+				# Play shake + glint animation on the selected slot
+				_play_weapon_selection_animation(slot)
 			elif condition_met:
 				# Locked item with condition met: start tracking LMB hold for unlocking
 				_lmb_hold_tracking[slot] = {
@@ -1093,6 +1100,9 @@ func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String
 				_highlight_selected_items()
 				_update_loadout_panel()
 				_update_apply_button_state()
+
+				# Play shake + glint animation on the selected slot
+				_play_weapon_selection_animation(slot)
 			elif condition_met:
 				# Locked item with condition met: start tracking LMB hold for unlocking
 				_lmb_hold_tracking[slot] = {
@@ -1659,6 +1669,116 @@ func _rebuild_active_item_slot_animated(item_type: int) -> void:
 
 		# Update visuals
 		_highlight_selected_items()
+
+
+## Plays a shake + glint animation on a weapon/grenade/item slot when it is selected.
+## The animation consists of:
+##   1. A 4-step squash-and-stretch scale punch on the weapon icon (saint11 pixel-art style).
+##   2. A diagonal glint sweep rendered via a ShaderMaterial on the icon TextureRect — the
+##      shader works in UV [0,1]² space so the effect is strictly confined to the icon pixels
+##      and cannot bleed onto the card, border, or label.
+##   3. A brightness flash (modulate) that briefly bleaches the icon white then fades back.
+##
+## Based on the 4-step pixel art animation principle from saint11.art/blog/pixel-art-tutorials/:
+## anticipation → action → follow-through → settle.
+func _play_weapon_selection_animation(slot: PanelContainer) -> void:
+	var vbox: VBoxContainer = slot.get_child(0) as VBoxContainer
+	if vbox == null:
+		return
+
+	# Get the weapon icon TextureRect — the card itself must NOT be deformed.
+	# All scale, glint, and flash animations target only the icon TextureRect.
+	var icon_container: CenterContainer = vbox.get_child(0) as CenterContainer
+	if icon_container == null:
+		return
+	var icon_rect: TextureRect = icon_container.get_child(0) as TextureRect
+	if icon_rect == null:
+		return
+
+	# Kill any in-progress selection tween for this slot and reset icon state
+	if slot in _active_selection_tweens:
+		var old_tween = _active_selection_tweens[slot]
+		if old_tween and old_tween.is_valid():
+			old_tween.kill()
+		_active_selection_tweens.erase(slot)
+		# Reset icon to clean state so the new animation starts fresh
+		icon_rect.scale = Vector2(1.0, 1.0)
+		icon_rect.modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+	# Ensure the icon pivot is centred for scale/rotation animations
+	icon_rect.pivot_offset = icon_rect.size / 2.0
+
+	# --- GLINT SHADER (runs entirely in icon UV space — never bleeds onto the card) ---
+	# Using a ShaderMaterial on the TextureRect means the effect is computed per-pixel
+	# within the icon's own UV [0,1]² space. There is no separate overlay node and
+	# no clip_contents workaround needed — the glint is mathematically impossible to
+	# appear outside the icon bounds.
+	var glint_shader := load("res://scripts/shaders/weapon_select_glint.gdshader") as Shader
+	var glint_mat: ShaderMaterial = null
+	if glint_shader:
+		glint_mat = ShaderMaterial.new()
+		glint_mat.shader = glint_shader
+		glint_mat.set_shader_parameter("anim_progress", 0.0)
+		icon_rect.material = glint_mat
+
+	# Animate the shader `anim_progress` from 0 → 1 over 0.22 s (4-step pixel-art shine):
+	#   0.00 – 0.20 : glint fades in (smoothstep inside shader)
+	#   0.00 – 1.00 : stripe sweeps left → right across the icon
+	#   0.75 – 1.00 : glint fades out (smoothstep inside shader)
+	if glint_mat:
+		var glint_tween := create_tween()
+		glint_tween.tween_property(glint_mat, "shader_parameter/anim_progress", 1.0, 0.22) \
+			.set_ease(Tween.EASE_IN_OUT)
+		glint_tween.tween_callback(func():
+			if is_instance_valid(icon_rect):
+				icon_rect.material = null
+		)
+
+	# --- ICON SHAKE + SCALE (4-step pixel-art punch, icon only, card is untouched) ---
+	# The TextureRect is inside a CenterContainer whose layout is managed by Godot, so
+	# position tweening is unreliable. Instead, the "shake" uses squash-and-stretch
+	# (asymmetric X/Y scale) — visually equivalent to a snap/punch without fighting
+	# the layout engine.
+	#
+	# 4 steps (mirrors saint11 pixel-art tutorial):
+	#   Step 1 — anticipation : squish wide & flat  (set immediately)
+	#   Step 2 — action       : stretch tall         (snappy upswing)
+	#   Step 3 — follow-through: slight over-squish  (rebound)
+	#   Step 4 — settle       : spring back to normal
+
+	# Step 1 — anticipation: set immediately (wide, flat)
+	icon_rect.scale = Vector2(1.15, 0.85)
+
+	# Sequential tween for the 4-step scale punch
+	var scale_tween := create_tween()
+	_active_selection_tweens[slot] = scale_tween
+
+	# Step 2 — action: stretch tall
+	scale_tween.tween_property(icon_rect, "scale", Vector2(0.85, 1.15), 0.06) \
+		.set_ease(Tween.EASE_OUT)
+	# Step 3 — follow-through: slight over-squish
+	scale_tween.tween_property(icon_rect, "scale", Vector2(1.08, 0.94), 0.05) \
+		.set_ease(Tween.EASE_IN_OUT)
+	# Step 4 — settle: spring back to normal with slight overshoot
+	scale_tween.tween_property(icon_rect, "scale", Vector2(1.0, 1.0), 0.12) \
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
+	# Clean up when the scale animation finishes
+	scale_tween.tween_callback(func():
+		if slot in _active_selection_tweens:
+			_active_selection_tweens.erase(slot)
+		if is_instance_valid(icon_rect):
+			icon_rect.scale = Vector2(1.0, 1.0)
+			icon_rect.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	)
+
+	# Brightness flash on the icon only — separate parallel tween so it fires immediately
+	var flash_tween := create_tween()
+	flash_tween.set_parallel(true)
+	flash_tween.tween_property(icon_rect, "modulate", Color(1.9, 1.9, 1.9, 1.0), 0.05) \
+		.set_ease(Tween.EASE_IN)
+	flash_tween.tween_property(icon_rect, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.18) \
+		.set_ease(Tween.EASE_OUT).set_delay(0.05)
 
 
 ## Animates a newly created slot appearing with fade-in and scale pop.
