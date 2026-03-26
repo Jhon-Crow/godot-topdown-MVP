@@ -552,3 +552,37 @@ func test_drone_operator_component_script_exists() -> void:
 func test_drone_component_script_exists() -> void:
 	assert_true(ResourceLoader.exists("res://scripts/components/drone_component.gd"),
 		"drone_component.gd script must exist")
+
+
+func test_end_dash_zeros_velocity_to_prevent_corner_walking() -> void:
+	## Issue #1540 session 5: after dash ends velocity must be zero so the operator does not
+	## keep coasting into a corner. Previously _end_dash() set 50% dash velocity which caused
+	## the operator to slide into walls after the sidestep.
+	var file := FileAccess.open("res://scripts/components/drone_operator_component.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open drone_operator_component.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_false(source.contains("_dash_direction * base_speed * 0.5"),
+		"_end_dash() must not set 50% dash velocity — operator would coast into corners (Issue #1540)")
+
+
+func test_enemy_resets_combat_approach_on_dash_end() -> void:
+	## Issue #1540 session 5: _on_drone_operator_dash_ended must reset stale COMBAT approach
+	## variables (_combat_approaching, _seeking_clear_shot, _clear_shot_target, timers) so the
+	## operator re-evaluates movement from the post-dash position instead of heading to a corner.
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("_on_drone_operator_dash_ended"),
+		"enemy.gd must define _on_drone_operator_dash_ended() to reset COMBAT state after dash (Issue #1540)")
+	assert_true(source.contains("_seeking_clear_shot = false"),
+		"_on_drone_operator_dash_ended must reset _seeking_clear_shot (Issue #1540)")
+	assert_true(source.contains("_clear_shot_target = Vector2.ZERO"),
+		"_on_drone_operator_dash_ended must reset _clear_shot_target (Issue #1540)")

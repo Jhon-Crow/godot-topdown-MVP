@@ -1156,14 +1156,14 @@ func _update_suppression(delta: float) -> void:
 		if _threat_reaction_delay_elapsed and not (_force_field_component and _force_field_component.is_active()):
 			if _drone_operator and _drone_operator.should_dash_instead_of_suppress(): _drone_operator.try_dash_from_threat(_bullets_in_threat_sphere, _player, global_position)
 			else: _under_fire = true; _suppression_timer = 0.0
-
+## Reset COMBAT approach state when DroneOperator dash ends (Issue #1540): stale pre-dash targets cause corner-walking.
+func _on_drone_operator_dash_ended() -> void: _combat_exposed = false; _combat_approaching = false; _seeking_clear_shot = false; _clear_shot_target = Vector2.ZERO; _combat_approach_timer = 0.0; _combat_shoot_timer = 0.0
 ## Update reload state.
 func _update_reload(delta: float) -> void:
 	if not _is_reloading: return
 	if _revolver_component and _revolver_component.is_reloading_coroutine(): return  # [#1242] Revolver uses coroutine, not timer
 	_reload_timer += delta
 	if _reload_timer >= reload_time: _finish_reload()
-
 ## Start reloading the weapon.
 func _start_reload() -> void:
 	if _is_reloading or _reserve_ammo <= 0: return

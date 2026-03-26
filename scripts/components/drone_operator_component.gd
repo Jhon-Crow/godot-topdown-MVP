@@ -598,10 +598,10 @@ func _end_dash() -> void:
 	_dash_active = false
 	_dash_timer = 0.0
 
-	# Reduce velocity smoothly
+	# Zero out velocity so AI re-evaluates movement from the post-dash position (Issue #1540).
+	# Keeping residual dash velocity here pushed the operator into corners after the sidestep.
 	if _parent and "velocity" in _parent:
-		var base_speed: float = _parent.get("combat_move_speed") if _parent.get("combat_move_speed") else 320.0
-		_parent.velocity = _dash_direction * base_speed * 0.5
+		_parent.velocity = Vector2.ZERO
 
 	if _dash_charges <= 0:
 		_dash_cooldown_timer = DASH_COOLDOWN
@@ -609,6 +609,12 @@ func _end_dash() -> void:
 	else:
 		_dash_chain_timer = DASH_CHAIN_WINDOW
 		FileLogger.info("[DroneOperator] Dash ended. %d charges left, chain window: %.1fs" % [_dash_charges, DASH_CHAIN_WINDOW])
+
+	# Notify the parent enemy to reset stale COMBAT approach state (Issue #1540).
+	# After a dash the operator is at a new position; stale approach targets computed before
+	# the dash may point into walls/corners and cause the operator to get stuck there.
+	if _parent and _parent.has_method("_on_drone_operator_dash_ended"):
+		_parent._on_drone_operator_dash_ended()
 
 
 ## Spawn an afterimage at the operator's current position.

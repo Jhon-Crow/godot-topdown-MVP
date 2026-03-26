@@ -186,3 +186,50 @@ _process_ai_state(delta); if _drone_operator and _drone_operator.is_dashing(): v
 - Log file (session 2 regression): `game_log_20260326_105350.txt`
 - Log file (session 3 regression): `game_log_20260326_130728.txt`
 - Log file (session 4 regression): `game_log_20260326_141747.txt`
+
+---
+
+## Follow-up Bug Report (2026-03-26 12:01): Operator Walks to Corner After Dash
+
+After Session 4 fix, owner reported: "Уже лучше — теперь он стреляет после рывка, но он всё ещё идёт куда то в угол, а не действует как нормальный враг" (now shoots after dash, but still walks to a corner and doesn't act like a normal enemy).
+
+### Evidence (`game_log_20260326_145840.txt`)
+
+Key sequence:
+- 14:59:27: Player bullet enters threat sphere. `Dash activated! Dir: (0.71, -0.71)` (northeast)
+- During dash: `Sideways evade: dir=...` logged every frame as direction rotates from `(0.71,-0.71)` → `(1.00,-0.05)` (new bullets arriving at different angles)
+- 14:59:28: Operator position shifts from `(916,386)` to `(1120,183)` — moved ~300px NE during/after dash
+- 14:59:29-30: Operator continues northeast, reaching y=88 (top wall): positions `(1293,88)`, `(1466,88)`, `(1638,88)`, `(1775,88)`
+- 14:59:30: `State: COMBAT → SEEKING_COVER` — COMBAT exposure timer expired
+- 14:59:30+: Repeated `No valid cover found` — operator is in corner with no reachable cover
+- Operator stays stuck at `(1775,88)` (top-right corner) and shoots from there until killed
+
+### Root Cause Analysis
+
+**Two compounding issues:**
+
+**1. Residual velocity after dash (`_end_dash`):**  
+After 0.15s the dash ends. `_end_dash()` set `_parent.velocity = _dash_direction * base_speed * 0.5` — 50% of the NE dash velocity. This residual velocity, applied BEFORE the AI could correct course, pushed the operator further NE against the wall.
+
+**2. Stale COMBAT approach state:**  
+When the dash fired, the operator was mid-approach with `_combat_approaching = true` and a stale `_clear_shot_target` computed from the pre-dash position. After the dash the operator was at a completely different location, but `_process_combat_state()` kept using the old approach variables. Additionally, `_combat_exposed = true` was reached at the new (bad) position, and after `_combat_shoot_duration` expired the operator transitioned to `SEEKING_COVER` — only to find no cover in the corner.
+
+Because `should_dash_instead_of_suppress()` returns `true` (ACTIVE phase), `_under_fire` is never set, so the `COMBAT → RETREATING` path at line 1468 never fires. The only way to leave COMBAT is via the exposure-timer → SEEKING_COVER path, which leads to the corner cycle.
+
+### Fix Applied (Session 5)
+
+**In `drone_operator_component.gd::_end_dash()`:**
+- Set velocity to `Vector2.ZERO` instead of 50% dash direction — stops post-dash coasting into walls
+- Call `_parent._on_drone_operator_dash_ended()` if available
+
+**In `enemy.gd`:** Added `_on_drone_operator_dash_ended()` (2-line compact method):
+```gdscript
+func _on_drone_operator_dash_ended() -> void:
+    _combat_exposed = false; _combat_approaching = false
+    _seeking_clear_shot = false; _clear_shot_target = Vector2.ZERO
+    _combat_approach_timer = 0.0; _combat_shoot_timer = 0.0
+```
+
+This forces the COMBAT state to re-evaluate from the post-dash position: recalculate the approach direction toward the player, recompute `_clear_shot_target`, and avoid navigating toward the pre-dash corner waypoint.
+
+- Log file: `game_log_20260326_145840.txt`
