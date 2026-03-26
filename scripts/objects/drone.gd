@@ -36,6 +36,11 @@ const SPIRAL_EXPAND_RATE: float = 12.0      # Radius growth per second (px/s) �
 const SPIRAL_ANGULAR_SPEED: float = 1.2     # Angular velocity (rad/s) — slower rotation makes spiral pattern more open
 const BEEP_FREQUENCY: float = 1200.0
 const BEEP_DURATION: float = 0.08
+## Re-aiming constants (Issue #1542): slows drone after a miss so it can turn and re-attack.
+const MISS_DOT_THRESHOLD: float = -0.2   # dot(move_dir, to_player) below this → drone missed
+const REAIM_DRIFT_FACTOR: float = 0.70   # Looser drift while re-aiming (faster steering correction)
+const REAIM_SPEED: float = 220.0          # Reduced speed during re-aim phase
+const REAIM_EXIT_DOT: float = 0.70        # Resume full attack once drone is roughly aimed at player
 
 ## --- State ---
 var _state: int = DroneState.SEARCHING
@@ -54,6 +59,9 @@ var _spiral_radius: float = SPIRAL_START_RADIUS  # Current orbit radius
 ## ORCA-computed avoidance velocity (Issue #1508): set asynchronously via velocity_computed signal.
 ## Prevents the drone from pushing other enemies during the spiral search.
 var _avoidance_velocity: Vector2 = Vector2.ZERO
+
+## Re-aiming state (Issue #1542): true while drone is slowing down to re-aim after a miss.
+var _is_reaiming: bool = false
 
 ## Beep state
 var _beep_timer: float = 0.0
@@ -190,6 +198,7 @@ func _transition_to_combat() -> void:
 	_state = DroneState.COMBAT
 	_beep_timer = 0.0
 	_beep_idx = 0
+	_is_reaiming = false
 	if _led:
 		_led.color = Color(1.0, 0.1, 0.05, 0.95)
 	if _led_light:
@@ -225,9 +234,21 @@ func _update_combat(delta: float) -> void:
 	if _current_move_dir == Vector2.ZERO:
 		_current_move_dir = desired_dir
 	else:
-		_current_move_dir = (_current_move_dir * DRIFT_FACTOR + desired_dir * (1.0 - DRIFT_FACTOR)).normalized()
+		# Issue #1542: choose drift factor based on re-aiming state.
+		var drift: float = REAIM_DRIFT_FACTOR if _is_reaiming else DRIFT_FACTOR
+		_current_move_dir = (_current_move_dir * drift + desired_dir * (1.0 - drift)).normalized()
 
-	velocity = _current_move_dir * COMBAT_SPEED
+	# Issue #1542: detect miss (drone flying away from player) and manage re-aim phase.
+	var alignment: float = _current_move_dir.dot(desired_dir)
+	if not _is_reaiming and alignment < MISS_DOT_THRESHOLD:
+		_is_reaiming = true
+		FileLogger.info("[Drone] MISS detected — entering re-aim phase (alignment=%.2f)" % alignment)
+	elif _is_reaiming and alignment >= REAIM_EXIT_DOT:
+		_is_reaiming = false
+		FileLogger.info("[Drone] Re-aim complete — resuming full-speed attack (alignment=%.2f)" % alignment)
+
+	var speed: float = REAIM_SPEED if _is_reaiming else COMBAT_SPEED
+	velocity = _current_move_dir * speed
 	move_and_slide()
 
 	for i in range(get_slide_collision_count()):
