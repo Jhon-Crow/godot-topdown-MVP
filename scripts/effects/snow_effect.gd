@@ -2,9 +2,13 @@ extends Node2D
 class_name SnowEffect
 ## Top-down snowfall effect for the Winter Forest map (Issue #1548).
 ##
-## Single-layer particle system rendered on a CanvasLayer (screen space) so snow
+## Two-layer particle system rendered on a CanvasLayer (screen space) so snow
 ## always covers the visible viewport regardless of camera position:
-##   - SnowFlakes: simple square particles drifting downward with gentle horizontal sway
+##   - SnowFlakesLarge: larger circular flakes with inward radial velocity (fish-eye top-down perspective)
+##   - SnowFlakesSmall: smaller circular flakes at slower inward radial velocity for depth variation
+##
+## Particles use negative radial_velocity so they move inward toward screen center,
+## matching the top-down falling appearance of the RainEffect (Issue #1394).
 ##
 ## Snow is always active (continuous) while on the Winter Forest map.
 ## No exclusion zones needed — the level is fully outdoor.
@@ -12,15 +16,20 @@ class_name SnowEffect
 ## Snow canvas layer node (defined in .tscn).
 @onready var _snow_canvas: CanvasLayer = $SnowCanvas
 
-## Snowflake particle node (defined in .tscn).
-@onready var _flakes: GPUParticles2D = $SnowCanvas/SnowFlakes
+## Large snowflake particle node (defined in .tscn).
+@onready var _flakes_large: GPUParticles2D = $SnowCanvas/SnowFlakesLarge
 
-## Controls emission state of the particle layer.
+## Small snowflake particle node (defined in .tscn).
+@onready var _flakes_small: GPUParticles2D = $SnowCanvas/SnowFlakesSmall
+
+## Controls emission state of both particle layers.
 var emitting: bool = false:
 	set(value):
 		emitting = value
-		if _flakes:
-			_flakes.emitting = value
+		if _flakes_large:
+			_flakes_large.emitting = value
+		if _flakes_small:
+			_flakes_small.emitting = value
 
 
 func _ready() -> void:

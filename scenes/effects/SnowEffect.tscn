@@ -1,34 +1,63 @@
-[gd_scene load_steps=5 format=3 uid="uid://snow_effect_scene_1548"]
+[gd_scene load_steps=7 format=3 uid="uid://snow_effect_scene_1548"]
 
 [ext_resource type="Script" path="res://scripts/effects/snow_effect.gd" id="1_snow_effect"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_additive"]
 blend_mode = 1
 
-[sub_resource type="Gradient" id="Gradient_flake"]
-offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
-colors = PackedColorArray(0.95, 0.97, 1.0, 0, 0.95, 0.97, 1.0, 0.75, 0.95, 0.97, 1.0, 0.75, 0.95, 0.97, 1.0, 0)
+[sub_resource type="Gradient" id="Gradient_flake_large"]
+offsets = PackedFloat32Array(0, 0.4, 0.7, 1)
+colors = PackedColorArray(0.95, 0.97, 1.0, 0.0, 0.95, 0.97, 1.0, 0.7, 0.9, 0.93, 1.0, 0.5, 0.9, 0.93, 1.0, 0.0)
 
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_flake"]
-gradient = SubResource("Gradient_flake")
-width = 4
-height = 4
-fill_from = Vector2(0, 0.5)
-fill_to = Vector2(1, 0.5)
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_flake_large"]
+gradient = SubResource("Gradient_flake_large")
+width = 8
+height = 8
+fill = 1
+fill_from = Vector2(0.5, 0.5)
 
-[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_flake"]
-lifetime_randomness = 0.4
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_large"]
+lifetime_randomness = 0.5
 particle_flag_disable_z = true
 emission_shape = 3
-emission_box_extents = Vector3(640, 20, 0)
-direction = Vector3(0, 1, 0)
-spread = 15.0
-initial_velocity_min = 40.0
-initial_velocity_max = 80.0
-gravity = Vector3(0, 20, 0)
-scale_min = 1.0
-scale_max = 3.0
-color = Color(0.95, 0.97, 1.0, 0.8)
+emission_box_extents = Vector3(640, 360, 0)
+direction = Vector3(0, 0, 0)
+spread = 0.0
+initial_velocity_min = 0.0
+initial_velocity_max = 0.0
+radial_velocity_min = -55.0
+radial_velocity_max = -20.0
+gravity = Vector3(0, 0, 0)
+scale_min = 0.6
+scale_max = 1.8
+color = Color(0.95, 0.97, 1.0, 0.65)
+
+[sub_resource type="Gradient" id="Gradient_flake_small"]
+offsets = PackedFloat32Array(0, 0.35, 0.65, 1)
+colors = PackedColorArray(1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.55, 0.95, 0.97, 1.0, 0.4, 0.95, 0.97, 1.0, 0.0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_flake_small"]
+gradient = SubResource("Gradient_flake_small")
+width = 4
+height = 4
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_small"]
+lifetime_randomness = 0.5
+particle_flag_disable_z = true
+emission_shape = 3
+emission_box_extents = Vector3(640, 360, 0)
+direction = Vector3(0, 0, 0)
+spread = 0.0
+initial_velocity_min = 0.0
+initial_velocity_max = 0.0
+radial_velocity_min = -40.0
+radial_velocity_max = -12.0
+gravity = Vector3(0, 0, 0)
+scale_min = 0.5
+scale_max = 1.2
+color = Color(1.0, 1.0, 1.0, 0.5)
 
 [node name="SnowEffect" type="Node2D"]
 script = ExtResource("1_snow_effect")
@@ -36,12 +65,22 @@ script = ExtResource("1_snow_effect")
 [node name="SnowCanvas" type="CanvasLayer" parent="."]
 layer = 5
 
-[node name="SnowFlakes" type="GPUParticles2D" parent="SnowCanvas"]
-position = Vector2(640, 0)
+[node name="SnowFlakesLarge" type="GPUParticles2D" parent="SnowCanvas"]
+position = Vector2(640, 360)
+material = SubResource("CanvasItemMaterial_additive")
+emitting = true
+amount = 80
+process_material = SubResource("ParticleProcessMaterial_large")
+texture = SubResource("GradientTexture2D_flake_large")
+lifetime = 0.5
+visibility_rect = Rect2(-700, -400, 1400, 900)
+
+[node name="SnowFlakesSmall" type="GPUParticles2D" parent="SnowCanvas"]
+position = Vector2(640, 360)
 material = SubResource("CanvasItemMaterial_additive")
 emitting = true
 amount = 120
-process_material = SubResource("ParticleProcessMaterial_flake")
-texture = SubResource("GradientTexture2D_flake")
-lifetime = 8.0
-visibility_rect = Rect2(-700, -50, 1400, 800)
+process_material = SubResource("ParticleProcessMaterial_small")
+texture = SubResource("GradientTexture2D_flake_small")
+lifetime = 0.7
+visibility_rect = Rect2(-700, -400, 1400, 900)
