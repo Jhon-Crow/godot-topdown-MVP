@@ -1012,6 +1012,19 @@ func _update_enemy_model_rotation() -> void:
 		var ppos := "(%d,%d)" % [int(_player.global_position.x), int(_player.global_position.y)] if _player else "null"
 		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f%s" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, _corner_check_timer, " [->companion]" if _current_target == _companion else ""])
 		_last_rotation_reason = rotation_reason
+	# [Issue #1530] Sniper: sync model rotation to the laser's interpolated angle.
+	# The laser already sweeps at LASER_ROTATION_SPEED; drive the weapon sprite from it
+	# so the visible model, laser, and bullet all point in the same direction.
+	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:
+		target_angle = _sniper_component.get_aim_direction().angle()
+		_enemy_model.global_rotation = target_angle
+		var aiming_left_sniper := absf(target_angle) > PI / 2
+		_model_facing_left = aiming_left_sniper
+		if aiming_left_sniper:
+			_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
+		else:
+			_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
+		return
 	# Smooth rotation for visual polish (Issue #347)
 	var delta := get_physics_process_delta_time()
 	var current_rot := _enemy_model.global_rotation
@@ -4309,8 +4322,11 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 	if _weapon_sprite and _enemy_model:
 		var weapon_forward: Vector2
 
+		# [Issue #1530] Sniper: use the laser's interpolated angle for muzzle position.
+		if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:
+			weapon_forward = _sniper_component.get_aim_direction()
 		# Direct calc to player when visible to avoid transform delay (#264)
-		if _player and is_instance_valid(_player) and _can_see_player:
+		elif _player and is_instance_valid(_player) and _can_see_player:
 			weapon_forward = (_player.global_position - global_position).normalized()
 		else:
 			# Use global_transform.x (accounts for scale flip when aiming left)
@@ -4331,6 +4347,9 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 
 ## Returns the weapon's forward direction (normalized, Issue #264).
 func _get_weapon_forward_direction() -> Vector2:
+	# [Issue #1530] Sniper: use the laser's interpolated angle so bullet and tracer match laser.
+	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:
+		return _sniper_component.get_aim_direction()
 	# Direct calc to player when visible to avoid transform delay
 	if _player and is_instance_valid(_player) and _can_see_player:
 		return (_player.global_position - global_position).normalized()

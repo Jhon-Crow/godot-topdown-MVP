@@ -83,6 +83,11 @@ const LASER_ALIGNMENT_THRESHOLD: float = 0.05
 ## Issue #1336 snap: exact firing angle set at shot time so tracer and laser match.
 var _laser_snap_angle: float = NAN  # NAN = not snapped; set just before shot fires
 
+## [Issue #1530] Returns the laser's current interpolated aim direction.
+## Use this for bullet/hitscan direction so tracer always matches laser.
+func get_aim_direction() -> Vector2:
+	return Vector2.from_angle(_laser_current_angle)
+
 
 func _ready() -> void:
 	if enemy == null:

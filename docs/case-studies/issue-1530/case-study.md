@@ -130,6 +130,92 @@ Both mechanisms now work together:
 
 The sniper accurately hits stationary or slow-moving players (~1–2 seconds to lock on), but misses fast-moving or reversing players.
 
+---
+
+## Third Iteration: Laser-Driven Aim (owner feedback on PR #1531, 2026-03-26)
+
+### Problem Report (game_log_20260326_114107.txt)
+
+After the second fix, the owner reported that the sniper **still aimed too fast**. The root cause was
+identified more precisely:
+
+> "снайпер может поворачиваться с любой скоростью... вообще трассер должен совпадать с лазером снайпера."
+> (the sniper can rotate at any speed... and the tracer must match the sniper's laser)
+
+### Root Cause of "Still Too Fast"
+
+The second fix overrode `enemy.rotation_speed = 3.2` and relied on `_aim_at_player()` to rotate
+`enemy.rotation` (the CharacterBody2D's body angle) slowly. However:
+
+1. **`_update_enemy_model_rotation()` uses `MODEL_ROTATION_SPEED = 3.0` (hardcoded constant)** for
+   the visual model — this part was already slow, but the weapon sprites' effective pointing direction
+   was computed via `_get_weapon_forward_direction()`.
+
+2. **`_get_weapon_forward_direction()` bypassed all rotation limits** when `_can_see_player`:
+   ```gdscript
+   if _player and is_instance_valid(_player) and _can_see_player:
+       return (_player.global_position - global_position).normalized()  # INSTANT
+   ```
+   This made the **bullet travel in the exact instant direction to the player**, regardless of how
+   slowly the visual model was turning.
+
+3. **Tracer/laser mismatch**: the tracer comes from `shoot_sniper_hitscan(direction, ...)` where
+   `direction = _get_weapon_forward_direction()` (instant), while the laser sweeps slowly. They were
+   different directions.
+
+### Fix: Laser-Driven Weapon Aim
+
+The laser sight already correctly interpolates toward the player at `LASER_ROTATION_SPEED = 3.0 rad/s`.
+It is the single authoritative source of "where the sniper is currently aiming".
+
+The fix makes **all three systems** (model rotation, bullet direction, tracer) derive from the laser:
+
+#### 1. Public getter in `EnemySniperComponent`
+
+```gdscript
+func get_aim_direction() -> Vector2:
+    return Vector2.from_angle(_laser_current_angle)
+```
+
+#### 2. `_get_weapon_forward_direction()` uses laser for snipers
+
+```gdscript
+if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:
+    return _sniper_component.get_aim_direction()
+```
+
+#### 3. `_get_bullet_spawn_position()` uses laser for snipers
+
+```gdscript
+if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:
+    weapon_forward = _sniper_component.get_aim_direction()
+```
+
+#### 4. `_update_enemy_model_rotation()` syncs model to laser for snipers
+
+```gdscript
+if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:
+    target_angle = _sniper_component.get_aim_direction().angle()
+    _enemy_model.global_rotation = target_angle  # direct assignment, no double-interpolation
+    return
+```
+
+By directly setting `_enemy_model.global_rotation` to the laser angle (skipping the
+`MODEL_ROTATION_SPEED` lerp), we avoid a double interpolation while preserving the single
+smooth sweep already provided by the laser's `lerp_angle`.
+
+### Result
+
+| System | Before (2nd fix) | After (3rd fix) |
+|---|---|---|
+| Visual model rotation | Slow (MODEL_ROTATION_SPEED=3.0) | Follows laser exactly |
+| Bullet direction | Instant (bypass) | Follows laser (slow) |
+| Tracer direction | Instant (bypass) | Follows laser (matches) |
+| Laser direction | Slow (LASER_ROTATION_SPEED=3.0) | Unchanged |
+| Model ↔ laser ↔ tracer | Mismatch | All three in sync |
+
+---
+
 ## References
 
 - [Predictive Aim Mathematics for AI Targeting — Game Developer](https://www.gamedeveloper.com/programming/predictive-aim-mathematics-for-ai-targeting)
