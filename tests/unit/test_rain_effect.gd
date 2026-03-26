@@ -2,10 +2,8 @@ extends GutTest
 ## Unit tests for rain_effect.gd HM2-style precipitation system (Issue #1394, fixed #1499, #1546).
 ##
 ## Tests continuous rain behavior, exclusion zone logic, and state transitions.
-## Also tests streak length, direction, and splash alignment fixes.
-## The actual RainEffect extends Node2D with two child GPUParticles2D layers
-## (downward streaks + splash ripples). Uses a mock to test logic without
-## requiring GPUParticles2D rendering.
+## Also tests streak length, direction, splash alignment fixes, and time-stop
+## behavior for the last chance effect (Issue #1585).
 
 
 # ============================================================================
@@ -22,6 +20,9 @@ class MockRainEffect:
 
 	## Whether inside an exclusion zone.
 	var _inside_exclusion: bool = false
+
+	## Whether time is currently stopped (Issue #1585).
+	var _time_stopped: bool = false
 
 
 	func ready() -> void:
@@ -49,12 +50,26 @@ class MockRainEffect:
 
 
 	func simulate_camera_move(camera_center: Vector2) -> void:
+		# While time is stopped, camera moves do not change emission state.
+		if _time_stopped:
+			return
 		var was_inside := _inside_exclusion
 		_inside_exclusion = _is_point_in_exclusion_zone(camera_center)
 		if _inside_exclusion and not was_inside:
 			emitting = false
 		elif not _inside_exclusion and was_inside:
 			emitting = true
+
+
+	## Pauses or resumes particle emission for time-stop effects (Issue #1585).
+	func set_time_stopped(paused: bool) -> void:
+		if _time_stopped == paused:
+			return
+		_time_stopped = paused
+		if paused:
+			emitting = false
+		else:
+			emitting = not _inside_exclusion
 
 
 # ============================================================================
@@ -287,3 +302,56 @@ func test_splash_offset_matches_streak_endpoint() -> void:
 		"Splash X position should match streak endpoint X (±10px). Expected ~%.0f got %.0f" % [expected_splash_pos.x, actual_splash_pos.x])
 	assert_true(abs(actual_splash_pos.y - expected_splash_pos.y) <= 10.0,
 		"Splash Y position should match streak endpoint Y (±10px). Expected ~%.0f got %.0f" % [expected_splash_pos.y, actual_splash_pos.y])
+
+
+# ============================================================================
+# Tests: Issue #1585 — Rain stops during time-stop (last chance effect)
+# ============================================================================
+
+
+func test_rain_stops_when_time_stopped() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	assert_true(rain.emitting, "Rain should be emitting before time stop")
+	rain.set_time_stopped(true)
+	assert_false(rain.emitting, "Rain should stop emitting when time is stopped")
+
+
+func test_rain_resumes_when_time_resumes() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.set_time_stopped(true)
+	rain.set_time_stopped(false)
+	assert_true(rain.emitting, "Rain should resume emitting when time resumes")
+
+
+func test_rain_time_stopped_is_idempotent() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.set_time_stopped(true)
+	rain.set_time_stopped(true)
+	assert_false(rain.emitting, "Calling set_time_stopped(true) twice should keep rain off")
+
+
+func test_rain_camera_move_ignored_during_time_stop() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
+	# Time is stopped — camera entering a building must not change emission state.
+	rain.set_time_stopped(true)
+	rain.simulate_camera_move(Vector2(150, 150))
+	# emitting was set to false by set_time_stopped, not by exclusion zone.
+	assert_false(rain.emitting, "Emission should remain off (time stopped)")
+	assert_false(rain._inside_exclusion, "Exclusion state must not change during time stop")
+
+
+func test_rain_resumes_in_exclusion_zone_stays_off() -> void:
+	# If time resumes while camera is inside an exclusion zone, rain stays off.
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
+	rain.simulate_camera_move(Vector2(150, 150))  # enter building
+	assert_false(rain.emitting, "Rain should stop inside building")
+	rain.set_time_stopped(true)
+	rain.set_time_stopped(false)
+	assert_false(rain.emitting, "Rain must remain off when time resumes inside exclusion zone")

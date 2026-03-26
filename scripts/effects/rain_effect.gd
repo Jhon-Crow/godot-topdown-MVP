@@ -44,6 +44,10 @@ var emitting: bool = false:
 		if _splashes:
 			_splashes.emitting = value
 
+## Whether time is currently stopped (e.g. last chance effect). When true,
+## particle emission is paused regardless of exclusion zone state.
+var _time_stopped: bool = false
+
 
 func _ready() -> void:
 	# Rain is always on from the start
@@ -52,6 +56,10 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	# While time is stopped, do not update emission or exclusion zones.
+	if _time_stopped:
+		return
+
 	if _camera == null:
 		_find_camera()
 		return
@@ -85,6 +93,22 @@ func clear_exclusion_zones() -> void:
 ## Returns true if rain is currently visible.
 func is_raining() -> bool:
 	return not _inside_exclusion
+
+
+## Pauses or resumes particle emission for time-stop effects (e.g. last chance).
+## When paused is true, both particle layers stop emitting immediately.
+## When paused is false, emission resumes if the camera is not inside an exclusion zone.
+func set_time_stopped(paused: bool) -> void:
+	if _time_stopped == paused:
+		return
+	_time_stopped = paused
+	if paused:
+		emitting = false
+		_log("Rain paused (time stopped)")
+	else:
+		# Resume only when not inside a building exclusion zone.
+		emitting = not _inside_exclusion
+		_log("Rain resumed (time resumed)")
 
 
 func _find_camera() -> void:

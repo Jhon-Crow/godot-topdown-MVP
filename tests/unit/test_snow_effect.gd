@@ -2,8 +2,9 @@ extends GutTest
 ## Unit tests for snow_effect.gd world-space snowfall (Issue #1569).
 ##
 ## Tests that snow starts emitting on ready, that the emitter position tracks
-## the camera center (world-space, not screen-space), and that particle lifetime
-## values are long enough for a slow, gentle snowfall animation.
+## the camera center (world-space, not screen-space), that particle lifetime
+## values are long enough for a slow, gentle snowfall animation, and that snow
+## pauses correctly during time-stop effects (Issue #1585).
 
 
 # ============================================================================
@@ -18,6 +19,9 @@ class MockSnowEffect:
 	## Simulated emitter position (updated each frame to camera center).
 	var emitter_position: Vector2 = Vector2.ZERO
 
+	## Whether time is currently stopped (Issue #1585).
+	var _time_stopped: bool = false
+
 
 	func ready() -> void:
 		# Snow is always on from the start
@@ -25,9 +29,20 @@ class MockSnowEffect:
 
 
 	func process(camera_center: Vector2) -> void:
+		# While time is stopped, do not update emitter or emit new flakes.
+		if _time_stopped:
+			return
 		# Update emitter to the camera center so new flakes spawn in the viewport.
 		# Already-spawned particles keep their world positions — snow does not follow the player.
 		emitter_position = camera_center
+
+
+	## Pauses or resumes particle emission for time-stop effects (Issue #1585).
+	func set_time_stopped(paused: bool) -> void:
+		if _time_stopped == paused:
+			return
+		_time_stopped = paused
+		emitting = not paused
 
 
 # ============================================================================
@@ -138,3 +153,43 @@ func test_emitting_can_be_reenabled() -> void:
 	snow.emitting = false
 	snow.emitting = true
 	assert_true(snow.emitting, "Snow emission should be re-enableable after being turned off")
+
+
+# ============================================================================
+# Tests: Issue #1585 — Snow stops during time-stop (last chance effect)
+# ============================================================================
+
+
+func test_snow_stops_when_time_stopped() -> void:
+	var snow := MockSnowEffect.new()
+	snow.ready()
+	assert_true(snow.emitting, "Snow should be emitting before time stop")
+	snow.set_time_stopped(true)
+	assert_false(snow.emitting, "Snow should stop emitting when time is stopped")
+
+
+func test_snow_resumes_when_time_resumes() -> void:
+	var snow := MockSnowEffect.new()
+	snow.ready()
+	snow.set_time_stopped(true)
+	snow.set_time_stopped(false)
+	assert_true(snow.emitting, "Snow should resume emitting when time resumes")
+
+
+func test_snow_time_stopped_is_idempotent() -> void:
+	var snow := MockSnowEffect.new()
+	snow.ready()
+	snow.set_time_stopped(true)
+	snow.set_time_stopped(true)
+	assert_false(snow.emitting, "Calling set_time_stopped(true) twice should keep snow off")
+
+
+func test_snow_emitter_not_updated_during_time_stop() -> void:
+	var snow := MockSnowEffect.new()
+	snow.ready()
+	snow.process(Vector2(100.0, 100.0))
+	snow.set_time_stopped(true)
+	# Camera moves but emitter position must not change while time is stopped.
+	snow.process(Vector2(500.0, 500.0))
+	assert_eq(snow.emitter_position, Vector2(100.0, 100.0),
+		"Emitter position must not update while time is stopped")

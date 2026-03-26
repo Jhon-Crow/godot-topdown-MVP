@@ -32,6 +32,10 @@ var emitting: bool = false:
 		if _flakes_small:
 			_flakes_small.emitting = value
 
+## Whether time is currently stopped (e.g. last chance effect). When true,
+## particle emission is paused and emitter position is not updated.
+var _time_stopped: bool = false
+
 
 func _ready() -> void:
 	# Snow is always on from the start
@@ -40,6 +44,10 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	# While time is stopped, do not spawn new flakes or update emitter position.
+	if _time_stopped:
+		return
+
 	# Keep emitters centered on the current camera so new flakes always
 	# spawn within the visible viewport area. Already-spawned flakes remain
 	# at their world positions — the snow does not follow the player.
@@ -51,6 +59,17 @@ func _process(_delta: float) -> void:
 		_flakes_large.global_position = cam_pos
 	if _flakes_small:
 		_flakes_small.global_position = cam_pos
+
+
+## Pauses or resumes particle emission for time-stop effects (e.g. last chance).
+## When paused is true, both particle layers stop emitting immediately.
+## When paused is false, emission resumes.
+func set_time_stopped(paused: bool) -> void:
+	if _time_stopped == paused:
+		return
+	_time_stopped = paused
+	emitting = not paused
+	_log("Snow %s (time %s)" % ["paused" if paused else "resumed", "stopped" if paused else "resumed"])
 
 
 ## Logs a snow effect message through the FileLogger autoload if available.

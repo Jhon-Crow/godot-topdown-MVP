@@ -489,6 +489,9 @@ func _freeze_time() -> void:
 
 	_log("Froze all nodes except player and autoloads (including GameManager for quick restart)")
 
+	# Pause precipitation effects (rain, snow, water waves) — Issue #1585.
+	_set_precipitation_time_stopped(true)
+
 	# This manager uses PROCESS_MODE_ALWAYS to keep running the timer
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
@@ -789,6 +792,31 @@ func _unfreeze_time() -> void:
 
 	# Unfreeze any explosion visual effect containers that were frozen during the time freeze (Issue #505)
 	_unfreeze_explosion_visuals()
+
+	# Resume precipitation effects (rain, snow, water waves) — Issue #1585.
+	_set_precipitation_time_stopped(false)
+
+
+## Pauses or resumes precipitation effects (rain, snow, water waves) — Issue #1585.
+## Searches the current scene for RainEffect, SnowEffect, and WaterBody nodes and
+## calls set_time_stopped(paused) on each one found.
+func _set_precipitation_time_stopped(paused: bool) -> void:
+	var scene_root: Node = get_tree().current_scene
+	if scene_root == null:
+		return
+	# Collect all descendants and call set_time_stopped when available.
+	var nodes: Array[Node] = scene_root.find_children("*", "", true, false)
+	for node in nodes:
+		if node.has_method("set_time_stopped"):
+			# Only call on precipitation/water nodes (not other scripts that may happen to
+			# define a set_time_stopped method for unrelated reasons).
+			var script: Script = node.get_script()
+			if script == null:
+				continue
+			var path: String = script.resource_path.to_lower()
+			if "rain_effect" in path or "snow_effect" in path or "water_body" in path:
+				node.set_time_stopped(paused)
+				_log("Precipitation %s: %s" % ["paused" if paused else "resumed", node.name])
 
 
 ## Restores all stored original process modes.
