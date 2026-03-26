@@ -169,21 +169,31 @@ func _update_obstacle_shader_params() -> void:
 
 
 ## Apply the animated water shader to the WaterVisual ColorRect.
+## If a ShaderMaterial is already pre-assigned in the scene (WaterBody.tscn),
+## it is used as-is — no dynamic load needed.  The dynamic path is kept as a
+## fallback for editor-only use and to satisfy re-instantiation edge cases.
 func _apply_shader() -> void:
 	if _visual == null:
-		push_warning("[WaterBody] WaterVisual node not found — water will show as plain blue")
+		_log("[WaterBody] ERROR: WaterVisual node not found — water will show as plain blue")
 		return
 
+	# Fast path: shader material was pre-baked into the scene — just use it.
+	if _visual.material is ShaderMaterial:
+		_log("[WaterBody] Shader pre-assigned in scene — using existing ShaderMaterial")
+		return
+
+	# Fallback: try to load the shader at runtime (editor / non-exported builds).
 	if ResourceLoader.exists(WATER_SHADER_PATH):
 		var shader: Shader = load(WATER_SHADER_PATH)
 		if shader != null:
 			var mat := ShaderMaterial.new()
 			mat.shader = shader
 			_visual.material = mat
+			_log("[WaterBody] Shader loaded at runtime from: " + WATER_SHADER_PATH)
 		else:
-			push_warning("[WaterBody] Shader resource null — using plain colour fallback")
+			_log("[WaterBody] ERROR: Shader resource null at runtime — using plain colour fallback")
 	else:
-		push_warning("[WaterBody] Water shader not found — using plain colour fallback")
+		_log("[WaterBody] ERROR: Shader file not found at runtime (%s) — using plain colour fallback" % WATER_SHADER_PATH)
 
 
 func _on_body_entered(body: Node2D) -> void:
