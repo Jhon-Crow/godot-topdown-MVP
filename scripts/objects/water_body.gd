@@ -64,6 +64,9 @@ var _obstacle_dirty: bool = false
 
 
 func _ready() -> void:
+	# Register in group so ImpactEffectsManager can locate this node by group query (Issue #1578).
+	add_to_group("water_body")
+
 	# Update pre-baked node dimensions in case water_width/height were overridden in the scene.
 	if _visual != null:
 		_visual.position = Vector2(-water_width * 0.5, -water_height * 0.5)
@@ -234,11 +237,29 @@ func _on_body_exited(body: Node2D) -> void:
 
 
 func _on_area_entered(area: Area2D) -> void:
-	# Detect blood puddles entering the water zone and create diffusion effect
+	# Detect blood puddles entering the water zone and create diffusion effect (Issue #1578).
+	# This handles any blood decals that were placed in water before this WaterBody could
+	# intercept them (e.g. decals placed by an external system without water awareness).
 	if area.is_in_group("blood_puddle") or (area.get_parent() and area.get_parent().is_in_group("blood_puddle")):
-		var blood_node: Node2D = area if area is Sprite2D else area.get_parent() as Node2D
-		if blood_node and blood_node is Sprite2D:
-			_spawn_blood_diffusion(blood_node.global_position, blood_node.modulate)
+		# Prefer the Sprite2D decal root; fall back to the area itself for position.
+		var blood_node: Node2D
+		if area is Sprite2D:
+			blood_node = area
+		elif area.get_parent() is Sprite2D:
+			blood_node = area.get_parent() as Node2D
+		else:
+			blood_node = area
+
+		var diffusion_pos: Vector2 = blood_node.global_position
+		var diffusion_color: Color = blood_node.modulate if blood_node is Sprite2D else Color(0.5, 0.02, 0.02, 0.55)
+		_spawn_blood_diffusion(diffusion_pos, diffusion_color)
+
+		# Remove the decal from the scene — blood does not form puddles in water.
+		var decal_root: Node2D = blood_node if blood_node is Sprite2D else area.get_parent() as Node2D
+		if decal_root != null and is_instance_valid(decal_root) and decal_root.has_method("fade_out_quick"):
+			decal_root.fade_out_quick()
+		elif decal_root != null and is_instance_valid(decal_root):
+			decal_root.queue_free()
 
 
 ## Handle grenade entering water — splash on entry, connect for explosion.
@@ -334,6 +355,12 @@ func _spawn_splash_large(world_pos: Vector2) -> void:
 	# Configure for large splash after adding to tree
 	if splash.has_method("configure_large"):
 		splash.configure_large()
+
+
+## Public entry point for external systems (e.g. ImpactEffectsManager) to trigger
+## a blood diffusion effect at a world position inside this water body (Issue #1578).
+func spawn_blood_diffusion_at(world_pos: Vector2, blood_color: Color) -> void:
+	_spawn_blood_diffusion(world_pos, blood_color)
 
 
 ## Spawn blood diffusion effect in water at a position.

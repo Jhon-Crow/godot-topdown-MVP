@@ -715,6 +715,15 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 		# Wall detected between origin and landing - skip this decal
 		return
 
+	# Issue #1578: If landing position is inside water, spawn blood diffusion instead of a decal.
+	var water_body: Node = _find_water_body_at(landing_pos)
+	if water_body != null:
+		if water_body.has_method("spawn_blood_diffusion_at"):
+			water_body.spawn_blood_diffusion_at(landing_pos, Color(0.5, 0.02, 0.02, 0.55))
+		if _debug_effects:
+			print("[ImpactEffectsManager] Blood landed in water at ", landing_pos, " — spawning diffusion instead of decal")
+		return
+
 	# Create the decal
 	var decal := _blood_decal_scene.instantiate() as Node2D
 	if decal == null:
@@ -739,6 +748,23 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Delayed blood decal spawned at ", landing_pos)
+
+
+## Returns the first WaterBody node whose bounds contain the given world position,
+## or null if the position is not inside any water area.
+## Used by _schedule_delayed_decal() to intercept blood landing in water (Issue #1578).
+func _find_water_body_at(world_pos: Vector2) -> Node:
+	var current_scene := get_tree().current_scene
+	if current_scene == null:
+		return null
+	# WaterBody nodes self-register in the "water_body" group inside _ready() (Issue #1578).
+	var water_bodies := get_tree().get_nodes_in_group("water_body")
+	for wb in water_bodies:
+		if not is_instance_valid(wb):
+			continue
+		if wb.has_method("is_point_in_water") and wb.is_point_in_water(world_pos):
+			return wb
+	return null
 
 
 ## Clears all blood decals from the scene.
