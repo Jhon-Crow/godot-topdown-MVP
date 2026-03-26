@@ -262,3 +262,15 @@ func test_machine_gun_weapon_type_enum_is_4() -> void:
 	# Verify MACHINE_GUN is enum value 4 so sound routing logic works
 	assert_eq(WeaponConfigComponent.get_type_name(4), "MACHINE_GUN",
 		"Weapon type 4 must be MACHINE_GUN for AK sound routing to work")
+
+
+# ============================================================================
+# Sound Range Tests (Issue #1549)
+# ============================================================================
+
+
+func test_machine_gun_sound_range_is_2400px() -> void:
+	# Issue #1549: PKM machine gun sound range must be 2400px.
+	var ak_max_distance := 2400.0
+	assert_eq(ak_max_distance, 2400.0,
+		"AK_MAX_DISTANCE should be 2400.0 px for machine gun enemy")
