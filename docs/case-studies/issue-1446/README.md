@@ -25,6 +25,9 @@ A game log was provided: `game_log_20260325_061123.txt`.
 | 2026-03-26 09:30 | Owner tests again, reports "ии полностью сломан" (AI completely broken) — provides third log |
 | 2026-03-26 12:29 | Third game log captured (`game_log_20260326_122942.txt`) |
 | 2026-03-26 09:31 | Fourth AI work session started — identified RCA-5 (PURSUING oscillation from IN_COVER) |
+| 2026-03-26 14:19 | Owner tests again, reports "ии всё ещё сломан" (AI still broken) — provides fourth log |
+| 2026-03-26 17:19 | Fourth game log captured (`game_log_20260326_171927.txt`) |
+| 2026-03-26 22:15 | Fifth AI work session started — identified RCA-6 (arrived formation enemies frozen, state dispatch skipped) |
 
 ---
 
@@ -279,11 +282,73 @@ The third log does not show enemy AI behavior directly — the actual gameplay w
 
 ---
 
+---
+
+## RCA-6 (CRITICAL — Fifth Session): Arrived Formation Enemies Completely Frozen — State Machine Dispatch Skipped
+
+**Location**: `scripts/objects/enemy.gd`, `_process_ai_state`, lines 1276–1278 (before fix)
+
+**The bug**: The arrival block for formation enemies (within 25px of shieldbearer) set cover data and returned early, **before** the `match _current_state:` dispatch at line 1382. This meant `_process_in_cover_state`, `_process_combat_state`, and `_process_suppressed_state` were **never called** for arrived formation enemies.
+
+Additionally, the exclusion list `[IN_COVER, COMBAT, SUPPRESSED]` allowed enemies to remain in COMBAT or SUPPRESSED states, but since the state machine dispatch was skipped:
+
+- **COMBAT**: No `_process_combat_state` → no shooting, no movement, no position-keeping logic
+- **SUPPRESSED**: No `_process_suppressed_state` → no shooting, no movement
+- **IN_COVER**: No `_process_in_cover_state` → no shooting, velocity never zeroed, no state transitions
+
+All arrived formation enemies were completely frozen every frame — they set cover data and immediately returned.
+
+**Root cause chain**: The fix for RCA-0 (GDScript inline-if) changed the `return` position from "inside the inner if" to "at the outer level". This correctly prevented fall-through to the full state machine. But the fix also removed the processing of the state — the enemy state machine was now skipped entirely instead of just skipping the wrong parts.
+
+**Fix** (commit `[RCA-6 fix]`): Instead of returning bare, force state to `IN_COVER` (if not already there) and then **explicitly call `_process_in_cover_state(delta)`** before returning. This gives arrived formation enemies full IN_COVER behavior (velocity control, shooting at visible player, under-fire suppression) while still skipping grenade avoidance, aggression ticks, and all other non-formation priority logic.
+
+```gdscript
+if _formation_shielder != null:  # Issue #1446: arrived — shieldbearer is cover; always return early
+    _cover_position = _formation_target_pos; _has_valid_cover = true; if _current_state != AIState.IN_COVER: _transition_to_in_cover()
+    _process_in_cover_state(delta); return  # RCA-6: explicitly process state so enemy shoots/moves
+```
+
+`_process_in_cover_state` already has all the required guards:
+- Line 1727–1728: tracks moving shieldbearer
+- Line 1736: `_formation_shielder == null` guard skips flank check
+- Line 1774: `_formation_shielder == null` guard skips COMBAT/PURSUING transitions
+- Line 1796–1800: shoots at visible player from behind shieldbearer
+- Line 1803: `_formation_shielder == null` guard prevents PURSUING on lost sight (RCA-5 fix)
+
+---
+
+## Game Log Analysis: Fourth Report (`game_log_20260326_171927.txt`)
+
+The log shows (same pattern as previous logs):
+- **Normal initialization**: LabyrinthLevel (menu/entry level), 5 enemies created
+- **0 enemies tracked**: All children lack the `died` signal — pre-existing LabyrinthLevel issue unrelated to #1446
+- **No gameplay logged**: Session ends after ~3 seconds when navigating to DocksLevel
+- **DocksLevel load error**: `ERROR: Invalid resource: res://scenes/levels/DocksLevel.tscn` — same pre-existing SceneLoader issue (different level from previous log's BuildingLevel — depends on owner's last played level)
+- **Difficulty**: Debug mode with invincibility=false this time — owner is testing with Hard difficulty and all weapons unlocked
+
+The fourth log does not show enemy AI behavior directly. The "ии всё ещё сломан" (AI still broken) report after the fourth session's RCA-5 fix indicates RCA-6 was still present — all arrived formation enemies were frozen despite the oscillation fix.
+
+---
+
+## Timeline Summary
+
+| Session | Bug Fixed | Symptom Reported |
+|---------|-----------|-----------------|
+| Initial | Feature: shieldbearer-as-cover | RCA-1+2: formation enemies run full state machine + ping-pong |
+| 2nd | RCA-1+2: fall-through + ping-pong | RCA-0: GDScript inline-if semicolon chaining |
+| 3rd | RCA-0: GDScript inline-if | RCA-5: IN_COVER → PURSUING oscillation on lost sight |
+| 4th | RCA-5: lost-sight guard | RCA-6: arrived enemies frozen (no state dispatch) |
+| 5th | RCA-6: explicit `_process_in_cover_state` call | TBD |
+
+---
+
 ## Files Changed
 
 - `scripts/objects/enemy.gd` — Formation + cover state machine logic
+- `tests/unit/test_shieldbearer_cover.gd` — Unit tests (updated for RCA-6)
 - `docs/case-studies/issue-1446/README.md` — This file
 - `docs/case-studies/issue-1446/game_log_20260325_061123.txt` — Owner-provided game log (first report)
 - `docs/case-studies/issue-1446/game_log_20260325_164302.txt` — Owner-provided game log (second report)
 - `docs/case-studies/issue-1446/game_log_20260326_122942.txt` — Owner-provided game log (third report)
+- `docs/case-studies/issue-1446/game_log_20260326_171927.txt` — Owner-provided game log (fourth report)
 - `docs/case-studies/issue-1446/analysis.md` — Initial design analysis (pre-implementation)

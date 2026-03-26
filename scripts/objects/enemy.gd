@@ -1274,8 +1274,8 @@ func _process_ai_state(delta: float) -> void:
 		_move_to_target_nav(_formation_target_pos, move_speed); if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown: _aim_at_player(); _shoot(); _shoot_timer = 0.0
 		return
 	if _formation_shielder != null:  # Issue #1446: arrived — shieldbearer is cover; always return early
-		_cover_position = _formation_target_pos; _has_valid_cover = true; if _current_state not in [AIState.IN_COVER, AIState.COMBAT, AIState.SUPPRESSED]: _transition_to_in_cover()
-		return
+		_cover_position = _formation_target_pos; _has_valid_cover = true; if _current_state != AIState.IN_COVER: _transition_to_in_cover()  # RCA-6: always IN_COVER so _process_in_cover_state runs
+		_process_in_cover_state(delta); return  # RCA-6: explicitly process state so enemy shoots/moves; skip full state machine
 	var previous_state := _current_state
 	# ABSOLUTE HIGHEST PRIORITY: Grenade danger zone evasion (Issue #407)
 	var in_grenade_danger := _grenade_avoidance.in_danger_zone if _grenade_avoidance else false
