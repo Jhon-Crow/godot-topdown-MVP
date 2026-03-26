@@ -22,6 +22,12 @@ class MockSnowEffect:
 	## Whether time is currently stopped (Issue #1585).
 	var _time_stopped: bool = false
 
+	## Simulated process_mode for each particle layer (true = disabled).
+	## Mirrors the fix: set_time_stopped uses process_mode, not emitting=false,
+	## so existing particles freeze in place rather than disappearing.
+	var _flakes_large_disabled: bool = false
+	var _flakes_small_disabled: bool = false
+
 
 	func ready() -> void:
 		# Snow is always on from the start
@@ -38,11 +44,19 @@ class MockSnowEffect:
 
 
 	## Pauses or resumes particle emission for time-stop effects (Issue #1585).
+	## Uses process_mode (not emitting=false) so existing particles freeze in place.
 	func set_time_stopped(paused: bool) -> void:
 		if _time_stopped == paused:
 			return
 		_time_stopped = paused
-		emitting = not paused
+		if paused:
+			# Disable particle processing — particles freeze in place, emitting stays true.
+			_flakes_large_disabled = true
+			_flakes_small_disabled = true
+		else:
+			# Restore particle processing.
+			_flakes_large_disabled = false
+			_flakes_small_disabled = false
 
 
 # ============================================================================
@@ -156,16 +170,27 @@ func test_emitting_can_be_reenabled() -> void:
 
 
 # ============================================================================
-# Tests: Issue #1585 — Snow stops during time-stop (last chance effect)
+# Tests: Issue #1585 — Snow freezes in place during time-stop (last chance effect)
 # ============================================================================
 
 
-func test_snow_stops_when_time_stopped() -> void:
+func test_snow_particles_freeze_in_place_when_time_stopped() -> void:
+	# Particles must NOT disappear — process_mode is disabled so existing particles
+	# stay visible; emitting remains true so the state is preserved for resume.
 	var snow := MockSnowEffect.new()
 	snow.ready()
 	assert_true(snow.emitting, "Snow should be emitting before time stop")
 	snow.set_time_stopped(true)
-	assert_false(snow.emitting, "Snow should stop emitting when time is stopped")
+	assert_true(snow._flakes_large_disabled, "Large flake particles must be process-disabled (frozen in place)")
+	assert_true(snow._flakes_small_disabled, "Small flake particles must be process-disabled (frozen in place)")
+
+
+func test_snow_emitting_unchanged_when_time_stopped() -> void:
+	# emitting flag must NOT be set to false — that would clear all particles.
+	var snow := MockSnowEffect.new()
+	snow.ready()
+	snow.set_time_stopped(true)
+	assert_true(snow.emitting, "emitting must remain true when time is stopped (particles freeze, not disappear)")
 
 
 func test_snow_resumes_when_time_resumes() -> void:
@@ -173,7 +198,8 @@ func test_snow_resumes_when_time_resumes() -> void:
 	snow.ready()
 	snow.set_time_stopped(true)
 	snow.set_time_stopped(false)
-	assert_true(snow.emitting, "Snow should resume emitting when time resumes")
+	assert_false(snow._flakes_large_disabled, "Large flake particles must be re-enabled after time resumes")
+	assert_false(snow._flakes_small_disabled, "Small flake particles must be re-enabled after time resumes")
 
 
 func test_snow_time_stopped_is_idempotent() -> void:
@@ -181,7 +207,7 @@ func test_snow_time_stopped_is_idempotent() -> void:
 	snow.ready()
 	snow.set_time_stopped(true)
 	snow.set_time_stopped(true)
-	assert_false(snow.emitting, "Calling set_time_stopped(true) twice should keep snow off")
+	assert_true(snow._flakes_large_disabled, "Calling set_time_stopped(true) twice must keep particles frozen")
 
 
 func test_snow_emitter_not_updated_during_time_stop() -> void:

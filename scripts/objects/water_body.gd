@@ -73,6 +73,9 @@ var _saved_surf_speed: float = 0.0
 
 
 func _ready() -> void:
+	# Register in group so LastChanceEffectsManager can find this node reliably
+	# (script resource_path may be empty in exported builds).
+	add_to_group("precipitation_effects")
 	# Update pre-baked node dimensions in case water_width/height were overridden in the scene.
 	if _visual != null:
 		_visual.position = Vector2(-water_width * 0.5, -water_height * 0.5)

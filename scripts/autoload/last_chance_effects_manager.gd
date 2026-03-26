@@ -798,25 +798,15 @@ func _unfreeze_time() -> void:
 
 
 ## Pauses or resumes precipitation effects (rain, snow, water waves) — Issue #1585.
-## Searches the current scene for RainEffect, SnowEffect, and WaterBody nodes and
-## calls set_time_stopped(paused) on each one found.
+## Uses the "precipitation_effects" group to find RainEffect, SnowEffect, and WaterBody
+## nodes. Group lookup is reliable in both debug and exported builds (unlike
+## script.resource_path which may be empty in exported PCK files).
 func _set_precipitation_time_stopped(paused: bool) -> void:
-	var scene_root: Node = get_tree().current_scene
-	if scene_root == null:
-		return
-	# Collect all descendants and call set_time_stopped when available.
-	var nodes: Array[Node] = scene_root.find_children("*", "", true, false)
+	var nodes: Array[Node] = get_tree().get_nodes_in_group("precipitation_effects")
 	for node in nodes:
 		if node.has_method("set_time_stopped"):
-			# Only call on precipitation/water nodes (not other scripts that may happen to
-			# define a set_time_stopped method for unrelated reasons).
-			var script: Script = node.get_script()
-			if script == null:
-				continue
-			var path: String = script.resource_path.to_lower()
-			if "rain_effect" in path or "snow_effect" in path or "water_body" in path:
-				node.set_time_stopped(paused)
-				_log("Precipitation %s: %s" % ["paused" if paused else "resumed", node.name])
+			node.set_time_stopped(paused)
+			_log("Precipitation %s: %s" % ["paused" if paused else "resumed", node.name])
 
 
 ## Restores all stored original process modes.

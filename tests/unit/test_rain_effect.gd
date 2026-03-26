@@ -24,6 +24,12 @@ class MockRainEffect:
 	## Whether time is currently stopped (Issue #1585).
 	var _time_stopped: bool = false
 
+	## Simulated process_mode for each particle layer (true = disabled).
+	## Mirrors the fix: set_time_stopped uses process_mode, not emitting=false,
+	## so existing particles freeze in place rather than disappearing.
+	var _streaks_disabled: bool = false
+	var _splashes_disabled: bool = false
+
 
 	func ready() -> void:
 		# Rain is always on from the start (continuous mode)
@@ -62,13 +68,19 @@ class MockRainEffect:
 
 
 	## Pauses or resumes particle emission for time-stop effects (Issue #1585).
+	## Uses process_mode (not emitting=false) so existing particles freeze in place.
 	func set_time_stopped(paused: bool) -> void:
 		if _time_stopped == paused:
 			return
 		_time_stopped = paused
 		if paused:
-			emitting = false
+			# Disable particle processing — particles freeze in place, emitting stays true.
+			_streaks_disabled = true
+			_splashes_disabled = true
 		else:
+			# Restore particle processing, then update emission based on exclusion zone.
+			_streaks_disabled = false
+			_splashes_disabled = false
 			emitting = not _inside_exclusion
 
 
@@ -305,16 +317,27 @@ func test_splash_offset_matches_streak_endpoint() -> void:
 
 
 # ============================================================================
-# Tests: Issue #1585 — Rain stops during time-stop (last chance effect)
+# Tests: Issue #1585 — Rain freezes in place during time-stop (last chance effect)
 # ============================================================================
 
 
-func test_rain_stops_when_time_stopped() -> void:
+func test_rain_particles_freeze_in_place_when_time_stopped() -> void:
+	# Particles must NOT disappear — process_mode is disabled so existing particles
+	# stay visible; emitting remains true so the state is preserved for resume.
 	var rain := MockRainEffect.new()
 	rain.ready()
 	assert_true(rain.emitting, "Rain should be emitting before time stop")
 	rain.set_time_stopped(true)
-	assert_false(rain.emitting, "Rain should stop emitting when time is stopped")
+	assert_true(rain._streaks_disabled, "Streak particles must be process-disabled (frozen in place)")
+	assert_true(rain._splashes_disabled, "Splash particles must be process-disabled (frozen in place)")
+
+
+func test_rain_emitting_unchanged_when_time_stopped() -> void:
+	# emitting flag must NOT be set to false — that would clear all particles.
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.set_time_stopped(true)
+	assert_true(rain.emitting, "emitting must remain true when time is stopped (particles freeze, not disappear)")
 
 
 func test_rain_resumes_when_time_resumes() -> void:
@@ -322,6 +345,8 @@ func test_rain_resumes_when_time_resumes() -> void:
 	rain.ready()
 	rain.set_time_stopped(true)
 	rain.set_time_stopped(false)
+	assert_false(rain._streaks_disabled, "Streak particles must be re-enabled after time resumes")
+	assert_false(rain._splashes_disabled, "Splash particles must be re-enabled after time resumes")
 	assert_true(rain.emitting, "Rain should resume emitting when time resumes")
 
 
@@ -330,7 +355,7 @@ func test_rain_time_stopped_is_idempotent() -> void:
 	rain.ready()
 	rain.set_time_stopped(true)
 	rain.set_time_stopped(true)
-	assert_false(rain.emitting, "Calling set_time_stopped(true) twice should keep rain off")
+	assert_true(rain._streaks_disabled, "Calling set_time_stopped(true) twice must keep particles frozen")
 
 
 func test_rain_camera_move_ignored_during_time_stop() -> void:
@@ -340,8 +365,8 @@ func test_rain_camera_move_ignored_during_time_stop() -> void:
 	# Time is stopped — camera entering a building must not change emission state.
 	rain.set_time_stopped(true)
 	rain.simulate_camera_move(Vector2(150, 150))
-	# emitting was set to false by set_time_stopped, not by exclusion zone.
-	assert_false(rain.emitting, "Emission should remain off (time stopped)")
+	# emitting is still true (particles frozen), exclusion state unchanged.
+	assert_true(rain.emitting, "emitting must stay true (frozen, not cleared) during time stop")
 	assert_false(rain._inside_exclusion, "Exclusion state must not change during time stop")
 
 

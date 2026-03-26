@@ -38,6 +38,9 @@ var _time_stopped: bool = false
 
 
 func _ready() -> void:
+	# Register in group so LastChanceEffectsManager can find this node reliably
+	# (script resource_path may be empty in exported builds).
+	add_to_group("precipitation_effects")
 	# Snow is always on from the start
 	emitting = true
 	_log("Snow started (continuous mode, world-space emitters)")
@@ -62,13 +65,26 @@ func _process(_delta: float) -> void:
 
 
 ## Pauses or resumes particle emission for time-stop effects (e.g. last chance).
-## When paused is true, both particle layers stop emitting immediately.
-## When paused is false, emission resumes.
+## When paused is true, both particle layers are frozen in place by disabling their
+## process mode — existing particles stay visible, no new ones are spawned.
+## When paused is false, particle processing is restored and emission resumes.
 func set_time_stopped(paused: bool) -> void:
 	if _time_stopped == paused:
 		return
 	_time_stopped = paused
-	emitting = not paused
+	if paused:
+		# Disable processing on particle nodes so they freeze in place (existing
+		# particles remain visible) rather than disappearing via emitting = false.
+		if _flakes_large:
+			_flakes_large.process_mode = Node.PROCESS_MODE_DISABLED
+		if _flakes_small:
+			_flakes_small.process_mode = Node.PROCESS_MODE_DISABLED
+	else:
+		# Restore particle processing and resume emission.
+		if _flakes_large:
+			_flakes_large.process_mode = Node.PROCESS_MODE_INHERIT
+		if _flakes_small:
+			_flakes_small.process_mode = Node.PROCESS_MODE_INHERIT
 	_log("Snow %s (time %s)" % ["paused" if paused else "resumed", "stopped" if paused else "resumed"])
 
 
