@@ -12,7 +12,7 @@ colors = PackedColorArray(0.85, 0.9, 1.0, 0, 0.85, 0.9, 1.0, 0.35, 0.85, 0.9, 1.
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_streak"]
 gradient = SubResource("Gradient_streak")
 width = 4
-height = 8
+height = 16
 fill_from = Vector2(0.5, 0)
 fill_to = Vector2(0.5, 1)
 
@@ -22,12 +22,12 @@ particle_flag_disable_z = true
 particle_flag_align_y = true
 emission_shape = 3
 emission_box_extents = Vector3(700, 400, 0)
-direction = Vector3(0, 0, 0)
-spread = 0.0
-initial_velocity_min = 0.0
-initial_velocity_max = 0.0
-radial_velocity_min = -140.0
-radial_velocity_max = -80.0
+direction = Vector3(0.1, 1.0, 0.0)
+spread = 5.0
+initial_velocity_min = 500.0
+initial_velocity_max = 700.0
+radial_velocity_min = 0.0
+radial_velocity_max = 0.0
 gravity = Vector3(0, 0, 0)
 scale_min = 1.2
 scale_max = 2.5

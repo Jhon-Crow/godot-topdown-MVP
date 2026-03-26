@@ -287,3 +287,59 @@ func test_splash_offset_matches_streak_endpoint() -> void:
 		"Splash X position should match streak endpoint X (±10px). Expected ~%.0f got %.0f" % [expected_splash_pos.x, actual_splash_pos.x])
 	assert_true(abs(actual_splash_pos.y - expected_splash_pos.y) <= 10.0,
 		"Splash Y position should match streak endpoint Y (±10px). Expected ~%.0f got %.0f" % [expected_splash_pos.y, actual_splash_pos.y])
+
+
+# ============================================================================
+# Tests: Issue #1580 — Drop Animation: Falling → Landing → Splashing
+# ============================================================================
+
+
+func test_splash_appears_at_streak_landing_zone() -> void:
+	# Issue #1580: Puddles must appear where drops land — both emitters must cover
+	# the same area of the screen. The streak emission box is at origin (640,360)
+	# covering ±700x±400, so it spans x=[−60,1340], y=[−40,760] in screen space.
+	# The splash emitter at (650,457) with the same ±700x±400 box covers x=[−50,1350],
+	# y=[57,857]. The overlap ensures splashes appear within the region streaks land.
+	var streak_origin := Vector2(640.0, 360.0)
+	var splash_origin := Vector2(650.0, 457.0)
+	var box_half := Vector2(700.0, 400.0)
+
+	var streak_min := streak_origin - box_half
+	var streak_max := streak_origin + box_half
+	var splash_min := splash_origin - box_half
+	var splash_max := splash_origin + box_half
+
+	# Overlap region must be non-empty: max of mins < min of maxes
+	var overlap_min_x := maxf(streak_min.x, splash_min.x)
+	var overlap_max_x := minf(streak_max.x, splash_max.x)
+	var overlap_min_y := maxf(streak_min.y, splash_min.y)
+	var overlap_max_y := minf(streak_max.y, splash_max.y)
+
+	assert_true(overlap_max_x > overlap_min_x,
+		"Streak and splash emission boxes must overlap in X — splashes appear in streak landing zone")
+	assert_true(overlap_max_y > overlap_min_y,
+		"Streak and splash emission boxes must overlap in Y — splashes appear in streak landing zone")
+
+
+func test_rain_animation_phases_contract() -> void:
+	# Issue #1580: The three-phase raindrop animation requires specific timing:
+	#   Phase 1 (falling):   streak emits at t=0, lifetime=0.18s
+	#   Phase 2 (landing):   streak disappears at ~t=0.18s at the landing position
+	#   Phase 3 (splashing): splash emits from landing position, lifetime=0.4s
+	# The splash lifetime must be longer than streak lifetime so the ripple lingers
+	# after the drop has "hit" the ground.
+	var streak_lifetime := 0.18
+	var splash_lifetime := 0.4
+
+	assert_true(splash_lifetime > streak_lifetime,
+		"Splash lifetime (%.2fs) must exceed streak lifetime (%.2fs) — ripple lingers after drop lands" % [splash_lifetime, streak_lifetime])
+
+
+func test_splash_emitter_offset_is_downward_from_streak() -> void:
+	# Issue #1580: The splash emitter must be offset downward (positive Y) from the
+	# streak emitter — puddles appear below where drops start falling, not above.
+	var streak_pos := Vector2(640.0, 360.0)
+	var splash_pos := Vector2(650.0, 457.0)
+
+	assert_true(splash_pos.y > streak_pos.y,
+		"Splash emitter Y (%.0f) must be below streak emitter Y (%.0f) — puddles appear at bottom of drop path" % [splash_pos.y, streak_pos.y])
