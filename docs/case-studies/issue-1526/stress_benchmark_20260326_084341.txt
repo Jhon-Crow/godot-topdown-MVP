@@ -1,0 +1,30 @@
+============================================================
+STRESS BENCHMARK LOG (Issue #1504)
+============================================================
+Started: 2026-03-26T08:43:41
+Sample duration per half-step: 2.0 s
+Stress: 30 particles, 20 lights, 20 enemies
+------------------------------------------------------------
+Format: subsystem | enabled_fps | disabled_fps | delta_fps
+------------------------------------------------------------
+
+[Step 1/4] Particles (spawning 30 GPUParticles2D)
+  enabled=27.5  disabled=30.0  delta=2.5 (positive = cost)
+
+[Step 2/4] Explosion Lights (spawning 20 PointLight2D)
+  enabled=30.0  disabled=29.5  delta=-0.5
+
+[Step 3/4] AI (spawning 20 enemies)
+  enabled=18.0  disabled=21.4  delta=3.3
+
+[Step 4/4] Combined extreme load (particles + lights + enemies)
+  enabled=10.1  disabled=16.9  delta=6.9
+
+============================================================
+STRESS BENCHMARK COMPLETE: 2026-03-26T08:44:01
+============================================================
+Summary:
+  Particles: enabled=27.5 disabled=30.0 delta=2.5
+  Explosion lights: enabled=30.0 disabled=29.5 delta=-0.5
+  AI (20 enemies): enabled=18.0 disabled=21.4 delta=3.3
+  Combined: enabled=10.1 disabled=16.9 delta=6.9
