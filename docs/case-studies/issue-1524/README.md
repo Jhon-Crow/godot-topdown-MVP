@@ -1,11 +1,12 @@
-# Case Study: Issue #1524 — M16 Sound Range Set to 840px
+# Case Study: Issue #1524 — M16 Sound Range Should Be 840px (Root Cause & Fix)
 
 ## Summary
 
 **Issue:** Set the M16 sound range to 840px
 **Reporter:** Jhon-Crow
 **PR:** #1525
-**Date analyzed:** 2026-03-26
+**Last updated:** 2026-03-26
+**Status:** Root cause found and fixed in third investigation session
 
 ---
 
@@ -143,9 +144,70 @@ To verify the fix works:
 
 ---
 
-## 6. References
+## 6. Third Investigation — True Root Cause (2026-03-26)
+
+### Second Owner Report
+
+After the second fix attempt, the owner reported:
+> "всё ещё 1469 px вместо 840" (still 1469px instead of 840)
+
+Providing log `game_log_20260326_094358.txt` confirming:
+```
+[09:44:09] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (AssaultRifle), range=1469
+```
+
+### The True Root Cause
+
+The `source=PLAYER (AssaultRifle)` in the log means the sound is emitted **by the C# `AssaultRifle` node**, not by `player.gd`. The C# AssaultRifle.cs (`Scripts/Weapons/AssaultRifle.cs`) has its own `EmitGunshotSound()` method:
+
+```csharp
+private void EmitGunshotSound()
+{
+    var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
+    if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
+    {
+        float loudness = WeaponData?.Loudness ?? 800.0f;  // reads from WeaponData resource!
+        soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
+    }
+}
+```
+
+`WeaponData.Loudness` comes from `resources/weapons/AssaultRifleData.tres` — which **had no `Loudness` property set**, causing it to fall through to the C# default in `WeaponData.cs`:
+
+```csharp
+// WeaponData.cs
+public float Loudness { get; set; } = 1469.0f;  // OLD: 1469 = viewport diagonal
+```
+
+### Why Previous Fixes Failed
+
+| Session | Change Made | Result |
+|---------|-------------|--------|
+| Fix #1 | `audio_manager.gd` M16_MAX_DISTANCE | Fixed *audio playback* range, not enemy detection |
+| Fix #2 | `player.gd` weapon_loudness = 840; `weapon_config_component.gd` weapon_loudness = 840 | Fixed GDScript path and enemy-weapon configs, but NOT the C# AssaultRifle node path |
+| Fix #3 (this session) | Added `Loudness = 840.0` to `AssaultRifleData.tres` | **Actual fix** — C# reads this resource |
+
+### Key Insight
+
+The game has two parallel weapon systems:
+- **C# AssaultRifle.cs** — used when player fires with M16, reads `WeaponData.Loudness` from `.tres` file
+- **GDScript player.gd** — has `weapon_loudness` field, but is NOT the active code path for C#-based weapons
+
+All other weapons (`MakarovPMData.tres`, `ShotgunData.tres`, etc.) explicitly set `Loudness` in their `.tres` files. `AssaultRifleData.tres` was the only one missing it.
+
+## 7. Final Fix
+
+**`resources/weapons/AssaultRifleData.tres`** — added `Loudness = 840.0`
+
+**`Scripts/Data/WeaponData.cs`** — updated misleading default comment (changed default from `1469.0f` to `800.0f` as a safe fallback)
+
+**`tests/unit/test_assault_rifle_loudness.gd`** — new regression test verifying the `.tres` resource has the correct value
+
+## 8. References
 
 - Issue #1524: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1524
 - PR #1525: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1525
 - Related Issue #1269 (original sound range reduction): PR #1270
 - `sound_propagation.gd`: `VIEWPORT_DIAGONAL = 1468.6` (origin of the 1469 value)
+- `Scripts/Weapons/AssaultRifle.cs`: C# weapon implementation that reads from WeaponData resource
+- `resources/weapons/AssaultRifleData.tres`: The resource file that was missing Loudness
