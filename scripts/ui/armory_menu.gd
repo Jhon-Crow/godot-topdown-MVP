@@ -1043,11 +1043,6 @@ func _apply_selected_style(slot: PanelContainer) -> void:
 func _apply_condition_met_style(slot: PanelContainer) -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.28, 0.22, 0.08, 0.85)
-	style.border_color = Color(1.0, 0.8, 0.1, 1.0)
-	style.border_width_left = 2
-	style.border_width_right = 2
-	style.border_width_top = 2
-	style.border_width_bottom = 2
 	style.corner_radius_top_left = 4
 	style.corner_radius_top_right = 4
 	style.corner_radius_bottom_left = 4
