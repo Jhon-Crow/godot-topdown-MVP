@@ -99,6 +99,20 @@ func load_level(level_path: String) -> void:
 
 ## Start the background loading after fade in
 func _start_background_load() -> void:
+	# Issue #1526: Check if resource is already cached. In Godot 4.3, requesting a
+	# threaded load for an already-loaded resource can return INVALID_RESOURCE during
+	# polling, causing a freeze from the sync fallback. Use the cache directly instead.
+	if ResourceLoader.has_cached(_current_load_path):
+		_log("Resource already cached, skipping threaded load: %s" % _current_load_path)
+		var cached := load(_current_load_path) as PackedScene
+		if cached:
+			get_tree().paused = false
+			get_tree().change_scene_to_packed(cached)
+			_log("Scene changed successfully (from cache)")
+			var fade_tween := create_tween()
+			fade_tween.tween_property(_loading_overlay, "modulate:a", 0.0, FADE_DURATION)
+			fade_tween.tween_callback(_hide_loading_screen)
+			return
 	# Request background loading
 	var error := ResourceLoader.load_threaded_request(_current_load_path, "", true)
 	if error != OK:
