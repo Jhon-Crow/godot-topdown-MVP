@@ -16,6 +16,7 @@ Range = 1500.0
 SpreadAngle = 2.0
 BulletsPerShot = 1
 IsAutomatic = true
+Loudness = 840.0
 Sensitivity = 4.0
 ScreenShakeIntensity = 5.0
 ScreenShakeMinRecoveryTime = 0.25

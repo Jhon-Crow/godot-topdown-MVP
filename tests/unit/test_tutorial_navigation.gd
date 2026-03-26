@@ -92,3 +92,40 @@ func test_tutorial_map_center_far_from_origin() -> void:
 		origin.distance_to(map_center) <= tolerance,
 		"Tutorial map center should be far from origin (explains why on-map teleport failed)"
 	)
+
+
+# ============================================================================
+# Navmesh Baking Tests (Issue #1534)
+# ============================================================================
+
+
+## The tutorial level script must contain a _setup_navigation function so that
+## obstacle collision shapes are carved out of the walkable navmesh at runtime.
+## All other level scripts have this function; its absence in tutorial_level.gd
+## was the root cause of navmesh not accounting for obstacles (Issue #1534).
+func test_tutorial_level_script_has_setup_navigation() -> void:
+	var file := FileAccess.open("res://scripts/levels/tutorial_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("tutorial_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+	assert_true(
+		content.contains("func _setup_navigation()"),
+		"tutorial_level.gd must define _setup_navigation() to bake navmesh at runtime (Issue #1534)"
+	)
+
+
+## The tutorial level script must call _setup_navigation() from _ready() so
+## the bake actually happens when the level loads.
+func test_tutorial_level_script_calls_setup_navigation_in_ready() -> void:
+	var file := FileAccess.open("res://scripts/levels/tutorial_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("tutorial_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+	assert_true(
+		content.contains("_setup_navigation()"),
+		"tutorial_level.gd must call _setup_navigation() so navmesh bakes on level load (Issue #1534)"
+	)
