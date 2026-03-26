@@ -85,6 +85,12 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"grenades": [],
 		"active_items": []
 	},
+	"res://scenes/levels/FactoryLevel.tscn": {
+		"min_rank": "F",
+		"weapons": [],
+		"grenades": [],
+		"active_items": [7]  # ActiveItemManager.ActiveItemType.FORCE_FIELD = 7 (Issue #1589 req.2)
+	},
 	"res://scenes/levels/LabyrinthLevel.tscn:S": {
 		"min_rank": "S",
 		"weapons": [],
@@ -121,9 +127,9 @@ const ALL_DIFFICULTIES_UNLOCK_CONDITIONS: Array[Dictionary] = [
 ## Issue #1389: update unlock conditions
 const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
 	{
-		# 1000 kills without Laser Sight → unlock Laser Sight (Issue #1196)
+		# 400 kills without Laser Sight → unlock Laser Sight (Issue #1196, updated by Issue #1589)
 		"stat": "kills_without_laser_sight",
-		"min_kills": 1000,
+		"min_kills": 400,
 		"weapons": [],
 		"grenades": [],
 		"active_items": [9]  # ActiveItemManager.ActiveItemType.LASER_SIGHT = 9
@@ -151,6 +157,14 @@ const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
 		"weapons": [],
 		"grenades": [],
 		"active_items": [17]  # ActiveItemManager.ActiveItemType.COMBAT_DISPOSITION = 17
+	},
+	{
+		# 7 levels completed at rank A or higher → unlock Breaker Bullets (Issue #1589 req.3)
+		"stat": "levels_completed_rank_a_or_higher",
+		"min_kills": 7,
+		"weapons": [],
+		"grenades": [],
+		"active_items": [6]  # ActiveItemManager.ActiveItemType.BREAKER_BULLETS = 6
 	}
 ]
 
@@ -210,6 +224,8 @@ func _ready() -> void:
 			game_manager.total_deaths_updated.connect(_on_total_deaths_updated)
 		if game_manager.has_signal("no_damage_levels_completed_updated"):
 			game_manager.no_damage_levels_completed_updated.connect(_on_no_damage_levels_completed_updated)
+		if game_manager.has_signal("levels_completed_rank_a_or_higher_updated"):
+			game_manager.levels_completed_rank_a_or_higher_updated.connect(_on_levels_completed_rank_a_or_higher_updated)
 	# Reset condition-gated items to locked state first (in case old save data has them incorrectly
 	# marked as unlocked), then re-apply earned unlocks from progress. This ensures the unlock
 	# state is always consistent with actual level completion progress.
@@ -284,6 +300,17 @@ func _on_no_damage_levels_completed_updated(_new_count: int) -> void:
 		if kill_condition.get("stat", "") == "no_damage_levels_completed" and is_kill_condition_met(kill_condition):
 			items_unlocked_by_kill_condition.emit()
 			_log("No-damage level condition met — Combat Disposition now available to unlock in armory")
+			break
+
+
+## Called when GameManager emits levels_completed_rank_a_or_higher_updated.
+## Checks if the Breaker Bullets rank-A condition is now satisfied.
+## Issue #1589.
+func _on_levels_completed_rank_a_or_higher_updated(_new_count: int) -> void:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if kill_condition.get("stat", "") == "levels_completed_rank_a_or_higher" and is_kill_condition_met(kill_condition):
+			items_unlocked_by_kill_condition.emit()
+			_log("Rank-A level condition met — Breaker Bullets now available to unlock in armory")
 			break
 
 
@@ -936,7 +963,8 @@ const _LEVEL_NAMES: Dictionary = {
 	"res://scenes/levels/RevolverLevel.tscn": "Double Corridor",
 	"res://scenes/levels/BeachLevel.tscn": "Beach",
 	"res://scenes/levels/DocksLevel.tscn": "Docks",
-	"res://scenes/levels/CityLevel.tscn": "City"
+	"res://scenes/levels/CityLevel.tscn": "City",
+	"res://scenes/levels/FactoryLevel.tscn": "Factory"
 }
 
 
@@ -971,6 +999,8 @@ func _build_kill_condition_description(kill_condition: Dictionary) -> String:
 		return "Die %d times" % min_kills
 	if stat == "no_damage_levels_completed":
 		return "Complete %d level(s) without taking damage" % min_kills
+	if stat == "levels_completed_rank_a_or_higher":
+		return "Complete %d level(s) at rank A or higher" % min_kills
 	return "Get %d kills without Laser Sight" % min_kills
 
 

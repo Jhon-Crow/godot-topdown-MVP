@@ -338,6 +338,8 @@ func _populate_table() -> void:
 			map_display = "%d / %d deaths" % [current_kills, min_kills]
 		elif stat == "no_damage_levels_completed":
 			map_display = "%d / %d levels without damage" % [current_kills, min_kills]
+		elif stat == "levels_completed_rank_a_or_higher":
+			map_display = "%d / %d levels at rank A or higher" % [current_kills, min_kills]
 		else:
 			map_display = "%d / %d kills (no Laser Sight)" % [current_kills, min_kills]
 
