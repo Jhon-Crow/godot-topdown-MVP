@@ -231,3 +231,75 @@ old item B placed back on pedestal), `treasure_item` is updated to B so re-entry
 
 - `game_log_20260324_180116.txt` — original repro (infinite item farming, 20+ re-entries)
 - `game_log_20260325_171535.txt` — post-v1-fix repro (7 re-entries, 5th visit spawns new item)
+- `game_log_20260326_170436.txt` — post-v2-fix repro (combat room enemies respawn on revisit)
+
+---
+
+## Bug 4 — Combat Room Enemies Respawn on Revisit (discovered 2026-03-26)
+
+### Owner feedback
+
+> "состояние сокровищницы сохранается, но состояние обычных комнат - нет"
+> (treasure room state is saved, but regular room state is not)
+
+### Log evidence (`game_log_20260326_170436.txt`)
+
+Enemy spawn positions exactly repeat across multiple visits to the same combat room:
+
+```
+[17:05:15] Enemy_0 Spawned at (1440, 324) — 1st visit
+[17:05:31] Enemy_0 Spawned at (1440, 324) — 2nd visit ← enemies respawn!
+[17:05:41] Enemy_0 Spawned at (1440, 324) — 3rd visit ← enemies respawn!
+[17:06:02] Enemy_0 Spawned at (1440, 324) — 4th visit ← enemies respawn!
+[17:06:36] Enemy_0 Spawned at (1440, 324) — 5th visit ← enemies respawn!
+```
+
+The room was visited 5 times with enemies re-appearing each time.
+
+### Root Cause — Bug 4
+
+In `_ready()`, the order of operations was:
+
+```gdscript
+_build_room_scene()          # ← spawns enemies via _spawn_enemies_in_room()
+_spawn_player()
+_setup_navigation()
+_setup_player_tracking()
+
+if is_start_room or is_cleared_revisit:  # ← checked AFTER spawn
+    _room_cleared = true
+    ...
+    return
+```
+
+`_build_room_scene()` calls `_spawn_enemies_in_room()` unconditionally. The `is_cleared_revisit`
+check (which should skip enemy spawning) runs **after** enemies are already added to the scene.
+Even though `_setup_enemy_tracking()` is not called for cleared revisits, the enemies still
+exist in the scene tree — they are visible, mobile, and fire at the player.
+
+### Fix — Bug 4
+
+Move the `is_cleared_revisit` / `is_start_room` check **before** `_build_room_scene()`. For
+cleared rooms, use a new `_build_room_scene_no_enemies()` function that builds walls, floor, and
+door zones but **does not call `_spawn_enemies_in_room()`**:
+
+```gdscript
+# Issue #1450: Start rooms and cleared-revisit rooms must NOT spawn enemies.
+if is_start_room or is_cleared_revisit:
+    _build_room_scene_no_enemies()   # walls + floor, no enemies
+    _spawn_player()
+    ...
+    return
+
+_build_room_scene()                  # walls + floor + enemies (uncleared rooms only)
+_spawn_player()
+...
+```
+
+### Behaviour After Fix
+
+| Scenario | Before fix | After v3 fix |
+|---|---|---|
+| Enter cleared combat room | Enemies respawn ✗ | Empty room, doors open ✓ |
+| Enter uncleared combat room | Enemies spawn ✓ | Enemies spawn ✓ |
+| Treasure room re-entry | Same item restored ✓ | Same item restored ✓ |

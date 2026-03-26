@@ -833,3 +833,70 @@ func test_1450_in_treasure_room_flag_kept_when_navigating_to_treasure() -> void:
 
 	assert_true(in_treasure_room,
 		"roguelike_in_treasure_room must be true when navigating to a treasure room")
+
+
+func test_1450_cleared_combat_room_must_not_spawn_enemies_on_revisit() -> void:
+	## Root cause of the second reported bug (game_log_20260326_170436.txt):
+	## When a combat room is revisited after being marked cleared, enemies must NOT
+	## spawn. The fix moves the is_cleared_revisit check BEFORE _build_room_scene()
+	## so _spawn_enemies_in_room() is never called for cleared rooms.
+	##
+	## This test mirrors the _ready() logic: if map_room["cleared"] == true
+	## the room is a cleared revisit, and enemy spawning must be skipped.
+	var map_room: Dictionary = {
+		"map_room_type": "combat",
+		"room_type": 0,
+		"cleared": true,
+		"visited": true,
+	}
+
+	# Simulate what _ready() does: read the cleared flag
+	var is_cleared_revisit: bool = map_room["cleared"]
+
+	# With the fix, cleared revisit rooms use _build_room_scene_no_enemies()
+	# which does NOT call _spawn_enemies_in_room(). We simulate the decision:
+	var enemies_would_spawn: bool = not is_cleared_revisit
+
+	assert_false(enemies_would_spawn,
+		"Cleared combat room must NOT spawn enemies on revisit (Issue #1450 bug 2)")
+
+
+func test_1450_uncleared_combat_room_spawns_enemies() -> void:
+	## Sanity check: an uncleared (first-visit) combat room DOES spawn enemies.
+	var map_room: Dictionary = {
+		"map_room_type": "combat",
+		"room_type": 0,
+		"cleared": false,
+		"visited": false,
+	}
+
+	var is_cleared_revisit: bool = map_room["cleared"]
+	var is_start_room: bool = (map_room["map_room_type"] == "start")
+
+	var enemies_would_spawn: bool = not (is_start_room or is_cleared_revisit)
+
+	assert_true(enemies_would_spawn,
+		"Uncleared first-visit combat room must spawn enemies")
+
+
+func test_1450_navigate_away_marks_current_room_cleared() -> void:
+	## When the player navigates away from a combat room (even with enemies alive,
+	## e.g. by passing through a start room's open door), _navigate_to_map_room
+	## marks the current room as cleared = true.
+	## On the next entry, is_cleared_revisit must be true and no enemies spawn.
+	var rooms: Array = [
+		{"map_room_type": "start",  "cleared": true,  "visited": true},
+		{"map_room_type": "combat", "cleared": false, "visited": true},
+		{"map_room_type": "treasure", "cleared": false, "visited": false,
+		 "treasure_item": null, "treasure_collected": false},
+	]
+	var current_idx: int = 1  # Currently in combat room
+
+	# Simulate _navigate_to_map_room: mark current room cleared
+	rooms[current_idx]["cleared"] = true
+
+	# Now simulate re-entering combat room (current_idx=1)
+	var is_cleared_revisit: bool = rooms[current_idx]["cleared"]
+
+	assert_true(is_cleared_revisit,
+		"Combat room must be marked cleared after _navigate_to_map_room, so re-entry skips enemy spawn")

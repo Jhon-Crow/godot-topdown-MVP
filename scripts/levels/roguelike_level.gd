@@ -320,13 +320,14 @@ func _ready() -> void:
 		print("[RoguelikeLevel] Treasure map room ready (already_collected=%s)" % str(treasure_already_collected))
 		return
 
-	_build_room_scene()
-	_spawn_player()
-	_setup_navigation()
-	_setup_player_tracking()
-
-	# Start rooms and cleared-revisit rooms: no enemies, doors open immediately
+	# Issue #1450: Start rooms and cleared-revisit rooms must NOT spawn enemies.
+	# _build_room_scene() calls _spawn_enemies_in_room() internally, so the
+	# cleared/start check MUST happen before calling it.
 	if is_start_room or is_cleared_revisit:
+		_build_room_scene_no_enemies()
+		_spawn_player()
+		_setup_navigation()
+		_setup_player_tracking()
 		_room_cleared = true
 		_setup_debug_ui()
 		_setup_saturation_overlay()
@@ -335,9 +336,15 @@ func _ready() -> void:
 		call_deferred("_activate_exit_zone")
 		if GameManager:
 			GameManager.stats_updated.connect(_update_debug_ui)
-		print("[RoguelikeLevel] %s room ready — no enemies, doors open" % ("Start" if is_start_room else "Revisited"))
+		var _log_revisit := "[RoguelikeLevel] %s room ready — no enemies, doors open (Issue #1450)" % ("Start" if is_start_room else "Revisited")
+		print(_log_revisit)
+		FileLogger.info(_log_revisit)
 		return
 
+	_build_room_scene()
+	_spawn_player()
+	_setup_navigation()
+	_setup_player_tracking()
 	_setup_enemy_tracking()
 	_setup_debug_ui()
 	_setup_saturation_overlay()
@@ -692,6 +699,33 @@ func _build_room_scene() -> void:
 
 	_build_room(room_container)
 	_spawn_enemies_in_room(room_container)
+
+
+## Issue #1450: Build room geometry (walls, floor, doors) WITHOUT spawning enemies.
+## Used for start rooms and cleared-revisit rooms so the layout is correct but
+## no new enemies appear on re-entry.
+func _build_room_scene_no_enemies() -> void:
+	var size_idx: int = randi() % ROOM_SIZE_OPTIONS.size()
+	var chosen_size: Vector2 = ROOM_SIZE_OPTIONS[size_idx]
+	_room_w = chosen_size.x
+	_room_h = chosen_size.y
+	_room_variant = randi() % 3
+	print("[RoguelikeLevel] Room size: %.0f×%.0f, variant: %d (no enemies)" % [_room_w, _room_h, _room_variant])
+
+	var bg := ColorRect.new()
+	bg.name  = "WorldBackground"
+	bg.position = Vector2(-200, -200)
+	bg.size     = Vector2(_room_w + 400, _room_h + 400)
+	bg.color    = BG_COLOR
+	add_child(bg)
+
+	var room_container := Node2D.new()
+	room_container.name = "Room"
+	room_container.position = Vector2.ZERO
+	add_child(room_container)
+
+	_build_room(room_container)
+	# Intentionally skip _spawn_enemies_in_room — room is already cleared.
 
 
 func _build_room(parent: Node) -> void:
