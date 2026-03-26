@@ -25,11 +25,12 @@ const DASH_CHARGES: int = 4
 ## Dash cooldown duration (same as player Dash).
 const DASH_COOLDOWN: float = 1.2
 
-## Dash duration per dash — longer than player for a visible aggressive lunge (Issue #1532 fix #9).
-const DASH_DURATION: float = 0.2
+## Dash duration per dash — short sidestep for a snappy evasion (Issue #1540).
+const DASH_DURATION: float = 0.15
 
-## Dash speed multiplier — higher than player for a long closing dash (Issue #1532 fix #9).
-const DASH_SPEED_MULTIPLIER: float = 6.0
+## Dash speed multiplier for the sidestep distance (Issue #1540).
+## At combat_move_speed=320 px/s: 320 * 1.25 * 0.15 ≈ 60 px sidestep (within 20-100 px target).
+const DASH_SPEED_MULTIPLIER: float = 1.25
 
 ## Chain window for consecutive dashes.
 const DASH_CHAIN_WINDOW: float = 0.4
@@ -263,25 +264,52 @@ func should_dash_instead_of_suppress() -> bool:
 	return true
 
 
-## Calculate dash direction and attempt to dash toward the player.
+## Calculate sideways dash direction and attempt to evade incoming bullets.
 ## Called from enemy._update_suppression() when bullets are in threat sphere.
 ##
-## Dash strategy (Issue #1532 fix #9): operator dashes TOWARD the player to close distance
-## aggressively, making it harder to track and turning the dodge into an attack opportunity.
+## Dash strategy (Issue #1540): operator sidesteps PERPENDICULAR to the incoming bullet
+## so it's clearly visible that the bullet passed by. Sidestep distance is ~60 px (20-100 px
+## range) — just enough to see the bullet miss, not a long closing lunge.
 func try_dash_from_threat(bullets_in_sphere: Array, player: Node2D, enemy_pos: Vector2) -> void:
-	if player == null:
+	# Determine evade direction from the first bullet in sphere (or fall back to player dir)
+	var evade_dir: Vector2 = Vector2.ZERO
+
+	if bullets_in_sphere.size() > 0:
+		var bullet: Node2D = bullets_in_sphere[0] as Node2D
+		if bullet != null and is_instance_valid(bullet):
+			# Bullet's velocity direction gives us the threat axis.
+			# Sidestep perpendicular to it — pick the side that moves away from the player.
+			var bullet_vel: Vector2 = Vector2.ZERO
+			if "velocity" in bullet:
+				bullet_vel = bullet.velocity
+			elif "linear_velocity" in bullet:
+				bullet_vel = bullet.linear_velocity
+
+			if bullet_vel != Vector2.ZERO:
+				var perp_left: Vector2 = bullet_vel.normalized().rotated(-PI * 0.5)
+				var perp_right: Vector2 = bullet_vel.normalized().rotated(PI * 0.5)
+				# Pick the side that moves away from the player
+				if player != null:
+					var to_player: Vector2 = (player.global_position - enemy_pos).normalized()
+					evade_dir = perp_left if perp_left.dot(to_player) < perp_right.dot(to_player) else perp_right
+				else:
+					evade_dir = perp_left
+
+	# Fallback: sidestep perpendicular to the player direction
+	if evade_dir == Vector2.ZERO and player != null:
+		var to_player: Vector2 = (player.global_position - enemy_pos).normalized()
+		evade_dir = to_player.rotated(-PI * 0.5)  # 90° left of the threat axis
+
+	if evade_dir == Vector2.ZERO:
 		return
 
-	# Dash directly toward the player (aggressive closing dash)
-	var to_player: Vector2 = (player.global_position - enemy_pos).normalized()
-
-	FileLogger.info("[DroneOperator] Aggressive dash toward player: dir=(%.2f, %.2f)" % [
-		to_player.x, to_player.y
+	FileLogger.info("[DroneOperator] Sideways evade: dir=(%.2f, %.2f)" % [
+		evade_dir.x, evade_dir.y
 	])
-	try_dash(to_player)
+	try_dash(evade_dir)
 
 
-## Attempt to activate a dash in a given direction (called when bullets enter threat sphere).
+## Attempt to activate a sidestep in a given direction (called when bullets enter threat sphere).
 ## Returns true if dash started successfully.
 func try_dash(direction: Vector2) -> bool:
 	if _phase != Phase.ACTIVE:

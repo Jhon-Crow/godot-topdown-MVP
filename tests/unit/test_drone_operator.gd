@@ -112,7 +112,8 @@ class MockDroneOperatorDash:
 	## Simulates DroneOperatorComponent dash mechanics for testing.
 	const DASH_CHARGES: int = 4
 	const DASH_COOLDOWN: float = 1.2
-	const DASH_DURATION: float = 0.15
+	const DASH_DURATION: float = 0.15    ## Short sidestep duration (Issue #1540)
+	const DASH_SPEED_MULTIPLIER: float = 1.25  ## Sidestep multiplier ≈60 px at 320 px/s (Issue #1540)
 	const DASH_CHAIN_WINDOW: float = 0.4
 
 	enum Phase { DEPLOYING, CONTROLLING, ACTIVE }
@@ -267,6 +268,49 @@ func test_operator_chain_window_after_partial_charges() -> void:
 		"Chain window should be 0.4s after dash with charges remaining")
 	assert_eq(mock_operator._dash_cooldown_timer, 0.0,
 		"Cooldown should not start when charges remain")
+
+
+func test_operator_dash_duration_is_short_for_sidestep() -> void:
+	## Issue #1540: sidestep must be short (0.15s) so displacement stays within 20-100 px.
+	assert_eq(MockDroneOperatorDash.DASH_DURATION, 0.15,
+		"Dash duration should be 0.15s for a short sidestep")
+
+
+func test_operator_sidestep_distance_within_range() -> void:
+	## Issue #1540: at combat_move_speed=320 px/s the sidestep displacement must be 20-100 px.
+	var combat_move_speed: float = 320.0
+	var distance: float = combat_move_speed * MockDroneOperatorDash.DASH_SPEED_MULTIPLIER * MockDroneOperatorDash.DASH_DURATION
+	assert_gte(distance, 20.0,
+		"Sidestep displacement must be at least 20 px")
+	assert_lte(distance, 100.0,
+		"Sidestep displacement must be at most 100 px")
+
+
+func test_evade_direction_is_perpendicular_to_bullet_velocity() -> void:
+	## Issue #1540: evade direction must be perpendicular to bullet travel direction.
+	## A bullet traveling RIGHT (1,0) → perpendicular evade directions are UP (0,-1) or DOWN (0,1).
+	var bullet_vel: Vector2 = Vector2(1.0, 0.0)  # bullet going RIGHT
+	var perp_left: Vector2 = bullet_vel.normalized().rotated(-PI * 0.5)   # UP (0,-1)
+	var perp_right: Vector2 = bullet_vel.normalized().rotated(PI * 0.5)   # DOWN (0,1)
+	# Perpendicular vectors must have zero dot product with bullet direction
+	assert_almost_eq(perp_left.dot(bullet_vel.normalized()), 0.0, 0.001,
+		"Left perpendicular must be orthogonal to bullet direction")
+	assert_almost_eq(perp_right.dot(bullet_vel.normalized()), 0.0, 0.001,
+		"Right perpendicular must be orthogonal to bullet direction")
+
+
+func test_evade_picks_side_away_from_player() -> void:
+	## Issue #1540: when bullet travels RIGHT and player is above (0,-1), evade should go DOWN (0,1).
+	var bullet_vel: Vector2 = Vector2(1.0, 0.0)  # bullet going RIGHT
+	var enemy_pos: Vector2 = Vector2(200.0, 200.0)
+	var player_pos: Vector2 = Vector2(200.0, 100.0)  # player is ABOVE the enemy
+	var to_player: Vector2 = (player_pos - enemy_pos).normalized()  # (0, -1)
+	var perp_left: Vector2 = bullet_vel.normalized().rotated(-PI * 0.5)   # (0, -1) = toward player
+	var perp_right: Vector2 = bullet_vel.normalized().rotated(PI * 0.5)   # (0, 1) = away from player
+	# Should pick the side that moves AWAY from player (lower dot product with to_player)
+	var evade_dir: Vector2 = perp_left if perp_left.dot(to_player) < perp_right.dot(to_player) else perp_right
+	assert_almost_eq(evade_dir.dot(to_player), -1.0, 0.001,
+		"Evade direction should move away from the player (opposite dot product)")
 
 
 # ============================================================================
