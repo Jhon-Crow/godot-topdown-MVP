@@ -974,6 +974,103 @@ func _build_kill_condition_description(kill_condition: Dictionary) -> String:
 	return "Get %d kills without Laser Sight" % min_kills
 
 
+## Get the kill-based unlock condition progress for a weapon (0.0–1.0).
+## Returns -1.0 if no kill-based condition applies (e.g., level-based unlock).
+## Returns a value in [0.0, 1.0] clamped to the condition's min_kills threshold.
+## Issue #1591: used by the armory to show progress bar animation.
+func get_weapon_kill_condition_progress(weapon_id: String) -> float:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if weapon_id in kill_condition.get("weapons", []):
+			var game_manager: Node = get_node_or_null("/root/GameManager")
+			if not game_manager:
+				return 0.0
+			var stat: String = kill_condition.get("stat", "")
+			var min_kills: int = kill_condition.get("min_kills", 1)
+			var current: int = game_manager.get(stat) if game_manager.get(stat) != null else 0
+			return clampf(float(current) / float(min_kills), 0.0, 1.0)
+	return -1.0
+
+
+## Get the kill-based unlock condition progress for a grenade type (0.0–1.0).
+## Returns -1.0 if no kill-based condition applies.
+## Issue #1591: used by the armory to show progress bar animation.
+func get_grenade_kill_condition_progress(grenade_type: int) -> float:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if grenade_type in kill_condition.get("grenades", []):
+			var game_manager: Node = get_node_or_null("/root/GameManager")
+			if not game_manager:
+				return 0.0
+			var stat: String = kill_condition.get("stat", "")
+			var min_kills: int = kill_condition.get("min_kills", 1)
+			var current: int = game_manager.get(stat) if game_manager.get(stat) != null else 0
+			return clampf(float(current) / float(min_kills), 0.0, 1.0)
+	return -1.0
+
+
+## Get the kill-based unlock condition progress for an active item type (0.0–1.0).
+## Returns -1.0 if no kill-based condition applies.
+## Issue #1591: used by the armory to show progress bar animation.
+func get_active_item_kill_condition_progress(item_type: int) -> float:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if item_type in kill_condition.get("active_items", []):
+			var game_manager: Node = get_node_or_null("/root/GameManager")
+			if not game_manager:
+				return 0.0
+			var stat: String = kill_condition.get("stat", "")
+			var min_kills: int = kill_condition.get("min_kills", 1)
+			var current: int = game_manager.get(stat) if game_manager.get(stat) != null else 0
+			return clampf(float(current) / float(min_kills), 0.0, 1.0)
+	return -1.0
+
+
+## Get the kill-based unlock condition current and max counts for a weapon.
+## Returns {"current": int, "max": int} if a kill condition applies, or {} otherwise.
+## Issue #1591: used by the armory tooltip to show progress numbers.
+func get_weapon_kill_condition_counts(weapon_id: String) -> Dictionary:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if weapon_id in kill_condition.get("weapons", []):
+			var game_manager: Node = get_node_or_null("/root/GameManager")
+			if not game_manager:
+				return {}
+			var stat: String = kill_condition.get("stat", "")
+			var min_kills: int = kill_condition.get("min_kills", 1)
+			var current: int = game_manager.get(stat) if game_manager.get(stat) != null else 0
+			return {"current": mini(current, min_kills), "max": min_kills}
+	return {}
+
+
+## Get the kill-based unlock condition current and max counts for a grenade type.
+## Returns {"current": int, "max": int} if a kill condition applies, or {} otherwise.
+## Issue #1591: used by the armory tooltip to show progress numbers.
+func get_grenade_kill_condition_counts(grenade_type: int) -> Dictionary:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if grenade_type in kill_condition.get("grenades", []):
+			var game_manager: Node = get_node_or_null("/root/GameManager")
+			if not game_manager:
+				return {}
+			var stat: String = kill_condition.get("stat", "")
+			var min_kills: int = kill_condition.get("min_kills", 1)
+			var current: int = game_manager.get(stat) if game_manager.get(stat) != null else 0
+			return {"current": mini(current, min_kills), "max": min_kills}
+	return {}
+
+
+## Get the kill-based unlock condition current and max counts for an active item type.
+## Returns {"current": int, "max": int} if a kill condition applies, or {} otherwise.
+## Issue #1591: used by the armory tooltip to show progress numbers.
+func get_active_item_kill_condition_counts(item_type: int) -> Dictionary:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if item_type in kill_condition.get("active_items", []):
+			var game_manager: Node = get_node_or_null("/root/GameManager")
+			if not game_manager:
+				return {}
+			var stat: String = kill_condition.get("stat", "")
+			var min_kills: int = kill_condition.get("min_kills", 1)
+			var current: int = game_manager.get(stat) if game_manager.get(stat) != null else 0
+			return {"current": mini(current, min_kills), "max": min_kills}
+	return {}
+
+
 ## Get all available difficulty names from DifficultyManager (with static fallback).
 ## Uses DifficultyManager as the single source of truth so new difficulties are
 ## automatically picked up without needing to update this file.
