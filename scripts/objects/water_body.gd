@@ -57,7 +57,10 @@ const MAX_OBSTACLE_SHADER_SLOTS: int = 8
 
 ## Throttle: only push obstacle UVs to shader every N frames to save GPU upload cost.
 var _obstacle_update_frame: int = 0
-const OBSTACLE_UPDATE_INTERVAL: int = 3  # update every 3 physics frames
+const OBSTACLE_UPDATE_INTERVAL: int = 6  # update every 6 frames — bodies rarely need sub-6-frame precision
+
+## True when shader obstacle params need to be re-uploaded (body entered/exited).
+var _obstacle_dirty: bool = false
 
 
 func _ready() -> void:
@@ -102,30 +105,36 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	# Check movement of all bodies currently inside the water.
-	for body in _bodies_in_water.keys():
-		if not is_instance_valid(body):
-			_bodies_in_water.erase(body)
-			continue
+	# Skip all per-body work when no bodies are in water — avoids unnecessary
+	# CPU iteration and GPU uploads that caused a stutter on first entry (Issue #1573).
+	if not _bodies_in_water.is_empty():
+		# Check movement of all bodies currently inside the water.
+		for body in _bodies_in_water.keys():
+			if not is_instance_valid(body):
+				_bodies_in_water.erase(body)
+				_obstacle_dirty = true
+				continue
 
-		var current_pos: Vector2 = body.global_position
-		var last_pos: Vector2 = _bodies_in_water[body]
-		if current_pos.distance_to(last_pos) >= splash_interval:
-			_spawn_splash(current_pos)
-			_bodies_in_water[body] = current_pos
+			var current_pos: Vector2 = body.global_position
+			var last_pos: Vector2 = _bodies_in_water[body]
+			if current_pos.distance_to(last_pos) >= splash_interval:
+				_spawn_splash(current_pos)
+				_bodies_in_water[body] = current_pos
 
-	# Suppress bloody footprints for characters inside water
-	_suppress_bloody_footprints()
+		# Suppress bloody footprints for characters inside water
+		_suppress_bloody_footprints()
 
-	# Push obstacle positions to shader for wave interruption (Issue #1550).
-	# Throttled to avoid unnecessary GPU uploads every frame.
-	_obstacle_update_frame += 1
-	if _obstacle_update_frame >= OBSTACLE_UPDATE_INTERVAL:
-		_obstacle_update_frame = 0
-		_update_obstacle_shader_params()
+		# Push obstacle positions to shader for wave interruption (Issue #1550).
+		# Only re-upload when dirty (body entered/exited) OR on the throttle interval.
+		_obstacle_update_frame += 1
+		if _obstacle_dirty or _obstacle_update_frame >= OBSTACLE_UPDATE_INTERVAL:
+			_obstacle_update_frame = 0
+			_obstacle_dirty = false
+			_update_obstacle_shader_params()
 
-	# Clean up stale grenade references
-	_cleanup_grenades()
+	# Clean up stale grenade references — skip when no grenades tracked.
+	if not _connected_grenades.is_empty():
+		_cleanup_grenades()
 
 
 ## Push current body positions inside water to the shader as UV-space coordinates.
@@ -212,6 +221,7 @@ func _on_body_entered(body: Node2D) -> void:
 
 	# Regular body (player/enemy)
 	_bodies_in_water[body] = body.global_position
+	_obstacle_dirty = true
 	_spawn_splash(body.global_position)
 
 	# Suppress bloody footprints immediately when entering water
@@ -220,6 +230,7 @@ func _on_body_entered(body: Node2D) -> void:
 
 func _on_body_exited(body: Node2D) -> void:
 	_bodies_in_water.erase(body)
+	_obstacle_dirty = true
 
 
 func _on_area_entered(area: Area2D) -> void:
