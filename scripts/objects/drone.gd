@@ -1,11 +1,11 @@
 extends CharacterBody2D
-## Drone entity spawned by the Drone Operator enemy (Issue #1397, #1417).
+## Drone entity spawned by the Drone Operator enemy (Issue #1397, #1417, #1508).
 ##
 ## All AI, visuals, and hit handling in one script to avoid exported-build
 ## script-load failures seen when logic was split into DroneComponent child node.
 ##
 ## Behavior:
-## - SEARCHING: 360° vision (no FOV), LOS raycast, hover in place.
+## - SEARCHING: 360° vision (no FOV), LOS raycast, expanding spiral orbit around operator.
 ## - COMBAT: Red LED, morse-code beeping, 3× speed kamikaze flight, drift.
 ##   On player collision: RPG-rocket-style explosion (150px radius, 3 HP).
 
@@ -29,6 +29,11 @@ const EXPLOSION_RADIUS: float = 150.0
 const EXPLOSION_DAMAGE: int = 3
 const DRIFT_FACTOR: float = 0.85
 const BEEP_INTERVAL: float = 0.3
+## Spiral search constants (Issue #1508)
+const SPIRAL_START_RADIUS: float = 60.0     # Initial orbit radius around operator (px)
+const SPIRAL_MAX_RADIUS: float = 350.0      # Maximum spiral expansion radius (px)
+const SPIRAL_EXPAND_RATE: float = 25.0      # Radius growth per second (px/s)
+const SPIRAL_ANGULAR_SPEED: float = 1.8     # Angular velocity (rad/s)
 const BEEP_FREQUENCY: float = 1200.0
 const BEEP_DURATION: float = 0.08
 
@@ -41,6 +46,10 @@ var _operator: Node2D = null
 var _player: Node2D = null
 var _nav_agent: NavigationAgent2D = null
 var _current_move_dir: Vector2 = Vector2.ZERO
+
+## Spiral search state (Issue #1508)
+var _spiral_angle: float = 0.0        # Current angle in the spiral orbit (radians)
+var _spiral_radius: float = SPIRAL_START_RADIUS  # Current orbit radius
 
 ## Beep state
 var _beep_timer: float = 0.0
@@ -71,7 +80,7 @@ func _ready() -> void:
 	_find_player()
 	_setup_drone_visual()
 
-	FileLogger.info("[Drone] _ready complete (state=SEARCHING, player=%s, nav=%s)" % [
+	FileLogger.info("[Drone] _ready complete (state=SEARCHING spiral, player=%s, nav=%s)" % [
 		(_player.name if _player else "null"),
 		("found" if _nav_agent else "missing")
 	])
@@ -101,12 +110,12 @@ func _physics_process(delta: float) -> void:
 		return
 
 	if _state == DroneState.SEARCHING:
-		_update_searching()
+		_update_searching(delta)
 	else:
 		_update_combat(delta)
 
 
-func _update_searching() -> void:
+func _update_searching(delta: float) -> void:
 	if _player.has_method("is_invisible") and _player.is_invisible():
 		velocity = Vector2.ZERO
 		move_and_slide()
@@ -116,7 +125,19 @@ func _update_searching() -> void:
 		_transition_to_combat()
 		return
 
-	velocity = Vector2.ZERO
+	# Expand spiral orbit around the operator (Issue #1508).
+	# If the operator is gone, hover in place as a fallback.
+	if _operator == null or not is_instance_valid(_operator):
+		velocity = Vector2.ZERO
+		move_and_slide()
+		return
+
+	_spiral_angle += SPIRAL_ANGULAR_SPEED * delta
+	_spiral_radius = minf(_spiral_radius + SPIRAL_EXPAND_RATE * delta, SPIRAL_MAX_RADIUS)
+
+	var orbit_target: Vector2 = _operator.global_position + Vector2(cos(_spiral_angle), sin(_spiral_angle)) * _spiral_radius
+	var to_target: Vector2 = orbit_target - global_position
+	velocity = to_target.normalized() * SEARCH_SPEED
 	move_and_slide()
 
 
@@ -145,7 +166,7 @@ func _transition_to_combat() -> void:
 		_led.color = Color(1.0, 0.1, 0.05, 0.95)
 	if _led_light:
 		_led_light.energy = 3.0
-	FileLogger.info("[Drone] COMBAT mode activated — kamikaze flight toward player!")
+	FileLogger.info("[Drone] COMBAT mode activated — kamikaze flight toward player! (spiral_angle=%.2f, spiral_radius=%.1f)" % [_spiral_angle, _spiral_radius])
 
 
 func _update_combat(delta: float) -> void:
