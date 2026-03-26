@@ -11,9 +11,10 @@ class_name RainEffect
 ## Supports indoor exclusion zones where rain should not appear.
 ## Camera position is checked each frame to detect building entry/exit.
 ##
-## Fix #1546: Streak texture height increased (6→16px) and scale range widened
-## for longer, more visible drops. Radial inward direction preserved from main
-## so rain appears to fall top-down toward the player (correct perspective).
+## Fix #1546: Streak texture made shorter and wider (2x16 → 4x8) so drops look
+## like circles when viewed directly from above (center), not elongated streaks.
+## Alpha reduced for more transparent, subtle rain. Radial inward direction
+## preserved from main so rain appears to fall top-down (correct perspective).
 
 ## Indoor exclusion zones (rain stops when camera center is inside).
 ## Each Rect2 defines a rectangular area in global coordinates.
