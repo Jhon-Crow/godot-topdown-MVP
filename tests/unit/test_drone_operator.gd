@@ -160,6 +160,11 @@ class MockDroneOperatorDash:
 	func get_phase() -> Phase:
 		return _phase
 
+	func get_dash_velocity(base_speed: float = 320.0) -> Vector2:
+		if not _dash_active:
+			return Vector2.ZERO
+		return Vector2.RIGHT * base_speed * DASH_SPEED_MULTIPLIER
+
 
 var mock_operator: MockDroneOperatorDash
 
@@ -258,6 +263,23 @@ func test_operator_cannot_dash_in_deploying_phase() -> void:
 	var result: bool = mock_operator.try_dash(Vector2.RIGHT)
 	assert_false(result,
 		"Operator should not be able to dash in DEPLOYING phase")
+
+
+func test_operator_get_dash_velocity_returns_zero_when_not_dashing() -> void:
+	## Issue #1540 session 4: get_dash_velocity() must return zero when no dash is active.
+	mock_operator = MockDroneOperatorDash.new()
+	var vel: Vector2 = mock_operator.get_dash_velocity()
+	assert_eq(vel, Vector2.ZERO,
+		"get_dash_velocity() should return Vector2.ZERO when not dashing")
+
+
+func test_operator_get_dash_velocity_returns_nonzero_when_dashing() -> void:
+	## Issue #1540 session 4: get_dash_velocity() must return non-zero vector during active dash.
+	mock_operator = MockDroneOperatorDash.new()
+	mock_operator.try_dash(Vector2.RIGHT)
+	var vel: Vector2 = mock_operator.get_dash_velocity()
+	assert_gt(vel.length(), 0.0,
+		"get_dash_velocity() should return a non-zero vector during an active dash")
 
 
 func test_operator_chain_window_after_partial_charges() -> void:
@@ -497,9 +519,10 @@ func test_enemy_script_contains_drone_operator_export() -> void:
 		"enemy.gd must contain is_drone_operator export variable")
 
 
-func test_enemy_script_skips_ai_state_during_dash() -> void:
-	## Issue #1540 regression: dash velocity was overwritten by _process_ai_state on every frame.
-	## Fix: _process_ai_state is skipped while drone operator is dashing.
+func test_enemy_script_restores_dash_velocity_after_ai_state() -> void:
+	## Issue #1540 session 2: dash velocity was overwritten by _process_ai_state on every frame.
+	## Issue #1540 session 4: re-apply dash velocity AFTER _process_ai_state instead of skipping
+	## _process_ai_state entirely, so the operator keeps attacking during and after a dash.
 	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
 	if file == null:
 		gut.p("Cannot open enemy.gd — skipping (export build)")
@@ -507,8 +530,8 @@ func test_enemy_script_skips_ai_state_during_dash() -> void:
 		return
 	var source := file.get_as_text()
 	file.close()
-	assert_true(source.contains("is_dashing") and source.contains("_process_ai_state"),
-		"enemy.gd must guard _process_ai_state with is_dashing() check (Issue #1540 regression fix)")
+	assert_true(source.contains("get_dash_velocity"),
+		"enemy.gd must restore dash velocity via get_dash_velocity() after _process_ai_state (Issue #1540)")
 
 
 func test_drone_operator_scene_exists() -> void:

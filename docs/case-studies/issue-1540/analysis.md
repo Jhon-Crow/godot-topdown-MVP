@@ -117,9 +117,72 @@ This preserves the sidestep velocity through to `move_and_slide()` while `_updat
 
 ---
 
+---
+
+## Follow-up Bug Report (2026-03-26 10:10): Operator Stops Attacking After Dodge
+
+After the Session 2 fix, the owner reported: "після уворота дроновод залишається у стані combat але перестає атакувати та адекватно рухатися" (after dodge, operator stays in COMBAT but stops attacking and moving properly).
+
+### Root Cause: Suppression Triggered During Cooldown
+
+**Log evidence** (`game_log_20260326_130728.txt`):
+- `Dash activated!` fires at T+0
+- After the dash ends (0.15s) + chain window (0.4s) → charges drop to 0, cooldown starts (1.2s)
+- Next bullet arrives during cooldown → `should_dash_instead_of_suppress()` returned `false` (old check: `charges <= 0 AND cooldown > 0`)
+- `_under_fire = true` → COMBAT → RETREATING → IN_COVER → SUPPRESSED chain
+
+### Fix Applied (Session 3)
+
+Simplified `should_dash_instead_of_suppress()` to always return `true` in ACTIVE phase:
+```gdscript
+func should_dash_instead_of_suppress() -> bool:
+    return _phase == Phase.ACTIVE
+```
+ACTIVE phase operators now NEVER get suppressed regardless of charge/cooldown state.
+
+---
+
+## Follow-up Bug Report (2026-03-26 11:19): Operator Still Not Attacking After Dash
+
+After Session 3 fix, owner reported: "після рывка всь ще не атакуют" (after the dash they still don't attack).
+
+### Root Cause: _process_ai_state Permanently Blocked by Stuck _dash_active
+
+**Log evidence** (`game_log_20260326_141747.txt`):
+- `Dash activated!` fires at 14:18:09 (charges 3/4)
+- `Sideways evade: dir=...` continues ~30 times at 14:18:09 (frames during dash)
+- `Dash ended` **never** appears
+- After 14:18:09, the operator produces NO logs (no gunshots, no state transitions) until death at 14:18:15
+- Second and subsequent operators (different instances) dodge correctly at 14:18:28+
+
+**Analysis:** The Session 2 fix (`if not is_dashing(): _process_ai_state(delta)`) blocked `_process_ai_state` permanently if `_dash_active` ever became stuck at `true`. The COMBAT state — including shooting logic — lives inside `_process_ai_state`, so the operator froze completely after the first dash.
+
+The root cause of `_dash_active` becoming stuck is not fully determined from logs alone (missing "Dash ended" entries suggest `_update_dash` was not being called), but the consequence is clear: any stuck `_dash_active` would permanently freeze the operator.
+
+### Fix Applied (Session 4)
+
+Instead of **skipping** `_process_ai_state` during a dash, **re-apply the dash velocity AFTER** `_process_ai_state`. This ensures:
+1. The operator keeps attacking during and after a dash (COMBAT state always runs)
+2. Dash velocity is preserved through to `move_and_slide()` regardless of what COMBAT state sets
+
+**In `drone_operator_component.gd`:** Added `get_dash_velocity()` getter.
+
+**In `enemy.gd`:**
+```gdscript
+# Before (Session 2 — caused freeze if _dash_active stuck):
+if not (_drone_operator and _drone_operator.is_dashing()): _process_ai_state(delta)
+
+# After (Session 4 — always runs, restores velocity if dashing):
+_process_ai_state(delta); if _drone_operator and _drone_operator.is_dashing(): velocity = _drone_operator.get_dash_velocity()
+```
+
+---
+
 ## References
 
 - Issue: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1540
 - Related fix (changed direction to toward player): commit `3f67ac87` (Issue #1532)
 - Log file (original): `game_log_20260326_094908.txt`
-- Log file (regression): `game_log_20260326_105350.txt`
+- Log file (session 2 regression): `game_log_20260326_105350.txt`
+- Log file (session 3 regression): `game_log_20260326_130728.txt`
+- Log file (session 4 regression): `game_log_20260326_141747.txt`

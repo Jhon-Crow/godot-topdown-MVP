@@ -243,6 +243,15 @@ func is_dashing() -> bool:
 	return _dash_active
 
 
+## Returns the velocity vector that should be used during an active dash.
+## Used by enemy.gd to re-apply dash velocity after _process_ai_state may overwrite it.
+func get_dash_velocity() -> Vector2:
+	if not _dash_active or _parent == null:
+		return Vector2.ZERO
+	var base_speed: float = _parent.get("combat_move_speed") if _parent.get("combat_move_speed") else 320.0
+	return _dash_direction * base_speed * DASH_SPEED_MULTIPLIER
+
+
 ## Returns true if the operator is in the defenseless controlling phase.
 func is_controlling_drone() -> bool:
 	return _phase == Phase.CONTROLLING

@@ -915,7 +915,7 @@ func _physics_process(delta: float) -> void:
 			_debug_draw_timer += delta
 			if _debug_draw_timer >= DEBUG_DRAW_INTERVAL: _debug_draw_timer = 0.0; queue_redraw()  # Issue #1220: throttle to 10 Hz
 		return
-	if not (_drone_operator and _drone_operator.is_dashing()): _process_ai_state(delta)  # Issue #1540: skip AI state while dashing to preserve sidestep velocity
+	_process_ai_state(delta); if _drone_operator and _drone_operator.is_dashing(): velocity = _drone_operator.get_dash_velocity()  # Issue #1540: re-apply dash velocity after AI state (AI may zero velocity)
 
 	_update_debug_label()
 	if debug_label_enabled:  # Issue #1220: throttle FOV cone redraws to 10 Hz (was every frame → 33 raycasts/enemy/frame at 60 fps)
