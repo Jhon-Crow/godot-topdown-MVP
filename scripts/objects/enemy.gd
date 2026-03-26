@@ -274,6 +274,9 @@ const GLOBAL_STUCK_MAX_TIME: float = 4.0; const GLOBAL_STUCK_DISTANCE_THRESHOLD:
 var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1107: Stuck detection for machete COMBAT state
 const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
 var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
+var _distraction_attack_logged: bool = false  ## Issue #1526: Rate-limit distraction-attack log to once per episode
+var _nav_path_update_frame: int = 0  ## Issue #1526: Last physics frame when navmesh path was updated (stagger optimization)
+const NAV_PATH_UPDATE_INTERVAL: int = 10  ## Issue #1526: Update navmesh path every N physics frames (~6×/sec at 60 Hz)
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
 var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 100.0  ## Search center / current radius (Search State - Issue #322)
@@ -955,6 +958,8 @@ func _update_goap_state() -> void:
 	if _enemies_in_combat_cache_timer >= ENEMIES_IN_COMBAT_CACHE_INTERVAL: _enemies_in_combat_cache_timer = 0.0; _enemies_in_combat_cache = _count_enemies_in_combat()
 	_goap_world_state["enemies_in_combat"] = _enemies_in_combat_cache
 	_goap_world_state["player_distracted"] = _is_player_distracted()
+	if not _goap_world_state["player_distracted"]:  # Issue #1526: Reset log flag when distraction ends
+		_distraction_attack_logged = false
 
 	# Memory system states (Issue #297)
 	if _memory:
@@ -1307,7 +1312,9 @@ func _process_ai_state(delta: float) -> void:
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
-			_log_to_file("Player distracted - priority attack triggered")
+			if not _distraction_attack_logged:  # Issue #1526: Log once per distraction episode, not every shot
+				_log_to_file("Player distracted - priority attack triggered")
+				_distraction_attack_logged = true
 			_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 			if _shield_component and _shield_component.get_rotation_multiplier() < 1.0: _set_hit_reaction_target(direction_to_player)  # Issue #1242: shield enemy slowly aims
 			else: _force_model_to_face_direction(direction_to_player)  # Fix issue #264: ensure correct aim
