@@ -1710,9 +1710,11 @@ func _rebuild_active_item_slot_animated(item_type: int) -> void:
 ## Plays a shake + glint animation on a weapon/grenade/item slot when it is selected.
 ## The animation consists of:
 ##   1. A 4-step squash-and-stretch scale punch on the weapon icon (saint11 pixel-art style).
-##   2. A diagonal glint sweep rendered via a ShaderMaterial on the icon TextureRect — the
-##      shader works in UV [0,1]² space so the effect is strictly confined to the icon pixels
-##      and cannot bleed onto the card, border, or label.
+##   2. A two-phase shader animation rendered via a ShaderMaterial on the icon TextureRect:
+##      - Phase 1 (0.00–0.22 s): diagonal glint sweeps left → right across the icon.
+##      - Phase 2 (0.22–1.02 s): bright glint runs left → right along the upper edge of the weapon (4× slower).
+##      Both phases work in UV [0,1]² space so the effect is strictly confined to the icon
+##      pixels and cannot bleed onto the card, border, or label (Issue #1563).
 ##   3. A brightness flash (modulate) that briefly bleaches the icon white then fades back.
 ##
 ## Based on the 4-step pixel art animation principle from saint11.art/blog/pixel-art-tutorials/:
@@ -1755,15 +1757,22 @@ func _play_weapon_selection_animation(slot: PanelContainer) -> void:
 		glint_mat = ShaderMaterial.new()
 		glint_mat.shader = glint_shader
 		glint_mat.set_shader_parameter("anim_progress", 0.0)
+		# Pass texel size so the shader can detect the top edge of the weapon silhouette.
+		var tex_size := icon_rect.size
+		if tex_size.x > 0.0 and tex_size.y > 0.0:
+			glint_mat.set_shader_parameter("texel_size", Vector2(1.0 / tex_size.x, 1.0 / tex_size.y))
 		icon_rect.material = glint_mat
 
-	# Animate the shader `anim_progress` from 0 → 1 over 0.22 s (4-step pixel-art shine):
-	#   0.00 – 0.20 : glint fades in (smoothstep inside shader)
-	#   0.00 – 1.00 : stripe sweeps left → right across the icon
-	#   0.75 – 1.00 : glint fades out (smoothstep inside shader)
+	# Animate the shader `anim_progress` from 0 → 1 over 1.02 s (two sequential phases):
+	#   Phase 1 (0.00 – 0.22 s): diagonal glint sweeps left → right across the icon
+	#     0.00 – 0.20 progress: glint fades in (smoothstep inside shader)
+	#     0.00 – 1.00 progress: stripe sweeps left → right
+	#     0.75 – 1.00 progress: glint fades out
+	#   Phase 2 (0.22 – 1.02 s): top-edge glint sweeps left → right (Issue #1563, 4× slower)
+	#     a bright highlight spot runs along the uppermost edge of the weapon silhouette
 	if glint_mat:
 		var glint_tween := create_tween()
-		glint_tween.tween_property(glint_mat, "shader_parameter/anim_progress", 1.0, 0.22) \
+		glint_tween.tween_property(glint_mat, "shader_parameter/anim_progress", 1.0, 1.02) \
 			.set_ease(Tween.EASE_IN_OUT)
 		glint_tween.tween_callback(func():
 			if is_instance_valid(icon_rect):
