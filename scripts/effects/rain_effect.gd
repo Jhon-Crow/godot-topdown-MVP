@@ -4,16 +4,16 @@ class_name RainEffect
 ##
 ## Two-layer particle system rendered on a CanvasLayer (screen space) so rain
 ## always covers the visible viewport regardless of camera position:
-##   - RainStreaks: short falling dashes moving downward (directional velocity)
-##   - RainSplashes: circular ring ripples positioned where streaks land
+##   - RainStreaks: short radial dashes converging toward screen center (fish-eye top-down perspective)
+##   - RainSplashes: circular ring ripples across the full screen
 ##
 ## Rain is always active (continuous) while outdoors.
 ## Supports indoor exclusion zones where rain should not appear.
 ## Camera position is checked each frame to detect building entry/exit.
 ##
-## Fix #1499: Streaks now use direction=(0.2,1,0) + initial_velocity instead of
-## radial_velocity. Splash position is offset to match the average streak
-## endpoint so streak disappearance and splash appearance look unified.
+## Fix #1499: Streaks use negative radial_velocity so particles move inward
+## (toward screen center), giving the correct top-down falling appearance.
+## Splash emitter is co-located at screen center (640,360) matching streaks.
 
 ## Indoor exclusion zones (rain stops when camera center is inside).
 ## Each Rect2 defines a rectangular area in global coordinates.
@@ -28,7 +28,7 @@ var _inside_exclusion: bool = false
 ## Rain canvas layer node (defined in .tscn).
 @onready var _rain_canvas: CanvasLayer = $RainCanvas
 
-## Downward rain streaks particle node (defined in .tscn).
+## Inward radial rain streaks particle node (defined in .tscn).
 @onready var _streaks: GPUParticles2D = $RainCanvas/RainStreaks
 
 ## Ground splash ripples particle node (defined in .tscn).
