@@ -9,10 +9,7 @@
 size = Vector2(4064, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_top_left"]
-size = Vector2(2000, 32)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_top_right"]
-size = Vector2(1600, 32)
+size = Vector2(4064, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_vertical"]
 size = Vector2(32, 4064)
@@ -1171,22 +1168,14 @@ color = Color(0.82, 0.85, 0.88, 0.5)
 
 [node name="Walls" type="Node2D" parent="Environment"]
 
-; WallTop split into left + right with exit opening at x=2000..2400 (top center-right, direction of sunlight)
+; WallTop is solid — exit is through the embankment gap (Gap 3, x=2500..2850)
 [node name="WallTopLeft" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(1000, 48)
+position = Vector2(2000, 48)
 collision_layer = 4
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTopLeft"]
 shape = SubResource("RectangleShape2D_wall_top_left")
-
-[node name="WallTopRight" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(3200, 48)
-collision_layer = 4
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTopRight"]
-shape = SubResource("RectangleShape2D_wall_top_right")
 
 [node name="WallBottom" type="StaticBody2D" parent="Environment/Walls"]
 position = Vector2(2000, 3952)
@@ -1212,20 +1201,20 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRight"]
 shape = SubResource("RectangleShape2D_wall_vertical")
 
-; === EXIT OPENING VISUAL (sun rays marking exit gap in WallTop) ===
+; === EXIT OPENING VISUAL (sun rays marking exit gap in embankment Gap 3: x=2500..2850, y=900..1100) ===
 
 [node name="ExitSunBeam" type="ColorRect" parent="Environment"]
-offset_left = 1960.0
-offset_top = 0.0
-offset_right = 2440.0
-offset_bottom = 200.0
+offset_left = 2460.0
+offset_top = 860.0
+offset_right = 2890.0
+offset_bottom = 1140.0
 color = Color(1.0, 0.95, 0.7, 0.25)
 
 [node name="ExitGlowInner" type="ColorRect" parent="Environment"]
-offset_left = 2000.0
-offset_top = 48.0
-offset_right = 2400.0
-offset_bottom = 240.0
+offset_left = 2500.0
+offset_top = 900.0
+offset_right = 2850.0
+offset_bottom = 1100.0
 color = Color(0.95, 0.9, 0.5, 0.15)
 
 ; === INTERIOR WALLS (Station Building collision) ===

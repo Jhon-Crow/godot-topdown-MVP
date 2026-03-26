@@ -1,7 +1,6 @@
-[gd_scene load_steps=5 format=3 uid="uid://drone_entity_1397"]
+[gd_scene load_steps=4 format=3 uid="uid://drone_entity_1397"]
 
 [ext_resource type="Script" path="res://scripts/objects/drone.gd" id="1_drone"]
-[ext_resource type="Script" path="res://scripts/components/drone_component.gd" id="2_drone_comp"]
 [ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="3_hit_area"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_drone"]
@@ -9,11 +8,8 @@ radius = 16.0
 
 [node name="Drone" type="CharacterBody2D" groups=["enemies"]]
 collision_layer = 2
-collision_mask = 6
+collision_mask = 7
 script = ExtResource("1_drone")
-
-[node name="DroneComponent" type="Node" parent="."]
-script = ExtResource("2_drone_comp")
 
 [node name="DroneModel" type="Node2D" parent="."]
 
@@ -27,3 +23,9 @@ script = ExtResource("3_hit_area")
 
 [node name="HitCollisionShape" type="CollisionShape2D" parent="HitArea"]
 shape = SubResource("CircleShape2D_drone")
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+path_desired_distance = 8.0
+target_desired_distance = 8.0
+avoidance_enabled = true
+radius = 20.0

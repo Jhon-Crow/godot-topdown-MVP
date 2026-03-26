@@ -97,12 +97,11 @@ func _setup_exit_zone() -> void:
 		push_warning("ExitZone scene not found")
 		return
 	_exit_zone = exit_zone_scene.instantiate()
-	# Exit is placed IN the gap of the top wall (x=2000..2400, y≈0..64).
-	# WallTopLeft ends at x=2000, WallTopRight starts at x=2400 — 400px opening.
-	# Zone is centered in the gap and covers the wall thickness so the player
-	# triggers it while walking through the opening.
-	_exit_zone.position = Vector2(2200, 32)
-	_exit_zone.zone_width = 380.0; _exit_zone.zone_height = 80.0
+	# Exit is placed IN the gap of the snow embankment (Gap 3, x=2500..2850, y=900..1100).
+	# Embankment Block 3 ends at x≈2500, Block 4 starts at x≈2850 — 350px opening.
+	# Zone is centered in Gap 3 at the embankment center (y=1000).
+	_exit_zone.position = Vector2(2675, 1000)
+	_exit_zone.zone_width = 330.0; _exit_zone.zone_height = 200.0
 	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
 	var environment := get_node_or_null("Environment")
 	if environment: environment.add_child(_exit_zone)

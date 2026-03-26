@@ -1018,6 +1018,7 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/FactoryLevel.tscn",
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
+		"res://scenes/levels/WinterForestLevel.tscn",
 		"res://scenes/levels/RailwayStationLevel.tscn",
 		"res://scenes/levels/SewerLevel.tscn",
 	]
