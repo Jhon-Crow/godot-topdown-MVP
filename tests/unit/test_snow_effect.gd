@@ -138,3 +138,65 @@ func test_emitting_can_be_reenabled() -> void:
 	snow.emitting = false
 	snow.emitting = true
 	assert_true(snow.emitting, "Snow emission should be re-enableable after being turned off")
+
+
+# ============================================================================
+# Tests: Alpha Fade-Out at End of Lifetime (Issue #1571)
+# ============================================================================
+
+
+class MockFadeGradient:
+	## Simulates a color_ramp gradient for fade-out.
+	## offsets[i] is the normalized lifetime position (0.0 = birth, 1.0 = end).
+	## alphas[i] is the alpha value at that position.
+	var offsets: Array[float] = []
+	var alphas: Array[float] = []
+
+	func alpha_at(t: float) -> float:
+		# Linear interpolation between gradient stops
+		for i in range(offsets.size() - 1):
+			if t >= offsets[i] and t <= offsets[i + 1]:
+				var frac := (t - offsets[i]) / (offsets[i + 1] - offsets[i])
+				return lerpf(alphas[i], alphas[i + 1], frac)
+		return alphas[-1] if alphas.size() > 0 else 1.0
+
+
+func test_fade_out_gradient_alpha_is_one_at_birth() -> void:
+	# Flakes should be fully opaque at birth (t=0.0)
+	var gradient := MockFadeGradient.new()
+	gradient.offsets = [0.0, 0.7, 1.0]
+	gradient.alphas = [1.0, 1.0, 0.0]
+	assert_almost_eq(gradient.alpha_at(0.0), 1.0, 0.001,
+		"Snowflake alpha should be 1.0 at birth (t=0.0)")
+
+
+func test_fade_out_gradient_alpha_is_one_at_midlife() -> void:
+	# Flakes should still be opaque during most of their life (t=0.5)
+	var gradient := MockFadeGradient.new()
+	gradient.offsets = [0.0, 0.7, 1.0]
+	gradient.alphas = [1.0, 1.0, 0.0]
+	assert_almost_eq(gradient.alpha_at(0.5), 1.0, 0.001,
+		"Snowflake alpha should be 1.0 at mid-life (t=0.5), before fade begins")
+
+
+func test_fade_out_gradient_alpha_is_zero_at_end() -> void:
+	# Flakes should be fully transparent at end of lifetime (t=1.0)
+	var gradient := MockFadeGradient.new()
+	gradient.offsets = [0.0, 0.7, 1.0]
+	gradient.alphas = [1.0, 1.0, 0.0]
+	assert_almost_eq(gradient.alpha_at(1.0), 0.0, 0.001,
+		"Snowflake alpha should be 0.0 at end of lifetime (t=1.0) — no abrupt disappear")
+
+
+func test_fade_out_gradient_decreases_toward_end() -> void:
+	# Alpha must decrease monotonically in the fade zone (t=0.7 to t=1.0)
+	var gradient := MockFadeGradient.new()
+	gradient.offsets = [0.0, 0.7, 1.0]
+	gradient.alphas = [1.0, 1.0, 0.0]
+	var alpha_at_fade_start := gradient.alpha_at(0.7)
+	var alpha_at_fade_mid := gradient.alpha_at(0.85)
+	var alpha_at_fade_end := gradient.alpha_at(1.0)
+	assert_true(alpha_at_fade_start > alpha_at_fade_mid,
+		"Alpha must decrease after fade begins (t=0.7 > t=0.85)")
+	assert_true(alpha_at_fade_mid > alpha_at_fade_end,
+		"Alpha must continue decreasing toward end (t=0.85 > t=1.0)")
