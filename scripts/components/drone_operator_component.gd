@@ -25,11 +25,11 @@ const DASH_CHARGES: int = 4
 ## Dash cooldown duration (same as player Dash).
 const DASH_COOLDOWN: float = 1.2
 
-## Dash duration per dash (same as player Dash).
-const DASH_DURATION: float = 0.15
+## Dash duration per dash — longer than player for a visible aggressive lunge (Issue #1532 fix #9).
+const DASH_DURATION: float = 0.2
 
-## Dash speed multiplier (same as player Dash).
-const DASH_SPEED_MULTIPLIER: float = 4.0
+## Dash speed multiplier — higher than player for a long closing dash (Issue #1532 fix #9).
+const DASH_SPEED_MULTIPLIER: float = 6.0
 
 ## Chain window for consecutive dashes.
 const DASH_CHAIN_WINDOW: float = 0.4
@@ -237,7 +237,7 @@ func get_phase() -> Phase:
 	return _phase
 
 
-## Returns true if the operator is currently dashing (immune to damage).
+## Returns true if the operator is currently dashing (no longer used for damage immunity — #1532 fix #9).
 func is_dashing() -> bool:
 	return _dash_active
 
@@ -248,22 +248,37 @@ func is_controlling_drone() -> bool:
 
 
 ## Returns true if the operator should override suppression with dash.
-## Only in ACTIVE phase when bullets are in threat sphere.
+## Only in ACTIVE phase when bullets are in threat sphere AND charges are available OR currently dashing.
+## Prevents suppression while the operator still has dodge charges or is mid-dash.
+## When all charges are spent and on cooldown, fall back to normal suppression (Issue #1532 fix #5/#9).
 func should_dash_instead_of_suppress() -> bool:
-	return _phase == Phase.ACTIVE and not _dash_active
+	if _phase != Phase.ACTIVE:
+		return false
+	# If currently dashing, suppress suppression — no new dash starts but operator is not suppressed
+	if _dash_active:
+		return true
+	# If no charges left and cooldown running, let normal suppression apply (operator can be hit)
+	if _dash_charges <= 0 and _dash_cooldown_timer > 0.0:
+		return false
+	return true
 
 
-## Calculate dash direction from threat and attempt to dash.
+## Calculate dash direction and attempt to dash toward the player.
 ## Called from enemy._update_suppression() when bullets are in threat sphere.
+##
+## Dash strategy (Issue #1532 fix #9): operator dashes TOWARD the player to close distance
+## aggressively, making it harder to track and turning the dodge into an attack opportunity.
 func try_dash_from_threat(bullets_in_sphere: Array, player: Node2D, enemy_pos: Vector2) -> void:
-	var dash_dir := Vector2.ZERO
-	if not bullets_in_sphere.is_empty():
-		var bullet = bullets_in_sphere[0]
-		if is_instance_valid(bullet) and "velocity" in bullet:
-			dash_dir = -bullet.velocity.normalized().rotated(PI / 4.0 * (1 if randf() > 0.5 else -1))
-	if dash_dir == Vector2.ZERO and player:
-		dash_dir = (enemy_pos - player.global_position).normalized()
-	try_dash(dash_dir)
+	if player == null:
+		return
+
+	# Dash directly toward the player (aggressive closing dash)
+	var to_player: Vector2 = (player.global_position - enemy_pos).normalized()
+
+	FileLogger.info("[DroneOperator] Aggressive dash toward player: dir=(%.2f, %.2f)" % [
+		to_player.x, to_player.y
+	])
+	try_dash(to_player)
 
 
 ## Attempt to activate a dash in a given direction (called when bullets enter threat sphere).
@@ -417,6 +432,9 @@ func _on_drone_destroyed() -> void:
 	_transition_to_active()
 
 
+## Laser sight Line2D node (shown during ACTIVE phase).
+var _laser_sight: Line2D = null
+
 ## Transition to ACTIVE phase with silenced pistol.
 func _transition_to_active() -> void:
 	_phase = Phase.ACTIVE
@@ -426,21 +444,28 @@ func _transition_to_active() -> void:
 	# Show weapon, hide tablet
 	_show_weapon_hide_tablet()
 
-	# Switch weapon to PM (type 5) — closest to silenced pistol with laser
-	if _parent and _parent.has_method("switch_weapon"):
-		_parent.switch_weapon(5)  # PM = WeaponType 5
-	elif _parent and _parent.get("weapon_type") != null:
-		_parent.set("weapon_type", 5)
+	# Switch weapon to SILENCED_PISTOL (type 9) — Issue #1532
+	if _parent and _parent.get("weapon_type") != null:
+		_parent.set("weapon_type", 9)  # WeaponType.SILENCED_PISTOL
 		if _parent.has_method("_configure_weapon_type"):
 			_parent._configure_weapon_type()
 		if _parent.has_method("_initialize_ammo"):
 			_parent._initialize_ammo()
 
-	# Change VR headset lens to red = disconnected
+	# Scale the weapon sprite down — silenced pistol is a compact sidearm (Issue #1532 fix #1)
+	if _weapon_mount:
+		var weapon_sprite: Sprite2D = _weapon_mount.get_node_or_null("WeaponSprite") as Sprite2D
+		if weapon_sprite:
+			weapon_sprite.scale = Vector2(0.65, 0.65)  # Smaller than the default rifle-sized weapon
+
+	# Add laser sight visual to weapon mount (Issue #1532)
+	_setup_laser_sight()
+
+	# Change VR headset lens to RED = drone destroyed / disconnected (Issue #1532)
 	if _vr_headset:
 		var lens: Polygon2D = _vr_headset.get_node_or_null("Lens") as Polygon2D
 		if lens:
-			lens.color = Color(0.8, 0.1, 0.1, 0.6)  # Red = disconnected
+			lens.color = Color(1.0, 0.05, 0.05, 1.0)  # Bright red = disconnected (Issue #1532)
 
 	# Force transition to COMBAT state
 	if _parent and _parent.has_method("_transition_to_combat"):
@@ -448,12 +473,53 @@ func _transition_to_active() -> void:
 	elif _parent and _parent.get("_current_state") != null:
 		_parent._current_state = 1  # AIState.COMBAT
 
+	# Set threat reaction delay to 0 so the operator dashes immediately on the first bullet
+	# (Issue #1532 fix #4): default delay=0.2s is too slow — at 1350px/s bullet speed the bullet
+	# crosses the 100px threat sphere in ~74ms, so a 200ms delay means the bullet already hit.
+	if _parent and _parent.get("threat_reaction_delay") != null:
+		_parent.set("threat_reaction_delay", 0.0)
+
+	# Also immediately mark reaction delay elapsed so the very first bullet triggers a dash
+	if _parent and _parent.get("_threat_reaction_delay_elapsed") != null:
+		_parent.set("_threat_reaction_delay_elapsed", true)
+
 	phase_changed.emit(Phase.ACTIVE)
-	FileLogger.info("[DroneOperator] Phase: ACTIVE (pistol drawn, dash evasion enabled)")
+	FileLogger.info("[DroneOperator] Phase: ACTIVE (silenced pistol + laser drawn, dash evasion enabled, reaction_delay=0)")
+
+
+## Create a laser sight Line2D on the weapon mount (Issue #1532).
+func _setup_laser_sight() -> void:
+	if _weapon_mount == null or _laser_sight != null:
+		return
+	_laser_sight = Line2D.new()
+	_laser_sight.name = "LaserSight"
+	_laser_sight.default_color = Color(1.0, 0.0, 0.0, 0.6)  # Red laser, semi-transparent
+	_laser_sight.width = 1.0
+	# Render BEHIND the weapon sprite and arm — z_as_relative=true means z_index is relative
+	# to parent WeaponMount, so -2 puts it under the weapon/arm sprites (Issue #1532 fix #2)
+	_laser_sight.z_as_relative = true
+	_laser_sight.z_index = -2
+	# Start from under the pistol body (not at the muzzle tip), extends forward
+	_laser_sight.add_point(Vector2(0, 0))    # origin at weapon mount pivot
+	_laser_sight.add_point(Vector2(180, 0))  # extends forward from under the barrel
+	_weapon_mount.add_child(_laser_sight)
+	FileLogger.info("[DroneOperator] Laser sight visual added to weapon mount (z_index=-2, under arm)")
+
+
+## Update laser sight length each active frame (fade when suppressed).
+func _update_laser_sight(_delta: float) -> void:
+	if _laser_sight == null or not is_instance_valid(_laser_sight):
+		return
+	# Pulse the laser alpha slightly for a realistic effect
+	var pulse: float = 0.5 + 0.15 * sin(Time.get_ticks_msec() * 0.006)
+	_laser_sight.default_color = Color(1.0, 0.0, 0.0, pulse)
 
 
 ## ACTIVE phase: normal combat + dash evasion instead of suppression.
 func _update_active(delta: float) -> void:
+	# Update laser sight pulse (Issue #1532)
+	_update_laser_sight(delta)
+
 	# Update dash cooldown
 	if _dash_cooldown_timer > 0.0:
 		_dash_cooldown_timer -= delta
