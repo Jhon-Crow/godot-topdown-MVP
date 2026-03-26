@@ -204,13 +204,13 @@ var _shine_overlays: Dictionary = {}
 ## Dictionary: button -> ColorRect
 var _accordion_shine_overlays: Dictionary = {}
 
-## Tracks kill-progress bar ColorRect nodes added to locked slots with quantitative conditions.
+## Tracks unlock-progress bar ColorRect nodes added to locked slots with quantitative conditions.
 ## Dictionary: slot -> ColorRect (Issue #1591)
-var _kill_progress_bars: Dictionary = {}
+var _unlock_progress_bars: Dictionary = {}
 
-## Tracks active kill-progress animation tweens (Issue #1591).
+## Tracks active unlock-progress animation tweens (Issue #1591).
 ## Dictionary: slot -> Tween
-var _kill_progress_tweens: Dictionary = {}
+var _unlock_progress_tweens: Dictionary = {}
 
 ## Audio player dedicated to kill-progress bar count-up sound (Issue #1591).
 var _kill_progress_audio_player: AudioStreamPlayer = null
@@ -269,7 +269,7 @@ func _ready() -> void:
 	add_child(_kill_progress_audio_player)
 
 	# Animate kill-progress bars on armory open (Issue #1591)
-	call_deferred("_animate_all_kill_progress_bars")
+	call_deferred("_animate_all_unlock_progress_bars")
 
 
 ## Load weapon .tres resources for stats display.
@@ -2049,44 +2049,51 @@ func _play_unlock_reveal_animation(slot: PanelContainer, callback: Callable) -> 
 	)
 
 
-## Animate kill-progress bars on all locked slots that have quantitative unlock conditions.
-## Called once on armory open. Each slot's bar fills from 0 to the real progress ratio,
-## playing rising-pitch beeps like the score screen counter (Issue #1591).
-func _animate_all_kill_progress_bars() -> void:
+## Animate unlock-progress bars for all visible locked slots on armory open.
+## Only animates slots that are currently visible (not hidden by accordion).
+## Covers all unlock condition types: kill-based, multi-level, all-difficulties, and single-level.
+## Issue #1591: show progress bar animation for quantitative unlock tasks.
+func _animate_all_unlock_progress_bars() -> void:
 	if not _unlock_manager:
 		return
 	var slots_to_animate: Array = []
 
-	# Collect weapon slots with kill-based conditions
+	# Collect weapon slots with any unlock condition
 	for weapon_id in _weapon_slots:
 		var slot: PanelContainer = _weapon_slots[weapon_id]
 		if slot.get_meta("is_unlocked", true):
 			continue  # Only locked slots
-		if not _unlock_manager.has_method("get_weapon_kill_condition_progress"):
+		if not slot.visible:
+			continue  # Skip hidden slots (e.g. under collapsed accordion)
+		if not _unlock_manager.has_method("get_weapon_unlock_progress"):
 			continue
-		var progress: float = _unlock_manager.get_weapon_kill_condition_progress(weapon_id)
-		if progress >= 0.0:  # -1.0 means no kill condition
+		var progress: float = _unlock_manager.get_weapon_unlock_progress(weapon_id)
+		if progress >= 0.0:  # -1.0 means no condition applies
 			slots_to_animate.append({"slot": slot, "progress": progress})
 
-	# Collect grenade slots with kill-based conditions
+	# Collect grenade slots with any unlock condition
 	for grenade_type in _grenade_slots:
 		var slot: PanelContainer = _grenade_slots[grenade_type]
 		if slot.get_meta("is_unlocked", true):
 			continue
-		if not _unlock_manager.has_method("get_grenade_kill_condition_progress"):
+		if not slot.visible:
 			continue
-		var progress: float = _unlock_manager.get_grenade_kill_condition_progress(grenade_type)
+		if not _unlock_manager.has_method("get_grenade_unlock_progress"):
+			continue
+		var progress: float = _unlock_manager.get_grenade_unlock_progress(grenade_type)
 		if progress >= 0.0:
 			slots_to_animate.append({"slot": slot, "progress": progress})
 
-	# Collect active item slots with kill-based conditions
+	# Collect active item slots with any unlock condition
 	for item_type in _active_item_slots:
 		var slot: PanelContainer = _active_item_slots[item_type]
 		if slot.get_meta("is_unlocked", true):
 			continue
-		if not _unlock_manager.has_method("get_active_item_kill_condition_progress"):
+		if not slot.visible:
 			continue
-		var progress: float = _unlock_manager.get_active_item_kill_condition_progress(item_type)
+		if not _unlock_manager.has_method("get_active_item_unlock_progress"):
+			continue
+		var progress: float = _unlock_manager.get_active_item_unlock_progress(item_type)
 		if progress >= 0.0:
 			slots_to_animate.append({"slot": slot, "progress": progress})
 
@@ -2095,29 +2102,29 @@ func _animate_all_kill_progress_bars() -> void:
 		var entry: Dictionary = slots_to_animate[i]
 		var delay: float = i * 0.12
 		get_tree().create_timer(delay).timeout.connect(
-			func(): _animate_kill_progress_bar(entry["slot"], entry["progress"])
+			func(): _animate_unlock_progress_bar(entry["slot"], entry["progress"])
 		)
 
 
-## Animate the kill-progress bar for a single locked slot.
+## Animate the unlock-progress bar for a single locked slot.
 ## The bar fills from 0.0 to target_progress over ~1.5 seconds,
 ## playing rising-pitch beeps similar to the score screen (Issue #1591).
-func _animate_kill_progress_bar(slot: PanelContainer, target_progress: float) -> void:
+func _animate_unlock_progress_bar(slot: PanelContainer, target_progress: float) -> void:
 	if not is_instance_valid(slot):
 		return
 
 	# Kill any existing tween for this slot
-	if slot in _kill_progress_tweens:
-		var old_tween = _kill_progress_tweens[slot]
+	if slot in _unlock_progress_tweens:
+		var old_tween = _unlock_progress_tweens[slot]
 		if old_tween and old_tween.is_valid():
 			old_tween.kill()
-		_kill_progress_tweens.erase(slot)
+		_unlock_progress_tweens.erase(slot)
 
 	# Create or retrieve the progress bar for this slot
-	var bar: ColorRect = _kill_progress_bars.get(slot)
+	var bar: ColorRect = _unlock_progress_bars.get(slot)
 	if bar == null or not is_instance_valid(bar):
-		bar = _create_kill_progress_bar(slot)
-		_kill_progress_bars[slot] = bar
+		bar = _create_unlock_progress_bar(slot)
+		_unlock_progress_bars[slot] = bar
 
 	# Reset bar to 0
 	bar.anchor_top = 1.0
@@ -2138,7 +2145,7 @@ func _animate_kill_progress_bar(slot: PanelContainer, target_progress: float) ->
 	add_child(fill_timer)
 
 	var tween_ref: Array = [fill_timer]  # Use array for capture in closures
-	_kill_progress_tweens[slot] = fill_timer  # Store for cleanup
+	_unlock_progress_tweens[slot] = fill_timer  # Store for cleanup
 
 	fill_timer.timeout.connect(func():
 		if not is_instance_valid(slot) or not is_instance_valid(bar):
@@ -2160,7 +2167,7 @@ func _animate_kill_progress_bar(slot: PanelContainer, target_progress: float) ->
 
 		# Update bar color: dim at low progress, brighter as it fills
 		var brightness: float = 0.4 + current_progress * 0.4
-		bar.color = Color(0.2, brightness, 0.2, 0.55 + current_progress * 0.2)
+		bar.color = Color(0.7 + brightness * 0.3, 0.5 + brightness * 0.25, 0.05, 0.55 + current_progress * 0.2)
 
 		# Play a beep at each ~10% step
 		var current_step: int = int(current_progress * BEEP_STEPS)
@@ -2179,17 +2186,18 @@ func _animate_kill_progress_bar(slot: PanelContainer, target_progress: float) ->
 				_play_kill_progress_beep(final_freq, 0.08, -10.0)
 			fill_timer.stop()
 			fill_timer.queue_free()
-			if slot in _kill_progress_tweens:
-				_kill_progress_tweens.erase(slot)
+			if slot in _unlock_progress_tweens:
+				_unlock_progress_tweens.erase(slot)
 	)
 	fill_timer.start()
 
 
-## Creates a kill-progress bar ColorRect at the bottom of a slot (Issue #1591).
+## Creates an unlock-progress bar ColorRect at the bottom of a slot (Issue #1591).
 ## The bar grows upward as target_progress increases from 0.0 to 1.0.
-func _create_kill_progress_bar(slot: PanelContainer) -> ColorRect:
+## Gold color with animated shine overlay to match the armory's condition-met style.
+func _create_unlock_progress_bar(slot: PanelContainer) -> ColorRect:
 	var bar := ColorRect.new()
-	bar.name = "KillProgressBar"
+	bar.name = "UnlockProgressBar"
 	# Anchor to bottom of slot, zero height initially
 	bar.anchor_left = 0.0
 	bar.anchor_right = 1.0
@@ -2199,13 +2207,26 @@ func _create_kill_progress_bar(slot: PanelContainer) -> ColorRect:
 	bar.offset_right = -2
 	bar.offset_top = 0
 	bar.offset_bottom = 0
-	bar.color = Color(0.2, 0.4, 0.2, 0.55)
+	bar.color = Color(0.7, 0.5, 0.05, 0.55)
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	slot.add_child(bar)
+	# Add the animated gold shine overlay (same shader as condition-met accordion buttons).
+	var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+	if shine_shader:
+		var mat := ShaderMaterial.new()
+		mat.shader = shine_shader
+		mat.set_shader_parameter("horizontal_sweep", false)
+		mat.set_shader_parameter("cycle_duration", 3.0)
+		var overlay := ColorRect.new()
+		overlay.name = "GoldShineOverlay"
+		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.material = mat
+		bar.add_child(overlay)
 	return bar
 
 
-## Play a beep for the kill-progress bar animation using the dedicated audio player.
+## Play a beep for the unlock-progress bar animation using the dedicated audio player.
 ## Similar to _play_beep but uses _kill_progress_audio_player (Issue #1591).
 func _play_kill_progress_beep(frequency: float, duration: float = 0.03, volume_db: float = -15.0) -> void:
 	if _kill_progress_audio_player == null:

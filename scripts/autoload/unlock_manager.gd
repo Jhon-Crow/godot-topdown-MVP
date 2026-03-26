@@ -1071,6 +1071,199 @@ func get_active_item_kill_condition_counts(item_type: int) -> Dictionary:
 	return {}
 
 
+## Get the fraction of levels satisfied in a multi-level condition (0.0–1.0).
+## Internal helper for get_*_multi_condition_progress.
+## Issue #1591: used by armory to show progress bar for multi-level conditions.
+func _get_multi_condition_progress(multi_condition: Dictionary) -> float:
+	var levels: Array = multi_condition.get("levels", [])
+	if levels.is_empty():
+		return 0.0
+	var completed: int = 0
+	for level_entry in levels:
+		var path: String = level_entry.get("path", "")
+		var min_rank: String = level_entry.get("min_rank", "D")
+		var best_rank: String = _get_best_rank_any_difficulty(path)
+		if _is_rank_sufficient(best_rank, min_rank):
+			completed += 1
+	return float(completed) / float(levels.size())
+
+
+## Get the fraction of difficulties on which at least one level has been completed (0.0–1.0).
+## Internal helper for get_*_all_difficulties_progress.
+## Issue #1591: used by armory to show progress bar for all-difficulties conditions.
+func _get_all_difficulties_progress() -> float:
+	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
+	if not progress_manager:
+		return 0.0
+	var all_difficulties: Array[String] = _get_all_difficulty_names()
+	var total: int = all_difficulties.size()
+	if total == 0:
+		return 0.0
+	var completed: int = 0
+	for difficulty_name in all_difficulties:
+		for key in progress_manager.get_all_progress():
+			if key.ends_with(":" + difficulty_name):
+				completed += 1
+				break
+	return float(completed) / float(total)
+
+
+## Get the multi-level condition progress for a weapon (0.0–1.0).
+## Returns -1.0 if no multi-level condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_weapon_multi_condition_progress(weapon_id: String) -> float:
+	for multi_condition in MULTI_UNLOCK_CONDITIONS:
+		if weapon_id in multi_condition.get("weapons", []):
+			return _get_multi_condition_progress(multi_condition)
+	return -1.0
+
+
+## Get the multi-level condition progress for a grenade type (0.0–1.0).
+## Returns -1.0 if no multi-level condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_grenade_multi_condition_progress(grenade_type: int) -> float:
+	for multi_condition in MULTI_UNLOCK_CONDITIONS:
+		if grenade_type in multi_condition.get("grenades", []):
+			return _get_multi_condition_progress(multi_condition)
+	return -1.0
+
+
+## Get the multi-level condition progress for an active item type (0.0–1.0).
+## Returns -1.0 if no multi-level condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_active_item_multi_condition_progress(item_type: int) -> float:
+	for multi_condition in MULTI_UNLOCK_CONDITIONS:
+		if item_type in multi_condition.get("active_items", []):
+			return _get_multi_condition_progress(multi_condition)
+	return -1.0
+
+
+## Get the all-difficulties condition progress for a weapon (0.0–1.0).
+## Returns -1.0 if no all-difficulties condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_weapon_all_difficulties_progress(weapon_id: String) -> float:
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		if weapon_id in all_diff_condition.get("weapons", []):
+			return _get_all_difficulties_progress()
+	return -1.0
+
+
+## Get the all-difficulties condition progress for a grenade type (0.0–1.0).
+## Returns -1.0 if no all-difficulties condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_grenade_all_difficulties_progress(grenade_type: int) -> float:
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		if grenade_type in all_diff_condition.get("grenades", []):
+			return _get_all_difficulties_progress()
+	return -1.0
+
+
+## Get the all-difficulties condition progress for an active item type (0.0–1.0).
+## Returns -1.0 if no all-difficulties condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_active_item_all_difficulties_progress(item_type: int) -> float:
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		if item_type in all_diff_condition.get("active_items", []):
+			return _get_all_difficulties_progress()
+	return -1.0
+
+
+## Get the single-level condition progress for a weapon (0.0 or 1.0, binary).
+## Returns -1.0 if no single-level condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_weapon_single_condition_progress(weapon_id: String) -> float:
+	for condition_key in UNLOCK_CONDITIONS:
+		var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
+		if weapon_id in condition.get("weapons", []):
+			return 1.0 if is_condition_key_met(condition_key) else 0.0
+	return -1.0
+
+
+## Get the single-level condition progress for a grenade type (0.0 or 1.0, binary).
+## Returns -1.0 if no single-level condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_grenade_single_condition_progress(grenade_type: int) -> float:
+	for condition_key in UNLOCK_CONDITIONS:
+		var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
+		if grenade_type in condition.get("grenades", []):
+			return 1.0 if is_condition_key_met(condition_key) else 0.0
+	return -1.0
+
+
+## Get the single-level condition progress for an active item type (0.0 or 1.0, binary).
+## Returns -1.0 if no single-level condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_active_item_single_condition_progress(item_type: int) -> float:
+	for condition_key in UNLOCK_CONDITIONS:
+		var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
+		if item_type in condition.get("active_items", []):
+			return 1.0 if is_condition_key_met(condition_key) else 0.0
+	return -1.0
+
+
+## Get the best unlock condition progress for a weapon across all condition types (0.0–1.0).
+## Returns -1.0 if this weapon has no quantifiable unlock condition at all.
+## Issue #1591: unified function used by armory to show progress bar animation for all types.
+func get_weapon_unlock_progress(weapon_id: String) -> float:
+	var best: float = -1.0
+	var p: float
+	p = get_weapon_kill_condition_progress(weapon_id)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_weapon_multi_condition_progress(weapon_id)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_weapon_all_difficulties_progress(weapon_id)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_weapon_single_condition_progress(weapon_id)
+	if p >= 0.0:
+		best = maxf(best, p)
+	return best
+
+
+## Get the best unlock condition progress for a grenade across all condition types (0.0–1.0).
+## Returns -1.0 if this grenade has no quantifiable unlock condition at all.
+## Issue #1591: unified function used by armory to show progress bar animation for all types.
+func get_grenade_unlock_progress(grenade_type: int) -> float:
+	var best: float = -1.0
+	var p: float
+	p = get_grenade_kill_condition_progress(grenade_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_grenade_multi_condition_progress(grenade_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_grenade_all_difficulties_progress(grenade_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_grenade_single_condition_progress(grenade_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	return best
+
+
+## Get the best unlock condition progress for an active item across all condition types (0.0–1.0).
+## Returns -1.0 if this item has no quantifiable unlock condition at all.
+## Issue #1591: unified function used by armory to show progress bar animation for all types.
+func get_active_item_unlock_progress(item_type: int) -> float:
+	var best: float = -1.0
+	var p: float
+	p = get_active_item_kill_condition_progress(item_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_active_item_multi_condition_progress(item_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_active_item_all_difficulties_progress(item_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_active_item_single_condition_progress(item_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	return best
+
+
 ## Get all available difficulty names from DifficultyManager (with static fallback).
 ## Uses DifficultyManager as the single source of truth so new difficulties are
 ## automatically picked up without needing to update this file.
