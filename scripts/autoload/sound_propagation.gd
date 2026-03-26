@@ -102,6 +102,14 @@ const EMPTY_CLICK_PROPAGATION_COOLDOWN: float = 0.4
 ## Timestamp of the last EMPTY_CLICK propagation (for throttling).
 var _last_empty_click_time: float = -999.0
 
+## #1528: Per-frame sound emission throttle to prevent cascading callbacks.
+## When many enemies fire simultaneously, each gunshot iterates all listeners.
+## Cap total emissions per physics frame to spread load across frames.
+const SOUND_EMISSIONS_PER_FRAME_MAX: int = 3  ## Max sound emissions processed per physics frame
+var _emissions_this_frame: int = 0  ## Counter reset each physics frame
+var _last_emission_frame: int = -1  ## Track physics frame for counter reset
+var _deferred_sounds: Array = []  ## Sounds queued for next frame(s) when throttle exceeded
+
 ## Reference to FileLogger for persistent logging.
 var _file_logger: Node = null
 
@@ -119,6 +127,15 @@ func _ready() -> void:
 		if game_manager.has_signal("debug_mode_toggled"):
 			game_manager.debug_mode_toggled.connect(_on_debug_mode_toggled)
 
+
+## #1528: Process deferred sounds from previous frame and reset emission counter.
+func _physics_process(_delta: float) -> void:
+	_emissions_this_frame = 0
+	# Process deferred sounds (up to the per-frame cap)
+	while _deferred_sounds.size() > 0 and _emissions_this_frame < SOUND_EMISSIONS_PER_FRAME_MAX:
+		var deferred: Dictionary = _deferred_sounds.pop_front()
+		_emit_sound_internal(deferred["type"], deferred["pos"], deferred["source_type"],
+			deferred["source_node"], deferred["range"])
 
 ## Called when debug mode is toggled via GameManager.
 func _on_debug_mode_toggled(enabled: bool) -> void:
@@ -155,6 +172,25 @@ func unregister_listener(listener: Node2D) -> void:
 ## - source_node: The node that produced the sound (optional, can be null)
 ## - custom_range: Override the default propagation distance (optional, -1 uses default)
 func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceType,
+				source_node: Node2D = null, custom_range: float = -1.0) -> void:
+	# #1528: Throttle sound emissions per physics frame to prevent cascading callbacks.
+	# When many enemies fire simultaneously (e.g. 5+ in one frame), each emission iterates
+	# all listeners producing 100+ callbacks. Defer excess sounds to the next frame.
+	_emissions_this_frame += 1
+	if _emissions_this_frame > SOUND_EMISSIONS_PER_FRAME_MAX:
+		# Defer this sound — will be processed in next frame's _physics_process.
+		# Keep deferred queue bounded to prevent memory growth in extreme cases.
+		if _deferred_sounds.size() < 10:
+			_deferred_sounds.append({
+				"type": sound_type, "pos": position, "source_type": source_type,
+				"source_node": source_node, "range": custom_range
+			})
+		return
+	_emit_sound_internal(sound_type, position, source_type, source_node, custom_range)
+
+
+## #1528: Internal sound emission — separated from emit_sound for deferred processing.
+func _emit_sound_internal(sound_type: SoundType, position: Vector2, source_type: SourceType,
 				source_node: Node2D = null, custom_range: float = -1.0) -> void:
 	var propagation_distance: float = custom_range if custom_range > 0 else float(PROPAGATION_DISTANCES.get(sound_type, 1000.0))
 

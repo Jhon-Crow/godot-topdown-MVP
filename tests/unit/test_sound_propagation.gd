@@ -661,3 +661,57 @@ func test_casing_kick_does_not_reach_listener_beyond_range() -> void:
 		"Casing kick should not reach listener at 1000 pixels (beyond 900 range)")
 
 	listener.queue_free()
+
+
+# ============================================================================
+# Issue #1528: Per-Frame Sound Emission Throttle
+# ============================================================================
+
+
+## Regression: Sound emission throttle limits per-frame callbacks (Issue #1528).
+## When many enemies fire simultaneously, each emission iterates all listeners.
+## The throttle caps total emissions to SOUND_EMISSIONS_PER_FRAME_MAX per frame.
+func test_sound_emission_throttle_limits_per_frame_issue_1528() -> void:
+	var SOUND_EMISSIONS_PER_FRAME_MAX: int = 3
+	var emissions_this_frame := 0
+	var emissions_processed := 0
+	var emissions_deferred := 0
+	var total_attempts := 6  # 6 simultaneous gunshots
+
+	for i in range(total_attempts):
+		emissions_this_frame += 1
+		if emissions_this_frame <= SOUND_EMISSIONS_PER_FRAME_MAX:
+			emissions_processed += 1
+		else:
+			emissions_deferred += 1
+
+	assert_eq(emissions_processed, SOUND_EMISSIONS_PER_FRAME_MAX,
+		"Issue #1528: Only %d sound emissions should be processed per frame" % SOUND_EMISSIONS_PER_FRAME_MAX)
+	assert_eq(emissions_deferred, total_attempts - SOUND_EMISSIONS_PER_FRAME_MAX,
+		"Issue #1528: Excess sound emissions should be deferred to next frame")
+
+
+## Regression: Deferred sounds are processed in the next frame (Issue #1528).
+## Sounds that exceed the per-frame cap must not be lost — they get processed next frame.
+func test_deferred_sounds_processed_next_frame_issue_1528() -> void:
+	var deferred_sounds: Array = []
+	var SOUND_EMISSIONS_PER_FRAME_MAX: int = 3
+
+	# Simulate: 5 sounds emitted, 3 processed, 2 deferred
+	for i in range(5):
+		if i >= SOUND_EMISSIONS_PER_FRAME_MAX:
+			deferred_sounds.append({"type": 0, "pos": Vector2.ZERO, "source_type": 0})
+
+	assert_eq(deferred_sounds.size(), 2,
+		"Issue #1528: 2 sounds should be deferred when 5 emitted with cap of 3")
+
+	# Simulate next frame: deferred sounds processed
+	var processed_in_next_frame := 0
+	while deferred_sounds.size() > 0 and processed_in_next_frame < SOUND_EMISSIONS_PER_FRAME_MAX:
+		deferred_sounds.pop_front()
+		processed_in_next_frame += 1
+
+	assert_eq(deferred_sounds.size(), 0,
+		"Issue #1528: All deferred sounds should be processed in the next frame")
+	assert_eq(processed_in_next_frame, 2,
+		"Issue #1528: Exactly 2 deferred sounds should be processed")

@@ -331,6 +331,12 @@ const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Intel range without LOS (px)
 var _intel_share_timer: float = 0.0; const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5s
 var _enemies_in_combat_cache: int = 0; var _enemies_in_combat_cache_timer: float = 0.0; const ENEMIES_IN_COMBAT_CACHE_INTERVAL: float = 0.5  ## #1520: Cache enemies_in_combat O(N²) scan, refresh 2Hz
 var _idle_goap_throttle_counter: int = 0; const IDLE_GOAP_UPDATE_INTERVAL: int = 20  ## #1520: IDLE GOAP throttle counter (~3Hz)
+## #1528: Combat performance throttles — reduce per-frame overhead when many enemies are in combat.
+var _separation_frame_counter: int = 0; const SEPARATION_THROTTLE_INTERVAL: int = 3  ## #1528: Separation force runs every 3 frames in combat
+var _can_hit_cache: bool = false; var _can_hit_cache_counter: int = 0; const CAN_HIT_CACHE_INTERVAL: int = 6  ## #1528: Cache can-hit raycast, refresh ~10Hz
+var _distracted_cache_value: bool = false; var _distracted_cache_counter: int = 0; const DISTRACTED_CHECK_INTERVAL: int = 6  ## #1528: Throttle distraction check to ~10Hz per enemy
+var _log_throttle_timer: float = 0.0; const LOG_THROTTLE_INTERVAL: float = 0.1  ## #1528: Rate-limit file logging to 10/s per enemy in combat
+var _log_throttle_count: int = 0; const LOG_THROTTLE_MAX_PER_INTERVAL: int = 1  ## #1528: Max log writes per throttle interval
 var _memory_reset_confusion_timer: float = 0.0  ## Issue #318: blocks visibility after teleport
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## 2s confusion for better player escape window
 ## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
@@ -816,6 +822,8 @@ func _physics_process(delta: float) -> void:
 	if _pacifist and _pacifist.update(delta): _log_to_file("[#959] Pacifist retaliation ended"); if _current_state != AIState.PACIFIST: _transition_to_pacifist(false)  # Issue #959
 	if _invisibility: _invisibility.update(delta)  # Issue #1121: tick re-cloak timer
 	_shoot_timer += delta
+	_log_throttle_timer += delta  # #1528: reset log throttle periodically
+	if _log_throttle_timer >= LOG_THROTTLE_INTERVAL: _log_throttle_timer = 0.0; _log_throttle_count = 0
 	if _is_bolt_cycling:  # [#1177] 4-step sniper bolt cycle
 		_bolt_cycle_timer += delta
 		if _bolt_cycle_timer >= (SNIPER_BOLT_STEP_DELAYS[_bolt_cycle_step - 1] if _bolt_cycle_step >= 1 and _bolt_cycle_step <= 4 else SNIPER_BOLT_CYCLE_DELAY):
@@ -950,11 +958,15 @@ func _update_goap_state() -> void:
 	_goap_world_state["is_pursuing"] = _current_state == AIState.PURSUING
 	_goap_world_state["is_assaulting"] = _current_state == AIState.ASSAULT
 	_goap_world_state["player_close"] = _is_target_close()
-	_goap_world_state["can_hit_from_cover"] = _can_hit_target_from_current_position()
+	_can_hit_cache_counter += 1  # #1528: throttle can-hit raycast to ~10Hz (every 6 frames)
+	if _can_hit_cache_counter >= CAN_HIT_CACHE_INTERVAL: _can_hit_cache_counter = 0; _can_hit_cache = _can_hit_target_from_current_position()
+	_goap_world_state["can_hit_from_cover"] = _can_hit_cache
 	_enemies_in_combat_cache_timer += get_physics_process_delta_time()  # #1520: throttle O(N²) group scan to 2Hz
 	if _enemies_in_combat_cache_timer >= ENEMIES_IN_COMBAT_CACHE_INTERVAL: _enemies_in_combat_cache_timer = 0.0; _enemies_in_combat_cache = _count_enemies_in_combat()
 	_goap_world_state["enemies_in_combat"] = _enemies_in_combat_cache
-	_goap_world_state["player_distracted"] = _is_player_distracted()
+	_distracted_cache_counter += 1  # #1528: throttle _is_player_distracted to ~10Hz (viewport + matrix inversion per call)
+	if _distracted_cache_counter >= DISTRACTED_CHECK_INTERVAL: _distracted_cache_counter = 0; _distracted_cache_value = _is_player_distracted()
+	_goap_world_state["player_distracted"] = _distracted_cache_value
 
 	# Memory system states (Issue #297)
 	if _memory:
@@ -4533,6 +4545,11 @@ func _log_debug(message: String) -> void:
 	if debug_logging: print("[Enemy %s] %s" % [name, message])
 func _log_to_file(message: String) -> void:
 	if not is_inside_tree(): return
+	# #1528: Rate-limit file logging during combat to reduce I/O overhead.
+	# State transitions ("State:") always pass through for debugging.
+	if _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.ASSAULT] and not message.begins_with("State:"):
+		if _log_throttle_count >= LOG_THROTTLE_MAX_PER_INTERVAL: return
+		_log_throttle_count += 1
 	var fl := get_node_or_null("/root/FileLogger")
 	if fl and fl.has_method("log_enemy"): fl.log_enemy(name, message)
 func _log_spawn_info() -> void:
@@ -4768,6 +4785,9 @@ func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
 	if _tactical_movement and _tactical_movement.is_yielding: return vel  # #1249: yielding — don't push
 	if _current_state == AIState.IDLE and behavior_mode == BehaviorMode.GUARD: return vel  # #1520: GUARD stands still — skip O(N) scan
+	_separation_frame_counter += 1  # #1528: throttle O(N²) separation to every 3 frames in combat (~20Hz)
+	if _separation_frame_counter < SEPARATION_THROTTLE_INTERVAL: return vel
+	_separation_frame_counter = 0
 	var sep_force: Vector2 = Vector2.ZERO
 	for body in get_tree().get_nodes_in_group("enemies"):
 		if body == self or not is_instance_valid(body): continue
