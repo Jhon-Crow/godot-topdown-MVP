@@ -25,6 +25,12 @@ var _armory_menu: CanvasLayer = null
 ## The instantiated settings menu.
 var _settings_menu: CanvasLayer = null
 
+## Looping tween for the armory button gold shine animation (Issue #1536).
+var _armory_shine_tween: Tween = null
+
+## StyleBoxFlat shared between the armory button and its shine tween (Issue #1536).
+var _armory_highlight_style: StyleBoxFlat = null
+
 ## Reference to the levels menu scene.
 @export var levels_menu_scene: PackedScene
 
@@ -294,21 +300,53 @@ func _refresh_armory_button_state() -> void:
 		return
 
 	if unlock_manager.has_any_available_unlock():
-		# Highlight armory button in gold to draw attention to unlockable items
-		var highlight_style := StyleBoxFlat.new()
-		highlight_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
-		highlight_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
-		highlight_style.border_width_left = 2
-		highlight_style.border_width_right = 2
-		highlight_style.border_width_top = 2
-		highlight_style.border_width_bottom = 2
-		highlight_style.corner_radius_top_left = 4
-		highlight_style.corner_radius_top_right = 4
-		highlight_style.corner_radius_bottom_left = 4
-		highlight_style.corner_radius_bottom_right = 4
-		armory_button.add_theme_stylebox_override("normal", highlight_style)
+		# Highlight armory button in gold to draw attention to unlockable items.
+		# Reuse the existing style if already applied to avoid recreating it on every call.
+		if _armory_highlight_style == null:
+			_armory_highlight_style = StyleBoxFlat.new()
+			_armory_highlight_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
+			_armory_highlight_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
+			_armory_highlight_style.border_width_left = 2
+			_armory_highlight_style.border_width_right = 2
+			_armory_highlight_style.border_width_top = 2
+			_armory_highlight_style.border_width_bottom = 2
+			_armory_highlight_style.corner_radius_top_left = 4
+			_armory_highlight_style.corner_radius_top_right = 4
+			_armory_highlight_style.corner_radius_bottom_left = 4
+			_armory_highlight_style.corner_radius_bottom_right = 4
+		armory_button.add_theme_stylebox_override("normal", _armory_highlight_style)
 		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
+
+		# Start looping shine animation if not already running (Issue #1536).
+		if _armory_shine_tween == null or not _armory_shine_tween.is_running():
+			_armory_shine_tween = create_tween().set_loops()
+			# Phase 0 (0.0 s): sweep border to bright gold
+			_armory_shine_tween.tween_property(
+				_armory_highlight_style, "border_color",
+				Color(1.0, 0.95, 0.5, 1.0), 0.4
+			).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+			# Phase 1 (0.4 s): border glow fades back; bg brightens to full gold
+			_armory_shine_tween.parallel().tween_property(
+				_armory_highlight_style, "bg_color",
+				Color(0.55, 0.42, 0.05, 0.95), 0.4
+			).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+			# Phase 2 (0.4 s): fade border back to base gold
+			_armory_shine_tween.tween_property(
+				_armory_highlight_style, "border_color",
+				Color(1.0, 0.8, 0.1, 1.0), 0.5
+			).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+			# Phase 3 (0.4 s): fade bg back to base
+			_armory_shine_tween.parallel().tween_property(
+				_armory_highlight_style, "bg_color",
+				Color(0.28, 0.22, 0.08, 0.9), 0.5
+			).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+			# Hold at base for a beat before repeating
+			_armory_shine_tween.tween_interval(1.8)
 	else:
 		# Remove highlight — no available unlocks
+		if _armory_shine_tween != null:
+			_armory_shine_tween.kill()
+			_armory_shine_tween = null
+		_armory_highlight_style = null
 		armory_button.remove_theme_stylebox_override("normal")
 		armory_button.remove_theme_color_override("font_color")
