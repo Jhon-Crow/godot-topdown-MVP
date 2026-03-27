@@ -125,19 +125,27 @@ class MockCombatDispositionSystem:
 	var max_speed: float = 200.0
 	## Base max speed stored before applying the speed bonus
 	var base_speed: float = 200.0
+	## Current friction (scaled alongside speed to halve drift — Issue #1583)
+	var friction: float = 1000.0
+	## Base friction stored before applying the speed boost
+	var base_friction: float = 1000.0
 
 	## Initialize with starting bonuses (normal difficulty: x2 speed)
+	## Friction is scaled by the same multiplier as speed to keep stopping feel proportional.
 	func init_combat_disposition(is_black_metal: bool = false) -> void:
 		active = true
 		penalty_applied = false
 		damage_bonus = 0.77
 		fire_rate_bonus = 1.1
 		base_speed = max_speed
+		base_friction = friction
 		var speed_mult := 4.0 if is_black_metal else 2.0
 		max_speed = base_speed * speed_mult
+		friction = base_friction * speed_mult
 
 	## Apply hit penalty (called when player takes damage).
 	## The penalty is only applied once per run (on the first hit).
+	## Friction is restored to base value when the penalty is applied.
 	func apply_hit_penalty() -> void:
 		if not active:
 			return
@@ -147,6 +155,7 @@ class MockCombatDispositionSystem:
 		damage_bonus -= 6.0
 		fire_rate_bonus -= 7.2
 		max_speed = base_speed / 2.0
+		friction = base_friction
 
 	## Get effective damage for a weapon with base damage
 	func get_effective_damage(base_damage: float) -> float:
@@ -571,3 +580,73 @@ func test_combat_disposition_description_mentions_speed() -> void:
 	var description: String = data.get("description", "")
 	assert_true(description.to_lower().contains("speed"),
 		"Description should mention movement speed")
+
+
+# ============================================================================
+# Friction (Drift Reduction) Tests (Issue #1583)
+# ============================================================================
+
+
+func test_combat_disposition_doubles_friction_on_init_normal_difficulty() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.friction = 1000.0
+	system.init_combat_disposition(false)
+	assert_almost_eq(system.friction, 2000.0, 0.001,
+		"Normal difficulty: Combat Disposition should double friction alongside speed (1000 -> 2000)")
+
+
+func test_combat_disposition_quadruples_friction_on_init_black_metal() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.friction = 1000.0
+	system.init_combat_disposition(true)
+	assert_almost_eq(system.friction, 4000.0, 0.001,
+		"Black Metal difficulty: Combat Disposition should multiply friction by 4 alongside speed (1000 -> 4000)")
+
+
+func test_combat_disposition_friction_boost_stores_base_friction() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.friction = 1200.0
+	system.init_combat_disposition(false)
+	assert_almost_eq(system.base_friction, 1200.0, 0.001,
+		"Base friction should be stored before applying the friction boost")
+
+
+func test_combat_disposition_friction_restored_on_hit_penalty() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.friction = 1000.0
+	system.init_combat_disposition(false)
+	# Friction was doubled to 2000 during speed boost
+	assert_almost_eq(system.friction, 2000.0, 0.001,
+		"Friction should be doubled after speed boost")
+	system.apply_hit_penalty()
+	assert_almost_eq(system.friction, 1000.0, 0.001,
+		"Friction should be restored to base value after hit penalty")
+
+
+func test_combat_disposition_friction_not_changed_when_inactive() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.friction = 1000.0
+	# Do NOT call init — system is not active
+	system.apply_hit_penalty()
+	assert_almost_eq(system.friction, 1000.0, 0.001,
+		"Friction should not change when combat disposition is not active")
+
+
+func test_combat_disposition_black_metal_friction_restored_on_hit_penalty() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.friction = 1000.0
+	system.init_combat_disposition(true)  # Black Metal: friction * 4 = 4000
+	system.apply_hit_penalty()
+	assert_almost_eq(system.friction, 1000.0, 0.001,
+		"Black Metal after first hit: friction should be restored to base value (1000)")
+
+
+func test_combat_disposition_friction_not_restored_on_second_hit() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.friction = 1000.0
+	system.init_combat_disposition(false)
+	system.apply_hit_penalty()
+	# Restore is idempotent — second call should be no-op
+	system.apply_hit_penalty()
+	assert_almost_eq(system.friction, 1000.0, 0.001,
+		"Friction should remain at base value (penalty applied only once)")
