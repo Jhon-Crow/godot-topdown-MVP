@@ -504,3 +504,33 @@ func test_enemy_combat_state_handles_drone_operator_dodge() -> void:
 		"enemy.gd COMBAT state must call _drone_operator.try_dodge() for bullet evasion (Issue #1540)")
 	assert_true(source.contains("_drone_operator.is_dodging"),
 		"enemy.gd COMBAT state must check _drone_operator.is_dodging() (Issue #1540)")
+
+
+func test_drone_operator_active_does_not_use_machete_melee_in_combat() -> void:
+	## Issue #1540: Drone operator ACTIVE phase must NOT use machete melee attack logic
+	## in the combat state. Normal ranged combat must run after the dodge check.
+	## The operator must behave like a normal ranged enemy with a lateral dodge — not a melee enemy.
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	# Find the drone operator ACTIVE block
+	var drone_block_start: int = source.find("# Issue #1540: Drone operator ACTIVE")
+	assert_gt(drone_block_start, 0,
+		"enemy.gd must contain the Issue #1540 drone operator ACTIVE block")
+	# The block should end before any machine-gun/sniper specific logic
+	# and NOT contain a 'return' that would prevent normal combat from running
+	# after the dodge check. Extract the block to verify:
+	var block_end: int = source.find("# [#1033] Machine gunner", drone_block_start)
+	assert_gt(block_end, 0,
+		"There should be a machine gunner comment after the drone operator block")
+	var drone_block: String = source.substr(drone_block_start, block_end - drone_block_start)
+	# The block must NOT contain perform_melee_attack (machete behavior)
+	assert_false(drone_block.contains("perform_melee_attack"),
+		"Drone operator ACTIVE block must NOT call perform_melee_attack — it uses ranged combat (Issue #1540)")
+	# The block must NOT contain backstab logic
+	assert_false(drone_block.contains("is_backstab_opportunity"),
+		"Drone operator ACTIVE block must NOT use machete backstab approach (Issue #1540)")

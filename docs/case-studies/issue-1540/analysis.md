@@ -389,3 +389,81 @@ func _on_drone_operator_dash_ended() -> void:
 | `tests/unit/test_drone_operator.gd` | Update mock constant + sidestep range test (≥100px, ≤200px) |
 
 - Log file: `game_log_20260327_094721.txt`
+
+---
+
+## Session 9 — 2026-03-27T08:00 (Machete component replacement)
+
+**User report:** "проблема сохраняется — такое ощущение что дроновод идёт на какую то глобальную координату" (problem persists — drone operator seems to walk to a global coordinate)
+
+**User direction:** "полностью убери текущую логику уворота — вместо неё добавь логику уворота как у врага с мачете (просто уворачивается от пули без рывка)"
+
+### Root Cause
+
+The 8 prior sessions accumulated a complex dash-based evasion system with charges, cooldowns, and post-dash state resets. The accumulated side-effects (corner-walking, one-time dash, etc.) were repeatedly compounding. The user requested a clean break: replace with the proven MacheteComponent dodge logic.
+
+### Fix Applied (Session 9)
+
+- Removed all custom dash code from `drone_operator_component.gd`
+- Added `_dodge_component: MacheteComponent` for ACTIVE phase dodge
+- In `enemy.gd COMBAT state`: trigger `_drone_operator.try_dodge()` on threat, return if dodging
+
+**Regression introduced:** The ACTIVE combat block after the dodge check fell through to machete-specific code:
+- `_machete.perform_melee_attack()` — drone operator has no melee
+- `_machete.get_backstab_approach_position()` — runs toward player like melee enemy
+- `_move_to_target_nav(tp, combat_move_speed)` + `return` — prevents normal combat
+
+---
+
+## Session 10 — 2026-03-27 (Current — game_log_20260327_225205.txt)
+
+**User report:** "не надо полностью копировать поведение мачете врага. сейчас дроновод просто вбегает в игрока и всё. должен вести себя как обычный враг (не мачете), но с уворотом как у мачете"
+
+### Evidence (`game_log_20260327_225205.txt`)
+
+- 22:52:34: Drone destroyed → ACTIVE phase, dodge component set up
+- 22:52:34: Bullets enter threat sphere → `[#1311] Player bullet entered threat sphere — suppression triggered`
+- 22:52:34-49: Operator keeps rotating (ROT_CHANGE logged) in COMBAT state — alive, sees player
+- No shooting logged, no retreat to cover, no dodge events
+- The operator never fired despite being in COMBAT and seeing the player for >15 seconds
+- After ACTIVE transition, enemy constantly walks toward player (machete behavior) instead of normal ranged combat
+
+### Root Cause Analysis (Session 10)
+
+**Code path in `_process_combat_state`:**
+
+```
+Line 1440: if _drone_operator and phase == ACTIVE:
+Line 1441:   [try_dodge on bullet]
+Line 1442:   [return if dodging]  ← correct
+Line 1443:   if _machete.is_in_melee_range(_player): melee_attack(); return  ← WRONG
+Line 1445:   var tp := _player.global_position
+Line 1446:   if backstab_opportunity: tp = backstab_position
+Line 1447:   _move_to_target_nav(tp, combat_move_speed)  ← walks toward player
+Line 1448-1453: machete stuck detection
+Line 1454:   return  ← PREVENTS normal combat from running
+```
+
+The code after the dodge check was copy-pasted machete combat code. This caused:
+1. The operator to walk directly toward the player like a machete enemy
+2. Normal ranged combat (shoot, retreat to cover) never ran — `return` on line 1454 prevented it
+
+### Fix Applied (Session 10)
+
+Removed lines 1443-1454 from the drone operator ACTIVE block. Only the bullet-dodge trigger and `return-if-dodging` remain:
+
+```gdscript
+# Issue #1540: Drone operator ACTIVE — dodge bullets like machete enemy (lateral sidestep).
+# Only the dodge is special; normal ranged combat runs below.
+if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:
+    if _under_fire and _bullets_in_threat_sphere.size() > 0 and not _drone_operator.is_dodging():
+        var b = _bullets_in_threat_sphere[0]; if is_instance_valid(b):
+            var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
+            _drone_operator.try_dodge(bd)
+    if _drone_operator.is_dodging(): velocity = _drone_operator.get_dodge_velocity(); return
+```
+
+Normal ranged combat (suppression/retreat, shoot from cover, pursuing) now runs after this block.
+
+- Log file: `game_log_20260327_225205.txt`
+

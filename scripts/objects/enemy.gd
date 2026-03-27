@@ -1437,21 +1437,10 @@ func _process_combat_state(delta: float) -> void:
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
 	# Issue #1540: Drone operator ACTIVE — dodge bullets like machete enemy (lateral sidestep).
+	# Only the dodge is special; normal ranged combat runs below.
 	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:
 		if _under_fire and _bullets_in_threat_sphere.size() > 0 and not _drone_operator.is_dodging(): var b = _bullets_in_threat_sphere[0]; if is_instance_valid(b): var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation); _drone_operator.try_dodge(bd)
 		if _drone_operator.is_dodging(): velocity = _drone_operator.get_dodge_velocity(); return
-		if _machete.is_in_melee_range(_player) and _shoot_timer >= shoot_cooldown and _machete.is_melee_path_clear(_player):  # Issue #1083: block melee through walls
-			_machete.perform_melee_attack(_player); _shoot_timer = 0.0; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position; return
-		var tp := _player.global_position
-		if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player): tp = _machete.get_backstab_approach_position(_player, 60.0)
-		_move_to_target_nav(tp, combat_move_speed)
-		if global_position.distance_to(_machete_combat_stuck_last_pos) < MACHETE_COMBAT_STUCK_DIST_THRESHOLD:  # Issue #1107: Wall-stuck detection
-			_machete_combat_stuck_timer += delta
-			if _machete_combat_stuck_timer >= MACHETE_COMBAT_STUCK_MAX_TIME:
-				_log_to_file("[#1107] Machete COMBAT stuck (%.1fs), rerouting" % _machete_combat_stuck_timer)
-				_machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position; _transition_to_pursuing()
-		else: _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position
-		return
 	# [#1033] Machine gunner: suppress corridor (fire at last-known pos regardless of LOS/under-fire).
 	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active:
 		var suppress_target := _player.global_position if (_can_see_player and _player != null) else _last_known_player_position
