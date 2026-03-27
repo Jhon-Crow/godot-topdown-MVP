@@ -175,6 +175,20 @@ Unit tests cover:
 - [Particle Systems in Godot - Rain (Dante's Lab)](https://www.dlab.ninja/2024/12/particle-systems-in-godot-introduction.html)
 - [2D Particle Systems tutorial (Godot docs)](https://docs.godotengine.org/en/stable/tutorials/2d/particle_systems_2d.html)
 
+### Square Drops Issue (2026-03-26, Issue #1584)
+
+The project owner reported that rain drops on the Docks map look "square" and requested they be made thinner (like strokes/lines).
+
+**Root cause:** Fix #1546 had changed the streak texture from 2×16px to 4×8px (width increased, height halved) to make drops "look like circles when viewed directly from above". However this resulted in visually square drops, not thin strokes.
+
+**Fix:** Reverted streak texture dimensions back to 2×16px (thin strokes): `width = 2`, `height = 16`. The tall thin texture combined with particle scale (1.2–2.5×) produces elongated stroke-like rain drops instead of squares.
+
+| Parameter | Before (Issue #1584) | After |
+|---|---|---|
+| Streak texture width | 4px | 2px |
+| Streak texture height | 8px | 16px |
+| Appearance | Square drops | Thin stroke lines |
+
 ## Future Extensibility
 
 The `RainEffect` scene and script are designed to be reusable:
