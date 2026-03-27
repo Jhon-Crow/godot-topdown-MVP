@@ -336,3 +336,56 @@ func _on_drone_operator_dash_ended() -> void:
 ```
 
 - Log file: `game_log_20260327_091519.txt`
+
+---
+
+## Session 8 — 2026-03-27 (game_log_20260327_094721.txt)
+
+**User report:** "всё ещё идёт в одну сторону; рывок срабатывает только один раз и не спасает от урона" (still goes in one direction; dash triggers only once and doesn't prevent damage)
+
+### Issue 8a: Dash fires but bullet still hits
+
+**Log evidence:**
+```
+[09:48:04] Dash activated! Dir: (-0.18, -0.98), charges left: 3/4
+[09:48:04] Hit: dmg=1, hp=2/2->1/2
+```
+Both events occur at the same timestamp — the bullet hits the operator the same frame the dash triggers.
+
+**Root cause:** The perpendicular sidestep direction `(-0.18, -0.98)` is nearly vertical (north). With `DASH_SPEED_MULTIPLIER=1.25`, sidestep distance = `320 * 1.25 * 0.15 = 60px`. A sniper rifle bullet at 1350px/s closing from north gives the operator ~148ms to move 60px to the west. If the bullet was already within 60px horizontal of the operator's hitbox at the moment the dash triggered, the 60px westward movement is insufficient to clear the hitbox.
+
+**Fix:** Increase `DASH_SPEED_MULTIPLIER` from 1.25 to 2.5, giving `320 * 2.5 * 0.15 = 120px` — twice the evasion distance. This reliably moves the operator outside a typical bullet hitbox width even against sniper fire.
+
+### Issue 8b: Operator still goes in one direction after dodge
+
+**Log evidence:**
+```
+[09:48:04] Dash activated! Dir: (-0.18, -0.98)
+[09:48:04] Hit triggered COMBAT from SEEKING_COVER  (second dash at 09:48:20)
+[09:48:21] State: COMBAT -> PURSUING  (rapid cycling)
+[09:48:22] State: PURSUING -> COMBAT
+```
+After the dash, `_on_drone_operator_dash_ended()` set `_has_valid_cover = false`, which caused COMBAT to re-enter the clear-shot seeking phase. `_calculate_clear_shot_exit_position()` uses `_apply_wall_avoidance()` (simple math) to pick a perpendicular target that avoids walls, but this naive approach repeatedly targeted the east wall → operator walked to the corner.
+
+**User suggestion confirmed:** Enable FLANKING state after the dash. FLANKING uses `_move_to_target_nav()` (navmesh-based pathfinding) to pick a lateral position around the player, which navigates around obstacles correctly and returns to COMBAT once the operator has a clear shot.
+
+**Fix:** In `_on_drone_operator_dash_ended()`, after resetting stale state, check `_can_attempt_flanking()` and call `_transition_to_flanking()` if in COMBAT state. Falls back to COMBAT automatically if flanking is unavailable (disabled, on cooldown, or path blocked — `_transition_to_flanking()` returns false and transitions to COMBAT internally).
+
+```gdscript
+func _on_drone_operator_dash_ended() -> void:
+    _combat_exposed = false; _combat_approaching = false; _seeking_clear_shot = false
+    _clear_shot_target = Vector2.ZERO; _combat_approach_timer = 0.0; _combat_shoot_timer = 0.0
+    _has_valid_cover = false
+    if _current_state == AIState.COMBAT and _can_attempt_flanking() and _player != null:
+        _transition_to_flanking()
+```
+
+### Files changed (Session 8)
+
+| File | Change |
+|------|--------|
+| `scripts/components/drone_operator_component.gd` | `DASH_SPEED_MULTIPLIER`: 1.25 → 2.5 (60px → 120px sidestep) |
+| `scripts/objects/enemy.gd` | `_on_drone_operator_dash_ended()`: add FLANKING transition after state reset |
+| `tests/unit/test_drone_operator.gd` | Update mock constant + sidestep range test (≥100px, ≤200px) |
+
+- Log file: `game_log_20260327_094721.txt`

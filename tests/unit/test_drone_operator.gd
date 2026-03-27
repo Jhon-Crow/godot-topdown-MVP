@@ -113,7 +113,7 @@ class MockDroneOperatorDash:
 	const DASH_CHARGES: int = 4
 	const DASH_COOLDOWN: float = 1.2
 	const DASH_DURATION: float = 0.15    ## Short sidestep duration (Issue #1540)
-	const DASH_SPEED_MULTIPLIER: float = 1.25  ## Sidestep multiplier ≈60 px at 320 px/s (Issue #1540)
+	const DASH_SPEED_MULTIPLIER: float = 2.5   ## Sidestep multiplier ≈120 px at 320 px/s (Issue #1540 session 8)
 	const DASH_CHAIN_WINDOW: float = 0.4
 
 	enum Phase { DEPLOYING, CONTROLLING, ACTIVE }
@@ -293,19 +293,20 @@ func test_operator_chain_window_after_partial_charges() -> void:
 
 
 func test_operator_dash_duration_is_short_for_sidestep() -> void:
-	## Issue #1540: sidestep must be short (0.15s) so displacement stays within 20-100 px.
+	## Issue #1540: sidestep must be short (0.15s) for a quick snappy evasion.
 	assert_eq(MockDroneOperatorDash.DASH_DURATION, 0.15,
 		"Dash duration should be 0.15s for a short sidestep")
 
 
 func test_operator_sidestep_distance_within_range() -> void:
-	## Issue #1540: at combat_move_speed=320 px/s the sidestep displacement must be 20-100 px.
+	## Issue #1540 session 8: at combat_move_speed=320 px/s the sidestep displacement must be
+	## at least 100 px to reliably dodge bullets at 1350 px/s. 60 px was insufficient.
 	var combat_move_speed: float = 320.0
 	var distance: float = combat_move_speed * MockDroneOperatorDash.DASH_SPEED_MULTIPLIER * MockDroneOperatorDash.DASH_DURATION
-	assert_gte(distance, 20.0,
-		"Sidestep displacement must be at least 20 px")
-	assert_lte(distance, 100.0,
-		"Sidestep displacement must be at most 100 px")
+	assert_gte(distance, 100.0,
+		"Sidestep displacement must be at least 100 px to reliably dodge bullets")
+	assert_lte(distance, 200.0,
+		"Sidestep displacement must be at most 200 px to stay visible on screen")
 
 
 func test_evade_direction_is_perpendicular_to_bullet_velocity() -> void:

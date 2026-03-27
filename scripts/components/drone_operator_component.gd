@@ -29,8 +29,10 @@ const DASH_COOLDOWN: float = 1.2
 const DASH_DURATION: float = 0.15
 
 ## Dash speed multiplier for the sidestep distance (Issue #1540).
-## At combat_move_speed=320 px/s: 320 * 1.25 * 0.15 ≈ 60 px sidestep (within 20-100 px target).
-const DASH_SPEED_MULTIPLIER: float = 1.25
+## At combat_move_speed=320 px/s: 320 * 2.5 * 0.15 = 120 px sidestep — clearly visible evasion.
+## Increased from 1.25 (60px) to 2.5 (120px) after testing showed 60px was not enough to dodge
+## bullets at 1350px/s even with a 200px threat sphere (session 8).
+const DASH_SPEED_MULTIPLIER: float = 2.5
 
 ## Enlarged threat sphere radius for ACTIVE phase (Issue #1540 session 7).
 ## Default 100px gives only 74ms reaction window at 1350px/s bullet speed — too short for a
