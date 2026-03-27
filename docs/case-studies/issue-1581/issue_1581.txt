@@ -1,0 +1,13 @@
+title:	update враг снайпер
+state:	OPEN
+author:	Jhon-Crow
+labels:	
+comments:	0
+assignees:	
+projects:	
+milestone:	
+number:	1581
+--
+1. сделай лазер снайпера в 2 раза длиннее.
+2. сделай чтоб лазер снайепра выглядел так же как лазер игрока (эффект частиц, свечение на конце)
+

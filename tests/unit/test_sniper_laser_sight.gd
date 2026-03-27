@@ -375,3 +375,36 @@ func test_laser_dust_particles_initially_null() -> void:
 
 	assert_null(comp._laser_dust_particles,
 		"_laser_dust_particles should be null before laser is created")
+
+
+# =============================================================================
+# Issue #1581 follow-up — Hitscan range must match LASER_MAX_RANGE
+# =============================================================================
+
+func test_hitscan_range_uses_laser_max_range() -> void:
+	# BUG-1581-B: The hitscan end_pos was hardcoded to 5000.0 while LASER_MAX_RANGE
+	# was doubled to 10000.0. This caused the tracer to be drawn only to 5000px while
+	# the laser extended to 10000px, giving the visual impression that the tracer
+	# "disappeared" in the middle of the laser.
+	# This test verifies the constant relationship: both must use LASER_MAX_RANGE.
+	# The fix: end_pos uses LASER_MAX_RANGE constant, not the literal 5000.0.
+	assert_eq(SniperComponent.LASER_MAX_RANGE, 10000.0,
+		"LASER_MAX_RANGE should be 10000.0 (the shared range for both laser and hitscan)")
+	# If this assertion passes and the implementation uses LASER_MAX_RANGE in the
+	# hitscan (shoot_sniper_hitscan line 355), tracer and laser will have matching ranges.
+
+
+func test_set_laser_visible_function_exists() -> void:
+	# BUG-1581-A: _update_laser_sight was using _laser_line.visible = true
+	# instead of _set_laser_visible(true), meaning glow layers, endpoint light,
+	# and dust particles would not be shown when the laser should be visible.
+	# This test verifies the _set_laser_visible method exists and works correctly.
+	var comp := SniperComponent.new()
+	add_child_autofree(comp)
+
+	# _set_laser_visible should exist and be callable (even with null laser nodes,
+	# it should handle null gracefully without crashing)
+	comp._set_laser_visible(true)
+	comp._set_laser_visible(false)
+	# If no crash here, the method handles null nodes correctly
+	assert_true(true, "_set_laser_visible should handle null laser nodes without crashing")

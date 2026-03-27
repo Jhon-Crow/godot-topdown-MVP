@@ -352,7 +352,7 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 	if world_2d == null: return
 	var space_state := world_2d.direct_space_state
 	if space_state == null: return
-	var damage := 50.0; var end_pos := spawn_pos + direction * LASER_MAX_RANGE; var bullet_end_point := end_pos
+	var damage := 50.0; var end_pos := spawn_pos + direction * 5000.0; var bullet_end_point := end_pos
 	var shooter_id := enemy.get_instance_id(); var walls_penetrated := 0; var current_pos := spawn_pos
 	var exclude_rids := []; var damaged_ids: Dictionary = {}
 	# Issue #1334 Round 8: Also get the player's RID so we can exclude it from raycasts
@@ -643,11 +643,7 @@ func _update_laser_sight() -> void:
 	if is_reloading:
 		_set_laser_visible(false)
 		return
-	# Issue #1581: Use _set_laser_visible(true) to ensure all glow/light/particle nodes are
-	# shown together with the main laser line, not just _laser_line alone.
-	if _laser_line == null:
-		return
-	_set_laser_visible(true)
+	_laser_line.visible = true
 
 	# Issue #1336 smooth laser: interpolate angle toward the target direction each frame.
 	# If a snap angle was set by the firing code, use it exactly so tracer matches laser.
