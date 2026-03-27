@@ -58,7 +58,7 @@ const GRENADE_DATA: Dictionary = {
 	},
 	GrenadeType.DRONE: {
 		"name": "Drone",
-		"icon_path": "res://assets/sprites/weapons/frag_grenade.png",
+		"icon_path": "res://assets/sprites/weapons/drone_grenade_icon.png",
 		"scene_path": "res://scenes/projectiles/DroneGrenade.tscn",
 		"description": "Drone grenade - pilot a drone toward enemies. Explodes RPG-style on contact or when hit by a bullet. Control returns after explosion."
 	}

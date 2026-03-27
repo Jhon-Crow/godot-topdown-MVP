@@ -92,7 +92,8 @@ const WEAPON_RESOURCE_PATHS: Dictionary = {
 const MAX_WEAPON_ROWS_COLLAPSED: int = 2
 
 ## Maximum number of visible grenade rows before accordion hides the rest.
-const MAX_GRENADE_ROWS_COLLAPSED: int = 1
+## Set to 2 so all 5 grenade types (including Drone added in Issue #1628) are visible by default.
+const MAX_GRENADE_ROWS_COLLAPSED: int = 2
 
 ## Number of columns in the weapon/grenade grids.
 const GRID_COLUMNS: int = 4
