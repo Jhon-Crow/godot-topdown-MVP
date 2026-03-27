@@ -23,7 +23,8 @@ static var _textures_loaded: bool = false
 func _ready() -> void:
 	# Ensure footprint renders above floor but below characters
 	# Higher z_index = rendered on top in Godot
-	z_index = 1
+	# z_index = 0: renders below characters (body z_index = 1), above default floor (z_index = 0)
+	z_index = 0
 
 	# Load textures if not already loaded
 	_load_textures()
