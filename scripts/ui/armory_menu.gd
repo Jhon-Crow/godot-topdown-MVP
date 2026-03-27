@@ -68,11 +68,6 @@ const FIREARMS: Dictionary = {
 		"name": "AK + GL",
 		"icon_path": "res://assets/sprites/weapons/ak_gl_icon.png",
 		"description": "AK with GP-25 underbarrel grenade launcher — 7.62x39mm, 30-round magazine, RMB fires VOG-25 grenade (1 shot)"
-	},
-	"smg": {
-		"name": "???",
-		"icon_path": "",
-		"description": "Coming soon"
 	}
 }
 

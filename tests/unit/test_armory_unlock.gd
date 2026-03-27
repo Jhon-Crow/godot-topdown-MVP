@@ -22,8 +22,7 @@ class MockGameManager:
 		"silenced_pistol": true, # No condition — freely available from start
 		"sniper": false,         # Condition: Polygon D+
 		"revolver": false,       # Condition: Castle F+
-		"ak_gl": false,          # Condition: Decadence F+ (Issue #1423 req.1)
-		"smg": false             # Coming soon — not yet available
+		"ak_gl": false           # Condition: Decadence F+ (Issue #1423 req.1)
 	}
 
 	var unlock_signals: Array = []
