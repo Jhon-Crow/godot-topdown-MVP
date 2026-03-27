@@ -171,6 +171,9 @@ var _debug_mode_enabled: bool = false
 ## Whether invincibility mode is enabled (F6 toggle, player takes no damage).
 var _invincibility_enabled: bool = false
 
+## Whether player control is suspended because a drone grenade is being piloted (Issue #1628).
+var _is_drone_piloting: bool = false
+
 ## Whether homing bullets active item is equipped.
 var _homing_equipped: bool = false
 
@@ -400,6 +403,12 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if not _is_alive:
+		return
+
+	# Issue #1628: suspend all player input while drone grenade is being piloted.
+	if _is_drone_piloting:
+		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
+		move_and_slide()
 		return
 
 	# Detect weapon pose after waiting a few frames for level scripts to add weapons
@@ -1255,6 +1264,14 @@ func get_max_health() -> int:
 ## Check if player is alive.
 func is_alive() -> bool:
 	return _is_alive
+
+
+## Issue #1628: Enable or disable drone-piloting mode.
+## While active, the player character stops moving and shooting so control
+## is fully transferred to the drone grenade being piloted.
+func set_drone_piloting(active: bool) -> void:
+	_is_drone_piloting = active
+	FileLogger.info("[Player] Drone piloting mode: %s" % str(active))
 
 ## Initialize the death animation component.
 func _init_death_animation() -> void:
