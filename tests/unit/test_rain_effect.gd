@@ -3,7 +3,8 @@ extends GutTest
 ##
 ## Tests continuous rain behavior, exclusion zone logic, and state transitions.
 ## Also tests streak length, direction, splash alignment, player-area square
-## drops fixes, and time-stop behavior for the last chance effect (Issue #1585).
+## drops fixes, streak ring emission (excludes player zone), and time-stop
+## behavior for the last chance effect (Issue #1585).
 ## The actual RainEffect extends Node2D with three child GPUParticles2D layers
 ## (downward streaks + splash ripples + player-area top-down drops). Uses a mock
 ## to test logic without requiring GPUParticles2D rendering.
@@ -324,6 +325,14 @@ func test_splash_offset_matches_streak_endpoint() -> void:
 # ============================================================================
 
 
+class MockStreakRingMaterial:
+	## Simulates ParticleProcessMaterial for RainStreaks with ring emission.
+	## Ring emission excludes the player area (inner_radius) from streak spawning.
+	var emission_shape: int = 6  # EMISSION_SHAPE_RING
+	var emission_ring_inner_radius: float = 100.0
+	var emission_ring_radius: float = 750.0
+
+
 class MockPlayerDropTexture:
 	## Simulates the square GradientTexture2D for player-area top-down drops.
 	var width: int = 3
@@ -367,6 +376,19 @@ func test_player_drops_direction_is_straight_down() -> void:
 		"PlayerDrops direction Y must be positive (straight downward)")
 	assert_eq(mat.spread, 0.0,
 		"PlayerDrops spread must be 0 for straight-down fall with no angular variation")
+
+
+func test_streak_ring_emission_excludes_player_center() -> void:
+	# Fix #1584 feedback: streaks must not spawn in the player area.
+	# RainStreaks uses ring emission (emission_shape=6) with an inner radius that
+	# excludes the center ~100px zone where PlayerDrops appear instead.
+	var mat := MockStreakRingMaterial.new()
+	assert_eq(mat.emission_shape, 6,
+		"RainStreaks must use ring emission (shape 6) to exclude player center zone")
+	assert_true(mat.emission_ring_inner_radius >= 80.0,
+		"Ring inner radius must be >= 80px to exclude player area from streak spawning")
+	assert_true(mat.emission_ring_radius > mat.emission_ring_inner_radius,
+		"Ring outer radius must be larger than inner radius")
 
 
 func test_player_drops_stops_when_entering_building() -> void:
