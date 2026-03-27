@@ -1,10 +1,11 @@
-[gd_scene load_steps=31 format=3 uid="uid://winter_forest_level_1440"]
+[gd_scene load_steps=33 format=3 uid="uid://winter_forest_level_1440"]
 
 [ext_resource type="Script" path="res://scripts/levels/winter_forest_level.gd" id="1_winter_forest_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="3_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="4_enemy"]
 [ext_resource type="PackedScene" uid="uid://snow_effect_scene_1548" path="res://scenes/effects/SnowEffect.tscn" id="5_snow_effect"]
+[ext_resource type="Shader" path="res://scripts/shaders/snow_surface.gdshader" id="6_snow_surface_shader"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_horizontal"]
 size = Vector2(3264, 32)
@@ -78,6 +79,13 @@ polygon = PackedVector2Array(0, -70, 21.4, -51.7, 49.5, -49.5, 51.7, -21.4, 70, 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_fir_small"]
 polygon = PackedVector2Array(0, -50, 15.3, -37, 35.4, -35.4, 37, -15.3, 50, 0, 37, 15.3, 35.4, 35.4, 15.3, 37, 0, 50, -15.3, 37, -35.4, 35.4, -37, 15.3, -50, 0, -37, -15.3, -35.4, -35.4, -15.3, -37)
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_snow_surface"]
+shader = ExtResource("6_snow_surface_shader")
+shader_parameter/snow_highlight = Color(0.94, 0.96, 0.99, 1.0)
+shader_parameter/snow_shadow = Color(0.74, 0.79, 0.88, 1.0)
+shader_parameter/noise_scale = 8.0
+shader_parameter/bump_strength = 0.38
+
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_winter_forest"]
 vertices = PackedVector2Array(64, 64, 3264, 64, 3264, 2464, 64, 2464)
 polygons = [PackedInt32Array(0, 1, 2, 3)]
@@ -99,6 +107,8 @@ offset_bottom = 2528.0
 color = Color(0.6, 0.65, 0.72, 1)
 
 [node name="Snow" type="ColorRect" parent="Environment"]
+groups = ["snow_surface"]
+material = SubResource("ShaderMaterial_snow_surface")
 offset_left = 64.0
 offset_top = 64.0
 offset_right = 3264.0

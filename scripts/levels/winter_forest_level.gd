@@ -28,6 +28,9 @@ var _replay_manager: Node = null
 ## Weapon hints component instance (Issue #809).
 var _weapon_hints_component: Node = null
 
+## Snow blood absorption scene (Issue #1627).
+var _snow_blood_absorption_scene: PackedScene = null
+
 
 func _get_or_create_replay_manager() -> Node:
 	if _replay_manager != null and is_instance_valid(_replay_manager):
@@ -62,6 +65,9 @@ func _ready() -> void:
 
 	# Add cold winter sunlight from top-right corner
 	_setup_sunlight()
+
+	# Issue #1627: Setup snow surface interactions (footprints, blood absorption)
+	_setup_snow_interactions()
 
 
 func _initialize_score_manager() -> void:
@@ -1337,6 +1343,72 @@ func _create_sunlight_texture() -> ImageTexture:
 			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
 
 	return ImageTexture.create_from_image(image)
+
+
+## Issue #1627: Sets up all snow surface interaction systems.
+## Adds SnowFeetComponent to player and all enemies so they leave footprints.
+## Preloads SnowBloodAbsorption scene and connects to blood_hit_snow signal if present.
+## Also reduces BloodyFeetComponent step count on snow for shorter blood trails (req. #4).
+func _setup_snow_interactions() -> void:
+	# Preload blood absorption scene.
+	var absorption_path := "res://scenes/effects/SnowBloodAbsorption.tscn"
+	if ResourceLoader.exists(absorption_path):
+		_snow_blood_absorption_scene = load(absorption_path)
+	else:
+		push_warning("[WinterForestLevel] SnowBloodAbsorption scene not found")
+
+	# Preload SnowFeetComponent script.
+	var snow_feet_script_path := "res://scripts/components/snow_feet_component.gd"
+	var snow_feet_script = load(snow_feet_script_path) if ResourceLoader.exists(snow_feet_script_path) else null
+	if snow_feet_script == null:
+		push_warning("[WinterForestLevel] SnowFeetComponent script not found")
+		return
+
+	# Add SnowFeetComponent to player.
+	if _player != null and _player is CharacterBody2D:
+		var player_snow_feet := Node.new()
+		player_snow_feet.name = "SnowFeetComponent"
+		player_snow_feet.set_script(snow_feet_script)
+		_player.add_child(player_snow_feet)
+		_log_to_file("SnowFeetComponent added to Player")
+
+		# Requirement #4: reduce bloody trail length on snow (from default 12 to 6 steps).
+		var bloody_feet := _player.get_node_or_null("BloodyFeetComponent")
+		if bloody_feet and bloody_feet.get("blood_steps_count") != null:
+			bloody_feet.blood_steps_count = 6
+			_log_to_file("Player BloodyFeetComponent blood_steps_count reduced to 6 (snow map)")
+
+	# Add SnowFeetComponent to each enemy.
+	for enemy in _enemies:
+		if not is_instance_valid(enemy) or not (enemy is CharacterBody2D):
+			continue
+		var enemy_snow_feet := Node.new()
+		enemy_snow_feet.name = "SnowFeetComponent"
+		enemy_snow_feet.set_script(snow_feet_script)
+		enemy.add_child(enemy_snow_feet)
+
+		# Requirement #4: reduce bloody trail length on snow for enemies too.
+		var enemy_bloody_feet := enemy.get_node_or_null("BloodyFeetComponent")
+		if enemy_bloody_feet and enemy_bloody_feet.get("blood_steps_count") != null:
+			enemy_bloody_feet.blood_steps_count = 6
+
+	_log_to_file("Snow interactions setup complete (footprints + blood absorption)")
+
+
+## Issue #1627: Spawns a SnowBloodAbsorption decal at the given world position.
+## Called externally (e.g. from a BloodEffect or BloodDecal replacement signal) when
+## blood hits the snow surface. The returned node is already in the scene tree.
+func spawn_snow_blood_absorption(world_position: Vector2, blood_color: Color = Color(0.55, 0.02, 0.02, 1.0)) -> Node2D:
+	if _snow_blood_absorption_scene == null:
+		return null
+	var absorption := _snow_blood_absorption_scene.instantiate() as Node2D
+	if absorption == null:
+		return null
+	absorption.global_position = world_position
+	if absorption.has_method("set_blood_color"):
+		absorption.set_blood_color(blood_color)
+	add_child(absorption)
+	return absorption
 
 
 func _log_to_file(message: String) -> void:

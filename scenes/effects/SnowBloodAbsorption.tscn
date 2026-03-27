@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://snow_blood_absorption_scene_1627"]
+
+[ext_resource type="Script" path="res://scripts/effects/snow_blood_absorption.gd" id="1_snow_blood_absorption"]
+
+[node name="SnowBloodAbsorption" type="Node2D"]
+script = ExtResource("1_snow_blood_absorption")
