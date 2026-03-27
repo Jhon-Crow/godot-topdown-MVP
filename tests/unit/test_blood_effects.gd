@@ -454,8 +454,8 @@ func test_blood_footprint_default_z_index() -> void:
 func test_blood_footprint_ready_sets_z_index() -> void:
 	blood_footprint.ready()
 
-	assert_eq(blood_footprint.z_index, 1,
-		"Z-index should be set to 1 after _ready (above floor, below characters)")
+	assert_eq(blood_footprint.z_index, 0,
+		"Z-index should be set to 0 after _ready (below characters, above floor)")
 
 
 # ============================================================================

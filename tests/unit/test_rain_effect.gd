@@ -1,11 +1,9 @@
 extends GutTest
-## Unit tests for rain_effect.gd HM2-style precipitation system (Issue #1394, fixed #1499, #1546).
+## Unit tests for rain_effect.gd HM2-style precipitation system (Issue #1394, fixed #1499, #1546, #1579).
 ##
 ## Tests continuous rain behavior, exclusion zone logic, and state transitions.
-## Also tests streak length, direction, and splash alignment fixes.
-## The actual RainEffect extends Node2D with two child GPUParticles2D layers
-## (downward streaks + splash ripples). Uses a mock to test logic without
-## requiring GPUParticles2D rendering.
+## Also tests streak length, direction, splash alignment, world-space emitter tracking,
+## and time-stop behavior for the last chance effect (Issue #1585).
 
 
 # ============================================================================
@@ -22,6 +20,19 @@ class MockRainEffect:
 
 	## Whether inside an exclusion zone.
 	var _inside_exclusion: bool = false
+
+	## Tracked emitter positions (world-space, updated each frame to camera center).
+	var streaks_position: Vector2 = Vector2.ZERO
+	var splashes_position: Vector2 = Vector2.ZERO
+
+	## Whether time is currently stopped (Issue #1585).
+	var _time_stopped: bool = false
+
+	## Simulated process_mode for each particle layer (true = disabled).
+	## Mirrors the fix: set_time_stopped uses process_mode, not emitting=false,
+	## so existing particles freeze in place rather than disappearing.
+	var _streaks_disabled: bool = false
+	var _splashes_disabled: bool = false
 
 
 	func ready() -> void:
@@ -49,12 +60,37 @@ class MockRainEffect:
 
 
 	func simulate_camera_move(camera_center: Vector2) -> void:
+		# Track emitters to camera center (world-space, like SnowEffect)
+		streaks_position = camera_center
+		splashes_position = camera_center
+
+		# While time is stopped, camera moves do not change emission state.
+		if _time_stopped:
+			return
+
 		var was_inside := _inside_exclusion
 		_inside_exclusion = _is_point_in_exclusion_zone(camera_center)
 		if _inside_exclusion and not was_inside:
 			emitting = false
 		elif not _inside_exclusion and was_inside:
 			emitting = true
+
+
+	## Pauses or resumes particle emission for time-stop effects (Issue #1585).
+	## Uses process_mode (not emitting=false) so existing particles freeze in place.
+	func set_time_stopped(paused: bool) -> void:
+		if _time_stopped == paused:
+			return
+		_time_stopped = paused
+		if paused:
+			# Disable particle processing — particles freeze in place, emitting stays true.
+			_streaks_disabled = true
+			_splashes_disabled = true
+		else:
+			# Restore particle processing, then update emission based on exclusion zone.
+			_streaks_disabled = false
+			_splashes_disabled = false
+			emitting = not _inside_exclusion
 
 
 # ============================================================================
@@ -72,6 +108,31 @@ func test_rain_is_always_on() -> void:
 	var rain := MockRainEffect.new()
 	rain.ready()
 	assert_true(rain.is_raining(), "Rain should always be active")
+
+
+# ============================================================================
+# Tests: World-Space Emitter Tracking (Fix #1579)
+# ============================================================================
+
+
+func test_emitters_track_camera_position() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	var cam_pos := Vector2(320.0, 180.0)
+	rain.simulate_camera_move(cam_pos)
+	assert_eq(rain.streaks_position, cam_pos,
+		"RainStreaks emitter should track camera center in world space")
+	assert_eq(rain.splashes_position, cam_pos,
+		"RainSplashes emitter should track camera center in world space")
+
+
+func test_emitters_update_when_camera_moves() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.simulate_camera_move(Vector2(100.0, 100.0))
+	rain.simulate_camera_move(Vector2(500.0, 300.0))
+	assert_eq(rain.streaks_position, Vector2(500.0, 300.0),
+		"Emitter position should update to latest camera position")
 
 
 # ============================================================================
@@ -197,7 +258,7 @@ func test_warehouse_b_exclusion_zone() -> void:
 
 
 # ============================================================================
-# Tests: Issue #1546 Fixes — Longer Streaks, Downward Direction, Splash Alignment
+# Tests: Issue #1546 Fixes — Streak Direction and Splash Alignment
 # ============================================================================
 
 
@@ -287,3 +348,69 @@ func test_splash_offset_matches_streak_endpoint() -> void:
 		"Splash X position should match streak endpoint X (±10px). Expected ~%.0f got %.0f" % [expected_splash_pos.x, actual_splash_pos.x])
 	assert_true(abs(actual_splash_pos.y - expected_splash_pos.y) <= 10.0,
 		"Splash Y position should match streak endpoint Y (±10px). Expected ~%.0f got %.0f" % [expected_splash_pos.y, actual_splash_pos.y])
+
+
+# ============================================================================
+# Tests: Issue #1585 — Rain freezes in place during time-stop (last chance effect)
+# ============================================================================
+
+
+func test_rain_particles_freeze_in_place_when_time_stopped() -> void:
+	# Particles must NOT disappear — process_mode is disabled so existing particles
+	# stay visible; emitting remains true so the state is preserved for resume.
+	var rain := MockRainEffect.new()
+	rain.ready()
+	assert_true(rain.emitting, "Rain should be emitting before time stop")
+	rain.set_time_stopped(true)
+	assert_true(rain._streaks_disabled, "Streak particles must be process-disabled (frozen in place)")
+	assert_true(rain._splashes_disabled, "Splash particles must be process-disabled (frozen in place)")
+
+
+func test_rain_emitting_unchanged_when_time_stopped() -> void:
+	# emitting flag must NOT be set to false — that would clear all particles.
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.set_time_stopped(true)
+	assert_true(rain.emitting, "emitting must remain true when time is stopped (particles freeze, not disappear)")
+
+
+func test_rain_resumes_when_time_resumes() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.set_time_stopped(true)
+	rain.set_time_stopped(false)
+	assert_false(rain._streaks_disabled, "Streak particles must be re-enabled after time resumes")
+	assert_false(rain._splashes_disabled, "Splash particles must be re-enabled after time resumes")
+	assert_true(rain.emitting, "Rain should resume emitting when time resumes")
+
+
+func test_rain_time_stopped_is_idempotent() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.set_time_stopped(true)
+	rain.set_time_stopped(true)
+	assert_true(rain._streaks_disabled, "Calling set_time_stopped(true) twice must keep particles frozen")
+
+
+func test_rain_camera_move_ignored_during_time_stop() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
+	# Time is stopped — camera entering a building must not change emission state.
+	rain.set_time_stopped(true)
+	rain.simulate_camera_move(Vector2(150, 150))
+	# emitting is still true (particles frozen), exclusion state unchanged.
+	assert_true(rain.emitting, "emitting must stay true (frozen, not cleared) during time stop")
+	assert_false(rain._inside_exclusion, "Exclusion state must not change during time stop")
+
+
+func test_rain_resumes_in_exclusion_zone_stays_off() -> void:
+	# If time resumes while camera is inside an exclusion zone, rain stays off.
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
+	rain.simulate_camera_move(Vector2(150, 150))  # enter building
+	assert_false(rain.emitting, "Rain should stop inside building")
+	rain.set_time_stopped(true)
+	rain.set_time_stopped(false)
+	assert_false(rain.emitting, "Rain must remain off when time resumes inside exclusion zone")
