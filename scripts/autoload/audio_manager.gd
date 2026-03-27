@@ -139,6 +139,8 @@ const FLASHBANG_EXPLOSION_OUT_ZONE: String = "res://assets/audio/взрыв св
 const DEFENSIVE_GRENADE_EXPLOSION: String = "res://assets/audio/взрыв оборонительной гранаты.wav"
 ## Offensive grenade (frag) explosion sound.
 const OFFENSIVE_GRENADE_EXPLOSION: String = "res://assets/audio/взрыв наступательной гранаты.wav"
+## Gas grenade explosion sound (used for aggression and chemical gas grenades, Issue #1637).
+const GAS_GRENADE_EXPLOSION: String = "res://assets/audio/взрыв газовой гранаты.mp3"
 
 ## ASVK sniper rifle shot sound.
 const ASVK_SHOT: String = "res://assets/audio/выстрел из ASVK.wav"
@@ -823,6 +825,13 @@ func play_defensive_grenade_explosion(position: Vector2) -> void:
 ## Uses HIGH priority for explosion sounds.
 func play_offensive_grenade_explosion(position: Vector2) -> void:
 	play_sound_2d_with_priority(OFFENSIVE_GRENADE_EXPLOSION, position, VOLUME_GRENADE_EXPLOSION, SoundPriority.HIGH)
+
+
+## Plays gas grenade explosion sound at the given position (Issue #1637).
+## Used for both aggression gas grenade (thrown by gas-mask enemy) and chemical gas grenade.
+## Uses HIGH priority for explosion sounds.
+func play_aggression_gas_release(position: Vector2) -> void:
+	play_sound_2d_with_priority(GAS_GRENADE_EXPLOSION, position, VOLUME_GRENADE_EXPLOSION, SoundPriority.HIGH)
 
 
 # ============================================================================

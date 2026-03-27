@@ -58,9 +58,12 @@ const ROOM_HEIGHT: float = 720.0
 const ENEMIES_PER_ROOM_MIN: int = 3
 const ENEMIES_PER_ROOM_MAX: int = 5
 
-## Number of rooms per run
-const MIN_ROOMS: int = 3
-const MAX_ROOMS: int = 5
+## Number of rooms per run (Issue #1451: many regular rooms so the exit is far from start)
+const MIN_ROOMS: int = 7
+const MAX_ROOMS: int = 10
+
+## Minimum BFS distance from start to the exit room (Issue #1451: exit must be in a far room)
+const EXIT_MIN_DISTANCE: int = 3
 
 ## Wall / visual colour constants
 const WALL_COLOR:  Color = Color(0.3,  0.3,  0.35, 1.0)
@@ -118,6 +121,7 @@ const PASSIVE_ACTIVE_ITEM_TYPES: Array = [
 	13,  # ARMORED_SKIN
 	14,  # AUTO_RELOAD
 	17,  # COMBAT_DISPOSITION
+	21,  # GRENADE_BAG (Issue #1590)
 ]
 
 
@@ -171,6 +175,12 @@ var _pedestal_item = null
 ## Door zones for branching navigation (one per connected direction).
 var _door_zones: Array = []  # Array of Area2D door zones
 
+## Issue #1451: Physical door barriers that block doorway gaps during combat.
+## In The Binding of Isaac, doors lock (close) when the player enters a room
+## with enemies, and unlock (open) after all enemies are eliminated.
+## Each entry is a StaticBody2D placed in a doorway gap.
+var _door_barriers: Array = []  # Array of StaticBody2D barriers
+
 ## Directions: 0=North, 1=East, 2=South, 3=West
 const DIR_NORTH: int = 0
 const DIR_EAST:  int = 1
@@ -216,6 +226,16 @@ func _ready() -> void:
 		var _log_tr := "[RoguelikeLevel] TREASURE ROOM — Level %d" % GameManager.roguelike_current_level
 		print(_log_tr)
 		FileLogger.info(_log_tr)
+		# Issue #1450: check if the treasure room item has already been collected.
+		# - If collected: no pedestal, empty room (item is gone for good).
+		# - If not collected: spawn pedestal — _spawn_treasure_pedestal() restores
+		#   the same item if the player previously entered and left without picking up.
+		var _tr_map_idx: int = GameManager.roguelike_current_map_room
+		var _tr_already_collected: bool = false
+		if GameManager.roguelike_room_map.size() > 0 and _tr_map_idx >= 0 and _tr_map_idx < GameManager.roguelike_room_map.size():
+			_tr_already_collected = GameManager.roguelike_room_map[_tr_map_idx].get("treasure_collected", false)
+			# Mark the room map entry as cleared (for minimap/door-colour purposes).
+			GameManager.roguelike_room_map[_tr_map_idx]["cleared"] = true
 		_build_room_scene_treasure()
 		_spawn_player()
 		_setup_navigation()
@@ -227,9 +247,16 @@ func _ready() -> void:
 		_setup_minimap()
 		if GameManager:
 			GameManager.stats_updated.connect(_update_debug_ui)
-		# Spawn pedestal immediately (not deferred) so it is visible from the first frame.
-		# The monitoring flag is still set deferred so body_entered fires for existing overlaps.
-		_spawn_treasure_pedestal()
+		if not _tr_already_collected:
+			# Spawn pedestal immediately (not deferred) so it is visible from the first frame.
+			# The monitoring flag is still set deferred so body_entered fires for existing overlaps.
+			# _spawn_treasure_pedestal() will restore the same item if the player previously
+			# entered this room and left without picking it up (Issue #1450).
+			_spawn_treasure_pedestal()
+		else:
+			var _log_tr_rev := "[RoguelikeLevel] Treasure room item collected — skipping pedestal (Issue #1450)"
+			print(_log_tr_rev)
+			FileLogger.info(_log_tr_rev)
 		call_deferred("_activate_exit_zone")
 		var _log_tr2 := "[RoguelikeLevel] Treasure room ready — pedestal spawned: %s" % str(_treasure_pedestal != null)
 		print(_log_tr2)
@@ -276,6 +303,15 @@ func _ready() -> void:
 	if is_treasure_map_room:
 		GameManager.roguelike_in_treasure_room = true
 		_room_type = RoomType.BEACH
+		# Issue #1450: check if the treasure item has already been collected.
+		# - Collected: skip pedestal entirely.
+		# - Not collected: spawn pedestal — _spawn_treasure_pedestal() restores the same
+		#   item if the player previously entered and left without picking it up.
+		var treasure_already_collected: bool = false
+		if map_room_idx >= 0 and map_room_idx < GameManager.roguelike_room_map.size():
+			treasure_already_collected = GameManager.roguelike_room_map[map_room_idx].get("treasure_collected", false)
+			# Mark cleared for minimap/door-colour purposes.
+			GameManager.roguelike_room_map[map_room_idx]["cleared"] = true
 		_build_room_scene_treasure()
 		_spawn_player()
 		_setup_navigation()
@@ -287,18 +323,24 @@ func _ready() -> void:
 		_setup_minimap()
 		if GameManager:
 			GameManager.stats_updated.connect(_update_debug_ui)
-		_spawn_treasure_pedestal()
+		if not treasure_already_collected:
+			_spawn_treasure_pedestal()
+		else:
+			var _log_tr_rev := "[RoguelikeLevel] Treasure map room item collected — skipping pedestal (Issue #1450)"
+			print(_log_tr_rev)
+			FileLogger.info(_log_tr_rev)
 		call_deferred("_activate_exit_zone")
-		print("[RoguelikeLevel] Treasure map room ready")
+		print("[RoguelikeLevel] Treasure map room ready (already_collected=%s)" % str(treasure_already_collected))
 		return
 
-	_build_room_scene()
-	_spawn_player()
-	_setup_navigation()
-	_setup_player_tracking()
-
-	# Start rooms and cleared-revisit rooms: no enemies, doors open immediately
+	# Issue #1450: Start rooms and cleared-revisit rooms must NOT spawn enemies.
+	# _build_room_scene() calls _spawn_enemies_in_room() internally, so the
+	# cleared/start check MUST happen before calling it.
 	if is_start_room or is_cleared_revisit:
+		_build_room_scene_no_enemies()
+		_spawn_player()
+		_setup_navigation()
+		_setup_player_tracking()
 		_room_cleared = true
 		_setup_debug_ui()
 		_setup_saturation_overlay()
@@ -307,9 +349,15 @@ func _ready() -> void:
 		call_deferred("_activate_exit_zone")
 		if GameManager:
 			GameManager.stats_updated.connect(_update_debug_ui)
-		print("[RoguelikeLevel] %s room ready — no enemies, doors open" % ("Start" if is_start_room else "Revisited"))
+		var _log_revisit := "[RoguelikeLevel] %s room ready — no enemies, doors open (Issue #1450)" % ("Start" if is_start_room else "Revisited")
+		print(_log_revisit)
+		FileLogger.info(_log_revisit)
 		return
 
+	_build_room_scene()
+	_spawn_player()
+	_setup_navigation()
+	_setup_player_tracking()
 	_setup_enemy_tracking()
 	_setup_debug_ui()
 	_setup_saturation_overlay()
@@ -319,11 +367,20 @@ func _ready() -> void:
 	_setup_minimap()
 	# Intentionally skip ReplayManager — reduces memory and CPU overhead
 
+	# Issue #1451: Lock doors (create physical barriers) in uncleared combat rooms.
+	# In The Binding of Isaac, doors shut when the player enters a room with enemies
+	# and only open after all enemies are eliminated.
+	var room_node: Node2D = get_node_or_null("Room")
+	if room_node:
+		_create_door_barriers(room_node)
+
 	if GameManager:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
 
-	print("[RoguelikeLevel] Room ready — %d enemies" % _initial_enemy_count)
+	var _log_room_ready := "[RoguelikeLevel] Room ready — %d enemies" % _initial_enemy_count
+	print(_log_room_ready)
+	FileLogger.info(_log_room_ready)
 
 
 func _process(_delta: float) -> void:
@@ -356,13 +413,14 @@ func _start_new_run() -> void:
 		all_types[i] = all_types[j]
 		all_types[j] = tmp
 
+	# Issue #1451: Do NOT cap count by all_types.size() — with many rooms (7-10),
+	# room types cycle/repeat. The type pool is used modulo its size in _generate_room_map.
 	var count: int = randi_range(MIN_ROOMS, MAX_ROOMS)
-	count = min(count, all_types.size())
 
 	GameManager.roguelike_active           = true
 	GameManager.roguelike_current_room     = 0
 	GameManager.roguelike_total_rooms      = count
-	GameManager.roguelike_room_types       = all_types.slice(0, count)
+	GameManager.roguelike_room_types       = all_types.slice(0, min(count, all_types.size()))
 	GameManager.roguelike_run_seed         = run_seed
 	GameManager.roguelike_total_kills      = 0
 	GameManager.roguelike_total_shots      = 0
@@ -384,7 +442,9 @@ func _start_new_run() -> void:
 	var names: Array = []
 	for t in GameManager.roguelike_room_types:
 		names.append(ROOM_TYPE_NAMES.get(t, "?"))
-	print("[RoguelikeLevel] New run — seed=%d, rooms: %s" % [run_seed, str(names)])
+	var _log_new_run := "[RoguelikeLevel] New run — seed=%d, rooms: %s" % [run_seed, str(names)]
+	print(_log_new_run)
+	FileLogger.info(_log_new_run)
 
 
 func _continue_run() -> void:
@@ -502,23 +562,41 @@ func _generate_room_map(room_count: int, room_types_pool: Array) -> Array:
 		if rooms[i]["connections"].size() == 1:
 			dead_ends.append(i)
 
-	# Sort dead ends by distance from start (farthest first)
+	# Issue #1451: Sort dead ends by BFS path distance from start (farthest first).
+	# Uses graph distance (number of rooms to traverse) instead of Euclidean distance,
+	# matching The Binding of Isaac's boss room placement algorithm. This ensures the
+	# exit is always at the end of the longest path through the dungeon.
+	var bfs_dist: Dictionary = _bfs_distances(rooms, 0)
 	dead_ends.sort_custom(func(a, b):
-		var da: float = Vector2(rooms[a]["grid_pos"]).distance_to(Vector2(start_pos))
-		var db: float = Vector2(rooms[b]["grid_pos"]).distance_to(Vector2(start_pos))
+		var da: int = bfs_dist.get(a, 0)
+		var db: int = bfs_dist.get(b, 0)
 		return da > db
 	)
 
-	# Place exit room (red) on the farthest dead end
+	# Issue #1451: Place exit room (red) on a dead end that is at least EXIT_MIN_DISTANCE
+	# rooms away from start. This prevents the exit from being directly adjacent to the
+	# start room. Always use the farthest qualifying dead end; fall back to the overall
+	# farthest dead end if none meets the threshold (e.g. very small map).
 	if dead_ends.size() > 0:
-		var exit_idx: int = dead_ends[0]
+		var exit_idx: int = dead_ends[0]  # Default: farthest dead end overall
+		for de in dead_ends:
+			if bfs_dist.get(de, 0) >= EXIT_MIN_DISTANCE:
+				exit_idx = de
+				break
 		rooms[exit_idx]["map_room_type"] = "exit"
-		dead_ends.remove_at(0)
+		dead_ends.erase(exit_idx)
+		var exit_dist: int = bfs_dist.get(exit_idx, 0)
+		var _log_exit_placed := "[RoguelikeLevel] Exit placed at room %d (BFS distance=%d from start)" % [exit_idx, exit_dist]
+		print(_log_exit_placed)
+		FileLogger.info(_log_exit_placed)
 
 	# Place treasure room (gold) on the next farthest dead end
 	if dead_ends.size() > 0:
 		var treasure_idx: int = dead_ends[0]
 		rooms[treasure_idx]["map_room_type"] = "treasure"
+		# Issue #1450: persist treasure state — item offered and whether it was collected.
+		rooms[treasure_idx]["treasure_item"] = null
+		rooms[treasure_idx]["treasure_collected"] = false
 		dead_ends.remove_at(0)
 	else:
 		# No dead end left — add a treasure room branching off the exit's parent
@@ -528,9 +606,14 @@ func _generate_room_map(room_count: int, room_types_pool: Array) -> Array:
 			for i in range(rooms.size() - 1, 0, -1):
 				if rooms[i]["map_room_type"] == "combat":
 					rooms[i]["map_room_type"] = "treasure"
+					# Issue #1450: persist treasure state.
+					rooms[i]["treasure_item"] = null
+					rooms[i]["treasure_collected"] = false
 					break
 
-	print("[RoguelikeLevel] Map generated: %d rooms" % rooms.size())
+	var _log_map_generated := "[RoguelikeLevel] Map generated: %d rooms" % rooms.size()
+	print(_log_map_generated)
+	FileLogger.info(_log_map_generated)
 	for i in range(rooms.size()):
 		var r: Dictionary = rooms[i]
 		print("  Room %d: pos=%s type=%s map_type=%s connections=%s" % [
@@ -538,6 +621,23 @@ func _generate_room_map(room_count: int, room_types_pool: Array) -> Array:
 			r["map_room_type"], str(r["connections"])])
 
 	return rooms
+
+
+## Issue #1451: Compute BFS shortest-path distances from a source room to all other rooms.
+## Returns a Dictionary mapping room index → distance (int). Rooms unreachable from
+## the source will not appear in the result.
+static func _bfs_distances(rooms: Array, source: int) -> Dictionary:
+	var dist: Dictionary = {source: 0}
+	var queue: Array = [source]
+	var head: int = 0
+	while head < queue.size():
+		var current: int = queue[head]
+		head += 1
+		for neighbor in rooms[current]["connections"]:
+			if not dist.has(neighbor):
+				dist[neighbor] = dist[current] + 1
+				queue.append(neighbor)
+	return dist
 
 
 ## Get the direction from room A to room B (returns DIR_NORTH..DIR_WEST or -1).
@@ -661,6 +761,33 @@ func _build_room_scene() -> void:
 	_spawn_enemies_in_room(room_container)
 
 
+## Issue #1450: Build room geometry (walls, floor, doors) WITHOUT spawning enemies.
+## Used for start rooms and cleared-revisit rooms so the layout is correct but
+## no new enemies appear on re-entry.
+func _build_room_scene_no_enemies() -> void:
+	var size_idx: int = randi() % ROOM_SIZE_OPTIONS.size()
+	var chosen_size: Vector2 = ROOM_SIZE_OPTIONS[size_idx]
+	_room_w = chosen_size.x
+	_room_h = chosen_size.y
+	_room_variant = randi() % 3
+	print("[RoguelikeLevel] Room size: %.0f×%.0f, variant: %d (no enemies)" % [_room_w, _room_h, _room_variant])
+
+	var bg := ColorRect.new()
+	bg.name  = "WorldBackground"
+	bg.position = Vector2(-200, -200)
+	bg.size     = Vector2(_room_w + 400, _room_h + 400)
+	bg.color    = BG_COLOR
+	add_child(bg)
+
+	var room_container := Node2D.new()
+	room_container.name = "Room"
+	room_container.position = Vector2.ZERO
+	add_child(room_container)
+
+	_build_room(room_container)
+	# Intentionally skip _spawn_enemies_in_room — room is already cleared.
+
+
 func _build_room(parent: Node) -> void:
 	var floor_color: Color = ROOM_FLOOR_COLORS.get(_room_type, FLOOR_COLOR)
 	var floor_rect := ColorRect.new()
@@ -733,6 +860,85 @@ func _build_room_boundary_closed(room_node: Node2D) -> void:
 		_create_wall(room_node, Rect2(w - t, gap_center + DOOR_GAP * 0.5, t, h - gap_center - DOOR_GAP * 0.5))
 	else:
 		_create_wall(room_node, Rect2(w - t, 0, t, h))
+
+
+## Issue #1451: Create physical barriers (StaticBody2D) in all doorway gaps.
+## Called when the player enters an uncleared combat room — doors "lock" like
+## in The Binding of Isaac. Barriers are removed when the room is cleared.
+func _create_door_barriers(room_node: Node2D) -> void:
+	var w: float = _room_w
+	var h: float = _room_h
+	var t: float = 24.0  ## Wall thickness (must match _build_room_boundary_closed)
+	var door_dirs: Array = _get_current_room_door_directions()
+
+	for d in door_dirs:
+		var rect: Rect2
+		match d:
+			DIR_NORTH:
+				var gap_center: float = w * 0.5
+				rect = Rect2(gap_center - DOOR_GAP * 0.5, 0, DOOR_GAP, t)
+			DIR_SOUTH:
+				var gap_center: float = w * 0.5
+				rect = Rect2(gap_center - DOOR_GAP * 0.5, h - t, DOOR_GAP, t)
+			DIR_WEST:
+				var gap_center: float = h * 0.5
+				rect = Rect2(0, gap_center - DOOR_GAP * 0.5, t, DOOR_GAP)
+			DIR_EAST:
+				var gap_center: float = h * 0.5
+				rect = Rect2(w - t, gap_center - DOOR_GAP * 0.5, t, DOOR_GAP)
+
+		# Create a StaticBody2D barrier matching the doorway gap
+		var barrier := StaticBody2D.new()
+		barrier.name = "DoorBarrier_%d" % d
+		barrier.position = rect.position + rect.size / 2.0
+		barrier.collision_layer = 4  # Obstacles layer (same as walls)
+		barrier.collision_mask  = 0
+
+		var shape_node := CollisionShape2D.new()
+		var shape := RectangleShape2D.new()
+		shape.size = rect.size
+		shape_node.shape = shape
+		barrier.add_child(shape_node)
+
+		# Visual: red-tinted wall to indicate locked door
+		var visual := ColorRect.new()
+		visual.color = Color(0.55, 0.15, 0.10, 0.9)
+		visual.size = rect.size
+		visual.position = -rect.size / 2.0
+		barrier.add_child(visual)
+
+		room_node.add_child(barrier)
+		_door_barriers.append(barrier)
+
+	if _door_barriers.size() > 0:
+		var _log_barriers_created := "[RoguelikeLevel] %d door barriers created — room locked" % _door_barriers.size()
+		print(_log_barriers_created)
+		FileLogger.info(_log_barriers_created)
+
+
+## Issue #1451: Remove all door barriers (unlock doors) after room is cleared.
+## Plays a brief fade-out animation before freeing the barrier nodes.
+func _remove_door_barriers() -> void:
+	for barrier in _door_barriers:
+		if is_instance_valid(barrier):
+			# Disable collision immediately so player can walk through
+			barrier.collision_layer = 0
+			# Fade out the visual
+			var visual: ColorRect = null
+			for child in barrier.get_children():
+				if child is ColorRect:
+					visual = child
+					break
+			if visual:
+				var tween := create_tween()
+				tween.tween_property(visual, "color:a", 0.0, 0.3)
+				tween.tween_callback(barrier.queue_free)
+			else:
+				barrier.queue_free()
+	_door_barriers = []
+	var _log_barriers_removed := "[RoguelikeLevel] Door barriers removed — room unlocked"
+	print(_log_barriers_removed)
+	FileLogger.info(_log_barriers_removed)
 
 
 ## Get directions that have doors in the current map room.
@@ -1798,6 +2004,8 @@ func _on_enemy_died() -> void:
 		var map_idx: int = GameManager.roguelike_current_map_room
 		if map_idx >= 0 and map_idx < GameManager.roguelike_room_map.size():
 			GameManager.roguelike_room_map[map_idx]["cleared"] = true
+		# Issue #1451: Unlock doors (remove physical barriers)
+		_remove_door_barriers()
 		# After the last combat room, the exit leads to the treasure room (not another combat room).
 		# No pedestal in combat rooms — the pedestal is in the dedicated treasure room.
 		call_deferred("_activate_exit_zone")
@@ -1813,6 +2021,8 @@ func _on_enemy_became_pacifist(enemy: Node) -> void:
 	if _current_enemy_count <= 0:
 		print("[RoguelikeLevel] All enemies in room %d eliminated or pacified!" % (_current_room_idx + 1))
 		_room_cleared = true
+		# Issue #1451: Unlock doors (remove physical barriers)
+		_remove_door_barriers()
 		call_deferred("_activate_exit_zone")
 
 
@@ -2005,12 +2215,31 @@ func _spawn_treasure_pedestal() -> void:
 	if _treasure_pedestal != null:
 		return  # Already spawned
 
-	var item = _pick_random_pedestal_item()
-	_pedestal_item = item
+	# Issue #1450: restore the previously-offered item if the player is re-entering
+	# a treasure room where the pedestal was not yet collected (item was offered but
+	# the player left without picking it up).  If no item was saved yet, pick a new one.
+	var map_idx: int = GameManager.roguelike_current_map_room
+	var saved_item = null
+	if GameManager.roguelike_room_map.size() > 0 and map_idx >= 0 and map_idx < GameManager.roguelike_room_map.size():
+		saved_item = GameManager.roguelike_room_map[map_idx].get("treasure_item", null)
 
-	# Issue #1313: record the offered item so it won't appear again this run.
-	if GameManager and not (item in GameManager.roguelike_offered_items):
-		GameManager.roguelike_offered_items.append(item)
+	var item
+	if saved_item != null:
+		# Restore the same item the player saw before
+		item = saved_item
+		var _log_restore := "[RoguelikeLevel] Restoring treasure pedestal item: %s (Issue #1450)" % _pedestal_item_label(item)
+		print(_log_restore)
+		FileLogger.info(_log_restore)
+	else:
+		item = _pick_random_pedestal_item()
+		# Issue #1313: record the offered item so it won't appear again this run.
+		if GameManager and not (item in GameManager.roguelike_offered_items):
+			GameManager.roguelike_offered_items.append(item)
+		# Issue #1450: persist the offered item in the room map so re-entry restores it.
+		if GameManager.roguelike_room_map.size() > 0 and map_idx >= 0 and map_idx < GameManager.roguelike_room_map.size():
+			GameManager.roguelike_room_map[map_idx]["treasure_item"] = item
+
+	_pedestal_item = item
 
 	var item_label_str: String = _pedestal_item_label(item)
 	var _log_ped := "[RoguelikeLevel] Spawning treasure pedestal: %s" % item_label_str
@@ -2187,6 +2416,17 @@ func _pedestal_item_label(item) -> String:
 	return "???"
 
 
+## Issue #1450: Mark the current treasure room's item as permanently collected.
+## Called whenever the pedestal item is consumed (not merely swapped onto the pedestal).
+func _mark_treasure_collected() -> void:
+	var map_idx: int = GameManager.roguelike_current_map_room
+	if GameManager.roguelike_room_map.size() > 0 and map_idx >= 0 and map_idx < GameManager.roguelike_room_map.size():
+		GameManager.roguelike_room_map[map_idx]["treasure_collected"] = true
+		var _log_col := "[RoguelikeLevel] Treasure room %d marked collected (Issue #1450)" % map_idx
+		print(_log_col)
+		FileLogger.info(_log_col)
+
+
 ## Called when the player's body enters the pedestal Area2D.
 func _on_pedestal_body_entered(body: Node2D, pedestal: Area2D) -> void:
 	if body.name != "Player" and not body.is_in_group("player"):
@@ -2211,6 +2451,7 @@ func _on_pedestal_body_entered(body: Node2D, pedestal: Area2D) -> void:
 ## can swap back before leaving the room — mirrors the active-item swap mechanic.
 func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 	if GameManager == null:
+		_mark_treasure_collected()
 		pedestal.queue_free()
 		_treasure_pedestal = null
 		return
@@ -2227,6 +2468,7 @@ func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 				available.append(weapon_id)
 		if available.is_empty():
 			print("[RoguelikeLevel] Weapon pedestal: no other weapons available — skipping")
+			_mark_treasure_collected()
 			pedestal.queue_free()
 			_treasure_pedestal = null
 			return
@@ -2291,9 +2533,14 @@ func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 			item_lbl.text = _pedestal_item_label(old_weapon_id)
 
 		print("[RoguelikeLevel] Old weapon '%s' placed back on pedestal" % old_weapon_id)
+		# Issue #1450: persist the updated pedestal item (old weapon now on pedestal).
+		var _wp_map_idx: int = GameManager.roguelike_current_map_room
+		if GameManager.roguelike_room_map.size() > 0 and _wp_map_idx >= 0 and _wp_map_idx < GameManager.roguelike_room_map.size():
+			GameManager.roguelike_room_map[_wp_map_idx]["treasure_item"] = old_weapon_id
 		# Leave pedestal alive so player can pick it back up.
 	else:
 		# No meaningful old weapon — remove pedestal.
+		_mark_treasure_collected()
 		pedestal.queue_free()
 		_treasure_pedestal = null
 
@@ -2304,6 +2551,7 @@ func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 ## the displaced item is put back on the pedestal for the player to reconsider.
 func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2D) -> void:
 	if ActiveItemManager == null:
+		_mark_treasure_collected()
 		pedestal.queue_free()
 		_treasure_pedestal = null
 		return
@@ -2317,6 +2565,7 @@ func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2
 		if ActiveItemManager.has_method("has_passive_item") and ActiveItemManager.has_passive_item(item_type):
 			print("[RoguelikeLevel] Active-item pedestal: already have passive %s — skipping" %
 				ActiveItemManager.get_active_item_name(item_type))
+			_mark_treasure_collected()
 			pedestal.queue_free()
 			_treasure_pedestal = null
 			return
@@ -2326,6 +2575,7 @@ func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2
 			ActiveItemManager.set_active_item(item_type, false)  # fallback for older builds
 		print("[RoguelikeLevel] Passive item collected: %s" %
 			ActiveItemManager.get_active_item_name(item_type))
+		_mark_treasure_collected()
 		pedestal.queue_free()
 		_treasure_pedestal = null
 	else:
@@ -2367,8 +2617,13 @@ func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2
 						pedestal.add_child(new_icon)
 			print("[RoguelikeLevel] Displaced item '%s' placed back on pedestal" %
 				ActiveItemManager.get_active_item_name(old_type))
+			# Issue #1450: persist the updated pedestal item (displaced item now on pedestal).
+			var _ai_map_idx: int = GameManager.roguelike_current_map_room
+			if GameManager.roguelike_room_map.size() > 0 and _ai_map_idx >= 0 and _ai_map_idx < GameManager.roguelike_room_map.size():
+				GameManager.roguelike_room_map[_ai_map_idx]["treasure_item"] = old_type
 		else:
 			# No old item to put back — remove pedestal
+			_mark_treasure_collected()
 			pedestal.queue_free()
 			_treasure_pedestal = null
 
@@ -2461,6 +2716,11 @@ func _navigate_to_map_room(target_room_idx: int) -> void:
 		"treasure":
 			print("[RoguelikeLevel] Navigating to TREASURE room %d" % target_room_idx)
 			GameManager.roguelike_in_treasure_room = true
+			# Issue #1450: mark treasure room as cleared/visited on first entry so
+			# re-entry from any connected room is detected and no new pedestal spawns.
+			rooms[target_room_idx]["visited"] = true
+			if not (target_room_idx in GameManager.roguelike_visited_rooms):
+				GameManager.roguelike_visited_rooms.append(target_room_idx)
 			_show_map_room_transition(target_room_idx, "Сокровищница!", Color(1.0, 0.85, 0.3, 1.0))
 		"exit":
 			print("[RoguelikeLevel] Navigating to EXIT room %d — next level!" % target_room_idx)
@@ -2472,6 +2732,10 @@ func _navigate_to_map_room(target_room_idx: int) -> void:
 			_start_next_level()
 			return
 		_:
+			# Issue #1450: leaving the treasure room to a combat/start room —
+			# reset the treasure-room flag so _ready() doesn't misidentify the
+			# next room as a treasure room via the legacy roguelike_in_treasure_room path.
+			GameManager.roguelike_in_treasure_room = false
 			if target_room["cleared"]:
 				print("[RoguelikeLevel] Revisiting cleared room %d" % target_room_idx)
 			else:
@@ -2568,11 +2832,12 @@ func _start_next_level() -> void:
 		all_types[i] = all_types[j]
 		all_types[j] = tmp
 
+	# Issue #1451: Do NOT cap count by all_types.size() — with many rooms (7-10),
+	# room types cycle/repeat. The type pool is used modulo its size in _generate_room_map.
 	var count: int = randi_range(MIN_ROOMS, MAX_ROOMS)
-	count = min(count, all_types.size())
 
 	GameManager.roguelike_total_rooms  = count
-	GameManager.roguelike_room_types   = all_types.slice(0, count)
+	GameManager.roguelike_room_types   = all_types.slice(0, min(count, all_types.size()))
 	GameManager.roguelike_current_room = 0
 	# Keep roguelike_active = true; the run continues
 

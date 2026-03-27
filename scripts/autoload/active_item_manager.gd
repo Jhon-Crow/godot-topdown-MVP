@@ -29,7 +29,8 @@ enum ActiveItemType {
 	COMBAT_DISPOSITION, # Combat Disposition - passive: +0.77 damage, +1.1 fire rate, x2 speed on start (x4 on Black Metal); on hit: -6.0 damage, -7.2 fire rate, speed/2 (Issue #1047, #1583)
 	EXPERIMENTAL_SAMPLE, # Experimental Sample - press Space to fire a random active item effect (even unowned). 1–5 charges per battle, randomised on level start (Issue #1127)
 	FINE_MOTOR_SKILLS, # Fine Motor Skills - press Space to instantly reload weapon and bring to combat-ready state. Unlimited charges, no cooldown (Issue #1315)
-	DASH               # Dash - press Space to dash in movement direction with damage immunity. 3 charges, cooldown after 3rd dash (Issue #1071)
+	DASH,              # Dash - press Space to dash in movement direction with damage immunity. 3 charges, cooldown after 3rd dash (Issue #1071)
+	GRENADE_BAG        # Grenade Bag - passive: increases starting grenade count based on selected grenade type (Issue #1590)
 }
 
 ## Currently selected active item type.
@@ -72,7 +73,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.COMBAT_DISPOSITION: false,  # Condition: complete 1 level without taking damage (Issue #1389)
 	ActiveItemType.EXPERIMENTAL_SAMPLE: false,   # Condition: complete at least one level on every difficulty (Issue #1426)
 	ActiveItemType.FINE_MOTOR_SKILLS: false,    # Condition: 300 shots with shotgun, sniper rifle, or revolver (Issue #1346)
-	ActiveItemType.DASH: true                   # No unlock condition — freely available from start (Issue #1071)
+	ActiveItemType.DASH: true,                  # No unlock condition — freely available from start (Issue #1071)
+	ActiveItemType.GRENADE_BAG: true            # No unlock condition — freely available from start (Issue #1590)
 }
 
 ## Active item data for UI and selection.
@@ -194,6 +196,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/dash_icon.png",
 		"description": "Dash — press Space to dash in movement direction (Hyper Light Drifter style). Immune to all damage during dash. 3 charges with chain-dash, cooldown after all charges spent.",
 		"activation_hint": "Press Space to dash"
+	},
+	ActiveItemType.GRENADE_BAG: {
+		"name": "Grenade Bag",
+		"icon_path": "res://assets/sprites/weapons/grenade_bag_icon.png",
+		"description": "Grenade Bag — passive: increases starting grenade count based on selected type: 12 flash/stun grenades, 6 frag grenades, 2 gas or F-1 grenades."
 	}
 }
 
@@ -434,6 +441,40 @@ func has_fine_motor_skills() -> bool:
 ## Check if dash is currently equipped (Issue #1071).
 func has_dash() -> bool:
 	return current_active_item == ActiveItemType.DASH
+
+
+## Check if grenade bag is currently equipped (Issue #1590).
+## Also checks collected passive items for roguelike mode (Issue #1303).
+func has_grenade_bag() -> bool:
+	return current_active_item == ActiveItemType.GRENADE_BAG or ActiveItemType.GRENADE_BAG in collected_passive_items
+
+
+## Get the grenade count granted by the Grenade Bag item (Issue #1590).
+## Returns count based on the currently selected grenade type:
+##   FLASHBANG  → 12 grenades
+##   FRAG       → 6 grenades
+##   AGGRESSION_GAS → 2 grenades
+##   DEFENSIVE (F-1) → 2 grenades
+## Returns 0 when Grenade Bag is not equipped.
+func get_grenade_bag_count() -> int:
+	if not has_grenade_bag():
+		return 0
+	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
+	if grenade_manager == null:
+		return 6  # Fallback default
+	var grenade_type: int = grenade_manager.get("current_grenade_type")
+	# GrenadeType enum: FLASHBANG=0, FRAG=1, DEFENSIVE=2, AGGRESSION_GAS=3
+	match grenade_type:
+		0:  # FLASHBANG
+			return 12
+		1:  # FRAG
+			return 6
+		2:  # DEFENSIVE (F-1)
+			return 2
+		3:  # AGGRESSION_GAS
+			return 2
+		_:
+			return 6  # Fallback for unknown types
 
 
 ## Get the laser sight color (purple).

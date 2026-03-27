@@ -68,11 +68,6 @@ const FIREARMS: Dictionary = {
 		"name": "AK + GL",
 		"icon_path": "res://assets/sprites/weapons/ak_gl_icon.png",
 		"description": "AK with GP-25 underbarrel grenade launcher — 7.62x39mm, 30-round magazine, RMB fires VOG-25 grenade (1 shot)"
-	},
-	"smg": {
-		"name": "???",
-		"icon_path": "",
-		"description": "Coming soon"
 	}
 }
 
@@ -2225,6 +2220,13 @@ func _animate_unlock_progress_bar(slot: PanelContainer, target_progress: float) 
 			fill_timer.queue_free()
 			if slot in _unlock_progress_tweens:
 				_unlock_progress_tweens.erase(slot)
+			# When progress bar is fully filled (condition met), hide it so only
+			# the availability (condition_met) shine on the slot remains visible.
+			# Issue #1621: avoid duplicating shine animations at full progress.
+			if target_progress >= 1.0:
+				var overlay_layer := bar.get_parent()
+				if is_instance_valid(overlay_layer):
+					overlay_layer.hide()
 	)
 	fill_timer.start()
 
@@ -2260,12 +2262,16 @@ func _create_unlock_progress_bar(slot: PanelContainer) -> ColorRect:
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay_layer.add_child(bar)
 	# Add the animated gold shine overlay (same shader as condition-met accordion buttons).
+	# Issue #1621: use dimmer sweep/burst colors so the progress bar shine is less prominent
+	# than the availability (condition_met) shine that plays on the slot itself.
 	var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
 	if shine_shader:
 		var mat := ShaderMaterial.new()
 		mat.shader = shine_shader
 		mat.set_shader_parameter("horizontal_sweep", false)
 		mat.set_shader_parameter("cycle_duration", 3.0)
+		mat.set_shader_parameter("sweep_color", Color(0.5, 0.42, 0.1, 1.0))
+		mat.set_shader_parameter("burst_color", Color(0.5, 0.37, 0.05, 1.0))
 		var shine_overlay := ColorRect.new()
 		shine_overlay.name = "GoldShineOverlay"
 		shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

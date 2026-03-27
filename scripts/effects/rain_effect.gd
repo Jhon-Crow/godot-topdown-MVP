@@ -1,20 +1,22 @@
 extends Node2D
 class_name RainEffect
-## Hotline Miami 2-style top-down rain effect (Issue #1394, fixed #1499, #1546).
+## Hotline Miami 2-style top-down rain effect (Issue #1394, fixed #1499, #1546, #1580).
 ##
-## Single-layer particle system rendered on a CanvasLayer (screen space) so rain
+## Four-layer particle system rendered on a CanvasLayer (screen space) so rain
 ## always covers the visible viewport regardless of camera position:
-##   - RainStreaks: short circular drops with inward radial velocity (fish-eye
-##     top-down perspective). Splashes removed per Issue #1580 feedback.
+##   - RainStreaks: thin 2×16px dashes converging toward screen center via inward
+##     radial velocity (fish-eye top-down perspective). Ring emission excludes the
+##     player zone (inner_radius=100px) so streaks don't spawn on the player.
+##   - RainSplashes: circular ripple splashes at the projected ground landing
+##     points of streaks — same ring emission as RainStreaks so splashes appear
+##     where streaks actually land (outside the player zone).
+##   - PlayerDrops: small 3×3 square dots in the player area (~80px radius) falling
+##     straight down — the top-down overhead view of drops falling directly onto
+##     the ground at the player's position (Issue #1546/#1580 feedback).
 ##
 ## Rain is always active (continuous) while outdoors.
 ## Supports indoor exclusion zones where rain should not appear.
 ## Camera position is checked each frame to detect building entry/exit.
-##
-## Fix #1546: Streak texture made shorter and wider (2x16 → 4x8) so drops look
-## like circles when viewed directly from above (center), not elongated streaks.
-## Alpha reduced for more transparent, subtle rain. Radial inward direction
-## preserved from main so rain appears to fall top-down (correct perspective).
 
 ## Indoor exclusion zones (rain stops when camera center is inside).
 ## Each Rect2 defines a rectangular area in global coordinates.
@@ -32,12 +34,23 @@ var _inside_exclusion: bool = false
 ## Inward radial rain streaks particle node (defined in .tscn).
 @onready var _streaks: GPUParticles2D = $RainCanvas/RainStreaks
 
-## Controls emission state of the streak particle layer.
+## Ground splash ripples at projected streak landing points (defined in .tscn).
+@onready var _splashes: GPUParticles2D = $RainCanvas/RainSplashes
+
+## Top-down square drops near player center (defined in .tscn).
+## These represent the overhead view of drops landing directly on the player.
+@onready var _player_drops: GPUParticles2D = $RainCanvas/PlayerDrops
+
+## Controls emission state of all particle layers.
 var emitting: bool = false:
 	set(value):
 		emitting = value
 		if _streaks:
 			_streaks.emitting = value
+		if _splashes:
+			_splashes.emitting = value
+		if _player_drops:
+			_player_drops.emitting = value
 
 ## Whether time is currently stopped (e.g. last chance effect). When true,
 ## particle emission is paused regardless of exclusion zone state.
@@ -94,7 +107,7 @@ func is_raining() -> bool:
 
 
 ## Pauses or resumes particle emission for time-stop effects (e.g. last chance).
-## When paused is true, the streak layer is frozen in place by disabling its
+## When paused is true, all particle layers are frozen in place by disabling their
 ## process mode — existing particles stay visible, no new ones are spawned.
 ## When paused is false, particle processing is restored and emission resumes if the
 ## camera is not inside an exclusion zone.
@@ -103,15 +116,23 @@ func set_time_stopped(paused: bool) -> void:
 		return
 	_time_stopped = paused
 	if paused:
-		# Disable processing on streak node so it freezes in place (existing
-		# particles remain visible) rather than disappearing via emitting = false.
+		# Disable processing so particles freeze in place (existing particles
+		# remain visible) rather than disappearing via emitting = false.
 		if _streaks:
 			_streaks.process_mode = Node.PROCESS_MODE_DISABLED
+		if _splashes:
+			_splashes.process_mode = Node.PROCESS_MODE_DISABLED
+		if _player_drops:
+			_player_drops.process_mode = Node.PROCESS_MODE_DISABLED
 		_log("Rain paused (time stopped)")
 	else:
 		# Restore particle processing.
 		if _streaks:
 			_streaks.process_mode = Node.PROCESS_MODE_INHERIT
+		if _splashes:
+			_splashes.process_mode = Node.PROCESS_MODE_INHERIT
+		if _player_drops:
+			_player_drops.process_mode = Node.PROCESS_MODE_INHERIT
 		# Resume emission only when not inside a building exclusion zone.
 		emitting = not _inside_exclusion
 		_log("Rain resumed (time resumed)")
