@@ -16,15 +16,18 @@ References: [Issue #1586](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/
 | Issue opened | Owner requests doubling ASVK max aiming range |
 | PR #1599 created | AI solver changed all `5000` → `10000` in `SniperRifle.cs`, `SniperRifleData.tres`, `enemy_sniper_component.gd` |
 | PR marked ready to merge | CI checks passed, no merge conflicts |
-| 2026-03-27 07:52:15 | Owner runs test session — from pre-built `.exe` binary at `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe` |
-| 2026-03-27 07:52:51 | Session ends after ~36 seconds (log line 1849) |
-| 2026-03-27 04:53:18 UTC | Owner comments: "дальность не увеличилась" ("range didn't increase") with game log attached |
+| 2026-03-27 07:52:15 | **Test session 1** — Owner runs pre-built `.exe` binary at `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe` |
+| 2026-03-27 07:52:51 | Session 1 ends after ~36 seconds |
+| 2026-03-27 04:53:18 UTC | Owner comments: "дальность не увеличилась" ("range didn't increase") — attaches `game_log_20260327_075215.txt` |
+| 2026-03-27 04:57:12 UTC | AI explains root cause: testing against pre-built binary. Adds range logging + full analysis to PR |
+| 2026-03-27 08:09:03 | **Test session 2** — Owner runs the **same** pre-built `.exe` from the same path: `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe` |
+| 2026-03-27 05:10:16 UTC | Owner comments: "изменения не вступили в силу" ("changes did not take effect") — attaches `game_log_20260327_080903.txt` |
 
 ---
 
 ## Game Log Evidence
 
-File: `game_log_20260327_075215.txt`
+### Test Session 1 — `game_log_20260327_075215.txt`
 
 Key facts extracted from the log:
 
@@ -49,7 +52,29 @@ The game was navigated to DocksLevel (which has a long-range sniper scenario):
 [07:52:44] [ENEMY] [ContainerYardA_Sniper] Spawned at (4500, 420), hp: 2, behavior: GUARD
 ```
 
-There are **no log entries** showing the active `maxRange` or `LASER_MAX_RANGE` value at runtime. The game does not log these constants at startup or weapon equip time. This means the log cannot directly confirm whether the 10000 or 5000 value was active — but the build evidence (see below) is conclusive.
+There are **no log entries** showing the active `maxRange` or `LASER_MAX_RANGE` value at runtime. This means the log cannot directly confirm whether the 10000 or 5000 value was active — but the build evidence (see below) is conclusive.
+
+### Test Session 2 — `game_log_20260327_080903.txt`
+
+Key facts extracted from the log:
+
+```
+[08:09:03] [INFO] Executable: I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe
+[08:09:03] [INFO] Debug build: false
+[08:09:03] [INFO] Engine version: 4.3-stable (official)
+[08:09:03] [INFO] Build info: not available (build_info.cfg not found)
+```
+
+The sniper was selected and used:
+
+```
+[08:09:28] [INFO] [Player.Weapon] Equipped SniperRifle (ammo: 5/5)
+[08:09:28] [INFO] [Player] Detected weapon: ASVK Sniper Rifle (Sniper pose)
+```
+
+**Critical finding:** The executable path is **identical** to test session 1 — the same pre-built binary at `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe`. Neither session contains a `[SniperRifle] ASVK initialized` log entry, which confirms the range logging added in our commit also did not execute — the binary predates all PR #1599 changes.
+
+Additionally, in session 2, the `ASVK initialized - ... maxRange=` log line (added by our logging improvement) is absent, which is definitive proof this binary was not built from our branch.
 
 ---
 
@@ -201,6 +226,20 @@ The log shows `Build info: not available (build_info.cfg not found)`. Including 
 
 ## Conclusion
 
-The code fix in PR #1599 is **correct and complete**. The owner's report that "the range didn't increase" is explained by testing against a **pre-built release binary** that predates the PR. The fix will take effect once the project is re-exported from Godot after merging or checking out the PR branch.
+The code fix in PR #1599 is **correct and complete**. Both owner reports ("range didn't increase" / "changes did not take effect") are explained by testing against the **same pre-built release binary** (`Godot-Top-Down-Template.exe`) that predates the PR.
 
-No code changes are needed. The PR should be merged and the project re-exported to validate the fix.
+The definitive proof: our range logging (added in commit `033968e8`) outputs `[SniperRifle] ASVK initialized - ... maxRange=10000 px` at weapon equip time. **Neither game log contains this line**, confirming both sessions ran the old binary.
+
+No code changes are needed. The PR should be merged and the project **re-exported from the Godot editor** to validate the fix.
+
+### Action Required from the Owner
+
+To test the fix, the owner must **build a new binary from source**:
+
+1. Merge PR #1599 into `main` (or checkout branch `issue-1586-3bae6cdaa74f` locally)
+2. Open the project in Godot 4.3 with .NET support
+3. Build the C# solution: **Build → Build Project**
+4. Export the project: **Project → Export...** → generate a new `.exe`
+5. Run the **new** binary — the game log will show `[SniperRifle] ASVK initialized - ... maxRange=10000 px`
+
+Running the old `.exe` from `I:/Загрузки/godot exe/микро фиксы/` will always show the old behavior regardless of source changes.
