@@ -1284,14 +1284,9 @@ func _find_distant_cover_position() -> void:
 func _process_ai_state(delta: float) -> void:
 	if _is_stunned: velocity = Vector2.ZERO; return  # Stunned: stop all movement
 	if _formation_shielder != null and (not is_instance_valid(_formation_shielder) or not _formation_shielder.has_method("is_shield_active") or not _formation_shielder.is_shield_active()): _formation_shielder = null  # Issue #1242
-	if _formation_shielder != null and global_position.distance_to(_formation_target_pos) > 25.0:  # Issue #1446: moving to shieldbearer cover
-		_move_to_target_nav(_formation_target_pos, move_speed)
-		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_aim_at_player(); _shoot(); _shoot_timer = 0.0
-		return
-	if _formation_shielder != null:  # Issue #1446: arrived — shieldbearer is cover; always return early
-		_cover_position = _formation_target_pos; _has_valid_cover = true; if _current_state != AIState.IN_COVER: _transition_to_in_cover()  # RCA-6: always IN_COVER so _process_in_cover_state runs
-		_process_in_cover_state(delta); return  # RCA-6: explicitly process state so enemy shoots/moves; skip full state machine
+	if _formation_shielder != null:  # Issue #1446: formation enemy — shieldbearer is cover; process in-cover logic (handles moving + shooting + arrival)
+		_cover_position = _formation_target_pos; _has_valid_cover = true; if _current_state != AIState.IN_COVER: _transition_to_in_cover()  # RCA-6: always IN_COVER so _process_in_cover_state handles movement/shooting
+		_process_in_cover_state(delta); return  # RCA-6: _process_in_cover_state moves enemy to shieldbearer if far, stays if arrived; skip full state machine
 	var previous_state := _current_state
 	# ABSOLUTE HIGHEST PRIORITY: Grenade danger zone evasion (Issue #407)
 	var in_grenade_danger := _grenade_avoidance.in_danger_zone if _grenade_avoidance else false
@@ -1750,9 +1745,7 @@ func _process_in_cover_state(delta: float) -> void:
 		return
 
 	if _formation_shielder == null and _is_visible_from_player():  # Issue #1446: skip if using shieldbearer cover
-		# If in alarm mode and can see player, fire a burst before escaping
-		# [#1161] Sniper rifle is bolt-action: no burst fire (flee immediately)
-		# [#1242] Revolver is single-action: no burst fire
+		# If in alarm mode and can see player, fire a burst before escaping. [#1161] Sniper: no burst (flee). [#1242] Revolver: no burst.
 		if _in_alarm_mode and _can_see_player and _player and weapon_type != WeaponType.SNIPER_RIFLE and weapon_type != WeaponType.REVOLVER:
 			if not _cover_burst_pending:
 				# Start the cover burst
@@ -1783,8 +1776,7 @@ func _process_in_cover_state(delta: float) -> void:
 			_transition_to_seeking_cover()
 		return
 
-	# Decision making (#934): ASSAULT removed per #169; use distance+visibility
-	# Issue #1446: formation enemies stay in cover behind shieldbearer; skip COMBAT/PURSUING transitions
+	# Decision making (#934): ASSAULT removed per #169; use distance+visibility. Issue #1446: formation enemies stay in cover; skip COMBAT/PURSUING.
 	var can_see_target := _can_see_player or _can_see_companion
 	var has_target := (_player != null) or (_companion != null and _can_see_companion)
 	if has_target and _formation_shielder == null:
@@ -1807,8 +1799,7 @@ func _process_in_cover_state(delta: float) -> void:
 				_transition_to_pursuing()
 				return
 
-	# If not under fire and can see player or companion, engage (only shoot after detection delay)
-	# Issue #934: also shoot at companion if visible
+	# If not under fire and can see player or companion, engage after detection delay (Issue #934: companion too).
 	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 		_aim_at_player()
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
@@ -3356,10 +3347,8 @@ func _get_shieldbearer_cover_candidates() -> Array[Vector2]:  ## Issue #1446
 	var candidates: Array[Vector2] = []; if _player == null: return candidates
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if e == self or not is_instance_valid(e) or not e.has_method("is_shield_active") or not e.is_shield_active() or global_position.distance_to(e.global_position) > EnemyShieldComponent.FORMATION_RADIUS: continue
-		var bp := e.global_position - (_player.global_position - e.global_position).normalized() * EnemyShieldComponent.FORMATION_OFFSET
-		candidates.append(NavigationServer2D.map_get_closest_point(_nav_agent.get_navigation_map(), bp) if _nav_agent else bp)
+		var bp := e.global_position - (_player.global_position - e.global_position).normalized() * EnemyShieldComponent.FORMATION_OFFSET; candidates.append(NavigationServer2D.map_get_closest_point(_nav_agent.get_navigation_map(), bp) if _nav_agent else bp)
 	return candidates
-
 ## Get far-side cover behind obstacle (Issue #1338/1378). Probes outward with intersect_point().
 func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, direction: Vector2, space_state: PhysicsDirectSpaceState2D, effective_ray_dist: float = 300.0) -> Vector2:
 	var near_dist := collision_point.distance_to(player_pos)
