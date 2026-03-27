@@ -1,5 +1,12 @@
 extends GrenadeBase
 class_name DroneGrenade
+
+## Drone body half-size (pixels).
+const DRONE_BODY_SIZE: float = 10.0
+## Rotor arm length from center (pixels).
+const ROTOR_ARM_LENGTH: float = 12.0
+## Rotor disc radius (pixels).
+const ROTOR_RADIUS: float = 4.0
 ## Drone grenade (Issue #1628).
 ##
 ## When thrown, a player-controlled drone is spawned at the throw position.
@@ -15,8 +22,8 @@ class_name DroneGrenade
 ## Speed of the player-controlled drone (pixels/second).
 @export var drone_speed: float = 400.0
 
-## Explosion radius matching RPG charge (pixels).
-@export var explosion_radius: float = 150.0
+## Explosion radius matching RPG charge (pixels). 50% larger than standard (150 → 225).
+@export var explosion_radius: float = 225.0
 
 ## Explosion damage to enemies in blast radius.
 @export var explosion_damage: int = 5
@@ -51,6 +58,12 @@ func _ready() -> void:
 
 	# Set collision to detect enemies (layer 2) and obstacles (layer 4).
 	collision_mask = 4 | 2
+
+	# Hide the static Sprite2D (grenade image) and replace with drone visual.
+	var sprite := get_node_or_null("Sprite2D")
+	if sprite:
+		sprite.hide()
+	_setup_drone_visual()
 
 	FileLogger.info("[DroneGrenade] Ready")
 
@@ -321,6 +334,76 @@ func _fallback_explosion_vfx(pos: Vector2) -> void:
 	var tw := get_tree().create_tween()
 	tw.tween_property(flash, "modulate:a", 0.0, 0.3)
 	tw.tween_callback(flash.queue_free)
+
+
+## Build a procedural quadcopter-style drone visual (matches the enemy Drone entity).
+func _setup_drone_visual() -> void:
+	var model := get_node_or_null("DroneModel") as Node2D
+	if model == null:
+		model = Node2D.new()
+		model.name = "DroneModel"
+		add_child(model)
+
+	_drone_visual = model
+
+	# Central body square.
+	var body := Polygon2D.new()
+	body.polygon = PackedVector2Array([
+		Vector2(-DRONE_BODY_SIZE, -DRONE_BODY_SIZE),
+		Vector2(DRONE_BODY_SIZE, -DRONE_BODY_SIZE),
+		Vector2(DRONE_BODY_SIZE, DRONE_BODY_SIZE),
+		Vector2(-DRONE_BODY_SIZE, DRONE_BODY_SIZE),
+	])
+	body.color = Color(0.2, 0.2, 0.25, 0.9)
+	body.z_index = 1
+	model.add_child(body)
+
+	# Front camera lens.
+	var lens := Polygon2D.new()
+	lens.polygon = PackedVector2Array([
+		Vector2(DRONE_BODY_SIZE - 2, -3), Vector2(DRONE_BODY_SIZE + 3, -3),
+		Vector2(DRONE_BODY_SIZE + 3, 3), Vector2(DRONE_BODY_SIZE - 2, 3),
+	])
+	lens.color = Color(0.1, 0.5, 0.9, 0.9)
+	lens.z_index = 2
+	model.add_child(lens)
+
+	# Four rotor arms + rotor discs.
+	var arm_positions: Array = [
+		Vector2(ROTOR_ARM_LENGTH, ROTOR_ARM_LENGTH),
+		Vector2(ROTOR_ARM_LENGTH, -ROTOR_ARM_LENGTH),
+		Vector2(-ROTOR_ARM_LENGTH, ROTOR_ARM_LENGTH),
+		Vector2(-ROTOR_ARM_LENGTH, -ROTOR_ARM_LENGTH),
+	]
+	for arm_pos in arm_positions:
+		var arm := Polygon2D.new()
+		arm.polygon = PackedVector2Array([
+			Vector2(-1, -1) + arm_pos * 0.2, Vector2(1, -1) + arm_pos * 0.2,
+			Vector2(1, 1) + arm_pos, Vector2(-1, 1) + arm_pos,
+		])
+		arm.color = Color(0.3, 0.3, 0.35, 0.8)
+		model.add_child(arm)
+
+		var rotor := Polygon2D.new()
+		var pts := PackedVector2Array()
+		for i in range(8):
+			var ang: float = i * TAU / 8.0
+			pts.append(arm_pos + Vector2(cos(ang), sin(ang)) * ROTOR_RADIUS)
+		rotor.polygon = pts
+		rotor.color = Color(0.5, 0.5, 0.6, 0.3)
+		rotor.z_index = 3
+		model.add_child(rotor)
+
+	# Green status LED (center).
+	var led := Polygon2D.new()
+	led.polygon = PackedVector2Array([
+		Vector2(-2, -2), Vector2(2, -2), Vector2(2, 2), Vector2(-2, 2),
+	])
+	led.color = Color(0.2, 0.8, 0.2, 0.9)
+	led.z_index = 4
+	model.add_child(led)
+
+	FileLogger.info("[DroneGrenade] Drone visual set up (quadcopter style)")
 
 
 ## Override explosion sound to match RPG/offensive style.
