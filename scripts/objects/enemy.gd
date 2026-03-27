@@ -916,7 +916,6 @@ func _physics_process(delta: float) -> void:
 			if _debug_draw_timer >= DEBUG_DRAW_INTERVAL: _debug_draw_timer = 0.0; queue_redraw()  # Issue #1220: throttle to 10 Hz
 		return
 	_process_ai_state(delta); if _drone_operator and _drone_operator.is_dashing(): velocity = _drone_operator.get_dash_velocity()  # Issue #1540: re-apply dash velocity after AI state (AI may zero velocity)
-
 	_update_debug_label()
 	if debug_label_enabled:  # Issue #1220: throttle FOV cone redraws to 10 Hz (was every frame → 33 raycasts/enemy/frame at 60 fps)
 		_debug_draw_timer += delta
@@ -1156,11 +1155,9 @@ func _update_suppression(delta: float) -> void:
 		if _threat_reaction_delay_elapsed and not (_force_field_component and _force_field_component.is_active()):
 			if _drone_operator and _drone_operator.should_dash_instead_of_suppress(): _drone_operator.try_dash_from_threat(_bullets_in_threat_sphere, _player, global_position)
 			else: _under_fire = true; _suppression_timer = 0.0
-## Reset COMBAT approach state when DroneOperator dash ends (Issue #1540): stale pre-dash targets cause corner-walking.
-## Also transition to SEEKING_COVER so navmesh pathfinding routes operator away from walls (session 6 fix).
+## Reset COMBAT approach state on dash end (Issue #1540): stale pre-dash targets cause corner-walking; seek cover so navmesh routes away from walls.
 func _on_drone_operator_dash_ended() -> void:
-	_combat_exposed = false; _combat_approaching = false; _seeking_clear_shot = false; _clear_shot_target = Vector2.ZERO; _combat_approach_timer = 0.0; _combat_shoot_timer = 0.0
-	if enable_cover and _current_state == AIState.COMBAT: _transition_to_seeking_cover()
+	_combat_exposed = false; _combat_approaching = false; _seeking_clear_shot = false; _clear_shot_target = Vector2.ZERO; _combat_approach_timer = 0.0; _combat_shoot_timer = 0.0; if enable_cover and _current_state == AIState.COMBAT: _transition_to_seeking_cover()
 ## Update reload state.
 func _update_reload(delta: float) -> void:
 	if not _is_reloading: return
