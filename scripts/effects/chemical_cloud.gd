@@ -158,9 +158,28 @@ func _spawn_illusions_for_nearby_enemies() -> void:
 			var distance: float = randf_range(60.0, 120.0)
 			offsets.append(Vector2(cos(angle), sin(angle)) * distance)
 
-		# Pick a random position for the original enemy (any of the total_positions)
-		var original_index: int = randi_range(0, total_positions - 1)
-		var original_offset: Vector2 = offsets[original_index]
+		# Pick a random position for the original enemy (any of the total_positions).
+		# Issue #1632: Validate each candidate position against the nav-mesh so the
+		# original enemy is never placed inside a wall. Try positions in random order
+		# and fall back to index 0 (the center, no movement) if none are valid.
+		var original_index: int = 0  # Default: keep enemy in place (center)
+		var original_offset: Vector2 = Vector2.ZERO
+		var candidate_indices: Array[int] = []
+		for i in range(total_positions):
+			candidate_indices.append(i)
+		candidate_indices.shuffle()
+		for ci in candidate_indices:
+			var candidate_offset: Vector2 = offsets[ci]
+			if candidate_offset == Vector2.ZERO:
+				# Center is always valid (enemy is already there)
+				original_index = ci
+				original_offset = Vector2.ZERO
+				break
+			var candidate_pos: Vector2 = enemy.global_position + candidate_offset.rotated(enemy.rotation)
+			if _is_position_on_nav_map(enemy, candidate_pos):
+				original_index = ci
+				original_offset = candidate_offset
+				break
 
 		# Move the original enemy to its new position
 		if original_offset != Vector2.ZERO:
@@ -346,6 +365,23 @@ func _update_cloud_visual() -> void:
 				sprite.modulate.a = 0.7 * (_time_remaining / 5.0)
 			else:
 				sprite.modulate.a = 0.7
+
+
+## Issue #1632: Check whether a candidate position is on the navigation mesh.
+## Uses the enemy's NavigationAgent2D to snap the point; if the snapped point
+## is further than NAV_SNAP_TOLERANCE pixels away, the candidate is inside a wall.
+## Falls back to true (allow) when no nav-agent is available to avoid breaking
+## levels that have no nav-mesh.
+const NAV_SNAP_TOLERANCE: float = 50.0
+func _is_position_on_nav_map(enemy: Node2D, pos: Vector2) -> bool:
+	var nav_agent := enemy.get_node_or_null("NavigationAgent2D") as NavigationAgent2D
+	if nav_agent == null:
+		return true  # No nav-agent — cannot validate, allow the position.
+	var nav_map: RID = nav_agent.get_navigation_map()
+	if not nav_map.is_valid():
+		return true
+	var closest: Vector2 = NavigationServer2D.map_get_closest_point(nav_map, pos)
+	return closest.distance_to(pos) <= NAV_SNAP_TOLERANCE
 
 
 ## Create a circular cloud texture for fallback rendering.
