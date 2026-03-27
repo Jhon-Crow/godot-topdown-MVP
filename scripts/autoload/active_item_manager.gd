@@ -209,6 +209,12 @@ var _is_jammed: bool = false
 ## Jam radius used by Radio Jammer enemies (pixels). Must match RadioWaveEffect.jammer_radius.
 const JAMMER_RADIUS: float = 1000.0
 
+## Passive items collected during the current roguelike run (Issue #1194).
+## Multiple passive items can be held simultaneously; their effects all apply at once.
+## This array is separate from current_active_item (the single active-item slot).
+## Cleared at the start of a new run via clear_passive_items().
+var collected_passive_items: Array = []
+
 ## Signal emitted when active item type changes.
 signal active_item_changed(new_type: int)
 
