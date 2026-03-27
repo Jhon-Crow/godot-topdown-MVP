@@ -45,6 +45,13 @@ class MockGameManager:
 		"ak_gl": false            # Condition: Decadence F+ (Issue #1423 req.1)
 	}
 
+	# Kill/stat counters used by KILL_UNLOCK_CONDITIONS
+	var kills_without_laser_sight: int = 0       # Condition: 400 → Laser Sight (Issue #1196)
+	var shots_fired_special_weapons: int = 0     # Condition: 300 → Fine Motor Skills (Issue #1346)
+	var total_deaths: int = 0                    # Condition: 100 → Armored Skin (Issue #1389)
+	var no_damage_levels_completed: int = 0      # Condition: 1 → Combat Disposition (Issue #1389)
+	var levels_completed_rank_a_or_higher: int = 0  # Condition: 7 → Breaker Bullets (Issue #1589 req.3)
+
 	var unlocked_signals: Array = []
 
 	func is_weapon_unlocked(weapon_id: String) -> bool:
@@ -64,10 +71,10 @@ class MockActiveItemManager:
 		3: false,  # TELEPORT_BRACERS — condition: Double Corridor D+ (Issue #1000)
 		4: true,   # BFF_PENDANT — no condition, freely available from start (Issue #674)
 		5: false,  # INVISIBILITY_SUIT — condition: Beach S + Building S (Issue #1000)
-		6: true,   # BREAKER_BULLETS — no condition, freely available from start
-		7: true,   # FORCE_FIELD — no condition, freely available from start
+		6: false,  # BREAKER_BULLETS — condition: 7 levels at rank A or higher (Issue #1589 req.3)
+		7: false,  # FORCE_FIELD — condition: complete Factory on any grade (Issue #1589 req.2)
 		8: false,  # TRAJECTORY_GLASSES — condition: City D+ (Issue #1053 req.1)
-		9: true,   # LASER_SIGHT — no condition, freely available from start (Issue #947)
+		9: false,  # LASER_SIGHT — condition: 400 kills without laser sight equipped (Issue #1196)
 		10: true,  # EXTENDED_MAGAZINE — no condition, freely available from start (Issue #1065)
 		11: true,  # LOUDSPEAKER — no condition, freely available from start (Issue #959)
 		12: true,  # BREACHING_CHARGES — no condition, freely available from start (Issue #1043)
@@ -76,7 +83,8 @@ class MockActiveItemManager:
 		15: true,  # DRILLING_BULLETS — no condition, freely available from start (Issue #751)
 		16: false, # RECOIL_COMPENSATOR — condition: Labyrinth S (Issue #1423 req.2)
 		17: false, # COMBAT_DISPOSITION — condition: complete any level without damage (Issue #1389)
-		18: false  # EXPERIMENTAL_SAMPLE — condition: one level on every difficulty (Issue #1426)
+		18: false, # EXPERIMENTAL_SAMPLE — condition: one level on every difficulty (Issue #1426)
+		19: false  # FINE_MOTOR_SKILLS — condition: 300 shots with special weapons (Issue #1346)
 	}
 
 	var unlocked_signals: Array = []
@@ -226,6 +234,49 @@ class TestableUnlockManager extends Node:
 		}
 	]
 
+	const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
+		{
+			# 400 kills without Laser Sight → unlock Laser Sight (Issue #1196, updated by Issue #1589)
+			"stat": "kills_without_laser_sight",
+			"min_kills": 400,
+			"weapons": [],
+			"grenades": [],
+			"active_items": [9]   # LASER_SIGHT
+		},
+		{
+			# 300 shots with shotgun, sniper rifle, or revolver → unlock Fine Motor Skills (Issue #1346)
+			"stat": "shots_fired_special_weapons",
+			"min_kills": 300,
+			"weapons": [],
+			"grenades": [],
+			"active_items": [19]  # FINE_MOTOR_SKILLS
+		},
+		{
+			# 100 total deaths → unlock Armored Skin (Issue #1389)
+			"stat": "total_deaths",
+			"min_kills": 100,
+			"weapons": [],
+			"grenades": [],
+			"active_items": [13]  # ARMORED_SKIN
+		},
+		{
+			# 1 level completed without damage → unlock Combat Disposition (Issue #1389)
+			"stat": "no_damage_levels_completed",
+			"min_kills": 1,
+			"weapons": [],
+			"grenades": [],
+			"active_items": [17]  # COMBAT_DISPOSITION
+		},
+		{
+			# 7 levels completed at rank A or higher → unlock Breaker Bullets (Issue #1589 req.3)
+			"stat": "levels_completed_rank_a_or_higher",
+			"min_kills": 7,
+			"weapons": [],
+			"grenades": [],
+			"active_items": [6]   # BREAKER_BULLETS
+		}
+	]
+
 	var mock_progress_manager: MockProgressManager
 	var mock_game_manager: MockGameManager
 	var mock_active_item_manager: MockActiveItemManager
@@ -319,6 +370,14 @@ class TestableUnlockManager extends Node:
 			if not found:
 				return false
 		return true
+
+	func is_kill_condition_met(kill_condition: Dictionary) -> bool:
+		if mock_game_manager == null:
+			return false
+		var stat_name: String = kill_condition.get("stat", "")
+		var min_kills: int = kill_condition.get("min_kills", 0)
+		var stat_value: int = mock_game_manager.get(stat_name) if stat_name in mock_game_manager else 0
+		return stat_value >= min_kills
 
 	func is_weapon_condition_met(weapon_id: String) -> bool:
 		for condition_key in UNLOCK_CONDITIONS:
@@ -504,6 +563,25 @@ class TestableUnlockManager extends Node:
 					for item_type in all_diff_condition.get("active_items", []):
 						if not mock_active_item_manager.is_active_item_unlocked(item_type):
 							return true
+
+		for kill_condition in KILL_UNLOCK_CONDITIONS:
+			if not is_kill_condition_met(kill_condition):
+				continue
+
+			if mock_game_manager:
+				for weapon_id in kill_condition.get("weapons", []):
+					if not mock_game_manager.is_weapon_unlocked(weapon_id):
+						return true
+
+			if mock_active_item_manager:
+				for item_type in kill_condition.get("active_items", []):
+					if not mock_active_item_manager.is_active_item_unlocked(item_type):
+						return true
+
+			if mock_grenade_manager:
+				for grenade_type in kill_condition.get("grenades", []):
+					if not mock_grenade_manager.is_grenade_unlocked(grenade_type):
+						return true
 
 		return false
 
@@ -1024,8 +1102,9 @@ func test_condition_locked_grenades_locked_by_default() -> void:
 
 
 func test_condition_locked_active_items_locked_by_default() -> void:
-	# FLASHLIGHT (1), HOMING_BULLETS (2), TELEPORT_BRACERS (3), INVISIBILITY_SUIT (5), TRAJECTORY_GLASSES (8)
-	# ARMORED_SKIN (13), RECOIL_COMPENSATOR (16), COMBAT_DISPOSITION (17)
+	# FLASHLIGHT (1), HOMING_BULLETS (2), TELEPORT_BRACERS (3), INVISIBILITY_SUIT (5),
+	# BREAKER_BULLETS (6), FORCE_FIELD (7), TRAJECTORY_GLASSES (8), LASER_SIGHT (9),
+	# ARMORED_SKIN (13), RECOIL_COMPENSATOR (16), COMBAT_DISPOSITION (17), FINE_MOTOR_SKILLS (19)
 	assert_false(active_item_manager.is_active_item_unlocked(1),
 		"Flashlight should be locked by default")
 	assert_false(active_item_manager.is_active_item_unlocked(2),
@@ -1034,14 +1113,22 @@ func test_condition_locked_active_items_locked_by_default() -> void:
 		"Teleport Bracers should be locked by default")
 	assert_false(active_item_manager.is_active_item_unlocked(5),
 		"Invisibility should be locked by default (Issue #1000)")
+	assert_false(active_item_manager.is_active_item_unlocked(6),
+		"Breaker Bullets should be locked by default — requires 7 A-rank levels (Issue #1589 req.3)")
+	assert_false(active_item_manager.is_active_item_unlocked(7),
+		"Force Field should be locked by default — requires Factory completion (Issue #1589 req.2)")
 	assert_false(active_item_manager.is_active_item_unlocked(8),
 		"Trajectory Glasses should be locked by default (Issue #1053)")
+	assert_false(active_item_manager.is_active_item_unlocked(9),
+		"Laser Sight should be locked by default — requires 400 kills without it (Issue #1196)")
 	assert_false(active_item_manager.is_active_item_unlocked(13),
 		"Armored Skin should be locked by default — requires 100 deaths (Issue #1389)")
 	assert_false(active_item_manager.is_active_item_unlocked(16),
 		"Recoil Compensator should be locked by default (Issue #1423)")
 	assert_false(active_item_manager.is_active_item_unlocked(17),
 		"Combat Disposition should be locked by default — requires no-damage level completion (Issue #1389)")
+	assert_false(active_item_manager.is_active_item_unlocked(19),
+		"Fine Motor Skills should be locked by default — requires 300 shots with special weapons (Issue #1346)")
 
 
 # ============================================================================
@@ -1347,3 +1434,81 @@ func test_experimental_sample_stays_locked_after_restart_when_condition_not_met(
 
 	assert_false(active_item_manager.is_active_item_unlocked(18),
 		"EXPERIMENTAL_SAMPLE should be locked — all-difficulties condition not met, treating save as corrupt (Issue #1426)")
+
+
+# ============================================================================
+# Kill-based unlock condition tests (Issue #1622 — fix armory button glow)
+# ============================================================================
+
+
+func test_laser_sight_condition_not_met_with_partial_kills() -> void:
+	# Issue #1622: partial progress should NOT cause armory button to glow
+	game_manager.kills_without_laser_sight = 200  # Only 200 of required 400
+	assert_false(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[0]),
+		"Laser Sight condition should NOT be met with only 200/400 kills (partial progress)")
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return false with partial kill progress — armory button must NOT glow")
+
+
+func test_laser_sight_condition_met_at_threshold() -> void:
+	game_manager.kills_without_laser_sight = 400  # Exactly at threshold
+	assert_true(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[0]),
+		"Laser Sight condition should be met at exactly 400 kills")
+	assert_true(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return true when Laser Sight condition is met and item is still locked")
+
+
+func test_laser_sight_condition_met_above_threshold() -> void:
+	game_manager.kills_without_laser_sight = 600  # Above threshold
+	assert_true(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[0]),
+		"Laser Sight condition should be met with 600 kills (above threshold)")
+
+
+func test_laser_sight_no_available_unlock_when_already_unlocked() -> void:
+	# Condition met AND item already unlocked — should NOT show as available to unlock
+	game_manager.kills_without_laser_sight = 400
+	active_item_manager.unlocked_active_items[9] = true  # LASER_SIGHT already unlocked by player
+	assert_true(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[0]),
+		"Kill condition is met with 400 kills")
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return false when Laser Sight condition is met but item is already unlocked")
+
+
+func test_fine_motor_skills_condition_not_met_with_partial_shots() -> void:
+	# Issue #1622: partial progress (shots) should NOT glow armory button
+	game_manager.shots_fired_special_weapons = 150  # Only 150 of required 300
+	assert_false(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[1]),
+		"Fine Motor Skills condition should NOT be met with only 150/300 shots")
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return false with partial shot progress")
+
+
+func test_fine_motor_skills_condition_met_at_threshold() -> void:
+	game_manager.shots_fired_special_weapons = 300  # At threshold
+	assert_true(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[1]),
+		"Fine Motor Skills condition should be met at exactly 300 shots")
+	assert_true(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return true when Fine Motor Skills condition is met and item is locked")
+
+
+func test_breaker_bullets_condition_not_met_below_threshold() -> void:
+	# Issue #1622: 6 out of 7 required A-rank levels → partial progress, no glow
+	game_manager.levels_completed_rank_a_or_higher = 6
+	assert_false(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[4]),
+		"Breaker Bullets condition should NOT be met with only 6/7 A-rank levels")
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return false with 6/7 A-rank levels")
+
+
+func test_breaker_bullets_condition_met_at_threshold() -> void:
+	game_manager.levels_completed_rank_a_or_higher = 7  # At threshold
+	assert_true(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[4]),
+		"Breaker Bullets condition should be met at exactly 7 A-rank levels")
+	assert_true(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return true when Breaker Bullets condition is met")
+
+
+func test_no_available_unlock_with_zero_kill_stats() -> void:
+	# Issue #1622: fresh save — all kill stats at 0, no level progress → button must NOT glow
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock must return false with all kill stats at 0 and no level progress")
