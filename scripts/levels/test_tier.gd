@@ -824,6 +824,14 @@ func _update_enemy_count_label() -> void:
 
 ## Complete the level and show the score screen.
 func _complete_level_with_score() -> void:
+	# Disable player controls so clicks on the score screen don't trigger shooting
+	# and so the player cannot accidentally move into the exit zone again (Issue #1589).
+	if _player != null and is_instance_valid(_player):
+		_player.set_physics_process(false)
+		_player.set_process(false)
+		_player.set_process_input(false)
+		_player.set_process_unhandled_input(false)
+
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):
 		var score_data: Dictionary = score_manager.complete_level()
@@ -1318,6 +1326,10 @@ func _remove_armory_button_gold_style() -> void:
 		armory_btn.text = "Armory"
 		armory_btn.remove_theme_color_override("font_color")
 		armory_btn.remove_theme_stylebox_override("normal")
+		# Issue #1582: Remove gold shine overlay added by issue #1536
+		var shine_overlay := armory_btn.find_child("ArmoryGoldShineOverlay", true, false)
+		if shine_overlay:
+			shine_overlay.queue_free()
 
 
 ## Get the next level path based on the level ordering from LevelsMenu (Issue #568).

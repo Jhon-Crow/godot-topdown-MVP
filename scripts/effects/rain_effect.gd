@@ -44,14 +44,25 @@ var emitting: bool = false:
 		if _splashes:
 			_splashes.emitting = value
 
+## Whether time is currently stopped (e.g. last chance effect). When true,
+## particle emission is paused regardless of exclusion zone state.
+var _time_stopped: bool = false
+
 
 func _ready() -> void:
+	# Register in group so LastChanceEffectsManager can find this node reliably
+	# (script resource_path may be empty in exported builds).
+	add_to_group("precipitation_effects")
 	# Rain is always on from the start
 	emitting = true
 	_log("Rain started (continuous mode)")
 
 
 func _process(_delta: float) -> void:
+	# While time is stopped, do not update emission or exclusion zones.
+	if _time_stopped:
+		return
+
 	if _camera == null:
 		_find_camera()
 		return
@@ -85,6 +96,34 @@ func clear_exclusion_zones() -> void:
 ## Returns true if rain is currently visible.
 func is_raining() -> bool:
 	return not _inside_exclusion
+
+
+## Pauses or resumes particle emission for time-stop effects (e.g. last chance).
+## When paused is true, both particle layers are frozen in place by disabling their
+## process mode — existing particles stay visible, no new ones are spawned.
+## When paused is false, particle processing is restored and emission resumes if the
+## camera is not inside an exclusion zone.
+func set_time_stopped(paused: bool) -> void:
+	if _time_stopped == paused:
+		return
+	_time_stopped = paused
+	if paused:
+		# Disable processing on particle nodes so they freeze in place (existing
+		# particles remain visible) rather than disappearing via emitting = false.
+		if _streaks:
+			_streaks.process_mode = Node.PROCESS_MODE_DISABLED
+		if _splashes:
+			_splashes.process_mode = Node.PROCESS_MODE_DISABLED
+		_log("Rain paused (time stopped)")
+	else:
+		# Restore particle processing.
+		if _streaks:
+			_streaks.process_mode = Node.PROCESS_MODE_INHERIT
+		if _splashes:
+			_splashes.process_mode = Node.PROCESS_MODE_INHERIT
+		# Resume emission only when not inside a building exclusion zone.
+		emitting = not _inside_exclusion
+		_log("Rain resumed (time resumed)")
 
 
 func _find_camera() -> void:

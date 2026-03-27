@@ -23,6 +23,15 @@ var total_deaths: int = 0
 ## Persists across sessions — tracked for future use (Issue #1389).
 var no_damage_levels_completed: int = 0
 
+## Cumulative levels completed at rank A or higher (A, A+, or S).
+## Persists across sessions — used as the unlock condition for Breaker Bullets (Issue #1589).
+var levels_completed_rank_a_or_higher: int = 0
+
+## Set to true while the animated score screen animation is playing.
+## Blocks the Q-key quick-restart shortcut so the player cannot accidentally skip the
+## score screen before seeing the Armory button (Issue #1589).
+var score_screen_active: bool = false
+
 ## Weapon IDs that count toward the Fine Motor Skills unlock condition (Issue #1346).
 const FINE_MOTOR_SKILLS_WEAPONS: Array[String] = ["shotgun", "sniper", "revolver"]
 
@@ -107,6 +116,10 @@ signal total_deaths_updated(new_count: int)
 ## Signal emitted when no_damage_levels_completed changes.
 ## Issue #1389.
 signal no_damage_levels_completed_updated(new_count: int)
+
+## Signal emitted when levels_completed_rank_a_or_higher changes (for rank-A unlock checks).
+## Issue #1589.
+signal levels_completed_rank_a_or_higher_updated(new_count: int)
 
 ## Signal emitted when player dies.
 signal player_died
@@ -258,6 +271,10 @@ func _input(event: InputEvent) -> void:
 	# Handle quick restart with Q key
 	if event is InputEventKey:
 		if event.pressed and event.physical_keycode == KEY_Q:
+			# Block restart while the score screen animation is playing — the player
+			# may not have seen the Armory button yet (Issue #1589).
+			if score_screen_active:
+				return
 			restart_scene()
 		# Handle invincibility toggle with F6 key (works in exported builds)
 		elif event.pressed and event.physical_keycode == KEY_F6:
@@ -814,6 +831,7 @@ func _spawn_selected_enemy_at_player() -> void:
 
 ## Called when ScoreManager emits score_calculated after level completion.
 ## Tracks levels completed without taking any damage for Combat Disposition unlock (Issue #1389).
+## Also tracks levels completed at rank A or higher for Breaker Bullets unlock (Issue #1589).
 func _on_score_calculated(score_data: Dictionary) -> void:
 	var damage_taken: int = score_data.get("damage_taken", -1)
 	_log_to_file("Level completed — damage_taken: %d" % damage_taken)
@@ -821,6 +839,13 @@ func _on_score_calculated(score_data: Dictionary) -> void:
 		no_damage_levels_completed += 1
 		no_damage_levels_completed_updated.emit(no_damage_levels_completed)
 		_log_to_file("No-damage level condition met — no_damage_levels_completed: %d" % no_damage_levels_completed)
+	var rank: String = score_data.get("rank", "")
+	# Ranks A, A+, and S all satisfy the "A or higher" condition (Issue #1589)
+	const A_OR_HIGHER: Array = ["A", "A+", "S"]
+	if rank in A_OR_HIGHER:
+		levels_completed_rank_a_or_higher += 1
+		levels_completed_rank_a_or_higher_updated.emit(levels_completed_rank_a_or_higher)
+		_log_to_file("Rank-A level completed — levels_completed_rank_a_or_higher: %d" % levels_completed_rank_a_or_higher)
 
 
 ## Log a message to the file logger if available.
