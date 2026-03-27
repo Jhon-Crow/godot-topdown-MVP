@@ -28,6 +28,13 @@ const ROTOR_RADIUS: float = 4.0
 ## Explosion damage to enemies in blast radius.
 @export var explosion_damage: int = 5
 
+## Drift factor: how much previous velocity carries over each frame (Issue #1667).
+## Matches the enemy Drone drift — gives banking/inertia feel on turns.
+const DRIFT_FACTOR: float = 0.82
+
+## Delay (seconds) before enemies start targeting this drone (Issue #1667).
+const ENEMY_TARGETING_DELAY: float = 1.5
+
 ## Whether the drone has been launched (player is now piloting).
 var _drone_launched: bool = false
 
@@ -42,6 +49,15 @@ var _player: Node2D = null
 
 ## Accumulated movement direction for the drone from player input.
 var _move_dir: Vector2 = Vector2.ZERO
+
+## Current banked (inertial) movement direction — smoothed by DRIFT_FACTOR (Issue #1667).
+var _current_move_dir: Vector2 = Vector2.ZERO
+
+## Timer counting down until enemies start targeting the drone (Issue #1667).
+var _enemy_targeting_timer: float = 0.0
+
+## Whether enemies are currently targeting this drone (Issue #1667).
+var _enemy_targeting_active: bool = false
 
 ## Visual: drone body polygon drawn procedurally.
 var _drone_visual: Node2D = null
@@ -111,6 +127,13 @@ func _launch_drone() -> void:
 
 	# Stop physics movement — the drone is now under direct player control.
 	linear_velocity = Vector2.ZERO
+
+	# Issue #1667: enemies can shoot this drone; add it to a discoverable group.
+	add_to_group("player_drones")
+
+	# Issue #1667: start enemy targeting countdown.
+	_enemy_targeting_timer = ENEMY_TARGETING_DELAY
+	_enemy_targeting_active = false
 
 	_find_player_and_camera()
 	_attach_camera_to_drone()
@@ -209,6 +232,13 @@ func _physics_process(delta: float) -> void:
 	if not _drone_launched or not _drone_alive:
 		return
 
+	# Issue #1667: tick down enemy-targeting delay.
+	if not _enemy_targeting_active:
+		_enemy_targeting_timer -= delta
+		if _enemy_targeting_timer <= 0.0:
+			_enemy_targeting_active = true
+			FileLogger.info("[DroneGrenade] Enemy targeting now active (delay elapsed)")
+
 	# Read WASD / arrow key input.
 	var input_dir := Vector2.ZERO
 	if Input.is_action_pressed("move_right"):
@@ -223,12 +253,23 @@ func _physics_process(delta: float) -> void:
 	if input_dir != Vector2.ZERO:
 		input_dir = input_dir.normalized()
 
-	# Move drone directly (bypassing physics friction — we control it manually).
-	linear_velocity = input_dir * drone_speed
-
-	# Rotate drone body to face movement direction.
+	# Issue #1667: apply drift/inertia (banking) like the enemy Drone.
+	# Blend input_dir with current banked direction using DRIFT_FACTOR so the drone
+	# carries momentum through turns rather than snapping instantly.
 	if input_dir != Vector2.ZERO:
-		rotation = input_dir.angle()
+		if _current_move_dir == Vector2.ZERO:
+			_current_move_dir = input_dir
+		else:
+			_current_move_dir = (_current_move_dir * DRIFT_FACTOR + input_dir * (1.0 - DRIFT_FACTOR)).normalized()
+		linear_velocity = _current_move_dir * drone_speed
+		# Rotate drone body to face banked movement direction.
+		rotation = _current_move_dir.angle()
+	else:
+		# No input: gradually bleed off momentum (coast).
+		_current_move_dir = _current_move_dir * DRIFT_FACTOR
+		if _current_move_dir.length_squared() < 0.01:
+			_current_move_dir = Vector2.ZERO
+		linear_velocity = _current_move_dir * drone_speed
 
 
 ## Override body collision to explode when hitting an enemy.
@@ -248,6 +289,7 @@ func _on_body_entered(body: Node) -> void:
 
 
 ## Called when a bullet hits the drone.
+## Issue #1667: drone explodes when shot by enemies (after targeting delay elapses).
 func on_hit() -> void:
 	if not _drone_alive or _has_exploded:
 		return
@@ -255,9 +297,19 @@ func on_hit() -> void:
 	_explode()
 
 
+## Returns true when enemies should aim at this drone (Issue #1667).
+## Enemies read this flag to decide whether to open fire on the drone.
+func is_targetable_by_enemies() -> bool:
+	return _drone_alive and not _has_exploded and _enemy_targeting_active
+
+
 ## Override _on_explode to produce RPG-style area damage (no wall penetration).
 func _on_explode() -> void:
 	_drone_alive = false
+	_enemy_targeting_active = false
+	# Issue #1667: leave the targeting group so enemies stop shooting at debris.
+	if is_in_group("player_drones"):
+		remove_from_group("player_drones")
 
 	var pos := global_position
 
