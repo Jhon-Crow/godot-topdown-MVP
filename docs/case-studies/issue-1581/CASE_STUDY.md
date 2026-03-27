@@ -351,12 +351,43 @@ Create the texture once as a static/class variable and reuse it across all snipe
 
 ---
 
+## Second Report Analysis (2026-03-27T05:37:57 UTC)
+
+The owner reported the same issue again after our bug-fix commit `bacd0037`:
+
+> "лареза и трассера нет (урон не наносится)" — laser and tracer are gone, damage not being dealt
+
+Attached: `game_log_20260327_083716.txt`
+
+**Key findings from the second log:**
+
+1. `Build info: not available (build_info.cfg not found)` — The owner is testing with a **pre-CI build** that doesn't include our fix. All CI builds from this branch include `build_info.cfg`; its absence proves this binary was NOT built from our PR code.
+
+2. The sniper DID fire (GUNSHOT sound at `[08:37:26]`) — damage system is working. The "damage not dealt" perception is likely because `invincibility mode: True` is active (confirmed at `[08:37:21]`).
+
+3. The enemy spawned at `[08:37:23]` and transitioned IDLE → COMBAT → PURSUING → COMBAT → SEEKING_COVER within ~4 seconds — normal behavior.
+
+**Root cause of second report:** Owner tested the original game binary (without our fix), not the CI-built artifact from our PR branch.
+
+**Evidence summary:**
+
+| Log file | Build info | Timestamp vs fix commit | Conclusion |
+|----------|------------|------------------------|------------|
+| `game_log_20260327_074708.txt` | Not available | Before fix (07:47 UTC, fix at 05:02 UTC) | Pre-fix binary |
+| `game_log_20260327_083716.txt` | Not available | After fix (08:37 UTC, fix at 05:02 UTC) | Still pre-fix binary |
+
+The CI-built artifact for commit `bacd0037` (with `build_info.cfg`) was uploaded at 05:04:31 UTC and is available at:
+https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/23632012906/artifacts/6138124314
+
+---
+
 ## Files in This Case Study
 
-- `game_log_20260327_074708.txt` — User's game log showing the session where tracer/laser disappeared
+- `game_log_20260327_074708.txt` — First owner report: session showing tracer/laser disappeared (pre-fix binary)
+- `game_log_20260327_083716.txt` — Second owner report: same issue reported (still pre-fix binary)
 - `issue_1581.txt` — Original issue text
 - `pr_1602_details.json` — PR #1602 details
-- `pr_1602_comments.json` — PR #1602 comments including owner's bug report
+- `pr_1602_comments.json` — PR #1602 comments including owner's bug reports
 - `pr_commit_diff.patch` — The diff applied by PR #1602
 - `enemy_sniper_component_before_pr.gd` — Version before PR (as reference)
 - `enemy_sniper_component_current.gd` — Current version (after PR, with bugs)
