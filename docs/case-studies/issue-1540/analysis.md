@@ -233,3 +233,47 @@ func _on_drone_operator_dash_ended() -> void:
 This forces the COMBAT state to re-evaluate from the post-dash position: recalculate the approach direction toward the player, recompute `_clear_shot_target`, and avoid navigating toward the pre-dash corner waypoint.
 
 - Log file: `game_log_20260326_145840.txt`
+
+---
+
+## Follow-up Bug Report (2026-03-27): Operator Still Goes to Corner After Dash
+
+After Session 5 fix, owner reported: "всё ещё идёт в одну сторону" (still going in one direction).
+
+### Evidence (`game_log_20260327_084941.txt`)
+
+Key sequence:
+- 08:50:47: Player bullet enters threat sphere. `Dash activated! Dir: (0.82, -0.57)` (northeast)
+- 08:50:47: `Sideways evade: dir=...` logged many times as new bullets arrive (direction display only; `try_dash()` returns `false` because `_dash_active=true`, so `_dash_direction` is NOT changed)
+- 08:50:47-48: Operator gunshots from `(1004, 249)` → `(1127, 163)` — moving northeast along top wall
+- 08:50:50: `No valid cover found (enemy at (1529,88))` → `COMBAT → SEEKING_COVER`
+- 08:50:50+: Repeated `No valid cover found (enemy at (1775,88))` until death — stuck in corner again
+
+### Root Cause Analysis (Session 6)
+
+Session 5's fix zeroed velocity and reset COMBAT approach state. The operator correctly had `_clear_shot_target = Vector2.ZERO` and `_seeking_clear_shot = false`. However, after the dash landed near the top wall, the following frame of `_process_combat_state()` found:
+- `has_clear_shot = false` — bullet spawn is blocked by the top wall
+- `_seeking_clear_shot = false` → starts seeking again immediately (line 1556)
+- `_calculate_clear_shot_exit_position()` returns a target **perpendicular to the player direction** from the current (wall-adjacent) position
+
+Since the operator is above the player (operator at ~y=250, player at ~y=600), `direction_to_player ≈ (−0.23, 0.97)` (south). Perpendicular to south = **east or west**. The function picks east (away from player laterally), placing the target along the top wall heading toward `(1775, 88)`.
+
+The COMBAT clear-shot seeking logic uses **simple wall avoidance** (`_apply_wall_avoidance`) — not navmesh pathfinding. It slides the operator along the wall until reaching the corner where no cover exists.
+
+**Why Session 5 was insufficient:** Resetting `_seeking_clear_shot = false` and `_clear_shot_target = Vector2.ZERO` only clears stale pre-dash data. On the very next frame, the same problematic navigation logic restarts from the post-dash (wall-adjacent) position with the same broken perpendicular target.
+
+### Fix Applied (Session 6)
+
+The root cause is that COMBAT's clear-shot seeking uses simple direction math rather than proper navmesh pathfinding. After a dash the operator needs to be re-routed using the navmesh.
+
+**In `enemy.gd::_on_drone_operator_dash_ended()`:** Transition to `SEEKING_COVER` after the dash if currently in COMBAT:
+
+```gdscript
+func _on_drone_operator_dash_ended() -> void:
+    _combat_exposed = false; _combat_approaching = false; _seeking_clear_shot = false; _clear_shot_target = Vector2.ZERO; _combat_approach_timer = 0.0; _combat_shoot_timer = 0.0
+    if enable_cover and _current_state == AIState.COMBAT: _transition_to_seeking_cover()
+```
+
+`_transition_to_seeking_cover()` calls `_find_cover_position()` immediately to find a new cover point, then `_process_seeking_cover_state()` uses `_move_to_target_nav()` (navmesh-based pathfinding) to route the operator to cover. If no cover is found, it transitions back to COMBAT via the normal `time_in_state >= SEEKING_COVER_MIN_DURATION` check. This ensures the operator uses proper pathfinding after a dash instead of wall-sliding toward corners.
+
+- Log file: `game_log_20260327_084941.txt`

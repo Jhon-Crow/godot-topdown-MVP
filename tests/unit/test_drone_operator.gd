@@ -586,3 +586,19 @@ func test_enemy_resets_combat_approach_on_dash_end() -> void:
 		"_on_drone_operator_dash_ended must reset _seeking_clear_shot (Issue #1540)")
 	assert_true(source.contains("_clear_shot_target = Vector2.ZERO"),
 		"_on_drone_operator_dash_ended must reset _clear_shot_target (Issue #1540)")
+
+
+func test_enemy_seeks_cover_after_dash_to_prevent_corner_navigation() -> void:
+	## Issue #1540 session 6: after dash ends the operator must transition to SEEKING_COVER
+	## so navmesh pathfinding routes it away from walls/corners. Without this, the COMBAT
+	## clear-shot seeking logic navigates perpendicular to the player (east along top wall)
+	## which leads the operator into corners where no cover exists.
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("_transition_to_seeking_cover") and source.contains("_on_drone_operator_dash_ended"),
+		"_on_drone_operator_dash_ended must call _transition_to_seeking_cover() so navmesh routes operator away from corners (Issue #1540)")
