@@ -544,6 +544,10 @@ func _setup_enemy_tracking() -> void:
 		if enemy.has_signal("died"):
 			enemy.died.connect(_on_enemy_died)
 			_enemies.append(enemy)
+			if enemy.has_signal("died_with_info"):
+				enemy.died_with_info.connect(_on_enemy_died_with_info)
+		if enemy.has_signal("hit"):
+			enemy.hit.connect(_on_enemy_hit)
 		# Issue #959: Connect to pacifist signal - pacifists count as eliminated for level completion
 		if enemy.has_signal("became_pacifist"):
 			enemy.became_pacifist.connect(_on_enemy_became_pacifist.bind(enemy))
@@ -648,6 +652,22 @@ func _on_enemy_died() -> void:
 		_level_cleared = true
 		_activate_exit_zone()
 		print("[Labyrinth2Level] All enemies eliminated! Go to exit.")
+
+
+## Called when an enemy dies with special kill information (ricochet/penetration).
+## Registers the kill with GameManager and ScoreManager for accurate score tracking.
+func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
+	if GameManager:
+		GameManager.register_kill(is_player_kill)
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_method("register_kill"):
+		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
+
+
+## Called when an enemy is hit (for accuracy tracking).
+func _on_enemy_hit() -> void:
+	if GameManager:
+		GameManager.register_hit()
 
 
 ## Called when an enemy becomes a pacifist (Issue #959).
