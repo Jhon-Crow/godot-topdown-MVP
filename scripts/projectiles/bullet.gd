@@ -153,7 +153,7 @@ var _homing_shooter_origin: Vector2 = Vector2.ZERO
 var _homing_aim_direction: Vector2 = Vector2.ZERO
 
 ## Whether this bullet uses breaker behavior (Issue #678).
-## Breaker bullets explode 60px before hitting a wall or enemy, spawning shrapnel in a forward cone.
+## Breaker bullets explode 95px before hitting a wall or enemy, spawning shrapnel in a forward cone.
 var is_breaker_bullet: bool = false
 
 ## Whether this bullet ignores walls (Issue #751).
@@ -252,7 +252,7 @@ var _penetrated_enemy_bodies: Array = []
 var _passed_through_enemy_bodies: Array = []
 
 ## Distance in pixels ahead of the bullet at which to trigger breaker detonation.
-const BREAKER_DETONATION_DISTANCE: float = 60.0
+const BREAKER_DETONATION_DISTANCE: float = 95.0
 
 ## Explosion damage radius for breaker bullet detonation (in pixels).
 const BREAKER_EXPLOSION_RADIUS: float = 15.0

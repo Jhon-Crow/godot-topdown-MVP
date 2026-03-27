@@ -1,7 +1,7 @@
 extends GutTest
 ## Unit tests for Breaker Bullet behavior (Issue #678).
 ##
-## Tests the breaker bullet detonation logic: wall detection at 60px,
+## Tests the breaker bullet detonation logic: wall detection at 95px,
 ## explosion damage in 15px radius, shrapnel cone spawning,
 ## and ActiveItemManager integration.
 
@@ -22,7 +22,7 @@ class MockBreakerBullet:
 	var damage_multiplier: float = 1.0
 
 	## Breaker constants (matching bullet.gd).
-	const BREAKER_DETONATION_DISTANCE: float = 60.0
+	const BREAKER_DETONATION_DISTANCE: float = 95.0
 	const BREAKER_EXPLOSION_RADIUS: float = 15.0
 	const BREAKER_EXPLOSION_DAMAGE: float = 1.0
 	const BREAKER_SHRAPNEL_HALF_ANGLE: float = 30.0
@@ -126,29 +126,29 @@ func test_breaker_flag_can_be_enabled() -> void:
 
 
 func test_detonation_distance_constant() -> void:
-	assert_eq(MockBreakerBullet.BREAKER_DETONATION_DISTANCE, 60.0,
-		"Detonation distance should be 60px")
+	assert_eq(MockBreakerBullet.BREAKER_DETONATION_DISTANCE, 95.0,
+		"Detonation distance should be 95px")
 
 
 func test_detonates_when_wall_within_range() -> void:
 	var result := bullet.check_breaker_detonation(50.0)  # Wall at 50px
 
-	assert_true(result, "Should detonate when wall within 60px")
+	assert_true(result, "Should detonate when wall within 95px")
 	assert_true(bullet.has_detonated())
 	assert_true(bullet.is_destroyed())
 
 
 func test_detonates_at_exact_distance() -> void:
-	var result := bullet.check_breaker_detonation(60.0)  # Wall at exactly 60px
+	var result := bullet.check_breaker_detonation(95.0)  # Wall at exactly 95px
 
-	assert_true(result, "Should detonate at exactly 60px")
+	assert_true(result, "Should detonate at exactly 95px")
 	assert_true(bullet.has_detonated())
 
 
 func test_does_not_detonate_when_wall_far_away() -> void:
-	var result := bullet.check_breaker_detonation(100.0)  # Wall at 100px
+	var result := bullet.check_breaker_detonation(150.0)  # Wall at 150px
 
-	assert_false(result, "Should not detonate when wall beyond 60px")
+	assert_false(result, "Should not detonate when wall beyond 95px")
 	assert_false(bullet.has_detonated())
 	assert_false(bullet.is_destroyed())
 
@@ -409,10 +409,10 @@ func test_shrapnel_spawn_position_validation() -> void:
 	# The actual implementation in bullet.gd uses _is_position_inside_wall() to validate
 
 	bullet.direction = Vector2.RIGHT
-	bullet.global_position = Vector2(100, 100)  # 60px from imaginary wall at x=160
+	bullet.global_position = Vector2(100, 100)  # 95px from imaginary wall at x=195
 
 	# Detonate the bullet
-	bullet.check_breaker_detonation(60.0)
+	bullet.check_breaker_detonation(95.0)
 
 	# Verify shrapnel was spawned (basic check)
 	assert_gt(bullet.get_shrapnel_count(), 0,

@@ -789,7 +789,7 @@ public partial class SniperRifle : BaseWeapon
             {
                 Vector2 bulletEndPoint;
 
-                // Breaker bullets: detonate 60px before the first wall on the hitscan path (Issue #678)
+                // Breaker bullets: detonate 95px before the first wall on the hitscan path (Issue #678)
                 if (IsBreakerBulletActive)
                 {
                     bulletEndPoint = PerformBreakerHitscan(GlobalPosition, spreadDirection);
@@ -1321,7 +1321,7 @@ public partial class SniperRifle : BaseWeapon
     /// <summary>
     /// Breaker detonation distance in pixels (same as bullet.gd BREAKER_DETONATION_DISTANCE).
     /// </summary>
-    private const float BreakerDetonationDistance = 60.0f;
+    private const float BreakerDetonationDistance = 95.0f;
 
     /// <summary>
     /// Breaker explosion radius in pixels.
@@ -1355,7 +1355,7 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Performs breaker-mode hitscan: damages enemies along path until first wall,
-    /// then detonates 60px before the wall with explosion + shrapnel cone.
+    /// then detonates 95px before the wall with explosion + shrapnel cone.
     /// The smoke trail ends at the detonation point.
     /// </summary>
     /// <param name="origin">Starting position of the shot.</param>
@@ -1422,7 +1422,7 @@ public partial class SniperRifle : BaseWeapon
             // Wall/obstacle: trigger breaker detonation
             if (hitCollider is StaticBody2D || hitCollider is TileMap || hitCollider is TileMapLayer)
             {
-                // Detonation point is 60px before the wall (or at current pos if too close)
+                // Detonation point is 95px before the wall (or at current pos if too close)
                 float distToWall = currentPos.DistanceTo(hitPosition);
                 Vector2 detonationPos;
                 if (distToWall > BreakerDetonationDistance)
@@ -1479,7 +1479,7 @@ public partial class SniperRifle : BaseWeapon
                     continue;
                 }
 
-                // Alive enemy — detonate 60px before them
+                // Alive enemy — detonate 95px before them
                 float distToEnemy = currentPos.DistanceTo(hitPosition);
                 Vector2 detonationPos;
                 if (distToEnemy > BreakerDetonationDistance)

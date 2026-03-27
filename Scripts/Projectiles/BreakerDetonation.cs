@@ -7,7 +7,7 @@ namespace GodotTopDownTemplate.Projectiles;
 /// Static helper for breaker bullet detonation logic (Issue #678).
 /// Shared by Bullet.cs and ShotgunPellet.cs to avoid code duplication.
 ///
-/// Breaker bullets detonate 60px before hitting a wall or alive enemy,
+/// Breaker bullets detonate 95px before hitting a wall or alive enemy,
 /// dealing 1 damage in a 15px radius and spawning shrapnel in a forward cone.
 /// </summary>
 public static class BreakerDetonation
@@ -15,7 +15,7 @@ public static class BreakerDetonation
     /// <summary>
     /// Distance in pixels ahead of the bullet at which to trigger breaker detonation.
     /// </summary>
-    public const float DetonationDistance = 60.0f;
+    public const float DetonationDistance = 95.0f;
 
     /// <summary>
     /// Explosion damage radius for breaker bullet detonation (in pixels).
