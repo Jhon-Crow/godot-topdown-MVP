@@ -2808,18 +2808,20 @@ color = Color(0.2, 0.7, 0.2, 1)
 [node name="Enemies" type="Node2D" parent="Environment"]
 
 ; === MACHINE GUNNERS BETWEEN NEAR TRAINS (Track 1 y=2580 and Track 2 y=2760) ===
-; Left gunner — far left side between the two nearest tracks
+; Left gunner — far left side between the two nearest tracks, facing south toward player
 [node name="NearTracks_MachineGunnerLeft" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(300, 2670)
+rotation = 1.5708
 behavior_mode = 1
 weapon_type = 6
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-; Right gunner — far right side between the two nearest tracks
+; Right gunner — far right side between the two nearest tracks, facing south toward player
 [node name="NearTracks_MachineGunnerRight" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(3700, 2670)
+rotation = 1.5708
 behavior_mode = 1
 weapon_type = 6
 destroy_on_death = true
@@ -2827,27 +2829,29 @@ enable_flanking = true
 enable_cover = true
 
 ; === MACHINE GUNNERS BETWEEN FAR TRAINS (Track 3 y=1800 and Track 4 y=1980) ===
-; Left gunner — far left side between the two farther tracks
+; Left gunner — far left side between the two farther tracks, facing south toward player
 [node name="FarTracks_MachineGunnerLeft" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(300, 1890)
+rotation = 1.5708
 behavior_mode = 1
 weapon_type = 6
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-; Right gunner — far right side between the two farther tracks
+; Right gunner — far right side between the two farther tracks, facing south toward player
 [node name="FarTracks_MachineGunnerRight" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(3700, 1890)
+rotation = 1.5708
 behavior_mode = 1
 weapon_type = 6
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-; === DRONE OPERATORS AT MAP EXIT (top of map, above embankment y≈1000) ===
+; === DRONE OPERATORS AT MAP EXIT (embankment area y≈1100, south of exit wall gaps) ===
 [node name="Exit_DroneOperator1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(700, 700)
+position = Vector2(700, 1100)
 behavior_mode = 1
 is_drone_operator = true
 destroy_on_death = true
@@ -2855,7 +2859,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="Exit_DroneOperator2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(1600, 700)
+position = Vector2(1600, 1100)
 behavior_mode = 1
 is_drone_operator = true
 destroy_on_death = true
@@ -2863,7 +2867,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="Exit_DroneOperator3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(2500, 700)
+position = Vector2(2500, 1100)
 behavior_mode = 1
 is_drone_operator = true
 destroy_on_death = true
@@ -2871,9 +2875,18 @@ enable_flanking = true
 enable_cover = true
 
 [node name="Exit_DroneOperator4" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(3300, 700)
+position = Vector2(3300, 1100)
 behavior_mode = 1
 is_drone_operator = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+; === GAS MASK ENEMY NEAR PLAYER SPAWN (player spawn at x=2000, y=3100) ===
+[node name="Spawn_GasMaskEnemy" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(2000, 2900)
+behavior_mode = 1
+is_gas_mask = true
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
