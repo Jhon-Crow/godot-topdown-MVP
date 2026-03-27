@@ -1448,6 +1448,8 @@ func _process_combat_state(delta: float) -> void:
 	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:
 		if _under_fire and _bullets_in_threat_sphere.size() > 0 and not _drone_operator.is_dodging(): var b = _bullets_in_threat_sphere[0]; if is_instance_valid(b): var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation); _drone_operator.try_dodge(bd)
 		if _drone_operator.is_dodging(): velocity = _drone_operator.get_dodge_velocity(); return
+	# Issue #1667: if a player drone grenade is targetable, shoot at it instead of the player.
+	var _pd := _find_targetable_player_drone(); if _pd != null and _can_shoot() and _shoot_timer >= shoot_cooldown: var _pd_dir := (_pd.global_position - global_position).normalized(); if _is_bullet_spawn_clear(_pd_dir): _rotate_body_toward(_pd_dir.angle(), get_physics_process_delta_time()); _execute_shoot(_pd.global_position); _shoot_timer = 0.0; return
 	# [#1033] Machine gunner: suppress corridor (fire at last-known pos regardless of LOS/under-fire).
 	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active:
 		var suppress_target := _player.global_position if (_can_see_player and _player != null) else _last_known_player_position
@@ -3828,6 +3830,15 @@ func _has_line_of_sight_to_position(target_pos: Vector2) -> bool:
 	return has_los
 
 ## Aim at best target (player or companion #934) using gradual rotation.
+## Issue #1667: nearest LOS-visible player drone grenade ready to be targeted (null if none).
+func _find_targetable_player_drone() -> Node2D:
+	var tree := get_tree(); if tree == null: return null
+	for drone in tree.get_nodes_in_group("player_drones"):
+		if not (drone is Node2D) or not is_instance_valid(drone) or not drone.has_method("is_targetable_by_enemies") or not drone.is_targetable_by_enemies(): continue
+		var ss := get_world_2d().direct_space_state; var q := PhysicsRayQueryParameters2D.create(global_position, drone.global_position); q.collision_mask = 4; q.exclude = [get_rid()]; if ss.intersect_ray(q).is_empty(): return drone
+	return null
+
+
 func _aim_at_player() -> void:
 	var aim_at: Node2D = _current_target if _current_target != null else _player
 	if aim_at == null:
