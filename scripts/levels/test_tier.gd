@@ -824,6 +824,14 @@ func _update_enemy_count_label() -> void:
 
 ## Complete the level and show the score screen.
 func _complete_level_with_score() -> void:
+	# Disable player controls so clicks on the score screen don't trigger shooting
+	# and so the player cannot accidentally move into the exit zone again (Issue #1589).
+	if _player != null and is_instance_valid(_player):
+		_player.set_physics_process(false)
+		_player.set_process(false)
+		_player.set_process_input(false)
+		_player.set_process_unhandled_input(false)
+
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):
 		var score_data: Dictionary = score_manager.complete_level()

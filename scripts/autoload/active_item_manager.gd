@@ -58,10 +58,10 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.TELEPORT_BRACERS: false,    # Condition: Double Corridor D+ (Issue #1000 req.3)
 	ActiveItemType.BFF_PENDANT: true,          # No unlock condition — freely available from start (Issue #674)
 	ActiveItemType.INVISIBILITY_SUIT: false,   # Condition: Beach S + Building S (Issue #1000 req.5)
-	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
-	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
+	ActiveItemType.BREAKER_BULLETS: false,     # Condition: 7 levels completed at rank A or higher (Issue #1589 req.3)
+	ActiveItemType.FORCE_FIELD: false,         # Condition: complete Factory on any grade (Issue #1589 req.2)
 	ActiveItemType.TRAJECTORY_GLASSES: false,  # Condition: City D+ (Issue #1053 req.1)
-	ActiveItemType.LASER_SIGHT: false,         # Condition: 1000 kills without laser sight equipped (Issue #1196)
+	ActiveItemType.LASER_SIGHT: false,         # Condition: 400 kills without laser sight equipped (Issue #1196, updated by Issue #1589)
 	ActiveItemType.EXTENDED_MAGAZINE: true,    # No unlock condition — freely available from start (Issue #1065)
 	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
 	ActiveItemType.BREACHING_CHARGES: true,    # No unlock condition — freely available from start (Issue #1043)
