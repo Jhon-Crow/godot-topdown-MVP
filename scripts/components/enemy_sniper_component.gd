@@ -81,6 +81,8 @@ var _laser_dust_material: ParticleProcessMaterial = null
 
 ## Issue #1336 smooth laser: current displayed laser angle (radians), interpolated each frame.
 var _laser_current_angle: float = 0.0
+## Diagnostic: whether the laser was successfully shown (logged once for diagnosis).
+var _laser_shown_logged: bool = false
 ## Laser rotation speed (rad/s). Controls how fast the laser sweeps to a new target.
 const LASER_ROTATION_SPEED: float = 3.0
 ## Angle tolerance (rad) below which the laser is considered aligned with the target.
@@ -108,6 +110,7 @@ func _ready() -> void:
 	if enemy != null and enemy.get("weapon_type") != null:
 		# WeaponType.SNIPER_RIFLE == 7 (enum int value)
 		if int(enemy.weapon_type) == 7:
+			_log("[#1336] Sniper laser: creating laser sight (weapon_type=7)")
 			_create_laser_sight()
 
 
@@ -347,7 +350,9 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 	# Issue #1334 Round 5: Skip hitscan entirely if player is already dead.
 	# Prevents crash from hitscan hitting dead player on same frame as death signal.
 	var gm := enemy.get_node_or_null("/root/GameManager")
-	if gm and not gm.player_alive: return
+	if gm and not gm.player_alive:
+		_log("[#1171] Sniper hitscan: skipped — player_alive=false (no tracer will appear)")
+		return
 	var world_2d := enemy.get_world_2d()
 	if world_2d == null: return
 	var space_state := world_2d.direct_space_state
@@ -440,7 +445,10 @@ func _spawn_sniper_tracer(from_pos: Vector2, end_pos: Vector2) -> void:
 	tracer.gradient = grad; tracer.add_point(from_pos); tracer.add_point(end_pos)
 	# Issue #1334 Round 11: Guard against null current_scene during scene transitions
 	var current_scene := get_tree().current_scene
-	if current_scene == null: tracer.queue_free(); return
+	if current_scene == null:
+		_log("[#1171] Sniper tracer: skipped — current_scene is null (scene transition?)")
+		tracer.queue_free(); return
+	_log("[#1171] Sniper tracer: spawned from %s to %s (len=%.0fpx)" % [str(from_pos), str(end_pos), from_pos.distance_to(end_pos)])
 	current_scene.add_child(tracer); _fade_sniper_tracer(tracer)
 
 ## Async fade-out for the sniper tracer.
@@ -566,16 +574,21 @@ func _create_laser_sight() -> void:
 
 ## Deferred add to scene tree — ensures current_scene is available.
 func _add_laser_to_scene() -> void:
-	if _laser_line == null: return
+	if _laser_line == null:
+		_log("[#1336] Sniper laser: _add_laser_to_scene skipped — _laser_line is null")
+		return
 	if not is_inside_tree():
+		_log("[#1336] Sniper laser: _add_laser_to_scene skipped — not in tree (enemy freed?)")
 		_laser_line.queue_free(); _laser_line = null
 		_free_laser_glow_nodes()
 		return
 	var current_scene := get_tree().current_scene
 	if current_scene == null:
+		_log("[#1336] Sniper laser: _add_laser_to_scene skipped — current_scene is null")
 		_laser_line.queue_free(); _laser_line = null
 		_free_laser_glow_nodes()
 		return
+	_log("[#1336] Sniper laser: adding %d nodes to scene '%s'" % [1 + _laser_glow_lines.size() + (1 if _laser_endpoint_light != null else 0) + (1 if _laser_dust_particles != null else 0), current_scene.name])
 	current_scene.add_child(_laser_line)
 	# Issue #1581: Add glow layers, endpoint light and dust particles.
 	for gl in _laser_glow_lines:
@@ -584,6 +597,7 @@ func _add_laser_to_scene() -> void:
 		current_scene.add_child(_laser_endpoint_light)
 	if _laser_dust_particles != null:
 		current_scene.add_child(_laser_dust_particles)
+	_log("[#1336] Sniper laser: all nodes added to scene, laser is active")
 
 
 ## Compute the direction the laser should point.
@@ -648,6 +662,15 @@ func _update_laser_sight() -> void:
 	if _laser_line == null:
 		return
 	_set_laser_visible(true)
+	# [#1581] Diagnostic: log once when laser first becomes active (helps verify in game log).
+	if not _laser_shown_logged:
+		_laser_shown_logged = true
+		_log("[#1336] Sniper laser: visible at muzzle=%s, glow_layers=%d, has_light=%s, has_particles=%s" % [
+			str(enemy.global_position if enemy else Vector2.ZERO),
+			_laser_glow_lines.size(),
+			str(_laser_endpoint_light != null),
+			str(_laser_dust_particles != null)
+		])
 
 	# Issue #1336 smooth laser: interpolate angle toward the target direction each frame.
 	# If a snap angle was set by the firing code, use it exactly so tracer matches laser.

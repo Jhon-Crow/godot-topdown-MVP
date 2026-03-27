@@ -460,12 +460,52 @@ To download: open the link above → scroll to **Artifacts** section → downloa
 
 ---
 
+---
+
+## Fifth Report Analysis (2026-03-27T07:27:16 UTC)
+
+The owner confirmed using the actual CI build and reported:
+
+> "в актуальном билде нет лазера и трассера" — in the actual build, there is no laser and tracer
+
+No game log file was attached to this report.
+
+**What we know:**
+- The owner finally downloaded the CI build from our PR (commit `5824717c` or earlier)
+- No `build_info.cfg` confirmation provided (no log)
+- Both laser and tracer are reported absent
+
+**Analysis:**
+Since this is the first confirmed test on the actual CI build, and our diagnostic logging is now in place, the next test session will produce log entries that explain exactly what happened. The key events to look for in the next game log:
+
+1. `[#1336] Sniper laser: creating laser sight (weapon_type=7)` — if absent: laser never created (weapon_type check failed)
+2. `[#1336] Sniper laser: adding N nodes to scene 'X'` — if absent: deferred add failed (enemy freed or scene null)
+3. `[#1336] Sniper laser: all nodes added to scene, laser is active` — if absent: node addition failed
+4. `[#1336] Sniper laser: visible at muzzle=...` — if absent: `_update_laser_sight` never reached visible state
+5. `[#1171] Sniper hitscan: skipped — player_alive=false` — confirms tracer skipped due to no player
+6. `[#1171] Sniper tracer: spawned from ... to ...` — confirms tracer was spawned
+
+**Most likely root causes for CI build (based on code analysis):**
+
+The diagnostic logs added in this commit will confirm which path failed. The candidates are:
+- If log #1 is absent: `weapon_type=7` check failing (unlikely given ExperimentalMenu sets it correctly)
+- If log #2 is absent: The deferred `_add_laser_to_scene` never fired — most likely cause is `is_inside_tree()=false` because the enemy was freed or the component was removed before the deferred call
+- If log #5 appears: Tracer not shown because player is not in the scene (test scenario issue, not a code bug)
+- If log #6 appears but tracer not visible: visual rendering issue specific to exported build
+
+**Fix applied in this session:**
+- Added `_log()` calls to all key code paths in laser creation and tracer spawn
+- Added `_laser_shown_logged` flag to prevent log spam while capturing first-visibility event
+- Logs will appear in the game log file (visible to player when `Logging: true` in ExperimentalSettings)
+
+---
+
 ## Files in This Case Study
 
-- `game_log_20260327_074708.txt` — First owner report: session showing tracer/laser disappeared (pre-fix binary)
-- `game_log_20260327_083716.txt` — Second owner report: same issue reported (still pre-fix binary)
-- `game_log_20260327_090949.txt` — Third owner report: same issue reported (still pre-fix binary)
-- `game_log_20260327_092656.txt` — Fourth owner report: same issue reported (still pre-fix binary, no player in scene; file is gitignored — available as GitHub attachment in PR #1602)
+- `logs/session_20260327_074708.txt` — First owner report: session showing tracer/laser disappeared (pre-fix binary)
+- `logs/session_20260327_083716.txt` — Second owner report: same issue reported (still pre-fix binary)
+- `logs/session_20260327_090949.txt` — Third owner report: same issue reported (still pre-fix binary)
+- `logs/session_20260327_092656.txt` — Fourth owner report: same issue reported (still pre-fix binary, no player in scene)
 - `issue_1581.txt` — Original issue text
 - `pr_1602_details.json` — PR #1602 details
 - `pr_1602_comments.json` — PR #1602 comments including owner's bug reports
