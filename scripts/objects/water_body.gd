@@ -388,12 +388,16 @@ func set_time_stopped(paused: bool) -> void:
 		_log("[WaterBody] Wave animation resumed (time resumed)")
 
 
-## Log a message via the FileLogger autoload (mirrors beach_level.gd pattern).
+## Log a message via the FileLogger autoload (mirrors SnowEffect/RainEffect pattern).
+## Uses Engine.get_singleton() as primary lookup so it works in exported builds.
 func _log(message: String) -> void:
-	print(message)
-	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	var file_logger: Node = Engine.get_singleton("FileLogger") if Engine.has_singleton("FileLogger") else null
+	if file_logger == null:
+		file_logger = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("log_info"):
 		file_logger.log_info(message)
+	else:
+		print(message)
 
 
 ## Clean up references to freed grenades.
