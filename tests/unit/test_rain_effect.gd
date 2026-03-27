@@ -1,5 +1,5 @@
 extends GutTest
-## Unit tests for rain_effect.gd HM2-style precipitation system (Issue #1394, fixed #1499, #1546).
+## Unit tests for rain_effect.gd HM2-style precipitation system (Issue #1394, fixed #1499, #1546, #1579).
 ##
 ## Tests continuous rain behavior, exclusion zone logic, and state transitions.
 ## Also tests streak length, direction, splash alignment, player-area square
@@ -24,6 +24,10 @@ class MockRainEffect:
 
 	## Whether inside an exclusion zone.
 	var _inside_exclusion: bool = false
+
+	## Tracked emitter positions (world-space, updated each frame to camera center).
+	var streaks_position: Vector2 = Vector2.ZERO
+	var splashes_position: Vector2 = Vector2.ZERO
 
 	## Whether time is currently stopped (Issue #1585).
 	var _time_stopped: bool = false
@@ -60,9 +64,14 @@ class MockRainEffect:
 
 
 	func simulate_camera_move(camera_center: Vector2) -> void:
+		# Track emitters to camera center (world-space, like SnowEffect)
+		streaks_position = camera_center
+		splashes_position = camera_center
+
 		# While time is stopped, camera moves do not change emission state.
 		if _time_stopped:
 			return
+
 		var was_inside := _inside_exclusion
 		_inside_exclusion = _is_point_in_exclusion_zone(camera_center)
 		if _inside_exclusion and not was_inside:
@@ -103,6 +112,31 @@ func test_rain_is_always_on() -> void:
 	var rain := MockRainEffect.new()
 	rain.ready()
 	assert_true(rain.is_raining(), "Rain should always be active")
+
+
+# ============================================================================
+# Tests: World-Space Emitter Tracking (Fix #1579)
+# ============================================================================
+
+
+func test_emitters_track_camera_position() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	var cam_pos := Vector2(320.0, 180.0)
+	rain.simulate_camera_move(cam_pos)
+	assert_eq(rain.streaks_position, cam_pos,
+		"RainStreaks emitter should track camera center in world space")
+	assert_eq(rain.splashes_position, cam_pos,
+		"RainSplashes emitter should track camera center in world space")
+
+
+func test_emitters_update_when_camera_moves() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.simulate_camera_move(Vector2(100.0, 100.0))
+	rain.simulate_camera_move(Vector2(500.0, 300.0))
+	assert_eq(rain.streaks_position, Vector2(500.0, 300.0),
+		"Emitter position should update to latest camera position")
 
 
 # ============================================================================
@@ -228,7 +262,7 @@ func test_warehouse_b_exclusion_zone() -> void:
 
 
 # ============================================================================
-# Tests: Issue #1546 Fixes — Longer Streaks, Downward Direction, Splash Alignment
+# Tests: Issue #1546 Fixes — Streak Direction and Splash Alignment
 # ============================================================================
 
 
