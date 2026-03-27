@@ -16,8 +16,8 @@ const SniperComponent := preload("res://scripts/components/enemy_sniper_componen
 # =============================================================================
 
 func test_laser_max_range_constant() -> void:
-	assert_eq(SniperComponent.LASER_MAX_RANGE, 5000.0,
-		"LASER_MAX_RANGE should be 5000.0 px")
+	assert_eq(SniperComponent.LASER_MAX_RANGE, 15000.0,
+		"LASER_MAX_RANGE should be 15000.0 px (3× longer per Issue #1581)")
 
 
 func test_muzzle_local_offset_constant() -> void:
@@ -341,3 +341,61 @@ func test_blind_fire_no_spread_direction() -> void:
 		"Blind fire direction must exactly equal to_target (no spread) for laser match")
 	assert_almost_eq(direction.y, to_target.y, 0.001,
 		"Blind fire direction must exactly equal to_target (no spread) for laser match")
+
+
+# =============================================================================
+# Issue #1581 — Laser 3× longer + glow visual parity with player laser
+# =============================================================================
+
+func test_laser_max_range_is_three_times_original() -> void:
+	# LASER_MAX_RANGE was 5000.0 before Issue #1581; it must now be 15000.0 (3×).
+	assert_eq(SniperComponent.LASER_MAX_RANGE, 15000.0,
+		"LASER_MAX_RANGE must be 15000.0 px (3× the original 5000 px)")
+
+
+func test_laser_color_constant_exists() -> void:
+	# LASER_COLOR must exist and be a red color.
+	var c: Color = SniperComponent.LASER_COLOR
+	assert_gt(c.r, 0.9, "LASER_COLOR.r should be near 1.0 (red)")
+	assert_lt(c.g, 0.1, "LASER_COLOR.g should be near 0.0 (red)")
+	assert_lt(c.b, 0.1, "LASER_COLOR.b should be near 0.0 (red)")
+
+
+func test_laser_glow_layers_constant_has_four_entries() -> void:
+	# LASER_GLOW_LAYERS mirrors the player's 4-layer glow configuration.
+	assert_eq(SniperComponent.LASER_GLOW_LAYERS.size(), 4,
+		"LASER_GLOW_LAYERS should have 4 entries matching the player LaserGlowEffect")
+
+
+func test_laser_glow_layers_widths_increasing() -> void:
+	# Glow layers should have progressively wider widths for volumetric falloff.
+	var layers: Array = SniperComponent.LASER_GLOW_LAYERS
+	for i in range(layers.size() - 1):
+		var w0: float = layers[i][0]
+		var w1: float = layers[i + 1][0]
+		assert_lt(w0, w1,
+			"Glow layer %d width (%s) should be narrower than layer %d (%s)" % [i, w0, i + 1, w1])
+
+
+func test_laser_glow_layers_alphas_decreasing() -> void:
+	# Glow layers should have progressively lower alphas (brighter core, dimmer outer).
+	var layers: Array = SniperComponent.LASER_GLOW_LAYERS
+	for i in range(layers.size() - 1):
+		var a0: float = layers[i][1]
+		var a1: float = layers[i + 1][1]
+		assert_gt(a0, a1,
+			"Glow layer %d alpha (%s) should be higher than layer %d (%s)" % [i, a0, i + 1, a1])
+
+
+func test_glow_nodes_null_without_enemy() -> void:
+	# Without a sniper enemy, no glow nodes should be created.
+	var comp := SniperComponent.new()
+	add_child_autofree(comp)
+	await wait_frames(2)
+
+	assert_eq(comp._laser_glow_lines.size(), 0,
+		"_laser_glow_lines should be empty when no enemy is attached")
+	assert_null(comp._laser_endpoint_glow,
+		"_laser_endpoint_glow should be null when no enemy is attached")
+	assert_null(comp._laser_dust_particles,
+		"_laser_dust_particles should be null when no enemy is attached")
