@@ -180,6 +180,17 @@ class MockArmoryMenu:
 	func press_back() -> void:
 		back_pressed_emitted += 1
 
+	## Select weapon and record which reload preview sound was requested.
+	## Mimics the armory menu logic: weapons call play_weapon_reload_preview(weapon_id).
+	func select_weapon_with_sound(weapon_id: String) -> bool:
+		if not select_weapon(weapon_id):
+			return false
+		reload_preview_calls.append(weapon_id)
+		return true
+
+	## Tracks weapon IDs passed to play_weapon_reload_preview.
+	var reload_preview_calls: Array = []
+
 	# ---- Accordion shine overlay simulation (Issue #1561) ----
 
 	## Tracks which mock button names have a shine overlay applied.
@@ -196,6 +207,23 @@ class MockArmoryMenu:
 	## Returns true if the given button has an active shine overlay.
 	func has_accordion_shine(button_name: String) -> bool:
 		return accordion_shine_active.get(button_name, false)
+
+
+## Mock AudioManager that records play_weapon_reload_preview calls.
+class MockAudioManager:
+	## Weapon IDs for which play_weapon_reload_preview was called.
+	var reload_preview_calls: Array = []
+	## Whether play_ui_click was called.
+	var ui_click_count: int = 0
+
+	func has_method(method_name: String) -> bool:
+		return method_name in ["play_weapon_reload_preview", "play_ui_click"]
+
+	func play_weapon_reload_preview(weapon_id: String) -> void:
+		reload_preview_calls.append(weapon_id)
+
+	func play_ui_click() -> void:
+		ui_click_count += 1
 
 
 var menu: MockArmoryMenu
@@ -643,6 +671,76 @@ func test_apply_weapon_grenade_and_active_item() -> void:
 
 
 # ============================================================================
+# Reload Sound Preview Tests (Issue #1564)
+# ============================================================================
+
+
+func test_select_weapon_records_reload_preview_call() -> void:
+	var result := menu.select_weapon_with_sound("shotgun")
+	assert_true(result,
+		"Selecting shotgun should succeed")
+	assert_eq(menu.reload_preview_calls.size(), 1,
+		"One reload preview should be recorded when weapon is selected")
+	assert_eq(menu.reload_preview_calls[0], "shotgun",
+		"Reload preview should be called with the correct weapon ID")
+
+
+func test_select_each_weapon_records_its_own_reload_preview() -> void:
+	var weapons := ["makarov_pm", "m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper", "revolver"]
+	for weapon_id in weapons:
+		menu.reload_preview_calls.clear()
+		menu.select_weapon_with_sound(weapon_id)
+		assert_eq(menu.reload_preview_calls.size(), 1,
+			"Exactly one reload preview call expected for " + weapon_id)
+		assert_eq(menu.reload_preview_calls[0], weapon_id,
+			"Reload preview weapon_id should match selected weapon for " + weapon_id)
+
+
+func test_mock_audio_manager_play_weapon_reload_preview() -> void:
+	var audio_manager := MockAudioManager.new()
+	audio_manager.play_weapon_reload_preview("revolver")
+	assert_eq(audio_manager.reload_preview_calls.size(), 1,
+		"MockAudioManager should record play_weapon_reload_preview call")
+	assert_eq(audio_manager.reload_preview_calls[0], "revolver",
+		"Recorded weapon_id should be 'revolver'")
+
+
+func test_mock_audio_manager_play_ui_click() -> void:
+	var audio_manager := MockAudioManager.new()
+	audio_manager.play_ui_click()
+	assert_eq(audio_manager.ui_click_count, 1,
+		"MockAudioManager should record play_ui_click call")
+
+
+func test_mock_audio_manager_has_method_reload_preview() -> void:
+	var audio_manager := MockAudioManager.new()
+	assert_true(audio_manager.has_method("play_weapon_reload_preview"),
+		"MockAudioManager should report having play_weapon_reload_preview")
+
+
+func test_mock_audio_manager_has_method_ui_click() -> void:
+	var audio_manager := MockAudioManager.new()
+	assert_true(audio_manager.has_method("play_ui_click"),
+		"MockAudioManager should report having play_ui_click")
+
+
+func test_locked_weapon_does_not_trigger_reload_preview() -> void:
+	var result := menu.select_weapon_with_sound("ak47")  # locked
+	assert_false(result,
+		"Selecting a locked weapon should fail")
+	assert_eq(menu.reload_preview_calls.size(), 0,
+		"No reload preview should be recorded for a locked weapon")
+
+
+func test_unknown_weapon_does_not_trigger_reload_preview() -> void:
+	var result := menu.select_weapon_with_sound("unknown_weapon")
+	assert_false(result,
+		"Selecting an unknown weapon should fail")
+	assert_eq(menu.reload_preview_calls.size(), 0,
+		"No reload preview should be recorded for an unknown weapon")
+
+
+# ============================================================================
 # Accordion Button Shine Overlay Tests (Issue #1561)
 # ============================================================================
 
@@ -716,3 +814,65 @@ func test_default_style_on_button_with_no_shine_is_safe() -> void:
 
 	assert_false(menu.has_accordion_shine("weapon_accordion"),
 		"Button with no shine should remain without shine after default reset")
+
+
+# ============================================================================
+# Weapon Selection Animation Phase Order Tests (Issue #1575)
+# ============================================================================
+
+
+class MockGlintShaderPhaseOrder:
+	## Mirrors the phase boundary constants from weapon_select_glint.gdshader (Issue #1575).
+	## Phase 1 is the top-edge glint sweep (slow), Phase 2 is the diagonal sweep (fast).
+	const TOTAL_DURATION_S: float = 1.02
+	const PHASE1_END_PROGRESS: float = 0.784   # 0.80 / 1.02 — end of top-edge sweep
+	const PHASE2_START_PROGRESS: float = 0.784 # 0.80 / 1.02 — start of diagonal sweep
+
+	## Returns true if, at the given anim_progress, Phase 1 (top-edge) is active.
+	func is_phase1_active(anim_progress: float) -> bool:
+		return anim_progress < PHASE1_END_PROGRESS
+
+	## Returns true if, at the given anim_progress, Phase 2 (diagonal) is active.
+	func is_phase2_active(anim_progress: float) -> bool:
+		return anim_progress >= PHASE2_START_PROGRESS
+
+
+func test_phase1_top_edge_runs_first() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	# At progress 0.0 (very start), Phase 1 (top-edge) should be active, Phase 2 should not.
+	assert_true(shader.is_phase1_active(0.0),
+		"Phase 1 (top-edge glint) should be active at the very start of the animation")
+	assert_false(shader.is_phase2_active(0.0),
+		"Phase 2 (diagonal sweep) should NOT be active at the very start of the animation")
+
+
+func test_phase2_diagonal_runs_second() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	# At progress 0.9 (late in animation), Phase 2 (diagonal) should be active, Phase 1 should not.
+	assert_false(shader.is_phase1_active(0.9),
+		"Phase 1 (top-edge glint) should NOT be active late in the animation")
+	assert_true(shader.is_phase2_active(0.9),
+		"Phase 2 (diagonal sweep) should be active late in the animation")
+
+
+func test_phase1_occupies_majority_of_animation() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	# Phase 1 covers 0.0 → 0.784 (78.4% of total), Phase 2 covers 0.784 → 1.0 (21.6%).
+	assert_true(shader.PHASE1_END_PROGRESS > 0.5,
+		"Phase 1 (top-edge glint) should occupy more than half of the total animation duration")
+	assert_true(shader.PHASE2_START_PROGRESS > 0.5,
+		"Phase 2 (diagonal sweep) should start after the halfway point")
+
+
+func test_phases_do_not_overlap() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	assert_eq(shader.PHASE1_END_PROGRESS, shader.PHASE2_START_PROGRESS,
+		"Phase 1 end and Phase 2 start must be at the same boundary (no gap or overlap)")
+
+
+func test_phase_boundary_value() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	# 0.80 s / 1.02 s ≈ 0.784 — verify the constant is correct.
+	var expected_boundary: float = 0.80 / shader.TOTAL_DURATION_S
+	assert_almost_eq(shader.PHASE1_END_PROGRESS, expected_boundary, 0.001,
+		"Phase boundary should equal 0.80 s / 1.02 s ≈ 0.784")

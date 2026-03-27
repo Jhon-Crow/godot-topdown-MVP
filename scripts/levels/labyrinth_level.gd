@@ -1918,6 +1918,10 @@ func _remove_armory_button_gold_style() -> void:
 		armory_btn.text = "Armory"
 		armory_btn.remove_theme_color_override("font_color")
 		armory_btn.remove_theme_stylebox_override("normal")
+		# Issue #1582: Remove gold shine overlay added by issue #1536
+		var shine_overlay := armory_btn.find_child("ArmoryGoldShineOverlay", true, false)
+		if shine_overlay:
+			shine_overlay.queue_free()
 
 
 ## Get the next level path based on the level ordering from LevelsMenu.

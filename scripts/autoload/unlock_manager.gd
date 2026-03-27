@@ -85,6 +85,12 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"grenades": [],
 		"active_items": []
 	},
+	"res://scenes/levels/FactoryLevel.tscn": {
+		"min_rank": "F",
+		"weapons": [],
+		"grenades": [],
+		"active_items": [7]  # ActiveItemManager.ActiveItemType.FORCE_FIELD = 7 (Issue #1589 req.2)
+	},
 	"res://scenes/levels/LabyrinthLevel.tscn:S": {
 		"min_rank": "S",
 		"weapons": [],
@@ -121,9 +127,9 @@ const ALL_DIFFICULTIES_UNLOCK_CONDITIONS: Array[Dictionary] = [
 ## Issue #1389: update unlock conditions
 const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
 	{
-		# 1000 kills without Laser Sight → unlock Laser Sight (Issue #1196)
+		# 400 kills without Laser Sight → unlock Laser Sight (Issue #1196, updated by Issue #1589)
 		"stat": "kills_without_laser_sight",
-		"min_kills": 1000,
+		"min_kills": 400,
 		"weapons": [],
 		"grenades": [],
 		"active_items": [9]  # ActiveItemManager.ActiveItemType.LASER_SIGHT = 9
@@ -151,6 +157,14 @@ const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
 		"weapons": [],
 		"grenades": [],
 		"active_items": [17]  # ActiveItemManager.ActiveItemType.COMBAT_DISPOSITION = 17
+	},
+	{
+		# 7 levels completed at rank A or higher → unlock Breaker Bullets (Issue #1589 req.3)
+		"stat": "levels_completed_rank_a_or_higher",
+		"min_kills": 7,
+		"weapons": [],
+		"grenades": [],
+		"active_items": [6]  # ActiveItemManager.ActiveItemType.BREAKER_BULLETS = 6
 	}
 ]
 
@@ -210,6 +224,8 @@ func _ready() -> void:
 			game_manager.total_deaths_updated.connect(_on_total_deaths_updated)
 		if game_manager.has_signal("no_damage_levels_completed_updated"):
 			game_manager.no_damage_levels_completed_updated.connect(_on_no_damage_levels_completed_updated)
+		if game_manager.has_signal("levels_completed_rank_a_or_higher_updated"):
+			game_manager.levels_completed_rank_a_or_higher_updated.connect(_on_levels_completed_rank_a_or_higher_updated)
 	# Reset condition-gated items to locked state first (in case old save data has them incorrectly
 	# marked as unlocked), then re-apply earned unlocks from progress. This ensures the unlock
 	# state is always consistent with actual level completion progress.
@@ -284,6 +300,17 @@ func _on_no_damage_levels_completed_updated(_new_count: int) -> void:
 		if kill_condition.get("stat", "") == "no_damage_levels_completed" and is_kill_condition_met(kill_condition):
 			items_unlocked_by_kill_condition.emit()
 			_log("No-damage level condition met — Combat Disposition now available to unlock in armory")
+			break
+
+
+## Called when GameManager emits levels_completed_rank_a_or_higher_updated.
+## Checks if the Breaker Bullets rank-A condition is now satisfied.
+## Issue #1589.
+func _on_levels_completed_rank_a_or_higher_updated(_new_count: int) -> void:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if kill_condition.get("stat", "") == "levels_completed_rank_a_or_higher" and is_kill_condition_met(kill_condition):
+			items_unlocked_by_kill_condition.emit()
+			_log("Rank-A level condition met — Breaker Bullets now available to unlock in armory")
 			break
 
 
@@ -936,7 +963,8 @@ const _LEVEL_NAMES: Dictionary = {
 	"res://scenes/levels/RevolverLevel.tscn": "Double Corridor",
 	"res://scenes/levels/BeachLevel.tscn": "Beach",
 	"res://scenes/levels/DocksLevel.tscn": "Docks",
-	"res://scenes/levels/CityLevel.tscn": "City"
+	"res://scenes/levels/CityLevel.tscn": "City",
+	"res://scenes/levels/FactoryLevel.tscn": "Factory"
 }
 
 
@@ -971,7 +999,299 @@ func _build_kill_condition_description(kill_condition: Dictionary) -> String:
 		return "Die %d times" % min_kills
 	if stat == "no_damage_levels_completed":
 		return "Complete %d level(s) without taking damage" % min_kills
+	if stat == "levels_completed_rank_a_or_higher":
+		return "Complete %d level(s) at rank A or higher" % min_kills
 	return "Get %d kills without Laser Sight" % min_kills
+
+
+## Get the kill-based unlock condition progress for a weapon (0.0–1.0).
+## Returns -1.0 if no kill-based condition applies (e.g., level-based unlock).
+## Returns a value in [0.0, 1.0] clamped to the condition's min_kills threshold.
+## Issue #1591: used by the armory to show progress bar animation.
+func get_weapon_kill_condition_progress(weapon_id: String) -> float:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if weapon_id in kill_condition.get("weapons", []):
+			var game_manager: Node = get_node_or_null("/root/GameManager")
+			if not game_manager:
+				return 0.0
+			var stat: String = kill_condition.get("stat", "")
+			var min_kills: int = kill_condition.get("min_kills", 1)
+			var current: int = game_manager.get(stat) if game_manager.get(stat) != null else 0
+			return clampf(float(current) / float(min_kills), 0.0, 1.0)
+	return -1.0
+
+
+## Get the kill-based unlock condition progress for a grenade type (0.0–1.0).
+## Returns -1.0 if no kill-based condition applies.
+## Issue #1591: used by the armory to show progress bar animation.
+func get_grenade_kill_condition_progress(grenade_type: int) -> float:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if grenade_type in kill_condition.get("grenades", []):
+			var game_manager: Node = get_node_or_null("/root/GameManager")
+			if not game_manager:
+				return 0.0
+			var stat: String = kill_condition.get("stat", "")
+			var min_kills: int = kill_condition.get("min_kills", 1)
+			var current: int = game_manager.get(stat) if game_manager.get(stat) != null else 0
+			return clampf(float(current) / float(min_kills), 0.0, 1.0)
+	return -1.0
+
+
+## Get the kill-based unlock condition progress for an active item type (0.0–1.0).
+## Returns -1.0 if no kill-based condition applies.
+## Issue #1591: used by the armory to show progress bar animation.
+func get_active_item_kill_condition_progress(item_type: int) -> float:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if item_type in kill_condition.get("active_items", []):
+			var game_manager: Node = get_node_or_null("/root/GameManager")
+			if not game_manager:
+				return 0.0
+			var stat: String = kill_condition.get("stat", "")
+			var min_kills: int = kill_condition.get("min_kills", 1)
+			var current: int = game_manager.get(stat) if game_manager.get(stat) != null else 0
+			return clampf(float(current) / float(min_kills), 0.0, 1.0)
+	return -1.0
+
+
+## Get the kill-based unlock condition current and max counts for a weapon.
+## Returns {"current": int, "max": int} if a kill condition applies, or {} otherwise.
+## Issue #1591: used by the armory tooltip to show progress numbers.
+func get_weapon_kill_condition_counts(weapon_id: String) -> Dictionary:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if weapon_id in kill_condition.get("weapons", []):
+			var game_manager: Node = get_node_or_null("/root/GameManager")
+			if not game_manager:
+				return {}
+			var stat: String = kill_condition.get("stat", "")
+			var min_kills: int = kill_condition.get("min_kills", 1)
+			var current: int = game_manager.get(stat) if game_manager.get(stat) != null else 0
+			return {"current": mini(current, min_kills), "max": min_kills}
+	return {}
+
+
+## Get the kill-based unlock condition current and max counts for a grenade type.
+## Returns {"current": int, "max": int} if a kill condition applies, or {} otherwise.
+## Issue #1591: used by the armory tooltip to show progress numbers.
+func get_grenade_kill_condition_counts(grenade_type: int) -> Dictionary:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if grenade_type in kill_condition.get("grenades", []):
+			var game_manager: Node = get_node_or_null("/root/GameManager")
+			if not game_manager:
+				return {}
+			var stat: String = kill_condition.get("stat", "")
+			var min_kills: int = kill_condition.get("min_kills", 1)
+			var current: int = game_manager.get(stat) if game_manager.get(stat) != null else 0
+			return {"current": mini(current, min_kills), "max": min_kills}
+	return {}
+
+
+## Get the kill-based unlock condition current and max counts for an active item type.
+## Returns {"current": int, "max": int} if a kill condition applies, or {} otherwise.
+## Issue #1591: used by the armory tooltip to show progress numbers.
+func get_active_item_kill_condition_counts(item_type: int) -> Dictionary:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if item_type in kill_condition.get("active_items", []):
+			var game_manager: Node = get_node_or_null("/root/GameManager")
+			if not game_manager:
+				return {}
+			var stat: String = kill_condition.get("stat", "")
+			var min_kills: int = kill_condition.get("min_kills", 1)
+			var current: int = game_manager.get(stat) if game_manager.get(stat) != null else 0
+			return {"current": mini(current, min_kills), "max": min_kills}
+	return {}
+
+
+## Get the fraction of levels satisfied in a multi-level condition (0.0–1.0).
+## Internal helper for get_*_multi_condition_progress.
+## Issue #1591: used by armory to show progress bar for multi-level conditions.
+func _get_multi_condition_progress(multi_condition: Dictionary) -> float:
+	var levels: Array = multi_condition.get("levels", [])
+	if levels.is_empty():
+		return 0.0
+	var completed: int = 0
+	for level_entry in levels:
+		var path: String = level_entry.get("path", "")
+		var min_rank: String = level_entry.get("min_rank", "D")
+		var best_rank: String = _get_best_rank_any_difficulty(path)
+		if _is_rank_sufficient(best_rank, min_rank):
+			completed += 1
+	return float(completed) / float(levels.size())
+
+
+## Get the fraction of difficulties on which at least one level has been completed (0.0–1.0).
+## Internal helper for get_*_all_difficulties_progress.
+## Issue #1591: used by armory to show progress bar for all-difficulties conditions.
+func _get_all_difficulties_progress() -> float:
+	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
+	if not progress_manager:
+		return 0.0
+	var all_difficulties: Array[String] = _get_all_difficulty_names()
+	var total: int = all_difficulties.size()
+	if total == 0:
+		return 0.0
+	var completed: int = 0
+	for difficulty_name in all_difficulties:
+		for key in progress_manager.get_all_progress():
+			if key.ends_with(":" + difficulty_name):
+				completed += 1
+				break
+	return float(completed) / float(total)
+
+
+## Get the multi-level condition progress for a weapon (0.0–1.0).
+## Returns -1.0 if no multi-level condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_weapon_multi_condition_progress(weapon_id: String) -> float:
+	for multi_condition in MULTI_UNLOCK_CONDITIONS:
+		if weapon_id in multi_condition.get("weapons", []):
+			return _get_multi_condition_progress(multi_condition)
+	return -1.0
+
+
+## Get the multi-level condition progress for a grenade type (0.0–1.0).
+## Returns -1.0 if no multi-level condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_grenade_multi_condition_progress(grenade_type: int) -> float:
+	for multi_condition in MULTI_UNLOCK_CONDITIONS:
+		if grenade_type in multi_condition.get("grenades", []):
+			return _get_multi_condition_progress(multi_condition)
+	return -1.0
+
+
+## Get the multi-level condition progress for an active item type (0.0–1.0).
+## Returns -1.0 if no multi-level condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_active_item_multi_condition_progress(item_type: int) -> float:
+	for multi_condition in MULTI_UNLOCK_CONDITIONS:
+		if item_type in multi_condition.get("active_items", []):
+			return _get_multi_condition_progress(multi_condition)
+	return -1.0
+
+
+## Get the all-difficulties condition progress for a weapon (0.0–1.0).
+## Returns -1.0 if no all-difficulties condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_weapon_all_difficulties_progress(weapon_id: String) -> float:
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		if weapon_id in all_diff_condition.get("weapons", []):
+			return _get_all_difficulties_progress()
+	return -1.0
+
+
+## Get the all-difficulties condition progress for a grenade type (0.0–1.0).
+## Returns -1.0 if no all-difficulties condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_grenade_all_difficulties_progress(grenade_type: int) -> float:
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		if grenade_type in all_diff_condition.get("grenades", []):
+			return _get_all_difficulties_progress()
+	return -1.0
+
+
+## Get the all-difficulties condition progress for an active item type (0.0–1.0).
+## Returns -1.0 if no all-difficulties condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_active_item_all_difficulties_progress(item_type: int) -> float:
+	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
+		if item_type in all_diff_condition.get("active_items", []):
+			return _get_all_difficulties_progress()
+	return -1.0
+
+
+## Get the single-level condition progress for a weapon (0.0 or 1.0, binary).
+## Returns -1.0 if no single-level condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_weapon_single_condition_progress(weapon_id: String) -> float:
+	for condition_key in UNLOCK_CONDITIONS:
+		var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
+		if weapon_id in condition.get("weapons", []):
+			return 1.0 if is_condition_key_met(condition_key) else 0.0
+	return -1.0
+
+
+## Get the single-level condition progress for a grenade type (0.0 or 1.0, binary).
+## Returns -1.0 if no single-level condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_grenade_single_condition_progress(grenade_type: int) -> float:
+	for condition_key in UNLOCK_CONDITIONS:
+		var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
+		if grenade_type in condition.get("grenades", []):
+			return 1.0 if is_condition_key_met(condition_key) else 0.0
+	return -1.0
+
+
+## Get the single-level condition progress for an active item type (0.0 or 1.0, binary).
+## Returns -1.0 if no single-level condition applies.
+## Issue #1591: used by armory to show progress bar animation.
+func get_active_item_single_condition_progress(item_type: int) -> float:
+	for condition_key in UNLOCK_CONDITIONS:
+		var condition: Dictionary = UNLOCK_CONDITIONS[condition_key]
+		if item_type in condition.get("active_items", []):
+			return 1.0 if is_condition_key_met(condition_key) else 0.0
+	return -1.0
+
+
+## Get the best unlock condition progress for a weapon across all condition types (0.0–1.0).
+## Returns -1.0 if this weapon has no quantifiable unlock condition at all.
+## Issue #1591: unified function used by armory to show progress bar animation for all types.
+func get_weapon_unlock_progress(weapon_id: String) -> float:
+	var best: float = -1.0
+	var p: float
+	p = get_weapon_kill_condition_progress(weapon_id)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_weapon_multi_condition_progress(weapon_id)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_weapon_all_difficulties_progress(weapon_id)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_weapon_single_condition_progress(weapon_id)
+	if p >= 0.0:
+		best = maxf(best, p)
+	return best
+
+
+## Get the best unlock condition progress for a grenade across all condition types (0.0–1.0).
+## Returns -1.0 if this grenade has no quantifiable unlock condition at all.
+## Issue #1591: unified function used by armory to show progress bar animation for all types.
+func get_grenade_unlock_progress(grenade_type: int) -> float:
+	var best: float = -1.0
+	var p: float
+	p = get_grenade_kill_condition_progress(grenade_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_grenade_multi_condition_progress(grenade_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_grenade_all_difficulties_progress(grenade_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_grenade_single_condition_progress(grenade_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	return best
+
+
+## Get the best unlock condition progress for an active item across all condition types (0.0–1.0).
+## Returns -1.0 if this item has no quantifiable unlock condition at all.
+## Issue #1591: unified function used by armory to show progress bar animation for all types.
+func get_active_item_unlock_progress(item_type: int) -> float:
+	var best: float = -1.0
+	var p: float
+	p = get_active_item_kill_condition_progress(item_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_active_item_multi_condition_progress(item_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_active_item_all_difficulties_progress(item_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	p = get_active_item_single_condition_progress(item_type)
+	if p >= 0.0:
+		best = maxf(best, p)
+	return best
 
 
 ## Get all available difficulty names from DifficultyManager (with static fallback).
