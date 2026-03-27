@@ -349,6 +349,77 @@ For BuildingLevel with 20 enemies in active combat:
 
 ---
 
+## V6 Analysis — `game_log_20260327_095405.txt`, `benchmark_log_20260327_100114.txt`, `stress_benchmark_20260327_095530.txt`
+
+**Status:** Post-v5, FPS still dropping to 7–13 fps on LabyrinthLevel with 20 enemies (not just 5 in level — 20 total via spawns/respawns).
+
+### Benchmark Analysis
+
+The v6 benchmark reveals a critical insight — the **baseline FPS is only 13 fps**:
+
+| Step | Config | avg FPS |
+|------|--------|---------|
+| 1 | Baseline (all enabled) | 13.0 |
+| 7 | AI disabled | 14.3 |
+| 2 | Particles disabled | 13.9 |
+| 3 | Blood Decals disabled | 13.8 |
+
+Disabling AI only gains **1.3 fps** — AI is no longer the primary bottleneck (v1–v5 already fixed the major AI overhead). The 13fps baseline suggests a **system-wide performance ceiling** on this hardware.
+
+The stress benchmark shows anomalous results (`AI enabled=29.4 > disabled=11.7`), suggesting the benchmark tool itself may have measurement issues when toggling AI state.
+
+### New Root Causes Found in v6 Log Analysis
+
+#### RC14: C# `LogToFile` always writes at INFO level — never fixed to DEBUG
+
+The v5 fix changed the GDScript `FileLogger.info("Hit blocked by invincibility mode")` to `FileLogger.debug()`, but the **C# `Player.cs:2649`** used a separate `LogToFile` method that always called `log_info`. Result: **283 invincibility file writes** still occurring.
+
+#### RC15: C# `SpawnBloodEffect` log at INFO level — 286 file writes/session
+
+`Player.cs:2719` logged every blood spawn to file at INFO level. With invincibility mode on, every enemy hit spawned a blood effect AND logged it.
+
+#### RC16: C# `GetNodeOrNull` per-call overhead in hot paths
+
+`LogToFile()` did `GetNodeOrNull("/root/FileLogger")` **every call**. `SpawnBloodEffect()` did `GetNodeOrNull("/root/ImpactEffectsManager")` per call. `PlayHit*Sound()` did `GetNodeOrNull("/root/AudioManager")` per call. `TakeDamage()` did `GetNodeOrNull("/root/ScoreManager")` per call.
+
+Total: **~600+ node lookups/session** in hot paths. Fixed by caching all autoload references in `_Ready()`.
+
+#### RC17: SoundPropagation file writes — 666/session
+
+Every `emit_sound()` call wrote two `_log_to_file` lines ("Sound emitted" + "Sound result"). With 333 sound events, this was **666 synchronous file buffer writes**. Changed to `_log_debug` (console-only).
+
+#### RC18: Enemy ROT_CHANGE file writes — 258/session
+
+Every rotation priority change per enemy wrote to file. Changed to `_log_debug`.
+
+#### RC19: Enemy SEARCHING Expand ring file writes — 503/session
+
+The highest-frequency enemy log. Every time an enemy finished search waypoints and expanded its ring, it logged to file. Changed to `_log_debug`.
+
+#### RC20: ScoreManager `get_node_or_null` per `register_damage_taken` call
+
+`ScoreManager._log_to_file()` did `get_node_or_null("/root/FileLogger")` on every call (286 lookups). Also changed damage log to `_log_debug`.
+
+### V6 Combined Savings
+
+| Root Cause | Count/Session | Fix |
+|------------|---------------|-----|
+| C# invincibility hits at INFO | 283 | → LogDebugToFile |
+| C# blood spawn logs at INFO | 286 | → LogDebugToFile |
+| C# GetNodeOrNull per hot call | ~600 | → Cached in _Ready |
+| SoundPropagation file writes | 666 | → _log_debug |
+| Enemy ROT_CHANGE file writes | 258 | → _log_debug |
+| Enemy SEARCHING Expand writes | 503 | → _log_debug |
+| ScoreManager damage file writes | 286 | → _log_debug |
+| ScoreManager get_node_or_null | 286 | → Cached in _ready |
+| **Total eliminated** | **~3,168** | |
+
+### Important Note on v6
+
+After v1–v6 fixes, the AI-related overhead has been reduced as far as log analysis can identify. The remaining 13fps baseline appears to be a **hardware/rendering ceiling** unrelated to AI logic or file I/O. Further investigation would require Godot's built-in profiler or RenderDoc to identify GPU-bound bottlenecks.
+
+---
+
 ## References
 
 - [Godot Docs: General Optimization Tips](https://docs.godotengine.org/en/stable/tutorials/performance/general_optimization.html)
