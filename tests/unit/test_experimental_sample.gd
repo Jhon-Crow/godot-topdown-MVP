@@ -16,7 +16,7 @@ extends GutTest
 
 
 class MockActiveItemManager:
-	## Active item types (includes EXPERIMENTAL_SAMPLE = 18)
+	## Active item types (includes FINE_MOTOR_SKILLS=19, DASH=20, GRENADE_BAG=21 — Issue #1635)
 	const ActiveItemType := {
 		NONE = 0,
 		FLASHLIGHT = 1,
@@ -36,38 +36,44 @@ class MockActiveItemManager:
 		DRILLING_BULLETS = 15,
 		RECOIL_COMPENSATOR = 16,
 		COMBAT_DISPOSITION = 17,
-		EXPERIMENTAL_SAMPLE = 18
+		EXPERIMENTAL_SAMPLE = 18,
+		FINE_MOTOR_SKILLS = 19,
+		DASH = 20,
+		GRENADE_BAG = 21
 	}
 
 	## Currently selected active item type
 	var current_active_item: int = ActiveItemType.NONE
 
-	## Active item data
+	## Active item data — items with "activation_hint" have on-press effects (Issue #1635)
 	const ACTIVE_ITEM_DATA: Dictionary = {
 		0: {"name": "None", "icon_path": "", "description": "No active item equipped."},
-		1: {"name": "Flashlight", "icon_path": "res://assets/sprites/weapons/flashlight_icon.png", "description": "Tactical flashlight."},
+		1: {"name": "Flashlight", "icon_path": "res://assets/sprites/weapons/flashlight_icon.png", "description": "Tactical flashlight.", "activation_hint": "Hold Space to activate"},
 		2: {"name": "Homing Bullets", "icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png", "description": "Homing bullets."},
-		3: {"name": "Teleport Bracers", "icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png", "description": "Teleportation bracers."},
-		4: {"name": "BFF Pendant", "icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png", "description": "BFF pendant."},
-		5: {"name": "Invisibility", "icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png", "description": "Invisibility suit."},
+		3: {"name": "Teleport Bracers", "icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png", "description": "Teleportation bracers.", "activation_hint": "Hold Space to aim, release to teleport"},
+		4: {"name": "BFF Pendant", "icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png", "description": "BFF pendant.", "activation_hint": "Press Space to summon"},
+		5: {"name": "Invisibility", "icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png", "description": "Invisibility suit.", "activation_hint": "Press Space to activate"},
 		6: {"name": "Breaker Bullets", "icon_path": "res://assets/sprites/weapons/breaker_bullets_icon.png", "description": "Breaker bullets."},
-		7: {"name": "Force Field", "icon_path": "res://assets/sprites/weapons/force_field_icon.png", "description": "Force field."},
-		8: {"name": "Trajectory Glasses", "icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png", "description": "Trajectory glasses."},
+		7: {"name": "Force Field", "icon_path": "res://assets/sprites/weapons/force_field_icon.png", "description": "Force field.", "activation_hint": "Hold Space to activate"},
+		8: {"name": "Trajectory Glasses", "icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png", "description": "Trajectory glasses.", "activation_hint": "Press Space to activate"},
 		9: {"name": "Laser Sight", "icon_path": "res://assets/sprites/weapons/laser_sight_icon.png", "description": "Laser sight."},
 		10: {"name": "Extended Magazine", "icon_path": "res://assets/sprites/weapons/extended_magazine_icon.png", "description": "Extended magazine."},
-		11: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "Loudspeaker."},
-		12: {"name": "Breaching Charges", "icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png", "description": "Breaching charges."},
+		11: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "Loudspeaker.", "activation_hint": "Press Space to activate"},
+		12: {"name": "Breaching Charges", "icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png", "description": "Breaching charges.", "activation_hint": "Hold Space near wall to place, press Space to detonate"},
 		13: {"name": "Armored Skin", "icon_path": "res://assets/sprites/weapons/armored_skin_icon.png", "description": "Armored skin."},
 		14: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png", "description": "Auto-reload."},
-		15: {"name": "Drilling Bullets", "icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png", "description": "Drilling bullets."},
-		16: {"name": "Recoil Compensator", "icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png", "description": "Recoil compensator."},
+		15: {"name": "Drilling Bullets", "icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png", "description": "Drilling bullets.", "activation_hint": "Press Space to activate"},
+		16: {"name": "Recoil Compensator", "icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png", "description": "Recoil compensator.", "activation_hint": "Hold Space to activate"},
 		17: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive."},
 		18: {
 			"name": "Experimental Sample",
 			"icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png",
 			"description": "Experimental Sample — press Space to trigger a random active item effect (including items not yet unlocked). 1–5 charges per battle, randomised on level start.",
 			"activation_hint": "Press Space to trigger random effect"
-		}
+		},
+		19: {"name": "Fine Motor Skills", "icon_path": "res://assets/sprites/weapons/fine_motor_skills_icon.png", "description": "Fine Motor Skills.", "activation_hint": "Press Space to reload"},
+		20: {"name": "Dash", "icon_path": "res://assets/sprites/weapons/dash_icon.png", "description": "Dash.", "activation_hint": "Press Space to dash"},
+		21: {"name": "Grenade Bag", "icon_path": "res://assets/sprites/weapons/grenade_bag_icon.png", "description": "Grenade Bag — passive."}
 	}
 
 	## Check if experimental sample is currently equipped (Issue #1127)
@@ -119,6 +125,20 @@ class MockActiveItemManager:
 	func get_all_active_item_types() -> Array:
 		return ACTIVE_ITEM_DATA.keys()
 
+	## Return item types eligible to be triggered by Experimental Sample (Issue #1635).
+	## Includes every item with "activation_hint", excluding NONE and EXPERIMENTAL_SAMPLE itself.
+	func get_experimental_sample_eligible_types() -> Array[int]:
+		var result: Array[int] = []
+		for item_type: int in ACTIVE_ITEM_DATA.keys():
+			if item_type == ActiveItemType.NONE:
+				continue
+			if item_type == ActiveItemType.EXPERIMENTAL_SAMPLE:
+				continue
+			var data: Dictionary = ACTIVE_ITEM_DATA[item_type]
+			if data.has("activation_hint"):
+				result.append(item_type)
+		return result
+
 
 ## Simulates the Experimental Sample charge logic from Player.gd
 class MockExperimentalSampleSystem:
@@ -131,6 +151,8 @@ class MockExperimentalSampleSystem:
 	var charges: int = 0
 	## The item type that was triggered on the last activation (-1 = none)
 	var last_triggered_type: int = -1
+	## Eligible types list (populated by tests via set_eligible_types)
+	var eligible_types: Array = []
 
 	## Equip and randomise the charge count (1–5)
 	func equip_with_random_charges(seed_value: int = 0) -> void:
@@ -140,13 +162,14 @@ class MockExperimentalSampleSystem:
 		rng.seed = seed_value
 		charges = rng.randi_range(MIN_CHARGES, MAX_CHARGES)
 
-	## Activate: consume a charge and pick a random effect type (1–17)
+	## Activate: consume a charge and pick a random eligible type.
 	## Returns true if activation succeeded, false if no charges remain.
 	func activate(rng: RandomNumberGenerator) -> bool:
 		if not equipped or charges <= 0:
 			return false
 		charges -= 1
-		last_triggered_type = rng.randi_range(1, 17)
+		var pool: Array = eligible_types if not eligible_types.is_empty() else range(1, 18)
+		last_triggered_type = pool[rng.randi() % pool.size()]
 		return true
 
 	## Simulate multiple activations and collect triggered types
@@ -360,22 +383,27 @@ func test_experimental_sample_activation_count_matches_charges() -> void:
 
 
 func test_experimental_sample_triggers_valid_item_types() -> void:
-	# Each activation must produce a type in range 1–17 (all existing items except NONE and EXPERIMENTAL_SAMPLE)
+	# Each activation must produce a type from the eligible types list (items with activation_hint,
+	# excluding NONE and EXPERIMENTAL_SAMPLE itself) — Issue #1635
+	var eligible := manager.get_experimental_sample_eligible_types()
 	var system := MockExperimentalSampleSystem.new()
 	system.equipped = true
 	system.charges = 50
+	system.eligible_types = eligible
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 12345
 	var types := system.activate_n_times(50, rng)
 	for t in types:
-		assert_true(t >= 1 and t <= 17,
-			"Triggered type %d must be in range 1–17" % t)
+		assert_true(t in eligible,
+			"Triggered type %d must be in the eligible types list" % t)
 
 
 func test_experimental_sample_never_triggers_none_type() -> void:
+	var eligible := manager.get_experimental_sample_eligible_types()
 	var system := MockExperimentalSampleSystem.new()
 	system.equipped = true
 	system.charges = 100
+	system.eligible_types = eligible
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7777
 	var types := system.activate_n_times(100, rng)
@@ -385,9 +413,11 @@ func test_experimental_sample_never_triggers_none_type() -> void:
 
 
 func test_experimental_sample_never_triggers_itself() -> void:
+	var eligible := manager.get_experimental_sample_eligible_types()
 	var system := MockExperimentalSampleSystem.new()
 	system.equipped = true
 	system.charges = 100
+	system.eligible_types = eligible
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 9999
 	var types := system.activate_n_times(100, rng)
@@ -396,18 +426,20 @@ func test_experimental_sample_never_triggers_itself() -> void:
 			"Triggered type should never be EXPERIMENTAL_SAMPLE (18) itself")
 
 
-func test_experimental_sample_random_types_cover_full_range() -> void:
-	# With enough activations, all item types 1–17 should appear at least once
+func test_experimental_sample_random_types_cover_full_eligible_range() -> void:
+	# With enough activations, all eligible item types should appear at least once (Issue #1635)
+	var eligible := manager.get_experimental_sample_eligible_types()
 	var system := MockExperimentalSampleSystem.new()
 	system.equipped = true
 	system.charges = 10000
+	system.eligible_types = eligible
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 2025
 	var types := system.activate_n_times(10000, rng)
 	var unique_types := {}
 	for t in types:
 		unique_types[t] = true
-	for expected_type in range(1, 18):
+	for expected_type in eligible:
 		assert_true(expected_type in unique_types,
 			"Item type %d should appear at least once in 10,000 activations" % expected_type)
 
@@ -460,19 +492,42 @@ func test_total_active_items_includes_experimental_sample() -> void:
 		"All active item types should include EXPERIMENTAL_SAMPLE")
 
 
-func test_active_item_count_is_nineteen() -> void:
-	# NONE + 18 items = 19 total (including Experimental Sample)
+func test_active_item_count_is_twenty_two() -> void:
+	# NONE + 21 items = 22 total (includes FINE_MOTOR_SKILLS=19, DASH=20, GRENADE_BAG=21 — Issue #1635)
 	var all_types := manager.get_all_active_item_types()
-	assert_eq(all_types.size(), 19,
-		"Should have 19 active item types total (NONE + 18 items including EXPERIMENTAL_SAMPLE)")
+	assert_eq(all_types.size(), 22,
+		"Should have 22 active item types total (NONE + 21 items including FINE_MOTOR_SKILLS, DASH, GRENADE_BAG)")
 
 
-func test_experimental_sample_is_last_item_type() -> void:
-	# EXPERIMENTAL_SAMPLE=18 should be the highest enum value
-	var all_types := manager.get_all_active_item_types()
-	var max_type := 0
-	for t in all_types:
-		if t > max_type:
-			max_type = t
-	assert_eq(max_type, manager.ActiveItemType.EXPERIMENTAL_SAMPLE,
-		"EXPERIMENTAL_SAMPLE should have the highest type value (18)")
+func test_experimental_sample_eligible_types_includes_fine_motor_skills() -> void:
+	# FINE_MOTOR_SKILLS(19) has activation_hint and must be eligible (Issue #1635)
+	var eligible := manager.get_experimental_sample_eligible_types()
+	assert_true(manager.ActiveItemType.FINE_MOTOR_SKILLS in eligible,
+		"FINE_MOTOR_SKILLS should be in the eligible types list")
+
+
+func test_experimental_sample_eligible_types_includes_dash() -> void:
+	# DASH(20) has activation_hint and must be eligible (Issue #1635)
+	var eligible := manager.get_experimental_sample_eligible_types()
+	assert_true(manager.ActiveItemType.DASH in eligible,
+		"DASH should be in the eligible types list")
+
+
+func test_experimental_sample_eligible_types_excludes_grenade_bag() -> void:
+	# GRENADE_BAG(21) is passive (no activation_hint) — must not be eligible (Issue #1635)
+	var eligible := manager.get_experimental_sample_eligible_types()
+	assert_false(manager.ActiveItemType.GRENADE_BAG in eligible,
+		"GRENADE_BAG should not be in the eligible types list (passive item)")
+
+
+func test_experimental_sample_eligible_types_excludes_itself() -> void:
+	# EXPERIMENTAL_SAMPLE must not be in its own eligible pool (Issue #1635)
+	var eligible := manager.get_experimental_sample_eligible_types()
+	assert_false(manager.ActiveItemType.EXPERIMENTAL_SAMPLE in eligible,
+		"EXPERIMENTAL_SAMPLE must not trigger itself")
+
+
+func test_experimental_sample_eligible_types_excludes_none() -> void:
+	var eligible := manager.get_experimental_sample_eligible_types()
+	assert_false(manager.ActiveItemType.NONE in eligible,
+		"NONE must not be in the eligible types list")

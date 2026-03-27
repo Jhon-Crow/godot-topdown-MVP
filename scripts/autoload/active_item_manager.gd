@@ -433,6 +433,24 @@ func has_experimental_sample() -> bool:
 	return current_active_item == ActiveItemType.EXPERIMENTAL_SAMPLE
 
 
+## Return all item types eligible to be triggered by the Experimental Sample (Issue #1635).
+## Includes every item that has an "activation_hint" in ACTIVE_ITEM_DATA (i.e. items with
+## an on-press effect), excluding NONE and EXPERIMENTAL_SAMPLE itself.
+## This list is derived dynamically from ACTIVE_ITEM_DATA so that any future active items
+## with an activation_hint are automatically included without manual updates.
+func get_experimental_sample_eligible_types() -> Array[int]:
+	var result: Array[int] = []
+	for item_type: int in ACTIVE_ITEM_DATA.keys():
+		if item_type == ActiveItemType.NONE:
+			continue
+		if item_type == ActiveItemType.EXPERIMENTAL_SAMPLE:
+			continue
+		var data: Dictionary = ACTIVE_ITEM_DATA[item_type]
+		if data.has("activation_hint"):
+			result.append(item_type)
+	return result
+
+
 ## Check if fine motor skills is currently equipped (Issue #1315).
 func has_fine_motor_skills() -> bool:
 	return current_active_item == ActiveItemType.FINE_MOTOR_SKILLS

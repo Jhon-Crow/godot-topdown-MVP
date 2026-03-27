@@ -4436,13 +4436,22 @@ func _handle_experimental_sample_input() -> void:
 	_experimental_sample_charges -= 1
 	experimental_sample_charges_changed.emit(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
 	_show_active_item_charge_bar(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
-	# Pick a random active item type (all types except NONE=0 and EXPERIMENTAL_SAMPLE=18).
+	# Pick a random active item type from all items with an on-press activation_hint
+	# (excludes NONE, EXPERIMENTAL_SAMPLE, and passive-only items automatically).
 	# Re-roll if the chosen type has no visible on-press action, so every charge spend is meaningful.
+	var mgr_for_types: Node = get_node_or_null("/root/ActiveItemManager")
+	var eligible_types: Array = []
+	if mgr_for_types and mgr_for_types.has_method("get_experimental_sample_eligible_types"):
+		eligible_types = mgr_for_types.get_experimental_sample_eligible_types()
+	# Fallback to legacy range if manager is unavailable
+	if eligible_types.is_empty():
+		for t in range(1, 18):
+			eligible_types.append(t)
 	const MAX_ATTEMPTS := 20
 	var effect_fired := false
 	var fired_type: int = -1
 	for attempt in range(MAX_ATTEMPTS):
-		var random_type: int = randi_range(1, 17)
+		var random_type: int = eligible_types[randi() % eligible_types.size()]
 		FileLogger.info("[Player.ExperimentalSample] Charges: %d — type %d attempt %d" % [_experimental_sample_charges, random_type, attempt + 1])
 		effect_fired = _trigger_experimental_sample_effect(random_type)
 		if effect_fired:
@@ -4458,9 +4467,8 @@ func _handle_experimental_sample_input() -> void:
 		fired_type = 2  # HOMING_BULLETS fallback
 	# Show floating icon popup for the triggered item (Issue #1127)
 	if fired_type >= 0 and _experimental_sample_popup and is_instance_valid(_experimental_sample_popup):
-		var mgr: Node = get_node_or_null("/root/ActiveItemManager")
-		if mgr and mgr.has_method("get_active_item_icon_path"):
-			_experimental_sample_popup.show_icon(mgr.get_active_item_icon_path(fired_type))
+		if mgr_for_types and mgr_for_types.has_method("get_active_item_icon_path"):
+			_experimental_sample_popup.show_icon(mgr_for_types.get_active_item_icon_path(fired_type))
 
 ## Trigger on-press effect of item_type chosen by experimental sample.
 ## Returns true if a visible effect fired, false if passive/unavailable (caller re-rolls).
@@ -4521,6 +4529,22 @@ func _trigger_experimental_sample_effect(item_type: int) -> bool:
 				var detonated := _breaching_charges.detonate()
 				FileLogger.info("[Player.ExperimentalSample] Breaching charges detonated: %s" % str(detonated))
 				return detonated
+			return false
+		19: # FINE_MOTOR_SKILLS — instantly reload if not already in progress (Issue #1635)
+			if not _fine_motor_skills_active:
+				_fine_motor_skills_active = true
+				_fine_motor_skills_activate_async()
+				FileLogger.info("[Player.ExperimentalSample] Fine Motor Skills reload triggered via experimental sample")
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Fine Motor Skills already active; re-roll")
+			return false
+		20: # DASH — dash toward aim direction if dash effect is available (Issue #1635)
+			if _dash_effect != null and is_instance_valid(_dash_effect) and not _dash_effect.is_dashing():
+				var dir := (get_global_mouse_position() - global_position).normalized()
+				_dash_effect.activate(dir)
+				FileLogger.info("[Player.ExperimentalSample] Dash triggered via experimental sample")
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Dash not available or already active; re-roll")
 			return false
 		_:
 			return false
