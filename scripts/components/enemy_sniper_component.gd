@@ -20,7 +20,7 @@ const MIN_DISTANCE: float = 350.0
 const BLIND_FIRE_COOLDOWN: float = 5.0
 
 ## Laser sight maximum range (px). Issue #1336.
-const LASER_MAX_RANGE: float = 15000.0
+const LASER_MAX_RANGE: float = 30000.0
 ## Muzzle offset from weapon sprite origin to barrel tip (px, before scale).
 const MUZZLE_LOCAL_OFFSET: float = 52.0
 
@@ -347,7 +347,7 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 	if world_2d == null: return
 	var space_state := world_2d.direct_space_state
 	if space_state == null: return
-	var damage := 50.0; var end_pos := spawn_pos + direction * 15000.0; var bullet_end_point := end_pos
+	var damage := 50.0; var end_pos := spawn_pos + direction * 30000.0; var bullet_end_point := end_pos
 	var shooter_id := enemy.get_instance_id(); var walls_penetrated := 0; var current_pos := spawn_pos
 	var exclude_rids := []; var damaged_ids: Dictionary = {}
 	# Issue #1334 Round 8: Also get the player's RID so we can exclude it from raycasts
