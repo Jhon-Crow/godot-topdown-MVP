@@ -26,8 +26,7 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579), RPG (rocket+pistol, Issue #583), PM (Makarov, Issue #583), MACHINE_GUN (PKM belt-fed, #1033), SNIPER_RIFLE (ASVK, #1125), REVOLVER (RSh-12, #1242).
-enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIFLE, REVOLVER }
+enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIFLE, REVOLVER, SILENCED_PISTOL }  ## RIFLE(M16), SHOTGUN, UZI, MACHETE(#579), RPG(#583), PM(#583), MACHINE_GUN(#1033), SNIPER_RIFLE(#1125), REVOLVER(#1242), SILENCED_PISTOL(#1532)
 
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
 @export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.
@@ -329,6 +328,8 @@ const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing inte
 const INTEL_SHARE_RANGE_LOS: float = 660.0  ## Intel range with LOS (px)
 const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Intel range without LOS (px)
 var _intel_share_timer: float = 0.0; const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5s
+var _enemies_in_combat_cache: int = 0; var _enemies_in_combat_cache_timer: float = 0.0; const ENEMIES_IN_COMBAT_CACHE_INTERVAL: float = 0.5  ## #1520: Cache enemies_in_combat O(N²) scan, refresh 2Hz
+var _idle_goap_throttle_counter: int = 0; const IDLE_GOAP_UPDATE_INTERVAL: int = 20  ## #1520: IDLE GOAP throttle counter (~3Hz)
 var _memory_reset_confusion_timer: float = 0.0  ## Issue #318: blocks visibility after teleport
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## 2s confusion for better player escape window
 ## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
@@ -883,7 +884,11 @@ func _physics_process(delta: float) -> void:
 	_check_companion_visibility()
 	_select_best_target()
 	_update_memory(delta)
-	_update_goap_state()
+	if _current_state == AIState.IDLE and not _can_see_player and not _can_see_companion and not _under_fire:  # #1520: throttle GOAP ~3Hz when idle
+		_idle_goap_throttle_counter += 1
+		if _idle_goap_throttle_counter < IDLE_GOAP_UPDATE_INTERVAL: _goap_world_state["player_visible"] = false; _goap_world_state["under_fire"] = false
+		else: _idle_goap_throttle_counter = 0; _update_goap_state()
+	else: _idle_goap_throttle_counter = 0; _update_goap_state()
 	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null)); if _shield_component: _shield_component.update(delta); if _drone_operator: _drone_operator.update(delta)  # Issues #1034, #1242, #1397
 	if _hit_reaction_timer > 0: _hit_reaction_timer -= delta  # Issue #1242: decay hit reaction rotation timer
 	# Issue #1242: delayed player tracking for shield enemy — update facing angle periodically, not continuously
@@ -945,7 +950,9 @@ func _update_goap_state() -> void:
 	_goap_world_state["is_assaulting"] = _current_state == AIState.ASSAULT
 	_goap_world_state["player_close"] = _is_target_close()
 	_goap_world_state["can_hit_from_cover"] = _can_hit_target_from_current_position()
-	_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
+	_enemies_in_combat_cache_timer += get_physics_process_delta_time()  # #1520: throttle O(N²) group scan to 2Hz
+	if _enemies_in_combat_cache_timer >= ENEMIES_IN_COMBAT_CACHE_INTERVAL: _enemies_in_combat_cache_timer = 0.0; _enemies_in_combat_cache = _count_enemies_in_combat()
+	_goap_world_state["enemies_in_combat"] = _enemies_in_combat_cache
 	_goap_world_state["player_distracted"] = _is_player_distracted()
 
 	# Memory system states (Issue #297)
@@ -1005,6 +1012,13 @@ func _update_enemy_model_rotation() -> void:
 		var ppos := "(%d,%d)" % [int(_player.global_position.x), int(_player.global_position.y)] if _player else "null"
 		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f%s" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, _corner_check_timer, " [->companion]" if _current_target == _companion else ""])
 		_last_rotation_reason = rotation_reason
+	# [Issue #1530] Sniper: sync model to laser angle (laser already sweeps at LASER_ROTATION_SPEED).
+	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:
+		target_angle = _sniper_component.get_aim_direction().angle()
+		_enemy_model.global_rotation = target_angle
+		_model_facing_left = absf(target_angle) > PI / 2
+		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale if _model_facing_left else enemy_model_scale)
+		return
 	# Smooth rotation for visual polish (Issue #347)
 	var delta := get_physics_process_delta_time()
 	var current_rot := _enemy_model.global_rotation
@@ -1271,7 +1285,9 @@ func _process_ai_state(delta: float) -> void:
 	if _is_stunned: velocity = Vector2.ZERO; return  # Stunned: stop all movement
 	if _formation_shielder != null and (not is_instance_valid(_formation_shielder) or not _formation_shielder.has_method("is_shield_active") or not _formation_shielder.is_shield_active()): _formation_shielder = null  # Issue #1242
 	if _formation_shielder != null and global_position.distance_to(_formation_target_pos) > 25.0:  # Issue #1446: moving to shieldbearer cover
-		_move_to_target_nav(_formation_target_pos, move_speed); if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown: _aim_at_player(); _shoot(); _shoot_timer = 0.0
+		_move_to_target_nav(_formation_target_pos, move_speed)
+		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+			_aim_at_player(); _shoot(); _shoot_timer = 0.0
 		return
 	if _formation_shielder != null:  # Issue #1446: arrived — shieldbearer is cover; always return early
 		_cover_position = _formation_target_pos; _has_valid_cover = true; if _current_state != AIState.IN_COVER: _transition_to_in_cover()  # RCA-6: always IN_COVER so _process_in_cover_state runs
@@ -3917,6 +3933,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 		elif weapon_type == WeaponType.MACHINE_GUN and audio.has_method("play_ak_shot"): audio.play_ak_shot(global_position)  # [#1033] PKM uses AK 7.62x39 sound
 		elif weapon_type == WeaponType.SNIPER_RIFLE and audio.has_method("play_asvk_shot"): audio.play_asvk_shot()  # [#1125] ASVK sniper rifle sound (non-positional, like player SniperRifle.cs)
 		elif weapon_type == WeaponType.REVOLVER and audio.has_method("play_revolver_shot"): audio.play_revolver_shot(global_position)  # [#1242] RSh-12 revolver shot sound
+		elif weapon_type == WeaponType.SILENCED_PISTOL and audio.has_method("play_silenced_shot"): audio.play_silenced_shot(global_position)  # [#1532] Drone Operator silenced pistol sound
 		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
 	var sp: Node = get_node_or_null("/root/SoundPropagation")
 	var _now3 := Time.get_ticks_msec() / 1000.0
@@ -4037,11 +4054,8 @@ func _calculate_lead_prediction() -> Vector2:
 		_log_debug("Lead prediction disabled: visibility ratio %.2f < %.2f required (player at cover edge)" % [_player_visibility_ratio, lead_prediction_visibility_threshold])
 		return player_pos
 
-	var player_velocity := Vector2.ZERO
-
-	# Get player velocity if they are a CharacterBody2D
-	if _player is CharacterBody2D:
-		player_velocity = _player.velocity
+	# Issue #1530: Sniper uses EMA-smoothed velocity (inertia → miss on reversal); others use raw velocity.
+	var player_velocity: Vector2 = _sniper_component._smoothed_player_velocity if _sniper_component != null else ((_player as CharacterBody2D).velocity if _player is CharacterBody2D else Vector2.ZERO)
 
 	# If player is stationary, no need for prediction
 	if player_velocity.length_squared() < 1.0:
@@ -4210,7 +4224,7 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0, is_from_player: bool = false) -> void:
 	if not _is_alive:
 		return
-	if (_force_field_component and _force_field_component.is_active()) or (_drone_operator and _drone_operator.is_dashing()): _log_to_file("Hit blocked by force field/dash"); return  # Issues #1034, #1397
+	if (_force_field_component and _force_field_component.is_active()): _log_to_file("Hit blocked by force field"); return  # Issue #1034 (drone operator dash no longer grants invincibility — #1532 fix #9)
 	# Issue #1242: Shield blocking — collision-based + direction fallback; shield enemy slowly turns toward attacker.
 	if _shield_component and _shield_component.did_intercept_this_frame(): _set_hit_reaction_target(-hit_direction.normalized()); return
 	if _shield_component and _shield_component.is_active() and _enemy_model and Vector2.from_angle(_enemy_model.global_rotation).dot(-hit_direction.normalized()) > 0.5:
@@ -4312,17 +4326,11 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 	var muzzle_local_offset := 52.0  # Rifle: offset.x(20) + sprite_width/2(32) = 52px
 	if _weapon_sprite and _enemy_model:
 		var weapon_forward: Vector2
-
-		# Direct calc to player when visible to avoid transform delay (#264)
-		if _player and is_instance_valid(_player) and _can_see_player:
-			weapon_forward = (_player.global_position - global_position).normalized()
-		else:
-			# Use global_transform.x (accounts for scale flip when aiming left)
-			weapon_forward = _weapon_sprite.global_transform.x.normalized()
-
-		# Calculate muzzle offset accounting for enemy model scale
+		# [#1530] Sniper uses laser angle; others direct calc when visible (#264); else transform
+		if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null: weapon_forward = _sniper_component.get_aim_direction()
+		elif _player and is_instance_valid(_player) and _can_see_player: weapon_forward = (_player.global_position - global_position).normalized()
+		else: weapon_forward = _weapon_sprite.global_transform.x.normalized()
 		var scaled_muzzle_offset := muzzle_local_offset * enemy_model_scale
-		# Use weapon sprite's global position as base, then offset to reach the muzzle
 		var result := _weapon_sprite.global_position + weapon_forward * scaled_muzzle_offset
 		if debug_logging:
 			var angle_forward := Vector2.from_angle(_enemy_model.rotation)
@@ -4335,6 +4343,7 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 
 ## Returns the weapon's forward direction (normalized, Issue #264).
 func _get_weapon_forward_direction() -> Vector2:
+	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null: return _sniper_component.get_aim_direction()  # [#1530] laser angle = bullet/tracer direction
 	# Direct calc to player when visible to avoid transform delay
 	if _player and is_instance_valid(_player) and _can_see_player:
 		return (_player.global_position - global_position).normalized()
@@ -4768,6 +4777,7 @@ func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
 ## Issue #1249: Skip separation while yielding so the passing enemy isn't pushed aside.
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
 	if _tactical_movement and _tactical_movement.is_yielding: return vel  # #1249: yielding — don't push
+	if _current_state == AIState.IDLE and behavior_mode == BehaviorMode.GUARD: return vel  # #1520: GUARD stands still — skip O(N) scan
 	var sep_force: Vector2 = Vector2.ZERO
 	for body in get_tree().get_nodes_in_group("enemies"):
 		if body == self or not is_instance_valid(body): continue

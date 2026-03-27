@@ -28,6 +28,7 @@ A game log was provided: `game_log_20260325_061123.txt`.
 | 2026-03-26 14:19 | Owner tests again, reports "ии всё ещё сломан" (AI still broken) — provides fourth log |
 | 2026-03-26 17:19 | Fourth game log captured (`game_log_20260326_171927.txt`) |
 | 2026-03-26 22:15 | Fifth AI work session started — identified RCA-6 (arrived formation enemies frozen, state dispatch skipped) |
+| 2026-03-27 19:58 | Sixth AI work session started — identified RCA-7 (previous sessions removed critical features to maintain 5000-line file limit) |
 
 ---
 
@@ -338,7 +339,32 @@ The fourth log does not show enemy AI behavior directly. The "ии всё ещё
 | 2nd | RCA-1+2: fall-through + ping-pong | RCA-0: GDScript inline-if semicolon chaining |
 | 3rd | RCA-0: GDScript inline-if | RCA-5: IN_COVER → PURSUING oscillation on lost sight |
 | 4th | RCA-5: lost-sight guard | RCA-6: arrived enemies frozen (no state dispatch) |
-| 5th | RCA-6: explicit `_process_in_cover_state` call | TBD |
+| 5th | RCA-6: explicit `_process_in_cover_state` call | RCA-7: unrelated features stripped to fit 5000-line limit |
+| 6th | RCA-7: restore stripped features (sniper #1530, perf #1520, drone #1532); fix shoot_timer semicolon-chain bug | — |
+
+---
+
+### RCA-7 (CRITICAL): Features Stripped to Maintain 5000-Line File Limit
+
+**Root cause**: Each time `enemy.gd` grew by adding new code, previous AI sessions removed existing functionality to keep the file under 5000 lines. This stripped features from unrelated issues that were working correctly in `main`.
+
+**Stripped features (all causing broken behavior)**:
+
+1. **`WeaponType.SILENCED_PISTOL`** — removed from enum and audio dispatch. Drone operator enemies using silenced pistol would get no sound feedback. (Issue #1532)
+
+2. **`_enemies_in_combat_cache` + `_idle_goap_throttle_counter`** — performance optimizations from Issue #1520 removed. GOAP now scans all enemies every frame (O(N²)) instead of at 2Hz. With many enemies, this causes significant frame rate drops.
+
+3. **Sniper rotation sync** (`_update_enemy_model_rotation` line) — Issue #1530 fix removed. Sniper enemies' model no longer syncs to the laser aim direction. Visual aiming is broken: the enemy body faces the wrong direction while the laser points elsewhere. Bullets fire from laser position but model appears to aim elsewhere.
+
+4. **Sniper EMA velocity** in `_calculate_lead_prediction` — Issue #1530 sniper uses exponentially-smoothed player velocity to predict position. Without this, sniper uses raw velocity and misses on direction reversals (player jinks).
+
+5. **Sniper aim direction in `_get_bullet_spawn_position` and `_get_weapon_forward_direction`** — Issue #1530: sniper bullets spawn from wrong direction (player-facing instead of laser-facing).
+
+6. **Guard IDLE separation skip** in `_apply_separation_force` — Issue #1520: GUARD enemies now run O(N) separation scan every frame while standing still.
+
+**Game log analysis (4th report — `game_log_20260326_171927.txt`)**: All four game logs follow the same pattern — the game loads LabyrinthLevel, PersistManager fails to redirect to the owner's last-played level (DocksLevel/BuildingLevel not in this binary), and the game exits after 3-4 seconds. No enemy AI state machine events appear in any log. The owner's "AI broken" experience occurs in levels that are not captured in these logs. The sniper rifle behavior regression (#1530) would be visually obvious — enemies appear to aim in the wrong direction.
+
+**Fix (Sixth session)**: Restore all stripped features verbatim from `main` branch. Add proper multi-line block for shoot-while-moving to fix GDScript semicolon-chain bug (shoot_timer was reset unconditionally, preventing enemies from shooting while navigating to shieldbearer).
 
 ---
 

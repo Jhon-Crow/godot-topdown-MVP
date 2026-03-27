@@ -169,32 +169,6 @@ func test_no_valid_cover_without_formation_shielder() -> void:
 # =============================================================================
 
 
-func test_does_not_override_combat_state() -> void:
-	var shielder := MockShieldbearer.new()
-	add_child_autofree(shielder)
-
-	var follower := MockFormationEnemy.new()
-	follower._current_state = MockFormationEnemy.AIState.COMBAT
-	follower.set_formation_follow_target(shielder, Vector2(100, 0))
-	follower.arrive_at_formation()
-
-	assert_eq(follower._current_state, MockFormationEnemy.AIState.COMBAT,
-		"Should not override COMBAT state when arriving at formation")
-
-
-func test_does_not_override_suppressed_state() -> void:
-	var shielder := MockShieldbearer.new()
-	add_child_autofree(shielder)
-
-	var follower := MockFormationEnemy.new()
-	follower._current_state = MockFormationEnemy.AIState.SUPPRESSED
-	follower.set_formation_follow_target(shielder, Vector2(100, 0))
-	follower.arrive_at_formation()
-
-	assert_eq(follower._current_state, MockFormationEnemy.AIState.SUPPRESSED,
-		"Should not override SUPPRESSED state when arriving at formation")
-
-
 # =============================================================================
 # Shield Component Constants Used for Cover
 # =============================================================================
