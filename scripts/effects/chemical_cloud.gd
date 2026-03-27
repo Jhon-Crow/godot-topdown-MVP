@@ -159,15 +159,16 @@ func _spawn_illusions_for_nearby_enemies() -> void:
 			offsets.append(Vector2(cos(angle), sin(angle)) * distance)
 
 		# Pick a random position for the original enemy (any of the total_positions).
-		# Issue #1632: Validate each candidate position against the nav-mesh so the
-		# original enemy is never placed inside a wall. Try positions in random order
-		# and fall back to index 0 (the center, no movement) if none are valid.
+		# Issue #1632: Validate each candidate position to ensure the original enemy
+		# is never placed inside a wall. Try positions in random order and fall back
+		# to index 0 (the center, no movement) if none are valid.
 		var original_index: int = 0  # Default: keep enemy in place (center)
 		var original_offset: Vector2 = Vector2.ZERO
 		var candidate_indices: Array[int] = []
 		for i in range(total_positions):
 			candidate_indices.append(i)
 		candidate_indices.shuffle()
+		var space_state: PhysicsDirectSpaceState2D = get_tree().current_scene.get_world_2d().direct_space_state if get_tree().current_scene else null
 		for ci in candidate_indices:
 			var candidate_offset: Vector2 = offsets[ci]
 			if candidate_offset == Vector2.ZERO:
@@ -176,7 +177,7 @@ func _spawn_illusions_for_nearby_enemies() -> void:
 				original_offset = Vector2.ZERO
 				break
 			var candidate_pos: Vector2 = enemy.global_position + candidate_offset.rotated(enemy.rotation)
-			if _is_position_on_nav_map(enemy, candidate_pos):
+			if _is_position_valid(enemy, candidate_pos, space_state):
 				original_index = ci
 				original_offset = candidate_offset
 				break
@@ -367,16 +368,35 @@ func _update_cloud_visual() -> void:
 				sprite.modulate.a = 0.7
 
 
-## Issue #1632: Check whether a candidate position is on the navigation mesh.
-## Uses the enemy's NavigationAgent2D to snap the point; if the snapped point
-## is further than NAV_SNAP_TOLERANCE pixels away, the candidate is inside a wall.
-## Falls back to true (allow) when no nav-agent is available to avoid breaking
-## levels that have no nav-mesh.
-const NAV_SNAP_TOLERANCE: float = 50.0
-func _is_position_on_nav_map(enemy: Node2D, pos: Vector2) -> bool:
+## Issue #1632: Check whether a candidate position is safe to teleport an enemy to.
+## Uses two complementary checks:
+## 1. Physics overlap: rejects positions physically inside a wall collider.
+## 2. Line-of-sight: rejects positions where the straight path from the enemy
+##    crosses a wall (prevents moving through thin walls even if destination is clear).
+## Falls back to nav-mesh snap check when physics space is unavailable.
+const NAV_SNAP_TOLERANCE: float = 20.0  ## Tightened: agent radius is ~10-20px.
+const WALL_COLLISION_MASK: int = 4  ## Layer 3 = obstacles/walls (matches enemy.gd).
+func _is_position_valid(enemy: Node2D, pos: Vector2, space_state: PhysicsDirectSpaceState2D) -> bool:
+	if space_state != null:
+		# Check 1: is the destination physically inside a wall?
+		var point_query := PhysicsPointQueryParameters2D.new()
+		point_query.position = pos
+		point_query.collision_mask = WALL_COLLISION_MASK
+		if not space_state.intersect_point(point_query, 1).is_empty():
+			return false  # Destination is inside a wall collider.
+		# Check 2: does the straight path from current position to destination cross a wall?
+		var ray_query := PhysicsRayQueryParameters2D.new()
+		ray_query.from = enemy.global_position
+		ray_query.to = pos
+		ray_query.collision_mask = WALL_COLLISION_MASK
+		ray_query.exclude = [enemy.get_rid()]
+		if not space_state.intersect_ray(ray_query).is_empty():
+			return false  # Path crosses a wall.
+		return true
+	# Fallback: nav-mesh snap check when physics space is unavailable.
 	var nav_agent := enemy.get_node_or_null("NavigationAgent2D") as NavigationAgent2D
 	if nav_agent == null:
-		return true  # No nav-agent — cannot validate, allow the position.
+		return true
 	var nav_map: RID = nav_agent.get_navigation_map()
 	if not nav_map.is_valid():
 		return true

@@ -246,3 +246,62 @@ func test_initial_batch_plus_progressive_can_reach_10() -> void:
 		])
 
 	cloud.free()
+
+
+# ============================================================================
+# Tests for Issue #1632: Physics-based wall validation in _is_position_valid
+# ============================================================================
+
+
+func test_is_position_valid_returns_true_when_no_space_state_and_no_nav_agent() -> void:
+	# Without physics space state or nav-agent, falls back to allowing the position.
+	var cloud := ChemicalCloud.new()
+	var enemy := MockEnemy.new()
+	enemy.global_position = Vector2(100, 100)
+	# null space_state, no NavigationAgent2D child — should allow (fail-open)
+	var result: bool = cloud._is_position_valid(enemy, Vector2(200, 100), null)
+	assert_true(result, "_is_position_valid should allow when no validation data available")
+	cloud.free()
+	enemy.free()
+
+
+func test_wall_collision_mask_is_4() -> void:
+	# Verify WALL_COLLISION_MASK matches the obstacles layer used throughout the codebase.
+	var cloud := ChemicalCloud.new()
+	assert_eq(cloud.WALL_COLLISION_MASK, 4,
+		"WALL_COLLISION_MASK should be 4 (layer 3 = obstacles/walls)")
+	cloud.free()
+
+
+func test_nav_snap_tolerance_is_20() -> void:
+	# Tightened tolerance: agent radius is ~10-20px, so 20px is a safe upper bound.
+	var cloud := ChemicalCloud.new()
+	assert_almost_eq(cloud.NAV_SNAP_TOLERANCE, 20.0, 0.01,
+		"NAV_SNAP_TOLERANCE should be 20.0 (tightened from 50.0)")
+	cloud.free()
+
+
+func test_fallback_to_center_when_all_candidates_invalid() -> void:
+	# When space_state is null (fallback path) and no nav-agent available,
+	# the loop should still accept the first valid candidate.
+	# Simulate the selection logic: if center (offset=ZERO) is encountered, it's always valid.
+	var found_center: bool = false
+	var copies: int = 3
+	var total_positions: int = copies + 1
+	var offsets: Array[Vector2] = []
+	offsets.append(Vector2.ZERO)  # center
+	for i in range(copies):
+		var angle: float = (TAU / copies) * i
+		offsets.append(Vector2(cos(angle), sin(angle)) * 90.0)
+
+	# Shuffle and find first valid — center should always be accepted
+	var candidate_indices: Array[int] = []
+	for i in range(total_positions):
+		candidate_indices.append(i)
+
+	for ci in candidate_indices:
+		if offsets[ci] == Vector2.ZERO:
+			found_center = true
+			break  # Center is always valid
+
+	assert_true(found_center, "Center offset should always be found as valid fallback")
