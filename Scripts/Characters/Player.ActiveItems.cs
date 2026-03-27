@@ -3315,19 +3315,30 @@ public partial class Player
     #region Logging
 
     /// <summary>
-    /// Logs a message to the FileLogger (GDScript autoload) for debugging.
+    /// Logs a message to the FileLogger (GDScript autoload) at INFO level.
+    /// #1528 v6: Uses cached reference to avoid GetNodeOrNull per call.
     /// </summary>
     /// <param name="message">The message to log.</param>
     private void LogToFile(string message)
     {
-        // Print to console
         GD.Print(message);
-
-        // Also log to FileLogger if available
-        var fileLogger = GetNodeOrNull("/root/FileLogger");
-        if (fileLogger != null && fileLogger.HasMethod("log_info"))
+        if (_cachedFileLogger != null && _cachedFileLogger.HasMethod("log_info"))
         {
-            fileLogger.Call("log_info", message);
+            _cachedFileLogger.Call("log_info", message);
+        }
+    }
+
+    /// <summary>
+    /// Logs a message at DEBUG level — only written when FileLogger debug output is enabled.
+    /// #1528 v6: Use for high-frequency events (hits, blood spawns, etc.) to avoid file I/O floods.
+    /// </summary>
+    /// <param name="message">The message to log.</param>
+    private void LogDebugToFile(string message)
+    {
+        GD.Print(message);
+        if (_cachedFileLogger != null && _cachedFileLogger.HasMethod("log_debug"))
+        {
+            _cachedFileLogger.Call("log_debug", message);
         }
     }
 

@@ -1016,9 +1016,10 @@ func _update_enemy_model_rotation() -> void:
 	if not has_target:
 		return
 	# Issue #397 debug: Log rotation priority changes
+	# #1528 v6: Changed to _log_debug — ROT_CHANGE fired ~258 times in a session, ~13/sec during combat
 	if rotation_reason != _last_rotation_reason:
 		var ppos := "(%d,%d)" % [int(_player.global_position.x), int(_player.global_position.y)] if _player else "null"
-		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f%s" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, _corner_check_timer, " [->companion]" if _current_target == _companion else ""])
+		_log_debug("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f%s" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, _corner_check_timer, " [->companion]" if _current_target == _companion else ""])
 		_last_rotation_reason = rotation_reason
 	# [Issue #1530] Sniper: sync model to laser angle (laser already sweeps at LASER_ROTATION_SPEED).
 	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null:
@@ -2384,7 +2385,7 @@ func _process_searching_state(delta: float) -> void:
 		if _search_radius < SEARCH_MAX_RADIUS:
 			_search_radius += SEARCH_RADIUS_EXPANSION
 			_generate_search_waypoints()
-			_log_to_file("SEARCHING: Expand outer ring r=%.0f wps=%d" % [_search_radius, _search_waypoints.size()])
+			_log_debug("SEARCHING: Expand outer ring r=%.0f wps=%d" % [_search_radius, _search_waypoints.size()])  # #1528 v6: was 503 file writes in session
 			if _search_waypoints.is_empty() and _search_radius < SEARCH_MAX_RADIUS:
 				return
 		else:

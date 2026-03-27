@@ -220,6 +220,14 @@ public partial class Player : BaseCharacter
     /// </summary>
     private bool _invincibilityEnabled = false;
 
+    // #1528 v6: Cached autoload references to eliminate per-call GetNodeOrNull overhead.
+    // During heavy combat, LogToFile/SpawnBloodEffect were calling GetNodeOrNull hundreds of times/sec.
+    private Node? _cachedFileLogger = null;
+    private Node? _cachedImpactManager = null;
+    private Node? _cachedAudioManager = null;
+    private Node? _cachedScoreManager = null;
+    private Node? _cachedSoundPropagation = null;
+
     /// <summary>
     /// Label for displaying invincibility mode indicator.
     /// </summary>
@@ -918,6 +926,13 @@ public partial class Player : BaseCharacter
     public override void _Ready()
     {
         base._Ready();
+
+        // #1528 v6: Cache autoload references once to avoid GetNodeOrNull per call.
+        _cachedFileLogger = GetNodeOrNull("/root/FileLogger");
+        _cachedImpactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        _cachedAudioManager = GetNodeOrNull("/root/AudioManager");
+        _cachedScoreManager = GetNodeOrNull("/root/ScoreManager");
+        _cachedSoundPropagation = GetNodeOrNull("/root/SoundPropagation");
 
         // Get player model and sprite references for visual feedback
         _playerModel = GetNodeOrNull<Node2D>("PlayerModel");
@@ -1767,7 +1782,8 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void PlayEmptyClickSound()
     {
-        var audioManager = GetNodeOrNull("/root/AudioManager");
+        // #1528 v6: Use cached reference
+        var audioManager = _cachedAudioManager;
         if (audioManager == null) return;
 
         if (CurrentWeapon is Shotgun && audioManager.HasMethod("play_shotgun_empty_click"))
@@ -2329,10 +2345,10 @@ public partial class Player : BaseCharacter
                     EmitSignal(SignalName.ReloadSequenceProgress, 3, 3);
                     EmitSignal(SignalName.ReloadCompleted);
                     // Emit sound propagation for reload completion
-                    var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
-                    if (soundPropagation != null && soundPropagation.HasMethod("emit_player_reload_complete"))
+                    // #1528 v6: Use cached reference
+                    if (_cachedSoundPropagation != null && _cachedSoundPropagation.HasMethod("emit_player_reload_complete"))
                     {
-                        soundPropagation.Call("emit_player_reload_complete", GlobalPosition, this);
+                        _cachedSoundPropagation.Call("emit_player_reload_complete", GlobalPosition, this);
                     }
                     LogToFile("[Player] Revolver: cylinder closed (R key), reload complete");
                 }
@@ -2345,10 +2361,10 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void PlayReloadMagOutSound()
     {
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_reload_mag_out"))
+        // #1528 v6: Use cached reference
+        if (_cachedAudioManager != null && _cachedAudioManager.HasMethod("play_reload_mag_out"))
         {
-            audioManager.Call("play_reload_mag_out", GlobalPosition);
+            _cachedAudioManager.Call("play_reload_mag_out", GlobalPosition);
         }
     }
 
@@ -2357,10 +2373,10 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void PlayReloadMagInSound()
     {
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_reload_mag_in"))
+        // #1528 v6: Use cached reference
+        if (_cachedAudioManager != null && _cachedAudioManager.HasMethod("play_reload_mag_in"))
         {
-            audioManager.Call("play_reload_mag_in", GlobalPosition);
+            _cachedAudioManager.Call("play_reload_mag_in", GlobalPosition);
         }
     }
 
@@ -2369,10 +2385,10 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void PlayPmReloadAction1Sound()
     {
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_pm_reload_action_1"))
+        // #1528 v6: Use cached reference
+        if (_cachedAudioManager != null && _cachedAudioManager.HasMethod("play_pm_reload_action_1"))
         {
-            audioManager.Call("play_pm_reload_action_1", GlobalPosition);
+            _cachedAudioManager.Call("play_pm_reload_action_1", GlobalPosition);
         }
     }
 
@@ -2381,10 +2397,10 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void PlayPmReloadAction2Sound()
     {
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_pm_reload_action_2"))
+        // #1528 v6: Use cached reference
+        if (_cachedAudioManager != null && _cachedAudioManager.HasMethod("play_pm_reload_action_2"))
         {
-            audioManager.Call("play_pm_reload_action_2", GlobalPosition);
+            _cachedAudioManager.Call("play_pm_reload_action_2", GlobalPosition);
         }
     }
 
@@ -2393,10 +2409,10 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void PlayM16BoltSound()
     {
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_m16_bolt"))
+        // #1528 v6: Use cached reference
+        if (_cachedAudioManager != null && _cachedAudioManager.HasMethod("play_m16_bolt"))
         {
-            audioManager.Call("play_m16_bolt", GlobalPosition);
+            _cachedAudioManager.Call("play_m16_bolt", GlobalPosition);
         }
     }
 
@@ -2621,10 +2637,10 @@ public partial class Player : BaseCharacter
         // Register that the player was hit, BEFORE any immunity/guard checks.
         // This ensures no-damage level tracking works even when hits are blocked
         // by invincibility, force field, dash, or armored skin (Issue #1389).
-        var scoreManager = GetNodeOrNull("/root/ScoreManager");
-        if (scoreManager != null && scoreManager.HasMethod("register_damage_taken"))
+        // #1528 v6: Use cached reference (was GetNodeOrNull per hit — ~286 lookups during combat)
+        if (_cachedScoreManager != null && _cachedScoreManager.HasMethod("register_damage_taken"))
         {
-            scoreManager.Call("register_damage_taken", 1);
+            _cachedScoreManager.Call("register_damage_taken", 1);
         }
 
         // Check dash immunity (Issue #1071)
@@ -2646,7 +2662,7 @@ public partial class Player : BaseCharacter
         // Check invincibility mode (F6 toggle)
         if (_invincibilityEnabled)
         {
-            LogToFile("[Player] Hit blocked by invincibility mode (C#)");
+            LogDebugToFile("[Player] Hit blocked by invincibility mode (C#)");  // #1528 v6: debug level — was ~102/sec during combat
             ShowHitFlash(); // Still show visual feedback for debugging
             // Spawn blood effect for visual feedback even in invincibility mode (Issue #350)
             SpawnBloodEffect(false);
@@ -2713,11 +2729,11 @@ public partial class Player : BaseCharacter
     /// <param name="isLethal">Whether this was a lethal hit (affects effect scale).</param>
     private void SpawnBloodEffect(bool isLethal)
     {
-        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
-        if (impactManager != null && impactManager.HasMethod("spawn_blood_effect"))
+        // #1528 v6: Use cached reference (was GetNodeOrNull per call — ~100/sec during combat)
+        if (_cachedImpactManager != null && _cachedImpactManager.HasMethod("spawn_blood_effect"))
         {
-            LogToFile($"[Player] Spawning blood effect at {GlobalPosition}, dir={_lastHitDirection}, lethal={isLethal} (C#)");
-            impactManager.Call("spawn_blood_effect", GlobalPosition, _lastHitDirection, _lastCaliberData, isLethal);
+            LogDebugToFile($"[Player] Spawning blood effect at {GlobalPosition}, dir={_lastHitDirection}, lethal={isLethal} (C#)");  // #1528 v6: debug level
+            _cachedImpactManager.Call("spawn_blood_effect", GlobalPosition, _lastHitDirection, _lastCaliberData, isLethal);
         }
         else
         {
@@ -2730,10 +2746,10 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void PlayHitLethalSound()
     {
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_hit_lethal"))
+        // #1528 v6: Use cached reference
+        if (_cachedAudioManager != null && _cachedAudioManager.HasMethod("play_hit_lethal"))
         {
-            audioManager.Call("play_hit_lethal", GlobalPosition);
+            _cachedAudioManager.Call("play_hit_lethal", GlobalPosition);
         }
     }
 
@@ -2742,10 +2758,10 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void PlayHitNonLethalSound()
     {
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_hit_non_lethal"))
+        // #1528 v6: Use cached reference
+        if (_cachedAudioManager != null && _cachedAudioManager.HasMethod("play_hit_non_lethal"))
         {
-            audioManager.Call("play_hit_non_lethal", GlobalPosition);
+            _cachedAudioManager.Call("play_hit_non_lethal", GlobalPosition);
         }
     }
 

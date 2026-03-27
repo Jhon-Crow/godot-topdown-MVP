@@ -204,7 +204,8 @@ func _emit_sound_internal(sound_type: SoundType, position: Vector2, source_type:
 		SourceType.keys()[source_type],
 		propagation_distance
 	])
-	_log_to_file("Sound emitted: type=%s, pos=%s, source=%s (%s), range=%.0f, listeners=%d" % [
+	# #1528 v6: Changed to _log_debug — was ~30 file writes/sec during combat (every sound event × 2 log lines)
+	_log_debug("Sound emitted: type=%s, pos=%s, source=%s (%s), range=%.0f, listeners=%d" % [
 		SoundType.keys()[sound_type],
 		position,
 		SourceType.keys()[source_type],
@@ -239,7 +240,8 @@ func _emit_sound_internal(sound_type: SoundType, position: Vector2, source_type:
 		else:
 			listeners_out_of_range += 1
 
-	_log_to_file("Sound result: notified=%d, out_of_range=%d, self=%d" % [
+	# #1528 v6: Changed to _log_debug — was ~30 file writes/sec during combat
+	_log_debug("Sound result: notified=%d, out_of_range=%d, self=%d" % [
 		listeners_notified, listeners_out_of_range, listeners_skipped_self
 	])
 
