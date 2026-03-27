@@ -207,6 +207,12 @@ func show_animated_score(ui: Control, score_data: Dictionary) -> void:
 	_phase = Phase.COUNTING
 	_skip_requested = false
 
+	# Block Q-key quick-restart while the animation is playing so the player
+	# can always see the Armory button before restarting (Issue #1589).
+	var game_manager := get_node_or_null("/root/GameManager")
+	if game_manager:
+		game_manager.score_screen_active = true
+
 	# Create a semi-transparent background
 	var background := ColorRect.new()
 	background.name = "ScoreBackground"
@@ -785,6 +791,12 @@ func _finalize_animation(container: VBoxContainer) -> void:
 	if _phase == Phase.COMPLETED:
 		return
 	_phase = Phase.COMPLETED
+
+	# Re-enable Q-key quick-restart now that buttons (including the Armory button)
+	# are about to be shown (Issue #1589).
+	var game_manager := get_node_or_null("/root/GameManager")
+	if game_manager:
+		game_manager.score_screen_active = false
 
 	_show_restart_hint(container)
 

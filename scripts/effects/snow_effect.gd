@@ -32,14 +32,25 @@ var emitting: bool = false:
 		if _flakes_small:
 			_flakes_small.emitting = value
 
+## Whether time is currently stopped (e.g. last chance effect). When true,
+## particle emission is paused and emitter position is not updated.
+var _time_stopped: bool = false
+
 
 func _ready() -> void:
+	# Register in group so LastChanceEffectsManager can find this node reliably
+	# (script resource_path may be empty in exported builds).
+	add_to_group("precipitation_effects")
 	# Snow is always on from the start
 	emitting = true
 	_log("Snow started (continuous mode, world-space emitters)")
 
 
 func _process(_delta: float) -> void:
+	# While time is stopped, do not spawn new flakes or update emitter position.
+	if _time_stopped:
+		return
+
 	# Keep emitters centered on the current camera so new flakes always
 	# spawn within the visible viewport area. Already-spawned flakes remain
 	# at their world positions — the snow does not follow the player.
@@ -51,6 +62,30 @@ func _process(_delta: float) -> void:
 		_flakes_large.global_position = cam_pos
 	if _flakes_small:
 		_flakes_small.global_position = cam_pos
+
+
+## Pauses or resumes particle emission for time-stop effects (e.g. last chance).
+## When paused is true, both particle layers are frozen in place by disabling their
+## process mode — existing particles stay visible, no new ones are spawned.
+## When paused is false, particle processing is restored and emission resumes.
+func set_time_stopped(paused: bool) -> void:
+	if _time_stopped == paused:
+		return
+	_time_stopped = paused
+	if paused:
+		# Disable processing on particle nodes so they freeze in place (existing
+		# particles remain visible) rather than disappearing via emitting = false.
+		if _flakes_large:
+			_flakes_large.process_mode = Node.PROCESS_MODE_DISABLED
+		if _flakes_small:
+			_flakes_small.process_mode = Node.PROCESS_MODE_DISABLED
+	else:
+		# Restore particle processing and resume emission.
+		if _flakes_large:
+			_flakes_large.process_mode = Node.PROCESS_MODE_INHERIT
+		if _flakes_small:
+			_flakes_small.process_mode = Node.PROCESS_MODE_INHERIT
+	_log("Snow %s (time %s)" % ["paused" if paused else "resumed", "stopped" if paused else "resumed"])
 
 
 ## Logs a snow effect message through the FileLogger autoload if available.
