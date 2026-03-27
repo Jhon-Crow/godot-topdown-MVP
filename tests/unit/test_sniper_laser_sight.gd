@@ -16,8 +16,8 @@ const SniperComponent := preload("res://scripts/components/enemy_sniper_componen
 # =============================================================================
 
 func test_laser_max_range_constant() -> void:
-	assert_eq(SniperComponent.LASER_MAX_RANGE, 10000.0,
-		"LASER_MAX_RANGE should be 10000.0 px")
+	assert_eq(SniperComponent.LASER_MAX_RANGE, 15000.0,
+		"LASER_MAX_RANGE should be 15000.0 px")
 
 
 func test_muzzle_local_offset_constant() -> void:
