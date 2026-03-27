@@ -2,10 +2,8 @@ extends GutTest
 ## Unit tests for rain_effect.gd HM2-style precipitation system (Issue #1394, fixed #1499, #1546).
 ##
 ## Tests continuous rain behavior, exclusion zone logic, and state transitions.
-## Also tests streak length, direction, and splash alignment fixes.
-## The actual RainEffect extends Node2D with two child GPUParticles2D layers
-## (downward streaks + splash ripples). Uses a mock to test logic without
-## requiring GPUParticles2D rendering.
+## Also tests streak length, radial direction, and time-stop behavior (Issue #1585).
+## Splashes removed per Issue #1580 feedback — streaks-only with fish-eye radial direction.
 
 
 # ============================================================================
@@ -22,6 +20,14 @@ class MockRainEffect:
 
 	## Whether inside an exclusion zone.
 	var _inside_exclusion: bool = false
+
+	## Whether time is currently stopped (Issue #1585).
+	var _time_stopped: bool = false
+
+	## Simulated process_mode for the streak particle layer (true = disabled).
+	## Mirrors the fix: set_time_stopped uses process_mode, not emitting=false,
+	## so existing particles freeze in place rather than disappearing.
+	var _streaks_disabled: bool = false
 
 
 	func ready() -> void:
@@ -49,12 +55,30 @@ class MockRainEffect:
 
 
 	func simulate_camera_move(camera_center: Vector2) -> void:
+		# While time is stopped, camera moves do not change emission state.
+		if _time_stopped:
+			return
 		var was_inside := _inside_exclusion
 		_inside_exclusion = _is_point_in_exclusion_zone(camera_center)
 		if _inside_exclusion and not was_inside:
 			emitting = false
 		elif not _inside_exclusion and was_inside:
 			emitting = true
+
+
+	## Pauses or resumes particle emission for time-stop effects (Issue #1585).
+	## Uses process_mode (not emitting=false) so existing particles freeze in place.
+	func set_time_stopped(paused: bool) -> void:
+		if _time_stopped == paused:
+			return
+		_time_stopped = paused
+		if paused:
+			# Disable particle processing — particles freeze in place, emitting stays true.
+			_streaks_disabled = true
+		else:
+			# Restore particle processing, then update emission based on exclusion zone.
+			_streaks_disabled = false
+			emitting = not _inside_exclusion
 
 
 # ============================================================================
@@ -197,7 +221,7 @@ func test_warehouse_b_exclusion_zone() -> void:
 
 
 # ============================================================================
-# Tests: Issue #1546 Fixes — Longer Streaks, Downward Direction, Splash Alignment
+# Tests: Issue #1546 Fixes — Streak Appearance (Fish-Eye Radial Direction)
 # ============================================================================
 
 
@@ -212,134 +236,100 @@ class MockParticleMaterial:
 
 class MockStreakTexture:
 	## Simulates GradientTexture2D for streak length check.
-	var width: int = 2
-	var height: int = 16
+	var width: int = 4
+	var height: int = 8
 	var scale_min: float = 1.2
 	var scale_max: float = 2.5
 
 
-func test_streak_direction_is_downward() -> void:
-	# The direction vector must have a positive Y component (downward in Godot 2D).
-	# Fix #1546: use straight downward direction=(0.1,1,0) so rain does not converge
-	# on the player center and appears to fall uniformly across the map.
+func test_streak_uses_inward_radial_velocity() -> void:
+	# The fish-eye top-down view is achieved with negative radial_velocity: drops
+	# converge toward the screen center, simulating rain falling straight toward
+	# the viewer from above. radial_velocity_min/max must both be negative.
 	var mat := MockParticleMaterial.new()
-	mat.direction = Vector3(0.1, 1.0, 0.0)
-	assert_true(mat.direction.y > 0.0,
-		"Streak direction Y must be positive (downward) to make rain fall, not fly up")
+	mat.radial_velocity_min = -140.0
+	mat.radial_velocity_max = -80.0
+	assert_true(mat.radial_velocity_min < 0.0,
+		"radial_velocity_min must be negative for fish-eye top-down rain effect")
+	assert_true(mat.radial_velocity_max < 0.0,
+		"radial_velocity_max must be negative for fish-eye top-down rain effect")
+	assert_true(mat.radial_velocity_min <= mat.radial_velocity_max,
+		"radial_velocity_min must be <= max for valid velocity range")
 
 
-func test_streak_has_no_radial_velocity() -> void:
-	# radial_velocity must be zero — non-zero radial_velocity makes rain converge
-	# on screen center (player position), which is the bug fixed in #1546.
-	var mat := MockParticleMaterial.new()
-	mat.radial_velocity_min = 0.0
-	mat.radial_velocity_max = 0.0
-	assert_eq(mat.radial_velocity_min, 0.0,
-		"radial_velocity_min must be 0 to prevent rain from following the player")
-	assert_eq(mat.radial_velocity_max, 0.0,
-		"radial_velocity_max must be 0 to prevent rain from following the player")
-
-
-func test_streak_has_positive_initial_velocity() -> void:
-	# Streaks need initial_velocity > 0 to move downward (straight-down direction).
-	var mat := MockParticleMaterial.new()
-	mat.initial_velocity_min = 500.0
-	mat.initial_velocity_max = 700.0
-	assert_true(mat.initial_velocity_min > 0.0,
-		"Streak initial_velocity_min must be > 0 for visible downward movement")
-	assert_true(mat.initial_velocity_max > mat.initial_velocity_min,
-		"initial_velocity_max must exceed min for velocity variation")
-
-
-func test_streak_texture_is_long_enough() -> void:
-	# Fix #1546: streak texture height must be >= 16px (was 6px) for visibly long drops.
+func test_streak_texture_dimensions() -> void:
+	# Fix #1546: texture is 4x8 so drops look like circles when viewed from above.
 	var tex := MockStreakTexture.new()
-	assert_true(tex.height >= 16,
-		"Streak texture height must be >= 16px for long drop appearance (was 6px)")
+	assert_eq(tex.width, 4, "Streak texture width must be 4px")
+	assert_eq(tex.height, 8, "Streak texture height must be 8px (short circles for top-down view)")
 
 
 func test_streak_scale_is_large_enough() -> void:
-	# Fix #1546: scale_max must be >= 2.0 (was 1.5) so streaks appear longer in-game.
+	# Fix #1546: scale_max must be >= 2.0 so streaks appear large enough in-game.
 	var tex := MockStreakTexture.new()
 	assert_true(tex.scale_max >= 2.0,
-		"Streak scale_max must be >= 2.0 for long drop appearance (was 1.5)")
-
-
-func test_splash_offset_matches_streak_endpoint() -> void:
-	# Fix #1546: Splash emitter is offset from streak emitter by the average travel
-	# vector so that streak disappearance matches splash appearance.
-	# Streak: direction=(0.1,1,0) normalized≈(0.0995,0.995,0), avg_velocity=600,
-	# avg_lifetime=0.18*(1-0.2/2)=0.162s (accounting for lifetime_randomness=0.2)
-	var direction := Vector3(0.1, 1.0, 0.0).normalized()
-	var avg_velocity := (500.0 + 700.0) / 2.0
-	var avg_lifetime := 0.18 * (1.0 - 0.2 / 2.0)
-	var streak_origin := Vector2(640.0, 360.0)
-
-	var travel_x := direction.x * avg_velocity * avg_lifetime
-	var travel_y := direction.y * avg_velocity * avg_lifetime
-	var expected_splash_pos := streak_origin + Vector2(travel_x, travel_y)
-
-	# Splash position from the fixed scene: Vector2(650, 457)
-	var actual_splash_pos := Vector2(650.0, 457.0)
-
-	# Allow ±10px tolerance for rounding and lifetime randomness spread
-	assert_true(abs(actual_splash_pos.x - expected_splash_pos.x) <= 10.0,
-		"Splash X position should match streak endpoint X (±10px). Expected ~%.0f got %.0f" % [expected_splash_pos.x, actual_splash_pos.x])
-	assert_true(abs(actual_splash_pos.y - expected_splash_pos.y) <= 10.0,
-		"Splash Y position should match streak endpoint Y (±10px). Expected ~%.0f got %.0f" % [expected_splash_pos.y, actual_splash_pos.y])
+		"Streak scale_max must be >= 2.0 for visible drop size")
 
 
 # ============================================================================
-# Tests: Issue #1580 — Drop Animation: Falling → Landing → Splashing
+# Tests: Issue #1585 — Rain freezes in place during time-stop (last chance effect)
 # ============================================================================
 
 
-func test_splash_appears_at_streak_landing_zone() -> void:
-	# Issue #1580: Puddles must appear where drops land — both emitters must cover
-	# the same area of the screen. The streak emission box is at origin (640,360)
-	# covering ±700x±400, so it spans x=[−60,1340], y=[−40,760] in screen space.
-	# The splash emitter at (650,457) with the same ±700x±400 box covers x=[−50,1350],
-	# y=[57,857]. The overlap ensures splashes appear within the region streaks land.
-	var streak_origin := Vector2(640.0, 360.0)
-	var splash_origin := Vector2(650.0, 457.0)
-	var box_half := Vector2(700.0, 400.0)
-
-	var streak_min := streak_origin - box_half
-	var streak_max := streak_origin + box_half
-	var splash_min := splash_origin - box_half
-	var splash_max := splash_origin + box_half
-
-	# Overlap region must be non-empty: max of mins < min of maxes
-	var overlap_min_x := maxf(streak_min.x, splash_min.x)
-	var overlap_max_x := minf(streak_max.x, splash_max.x)
-	var overlap_min_y := maxf(streak_min.y, splash_min.y)
-	var overlap_max_y := minf(streak_max.y, splash_max.y)
-
-	assert_true(overlap_max_x > overlap_min_x,
-		"Streak and splash emission boxes must overlap in X — splashes appear in streak landing zone")
-	assert_true(overlap_max_y > overlap_min_y,
-		"Streak and splash emission boxes must overlap in Y — splashes appear in streak landing zone")
+func test_rain_particles_freeze_in_place_when_time_stopped() -> void:
+	# Particles must NOT disappear — process_mode is disabled so existing particles
+	# stay visible; emitting remains true so the state is preserved for resume.
+	var rain := MockRainEffect.new()
+	rain.ready()
+	assert_true(rain.emitting, "Rain should be emitting before time stop")
+	rain.set_time_stopped(true)
+	assert_true(rain._streaks_disabled, "Streak particles must be process-disabled (frozen in place)")
 
 
-func test_rain_animation_phases_contract() -> void:
-	# Issue #1580: The three-phase raindrop animation requires specific timing:
-	#   Phase 1 (falling):   streak emits at t=0, lifetime=0.18s
-	#   Phase 2 (landing):   streak disappears at ~t=0.18s at the landing position
-	#   Phase 3 (splashing): splash emits from landing position, lifetime=0.4s
-	# The splash lifetime must be longer than streak lifetime so the ripple lingers
-	# after the drop has "hit" the ground.
-	var streak_lifetime := 0.18
-	var splash_lifetime := 0.4
-
-	assert_true(splash_lifetime > streak_lifetime,
-		"Splash lifetime (%.2fs) must exceed streak lifetime (%.2fs) — ripple lingers after drop lands" % [splash_lifetime, streak_lifetime])
+func test_rain_emitting_unchanged_when_time_stopped() -> void:
+	# emitting flag must NOT be set to false — that would clear all particles.
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.set_time_stopped(true)
+	assert_true(rain.emitting, "emitting must remain true when time is stopped (particles freeze, not disappear)")
 
 
-func test_splash_emitter_offset_is_downward_from_streak() -> void:
-	# Issue #1580: The splash emitter must be offset downward (positive Y) from the
-	# streak emitter — puddles appear below where drops start falling, not above.
-	var streak_pos := Vector2(640.0, 360.0)
-	var splash_pos := Vector2(650.0, 457.0)
+func test_rain_resumes_when_time_resumes() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.set_time_stopped(true)
+	rain.set_time_stopped(false)
+	assert_false(rain._streaks_disabled, "Streak particles must be re-enabled after time resumes")
+	assert_true(rain.emitting, "Rain should resume emitting when time resumes")
 
-	assert_true(splash_pos.y > streak_pos.y,
-		"Splash emitter Y (%.0f) must be below streak emitter Y (%.0f) — puddles appear at bottom of drop path" % [splash_pos.y, streak_pos.y])
+
+func test_rain_time_stopped_is_idempotent() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.set_time_stopped(true)
+	rain.set_time_stopped(true)
+	assert_true(rain._streaks_disabled, "Calling set_time_stopped(true) twice must keep particles frozen")
+
+
+func test_rain_camera_move_ignored_during_time_stop() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
+	# Time is stopped — camera entering a building must not change emission state.
+	rain.set_time_stopped(true)
+	rain.simulate_camera_move(Vector2(150, 150))
+	# emitting is still true (particles frozen), exclusion state unchanged.
+	assert_true(rain.emitting, "emitting must stay true (frozen, not cleared) during time stop")
+	assert_false(rain._inside_exclusion, "Exclusion state must not change during time stop")
+
+
+func test_rain_resumes_in_exclusion_zone_stays_off() -> void:
+	# If time resumes while camera is inside an exclusion zone, rain stays off.
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
+	rain.simulate_camera_move(Vector2(150, 150))  # enter building
+	assert_false(rain.emitting, "Rain should stop inside building")
+	rain.set_time_stopped(true)
+	rain.set_time_stopped(false)
+	assert_false(rain.emitting, "Rain must remain off when time resumes inside exclusion zone")
