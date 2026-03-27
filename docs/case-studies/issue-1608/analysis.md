@@ -110,7 +110,24 @@
 
 **Key finding in Log 4:** The executable path is identical to all previous logs: `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe`. The reporter appears to have tried the level twice (loaded BeachLevel at 09:30:41 and again at 09:30:47), but is still using the same old downloaded binary. The fourth log provides the same diagnostic fingerprint: zero `[WaterBody]` entries in the entire log, no `[LastChance] Precipitation paused: WaterBody` after the freeze.
 
-**Conclusion across all 4 logs:** Every game log submitted by the reporter was generated from the same pre-built Windows executable at `I:/Загрузки/godot exe/ОСадКИ/` (Downloads folder). None of them were built from the fixed source code in `issue-1608-32da689d6e29`. The reporter needs to build from source to test the fix.
+### Log 5: `game_log_20260327_105401.txt`
+**Build:** Same pre-built binary `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe`
+**Levels played:** LabyrinthLevel → BeachLevel (multiple freeze events triggered)
+**Reporter note:** "не останавливается" (not stopping)
+
+| Time | Level | Event |
+|------|-------|-------|
+| 10:54:01 | (startup) | Game started — **same binary** `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe` |
+| 10:54:08 | BeachLevel | `[BeachLevel] Water node found OK — visual=true shader=true collision=true pos=(1264, 242)` (first visit) |
+| 10:54:13 | BeachLevel | `[BeachLevel] Water node found OK — visual=true shader=true collision=true pos=(1264, 242)` (second load) |
+| 10:54:19 | BeachLevel | `[LastChance] Froze existing grenade: VOGGrenade` — freeze triggered |
+| 10:54:19 | BeachLevel | `[LastChance] Froze all nodes except player and autoloads` |
+| 10:54:19 | BeachLevel | **ZERO WaterBody log entries in entire log** ← old binary confirmed |
+| 10:54:19 | BeachLevel | **NO "Precipitation paused: WaterBody" logged** ← same bug as all previous logs |
+
+**Key finding in Log 5:** Identical diagnostic fingerprint to Logs 1–4. Zero `[WaterBody]` entries in the 987-line log (not even `[WaterBody] Ready` from `_ready()`). The WaterBody node is confirmed present (`[BeachLevel] Water node found OK`), but this is the same pre-built binary that predates PR #1592 and does not include `add_to_group("precipitation_effects")` in `water_body.gd._ready()`.
+
+**Conclusion across all 5 logs:** Every game log submitted by the reporter was generated from the same pre-built Windows executable at `I:/Загрузки/godot exe/ОСадКИ/` (Downloads folder). None of them were built from the fixed source code in `issue-1608-32da689d6e29`. The reporter needs to build from source to test the fix.
 
 ---
 
@@ -274,3 +291,4 @@ Add a `uniform bool time_stopped = false` to the shader. When `true`, replace al
 - `docs/case-studies/issue-1608/logs/game_log_20260327_084542.txt` — second game log from reporter (same old binary, confirms binary pre-dates PR #1592)
 - `docs/case-studies/issue-1608/logs/game_log_20260327_091144.txt` — third game log from reporter (same old binary, third confirmation that this is a pre-PR #1592 downloaded executable)
 - `docs/case-studies/issue-1608/logs/game_log_20260327_093030.txt` — fourth game log from reporter (same old binary, fourth confirmation — reporter tried the level twice in this session)
+- `docs/case-studies/issue-1608/logs/game_log_20260327_105401.txt` — fifth game log from reporter (same old binary, fifth confirmation — reporter tried BeachLevel twice with multiple freeze triggers)
