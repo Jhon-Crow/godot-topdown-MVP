@@ -28,6 +28,11 @@
 **Levels played:** directly to BeachLevel
 **Reporter note:** "всё ещё не останавливается" (still not stopping)
 
+### Log 3: `game_log_20260327_091144.txt`
+**Build:** Same pre-built binary `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe`
+**Levels played:** LabyrinthLevel → other levels → BeachLevel
+**Reporter note:** "не останавливается" (not stopping)
+
 ---
 
 ## Timeline of Events (from Log 1: game_log_20260327_080021.txt)
@@ -68,6 +73,21 @@
 | 08:46:13 | BeachLevel | Last chance ended |
 
 **Key finding in Log 2:** Zero WaterBody log entries in the ENTIRE log — not even `[WaterBody] Ready` from `_ready()`. This conclusively proves both logs are from a **pre-PR #1592 binary** that does not include `add_to_group("precipitation_effects")` in WaterBody's `_ready()`. The user is testing with an old downloaded executable.
+
+## Timeline of Events (from Log 3: game_log_20260327_091144.txt)
+
+| Time | Level | Event |
+|------|-------|-------|
+| 09:11:44 | (startup) | Game started — **same binary** `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe` |
+| 09:11:58 | BeachLevel | Level loaded |
+| 09:11:58 | BeachLevel | `[BeachLevel] Water node found OK — visual=true shader=true collision=true pos=(1264, 242)` |
+| 09:12:03 | BeachLevel | Grenade explosion → Last chance triggered (2s freeze, trigger: grenade explosion) |
+| 09:12:03 | BeachLevel | `[LastChance] Froze all nodes except player and autoloads` |
+| 09:12:03 | BeachLevel | **NO "Precipitation paused: WaterBody" logged** ← same bug as Logs 1 & 2 |
+| 09:12:03 | BeachLevel | **ZERO WaterBody log entries in entire log** ← old binary confirmed |
+| 09:12:05 | BeachLevel | Last chance ended |
+
+**Key finding in Log 3:** Identical pattern to Logs 1 and 2. The executable path is identical: `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe`. This is still the old downloaded binary — not a build from the `issue-1608-32da689d6e29` branch. All three logs confirm the same pre-PR #1592 binary.
 
 ---
 
@@ -229,3 +249,4 @@ Add a `uniform bool time_stopped = false` to the shader. When `true`, replace al
 - `docs/case-studies/issue-1608/analysis.md` — this document
 - `docs/case-studies/issue-1608/logs/game_log_20260327_080021.txt` — first game log from reporter
 - `docs/case-studies/issue-1608/logs/game_log_20260327_084542.txt` — second game log from reporter (same old binary, confirms binary pre-dates PR #1592)
+- `docs/case-studies/issue-1608/logs/game_log_20260327_091144.txt` — third game log from reporter (same old binary, third confirmation that this is a pre-PR #1592 downloaded executable)
