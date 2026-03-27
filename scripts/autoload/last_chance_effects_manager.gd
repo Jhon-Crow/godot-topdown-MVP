@@ -489,6 +489,9 @@ func _freeze_time() -> void:
 
 	_log("Froze all nodes except player and autoloads (including GameManager for quick restart)")
 
+	# Pause precipitation effects (rain, snow, water waves) — Issue #1585.
+	_set_precipitation_time_stopped(true)
+
 	# This manager uses PROCESS_MODE_ALWAYS to keep running the timer
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
@@ -789,6 +792,21 @@ func _unfreeze_time() -> void:
 
 	# Unfreeze any explosion visual effect containers that were frozen during the time freeze (Issue #505)
 	_unfreeze_explosion_visuals()
+
+	# Resume precipitation effects (rain, snow, water waves) — Issue #1585.
+	_set_precipitation_time_stopped(false)
+
+
+## Pauses or resumes precipitation effects (rain, snow, water waves) — Issue #1585.
+## Uses the "precipitation_effects" group to find RainEffect, SnowEffect, and WaterBody
+## nodes. Group lookup is reliable in both debug and exported builds (unlike
+## script.resource_path which may be empty in exported PCK files).
+func _set_precipitation_time_stopped(paused: bool) -> void:
+	var nodes: Array[Node] = get_tree().get_nodes_in_group("precipitation_effects")
+	for node in nodes:
+		if node.has_method("set_time_stopped"):
+			node.set_time_stopped(paused)
+			_log("Precipitation %s: %s" % ["paused" if paused else "resumed", node.name])
 
 
 ## Restores all stored original process modes.
