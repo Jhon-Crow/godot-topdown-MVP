@@ -34,6 +34,21 @@ enum RoomType { LABYRINTH, BUILDING, BEACH, DOCKS, CITY }
 # Minimal map generator (mirrors roguelike_level.gd logic for testing)
 # ============================================================================
 
+## Issue #1451: BFS distance helper for sorting dead ends by graph distance.
+func _bfs_distances_test(rooms: Array, source: int) -> Dictionary:
+	var dist: Dictionary = {source: 0}
+	var queue: Array = [source]
+	var head: int = 0
+	while head < queue.size():
+		var current: int = queue[head]
+		head += 1
+		for neighbor in rooms[current]["connections"]:
+			if not dist.has(neighbor):
+				dist[neighbor] = dist[current] + 1
+				queue.append(neighbor)
+	return dist
+
+
 ## Generate an Isaac-style grid map (simplified for testing, same algorithm).
 func _generate_test_map(room_count: int, room_types_pool: Array) -> Array:
 	var grid: Dictionary = {}
@@ -112,9 +127,11 @@ func _generate_test_map(room_count: int, room_types_pool: Array) -> Array:
 		if rooms[i]["connections"].size() == 1:
 			dead_ends.append(i)
 
+	# Issue #1451: Sort by BFS path distance (graph distance), not Euclidean.
+	var bfs_dist: Dictionary = _bfs_distances_test(rooms, 0)
 	dead_ends.sort_custom(func(a, b):
-		var da: float = Vector2(rooms[a]["grid_pos"]).distance_to(Vector2(start_pos))
-		var db: float = Vector2(rooms[b]["grid_pos"]).distance_to(Vector2(start_pos))
+		var da: int = bfs_dist.get(a, 0)
+		var db: int = bfs_dist.get(b, 0)
 		return da > db
 	)
 
@@ -299,7 +316,7 @@ func test_multiple_seeds_produce_valid_maps() -> void:
 
 	for s in range(100):
 		seed(s * 31 + 7)
-		var rooms: Array = _generate_test_map(randi_range(3, 5), types)
+		var rooms: Array = _generate_test_map(randi_range(7, 10), types)
 
 		# Basic validity checks
 		if rooms.size() < 2:
