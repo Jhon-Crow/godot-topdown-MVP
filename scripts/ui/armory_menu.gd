@@ -749,6 +749,8 @@ func _toggle_weapon_accordion() -> void:
 		_apply_accordion_button_default_style(_weapon_accordion_button)
 		for slot in _weapon_overflow_slots:
 			slot.visible = true
+		# Animate progress bars for newly visible overflow weapon slots (Issue #1591)
+		_animate_overflow_slots_progress(_weapon_overflow_slots, false, false)
 	else:
 		_apply_accordion_collapsed_weapons()
 
@@ -772,6 +774,8 @@ func _toggle_grenade_accordion() -> void:
 		_apply_accordion_button_default_style(_grenade_accordion_button)
 		for slot in _grenade_overflow_slots:
 			slot.visible = true
+		# Animate progress bars for newly visible overflow grenade slots (Issue #1591)
+		_animate_overflow_slots_progress(_grenade_overflow_slots, true, false)
 	else:
 		_apply_accordion_collapsed_grenades()
 
@@ -795,6 +799,8 @@ func _toggle_active_item_accordion() -> void:
 		_apply_accordion_button_default_style(_active_item_accordion_button)
 		for slot in _active_item_overflow_slots:
 			slot.visible = true
+		# Animate progress bars for newly visible overflow active item slots (Issue #1591)
+		_animate_overflow_slots_progress(_active_item_overflow_slots, false, true)
 	else:
 		_apply_accordion_collapsed_active_items()
 
@@ -2049,6 +2055,37 @@ func _play_unlock_reveal_animation(slot: PanelContainer, callback: Callable) -> 
 	)
 
 
+## Animate unlock-progress bars for a specific set of overflow slots revealed by accordion expand.
+## Called when an accordion section is opened so the newly visible slots get their bars animated.
+## Issue #1591.
+func _animate_overflow_slots_progress(overflow_slots: Array, is_grenade: bool, is_active_item: bool) -> void:
+	if not _unlock_manager:
+		return
+	var slots_to_animate: Array = []
+	for slot in overflow_slots:
+		if slot.get_meta("is_unlocked", true):
+			continue
+		var progress: float = -1.0
+		var raw_id: String = slot.get_meta("item_id", "")
+		if is_active_item:
+			if _unlock_manager.has_method("get_active_item_unlock_progress"):
+				progress = _unlock_manager.get_active_item_unlock_progress(int(raw_id))
+		elif is_grenade:
+			if _unlock_manager.has_method("get_grenade_unlock_progress"):
+				progress = _unlock_manager.get_grenade_unlock_progress(int(raw_id))
+		else:
+			if _unlock_manager.has_method("get_weapon_unlock_progress"):
+				progress = _unlock_manager.get_weapon_unlock_progress(raw_id)
+		if progress >= 0.0:
+			slots_to_animate.append({"slot": slot, "progress": progress})
+	for i in range(slots_to_animate.size()):
+		var entry: Dictionary = slots_to_animate[i]
+		var delay: float = i * 0.12
+		get_tree().create_timer(delay).timeout.connect(
+			func(): _animate_unlock_progress_bar(entry["slot"], entry["progress"])
+		)
+
+
 ## Animate unlock-progress bars for all visible locked slots on armory open.
 ## Only animates slots that are currently visible (not hidden by accordion).
 ## Covers all unlock condition types: kill-based, multi-level, all-difficulties, and single-level.
@@ -2195,10 +2232,22 @@ func _animate_unlock_progress_bar(slot: PanelContainer, target_progress: float) 
 ## Creates an unlock-progress bar ColorRect at the bottom of a slot (Issue #1591).
 ## The bar grows upward as target_progress increases from 0.0 to 1.0.
 ## Gold color with animated shine overlay to match the armory's condition-met style.
+## The bar is parented to a non-container Control overlay so PanelContainer does not
+## override the anchor-based height (PanelContainer forces all direct children to fill it).
 func _create_unlock_progress_bar(slot: PanelContainer) -> ColorRect:
+	# Use a plain Control as the overlay layer so PanelContainer does not force-fill it.
+	# PanelContainer calls fit_child_in_rect on direct children, overriding anchor_top/bottom.
+	# A Control node inside a PanelContainer is still fit to full rect, but we need the bar
+	# to be a child of that Control — since Control does NOT manage children, anchors work.
+	var overlay_layer := Control.new()
+	overlay_layer.name = "ProgressBarLayer"
+	overlay_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(overlay_layer)
+
 	var bar := ColorRect.new()
 	bar.name = "UnlockProgressBar"
-	# Anchor to bottom of slot, zero height initially
+	# Anchor to bottom of overlay_layer, zero height initially
 	bar.anchor_left = 0.0
 	bar.anchor_right = 1.0
 	bar.anchor_top = 1.0
@@ -2209,7 +2258,7 @@ func _create_unlock_progress_bar(slot: PanelContainer) -> ColorRect:
 	bar.offset_bottom = 0
 	bar.color = Color(0.7, 0.5, 0.05, 0.55)
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	slot.add_child(bar)
+	overlay_layer.add_child(bar)
 	# Add the animated gold shine overlay (same shader as condition-met accordion buttons).
 	var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
 	if shine_shader:
@@ -2217,12 +2266,12 @@ func _create_unlock_progress_bar(slot: PanelContainer) -> ColorRect:
 		mat.shader = shine_shader
 		mat.set_shader_parameter("horizontal_sweep", false)
 		mat.set_shader_parameter("cycle_duration", 3.0)
-		var overlay := ColorRect.new()
-		overlay.name = "GoldShineOverlay"
-		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		overlay.material = mat
-		bar.add_child(overlay)
+		var shine_overlay := ColorRect.new()
+		shine_overlay.name = "GoldShineOverlay"
+		shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		shine_overlay.material = mat
+		bar.add_child(shine_overlay)
 	return bar
 
 
