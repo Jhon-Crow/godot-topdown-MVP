@@ -277,3 +277,62 @@ func _on_drone_operator_dash_ended() -> void:
 `_transition_to_seeking_cover()` calls `_find_cover_position()` immediately to find a new cover point, then `_process_seeking_cover_state()` uses `_move_to_target_nav()` (navmesh-based pathfinding) to route the operator to cover. If no cover is found, it transitions back to COMBAT via the normal `time_in_state >= SEEKING_COVER_MIN_DURATION` check. This ensures the operator uses proper pathfinding after a dash instead of wall-sliding toward corners.
 
 - Log file: `game_log_20260327_084941.txt`
+
+---
+
+## Session 7 — Dash Too Late + Far Cover After Dodge
+
+After Session 6 fix, owner reported two issues (comment 2026-03-27T06:17:31Z):
+1. "рывок срабатывает, но не спасает от пули (слишком поздно)" — dash works but doesn't save from bullet (too late)
+2. "всё ещё враг идёт в одном направлении после уворота" — enemy still goes in one direction after dodging
+
+### Evidence (`game_log_20260327_091519.txt`)
+
+**Issue 1 (dash too late):**
+```
+[09:16:17] [ENEMY] [EnemyDroneOperator] [#1311] Player bullet entered threat sphere — suppression triggered
+[09:16:17] [INFO] [DroneOperator] Sideways evade: dir=(0.88, 0.47)
+[09:16:17] [INFO] [DroneOperator] Dash activated! Dir: (0.88, 0.47), charges left: 3/4
+[09:16:17] [ENEMY] [EnemyDroneOperator] Hit: dmg=2, hp=3/3->1/3   ← hit same timestamp!
+```
+The dash starts and the operator is hit at the same timestamp. The bullet entered the 100px sphere, the dash was triggered (0 reaction delay), but the bullet was still close enough to connect.
+
+**Issue 2 (far cover after dodge):**
+```
+[09:16:17] → Dash at dir=(0.88, 0.47) from ~(540, 568)
+[09:16:21] → Operator shoots from (1775.924, 1175.999) — 1220px away!
+```
+Session 6's `_transition_to_seeking_cover()` found cover at (1775, 1175) — a valid cover (hidden from player) but 1220px away. Operator spent 4 seconds traveling there. Once there, it stays and shoots from that far corner.
+
+### Root Cause Analysis (Session 7)
+
+**Bug 1 — Threat sphere too small:**
+At `threat_sphere_radius=100px` and bullet speed ~1350px/s, a bullet crosses the entire sphere in 74ms. With `reaction_delay=0`, the dash triggers immediately — but the bullet is still inside the sphere flying toward the operator. A 0.15s sidestep at ~375px/s = 56px perpendicular displacement may not be enough if the bullet was already less than 56px off-axis when the dash started.
+
+Increasing the sphere to 200px gives 148ms before the bullet reaches the operator center — enough time for the 56px sidestep to move the hitbox clear of a bullet aimed at the original position.
+
+**Bug 2 — Session 6's seeking-cover sends operator far away:**
+`_transition_to_seeking_cover()` → `_find_cover_position()` picks the **closest** cover point that is hidden from the player. In a large level, "closest hidden cover" can still be 1200px away. After reaching it, the operator is far from the player and gets stuck in a corner shooting from max range.
+
+The real goal after a dash is: **stay in COMBAT at the new position**, not run to distant cover. Resetting `_has_valid_cover = false` is sufficient — COMBAT will call `_find_cover_position()` on the next frame and use the result for its approach cycle.
+
+### Fixes Applied (Session 7)
+
+**Fix 1 — Larger threat sphere for ACTIVE phase:**
+In `drone_operator_component.gd`:
+- Added `ACTIVE_THREAT_SPHERE_RADIUS = 200.0` constant
+- Added `_resize_threat_sphere(radius)` helper that resizes the parent's ThreatSphere CollisionShape2D
+- Called `_resize_threat_sphere(ACTIVE_THREAT_SPHERE_RADIUS)` in `_transition_to_active()`
+
+**Fix 2 — Stay in COMBAT after dash (no far cover travel):**
+In `enemy.gd::_on_drone_operator_dash_ended()`: removed `_transition_to_seeking_cover()` call; replaced with `_has_valid_cover = false` to invalidate cached cover and trigger a fresh nearby search on the next COMBAT frame.
+
+```gdscript
+func _on_drone_operator_dash_ended() -> void:
+    _combat_exposed = false; _combat_approaching = false
+    _seeking_clear_shot = false; _clear_shot_target = Vector2.ZERO
+    _combat_approach_timer = 0.0; _combat_shoot_timer = 0.0
+    _has_valid_cover = false  # Force cover re-search from new post-dash position
+```
+
+- Log file: `game_log_20260327_091519.txt`

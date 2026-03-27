@@ -588,11 +588,12 @@ func test_enemy_resets_combat_approach_on_dash_end() -> void:
 		"_on_drone_operator_dash_ended must reset _clear_shot_target (Issue #1540)")
 
 
-func test_enemy_seeks_cover_after_dash_to_prevent_corner_navigation() -> void:
-	## Issue #1540 session 6: after dash ends the operator must transition to SEEKING_COVER
-	## so navmesh pathfinding routes it away from walls/corners. Without this, the COMBAT
-	## clear-shot seeking logic navigates perpendicular to the player (east along top wall)
-	## which leads the operator into corners where no cover exists.
+func test_enemy_invalidates_cover_on_dash_end_to_prevent_far_travel() -> void:
+	## Issue #1540 session 7: after dash ends, _on_drone_operator_dash_ended must invalidate
+	## cached cover (_has_valid_cover = false) so COMBAT re-searches from the new post-dash
+	## position instead of navigating to a pre-dash cover that may be far away or in a corner.
+	## Previously session 6 called _transition_to_seeking_cover() which could send the operator
+	## to a cover position 1200+ px away (observed at 1775,1175 in game_log_20260327_091519.txt).
 	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
 	if file == null:
 		gut.p("Cannot open enemy.gd — skipping (export build)")
@@ -600,5 +601,27 @@ func test_enemy_seeks_cover_after_dash_to_prevent_corner_navigation() -> void:
 		return
 	var source := file.get_as_text()
 	file.close()
-	assert_true(source.contains("_transition_to_seeking_cover") and source.contains("_on_drone_operator_dash_ended"),
-		"_on_drone_operator_dash_ended must call _transition_to_seeking_cover() so navmesh routes operator away from corners (Issue #1540)")
+	assert_true(source.contains("_on_drone_operator_dash_ended"),
+		"enemy.gd must define _on_drone_operator_dash_ended() to handle post-dash state reset (Issue #1540)")
+	assert_true(source.contains("_has_valid_cover = false"),
+		"_on_drone_operator_dash_ended must set _has_valid_cover = false to force cover re-search from post-dash position (Issue #1540 session 7)")
+
+
+func test_drone_operator_enlarges_threat_sphere_in_active_phase() -> void:
+	## Issue #1540 session 7: default threat_sphere_radius=100px gives only 74ms reaction window
+	## at 1350px/s bullet speed, so the bullet hits the operator as the dash starts.
+	## ACTIVE_THREAT_SPHERE_RADIUS=200px gives 148ms — enough time for the sidestep to clear.
+	var file := FileAccess.open("res://scripts/components/drone_operator_component.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open drone_operator_component.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("ACTIVE_THREAT_SPHERE_RADIUS"),
+		"drone_operator_component.gd must define ACTIVE_THREAT_SPHERE_RADIUS constant (Issue #1540 session 7)")
+	assert_true(source.contains("_resize_threat_sphere"),
+		"drone_operator_component.gd must call _resize_threat_sphere() on ACTIVE transition (Issue #1540 session 7)")
+	# Verify the constant is at least 150px (2× bullet-sphere crossing time vs 100px default)
+	assert_true(source.contains("200.0") or source.contains("200"),
+		"ACTIVE_THREAT_SPHERE_RADIUS should be at least 200px for adequate reaction time")

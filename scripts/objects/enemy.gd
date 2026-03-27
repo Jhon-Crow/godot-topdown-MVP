@@ -1155,9 +1155,9 @@ func _update_suppression(delta: float) -> void:
 		if _threat_reaction_delay_elapsed and not (_force_field_component and _force_field_component.is_active()):
 			if _drone_operator and _drone_operator.should_dash_instead_of_suppress(): _drone_operator.try_dash_from_threat(_bullets_in_threat_sphere, _player, global_position)
 			else: _under_fire = true; _suppression_timer = 0.0
-## Reset COMBAT approach state on dash end (Issue #1540): stale pre-dash targets cause corner-walking; seek cover so navmesh routes away from walls.
+## Reset COMBAT approach state on dash end (#1540): clear stale pre-dash targets; invalidate cover so COMBAT re-evaluates from post-dash position (no seeking-cover — avoids 1220px travel to far cover, session 7).
 func _on_drone_operator_dash_ended() -> void:
-	_combat_exposed = false; _combat_approaching = false; _seeking_clear_shot = false; _clear_shot_target = Vector2.ZERO; _combat_approach_timer = 0.0; _combat_shoot_timer = 0.0; if enable_cover and _current_state == AIState.COMBAT: _transition_to_seeking_cover()
+	_combat_exposed = false; _combat_approaching = false; _seeking_clear_shot = false; _clear_shot_target = Vector2.ZERO; _combat_approach_timer = 0.0; _combat_shoot_timer = 0.0; _has_valid_cover = false
 ## Update reload state.
 func _update_reload(delta: float) -> void:
 	if not _is_reloading: return

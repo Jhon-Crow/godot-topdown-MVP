@@ -32,6 +32,12 @@ const DASH_DURATION: float = 0.15
 ## At combat_move_speed=320 px/s: 320 * 1.25 * 0.15 ≈ 60 px sidestep (within 20-100 px target).
 const DASH_SPEED_MULTIPLIER: float = 1.25
 
+## Enlarged threat sphere radius for ACTIVE phase (Issue #1540 session 7).
+## Default 100px gives only 74ms reaction window at 1350px/s bullet speed — too short for a
+## successful sidestep. 200px gives 148ms, ensuring the dash starts while the bullet is still
+## far enough to miss.
+const ACTIVE_THREAT_SPHERE_RADIUS: float = 200.0
+
 ## Chain window for consecutive dashes.
 const DASH_CHAIN_WINDOW: float = 0.4
 
@@ -511,8 +517,31 @@ func _transition_to_active() -> void:
 	if _parent and _parent.get("_threat_reaction_delay_elapsed") != null:
 		_parent.set("_threat_reaction_delay_elapsed", true)
 
+	# Enlarge threat sphere to ACTIVE_THREAT_SPHERE_RADIUS (Issue #1540 session 7).
+	# The default 100px sphere triggers the dash too late — the bullet is already at the operator.
+	# At 1350px/s, 200px gives 148ms reaction window vs 74ms at 100px.
+	_resize_threat_sphere(ACTIVE_THREAT_SPHERE_RADIUS)
+
 	phase_changed.emit(Phase.ACTIVE)
-	FileLogger.info("[DroneOperator] Phase: ACTIVE (silenced pistol + laser drawn, dash evasion enabled, reaction_delay=0)")
+	FileLogger.info("[DroneOperator] Phase: ACTIVE (silenced pistol + laser drawn, dash evasion enabled, reaction_delay=0, threat_sphere=%.0fpx)" % ACTIVE_THREAT_SPHERE_RADIUS)
+
+
+## Resize the parent's threat sphere to a new radius (Issue #1540 session 7).
+## Called during ACTIVE phase transition to enlarge the sphere for earlier bullet detection.
+func _resize_threat_sphere(new_radius: float) -> void:
+	if _parent == null:
+		return
+	var threat_sphere: Area2D = _parent.get_node_or_null("ThreatSphere") as Area2D
+	if threat_sphere == null:
+		return
+	var col_shape: CollisionShape2D = threat_sphere.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if col_shape == null:
+		return
+	var circle: CircleShape2D = col_shape.shape as CircleShape2D
+	if circle == null:
+		return
+	circle.radius = new_radius
+	FileLogger.info("[DroneOperator] Threat sphere resized to %.0fpx for ACTIVE phase" % new_radius)
 
 
 ## Create a laser sight Line2D on the weapon mount (Issue #1532).
