@@ -6,11 +6,7 @@ extends Node
 ## 1. DEPLOYING: After spawn, seek nearest cover and deploy a drone.
 ## 2. CONTROLLING: While drone is alive, operator is defenseless (no movement, no vision).
 ## 3. ACTIVE: After drone is destroyed, pull out silenced pistol with laser sight
-##    and act as a normal enemy.
-##
-## Special mechanic: When bullets enter the operator's threat sphere (ACTIVE phase only),
-## instead of being suppressed, the operator performs a Dash (like the player's Dash item)
-## to evade. Can perform 4 consecutive dashes, then cooldown (same as player Dash: 1.2s).
+##    and act as a normal enemy. Dodges bullets perpendicular (same as machete enemy).
 
 ## Operator behavior phases.
 enum Phase {
@@ -18,39 +14,6 @@ enum Phase {
 	CONTROLLING,  ## Controlling the drone (defenseless)
 	ACTIVE        ## Drone destroyed, fighting with pistol
 }
-
-## Number of dash charges for evasion.
-const DASH_CHARGES: int = 4
-
-## Dash cooldown duration (same as player Dash).
-const DASH_COOLDOWN: float = 1.2
-
-## Dash duration per dash — short sidestep for a snappy evasion (Issue #1540).
-const DASH_DURATION: float = 0.15
-
-## Dash speed multiplier for the sidestep distance (Issue #1540).
-## At combat_move_speed=320 px/s: 320 * 2.5 * 0.15 = 120 px sidestep — clearly visible evasion.
-## Increased from 1.25 (60px) to 2.5 (120px) after testing showed 60px was not enough to dodge
-## bullets at 1350px/s even with a 200px threat sphere (session 8).
-const DASH_SPEED_MULTIPLIER: float = 2.5
-
-## Enlarged threat sphere radius for ACTIVE phase (Issue #1540 session 7).
-## Default 100px gives only 74ms reaction window at 1350px/s bullet speed — too short for a
-## successful sidestep. 200px gives 148ms, ensuring the dash starts while the bullet is still
-## far enough to miss.
-const ACTIVE_THREAT_SPHERE_RADIUS: float = 200.0
-
-## Chain window for consecutive dashes.
-const DASH_CHAIN_WINDOW: float = 0.4
-
-## Number of afterimage ghosts per dash.
-const AFTERIMAGE_COUNT: int = 4
-
-## Afterimage lifetime.
-const AFTERIMAGE_LIFETIME: float = 0.4
-
-## Afterimage initial alpha.
-const AFTERIMAGE_ALPHA: float = 0.7
 
 ## Time to wait at cover before deploying drone (seconds).
 const DEPLOY_DELAY: float = 0.5
@@ -85,17 +48,9 @@ var _reached_cover: bool = false
 ## Timer for how long we've been seeking cover (deploy anyway if exceeded).
 var _cover_seek_timer: float = 0.0
 
-## Dash state variables.
-var _dash_charges: int = DASH_CHARGES
-var _dash_cooldown_timer: float = 0.0
-var _dash_active: bool = false
-var _dash_timer: float = 0.0
-var _dash_direction: Vector2 = Vector2.ZERO
-var _dash_chain_timer: float = 0.0
-
-## Afterimage spawn timer.
-var _afterimage_timer: float = 0.0
-var _afterimage_interval: float = 0.0
+## MacheteComponent instance used for bullet dodging in ACTIVE phase (Issue #1540).
+## Same dodge logic as the machete enemy — perpendicular lateral dodge, no dash.
+var _dodge_component: MacheteComponent = null
 
 ## VR headset visual node.
 var _vr_headset: Node2D = null
@@ -117,7 +72,6 @@ func _ready() -> void:
 ## Set up the component. Called from enemy._ready().
 func setup() -> void:
 	_phase = Phase.DEPLOYING
-	_dash_charges = DASH_CHARGES
 	_drone_deployed = false
 	_reached_cover = false
 	_deploy_timer = 0.0
@@ -125,7 +79,7 @@ func setup() -> void:
 	_setup_vr_headset_visual()
 	_setup_tablet_visual()
 	_hide_weapon_show_tablet()
-	FileLogger.info("[DroneOperator] Setup complete (dash_charges=%d, cooldown=%.1fs)" % [DASH_CHARGES, DASH_COOLDOWN])
+	FileLogger.info("[DroneOperator] Setup complete")
 
 
 ## Create VR headset visual on the enemy head.
@@ -246,116 +200,31 @@ func get_phase() -> Phase:
 	return _phase
 
 
-## Returns true if the operator is currently dashing (no longer used for damage immunity — #1532 fix #9).
-func is_dashing() -> bool:
-	return _dash_active
-
-
-## Returns the velocity vector that should be used during an active dash.
-## Used by enemy.gd to re-apply dash velocity after _process_ai_state may overwrite it.
-func get_dash_velocity() -> Vector2:
-	if not _dash_active or _parent == null:
-		return Vector2.ZERO
-	var base_speed: float = _parent.get("combat_move_speed") if _parent.get("combat_move_speed") else 320.0
-	return _dash_direction * base_speed * DASH_SPEED_MULTIPLIER
-
-
 ## Returns true if the operator is in the defenseless controlling phase.
 func is_controlling_drone() -> bool:
 	return _phase == Phase.CONTROLLING
 
 
-## Returns true if the operator should override suppression with dash.
-## In ACTIVE phase, always prevent _under_fire — even during cooldown the operator
-## stands its ground instead of retreating to cover (Issue #1540).
-func should_dash_instead_of_suppress() -> bool:
-	return _phase == Phase.ACTIVE
-
-
-## Calculate sideways dash direction and attempt to evade incoming bullets.
-## Called from enemy._update_suppression() when bullets are in threat sphere.
-##
-## Dash strategy (Issue #1540): operator sidesteps PERPENDICULAR to the incoming bullet
-## so it's clearly visible that the bullet passed by. Sidestep distance is ~60 px (20-100 px
-## range) — just enough to see the bullet miss, not a long closing lunge.
-func try_dash_from_threat(bullets_in_sphere: Array, player: Node2D, enemy_pos: Vector2) -> void:
-	# Determine evade direction from the first bullet in sphere (or fall back to player dir)
-	var evade_dir: Vector2 = Vector2.ZERO
-
-	if bullets_in_sphere.size() > 0:
-		var bullet: Node2D = bullets_in_sphere[0] as Node2D
-		if bullet != null and is_instance_valid(bullet):
-			# Bullet's velocity direction gives us the threat axis.
-			# Sidestep perpendicular to it — pick the side that moves away from the player.
-			var bullet_vel: Vector2 = Vector2.ZERO
-			if "velocity" in bullet:
-				bullet_vel = bullet.velocity
-			elif "linear_velocity" in bullet:
-				bullet_vel = bullet.linear_velocity
-
-			if bullet_vel != Vector2.ZERO:
-				var perp_left: Vector2 = bullet_vel.normalized().rotated(-PI * 0.5)
-				var perp_right: Vector2 = bullet_vel.normalized().rotated(PI * 0.5)
-				# Pick the side that moves away from the player
-				if player != null:
-					var to_player: Vector2 = (player.global_position - enemy_pos).normalized()
-					evade_dir = perp_left if perp_left.dot(to_player) < perp_right.dot(to_player) else perp_right
-				else:
-					evade_dir = perp_left
-
-	# Fallback: sidestep perpendicular to the player direction
-	if evade_dir == Vector2.ZERO and player != null:
-		var to_player: Vector2 = (player.global_position - enemy_pos).normalized()
-		evade_dir = to_player.rotated(-PI * 0.5)  # 90° left of the threat axis
-
-	if evade_dir == Vector2.ZERO:
-		return
-
-	FileLogger.info("[DroneOperator] Sideways evade: dir=(%.2f, %.2f)" % [
-		evade_dir.x, evade_dir.y
-	])
-	try_dash(evade_dir)
-
-
-## Attempt to activate a sidestep in a given direction (called when bullets enter threat sphere).
-## Returns true if dash started successfully.
-func try_dash(direction: Vector2) -> bool:
-	if _phase != Phase.ACTIVE:
+## Returns true if the operator is currently dodging a bullet (ACTIVE phase only).
+func is_dodging() -> bool:
+	if _dodge_component == null:
 		return false
-	if _dash_active:
+	return _dodge_component.is_dodging()
+
+
+## Try to dodge a bullet. Delegates to MacheteComponent logic.
+## bullet_direction: normalized direction the bullet is traveling.
+func try_dodge(bullet_direction: Vector2) -> bool:
+	if _phase != Phase.ACTIVE or _dodge_component == null:
 		return false
-	if _dash_charges <= 0 and _dash_cooldown_timer > 0.0:
-		return false
+	return _dodge_component.try_dodge(bullet_direction)
 
-	if direction == Vector2.ZERO:
-		# Dash away from the nearest bullet direction
-		if _parent:
-			direction = Vector2.RIGHT.rotated(_parent.rotation + PI)
-		else:
-			return false
 
-	_dash_direction = direction.normalized()
-	_dash_active = true
-	_dash_timer = DASH_DURATION
-	_dash_chain_timer = 0.0
-	_afterimage_timer = 0.0
-	_afterimage_interval = DASH_DURATION / float(AFTERIMAGE_COUNT) if AFTERIMAGE_COUNT > 0 else DASH_DURATION
-
-	_dash_charges -= 1
-
-	# Apply dash velocity
-	if _parent and "velocity" in _parent:
-		var base_speed: float = _parent.get("combat_move_speed") if _parent.get("combat_move_speed") else 320.0
-		_parent.velocity = _dash_direction * base_speed * DASH_SPEED_MULTIPLIER
-
-	FileLogger.info("[DroneOperator] Dash activated! Dir: (%.2f, %.2f), charges left: %d/%d" % [
-		_dash_direction.x, _dash_direction.y, _dash_charges, DASH_CHARGES
-	])
-
-	# Spawn first afterimage immediately
-	_spawn_afterimage()
-
-	return true
+## Get current dodge velocity. Returns Vector2.ZERO if not dodging.
+func get_dodge_velocity() -> Vector2:
+	if _dodge_component == null:
+		return Vector2.ZERO
+	return _dodge_component.get_dodge_velocity()
 
 
 ## DEPLOYING phase: seek cover and deploy drone.
@@ -474,8 +343,6 @@ var _laser_sight: Line2D = null
 ## Transition to ACTIVE phase with silenced pistol.
 func _transition_to_active() -> void:
 	_phase = Phase.ACTIVE
-	_dash_charges = DASH_CHARGES
-	_dash_cooldown_timer = 0.0
 
 	# Show weapon, hide tablet
 	_show_weapon_hide_tablet()
@@ -509,41 +376,28 @@ func _transition_to_active() -> void:
 	elif _parent and _parent.get("_current_state") != null:
 		_parent._current_state = 1  # AIState.COMBAT
 
-	# Set threat reaction delay to 0 so the operator dashes immediately on the first bullet
-	# (Issue #1532 fix #4): default delay=0.2s is too slow — at 1350px/s bullet speed the bullet
-	# crosses the 100px threat sphere in ~74ms, so a 200ms delay means the bullet already hit.
-	if _parent and _parent.get("threat_reaction_delay") != null:
-		_parent.set("threat_reaction_delay", 0.0)
-
-	# Also immediately mark reaction delay elapsed so the very first bullet triggers a dash
-	if _parent and _parent.get("_threat_reaction_delay_elapsed") != null:
-		_parent.set("_threat_reaction_delay_elapsed", true)
-
-	# Enlarge threat sphere to ACTIVE_THREAT_SPHERE_RADIUS (Issue #1540 session 7).
-	# The default 100px sphere triggers the dash too late — the bullet is already at the operator.
-	# At 1350px/s, 200px gives 148ms reaction window vs 74ms at 100px.
-	_resize_threat_sphere(ACTIVE_THREAT_SPHERE_RADIUS)
+	# Set up MacheteComponent for bullet dodging (Issue #1540).
+	# Reuses the same perpendicular-dodge logic as the machete enemy — no dash, just a lateral
+	# sidestep when a bullet enters the threat sphere.
+	_setup_dodge_component()
 
 	phase_changed.emit(Phase.ACTIVE)
-	FileLogger.info("[DroneOperator] Phase: ACTIVE (silenced pistol + laser drawn, dash evasion enabled, reaction_delay=0, threat_sphere=%.0fpx)" % ACTIVE_THREAT_SPHERE_RADIUS)
+	FileLogger.info("[DroneOperator] Phase: ACTIVE (silenced pistol + laser, machete-style dodge)")
 
 
-## Resize the parent's threat sphere to a new radius (Issue #1540 session 7).
-## Called during ACTIVE phase transition to enlarge the sphere for earlier bullet detection.
-func _resize_threat_sphere(new_radius: float) -> void:
-	if _parent == null:
-		return
-	var threat_sphere: Area2D = _parent.get_node_or_null("ThreatSphere") as Area2D
-	if threat_sphere == null:
-		return
-	var col_shape: CollisionShape2D = threat_sphere.get_node_or_null("CollisionShape2D") as CollisionShape2D
-	if col_shape == null:
-		return
-	var circle: CircleShape2D = col_shape.shape as CircleShape2D
-	if circle == null:
-		return
-	circle.radius = new_radius
-	FileLogger.info("[DroneOperator] Threat sphere resized to %.0fpx for ACTIVE phase" % new_radius)
+## Create and configure a MacheteComponent for bullet dodging in ACTIVE phase (Issue #1540).
+func _setup_dodge_component() -> void:
+	if _dodge_component != null:
+		return  # Already set up
+	_dodge_component = MacheteComponent.new()
+	_dodge_component.name = "DodgeComponent"
+	# Configure dodge parameters (same as machete defaults)
+	_dodge_component.dodge_speed = 400.0
+	_dodge_component.dodge_distance = 120.0
+	_dodge_component.dodge_cooldown = 1.2
+	_dodge_component.debug_logging = false
+	add_child(_dodge_component)
+	FileLogger.info("[DroneOperator] Dodge component set up (machete-style, speed=400, distance=120)")
 
 
 ## Create a laser sight Line2D on the weapon mount (Issue #1532).
@@ -574,128 +428,11 @@ func _update_laser_sight(_delta: float) -> void:
 	_laser_sight.default_color = Color(1.0, 0.0, 0.0, pulse)
 
 
-## ACTIVE phase: normal combat + dash evasion instead of suppression.
+## ACTIVE phase: normal combat + bullet dodging (same as machete enemy).
 func _update_active(delta: float) -> void:
 	# Update laser sight pulse (Issue #1532)
 	_update_laser_sight(delta)
 
-	# Update dash cooldown
-	if _dash_cooldown_timer > 0.0:
-		_dash_cooldown_timer -= delta
-		if _dash_cooldown_timer <= 0.0:
-			_dash_cooldown_timer = 0.0
-			_dash_charges = DASH_CHARGES
-			FileLogger.info("[DroneOperator] Dash cooldown finished, charges restored: %d" % DASH_CHARGES)
-
-	# Update chain window timer
-	if not _dash_active and _dash_chain_timer > 0.0:
-		_dash_chain_timer -= delta
-		if _dash_chain_timer <= 0.0:
-			_dash_chain_timer = 0.0
-			# Chain window expired — start cooldown if charges remain
-			if _dash_charges > 0 and _dash_charges < DASH_CHARGES:
-				_dash_charges = 0
-			if _dash_charges <= 0 and _dash_cooldown_timer <= 0.0:
-				_dash_cooldown_timer = DASH_COOLDOWN
-				FileLogger.info("[DroneOperator] Dash chain window expired, cooldown started: %.1fs" % DASH_COOLDOWN)
-
-	# Update active dash
-	if _dash_active:
-		_update_dash(delta)
-
-
-## Update active dash state.
-func _update_dash(delta: float) -> void:
-	_dash_timer -= delta
-
-	# Spawn afterimages at intervals
-	_afterimage_timer += delta
-	if _afterimage_timer >= _afterimage_interval:
-		_afterimage_timer -= _afterimage_interval
-		_spawn_afterimage()
-
-	# Maintain dash velocity
-	if _parent and "velocity" in _parent:
-		var base_speed: float = _parent.get("combat_move_speed") if _parent.get("combat_move_speed") else 320.0
-		_parent.velocity = _dash_direction * base_speed * DASH_SPEED_MULTIPLIER
-
-	# End dash when timer expires
-	if _dash_timer <= 0.0:
-		_end_dash()
-
-
-## End the current dash.
-func _end_dash() -> void:
-	_dash_active = false
-	_dash_timer = 0.0
-
-	# Zero out velocity so AI re-evaluates movement from the post-dash position (Issue #1540).
-	# Keeping residual dash velocity here pushed the operator into corners after the sidestep.
-	if _parent and "velocity" in _parent:
-		_parent.velocity = Vector2.ZERO
-
-	if _dash_charges <= 0:
-		_dash_cooldown_timer = DASH_COOLDOWN
-		FileLogger.info("[DroneOperator] Dash ended (all charges spent). Cooldown: %.1fs" % DASH_COOLDOWN)
-	else:
-		_dash_chain_timer = DASH_CHAIN_WINDOW
-		FileLogger.info("[DroneOperator] Dash ended. %d charges left, chain window: %.1fs" % [_dash_charges, DASH_CHAIN_WINDOW])
-
-	# Notify the parent enemy to reset stale COMBAT approach state (Issue #1540).
-	# After a dash the operator is at a new position; stale approach targets computed before
-	# the dash may point into walls/corners and cause the operator to get stuck there.
-	if _parent and _parent.has_method("_on_drone_operator_dash_ended"):
-		_parent._on_drone_operator_dash_ended()
-
-
-## Spawn an afterimage at the operator's current position.
-func _spawn_afterimage() -> void:
-	if _parent == null or not is_instance_valid(_parent):
-		return
-
-	var model: Node2D = _parent.get_node_or_null("EnemyModel") as Node2D
-	if model == null:
-		return
-
-	var ghost_container := Node2D.new()
-	ghost_container.global_position = _parent.global_position
-	ghost_container.z_index = _parent.z_index
-
-	var sprites_added: int = 0
-	for child in model.get_children():
-		if child is Sprite2D and child.visible:
-			var ghost_sprite := Sprite2D.new()
-			ghost_sprite.texture = child.texture
-			ghost_sprite.position = child.position
-			ghost_sprite.rotation = child.rotation
-			ghost_sprite.scale = child.scale
-			ghost_sprite.flip_h = child.flip_h
-			ghost_sprite.flip_v = child.flip_v
-			ghost_sprite.offset = child.offset
-			ghost_sprite.hframes = child.hframes
-			ghost_sprite.vframes = child.vframes
-			ghost_sprite.frame = child.frame
-			ghost_sprite.region_enabled = child.region_enabled
-			if child.region_enabled:
-				ghost_sprite.region_rect = child.region_rect
-			ghost_container.add_child(ghost_sprite)
-			sprites_added += 1
-
-	if sprites_added == 0:
-		ghost_container.queue_free()
-		return
-
-	ghost_container.rotation = model.global_rotation
-
-	# Orange-red tint for drone operator dash trail (distinct from player's cyan-blue)
-	ghost_container.modulate = Color(1.0, 0.4, 0.1, AFTERIMAGE_ALPHA)
-
-	var parent_node: Node = _parent.get_parent()
-	if parent_node == null:
-		ghost_container.queue_free()
-		return
-	parent_node.add_child(ghost_container)
-
-	var tween: Tween = ghost_container.create_tween()
-	tween.tween_property(ghost_container, "modulate:a", 0.0, AFTERIMAGE_LIFETIME)
-	tween.tween_callback(ghost_container.queue_free)
+	# Update dodge component
+	if _dodge_component != null:
+		_dodge_component.update(delta)

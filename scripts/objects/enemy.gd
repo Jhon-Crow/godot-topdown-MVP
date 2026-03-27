@@ -915,7 +915,7 @@ func _physics_process(delta: float) -> void:
 			_debug_draw_timer += delta
 			if _debug_draw_timer >= DEBUG_DRAW_INTERVAL: _debug_draw_timer = 0.0; queue_redraw()  # Issue #1220: throttle to 10 Hz
 		return
-	_process_ai_state(delta); if _drone_operator and _drone_operator.is_dashing(): velocity = _drone_operator.get_dash_velocity()  # Issue #1540: re-apply dash velocity after AI state (AI may zero velocity)
+	_process_ai_state(delta); if _drone_operator and _drone_operator.is_dodging(): velocity = _drone_operator.get_dodge_velocity()  # Issue #1540: drone operator machete-style dodge overrides AI velocity
 	_update_debug_label()
 	if debug_label_enabled:  # Issue #1220: throttle FOV cone redraws to 10 Hz (was every frame → 33 raycasts/enemy/frame at 60 fps)
 		_debug_draw_timer += delta
@@ -1151,13 +1151,9 @@ func _update_suppression(delta: float) -> void:
 			if _threat_reaction_timer >= threat_reaction_delay:
 				_threat_reaction_delay_elapsed = true
 				_log_debug("Threat reaction delay elapsed, now reacting to bullets")
-		# Only set under_fire after delay; Issues #1034, #1397: ignore if force field active; drone operator dashes instead.
+		# Only set under_fire after delay; Issues #1034, #1397: ignore if force field active.
 		if _threat_reaction_delay_elapsed and not (_force_field_component and _force_field_component.is_active()):
-			if _drone_operator and _drone_operator.should_dash_instead_of_suppress(): _drone_operator.try_dash_from_threat(_bullets_in_threat_sphere, _player, global_position)
-			else: _under_fire = true; _suppression_timer = 0.0
-func _on_drone_operator_dash_ended() -> void:  ## Reset COMBAT approach on dash end (#1540 s8): transition to FLANKING so operator circles player via navmesh instead of cornering.
-	_combat_exposed = false; _combat_approaching = false; _seeking_clear_shot = false; _clear_shot_target = Vector2.ZERO; _combat_approach_timer = 0.0; _combat_shoot_timer = 0.0; _has_valid_cover = false
-	if _current_state == AIState.COMBAT and _can_attempt_flanking() and _player != null: _transition_to_flanking()
+			_under_fire = true; _suppression_timer = 0.0
 ## Update reload state.
 func _update_reload(delta: float) -> void:
 	if not _is_reloading: return
@@ -1440,6 +1436,10 @@ func _process_combat_state(delta: float) -> void:
 				var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
+	# Issue #1540: Drone operator ACTIVE — dodge bullets like machete enemy (lateral sidestep).
+	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:
+		if _under_fire and _bullets_in_threat_sphere.size() > 0 and not _drone_operator.is_dodging(): var b = _bullets_in_threat_sphere[0]; if is_instance_valid(b): var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation); _drone_operator.try_dodge(bd)
+		if _drone_operator.is_dodging(): velocity = _drone_operator.get_dodge_velocity(); return
 		if _machete.is_in_melee_range(_player) and _shoot_timer >= shoot_cooldown and _machete.is_melee_path_clear(_player):  # Issue #1083: block melee through walls
 			_machete.perform_melee_attack(_player); _shoot_timer = 0.0; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position; return
 		var tp := _player.global_position
