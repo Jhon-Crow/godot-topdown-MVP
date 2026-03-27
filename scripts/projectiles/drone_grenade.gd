@@ -272,6 +272,9 @@ func _on_explode() -> void:
 	# Scorch mark on the floor.
 	_spawn_scorch_mark(40.0, 0.6, "drone")
 
+	# Scatter shell casings in and around the blast zone (Issue #432).
+	_scatter_casings(explosion_radius)
+
 	FileLogger.info("[DroneGrenade] Drone explosion at %s (radius=%.0f)" % [str(pos), explosion_radius])
 
 
