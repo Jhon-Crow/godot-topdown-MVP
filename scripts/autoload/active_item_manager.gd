@@ -47,34 +47,38 @@ var collected_passive_items: Array = []
 ## FLASHLIGHT (Polygon D+), TELEPORT_BRACERS (Double Corridor D+),
 ## INVISIBILITY_SUIT (Beach S + Building S), HOMING_BULLETS
 ## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S),
-## TRAJECTORY_GLASSES (City D+), LASER_SIGHT (1000 kills without laser sight equipped),
+## TRAJECTORY_GLASSES (City D+), LASER_SIGHT (400 kills without laser sight equipped),
 ## FINE_MOTOR_SKILLS (650 shots with shotgun, sniper rifle, or revolver),
 ## ARMORED_SKIN (100 total deaths), COMBAT_DISPOSITION (complete 1 level without damage),
-## RECOIL_COMPENSATOR (Labyrinth S) and EXPERIMENTAL_SAMPLE (complete at least one level on every difficulty)
-## have unlock conditions (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346, Issue #1389, Issue #1423, Issue #1426).
+## RECOIL_COMPENSATOR (Labyrinth S), EXPERIMENTAL_SAMPLE (complete at least one level on every difficulty),
+## EXTENDED_MAGAZINE (Building B+), AUTO_RELOAD (any level with silenced pistol),
+## DRILLING_BULLETS (50 kills through walls), DASH (Decadence A+),
+## BREACHING_CHARGES (Labyrinth Complex any grade), GRENADE_BAG (Railway Station any grade),
+## BFF_PENDANT (Winter Forest any grade) have unlock conditions
+## (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346, Issue #1389, Issue #1423, Issue #1426, Issue #1624).
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
 	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
 	ActiveItemType.HOMING_BULLETS: false,      # Condition: Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S (Issue #1000 req.8)
 	ActiveItemType.TELEPORT_BRACERS: false,    # Condition: Double Corridor D+ (Issue #1000 req.3)
-	ActiveItemType.BFF_PENDANT: true,          # No unlock condition — freely available from start (Issue #674)
+	ActiveItemType.BFF_PENDANT: false,         # Condition: complete Winter Forest on any grade (Issue #1624 req.9)
 	ActiveItemType.INVISIBILITY_SUIT: false,   # Condition: Beach S + Building S (Issue #1000 req.5)
 	ActiveItemType.BREAKER_BULLETS: false,     # Condition: 7 levels completed at rank A or higher (Issue #1589 req.3)
 	ActiveItemType.FORCE_FIELD: false,         # Condition: complete Factory on any grade (Issue #1589 req.2)
 	ActiveItemType.TRAJECTORY_GLASSES: false,  # Condition: City D+ (Issue #1053 req.1)
 	ActiveItemType.LASER_SIGHT: false,         # Condition: 400 kills without laser sight equipped (Issue #1196, updated by Issue #1589)
-	ActiveItemType.EXTENDED_MAGAZINE: true,    # No unlock condition — freely available from start (Issue #1065)
+	ActiveItemType.EXTENDED_MAGAZINE: false,   # Condition: Building B+ (Issue #1624 req.1)
 	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
-	ActiveItemType.BREACHING_CHARGES: true,    # No unlock condition — freely available from start (Issue #1043)
+	ActiveItemType.BREACHING_CHARGES: false,   # Condition: complete Labyrinth Complex on any grade (Issue #1624 req.6)
 	ActiveItemType.ARMORED_SKIN: false,        # Condition: 100 total deaths (Issue #1389)
-	ActiveItemType.AUTO_RELOAD: true,          # No unlock condition — freely available from start (Issue #1067)
-	ActiveItemType.DRILLING_BULLETS: true,     # No unlock condition — freely available from start (Issue #751)
+	ActiveItemType.AUTO_RELOAD: false,         # Condition: complete any level with silenced pistol (Issue #1624 req.2)
+	ActiveItemType.DRILLING_BULLETS: false,    # Condition: 50 kills through walls (Issue #1624 req.3)
 	ActiveItemType.RECOIL_COMPENSATOR: false,  # Condition: Labyrinth S (Issue #1423 req.2)
 	ActiveItemType.COMBAT_DISPOSITION: false,  # Condition: complete 1 level without taking damage (Issue #1389)
 	ActiveItemType.EXPERIMENTAL_SAMPLE: false,   # Condition: complete at least one level on every difficulty (Issue #1426)
 	ActiveItemType.FINE_MOTOR_SKILLS: false,    # Condition: 300 shots with shotgun, sniper rifle, or revolver (Issue #1346)
-	ActiveItemType.DASH: true,                  # No unlock condition — freely available from start (Issue #1071)
-	ActiveItemType.GRENADE_BAG: true            # No unlock condition — freely available from start (Issue #1590)
+	ActiveItemType.DASH: false,                 # Condition: Decadence A+ (Issue #1624 req.5)
+	ActiveItemType.GRENADE_BAG: false           # Condition: complete Railway Station on any grade (Issue #1624 req.8)
 }
 
 ## Active item data for UI and selection.

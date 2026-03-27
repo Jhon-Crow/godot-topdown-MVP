@@ -2029,7 +2029,7 @@ func _on_enemy_became_pacifist(enemy: Node) -> void:
 func _on_enemy_died_with_info(is_ricochet: bool, is_penetration: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
-		GameManager.register_kill(is_player_kill)
+		GameManager.register_kill(is_player_kill, is_penetration)
 	var sm: Node = get_node_or_null("/root/ScoreManager")
 	if sm and sm.has_method("register_kill"):
 		sm.register_kill(is_ricochet, is_penetration)
