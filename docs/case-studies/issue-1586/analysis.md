@@ -22,6 +22,8 @@ References: [Issue #1586](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/
 | 2026-03-27 04:57:12 UTC | AI explains root cause: testing against pre-built binary. Adds range logging + full analysis to PR |
 | 2026-03-27 08:09:03 | **Test session 2** — Owner runs the **same** pre-built `.exe` from the same path: `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe` |
 | 2026-03-27 05:10:16 UTC | Owner comments: "изменения не вступили в силу" ("changes did not take effect") — attaches `game_log_20260327_080903.txt` |
+| 2026-03-27 08:48:16 | **Test session 3** — Owner runs the **same** pre-built `.exe` from the same path: `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe` |
+| 2026-03-27 05:49:50 UTC | Owner comments: "не изменилось" ("nothing changed") — attaches `game_log_20260327_084816.txt` |
 
 ---
 
@@ -75,6 +77,26 @@ The sniper was selected and used:
 **Critical finding:** The executable path is **identical** to test session 1 — the same pre-built binary at `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe`. Neither session contains a `[SniperRifle] ASVK initialized` log entry, which confirms the range logging added in our commit also did not execute — the binary predates all PR #1599 changes.
 
 Additionally, in session 2, the `ASVK initialized - ... maxRange=` log line (added by our logging improvement) is absent, which is definitive proof this binary was not built from our branch.
+
+### Test Session 3 — `game_log_20260327_084816.txt`
+
+Key facts extracted from the log:
+
+```
+[08:48:16] [INFO] Executable: I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe
+[08:48:16] [INFO] Debug build: false
+[08:48:16] [INFO] Engine version: 4.3-stable (official)
+[08:48:16] [INFO] Build info: not available (build_info.cfg not found)
+```
+
+The sniper was selected and used:
+
+```
+[08:48:23] [INFO] [Player.Weapon] Equipped SniperRifle (ammo: 5/5)
+[08:48:23] [INFO] [Player] Detected weapon: ASVK Sniper Rifle (Sniper pose)
+```
+
+**Critical finding (same as sessions 1 and 2):** The executable path is **identical** to the previous two test sessions. The `[SniperRifle] ASVK initialized` log entry is absent from all three logs. All three sessions run the same pre-built binary that predates all PR #1599 changes.
 
 ---
 
@@ -226,9 +248,9 @@ The log shows `Build info: not available (build_info.cfg not found)`. Including 
 
 ## Conclusion
 
-The code fix in PR #1599 is **correct and complete**. Both owner reports ("range didn't increase" / "changes did not take effect") are explained by testing against the **same pre-built release binary** (`Godot-Top-Down-Template.exe`) that predates the PR.
+The code fix in PR #1599 is **correct and complete**. All three owner reports ("range didn't increase" / "changes did not take effect" / "nothing changed") are explained by testing against the **same pre-built release binary** (`Godot-Top-Down-Template.exe`) that predates the PR.
 
-The definitive proof: our range logging (added in commit `033968e8`) outputs `[SniperRifle] ASVK initialized - ... maxRange=10000 px` at weapon equip time. **Neither game log contains this line**, confirming both sessions ran the old binary.
+The definitive proof: our range logging (added in commit `033968e8`) outputs `[SniperRifle] ASVK initialized - ... maxRange=10000 px` at weapon equip time. **None of the three game logs contains this line**, confirming all three sessions ran the old binary.
 
 No code changes are needed. The PR should be merged and the project **re-exported from the Godot editor** to validate the fix.
 
