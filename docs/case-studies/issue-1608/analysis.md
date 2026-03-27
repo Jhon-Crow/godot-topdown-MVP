@@ -16,15 +16,21 @@
 
 ## Evidence
 
-**Game log:** `game_log_20260327_080021.txt`
+### Log 1: `game_log_20260327_080021.txt`
 **Build:** Release/exported build, Windows, Godot 4.3-stable
 **Executable:** `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe`
-**Build info:** not available (exported PCK, pre-dating Issue #1585 fix merge)
+**Build info:** not available (exported PCK — downloaded pre-built binary, pre-dating PR #1592 merge)
 **Difficulty:** Power Fantasy
+**Levels played:** LabyrinthLevel → SnowLevel → DocksLevel → BeachLevel
+
+### Log 2: `game_log_20260327_084542.txt`
+**Build:** Same pre-built binary (same executable path, same `I:/Загрузки/...` path)
+**Levels played:** directly to BeachLevel
+**Reporter note:** "всё ещё не останавливается" (still not stopping)
 
 ---
 
-## Timeline of Events (from game log)
+## Timeline of Events (from Log 1: game_log_20260327_080021.txt)
 
 | Time | Level | Event |
 |------|-------|-------|
@@ -47,7 +53,21 @@
 | 08:00:50 | BeachLevel | **NO "[WaterBody] Wave animation paused" logged** ← Bug evidence |
 | 08:00:52 | BeachLevel | Last chance ended |
 
-**Key finding:** For Snow and Rain levels, `[LastChance] Precipitation paused: <NodeName>` is logged immediately after the freeze starts. For the Beach level, this line is completely absent, confirming that `WaterBody.set_time_stopped()` was never called.
+**Key finding in Log 1:** For Snow and Rain levels, `[LastChance] Precipitation paused: <NodeName>` is logged immediately after the freeze starts. For the Beach level, this line is completely absent, confirming that `WaterBody.set_time_stopped()` was never called.
+
+## Timeline of Events (from Log 2: game_log_20260327_084542.txt)
+
+| Time | Level | Event |
+|------|-------|-------|
+| 08:45:42 | (startup) | Game started — same binary as Log 1 (`I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe`) |
+| 08:46:05 | BeachLevel | Level loaded directly |
+| 08:46:05 | BeachLevel | `[BeachLevel] Water node found OK — visual=true shader=true collision=true pos=(1264, 242)` |
+| 08:46:11 | BeachLevel | Grenade explosion → Last chance triggered (2s freeze, trigger: grenade explosion) |
+| 08:46:11 | BeachLevel | `[LastChance] Froze all nodes except player` |
+| 08:46:11 | BeachLevel | **ZERO precipitation-related log entries** ← confirms same bug as Log 1 |
+| 08:46:13 | BeachLevel | Last chance ended |
+
+**Key finding in Log 2:** Zero WaterBody log entries in the ENTIRE log — not even `[WaterBody] Ready` from `_ready()`. This conclusively proves both logs are from a **pre-PR #1592 binary** that does not include `add_to_group("precipitation_effects")` in WaterBody's `_ready()`. The user is testing with an old downloaded executable.
 
 ---
 
@@ -55,11 +75,13 @@
 
 ### Root Cause 1: Game Binary Pre-Dates the Issue #1585 Fix (Deployment Issue)
 
-The game log was captured from a pre-built `.exe` exported **before** Issue #1585's fix was merged to `main` at `2026-03-27 07:45:03 +0300`. The log timestamp (`08:00:21` local = `05:00:21 UTC`) is only ~15 minutes after the merge — far too short to rebuild and re-export a Windows binary.
+Both game logs were captured from the **same pre-built `.exe`** at `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe` ("Загрузки" = Downloads in Russian). This is a downloaded binary, not one built from the fixed source code.
 
-**Evidence:** No `[WaterBody]` log entries appear anywhere in the log (not even from `_ready()`). The `water_body.gd` file included `add_to_group("precipitation_effects")` only after the Issue #1585 fix. In the old binary, WaterBody was found via `find_children + script.resource_path` check, which silently failed in exported builds because `script.resource_path` returns `""` in PCK exports.
+**Evidence from Log 2:** Zero WaterBody log entries in the entire 1178-line log, including no `[WaterBody] Ready` message that would appear in `_ready()`. The WaterBody node itself is verified to exist (`[BeachLevel] Water node found OK`), so `_ready()` ran — but did not produce any log output, meaning the old `_log()` implementation (which called `get_node_or_null("/root/FileLogger")`) was silently failing. More importantly, there is NO `add_to_group("precipitation_effects")` call in this old build's WaterBody.
 
-**Impact:** In the old build, `_set_precipitation_time_stopped()` scanned for WaterBody using:
+**Evidence from Log 1:** In other levels (Snow, Docks), SnowEffect and RainEffect DO produce `[LastChance] Precipitation paused:` entries because they call `add_to_group("precipitation_effects")` in their own `_ready()` methods (this was added earlier than WaterBody's group registration). On BeachLevel, no such log entry appears, confirming WaterBody is absent from the group.
+
+**Impact:** In the old binary, `_set_precipitation_time_stopped()` scanned for WaterBody using:
 ```gdscript
 # Old (broken) approach — from before Issue #1585 fix:
 var path: String = script.resource_path.to_lower()
@@ -68,7 +90,7 @@ if "water_body" in path:
 ```
 In an exported build, `script.resource_path` is `""`, so the condition `"water_body" in ""` is always `false`. WaterBody was silently skipped every time.
 
-**Fix (Issue #1585):** Changed to group-based lookup — WaterBody registers in `"precipitation_effects"` group in `_ready()`. Merged in PR #1592.
+**Fix (Issue #1585, merged PR #1592):** Changed to group-based lookup — WaterBody registers in `"precipitation_effects"` group in `_ready()`. This fix is in `main` but the user's binary does not include it.
 
 ---
 
@@ -202,6 +224,8 @@ Add a `uniform bool time_stopped = false` to the shader. When `true`, replace al
 ## Files Changed
 
 - `scripts/shaders/realistic_water.gdshader` — replace `TIME * 0.15` with `TIME * surf_speed * 0.5`
+- `scripts/objects/water_body.gd` — fix `_log()` to use `Engine.get_singleton()` as primary lookup
 - `tests/unit/test_water_body.gd` — regression tests for Issue #1608
 - `docs/case-studies/issue-1608/analysis.md` — this document
-- `docs/case-studies/issue-1608/game_log_20260327_080021.txt` — game log from reporter
+- `docs/case-studies/issue-1608/logs/game_log_20260327_080021.txt` — first game log from reporter
+- `docs/case-studies/issue-1608/logs/game_log_20260327_084542.txt` — second game log from reporter (same old binary, confirms binary pre-dates PR #1592)
