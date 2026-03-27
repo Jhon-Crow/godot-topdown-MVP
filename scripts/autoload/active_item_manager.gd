@@ -26,7 +26,7 @@ enum ActiveItemType {
 	AUTO_RELOAD,       # Auto-reload on kill - passive: magazine is 2.1x smaller, refilled from reserve on each kill (Issue #1067)
 	DRILLING_BULLETS,  # Drilling bullets - press Space to give current magazine wall-piercing bullets (Issue #751)
 	RECOIL_COMPENSATOR, # Recoil compensator - hold Space to eliminate recoil/spread and boost fire rate 10% (Issue #1073)
-	COMBAT_DISPOSITION, # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
+	COMBAT_DISPOSITION, # Combat Disposition - passive: +0.77 damage, +1.1 fire rate, x2 speed on start (x4 on Black Metal); on hit: -6.0 damage, -7.2 fire rate, speed/2 (Issue #1047, #1583)
 	EXPERIMENTAL_SAMPLE, # Experimental Sample - press Space to fire a random active item effect (even unowned). 1–5 charges per battle, randomised on level start (Issue #1127)
 	FINE_MOTOR_SKILLS, # Fine Motor Skills - press Space to instantly reload weapon and bring to combat-ready state. Unlimited charges, no cooldown (Issue #1315)
 	DASH               # Dash - press Space to dash in movement direction with damage immunity. 3 charges, cooldown after 3rd dash (Issue #1071)
@@ -175,7 +175,7 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.COMBAT_DISPOSITION: {
 		"name": "Combat Disposition",
 		"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
-		"description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces damage by 6.0 and fire rate by 7.2."
+		"description": "Combat Disposition — passive: +0.77 damage, +1.1 fire rate, x2 speed on start (x4 on Black Metal). Taking damage reduces damage by 6.0, fire rate by 7.2, and halves movement speed."
 	},
 	ActiveItemType.EXPERIMENTAL_SAMPLE: {
 		"name": "Experimental Sample",
