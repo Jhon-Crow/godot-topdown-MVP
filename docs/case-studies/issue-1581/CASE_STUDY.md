@@ -421,11 +421,51 @@ branch = "issue-1581-63d7435a3524"
 
 ---
 
+---
+
+## Fourth Report Analysis (2026-03-27T09:26:56 UTC)
+
+The owner reported the same issue a fourth time:
+
+> "всё ещё нет трассера и лазера." — still no tracer and laser
+
+Attached: `game_log_20260327_092656.txt`
+
+**Key findings from the fourth log:**
+
+1. `Build info: not available (build_info.cfg not found)` — **Once again, an old pre-CI binary.** The log path is `I:/Загрузки/godot exe/снайпер/Godot-Top-Down-Template.exe` — the same "снайпер" folder as the very first report (074708). This confirms the user has not downloaded any CI artifact at all.
+
+2. `player_valid=False` for all ReplayManager frames — The player node was not present in the scene. The user was testing without a player character, so:
+   - The sniper found a player at position `(150, 360)` (possibly a ghost/placeholder)
+   - The sniper GUNSHOT fired at `[09:27:15]` (same logic as before)
+   - No player in scene = no damage visible
+
+3. The sniper spawned at `[09:27:11]`, spotted player at `[09:27:13]`, fired at `[09:27:15]`, then transitioned to SEEKING_COVER at `[09:27:16]` — normal AI behavior.
+
+4. `Invincibility: false` this time — but `player_valid=False` means there was no target to deal damage to anyway.
+
+**Cumulative evidence — all four reports used old binary:**
+
+| Log file | Build info | Folder path | player_valid | Conclusion |
+|----------|------------|-------------|-------------|------------|
+| `game_log_20260327_074708.txt` | Not available | `I:/Загрузки/godot exe/снайпер/` | — | Pre-fix binary |
+| `game_log_20260327_083716.txt` | Not available | (not specified) | — | Pre-fix binary, invincibility ON |
+| `game_log_20260327_090949.txt` | Not available | `I:/Загрузки/godot exe/микро фиксы/` | — | Pre-fix binary |
+| `game_log_20260327_092656.txt` | Not available | `I:/Загрузки/godot exe/снайпер/` | False (no player) | Pre-fix binary, no player in scene |
+
+**The latest CI build** is from commit `6e7c700f` (CI run `23633859801`):
+https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/23633859801
+
+To download: open the link above → scroll to **Artifacts** section → download `windows-build.zip`.
+
+---
+
 ## Files in This Case Study
 
 - `game_log_20260327_074708.txt` — First owner report: session showing tracer/laser disappeared (pre-fix binary)
 - `game_log_20260327_083716.txt` — Second owner report: same issue reported (still pre-fix binary)
 - `game_log_20260327_090949.txt` — Third owner report: same issue reported (still pre-fix binary)
+- `game_log_20260327_092656.txt` — Fourth owner report: same issue reported (still pre-fix binary, no player in scene; file is gitignored — available as GitHub attachment in PR #1602)
 - `issue_1581.txt` — Original issue text
 - `pr_1602_details.json` — PR #1602 details
 - `pr_1602_comments.json` — PR #1602 comments including owner's bug reports
