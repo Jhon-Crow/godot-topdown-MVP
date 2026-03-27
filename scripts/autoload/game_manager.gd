@@ -82,8 +82,7 @@ var unlocked_weapons: Dictionary = {
 	"silenced_pistol": true,  # No unlock condition — freely available from start
 	"sniper": false,   # Condition: Polygon D+
 	"revolver": false, # Condition: Castle F+
-	"ak_gl": true,     # No unlock condition — freely available from start
-	"smg": false       # Coming soon — not yet available
+	"ak_gl": true      # No unlock condition — freely available from start
 }
 
 ## Weapon scene paths mapped to weapon IDs.
