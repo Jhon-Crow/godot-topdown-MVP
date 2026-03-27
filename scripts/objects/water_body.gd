@@ -62,11 +62,22 @@ const OBSTACLE_UPDATE_INTERVAL: int = 6  # update every 6 frames — bodies rare
 ## True when shader obstacle params need to be re-uploaded (body entered/exited).
 var _obstacle_dirty: bool = false
 
+## Whether time is currently stopped (e.g. last chance effect). When true,
+## wave animation is paused by setting shader speed parameters to zero.
+var _time_stopped: bool = false
+
+## Stored shader speed values to restore after time resumes.
+var _saved_wave_speed: float = 0.0
+var _saved_ripple_speed: float = 0.0
+var _saved_surf_speed: float = 0.0
+
 
 func _ready() -> void:
 	# Register in group so ImpactEffectsManager can locate this node by group query (Issue #1578).
 	add_to_group("water_body")
-
+	# Register in group so LastChanceEffectsManager can find this node reliably
+	# (script resource_path may be empty in exported builds).
+	add_to_group("precipitation_effects")
 	# Update pre-baked node dimensions in case water_width/height were overridden in the scene.
 	if _visual != null:
 		_visual.position = Vector2(-water_width * 0.5, -water_height * 0.5)
@@ -290,6 +301,12 @@ func _on_casing_entered(casing: Node2D) -> void:
 	_spawn_splash_small(casing.global_position)
 
 
+## Public: check if a world position is within the water area bounds (Issue #1578).
+## Called by ImpactEffectsManager._find_water_body_at() to avoid spawning blood decals in water.
+func is_point_in_water(world_pos: Vector2) -> bool:
+	return _is_point_in_water(world_pos)
+
+
 ## Check if a world position is within the water area bounds.
 func _is_point_in_water(world_pos: Vector2) -> bool:
 	var local_pos: Vector2 = world_pos - global_position
@@ -373,6 +390,34 @@ func _spawn_blood_diffusion(world_pos: Vector2, blood_color: Color) -> void:
 	diffusion.global_position = world_pos
 	if diffusion.has_method("set_blood_color"):
 		diffusion.set_blood_color(blood_color)
+
+
+## Pauses or resumes wave animation for time-stop effects (e.g. last chance).
+## When paused is true, all three shader speed parameters are set to zero so the
+## water surface appears frozen. When paused is false, the original speed values
+## are restored. The splash/physics detection is not affected.
+func set_time_stopped(paused: bool) -> void:
+	if _time_stopped == paused:
+		return
+	_time_stopped = paused
+	if _visual == null or not (_visual.material is ShaderMaterial):
+		return
+	var mat: ShaderMaterial = _visual.material as ShaderMaterial
+	if paused:
+		# Save current speed values then set to zero.
+		_saved_wave_speed = mat.get_shader_parameter("wave_speed")
+		_saved_ripple_speed = mat.get_shader_parameter("ripple_speed")
+		_saved_surf_speed = mat.get_shader_parameter("surf_speed")
+		mat.set_shader_parameter("wave_speed", 0.0)
+		mat.set_shader_parameter("ripple_speed", 0.0)
+		mat.set_shader_parameter("surf_speed", 0.0)
+		_log("[WaterBody] Wave animation paused (time stopped)")
+	else:
+		# Restore saved speed values.
+		mat.set_shader_parameter("wave_speed", _saved_wave_speed)
+		mat.set_shader_parameter("ripple_speed", _saved_ripple_speed)
+		mat.set_shader_parameter("surf_speed", _saved_surf_speed)
+		_log("[WaterBody] Wave animation resumed (time resumed)")
 
 
 ## Log a message via the FileLogger autoload (mirrors beach_level.gd pattern).
