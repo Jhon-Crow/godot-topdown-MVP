@@ -2,10 +2,10 @@ extends Node2D
 class_name RainEffect
 ## Hotline Miami 2-style top-down rain effect (Issue #1394, fixed #1499, #1546).
 ##
-## Two-layer particle system rendered on a CanvasLayer (screen space) so rain
+## Single-layer particle system rendered on a CanvasLayer (screen space) so rain
 ## always covers the visible viewport regardless of camera position:
-##   - RainStreaks: long downward dashes falling across the full screen
-##   - RainSplashes: circular ring ripples at the point where streaks land
+##   - RainStreaks: short circular drops with inward radial velocity (fish-eye
+##     top-down perspective). Splashes removed per Issue #1580 feedback.
 ##
 ## Rain is always active (continuous) while outdoors.
 ## Supports indoor exclusion zones where rain should not appear.
@@ -32,17 +32,12 @@ var _inside_exclusion: bool = false
 ## Inward radial rain streaks particle node (defined in .tscn).
 @onready var _streaks: GPUParticles2D = $RainCanvas/RainStreaks
 
-## Ground splash ripples particle node (defined in .tscn).
-@onready var _splashes: GPUParticles2D = $RainCanvas/RainSplashes
-
-## Controls emission state of both particle layers.
+## Controls emission state of the streak particle layer.
 var emitting: bool = false:
 	set(value):
 		emitting = value
 		if _streaks:
 			_streaks.emitting = value
-		if _splashes:
-			_splashes.emitting = value
 
 ## Whether time is currently stopped (e.g. last chance effect). When true,
 ## particle emission is paused regardless of exclusion zone state.
@@ -99,7 +94,7 @@ func is_raining() -> bool:
 
 
 ## Pauses or resumes particle emission for time-stop effects (e.g. last chance).
-## When paused is true, both particle layers are frozen in place by disabling their
+## When paused is true, the streak layer is frozen in place by disabling its
 ## process mode — existing particles stay visible, no new ones are spawned.
 ## When paused is false, particle processing is restored and emission resumes if the
 ## camera is not inside an exclusion zone.
@@ -108,19 +103,15 @@ func set_time_stopped(paused: bool) -> void:
 		return
 	_time_stopped = paused
 	if paused:
-		# Disable processing on particle nodes so they freeze in place (existing
+		# Disable processing on streak node so it freezes in place (existing
 		# particles remain visible) rather than disappearing via emitting = false.
 		if _streaks:
 			_streaks.process_mode = Node.PROCESS_MODE_DISABLED
-		if _splashes:
-			_splashes.process_mode = Node.PROCESS_MODE_DISABLED
 		_log("Rain paused (time stopped)")
 	else:
 		# Restore particle processing.
 		if _streaks:
 			_streaks.process_mode = Node.PROCESS_MODE_INHERIT
-		if _splashes:
-			_splashes.process_mode = Node.PROCESS_MODE_INHERIT
 		# Resume emission only when not inside a building exclusion zone.
 		emitting = not _inside_exclusion
 		_log("Rain resumed (time resumed)")
