@@ -7,6 +7,7 @@ extends GutTest
 ##   - Obstacle slot limit (MAX_OBSTACLE_SHADER_SLOTS = 8)
 ##   - Point-in-water boundary check logic
 ##   - Camera limit constant (WallTop bottom edge at y=64)
+##   - Wave animation time-stop for last chance effect (Issue #1585)
 
 
 # ============================================================================
@@ -360,3 +361,114 @@ func test_water_collision_mask_value_is_correct() -> void:
 	)
 	assert_eq(MockCollisionLayers.WATER_COLLISION_MASK, expected_mask,
 		"Water collision_mask (99) should equal layers 1+2+6+7 = 1+2+32+64")
+
+
+# ============================================================================
+# Mock WaterBody for time-stop tests (Issue #1585)
+# ============================================================================
+
+
+class MockWaterBodyTimeStop:
+	## Simulated shader material parameters.
+	var _wave_speed: float = 0.3
+	var _ripple_speed: float = 0.5
+	var _surf_speed: float = 0.5
+
+	## Whether time is currently stopped.
+	var _time_stopped: bool = false
+
+	## Saved speed values for restoration.
+	var _saved_wave_speed: float = 0.0
+	var _saved_ripple_speed: float = 0.0
+	var _saved_surf_speed: float = 0.0
+
+	## Whether a shader material is attached (simulate missing material case).
+	var has_material: bool = true
+
+
+	## Simulate set_time_stopped from water_body.gd (Issue #1585).
+	func set_time_stopped(paused: bool) -> void:
+		if _time_stopped == paused:
+			return
+		_time_stopped = paused
+		if not has_material:
+			return
+		if paused:
+			_saved_wave_speed = _wave_speed
+			_saved_ripple_speed = _ripple_speed
+			_saved_surf_speed = _surf_speed
+			_wave_speed = 0.0
+			_ripple_speed = 0.0
+			_surf_speed = 0.0
+		else:
+			_wave_speed = _saved_wave_speed
+			_ripple_speed = _saved_ripple_speed
+			_surf_speed = _saved_surf_speed
+
+
+# ============================================================================
+# Tests: Issue #1585 — Water waves stop during time-stop (last chance effect)
+# ============================================================================
+
+
+func test_water_wave_speed_zero_when_time_stopped() -> void:
+	var wb := MockWaterBodyTimeStop.new()
+	wb.set_time_stopped(true)
+	assert_eq(wb._wave_speed, 0.0,
+		"wave_speed must be 0 when time is stopped")
+	assert_eq(wb._ripple_speed, 0.0,
+		"ripple_speed must be 0 when time is stopped")
+	assert_eq(wb._surf_speed, 0.0,
+		"surf_speed must be 0 when time is stopped")
+
+
+func test_water_wave_speed_restored_when_time_resumes() -> void:
+	var wb := MockWaterBodyTimeStop.new()
+	var original_wave: float = wb._wave_speed
+	var original_ripple: float = wb._ripple_speed
+	var original_surf: float = wb._surf_speed
+	wb.set_time_stopped(true)
+	wb.set_time_stopped(false)
+	assert_almost_eq(wb._wave_speed, original_wave, 0.001,
+		"wave_speed must be restored to original value after time resumes")
+	assert_almost_eq(wb._ripple_speed, original_ripple, 0.001,
+		"ripple_speed must be restored to original value after time resumes")
+	assert_almost_eq(wb._surf_speed, original_surf, 0.001,
+		"surf_speed must be restored to original value after time resumes")
+
+
+func test_water_time_stopped_is_idempotent() -> void:
+	var wb := MockWaterBodyTimeStop.new()
+	wb.set_time_stopped(true)
+	wb.set_time_stopped(true)
+	assert_eq(wb._wave_speed, 0.0,
+		"Calling set_time_stopped(true) twice must keep wave_speed at 0")
+
+
+func test_water_saves_non_default_speeds() -> void:
+	# Verify that whatever speed is active at freeze time is saved and restored,
+	# not just the default constructor value.
+	var wb := MockWaterBodyTimeStop.new()
+	wb._wave_speed = 1.2
+	wb._ripple_speed = 0.8
+	wb._surf_speed = 2.0
+	wb.set_time_stopped(true)
+	assert_eq(wb._wave_speed, 0.0, "wave_speed must be 0 during time stop")
+	wb.set_time_stopped(false)
+	assert_almost_eq(wb._wave_speed, 1.2, 0.001,
+		"Custom wave_speed must be restored after time resumes")
+	assert_almost_eq(wb._ripple_speed, 0.8, 0.001,
+		"Custom ripple_speed must be restored after time resumes")
+	assert_almost_eq(wb._surf_speed, 2.0, 0.001,
+		"Custom surf_speed must be restored after time resumes")
+
+
+func test_water_set_time_stopped_noop_without_material() -> void:
+	# Ensure no crash when shader material is unavailable.
+	var wb := MockWaterBodyTimeStop.new()
+	wb.has_material = false
+	wb.set_time_stopped(true)
+	# _time_stopped flag is set but speeds remain unchanged (no material to modify).
+	assert_true(wb._time_stopped, "Time stopped flag should be set even without material")
+	assert_almost_eq(wb._wave_speed, 0.3, 0.001,
+		"wave_speed must be unchanged when no shader material is present")
