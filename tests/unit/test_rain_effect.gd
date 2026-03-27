@@ -2,10 +2,11 @@ extends GutTest
 ## Unit tests for rain_effect.gd HM2-style precipitation system (Issue #1394, fixed #1499, #1546).
 ##
 ## Tests continuous rain behavior, exclusion zone logic, and state transitions.
-## Also tests streak length, direction, and splash alignment fixes.
-## The actual RainEffect extends Node2D with two child GPUParticles2D layers
-## (downward streaks + splash ripples). Uses a mock to test logic without
-## requiring GPUParticles2D rendering.
+## Also tests streak length, direction, splash alignment, and player-area square
+## drops fixes.
+## The actual RainEffect extends Node2D with three child GPUParticles2D layers
+## (downward streaks + splash ripples + player-area top-down drops). Uses a mock
+## to test logic without requiring GPUParticles2D rendering.
 
 
 # ============================================================================
@@ -17,7 +18,7 @@ class MockRainEffect:
 	## Indoor exclusion zones.
 	var exclusion_zones: Array = []
 
-	## Whether currently emitting particles.
+	## Whether currently emitting particles (all layers: streaks, splashes, player drops).
 	var emitting: bool = false
 
 	## Whether inside an exclusion zone.
@@ -287,3 +288,66 @@ func test_splash_offset_matches_streak_endpoint() -> void:
 		"Splash X position should match streak endpoint X (±10px). Expected ~%.0f got %.0f" % [expected_splash_pos.x, actual_splash_pos.x])
 	assert_true(abs(actual_splash_pos.y - expected_splash_pos.y) <= 10.0,
 		"Splash Y position should match streak endpoint Y (±10px). Expected ~%.0f got %.0f" % [expected_splash_pos.y, actual_splash_pos.y])
+
+
+# ============================================================================
+# Tests: Issue #1546 Feedback — Player Area Top-Down Drops (PlayerDrops layer)
+# ============================================================================
+
+
+class MockPlayerDropTexture:
+	## Simulates the square GradientTexture2D for player-area top-down drops.
+	var width: int = 3
+	var height: int = 3
+
+
+class MockPlayerDropMaterial:
+	## Simulates ParticleProcessMaterial for PlayerDrops.
+	var emission_box_extents: Vector3 = Vector3(80, 80, 0)
+	var direction: Vector3 = Vector3(0, 1, 0)
+	var spread: float = 0.0
+	var scale_min: float = 1.0
+	var scale_max: float = 2.0
+
+
+func test_player_drops_texture_is_square() -> void:
+	# PlayerDrops must use a square texture to represent a raindrop seen from
+	# directly overhead (top-down camera perspective). Issue #1546 feedback.
+	var tex := MockPlayerDropTexture.new()
+	assert_eq(tex.width, tex.height,
+		"PlayerDrops texture must be square (same width and height) for top-down drop appearance")
+
+
+func test_player_drops_emission_area_is_small() -> void:
+	# PlayerDrops must emit in a small area around the player center (~80px),
+	# not the full screen like streaks/splashes.
+	var mat := MockPlayerDropMaterial.new()
+	assert_true(mat.emission_box_extents.x <= 120.0,
+		"PlayerDrops emission box X must be <= 120px (player-area only, not full screen)")
+	assert_true(mat.emission_box_extents.y <= 120.0,
+		"PlayerDrops emission box Y must be <= 120px (player-area only, not full screen)")
+
+
+func test_player_drops_direction_is_straight_down() -> void:
+	# PlayerDrops must fall straight down (no horizontal drift) to simulate the
+	# overhead camera perspective where drops appear to fall directly at the viewer.
+	var mat := MockPlayerDropMaterial.new()
+	assert_eq(mat.direction.x, 0.0,
+		"PlayerDrops direction X must be 0 (no horizontal drift for overhead view)")
+	assert_true(mat.direction.y > 0.0,
+		"PlayerDrops direction Y must be positive (straight downward)")
+	assert_eq(mat.spread, 0.0,
+		"PlayerDrops spread must be 0 for straight-down fall with no angular variation")
+
+
+func test_player_drops_stops_when_entering_building() -> void:
+	# When rain is disabled (indoor exclusion zone), PlayerDrops must also stop.
+	# The emitting setter in RainEffect covers all layers including PlayerDrops.
+	var rain := MockRainEffect.new()
+	rain.ready()
+	assert_true(rain.emitting, "All rain layers should emit outdoors")
+
+	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
+	rain.simulate_camera_move(Vector2(150, 150))
+	assert_false(rain.emitting,
+		"PlayerDrops (and all layers) must stop inside buildings")

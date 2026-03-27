@@ -2,10 +2,13 @@ extends Node2D
 class_name RainEffect
 ## Hotline Miami 2-style top-down rain effect (Issue #1394, fixed #1499, #1546).
 ##
-## Two-layer particle system rendered on a CanvasLayer (screen space) so rain
+## Three-layer particle system rendered on a CanvasLayer (screen space) so rain
 ## always covers the visible viewport regardless of camera position:
 ##   - RainStreaks: long downward dashes falling across the full screen
 ##   - RainSplashes: circular ring ripples at the point where streaks land
+##   - PlayerDrops: small square dots near player center (top-down camera view
+##     of drops falling directly on the player — replaces perspective streaks
+##     in the player area, Issue #1546 feedback)
 ##
 ## Rain is always active (continuous) while outdoors.
 ## Supports indoor exclusion zones where rain should not appear.
@@ -35,7 +38,12 @@ var _inside_exclusion: bool = false
 ## Ground splash ripples particle node (defined in .tscn).
 @onready var _splashes: GPUParticles2D = $RainCanvas/RainSplashes
 
-## Controls emission state of both particle layers.
+## Top-down square drops near player center (defined in .tscn).
+## These replace the perspective streaks directly over the player, showing
+## what falling drops look like from a strictly overhead camera angle.
+@onready var _player_drops: GPUParticles2D = $RainCanvas/PlayerDrops
+
+## Controls emission state of all particle layers.
 var emitting: bool = false:
 	set(value):
 		emitting = value
@@ -43,6 +51,8 @@ var emitting: bool = false:
 			_streaks.emitting = value
 		if _splashes:
 			_splashes.emitting = value
+		if _player_drops:
+			_player_drops.emitting = value
 
 
 func _ready() -> void:
