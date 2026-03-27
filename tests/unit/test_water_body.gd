@@ -397,3 +397,34 @@ func test_water_set_time_stopped_noop_without_material() -> void:
 	assert_true(wb._time_stopped, "Time stopped flag should be set even without material")
 	assert_almost_eq(wb._wave_speed, 0.3, 0.001,
 		"wave_speed must be unchanged when no shader material is present")
+
+
+# ============================================================================
+# Tests: Issue #1608 — Beach water surf variation also stops during time-stop
+# ============================================================================
+# The shader uses surf_speed in the x-variation term (TIME * surf_speed * 0.5).
+# Setting surf_speed = 0 must freeze ALL motion, including that variation.
+# Previously the variation used a hardcoded TIME * 0.15 that was NOT zeroed.
+
+
+func test_surf_speed_zero_freezes_all_surf_animation() -> void:
+	# When surf_speed is 0, the surf phase variation term becomes
+	# sin(uv.x * 2.0 + TIME * 0.0 * 0.5) which is constant — no animation.
+	# This test documents the expected behaviour via the mock.
+	var wb := MockWaterBodyTimeStop.new()
+	wb.set_time_stopped(true)
+	assert_eq(wb._surf_speed, 0.0,
+		"surf_speed must be 0 during time stop (Issue #1608: Beach water must freeze completely)")
+
+
+func test_surf_variation_speed_controlled_by_surf_speed() -> void:
+	# Verify that after resuming, surf_speed is restored to its original value,
+	# which also restores the x-variation term (TIME * surf_speed * 0.5).
+	var wb := MockWaterBodyTimeStop.new()
+	var original_surf: float = wb._surf_speed
+	wb.set_time_stopped(true)
+	assert_eq(wb._surf_speed, 0.0,
+		"surf_speed must be 0 during time stop")
+	wb.set_time_stopped(false)
+	assert_almost_eq(wb._surf_speed, original_surf, 0.001,
+		"surf_speed (and thus the surf variation) must be restored after time resumes")

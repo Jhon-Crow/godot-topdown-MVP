@@ -114,8 +114,10 @@ void fragment() {
 	// Create bands that travel from deep (y=1) toward the shore (y=0).
 	// Phase = uv.y * surf_frequency - TIME * surf_speed  →  bands move upward.
 	float surf_phase = uv.y * surf_frequency - TIME * surf_speed;
-	// Small x-variation for natural variation without creating diagonal artefacts
-	surf_phase += sin(uv.x * 2.0 + TIME * 0.15) * 0.15;
+	// Small x-variation for natural variation without creating diagonal artefacts.
+	// Uses surf_speed so the variation freezes when surf_speed is set to 0 during
+	// time-stop effects (Issue #1608 — Beach water animation kept moving despite freeze).
+	surf_phase += sin(uv.x * 2.0 + TIME * surf_speed * 0.5) * 0.15;
 	// Modulate into [0,1] and apply threshold to form discrete foam bands
 	float surf_band = fract(surf_phase);
 	float surf_foam = smoothstep(1.0 - surf_width, 1.0, surf_band)
