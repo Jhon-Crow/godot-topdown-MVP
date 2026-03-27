@@ -533,6 +533,28 @@ completing previous levels. Disabled by default."
 horizontal_alignment = 1
 autowrap_mode = 2
 
+[node name="HSeparatorMaps" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="RoguelikeUnlockedContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="RoguelikeUnlockedLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/RoguelikeUnlockedContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Unlock Roguelike"
+autowrap_mode = 2
+
+[node name="RoguelikeUnlockedCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/RoguelikeUnlockedContainer"]
+layout_mode = 2
+
+[node name="RoguelikeUnlockedDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, the Roguelike mode is accessible without
+completing all levels. Disabled by default."
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="HSeparatorCheatsBottom" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
