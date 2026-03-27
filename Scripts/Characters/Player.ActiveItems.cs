@@ -1727,10 +1727,17 @@ public partial class Player
 
     /// <summary>
     /// The original Friction stored before Combat Disposition's speed bonus is applied (Issue #1583).
-    /// Friction is doubled alongside the speed boost to keep the stopping feel proportional (halving drift).
+    /// Set to a very large value during the speed boost to eliminate drift entirely (Issue #1623).
     /// Restored when the hit penalty is applied.
     /// </summary>
     private float _combatDispositionBaseFriction = 0.0f;
+
+    /// <summary>
+    /// Friction value applied during the Combat Disposition speed boost (Issue #1623).
+    /// Large enough that Friction * delta always exceeds the boosted MaxSpeed,
+    /// so the player stops instantly when input is released (zero drift).
+    /// </summary>
+    private const float CombatDispositionNoDriftFriction = 100000.0f;
 
     /// <summary>Sword icon shown near the player when the positive effect is active.</summary>
     private Sprite2D? _combatDispositionSwordIcon = null;
@@ -1779,20 +1786,20 @@ public partial class Player
 
         // Apply movement speed bonus (Issue #1583):
         // Normal difficulties: x2 speed. Black Metal difficulty: x4 speed total.
-        // Friction is scaled by the same multiplier to keep stopping feel proportional (halving drift).
+        // Friction is set to a very large value to eliminate drift entirely (Issue #1623).
         _combatDispositionBaseSpeed = MaxSpeed;
         _combatDispositionBaseFriction = Friction;
         var diffMgr = GetNodeOrNull("/root/DifficultyManager");
         bool isBlackMetal = diffMgr != null && diffMgr.HasMethod("is_black_metal_mode") && (bool)diffMgr.Call("is_black_metal_mode");
         float speedMult = isBlackMetal ? 4.0f : 2.0f;
         MaxSpeed = _combatDispositionBaseSpeed * speedMult;
-        Friction = _combatDispositionBaseFriction * speedMult;
-        LogToFile($"[Player.CombatDisposition] Speed boost applied ({(isBlackMetal ? "Black Metal x4" : "Normal x2")}): speed {_combatDispositionBaseSpeed} -> {MaxSpeed}, friction {_combatDispositionBaseFriction} -> {Friction}");
+        Friction = CombatDispositionNoDriftFriction;
+        LogToFile($"[Player.CombatDisposition] Speed boost applied ({(isBlackMetal ? "Black Metal x4" : "Normal x2")}): speed {_combatDispositionBaseSpeed} -> {MaxSpeed}, friction set to {Friction} (no drift, Issue #1623)");
 
         // Show sword icon (positive effect active)
         UpdateCombatDispositionIcons();
 
-        LogToFile($"[Player.CombatDisposition] Active — damage bonus: +{_combatDispositionDamageBonus}, fire rate bonus: +{_combatDispositionFireRateBonus}, max speed: {MaxSpeed}, friction: {Friction}");
+        LogToFile($"[Player.CombatDisposition] Active — damage bonus: +{_combatDispositionDamageBonus}, fire rate bonus: +{_combatDispositionFireRateBonus}, max speed: {MaxSpeed}, friction: {Friction} (no drift)");
     }
 
     /// <summary>
@@ -1820,7 +1827,7 @@ public partial class Player
         }
 
         // Halve movement speed penalty (Issue #1583): divide speed by 2 after first hit.
-        // Restore friction to base value so stopping feel is proportional to the reduced speed.
+        // Restore friction to base value (no-drift override ends with the speed boost).
         MaxSpeed = _combatDispositionBaseSpeed / 2.0f;
         Friction = _combatDispositionBaseFriction;
         LogToFile($"[Player.CombatDisposition] Speed penalty applied: speed {_combatDispositionBaseSpeed} -> {MaxSpeed} (divided by 2), friction restored to {Friction}");
