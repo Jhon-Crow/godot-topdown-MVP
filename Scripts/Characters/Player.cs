@@ -1598,6 +1598,9 @@ public partial class Player : BaseCharacter
         // Handle dash input (press Space to dash in movement direction) (Issue #1071)
         HandleDashInput();
 
+        // Handle combat knife input (press Space for melee fan/sweep attack) (Issue #1587)
+        HandleCombatKnifeInput();
+
         // Update jammer HUD visibility (Issue #1036)
         UpdateJammerHud();
     }
