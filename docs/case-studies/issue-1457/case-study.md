@@ -227,3 +227,59 @@ Scale increased from 0.15 to 0.25 for corner case to provide some repulsion even
 **Files modified (v2):**
 1. `scripts/objects/enemy.gd` — `_check_wall_ahead()`: use collision normal dot product to scale side-ray avoidance
 2. `docs/case-studies/issue-1457/game_log_20260326_161950.txt` — new log showing follow-up issue
+
+---
+
+## Follow-up Issue: Enemy Still Stuck in Narrow Passage (v2 Insufficient)
+
+### New Log: `game_log_20260327_100332.txt`
+
+After deploying v2 fix, owner reported still stuck:
+
+> "не исправлено" ("not fixed")
+
+**Key data from new log (BuildingLevel, ~10:03:43–10:03:47):**
+- Enemy1-4 enter PURSUING at 10:03:43
+- Enemy2: repeated PURSUING corner checks at nearly constant ~7° angle for 2+ seconds
+  - 10:03:45: 7.3° → 7.6° → 7.8° → 7.9° (10:03:47)
+  - A nearly constant angle means the enemy is barely advancing — essentially frozen
+- Compare with earlier logs: Enemy2 varied widely in old logs (angles -173°, 24°, 20° etc.) = was moving faster
+
+### Root Cause of v2 Failure: Normalization Amplifies Bilateral Cancellation
+
+The v2 fix correctly identified the two wall types and applied the right avoidance scale. However, it missed a fundamental issue with `avoidance.normalized()`:
+
+**Scenario: Enemy navigating through a narrow corridor with walls on BOTH sides:**
+1. Left passage wall detected → `avoidance += perpendicular * weight` = push RIGHT
+2. Right passage wall detected → `avoidance -= perpendicular * weight` = push LEFT
+3. Both walls get `scale = 1.0` (both are passage walls, `lateral_alignment > 0.7`)
+4. If walls are nearly equidistant: left push ≈ right push → they nearly CANCEL
+5. Net avoidance vector ≈ (0.03, 0.0) — tiny residual from slight distance imbalance
+6. `avoidance.normalized()` → (1.0, 0.0) — amplified to FULL UNIT VECTOR pointing right
+7. Blended with nav direction at weight 0.7 → `(navdir * 0.3 + (1,0) * 0.7).normalized()`
+8. Enemy is pushed hard to the right, scrapes the right wall, velocity drops near zero
+
+This is worse than having no avoidance at all in this scenario. The NavAgent path through the navmesh already knows the correct route through the corridor.
+
+**Secondary issue (center ray):**
+The original `i == 0` case added `perpendicular * base_weight` when the center hits a wall. This always steers "right" (clockwise 90° of direction), regardless of which direction actually leads to open space. For a wall directly ahead, the correct response is to follow the wall normal.
+
+### Fix v3 — Bilateral Passage Suppression
+
+**Core changes to `_check_wall_ahead`:**
+
+1. **Bilateral passage detection**: Track whether passage walls are detected on BOTH left AND right sides (with center clear). When both sides are enclosed in passage walls, return `Vector2.ZERO` — let the NavAgent handle navigation unimpeded.
+
+2. **Center ray correction**: Use `raycast.get_collision_normal() * base_weight` instead of `perpendicular * base_weight` for the center ray. This steers using the actual wall geometry rather than always turning clockwise.
+
+3. **Minimum threshold**: Raise normalization guard from `> 0` to `> 0.01` to prevent normalizing floating-point noise.
+
+**Why this works:**
+- When the enemy is traversing a narrow passage: both sides detect walls → bilateral detection fires → return ZERO → NavAgent leads unimpeded ✓
+- When only one side detects a wall (approaching a passage entrance, near a single wall): normal avoidance applies ✓
+- When center is blocked (wall directly ahead): center ray uses collision normal to steer the correct direction ✓
+- Corner edges: only one side (non-lateral normal) → bilateral condition not met → avoidance still applied at 0.25× ✓
+
+**Files modified (v3):**
+1. `scripts/objects/enemy.gd` — `_check_wall_ahead()`: bilateral passage detection, center ray collision-normal fix, minimum threshold
+2. `docs/case-studies/issue-1457/game_log_20260327_100332.txt` — new log showing v2 failure

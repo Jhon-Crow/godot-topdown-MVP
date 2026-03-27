@@ -3536,13 +3536,19 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 	var closest_wall_distance: float = WALL_CHECK_DISTANCE
 	# Raycast angles: center, left(-20°,-45°,-70°), right(+20°,+45°,+70°), rear(180°)
 	var angles: Array[float] = [0.0, -0.35, -0.79, -1.22, 0.35, 0.79, 1.22, PI]
-	# Issue #1457: pre-check center ray; if clear, side walls may be nav-guided edges — reduce lateral push
-	# only for corner edges (where wall normal does NOT align with lateral direction).
-	# Passage walls (wall normal aligned with perpendicular) always get full avoidance.
+	# Issue #1457 v3: pre-check center ray. If clear, use collision normals to distinguish:
+	# - passage walls (normal aligns with perpendicular, abs dot > 0.7): full avoidance
+	# - corner edges (normal does NOT align laterally): reduced avoidance (0.25×)
+	# Additionally: detect bilateral passage confinement (passage walls on BOTH left and right).
+	# When enclosed in a passage, opposing avoidance forces nearly cancel; normalization would
+	# amplify the tiny imbalance into full-strength misdirection. Suppress avoidance in that case.
 	var center_clear: bool = true
 	if _wall_raycasts.size() > 0:
 		var _cr: RayCast2D = _wall_raycasts[0]; _cr.target_position = direction * WALL_CHECK_DISTANCE; _cr.force_raycast_update()
 		center_clear = not _cr.is_colliding()
+	# Track passage walls on each side for bilateral detection
+	var left_passage_wall: bool = false
+	var right_passage_wall: bool = false
 	var raycast_count: int = mini(WALL_CHECK_COUNT, _wall_raycasts.size())
 	for i: int in range(raycast_count):
 		var angle_offset: float = angles[i] if i < angles.size() else 0.0  # IMPORTANT: explicit float
@@ -3556,17 +3562,29 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 			if i == 7:
 				avoidance += raycast.get_collision_normal() * 0.5
 			elif i == 0:
-				avoidance += perpendicular * base_weight
+				# Center ray: use collision normal to steer away from the wall, weighted by proximity
+				avoidance += raycast.get_collision_normal() * base_weight
 			else:
 				# Issue #1457: distinguish passage walls from corner edges using collision normal.
-				# If wall normal aligns with lateral direction (abs dot > 0.7), it's a passage wall
-				# (parallel to movement) — keep full avoidance. Otherwise it's a corner edge — reduce.
+				# If wall normal aligns with lateral direction (abs dot > 0.7), it's a passage wall —
+				# keep full avoidance. Otherwise it's a corner edge — reduce to 0.25×.
 				var wall_normal: Vector2 = raycast.get_collision_normal()
 				var lateral_alignment: float = absf(wall_normal.dot(perpendicular))
-				var scale: float = 1.0 if (not center_clear or lateral_alignment > 0.7) else 0.25
-				if i <= 3: avoidance += perpendicular * base_weight * scale
-				else: avoidance -= perpendicular * base_weight * scale
-	return avoidance.normalized() if avoidance.length() > 0 else Vector2.ZERO
+				var is_passage_wall: bool = lateral_alignment > 0.7
+				var scale: float = 1.0 if (not center_clear or is_passage_wall) else 0.25
+				if i <= 3:
+					avoidance += perpendicular * base_weight * scale
+					if is_passage_wall and center_clear: left_passage_wall = true
+				else:
+					avoidance -= perpendicular * base_weight * scale
+					if is_passage_wall and center_clear: right_passage_wall = true
+	# Issue #1457 v3: bilateral passage detection — when enclosed by passage walls on both sides
+	# with a clear center (= navigating through a corridor), opposing avoidance forces cancel.
+	# Normalizing the tiny residual imbalance would misdirect the enemy. Return ZERO so the
+	# NavAgent path guides navigation unimpeded.
+	if left_passage_wall and right_passage_wall and center_clear:
+		return Vector2.ZERO
+	return avoidance.normalized() if avoidance.length() > 0.01 else Vector2.ZERO
 
 ## Apply wall avoidance to a movement direction. Returns adjusted direction.
 func _apply_wall_avoidance(direction: Vector2) -> Vector2:

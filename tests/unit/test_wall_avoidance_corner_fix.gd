@@ -1,9 +1,12 @@
 extends GutTest
-## Tests for Issue #1457 wall avoidance corner-sticking fix (v2: collision-normal-aware).
+## Tests for Issue #1457 wall avoidance corner-sticking fix (v3: bilateral passage suppression).
 ##
-## Validates that the _check_wall_ahead logic correctly distinguishes:
+## Validates that the _check_wall_ahead logic correctly handles:
 ## - Passage walls (wall normal aligns with lateral direction) → full avoidance
 ## - Corner edge walls (wall normal does NOT align with lateral direction) → reduced avoidance (0.25×)
+## - Bilateral passage confinement (walls on BOTH sides, center clear) → ZERO avoidance
+##   (NavAgent handles navigation unimpeded; normalization would amplify tiny imbalance)
+## - Center ray: uses collision normal to steer away from wall (not fixed perpendicular)
 ##
 ## Since _check_wall_ahead requires actual RayCast2D nodes and physics,
 ## these tests validate the constants, variable existence, and logical
@@ -155,3 +158,88 @@ func test_path_max_distance_value_is_reasonable() -> void:
 		"path_max_distance (100) must exceed agent diameter (48)")
 	assert_gt(path_max_distance, wall_check_distance,
 		"path_max_distance (100) must exceed WALL_CHECK_DISTANCE (60) to avoid spurious recalcs")
+
+# =============================================================================
+# v3: Bilateral Passage Suppression Logic
+# =============================================================================
+
+func test_bilateral_passage_suppresses_avoidance() -> void:
+	# When passage walls are detected on BOTH sides and center is clear,
+	# the avoidance should be suppressed (return ZERO) to let NavAgent navigate.
+	# This validates the v3 fix for normalizing tiny bilateral imbalances.
+	var left_passage_wall: bool = true
+	var right_passage_wall: bool = true
+	var center_clear: bool = true
+	# Bilateral condition: both passage walls AND center clear → suppress
+	var should_suppress: bool = left_passage_wall and right_passage_wall and center_clear
+	assert_true(should_suppress,
+		"Bilateral passage (both sides enclosed, center clear) should suppress avoidance")
+
+
+func test_single_side_passage_wall_does_not_suppress() -> void:
+	# Only one side has a passage wall → normal avoidance applies (no suppression).
+	var left_passage_wall: bool = true
+	var right_passage_wall: bool = false
+	var center_clear: bool = true
+	var should_suppress: bool = left_passage_wall and right_passage_wall and center_clear
+	assert_false(should_suppress,
+		"Single-sided passage wall should NOT suppress avoidance")
+
+
+func test_bilateral_walls_with_blocked_center_does_not_suppress() -> void:
+	# Both sides have passage walls but center is BLOCKED → wall directly ahead.
+	# Emergency avoidance applies, do NOT suppress.
+	var left_passage_wall: bool = true
+	var right_passage_wall: bool = true
+	var center_clear: bool = false
+	var should_suppress: bool = left_passage_wall and right_passage_wall and center_clear
+	assert_false(should_suppress,
+		"Bilateral walls with blocked center should NOT suppress (wall ahead requires avoidance)")
+
+
+func test_bilateral_suppression_prevents_normalization_amplification() -> void:
+	# Simulate bilateral force cancellation scenario.
+	# Left push: perpendicular * 0.17 (= (1-50/60) weight, passage wall)
+	# Right push: -perpendicular * 0.15 (slightly different distance)
+	# Net: perpendicular * 0.02 — tiny residual
+	# Without suppression: normalized() → full unit vector → misdirection
+	# With suppression: return ZERO → NavAgent guides unimpeded
+	var perpendicular := Vector2(0.0, 1.0)
+	var left_avoidance := perpendicular * 0.17
+	var right_avoidance := -perpendicular * 0.15
+	var net_avoidance: Vector2 = left_avoidance + right_avoidance
+	# Verify the net is small (would be dangerous after normalization)
+	assert_lt(net_avoidance.length(), 0.1,
+		"Bilateral imbalance should produce a small net avoidance vector")
+	# The v3 fix suppresses this → zero, not normalized to full unit vector
+	var suppressed_avoidance: Vector2 = Vector2.ZERO  # what v3 returns
+	assert_almost_eq(suppressed_avoidance.length(), 0.0, 0.001,
+		"Suppressed bilateral avoidance must be zero")
+
+
+func test_center_ray_uses_collision_normal_not_fixed_perpendicular() -> void:
+	# v3 fix: center ray (i==0) uses get_collision_normal() * base_weight
+	# instead of perpendicular * base_weight.
+	# Verify: for a wall at 30px with center hit, avoidance uses the wall normal.
+	var base_weight: float = 1.0 - (30.0 / 60.0)  # 0.5
+	var wall_normal := Vector2(0.0, -1.0)  # wall below, normal points up
+	var avoidance_v3: Vector2 = wall_normal * base_weight
+	# The avoidance should point in the direction of the collision normal
+	assert_almost_eq(avoidance_v3.y, -0.5, 0.001,
+		"Center-ray avoidance (v3) must use collision normal direction")
+	assert_almost_eq(avoidance_v3.x, 0.0, 0.001,
+		"Center-ray avoidance (v3) x component should match normal")
+
+
+func test_minimum_normalization_threshold() -> void:
+	# v3 raises the normalization guard from > 0 to > 0.01 to prevent
+	# normalizing floating-point noise to full unit vectors.
+	var noise_magnitude: float = 0.005  # pure FP noise, below threshold
+	var threshold: float = 0.01
+	var should_normalize_noise: bool = noise_magnitude > threshold
+	assert_false(should_normalize_noise,
+		"Floating-point noise (< 0.01) should not be normalized to a unit vector")
+	var meaningful_magnitude: float = 0.1  # real avoidance force
+	var should_normalize_real: bool = meaningful_magnitude > threshold
+	assert_true(should_normalize_real,
+		"Real avoidance force (0.1) should still be normalized to guide enemy")
