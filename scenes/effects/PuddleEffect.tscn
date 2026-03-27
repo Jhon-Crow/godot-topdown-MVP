@@ -1,0 +1,22 @@
+[gd_scene load_steps=4 format=3 uid="uid://puddle_effect_scene_1626"]
+
+[ext_resource type="Script" path="res://scripts/effects/puddle_effect.gd" id="1_puddle_effect"]
+
+[sub_resource type="Gradient" id="Gradient_puddle"]
+offsets = PackedFloat32Array(0, 0.35, 0.7, 0.88, 1)
+colors = PackedColorArray(0.38, 0.52, 0.65, 0.82, 0.35, 0.48, 0.62, 0.68, 0.3, 0.42, 0.55, 0.38, 0.28, 0.4, 0.52, 0.12, 0.25, 0.38, 0.5, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_puddle"]
+gradient = SubResource("Gradient_puddle")
+width = 64
+height = 64
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1.0, 0.5)
+
+[node name="PuddleEffect" type="Sprite2D"]
+z_index = -1
+scale = Vector2(0, 0)
+modulate = Color(1, 1, 1, 0)
+texture = SubResource("GradientTexture2D_puddle")
+script = ExtResource("1_puddle_effect")

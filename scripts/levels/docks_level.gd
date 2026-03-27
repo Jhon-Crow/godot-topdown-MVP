@@ -63,6 +63,9 @@ func _ready() -> void:
 	# Setup rare rain precipitation (Issue #1394)
 	_setup_rain()
 
+	# Setup growing puddles (Issue #1626)
+	_setup_puddles()
+
 
 func _initialize_score_manager() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
@@ -1332,6 +1335,17 @@ func _setup_rain() -> void:
 	rain.add_exclusion_zone(warehouse_b_rect)
 
 	_log_to_file("Rain precipitation setup with 2 exclusion zones (WarehouseA, WarehouseB)")
+
+
+## Setup growing rain puddles for the Docks level (Issue #1626).
+## The PuddleManager node in the scene handles spawning and growth.
+## This function just confirms the node is present and logs the result.
+func _setup_puddles() -> void:
+	var puddle_manager: Node = get_node_or_null("PuddleManager")
+	if puddle_manager == null:
+		push_warning("[DocksLevel] PuddleManager node not found")
+		return
+	_log_to_file("Puddle system ready (PuddleManager found)")
 
 
 func _log_to_file(message: String) -> void:
