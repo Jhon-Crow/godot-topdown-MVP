@@ -112,10 +112,13 @@ func test_drone_hp_clamps_to_zero() -> void:
 class MockDroneOperatorDodge:
 	## Simulates DroneOperatorComponent dodge mechanics for testing.
 	## Uses the same interface as MacheteComponent dodge.
+	## Issue #1664: supports DODGE_BURST_MAX dodges per burst then DODGE_BURST_COOLDOWN wait.
 
 	const DODGE_SPEED: float = 400.0
 	const DODGE_DISTANCE: float = 120.0
 	const DODGE_COOLDOWN: float = 1.2
+	const DODGE_BURST_MAX: int = 4
+	const DODGE_BURST_COOLDOWN: float = 4.0
 
 	enum Phase { DEPLOYING, CONTROLLING, ACTIVE }
 
@@ -124,11 +127,21 @@ class MockDroneOperatorDodge:
 	var _dodge_timer: float = 0.0
 	var _dodge_direction: Vector2 = Vector2.ZERO
 	var _dodge_count: int = 0
+	var _dodge_burst_count: int = 0
+	var _dodge_burst_cooldown_timer: float = 0.0
 
 	func try_dodge(bullet_direction: Vector2) -> bool:
 		if _phase != Phase.ACTIVE:
 			return false
 		if _is_dodging:
+			return false
+		# Burst cooldown active — cannot dodge yet (Issue #1664)
+		if _dodge_burst_cooldown_timer > 0.0:
+			return false
+		# Burst exhausted — start long cooldown and deny dodge (Issue #1664)
+		if _dodge_burst_count >= DODGE_BURST_MAX:
+			_dodge_burst_cooldown_timer = DODGE_BURST_COOLDOWN
+			_dodge_burst_count = 0
 			return false
 		# Calculate perpendicular dodge direction (same as MacheteComponent)
 		var perp_right := Vector2(-bullet_direction.y, bullet_direction.x)
@@ -137,6 +150,7 @@ class MockDroneOperatorDodge:
 		_is_dodging = true
 		_dodge_timer = DODGE_DISTANCE / DODGE_SPEED
 		_dodge_count += 1
+		_dodge_burst_count += 1
 		return true
 
 	func is_dodging() -> bool:
@@ -150,6 +164,12 @@ class MockDroneOperatorDodge:
 	func end_dodge() -> void:
 		_is_dodging = false
 		_dodge_timer = 0.0
+
+	func update(delta: float) -> void:
+		if _dodge_burst_cooldown_timer > 0.0:
+			_dodge_burst_cooldown_timer -= delta
+			if _dodge_burst_cooldown_timer < 0.0:
+				_dodge_burst_cooldown_timer = 0.0
 
 	func is_controlling_drone() -> bool:
 		return _phase == Phase.CONTROLLING
@@ -254,6 +274,100 @@ func test_dodge_speed_is_400px_per_second() -> void:
 	## Issue #1540: dodge speed must be 400 px/s — same as machete enemy.
 	assert_eq(MockDroneOperatorDodge.DODGE_SPEED, 400.0,
 		"Dodge speed should be 400 px/s (same as machete enemy)")
+
+
+# ============================================================================
+# DroneOperatorComponent burst dodge tests (Issue #1664)
+# Operator dodges up to 4 times, then waits 4 seconds before dodging again.
+# ============================================================================
+
+
+func test_dodge_burst_max_is_four() -> void:
+	## Issue #1664: operator must allow exactly 4 dodges per burst.
+	assert_eq(MockDroneOperatorDodge.DODGE_BURST_MAX, 4,
+		"Dodge burst max should be 4")
+
+
+func test_dodge_burst_cooldown_is_four_seconds() -> void:
+	## Issue #1664: after exhausting the burst, operator waits 4 seconds.
+	assert_eq(MockDroneOperatorDodge.DODGE_BURST_COOLDOWN, 4.0,
+		"Dodge burst cooldown should be 4 seconds")
+
+
+func test_operator_can_dodge_four_times_in_burst() -> void:
+	## Issue #1664: operator should successfully dodge 4 times before burst cooldown.
+	mock_operator = MockDroneOperatorDodge.new()
+	var success_count: int = 0
+	for i in range(4):
+		mock_operator.end_dodge()  # Reset dodge state between calls
+		var result: bool = mock_operator.try_dodge(Vector2.RIGHT)
+		if result:
+			success_count += 1
+	assert_eq(success_count, 4,
+		"Operator should successfully dodge 4 times in a burst (Issue #1664)")
+
+
+func test_operator_blocked_after_four_dodges() -> void:
+	## Issue #1664: 5th dodge attempt should fail and start the burst cooldown.
+	mock_operator = MockDroneOperatorDodge.new()
+	for i in range(4):
+		mock_operator.end_dodge()
+		mock_operator.try_dodge(Vector2.RIGHT)
+	# 5th attempt — burst exhausted, should fail and start cooldown
+	mock_operator.end_dodge()
+	var result: bool = mock_operator.try_dodge(Vector2.RIGHT)
+	assert_false(result,
+		"5th dodge should fail because burst is exhausted (Issue #1664)")
+	assert_gt(mock_operator._dodge_burst_cooldown_timer, 0.0,
+		"Burst cooldown timer should be positive after burst exhausted (Issue #1664)")
+
+
+func test_operator_burst_cooldown_blocks_further_dodges() -> void:
+	## Issue #1664: while burst cooldown is active, dodge attempts must fail.
+	mock_operator = MockDroneOperatorDodge.new()
+	# Exhaust the burst
+	for i in range(4):
+		mock_operator.end_dodge()
+		mock_operator.try_dodge(Vector2.RIGHT)
+	mock_operator.end_dodge()
+	mock_operator.try_dodge(Vector2.RIGHT)  # triggers cooldown
+	# Partial cooldown elapsed (not yet expired)
+	mock_operator.update(2.0)
+	var result: bool = mock_operator.try_dodge(Vector2.RIGHT)
+	assert_false(result,
+		"Dodge should still be blocked mid-cooldown (Issue #1664)")
+
+
+func test_operator_can_dodge_again_after_burst_cooldown_expires() -> void:
+	## Issue #1664: after 4-second burst cooldown expires, operator can dodge again.
+	mock_operator = MockDroneOperatorDodge.new()
+	# Exhaust the burst
+	for i in range(4):
+		mock_operator.end_dodge()
+		mock_operator.try_dodge(Vector2.RIGHT)
+	mock_operator.end_dodge()
+	mock_operator.try_dodge(Vector2.RIGHT)  # triggers cooldown
+	# Full cooldown elapses
+	mock_operator.update(4.1)
+	mock_operator.end_dodge()
+	var result: bool = mock_operator.try_dodge(Vector2.RIGHT)
+	assert_true(result,
+		"Operator should be able to dodge again after burst cooldown expires (Issue #1664)")
+
+
+func test_drone_operator_component_has_burst_constants() -> void:
+	## Issue #1664: source file must declare the burst limit and cooldown constants.
+	var file := FileAccess.open("res://scripts/components/drone_operator_component.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open drone_operator_component.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("DODGE_BURST_MAX"),
+		"drone_operator_component.gd must define DODGE_BURST_MAX constant (Issue #1664)")
+	assert_true(source.contains("DODGE_BURST_COOLDOWN"),
+		"drone_operator_component.gd must define DODGE_BURST_COOLDOWN constant (Issue #1664)")
 
 
 # ============================================================================

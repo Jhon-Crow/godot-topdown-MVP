@@ -52,6 +52,18 @@ var _cover_seek_timer: float = 0.0
 ## Same dodge logic as the machete enemy — perpendicular lateral dodge, no dash.
 var _dodge_component: MacheteComponent = null
 
+## Number of dodges performed in the current burst (Issue #1664).
+var _dodge_burst_count: int = 0
+
+## Maximum dodges allowed per burst before the long cooldown kicks in (Issue #1664).
+const DODGE_BURST_MAX: int = 4
+
+## Cooldown in seconds after exhausting the burst before dodging is allowed again (Issue #1664).
+const DODGE_BURST_COOLDOWN: float = 4.0
+
+## Timer counting down the burst cooldown (Issue #1664).
+var _dodge_burst_cooldown_timer: float = 0.0
+
 ## VR headset visual node.
 var _vr_headset: Node2D = null
 
@@ -214,10 +226,24 @@ func is_dodging() -> bool:
 
 ## Try to dodge a bullet. Delegates to MacheteComponent logic.
 ## bullet_direction: normalized direction the bullet is traveling.
+## Allows up to DODGE_BURST_MAX dodges per burst, then waits DODGE_BURST_COOLDOWN seconds (Issue #1664).
 func try_dodge(bullet_direction: Vector2) -> bool:
 	if _phase != Phase.ACTIVE or _dodge_component == null:
 		return false
-	return _dodge_component.try_dodge(bullet_direction)
+	# Burst cooldown: exhausted the allowed burst, wait before dodging again (Issue #1664)
+	if _dodge_burst_cooldown_timer > 0.0:
+		return false
+	# Burst limit reached: start the long cooldown (Issue #1664)
+	if _dodge_burst_count >= DODGE_BURST_MAX:
+		_dodge_burst_cooldown_timer = DODGE_BURST_COOLDOWN
+		_dodge_burst_count = 0
+		FileLogger.info("[DroneOperator] Dodge burst exhausted, cooldown %.1fs" % DODGE_BURST_COOLDOWN)
+		return false
+	var started: bool = _dodge_component.try_dodge(bullet_direction)
+	if started:
+		_dodge_burst_count += 1
+		FileLogger.info("[DroneOperator] Dodge %d/%d in burst" % [_dodge_burst_count, DODGE_BURST_MAX])
+	return started
 
 
 ## Get current dodge velocity. Returns Vector2.ZERO if not dodging.
@@ -432,6 +458,13 @@ func _update_laser_sight(_delta: float) -> void:
 func _update_active(delta: float) -> void:
 	# Update laser sight pulse (Issue #1532)
 	_update_laser_sight(delta)
+
+	# Tick burst cooldown timer (Issue #1664)
+	if _dodge_burst_cooldown_timer > 0.0:
+		_dodge_burst_cooldown_timer -= delta
+		if _dodge_burst_cooldown_timer <= 0.0:
+			_dodge_burst_cooldown_timer = 0.0
+			FileLogger.info("[DroneOperator] Dodge burst cooldown expired, ready to dodge again")
 
 	# Update dodge component
 	if _dodge_component != null:
