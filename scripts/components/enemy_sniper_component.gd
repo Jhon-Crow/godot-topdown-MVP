@@ -102,6 +102,7 @@ func _ready() -> void:
 	if enemy != null and enemy.get("weapon_type") != null:
 		# WeaponType.SNIPER_RIFLE == 7 (enum int value)
 		if int(enemy.weapon_type) == 7:
+			print("[EnemySniperComponent] LASER_MAX_RANGE = ", LASER_MAX_RANGE, " px")
 			_create_laser_sight()
 
 
