@@ -423,7 +423,13 @@ func _setup_dodge_component() -> void:
 	_dodge_component.dodge_cooldown = 1.2
 	_dodge_component.debug_logging = false
 	add_child(_dodge_component)
-	FileLogger.info("[DroneOperator] Dodge component set up (machete-style, speed=400, distance=120)")
+	# MacheteComponent._ready() sets _parent = get_parent() as CharacterBody2D.
+	# Since DodgeComponent is a child of DroneOperatorComponent (a Node, not CharacterBody2D),
+	# the cast returns null and all dodge calls silently fail.
+	# Fix: explicitly point _parent to the actual enemy CharacterBody2D (Issue #1664).
+	if _parent is CharacterBody2D:
+		_dodge_component._parent = _parent as CharacterBody2D
+	FileLogger.info("[DroneOperator] Dodge component set up (machete-style, speed=400, distance=120, parent=%s)" % (_parent.name if _parent else "null"))
 
 
 ## Create a laser sight Line2D on the weapon mount (Issue #1532).

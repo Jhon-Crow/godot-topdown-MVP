@@ -648,3 +648,21 @@ func test_drone_operator_active_does_not_use_machete_melee_in_combat() -> void:
 	# The block must NOT contain backstab logic
 	assert_false(drone_block.contains("is_backstab_opportunity"),
 		"Drone operator ACTIVE block must NOT use machete backstab approach (Issue #1540)")
+
+
+func test_dodge_component_parent_is_assigned_after_add_child() -> void:
+	## Issue #1664: MacheteComponent._ready() sets _parent = get_parent() as CharacterBody2D.
+	## When the component is added as child of DroneOperatorComponent (a Node, not CharacterBody2D),
+	## the cast returns null and all dodge calls silently return false.
+	## Fix: _setup_dodge_component() must explicitly set _dodge_component._parent after add_child().
+	var file := FileAccess.open("res://scripts/components/drone_operator_component.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open drone_operator_component.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	# The fix must assign _dodge_component._parent explicitly after add_child
+	assert_true(source.contains("_dodge_component._parent = _parent"),
+		"_setup_dodge_component() must explicitly assign _dodge_component._parent = _parent " +
+		"so MacheteComponent can use the enemy CharacterBody2D (Issue #1664)")

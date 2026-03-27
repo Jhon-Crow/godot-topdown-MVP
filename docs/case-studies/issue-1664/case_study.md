@@ -40,23 +40,58 @@ The log captures the operator dying in CONTROLLING phase. Because dodge is only 
 
 ## Root Cause Analysis
 
+### Root Cause 1 (Session 1 — no burst limit, PR #1665 initial commit)
+
 **File:** `scripts/components/drone_operator_component.gd`
 
-The `_setup_dodge_component()` method (line ~389) creates a `MacheteComponent` with:
-- `dodge_speed = 400.0`
-- `dodge_distance = 120.0`
-- `dodge_cooldown = 1.2`
+`MacheteComponent.try_dodge()` only blocked re-dodging while a dodge was in progress OR within the 1.2s cooldown — no burst counter existed.
+The operator could dodge indefinitely, one sidestep every ~1.5s, which is not the intended burst-then-rest behavior.
 
-`MacheteComponent.try_dodge()` only blocks re-dodging while a dodge is in progress OR within the 1.2s cooldown. There is no counter for "how many times have we dodged in a row" and no "long cooldown after N dodges".
-
-The `DroneOperatorComponent.try_dodge()` wrapper simply delegated to `_dodge_component.try_dodge()` without any additional burst-limiting logic.
-
-**Result:** The operator could dodge indefinitely, one sidestep every ~1.5 seconds (0.3s dodge + 1.2s cooldown), which is not the intended burst-then-rest behavior.
+**Fix (Session 1):** Added burst-limit state (`DODGE_BURST_MAX=4`, `DODGE_BURST_COOLDOWN=4.0s`) to `DroneOperatorComponent.try_dodge()`.
 
 ---
 
-## Fix
+### Root Cause 2 (Session 2 — dodges still not working after Session 1 fix)
 
+**Confirmed by:** Game log `game_log_20260327_231926.txt` — the log shows "Player bullet entered threat sphere — suppression triggered" multiple times after the ACTIVE phase transition, but never shows "[DroneOperator] Dodge X/4 in burst".
+
+**File:** `scripts/components/drone_operator_component.gd` — `_setup_dodge_component()`
+
+```gdscript
+# DroneOperatorComponent._setup_dodge_component():
+_dodge_component = MacheteComponent.new()
+add_child(_dodge_component)    # <-- _ready() fires HERE
+```
+
+**File:** `scripts/components/machete_component.gd` — `_ready()`
+
+```gdscript
+func _ready() -> void:
+    _parent = get_parent() as CharacterBody2D   # <-- CAST FAILS
+```
+
+`MacheteComponent` is a child of `DroneOperatorComponent` (a `Node`, not `CharacterBody2D`). The `as CharacterBody2D` cast returns `null`. Every call to `try_dodge()` then hits:
+
+```gdscript
+func try_dodge(bullet_direction: Vector2) -> bool:
+    if _parent == null:
+        return false   # <-- ALWAYS RETURNS FALSE
+```
+
+So dodging was silently disabled — no errors, no warnings, just silent no-ops.
+
+**Fix (Session 2):** After `add_child(_dodge_component)`, explicitly assign the enemy body:
+
+```gdscript
+if _parent is CharacterBody2D:
+    _dodge_component._parent = _parent as CharacterBody2D
+```
+
+---
+
+## Fix Summary
+
+### Session 1 Fix
 Added burst-limit state to `DroneOperatorComponent` (issue #1664):
 
 ```
@@ -74,6 +109,16 @@ Updated `try_dodge()` to:
 
 Updated `_update_active()` to tick `_dodge_burst_cooldown_timer` down each frame.
 
+### Session 2 Fix
+In `_setup_dodge_component()`, after `add_child(_dodge_component)`:
+
+```gdscript
+if _parent is CharacterBody2D:
+    _dodge_component._parent = _parent as CharacterBody2D
+```
+
+This ensures `MacheteComponent.try_dodge()` can access the enemy body for navigation and position calculations.
+
 ---
 
 ## Tests Added (test_drone_operator.gd)
@@ -85,11 +130,12 @@ Updated `_update_active()` to tick `_dodge_burst_cooldown_timer` down each frame
 - `test_operator_burst_cooldown_blocks_further_dodges` — mid-cooldown attempts blocked
 - `test_operator_can_dodge_again_after_burst_cooldown_expires` — dodging resumes after 4s
 - `test_drone_operator_component_has_burst_constants` — source file check
+- `test_dodge_component_parent_is_assigned_after_add_child` — verifies the Session 2 fix (Issue #1664)
 
 ---
 
 ## Impact
 
 - No changes to `MacheteComponent` (other enemies are unaffected).
-- Only `DroneOperatorComponent` gains the burst counter.
+- Only `DroneOperatorComponent` gains the explicit `_parent` override.
 - The underlying dodge physics (perpendicular sidestep, 120px, 400px/s) are unchanged.
