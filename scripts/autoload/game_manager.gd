@@ -27,6 +27,11 @@ var no_damage_levels_completed: int = 0
 ## Persists across sessions — used as the unlock condition for Breaker Bullets (Issue #1589).
 var levels_completed_rank_a_or_higher: int = 0
 
+## Set to true while the animated score screen animation is playing.
+## Blocks the Q-key quick-restart shortcut so the player cannot accidentally skip the
+## score screen before seeing the Armory button (Issue #1589).
+var score_screen_active: bool = false
+
 ## Weapon IDs that count toward the Fine Motor Skills unlock condition (Issue #1346).
 const FINE_MOTOR_SKILLS_WEAPONS: Array[String] = ["shotgun", "sniper", "revolver"]
 
@@ -266,6 +271,10 @@ func _input(event: InputEvent) -> void:
 	# Handle quick restart with Q key
 	if event is InputEventKey:
 		if event.pressed and event.physical_keycode == KEY_Q:
+			# Block restart while the score screen animation is playing — the player
+			# may not have seen the Armory button yet (Issue #1589).
+			if score_screen_active:
+				return
 			restart_scene()
 		# Handle invincibility toggle with F6 key (works in exported builds)
 		elif event.pressed and event.physical_keycode == KEY_F6:

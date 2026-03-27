@@ -1364,6 +1364,11 @@ func _log_to_file(message: String) -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_Q:
+			# Block restart while the score screen animation is playing so the
+			# player can always see the Armory button before restarting (Issue #1589).
+			var game_manager: Node = get_node_or_null("/root/GameManager")
+			if game_manager and game_manager.get("score_screen_active"):
+				return
 			get_tree().reload_current_scene()
 		elif event.keycode == KEY_W and _level_cleared:
 			_complete_level_with_score()
