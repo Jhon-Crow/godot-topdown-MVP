@@ -257,6 +257,32 @@ func test_warehouse_b_exclusion_zone() -> void:
 		"Point west of WarehouseB should not be in zone")
 
 
+func test_crane_platform_exclusion_zone() -> void:
+	var rain := MockRainEffect.new()
+	# CranePlatform: position (400, 500), walls extend ±208x, ±158y
+	var crane_platform := Rect2(400 - 208, 500 - 158, 416, 316)
+	rain.add_exclusion_zone(crane_platform)
+
+	assert_true(rain._is_point_in_exclusion_zone(Vector2(400, 500)),
+		"Center of CranePlatform should be in zone")
+	assert_false(rain._is_point_in_exclusion_zone(Vector2(700, 500)),
+		"Point east of CranePlatform should not be in zone")
+
+
+func test_rain_stops_inside_crane_platform() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	# CranePlatform: position (400, 500), walls extend ±208x, ±158y
+	var crane_platform := Rect2(400 - 208, 500 - 158, 416, 316)
+	rain.add_exclusion_zone(crane_platform)
+
+	rain.simulate_camera_move(Vector2(400, 500))
+	assert_false(rain.emitting, "Rain should stop inside CranePlatform")
+
+	rain.simulate_camera_move(Vector2(800, 500))
+	assert_true(rain.emitting, "Rain should resume after leaving CranePlatform")
+
+
 # ============================================================================
 # Tests: Issue #1546 Fixes — Streak Direction and Splash Alignment
 # ============================================================================

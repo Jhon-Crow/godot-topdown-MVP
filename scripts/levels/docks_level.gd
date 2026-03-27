@@ -1308,12 +1308,20 @@ func _disable_player_controls() -> void:
 
 ## Setup rare rain precipitation effect for the Docks level (Issue #1394).
 ## Configures the RainEffect node with exclusion zones for indoor areas
-## (WarehouseA and WarehouseB) so rain does not appear inside buildings.
+## (CranePlatform, WarehouseA, and WarehouseB) so rain does not appear inside buildings.
 func _setup_rain() -> void:
 	var rain: Node = get_node_or_null("RainEffect")
 	if rain == null:
 		push_warning("[DocksLevel] RainEffect node not found")
 		return
+
+	# CranePlatform: position (400, 500), floor from (-200, -150) to (200, 150)
+	# Including walls (±208x, ±158y from center), the covered area is approximately:
+	var crane_platform_rect := Rect2(
+		400 - 208, 500 - 158,  # top-left corner (global)
+		416, 316  # width, height (including walls)
+	)
+	rain.add_exclusion_zone(crane_platform_rect)
 
 	# WarehouseA: position (400, 1800), floor from (-250, -300) to (250, 300)
 	# Including walls, the covered area is approximately:
@@ -1331,7 +1339,7 @@ func _setup_rain() -> void:
 	)
 	rain.add_exclusion_zone(warehouse_b_rect)
 
-	_log_to_file("Rain precipitation setup with 2 exclusion zones (WarehouseA, WarehouseB)")
+	_log_to_file("Rain precipitation setup with 3 exclusion zones (CranePlatform, WarehouseA, WarehouseB)")
 
 
 func _log_to_file(message: String) -> void:
