@@ -487,7 +487,7 @@ func _create_laser_sight() -> void:
 	# Core laser beam (narrow, semi-transparent red)
 	_laser_line = Line2D.new()
 	_laser_line.name = "SniperLaserSight"
-	_laser_line.width = 1.5
+	_laser_line.width = 2.0
 	_laser_line.default_color = Color(1.0, 0.0, 0.0, 0.45)
 	_laser_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	_laser_line.end_cap_mode = Line2D.LINE_CAP_ROUND
@@ -737,12 +737,14 @@ func _update_laser_sight() -> void:
 	var muzzle_pos := _get_laser_muzzle_pos(weapon_forward)
 	var laser_end := muzzle_pos + weapon_forward * LASER_MAX_RANGE
 
-	# Raycast to find the first wall the laser hits (layer 4 = walls/obstacles)
+	# Raycast to find the first wall or character (incl. player) the laser hits.
+	# Issue #1662: mask 5 = layer 1 (characters) | layer 4 (walls/obstacles),
+	# so the laser stops at the player instead of passing through them.
 	var world_2d := enemy.get_world_2d()
 	if world_2d:
 		var space_state := world_2d.direct_space_state
 		if space_state:
-			var query := PhysicsRayQueryParameters2D.create(muzzle_pos, laser_end, 4)
+			var query := PhysicsRayQueryParameters2D.create(muzzle_pos, laser_end, 5)
 			var result := space_state.intersect_ray(query)
 			if not result.is_empty():
 				laser_end = result["position"]
