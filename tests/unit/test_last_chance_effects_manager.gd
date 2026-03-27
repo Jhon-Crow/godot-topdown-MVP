@@ -173,6 +173,10 @@ class MockLastChanceEffectsManager:
 		if _is_effect_active:
 			return
 
+		# Issue #1654: Cancel any ongoing fade-out before starting a new effect.
+		if _is_fading_out:
+			_is_fading_out = false
+
 		_is_effect_active = true
 		_is_grenade_triggered = is_grenade
 		_current_effect_duration = duration_seconds
@@ -195,6 +199,19 @@ class MockLastChanceEffectsManager:
 		_unfreeze_time_called = true
 		_fade_out_started = true
 		_is_fading_out = true
+
+	## Complete the fade-out animation.
+	## Mirrors the logic from the real _complete_fade_out() (Issue #442, #1654).
+	func complete_fade_out() -> void:
+		_is_fading_out = false
+		_visual_effects_removed = true
+		# Issue #1654: Only disable process if no new effect started during fade-out.
+		# (In the mock we track this with _process_disabled flag.)
+		if not _is_effect_active:
+			_process_disabled = true
+
+	## Whether _process was disabled after fade-out.
+	var _process_disabled: bool = false
 
 	## Trigger grenade last chance effect.
 	## Mirrors the logic from the real trigger_grenade_last_chance().
@@ -1591,3 +1608,89 @@ func test_player_death_multiple_times() -> void:
 	# Die again immediately
 	manager.on_player_died()
 	assert_false(manager._effect_used, "Second death should remain false")
+
+
+# ============================================================================
+# Issue #1654: New effect starting during fade-out causes permanent time freeze
+# ============================================================================
+
+
+func test_new_effect_during_fadeout_cancels_fadeout() -> void:
+	# Start and end an effect — this puts us in fade-out state
+	manager.start_last_chance_effect(2.0, true)
+	assert_true(manager._is_effect_active, "Effect should be active")
+	manager.end_last_chance_effect()
+	assert_false(manager._is_effect_active, "Effect should be inactive after end")
+	assert_true(manager._is_fading_out, "Fade-out should have started")
+
+	# While fading out, a new effect starts (e.g. another drone explodes)
+	manager.start_last_chance_effect(2.0, true)
+
+	# The fade-out should be cancelled and the new effect should be active
+	assert_false(manager._is_fading_out,
+		"Issue #1654: fade-out must be cancelled when new effect starts")
+	assert_true(manager._is_effect_active,
+		"New effect should be active after starting during fade-out")
+
+
+func test_complete_fadeout_does_not_stop_process_when_effect_active() -> void:
+	# Start an effect, end it (starts fade-out), then start a new effect
+	manager.start_last_chance_effect(2.0, true)
+	manager.end_last_chance_effect()
+	assert_true(manager._is_fading_out, "Fade-out should be active")
+
+	# New effect starts while fade-out is running — cancels fade-out
+	manager.start_last_chance_effect(2.0, true)
+	assert_false(manager._is_fading_out, "Fade-out should be cancelled")
+	assert_true(manager._is_effect_active, "New effect should be active")
+
+	# When fade-out completes (from old coroutine), it should NOT disable _process
+	# because a new effect is active
+	manager.complete_fade_out()
+
+	assert_false(manager._process_disabled,
+		"Issue #1654: _process must NOT be disabled when a new effect is active")
+	assert_true(manager._is_effect_active,
+		"New effect should still be active after fade-out completes")
+
+
+func test_complete_fadeout_stops_process_when_no_effect_active() -> void:
+	# Normal flow: effect ends, fade-out runs, then completes
+	manager.start_last_chance_effect(2.0, true)
+	manager.end_last_chance_effect()
+	manager.complete_fade_out()
+
+	assert_true(manager._process_disabled,
+		"_process should be disabled when fade-out completes with no active effect")
+	assert_false(manager._is_fading_out,
+		"Fading-out flag should be cleared after fade-out completes")
+
+
+func test_multiple_drone_explosions_rapid_sequence() -> void:
+	# Reproduce the exact sequence from the issue log:
+	# drone 2 ends → fade-out starts → drone 3 explodes immediately
+	manager._has_player = true
+
+	# 2nd drone effect ends
+	manager.start_last_chance_effect(2.0, true)
+	manager.end_last_chance_effect()
+	assert_true(manager._is_fading_out, "Fade-out from 2nd effect should be active")
+	assert_false(manager._is_effect_active, "2nd effect should be inactive")
+
+	# 3rd drone explodes — triggers new grenade effect (since _is_effect_active == false)
+	manager.trigger_grenade_last_chance(2.0)
+
+	# Fade-out must be cancelled, new effect must be running
+	assert_false(manager._is_fading_out,
+		"Issue #1654: fade-out must be cancelled by 3rd drone explosion")
+	assert_true(manager._is_effect_active,
+		"3rd drone effect must be active")
+
+	# Simulate fade-out completing (from 2nd effect's scheduled coroutine)
+	manager.complete_fade_out()
+
+	# The new (3rd) effect must still be alive — _process must NOT have been killed
+	assert_true(manager._is_effect_active,
+		"Issue #1654: 3rd drone effect must survive fade-out completion")
+	assert_false(manager._process_disabled,
+		"Issue #1654: _process must NOT be disabled while 3rd effect is active")
