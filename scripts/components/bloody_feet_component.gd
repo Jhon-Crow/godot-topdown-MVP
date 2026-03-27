@@ -421,8 +421,8 @@ func _spawn_footprint() -> void:
 	# Add PI/2 (90 degrees clockwise) to align boot texture with facing direction
 	footprint.rotation = facing_direction.angle() + PI / 2.0
 	footprint.scale = Vector2(footprint_scale, footprint_scale)
-	# Ensure footprint renders above floor (z_index 0) but below characters
-	footprint.z_index = 1
+	# Ensure footprint renders below characters (body z_index = 1)
+	footprint.z_index = 0
 
 	# Set which foot this is (left or right boot texture)
 	if footprint.has_method("set_foot"):

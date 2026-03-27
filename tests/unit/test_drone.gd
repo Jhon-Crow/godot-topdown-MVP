@@ -21,6 +21,13 @@ class MockDrone:
 	const SPIRAL_EXPAND_RATE: float = 12.0
 	const SPIRAL_ANGULAR_SPEED: float = 1.2
 	const SEARCH_SPEED: float = 150.0
+	const COMBAT_SPEED: float = 675.0
+	## Re-aiming constants (Issue #1542)
+	const DRIFT_FACTOR: float = 0.93
+	const MISS_DOT_THRESHOLD: float = -0.2
+	const REAIM_DRIFT_FACTOR: float = 0.70
+	const REAIM_SPEED: float = 220.0
+	const REAIM_EXIT_DOT: float = 0.70
 
 	var _is_alive: bool = true
 	var _rotor_angle: float = 0.0
@@ -39,6 +46,11 @@ class MockDrone:
 	var _nav_next_pos: Vector2 = Vector2(INF, INF)
 	var _avoidance_velocity: Vector2 = Vector2.ZERO  # ORCA result
 	var _avoidance_enabled: bool = false
+	## Re-aiming state (Issue #1542)
+	var _is_reaiming: bool = false
+	var _prev_alignment: float = 1.0
+	var _current_move_dir: Vector2 = Vector2.ZERO
+	var _player_pos: Vector2 = Vector2.ZERO
 
 	func _init() -> void:
 		_groups.append("enemies")
@@ -85,6 +97,30 @@ class MockDrone:
 			_velocity = intended_vel
 
 		_drone_pos += _velocity * delta  # Integrate position for tests
+
+	## Simulate one tick of combat movement.
+	## Mirrors the real _update_combat() re-aiming logic (Issue #1542).
+	func update_combat(delta: float) -> void:
+		var to_player: Vector2 = _player_pos - _drone_pos
+		var desired_dir: Vector2 = to_player.normalized() if to_player.length() > 0.0 else Vector2.RIGHT
+
+		if _current_move_dir == Vector2.ZERO:
+			_current_move_dir = desired_dir
+		else:
+			var drift: float = REAIM_DRIFT_FACTOR if _is_reaiming else DRIFT_FACTOR
+			_current_move_dir = (_current_move_dir * drift + desired_dir * (1.0 - drift)).normalized()
+
+		var alignment: float = _current_move_dir.dot(desired_dir)
+		# Re-aim only after zanос bottoms out (alignment was falling, now rising).
+		if not _is_reaiming and alignment < MISS_DOT_THRESHOLD and alignment > _prev_alignment:
+			_is_reaiming = true
+		elif _is_reaiming and alignment >= REAIM_EXIT_DOT:
+			_is_reaiming = false
+		_prev_alignment = alignment
+
+		var speed: float = REAIM_SPEED if _is_reaiming else COMBAT_SPEED
+		_velocity = _current_move_dir * speed
+		_drone_pos += _velocity * delta
 
 
 # ============================================================================
@@ -354,3 +390,210 @@ func test_avoidance_disabled_uses_intended_velocity() -> void:
 	drone.update_searching(0.1)
 
 	assert_gt(drone._velocity.x, 0.0, "Without avoidance, drone should use intended (rightward) velocity")
+
+
+# Combat Re-aiming Tests (Issue #1542)
+# ============================================================================
+
+
+func test_combat_full_speed_when_aligned() -> void:
+	# When the drone is aimed at the player, it must fly at full COMBAT_SPEED.
+	var drone := MockDrone.new()
+	drone._drone_pos = Vector2(0.0, 0.0)
+	drone._player_pos = Vector2(500.0, 0.0)  # Player directly to the right
+	drone._current_move_dir = Vector2(1.0, 0.0)  # Already aimed at player
+
+	drone.update_combat(0.016)
+
+	assert_false(drone._is_reaiming, "Drone should not be re-aiming when aligned with player")
+	assert_almost_eq(drone._velocity.length(), MockDrone.COMBAT_SPEED, 1.0,
+		"Drone should fly at COMBAT_SPEED when aimed at player")
+
+
+func test_miss_detection_enters_reaim_phase() -> void:
+	# After flying away from the player (miss), the drone must eventually enter re-aiming.
+	# Re-aim starts only after the zanос (overshoot/skid) bottoms out — i.e. once the
+	# alignment has stopped falling and has begun to rise again (Issue #1542 owner feedback).
+	var drone := MockDrone.new()
+	drone._drone_pos = Vector2(0.0, 0.0)
+	drone._player_pos = Vector2(500.0, 0.0)   # Player to the right
+	# Drone moving directly away from the player — extreme miss
+	drone._current_move_dir = Vector2(-1.0, 0.0)
+
+	# Run enough ticks for the zanос to bottom out and re-aim to trigger.
+	# With DRIFT_FACTOR=0.93 the alignment will keep falling for a few frames,
+	# then slowly rise as the drone naturally turns back — re-aim triggers on that rise.
+	var entered_reaim := false
+	for _i in range(120):
+		drone.update_combat(0.016)
+		if drone._is_reaiming:
+			entered_reaim = true
+			break
+
+	assert_true(entered_reaim, "Drone should enter re-aiming phase after the overshoot bottoms out")
+
+
+func test_reaim_phase_uses_reduced_speed() -> void:
+	# During re-aiming, the drone must slow down to REAIM_SPEED.
+	var drone := MockDrone.new()
+	drone._drone_pos = Vector2(0.0, 0.0)
+	drone._player_pos = Vector2(500.0, 0.0)
+	drone._current_move_dir = Vector2(-1.0, 0.0)  # Flying away → will trigger miss
+	drone._is_reaiming = true  # Pre-set to reaiming state
+
+	drone.update_combat(0.016)
+
+	assert_lt(drone._velocity.length(), MockDrone.COMBAT_SPEED * 0.5,
+		"Drone should fly at reduced speed during re-aiming phase")
+	assert_almost_eq(drone._velocity.length(), MockDrone.REAIM_SPEED, 5.0,
+		"Drone speed during re-aiming should equal REAIM_SPEED")
+
+
+func test_reaim_exits_when_aligned() -> void:
+	# Once re-aligned with the player (dot >= REAIM_EXIT_DOT), re-aiming must end.
+	var drone := MockDrone.new()
+	drone._drone_pos = Vector2(0.0, 0.0)
+	drone._player_pos = Vector2(500.0, 0.0)
+	drone._current_move_dir = Vector2(1.0, 0.0)  # Already aimed at player
+	drone._is_reaiming = true  # Start in re-aiming state
+
+	drone.update_combat(0.016)
+
+	assert_false(drone._is_reaiming, "Re-aiming should end once drone is aligned with player")
+	assert_almost_eq(drone._velocity.length(), MockDrone.COMBAT_SPEED, 1.0,
+		"Drone should resume COMBAT_SPEED after re-aiming completes")
+
+
+func test_reaim_drift_factor_is_less_than_combat_drift() -> void:
+	# The re-aim drift must be lower than combat drift so steering is faster during re-aim.
+	assert_lt(MockDrone.REAIM_DRIFT_FACTOR, MockDrone.DRIFT_FACTOR,
+		"REAIM_DRIFT_FACTOR must be lower than DRIFT_FACTOR for faster steering correction")
+
+
+func test_reaim_speed_is_less_than_combat_speed() -> void:
+	# Re-aim speed must be meaningfully lower than combat speed.
+	assert_lt(MockDrone.REAIM_SPEED, MockDrone.COMBAT_SPEED * 0.5,
+		"REAIM_SPEED should be less than half of COMBAT_SPEED")
+
+
+func test_reaim_faster_steering_than_combat() -> void:
+	# Verify that a drone in re-aiming mode corrects its heading faster than in normal combat.
+	# Start both drones flying perpendicular to the player — measure alignment after several ticks.
+	var drone_normal := MockDrone.new()
+	var drone_reaiming := MockDrone.new()
+
+	for drone in [drone_normal, drone_reaiming]:
+		drone._drone_pos = Vector2(0.0, 0.0)
+		drone._player_pos = Vector2(500.0, 0.0)
+		drone._current_move_dir = Vector2(0.0, 1.0)  # Perpendicular to player
+
+	drone_reaiming._is_reaiming = true
+
+	for _i in range(5):
+		drone_normal.update_combat(0.016)
+		drone_reaiming.update_combat(0.016)
+
+	var alignment_normal: float = drone_normal._current_move_dir.dot(Vector2(1.0, 0.0))
+	var alignment_reaiming: float = drone_reaiming._current_move_dir.dot(Vector2(1.0, 0.0))
+
+	assert_gt(alignment_reaiming, alignment_normal,
+		"Drone in re-aiming mode should correct heading faster than normal combat mode")
+
+
+func test_reaim_does_not_start_mid_overshoot() -> void:
+	# Re-aim must NOT start while the alignment is still falling (zanос in progress).
+	# It should only start once alignment begins to recover (bottom of the skid).
+	var drone := MockDrone.new()
+	drone._drone_pos = Vector2(0.0, 0.0)
+	drone._player_pos = Vector2(500.0, 0.0)
+	# Start flying directly away — alignment will be falling for first several ticks.
+	drone._current_move_dir = Vector2(-1.0, 0.0)
+	# _prev_alignment starts at 1.0; alignment on tick 1 will be around -0.99 < 1.0,
+	# so the "alignment > _prev_alignment" guard prevents early re-aim entry.
+	drone.update_combat(0.016)
+	assert_false(drone._is_reaiming,
+		"Drone must NOT enter re-aim on the first tick — zanос is still in progress")
+
+
+# ============================================================================
+# Operator-killed explosion tests (Issue #1551)
+# ============================================================================
+
+
+class MockDroneWithOperatorLink:
+	## Mirrors the operator-death link added in Issue #1551:
+	## initialize_drone() connects operator.died → _explode().
+	var _is_alive: bool = true
+	var _has_exploded: bool = false
+	var _operator: MockOperatorNode = null
+
+	func initialize_drone(operator: MockOperatorNode) -> void:
+		_operator = operator
+		# Mirror the real connection: operator.died → _explode
+		operator.on_died_callbacks.append(_explode)
+
+	func _explode() -> void:
+		if _has_exploded or not _is_alive:
+			return
+		_has_exploded = true
+		_is_alive = false
+
+	func is_alive() -> bool:
+		return _is_alive
+
+	func has_exploded() -> bool:
+		return _has_exploded
+
+
+class MockOperatorNode:
+	## Minimal operator node that can emit a died signal (simulated via callbacks).
+	var on_died_callbacks: Array = []
+	var _is_alive: bool = true
+
+	func die() -> void:
+		_is_alive = false
+		for cb in on_died_callbacks:
+			cb.call()
+
+	func is_alive() -> bool:
+		return _is_alive
+
+
+func test_drone_explodes_when_operator_killed() -> void:
+	# Issue #1551: killing the operator must cause the drone to explode.
+	var operator := MockOperatorNode.new()
+	var drone := MockDroneWithOperatorLink.new()
+	drone.initialize_drone(operator)
+
+	assert_true(drone.is_alive(), "Drone should be alive before operator dies")
+	assert_false(drone.has_exploded(), "Drone should not have exploded yet")
+
+	operator.die()
+
+	assert_true(drone.has_exploded(), "Drone must explode immediately when operator is killed")
+	assert_false(drone.is_alive(), "Drone must be dead after explosion triggered by operator death")
+
+
+func test_drone_explode_not_called_twice_when_operator_killed() -> void:
+	# _explode() has a guard: _has_exploded prevents double-explosion.
+	var operator := MockOperatorNode.new()
+	var drone := MockDroneWithOperatorLink.new()
+	drone.initialize_drone(operator)
+
+	# Simulate drone already exploded (e.g. player collision) before operator dies
+	drone._has_exploded = true
+	drone._is_alive = false
+
+	operator.die()
+
+	# Should still be in the same dead-exploded state without crashing
+	assert_true(drone.has_exploded(), "Exploded flag must remain true")
+	assert_false(drone.is_alive(), "Drone must remain dead")
+
+
+func test_drone_without_operator_does_not_crash() -> void:
+	# initialize_drone() with null operator must not connect any signal.
+	var drone := MockDroneWithOperatorLink.new()
+	# No initialize_drone() call — operator is null
+	assert_true(drone.is_alive(), "Drone without operator should still be alive initially")
+	assert_false(drone.has_exploded(), "Drone without operator should not have exploded")

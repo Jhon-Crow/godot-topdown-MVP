@@ -1,8 +1,12 @@
 extends Area2D
-## Realistic water body for the Beach level (Issue #1445).
+## Realistic water body for the Beach level (Issue #1445, enhanced Issue #1550).
 ##
 ## Combines:
 ##   - A ColorRect (WaterVisual) with the realistic_water.gdshader for visual waves
+##     including animated surf-foam streaks marching toward the shore (Issue #1550)
+##   - Wave interruption by player/enemies: positions are pushed to the shader each
+##     frame so wave amplitude is attenuated around obstacles — same concept as
+##     LightOccluder2D blocking light rays (Issue #1550)
 ##   - Area2D physics detection to spawn WaterSplashEffect when bodies/objects interact
 ##   - Blood diffusion effect (blood spreads in water instead of leaving footprints)
 ##   - Reactions to shell casings, grenades, and explosions
@@ -48,8 +52,30 @@ var _connected_grenades: Dictionary = {}
 ## Track casings already processed (avoid duplicate splashes per casing).
 var _processed_casings: Dictionary = {}
 
+## Maximum number of obstacle positions passed to the shader (must match shader array size).
+const MAX_OBSTACLE_SHADER_SLOTS: int = 8
+
+## Throttle: only push obstacle UVs to shader every N frames to save GPU upload cost.
+var _obstacle_update_frame: int = 0
+const OBSTACLE_UPDATE_INTERVAL: int = 6  # update every 6 frames — bodies rarely need sub-6-frame precision
+
+## True when shader obstacle params need to be re-uploaded (body entered/exited).
+var _obstacle_dirty: bool = false
+
+## Whether time is currently stopped (e.g. last chance effect). When true,
+## wave animation is paused by setting shader speed parameters to zero.
+var _time_stopped: bool = false
+
+## Stored shader speed values to restore after time resumes.
+var _saved_wave_speed: float = 0.0
+var _saved_ripple_speed: float = 0.0
+var _saved_surf_speed: float = 0.0
+
 
 func _ready() -> void:
+	# Register in group so LastChanceEffectsManager can find this node reliably
+	# (script resource_path may be empty in exported builds).
+	add_to_group("precipitation_effects")
 	# Update pre-baked node dimensions in case water_width/height were overridden in the scene.
 	if _visual != null:
 		_visual.position = Vector2(-water_width * 0.5, -water_height * 0.5)
@@ -91,41 +117,104 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	# Check movement of all bodies currently inside the water.
+	# Skip all per-body work when no bodies are in water — avoids unnecessary
+	# CPU iteration and GPU uploads that caused a stutter on first entry (Issue #1573).
+	if not _bodies_in_water.is_empty():
+		# Check movement of all bodies currently inside the water.
+		for body in _bodies_in_water.keys():
+			if not is_instance_valid(body):
+				_bodies_in_water.erase(body)
+				_obstacle_dirty = true
+				continue
+
+			var current_pos: Vector2 = body.global_position
+			var last_pos: Vector2 = _bodies_in_water[body]
+			if current_pos.distance_to(last_pos) >= splash_interval:
+				_spawn_splash(current_pos)
+				_bodies_in_water[body] = current_pos
+
+		# Suppress bloody footprints for characters inside water
+		_suppress_bloody_footprints()
+
+		# Push obstacle positions to shader for wave interruption (Issue #1550).
+		# Only re-upload when dirty (body entered/exited) OR on the throttle interval.
+		_obstacle_update_frame += 1
+		if _obstacle_dirty or _obstacle_update_frame >= OBSTACLE_UPDATE_INTERVAL:
+			_obstacle_update_frame = 0
+			_obstacle_dirty = false
+			_update_obstacle_shader_params()
+
+	# Clean up stale grenade references — skip when no grenades tracked.
+	if not _connected_grenades.is_empty():
+		_cleanup_grenades()
+
+
+## Push current body positions inside water to the shader as UV-space coordinates.
+## This implements wave interruption by obstacles — the shader attenuates wave
+## amplitude within a radius around each UV position, mirroring the way
+## LightOccluder2D nodes block light rays (Issue #1550).
+func _update_obstacle_shader_params() -> void:
+	if _visual == null or not (_visual.material is ShaderMaterial):
+		return
+	var mat: ShaderMaterial = _visual.material as ShaderMaterial
+
+	# Collect valid body positions (up to MAX_OBSTACLE_SHADER_SLOTS)
+	var uvs: Array[Vector2] = []
 	for body in _bodies_in_water.keys():
 		if not is_instance_valid(body):
-			_bodies_in_water.erase(body)
 			continue
+		# Skip grenades and casings — only player/enemy bodies cast "wave shadows"
+		if body.is_in_group("grenades") or body.is_in_group("casings"):
+			continue
+		var world_pos: Vector2 = body.global_position
+		# Convert world position → UV space [0..1] within the water rectangle.
+		# The water rectangle: centre = global_position, size = water_width × water_height
+		var local: Vector2 = world_pos - global_position
+		var uv: Vector2 = Vector2(
+			(local.x + water_width * 0.5) / water_width,
+			(local.y + water_height * 0.5) / water_height
+		)
+		# Clamp to valid UV range
+		uv = uv.clamp(Vector2.ZERO, Vector2.ONE)
+		uvs.append(uv)
+		if uvs.size() >= MAX_OBSTACLE_SHADER_SLOTS:
+			break
 
-		var current_pos: Vector2 = body.global_position
-		var last_pos: Vector2 = _bodies_in_water[body]
-		if current_pos.distance_to(last_pos) >= splash_interval:
-			_spawn_splash(current_pos)
-			_bodies_in_water[body] = current_pos
+	# The shader expects exactly MAX_OBSTACLE_SHADER_SLOTS entries in the array.
+	# Pad with out-of-range UVs (e.g. (-1,-1)) so unused slots don't affect rendering.
+	while uvs.size() < MAX_OBSTACLE_SHADER_SLOTS:
+		uvs.append(Vector2(-1.0, -1.0))
 
-	# Suppress bloody footprints for characters inside water
-	_suppress_bloody_footprints()
-
-	# Clean up stale grenade references
-	_cleanup_grenades()
+	mat.set_shader_parameter("obstacle_count", mini(uvs.size(), MAX_OBSTACLE_SHADER_SLOTS))
+	mat.set_shader_parameter("obstacle_uvs", uvs)
 
 
 ## Apply the animated water shader to the WaterVisual ColorRect.
+## If a ShaderMaterial is already pre-assigned in the scene (WaterBody.tscn),
+## it is used as-is — no dynamic load needed.  The dynamic path is kept as a
+## fallback for editor-only use and to satisfy re-instantiation edge cases.
 func _apply_shader() -> void:
 	if _visual == null:
-		push_warning("[WaterBody] WaterVisual node not found — water will show as plain blue")
+		_log("[WaterBody] ERROR: WaterVisual node not found — water will show as plain blue")
 		return
 
+	# Fast path: shader material was pre-baked into the scene — just use it.
+	if _visual.material is ShaderMaterial:
+		_log("[WaterBody] Shader pre-assigned in scene — using existing ShaderMaterial")
+		return
+
+	# Fallback: try to load the shader at runtime (editor / non-exported builds).
 	if ResourceLoader.exists(WATER_SHADER_PATH):
 		var shader: Shader = load(WATER_SHADER_PATH)
 		if shader != null:
 			var mat := ShaderMaterial.new()
 			mat.shader = shader
 			_visual.material = mat
+			_log("[WaterBody] Shader loaded at runtime from: " + WATER_SHADER_PATH)
 		else:
-			push_warning("[WaterBody] Shader resource null — using plain colour fallback")
+			_log("[WaterBody] ERROR: Shader resource null at runtime — using plain colour fallback")
 	else:
-		push_warning("[WaterBody] Water shader not found — using plain colour fallback")
+		_log("[WaterBody] ERROR: Shader file not found at runtime (%s) — using plain colour fallback" % WATER_SHADER_PATH)
 
 
 func _on_body_entered(body: Node2D) -> void:
@@ -144,6 +233,7 @@ func _on_body_entered(body: Node2D) -> void:
 
 	# Regular body (player/enemy)
 	_bodies_in_water[body] = body.global_position
+	_obstacle_dirty = true
 	_spawn_splash(body.global_position)
 
 	# Suppress bloody footprints immediately when entering water
@@ -152,6 +242,7 @@ func _on_body_entered(body: Node2D) -> void:
 
 func _on_body_exited(body: Node2D) -> void:
 	_bodies_in_water.erase(body)
+	_obstacle_dirty = true
 
 
 func _on_area_entered(area: Area2D) -> void:
@@ -267,6 +358,34 @@ func _spawn_blood_diffusion(world_pos: Vector2, blood_color: Color) -> void:
 	diffusion.global_position = world_pos
 	if diffusion.has_method("set_blood_color"):
 		diffusion.set_blood_color(blood_color)
+
+
+## Pauses or resumes wave animation for time-stop effects (e.g. last chance).
+## When paused is true, all three shader speed parameters are set to zero so the
+## water surface appears frozen. When paused is false, the original speed values
+## are restored. The splash/physics detection is not affected.
+func set_time_stopped(paused: bool) -> void:
+	if _time_stopped == paused:
+		return
+	_time_stopped = paused
+	if _visual == null or not (_visual.material is ShaderMaterial):
+		return
+	var mat: ShaderMaterial = _visual.material as ShaderMaterial
+	if paused:
+		# Save current speed values then set to zero.
+		_saved_wave_speed = mat.get_shader_parameter("wave_speed")
+		_saved_ripple_speed = mat.get_shader_parameter("ripple_speed")
+		_saved_surf_speed = mat.get_shader_parameter("surf_speed")
+		mat.set_shader_parameter("wave_speed", 0.0)
+		mat.set_shader_parameter("ripple_speed", 0.0)
+		mat.set_shader_parameter("surf_speed", 0.0)
+		_log("[WaterBody] Wave animation paused (time stopped)")
+	else:
+		# Restore saved speed values.
+		mat.set_shader_parameter("wave_speed", _saved_wave_speed)
+		mat.set_shader_parameter("ripple_speed", _saved_ripple_speed)
+		mat.set_shader_parameter("surf_speed", _saved_surf_speed)
+		_log("[WaterBody] Wave animation resumed (time resumed)")
 
 
 ## Log a message via the FileLogger autoload (mirrors beach_level.gd pattern).

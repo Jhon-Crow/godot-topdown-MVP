@@ -1,20 +1,27 @@
-[gd_scene load_steps=3 format=3 uid="uid://water_body_1445"]
+[gd_scene load_steps=5 format=3 uid="uid://water_body_1445"]
 
 [ext_resource type="Script" path="res://scripts/objects/water_body.gd" id="1_water_body"]
+[ext_resource type="Shader" path="res://scripts/shaders/realistic_water.gdshader" id="2_realistic_water"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_water"]
-size = Vector2(2400, 356)
+size = Vector2(2400, 420)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_water"]
+shader = ExtResource("2_realistic_water")
 
 [node name="WaterBody" type="Area2D"]
+collision_layer = 0
+collision_mask = 99
 script = ExtResource("1_water_body")
 water_width = 2400.0
-water_height = 356.0
+water_height = 420.0
 splash_interval = 36.0
 
 [node name="WaterVisual" type="ColorRect" parent="."]
-position = Vector2(-1200, -178)
-size = Vector2(2400, 356)
+position = Vector2(-1200, -210)
+size = Vector2(2400, 420)
 color = Color(0.15, 0.55, 0.85, 0.88)
+material = SubResource("ShaderMaterial_water")
 z_index = 1
 
 [node name="WaterCollision" type="CollisionShape2D" parent="."]
