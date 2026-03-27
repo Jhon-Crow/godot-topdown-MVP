@@ -1,0 +1,63 @@
+============================================================
+BENCHMARK LOG
+============================================================
+Started: 2026-03-27T10:09:44
+Sample duration per step: 3.0 s
+Cycles per step: 1
+VSync: disabled for benchmark
+------------------------------------------------------------
+
+[Step 1/17] Baseline (all enabled)
+  avg=66.7  min=60.0  max=70.0  samples=211  cycles=1
+
+[Step 2/17] Particles disabled
+  avg=67.8  min=67.0  max=70.0  samples=202  cycles=1
+
+[Step 3/17] Blood Decals disabled
+  avg=65.3  min=63.0  max=68.0  samples=198  cycles=1
+
+[Step 4/17] Screen Shake disabled
+  avg=68.3  min=68.0  max=69.0  samples=206  cycles=1
+
+[Step 5/17] Explosion Lights disabled
+  avg=68.0  min=66.0  max=69.0  samples=203  cycles=1
+
+[Step 6/17] Wall Hit Particles disabled
+  avg=67.2  min=65.0  max=69.0  samples=199  cycles=1
+
+[Step 7/17] AI disabled
+  avg=67.3  min=65.0  max=69.0  samples=206  cycles=1
+
+[Step 8/17] AI:IDLE disabled
+  avg=68.1  min=65.0  max=69.0  samples=203  cycles=1
+
+[Step 9/17] AI:COMBAT disabled
+  avg=67.9  min=65.0  max=69.0  samples=203  cycles=1
+
+[Step 10/17] AI:SEEKING_COVER disabled
+  avg=66.7  min=66.0  max=68.0  samples=201  cycles=1
+
+[Step 11/17] AI:IN_COVER disabled
+  avg=68.0  min=66.0  max=69.0  samples=203  cycles=1
+
+[Step 12/17] AI:FLANKING disabled
+  avg=68.1  min=66.0  max=70.0  samples=209  cycles=1
+
+[Step 13/17] AI:SUPPRESSED disabled
+  avg=68.3  min=68.0  max=70.0  samples=204  cycles=1
+
+[Step 14/17] AI:RETREATING disabled
+  avg=68.2  min=68.0  max=69.0  samples=203  cycles=1
+
+[Step 15/17] AI:PURSUING disabled
+  avg=68.6  min=66.0  max=70.0  samples=206  cycles=1
+
+[Step 16/17] AI:ASSAULT disabled
+  avg=67.8  min=66.0  max=69.0  samples=207  cycles=1
+
+[Step 17/17] AI:SEARCHING disabled
+  avg=68.9  min=68.0  max=70.0  samples=206  cycles=1
+
+============================================================
+BENCHMARK COMPLETE: 2026-03-27T10:10:39
+============================================================
