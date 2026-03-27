@@ -21,13 +21,14 @@ var current_grenade_type: int = GrenadeType.FLASHBANG
 ## Unlocked grenades tracking.
 ## FLASHBANG is always unlocked (default grenade, explicitly stated in issue #894).
 ## FRAG (Building D+) and DEFENSIVE (Beach S) have unlock conditions (Issue #1000).
+## AGGRESSION_GAS (Docks D+) and DRONE (Sewer any grade) have unlock conditions (Issue #1624).
 ## Issue #894: "all unspecified items can be opened from the start"
 var unlocked_grenades: Dictionary = {
 	GrenadeType.FLASHBANG: true,
 	GrenadeType.FRAG: false,         # Condition: Building D+ (Issue #1000 req.1)
 	GrenadeType.DEFENSIVE: false,    # Condition: Beach S (Issue #1000 req.6)
-	GrenadeType.AGGRESSION_GAS: true, # No unlock condition — freely available from start
-	GrenadeType.DRONE: true          # No unlock condition (Issue #1628)
+	GrenadeType.AGGRESSION_GAS: false, # Condition: complete Docks D+ (Issue #1624 req.4)
+	GrenadeType.DRONE: false           # Condition: complete Sewer on any grade (Issue #1624 req.7)
 }
 
 ## Grenade type data for UI and selection.
