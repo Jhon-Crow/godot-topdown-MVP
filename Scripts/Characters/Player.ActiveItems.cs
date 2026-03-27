@@ -5314,7 +5314,7 @@ public partial class Player
     /// Sets MaxGrenades and _currentGrenades based on the selected grenade type:
     ///   FLASHBANG       → 12 grenades
     ///   FRAG            → 6 grenades
-    ///   AGGRESSION_GAS  → 6 grenades
+    ///   AGGRESSION_GAS  → 2 grenades
     ///   DEFENSIVE (F-1) → 2 grenades
     /// Does nothing in tutorial levels (they already grant unlimited grenades).
     /// </summary>

@@ -200,7 +200,7 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.GRENADE_BAG: {
 		"name": "Grenade Bag",
 		"icon_path": "res://assets/sprites/weapons/grenade_bag_icon.png",
-		"description": "Grenade Bag — passive: increases starting grenade count based on selected type: 12 flash/stun grenades, 6 frag or gas grenades, 2 F-1 grenades."
+		"description": "Grenade Bag — passive: increases starting grenade count based on selected type: 12 flash/stun grenades, 6 frag grenades, 2 gas or F-1 grenades."
 	}
 }
 
@@ -453,7 +453,7 @@ func has_grenade_bag() -> bool:
 ## Returns count based on the currently selected grenade type:
 ##   FLASHBANG  → 12 grenades
 ##   FRAG       → 6 grenades
-##   AGGRESSION_GAS → 6 grenades
+##   AGGRESSION_GAS → 2 grenades
 ##   DEFENSIVE (F-1) → 2 grenades
 ## Returns 0 when Grenade Bag is not equipped.
 func get_grenade_bag_count() -> int:
@@ -472,7 +472,7 @@ func get_grenade_bag_count() -> int:
 		2:  # DEFENSIVE (F-1)
 			return 2
 		3:  # AGGRESSION_GAS
-			return 6
+			return 2
 		_:
 			return 6  # Fallback for unknown types
 

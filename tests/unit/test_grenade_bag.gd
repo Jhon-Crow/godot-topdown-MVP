@@ -34,16 +34,16 @@ func test_grenade_bag_data_has_name() -> void:
 
 func test_grenade_bag_data_has_description() -> void:
 	var data := {
-		"description": "Grenade Bag — passive: increases starting grenade count based on selected type: 12 flash/stun grenades, 6 frag or gas grenades, 2 F-1 grenades."
+		"description": "Grenade Bag — passive: increases starting grenade count based on selected type: 12 flash/stun grenades, 6 frag grenades, 2 gas or F-1 grenades."
 	}
 	assert_true(data["description"].contains("passive"),
 		"Grenade Bag description should mention 'passive'")
 	assert_true(data["description"].contains("12"),
 		"Grenade Bag description should mention 12 grenades for flash type")
 	assert_true(data["description"].contains("6"),
-		"Grenade Bag description should mention 6 grenades for frag/gas type")
+		"Grenade Bag description should mention 6 grenades for frag type")
 	assert_true(data["description"].contains("2"),
-		"Grenade Bag description should mention 2 grenades for F-1 type")
+		"Grenade Bag description should mention 2 grenades for gas/F-1 type")
 
 
 func test_grenade_bag_data_has_icon_path() -> void:
@@ -66,7 +66,7 @@ func test_grenade_bag_count_flashbang() -> void:
 		0: expected_count = 12
 		1: expected_count = 6
 		2: expected_count = 2
-		3: expected_count = 6
+		3: expected_count = 2
 		_: expected_count = 6
 	assert_eq(expected_count, 12,
 		"Grenade Bag with FLASHBANG selected should give 12 grenades")
@@ -80,7 +80,7 @@ func test_grenade_bag_count_frag() -> void:
 		0: expected_count = 12
 		1: expected_count = 6
 		2: expected_count = 2
-		3: expected_count = 6
+		3: expected_count = 2
 		_: expected_count = 6
 	assert_eq(expected_count, 6,
 		"Grenade Bag with FRAG selected should give 6 grenades")
@@ -94,24 +94,24 @@ func test_grenade_bag_count_defensive_f1() -> void:
 		0: expected_count = 12
 		1: expected_count = 6
 		2: expected_count = 2
-		3: expected_count = 6
+		3: expected_count = 2
 		_: expected_count = 6
 	assert_eq(expected_count, 2,
 		"Grenade Bag with DEFENSIVE (F-1) selected should give 2 grenades")
 
 
 func test_grenade_bag_count_aggression_gas() -> void:
-	# AGGRESSION_GAS (type 3) → 6 grenades
+	# AGGRESSION_GAS (type 3) → 2 grenades
 	var grenade_type := 3  # GrenadeType.AGGRESSION_GAS
 	var expected_count: int
 	match grenade_type:
 		0: expected_count = 12
 		1: expected_count = 6
 		2: expected_count = 2
-		3: expected_count = 6
+		3: expected_count = 2
 		_: expected_count = 6
-	assert_eq(expected_count, 6,
-		"Grenade Bag with AGGRESSION_GAS selected should give 6 grenades")
+	assert_eq(expected_count, 2,
+		"Grenade Bag with AGGRESSION_GAS selected should give 2 grenades")
 
 
 func test_grenade_bag_count_unknown_type_fallback() -> void:
@@ -122,7 +122,7 @@ func test_grenade_bag_count_unknown_type_fallback() -> void:
 		0: expected_count = 12
 		1: expected_count = 6
 		2: expected_count = 2
-		3: expected_count = 6
+		3: expected_count = 2
 		_: expected_count = 6
 	assert_eq(expected_count, 6,
 		"Grenade Bag with unknown grenade type should fall back to 6 grenades")
@@ -139,7 +139,7 @@ func test_flashbang_count_is_highest() -> void:
 	var flashbang_count := 12
 	var frag_count := 6
 	var defensive_count := 2
-	var gas_count := 6
+	var gas_count := 2
 	assert_true(flashbang_count > frag_count,
 		"Flash grenades should have more count than frag grenades")
 	assert_true(flashbang_count > defensive_count,
@@ -148,26 +148,30 @@ func test_flashbang_count_is_highest() -> void:
 		"Flash grenades should have more count than gas grenades")
 
 
-func test_defensive_count_is_lowest() -> void:
-	# DEFENSIVE F-1 (2) should give the fewest grenades — they are most destructive
+func test_defensive_and_gas_count_are_lowest() -> void:
+	# DEFENSIVE F-1 and AGGRESSION_GAS (both 2) should give the fewest grenades
 	var flashbang_count := 12
 	var frag_count := 6
 	var defensive_count := 2
-	var gas_count := 6
+	var gas_count := 2
 	assert_true(defensive_count < flashbang_count,
 		"F-1 grenades should have fewer count than flash grenades")
 	assert_true(defensive_count < frag_count,
 		"F-1 grenades should have fewer count than frag grenades")
-	assert_true(defensive_count < gas_count,
-		"F-1 grenades should have fewer count than gas grenades")
+	assert_true(gas_count < flashbang_count,
+		"Gas grenades should have fewer count than flash grenades")
+	assert_true(gas_count < frag_count,
+		"Gas grenades should have fewer count than frag grenades")
+	assert_eq(defensive_count, gas_count,
+		"F-1 and gas grenades should give the same count (2)")
 
 
-func test_frag_and_gas_counts_are_equal() -> void:
-	# FRAG and AGGRESSION_GAS both give 6 grenades
-	var frag_count := 6
-	var gas_count := 6
-	assert_eq(frag_count, gas_count,
-		"Frag and gas grenades should give the same count (6)")
+func test_defensive_and_gas_counts_are_equal() -> void:
+	# DEFENSIVE (F-1) and AGGRESSION_GAS both give 2 grenades
+	var defensive_count := 2
+	var gas_count := 2
+	assert_eq(defensive_count, gas_count,
+		"F-1 and gas grenades should give the same count (2)")
 
 
 # ============================================================================
