@@ -381,10 +381,51 @@ https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/23632012906/artifact
 
 ---
 
+## Third Report Analysis (2026-03-27T06:10:50 UTC)
+
+The owner reported the same issue a third time:
+
+> "всё ещё нет лазера и трассера" — still no laser and tracer
+
+Attached: `game_log_20260327_090949.txt`
+
+**Key findings from the third log:**
+
+1. `Build info: not available (build_info.cfg not found)` — Once again, the owner is testing with a **pre-CI build** that does NOT include our fix. The log file path confirms this: `I:/Загрузки/godot exe/микро фиксы/game_log_20260327_090949.txt` — the user is using a local binary from the "микро фиксы" (micro-fixes) folder, not a CI artifact.
+
+2. The sniper DID fire (GUNSHOT at `[09:10:10]`) at position `(349.6517, 345.0725)` — this matches the spawned position `(350, 360)`.
+
+3. `Invincibility: true` is still active — any damage not being dealt is explained by this setting, not a code bug.
+
+4. The sniper spawned, detected the player, engaged COMBAT state, then transitioned to SEEKING_COVER — normal AI behavior.
+
+**Cumulative evidence — all three reports used old binary:**
+
+| Log file | Build info | Folder path | Conclusion |
+|----------|------------|-------------|------------|
+| `game_log_20260327_074708.txt` | Not available | `I:/Загрузки/godot exe/снайпер/` | Pre-fix binary |
+| `game_log_20260327_083716.txt` | Not available | (not specified) | Pre-fix binary |
+| `game_log_20260327_090949.txt` | Not available | `I:/Загрузки/godot exe/микро фиксы/` | Pre-fix binary |
+
+**All CI builds from our branch include `build_info.cfg`** — its absence in all three logs is definitive proof the user has not yet tested our fixed version.
+
+**Latest fixed build** (from commit `905f9bf3`, CI run `23633036970`):
+https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/23633036970
+
+To download: open the link above → scroll to **Artifacts** section → download `windows-build.zip`.
+
+The `build_info.cfg` in that binary will confirm the branch:
+```
+branch = "issue-1581-63d7435a3524"
+```
+
+---
+
 ## Files in This Case Study
 
 - `game_log_20260327_074708.txt` — First owner report: session showing tracer/laser disappeared (pre-fix binary)
 - `game_log_20260327_083716.txt` — Second owner report: same issue reported (still pre-fix binary)
+- `game_log_20260327_090949.txt` — Third owner report: same issue reported (still pre-fix binary)
 - `issue_1581.txt` — Original issue text
 - `pr_1602_details.json` — PR #1602 details
 - `pr_1602_comments.json` — PR #1602 comments including owner's bug reports
