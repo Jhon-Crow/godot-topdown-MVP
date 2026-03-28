@@ -1,9 +1,15 @@
 extends GutTest
-## Unit tests for rain_effect.gd HM2-style precipitation system (Issue #1394, fixed #1499, #1546).
+## Unit tests for rain_effect.gd HM2-style precipitation system (Issue #1394, fixed #1499, #1546, #1579, #1615).
 ##
 ## Tests continuous rain behavior, exclusion zone logic, and state transitions.
-## Also tests streak length, direction, splash alignment fixes, and time-stop
-## behavior for the last chance effect (Issue #1585).
+## Also tests streak length, direction, splash alignment, world-space emitter tracking,
+## time-stop behavior (Issue #1585), and per-particle shader occlusion (Issue #1615).
+##
+## Fix #1615 — changed behavior:
+## Rain now always emits continuously; exclusion zones are pushed to the
+## particle shader (rain_occlusion.gdshader) as uniforms so individual
+## particles inside building footprints are discarded on the GPU.
+## The camera-based binary stop/start logic has been removed.
 
 
 # ============================================================================
@@ -12,16 +18,14 @@ extends GutTest
 
 
 class MockRainEffect:
-	## Indoor exclusion zones.
+	## Indoor exclusion zones (pushed to shader, tested per particle in world space).
 	var exclusion_zones: Array = []
 
 	## Whether currently emitting particles.
+	## In the new design, emitting is always true unless time is stopped.
 	var emitting: bool = false
 
-	## Whether inside an exclusion zone.
-	var _inside_exclusion: bool = false
-
-	## Whether time is currently stopped (Issue #1585).
+	## Whether time is currently stopped (e.g. last chance effect).
 	var _time_stopped: bool = false
 
 	## Simulated process_mode for each particle layer (true = disabled).
@@ -30,41 +34,66 @@ class MockRainEffect:
 	var _streaks_disabled: bool = false
 	var _splashes_disabled: bool = false
 
+	## Tracked shader zone uniforms (simulates what rain_effect.gd sends to GPU).
+	var _shader_zone_count: int = 0
+	var _shader_zones: Array = []
+
+	## Tracked emitter positions (world-space, updated each frame to camera center).
+	var streaks_position: Vector2 = Vector2.ZERO
+	var splashes_position: Vector2 = Vector2.ZERO
+
 
 	func ready() -> void:
-		# Rain is always on from the start (continuous mode)
+		# Rain is always on from the start (continuous mode, shader handles occlusion)
 		emitting = true
 
 
 	func add_exclusion_zone(rect: Rect2) -> void:
 		exclusion_zones.append(rect)
+		_update_shader_zones()
 
 
 	func clear_exclusion_zones() -> void:
 		exclusion_zones.clear()
+		_update_shader_zones()
 
 
 	func is_raining() -> bool:
-		return not _inside_exclusion
+		# Rain always emits; shader discards particles inside zones on the GPU.
+		return emitting
 
 
-	func _is_point_in_exclusion_zone(point: Vector2) -> bool:
+	## Simulates what rain_effect.gd._update_shader_zones() does:
+	## packs exclusion_zones into Vector4 (x_min, y_min, x_max, y_max) for the shader.
+	func _update_shader_zones() -> void:
+		_shader_zone_count = exclusion_zones.size()
+		_shader_zones.clear()
 		for zone in exclusion_zones:
-			if zone.has_point(point):
+			_shader_zones.append(Vector4(
+				zone.position.x,
+				zone.position.y,
+				zone.position.x + zone.size.x,
+				zone.position.y + zone.size.y
+			))
+
+
+	## Returns true if a world-space point would be discarded by the occlusion shader.
+	## Replicates the GLSL logic in rain_occlusion.gdshader.
+	func shader_would_discard(world_pos: Vector2) -> bool:
+		for zone in _shader_zones:
+			if world_pos.x >= zone.x and world_pos.x <= zone.z and \
+				world_pos.y >= zone.y and world_pos.y <= zone.w:
 				return true
 		return false
 
 
 	func simulate_camera_move(camera_center: Vector2) -> void:
-		# While time is stopped, camera moves do not change emission state.
+		# Track emitters to camera center (world-space, like SnowEffect).
+		# Camera position no longer affects emission — that is now the shader's job.
 		if _time_stopped:
 			return
-		var was_inside := _inside_exclusion
-		_inside_exclusion = _is_point_in_exclusion_zone(camera_center)
-		if _inside_exclusion and not was_inside:
-			emitting = false
-		elif not _inside_exclusion and was_inside:
-			emitting = true
+		streaks_position = camera_center
+		splashes_position = camera_center
 
 
 	## Pauses or resumes particle emission for time-stop effects (Issue #1585).
@@ -78,10 +107,10 @@ class MockRainEffect:
 			_streaks_disabled = true
 			_splashes_disabled = true
 		else:
-			# Restore particle processing, then update emission based on exclusion zone.
+			# Restore particle processing; rain always resumes (shader handles occlusion).
 			_streaks_disabled = false
 			_splashes_disabled = false
-			emitting = not _inside_exclusion
+			emitting = true
 
 
 # ============================================================================
@@ -98,7 +127,32 @@ func test_rain_starts_immediately() -> void:
 func test_rain_is_always_on() -> void:
 	var rain := MockRainEffect.new()
 	rain.ready()
-	assert_true(rain.is_raining(), "Rain should always be active")
+	assert_true(rain.is_raining(), "Rain should always be active (shader occludes, not emitting toggle)")
+
+
+# ============================================================================
+# Tests: World-Space Emitter Tracking (Fix #1579)
+# ============================================================================
+
+
+func test_emitters_track_camera_position() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	var cam_pos := Vector2(320.0, 180.0)
+	rain.simulate_camera_move(cam_pos)
+	assert_eq(rain.streaks_position, cam_pos,
+		"RainStreaks emitter should track camera center in world space")
+	assert_eq(rain.splashes_position, cam_pos,
+		"RainSplashes emitter should track camera center in world space")
+
+
+func test_emitters_update_when_camera_moves() -> void:
+	var rain := MockRainEffect.new()
+	rain.ready()
+	rain.simulate_camera_move(Vector2(100.0, 100.0))
+	rain.simulate_camera_move(Vector2(500.0, 300.0))
+	assert_eq(rain.streaks_position, Vector2(500.0, 300.0),
+		"Emitter position should update to latest camera position")
 
 
 # ============================================================================
@@ -120,111 +174,146 @@ func test_clear_exclusion_zones() -> void:
 	assert_eq(rain.exclusion_zones.size(), 0, "All exclusion zones should be cleared")
 
 
-func test_point_inside_exclusion_zone() -> void:
+# ============================================================================
+# Tests: Shader Occlusion Logic (Fix #1615)
+# ============================================================================
+
+
+func test_rain_always_emits_regardless_of_exclusion_zones() -> void:
+	# Fix #1615: rain no longer stops globally; shader discards per-particle.
 	var rain := MockRainEffect.new()
+	rain.ready()
 	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
-	assert_true(rain._is_point_in_exclusion_zone(Vector2(150, 150)),
-		"Point inside zone should be detected")
+	# Camera inside building — emitting must stay true
+	rain.simulate_camera_move(Vector2(150, 150))
+	assert_true(rain.emitting,
+		"Rain must keep emitting even when camera is inside a building (Fix #1615)")
 
 
-func test_point_outside_exclusion_zone() -> void:
+func test_rain_is_raining_always_true_with_zones() -> void:
 	var rain := MockRainEffect.new()
+	rain.ready()
 	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
-	assert_false(rain._is_point_in_exclusion_zone(Vector2(50, 50)),
-		"Point outside zone should not be detected")
+	rain.simulate_camera_move(Vector2(150, 150))
+	assert_true(rain.is_raining(),
+		"is_raining must be true even inside exclusion zones (shader handles occlusion)")
 
 
-func test_point_on_zone_boundary() -> void:
-	var rain := MockRainEffect.new()
-	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
-	assert_true(rain._is_point_in_exclusion_zone(Vector2(100, 100)),
-		"Point on zone boundary (top-left) should be inside")
-
-
-func test_multiple_exclusion_zones() -> void:
+func test_shader_zones_count_matches_added_zones() -> void:
 	var rain := MockRainEffect.new()
 	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
 	rain.add_exclusion_zone(Rect2(500, 500, 300, 300))
-	assert_true(rain._is_point_in_exclusion_zone(Vector2(600, 600)),
-		"Point in second zone should be detected")
-	assert_false(rain._is_point_in_exclusion_zone(Vector2(400, 400)),
-		"Point between zones should not be detected")
+	assert_eq(rain._shader_zone_count, 2, "Shader zone_count must match number of added zones")
 
 
-# ============================================================================
-# Tests: Building Enter/Exit
-# ============================================================================
-
-
-func test_rain_stops_when_entering_building() -> void:
-	var rain := MockRainEffect.new()
-	rain.ready()
-	assert_true(rain.emitting, "Rain should emit outside buildings")
-
-	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
-	rain.simulate_camera_move(Vector2(150, 150))
-	assert_false(rain.emitting, "Rain should stop inside building")
-
-
-func test_rain_resumes_when_leaving_building() -> void:
+func test_shader_zones_cleared_when_zones_cleared() -> void:
 	var rain := MockRainEffect.new()
 	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
-	rain.ready()
-
-	# Enter building
-	rain.simulate_camera_move(Vector2(150, 150))
-	assert_false(rain.emitting, "Rain should stop inside building")
-
-	# Leave building
-	rain.simulate_camera_move(Vector2(50, 50))
-	assert_true(rain.emitting, "Rain should resume after leaving building")
+	rain.clear_exclusion_zones()
+	assert_eq(rain._shader_zone_count, 0, "Shader zone_count must be 0 after clear")
 
 
-func test_is_raining_returns_true_outside() -> void:
-	var rain := MockRainEffect.new()
-	rain.ready()
-	assert_true(rain.is_raining(), "is_raining should be true outside")
-
-
-func test_is_raining_returns_false_inside_building() -> void:
+func test_shader_discards_point_inside_zone() -> void:
 	var rain := MockRainEffect.new()
 	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
-	rain.ready()
-	rain.simulate_camera_move(Vector2(150, 150))
-	assert_false(rain.is_raining(), "is_raining should be false inside building")
+	assert_true(rain.shader_would_discard(Vector2(150, 150)),
+		"Shader must discard particle at center of exclusion zone")
+
+
+func test_shader_keeps_point_outside_zone() -> void:
+	var rain := MockRainEffect.new()
+	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
+	assert_false(rain.shader_would_discard(Vector2(50, 50)),
+		"Shader must keep particle outside exclusion zone")
+
+
+func test_shader_discards_point_on_zone_boundary() -> void:
+	var rain := MockRainEffect.new()
+	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
+	assert_true(rain.shader_would_discard(Vector2(100, 100)),
+		"Shader must discard particle on zone boundary (top-left corner)")
+
+
+func test_shader_discards_in_second_zone() -> void:
+	var rain := MockRainEffect.new()
+	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
+	rain.add_exclusion_zone(Rect2(500, 500, 300, 300))
+	assert_true(rain.shader_would_discard(Vector2(600, 600)),
+		"Shader must discard particle in second zone")
+	assert_false(rain.shader_would_discard(Vector2(400, 400)),
+		"Shader must keep particle between zones")
+
+
+func test_shader_zone_encoding_xmin_ymin_xmax_ymax() -> void:
+	var rain := MockRainEffect.new()
+	rain.add_exclusion_zone(Rect2(100, 200, 300, 400))
+	# Encoded as (x_min, y_min, x_max, y_max)
+	var zone: Vector4 = rain._shader_zones[0]
+	assert_eq(zone.x, 100.0, "zone.x should be x_min")
+	assert_eq(zone.y, 200.0, "zone.y should be y_min")
+	assert_eq(zone.z, 400.0, "zone.z should be x_max (100+300)")
+	assert_eq(zone.w, 600.0, "zone.w should be y_max (200+400)")
 
 
 # ============================================================================
-# Tests: Warehouse Exclusion Zones
+# Tests: Building Exclusion Zone Geometry (Docks Level)
 # ============================================================================
 
 
-func test_warehouse_a_exclusion_zone() -> void:
+func test_warehouse_a_shader_discards_inside() -> void:
 	var rain := MockRainEffect.new()
 	# WarehouseA: position (400, 1800), walls extend ±270x, ±320y
 	var warehouse_a := Rect2(400 - 270, 1800 - 320, 540, 640)
 	rain.add_exclusion_zone(warehouse_a)
 
-	assert_true(rain._is_point_in_exclusion_zone(Vector2(400, 1800)),
-		"Center of WarehouseA should be in zone")
-	assert_false(rain._is_point_in_exclusion_zone(Vector2(800, 1800)),
-		"Point east of WarehouseA should not be in zone")
+	assert_true(rain.shader_would_discard(Vector2(400, 1800)),
+		"Shader must discard particle at center of WarehouseA")
+	assert_false(rain.shader_would_discard(Vector2(800, 1800)),
+		"Shader must keep particle east of WarehouseA")
 
 
-func test_warehouse_b_exclusion_zone() -> void:
+func test_warehouse_b_shader_discards_inside() -> void:
 	var rain := MockRainEffect.new()
 	# WarehouseB: position (4400, 2800), walls extend ±370x, ±420y
 	var warehouse_b := Rect2(4400 - 370, 2800 - 420, 740, 840)
 	rain.add_exclusion_zone(warehouse_b)
 
-	assert_true(rain._is_point_in_exclusion_zone(Vector2(4400, 2800)),
-		"Center of WarehouseB should be in zone")
-	assert_false(rain._is_point_in_exclusion_zone(Vector2(3900, 2800)),
-		"Point west of WarehouseB should not be in zone")
+	assert_true(rain.shader_would_discard(Vector2(4400, 2800)),
+		"Shader must discard particle at center of WarehouseB")
+	assert_false(rain.shader_would_discard(Vector2(3900, 2800)),
+		"Shader must keep particle west of WarehouseB")
+
+
+func test_crane_platform_shader_discards_inside() -> void:
+	var rain := MockRainEffect.new()
+	# CranePlatform: position (400, 500), walls extend ±208x, ±158y
+	var crane_platform := Rect2(400 - 208, 500 - 158, 416, 316)
+	rain.add_exclusion_zone(crane_platform)
+
+	assert_true(rain.shader_would_discard(Vector2(400, 500)),
+		"Shader must discard particle at center of CranePlatform")
+	assert_false(rain.shader_would_discard(Vector2(700, 500)),
+		"Shader must keep particle east of CranePlatform")
+
+
+func test_rain_keeps_emitting_inside_crane_platform() -> void:
+	# Fix #1615: camera inside building must NOT stop rain globally.
+	var rain := MockRainEffect.new()
+	rain.ready()
+	var crane_platform := Rect2(400 - 208, 500 - 158, 416, 316)
+	rain.add_exclusion_zone(crane_platform)
+
+	rain.simulate_camera_move(Vector2(400, 500))
+	assert_true(rain.emitting,
+		"Rain must keep emitting when camera is inside CranePlatform (shader handles occlusion)")
+
+	rain.simulate_camera_move(Vector2(800, 500))
+	assert_true(rain.emitting,
+		"Rain must keep emitting when camera is outside CranePlatform")
 
 
 # ============================================================================
-# Tests: Issue #1546 Fixes — Longer Streaks, Downward Direction, Splash Alignment
+# Tests: Issue #1546 Fixes — Streak Direction and Splash Alignment
 # ============================================================================
 
 
@@ -362,21 +451,22 @@ func test_rain_camera_move_ignored_during_time_stop() -> void:
 	var rain := MockRainEffect.new()
 	rain.ready()
 	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
-	# Time is stopped — camera entering a building must not change emission state.
+	# Time is stopped — camera moves must not update emitter positions.
 	rain.set_time_stopped(true)
 	rain.simulate_camera_move(Vector2(150, 150))
-	# emitting is still true (particles frozen), exclusion state unchanged.
-	assert_true(rain.emitting, "emitting must stay true (frozen, not cleared) during time stop")
-	assert_false(rain._inside_exclusion, "Exclusion state must not change during time stop")
+	# emitting stays true; emitter positions unchanged during time stop.
+	assert_true(rain.emitting, "emitting must stay true (frozen) during time stop")
+	assert_eq(rain.streaks_position, Vector2.ZERO,
+		"Emitter position must not update during time stop")
 
 
-func test_rain_resumes_in_exclusion_zone_stays_off() -> void:
-	# If time resumes while camera is inside an exclusion zone, rain stays off.
+func test_rain_resumes_emitting_after_time_stop_inside_zone() -> void:
+	# Fix #1615: when time resumes, rain always emits (shader handles occlusion).
 	var rain := MockRainEffect.new()
 	rain.ready()
 	rain.add_exclusion_zone(Rect2(100, 100, 200, 200))
-	rain.simulate_camera_move(Vector2(150, 150))  # enter building
-	assert_false(rain.emitting, "Rain should stop inside building")
+	rain.simulate_camera_move(Vector2(150, 150))  # move camera inside zone (no effect now)
 	rain.set_time_stopped(true)
 	rain.set_time_stopped(false)
-	assert_false(rain.emitting, "Rain must remain off when time resumes inside exclusion zone")
+	assert_true(rain.emitting,
+		"Rain must resume emitting when time resumes (shader handles any building occlusion)")

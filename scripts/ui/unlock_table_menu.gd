@@ -26,7 +26,12 @@ const LEVEL_NAMES: Dictionary = {
 	"res://scenes/levels/BeachLevel.tscn": "Beach",
 	"res://scenes/levels/DocksLevel.tscn": "Docks",
 	"res://scenes/levels/CityLevel.tscn": "City",
-	"res://scenes/levels/DecadenceLevel.tscn": "Decadence"
+	"res://scenes/levels/DecadenceLevel.tscn": "Decadence",
+	"res://scenes/levels/FactoryLevel.tscn": "Factory",
+	"res://scenes/levels/Labyrinth2Level.tscn": "Labyrinth Complex",
+	"res://scenes/levels/SewerLevel.tscn": "Sewer",
+	"res://scenes/levels/RailwayStationLevel.tscn": "Railway Station",
+	"res://scenes/levels/WinterForestLevel.tscn": "Winter Forest"
 }
 
 ## Weapon ID to display name mapping.
@@ -62,7 +67,9 @@ const ACTIVE_ITEM_NAMES: Dictionary = {
 	16: "Recoil Compensator",
 	17: "Combat Disposition",
 	18: "Experimental Sample",
-	19: "Fine Motor Skills"
+	19: "Fine Motor Skills",
+	20: "Dash",
+	21: "Grenade Bag"
 }
 
 ## Grenade type to display name mapping.
@@ -70,7 +77,8 @@ const GRENADE_NAMES: Dictionary = {
 	0: "Flashbang",
 	1: "Frag Grenade",
 	2: "F-1 Grenade",
-	3: "Aggression Gas"
+	3: "Aggression Gas",
+	4: "Drone"
 }
 
 
@@ -338,6 +346,8 @@ func _populate_table() -> void:
 			map_display = "%d / %d deaths" % [current_kills, min_kills]
 		elif stat == "no_damage_levels_completed":
 			map_display = "%d / %d levels without damage" % [current_kills, min_kills]
+		elif stat == "levels_completed_rank_a_or_higher":
+			map_display = "%d / %d levels at rank A or higher" % [current_kills, min_kills]
 		else:
 			map_display = "%d / %d kills (no Laser Sight)" % [current_kills, min_kills]
 

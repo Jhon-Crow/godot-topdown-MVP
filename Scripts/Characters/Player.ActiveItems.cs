@@ -1719,6 +1719,26 @@ public partial class Player
     /// </summary>
     private float _combatDispositionFireRateBonus = 0.0f;
 
+    /// <summary>
+    /// The original MaxSpeed stored before Combat Disposition's speed bonus is applied.
+    /// Used to correctly remove/halve the bonus on first hit.
+    /// </summary>
+    private float _combatDispositionBaseSpeed = 0.0f;
+
+    /// <summary>
+    /// The original Friction stored before Combat Disposition's speed bonus is applied (Issue #1583).
+    /// Set to a very large value during the speed boost to eliminate drift entirely (Issue #1623).
+    /// Restored when the hit penalty is applied.
+    /// </summary>
+    private float _combatDispositionBaseFriction = 0.0f;
+
+    /// <summary>
+    /// Friction value applied during the Combat Disposition speed boost (Issue #1623).
+    /// Large enough that Friction * delta always exceeds the boosted MaxSpeed,
+    /// so the player stops instantly when input is released (zero drift).
+    /// </summary>
+    private const float CombatDispositionNoDriftFriction = 100000.0f;
+
     /// <summary>Sword icon shown near the player when the positive effect is active.</summary>
     private Sprite2D? _combatDispositionSwordIcon = null;
 
@@ -1764,10 +1784,22 @@ public partial class Player
             LogToFile($"[Player.CombatDisposition] Initialized on weapon {CurrentWeapon.Name}: +{_combatDispositionDamageBonus} damage, +{_combatDispositionFireRateBonus} fire rate");
         }
 
+        // Apply movement speed bonus (Issue #1583):
+        // Normal difficulties: x2 speed. Black Metal difficulty: x4 speed total.
+        // Friction is set to a very large value to eliminate drift entirely (Issue #1623).
+        _combatDispositionBaseSpeed = MaxSpeed;
+        _combatDispositionBaseFriction = Friction;
+        var diffMgr = GetNodeOrNull("/root/DifficultyManager");
+        bool isBlackMetal = diffMgr != null && diffMgr.HasMethod("is_black_metal_mode") && (bool)diffMgr.Call("is_black_metal_mode");
+        float speedMult = isBlackMetal ? 4.0f : 2.0f;
+        MaxSpeed = _combatDispositionBaseSpeed * speedMult;
+        Friction = CombatDispositionNoDriftFriction;
+        LogToFile($"[Player.CombatDisposition] Speed boost applied ({(isBlackMetal ? "Black Metal x4" : "Normal x2")}): speed {_combatDispositionBaseSpeed} -> {MaxSpeed}, friction set to {Friction} (no drift, Issue #1623)");
+
         // Show sword icon (positive effect active)
         UpdateCombatDispositionIcons();
 
-        LogToFile($"[Player.CombatDisposition] Active — damage bonus: +{_combatDispositionDamageBonus}, fire rate bonus: +{_combatDispositionFireRateBonus}");
+        LogToFile($"[Player.CombatDisposition] Active — damage bonus: +{_combatDispositionDamageBonus}, fire rate bonus: +{_combatDispositionFireRateBonus}, max speed: {MaxSpeed}, friction: {Friction} (no drift)");
     }
 
     /// <summary>
@@ -1794,10 +1826,16 @@ public partial class Player
             CurrentWeapon.FireRateBonus = _combatDispositionFireRateBonus;
         }
 
+        // Halve movement speed penalty (Issue #1583): divide speed by 2 after first hit.
+        // Restore friction to base value (no-drift override ends with the speed boost).
+        MaxSpeed = _combatDispositionBaseSpeed / 2.0f;
+        Friction = _combatDispositionBaseFriction;
+        LogToFile($"[Player.CombatDisposition] Speed penalty applied: speed {_combatDispositionBaseSpeed} -> {MaxSpeed} (divided by 2), friction restored to {Friction}");
+
         // Switch icon to broken sword (negative effect active)
         UpdateCombatDispositionIcons();
 
-        LogToFile($"[Player.CombatDisposition] First hit — penalty applied once: damage bonus: {_combatDispositionDamageBonus:F1}, fire rate bonus: {_combatDispositionFireRateBonus:F1}");
+        LogToFile($"[Player.CombatDisposition] First hit — penalty applied once: damage bonus: {_combatDispositionDamageBonus:F1}, fire rate bonus: {_combatDispositionFireRateBonus:F1}, max speed: {MaxSpeed:F1}, friction: {Friction:F1}");
     }
 
     /// <summary>
@@ -3559,6 +3597,9 @@ public partial class Player
             case 20: // DASH (Issue #1071)
                 InitDash();
                 break;
+            case 21: // GRENADE_BAG (passive) (Issue #1590)
+                InitGrenadeBag();
+                break;
             default:
                 // NONE (0), LASER_SIGHT (9), EXTENDED_MAGAZINE (10): no player-side init needed
                 LogToFile($"[Player.ItemPickup] No player-side init required for item type {itemType}");
@@ -5300,6 +5341,61 @@ public partial class Player
         if (!IsInstanceValid(_dashEffect))
             return false;
         return (bool)_dashEffect.Call("is_dashing");
+    }
+
+    #endregion
+
+    #region Grenade Bag Passive Item (Issue #1590)
+
+    /// <summary>
+    /// Initialize the Grenade Bag passive item if ActiveItemManager has it selected.
+    /// Sets MaxGrenades and _currentGrenades based on the selected grenade type:
+    ///   FLASHBANG       → 12 grenades
+    ///   FRAG            → 6 grenades
+    ///   AGGRESSION_GAS  → 2 grenades
+    ///   DEFENSIVE (F-1) → 2 grenades
+    /// Does nothing in tutorial levels (they already grant unlimited grenades).
+    /// </summary>
+    private void InitGrenadeBag()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.GrenadeBag] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_grenade_bag"))
+        {
+            LogToFile("[Player.GrenadeBag] ActiveItemManager missing has_grenade_bag method");
+            return;
+        }
+
+        bool hasGrenadeBag = (bool)activeItemManager.Call("has_grenade_bag");
+        if (!hasGrenadeBag)
+        {
+            LogToFile("[Player.GrenadeBag] No grenade bag selected in ActiveItemManager");
+            return;
+        }
+
+        // Tutorial levels already grant MaxGrenades — no override needed
+        if (_isTutorialLevel)
+        {
+            LogToFile("[Player.GrenadeBag] Tutorial level — grenade bag has no additional effect");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("get_grenade_bag_count"))
+        {
+            LogToFile("[Player.GrenadeBag] ActiveItemManager missing get_grenade_bag_count method");
+            return;
+        }
+
+        int bagCount = (int)activeItemManager.Call("get_grenade_bag_count");
+        MaxGrenades = bagCount;
+        _currentGrenades = bagCount;
+        EmitSignal(SignalName.GrenadeChanged, _currentGrenades, MaxGrenades);
+        LogToFile($"[Player.GrenadeBag] Grenade Bag equipped — grenades set to {_currentGrenades}/{MaxGrenades}");
     }
 
     #endregion

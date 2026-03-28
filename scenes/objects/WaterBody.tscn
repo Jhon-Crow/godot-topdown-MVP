@@ -10,6 +10,8 @@ size = Vector2(2400, 420)
 shader = ExtResource("2_realistic_water")
 
 [node name="WaterBody" type="Area2D"]
+collision_layer = 0
+collision_mask = 99
 script = ExtResource("1_water_body")
 water_width = 2400.0
 water_height = 420.0
