@@ -195,33 +195,33 @@ func _setup_navigation() -> void:
 	nav_region.emit_signal("bake_finished")
 
 
-## Configures camera limits to allow free movement across the entire Docks map.
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
 ##
-## The Docks map is 5128x4128 pixels, which is larger than the default camera limits
-## set in Player.tscn (4128x3088). Without this configuration, the player spawns
-## at position (200, 3900) which is outside the camera's view range (max Y = 3088),
-## making the player invisible at game start.
-##
-## This function removes all camera limits by setting them to very large values
-## (±10,000,000), allowing the camera to follow the player everywhere on this large map.
-## This approach is consistent with other large maps (CastleLevel, CityLevel).
+## DocksLevel map: 5128x4128 px playfield framed by 32 px walls.
+##   WallTop    (2564,  184), h=16  → bottom edge y=200   → limit_top    = 200
+##   WallBottom (2564, 4080), h=16  → top edge   y=4064   → limit_bottom = 4064
+##   WallLeft   (  48, 2132), w=16  → right edge x=64     → limit_left   = 64
+##   WallRight  (5080, 2132), w=16  → left edge  x=5064   → limit_right  = 5064
 func _configure_camera() -> void:
 	if _player == null:
 		return
 
 	var camera: Camera2D = _player.get_node_or_null("Camera2D")
 	if camera == null:
+		push_warning("[DocksLevel] Camera2D not found on player — cannot set camera limits")
 		return
 
-	# Remove all camera limits so it follows the player everywhere
-	# This is important for large maps like the Docks where the map extends
-	# beyond the default camera limits set in Player.tscn
-	camera.limit_left = -10000000
-	camera.limit_top = -10000000
-	camera.limit_right = 10000000
-	camera.limit_bottom = 10000000
-
-	print("Camera configured: limits removed to follow player everywhere")
+	const LIMIT_TOP: int    =  200   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 4064   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 5064   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	print("[DocksLevel] Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
 
 
 func _setup_player_tracking() -> void:
