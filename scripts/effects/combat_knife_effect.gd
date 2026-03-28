@@ -23,8 +23,8 @@ enum AttackPhase {
 	RECOVERY  ## Knife fades out at end edge (0.12s).
 }
 
-## Maximum range of the knife attack in pixels (half of original 70px for a tighter feel).
-const KNIFE_RANGE: float = 35.0
+## Maximum range of the knife attack in pixels (35px * 1.8 = 63px per owner feedback).
+const KNIFE_RANGE: float = 63.0
 
 ## Half-angle of the fan arc in radians (60° = 120° total fan).
 const KNIFE_ARC_HALF: float = PI / 3.0
@@ -44,14 +44,14 @@ const RECOVERY_DURATION: float = 0.12
 ## Number of polygon segments for the arc shape.
 const ARC_SEGMENTS: int = 20
 
-## Arc fill color (orange-yellow slash, semi-transparent).
-const ARC_COLOR: Color = Color(1.0, 0.75, 0.1, 0.55)
+## Trail color behind the sweeping knife (faint white ghost trail).
+const ARC_COLOR: Color = Color(1.0, 1.0, 1.0, 0.25)
 
-## Arc edge color (bright white-yellow highlight).
-const ARC_EDGE_COLOR: Color = Color(1.0, 0.95, 0.6, 0.9)
+## Knife blade color — bright white sharp line.
+const ARC_EDGE_COLOR: Color = Color(1.0, 1.0, 1.0, 0.95)
 
-## Windup line color (dim indicator showing backswing position).
-const WINDUP_COLOR: Color = Color(1.0, 0.85, 0.3, 0.5)
+## Windup line color (dim white backswing indicator).
+const WINDUP_COLOR: Color = Color(0.85, 0.85, 0.85, 0.45)
 
 ## Emitted when the knife strikes (at the damage moment).
 signal knife_struck
@@ -89,7 +89,7 @@ var is_attacking: bool = false
 func initialize(player: Node2D, player_model: Node2D = null) -> void:
 	_player = player
 	_player_model = player_model
-	FileLogger.info("[CombatKnife] Initialized — unlimited uses, 7 damage, 120° arc, %.0fpx range" % KNIFE_RANGE)
+	FileLogger.info("[CombatKnife] Initialized — unlimited uses, 7 damage, 120° arc, %.0fpx range (white sharp blade)" % KNIFE_RANGE)
 
 
 ## Attempt to activate the knife attack.
@@ -181,11 +181,10 @@ func _draw() -> void:
 
 	match _phase:
 		AttackPhase.WINDUP:
-			# Knife held at backswing (start edge), dim anticipation pose
+			# Knife held at backswing (start edge), dim anticipation pose — sharp line, no circle
 			var windup_col: Color = Color(WINDUP_COLOR.r, WINDUP_COLOR.g, WINDUP_COLOR.b, WINDUP_COLOR.a * _arc_alpha)
 			var blade_tip: Vector2 = Vector2(cos(start_angle), sin(start_angle)) * KNIFE_RANGE
-			draw_line(Vector2.ZERO, blade_tip, windup_col, 2.5, true)
-			draw_circle(blade_tip, 2.5, windup_col)
+			draw_line(Vector2.ZERO, blade_tip, windup_col, 1.5)
 
 		AttackPhase.STRIKE:
 			if _arc_alpha <= 0.001:
@@ -194,10 +193,11 @@ func _draw() -> void:
 			var current_angle: float = start_angle + (end_angle - start_angle) * _sweep_progress
 			var blade_tip: Vector2 = Vector2(cos(current_angle), sin(current_angle)) * KNIFE_RANGE
 			var knife_col: Color = Color(ARC_EDGE_COLOR.r, ARC_EDGE_COLOR.g, ARC_EDGE_COLOR.b, ARC_EDGE_COLOR.a * _arc_alpha)
-			draw_line(Vector2.ZERO, blade_tip, knife_col, 3.0, true)
-			draw_circle(blade_tip, 3.0, knife_col)
-			# Draw a faint trail showing the swept path so far
-			var trail_col: Color = Color(ARC_COLOR.r, ARC_COLOR.g, ARC_COLOR.b, ARC_COLOR.a * _arc_alpha * 0.35)
+			# Main blade: thick at handle, sharp (thin) at tip — draw two slightly offset lines that converge
+			var blade_base: Vector2 = Vector2(cos(current_angle), sin(current_angle)) * (KNIFE_RANGE * 0.15)
+			draw_line(blade_base, blade_tip, knife_col, 2.0)  # sharp blade line (no antialias dot)
+			# Faint ghost trail arc showing the swept path
+			var trail_col: Color = Color(ARC_COLOR.r, ARC_COLOR.g, ARC_COLOR.b, ARC_COLOR.a * _arc_alpha)
 			var arc_span: float = current_angle - start_angle
 			if arc_span > 0.01:
 				var step: float = arc_span / ARC_SEGMENTS
@@ -209,17 +209,17 @@ func _draw() -> void:
 					draw_line(
 						Vector2(cos(a0), sin(a0)) * KNIFE_RANGE,
 						Vector2(cos(a1), sin(a1)) * KNIFE_RANGE,
-						t_col, 2.0, true
+						t_col, 1.5
 					)
 
 		AttackPhase.RECOVERY:
 			if _arc_alpha <= 0.001:
 				return
-			# Knife fades out at final position (end edge)
+			# Knife fades out at final position (end edge) — sharp line, no circle
 			var blade_tip: Vector2 = Vector2(cos(end_angle), sin(end_angle)) * KNIFE_RANGE
 			var knife_col: Color = Color(ARC_EDGE_COLOR.r, ARC_EDGE_COLOR.g, ARC_EDGE_COLOR.b, ARC_EDGE_COLOR.a * _arc_alpha)
-			draw_line(Vector2.ZERO, blade_tip, knife_col, 3.0, true)
-			draw_circle(blade_tip, 3.0, knife_col)
+			var blade_base: Vector2 = Vector2(cos(end_angle), sin(end_angle)) * (KNIFE_RANGE * 0.15)
+			draw_line(blade_base, blade_tip, knife_col, 2.0)
 
 
 ## Apply damage to all enemies within the knife arc.

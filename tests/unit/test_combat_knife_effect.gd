@@ -154,7 +154,7 @@ func test_knife_damage_is_7() -> void:
 
 
 func test_knife_range_is_positive() -> void:
-	var range_px := 35.0
+	var range_px := 63.0
 	assert_true(range_px > 0.0, "Combat Knife range should be positive")
 	assert_true(range_px <= 120.0, "Combat Knife range should be within reasonable melee distance")
 
@@ -291,7 +291,7 @@ func test_enemy_in_arc_and_range_is_hit() -> void:
 	var player_pos := Vector2(0.0, 0.0)
 	var player_facing := Vector2.RIGHT
 	var enemy_pos := Vector2(25.0, 0.0)
-	var knife_range := 35.0
+	var knife_range := 63.0
 	var half_arc := PI / 3.0  # 60 degrees
 
 	var dist := player_pos.distance_to(enemy_pos)
@@ -305,8 +305,8 @@ func test_enemy_in_arc_and_range_is_hit() -> void:
 func test_enemy_out_of_range_not_hit() -> void:
 	# Enemy too far away → should not be hit
 	var player_pos := Vector2(0.0, 0.0)
-	var enemy_pos := Vector2(50.0, 0.0)
-	var knife_range := 35.0
+	var enemy_pos := Vector2(80.0, 0.0)
+	var knife_range := 63.0
 
 	var dist := player_pos.distance_to(enemy_pos)
 	assert_true(dist > knife_range, "Enemy outside range should not be hit")
