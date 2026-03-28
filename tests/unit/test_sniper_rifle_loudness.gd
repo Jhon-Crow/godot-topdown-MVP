@@ -20,7 +20,7 @@ class MockWeaponData:
 	var MaxReserveAmmo: int = 5
 	var ReloadTime: float = 2.5
 	var BulletSpeed: float = 10000.0
-	var Range: float = 30000.0
+	var Range: float = 75000.0
 	var SpreadAngle: float = 0.0
 	var BulletsPerShot: int = 1
 	var IsAutomatic: bool = false
