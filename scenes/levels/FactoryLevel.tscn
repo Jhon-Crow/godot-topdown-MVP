@@ -1,4 +1,4 @@
-[gd_scene load_steps=43 format=3 uid="uid://factory_level_1037"]
+[gd_scene load_steps=47 format=3 uid="uid://factory_level_1037"]
 
 [ext_resource type="Script" path="res://scripts/levels/factory_level.gd" id="1_factory_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -92,6 +92,18 @@ polygon = PackedVector2Array(-24, -24, 24, -24, 24, 24, -24, 24)
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_cover_table"]
 polygon = PackedVector2Array(-60, -24, 60, -24, 60, 24, -60, 24)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cover_locker"]
+size = Vector2(48, 96)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cover_workbench"]
+size = Vector2(160, 48)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_cover_locker"]
+polygon = PackedVector2Array(-24, -48, 24, -48, 24, 48, -24, 48)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_cover_workbench"]
+polygon = PackedVector2Array(-80, -24, 80, -24, 80, 24, -80, 24)
+
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_factory"]
 vertices = PackedVector2Array(64, 64, 2464, 64, 2464, 2064, 64, 2064)
 polygons = [PackedInt32Array(0, 1, 2, 3)]
@@ -122,6 +134,429 @@ offset_right = 2464.0
 offset_bottom = 2064.0
 color = Color(0.2, 0.18, 0.16, 1)
 
+[node name="Decor" type="Node2D" parent="Environment"]
+
+[node name="FloorZones" type="Node2D" parent="Environment/Decor"]
+
+[node name="ZoneEntryHall" type="ColorRect" parent="Environment/Decor/FloorZones"]
+offset_left = 80.0
+offset_top = 80.0
+offset_right = 768.0
+offset_bottom = 688.0
+color = Color(0.22, 0.2, 0.18, 0.07)
+
+[node name="ZoneWorkshop" type="ColorRect" parent="Environment/Decor/FloorZones"]
+offset_left = 792.0
+offset_top = 80.0
+offset_right = 1538.0
+offset_bottom = 688.0
+color = Color(0.28, 0.22, 0.14, 0.06)
+
+[node name="ZoneControlRoom" type="ColorRect" parent="Environment/Decor/FloorZones"]
+offset_left = 1562.0
+offset_top = 80.0
+offset_right = 2448.0
+offset_bottom = 688.0
+color = Color(0.14, 0.18, 0.26, 0.06)
+
+[node name="ZoneStorage" type="ColorRect" parent="Environment/Decor/FloorZones"]
+offset_left = 80.0
+offset_top = 712.0
+offset_right = 768.0
+offset_bottom = 1288.0
+color = Color(0.26, 0.22, 0.12, 0.06)
+
+[node name="ZoneCentralHall" type="ColorRect" parent="Environment/Decor/FloorZones"]
+offset_left = 792.0
+offset_top = 712.0
+offset_right = 1538.0
+offset_bottom = 1288.0
+color = Color(0.18, 0.18, 0.18, 0.05)
+
+[node name="ZoneAssembly" type="ColorRect" parent="Environment/Decor/FloorZones"]
+offset_left = 1562.0
+offset_top = 712.0
+offset_right = 2448.0
+offset_bottom = 1288.0
+color = Color(0.14, 0.22, 0.16, 0.06)
+
+[node name="ZoneBoilerRoom" type="ColorRect" parent="Environment/Decor/FloorZones"]
+offset_left = 80.0
+offset_top = 1312.0
+offset_right = 768.0
+offset_bottom = 2048.0
+color = Color(0.28, 0.14, 0.1, 0.07)
+
+[node name="ZoneMaintenance" type="ColorRect" parent="Environment/Decor/FloorZones"]
+offset_left = 792.0
+offset_top = 1312.0
+offset_right = 1538.0
+offset_bottom = 2048.0
+color = Color(0.16, 0.2, 0.24, 0.06)
+
+[node name="ZoneExitHall" type="ColorRect" parent="Environment/Decor/FloorZones"]
+offset_left = 1562.0
+offset_top = 1312.0
+offset_right = 2448.0
+offset_bottom = 2048.0
+color = Color(0.18, 0.2, 0.14, 0.05)
+
+[node name="FloorMarkings" type="Node2D" parent="Environment/Decor"]
+
+[node name="HazardStripeBoiler_Top" type="ColorRect" parent="Environment/Decor/FloorMarkings"]
+offset_left = 80.0
+offset_top = 1316.0
+offset_right = 768.0
+offset_bottom = 1322.0
+color = Color(0.6, 0.52, 0.07, 0.3)
+
+[node name="HazardStripeBoiler_Left" type="ColorRect" parent="Environment/Decor/FloorMarkings"]
+offset_left = 80.0
+offset_top = 1316.0
+offset_right = 86.0
+offset_bottom = 2044.0
+color = Color(0.6, 0.52, 0.07, 0.3)
+
+[node name="HazardStripeAssembly_Top" type="ColorRect" parent="Environment/Decor/FloorMarkings"]
+offset_left = 1562.0
+offset_top = 716.0
+offset_right = 2448.0
+offset_bottom = 722.0
+color = Color(0.6, 0.52, 0.07, 0.22)
+
+[node name="WorkshopCenterLine" type="ColorRect" parent="Environment/Decor/FloorMarkings"]
+offset_left = 792.0
+offset_top = 382.0
+offset_right = 1538.0
+offset_bottom = 386.0
+color = Color(0.38, 0.35, 0.32, 0.22)
+
+[node name="CentralHallCrossH" type="ColorRect" parent="Environment/Decor/FloorMarkings"]
+offset_left = 792.0
+offset_top = 996.0
+offset_right = 1538.0
+offset_bottom = 1002.0
+color = Color(0.38, 0.35, 0.32, 0.18)
+
+[node name="CentralHallCrossV" type="ColorRect" parent="Environment/Decor/FloorMarkings"]
+offset_left = 1161.0
+offset_top = 712.0
+offset_right = 1167.0
+offset_bottom = 1288.0
+color = Color(0.38, 0.35, 0.32, 0.18)
+
+[node name="Pipes" type="Node2D" parent="Environment/Decor"]
+
+[node name="PipeColA_Left" type="ColorRect" parent="Environment/Decor/Pipes"]
+offset_left = 760.0
+offset_top = 80.0
+offset_right = 772.0
+offset_bottom = 688.0
+color = Color(0.28, 0.26, 0.23, 1)
+
+[node name="PipeColA_Right" type="ColorRect" parent="Environment/Decor/Pipes"]
+offset_left = 788.0
+offset_top = 80.0
+offset_right = 800.0
+offset_bottom = 688.0
+color = Color(0.26, 0.24, 0.22, 1)
+
+[node name="PipeColA_MidLeft" type="ColorRect" parent="Environment/Decor/Pipes"]
+offset_left = 760.0
+offset_top = 712.0
+offset_right = 772.0
+offset_bottom = 1288.0
+color = Color(0.28, 0.26, 0.23, 1)
+
+[node name="PipeColA_MidRight" type="ColorRect" parent="Environment/Decor/Pipes"]
+offset_left = 788.0
+offset_top = 712.0
+offset_right = 800.0
+offset_bottom = 1288.0
+color = Color(0.26, 0.24, 0.22, 1)
+
+[node name="PipeColB_Left" type="ColorRect" parent="Environment/Decor/Pipes"]
+offset_left = 1530.0
+offset_top = 80.0
+offset_right = 1542.0
+offset_bottom = 688.0
+color = Color(0.28, 0.26, 0.23, 1)
+
+[node name="PipeColB_Right" type="ColorRect" parent="Environment/Decor/Pipes"]
+offset_left = 1558.0
+offset_top = 80.0
+offset_right = 1570.0
+offset_bottom = 688.0
+color = Color(0.26, 0.24, 0.22, 1)
+
+[node name="PipeRowTop_Above" type="ColorRect" parent="Environment/Decor/Pipes"]
+offset_left = 80.0
+offset_top = 682.0
+offset_right = 768.0
+offset_bottom = 694.0
+color = Color(0.28, 0.26, 0.23, 1)
+
+[node name="PipeRowTop_Below" type="ColorRect" parent="Environment/Decor/Pipes"]
+offset_left = 80.0
+offset_top = 706.0
+offset_right = 768.0
+offset_bottom = 718.0
+color = Color(0.26, 0.24, 0.22, 1)
+
+[node name="PipeRowMid_Above" type="ColorRect" parent="Environment/Decor/Pipes"]
+offset_left = 1562.0
+offset_top = 1282.0
+offset_right = 2448.0
+offset_bottom = 1294.0
+color = Color(0.28, 0.26, 0.23, 1)
+
+[node name="PipeRowMid_Below" type="ColorRect" parent="Environment/Decor/Pipes"]
+offset_left = 1562.0
+offset_top = 1306.0
+offset_right = 2448.0
+offset_bottom = 1318.0
+color = Color(0.26, 0.24, 0.22, 1)
+
+[node name="PipeBoiler_Horizontal" type="ColorRect" parent="Environment/Decor/Pipes"]
+offset_left = 80.0
+offset_top = 1680.0
+offset_right = 768.0
+offset_bottom = 1692.0
+color = Color(0.3, 0.22, 0.14, 1)
+
+[node name="PipeBoiler_Vertical" type="ColorRect" parent="Environment/Decor/Pipes"]
+offset_left = 420.0
+offset_top = 1312.0
+offset_right = 432.0
+offset_bottom = 2048.0
+color = Color(0.3, 0.22, 0.14, 1)
+
+[node name="Machinery" type="Node2D" parent="Environment/Decor"]
+
+[node name="WorkshopMachine1" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 830.0
+offset_top = 100.0
+offset_right = 990.0
+offset_bottom = 200.0
+color = Color(0.22, 0.2, 0.17, 1)
+
+[node name="WorkshopMachine1_Detail" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 840.0
+offset_top = 108.0
+offset_right = 900.0
+offset_bottom = 120.0
+color = Color(0.35, 0.28, 0.07, 0.5)
+
+[node name="WorkshopMachine2" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 1050.0
+offset_top = 100.0
+offset_right = 1180.0
+offset_bottom = 180.0
+color = Color(0.2, 0.18, 0.15, 1)
+
+[node name="WorkshopMachine2_Detail" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 1060.0
+offset_top = 106.0
+offset_right = 1080.0
+offset_bottom = 130.0
+color = Color(0.45, 0.2, 0.07, 0.45)
+
+[node name="AssemblyMachine1" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 1600.0
+offset_top = 730.0
+offset_right = 1800.0
+offset_bottom = 860.0
+color = Color(0.18, 0.2, 0.16, 1)
+
+[node name="AssemblyMachine1_Detail" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 1610.0
+offset_top = 738.0
+offset_right = 1680.0
+offset_bottom = 752.0
+color = Color(0.14, 0.38, 0.25, 0.4)
+
+[node name="AssemblyMachine2" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 2200.0
+offset_top = 730.0
+offset_right = 2440.0
+offset_bottom = 820.0
+color = Color(0.16, 0.18, 0.15, 1)
+
+[node name="BoilerUnit1" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 100.0
+offset_top = 1600.0
+offset_right = 280.0
+offset_bottom = 1760.0
+color = Color(0.22, 0.13, 0.09, 1)
+
+[node name="BoilerUnit1_Highlight" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 112.0
+offset_top = 1612.0
+offset_right = 160.0
+offset_bottom = 1640.0
+color = Color(0.5, 0.2, 0.07, 0.35)
+
+[node name="BoilerUnit2" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 100.0
+offset_top = 1800.0
+offset_right = 240.0
+offset_bottom = 1940.0
+color = Color(0.2, 0.12, 0.08, 1)
+
+[node name="BoilerUnit2_Highlight" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 110.0
+offset_top = 1812.0
+offset_right = 150.0
+offset_bottom = 1836.0
+color = Color(0.5, 0.2, 0.07, 0.3)
+
+[node name="BoilerGrate" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 360.0
+offset_top = 1780.0
+offset_right = 480.0
+offset_bottom = 1800.0
+color = Color(0.15, 0.15, 0.15, 0.5)
+
+[node name="BoilerGrateH2" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 360.0
+offset_top = 1810.0
+offset_right = 480.0
+offset_bottom = 1830.0
+color = Color(0.15, 0.15, 0.15, 0.5)
+
+[node name="BoilerGrateH3" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 360.0
+offset_top = 1840.0
+offset_right = 480.0
+offset_bottom = 1860.0
+color = Color(0.15, 0.15, 0.15, 0.5)
+
+[node name="BoilerGrateV1" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 376.0
+offset_top = 1780.0
+offset_right = 380.0
+offset_bottom = 1860.0
+color = Color(0.13, 0.13, 0.13, 0.5)
+
+[node name="BoilerGrateV2" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 400.0
+offset_top = 1780.0
+offset_right = 404.0
+offset_bottom = 1860.0
+color = Color(0.13, 0.13, 0.13, 0.5)
+
+[node name="BoilerGrateV3" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 424.0
+offset_top = 1780.0
+offset_right = 428.0
+offset_bottom = 1860.0
+color = Color(0.13, 0.13, 0.13, 0.5)
+
+[node name="ControlRoomConsole1" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 1600.0
+offset_top = 100.0
+offset_right = 1780.0
+offset_bottom = 160.0
+color = Color(0.13, 0.16, 0.22, 1)
+
+[node name="ControlRoomConsole1_Screen" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 1610.0
+offset_top = 106.0
+offset_right = 1690.0
+offset_bottom = 148.0
+color = Color(0.07, 0.32, 0.45, 0.4)
+
+[node name="ControlRoomConsole2" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 1820.0
+offset_top = 100.0
+offset_right = 1980.0
+offset_bottom = 150.0
+color = Color(0.13, 0.16, 0.22, 1)
+
+[node name="ControlRoomConsole2_Screen" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 1830.0
+offset_top = 106.0
+offset_right = 1900.0
+offset_bottom = 140.0
+color = Color(0.13, 0.38, 0.2, 0.38)
+
+[node name="MaintenanceCabinet" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 840.0
+offset_top = 1340.0
+offset_right = 920.0
+offset_bottom = 1430.0
+color = Color(0.22, 0.22, 0.25, 1)
+
+[node name="MaintenanceCabinet_Door" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 848.0
+offset_top = 1348.0
+offset_right = 914.0
+offset_bottom = 1418.0
+color = Color(0.19, 0.19, 0.22, 1)
+
+[node name="MaintenanceCabinet_Handle" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 876.0
+offset_top = 1376.0
+offset_right = 884.0
+offset_bottom = 1394.0
+color = Color(0.35, 0.32, 0.26, 1)
+
+[node name="StorageRack1" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 100.0
+offset_top = 730.0
+offset_right = 280.0
+offset_bottom = 760.0
+color = Color(0.24, 0.2, 0.16, 1)
+
+[node name="StorageRack1_Shelf" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 100.0
+offset_top = 820.0
+offset_right = 280.0
+offset_bottom = 840.0
+color = Color(0.24, 0.2, 0.16, 1)
+
+[node name="StorageRack1_Leg1" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 104.0
+offset_top = 730.0
+offset_right = 112.0
+offset_bottom = 840.0
+color = Color(0.2, 0.17, 0.12, 1)
+
+[node name="StorageRack1_Leg2" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 272.0
+offset_top = 730.0
+offset_right = 280.0
+offset_bottom = 840.0
+color = Color(0.2, 0.17, 0.12, 1)
+
+[node name="StorageRack2" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 500.0
+offset_top = 730.0
+offset_right = 680.0
+offset_bottom = 758.0
+color = Color(0.24, 0.2, 0.16, 1)
+
+[node name="StorageRack2_Shelf" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 500.0
+offset_top = 820.0
+offset_right = 680.0
+offset_bottom = 838.0
+color = Color(0.24, 0.2, 0.16, 1)
+
+[node name="StorageRack2_Leg1" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 504.0
+offset_top = 730.0
+offset_right = 512.0
+offset_bottom = 840.0
+color = Color(0.2, 0.17, 0.12, 1)
+
+[node name="StorageRack2_Leg2" type="ColorRect" parent="Environment/Decor/Machinery"]
+offset_left = 672.0
+offset_top = 730.0
+offset_right = 680.0
+offset_bottom = 840.0
+color = Color(0.2, 0.17, 0.12, 1)
+
 [node name="Walls" type="Node2D" parent="Environment"]
 
 [node name="WallTop" type="StaticBody2D" parent="Environment/Walls"]
@@ -134,7 +569,7 @@ offset_left = -1232.0
 offset_top = -16.0
 offset_right = 1232.0
 offset_bottom = 16.0
-color = Color(0.28, 0.22, 0.18, 1)
+color = Color(0.45, 0.36, 0.28, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTop"]
 shape = SubResource("RectangleShape2D_wall_h")
@@ -152,7 +587,7 @@ offset_left = -1232.0
 offset_top = -16.0
 offset_right = 1232.0
 offset_bottom = 16.0
-color = Color(0.28, 0.22, 0.18, 1)
+color = Color(0.45, 0.36, 0.28, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallBottom"]
 shape = SubResource("RectangleShape2D_wall_h")
@@ -170,7 +605,7 @@ offset_left = -16.0
 offset_top = -1032.0
 offset_right = 16.0
 offset_bottom = 1032.0
-color = Color(0.28, 0.22, 0.18, 1)
+color = Color(0.45, 0.36, 0.28, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLeft"]
 shape = SubResource("RectangleShape2D_wall_v")
@@ -188,7 +623,7 @@ offset_left = -16.0
 offset_top = -1032.0
 offset_right = 16.0
 offset_bottom = 1032.0
-color = Color(0.28, 0.22, 0.18, 1)
+color = Color(0.45, 0.36, 0.28, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRight"]
 shape = SubResource("RectangleShape2D_wall_v")
@@ -208,7 +643,7 @@ offset_left = -12.0
 offset_top = -298.0
 offset_right = 12.0
 offset_bottom = 298.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/ColA_Top"]
 shape = SubResource("RectangleShape2D_col_596")
@@ -226,7 +661,7 @@ offset_left = -12.0
 offset_top = -260.0
 offset_right = 12.0
 offset_bottom = 260.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/ColA_Mid"]
 shape = SubResource("RectangleShape2D_col_520")
@@ -244,7 +679,7 @@ offset_left = -12.0
 offset_top = -362.0
 offset_right = 12.0
 offset_bottom = 362.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/ColA_Bot"]
 shape = SubResource("RectangleShape2D_col_724")
@@ -262,7 +697,7 @@ offset_left = -12.0
 offset_top = -298.0
 offset_right = 12.0
 offset_bottom = 298.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/ColB_Top"]
 shape = SubResource("RectangleShape2D_col_596")
@@ -280,7 +715,7 @@ offset_left = -12.0
 offset_top = -260.0
 offset_right = 12.0
 offset_bottom = 260.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/ColB_Mid"]
 shape = SubResource("RectangleShape2D_col_520")
@@ -298,7 +733,7 @@ offset_left = -12.0
 offset_top = -362.0
 offset_right = 12.0
 offset_bottom = 362.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/ColB_Bot"]
 shape = SubResource("RectangleShape2D_col_724")
@@ -316,7 +751,7 @@ offset_left = -142.0
 offset_top = -12.0
 offset_right = 142.0
 offset_bottom = 12.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/RowTop_L1"]
 shape = SubResource("RectangleShape2D_row_284")
@@ -334,7 +769,7 @@ offset_left = -118.0
 offset_top = -12.0
 offset_right = 118.0
 offset_bottom = 12.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/RowTop_L2"]
 shape = SubResource("RectangleShape2D_row_236")
@@ -352,7 +787,7 @@ offset_left = -132.0
 offset_top = -12.0
 offset_right = 132.0
 offset_bottom = 12.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/RowTop_C1"]
 shape = SubResource("RectangleShape2D_row_264")
@@ -370,7 +805,7 @@ offset_left = -132.0
 offset_top = -12.0
 offset_right = 132.0
 offset_bottom = 12.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/RowTop_C2"]
 shape = SubResource("RectangleShape2D_row_264")
@@ -388,7 +823,7 @@ offset_left = -167.0
 offset_top = -12.0
 offset_right = 167.0
 offset_bottom = 12.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/RowTop_R1"]
 shape = SubResource("RectangleShape2D_row_334")
@@ -406,7 +841,7 @@ offset_left = -191.0
 offset_top = -12.0
 offset_right = 191.0
 offset_bottom = 12.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/RowTop_R2"]
 shape = SubResource("RectangleShape2D_row_383")
@@ -424,7 +859,7 @@ offset_left = -142.0
 offset_top = -12.0
 offset_right = 142.0
 offset_bottom = 12.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/RowMid_L1"]
 shape = SubResource("RectangleShape2D_row_284")
@@ -442,7 +877,7 @@ offset_left = -118.0
 offset_top = -12.0
 offset_right = 118.0
 offset_bottom = 12.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/RowMid_L2"]
 shape = SubResource("RectangleShape2D_row_236")
@@ -460,7 +895,7 @@ offset_left = -132.0
 offset_top = -12.0
 offset_right = 132.0
 offset_bottom = 12.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/RowMid_C1"]
 shape = SubResource("RectangleShape2D_row_264")
@@ -478,7 +913,7 @@ offset_left = -132.0
 offset_top = -12.0
 offset_right = 132.0
 offset_bottom = 12.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/RowMid_C2"]
 shape = SubResource("RectangleShape2D_row_264")
@@ -496,7 +931,7 @@ offset_left = -167.0
 offset_top = -12.0
 offset_right = 167.0
 offset_bottom = 12.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/RowMid_R1"]
 shape = SubResource("RectangleShape2D_row_334")
@@ -514,7 +949,7 @@ offset_left = -191.0
 offset_top = -12.0
 offset_right = 191.0
 offset_bottom = 12.0
-color = Color(0.32, 0.26, 0.22, 1)
+color = Color(0.5, 0.4, 0.32, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/RowMid_R2"]
 shape = SubResource("RectangleShape2D_row_383")
@@ -534,7 +969,7 @@ offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0
 offset_bottom = 40.0
-color = Color(0.4, 0.3, 0.2, 1)
+color = Color(0.65, 0.45, 0.2, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Crate1"]
 shape = SubResource("RectangleShape2D_cover_crate")
@@ -552,7 +987,7 @@ offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0
 offset_bottom = 40.0
-color = Color(0.4, 0.3, 0.2, 1)
+color = Color(0.7, 0.5, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Crate2"]
 shape = SubResource("RectangleShape2D_cover_crate")
@@ -570,7 +1005,7 @@ offset_left = -24.0
 offset_top = -24.0
 offset_right = 24.0
 offset_bottom = 24.0
-color = Color(0.35, 0.25, 0.15, 1)
+color = Color(0.55, 0.35, 0.1, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Barrel1"]
 shape = SubResource("RectangleShape2D_cover_barrel")
@@ -588,7 +1023,7 @@ offset_left = -24.0
 offset_top = -24.0
 offset_right = 24.0
 offset_bottom = 24.0
-color = Color(0.35, 0.25, 0.15, 1)
+color = Color(0.5, 0.3, 0.08, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Barrel2"]
 shape = SubResource("RectangleShape2D_cover_barrel")
@@ -606,7 +1041,7 @@ offset_left = -60.0
 offset_top = -24.0
 offset_right = 60.0
 offset_bottom = 24.0
-color = Color(0.38, 0.28, 0.2, 1)
+color = Color(0.6, 0.42, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Table1"]
 shape = SubResource("RectangleShape2D_cover_table")
@@ -624,7 +1059,7 @@ offset_left = -60.0
 offset_top = -24.0
 offset_right = 60.0
 offset_bottom = 24.0
-color = Color(0.38, 0.28, 0.2, 1)
+color = Color(0.6, 0.42, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Table2"]
 shape = SubResource("RectangleShape2D_cover_table")
@@ -642,7 +1077,7 @@ offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0
 offset_bottom = 40.0
-color = Color(0.4, 0.3, 0.2, 1)
+color = Color(0.65, 0.45, 0.2, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Crate3"]
 shape = SubResource("RectangleShape2D_cover_crate")
@@ -660,7 +1095,7 @@ offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0
 offset_bottom = 40.0
-color = Color(0.4, 0.3, 0.2, 1)
+color = Color(0.6, 0.42, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Crate4"]
 shape = SubResource("RectangleShape2D_cover_crate")
@@ -678,7 +1113,7 @@ offset_left = -24.0
 offset_top = -24.0
 offset_right = 24.0
 offset_bottom = 24.0
-color = Color(0.35, 0.25, 0.15, 1)
+color = Color(0.6, 0.35, 0.1, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Barrel3"]
 shape = SubResource("RectangleShape2D_cover_barrel")
@@ -696,7 +1131,7 @@ offset_left = -60.0
 offset_top = -24.0
 offset_right = 60.0
 offset_bottom = 24.0
-color = Color(0.38, 0.28, 0.2, 1)
+color = Color(0.6, 0.42, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Table3"]
 shape = SubResource("RectangleShape2D_cover_table")
@@ -714,7 +1149,7 @@ offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0
 offset_bottom = 40.0
-color = Color(0.4, 0.3, 0.2, 1)
+color = Color(0.68, 0.48, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Crate5"]
 shape = SubResource("RectangleShape2D_cover_crate")
@@ -732,7 +1167,7 @@ offset_left = -24.0
 offset_top = -24.0
 offset_right = 24.0
 offset_bottom = 24.0
-color = Color(0.35, 0.25, 0.15, 1)
+color = Color(0.52, 0.32, 0.08, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Barrel4"]
 shape = SubResource("RectangleShape2D_cover_barrel")
@@ -750,13 +1185,85 @@ offset_left = -60.0
 offset_top = -24.0
 offset_right = 60.0
 offset_bottom = 24.0
-color = Color(0.38, 0.28, 0.2, 1)
+color = Color(0.6, 0.42, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Table4"]
 shape = SubResource("RectangleShape2D_cover_table")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Table4"]
 occluder = SubResource("OccluderPolygon2D_cover_table")
+
+[node name="Locker1" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1700, 150)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Locker1"]
+offset_left = -24.0
+offset_top = -48.0
+offset_right = 24.0
+offset_bottom = 48.0
+color = Color(0.5, 0.55, 0.62, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Locker1"]
+shape = SubResource("RectangleShape2D_cover_locker")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Locker1"]
+occluder = SubResource("OccluderPolygon2D_cover_locker")
+
+[node name="Locker2" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(2400, 1200)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Locker2"]
+offset_left = -24.0
+offset_top = -48.0
+offset_right = 24.0
+offset_bottom = 48.0
+color = Color(0.48, 0.52, 0.6, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Locker2"]
+shape = SubResource("RectangleShape2D_cover_locker")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Locker2"]
+occluder = SubResource("OccluderPolygon2D_cover_locker")
+
+[node name="Workbench1" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1100, 1000)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Workbench1"]
+offset_left = -80.0
+offset_top = -24.0
+offset_right = 80.0
+offset_bottom = 24.0
+color = Color(0.58, 0.42, 0.22, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Workbench1"]
+shape = SubResource("RectangleShape2D_cover_workbench")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Workbench1"]
+occluder = SubResource("OccluderPolygon2D_cover_workbench")
+
+[node name="Workbench2" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1100, 1600)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Workbench2"]
+offset_left = -80.0
+offset_top = -24.0
+offset_right = 80.0
+offset_bottom = 24.0
+color = Color(0.56, 0.4, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Workbench2"]
+shape = SubResource("RectangleShape2D_cover_workbench")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Workbench2"]
+occluder = SubResource("OccluderPolygon2D_cover_workbench")
 
 [node name="Enemies" type="Node2D" parent="Environment"]
 
@@ -887,7 +1394,7 @@ offset_left = 80.0
 offset_top = 80.0
 offset_right = 768.0
 offset_bottom = 688.0
-color = Color(0.14, 0.11, 0.09, 0.3)
+color = Color(0.14, 0.11, 0.09, 0.15)
 
 [node name="Label" type="Label" parent="Environment/RoomLabels/RoomA_Label"]
 offset_left = 10.0
@@ -901,7 +1408,7 @@ offset_left = 792.0
 offset_top = 80.0
 offset_right = 1538.0
 offset_bottom = 688.0
-color = Color(0.12, 0.14, 0.1, 0.3)
+color = Color(0.12, 0.14, 0.1, 0.15)
 
 [node name="Label" type="Label" parent="Environment/RoomLabels/RoomB_Label"]
 offset_left = 10.0
@@ -915,7 +1422,7 @@ offset_left = 1562.0
 offset_top = 80.0
 offset_right = 2448.0
 offset_bottom = 688.0
-color = Color(0.1, 0.12, 0.15, 0.3)
+color = Color(0.1, 0.12, 0.15, 0.15)
 
 [node name="Label" type="Label" parent="Environment/RoomLabels/RoomC_Label"]
 offset_left = 10.0
@@ -929,7 +1436,7 @@ offset_left = 80.0
 offset_top = 712.0
 offset_right = 768.0
 offset_bottom = 1288.0
-color = Color(0.15, 0.12, 0.1, 0.3)
+color = Color(0.15, 0.12, 0.1, 0.15)
 
 [node name="Label" type="Label" parent="Environment/RoomLabels/RoomD_Label"]
 offset_left = 10.0
@@ -943,7 +1450,7 @@ offset_left = 1562.0
 offset_top = 712.0
 offset_right = 2448.0
 offset_bottom = 1288.0
-color = Color(0.1, 0.14, 0.12, 0.3)
+color = Color(0.1, 0.14, 0.12, 0.15)
 
 [node name="Label" type="Label" parent="Environment/RoomLabels/RoomE_Label"]
 offset_left = 10.0
@@ -957,7 +1464,7 @@ offset_left = 80.0
 offset_top = 1312.0
 offset_right = 768.0
 offset_bottom = 2048.0
-color = Color(0.15, 0.1, 0.1, 0.3)
+color = Color(0.15, 0.1, 0.1, 0.15)
 
 [node name="Label" type="Label" parent="Environment/RoomLabels/RoomF_Label"]
 offset_left = 10.0
@@ -971,7 +1478,7 @@ offset_left = 1562.0
 offset_top = 1312.0
 offset_right = 2448.0
 offset_bottom = 2048.0
-color = Color(0.12, 0.12, 0.15, 0.3)
+color = Color(0.12, 0.12, 0.15, 0.15)
 
 [node name="Label" type="Label" parent="Environment/RoomLabels/RoomG_Label"]
 offset_left = 10.0
