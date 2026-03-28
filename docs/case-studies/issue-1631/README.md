@@ -113,11 +113,26 @@ A `CanvasModulate` node is added with `Color(0.12, 0.14, 0.13, 1.0)` — a very 
 
 ---
 
+## Bug Fix: No Lighting After Initial PR
+
+**Reported by:** Jhon-Crow (repo owner) — "теперь на карте вообще нет освещения" (now there is no lighting on the map at all)
+
+**Root Cause:** The initial implementation included a `CanvasModulate` node with `Color(0.12, 0.14, 0.13, 1.0)` (near-black). This darkened the entire canvas. However, the SewerLevel (like all other levels in this project) uses `ColorRect` nodes for floors and walls — and `PointLight2D` in Godot 4 does NOT illuminate `ColorRect` nodes. `PointLight2D` only adds additive light to nodes that participate in 2D lighting (e.g., Sprite2D, TileMapLayer). As a result:
+
+1. `CanvasModulate` made everything nearly black
+2. `PointLight2D` had no visual effect on the `ColorRect` floor/wall tiles
+3. The map appeared completely dark with no lighting
+
+**Comparison with FactoryLevel:** The only other level using light effects (`OrangeBlinkingLight`) does NOT use `CanvasModulate` — consistent with `ColorRect`-based maps not supporting 2D lighting fully.
+
+**Fix:** Removed the `CanvasModulate` node (`AmbientDark`). The `PointLight2D` lamps now work additively — they add warm yellowish glow on top of the existing floor/wall colors, which is visible and creates atmospheric sewer lighting.
+
 ## Testing Notes
 
-- The `CanvasModulate` requires Godot's 2D lighting pipeline to be active (default in Godot 4)
 - `PointLight2D` requires a texture to function; `GradientTexture2D` provides a radial falloff
 - Shadow rendering (`shadow_enabled = true`) requires occluders on walls — the SewerLevel already has `LightOccluder2D` nodes on all walls
+- `PointLight2D` works additively with `ColorRect` nodes — the lamp's warm yellow light blends visibly onto the dark gray sewer tiles
+- Do NOT use `CanvasModulate` with this level unless floors/walls are converted to Sprite2D or TileMapLayer
 
 ---
 

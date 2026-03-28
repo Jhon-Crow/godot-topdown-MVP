@@ -48,6 +48,8 @@ func _ready() -> void:
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()
 	_setup_player_tracking()
+	# Restrict camera so the border walls are never visible (Issue #1682).
+	_configure_camera()
 	_setup_debug_ui()
 	_setup_saturation_overlay()
 	if GameManager:
@@ -166,6 +168,33 @@ func _get_combo_color(combo: int) -> Color:
 		return Color(1.0, 0.8, 0.0, 1.0)
 	else:
 		return Color(1.0, 1.0, 1.0, 1.0)
+
+
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## DecadenceLevel map: 2528x2128 px playfield framed by 32 px walls.
+##   WallTop    (1264,   48), h=16  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (1264, 2080), h=16  → top edge   y=2064  → limit_bottom = 2064
+##   WallLeft   (  48, 1064), w=16  → right edge x=64    → limit_left   = 64
+##   WallRight  (2480, 1064), w=16  → left edge  x=2464  → limit_right  = 2464
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[DecadenceLevel] Camera2D not found on player — cannot set camera limits")
+		return
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 2064   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 2464   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	_log_to_file("Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
 
 
 func _setup_navigation() -> void:
@@ -490,7 +519,7 @@ func _on_enemy_died() -> void:
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
-		GameManager.register_kill(is_player_kill)
+		GameManager.register_kill(is_player_kill, is_penetration_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
@@ -830,11 +859,14 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	else:
 		_log_to_file("Watch Replay button not shown (replay viewing disabled in experimental settings)")
 
-	# Armory button (Issue #897: shown highlighted when items are available to unlock)
+	# Armory button (Issue #897: shown highlighted when items are available to unlock; Issue #1622: always shown)
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
-	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
-		var armory_button := Button.new()
-		armory_button.name = "ArmoryButton"
+	var armory_button := Button.new()
+	armory_button.name = "ArmoryButton"
+	armory_button.pressed.connect(_on_armory_button_pressed)
+	buttons_container.add_child(armory_button)
+	var has_available_unlock: bool = unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock()
+	if has_available_unlock:
 		armory_button.text = "★ Armory — Items Available!"
 		armory_button.custom_minimum_size = Vector2(200, 40)
 		armory_button.add_theme_font_size_override("font_size", 18)
@@ -851,8 +883,6 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		armory_style.corner_radius_bottom_left = 4
 		armory_style.corner_radius_bottom_right = 4
 		armory_button.add_theme_stylebox_override("normal", armory_style)
-		armory_button.pressed.connect(_on_armory_button_pressed)
-		buttons_container.add_child(armory_button)
 		# Add gold shine shader overlay (Issue #1536).
 		var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
 		if _armory_shine_shader:
@@ -864,6 +894,8 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 			_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_armory_shine_overlay.material = _armory_shine_mat
 			armory_button.add_child(_armory_shine_overlay)
+	else:
+		armory_button.text = "Armory"
 
 	# Show cursor for button interaction (Issue #1489: cursor was missing on Decadence score screen)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)

@@ -21,6 +21,7 @@ signal back_pressed
 @onready var fps_drop_logging_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer/FpsDropLoggingCheckbox
 @onready var all_weapons_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer/AllWeaponsUnlockedCheckbox
 @onready var all_maps_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer/AllMapsUnlockedCheckbox
+@onready var roguelike_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/RoguelikeUnlockedContainer/RoguelikeUnlockedCheckbox
 @onready var global_stuck_max_time_slider: HSlider = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer/GlobalStuckMaxTimeSlider
 @onready var global_stuck_max_time_value_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer/GlobalStuckMaxTimeValueLabel
 @onready var nav_mesh_visible_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer/NavMeshVisibleCheckbox
@@ -101,6 +102,9 @@ func _ready() -> void:
 	_setup_row_hover(_vbox.get_node("AllMapsUnlockedContainer"),
 			"Unlock All Maps",
 			_vbox.get_node("AllMapsUnlockedDescription"))
+	_setup_row_hover(_vbox.get_node("RoguelikeUnlockedContainer"),
+			"Unlock Roguelike",
+			_vbox.get_node("RoguelikeUnlockedDescription"))
 	_setup_row_hover(_vbox.get_node("GlobalStuckMaxTimeContainer"),
 			"Global Stuck Max Time",
 			_vbox.get_node("GlobalStuckMaxTimeDescription"))
@@ -159,6 +163,7 @@ func _ready() -> void:
 	fps_drop_logging_checkbox.toggled.connect(_on_fps_drop_logging_toggled)
 	all_weapons_unlocked_checkbox.toggled.connect(_on_all_weapons_unlocked_toggled)
 	all_maps_unlocked_checkbox.toggled.connect(_on_all_maps_unlocked_toggled)
+	roguelike_unlocked_checkbox.toggled.connect(_on_roguelike_unlocked_toggled)
 	global_stuck_max_time_slider.value_changed.connect(_on_global_stuck_max_time_changed)
 	nav_mesh_visible_checkbox.toggled.connect(_on_nav_mesh_visible_toggled)
 	search_path_visible_checkbox.toggled.connect(_on_search_path_visible_toggled)
@@ -217,6 +222,7 @@ func _update_ui() -> void:
 	fps_drop_logging_checkbox.button_pressed = experimental_settings.is_fps_drop_logging_enabled()
 	all_weapons_unlocked_checkbox.button_pressed = experimental_settings.is_all_weapons_unlocked()
 	all_maps_unlocked_checkbox.button_pressed = experimental_settings.is_all_maps_unlocked()
+	roguelike_unlocked_checkbox.button_pressed = experimental_settings.has_method("is_roguelike_unlocked") and experimental_settings.is_roguelike_unlocked()
 	nav_mesh_visible_checkbox.button_pressed = experimental_settings.is_nav_mesh_visible_enabled()
 	search_path_visible_checkbox.button_pressed = experimental_settings.is_search_path_visible_enabled()
 	waypoint_visible_checkbox.button_pressed = experimental_settings.is_passage_waypoints_visible_enabled()
@@ -261,6 +267,8 @@ func _update_ui() -> void:
 		status_parts.append("All weapons unlocked")
 	if experimental_settings.is_all_maps_unlocked():
 		status_parts.append("All maps unlocked")
+	if experimental_settings.has_method("is_roguelike_unlocked") and experimental_settings.is_roguelike_unlocked():
+		status_parts.append("Roguelike unlocked")
 	if experimental_settings.is_nav_mesh_visible_enabled():
 		status_parts.append("Nav mesh visible")
 	if experimental_settings.is_search_path_visible_enabled():
@@ -382,6 +390,13 @@ func _on_all_maps_unlocked_toggled(enabled: bool) -> void:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
 		experimental_settings.set_all_maps_unlocked(enabled)
+	_update_ui()
+
+
+func _on_roguelike_unlocked_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_roguelike_unlocked(enabled)
 	_update_ui()
 
 

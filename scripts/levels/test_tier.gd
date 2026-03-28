@@ -563,7 +563,7 @@ func _on_enemy_died() -> void:
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
-		GameManager.register_kill(is_player_kill)
+		GameManager.register_kill(is_player_kill, is_penetration_kill)
 	# Register kill with ScoreManager including special kill info
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
@@ -1187,11 +1187,14 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 
 		buttons_container.add_child(replay_button)
 
-	# Armory button (Issue #897: shown highlighted when items are available to unlock)
+	# Armory button (Issue #897: shown highlighted when items are available to unlock; Issue #1622: always shown)
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
-	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
-		var armory_button := Button.new()
-		armory_button.name = "ArmoryButton"
+	var armory_button := Button.new()
+	armory_button.name = "ArmoryButton"
+	armory_button.pressed.connect(_on_armory_button_pressed)
+	buttons_container.add_child(armory_button)
+	var has_available_unlock: bool = unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock()
+	if has_available_unlock:
 		armory_button.text = "★ Armory — Items Available!"
 		armory_button.custom_minimum_size = Vector2(200, 40)
 		armory_button.add_theme_font_size_override("font_size", 18)
@@ -1208,8 +1211,6 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		armory_style.corner_radius_bottom_left = 4
 		armory_style.corner_radius_bottom_right = 4
 		armory_button.add_theme_stylebox_override("normal", armory_style)
-		armory_button.pressed.connect(_on_armory_button_pressed)
-		buttons_container.add_child(armory_button)
 		# Add gold shine shader overlay (Issue #1536).
 		var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
 		if _armory_shine_shader:
@@ -1221,6 +1222,8 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 			_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_armory_shine_overlay.material = _armory_shine_mat
 			armory_button.add_child(_armory_shine_overlay)
+	else:
+		armory_button.text = "Armory"
 
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)

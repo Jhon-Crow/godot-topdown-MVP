@@ -170,6 +170,9 @@ func _ready() -> void:
 	# Find and setup player.
 	_setup_player_tracking()
 
+	# Restrict camera so the border walls are never visible (Issue #1682).
+	_configure_camera()
+
 	# Setup UI.
 	_setup_ui()
 
@@ -277,7 +280,7 @@ func _on_enemy_died() -> void:
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
-		GameManager.register_kill(is_player_kill)
+		GameManager.register_kill(is_player_kill, is_penetration_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
@@ -787,6 +790,33 @@ func _reconnect_weapon_signals(player: Node2D) -> void:
 # ---------------------------------------------------------------------------
 
 ## Bake NavigationRegion2D for enemy pathfinding.
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## ArenaLevel map: 1920x1080 px playfield framed by 32 px walls.
+##   WallTop    (960,   32), h=32  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (960, 1048), h=32  → top edge   y=1016  → limit_bottom = 1016
+##   WallLeft   ( 32,  540), w=32  → right edge x=64    → limit_left   = 64
+##   WallRight  (1888, 540), w=32  → left edge  x=1856  → limit_right  = 1856
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[ArenaLevel] Camera2D not found on player — cannot set camera limits")
+		return
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 1016   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 1856   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	_log_to_file("Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
+
+
 ## Issue #1289: use explicit parse+bake API so all obstacle StaticBody2D nodes are
 ## reliably found and carved out of the walkable area (bake_navigation_polygon can
 ## miss dynamic/runtime geometry when called from _ready()).

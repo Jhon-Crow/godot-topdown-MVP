@@ -174,7 +174,6 @@ var _level_cards: Dictionary = {}
 
 ## Check whether a level at the given index in LEVELS is unlocked.
 ## The first level (Labyrinth) is always unlocked.
-## The Roguelike level is always unlocked (procedurally generated, no prerequisites).
 ## All other levels require the immediately preceding level to be completed on any difficulty.
 ## If the "all maps unlocked" experimental setting is enabled (Issue #1075), all levels are accessible.
 ## @param level_index: Index into the LEVELS array.
@@ -193,6 +192,32 @@ func is_level_unlocked(level_index: int, progress_manager: Node) -> bool:
 	if progress_manager and progress_manager.has_method("is_level_completed_any_difficulty"):
 		return progress_manager.is_level_completed_any_difficulty(previous_path)
 	return false
+
+
+## Check whether all levels in the LEVELS array have been completed on any difficulty (Issue #1618).
+## Used to determine whether the roguelike mode should be accessible.
+## @param progress_manager: The ProgressManager autoload node (may be null).
+## @return: True if every level has been completed at least once on any difficulty.
+func is_all_levels_completed(progress_manager: Node) -> bool:
+	if progress_manager == null or not progress_manager.has_method("is_level_completed_any_difficulty"):
+		return false
+	for level_data in LEVELS:
+		if not progress_manager.is_level_completed_any_difficulty(level_data["path"]):
+			return false
+	return true
+
+
+## Check whether the roguelike mode is accessible (Issue #1618).
+## Unlocked if: all levels in LEVELS are completed on any difficulty,
+## OR the experimental "roguelike_unlocked" toggle is enabled.
+## @param progress_manager: The ProgressManager autoload node (may be null).
+## @return: True if roguelike is accessible.
+func is_roguelike_unlocked(progress_manager: Node) -> bool:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("is_roguelike_unlocked"):
+		if experimental_settings.is_roguelike_unlocked():
+			return true
+	return is_all_levels_completed(progress_manager)
 
 
 func _ready() -> void:
@@ -593,6 +618,9 @@ func _on_level_selected(level_path: String) -> void:
 	# Issue #997: Use SceneLoader for background loading with loading screen
 	var scene_loader: Node = get_node_or_null("/root/SceneLoader")
 	if scene_loader and scene_loader.has_method("load_level"):
+		# Close the menu before loading so it does not persist into the new scene.
+		# Issue #1633: the menu was staying visible on screen after level selection.
+		back_pressed.emit()
 		scene_loader.load_level(level_path)
 	else:
 		# Fallback to direct loading if SceneLoader not available

@@ -55,12 +55,6 @@ class MockArmoryMenu:
 			"icon_path": "",
 			"unlocked": false,
 			"description": "Coming soon"
-		},
-		"smg": {
-			"name": "???",
-			"icon_path": "",
-			"unlocked": false,
-			"description": "Coming soon"
 		}
 	}
 
