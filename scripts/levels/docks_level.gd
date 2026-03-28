@@ -2,7 +2,7 @@ extends Node2D
 ## Docks level scene (Issue #753).
 ##
 ## Large industrial docks environment with shipping containers, warehouses,
-## and open spaces. Features 18 enemies with varied weapons for tactical gameplay.
+## and open spaces. Features 15 enemies with varied weapons for tactical gameplay.
 ## Map layout: ~5000x4000 pixels with water boundaries.
 
 var _enemy_count_label: Label = null
