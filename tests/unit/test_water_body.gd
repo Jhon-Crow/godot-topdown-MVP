@@ -310,15 +310,23 @@ class MockWaterBodyTimeStop:
 	## Whether a shader material is attached (simulate missing material case).
 	var has_material: bool = true
 
+	## Simulated WaterVisual process mode — mirrors PROCESS_MODE_DISABLED used in
+	## RainEffect and SnowEffect (Issue #1608).
+	## 0 = INHERIT (running), 4 = DISABLED (frozen).
+	var visual_process_mode: int = 0  # Node.PROCESS_MODE_INHERIT
 
-	## Simulate set_time_stopped from water_body.gd (Issue #1585).
+
+	## Simulate set_time_stopped from water_body.gd (Issue #1608).
+	## Mirrors RainEffect/SnowEffect: disables visual node processing AND zeros shader speeds.
 	func set_time_stopped(paused: bool) -> void:
 		if _time_stopped == paused:
 			return
 		_time_stopped = paused
-		if not has_material:
-			return
 		if paused:
+			# Disable visual processing — mirrors PROCESS_MODE_DISABLED on particle nodes.
+			visual_process_mode = 4  # Node.PROCESS_MODE_DISABLED
+			if not has_material:
+				return
 			_saved_wave_speed = _wave_speed
 			_saved_ripple_speed = _ripple_speed
 			_saved_surf_speed = _surf_speed
@@ -326,6 +334,10 @@ class MockWaterBodyTimeStop:
 			_ripple_speed = 0.0
 			_surf_speed = 0.0
 		else:
+			# Restore visual processing — mirrors PROCESS_MODE_INHERIT restore.
+			visual_process_mode = 0  # Node.PROCESS_MODE_INHERIT
+			if not has_material:
+				return
 			_wave_speed = _saved_wave_speed
 			_ripple_speed = _saved_ripple_speed
 			_surf_speed = _saved_surf_speed
@@ -428,3 +440,28 @@ func test_surf_variation_speed_controlled_by_surf_speed() -> void:
 	wb.set_time_stopped(false)
 	assert_almost_eq(wb._surf_speed, original_surf, 0.001,
 		"surf_speed (and thus the surf variation) must be restored after time resumes")
+
+
+# ============================================================================
+# Tests: Issue #1608 — WaterVisual follows PROCESS_MODE_DISABLED pattern
+# (mirrors RainEffect._streaks and SnowEffect._flakes_large/_flakes_small)
+# ============================================================================
+
+
+func test_visual_process_disabled_when_time_stopped() -> void:
+	# When time is stopped, WaterVisual must have PROCESS_MODE_DISABLED (4),
+	# matching the pattern in RainEffect and SnowEffect (Issue #1608).
+	var wb := MockWaterBodyTimeStop.new()
+	assert_eq(wb.visual_process_mode, 0, "Before stop: visual should be PROCESS_MODE_INHERIT (0)")
+	wb.set_time_stopped(true)
+	assert_eq(wb.visual_process_mode, 4,
+		"During time stop: visual must be PROCESS_MODE_DISABLED (4) — mirrors RainEffect/SnowEffect pattern")
+
+
+func test_visual_process_restored_when_time_resumes() -> void:
+	# When time resumes, WaterVisual must return to PROCESS_MODE_INHERIT (0).
+	var wb := MockWaterBodyTimeStop.new()
+	wb.set_time_stopped(true)
+	wb.set_time_stopped(false)
+	assert_eq(wb.visual_process_mode, 0,
+		"After resume: visual must return to PROCESS_MODE_INHERIT (0) — mirrors RainEffect/SnowEffect pattern")

@@ -361,30 +361,43 @@ func _spawn_blood_diffusion(world_pos: Vector2, blood_color: Color) -> void:
 
 
 ## Pauses or resumes wave animation for time-stop effects (e.g. last chance).
-## When paused is true, all three shader speed parameters are set to zero so the
-## water surface appears frozen. When paused is false, the original speed values
-## are restored. The splash/physics detection is not affected.
+## Mirrors the RainEffect/SnowEffect pattern (Issue #1608):
+##   - Shader speed uniforms are zeroed so all TIME-dependent animation stops.
+##   - WaterVisual process mode is disabled so the canvas item stops updating,
+##     matching the PROCESS_MODE_DISABLED approach used for particle nodes in
+##     RainEffect._streaks and SnowEffect._flakes_large/_flakes_small.
+## When paused is false, both are restored.
+## The splash/physics detection is not affected.
 func set_time_stopped(paused: bool) -> void:
 	if _time_stopped == paused:
 		return
 	_time_stopped = paused
-	if _visual == null or not (_visual.material is ShaderMaterial):
-		return
-	var mat: ShaderMaterial = _visual.material as ShaderMaterial
 	if paused:
-		# Save current speed values then set to zero.
-		_saved_wave_speed = mat.get_shader_parameter("wave_speed")
-		_saved_ripple_speed = mat.get_shader_parameter("ripple_speed")
-		_saved_surf_speed = mat.get_shader_parameter("surf_speed")
-		mat.set_shader_parameter("wave_speed", 0.0)
-		mat.set_shader_parameter("ripple_speed", 0.0)
-		mat.set_shader_parameter("surf_speed", 0.0)
+		# Disable WaterVisual processing — mirrors PROCESS_MODE_DISABLED used on
+		# particle nodes in RainEffect and SnowEffect (Issue #1608).
+		if _visual != null:
+			_visual.process_mode = Node.PROCESS_MODE_DISABLED
+		# Zero all shader speed uniforms so TIME-based animation freezes.
+		if _visual != null and _visual.material is ShaderMaterial:
+			var mat: ShaderMaterial = _visual.material as ShaderMaterial
+			_saved_wave_speed = mat.get_shader_parameter("wave_speed")
+			_saved_ripple_speed = mat.get_shader_parameter("ripple_speed")
+			_saved_surf_speed = mat.get_shader_parameter("surf_speed")
+			mat.set_shader_parameter("wave_speed", 0.0)
+			mat.set_shader_parameter("ripple_speed", 0.0)
+			mat.set_shader_parameter("surf_speed", 0.0)
 		_log("[WaterBody] Wave animation paused (time stopped)")
 	else:
-		# Restore saved speed values.
-		mat.set_shader_parameter("wave_speed", _saved_wave_speed)
-		mat.set_shader_parameter("ripple_speed", _saved_ripple_speed)
-		mat.set_shader_parameter("surf_speed", _saved_surf_speed)
+		# Restore WaterVisual processing — mirrors PROCESS_MODE_INHERIT restore in
+		# RainEffect and SnowEffect (Issue #1608).
+		if _visual != null:
+			_visual.process_mode = Node.PROCESS_MODE_INHERIT
+		# Restore shader speed uniforms.
+		if _visual != null and _visual.material is ShaderMaterial:
+			var mat: ShaderMaterial = _visual.material as ShaderMaterial
+			mat.set_shader_parameter("wave_speed", _saved_wave_speed)
+			mat.set_shader_parameter("ripple_speed", _saved_ripple_speed)
+			mat.set_shader_parameter("surf_speed", _saved_surf_speed)
 		_log("[WaterBody] Wave animation resumed (time resumed)")
 
 

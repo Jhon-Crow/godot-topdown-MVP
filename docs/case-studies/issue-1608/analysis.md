@@ -129,6 +129,32 @@
 
 **Conclusion across all 5 logs:** Every game log submitted by the reporter was generated from the same pre-built Windows executable at `I:/Загрузки/godot exe/ОСадКИ/` (Downloads folder). None of them were built from the fixed source code in `issue-1608-32da689d6e29`. The reporter needs to build from source to test the fix.
 
+### Log 6: `game_log_20260328_080413.txt`
+**Build:** Reported as "new build" by reporter. Executable path: `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe` (same Downloads folder).
+**Levels played:** LabyrinthLevel → BeachLevel (direct navigation)
+**Reporter note:** "проверял на новом билде, не останавливается (посмотри как сделана остановка дождя и снега)"
+(Translation: "tested on new build, not stopping — look at how rain and snow stopping is implemented")
+
+| Time | Level | Event |
+|------|-------|-------|
+| 08:04:13 | (startup) | Game started — executable: `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe` |
+| 08:04:25 | LabyrinthLevel | Level loaded, player ready |
+| 08:04:27 | BeachLevel | Level loaded |
+| 08:04:27 | BeachLevel | `[BeachLevel] Water node found OK — visual=true shader=true collision=true pos=(1264, 242)` |
+| 08:04:33 | BeachLevel | Grenade explosion → Last chance triggered (2s freeze, trigger: grenade explosion) |
+| 08:04:33 | BeachLevel | `[LastChance] Froze all nodes except player and autoloads` |
+| 08:04:33 | BeachLevel | **NO `[LastChance] Precipitation paused: Water` logged** ← zero nodes in precipitation group |
+| 08:04:33 | BeachLevel | **ZERO `[WaterBody]` log entries in entire log** ← broken `get_node_or_null` in main |
+| 08:04:35 | BeachLevel | `[LastChance] Effect duration expired after 2.00 real seconds` |
+
+**Key findings in Log 6:**
+
+1. **Same executable path** (`I:/Загрузки/godot exe/ОСадКИ/`) confirms this is the same downloaded binary as Logs 1–5. Despite the reporter claiming "new build," the executable has not changed.
+
+2. **No `Precipitation paused:` log** — this confirms `get_tree().get_nodes_in_group("precipitation_effects")` returned an empty array. In the old binary, `water_body.gd._ready()` does NOT call `add_to_group("precipitation_effects")` (that was added in PR #1592). So WaterBody is absent from the group.
+
+3. **Reporter's hint: "look at how rain/snow stopping is implemented"** — this feedback informed an additional code improvement: `WaterBody.set_time_stopped()` now also sets `_visual.process_mode = PROCESS_MODE_DISABLED` when pausing (and restores `PROCESS_MODE_INHERIT` when resuming), matching the exact pattern used by `RainEffect` and `SnowEffect` for their particle child nodes.
+
 ---
 
 ## Root Cause Analysis
@@ -284,7 +310,7 @@ Add a `uniform bool time_stopped = false` to the shader. When `true`, replace al
 ## Files Changed
 
 - `scripts/shaders/realistic_water.gdshader` — replace `TIME * 0.15` with `TIME * surf_speed * 0.5`
-- `scripts/objects/water_body.gd` — fix `_log()` to use `Engine.get_singleton()` as primary lookup
+- `scripts/objects/water_body.gd` — fix `_log()` to use `Engine.get_singleton()` as primary lookup; update `set_time_stopped()` to also use `PROCESS_MODE_DISABLED` on WaterVisual (matching rain/snow pattern)
 - `tests/unit/test_water_body.gd` — regression tests for Issue #1608
 - `docs/case-studies/issue-1608/analysis.md` — this document
 - `docs/case-studies/issue-1608/logs/game_log_20260327_080021.txt` — first game log from reporter
@@ -292,3 +318,4 @@ Add a `uniform bool time_stopped = false` to the shader. When `true`, replace al
 - `docs/case-studies/issue-1608/logs/game_log_20260327_091144.txt` — third game log from reporter (same old binary, third confirmation that this is a pre-PR #1592 downloaded executable)
 - `docs/case-studies/issue-1608/logs/game_log_20260327_093030.txt` — fourth game log from reporter (same old binary, fourth confirmation — reporter tried the level twice in this session)
 - `docs/case-studies/issue-1608/logs/game_log_20260327_105401.txt` — fifth game log from reporter (same old binary, fifth confirmation — reporter tried BeachLevel twice with multiple freeze triggers)
+- `docs/case-studies/issue-1608/logs/game_log_20260328_080413.txt` — sixth game log from reporter (same old binary, reporter claims "new build" but exe path unchanged; includes hint to match rain/snow implementation)
