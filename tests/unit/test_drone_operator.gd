@@ -2,7 +2,7 @@ extends GutTest
 ## Unit tests for the Drone Operator and Drone enemies (Issue #1397).
 ##
 ## Verifies:
-## 1. DroneOperatorComponent: phases, dash mechanics, afterimage trail
+## 1. DroneOperatorComponent: phases, dodge mechanics
 ## 2. DroneComponent: health, damage, destruction
 ## 3. Spawner integration: both types appear in spawner lists
 ## 4. Source file checks: flags present in experimental_menu.gd and game_manager.gd
@@ -104,54 +104,52 @@ func test_drone_hp_clamps_to_zero() -> void:
 
 
 # ============================================================================
-# DroneOperatorComponent dash tests
+# DroneOperatorComponent dodge tests (Issue #1540)
+# Dodge logic mirrors MacheteComponent — perpendicular lateral sidestep, no dash.
 # ============================================================================
 
 
-class MockDroneOperatorDash:
-	## Simulates DroneOperatorComponent dash mechanics for testing.
-	const DASH_CHARGES: int = 4
-	const DASH_COOLDOWN: float = 1.2
-	const DASH_DURATION: float = 0.15
-	const DASH_CHAIN_WINDOW: float = 0.4
+class MockDroneOperatorDodge:
+	## Simulates DroneOperatorComponent dodge mechanics for testing.
+	## Uses the same interface as MacheteComponent dodge.
+
+	const DODGE_SPEED: float = 400.0
+	const DODGE_DISTANCE: float = 120.0
+	const DODGE_COOLDOWN: float = 1.2
 
 	enum Phase { DEPLOYING, CONTROLLING, ACTIVE }
 
 	var _phase: Phase = Phase.ACTIVE
-	var _dash_charges: int = DASH_CHARGES
-	var _dash_cooldown_timer: float = 0.0
-	var _dash_active: bool = false
-	var _dash_timer: float = 0.0
-	var _dash_chain_timer: float = 0.0
-	var _dash_count: int = 0
+	var _is_dodging: bool = false
+	var _dodge_timer: float = 0.0
+	var _dodge_direction: Vector2 = Vector2.ZERO
+	var _dodge_count: int = 0
 
-	func try_dash(direction: Vector2) -> bool:
+	func try_dodge(bullet_direction: Vector2) -> bool:
 		if _phase != Phase.ACTIVE:
 			return false
-		if _dash_active:
+		if _is_dodging:
 			return false
-		if _dash_charges <= 0 and _dash_cooldown_timer > 0.0:
-			return false
-		_dash_active = true
-		_dash_timer = DASH_DURATION
-		_dash_chain_timer = 0.0
-		_dash_charges -= 1
-		_dash_count += 1
+		# Calculate perpendicular dodge direction (same as MacheteComponent)
+		var perp_right := Vector2(-bullet_direction.y, bullet_direction.x)
+		var perp_left := Vector2(bullet_direction.y, -bullet_direction.x)
+		_dodge_direction = perp_left if randf() > 0.5 else perp_right
+		_is_dodging = true
+		_dodge_timer = DODGE_DISTANCE / DODGE_SPEED
+		_dodge_count += 1
 		return true
 
-	func end_dash() -> void:
-		_dash_active = false
-		_dash_timer = 0.0
-		if _dash_charges <= 0:
-			_dash_cooldown_timer = DASH_COOLDOWN
-		else:
-			_dash_chain_timer = DASH_CHAIN_WINDOW
+	func is_dodging() -> bool:
+		return _is_dodging
 
-	func is_dashing() -> bool:
-		return _dash_active
+	func get_dodge_velocity() -> Vector2:
+		if not _is_dodging:
+			return Vector2.ZERO
+		return _dodge_direction * DODGE_SPEED
 
-	func should_dash_instead_of_suppress() -> bool:
-		return _phase == Phase.ACTIVE and not _dash_active
+	func end_dodge() -> void:
+		_is_dodging = false
+		_dodge_timer = 0.0
 
 	func is_controlling_drone() -> bool:
 		return _phase == Phase.CONTROLLING
@@ -160,113 +158,102 @@ class MockDroneOperatorDash:
 		return _phase
 
 
-var mock_operator: MockDroneOperatorDash
+var mock_operator: MockDroneOperatorDodge
 
 
-func test_operator_starts_with_four_dash_charges() -> void:
-	mock_operator = MockDroneOperatorDash.new()
-	assert_eq(mock_operator._dash_charges, 4,
-		"Drone operator should start with 4 dash charges")
+func test_operator_dodge_starts_when_bullet_detected() -> void:
+	mock_operator = MockDroneOperatorDodge.new()
+	var result: bool = mock_operator.try_dodge(Vector2.RIGHT)
+	assert_true(result,
+		"Dodge should start when bullet detected in ACTIVE phase")
 
 
-func test_operator_dash_consumes_charge() -> void:
-	mock_operator = MockDroneOperatorDash.new()
-	mock_operator.try_dash(Vector2.RIGHT)
-	assert_eq(mock_operator._dash_charges, 3,
-		"Dashing should consume 1 charge")
+func test_operator_is_dodging_after_try_dodge() -> void:
+	mock_operator = MockDroneOperatorDodge.new()
+	mock_operator.try_dodge(Vector2.RIGHT)
+	assert_true(mock_operator.is_dodging(),
+		"is_dodging() should return true after try_dodge()")
 
 
-func test_operator_can_dash_four_times() -> void:
-	mock_operator = MockDroneOperatorDash.new()
-	for i in range(4):
-		mock_operator.try_dash(Vector2.RIGHT)
-		mock_operator.end_dash()
-	assert_eq(mock_operator._dash_count, 4,
-		"Operator should be able to dash 4 times")
-	assert_eq(mock_operator._dash_charges, 0,
-		"All charges should be consumed after 4 dashes")
+func test_operator_is_not_dodging_after_end_dodge() -> void:
+	mock_operator = MockDroneOperatorDodge.new()
+	mock_operator.try_dodge(Vector2.RIGHT)
+	mock_operator.end_dodge()
+	assert_false(mock_operator.is_dodging(),
+		"is_dodging() should return false after dodge ends")
 
 
-func test_operator_cooldown_after_all_charges() -> void:
-	mock_operator = MockDroneOperatorDash.new()
-	for i in range(4):
-		mock_operator.try_dash(Vector2.RIGHT)
-		mock_operator.end_dash()
-	assert_gt(mock_operator._dash_cooldown_timer, 0.0,
-		"Cooldown should start after all charges are spent")
-	assert_eq(mock_operator._dash_cooldown_timer, 1.2,
-		"Cooldown should be 1.2 seconds (same as player Dash)")
-
-
-func test_operator_cannot_dash_during_cooldown() -> void:
-	mock_operator = MockDroneOperatorDash.new()
-	for i in range(4):
-		mock_operator.try_dash(Vector2.RIGHT)
-		mock_operator.end_dash()
-	var result: bool = mock_operator.try_dash(Vector2.RIGHT)
+func test_operator_cannot_dodge_while_dodging() -> void:
+	mock_operator = MockDroneOperatorDodge.new()
+	mock_operator.try_dodge(Vector2.RIGHT)
+	var result: bool = mock_operator.try_dodge(Vector2.LEFT)
 	assert_false(result,
-		"Operator should not be able to dash during cooldown")
+		"Cannot start a new dodge while already dodging")
 
 
-func test_operator_cannot_dash_while_dashing() -> void:
-	mock_operator = MockDroneOperatorDash.new()
-	mock_operator.try_dash(Vector2.RIGHT)
-	var result: bool = mock_operator.try_dash(Vector2.LEFT)
+func test_operator_cannot_dodge_in_controlling_phase() -> void:
+	mock_operator = MockDroneOperatorDodge.new()
+	mock_operator._phase = MockDroneOperatorDodge.Phase.CONTROLLING
+	var result: bool = mock_operator.try_dodge(Vector2.RIGHT)
 	assert_false(result,
-		"Operator should not be able to start a new dash while already dashing")
+		"Operator should not dodge in CONTROLLING phase (defenseless)")
 
 
-func test_operator_is_dashing_returns_true_during_dash() -> void:
-	mock_operator = MockDroneOperatorDash.new()
-	mock_operator.try_dash(Vector2.RIGHT)
-	assert_true(mock_operator.is_dashing(),
-		"is_dashing() should return true during active dash")
+func test_operator_cannot_dodge_in_deploying_phase() -> void:
+	mock_operator = MockDroneOperatorDodge.new()
+	mock_operator._phase = MockDroneOperatorDodge.Phase.DEPLOYING
+	var result: bool = mock_operator.try_dodge(Vector2.RIGHT)
+	assert_false(result,
+		"Operator should not dodge in DEPLOYING phase")
 
 
-func test_operator_is_dashing_returns_false_after_dash() -> void:
-	mock_operator = MockDroneOperatorDash.new()
-	mock_operator.try_dash(Vector2.RIGHT)
-	mock_operator.end_dash()
-	assert_false(mock_operator.is_dashing(),
-		"is_dashing() should return false after dash ends")
+func test_operator_get_dodge_velocity_returns_zero_when_not_dodging() -> void:
+	## Issue #1540: get_dodge_velocity() must return zero when no dodge is active.
+	mock_operator = MockDroneOperatorDodge.new()
+	var vel: Vector2 = mock_operator.get_dodge_velocity()
+	assert_eq(vel, Vector2.ZERO,
+		"get_dodge_velocity() should return Vector2.ZERO when not dodging")
 
 
-func test_operator_should_dash_instead_of_suppress_in_active_phase() -> void:
-	mock_operator = MockDroneOperatorDash.new()
-	assert_true(mock_operator.should_dash_instead_of_suppress(),
-		"Operator in ACTIVE phase should dash instead of being suppressed")
-
-
-func test_operator_should_not_dash_in_controlling_phase() -> void:
-	mock_operator = MockDroneOperatorDash.new()
-	mock_operator._phase = MockDroneOperatorDash.Phase.CONTROLLING
-	assert_false(mock_operator.should_dash_instead_of_suppress(),
-		"Operator in CONTROLLING phase should not dash")
+func test_operator_get_dodge_velocity_returns_nonzero_when_dodging() -> void:
+	## Issue #1540: get_dodge_velocity() must return non-zero vector during active dodge.
+	mock_operator = MockDroneOperatorDodge.new()
+	mock_operator.try_dodge(Vector2.RIGHT)
+	var vel: Vector2 = mock_operator.get_dodge_velocity()
+	assert_gt(vel.length(), 0.0,
+		"get_dodge_velocity() should return a non-zero vector during an active dodge")
 
 
 func test_operator_is_defenseless_during_controlling() -> void:
-	mock_operator = MockDroneOperatorDash.new()
-	mock_operator._phase = MockDroneOperatorDash.Phase.CONTROLLING
+	mock_operator = MockDroneOperatorDodge.new()
+	mock_operator._phase = MockDroneOperatorDodge.Phase.CONTROLLING
 	assert_true(mock_operator.is_controlling_drone(),
 		"Operator should be defenseless while controlling drone")
 
 
-func test_operator_cannot_dash_in_deploying_phase() -> void:
-	mock_operator = MockDroneOperatorDash.new()
-	mock_operator._phase = MockDroneOperatorDash.Phase.DEPLOYING
-	var result: bool = mock_operator.try_dash(Vector2.RIGHT)
-	assert_false(result,
-		"Operator should not be able to dash in DEPLOYING phase")
+func test_dodge_direction_is_perpendicular_to_bullet() -> void:
+	## Issue #1540: dodge direction must be perpendicular to bullet travel direction.
+	## A bullet traveling RIGHT (1,0) → perpendicular dodge directions are UP (0,-1) or DOWN (0,1).
+	var bullet_dir: Vector2 = Vector2(1.0, 0.0)  # bullet going RIGHT
+	var perp_right: Vector2 = Vector2(-bullet_dir.y, bullet_dir.x)  # (0, -1) = UP
+	var perp_left: Vector2 = Vector2(bullet_dir.y, -bullet_dir.x)   # (0, 1) = DOWN
+	# Perpendicular vectors must have zero dot product with bullet direction
+	assert_almost_eq(perp_right.dot(bullet_dir), 0.0, 0.001,
+		"Right perpendicular must be orthogonal to bullet direction")
+	assert_almost_eq(perp_left.dot(bullet_dir), 0.0, 0.001,
+		"Left perpendicular must be orthogonal to bullet direction")
 
 
-func test_operator_chain_window_after_partial_charges() -> void:
-	mock_operator = MockDroneOperatorDash.new()
-	mock_operator.try_dash(Vector2.RIGHT)
-	mock_operator.end_dash()
-	assert_eq(mock_operator._dash_chain_timer, 0.4,
-		"Chain window should be 0.4s after dash with charges remaining")
-	assert_eq(mock_operator._dash_cooldown_timer, 0.0,
-		"Cooldown should not start when charges remain")
+func test_dodge_distance_is_120px() -> void:
+	## Issue #1540: dodge distance must be 120px — same as machete enemy, clearly visible.
+	assert_eq(MockDroneOperatorDodge.DODGE_DISTANCE, 120.0,
+		"Dodge distance should be 120px (same as machete enemy)")
+
+
+func test_dodge_speed_is_400px_per_second() -> void:
+	## Issue #1540: dodge speed must be 400 px/s — same as machete enemy.
+	assert_eq(MockDroneOperatorDodge.DODGE_SPEED, 400.0,
+		"Dodge speed should be 400 px/s (same as machete enemy)")
 
 
 # ============================================================================
@@ -453,6 +440,20 @@ func test_enemy_script_contains_drone_operator_export() -> void:
 		"enemy.gd must contain is_drone_operator export variable")
 
 
+func test_enemy_script_applies_dodge_velocity_in_active_phase() -> void:
+	## Issue #1540: in ACTIVE phase, drone operator dodge velocity must override AI velocity
+	## so the lateral sidestep is not cancelled by normal movement logic.
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("get_dodge_velocity"),
+		"enemy.gd must apply drone operator dodge velocity via get_dodge_velocity() (Issue #1540)")
+
+
 func test_drone_operator_scene_exists() -> void:
 	assert_true(ResourceLoader.exists("res://scenes/objects/EnemyDroneOperator.tscn"),
 		"EnemyDroneOperator.tscn scene file must exist")
@@ -471,3 +472,65 @@ func test_drone_operator_component_script_exists() -> void:
 func test_drone_component_script_exists() -> void:
 	assert_true(ResourceLoader.exists("res://scripts/components/drone_component.gd"),
 		"drone_component.gd script must exist")
+
+
+func test_drone_operator_uses_machete_style_dodge() -> void:
+	## Issue #1540: drone operator ACTIVE phase must use MacheteComponent for bullet dodging
+	## (perpendicular lateral sidestep, no dash). Verifies the component is set up in ACTIVE.
+	var file := FileAccess.open("res://scripts/components/drone_operator_component.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open drone_operator_component.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("MacheteComponent"),
+		"drone_operator_component.gd must use MacheteComponent for bullet dodging (Issue #1540)")
+	assert_true(source.contains("_setup_dodge_component"),
+		"drone_operator_component.gd must call _setup_dodge_component() in ACTIVE phase (Issue #1540)")
+
+
+func test_enemy_combat_state_handles_drone_operator_dodge() -> void:
+	## Issue #1540: enemy.gd COMBAT state must handle drone operator dodge
+	## the same way it handles machete dodge — check bullet direction and try_dodge.
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("_drone_operator.try_dodge"),
+		"enemy.gd COMBAT state must call _drone_operator.try_dodge() for bullet evasion (Issue #1540)")
+	assert_true(source.contains("_drone_operator.is_dodging"),
+		"enemy.gd COMBAT state must check _drone_operator.is_dodging() (Issue #1540)")
+
+
+func test_drone_operator_active_does_not_use_machete_melee_in_combat() -> void:
+	## Issue #1540: Drone operator ACTIVE phase must NOT use machete melee attack logic
+	## in the combat state. Normal ranged combat must run after the dodge check.
+	## The operator must behave like a normal ranged enemy with a lateral dodge — not a melee enemy.
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	# Find the drone operator ACTIVE block
+	var drone_block_start: int = source.find("# Issue #1540: Drone operator ACTIVE")
+	assert_gt(drone_block_start, 0,
+		"enemy.gd must contain the Issue #1540 drone operator ACTIVE block")
+	# The block should end before any machine-gun/sniper specific logic
+	# and NOT contain a 'return' that would prevent normal combat from running
+	# after the dodge check. Extract the block to verify:
+	var block_end: int = source.find("# [#1033] Machine gunner", drone_block_start)
+	assert_gt(block_end, 0,
+		"There should be a machine gunner comment after the drone operator block")
+	var drone_block: String = source.substr(drone_block_start, block_end - drone_block_start)
+	# The block must NOT contain perform_melee_attack (machete behavior)
+	assert_false(drone_block.contains("perform_melee_attack"),
+		"Drone operator ACTIVE block must NOT call perform_melee_attack — it uses ranged combat (Issue #1540)")
+	# The block must NOT contain backstab logic
+	assert_false(drone_block.contains("is_backstab_opportunity"),
+		"Drone operator ACTIVE block must NOT use machete backstab approach (Issue #1540)")

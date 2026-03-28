@@ -47,10 +47,12 @@ class MockGameManager:
 
 	# Kill/stat counters used by KILL_UNLOCK_CONDITIONS
 	var kills_without_laser_sight: int = 0       # Condition: 400 → Laser Sight (Issue #1196)
-	var shots_fired_special_weapons: int = 0     # Condition: 300 → Fine Motor Skills (Issue #1346)
+	var shots_fired_special_weapons: int = 0     # Condition: 650 → Fine Motor Skills (Issue #1346)
 	var total_deaths: int = 0                    # Condition: 100 → Armored Skin (Issue #1389)
 	var no_damage_levels_completed: int = 0      # Condition: 1 → Combat Disposition (Issue #1389)
 	var levels_completed_rank_a_or_higher: int = 0  # Condition: 7 → Breaker Bullets (Issue #1589 req.3)
+	var kills_through_wall: int = 0              # Condition: 50 → Drilling Bullets (Issue #1624 req.3)
+	var levels_completed_with_silenced_pistol: int = 0  # Condition: 1 → Auto Reload (Issue #1624 req.2)
 
 	var unlocked_signals: Array = []
 
@@ -69,22 +71,24 @@ class MockActiveItemManager:
 		1: false,  # FLASHLIGHT — condition: Polygon D+
 		2: false,  # HOMING_BULLETS — condition: Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S (Issue #1000)
 		3: false,  # TELEPORT_BRACERS — condition: Double Corridor D+ (Issue #1000)
-		4: true,   # BFF_PENDANT — no condition, freely available from start (Issue #674)
+		4: false,  # BFF_PENDANT — condition: complete Winter Forest (Issue #1624 req.9)
 		5: false,  # INVISIBILITY_SUIT — condition: Beach S + Building S (Issue #1000)
 		6: false,  # BREAKER_BULLETS — condition: 7 levels at rank A or higher (Issue #1589 req.3)
 		7: false,  # FORCE_FIELD — condition: complete Factory on any grade (Issue #1589 req.2)
 		8: false,  # TRAJECTORY_GLASSES — condition: City D+ (Issue #1053 req.1)
 		9: false,  # LASER_SIGHT — condition: 400 kills without laser sight equipped (Issue #1196)
-		10: true,  # EXTENDED_MAGAZINE — no condition, freely available from start (Issue #1065)
+		10: false, # EXTENDED_MAGAZINE — condition: Building B+ (Issue #1624 req.1)
 		11: true,  # LOUDSPEAKER — no condition, freely available from start (Issue #959)
-		12: true,  # BREACHING_CHARGES — no condition, freely available from start (Issue #1043)
+		12: false, # BREACHING_CHARGES — condition: complete Labyrinth Complex (Issue #1624 req.6)
 		13: false, # ARMORED_SKIN — condition: 100 total deaths (Issue #1389)
-		14: true,  # AUTO_RELOAD — no condition, freely available from start (Issue #1067)
-		15: true,  # DRILLING_BULLETS — no condition, freely available from start (Issue #751)
+		14: false, # AUTO_RELOAD — condition: complete any level with silenced pistol (Issue #1624 req.2)
+		15: false, # DRILLING_BULLETS — condition: 50 kills through walls (Issue #1624 req.3)
 		16: false, # RECOIL_COMPENSATOR — condition: Labyrinth S (Issue #1423 req.2)
 		17: false, # COMBAT_DISPOSITION — condition: complete any level without damage (Issue #1389)
 		18: false, # EXPERIMENTAL_SAMPLE — condition: one level on every difficulty (Issue #1426)
-		19: false  # FINE_MOTOR_SKILLS — condition: 300 shots with special weapons (Issue #1346)
+		19: false, # FINE_MOTOR_SKILLS — condition: 650 shots with special weapons (Issue #1346)
+		20: false, # DASH — condition: Decadence A+ (Issue #1624 req.5)
+		21: false  # GRENADE_BAG — condition: complete Railway Station (Issue #1624 req.8)
 	}
 
 	var unlocked_signals: Array = []
@@ -103,7 +107,8 @@ class MockGrenadeManager:
 		0: true,  # FLASHBANG — always unlocked
 		1: false, # FRAG — condition: Building D+ (Issue #1000)
 		2: false, # DEFENSIVE — condition: Beach S (Issue #1000)
-		3: true   # AGGRESSION_GAS — no condition, freely available from start
+		3: false, # AGGRESSION_GAS — condition: complete Docks D+ (Issue #1624 req.4)
+		4: false  # DRONE — condition: complete Sewer on any grade (Issue #1624 req.7)
 	}
 
 	var unlocked_signals: Array = []
@@ -184,7 +189,7 @@ class TestableUnlockManager extends Node:
 		"res://scenes/levels/DocksLevel.tscn": {
 			"min_rank": "D",
 			"weapons": ["silenced_pistol"],
-			"grenades": [],
+			"grenades": [3],    # AGGRESSION_GAS = 3 (Issue #1624 req.4)
 			"active_items": []
 		},
 		"res://scenes/levels/DecadenceLevel.tscn": {
@@ -198,6 +203,42 @@ class TestableUnlockManager extends Node:
 			"weapons": [],
 			"grenades": [],
 			"active_items": [16]  # RECOIL_COMPENSATOR (Issue #1423 req.2)
+		},
+		"res://scenes/levels/BuildingLevel.tscn:B": {
+			"min_rank": "B",
+			"weapons": [],
+			"grenades": [],
+			"active_items": [10]  # EXTENDED_MAGAZINE (Issue #1624 req.1)
+		},
+		"res://scenes/levels/DecadenceLevel.tscn:A+": {
+			"min_rank": "A+",
+			"weapons": [],
+			"grenades": [],
+			"active_items": [20]  # DASH (Issue #1624 req.5)
+		},
+		"res://scenes/levels/Labyrinth2Level.tscn": {
+			"min_rank": "F",
+			"weapons": [],
+			"grenades": [],
+			"active_items": [12]  # BREACHING_CHARGES (Issue #1624 req.6)
+		},
+		"res://scenes/levels/SewerLevel.tscn": {
+			"min_rank": "F",
+			"weapons": [],
+			"grenades": [4],    # DRONE = 4 (Issue #1624 req.7)
+			"active_items": []
+		},
+		"res://scenes/levels/RailwayStationLevel.tscn": {
+			"min_rank": "F",
+			"weapons": [],
+			"grenades": [],
+			"active_items": [21]  # GRENADE_BAG (Issue #1624 req.8)
+		},
+		"res://scenes/levels/WinterForestLevel.tscn": {
+			"min_rank": "F",
+			"weapons": [],
+			"grenades": [],
+			"active_items": [4]  # BFF_PENDANT (Issue #1624 req.9)
 		}
 	}
 
@@ -274,6 +315,22 @@ class TestableUnlockManager extends Node:
 			"weapons": [],
 			"grenades": [],
 			"active_items": [6]   # BREAKER_BULLETS
+		},
+		{
+			# 50 kills through walls → unlock Drilling Bullets (Issue #1624 req.3)
+			"stat": "kills_through_wall",
+			"min_kills": 50,
+			"weapons": [],
+			"grenades": [],
+			"active_items": [15]  # DRILLING_BULLETS
+		},
+		{
+			# Complete any level with silenced pistol → unlock Auto Reload (Issue #1624 req.2)
+			"stat": "levels_completed_with_silenced_pistol",
+			"min_kills": 1,
+			"weapons": [],
+			"grenades": [],
+			"active_items": [14]  # AUTO_RELOAD
 		}
 	]
 

@@ -87,10 +87,14 @@ const WEAPON_RESOURCE_PATHS: Dictionary = {
 const MAX_WEAPON_ROWS_COLLAPSED: int = 2
 
 ## Maximum number of visible grenade rows before accordion hides the rest.
-const MAX_GRENADE_ROWS_COLLAPSED: int = 1
+## Set to 2 so all 5 grenade types (including Drone added in Issue #1628) are visible by default.
+const MAX_GRENADE_ROWS_COLLAPSED: int = 2
 
-## Number of columns in the weapon/grenade grids.
+## Number of columns in the weapon grid.
 const GRID_COLUMNS: int = 4
+
+## Number of columns in the grenade grid (8 per row to fit all types without wrapping).
+const GRENADE_GRID_COLUMNS: int = 8
 
 ## Number of columns in the special items grid.
 const SPECIAL_GRID_COLUMNS: int = 7
@@ -584,7 +588,7 @@ func _build_right_area() -> VBoxContainer:
 	# --- GRENADES SECTION ---
 	_add_category_header(right_vbox, "GRENADES")
 	_grenade_grid = GridContainer.new()
-	_grenade_grid.columns = GRID_COLUMNS
+	_grenade_grid.columns = GRENADE_GRID_COLUMNS
 	_grenade_grid.layout_mode = 2
 	_grenade_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_grenade_grid.add_theme_constant_override("h_separation", 6)
@@ -593,7 +597,7 @@ func _build_right_area() -> VBoxContainer:
 
 	# Populate grenade grid from GrenadeManager
 	var grenade_index: int = 0
-	var max_visible_grenades: int = MAX_GRENADE_ROWS_COLLAPSED * GRID_COLUMNS
+	var max_visible_grenades: int = MAX_GRENADE_ROWS_COLLAPSED * GRENADE_GRID_COLUMNS
 	if _grenade_manager:
 		for grenade_type in _grenade_manager.get_all_grenade_types():
 			var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
