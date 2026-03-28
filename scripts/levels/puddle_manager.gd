@@ -39,17 +39,21 @@ const PUDDLE_TEXTURE_PATHS: Array = [
 ## CranePlatform, WarehouseA, WarehouseB, or on top of containers.
 ## Puddles are placed near water edges, open pavement, loading docks, and
 ## between containers where rainwater logically pools.
+##
+## NOTE: All Y positions are ≥ 560 so that even at maximum growth scale the
+## puddle sprites cannot extend above Y=200 (the Water/Floor boundary).
+## This prevents puddles from visually overlapping the water stripe.
 const PUDDLE_POSITIONS: Array = [
 	# --- Open area north-west (outside CranePlatform) ---
-	Vector2(750, 350),
-	Vector2(900, 500),
-	Vector2(650, 680),
+	Vector2(750, 680),
+	Vector2(900, 580),
+	Vector2(650, 760),
 
-	# --- Open area north ---
-	Vector2(1200, 340),
-	Vector2(1700, 390),
-	Vector2(2400, 300),
-	Vector2(3000, 350),
+	# --- Open area north (kept clear of y<560 to avoid water overlap) ---
+	Vector2(1200, 580),
+	Vector2(1700, 620),
+	Vector2(2400, 560),
+	Vector2(3000, 600),
 
 	# --- Loading dock / east cranes (between containers, not on them) ---
 	Vector2(3750, 1480),
@@ -68,8 +72,8 @@ const PUDDLE_POSITIONS: Array = [
 	Vector2(2500, 2600),
 
 	# --- Container yard A gaps (between containers, not on them) ---
-	Vector2(3600, 280),
-	Vector2(4000, 560),
+	Vector2(3600, 700),
+	Vector2(4000, 900),
 
 	# --- Open area south (outside ContainerYardB) ---
 	Vector2(750, 3200),

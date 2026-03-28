@@ -1,97 +1,109 @@
 #!/usr/bin/env python3
-"""Generate multiple irregular-shaped puddle sprites for the Docks map.
+"""Generate realistic irregular puddle sprites for the Docks map.
 
-The reference image shows:
-- Dark NEUTRAL charcoal gray (R≈G≈B ≈ 55-65, NOT blue-tinted)
-- Quite transparent so the floor shows through
-- Irregular/organic shape (not a perfect circle or oval)
-- NO bright center highlight — flat uniform gray fill
-
-We generate 8 variants with different irregular shapes.
+Requirements from user feedback:
+- Plain matte dark gray — NO highlights, NO bright center spot, NO glow
+- Darker than the floor (floor is RGB ~64,59,56 = Color(0.25,0.23,0.22))
+- Realistic irregular shapes (not circles, not perfect ovals)
+- Clean crisp edges — NOT blurry/glowing
+- Transparent so floor shows through at edges (alpha ~120–160 body)
 """
 
 import math
 import random
 from PIL import Image, ImageDraw, ImageFilter
 
-SIZE = 128  # pixels square for each sprite
+SIZE = 256  # larger canvas for more detail
 
-# Reference image analysis: the puddles are neutral dark charcoal gray
-# RGB approximately (60, 60, 65) — nearly equal R,G,B with very slight cool tone
-# No blue-dominant values. No highlight in center.
-PUDDLE_BODY_COLOR = (60, 60, 65)     # neutral dark charcoal gray
-PUDDLE_INNER_COLOR = (50, 50, 55)    # slightly darker inner area
-BODY_ALPHA = 90                       # semi-transparent (floor still visible)
-INNER_ALPHA = 110                     # slightly more opaque inner area
+# Floor color is RGB ~(64, 59, 56).
+# Puddles = wet pavement = DARKER than floor, matte gray, no highlights.
+PUDDLE_BODY_COLOR = (38, 36, 35)   # dark matte charcoal — darker than floor
+BODY_ALPHA = 140                    # solid enough to see clearly
 
 
 def make_puddle(
     seed: int,
     shape_roughness: float = 0.35,
-    num_control: int = 12,
+    num_control: int = 14,
     elongate: tuple = (1.0, 0.7),
 ) -> Image.Image:
-    """Create a single puddle RGBA image with an irregular organic shape."""
+    """Create a single puddle RGBA image with a realistic irregular organic shape.
+
+    Uses a perturbed ellipse approach: control points are placed around an
+    ellipse and randomly displaced radially, then smoothly interpolated.
+    The result is a flat matte fill with no center highlight and clean edges.
+    """
     random.seed(seed)
     img = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
 
     cx, cy = SIZE // 2, SIZE // 2
-    base_rx = int(cx * 0.80 * elongate[0])
-    base_ry = int(cy * 0.80 * elongate[1])
+    base_rx = int(cx * 0.82 * elongate[0])
+    base_ry = int(cy * 0.82 * elongate[1])
 
-    # Generate irregular boundary via perturbed ellipse control points
+    # ── 1. Generate irregular boundary via perturbed control points ──────────
     angles = [i * 2 * math.pi / num_control for i in range(num_control)]
     radii = []
     for _ in angles:
-        # Vary radius randomly around the base ellipse
         r = 1.0 + random.uniform(-shape_roughness, shape_roughness)
         radii.append(r)
 
-    # Build polygon points (interpolated around the ellipse)
-    poly = []
-    steps = 200
-    for s in range(steps):
-        angle = s * 2 * math.pi / steps
-        # Find which control segment we're in
-        idx = int(angle / (2 * math.pi) * num_control)
-        next_idx = (idx + 1) % num_control
-        t = (angle - angles[idx] if angle >= angles[idx] else angle + 2 * math.pi - angles[idx])
-        seg_len = (angles[next_idx] - angles[idx]) if next_idx > idx else (angles[next_idx] + 2 * math.pi - angles[idx])
-        t = t / seg_len if seg_len > 0 else 0
-        # Smooth interpolation
-        r = radii[idx] * (1 - t) + radii[next_idx] * t
-        x = cx + math.cos(angle) * base_rx * r
-        y = cy + math.sin(angle) * base_ry * r
-        poly.append((x, y))
+    # Add extra "lobe" perturbations for more organic look
+    # Pick 2-3 random control points to push outward (lobe) and 1-2 inward
+    num_lobes = random.randint(2, 4)
+    lobe_indices = random.sample(range(num_control), min(num_lobes, num_control))
+    for li in lobe_indices:
+        radii[li] += random.uniform(0.10, 0.30)
+    num_indents = random.randint(1, 3)
+    indent_indices = random.sample(range(num_control), min(num_indents, num_control))
+    for ii in indent_indices:
+        radii[ii] -= random.uniform(0.08, 0.22)
+    # Clamp radii so shape stays within canvas
+    radii = [max(0.3, min(1.6, r)) for r in radii]
 
-    # Draw puddle in layers for realistic appearance.
-    # Neutral dark charcoal gray — NO blue tint, NO center highlight.
+    # ── 2. Interpolate polygon at high resolution ────────────────────────────
+    def build_polygon(scale: float = 1.0) -> list:
+        poly = []
+        steps = 300
+        for s in range(steps):
+            angle = s * 2 * math.pi / steps
+            idx = int(angle / (2 * math.pi) * num_control) % num_control
+            next_idx = (idx + 1) % num_control
+            a0 = angles[idx]
+            a1 = angles[next_idx] if next_idx > idx else angles[next_idx] + 2 * math.pi
+            seg_len = a1 - a0
+            t = ((angle - a0) % (2 * math.pi)) / seg_len if seg_len > 0 else 0
+            t = max(0.0, min(1.0, t))
+            # Smooth (cosine) interpolation between control radii
+            t_smooth = (1 - math.cos(t * math.pi)) / 2
+            r = radii[idx] * (1 - t_smooth) + radii[next_idx] * t_smooth
+            x = cx + math.cos(angle) * base_rx * r * scale
+            y = cy + math.sin(angle) * base_ry * r * scale
+            poly.append((x, y))
+        return poly
+
+    outer_poly = build_polygon(1.0)
+
+    # ── 3. Draw flat matte puddle — single solid fill, no gradient ───────────
     draw = ImageDraw.Draw(img)
+    draw.polygon(outer_poly, fill=(*PUDDLE_BODY_COLOR, BODY_ALPHA))
 
-    # Layer 1: main body — neutral dark charcoal gray
-    draw.polygon(poly, fill=(*PUDDLE_BODY_COLOR, BODY_ALPHA))
+    # ── 4. Soft-feather ONLY the outermost 4 pixels for natural edge blend ──
+    # Use a very tight blur just to anti-alias the polygon edge (not a glow).
+    edge_blur = img.filter(ImageFilter.GaussianBlur(radius=2))
 
-    # Layer 2: inner area — slightly darker to suggest depth
-    inner_poly = []
-    for s in range(steps):
-        angle = s * 2 * math.pi / steps
-        idx = int(angle / (2 * math.pi) * num_control)
-        next_idx = (idx + 1) % num_control
-        t = (angle - angles[idx] if angle >= angles[idx] else angle + 2 * math.pi - angles[idx])
-        seg_len = (angles[next_idx] - angles[idx]) if next_idx > idx else (angles[next_idx] + 2 * math.pi - angles[idx])
-        t = t / seg_len if seg_len > 0 else 0
-        r = radii[idx] * (1 - t) + radii[next_idx] * t
-        scale = 0.60
-        x = cx + math.cos(angle) * base_rx * r * scale
-        y = cy + math.sin(angle) * base_ry * r * scale
-        inner_poly.append((x, y))
+    # Create a mask that only applies the blur near the edges.
+    # Inner mask = fully sharp. Outer region fades from sharp→blurred.
+    mask_img = Image.new("L", (SIZE, SIZE), 0)
+    mask_draw = ImageDraw.Draw(mask_img)
+    # The inner (shrunk) polygon stays crisp
+    inner_poly = build_polygon(0.88)
+    mask_draw.polygon(outer_poly, fill=255)
+    mask_draw.polygon(inner_poly, fill=0)
+    # Blur the mask itself to create a smooth blend zone at the edges
+    mask_img = mask_img.filter(ImageFilter.GaussianBlur(radius=3))
 
-    draw.polygon(inner_poly, fill=(*PUDDLE_INNER_COLOR, INNER_ALPHA))
-
-    # NO center highlight — user requested flat uniform gray (no bright spot)
-
-    # Apply blur: larger blur for very soft, natural edges
-    img = img.filter(ImageFilter.GaussianBlur(radius=4))
+    # Composite: use sharp original inside, blurred at edges
+    img = Image.composite(img, edge_blur, mask_img)
 
     return img
 
@@ -101,30 +113,31 @@ def main():
     out_dir = os.path.join(os.path.dirname(__file__), "../assets/sprites/effects")
     os.makedirs(out_dir, exist_ok=True)
 
-    # 8 variants with different shapes (seeds, roughness, elongation)
+    # 8 variants — distinct elongations, roughness, and seed for organic variety.
+    # Shapes span a range from narrow elongated to roundish irregular blobs.
     configs = [
-        # (filename, seed, roughness, num_control, elongate)
-        ("puddle.png",   42, 0.25, 10, (1.10, 0.72)),
-        ("puddle_2.png",  7, 0.40, 14, (1.25, 0.65)),
-        ("puddle_3.png", 13, 0.30,  9, (1.00, 0.85)),
-        ("puddle_4.png", 99, 0.45, 11, (1.35, 0.58)),
-        ("puddle_5.png", 17, 0.35, 13, (0.90, 0.78)),
-        ("puddle_6.png", 53, 0.50, 10, (1.20, 0.60)),
-        ("puddle_7.png", 81, 0.28, 12, (1.05, 0.70)),
-        ("puddle_8.png", 37, 0.42,  8, (1.30, 0.62)),
+        # (filename,      seed, roughness, num_ctrl, elongate_x, elongate_y)
+        ("puddle.png",     42,   0.28,     12,       1.20, 0.68),   # elongated blob
+        ("puddle_2.png",    7,   0.42,     16,       1.35, 0.62),   # wide splat
+        ("puddle_3.png",   13,   0.32,     10,       0.95, 0.90),   # roundish amoeba
+        ("puddle_4.png",   99,   0.48,     14,       1.28, 0.58),   # irregular wide
+        ("puddle_5.png",   17,   0.38,     18,       1.10, 0.74),   # lumpy elongated
+        ("puddle_6.png",   53,   0.52,     11,       1.40, 0.55),   # very wide narrow
+        ("puddle_7.png",   81,   0.30,     13,       0.85, 0.82),   # near-round rough
+        ("puddle_8.png",   37,   0.44,      9,       1.15, 0.65),   # tri-lobe
     ]
 
-    for fname, seed, roughness, num_ctrl, elongate in configs:
+    for fname, seed, roughness, num_ctrl, ex, ey in configs:
         img = make_puddle(
             seed=seed,
             shape_roughness=roughness,
             num_control=num_ctrl,
-            elongate=elongate,
+            elongate=(ex, ey),
         )
         img.save(os.path.join(out_dir, fname))
-        print(f"Saved {fname}")
+        print(f"Saved {fname} ({img.size[0]}x{img.size[1]})")
 
-    print("Done! All 8 puddle sprites regenerated with neutral dark charcoal gray.")
+    print("\nDone! 8 puddle sprites: dark matte gray, crisp edges, realistic shapes.")
 
 
 if __name__ == "__main__":
