@@ -115,6 +115,12 @@ public partial class LevelInitFallback : Node
         var parent = GetParent();
         if (parent == null) return;
 
+        // Apply camera limits for Building map only, regardless of whether GDScript ran.
+        // This is a safety net: the GDScript _configure_camera() may fail silently (Issue #1684).
+        // Guard: only run on BuildingLevel — other levels set their own camera limits (Issue #1684).
+        if (parent.Name == "BuildingLevel")
+            ConfigureBuildingCameraLimits();
+
         // Check if GDScript _ready() already ran by checking if it set up enemy tracking.
         // The GDScript sets _enemies array and connects died signals.
         // We can detect this by checking if the parent has the _enemies property populated.
@@ -152,6 +158,47 @@ public partial class LevelInitFallback : Node
         LogToFile("GDScript _ready() did NOT execute - performing C# fallback initialization");
         _didInitialize = true;
         PerformFallbackInit();
+    }
+
+    /// <summary>
+    /// Set Camera2D limits for the Building map to prevent the camera from scrolling
+    /// past the right and bottom border walls into the void area (Issue #1684).
+    ///
+    /// This runs unconditionally — even when GDScript _ready() already ran — because
+    /// the GDScript _configure_camera() may fail silently if it cannot find Camera2D
+    /// on the player node at runtime.
+    ///
+    /// Wall geometry (from BuildingLevel.tscn):
+    ///   WallRight  position=(2480, 1064), half-w=16 → left edge  x=2464 → limit_right  = 2464
+    ///   WallBottom position=(1264, 2080), half-h=16 → top edge   y=2064 → limit_bottom = 2064
+    ///   WallLeft   position=(  48, 1064), half-w=16 → right edge x=64   → limit_left   = 64
+    ///   WallTop    position=(1264,   48), half-h=16 → bottom edge y=64  → limit_top    = 64
+    /// </summary>
+    private void ConfigureBuildingCameraLimits()
+    {
+        var levelRoot = GetParent();
+        if (levelRoot == null) return;
+
+        var player = levelRoot.GetNodeOrNull<Node2D>("Entities/Player");
+        if (player == null)
+        {
+            LogToFile("WARNING: ConfigureBuildingCameraLimits: Player not found at Entities/Player");
+            return;
+        }
+
+        var camera = player.GetNodeOrNull<Camera2D>("Camera2D");
+        if (camera == null)
+        {
+            LogToFile("WARNING: ConfigureBuildingCameraLimits: Camera2D not found on player");
+            return;
+        }
+
+        camera.LimitLeft   =   64;  // WallLeft right edge  (x=48+16)
+        camera.LimitTop    =   64;  // WallTop bottom edge  (y=48+16)
+        camera.LimitRight  = 2464;  // WallRight left edge  (x=2480-16)
+        camera.LimitBottom = 2064;  // WallBottom top edge  (y=2080-16)
+
+        LogToFile($"ConfigureBuildingCameraLimits: limits set — left={camera.LimitLeft} top={camera.LimitTop} right={camera.LimitRight} bottom={camera.LimitBottom} — Issue #1684");
     }
 
     /// <summary>

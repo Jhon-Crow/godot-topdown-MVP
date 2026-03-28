@@ -428,3 +428,79 @@ func test_startup_guard_ready_immediately_when_already_at_saved_level() -> void:
 		"navigation_ready should be true immediately when already at saved level")
 	assert_eq(g.startup_navigation_target, "",
 		"startup_navigation_target should be empty when no navigation needed")
+
+
+# ============================================================================
+# clear_all_saves Active Item Reset Tests (Issue #1691)
+# ============================================================================
+# Verifies that the clear_all_saves() reset logic preserves items that are
+# unconditionally unlocked (e.g. LOUDSPEAKER) and only resets condition-gated
+# items (items listed in UnlockManager's condition tables).
+# ============================================================================
+
+class MockClearAllSavesHelper:
+	## Simulates the reset logic from persist_manager.clear_all_saves().
+	## condition_gated: items that have an unlock condition (should be reset to false).
+	## item_defaults: the starting unlock state from ActiveItemManager (the defaults).
+	func reset_active_items(item_defaults: Dictionary, condition_gated: Array) -> Dictionary:
+		var result: Dictionary = item_defaults.duplicate()
+		for item_type in result.keys():
+			if item_type in condition_gated:
+				result[item_type] = false
+			# else: unconditionally-unlocked items keep their default value
+		return result
+
+
+func test_clear_all_saves_preserves_loudspeaker_unlock_state() -> void:
+	## LOUDSPEAKER (type 11) has no unlock condition — should stay true after clear.
+	## Regression test for Issue #1691: clear_all_saves() was resetting LOUDSPEAKER to false.
+	var helper := MockClearAllSavesHelper.new()
+	const NONE := 0
+	const LOUDSPEAKER := 11
+	const FLASHLIGHT := 1
+	const TELEPORT_BRACERS := 3
+
+	# Simulate ActiveItemManager defaults: NONE and LOUDSPEAKER are true, others false
+	var item_defaults := {
+		NONE: true,
+		FLASHLIGHT: false,
+		TELEPORT_BRACERS: false,
+		LOUDSPEAKER: true,  # No unlock condition — freely available from start (Issue #1691)
+	}
+
+	# Condition-gated items (from UnlockManager): FLASHLIGHT and TELEPORT_BRACERS require conditions
+	var condition_gated := [FLASHLIGHT, TELEPORT_BRACERS]
+
+	var result := helper.reset_active_items(item_defaults, condition_gated)
+
+	assert_true(result[NONE], "NONE should remain unlocked after clear")
+	assert_true(result[LOUDSPEAKER],
+		"LOUDSPEAKER must remain unlocked after clear_all_saves (Issue #1691) — it has no unlock condition")
+	assert_false(result[FLASHLIGHT], "FLASHLIGHT should be reset to locked (has condition)")
+	assert_false(result[TELEPORT_BRACERS], "TELEPORT_BRACERS should be reset to locked (has condition)")
+
+
+func test_clear_all_saves_resets_condition_gated_items() -> void:
+	## Condition-gated items that were previously unlocked should become locked after clear.
+	var helper := MockClearAllSavesHelper.new()
+	const NONE := 0
+	const LOUDSPEAKER := 11
+	const FLASHLIGHT := 1
+	const LASER_SIGHT := 9
+
+	# Simulate a save state where the player had unlocked FLASHLIGHT and LASER_SIGHT
+	var item_state := {
+		NONE: true,
+		LOUDSPEAKER: true,
+		FLASHLIGHT: true,   # was unlocked (earned)
+		LASER_SIGHT: true,  # was unlocked (earned)
+	}
+
+	var condition_gated := [FLASHLIGHT, LASER_SIGHT]
+
+	var result := helper.reset_active_items(item_state, condition_gated)
+
+	assert_true(result[NONE], "NONE should remain unlocked")
+	assert_true(result[LOUDSPEAKER], "LOUDSPEAKER should remain unlocked (no condition)")
+	assert_false(result[FLASHLIGHT], "FLASHLIGHT should be reset — condition-gated")
+	assert_false(result[LASER_SIGHT], "LASER_SIGHT should be reset — condition-gated")
