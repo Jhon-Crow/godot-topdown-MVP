@@ -1,0 +1,1254 @@
+[19:28:41] [INFO] ============================================================
+[19:28:41] [INFO] GAME LOG STARTED
+[19:28:41] [INFO] ============================================================
+[19:28:41] [INFO] Timestamp: 2026-03-28T19:28:41
+[19:28:41] [INFO] Log file: I:/Загрузки/godot exe/AI/game_log_20260328_192841.txt
+[19:28:41] [INFO] Executable: I:/Загрузки/godot exe/AI/Godot-Top-Down-Template.exe
+[19:28:41] [INFO] OS: Windows
+[19:28:41] [INFO] Debug build: false
+[19:28:41] [INFO] Engine version: 4.3-stable (official)
+[19:28:41] [INFO] Project: Godot Top-Down Template
+[19:28:41] [INFO] Build info: not available (build_info.cfg not found)
+[19:28:41] [INFO] ------------------------------------------------------------
+[19:28:41] [INFO] [GameManager] GameManager ready
+[19:28:41] [INFO] [ScoreManager] ScoreManager ready
+[19:28:41] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[19:28:41] [INFO] [DifficultyManager] Loaded difficulty: Power Fantasy (value: 3)
+[19:28:41] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[19:28:41] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[19:28:41] [INFO] [ImpactEffects] Explosion light pool initialized: 12 lights pre-created
+[19:28:41] [INFO] [ImpactEffects] Dust effect pool initialized: 16 effects pre-created
+[19:28:41] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[19:28:41] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[19:28:41] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[19:28:41] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[19:28:41] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[19:28:41] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[19:28:41] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[19:28:41] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[19:28:41] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[19:28:41] [INFO] [LastChance] Resetting all effects (scene change detected)
+[19:28:41] [INFO] [LastChance] Last chance shader loaded successfully
+[19:28:41] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[19:28:41] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[19:28:41] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[19:28:41] [INFO] [LastChance]   Sepia intensity: 0.70
+[19:28:41] [INFO] [LastChance]   Brightness: 0.60
+[19:28:42] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[19:28:42] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[19:28:42] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[19:28:42] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn
+[19:28:43] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DroneGrenade.tscn
+[19:28:43] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: false, Invincibility: true, Realistic visibility: false, Replay: false, Logging: true, Enemy flashlight blinding: false, FPS counter: true, FPS drop logging: true, All weapons unlocked: true, All maps unlocked: true, Global stuck max time: 20.0s, Nav mesh visible: false, Search path visible: false, Passage waypoints visible: false, Passage waypoints: false, Sound visualizer: false, Enemy path visible: false, Cover raycast visible: false, Tactical group: false, Cover infinite rays: true, Cover sector rays: true, Roguelike unlocked: false
+[19:28:43] [INFO] [NavMeshMonitor] NavMeshMonitor ready
+[19:28:43] [INFO] [SoundSettings] SoundSettings initialized - effects: 0.25, music: 1.00
+[19:28:43] [INFO] [GameplaySettings] GameplaySettings initialized - blood_amount: 1.00, wall_hit_particles: true, revolver_aim_assist: true
+[19:28:43] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[19:28:43] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[19:28:43] [INFO] [CinemaEffects] Created effects layer at layer 99
+[19:28:43] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[19:28:43] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[19:28:43] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[19:28:43] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[19:28:43] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[19:28:43] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[19:28:43] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[19:28:43] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[19:28:43] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[19:28:43] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[19:28:43] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[19:28:43] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[19:28:43] [INFO] [GrenadeTimerHelper] Autoload ready
+[19:28:43] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[19:28:43] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[19:28:43] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[19:28:43] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+[19:28:43] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[19:28:43] [INFO] [BlackMetalEffectsManager] BlackMetalEffectsManager initializing...
+[19:28:43] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+[19:28:43] [INFO] [BlackMetalEffectsManager] Black Metal shader loaded (B&W+red, hint_screen_texture approach)
+[19:28:43] [INFO] [BlackMetalEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[19:28:43] [INFO] [BlackMetalEffectsManager] Black Metal filter DISABLED
+[19:28:43] [INFO] [BlackMetalLightningEffectsManager] BlackMetalLightningEffectsManager initializing...
+[19:28:43] [INFO] [BlackMetalLightningEffectsManager] Lightning bolt drawer created (v10 - no shader, pure draw calls)
+[19:28:43] [INFO] [BlackMetalLightningEffectsManager] Connected to GameManager.enemy_killed signal
+[19:28:43] [INFO] [BlackMetalLightningEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[19:28:43] [INFO] [ProgressManager] ProgressManager ready, loaded 3 entries
+[19:28:43] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[19:28:43] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[19:28:43] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
+[19:28:43] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
+[19:28:43] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
+[19:28:43] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
+[19:28:43] [INFO] [SceneLoader] SceneLoader initialized
+[19:28:43] [INFO] [PersistManager] Loading saved state from user://game_state.cfg
+[19:28:43] [INFO] [PersistManager] Restored unlocked weapon: makarov_pm
+[19:28:43] [INFO] [PersistManager] Restored unlocked weapon: shotgun
+[19:28:43] [INFO] [PersistManager] Restored unlocked weapon: mini_uzi
+[19:28:43] [INFO] [PersistManager] Restored unlocked weapon: ak_gl
+[19:28:43] [INFO] [PersistManager] Restored kills_without_laser_sight: 0
+[19:28:43] [INFO] [PersistManager] Restored shots_fired_special_weapons: 24
+[19:28:43] [INFO] [PersistManager] Restored total_deaths: 0
+[19:28:43] [INFO] [PersistManager] Restored no_damage_levels_completed: 3
+[19:28:43] [INFO] [PersistManager] Restored levels_completed_rank_a_or_higher: 3
+[19:28:43] [INFO] [PersistManager] Restored kills_through_wall: 0
+[19:28:43] [INFO] [PersistManager] Restored levels_completed_with_silenced_pistol: 0
+[19:28:43] [INFO] [GameManager] Weapon selected: makarov_pm
+[19:28:43] [INFO] [PersistManager] Restored selected weapon: makarov_pm
+[19:28:43] [INFO] [PersistManager] Restored unlocked grenade type: 0
+[19:28:43] [INFO] [PersistManager] Restored unlocked grenade type: 1
+[19:28:43] [INFO] [PersistManager] Restored selected grenade type: 0
+[19:28:43] [INFO] [PersistManager] Restored unlocked active item type: 0
+[19:28:43] [INFO] [PersistManager] Restored unlocked active item type: 11
+[19:28:43] [INFO] [PersistManager] Restored unlocked active item type: 16
+[19:28:43] [INFO] [PersistManager] Restored unlocked active item type: 17
+[19:28:43] [INFO] [PersistManager] Restored unlocked active item type: 20
+[19:28:43] [INFO] [PersistManager] Restored selected active item type: 0
+[19:28:43] [INFO] [PersistManager] Loudspeaker progress restored: level 1, levels_completed=0
+[19:28:43] [INFO] [PersistManager] State loaded successfully
+[19:28:43] [INFO] [PersistManager] PersistManager ready
+[19:28:43] [INFO] [UnlockManager] UnlockManager ready
+[19:28:43] [INFO] [WeaponHintsSettings] WeaponHintsSettings initialized - mode: ALWAYS, weapons seen: ["makarov_pm", "shotgun", "mini_uzi", "sniper", "revolver", "m16"]
+[19:28:43] [INFO] [PerformanceSettings] PerformanceSettings initialized - particles: true, blood_decals: true, screen_shake: true, explosion_lights: true, ai: true
+[19:28:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:28:43] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[19:28:43] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[19:28:43] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[19:28:43] [ENEMY] [Enemy1] Death animation component initialized
+[19:28:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:28:43] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[19:28:43] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[19:28:43] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[19:28:43] [ENEMY] [Enemy2] Death animation component initialized
+[19:28:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:28:43] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[19:28:43] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[19:28:43] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[19:28:43] [ENEMY] [Enemy3] Death animation component initialized
+[19:28:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:28:43] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[19:28:43] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[19:28:43] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[19:28:43] [ENEMY] [Enemy4] Death animation component initialized
+[19:28:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:28:43] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[19:28:43] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[19:28:43] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[19:28:43] [ENEMY] [Enemy5] Death animation component initialized
+[19:28:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:28:43] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[19:28:43] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[19:28:43] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[19:28:43] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[19:28:43] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[19:28:43] [INFO] [Player.Weapon] GameManager weapon selection: makarov_pm (MakarovPM)
+[19:28:43] [INFO] [Player.Weapon] Already equipped MakarovPM, no change needed
+[19:28:43] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[19:28:43] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[19:28:43] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[19:28:43] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[19:28:43] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[19:28:43] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[19:28:43] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[19:28:43] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[19:28:43] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[19:28:43] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[19:28:43] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[19:28:43] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[19:28:43] [INFO] [Player.DrillingBullets] Drilling bullets not selected in ActiveItemManager
+[19:28:43] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[19:28:43] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[19:28:43] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[19:28:43] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[19:28:43] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[19:28:43] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[19:28:43] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[19:28:43] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[19:28:43] [INFO] [Player.ItemVisual] Visual applied for item type: 0
+[19:28:43] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[19:28:43] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[19:28:43] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[19:28:43] [INFO] [Player.RecoilCompensator] Recoil compensator not selected in ActiveItemManager
+[19:28:43] [INFO] [Player.ExperimentalSample] Experimental sample not selected
+[19:28:43] [INFO] [Player.FineMotorSkills] Fine motor skills not selected in ActiveItemManager
+[19:28:43] [INFO] [Player.Dash] No dash selected in ActiveItemManager
+[19:28:43] [INFO] [Player.GrenadeBag] No grenade bag selected in ActiveItemManager
+[19:28:43] [INFO] [Player.Jammer] JammerHUD initialized
+[19:28:43] [INFO] [Player.ItemPickup] Connected to ActiveItemManager.active_item_changed
+[19:28:43] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 1/3, Health: 10/10
+[19:28:43] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[19:28:43] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[19:28:43] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[19:28:43] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[19:28:43] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[19:28:43] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[19:28:43] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[19:28:43] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[19:28:43] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[19:28:43] [INFO] [LabyrinthLevel] Setting up weapon: makarov_pm
+[19:28:43] [INFO] [GameManager] set_player() called with: <CharacterBody2D#83332433666> (class: CharacterBody2D)
+[19:28:43] [INFO] [GameManager] set_player: player_alive reset to true (new player registered)
+[19:28:43] [INFO] [GameManager] set_player: has_signal('Died')=true, has_signal('died')=false
+[19:28:43] [INFO] [GameManager] Connected to player 'Died' signal (C# naming)
+[19:28:43] [INFO] [GameManager] set_player: initial collision_layer=1 (poll expects 0 on death)
+[19:28:43] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+[19:28:43] [INFO] [ScoreManager] Level started with 5 enemies
+[19:28:43] [INFO] [ScoreManager] Custom rank thresholds set: S=0.70 A+=0.55 A=0.38 B=0.22 C=0.12 D=0.06
+[19:28:44] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[19:28:44] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[19:28:44] [INFO] [ReplayManager] Replay data cleared
+[19:28:44] [INFO] [LabyrinthLevel] Previous replay data cleared
+[19:28:44] [INFO] [ReplayManager] Detected player weapon: Makarov PM
+[19:28:44] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[19:28:44] [INFO] [ReplayManager] Level: LabyrinthLevel
+[19:28:44] [INFO] [ReplayManager] Player: Player (valid: True)
+[19:28:44] [INFO] [ReplayManager] Enemies count: 5
+[19:28:44] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/makarov_pm_topdown.png
+[19:28:44] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[19:28:44] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[19:28:44] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[19:28:44] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[19:28:44] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[19:28:44] [INFO] [LabyrinthLevel] Replay recording started successfully
+[19:28:44] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[19:28:44] [ENEMY] [Enemy3] Patrol points snapped to navmesh (Issue #1216)
+[19:28:44] [INFO] [CinemaEffects] Found player node: Player
+[19:28:44] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[19:28:44] [INFO] [PersistManager] Navigating to last played level: res://scenes/levels/csharp/TestTier.tscn
+[19:28:44] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/csharp/TestTier.tscn
+[19:28:44] [INFO] [UnlockManager] Reset condition-gated items to locked state
+[19:28:44] [INFO] [UnlockManager] Restored saved unlock for weapon: mini_uzi
+[19:28:44] [INFO] [UnlockManager] Restored saved unlock for weapon: shotgun
+[19:28:44] [INFO] [UnlockManager] Skipped restore for weapon 'silenced_pistol' (condition not met — treating as corrupt save)
+[19:28:44] [INFO] [UnlockManager] Restored saved unlock for weapon: ak_gl
+[19:28:44] [INFO] [UnlockManager] Restored saved unlock for grenade type: 1
+[19:28:44] [INFO] [UnlockManager] Restored saved unlock for active item type: 16
+[19:28:44] [INFO] [UnlockManager] Restored saved unlock for active item type: 20
+[19:28:44] [INFO] [UnlockManager] Restored saved unlock for active item type: 17
+[19:28:44] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[19:28:44] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[19:28:44] [ENEMY] [Enemy1] Registered as sound listener
+[19:28:44] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 2, behavior: GUARD
+[19:28:44] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[19:28:44] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[19:28:44] [ENEMY] [Enemy2] Registered as sound listener
+[19:28:44] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 2, behavior: GUARD
+[19:28:44] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[19:28:44] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[19:28:44] [ENEMY] [Enemy3] Registered as sound listener
+[19:28:44] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 1, behavior: PATROL
+[19:28:44] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[19:28:44] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[19:28:44] [ENEMY] [Enemy4] Registered as sound listener
+[19:28:44] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 1, behavior: GUARD
+[19:28:44] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[19:28:44] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[19:28:44] [ENEMY] [Enemy5] Registered as sound listener
+[19:28:44] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 2, behavior: GUARD
+[19:28:44] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[19:28:44] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[19:28:44] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=45.0°, current=0.0°, player=(150,1000), corner_timer=0.00
+[19:28:44] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(150,1000), corner_timer=0.00
+[19:28:44] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=33.8°, current=0.0°, player=(150,1000), corner_timer=0.00
+[19:28:44] [INFO] [Player] Detecting weapon pose (frame 3)...
+[19:28:44] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[19:28:44] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[19:28:44] [INFO] [PenultimateHit] Shader warmup complete in 2952 ms
+[19:28:44] [INFO] [LastChance] Shader warmup complete in 2945 ms
+[19:28:44] [INFO] [CinemaEffects] Cinema shader warmup complete in 1630 ms
+[19:28:44] [INFO] [BlackMetalEffectsManager] Shader warmup complete in 1603 ms
+[19:28:44] [INFO] [BlackMetalLightningEffectsManager] Shader warmup complete in 0 ms
+[19:28:44] [INFO] [FlashbangPlayer] Shader warmup complete in 1586 ms
+[19:28:44] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[19:28:44] [INFO] [SceneLoader] ERROR: Invalid resource (falling back to sync): res://scenes/levels/csharp/TestTier.tscn
+[19:28:44] [INFO] [SceneLoader] Using synchronous load fallback
+[19:28:45] [INFO] [SoundPropagation] Unregistered listener: Enemy5 (remaining: 4)
+[19:28:45] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 3)
+[19:28:45] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 2)
+[19:28:45] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 1)
+[19:28:45] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 0)
+[19:28:45] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[19:28:45] [INFO] [NavMeshMonitor] NavigationRegion2D added: NavigationRegion2D
+[19:28:45] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[19:28:45] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[19:28:45] [INFO] [LastChance] Resetting all effects (scene change detected)
+[19:28:45] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[19:28:45] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[19:28:45] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+[19:28:45] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[19:28:45] [INFO] [PersistManager] Startup navigation complete — arrived at: res://scenes/levels/csharp/TestTier.tscn
+[19:28:45] [INFO] [PersistManager] State saved to user://game_state.cfg
+[19:28:45] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/csharp/TestTier.tscn
+[19:28:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:28:46] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[19:28:46] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[19:28:46] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[19:28:46] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[19:28:46] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[19:28:46] [INFO] [Player.Weapon] GameManager weapon selection: makarov_pm (MakarovPM)
+[19:28:46] [INFO] [Player.Weapon] Already equipped MakarovPM, no change needed
+[19:28:46] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[19:28:46] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[19:28:46] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[19:28:46] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[19:28:46] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[19:28:46] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[19:28:46] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[19:28:46] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[19:28:46] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[19:28:46] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[19:28:46] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[19:28:46] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[19:28:46] [INFO] [Player.DrillingBullets] Drilling bullets not selected in ActiveItemManager
+[19:28:46] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[19:28:46] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[19:28:46] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[19:28:46] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[19:28:46] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[19:28:46] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[19:28:46] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[19:28:46] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[19:28:46] [INFO] [Player.ItemVisual] Visual applied for item type: 0
+[19:28:46] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[19:28:46] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[19:28:46] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[19:28:46] [INFO] [Player.RecoilCompensator] Recoil compensator not selected in ActiveItemManager
+[19:28:46] [INFO] [Player.ExperimentalSample] Experimental sample not selected
+[19:28:46] [INFO] [Player.FineMotorSkills] Fine motor skills not selected in ActiveItemManager
+[19:28:46] [INFO] [Player.Dash] No dash selected in ActiveItemManager
+[19:28:46] [INFO] [Player.GrenadeBag] No grenade bag selected in ActiveItemManager
+[19:28:46] [INFO] [Player.Jammer] JammerHUD initialized
+[19:28:46] [INFO] [Player.ItemPickup] Connected to ActiveItemManager.active_item_changed
+[19:28:46] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 3/3, Health: 10/10
+[19:28:46] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[19:28:46] [INFO] [GameManager] set_player() called with: <CharacterBody2D#134553275586> (class: CharacterBody2D)
+[19:28:46] [INFO] [GameManager] set_player: player_alive reset to true (new player registered)
+[19:28:46] [INFO] [GameManager] set_player: has_signal('Died')=true, has_signal('died')=false
+[19:28:46] [INFO] [GameManager] Connected to player 'Died' signal (C# naming)
+[19:28:46] [INFO] [GameManager] set_player: initial collision_layer=1 (poll expects 0 on death)
+[19:28:46] [INFO] [CinemaEffects] Found player node: Player
+[19:28:46] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[19:28:46] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[19:28:46] [INFO] [Player] Detecting weapon pose (frame 3)...
+[19:28:46] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[19:28:46] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[19:28:46] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[19:28:46] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[19:28:46] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[19:28:46] [INFO] [LastChance] Found player: Player
+[19:28:46] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[19:28:46] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[19:28:46] [INFO] [LastChance] Connected to player Died signal (C#)
+[19:28:46] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[19:28:46] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 4878 ms
+[19:28:46] [INFO] [SceneLoader] Background load started successfully
+[19:28:47] [WARN] [FPS] Drop detected: 28 fps (threshold: 30)
+[19:28:47] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=False, enemies=5
+[19:28:48] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=False, enemies=5
+[19:28:49] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=False, enemies=5
+[19:28:50] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=False, enemies=5
+[19:28:51] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=False, enemies=5
+[19:28:52] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=False, enemies=5
+[19:28:53] [INFO] [ReplayManager] Recording frame 420 (7,0s): player_valid=False, enemies=5
+[19:28:54] [INFO] [ReplayManager] Recording frame 480 (8,0s): player_valid=False, enemies=5
+[19:28:54] [INFO] [Player] Invincibility mode: ON
+[19:28:55] [INFO] [ReplayManager] Recording frame 540 (9,0s): player_valid=False, enemies=5
+[19:28:56] [INFO] [ReplayManager] Recording frame 600 (10,0s): player_valid=False, enemies=5
+[19:28:57] [INFO] [ReplayManager] Recording frame 660 (11,0s): player_valid=False, enemies=5
+[19:28:58] [INFO] [ReplayManager] Recording frame 720 (12,0s): player_valid=False, enemies=5
+[19:28:58] [INFO] [ExperimentalSettings] Selected enemy type index set to 6
+[19:28:59] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:28:59] [INFO] [BloodyFeet:Enemy] Footprint scene loaded
+[19:28:59] [INFO] [BloodyFeet:Enemy] Found EnemyModel for facing direction
+[19:28:59] [INFO] [BloodyFeet:Enemy] BloodyFeetComponent ready on Enemy
+[19:28:59] [ENEMY] [Enemy] Death animation component initialized
+[19:28:59] [INFO] [ExperimentalMenu] Enemy spawner: spawned 'Machine Gunner (PKM)' at (350, 360)
+[19:28:59] [INFO] [BloodyFeet:Enemy] Blood detector created and attached to Enemy
+[19:28:59] [INFO] [SoundPropagation] Registered listener: Enemy (total: 1)
+[19:28:59] [ENEMY] [Enemy] Registered as sound listener
+[19:28:59] [ENEMY] [Enemy] Spawned at (350, 360), hp: 3, behavior: GUARD
+[19:28:59] [INFO] [ReplayManager] Recording frame 780 (13,0s): player_valid=False, enemies=5
+[19:29:00] [INFO] [ReplayManager] Recording frame 840 (14,0s): player_valid=False, enemies=5
+[19:29:00] [ENEMY] [Enemy] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(150,360), corner_timer=0.00
+[19:29:01] [INFO] [ReplayManager] Recording frame 900 (15,0s): player_valid=False, enemies=5
+[19:29:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 366), source=PLAYER (MakarovPM), range=800, listeners=1
+[19:29:02] [ENEMY] [Enemy] Heard gunshot at (150, 366), intensity=0.06, distance=200
+[19:29:02] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0
+[19:29:02] [ENEMY] [Enemy] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=180.0°, current=-33.8°, player=(150,360), corner_timer=0.00
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1311] Player bullet entered threat sphere — suppression triggered
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [INFO] [ReplayManager] Recording frame 960 (16,0s): player_valid=False, enemies=5
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[19:29:02] [ENEMY] [Enemy] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=176.6°, current=-145.5°, player=(80,376), corner_timer=0.00
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.06512, 376.1857), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 378.9765), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 382.1006), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 385.558), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 389.3488), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 393.473), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 397.9304), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 402.7212), component_null=true
+[19:29:02] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:02] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 407.8453), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 412.6917), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 417.2603), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 421.5511), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 425.5641), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 429.2993), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 432.7567), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 435.9364), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 438.8383), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 441.4625), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 443.8088), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 445.8774), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 447.6682), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 449.1256), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 450.2498), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 451.0406), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 451.498), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 451.6221), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 451.4129), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 450.8704), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 449.9945), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 448.7853), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 447.2428), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 445.3669), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 443.1577), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 440.6151), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 437.7393), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 434.5301), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 430.9875), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 427.1116), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 422.9024), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 418.3599), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 413.484), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 408.2748), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 402.7748), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 397.2748), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 391.7748), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 386.2748), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 381.0526), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 376.1081), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 371.4415), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 367.0526), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 362.9415), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 359.1081), component_null=true
+[19:29:03] [INFO] [ReplayManager] Recording frame 1020 (17,0s): player_valid=False, enemies=5
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 355.5526), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 352.2748), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 349.2748), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 346.5526), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 344.1081), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 341.9415), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 340.0526), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 338.4415), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 337.1081), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 336.0526), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 335.2748), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 334.7748), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 334.5526), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 334.5526), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 334.5526), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 334.5526), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 334.5526), component_null=true
+[19:29:03] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:03] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 334.5526), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 334.5526), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 334.5526), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.07458, 334.5526), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.31091, 334.3163), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(80.78231, 333.8448), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(81.48942, 333.1378), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(82.43223, 332.1949), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(83.61074, 331.0164), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(85.02496, 329.6022), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(86.67487, 327.9523), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(88.56049, 326.0667), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG combat: suppress_target=(90.68182, 323.9454), can_see=true, last_known=(90.68182, 323.9454), reloading=false, timer=3.43/0.12, ammo=500
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(90.68182, 323.9454), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(93.03884, 321.5884), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(95.63157, 318.9957), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(98.46, 316.1672), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(101.5241, 313.1031), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(104.824, 309.8033), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(108.3595, 306.2678), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(112.1307, 302.4965), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(116.0198, 298.6074), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(119.9089, 294.7183), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(123.798, 290.8292), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(127.6871, 286.9401), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(131.5762, 283.051), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(135.4653, 279.1619), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(139.3544, 275.2728), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(143.2435, 271.3837), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(147.1325, 267.4946), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(151.0216, 263.6055), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(154.9107, 259.7164), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(158.7998, 255.8273), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(162.6889, 251.9383), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(166.578, 248.0492), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(170.467, 244.1601), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(174.3561, 240.271), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(178.2452, 236.3819), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(182.1343, 232.4928), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(186.0234, 228.6038), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(189.9125, 224.7147), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(193.8015, 220.8256), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(197.6906, 216.9365), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(201.5797, 213.0474), component_null=true
+[19:29:04] [INFO] [ReplayManager] Recording frame 1080 (18,0s): player_valid=False, enemies=5
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(205.4688, 209.1583), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(209.3579, 205.2693), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(213.247, 201.3802), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(217.136, 197.4911), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(221.0251, 193.602), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(224.9142, 189.7129), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(228.8033, 185.8238), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:04] [ENEMY] [Enemy] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=-121.9°, current=-123.4°, player=(236,178), corner_timer=0.00
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:04] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:04] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [INFO] [ReplayManager] Recording frame 1140 (19,0s): player_valid=False, enemies=5
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:05] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:05] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(232.6924, 181.9348), component_null=true
+[19:29:06] [ENEMY] [Enemy] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=-51.8°, current=-52.4°, player=(570,80), corner_timer=0.00
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(570.1041, 80.07889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(574.6604, 80.08405), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(579.55, 80.08738), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(584.7729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(590.2729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(595.7729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(601.2729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(606.7729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(612.2729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG combat: suppress_target=(617.7729, 80.08889), can_see=true, last_known=(617.7729, 80.08889), reloading=false, timer=5.43/0.12, ammo=500
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(617.7729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(623.2729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(628.7729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(634.2729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(639.7729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(645.2729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(650.7729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(656.2729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(661.7729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(667.2729, 80.08889), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(672.6453, 80.39685), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(677.8902, 81.01277), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(683.0075, 81.93665), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(687.9973, 83.1685), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(692.8594, 84.7083), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(697.5941, 86.55606), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(702.0648, 88.60741), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(706.2715, 90.86237), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(710.1516, 93.18327), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(713.7048, 95.57012), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(716.9314, 98.02293), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(719.8312, 100.5417), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(722.4042, 103.1264), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(724.6505, 105.7771), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(726.5701, 108.4937), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(728.1629, 111.2763), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(729.429, 114.1248), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(730.3683, 117.0393), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(730.9809, 120.0197), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(731.2667, 123.0661), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(731.2258, 126.1784), component_null=true
+[19:29:06] [INFO] [ReplayManager] Recording frame 1200 (20,0s): player_valid=False, enemies=5
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(730.8582, 129.3567), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(730.1638, 132.6009), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(729.1427, 135.9111), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(727.7948, 139.2873), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(726.1202, 142.7294), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(724.1188, 146.2374), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(721.7907, 149.8114), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(719.1359, 153.4514), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(716.1543, 157.1573), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(712.8459, 160.9292), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(709.3701, 164.4128), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(705.7269, 167.6082), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(701.9161, 170.5155), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(697.9379, 173.1345), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(693.7922, 175.4653), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(689.4791, 177.5079), component_null=true
+[19:29:06] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:06] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(684.9985, 179.2623), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(680.3505, 180.7284), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(675.5349, 181.9064), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(670.5519, 182.7961), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(665.4014, 183.3977), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(660.0835, 183.711), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(654.5981, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(649.0981, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(643.5981, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(638.0981, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(632.5981, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(627.0981, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(621.5981, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(616.0981, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(610.5981, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(605.0981, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(599.8759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(594.9314, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(590.2647, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(585.8758, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(581.7647, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(577.9314, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(574.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(571.0981, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(568.0981, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(565.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(562.9314, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(560.7647, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(558.8758, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(557.2647, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(555.9314, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(554.8759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(554.0981, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.5981, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [INFO] [ReplayManager] Recording frame 1260 (21,0s): player_valid=False, enemies=5
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(553.3759, 189.7361), source=PLAYER (MakarovPM), range=800, listeners=1
+[19:29:07] [ENEMY] [Enemy] Heard gunshot at (553.3759, 189.7361), intensity=0.04, distance=265
+[19:29:07] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:07] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:07] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1311] Player bullet entered threat sphere — suppression triggered
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] Hit: dmg=1, hp=3/3->2/3
+[19:29:08] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[19:29:08] [INFO] [FlashbangStatus] Status: STUNNED applied
+[19:29:08] [INFO] [FlashbangStatus] Status: STUNNED removed
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 183.9494), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 184.3761), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 185.0161), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 185.8694), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 186.9361), component_null=true
+[19:29:08] [INFO] [BloodDecal] Blood puddle created at (308.7994, 406.2938) (added to group)
+[19:29:08] [INFO] [BloodDecal] Blood puddle created at (263.588, 423.9607) (added to group)
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 188.2161), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 189.7094), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 191.4161), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 193.3361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 195.4694), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 197.8161), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 200.3761), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 203.1494), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 206.1361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 209.3361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 212.7494), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 216.3761), component_null=true
+[19:29:08] [INFO] [BloodDecal] Blood puddle created at (230.9175, 436.246) (added to group)
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 220.2161), component_null=true
+[19:29:08] [INFO] [ReplayManager] Recording frame 1320 (21,9s): player_valid=False, enemies=5
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 224.2694), component_null=true
+[19:29:08] [INFO] [BloodDecal] Blood puddle created at (271.632, 427.0416) (added to group)
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 228.145), component_null=true
+[19:29:08] [INFO] [BloodDecal] Blood puddle created at (253.2418, 472.3206) (added to group)
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 231.8427), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 235.3627), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 238.705), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 241.8694), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 244.8561), component_null=true
+[19:29:08] [INFO] [BloodDecal] Blood puddle created at (210.2681, 509.6105) (added to group)
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 247.665), component_null=true
+[19:29:08] [INFO] [BloodDecal] Blood puddle created at (261.1075, 460.7716) (added to group)
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 250.2961), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 252.7494), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 255.025), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 257.1227), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 259.0428), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 260.785), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 262.3494), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 263.7361), component_null=true
+[19:29:08] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:08] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 264.945), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 265.9761), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 266.8294), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 267.505), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.0027), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.3228), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [ENEMY] [Enemy] [#1698] MG lazy-init: component was null, created and added
+[19:29:09] [ENEMY] [Enemy] [#1698] MG dispatching fire_at_corridor: target=(553.3759, 268.465), component_null=true
+[19:29:09] [INFO] ------------------------------------------------------------
+[19:29:09] [INFO] GAME LOG ENDED: 2026-03-28T19:29:09
+[19:29:09] [INFO] ============================================================
