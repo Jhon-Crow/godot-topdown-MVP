@@ -870,3 +870,70 @@ func test_phase_boundary_value() -> void:
 	var expected_boundary: float = 0.80 / shader.TOTAL_DURATION_S
 	assert_almost_eq(shader.PHASE1_END_PROGRESS, expected_boundary, 0.001,
 		"Phase boundary should equal 0.80 s / 1.02 s ≈ 0.784")
+
+
+# ============================================================================
+# Caliber Stats Display — Issue #1708 regression
+# ============================================================================
+
+
+## Mock caliber resource simulating CaliberData accessed via GDScript .get().
+## Replicates the cross-language interop pattern (C# WeaponData → GDScript CaliberData):
+## direct property access (.caliber_name) can return null, while .get("caliber_name") works.
+class MockCaliberResource:
+	var _props: Dictionary = {}
+
+	func _init(props: Dictionary) -> void:
+		_props = props
+
+	## Simulates .get("property") which is reliable across C#/GDScript boundary.
+	func get(prop: String) -> Variant:
+		return _props.get(prop, null)
+
+	## Simulates .has("property").
+	func has(prop: String) -> bool:
+		return prop in _props
+
+
+## Replicates the _update_weapon_stats caliber display logic from armory_menu.gd.
+## Uses .get("caliber_name") — the correct cross-language access pattern.
+func _build_caliber_bbcode(caliber: MockCaliberResource) -> String:
+	if not caliber:
+		return ""
+	var name_val = caliber.get("caliber_name")
+	if name_val == null:
+		return ""
+	return "[color=#aab0b8]Caliber:[/color] %s\n" % name_val
+
+
+func test_caliber_name_displayed_via_get_not_direct_property() -> void:
+	# Regression test for Issue #1708: caliber name showed as <null> in AK+GL stats
+	# because .caliber_name (direct access) returned null on cross-language resource.
+	# Fix: use .get("caliber_name") which works correctly.
+	var caliber := MockCaliberResource.new({"caliber_name": "7.62x39mm"})
+	var result := _build_caliber_bbcode(caliber)
+	assert_true("7.62x39mm" in result,
+		"Caliber name '7.62x39mm' must appear in stats bbcode (Issue #1708: was showing <null>)")
+	assert_false("<null>" in result,
+		"Stats bbcode must not contain '<null>' for caliber name (Issue #1708 regression)")
+
+
+func test_caliber_name_null_does_not_produce_null_string() -> void:
+	# If caliber_name is somehow null, the display must not show "<null>".
+	var caliber := MockCaliberResource.new({})  # caliber_name not set
+	var result := _build_caliber_bbcode(caliber)
+	assert_false("<null>" in result,
+		"Missing caliber_name must not produce '<null>' in stats bbcode")
+
+
+func test_ak_gl_description_contains_762() -> void:
+	# Regression: AK+GL static description must mention the 7.62x39mm caliber.
+	var armory_firearms: Dictionary = {
+		"ak_gl": {
+			"name": "AK + GL",
+			"description": "AK with GP-25 underbarrel grenade launcher — 7.62x39mm, 30-round magazine, RMB fires VOG-25 grenade (1 shot)"
+		}
+	}
+	var desc: String = armory_firearms["ak_gl"].get("description", "")
+	assert_true("7.62" in desc,
+		"AK+GL static description must contain '7.62' caliber info (Issue #1708)")

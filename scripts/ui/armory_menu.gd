@@ -1373,7 +1373,7 @@ func _update_weapon_stats() -> void:
 		# Caliber
 		var caliber = resource.get("Caliber")
 		if caliber:
-			bbcode += "[color=#aab0b8]Caliber:[/color] %s\n" % caliber.caliber_name
+			bbcode += "[color=#aab0b8]Caliber:[/color] %s\n" % caliber.get("caliber_name")
 
 		# Damage & Fire rate
 		var damage: float = resource.get("Damage")
@@ -1414,10 +1414,10 @@ func _update_weapon_stats() -> void:
 		# Caliber properties (ricochet / penetration)
 		if caliber:
 			var features: Array[String] = []
-			if caliber.can_ricochet:
+			if caliber.get("can_ricochet"):
 				features.append("Ricochet")
-			if caliber.can_penetrate:
-				features.append("Wall Pen. (%dpx)" % int(caliber.max_penetration_distance))
+			if caliber.get("can_penetrate"):
+				features.append("Wall Pen. (%dpx)" % int(caliber.get("max_penetration_distance")))
 			if features.size() > 0:
 				bbcode += "[color=#aab0b8]Ballistics:[/color] %s" % ", ".join(features)
 			else:
