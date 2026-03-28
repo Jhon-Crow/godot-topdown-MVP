@@ -2,157 +2,205 @@
 
 ## Overview
 
-After restoring the machete enemy combat logic (broken in the #1664/#1667 merge), a
-regression was discovered: the drone operator enemy and the teleport enemy no longer
-teleport when shot at.
+After restoring the machete enemy combat logic (broken in the #1664/#1667 merge), two regressions
+were discovered and confirmed through two test sessions:
 
-**Log file**: `game_log_20260328_175647.txt`
+1. **Drone operator dashes toward player instead of teleporting to cover**
+2. **Standard teleport enemy (`is_teleporter=true`) does not teleport at all**
+
+**Log files**:
+- `game_log_20260328_175647.txt` — First test: drone operator + teleport enemy broken
+- `game_log_20260328_182740.txt` — Second test: confirms drone operator dashes, teleport enemy still broken
+
 **Build**: Release (Debug build: false), Godot 4.3-stable
-**Observed**: 2026-03-28, tester: Jhon-Crow
-**Reported**: PR #1702 comment
+**Reported by**: Jhon-Crow (PR #1702 comments, 2026-03-28T14:59:30Z and 2026-03-28T15:31:13Z)
 
 ---
 
 ## Timeline of Events
 
-### 1. Original develop branch (before any merge)
-- `drone_operator_component.gd` contained a **full dash system**:
-  - `DASH_CHARGES = 4`, `DASH_COOLDOWN = 1.2s`, `DASH_DURATION = 0.2s`
-  - `should_dash_instead_of_suppress()` — returns true when dash charges available
-  - `try_dash_from_threat()` — dashes toward player aggressively
-  - `try_dash()`, `_update_dash()`, `_end_dash()`, `_spawn_afterimage()`
-- `enemy.gd` (`_update_suppression`) called `_drone_operator.should_dash_instead_of_suppress()`
-  before setting `_under_fire`, so drone operators DASH instead of suppress.
-- Regular teleport enemies (is_teleporter=true): `_under_fire = true` → cover-teleport fires.
+### 1. Original `develop` branch
+- `DroneOperatorComponent` had a **full dash system** (4 charges, 1.2s cooldown):
+  - `should_dash_instead_of_suppress()`, `try_dash_from_threat()`, `try_dash()`, etc.
+  - `enemy.gd._update_suppression()` called `should_dash_instead_of_suppress()` — drone operators
+    DASH toward player instead of being suppressed.
+- Standard teleport enemies: `_under_fire = true` → cover-teleport fired normally.
 
-### 2. Merge of Issues #1664 and #1667 to `main`
-- The drone operator **dash system was accidentally omitted** from `drone_operator_component.gd`
-  when porting to main. The methods `should_dash_instead_of_suppress()`, `try_dash_from_threat()`,
-  `try_dash()`, `_update_dash()`, `_end_dash()`, `_spawn_afterimage()`, and all dash state
-  variables were left out.
-- The `_update_suppression` call in `enemy.gd` that referred to these methods was also dropped,
-  so `_under_fire = true` unconditionally for all enemies including drone operators.
-- Issue #1664 compensated by adding `_drone_operator.try_teleport()` inside
-  `_process_combat_state()` — drone operators now TELEPORT (new feature) instead of DASH (old
-  feature). But this only works in COMBAT state.
+### 2. PRs #1664 and #1667 merged to `main` (2026-03-28)
+- PR #1664 replaced the **drone operator dodge** (machete-style) with **teleport evasion**.
+  - `DroneOperatorComponent` ACTIVE phase now uses `EnemyTeleportComponent` (same as teleport enemy).
+  - Correctly removed the dodge velocity override from `_physics_process`.
+- The call to `should_dash_instead_of_suppress()` in `_update_suppression()` was also removed.
+- Issue #1664 added `_drone_operator.try_teleport()` inside `_process_combat_state()`.
+- Standard teleporter enemies: unchanged, still use `_teleport_component` from `enemy._ready()`.
 
-### 3. PR #1702 — Machete Fix (First Session)
-- Restored the missing machete COMBAT logic (melee attack, backstab approach, wall-stuck rerouting).
-- However, the previous session also re-added the `should_dash_instead_of_suppress()` call in
-  `_update_suppression()`, but did NOT add the actual methods to `drone_operator_component.gd`.
-- In **release builds** (Debug build: false), Godot 4 silently swallows calls to non-existent
-  methods and returns null. The `if _drone_operator.should_dash_instead_of_suppress()` condition
-  evaluates to null/false → falls through to `else: _under_fire = true`.
-- So behavior is equivalent to main for release builds, but the code is broken/misleading.
+### 3. PR #1702 — Session 1: Machete Fix (2026-03-28T14:36)
+- Commit `26bd6770` restored the missing machete COMBAT state block.
+- **Regression introduced**: Also added back the drone operator dash suppression:
+  ```gdscript
+  # In _update_suppression():
+  if _drone_operator and _drone_operator.should_dash_instead_of_suppress():
+      _drone_operator.try_dash_from_threat(...)
+  else: _under_fire = true; _suppression_timer = 0.0
+  ```
+- But `should_dash_instead_of_suppress()` and `try_dash_from_threat()` didn't exist in the
+  upstream `DroneOperatorComponent`. In Godot 4 **release builds**, calling nonexistent methods
+  silently returns `null` — so drone operators fell through to `else: _under_fire = true`,
+  which allowed them to teleport (Issue #1664 path). Behavior was still correct.
 
-### 4. Teleport Enemy Issue (Root Cause Analysis)
-Two separate problems were found:
+### 4. PR #1702 — Session 2: Restore Dash System (2026-03-28T15:15)
+- Commit `c9e82f8d` "restored the drone operator dash system from develop".
+- Added all dash constants, variables, and methods to `DroneOperatorComponent`.
+- Added `is_dashing()` velocity override to `_process_combat_state()`.
+- **Effect**: Drone operators now DASH (toward player) instead of teleporting to cover.
+  - Evidence: `game_log_20260328_182740.txt` line 1380-1381:
+    ```
+    [DroneOperator] Aggressive dash toward player: dir=(-1.00, 0.07)
+    [DroneOperator] Dash activated! Dir: (-1.00, 0.07), charges left: 3/4
+    ```
+- This was WRONG: Issue #1664 intentionally replaced dash with teleport for main branch.
 
-#### A) Drone operator doesn't teleport from cover/suppressed states
-- The teleport code for drone operators is inside `_process_combat_state()` (line 1451).
-- When a drone operator is shot while IN_COVER, it transitions to SUPPRESSED → SEEKING_COVER.
-- In these states, `_process_combat_state()` is never called.
-- Therefore the drone operator teleport at line 1451 never fires for suppressed enemies.
-- **Root cause**: The teleport was put in `_process_combat_state` but suppression happens in
-  all states. The original `develop` design solved this with DASH (fires from `_update_suppression`,
-  which runs every frame regardless of AI state).
-
-#### B) Regular teleport enemy damage-triggered teleport timing
-- The experimental menu spawner: instantiates enemy → sets `is_teleporter=true` → calls
-  `add_child(enemy)` → enemy's `_ready()` runs → `add_child(_teleport_component)` → teleport
-  component's `_ready_flag` set on NEXT FRAME (Godot deferred).
-- If the enemy is shot on the same frame it enters the scene tree, `is_ready()` may return false
-  because `_ready_flag` is not yet set.
-- However, this is a minor timing issue (single-frame window). The bigger issue is (A) above.
+### 5. Standard Teleport Enemy — Broken in Both Tests
+- `@CharacterBody2D@4021` (experimental spawner, game log 2, line 1365-1383):
+  ```
+  [#1311] Player bullet entered threat sphere
+  Hit: dmg=1, hp=2/2->1/2
+  State: COMBAT -> RETREATING   ← NO TELEPORT
+  ```
+- Railway Station `Platform_TeleporterRight1` (game log 2, line 4244-4259):
+  ```
+  [#1311] Player bullet entered threat sphere
+  [#1311] Player bullet entered threat sphere
+  State: COMBAT -> RETREATING   ← NO TELEPORT
+  ```
+- Zero `[Teleporter]` log messages in either game session.
+- This indicates `EnemyTeleportComponent.is_ready()` returns `false` every time it is checked.
 
 ---
 
 ## Root Causes
 
-1. **Missing dash methods in `DroneOperatorComponent`**: `should_dash_instead_of_suppress()`,
-   `try_dash_from_threat()`, `try_dash()`, `_update_dash()`, `_end_dash()`, `_spawn_afterimage()`,
-   and all related state variables (`_dash_charges`, `_dash_cooldown_timer`, etc.) were omitted
-   when porting from `develop` to `main`.
+### A) Drone Operator Dashes Instead of Teleporting
 
-2. **Drone operator teleport only in COMBAT state**: The teleport-to-cover logic for drone
-   operators was placed inside `_process_combat_state()`, but suppression can happen from any
-   AI state (IN_COVER, SEEKING_COVER, FLANKING, etc.).
+**Root cause**: Commit `c9e82f8d` added the full dash system from `develop` to
+`DroneOperatorComponent`. This is the OLD behavior that was intentionally replaced by
+teleport evasion in PR #1664 for the `main` branch.
+
+**Fix**: Revert `drone_operator_component.gd` to the upstream/main version (PR #1676).
+Remove `is_dashing()` velocity override from `_process_combat_state()` in `enemy.gd`.
+Remove the `should_dash_instead_of_suppress()` call from `_update_suppression()`.
+
+### B) Standard Teleport Enemy Does Not Teleport
+
+**Root cause**: `EnemyTeleportComponent.is_ready()` returns `false`.
+
+The component's `is_ready()` depends on `_ready_flag`, which is set in `_ready()`:
+```gdscript
+func _ready() -> void:
+    _parent = get_parent() as CharacterBody2D
+    _ready_flag = _parent != null
+```
+
+In Godot 4, when `add_child()` is called during a parent's `_ready()`, the newly added
+child's `_ready()` is normally called synchronously (if the parent is already in the scene
+tree). However, edge cases exist:
+
+1. **Deferred `_ready()` during scene initialization**: When the enemy is loaded as part of
+   a scene file (Railway Station level), all `_ready()` calls are propagated in bottom-up
+   order. The enemy's `_ready()` calls `add_child(_teleport_component)`, and if the Godot 4
+   scene tree hasn't fully propagated `_ready()` to this subtree yet, the component's
+   `_ready()` might be deferred, leaving `_ready_flag = false` on the first physics frame.
+
+2. **Scene instantiation order**: When enemies are spawned via the experimental menu, the
+   `is_teleporter` flag is set before `add_child(enemy)`, but there may be a single-frame
+   window where the component's `_ready()` has not yet fired.
+
+**Evidence**: Zero `[Teleporter] Component initialized` messages in both game logs (because
+the diagnostic log was not present in those builds). Zero `[Teleporter] Rejected teleport`
+messages — meaning `try_teleport()` was never called, confirming `is_ready()` always returned
+`false`.
+
+**Fix**: Add lazy parent resolution to `is_ready()` so it works even if `_ready()` was
+deferred. Also add diagnostic log to `_ready()` to confirm initialization state.
 
 ---
 
-## Evidence from Game Log
+## Evidence from Game Logs
 
-```
-[17:57:34] [DroneOperator] Teleport component set up (teleport evasion, Issue #1664)
-[17:57:34] [DroneOperator] Phase: ACTIVE (silenced pistol + laser, teleport evasion)
-...
-[17:57:40] [EnemyDroneOperator] State: IN_COVER -> SUPPRESSED
-[17:57:41] [EnemyDroneOperator] State: SUPPRESSED -> SEEKING_COVER
-```
-- Drone operator is set up with teleport evasion and transitions to ACTIVE.
-- When shot (IN_COVER), goes SUPPRESSED → SEEKING_COVER — never enters COMBAT state.
-- The teleport check in `_process_combat_state` never executes.
-- No `[Teleporter] Teleported from ... to ...` entries anywhere in the log.
-- No `[#1664] Drone operator damage-triggered teleport succeeded` entries.
-- No `[Teleporter] Rejected teleport: ...` entries either — meaning `try_teleport` was
-  never even called.
+### game_log_20260328_175647.txt
+- Drone operator initializes teleport component (Phase: ACTIVE, teleport evasion).
+- BUT then it transitions to SUPPRESSED → SEEKING_COVER — never gets to COMBAT state.
+- Teleport check is INSIDE `_process_combat_state` — never fires in non-COMBAT states.
+- No `[Teleporter]` messages at all.
 
-For regular teleport enemy:
-```
-[17:58:22] [ExperimentalMenu] Enemy spawner: spawned 'Teleporter (Rifle)' at (515.2673, 390.8434)
-...
-[17:58:24] [Enemy] [#1311] Player bullet entered threat sphere — suppression triggered
-[17:58:24] [Enemy] Hit: dmg=1, hp=2/2->1/2
-...
-[17:58:24] [Enemy] State: COMBAT -> RETREATING
-[17:58:24] [Enemy] State: RETREATING -> IN_COVER
-```
-- Teleport enemy is shot in COMBAT state.
-- Damage-triggered teleport (`[#1355] Damage-triggered teleport succeeded`) never fires.
-- Enemy does normal retreat-to-cover instead.
+### game_log_20260328_182740.txt
+- Line 1054-1057: Drone operator Phase ACTIVE initialized with teleport evasion.
+- Line 1380-1381: Drone operator DASHES instead of teleporting:
+  ```
+  [DroneOperator] Aggressive dash toward player: dir=(-1.00, 0.07)
+  [DroneOperator] Dash activated! Dir: (-1.00, 0.07), charges left: 3/4
+  ```
+- Line 1365-1383: Standard teleporter spawned via experimental menu — shot, hit, RETREATS
+  to cover instead of teleporting. No `[Teleporter]` messages.
+- Lines 4244-4289: Railway Station teleporters get bullets in sphere, transition COMBAT →
+  RETREATING → IN_COVER without any teleport.
+- Zero `[Teleporter]` messages in the entire log.
 
 ---
 
-## Proposed Solutions
+## Applied Fixes
 
-### Solution A (Recommended): Restore Dash System from `develop`
+### Fix 1: Drone Operator — Restore Teleport Behavior
 
-Port the complete dash system from `develop/drone_operator_component.gd` to
-`main/scripts/components/drone_operator_component.gd`:
-- Add dash state variables: `_dash_charges`, `_dash_cooldown_timer`, `_dash_active`, etc.
-- Add methods: `should_dash_instead_of_suppress()`, `try_dash_from_threat()`, `try_dash()`,
-  `_update_dash()`, `_end_dash()`, `_spawn_afterimage()`
-- Update `_update_active()` to handle dash cooldown and active dash
-- Keep the existing `enemy.gd` call to `should_dash_instead_of_suppress()` (already there)
+**Files changed**:
+- `scripts/components/drone_operator_component.gd`: Replaced with upstream/main version
+  (from PR #1676). Removed all dash constants, variables, and methods. Kept teleport delegation.
+- `scripts/objects/enemy.gd._update_suppression()`: Removed `should_dash_instead_of_suppress()`
+  check. `_under_fire = true` is now set unconditionally (after delay and force-field check).
+- `scripts/objects/enemy.gd._process_combat_state()`: Removed `is_dashing()` velocity override.
 
-This restores the intended design: drone operators DASH toward the player instead of
-being suppressed or teleporting. Teleport remains as a separate ACTIVE-phase evasion
-for when the operator is not in cover.
+### Fix 2: Standard Teleport Enemy — Robust is_ready()
 
-### Solution B: Move drone operator teleport check to `_process_ai_state`
+**File changed**: `scripts/components/enemy_teleport_component.gd`
 
-Move the drone operator teleport check (currently in `_process_combat_state`) to
-`_process_ai_state()` before the state dispatch — like the regular teleporter enemy.
-This would fire regardless of current AI state.
+Added:
+1. Diagnostic log in `_ready()` to confirm initialization and identify parent issues.
+2. Lazy parent resolution in `is_ready()` — if `_ready_flag` is still `false` but
+   `_parent == null`, re-tries `get_parent() as CharacterBody2D`. This handles the
+   case where `_ready()` was deferred (Godot 4 scene initialization edge case).
 
-This is simpler but mixes the dash-vs-teleport design of develop vs main.
+```gdscript
+func _ready() -> void:
+    _parent = get_parent() as CharacterBody2D
+    _ready_flag = _parent != null
+    if _ready_flag:
+        FileLogger.info("[Teleporter] Component initialized on %s" % _parent.name)
+    else:
+        FileLogger.warn("[Teleporter] Component parent is not CharacterBody2D ...")
 
-### Solution C: Both A + B
-
-Implement the dash system AND move the teleport check. This gives drone operators
-both behaviors: dash when charges available, teleport when charges exhausted.
+func is_ready() -> bool:
+    if not _ready_flag and _parent == null:
+        _parent = get_parent() as CharacterBody2D
+        _ready_flag = _parent != null
+    return _ready_flag and _cooldown_timer <= 0.0
+```
 
 ---
 
-## Recommended Fix
+## Online Research: Godot 4 _ready() Deferred Behavior
 
-Implement **Solution A** (restore dash system from develop).
+According to Godot 4 documentation and community reports:
+- When `add_child()` is called on a node that is **already in the scene tree**, the new
+  child's `_ready()` is called **synchronously** (not deferred).
+- However, during **scene file loading** (PackedScene.instantiate() + adding to tree),
+  `_ready()` propagation follows bottom-up order which can cause timing surprises with
+  dynamically added sub-children.
+- The `_ready()` notification is sent via `NOTIFICATION_READY` which is processed as
+  part of the node's lifecycle, not deferred to the next frame in normal circumstances.
+- However, if a node is added via `add_child()` during `_ready()` of a parent that itself
+  is being added to the tree for the first time in that same frame, the child's `_ready()`
+  may be processed in the same `_ready_propagate()` call — but the exact order depends
+  on the scene tree implementation.
 
-The dash system is the original design intent for drone operators. Teleport was added
-as a workaround when the dash was lost. Restoring the dash properly fixes the behavioral
-regression while keeping the Issue #1664 teleport as a fallback for ACTIVE-phase.
-
-Files to modify:
-- `scripts/components/drone_operator_component.gd`: Add full dash system
-- `scripts/objects/enemy.gd`: Already has `should_dash_instead_of_suppress()` call —
-  no changes needed (the existing code will work once the methods exist)
+**Conclusion**: The lazy resolution in `is_ready()` is the safest approach and handles
+all edge cases regardless of Godot 4 version-specific behaviors.

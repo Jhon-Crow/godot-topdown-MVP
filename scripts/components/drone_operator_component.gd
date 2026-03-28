@@ -15,30 +15,6 @@ enum Phase {
 	ACTIVE        ## Drone destroyed, fighting with pistol
 }
 
-## Number of dash charges for evasion (Issue #1397, restored from develop).
-const DASH_CHARGES: int = 4
-
-## Dash cooldown duration (same as player Dash).
-const DASH_COOLDOWN: float = 1.2
-
-## Dash duration per dash — longer than player for a visible aggressive lunge.
-const DASH_DURATION: float = 0.2
-
-## Dash speed multiplier — higher than player for a long closing dash.
-const DASH_SPEED_MULTIPLIER: float = 6.0
-
-## Chain window for consecutive dashes.
-const DASH_CHAIN_WINDOW: float = 0.4
-
-## Number of afterimage ghosts per dash.
-const AFTERIMAGE_COUNT: int = 4
-
-## Afterimage lifetime.
-const AFTERIMAGE_LIFETIME: float = 0.4
-
-## Afterimage initial alpha.
-const AFTERIMAGE_ALPHA: float = 0.7
-
 ## Time to wait at cover before deploying drone (seconds).
 const DEPLOY_DELAY: float = 0.5
 
@@ -75,18 +51,6 @@ var _cover_seek_timer: float = 0.0
 ## EnemyTeleportComponent used for evasion in ACTIVE phase (Issue #1664).
 ## Same teleport logic as the teleport enemy — teleport to cover on first bullet, etc.
 var _teleport_component: EnemyTeleportComponent = null
-
-## Dash state variables (Issue #1397, restored from develop).
-var _dash_charges: int = DASH_CHARGES
-var _dash_cooldown_timer: float = 0.0
-var _dash_active: bool = false
-var _dash_timer: float = 0.0
-var _dash_direction: Vector2 = Vector2.ZERO
-var _dash_chain_timer: float = 0.0
-
-## Afterimage spawn timer.
-var _afterimage_timer: float = 0.0
-var _afterimage_interval: float = 0.0
 
 ## VR headset visual node.
 var _vr_headset: Node2D = null
@@ -239,71 +203,6 @@ func get_phase() -> Phase:
 ## Returns true if the operator is in the defenseless controlling phase.
 func is_controlling_drone() -> bool:
 	return _phase == Phase.CONTROLLING
-
-
-## Returns true if the operator is currently dashing.
-func is_dashing() -> bool:
-	return _dash_active
-
-
-## Returns the current dash velocity for use by enemy physics (Issue #1397).
-func get_dash_velocity(base_speed: float) -> Vector2:
-	return _dash_direction * base_speed * DASH_SPEED_MULTIPLIER
-
-
-## Returns true if the operator should override suppression with a dash (Issue #1397).
-## Only in ACTIVE phase when dash charges are available or currently dashing.
-## When charges are spent and on cooldown, fall back to normal suppression.
-func should_dash_instead_of_suppress() -> bool:
-	if _phase != Phase.ACTIVE:
-		return false
-	if _dash_active:
-		return true  # Stay in dash — suppress the suppression state
-	if _dash_charges <= 0 and _dash_cooldown_timer > 0.0:
-		return false  # All charges spent and cooling down — allow suppression
-	return true
-
-
-## Calculate dash direction and attempt to dash toward the player (Issue #1397).
-## Called from enemy._update_suppression() when bullets are in threat sphere.
-func try_dash_from_threat(bullets_in_sphere: Array, player: Node2D, enemy_pos: Vector2) -> void:
-	if player == null:
-		return
-	var to_player: Vector2 = (player.global_position - enemy_pos).normalized()
-	FileLogger.info("[DroneOperator] Aggressive dash toward player: dir=(%.2f, %.2f)" % [
-		to_player.x, to_player.y
-	])
-	try_dash(to_player)
-
-
-## Attempt to activate a dash in a given direction. Returns true if dash started.
-func try_dash(direction: Vector2) -> bool:
-	if _phase != Phase.ACTIVE:
-		return false
-	if _dash_active:
-		return false
-	if _dash_charges <= 0 and _dash_cooldown_timer > 0.0:
-		return false
-	if direction == Vector2.ZERO:
-		if _parent:
-			direction = Vector2.RIGHT.rotated(_parent.rotation + PI)
-		else:
-			return false
-	_dash_direction = direction.normalized()
-	_dash_active = true
-	_dash_timer = DASH_DURATION
-	_dash_chain_timer = 0.0
-	_afterimage_timer = 0.0
-	_afterimage_interval = DASH_DURATION / float(AFTERIMAGE_COUNT) if AFTERIMAGE_COUNT > 0 else DASH_DURATION
-	_dash_charges -= 1
-	if _parent and "velocity" in _parent:
-		var base_speed: float = _parent.get("combat_move_speed") if _parent.get("combat_move_speed") else 320.0
-		_parent.velocity = _dash_direction * base_speed * DASH_SPEED_MULTIPLIER
-	FileLogger.info("[DroneOperator] Dash activated! Dir: (%.2f, %.2f), charges left: %d/%d" % [
-		_dash_direction.x, _dash_direction.y, _dash_charges, DASH_CHARGES
-	])
-	_spawn_afterimage()
-	return true
 
 
 ## Returns true if the teleport is ready (off cooldown). ACTIVE phase only.
@@ -537,106 +436,10 @@ func _update_laser_sight(_delta: float) -> void:
 	_laser_sight.default_color = Color(1.0, 0.0, 0.0, pulse)
 
 
-## ACTIVE phase: normal combat + dash evasion + teleport evasion (Issue #1397, #1664).
+## ACTIVE phase: normal combat + teleport evasion (same as teleport enemy, Issue #1664).
 func _update_active(delta: float) -> void:
 	# Update laser sight pulse (Issue #1532)
 	_update_laser_sight(delta)
 
-	# Advance teleport cooldown (Issue #1664)
+	# Advance teleport cooldown
 	update_teleport(delta)
-
-	# Update dash cooldown (Issue #1397)
-	if _dash_cooldown_timer > 0.0:
-		_dash_cooldown_timer -= delta
-		if _dash_cooldown_timer <= 0.0:
-			_dash_cooldown_timer = 0.0
-			_dash_charges = DASH_CHARGES
-			FileLogger.info("[DroneOperator] Dash cooldown finished, charges restored: %d" % DASH_CHARGES)
-
-	# Update chain window timer
-	if not _dash_active and _dash_chain_timer > 0.0:
-		_dash_chain_timer -= delta
-		if _dash_chain_timer <= 0.0:
-			_dash_chain_timer = 0.0
-			if _dash_charges > 0 and _dash_charges < DASH_CHARGES:
-				_dash_charges = 0
-			if _dash_charges <= 0 and _dash_cooldown_timer <= 0.0:
-				_dash_cooldown_timer = DASH_COOLDOWN
-				FileLogger.info("[DroneOperator] Dash chain window expired, cooldown started: %.1fs" % DASH_COOLDOWN)
-
-	# Update active dash
-	if _dash_active:
-		_update_dash(delta)
-
-
-## Update active dash state (Issue #1397).
-func _update_dash(delta: float) -> void:
-	_dash_timer -= delta
-	_afterimage_timer += delta
-	if _afterimage_timer >= _afterimage_interval:
-		_afterimage_timer -= _afterimage_interval
-		_spawn_afterimage()
-	if _parent and "velocity" in _parent:
-		var base_speed: float = _parent.get("combat_move_speed") if _parent.get("combat_move_speed") else 320.0
-		_parent.velocity = _dash_direction * base_speed * DASH_SPEED_MULTIPLIER
-	if _dash_timer <= 0.0:
-		_end_dash()
-
-
-## End the current dash.
-func _end_dash() -> void:
-	_dash_active = false
-	_dash_timer = 0.0
-	if _parent and "velocity" in _parent:
-		var base_speed: float = _parent.get("combat_move_speed") if _parent.get("combat_move_speed") else 320.0
-		_parent.velocity = _dash_direction * base_speed * 0.5
-	if _dash_charges <= 0:
-		_dash_cooldown_timer = DASH_COOLDOWN
-		FileLogger.info("[DroneOperator] Dash ended (all charges spent). Cooldown: %.1fs" % DASH_COOLDOWN)
-	else:
-		_dash_chain_timer = DASH_CHAIN_WINDOW
-		FileLogger.info("[DroneOperator] Dash ended. %d charges left, chain window: %.1fs" % [_dash_charges, DASH_CHAIN_WINDOW])
-
-
-## Spawn an afterimage at the operator's current position.
-func _spawn_afterimage() -> void:
-	if _parent == null or not is_instance_valid(_parent):
-		return
-	var model: Node2D = _parent.get_node_or_null("EnemyModel") as Node2D
-	if model == null:
-		return
-	var ghost_container := Node2D.new()
-	ghost_container.global_position = _parent.global_position
-	ghost_container.z_index = _parent.z_index
-	var sprites_added: int = 0
-	for child in model.get_children():
-		if child is Sprite2D and child.visible:
-			var ghost_sprite := Sprite2D.new()
-			ghost_sprite.texture = child.texture
-			ghost_sprite.position = child.position
-			ghost_sprite.rotation = child.rotation
-			ghost_sprite.scale = child.scale
-			ghost_sprite.flip_h = child.flip_h
-			ghost_sprite.flip_v = child.flip_v
-			ghost_sprite.offset = child.offset
-			ghost_sprite.hframes = child.hframes
-			ghost_sprite.vframes = child.vframes
-			ghost_sprite.frame = child.frame
-			ghost_sprite.region_enabled = child.region_enabled
-			if child.region_enabled:
-				ghost_sprite.region_rect = child.region_rect
-			ghost_container.add_child(ghost_sprite)
-			sprites_added += 1
-	if sprites_added == 0:
-		ghost_container.queue_free()
-		return
-	ghost_container.rotation = model.global_rotation
-	ghost_container.modulate = Color(1.0, 0.4, 0.1, AFTERIMAGE_ALPHA)  # Orange-red tint
-	var parent_node: Node = _parent.get_parent()
-	if parent_node == null:
-		ghost_container.queue_free()
-		return
-	parent_node.add_child(ghost_container)
-	var tween: Tween = ghost_container.create_tween()
-	tween.tween_property(ghost_container, "modulate:a", 0.0, AFTERIMAGE_LIFETIME)
-	tween.tween_callback(ghost_container.queue_free)

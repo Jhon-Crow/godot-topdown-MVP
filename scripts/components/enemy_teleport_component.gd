@@ -28,9 +28,17 @@ var _reject_count: int = 0  ## Consecutive identical rejections.
 func _ready() -> void:
 	_parent = get_parent() as CharacterBody2D
 	_ready_flag = _parent != null
+	if _ready_flag:
+		FileLogger.info("[Teleporter] Component initialized on %s" % _parent.name)
+	else:
+		FileLogger.warn("[Teleporter] Component parent is not CharacterBody2D (parent=%s)" % str(get_parent()))
 
 ## Returns true when the teleport is off cooldown and ready to use.
+## Uses lazy parent resolution in case _ready() was deferred (Issue #1694).
 func is_ready() -> bool:
+	if not _ready_flag and _parent == null:
+		_parent = get_parent() as CharacterBody2D
+		_ready_flag = _parent != null
 	return _ready_flag and _cooldown_timer <= 0.0
 
 ## Advance cooldown timer each physics frame. Call from enemy _physics_process().
