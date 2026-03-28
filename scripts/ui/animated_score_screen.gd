@@ -207,6 +207,10 @@ func show_animated_score(ui: Control, score_data: Dictionary) -> void:
 	_phase = Phase.COUNTING
 	_skip_requested = false
 
+	# Show the cursor so the player can interact with the score screen buttons.
+	# Issue #1633: cursor was missing on score screen because levels hide it during gameplay.
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+
 	# Block Q-key quick-restart while the animation is playing so the player
 	# can always see the Armory button before restarting (Issue #1589).
 	var game_manager := get_node_or_null("/root/GameManager")
