@@ -204,9 +204,10 @@ func _draw_knife_at(angle: float, alpha: float, base_color: Color) -> void:
 	var mid_right: Vector2 = (base + tip * 0.3) + perp * (blade_width * 0.5)
 
 	# Draw blade as a polygon: guard_left → mid_left → tip → mid_right → guard_right
+	# Godot 4: draw_colored_polygon takes a single Color (not PackedColorArray)
 	draw_colored_polygon(
 		PackedVector2Array([guard_left, mid_left, tip, mid_right, guard_right]),
-		PackedColorArray([col, col, col, col, col])
+		col
 	)
 
 	# Draw a handle stub (short rectangle behind the guard, pointing back)
@@ -216,7 +217,7 @@ func _draw_knife_at(angle: float, alpha: float, base_color: Color) -> void:
 	var handle_col: Color = Color(col.r * 0.6, col.g * 0.5, col.b * 0.4, col.a * 0.9)
 	draw_colored_polygon(
 		PackedVector2Array([guard_left, guard_right, handle_right, handle_left]),
-		PackedColorArray([handle_col, handle_col, handle_col, handle_col])
+		handle_col
 	)
 
 

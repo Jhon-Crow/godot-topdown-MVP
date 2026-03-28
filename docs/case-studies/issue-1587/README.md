@@ -145,6 +145,31 @@ Resolution (2026-03-28):
 - Damage applied at the START of STRIKE (immediate on backswing release) for crisp feel
 - `Player.ActiveItems.cs`: `InitCombatKnife()` passes `_playerModel` as second arg to `initialize()`
 
+### Owner feedback (2026-03-28 16:14) — "предмет не работает" (item doesn't work)
+
+**Symptom:** Player reported the item is completely non-functional. Game log showed C# initialization
+messages but NO GDScript `[CombatKnife]` log entries at all — meaning the GDScript `initialize()`
+function was not executing.
+
+**Root cause:** The previous commit (`c9a3cbdd`) introduced `draw_colored_polygon()` calls with a
+`PackedColorArray` as the second argument. In **Godot 4**, `draw_colored_polygon` has the signature:
+
+```
+draw_colored_polygon(points: PackedVector2Array, color: Color, ...) → void
+```
+
+The second argument must be a single `Color`, **not** a `PackedColorArray` (per-vertex colors require
+`draw_polygon` instead). Passing a `PackedColorArray` causes a GDScript type-mismatch error during
+script bytecode compilation in the exported build. As a result, the entire script fails to load —
+`initialize()` never runs, `_player` stays `null`, and no drawing or damage occurs.
+
+This was confirmed by comparing game logs:
+- Sessions before this commit: both `[CombatKnife]` (GDScript) and `[Player.CombatKnife]` (C#) logs appeared.
+- Session after this commit: only `[Player.CombatKnife]` (C#) log appeared; GDScript log absent.
+
+**Resolution:** Changed both `draw_colored_polygon(points, PackedColorArray([col, col, ...]))` calls
+to `draw_colored_polygon(points, col)` — passing the single `Color` directly.
+
 ---
 
 ## References
