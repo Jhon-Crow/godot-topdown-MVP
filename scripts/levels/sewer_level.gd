@@ -492,7 +492,7 @@ func _on_enemy_died() -> void:
 
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
 	if GameManager:
-		GameManager.register_kill(is_player_kill)
+		GameManager.register_kill(is_player_kill, is_penetration_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
@@ -811,24 +811,43 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	level_select_button.add_theme_font_size_override("font_size", 18)
 	level_select_button.pressed.connect(_on_level_select_pressed)
 	buttons_container.add_child(level_select_button)
+	# Armory button (Issue #897: shown highlighted when items are available to unlock; Issue #1622: always shown)
+	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
 	var armory_button := Button.new()
 	armory_button.name = "ArmoryButton"
-	armory_button.text = "Armory"
-	armory_button.custom_minimum_size = Vector2(200, 40)
-	armory_button.add_theme_font_size_override("font_size", 18)
 	armory_button.pressed.connect(_on_armory_button_pressed)
 	buttons_container.add_child(armory_button)
-	# Add gold shine shader overlay (Issue #1536).
-	var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
-	if _armory_shine_shader:
-		var _armory_shine_mat := ShaderMaterial.new()
-		_armory_shine_mat.shader = _armory_shine_shader
-		var _armory_shine_overlay := ColorRect.new()
-		_armory_shine_overlay.name = "ArmoryGoldShineOverlay"
-		_armory_shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_armory_shine_overlay.material = _armory_shine_mat
-		armory_button.add_child(_armory_shine_overlay)
+	var has_available_unlock: bool = unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock()
+	if has_available_unlock:
+		armory_button.text = "★ Armory — Items Available!"
+		armory_button.custom_minimum_size = Vector2(200, 40)
+		armory_button.add_theme_font_size_override("font_size", 18)
+		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
+		var armory_style := StyleBoxFlat.new()
+		armory_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
+		armory_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
+		armory_style.border_width_left = 2
+		armory_style.border_width_right = 2
+		armory_style.border_width_top = 2
+		armory_style.border_width_bottom = 2
+		armory_style.corner_radius_top_left = 4
+		armory_style.corner_radius_top_right = 4
+		armory_style.corner_radius_bottom_left = 4
+		armory_style.corner_radius_bottom_right = 4
+		armory_button.add_theme_stylebox_override("normal", armory_style)
+		# Add gold shine shader overlay (Issue #1536).
+		var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+		if _armory_shine_shader:
+			var _armory_shine_mat := ShaderMaterial.new()
+			_armory_shine_mat.shader = _armory_shine_shader
+			var _armory_shine_overlay := ColorRect.new()
+			_armory_shine_overlay.name = "ArmoryGoldShineOverlay"
+			_armory_shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_armory_shine_overlay.material = _armory_shine_mat
+			armory_button.add_child(_armory_shine_overlay)
+	else:
+		armory_button.text = "Armory"
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled():
 		var replay_manager: Node = _get_or_create_replay_manager()
@@ -898,9 +917,27 @@ func _on_armory_button_pressed() -> void:
 		armory_menu.layer = 100
 		armory_menu.opened_from_score_screen = true
 		get_tree().root.add_child(armory_menu)
-		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+		armory_menu.back_pressed.connect(func():
+			armory_menu.queue_free()
+			# Issue #1582: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
 	else:
 		_log_to_file("ERROR: Could not load armory menu scene")
+
+
+func _remove_armory_button_gold_style() -> void:
+	var armory_btn := get_tree().current_scene.find_child("ArmoryButton", true, false)
+	if armory_btn:
+		armory_btn.text = "Armory"
+		armory_btn.remove_theme_color_override("font_color")
+		armory_btn.remove_theme_stylebox_override("normal")
+		# Issue #1582: Remove gold shine overlay added by issue #1536
+		var shine_overlay := armory_btn.find_child("ArmoryGoldShineOverlay", true, false)
+		if shine_overlay:
+			shine_overlay.queue_free()
 
 
 func _get_next_level_path() -> String:

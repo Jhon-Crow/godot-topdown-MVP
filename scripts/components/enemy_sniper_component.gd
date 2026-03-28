@@ -19,7 +19,7 @@ const MIN_DISTANCE: float = 350.0
 ## Seconds between blind-fire shots through cover.
 const BLIND_FIRE_COOLDOWN: float = 5.0
 
-## Laser sight maximum range (px). Issue #1336.
+## Laser sight maximum range (px). Issue #1336. 6× longer per Issue #1586.
 const LASER_MAX_RANGE: float = 30000.0
 ## Muzzle offset from weapon sprite origin to barrel tip (px, before scale).
 const MUZZLE_LOCAL_OFFSET: float = 52.0
@@ -82,6 +82,16 @@ const LASER_ROTATION_SPEED: float = 3.0
 const LASER_ALIGNMENT_THRESHOLD: float = 0.05
 ## Issue #1336 snap: exact firing angle set at shot time so tracer and laser match.
 var _laser_snap_angle: float = NAN  # NAN = not snapped; set just before shot fires
+
+## Issue #1581: Glow effect nodes — multi-layer additive Line2D lines matching the
+## player's LaserGlowEffect (same approach: volumetric glow via stacked additive layers).
+var _laser_glow_lines: Array[Line2D] = []
+## Issue #1581: PointLight2D at the laser endpoint for residual glow.
+var _laser_endpoint_glow: PointLight2D = null
+## Issue #1581: GPUParticles2D dust particles along the beam.
+var _laser_dust_particles: GPUParticles2D = null
+## Issue #1581: Cached ParticleProcessMaterial for dust particle extent updates.
+var _laser_dust_material: ParticleProcessMaterial = null
 
 ## [Issue #1530] Returns the laser's current interpolated aim direction.
 ## Use this for bullet/hitscan direction so tracer always matches laser.
@@ -457,14 +467,28 @@ func _fade_sniper_tracer(tracer: Line2D) -> void:
 # Issue #1336 — Laser sight: always points where the next shot will travel
 # ============================================================================
 
+## Issue #1581: Laser color — red, matching the existing sniper laser.
+const LASER_COLOR: Color = Color(1.0, 0.0, 0.0, 1.0)
+
+## Issue #1581: Glow layer definitions [width_px, alpha].
+## Mirrors the player's LaserGlowEffect layers for visual parity.
+const LASER_GLOW_LAYERS: Array = [
+	[6.0,  0.6],   # Core boost — tight bright halo around beam
+	[14.0, 0.15],  # Inner glow — visible soft aura
+	[28.0, 0.05],  # Mid glow — subtle extended scatter
+	[48.0, 0.02],  # Outer glow — barely perceptible atmospheric haze
+]
+
 ## Create the laser sight Line2D. Only called for SNIPER_RIFLE enemies.
 func _create_laser_sight() -> void:
 	# Issue #1336 smooth laser: initialise to current enemy rotation so the first
 	# frame starts from the actual facing direction instead of angle 0 (right).
 	_laser_current_angle = enemy.rotation if enemy != null else 0.0
+
+	# Core laser beam (narrow, semi-transparent red)
 	_laser_line = Line2D.new()
 	_laser_line.name = "SniperLaserSight"
-	_laser_line.width = 1.5
+	_laser_line.width = 2.0
 	_laser_line.default_color = Color(1.0, 0.0, 0.0, 0.45)
 	_laser_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	_laser_line.end_cap_mode = Line2D.LINE_CAP_ROUND
@@ -472,17 +496,161 @@ func _create_laser_sight() -> void:
 	_laser_line.z_index = 9  # Below tracers (z=10) but above most sprites
 	_laser_line.add_point(Vector2.ZERO)
 	_laser_line.add_point(Vector2.ZERO)
+
+	# Issue #1581: Glow layers — additive-blended Line2D nodes at increasing widths
+	# and decreasing opacities, producing a volumetric laser glow identical to the
+	# player's LaserGlowEffect. Additive blending stacks brightness in the centre.
+	var additive_mat := CanvasItemMaterial.new()
+	additive_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var width_curve := Curve.new()
+	width_curve.add_point(Vector2(0.0, 0.0))
+	width_curve.add_point(Vector2(0.05, 1.0))
+	width_curve.add_point(Vector2(0.95, 1.0))
+	width_curve.add_point(Vector2(1.0, 0.0))
+	for layer_def in LASER_GLOW_LAYERS:
+		var glow_line := Line2D.new()
+		glow_line.name = "SniperLaserGlow"
+		glow_line.width = layer_def[0]
+		glow_line.default_color = Color(LASER_COLOR.r, LASER_COLOR.g, LASER_COLOR.b, layer_def[1])
+		glow_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		glow_line.end_cap_mode = Line2D.LINE_CAP_ROUND
+		glow_line.top_level = true
+		glow_line.z_index = 8  # One below core laser
+		glow_line.width_curve = width_curve
+		glow_line.material = additive_mat
+		glow_line.add_point(Vector2.ZERO)
+		glow_line.add_point(Vector2.ZERO)
+		_laser_glow_lines.append(glow_line)
+
+	# Issue #1581: Endpoint PointLight2D — glowing dot where laser hits.
+	_laser_endpoint_glow = PointLight2D.new()
+	_laser_endpoint_glow.name = "SniperLaserEndpointGlow"
+	_laser_endpoint_glow.color = Color(LASER_COLOR.r, LASER_COLOR.g, LASER_COLOR.b, 1.0)
+	_laser_endpoint_glow.energy = 0.7
+	_laser_endpoint_glow.shadow_enabled = false
+	_laser_endpoint_glow.texture_scale = 0.35
+	_laser_endpoint_glow.texture = _create_circular_glow_texture()
+	_laser_endpoint_glow.top_level = true
+	_laser_endpoint_glow.z_index = 8
+
+	# Issue #1581: Dust particles along the beam — tiny motes simulating laser light
+	# on atmospheric dust. Mirrors the player's LaserGlowEffect dust setup.
+	var color_ramp := Gradient.new()
+	color_ramp.set_color(0, Color(1.0, 1.0, 1.0, 0.0))
+	color_ramp.add_point(0.2, Color(1.0, 1.0, 1.0, 0.4))
+	color_ramp.add_point(0.5, Color(1.0, 1.0, 1.0, 0.4))
+	color_ramp.add_point(0.8, Color(1.0, 1.0, 1.0, 0.3))
+	color_ramp.set_color(1, Color(1.0, 1.0, 1.0, 0.0))
+	_laser_dust_material = ParticleProcessMaterial.new()
+	_laser_dust_material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	_laser_dust_material.emission_box_extents = Vector3(100.0, 2.0, 0.0)
+	_laser_dust_material.direction = Vector3(0.0, -1.0, 0.0)
+	_laser_dust_material.spread = 180.0
+	_laser_dust_material.initial_velocity_min = 1.0
+	_laser_dust_material.initial_velocity_max = 4.0
+	_laser_dust_material.gravity = Vector3.ZERO
+	_laser_dust_material.scale_min = 0.3
+	_laser_dust_material.scale_max = 0.8
+	_laser_dust_material.color_ramp = GradientTexture1D.new()
+	(_laser_dust_material.color_ramp as GradientTexture1D).gradient = color_ramp
+	_laser_dust_material.lifetime_randomness = 1.0
+	var particle_mat := CanvasItemMaterial.new()
+	particle_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	_laser_dust_particles = GPUParticles2D.new()
+	_laser_dust_particles.name = "SniperLaserDustParticles"
+	_laser_dust_particles.process_material = _laser_dust_material
+	_laser_dust_particles.amount = 80
+	_laser_dust_particles.lifetime = 0.05
+	_laser_dust_particles.explosiveness = 0.0
+	_laser_dust_particles.randomness = 0.5
+	_laser_dust_particles.emitting = true
+	_laser_dust_particles.texture = _create_dust_texture()
+	_laser_dust_particles.material = particle_mat
+	_laser_dust_particles.z_index = 8
+	_laser_dust_particles.top_level = true
+	_laser_dust_particles.local_coords = false
+
 	# Add as child of current scene so it renders in world space
 	call_deferred("_add_laser_to_scene")
+
+
+## Issue #1581: Create a circular radial gradient texture for the endpoint PointLight2D.
+## Identical approach to LaserGlowEffect.CreateCircularGlowTexture() in C#.
+func _create_circular_glow_texture() -> ImageTexture:
+	var size := 512
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var center := size / 2.0
+	for y in range(size):
+		for x in range(size):
+			var dx := x - center
+			var dy := y - center
+			var dist := sqrt(dx * dx + dy * dy) / center
+			var brightness: float
+			if dist <= 0.1:
+				brightness = lerpf(1.0, 0.8, dist / 0.1)
+			elif dist <= 0.25:
+				brightness = lerpf(0.8, 0.4, (dist - 0.1) / 0.15)
+			elif dist <= 0.4:
+				brightness = lerpf(0.4, 0.1, (dist - 0.25) / 0.15)
+			elif dist <= 0.55:
+				brightness = lerpf(0.1, 0.0, (dist - 0.4) / 0.15)
+			else:
+				brightness = 0.0
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+	return ImageTexture.create_from_image(image)
+
+
+## Issue #1581: Create a tiny dust mote texture for GPUParticles2D.
+## Identical approach to LaserGlowEffect.CreateDustTexture() in C#.
+func _create_dust_texture() -> ImageTexture:
+	var size := 6
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var center := size / 2.0
+	for y in range(size):
+		for x in range(size):
+			var dx := x - center
+			var dy := y - center
+			var dist := sqrt(dx * dx + dy * dy) / center
+			var alpha: float
+			if dist <= 0.15:
+				alpha = 0.5
+			elif dist <= 0.5:
+				var t := (dist - 0.15) / 0.35
+				alpha = 0.5 * (1.0 - t * t * t)
+			else:
+				alpha = 0.0
+			image.set_pixel(x, y, Color(LASER_COLOR.r, LASER_COLOR.g, LASER_COLOR.b, alpha))
+	return ImageTexture.create_from_image(image)
 
 
 ## Deferred add to scene tree — ensures current_scene is available.
 func _add_laser_to_scene() -> void:
 	if _laser_line == null: return
-	if not is_inside_tree(): _laser_line.queue_free(); _laser_line = null; return
+	if not is_inside_tree():
+		_laser_line.queue_free(); _laser_line = null
+		for gl in _laser_glow_lines: gl.queue_free()
+		_laser_glow_lines.clear()
+		if _laser_endpoint_glow: _laser_endpoint_glow.queue_free(); _laser_endpoint_glow = null
+		if _laser_dust_particles: _laser_dust_particles.queue_free(); _laser_dust_particles = null
+		return
 	var current_scene := get_tree().current_scene
-	if current_scene == null: _laser_line.queue_free(); _laser_line = null; return
+	if current_scene == null:
+		_laser_line.queue_free(); _laser_line = null
+		for gl in _laser_glow_lines: gl.queue_free()
+		_laser_glow_lines.clear()
+		if _laser_endpoint_glow: _laser_endpoint_glow.queue_free(); _laser_endpoint_glow = null
+		if _laser_dust_particles: _laser_dust_particles.queue_free(); _laser_dust_particles = null
+		return
+	# Add glow layers first (rendered below core)
+	for gl in _laser_glow_lines:
+		current_scene.add_child(gl)
+	# Add core laser
 	current_scene.add_child(_laser_line)
+	# Add endpoint glow and dust particles
+	if _laser_endpoint_glow:
+		current_scene.add_child(_laser_endpoint_glow)
+	if _laser_dust_particles:
+		current_scene.add_child(_laser_dust_particles)
 
 
 ## Compute the direction the laser should point.
@@ -529,20 +697,32 @@ func _get_laser_muzzle_pos(weapon_forward: Vector2) -> Vector2:
 	return enemy.global_position + weapon_forward * enemy.bullet_spawn_offset
 
 
+## Issue #1581: Toggle visibility of all laser nodes (core + glow).
+func _set_laser_visible(vis: bool) -> void:
+	_laser_line.visible = vis
+	for gl in _laser_glow_lines:
+		if is_instance_valid(gl): gl.visible = vis
+	if _laser_endpoint_glow and is_instance_valid(_laser_endpoint_glow):
+		_laser_endpoint_glow.visible = vis
+	if _laser_dust_particles and is_instance_valid(_laser_dust_particles):
+		_laser_dust_particles.visible = vis
+		_laser_dust_particles.emitting = vis
+
+
 ## Update laser sight position and direction every frame.
 func _update_laser_sight() -> void:
 	if not is_instance_valid(enemy) or not enemy.is_inside_tree():
 		return
 	# Hide laser when enemy is dead
 	if enemy.has_method("is_alive") and not enemy.is_alive():
-		_laser_line.visible = false
+		_set_laser_visible(false)
 		return
 	# Hide laser during reload
 	var is_reloading: bool = enemy.get("_is_reloading") if enemy.get("_is_reloading") != null else false
 	if is_reloading:
-		_laser_line.visible = false
+		_set_laser_visible(false)
 		return
-	_laser_line.visible = true
+	_set_laser_visible(true)
 
 	# Issue #1336 smooth laser: interpolate angle toward the target direction each frame.
 	# If a snap angle was set by the firing code, use it exactly so tracer matches laser.
@@ -558,12 +738,14 @@ func _update_laser_sight() -> void:
 	var muzzle_pos := _get_laser_muzzle_pos(weapon_forward)
 	var laser_end := muzzle_pos + weapon_forward * LASER_MAX_RANGE
 
-	# Raycast to find the first wall the laser hits (layer 4 = walls/obstacles)
+	# Raycast to find the first wall or character (incl. player) the laser hits.
+	# Issue #1662: mask 5 = layer 1 (characters) | layer 4 (walls/obstacles),
+	# so the laser stops at the player instead of passing through them.
 	var world_2d := enemy.get_world_2d()
 	if world_2d:
 		var space_state := world_2d.direct_space_state
 		if space_state:
-			var query := PhysicsRayQueryParameters2D.create(muzzle_pos, laser_end, 4)
+			var query := PhysicsRayQueryParameters2D.create(muzzle_pos, laser_end, 5)
 			var result := space_state.intersect_ray(query)
 			if not result.is_empty():
 				laser_end = result["position"]
@@ -571,12 +753,46 @@ func _update_laser_sight() -> void:
 	_laser_line.set_point_position(0, muzzle_pos)
 	_laser_line.set_point_position(1, laser_end)
 
+	# Issue #1581: Sync glow layers with core laser endpoints
+	for gl in _laser_glow_lines:
+		if is_instance_valid(gl):
+			gl.visible = _laser_line.visible
+			gl.set_point_position(0, muzzle_pos)
+			gl.set_point_position(1, laser_end)
+
+	# Issue #1581: Move endpoint glow to hit point
+	if _laser_endpoint_glow and is_instance_valid(_laser_endpoint_glow):
+		_laser_endpoint_glow.visible = _laser_line.visible
+		_laser_endpoint_glow.global_position = laser_end
+
+	# Issue #1581: Update dust particle emitter along the beam
+	if _laser_dust_particles and is_instance_valid(_laser_dust_particles) and _laser_dust_material:
+		var beam_vec := laser_end - muzzle_pos
+		var beam_len := beam_vec.length()
+		if beam_len < 1.0 or not _laser_line.visible:
+			_laser_dust_particles.visible = false
+		else:
+			_laser_dust_particles.visible = true
+			_laser_dust_particles.global_position = (muzzle_pos + laser_end) * 0.5
+			_laser_dust_particles.global_rotation = beam_vec.angle()
+			_laser_dust_material.emission_box_extents = Vector3(beam_len * 0.5, 2.0, 0.0)
+
 
 ## Clean up laser sight when enemy dies or component is removed.
 func _exit_tree() -> void:
 	if _laser_line and is_instance_valid(_laser_line):
 		_laser_line.queue_free()
 		_laser_line = null
+	for gl in _laser_glow_lines:
+		if is_instance_valid(gl):
+			gl.queue_free()
+	_laser_glow_lines.clear()
+	if _laser_endpoint_glow and is_instance_valid(_laser_endpoint_glow):
+		_laser_endpoint_glow.queue_free()
+		_laser_endpoint_glow = null
+	if _laser_dust_particles and is_instance_valid(_laser_dust_particles):
+		_laser_dust_particles.queue_free()
+		_laser_dust_particles = null
 
 
 # ============================================================================

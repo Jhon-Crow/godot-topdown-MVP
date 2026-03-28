@@ -425,3 +425,26 @@ func test_animated_score_screen_active_timers_empty_initially() -> void:
 	add_child_autofree(instance)
 	assert_eq(instance._active_timers.size(), 0,
 		"Active timers should be empty initially")
+
+
+# ============================================================================
+# Cursor Visibility Tests (Issue #1633)
+# ============================================================================
+
+
+func test_show_animated_score_makes_cursor_visible() -> void:
+	## Issue #1633: cursor was missing on score screen because levels hide it during gameplay.
+	## show_animated_score() must restore MOUSE_MODE_VISIBLE so buttons are clickable.
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+
+	# Simulate gameplay state: cursor hidden
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+
+	var ui := Control.new()
+	add_child_autofree(ui)
+	instance.show_animated_score(ui, {})
+
+	assert_eq(Input.get_mouse_mode(), Input.MOUSE_MODE_VISIBLE,
+		"Cursor should be visible when score screen is shown (Issue #1633)")

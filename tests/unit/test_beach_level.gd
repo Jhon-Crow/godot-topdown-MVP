@@ -171,14 +171,17 @@ func test_wall_top_bottom_edge_y_equals_64() -> void:
 		"WallTop bottom edge should be at y=64 in world space")
 
 
-func test_water_top_edge_equals_wall_bottom_edge() -> void:
-	## Water node: position=(1264,242), height=356.
-	## Top edge = 242 - 356/2 = 242 - 178 = 64.
+func test_water_top_edge_above_wall_bottom_edge() -> void:
+	## Water node: position=(1264,242), height=420 (Issue #1573 increased from 356).
+	## Top edge = 242 - 420/2 = 242 - 210 = 32.
+	## Water now extends above WallTop bottom edge (64) for shore-wash visual effect.
 	var water_position_y: float = 242.0
-	var water_half_height: float = 178.0  # height=356, half=178
+	var water_half_height: float = 210.0  # height=420, half=210
 	var water_top_edge: float = water_position_y - water_half_height
-	assert_almost_eq(water_top_edge, 64.0, 0.001,
-		"Water top edge should be at y=64, matching WallTop bottom edge")
+	assert_almost_eq(water_top_edge, 32.0, 0.001,
+		"Water top edge should be at y=32 with height=420 (Issue #1573 shore wash)")
+	assert_lt(water_top_edge, 64.0,
+		"Water top edge (32) should be above WallTop bottom edge (64) — Issue #1573")
 
 
 func test_camera_limit_top_should_match_wall_bottom() -> void:

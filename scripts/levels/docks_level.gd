@@ -2,7 +2,7 @@ extends Node2D
 ## Docks level scene (Issue #753).
 ##
 ## Large industrial docks environment with shipping containers, warehouses,
-## and open spaces. Features 20 enemies with varied weapons for tactical gameplay.
+## and open spaces. Features 15 enemies with varied weapons for tactical gameplay.
 ## Map layout: ~5000x4000 pixels with water boundaries.
 
 var _enemy_count_label: Label = null
@@ -546,7 +546,7 @@ func _on_enemy_died() -> void:
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
-		GameManager.register_kill(is_player_kill)
+		GameManager.register_kill(is_player_kill, is_penetration_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
@@ -917,11 +917,14 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 
 		buttons_container.add_child(replay_button)
 
-	# Armory button (Issue #897: shown highlighted when items are available to unlock)
+	# Armory button (Issue #897: shown highlighted when items are available to unlock; Issue #1622: always shown)
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
-	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
-		var armory_button := Button.new()
-		armory_button.name = "ArmoryButton"
+	var armory_button := Button.new()
+	armory_button.name = "ArmoryButton"
+	armory_button.pressed.connect(_on_armory_button_pressed)
+	buttons_container.add_child(armory_button)
+	var has_available_unlock: bool = unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock()
+	if has_available_unlock:
 		armory_button.text = "★ Armory — Items Available!"
 		armory_button.custom_minimum_size = Vector2(200, 40)
 		armory_button.add_theme_font_size_override("font_size", 18)
@@ -938,8 +941,6 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		armory_style.corner_radius_bottom_left = 4
 		armory_style.corner_radius_bottom_right = 4
 		armory_button.add_theme_stylebox_override("normal", armory_style)
-		armory_button.pressed.connect(_on_armory_button_pressed)
-		buttons_container.add_child(armory_button)
 		# Add gold shine shader overlay (Issue #1536).
 		var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
 		if _armory_shine_shader:
@@ -951,6 +952,8 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 			_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_armory_shine_overlay.material = _armory_shine_mat
 			armory_button.add_child(_armory_shine_overlay)
+	else:
+		armory_button.text = "Armory"
 
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
@@ -1095,6 +1098,10 @@ func _remove_armory_button_gold_style() -> void:
 		armory_btn.text = "Armory"
 		armory_btn.remove_theme_color_override("font_color")
 		armory_btn.remove_theme_stylebox_override("normal")
+		# Issue #1582: Remove gold shine overlay added by issue #1536
+		var shine_overlay := armory_btn.find_child("ArmoryGoldShineOverlay", true, false)
+		if shine_overlay:
+			shine_overlay.queue_free()
 
 
 func _setup_selected_weapon() -> void:
@@ -1301,12 +1308,20 @@ func _disable_player_controls() -> void:
 
 ## Setup rare rain precipitation effect for the Docks level (Issue #1394).
 ## Configures the RainEffect node with exclusion zones for indoor areas
-## (WarehouseA and WarehouseB) so rain does not appear inside buildings.
+## (CranePlatform, WarehouseA, and WarehouseB) so rain does not appear inside buildings.
 func _setup_rain() -> void:
 	var rain: Node = get_node_or_null("RainEffect")
 	if rain == null:
 		push_warning("[DocksLevel] RainEffect node not found")
 		return
+
+	# CranePlatform: position (400, 500), floor from (-200, -150) to (200, 150)
+	# Including walls (±208x, ±158y from center), the covered area is approximately:
+	var crane_platform_rect := Rect2(
+		400 - 208, 500 - 158,  # top-left corner (global)
+		416, 316  # width, height (including walls)
+	)
+	rain.add_exclusion_zone(crane_platform_rect)
 
 	# WarehouseA: position (400, 1800), floor from (-250, -300) to (250, 300)
 	# Including walls, the covered area is approximately:
@@ -1324,7 +1339,7 @@ func _setup_rain() -> void:
 	)
 	rain.add_exclusion_zone(warehouse_b_rect)
 
-	_log_to_file("Rain precipitation setup with 2 exclusion zones (WarehouseA, WarehouseB)")
+	_log_to_file("Rain precipitation setup with 3 exclusion zones (CranePlatform, WarehouseA, WarehouseB)")
 
 
 func _log_to_file(message: String) -> void:
