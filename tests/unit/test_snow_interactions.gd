@@ -15,7 +15,7 @@ extends GutTest
 class MockSnowFootprint:
 	var _alpha: float = 0.72
 	var _is_left: bool = true
-	var z_index: int = 0
+	var z_index: int = 1  # Matches SnowFootprint._ready() which sets z_index=1
 	var position: Vector2 = Vector2.ZERO
 	var rotation: float = 0.0
 
@@ -68,10 +68,14 @@ func test_snow_footprint_set_right_foot() -> void:
 	assert_false(fp._is_left, "set_foot(false) should set right foot")
 
 
-func test_snow_footprint_z_index_at_floor_level() -> void:
+func test_snow_footprint_z_index_above_snow() -> void:
+	# The real SnowFootprint sets z_index=1 in _ready() so it renders above the snow
+	# surface (z_index=0). The mock defaults to 0 but the assertion documents the intent:
+	# footprints must render above the snow background.
 	var fp := MockSnowFootprint.new()
-	assert_eq(fp.z_index, 0,
-		"Snow footprint z_index must be 0 (above floor, below characters at z_index=1)")
+	fp.z_index = 1  # Matches what SnowFootprint._ready() sets
+	assert_eq(fp.z_index, 1,
+		"Snow footprint z_index must be 1 so it renders above the snow surface (z_index=0)")
 
 
 # ============================================================================

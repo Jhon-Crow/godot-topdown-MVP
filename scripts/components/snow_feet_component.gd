@@ -13,7 +13,7 @@ extends Node
 class_name SnowFeetComponent
 
 ## Distance in pixels between successive footprint spawns.
-@export var step_distance: float = 28.0
+@export var step_distance: float = 22.0
 
 ## Starting alpha for fresh footprints.
 @export var initial_alpha: float = 0.72
@@ -146,23 +146,26 @@ func _spawn_footprint() -> void:
 	fp.scale = Vector2(footprint_scale, footprint_scale)
 	# z_index is set in SnowFootprint._ready() — do not override here.
 
-	if fp.has_method("set_foot"):
-		fp.set_foot(_is_left_foot)
-	if fp.has_method("set_alpha"):
-		fp.set_alpha(alpha)
-
-	# Left/right lateral offset.
+	# Capture foot side before toggling; apply lateral offset.
+	var is_left := _is_left_foot
 	var perp := facing.rotated(PI / 2.0)
-	var offset := 4.5 if _is_left_foot else -4.5
+	var offset := 4.5 if is_left else -4.5
 	fp.global_position += perp * offset
 	_is_left_foot = not _is_left_foot
 
-	# Add to current scene.
+	# Add to current scene FIRST so _ready() runs and z_index/canvas state is set.
 	var scene := get_tree().current_scene
 	if scene:
 		scene.add_child(fp)
 	else:
 		_parent_body.get_parent().add_child(fp)
+
+	# Set visual properties AFTER entering tree so queue_redraw() actually schedules a draw.
+	if fp.has_method("set_foot"):
+		fp.set_foot(is_left)
+	if fp.has_method("set_alpha"):
+		fp.set_alpha(alpha)
+	fp.queue_redraw()
 
 	# Track and evict oldest footprint when cap is reached.
 	_footprints.append(fp)
@@ -172,6 +175,10 @@ func _spawn_footprint() -> void:
 			oldest.queue_free()
 
 	_step_count += 1
+
+	# Always log first footprint to confirm the system is working.
+	if _step_count == 1:
+		_log_always("First footprint spawned at %s for %s" % [fp.global_position, _parent_body.name])
 
 	if debug_logging:
 		_log("Spawned footprint #%d at %s (alpha=%.2f, facing=%.2f°)" % [

@@ -18,11 +18,12 @@ var _is_left: bool = true
 ## Set from SnowFeetComponent before adding to scene.
 ## (node rotation is set by spawner)
 
-## Compressed snow colour — slightly darker and bluer than the surface.
-const SNOW_INDENT_COLOR: Color = Color(0.64, 0.70, 0.80, 1.0)
+## Compressed snow colour — noticeably darker/bluer than the surface so footprints
+## are clearly visible at a glance (top-down view).
+const SNOW_INDENT_COLOR: Color = Color(0.52, 0.60, 0.74, 1.0)
 
-## Shadow rim colour — very subtle darker edge.
-const SNOW_RIM_COLOR: Color = Color(0.54, 0.60, 0.72, 1.0)
+## Shadow rim colour — darker edge for added contrast.
+const SNOW_RIM_COLOR: Color = Color(0.40, 0.48, 0.62, 1.0)
 
 
 func _ready() -> void:
@@ -46,10 +47,11 @@ func _draw() -> void:
 	rim.a = _alpha * 0.6
 
 	# Toe ellipse (forward — negative Y in top-down because +Y is down).
-	_draw_ellipse(Vector2(mirror * 2.5, -7.0), 4.5, 6.5, rim, fill)
+	# Sizes increased so prints are clearly readable at typical resolutions.
+	_draw_ellipse(Vector2(mirror * 3.0, -8.0), 6.0, 8.0, rim, fill)
 
 	# Heel ellipse.
-	_draw_ellipse(Vector2(mirror * 1.0, 5.0), 3.5, 4.5, rim, fill)
+	_draw_ellipse(Vector2(mirror * 1.5, 6.0), 4.5, 5.5, rim, fill)
 
 
 ## Draws a filled ellipse with a subtle darker rim.
