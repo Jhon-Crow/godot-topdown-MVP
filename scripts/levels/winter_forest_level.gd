@@ -48,6 +48,8 @@ func _ready() -> void:
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()
 	_setup_player_tracking()
+	# Restrict camera so the border walls are never visible (Issue #1682).
+	_configure_camera()
 	_setup_debug_ui()
 	_setup_saturation_overlay()
 	if GameManager:
@@ -173,6 +175,33 @@ func _get_combo_color(combo: int) -> Color:
 	elif combo >= 5: return Color(1.0, 0.5, 0.0, 1.0)
 	elif combo >= 3: return Color(1.0, 0.8, 0.0, 1.0)
 	else: return Color(1.0, 1.0, 1.0, 1.0)
+
+
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## WinterForestLevel map: 3328x2528 px playfield framed by 32 px walls.
+##   WallTop    (1664,   48), h=16  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (1664, 2480), h=16  → top edge   y=2464  → limit_bottom = 2464
+##   WallLeft   (  48, 1264), w=16  → right edge x=64    → limit_left   = 64
+##   WallRight  (3280, 1264), w=16  → left edge  x=3264  → limit_right  = 3264
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[WinterForestLevel] Camera2D not found on player — cannot set camera limits")
+		return
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 2464   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 3264   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	_log_to_file("Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
 
 
 func _setup_navigation() -> void:
