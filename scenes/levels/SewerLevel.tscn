@@ -1,4 +1,4 @@
-[gd_scene load_steps=65 format=3 uid="uid://sewer_level_1438"]
+[gd_scene load_steps=81 format=3 uid="uid://sewer_level_1438"]
 
 [ext_resource type="Script" path="res://scripts/levels/sewer_level.gd" id="1_sewer_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -189,6 +189,54 @@ polygon = PackedVector2Array(-250, -12, 250, -12, 250, 12, -250, 12)
 
 [sub_resource type="OccluderPolygon2D" id="O_h262"]
 polygon = PackedVector2Array(-131, -12, 131, -12, 131, 12, -131, 12)
+
+[sub_resource type="RectangleShape2D" id="S_inner_void"]
+size = Vector2(1550, 1250)
+
+[sub_resource type="OccluderPolygon2D" id="O_inner_void"]
+polygon = PackedVector2Array(-775, -625, 775, -625, 775, 625, -775, 625)
+
+[sub_resource type="RectangleShape2D" id="S_alcove"]
+size = Vector2(262, 912)
+
+[sub_resource type="OccluderPolygon2D" id="O_alcove"]
+polygon = PackedVector2Array(-131, -456, 131, -456, 131, 456, -131, 456)
+
+[sub_resource type="RectangleShape2D" id="S_right_outer"]
+size = Vector2(100, 3200)
+
+[sub_resource type="OccluderPolygon2D" id="O_right_outer"]
+polygon = PackedVector2Array(-50, -1600, 50, -1600, 50, 1600, -50, 1600)
+
+[sub_resource type="RectangleShape2D" id="S_lower_void1"]
+size = Vector2(150, 1550)
+
+[sub_resource type="OccluderPolygon2D" id="O_lower_void1"]
+polygon = PackedVector2Array(-75, -775, 75, -775, 75, 775, -75, 775)
+
+[sub_resource type="RectangleShape2D" id="S_lower_void2"]
+size = Vector2(300, 1450)
+
+[sub_resource type="OccluderPolygon2D" id="O_lower_void2"]
+polygon = PackedVector2Array(-150, -725, 150, -725, 150, 725, -150, 725)
+
+[sub_resource type="RectangleShape2D" id="S_lower_void3"]
+size = Vector2(474, 1038)
+
+[sub_resource type="OccluderPolygon2D" id="O_lower_void3"]
+polygon = PackedVector2Array(-237, -519, 237, -519, 237, 519, -237, 519)
+
+[sub_resource type="RectangleShape2D" id="S_lower_void4"]
+size = Vector2(176, 888)
+
+[sub_resource type="OccluderPolygon2D" id="O_lower_void4"]
+polygon = PackedVector2Array(-88, -444, 88, -444, 88, 444, -88, 444)
+
+[sub_resource type="RectangleShape2D" id="S_lower_void5"]
+size = Vector2(500, 988)
+
+[sub_resource type="OccluderPolygon2D" id="O_lower_void5"]
+polygon = PackedVector2Array(-250, -494, 250, -494, 250, 494, -250, 494)
 
 [node name="SewerLevel" type="Node2D"]
 script = ExtResource("1_sewer_level")
@@ -721,6 +769,168 @@ shape = SubResource("S_h262")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallTopRoom_Bottom"]
 occluder = SubResource("O_h262")
+
+[node name="WallRightCorridorBlock" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(419, 650)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallRightCorridorBlock"]
+offset_left = -131.0
+offset_top = -12.0
+offset_right = 131.0
+offset_bottom = 12.0
+color = Color(0.18, 0.22, 0.18, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRightCorridorBlock"]
+shape = SubResource("S_h262")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallRightCorridorBlock"]
+occluder = SubResource("O_h262")
+
+[node name="WallInnerVoid" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(1325, 737)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallInnerVoid"]
+offset_left = -775.0
+offset_top = -625.0
+offset_right = 775.0
+offset_bottom = 625.0
+color = Color(0.04, 0.06, 0.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallInnerVoid"]
+shape = SubResource("S_inner_void")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallInnerVoid"]
+occluder = SubResource("O_inner_void")
+
+[node name="WallAlcove" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(419, 906)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallAlcove"]
+offset_left = -131.0
+offset_top = -456.0
+offset_right = 131.0
+offset_bottom = 456.0
+color = Color(0.04, 0.06, 0.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallAlcove"]
+shape = SubResource("S_alcove")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallAlcove"]
+occluder = SubResource("O_alcove")
+
+[node name="WallRightOuterVoid" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(2150, 1600)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallRightOuterVoid"]
+offset_left = -50.0
+offset_top = -1600.0
+offset_right = 50.0
+offset_bottom = 1600.0
+color = Color(0.04, 0.06, 0.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRightOuterVoid"]
+shape = SubResource("S_right_outer")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallRightOuterVoid"]
+occluder = SubResource("O_right_outer")
+
+[node name="WallLowerVoid1" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(575, 2313)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallLowerVoid1"]
+offset_left = -75.0
+offset_top = -775.0
+offset_right = 75.0
+offset_bottom = 775.0
+color = Color(0.04, 0.06, 0.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLowerVoid1"]
+shape = SubResource("S_lower_void1")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallLowerVoid1"]
+occluder = SubResource("O_lower_void1")
+
+[node name="WallLowerVoid2" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(800, 2363)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallLowerVoid2"]
+offset_left = -150.0
+offset_top = -713.0
+offset_right = 150.0
+offset_bottom = 725.0
+color = Color(0.04, 0.06, 0.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLowerVoid2"]
+shape = SubResource("S_lower_void2")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallLowerVoid2"]
+occluder = SubResource("O_lower_void2")
+
+[node name="WallLowerVoid3" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(1187, 2569)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallLowerVoid3"]
+offset_left = -237.0
+offset_top = -507.0
+offset_right = 237.0
+offset_bottom = 519.0
+color = Color(0.04, 0.06, 0.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLowerVoid3"]
+shape = SubResource("S_lower_void3")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallLowerVoid3"]
+occluder = SubResource("O_lower_void3")
+
+[node name="WallLowerVoid4" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(1512, 2644)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallLowerVoid4"]
+offset_left = -88.0
+offset_top = -432.0
+offset_right = 88.0
+offset_bottom = 444.0
+color = Color(0.04, 0.06, 0.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLowerVoid4"]
+shape = SubResource("S_lower_void4")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallLowerVoid4"]
+occluder = SubResource("O_lower_void4")
+
+[node name="WallLowerVoid5" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(1850, 2594)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallLowerVoid5"]
+offset_left = -250.0
+offset_top = -482.0
+offset_right = 250.0
+offset_bottom = 494.0
+color = Color(0.04, 0.06, 0.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLowerVoid5"]
+shape = SubResource("S_lower_void5")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallLowerVoid5"]
+occluder = SubResource("O_lower_void5")
 
 [node name="InteriorWalls" type="Node2D" parent="Environment"]
 

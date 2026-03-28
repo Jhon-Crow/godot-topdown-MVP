@@ -45,6 +45,9 @@ class MockExperimentalSettings:
 	## Whether all maps are unlocked (Issue #1075).
 	var all_maps_unlocked: bool = false
 
+	## Whether roguelike is unlocked via experimental toggle (Issue #1618).
+	var roguelike_unlocked: bool = false
+
 	## Whether search path waypoints overlay is visible (Issue #1251).
 	var search_path_visible_enabled: bool = false
 
@@ -175,6 +178,17 @@ class MockExperimentalSettings:
 	func is_all_maps_unlocked() -> bool:
 		return all_maps_unlocked
 
+	## Set roguelike unlocked via experimental toggle (Issue #1618).
+	func set_roguelike_unlocked(enabled: bool) -> void:
+		if roguelike_unlocked != enabled:
+			roguelike_unlocked = enabled
+			settings_changed_emitted += 1
+			_save_settings()
+
+	## Check if roguelike is unlocked via experimental toggle (Issue #1618).
+	func is_roguelike_unlocked() -> bool:
+		return roguelike_unlocked
+
 	## Set search path waypoints overlay visibility (Issue #1251).
 	func set_search_path_visible_enabled(enabled: bool) -> void:
 		if search_path_visible_enabled != enabled:
@@ -199,6 +213,7 @@ class MockExperimentalSettings:
 		_saved_settings["enemy_flashlight_blinding_enabled"] = enemy_flashlight_blinding_enabled
 		_saved_settings["all_weapons_unlocked"] = all_weapons_unlocked
 		_saved_settings["all_maps_unlocked"] = all_maps_unlocked
+		_saved_settings["roguelike_unlocked"] = roguelike_unlocked
 		_saved_settings["search_path_visible_enabled"] = search_path_visible_enabled
 
 	## Load settings (simulated).
@@ -247,6 +262,10 @@ class MockExperimentalSettings:
 			all_maps_unlocked = _saved_settings["all_maps_unlocked"]
 		else:
 			all_maps_unlocked = false
+		if _saved_settings.has("roguelike_unlocked"):
+			roguelike_unlocked = _saved_settings["roguelike_unlocked"]
+		else:
+			roguelike_unlocked = false
 		if _saved_settings.has("search_path_visible_enabled"):
 			search_path_visible_enabled = _saved_settings["search_path_visible_enabled"]
 		else:
@@ -265,6 +284,7 @@ class MockExperimentalSettings:
 		enemy_flashlight_blinding_enabled = false
 		all_weapons_unlocked = false
 		all_maps_unlocked = false
+		roguelike_unlocked = false
 		search_path_visible_enabled = false
 		settings_changed_emitted += 1
 		_saved_settings.clear()
@@ -1521,3 +1541,101 @@ func test_save_and_load_all_maps_unlocked_enabled() -> void:
 
 	assert_true(settings.is_all_maps_unlocked(),
 		"All maps unlocked enabled state should survive reload")
+
+
+# ============================================================================
+# Roguelike Unlocked Tests (Issue #1618)
+# ============================================================================
+
+
+func test_default_roguelike_unlocked_is_false() -> void:
+	assert_false(settings.roguelike_unlocked,
+		"Roguelike unlocked should be false by default")
+
+
+func test_is_roguelike_unlocked_returns_false_by_default() -> void:
+	assert_false(settings.is_roguelike_unlocked(),
+		"is_roguelike_unlocked should return false by default")
+
+
+func test_set_roguelike_unlocked_true() -> void:
+	settings.set_roguelike_unlocked(true)
+
+	assert_true(settings.roguelike_unlocked,
+		"Roguelike unlocked should be true after set_roguelike_unlocked(true)")
+
+
+func test_set_roguelike_unlocked_false() -> void:
+	settings.roguelike_unlocked = true
+	settings.set_roguelike_unlocked(false)
+
+	assert_false(settings.roguelike_unlocked,
+		"Roguelike unlocked should be false after set_roguelike_unlocked(false)")
+
+
+func test_set_roguelike_unlocked_emits_signal() -> void:
+	settings.set_roguelike_unlocked(true)
+
+	assert_eq(settings.settings_changed_emitted, 1,
+		"Should emit settings_changed signal when roguelike_unlocked changes")
+
+
+func test_set_roguelike_unlocked_no_signal_if_same_value() -> void:
+	settings.set_roguelike_unlocked(false)
+
+	assert_eq(settings.settings_changed_emitted, 0,
+		"Should not emit signal when value does not change")
+
+
+func test_set_roguelike_unlocked_saves_settings() -> void:
+	settings.set_roguelike_unlocked(true)
+
+	assert_true(settings._saved_settings.has("roguelike_unlocked"),
+		"Settings should contain roguelike_unlocked key after save")
+	assert_true(settings._saved_settings["roguelike_unlocked"],
+		"Saved roguelike_unlocked should be true")
+
+
+func test_load_settings_restores_roguelike_unlocked() -> void:
+	settings._saved_settings["roguelike_unlocked"] = true
+
+	settings._load_settings()
+
+	assert_true(settings.roguelike_unlocked,
+		"Roguelike unlocked should be restored from saved settings")
+
+
+func test_load_settings_roguelike_unlocked_defaults_to_false() -> void:
+	settings.roguelike_unlocked = true
+
+	settings._load_settings()
+
+	assert_false(settings.roguelike_unlocked,
+		"Roguelike unlocked should default to false when not in saved settings")
+
+
+func test_reset_clears_roguelike_unlocked() -> void:
+	settings.set_roguelike_unlocked(true)
+	settings.reset_to_defaults()
+
+	assert_false(settings.roguelike_unlocked,
+		"Reset should set roguelike_unlocked back to false")
+
+
+func test_roguelike_unlocked_independent_of_all_maps_unlocked() -> void:
+	settings.set_roguelike_unlocked(true)
+	assert_true(settings.is_roguelike_unlocked(), "Roguelike unlocked should be enabled")
+	assert_false(settings.is_all_maps_unlocked(), "All maps unlocked should still be disabled")
+
+
+func test_save_and_load_roguelike_unlocked_enabled() -> void:
+	settings.set_roguelike_unlocked(true)
+
+	# Reset in-memory state
+	settings.roguelike_unlocked = false
+
+	# Load from saved
+	settings._load_settings()
+
+	assert_true(settings.is_roguelike_unlocked(),
+		"Roguelike unlocked enabled state should survive reload")
