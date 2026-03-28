@@ -715,6 +715,11 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 		# Wall detected between origin and landing - skip this decal
 		return
 
+	# Issue #1627: Check if landing position is on snow surface — if so, delegate to
+	# the level's snow blood absorption system instead of spawning a regular puddle.
+	if _try_spawn_snow_blood_absorption(scene, landing_pos):
+		return
+
 	# Create the decal
 	var decal := _blood_decal_scene.instantiate() as Node2D
 	if decal == null:
@@ -739,6 +744,36 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Delayed blood decal spawned at ", landing_pos)
+
+
+## Issue #1627: Checks whether `pos` is over a snow surface and, if so, asks the
+## current level to spawn a SnowBloodAbsorption decal instead of a puddle.
+## Returns true if the snow path was taken (caller should skip normal decal).
+func _try_spawn_snow_blood_absorption(scene: Node, pos: Vector2) -> bool:
+	if scene == null:
+		return false
+	# Check if there is a snow surface node under the landing position.
+	# Snow surfaces are in the "snow_surface" group (set in WinterForestLevel.tscn).
+	var snow_nodes := get_tree().get_nodes_in_group("snow_surface")
+	for snow_node in snow_nodes:
+		if not (snow_node is Control or snow_node is Node2D):
+			continue
+		var rect: Rect2
+		if snow_node is ColorRect:
+			var cr := snow_node as ColorRect
+			var tl := cr.global_position
+			rect = Rect2(tl, cr.size)
+		elif snow_node is Node2D:
+			# Fallback: use a rough bounding region from the scene
+			continue
+		else:
+			continue
+		if rect.has_point(pos):
+			# The decal lands on snow — delegate to the level node.
+			if scene.has_method("spawn_snow_blood_absorption"):
+				scene.spawn_snow_blood_absorption(pos)
+				return true
+	return false
 
 
 ## Clears all blood decals from the scene.

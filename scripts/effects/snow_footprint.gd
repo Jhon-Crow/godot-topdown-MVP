@@ -27,7 +27,8 @@ const SNOW_RIM_COLOR: Color = Color(0.54, 0.60, 0.72, 1.0)
 
 func _ready() -> void:
 	# Render above snow background (z_index 0) but below characters (z_index 1).
-	z_index = 0
+	# Use z_index 1 so footprints are drawn on top of the snow surface.
+	z_index = 1
 
 
 func _draw() -> void:

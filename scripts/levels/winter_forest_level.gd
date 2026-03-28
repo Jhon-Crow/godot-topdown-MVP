@@ -1350,18 +1350,23 @@ func _create_sunlight_texture() -> ImageTexture:
 ## Preloads SnowBloodAbsorption scene and connects to blood_hit_snow signal if present.
 ## Also reduces BloodyFeetComponent step count on snow for shorter blood trails (req. #4).
 func _setup_snow_interactions() -> void:
+	_log_to_file("Setting up snow interactions (Issue #1627)...")
+
 	# Preload blood absorption scene.
 	var absorption_path := "res://scenes/effects/SnowBloodAbsorption.tscn"
 	if ResourceLoader.exists(absorption_path):
 		_snow_blood_absorption_scene = load(absorption_path)
+		_log_to_file("SnowBloodAbsorption scene loaded")
 	else:
 		push_warning("[WinterForestLevel] SnowBloodAbsorption scene not found")
+		_log_to_file("WARNING: SnowBloodAbsorption scene not found at " + absorption_path)
 
 	# Preload SnowFeetComponent script.
 	var snow_feet_script_path := "res://scripts/components/snow_feet_component.gd"
 	var snow_feet_script = load(snow_feet_script_path) if ResourceLoader.exists(snow_feet_script_path) else null
 	if snow_feet_script == null:
 		push_warning("[WinterForestLevel] SnowFeetComponent script not found")
+		_log_to_file("WARNING: SnowFeetComponent script not found at " + snow_feet_script_path)
 		return
 
 	# Add SnowFeetComponent to player.
@@ -1377,8 +1382,11 @@ func _setup_snow_interactions() -> void:
 		if bloody_feet and bloody_feet.get("blood_steps_count") != null:
 			bloody_feet.blood_steps_count = 6
 			_log_to_file("Player BloodyFeetComponent blood_steps_count reduced to 6 (snow map)")
+	else:
+		_log_to_file("WARNING: Player not found or not CharacterBody2D — skipping player snow feet")
 
 	# Add SnowFeetComponent to each enemy.
+	var enemies_with_snow_feet := 0
 	for enemy in _enemies:
 		if not is_instance_valid(enemy) or not (enemy is CharacterBody2D):
 			continue
@@ -1386,13 +1394,14 @@ func _setup_snow_interactions() -> void:
 		enemy_snow_feet.name = "SnowFeetComponent"
 		enemy_snow_feet.set_script(snow_feet_script)
 		enemy.add_child(enemy_snow_feet)
+		enemies_with_snow_feet += 1
 
 		# Requirement #4: reduce bloody trail length on snow for enemies too.
 		var enemy_bloody_feet := enemy.get_node_or_null("BloodyFeetComponent")
 		if enemy_bloody_feet and enemy_bloody_feet.get("blood_steps_count") != null:
 			enemy_bloody_feet.blood_steps_count = 6
 
-	_log_to_file("Snow interactions setup complete (footprints + blood absorption)")
+	_log_to_file("Snow interactions setup complete: %d enemies equipped with SnowFeetComponent" % enemies_with_snow_feet)
 
 
 ## Issue #1627: Spawns a SnowBloodAbsorption decal at the given world position.

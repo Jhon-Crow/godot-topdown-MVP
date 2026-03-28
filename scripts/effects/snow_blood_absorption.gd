@@ -31,8 +31,8 @@ var _done: bool = false
 
 
 func _ready() -> void:
-	# Render above snow background but below characters.
-	z_index = 0
+	# Render above snow background (z_index 1) but below characters (z_index 2+).
+	z_index = 1
 
 
 func _process(delta: float) -> void:

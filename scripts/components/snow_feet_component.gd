@@ -83,7 +83,7 @@ func _ready() -> void:
 	_find_character_model()
 
 	_initialized = true
-	_log("SnowFeetComponent ready on %s" % _parent_body.name)
+	_log_always("SnowFeetComponent ready on %s" % _parent_body.name)
 
 
 ## Finds the PlayerModel or EnemyModel child for facing direction.
@@ -144,7 +144,7 @@ func _spawn_footprint() -> void:
 	fp.global_position = _parent_body.global_position
 	fp.rotation = facing.angle() + PI / 2.0
 	fp.scale = Vector2(footprint_scale, footprint_scale)
-	fp.z_index = 0
+	# z_index is set in SnowFootprint._ready() — do not override here.
 
 	if fp.has_method("set_foot"):
 		fp.set_foot(_is_left_foot)
@@ -178,10 +178,19 @@ func _spawn_footprint() -> void:
 			_step_count, fp.global_position, alpha, rad_to_deg(facing.angle())])
 
 
-## Logs through FileLogger if available, else prints.
+## Logs through FileLogger if available, else prints. Only active when debug_logging=true.
 func _log(message: String) -> void:
+	if not debug_logging:
+		return
 	var msg := "[SnowFeet:%s] %s" % [_parent_body.name if _parent_body else "?", message]
-	if debug_logging:
-		print(msg)
+	print(msg)
+	if _file_logger and _file_logger.has_method("log_info"):
+		_file_logger.log_info(msg)
+
+
+## Always logs through FileLogger (used for important init/error messages regardless of debug flag).
+func _log_always(message: String) -> void:
+	var msg := "[SnowFeet:%s] %s" % [_parent_body.name if _parent_body else "?", message]
+	print(msg)
 	if _file_logger and _file_logger.has_method("log_info"):
 		_file_logger.log_info(msg)
