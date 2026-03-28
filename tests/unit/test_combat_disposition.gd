@@ -54,7 +54,7 @@ class MockActiveItemManager:
 		8: {"name": "Trajectory Glasses", "icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png", "description": "Trajectory glasses."},
 		9: {"name": "Laser Sight", "icon_path": "res://assets/sprites/weapons/laser_sight_icon.png", "description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."},
 		10: {"name": "Extended Magazine", "icon_path": "res://assets/sprites/weapons/extended_magazine_icon.png", "description": "Extended magazine — passive: 2.5x magazine size, 5% less total ammo."},
-		11: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "Loudspeaker."},
+		11: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "???"},
 		12: {"name": "Breaching Charges", "icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png", "description": "Breaching charges."},
 		13: {"name": "Armored Skin", "icon_path": "res://assets/sprites/weapons/armored_skin_icon.png", "description": "Armored skin."},
 		14: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png", "description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."},
@@ -125,13 +125,15 @@ class MockCombatDispositionSystem:
 	var max_speed: float = 200.0
 	## Base max speed stored before applying the speed bonus
 	var base_speed: float = 200.0
-	## Current friction (scaled alongside speed to halve drift — Issue #1583)
+	## Current friction (set to NO_DRIFT_FRICTION during speed boost to eliminate drift — Issue #1623)
 	var friction: float = 1000.0
 	## Base friction stored before applying the speed boost
 	var base_friction: float = 1000.0
+	## Friction value applied during the speed boost — large enough to stop the player instantly (Issue #1623)
+	const NO_DRIFT_FRICTION: float = 100000.0
 
 	## Initialize with starting bonuses (normal difficulty: x2 speed)
-	## Friction is scaled by the same multiplier as speed to keep stopping feel proportional.
+	## Friction is set to NO_DRIFT_FRICTION to eliminate drift entirely during the speed boost (Issue #1623).
 	func init_combat_disposition(is_black_metal: bool = false) -> void:
 		active = true
 		penalty_applied = false
@@ -141,11 +143,11 @@ class MockCombatDispositionSystem:
 		base_friction = friction
 		var speed_mult := 4.0 if is_black_metal else 2.0
 		max_speed = base_speed * speed_mult
-		friction = base_friction * speed_mult
+		friction = NO_DRIFT_FRICTION
 
 	## Apply hit penalty (called when player takes damage).
 	## The penalty is only applied once per run (on the first hit).
-	## Friction is restored to base value when the penalty is applied.
+	## Friction is restored to base value (no-drift override ends with the speed boost).
 	func apply_hit_penalty() -> void:
 		if not active:
 			return
@@ -583,24 +585,24 @@ func test_combat_disposition_description_mentions_speed() -> void:
 
 
 # ============================================================================
-# Friction (Drift Reduction) Tests (Issue #1583)
+# Friction (No-Drift) Tests (Issue #1583, #1623)
 # ============================================================================
 
 
-func test_combat_disposition_doubles_friction_on_init_normal_difficulty() -> void:
+func test_combat_disposition_sets_no_drift_friction_on_init_normal_difficulty() -> void:
 	var system := MockCombatDispositionSystem.new()
 	system.friction = 1000.0
 	system.init_combat_disposition(false)
-	assert_almost_eq(system.friction, 2000.0, 0.001,
-		"Normal difficulty: Combat Disposition should double friction alongside speed (1000 -> 2000)")
+	assert_almost_eq(system.friction, system.NO_DRIFT_FRICTION, 0.001,
+		"Normal difficulty: Combat Disposition should set friction to NO_DRIFT_FRICTION (100000) to eliminate drift (Issue #1623)")
 
 
-func test_combat_disposition_quadruples_friction_on_init_black_metal() -> void:
+func test_combat_disposition_sets_no_drift_friction_on_init_black_metal() -> void:
 	var system := MockCombatDispositionSystem.new()
 	system.friction = 1000.0
 	system.init_combat_disposition(true)
-	assert_almost_eq(system.friction, 4000.0, 0.001,
-		"Black Metal difficulty: Combat Disposition should multiply friction by 4 alongside speed (1000 -> 4000)")
+	assert_almost_eq(system.friction, system.NO_DRIFT_FRICTION, 0.001,
+		"Black Metal difficulty: Combat Disposition should set friction to NO_DRIFT_FRICTION (100000) to eliminate drift (Issue #1623)")
 
 
 func test_combat_disposition_friction_boost_stores_base_friction() -> void:
@@ -608,16 +610,16 @@ func test_combat_disposition_friction_boost_stores_base_friction() -> void:
 	system.friction = 1200.0
 	system.init_combat_disposition(false)
 	assert_almost_eq(system.base_friction, 1200.0, 0.001,
-		"Base friction should be stored before applying the friction boost")
+		"Base friction should be stored before applying the no-drift override")
 
 
 func test_combat_disposition_friction_restored_on_hit_penalty() -> void:
 	var system := MockCombatDispositionSystem.new()
 	system.friction = 1000.0
 	system.init_combat_disposition(false)
-	# Friction was doubled to 2000 during speed boost
-	assert_almost_eq(system.friction, 2000.0, 0.001,
-		"Friction should be doubled after speed boost")
+	# Friction is NO_DRIFT_FRICTION during speed boost
+	assert_almost_eq(system.friction, system.NO_DRIFT_FRICTION, 0.001,
+		"Friction should be NO_DRIFT_FRICTION after speed boost (no drift, Issue #1623)")
 	system.apply_hit_penalty()
 	assert_almost_eq(system.friction, 1000.0, 0.001,
 		"Friction should be restored to base value after hit penalty")
@@ -635,7 +637,7 @@ func test_combat_disposition_friction_not_changed_when_inactive() -> void:
 func test_combat_disposition_black_metal_friction_restored_on_hit_penalty() -> void:
 	var system := MockCombatDispositionSystem.new()
 	system.friction = 1000.0
-	system.init_combat_disposition(true)  # Black Metal: friction * 4 = 4000
+	system.init_combat_disposition(true)  # Black Metal: speed * 4, friction = NO_DRIFT_FRICTION
 	system.apply_hit_penalty()
 	assert_almost_eq(system.friction, 1000.0, 0.001,
 		"Black Metal after first hit: friction should be restored to base value (1000)")
@@ -650,3 +652,15 @@ func test_combat_disposition_friction_not_restored_on_second_hit() -> void:
 	system.apply_hit_penalty()
 	assert_almost_eq(system.friction, 1000.0, 0.001,
 		"Friction should remain at base value (penalty applied only once)")
+
+
+func test_combat_disposition_no_drift_friction_large_enough_to_stop_instantly() -> void:
+	# NO_DRIFT_FRICTION * delta must exceed MaxSpeed even after the boost.
+	# Worst case: Black Metal x4, base speed 300 -> boosted speed 1200.
+	# At 60 fps, delta = 1/60 ≈ 0.0167. NO_DRIFT_FRICTION * 0.0167 must exceed 1200.
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 300.0
+	system.init_combat_disposition(true)  # x4 -> max_speed = 1200
+	var delta_at_60fps := 1.0 / 60.0
+	assert_true(system.NO_DRIFT_FRICTION * delta_at_60fps > system.max_speed,
+		"NO_DRIFT_FRICTION * delta must exceed boosted MaxSpeed to stop the player instantly (Issue #1623)")
