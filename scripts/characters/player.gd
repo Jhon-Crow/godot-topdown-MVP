@@ -4460,9 +4460,9 @@ func _handle_experimental_sample_input() -> void:
 	var eligible_types: Array = []
 	if mgr_for_types and mgr_for_types.has_method("get_experimental_sample_eligible_types"):
 		eligible_types = mgr_for_types.get_experimental_sample_eligible_types()
-	# Fallback to legacy range if manager is unavailable
+	# Fallback if manager is unavailable — include all known activatable types (Issue #1635)
 	if eligible_types.is_empty():
-		for t in range(1, 18):
+		for t in [1, 3, 4, 5, 7, 8, 11, 12, 15, 16, 19, 20]:
 			eligible_types.append(t)
 	const MAX_ATTEMPTS := 20
 	var effect_fired := false
