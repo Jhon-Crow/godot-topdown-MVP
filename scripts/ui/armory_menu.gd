@@ -1372,8 +1372,13 @@ func _update_weapon_stats() -> void:
 
 		# Caliber
 		var caliber = resource.get("Caliber")
+		FileLogger.info("[ArmoryMenu] weapon=%s caliber_resource=%s" % [
+			_pending_weapon_id, "present" if caliber else "null"])
 		if caliber:
-			bbcode += "[color=#aab0b8]Caliber:[/color] %s\n" % caliber.get("caliber_name")
+			var caliber_name = caliber.get("caliber_name")
+			FileLogger.info("[ArmoryMenu] caliber_name=%s" % str(caliber_name))
+			if caliber_name != null:
+				bbcode += "[color=#aab0b8]Caliber:[/color] %s\n" % caliber_name
 
 		# Damage & Fire rate
 		var damage: float = resource.get("Damage")
