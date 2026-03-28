@@ -59,6 +59,9 @@ func _ready() -> void:
 	# Disable it entirely in roguelike mode (Issue #1166)
 	_refresh_armory_button_state()
 
+	# Disable roguelike button until all levels are completed (Issue #1618)
+	_refresh_roguelike_button_state()
+
 	# Preload levels menu if not set
 	if levels_menu_scene == null:
 		levels_menu_scene = preload("res://scenes/ui/LevelsMenu.tscn")
@@ -105,6 +108,9 @@ func pause_game() -> void:
 
 	# Refresh armory button state each time the menu opens
 	_refresh_armory_button_state()
+
+	# Refresh roguelike button lock state each time the menu opens (Issue #1618)
+	_refresh_roguelike_button_state()
 
 	show()
 	resume_button.grab_focus()
@@ -320,3 +326,58 @@ func _refresh_armory_button_state() -> void:
 			_armory_shine_overlay.queue_free()
 		_armory_shine_overlay = null
 		armory_button.remove_theme_color_override("font_color")
+
+
+## Refresh the roguelike button lock state (Issue #1618).
+## Locked until all regular levels are completed on any rank.
+## The experimental "Unlock Roguelike" toggle bypasses the requirement.
+func _refresh_roguelike_button_state() -> void:
+	# Check experimental bypass first
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var experimental_bypass: bool = (
+		experimental_settings != null and
+		experimental_settings.has_method("is_roguelike_unlocked") and
+		experimental_settings.is_roguelike_unlocked()
+	)
+
+	if experimental_bypass:
+		roguelike_button.disabled = false
+		roguelike_button.tooltip_text = ""
+		return
+
+	# Check if all regular levels have been completed on any difficulty
+	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
+	var all_done: bool = _are_all_levels_completed(progress_manager)
+
+	roguelike_button.disabled = not all_done
+	if all_done:
+		roguelike_button.tooltip_text = ""
+	else:
+		roguelike_button.tooltip_text = "Пройдите все уровни на любой ранг, чтобы разблокировать рогалик"
+
+
+## Check if all regular levels (those listed in LevelsMenu.LEVELS) are completed on any difficulty.
+## This mirrors the logic in levels_menu.gd::is_all_levels_completed() (Issue #1618).
+func _are_all_levels_completed(progress_manager: Node) -> bool:
+	if progress_manager == null or not progress_manager.has_method("is_level_completed_any_difficulty"):
+		return false
+	var level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
+		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/TestTier.tscn",
+		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
+		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
+		"res://scenes/levels/SewerLevel.tscn",
+		"res://scenes/levels/WinterForestLevel.tscn",
+		"res://scenes/levels/RailwayStationLevel.tscn",
+	]
+	for level_path in level_paths:
+		if not progress_manager.is_level_completed_any_difficulty(level_path):
+			return false
+	return true

@@ -195,7 +195,7 @@ class MockActiveItemManager:
 		11: {
 			"name": "Loudspeaker",
 			"icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
-			"description": "Loudspeaker — press Space to emit sound cone. 2 charges per battle."
+			"description": "???"
 		},
 		12: {
 			"name": "Breaching Charges",
@@ -553,6 +553,25 @@ func test_get_active_item_description_invalid() -> void:
 	assert_eq(manager.get_active_item_description(999), "")
 
 
+func test_loudspeaker_description_is_mystery() -> void:
+	# Issue #1625: Loudspeaker description should be ??? (mystery)
+	var desc := manager.get_active_item_description(11)
+	assert_eq(desc, "???",
+		"Loudspeaker description should be '???' (Issue #1625)")
+
+
+func test_loudspeaker_is_unlocked_from_start() -> void:
+	# Issue #1625: Loudspeaker should be unlocked (open) from the start
+	assert_true(manager.is_active_item_unlocked(11),
+		"Loudspeaker should be unlocked from the start (Issue #1625)")
+
+
+func test_loudspeaker_is_not_default_selected() -> void:
+	# Issue #1625: Loudspeaker should be open but not taken (not selected by default)
+	assert_false(manager.is_selected(11),
+		"Loudspeaker should not be selected by default (Issue #1625)")
+
+
 func test_get_active_item_icon_path_flashlight() -> void:
 	var path := manager.get_active_item_icon_path(1)
 	assert_true(path.contains("flashlight"),
@@ -712,7 +731,7 @@ class MockArmoryWithActiveItems:
 		8: {"name": "Trajectory Glasses", "description": "Trajectory glasses — ricochet visualization"},
 		9: {"name": "Laser Sight", "description": "Laser sight — passive"},
 		10: {"name": "Extended Magazine", "description": "Extended magazine — passive: 2.5x magazine size"},
-		11: {"name": "Loudspeaker", "description": "Loudspeaker — press Space to emit sound cone"},
+		11: {"name": "Loudspeaker", "description": "???"},
 		12: {"name": "Breaching Charges", "description": "Breaching charges — place on wall to create a passage"},
 		13: {"name": "Armored Skin", "description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward."},
 		14: {"name": "Auto-Reload", "description": "Auto-reload — passive: magazine reduced 2.1x, refilled on kill"},
