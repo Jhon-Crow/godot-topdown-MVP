@@ -144,11 +144,8 @@ const WALL_SLIDE_DISTANCE: float = 30.0  ## Wall slide threshold
 const SEPARATION_RADIUS: float = 60.0  ## Distance within which separation force is applied (px)
 const SEPARATION_STRENGTH: float = 280.0  ## Maximum separation impulse magnitude (px/s²)
 var _avoidance_velocity: Vector2 = Vector2.ZERO  ## Issue #1146: ORCA-computed safe velocity
-## Issue #1696: Navigation throttle — rate-limit path requests to avoid 1200+ A* searches/sec with 20 enemies.
-var _nav_target_last_set: Vector2 = Vector2.ZERO  ## Last position passed to set_target_position
-var _nav_repath_timer: float = 0.0  ## Timestamp of last forced repath (seconds, from Time.get_ticks_msec)
-const NAV_REPATH_INTERVAL: float = 0.3  ## Max repath rate (300 ms = ~3.3 requests/sec per enemy)
-const NAV_REPATH_DISTANCE_SQ: float = 2500.0  ## 50 px threshold squared — repath early if target moved >50 px
+var _nav_target_last_set: Vector2 = Vector2.ZERO; var _nav_repath_timer: float = 0.0  ## Issue #1696: nav throttle state (last set pos / timestamp of last repath)
+const NAV_REPATH_INTERVAL: float = 0.3; const NAV_REPATH_DISTANCE_SQ: float = 2500.0  ## Issue #1696: 300 ms / 50 px repath thresholds
 var _cover_raycasts: Array[RayCast2D] = []  ## Cover detection raycasts
 const COVER_CHECK_COUNT: int = 120  ## Number of cover raycasts (Issue #1338: 120 rays = 3° apart for dense coverage)
 const COVER_CHECK_DISTANCE: float = 300.0  ## Cover check distance (default, used when infinite rays disabled)
@@ -399,13 +396,9 @@ func _ready() -> void:
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
 	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
-	# Issue #1696: Stagger cover searches — spread first eligibility across the cooldown window so
-	# 20 enemies entering SEEKING_COVER simultaneously don't all fire 120 raycasts in the same frame.
-	# Enemy with stagger 0 becomes eligible immediately; enemy with stagger 9 waits ~0.9s.
-	var _cover_stagger: float = (get_instance_id() % 10) * (COVER_SEARCH_COOLDOWN / 10.0)
-	_last_cover_search_time = Time.get_ticks_msec() / 1000.0 - COVER_SEARCH_COOLDOWN + _cover_stagger
-	_last_closest_cover_search_time = _last_cover_search_time
-	_last_distant_cover_search_time = _last_cover_search_time
+	# Issue #1696: Stagger cover searches across enemies so simultaneous SEEKING_COVER transitions don't spike 120 raycasts in one frame.
+	var _cs: float = Time.get_ticks_msec() / 1000.0 - COVER_SEARCH_COOLDOWN + (get_instance_id() % 10) * (COVER_SEARCH_COOLDOWN / 10.0)
+	_last_cover_search_time = _cs; _last_closest_cover_search_time = _cs; _last_distant_cover_search_time = _cs
 
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
@@ -3248,14 +3241,8 @@ func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 	var space_state := get_world_2d().direct_space_state
 	var nav_map: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
 	var has_nav := nav_map.is_valid()
-	## Issue #1696: Cache ExperimentalSettings cover flags on first access to avoid scene-tree traversal every search.
-	if not _cover_flags_cached:
-		var exp_s: Node = get_node_or_null("/root/ExperimentalSettings")
-		_cover_inf_rays = exp_s != null and exp_s.has_method("is_cover_infinite_rays_enabled") and exp_s.is_cover_infinite_rays_enabled()
-		_cover_sec_rays = exp_s != null and exp_s.has_method("is_cover_sector_rays_enabled") and exp_s.is_cover_sector_rays_enabled()
-		_cover_flags_cached = true
-	var inf_rays: bool = _cover_inf_rays
-	var sec_rays: bool = _cover_sec_rays
+	if not _cover_flags_cached: var exp_s: Node = get_node_or_null("/root/ExperimentalSettings"); _cover_inf_rays = exp_s != null and exp_s.has_method("is_cover_infinite_rays_enabled") and exp_s.is_cover_infinite_rays_enabled(); _cover_sec_rays = exp_s != null and exp_s.has_method("is_cover_sector_rays_enabled") and exp_s.is_cover_sector_rays_enabled(); _cover_flags_cached = true  ## Issue #1696: cache ExperimentalSettings flags on first access
+	var inf_rays: bool = _cover_inf_rays; var sec_rays: bool = _cover_sec_rays
 	var ray_dist: float = COVER_INFINITE_RAY_DISTANCE if inf_rays else COVER_CHECK_DISTANCE
 	var ray_count: int = COVER_SECTOR_RAY_COUNT if sec_rays else COVER_CHECK_COUNT
 	var sec_ctr: Vector2 = (global_position - player_pos).normalized() if sec_rays else Vector2.ZERO
@@ -4713,14 +4700,11 @@ func _is_player_distracted() -> bool:
 		_log_debug("Player distracted: aim angle %.1f° > %.1f° threshold" % [rad_to_deg(angle), rad_to_deg(PLAYER_DISTRACTION_ANGLE)])
 	return is_distracted
 
-## Issue #1696: Return true if the nav target should be updated this frame (throttle to NAV_REPATH_INTERVAL).
-## Uses game time so multiple callers in the same frame share the same decision without double-counting.
+## Issue #1696: Rate-limit nav target updates to NAV_REPATH_INTERVAL (or on large target movement).
 func _should_repath(target_pos: Vector2) -> bool:
-	if _nav_target_last_set.distance_squared_to(target_pos) > NAV_REPATH_DISTANCE_SQ:
-		_nav_repath_timer = 0.0; _nav_target_last_set = target_pos; return true
+	if _nav_target_last_set.distance_squared_to(target_pos) > NAV_REPATH_DISTANCE_SQ: _nav_repath_timer = 0.0; _nav_target_last_set = target_pos; return true
 	var now: float = Time.get_ticks_msec() / 1000.0
-	if now - _nav_repath_timer >= NAV_REPATH_INTERVAL:
-		_nav_repath_timer = now; _nav_target_last_set = target_pos; return true
+	if now - _nav_repath_timer >= NAV_REPATH_INTERVAL: _nav_repath_timer = now; _nav_target_last_set = target_pos; return true
 	return false
 
 ## Get direction to follow NavigationAgent2D path toward target_pos. Returns Vector2.ZERO if finished.
