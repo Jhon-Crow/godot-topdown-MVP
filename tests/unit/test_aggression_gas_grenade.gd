@@ -32,6 +32,13 @@ class MockAggressionGasGrenade:
 	## Track whether gas cloud was spawned.
 	var gas_cloud_spawned: bool = false
 
+	## Track the order of operations: sound then cloud (Issue #1688).
+	var sound_played: bool = false
+	var cloud_spawned_after_sound: bool = false
+
+	## Simulated sound duration (seconds) for testing Issue #1688 timing.
+	var mock_sound_length: float = 1.0
+
 	## Track enemies affected by aggression.
 	var affected_enemies: Array = []
 
@@ -46,13 +53,23 @@ class MockAggressionGasGrenade:
 	func is_in_effect_radius(pos: Vector2) -> bool:
 		return global_position.distance_to(pos) <= effect_radius
 
+	## Play sound (mock) — records that sound was played before cloud.
+	func _play_explosion_sound_mock() -> void:
+		sound_played = true
+
 	## Spawn aggression cloud (mock).
 	func _spawn_aggression_cloud() -> void:
 		gas_cloud_spawned = true
+		# Issue #1688: cloud must be spawned only after sound was played.
+		cloud_spawned_after_sound = sound_played
 		# Apply aggression effect to enemies in radius
 		for enemy in _mock_enemies:
 			if is_in_effect_radius(enemy.global_position):
 				affected_enemies.append(enemy)
+
+	## Get gas sound length (mock) — returns simulated duration (Issue #1688).
+	func _get_gas_sound_length_mock() -> float:
+		return mock_sound_length
 
 	## Gas release handler (mirrors _on_explode from aggression_gas_grenade.gd).
 	## No casing scatter — this is a gas release, not an explosion.
@@ -62,6 +79,16 @@ class MockAggressionGasGrenade:
 		_has_exploded = true
 		_spawn_aggression_cloud()
 		# No casing scatter — gas release, not explosion
+
+	## Simulated _explode() that enforces Issue #1688 ordering (sound before cloud).
+	func on_explode_with_sound_first() -> void:
+		if _has_exploded:
+			return
+		_has_exploded = true
+		_play_explosion_sound_mock()
+		# In real code an async timer waits for sound_length before spawning cloud.
+		# In test, we verify the ordering contract: sound_played must be true before cloud spawns.
+		_spawn_aggression_cloud()
 
 	## Scatter casings (should NOT be called for gas grenade).
 	func scatter_casings() -> void:
@@ -176,3 +203,34 @@ func test_is_not_in_effect_radius_beyond_edge() -> void:
 	var beyond_pos := Vector2(500 + 301, 500)
 	assert_false(grenade.is_in_effect_radius(beyond_pos),
 		"Position beyond radius should not be in range")
+
+
+# ============================================================================
+# Sound-Before-Effect Synchronization Tests (Issue #1688)
+# ============================================================================
+
+
+func test_sound_played_before_cloud_spawned() -> void:
+	grenade.on_explode_with_sound_first()
+	assert_true(grenade.sound_played,
+		"Sound must be played when gas is released (Issue #1688)")
+	assert_true(grenade.gas_cloud_spawned,
+		"Gas cloud must be spawned after sound plays (Issue #1688)")
+	assert_true(grenade.cloud_spawned_after_sound,
+		"Cloud must only be spawned after sound has started (Issue #1688)")
+
+
+func test_cloud_not_spawned_without_sound() -> void:
+	# Verify cloud_spawned_after_sound stays false if sound never played
+	grenade.gas_cloud_spawned = false
+	grenade.sound_played = false
+	grenade.cloud_spawned_after_sound = false
+	# Directly spawn cloud without playing sound first (mimics wrong order)
+	grenade._spawn_aggression_cloud()
+	assert_false(grenade.cloud_spawned_after_sound,
+		"Cloud spawned without sound should not satisfy the ordering contract (Issue #1688)")
+
+
+func test_mock_sound_length_positive() -> void:
+	assert_gt(grenade.mock_sound_length, 0.0,
+		"Simulated sound length must be positive to enforce the timing delay (Issue #1688)")

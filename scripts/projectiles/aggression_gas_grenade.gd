@@ -70,6 +70,8 @@ func _on_explode() -> void:
 
 ## Override the base _explode to skip PowerFantasy explosion effect.
 ## Gas grenade releases gas quietly, it does not produce an explosive shockwave.
+## Issue #1688: Visual effect appears only after the sound starts playing,
+## and fully appears when the sound finishes playing.
 func _explode() -> void:
 	if _has_exploded:
 		return
@@ -79,10 +81,16 @@ func _explode() -> void:
 
 	# NO PowerFantasy explosion effect — gas release is not an explosion
 
-	# Play gas release sound (quiet hiss, not explosion)
+	# Play gas release sound (quiet hiss, not explosion).
+	# Effect must not appear before sound starts.
 	_play_explosion_sound()
 
-	# Call gas release effect
+	# Issue #1688: Delay cloud spawn until the sound finishes playing.
+	var sound_length := _get_gas_sound_length()
+	FileLogger.info("[AggressionGasGrenade] Waiting %.2fs for sound to finish before spawning cloud" % sound_length)
+	await get_tree().create_timer(sound_length).timeout
+
+	# Call gas release effect only after sound has finished.
 	_on_explode()
 
 	# Emit signal
@@ -91,6 +99,15 @@ func _explode() -> void:
 	# Destroy grenade after a short delay for effects
 	await get_tree().create_timer(0.1).timeout
 	queue_free()
+
+
+## Issue #1688: Get the duration of the gas release sound.
+## Returns 0.0 if the stream cannot be loaded (cloud spawns immediately as fallback).
+func _get_gas_sound_length() -> float:
+	var stream := load("res://assets/audio/взрыв газовой гранаты.mp3") as AudioStream
+	if stream:
+		return stream.get_length()
+	return 0.0
 
 
 ## Override explosion sound — gas release is a quiet hiss, not a boom.

@@ -72,6 +72,8 @@ func _on_body_entered(body: Node) -> void:
 
 
 ## Override base _explode to skip explosive effects.
+## Issue #1688: Visual effect appears only after the sound starts playing,
+## and fully appears when the sound finishes playing.
 func _explode() -> void:
 	if _has_exploded:
 		return
@@ -79,12 +81,29 @@ func _explode() -> void:
 
 	FileLogger.info("[ChemicalGasGrenade] Gas released at %s!" % str(global_position))
 
+	# Play the hiss sound first — effect must not appear before sound starts.
 	_play_explosion_sound()
+
+	# Issue #1688: Delay cloud spawn until the sound finishes playing.
+	var sound_length := _get_gas_sound_length()
+	FileLogger.info("[ChemicalGasGrenade] Waiting %.2fs for sound to finish before spawning cloud" % sound_length)
+	await get_tree().create_timer(sound_length).timeout
+
+	# Spawn the cloud only after the sound has finished.
 	_on_explode()
 	exploded.emit(global_position, self)
 
 	await get_tree().create_timer(0.1).timeout
 	queue_free()
+
+
+## Issue #1688: Get the duration of the gas release sound.
+## Returns 0.0 if the stream cannot be loaded (cloud spawns immediately as fallback).
+func _get_gas_sound_length() -> float:
+	var stream := load("res://assets/audio/взрыв газовой гранаты.mp3") as AudioStream
+	if stream:
+		return stream.get_length()
+	return 0.0
 
 
 ## Override explosion sound — quiet hiss.

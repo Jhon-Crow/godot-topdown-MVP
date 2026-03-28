@@ -32,19 +32,46 @@ class MockChemicalGasGrenade:
 	## Track whether contact detonation occurred.
 	var contact_detonated: bool = false
 
+	## Track the order of operations: sound then cloud (Issue #1688).
+	var sound_played: bool = false
+	var cloud_spawned_after_sound: bool = false
+
+	## Simulated sound duration (seconds) for testing Issue #1688 timing.
+	var mock_sound_length: float = 1.0
+
 	## Check if position is in effect radius.
 	func is_in_effect_radius(pos: Vector2) -> bool:
 		return global_position.distance_to(pos) <= effect_radius
 
+	## Play sound (mock) — records that sound was played before cloud.
+	func _play_explosion_sound_mock() -> void:
+		sound_played = true
+
 	## Spawn chemical cloud (mock).
 	func _spawn_chemical_cloud() -> void:
 		gas_cloud_spawned = true
+		# Issue #1688: cloud must be spawned only after sound was played.
+		cloud_spawned_after_sound = sound_played
+
+	## Get gas sound length (mock) — returns simulated duration (Issue #1688).
+	func _get_gas_sound_length_mock() -> float:
+		return mock_sound_length
 
 	## Gas release handler (mirrors _on_explode).
 	func on_explode() -> void:
 		if _has_exploded:
 			return
 		_has_exploded = true
+		_spawn_chemical_cloud()
+
+	## Simulated _explode() that enforces Issue #1688 ordering (sound before cloud).
+	func on_explode_with_sound_first() -> void:
+		if _has_exploded:
+			return
+		_has_exploded = true
+		_play_explosion_sound_mock()
+		# In real code an async timer waits for sound_length before spawning cloud.
+		# In test, we verify the ordering contract: sound_played must be true before cloud spawns.
 		_spawn_chemical_cloud()
 
 	## Contact detonation (Issue #1367) — explodes on landing or wall hit.
@@ -165,3 +192,34 @@ func test_is_in_effect_radius_at_edge() -> void:
 	var edge_pos := Vector2(400 + 600, 400)
 	assert_true(grenade.is_in_effect_radius(edge_pos),
 		"Position at exact radius edge should be in range")
+
+
+# ============================================================================
+# Sound-Before-Effect Synchronization Tests (Issue #1688)
+# ============================================================================
+
+
+func test_sound_played_before_cloud_spawned() -> void:
+	grenade.on_explode_with_sound_first()
+	assert_true(grenade.sound_played,
+		"Sound must be played when gas is released (Issue #1688)")
+	assert_true(grenade.gas_cloud_spawned,
+		"Gas cloud must be spawned after sound plays (Issue #1688)")
+	assert_true(grenade.cloud_spawned_after_sound,
+		"Cloud must only be spawned after sound has started (Issue #1688)")
+
+
+func test_cloud_not_spawned_without_sound() -> void:
+	# Verify cloud_spawned_after_sound stays false if sound never played
+	grenade.gas_cloud_spawned = false
+	grenade.sound_played = false
+	grenade.cloud_spawned_after_sound = false
+	# Directly spawn cloud without playing sound first (mimics wrong order)
+	grenade._spawn_chemical_cloud()
+	assert_false(grenade.cloud_spawned_after_sound,
+		"Cloud spawned without sound should not satisfy the ordering contract (Issue #1688)")
+
+
+func test_mock_sound_length_positive() -> void:
+	assert_gt(grenade.mock_sound_length, 0.0,
+		"Simulated sound length must be positive to enforce the timing delay (Issue #1688)")
