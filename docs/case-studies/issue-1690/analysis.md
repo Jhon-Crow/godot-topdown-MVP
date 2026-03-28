@@ -174,6 +174,10 @@ The current design requires each level script to manually connect both signals. 
 
 | File | Description |
 |---|---|
-| `game_log_20260328_180006.txt` | First tester log (540KB) — old binary, BuildingLevel |
-| `game_log_20260328_182254.txt` | Second tester log (208KB) — old binary, LabyrinthLevel + BuildingLevel |
 | `analysis.md` | This document |
+
+### Game Logs (not committed — excluded by .gitignore)
+
+The tester-provided logs are attached to the pull request comments and available via GitHub:
+- **Log 1** (540KB) — attached to [PR #1703 comment by Jhon-Crow, 2026-03-28 15:03](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1703#issuecomment-4148225196): `game_log_20260328_180006.txt`
+- **Log 2** (208KB) — attached to [PR #1703 comment by Jhon-Crow, 2026-03-28 15:25](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1703#issuecomment-4148259764): `game_log_20260328_182254.txt`
