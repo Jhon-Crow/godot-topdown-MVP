@@ -651,7 +651,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 
 	# Issue #693: Casing kick sound (CASING_KICK = 8) - same range as reload (900px)
 	if sound_type == 8:
-		_log_to_file("Heard CASING_KICK at %s, intensity=%.2f, dist=%.0f" % [position, intensity, distance])
+		_log_debug("Heard CASING_KICK at %s, intensity=%.2f, dist=%.0f" % [position, intensity, distance])  # #1528 v7: debug — was 169+ file writes/session
 		_last_known_player_position = position
 		if _memory: _memory.update_position(position, SOUND_CASING_KICK_CONFIDENCE)
 		if _current_state == AIState.IDLE and _has_left_idle: _transition_to_pursuing()  # #1216: only re-pursue if previously engaged

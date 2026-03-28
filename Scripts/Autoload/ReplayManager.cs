@@ -120,6 +120,9 @@ namespace GodotTopDownTemplate.Autoload
         /// <summary>Death fall direction for ghost enemies (from recorded hit direction).</summary>
         private readonly List<Vector2> _ghostEnemyDeathDir = new();
 
+        /// <summary>Cached FileLogger autoload — eliminates GetNodeOrNull per call (#1528 v7).</summary>
+        private Node? _fileLogger;
+
         /// <summary>Reference to the level node being recorded.</summary>
         private Node2D? _levelNode;
 
@@ -305,6 +308,8 @@ namespace GodotTopDownTemplate.Autoload
         public override void _Ready()
         {
             ProcessMode = ProcessModeEnum.Always;
+            // #1528 v7: cache FileLogger once instead of GetNodeOrNull per log call
+            _fileLogger = GetNodeOrNull("/root/FileLogger");
             LogToFile("ReplayManager ready (C# version loaded and _Ready called)");
         }
 
@@ -1499,10 +1504,10 @@ namespace GodotTopDownTemplate.Autoload
 
             var frame = new FrameData { Time = _recordingTime };
 
-            // Debug log every 60 frames
-            if (_frames.Count % 60 == 0)
+            // #1528 v7: Changed to debug-only (console) — was 128+ file writes per session
+            if (_frames.Count % 60 == 0 && OS.IsDebugBuild())
             {
-                LogToFile($"Recording frame {_frames.Count} ({_recordingTime:F1}s): " +
+                GD.Print($"[ReplayManager] Recording frame {_frames.Count} ({_recordingTime:F1}s): " +
                     $"player_valid={_player != null && IsInstanceValid(_player)}, enemies={_enemies.Count}");
             }
 
@@ -3032,9 +3037,10 @@ namespace GodotTopDownTemplate.Autoload
 
         private void LogToFile(string message)
         {
-            var fileLogger = GetNodeOrNull("/root/FileLogger");
-            if (fileLogger != null && fileLogger.HasMethod("log_info"))
-                fileLogger.Call("log_info", "[ReplayManager] " + message);
+            // #1528 v7: use cached _fileLogger (set in _Ready) to avoid GetNodeOrNull per call
+            var logger = _fileLogger ?? GetNodeOrNull("/root/FileLogger");
+            if (logger != null && logger.HasMethod("log_info"))
+                logger.Call("log_info", "[ReplayManager] " + message);
             else
                 GD.Print("[ReplayManager] " + message);
         }

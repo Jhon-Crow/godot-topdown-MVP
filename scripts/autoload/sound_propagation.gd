@@ -157,8 +157,7 @@ func unregister_listener(listener: Node2D) -> void:
 	var idx := _listeners.find(listener)
 	if idx >= 0:
 		_listeners.remove_at(idx)
-		_log_debug("Unregistered sound listener: %s" % listener.name)
-		_log_to_file("Unregistered listener: %s (remaining: %d)" % [listener.name, _listeners.size()])
+		_log_debug("Unregistered listener: %s (remaining: %d)" % [listener.name, _listeners.size()])  # #1528 v7: debug level only
 
 
 ## Emit a sound at a given position.

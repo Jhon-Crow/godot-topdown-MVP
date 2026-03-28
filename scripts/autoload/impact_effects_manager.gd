@@ -678,8 +678,9 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		_schedule_delayed_decal(origin, landing_pos, decal_rotation, decal_scale, land_time)
 		decals_scheduled += 1
 
-	# Log scheduled count unconditionally (matches Feb 16 backup behavior, enables log verification)
-	_log_info("Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
+	# #1528 v7: Changed to debug level — was 144+ file writes per session during combat
+	if OS.is_debug_build():
+		print("[ImpactEffects] Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
 	if _debug_effects:
 		print("[ImpactEffectsManager] Blood decals scheduled: ", decals_scheduled)
 

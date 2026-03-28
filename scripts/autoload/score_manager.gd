@@ -267,7 +267,7 @@ func register_kill(is_ricochet_kill: bool = false, is_penetration_kill: bool = f
 	_combo_points += combo_score
 
 	combo_changed.emit(_current_combo, combo_score)
-	_log_to_file("Kill registered. Combo: %d (points: %d)" % [_current_combo, combo_score])
+	_log_debug("Kill registered. Combo: %d (points: %d)" % [_current_combo, combo_score])  # #1528 v7: debug level
 
 
 ## Ends the current combo.

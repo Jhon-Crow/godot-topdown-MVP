@@ -409,7 +409,9 @@ func register_kill(is_player_kill: bool = true) -> void:
 	# Only count kills made by the player toward the Laser Sight unlock condition (Issue #1196).
 	# Kills by enemies against other enemies do not count.
 	if not is_player_kill:
-		_log_to_file("register_kill: skipping non-player kill (enemy-vs-enemy or ally-vs-enemy)")
+		# #1528 v7: Debug only — this fires on every non-player kill
+		if OS.is_debug_build():
+			print("[GameManager] register_kill: skipping non-player kill (enemy-vs-enemy or ally-vs-enemy)")
 		return
 	# Track kills made without ANY laser sight active (used for the Laser Sight unlock condition).
 	# This covers all laser sight sources: active item, Power Fantasy difficulty, or weapon-level (Issue #1196).

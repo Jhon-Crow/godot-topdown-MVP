@@ -168,12 +168,9 @@ func start_death_animation(hit_direction: Vector2) -> void:
 
 	death_animation_started.emit()
 
-	if is_inside_tree():
-		var file_logger: Node = get_node_or_null("/root/FileLogger")
-		if file_logger and file_logger.has_method("info"):
-			file_logger.info("[DeathAnim] Started - Angle: %.1f deg, Index: %d" % [
-				rad_to_deg(_hit_angle), _animation_index
-			])
+	# #1528 v7: Changed to debug level — was ~16 file writes per session during combat
+	if is_inside_tree() and OS.is_debug_build():
+		print("[DeathAnim] Started - Angle: %.1f deg, Index: %d" % [rad_to_deg(_hit_angle), _animation_index])
 
 
 ## Stop the death animation and clean up ragdoll bodies.
@@ -315,12 +312,9 @@ func _activate_ragdoll() -> void:
 	_ragdoll_activated = true
 	ragdoll_activated.emit()
 
-	if is_inside_tree():
-		var file_logger: Node = get_node_or_null("/root/FileLogger")
-		if file_logger and file_logger.has_method("info"):
-			file_logger.info("[DeathAnim] Ragdoll activated at %.0f%% fall progress" % (
-				ragdoll_activation_point * 100.0
-			))
+	# #1528 v7: Debug only
+	if is_inside_tree() and OS.is_debug_build():
+		print("[DeathAnim] Ragdoll activated at %.0f%% fall progress" % (ragdoll_activation_point * 100.0))
 
 	# Create ragdoll bodies for each sprite
 	var body_rb: RigidBody2D = null
