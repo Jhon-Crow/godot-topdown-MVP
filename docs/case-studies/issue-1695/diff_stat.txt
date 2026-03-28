@@ -1,0 +1,87 @@
+ Scripts/Characters/Player.ActiveItems.cs           |   77 +-
+ Scripts/Characters/Player.cs                       |    3 -
+ ...00\320\260\320\275\320\260\321\202\321\213.mp3" |  Bin 224723 -> 0 bytes
+ assets/sprites/weapons/drone_grenade_icon.png      |  Bin 357 -> 0 bytes
+ assets/sprites/weapons/grenade_bag_icon.png        |  Bin 926 -> 0 bytes
+ docs/case-studies/issue-1540/analysis.md           |  469 --
+ .../issue-1540/game_log_20260326_145840.txt        | 5762 ----------------
+ .../issue-1540/game_log_20260327_091519.txt        | 1776 -----
+ docs/case-studies/issue-1615/case-study.md         |  153 -
+ .../issue-1615/rain-inside-building-2-feedback.png |  Bin 817251 -> 0 bytes
+ .../issue-1615/rain-inside-building.png            |  Bin 1607458 -> 0 bytes
+ docs/case-studies/issue-1629/README.md             |  102 -
+ docs/case-studies/issue-1630/analysis.md           |   93 -
+ docs/case-studies/issue-1630/file_list.txt         | 7224 --------------------
+ docs/case-studies/issue-1664/README.md             |  147 -
+ docs/case-studies/issue-1672/README.md             |  147 -
+ docs/case-studies/issue-1672/owner-screenshot.png  |  Bin 1318250 -> 0 bytes
+ .../screenshot-owner-feedback-2026-03-28.png       |  Bin 1318250 -> 0 bytes
+ scenes/effects/RainEffect.tscn                     |   18 +-
+ scenes/levels/DocksLevel.tscn                      |   55 +-
+ scenes/levels/FactoryLevel.tscn                    |  593 +-
+ scenes/levels/RailwayStationLevel.tscn             |  152 +-
+ scenes/levels/SewerLevel.tscn                      |  373 +-
+ scenes/objects/Drone.tscn                          |    4 +-
+ scenes/projectiles/DroneGrenade.tscn               |   26 -
+ scenes/ui/ExperimentalMenu.tscn                    |   22 -
+ scripts/autoload/active_item_manager.gd            |   69 +-
+ scripts/autoload/audio_manager.gd                  |    9 -
+ scripts/autoload/experimental_settings.gd          |   24 +-
+ scripts/autoload/game_manager.gd                   |   34 +-
+ scripts/autoload/grenade_manager.gd                |   13 +-
+ scripts/autoload/persist_manager.gd                |   30 -
+ scripts/autoload/unlock_manager.gd                 |   91 +-
+ scripts/characters/player.gd                       |   17 -
+ scripts/components/drone_operator_component.gd     |  287 +-
+ scripts/components/enemy_sniper_component.gd       |  236 +-
+ scripts/effects/rain_effect.gd                     |   94 +-
+ scripts/levels/arena_level.gd                      |   32 +-
+ scripts/levels/beach_level.gd                      |   17 +-
+ scripts/levels/building_level.gd                   |   47 +-
+ scripts/levels/castle_level.gd                     |   45 +-
+ scripts/levels/city_level.gd                       |   42 +-
+ scripts/levels/decadence_level.gd                  |   46 +-
+ scripts/levels/docks_level.gd                      |   67 +-
+ scripts/levels/factory_level.gd                    |   40 +-
+ scripts/levels/labyrinth2_level.gd                 |   80 +-
+ scripts/levels/labyrinth_level.gd                  |   47 +-
+ scripts/levels/railway_station_level.gd            |   58 +-
+ scripts/levels/revolver_level.gd                   |   47 +-
+ scripts/levels/roguelike_level.gd                  |    3 +-
+ scripts/levels/sewer_level.gd                      |   49 +-
+ scripts/levels/test_tier.gd                        |   17 +-
+ scripts/levels/tutorial_level.gd                   |   30 -
+ scripts/levels/winter_forest_level.gd              |   46 +-
+ scripts/objects/enemy.gd                           |   39 +-
+ scripts/projectiles/drone_grenade.gd               |  474 --
+ scripts/shaders/rain_occlusion.gdshader            |   58 -
+ scripts/ui/animated_score_screen.gd                |    4 -
+ scripts/ui/armory_menu.gd                          |   28 +-
+ scripts/ui/experimental_menu.gd                    |   15 -
+ scripts/ui/levels_menu.gd                          |   30 +-
+ scripts/ui/pause_menu.gd                           |   61 -
+ scripts/ui/unlock_table_menu.gd                    |   14 +-
+ tests/unit/test_active_item_manager.gd             |   23 +-
+ tests/unit/test_animated_score_screen.gd           |   23 -
+ tests/unit/test_armory_menu.gd                     |    6 +
+ tests/unit/test_armory_shine_progress.gd           |  165 -
+ tests/unit/test_armory_unlock.gd                   |    3 +-
+ tests/unit/test_audio_manager.gd                   |   30 -
+ tests/unit/test_combat_disposition.gd              |   48 +-
+ tests/unit/test_delete_saves.gd                    |    3 +-
+ tests/unit/test_docks_level.gd                     |   22 +-
+ .../unit/test_drilling_bullets_activation_icon.gd  |    2 +-
+ tests/unit/test_drone_grenade.gd                   |  261 -
+ tests/unit/test_drone_operator.gd                  |  332 +-
+ tests/unit/test_experimental_sample.gd             |    2 +-
+ tests/unit/test_experimental_settings.gd           |  118 -
+ tests/unit/test_extended_magazine.gd               |    2 +-
+ tests/unit/test_grenade_bag.gd                     |  195 -
+ tests/unit/test_laser_sight.gd                     |    2 +-
+ tests/unit/test_levels_menu.gd                     |   99 -
+ tests/unit/test_rain_effect.gd                     |  238 +-
+ tests/unit/test_recoil_compensator.gd              |    2 +-
+ tests/unit/test_sniper_laser_sight.gd              |  100 +-
+ tests/unit/test_unlock_manager.gd                  |  248 +-
+ tests/unit/test_unlock_table_menu.gd               |   26 +-
+ 86 files changed, 888 insertions(+), 20598 deletions(-)
