@@ -1571,49 +1571,70 @@ func _has_line_of_sight_to_target(target_pos: Vector2) -> bool:
 # ============================================================================
 
 
-## Checks if a wall or enemy is within BREAKER_DETONATION_DISTANCE ahead.
-## If so, triggers the breaker detonation and returns true.
+## Checks if a wall is within BREAKER_DETONATION_DISTANCE ahead, or if an alive enemy
+## is within the shrapnel cone sector (Issue #1634: proximity fuse should detonate early
+## when an enemy enters the sector of future shrapnel to maximise shrapnel hit chance).
 ## @return: True if detonation occurred, false otherwise.
 func _check_breaker_detonation() -> bool:
 	var space_state := get_world_2d().direct_space_state
 	if space_state == null:
 		return false
 
-	# Raycast forward from bullet position
+	# 1. Raycast forward for wall detection (straight ahead only).
 	var ray_start := global_position
 	var ray_end := global_position + direction * BREAKER_DETONATION_DISTANCE
 
-	var query := PhysicsRayQueryParameters2D.create(ray_start, ray_end)
-	# Check against walls/obstacles and characters (enemies)
-	query.collision_mask = collision_mask
-	query.exclude = [self]
+	var wall_query := PhysicsRayQueryParameters2D.create(ray_start, ray_end)
+	wall_query.collision_mask = collision_mask
+	wall_query.exclude = [self]
 
-	var result := space_state.intersect_ray(query)
+	var wall_result := space_state.intersect_ray(wall_query)
 
-	if result.is_empty():
-		return false  # Nothing ahead within detonation distance
-
-	# Check if the hit is a wall (StaticBody2D/TileMap) or an alive enemy (CharacterBody2D)
-	var collider: Object = result.collider
-	if collider is StaticBody2D or collider is TileMap:
-		# Wall detected within range — trigger detonation!
-		var detonation_pos := global_position
-		if _debug_breaker:
-			FileLogger.info("[Bullet.Breaker] Wall detected at distance %.1f, detonating at %s" % [
-				global_position.distance_to(result.position), detonation_pos])
-		_breaker_detonate(detonation_pos)
-		return true
-	elif collider is CharacterBody2D:
-		# Enemy detected — check if alive
-		if collider.has_method("is_alive") and collider.is_alive():
-			var detonation_pos := global_position
+	if not wall_result.is_empty():
+		var collider: Object = wall_result.collider
+		if collider is StaticBody2D or collider is TileMap:
+			# Wall detected within range — trigger detonation!
 			if _debug_breaker:
-				FileLogger.info("[Bullet.Breaker] Enemy %s detected at distance %.1f, detonating at %s" % [
-					collider.name, global_position.distance_to(result.position), detonation_pos])
-			_breaker_detonate(detonation_pos)
+				FileLogger.info("[Bullet.Breaker] Wall detected at distance %.1f, detonating" % [
+					global_position.distance_to(wall_result.position)])
+			_breaker_detonate(global_position)
 			return true
 
-	return false  # Hit something we don't detonate for
+	# 2. Cone sector check for enemies (Issue #1634).
+	# Detonate when an alive enemy is inside the shrapnel cone sector:
+	# distance <= BREAKER_DETONATION_DISTANCE AND angle from bullet direction <= BREAKER_SHRAPNEL_HALF_ANGLE.
+	# This is a simple geometric check — no additional physics queries needed.
+	if _check_enemy_in_shrapnel_cone():
+		return true
+
+	return false  # Nothing triggering detonation
+
+
+## Returns true if any alive enemy is within the shrapnel cone sector ahead.
+## The cone is defined by BREAKER_DETONATION_DISTANCE (radius) and
+## BREAKER_SHRAPNEL_HALF_ANGLE (half-angle from the bullet's travel direction).
+## Optimization: uses dot product comparison instead of acos for the angle check.
+func _check_enemy_in_shrapnel_cone() -> bool:
+	var cos_half_angle := cos(deg_to_rad(BREAKER_SHRAPNEL_HALF_ANGLE))
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	for enemy in enemies:
+		if not (enemy is Node2D):
+			continue
+		if not (enemy.has_method("is_alive") and enemy.is_alive()):
+			continue
+		var to_enemy := enemy.global_position - global_position
+		var dist := to_enemy.length()
+		if dist > BREAKER_DETONATION_DISTANCE:
+			continue
+		# Dot product of normalized vectors: equals cos(angle_between).
+		# If cos(angle) >= cos(half_angle), the angle is within the cone.
+		if dist > 0.0 and (to_enemy / dist).dot(direction) >= cos_half_angle:
+			if _debug_breaker:
+				FileLogger.info("[Bullet.Breaker] Enemy %s in shrapnel cone at distance %.1f, detonating" % [
+					enemy.name, dist])
+			_breaker_detonate(global_position)
+			return true
+	return false
 
 
 ## Triggers the breaker bullet detonation: explosion damage + shrapnel cone.

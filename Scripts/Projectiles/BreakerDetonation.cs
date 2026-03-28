@@ -80,8 +80,9 @@ public static class BreakerDetonation
     }
 
     /// <summary>
-    /// Checks if a wall or alive enemy is within detonation distance ahead of the projectile.
-    /// If so, triggers detonation and returns true.
+    /// Checks if a wall is within detonation distance ahead (straight raycast), or if an alive
+    /// enemy is within the shrapnel cone sector (Issue #1634: proximity fuse should detonate early
+    /// when an enemy enters the sector of future shrapnel to maximise shrapnel hit chance).
     /// </summary>
     /// <param name="projectile">The bullet/pellet Area2D node.</param>
     /// <param name="direction">Normalized direction of travel.</param>
@@ -110,41 +111,71 @@ public static class BreakerDetonation
             return false;
         }
 
-        // Raycast forward from projectile position
+        // 1. Raycast forward for wall detection (straight ahead only).
         var rayStart = projectile.GlobalPosition;
         var rayEnd = projectile.GlobalPosition + direction * DetonationDistance;
 
-        var query = PhysicsRayQueryParameters2D.Create(rayStart, rayEnd);
-        query.CollisionMask = projectile.CollisionMask;
-        query.Exclude = new Godot.Collections.Array<Rid> { projectile.GetRid() };
+        var wallQuery = PhysicsRayQueryParameters2D.Create(rayStart, rayEnd);
+        wallQuery.CollisionMask = projectile.CollisionMask;
+        wallQuery.Exclude = new Godot.Collections.Array<Rid> { projectile.GetRid() };
 
-        var result = spaceState.IntersectRay(query);
+        var wallResult = spaceState.IntersectRay(wallQuery);
 
-        if (result.Count == 0)
+        if (wallResult.Count > 0)
         {
-            return false; // Nothing ahead within detonation distance
+            var collider = (Node2D)wallResult["collider"];
+            if (collider is StaticBody2D || collider is TileMap)
+            {
+                Detonate(projectile, direction, damage, damageMultiplier, shooterId);
+                return true;
+            }
         }
 
-        var collider = (Node2D)result["collider"];
-
-        // Wall detected — trigger detonation
-        if (collider is StaticBody2D || collider is TileMap)
+        // 2. Cone sector check for enemies (Issue #1634).
+        // Detonate when an alive enemy is inside the shrapnel cone sector:
+        // distance <= DetonationDistance AND angle from bullet direction <= ShrapnelHalfAngle.
+        // Optimization: dot product comparison avoids acos.
+        if (CheckEnemyInShrapnelCone(projectile, direction, damage, damageMultiplier, shooterId))
         {
-            Detonate(projectile, direction, damage, damageMultiplier, shooterId);
             return true;
         }
 
-        // Alive enemy detected — trigger detonation
-        if (collider is CharacterBody2D)
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true (and triggers detonation) if any alive enemy is within the shrapnel cone sector.
+    /// The cone is defined by DetonationDistance (radius) and ShrapnelHalfAngle (half-angle from
+    /// the projectile's travel direction).
+    /// </summary>
+    private static bool CheckEnemyInShrapnelCone(
+        Area2D projectile,
+        Vector2 direction,
+        float damage,
+        float damageMultiplier,
+        ulong shooterId)
+    {
+        var tree = projectile.GetTree();
+        if (tree == null) return false;
+
+        float cosHalfAngle = Mathf.Cos(Mathf.DegToRad(ShrapnelHalfAngle));
+        var enemies = tree.GetNodesInGroup("enemies");
+
+        foreach (var enemy in enemies)
         {
-            if (collider.HasMethod("is_alive"))
+            if (enemy is not Node2D enemyNode) continue;
+            if (!enemyNode.HasMethod("is_alive") || !enemyNode.Call("is_alive").AsBool()) continue;
+
+            var toEnemy = enemyNode.GlobalPosition - projectile.GlobalPosition;
+            float dist = toEnemy.Length();
+            if (dist > DetonationDistance) continue;
+
+            // Dot product of normalized vectors equals cos(angle_between).
+            // Enemy is in cone if cos(angle) >= cos(half_angle).
+            if (dist > 0f && (toEnemy / dist).Dot(direction) >= cosHalfAngle)
             {
-                bool isAlive = collider.Call("is_alive").AsBool();
-                if (isAlive)
-                {
-                    Detonate(projectile, direction, damage, damageMultiplier, shooterId);
-                    return true;
-                }
+                Detonate(projectile, direction, damage, damageMultiplier, shooterId);
+                return true;
             }
         }
 

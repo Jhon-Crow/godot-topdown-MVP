@@ -1,9 +1,9 @@
 extends GutTest
-## Unit tests for Breaker Bullet behavior (Issue #678).
+## Unit tests for Breaker Bullet behavior (Issue #678, #1634).
 ##
 ## Tests the breaker bullet detonation logic: wall detection at 95px,
-## explosion damage in 15px radius, shrapnel cone spawning,
-## and ActiveItemManager integration.
+## cone sector enemy detection (Issue #1634), explosion damage in 15px radius,
+## shrapnel cone spawning, and ActiveItemManager integration.
 
 
 # ============================================================================
@@ -42,7 +42,7 @@ class MockBreakerBullet:
 	var _shrapnel_directions: Array = []
 	var shooter_id: int = -1
 
-	## Simulate checking for breaker detonation.
+	## Simulate checking for breaker detonation by wall distance only.
 	## wall_distance: simulated distance to wall (INF if no wall ahead)
 	func check_breaker_detonation(wall_distance: float) -> bool:
 		if not is_breaker_bullet:
@@ -52,6 +52,25 @@ class MockBreakerBullet:
 			return false
 
 		# Wall detected within range — detonate
+		_breaker_detonate()
+		return true
+
+	## Simulate cone sector check: returns true and detonates if enemy_pos is
+	## within the shrapnel cone sector (distance <= BREAKER_DETONATION_DISTANCE
+	## AND angle from direction <= BREAKER_SHRAPNEL_HALF_ANGLE).
+	## Pass Vector2.INF (or a position outside range/cone) to simulate no enemy.
+	func check_enemy_in_shrapnel_cone(enemy_pos: Vector2) -> bool:
+		if not is_breaker_bullet:
+			return false
+		var cos_half_angle := cos(deg_to_rad(BREAKER_SHRAPNEL_HALF_ANGLE))
+		var to_enemy := enemy_pos - global_position
+		var dist := to_enemy.length()
+		if dist > BREAKER_DETONATION_DISTANCE:
+			return false
+		if dist <= 0.0:
+			return false
+		if (to_enemy / dist).dot(direction) < cos_half_angle:
+			return false
 		_breaker_detonate()
 		return true
 
@@ -466,3 +485,116 @@ func test_wall_detection_logic_concept() -> void:
 	# shrapnel_spawn.x = 60, which is on/in the wall
 	assert_eq(shrapnel_spawn.x, wall_pos.x,
 		"This spawn position would be on the wall and should be skipped by fix")
+
+
+# ============================================================================
+# Cone Sector Enemy Detection Tests (Issue #1634)
+# ============================================================================
+
+
+func test_detonates_when_enemy_directly_ahead_in_cone() -> void:
+	# Enemy at 50px directly ahead (within detonation distance and in cone centre)
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+	var enemy_pos := Vector2(50.0, 0.0)
+
+	var result := bullet.check_enemy_in_shrapnel_cone(enemy_pos)
+
+	assert_true(result, "Should detonate when enemy is directly ahead within range")
+	assert_true(bullet.has_detonated())
+
+
+func test_detonates_when_enemy_at_cone_edge_angle() -> void:
+	# Enemy at exactly 30° from bullet direction, within detonation distance
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+	var dist := 80.0
+	var angle_rad := deg_to_rad(30.0)  # Exactly at cone boundary
+	var enemy_pos := Vector2(dist * cos(angle_rad), dist * sin(angle_rad))
+
+	var result := bullet.check_enemy_in_shrapnel_cone(enemy_pos)
+
+	assert_true(result, "Should detonate when enemy is at the cone's edge angle (30°)")
+	assert_true(bullet.has_detonated())
+
+
+func test_does_not_detonate_when_enemy_outside_cone_angle() -> void:
+	# Enemy at 45° from bullet direction (beyond ±30° half-angle)
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+	var dist := 50.0
+	var angle_rad := deg_to_rad(45.0)  # Outside cone
+	var enemy_pos := Vector2(dist * cos(angle_rad), dist * sin(angle_rad))
+
+	var result := bullet.check_enemy_in_shrapnel_cone(enemy_pos)
+
+	assert_false(result, "Should NOT detonate when enemy is outside cone angle (45°)")
+	assert_false(bullet.has_detonated())
+
+
+func test_does_not_detonate_when_enemy_in_cone_but_too_far() -> void:
+	# Enemy at 0° (directly ahead) but beyond BREAKER_DETONATION_DISTANCE
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+	var enemy_pos := Vector2(150.0, 0.0)  # 150px > 95px
+
+	var result := bullet.check_enemy_in_shrapnel_cone(enemy_pos)
+
+	assert_false(result, "Should NOT detonate when enemy is in cone angle but beyond range")
+	assert_false(bullet.has_detonated())
+
+
+func test_does_not_detonate_when_enemy_behind_bullet() -> void:
+	# Enemy directly behind the bullet (180°)
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+	var enemy_pos := Vector2(-50.0, 0.0)
+
+	var result := bullet.check_enemy_in_shrapnel_cone(enemy_pos)
+
+	assert_false(result, "Should NOT detonate when enemy is behind the bullet")
+	assert_false(bullet.has_detonated())
+
+
+func test_detonates_when_enemy_in_cone_at_exact_detonation_distance() -> void:
+	# Enemy exactly at BREAKER_DETONATION_DISTANCE (95px) directly ahead
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+	var enemy_pos := Vector2(95.0, 0.0)
+
+	var result := bullet.check_enemy_in_shrapnel_cone(enemy_pos)
+
+	assert_true(result, "Should detonate when enemy is at exactly 95px directly ahead")
+	assert_true(bullet.has_detonated())
+
+
+func test_cone_check_uses_bullet_direction_not_just_right() -> void:
+	# Bullet moving upward — enemy directly above should trigger, enemy to the right should not
+	bullet.direction = Vector2.UP
+	bullet.global_position = Vector2.ZERO
+
+	var bullet_copy := MockBreakerBullet.new()
+	bullet_copy.is_breaker_bullet = true
+	bullet_copy.direction = Vector2.UP
+	bullet_copy.global_position = Vector2.ZERO
+
+	# Enemy at 50px above (directly in travel direction)
+	var enemy_ahead := Vector2(0.0, -50.0)
+	var result_ahead := bullet.check_enemy_in_shrapnel_cone(enemy_ahead)
+	assert_true(result_ahead, "Enemy directly ahead (up) should trigger cone detonation")
+
+	# Enemy at 50px to the right (90° from bullet direction UP — outside cone)
+	var enemy_right := Vector2(50.0, 0.0)
+	var result_right := bullet_copy.check_enemy_in_shrapnel_cone(enemy_right)
+	assert_false(result_right, "Enemy 90° to the side should NOT trigger cone detonation")
+
+
+func test_normal_bullet_does_not_detonate_via_cone_check() -> void:
+	var normal_bullet := MockBreakerBullet.new()
+	normal_bullet.is_breaker_bullet = false
+	normal_bullet.direction = Vector2.RIGHT
+	normal_bullet.global_position = Vector2.ZERO
+
+	var result := normal_bullet.check_enemy_in_shrapnel_cone(Vector2(30.0, 0.0))
+
+	assert_false(result, "Normal bullet should not detonate via cone check")
