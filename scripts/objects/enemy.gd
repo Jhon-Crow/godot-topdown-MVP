@@ -1443,13 +1443,9 @@ func _process_combat_state(delta: float) -> void:
 				var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
-	# Issue #1664: Drone operator ACTIVE — teleport to cover under fire (like teleport enemy).
-	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:
-		if _under_fire and _drone_operator.is_teleport_ready() and _current_state != AIState.IN_COVER:
-			if not _has_valid_cover: _find_cover_position()
-			if _has_valid_cover and _drone_operator.try_teleport(_cover_position): _transition_to_in_cover(); return
-		if _drone_operator.is_teleport_ready() and not _can_see_player and _current_state == AIState.FLANKING:
-			_drone_operator.try_teleport(_flank_target)
+	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE and _drone_operator.is_teleport_ready():  # Issue #1664: teleport to cover under fire (like teleport enemy).
+		if _under_fire and _current_state != AIState.IN_COVER: if not _has_valid_cover: _find_cover_position(); if _has_valid_cover and _drone_operator.try_teleport(_cover_position): _transition_to_in_cover(); return
+		if not _can_see_player and _current_state == AIState.FLANKING: _drone_operator.try_teleport(_flank_target)
 	# Issue #1667: if a player drone grenade is targetable, shoot at it instead of the player.
 	var _pd := _find_targetable_player_drone(); if _pd != null and _can_shoot() and _shoot_timer >= shoot_cooldown: var _pd_dir := (_pd.global_position - global_position).normalized(); if _is_bullet_spawn_clear(_pd_dir): _rotate_body_toward(_pd_dir.angle(), get_physics_process_delta_time()); _execute_shoot(_pd.global_position); _shoot_timer = 0.0; return
 	# [#1033] Machine gunner: suppress corridor (fire at last-known pos regardless of LOS/under-fire).
@@ -4273,11 +4269,9 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			if not _has_valid_cover: _find_cover_position()
 			if _teleport_component.try_damage_teleport(_cover_position, _flank_target):
 				_log_to_file("[#1355] Damage-triggered teleport succeeded"); _transition_to_in_cover()
-		# Issue #1664: Drone operator ACTIVE phase — also teleport immediately on first damage.
-		if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:
+		if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:  # Issue #1664: drone operator ACTIVE — damage-triggered teleport like teleport enemy.
 			if not _has_valid_cover: _find_cover_position()
-			if _drone_operator.try_damage_teleport(_cover_position, _flank_target):
-				_log_to_file("[#1664] Drone operator damage-triggered teleport succeeded"); _transition_to_in_cover()
+			if _drone_operator.try_damage_teleport(_cover_position, _flank_target): _log_to_file("[#1664] Drone operator damage-triggered teleport succeeded"); _transition_to_in_cover()
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
