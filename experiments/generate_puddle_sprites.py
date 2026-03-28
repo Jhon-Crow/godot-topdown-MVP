@@ -2,12 +2,12 @@
 """Generate multiple irregular-shaped puddle sprites for the Docks map.
 
 The reference image shows:
-- Dark charcoal puddle (dark blue-grey, nearly black)
+- Dark NEUTRAL charcoal gray (R≈G≈B ≈ 55-65, NOT blue-tinted)
 - Quite transparent so the floor shows through
 - Irregular/organic shape (not a perfect circle or oval)
-- Subtle lighter center highlight (sky reflection)
+- NO bright center highlight — flat uniform gray fill
 
-We generate 4 variants with different irregular shapes.
+We generate 8 variants with different irregular shapes.
 """
 
 import math
@@ -15,6 +15,14 @@ import random
 from PIL import Image, ImageDraw, ImageFilter
 
 SIZE = 128  # pixels square for each sprite
+
+# Reference image analysis: the puddles are neutral dark charcoal gray
+# RGB approximately (60, 60, 65) — nearly equal R,G,B with very slight cool tone
+# No blue-dominant values. No highlight in center.
+PUDDLE_BODY_COLOR = (60, 60, 65)     # neutral dark charcoal gray
+PUDDLE_INNER_COLOR = (50, 50, 55)    # slightly darker inner area
+BODY_ALPHA = 90                       # semi-transparent (floor still visible)
+INNER_ALPHA = 110                     # slightly more opaque inner area
 
 
 def make_puddle(
@@ -57,15 +65,13 @@ def make_puddle(
         poly.append((x, y))
 
     # Draw puddle in layers for realistic appearance.
-    # Goal: quite transparent so the floor shows through clearly.
-    # The puddle is a dark-tinted overlay — like a wet sheen on pavement.
+    # Neutral dark charcoal gray — NO blue tint, NO center highlight.
     draw = ImageDraw.Draw(img)
 
-    # Layer 1: main body — very transparent dark tint (wet pavement)
-    # Alpha ~80 means floor still strongly visible (reference shows ~30-40% opacity)
-    draw.polygon(poly, fill=(25, 30, 42, 80))
+    # Layer 1: main body — neutral dark charcoal gray
+    draw.polygon(poly, fill=(*PUDDLE_BODY_COLOR, BODY_ALPHA))
 
-    # Layer 2: inner area — slightly darker to suggest depth / water body
+    # Layer 2: inner area — slightly darker to suggest depth
     inner_poly = []
     for s in range(steps):
         angle = s * 2 * math.pi / steps
@@ -80,16 +86,9 @@ def make_puddle(
         y = cy + math.sin(angle) * base_ry * r * scale
         inner_poly.append((x, y))
 
-    draw.polygon(inner_poly, fill=(30, 38, 55, 95))
+    draw.polygon(inner_poly, fill=(*PUDDLE_INNER_COLOR, INNER_ALPHA))
 
-    # Layer 3: small center highlight (sky/light reflection — subtle bright spot)
-    highlight_r = int(min(base_rx, base_ry) * 0.18)
-    hx = cx + random.randint(-6, 6)
-    hy = cy + random.randint(-5, 5)
-    draw.ellipse(
-        (hx - highlight_r, hy - highlight_r, hx + highlight_r, hy + highlight_r),
-        fill=(90, 105, 130, 55),
-    )
+    # NO center highlight — user requested flat uniform gray (no bright spot)
 
     # Apply blur: larger blur for very soft, natural edges
     img = img.filter(ImageFilter.GaussianBlur(radius=4))
@@ -102,27 +101,30 @@ def main():
     out_dir = os.path.join(os.path.dirname(__file__), "../assets/sprites/effects")
     os.makedirs(out_dir, exist_ok=True)
 
-    # Sprite 0: roughly oval (main puddle, replaces existing puddle.png)
-    img0 = make_puddle(seed=42, shape_roughness=0.25, num_control=10, elongate=(1.1, 0.72))
-    img0.save(os.path.join(out_dir, "puddle.png"))
-    print("Saved puddle.png")
+    # 8 variants with different shapes (seeds, roughness, elongation)
+    configs = [
+        # (filename, seed, roughness, num_control, elongate)
+        ("puddle.png",   42, 0.25, 10, (1.10, 0.72)),
+        ("puddle_2.png",  7, 0.40, 14, (1.25, 0.65)),
+        ("puddle_3.png", 13, 0.30,  9, (1.00, 0.85)),
+        ("puddle_4.png", 99, 0.45, 11, (1.35, 0.58)),
+        ("puddle_5.png", 17, 0.35, 13, (0.90, 0.78)),
+        ("puddle_6.png", 53, 0.50, 10, (1.20, 0.60)),
+        ("puddle_7.png", 81, 0.28, 12, (1.05, 0.70)),
+        ("puddle_8.png", 37, 0.42,  8, (1.30, 0.62)),
+    ]
 
-    # Sprite 1: wider irregular shape
-    img1 = make_puddle(seed=7, shape_roughness=0.40, num_control=14, elongate=(1.25, 0.65))
-    img1.save(os.path.join(out_dir, "puddle_2.png"))
-    print("Saved puddle_2.png")
+    for fname, seed, roughness, num_ctrl, elongate in configs:
+        img = make_puddle(
+            seed=seed,
+            shape_roughness=roughness,
+            num_control=num_ctrl,
+            elongate=elongate,
+        )
+        img.save(os.path.join(out_dir, fname))
+        print(f"Saved {fname}")
 
-    # Sprite 2: rounder with bumps
-    img2 = make_puddle(seed=13, shape_roughness=0.30, num_control=9, elongate=(1.0, 0.85))
-    img2.save(os.path.join(out_dir, "puddle_3.png"))
-    print("Saved puddle_3.png")
-
-    # Sprite 3: elongated narrow shape
-    img3 = make_puddle(seed=99, shape_roughness=0.45, num_control=11, elongate=(1.35, 0.58))
-    img3.save(os.path.join(out_dir, "puddle_4.png"))
-    print("Saved puddle_4.png")
-
-    print("Done! All puddle sprites generated.")
+    print("Done! All 8 puddle sprites regenerated with neutral dark charcoal gray.")
 
 
 if __name__ == "__main__":
