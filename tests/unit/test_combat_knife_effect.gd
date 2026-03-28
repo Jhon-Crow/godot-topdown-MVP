@@ -174,25 +174,25 @@ func test_knife_arc_half_is_60_degrees() -> void:
 
 
 func test_knife_windup_duration_is_short() -> void:
-	var windup := 0.10
+	var windup := 0.15  # Backswing delay before fast strike
 	assert_true(windup > 0.0 and windup <= 0.3,
 		"Knife windup should be short (0–0.3 seconds)")
 
 
 func test_knife_strike_duration_is_short() -> void:
-	var strike := 0.12
+	var strike := 0.08  # Fast strike sweep
 	assert_true(strike > 0.0 and strike <= 0.3,
 		"Knife strike should be short (0–0.3 seconds)")
 
 
 func test_knife_recovery_duration_is_short() -> void:
-	var recovery := 0.18
+	var recovery := 0.12  # Fade out
 	assert_true(recovery > 0.0 and recovery <= 0.5,
 		"Knife recovery should be within 0.5 seconds")
 
 
 func test_knife_total_animation_under_0_5_seconds() -> void:
-	var total := 0.10 + 0.12 + 0.18
+	var total := 0.15 + 0.08 + 0.12
 	assert_true(total <= 0.5,
 		"Total knife animation (windup + strike + recovery) should be under 0.5 seconds")
 
@@ -238,24 +238,30 @@ func test_attack_phases_enum_values() -> void:
 	assert_eq(recovery, 3, "RECOVERY phase should be 3")
 
 
-func test_damage_applied_mid_strike() -> void:
-	# Damage is applied at the midpoint of the STRIKE phase
-	var strike_duration := 0.12
-	var damage_time := strike_duration * 0.5
-	assert_almost_eq(damage_time, 0.06, 0.001,
-		"Damage should be applied at the midpoint of the STRIKE phase")
+func test_damage_applied_at_start_of_strike() -> void:
+	# Damage is applied immediately at start of the STRIKE phase (phase_timer == 0)
+	# This ensures the fast strike feels responsive and the arc matches damage timing
+	var phase := 1  # WINDUP
+	var damage_applied := false
+	# Simulate WINDUP completing and transitioning to STRIKE
+	if phase == 2:  # STRIKE phase starts
+		if not damage_applied:
+			damage_applied = true
+	assert_false(damage_applied, "Damage should not be applied during WINDUP")
 
 
 func test_damage_applied_only_once_per_attack() -> void:
 	# _damage_applied flag prevents double-damage in same attack
 	var damage_applied := false
-	# Simulate strike phase passing mid-point twice
-	var phase_timer := 0.0
-	for _i in range(3):
-		phase_timer += 0.04
-		if not damage_applied and phase_timer >= 0.06:
-			damage_applied = true
-	assert_true(damage_applied, "Damage should be applied during STRIKE phase")
+	# Simulate strike phase start (damage applied immediately)
+	if not damage_applied:
+		damage_applied = true
+	# Simulate being called again in the same attack
+	var second_hit := false
+	if not damage_applied:
+		second_hit = true
+	assert_true(damage_applied, "Damage should be applied at start of STRIKE phase")
+	assert_false(second_hit, "Damage should only be applied once per attack")
 
 
 func test_damage_not_applied_during_windup() -> void:

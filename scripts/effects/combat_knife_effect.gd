@@ -5,21 +5,22 @@ extends Node2D
 ## When activated via Space key, the player performs a 120° sweeping slash.
 ## All enemies within the arc and within KNIFE_RANGE pixels receive KNIFE_DAMAGE damage.
 ##
-## Visual: a sweeping fan arc drawn via _draw(), like a blade sweep animation.
-## The arc sweeps from WINDUP_ANGLE to STRIKE_END_ANGLE during the STRIKE phase
-## and fades out during RECOVERY.
+## Visual: a fan arc drawn via _draw(), centered on the player's AIM direction (mouse cursor).
+## During WINDUP: arc is hidden (backswing delay).
+## During STRIKE: full 120° arc sweeps in quickly and is fully visible (matches damage zone exactly).
+## During RECOVERY: arc fades out.
 ##
-## Attack phases (adapted from MacheteComponent, Issue #595):
-##   IDLE → WINDUP (0.1s) → STRIKE (0.12s) → RECOVERY (0.18s)
-## Damage is applied once at the midpoint of the STRIKE phase.
+## Attack phases:
+##   IDLE → WINDUP (0.15s, backswing delay) → STRIKE (0.08s, fast sweep) → RECOVERY (0.12s, fade)
+## Damage is applied once at the START of the STRIKE phase.
 ## No charges, no cooldown — the player can activate as fast as the animation allows.
 
 ## Attack animation phases.
 enum AttackPhase {
 	IDLE,     ## No attack in progress.
-	WINDUP,   ## Quick pull-back (0.1s).
-	STRIKE,   ## Fast forward sweep (0.12s) — damage mid-phase; arc visible.
-	RECOVERY  ## Return to idle (0.18s) — arc fades out.
+	WINDUP,   ## Backswing delay (0.15s) — arc not visible yet.
+	STRIKE,   ## Fast forward sweep (0.08s) — damage applied; arc expands to full 120°.
+	RECOVERY  ## Arc fades out (0.12s).
 }
 
 ## Maximum range of the knife attack in pixels.
@@ -31,20 +32,14 @@ const KNIFE_ARC_HALF: float = PI / 3.0
 ## Damage dealt to each enemy hit.
 const KNIFE_DAMAGE: float = 7.0
 
-## Duration of the windup phase in seconds.
-const WINDUP_DURATION: float = 0.10
+## Duration of the windup phase in seconds (backswing delay).
+const WINDUP_DURATION: float = 0.15
 
-## Duration of the strike phase in seconds.
-const STRIKE_DURATION: float = 0.12
+## Duration of the strike phase in seconds (fast sweep).
+const STRIKE_DURATION: float = 0.08
 
-## Duration of the recovery phase in seconds.
-const RECOVERY_DURATION: float = 0.18
-
-## Knife rotation during windup (radians, backward pull).
-const WINDUP_ANGLE: float = -PI / 2.5
-
-## Knife rotation at end of strike (radians, forward swing).
-const STRIKE_END_ANGLE: float = PI / 2.5
+## Duration of the recovery phase in seconds (fade out).
+const RECOVERY_DURATION: float = 0.12
 
 ## Number of polygon segments for the arc shape.
 const ARC_SEGMENTS: int = 20
@@ -70,13 +65,12 @@ var _damage_applied: bool = false
 ## Reference to the player node.
 var _player: Node2D = null
 
-## Current visual knife rotation (radians), used by the player sprite overlay.
-var _knife_rotation: float = 0.0
+## Reference to the player model node (used for aim direction).
+## This rotates to face the mouse cursor.
+var _player_model: Node2D = null
 
-## Current visual arc sweep angle (leading edge angle relative to player facing, radians).
-## During STRIKE: sweeps from WINDUP_ANGLE to STRIKE_END_ANGLE.
-## During RECOVERY: held at STRIKE_END_ANGLE (fading).
-var _arc_sweep_angle: float = 0.0
+## Arc expansion progress during STRIKE (0.0 = no arc, 1.0 = full 120°).
+var _arc_expand: float = 0.0
 
 ## Arc alpha for fade-out during RECOVERY (1.0 = full, 0.0 = gone).
 var _arc_alpha: float = 0.0
@@ -85,10 +79,12 @@ var _arc_alpha: float = 0.0
 var is_attacking: bool = false
 
 
-## Initialize with a reference to the player node.
+## Initialize with a reference to the player node and player model node.
 ## @param player: The player CharacterBody2D.
-func initialize(player: Node2D) -> void:
+## @param player_model: The PlayerModel Node2D that rotates toward the mouse cursor.
+func initialize(player: Node2D, player_model: Node2D = null) -> void:
 	_player = player
+	_player_model = player_model
 	FileLogger.info("[CombatKnife] Initialized — unlimited uses, 7 damage, 120° arc, %.0fpx range" % KNIFE_RANGE)
 
 
@@ -101,17 +97,11 @@ func activate() -> bool:
 	_phase = AttackPhase.WINDUP
 	_phase_timer = 0.0
 	_damage_applied = false
-	_knife_rotation = 0.0
-	_arc_sweep_angle = WINDUP_ANGLE
+	_arc_expand = 0.0
 	_arc_alpha = 0.0
 	is_attacking = true
-	FileLogger.info("[CombatKnife] Attack started — WINDUP")
+	FileLogger.info("[CombatKnife] Attack started — WINDUP (backswing)")
 	return true
-
-
-## Returns the current knife rotation angle for the visual overlay (radians).
-func get_knife_rotation() -> float:
-	return _knife_rotation
 
 
 ## Called every physics frame. Advances the attack animation state machine.
@@ -123,41 +113,38 @@ func _physics_process(delta: float) -> void:
 
 	match _phase:
 		AttackPhase.WINDUP:
-			# Lerp knife backward — no arc visible yet
-			var t: float = clamp(_phase_timer / WINDUP_DURATION, 0.0, 1.0)
-			_knife_rotation = lerp(0.0, WINDUP_ANGLE, t)
-			_arc_sweep_angle = WINDUP_ANGLE
+			# Backswing delay — no arc visible, just hold before striking
+			_arc_expand = 0.0
 			_arc_alpha = 0.0
 			if _phase_timer >= WINDUP_DURATION:
 				_phase = AttackPhase.STRIKE
 				_phase_timer = 0.0
+				# Apply damage immediately at start of strike
+				if not _damage_applied:
+					_apply_damage()
+					_damage_applied = true
 				FileLogger.info("[CombatKnife] Attack phase: STRIKE")
 
 		AttackPhase.STRIKE:
-			# Sweep forward — arc sweeps from WINDUP_ANGLE to STRIKE_END_ANGLE
+			# Fast sweep — arc expands from 0 to full 120° quickly
 			var t: float = clamp(_phase_timer / STRIKE_DURATION, 0.0, 1.0)
-			_knife_rotation = lerp(WINDUP_ANGLE, STRIKE_END_ANGLE, t)
-			_arc_sweep_angle = _knife_rotation
+			_arc_expand = t
 			_arc_alpha = 1.0
-			if not _damage_applied and _phase_timer >= STRIKE_DURATION * 0.5:
-				_apply_damage()
-				_damage_applied = true
 			if _phase_timer >= STRIKE_DURATION:
 				_phase = AttackPhase.RECOVERY
 				_phase_timer = 0.0
-				_arc_sweep_angle = STRIKE_END_ANGLE
+				_arc_expand = 1.0
 				FileLogger.info("[CombatKnife] Attack phase: RECOVERY")
 
 		AttackPhase.RECOVERY:
-			# Arc fades out as arm returns to idle
+			# Arc fades out
 			var t: float = clamp(_phase_timer / RECOVERY_DURATION, 0.0, 1.0)
-			_knife_rotation = lerp(STRIKE_END_ANGLE, 0.0, t)
+			_arc_expand = 1.0
 			_arc_alpha = 1.0 - t
 			if _phase_timer >= RECOVERY_DURATION:
 				_phase = AttackPhase.IDLE
 				_phase_timer = 0.0
-				_knife_rotation = 0.0
-				_arc_sweep_angle = 0.0
+				_arc_expand = 0.0
 				_arc_alpha = 0.0
 				is_attacking = false
 				FileLogger.info("[CombatKnife] Attack complete — IDLE")
@@ -165,18 +152,32 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 
-## Draw the fan arc sweep visual centered on the player facing direction.
+## Get the current aim angle (radians) from the player model (faces mouse cursor).
+## Falls back to player body rotation if model is not set.
+func _get_aim_angle() -> float:
+	if _player_model != null and is_instance_valid(_player_model):
+		return _player_model.global_rotation
+	if _player != null and is_instance_valid(_player):
+		return _player.rotation
+	return 0.0
+
+
+## Draw the fan arc sweep visual centered on the player's AIM direction.
+## The arc exactly matches the damage zone (120° centered on aim direction).
 func _draw() -> void:
-	if _arc_alpha <= 0.001 or _player == null or not is_instance_valid(_player):
+	if _arc_alpha <= 0.001 or _arc_expand <= 0.001:
+		return
+	if _player == null or not is_instance_valid(_player):
 		return
 
-	# Arc spans from WINDUP_ANGLE to _arc_sweep_angle (current sweep progress),
-	# offset by the player's facing direction.
-	var player_facing_angle: float = _player.rotation
-	var arc_start: float = player_facing_angle + WINDUP_ANGLE
-	var arc_end: float = player_facing_angle + _arc_sweep_angle
+	# Center of arc is the player's aim direction (toward mouse cursor)
+	var aim_angle: float = _get_aim_angle()
 
-	# Ensure arc_start < arc_end; if they are equal or reversed, skip drawing
+	# Arc spans KNIFE_ARC_HALF on each side of aim — scaled by expand progress
+	var current_half: float = KNIFE_ARC_HALF * _arc_expand
+	var arc_start: float = aim_angle - current_half
+	var arc_end: float = aim_angle + current_half
+
 	if arc_end <= arc_start + 0.01:
 		return
 
@@ -187,7 +188,7 @@ func _draw() -> void:
 	var points: PackedVector2Array = PackedVector2Array()
 	var colors: PackedColorArray = PackedColorArray()
 
-	# Center point (player position in local coords = Vector2.ZERO because we are a child)
+	# Center point (player position in local coords = Vector2.ZERO)
 	points.append(Vector2.ZERO)
 	var center_col: Color = Color(ARC_COLOR.r, ARC_COLOR.g, ARC_COLOR.b, ARC_COLOR.a * _arc_alpha * 0.4)
 	colors.append(center_col)
@@ -197,18 +198,20 @@ func _draw() -> void:
 		var a: float = arc_start + step * i
 		points.append(Vector2(cos(a), sin(a)) * KNIFE_RANGE)
 		var edge_factor: float = float(i) / float(ARC_SEGMENTS)
-		# Fade edges of arc for swept look
+		# Fade at edges, bright in the center of the arc
 		var edge_alpha: float = _arc_alpha * (0.5 + 0.5 * sin(edge_factor * PI))
 		colors.append(Color(ARC_COLOR.r, ARC_COLOR.g, ARC_COLOR.b, ARC_COLOR.a * edge_alpha))
 
 	draw_polygon(points, colors)
 
-	# Draw a bright leading edge line at the current sweep front
-	var leading_angle: float = player_facing_angle + _arc_sweep_angle
-	var edge_start: Vector2 = Vector2.ZERO
-	var edge_end: Vector2 = Vector2(cos(leading_angle), sin(leading_angle)) * KNIFE_RANGE
+	# Draw bright edge lines at both sides of the arc (showing the slash boundaries)
 	var edge_col: Color = Color(ARC_EDGE_COLOR.r, ARC_EDGE_COLOR.g, ARC_EDGE_COLOR.b, ARC_EDGE_COLOR.a * _arc_alpha)
-	draw_line(edge_start, edge_end, edge_col, 2.0, true)
+	var left_end: Vector2 = Vector2(cos(arc_start), sin(arc_start)) * KNIFE_RANGE
+	var right_end: Vector2 = Vector2(cos(arc_end), sin(arc_end)) * KNIFE_RANGE
+	var center_end: Vector2 = Vector2(cos(aim_angle), sin(aim_angle)) * KNIFE_RANGE
+	draw_line(Vector2.ZERO, left_end, edge_col, 1.5, true)
+	draw_line(Vector2.ZERO, right_end, edge_col, 1.5, true)
+	draw_line(Vector2.ZERO, center_end, edge_col, 2.5, true)
 
 
 ## Apply damage to all enemies within the knife arc.
@@ -216,8 +219,9 @@ func _apply_damage() -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
 
-	# Determine facing direction from player rotation
-	var player_facing: Vector2 = Vector2.RIGHT.rotated(_player.rotation)
+	# Determine facing direction from aim angle (mouse direction)
+	var aim_angle: float = _get_aim_angle()
+	var player_facing: Vector2 = Vector2(cos(aim_angle), sin(aim_angle))
 
 	var hit_count: int = 0
 	var enemies: Array = get_tree().get_nodes_in_group("enemies")

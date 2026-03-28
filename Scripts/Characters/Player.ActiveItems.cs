@@ -5461,7 +5461,8 @@ public partial class Player
 
         _combatKnifeEffect = scene.Instantiate();
         AddChild(_combatKnifeEffect);
-        _combatKnifeEffect.Call("initialize", this);
+        // Pass both the player node and the player model (which rotates toward aim/mouse direction)
+        _combatKnifeEffect.Call("initialize", this, _playerModel);
         _combatKnifeEquipped = true;
         LogToFile("[Player.CombatKnife] Initialized — unlimited uses, 7 damage, 120° arc");
     }

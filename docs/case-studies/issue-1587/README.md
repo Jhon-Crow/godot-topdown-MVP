@@ -104,6 +104,49 @@ For each enemy in range + arc:
 
 ---
 
+## Iteration History
+
+### First draft (PR #1681 initial commit)
+- Fan arc animation implemented via `_draw()` sweeping polygon
+- Animation: WINDUP (0.10s) → STRIKE (0.12s) → RECOVERY (0.18s)
+- Arc swept from WINDUP_ANGLE to STRIKE_END_ANGLE (not centered on aim)
+- Player body rotation used for facing direction
+
+### Owner feedback #1 (2026-03-28 07:35)
+Issues identified in-game:
+1. Damage was working ✓
+2. No visible fan arc animation
+3. Missing unlock condition: kill 10 enemies in close range (enemy threat zone)
+4. Item icon needed replacement with one from closed PR #1601
+
+Resolution:
+- Added `Node2D` scene so `_draw()` works (scene was `Node`, not `Node2D`)
+- Added unlock condition: `close_range_kills` stat tracked in `game_manager.gd`
+- Restored icon from PR #1601 reference
+
+### Owner feedback #2 (2026-03-28 08:26)
+Issues identified in-game after second draft:
+1. **Arc too wide** — animated strike did not match the actual damage zone
+2. **Animation too slow** — needed faster overall execution with a held backswing before striking
+3. **No aim direction** — arc and attack were based on player body rotation, not mouse/crosshair aim direction
+
+Root cause analysis:
+- `_player.rotation` (player CharacterBody2D rotation) was used, but the aim direction is `_playerModel.GlobalRotation`
+  — the `PlayerModel` child node rotates toward the mouse cursor via `UpdatePlayerModelRotation()`
+- The sweeping arc from WINDUP_ANGLE to STRIKE_END_ANGLE was wider than the actual 120° damage zone
+  and was not centered on the aim direction
+
+Resolution (2026-03-28):
+- `initialize()` now accepts a second parameter: `player_model: Node2D` (PlayerModel reference)
+- `_get_aim_angle()` helper reads `_player_model.global_rotation` for correct aim direction
+- Arc geometry redesigned: centered on aim direction, expands symmetrically from 0° to ±60° during STRIKE
+  — exactly matches `KNIFE_ARC_HALF` damage check
+- Timing adjusted: WINDUP 0.15s (backswing delay) → STRIKE 0.08s (fast) → RECOVERY 0.12s (fade)
+- Damage applied at the START of STRIKE (immediate on backswing release) for crisp feel
+- `Player.ActiveItems.cs`: `InitCombatKnife()` passes `_playerModel` as second arg to `initialize()`
+
+---
+
 ## References
 
 - Issue #1071 (Dash) — closest parallel: press-Space no-charges active item using GDScript effect
