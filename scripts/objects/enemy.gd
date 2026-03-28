@@ -687,9 +687,14 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 
 	if sound_type == 0: _on_gunshot_heard_for_grenade(position)  # #363: sustained fire detection
 
-	_last_known_player_position = position
-	if _memory:
-		_memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
+	# Issue #1698: Only update last known player position from GUNSHOT sounds.
+	# EXPLOSION (grenade detonation) position is not where the player is — do not
+	# overwrite the player's last known location, so the machine gunner keeps
+	# suppressing the actual corridor the player was seen in.
+	if sound_type == 0:
+		_last_known_player_position = position
+		if _memory:
+			_memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
 	if sound_type == 0 and source_type == 0 and _prediction and source_node and is_instance_valid(source_node):
 		var sd := (position - source_node.global_position).normalized()
 		_prediction.record_player_shot(sd)

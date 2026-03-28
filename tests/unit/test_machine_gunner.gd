@@ -274,3 +274,68 @@ func test_machine_gun_sound_range_is_2400px() -> void:
 	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	assert_eq(config["weapon_loudness"], 2400.0,
 		"MACHINE_GUN weapon_loudness should be 2400.0 px (SoundPropagation alert range)")
+
+
+# ============================================================================
+# Issue #1698: Machine gunner must NOT turn toward grenade explosion
+# ============================================================================
+
+
+## Mock enemy that mirrors the sound-handling logic from enemy.gd,
+## isolating the last-known-position update behaviour for GUNSHOT vs EXPLOSION.
+class MockMachineGunnerSoundLogic extends RefCounted:
+	const SOUND_TYPE_GUNSHOT := 0
+	const SOUND_TYPE_EXPLOSION := 1
+
+	var _last_known_player_position: Vector2 = Vector2.ZERO
+
+	## Mirrors the fixed on_sound_heard_with_intensity logic from enemy.gd (Issue #1698).
+	## Only GUNSHOT (type 0) updates _last_known_player_position;
+	## EXPLOSION (type 1) must not overwrite it.
+	func on_sound_heard_with_intensity(sound_type: int, position: Vector2) -> void:
+		if sound_type != SOUND_TYPE_GUNSHOT and sound_type != SOUND_TYPE_EXPLOSION:
+			return
+		if sound_type == SOUND_TYPE_GUNSHOT:
+			_last_known_player_position = position
+
+
+func test_machine_gunner_does_not_update_last_known_pos_on_explosion() -> void:
+	# Issue #1698: Grenade explosion sound must not overwrite the player's last known position.
+	var mg := MockMachineGunnerSoundLogic.new()
+	var player_pos := Vector2(200.0, 0.0)
+	var explosion_pos := Vector2(800.0, 400.0)
+
+	# Machine gunner first sees/hears the player at player_pos
+	mg.on_sound_heard_with_intensity(MockMachineGunnerSoundLogic.SOUND_TYPE_GUNSHOT, player_pos)
+	assert_eq(mg._last_known_player_position, player_pos,
+		"GUNSHOT should set last known player position")
+
+	# A grenade explodes far from the player
+	mg.on_sound_heard_with_intensity(MockMachineGunnerSoundLogic.SOUND_TYPE_EXPLOSION, explosion_pos)
+	assert_eq(mg._last_known_player_position, player_pos,
+		"EXPLOSION must NOT overwrite last known player position (Issue #1698)")
+	assert_ne(mg._last_known_player_position, explosion_pos,
+		"Suppress target must remain the player corridor, not the explosion site")
+
+
+func test_machine_gunner_last_known_pos_unchanged_without_gunshot() -> void:
+	# If the machine gunner has no prior GUNSHOT, an EXPLOSION should leave the
+	# last known position at Vector2.ZERO (no false position injected).
+	var mg := MockMachineGunnerSoundLogic.new()
+	var explosion_pos := Vector2(600.0, 300.0)
+
+	mg.on_sound_heard_with_intensity(MockMachineGunnerSoundLogic.SOUND_TYPE_EXPLOSION, explosion_pos)
+	assert_eq(mg._last_known_player_position, Vector2.ZERO,
+		"EXPLOSION alone must not inject a false player position (Issue #1698)")
+
+
+func test_machine_gunner_gunshot_after_explosion_sets_correct_pos() -> void:
+	# Explosion arrives first, then a gunshot — gunshot must win.
+	var mg := MockMachineGunnerSoundLogic.new()
+	var explosion_pos := Vector2(900.0, 0.0)
+	var player_pos := Vector2(150.0, 0.0)
+
+	mg.on_sound_heard_with_intensity(MockMachineGunnerSoundLogic.SOUND_TYPE_EXPLOSION, explosion_pos)
+	mg.on_sound_heard_with_intensity(MockMachineGunnerSoundLogic.SOUND_TYPE_GUNSHOT, player_pos)
+	assert_eq(mg._last_known_player_position, player_pos,
+		"Subsequent GUNSHOT should correctly set last known player position")
