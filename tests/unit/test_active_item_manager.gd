@@ -129,7 +129,10 @@ class MockActiveItemManager:
 		DRILLING_BULLETS = 15,
 		RECOIL_COMPENSATOR = 16,
 		COMBAT_DISPOSITION = 17,
-		EXPERIMENTAL_SAMPLE = 18
+		EXPERIMENTAL_SAMPLE = 18,
+		FINE_MOTOR_SKILLS = 19,
+		DASH = 20,
+		GRENADE_BAG = 21
 	}
 
 	## Currently selected active item type
@@ -195,7 +198,7 @@ class MockActiveItemManager:
 		11: {
 			"name": "Loudspeaker",
 			"icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
-			"description": "Loudspeaker — press Space to emit sound cone. 2 charges per battle."
+			"description": "???"
 		},
 		12: {
 			"name": "Breaching Charges",
@@ -233,8 +236,55 @@ class MockActiveItemManager:
 			"icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png",
 			"description": "Experimental Sample — press Space to trigger a random active item effect (including items not yet unlocked). 1–5 charges per battle, randomised on level start.",
 			"activation_hint": "Press Space to trigger random effect"
+		},
+		19: {
+			"name": "Fine Motor Skills",
+			"icon_path": "res://assets/sprites/weapons/fine_motor_skills_icon.png",
+			"description": "Fine Motor Skills — press Space to instantly reload weapon and bring it to combat-ready state. Works with all weapons including revolver, shotgun, and sniper rifle. Unlimited charges, no cooldown.",
+			"activation_hint": "Press Space to reload"
+		},
+		20: {
+			"name": "Dash",
+			"icon_path": "res://assets/sprites/weapons/dash_icon.png",
+			"description": "Dash — press Space to dash in movement direction with damage immunity. 3 charges, cooldown after 3rd dash.",
+			"activation_hint": "Press Space to dash"
+		},
+		21: {
+			"name": "Grenade Bag",
+			"icon_path": "res://assets/sprites/weapons/grenade_bag_icon.png",
+			"description": "Grenade Bag — passive: increases starting grenade count based on selected type: 12 flash/stun grenades, 6 frag grenades, 2 gas or F-1 grenades."
 		}
 	}
+
+	## Unlocked active items tracking
+	var unlocked_active_items: Dictionary = {
+		0: true,   # NONE
+		1: false,  # FLASHLIGHT
+		2: false,  # HOMING_BULLETS
+		3: false,  # TELEPORT_BRACERS
+		4: false,  # BFF_PENDANT
+		5: false,  # INVISIBILITY_SUIT
+		6: false,  # BREAKER_BULLETS
+		7: false,  # FORCE_FIELD
+		8: false,  # TRAJECTORY_GLASSES
+		9: false,  # LASER_SIGHT
+		10: false, # EXTENDED_MAGAZINE
+		11: true,  # LOUDSPEAKER — no unlock condition, freely available from start (Issue #1691)
+		12: false, # BREACHING_CHARGES
+		13: false, # ARMORED_SKIN
+		14: false, # AUTO_RELOAD
+		15: false, # DRILLING_BULLETS
+		16: false, # RECOIL_COMPENSATOR
+		17: false, # COMBAT_DISPOSITION
+		18: false, # EXPERIMENTAL_SAMPLE
+		19: false, # FINE_MOTOR_SKILLS
+		20: false, # DASH
+		21: false  # GRENADE_BAG
+	}
+
+	## Check if an active item type is unlocked (Issue #1691)
+	func is_active_item_unlocked(item_type: int) -> bool:
+		return unlocked_active_items.get(item_type, false)
 
 	## Signal tracking
 	var type_changed_count: int = 0
@@ -492,8 +542,8 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 19,
-		"Should return 19 active item types (NONE + 18 items including Extended Magazine, Drilling Bullets, Recoil Compensator, Combat Disposition, and Experimental Sample)")
+	assert_eq(types.size(), 22,
+		"Should return 22 active item types (NONE + 21 items including Extended Magazine, Drilling Bullets, Recoil Compensator, Combat Disposition, Experimental Sample, Fine Motor Skills, Dash, and Grenade Bag)")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
@@ -513,6 +563,9 @@ func test_get_all_active_item_types() -> void:
 	assert_true(16 in types)  # RECOIL_COMPENSATOR (Issue #1073)
 	assert_true(17 in types)  # COMBAT_DISPOSITION (Issue #1047)
 	assert_true(18 in types)  # EXPERIMENTAL_SAMPLE (Issue #1127)
+	assert_true(19 in types)  # FINE_MOTOR_SKILLS (Issue #1315)
+	assert_true(20 in types)  # DASH (Issue #1071)
+	assert_true(21 in types)  # GRENADE_BAG (Issue #1590)
 
 
 func test_get_active_item_name_none() -> void:
@@ -551,6 +604,25 @@ func test_get_active_item_description_homing_bullets() -> void:
 
 func test_get_active_item_description_invalid() -> void:
 	assert_eq(manager.get_active_item_description(999), "")
+
+
+func test_loudspeaker_description_is_mystery() -> void:
+	# Issue #1691: Loudspeaker description should be ??? (mystery)
+	var desc := manager.get_active_item_description(11)
+	assert_eq(desc, "???",
+		"Loudspeaker description should be '???' (Issue #1691)")
+
+
+func test_loudspeaker_is_unlocked_from_start() -> void:
+	# Issue #1691: Loudspeaker should be unlocked (open) from the start
+	assert_true(manager.is_active_item_unlocked(11),
+		"Loudspeaker should be unlocked from the start (Issue #1691)")
+
+
+func test_loudspeaker_is_not_default_selected() -> void:
+	# Issue #1691: Loudspeaker should be open but not taken (not selected by default)
+	assert_false(manager.is_selected(11),
+		"Loudspeaker should not be selected by default (Issue #1691)")
 
 
 func test_get_active_item_icon_path_flashlight() -> void:
@@ -712,7 +784,7 @@ class MockArmoryWithActiveItems:
 		8: {"name": "Trajectory Glasses", "description": "Trajectory glasses — ricochet visualization"},
 		9: {"name": "Laser Sight", "description": "Laser sight — passive"},
 		10: {"name": "Extended Magazine", "description": "Extended magazine — passive: 2.5x magazine size"},
-		11: {"name": "Loudspeaker", "description": "Loudspeaker — press Space to emit sound cone"},
+		11: {"name": "Loudspeaker", "description": "???"},
 		12: {"name": "Breaching Charges", "description": "Breaching charges — place on wall to create a passage"},
 		13: {"name": "Armored Skin", "description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward."},
 		14: {"name": "Auto-Reload", "description": "Auto-reload — passive: magazine reduced 2.1x, refilled on kill"},

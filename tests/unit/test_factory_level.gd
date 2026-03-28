@@ -10,6 +10,45 @@ extends GutTest
 # ============================================================================
 
 
+class MockExperimentalSettings:
+	## Whether replay viewing is enabled (Issue #807).
+	var replay_enabled: bool = false
+
+	func is_replay_enabled() -> bool:
+		return replay_enabled
+
+
+class MockScoreScreenButtons:
+	## Simulates the replay button visibility logic from factory_level.gd
+	## _add_score_screen_buttons (Issue #1610: guard replay button with
+	## experimental_settings check).
+	var experimental_settings: MockExperimentalSettings = null
+	var replay_button_added: bool = false
+
+	func add_score_screen_buttons() -> void:
+		replay_button_added = false
+		var replay_enabled: bool = (
+			experimental_settings != null
+			and experimental_settings.is_replay_enabled()
+		)
+		if replay_enabled:
+			replay_button_added = true
+
+
+class MockUnhandledInput:
+	## Simulates the _unhandled_input W-key logic from factory_level.gd
+	## (Issue #1610: guard W key replay trigger with experimental_settings check).
+	var experimental_settings: MockExperimentalSettings = null
+	var _score_shown: bool = true
+	var replay_triggered: bool = false
+
+	func handle_w_key() -> void:
+		if not _score_shown:
+			return
+		if experimental_settings and experimental_settings.is_replay_enabled():
+			replay_triggered = true
+
+
 class MockFactoryLevel:
 	## Saturation effect constants (must match factory_level.gd).
 	const SATURATION_DURATION: float = 0.15
@@ -160,3 +199,64 @@ func test_player_exit_blocked_before_clear() -> void:
 func test_map_dimensions() -> void:
 	assert_eq(level.map_width, 2400, "Factory map width should be 2400")
 	assert_eq(level.map_height, 2000, "Factory map height should be 2000")
+
+
+# ============================================================================
+# Replay Button Visibility Tests (Issue #1610)
+# ============================================================================
+
+
+func test_replay_button_not_added_when_replay_disabled() -> void:
+	var screen := MockScoreScreenButtons.new()
+	var settings := MockExperimentalSettings.new()
+	settings.replay_enabled = false
+	screen.experimental_settings = settings
+	screen.add_score_screen_buttons()
+	assert_false(screen.replay_button_added,
+		"Replay button must not appear on score screen when replay is disabled in experimental settings")
+
+
+func test_replay_button_added_when_replay_enabled() -> void:
+	var screen := MockScoreScreenButtons.new()
+	var settings := MockExperimentalSettings.new()
+	settings.replay_enabled = true
+	screen.experimental_settings = settings
+	screen.add_score_screen_buttons()
+	assert_true(screen.replay_button_added,
+		"Replay button should appear on score screen when replay is enabled in experimental settings")
+
+
+func test_replay_button_not_added_when_no_experimental_settings() -> void:
+	var screen := MockScoreScreenButtons.new()
+	screen.experimental_settings = null
+	screen.add_score_screen_buttons()
+	assert_false(screen.replay_button_added,
+		"Replay button must not appear when experimental settings node is absent")
+
+
+func test_w_key_does_not_trigger_replay_when_disabled() -> void:
+	var handler := MockUnhandledInput.new()
+	var settings := MockExperimentalSettings.new()
+	settings.replay_enabled = false
+	handler.experimental_settings = settings
+	handler.handle_w_key()
+	assert_false(handler.replay_triggered,
+		"W key must not trigger replay when replay is disabled in experimental settings")
+
+
+func test_w_key_triggers_replay_when_enabled() -> void:
+	var handler := MockUnhandledInput.new()
+	var settings := MockExperimentalSettings.new()
+	settings.replay_enabled = true
+	handler.experimental_settings = settings
+	handler.handle_w_key()
+	assert_true(handler.replay_triggered,
+		"W key should trigger replay when replay is enabled in experimental settings")
+
+
+func test_w_key_does_not_trigger_replay_when_no_experimental_settings() -> void:
+	var handler := MockUnhandledInput.new()
+	handler.experimental_settings = null
+	handler.handle_w_key()
+	assert_false(handler.replay_triggered,
+		"W key must not trigger replay when experimental settings node is absent")

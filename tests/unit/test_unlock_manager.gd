@@ -45,6 +45,15 @@ class MockGameManager:
 		"ak_gl": false            # Condition: Decadence F+ (Issue #1423 req.1)
 	}
 
+	# Kill/stat counters used by KILL_UNLOCK_CONDITIONS
+	var kills_without_laser_sight: int = 0       # Condition: 400 → Laser Sight (Issue #1196)
+	var shots_fired_special_weapons: int = 0     # Condition: 650 → Fine Motor Skills (Issue #1346)
+	var total_deaths: int = 0                    # Condition: 100 → Armored Skin (Issue #1389)
+	var no_damage_levels_completed: int = 0      # Condition: 1 → Combat Disposition (Issue #1389)
+	var levels_completed_rank_a_or_higher: int = 0  # Condition: 7 → Breaker Bullets (Issue #1589 req.3)
+	var kills_through_wall: int = 0              # Condition: 50 → Drilling Bullets (Issue #1624 req.3)
+	var levels_completed_with_silenced_pistol: int = 0  # Condition: 1 → Auto Reload (Issue #1624 req.2)
+
 	var unlocked_signals: Array = []
 
 	func is_weapon_unlocked(weapon_id: String) -> bool:
@@ -62,21 +71,24 @@ class MockActiveItemManager:
 		1: false,  # FLASHLIGHT — condition: Polygon D+
 		2: false,  # HOMING_BULLETS — condition: Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S (Issue #1000)
 		3: false,  # TELEPORT_BRACERS — condition: Double Corridor D+ (Issue #1000)
-		4: true,   # BFF_PENDANT — no condition, freely available from start (Issue #674)
+		4: false,  # BFF_PENDANT — condition: complete Winter Forest (Issue #1624 req.9)
 		5: false,  # INVISIBILITY_SUIT — condition: Beach S + Building S (Issue #1000)
-		6: true,   # BREAKER_BULLETS — no condition, freely available from start
-		7: true,   # FORCE_FIELD — no condition, freely available from start
-		8: false,  # TRAJECTORY_GLASSES — condition: City D+ (Issue #1053 req.1)
-		9: true,   # LASER_SIGHT — no condition, freely available from start (Issue #947)
-		10: true,  # EXTENDED_MAGAZINE — no condition, freely available from start (Issue #1065)
+		6: false,  # BREAKER_BULLETS — condition: 7 levels at rank A or higher (Issue #1589 req.3)
+		7: false,  # FORCE_FIELD — condition: complete Factory on any grade (Issue #1589 req.2)
+		8: false,  # TRAJECTORY_GLASSES — condition: City F+ (Issue #1692 req.2)
+		9: false,  # LASER_SIGHT — condition: 400 kills without laser sight equipped (Issue #1196)
+		10: false, # EXTENDED_MAGAZINE — condition: Double Corridor A+ (Issue #1692 req.1)
 		11: true,  # LOUDSPEAKER — no condition, freely available from start (Issue #959)
-		12: true,  # BREACHING_CHARGES — no condition, freely available from start (Issue #1043)
+		12: false, # BREACHING_CHARGES — condition: complete Labyrinth Complex (Issue #1624 req.6)
 		13: false, # ARMORED_SKIN — condition: 100 total deaths (Issue #1389)
-		14: true,  # AUTO_RELOAD — no condition, freely available from start (Issue #1067)
-		15: true,  # DRILLING_BULLETS — no condition, freely available from start (Issue #751)
+		14: false, # AUTO_RELOAD — condition: complete any level with silenced pistol (Issue #1624 req.2)
+		15: false, # DRILLING_BULLETS — condition: 50 kills through walls (Issue #1624 req.3)
 		16: false, # RECOIL_COMPENSATOR — condition: Labyrinth S (Issue #1423 req.2)
 		17: false, # COMBAT_DISPOSITION — condition: complete any level without damage (Issue #1389)
-		18: false  # EXPERIMENTAL_SAMPLE — condition: one level on every difficulty (Issue #1426)
+		18: false, # EXPERIMENTAL_SAMPLE — condition: one level on every difficulty (Issue #1426)
+		19: false, # FINE_MOTOR_SKILLS — condition: 650 shots with special weapons (Issue #1346)
+		20: false, # DASH — condition: Decadence A+ (Issue #1624 req.5)
+		21: false  # GRENADE_BAG — condition: complete Railway Station (Issue #1624 req.8)
 	}
 
 	var unlocked_signals: Array = []
@@ -95,7 +107,8 @@ class MockGrenadeManager:
 		0: true,  # FLASHBANG — always unlocked
 		1: false, # FRAG — condition: Building D+ (Issue #1000)
 		2: false, # DEFENSIVE — condition: Beach S (Issue #1000)
-		3: true   # AGGRESSION_GAS — no condition, freely available from start
+		3: false, # AGGRESSION_GAS — condition: complete Docks D+ (Issue #1624 req.4)
+		4: false  # DRONE — condition: complete Sewer on any grade (Issue #1624 req.7)
 	}
 
 	var unlocked_signals: Array = []
@@ -156,10 +169,10 @@ class TestableUnlockManager extends Node:
 			"active_items": [3]  # TELEPORT_BRACERS
 		},
 		"res://scenes/levels/CityLevel.tscn": {
-			"min_rank": "D",
+			"min_rank": "F",
 			"weapons": [],
 			"grenades": [],
-			"active_items": [8]  # TRAJECTORY_GLASSES (Issue #1053 req.1)
+			"active_items": [8]  # TRAJECTORY_GLASSES (Issue #1692 req.2)
 		},
 		"res://scenes/levels/BeachLevel.tscn": {
 			"min_rank": "D",
@@ -176,7 +189,7 @@ class TestableUnlockManager extends Node:
 		"res://scenes/levels/DocksLevel.tscn": {
 			"min_rank": "D",
 			"weapons": ["silenced_pistol"],
-			"grenades": [],
+			"grenades": [3],    # AGGRESSION_GAS = 3 (Issue #1624 req.4)
 			"active_items": []
 		},
 		"res://scenes/levels/DecadenceLevel.tscn": {
@@ -190,6 +203,42 @@ class TestableUnlockManager extends Node:
 			"weapons": [],
 			"grenades": [],
 			"active_items": [16]  # RECOIL_COMPENSATOR (Issue #1423 req.2)
+		},
+		"res://scenes/levels/RevolverLevel.tscn:A": {
+			"min_rank": "A",
+			"weapons": [],
+			"grenades": [],
+			"active_items": [10]  # EXTENDED_MAGAZINE (Issue #1692 req.1)
+		},
+		"res://scenes/levels/DecadenceLevel.tscn:A+": {
+			"min_rank": "A+",
+			"weapons": [],
+			"grenades": [],
+			"active_items": [20]  # DASH (Issue #1624 req.5)
+		},
+		"res://scenes/levels/Labyrinth2Level.tscn": {
+			"min_rank": "F",
+			"weapons": [],
+			"grenades": [],
+			"active_items": [12]  # BREACHING_CHARGES (Issue #1624 req.6)
+		},
+		"res://scenes/levels/SewerLevel.tscn": {
+			"min_rank": "F",
+			"weapons": [],
+			"grenades": [4],    # DRONE = 4 (Issue #1624 req.7)
+			"active_items": []
+		},
+		"res://scenes/levels/RailwayStationLevel.tscn": {
+			"min_rank": "F",
+			"weapons": [],
+			"grenades": [],
+			"active_items": [21]  # GRENADE_BAG (Issue #1624 req.8)
+		},
+		"res://scenes/levels/WinterForestLevel.tscn": {
+			"min_rank": "F",
+			"weapons": [],
+			"grenades": [],
+			"active_items": [4]  # BFF_PENDANT (Issue #1624 req.9)
 		}
 	}
 
@@ -223,6 +272,65 @@ class TestableUnlockManager extends Node:
 			"weapons": [],
 			"grenades": [],
 			"active_items": [18]  # EXPERIMENTAL_SAMPLE
+		}
+	]
+
+	const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
+		{
+			# 400 kills without Laser Sight → unlock Laser Sight (Issue #1196, updated by Issue #1589)
+			"stat": "kills_without_laser_sight",
+			"min_kills": 400,
+			"weapons": [],
+			"grenades": [],
+			"active_items": [9]   # LASER_SIGHT
+		},
+		{
+			# 300 shots with shotgun, sniper rifle, or revolver → unlock Fine Motor Skills (Issue #1346)
+			"stat": "shots_fired_special_weapons",
+			"min_kills": 300,
+			"weapons": [],
+			"grenades": [],
+			"active_items": [19]  # FINE_MOTOR_SKILLS
+		},
+		{
+			# 100 total deaths → unlock Armored Skin (Issue #1389)
+			"stat": "total_deaths",
+			"min_kills": 100,
+			"weapons": [],
+			"grenades": [],
+			"active_items": [13]  # ARMORED_SKIN
+		},
+		{
+			# 1 level completed without damage → unlock Combat Disposition (Issue #1389)
+			"stat": "no_damage_levels_completed",
+			"min_kills": 1,
+			"weapons": [],
+			"grenades": [],
+			"active_items": [17]  # COMBAT_DISPOSITION
+		},
+		{
+			# 7 levels completed at rank A or higher → unlock Breaker Bullets (Issue #1589 req.3)
+			"stat": "levels_completed_rank_a_or_higher",
+			"min_kills": 7,
+			"weapons": [],
+			"grenades": [],
+			"active_items": [6]   # BREAKER_BULLETS
+		},
+		{
+			# 50 kills through walls → unlock Drilling Bullets (Issue #1624 req.3)
+			"stat": "kills_through_wall",
+			"min_kills": 50,
+			"weapons": [],
+			"grenades": [],
+			"active_items": [15]  # DRILLING_BULLETS
+		},
+		{
+			# Complete any level with silenced pistol → unlock Auto Reload (Issue #1624 req.2)
+			"stat": "levels_completed_with_silenced_pistol",
+			"min_kills": 1,
+			"weapons": [],
+			"grenades": [],
+			"active_items": [14]  # AUTO_RELOAD
 		}
 	]
 
@@ -319,6 +427,14 @@ class TestableUnlockManager extends Node:
 			if not found:
 				return false
 		return true
+
+	func is_kill_condition_met(kill_condition: Dictionary) -> bool:
+		if mock_game_manager == null:
+			return false
+		var stat_name: String = kill_condition.get("stat", "")
+		var min_kills: int = kill_condition.get("min_kills", 0)
+		var stat_value: int = mock_game_manager.get(stat_name) if stat_name in mock_game_manager else 0
+		return stat_value >= min_kills
 
 	func is_weapon_condition_met(weapon_id: String) -> bool:
 		for condition_key in UNLOCK_CONDITIONS:
@@ -504,6 +620,25 @@ class TestableUnlockManager extends Node:
 					for item_type in all_diff_condition.get("active_items", []):
 						if not mock_active_item_manager.is_active_item_unlocked(item_type):
 							return true
+
+		for kill_condition in KILL_UNLOCK_CONDITIONS:
+			if not is_kill_condition_met(kill_condition):
+				continue
+
+			if mock_game_manager:
+				for weapon_id in kill_condition.get("weapons", []):
+					if not mock_game_manager.is_weapon_unlocked(weapon_id):
+						return true
+
+			if mock_active_item_manager:
+				for item_type in kill_condition.get("active_items", []):
+					if not mock_active_item_manager.is_active_item_unlocked(item_type):
+						return true
+
+			if mock_grenade_manager:
+				for grenade_type in kill_condition.get("grenades", []):
+					if not mock_grenade_manager.is_grenade_unlocked(grenade_type):
+						return true
 
 		return false
 
@@ -709,17 +844,18 @@ func test_teleport_not_unlocked_by_castle_alone() -> void:
 		"Teleport Bracers should NOT be unlocked by Castle completion alone (moved to Double Corridor)")
 
 
-func test_city_d_unlocks_trajectory_glasses() -> void:
-	# Issue #1053 req.1: City D+ → Trajectory Glasses
+func test_city_f_unlocks_trajectory_glasses() -> void:
+	# Issue #1692 req.2: City F+ → Trajectory Glasses (any completion)
+	progress_manager.set_rank("res://scenes/levels/CityLevel.tscn", "Normal", "F")
+	assert_true(unlock_manager.is_active_item_condition_met(8),
+		"Trajectory Glasses condition should be met after City grade F (Issue #1692)")
+
+
+func test_city_d_also_unlocks_trajectory_glasses() -> void:
+	# Issue #1692 req.2: City D+ → Trajectory Glasses (D is higher than F)
 	progress_manager.set_rank("res://scenes/levels/CityLevel.tscn", "Normal", "D")
 	assert_true(unlock_manager.is_active_item_condition_met(8),
-		"Trajectory Glasses condition should be met after City grade D (Issue #1053)")
-
-
-func test_city_f_does_not_unlock_trajectory_glasses() -> void:
-	progress_manager.set_rank("res://scenes/levels/CityLevel.tscn", "Normal", "F")
-	assert_false(unlock_manager.is_active_item_condition_met(8),
-		"Trajectory Glasses condition should NOT be met with City grade F (requires D+)")
+		"Trajectory Glasses condition should also be met after City grade D (Issue #1692)")
 
 
 func test_beach_d_unlocks_m16() -> void:
@@ -903,6 +1039,39 @@ func test_teleport_condition_met_after_double_corridor_d() -> void:
 
 
 # ============================================================================
+# New unlock condition tests (Issue #1692)
+# ============================================================================
+
+
+func test_double_corridor_a_unlocks_extended_magazine() -> void:
+	# Issue #1692 req.1: Double Corridor A+ → Extended Magazine
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "A")
+	assert_true(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
+		"Extended Magazine condition should be met after Double Corridor grade A (Issue #1692)")
+
+
+func test_double_corridor_s_unlocks_extended_magazine() -> void:
+	# Issue #1692 req.1: Double Corridor S also satisfies the A+ condition
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "S")
+	assert_true(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
+		"Extended Magazine condition should be met after Double Corridor grade S (Issue #1692)")
+
+
+func test_double_corridor_b_does_not_unlock_extended_magazine() -> void:
+	# Issue #1692 req.1: Double Corridor B is below A, should NOT unlock Extended Magazine
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "B")
+	assert_false(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
+		"Extended Magazine should NOT be unlocked with Double Corridor grade B (requires A+)")
+
+
+func test_extended_magazine_not_unlocked_without_double_corridor() -> void:
+	# Issue #1692 req.1: Extended Magazine requires Double Corridor, not Building
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "S")
+	assert_false(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
+		"Extended Magazine should NOT be unlocked by Building completion (moved to Double Corridor in Issue #1692)")
+
+
+# ============================================================================
 # Condition tracking tests (items are NOT auto-unlocked — player uses LMB)
 # ============================================================================
 
@@ -1024,8 +1193,9 @@ func test_condition_locked_grenades_locked_by_default() -> void:
 
 
 func test_condition_locked_active_items_locked_by_default() -> void:
-	# FLASHLIGHT (1), HOMING_BULLETS (2), TELEPORT_BRACERS (3), INVISIBILITY_SUIT (5), TRAJECTORY_GLASSES (8)
-	# ARMORED_SKIN (13), RECOIL_COMPENSATOR (16), COMBAT_DISPOSITION (17)
+	# FLASHLIGHT (1), HOMING_BULLETS (2), TELEPORT_BRACERS (3), INVISIBILITY_SUIT (5),
+	# BREAKER_BULLETS (6), FORCE_FIELD (7), TRAJECTORY_GLASSES (8), LASER_SIGHT (9),
+	# ARMORED_SKIN (13), RECOIL_COMPENSATOR (16), COMBAT_DISPOSITION (17), FINE_MOTOR_SKILLS (19)
 	assert_false(active_item_manager.is_active_item_unlocked(1),
 		"Flashlight should be locked by default")
 	assert_false(active_item_manager.is_active_item_unlocked(2),
@@ -1034,14 +1204,22 @@ func test_condition_locked_active_items_locked_by_default() -> void:
 		"Teleport Bracers should be locked by default")
 	assert_false(active_item_manager.is_active_item_unlocked(5),
 		"Invisibility should be locked by default (Issue #1000)")
+	assert_false(active_item_manager.is_active_item_unlocked(6),
+		"Breaker Bullets should be locked by default — requires 7 A-rank levels (Issue #1589 req.3)")
+	assert_false(active_item_manager.is_active_item_unlocked(7),
+		"Force Field should be locked by default — requires Factory completion (Issue #1589 req.2)")
 	assert_false(active_item_manager.is_active_item_unlocked(8),
 		"Trajectory Glasses should be locked by default (Issue #1053)")
+	assert_false(active_item_manager.is_active_item_unlocked(9),
+		"Laser Sight should be locked by default — requires 400 kills without it (Issue #1196)")
 	assert_false(active_item_manager.is_active_item_unlocked(13),
 		"Armored Skin should be locked by default — requires 100 deaths (Issue #1389)")
 	assert_false(active_item_manager.is_active_item_unlocked(16),
 		"Recoil Compensator should be locked by default (Issue #1423)")
 	assert_false(active_item_manager.is_active_item_unlocked(17),
 		"Combat Disposition should be locked by default — requires no-damage level completion (Issue #1389)")
+	assert_false(active_item_manager.is_active_item_unlocked(19),
+		"Fine Motor Skills should be locked by default — requires 300 shots with special weapons (Issue #1346)")
 
 
 # ============================================================================
@@ -1347,3 +1525,81 @@ func test_experimental_sample_stays_locked_after_restart_when_condition_not_met(
 
 	assert_false(active_item_manager.is_active_item_unlocked(18),
 		"EXPERIMENTAL_SAMPLE should be locked — all-difficulties condition not met, treating save as corrupt (Issue #1426)")
+
+
+# ============================================================================
+# Kill-based unlock condition tests (Issue #1622 — fix armory button glow)
+# ============================================================================
+
+
+func test_laser_sight_condition_not_met_with_partial_kills() -> void:
+	# Issue #1622: partial progress should NOT cause armory button to glow
+	game_manager.kills_without_laser_sight = 200  # Only 200 of required 400
+	assert_false(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[0]),
+		"Laser Sight condition should NOT be met with only 200/400 kills (partial progress)")
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return false with partial kill progress — armory button must NOT glow")
+
+
+func test_laser_sight_condition_met_at_threshold() -> void:
+	game_manager.kills_without_laser_sight = 400  # Exactly at threshold
+	assert_true(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[0]),
+		"Laser Sight condition should be met at exactly 400 kills")
+	assert_true(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return true when Laser Sight condition is met and item is still locked")
+
+
+func test_laser_sight_condition_met_above_threshold() -> void:
+	game_manager.kills_without_laser_sight = 600  # Above threshold
+	assert_true(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[0]),
+		"Laser Sight condition should be met with 600 kills (above threshold)")
+
+
+func test_laser_sight_no_available_unlock_when_already_unlocked() -> void:
+	# Condition met AND item already unlocked — should NOT show as available to unlock
+	game_manager.kills_without_laser_sight = 400
+	active_item_manager.unlocked_active_items[9] = true  # LASER_SIGHT already unlocked by player
+	assert_true(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[0]),
+		"Kill condition is met with 400 kills")
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return false when Laser Sight condition is met but item is already unlocked")
+
+
+func test_fine_motor_skills_condition_not_met_with_partial_shots() -> void:
+	# Issue #1622: partial progress (shots) should NOT glow armory button
+	game_manager.shots_fired_special_weapons = 150  # Only 150 of required 300
+	assert_false(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[1]),
+		"Fine Motor Skills condition should NOT be met with only 150/300 shots")
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return false with partial shot progress")
+
+
+func test_fine_motor_skills_condition_met_at_threshold() -> void:
+	game_manager.shots_fired_special_weapons = 300  # At threshold
+	assert_true(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[1]),
+		"Fine Motor Skills condition should be met at exactly 300 shots")
+	assert_true(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return true when Fine Motor Skills condition is met and item is locked")
+
+
+func test_breaker_bullets_condition_not_met_below_threshold() -> void:
+	# Issue #1622: 6 out of 7 required A-rank levels → partial progress, no glow
+	game_manager.levels_completed_rank_a_or_higher = 6
+	assert_false(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[4]),
+		"Breaker Bullets condition should NOT be met with only 6/7 A-rank levels")
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return false with 6/7 A-rank levels")
+
+
+func test_breaker_bullets_condition_met_at_threshold() -> void:
+	game_manager.levels_completed_rank_a_or_higher = 7  # At threshold
+	assert_true(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[4]),
+		"Breaker Bullets condition should be met at exactly 7 A-rank levels")
+	assert_true(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock should return true when Breaker Bullets condition is met")
+
+
+func test_no_available_unlock_with_zero_kill_stats() -> void:
+	# Issue #1622: fresh save — all kill stats at 0, no level progress → button must NOT glow
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"has_any_available_unlock must return false with all kill stats at 0 and no level progress")

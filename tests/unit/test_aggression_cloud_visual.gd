@@ -135,8 +135,10 @@ func test_particle_has_proper_lifetime() -> void:
 		fail_test("No particle system found")
 
 
-func test_particle_has_preprocess_for_immediate_visibility() -> void:
-	# Given: An aggression cloud is created
+func test_particle_has_no_preprocess_for_grow_in() -> void:
+	# Issue #1688: Cloud must start at scale 0 and grow gradually.
+	# preprocess > 0 would pre-fill particles at full scale, making the cloud
+	# appear large immediately — so preprocess must be 0.
 	var cloud := AggressionCloud.new()
 	add_child_autofree(cloud)
 
@@ -150,8 +152,8 @@ func test_particle_has_preprocess_for_immediate_visibility() -> void:
 			break
 
 	if particles:
-		# Then: Should have preprocess > 0 so effect is visible immediately
-		assert_gt(particles.preprocess, 0.0, "Particles should have preprocess for immediate visibility")
+		# Then: preprocess should be 0 so the cloud starts visually empty and grows
+		assert_eq(particles.preprocess, 0.0, "Particles should have preprocess=0 for grow-in to work")
 	else:
 		fail_test("No particle system found")
 
@@ -216,6 +218,28 @@ func test_fallback_sprite_has_high_alpha() -> void:
 
 	sprite.queue_free()
 	cloud.queue_free()
+
+
+func test_cloud_starts_at_zero_scale_when_grow_in_set() -> void:
+	# Issue #1688: Cloud must begin invisible (scale 0) so it visually grows from
+	# the grenade position, not appear large immediately.
+	var cloud := AggressionCloud.new()
+	cloud.grow_in_duration = 3.0
+	add_child_autofree(cloud)
+
+	# Check scale immediately after adding (before any physics frames)
+	assert_eq(cloud.scale, Vector2.ZERO,
+		"Cloud should start at scale 0 when grow_in_duration > 0 (not jump to full size)")
+
+
+func test_cloud_scale_zero_when_no_grow_in() -> void:
+	# Without grow_in_duration the cloud should spawn at normal scale (1, 1)
+	var cloud := AggressionCloud.new()
+	cloud.grow_in_duration = 0.0
+	add_child_autofree(cloud)
+
+	assert_eq(cloud.scale, Vector2.ONE,
+		"Cloud without grow-in should spawn at full scale")
 
 
 func test_detection_area_created() -> void:

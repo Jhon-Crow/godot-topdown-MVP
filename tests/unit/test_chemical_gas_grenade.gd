@@ -32,13 +32,38 @@ class MockChemicalGasGrenade:
 	## Track whether contact detonation occurred.
 	var contact_detonated: bool = false
 
+	## Issue #1688: Track that sound plays before (or simultaneously with) cloud spawn.
+	var sound_played: bool = false
+	var cloud_spawned_after_sound: bool = false
+
+	## Issue #1688: grow-in duration passed to the spawned cloud.
+	var last_grow_in_duration: float = 0.0
+
+	## Simulated sound duration (seconds) for testing Issue #1688 timing.
+	var mock_sound_length: float = 1.0
+
 	## Check if position is in effect radius.
 	func is_in_effect_radius(pos: Vector2) -> bool:
 		return global_position.distance_to(pos) <= effect_radius
 
-	## Spawn chemical cloud (mock).
-	func _spawn_chemical_cloud() -> void:
+	## Play sound (mock) — records that sound was played.
+	func _play_explosion_sound_mock() -> void:
+		sound_played = true
+
+	## Spawn chemical cloud (mock) with grow-in support.
+	func _spawn_chemical_cloud_with_grow_in(grow_in: float) -> void:
 		gas_cloud_spawned = true
+		last_grow_in_duration = grow_in
+		# Issue #1688: cloud is spawned right after sound starts.
+		cloud_spawned_after_sound = sound_played
+
+	## Spawn cloud without grow-in (legacy shortcut).
+	func _spawn_chemical_cloud() -> void:
+		_spawn_chemical_cloud_with_grow_in(0.0)
+
+	## Get gas sound length (mock) — returns simulated duration (Issue #1688).
+	func _get_gas_sound_length_mock() -> float:
+		return mock_sound_length
 
 	## Gas release handler (mirrors _on_explode).
 	func on_explode() -> void:
@@ -46,6 +71,17 @@ class MockChemicalGasGrenade:
 			return
 		_has_exploded = true
 		_spawn_chemical_cloud()
+
+	## Simulated _explode() that mirrors Issue #1688 behavior:
+	## sound starts, then cloud is spawned immediately (with gradual grow-in).
+	func on_explode_with_sound_first() -> void:
+		if _has_exploded:
+			return
+		_has_exploded = true
+		_play_explosion_sound_mock()
+		# Issue #1688: Cloud is spawned when sound starts (not after it ends).
+		# grow-in duration matches the sound length for gradual spreading.
+		_spawn_chemical_cloud_with_grow_in(_get_gas_sound_length_mock())
 
 	## Contact detonation (Issue #1367) — explodes on landing or wall hit.
 	func on_grenade_landed() -> void:
@@ -165,3 +201,42 @@ func test_is_in_effect_radius_at_edge() -> void:
 	var edge_pos := Vector2(400 + 600, 400)
 	assert_true(grenade.is_in_effect_radius(edge_pos),
 		"Position at exact radius edge should be in range")
+
+
+# ============================================================================
+# Sound + Gradual Grow-In Synchronization Tests (Issue #1688)
+# ============================================================================
+
+
+func test_sound_played_before_cloud_spawned() -> void:
+	grenade.on_explode_with_sound_first()
+	assert_true(grenade.sound_played,
+		"Sound must be played when gas is released (Issue #1688)")
+	assert_true(grenade.gas_cloud_spawned,
+		"Gas cloud must be spawned when sound starts (Issue #1688)")
+	assert_true(grenade.cloud_spawned_after_sound,
+		"Cloud must be spawned after sound has started (Issue #1688)")
+
+
+func test_cloud_spawned_with_grow_in_duration() -> void:
+	# Issue #1688: Cloud must receive the grow-in duration matching the sound length
+	# so it spreads gradually during the hiss sound.
+	grenade.on_explode_with_sound_first()
+	assert_eq(grenade.last_grow_in_duration, grenade.mock_sound_length,
+		"Cloud grow-in duration should match sound length for gradual spreading (Issue #1688)")
+
+
+func test_cloud_not_spawned_without_sound() -> void:
+	# Verify cloud_spawned_after_sound stays false if sound never played
+	grenade.gas_cloud_spawned = false
+	grenade.sound_played = false
+	grenade.cloud_spawned_after_sound = false
+	# Directly spawn cloud without playing sound first (mimics wrong order)
+	grenade._spawn_chemical_cloud()
+	assert_false(grenade.cloud_spawned_after_sound,
+		"Cloud spawned without sound should not satisfy the ordering contract (Issue #1688)")
+
+
+func test_mock_sound_length_positive() -> void:
+	assert_gt(grenade.mock_sound_length, 0.0,
+		"Simulated sound length must be positive to test timing (Issue #1688)")

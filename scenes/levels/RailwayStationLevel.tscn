@@ -1,9 +1,10 @@
-[gd_scene load_steps=27 format=3 uid="uid://railway_station_level_1463"]
+[gd_scene load_steps=29 format=3 uid="uid://railway_station_level_1463"]
 
 [ext_resource type="Script" path="res://scripts/levels/railway_station_level.gd" id="1_railway_station"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="3_pause_menu"]
 [ext_resource type="Script" path="res://Scripts/Components/LevelInitFallback.cs" id="4_fallback"]
+[ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="5_enemy"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_horizontal"]
 size = Vector2(4064, 32)
@@ -16,6 +17,9 @@ size = Vector2(50, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_exit_gap2_wall"]
 size = Vector2(300, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_top_right"]
+size = Vector2(386, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_top_left"]
 size = Vector2(4064, 32)
@@ -1211,6 +1215,17 @@ collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallExitGap2"]
 shape = SubResource("RectangleShape2D_exit_gap2_wall")
+
+; Invisible wall closing the upper-right corner passage (Issue #1686).
+; Embankment4 ends at x=3550 (position 3200 + half-width 350); WallRight is at x=3936.
+; Without this wall the player can walk north past x=3550 into empty space.
+[node name="WallTopRight" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(3743, 900)
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTopRight"]
+shape = SubResource("RectangleShape2D_wall_top_right")
 
 [node name="WallBottom" type="StaticBody2D" parent="Environment/Walls"]
 position = Vector2(2000, 3952)
@@ -2805,6 +2820,141 @@ color = Color(0.2, 0.7, 0.2, 1)
 [node name="AreaLabels" type="Node2D" parent="Environment"]
 
 [node name="Enemies" type="Node2D" parent="Environment"]
+
+; === MACHINE GUNNERS BETWEEN NEAR TRAINS (Track 1 y=2580 and Track 2 y=2760) ===
+; Left gunner — far left side between the two nearest tracks, facing south toward player
+[node name="NearTracks_MachineGunnerLeft" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(300, 2670)
+rotation = 1.5708
+behavior_mode = 1
+weapon_type = 6
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+; Right gunner — far right side between the two nearest tracks, facing south toward player
+[node name="NearTracks_MachineGunnerRight" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(3700, 2670)
+rotation = 1.5708
+behavior_mode = 1
+weapon_type = 6
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+; === MACHINE GUNNERS BETWEEN FAR TRAINS (Track 3 y=1800 and Track 4 y=1980) ===
+; Left gunner — far left side between the two farther tracks, facing south toward player
+[node name="FarTracks_MachineGunnerLeft" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(300, 1890)
+rotation = 1.5708
+behavior_mode = 1
+weapon_type = 6
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+; Right gunner — far right side between the two farther tracks, facing south toward player
+[node name="FarTracks_MachineGunnerRight" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(3700, 1890)
+rotation = 1.5708
+behavior_mode = 1
+weapon_type = 6
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+; === DRONE OPERATORS AT MAP EXIT (embankment area y≈1100, south of exit wall gaps) ===
+[node name="Exit_DroneOperator1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(700, 1100)
+behavior_mode = 1
+is_drone_operator = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Exit_DroneOperator2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(1600, 1100)
+behavior_mode = 1
+is_drone_operator = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Exit_DroneOperator3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(2500, 1100)
+behavior_mode = 1
+is_drone_operator = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Exit_DroneOperator4" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(3300, 1100)
+behavior_mode = 1
+is_drone_operator = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+; === GAS MASK ENEMY NEAR PLAYER SPAWN (player spawn at x=2000, y=3100) ===
+[node name="Spawn_GasMaskEnemy" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(2000, 2900)
+behavior_mode = 1
+is_gas_mask = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+; === TELEPORTER ENEMIES ON PLATFORM (player spawn at x=2000, y=3100) ===
+; 3 enemies left of player spawn
+[node name="Platform_TeleporterLeft1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(600, 3100)
+behavior_mode = 1
+is_teleporter = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Platform_TeleporterLeft2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(1000, 3100)
+behavior_mode = 1
+is_teleporter = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Platform_TeleporterLeft3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(1400, 3100)
+behavior_mode = 1
+is_teleporter = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+; 3 enemies right of player spawn
+[node name="Platform_TeleporterRight1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(2600, 3100)
+behavior_mode = 1
+is_teleporter = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Platform_TeleporterRight2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(3000, 3100)
+behavior_mode = 1
+is_teleporter = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Platform_TeleporterRight3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(3400, 3100)
+behavior_mode = 1
+is_teleporter = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
 
 ; === NAVIGATION ===
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
