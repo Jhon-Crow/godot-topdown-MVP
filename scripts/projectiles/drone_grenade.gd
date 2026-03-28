@@ -130,6 +130,9 @@ func _launch_drone() -> void:
 
 	# Issue #1667: enemies can shoot this drone; add it to a discoverable group.
 	add_to_group("player_drones")
+	# Issue #1670: remove from the "grenades" group so GrenadeAvoidanceComponent
+	# does NOT treat the drone as a fleeable grenade — enemies should shoot it, not flee.
+	remove_from_group("grenades")
 
 	# Issue #1667: start enemy targeting countdown.
 	_enemy_targeting_timer = ENEMY_TARGETING_DELAY

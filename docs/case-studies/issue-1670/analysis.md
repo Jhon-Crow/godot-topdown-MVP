@@ -69,6 +69,32 @@ This code is **only inside `_process_combat_state()`** (called when `_current_st
 
 ---
 
+### Root Cause #3 — Drone in "grenades" Group Causes EVADING_GRENADE State (Discovered 2026-03-28)
+
+**Location**: `scripts/projectiles/drone_grenade.gd` (`_launch_drone()`), `scripts/components/grenade_avoidance_component.gd`
+
+**Evidence** from game log `game_log_20260328_081723.txt` (owner's report after first fix was deployed):
+```
+[08:17:49] [ENEMY] [InvisibleEnemy1] GRENADE DANGER: Entering EVADING_GRENADE state from SEARCHING
+[08:17:49] [ENEMY] [InvisibleEnemy1] EVADING_GRENADE started: escaping to (1400.49, 739.3375)
+[08:17:49] [ENEMY] [InvisibleEnemy1] EVADING_GRENADE: Escaped to safe distance
+[08:17:49] [ENEMY] [InvisibleEnemy1] State: EVADING_GRENADE → SEARCHING
+```
+Enemies were constantly entering `EVADING_GRENADE` and running away from the drone instead of shooting it. This happened immediately after the drone became active (after the 1.5s targeting delay).
+
+**Root cause**:
+1. `GrenadeBase._ready()` always calls `add_to_group("grenades")` (line 125 of `grenade_base.gd`)
+2. `DroneGrenade` extends `GrenadeBase`, so the drone is always in the `"grenades"` group
+3. `GrenadeAvoidanceComponent.update()` scans `get_tree().get_nodes_in_group("grenades")` every physics frame and marks enemies as being in danger if any "grenade" is within `effect_radius + safety_margin` (225 + 75 = 300px)
+4. The drone's `_get_effect_radius()` returns 225.0 — so enemies within 300px immediately enter `EVADING_GRENADE`
+5. In `EVADING_GRENADE` state, enemies only flee — they do NOT check for targetable player drones
+
+**The bug**: The drone was never removed from the `"grenades"` group after launch. The `GrenadeAvoidanceComponent` is designed to detect thrown/flying grenades that will explode, not controllable player drones. The drone should be in `"player_drones"` (for targeting) and NOT in `"grenades"` (for evasion) once it is actively piloted.
+
+**Fix**: In `_launch_drone()`, call `remove_from_group("grenades")` immediately after `add_to_group("player_drones")`. This ensures that once the drone is under player control, enemies no longer treat it as a fuse-grenade to flee from — they instead engage via the `player_drones` targeting path.
+
+---
+
 ## Additional Context
 
 **Why the unit tests passed but the feature didn't work**: The 24 unit tests in `test_drone_grenade.gd` test `MockDroneGrenade` logic (drift math, targeting delay countdown, `is_targetable_by_enemies()` return value). They do **not** test the end-to-end flow: bullet collision detection → `on_hit()` triggering → explosion. The missing HitArea is a scene-level issue that pure unit tests can't catch.
@@ -126,4 +152,5 @@ Note: Must stay within 5000-line CI limit (currently 4999 lines). Use compact on
 |------|--------|
 | `scenes/projectiles/DroneGrenade.tscn` | Add HitArea Area2D node with collision_layer=1, collision_mask=16, hit_area.gd script |
 | `scripts/objects/enemy.gd` | Add compact drone targeting one-liner to `_process_pursuing_state()` — replace 1 line to stay within 5000-line limit |
+| `scripts/projectiles/drone_grenade.gd` | In `_launch_drone()`, call `remove_from_group("grenades")` after `add_to_group("player_drones")` so enemies don't flee the drone |
 | `tests/unit/test_drone_grenade.gd` | Add source-file integration tests verifying HitArea exists in scene and drone targeting exists in pursuing state |
