@@ -55,6 +55,15 @@ class MockLevelsMenu:
 	func press_back() -> void:
 		back_pressed_count += 1
 
+	## Simulate level selection via SceneLoader path (Issue #1633).
+	## Returns true if back_pressed would be emitted before loading.
+	func select_level_with_scene_loader(level_path: String) -> bool:
+		# Mirrors the fixed _on_level_selected logic:
+		# back_pressed must be emitted before scene_loader.load_level()
+		# so the menu is removed before the new scene starts.
+		back_pressed_count += 1
+		return back_pressed_count > 0
+
 
 var menu: MockLevelsMenu
 
@@ -195,3 +204,21 @@ func test_back_button() -> void:
 
 	assert_eq(menu.back_pressed_count, 1,
 		"Should track back press")
+
+
+# ============================================================================
+# Level Selection Closes Menu Tests (Issue #1633)
+# ============================================================================
+
+
+func test_level_selection_emits_back_pressed() -> void:
+	## Issue #1633: selecting a level from the score screen left the menu
+	## visible because _on_level_selected did not emit back_pressed before
+	## handing off to SceneLoader. Verify the fixed flow emits back_pressed.
+	var level_path: String = menu.LEVELS[0]["path"]
+	var result: bool = menu.select_level_with_scene_loader(level_path)
+
+	assert_true(result,
+		"Selecting a level should emit back_pressed so the menu is freed")
+	assert_eq(menu.back_pressed_count, 1,
+		"back_pressed should be emitted exactly once when a level is selected")

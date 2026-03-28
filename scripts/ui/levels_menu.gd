@@ -593,6 +593,9 @@ func _on_level_selected(level_path: String) -> void:
 	# Issue #997: Use SceneLoader for background loading with loading screen
 	var scene_loader: Node = get_node_or_null("/root/SceneLoader")
 	if scene_loader and scene_loader.has_method("load_level"):
+		# Close the menu before loading so it does not persist into the new scene.
+		# Issue #1633: the menu was staying visible on screen after level selection.
+		back_pressed.emit()
 		scene_loader.load_level(level_path)
 	else:
 		# Fallback to direct loading if SceneLoader not available
