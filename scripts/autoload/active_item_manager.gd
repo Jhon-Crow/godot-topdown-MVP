@@ -147,7 +147,7 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.LOUDSPEAKER: {
 		"name": "Loudspeaker",
 		"icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
-		"description": "Loudspeaker — press Space to emit sound cone. 2 charges per battle.",
+		"description": "???",
 		"activation_hint": "Press Space to activate"
 	},
 	ActiveItemType.BREACHING_CHARGES: {
