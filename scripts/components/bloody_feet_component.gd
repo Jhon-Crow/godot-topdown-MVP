@@ -14,6 +14,10 @@ class_name BloodyFeetComponent
 ## Number of bloody footprints before the blood runs out.
 @export var blood_steps_count: int = 12
 
+## When true, blood_steps_count is halved upon first contact to simulate blood
+## fading faster on cold snow (Issue #1627).  Set by the Winter Forest level script.
+@export var on_snow: bool = false
+
 ## Distance in pixels between footprint spawns.
 @export var step_distance: float = 30.0
 
@@ -280,9 +284,9 @@ func _get_puddle_color(puddle_node: Node) -> Color:
 ## Called when the character contacts a blood puddle.
 ## puddle_color: The color of the blood puddle stepped in.
 func _on_blood_puddle_contact(puddle_color: Color = Color(0.545, 0.0, 0.0, 1.0)) -> void:
-	# Reset blood level to maximum
+	# Reset blood level to maximum (halved on snow so prints fade faster — Issue #1627).
 	var previous_level := _blood_level
-	_blood_level = blood_steps_count
+	_blood_level = maxi(blood_steps_count / 2, 2) if on_snow else blood_steps_count
 
 	# Store the blood color for footprints
 	_blood_color = puddle_color

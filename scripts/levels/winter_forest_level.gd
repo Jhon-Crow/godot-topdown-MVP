@@ -65,6 +65,9 @@ func _ready() -> void:
 	# Add cold winter sunlight from top-right corner
 	_setup_sunlight()
 
+	# Wire up snow-surface interaction: footprints in snow + faster blood fading (Issue #1627).
+	_setup_snow_interaction()
+
 
 func _initialize_score_manager() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
@@ -1366,6 +1369,45 @@ func _create_sunlight_texture() -> ImageTexture:
 			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
 
 	return ImageTexture.create_from_image(image)
+
+
+## Wire up snow-surface interaction for the Winter Forest (Issue #1627).
+##
+## Attaches SnowyFeetComponent to the player and all enemies so they leave
+## footprints in the snow as they walk.  Also sets on_snow = true on every
+## BloodyFeetComponent so blood picked up from snow-absorbed blood stains
+## fades in fewer steps.
+func _setup_snow_interaction() -> void:
+	var snowy_feet_script := load("res://scripts/components/snowy_feet_component.gd")
+	if snowy_feet_script == null:
+		push_warning("[WinterForestLevel] SnowyFeetComponent script not found — snow footprints disabled")
+		return
+
+	# Attach to player.
+	if _player != null and _player is CharacterBody2D:
+		_add_snowy_feet(_player, snowy_feet_script)
+
+	# Attach to all tracked enemies.
+	for enemy in _enemies:
+		if enemy is CharacterBody2D:
+			_add_snowy_feet(enemy, snowy_feet_script)
+
+	_log_to_file("Snow interaction setup complete (Issue #1627)")
+
+
+## Adds a SnowyFeetComponent to a CharacterBody2D and configures any existing
+## BloodyFeetComponent on the same character for faster snow-blood fading.
+func _add_snowy_feet(character: CharacterBody2D, snowy_feet_script: GDScript) -> void:
+	# SnowyFeetComponent: leave snow tracks.
+	var snowy_feet := Node.new()
+	snowy_feet.name = "SnowyFeetComponent"
+	snowy_feet.set_script(snowy_feet_script)
+	character.add_child(snowy_feet)
+
+	# BloodyFeetComponent: enable faster fading on snow (Issue #1627).
+	var bloody_feet: Node = character.get_node_or_null("BloodyFeetComponent")
+	if bloody_feet and bloody_feet.get("on_snow") != null:
+		bloody_feet.on_snow = true
 
 
 func _log_to_file(message: String) -> void:

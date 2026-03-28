@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3 uid="uid://snow_blood_decal_1627"]
+
+[ext_resource type="Script" path="res://scripts/effects/snow_blood_decal.gd" id="1_snow_blood_decal"]
+
+[sub_resource type="Gradient" id="Gradient_snow_decal"]
+offsets = PackedFloat32Array(0, 0.45, 0.75, 1)
+colors = PackedColorArray(0.62, 0.15, 0.15, 1.0, 0.60, 0.12, 0.12, 0.75, 0.55, 0.10, 0.10, 0.35, 0.55, 0.10, 0.10, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_snow_decal"]
+gradient = SubResource("Gradient_snow_decal")
+width = 28
+height = 28
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1.0, 0.5)
+
+[node name="SnowBloodDecal" type="Sprite2D"]
+z_index = 0
+modulate = Color(1, 1, 1, 0.6)
+texture = SubResource("GradientTexture2D_snow_decal")
+script = ExtResource("1_snow_blood_decal")

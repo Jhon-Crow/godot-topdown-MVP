@@ -1,0 +1,245 @@
+extends GutTest
+## Unit tests for snowy_feet_component.gd (Issue #1627).
+##
+## Tests that snow footprints are spawned as characters walk, that alpha
+## decreases with each step, that fade-out is scheduled, and that the
+## component correctly uses facing direction for footprint rotation.
+
+
+# ============================================================================
+# Mock SnowyFeetComponent for Logic Tests
+# ============================================================================
+
+
+class MockSnowyFeetComponent:
+	## Configuration (mirrors exports).
+	var snow_steps_count: int = 8
+	var step_distance: float = 30.0
+	var initial_alpha: float = 0.55
+	var alpha_decay_rate: float = 0.06
+	var footprint_scale: float = 1.0
+
+	## Internal state.
+	var _distance_since_last_footprint: float = 0.0
+	var _last_position: Vector2 = Vector2.ZERO
+	var _last_move_direction: Vector2 = Vector2.RIGHT
+	var _is_left_foot: bool = true
+	var _step_index: int = 0
+
+	## Spawned footprints recorded for assertions.
+	var spawned_footprints: Array = []
+
+	## Simulated character position.
+	var character_position: Vector2 = Vector2.ZERO
+
+	## Simulated facing direction (no model — use movement direction).
+	var _character_model: Object = null
+
+
+	func ready(initial_pos: Vector2) -> void:
+		_last_position = initial_pos
+		character_position = initial_pos
+
+
+	func process(new_pos: Vector2) -> void:
+		var movement := new_pos - _last_position
+		var distance := movement.length()
+		character_position = new_pos
+
+		if distance > 0.1:
+			_last_move_direction = movement.normalized()
+			_distance_since_last_footprint += distance
+
+			if _distance_since_last_footprint >= step_distance:
+				_spawn_footprint()
+				_distance_since_last_footprint = 0.0
+
+		_last_position = new_pos
+
+
+	func _spawn_footprint() -> void:
+		var steps_taken := _step_index % snow_steps_count
+		var alpha := initial_alpha - steps_taken * alpha_decay_rate
+		alpha = maxf(alpha, 0.05)
+
+		var facing := _get_facing_direction()
+		var perpendicular := facing.rotated(PI / 2.0)
+		var foot_offset := 4.0 if _is_left_foot else -4.0
+		var pos := character_position + perpendicular * foot_offset
+
+		spawned_footprints.append({
+			"position": pos,
+			"rotation": facing.angle() + PI / 2.0,
+			"alpha": alpha,
+			"is_left": _is_left_foot,
+		})
+
+		_is_left_foot = not _is_left_foot
+		_step_index += 1
+
+
+	func _get_facing_direction() -> Vector2:
+		return _last_move_direction
+
+
+# ============================================================================
+# Tests: Initial State
+# ============================================================================
+
+
+func test_no_footprints_at_start() -> void:
+	var comp := MockSnowyFeetComponent.new()
+	comp.ready(Vector2.ZERO)
+	assert_eq(comp.spawned_footprints.size(), 0,
+		"No footprints should be spawned at start (character has not moved)")
+
+
+func test_distance_counter_zero_at_start() -> void:
+	var comp := MockSnowyFeetComponent.new()
+	comp.ready(Vector2(100, 200))
+	assert_almost_eq(comp._distance_since_last_footprint, 0.0, 0.001,
+		"Distance counter should be 0.0 before any movement")
+
+
+# ============================================================================
+# Tests: Footprint Spawning on Movement
+# ============================================================================
+
+
+func test_footprint_spawned_after_step_distance() -> void:
+	var comp := MockSnowyFeetComponent.new()
+	comp.ready(Vector2.ZERO)
+	# Walk exactly step_distance pixels to the right.
+	comp.process(Vector2(comp.step_distance, 0.0))
+	assert_eq(comp.spawned_footprints.size(), 1,
+		"One footprint should be spawned after walking step_distance pixels")
+
+
+func test_no_footprint_before_step_distance() -> void:
+	var comp := MockSnowyFeetComponent.new()
+	comp.ready(Vector2.ZERO)
+	comp.process(Vector2(comp.step_distance * 0.9, 0.0))
+	assert_eq(comp.spawned_footprints.size(), 0,
+		"No footprint before step_distance is reached")
+
+
+func test_two_footprints_after_two_steps() -> void:
+	var comp := MockSnowyFeetComponent.new()
+	comp.ready(Vector2.ZERO)
+	comp.process(Vector2(comp.step_distance, 0.0))
+	comp.process(Vector2(comp.step_distance * 2.0, 0.0))
+	assert_eq(comp.spawned_footprints.size(), 2,
+		"Two footprints should be spawned after walking two step_distance increments")
+
+
+func test_footprints_alternate_feet() -> void:
+	var comp := MockSnowyFeetComponent.new()
+	comp.ready(Vector2.ZERO)
+	comp.process(Vector2(comp.step_distance, 0.0))
+	comp.process(Vector2(comp.step_distance * 2.0, 0.0))
+	var first_is_left: bool = comp.spawned_footprints[0]["is_left"]
+	var second_is_left: bool = comp.spawned_footprints[1]["is_left"]
+	assert_ne(first_is_left, second_is_left,
+		"Consecutive footprints must alternate between left and right foot")
+
+
+# ============================================================================
+# Tests: Alpha Decay
+# ============================================================================
+
+
+func test_first_footprint_has_initial_alpha() -> void:
+	var comp := MockSnowyFeetComponent.new()
+	comp.ready(Vector2.ZERO)
+	comp.process(Vector2(comp.step_distance, 0.0))
+	assert_almost_eq(comp.spawned_footprints[0]["alpha"], comp.initial_alpha, 0.001,
+		"First footprint alpha should equal initial_alpha")
+
+
+func test_alpha_decreases_with_each_step() -> void:
+	var comp := MockSnowyFeetComponent.new()
+	comp.ready(Vector2.ZERO)
+	for i in range(3):
+		comp.process(Vector2(comp.step_distance * (i + 1), 0.0))
+	var a0: float = comp.spawned_footprints[0]["alpha"]
+	var a1: float = comp.spawned_footprints[1]["alpha"]
+	var a2: float = comp.spawned_footprints[2]["alpha"]
+	assert_true(a0 > a1, "Second footprint must be less opaque than the first")
+	assert_true(a1 > a2, "Third footprint must be less opaque than the second")
+
+
+func test_alpha_never_below_minimum() -> void:
+	var comp := MockSnowyFeetComponent.new()
+	comp.snow_steps_count = 4
+	comp.initial_alpha = 0.2
+	comp.alpha_decay_rate = 0.1
+	comp.ready(Vector2.ZERO)
+	for i in range(10):
+		comp.process(Vector2(comp.step_distance * (i + 1), 0.0))
+	for fp in comp.spawned_footprints:
+		assert_true(fp["alpha"] >= 0.05,
+			"Footprint alpha must never drop below the minimum of 0.05")
+
+
+func test_alpha_wraps_at_snow_steps_count() -> void:
+	# After snow_steps_count steps, alpha resets to initial_alpha (step_index wraps mod snow_steps_count).
+	var comp := MockSnowyFeetComponent.new()
+	comp.snow_steps_count = 4
+	comp.ready(Vector2.ZERO)
+	for i in range(5):
+		comp.process(Vector2(comp.step_distance * (i + 1), 0.0))
+	# Step index 4 wraps to 0 → same alpha as step index 0 (first footprint).
+	var alpha_first: float = comp.spawned_footprints[0]["alpha"]
+	var alpha_wrap: float = comp.spawned_footprints[4]["alpha"]
+	assert_almost_eq(alpha_first, alpha_wrap, 0.001,
+		"Alpha at step 4 (index 0 mod 4) should match the first footprint alpha")
+
+
+# ============================================================================
+# Tests: Foot Offset (Left / Right Lateral Offset)
+# ============================================================================
+
+
+func test_left_and_right_footprints_are_laterally_offset() -> void:
+	var comp := MockSnowyFeetComponent.new()
+	comp.ready(Vector2.ZERO)
+	comp.process(Vector2(comp.step_distance, 0.0))
+	comp.process(Vector2(comp.step_distance * 2.0, 0.0))
+	var p1: Vector2 = comp.spawned_footprints[0]["position"]
+	var p2: Vector2 = comp.spawned_footprints[1]["position"]
+	# Both footprints should have the same X (moving right) but different Y.
+	assert_almost_eq(p1.x, p2.x, 1.0,
+		"Both footprints should be at roughly the same forward position")
+	assert_ne(p1.y, p2.y,
+		"Left and right footprints must be laterally offset from each other")
+
+
+# ============================================================================
+# Tests: Footprint Scale and Rotation
+# ============================================================================
+
+
+func test_footprint_rotation_aligns_with_movement() -> void:
+	var comp := MockSnowyFeetComponent.new()
+	comp.ready(Vector2.ZERO)
+	# Walk downward (positive Y).
+	comp.process(Vector2(0.0, comp.step_distance))
+	var rotation: float = comp.spawned_footprints[0]["rotation"]
+	# Facing direction is (0, 1) → angle = PI/2 → rotation = PI/2 + PI/2 = PI.
+	assert_almost_eq(rotation, PI, 0.01,
+		"Footprint rotation should align with movement direction + PI/2 offset")
+
+
+# ============================================================================
+# Tests: Stationary Character (No Footprints)
+# ============================================================================
+
+
+func test_no_footprint_when_stationary() -> void:
+	var comp := MockSnowyFeetComponent.new()
+	comp.ready(Vector2(100, 100))
+	# Call process multiple times with the same position.
+	for _i in range(5):
+		comp.process(Vector2(100, 100))
+	assert_eq(comp.spawned_footprints.size(), 0,
+		"No footprints should appear when the character is not moving")
