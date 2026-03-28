@@ -25,7 +25,8 @@ class MockBreakerBullet:
 	const BREAKER_DETONATION_DISTANCE: float = 95.0
 	const BREAKER_EXPLOSION_RADIUS: float = 15.0
 	const BREAKER_EXPLOSION_DAMAGE: float = 1.0
-	const BREAKER_SHRAPNEL_HALF_ANGLE: float = 30.0
+	## Widened to 45° (Issue #1634) for broader proximity fuse coverage.
+	const BREAKER_SHRAPNEL_HALF_ANGLE: float = 45.0
 	const BREAKER_SHRAPNEL_DAMAGE: float = 0.1
 	const BREAKER_SHRAPNEL_COUNT_MULTIPLIER: float = 10.0
 	const BREAKER_MAX_SHRAPNEL_PER_DETONATION: int = 10
@@ -57,9 +58,11 @@ class MockBreakerBullet:
 
 	## Simulate cone sector check: returns true and detonates if enemy_pos is
 	## within the shrapnel cone sector (distance <= BREAKER_DETONATION_DISTANCE
-	## AND angle from direction <= BREAKER_SHRAPNEL_HALF_ANGLE).
+	## AND angle from direction <= BREAKER_SHRAPNEL_HALF_ANGLE)
+	## AND line of sight is not blocked (has_line_of_sight = true, default).
 	## Pass Vector2.INF (or a position outside range/cone) to simulate no enemy.
-	func check_enemy_in_shrapnel_cone(enemy_pos: Vector2) -> bool:
+	## Pass has_line_of_sight=false to simulate a wall between bullet and enemy (Issue #1634 fix).
+	func check_enemy_in_shrapnel_cone(enemy_pos: Vector2, has_line_of_sight: bool = true) -> bool:
 		if not is_breaker_bullet:
 			return false
 		var cos_half_angle := cos(deg_to_rad(BREAKER_SHRAPNEL_HALF_ANGLE))
@@ -70,6 +73,9 @@ class MockBreakerBullet:
 		if dist <= 0.0:
 			return false
 		if (to_enemy / dist).dot(direction) < cos_half_angle:
+			return false
+		# Only detonate if there is no wall blocking line of sight (Issue #1634 fix)
+		if not has_line_of_sight:
 			return false
 		_breaker_detonate()
 		return true
@@ -217,8 +223,8 @@ func test_explosion_applied_on_detonation() -> void:
 
 
 func test_shrapnel_half_angle_constant() -> void:
-	assert_eq(MockBreakerBullet.BREAKER_SHRAPNEL_HALF_ANGLE, 30.0,
-		"Shrapnel cone half-angle should be 30 degrees")
+	assert_eq(MockBreakerBullet.BREAKER_SHRAPNEL_HALF_ANGLE, 45.0,
+		"Shrapnel cone half-angle should be 45 degrees (widened in Issue #1634)")
 
 
 func test_shrapnel_damage_constant() -> void:
@@ -276,7 +282,7 @@ func test_shrapnel_directions_in_cone() -> void:
 	bullet.direction = Vector2.RIGHT
 	bullet.check_breaker_detonation(30.0)
 
-	var half_angle_rad := deg_to_rad(30.0)
+	var half_angle_rad := deg_to_rad(45.0)  # Widened to 45° (Issue #1634)
 	var bullet_angle := bullet.direction.angle()
 
 	for shrapnel_dir in bullet._shrapnel_directions:
@@ -453,8 +459,8 @@ func test_shrapnel_spawn_offset_is_small() -> void:
 
 
 func test_shrapnel_cone_randomization_near_wall() -> void:
-	# When bullet detonates near a wall, the random cone (±30°) means some shrapnel
-	# directions point toward the wall. The fix (Issue #740) validates these positions.
+	# When bullet detonates near a wall, the random cone (±45°, widened in Issue #1634) means some
+	# shrapnel directions point toward the wall. The fix (Issue #740) validates these positions.
 
 	bullet.direction = Vector2.RIGHT  # Traveling right toward wall
 	bullet.check_breaker_detonation(30.0)  # Wall 30px ahead
@@ -505,30 +511,30 @@ func test_detonates_when_enemy_directly_ahead_in_cone() -> void:
 
 
 func test_detonates_when_enemy_at_cone_edge_angle() -> void:
-	# Enemy at exactly 30° from bullet direction, within detonation distance
+	# Enemy at exactly 45° from bullet direction, within detonation distance (cone widened to 45°)
 	bullet.direction = Vector2.RIGHT
 	bullet.global_position = Vector2.ZERO
 	var dist := 80.0
-	var angle_rad := deg_to_rad(30.0)  # Exactly at cone boundary
+	var angle_rad := deg_to_rad(45.0)  # Exactly at cone boundary (45° after Issue #1634 widening)
 	var enemy_pos := Vector2(dist * cos(angle_rad), dist * sin(angle_rad))
 
 	var result := bullet.check_enemy_in_shrapnel_cone(enemy_pos)
 
-	assert_true(result, "Should detonate when enemy is at the cone's edge angle (30°)")
+	assert_true(result, "Should detonate when enemy is at the cone's edge angle (45°)")
 	assert_true(bullet.has_detonated())
 
 
 func test_does_not_detonate_when_enemy_outside_cone_angle() -> void:
-	# Enemy at 45° from bullet direction (beyond ±30° half-angle)
+	# Enemy at 60° from bullet direction (beyond ±45° half-angle, widened in Issue #1634)
 	bullet.direction = Vector2.RIGHT
 	bullet.global_position = Vector2.ZERO
 	var dist := 50.0
-	var angle_rad := deg_to_rad(45.0)  # Outside cone
+	var angle_rad := deg_to_rad(60.0)  # Outside cone (cone is now ±45°)
 	var enemy_pos := Vector2(dist * cos(angle_rad), dist * sin(angle_rad))
 
 	var result := bullet.check_enemy_in_shrapnel_cone(enemy_pos)
 
-	assert_false(result, "Should NOT detonate when enemy is outside cone angle (45°)")
+	assert_false(result, "Should NOT detonate when enemy is outside cone angle (60° > 45° half-angle)")
 	assert_false(bullet.has_detonated())
 
 
@@ -598,3 +604,30 @@ func test_normal_bullet_does_not_detonate_via_cone_check() -> void:
 	var result := normal_bullet.check_enemy_in_shrapnel_cone(Vector2(30.0, 0.0))
 
 	assert_false(result, "Normal bullet should not detonate via cone check")
+
+
+func test_does_not_detonate_when_enemy_in_cone_but_wall_blocks_los() -> void:
+	# Root cause fix (Issue #1634): enemy in cone but behind a wall — must NOT detonate.
+	# Previously, missing LOS check caused bullets to detonate against enemies through walls.
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+	var enemy_pos := Vector2(50.0, 0.0)  # In cone, within range
+
+	# Simulate wall between bullet and enemy (has_line_of_sight=false)
+	var result := bullet.check_enemy_in_shrapnel_cone(enemy_pos, false)
+
+	assert_false(result, "Should NOT detonate when enemy in cone but wall blocks line of sight")
+	assert_false(bullet.has_detonated())
+
+
+func test_detonates_when_enemy_in_cone_with_clear_los() -> void:
+	# Confirm baseline: enemy in cone, no wall blocking — should detonate.
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+	var enemy_pos := Vector2(50.0, 0.0)  # In cone, within range
+
+	# Simulate clear line of sight (has_line_of_sight=true, default)
+	var result := bullet.check_enemy_in_shrapnel_cone(enemy_pos, true)
+
+	assert_true(result, "Should detonate when enemy in cone with clear line of sight")
+	assert_true(bullet.has_detonated())

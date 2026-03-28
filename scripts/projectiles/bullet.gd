@@ -261,7 +261,9 @@ const BREAKER_EXPLOSION_RADIUS: float = 15.0
 const BREAKER_EXPLOSION_DAMAGE: float = 1.0
 
 ## Half-angle of the shrapnel cone in degrees (total cone = 2 * half_angle).
-const BREAKER_SHRAPNEL_HALF_ANGLE: float = 30.0
+## Widened to 45° (Issue #1634) so the proximity fuse triggers over a broader arc,
+## giving shrapnel a better chance to hit targets that are slightly off-axis.
+const BREAKER_SHRAPNEL_HALF_ANGLE: float = 45.0
 
 ## Damage per breaker shrapnel piece.
 const BREAKER_SHRAPNEL_DAMAGE: float = 0.1
@@ -1610,10 +1612,12 @@ func _check_breaker_detonation() -> bool:
 	return false  # Nothing triggering detonation
 
 
-## Returns true if any alive enemy is within the shrapnel cone sector ahead.
+## Returns true if any alive enemy is within the shrapnel cone sector ahead
+## AND has clear line of sight from the bullet (no wall in between).
 ## The cone is defined by BREAKER_DETONATION_DISTANCE (radius) and
 ## BREAKER_SHRAPNEL_HALF_ANGLE (half-angle from the bullet's travel direction).
 ## Optimization: uses dot product comparison instead of acos for the angle check.
+## LOS check prevents premature detonation against enemies through walls (Issue #1634).
 func _check_enemy_in_shrapnel_cone() -> bool:
 	var cos_half_angle := cos(deg_to_rad(BREAKER_SHRAPNEL_HALF_ANGLE))
 	var enemies := get_tree().get_nodes_in_group("enemies")
@@ -1629,6 +1633,10 @@ func _check_enemy_in_shrapnel_cone() -> bool:
 		# Dot product of normalized vectors: equals cos(angle_between).
 		# If cos(angle) >= cos(half_angle), the angle is within the cone.
 		if dist > 0.0 and (to_enemy / dist).dot(direction) >= cos_half_angle:
+			# Only detonate if there is no wall between the bullet and the enemy.
+			# Without this check, bullets detonate against enemies through walls.
+			if not _breaker_has_line_of_sight(global_position, enemy.global_position):
+				continue
 			if _debug_breaker:
 				FileLogger.info("[Bullet.Breaker] Enemy %s in shrapnel cone at distance %.1f, detonating" % [
 					enemy.name, dist])

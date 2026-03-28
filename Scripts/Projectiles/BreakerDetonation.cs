@@ -29,8 +29,10 @@ public static class BreakerDetonation
 
     /// <summary>
     /// Half-angle of the shrapnel cone in degrees.
+    /// Widened to 45° (Issue #1634) so the proximity fuse triggers over a broader arc,
+    /// giving shrapnel a better chance to hit targets that are slightly off-axis.
     /// </summary>
-    public const float ShrapnelHalfAngle = 30.0f;
+    public const float ShrapnelHalfAngle = 45.0f;
 
     /// <summary>
     /// Damage per breaker shrapnel piece.
@@ -144,9 +146,11 @@ public static class BreakerDetonation
     }
 
     /// <summary>
-    /// Returns true (and triggers detonation) if any alive enemy is within the shrapnel cone sector.
+    /// Returns true (and triggers detonation) if any alive enemy is within the shrapnel cone sector
+    /// AND has clear line of sight from the projectile (no wall in between).
     /// The cone is defined by DetonationDistance (radius) and ShrapnelHalfAngle (half-angle from
     /// the projectile's travel direction).
+    /// LOS check prevents premature detonation against enemies through walls (Issue #1634).
     /// </summary>
     private static bool CheckEnemyInShrapnelCone(
         Area2D projectile,
@@ -174,6 +178,11 @@ public static class BreakerDetonation
             // Enemy is in cone if cos(angle) >= cos(half_angle).
             if (dist > 0f && (toEnemy / dist).Dot(direction) >= cosHalfAngle)
             {
+                // Only detonate if there is no wall between the bullet and the enemy.
+                // Without this check, bullets detonate against enemies through walls.
+                if (!HasLineOfSight(projectile, projectile.GlobalPosition, enemyNode.GlobalPosition))
+                    continue;
+
                 Detonate(projectile, direction, damage, damageMultiplier, shooterId);
                 return true;
             }
