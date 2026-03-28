@@ -238,6 +238,24 @@ size = Vector2(500, 988)
 [sub_resource type="OccluderPolygon2D" id="O_lower_void5"]
 polygon = PackedVector2Array(-250, -494, 250, -494, 250, 494, -250, 494)
 
+[sub_resource type="RectangleShape2D" id="S_niche_gap_top"]
+size = Vector2(176, 312)
+
+[sub_resource type="OccluderPolygon2D" id="O_niche_gap_top"]
+polygon = PackedVector2Array(-88, -156, 88, -156, 88, 156, -88, 156)
+
+[sub_resource type="RectangleShape2D" id="S_niche_gap_med"]
+size = Vector2(176, 300)
+
+[sub_resource type="OccluderPolygon2D" id="O_niche_gap_med"]
+polygon = PackedVector2Array(-88, -150, 88, -150, 88, 150, -88, 150)
+
+[sub_resource type="RectangleShape2D" id="S_niche_gap_bot"]
+size = Vector2(176, 338)
+
+[sub_resource type="OccluderPolygon2D" id="O_niche_gap_bot"]
+polygon = PackedVector2Array(-88, -169, 88, -169, 88, 169, -88, 169)
+
 [node name="SewerLevel" type="Node2D"]
 script = ExtResource("1_sewer_level")
 
@@ -931,6 +949,78 @@ shape = SubResource("S_lower_void5")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallLowerVoid5"]
 occluder = SubResource("O_lower_void5")
+
+[node name="WallNicheGap1" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(400, 1694)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallNicheGap1"]
+offset_left = -88.0
+offset_top = -156.0
+offset_right = 88.0
+offset_bottom = 156.0
+color = Color(0.04, 0.06, 0.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallNicheGap1"]
+shape = SubResource("S_niche_gap_top")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallNicheGap1"]
+occluder = SubResource("O_niche_gap_top")
+
+[node name="WallNicheGap2" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(400, 2100)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallNicheGap2"]
+offset_left = -88.0
+offset_top = -150.0
+offset_right = 88.0
+offset_bottom = 150.0
+color = Color(0.04, 0.06, 0.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallNicheGap2"]
+shape = SubResource("S_niche_gap_med")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallNicheGap2"]
+occluder = SubResource("O_niche_gap_med")
+
+[node name="WallNicheGap3" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(400, 2500)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallNicheGap3"]
+offset_left = -88.0
+offset_top = -150.0
+offset_right = 88.0
+offset_bottom = 150.0
+color = Color(0.04, 0.06, 0.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallNicheGap3"]
+shape = SubResource("S_niche_gap_med")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallNicheGap3"]
+occluder = SubResource("O_niche_gap_med")
+
+[node name="WallNicheGap4" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(400, 2919)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallNicheGap4"]
+offset_left = -88.0
+offset_top = -169.0
+offset_right = 88.0
+offset_bottom = 169.0
+color = Color(0.04, 0.06, 0.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallNicheGap4"]
+shape = SubResource("S_niche_gap_bot")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallNicheGap4"]
+occluder = SubResource("O_niche_gap_bot")
 
 [node name="InteriorWalls" type="Node2D" parent="Environment"]
 
