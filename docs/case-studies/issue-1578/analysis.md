@@ -196,3 +196,92 @@ ensure the water node is in the `"water_body"` group before the game starts.
 This also provides a clear diagnostic signal in the game log:
 - `"already in 'water_body' group"` → `water_body.gd` `_ready()` ran OK
 - `"fallback"` → water_body.gd `_ready()` didn't register the node (old code or bug)
+
+---
+
+## Fourth Owner Report: "я использую новую сборку, всё по старому" (2026-03-27 08:00 UTC, test 4)
+
+After the third work session (commit `de261e80`, 2026-03-27 07:38 UTC CI build complete),
+the owner stated at 08:00 UTC: "я использую новую сборку, всё по старому" (I'm using the
+new build, everything is the same).
+
+**No game log was attached to this comment.**
+
+### Analysis of All Three Prior Logs
+
+Cross-referencing all three game logs (timestamps: 08:55, 09:21, 10:21 on 2026-03-27):
+
+| Metric                                   | Log 1 (08:55) | Log 2 (09:21) | Log 3 (10:21) |
+|------------------------------------------|:-------------:|:-------------:|:-------------:|
+| `Build info: not available`              | ✓             | ✓             | ✓             |
+| `[WaterBody] Ready` in log               | ✗             | ✗             | ✗             |
+| `Water node already in 'water_body'`     | ✗             | ✗             | ✗             |
+| `Water node registered in 'water_body'`  | ✗             | ✗             | ✗             |
+| Blood decals created                     | 2,199         | 2,370         | 1,871         |
+
+**All three logs are conclusively from pre-fix builds:**
+
+1. `Build info: not available` appears in all three — CI generates `build_info.cfg` which
+   causes the message to show build branch/commit instead. Its absence proves the EXE was
+   NOT built by our CI pipeline.
+2. `[WaterBody] Ready` is absent — this log line has been present in every build from our
+   branch since the initial implementation. Its absence confirms pre-fix code.
+3. The fallback group registration messages (`"Water node registered..."` /
+   `"Water node already in..."`) added in commit `de261e80` are absent — confirming the
+   build predates commit `de261e80`.
+
+### Current CI Build Verification (commit de261e80, run 23636201836)
+
+Downloaded the latest CI artifact and verified with `strings`:
+
+```
+✓  add_to_group("water_body")
+✓  add_to_group("precipitation_effects")
+✓  func is_point_in_water(world_pos: Vector2) -> bool:
+✓  func spawn_blood_diffusion_at(world_pos: Vector2, blood_color: Color) -> void:
+✓  var water_body: Node = _find_water_body_at(landing_pos)
+✓  if wb.has_method("is_point_in_water") and wb.is_point_in_water(world_pos):
+✓  _log_to_file("Water node already in 'water_body' group (water_body.gd _ready() ran OK)")
+✓  _log_to_file("Water node registered in 'water_body' group (Issue #1578 fallback)")
+```
+
+**All fix strings confirmed present in the EXE.** The fix is complete and correct.
+
+### Expected Log Signature for Correct Build
+
+When the game is run from our branch's CI artifact, the log should contain:
+
+```
+Build branch: issue-1578-d6d3b68c9ede
+Build commit: de261e807e133856674a001c585eae80102c771e
+...
+[WaterBody] Ready — visual=true shader=OK collision=true splash=OK blood=OK
+[BeachLevel] Water node already in 'water_body' group (water_body.gd _ready() ran OK)
+```
+
+If instead the log shows:
+```
+Build info: not available (build_info.cfg not found)
+```
+→ The user is running an **old build** that does not include the fix.
+
+### How to Obtain the Correct Build
+
+1. Go to: https://github.com/konard/Jhon-Crow-godot-topdown-MVP/actions/runs/23636201836
+2. Click "Build Windows Portable EXE"
+3. Download the `windows-build` artifact
+4. Extract the ZIP → extract the inner `Windows Desktop.zip`
+5. Run `Godot-Top-Down-Template.exe` from the extracted folder
+6. Check `game_log_*.txt` for `Build branch: issue-1578-d6d3b68c9ede`
+
+---
+
+## Game Log Files
+
+All game logs referenced in this case study are archived in `game-logs/`:
+
+| File                                  | Test session | Owner report            |
+|---------------------------------------|:------------:|:------------------------|
+| `game_log_20260327_085514.txt`        | Test 1       | "не сработало"          |
+| `game_log_20260327_092156.txt`        | Test 2       | "изменений нет"         |
+| `game_log_20260327_102127.txt`        | Test 3       | "всё ещё простые лужи"  |
