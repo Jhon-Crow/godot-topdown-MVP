@@ -122,6 +122,34 @@ After drone launch at (444, 1190), Enemy10 sees the **player body standing at (4
 
 ---
 
+### Root Cause #5 — Cover-Finding Uses Player Body as Threat Source (Discovered 2026-03-28)
+
+**Location**: `scripts/objects/enemy.gd` — `_get_hidden_cover_candidates()`, `_is_point_visible_from_player()`, `_process_combat_state()`
+
+**Evidence** from game log `game_log_20260328_101107.txt` (owner's report "enemies attack/move toward player, not the drone"):
+```
+[10:11:42] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[10:11:42] [ENEMY] [Enemy3] Found cover at (961.3275, 1380.134) (distance: 682.2, player at (255.5063, 1793.934))
+```
+After drone launch at `(306, 1762)`, Enemy3 enters COMBAT but finds cover relative to **player body at `(255, 1793)`**, not the drone at `(723, 1508)`. Enemy moves to cover behind obstacles that hide from the idle body — from that position, the drone is in a completely different direction and often blocked by walls.
+
+Additionally, with the RC#4 fix making the player invisible, enemies in COMBAT immediately see `_can_see_player = false` and transition to PURSUING after `COMBAT_MIN_DURATION_BEFORE_PURSUE = 0.5s` — even when a drone is visible and actively being targeted.
+
+**Root cause**:
+1. `_get_hidden_cover_candidates()` casts rays from `_player.global_position` to find hidden cover → selects cover that hides from the idle body
+2. `_is_point_visible_from_player()` checks LOS from `_player.global_position` → `_is_position_visible_from_player()` cache is keyed on cover positions with player-body LOS — same problem
+3. `_process_combat_state()` computes `direction_to_player` and `distance_to_player` from `_player.global_position` — misdirecting sidestep and approach logic away from drone
+4. COMBAT→PURSUING check `if not _can_see_player:` fires immediately because player is invisible — enemy leaves COMBAT even when drone is visible and being shot
+
+**Fix**:
+1. Add `_get_threat_position()` helper — returns drone position when `player.is_invisible()`, else player position
+2. `_is_point_visible_from_player()`: use `_get_threat_position()` as the observer for LOS checks
+3. `_get_hidden_cover_candidates()`: use `_get_threat_position()` as the cover-source position (ray origins, cover-hidden checks)
+4. `_process_combat_state()`: use `_get_threat_position()` for `distance_to_player` and `direction_to_player`
+5. COMBAT→PURSUING transition: add `and _find_targetable_player_drone() == null` guard — stay in COMBAT when drone is visible
+
+---
+
 ## Additional Context
 
 **Why the unit tests passed but the feature didn't work**: The 24 unit tests in `test_drone_grenade.gd` test `MockDroneGrenade` logic (drift math, targeting delay countdown, `is_targetable_by_enemies()` return value). They do **not** test the end-to-end flow: bullet collision detection → `on_hit()` triggering → explosion. The missing HitArea is a scene-level issue that pure unit tests can't catch.

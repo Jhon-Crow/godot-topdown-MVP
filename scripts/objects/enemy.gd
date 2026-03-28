@@ -1472,15 +1472,12 @@ func _process_combat_state(delta: float) -> void:
 			_transition_to_retreating()
 		return
 
-	# If can't see player, pursue (after min duration to prevent rapid thrashing) - Issue #169
-	if not _can_see_player:
+	# If can't see player (and no drone to engage #1670), pursue after min duration - Issue #169
+	if not _can_see_player and _find_targetable_player_drone() == null:
 		if _combat_state_timer >= COMBAT_MIN_DURATION_BEFORE_PURSUE:
-			_combat_exposed = false
-			_combat_approaching = false
-			_seeking_clear_shot = false
+			_combat_exposed = false; _combat_approaching = false; _seeking_clear_shot = false
 			_log_debug("Lost sight of player in COMBAT (%.2fs), transitioning to PURSUING" % _combat_state_timer)
-			_transition_to_pursuing()
-			return
+			_transition_to_pursuing(); return
 		if _suppressive_fire: _suppressive_fire.try_suppress_pursuing(_can_see_player, _last_known_player_position, _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown)  # Issue #910
 
 	# Issue #1353: Gas mask enemy continuously tries to throw chemical grenades during combat
@@ -1499,16 +1496,14 @@ func _process_combat_state(delta: float) -> void:
 		if _has_valid_cover:
 			_log_debug("Found cover at %s for combat cycling" % _cover_position)
 
-	# Check player distance for approach/exposed phase decisions
+	# Check player/drone distance+direction for approach/exposed phase decisions (#1670: threat pos)
 	var distance_to_player := INF
-	if _player:
-		distance_to_player = global_position.distance_to(_player.global_position)
-
-	# Check if we have a clear shot (no wall blocking bullet spawn)
 	var direction_to_player := Vector2.ZERO
 	var has_clear_shot := true
 	if _player:
-		direction_to_player = (_player.global_position - global_position).normalized()
+		var threat_pos := _get_threat_position()
+		distance_to_player = global_position.distance_to(threat_pos)
+		direction_to_player = (threat_pos - global_position).normalized()
 		has_clear_shot = _is_bullet_spawn_clear(direction_to_player)
 
 	# If already exposed (shooting phase), handle shooting and timer
@@ -2947,11 +2942,11 @@ func _is_visible_from_player() -> bool:  ## PLAYER can see ENEMY (checks center 
 	return _is_position_visible_from_player(global_position) if _player else false
 func _get_enemy_check_points(c: Vector2) -> Array[Vector2]:  ## center + 4 corners for visibility
 	var d := 22.0 * 0.707; return [c, c + Vector2(d, d), c + Vector2(-d, d), c + Vector2(d, -d), c + Vector2(-d, -d)]
-func _is_point_visible_from_player(pt: Vector2) -> bool:  ## Single point visible from player
+func _is_point_visible_from_player(pt: Vector2) -> bool:  ## Visible from threat (#1670: drone pos when piloting)
 	if not _player: return false
-	var q := PhysicsRayQueryParameters2D.new(); q.from = _player.global_position; q.to = pt; q.collision_mask = 4
+	var from := _get_threat_position(); var q := PhysicsRayQueryParameters2D.new(); q.from = from; q.to = pt; q.collision_mask = 4
 	var r := get_world_2d().direct_space_state.intersect_ray(q)
-	return r.is_empty() or _player.global_position.distance_to(r["position"]) >= _player.global_position.distance_to(pt) - 10.0
+	return r.is_empty() or from.distance_to(r["position"]) >= from.distance_to(pt) - 10.0
 func _is_position_visible_from_player(pos: Vector2) -> bool:  ## Enemy at pos visible to player (Issue #1411: per-frame cache)
 	if not _player: return true
 	var frame := Engine.get_physics_frames()
@@ -3284,12 +3279,12 @@ func _find_cover_closest_to_player() -> void:
 		# Fall back to normal cover finding
 		_find_cover_position()
 
-## Shared helper: cast rays from player position, find hidden cover candidates. Issue #1338/1378.
-## If store_debug_rays is true, updates _last_cover_search_rays for visualization (Issue #1359).
+## Shared helper: cast rays from threat position, find hidden cover candidates. Issue #1338/1378.
+## store_debug_rays=true updates _last_cover_search_rays for visualization (Issue #1359).
 func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 	var candidates: Array[Vector2] = []
 	if _player == null: return candidates
-	var player_pos := _player.global_position
+	var player_pos := _get_threat_position()  # Issue #1670: drone pos when drone-piloting
 	var space_state := get_world_2d().direct_space_state
 	var nav_map: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
 	var has_nav := nav_map.is_valid()
@@ -3831,6 +3826,11 @@ func _has_line_of_sight_to_position(target_pos: Vector2) -> bool:
 	return has_los
 
 ## Aim at best target (player or companion #934) using gradual rotation.
+## #1670: threat pos for cover = drone pos when player invisible, else player body.
+func _get_threat_position() -> Vector2:
+	if _player and _player.has_method("is_invisible") and _player.is_invisible():
+		var drone := _find_targetable_player_drone(); if drone != null: return drone.global_position
+	return _player.global_position if _player else global_position
 ## Issue #1667: nearest LOS-visible player drone grenade ready to be targeted (null if none).
 func _find_targetable_player_drone() -> Node2D:
 	var tree := get_tree(); if tree == null: return null
