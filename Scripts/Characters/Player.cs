@@ -1251,6 +1251,9 @@ public partial class Player : BaseCharacter
         // Initialize dash if active item manager has it selected (Issue #1071)
         InitDash();
 
+        // Initialize grenade bag if active item manager has it selected (Issue #1590)
+        InitGrenadeBag();
+
         // Initialize jammer HUD prohibition sign (always created; visibility toggled at runtime) (Issue #1036)
         InitJammerHud();
 

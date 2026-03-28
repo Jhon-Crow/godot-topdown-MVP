@@ -68,11 +68,6 @@ const FIREARMS: Dictionary = {
 		"name": "AK + GL",
 		"icon_path": "res://assets/sprites/weapons/ak_gl_icon.png",
 		"description": "AK with GP-25 underbarrel grenade launcher — 7.62x39mm, 30-round magazine, RMB fires VOG-25 grenade (1 shot)"
-	},
-	"smg": {
-		"name": "???",
-		"icon_path": "",
-		"description": "Coming soon"
 	}
 }
 
@@ -92,10 +87,14 @@ const WEAPON_RESOURCE_PATHS: Dictionary = {
 const MAX_WEAPON_ROWS_COLLAPSED: int = 2
 
 ## Maximum number of visible grenade rows before accordion hides the rest.
-const MAX_GRENADE_ROWS_COLLAPSED: int = 1
+## Set to 2 so all 5 grenade types (including Drone added in Issue #1628) are visible by default.
+const MAX_GRENADE_ROWS_COLLAPSED: int = 2
 
-## Number of columns in the weapon/grenade grids.
+## Number of columns in the weapon grid.
 const GRID_COLUMNS: int = 4
+
+## Number of columns in the grenade grid (8 per row to fit all types without wrapping).
+const GRENADE_GRID_COLUMNS: int = 8
 
 ## Number of columns in the special items grid.
 const SPECIAL_GRID_COLUMNS: int = 7
@@ -589,7 +588,7 @@ func _build_right_area() -> VBoxContainer:
 	# --- GRENADES SECTION ---
 	_add_category_header(right_vbox, "GRENADES")
 	_grenade_grid = GridContainer.new()
-	_grenade_grid.columns = GRID_COLUMNS
+	_grenade_grid.columns = GRENADE_GRID_COLUMNS
 	_grenade_grid.layout_mode = 2
 	_grenade_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_grenade_grid.add_theme_constant_override("h_separation", 6)
@@ -598,7 +597,7 @@ func _build_right_area() -> VBoxContainer:
 
 	# Populate grenade grid from GrenadeManager
 	var grenade_index: int = 0
-	var max_visible_grenades: int = MAX_GRENADE_ROWS_COLLAPSED * GRID_COLUMNS
+	var max_visible_grenades: int = MAX_GRENADE_ROWS_COLLAPSED * GRENADE_GRID_COLUMNS
 	if _grenade_manager:
 		for grenade_type in _grenade_manager.get_all_grenade_types():
 			var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
@@ -2225,6 +2224,13 @@ func _animate_unlock_progress_bar(slot: PanelContainer, target_progress: float) 
 			fill_timer.queue_free()
 			if slot in _unlock_progress_tweens:
 				_unlock_progress_tweens.erase(slot)
+			# When progress bar is fully filled (condition met), hide it so only
+			# the availability (condition_met) shine on the slot remains visible.
+			# Issue #1621: avoid duplicating shine animations at full progress.
+			if target_progress >= 1.0:
+				var overlay_layer := bar.get_parent()
+				if is_instance_valid(overlay_layer):
+					overlay_layer.hide()
 	)
 	fill_timer.start()
 
@@ -2260,12 +2266,16 @@ func _create_unlock_progress_bar(slot: PanelContainer) -> ColorRect:
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay_layer.add_child(bar)
 	# Add the animated gold shine overlay (same shader as condition-met accordion buttons).
+	# Issue #1621: use dimmer sweep/burst colors so the progress bar shine is less prominent
+	# than the availability (condition_met) shine that plays on the slot itself.
 	var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
 	if shine_shader:
 		var mat := ShaderMaterial.new()
 		mat.shader = shine_shader
 		mat.set_shader_parameter("horizontal_sweep", false)
 		mat.set_shader_parameter("cycle_duration", 3.0)
+		mat.set_shader_parameter("sweep_color", Color(0.5, 0.42, 0.1, 1.0))
+		mat.set_shader_parameter("burst_color", Color(0.5, 0.37, 0.05, 1.0))
 		var shine_overlay := ColorRect.new()
 		shine_overlay.name = "GoldShineOverlay"
 		shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

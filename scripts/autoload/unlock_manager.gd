@@ -76,7 +76,7 @@ const UNLOCK_CONDITIONS: Dictionary = {
 	"res://scenes/levels/DocksLevel.tscn": {
 		"min_rank": "D",
 		"weapons": ["silenced_pistol"],  # Issue #1000 req.7
-		"grenades": [],
+		"grenades": [3],    # GrenadeManager.GrenadeType.AGGRESSION_GAS = 3 (Issue #1624 req.4)
 		"active_items": []
 	},
 	"res://scenes/levels/DecadenceLevel.tscn": {
@@ -96,6 +96,42 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"weapons": [],
 		"grenades": [],
 		"active_items": [16]  # ActiveItemManager.ActiveItemType.RECOIL_COMPENSATOR = 16 (Issue #1423 req.2)
+	},
+	"res://scenes/levels/BuildingLevel.tscn:B": {
+		"min_rank": "B",
+		"weapons": [],
+		"grenades": [],
+		"active_items": [10]  # ActiveItemManager.ActiveItemType.EXTENDED_MAGAZINE = 10 (Issue #1624 req.1)
+	},
+	"res://scenes/levels/DecadenceLevel.tscn:A+": {
+		"min_rank": "A+",
+		"weapons": [],
+		"grenades": [],
+		"active_items": [20]  # ActiveItemManager.ActiveItemType.DASH = 20 (Issue #1624 req.5)
+	},
+	"res://scenes/levels/Labyrinth2Level.tscn": {
+		"min_rank": "F",
+		"weapons": [],
+		"grenades": [],
+		"active_items": [12]  # ActiveItemManager.ActiveItemType.BREACHING_CHARGES = 12 (Issue #1624 req.6)
+	},
+	"res://scenes/levels/SewerLevel.tscn": {
+		"min_rank": "F",
+		"weapons": [],
+		"grenades": [4],    # GrenadeManager.GrenadeType.DRONE = 4 (Issue #1624 req.7)
+		"active_items": []
+	},
+	"res://scenes/levels/RailwayStationLevel.tscn": {
+		"min_rank": "F",
+		"weapons": [],
+		"grenades": [],
+		"active_items": [21]  # ActiveItemManager.ActiveItemType.GRENADE_BAG = 21 (Issue #1624 req.8)
+	},
+	"res://scenes/levels/WinterForestLevel.tscn": {
+		"min_rank": "F",
+		"weapons": [],
+		"grenades": [],
+		"active_items": [4]  # ActiveItemManager.ActiveItemType.BFF_PENDANT = 4 (Issue #1624 req.9)
 	}
 }
 
@@ -165,6 +201,22 @@ const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
 		"weapons": [],
 		"grenades": [],
 		"active_items": [6]  # ActiveItemManager.ActiveItemType.BREAKER_BULLETS = 6
+	},
+	{
+		# 50 kills through walls (any weapon) → unlock Drilling Bullets (Issue #1624 req.3)
+		"stat": "kills_through_wall",
+		"min_kills": 50,
+		"weapons": [],
+		"grenades": [],
+		"active_items": [15]  # ActiveItemManager.ActiveItemType.DRILLING_BULLETS = 15
+	},
+	{
+		# Complete any level with silenced pistol → unlock Auto Reload (Issue #1624 req.2)
+		"stat": "levels_completed_with_silenced_pistol",
+		"min_kills": 1,
+		"weapons": [],
+		"grenades": [],
+		"active_items": [14]  # ActiveItemManager.ActiveItemType.AUTO_RELOAD = 14
 	}
 ]
 
@@ -226,6 +278,10 @@ func _ready() -> void:
 			game_manager.no_damage_levels_completed_updated.connect(_on_no_damage_levels_completed_updated)
 		if game_manager.has_signal("levels_completed_rank_a_or_higher_updated"):
 			game_manager.levels_completed_rank_a_or_higher_updated.connect(_on_levels_completed_rank_a_or_higher_updated)
+		if game_manager.has_signal("kills_through_wall_updated"):
+			game_manager.kills_through_wall_updated.connect(_on_kills_through_wall_updated)
+		if game_manager.has_signal("levels_completed_with_silenced_pistol_updated"):
+			game_manager.levels_completed_with_silenced_pistol_updated.connect(_on_levels_completed_with_silenced_pistol_updated)
 	# Reset condition-gated items to locked state first (in case old save data has them incorrectly
 	# marked as unlocked), then re-apply earned unlocks from progress. This ensures the unlock
 	# state is always consistent with actual level completion progress.
@@ -311,6 +367,28 @@ func _on_levels_completed_rank_a_or_higher_updated(_new_count: int) -> void:
 		if kill_condition.get("stat", "") == "levels_completed_rank_a_or_higher" and is_kill_condition_met(kill_condition):
 			items_unlocked_by_kill_condition.emit()
 			_log("Rank-A level condition met — Breaker Bullets now available to unlock in armory")
+			break
+
+
+## Called when GameManager emits kills_through_wall_updated.
+## Checks if the Drilling Bullets wall-kill condition is now satisfied.
+## Issue #1624.
+func _on_kills_through_wall_updated(_new_count: int) -> void:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if kill_condition.get("stat", "") == "kills_through_wall" and is_kill_condition_met(kill_condition):
+			items_unlocked_by_kill_condition.emit()
+			_log("Wall-kill condition met — Drilling Bullets now available to unlock in armory")
+			break
+
+
+## Called when GameManager emits levels_completed_with_silenced_pistol_updated.
+## Checks if the Auto Reload silenced-pistol level condition is now satisfied.
+## Issue #1624.
+func _on_levels_completed_with_silenced_pistol_updated(_new_count: int) -> void:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if kill_condition.get("stat", "") == "levels_completed_with_silenced_pistol" and is_kill_condition_met(kill_condition):
+			items_unlocked_by_kill_condition.emit()
+			_log("Silenced-pistol level condition met — Auto Reload now available to unlock in armory")
 			break
 
 
@@ -964,7 +1042,12 @@ const _LEVEL_NAMES: Dictionary = {
 	"res://scenes/levels/BeachLevel.tscn": "Beach",
 	"res://scenes/levels/DocksLevel.tscn": "Docks",
 	"res://scenes/levels/CityLevel.tscn": "City",
-	"res://scenes/levels/FactoryLevel.tscn": "Factory"
+	"res://scenes/levels/FactoryLevel.tscn": "Factory",
+	"res://scenes/levels/DecadenceLevel.tscn": "Decadence",
+	"res://scenes/levels/Labyrinth2Level.tscn": "Labyrinth Complex",
+	"res://scenes/levels/SewerLevel.tscn": "Sewer",
+	"res://scenes/levels/RailwayStationLevel.tscn": "Railway Station",
+	"res://scenes/levels/WinterForestLevel.tscn": "Winter Forest"
 }
 
 
@@ -1001,6 +1084,10 @@ func _build_kill_condition_description(kill_condition: Dictionary) -> String:
 		return "Complete %d level(s) without taking damage" % min_kills
 	if stat == "levels_completed_rank_a_or_higher":
 		return "Complete %d level(s) at rank A or higher" % min_kills
+	if stat == "kills_through_wall":
+		return "Get %d kills through walls" % min_kills
+	if stat == "levels_completed_with_silenced_pistol":
+		return "Complete any level with the silenced pistol"
 	return "Get %d kills without Laser Sight" % min_kills
 
 
