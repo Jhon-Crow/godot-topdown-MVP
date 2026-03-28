@@ -301,7 +301,57 @@ If **none** of these `[#1698]` entries appear in the next log, it means `_proces
 
 ---
 
-## 10. References
+## 10. Third Game Log Analysis (`game_log_20260328_184957.txt`)
+
+Diagnostic logging (commit `deceba34`) produced entries in the third log:
+
+```
+[#1698] MG combat: suppress_target=(1725.348, 1662.232), can_see=true, last_known=(1725.348, 1662.232), reloading=false, timer=12.16/0.12, ammo=500
+```
+
+All conditions for firing were met. Yet no `"MG corridor suppression: fired"` appeared. Conclusion: `fire_at_corridor` was being called but ALL log messages inside it were suppressed by `log_to_file_fn.is_valid()` guards returning false. Commit `e58d37a5` replaced those guards with direct `enemy._log_to_file()` calls.
+
+---
+
+## 11. Fourth Game Log Analysis (`game_log_20260328_192841.txt`)
+
+**This is the definitive root cause discovery.**
+
+With `log_to_file_fn` replaced by direct `enemy._log_to_file()` calls, the fourth log revealed:
+
+```
+[#1698] MG lazy-init: component was null, created and added
+[#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+[#1698] MG lazy-init: component was null, created and added   ← next frame
+[#1698] MG dispatching fire_at_corridor: target=(150, 366), component_null=true
+... (repeats every physics frame, ~60/s)
+```
+
+### Root Cause: `MachineGunnerComponent` is freed every frame after `add_child()`
+
+The `_machine_gunner_component` variable is auto-nullified on every frame, proving the added `MachineGunnerComponent` node is being freed immediately after `add_child()`. The exact Godot 4 mechanism causing this is a component node lifecycle issue when `add_child()` is called during `_physics_process()` in a specific configuration.
+
+**Evidence:**
+- Lazy-init fires on EVERY physics frame (~60/s) throughout the entire COMBAT session
+- `component_null=true` is logged on the dispatch line immediately after the lazy-init assignment
+- No crash occurs from `_machine_gunner_component.fire_at_corridor()` — because `_machine_gunner_component` is always null at that point and GDScript's null-method call fails silently with an engine error (not a GDScript exception) in exported (non-debug) builds
+- The engine error is not captured by the FileLogger because it's a Godot native error, not a GDScript log
+
+### Why `_machine_gunner_component` was not created in `_ready()`
+
+Line 365 of the log shows "[ExperimentalMenu] Enemy spawner: spawned 'Machine Gunner (PKM)'" with no preceding `MachineGunnerComponent` initialization log. The `_ready()` setup at enemy.gd:425 (`if weapon_type == WeaponType.MACHINE_GUN: _machine_gunner_component = ...`) is skipped.
+
+This occurs because in the F8 spawn path, `add_child()` is called (line 656/658 of `experimental_menu.gd`) AFTER setting `weapon_type = 6` (line 630). `_ready()` should fire with `weapon_type == 6`. However, some mechanism prevents this initialization — possibly a type coercion issue with `enemy.set("weapon_type", 6)` vs. the `WeaponType` enum, or a race condition in property notification.
+
+### Fix Applied
+
+The fix (commit following `e58d37a5`) **inlines the fire-at-corridor logic directly into `enemy.gd`** as `_machine_gunner_fire_at_corridor()`, eliminating the component reference entirely for the firing path. The component is retained only for PM fallback (`activate_pm_fallback()`) and distant cover search, which are rare (triggered only when the 500-round belt empties) and do not exhibit this bug.
+
+This restores the pre-refactor behavior while keeping the component for the functions that work correctly.
+
+---
+
+## 12. References
 
 - Godot 4 `add_child()` deferred execution: https://docs.godotengine.org/en/stable/tutorials/scripting/scene_tree.html
 - GDScript `class_name` global registration: https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_basics.html#doc-gdscript-basics-class-name
@@ -309,3 +359,6 @@ If **none** of these `[#1698]` entries appear in the next log, it means `_proces
 - Issue #1334: LastChance effect / grenade explosion memory reset
 - Commit `e4af015f`: fix — machine gunner no longer turns toward grenade explosion
 - Commit `042c34c1`: refactor — extract MachineGunnerComponent to reduce enemy.gd below 5000-line CI limit
+- Commit `7827dd5b`: fix — lazy-init recovery attempt (later proven insufficient)
+- Commit `deceba34`: diag — improved fire-path diagnostic logging
+- Commit `e58d37a5`: diag — replaced log_to_file_fn indirection with direct calls

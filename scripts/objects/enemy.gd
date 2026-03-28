@@ -1387,25 +1387,15 @@ func _process_combat_state(delta: float) -> void:
 	var _pd := _find_targetable_player_drone(); if _pd != null and _can_shoot() and _shoot_timer >= shoot_cooldown: var _pd_dir := (_pd.global_position - global_position).normalized(); if _is_bullet_spawn_clear(_pd_dir): _rotate_body_toward(_pd_dir.angle(), get_physics_process_delta_time()); _execute_shoot(_pd.global_position); _shoot_timer = 0.0; return
 	# [#1033] Machine gunner: suppress corridor (fire at last-known pos regardless of LOS/under-fire).
 	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active:
-		# [#1698] Lazy-init recovery: component may be null if _ready() ran before scene tree was ready.
-		if _machine_gunner_component == null: _machine_gunner_component = MachineGunnerComponent.new(); _machine_gunner_component.enemy = self; _machine_gunner_component.name = "MachineGunnerComponent"; add_child(_machine_gunner_component); _log_to_file("[#1698] MG lazy-init: component was null, created and added")
 		# [#1698] suppress_target: prefer player pos when visible; fall back to last-known; if still zero
 		# (e.g. first contact via explosion) and player is in range, use current player pos so gunner fires.
 		var suppress_target := _last_known_player_position
 		if _can_see_player and _player != null: suppress_target = _player.global_position
 		elif suppress_target == Vector2.ZERO and _player != null and is_instance_valid(_player): suppress_target = _player.global_position
-		# [#1698] Diagnostic: log MG state ~once per 2s while in combat
-		if fmod(_combat_state_timer, 2.0) < delta:
-			_log_to_file("[#1698] MG combat: suppress_target=%s, can_see=%s, last_known=%s, reloading=%s, timer=%.2f/%.2f, ammo=%d" % [suppress_target, _can_see_player, _last_known_player_position, _is_reloading, _shoot_timer, shoot_cooldown, _current_ammo])
 		if suppress_target != Vector2.ZERO:
 			_machine_gunner_suppressing_corridor = true
 			if not _is_reloading and _shoot_timer >= shoot_cooldown and _can_shoot():
-				_log_to_file("[#1698] MG dispatching fire_at_corridor: target=%s, component_null=%s" % [suppress_target, _machine_gunner_component == null])
-				_machine_gunner_component.fire_at_corridor(suppress_target)
-			else:
-				# [#1698] Diagnostic: log why fire was skipped, ~once per second
-				if fmod(_combat_state_timer, 1.0) < delta:
-					_log_to_file("[#1698] MG fire skipped: reloading=%s, shoot_timer=%.2f/%.2f, ammo=%d, can_shoot=%s" % [_is_reloading, _shoot_timer, shoot_cooldown, _current_ammo, _can_shoot()])
+				_machine_gunner_fire_at_corridor(suppress_target)  # [#1698] Direct call — avoids component reference retention bug
 			return  # Hold position; belt depletion triggers PM fallback + retreat
 		_machine_gunner_suppressing_corridor = false
 
@@ -3830,6 +3820,41 @@ func _shoot() -> void:
 		if not _is_pre_attack_flashing: _is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(target_position, _execute_shoot.bind(target_position))
 		return  # Callback fires the shot after flash completes
 	_execute_shoot(target_position)
+
+## [#1033][#1698] Machine gunner corridor suppression: burst into corridor where player was last seen.
+## Inlined from MachineGunnerComponent.fire_at_corridor() to avoid component reference retention bug.
+func _machine_gunner_fire_at_corridor(target_pos: Vector2) -> void:
+	if bullet_scene == null: return
+	var _gm := get_node_or_null("/root/GameManager")
+	if _gm and not _gm.player_alive: return
+	var to_target := (target_pos - global_position).normalized()
+	if to_target == Vector2.ZERO: return
+	if _enemy_model: _enemy_model.global_rotation = to_target.angle()
+	_rotate_body_toward(to_target.angle(), get_physics_process_delta_time())
+	var spawn_pos := _get_bullet_spawn_position(to_target)
+	var spread := deg_to_rad(randf_range(-5.0, 5.0))
+	var direction := to_target.rotated(spread)
+	if not _is_bullet_spawn_clear(direction): return
+	_spawn_projectile(direction, spawn_pos)
+	_spawn_muzzle_flash(spawn_pos, direction)
+	_spawn_casing(direction, to_target)
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	if audio and audio.has_method("play_ak_shot"): audio.play_ak_shot(global_position)
+	var sp: Node = get_node_or_null("/root/SoundPropagation")
+	var _now_mg := Time.get_ticks_msec() / 1000.0
+	if sp and sp.has_method("emit_sound") and _now_mg - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
+		sp.emit_sound(0, global_position, 1, self, weapon_loudness)
+		_last_gunshot_propagation_time = _now_mg
+	_play_delayed_shell_sound()
+	_shoot_timer = 0.0
+	_current_ammo -= 1; _shot_count += 1
+	ammo_changed.emit(_current_ammo, _reserve_ammo)
+	_log_to_file("[#1033] MG corridor suppression: fired at passage %s, ammo=%d" % [target_pos, _current_ammo])
+	if _current_ammo <= 0 and _reserve_ammo > 0:
+		_start_reload()
+	elif _current_ammo <= 0 and _reserve_ammo <= 0 and not _machine_gunner_pm_active:
+		if _machine_gunner_component: _machine_gunner_component.activate_pm_fallback()  # [#1033] PM fallback via component
+
 func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting callback.
 	_is_pre_attack_flashing = false
 	# Issue #1334 Round 11: Guard against freed node during deferred shoot callbacks
