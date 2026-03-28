@@ -397,7 +397,14 @@ func _setup_teleport_component() -> void:
 		return  # Already set up
 	_teleport_component = EnemyTeleportComponent.new()
 	_teleport_component.name = "TeleportComponent"
-	add_child(_teleport_component)
+	# IMPORTANT: must be added to _parent (CharacterBody2D), not self (Node).
+	# EnemyTeleportComponent._ready() does get_parent() as CharacterBody2D — if the parent
+	# is DroneOperatorComponent (a plain Node), the cast returns null and _ready_flag stays
+	# false, making is_ready() always return false so teleport never fires (Issue #1664).
+	if _parent != null:
+		_parent.add_child(_teleport_component)
+	else:
+		add_child(_teleport_component)
 	FileLogger.info("[DroneOperator] Teleport component set up (teleport evasion, Issue #1664)")
 
 

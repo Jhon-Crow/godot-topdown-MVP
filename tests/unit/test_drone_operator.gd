@@ -507,6 +507,35 @@ func test_enemy_combat_state_handles_drone_operator_teleport() -> void:
 		"enemy.gd COMBAT state must check _drone_operator.is_teleport_ready() (Issue #1664)")
 
 
+func test_teleport_component_added_to_parent_not_self() -> void:
+	## Issue #1664 regression: EnemyTeleportComponent must be added as a child of _parent
+	## (the CharacterBody2D enemy), NOT of the DroneOperatorComponent (Node).
+	##
+	## Root cause of "не телепортируется" bug (2026-03-28 game log):
+	##   EnemyTeleportComponent._ready() resolves its reference via:
+	##       _parent = get_parent() as CharacterBody2D
+	##   If the parent is DroneOperatorComponent (a plain Node), the cast returns null,
+	##   _ready_flag = false, and is_ready() always returns false — teleport never fires.
+	##
+	## This test verifies that _setup_teleport_component() adds the child to _parent.
+	var file := FileAccess.open("res://scripts/components/drone_operator_component.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open drone_operator_component.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	# The fix is: _parent.add_child(_teleport_component) NOT add_child(_teleport_component)
+	# Find the _setup_teleport_component function body
+	var func_start: int = source.find("func _setup_teleport_component()")
+	assert_gt(func_start, 0, "_setup_teleport_component() function must exist")
+	var func_end: int = source.find("\nfunc ", func_start + 1)
+	var func_body: String = source.substr(func_start, func_end - func_start) if func_end > 0 else source.substr(func_start)
+	assert_true(func_body.contains("_parent.add_child"),
+		"_setup_teleport_component() must add teleport component to _parent (CharacterBody2D), not to self (DroneOperatorComponent). " +
+		"Regression: adding to self causes get_parent() as CharacterBody2D to return null → _ready_flag=false → teleport never fires (Issue #1664 game log 2026-03-28).")
+
+
 func test_drone_operator_active_does_not_use_machete_melee_in_combat() -> void:
 	## Issue #1664: Drone operator ACTIVE phase must NOT use machete melee attack logic.
 	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)

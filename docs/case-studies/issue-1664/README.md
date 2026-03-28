@@ -6,46 +6,142 @@ The drone operator enemy has a broken evasion mechanic in ACTIVE phase.
 The fix requested: in ACTIVE phase the drone operator should behave **exactly like the teleport enemy** —
 teleport to cover when under fire, teleport on first bullet hit, teleport when flanking, etc.
 
-## Current State (before fix)
+Owner feedback (2026-03-28): **"не телепортируется"** ("doesn't teleport") — the drone operator
+enters ACTIVE phase, picks up a silenced pistol, and fights the player normally, but **never teleports**.
+A game log was provided to diagnose the problem.
 
-`DroneOperatorComponent` in ACTIVE phase creates a `MacheteComponent` for dodge:
-- `_setup_dodge_component()` — creates `MacheteComponent`, configures lateral sidestep.
-- `_dodge_component.try_dodge(bullet_direction)` — triggers perpendicular lateral dash.
-- `enemy.gd` lines 1448-1450: calls `try_dodge` / `get_dodge_velocity` from drone operator.
+---
 
-Problems:
-1. Issue says dodge "doesn't work" (не работает). The `MacheteComponent` lateral sidestep
-   was the _design_ for Issue #1540 but the owner now wants teleport behavior instead.
-2. The `EnemyTeleportComponent` already has all the right logic:
-   - `try_damage_teleport()` — immediate teleport on first hit
-   - `try_teleport(cover_position)` — teleport to cover under fire
-   - `try_teleport(flank_target)` — teleport when flanking
-   - Cooldown, min/max distance, nav-map validation, blue particle effects
+## Game Log Analysis (`game_log_20260328_082927.txt`)
 
-## Root Cause
+The log (collected 2026-03-28 08:29:27–08:30:50, Windows, Godot 4.3-stable) records two encounters:
 
-The drone operator ACTIVE phase uses `MacheteComponent` (lateral dodge) when it should use
-`EnemyTeleportComponent` (teleport to cover / flank), which is what all "teleporter" enemies use.
+### Encounter 1 (08:30:28)
 
-## Solution
+```
+[08:30:28] [DroneOperator] Drone destroyed! Transitioning to ACTIVE
+[08:30:28] [DroneOperator] Teleport component set up (teleport evasion, Issue #1664)
+[08:30:28] [DroneOperator] Phase: ACTIVE (silenced pistol + laser, teleport evasion)
+[08:30:28] [EnemyDroneOperator] ROT_CHANGE: ... state=COMBAT
+[08:30:29] [EnemyDroneOperator] State: COMBAT -> PURSUING
+[08:30:30] [PenultimateHit] Player damaged: 1.0 damage, current health: 3.0
+[08:30:30] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+...
+```
 
-1. **`DroneOperatorComponent`**: Replace `MacheteComponent` dodge with `EnemyTeleportComponent`.
-   - Remove `_dodge_component: MacheteComponent`
-   - Add `_teleport_component: EnemyTeleportComponent`
-   - In `_transition_to_active()`, call `_setup_teleport_component()` (creates & adds child)
-   - Expose: `is_teleporting()`, `update_teleport(delta)`, `try_damage_teleport(cover, flank)`, `try_teleport(pos)`
-   - Remove old dodge API: `is_dodging()`, `try_dodge()`, `get_dodge_velocity()`
+**Observation**: The teleport component is set up, but **there is no `[Teleporter]` log entry**
+for the entire ACTIVE phase. The drone operator simply fires at the player and kills them without
+ever teleporting. This is consistent with `is_ready()` returning `false` on every call.
 
-2. **`enemy.gd`**: Replace drone operator dodge logic with teleport logic.
-   - Lines 1448-1450: replace `try_dodge` / `is_dodging` / `get_dodge_velocity` with
-     `_teleport_component` style calls: under fire → teleport to cover; flanking → teleport to flank.
-   - Line 918: remove dodge velocity override (no longer needed)
-   - Lines 4269-4273: add drone operator `try_damage_teleport` call alongside the normal teleporter.
+### Encounter 2 (08:30:37) — same outcome
 
-3. **Tests**: Update `test_drone_operator.gd` to verify teleport behavior instead of machete dodge.
+```
+[08:30:37] [DroneOperator] Teleport component set up (teleport evasion, Issue #1664)
+[08:30:37] [DroneOperator] Phase: ACTIVE (silenced pistol + laser, teleport evasion)
+... (combat, shooting, player dies — still no [Teleporter] log)
+```
+
+**Conclusion**: The teleport component is created and attached, but `is_ready()` always returns
+`false`, so every call to `try_teleport()` / `try_damage_teleport()` silently fails.
+
+---
+
+## Root Cause — Iteration 1: Wrong add_child target
+
+### The original bug (pre-PR #1676)
+
+The ACTIVE phase used `MacheteComponent` (lateral dodge) instead of `EnemyTeleportComponent`.
+That was the reported bug in the issue: "dodge doesn't work."
+
+### The introduced bug (in PR #1676, session 1)
+
+After replacing `MacheteComponent` with `EnemyTeleportComponent`, the component was added as a
+child of the `DroneOperatorComponent` (a plain `Node2D`/`Node`):
+
+```gdscript
+# drone_operator_component.gd  ← BUG
+_teleport_component = EnemyTeleportComponent.new()
+add_child(_teleport_component)  # ← parent is DroneOperatorComponent (Node), NOT enemy
+```
+
+`EnemyTeleportComponent._ready()` resolves its enemy reference by:
+
+```gdscript
+func _ready() -> void:
+    _parent = get_parent() as CharacterBody2D   # cast fails!
+    _ready_flag = _parent != null               # → false
+```
+
+Because `DroneOperatorComponent` is a `Node` (not `CharacterBody2D`), the cast returns `null`.
+`_ready_flag` is set to `false`, and `is_ready()` returns `false` forever:
+
+```gdscript
+func is_ready() -> bool:
+    return _ready_flag and _cooldown_timer <= 0.0  # always false
+```
+
+Every call in `enemy.gd` to `_drone_operator.is_teleport_ready()` / `try_teleport()` /
+`try_damage_teleport()` silently does nothing. The drone operator fights normally with no evasion.
+
+### Contrast with real teleporter enemy
+
+`enemy.gd` (for `is_teleporter == true`) adds the component directly to the enemy node:
+
+```gdscript
+if is_teleporter:
+    _teleport_component = EnemyTeleportComponent.new()
+    add_child(_teleport_component)  # ← self = CharacterBody2D ✓
+```
+
+Here `get_parent() as CharacterBody2D` succeeds, `_ready_flag = true`, and teleport works.
+
+---
+
+## Fix
+
+In `drone_operator_component.gd`, add the `EnemyTeleportComponent` to `_parent`
+(the enemy `CharacterBody2D`) instead of `self`:
+
+```gdscript
+func _setup_teleport_component() -> void:
+    if _teleport_component != null:
+        return
+    _teleport_component = EnemyTeleportComponent.new()
+    _teleport_component.name = "TeleportComponent"
+    # Must be added to _parent (CharacterBody2D), not self (Node).
+    if _parent != null:
+        _parent.add_child(_teleport_component)
+    else:
+        add_child(_teleport_component)
+    FileLogger.info("[DroneOperator] Teleport component set up (teleport evasion, Issue #1664)")
+```
+
+This ensures `EnemyTeleportComponent._ready()` sees a `CharacterBody2D` parent, so `_ready_flag`
+is set to `true` and all teleport calls succeed.
+
+---
+
+## Timeline of Events
+
+| Time | Event |
+|------|-------|
+| Issue #1664 opened | Owner reports drone operator dodge is broken in ACTIVE phase |
+| PR #1676 session 1 | Replaced `MacheteComponent` with `EnemyTeleportComponent`; component added to wrong parent → `_ready_flag = false` |
+| 2026-03-28 08:30 | Owner tests: drone operator enters ACTIVE, teleport never fires, player killed |
+| 2026-03-28 comment | Owner posts game log: "не телепортируется" |
+| 2026-03-28 PR #1676 session 2 | Log analysis finds root cause; fix: add component to `_parent` |
+
+---
 
 ## Files Changed
 
-- `scripts/components/drone_operator_component.gd`
-- `scripts/objects/enemy.gd`
-- `tests/unit/test_drone_operator.gd`
+- `scripts/components/drone_operator_component.gd` — add teleport component to `_parent`
+- `tests/unit/test_drone_operator.gd` — add test that checks `_ready_flag` via `is_teleport_ready()` after proper parent setup
+- `docs/case-studies/issue-1664/game_log_20260328_082927.txt` — game log from owner's report
+
+## Related Issues / PRs
+
+- Issue #752: Original teleporter enemy implementation (`EnemyTeleportComponent`)
+- Issue #1355: Damage-triggered teleport on first bullet
+- Issue #1397: Drone operator initial implementation
+- PR #1676: This fix
