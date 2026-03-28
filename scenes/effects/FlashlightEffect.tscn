@@ -10,9 +10,6 @@ script = ExtResource("1_flashlight_effect")
 [node name="PointLight2D" type="PointLight2D" parent="."]
 color = Color(1, 1, 0.95, 1)
 energy = 0.0
-shadow_enabled = true
-shadow_color = Color(0, 0, 0, 0.9)
-shadow_filter = 1
-shadow_filter_smooth = 6.0
+shadow_enabled = false
 texture = ExtResource("2_cone_texture")
 texture_scale = 6.0
