@@ -115,9 +115,11 @@ public partial class LevelInitFallback : Node
         var parent = GetParent();
         if (parent == null) return;
 
-        // Always apply camera limits for Building map regardless of whether GDScript ran.
+        // Apply camera limits for Building map only, regardless of whether GDScript ran.
         // This is a safety net: the GDScript _configure_camera() may fail silently (Issue #1684).
-        ConfigureBuildingCameraLimits();
+        // Guard: only run on BuildingLevel — other levels set their own camera limits (Issue #1684).
+        if (parent.Name == "BuildingLevel")
+            ConfigureBuildingCameraLimits();
 
         // Check if GDScript _ready() already ran by checking if it set up enemy tracking.
         // The GDScript sets _enemies array and connects died signals.
