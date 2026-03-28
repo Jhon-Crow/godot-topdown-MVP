@@ -259,3 +259,41 @@ func test_targeting_timer_not_active_after_explode() -> void:
 	drone.explode()
 	assert_false(drone._enemy_targeting_active,
 		"_enemy_targeting_active must be cleared when drone explodes")
+
+
+# ============================================================================
+# Source-file integration tests (Issue #1670)
+# ============================================================================
+
+
+func test_drone_grenade_scene_has_hit_area() -> void:
+	## Issue #1670: DroneGrenade must have a HitArea Area2D so enemy bullets
+	## can hit it via area_entered signal. Without this, on_hit() is never called.
+	var scene_text := ""
+	var f := FileAccess.open("res://scenes/projectiles/DroneGrenade.tscn", FileAccess.READ)
+	if f:
+		scene_text = f.get_as_text()
+		f.close()
+	assert_true(scene_text.contains("HitArea"),
+		"DroneGrenade.tscn must contain a HitArea node so enemy bullets can trigger on_hit()")
+	assert_true(scene_text.contains("hit_area.gd"),
+		"DroneGrenade.tscn HitArea must use hit_area.gd to forward on_hit() to parent")
+
+
+func test_enemy_shoots_drone_in_pursuing_state() -> void:
+	## Issue #1670: enemies must shoot targetable player drones in PURSUING state.
+	## When player hides while piloting the drone, enemies leave COMBAT → PURSUING.
+	## Without drone targeting in PURSUING state the drone is never shot.
+	var enemy_source := ""
+	var f := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if f:
+		enemy_source = f.get_as_text()
+		f.close()
+	# Confirm _find_targetable_player_drone is called inside _process_pursuing_state
+	var pursuing_start := enemy_source.find("func _process_pursuing_state(")
+	assert_true(pursuing_start >= 0, "_process_pursuing_state must exist in enemy.gd")
+	# Find next function definition after _process_pursuing_state
+	var next_func := enemy_source.find("\nfunc ", pursuing_start + 1)
+	var pursuing_body := enemy_source.substr(pursuing_start, next_func - pursuing_start) if next_func > pursuing_start else enemy_source.substr(pursuing_start)
+	assert_true(pursuing_body.contains("_find_targetable_player_drone"),
+		"_process_pursuing_state must call _find_targetable_player_drone (Issue #1670: shoot drone while pursuing)")

@@ -2080,7 +2080,6 @@ func _process_pursuing_state(delta: float) -> void:
 
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not _is_melee_weapon and not (_shield_component and _shield_component.is_active()):  # Issue #1242: no retreat with shield up
 		_pursuit_approaching = false; _transition_to_retreating(); return
-
 	# Issue #604: Grenadier proactive passage throw - throw before entering passage/cover
 	if is_grenadier and _grenade_component is GrenadierGrenadeComponent and _nav_agent and not _nav_agent.is_navigation_finished():
 		var wp := _nav_agent.get_next_path_position()
@@ -2089,7 +2088,8 @@ func _process_pursuing_state(delta: float) -> void:
 			velocity = Vector2.ZERO; return  # Wait for grenade to explode
 	# Issue #657: Non-grenadier allies wait for nearby grenadier to throw before advancing
 	if not is_grenadier and _should_wait_for_nearby_grenadier(): velocity = Vector2.ZERO; return
-
+	# Issue #1670: shoot at targetable player drone while pursuing (player may be hidden piloting it).
+	var _pd := _find_targetable_player_drone(); if _pd != null and _can_shoot() and _shoot_timer >= shoot_cooldown: var _pd_dir := (_pd.global_position - global_position).normalized(); if _is_bullet_spawn_clear(_pd_dir): _rotate_body_toward(_pd_dir.angle(), get_physics_process_delta_time()); _execute_shoot(_pd.global_position); _shoot_timer = 0.0
 	# If can see player/companion and can hit them, engage (after min time to prevent thrash) #934
 	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 		var can_hit := _can_hit_target_from_current_position()
