@@ -1444,9 +1444,7 @@ func _process_combat_state(delta: float) -> void:
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
 	# Issue #1664: Drone operator ACTIVE — cover-teleport when under fire (same as teleport enemy).
-	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:
-		if _drone_operator.is_teleport_ready() and _under_fire and _current_state != AIState.IN_COVER: if not _has_valid_cover: _find_cover_position(); if _has_valid_cover and _drone_operator.try_cover_teleport(_cover_position): _transition_to_in_cover(); return
-		if _drone_operator.is_teleport_ready() and not _can_see_player and _current_state == AIState.FLANKING: _drone_operator.try_flank_teleport(_flank_target)  # #1664: flank-teleport
+	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE: if _drone_operator.is_teleport_ready() and _under_fire and _current_state != AIState.IN_COVER: if not _has_valid_cover: _find_cover_position(); if _has_valid_cover and _drone_operator.try_cover_teleport(_cover_position): _transition_to_in_cover(); return elif _drone_operator.is_teleport_ready() and not _can_see_player and _current_state == AIState.FLANKING: _drone_operator.try_flank_teleport(_flank_target)  # #1664
 	# Issue #1667: if a player drone grenade is targetable, shoot at it instead of the player.
 	var _pd := _find_targetable_player_drone(); if _pd != null and _can_shoot() and _shoot_timer >= shoot_cooldown: var _pd_dir := (_pd.global_position - global_position).normalized(); if _is_bullet_spawn_clear(_pd_dir): _rotate_body_toward(_pd_dir.angle(), get_physics_process_delta_time()); _execute_shoot(_pd.global_position); _shoot_timer = 0.0; return
 	# [#1033] Machine gunner: suppress corridor (fire at last-known pos regardless of LOS/under-fire).
@@ -3828,7 +3826,6 @@ func _has_line_of_sight_to_position(target_pos: Vector2) -> bool:
 
 	return has_los
 
-## Aim at best target (player or companion #934) using gradual rotation.
 ## Issue #1667: nearest LOS-visible player drone grenade ready to be targeted (null if none).
 func _find_targetable_player_drone() -> Node2D:
 	var tree := get_tree(); if tree == null: return null
@@ -3836,8 +3833,7 @@ func _find_targetable_player_drone() -> Node2D:
 		if not (drone is Node2D) or not is_instance_valid(drone) or not drone.has_method("is_targetable_by_enemies") or not drone.is_targetable_by_enemies(): continue
 		var ss := get_world_2d().direct_space_state; var q := PhysicsRayQueryParameters2D.create(global_position, drone.global_position); q.collision_mask = 4; q.exclude = [get_rid()]; if ss.intersect_ray(q).is_empty(): return drone
 	return null
-
-
+## Aim at best target (player or companion #934) using gradual rotation.
 func _aim_at_player() -> void:
 	var aim_at: Node2D = _current_target if _current_target != null else _player
 	if aim_at == null:
@@ -4191,13 +4187,9 @@ func _on_threat_area_entered(area: Area2D) -> void:
 	if not (shooter as Node).is_in_group("player"): return  # #1228: only player bullets
 	_log_to_file("[#1311] Player bullet entered threat sphere — suppression triggered")
 	_bullets_in_threat_sphere.append(area); _threat_memory_timer = THREAT_MEMORY_DURATION
-	# Issue #1664: Drone operator ACTIVE phase — teleport immediately on threat sphere entry.
-	# Same as EnemyTeleportComponent.try_damage_teleport on-hit: react on the same frame.
+	# Issue #1664: Drone operator ACTIVE — teleport on threat sphere entry (same as teleport enemy).
 	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:
-		if not _has_valid_cover: _find_cover_position()
-		if _drone_operator.try_evasion_teleport(_cover_position, _flank_target):
-			_log_to_file("[#1664] Drone operator teleport triggered from threat sphere entry")
-			_transition_to_in_cover()
+		if not _has_valid_cover: _find_cover_position(); if _drone_operator.try_evasion_teleport(_cover_position, _flank_target): _log_to_file("[#1664] Drone operator teleport triggered from threat sphere entry"); _transition_to_in_cover()
 
 ## Called when a bullet exits the threat sphere.
 func _on_threat_area_exited(area: Area2D) -> void:
@@ -4277,11 +4269,9 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			if not _has_valid_cover: _find_cover_position()
 			if _teleport_component.try_damage_teleport(_cover_position, _flank_target):
 				_log_to_file("[#1355] Damage-triggered teleport succeeded"); _transition_to_in_cover()
-		# Issue #1664: Drone operator ACTIVE phase — teleport on hit, same as teleport enemy.
+		# Issue #1664: Drone operator ACTIVE — teleport on hit, same as teleport enemy.
 		if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:
-			if not _has_valid_cover: _find_cover_position()
-			if _drone_operator.try_evasion_teleport(_cover_position, _flank_target):
-				_log_to_file("[#1664] Drone operator damage-triggered teleport succeeded"); _transition_to_in_cover()
+			if not _has_valid_cover: _find_cover_position(); if _drone_operator.try_evasion_teleport(_cover_position, _flank_target): _log_to_file("[#1664] Drone operator damage-triggered teleport succeeded"); _transition_to_in_cover()
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
