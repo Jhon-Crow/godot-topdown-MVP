@@ -916,7 +916,6 @@ func _physics_process(delta: float) -> void:
 			if _debug_draw_timer >= DEBUG_DRAW_INTERVAL: _debug_draw_timer = 0.0; queue_redraw()  # Issue #1220: throttle to 10 Hz
 		return
 	_process_ai_state(delta)
-
 	_update_debug_label()
 	if debug_label_enabled:  # Issue #1220: throttle FOV cone redraws to 10 Hz (was every frame → 33 raycasts/enemy/frame at 60 fps)
 		_debug_draw_timer += delta
@@ -1163,7 +1162,6 @@ func _update_suppression(delta: float) -> void:
 		if _threat_reaction_delay_elapsed and not (_force_field_component and _force_field_component.is_active()):
 			if _drone_operator and _drone_operator.should_dash_instead_of_suppress(): _drone_operator.try_dash_from_threat(_bullets_in_threat_sphere, _player, global_position)
 			else: _under_fire = true; _suppression_timer = 0.0
-
 ## Update reload state.
 func _update_reload(delta: float) -> void:
 	if not _is_reloading: return
@@ -1381,9 +1379,7 @@ func _process_ai_state(delta: float) -> void:
 		if _current_state != AIState.PURSUING and _current_state != AIState.ASSAULT:
 			_transition_to_pursuing()
 			# Don't return - let the state machine continue to process the PURSUING state
-	if _teleport_component and _teleport_component.is_ready() and _under_fire and _current_state != AIState.IN_COVER:  # #752: cover-teleport
-		if not _has_valid_cover: _find_cover_position()
-		if _has_valid_cover and _teleport_component.try_teleport(_cover_position): _transition_to_in_cover(); return
+	if _teleport_component and _teleport_component.is_ready() and _under_fire and _current_state != AIState.IN_COVER: if not _has_valid_cover: _find_cover_position(); if _has_valid_cover and _teleport_component.try_teleport(_cover_position): _transition_to_in_cover(); return  # #752: cover-teleport
 	if _teleport_component and _teleport_component.is_ready() and not _can_see_player and _current_state == AIState.FLANKING: _teleport_component.try_teleport(_flank_target)  # #752: flank-teleport
 	# GRENADE THROW PRIORITY (Issue #363, #959, #1305): Non-pacifists check grenade triggers; respect combat toggle.
 	if _combat_allowed and _goap_world_state.get("ready_to_throw_grenade", false) and not (_pacifist and _pacifist.is_pacifist):
@@ -1446,16 +1442,10 @@ func _process_combat_state(delta: float) -> void:
 				var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
-		if _machete.is_in_melee_range(_player) and _shoot_timer >= shoot_cooldown and _machete.is_melee_path_clear(_player):  # Issue #1083: block melee through walls
-			_machete.perform_melee_attack(_player); _shoot_timer = 0.0; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position; return
-		var tp := _player.global_position
-		if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player): tp = _machete.get_backstab_approach_position(_player, 60.0)
+		if _machete.is_in_melee_range(_player) and _shoot_timer >= shoot_cooldown and _machete.is_melee_path_clear(_player): _machete.perform_melee_attack(_player); _shoot_timer = 0.0; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position; return  # Issue #1083: block melee through walls
+		var tp := _player.global_position; if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player): tp = _machete.get_backstab_approach_position(_player, 60.0)
 		_move_to_target_nav(tp, combat_move_speed)
-		if global_position.distance_to(_machete_combat_stuck_last_pos) < MACHETE_COMBAT_STUCK_DIST_THRESHOLD:  # Issue #1107: Wall-stuck detection
-			_machete_combat_stuck_timer += delta
-			if _machete_combat_stuck_timer >= MACHETE_COMBAT_STUCK_MAX_TIME:
-				_log_to_file("[#1107] Machete COMBAT stuck (%.1fs), rerouting" % _machete_combat_stuck_timer)
-				_machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position; _transition_to_pursuing()
+		if global_position.distance_to(_machete_combat_stuck_last_pos) < MACHETE_COMBAT_STUCK_DIST_THRESHOLD: _machete_combat_stuck_timer += delta; if _machete_combat_stuck_timer >= MACHETE_COMBAT_STUCK_MAX_TIME: _log_to_file("[#1107] Machete COMBAT stuck (%.1fs), rerouting" % _machete_combat_stuck_timer); _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position; _transition_to_pursuing()  # Issue #1107: Wall-stuck detection
 		else: _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position
 		return
 	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE and _drone_operator.is_teleport_ready():  # Issue #1664: teleport to cover under fire (like teleport enemy).
@@ -3851,7 +3841,6 @@ func _find_targetable_player_drone() -> Node2D:
 		var ss := get_world_2d().direct_space_state; var q := PhysicsRayQueryParameters2D.create(global_position, drone.global_position); q.collision_mask = 4; q.exclude = [get_rid()]; if ss.intersect_ray(q).is_empty(): return drone
 	return null
 
-
 func _aim_at_player() -> void:
 	var aim_at: Node2D = _current_target if _current_target != null else _player
 	if aim_at == null:
@@ -4280,13 +4269,8 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			# Issue #1305: Only fire back if combat transition succeeded (not redirected to IDLE by PerformanceSettings)
 			if _current_state == AIState.COMBAT and _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
 		# Issue #1355: Teleporter enemies teleport immediately on first damage.
-		if _teleport_component and _teleport_component.is_ready():
-			if not _has_valid_cover: _find_cover_position()
-			if _teleport_component.try_damage_teleport(_cover_position, _flank_target):
-				_log_to_file("[#1355] Damage-triggered teleport succeeded"); _transition_to_in_cover()
-		if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:  # Issue #1664: drone operator ACTIVE — damage-triggered teleport like teleport enemy.
-			if not _has_valid_cover: _find_cover_position()
-			if _drone_operator.try_damage_teleport(_cover_position, _flank_target): _log_to_file("[#1664] Drone operator damage-triggered teleport succeeded"); _transition_to_in_cover()
+		if _teleport_component and _teleport_component.is_ready(): if not _has_valid_cover: _find_cover_position(); if _teleport_component.try_damage_teleport(_cover_position, _flank_target): _log_to_file("[#1355] Damage-triggered teleport succeeded"); _transition_to_in_cover()
+		if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE: if not _has_valid_cover: _find_cover_position(); if _drone_operator.try_damage_teleport(_cover_position, _flank_target): _log_to_file("[#1664] Drone operator damage-triggered teleport succeeded"); _transition_to_in_cover()  # Issue #1664: drone operator ACTIVE — damage-triggered teleport like teleport enemy.
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
