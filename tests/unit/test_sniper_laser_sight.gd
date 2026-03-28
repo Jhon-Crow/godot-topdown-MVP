@@ -16,8 +16,8 @@ const SniperComponent := preload("res://scripts/components/enemy_sniper_componen
 # =============================================================================
 
 func test_laser_max_range_constant() -> void:
-	assert_eq(SniperComponent.LASER_MAX_RANGE, 15000.0,
-		"LASER_MAX_RANGE should be 15000.0 px (3× longer per Issue #1581)")
+	assert_eq(SniperComponent.LASER_MAX_RANGE, 30000.0,
+		"LASER_MAX_RANGE should be 30000.0 px (2× longer per Issue #1586)")
 
 
 func test_muzzle_local_offset_constant() -> void:
@@ -347,10 +347,10 @@ func test_blind_fire_no_spread_direction() -> void:
 # Issue #1581 — Laser 3× longer + glow visual parity with player laser
 # =============================================================================
 
-func test_laser_max_range_is_three_times_original() -> void:
-	# LASER_MAX_RANGE was 5000.0 before Issue #1581; it must now be 15000.0 (3×).
-	assert_eq(SniperComponent.LASER_MAX_RANGE, 15000.0,
-		"LASER_MAX_RANGE must be 15000.0 px (3× the original 5000 px)")
+func test_laser_max_range_is_six_times_original() -> void:
+	# LASER_MAX_RANGE was 5000.0 before Issue #1581 (3×=15000.0); Issue #1586 doubles it to 30000.0 (6×).
+	assert_eq(SniperComponent.LASER_MAX_RANGE, 30000.0,
+		"LASER_MAX_RANGE must be 30000.0 px (6× the original 5000 px, per Issue #1586)")
 
 
 func test_laser_color_constant_exists() -> void:

@@ -887,7 +887,7 @@ public partial class SniperRifle : BaseWeapon
     /// </summary>
     private Vector2 ComputeHitscanEndpoint(Vector2 origin, Vector2 direction)
     {
-        float maxRange = 5000.0f;
+        float maxRange = WeaponData?.Range ?? 30000.0f;
         Vector2 startPos = origin + direction * BulletSpawnOffset;
         Vector2 endPos = origin + direction * maxRange;
         int wallsPenetrated = 0;
@@ -978,7 +978,7 @@ public partial class SniperRifle : BaseWeapon
     /// </summary>
     private Vector2 ComputeBreakerHitscanEndpoint(Vector2 origin, Vector2 direction)
     {
-        float maxRange = 5000.0f;
+        float maxRange = WeaponData?.Range ?? 30000.0f;
         Vector2 startPos = origin + direction * BulletSpawnOffset;
         Vector2 endPos = origin + direction * maxRange;
 
@@ -1170,7 +1170,7 @@ public partial class SniperRifle : BaseWeapon
     /// <returns>The endpoint where the bullet stops (for smoke tracer).</returns>
     private Vector2 PerformHitscan(Vector2 origin, Vector2 direction)
     {
-        float maxRange = 5000.0f;
+        float maxRange = WeaponData?.Range ?? 30000.0f;
         Vector2 startPos = origin + direction * BulletSpawnOffset;
         Vector2 endPos = origin + direction * maxRange;
         int wallsPenetrated = 0;
@@ -1363,7 +1363,7 @@ public partial class SniperRifle : BaseWeapon
     /// <returns>The endpoint where the bullet detonated (for smoke tracer).</returns>
     private Vector2 PerformBreakerHitscan(Vector2 origin, Vector2 direction)
     {
-        float maxRange = 5000.0f;
+        float maxRange = WeaponData?.Range ?? 30000.0f;
         Vector2 startPos = origin + direction * BulletSpawnOffset;
         Vector2 endPos = origin + direction * maxRange;
         float damage = WeaponData?.Damage ?? 50.0f;
