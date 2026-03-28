@@ -1,4 +1,4 @@
-[gd_scene load_steps=85 format=3 uid="uid://sewer_level_1438"]
+[gd_scene load_steps=87 format=3 uid="uid://sewer_level_1438"]
 
 [ext_resource type="Script" path="res://scripts/levels/sewer_level.gd" id="1_sewer_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -249,6 +249,12 @@ size = Vector2(88, 2638)
 
 [sub_resource type="OccluderPolygon2D" id="O_left_outer_void"]
 polygon = PackedVector2Array(-44, -1319, 44, -1319, 44, 1319, -44, 1319)
+
+[sub_resource type="RectangleShape2D" id="S_top_left_void"]
+size = Vector2(88, 450)
+
+[sub_resource type="OccluderPolygon2D" id="O_top_left_void"]
+polygon = PackedVector2Array(-44, -225, 44, -225, 44, 225, -44, 225)
 
 [sub_resource type="RectangleShape2D" id="S_niche_gap_top"]
 size = Vector2(176, 312)
@@ -835,6 +841,17 @@ shape = SubResource("S_left_outer_void")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallLeftOuterVoid"]
 occluder = SubResource("O_left_outer_void")
+
+[node name="WallTopLeftVoid" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(44, 225)
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTopLeftVoid"]
+shape = SubResource("S_top_left_void")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallTopLeftVoid"]
+occluder = SubResource("O_top_left_void")
 
 [node name="WallRightCorridorBlock" type="StaticBody2D" parent="Environment/Walls"]
 position = Vector2(419, 650)
