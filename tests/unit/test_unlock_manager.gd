@@ -75,9 +75,9 @@ class MockActiveItemManager:
 		5: false,  # INVISIBILITY_SUIT — condition: Beach S + Building S (Issue #1000)
 		6: false,  # BREAKER_BULLETS — condition: 7 levels at rank A or higher (Issue #1589 req.3)
 		7: false,  # FORCE_FIELD — condition: complete Factory on any grade (Issue #1589 req.2)
-		8: false,  # TRAJECTORY_GLASSES — condition: City D+ (Issue #1053 req.1)
+		8: false,  # TRAJECTORY_GLASSES — condition: City F+ (Issue #1692 req.2)
 		9: false,  # LASER_SIGHT — condition: 400 kills without laser sight equipped (Issue #1196)
-		10: false, # EXTENDED_MAGAZINE — condition: Building B+ (Issue #1624 req.1)
+		10: false, # EXTENDED_MAGAZINE — condition: Double Corridor A+ (Issue #1692 req.1)
 		11: true,  # LOUDSPEAKER — no condition, freely available from start (Issue #959)
 		12: false, # BREACHING_CHARGES — condition: complete Labyrinth Complex (Issue #1624 req.6)
 		13: false, # ARMORED_SKIN — condition: 100 total deaths (Issue #1389)
@@ -169,10 +169,10 @@ class TestableUnlockManager extends Node:
 			"active_items": [3]  # TELEPORT_BRACERS
 		},
 		"res://scenes/levels/CityLevel.tscn": {
-			"min_rank": "D",
+			"min_rank": "F",
 			"weapons": [],
 			"grenades": [],
-			"active_items": [8]  # TRAJECTORY_GLASSES (Issue #1053 req.1)
+			"active_items": [8]  # TRAJECTORY_GLASSES (Issue #1692 req.2)
 		},
 		"res://scenes/levels/BeachLevel.tscn": {
 			"min_rank": "D",
@@ -204,11 +204,11 @@ class TestableUnlockManager extends Node:
 			"grenades": [],
 			"active_items": [16]  # RECOIL_COMPENSATOR (Issue #1423 req.2)
 		},
-		"res://scenes/levels/BuildingLevel.tscn:B": {
-			"min_rank": "B",
+		"res://scenes/levels/RevolverLevel.tscn:A": {
+			"min_rank": "A",
 			"weapons": [],
 			"grenades": [],
-			"active_items": [10]  # EXTENDED_MAGAZINE (Issue #1624 req.1)
+			"active_items": [10]  # EXTENDED_MAGAZINE (Issue #1692 req.1)
 		},
 		"res://scenes/levels/DecadenceLevel.tscn:A+": {
 			"min_rank": "A+",
@@ -844,17 +844,18 @@ func test_teleport_not_unlocked_by_castle_alone() -> void:
 		"Teleport Bracers should NOT be unlocked by Castle completion alone (moved to Double Corridor)")
 
 
-func test_city_d_unlocks_trajectory_glasses() -> void:
-	# Issue #1053 req.1: City D+ → Trajectory Glasses
+func test_city_f_unlocks_trajectory_glasses() -> void:
+	# Issue #1692 req.2: City F+ → Trajectory Glasses (any completion)
+	progress_manager.set_rank("res://scenes/levels/CityLevel.tscn", "Normal", "F")
+	assert_true(unlock_manager.is_active_item_condition_met(8),
+		"Trajectory Glasses condition should be met after City grade F (Issue #1692)")
+
+
+func test_city_d_also_unlocks_trajectory_glasses() -> void:
+	# Issue #1692 req.2: City D+ → Trajectory Glasses (D is higher than F)
 	progress_manager.set_rank("res://scenes/levels/CityLevel.tscn", "Normal", "D")
 	assert_true(unlock_manager.is_active_item_condition_met(8),
-		"Trajectory Glasses condition should be met after City grade D (Issue #1053)")
-
-
-func test_city_f_does_not_unlock_trajectory_glasses() -> void:
-	progress_manager.set_rank("res://scenes/levels/CityLevel.tscn", "Normal", "F")
-	assert_false(unlock_manager.is_active_item_condition_met(8),
-		"Trajectory Glasses condition should NOT be met with City grade F (requires D+)")
+		"Trajectory Glasses condition should also be met after City grade D (Issue #1692)")
 
 
 func test_beach_d_unlocks_m16() -> void:
@@ -1035,6 +1036,39 @@ func test_teleport_condition_met_after_double_corridor_d() -> void:
 	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "D")
 	assert_true(unlock_manager.is_active_item_condition_met(3),  # TELEPORT_BRACERS = 3
 		"Teleport Bracers condition should be met after Double Corridor (RevolverLevel) grade D")
+
+
+# ============================================================================
+# New unlock condition tests (Issue #1692)
+# ============================================================================
+
+
+func test_double_corridor_a_unlocks_extended_magazine() -> void:
+	# Issue #1692 req.1: Double Corridor A+ → Extended Magazine
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "A")
+	assert_true(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
+		"Extended Magazine condition should be met after Double Corridor grade A (Issue #1692)")
+
+
+func test_double_corridor_s_unlocks_extended_magazine() -> void:
+	# Issue #1692 req.1: Double Corridor S also satisfies the A+ condition
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "S")
+	assert_true(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
+		"Extended Magazine condition should be met after Double Corridor grade S (Issue #1692)")
+
+
+func test_double_corridor_b_does_not_unlock_extended_magazine() -> void:
+	# Issue #1692 req.1: Double Corridor B is below A, should NOT unlock Extended Magazine
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "B")
+	assert_false(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
+		"Extended Magazine should NOT be unlocked with Double Corridor grade B (requires A+)")
+
+
+func test_extended_magazine_not_unlocked_without_double_corridor() -> void:
+	# Issue #1692 req.1: Extended Magazine requires Double Corridor, not Building
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "S")
+	assert_false(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
+		"Extended Magazine should NOT be unlocked by Building completion (moved to Double Corridor in Issue #1692)")
 
 
 # ============================================================================

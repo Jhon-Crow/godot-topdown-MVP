@@ -56,10 +56,10 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"active_items": [3]  # ActiveItemManager.ActiveItemType.TELEPORT_BRACERS = 3 (Issue #1000 req.3)
 	},
 	"res://scenes/levels/CityLevel.tscn": {
-		"min_rank": "D",
+		"min_rank": "F",
 		"weapons": [],
 		"grenades": [],
-		"active_items": [8]  # ActiveItemManager.ActiveItemType.TRAJECTORY_GLASSES = 8 (Issue #1053 req.1)
+		"active_items": [8]  # ActiveItemManager.ActiveItemType.TRAJECTORY_GLASSES = 8 (Issue #1692 req.2)
 	},
 	"res://scenes/levels/BeachLevel.tscn": {
 		"min_rank": "D",
@@ -97,11 +97,11 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"grenades": [],
 		"active_items": [16]  # ActiveItemManager.ActiveItemType.RECOIL_COMPENSATOR = 16 (Issue #1423 req.2)
 	},
-	"res://scenes/levels/BuildingLevel.tscn:B": {
-		"min_rank": "B",
+	"res://scenes/levels/RevolverLevel.tscn:A": {
+		"min_rank": "A",
 		"weapons": [],
 		"grenades": [],
-		"active_items": [10]  # ActiveItemManager.ActiveItemType.EXTENDED_MAGAZINE = 10 (Issue #1624 req.1)
+		"active_items": [10]  # ActiveItemManager.ActiveItemType.EXTENDED_MAGAZINE = 10 (Issue #1692 req.1)
 	},
 	"res://scenes/levels/DecadenceLevel.tscn:A+": {
 		"min_rank": "A+",
