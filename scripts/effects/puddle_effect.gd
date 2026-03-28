@@ -36,6 +36,12 @@ const GROW_TO_LARGE_DURATION: float = 25.0
 @export var size_variation: float = 1.0
 
 
+## Assigns a specific texture to this puddle sprite (called by PuddleManager
+## before start_growing() to give each puddle a different shape).
+func set_puddle_texture(tex: Texture2D) -> void:
+	texture = tex
+
+
 func _ready() -> void:
 	# Start invisible and at zero scale; will grow via _start_growing().
 	scale = Vector2.ZERO
@@ -53,11 +59,12 @@ func start_growing() -> void:
 		return
 
 	# Phase 1: fade in and grow to small size.
+	# Small puddles are very transparent — the floor should clearly show through.
 	var target_small := Vector2.ONE * SMALL_SCALE * size_variation
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(self, "scale", target_small, APPEAR_DURATION) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "modulate:a", 0.72, APPEAR_DURATION * 0.6) \
+	tween.tween_property(self, "modulate:a", 0.35, APPEAR_DURATION * 0.6) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	await tween.finished
 
@@ -72,10 +79,12 @@ func start_growing() -> void:
 	if not is_instance_valid(self) or not is_inside_tree():
 		return
 
-	# Phase 2: grow to medium size.
+	# Phase 2: grow to medium size, become slightly more opaque.
 	var target_medium := Vector2.ONE * MEDIUM_SCALE * size_variation
-	var tween2 := create_tween()
+	var tween2 := create_tween().set_parallel(true)
 	tween2.tween_property(self, "scale", target_medium, GROW_TO_MEDIUM_DURATION) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween2.tween_property(self, "modulate:a", 0.45, GROW_TO_MEDIUM_DURATION) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await tween2.finished
 
@@ -87,8 +96,8 @@ func start_growing() -> void:
 	var tween3 := create_tween()
 	tween3.tween_property(self, "scale", target_large, GROW_TO_LARGE_DURATION) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	# Large puddles become slightly more opaque as they grow.
-	tween3.parallel().tween_property(self, "modulate:a", 0.85, GROW_TO_LARGE_DURATION)
+	# Large puddles become slightly more opaque as they grow, but remain semi-transparent.
+	tween3.parallel().tween_property(self, "modulate:a", 0.60, GROW_TO_LARGE_DURATION)
 
 
 ## Immediately hides the puddle (e.g. when entering an indoor area).

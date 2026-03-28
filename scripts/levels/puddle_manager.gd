@@ -16,6 +16,15 @@ extends Node2D
 ## Path to the PuddleEffect scene.
 const PUDDLE_SCENE_PATH: StringName = &"res://scenes/effects/PuddleEffect.tscn"
 
+## Puddle texture variants — each has a distinct irregular shape so puddles
+## don't all look identical.  PuddleManager picks one at random per spawn.
+const PUDDLE_TEXTURE_PATHS: Array = [
+	"res://assets/sprites/effects/puddle.png",
+	"res://assets/sprites/effects/puddle_2.png",
+	"res://assets/sprites/effects/puddle_3.png",
+	"res://assets/sprites/effects/puddle_4.png",
+]
+
 ## Pre-defined puddle spawn positions in world space.
 ## Chosen to be logically placed: open outdoor areas, near water edges,
 ## loading docks, and between containers — places where rainwater pools.
@@ -76,6 +85,7 @@ const SIZE_VARIATION_MIN: float = 0.7
 const SIZE_VARIATION_MAX: float = 1.3
 
 var _puddle_scene: PackedScene = null
+var _puddle_textures: Array = []
 var _puddles: Array[Node] = []
 
 
@@ -84,6 +94,14 @@ func _ready() -> void:
 	if _puddle_scene == null:
 		push_warning("[PuddleManager] PuddleEffect scene not found at %s" % PUDDLE_SCENE_PATH)
 		return
+
+	# Pre-load all puddle texture variants.
+	for path in PUDDLE_TEXTURE_PATHS:
+		var tex = load(path)
+		if tex != null:
+			_puddle_textures.append(tex)
+	if _puddle_textures.is_empty():
+		push_warning("[PuddleManager] No puddle textures found, using default from scene")
 
 	_spawn_puddles()
 	_log("Puddle manager ready: %d puddles spawned" % _puddles.size())
@@ -97,6 +115,10 @@ func _spawn_puddles() -> void:
 
 		var puddle: Node = _puddle_scene.instantiate()
 		puddle.position = pos
+
+		# Assign a random shape variant texture so puddles don't all look identical.
+		if not _puddle_textures.is_empty() and puddle.has_method("set_puddle_texture"):
+			puddle.set_puddle_texture(_puddle_textures[randi() % _puddle_textures.size()])
 
 		# Apply per-puddle size variation for a natural look.
 		if puddle.get("size_variation") != null:
