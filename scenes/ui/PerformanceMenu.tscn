@@ -158,6 +158,24 @@ a dynamic PointLight2D flash. These are a known GPU bottleneck."
 horizontal_alignment = 1
 autowrap_mode = 2
 
+[node name="WarmLightsContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WarmLightsLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WarmLightsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Warm Ceiling Lights"
+autowrap_mode = 2
+
+[node name="WarmLightsCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WarmLightsContainer"]
+layout_mode = 2
+
+[node name="WarmLightsDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled (default), warm PointLight2D ceiling lights are placed in rooms. Disable to reduce GPU rendering cost on low-end hardware (Issue #1693)."
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="HSeparator5" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 

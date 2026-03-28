@@ -1,0 +1,63 @@
+============================================================
+BENCHMARK LOG
+============================================================
+Started: 2026-03-28T16:11:12
+Sample duration per step: 3.0 s
+Cycles per step: 1
+VSync: disabled for benchmark
+------------------------------------------------------------
+
+[Step 1/17] Baseline (all enabled)
+  avg=6.3  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 2/17] Particles disabled
+  avg=6.3  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 3/17] Blood Decals disabled
+  avg=6.4  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 4/17] Screen Shake disabled
+  avg=6.5  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 5/17] Explosion Lights disabled
+  avg=6.5  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 6/17] Wall Hit Particles disabled
+  avg=6.3  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 7/17] AI disabled
+  avg=6.3  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 8/17] AI:IDLE disabled
+  avg=6.2  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 9/17] AI:COMBAT disabled
+  avg=6.4  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 10/17] AI:SEEKING_COVER disabled
+  avg=6.3  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 11/17] AI:IN_COVER disabled
+  avg=6.3  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 12/17] AI:FLANKING disabled
+  avg=6.4  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 13/17] AI:SUPPRESSED disabled
+  avg=6.3  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 14/17] AI:RETREATING disabled
+  avg=6.3  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 15/17] AI:PURSUING disabled
+  avg=6.5  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 16/17] AI:ASSAULT disabled
+  avg=6.3  min=6.0  max=7.0  samples=23  cycles=1
+
+[Step 17/17] AI:SEARCHING disabled
+  avg=6.0  min=5.0  max=7.0  samples=23  cycles=1
+
+============================================================
+BENCHMARK COMPLETE: 2026-03-28T16:12:16
+============================================================

@@ -1235,6 +1235,18 @@ public partial class LevelInitFallback : Node
     /// </summary>
     private void SetupRoomWarmLights(Node levelRoot)
     {
+        // Respect PerformanceSettings warm_lights toggle (Issue #1693)
+        var perfSettings = GetNode<Node>("/root/PerformanceSettings");
+        if (perfSettings != null && perfSettings.HasMethod("is_warm_lights_enabled"))
+        {
+            var enabled = (bool)perfSettings.Call("is_warm_lights_enabled");
+            if (!enabled)
+            {
+                LogToFile("Warm ceiling lights skipped — disabled via PerformanceSettings (Issue #1693)");
+                return;
+            }
+        }
+
         var environment = levelRoot.GetNodeOrNull("Environment");
         if (environment == null)
         {
@@ -1296,14 +1308,14 @@ public partial class LevelInitFallback : Node
         fixture.Modulate = new Color(1.0f, 0.85f, 0.5f, 0.5f);
         lightNode.AddChild(fixture);
 
-        // The warm PointLight2D with soft shadows
+        // The warm PointLight2D — shadows disabled for performance (Issue #1693).
+        // PCF5 shadows on each PointLight2D add a full shadow-map render pass per light,
+        // which was causing severe FPS drops (down to ~6 fps baseline) on low-end hardware.
         var light = new PointLight2D();
         light.Name = "PointLight";
         light.Color = new Color(1.0f, 0.75f, 0.3f, 1.0f);
         light.Energy = energy;
-        light.ShadowEnabled = true;
-        light.ShadowFilter = PointLight2D.ShadowFilterEnum.Pcf5;
-        light.ShadowFilterSmooth = 4.0f;
+        light.ShadowEnabled = false;
         light.Texture = lightTexture;
         light.TextureScale = scale;
         lightNode.AddChild(light);
