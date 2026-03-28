@@ -508,6 +508,8 @@ func clear_all_saves() -> void:
 		game_manager.total_deaths = 0  # Issue #1389
 		game_manager.no_damage_levels_completed = 0  # Issue #1389
 		game_manager.levels_completed_rank_a_or_higher = 0  # Issue #1589
+		game_manager.kills_through_wall = 0  # Issue #1624
+		game_manager.levels_completed_with_silenced_pistol = 0  # Issue #1624
 
 	# Reset GrenadeManager to defaults
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
