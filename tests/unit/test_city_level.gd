@@ -40,7 +40,7 @@ class MockCityLevel:
 	var map_height: int = 5000
 
 	## Default enemy count for city level.
-	var default_enemy_count: int = 8
+	var default_enemy_count: int = 9
 
 	## Initialize with default enemies.
 	func initialize() -> void:
@@ -113,8 +113,8 @@ func test_exit_zone_dimensions() -> void:
 
 
 func test_default_enemy_count() -> void:
-	assert_eq(level.default_enemy_count, 8,
-		"City level should have 8 enemies by default")
+	assert_eq(level.default_enemy_count, 9,
+		"City level should have 9 enemies by default")
 
 
 func test_level_starts_not_cleared() -> void:
@@ -125,16 +125,16 @@ func test_level_starts_not_cleared() -> void:
 
 func test_level_cleared_when_all_enemies_dead() -> void:
 	level.initialize()
-	for i in range(7):
+	for i in range(8):
 		level.on_enemy_died()
 	assert_false(level._level_cleared, "Not cleared with 1 enemy remaining")
 	level.on_enemy_died()
-	assert_true(level._level_cleared, "Level should be cleared when all 8 enemies dead")
+	assert_true(level._level_cleared, "Level should be cleared when all 9 enemies dead")
 
 
 func test_player_exit_completes_level() -> void:
 	level.initialize()
-	for i in range(8):
+	for i in range(9):
 		level.on_enemy_died()
 	level.on_player_reached_exit()
 	assert_true(level._level_completed,
@@ -143,7 +143,7 @@ func test_player_exit_completes_level() -> void:
 
 func test_player_cannot_exit_twice() -> void:
 	level.initialize()
-	for i in range(8):
+	for i in range(9):
 		level.on_enemy_died()
 	level.on_player_reached_exit()
 	level.on_player_reached_exit()
