@@ -70,8 +70,7 @@ func _on_explode() -> void:
 
 ## Override the base _explode to skip PowerFantasy explosion effect.
 ## Gas grenade releases gas quietly, it does not produce an explosive shockwave.
-## Issue #1688: Visual effect appears only after the sound starts playing,
-## and fully appears when the sound finishes playing.
+## Issue #1688: Visual effect starts spreading gradually when the sound starts playing.
 func _explode() -> void:
 	if _has_exploded:
 		return
@@ -82,16 +81,13 @@ func _explode() -> void:
 	# NO PowerFantasy explosion effect — gas release is not an explosion
 
 	# Play gas release sound (quiet hiss, not explosion).
-	# Effect must not appear before sound starts.
 	_play_explosion_sound()
 
-	# Issue #1688: Delay cloud spawn until the sound finishes playing.
+	# Issue #1688: Spawn cloud immediately when sound starts, with gradual grow-in
+	# matching the sound duration so gas spreads progressively as the hiss plays.
 	var sound_length := _get_gas_sound_length()
-	FileLogger.info("[AggressionGasGrenade] Waiting %.2fs for sound to finish before spawning cloud" % sound_length)
-	await get_tree().create_timer(sound_length).timeout
-
-	# Call gas release effect only after sound has finished.
-	_on_explode()
+	FileLogger.info("[AggressionGasGrenade] Spawning cloud with %.2fs grow-in matching sound" % sound_length)
+	_spawn_aggression_cloud_with_grow_in(sound_length)
 
 	# Emit signal
 	exploded.emit(global_position, self)
@@ -138,16 +134,24 @@ func _get_effect_radius() -> float:
 
 ## Spawn the persistent aggression gas cloud at the gas release position.
 func _spawn_aggression_cloud() -> void:
+	_spawn_aggression_cloud_with_grow_in(0.0)
+
+
+## Issue #1688: Spawn the cloud immediately, growing in gradually over grow_duration seconds.
+## This makes the gas start spreading when the sound starts, not after it ends.
+func _spawn_aggression_cloud_with_grow_in(grow_duration: float) -> void:
 	var cloud := AggressionCloud.new()
 	cloud.name = "AggressionCloud"
 	cloud.global_position = global_position
 	cloud.cloud_radius = effect_radius
 	cloud.cloud_duration = cloud_duration
 	cloud.aggression_effect_duration = aggression_duration
+	if grow_duration > 0.0:
+		cloud.grow_in_duration = grow_duration
 
 	# Add to current scene (not as child of grenade, since grenade will be freed)
 	get_tree().current_scene.add_child(cloud)
 
-	FileLogger.info("[AggressionGasGrenade] Gas cloud spawned at %s (radius=%.0f, duration=%.0fs)" % [
-		str(global_position), effect_radius, cloud_duration
+	FileLogger.info("[AggressionGasGrenade] Gas cloud spawned at %s (radius=%.0f, duration=%.0fs, grow_in=%.2fs)" % [
+		str(global_position), effect_radius, cloud_duration, grow_duration
 	])

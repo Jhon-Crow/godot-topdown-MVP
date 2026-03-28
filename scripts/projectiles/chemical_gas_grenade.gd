@@ -72,8 +72,7 @@ func _on_body_entered(body: Node) -> void:
 
 
 ## Override base _explode to skip explosive effects.
-## Issue #1688: Visual effect appears only after the sound starts playing,
-## and fully appears when the sound finishes playing.
+## Issue #1688: Visual effect starts spreading gradually when the sound starts playing.
 func _explode() -> void:
 	if _has_exploded:
 		return
@@ -81,16 +80,15 @@ func _explode() -> void:
 
 	FileLogger.info("[ChemicalGasGrenade] Gas released at %s!" % str(global_position))
 
-	# Play the hiss sound first — effect must not appear before sound starts.
+	# Play the hiss sound first.
 	_play_explosion_sound()
 
-	# Issue #1688: Delay cloud spawn until the sound finishes playing.
+	# Issue #1688: Spawn cloud immediately when sound starts, with gradual grow-in
+	# matching the sound duration so gas spreads progressively as the hiss plays.
 	var sound_length := _get_gas_sound_length()
-	FileLogger.info("[ChemicalGasGrenade] Waiting %.2fs for sound to finish before spawning cloud" % sound_length)
-	await get_tree().create_timer(sound_length).timeout
+	FileLogger.info("[ChemicalGasGrenade] Spawning cloud with %.2fs grow-in matching sound" % sound_length)
+	_spawn_chemical_cloud_with_grow_in(sound_length)
 
-	# Spawn the cloud only after the sound has finished.
-	_on_explode()
 	exploded.emit(global_position, self)
 
 	await get_tree().create_timer(0.1).timeout
@@ -130,15 +128,23 @@ func _get_effect_radius() -> float:
 
 ## Spawn the chemical gas cloud at the release position.
 func _spawn_chemical_cloud() -> void:
+	_spawn_chemical_cloud_with_grow_in(0.0)
+
+
+## Issue #1688: Spawn the cloud immediately, growing in gradually over grow_duration seconds.
+## This makes the gas start spreading when the sound starts, not after it ends.
+func _spawn_chemical_cloud_with_grow_in(grow_duration: float) -> void:
 	var cloud := ChemicalCloud.new()
 	cloud.name = "ChemicalCloud"
 	cloud.global_position = global_position
 	cloud.cloud_radius = effect_radius
 	cloud.cloud_duration = cloud_duration
 	cloud.illusion_duration = illusion_duration
+	if grow_duration > 0.0:
+		cloud.grow_in_duration = grow_duration
 
 	get_tree().current_scene.add_child(cloud)
 
-	FileLogger.info("[ChemicalGasGrenade] Chemical cloud spawned at %s (radius=%.0f, duration=%.0fs)" % [
-		str(global_position), effect_radius, cloud_duration
+	FileLogger.info("[ChemicalGasGrenade] Chemical cloud spawned at %s (radius=%.0f, duration=%.0fs, grow_in=%.2fs)" % [
+		str(global_position), effect_radius, cloud_duration, grow_duration
 	])
