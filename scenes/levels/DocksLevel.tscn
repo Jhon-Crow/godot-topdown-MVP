@@ -1035,7 +1035,7 @@ enable_cover = true
 z_index = 100
 
 [node name="PuddleManager" type="Node2D" parent="."]
-z_index = -1
+z_index = 1
 script = ExtResource("7_puddle_manager")
 
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]

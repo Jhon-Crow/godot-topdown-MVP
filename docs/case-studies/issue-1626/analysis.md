@@ -84,3 +84,49 @@ Near exit / south:
 - Use `create_tween().tween_property(sprite, "scale", target_scale, duration)` for smooth growth
 - Multiple phases achieved with sequential tween steps or timer-based callbacks
 - `z_index = -1` to appear below characters but above floor
+
+---
+
+## Bug Report: Puddles Not Appearing — Root Cause Analysis (2026-03-28)
+
+### User Report
+Owner reported: "не появляются" (they do not appear). Log file: `game_log_20260328_082042.txt`.
+
+### Timeline from Log
+
+| Time | Event |
+|------|-------|
+| 08:20:48 | DocksLevel loaded, rain started |
+| 08:20:48 | `[PuddleManager] Puddle manager ready: 23 puddles spawned` |
+| 08:20:48 | `[DocksLevel] Puddle system ready (PuddleManager found)` |
+| 08:20:48–08:22:18 | Player played for 90 seconds, saw NO puddles |
+| 08:22:18 | Player restarted scene |
+| 08:22:19 | Same initialization, same result |
+
+### Root Cause: Incorrect z_index — Puddles Hidden Behind Floor
+
+In Godot 4, `z_index` controls the 2D rendering order. Higher value = rendered on top.
+
+| Node | z_index (before fix) | Effective absolute z |
+|------|---------------------|----------------------|
+| `Environment/Floor` (ColorRect) | 0 (default) | **0** |
+| `PuddleManager` (Node2D) | **-1** ← bug | **-1** |
+| `PuddleEffect` (Sprite2D, child of manager) | -1 (relative) | **-2** |
+
+The floor ColorRect (z=0) was drawn on top of all puddles (z=-2), completely hiding them. The puddle grow animations were executing correctly — the tweens ran, scale changed from 0 to SMALL_SCALE and beyond — but the pixels were always covered by the floor's opaque color.
+
+Note: The original design comment in `analysis.md` said `z_index = -1` to appear "below characters but above floor", but this was incorrectly applied to the PuddleManager parent (making the effective z even more negative), rather than using z=1 for the manager.
+
+### Fix
+
+Changed `z_index` values so puddles render above the floor (z=0):
+
+1. **`scenes/levels/DocksLevel.tscn`** — `PuddleManager`: `z_index = -1` → `z_index = 1`
+2. **`scenes/effects/PuddleEffect.tscn`** — `PuddleEffect` Sprite2D: `z_index = -1` → `z_index = 0`
+
+Effective z of each puddle = 1 (manager) + 0 (sprite) = **1**, above floor (z=0), below RainEffect (z=100).
+
+### References
+- Game log: `game_log_20260328_082042.txt` (in this folder)
+- [Godot 4 z_index docs](https://docs.godotengine.org/en/stable/classes/class_canvasitem.html#class-canvasitem-property-z-index)
+- PR: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1656
