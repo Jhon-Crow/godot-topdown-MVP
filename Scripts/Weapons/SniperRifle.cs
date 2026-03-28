@@ -636,7 +636,7 @@ public partial class SniperRifle : BaseWeapon
 
         // Use weapon range for laser length so the beam is unlimited within shooting distance
         // (Issue #1384: sniper laser should be unlimited length, not limited to viewport size)
-        float maxLaserLength = WeaponData?.Range ?? 5000.0f;
+        float maxLaserLength = WeaponData?.Range ?? 30000.0f;
 
         // Calculate the end point of the laser
         Vector2 endPoint = laserDirection * maxLaserLength;
