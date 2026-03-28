@@ -26,6 +26,11 @@
 - Added `apply_pressed_from_score_screen.connect(...)` to `sewer_level.gd`, `factory_level.gd`, and `labyrinth2_level.gd`.
 - Brings all 14 active level scripts into parity.
 
+### 2026-03-28 — PR #1703 (additional fix, commit `ce771328`)
+- Fixed `LevelInitFallback.RemoveArmoryButtonGoldStyle()` in C# to also remove `ArmoryGoldShineOverlay`.
+- Root cause: when GDScript `_ready()` fails to execute (Godot 4.3 tokenization bug), `LevelInitFallback` handles the score screen. Its `RemoveArmoryButtonGoldStyle()` removed text/color/stylebox overrides but missed the `ColorRect` child named `ArmoryGoldShineOverlay`, leaving the shine visible even after all items were unlocked.
+- Confirmed from `game_log_20260328_184635.txt` line 1017: `GDScript _ready() did NOT execute — performing C# fallback initialization`
+
 ### 2026-03-28 18:00 — Tester report #1 (`game_log_20260328_180006.txt`)
 - **Build**: `I:/Загрузки/godot exe/UNLOCKES/Godot-Top-Down-Template.exe` (OLD binary, predates `99a2984a`)
 - **Scenario**: BuildingLevel completed, armory opened, items unlocked, Apply pressed.
@@ -48,6 +53,24 @@
 - **Observation**: Gold highlight persisted on BuildingLevel score screen.
 - **Root cause**: In the OLD binary, `building_level.gd` did NOT have `apply_pressed_from_score_screen` connected at the time the binary was compiled. (That connection was added in commit `99a2984a` on March 17, but the `UNLOCKES` binary was compiled before that date.)
 
+### 2026-03-28 18:46 — Tester report #3 (`game_log_20260328_184635.txt`)
+- **Build**: Same OLD binary (`I:/Загрузки/godot exe/UNLOCKES/Godot-Top-Down-Template.exe`), "Build info: not available (build_info.cfg not found)".
+- **Scenario**:
+  1. All progress cleared and "All weapons unlocked" disabled in experimental settings (lines 553-558).
+  2. Game restarted — starting fresh.
+  3. BuildingLevel played and completed with rank A+, score 43601.
+  4. Items unlocked in armory: shotgun, Frag Grenade, Extended Magazine, Combat Disposition.
+  5. Log ends at line 2526 right after last item unlock (18:47:50).
+  6. Tester reported: "не исправлено (возможно дело в прогрессбарах?)" — "not fixed, possibly progress bars"
+- **Key finding**: `[LevelInitFallback] GDScript _ready() did NOT execute — performing C# fallback initialization` (line 1017)
+  - GDScript `building_level.gd` `_ready()` did NOT run
+  - Score screen was created by `LevelInitFallback.cs` (C# code)
+  - When Back/Apply is triggered, `LevelInitFallback.RemoveArmoryButtonGoldStyle()` is called
+  - But that C# method **did NOT remove `ArmoryGoldShineOverlay`** — only text/color/stylebox overrides
+  - This is a separate bug from the GDScript signal-connection issue
+- **New root cause**: `LevelInitFallback.RemoveArmoryButtonGoldStyle()` was missing `shineOverlay.QueueFree()` call.
+  This is fixed in commit `ce771328` (PR #1703).
+
 ---
 
 ## Root Cause Analysis
@@ -58,7 +81,22 @@ The armory menu emits `apply_pressed_from_score_screen` when the player presses 
 
 Three level scripts — `sewer_level.gd`, `factory_level.gd`, `labyrinth2_level.gd` — were missing this connection through multiple rounds of fixes, finally resolved in PR #1703.
 
-### Secondary Root Cause: Old Test Binary
+### Secondary Root Cause: Missing Shine Overlay Removal in C# Path
+
+When GDScript `_ready()` fails to execute (due to Godot 4.3 binary tokenization bug, godotengine/godot#94150), `LevelInitFallback.cs` handles the entire score screen. Its `RemoveArmoryButtonGoldStyle()` method removed the text/color/stylebox overrides from the armory button but **did not remove the `ArmoryGoldShineOverlay` ColorRect child**. This caused the gold shine animation to persist even after all items were unlocked.
+
+Confirmed by log line 1017 in `game_log_20260328_184635.txt`:
+```
+[LevelInitFallback] GDScript _ready() did NOT execute - performing C# fallback initialization
+```
+
+Fixed in commit `ce771328` by adding:
+```csharp
+var shineOverlay = armoryBtn.FindChild("ArmoryGoldShineOverlay", true, false);
+shineOverlay?.QueueFree();
+```
+
+### Tertiary Root Cause: Old Test Binary
 
 Both tester-provided logs were captured using a binary compiled from the `UNLOCKES` build folder (`I:/Загрузки/godot exe/UNLOCKES/`). This binary predates the `apply_pressed_from_score_screen` connection added to `building_level.gd` (commit `99a2984a`, March 17, 2026) and to `labyrinth_level.gd` (commit `731a00e2`, March 26, 2026).
 
@@ -126,7 +164,7 @@ Signal fires → callback executes → gold removed if no items remain
 
 ---
 
-## What PR #1703 Fixes
+## What PR #1703 Fixes (Updated)
 
 | Level Script | `back_pressed` connected | `apply_pressed_from_score_screen` connected |
 |---|---|---|
@@ -144,6 +182,12 @@ Signal fires → callback executes → gold removed if no items remain
 | **`factory_level.gd`** | ✅ (added 731a00e2) | **✅ (added by PR #1703)** |
 | **`labyrinth2_level.gd`** | ✅ (added 731a00e2) | **✅ (added by PR #1703)** |
 | **`sewer_level.gd`** | ✅ (added 731a00e2) | **✅ (added by PR #1703)** |
+
+### C# Fallback Path (LevelInitFallback.cs)
+
+| Method | `ArmoryGoldShineOverlay` removal |
+|---|---|
+| `RemoveArmoryButtonGoldStyle()` | **✅ Fixed in commit `ce771328` (PR #1703)** |
 
 ---
 
@@ -181,3 +225,4 @@ The current design requires each level script to manually connect both signals. 
 The tester-provided logs are attached to the pull request comments and available via GitHub:
 - **Log 1** (540KB) — attached to [PR #1703 comment by Jhon-Crow, 2026-03-28 15:03](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1703#issuecomment-4148225196): `game_log_20260328_180006.txt`
 - **Log 2** (208KB) — attached to [PR #1703 comment by Jhon-Crow, 2026-03-28 15:25](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1703#issuecomment-4148259764): `game_log_20260328_182254.txt`
+- **Log 3** (213KB) — attached to [PR #1703 comment by Jhon-Crow, 2026-03-28 15:49](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1703#issuecomment-4148336478): `game_log_20260328_184635.txt`
