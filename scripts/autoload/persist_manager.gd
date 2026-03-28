@@ -522,6 +522,9 @@ func clear_all_saves() -> void:
 		for item_type in active_item_manager.unlocked_active_items.keys():
 			active_item_manager.unlocked_active_items[item_type] = item_type == active_item_manager.ActiveItemType.NONE
 		active_item_manager.current_active_item = active_item_manager.ActiveItemType.NONE
+		# Emit active_item_changed so Player de-equips any active item (e.g. auto-reload)
+		# without triggering a level restart (Issue #1697).
+		active_item_manager.active_item_changed.emit(active_item_manager.ActiveItemType.NONE)
 		# Reset loudspeaker progress (Issue #959)
 		if active_item_manager.has_method("reset_loudspeaker_progress"):
 			active_item_manager.reset_loudspeaker_progress()
