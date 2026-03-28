@@ -30,7 +30,8 @@ enum ActiveItemType {
 	EXPERIMENTAL_SAMPLE, # Experimental Sample - press Space to fire a random active item effect (even unowned). 1–5 charges per battle, randomised on level start (Issue #1127)
 	FINE_MOTOR_SKILLS, # Fine Motor Skills - press Space to instantly reload weapon and bring to combat-ready state. Unlimited charges, no cooldown (Issue #1315)
 	DASH,              # Dash - press Space to dash in movement direction with damage immunity. 3 charges, cooldown after 3rd dash (Issue #1071)
-	GRENADE_BAG        # Grenade Bag - passive: increases starting grenade count based on selected grenade type (Issue #1590)
+	GRENADE_BAG,       # Grenade Bag - passive: increases starting grenade count based on selected grenade type (Issue #1590)
+	COMBAT_KNIFE       # Combat Knife - press Space for a fan melee attack, deals 7 damage to hit enemies. Unlimited uses (Issue #1587)
 }
 
 ## Currently selected active item type.
@@ -78,7 +79,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.EXPERIMENTAL_SAMPLE: false,   # Condition: complete at least one level on every difficulty (Issue #1426)
 	ActiveItemType.FINE_MOTOR_SKILLS: false,    # Condition: 300 shots with shotgun, sniper rifle, or revolver (Issue #1346)
 	ActiveItemType.DASH: false,                 # Condition: Decadence A+ (Issue #1624 req.5)
-	ActiveItemType.GRENADE_BAG: false           # Condition: complete Railway Station on any grade (Issue #1624 req.8)
+	ActiveItemType.GRENADE_BAG: false,          # Condition: complete Railway Station on any grade (Issue #1624 req.8)
+	ActiveItemType.COMBAT_KNIFE: false          # Condition: reach melee range 10 times (Issue #1587)
 }
 
 ## Active item data for UI and selection.
@@ -205,6 +207,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Grenade Bag",
 		"icon_path": "res://assets/sprites/weapons/grenade_bag_icon.png",
 		"description": "Grenade Bag — passive: increases starting grenade count based on selected type: 12 flash/stun grenades, 6 frag grenades, 2 gas or F-1 grenades."
+	},
+	ActiveItemType.COMBAT_KNIFE: {
+		"name": "Combat Knife",
+		"icon_path": "res://assets/sprites/weapons/combat_knife_icon.png",
+		"description": "Combat Knife — press Space for a fan melee attack dealing 7 damage to all enemies in a 120° arc. Unlimited uses, no cooldown between attacks.",
+		"activation_hint": "Press Space to slash"
 	}
 }
 
@@ -451,6 +459,11 @@ func has_dash() -> bool:
 ## Also checks collected passive items for roguelike mode (Issue #1303).
 func has_grenade_bag() -> bool:
 	return current_active_item == ActiveItemType.GRENADE_BAG or ActiveItemType.GRENADE_BAG in collected_passive_items
+
+
+## Check if combat knife is currently equipped (Issue #1587).
+func has_combat_knife() -> bool:
+	return current_active_item == ActiveItemType.COMBAT_KNIFE
 
 
 ## Get the grenade count granted by the Grenade Bag item (Issue #1590).
