@@ -157,7 +157,7 @@ const COVER_SECTOR_RAY_COUNT: int = 120  ## Number of rays in sector mode (Issue
 var _current_health: int = 0; var _max_health: int = 0  ## Current / max health (set at spawn)
 var _is_alive: bool = true  ## Is alive
 var _player: Node2D = null  ## Player reference
-var _game_manager_cached: Node = null; var _perf_settings_cached: Node = null  ## Issue #1487: cached autoloads
+var _game_manager_cached: Node = null; var _perf_settings_cached: Node = null; var _file_logger_cached: Node = null  ## Issue #1487: cached autoloads
 var _sound_log_counter: int = 0  ## Issue #1487 Round 9: throttle sound event file logging
 var _shoot_timer: float = 0.0  ## Time since last shot
 ## Issue #969: throttle constants/trackers — prevent raycast floods with 20+ active enemies
@@ -402,6 +402,7 @@ func _ready() -> void:
 	_goap_slow_frame_offset = (get_instance_id() >> 1) % GOAP_SLOW_INTERVAL  # Issue #1487: stagger GOAP
 	_game_manager_cached = get_node_or_null("/root/GameManager")  # Issue #1487: cache autoloads
 	_perf_settings_cached = get_node_or_null("/root/PerformanceSettings")
+	_file_logger_cached = get_node_or_null("/root/FileLogger")  # Issue #1487 R11: cache FileLogger
 	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
 
 	# Issue #934: Initialize BFF companion targeting component
@@ -2853,7 +2854,7 @@ func _transition_to_evading_grenade() -> void:
 	_log_to_file("EVADING_GRENADE started: escaping to %s" % str(evasion_target))
 
 func _transition_to_retreating() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_retreating_enabled(): _transition_to_idle(); return  # Issue #1186
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_retreating_enabled(): _transition_to_combat(); return  # Issue #1186 / #1487: use COMBAT fallback (not IDLE) to prevent rapid cycle
 	_current_state = AIState.RETREATING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -4529,7 +4530,7 @@ func _log_debug(message: String) -> void:
 	if debug_logging: print("[Enemy %s] %s" % [name, message])
 func _log_to_file(message: String) -> void:
 	if not is_inside_tree(): return
-	var fl := get_node_or_null("/root/FileLogger")
+	var fl := _file_logger_cached if _file_logger_cached != null else get_node_or_null("/root/FileLogger")  # Issue #1487 R11: use cached ref
 	if fl and fl.has_method("log_enemy"): fl.log_enemy(name, message)
 func _log_spawn_info() -> void:
 	_log_to_file("Spawned at %s, hp: %d, behavior: %s" % [global_position, _max_health, BehaviorMode.keys()[behavior_mode]])

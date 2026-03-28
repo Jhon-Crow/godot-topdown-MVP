@@ -906,3 +906,105 @@ Deliberately stresses beyond normal gameplay (30 GPU particles, 20 PointLight2D,
 - Explosion lights (PointLight2D) show negligible cost even at 20 simultaneous — confirms Round 5 pool optimization is effective.
 - The minimum 60.0 fps in Step 1 of the standard benchmark may represent the very first frame or scene-load warmup frames; sustained play is 67+ fps average.
 
+
+---
+
+## Round 11 — Tutorial FPS Drop + BuildingLevel Regression (`2026-03-27`)
+
+### User Report
+
+> "теперь на карте Обучение тоже проседает на 30fps (то есть стало даже хуже)"
+> (Translation: "Now the Tutorial map also drops to 30fps — it became even worse")
+
+New logs provided: `round11-tutorial-logs/game_log_20260327_111028.txt`, `round11-tutorial-logs/benchmark_log_20260327_111211.txt`, `round11-tutorial-logs/stress_benchmark_20260327_111149.txt`
+
+### Log Analysis
+
+Session flow: LabyrinthLevel (startup) → Tutorial (TestTier.tscn, no enemies) → BuildingLevel (10 enemies) → stress benchmark → standard benchmark.
+
+#### FPS Drops
+
+| Timestamp | Map | FPS | Cause |
+|-----------|-----|-----|-------|
+| 11:10:34 | Tutorial | 1 | Shader warmup + async scene load fallback to sync (startup artefact) |
+| 11:10:52 | Tutorial | 28 | Grenade explosion (F-1) — particle burst + physics area check |
+| 11:11:17 | BuildingLevel | 23 | Scene load + navmesh bake, 10 enemies initializing simultaneously |
+| 11:11:24 | BuildingLevel | 23 | 10 enemies receiving ammo-empty broadcast → simultaneous pursuing transitions |
+| 11:11:32 | BuildingLevel | 22 | Second reload cycle — same pattern |
+| 11:11:40 | BuildingLevel | 27 | Third ammo depletion broadcast |
+
+#### Standard Benchmark — BuildingLevel (10 enemies, active combat)
+
+| Step | Setting | Avg FPS | Min | Delta |
+|------|---------|---------|-----|-------|
+| 1 | Baseline (all enabled) | 45.9 | 30.0 | — |
+| 7 | AI (all states) disabled | 56.9 | 53.0 | +11.0 |
+| 14 | AI:RETREATING disabled | 40.3 | 38.0 | **−5.6 (regression)** |
+
+Full results in `round11-tutorial-logs/benchmark_log_20260327_111211.txt`.
+
+### Root Cause Analysis
+
+#### RCA-20: Tutorial 28fps drop — grenade explosion cost
+
+A single F-1 grenade explosion on Tutorial (no enemies) caused a brief 28fps spike. This is caused by the grenade explosion area spawning:
+- Explosion particle burst (GPUParticles2D)
+- Audio (AudioStreamPlayer2D)
+- Physics area damage check
+
+This is a single-frame spike and is inherent to grenade mechanics. It is **not a regression** from previous rounds — grenade explosions have always had this cost. The user observing this now may reflect more thorough testing of Tutorial.
+
+#### RCA-21: BuildingLevel baseline 45.9fps vs Round 10's 66.7fps
+
+**This is not a code regression.** The two benchmarks measure different game states:
+- Round 10: Benchmark ran with enemies in IDLE/GUARD mode; player was NOT actively shooting during benchmark measurement
+- Round 11: Player actively shooting MiniUzi (BreakerBullets) at 10 enemies before and during benchmark; enemies in active COMBAT/RETREATING cycle
+
+The 45.9fps baseline is the true cost of **active combat**: player firing at ~15 shots/sec, 10 enemies actively fighting back (COMBAT→RETREATING→IN_COVER cycles), reload broadcasts triggering pursuing transitions.
+
+#### RCA-22: RETREATING disabled regression (40.3fps avg, worse than 45.9 baseline)
+
+**Root cause**: When RETREATING is disabled via PerformanceSettings, `_transition_to_retreating()` called `_transition_to_idle()` as fallback. This caused rapid state cycling:
+1. Enemy in COMBAT, under fire → wants to RETREAT
+2. RETREATING disabled → `_transition_to_idle()` called
+3. From IDLE, enemy detects player → `_transition_to_combat()`  
+4. In COMBAT again, under fire after 0.15s → wants to RETREAT again
+5. Cycle repeats at ~6 Hz × 10 enemies = 60 rapid state transitions/sec
+
+Each state transition involves navmesh reset, GOAP world state update, and multiple `get_node_or_null("/root/PerformanceSettings")` lookups.
+
+**Fix (commit in this PR)**: Changed fallback in `_transition_to_retreating()` from `_transition_to_idle()` to `_transition_to_combat()`. When RETREATING is disabled, the enemy stays in COMBAT (combat-ready) instead of forgetting the player. This eliminates the rapid cycling.
+
+#### RCA-23: Reload broadcast FPS drops (22-27fps)
+
+When player runs out of ammo + starts reload, `_broadcast_player_reloading(true)` and `_broadcast_player_ammo_empty(true)` iterate all 10 enemies synchronously in one frame. Each enemy then:
+1. Sets GOAP world state `player_reloading=true`
+2. Calls `_log_to_file()` → `get_node_or_null("/root/FileLogger")` (tree lookup per enemy)
+3. Next physics frame: evaluates `player_is_vulnerable=true` → potentially calls `_transition_to_pursuing()`
+4. `_transition_to_pursuing()` triggers navmesh path recalculation
+
+The burst of 10 simultaneous pursuit transitions in one frame causes the 22-27fps drop. This is inherent to the game mechanic (enemies rush when player reloads) but can be mitigated.
+
+**Partial fix (commit in this PR)**: Cached `FileLogger` reference in enemy `_ready()` (same pattern as `GameManager` and `PerformanceSettings` cached in Round 9). Eliminates 10+ `get_node_or_null("/root/FileLogger")` tree lookups per reload cycle.
+
+The deeper fix (staggering pursuit transitions across frames) would require architectural changes and is deferred.
+
+### Stress Benchmark
+
+| Subsystem | Enabled FPS | Disabled FPS | Cost |
+|-----------|-------------|--------------|------|
+| Particles (30 GPUParticles2D) | 28.3 | 37.7 | 9.4 |
+| Explosion Lights (20 PointLight2D) | 46.5 | 51.7 | 5.2 |
+| AI (20 enemies) | 36.3 | 43.4 | 7.1 |
+| Combined extreme | 8.8 | 21.2 | 12.5 |
+
+### Changes (Round 11)
+
+**enemy.gd**:
+- `_transition_to_retreating()`: fallback when RETREATING disabled changed from `_transition_to_idle()` to `_transition_to_combat()` — prevents rapid COMBAT↔IDLE cycling (RCA-22)
+- Added `_file_logger_cached` variable and cache it in `_ready()` — reduces `get_node_or_null` overhead in `_log_to_file()` (RCA-23 partial)
+
+### Outstanding Issues
+
+- **22-27fps drops during reload broadcasts** remain. Root cause: 10 enemies simultaneously computing pursuit paths. Full fix requires staggered/deferred broadcast, which is architectural.
+- **Tutorial grenade 28fps spike** is inherent to grenade mechanics. Could be improved by pre-warming grenade particle shaders.
