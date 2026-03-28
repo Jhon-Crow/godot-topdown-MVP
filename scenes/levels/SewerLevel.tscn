@@ -7,9 +7,9 @@
 [ext_resource type="Script" path="res://Scripts/Components/LevelInitFallback.cs" id="5_fallback"]
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_sewer"]
-vertices = PackedVector2Array(50, 112, 550, 112, 550, 450, 288, 450, 288, 1362, 1600, 1362, 2100, 1362, 2100, 2100, 1600, 2100, 1600, 2200, 1424, 2200, 1424, 2050, 950, 2050, 950, 1638, 650, 1638, 650, 1538, 288, 1538, 288, 3088, 112, 3088, 112, 450, 50, 450)
+vertices = PackedVector2Array(50, 112, 550, 112, 550, 650, 288, 650, 288, 1362, 1600, 1362, 2100, 1362, 2100, 2100, 1600, 2100, 1600, 2200, 1424, 2200, 1424, 2050, 950, 2050, 950, 1638, 650, 1638, 650, 1538, 288, 1538, 288, 3088, 112, 3088, 112, 450, 50, 450)
 polygons = [PackedInt32Array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)]
-outlines = [PackedVector2Array(50, 112, 550, 112, 550, 450, 288, 450, 288, 1362, 1600, 1362, 2100, 1362, 2100, 2100, 1600, 2100, 1600, 2200, 1424, 2200, 1424, 2050, 950, 2050, 950, 1638, 650, 1638, 650, 1538, 288, 1538, 288, 3088, 112, 3088, 112, 450, 50, 450)]
+outlines = [PackedVector2Array(50, 112, 550, 112, 550, 650, 288, 650, 288, 1362, 1600, 1362, 2100, 1362, 2100, 2100, 1600, 2100, 1600, 2200, 1424, 2200, 1424, 2050, 950, 2050, 950, 1638, 650, 1638, 650, 1538, 288, 1538, 288, 3088, 112, 3088, 112, 450, 50, 450)]
 parsed_geometry_type = 1
 parsed_collision_mask = 4
 source_geometry_mode = 0
@@ -721,6 +721,24 @@ shape = SubResource("S_h262")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallTopRoom_Bottom"]
 occluder = SubResource("O_h262")
+
+[node name="WallRightCorridorBlock" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(419, 650)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallRightCorridorBlock"]
+offset_left = -100.0
+offset_top = -12.0
+offset_right = 100.0
+offset_bottom = 12.0
+color = Color(0.18, 0.22, 0.18, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRightCorridorBlock"]
+shape = SubResource("S_h200")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallRightCorridorBlock"]
+occluder = SubResource("O_h200")
 
 [node name="InteriorWalls" type="Node2D" parent="Environment"]
 
