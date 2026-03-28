@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="3_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="4_enemy"]
 [ext_resource type="Script" path="res://Scripts/Components/LevelInitFallback.cs" id="5_fallback"]
+[ext_resource type="PackedScene" uid="uid://sewer_wall_lamp_1631" path="res://scenes/effects/SewerWallLamp.tscn" id="6_sewer_wall_lamp"]
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_sewer"]
 vertices = PackedVector2Array(112, 112, 550, 112, 550, 450, 288, 450, 288, 1362, 1600, 1362, 2100, 1362, 2100, 2100, 1600, 2100, 1600, 2200, 1424, 2200, 1424, 2050, 950, 2050, 950, 1638, 650, 1638, 650, 1538, 288, 1538, 288, 3088, 112, 3088, 112, 450)
@@ -1711,6 +1712,68 @@ position = Vector2(1187, 1794)
 
 [node name="RoomBCenter" type="Marker2D" parent="SearchPathWaypoints"]
 position = Vector2(2000, 2000)
+
+[node name="Lighting" type="Node2D" parent="."]
+
+[node name="MainCorridorLamp1" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(200, 2900)
+
+[node name="MainCorridorLamp2" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(200, 2600)
+
+[node name="MainCorridorLamp3" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(200, 2300)
+
+[node name="MainCorridorLamp4" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(200, 2000)
+
+[node name="MainCorridorLamp5" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(200, 1700)
+
+[node name="MainCorridorLamp6" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(200, 1400)
+
+[node name="MainCorridorLamp7" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(200, 1000)
+
+[node name="MainCorridorLamp8" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(200, 650)
+
+[node name="MainCorridorLamp9" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(200, 300)
+
+[node name="RightBranchLamp1" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(600, 1450)
+
+[node name="RightBranchLamp2" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(1000, 1450)
+
+[node name="RightBranchLamp3" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(1400, 1450)
+
+[node name="RightBranchLamp4" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(1850, 1450)
+
+[node name="RightBendLamp" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(2000, 1750)
+
+[node name="RoomALamp1" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(1050, 1700)
+
+[node name="RoomALamp2" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(1330, 1900)
+
+[node name="RoomBLamp1" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(1700, 1650)
+
+[node name="RoomBLamp2" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(2000, 1950)
+
+[node name="TopRoomLamp1" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(180, 280)
+
+[node name="TopRoomLamp2" parent="Lighting" instance=ExtResource("6_sewer_wall_lamp")]
+position = Vector2(420, 280)
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
