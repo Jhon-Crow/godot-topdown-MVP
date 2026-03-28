@@ -524,6 +524,8 @@ func clear_all_saves() -> void:
 		game_manager.no_damage_levels_completed = 0  # Issue #1389
 		game_manager.levels_completed_rank_a_or_higher = 0  # Issue #1589
 		game_manager.close_range_kills = 0  # Issue #1587
+		game_manager.kills_through_wall = 0  # Issue #1624
+		game_manager.levels_completed_with_silenced_pistol = 0  # Issue #1624
 
 	# Reset GrenadeManager to defaults
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -535,9 +537,21 @@ func clear_all_saves() -> void:
 	# Reset ActiveItemManager to defaults
 	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
 	if active_item_manager:
+		# Only reset condition-gated items to false.
+		# Items with no unlock condition (NONE, LOUDSPEAKER) keep their default true value
+		# so they remain available after a save clear (Issue #1691).
+		var unlock_manager_node: Node = get_node_or_null("/root/UnlockManager")
+		var condition_gated_items: Array = []
+		if unlock_manager_node and unlock_manager_node.has_method("get_active_items_with_conditions"):
+			condition_gated_items = unlock_manager_node.get_active_items_with_conditions()
 		for item_type in active_item_manager.unlocked_active_items.keys():
-			active_item_manager.unlocked_active_items[item_type] = item_type == active_item_manager.ActiveItemType.NONE
+			if item_type in condition_gated_items:
+				active_item_manager.unlocked_active_items[item_type] = false
+			# else: unconditionally-unlocked items (NONE, LOUDSPEAKER) keep their default value
 		active_item_manager.current_active_item = active_item_manager.ActiveItemType.NONE
+		# Emit active_item_changed so Player de-equips any active item (e.g. auto-reload)
+		# without triggering a level restart (Issue #1697).
+		active_item_manager.active_item_changed.emit(active_item_manager.ActiveItemType.NONE)
 		# Reset loudspeaker progress (Issue #959)
 		if active_item_manager.has_method("reset_loudspeaker_progress"):
 			active_item_manager.reset_loudspeaker_progress()

@@ -69,7 +69,7 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.TRAJECTORY_GLASSES: false,  # Condition: City D+ (Issue #1053 req.1)
 	ActiveItemType.LASER_SIGHT: false,         # Condition: 400 kills without laser sight equipped (Issue #1196, updated by Issue #1589)
 	ActiveItemType.EXTENDED_MAGAZINE: false,   # Condition: Building B+ (Issue #1624 req.1)
-	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
+	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start, not selected by default (Issue #959, #1691)
 	ActiveItemType.BREACHING_CHARGES: false,   # Condition: complete Labyrinth Complex on any grade (Issue #1624 req.6)
 	ActiveItemType.ARMORED_SKIN: false,        # Condition: 100 total deaths (Issue #1389)
 	ActiveItemType.AUTO_RELOAD: false,         # Condition: complete any level with silenced pistol (Issue #1624 req.2)

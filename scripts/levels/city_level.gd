@@ -263,20 +263,33 @@ func _setup_navigation() -> void:
 ## Configure the player's camera to follow without limits on this large map.
 ## Without this, camera stops at Player.tscn defaults (4128x3088) which is
 ## smaller than the City map (6000x5000).
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## CityLevel map: 6128x5128 px playfield framed by 32 px walls.
+##   WallTop    (3064,   48), h=16  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (3064, 5080), h=16  → top edge   y=5064  → limit_bottom = 5064
+##   WallLeft   (  48, 2564), w=16  → right edge x=64    → limit_left   = 64
+##   WallRight  (6080, 2564), w=16  → left edge  x=6064  → limit_right  = 6064
 func _configure_camera() -> void:
 	if _player == null:
 		return
 
 	var camera: Camera2D = _player.get_node_or_null("Camera2D")
 	if camera == null:
+		push_warning("[CityLevel] Camera2D not found on player — cannot set camera limits")
 		return
 
-	camera.limit_left = -10000000
-	camera.limit_top = -10000000
-	camera.limit_right = 10000000
-	camera.limit_bottom = 10000000
-
-	print("Camera configured: limits removed to follow player everywhere")
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 5064   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 6064   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	print("[CityLevel] Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
 
 
 func _setup_player_tracking() -> void:

@@ -180,7 +180,7 @@ func test_knife_windup_duration_is_short() -> void:
 
 
 func test_knife_strike_duration_is_short() -> void:
-	var strike := 0.08  # Fast strike sweep
+	var strike := 0.10  # Fast knife sweep edge to edge
 	assert_true(strike > 0.0 and strike <= 0.3,
 		"Knife strike should be short (0–0.3 seconds)")
 
@@ -192,7 +192,7 @@ func test_knife_recovery_duration_is_short() -> void:
 
 
 func test_knife_total_animation_under_0_5_seconds() -> void:
-	var total := 0.15 + 0.08 + 0.12
+	var total := 0.15 + 0.10 + 0.12
 	assert_true(total <= 0.5,
 		"Total knife animation (windup + strike + recovery) should be under 0.5 seconds")
 

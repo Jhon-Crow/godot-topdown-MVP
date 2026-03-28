@@ -106,6 +106,9 @@ func _ready() -> void:
 	# Find and connect to the player
 	_setup_player_tracking()
 
+	# Restrict camera so the border walls are never visible (Issue #1682).
+	_configure_camera()
+
 	# Setup debug UI
 	_setup_debug_ui()
 
@@ -302,6 +305,33 @@ func _get_combo_color(combo: int) -> Color:
 
 
 ## Setup the navigation mesh for enemy pathfinding.
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## RevolverLevel map: 2128x1728 px playfield framed by 32 px walls.
+##   WallTop    (1064,   48), h=16  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (1064, 1680), h=16  → top edge   y=1664  → limit_bottom = 1664
+##   WallLeft   (  48,  864), w=16  → right edge x=64    → limit_left   = 64
+##   WallRight  (2080,  864), w=16  → left edge  x=2064  → limit_right  = 2064
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[RevolverLevel] Camera2D not found on player — cannot set camera limits")
+		return
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 1664   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 2064   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	_log_to_file("Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
+
+
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
