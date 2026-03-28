@@ -1408,5 +1408,16 @@ func _input(event: InputEvent) -> void:
 			if game_manager and game_manager.get("score_screen_active"):
 				return
 			get_tree().reload_current_scene()
-		elif event.keycode == KEY_W and _level_cleared:
-			_complete_level_with_score()
+
+
+## Handle W key shortcut for Watch Replay when score is shown (Issue #807: check experimental setting).
+func _unhandled_input(event: InputEvent) -> void:
+	if not _score_shown:
+		return
+
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_W:
+			# Issue #807: Only trigger replay if enabled in experimental settings
+			var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+			if experimental_settings and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled():
+				_on_watch_replay_pressed()
