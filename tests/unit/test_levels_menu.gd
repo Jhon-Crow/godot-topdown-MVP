@@ -48,6 +48,19 @@ class MockLevelsMenu:
 			return true
 		return previous_completed
 
+	## Check whether all levels in LEVELS are completed on any difficulty (Issue #1618).
+	func is_all_levels_completed(completed_paths: Array) -> bool:
+		for level_data in LEVELS:
+			if level_data["path"] not in completed_paths:
+				return false
+		return true
+
+	## Check whether roguelike is unlocked (Issue #1618).
+	func is_roguelike_unlocked(completed_paths: Array, experimental_bypass: bool) -> bool:
+		if experimental_bypass:
+			return true
+		return is_all_levels_completed(completed_paths)
+
 	## Signal tracking.
 	var back_pressed_count: int = 0
 
@@ -195,3 +208,61 @@ func test_back_button() -> void:
 
 	assert_eq(menu.back_pressed_count, 1,
 		"Should track back press")
+
+# ============================================================================
+# Roguelike Unlock Tests (Issue #1618)
+# ============================================================================
+
+
+func test_roguelike_locked_when_no_levels_complete() -> void:
+	assert_false(menu.is_roguelike_unlocked([], false),
+		"Roguelike should be locked when no levels are complete")
+
+
+func test_roguelike_locked_when_some_but_not_all_levels_complete() -> void:
+	var partial: Array = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
+		"res://scenes/levels/BuildingLevel.tscn",
+	]
+	assert_false(menu.is_roguelike_unlocked(partial, false),
+		"Roguelike should be locked when only some levels are complete")
+
+
+func test_roguelike_unlocked_when_all_levels_complete() -> void:
+	var all_paths: Array = []
+	for level_data in menu.LEVELS:
+		all_paths.append(level_data["path"])
+	assert_true(menu.is_roguelike_unlocked(all_paths, false),
+		"Roguelike should be unlocked when all levels are complete")
+
+
+func test_roguelike_unlocked_via_experimental_bypass() -> void:
+	assert_true(menu.is_roguelike_unlocked([], true),
+		"Roguelike should be unlocked via experimental bypass even with no completions")
+
+
+func test_roguelike_unlocked_via_experimental_overrides_partial_progress() -> void:
+	var partial: Array = ["res://scenes/levels/LabyrinthLevel.tscn"]
+	assert_true(menu.is_roguelike_unlocked(partial, true),
+		"Experimental bypass should unlock roguelike regardless of level progress")
+
+
+func test_all_levels_completed_false_when_one_missing() -> void:
+	var all_but_one: Array = []
+	for i in range(menu.LEVELS.size() - 1):
+		all_but_one.append(menu.LEVELS[i]["path"])
+	assert_false(menu.is_all_levels_completed(all_but_one),
+		"Should return false when one level is not completed")
+
+
+func test_all_levels_completed_true_when_all_done() -> void:
+	var all_paths: Array = []
+	for level_data in menu.LEVELS:
+		all_paths.append(level_data["path"])
+	assert_true(menu.is_all_levels_completed(all_paths),
+		"Should return true when all levels are completed")
+
+
+func test_all_levels_completed_false_with_empty_list() -> void:
+	assert_false(menu.is_all_levels_completed([]),
+		"Should return false with empty completed list")

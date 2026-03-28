@@ -149,6 +149,11 @@ var cover_infinite_rays_enabled: bool = true
 ## When disabled, rays are cast in a full 360° circle.
 var cover_sector_rays_enabled: bool = true
 
+## Whether the roguelike mode is unlocked regardless of level completion (Issue #1618).
+## When enabled, the Roguelike button in the pause menu is accessible without completing all levels.
+## When disabled (default), the player must complete all levels on any rank first.
+var roguelike_unlocked: bool = false
+
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
 
@@ -160,7 +165,7 @@ func _ready() -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("set_logging_enabled"):
 		file_logger.set_logging_enabled(logging_enabled)
-	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs, Nav mesh visible: %s, Search path visible: %s, Passage waypoints visible: %s, Passage waypoints: %s, Sound visualizer: %s, Enemy path visible: %s, Cover raycast visible: %s, Tactical group: %s, Cover infinite rays: %s, Cover sector rays: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time, nav_mesh_visible_enabled, search_path_visible_enabled, passage_waypoints_visible_enabled, passage_waypoints_enabled, sound_visualizer_enabled, enemy_path_visible_enabled, cover_raycast_visible_enabled, tactical_group_enabled, cover_infinite_rays_enabled, cover_sector_rays_enabled])
+	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs, Nav mesh visible: %s, Search path visible: %s, Passage waypoints visible: %s, Passage waypoints: %s, Sound visualizer: %s, Enemy path visible: %s, Cover raycast visible: %s, Tactical group: %s, Cover infinite rays: %s, Cover sector rays: %s, Roguelike unlocked: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time, nav_mesh_visible_enabled, search_path_visible_enabled, passage_waypoints_visible_enabled, passage_waypoints_enabled, sound_visualizer_enabled, enemy_path_visible_enabled, cover_raycast_visible_enabled, tactical_group_enabled, cover_infinite_rays_enabled, cover_sector_rays_enabled, roguelike_unlocked])
 
 
 ## Set FOV enabled/disabled.
@@ -516,6 +521,20 @@ func is_cover_sector_rays_enabled() -> bool:
 	return cover_sector_rays_enabled
 
 
+## Set roguelike unlocked via experimental toggle (Issue #1618).
+func set_roguelike_unlocked(enabled: bool) -> void:
+	if roguelike_unlocked != enabled:
+		roguelike_unlocked = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Roguelike unlocked (experimental) %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if roguelike is unlocked via experimental toggle (Issue #1618).
+func is_roguelike_unlocked() -> bool:
+	return roguelike_unlocked
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -544,6 +563,7 @@ func _save_settings() -> void:
 	config.set_value("experimental", "tactical_group_enabled", tactical_group_enabled)
 	config.set_value("experimental", "cover_infinite_rays_enabled", cover_infinite_rays_enabled)
 	config.set_value("experimental", "cover_sector_rays_enabled", cover_sector_rays_enabled)
+	config.set_value("experimental", "roguelike_unlocked", roguelike_unlocked)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -579,6 +599,7 @@ func _load_settings() -> void:
 		tactical_group_enabled = config.get_value("experimental", "tactical_group_enabled", false)
 		cover_infinite_rays_enabled = config.get_value("experimental", "cover_infinite_rays_enabled", true)
 		cover_sector_rays_enabled = config.get_value("experimental", "cover_sector_rays_enabled", true)
+		roguelike_unlocked = config.get_value("experimental", "roguelike_unlocked", false)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true
@@ -605,6 +626,7 @@ func _load_settings() -> void:
 		cover_raycast_visible_enabled = false
 		cover_infinite_rays_enabled = true
 		cover_sector_rays_enabled = true
+		roguelike_unlocked = false
 
 
 ## Log a message to the file logger if available.
