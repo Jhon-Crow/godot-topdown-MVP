@@ -1,0 +1,72 @@
+keys,en,ru
+PAUSED,PAUSED,ПАУЗА
+RESUME,Resume,Продолжить
+ARMORY,Armory,Арсенал
+LEVELS,Levels,Уровни
+TRAINING,Training,Тренировка
+ROGUELIKE,Roguelike,Рогалик
+ARENA,Arena,Арена
+SETTINGS,Settings,Настройки
+QUIT,Quit,Выход
+SETTINGS_TITLE,Settings,Настройки
+CONTROLS,Controls,Управление
+DIFFICULTY,Difficulty,Сложность
+SOUND,Sound,Звук
+GAMEPLAY,Gameplay,Геймплей
+PERFORMANCE,Performance,Производительность
+EXPERIMENTAL,Experimental,Экспериментальные
+LANGUAGE,Language,Язык
+BACK,Back,Назад
+SOUND_SETTINGS_TITLE,Sound Settings,Настройки звука
+EFFECTS_VOLUME,Effects Volume,Громкость эффектов
+MUSIC_VOLUME,Music Volume,Громкость музыки
+GAMEPLAY_SETTINGS_TITLE,Gameplay Settings,Настройки геймплея
+BLOOD_AMOUNT,Blood Amount,Количество крови
+WEAPON_HINTS,Weapon Hints,Подсказки оружия
+REVOLVER_AIM_ASSIST,Revolver Aim Assist,Помощь прицеливания револьвера
+WEAPON_HINTS_ALWAYS,Always,Всегда
+WEAPON_HINTS_FIRST_TIME,First time only,Только первый раз
+WEAPON_HINTS_NEVER,Never,Никогда
+DIFFICULTY_TITLE,Difficulty,Сложность
+NIGHT_MODE,Night Mode,Ночной режим
+POWER_FANTASY,Power Fantasy,Фэнтези силы
+EASY,Easy,Легко
+NORMAL,Normal,Нормально
+HARD,Hard,Сложно
+BLACK_METAL,Black Metal,Блэк Метал
+EASY_SELECTED,Easy (Selected),Легко (выбрано)
+NORMAL_SELECTED,Normal (Selected),Нормально (выбрано)
+HARD_SELECTED,Hard (Selected),Сложно (выбрано)
+BLACK_METAL_SELECTED,BLACK METAL - SELECTED,БЛЭК МЕТАЛ - ВЫБРАНО
+DIFFICULTY_STATUS_NORMAL,Normal mode: Classic gameplay,Нормальный режим: классический геймплей
+CONTROLS_TITLE,Controls,Управление
+APPLY,Apply,Применить
+RESET,Reset,Сброс
+CONTROLS_KEY_CONFLICT_TITLE,Key Conflict,Конфликт клавиш
+PERFORMANCE_TITLE,Performance,Производительность
+PERFORMANCE_DESCRIPTION,Toggle subsystems to measure their performance impact.,Переключайте подсистемы для измерения их влияния на производительность.
+PARTICLE_EFFECTS,Particle Effects,Эффекты частиц
+BLOOD_DECALS,Blood Decals on Floor/Walls,Следы крови на полу/стенах
+SCREEN_SHAKE,Screen Shake,Дрожание экрана
+EXPLOSION_LIGHTS,Explosion/Flashbang Lights,Свет от взрывов/вспышек
+WALL_HIT_PARTICLES,Wall Hit Particles,Частицы от попаданий в стену
+ENEMY_AI,Enemy AI,ИИ врагов
+RUN_BENCHMARK,Run Benchmark,Запустить тест
+QUICK_TEST,Quick Test (1 cycle),Быстрый тест (1 цикл)
+STRESS_BENCHMARK,Stress Benchmark,Стресс-тест
+PERFORMANCE_ALL_ENABLED,All performance features enabled,Все функции производительности включены
+LANGUAGE_TITLE,Language,Язык
+LANGUAGE_ENGLISH,English,English
+LANGUAGE_RUSSIAN,Русский,Русский
+ARMORY_UNAVAILABLE_ROGUELIKE,Armory is not available in roguelike mode,Арсенал недоступен в режиме рогалика
+COMPLETE_LEVELS_TO_UNLOCK_ROGUELIKE,Complete all levels on any rank to unlock roguelike,Пройдите все уровни на любой ранг, чтобы разблокировать рогалик
+CONTROLS_PRESS_KEY,Press a key...,Нажмите клавишу...
+CONTROLS_CHANGES_PENDING,Changes pending. Click Apply to save.,Есть несохранённые изменения. Нажмите Применить.
+CONTROLS_SETTINGS_SAVED,Settings saved!,Настройки сохранены!
+CONTROLS_RESET_DEFAULTS,Controls reset to defaults.,Управление сброшено к значениям по умолчанию.
+CONTROLS_NOT_SET,Not Set,Не задано
+DIFFICULTY_STATUS_POWER_FANTASY,Power Fantasy: 10 HP, 3x ammo, blue lasers,Фэнтези силы: 10 HP, 3x патроны, синие лазеры
+DIFFICULTY_STATUS_EASY,Easy mode: Enemies react slower,Лёгкий режим: враги реагируют медленнее
+DIFFICULTY_STATUS_HARD,Hard mode: Enemies react when you look away,Сложный режим: враги реагируют когда смотришь в сторону
+DIFFICULTY_STATUS_BLACK_METAL,Black Metal: 25% less HP, 25% faster, B&W filter,Блэк Метал: на 25% меньше HP, быстрее, ч/б фильтр
+DIFFICULTY_STATUS_NIGHT_MODE_ON, | Night Mode ON, | Ночной режим ВКЛ

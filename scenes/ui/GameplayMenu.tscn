@@ -45,7 +45,7 @@ theme_override_constants/separation = 15
 
 [node name="TitleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Gameplay Settings"
+text = "GAMEPLAY_SETTINGS_TITLE"
 label_settings = ExtResource("2_neon_label")
 horizontal_alignment = 1
 
@@ -54,7 +54,7 @@ layout_mode = 2
 
 [node name="BloodLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Blood Amount"
+text = "BLOOD_AMOUNT"
 
 [node name="BloodContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -83,7 +83,7 @@ layout_mode = 2
 [node name="WeaponHintsLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WeaponHintsContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Weapon Hints"
+text = "WEAPON_HINTS"
 
 [node name="WeaponHintsOption" type="OptionButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WeaponHintsContainer"]
 layout_mode = 2
@@ -98,7 +98,7 @@ layout_mode = 2
 [node name="AimAssistLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AimAssistContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Revolver Aim Assist"
+text = "REVOLVER_AIM_ASSIST"
 
 [node name="AimAssistToggle" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AimAssistContainer"]
 layout_mode = 2
@@ -111,4 +111,4 @@ layout_mode = 2
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 size_flags_horizontal = 4
-text = "Back"
+text = "BACK"

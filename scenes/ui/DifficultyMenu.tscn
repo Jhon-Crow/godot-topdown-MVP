@@ -45,7 +45,7 @@ theme_override_constants/separation = 15
 
 [node name="TitleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Difficulty"
+text = "DIFFICULTY_TITLE"
 label_settings = ExtResource("2_neon_label")
 horizontal_alignment = 1
 
@@ -55,7 +55,7 @@ layout_mode = 2
 [node name="NightModeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NightModeContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Night Mode"
+text = "NIGHT_MODE"
 
 [node name="NightModeCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NightModeContainer"]
 layout_mode = 2
@@ -66,32 +66,32 @@ layout_mode = 2
 [node name="PowerFantasyButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "Power Fantasy"
+text = "POWER_FANTASY"
 
 [node name="EasyButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "Easy"
+text = "EASY"
 
 [node name="NormalButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "Normal (Selected)"
+text = "NORMAL"
 
 [node name="HardButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "Hard"
+text = "HARD"
 
 [node name="BlackMetalButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(260, 50)
 layout_mode = 2
-text = "Black Metal"
+text = "BLACK_METAL"
 
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
-text = "Normal mode: Classic gameplay"
+text = "DIFFICULTY_STATUS_NORMAL"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
@@ -99,4 +99,4 @@ autowrap_mode = 2
 [node name="BackButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "Back"
+text = "BACK"
