@@ -7,9 +7,9 @@
 [ext_resource type="Script" path="res://Scripts/Components/LevelInitFallback.cs" id="5_fallback"]
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_sewer"]
-vertices = PackedVector2Array(50, 112, 550, 112, 550, 450, 288, 450, 288, 1362, 1600, 1362, 2100, 1362, 2100, 2100, 1600, 2100, 1600, 2200, 1424, 2200, 1424, 2050, 950, 2050, 950, 1638, 650, 1638, 650, 1538, 288, 1538, 288, 3088, 112, 3088, 112, 450, 50, 450)
-polygons = [PackedInt32Array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)]
-outlines = [PackedVector2Array(50, 112, 550, 112, 550, 450, 288, 450, 288, 1362, 1600, 1362, 2100, 1362, 2100, 2100, 1600, 2100, 1600, 2200, 1424, 2200, 1424, 2050, 950, 2050, 950, 1638, 650, 1638, 650, 1538, 288, 1538, 288, 3088, 112, 3088, 112, 450, 50, 450)]
+vertices = PackedVector2Array(112, 112, 550, 112, 550, 450, 288, 450, 288, 1362, 1600, 1362, 2100, 1362, 2100, 2100, 1600, 2100, 1600, 2200, 1424, 2200, 1424, 2050, 950, 2050, 950, 1638, 650, 1638, 650, 1538, 288, 1538, 288, 3088, 112, 3088, 112, 450)
+polygons = [PackedInt32Array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19)]
+outlines = [PackedVector2Array(112, 112, 550, 112, 550, 450, 288, 450, 288, 1362, 1600, 1362, 2100, 1362, 2100, 2100, 1600, 2100, 1600, 2200, 1424, 2200, 1424, 2050, 950, 2050, 950, 1638, 650, 1638, 650, 1538, 288, 1538, 288, 3088, 112, 3088, 112, 450)]
 parsed_geometry_type = 1
 parsed_collision_mask = 4
 source_geometry_mode = 0
@@ -245,16 +245,16 @@ size = Vector2(26, 338)
 polygon = PackedVector2Array(-13, -169, 13, -169, 13, 169, -13, 169)
 
 [sub_resource type="RectangleShape2D" id="S_left_outer_void"]
-size = Vector2(88, 2638)
+size = Vector2(112, 2638)
 
 [sub_resource type="OccluderPolygon2D" id="O_left_outer_void"]
-polygon = PackedVector2Array(-44, -1319, 44, -1319, 44, 1319, -44, 1319)
+polygon = PackedVector2Array(-56, -1319, 56, -1319, 56, 1319, -56, 1319)
 
 [sub_resource type="RectangleShape2D" id="S_top_left_void"]
-size = Vector2(88, 450)
+size = Vector2(112, 450)
 
 [sub_resource type="OccluderPolygon2D" id="O_top_left_void"]
-polygon = PackedVector2Array(-44, -225, 44, -225, 44, 225, -44, 225)
+polygon = PackedVector2Array(-56, -225, 56, -225, 56, 225, -56, 225)
 
 [sub_resource type="RectangleShape2D" id="S_niche_gap_top"]
 size = Vector2(176, 312)
@@ -825,14 +825,14 @@ shape = SubResource("S_left_gap")
 occluder = SubResource("O_left_gap")
 
 [node name="WallLeftOuterVoid" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(44, 1769)
+position = Vector2(56, 1769)
 collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallLeftOuterVoid"]
-offset_left = -44.0
+offset_left = -56.0
 offset_top = -1319.0
-offset_right = 44.0
+offset_right = 56.0
 offset_bottom = 1319.0
 color = Color(0.04, 0.06, 0.05, 1)
 
@@ -843,7 +843,7 @@ shape = SubResource("S_left_outer_void")
 occluder = SubResource("O_left_outer_void")
 
 [node name="WallTopLeftVoid" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(44, 225)
+position = Vector2(56, 225)
 collision_layer = 4
 collision_mask = 0
 
