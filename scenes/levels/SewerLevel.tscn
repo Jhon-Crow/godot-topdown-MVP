@@ -1,4 +1,4 @@
-[gd_scene load_steps=67 format=3 uid="uid://sewer_level_1438"]
+[gd_scene load_steps=69 format=3 uid="uid://sewer_level_1438"]
 
 [ext_resource type="Script" path="res://scripts/levels/sewer_level.gd" id="1_sewer_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -7,9 +7,9 @@
 [ext_resource type="Script" path="res://Scripts/Components/LevelInitFallback.cs" id="5_fallback"]
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_sewer"]
-vertices = PackedVector2Array(50, 112, 550, 112, 550, 650, 288, 650, 288, 1362, 1600, 1362, 2100, 1362, 2100, 2100, 1600, 2100, 1600, 2200, 1424, 2200, 1424, 2050, 950, 2050, 950, 1638, 650, 1638, 650, 1538, 288, 1538, 288, 3088, 112, 3088, 112, 450, 50, 450)
+vertices = PackedVector2Array(50, 112, 550, 112, 550, 450, 288, 450, 288, 1362, 1600, 1362, 2100, 1362, 2100, 2100, 1600, 2100, 1600, 2200, 1424, 2200, 1424, 2050, 950, 2050, 950, 1638, 650, 1638, 650, 1538, 288, 1538, 288, 3088, 112, 3088, 112, 450, 50, 450)
 polygons = [PackedInt32Array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)]
-outlines = [PackedVector2Array(50, 112, 550, 112, 550, 650, 288, 650, 288, 1362, 1600, 1362, 2100, 1362, 2100, 2100, 1600, 2100, 1600, 2200, 1424, 2200, 1424, 2050, 950, 2050, 950, 1638, 650, 1638, 650, 1538, 288, 1538, 288, 3088, 112, 3088, 112, 450, 50, 450)]
+outlines = [PackedVector2Array(50, 112, 550, 112, 550, 450, 288, 450, 288, 1362, 1600, 1362, 2100, 1362, 2100, 2100, 1600, 2100, 1600, 2200, 1424, 2200, 1424, 2050, 950, 2050, 950, 1638, 650, 1638, 650, 1538, 288, 1538, 288, 3088, 112, 3088, 112, 450, 50, 450)]
 parsed_geometry_type = 1
 parsed_collision_mask = 4
 source_geometry_mode = 0
@@ -195,6 +195,12 @@ size = Vector2(1550, 1250)
 
 [sub_resource type="OccluderPolygon2D" id="O_inner_void"]
 polygon = PackedVector2Array(-775, -625, 775, -625, 775, 625, -775, 625)
+
+[sub_resource type="RectangleShape2D" id="S_alcove"]
+size = Vector2(262, 912)
+
+[sub_resource type="OccluderPolygon2D" id="O_alcove"]
+polygon = PackedVector2Array(-131, -456, 131, -456, 131, 456, -131, 456)
 
 [node name="SewerLevel" type="Node2D"]
 script = ExtResource("1_sewer_level")
@@ -763,6 +769,24 @@ shape = SubResource("S_inner_void")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallInnerVoid"]
 occluder = SubResource("O_inner_void")
+
+[node name="WallAlcove" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(419, 906)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallAlcove"]
+offset_left = -131.0
+offset_top = -456.0
+offset_right = 131.0
+offset_bottom = 456.0
+color = Color(0.04, 0.06, 0.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallAlcove"]
+shape = SubResource("S_alcove")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallAlcove"]
+occluder = SubResource("O_alcove")
 
 [node name="InteriorWalls" type="Node2D" parent="Environment"]
 
