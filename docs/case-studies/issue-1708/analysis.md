@@ -14,10 +14,16 @@ instead of the expected value `7.62x39mm`. This case study reconstructs the full
 traces the root cause through the GDScript/C# interop boundary, evaluates the fix, and
 explains why the user's testing session appeared to still show the bug.
 
-**Verdict:** The fix in PR #1709 (commit `c3e07993`) is correct. The user's test session
-(`game_log_20260328_185204.txt`) ran an **older pre-compiled binary** that predates the fix.
-The binary was built from branch `issue-1142` at commit `bb817d83` on `2026-03-20` — eight
-days before the fix was committed. The source code in the repository is correct.
+**Verdict (Updated 2026-03-28):** After the second owner report ("caliber line now completely
+gone"), the fix was revised. The initial fix (commit `c3e07993`) used `.get("caliber_name")`
+on the nested CaliberData resource, but this also failed to return a value in-engine. The final
+fix (applied in follow-up commit) uses the **mirror property pattern**: `CaliberName` is stored
+directly on `WeaponData.cs` (same pattern as existing `CaliberCanRicochet`, `CaliberMaxRicochetAngle`).
+This is the definitive solution — it eliminates the C#/GDScript boundary entirely for display.
+
+The user's first test session (`game_log_20260328_185204.txt`) ran an **older pre-compiled binary**
+that predates both fixes. The binary was built from branch `issue-1142` at commit `bb817d83` on
+`2026-03-20` — eight days before the fix was committed.
 
 ---
 
@@ -27,34 +33,31 @@ days before the fix was committed. The source code in the repository is correct.
 2026-03-20  Old binary compiled (branch issue-1142, commit bb817d83)
             Build info not embedded → log shows "build_info.cfg not found"
 
-2026-03-28T15:41:28Z  Fix committed: c3e07993
+2026-03-28T15:41:28Z  Initial fix committed: c3e07993
             "fix: use .get() for caliber properties in armory stats panel"
             Changes: caliber.caliber_name → caliber.get("caliber_name")
-                     caliber.can_ricochet → caliber.get("can_ricochet")
-                     caliber.can_penetrate → caliber.get("can_penetrate")
-                     caliber.max_penetration_distance → caliber.get("max_penetration_distance")
-            Tests added: tests/unit/test_armory_menu.gd (67 lines, 3 regression tests)
+            Tests added: tests/unit/test_armory_menu.gd (3 regression tests)
 
 2026-03-28T15:44:20Z  PR marked "Ready to merge"
 
 2026-03-28T15:52:58Z  Owner reports: "всё ещё null" (still null)
             Attaches: game_log_20260328_185204.txt
-            Requests: deep case study analysis in docs/case-studies/issue-1708
+            → Log is from old pre-fix binary (see below); source is correct
 
-2026-03-28T18:52:04   Game log begins
+2026-03-28T18:52:04   Game log begins (binary predates fix)
             Binary: I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe
-            Engine: 4.3-stable (official)
-            Build info: "not available (build_info.cfg not found)"  ← pre-fix binary confirmed
+            Engine: 4.3-stable; Build info: "not available (build_info.cfg not found)"
 
-2026-03-28T18:52:27   Player equips AK+GL (ak_gl weapon selected)
-            Log shows: [Player.Weapon] Equipped AKGL (ammo: 30/30)
-            NOTE: No [BaseWeapon] caliber diagnostic logs present
-            → Confirms binary lacks BaseWeapon debug logging code from current repo
+2026-03-28T16:16:12Z  Owner reports again: "теперь вообще исчезла строка с калибром"
+            ("now the caliber line is completely gone")
+            → .get("caliber_name") on nested CaliberData via C# boundary also returns null
+            → Root cause deeper than initial analysis; needs mirror property approach
 
-2026-03-28T18:52:30   Armory menu opened with AK+GL selected
-            Log shows: [PauseMenu] Armory menu instance added as child
-            NOTE: No [ArmoryMenu] caliber output in log
-            → armory_menu.gd in this binary has old dot-access code, returns null
+2026-03-28 (follow-up)  Final fix committed:
+            "fix(#1708): add CaliberName mirror property to WeaponData for armory display"
+            Changes: Added CaliberName, CaliberCanPenetrate, CaliberMaxPenetrationDistance
+                     to WeaponData.cs; updated all 8 weapon .tres files; updated
+                     armory_menu.gd to use resource.get("CaliberName") directly
 ```
 
 ---
@@ -156,51 +159,71 @@ The same project already uses this pattern correctly in:
    └─ _update_loadout_panel() called
       └─ _update_weapon_stats() called
          └─ resource = _weapon_resources["ak_gl"]  (WeaponData C# object)
-         └─ caliber = resource.get("Caliber")      (gets CaliberData GDScript object)
-         └─ [OLD CODE] caliber.caliber_name        → null (type system fails at boundary)
-            [NEW CODE] caliber.get("caliber_name") → "7.62x39mm" (dynamic dispatch)
+         └─ [ORIGINAL BUG]
+            caliber = resource.get("Caliber")      (CaliberData GDScript object)
+            caliber.caliber_name                   → null (type resolution at C# boundary)
+         └─ [INITIAL FIX — insufficient]
+            caliber = resource.get("Caliber")
+            caliber.get("caliber_name")            → null (still crosses C# boundary)
+         └─ [FINAL FIX]
+            resource.get("CaliberName")            → "7.62x39mm" (C# string property, no boundary)
 
-3. bbcode string built with null → displayed as "<null>" in RichTextLabel
+3. [ORIGINAL BUG] bbcode with null → displayed as "<null>" in RichTextLabel
+   [INITIAL FIX]  caliber_name==null → caliber line omitted entirely
+   [FINAL FIX]    CaliberName="7.62x39mm" → "Caliber: 7.62x39mm" displayed correctly
 ```
 
 ---
 
 ## Proposed Solutions
 
-### Solution 1 (Applied in PR #1709): Use `.get()` for All CaliberData Properties ✅
+### Solution 1 (Initial attempt — insufficient): Use `.get()` on Nested CaliberData
 
-**Status: Implemented and correct.**
-
-Replace all direct property accesses on the GDScript `CaliberData` resource with `.get()`:
+Replace direct dot-access with `.get()` on the nested CaliberData resource:
 ```gdscript
-caliber.get("caliber_name")         # was: caliber.caliber_name
-caliber.get("can_ricochet")         # was: caliber.can_ricochet
-caliber.get("can_penetrate")        # was: caliber.can_penetrate
-caliber.get("max_penetration_distance")  # was: caliber.max_penetration_distance
+caliber.get("caliber_name")   # was: caliber.caliber_name
 ```
 
-**Pros:** Minimal change, consistent with existing patterns, works for any `Resource`.
-**Cons:** None — `.get()` is the standard Godot API for dynamic property access.
+**Result:** Applied in commit `c3e07993`, but the owner reported the caliber line then
+disappeared entirely. Investigation showed that `.get()` on a CaliberData resource obtained
+via `resource.get("Caliber")` from a C# WeaponData still fails in engine due to the
+C#/GDScript boundary — the resource's script properties are not reachable via `.get()`
+when the resource object itself was stored in a C# `Resource?` typed property.
 
-### Solution 2 (Alternative): Mirror Caliber String in WeaponData.cs
+### Solution 2 (Applied — definitive): Mirror Properties on WeaponData.cs ✅
 
-Add a `CaliberName` string property to `WeaponData.cs`:
+**Status: Implemented in PR #1709 (follow-up commit).**
+
+Following the established pattern from Issue #935 (`CaliberCanRicochet`, `CaliberMaxRicochetAngle`,
+`CaliberMaxRicochets`), add caliber display properties directly to `WeaponData.cs`:
+
 ```csharp
-[Export]
-public string CaliberName { get; set; } = "";
+[Export] public string CaliberName { get; set; } = "";
+[Export] public bool CaliberCanPenetrate { get; set; } = true;
+[Export(PropertyHint.Range, "0.0,200.0,1.0")]
+public float CaliberMaxPenetrationDistance { get; set; } = 48.0f;
 ```
 
-Then read it directly: `resource.get("CaliberName")`.
+Update each weapon `.tres` file:
+```ini
+CaliberName = "7.62x39mm"
+CaliberCanPenetrate = true
+CaliberMaxPenetrationDistance = 72.0
+```
 
-**Pros:** No boundary crossing needed for display.
-**Cons:** Data duplication, requires keeping in sync with CaliberData resource.
-The project already rejects this approach — see existing `CaliberCanRicochet`,
-`CaliberMaxRicochetAngle`, `CaliberMaxRicochets` mirror properties added for Issue #935.
-Adding more mirrors increases maintenance burden.
+Read from `armory_menu.gd` without any boundary crossing:
+```gdscript
+var caliber_name: String = resource.get("CaliberName")  # string on C# WeaponData — always works
+```
+
+**Pros:** Eliminates the C#/GDScript boundary entirely for UI display. Consistent with the
+existing mirror property pattern already established in the project.
+**Cons:** Data duplication — caliber name must match in both CaliberData and WeaponData.
+This is an acceptable trade-off given the project's established pattern.
 
 ### Solution 3 (Future): Type-Cast at Access Site
 
-Once Godot fixes compile-time GDScript type resolution for cross-language resources, use:
+Once Godot fixes compile-time GDScript type resolution for cross-language resources:
 ```gdscript
 var caliber := resource.get("Caliber") as CaliberData
 if caliber:

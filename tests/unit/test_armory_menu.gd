@@ -877,10 +877,12 @@ func test_phase_boundary_value() -> void:
 # ============================================================================
 
 
-## Mock caliber resource simulating CaliberData accessed via GDScript .get().
-## Replicates the cross-language interop pattern (C# WeaponData → GDScript CaliberData):
-## direct property access (.caliber_name) can return null, while .get("caliber_name") works.
-class MockCaliberResource:
+## Mock weapon resource simulating WeaponData accessed via GDScript .get().
+## Replicates the mirror-property pattern used in WeaponData.cs: CaliberName,
+## CaliberCanRicochet, CaliberCanPenetrate, CaliberMaxPenetrationDistance are stored
+## directly on the C# resource to avoid GDScript/C# nested-resource interop issues
+## (godotengine/godot#67167) where dot-access on nested GDScript resources returns null.
+class MockWeaponResource:
 	var _props: Dictionary = {}
 
 	func _init(props: Dictionary) -> void:
@@ -890,40 +892,39 @@ class MockCaliberResource:
 	func get(prop: String) -> Variant:
 		return _props.get(prop, null)
 
-	## Simulates .has("property").
-	func has(prop: String) -> bool:
-		return prop in _props
-
 
 ## Replicates the _update_weapon_stats caliber display logic from armory_menu.gd.
-## Uses .get("caliber_name") — the correct cross-language access pattern.
-func _build_caliber_bbcode(caliber: MockCaliberResource) -> String:
-	if not caliber:
+## Uses resource.get("CaliberName") — the mirror property approach (Issue #1708).
+func _build_caliber_bbcode_from_weapon(weapon: MockWeaponResource) -> String:
+	if not weapon:
 		return ""
-	var name_val = caliber.get("caliber_name")
-	if name_val == null:
+	var caliber_name: String = weapon.get("CaliberName")
+	if caliber_name == "":
 		return ""
-	return "[color=#aab0b8]Caliber:[/color] %s\n" % name_val
+	return "[color=#aab0b8]Caliber:[/color] %s\n" % caliber_name
 
 
-func test_caliber_name_displayed_via_get_not_direct_property() -> void:
-	# Regression test for Issue #1708: caliber name showed as <null> in AK+GL stats
-	# because .caliber_name (direct access) returned null on cross-language resource.
-	# Fix: use .get("caliber_name") which works correctly.
-	var caliber := MockCaliberResource.new({"caliber_name": "7.62x39mm"})
-	var result := _build_caliber_bbcode(caliber)
+func test_caliber_name_displayed_via_mirror_property() -> void:
+	# Regression test for Issue #1708: caliber name showed as <null> in AK+GL stats.
+	# Root cause: GDScript .get("caliber_name") on a CaliberData resource nested inside
+	# a C# WeaponData resource returns null due to Godot C#/GDScript interop (godot#67167).
+	# Fix: add CaliberName as a direct string property on WeaponData (mirror property pattern).
+	var weapon := MockWeaponResource.new({"CaliberName": "7.62x39mm"})
+	var result := _build_caliber_bbcode_from_weapon(weapon)
 	assert_true("7.62x39mm" in result,
-		"Caliber name '7.62x39mm' must appear in stats bbcode (Issue #1708: was showing <null>)")
+		"Caliber name '7.62x39mm' must appear in stats bbcode (Issue #1708)")
 	assert_false("<null>" in result,
 		"Stats bbcode must not contain '<null>' for caliber name (Issue #1708 regression)")
 
 
-func test_caliber_name_null_does_not_produce_null_string() -> void:
-	# If caliber_name is somehow null, the display must not show "<null>".
-	var caliber := MockCaliberResource.new({})  # caliber_name not set
-	var result := _build_caliber_bbcode(caliber)
+func test_caliber_name_empty_does_not_produce_null_string() -> void:
+	# If CaliberName is empty string (default), the caliber line must be omitted.
+	var weapon := MockWeaponResource.new({"CaliberName": ""})
+	var result := _build_caliber_bbcode_from_weapon(weapon)
 	assert_false("<null>" in result,
-		"Missing caliber_name must not produce '<null>' in stats bbcode")
+		"Empty CaliberName must not produce '<null>' in stats bbcode")
+	assert_false("Caliber:" in result,
+		"Empty CaliberName must omit the Caliber line entirely")
 
 
 func test_ak_gl_description_contains_762() -> void:

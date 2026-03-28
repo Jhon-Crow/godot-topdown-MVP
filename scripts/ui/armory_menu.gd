@@ -1370,15 +1370,16 @@ func _update_weapon_stats() -> void:
 		var fire_mode: String = "Auto" if resource.get("IsAutomatic") else "Semi-Auto"
 		bbcode += "[color=#aab0b8]Fire Mode:[/color] %s\n" % fire_mode
 
-		# Caliber
-		var caliber = resource.get("Caliber")
-		FileLogger.info("[ArmoryMenu] weapon=%s caliber_resource=%s" % [
-			_pending_weapon_id, "present" if caliber else "null"])
-		if caliber:
-			var caliber_name = caliber.get("caliber_name")
-			FileLogger.info("[ArmoryMenu] caliber_name=%s" % str(caliber_name))
-			if caliber_name != null:
-				bbcode += "[color=#aab0b8]Caliber:[/color] %s\n" % caliber_name
+		# Caliber — use CaliberName mirror property (Issue #1708)
+		# WeaponData.Caliber is a C#-backed resource; GDScript dot-access on nested
+		# GDScript properties of C#-owned resources returns null due to Godot interop
+		# (see godotengine/godot#67167). CaliberName mirrors CaliberData.caliber_name
+		# directly on WeaponData to avoid the interop issue.
+		var caliber_name: String = resource.get("CaliberName")
+		FileLogger.info("[ArmoryMenu] weapon=%s caliber_name=%s" % [
+			_pending_weapon_id, caliber_name])
+		if caliber_name != "":
+			bbcode += "[color=#aab0b8]Caliber:[/color] %s\n" % caliber_name
 
 		# Damage & Fire rate
 		var damage: float = resource.get("Damage")
@@ -1416,17 +1417,16 @@ func _update_weapon_stats() -> void:
 			loudness_text = "[color=#ef5350]%.0fpx[/color]" % loudness
 		bbcode += "[color=#aab0b8]Loudness:[/color] %s\n" % loudness_text
 
-		# Caliber properties (ricochet / penetration)
-		if caliber:
-			var features: Array[String] = []
-			if caliber.get("can_ricochet"):
-				features.append("Ricochet")
-			if caliber.get("can_penetrate"):
-				features.append("Wall Pen. (%dpx)" % int(caliber.get("max_penetration_distance")))
-			if features.size() > 0:
-				bbcode += "[color=#aab0b8]Ballistics:[/color] %s" % ", ".join(features)
-			else:
-				bbcode += "[color=#aab0b8]Ballistics:[/color] Standard"
+		# Caliber properties (ricochet / penetration) — use mirror properties (Issue #1708)
+		var features: Array[String] = []
+		if resource.get("CaliberCanRicochet"):
+			features.append("Ricochet")
+		if resource.get("CaliberCanPenetrate"):
+			features.append("Wall Pen. (%dpx)" % int(resource.get("CaliberMaxPenetrationDistance")))
+		if features.size() > 0:
+			bbcode += "[color=#aab0b8]Ballistics:[/color] %s" % ", ".join(features)
+		else:
+			bbcode += "[color=#aab0b8]Ballistics:[/color] Standard"
 	else:
 		bbcode += "[color=#888888]%s[/color]" % weapon_info.get("description", "No data available")
 
