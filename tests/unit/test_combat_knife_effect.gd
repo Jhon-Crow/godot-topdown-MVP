@@ -154,7 +154,7 @@ func test_knife_damage_is_7() -> void:
 
 
 func test_knife_range_is_positive() -> void:
-	var range_px := 70.0
+	var range_px := 35.0
 	assert_true(range_px > 0.0, "Combat Knife range should be positive")
 	assert_true(range_px <= 120.0, "Combat Knife range should be within reasonable melee distance")
 
@@ -174,7 +174,7 @@ func test_knife_arc_half_is_60_degrees() -> void:
 
 
 func test_knife_windup_duration_is_short() -> void:
-	var windup := 0.2  # Backswing held before fast strike
+	var windup := 0.15  # Backswing hold before fast strike
 	assert_true(windup > 0.0 and windup <= 0.4,
 		"Knife windup should be short (0–0.4 seconds)")
 
@@ -186,13 +186,13 @@ func test_knife_strike_duration_is_short() -> void:
 
 
 func test_knife_recovery_duration_is_short() -> void:
-	var recovery := 0.15  # Fade out
+	var recovery := 0.12  # Fade out
 	assert_true(recovery > 0.0 and recovery <= 0.5,
 		"Knife recovery should be within 0.5 seconds")
 
 
 func test_knife_total_animation_under_0_5_seconds() -> void:
-	var total := 0.2 + 0.08 + 0.15
+	var total := 0.15 + 0.08 + 0.12
 	assert_true(total <= 0.5,
 		"Total knife animation (windup + strike + recovery) should be under 0.5 seconds")
 
@@ -290,8 +290,8 @@ func test_enemy_in_arc_and_range_is_hit() -> void:
 	# Enemy directly in front, within range → should be hit
 	var player_pos := Vector2(0.0, 0.0)
 	var player_facing := Vector2.RIGHT
-	var enemy_pos := Vector2(50.0, 0.0)
-	var knife_range := 70.0
+	var enemy_pos := Vector2(25.0, 0.0)
+	var knife_range := 35.0
 	var half_arc := PI / 3.0  # 60 degrees
 
 	var dist := player_pos.distance_to(enemy_pos)
@@ -305,8 +305,8 @@ func test_enemy_in_arc_and_range_is_hit() -> void:
 func test_enemy_out_of_range_not_hit() -> void:
 	# Enemy too far away → should not be hit
 	var player_pos := Vector2(0.0, 0.0)
-	var enemy_pos := Vector2(100.0, 0.0)
-	var knife_range := 70.0
+	var enemy_pos := Vector2(50.0, 0.0)
+	var knife_range := 35.0
 
 	var dist := player_pos.distance_to(enemy_pos)
 	assert_true(dist > knife_range, "Enemy outside range should not be hit")
