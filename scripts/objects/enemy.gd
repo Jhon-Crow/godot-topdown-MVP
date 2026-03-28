@@ -422,7 +422,7 @@ func _ready() -> void:
 	_pacifist = PacifistComponent.new(self)  # Issue #959
 	_setup_machete_component(); if has_force_field: _force_field_component = EnemyForceFieldComponent.new(); _force_field_component.name = "ForceFieldComponent"; add_child(_force_field_component); _force_field_component.setup(); if _shield_icon: _shield_icon.visible = true  # Issue #579, #1034, #1079
 	_sniper_component = EnemySniperComponent.new(); _sniper_component.enemy = self; _sniper_component.log_to_file_fn = _log_to_file; _sniper_component.name = "SniperComponent"; add_child(_sniper_component)  # Issues #1171, #1163
-	if weapon_type == WeaponType.MACHINE_GUN: _machine_gunner_component = MachineGunnerComponent.new(); _machine_gunner_component.enemy = self; _machine_gunner_component.log_to_file_fn = _log_to_file; _machine_gunner_component.name = "MachineGunnerComponent"; add_child(_machine_gunner_component)  # Issue #1033
+	if weapon_type == WeaponType.MACHINE_GUN: _machine_gunner_component = MachineGunnerComponent.new(); _machine_gunner_component.enemy = self; _machine_gunner_component.name = "MachineGunnerComponent"; add_child(_machine_gunner_component)  # Issue #1033
 	if has_armored_skin: _armored_skin_component = EnemyArmoredSkinComponent.new(); _armored_skin_component.name = "ArmoredSkinComponent"; add_child(_armored_skin_component); _current_health += 1; _max_health += 1; _update_health_visual()  # Issue #1123: +1 HP bonus from Armored Skin
 	if has_swat_shield: _shield_component = EnemyShieldComponent.new(); _shield_component.name = "ShieldComponent"; add_child(_shield_component); _shield_component.setup()  # Issue #1242: SWAT shieldbearer
 	if weapon_type == WeaponType.REVOLVER: _revolver_component = EnemyRevolverComponent.new(); _revolver_component.enemy = self; _revolver_component.name = "RevolverComponent"; add_child(_revolver_component)  # Issue #1242: revolver reload
@@ -1388,7 +1388,7 @@ func _process_combat_state(delta: float) -> void:
 	# [#1033] Machine gunner: suppress corridor (fire at last-known pos regardless of LOS/under-fire).
 	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active:
 		# [#1698] Lazy-init recovery: component may be null if _ready() ran before scene tree was ready.
-		if _machine_gunner_component == null: _machine_gunner_component = MachineGunnerComponent.new(); _machine_gunner_component.enemy = self; _machine_gunner_component.log_to_file_fn = _log_to_file; _machine_gunner_component.name = "MachineGunnerComponent"; add_child(_machine_gunner_component)
+		if _machine_gunner_component == null: _machine_gunner_component = MachineGunnerComponent.new(); _machine_gunner_component.enemy = self; _machine_gunner_component.name = "MachineGunnerComponent"; add_child(_machine_gunner_component); _log_to_file("[#1698] MG lazy-init: component was null, created and added")
 		# [#1698] suppress_target: prefer player pos when visible; fall back to last-known; if still zero
 		# (e.g. first contact via explosion) and player is in range, use current player pos so gunner fires.
 		var suppress_target := _last_known_player_position
@@ -1400,6 +1400,7 @@ func _process_combat_state(delta: float) -> void:
 		if suppress_target != Vector2.ZERO:
 			_machine_gunner_suppressing_corridor = true
 			if not _is_reloading and _shoot_timer >= shoot_cooldown and _can_shoot():
+				_log_to_file("[#1698] MG dispatching fire_at_corridor: target=%s, component_null=%s" % [suppress_target, _machine_gunner_component == null])
 				_machine_gunner_component.fire_at_corridor(suppress_target)
 			else:
 				# [#1698] Diagnostic: log why fire was skipped, ~once per second

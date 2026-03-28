@@ -11,9 +11,6 @@ class_name MachineGunnerComponent
 ## (preferred) or resolved via get_parent() in _ready() as a fallback.
 var enemy: CharacterBody2D = null
 
-## Enable file logging (forwarded from enemy debug setting).
-var log_to_file_fn: Callable = Callable()
-
 
 func _ready() -> void:
 	if enemy == null:
@@ -23,16 +20,16 @@ func _ready() -> void:
 ## [#1033] Machine gunner corridor suppression: burst into corridor where player was last seen (no LOS needed).
 func fire_at_corridor(target_pos: Vector2) -> void:
 	if enemy == null or enemy.bullet_scene == null:
-		if log_to_file_fn.is_valid(): log_to_file_fn.call("[#1698] MG fire_at_corridor: null enemy or bullet_scene")
+		if enemy != null: enemy._log_to_file("[#1698] MG fire_at_corridor: null bullet_scene")
 		return
 	# Issue #1334 Round 5: Don't shoot at a dead player
 	var _gm := enemy.get_node_or_null("/root/GameManager")
 	if _gm and not _gm.player_alive:
-		if log_to_file_fn.is_valid(): log_to_file_fn.call("[#1698] MG fire_at_corridor: player_alive=false")
+		enemy._log_to_file("[#1698] MG fire_at_corridor: player_alive=false")
 		return
 	var to_target := (target_pos - enemy.global_position).normalized()
 	if to_target == Vector2.ZERO:
-		if log_to_file_fn.is_valid(): log_to_file_fn.call("[#1698] MG fire_at_corridor: to_target is ZERO (target=%s, pos=%s)" % [target_pos, enemy.global_position])
+		enemy._log_to_file("[#1698] MG fire_at_corridor: to_target is ZERO (target=%s, pos=%s)" % [target_pos, enemy.global_position])
 		return
 	# Face toward the corridor
 	if enemy._enemy_model: enemy._enemy_model.global_rotation = to_target.angle()
@@ -42,7 +39,7 @@ func fire_at_corridor(target_pos: Vector2) -> void:
 	var spread := deg_to_rad(randf_range(-5.0, 5.0))
 	var direction := to_target.rotated(spread)
 	if not enemy._is_bullet_spawn_clear(direction):
-		if log_to_file_fn.is_valid(): log_to_file_fn.call("[#1698] MG fire_at_corridor: bullet spawn blocked (target=%s)" % target_pos)
+		enemy._log_to_file("[#1698] MG fire_at_corridor: bullet spawn blocked (target=%s, dir=%s, spawn=%s)" % [target_pos, direction, spawn_pos])
 		return
 	enemy._spawn_projectile(direction, spawn_pos)
 	enemy._spawn_muzzle_flash(spawn_pos, direction)
@@ -58,8 +55,7 @@ func fire_at_corridor(target_pos: Vector2) -> void:
 	enemy._shoot_timer = 0.0
 	enemy._current_ammo -= 1; enemy._shot_count += 1
 	enemy.ammo_changed.emit(enemy._current_ammo, enemy._reserve_ammo)
-	if log_to_file_fn.is_valid():
-		log_to_file_fn.call("[#1033] MG corridor suppression: fired at passage %s, ammo=%d" % [target_pos, enemy._current_ammo])
+	enemy._log_to_file("[#1033] MG corridor suppression: fired at passage %s, ammo=%d" % [target_pos, enemy._current_ammo])
 	if enemy._current_ammo <= 0 and enemy._reserve_ammo > 0:
 		enemy._start_reload()
 	elif enemy._current_ammo <= 0 and enemy._reserve_ammo <= 0 and not enemy._machine_gunner_pm_active:
@@ -77,8 +73,7 @@ func activate_pm_fallback() -> void:
 	enemy._is_reloading = false; enemy._reload_timer = 0.0
 	enemy._goap_world_state["ammo_depleted"] = false
 	find_distant_cover()  # [#1033] Retreat to DISTANT cover, not closest
-	if log_to_file_fn.is_valid():
-		log_to_file_fn.call("[#1033] Machine gunner belts empty — switched to PM, retreating to distant cover")
+	enemy._log_to_file("[#1033] Machine gunner belts empty — switched to PM, retreating to distant cover")
 	enemy._transition_to_retreating()
 
 
@@ -109,7 +104,6 @@ func find_distant_cover() -> void:
 			best_score = total_score; best_cover = cover_pos
 	if best_score > 0:
 		enemy._cover_position = best_cover; enemy._has_valid_cover = true
-		if log_to_file_fn.is_valid():
-			log_to_file_fn.call("[#1033] Distant cover found at %s (dist_to_player=%.0f)" % [best_cover, best_cover.distance_to(player_pos)])
+		enemy._log_to_file("[#1033] Distant cover found at %s (dist_to_player=%.0f)" % [best_cover, best_cover.distance_to(player_pos)])
 	else:
 		enemy._find_cover_position()  # Fallback to normal cover search
