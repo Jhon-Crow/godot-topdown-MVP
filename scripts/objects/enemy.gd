@@ -1448,6 +1448,7 @@ func _process_combat_state(delta: float) -> void:
 		if global_position.distance_to(_machete_combat_stuck_last_pos) < MACHETE_COMBAT_STUCK_DIST_THRESHOLD: _machete_combat_stuck_timer += delta; if _machete_combat_stuck_timer >= MACHETE_COMBAT_STUCK_MAX_TIME: _log_to_file("[#1107] Machete COMBAT stuck (%.1fs), rerouting" % _machete_combat_stuck_timer); _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position; _transition_to_pursuing()  # Issue #1107: Wall-stuck detection
 		else: _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position
 		return
+	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE and _drone_operator.is_dashing(): velocity = _drone_operator.get_dash_velocity(combat_move_speed); return  # Issue #1397: drone operator dash takes priority over normal movement
 	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE and _drone_operator.is_teleport_ready():  # Issue #1664: teleport to cover under fire (like teleport enemy).
 		if _under_fire and _current_state != AIState.IN_COVER: if not _has_valid_cover: _find_cover_position(); if _has_valid_cover and _drone_operator.try_teleport(_cover_position): _transition_to_in_cover(); return
 		if not _can_see_player and _current_state == AIState.FLANKING: _drone_operator.try_teleport(_flank_target)
@@ -3840,7 +3841,6 @@ func _find_targetable_player_drone() -> Node2D:
 		if not (drone is Node2D) or not is_instance_valid(drone) or not drone.has_method("is_targetable_by_enemies") or not drone.is_targetable_by_enemies(): continue
 		var ss := get_world_2d().direct_space_state; var q := PhysicsRayQueryParameters2D.create(global_position, drone.global_position); q.collision_mask = 4; q.exclude = [get_rid()]; if ss.intersect_ray(q).is_empty(): return drone
 	return null
-
 func _aim_at_player() -> void:
 	var aim_at: Node2D = _current_target if _current_target != null else _player
 	if aim_at == null:
