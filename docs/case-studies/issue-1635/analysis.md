@@ -22,6 +22,9 @@
 | 2026-03-28 07:12 | PR updated with merge conflict fix + case study added |
 | 2026-03-28 07:25 | Owner reports "не добавились" again — uploads `game_log_20260328_102225.txt` |
 | 2026-03-28 16:42 | AI work session started; deep root cause analysis + code fixes |
+| 2026-03-28 16:58 | PR updated with types 7/16/19/20 fixes + temp-dash + case study updated |
+| 2026-03-28 17:09 | Owner reports "не сработало" again — uploads `game_log_20260328_200530.txt` |
+| 2026-03-28 19:19 | AI work session started; 3rd log analyzed |
 
 ---
 
@@ -61,6 +64,28 @@ The second log is NOT from our PR. Our PR's code would log `"[Player.Experimenta
 The intermediate build in the second log uses a list like `[1..17]` or a fixed set that was manually extended to include types 15 and 16. Types 19 and 20 were simply not in that list.
 
 Our PR (#1660) introduces the **dynamic pool** approach which automatically picks up types 19, 20 (and any future items with `activation_hint`).
+
+### Log Analysis — Third Report (game_log_20260328_200530.txt, 20:05–20:08)
+
+- Log format: `Charges remaining: X — triggering random effect for type Y` + `Executing effect for type Y` (with "for")
+- **This is the same pre-PR log format** as the first two reports
+- Types triggered: 1, 2, 3, 4, 5, 7, 8, 11, 12, 15, 16 — no 19 or 20
+- FINE_MOTOR_SKILLS (19) and DASH (20) still **never** triggered
+- PersistManager shows type 20 (Dash) IS unlocked: `"Restored unlocked active item type: 20"`
+- Types 7 (Force Field) and 16 (Recoil Compensator) ARE triggered — confirms this is the intermediate build
+
+**Key finding:** The log format `"Charges remaining: X — triggering random effect for type Y"` traces back to the original experimental sample implementation commit `bc794d9b` (2026-03-18). The current `main` branch and our PR both use a different format with attempt number. This means the tester is running a **local compiled binary** from an older version of the code — NOT from the current `main` branch and NOT from our PR branch.
+
+**Conclusion:** Our PR code is correct and contains the fix. The tester needs to compile/run from the PR branch (`issue-1635-d2674ee4bfd4`) or wait for the PR to be merged into `main` before rebuilding.
+
+### Build Version Identification
+
+| Log | Format | Types in pool | Build source |
+|-----|--------|---------------|--------------|
+| game_log_20260328_100220.txt | `Charges remaining: X — triggering random effect for type Y` | 1–17 range | Very old local build (original `randi_range(1,17)`) |
+| game_log_20260328_102225.txt | `Charges remaining: X — triggering random effect for type Y` | 1, 2, 3, 4, 5, 7, 8, 11, 12, 15, 16 | Intermediate local build (manually extended to include 7, 15, 16) |
+| game_log_20260328_200530.txt | `Charges remaining: X — triggering random effect for type Y` | 1, 2, 3, 4, 5, 7, 8, 11, 12, 15, 16 | Same intermediate local build — NOT our PR |
+| PR #1660 (our fix) | `Charges: X — type Y attempt Z` | Dynamic from `activation_hint` (1, 3, 4, 5, 7, 8, 11, 12, 15, 16, 18, 19, 20) | `issue-1635-d2674ee4bfd4` branch |
 
 ---
 
@@ -189,3 +214,4 @@ Types 1 (FLASHLIGHT), 3 (TELEPORT_BRACERS), and 15 (DRILLING_BULLETS) are in the
 
 - [`game_log_20260328_100220.txt`](game_log_20260328_100220.txt) — First owner report (build before fix, types 1–17 only)
 - [`game_log_20260328_102225.txt`](game_log_20260328_102225.txt) — Second owner report (intermediate build, types 1–16, types 19–20 still missing)
+- [`game_log_20260328_200530.txt`](game_log_20260328_200530.txt) — Third owner report (same intermediate build, still no types 19–20, confirms tester is NOT running PR branch)
