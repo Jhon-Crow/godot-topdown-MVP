@@ -915,7 +915,7 @@ func _physics_process(delta: float) -> void:
 			_debug_draw_timer += delta
 			if _debug_draw_timer >= DEBUG_DRAW_INTERVAL: _debug_draw_timer = 0.0; queue_redraw()  # Issue #1220: throttle to 10 Hz
 		return
-	_process_ai_state(delta); if _drone_operator and _drone_operator.is_dodging(): velocity = _drone_operator.get_dodge_velocity()  # Issue #1540: drone operator machete-style dodge overrides AI velocity
+	_process_ai_state(delta)
 	_update_debug_label()
 	if debug_label_enabled:  # Issue #1220: throttle FOV cone redraws to 10 Hz (was every frame → 33 raycasts/enemy/frame at 60 fps)
 		_debug_draw_timer += delta
@@ -1443,11 +1443,10 @@ func _process_combat_state(delta: float) -> void:
 				var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
-	# Issue #1540: Drone operator ACTIVE — dodge bullets like machete enemy (lateral sidestep).
-	# Only the dodge is special; normal ranged combat runs below.
+	# Issue #1664: Drone operator ACTIVE — cover-teleport when under fire (same as teleport enemy).
 	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:
-		if _under_fire and _bullets_in_threat_sphere.size() > 0 and not _drone_operator.is_dodging(): var b = _bullets_in_threat_sphere[0]; if is_instance_valid(b): var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation); _drone_operator.try_dodge(bd)
-		if _drone_operator.is_dodging(): velocity = _drone_operator.get_dodge_velocity(); return
+		if _drone_operator.is_teleport_ready() and _under_fire and _current_state != AIState.IN_COVER: if not _has_valid_cover: _find_cover_position(); if _has_valid_cover and _drone_operator.try_cover_teleport(_cover_position): _transition_to_in_cover(); return
+		if _drone_operator.is_teleport_ready() and not _can_see_player and _current_state == AIState.FLANKING: _drone_operator.try_flank_teleport(_flank_target)  # #1664: flank-teleport
 	# [#1033] Machine gunner: suppress corridor (fire at last-known pos regardless of LOS/under-fire).
 	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active:
 		var suppress_target := _player.global_position if (_can_see_player and _player != null) else _last_known_player_position
@@ -4181,14 +4180,13 @@ func _on_threat_area_entered(area: Area2D) -> void:
 	if not (shooter as Node).is_in_group("player"): return  # #1228: only player bullets
 	_log_to_file("[#1311] Player bullet entered threat sphere — suppression triggered")
 	_bullets_in_threat_sphere.append(area); _threat_memory_timer = THREAT_MEMORY_DURATION
-	# Issue #1664: Drone operator ACTIVE phase — trigger dodge immediately on threat sphere entry.
-	# The threat_reaction_delay (0.2s) means _under_fire is not set until next frames, so
-	# _process_combat_state's dodge check never fires before a fast bullet hits and kills.
-	# Fix: react now (same pattern as EnemyTeleportComponent.try_damage_teleport on-hit).
-	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE and not _drone_operator.is_dodging():
-		var bd: Vector2 = area.get("direction") if area.get("direction") != null else Vector2.RIGHT.rotated(area.rotation)
-		if _drone_operator.try_dodge(bd):
-			_log_to_file("[#1664] Drone operator immediate dodge triggered from threat sphere entry")
+	# Issue #1664: Drone operator ACTIVE phase — teleport immediately on threat sphere entry.
+	# Same as EnemyTeleportComponent.try_damage_teleport on-hit: react on the same frame.
+	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:
+		if not _has_valid_cover: _find_cover_position()
+		if _drone_operator.try_evasion_teleport(_cover_position, _flank_target):
+			_log_to_file("[#1664] Drone operator teleport triggered from threat sphere entry")
+			_transition_to_in_cover()
 
 ## Called when a bullet exits the threat sphere.
 func _on_threat_area_exited(area: Area2D) -> void:
@@ -4268,6 +4266,11 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			if not _has_valid_cover: _find_cover_position()
 			if _teleport_component.try_damage_teleport(_cover_position, _flank_target):
 				_log_to_file("[#1355] Damage-triggered teleport succeeded"); _transition_to_in_cover()
+		# Issue #1664: Drone operator ACTIVE phase — teleport on hit, same as teleport enemy.
+		if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:
+			if not _has_valid_cover: _find_cover_position()
+			if _drone_operator.try_evasion_teleport(_cover_position, _flank_target):
+				_log_to_file("[#1664] Drone operator damage-triggered teleport succeeded"); _transition_to_in_cover()
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:

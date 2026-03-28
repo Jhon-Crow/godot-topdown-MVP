@@ -104,72 +104,53 @@ func test_drone_hp_clamps_to_zero() -> void:
 
 
 # ============================================================================
-# DroneOperatorComponent dodge tests (Issue #1540)
-# Dodge logic mirrors MacheteComponent — perpendicular lateral sidestep, no dash.
+# DroneOperatorComponent teleport evasion tests (Issue #1664)
+# In ACTIVE phase the operator uses EnemyTeleportComponent like the teleport enemy:
+# teleports to cover on first bullet, with the same 5-second cooldown thereafter.
 # ============================================================================
 
 
-class MockDroneOperatorDodge:
-	## Simulates DroneOperatorComponent dodge mechanics for testing.
-	## Uses the same interface as MacheteComponent dodge.
-	## Issue #1664: supports DODGE_BURST_MAX dodges per burst then DODGE_BURST_COOLDOWN wait.
+class MockTeleportEvasion:
+	## Simulates DroneOperatorComponent teleport evasion mechanics for testing.
+	## Mirrors EnemyTeleportComponent: try_damage_teleport reacts on first bullet (no delay).
 
-	const DODGE_SPEED: float = 400.0
-	const DODGE_DISTANCE: float = 120.0
-	const DODGE_COOLDOWN: float = 1.2
-	const DODGE_BURST_MAX: int = 4
-	const DODGE_BURST_COOLDOWN: float = 4.0
+	const COOLDOWN: float = 5.0
 
 	enum Phase { DEPLOYING, CONTROLLING, ACTIVE }
 
 	var _phase: Phase = Phase.ACTIVE
-	var _is_dodging: bool = false
-	var _dodge_timer: float = 0.0
-	var _dodge_direction: Vector2 = Vector2.ZERO
-	var _dodge_count: int = 0
-	var _dodge_burst_count: int = 0
-	var _dodge_burst_cooldown_timer: float = 0.0
+	var _cooldown_timer: float = 0.0
+	var _teleport_count: int = 0
+	var _last_cover: Vector2 = Vector2.ZERO
 
-	func try_dodge(bullet_direction: Vector2) -> bool:
-		if _phase != Phase.ACTIVE:
+	func is_teleport_ready() -> bool:
+		return _phase == Phase.ACTIVE and _cooldown_timer <= 0.0
+
+	func try_evasion_teleport(cover_position: Vector2, flank_target: Vector2) -> bool:
+		if not is_teleport_ready():
 			return false
-		if _is_dodging:
+		# Try cover first, then flank (same as EnemyTeleportComponent.try_damage_teleport)
+		var target := cover_position if cover_position != Vector2.ZERO else flank_target
+		if target == Vector2.ZERO:
 			return false
-		# Burst cooldown active — cannot dodge yet (Issue #1664)
-		if _dodge_burst_cooldown_timer > 0.0:
-			return false
-		# Burst exhausted — start long cooldown and deny dodge (Issue #1664)
-		if _dodge_burst_count >= DODGE_BURST_MAX:
-			_dodge_burst_cooldown_timer = DODGE_BURST_COOLDOWN
-			_dodge_burst_count = 0
-			return false
-		# Calculate perpendicular dodge direction (same as MacheteComponent)
-		var perp_right := Vector2(-bullet_direction.y, bullet_direction.x)
-		var perp_left := Vector2(bullet_direction.y, -bullet_direction.x)
-		_dodge_direction = perp_left if randf() > 0.5 else perp_right
-		_is_dodging = true
-		_dodge_timer = DODGE_DISTANCE / DODGE_SPEED
-		_dodge_count += 1
-		_dodge_burst_count += 1
+		_last_cover = target
+		_cooldown_timer = COOLDOWN
+		_teleport_count += 1
 		return true
 
-	func is_dodging() -> bool:
-		return _is_dodging
-
-	func get_dodge_velocity() -> Vector2:
-		if not _is_dodging:
-			return Vector2.ZERO
-		return _dodge_direction * DODGE_SPEED
-
-	func end_dodge() -> void:
-		_is_dodging = false
-		_dodge_timer = 0.0
+	func try_cover_teleport(cover_position: Vector2) -> bool:
+		if not is_teleport_ready() or cover_position == Vector2.ZERO:
+			return false
+		_last_cover = cover_position
+		_cooldown_timer = COOLDOWN
+		_teleport_count += 1
+		return true
 
 	func update(delta: float) -> void:
-		if _dodge_burst_cooldown_timer > 0.0:
-			_dodge_burst_cooldown_timer -= delta
-			if _dodge_burst_cooldown_timer < 0.0:
-				_dodge_burst_cooldown_timer = 0.0
+		if _cooldown_timer > 0.0:
+			_cooldown_timer -= delta
+			if _cooldown_timer < 0.0:
+				_cooldown_timer = 0.0
 
 	func is_controlling_drone() -> bool:
 		return _phase == Phase.CONTROLLING
@@ -178,185 +159,86 @@ class MockDroneOperatorDodge:
 		return _phase
 
 
-var mock_operator: MockDroneOperatorDodge
+var mock_operator: MockTeleportEvasion
 
 
-func test_operator_dodge_starts_when_bullet_detected() -> void:
-	mock_operator = MockDroneOperatorDodge.new()
-	var result: bool = mock_operator.try_dodge(Vector2.RIGHT)
+func test_operator_teleports_on_first_bullet() -> void:
+	## Issue #1664: operator must teleport immediately when bullet enters threat sphere.
+	mock_operator = MockTeleportEvasion.new()
+	var cover := Vector2(100.0, 50.0)
+	var result: bool = mock_operator.try_evasion_teleport(cover, Vector2.ZERO)
 	assert_true(result,
-		"Dodge should start when bullet detected in ACTIVE phase")
+		"Operator should teleport on first bullet in ACTIVE phase (Issue #1664)")
+	assert_eq(mock_operator._teleport_count, 1,
+		"Teleport count should be 1 after first bullet")
 
 
-func test_operator_is_dodging_after_try_dodge() -> void:
-	mock_operator = MockDroneOperatorDodge.new()
-	mock_operator.try_dodge(Vector2.RIGHT)
-	assert_true(mock_operator.is_dodging(),
-		"is_dodging() should return true after try_dodge()")
-
-
-func test_operator_is_not_dodging_after_end_dodge() -> void:
-	mock_operator = MockDroneOperatorDodge.new()
-	mock_operator.try_dodge(Vector2.RIGHT)
-	mock_operator.end_dodge()
-	assert_false(mock_operator.is_dodging(),
-		"is_dodging() should return false after dodge ends")
-
-
-func test_operator_cannot_dodge_while_dodging() -> void:
-	mock_operator = MockDroneOperatorDodge.new()
-	mock_operator.try_dodge(Vector2.RIGHT)
-	var result: bool = mock_operator.try_dodge(Vector2.LEFT)
+func test_operator_teleport_blocked_during_cooldown() -> void:
+	## Issue #1664: after teleporting, the 5-second cooldown must block further teleports.
+	mock_operator = MockTeleportEvasion.new()
+	var cover := Vector2(100.0, 50.0)
+	mock_operator.try_evasion_teleport(cover, Vector2.ZERO)
+	# Try again while cooldown is active
+	var result: bool = mock_operator.try_evasion_teleport(cover, Vector2.ZERO)
 	assert_false(result,
-		"Cannot start a new dodge while already dodging")
+		"Teleport should be blocked during 5-second cooldown (Issue #1664)")
 
 
-func test_operator_cannot_dodge_in_controlling_phase() -> void:
-	mock_operator = MockDroneOperatorDodge.new()
-	mock_operator._phase = MockDroneOperatorDodge.Phase.CONTROLLING
-	var result: bool = mock_operator.try_dodge(Vector2.RIGHT)
-	assert_false(result,
-		"Operator should not dodge in CONTROLLING phase (defenseless)")
+func test_operator_teleport_ready_after_cooldown_expires() -> void:
+	## Issue #1664: operator can teleport again after 5-second cooldown expires.
+	mock_operator = MockTeleportEvasion.new()
+	var cover := Vector2(100.0, 50.0)
+	mock_operator.try_evasion_teleport(cover, Vector2.ZERO)
+	mock_operator.update(5.1)
+	assert_true(mock_operator.is_teleport_ready(),
+		"Operator should be ready to teleport again after cooldown (Issue #1664)")
+	var result: bool = mock_operator.try_evasion_teleport(cover, Vector2.ZERO)
+	assert_true(result,
+		"Second teleport should succeed after cooldown expires (Issue #1664)")
 
 
-func test_operator_cannot_dodge_in_deploying_phase() -> void:
-	mock_operator = MockDroneOperatorDodge.new()
-	mock_operator._phase = MockDroneOperatorDodge.Phase.DEPLOYING
-	var result: bool = mock_operator.try_dodge(Vector2.RIGHT)
-	assert_false(result,
-		"Operator should not dodge in DEPLOYING phase")
+func test_operator_teleport_not_ready_in_controlling_phase() -> void:
+	## Issue #1664: teleport is only available in ACTIVE phase.
+	mock_operator = MockTeleportEvasion.new()
+	mock_operator._phase = MockTeleportEvasion.Phase.CONTROLLING
+	assert_false(mock_operator.is_teleport_ready(),
+		"Teleport should not be ready in CONTROLLING phase (defenseless)")
 
 
-func test_operator_get_dodge_velocity_returns_zero_when_not_dodging() -> void:
-	## Issue #1540: get_dodge_velocity() must return zero when no dodge is active.
-	mock_operator = MockDroneOperatorDodge.new()
-	var vel: Vector2 = mock_operator.get_dodge_velocity()
-	assert_eq(vel, Vector2.ZERO,
-		"get_dodge_velocity() should return Vector2.ZERO when not dodging")
+func test_operator_teleport_not_ready_in_deploying_phase() -> void:
+	## Issue #1664: teleport is only available in ACTIVE phase.
+	mock_operator = MockTeleportEvasion.new()
+	mock_operator._phase = MockTeleportEvasion.Phase.DEPLOYING
+	assert_false(mock_operator.is_teleport_ready(),
+		"Teleport should not be ready in DEPLOYING phase")
 
 
-func test_operator_get_dodge_velocity_returns_nonzero_when_dodging() -> void:
-	## Issue #1540: get_dodge_velocity() must return non-zero vector during active dodge.
-	mock_operator = MockDroneOperatorDodge.new()
-	mock_operator.try_dodge(Vector2.RIGHT)
-	var vel: Vector2 = mock_operator.get_dodge_velocity()
-	assert_gt(vel.length(), 0.0,
-		"get_dodge_velocity() should return a non-zero vector during an active dodge")
+func test_operator_evasion_teleport_uses_flank_when_no_cover() -> void:
+	## Issue #1664: when cover position is zero, operator teleports to flank target instead.
+	mock_operator = MockTeleportEvasion.new()
+	var flank := Vector2(200.0, 150.0)
+	var result: bool = mock_operator.try_evasion_teleport(Vector2.ZERO, flank)
+	assert_true(result,
+		"Evasion teleport should use flank target when no cover available (Issue #1664)")
+	assert_eq(mock_operator._last_cover, flank,
+		"Should have teleported to the flank target")
 
 
 func test_operator_is_defenseless_during_controlling() -> void:
-	mock_operator = MockDroneOperatorDodge.new()
-	mock_operator._phase = MockDroneOperatorDodge.Phase.CONTROLLING
+	mock_operator = MockTeleportEvasion.new()
+	mock_operator._phase = MockTeleportEvasion.Phase.CONTROLLING
 	assert_true(mock_operator.is_controlling_drone(),
 		"Operator should be defenseless while controlling drone")
 
 
-func test_dodge_direction_is_perpendicular_to_bullet() -> void:
-	## Issue #1540: dodge direction must be perpendicular to bullet travel direction.
-	## A bullet traveling RIGHT (1,0) → perpendicular dodge directions are UP (0,-1) or DOWN (0,1).
-	var bullet_dir: Vector2 = Vector2(1.0, 0.0)  # bullet going RIGHT
-	var perp_right: Vector2 = Vector2(-bullet_dir.y, bullet_dir.x)  # (0, -1) = UP
-	var perp_left: Vector2 = Vector2(bullet_dir.y, -bullet_dir.x)   # (0, 1) = DOWN
-	# Perpendicular vectors must have zero dot product with bullet direction
-	assert_almost_eq(perp_right.dot(bullet_dir), 0.0, 0.001,
-		"Right perpendicular must be orthogonal to bullet direction")
-	assert_almost_eq(perp_left.dot(bullet_dir), 0.0, 0.001,
-		"Left perpendicular must be orthogonal to bullet direction")
+func test_operator_teleport_cooldown_is_five_seconds() -> void:
+	## Issue #1664: teleport cooldown must be 5 seconds — same as regular teleport enemy.
+	assert_eq(MockTeleportEvasion.COOLDOWN, 5.0,
+		"Teleport cooldown should be 5 seconds (same as EnemyTeleportComponent)")
 
 
-func test_dodge_distance_is_120px() -> void:
-	## Issue #1540: dodge distance must be 120px — same as machete enemy, clearly visible.
-	assert_eq(MockDroneOperatorDodge.DODGE_DISTANCE, 120.0,
-		"Dodge distance should be 120px (same as machete enemy)")
-
-
-func test_dodge_speed_is_400px_per_second() -> void:
-	## Issue #1540: dodge speed must be 400 px/s — same as machete enemy.
-	assert_eq(MockDroneOperatorDodge.DODGE_SPEED, 400.0,
-		"Dodge speed should be 400 px/s (same as machete enemy)")
-
-
-# ============================================================================
-# DroneOperatorComponent burst dodge tests (Issue #1664)
-# Operator dodges up to 4 times, then waits 4 seconds before dodging again.
-# ============================================================================
-
-
-func test_dodge_burst_max_is_four() -> void:
-	## Issue #1664: operator must allow exactly 4 dodges per burst.
-	assert_eq(MockDroneOperatorDodge.DODGE_BURST_MAX, 4,
-		"Dodge burst max should be 4")
-
-
-func test_dodge_burst_cooldown_is_four_seconds() -> void:
-	## Issue #1664: after exhausting the burst, operator waits 4 seconds.
-	assert_eq(MockDroneOperatorDodge.DODGE_BURST_COOLDOWN, 4.0,
-		"Dodge burst cooldown should be 4 seconds")
-
-
-func test_operator_can_dodge_four_times_in_burst() -> void:
-	## Issue #1664: operator should successfully dodge 4 times before burst cooldown.
-	mock_operator = MockDroneOperatorDodge.new()
-	var success_count: int = 0
-	for i in range(4):
-		mock_operator.end_dodge()  # Reset dodge state between calls
-		var result: bool = mock_operator.try_dodge(Vector2.RIGHT)
-		if result:
-			success_count += 1
-	assert_eq(success_count, 4,
-		"Operator should successfully dodge 4 times in a burst (Issue #1664)")
-
-
-func test_operator_blocked_after_four_dodges() -> void:
-	## Issue #1664: 5th dodge attempt should fail and start the burst cooldown.
-	mock_operator = MockDroneOperatorDodge.new()
-	for i in range(4):
-		mock_operator.end_dodge()
-		mock_operator.try_dodge(Vector2.RIGHT)
-	# 5th attempt — burst exhausted, should fail and start cooldown
-	mock_operator.end_dodge()
-	var result: bool = mock_operator.try_dodge(Vector2.RIGHT)
-	assert_false(result,
-		"5th dodge should fail because burst is exhausted (Issue #1664)")
-	assert_gt(mock_operator._dodge_burst_cooldown_timer, 0.0,
-		"Burst cooldown timer should be positive after burst exhausted (Issue #1664)")
-
-
-func test_operator_burst_cooldown_blocks_further_dodges() -> void:
-	## Issue #1664: while burst cooldown is active, dodge attempts must fail.
-	mock_operator = MockDroneOperatorDodge.new()
-	# Exhaust the burst
-	for i in range(4):
-		mock_operator.end_dodge()
-		mock_operator.try_dodge(Vector2.RIGHT)
-	mock_operator.end_dodge()
-	mock_operator.try_dodge(Vector2.RIGHT)  # triggers cooldown
-	# Partial cooldown elapsed (not yet expired)
-	mock_operator.update(2.0)
-	var result: bool = mock_operator.try_dodge(Vector2.RIGHT)
-	assert_false(result,
-		"Dodge should still be blocked mid-cooldown (Issue #1664)")
-
-
-func test_operator_can_dodge_again_after_burst_cooldown_expires() -> void:
-	## Issue #1664: after 4-second burst cooldown expires, operator can dodge again.
-	mock_operator = MockDroneOperatorDodge.new()
-	# Exhaust the burst
-	for i in range(4):
-		mock_operator.end_dodge()
-		mock_operator.try_dodge(Vector2.RIGHT)
-	mock_operator.end_dodge()
-	mock_operator.try_dodge(Vector2.RIGHT)  # triggers cooldown
-	# Full cooldown elapses
-	mock_operator.update(4.1)
-	mock_operator.end_dodge()
-	var result: bool = mock_operator.try_dodge(Vector2.RIGHT)
-	assert_true(result,
-		"Operator should be able to dodge again after burst cooldown expires (Issue #1664)")
-
-
-func test_drone_operator_component_has_burst_constants() -> void:
-	## Issue #1664: source file must declare the burst limit and cooldown constants.
+func test_drone_operator_component_uses_teleport() -> void:
+	## Issue #1664: source file must use EnemyTeleportComponent for bullet evasion.
 	var file := FileAccess.open("res://scripts/components/drone_operator_component.gd", FileAccess.READ)
 	if file == null:
 		gut.p("Cannot open drone_operator_component.gd — skipping (export build)")
@@ -364,10 +246,10 @@ func test_drone_operator_component_has_burst_constants() -> void:
 		return
 	var source := file.get_as_text()
 	file.close()
-	assert_true(source.contains("DODGE_BURST_MAX"),
-		"drone_operator_component.gd must define DODGE_BURST_MAX constant (Issue #1664)")
-	assert_true(source.contains("DODGE_BURST_COOLDOWN"),
-		"drone_operator_component.gd must define DODGE_BURST_COOLDOWN constant (Issue #1664)")
+	assert_true(source.contains("EnemyTeleportComponent"),
+		"drone_operator_component.gd must use EnemyTeleportComponent for bullet evasion (Issue #1664)")
+	assert_true(source.contains("try_evasion_teleport"),
+		"drone_operator_component.gd must expose try_evasion_teleport() method (Issue #1664)")
 
 
 # ============================================================================
@@ -554,9 +436,9 @@ func test_enemy_script_contains_drone_operator_export() -> void:
 		"enemy.gd must contain is_drone_operator export variable")
 
 
-func test_enemy_script_applies_dodge_velocity_in_active_phase() -> void:
-	## Issue #1540: in ACTIVE phase, drone operator dodge velocity must override AI velocity
-	## so the lateral sidestep is not cancelled by normal movement logic.
+func test_enemy_script_handles_drone_operator_teleport_in_active_phase() -> void:
+	## Issue #1664: in ACTIVE phase, drone operator must teleport on hit and under fire,
+	## same as the regular teleport enemy behavior.
 	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
 	if file == null:
 		gut.p("Cannot open enemy.gd — skipping (export build)")
@@ -564,8 +446,8 @@ func test_enemy_script_applies_dodge_velocity_in_active_phase() -> void:
 		return
 	var source := file.get_as_text()
 	file.close()
-	assert_true(source.contains("get_dodge_velocity"),
-		"enemy.gd must apply drone operator dodge velocity via get_dodge_velocity() (Issue #1540)")
+	assert_true(source.contains("_drone_operator.try_evasion_teleport"),
+		"enemy.gd must call _drone_operator.try_evasion_teleport() for bullet evasion (Issue #1664)")
 
 
 func test_drone_operator_scene_exists() -> void:
@@ -588,9 +470,9 @@ func test_drone_component_script_exists() -> void:
 		"drone_component.gd script must exist")
 
 
-func test_drone_operator_uses_machete_style_dodge() -> void:
-	## Issue #1540: drone operator ACTIVE phase must use MacheteComponent for bullet dodging
-	## (perpendicular lateral sidestep, no dash). Verifies the component is set up in ACTIVE.
+func test_drone_operator_uses_teleport_evasion() -> void:
+	## Issue #1664: drone operator ACTIVE phase must use EnemyTeleportComponent for bullet evasion
+	## (teleports to cover on first bullet, same as teleport enemy). Verifies set up in ACTIVE.
 	var file := FileAccess.open("res://scripts/components/drone_operator_component.gd", FileAccess.READ)
 	if file == null:
 		gut.p("Cannot open drone_operator_component.gd — skipping (export build)")
@@ -598,15 +480,15 @@ func test_drone_operator_uses_machete_style_dodge() -> void:
 		return
 	var source := file.get_as_text()
 	file.close()
-	assert_true(source.contains("MacheteComponent"),
-		"drone_operator_component.gd must use MacheteComponent for bullet dodging (Issue #1540)")
-	assert_true(source.contains("_setup_dodge_component"),
-		"drone_operator_component.gd must call _setup_dodge_component() in ACTIVE phase (Issue #1540)")
+	assert_true(source.contains("EnemyTeleportComponent"),
+		"drone_operator_component.gd must use EnemyTeleportComponent for bullet evasion (Issue #1664)")
+	assert_true(source.contains("_setup_teleport_component"),
+		"drone_operator_component.gd must call _setup_teleport_component() in ACTIVE phase (Issue #1664)")
 
 
-func test_enemy_combat_state_handles_drone_operator_dodge() -> void:
-	## Issue #1540: enemy.gd COMBAT state must handle drone operator dodge
-	## the same way it handles machete dodge — check bullet direction and try_dodge.
+func test_enemy_combat_state_handles_drone_operator_teleport() -> void:
+	## Issue #1664: enemy.gd COMBAT state must handle drone operator teleport evasion
+	## the same way it handles regular teleporter — cover-teleport when under fire.
 	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
 	if file == null:
 		gut.p("Cannot open enemy.gd — skipping (export build)")
@@ -614,16 +496,15 @@ func test_enemy_combat_state_handles_drone_operator_dodge() -> void:
 		return
 	var source := file.get_as_text()
 	file.close()
-	assert_true(source.contains("_drone_operator.try_dodge"),
-		"enemy.gd COMBAT state must call _drone_operator.try_dodge() for bullet evasion (Issue #1540)")
-	assert_true(source.contains("_drone_operator.is_dodging"),
-		"enemy.gd COMBAT state must check _drone_operator.is_dodging() (Issue #1540)")
+	assert_true(source.contains("_drone_operator.try_cover_teleport"),
+		"enemy.gd COMBAT state must call _drone_operator.try_cover_teleport() for evasion (Issue #1664)")
+	assert_true(source.contains("_drone_operator.is_teleport_ready"),
+		"enemy.gd COMBAT state must check _drone_operator.is_teleport_ready() (Issue #1664)")
 
 
 func test_drone_operator_active_does_not_use_machete_melee_in_combat() -> void:
-	## Issue #1540: Drone operator ACTIVE phase must NOT use machete melee attack logic
-	## in the combat state. Normal ranged combat must run after the dodge check.
-	## The operator must behave like a normal ranged enemy with a lateral dodge — not a melee enemy.
+	## Issue #1540/#1664: Drone operator ACTIVE phase must NOT use machete melee attack logic.
+	## Normal ranged combat must run after the teleport check.
 	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
 	if file == null:
 		gut.p("Cannot open enemy.gd — skipping (export build)")
@@ -632,29 +513,24 @@ func test_drone_operator_active_does_not_use_machete_melee_in_combat() -> void:
 	var source := file.get_as_text()
 	file.close()
 	# Find the drone operator ACTIVE block
-	var drone_block_start: int = source.find("# Issue #1540: Drone operator ACTIVE")
+	var drone_block_start: int = source.find("# Issue #1664: Drone operator ACTIVE")
 	assert_gt(drone_block_start, 0,
-		"enemy.gd must contain the Issue #1540 drone operator ACTIVE block")
-	# The block should end before any machine-gun/sniper specific logic
-	# and NOT contain a 'return' that would prevent normal combat from running
-	# after the dodge check. Extract the block to verify:
+		"enemy.gd must contain the Issue #1664 drone operator ACTIVE block")
+	# The block should end before machine-gun/sniper logic
 	var block_end: int = source.find("# [#1033] Machine gunner", drone_block_start)
 	assert_gt(block_end, 0,
 		"There should be a machine gunner comment after the drone operator block")
 	var drone_block: String = source.substr(drone_block_start, block_end - drone_block_start)
-	# The block must NOT contain perform_melee_attack (machete behavior)
 	assert_false(drone_block.contains("perform_melee_attack"),
-		"Drone operator ACTIVE block must NOT call perform_melee_attack — it uses ranged combat (Issue #1540)")
-	# The block must NOT contain backstab logic
+		"Drone operator ACTIVE block must NOT call perform_melee_attack (Issue #1540/#1664)")
 	assert_false(drone_block.contains("is_backstab_opportunity"),
-		"Drone operator ACTIVE block must NOT use machete backstab approach (Issue #1540)")
+		"Drone operator ACTIVE block must NOT use machete backstab approach (Issue #1540/#1664)")
 
 
-func test_dodge_component_parent_is_assigned_after_add_child() -> void:
-	## Issue #1664: MacheteComponent._ready() sets _parent = get_parent() as CharacterBody2D.
-	## When the component is added as child of DroneOperatorComponent (a Node, not CharacterBody2D),
-	## the cast returns null and all dodge calls silently return false.
-	## Fix: _setup_dodge_component() must explicitly set _dodge_component._parent after add_child().
+func test_teleport_component_parent_is_assigned_after_add_child() -> void:
+	## Issue #1664: EnemyTeleportComponent._ready() sets _parent = get_parent() as CharacterBody2D.
+	## When added as child of DroneOperatorComponent (a Node, not CharacterBody2D), cast returns null.
+	## Fix: _setup_teleport_component() must explicitly assign _teleport_component._parent.
 	var file := FileAccess.open("res://scripts/components/drone_operator_component.gd", FileAccess.READ)
 	if file == null:
 		gut.p("Cannot open drone_operator_component.gd — skipping (export build)")
@@ -662,19 +538,15 @@ func test_dodge_component_parent_is_assigned_after_add_child() -> void:
 		return
 	var source := file.get_as_text()
 	file.close()
-	# The fix must assign _dodge_component._parent explicitly after add_child
-	assert_true(source.contains("_dodge_component._parent = _parent"),
-		"_setup_dodge_component() must explicitly assign _dodge_component._parent = _parent " +
-		"so MacheteComponent can use the enemy CharacterBody2D (Issue #1664)")
+	assert_true(source.contains("_teleport_component._parent = _parent"),
+		"_setup_teleport_component() must explicitly assign _teleport_component._parent (Issue #1664)")
 
 
-func test_immediate_dodge_trigger_source_present() -> void:
-	## Issue #1664 Session 3: dodge must be triggered immediately on threat sphere entry,
-	## not deferred to the next physics frame after threat_reaction_delay (0.2s).
-	## The root cause: threat_reaction_delay means _under_fire is never set before a fast
-	## bullet kills the enemy (2HP vs 2dmg = 1-shot kill, bullet hits on same frame as sphere entry).
-	## Fix: in _on_threat_area_entered (enemy.gd), trigger drone operator dodge immediately
-	## (same pattern as EnemyTeleportComponent.try_damage_teleport on-hit response).
+func test_immediate_teleport_trigger_source_present() -> void:
+	## Issue #1664: teleport must be triggered immediately on threat sphere entry,
+	## not deferred to the next frame after threat_reaction_delay (0.2s).
+	## Fix: in _on_threat_area_entered (enemy.gd), trigger drone operator evasion teleport
+	## immediately (same pattern as EnemyTeleportComponent.try_damage_teleport on-hit response).
 	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
 	if file == null:
 		gut.p("Cannot open enemy.gd — skipping (export build)")
@@ -682,18 +554,14 @@ func test_immediate_dodge_trigger_source_present() -> void:
 		return
 	var source := file.get_as_text()
 	file.close()
-	# The fix must be inside _on_threat_area_entered — find that function
 	var fn_start: int = source.find("func _on_threat_area_entered")
 	assert_gt(fn_start, 0,
 		"enemy.gd must contain _on_threat_area_entered function")
-	# Find end of function (next top-level func or end of file)
 	var fn_end: int = source.find("\nfunc ", fn_start + 1)
 	if fn_end < 0:
 		fn_end = source.length()
 	var fn_body: String = source.substr(fn_start, fn_end - fn_start)
-	# The immediate-trigger fix must be present in _on_threat_area_entered
-	assert_true(fn_body.contains("_drone_operator.try_dodge"),
-		"_on_threat_area_entered must immediately call _drone_operator.try_dodge() " +
-		"so the dodge fires on the same frame the bullet enters the sphere (Issue #1664 Session 3)")
+	assert_true(fn_body.contains("_drone_operator.try_evasion_teleport"),
+		"_on_threat_area_entered must call _drone_operator.try_evasion_teleport() (Issue #1664)")
 	assert_true(fn_body.contains("DroneOperatorComponent.Phase.ACTIVE"),
-		"_on_threat_area_entered must guard the immediate dodge with Phase.ACTIVE check (Issue #1664 Session 3)")
+		"_on_threat_area_entered must guard the teleport with Phase.ACTIVE check (Issue #1664)")
