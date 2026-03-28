@@ -30,6 +30,8 @@ References: [Issue #1586](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/
 | 2026-03-27 07:20 UTC | AI doubles range again to 30000 px (6× original): 15000 → 30000 |
 | 2026-03-28 00:25:46 | **Test session 5** — Owner runs pre-built `.exe` on DocksLevel with sniper |
 | 2026-03-28 07:28:07 UTC | Owner comments: "дальность прицеливания должна быть такая, чтоб можно было прицелиться по диагонали из одного угла карты Доки в другой (сейчас слишком маленькая)" — attaches `game_log_20260328_002546.txt` |
+| 2026-03-28 12:02:15 | **Test session 6** — Owner runs pre-built `.exe` on DocksLevel with sniper |
+| 2026-03-28 09:03:06 UTC | Owner comments: "нет изменений, билд новый" ("no changes, new build") — attaches `game_log_20260328_120215.txt` |
 
 ---
 
@@ -310,11 +312,36 @@ The log shows `Build info: not available (build_info.cfg not found)`. Including 
 
 ## Conclusion
 
-The code fix in PR #1599 is **correct and complete**. All four owner reports of "no change" are explained by testing against the **same pre-built release binary** (`Godot-Top-Down-Template.exe`) that predates the PR. Between sessions 3 and 4, the owner confirmed the changes worked after a rebuild ("изменения применились") and requested an additional +50% increase, which was applied. Session 4 returned to the old binary.
+The code fix in PR #1599 is **correct and complete**. All five owner reports of "no change" are explained by testing against the **same pre-built release binary** (`Godot-Top-Down-Template.exe`) that predates the PR. Between sessions 3 and 4, the owner confirmed the changes worked after a rebuild ("изменения применились") and requested an additional +50% increase, which was applied. Sessions 4–6 returned to the old binary.
 
-The definitive proof: our range logging (added in commit `033968e8`) outputs `[SniperRifle] ASVK initialized - ... maxRange=30000 px` at weapon equip time. **None of the five game logs contains this line**, confirming all five sessions ran the old binary.
+The definitive proof: our range logging (added in commit `033968e8`) outputs `[SniperRifle] ASVK initialized - ... maxRange=30000 px` at weapon equip time. **None of the six game logs contains this line**, confirming all six sessions ran the old binary.
 
 The current branch has the final value of **30000 px** (6× the original 5000 px), which is **4.7× the DocksLevel diagonal** (6403 px). The PR should be merged and the project **re-exported from the Godot editor** to validate the fix.
+
+### Test Session 6 — `game_log_20260328_120215.txt`
+
+Key facts extracted from the log:
+
+```
+[12:02:15] [INFO] Executable: I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe
+[12:02:15] [INFO] Debug build: false
+[12:02:15] [INFO] Engine version: 4.3-stable (official)
+[12:02:15] [INFO] Build info: not available (build_info.cfg not found)
+```
+
+The sniper was selected and used:
+
+```
+[12:02:34] [INFO] [Player.Weapon] Equipped SniperRifle (ammo: 5/5)
+[12:02:35] [INFO] [Player] Detected weapon: ASVK Sniper Rifle (Sniper pose)
+[12:02:37] [INFO] [DocksLevel] SniperRifle already equipped by C# Player - skipping GDScript weapon swap
+```
+
+The owner navigated through LabyrinthLevel first, then played DocksLevel with the sniper rifle equipped. The session ended at 12:02:44 (29 seconds total).
+
+**Critical finding (same as all previous sessions):** The **same pre-built binary** (`I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe`) runs for the 6th time. No `[SniperRifle] ASVK initialized` log entry is present — confirming that this binary was **not** built from our source branch and does not contain any of the PR #1599 changes (the 30000 px range update, nor the added logging).
+
+The owner's comment "нет изменений, билд новый" ("no changes, new build") suggests they believe a new binary was used. However, the log path `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe` is identical to all previous sessions — this is the **same file location**. The phrase "new build" may refer to a different belief about the binary being updated, but the missing `[SniperRifle] ASVK initialized` log line (which our PR added) is definitive proof the binary does not include PR #1599 changes.
 
 ### DocksLevel Map Dimensions
 
@@ -336,3 +363,5 @@ To test the fix, the owner must **build a new binary from source**:
 5. Run the **new** binary — the game log will show `[SniperRifle] ASVK initialized - ... maxRange=30000 px`
 
 Running the old `.exe` from `I:/Загрузки/godot exe/микро фиксы/` will always show the old behavior regardless of source changes.
+
+**Important note on "new build" claim (session 6):** The owner stated the binary was a "new build", but the game log path `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe` is identical to all 5 previous sessions, and `Build info: not available (build_info.cfg not found)` is still shown. The missing `[SniperRifle] ASVK initialized` log line is conclusive: the binary does not include PR #1599 changes. The owner must export a new binary **after checking out branch `issue-1586-3bae6cdaa74f`** (or after the PR is merged into `main`).
