@@ -75,6 +75,9 @@ var _spawn_elapsed: float = 0.0
 func _ready() -> void:
 	FileLogger.info("[ChemicalCloud] _ready() at %s" % str(global_position))
 	_time_remaining = cloud_duration
+	# Issue #1688: Start at grenade size (scale 0) so cloud grows from nothing
+	if grow_in_duration > 0.0:
+		scale = Vector2.ZERO
 	_setup_detection_area()
 	_setup_cloud_visual()
 	# Find player
@@ -325,7 +328,7 @@ func _create_particle_visual() -> GPUParticles2D:
 	particles.process_material = material
 	particles.texture = tex
 	particles.lifetime = 4.0
-	particles.preprocess = 1.0
+	particles.preprocess = 0.0  # No pre-fill — cloud grows from zero scale
 	particles.explosiveness = 0.1
 	particles.randomness = 0.3
 	particles.one_shot = false
