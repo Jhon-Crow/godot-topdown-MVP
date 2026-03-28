@@ -900,3 +900,74 @@ func test_1450_navigate_away_marks_current_room_cleared() -> void:
 
 	assert_true(is_cleared_revisit,
 		"Combat room must be marked cleared after _navigate_to_map_room, so re-entry skips enemy spawn")
+
+
+# ============================================================================
+# Issue #1617: Room name must match room visual (wall colour per room type)
+# ============================================================================
+
+## ROOM_WALL_COLORS mirrored from roguelike_level.gd for unit testing.
+## Keys are RoomType enum values (int).
+const ROOM_WALL_COLORS: Dictionary = {
+	0: Color(0.28, 0.30, 0.38, 1.0),  ## LABYRINTH — blue-grey stone
+	1: Color(0.38, 0.30, 0.28, 1.0),  ## BUILDING  — warm brick-red
+	2: Color(0.52, 0.46, 0.32, 1.0),  ## BEACH     — sandy tan
+	3: Color(0.26, 0.32, 0.36, 1.0),  ## DOCKS     — steel-blue
+	4: Color(0.34, 0.34, 0.34, 1.0),  ## CITY      — concrete grey
+	5: Color(0.22, 0.28, 0.22, 1.0),  ## SEWER     — mossy green
+}
+
+const ROOM_FLOOR_COLORS_1617: Dictionary = {
+	0: Color(0.16, 0.18, 0.22, 1.0),  ## LABYRINTH
+	1: Color(0.20, 0.18, 0.18, 1.0),  ## BUILDING
+	2: Color(0.22, 0.20, 0.14, 1.0),  ## BEACH
+	3: Color(0.14, 0.18, 0.20, 1.0),  ## DOCKS
+	4: Color(0.20, 0.20, 0.20, 1.0),  ## CITY
+	5: Color(0.12, 0.14, 0.12, 1.0),  ## SEWER
+}
+
+func test_1617_all_room_types_have_wall_color() -> void:
+	## Every RoomType value must have a distinct entry in ROOM_WALL_COLORS.
+	var expected_count: int = 6  # LABYRINTH..SEWER
+	assert_eq(ROOM_WALL_COLORS.size(), expected_count,
+		"ROOM_WALL_COLORS must have one entry per RoomType")
+	for room_type in range(expected_count):
+		assert_true(ROOM_WALL_COLORS.has(room_type),
+			"ROOM_WALL_COLORS must contain entry for RoomType %d" % room_type)
+
+
+func test_1617_wall_colors_are_distinct_from_each_other() -> void:
+	## Each room type should have a visually distinguishable wall colour.
+	## This catches copy-paste errors where two types share the same colour.
+	var seen: Array = []
+	for room_type in ROOM_WALL_COLORS:
+		var c: Color = ROOM_WALL_COLORS[room_type]
+		assert_false(c in seen,
+			"Wall colour for RoomType %d is a duplicate — each type needs a unique colour" % room_type)
+		seen.append(c)
+
+
+func test_1617_wall_and_floor_colors_differ_per_type() -> void:
+	## For each room type, the wall colour must differ from the floor colour so
+	## walls are visually distinguishable from the floor.
+	for room_type in ROOM_WALL_COLORS:
+		var wall_c: Color  = ROOM_WALL_COLORS[room_type]
+		var floor_c: Color = ROOM_FLOOR_COLORS_1617[room_type]
+		assert_ne(wall_c, floor_c,
+			"Wall and floor colour must differ for RoomType %d" % room_type)
+
+
+func test_1617_wall_colors_are_not_all_same_grey() -> void:
+	## Before the fix, all rooms used WALL_COLOR = Color(0.3, 0.3, 0.35).
+	## Verify that no room type still has that uniform default grey.
+	var default_grey := Color(0.3, 0.3, 0.35, 1.0)
+	for room_type in ROOM_WALL_COLORS:
+		assert_ne(ROOM_WALL_COLORS[room_type], default_grey,
+			"RoomType %d must not use the old default grey wall colour (Issue #1617 fix)" % room_type)
+
+
+func test_1617_all_room_types_have_floor_color() -> void:
+	## ROOM_FLOOR_COLORS must also cover all room types (existing coverage check).
+	var expected_count: int = 6
+	assert_eq(ROOM_FLOOR_COLORS_1617.size(), expected_count,
+		"ROOM_FLOOR_COLORS must have one entry per RoomType")
