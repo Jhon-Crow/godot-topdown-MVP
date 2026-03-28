@@ -130,3 +130,111 @@ Effective z of each puddle = 1 (manager) + 0 (sprite) = **1**, above floor (z=0)
 - Game log: `game_log_20260328_082042.txt` (in this folder)
 - [Godot 4 z_index docs](https://docs.godotengine.org/en/stable/classes/class_canvasitem.html#class-canvasitem-property-z-index)
 - PR: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1656
+
+---
+
+## Visual Appearance Iteration Log (Feedback-Driven)
+
+### Iteration 1 — Color Fix (2026-03-28 ~07:00)
+
+**User feedback:** Puddles visible but look bright blue, not like real puddles.
+**Reference image:** Dark charcoal oval (`reference_puddle_new.png` in this folder).
+**Root cause:** `GradientTexture2D` colors used high-saturation blue-grey (R:97, G:133, B:166 range).
+**Fix applied:** Changed gradient color stops to neutral dark charcoal gray; texture resolution 64→128.
+
+### Iteration 2 — PNG Sprite Replace (2026-03-28 ~07:09)
+
+**User feedback:** (still looking like flat colored blob despite gradient changes)
+**Root cause:** `GradientTexture2D` is fundamentally limited — only produces smooth radial gradients, cannot achieve natural irregular outline.
+**Fix applied:** Generated Python `puddle.png` 128×128 RGBA sprite via PIL; replaced scene texture resource.
+
+### Iteration 3 — Transparency + Shape Variety (2026-03-28 ~07:22)
+
+**User feedback (Russian):** Лужи должны быть более прозрачными (особенно пока маленькие). Так же должна быть разная форма луж (не должно быть просто круглых).
+**Translation:** Puddles should be more transparent (especially when small). Also there should be different puddle shapes (shouldn't just be round ones).
+**Fix applied:**
+- Phase 1 alpha 0.72 → 0.35; Phase 3 max alpha 0.85 → 0.60
+- Added 4 distinct texture variants (puddle.png through puddle_4.png) with organic outlines
+- PuddleManager randomly assigns shape variant at spawn
+
+### Iteration 4 — 6-Item Feedback (2026-03-28 ~07:38)
+
+**User feedback (Russian, 6 items):**
+1. Убери светлое пятно с середины лужи — remove bright spot from puddle center
+2. На уровне не должно быть двух луж одинаковой формы — no two identical shapes on map
+3. Сделай больше видов луж — more puddle shape variants
+4. Лужи не должны пересекать здание — puddles must not overlap/enter buildings
+5. Слой с препятствием должен быть поверх лужи — obstacle layer must be above puddle
+6. Лужи должны расти неограниченно (скорость роста меньше в 2 раза) — grow unbounded, half speed
+
+**Fix applied (commit `346e599a`):**
+- 8 texture variants; flat fill (no radial highlight); shuffled unique assignment
+- Exclusion zones added for CranePlatform + all containers (were only for warehouses before)
+- Structures/Containers z_index=2, PuddleManager z_index=1
+- All position Y ≥ 560 to keep clear of water stripe
+- Removed LARGE_SCALE cap; Phase 3 grows indefinitely; all durations doubled
+
+### Iteration 5 — Color Still Blue (2026-03-28 ~08:32)
+
+**User feedback:** Лужи опять стали яркими — puddles again became bright.
+**Reference image:** `feedback_light_spot.png` — user showing desired neutral grey puddle.
+**Root cause:** Python generator used RGB(25,30,42) — blue channel (42) dominated heavily.
+**Fix applied (commit `8c385b43`):** Body RGB(60,60,65) — neutral charcoal with no color bias. Verified against reference (center pixel R:64 G:63 B:66 vs new sprites avg R:60 G:60 B:65).
+
+### Iteration 6 — Clipping + Still Too Bright + Realistic Shapes (2026-03-28 ~08:45)
+
+**User feedback:**
+- Лужи обрезаются полом — puddles get clipped by floor/water boundary (`feedback_building_overlap.png`)
+- Всё ещё слишком светлые (должны быть без бликов серые) — still too bright, should be grey without highlights
+- Сделай более реалистичные формы — make more realistic shapes
+
+**Root cause for clipping:** Northern puddle positions (Y < 560) allowed sprites to extend above the water boundary at Y≈200 when grown.
+**Fix applied (commit `2c52a621`):**
+- All Y ≥ 560; fill color RGB(38,36,35) (definitively darker than floor RGB(64,59,56))
+- 256×256 canvas; lobe+indent perturbations for multi-lobe organic shapes; crisp edge feathering (blur radius=2)
+
+### Iteration 7 — Latest Feedback (2026-03-28 ~09:06)
+
+**User feedback (4 items):**
+1. Сделай лужи более прозрачными (на 10-30% прозрачнее) — make puddles 10-30% more transparent
+2. Сейчас некоторые лужи имеют резкие углы (как будто обрезано изображение) — some puddles have sharp corners
+3. На одной карте не должно быть одинаковых луж (сейчас более 3 одинаковых) — no duplicate shapes (3+ repeating now)
+4. При наложении один слой должен полностью вычитаться — чтоб выглядело как будто лужи сливаются — overlapping puddles should merge/subtract, not stack
+
+**Root cause analysis:**
+
+**Item 2 — Sharp corners:**
+Sprite configs for `puddle_6.png` (roughness=0.52, 11 control points) and `puddle_8.png` (roughness=0.44, 9 control points) had too few control points combined with high roughness. With n=9 and roughness=0.52, cosine interpolation between adjacent control radii created concave indents deep enough to produce straight-line-looking cuts in the polygon.
+
+**Item 3 — Repeated shapes:**
+The `_build_shuffled_texture_queue()` fills shuffled batches of 8 (one full set of all 8 variants), cycling until enough for all 27 puddles. 27 / 8 = 3 full batches + 3 extra, so at minimum 3 puddles always get repeated textures. Fixed by expanding to 16 variants.
+
+**Item 4 — Puddle overlap stacking vs merging:**
+In Godot 4, `Node2D` composites each child Sprite2D directly against the already-rendered scene buffer. When two semi-transparent sprites overlap, their alphas combine: `α_combined = α1 + α2 × (1 - α1)`. This makes overlap areas visibly darker/more opaque — two distinct layers visible.
+
+The solution is `CanvasGroup`: it composites all children into an intermediate off-screen buffer first, then blends the group's buffer against the parent scene in a single operation. Children that overlap within the group share the same buffer, so their alpha contributions do not accumulate — they appear as a single merged body of water.
+
+**Fix applied (this session):**
+- `BODY_ALPHA`: 140 → 105 (more transparent sprites)
+- Phase alpha values: Phase 1: 0.35→0.25; Phase 2: 0.45→0.34; Phase 3 max: 0.70→0.55
+- All sprite configs: minimum num_control=12; roughness capped at 0.40; improved inner-poly feathering; final blur pass
+- Expanded from 8 to **16 texture variants**; added random horizontal/vertical flip on spawn
+- `PuddleManager` base type changed `Node2D` → `CanvasGroup`; `DocksLevel.tscn` updated to match
+
+**Technical references:**
+- [Godot 4 CanvasGroup](https://docs.godotengine.org/en/stable/classes/class_canvasgroup.html) — "Composites all children into a group before rendering to the screen"
+- [Alpha compositing (Porter-Duff)](https://en.wikipedia.org/wiki/Alpha_compositing) — explains "over" blend and why alpha stacks in normal compositing
+- [Godot CanvasItem.blend_mode](https://docs.godotengine.org/en/stable/classes/class_canvasitem.html#class-canvasitem-property-blend_mode) — blend mode options
+- PIL Pillow docs for Python sprite generation: https://pillow.readthedocs.io/
+
+---
+
+## Data Files in This Folder
+
+| File | Source | Description |
+|------|--------|-------------|
+| `game_log_20260328_082042.txt` | User-attached to PR comment 2026-03-28 | Game log confirming puddles spawned but were invisible |
+| `reference_puddle_new.png` | PR comment screenshot 2026-03-28 | Reference image showing desired puddle appearance |
+| `feedback_light_spot.png` | PR comment screenshot 2026-03-28 | User feedback on bright center spot issue |
+| `feedback_building_overlap.png` | PR comment screenshot 2026-03-28 | User feedback showing puddle/building overlap |
+| `feedback_obstacle_layer.png` | PR comment screenshot 2026-03-28 | User feedback showing obstacle z-order issue |

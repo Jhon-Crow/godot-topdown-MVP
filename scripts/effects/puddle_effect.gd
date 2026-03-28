@@ -77,7 +77,7 @@ func start_growing() -> void:
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(self, "scale", target_small, APPEAR_DURATION) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "modulate:a", 0.35, APPEAR_DURATION * 0.6) \
+	tween.tween_property(self, "modulate:a", 0.25, APPEAR_DURATION * 0.6) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	await tween.finished
 
@@ -90,7 +90,7 @@ func start_growing() -> void:
 	var tween2 := create_tween().set_parallel(true)
 	tween2.tween_property(self, "scale", target_medium, GROW_TO_MEDIUM_DURATION) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tween2.tween_property(self, "modulate:a", 0.45, GROW_TO_MEDIUM_DURATION) \
+	tween2.tween_property(self, "modulate:a", 0.34, GROW_TO_MEDIUM_DURATION) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await tween2.finished
 
@@ -106,7 +106,7 @@ func start_growing() -> void:
 		tween3.tween_property(self, "scale", target_next, GROW_STEP_DURATION) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		# Gradually increase opacity as the puddle grows larger, cap at 0.7.
-		var next_alpha: float = minf(0.70, modulate.a + 0.05)
+		var next_alpha: float = minf(0.55, modulate.a + 0.04)
 		tween3.tween_property(self, "modulate:a", next_alpha, GROW_STEP_DURATION)
 		await tween3.finished
 

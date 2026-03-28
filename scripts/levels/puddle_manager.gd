@@ -1,4 +1,4 @@
-extends Node2D
+extends CanvasGroup
 ## Manages rain puddles on the Docks map (Issue #1626).
 ##
 ## Spawns a set of puddles at logically placed positions across the outdoor
@@ -22,7 +22,8 @@ extends Node2D
 const PUDDLE_SCENE_PATH: StringName = &"res://scenes/effects/PuddleEffect.tscn"
 
 ## Puddle texture variants — each has a distinct irregular shape so puddles
-## don't all look identical.  8 variants are provided.
+## don't all look identical.  16 variants are provided (enough to cover all
+## 27 spawn positions without any shape repeating on the map).
 const PUDDLE_TEXTURE_PATHS: Array = [
 	"res://assets/sprites/effects/puddle.png",
 	"res://assets/sprites/effects/puddle_2.png",
@@ -32,6 +33,14 @@ const PUDDLE_TEXTURE_PATHS: Array = [
 	"res://assets/sprites/effects/puddle_6.png",
 	"res://assets/sprites/effects/puddle_7.png",
 	"res://assets/sprites/effects/puddle_8.png",
+	"res://assets/sprites/effects/puddle_9.png",
+	"res://assets/sprites/effects/puddle_10.png",
+	"res://assets/sprites/effects/puddle_11.png",
+	"res://assets/sprites/effects/puddle_12.png",
+	"res://assets/sprites/effects/puddle_13.png",
+	"res://assets/sprites/effects/puddle_14.png",
+	"res://assets/sprites/effects/puddle_15.png",
+	"res://assets/sprites/effects/puddle_16.png",
 ]
 
 ## Pre-defined puddle spawn positions in world space.
@@ -176,6 +185,11 @@ func _spawn_puddles() -> void:
 		# (puddles are rarely perfect circles).
 		var stretch_x: float = randf_range(0.85, 1.35)
 		var stretch_y: float = randf_range(0.6, 0.95)
+		# Random horizontal/vertical flip so even same-texture puddles look unique.
+		if randf() > 0.5:
+			stretch_x *= -1.0
+		if randf() > 0.5:
+			stretch_y *= -1.0
 		puddle.scale = Vector2(stretch_x, stretch_y)
 
 		add_child(puddle)

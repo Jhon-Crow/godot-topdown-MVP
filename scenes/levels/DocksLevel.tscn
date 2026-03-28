@@ -1036,7 +1036,7 @@ enable_cover = true
 [node name="RainEffect" parent="." instance=ExtResource("6_rain_effect")]
 z_index = 100
 
-[node name="PuddleManager" type="Node2D" parent="."]
+[node name="PuddleManager" type="CanvasGroup" parent="."]
 z_index = 1
 script = ExtResource("7_puddle_manager")
 
