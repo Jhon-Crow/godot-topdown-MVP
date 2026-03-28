@@ -276,6 +276,100 @@ Build info: not available (build_info.cfg not found)
 
 ---
 
+## Fifth Owner Report: "не работает" (2026-03-28 16:32 UTC, test 5)
+
+After the fourth work session (commit `3a736ac2`, 2026-03-28 15:00 UTC CI build complete),
+the owner tested again at 19:31 UTC and reported "не работает" (doesn't work), attaching
+`game_log_20260328_193137.txt`.
+
+### Log Evidence (game_log_20260328_193137.txt)
+
+- **Total log lines**: 3,994
+- **Blood puddles logged**: 2,033
+- **Blood puddles inside water area** (x∈[64,2464], y∈[32,452]): **1,687** (83.0%)
+- `Build info: not available (build_info.cfg not found)`
+- `[WaterBody] _ready() start` log: **NOT PRESENT** (our new early diagnostic)
+- `[WaterBody] Ready —` log: **NOT PRESENT**
+- `[BeachLevel] Water node registered in 'water_body' group (Issue #1578 fallback — water_body.gd _ready() did NOT pre-register)`: **PRESENT at 19:31:46**
+
+### Critical New Finding: Partial Fix Visible, But fix IS in the EXE
+
+The fifth log contains our `beach_level.gd` fallback code output — meaning `beach_level.gd`
+IS from our branch's code. This contradicts the earlier hypothesis that the user was running
+a fully pre-fix build.
+
+Binary verification of the CI-built EXE (run 23687766135, commit `3a736ac2`):
+```
+✓  add_to_group("water_body")
+✓  is_point_in_water(world_pos: Vector2) -> bool
+✓  spawn_blood_diffusion_at(...)
+✓  _find_water_body_at(landing_pos)
+✓  if wb.has_method("is_point_in_water") and wb.is_point_in_water(world_pos)
+```
+**All fix code IS in the EXE.**
+
+### Why `build_info.cfg` Is Never Found — Root Cause
+
+The CI generates `build_info.cfg` in the workspace root, but Godot's export with
+`export_filter="all_resources"` only includes files referenced as resources. The plain
+`build_info.cfg` has no corresponding `.import` file and is not referenced by the project,
+so it gets excluded from the PCK.
+
+**Consequence**: `Build info: not available` appears in EVERY exported build, making this
+an unreliable diagnostic signal.
+
+**Fix**: Added `include_filter="*.cfg"` to `export_presets.cfg` so all `.cfg` files
+(including `build_info.cfg`) are included in the export PCK.
+
+### Why `[WaterBody] _ready()` Is Not Logging — Open Question
+
+Despite our code being in the EXE, `water_body.gd._ready()` is NOT executing its
+early log (`[WaterBody] _ready() start`) AND is NOT registering the node in
+the `"water_body"` group (hence the fallback ran).
+
+This is the critical unresolved issue. The fallback DOES register the water in the group,
+so `_find_water_body_at` should then find the node. But 83% of blood puddles are still
+in the water area.
+
+### Why Blood Still Creates Puddles in Water Despite Fallback
+
+Two possible causes remain:
+1. **`has_method("is_point_in_water")` returns false** — even though the method IS in the
+   EXE, `has_method()` may behave differently in some exported builds.
+2. **`_find_water_body_at` is not being called** — possibly `_schedule_delayed_decal` is
+   returning early before the water check.
+
+### Changes in This Session (session 5)
+
+1. **`water_body.gd`**: Added unconditional early `_log("[WaterBody] _ready() start")` at
+   the very first line of `_ready()` to confirm the script's initialization in the build.
+
+2. **`beach_level.gd`**: Added `has_method('is_point_in_water')` diagnostic log after
+   group registration to verify the method is accessible.
+
+3. **`impact_effects_manager.gd`**: Added `_debug_water_group_logged` variable and
+   unconditional logging when `"water_body"` group is empty, logged once per scene.
+
+4. **`export_presets.cfg`**: Added `include_filter="*.cfg"` to ensure `build_info.cfg`
+   is packed into the exported EXE, making the build branch/commit diagnostic reliable.
+
+### Expected Log Signature for Correct Build After This Session
+
+```
+Build branch: issue-1578-d6d3b68c9ede
+Build commit: <latest>
+...
+[WaterBody] _ready() start — registering groups
+[WaterBody] Ready — visual=true shader=OK collision=true splash=OK blood=OK
+[BeachLevel] Water node already in 'water_body' group (water_body.gd _ready() ran OK)
+[BeachLevel] Water.has_method('is_point_in_water') = true
+```
+
+If the log shows `is_point_in_water = false`, that confirms has_method() is the culprit.
+If `_ready() start` is absent, the script is not loading at all.
+
+---
+
 ## Game Log Files
 
 All game logs referenced in this case study are archived in `game-logs/`:
@@ -285,3 +379,4 @@ All game logs referenced in this case study are archived in `game-logs/`:
 | `game_log_20260327_085514.txt`        | Test 1       | "не сработало"          |
 | `game_log_20260327_092156.txt`        | Test 2       | "изменений нет"         |
 | `game_log_20260327_102127.txt`        | Test 3       | "всё ещё простые лужи"  |
+| `game_log_20260328_193137.txt`        | Test 5       | "не работает"           |

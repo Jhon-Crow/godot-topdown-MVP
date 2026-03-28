@@ -73,6 +73,8 @@ var _saved_surf_speed: float = 0.0
 
 
 func _ready() -> void:
+	# Unconditional early log — confirms this script's _ready() is running in the build (Issue #1578).
+	_log("[WaterBody] _ready() start — registering groups")
 	# Register in group so ImpactEffectsManager can locate this node by group query (Issue #1578).
 	add_to_group("water_body")
 	# Register in group so LastChanceEffectsManager can find this node reliably

@@ -130,6 +130,10 @@ var _last_scene: Node = null
 ## Warmup pre-compiles GPU shaders to prevent first-shot lag (Issue #343).
 var _warmup_completed: bool = false
 
+## Tracks the scene for which we already logged the "water_body group empty" warning (Issue #1578).
+## Prevents the same warning from spamming once per blood-decal-in-water check.
+var _debug_water_group_logged: Node = null
+
 
 func _ready() -> void:
 	# CRITICAL: First line diagnostic - if this doesn't appear, script failed to load
@@ -759,6 +763,12 @@ func _find_water_body_at(world_pos: Vector2) -> Node:
 		return null
 	# WaterBody nodes self-register in the "water_body" group inside _ready() (Issue #1578).
 	var water_bodies := get_tree().get_nodes_in_group("water_body")
+	if water_bodies.is_empty():
+		# Group is empty — log once per scene to aid diagnosis (Issue #1578).
+		if _debug_water_group_logged != current_scene:
+			_debug_water_group_logged = current_scene
+			_log_info("[ImpactEffects] water_body group empty on scene '%s' — blood-in-water check unavailable (Issue #1578)" % current_scene.name)
+		return null
 	for wb in water_bodies:
 		if not is_instance_valid(wb):
 			continue

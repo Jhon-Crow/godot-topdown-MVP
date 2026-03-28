@@ -1378,9 +1378,12 @@ func _setup_water() -> void:
 	# fallback in case node ordering or script initialisation issues arise.
 	if not water.is_in_group("water_body"):
 		water.add_to_group("water_body")
-		_log_to_file("Water node registered in 'water_body' group (Issue #1578 fallback)")
+		_log_to_file("Water node registered in 'water_body' group (Issue #1578 fallback — water_body.gd _ready() did NOT pre-register)")
 	else:
 		_log_to_file("Water node already in 'water_body' group (water_body.gd _ready() ran OK)")
+	# Verify is_point_in_water() is accessible for ImpactEffectsManager (Issue #1578).
+	var has_ipiw: bool = water.has_method("is_point_in_water")
+	_log_to_file("Water.has_method('is_point_in_water') = %s" % str(has_ipiw))
 
 
 ## Restrict the player camera to the playable area so all four invisible walls
