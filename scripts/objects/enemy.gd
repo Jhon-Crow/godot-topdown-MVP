@@ -1414,10 +1414,7 @@ func _process_idle_state(delta: float) -> void:
 		if _is_melee_weapon: _transition_to_pursuing()  # Issue #579: machete sneaks first
 		else: _transition_to_combat()
 		return
-	# Issue #1670: if a player drone is visible and targetable, enter COMBAT to shoot at it.
-	if _find_targetable_player_drone() != null:
-		_transition_to_combat()
-		return
+	if _find_targetable_player_drone() != null: _transition_to_combat(); return  # Issue #1670: drone visible → enter COMBAT
 
 	# Issue #297/#1216: re-pursue from memory only if enemy has previously engaged (gate on _has_left_idle).
 	if _has_left_idle and _memory and _memory.has_target():
