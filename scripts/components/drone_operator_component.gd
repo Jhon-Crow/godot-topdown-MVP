@@ -48,9 +48,9 @@ var _reached_cover: bool = false
 ## Timer for how long we've been seeking cover (deploy anyway if exceeded).
 var _cover_seek_timer: float = 0.0
 
-## MacheteComponent instance used for bullet dodging in ACTIVE phase (Issue #1540).
-## Same dodge logic as the machete enemy — perpendicular lateral dodge, no dash.
-var _dodge_component: MacheteComponent = null
+## EnemyTeleportComponent used for evasion in ACTIVE phase (Issue #1664).
+## Same teleport logic as the teleport enemy — teleport to cover on first bullet, etc.
+var _teleport_component: EnemyTeleportComponent = null
 
 ## VR headset visual node.
 var _vr_headset: Node2D = null
@@ -205,26 +205,33 @@ func is_controlling_drone() -> bool:
 	return _phase == Phase.CONTROLLING
 
 
-## Returns true if the operator is currently dodging a bullet (ACTIVE phase only).
-func is_dodging() -> bool:
-	if _dodge_component == null:
+## Returns true if the teleport is ready (off cooldown). ACTIVE phase only.
+func is_teleport_ready() -> bool:
+	if _phase != Phase.ACTIVE or _teleport_component == null:
 		return false
-	return _dodge_component.is_dodging()
+	return _teleport_component.is_ready()
 
 
-## Try to dodge a bullet. Delegates to MacheteComponent logic.
-## bullet_direction: normalized direction the bullet is traveling.
-func try_dodge(bullet_direction: Vector2) -> bool:
-	if _phase != Phase.ACTIVE or _dodge_component == null:
+## Try to teleport to target position. Delegates to EnemyTeleportComponent logic.
+## Returns true if teleport succeeded.
+func try_teleport(target: Vector2) -> bool:
+	if _phase != Phase.ACTIVE or _teleport_component == null:
 		return false
-	return _dodge_component.try_dodge(bullet_direction)
+	return _teleport_component.try_teleport(target)
 
 
-## Get current dodge velocity. Returns Vector2.ZERO if not dodging.
-func get_dodge_velocity() -> Vector2:
-	if _dodge_component == null:
-		return Vector2.ZERO
-	return _dodge_component.get_dodge_velocity()
+## Try immediate damage-triggered teleport (first bullet). Tries cover first, then flank.
+## Returns true if teleport succeeded.
+func try_damage_teleport(cover_position: Vector2, flank_target: Vector2) -> bool:
+	if _phase != Phase.ACTIVE or _teleport_component == null:
+		return false
+	return _teleport_component.try_damage_teleport(cover_position, flank_target)
+
+
+## Advance teleport cooldown. Call from enemy._physics_process() in ACTIVE phase.
+func update_teleport(delta: float) -> void:
+	if _teleport_component != null:
+		_teleport_component.update(delta)
 
 
 ## DEPLOYING phase: seek cover and deploy drone.
@@ -376,28 +383,29 @@ func _transition_to_active() -> void:
 	elif _parent and _parent.get("_current_state") != null:
 		_parent._current_state = 1  # AIState.COMBAT
 
-	# Set up MacheteComponent for bullet dodging (Issue #1540).
-	# Reuses the same perpendicular-dodge logic as the machete enemy — no dash, just a lateral
-	# sidestep when a bullet enters the threat sphere.
-	_setup_dodge_component()
+	# Set up EnemyTeleportComponent for evasion (Issue #1664).
+	# Same teleport behavior as the teleport enemy — teleport to cover on first bullet, etc.
+	_setup_teleport_component()
 
 	phase_changed.emit(Phase.ACTIVE)
-	FileLogger.info("[DroneOperator] Phase: ACTIVE (silenced pistol + laser, machete-style dodge)")
+	FileLogger.info("[DroneOperator] Phase: ACTIVE (silenced pistol + laser, teleport evasion)")
 
 
-## Create and configure a MacheteComponent for bullet dodging in ACTIVE phase (Issue #1540).
-func _setup_dodge_component() -> void:
-	if _dodge_component != null:
+## Create and configure an EnemyTeleportComponent for evasion in ACTIVE phase (Issue #1664).
+func _setup_teleport_component() -> void:
+	if _teleport_component != null:
 		return  # Already set up
-	_dodge_component = MacheteComponent.new()
-	_dodge_component.name = "DodgeComponent"
-	# Configure dodge parameters (same as machete defaults)
-	_dodge_component.dodge_speed = 400.0
-	_dodge_component.dodge_distance = 120.0
-	_dodge_component.dodge_cooldown = 1.2
-	_dodge_component.debug_logging = false
-	add_child(_dodge_component)
-	FileLogger.info("[DroneOperator] Dodge component set up (machete-style, speed=400, distance=120)")
+	_teleport_component = EnemyTeleportComponent.new()
+	_teleport_component.name = "TeleportComponent"
+	# IMPORTANT: must be added to _parent (CharacterBody2D), not self (Node).
+	# EnemyTeleportComponent._ready() does get_parent() as CharacterBody2D — if the parent
+	# is DroneOperatorComponent (a plain Node), the cast returns null and _ready_flag stays
+	# false, making is_ready() always return false so teleport never fires (Issue #1664).
+	if _parent != null:
+		_parent.add_child(_teleport_component)
+	else:
+		add_child(_teleport_component)
+	FileLogger.info("[DroneOperator] Teleport component set up (teleport evasion, Issue #1664)")
 
 
 ## Create a laser sight Line2D on the weapon mount (Issue #1532).
@@ -428,11 +436,10 @@ func _update_laser_sight(_delta: float) -> void:
 	_laser_sight.default_color = Color(1.0, 0.0, 0.0, pulse)
 
 
-## ACTIVE phase: normal combat + bullet dodging (same as machete enemy).
+## ACTIVE phase: normal combat + teleport evasion (same as teleport enemy, Issue #1664).
 func _update_active(delta: float) -> void:
 	# Update laser sight pulse (Issue #1532)
 	_update_laser_sight(delta)
 
-	# Update dodge component
-	if _dodge_component != null:
-		_dodge_component.update(delta)
+	# Advance teleport cooldown
+	update_teleport(delta)
