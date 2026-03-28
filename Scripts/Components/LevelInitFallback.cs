@@ -1095,6 +1095,9 @@ public partial class LevelInitFallback : Node
             armoryBtn.Text = "Armory";
             armoryBtn.RemoveThemeColorOverride("font_color");
             armoryBtn.RemoveThemeStyleboxOverride("normal");
+            // Issue #1690: Remove gold shine overlay added by Issue #1536
+            var shineOverlay = armoryBtn.FindChild("ArmoryGoldShineOverlay", true, false);
+            shineOverlay?.QueueFree();
         }
     }
 
