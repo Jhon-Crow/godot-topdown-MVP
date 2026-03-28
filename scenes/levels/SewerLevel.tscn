@@ -1,4 +1,4 @@
-[gd_scene load_steps=81 format=3 uid="uid://sewer_level_1438"]
+[gd_scene load_steps=85 format=3 uid="uid://sewer_level_1438"]
 
 [ext_resource type="Script" path="res://scripts/levels/sewer_level.gd" id="1_sewer_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -243,6 +243,12 @@ size = Vector2(26, 338)
 
 [sub_resource type="OccluderPolygon2D" id="O_left_gap"]
 polygon = PackedVector2Array(-13, -169, 13, -169, 13, 169, -13, 169)
+
+[sub_resource type="RectangleShape2D" id="S_left_outer_void"]
+size = Vector2(88, 2638)
+
+[sub_resource type="OccluderPolygon2D" id="O_left_outer_void"]
+polygon = PackedVector2Array(-44, -1319, 44, -1319, 44, 1319, -44, 1319)
 
 [sub_resource type="RectangleShape2D" id="S_niche_gap_top"]
 size = Vector2(176, 312)
@@ -811,6 +817,24 @@ shape = SubResource("S_left_gap")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallLeftGap"]
 occluder = SubResource("O_left_gap")
+
+[node name="WallLeftOuterVoid" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(44, 1769)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallLeftOuterVoid"]
+offset_left = -44.0
+offset_top = -1319.0
+offset_right = 44.0
+offset_bottom = 1319.0
+color = Color(0.04, 0.06, 0.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLeftOuterVoid"]
+shape = SubResource("S_left_outer_void")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallLeftOuterVoid"]
+occluder = SubResource("O_left_outer_void")
 
 [node name="WallRightCorridorBlock" type="StaticBody2D" parent="Environment/Walls"]
 position = Vector2(419, 650)
