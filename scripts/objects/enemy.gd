@@ -4181,6 +4181,14 @@ func _on_threat_area_entered(area: Area2D) -> void:
 	if not (shooter as Node).is_in_group("player"): return  # #1228: only player bullets
 	_log_to_file("[#1311] Player bullet entered threat sphere — suppression triggered")
 	_bullets_in_threat_sphere.append(area); _threat_memory_timer = THREAT_MEMORY_DURATION
+	# Issue #1664: Drone operator ACTIVE phase — trigger dodge immediately on threat sphere entry.
+	# The threat_reaction_delay (0.2s) means _under_fire is not set until next frames, so
+	# _process_combat_state's dodge check never fires before a fast bullet hits and kills.
+	# Fix: react now (same pattern as EnemyTeleportComponent.try_damage_teleport on-hit).
+	if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE and not _drone_operator.is_dodging():
+		var bd: Vector2 = area.get("direction") if area.get("direction") != null else Vector2.RIGHT.rotated(area.rotation)
+		if _drone_operator.try_dodge(bd):
+			_log_to_file("[#1664] Drone operator immediate dodge triggered from threat sphere entry")
 
 ## Called when a bullet exits the threat sphere.
 func _on_threat_area_exited(area: Area2D) -> void:

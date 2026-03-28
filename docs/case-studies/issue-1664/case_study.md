@@ -22,6 +22,7 @@ The drone operator enemy does not dodge bullets as intended.
 **Observed behavior:**
 - The existing `MacheteComponent`-based dodge works mechanically (perpendicular lateral sidestep), but there is no burst limit.
 - With `dodge_cooldown = 1.2s`, the operator can dodge indefinitely — one dodge every 1.2 seconds, with no burst cap.
+- After Sessions 1 & 2 fixes, the operator still does not dodge in-game ("не уворачивается").
 
 ---
 
@@ -89,6 +90,67 @@ if _parent is CharacterBody2D:
 
 ---
 
+### Root Cause 3 (Session 3 — still not dodging after Session 2 fix)
+
+**Confirmed by:** Game log `game_log_20260327_232847.txt`
+
+Evidence from the log:
+```
+[23:29:01] [DroneOperator] Dodge component set up (machete-style, speed=400, distance=120, parent=EnemyDroneOperator)
+[23:29:01] [DroneOperator] Phase: ACTIVE (silenced pistol + laser, machete-style dodge)
+...
+[23:29:09] [EnemyDroneOperator] [#1311] Player bullet entered threat sphere — suppression triggered
+[23:29:09] [EnemyDroneOperator] Hit: dmg=2, hp=2/2->0/2
+[23:29:09] [EnemyDroneOperator] Enemy died
+```
+
+No `[DroneOperator] Dodge X/4 in burst` entries appear anywhere in the log.
+
+**Root cause:**
+
+`enemy.gd` has a `threat_reaction_delay = 0.2s` guard before `_under_fire` is set to `true`. Looking at `_update_suppression()`:
+
+```gdscript
+# Only set under_fire after delay (0.2s of bullet in sphere)
+if _threat_reaction_delay_elapsed and not (force_field_active):
+    _under_fire = true
+```
+
+The dodge check in `_process_combat_state` requires both `_under_fire == true` AND `_bullets_in_threat_sphere.size() > 0`:
+
+```gdscript
+if _under_fire and _bullets_in_threat_sphere.size() > 0 and not _drone_operator.is_dodging():
+    _drone_operator.try_dodge(bd)
+```
+
+**Timeline of events per frame:**
+1. Frame N: Player bullet enters threat sphere → `_bullets_in_threat_sphere.append(area)` → `_threat_memory_timer` set.
+2. Same frame N or frame N+1: Player bullet body-collides with enemy → `on_hit_with_bullet_info()` → `dmg=2, hp=0` → `_on_death()`.
+3. `_update_suppression` would have started the 0.2s reaction timer, but the enemy dies on frame N or N+1, **12 frames before** `_under_fire` is ever set to `true` at 60 fps.
+4. `_process_combat_state` therefore never sees `_under_fire == true` while the bullet is in the sphere.
+5. Result: dodge never triggers.
+
+This is confirmed by the fact the operator has only **2 HP** while the player's weapon deals **2 damage per shot** — every shot is a 1-shot kill, leaving zero frames between "threat detected" and "enemy dead".
+
+**Why the teleporter works but the dodge didn't:**
+The teleporter's `try_damage_teleport` is called **inside `on_hit_with_bullet_info`** (non-lethal branch, `_current_health > 0`). It bypasses the reaction delay entirely — it fires on the same frame as the hit. The drone operator's dodge had no equivalent immediate-response path.
+
+**Fix (Session 3):**
+
+Add an immediate dodge attempt directly inside `_on_threat_area_entered`, before the bullet can hit the body. This fires on the same frame the bullet enters the 100px threat sphere — giving the operator a head start to sidestep before the bullet reaches the body hitbox.
+
+```gdscript
+# In _on_threat_area_entered (enemy.gd):
+if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE and not _drone_operator.is_dodging():
+    var bd: Vector2 = area.get("direction") if area.get("direction") != null else Vector2.RIGHT.rotated(area.rotation)
+    if _drone_operator.try_dodge(bd):
+        _log_to_file("[#1664] Drone operator immediate dodge triggered from threat sphere entry")
+```
+
+This mirrors the pattern used by `EnemyTeleportComponent.try_damage_teleport` — react immediately rather than waiting for the next physics tick's suppression update cycle.
+
+---
+
 ## Fix Summary
 
 ### Session 1 Fix
@@ -119,6 +181,19 @@ if _parent is CharacterBody2D:
 
 This ensures `MacheteComponent.try_dodge()` can access the enemy body for navigation and position calculations.
 
+### Session 3 Fix
+In `_on_threat_area_entered()` (`scripts/objects/enemy.gd`), after appending the bullet to the sphere list:
+
+```gdscript
+# Issue #1664: Drone operator ACTIVE phase — trigger dodge immediately on threat sphere entry.
+if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE and not _drone_operator.is_dodging():
+    var bd: Vector2 = area.get("direction") if area.get("direction") != null else Vector2.RIGHT.rotated(area.rotation)
+    if _drone_operator.try_dodge(bd):
+        _log_to_file("[#1664] Drone operator immediate dodge triggered from threat sphere entry")
+```
+
+This fires the dodge on the **same frame** the bullet enters the 100px threat sphere, giving the operator a head start to sidestep before the bullet reaches the body hitbox. No longer requires `_under_fire` to be set.
+
 ---
 
 ## Tests Added (test_drone_operator.gd)
@@ -131,6 +206,7 @@ This ensures `MacheteComponent.try_dodge()` can access the enemy body for naviga
 - `test_operator_can_dodge_again_after_burst_cooldown_expires` — dodging resumes after 4s
 - `test_drone_operator_component_has_burst_constants` — source file check
 - `test_dodge_component_parent_is_assigned_after_add_child` — verifies the Session 2 fix (Issue #1664)
+- `test_immediate_dodge_trigger_source_present` — verifies the Session 3 fix is in enemy.gd (Issue #1664)
 
 ---
 
@@ -138,4 +214,5 @@ This ensures `MacheteComponent.try_dodge()` can access the enemy body for naviga
 
 - No changes to `MacheteComponent` (other enemies are unaffected).
 - Only `DroneOperatorComponent` gains the explicit `_parent` override.
+- Only `_on_threat_area_entered` in `enemy.gd` gains the immediate-trigger path (guarded by `is_drone_operator`-phase check).
 - The underlying dodge physics (perpendicular sidestep, 120px, 400px/s) are unchanged.

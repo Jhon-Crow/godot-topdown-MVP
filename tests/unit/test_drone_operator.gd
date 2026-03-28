@@ -666,3 +666,34 @@ func test_dodge_component_parent_is_assigned_after_add_child() -> void:
 	assert_true(source.contains("_dodge_component._parent = _parent"),
 		"_setup_dodge_component() must explicitly assign _dodge_component._parent = _parent " +
 		"so MacheteComponent can use the enemy CharacterBody2D (Issue #1664)")
+
+
+func test_immediate_dodge_trigger_source_present() -> void:
+	## Issue #1664 Session 3: dodge must be triggered immediately on threat sphere entry,
+	## not deferred to the next physics frame after threat_reaction_delay (0.2s).
+	## The root cause: threat_reaction_delay means _under_fire is never set before a fast
+	## bullet kills the enemy (2HP vs 2dmg = 1-shot kill, bullet hits on same frame as sphere entry).
+	## Fix: in _on_threat_area_entered (enemy.gd), trigger drone operator dodge immediately
+	## (same pattern as EnemyTeleportComponent.try_damage_teleport on-hit response).
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	# The fix must be inside _on_threat_area_entered — find that function
+	var fn_start: int = source.find("func _on_threat_area_entered")
+	assert_gt(fn_start, 0,
+		"enemy.gd must contain _on_threat_area_entered function")
+	# Find end of function (next top-level func or end of file)
+	var fn_end: int = source.find("\nfunc ", fn_start + 1)
+	if fn_end < 0:
+		fn_end = source.length()
+	var fn_body: String = source.substr(fn_start, fn_end - fn_start)
+	# The immediate-trigger fix must be present in _on_threat_area_entered
+	assert_true(fn_body.contains("_drone_operator.try_dodge"),
+		"_on_threat_area_entered must immediately call _drone_operator.try_dodge() " +
+		"so the dodge fires on the same frame the bullet enters the sphere (Issue #1664 Session 3)")
+	assert_true(fn_body.contains("DroneOperatorComponent.Phase.ACTIVE"),
+		"_on_threat_area_entered must guard the immediate dodge with Phase.ACTIVE check (Issue #1664 Session 3)")
