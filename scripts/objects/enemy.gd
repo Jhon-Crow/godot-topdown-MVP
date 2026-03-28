@@ -1387,11 +1387,17 @@ func _process_combat_state(delta: float) -> void:
 	var _pd := _find_targetable_player_drone(); if _pd != null and _can_shoot() and _shoot_timer >= shoot_cooldown: var _pd_dir := (_pd.global_position - global_position).normalized(); if _is_bullet_spawn_clear(_pd_dir): _rotate_body_toward(_pd_dir.angle(), get_physics_process_delta_time()); _execute_shoot(_pd.global_position); _shoot_timer = 0.0; return
 	# [#1033] Machine gunner: suppress corridor (fire at last-known pos regardless of LOS/under-fire).
 	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active:
-		var suppress_target := _player.global_position if (_can_see_player and _player != null) else _last_known_player_position
+		# [#1698] Lazy-init recovery: component may be null if _ready() ran before scene tree was ready.
+		if _machine_gunner_component == null: _machine_gunner_component = MachineGunnerComponent.new(); _machine_gunner_component.enemy = self; _machine_gunner_component.log_to_file_fn = _log_to_file; _machine_gunner_component.name = "MachineGunnerComponent"; add_child(_machine_gunner_component)
+		# [#1698] suppress_target: prefer player pos when visible; fall back to last-known; if still zero
+		# (e.g. first contact via explosion) and player is in range, use current player pos so gunner fires.
+		var suppress_target := _last_known_player_position
+		if _can_see_player and _player != null: suppress_target = _player.global_position
+		elif suppress_target == Vector2.ZERO and _player != null and is_instance_valid(_player): suppress_target = _player.global_position
 		if suppress_target != Vector2.ZERO:
 			_machine_gunner_suppressing_corridor = true
 			if not _is_reloading and _shoot_timer >= shoot_cooldown and _can_shoot():
-				if _machine_gunner_component: _machine_gunner_component.fire_at_corridor(suppress_target)
+				_machine_gunner_component.fire_at_corridor(suppress_target)
 			return  # Hold position; belt depletion triggers PM fallback + retreat
 		_machine_gunner_suppressing_corridor = false
 

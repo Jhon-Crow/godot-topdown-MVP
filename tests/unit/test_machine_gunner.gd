@@ -1,64 +1,64 @@
 extends GutTest
 ## Unit tests for the machine gunner enemy type (Issue #1033).
 ##
-## Tests WeaponConfigComponent MACHINE_GUN (type 4) config values,
+## Tests WeaponConfigComponent MACHINE_GUN (type 6) config values,
 ## front-arc damage resistance math, and PM fallback on ammo depletion.
 
 
 # ============================================================================
-# MACHINE_GUN (Type 4) Config Values
+# MACHINE_GUN (Type 6) Config Values
 # ============================================================================
 
 
 func test_machine_gun_config_exists() -> void:
-	assert_true(WeaponConfigComponent.WEAPON_CONFIGS.has(4),
-		"WEAPON_CONFIGS should have key 4 for MACHINE_GUN")
+	assert_true(WeaponConfigComponent.WEAPON_CONFIGS.has(6),
+		"WEAPON_CONFIGS should have key 6 for MACHINE_GUN")
 
 
 func test_machine_gun_shoot_cooldown() -> void:
-	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	assert_eq(config["shoot_cooldown"], 0.12,
 		"MACHINE_GUN shoot_cooldown should be 0.12 (~8.3 rps)")
 
 
 func test_machine_gun_bullet_speed() -> void:
-	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	assert_eq(config["bullet_speed"], 2800.0,
 		"MACHINE_GUN bullet_speed should be 2800.0")
 
 
 func test_machine_gun_magazine_size() -> void:
-	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	assert_eq(config["magazine_size"], 500,
 		"MACHINE_GUN magazine_size (belt) should be 500")
 
 
 func test_machine_gun_total_magazines() -> void:
-	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	assert_eq(config["total_magazines"], 2,
 		"MACHINE_GUN total_magazines should be 2 (500+500)")
 
 
 func test_machine_gun_reload_time() -> void:
-	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	assert_eq(config["reload_time"], 9.0,
 		"MACHINE_GUN reload_time should be 9.0 seconds (long belt reload)")
 
 
 func test_machine_gun_is_not_shotgun() -> void:
-	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	assert_false(config["is_shotgun"],
 		"MACHINE_GUN is_shotgun should be false")
 
 
 func test_machine_gun_is_not_melee() -> void:
-	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	assert_false(config.get("is_melee", false),
 		"MACHINE_GUN is_melee should be false")
 
 
 func test_machine_gun_fires_single_bullet() -> void:
-	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	assert_eq(config["pellet_count_min"], 1,
 		"MACHINE_GUN pellet_count_min should be 1")
 	assert_eq(config["pellet_count_max"], 1,
@@ -66,19 +66,19 @@ func test_machine_gun_fires_single_bullet() -> void:
 
 
 func test_machine_gun_caliber_is_762x39() -> void:
-	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	assert_eq(config["caliber_path"], "res://resources/calibers/caliber_762x39.tres",
 		"MACHINE_GUN caliber_path should point to 7.62x39 caliber resource")
 
 
 func test_machine_gun_bullet_scene_is_standard_bullet() -> void:
-	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	assert_eq(config["bullet_scene_path"], "res://scenes/projectiles/csharp/Bullet.tscn",
 		"MACHINE_GUN should use standard Bullet.tscn")
 
 
 func test_machine_gun_has_progressive_spread() -> void:
-	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	assert_true(config["spread_threshold"] > 0,
 		"MACHINE_GUN should have spread_threshold > 0 for progressive spread")
 	assert_true(config["spread_increment"] > 0.0,
@@ -88,7 +88,7 @@ func test_machine_gun_has_progressive_spread() -> void:
 
 
 func test_machine_gun_weapon_loudness_is_highest() -> void:
-	var mg_loud := WeaponConfigComponent.WEAPON_CONFIGS[4]["weapon_loudness"]
+	var mg_loud := WeaponConfigComponent.WEAPON_CONFIGS[6]["weapon_loudness"]
 	var rifle_loud := WeaponConfigComponent.WEAPON_CONFIGS[0]["weapon_loudness"]
 	var uzi_loud := WeaponConfigComponent.WEAPON_CONFIGS[2]["weapon_loudness"]
 	assert_true(mg_loud > rifle_loud,
@@ -98,7 +98,7 @@ func test_machine_gun_weapon_loudness_is_highest() -> void:
 
 
 func test_machine_gun_has_largest_magazine() -> void:
-	var mg_mag := WeaponConfigComponent.WEAPON_CONFIGS[4]["magazine_size"]
+	var mg_mag := WeaponConfigComponent.WEAPON_CONFIGS[6]["magazine_size"]
 	var rifle_mag := WeaponConfigComponent.WEAPON_CONFIGS[0]["magazine_size"]
 	var uzi_mag := WeaponConfigComponent.WEAPON_CONFIGS[2]["magazine_size"]
 	assert_true(mg_mag > rifle_mag,
@@ -109,20 +109,20 @@ func test_machine_gun_has_largest_magazine() -> void:
 
 func test_machine_gun_reload_time_is_longest() -> void:
 	# MACHINE_GUN reload is 9s; rifle/uzi/shotgun don't have a reload_time key (default 3.0s in enemy.gd)
-	var mg_reload := WeaponConfigComponent.WEAPON_CONFIGS[4]["reload_time"]
+	var mg_reload := WeaponConfigComponent.WEAPON_CONFIGS[6]["reload_time"]
 	assert_true(mg_reload > 3.0,
 		"MACHINE_GUN reload_time should exceed the default 3.0s reload")
 
 
 func test_machine_gun_type_name_is_machine_gun() -> void:
-	assert_eq(WeaponConfigComponent.get_type_name(4), "MACHINE_GUN",
-		"get_type_name(4) should return MACHINE_GUN")
+	assert_eq(WeaponConfigComponent.get_type_name(6), "MACHINE_GUN",
+		"get_type_name(6) should return MACHINE_GUN")
 
 
 func test_machine_gun_get_config_returns_correct_data() -> void:
-	var config := WeaponConfigComponent.get_config(4)
+	var config := WeaponConfigComponent.get_config(6)
 	assert_eq(config["magazine_size"], 500,
-		"get_config(4) should return MACHINE_GUN belt config with 500 rounds")
+		"get_config(6) should return MACHINE_GUN belt config with 500 rounds")
 
 
 # ============================================================================
@@ -221,7 +221,7 @@ func test_front_arc_resistance_chance_is_30_percent() -> void:
 
 
 func test_machine_gun_total_ammo_is_1000() -> void:
-	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	var mag_size: int = config["magazine_size"]
 	var total_mags: int = config["total_magazines"]
 	var total_ammo := mag_size * total_mags
@@ -230,7 +230,7 @@ func test_machine_gun_total_ammo_is_1000() -> void:
 
 
 func test_machine_gun_reserve_ammo_after_init_is_500() -> void:
-	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	var mag_size: int = config["magazine_size"]
 	var total_mags: int = config["total_magazines"]
 	# reserve = (total_magazines - 1) * magazine_size (one belt loaded)
@@ -246,22 +246,22 @@ func test_machine_gun_reserve_ammo_after_init_is_500() -> void:
 
 
 func test_machine_gun_caliber_path_is_762x39() -> void:
-	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[6]
 	assert_true(config["caliber_path"].ends_with("caliber_762x39.tres"),
 		"MACHINE_GUN must use 7.62x39 caliber (same as AK)")
 
 
 func test_machine_gun_caliber_differs_from_rifle_m16() -> void:
-	var mg_cal := WeaponConfigComponent.WEAPON_CONFIGS[4]["caliber_path"]
+	var mg_cal := WeaponConfigComponent.WEAPON_CONFIGS[6]["caliber_path"]
 	var rifle_cal := WeaponConfigComponent.WEAPON_CONFIGS[0]["caliber_path"]
 	assert_ne(mg_cal, rifle_cal,
 		"MACHINE_GUN 7.62x39 caliber should differ from RIFLE M16 5.45x39 caliber")
 
 
-func test_machine_gun_weapon_type_enum_is_4() -> void:
-	# Verify MACHINE_GUN is enum value 4 so sound routing logic works
-	assert_eq(WeaponConfigComponent.get_type_name(4), "MACHINE_GUN",
-		"Weapon type 4 must be MACHINE_GUN for AK sound routing to work")
+func test_machine_gun_weapon_type_enum_is_6() -> void:
+	# Verify MACHINE_GUN is enum value 6 so sound routing logic works
+	assert_eq(WeaponConfigComponent.get_type_name(6), "MACHINE_GUN",
+		"Weapon type 6 must be MACHINE_GUN for AK sound routing to work")
 
 
 # ============================================================================
