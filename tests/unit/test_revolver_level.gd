@@ -39,8 +39,8 @@ class MockRevolverLevel:
 	var map_width: int = 2000
 	var map_height: int = 1600
 
-	## Default enemy count for revolver level (12 total).
-	var default_enemy_count: int = 12
+	## Default enemy count for revolver level (14 total).
+	var default_enemy_count: int = 14
 
 	## Initialize with default enemies.
 	func initialize() -> void:
@@ -113,8 +113,8 @@ func test_exit_zone_dimensions() -> void:
 
 
 func test_default_enemy_count() -> void:
-	assert_eq(level.default_enemy_count, 12,
-		"Revolver level should have 12 enemies by default")
+	assert_eq(level.default_enemy_count, 14,
+		"Revolver level should have 14 enemies by default")
 
 
 func test_level_starts_not_cleared() -> void:
@@ -127,25 +127,25 @@ func test_level_starts_not_cleared() -> void:
 
 func test_enemy_count_initialized_correctly() -> void:
 	level.initialize()
-	assert_eq(level._initial_enemy_count, 12,
-		"Initial enemy count should be 12")
-	assert_eq(level._current_enemy_count, 12,
-		"Current enemy count should be 12 at start")
+	assert_eq(level._initial_enemy_count, 14,
+		"Initial enemy count should be 14")
+	assert_eq(level._current_enemy_count, 14,
+		"Current enemy count should be 14 at start")
 
 
 func test_level_cleared_when_all_enemies_dead() -> void:
 	level.initialize()
-	for i in range(11):
+	for i in range(13):
 		level.on_enemy_died()
 	assert_false(level._level_cleared, "Not cleared with 1 enemy remaining")
 	level.on_enemy_died()
-	assert_true(level._level_cleared, "Level should be cleared when all 12 enemies dead")
+	assert_true(level._level_cleared, "Level should be cleared when all 14 enemies dead")
 	assert_true(level.exit_zone_activated, "Exit zone should activate on clear")
 
 
 func test_player_exit_completes_level() -> void:
 	level.initialize()
-	for i in range(12):
+	for i in range(14):
 		level.on_enemy_died()
 	level.on_player_reached_exit()
 	assert_true(level._level_completed,
