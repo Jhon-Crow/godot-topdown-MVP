@@ -192,6 +192,7 @@ color = Color(0.3, 0.25, 0.22, 1)
 shape = SubResource("RectangleShape2D_wall_v")
 
 [node name="Structures" type="Node2D" parent="Environment"]
+z_index = 2
 
 [node name="CranePlatform" type="Node2D" parent="Environment/Structures"]
 position = Vector2(400, 500)
@@ -502,6 +503,7 @@ shape = SubResource("RectangleShape2D_warehouse_b_wall_v")
 occluder = SubResource("OccluderPolygon2D_warehouse_b_wall_v")
 
 [node name="Containers" type="Node2D" parent="Environment"]
+z_index = 2
 
 [node name="ContainerYardA" type="Node2D" parent="Environment/Containers"]
 

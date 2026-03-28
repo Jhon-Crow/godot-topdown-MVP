@@ -15,21 +15,24 @@ class MockPuddleEffect:
 	## Scale constants mirrored from puddle_effect.gd.
 	const SMALL_SCALE: float = 0.4
 	const MEDIUM_SCALE: float = 0.85
-	const LARGE_SCALE: float = 1.4
-	const APPEAR_DURATION: float = 8.0
-	const GROW_TO_MEDIUM_DURATION: float = 20.0
-	const GROW_TO_LARGE_DURATION: float = 25.0
+	## Each unbounded growth step adds this much scale.
+	const GROWTH_STEP: float = 0.45
+	const APPEAR_DURATION: float = 16.0
+	const GROW_TO_MEDIUM_DURATION: float = 40.0
+	const GROW_STEP_DURATION: float = 50.0
 
 	var size_variation: float = 1.0
 	var scale: Vector2 = Vector2.ZERO
 	var modulate_a: float = 0.0
 	var visible: bool = true
-	var start_delay_randomise: float = 10.0
+	var start_delay_randomise: float = 15.0
+	var _current_scale: float = 0.0
 
 	## Simulated ready: sets initial state.
 	func ready() -> void:
 		scale = Vector2.ZERO
 		modulate_a = 0.0
+		_current_scale = 0.0
 
 	## Simulates hide_puddle.
 	func hide_puddle() -> void:
@@ -39,16 +42,20 @@ class MockPuddleEffect:
 	func show_puddle() -> void:
 		visible = true
 
-	## Returns the target scale for a given phase (1=small, 2=medium, 3=large).
+	## Returns the target scale for a given phase (1=small, 2=medium).
+	## Phase 3+ uses unbounded steps tracked via _current_scale.
 	func target_scale_for_phase(phase: int) -> Vector2:
 		match phase:
 			1:
 				return Vector2.ONE * SMALL_SCALE * size_variation
 			2:
 				return Vector2.ONE * MEDIUM_SCALE * size_variation
-			3:
-				return Vector2.ONE * LARGE_SCALE * size_variation
 		return Vector2.ZERO
+
+	## Simulates one unbounded growth step (phase 3+).
+	func simulate_growth_step() -> Vector2:
+		_current_scale += GROWTH_STEP * size_variation
+		return Vector2.ONE * _current_scale
 
 
 # ============================================================================
@@ -59,8 +66,34 @@ class MockPuddleEffect:
 class MockPuddleManager:
 	## Exclusion zones mirrored from puddle_manager.gd.
 	const EXCLUSION_ZONES: Array = [
-		[Vector2(130, 1480), Vector2(540, 640)],   # WarehouseA
-		[Vector2(4030, 2380), Vector2(740, 840)],   # WarehouseB
+		# CranePlatform: center (400,500), floor ±200x±150
+		[Vector2(185, 335), Vector2(430, 330)],
+		# WarehouseA: center (400,1800), floor ±250x±300
+		[Vector2(135, 1485), Vector2(530, 630)],
+		# WarehouseB: center (4400,2800), floor ±350x±400
+		[Vector2(4035, 2385), Vector2(730, 830)],
+		# ContainerYardA — Container1 at (3800,400), ±100x±40
+		[Vector2(3690, 350), Vector2(220, 100)],
+		# ContainerYardA — Container2 at (3800,550), ±100x±40
+		[Vector2(3690, 500), Vector2(220, 100)],
+		# ContainerYardA — Container3 at (4200,450), ±100x±40
+		[Vector2(4090, 400), Vector2(220, 100)],
+		# ContainerYardA — Container4 at (4600,380), ±100x±40
+		[Vector2(4490, 330), Vector2(220, 100)],
+		# ContainerYardB — Container1 at (400,2800), ±100x±40
+		[Vector2(290, 2750), Vector2(220, 100)],
+		# ContainerYardB — Container2 at (400,2950), ±100x±40
+		[Vector2(290, 2900), Vector2(220, 100)],
+		# ContainerYardB — Container3 at (400,3100), ±100x±40
+		[Vector2(290, 3050), Vector2(220, 100)],
+		# LoadingDock — Container1 at (3600,1600), ±100x±40
+		[Vector2(3490, 1550), Vector2(220, 100)],
+		# LoadingDock — Container2 at (4000,1550), ±100x±40
+		[Vector2(3890, 1500), Vector2(220, 100)],
+		# LoadingDock — Container3 at (4400,1650), ±100x±40
+		[Vector2(4290, 1600), Vector2(220, 100)],
+		# LoadingDock — Container4 at (3800,1750), ±100x±40
+		[Vector2(3690, 1700), Vector2(220, 100)],
 	]
 
 	const SIZE_VARIATION_MIN: float = 0.7
@@ -144,18 +177,34 @@ func test_medium_scale_constant() -> void:
 		"MEDIUM_SCALE should be 0.85")
 
 
-func test_large_scale_constant() -> void:
-	assert_almost_eq(MockPuddleEffect.LARGE_SCALE, 1.4, 0.001,
-		"LARGE_SCALE should be 1.4")
+func test_growth_step_positive() -> void:
+	assert_true(MockPuddleEffect.GROWTH_STEP > 0.0,
+		"GROWTH_STEP must be positive for unbounded growth")
 
 
 func test_scale_phases_are_ordered() -> void:
 	assert_true(
 		MockPuddleEffect.SMALL_SCALE < MockPuddleEffect.MEDIUM_SCALE,
 		"SMALL_SCALE must be less than MEDIUM_SCALE")
-	assert_true(
-		MockPuddleEffect.MEDIUM_SCALE < MockPuddleEffect.LARGE_SCALE,
-		"MEDIUM_SCALE must be less than LARGE_SCALE")
+
+
+func test_unbounded_growth_increases_scale() -> void:
+	# Each step should produce a larger scale than the last.
+	puddle.ready()
+	var step1 := puddle.simulate_growth_step()
+	var step2 := puddle.simulate_growth_step()
+	assert_true(step2.x > step1.x,
+		"Each growth step should produce a larger scale (unbounded)")
+
+
+func test_unbounded_growth_no_cap() -> void:
+	# After many steps the scale should exceed what old LARGE_SCALE (1.4) was.
+	puddle.ready()
+	var final_scale := Vector2.ZERO
+	for _i in range(10):
+		final_scale = puddle.simulate_growth_step()
+	assert_true(final_scale.x > 2.0,
+		"After 10 growth steps scale should exceed 2.0 (no upper cap)")
 
 
 # ============================================================================
@@ -179,19 +228,12 @@ func test_target_scale_phase2_default_variation() -> void:
 		"Phase-2 target scale should equal MEDIUM_SCALE when variation=1")
 
 
-func test_target_scale_phase3_default_variation() -> void:
-	var expected := Vector2.ONE * MockPuddleEffect.LARGE_SCALE
-	var actual := puddle.target_scale_for_phase(3)
-	assert_almost_eq(actual.x, expected.x, 0.001,
-		"Phase-3 target scale should equal LARGE_SCALE when variation=1")
-
-
 func test_target_scale_with_size_variation() -> void:
 	puddle.size_variation = 1.2
-	var actual := puddle.target_scale_for_phase(3)
-	var expected_x := MockPuddleEffect.LARGE_SCALE * 1.2
-	assert_almost_eq(actual.x, expected_x, 0.001,
-		"Phase-3 scale should be multiplied by size_variation")
+	var step := puddle.simulate_growth_step()
+	var expected_x := MockPuddleEffect.GROWTH_STEP * 1.2
+	assert_almost_eq(step.x, expected_x, 0.001,
+		"Growth step scale should be multiplied by size_variation")
 
 
 func test_target_scale_with_small_variation() -> void:
@@ -235,9 +277,19 @@ func test_grow_to_medium_duration_positive() -> void:
 		"GROW_TO_MEDIUM_DURATION must be positive")
 
 
-func test_grow_to_large_duration_positive() -> void:
-	assert_true(MockPuddleEffect.GROW_TO_LARGE_DURATION > 0.0,
-		"GROW_TO_LARGE_DURATION must be positive")
+func test_grow_step_duration_positive() -> void:
+	assert_true(MockPuddleEffect.GROW_STEP_DURATION > 0.0,
+		"GROW_STEP_DURATION must be positive")
+
+
+func test_grow_durations_are_slower_than_original() -> void:
+	# Durations should be at least 2x the original values to confirm half speed.
+	assert_true(MockPuddleEffect.APPEAR_DURATION >= 16.0,
+		"APPEAR_DURATION should be at least 16 s (half speed vs original 8 s)")
+	assert_true(MockPuddleEffect.GROW_TO_MEDIUM_DURATION >= 40.0,
+		"GROW_TO_MEDIUM_DURATION should be at least 40 s (half speed vs original 20 s)")
+	assert_true(MockPuddleEffect.GROW_STEP_DURATION >= 50.0,
+		"GROW_STEP_DURATION should be at least 50 s (half speed vs original 25 s)")
 
 
 # ============================================================================
@@ -246,17 +298,31 @@ func test_grow_to_large_duration_positive() -> void:
 
 
 func test_warehouse_a_center_is_excluded() -> void:
-	# WarehouseA is at ~(400, 1800); zone rect starts at (130, 1480) size (540, 640)
+	# WarehouseA is at center (400, 1800)
 	var inside_a := Vector2(400, 1800)
 	assert_true(manager.is_in_exclusion_zone(inside_a),
 		"WarehouseA center should be inside exclusion zone")
 
 
 func test_warehouse_b_center_is_excluded() -> void:
-	# WarehouseB is at ~(4400, 2800); zone rect starts at (4030, 2380) size (740, 840)
+	# WarehouseB is at center (4400, 2800)
 	var inside_b := Vector2(4400, 2800)
 	assert_true(manager.is_in_exclusion_zone(inside_b),
 		"WarehouseB center should be inside exclusion zone")
+
+
+func test_crane_platform_center_is_excluded() -> void:
+	# CranePlatform is at center (400, 500)
+	var crane_center := Vector2(400, 500)
+	assert_true(manager.is_in_exclusion_zone(crane_center),
+		"CranePlatform center should be inside exclusion zone")
+
+
+func test_container_yard_a_container_is_excluded() -> void:
+	# Container1 in ContainerYardA is at (3800, 400)
+	var on_container := Vector2(3800, 400)
+	assert_true(manager.is_in_exclusion_zone(on_container),
+		"Position on ContainerYardA container should be excluded")
 
 
 func test_outdoor_position_not_excluded() -> void:
@@ -265,16 +331,17 @@ func test_outdoor_position_not_excluded() -> void:
 		"Open outdoor position should not be in any exclusion zone")
 
 
-func test_crane_platform_not_excluded() -> void:
-	var crane := Vector2(400, 420)
-	assert_false(manager.is_in_exclusion_zone(crane),
-		"Crane platform area should not be inside WarehouseA exclusion zone")
+func test_position_outside_crane_not_excluded() -> void:
+	# Position clearly outside the CranePlatform zone
+	var outside_crane := Vector2(750, 350)
+	assert_false(manager.is_in_exclusion_zone(outside_crane),
+		"Position outside CranePlatform should not be excluded")
 
 
-func test_loading_dock_not_excluded() -> void:
+func test_loading_dock_open_area_not_excluded() -> void:
 	var dock := Vector2(4150, 1380)
 	assert_false(manager.is_in_exclusion_zone(dock),
-		"Loading dock position should not be excluded")
+		"Loading dock open area position should not be excluded")
 
 
 func test_spawn_skips_excluded_positions() -> void:
@@ -294,8 +361,8 @@ func test_spawn_skips_excluded_positions() -> void:
 
 func test_all_outdoor_positions_allowed() -> void:
 	var outdoor_positions: Array = [
-		Vector2(280, 420),
-		Vector2(1100, 340),
+		Vector2(1200, 340),
+		Vector2(1700, 390),
 		Vector2(3750, 1480),
 		Vector2(2500, 3400),
 	]
