@@ -3614,7 +3614,10 @@ func _on_invisibility_charges_changed(current: int, maximum: int) -> void:
 
 ## Check if the player is currently invisible (Issue #673).
 ## Used by enemy AI to skip visual detection of the player.
+## Issue #1670: also invisible while drone-piloting — enemies should target the drone, not the standing body.
 func is_invisible() -> bool:
+	if _is_drone_piloting:
+		return true
 	if not _invisibility_suit_equipped or _invisibility_suit == null:
 		return false
 	if not is_instance_valid(_invisibility_suit):

@@ -95,6 +95,33 @@ Enemies were constantly entering `EVADING_GRENADE` and running away from the dro
 
 ---
 
+### Root Cause #4 — Enemies Target Idle Player Body Instead of Drone (Discovered 2026-03-28)
+
+**Location**: `scripts/characters/player.gd` (`is_invisible()`), `scripts/objects/enemy.gd` (`_process_idle_state()`)
+
+**Evidence** from game log `game_log_20260328_094605.txt` (owner's report "enemies ignore the drone"):
+```
+[09:46:17] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[09:46:17] [ENEMY] [Enemy10] Found cover at (1286.899, 1424) (distance: 135.1, player at (450, 1250))
+[09:46:17] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P2:combat_state, state=COMBAT, target=-161.3°
+[09:46:18] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+```
+After drone launch at (444, 1190), Enemy10 sees the **player body standing at (450, 1250)** and enters COMBAT targeting the player, then immediately transitions to PURSUING (can't see player around cover). All other enemies follow the same pattern.
+
+**Root cause**:
+1. When the player pilots the drone, `set_drone_piloting(true)` disables player movement/shooting but the player body **remains physically present and visible** to enemy raycasts
+2. `_check_player_visibility()` uses `_player.has_method("is_invisible") and _player.is_invisible()` as the only skip condition for player body detection
+3. The player's `is_invisible()` method returns `true` only when the invisibility suit is active — not when drone-piloting
+4. Enemies in IDLE state see the idle player body → enter COMBAT targeting the player → lose LOS → PURSUING → never find player → never attack drone
+5. The drone targeting in COMBAT (line 1451) fires once, then the enemy leaves COMBAT immediately because `_can_see_player = false` and `_combat_state_timer >= 0.5s`
+6. Enemies in IDLE never checked for targetable player drones at all
+
+**Fix**:
+1. `player.gd`: `is_invisible()` returns `true` when `_is_drone_piloting` — enemy raycasts skip the idle player body
+2. `enemy.gd` `_process_idle_state()`: add check for `_find_targetable_player_drone() != null` → enter COMBAT to engage the drone
+
+---
+
 ## Additional Context
 
 **Why the unit tests passed but the feature didn't work**: The 24 unit tests in `test_drone_grenade.gd` test `MockDroneGrenade` logic (drift math, targeting delay countdown, `is_targetable_by_enemies()` return value). They do **not** test the end-to-end flow: bullet collision detection → `on_hit()` triggering → explosion. The missing HitArea is a scene-level issue that pure unit tests can't catch.
