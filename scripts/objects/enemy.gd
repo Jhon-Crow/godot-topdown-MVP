@@ -1394,10 +1394,17 @@ func _process_combat_state(delta: float) -> void:
 		var suppress_target := _last_known_player_position
 		if _can_see_player and _player != null: suppress_target = _player.global_position
 		elif suppress_target == Vector2.ZERO and _player != null and is_instance_valid(_player): suppress_target = _player.global_position
+		# [#1698] Diagnostic: log MG state ~once per 2s while in combat
+		if fmod(_combat_state_timer, 2.0) < delta:
+			_log_to_file("[#1698] MG combat: suppress_target=%s, can_see=%s, last_known=%s, reloading=%s, timer=%.2f/%.2f, ammo=%d" % [suppress_target, _can_see_player, _last_known_player_position, _is_reloading, _shoot_timer, shoot_cooldown, _current_ammo])
 		if suppress_target != Vector2.ZERO:
 			_machine_gunner_suppressing_corridor = true
 			if not _is_reloading and _shoot_timer >= shoot_cooldown and _can_shoot():
 				_machine_gunner_component.fire_at_corridor(suppress_target)
+			else:
+				# [#1698] Diagnostic: log why fire was skipped, ~once per second
+				if fmod(_combat_state_timer, 1.0) < delta:
+					_log_to_file("[#1698] MG fire skipped: reloading=%s, shoot_timer=%.2f/%.2f, ammo=%d, can_shoot=%s" % [_is_reloading, _shoot_timer, shoot_cooldown, _current_ammo, _can_shoot()])
 			return  # Hold position; belt depletion triggers PM fallback + retreat
 		_machine_gunner_suppressing_corridor = false
 

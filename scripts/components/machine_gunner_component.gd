@@ -22,12 +22,18 @@ func _ready() -> void:
 
 ## [#1033] Machine gunner corridor suppression: burst into corridor where player was last seen (no LOS needed).
 func fire_at_corridor(target_pos: Vector2) -> void:
-	if enemy == null or enemy.bullet_scene == null: return
+	if enemy == null or enemy.bullet_scene == null:
+		if log_to_file_fn.is_valid(): log_to_file_fn.call("[#1698] MG fire_at_corridor: null enemy or bullet_scene")
+		return
 	# Issue #1334 Round 5: Don't shoot at a dead player
 	var _gm := enemy.get_node_or_null("/root/GameManager")
-	if _gm and not _gm.player_alive: return
+	if _gm and not _gm.player_alive:
+		if log_to_file_fn.is_valid(): log_to_file_fn.call("[#1698] MG fire_at_corridor: player_alive=false")
+		return
 	var to_target := (target_pos - enemy.global_position).normalized()
-	if to_target == Vector2.ZERO: return
+	if to_target == Vector2.ZERO:
+		if log_to_file_fn.is_valid(): log_to_file_fn.call("[#1698] MG fire_at_corridor: to_target is ZERO (target=%s, pos=%s)" % [target_pos, enemy.global_position])
+		return
 	# Face toward the corridor
 	if enemy._enemy_model: enemy._enemy_model.global_rotation = to_target.angle()
 	enemy._rotate_body_toward(to_target.angle(), enemy.get_physics_process_delta_time())
@@ -35,7 +41,9 @@ func fire_at_corridor(target_pos: Vector2) -> void:
 	# Small spread (±5°) to simulate suppressive corridor fire
 	var spread := deg_to_rad(randf_range(-5.0, 5.0))
 	var direction := to_target.rotated(spread)
-	if not enemy._is_bullet_spawn_clear(direction): return
+	if not enemy._is_bullet_spawn_clear(direction):
+		if log_to_file_fn.is_valid(): log_to_file_fn.call("[#1698] MG fire_at_corridor: bullet spawn blocked (target=%s)" % target_pos)
+		return
 	enemy._spawn_projectile(direction, spawn_pos)
 	enemy._spawn_muzzle_flash(spawn_pos, direction)
 	enemy._spawn_casing(direction, to_target)

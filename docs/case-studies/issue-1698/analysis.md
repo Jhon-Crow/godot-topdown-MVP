@@ -248,7 +248,60 @@ This ensures the explosion→COMBAT path can still fire immediately when the pla
 
 ---
 
-## 9. References
+## 9. Second Session Log Analysis (`game_log_20260328_182033.txt`)
+
+**Reporter comment (2026-03-28 15:21):** "всё ещё не стреляет" (still not shooting) — uploaded after applying commit `7827dd5b` (lazy-init fix).
+
+### Summary of events in second log
+
+| Time | Event |
+|------|-------|
+| 18:20:48 | MG spawned at (350,360), behavior=GUARD |
+| 18:20:54 | IDLE → COMBAT (P1:visible — direct line of sight) |
+| 18:20:55 | ROT_CHANGE P1:visible → P2:combat_state (lost sight) |
+| 18:20:55–18:21:00 | In COMBAT for ~6 seconds; zero `"MG corridor suppression: fired"` entries |
+| 18:21:00 | AKGL VOG grenade explodes at (71,213) — **LastChance time-freeze starts** |
+| 18:21:00 | MG takes damage: hp=4→3→2→1→0, then **`[#1033] Machine gunner front-arc hit ignored` ×2** |
+| 18:21:00 | Enemy dies |
+| 18:21:04 | Second MG spawned (F8), same position |
+| 18:21:05 | IDLE → COMBAT (P1:visible) |
+| 18:21:07 | LastChance time-freeze starts again (second grenade) |
+| 18:21:09 | **Memory reset: confusion=2.0s** → SEARCHING |
+
+### New findings from second log
+
+1. **The lazy-init fix did NOT resolve the silence.** The machine gunner still never fired. Since the lazy-init creates the component from scratch with `log_to_file_fn = _log_to_file`, any call to `fire_at_corridor` after line 1391 would log `"MG corridor suppression: fired"`. The absence of this log means `fire_at_corridor` was **not called**, OR it was called but returned early before the log line.
+
+2. **The `[#1033] Machine gunner front-arc hit ignored` log at 18:21:00** confirms:
+   - `weapon_type == WeaponType.MACHINE_GUN` ✓
+   - `not _machine_gunner_pm_active` ✓
+   - `_enemy_model.global_rotation` is accessible ✓
+   So the enemy IS a machine gunner, IS NOT in PM mode, and the model IS initialized.
+
+3. **The condition at line 1399 must be failing EVERY frame** for ~6 seconds:
+   ```
+   if not _is_reloading and _shoot_timer >= shoot_cooldown and _can_shoot():
+   ```
+   Possibilities: `_is_reloading=true`, `_shoot_timer < shoot_cooldown`, or `_can_shoot()=false`.
+
+4. **Alternative hypothesis: `_process_combat_state` never reaches line 1389.** If `_aggression.process_aggression_tick` returns `true`, `_process_ai_state` returns before dispatching to `_process_combat_state`. Or if `weapon_type != WeaponType.MACHINE_GUN` at runtime.
+
+### Diagnostic logging added (commit pending)
+
+To diagnose which condition is failing, the following log entries were added:
+
+- `[#1698] MG combat: suppress_target=..., can_see=..., last_known=..., reloading=..., timer=.../..., ammo=...` — logged ~every 2 seconds when MG branch executes (throttled by `_combat_state_timer`)
+- `[#1698] MG fire skipped: reloading=..., ...` — logged ~every second when `suppress_target != ZERO` but fire conditions fail
+- `[#1698] MG fire_at_corridor: bullet spawn blocked (target=...)` — logged in `fire_at_corridor` when `_is_bullet_spawn_clear` returns false
+- `[#1698] MG fire_at_corridor: null enemy or bullet_scene` — logged if component's enemy ref is null
+- `[#1698] MG fire_at_corridor: player_alive=false` — logged if GameManager says player is dead
+- `[#1698] MG fire_at_corridor: to_target is ZERO` — logged if target==position
+
+If **none** of these `[#1698]` entries appear in the next log, it means `_process_combat_state` never reaches the MG block at all — pointing to an early return in `_process_ai_state` (e.g., `_aggression.process_aggression_tick`, grenade danger, or the state machine never dispatching to `_process_combat_state`).
+
+---
+
+## 10. References
 
 - Godot 4 `add_child()` deferred execution: https://docs.godotengine.org/en/stable/tutorials/scripting/scene_tree.html
 - GDScript `class_name` global registration: https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_basics.html#doc-gdscript-basics-class-name
