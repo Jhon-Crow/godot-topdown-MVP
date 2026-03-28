@@ -11,6 +11,7 @@
 - Issue #1585 — Prior fix: rain/snow disappear and water waves not stopping on time freeze
 - Issue #1550 — Added surf-foam animation to the water shader
 - Issue #1445 — Original realistic water shader for the Beach level
+- Issue #1578 — Separate ongoing issue: WaterBody detection failures in exported builds
 
 ---
 
@@ -272,6 +273,16 @@ All uses of `TIME` in `realistic_water.gdshader` after the Issue #1608 fix:
 ```
 
 Root Cause 1 was already fixed in PR #1592 (merged to `main`).
+
+### Comment 7: 2026-03-28 16:58 UTC — "не останавливается" (no log attached)
+**Context:** Posted ~2 hours after the "Ready to merge" comment (15:05 UTC). No game log was attached.
+**PR state at time of test:** Commit `0c2f3639` (PROCESS_MODE_DISABLED fix) was at 14:59 UTC — just 1 hour before the comment.
+
+**Analysis:** Without a log file we cannot confirm what build was tested. The reporter may still be using the same pre-built binary from the Downloads folder. The "Ready to merge" comment referred to our latest commit on the branch, but the reporter would need to rebuild from source to test those changes. The absence of a log makes it impossible to distinguish "same old binary" from "new binary with a different failure mode."
+
+**Key point:** All 6 previous game logs show the fix was NOT in the binary. The reporter's binary consistently comes from `I:/Загрузки/godot exe/ОСадКИ/` (Downloads folder), not from a fresh build of this PR branch.
+
+**Action taken:** Added `_log("Precipitation group nodes found: %d" % nodes.size())` to `_set_precipitation_time_stopped()` so future logs will immediately show whether WaterBody was found in the group, even if `set_time_stopped()` is never reached.
 
 ---
 

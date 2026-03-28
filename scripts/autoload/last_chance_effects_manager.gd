@@ -803,10 +803,13 @@ func _unfreeze_time() -> void:
 ## script.resource_path which may be empty in exported PCK files).
 func _set_precipitation_time_stopped(paused: bool) -> void:
 	var nodes: Array[Node] = get_tree().get_nodes_in_group("precipitation_effects")
+	_log("Precipitation group nodes found: %d" % nodes.size())
 	for node in nodes:
 		if node.has_method("set_time_stopped"):
 			node.set_time_stopped(paused)
 			_log("Precipitation %s: %s" % ["paused" if paused else "resumed", node.name])
+		else:
+			_log("Precipitation node skipped (no set_time_stopped): %s" % node.name)
 
 
 ## Restores all stored original process modes.
