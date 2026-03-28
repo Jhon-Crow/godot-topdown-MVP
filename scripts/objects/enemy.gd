@@ -144,6 +144,11 @@ const WALL_SLIDE_DISTANCE: float = 30.0  ## Wall slide threshold
 const SEPARATION_RADIUS: float = 60.0  ## Distance within which separation force is applied (px)
 const SEPARATION_STRENGTH: float = 280.0  ## Maximum separation impulse magnitude (px/s²)
 var _avoidance_velocity: Vector2 = Vector2.ZERO  ## Issue #1146: ORCA-computed safe velocity
+## Issue #1696: Navigation throttle — rate-limit path requests to avoid 1200+ A* searches/sec with 20 enemies.
+var _nav_target_last_set: Vector2 = Vector2.ZERO  ## Last position passed to set_target_position
+var _nav_repath_timer: float = 0.0  ## Timestamp of last forced repath (seconds, from Time.get_ticks_msec)
+const NAV_REPATH_INTERVAL: float = 0.3  ## Max repath rate (300 ms = ~3.3 requests/sec per enemy)
+const NAV_REPATH_DISTANCE_SQ: float = 2500.0  ## 50 px threshold squared — repath early if target moved >50 px
 var _cover_raycasts: Array[RayCast2D] = []  ## Cover detection raycasts
 const COVER_CHECK_COUNT: int = 120  ## Number of cover raycasts (Issue #1338: 120 rays = 3° apart for dense coverage)
 const COVER_CHECK_DISTANCE: float = 300.0  ## Cover check distance (default, used when infinite rays disabled)
@@ -156,7 +161,7 @@ var _player: Node2D = null  ## Player reference
 var _shoot_timer: float = 0.0  ## Time since last shot
 ## Issue #969: throttle constants/trackers — prevent raycast floods with 20+ active enemies
 const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5; var _last_gunshot_propagation_time: float = -999.0
-const COVER_SEARCH_COOLDOWN: float = 0.3; var _last_cover_search_time: float = -999.0
+const COVER_SEARCH_COOLDOWN: float = 1.0; var _last_cover_search_time: float = -999.0  ## Issue #1696: increased from 0.3→1.0s; cover positions are stable so less frequent searches are fine
 const SUPPRESSED_MIN_DURATION: float = 0.5; var _suppressed_entry_time: float = -999.0  ## RCA-11: prevent SUPPRESSED→SEEKING_COVER cycling
 const POST_SUPPRESSION_COVER_DURATION: float = 3.0; var _post_suppression_timer: float = 0.0  ## Issue #1338: stay in cover after being suppressed
 const SEEKING_COVER_MIN_DURATION: float = 0.3; var _seeking_cover_entry_time: float = -999.0  ## Issue #997 RCA-17
@@ -203,6 +208,7 @@ var _current_state: AIState = AIState.IDLE  ## AI state
 var _cover_position: Vector2 = Vector2.ZERO  ## Cover position
 var _has_valid_cover: bool = false  ## Has valid cover
 var _last_cover_search_rays: Array = []  ## Issue #1338: cached ray data for debug visualization (rays from player)
+var _cover_inf_rays: bool = false; var _cover_sec_rays: bool = false; var _cover_flags_cached: bool = false  ## Issue #1696: cache ExperimentalSettings cover flags — avoid get_node_or_null on every cover search
 var _suppression_timer: float = 0.0  ## Suppression cooldown
 var _under_fire: bool = false  ## Under fire (bullets in threat sphere)
 var _flank_target: Vector2 = Vector2.ZERO  ## Flank target position
@@ -269,6 +275,7 @@ const GLOBAL_STUCK_MAX_TIME: float = 4.0; const GLOBAL_STUCK_DISTANCE_THRESHOLD:
 var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1107: Stuck detection for machete COMBAT state
 const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
 var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
+var _distraction_attack_logged: bool = false  ## Issue #1696: rate-limit distraction-attack log to once per episode (avoids 10×/sec file I/O per enemy)
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
 var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 100.0  ## Search center / current radius (Search State - Issue #322)
@@ -392,6 +399,13 @@ func _ready() -> void:
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
 	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
+	# Issue #1696: Stagger cover searches — spread first eligibility across the cooldown window so
+	# 20 enemies entering SEEKING_COVER simultaneously don't all fire 120 raycasts in the same frame.
+	# Enemy with stagger 0 becomes eligible immediately; enemy with stagger 9 waits ~0.9s.
+	var _cover_stagger: float = (get_instance_id() % 10) * (COVER_SEARCH_COOLDOWN / 10.0)
+	_last_cover_search_time = Time.get_ticks_msec() / 1000.0 - COVER_SEARCH_COOLDOWN + _cover_stagger
+	_last_closest_cover_search_time = _last_cover_search_time
+	_last_distant_cover_search_time = _last_cover_search_time
 
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
@@ -956,6 +970,7 @@ func _update_goap_state() -> void:
 	if _enemies_in_combat_cache_timer >= ENEMIES_IN_COMBAT_CACHE_INTERVAL: _enemies_in_combat_cache_timer = 0.0; _enemies_in_combat_cache = _count_enemies_in_combat()
 	_goap_world_state["enemies_in_combat"] = _enemies_in_combat_cache
 	_goap_world_state["player_distracted"] = _is_player_distracted()
+	if not _goap_world_state["player_distracted"]: _distraction_attack_logged = false  ## Issue #1696: reset log flag when episode ends
 
 	# Memory system states (Issue #297)
 	if _memory:
@@ -1242,7 +1257,7 @@ func _process_ai_state(delta: float) -> void:
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
-			_log_to_file("Player distracted - priority attack triggered")
+			if not _distraction_attack_logged: _log_to_file("Player distracted - priority attack triggered"); _distraction_attack_logged = true  ## Issue #1696: log once per episode
 			_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 			if _shield_component and _shield_component.get_rotation_multiplier() < 1.0: _set_hit_reaction_target(direction_to_player)  # Issue #1242: shield enemy slowly aims
 			else: _force_model_to_face_direction(direction_to_player)  # Fix issue #264: ensure correct aim
@@ -3233,9 +3248,14 @@ func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 	var space_state := get_world_2d().direct_space_state
 	var nav_map: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
 	var has_nav := nav_map.is_valid()
-	var exp_s: Node = get_node_or_null("/root/ExperimentalSettings")
-	var inf_rays: bool = exp_s != null and exp_s.has_method("is_cover_infinite_rays_enabled") and exp_s.is_cover_infinite_rays_enabled()
-	var sec_rays: bool = exp_s != null and exp_s.has_method("is_cover_sector_rays_enabled") and exp_s.is_cover_sector_rays_enabled()
+	## Issue #1696: Cache ExperimentalSettings cover flags on first access to avoid scene-tree traversal every search.
+	if not _cover_flags_cached:
+		var exp_s: Node = get_node_or_null("/root/ExperimentalSettings")
+		_cover_inf_rays = exp_s != null and exp_s.has_method("is_cover_infinite_rays_enabled") and exp_s.is_cover_infinite_rays_enabled()
+		_cover_sec_rays = exp_s != null and exp_s.has_method("is_cover_sector_rays_enabled") and exp_s.is_cover_sector_rays_enabled()
+		_cover_flags_cached = true
+	var inf_rays: bool = _cover_inf_rays
+	var sec_rays: bool = _cover_sec_rays
 	var ray_dist: float = COVER_INFINITE_RAY_DISTANCE if inf_rays else COVER_CHECK_DISTANCE
 	var ray_count: int = COVER_SECTOR_RAY_COUNT if sec_rays else COVER_CHECK_COUNT
 	var sec_ctr: Vector2 = (global_position - player_pos).normalized() if sec_rays else Vector2.ZERO
@@ -4693,10 +4713,21 @@ func _is_player_distracted() -> bool:
 		_log_debug("Player distracted: aim angle %.1f° > %.1f° threshold" % [rad_to_deg(angle), rad_to_deg(PLAYER_DISTRACTION_ANGLE)])
 	return is_distracted
 
+## Issue #1696: Return true if the nav target should be updated this frame (throttle to NAV_REPATH_INTERVAL).
+## Uses game time so multiple callers in the same frame share the same decision without double-counting.
+func _should_repath(target_pos: Vector2) -> bool:
+	if _nav_target_last_set.distance_squared_to(target_pos) > NAV_REPATH_DISTANCE_SQ:
+		_nav_repath_timer = 0.0; _nav_target_last_set = target_pos; return true
+	var now: float = Time.get_ticks_msec() / 1000.0
+	if now - _nav_repath_timer >= NAV_REPATH_INTERVAL:
+		_nav_repath_timer = now; _nav_target_last_set = target_pos; return true
+	return false
+
 ## Get direction to follow NavigationAgent2D path toward target_pos. Returns Vector2.ZERO if finished.
 func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 	if _nav_agent == null: return (target_pos - global_position).normalized()
-	_nav_agent.target_position = target_pos
+	if _should_repath(target_pos):  ## Issue #1696: throttle path requests
+		_nav_agent.target_position = target_pos
 	if _nav_agent.is_navigation_finished(): return Vector2.ZERO
 	return (_nav_agent.get_next_path_position() - global_position).normalized()
 
@@ -4744,6 +4775,7 @@ func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
 	if _tactical_movement and _tactical_movement.is_yielding: return vel  # #1249: yielding — don't push
 	if _current_state == AIState.IDLE and behavior_mode == BehaviorMode.GUARD: return vel  # #1520: GUARD stands still — skip O(N) scan
+	if _nav_agent and _nav_agent.avoidance_enabled: return vel  ## Issue #1696: ORCA handles separation on NavServer thread; GDScript O(N²) scan is redundant
 	var sep_force: Vector2 = Vector2.ZERO
 	for body in get_tree().get_nodes_in_group("enemies"):
 		if body == self or not is_instance_valid(body): continue
@@ -4754,14 +4786,18 @@ func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
 	return vel
 
 ## Check if the navigation agent has a valid path to the target.
+## Issue #1696: only set target_position when the throttle allows it.
 func _has_nav_path_to(target_pos: Vector2) -> bool:
 	if _nav_agent == null: return false
-	_nav_agent.target_position = target_pos
+	if _should_repath(target_pos):
+		_nav_agent.target_position = target_pos
 	return not _nav_agent.is_navigation_finished()
 ## Get distance to target along the navigation path (more accurate than straight-line).
+## Issue #1696: only set target_position when the throttle allows it.
 func _get_nav_path_distance(target_pos: Vector2) -> float:
 	if _nav_agent == null: return global_position.distance_to(target_pos)
-	_nav_agent.target_position = target_pos
+	if _should_repath(target_pos):
+		_nav_agent.target_position = target_pos
 	return _nav_agent.distance_to_target()
 
 # Status Effects (Blindness, Stun) - delegated to FlashbangStatusComponent (Issue #328)
