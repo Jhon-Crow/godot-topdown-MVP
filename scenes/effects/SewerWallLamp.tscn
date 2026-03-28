@@ -9,6 +9,7 @@ gradient = SubResource("Gradient_sewer_lamp")
 width = 256
 height = 256
 fill = 1
+fill_from = Vector2(0.5, 0.5)
 
 [node name="SewerWallLamp" type="PointLight2D"]
 color = Color(0.85, 0.8, 0.55, 1.0)
@@ -16,6 +17,6 @@ energy = 0.8
 shadow_enabled = true
 shadow_color = Color(0, 0, 0, 0.5)
 shadow_filter = 1
-shadow_filter_smooth = 2.0
+shadow_filter_smooth = 4.0
 texture = SubResource("GradientTexture2D_sewer_lamp")
 texture_scale = 3.0
