@@ -79,8 +79,15 @@ Use a custom `canvas_item` shader on each particle material. The shader receives
 
 **How it works in Godot 4:**
 - `GPUParticles2D` renders via its material (`CanvasItemMaterial` → replaced with `ShaderMaterial`)
-- In a `shader_type canvas_item` shader, `WORLD_MATRIX[2].xy` gives the particle's origin in world space
-- Compare world position against each exclusion zone Rect2 → `discard` if inside
+- In a `shader_type canvas_item` shader, `MODEL_MATRIX` is available **only in the vertex stage** (not fragment); it holds the combined emitter×particle-instance world transform
+- `MODEL_MATRIX[3].xy` in the **vertex** stage gives the particle's center in world coordinates; this is passed to the fragment stage via a `varying`
+- In the **fragment** stage, the `varying` world position is compared against each exclusion zone Rect2 → `discard` if inside
+
+**Critical Godot 4 shader API facts (vs. Godot 3):**
+- `WORLD_MATRIX` does **not exist** in Godot 4 canvas_item shaders (Godot 3 legacy name)
+- `MODEL_MATRIX` is the Godot 4 replacement, but it is vertex-stage only
+- `VERTEX` in the fragment stage is canvas-space (not world-space) and not reliable with Camera2D zoom/pan
+- Per-particle world position MUST be passed via a `varying` from vertex to fragment
 
 ### Approach 4: Separate Outdoor/Indoor Particle Systems
 Duplicate rain systems — one for outdoor, one per building using local space emitters. Very complex, high memory, difficult to maintain.
@@ -127,6 +134,20 @@ WarehouseB:     Rect2(4030, 2380, 740, 840) # pos(4400,2800), floor±350x, ±400
 
 ## Screenshot Evidence
 
+### Screenshot 1 (original issue report)
 The screenshot from the issue shows rain particles (diagonal streaks) visible **inside** a building area (bounded by the red rectangle drawn by the reporter). The "ВОСКРЕСНУТЬ" (respawn) prompt is visible — the player is dead inside the building with rain falling through the roof.
 
 Expected behavior: no rain inside the building, rain visible outside.
+
+### Screenshot 2 (feedback after first shader fix — 2026-03-28)
+After the per-particle shader approach was deployed (commit `ba391733`), the owner reported rain still visible inside CranePlatform. The screenshot (`rain-inside-building-2-feedback.png`) shows white rain dots clearly inside the building boundaries.
+
+**Root cause of the second failure:** The first shader implementation used `WORLD_MATRIX[2].xy` in the fragment stage. This variable does not exist in Godot 4 canvas_item shaders. Undefined behavior in GLSL means the `discard` test silently never triggered — all particles were rendered. The fix (second iteration) properly uses a `varying vec2 particle_world_pos` set from `MODEL_MATRIX[3].xy` in the vertex stage and read in the fragment stage.
+
+### Timeline of Fixes
+| Date | Commit | Approach | Outcome |
+|------|--------|----------|---------|
+| Initial | — | No occlusion | Rain inside buildings (bug) |
+| Pre-#1615 fix | `e9692bc7` | Binary `emitting=false` on camera | All rain stops globally (wrong) |
+| 2026-03-28 #1 | `ba391733` | Shader `WORLD_MATRIX[2].xy` (fragment) | Variable doesn't exist in Godot 4 → discard never fires |
+| 2026-03-28 #2 | TBD | Shader `varying` from `MODEL_MATRIX[3].xy` (vertex→fragment) | ✅ Correct per-particle occlusion |
