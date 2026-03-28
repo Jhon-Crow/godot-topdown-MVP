@@ -49,7 +49,11 @@ func update(delta: float) -> void:
 ## Attempt to teleport to target. Returns true if the teleport succeeded.
 ## Fails if on cooldown, target too close/far, or target is off the nav-map.
 func try_teleport(target: Vector2) -> bool:
-	if not is_ready() or _parent == null:
+	if not is_ready():
+		FileLogger.info("[Teleporter] try_teleport rejected: not ready (flag=%s, cooldown=%.2f)" % [_ready_flag, _cooldown_timer])
+		return false
+	if _parent == null:
+		FileLogger.warn("[Teleporter] try_teleport rejected: _parent is null")
 		return false
 	# Issue #1355: reject uninitialized (0,0) targets.
 	if target == Vector2.ZERO:
@@ -107,7 +111,11 @@ func _flush_reject_log() -> void:
 ## Bypasses the under_fire requirement — the enemy should teleport on first hit.
 ## Returns true if teleport succeeded.
 func try_damage_teleport(cover_position: Vector2, flank_target: Vector2) -> bool:
-	if not is_ready() or _parent == null:
+	if not is_ready():
+		FileLogger.info("[Teleporter] try_damage_teleport rejected: not ready (flag=%s, cooldown=%.2f)" % [_ready_flag, _cooldown_timer])
+		return false
+	if _parent == null:
+		FileLogger.warn("[Teleporter] try_damage_teleport rejected: _parent is null")
 		return false
 	# Try cover position first, then flank target.
 	if cover_position != Vector2.ZERO and try_teleport(cover_position):

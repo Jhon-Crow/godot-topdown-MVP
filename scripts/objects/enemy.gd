@@ -25,9 +25,7 @@ enum BehaviorMode {
 	PATROL,  ## Moves between patrol points
 	GUARD    ## Stands in one place
 }
-
 enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIFLE, REVOLVER, SILENCED_PISTOL }  ## RIFLE(M16), SHOTGUN, UZI, MACHETE(#579), RPG(#583), PM(#583), MACHINE_GUN(#1033), SNIPER_RIFLE(#1125), REVOLVER(#1242), SILENCED_PISTOL(#1532)
-
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
 @export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.
 @export var move_speed: float = 220.0  ## Maximum movement speed (px/s).
@@ -94,7 +92,6 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIF
 @export var grenade_inaccuracy: float = 0.15  ## Throw inaccuracy (radians)
 @export var grenade_throw_delay: float = 0.4  ## Delay before throw (sec)
 @export var grenade_debug_logging: bool = false  ## Grenade debug logging
-
 signal hit  ## Enemy hit
 signal died  ## Enemy died
 signal died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool)  ## Death with kill info (Issue #1196: is_player_kill distinguishes player kills from other kills)
@@ -106,7 +103,6 @@ signal ammo_depleted  ## All ammo depleted
 signal death_animation_completed  ## Death animation done
 signal grenade_thrown(grenade: Node, target_position: Vector2)  ## Grenade thrown (Issue #363)
 signal became_pacifist  ## Enemy became pacifist (Issue #959: counts as killed for level completion)
-
 const PLAYER_DISTRACTION_ANGLE: float = 0.4014  ## ~23° - player distracted threshold
 const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254/#264)
 @onready var _enemy_model: Node2D = $EnemyModel  ## Model node with all sprites
@@ -915,7 +911,7 @@ func _physics_process(delta: float) -> void:
 			_debug_draw_timer += delta
 			if _debug_draw_timer >= DEBUG_DRAW_INTERVAL: _debug_draw_timer = 0.0; queue_redraw()  # Issue #1220: throttle to 10 Hz
 		return
-	_process_ai_state(delta)
+	_process_ai_state(delta)  # Issue #1664: drone operator teleport evasion is handled inside _process_combat_state
 	_update_debug_label()
 	if debug_label_enabled:  # Issue #1220: throttle FOV cone redraws to 10 Hz (was every frame → 33 raycasts/enemy/frame at 60 fps)
 		_debug_draw_timer += delta
@@ -1378,7 +1374,9 @@ func _process_ai_state(delta: float) -> void:
 		if _current_state != AIState.PURSUING and _current_state != AIState.ASSAULT:
 			_transition_to_pursuing()
 			# Don't return - let the state machine continue to process the PURSUING state
-	if _teleport_component and _teleport_component.is_ready() and _under_fire and _current_state != AIState.IN_COVER: if not _has_valid_cover: _find_cover_position(); if _has_valid_cover and _teleport_component.try_teleport(_cover_position): _transition_to_in_cover(); return  # #752: cover-teleport
+	if _teleport_component and _teleport_component.is_ready() and _under_fire and _current_state != AIState.IN_COVER:  # #752: cover-teleport
+		if not _has_valid_cover: _find_cover_position()
+		if _has_valid_cover and _teleport_component.try_teleport(_cover_position): _transition_to_in_cover(); return
 	if _teleport_component and _teleport_component.is_ready() and not _can_see_player and _current_state == AIState.FLANKING: _teleport_component.try_teleport(_flank_target)  # #752: flank-teleport
 	# GRENADE THROW PRIORITY (Issue #363, #959, #1305): Non-pacifists check grenade triggers; respect combat toggle.
 	if _combat_allowed and _goap_world_state.get("ready_to_throw_grenade", false) and not (_pacifist and _pacifist.is_pacifist):
@@ -4267,8 +4265,13 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			# Issue #1305: Only fire back if combat transition succeeded (not redirected to IDLE by PerformanceSettings)
 			if _current_state == AIState.COMBAT and _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
 		# Issue #1355: Teleporter enemies teleport immediately on first damage.
-		if _teleport_component and _teleport_component.is_ready(): if not _has_valid_cover: _find_cover_position(); if _teleport_component.try_damage_teleport(_cover_position, _flank_target): _log_to_file("[#1355] Damage-triggered teleport succeeded"); _transition_to_in_cover()
-		if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE: if not _has_valid_cover: _find_cover_position(); if _drone_operator.try_damage_teleport(_cover_position, _flank_target): _log_to_file("[#1664] Drone operator damage-triggered teleport succeeded"); _transition_to_in_cover()  # Issue #1664: drone operator ACTIVE — damage-triggered teleport like teleport enemy.
+		if _teleport_component and _teleport_component.is_ready():
+			if not _has_valid_cover: _find_cover_position()
+			if _teleport_component.try_damage_teleport(_cover_position, _flank_target):
+				_log_to_file("[#1355] Damage-triggered teleport succeeded"); _transition_to_in_cover()
+		if _drone_operator and _drone_operator.get_phase() == DroneOperatorComponent.Phase.ACTIVE:  # Issue #1664: drone operator ACTIVE — damage-triggered teleport like teleport enemy.
+			if not _has_valid_cover: _find_cover_position()
+			if _drone_operator.try_damage_teleport(_cover_position, _flank_target): _log_to_file("[#1664] Drone operator damage-triggered teleport succeeded"); _transition_to_in_cover()
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
