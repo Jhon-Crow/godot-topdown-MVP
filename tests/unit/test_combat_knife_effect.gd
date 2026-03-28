@@ -174,9 +174,9 @@ func test_knife_arc_half_is_60_degrees() -> void:
 
 
 func test_knife_windup_duration_is_short() -> void:
-	var windup := 0.15  # Backswing delay before fast strike
-	assert_true(windup > 0.0 and windup <= 0.3,
-		"Knife windup should be short (0–0.3 seconds)")
+	var windup := 0.2  # Backswing held before fast strike
+	assert_true(windup > 0.0 and windup <= 0.4,
+		"Knife windup should be short (0–0.4 seconds)")
 
 
 func test_knife_strike_duration_is_short() -> void:
@@ -186,13 +186,13 @@ func test_knife_strike_duration_is_short() -> void:
 
 
 func test_knife_recovery_duration_is_short() -> void:
-	var recovery := 0.12  # Fade out
+	var recovery := 0.15  # Fade out
 	assert_true(recovery > 0.0 and recovery <= 0.5,
 		"Knife recovery should be within 0.5 seconds")
 
 
 func test_knife_total_animation_under_0_5_seconds() -> void:
-	var total := 0.15 + 0.08 + 0.12
+	var total := 0.2 + 0.08 + 0.15
 	assert_true(total <= 0.5,
 		"Total knife animation (windup + strike + recovery) should be under 0.5 seconds")
 

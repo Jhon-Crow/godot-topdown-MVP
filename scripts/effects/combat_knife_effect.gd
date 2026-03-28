@@ -5,22 +5,23 @@ extends Node2D
 ## When activated via Space key, the player performs a 120° sweeping slash.
 ## All enemies within the arc and within KNIFE_RANGE pixels receive KNIFE_DAMAGE damage.
 ##
-## Visual: a fan arc drawn via _draw(), centered on the player's AIM direction (mouse cursor).
-## During WINDUP: arc is hidden (backswing delay).
-## During STRIKE: full 120° arc sweeps in quickly and is fully visible (matches damage zone exactly).
-## During RECOVERY: arc fades out.
+## Visual: a sweeping blade arc drawn via _draw(), centered on the player's AIM direction.
+## The attack animates like a real knife swing:
+##   WINDUP  — backswing: a thin line is held at the START edge of the arc (anticipation)
+##   STRIKE  — fast sweep: the arc sweeps from start edge to end edge in one quick motion
+##   RECOVERY — arc fades out held at the end position
 ##
 ## Attack phases:
-##   IDLE → WINDUP (0.15s, backswing delay) → STRIKE (0.08s, fast sweep) → RECOVERY (0.12s, fade)
+##   IDLE → WINDUP (0.2s, backswing held) → STRIKE (0.08s, fast sweep) → RECOVERY (0.15s, fade)
 ## Damage is applied once at the START of the STRIKE phase.
 ## No charges, no cooldown — the player can activate as fast as the animation allows.
 
 ## Attack animation phases.
 enum AttackPhase {
 	IDLE,     ## No attack in progress.
-	WINDUP,   ## Backswing delay (0.15s) — arc not visible yet.
-	STRIKE,   ## Fast forward sweep (0.08s) — damage applied; arc expands to full 120°.
-	RECOVERY  ## Arc fades out (0.12s).
+	WINDUP,   ## Backswing held at start edge (0.2s) — anticipation.
+	STRIKE,   ## Fast sweep from start edge to end edge (0.08s) — damage applied.
+	RECOVERY  ## Arc fades out at end position (0.15s).
 }
 
 ## Maximum range of the knife attack in pixels.
@@ -32,14 +33,14 @@ const KNIFE_ARC_HALF: float = PI / 3.0
 ## Damage dealt to each enemy hit.
 const KNIFE_DAMAGE: float = 7.0
 
-## Duration of the windup phase in seconds (backswing delay).
-const WINDUP_DURATION: float = 0.15
+## Duration of the windup phase in seconds (backswing held).
+const WINDUP_DURATION: float = 0.2
 
 ## Duration of the strike phase in seconds (fast sweep).
 const STRIKE_DURATION: float = 0.08
 
 ## Duration of the recovery phase in seconds (fade out).
-const RECOVERY_DURATION: float = 0.12
+const RECOVERY_DURATION: float = 0.15
 
 ## Number of polygon segments for the arc shape.
 const ARC_SEGMENTS: int = 20
@@ -48,7 +49,10 @@ const ARC_SEGMENTS: int = 20
 const ARC_COLOR: Color = Color(1.0, 0.75, 0.1, 0.55)
 
 ## Arc leading edge color (bright white-yellow highlight).
-const ARC_EDGE_COLOR: Color = Color(1.0, 0.95, 0.6, 0.85)
+const ARC_EDGE_COLOR: Color = Color(1.0, 0.95, 0.6, 0.9)
+
+## Windup line color (dim indicator showing backswing position).
+const WINDUP_COLOR: Color = Color(1.0, 0.85, 0.3, 0.5)
 
 ## Emitted when the knife strikes (at the damage moment).
 signal knife_struck
@@ -69,8 +73,9 @@ var _player: Node2D = null
 ## This rotates to face the mouse cursor.
 var _player_model: Node2D = null
 
-## Arc expansion progress during STRIKE (0.0 = no arc, 1.0 = full 120°).
-var _arc_expand: float = 0.0
+## Sweep progress during STRIKE (0.0 = at start edge, 1.0 = full arc reached end edge).
+## The arc grows from the backswing side (aim - KNIFE_ARC_HALF) to the follow-through side (aim + KNIFE_ARC_HALF).
+var _sweep_progress: float = 0.0
 
 ## Arc alpha for fade-out during RECOVERY (1.0 = full, 0.0 = gone).
 var _arc_alpha: float = 0.0
@@ -97,10 +102,10 @@ func activate() -> bool:
 	_phase = AttackPhase.WINDUP
 	_phase_timer = 0.0
 	_damage_applied = false
-	_arc_expand = 0.0
+	_sweep_progress = 0.0
 	_arc_alpha = 0.0
 	is_attacking = true
-	FileLogger.info("[CombatKnife] Attack started — WINDUP (backswing)")
+	FileLogger.info("[CombatKnife] Attack started — WINDUP (backswing held)")
 	return true
 
 
@@ -113,9 +118,9 @@ func _physics_process(delta: float) -> void:
 
 	match _phase:
 		AttackPhase.WINDUP:
-			# Backswing delay — no arc visible, just hold before striking
-			_arc_expand = 0.0
-			_arc_alpha = 0.0
+			# Backswing held — show a thin line at start edge (anticipation pose)
+			_sweep_progress = 0.0
+			_arc_alpha = 1.0
 			if _phase_timer >= WINDUP_DURATION:
 				_phase = AttackPhase.STRIKE
 				_phase_timer = 0.0
@@ -126,25 +131,25 @@ func _physics_process(delta: float) -> void:
 				FileLogger.info("[CombatKnife] Attack phase: STRIKE")
 
 		AttackPhase.STRIKE:
-			# Fast sweep — arc expands from 0 to full 120° quickly
+			# Fast sweep — arc sweeps from start edge to full 120° (end edge)
 			var t: float = clamp(_phase_timer / STRIKE_DURATION, 0.0, 1.0)
-			_arc_expand = t
+			_sweep_progress = t
 			_arc_alpha = 1.0
 			if _phase_timer >= STRIKE_DURATION:
 				_phase = AttackPhase.RECOVERY
 				_phase_timer = 0.0
-				_arc_expand = 1.0
+				_sweep_progress = 1.0
 				FileLogger.info("[CombatKnife] Attack phase: RECOVERY")
 
 		AttackPhase.RECOVERY:
-			# Arc fades out
+			# Arc fades out at end position
 			var t: float = clamp(_phase_timer / RECOVERY_DURATION, 0.0, 1.0)
-			_arc_expand = 1.0
+			_sweep_progress = 1.0
 			_arc_alpha = 1.0 - t
 			if _phase_timer >= RECOVERY_DURATION:
 				_phase = AttackPhase.IDLE
 				_phase_timer = 0.0
-				_arc_expand = 0.0
+				_sweep_progress = 0.0
 				_arc_alpha = 0.0
 				is_attacking = false
 				FileLogger.info("[CombatKnife] Attack complete — IDLE")
@@ -162,56 +167,73 @@ func _get_aim_angle() -> float:
 	return 0.0
 
 
-## Draw the fan arc sweep visual centered on the player's AIM direction.
-## The arc exactly matches the damage zone (120° centered on aim direction).
+## Draw the directional slash arc.
+## WINDUP: thin backswing line at the start edge (aim - 60°).
+## STRIKE: arc sweeps from start edge to current sweep position.
+## RECOVERY: full arc at end position, fading out.
 func _draw() -> void:
-	if _arc_alpha <= 0.001 or _arc_expand <= 0.001:
-		return
 	if _player == null or not is_instance_valid(_player):
 		return
 
-	# Center of arc is the player's aim direction (toward mouse cursor)
 	var aim_angle: float = _get_aim_angle()
+	# Start of swing (backswing edge): aim - KNIFE_ARC_HALF
+	# End of swing (follow-through edge): aim + KNIFE_ARC_HALF
+	var swing_start: float = aim_angle - KNIFE_ARC_HALF
+	var swing_end: float = aim_angle + KNIFE_ARC_HALF
 
-	# Arc spans KNIFE_ARC_HALF on each side of aim — scaled by expand progress
-	var current_half: float = KNIFE_ARC_HALF * _arc_expand
-	var arc_start: float = aim_angle - current_half
-	var arc_end: float = aim_angle + current_half
+	match _phase:
+		AttackPhase.WINDUP:
+			# Show a dim backswing line at the start edge (anticipation)
+			var windup_col: Color = Color(WINDUP_COLOR.r, WINDUP_COLOR.g, WINDUP_COLOR.b, WINDUP_COLOR.a * _arc_alpha)
+			var start_vec: Vector2 = Vector2(cos(swing_start), sin(swing_start)) * KNIFE_RANGE
+			draw_line(Vector2.ZERO, start_vec, windup_col, 2.5, true)
+			# Small indicator dot at the start edge tip
+			draw_circle(start_vec, 3.0, windup_col)
 
-	if arc_end <= arc_start + 0.01:
-		return
+		AttackPhase.STRIKE, AttackPhase.RECOVERY:
+			if _arc_alpha <= 0.001:
+				return
+			# Arc goes from swing_start to current sweep position
+			var current_end: float = swing_start + (swing_end - swing_start) * _sweep_progress
+			var arc_span: float = current_end - swing_start
 
-	var arc_span: float = arc_end - arc_start
-	var step: float = arc_span / ARC_SEGMENTS
+			if arc_span <= 0.01:
+				# Just draw the start line when sweep hasn't progressed yet
+				var edge_col_start: Color = Color(ARC_EDGE_COLOR.r, ARC_EDGE_COLOR.g, ARC_EDGE_COLOR.b, ARC_EDGE_COLOR.a * _arc_alpha)
+				draw_line(Vector2.ZERO, Vector2(cos(swing_start), sin(swing_start)) * KNIFE_RANGE, edge_col_start, 2.0, true)
+				return
 
-	# Build a filled sector polygon: origin → outer arc → back to origin
-	var points: PackedVector2Array = PackedVector2Array()
-	var colors: PackedColorArray = PackedColorArray()
+			var step: float = arc_span / ARC_SEGMENTS
 
-	# Center point (player position in local coords = Vector2.ZERO)
-	points.append(Vector2.ZERO)
-	var center_col: Color = Color(ARC_COLOR.r, ARC_COLOR.g, ARC_COLOR.b, ARC_COLOR.a * _arc_alpha * 0.4)
-	colors.append(center_col)
+			# Build filled sector polygon: origin → outer arc → back to origin
+			var points: PackedVector2Array = PackedVector2Array()
+			var colors: PackedColorArray = PackedColorArray()
 
-	# Outer arc points
-	for i in range(ARC_SEGMENTS + 1):
-		var a: float = arc_start + step * i
-		points.append(Vector2(cos(a), sin(a)) * KNIFE_RANGE)
-		var edge_factor: float = float(i) / float(ARC_SEGMENTS)
-		# Fade at edges, bright in the center of the arc
-		var edge_alpha: float = _arc_alpha * (0.5 + 0.5 * sin(edge_factor * PI))
-		colors.append(Color(ARC_COLOR.r, ARC_COLOR.g, ARC_COLOR.b, ARC_COLOR.a * edge_alpha))
+			# Center point
+			points.append(Vector2.ZERO)
+			var center_col: Color = Color(ARC_COLOR.r, ARC_COLOR.g, ARC_COLOR.b, ARC_COLOR.a * _arc_alpha * 0.4)
+			colors.append(center_col)
 
-	draw_polygon(points, colors)
+			# Outer arc points from start edge to current sweep end
+			for i in range(ARC_SEGMENTS + 1):
+				var a: float = swing_start + step * i
+				points.append(Vector2(cos(a), sin(a)) * KNIFE_RANGE)
+				# Brighter at the leading edge (current_end side)
+				var edge_factor: float = float(i) / float(ARC_SEGMENTS)
+				var edge_alpha: float = _arc_alpha * (0.3 + 0.7 * edge_factor)
+				colors.append(Color(ARC_COLOR.r, ARC_COLOR.g, ARC_COLOR.b, ARC_COLOR.a * edge_alpha))
 
-	# Draw bright edge lines at both sides of the arc (showing the slash boundaries)
-	var edge_col: Color = Color(ARC_EDGE_COLOR.r, ARC_EDGE_COLOR.g, ARC_EDGE_COLOR.b, ARC_EDGE_COLOR.a * _arc_alpha)
-	var left_end: Vector2 = Vector2(cos(arc_start), sin(arc_start)) * KNIFE_RANGE
-	var right_end: Vector2 = Vector2(cos(arc_end), sin(arc_end)) * KNIFE_RANGE
-	var center_end: Vector2 = Vector2(cos(aim_angle), sin(aim_angle)) * KNIFE_RANGE
-	draw_line(Vector2.ZERO, left_end, edge_col, 1.5, true)
-	draw_line(Vector2.ZERO, right_end, edge_col, 1.5, true)
-	draw_line(Vector2.ZERO, center_end, edge_col, 2.5, true)
+			draw_polygon(points, colors)
+
+			# Draw bright leading edge line (the cutting edge sweeping forward)
+			var leading_edge_col: Color = Color(ARC_EDGE_COLOR.r, ARC_EDGE_COLOR.g, ARC_EDGE_COLOR.b, ARC_EDGE_COLOR.a * _arc_alpha)
+			var trailing_edge_col: Color = Color(ARC_EDGE_COLOR.r, ARC_EDGE_COLOR.g, ARC_EDGE_COLOR.b, ARC_EDGE_COLOR.a * _arc_alpha * 0.4)
+			var start_vec: Vector2 = Vector2(cos(swing_start), sin(swing_start)) * KNIFE_RANGE
+			var end_vec: Vector2 = Vector2(cos(current_end), sin(current_end)) * KNIFE_RANGE
+			# Trailing edge (dim)
+			draw_line(Vector2.ZERO, start_vec, trailing_edge_col, 1.5, true)
+			# Leading edge (bright — the blade tip)
+			draw_line(Vector2.ZERO, end_vec, leading_edge_col, 2.5, true)
 
 
 ## Apply damage to all enemies within the knife arc.
