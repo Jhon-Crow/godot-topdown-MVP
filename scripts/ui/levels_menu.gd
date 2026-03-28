@@ -37,7 +37,7 @@ const LEVELS: Array[Dictionary] = [
 		"description": "Open training ground for testing weapons and practicing combat skills.",
 		"preview_color": Color(0.2, 0.3, 0.2, 1.0),
 		"preview_accent": Color(0.35, 0.5, 0.35, 1.0),
-		"enemy_count": 5,
+		"enemy_count": 12,
 		"map_size": "1280x720"
 	},
 	{
@@ -47,7 +47,7 @@ const LEVELS: Array[Dictionary] = [
 		"description": "Medieval fortress assault across a massive oval-shaped courtyard.",
 		"preview_color": Color(0.25, 0.25, 0.35, 1.0),
 		"preview_accent": Color(0.4, 0.4, 0.55, 1.0),
-		"enemy_count": 15,
+		"enemy_count": 13,
 		"map_size": "6000x2560"
 	},
 	{
@@ -57,7 +57,7 @@ const LEVELS: Array[Dictionary] = [
 		"description": "H-shaped map with two parallel corridors: penetration zones for multi-enemy kills and cover for reloading.",
 		"preview_color": Color(0.2, 0.15, 0.25, 1.0),
 		"preview_accent": Color(0.4, 0.3, 0.5, 1.0),
-		"enemy_count": 12,
+		"enemy_count": 14,
 		"map_size": "2000x1600"
 	},
 	{
@@ -67,7 +67,7 @@ const LEVELS: Array[Dictionary] = [
 		"description": "Large urban map with enterable buildings and street combat.",
 		"preview_color": Color(0.25, 0.22, 0.2, 1.0),
 		"preview_accent": Color(0.4, 0.35, 0.3, 1.0),
-		"enemy_count": 8,
+		"enemy_count": 9,
 		"map_size": "6000x5000"
 	},
 	{
@@ -87,7 +87,7 @@ const LEVELS: Array[Dictionary] = [
 		"description": "Large industrial docks with shipping containers, warehouses, and open areas between cover zones.",
 		"preview_color": Color(0.15, 0.25, 0.35, 1.0),
 		"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
-		"enemy_count": 20,
+		"enemy_count": 15,
 		"map_size": "5000x4000"
 	},
 	{
@@ -107,17 +107,17 @@ const LEVELS: Array[Dictionary] = [
 		"description": "Hotline Miami: Chapter Three. Neon nightclub with dance floor, bar, VIP rooms, and back alley. Synthwave aesthetic.",
 		"preview_color": Color(0.1, 0.03, 0.18, 1.0),
 		"preview_accent": Color(1.0, 0.2, 0.8, 1.0),
-		"enemy_count": 12,
+		"enemy_count": 13,
 		"map_size": "2400x2000"
 	},
 	{
 		"name": "Labyrinth Complex",
 		"name_ru": "Лабиринт Комплекс",
 		"path": "res://scenes/levels/Labyrinth2Level.tscn",
-		"description": "Larger labyrinth with 3 rows of rooms, winding corridors, and 15 enemies including a grenadier, armored M16 enemy, and a machine gunner.",
+		"description": "Larger labyrinth with 3 rows of rooms, winding corridors, and 17 enemies including a grenadier, armored M16 enemy, and a machine gunner.",
 		"preview_color": Color(0.12, 0.14, 0.2, 1.0),
 		"preview_accent": Color(0.25, 0.3, 0.45, 1.0),
-		"enemy_count": 15,
+		"enemy_count": 17,
 		"map_size": "3200x2400"
 	},
 	{
@@ -127,7 +127,7 @@ const LEVELS: Array[Dictionary] = [
 		"description": "Underground sewer corridor with narrow passages and a fork. Dark, tight, and dangerous.",
 		"preview_color": Color(0.1, 0.15, 0.1, 1.0),
 		"preview_accent": Color(0.2, 0.35, 0.2, 1.0),
-		"enemy_count": 10,
+		"enemy_count": 13,
 		"map_size": "1650x3200"
 	},
 	{
