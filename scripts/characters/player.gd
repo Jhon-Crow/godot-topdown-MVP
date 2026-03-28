@@ -4460,9 +4460,9 @@ func _handle_experimental_sample_input() -> void:
 	var eligible_types: Array = []
 	if mgr_for_types and mgr_for_types.has_method("get_experimental_sample_eligible_types"):
 		eligible_types = mgr_for_types.get_experimental_sample_eligible_types()
-	# Fallback if manager is unavailable — include all known activatable types (Issue #1635)
+	# Fallback if manager is unavailable — include all known on-press triggerable types (Issue #1635)
 	if eligible_types.is_empty():
-		for t in [1, 3, 4, 5, 7, 8, 11, 12, 15, 16, 19, 20]:
+		for t in [2, 4, 5, 7, 8, 11, 12, 16, 19, 20]:
 			eligible_types.append(t)
 	const MAX_ATTEMPTS := 20
 	var effect_fired := false
@@ -4491,10 +4491,10 @@ func _handle_experimental_sample_input() -> void:
 ## Returns true if a visible effect fired, false if passive/unavailable (caller re-rolls).
 func _trigger_experimental_sample_effect(item_type: int) -> bool:
 	FileLogger.info("[Player.ExperimentalSample] Executing effect type %d" % item_type)
-	# Passive/hold/aim-only types always re-roll (FLASHLIGHT, TELEPORT_BRACERS, BREAKER_BULLETS,
-	# FORCE_FIELD, LASER_SIGHT, EXTENDED_MAGAZINE, ARMORED_SKIN, AUTO_RELOAD, DRILLING_BULLETS,
-	# RECOIL_COMPENSATOR, COMBAT_DISPOSITION)
-	if item_type in [1, 3, 6, 7, 9, 10, 13, 14, 15, 16, 17]:
+	# Purely passive or hold-to-aim types always re-roll (FLASHLIGHT, TELEPORT_BRACERS,
+	# BREAKER_BULLETS, LASER_SIGHT, EXTENDED_MAGAZINE, ARMORED_SKIN, AUTO_RELOAD,
+	# DRILLING_BULLETS, COMBAT_DISPOSITION — no instant triggerable on-press effect)
+	if item_type in [1, 3, 6, 9, 10, 13, 14, 15, 17]:
 		return false
 
 	match item_type:
@@ -4519,6 +4519,15 @@ func _trigger_experimental_sample_effect(item_type: int) -> bool:
 				FileLogger.info("[Player.ExperimentalSample] Invisibility suit activated via experimental sample")
 				return true
 			FileLogger.info("[Player.ExperimentalSample] Invisibility suit not equipped or already active; re-roll")
+			return false
+		7:  # FORCE_FIELD — activate for brief window if equipped (Issue #1635)
+			if _force_field_equipped and _force_field != null and is_instance_valid(_force_field) \
+					and not _force_field.is_active:
+				_force_field.activate()
+				FileLogger.info("[Player.ExperimentalSample] Force field activated via experimental sample")
+				_experimental_sample_activate_force_field_briefly()
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Force field not equipped or already active; re-roll")
 			return false
 		8:  # TRAJECTORY_GLASSES — activate glasses if node exists, else skip
 			if _trajectory_glasses_equipped and _trajectory_glasses != null \
@@ -4547,7 +4556,15 @@ func _trigger_experimental_sample_effect(item_type: int) -> bool:
 				FileLogger.info("[Player.ExperimentalSample] Breaching charges detonated: %s" % str(detonated))
 				return detonated
 			return false
-		19: # FINE_MOTOR_SKILLS — instantly reload if not already in progress (Issue #1635)
+		16: # RECOIL_COMPENSATOR — activate for brief burst (Issue #1635)
+			if not _recoil_compensator_active:
+				_recoil_compensator_active = true
+				FileLogger.info("[Player.ExperimentalSample] Recoil compensator activated via experimental sample")
+				_experimental_sample_activate_recoil_compensator_briefly()
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Recoil compensator already active; re-roll")
+			return false
+		19: # FINE_MOTOR_SKILLS — instantly reload regardless of whether FMS is equipped (Issue #1635)
 			if not _fine_motor_skills_active:
 				_fine_motor_skills_active = true
 				_fine_motor_skills_activate_async()
@@ -4555,7 +4572,9 @@ func _trigger_experimental_sample_effect(item_type: int) -> bool:
 				return true
 			FileLogger.info("[Player.ExperimentalSample] Fine Motor Skills already active; re-roll")
 			return false
-		20: # DASH — dash toward aim direction if dash effect is available (Issue #1635)
+		20: # DASH — create temporary dash effect if needed and dash (Issue #1635)
+			if _dash_effect == null or not is_instance_valid(_dash_effect):
+				_experimental_sample_init_temp_dash()
 			if _dash_effect != null and is_instance_valid(_dash_effect) and not _dash_effect.is_dashing():
 				var dir := (get_global_mouse_position() - global_position).normalized()
 				_dash_effect.activate(dir)
@@ -4573,6 +4592,35 @@ func get_experimental_sample_charges() -> int:
 ## Get the maximum experimental sample charges constant.
 func get_max_experimental_sample_charges() -> int:
 	return EXPERIMENTAL_SAMPLE_MAX_CHARGES
+
+## Briefly deactivate recoil compensator after ~1.8s (called after Experimental Sample activation) (Issue #1635).
+const EXPERIMENTAL_SAMPLE_RECOIL_DURATION: float = 1.8
+func _experimental_sample_activate_recoil_compensator_briefly() -> void:
+	await get_tree().create_timer(EXPERIMENTAL_SAMPLE_RECOIL_DURATION).timeout
+	_recoil_compensator_active = false
+	FileLogger.info("[Player.ExperimentalSample] Recoil compensator brief window ended")
+
+## Briefly activate force field for ~1.8s via Experimental Sample (Issue #1635).
+const EXPERIMENTAL_SAMPLE_FORCE_FIELD_DURATION: float = 1.8
+func _experimental_sample_activate_force_field_briefly() -> void:
+	await get_tree().create_timer(EXPERIMENTAL_SAMPLE_FORCE_FIELD_DURATION).timeout
+	if _force_field != null and is_instance_valid(_force_field) and _force_field.is_active:
+		_force_field.deactivate()
+	FileLogger.info("[Player.ExperimentalSample] Force field brief window ended")
+
+## Create a temporary dash effect node for Experimental Sample use (Issue #1635).
+## Cleaned up automatically when the effect completes via queue_free on its parent.
+func _experimental_sample_init_temp_dash() -> void:
+	if not ResourceLoader.exists(DASH_EFFECT_SCENE):
+		FileLogger.info("[Player.ExperimentalSample] Dash effect scene not found; skip")
+		return
+	var scene: PackedScene = load(DASH_EFFECT_SCENE)
+	if scene == null:
+		return
+	_dash_effect = scene.instantiate()
+	add_child(_dash_effect)
+	_dash_effect.initialize(self)
+	FileLogger.info("[Player.ExperimentalSample] Temporary dash effect node created")
 
 # =========================================================================
 # Fine Motor Skills Active Item (Issue #1315)
