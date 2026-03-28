@@ -217,6 +217,14 @@ const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
 		"weapons": [],
 		"grenades": [],
 		"active_items": [14]  # ActiveItemManager.ActiveItemType.AUTO_RELOAD = 14
+	},
+	{
+		# 10 kills while in enemy threat zone → unlock Combat Knife (Issue #1587)
+		"stat": "close_range_kills",
+		"min_kills": 10,
+		"weapons": [],
+		"grenades": [],
+		"active_items": [22]  # ActiveItemManager.ActiveItemType.COMBAT_KNIFE = 22
 	}
 ]
 
@@ -282,6 +290,8 @@ func _ready() -> void:
 			game_manager.kills_through_wall_updated.connect(_on_kills_through_wall_updated)
 		if game_manager.has_signal("levels_completed_with_silenced_pistol_updated"):
 			game_manager.levels_completed_with_silenced_pistol_updated.connect(_on_levels_completed_with_silenced_pistol_updated)
+		if game_manager.has_signal("close_range_kills_updated"):
+			game_manager.close_range_kills_updated.connect(_on_close_range_kills_updated)
 	# Reset condition-gated items to locked state first (in case old save data has them incorrectly
 	# marked as unlocked), then re-apply earned unlocks from progress. This ensures the unlock
 	# state is always consistent with actual level completion progress.
@@ -389,6 +399,17 @@ func _on_levels_completed_with_silenced_pistol_updated(_new_count: int) -> void:
 		if kill_condition.get("stat", "") == "levels_completed_with_silenced_pistol" and is_kill_condition_met(kill_condition):
 			items_unlocked_by_kill_condition.emit()
 			_log("Silenced-pistol level condition met — Auto Reload now available to unlock in armory")
+			break
+
+
+## Called when GameManager emits close_range_kills_updated.
+## Checks if the Combat Knife close-range kill condition is now satisfied.
+## Issue #1587.
+func _on_close_range_kills_updated(_new_count: int) -> void:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if kill_condition.get("stat", "") == "close_range_kills" and is_kill_condition_met(kill_condition):
+			items_unlocked_by_kill_condition.emit()
+			_log("Close-range kill condition met — Combat Knife now available to unlock in armory")
 			break
 
 

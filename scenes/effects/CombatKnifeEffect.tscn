@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" path="res://scripts/effects/combat_knife_effect.gd" id="1"]
 
-[node name="CombatKnifeEffect" type="Node"]
+[node name="CombatKnifeEffect" type="Node2D"]
 script = ExtResource("1")

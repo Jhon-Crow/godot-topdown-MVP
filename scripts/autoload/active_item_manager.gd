@@ -55,8 +55,8 @@ var collected_passive_items: Array = []
 ## EXTENDED_MAGAZINE (Building B+), AUTO_RELOAD (any level with silenced pistol),
 ## DRILLING_BULLETS (50 kills through walls), DASH (Decadence A+),
 ## BREACHING_CHARGES (Labyrinth Complex any grade), GRENADE_BAG (Railway Station any grade),
-## BFF_PENDANT (Winter Forest any grade) have unlock conditions
-## (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346, Issue #1389, Issue #1423, Issue #1426, Issue #1624).
+## BFF_PENDANT (Winter Forest any grade), COMBAT_KNIFE (10 kills while in enemy threat zone) have unlock conditions
+## (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346, Issue #1389, Issue #1423, Issue #1426, Issue #1587, Issue #1624).
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
 	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
@@ -80,7 +80,7 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.FINE_MOTOR_SKILLS: false,    # Condition: 300 shots with shotgun, sniper rifle, or revolver (Issue #1346)
 	ActiveItemType.DASH: false,                 # Condition: Decadence A+ (Issue #1624 req.5)
 	ActiveItemType.GRENADE_BAG: false,          # Condition: complete Railway Station on any grade (Issue #1624 req.8)
-	ActiveItemType.COMBAT_KNIFE: false          # Condition: reach melee range 10 times (Issue #1587)
+	ActiveItemType.COMBAT_KNIFE: false          # Condition: 10 kills while in enemy threat zone (Issue #1587)
 }
 
 ## Active item data for UI and selection.
@@ -211,7 +211,7 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.COMBAT_KNIFE: {
 		"name": "Combat Knife",
 		"icon_path": "res://assets/sprites/weapons/combat_knife_icon.png",
-		"description": "Combat Knife — press Space for a fan melee attack dealing 7 damage to all enemies in a 120° arc. Unlimited uses, no cooldown between attacks.",
+		"description": "Combat Knife — press Space for a fan melee attack dealing 7 damage to all enemies in a 120° arc. Unlimited uses, no cooldown between attacks. Unlock: kill 10 enemies while within enemy threat range.",
 		"activation_hint": "Press Space to slash"
 	}
 }
