@@ -105,6 +105,9 @@ func _ready() -> void:
 	# Find and setup player tracking
 	_setup_player_tracking()
 
+	# Restrict camera so the border walls are never visible (Issue #1682).
+	_configure_camera()
+
 	# Setup debug UI
 	_setup_debug_ui()
 
@@ -509,6 +512,33 @@ func _get_combo_color(combo: int) -> Color:
 ## Setup the navigation mesh for enemy pathfinding.
 ## Issue #1216: Fixed baking — parse source geometry (walls, collision layer 4)
 ## then bake synchronously so walls are excluded from the walkable area.
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## Labyrinth2Level map: 3328x2528 px playfield framed by 32 px walls.
+##   WallTop    (1664,   48), h=16  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (1664, 2480), h=16  → top edge   y=2464  → limit_bottom = 2464
+##   WallLeft   (  48, 1264), w=16  → right edge x=64    → limit_left   = 64
+##   WallRight  (3280, 1264), w=16  → left edge  x=3264  → limit_right  = 3264
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[Labyrinth2Level] Camera2D not found on player — cannot set camera limits")
+		return
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 2464   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 3264   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	_log_to_file("Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
+
+
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
@@ -1040,6 +1070,12 @@ func _on_armory_button_pressed() -> void:
 		armory_menu.back_pressed.connect(func():
 			armory_menu.queue_free()
 			# Issue #1582: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
+		armory_menu.apply_pressed_from_score_screen.connect(func():
+			# Issue #1690: Remove gold highlight from armory button if all available items have been opened
 			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
 			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
 				_remove_armory_button_gold_style()

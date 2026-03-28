@@ -71,9 +71,9 @@ class MockActiveItemManager:
 			"description": "Experimental Sample — press Space to trigger a random active item effect (including items not yet unlocked). 1–5 charges per battle, randomised on level start.",
 			"activation_hint": "Press Space to trigger random effect"
 		},
-		19: {"name": "Fine Motor Skills", "icon_path": "res://assets/sprites/weapons/fine_motor_skills_icon.png", "description": "Fine Motor Skills.", "activation_hint": "Press Space to reload"},
-		20: {"name": "Dash", "icon_path": "res://assets/sprites/weapons/dash_icon.png", "description": "Dash.", "activation_hint": "Press Space to dash"},
-		21: {"name": "Grenade Bag", "icon_path": "res://assets/sprites/weapons/grenade_bag_icon.png", "description": "Grenade Bag — passive."}
+		19: {"name": "Fine Motor Skills", "icon_path": "res://assets/sprites/weapons/fine_motor_skills_icon.png", "description": "Fine Motor Skills — press Space to instantly reload weapon.", "activation_hint": "Press Space to reload"},
+		20: {"name": "Dash", "icon_path": "res://assets/sprites/weapons/dash_icon.png", "description": "Dash — press Space to dash in movement direction.", "activation_hint": "Press Space to dash"},
+		21: {"name": "Grenade Bag", "icon_path": "res://assets/sprites/weapons/grenade_bag_icon.png", "description": "Grenade Bag — passive: increases starting grenade count."}
 	}
 
 	## Check if experimental sample is currently equipped (Issue #1127)
@@ -493,10 +493,10 @@ func test_total_active_items_includes_experimental_sample() -> void:
 
 
 func test_active_item_count_is_twenty_two() -> void:
-	# NONE + 21 items = 22 total (includes FINE_MOTOR_SKILLS=19, DASH=20, GRENADE_BAG=21 — Issue #1635)
+	# NONE + 21 items = 22 total (FINE_MOTOR_SKILLS, DASH, GRENADE_BAG added by Issues #1315, #1071, #1590)
 	var all_types := manager.get_all_active_item_types()
 	assert_eq(all_types.size(), 22,
-		"Should have 22 active item types total (NONE + 21 items including FINE_MOTOR_SKILLS, DASH, GRENADE_BAG)")
+		"Should have 22 active item types total (NONE + 21 items including EXPERIMENTAL_SAMPLE, FINE_MOTOR_SKILLS, DASH, and GRENADE_BAG)")
 
 
 func test_experimental_sample_eligible_types_includes_fine_motor_skills() -> void:
