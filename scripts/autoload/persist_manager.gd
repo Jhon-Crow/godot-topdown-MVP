@@ -508,6 +508,8 @@ func clear_all_saves() -> void:
 		game_manager.total_deaths = 0  # Issue #1389
 		game_manager.no_damage_levels_completed = 0  # Issue #1389
 		game_manager.levels_completed_rank_a_or_higher = 0  # Issue #1589
+		game_manager.kills_through_wall = 0  # Issue #1624
+		game_manager.levels_completed_with_silenced_pistol = 0  # Issue #1624
 
 	# Reset GrenadeManager to defaults
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -531,6 +533,9 @@ func clear_all_saves() -> void:
 				active_item_manager.unlocked_active_items[item_type] = false
 			# else: unconditionally-unlocked items (NONE, LOUDSPEAKER) keep their default value
 		active_item_manager.current_active_item = active_item_manager.ActiveItemType.NONE
+		# Emit active_item_changed so Player de-equips any active item (e.g. auto-reload)
+		# without triggering a level restart (Issue #1697).
+		active_item_manager.active_item_changed.emit(active_item_manager.ActiveItemType.NONE)
 		# Reset loudspeaker progress (Issue #959)
 		if active_item_manager.has_method("reset_loudspeaker_progress"):
 			active_item_manager.reset_loudspeaker_progress()
