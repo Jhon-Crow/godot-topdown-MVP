@@ -107,12 +107,15 @@ func _ready() -> void:
 		_blood_diffusion_script = load(BLOOD_DIFFUSION_SCRIPT_PATH)
 
 	var shader_ok: bool = _visual != null and _visual.material != null
-	_log("[WaterBody] Ready — visual=%s shader=%s collision=%s splash=%s blood=%s" % [
+	var mat_type: String = _visual.material.get_class() if shader_ok else "none"
+	_log("[WaterBody] Ready — visual=%s shader=%s(%s) collision=%s splash=%s blood=%s group=%s [fix#1608]" % [
 		str(_visual != null),
 		"OK" if shader_ok else "FALLBACK",
+		mat_type,
 		str(_collision != null),
 		"OK" if _splash_script != null else "MISSING",
-		"OK" if _blood_diffusion_script != null else "MISSING"
+		"OK" if _blood_diffusion_script != null else "MISSING",
+		str(is_in_group("precipitation_effects"))
 	])
 
 
@@ -386,7 +389,12 @@ func set_time_stopped(paused: bool) -> void:
 			mat.set_shader_parameter("wave_speed", 0.0)
 			mat.set_shader_parameter("ripple_speed", 0.0)
 			mat.set_shader_parameter("surf_speed", 0.0)
-		_log("[WaterBody] Wave animation paused (time stopped)")
+			_log("[WaterBody] Wave animation paused: wave_speed=%s→0, ripple_speed=%s→0, surf_speed=%s→0" % [
+				str(_saved_wave_speed), str(_saved_ripple_speed), str(_saved_surf_speed)])
+		else:
+			_log("[WaterBody] Wave animation paused (no shader material — visual=%s mat_type=%s)" % [
+				str(_visual != null),
+				str(_visual.material.get_class() if _visual != null and _visual.material != null else "null")])
 	else:
 		# Restore WaterVisual processing — mirrors PROCESS_MODE_INHERIT restore in
 		# RainEffect and SnowEffect (Issue #1608).
@@ -398,7 +406,10 @@ func set_time_stopped(paused: bool) -> void:
 			mat.set_shader_parameter("wave_speed", _saved_wave_speed)
 			mat.set_shader_parameter("ripple_speed", _saved_ripple_speed)
 			mat.set_shader_parameter("surf_speed", _saved_surf_speed)
-		_log("[WaterBody] Wave animation resumed (time resumed)")
+			_log("[WaterBody] Wave animation resumed: wave_speed=%s, ripple_speed=%s, surf_speed=%s" % [
+				str(_saved_wave_speed), str(_saved_ripple_speed), str(_saved_surf_speed)])
+		else:
+			_log("[WaterBody] Wave animation resumed (no shader material)")
 
 
 ## Log a message via the FileLogger autoload (mirrors SnowEffect/RainEffect pattern).
