@@ -4293,8 +4293,8 @@ func _apply_gunslinger_enemy_glow() -> void:
 	if _head_sprite: _head_sprite.modulate = bc
 	if _left_arm_sprite: _left_arm_sprite.modulate = bc
 	if _right_arm_sprite: _right_arm_sprite.modulate = bc
-	var gl := PointLight2D.new(); gl.name = "GunslingerEnemyGlow"; gl.color = Color(1.0, 0.1, 0.05, 1.0); gl.energy = 0.6; gl.texture_scale = 0.4; gl.shadow_enabled = false; gl.blend_mode = Light2D.BLEND_MODE_ADD
-	var gt := GradientTexture2D.new(); var gr := Gradient.new(); gr.add_point(0.0, Color.WHITE); gr.add_point(1.0, Color(1.0, 1.0, 1.0, 0.0)); gt.gradient = gr; gt.fill = GradientTexture2D.FILL_RADIAL; gt.width = 256; gt.height = 256; gl.texture = gt
+	var gl := PointLight2D.new(); gl.name = "GunslingerEnemyGlow"; gl.color = Color(1.0, 0.1, 0.05, 1.0); gl.energy = 1.2; gl.texture_scale = 0.8; gl.shadow_enabled = false; gl.blend_mode = Light2D.BLEND_MODE_ADD
+	var gt := GradientTexture2D.new(); var gr := Gradient.new(); gr.add_point(0.0, Color.WHITE); gr.add_point(1.0, Color(1.0, 1.0, 1.0, 0.0)); gt.gradient = gr; gt.fill = GradientTexture2D.FILL_RADIAL; gt.width = 256; gt.height = 128; gl.texture = gt
 	add_child(gl)
 	_log_to_file("[Gunslinger] Enemy glow applied")
 

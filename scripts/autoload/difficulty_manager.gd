@@ -464,7 +464,7 @@ func should_apply_gunslinger_enemy_glow() -> bool:
 
 ## Duration (ms) of the last chance effect when player kills an enemy.
 ## Only in Power Fantasy mode.
-const POWER_FANTASY_KILL_EFFECT_DURATION_MS: float = 300.0
+const POWER_FANTASY_KILL_EFFECT_DURATION_MS: float = 600.0
 
 
 ## Duration (ms) of the special last chance effect when grenade explodes.

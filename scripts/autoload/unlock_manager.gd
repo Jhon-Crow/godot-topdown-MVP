@@ -1389,7 +1389,7 @@ func _get_all_difficulty_names() -> Array[String]:
 	if difficulty_manager and difficulty_manager.has_method("get_all_difficulty_names"):
 		return difficulty_manager.get_all_difficulty_names()
 	# Static fallback — must stay in sync with DifficultyManager.Difficulty enum.
-	return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
+	return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal", "Gunslinger"]
 
 
 ## Log a message to the file logger if available.

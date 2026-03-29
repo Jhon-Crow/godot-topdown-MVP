@@ -2,14 +2,14 @@ extends Node
 ## PowerFantasyEffectsManager - Manages special effects for Power Fantasy difficulty mode.
 ##
 ## This autoload singleton provides:
-## 1. "Last chance" effect (300ms) after killing an enemy - penultimate hit effect
+## 1. "Last chance" effect (600ms) after killing an enemy - penultimate hit effect
 ## 2. "Special last chance" effect (2000ms) when a grenade explodes - penultimate hit effect
 ##
 ## These effects use the penultimate hit system (time slowdown + saturation boost)
 ## but with shorter durations specific to Power Fantasy mode.
 
-## Duration of the last chance effect when killing an enemy (300ms).
-const KILL_EFFECT_DURATION_MS: float = 300.0
+## Duration of the last chance effect when killing an enemy (600ms, 2x longer per Issue #1732).
+const KILL_EFFECT_DURATION_MS: float = 600.0
 
 ## Duration of the special last chance effect when grenade explodes (2000ms).
 const GRENADE_EFFECT_DURATION_MS: float = 2000.0
