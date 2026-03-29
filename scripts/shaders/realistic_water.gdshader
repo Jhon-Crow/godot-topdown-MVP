@@ -58,6 +58,17 @@ uniform vec2 obstacle_uvs[8];
 // Radius in UV space within which the wave is attenuated around an obstacle.
 uniform float obstacle_radius : hint_range(0.0, 0.2) = 0.045;
 
+// --- Screen-space refraction (Issue #1738) ---
+// Distortion strength in UV units. 0.0 = no refraction, ~0.008 gives a subtle
+// but visible wave-lensing effect. Set to 0.0 by WaterBody.set_time_stopped()
+// when time is paused so the surface appears completely frozen.
+uniform float distortion_strength : hint_range(0.0, 0.05) = 0.008;
+
+// Screen texture for refraction sampling.
+// filter_nearest + textureLod for gl_compatibility renderer support
+// (matches the pattern used in last_chance.gdshader and invisibility_cloak.gdshader).
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
+
 // Compute a [0..1] occlusion factor: 1.0 = fully occluded (wave stops),
 // 0.0 = no occlusion.  Uses smooth falloff like a light shadow penumbra.
 float wave_occlusion(vec2 uv) {
@@ -127,8 +138,22 @@ void fragment() {
 	// Blend surf foam on top of the water colour
 	water_col = mix(water_col, foam_color, surf_foam * surf_intensity);
 
+	// ---- Screen-space refraction (Issue #1738) ----
+	// Re-use the already-computed total_disp as the screen UV offset so the
+	// refraction bends in exact sync with the visible wave animation.
+	// Multiply by occ_factor so refraction is suppressed near obstacles, just
+	// as wave amplitude is suppressed there (mirrors the surf_foam *= occ_factor
+	// logic above).
+	vec2 refract_offset = vec2(total_disp, total_disp * 0.5) * distortion_strength * occ_factor;
+	vec4 screen_col = textureLod(screen_texture, SCREEN_UV + refract_offset, 0.0);
+	// Blend: water_col.a drives how much water colour vs refracted scene is shown.
+	// Opaque deep water → mostly water colour; transparent shore edges → more scene.
+	// When distortion_strength = 0 (time-stopped) refract_offset = vec2(0,0) so
+	// screen_col is an unshifted sample — the blend is still visually correct.
+	vec3 final_rgb = mix(screen_col.rgb, water_col.rgb, water_col.a);
+
 	// ---- Blood diffusion tint ----
-	vec3 final_rgb = mix(water_col.rgb, blood_tint.rgb, blood_tint.a);
+	final_rgb = mix(final_rgb, blood_tint.rgb, blood_tint.a);
 	float alpha = water_col.a;
 
 	// ---- Shore fade at the top edge (transition from land to water) ----

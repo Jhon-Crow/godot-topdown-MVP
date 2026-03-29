@@ -373,6 +373,7 @@ class MockWaterBodyTimeStop:
 	var _wave_speed: float = 0.3
 	var _ripple_speed: float = 0.5
 	var _surf_speed: float = 0.5
+	var _distortion_strength: float = 0.008
 
 	## Whether time is currently stopped.
 	var _time_stopped: bool = false
@@ -381,12 +382,13 @@ class MockWaterBodyTimeStop:
 	var _saved_wave_speed: float = 0.0
 	var _saved_ripple_speed: float = 0.0
 	var _saved_surf_speed: float = 0.0
+	var _saved_distortion_strength: float = 0.0
 
 	## Whether a shader material is attached (simulate missing material case).
 	var has_material: bool = true
 
 
-	## Simulate set_time_stopped from water_body.gd (Issue #1585).
+	## Simulate set_time_stopped from water_body.gd (Issue #1585, Issue #1738).
 	func set_time_stopped(paused: bool) -> void:
 		if _time_stopped == paused:
 			return
@@ -397,13 +399,16 @@ class MockWaterBodyTimeStop:
 			_saved_wave_speed = _wave_speed
 			_saved_ripple_speed = _ripple_speed
 			_saved_surf_speed = _surf_speed
+			_saved_distortion_strength = _distortion_strength
 			_wave_speed = 0.0
 			_ripple_speed = 0.0
 			_surf_speed = 0.0
+			_distortion_strength = 0.0
 		else:
 			_wave_speed = _saved_wave_speed
 			_ripple_speed = _saved_ripple_speed
 			_surf_speed = _saved_surf_speed
+			_distortion_strength = _saved_distortion_strength
 
 
 # ============================================================================
@@ -472,3 +477,55 @@ func test_water_set_time_stopped_noop_without_material() -> void:
 	assert_true(wb._time_stopped, "Time stopped flag should be set even without material")
 	assert_almost_eq(wb._wave_speed, 0.3, 0.001,
 		"wave_speed must be unchanged when no shader material is present")
+
+
+# ============================================================================
+# Tests: Issue #1738 — distortion_strength zeroed during time-stop
+# ============================================================================
+
+
+func test_distortion_strength_zero_when_time_stopped() -> void:
+	var wb := MockWaterBodyTimeStop.new()
+	wb.set_time_stopped(true)
+	assert_eq(wb._distortion_strength, 0.0,
+		"distortion_strength must be 0 when time is stopped (Issue #1738)")
+
+
+func test_distortion_strength_restored_when_time_resumes() -> void:
+	var wb := MockWaterBodyTimeStop.new()
+	var original_distortion: float = wb._distortion_strength
+	wb.set_time_stopped(true)
+	wb.set_time_stopped(false)
+	assert_almost_eq(wb._distortion_strength, original_distortion, 0.0001,
+		"distortion_strength must be restored to original value after time resumes (Issue #1738)")
+
+
+func test_distortion_strength_saves_non_default_value() -> void:
+	var wb := MockWaterBodyTimeStop.new()
+	wb._distortion_strength = 0.025
+	wb.set_time_stopped(true)
+	assert_eq(wb._distortion_strength, 0.0,
+		"distortion_strength must be 0 during time stop regardless of prior value")
+	wb.set_time_stopped(false)
+	assert_almost_eq(wb._distortion_strength, 0.025, 0.0001,
+		"Custom distortion_strength must be restored after time resumes")
+
+
+func test_distortion_strength_noop_without_material() -> void:
+	var wb := MockWaterBodyTimeStop.new()
+	wb.has_material = false
+	wb.set_time_stopped(true)
+	assert_true(wb._time_stopped,
+		"Time stopped flag should be set even without material")
+	assert_almost_eq(wb._distortion_strength, 0.008, 0.0001,
+		"distortion_strength must be unchanged when no shader material is present (Issue #1738)")
+
+
+func test_distortion_and_speeds_all_zero_when_time_stopped() -> void:
+	# Regression: all motion parameters must be frozen together (Issue #1738).
+	var wb := MockWaterBodyTimeStop.new()
+	wb.set_time_stopped(true)
+	assert_eq(wb._wave_speed, 0.0, "wave_speed must be 0 when time stopped")
+	assert_eq(wb._ripple_speed, 0.0, "ripple_speed must be 0 when time stopped")
+	assert_eq(wb._surf_speed, 0.0, "surf_speed must be 0 when time stopped")
+	assert_eq(wb._distortion_strength, 0.0, "distortion_strength must be 0 when time stopped")

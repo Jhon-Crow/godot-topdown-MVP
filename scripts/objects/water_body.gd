@@ -70,6 +70,7 @@ var _time_stopped: bool = false
 var _saved_wave_speed: float = 0.0
 var _saved_ripple_speed: float = 0.0
 var _saved_surf_speed: float = 0.0
+var _saved_distortion_strength: float = 0.0
 
 
 func _ready() -> void:
@@ -376,15 +377,18 @@ func set_time_stopped(paused: bool) -> void:
 		_saved_wave_speed = mat.get_shader_parameter("wave_speed")
 		_saved_ripple_speed = mat.get_shader_parameter("ripple_speed")
 		_saved_surf_speed = mat.get_shader_parameter("surf_speed")
+		_saved_distortion_strength = mat.get_shader_parameter("distortion_strength")
 		mat.set_shader_parameter("wave_speed", 0.0)
 		mat.set_shader_parameter("ripple_speed", 0.0)
 		mat.set_shader_parameter("surf_speed", 0.0)
+		mat.set_shader_parameter("distortion_strength", 0.0)
 		_log("[WaterBody] Wave animation paused (time stopped)")
 	else:
 		# Restore saved speed values.
 		mat.set_shader_parameter("wave_speed", _saved_wave_speed)
 		mat.set_shader_parameter("ripple_speed", _saved_ripple_speed)
 		mat.set_shader_parameter("surf_speed", _saved_surf_speed)
+		mat.set_shader_parameter("distortion_strength", _saved_distortion_strength)
 		_log("[WaterBody] Wave animation resumed (time resumed)")
 
 
