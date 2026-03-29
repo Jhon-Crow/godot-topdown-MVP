@@ -373,7 +373,7 @@ class MockWaterBodyTimeStop:
 	var _wave_speed: float = 0.3
 	var _ripple_speed: float = 0.5
 	var _surf_speed: float = 0.5
-	var _distortion_strength: float = 0.008
+	var _distortion_strength: float = 0.012
 
 	## Whether time is currently stopped.
 	var _time_stopped: bool = false
@@ -517,7 +517,7 @@ func test_distortion_strength_noop_without_material() -> void:
 	wb.set_time_stopped(true)
 	assert_true(wb._time_stopped,
 		"Time stopped flag should be set even without material")
-	assert_almost_eq(wb._distortion_strength, 0.008, 0.0001,
+	assert_almost_eq(wb._distortion_strength, 0.012, 0.0001,
 		"distortion_strength must be unchanged when no shader material is present (Issue #1738)")
 
 

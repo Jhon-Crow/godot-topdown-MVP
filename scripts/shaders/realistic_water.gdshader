@@ -59,10 +59,12 @@ uniform vec2 obstacle_uvs[8];
 uniform float obstacle_radius : hint_range(0.0, 0.2) = 0.045;
 
 // --- Screen-space refraction (Issue #1738) ---
-// Distortion strength in UV units. 0.0 = no refraction, ~0.008 gives a subtle
-// but visible wave-lensing effect. Set to 0.0 by WaterBody.set_time_stopped()
-// when time is paused so the surface appears completely frozen.
-uniform float distortion_strength : hint_range(0.0, 0.05) = 0.008;
+// Direct screen-UV offset magnitude. 0.0 = no refraction, 0.012 gives a subtle
+// but clearly visible wave-lensing effect (~1.2% of screen width ≈ 13 px at 1080p).
+// The wave phase (not the tiny final displacement) drives the distortion direction so
+// the offset is always in the useful ±distortion_strength range.
+// Set to 0.0 by WaterBody.set_time_stopped() when time is paused.
+uniform float distortion_strength : hint_range(0.0, 0.05) = 0.012;
 
 // Screen texture for refraction sampling.
 // filter_nearest + textureLod for gl_compatibility renderer support
@@ -139,12 +141,14 @@ void fragment() {
 	water_col = mix(water_col, foam_color, surf_foam * surf_intensity);
 
 	// ---- Screen-space refraction (Issue #1738) ----
-	// Re-use the already-computed total_disp as the screen UV offset so the
-	// refraction bends in exact sync with the visible wave animation.
-	// Multiply by occ_factor so refraction is suppressed near obstacles, just
-	// as wave amplitude is suppressed there (mirrors the surf_foam *= occ_factor
-	// logic above).
-	vec2 refract_offset = vec2(total_disp, total_disp * 0.5) * distortion_strength * occ_factor;
+	// Use normalised wave phase (wave1, wave2) — not the tiny final displacement —
+	// so distortion_strength is the direct screen-UV offset in [0..1] units
+	// (0.012 ≈ 1.2% of screen width, clearly visible).
+	// Combining both waves gives an irregular, natural-looking shimmer.
+	// wave1_occ / wave2_occ already have occ_factor applied, so refraction is
+	// automatically suppressed near obstacles (same as surf_foam logic).
+	// wave1_occ and wave2_occ already incorporate occ_factor, so no extra multiply needed.
+	vec2 refract_offset = vec2(wave1_occ, wave2_occ * 0.5) * distortion_strength;
 	vec4 screen_col = textureLod(screen_texture, SCREEN_UV + refract_offset, 0.0);
 	// Blend: water_col.a drives how much water colour vs refracted scene is shown.
 	// Opaque deep water → mostly water colour; transparent shore edges → more scene.

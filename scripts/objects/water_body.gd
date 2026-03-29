@@ -108,12 +108,18 @@ func _ready() -> void:
 		_blood_diffusion_script = load(BLOOD_DIFFUSION_SCRIPT_PATH)
 
 	var shader_ok: bool = _visual != null and _visual.material != null
-	_log("[WaterBody] Ready — visual=%s shader=%s collision=%s splash=%s blood=%s" % [
+	var distortion_val: float = 0.0
+	if shader_ok and _visual.material is ShaderMaterial:
+		var v = (_visual.material as ShaderMaterial).get_shader_parameter("distortion_strength")
+		if v != null:
+			distortion_val = float(v)
+	_log("[WaterBody] Ready — visual=%s shader=%s collision=%s splash=%s blood=%s distortion_strength=%.4f" % [
 		str(_visual != null),
 		"OK" if shader_ok else "FALLBACK",
 		str(_collision != null),
 		"OK" if _splash_script != null else "MISSING",
-		"OK" if _blood_diffusion_script != null else "MISSING"
+		"OK" if _blood_diffusion_script != null else "MISSING",
+		distortion_val
 	])
 
 
