@@ -26,9 +26,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -150.0
-offset_top = -265.0
+offset_top = -295.0
 offset_right = 150.0
-offset_bottom = 265.0
+offset_bottom = 295.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -67,6 +67,11 @@ layout_mode = 2
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 text = "POWER_FANTASY"
+
+[node name="GunslingerButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+text = "Gunslinger"
 
 [node name="EasyButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)

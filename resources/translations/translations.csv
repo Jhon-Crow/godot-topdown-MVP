@@ -65,6 +65,9 @@ CONTROLS_CHANGES_PENDING,Changes pending. Click Apply to save.,Есть несо
 CONTROLS_SETTINGS_SAVED,Settings saved!,Настройки сохранены!
 CONTROLS_RESET_DEFAULTS,Controls reset to defaults.,Управление сброшено к значениям по умолчанию.
 CONTROLS_NOT_SET,Not Set,Не задано
+GUNSLINGER,Gunslinger,Стрелок
+GUNSLINGER_SELECTED,Gunslinger (Selected),Стрелок (выбрано)
+DIFFICULTY_STATUS_GUNSLINGER,"Gunslinger: 2x less HP, 4x ammo, no laser sights","Стрелок: в 2 раза меньше HP, в 4 раза больше патронов, без лазерных прицелов"
 DIFFICULTY_STATUS_POWER_FANTASY,"Power Fantasy: 10 HP, 3x ammo, blue lasers","Фэнтези силы: 10 HP, 3x патроны, синие лазеры"
 DIFFICULTY_STATUS_EASY,Easy mode: Enemies react slower,Лёгкий режим: враги реагируют медленнее
 DIFFICULTY_STATUS_HARD,Hard mode: Enemies react when you look away,Сложный режим: враги реагируют когда смотришь в сторону
