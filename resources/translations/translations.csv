@@ -59,14 +59,14 @@ LANGUAGE_TITLE,Language,Язык
 LANGUAGE_ENGLISH,English,English
 LANGUAGE_RUSSIAN,Русский,Русский
 ARMORY_UNAVAILABLE_ROGUELIKE,Armory is not available in roguelike mode,Арсенал недоступен в режиме рогалика
-COMPLETE_LEVELS_TO_UNLOCK_ROGUELIKE,Complete all levels on any rank to unlock roguelike,Пройдите все уровни на любой ранг, чтобы разблокировать рогалик
+COMPLETE_LEVELS_TO_UNLOCK_ROGUELIKE,Complete all levels on any rank to unlock roguelike,"Пройдите все уровни на любой ранг, чтобы разблокировать рогалик"
 CONTROLS_PRESS_KEY,Press a key...,Нажмите клавишу...
 CONTROLS_CHANGES_PENDING,Changes pending. Click Apply to save.,Есть несохранённые изменения. Нажмите Применить.
 CONTROLS_SETTINGS_SAVED,Settings saved!,Настройки сохранены!
 CONTROLS_RESET_DEFAULTS,Controls reset to defaults.,Управление сброшено к значениям по умолчанию.
 CONTROLS_NOT_SET,Not Set,Не задано
-DIFFICULTY_STATUS_POWER_FANTASY,Power Fantasy: 10 HP, 3x ammo, blue lasers,Фэнтези силы: 10 HP, 3x патроны, синие лазеры
+DIFFICULTY_STATUS_POWER_FANTASY,"Power Fantasy: 10 HP, 3x ammo, blue lasers","Фэнтези силы: 10 HP, 3x патроны, синие лазеры"
 DIFFICULTY_STATUS_EASY,Easy mode: Enemies react slower,Лёгкий режим: враги реагируют медленнее
 DIFFICULTY_STATUS_HARD,Hard mode: Enemies react when you look away,Сложный режим: враги реагируют когда смотришь в сторону
-DIFFICULTY_STATUS_BLACK_METAL,Black Metal: 25% less HP, 25% faster, B&W filter,Блэк Метал: на 25% меньше HP, быстрее, ч/б фильтр
+DIFFICULTY_STATUS_BLACK_METAL,"Black Metal: 25% less HP, 25% faster, B&W filter","Блэк Метал: на 25% меньше HP, быстрее, ч/б фильтр"
 DIFFICULTY_STATUS_NIGHT_MODE_ON, | Night Mode ON, | Ночной режим ВКЛ

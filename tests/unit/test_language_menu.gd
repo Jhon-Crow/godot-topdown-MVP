@@ -37,6 +37,10 @@ class MockLanguageMenu:
 	func press_back() -> void:
 		back_pressed_count += 1
 
+	## Simulates pressing the ESC / pause action (Issue #1718 fix).
+	func simulate_esc_press() -> void:
+		press_back()
+
 	## Returns the current locale.
 	func get_current_locale() -> String:
 		return _current_locale
@@ -141,3 +145,14 @@ func test_on_locale_changed_back_to_english() -> void:
 	menu.on_locale_changed("en")
 	assert_eq(menu.get_selected_locale(), "en",
 		"Receiving locale_changed for 'en' should highlight the English button")
+
+
+# ============================================================================
+# ESC / Pause Action Tests
+# ============================================================================
+
+
+func test_esc_press_emits_back_pressed() -> void:
+	menu.simulate_esc_press()
+	assert_eq(menu.back_pressed_count, 1,
+		"Pressing ESC (pause action) should emit back_pressed signal")
