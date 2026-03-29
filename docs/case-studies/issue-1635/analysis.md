@@ -39,27 +39,33 @@ Additionally, the first fix attempt removed types 7 (FORCE_FIELD) and 16 (RECOIL
 
 ### Phase 4 — User tests (2026-03-29 17:19 – 17:20)
 
-The user ran the game using a **prebuilt binary** based on the original code (before the PR was merged). The game log confirms this — the log format `"Charges remaining: X — triggering random effect for type Y"` matches code that predates our PR changes. The log shows 139 Experimental Sample activations across ~100 seconds of play, with the following type distribution:
+The user ran the game using a **prebuilt binary from the main branch** (before the PR fix was merged). The game log (`game_log_20260329_171906.txt`) was recorded on 2026-03-29 and shows 139 Experimental Sample activations across approximately 100 seconds of play.
 
-| Type | Item | Count | Expected? |
-|------|------|-------|-----------|
-| 1 | FLASHLIGHT | 24 | Old code only |
+**Evidence that this was the pre-fix binary:**
+- Types 1 (FLASHLIGHT), 3 (TELEPORT_BRACERS), and 15 (DRILLING_BULLETS) appear in the log — these are only reachable via the old `randi_range(1, 17)` range; they are intentionally excluded from the fixed `EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES`.
+- No types 19 or 20 appear at all.
+
+**Type frequency distribution:**
+
+| Type | Item | Count | In fixed ELIGIBLE_TYPES? |
+|------|------|-------|--------------------------|
+| 1 | FLASHLIGHT | 24 | No (passive; excluded) |
 | 11 | LOUDSPEAKER | 18 | Yes |
 | 5 | INVISIBILITY_SUIT | 15 | Yes |
-| 3 | TELEPORT_BRACERS | 14 | Old code only |
-| 16 | RECOIL_COMPENSATOR | 14 | Old code only |
-| 15 | DRILLING_BULLETS | 14 | Old code only |
-| 7 | FORCE_FIELD | 11 | Old code only |
+| 3 | TELEPORT_BRACERS | 14 | No (passive; excluded) |
+| 16 | RECOIL_COMPENSATOR | 14 | Yes (re-added in fix) |
+| 15 | DRILLING_BULLETS | 14 | No (passive; excluded) |
+| 7 | FORCE_FIELD | 11 | Yes (re-added in fix) |
 | 8 | TRAJECTORY_GLASSES | 10 | Yes |
 | 12 | BREACHING_CHARGES | 10 | Yes |
 | 2 | HOMING_BULLETS | 6 | Yes |
 | 4 | BFF_PENDANT | 3 | Yes |
-| **19** | **FINE_MOTOR_SKILLS** | **0** | **MISSING** |
-| **20** | **DASH** | **0** | **MISSING** |
+| **19** | **FINE_MOTOR_SKILLS** | **0** | **Yes — was missing** |
+| **20** | **DASH** | **0** | **Yes — was missing** |
 
-The absence of types 19 and 20 across 139 activations confirms the bug statistically (probability of missing a type with ~1/17 chance for 139 trials is astronomically small).
+The absence of types 19 and 20 across 139 activations confirms the bug statistically. With `randi_range(1, 17)` the probability of both types being absent from 139 trials is essentially zero — the types were structurally unreachable in the old code.
 
-The user reported: **"не добавилось"** ("didn't get added").
+The user uploaded this log on 2026-03-29 commenting **"не добавилось"** ("didn't get added"), requesting the log be preserved in this case study folder.
 
 ---
 
