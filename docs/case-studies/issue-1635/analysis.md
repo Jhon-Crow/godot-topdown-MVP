@@ -12,7 +12,8 @@
 
 | File | Description |
 |------|-------------|
-| `game_log_20260329_171906.txt` | Game session log provided by owner on 2026-03-29. Shows 139 Experimental Sample activations, none of which produced type 19 or 20. |
+| `game_log_20260329_171906.txt` | Game session log provided by owner on 2026-03-29 (first log). Shows 139 Experimental Sample activations with the pre-fix main-branch binary. Types 19 and 20 never appear. |
+| `game_log_20260329_180633.txt` | Game session log provided by owner on 2026-03-29 (second log, ~1 hour later). 134 Experimental Sample activations with an intermediate/alternative binary. Types 7 and 16 work (new helper code present), but types 19 and 20 still never appear. |
 
 ---
 
@@ -66,6 +67,35 @@ The user ran the game using a **prebuilt binary from the main branch** (before t
 The absence of types 19 and 20 across 139 activations confirms the bug statistically. With `randi_range(1, 17)` the probability of both types being absent from 139 trials is essentially zero — the types were structurally unreachable in the old code.
 
 The user uploaded this log on 2026-03-29 commenting **"не добавилось"** ("didn't get added"), requesting the log be preserved in this case study folder.
+
+### Phase 5 — Second user test (2026-03-29 18:06 – 18:10)
+
+The user ran a second game session (~1 hour after Phase 4) using a **different binary** that has partial experimental sample fixes implemented. The log (`game_log_20260329_180633.txt`) records 134 Experimental Sample activations.
+
+**Key observations about this binary:**
+- Types 7 (FORCE_FIELD), 16 (RECOIL_COMPENSATOR) are now handled with "temporary node created" messages — indicates the helper-function approach from the fix is present
+- Types 1 (FLASHLIGHT), 3 (TELEPORT_BRACERS), 12 (BREACHING_CHARGES), 15 (DRILLING_BULLETS) also produce "temporary node created" messages — a broader set of items is handled
+- Types 19 and 20 still do not appear at all across all 134 activations — confirming the FINE_MOTOR_SKILLS and DASH bugs persist
+
+**Type frequency distribution (second log):**
+
+| Type | Item | Count | Notes |
+|------|------|-------|-------|
+| 1 | FLASHLIGHT | 18 | "temporary node created" message visible |
+| 11 | LOUDSPEAKER | 17 | |
+| 15 | DRILLING_BULLETS | 16 | "drilling bullets applied" message |
+| 12 | BREACHING_CHARGES | 15 | "temporary node created" message visible |
+| 7 | FORCE_FIELD | 14 | "temporary node created" — helper code present |
+| 3 | TELEPORT_BRACERS | 13 | "aiming for 1,8s" message |
+| 8 | TRAJECTORY_GLASSES | 12 | "temporary effect node created" |
+| 5 | INVISIBILITY_SUIT | 12 | |
+| 16 | RECOIL_COMPENSATOR | 9 | "activated for 1,8s" |
+| 2 | HOMING_BULLETS | 5 | |
+| 4 | BFF_PENDANT | 3 | |
+| **19** | **FINE_MOTOR_SKILLS** | **0** | **Still absent — bug confirmed again** |
+| **20** | **DASH** | **0** | **Still absent — bug confirmed again** |
+
+The second log reinforces the root cause analysis: even with partial fixes that enable types 7 and 16 to fire, the code path for types 19 and 20 still fails. This is consistent with Bug 2 (equipped-flag guards) being the primary remaining blocker.
 
 ---
 
@@ -150,4 +180,5 @@ The reload logic itself (`_fine_motor_skills_activate_async`) only references th
 
 - `scripts/characters/player.gd` — updated `EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES`, fixed cases 19 and 20, added cases 7 and 16, added three helper functions
 - `tests/unit/test_experimental_sample.gd` — mirrored updated `ELIGIBLE_TYPES` in mock
-- `docs/case-studies/issue-1635/game_log_20260329_171906.txt` — game log submitted by owner
+- `docs/case-studies/issue-1635/game_log_20260329_171906.txt` — first game log submitted by owner (pre-fix binary, 139 activations)
+- `docs/case-studies/issue-1635/game_log_20260329_180633.txt` — second game log submitted by owner (partial-fix binary, 134 activations)
