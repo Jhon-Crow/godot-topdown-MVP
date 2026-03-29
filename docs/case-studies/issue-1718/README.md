@@ -121,7 +121,95 @@ This explicitly tells Godot's exporter to include `.csv` files in the PCK as raw
 
 ---
 
+---
+
+## Third Report: Russian language still not working + font broken (2026-03-29 17:51)
+
+After the second fix (include_filter added to export_presets.cfg), the owner tested again with `game_log_20260329_175132.txt` and reported:
+1. **"кстати, сейчас похоже испортился шрифт (должен быть как в main)"** — "font appears broken (should be like main)"
+2. **"всё ещё не меняется язык"** — "language still doesn't change"
+3. **"переведи всё на 2 языка!"** — "translate everything to 2 languages!"
+
+### Analysis of third game log
+
+The third log (17:51:32) shows:
+```
+[LocalizationSettings] ERROR: CSV not found at res://resources/translations/translations.csv — translations will not work.
+[LocalizationSettings] LocalizationSettings initialized — locale: en
+[LocalizationSettings] Locale changed to: ru
+[LocalizationSettings] Locale changed to: en
+```
+
+The CSV is **still** not found in the PCK despite `include_filter="*.csv"` being present.
+
+### Root Cause (Bug 5): include_filter has no effect — CSV is excluded by Godot's importer
+
+**Root Cause**: Godot's CSV importer (`ResourceImporterCSVTranslation`) processes the CSV during the editor/build phase and produces compiled `.translation` binary files stored **alongside the CSV** at:
+- `res://resources/translations/translations.en.translation`
+- `res://resources/translations/translations.ru.translation`
+
+The CI build log (run `23711389121`) confirms these compiled files ARE in the PCK:
+```
+savepack: Storing File: res://resources/translations/translations.csv.import
+savepack: Storing File: res://resources/translations/translations.en.translation
+savepack: Storing File: res://resources/translations/translations.ru.translation
+```
+
+But the raw `translations.csv` is NOT stored. The `include_filter="*.csv"` adds `.csv` to the explicit include list, but Godot's importer-resource relationship **overrides** this: imported resources are stored under their compiled form, not their source form. The `.csv` path is remapped to the compiled `.translation` resources.
+
+**Consequence**: `FileAccess.file_exists("res://resources/translations/translations.csv")` returns `false` in the exported build because only the compiled `.translation` files are in the PCK, not the raw CSV.
+
+**The "font broken" symptom**: Since translations fail entirely, all UI buttons show raw UPPERCASE keys (`RESUME`, `ARMORY`, `SETTINGS`, etc.) instead of proper translated text. The uppercase keys are longer and cause buttons to reflow/resize, which *looks* like a font change but is actually just the missing translation text.
+
+### Final Fix
+
+**Replace the CSV-loading approach with loading the compiled `.translation` binary files**:
+
+The compiled files ARE in the PCK at `res://resources/translations/translations.en.translation` and `res://resources/translations/translations.ru.translation`. Use `load()` to load them instead of `FileAccess` on the raw CSV:
+
+```gdscript
+func _load_translations() -> void:
+    for path in TRANSLATION_PATHS:
+        var translation: Translation = load(path) as Translation
+        if translation == null:
+            _log_to_file("ERROR: Failed to load translation from %s" % path)
+            continue
+        TranslationServer.add_translation(translation)
+```
+
+**Also add `locale/translations` to `project.godot`** so Godot's editor knows to import the CSV and produce the compiled `.translation` files during build:
+
+```ini
+[internationalization]
+locale/translations=PackedStringArray("res://resources/translations/translations.csv")
+```
+
+This ensures:
+1. The editor imports the CSV → creates `translations.en.translation` + `translations.ru.translation` next to the CSV
+2. The export bundles these compiled files in the PCK
+3. `LocalizationSettings._load_translations()` loads them at runtime via `load()`
+4. `TranslationServer.set_locale("ru")` triggers Godot's auto-translate on all Control nodes
+
+---
+
+## Solution
+
+1. **Load compiled `.translation` binary files** in `localization_settings.gd`:
+   - Use `load("res://resources/translations/translations.en.translation")` and `.ru.translation`
+   - Register with `TranslationServer.add_translation()`
+   - Remove the raw CSV `FileAccess` approach (CSV is not in the exported PCK)
+
+2. **Add `locale/translations`** to `project.godot`:
+   - `locale/translations=PackedStringArray("res://resources/translations/translations.csv")`
+   - Tells Godot to import the CSV and produce compiled `.translation` files during build/export
+
+3. **ESC support** in `language_menu.gd` (already fixed in previous session):
+   - `_unhandled_input(event)` matching the pattern in other sub-menu scripts
+
+---
+
 ## Attached Artifacts
 
 - `game_log_20260329_164616.txt` — Full game log from the owner's first test session on 2026-03-29
 - `game_log_20260329_172217.txt` — Full game log from the owner's second test session on 2026-03-29
+- `game_log_20260329_175132.txt` — Full game log from the owner's third test session on 2026-03-29

@@ -154,6 +154,10 @@ flashlight_toggle={
 
 project/assembly_name="GodotTopDownTemplate"
 
+[internationalization]
+
+locale/translations=PackedStringArray("res://resources/translations/translations.csv")
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
