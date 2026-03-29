@@ -424,6 +424,14 @@ func _start_last_chance_effect(duration_seconds: float = FREEZE_DURATION_REAL_SE
 	if _is_effect_active:
 		return
 
+	# Issue #1654: Cancel any ongoing fade-out before starting a new effect.
+	# If a new drone/grenade explosion triggers LastChance while the previous
+	# effect's fade-out is still running, _complete_fade_out() would later call
+	# set_process(false), killing the timer for the new effect and freezing time forever.
+	if _is_fading_out:
+		_is_fading_out = false
+		_log("Cancelled ongoing fade-out — new effect starting immediately")
+
 	_is_effect_active = true
 	_is_grenade_triggered = is_grenade
 	_current_effect_duration = duration_seconds
@@ -757,7 +765,9 @@ func _complete_fade_out() -> void:
 	_remove_visual_effects()
 
 	# Issue #1157: Disable _process after effect is fully done — nothing to update.
-	set_process(false)
+	# Issue #1654: Only disable if no new effect started during the fade-out.
+	if not _is_effect_active:
+		set_process(false)
 
 
 ## Unfreezes time and restores normal processing.
