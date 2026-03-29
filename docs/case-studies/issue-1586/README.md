@@ -29,6 +29,10 @@
 | 2026-03-29T14:44 | New AI session starts, analyzes the situation |
 | 2026-03-29T14:55 | Session posts detailed instructions: "you're testing the old build from Downloads folder" |
 | 2026-03-29T15:12 | User comments "не сработало" and attaches `game_log_20260329_181013.txt` |
+| 2026-03-29T15:13 | New AI session starts, downloads and analyzes `game_log_20260329_181013.txt` |
+| 2026-03-29T15:20 | Session posts analysis: old build confirmed again; posts step-by-step new build download instructions |
+| 2026-03-29T15:21 | CI passes again; "ready to merge" comment posted |
+| 2026-03-29T15:37 | User comments "не сработало" a 4th time, attaches `game_log_20260329_183642.txt` |
 
 ---
 
@@ -85,7 +89,21 @@ This multi-step process combined with no obvious version indicator in the runnin
 
 ## Evidence Files
 
-- [`game_log_20260329_181013.txt`](game_log_20260329_181013.txt) — User-provided log showing old build path
+- [`game_log_20260329_181013.txt`](logs/game_log_20260329_181013.txt) — User-provided log (3rd "не сработало"), showing old build path
+- [`game_log_20260329_183642.txt`](logs/game_log_20260329_183642.txt) — User-provided log (4th "не сработало"), same old build path confirmed
+
+### Log Comparison
+
+Both logs share identical indicators of an old, unpatched build:
+
+| Indicator | Log 1 (18:10) | Log 2 (18:36) |
+|-----------|--------------|--------------|
+| Executable path | `I:/Загрузки/godot exe/микро фиксы/...exe` | `I:/Загрузки/godot exe/микро фиксы/...exe` |
+| Build info | `not available (build_info.cfg not found)` | `not available (build_info.cfg not found)` |
+| `[SniperRifle] ASVK initialized` log line | ❌ absent | ❌ absent |
+| `maxRange=30000 px` | ❌ absent | ❌ absent |
+
+**Conclusion:** The user ran the exact same old `.exe` from the same local Downloads folder in both sessions, 26 minutes apart. The new CI build was never tested.
 
 ---
 
