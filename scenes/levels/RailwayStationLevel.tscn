@@ -2905,10 +2905,11 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-; === TELEPORTER ENEMIES ON PLATFORM (player spawn at x=2000, y=3100) ===
-; 3 enemies left of player spawn
+; === TELEPORTER ENEMIES BESIDE STATION BUILDING (player spawn at x=2000, y=3100) ===
+; building spans x=800..3200, y=3300..3700 — teleporters are to the left and right of the building
+; 3 enemies left of building
 [node name="Platform_TeleporterLeft1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(600, 3100)
+position = Vector2(200, 3500)
 behavior_mode = 1
 is_teleporter = true
 destroy_on_death = true
@@ -2916,7 +2917,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="Platform_TeleporterLeft2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(1000, 3100)
+position = Vector2(400, 3500)
 behavior_mode = 1
 is_teleporter = true
 destroy_on_death = true
@@ -2924,16 +2925,16 @@ enable_flanking = true
 enable_cover = true
 
 [node name="Platform_TeleporterLeft3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(1400, 3100)
+position = Vector2(600, 3500)
 behavior_mode = 1
 is_teleporter = true
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-; 3 enemies right of player spawn
+; 3 enemies right of building
 [node name="Platform_TeleporterRight1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(2600, 3100)
+position = Vector2(3400, 3500)
 behavior_mode = 1
 is_teleporter = true
 destroy_on_death = true
@@ -2941,7 +2942,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="Platform_TeleporterRight2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(3000, 3100)
+position = Vector2(3600, 3500)
 behavior_mode = 1
 is_teleporter = true
 destroy_on_death = true
@@ -2949,7 +2950,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="Platform_TeleporterRight3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(3400, 3100)
+position = Vector2(3800, 3500)
 behavior_mode = 1
 is_teleporter = true
 destroy_on_death = true
