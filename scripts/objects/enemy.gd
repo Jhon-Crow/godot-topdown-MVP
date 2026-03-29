@@ -4284,6 +4284,7 @@ func _set_all_sprites_modulate(color: Color) -> void:
 
 
 ## Issue #1727: Apply bright warm tint and red PointLight2D glow in Gunslinger difficulty mode.
+## Issue #1732: Glow uses circular ImageTexture (like room lights), 2x energy/scale, round shape.
 func _apply_gunslinger_enemy_glow() -> void:
 	var dm: Node = get_node_or_null("/root/DifficultyManager")
 	if dm == null or not dm.has_method("should_apply_gunslinger_enemy_glow") or not dm.should_apply_gunslinger_enemy_glow():
@@ -4293,8 +4294,14 @@ func _apply_gunslinger_enemy_glow() -> void:
 	if _head_sprite: _head_sprite.modulate = bc
 	if _left_arm_sprite: _left_arm_sprite.modulate = bc
 	if _right_arm_sprite: _right_arm_sprite.modulate = bc
-	var gl := PointLight2D.new(); gl.name = "GunslingerEnemyGlow"; gl.color = Color(1.0, 0.1, 0.05, 1.0); gl.energy = 0.6; gl.texture_scale = 0.4; gl.shadow_enabled = false; gl.blend_mode = Light2D.BLEND_MODE_ADD
-	var gt := GradientTexture2D.new(); var gr := Gradient.new(); gr.add_point(0.0, Color.WHITE); gr.add_point(1.0, Color(1.0, 1.0, 1.0, 0.0)); gt.gradient = gr; gt.fill = GradientTexture2D.FILL_RADIAL; gt.width = 256; gt.height = 256; gl.texture = gt
+	var gl := PointLight2D.new(); gl.name = "GunslingerEnemyGlow"; gl.color = Color(1.0, 0.1, 0.05, 1.0); gl.energy = 2.0; gl.texture_scale = 1.6; gl.shadow_enabled = false; gl.blend_mode = Light2D.BLEND_MODE_ADD
+	# Issue #1732: Build circular ImageTexture (pixel-distance falloff, like room lights) so glow is round, not square.
+	var _sz := 256; var _c := Vector2(_sz * 0.5, _sz * 0.5); var _r := _sz * 0.5; var _img := Image.create(_sz, _sz, false, Image.FORMAT_RGBA8)
+	for _y in range(_sz):
+		for _x in range(_sz):
+			var _b := pow(1.0 - clampf(Vector2(_x, _y).distance_to(_c) / _r, 0.0, 1.0), 2.0)
+			_img.set_pixel(_x, _y, Color(_b, _b, _b, 1.0))
+	gl.texture = ImageTexture.create_from_image(_img)
 	add_child(gl)
 	_log_to_file("[Gunslinger] Enemy glow applied")
 
