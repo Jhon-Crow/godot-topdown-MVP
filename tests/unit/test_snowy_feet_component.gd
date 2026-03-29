@@ -243,3 +243,66 @@ func test_no_footprint_when_stationary() -> void:
 		comp.process(Vector2(100, 100))
 	assert_eq(comp.spawned_footprints.size(), 0,
 		"No footprints should appear when the character is not moving")
+
+
+# ============================================================================
+# Tests: Snow Surface Restriction (Issue #1627 fix)
+# ============================================================================
+
+
+class MockSnowyFeetComponentWithSnowCheck extends MockSnowyFeetComponent:
+	## Simulated snow-surface state (true = on snow, false = on trail/non-snow).
+	var is_on_snow: bool = true
+
+
+	func _spawn_footprint() -> void:
+		# Mirror the new guard added to SnowyFeetComponent._spawn_footprint().
+		if not is_on_snow:
+			return
+		super._spawn_footprint()
+
+
+func test_no_footprint_when_not_on_snow() -> void:
+	var comp := MockSnowyFeetComponentWithSnowCheck.new()
+	comp.is_on_snow = false
+	comp.ready(Vector2.ZERO)
+	comp.process(Vector2(comp.step_distance, 0.0))
+	assert_eq(comp.spawned_footprints.size(), 0,
+		"No snow footprint should be spawned when character is NOT on a snow surface")
+
+
+func test_footprint_spawned_when_on_snow() -> void:
+	var comp := MockSnowyFeetComponentWithSnowCheck.new()
+	comp.is_on_snow = true
+	comp.ready(Vector2.ZERO)
+	comp.process(Vector2(comp.step_distance, 0.0))
+	assert_eq(comp.spawned_footprints.size(), 1,
+		"Snow footprint should be spawned when character IS on a snow surface")
+
+
+func test_footprints_stop_when_leaving_snow() -> void:
+	var comp := MockSnowyFeetComponentWithSnowCheck.new()
+	comp.is_on_snow = true
+	comp.ready(Vector2.ZERO)
+	# Walk one step on snow.
+	comp.process(Vector2(comp.step_distance, 0.0))
+	assert_eq(comp.spawned_footprints.size(), 1, "One footprint on snow")
+
+	# Character steps off snow onto trail.
+	comp.is_on_snow = false
+	comp.process(Vector2(comp.step_distance * 2.0, 0.0))
+	assert_eq(comp.spawned_footprints.size(), 1,
+		"No additional footprint after leaving snow surface")
+
+
+func test_footprints_resume_when_re_entering_snow() -> void:
+	var comp := MockSnowyFeetComponentWithSnowCheck.new()
+	comp.is_on_snow = false
+	comp.ready(Vector2.ZERO)
+	comp.process(Vector2(comp.step_distance, 0.0))
+	assert_eq(comp.spawned_footprints.size(), 0, "No footprint while off snow")
+
+	comp.is_on_snow = true
+	comp.process(Vector2(comp.step_distance * 2.0, 0.0))
+	assert_eq(comp.spawned_footprints.size(), 1,
+		"Footprint resumes once character returns to snow surface")

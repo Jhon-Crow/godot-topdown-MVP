@@ -75,6 +75,13 @@ var _blood_color: Color = Color(0.545, 0.0, 0.0, 1.0)  # Default dark red
 ## Performance fix: Use signals instead of polling get_overlapping_areas() every frame.
 var _is_overlapping_blood: bool = false
 
+## Area2D used to detect overlap with snow-surface areas (group "snow_area").
+## Used when on_snow = true to restrict footprints to snow surfaces only.
+var _snow_detector: Area2D = null
+
+## Whether currently overlapping a snow surface (signal-based detection).
+var _is_overlapping_snow: bool = false
+
 ## Counter for throttled fallback distance check.
 ## Performance fix: Only check distance every N frames instead of every frame.
 var _fallback_check_counter: int = 0
@@ -107,6 +114,9 @@ func _ready() -> void:
 	# Create Area2D for blood puddle detection (deferred to ensure parent is in tree)
 	# Performance fix: Defer setup to ensure Area2D is properly in scene tree
 	call_deferred("_setup_blood_detector")
+
+	# Create Area2D for snow-surface detection (used when on_snow = true).
+	call_deferred("_setup_snow_detector")
 
 	# Find the character's model node for facing direction
 	_find_character_model()
@@ -174,6 +184,61 @@ func _setup_blood_detector() -> void:
 	_blood_detector.area_exited.connect(_on_area_exited)
 
 	_log_info("Blood detector created and attached to %s" % _parent_body.name)
+
+
+## Sets up the Area2D for detecting snow-surface areas (used when on_snow = true).
+func _setup_snow_detector() -> void:
+	if _parent_body == null:
+		return
+
+	_snow_detector = Area2D.new()
+	_snow_detector.name = "SnowDetectorForBlood"
+	_snow_detector.collision_layer = 0
+	_snow_detector.collision_mask = 32  # Layer 6 = 2^5 = 32 (snow_area layer)
+	_snow_detector.monitoring = true
+	_snow_detector.monitorable = false
+
+	var collision_shape := CollisionShape2D.new()
+	var shape := CircleShape2D.new()
+	shape.radius = 8.0
+	collision_shape.shape = shape
+	_snow_detector.add_child(collision_shape)
+
+	_parent_body.add_child(_snow_detector)
+
+	_snow_detector.area_entered.connect(_on_snow_area_entered)
+	_snow_detector.area_exited.connect(_on_snow_area_exited)
+
+	_log_info("Snow surface detector created on %s" % _parent_body.name)
+
+
+## Called when the detector enters a snow-surface area.
+func _on_snow_area_entered(area: Area2D) -> void:
+	if area.is_in_group("snow_area"):
+		_is_overlapping_snow = true
+
+
+## Called when the detector exits a snow-surface area.
+func _on_snow_area_exited(area: Area2D) -> void:
+	if area.is_in_group("snow_area"):
+		if _snow_detector:
+			var still_on_snow := false
+			for other in _snow_detector.get_overlapping_areas():
+				if other.is_in_group("snow_area"):
+					still_on_snow = true
+					break
+			_is_overlapping_snow = still_on_snow
+
+
+## Returns true when the character is standing on a snow surface.
+func _is_on_snow() -> bool:
+	if _is_overlapping_snow:
+		return true
+	if _snow_detector and _snow_detector.is_inside_tree():
+		for area in _snow_detector.get_overlapping_areas():
+			if area.is_in_group("snow_area"):
+				return true
+	return false
 
 
 func _physics_process(delta: float) -> void:
@@ -395,6 +460,7 @@ func _is_on_blood_puddle() -> bool:
 
 ## Spawns a footprint at the current position.
 ## Footprints are only spawned on floor without blood.
+## On snow levels (on_snow = true), footprints are restricted to snow surfaces.
 func _spawn_footprint() -> void:
 	if _footprint_scene == null or _blood_level <= 0:
 		return
@@ -404,6 +470,12 @@ func _spawn_footprint() -> void:
 	if _is_on_blood_puddle():
 		if debug_logging:
 			_log_info("Skipping footprint - currently on blood puddle")
+		return
+
+	# On snow levels, only spawn bloody footprints when standing on snow.
+	if on_snow and not _is_on_snow():
+		if debug_logging:
+			_log_info("Skipping footprint - not on snow surface")
 		return
 
 	var footprint := _footprint_scene.instantiate() as Node2D

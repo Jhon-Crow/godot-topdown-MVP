@@ -2,8 +2,8 @@ extends Node
 ## Component that leaves visible footprints in snow as a character walks (Issue #1627).
 ##
 ## Attach to any CharacterBody2D (Player or Enemy) inside the Winter Forest level.
-## The component is always active while enabled — no area detection is required because
-## the entire Winter Forest floor is snow-covered.
+## Only leaves footprints when the character is standing on a snow-surface area
+## (any Area2D in the "snow_area" group).
 ##
 ## Snow footprints use near-white tinting so they appear as subtle impressions in the
 ## snow rather than dark stains.  Alpha decreases with each step and the prints fade
@@ -65,6 +65,12 @@ var _character_model: Node2D = null
 ## Running step index, used to compute per-step alpha.
 var _step_index: int = 0
 
+## Area2D used to detect overlap with snow-surface areas (group "snow_area").
+var _snow_detector: Area2D = null
+
+## Whether currently overlapping a snow surface (signal-based detection).
+var _is_overlapping_snow: bool = false
+
 
 func _ready() -> void:
 	_file_logger = get_node_or_null("/root/FileLogger")
@@ -84,8 +90,68 @@ func _ready() -> void:
 
 	_find_character_model()
 
+	# Create Area2D detector for snow-surface overlap (deferred so parent is in tree).
+	call_deferred("_setup_snow_detector")
+
 	_initialized = true
 	_log_info("SnowyFeetComponent ready on %s" % _parent_body.name)
+
+
+## Creates an Area2D attached to the parent body to detect snow-surface areas.
+func _setup_snow_detector() -> void:
+	if _parent_body == null:
+		return
+
+	_snow_detector = Area2D.new()
+	_snow_detector.name = "SnowDetector"
+	_snow_detector.collision_layer = 0
+	_snow_detector.collision_mask = 32  # Layer 6 = 2^5 = 32 (snow_area layer)
+	_snow_detector.monitoring = true
+	_snow_detector.monitorable = false
+
+	var collision_shape := CollisionShape2D.new()
+	var shape := CircleShape2D.new()
+	shape.radius = 8.0
+	collision_shape.shape = shape
+	_snow_detector.add_child(collision_shape)
+
+	_parent_body.add_child(_snow_detector)
+
+	_snow_detector.area_entered.connect(_on_snow_area_entered)
+	_snow_detector.area_exited.connect(_on_snow_area_exited)
+
+	_log_info("Snow detector created on %s" % _parent_body.name)
+
+
+## Called when the foot detector enters an Area2D.
+func _on_snow_area_entered(area: Area2D) -> void:
+	if area.is_in_group("snow_area"):
+		_is_overlapping_snow = true
+
+
+## Called when the foot detector exits an Area2D.
+func _on_snow_area_exited(area: Area2D) -> void:
+	if area.is_in_group("snow_area"):
+		# Still overlapping snow if another snow area is in range.
+		if _snow_detector:
+			var still_on_snow := false
+			for other in _snow_detector.get_overlapping_areas():
+				if other.is_in_group("snow_area"):
+					still_on_snow = true
+					break
+			_is_overlapping_snow = still_on_snow
+
+
+## Returns true when the character is standing on a snow surface.
+func _is_on_snow() -> bool:
+	if _is_overlapping_snow:
+		return true
+	# Fallback: check overlapping areas directly.
+	if _snow_detector and _snow_detector.is_inside_tree():
+		for area in _snow_detector.get_overlapping_areas():
+			if area.is_in_group("snow_area"):
+				return true
+	return false
 
 
 ## Finds the character's visual model for facing-direction look-up.
@@ -132,8 +198,14 @@ func _get_facing_direction() -> Vector2:
 
 
 ## Spawns a single snow footprint at the character's current position.
+## Only spawns when the character is standing on a snow-surface area.
 func _spawn_footprint() -> void:
 	if _footprint_scene == null:
+		return
+
+	if not _is_on_snow():
+		if debug_logging:
+			_log_info("Skipping snow footprint — not on snow surface")
 		return
 
 	var footprint := _footprint_scene.instantiate() as Node2D

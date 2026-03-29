@@ -183,3 +183,27 @@ func test_debug_logging_toggle() -> void:
 
 	_component.debug_logging = false
 	assert_false(_component.debug_logging, "Debug logging should be toggleable to false")
+
+
+## Test that on_snow flag defaults to false.
+func test_on_snow_defaults_false() -> void:
+	assert_false(_component.on_snow,
+		"on_snow should default to false (non-snow levels are not affected)")
+
+
+## Test that on_snow flag can be enabled.
+func test_on_snow_can_be_enabled() -> void:
+	_component.on_snow = true
+	assert_true(_component.on_snow,
+		"on_snow should be settable to true by the level script")
+
+
+## Test that snow surface detector is created when component initializes.
+func test_snow_detector_created() -> void:
+	# The detector is named "SnowDetectorForBlood" and attached to the parent body.
+	await wait_frames(3)
+	var snow_detector := _character.get_node_or_null("SnowDetectorForBlood")
+	assert_not_null(snow_detector,
+		"SnowDetectorForBlood Area2D should be created on the parent body")
+	assert_true(snow_detector is Area2D,
+		"SnowDetectorForBlood should be an Area2D")
