@@ -31,43 +31,59 @@ const ITEM_CASE_ICON_PATH: String = "res://assets/sprites/weapons/item_case_icon
 const FIREARMS: Dictionary = {
 	"makarov_pm": {
 		"name": "PM",
+		"name_key": "WEAPON_PM_NAME",
 		"icon_path": "res://assets/sprites/weapons/makarov_pm_icon.png",
-		"description": "Makarov PM — 9x18mm starting pistol, 9-round magazine, medium ricochets"
+		"description": "Makarov PM — 9x18mm starting pistol, 9-round magazine, medium ricochets",
+		"desc_key": "WEAPON_PM_DESC"
 	},
 	"m16": {
 		"name": "M16",
+		"name_key": "WEAPON_M16_NAME",
 		"icon_path": "res://assets/sprites/weapons/m16_rifle.png",
-		"description": "Standard assault rifle with auto/burst modes, red laser sight"
+		"description": "Standard assault rifle with auto/burst modes, red laser sight",
+		"desc_key": "WEAPON_M16_DESC"
 	},
 	"shotgun": {
 		"name": "Shotgun",
+		"name_key": "WEAPON_SHOTGUN_NAME",
 		"icon_path": "res://assets/sprites/weapons/shotgun_icon.png",
-		"description": "Pump-action shotgun — shell-by-shell loading, multi-pellet spread"
+		"description": "Pump-action shotgun — shell-by-shell loading, multi-pellet spread",
+		"desc_key": "WEAPON_SHOTGUN_DESC"
 	},
 	"mini_uzi": {
 		"name": "Mini UZI",
+		"name_key": "WEAPON_MINI_UZI_NAME",
 		"icon_path": "res://assets/sprites/weapons/mini_uzi_icon.png",
-		"description": "High fire rate SMG — progressive spread, ricochets at shallow angles"
+		"description": "High fire rate SMG — progressive spread, ricochets at shallow angles",
+		"desc_key": "WEAPON_MINI_UZI_DESC"
 	},
 	"silenced_pistol": {
 		"name": "Silenced Pistol",
+		"name_key": "WEAPON_SILENCED_PISTOL_NAME",
 		"icon_path": "res://assets/sprites/weapons/silenced_pistol_icon.png",
-		"description": "Beretta M9 with suppressor — silent, stuns enemies on hit"
+		"description": "Beretta M9 with suppressor — silent, stuns enemies on hit",
+		"desc_key": "WEAPON_SILENCED_PISTOL_DESC"
 	},
 	"sniper": {
 		"name": "ASVK",
+		"name_key": "WEAPON_ASVK_NAME",
 		"icon_path": "res://assets/sprites/weapons/asvk_topdown.png",
-		"description": "ASVK anti-materiel sniper rifle - 12.7x108mm, 50 damage, penetrates 2 walls and enemies, bolt-action (Down→Left→Down→Up). 5-round magazine. RMB to scope (mouse wheel to zoom)."
+		"description": "ASVK anti-materiel sniper rifle - 12.7x108mm, 50 damage, penetrates 2 walls and enemies, bolt-action (Down→Left→Down→Up). 5-round magazine. RMB to scope (mouse wheel to zoom).",
+		"desc_key": "WEAPON_ASVK_DESC"
 	},
 	"revolver": {
 		"name": "RSh-12",
+		"name_key": "WEAPON_RSH12_NAME",
 		"icon_path": "res://assets/sprites/weapons/revolver_icon.png",
-		"description": "RSh-12 heavy revolver - 12.7x55mm STs-130, 20 damage, penetrates walls (200px), weak ricochet, strong recoil. 5-round cylinder. Comfortable aiming like silenced pistol."
+		"description": "RSh-12 heavy revolver - 12.7x55mm STs-130, 20 damage, penetrates walls (200px), weak ricochet, strong recoil. 5-round cylinder. Comfortable aiming like silenced pistol.",
+		"desc_key": "WEAPON_RSH12_DESC"
 	},
 	"ak_gl": {
 		"name": "AK + GL",
+		"name_key": "WEAPON_AK_GL_NAME",
 		"icon_path": "res://assets/sprites/weapons/ak_gl_icon.png",
-		"description": "AK with GP-25 underbarrel grenade launcher — 7.62x39mm, 30-round magazine, RMB fires VOG-25 grenade (1 shot)"
+		"description": "AK with GP-25 underbarrel grenade launcher — 7.62x39mm, 30-round magazine, RMB fires VOG-25 grenade (1 shot)",
+		"desc_key": "WEAPON_AK_GL_DESC"
 	}
 }
 
@@ -340,7 +356,7 @@ func _build_ui() -> void:
 
 	# Title with neon styling
 	var title := Label.new()
-	title.text = "ARMORY"
+	title.text = tr("ARMORY_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var neon_label_settings = load("res://resources/themes/neon_label_settings.tres")
 	if neon_label_settings:
@@ -393,13 +409,13 @@ func _build_ui() -> void:
 	main_vbox.add_child(button_hbox)
 
 	_back_button = Button.new()
-	_back_button.text = "Back"
+	_back_button.text = tr("BACK")
 	_back_button.custom_minimum_size = Vector2(140, 36)
 	_back_button.pressed.connect(_on_back_pressed)
 	button_hbox.add_child(_back_button)
 
 	_apply_button = Button.new()
-	_apply_button.text = "Apply"
+	_apply_button.text = tr("APPLY")
 	_apply_button.custom_minimum_size = Vector2(140, 36)
 	_apply_button.pressed.connect(_on_apply_pressed)
 	_apply_button.disabled = true
@@ -483,7 +499,7 @@ func _build_sidebar() -> VBoxContainer:
 
 	# Header
 	var loadout_header := Label.new()
-	loadout_header.text = "CURRENT LOADOUT"
+	loadout_header.text = tr("ARMORY_CURRENT_LOADOUT")
 	loadout_header.add_theme_font_size_override("font_size", 14)
 	loadout_header.add_theme_color_override("font_color", Color(0.7, 0.75, 0.8, 1.0))
 	stats_vbox.add_child(loadout_header)
@@ -539,7 +555,7 @@ func _build_right_area() -> VBoxContainer:
 	right_vbox.add_theme_constant_override("separation", 6)
 
 	# --- WEAPONS SECTION ---
-	_add_category_header(right_vbox, "WEAPONS")
+	_add_category_header(right_vbox, tr("ARMORY_WEAPONS"))
 	_weapon_grid = GridContainer.new()
 	_weapon_grid.columns = GRID_COLUMNS
 	_weapon_grid.layout_mode = 2
@@ -570,7 +586,7 @@ func _build_right_area() -> VBoxContainer:
 
 	# Weapon accordion button (only shown if items overflow)
 	_weapon_accordion_button = Button.new()
-	_weapon_accordion_button.text = "Show all ▼"
+	_weapon_accordion_button.text = tr("ARMORY_SHOW_ALL")
 	_weapon_accordion_button.add_theme_font_size_override("font_size", 11)
 	_weapon_accordion_button.pressed.connect(_toggle_weapon_accordion)
 	right_vbox.add_child(_weapon_accordion_button)
@@ -586,7 +602,7 @@ func _build_right_area() -> VBoxContainer:
 	right_vbox.add_child(grenade_sep)
 
 	# --- GRENADES SECTION ---
-	_add_category_header(right_vbox, "GRENADES")
+	_add_category_header(right_vbox, tr("ARMORY_GRENADES"))
 	_grenade_grid = GridContainer.new()
 	_grenade_grid.columns = GRENADE_GRID_COLUMNS
 	_grenade_grid.layout_mode = 2
@@ -609,10 +625,12 @@ func _build_right_area() -> VBoxContainer:
 			var condition_met: bool = false
 			if not is_unlocked and _unlock_manager and _unlock_manager.has_method("is_grenade_condition_met"):
 				condition_met = _unlock_manager.is_grenade_condition_met(grenade_type)
+			var _gname_key: String = gdata.get("name_key", "")
+			var _gdesc_key: String = gdata.get("desc_key", "")
 			var grenade_info := {
-				"name": gdata.get("name", "Unknown"),
+				"name": tr(_gname_key) if _gname_key != "" else gdata.get("name", "Unknown"),
 				"icon_path": gdata.get("icon_path", ""),
-				"description": gdata.get("description", ""),
+				"description": tr(_gdesc_key) if _gdesc_key != "" else gdata.get("description", ""),
 				"grenade_type": grenade_type
 			}
 			var slot := _create_item_slot(str(grenade_type), grenade_info, true, is_unlocked, condition_met)
@@ -624,7 +642,7 @@ func _build_right_area() -> VBoxContainer:
 
 	# Grenade accordion button (only shown if items overflow)
 	_grenade_accordion_button = Button.new()
-	_grenade_accordion_button.text = "Show all ▼"
+	_grenade_accordion_button.text = tr("ARMORY_SHOW_ALL")
 	_grenade_accordion_button.add_theme_font_size_override("font_size", 11)
 	_grenade_accordion_button.pressed.connect(_toggle_grenade_accordion)
 	right_vbox.add_child(_grenade_accordion_button)
@@ -640,7 +658,7 @@ func _build_right_area() -> VBoxContainer:
 	right_vbox.add_child(active_sep)
 
 	# --- SPECIAL SECTION ---
-	_add_category_header(right_vbox, "SPECIAL")
+	_add_category_header(right_vbox, tr("ARMORY_SPECIAL"))
 	_active_item_grid = GridContainer.new()
 	_active_item_grid.columns = SPECIAL_GRID_COLUMNS
 	_active_item_grid.layout_mode = 2
@@ -663,10 +681,12 @@ func _build_right_area() -> VBoxContainer:
 			var condition_met: bool = false
 			if not is_unlocked and _unlock_manager and _unlock_manager.has_method("is_active_item_condition_met"):
 				condition_met = _unlock_manager.is_active_item_condition_met(item_type)
+			var _aname_key: String = adata.get("name_key", "")
+			var _adesc_key: String = adata.get("desc_key", "")
 			var item_info := {
-				"name": adata.get("name", "Unknown"),
+				"name": tr(_aname_key) if _aname_key != "" else adata.get("name", "Unknown"),
 				"icon_path": adata.get("icon_path", ""),
-				"description": adata.get("description", ""),
+				"description": tr(_adesc_key) if _adesc_key != "" else adata.get("description", ""),
 				"active_item_type": item_type
 			}
 			var slot := _create_active_item_slot(str(item_type), item_info, item_type, is_unlocked, condition_met)
@@ -678,7 +698,7 @@ func _build_right_area() -> VBoxContainer:
 
 	# Active item accordion button (only shown if items overflow)
 	_active_item_accordion_button = Button.new()
-	_active_item_accordion_button.text = "Show all ▼"
+	_active_item_accordion_button.text = tr("ARMORY_SHOW_ALL")
 	_active_item_accordion_button.add_theme_font_size_override("font_size", 11)
 	_active_item_accordion_button.pressed.connect(_toggle_active_item_accordion)
 	right_vbox.add_child(_active_item_accordion_button)
@@ -744,7 +764,7 @@ func _apply_accordion_button_default_style(button: Button) -> void:
 func _toggle_weapon_accordion() -> void:
 	_weapons_expanded = not _weapons_expanded
 	if _weapons_expanded:
-		_weapon_accordion_button.text = "Collapse ▲"
+		_weapon_accordion_button.text = tr("ARMORY_SHOW_LESS")
 		_apply_accordion_button_default_style(_weapon_accordion_button)
 		for slot in _weapon_overflow_slots:
 			slot.visible = true
@@ -756,7 +776,7 @@ func _toggle_weapon_accordion() -> void:
 
 ## Collapse weapon overflow slots.
 func _apply_accordion_collapsed_weapons() -> void:
-	_weapon_accordion_button.text = "Show all ▼"
+	_weapon_accordion_button.text = tr("ARMORY_SHOW_ALL")
 	for slot in _weapon_overflow_slots:
 		slot.visible = false
 	if _has_condition_met_in_overflow(_weapon_overflow_slots):
@@ -769,7 +789,7 @@ func _apply_accordion_collapsed_weapons() -> void:
 func _toggle_grenade_accordion() -> void:
 	_grenades_expanded = not _grenades_expanded
 	if _grenades_expanded:
-		_grenade_accordion_button.text = "Collapse ▲"
+		_grenade_accordion_button.text = tr("ARMORY_SHOW_LESS")
 		_apply_accordion_button_default_style(_grenade_accordion_button)
 		for slot in _grenade_overflow_slots:
 			slot.visible = true
@@ -781,7 +801,7 @@ func _toggle_grenade_accordion() -> void:
 
 ## Collapse grenade overflow slots.
 func _apply_accordion_collapsed_grenades() -> void:
-	_grenade_accordion_button.text = "Show all ▼"
+	_grenade_accordion_button.text = tr("ARMORY_SHOW_ALL")
 	for slot in _grenade_overflow_slots:
 		slot.visible = false
 	if _has_condition_met_in_overflow(_grenade_overflow_slots):
@@ -794,7 +814,7 @@ func _apply_accordion_collapsed_grenades() -> void:
 func _toggle_active_item_accordion() -> void:
 	_active_items_expanded = not _active_items_expanded
 	if _active_items_expanded:
-		_active_item_accordion_button.text = "Collapse ▲"
+		_active_item_accordion_button.text = tr("ARMORY_SHOW_LESS")
 		_apply_accordion_button_default_style(_active_item_accordion_button)
 		for slot in _active_item_overflow_slots:
 			slot.visible = true
@@ -806,7 +826,7 @@ func _toggle_active_item_accordion() -> void:
 
 ## Collapse active item overflow slots.
 func _apply_accordion_collapsed_active_items() -> void:
-	_active_item_accordion_button.text = "Show all ▼"
+	_active_item_accordion_button.text = tr("ARMORY_SHOW_ALL")
 	for slot in _active_item_overflow_slots:
 		slot.visible = false
 	if _has_condition_met_in_overflow(_active_item_overflow_slots):
@@ -883,7 +903,8 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 	# Item name - hidden for locked items (requirement: names of closed items should be hidden)
 	var name_label := Label.new()
 	if is_unlocked:
-		name_label.text = item_data.get("name", "???")
+		var _slot_name_key: String = item_data.get("name_key", "")
+		name_label.text = tr(_slot_name_key) if _slot_name_key != "" else item_data.get("name", "???")
 	else:
 		# Hide name for locked items - empty label preserves slot layout
 		name_label.text = ""
@@ -893,7 +914,8 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 
 	# Tooltip: description for unlocked items, unlock condition for locked items
 	if is_unlocked:
-		slot.tooltip_text = item_data.get("description", "")
+		var _slot_desc_key: String = item_data.get("desc_key", "")
+		slot.tooltip_text = tr(_slot_desc_key) if _slot_desc_key != "" else item_data.get("description", "")
 	else:
 		var unlock_desc: String = ""
 		if _unlock_manager:
@@ -960,7 +982,8 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 	vbox.add_child(icon_container)
 
 	var icon_path: String = item_data.get("icon_path", "")
-	var item_name: String = item_data.get("name", "")
+	var _ai_name_key: String = item_data.get("name_key", "")
+	var item_name: String = tr(_ai_name_key) if _ai_name_key != "" else item_data.get("name", "")
 
 	if not is_unlocked:
 		# Locked active item: show item case icon
@@ -1006,7 +1029,8 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 
 	# Tooltip: description for unlocked items, unlock condition for locked items
 	if is_unlocked:
-		slot.tooltip_text = item_data.get("description", "")
+		var _ai_desc_key: String = item_data.get("desc_key", "")
+		slot.tooltip_text = tr(_ai_desc_key) if _ai_desc_key != "" else item_data.get("description", "")
 	else:
 		var unlock_desc: String = ""
 		if _unlock_manager and _unlock_manager.has_method("get_active_item_unlock_description"):
@@ -1357,13 +1381,14 @@ func _update_weapon_stats() -> void:
 		return
 
 	var weapon_info: Dictionary = FIREARMS.get(_pending_weapon_id, {})
-	var weapon_name: String = weapon_info.get("name", "Unknown")
+	var _wname_key: String = weapon_info.get("name_key", "")
+	var weapon_name: String = tr(_wname_key) if _wname_key != "" else weapon_info.get("name", "Unknown")
 
 	# Try to load weapon resource for detailed stats
 	var resource = _weapon_resources.get(_pending_weapon_id)
 
 	var bbcode: String = ""
-	bbcode += "[b][color=#d4c896]WEAPON: %s[/color][/b]\n" % weapon_name
+	bbcode += "[b][color=#d4c896]%s %s[/color][/b]\n" % [tr("ARMORY_SECTION_WEAPON"), weapon_name]
 
 	if resource:
 		# Fire mode
@@ -1428,7 +1453,9 @@ func _update_weapon_stats() -> void:
 		else:
 			bbcode += "[color=#aab0b8]Ballistics:[/color] Standard"
 	else:
-		bbcode += "[color=#888888]%s[/color]" % weapon_info.get("description", "No data available")
+		var _wdesc_key: String = weapon_info.get("desc_key", "")
+		var _wdesc: String = tr(_wdesc_key) if _wdesc_key != "" else weapon_info.get("description", tr("ARMORY_NO_DATA"))
+		bbcode += "[color=#888888]%s[/color]" % _wdesc
 
 	_weapon_stats_label.text = bbcode
 
@@ -1442,11 +1469,13 @@ func _update_grenade_stats() -> void:
 	if _grenade_manager:
 		grenade_data = _grenade_manager.get_grenade_data(_pending_grenade_type)
 
-	var grenade_name: String = grenade_data.get("name", "Unknown")
-	var grenade_desc: String = grenade_data.get("description", "No data available")
+	var _grname_key: String = grenade_data.get("name_key", "")
+	var grenade_name: String = tr(_grname_key) if _grname_key != "" else grenade_data.get("name", "Unknown")
+	var _grdesc_key: String = grenade_data.get("desc_key", "")
+	var grenade_desc: String = tr(_grdesc_key) if _grdesc_key != "" else grenade_data.get("description", tr("ARMORY_NO_DATA"))
 
 	var bbcode: String = ""
-	bbcode += "[b][color=#d4c896]GRENADE: %s[/color][/b]\n" % grenade_name
+	bbcode += "[b][color=#d4c896]%s %s[/color][/b]\n" % [tr("ARMORY_SECTION_GRENADE"), grenade_name]
 	bbcode += "[color=#aab0b8]%s[/color]\n" % grenade_desc
 	bbcode += "\n[color=#888888]Press G + RMB drag to throw[/color]"
 
@@ -1462,11 +1491,13 @@ func _update_active_item_stats() -> void:
 	if _active_item_manager:
 		item_data = _active_item_manager.get_active_item_data(_pending_active_item_type)
 
-	var item_name: String = item_data.get("name", "None")
-	var item_desc: String = item_data.get("description", "No active item equipped.")
+	var _ainame_key: String = item_data.get("name_key", "")
+	var item_name: String = tr(_ainame_key) if _ainame_key != "" else item_data.get("name", "None")
+	var _aidesc_key: String = item_data.get("desc_key", "")
+	var item_desc: String = tr(_aidesc_key) if _aidesc_key != "" else item_data.get("description", tr("ARMORY_NO_ACTIVE_ITEM_DESC"))
 
 	var bbcode: String = ""
-	bbcode += "[b][color=#d4c896]SPECIAL: %s[/color][/b]\n" % item_name
+	bbcode += "[b][color=#d4c896]%s %s[/color][/b]\n" % [tr("ARMORY_SECTION_ACTIVE_ITEM"), item_name]
 	bbcode += "[color=#aab0b8]%s[/color]\n" % item_desc
 	if _pending_active_item_type != 0:  # Not "None" (ActiveItemType.NONE)
 		var activation_hint: String = item_data.get("activation_hint", "Hold Space to activate")
@@ -1627,10 +1658,12 @@ func _rebuild_grenade_slot(grenade_type: int) -> void:
 	# Create new unlocked slot
 	if _grenade_manager:
 		var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
+		var _rb_gname_key: String = gdata.get("name_key", "")
+		var _rb_gdesc_key: String = gdata.get("desc_key", "")
 		var grenade_info := {
-			"name": gdata.get("name", "Unknown"),
+			"name": tr(_rb_gname_key) if _rb_gname_key != "" else gdata.get("name", "Unknown"),
 			"icon_path": gdata.get("icon_path", ""),
-			"description": gdata.get("description", ""),
+			"description": tr(_rb_gdesc_key) if _rb_gdesc_key != "" else gdata.get("description", ""),
 			"grenade_type": grenade_type
 		}
 		var new_slot := _create_item_slot(str(grenade_type), grenade_info, true, true)
@@ -1660,10 +1693,12 @@ func _rebuild_grenade_slot_animated(grenade_type: int) -> void:
 	# Create new unlocked slot
 	if _grenade_manager:
 		var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
+		var _rb_gname_key: String = gdata.get("name_key", "")
+		var _rb_gdesc_key: String = gdata.get("desc_key", "")
 		var grenade_info := {
-			"name": gdata.get("name", "Unknown"),
+			"name": tr(_rb_gname_key) if _rb_gname_key != "" else gdata.get("name", "Unknown"),
 			"icon_path": gdata.get("icon_path", ""),
-			"description": gdata.get("description", ""),
+			"description": tr(_rb_gdesc_key) if _rb_gdesc_key != "" else gdata.get("description", ""),
 			"grenade_type": grenade_type
 		}
 		var new_slot := _create_item_slot(str(grenade_type), grenade_info, true, true)
@@ -1697,10 +1732,12 @@ func _rebuild_active_item_slot(item_type: int) -> void:
 	# Create new unlocked slot
 	if _active_item_manager:
 		var adata: Dictionary = _active_item_manager.get_active_item_data(item_type)
+		var _rb_aname_key: String = adata.get("name_key", "")
+		var _rb_adesc_key: String = adata.get("desc_key", "")
 		var item_info := {
-			"name": adata.get("name", "Unknown"),
+			"name": tr(_rb_aname_key) if _rb_aname_key != "" else adata.get("name", "Unknown"),
 			"icon_path": adata.get("icon_path", ""),
-			"description": adata.get("description", ""),
+			"description": tr(_rb_adesc_key) if _rb_adesc_key != "" else adata.get("description", ""),
 			"active_item_type": item_type
 		}
 		var new_slot := _create_active_item_slot(str(item_type), item_info, item_type, true)
@@ -1730,10 +1767,12 @@ func _rebuild_active_item_slot_animated(item_type: int) -> void:
 	# Create new unlocked slot
 	if _active_item_manager:
 		var adata: Dictionary = _active_item_manager.get_active_item_data(item_type)
+		var _rb_aname_key: String = adata.get("name_key", "")
+		var _rb_adesc_key: String = adata.get("desc_key", "")
 		var item_info := {
-			"name": adata.get("name", "Unknown"),
+			"name": tr(_rb_aname_key) if _rb_aname_key != "" else adata.get("name", "Unknown"),
 			"icon_path": adata.get("icon_path", ""),
-			"description": adata.get("description", ""),
+			"description": tr(_rb_adesc_key) if _rb_adesc_key != "" else adata.get("description", ""),
 			"active_item_type": item_type
 		}
 		var new_slot := _create_active_item_slot(str(item_type), item_info, item_type, true)

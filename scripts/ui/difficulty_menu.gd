@@ -79,6 +79,11 @@ func _ready() -> void:
 	if experimental_settings:
 		experimental_settings.settings_changed.connect(_on_settings_changed)
 
+	# Connect to locale changes so button text updates immediately on language switch
+	var localization_settings: Node = get_node_or_null("/root/LocalizationSettings")
+	if localization_settings and localization_settings.has_signal("locale_changed"):
+		localization_settings.locale_changed.connect(_on_locale_changed)
+
 	# Set process mode to allow input while paused
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
@@ -224,6 +229,10 @@ func _on_difficulty_changed(_new_difficulty: int) -> void:
 
 
 func _on_settings_changed() -> void:
+	_update_button_states()
+
+
+func _on_locale_changed(_new_locale: String) -> void:
 	_update_button_states()
 
 

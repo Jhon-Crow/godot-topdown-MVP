@@ -213,3 +213,55 @@ This ensures:
 - `game_log_20260329_164616.txt` — Full game log from the owner's first test session on 2026-03-29
 - `game_log_20260329_172217.txt` — Full game log from the owner's second test session on 2026-03-29
 - `game_log_20260329_175132.txt` — Full game log from the owner's third test session on 2026-03-29
+- `game_log_20260329_181610.txt` — Full game log from the owner's fourth test session on 2026-03-29
+
+---
+
+## Fourth Report: Armory untranslated, level descriptions untranslated, Black Metal name issue, difficulty not refreshing (2026-03-29 18:16)
+
+After the third fix (compiled `.translation` files loaded), translation now works. The owner tested with `game_log_20260329_181610.txt` and reported:
+
+1. **"перевод включается, но не переведено ничего в armory"** — "translation works, but nothing in armory is translated (should be translated including tooltips)"
+2. **"не переведено описание уровней"** — "level descriptions are not translated"
+3. **"не надо переводить сложность black metal"** — "do not translate 'Black Metal' difficulty (keep it as English)"
+4. **"сразу после переключения языка сложности не переводятся"** — "difficulty labels don't update immediately after switching language"
+
+### Analysis of fourth game log (18:16:10)
+
+The fourth log confirms translations ARE working now:
+```
+[LocalizationSettings] Loaded 2 translation(s)
+[LocalizationSettings] LocalizationSettings initialized — locale: ru
+[LocalizationSettings] Locale changed to: en
+[LocalizationSettings] Locale changed to: ru
+```
+
+This is the first time `Loaded 2 translation(s)` appears — translations load correctly. However only the pause/settings menus had translation keys; armory and levels menu were not translated.
+
+### Root Causes (Session 4)
+
+**Bug 6: Armory not translated**
+
+The armory menu builds its UI programmatically from `FIREARMS`, `GRENADE_DATA`, and `ACTIVE_ITEM_DATA` dictionaries. These dictionaries contained hardcoded English `name` and `description` strings. The `_create_item_slot()` and `_create_active_item_slot()` functions read these strings directly without calling `tr()`.
+
+The level descriptions in `levels_menu.gd` similarly used a hardcoded `"description"` field and always displayed the Russian name via `name_ru` regardless of current locale.
+
+**Bug 7: Black Metal stays "Black Metal" in Russian**
+
+"Black Metal" is a proper music genre/band name (like "Heavy Metal") — an English loanword that is not transliterated in Russian music culture. The CSV had `BLACK_METAL,Black Metal,Блэк Метал` which wrongly transliterated it to Cyrillic.
+
+**Bug 8: Difficulty menu doesn't refresh on locale change**
+
+`difficulty_menu.gd` calls `_update_button_states()` which uses `tr()` correctly, but it was only connected to `difficulty_changed` and `settings_changed` signals — not to `locale_changed`. Switching language while the difficulty menu was open didn't trigger a refresh.
+
+### Fixes (Session 4)
+
+1. **Translation keys for armory**: Added `name_key`/`desc_key` fields to all `FIREARMS` entries in `armory_menu.gd`, all `GRENADE_DATA` entries in `grenade_manager.gd`, and all `ACTIVE_ITEM_DATA` entries in `active_item_manager.gd`. Updated all slot-building code to use `tr(name_key)` when available.
+
+2. **Translation keys for levels**: Added `name_key`/`desc_key` fields to all LEVELS entries in `levels_menu.gd`. Updated display logic to use `tr(name_key)` for level names (replacing the `name_ru` hack) and `tr(desc_key)` for descriptions. Also removed hardcoded `"PLAYING"` / locked/tooltip texts.
+
+3. **Black Metal as proper noun**: Updated `translations.csv` — `BLACK_METAL,Black Metal,Black Metal` and `DIFFICULTY_STATUS_BLACK_METAL` Russian value now reads `"Black Metal: ..."` instead of `"Блэк Метал: ..."`.
+
+4. **Difficulty menu locale refresh**: Added `locale_changed` signal connection in `difficulty_menu._ready()` that calls `_update_button_states()`, so button labels immediately update when language switches.
+
+5. **Full translation CSV**: Added ~150 new translation keys covering all armory items (8 weapons, 5 grenades, 21 active items), all 14 levels, and UI strings for the armory and levels menus.
