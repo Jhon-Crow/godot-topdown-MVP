@@ -67,17 +67,20 @@ func _apply_locale(locale: String) -> void:
 ## Uses FileAccess.get_csv_line() to correctly handle values that contain commas.
 func _load_csv_translations() -> void:
 	if not FileAccess.file_exists(CSV_PATH):
+		_log_to_file("ERROR: CSV not found at %s — translations will not work. Ensure include_filter contains *.csv in export_presets.cfg" % CSV_PATH)
 		push_warning("LocalizationSettings: CSV not found at %s" % CSV_PATH)
 		return
 
 	var file := FileAccess.open(CSV_PATH, FileAccess.READ)
 	if file == null:
+		_log_to_file("ERROR: Cannot open CSV at %s" % CSV_PATH)
 		push_warning("LocalizationSettings: Cannot open CSV at %s" % CSV_PATH)
 		return
 
 	# Read header row: keys,en,ru,...
 	var header: PackedStringArray = file.get_csv_line()
 	if header.size() < 2:
+		_log_to_file("ERROR: CSV header has fewer than 2 columns")
 		push_warning("LocalizationSettings: CSV header has fewer than 2 columns")
 		file.close()
 		return

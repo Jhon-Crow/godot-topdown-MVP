@@ -66,6 +66,41 @@ The `.csv` is a source file; Godot's editor imports it and writes compiled `.tra
 
 ---
 
+## Second Report: Russian language still not working (2026-03-29 17:22)
+
+After the first fix (runtime CSV loading added, ESC fixed), the owner tested again with `game_log_20260329_172217.txt` and reported: **"русского языка нет"** (Russian language is absent).
+
+### Analysis of second game log
+
+The second game log (17:22:17) is from the updated build (post-commit `2c199183`). The log shows:
+- `LocalizationSettings initialized — locale: ru` ✓
+- `Locale changed to: en`, `Locale changed to: ru`, etc. ✓
+- **Missing**: `Loaded X locale(s) from CSV` ← this log line is never printed
+
+This means `_load_csv_translations()` returned early before reaching the final `_log_to_file` call. The early returns happen when:
+1. `FileAccess.file_exists(CSV_PATH)` returns `false`, OR
+2. `FileAccess.open(CSV_PATH, ...)` returns `null`
+
+Both returned `push_warning()` which goes to Godot's internal console but NOT to the game's `FileLogger` — making the failure invisible in the log.
+
+### Root Cause (Bug 4): CSV not bundled in exported PCK
+
+**Root Cause**: Godot 4's export pipeline treats `.csv` files as **translation source files**, not as packable resources. When `ResourceImporterCSVTranslation` processes a `.csv`, it produces compiled `.translation` binary files (stored in `.godot/imported/`) and marks the raw `.csv` as a non-resource file. As a result, `export_filter="all_resources"` does **not** include `.csv` source files in the PCK.
+
+**Consequence**: In the exported build, `FileAccess.file_exists("res://resources/translations/translations.csv")` returns `false` → `_load_csv_translations()` returns early → no Translation objects are registered → `tr("RESUME")` returns `"RESUME"`.
+
+**Evidence**:
+- Confirmed by Godot issue tracker: [godotengine/godot#38957](https://github.com/godotengine/godot/issues/38957) and [godotengine/godot#41042](https://github.com/godotengine/godot/issues/41042)
+- The first game log (before fix) and second game log (after first fix) both show no "Loaded X locale(s)" message, confirming the CSV was never accessible in either exported build.
+
+**Fix**: Add `*.csv` to `include_filter` in `export_presets.cfg`:
+```ini
+include_filter="*.csv"
+```
+This explicitly tells Godot's exporter to include `.csv` files in the PCK as raw data files, making them accessible via `FileAccess` at `res://` paths in exported builds.
+
+---
+
 ## Solution
 
 1. **Programmatic CSV translation loading** in `localization_settings.gd`:
@@ -77,8 +112,16 @@ The `.csv` is a source file; Godot's editor imports it and writes compiled `.tra
 2. **ESC support** in `language_menu.gd`:
    - Add `_unhandled_input(event)` matching the pattern in other sub-menu scripts
 
+3. **CSV included in exported PCK** via `export_presets.cfg`:
+   - Set `include_filter="*.csv"` so the raw CSV is bundled in the export
+   - Without this, `FileAccess` cannot find the file at `res://` in exported builds
+
+4. **Improved error logging** in `localization_settings.gd`:
+   - Changed `push_warning()` errors in `_load_csv_translations()` to also call `_log_to_file()` so failures appear in the game log
+
 ---
 
 ## Attached Artifacts
 
-- `game_log_20260329_164616.txt` — Full game log from the owner's test session on 2026-03-29
+- `game_log_20260329_164616.txt` — Full game log from the owner's first test session on 2026-03-29
+- `game_log_20260329_172217.txt` — Full game log from the owner's second test session on 2026-03-29
