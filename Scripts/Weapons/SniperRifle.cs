@@ -290,7 +290,8 @@ public partial class SniperRifle : BaseWeapon
             }
         }
 
-        GD.Print($"[SniperRifle] ASVK initialized - bolt ready, laser={_laserSightEnabled}");
+        float initMaxRange = WeaponData?.Range ?? 30000.0f;
+        GD.Print($"[SniperRifle] ASVK initialized - bolt ready, laser={_laserSightEnabled}, maxRange={initMaxRange} px");
     }
 
     public override void _ExitTree()
