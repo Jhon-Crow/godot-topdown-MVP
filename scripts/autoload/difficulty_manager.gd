@@ -404,9 +404,12 @@ func get_hp_multiplier() -> float:
 
 
 ## Get the player speed multiplier for current difficulty.
+## Gunslinger mode: 1.5 (50% faster movement — Issue #1732).
 ## Black Metal mode: 1.25 (25% faster movement).
 ## Other modes: 1.0 (no change).
 func get_player_speed_multiplier() -> float:
+	if current_difficulty == Difficulty.GUNSLINGER:
+		return 1.5
 	if current_difficulty == Difficulty.BLACK_METAL:
 		return 1.25
 	return 1.0
@@ -480,7 +483,7 @@ func should_apply_gunslinger_enemy_glow() -> bool:
 
 ## Duration (ms) of the last chance effect when player kills an enemy.
 ## Only in Power Fantasy mode.
-const POWER_FANTASY_KILL_EFFECT_DURATION_MS: float = 300.0
+const POWER_FANTASY_KILL_EFFECT_DURATION_MS: float = 600.0
 
 
 ## Duration (ms) of the special last chance effect when grenade explodes.

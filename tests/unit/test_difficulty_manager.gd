@@ -130,6 +130,8 @@ class MockDifficultyManager:
 		return current_difficulty == Difficulty.GUNSLINGER
 
 	func get_player_speed_multiplier() -> float:
+		if current_difficulty == Difficulty.GUNSLINGER:
+			return 1.5
 		if current_difficulty == Difficulty.BLACK_METAL:
 			return 1.25
 		return 1.0
@@ -584,6 +586,13 @@ func test_player_speed_multiplier_black_metal_is_1_25() -> void:
 
 	assert_almost_eq(manager.get_player_speed_multiplier(), 1.25, 0.001,
 		"Black Metal mode speed multiplier should be 1.25 (25%% faster)")
+
+
+func test_player_speed_multiplier_gunslinger_is_1_5() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.GUNSLINGER)
+
+	assert_almost_eq(manager.get_player_speed_multiplier(), 1.5, 0.001,
+		"Gunslinger mode speed multiplier should be 1.5 (50%% faster — Issue #1732)")
 
 
 func test_black_metal_hp_reduction_calculation() -> void:

@@ -2,14 +2,14 @@ extends Node
 ## PowerFantasyEffectsManager - Manages special effects for Power Fantasy difficulty mode.
 ##
 ## This autoload singleton provides:
-## 1. "Last chance" effect (300ms) after killing an enemy - penultimate hit effect
+## 1. "Last chance" effect (600ms) after killing an enemy - penultimate hit effect
 ## 2. "Special last chance" effect (2000ms) when a grenade explodes - penultimate hit effect
 ##
 ## These effects use the penultimate hit system (time slowdown + saturation boost)
 ## but with shorter durations specific to Power Fantasy mode.
 
-## Duration of the last chance effect when killing an enemy (300ms).
-const KILL_EFFECT_DURATION_MS: float = 300.0
+## Duration of the last chance effect when killing an enemy (600ms, 2x longer per Issue #1732).
+const KILL_EFFECT_DURATION_MS: float = 600.0
 
 ## Duration of the special last chance effect when grenade explodes (2000ms).
 const GRENADE_EFFECT_DURATION_MS: float = 2000.0
@@ -149,11 +149,14 @@ func on_grenade_exploded() -> void:
 
 ## Starts the power fantasy effect with the specified duration.
 func _start_effect(duration_ms: float) -> void:
-	# If effect is already active, reset the timer
+	# If effect is already active, reset the timer and ensure time_scale is still applied
+	# (e.g. if reset_effects was called mid-effect by a scene change and then another kill fires)
 	if _is_effect_active:
 		_effect_start_time = Time.get_ticks_msec() / 1000.0
 		_current_effect_duration_ms = duration_ms
 		_log("Effect timer reset to %.0fms" % duration_ms)
+		if not replay_mode and Engine.time_scale != EFFECT_TIME_SCALE:
+			Engine.time_scale = EFFECT_TIME_SCALE
 		return
 
 	_is_effect_active = true

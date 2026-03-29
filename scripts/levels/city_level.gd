@@ -391,8 +391,13 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 
 	# Call the ConfigureAmmoForEnemyCount method if it exists
 	if weapon.has_method("ConfigureAmmoForEnemyCount"):
-		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
-		print("[CityLevel] Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+		var enemy_count: int = _initial_enemy_count
+		var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+		if ammo_multiplier > 1:
+			enemy_count *= ammo_multiplier
+			print("[CityLevel] Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by %dx" % ammo_multiplier)
+		weapon.ConfigureAmmoForEnemyCount(enemy_count)
+		print("[CityLevel] Configured silenced pistol ammo for %d enemies" % enemy_count)
 
 		# Update the ammo display after configuration
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:

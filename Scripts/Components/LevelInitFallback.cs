@@ -399,8 +399,19 @@ public partial class LevelInitFallback : Node
         // Configure silenced pistol ammo
         if (weapon.Name == "SilencedPistol" && weapon.HasMethod("ConfigureAmmoForEnemyCount"))
         {
-            weapon.Call("ConfigureAmmoForEnemyCount", _initialEnemyCount);
-            LogToFile($"Configured silenced pistol ammo for {_initialEnemyCount} enemies");
+            int enemyCount = _initialEnemyCount;
+            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+            if (difficultyManager != null && difficultyManager.HasMethod("get_ammo_multiplier"))
+            {
+                int multiplier = difficultyManager.Call("get_ammo_multiplier").AsInt32();
+                if (multiplier > 1)
+                {
+                    enemyCount *= multiplier;
+                    LogToFile($"Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by {multiplier}x");
+                }
+            }
+            weapon.Call("ConfigureAmmoForEnemyCount", enemyCount);
+            LogToFile($"Configured silenced pistol ammo for {enemyCount} enemies");
         }
 
         // BuildingLevel-specific ammo config: M16/AK+GL limited to 2 magazines (Issue #949, #1259)
