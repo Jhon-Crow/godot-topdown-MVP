@@ -227,6 +227,42 @@ The solution is `CanvasGroup`: it composites all children into an intermediate o
 - [Godot CanvasItem.blend_mode](https://docs.godotengine.org/en/stable/classes/class_canvasitem.html#class-canvasitem-property-blend_mode) — blend mode options
 - PIL Pillow docs for Python sprite generation: https://pillow.readthedocs.io/
 
+### Iteration 8 — Feedback (2026-03-29 ~13:54)
+
+**User feedback (2 items):**
+1. На пересечении всё ещё другой цвет — at intersection there is still a different color
+2. Всё ещё резко обрезана лужа по краям (слева и справа) — puddles are still sharply clipped on left/right edges
+
+**Root cause analysis:**
+
+**Item 1 — Different color at intersection:**
+The CanvasGroup approach from Iteration 7 was correct in principle but incomplete. CanvasGroup renders children into a shared buffer and then composites the group buffer to the scene — this prevents the group's alpha from compounding with the parent scene. HOWEVER, within the group's own internal buffer, overlapping children still accumulate alpha via standard Porter-Duff "over" compositing:
+- Two puddles at alpha=0.34 each → intersection alpha = 1 - (1-0.34)*(1-0.34) = 0.56
+- The intersection therefore looks visibly more opaque/darker than a single puddle
+
+The correct solution is a custom GLSL shader on the CanvasGroup that reads the composited backbuffer and CLAMPS the accumulated alpha to `max_alpha = 0.55` (the highest any single puddle can reach). This makes all covered pixels — whether covered by one puddle or five — output the same alpha.
+
+The built-in CanvasGroup shader only un-premultiplies the color for correct compositing; it does NOT cap alpha. A custom `puddle_merge.gdshader` is needed.
+
+**Item 2 — Sharp edge clipping:**
+The `generate_puddle_sprites.py` was using `base_rx = cx * 0.82 * elongate_x`. For the widest variants (elongate_x up to 1.40) combined with the max radii perturbation (1.55×) and 3 blur passes, the polygon extended to x≈6px from the canvas edge (SIZE=256). The final `GaussianBlur(radius=1)` spread faint pixels (alpha 6-9) to x=0, creating a visually clipped straight edge at the canvas boundary when the sprite was scaled up in-game.
+
+The fix is two-fold:
+1. Reduce base scale from 0.82 to 0.60 AND tighten the radii clamp from 1.55 to 1.15
+2. Increase canvas from 256×256 to 320×320 for a wider margin
+
+**Fix applied (commit `TBD`):**
+- `puddle_merge.gdshader`: New shader on `PuddleManager` CanvasGroup that reads the group's backbuffer alpha, clamps it to `max_alpha=0.55`, un-premultiplies to recover the flat gray color, and outputs a uniform appearance regardless of overlap count
+- `puddle_manager.gd`: Loads `puddle_merge.gdshader` and sets it as `material` in `_ready()`; exposes `MAX_PUDDLE_ALPHA = 0.55` constant
+- `generate_puddle_sprites.py`: `base_rx/ry` reduced from `0.82*elongate` to `0.60*elongate`; radii clamp from 1.55 → 1.15; canvas size from 256 → 320px; puddle_6 elongate_x reduced from 1.40 → 1.25
+- All 16 puddle sprites regenerated: verified 0/16 touch the canvas boundary (alpha > 5 at any edge pixel)
+
+**Technical references:**
+- [Godot 4 CanvasGroup](https://docs.godotengine.org/en/stable/classes/class_canvasgroup.html) — composites children before rendering, but does not prevent within-group alpha accumulation
+- [Porter-Duff "over" compositing](https://en.wikipedia.org/wiki/Alpha_compositing) — explains why two alpha=0.34 sprites produce alpha=0.56 at intersection
+- [Godot canvas_item shader render modes](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/canvas_item_shader.html) — available blend render modes (none expose GL_MAX; clamping in fragment shader is the correct workaround)
+- [hint_screen_texture in Godot 4](https://docs.godotengine.org/en/stable/tutorials/shaders/screen-reading_shaders.html) — reading the backbuffer in a CanvasGroup shader
+
 ---
 
 ## Data Files in This Folder
@@ -238,3 +274,4 @@ The solution is `CanvasGroup`: it composites all children into an intermediate o
 | `feedback_light_spot.png` | PR comment screenshot 2026-03-28 | User feedback on bright center spot issue |
 | `feedback_building_overlap.png` | PR comment screenshot 2026-03-28 | User feedback showing puddle/building overlap |
 | `feedback_obstacle_layer.png` | PR comment screenshot 2026-03-28 | User feedback showing obstacle z-order issue |
+| `feedback_intersection_clipping_20260329.png` | PR comment screenshot 2026-03-29 | User feedback showing intersection color issue and edge clipping |

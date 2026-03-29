@@ -14,7 +14,7 @@ import math
 import random
 from PIL import Image, ImageDraw, ImageFilter
 
-SIZE = 256  # larger canvas for more detail
+SIZE = 320  # larger canvas — extra 32px margin on each side prevents edge clipping
 
 # Floor color is RGB ~(64, 59, 56).
 # Puddles = wet pavement = DARKER than floor, matte gray, no highlights.
@@ -43,8 +43,11 @@ def make_puddle(
     img = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
 
     cx, cy = SIZE // 2, SIZE // 2
-    base_rx = int(cx * 0.82 * elongate[0])
-    base_ry = int(cy * 0.82 * elongate[1])
+    # Reduced from 0.82 to 0.60 to ensure shapes never touch the canvas edge.
+    # The radii clamp is also tightened (max 1.15) so the total effective
+    # radius stays below cx: 0.60 * 1.40 * 1.15 * 128 = 124px < 128px.
+    base_rx = int(cx * 0.60 * elongate[0])
+    base_ry = int(cy * 0.60 * elongate[1])
 
     # Clamp roughness to avoid too-deep concave indents that create sharp cuts
     effective_roughness = min(shape_roughness, 0.40)
@@ -66,8 +69,10 @@ def make_puddle(
     indent_indices = random.sample(range(num_control), min(num_indents, num_control))
     for ii in indent_indices:
         radii[ii] -= random.uniform(0.05, 0.15)
-    # Clamp radii so shape stays within canvas and no sharp concave cuts
-    radii = [max(0.45, min(1.55, r)) for r in radii]
+    # Clamp radii tighter (max 1.15 instead of 1.55) so combined with the
+    # base_rx factor (0.60 * elongate_x up to 1.40) the shape always fits
+    # inside the canvas: 0.60 * 1.40 * 1.15 * 128 ≈ 124 px < 128 px.
+    radii = [max(0.45, min(1.15, r)) for r in radii]
 
     # ── 2. Interpolate polygon at high resolution ────────────────────────────
     def build_polygon(scale: float = 1.0) -> list:
@@ -135,7 +140,7 @@ def main():
         ("puddle_3.png",      13,   0.32,     12,       0.95, 0.90),   # roundish amoeba
         ("puddle_4.png",      99,   0.42,     15,       1.28, 0.58),   # irregular wide
         ("puddle_5.png",      17,   0.36,     18,       1.10, 0.74),   # lumpy elongated
-        ("puddle_6.png",      53,   0.40,     14,       1.40, 0.55),   # very wide narrow
+        ("puddle_6.png",      53,   0.40,     14,       1.25, 0.60),   # wide narrow
         ("puddle_7.png",      81,   0.30,     13,       0.85, 0.82),   # near-round rough
         ("puddle_8.png",      37,   0.38,     14,       1.15, 0.65),   # tri-lobe
         # 8 additional variants for 16 total (enough to cover all 27 positions without repeating)

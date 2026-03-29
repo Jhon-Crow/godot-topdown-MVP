@@ -21,6 +21,13 @@ extends CanvasGroup
 ## Path to the PuddleEffect scene.
 const PUDDLE_SCENE_PATH: StringName = &"res://scenes/effects/PuddleEffect.tscn"
 
+## Path to the shader that clamps accumulated alpha so overlapping puddles
+## merge into one body instead of showing a darker intersection area.
+const PUDDLE_MERGE_SHADER_PATH: StringName = &"res://scripts/shaders/puddle_merge.gdshader"
+
+## Maximum alpha any single puddle can reach (matches phase-3 cap in puddle_effect.gd).
+const MAX_PUDDLE_ALPHA: float = 0.55
+
 ## Puddle texture variants — each has a distinct irregular shape so puddles
 ## don't all look identical.  16 variants are provided (enough to cover all
 ## 27 spawn positions without any shape repeating on the map).
@@ -144,6 +151,17 @@ func _ready() -> void:
 	if _puddle_scene == null:
 		push_warning("[PuddleManager] PuddleEffect scene not found at %s" % PUDDLE_SCENE_PATH)
 		return
+
+	# Attach the merge shader so overlapping puddles blend into one body
+	# (no darker colour at intersections).
+	var merge_shader: Shader = load(PUDDLE_MERGE_SHADER_PATH)
+	if merge_shader != null:
+		var mat := ShaderMaterial.new()
+		mat.shader = merge_shader
+		mat.set_shader_parameter("max_alpha", MAX_PUDDLE_ALPHA)
+		material = mat
+	else:
+		push_warning("[PuddleManager] Merge shader not found at %s" % PUDDLE_MERGE_SHADER_PATH)
 
 	# Pre-load all puddle texture variants.
 	for path in PUDDLE_TEXTURE_PATHS:

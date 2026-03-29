@@ -64,6 +64,9 @@ class MockPuddleEffect:
 
 
 class MockPuddleManager:
+	## Shader merge constant mirrored from puddle_manager.gd.
+	const MAX_PUDDLE_ALPHA: float = 0.55
+
 	## Exclusion zones mirrored from puddle_manager.gd.
 	const EXCLUSION_ZONES: Array = [
 		# CranePlatform: center (400,500), floor ±200x±150
@@ -393,3 +396,20 @@ func test_size_variation_min_is_reasonable() -> void:
 func test_size_variation_max_is_reasonable() -> void:
 	assert_true(MockPuddleManager.SIZE_VARIATION_MAX <= 2.0,
 		"SIZE_VARIATION_MAX should be <= 2.0 to avoid excessively large puddles")
+
+
+# ============================================================================
+# PuddleManager – merge shader alpha cap
+# ============================================================================
+
+
+func test_max_puddle_alpha_matches_phase3_cap() -> void:
+	# MAX_PUDDLE_ALPHA in puddle_manager.gd must match the phase-3 hard cap in
+	# puddle_effect.gd (minf(0.55, ...)) so the merge shader clamps correctly.
+	assert_almost_eq(MockPuddleManager.MAX_PUDDLE_ALPHA, 0.55, 0.001,
+		"MAX_PUDDLE_ALPHA should equal 0.55 to match phase-3 alpha cap")
+
+
+func test_max_puddle_alpha_is_less_than_one() -> void:
+	assert_true(MockPuddleManager.MAX_PUDDLE_ALPHA < 1.0,
+		"MAX_PUDDLE_ALPHA must be < 1.0 — puddles should always be semi-transparent")
