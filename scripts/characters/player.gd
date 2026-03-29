@@ -4413,6 +4413,21 @@ var _experimental_sample_equipped: bool = false
 var _experimental_sample_charges: int = 0
 const EXPERIMENTAL_SAMPLE_MIN_CHARGES: int = 1
 const EXPERIMENTAL_SAMPLE_MAX_CHARGES: int = 5
+## All active item types that the Experimental Sample can trigger.
+## To add a new triggerable item: append its type ID here AND handle it in _trigger_experimental_sample_effect().
+## Excludes passive items (FLASHLIGHT=1, TELEPORT_BRACERS=3, BREAKER_BULLETS=6, FORCE_FIELD=7,
+## LASER_SIGHT=9, EXTENDED_MAGAZINE=10, ARMORED_SKIN=13, AUTO_RELOAD=14, DRILLING_BULLETS=15,
+## RECOIL_COMPENSATOR=16, COMBAT_DISPOSITION=17, GRENADE_BAG=21) and NONE=0 and self=18.
+const EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES: Array = [
+	2,  # HOMING_BULLETS
+	4,  # BFF_PENDANT
+	5,  # INVISIBILITY_SUIT
+	8,  # TRAJECTORY_GLASSES
+	11, # LOUDSPEAKER
+	12, # BREACHING_CHARGES
+	19, # FINE_MOTOR_SKILLS (Issue #1315)
+	20, # DASH (Issue #1071)
+]
 ## Preloaded icon popup script for the experimental sample (Issue #1127).
 const ExperimentalSampleItemPopupScript = preload("res://scripts/ui/experimental_sample_item_popup.gd")
 ## Floating icon popup node shown above the player when an effect fires (Issue #1127).
@@ -4453,13 +4468,14 @@ func _handle_experimental_sample_input() -> void:
 	_experimental_sample_charges -= 1
 	experimental_sample_charges_changed.emit(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
 	_show_active_item_charge_bar(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
-	# Pick a random active item type (all types except NONE=0 and EXPERIMENTAL_SAMPLE=18).
+	# Pick a random active item type from the eligible pool (Issue #1635).
 	# Re-roll if the chosen type has no visible on-press action, so every charge spend is meaningful.
+	# To include a new item: add its type to EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES and handle it below.
 	const MAX_ATTEMPTS := 20
 	var effect_fired := false
 	var fired_type: int = -1
 	for attempt in range(MAX_ATTEMPTS):
-		var random_type: int = randi_range(1, 17)
+		var random_type: int = EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES[randi() % EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES.size()]
 		FileLogger.info("[Player.ExperimentalSample] Charges: %d — type %d attempt %d" % [_experimental_sample_charges, random_type, attempt + 1])
 		effect_fired = _trigger_experimental_sample_effect(random_type)
 		if effect_fired:
@@ -4480,15 +4496,10 @@ func _handle_experimental_sample_input() -> void:
 			_experimental_sample_popup.show_icon(mgr.get_active_item_icon_path(fired_type))
 
 ## Trigger on-press effect of item_type chosen by experimental sample.
-## Returns true if a visible effect fired, false if passive/unavailable (caller re-rolls).
+## Returns true if a visible effect fired, false if unavailable (caller re-rolls).
+## Only types listed in EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES should reach this function.
 func _trigger_experimental_sample_effect(item_type: int) -> bool:
 	FileLogger.info("[Player.ExperimentalSample] Executing effect type %d" % item_type)
-	# Passive/hold/aim-only types always re-roll (FLASHLIGHT, TELEPORT_BRACERS, BREAKER_BULLETS,
-	# FORCE_FIELD, LASER_SIGHT, EXTENDED_MAGAZINE, ARMORED_SKIN, AUTO_RELOAD, DRILLING_BULLETS,
-	# RECOIL_COMPENSATOR, COMBAT_DISPOSITION)
-	if item_type in [1, 3, 6, 7, 9, 10, 13, 14, 15, 16, 17]:
-		return false
-
 	match item_type:
 		2:  # HOMING_BULLETS — activate homing for one burst (always available)
 			if _homing_active: return false
@@ -4539,6 +4550,22 @@ func _trigger_experimental_sample_effect(item_type: int) -> bool:
 				FileLogger.info("[Player.ExperimentalSample] Breaching charges detonated: %s" % str(detonated))
 				return detonated
 			return false
+		19: # FINE_MOTOR_SKILLS — instant reload (Issue #1635)
+			if not _fine_motor_skills_equipped or _fine_motor_skills_active:
+				FileLogger.info("[Player.ExperimentalSample] Fine motor skills not equipped or already active; re-roll")
+				return false
+			_fine_motor_skills_active = true
+			_fine_motor_skills_activate_async()
+			FileLogger.info("[Player.ExperimentalSample] Fine motor skills instant reload triggered via experimental sample")
+			return true
+		20: # DASH — dash toward cursor direction (Issue #1635)
+			if not _dash_equipped or _dash_effect == null or not is_instance_valid(_dash_effect):
+				FileLogger.info("[Player.ExperimentalSample] Dash not equipped or effect unavailable; re-roll")
+				return false
+			var dir := (get_global_mouse_position() - global_position).normalized()
+			_dash_effect.activate(dir)
+			FileLogger.info("[Player.ExperimentalSample] Dash triggered via experimental sample")
+			return true
 		_:
 			return false
 
