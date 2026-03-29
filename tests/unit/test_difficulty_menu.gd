@@ -36,6 +36,12 @@ class MockDifficultyMenu:
 	## Signal tracking.
 	var back_pressed_count: int = 0
 
+	## First-launch mode flag (Issue #1734).
+	var first_launch_mode: bool = false
+
+	## Tracks whether difficulty_selected_first_launch was emitted (Issue #1734).
+	var first_launch_signal_emitted: bool = false
+
 	## Set difficulty.
 	func set_difficulty(difficulty: int) -> void:
 		current_difficulty = difficulty
@@ -63,6 +69,35 @@ class MockDifficultyMenu:
 	## Press back.
 	func press_back() -> void:
 		back_pressed_count += 1
+
+	## Simulate pressing a difficulty button in first-launch mode (Issue #1734).
+	## Returns true if the signal would be emitted (i.e., first_launch_mode is set).
+	func simulate_difficulty_press_first_launch(difficulty: int) -> bool:
+		set_difficulty(difficulty)
+		if first_launch_mode:
+			first_launch_signal_emitted = true
+			return true
+		return false
+
+	## Whether the back button would be visible (Issue #1734).
+	func is_back_button_visible() -> bool:
+		return not first_launch_mode
+
+	## Whether ESC can close the menu (Issue #1734).
+	func can_close_with_esc() -> bool:
+		return not first_launch_mode
+
+	## Returns button text for a difficulty in the current mode (Issue #1734).
+	## In first-launch mode no button shows "(Selected)" even if it matches current difficulty.
+	func get_easy_button_text() -> String:
+		if is_easy_mode() and not first_launch_mode:
+			return "Easy (Selected)"
+		return "Easy"
+
+	func get_normal_button_text() -> String:
+		if is_normal_mode() and not first_launch_mode:
+			return "Normal (Selected)"
+		return "Normal"
 
 
 var menu: MockDifficultyMenu
@@ -312,3 +347,96 @@ func test_restart_is_not_triggered_without_game_manager() -> void:
 	_simulate_restart_if_in_game(null)
 	# If we reach here without errors the test passes.
 	assert_true(true, "Should handle null GameManager gracefully")
+
+
+# ============================================================================
+# First Launch Mode Tests (Issue #1734)
+# ============================================================================
+
+
+func test_first_launch_mode_defaults_to_false() -> void:
+	assert_false(menu.first_launch_mode,
+		"first_launch_mode should be false by default")
+
+
+func test_back_button_visible_in_normal_mode() -> void:
+	menu.first_launch_mode = false
+
+	assert_true(menu.is_back_button_visible(),
+		"Back button should be visible in normal (non-first-launch) mode")
+
+
+func test_back_button_hidden_in_first_launch_mode() -> void:
+	menu.first_launch_mode = true
+
+	assert_false(menu.is_back_button_visible(),
+		"Back button should be hidden in first-launch mode so player must choose")
+
+
+func test_esc_closes_menu_in_normal_mode() -> void:
+	menu.first_launch_mode = false
+
+	assert_true(menu.can_close_with_esc(),
+		"ESC should be able to close the menu in normal mode")
+
+
+func test_esc_blocked_in_first_launch_mode() -> void:
+	menu.first_launch_mode = true
+
+	assert_false(menu.can_close_with_esc(),
+		"ESC should be blocked in first-launch mode")
+
+
+func test_difficulty_press_emits_first_launch_signal() -> void:
+	menu.first_launch_mode = true
+
+	var emitted := menu.simulate_difficulty_press_first_launch(MockDifficultyMenu.Difficulty.EASY)
+
+	assert_true(emitted,
+		"Pressing a difficulty button in first-launch mode should emit difficulty_selected_first_launch")
+	assert_true(menu.first_launch_signal_emitted,
+		"first_launch_signal_emitted flag should be set after selection")
+
+
+func test_difficulty_press_does_not_emit_first_launch_signal_in_normal_mode() -> void:
+	menu.first_launch_mode = false
+
+	var emitted := menu.simulate_difficulty_press_first_launch(MockDifficultyMenu.Difficulty.NORMAL)
+
+	assert_false(emitted,
+		"Pressing a difficulty button in normal mode should NOT emit difficulty_selected_first_launch")
+	assert_false(menu.first_launch_signal_emitted,
+		"first_launch_signal_emitted flag should remain false in normal mode")
+
+
+func test_no_selected_text_on_easy_in_first_launch_mode() -> void:
+	menu.first_launch_mode = true
+	menu.set_difficulty(MockDifficultyMenu.Difficulty.EASY)
+
+	assert_eq(menu.get_easy_button_text(), "Easy",
+		"Easy button should not show '(Selected)' in first-launch mode")
+
+
+func test_selected_text_shown_on_easy_in_normal_mode() -> void:
+	menu.first_launch_mode = false
+	menu.set_difficulty(MockDifficultyMenu.Difficulty.EASY)
+
+	assert_eq(menu.get_easy_button_text(), "Easy (Selected)",
+		"Easy button should show '(Selected)' when active in normal mode")
+
+
+func test_no_selected_text_on_normal_in_first_launch_mode() -> void:
+	menu.first_launch_mode = true
+	# Normal is the default current_difficulty
+
+	assert_eq(menu.get_normal_button_text(), "Normal",
+		"Normal button should not show '(Selected)' in first-launch mode")
+
+
+func test_first_launch_difficulty_selection_sets_difficulty() -> void:
+	menu.first_launch_mode = true
+
+	menu.simulate_difficulty_press_first_launch(MockDifficultyMenu.Difficulty.HARD)
+
+	assert_true(menu.is_hard_mode(),
+		"Difficulty should be set to HARD after selection in first-launch mode")

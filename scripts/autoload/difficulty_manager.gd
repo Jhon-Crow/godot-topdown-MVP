@@ -329,6 +329,14 @@ func set_map_grenade_config(map_name: String, grenade_count: int, probability: f
 	])
 
 
+## Check whether this is the first launch of the game.
+## Returns true when no difficulty settings file exists yet (Issue #1734).
+## On first launch, the game should show a difficulty selection screen
+## with no option pre-selected so the player makes an explicit choice.
+func is_first_launch() -> bool:
+	return not FileAccess.file_exists(SETTINGS_PATH)
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
