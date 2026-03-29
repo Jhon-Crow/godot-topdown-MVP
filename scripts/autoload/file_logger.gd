@@ -110,7 +110,10 @@ func _log_startup_info() -> void:
 ## Log build information (branch, commit, date) from build_info.cfg if it exists.
 func _log_build_info() -> void:
 	const BUILD_INFO_PATH: String = "res://build_info.cfg"
-	if not ResourceLoader.exists(BUILD_INFO_PATH):
+	# Use FileAccess instead of ResourceLoader.exists() — ResourceLoader does not
+	# recognise plain .cfg files as Godot resources and always returns false for them
+	# even when they are packed into the PCK via include_filter (Issue #1578).
+	if not FileAccess.file_exists(BUILD_INFO_PATH):
 		log_info("Build info: not available (build_info.cfg not found)")
 		return
 	var cfg := ConfigFile.new()

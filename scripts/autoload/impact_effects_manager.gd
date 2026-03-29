@@ -772,8 +772,20 @@ func _find_water_body_at(world_pos: Vector2) -> Node:
 	for wb in water_bodies:
 		if not is_instance_valid(wb):
 			continue
-		if wb.has_method("is_point_in_water") and wb.is_point_in_water(world_pos):
-			return wb
+		if wb.has_method("is_point_in_water"):
+			if wb.is_point_in_water(world_pos):
+				return wb
+		else:
+			# Geometry fallback: has_method() can return false in some exported builds
+			# even when the method exists (Issue #1578). Check bounding rect directly.
+			var half_w: float = wb.get("water_width") if wb.get("water_width") != null else 1200.0
+			var half_h: float = wb.get("water_height") if wb.get("water_height") != null else 210.0
+			half_w *= 0.5
+			half_h *= 0.5
+			var local: Vector2 = world_pos - wb.global_position
+			if abs(local.x) <= half_w and abs(local.y) <= half_h:
+				_log_info("[ImpactEffects] water_body geometry fallback hit at %s (has_method returned false — Issue #1578)" % world_pos)
+				return wb
 	return null
 
 

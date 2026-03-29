@@ -370,6 +370,84 @@ If `_ready() start` is absent, the script is not loading at all.
 
 ---
 
+---
+
+## Sixth Owner Report: "не сработало" (2026-03-29 17:58 local, Test 6)
+
+Owner tested again at 17:58 local (14:58 UTC on 2026-03-29) and reported "не сработало" (didn't work), attaching `game_log_20260329_175815.txt`.
+
+### Log Evidence (game_log_20260329_175815.txt)
+
+- **Total log lines**: 5,518
+- **Blood puddles logged**: 3,155
+- `Build info: not available (build_info.cfg not found)` — STILL showing despite include_filter fix
+- `[WaterBody] _ready() start` log: **NOT PRESENT**
+- `[BeachLevel] Water node registered in 'water_body' group (Issue #1578 fallback — water_body.gd _ready() did NOT pre-register)`: **PRESENT at 17:58:39**
+- `[BeachLevel] Water.has_method('is_point_in_water') = false`: **PRESENT** — NEW CRITICAL FINDING
+
+### Confirmed: Build IS from commit 13d1ba67
+
+The beach_level.gd diagnostic message format exactly matches commit `13d1ba67`:
+```
+"Water node registered in 'water_body' group (Issue #1578 fallback — water_body.gd _ready() did NOT pre-register)"
+```
+This string was only added in commit `13d1ba67`. Therefore the user DID download the CI artifact from run `23689760641` (commit `13d1ba67`, built 2026-03-28T16:51 UTC).
+
+**The EXE has all our code — confirmed by binary inspection:**
+```
+✓  _log("[WaterBody] _ready() start — registering groups")
+✓  add_to_group("water_body")
+✓  func is_point_in_water(world_pos: Vector2) -> bool:
+✓  func spawn_blood_diffusion_at(world_pos: Vector2, blood_color: Color) -> void:
+✓  [build] / branch="issue-1578-d6d3b68c9ede"  (build_info.cfg IS in the PCK)
+```
+
+### Root Cause 1: `ResourceLoader.exists()` returns false for `.cfg` files
+
+`file_logger.gd` uses `ResourceLoader.exists("res://build_info.cfg")` to check if the build info file exists. **`ResourceLoader` does not recognise plain `.cfg` files as Godot resources** — it only handles resource types with registered loaders (`.tres`, `.res`, `.png`, `.gd`, etc.). So `ResourceLoader.exists()` always returns `false` for `.cfg`, even when the file is packed in the PCK via `include_filter="*.cfg"`.
+
+The `[build]` content IS in the binary (confirmed by binary inspection), but the code never reads it.
+
+**Fix**: Use `FileAccess.file_exists("res://build_info.cfg")` instead of `ResourceLoader.exists()`.
+
+### Root Cause 2: `has_method("is_point_in_water")` returns false
+
+The diagnostic line `Water.has_method('is_point_in_water') = false` confirms that even though `water_body.gd` contains `func is_point_in_water(...)`, the `has_method()` check fails at runtime.
+
+Combined with `[WaterBody] _ready() start` never appearing in any log, the water body script either:
+- Fails to initialise (silent error in exported GDScript bytecode)
+- Or `has_method()` behaves differently for nodes whose script failed to run `_ready()`
+
+When `has_method()` returns false, `_find_water_body_at()` falls through without returning the node → blood decals spawn normally.
+
+**Fix**: Added geometry-based fallback in `_find_water_body_at()`. When `has_method("is_point_in_water")` returns false, the function checks if `world_pos` is inside the node's `water_width` × `water_height` bounding rect via direct property access (`wb.get("water_width")`), which works even when `_ready()` didn't run because `@export` properties are set before `_ready()` runs.
+
+### Why Player Didn't Reach Water in This Test
+
+The player's coordinates stayed in x range [200–880] throughout the 35-second session, while water is at x=1264 ± 1200 (bounds x∈[64,2464]). No blood reached the water area (no decals with x>900), so the fix's effectiveness could not be assessed from this log alone.
+
+### Changes in This Session (session 6)
+
+1. **`scripts/autoload/impact_effects_manager.gd`** — geometry fallback in `_find_water_body_at()`:
+   When `has_method("is_point_in_water")` returns false, use direct property access to check `water_width`/`water_height` bounds. This is resilient to script initialisation failures.
+
+2. **`scripts/autoload/file_logger.gd`** — use `FileAccess.file_exists()`:
+   Replaced `ResourceLoader.exists()` with `FileAccess.file_exists()` so `build_info.cfg` is found in the PCK. This will make "Build branch: issue-1578-d6d3b68c9ede" appear in the game log, definitively confirming the correct build is being used.
+
+### Expected Log Signature After This Session's Fixes
+
+```
+Build branch: issue-1578-d6d3b68c9ede
+Build commit: <latest>
+...
+[BeachLevel] Water.has_method('is_point_in_water') = false     ← still expected (until _ready() issue resolved)
+...
+[ImpactEffects] water_body geometry fallback hit at (x, y) (has_method returned false — Issue #1578)
+```
+The geometry fallback log line confirms water detection is working despite the `has_method` problem.
+
+---
+
 ## Game Log Files
 
 All game logs referenced in this case study are archived in `game-logs/`:
@@ -380,3 +458,4 @@ All game logs referenced in this case study are archived in `game-logs/`:
 | `game_log_20260327_092156.txt`        | Test 2       | "изменений нет"         |
 | `game_log_20260327_102127.txt`        | Test 3       | "всё ещё простые лужи"  |
 | `game_log_20260328_193137.txt`        | Test 5       | "не работает"           |
+| `game_log_20260329_175815.txt`        | Test 6       | "не сработало"          |
