@@ -9,6 +9,14 @@ class_name ExplosionScorchMark
 ## - F-1 (Defensive): Large, prominent burnt mark
 ##
 ## Issue #1005: After grenade explosion there should be a mark on the floor.
+## Issue #1460: Textures are now cached by radius to avoid expensive per-explosion
+## CPU pixel loops (e.g. 160x160 = 25,600 pixels for F-1 radius=80).
+
+## Static cache of pre-generated scorch textures keyed by radius.
+## Issue #1460: _create_scorch_texture() does a per-pixel CPU loop that costs
+## ~1-3ms for radius=80 (25,600 pixels). Caching eliminates this cost on
+## every explosion after the first of each radius.
+static var _texture_cache: Dictionary = {}
 
 ## Scorch mark radius in pixels.
 ## This determines the size of the circular scorch mark.
@@ -33,8 +41,13 @@ var grenade_type: String = "unknown"
 
 
 func _ready() -> void:
-	# Generate the scorch mark texture based on configured radius
-	texture = _create_scorch_texture(int(scorch_radius))
+	# Use cached texture or generate and cache on first use
+	var radius_key := int(scorch_radius)
+	if _texture_cache.has(radius_key):
+		texture = _texture_cache[radius_key]
+	else:
+		texture = _create_scorch_texture(radius_key)
+		_texture_cache[radius_key] = texture
 
 	# Apply the configured alpha
 	modulate = Color(1.0, 1.0, 1.0, scorch_alpha)
@@ -53,9 +66,18 @@ func _ready() -> void:
 	])
 
 
+## Pre-generates scorch textures for common radii at startup.
+## Call this once during initialization to avoid CPU pixel loops during gameplay.
+## Issue #1460: Eliminates ~1-3ms CPU spike per explosion from texture generation.
+static func warmup_textures(radii: Array[int] = [20, 40, 80]) -> void:
+	for radius in radii:
+		if not _texture_cache.has(radius):
+			_texture_cache[radius] = _create_scorch_texture(radius)
+
+
 ## Creates a radial gradient texture for the scorch mark.
 ## The texture has a dark center fading to transparent edges.
-func _create_scorch_texture(radius: int) -> ImageTexture:
+static func _create_scorch_texture(radius: int) -> ImageTexture:
 	var size := radius * 2
 	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
 	var center := Vector2(radius, radius)

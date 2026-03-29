@@ -751,76 +751,52 @@ namespace GodotTopdown.Scripts.Projectiles
         }
 
         /// <summary>
-        /// Loads and instantiates the FlashbangEffect.tscn scene directly from C#.
-        /// FIX for Issue #432: Bypasses GDScript Call() which fails silently in exports.
-        /// FIX for Issue #724: FlashbangEffect.tscn now has shadow_enabled=false for performance.
+        /// Spawns the flashbang visual effect via ImpactEffectsManager (pooled).
+        /// FIX for Issue #1460 Round 6: Eliminates GD.Load() + Instantiate() on every explosion.
+        /// The old approach called GD.Load("FlashbangEffect.tscn") + Instantiate() each time,
+        /// which created a new GradientTexture2D (512x512 GPU texture upload) per explosion.
+        /// Now routes through ImpactEffectsManager which pre-pools the FlashbangEffect nodes
+        /// at startup, eliminating all runtime allocation.
+        /// FIX for Issue #432: ImpactEffectsManager is an autoload and always available.
         /// </summary>
         private void SpawnFlashbangEffectScene(Vector2 position)
         {
-            const string flashbangEffectPath = "res://scenes/effects/FlashbangEffect.tscn";
-
-            // Try to load the flashbang effect scene
-            var flashbangScene = GD.Load<PackedScene>(flashbangEffectPath);
-            if (flashbangScene == null)
+            // Route through ImpactEffectsManager (pooled, no instantiation during gameplay).
+            // This manager pre-creates FlashbangEffect nodes at startup (Issue #1460 Round 6).
+            var impactManager = GetNode<Node>("/root/ImpactEffectsManager");
+            if (impactManager != null && impactManager.HasMethod("spawn_flashbang_effect"))
             {
-                LogToFile($"[GrenadeTimer] WARNING: FlashbangEffect scene not found at {flashbangEffectPath}, using fallback");
-                CreateFallbackExplosionFlash(position);
+                impactManager.Call("spawn_flashbang_effect", position, EffectRadius);
+                LogToFile($"[GrenadeTimer] Spawned flashbang effect at {position} (radius: {EffectRadius})");
                 return;
             }
 
-            // Instantiate the effect
-            var effect = flashbangScene.Instantiate<Node2D>();
-            if (effect == null)
-            {
-                LogToFile($"[GrenadeTimer] WARNING: Failed to instantiate FlashbangEffect, using fallback");
-                CreateFallbackExplosionFlash(position);
-                return;
-            }
-
-            // Position the effect at explosion location
-            effect.GlobalPosition = position;
-
-            // Set the effect radius if the method exists
-            if (effect.HasMethod("set_effect_radius"))
-            {
-                effect.Call("set_effect_radius", EffectRadius);
-            }
-
-            // Add to the current scene
-            GetTree().CurrentScene?.AddChild(effect);
-
-            LogToFile($"[GrenadeTimer] Spawned flashbang effect at {position} (radius: {EffectRadius})");
+            // Fallback: create PointLight2D directly if ImpactEffectsManager unavailable.
+            // This avoids GD.Load() + Instantiate() which uploads a new 512x512 GPU texture.
+            LogToFile("[GrenadeTimer] ImpactEffectsManager unavailable, using fallback PointLight2D");
+            CreateFallbackExplosionFlash(position);
         }
 
         /// <summary>
-        /// Spawn frag grenade explosion flash using ExplosionFlash.tscn.
-        /// FIX for Issue #724: Shadows are disabled on PointLight2D for performance.
+        /// Spawn frag grenade explosion flash via ImpactEffectsManager (pooled PointLight2D).
+        /// FIX for Issue #1460 Round 6: Eliminates GD.Load() + Instantiate() on every explosion.
+        /// The old approach loaded ExplosionFlash.tscn from disk and instantiated it each time.
+        /// ImpactEffectsManager pre-pools PointLight2D nodes at startup for zero-allocation flashes.
         /// </summary>
         private void SpawnFragExplosionFlash(Vector2 position)
         {
-            // Try to load and use the new PointLight2D-based explosion flash scene
-            // This uses shadow_enabled=true to automatically respect wall geometry
-            var explosionFlashScene = GD.Load<PackedScene>("res://scenes/effects/ExplosionFlash.tscn");
-
-            if (explosionFlashScene != null)
+            // Route through ImpactEffectsManager pooled explosion effect.
+            // spawn_explosion_effect() reuses pre-allocated PointLight2D — no instantiation.
+            var impactManager = GetNode<Node>("/root/ImpactEffectsManager");
+            if (impactManager != null && impactManager.HasMethod("spawn_explosion_effect"))
             {
-                var flash = explosionFlashScene.Instantiate();
-                if (flash is Node2D flashNode)
-                {
-                    flashNode.GlobalPosition = position;
-
-                    // Set explosion type (1 = Frag)
-                    flashNode.Set("explosion_type", 1);
-                    flashNode.Set("effect_radius", EffectRadius);
-
-                    GetTree().CurrentScene.AddChild(flash);
-                    LogToFile($"[GrenadeTimer] Spawned PointLight2D frag explosion flash at {position}");
-                    return;
-                }
+                impactManager.Call("spawn_explosion_effect", position, EffectRadius);
+                LogToFile($"[GrenadeTimer] Spawned PointLight2D frag explosion flash at {position}");
+                return;
             }
 
-            // Fallback: create simple PointLight2D directly if scene loading fails
-            LogToFile("[GrenadeTimer] ExplosionFlash.tscn not found, using fallback PointLight2D");
+            // Fallback: create simple PointLight2D directly if ImpactEffectsManager unavailable.
+            LogToFile("[GrenadeTimer] ImpactEffectsManager unavailable, using fallback PointLight2D");
             CreateFallbackExplosionFlash(position);
         }
 

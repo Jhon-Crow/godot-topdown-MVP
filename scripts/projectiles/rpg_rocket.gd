@@ -315,14 +315,15 @@ func _has_line_of_sight(space_state: PhysicsDirectSpaceState2D, target_pos: Vect
 	return space_state.intersect_ray(query).is_empty()
 
 
+## Issue #1460: Uses bulk damage via on_hit_with_bullet_info() instead of per-hit loop.
 func _apply_damage(entity: Node2D) -> void:
 	var hit_direction := (entity.global_position - global_position).normalized()
-	if entity.has_method("on_hit_with_info"):
-		for i in range(explosion_damage):
-			entity.on_hit_with_info(hit_direction, null)
+	if entity.has_method("on_hit_with_bullet_info"):
+		entity.on_hit_with_bullet_info(hit_direction, null, false, false, float(explosion_damage))
+	elif entity.has_method("on_hit_with_info"):
+		entity.on_hit_with_info(hit_direction, null)
 	elif entity.has_method("on_hit"):
-		for i in range(explosion_damage):
-			entity.on_hit()
+		entity.on_hit()
 
 
 func _spawn_explosion_effect() -> void:

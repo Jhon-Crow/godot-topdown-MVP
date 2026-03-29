@@ -53,6 +53,8 @@ lifetime = 0.04
 one_shot = true
 explosiveness = 1.0
 randomness = 0.1
+fixed_fps = 30
+visibility_rect = Rect2(-200, -200, 400, 400)
 
 [node name="PointLight2D" type="PointLight2D" parent="."]
 color = Color(1, 0.8, 0.4, 1)

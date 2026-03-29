@@ -87,8 +87,24 @@ func _update_rotation() -> void:
 
 
 ## Updates the visual trail effect by maintaining position history.
+## Issue #1460 Round 4: Update every other frame to halve Line2D overhead.
+## Issue #1460 Round 7: Further reduce updates when many shrapnel are active.
+## With 40 shrapnel each doing clear_points() + add_point()×6 per frame,
+## even every-other-frame causes sustained FPS drops (~33ms/frame) for 2 seconds.
+## At 5000px/s the trail is a blur — updating every 6th frame is imperceptible
+## and reduces 240 Line2D operations/frame to 40.
+var _trail_frame_skip: int = 0
+
+## Number of frames to skip between trail updates.
+## Issue #1460 Round 7: Increased from 2 to 6 to handle 40 simultaneous shrapnel.
+const TRAIL_UPDATE_INTERVAL: int = 6
+
 func _update_trail() -> void:
 	if not _trail:
+		return
+
+	_trail_frame_skip += 1
+	if _trail_frame_skip % TRAIL_UPDATE_INTERVAL != 0:
 		return
 
 	# Add current position to history
@@ -353,6 +369,9 @@ func _reset_state() -> void:
 
 	# Reset ricochet state
 	_ricochet_count = 0
+
+	# Reset trail frame skip counter (Issue #1460 Round 4)
+	_trail_frame_skip = 0
 
 	# Clear position history
 	_position_history.clear()

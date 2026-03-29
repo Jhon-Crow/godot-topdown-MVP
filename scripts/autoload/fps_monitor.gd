@@ -7,12 +7,22 @@ extends Node
 ##   - fps_drop_logging_enabled: log to file when FPS < FPS_DROP_THRESHOLD (default: off)
 ##
 ## Issue #883: Added as part of performance monitoring for enemy raycast optimization.
+## Issue #1460 Round 6: Added per-frame spike detection to catch sub-second frame drops
+## (the old 1-second average missed explosion spikes that last only 1-3 frames).
 
 ## FPS below this value is considered a drop and will be logged.
 const FPS_DROP_THRESHOLD: int = 30
 
-## How often (in seconds) to sample FPS and check for drops.
+## Frame time above this threshold (ms) is a spike and will be logged immediately.
+## 33ms = ~30fps equivalent for a single frame. A single frame taking >33ms is a spike
+## even if the 1-second average stays above 30fps.
+const FRAME_SPIKE_THRESHOLD_MS: float = 33.0
+
+## How often (in seconds) to sample average FPS and check for sustained drops.
 const SAMPLE_INTERVAL: float = 1.0
+
+## Minimum seconds between spike log entries to avoid log spam.
+const SPIKE_LOG_COOLDOWN: float = 0.5
 
 ## Label node used for the on-screen FPS counter.
 var _fps_label: Label = null
@@ -22,6 +32,9 @@ var _sample_timer: float = 0.0
 
 ## Last sampled FPS value.
 var _last_fps: int = 0
+
+## Time since last spike was logged (to prevent log spam).
+var _spike_log_cooldown: float = 0.0
 
 
 func _ready() -> void:
@@ -51,6 +64,25 @@ func _create_fps_label() -> void:
 
 ## Called every frame; updates the FPS counter and checks for drops.
 func _process(delta: float) -> void:
+	# Issue #1460 Round 6: Check for per-frame spikes EVERY frame, not just every second.
+	# A spike that takes 50ms (20fps for one frame) will NOT show in a 1-second average
+	# if other frames are fast. We log it immediately so the log captures spike timing.
+	_spike_log_cooldown -= delta
+	if _spike_log_cooldown <= 0.0:
+		var frame_ms := delta * 1000.0
+		if frame_ms > FRAME_SPIKE_THRESHOLD_MS:
+			var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+			var logging_drops: bool = experimental_settings != null and \
+				experimental_settings.has_method("is_fps_drop_logging_enabled") and \
+				experimental_settings.is_fps_drop_logging_enabled()
+			if logging_drops:
+				var fps_this_frame := int(1000.0 / frame_ms)
+				var fl: Node = get_node_or_null("/root/FileLogger")
+				if fl and fl.has_method("log_warning"):
+					fl.log_warning("[FPS] Frame spike: %.1fms (%dfps this frame, threshold: %.0fms)" % [
+						frame_ms, fps_this_frame, FRAME_SPIKE_THRESHOLD_MS])
+				_spike_log_cooldown = SPIKE_LOG_COOLDOWN
+
 	_sample_timer += delta
 	if _sample_timer < SAMPLE_INTERVAL:
 		return
@@ -62,7 +94,7 @@ func _process(delta: float) -> void:
 	if _fps_label and _fps_label.visible:
 		_fps_label.text = "FPS: %d" % _last_fps
 
-	# Log drops if enabled
+	# Log sustained drops if enabled (averaged over 1 second)
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	var logging_drops: bool = experimental_settings != null and \
 		experimental_settings.has_method("is_fps_drop_logging_enabled") and \
@@ -71,7 +103,7 @@ func _process(delta: float) -> void:
 	if logging_drops and _last_fps < FPS_DROP_THRESHOLD:
 		var fl: Node = get_node_or_null("/root/FileLogger")
 		if fl and fl.has_method("log_warning"):
-			fl.log_warning("[FPS] Drop detected: %d fps (threshold: %d)" % [_last_fps, FPS_DROP_THRESHOLD])
+			fl.log_warning("[FPS] Sustained drop: %d fps avg (threshold: %d)" % [_last_fps, FPS_DROP_THRESHOLD])
 
 
 ## Apply current experimental settings (counter visibility).

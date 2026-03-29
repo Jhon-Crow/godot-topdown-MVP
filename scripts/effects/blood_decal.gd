@@ -16,7 +16,17 @@ class_name BloodDecal
 @export var auto_fade: bool = false
 
 ## Whether this decal can be stepped in (creates bloody footprints).
+## When true, adds this decal to the "blood_puddle" group so BloodyFeetComponent
+## can detect it via distance checks.
 @export var is_puddle: bool = true
+
+## Whether to create an Area2D for physics-based puddle detection.
+## Issue #1460: With 300+ blood decals accumulated during gameplay, 300+ Area2D nodes
+## create significant physics server overhead each frame. The BloodyFeetComponent
+## already uses a distance-based fallback that works without physics shapes.
+## Set to false for decals spawned at runtime (impact_effects_manager does this).
+## Set to true only for scene-placed decals that need precise physics detection.
+@export var use_physics_area: bool = false
 
 ## Initial alpha value.
 var _initial_alpha: float = 0.85
@@ -33,10 +43,16 @@ func _ready() -> void:
 	_file_logger = get_node_or_null("/root/FileLogger")
 	_initial_alpha = modulate.a
 
-	# Add to blood_puddle group for detection
+	# Add to blood_puddle group for detection.
+	# BloodyFeetComponent uses distance-based group checks, so group membership
+	# is sufficient for footprint detection without requiring an Area2D.
 	if is_puddle:
 		add_to_group("blood_puddle")
-		_setup_puddle_area()
+		# Issue #1460: Only create physics Area2D when explicitly requested.
+		# Area2D creation is O(1) per decal but physics server overhead is O(n)
+		# per frame across all active decals. With 300+ decals, this is significant.
+		if use_physics_area:
+			_setup_puddle_area()
 		_log_info("Blood puddle created at %s (added to group)" % global_position)
 
 	if auto_fade:

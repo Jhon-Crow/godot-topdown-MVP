@@ -67,14 +67,20 @@ func _ready() -> void:
 	# (5% increase for "slightly lighter")
 	max_throw_speed *= 1.05
 
-	# Load shrapnel scene if not set
+	# Issue #1460 Round 7: Get shrapnel scene from ProjectilePoolManager to avoid
+	# calling load() here which blocks the main thread and causes a frame spike.
 	if shrapnel_scene == null:
-		var shrapnel_path := "res://scenes/projectiles/Shrapnel.tscn"
-		if ResourceLoader.exists(shrapnel_path):
-			shrapnel_scene = load(shrapnel_path)
-			FileLogger.info("[FragGrenade] Shrapnel scene loaded from: %s" % shrapnel_path)
+		var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+		if pool_manager and pool_manager.get("_shrapnel_scene") != null:
+			shrapnel_scene = pool_manager._shrapnel_scene
+			FileLogger.info("[FragGrenade] Shrapnel scene obtained from ProjectilePoolManager")
 		else:
-			FileLogger.info("[FragGrenade] WARNING: Shrapnel scene not found at: %s" % shrapnel_path)
+			var shrapnel_path := "res://scenes/projectiles/Shrapnel.tscn"
+			if ResourceLoader.exists(shrapnel_path):
+				shrapnel_scene = load(shrapnel_path)
+				FileLogger.info("[FragGrenade] Shrapnel scene loaded from: %s (fallback)" % shrapnel_path)
+			else:
+				FileLogger.info("[FragGrenade] WARNING: Shrapnel scene not found at: %s" % shrapnel_path)
 
 
 ## Override to prevent timer countdown for frag grenades.
@@ -376,21 +382,18 @@ func _has_line_of_sight_to(target: Node2D) -> bool:
 
 ## Apply direct explosion damage to an enemy.
 ## Per user requirement: flat 99 damage to ALL enemies in the blast zone (no distance scaling).
+## Issue #1460: Uses bulk damage via on_hit_with_bullet_info() instead of per-hit loop.
 func _apply_explosion_damage(enemy: Node2D) -> void:
 	var distance := global_position.distance_to(enemy.global_position)
-
-	# Flat damage to all enemies in blast zone - no distance scaling
 	var final_damage := explosion_damage
+	var hit_direction := (enemy.global_position - global_position).normalized()
 
-	# Try to apply damage through various methods
-	if enemy.has_method("on_hit_with_info"):
-		# Calculate direction from explosion to enemy
-		var hit_direction := (enemy.global_position - global_position).normalized()
-		for i in range(final_damage):
-			enemy.on_hit_with_info(hit_direction, null)
+	if enemy.has_method("on_hit_with_bullet_info"):
+		enemy.on_hit_with_bullet_info(hit_direction, null, false, false, float(final_damage))
+	elif enemy.has_method("on_hit_with_info"):
+		enemy.on_hit_with_info(hit_direction, null)
 	elif enemy.has_method("on_hit"):
-		for i in range(final_damage):
-			enemy.on_hit()
+		enemy.on_hit()
 
 	FileLogger.info("[FragGrenade] Applied %d HE damage to enemy at distance %.1f" % [final_damage, distance])
 
