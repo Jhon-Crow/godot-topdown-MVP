@@ -388,9 +388,12 @@ func get_hp_multiplier() -> float:
 
 
 ## Get the player speed multiplier for current difficulty.
+## Gunslinger mode: 1.5 (50% faster movement — Issue #1732).
 ## Black Metal mode: 1.25 (25% faster movement).
 ## Other modes: 1.0 (no change).
 func get_player_speed_multiplier() -> float:
+	if current_difficulty == Difficulty.GUNSLINGER:
+		return 1.5
 	if current_difficulty == Difficulty.BLACK_METAL:
 		return 1.25
 	return 1.0

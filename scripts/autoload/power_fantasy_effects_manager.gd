@@ -149,11 +149,14 @@ func on_grenade_exploded() -> void:
 
 ## Starts the power fantasy effect with the specified duration.
 func _start_effect(duration_ms: float) -> void:
-	# If effect is already active, reset the timer
+	# If effect is already active, reset the timer and ensure time_scale is still applied
+	# (e.g. if reset_effects was called mid-effect by a scene change and then another kill fires)
 	if _is_effect_active:
 		_effect_start_time = Time.get_ticks_msec() / 1000.0
 		_current_effect_duration_ms = duration_ms
 		_log("Effect timer reset to %.0fms" % duration_ms)
+		if not replay_mode and Engine.time_scale != EFFECT_TIME_SCALE:
+			Engine.time_scale = EFFECT_TIME_SCALE
 		return
 
 	_is_effect_active = true

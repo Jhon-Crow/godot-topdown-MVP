@@ -240,6 +240,7 @@ func _ready() -> void:
 	if difficulty_manager:
 		max_ammo = difficulty_manager.get_max_ammo()
 		# Black Metal mode: 25% less HP and 25% faster movement (Issue #958)
+		# Gunslinger mode: 50% faster movement (Issue #1732)
 		if difficulty_manager.has_method("get_hp_multiplier"):
 			var hp_mult: float = difficulty_manager.get_hp_multiplier()
 			max_health = maxi(1, int(max_health * hp_mult))
