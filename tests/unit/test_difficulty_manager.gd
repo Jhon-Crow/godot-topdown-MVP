@@ -14,7 +14,8 @@ class MockDifficultyManager:
 		NORMAL,
 		HARD,
 		POWER_FANTASY,
-		BLACK_METAL  ## Issue #958: 25% less HP, 25% faster, B&W+red visual filter
+		BLACK_METAL,  ## Issue #958: 25% less HP, 25% faster, B&W+red visual filter
+		GUNSLINGER    ## Issue #1727: 2x less HP, 4x ammo, no laser sights, kill last-chance
 	}
 
 	## Night mode reaction delay multiplier (Issue #825)
@@ -52,6 +53,9 @@ class MockDifficultyManager:
 	func is_black_metal_mode() -> bool:
 		return current_difficulty == Difficulty.BLACK_METAL
 
+	func is_gunslinger_mode() -> bool:
+		return current_difficulty == Difficulty.GUNSLINGER
+
 	func get_difficulty_name() -> String:
 		match current_difficulty:
 			Difficulty.EASY:
@@ -64,6 +68,8 @@ class MockDifficultyManager:
 				return "Power Fantasy"
 			Difficulty.BLACK_METAL:
 				return "Black Metal"
+			Difficulty.GUNSLINGER:
+				return "Gunslinger"
 			_:
 				return "Unknown"
 
@@ -79,6 +85,8 @@ class MockDifficultyManager:
 				return "Power Fantasy"
 			Difficulty.BLACK_METAL:
 				return "Black Metal"
+			Difficulty.GUNSLINGER:
+				return "Gunslinger"
 			_:
 				return "Unknown"
 
@@ -94,6 +102,8 @@ class MockDifficultyManager:
 				return 270
 			Difficulty.BLACK_METAL:
 				return 90
+			Difficulty.GUNSLINGER:
+				return 360  # 4x normal ammo
 			_:
 				return 90
 
@@ -103,7 +113,21 @@ class MockDifficultyManager:
 	func get_hp_multiplier() -> float:
 		if current_difficulty == Difficulty.BLACK_METAL:
 			return 0.75
+		if current_difficulty == Difficulty.GUNSLINGER:
+			return 0.5  # 2x less HP
 		return 1.0
+
+	func should_disable_laser_sight() -> bool:
+		return current_difficulty == Difficulty.GUNSLINGER
+
+	func is_kill_last_chance_enabled() -> bool:
+		return current_difficulty == Difficulty.POWER_FANTASY or current_difficulty == Difficulty.GUNSLINGER
+
+	func is_special_last_chance_disabled() -> bool:
+		return current_difficulty == Difficulty.GUNSLINGER
+
+	func should_apply_gunslinger_enemy_glow() -> bool:
+		return current_difficulty == Difficulty.GUNSLINGER
 
 	func get_player_speed_multiplier() -> float:
 		if current_difficulty == Difficulty.BLACK_METAL:
@@ -131,6 +155,8 @@ class MockDifficultyManager:
 				base_delay = 0.8
 			Difficulty.BLACK_METAL:
 				base_delay = 0.3
+			Difficulty.GUNSLINGER:
+				base_delay = 0.4
 			_:
 				base_delay = 0.6
 		# Issue #825: In night mode, enemies react 30% slower
@@ -578,3 +604,159 @@ func test_black_metal_mode_detection_delay_with_night_mode() -> void:
 	var expected := 0.3 * MockDifficultyManager.NIGHT_MODE_REACTION_DELAY_MULTIPLIER
 	assert_almost_eq(manager.get_detection_delay(), expected, 0.001,
 		"Night mode black metal should have 30%% longer detection delay")
+
+
+# ============================================================================
+# Gunslinger Mode Tests (Issue #1727)
+# ============================================================================
+
+
+func test_set_difficulty_to_gunslinger() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.GUNSLINGER)
+
+	assert_eq(manager.current_difficulty, MockDifficultyManager.Difficulty.GUNSLINGER,
+		"Difficulty should be GUNSLINGER after setting")
+	assert_true(manager.is_gunslinger_mode(), "is_gunslinger_mode() should return true")
+	assert_false(manager.is_normal_mode(), "is_normal_mode() should return false")
+	assert_false(manager.is_hard_mode(), "is_hard_mode() should return false")
+	assert_false(manager.is_power_fantasy_mode(), "is_power_fantasy_mode() should return false")
+	assert_false(manager.is_black_metal_mode(), "is_black_metal_mode() should return false")
+
+
+func test_get_difficulty_name_gunslinger() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.GUNSLINGER)
+
+	assert_eq(manager.get_difficulty_name(), "Gunslinger",
+		"Gunslinger difficulty name should be 'Gunslinger'")
+
+
+func test_max_ammo_gunslinger_mode_is_4x_normal() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.GUNSLINGER)
+
+	assert_eq(manager.get_max_ammo(), 360,
+		"Gunslinger mode should have 360 max ammo (4x normal 90)")
+
+
+func test_hp_multiplier_gunslinger_is_0_5() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.GUNSLINGER)
+
+	assert_almost_eq(manager.get_hp_multiplier(), 0.5, 0.001,
+		"Gunslinger mode HP multiplier should be 0.5 (2x less HP)")
+
+
+func test_gunslinger_hp_reduction_calculation() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.GUNSLINGER)
+	var hp_mult := manager.get_hp_multiplier()
+
+	# Verify 2x less HP: base 4 HP -> floor(4 * 0.5) = 2
+	var base_hp := 4
+	var expected_hp := maxi(1, int(base_hp * hp_mult))
+	assert_eq(expected_hp, 2,
+		"With 4 base HP and 0.5 multiplier, expected 2 HP in Gunslinger mode")
+
+
+func test_gunslinger_hp_never_below_one() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.GUNSLINGER)
+	var hp_mult := manager.get_hp_multiplier()
+
+	var base_hp := 1
+	var result_hp := maxi(1, int(base_hp * hp_mult))
+	assert_ge(result_hp, 1, "HP should never go below 1 in Gunslinger mode")
+
+
+func test_gunslinger_disables_laser_sight() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.GUNSLINGER)
+
+	assert_true(manager.should_disable_laser_sight(),
+		"Gunslinger mode should disable laser sights on all weapons")
+
+
+func test_normal_mode_does_not_disable_laser_sight() -> void:
+	# Default is NORMAL
+	assert_false(manager.should_disable_laser_sight(),
+		"Normal mode should not disable laser sights")
+
+
+func test_power_fantasy_does_not_disable_laser_sight() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.POWER_FANTASY)
+
+	assert_false(manager.should_disable_laser_sight(),
+		"Power Fantasy mode should not disable laser sights (has blue lasers)")
+
+
+func test_gunslinger_enables_kill_last_chance() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.GUNSLINGER)
+
+	assert_true(manager.is_kill_last_chance_enabled(),
+		"Gunslinger mode should enable kill-triggered last chance effect")
+
+
+func test_power_fantasy_enables_kill_last_chance() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.POWER_FANTASY)
+
+	assert_true(manager.is_kill_last_chance_enabled(),
+		"Power Fantasy mode should enable kill-triggered last chance effect")
+
+
+func test_normal_mode_kill_last_chance_disabled() -> void:
+	# Default is NORMAL
+	assert_false(manager.is_kill_last_chance_enabled(),
+		"Normal mode should not have kill-triggered last chance effect")
+
+
+func test_gunslinger_disables_special_last_chance() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.GUNSLINGER)
+
+	assert_true(manager.is_special_last_chance_disabled(),
+		"Gunslinger mode should disable the special time-stop last chance effect")
+
+
+func test_normal_mode_special_last_chance_not_disabled() -> void:
+	# Default is NORMAL
+	assert_false(manager.is_special_last_chance_disabled(),
+		"Normal mode should not have special last chance disabled")
+
+
+func test_hard_mode_special_last_chance_not_disabled() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.HARD)
+
+	assert_false(manager.is_special_last_chance_disabled(),
+		"Hard mode should not have special last chance disabled (it uses the effect normally)")
+
+
+func test_gunslinger_enemy_glow_enabled() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.GUNSLINGER)
+
+	assert_true(manager.should_apply_gunslinger_enemy_glow(),
+		"Gunslinger mode should apply enemy glow effect")
+
+
+func test_normal_mode_enemy_glow_disabled() -> void:
+	# Default is NORMAL
+	assert_false(manager.should_apply_gunslinger_enemy_glow(),
+		"Normal mode should not apply Gunslinger enemy glow")
+
+
+func test_distraction_attack_disabled_in_gunslinger_mode() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.GUNSLINGER)
+
+	assert_false(manager.is_distraction_attack_enabled(),
+		"Distraction attack should be disabled in Gunslinger mode")
+
+
+func test_detection_delay_gunslinger_mode() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.GUNSLINGER)
+
+	assert_almost_eq(manager.get_detection_delay(), 0.4, 0.001,
+		"Gunslinger mode should have 0.4s detection delay (slightly faster than normal)")
+
+
+func test_gunslinger_is_not_active_in_normal_mode() -> void:
+	# Default is NORMAL
+	assert_false(manager.is_gunslinger_mode(),
+		"is_gunslinger_mode() should return false in Normal mode")
+
+
+func test_get_difficulty_name_for_gunslinger() -> void:
+	assert_eq(manager.get_difficulty_name_for(MockDifficultyManager.Difficulty.GUNSLINGER),
+		"Gunslinger", "get_difficulty_name_for(GUNSLINGER) should return 'Gunslinger'")

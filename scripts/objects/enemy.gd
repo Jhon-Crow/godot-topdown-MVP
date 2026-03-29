@@ -472,6 +472,7 @@ func _ready() -> void:
 		_gas_mask_grenade = GasMaskGrenadeComponent.new(); _gas_mask_grenade.name = "GasMaskGrenadeComponent"; add_child(_gas_mask_grenade)
 		if _head_sprite: var _gm_tex := load("res://assets/sprites/characters/enemy/gas_mask_head.png"); if _gm_tex: _head_sprite.texture = _gm_tex; _head_sprite.rotation_degrees = -90.0  # Issue #1363: sprite drawn facing up, rotate to face right
 	if is_drone_operator: _drone_operator = DroneOperatorComponent.new(); _drone_operator.name = "DroneOperatorComponent"; add_child(_drone_operator); _drone_operator.setup(); if _weapon_sprite: _weapon_sprite.visible = false; if initial_state == AIState.IDLE: _transition_to_seeking_cover()  # Issue #1397
+	_apply_gunslinger_enemy_glow()  # Issue #1727: brighter enemies with red glow in Gunslinger mode
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
 	_max_health = 2 if is_grenadier else randi_range(min_health, max_health)  # Issue #604: Grenadiers always 2 HP
@@ -4280,6 +4281,22 @@ func _set_all_sprites_modulate(color: Color) -> void:
 		_left_arm_sprite.modulate = color
 	if _right_arm_sprite:
 		_right_arm_sprite.modulate = color
+
+
+## Issue #1727: Apply bright warm tint and red PointLight2D glow in Gunslinger difficulty mode.
+func _apply_gunslinger_enemy_glow() -> void:
+	var dm: Node = get_node_or_null("/root/DifficultyManager")
+	if dm == null or not dm.has_method("should_apply_gunslinger_enemy_glow") or not dm.should_apply_gunslinger_enemy_glow():
+		return
+	var bc := Color(1.3, 1.15, 1.1, 1.0)  # bright warm tint
+	if _body_sprite: _body_sprite.modulate = bc
+	if _head_sprite: _head_sprite.modulate = bc
+	if _left_arm_sprite: _left_arm_sprite.modulate = bc
+	if _right_arm_sprite: _right_arm_sprite.modulate = bc
+	var gl := PointLight2D.new(); gl.name = "GunslingerEnemyGlow"; gl.color = Color(1.0, 0.1, 0.05, 1.0); gl.energy = 0.6; gl.texture_scale = 0.4; gl.shadow_enabled = false; gl.blend_mode = Light2D.BLEND_MODE_ADD
+	var gt := GradientTexture2D.new(); var gr := Gradient.new(); gr.add_point(0.0, Color.WHITE); gr.add_point(1.0, Color(1.0, 1.0, 1.0, 0.0)); gt.gradient = gr; gt.fill = GradientTexture2D.FILL_RADIAL; gt.width = 256; gt.height = 256; gl.texture = gt
+	add_child(gl)
+	_log_to_file("[Gunslinger] Enemy glow applied")
 
 ## Returns the current health as a percentage (0.0 to 1.0).
 func _get_health_percent() -> float:
