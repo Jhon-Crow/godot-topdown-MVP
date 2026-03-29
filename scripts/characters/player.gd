@@ -4415,16 +4415,18 @@ const EXPERIMENTAL_SAMPLE_MIN_CHARGES: int = 1
 const EXPERIMENTAL_SAMPLE_MAX_CHARGES: int = 5
 ## All active item types that the Experimental Sample can trigger.
 ## To add a new triggerable item: append its type ID here AND handle it in _trigger_experimental_sample_effect().
-## Excludes passive items (FLASHLIGHT=1, TELEPORT_BRACERS=3, BREAKER_BULLETS=6, FORCE_FIELD=7,
-## LASER_SIGHT=9, EXTENDED_MAGAZINE=10, ARMORED_SKIN=13, AUTO_RELOAD=14, DRILLING_BULLETS=15,
-## RECOIL_COMPENSATOR=16, COMBAT_DISPOSITION=17, GRENADE_BAG=21) and NONE=0 and self=18.
+## Excludes purely passive or hold-to-activate items (FLASHLIGHT=1, TELEPORT_BRACERS=3,
+## BREAKER_BULLETS=6, LASER_SIGHT=9, EXTENDED_MAGAZINE=10, ARMORED_SKIN=13, AUTO_RELOAD=14,
+## DRILLING_BULLETS=15, COMBAT_DISPOSITION=17, GRENADE_BAG=21) and NONE=0 and self=18.
 const EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES: Array = [
 	2,  # HOMING_BULLETS
 	4,  # BFF_PENDANT
 	5,  # INVISIBILITY_SUIT
+	7,  # FORCE_FIELD (Issue #1635)
 	8,  # TRAJECTORY_GLASSES
 	11, # LOUDSPEAKER
 	12, # BREACHING_CHARGES
+	16, # RECOIL_COMPENSATOR (Issue #1635)
 	19, # FINE_MOTOR_SKILLS (Issue #1315)
 	20, # DASH (Issue #1071)
 ]
@@ -4523,6 +4525,15 @@ func _trigger_experimental_sample_effect(item_type: int) -> bool:
 				return true
 			FileLogger.info("[Player.ExperimentalSample] Invisibility suit not equipped or already active; re-roll")
 			return false
+		7:  # FORCE_FIELD — activate for a brief window if equipped (Issue #1635)
+			if _force_field_equipped and _force_field != null and is_instance_valid(_force_field) \
+					and not _force_field.is_active:
+				_force_field.activate()
+				FileLogger.info("[Player.ExperimentalSample] Force field activated via experimental sample")
+				_experimental_sample_activate_force_field_briefly()
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Force field not equipped or already active; re-roll")
+			return false
 		8:  # TRAJECTORY_GLASSES — activate glasses if node exists, else skip
 			if _trajectory_glasses_equipped and _trajectory_glasses != null \
 					and is_instance_valid(_trajectory_glasses) and not _trajectory_glasses.is_active:
@@ -4550,22 +4561,32 @@ func _trigger_experimental_sample_effect(item_type: int) -> bool:
 				FileLogger.info("[Player.ExperimentalSample] Breaching charges detonated: %s" % str(detonated))
 				return detonated
 			return false
-		19: # FINE_MOTOR_SKILLS — instant reload (Issue #1635)
-			if not _fine_motor_skills_equipped or _fine_motor_skills_active:
-				FileLogger.info("[Player.ExperimentalSample] Fine motor skills not equipped or already active; re-roll")
+		16: # RECOIL_COMPENSATOR — activate for a brief burst (Issue #1635)
+			if not _recoil_compensator_active:
+				_recoil_compensator_active = true
+				FileLogger.info("[Player.ExperimentalSample] Recoil compensator activated via experimental sample")
+				_experimental_sample_activate_recoil_compensator_briefly()
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Recoil compensator already active; re-roll")
+			return false
+		19: # FINE_MOTOR_SKILLS — instant reload regardless of whether FMS is equipped (Issue #1635)
+			if _fine_motor_skills_active:
+				FileLogger.info("[Player.ExperimentalSample] Fine Motor Skills already active; re-roll")
 				return false
 			_fine_motor_skills_active = true
 			_fine_motor_skills_activate_async()
 			FileLogger.info("[Player.ExperimentalSample] Fine motor skills instant reload triggered via experimental sample")
 			return true
-		20: # DASH — dash toward cursor direction (Issue #1635)
-			if not _dash_equipped or _dash_effect == null or not is_instance_valid(_dash_effect):
-				FileLogger.info("[Player.ExperimentalSample] Dash not equipped or effect unavailable; re-roll")
-				return false
-			var dir := (get_global_mouse_position() - global_position).normalized()
-			_dash_effect.activate(dir)
-			FileLogger.info("[Player.ExperimentalSample] Dash triggered via experimental sample")
-			return true
+		20: # DASH — create temporary dash effect if needed, then dash (Issue #1635)
+			if _dash_effect == null or not is_instance_valid(_dash_effect):
+				_experimental_sample_init_temp_dash()
+			if _dash_effect != null and is_instance_valid(_dash_effect) and not _dash_effect.is_dashing():
+				var dir := (get_global_mouse_position() - global_position).normalized()
+				_dash_effect.activate(dir)
+				FileLogger.info("[Player.ExperimentalSample] Dash triggered via experimental sample")
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Dash unavailable; re-roll")
+			return false
 		_:
 			return false
 
@@ -4576,6 +4597,34 @@ func get_experimental_sample_charges() -> int:
 ## Get the maximum experimental sample charges constant.
 func get_max_experimental_sample_charges() -> int:
 	return EXPERIMENTAL_SAMPLE_MAX_CHARGES
+
+## Briefly deactivate recoil compensator after ~1.8s (Issue #1635).
+const EXPERIMENTAL_SAMPLE_RECOIL_DURATION: float = 1.8
+func _experimental_sample_activate_recoil_compensator_briefly() -> void:
+	await get_tree().create_timer(EXPERIMENTAL_SAMPLE_RECOIL_DURATION).timeout
+	_recoil_compensator_active = false
+	FileLogger.info("[Player.ExperimentalSample] Recoil compensator brief window ended")
+
+## Briefly deactivate force field after ~1.8s (Issue #1635).
+const EXPERIMENTAL_SAMPLE_FORCE_FIELD_DURATION: float = 1.8
+func _experimental_sample_activate_force_field_briefly() -> void:
+	await get_tree().create_timer(EXPERIMENTAL_SAMPLE_FORCE_FIELD_DURATION).timeout
+	if _force_field != null and is_instance_valid(_force_field) and _force_field.is_active:
+		_force_field.deactivate()
+	FileLogger.info("[Player.ExperimentalSample] Force field brief window ended")
+
+## Create a temporary dash effect node for Experimental Sample use (Issue #1635).
+func _experimental_sample_init_temp_dash() -> void:
+	if not ResourceLoader.exists(DASH_EFFECT_SCENE):
+		FileLogger.info("[Player.ExperimentalSample] Dash effect scene not found; skip")
+		return
+	var scene: PackedScene = load(DASH_EFFECT_SCENE)
+	if scene == null:
+		return
+	_dash_effect = scene.instantiate()
+	add_child(_dash_effect)
+	_dash_effect.initialize(self)
+	FileLogger.info("[Player.ExperimentalSample] Temporary dash effect node created")
 
 # =========================================================================
 # Fine Motor Skills Active Item (Issue #1315)

@@ -1,4 +1,5 @@
-extends GutTest
+Match found
+noextends GutTest
 ## Unit tests for the Experimental Sample active item (Issue #1127).
 ##
 ## Tests the experimental sample item including:
@@ -136,9 +137,11 @@ class MockExperimentalSampleSystem:
 		2,  # HOMING_BULLETS
 		4,  # BFF_PENDANT
 		5,  # INVISIBILITY_SUIT
+		7,  # FORCE_FIELD (Issue #1635)
 		8,  # TRAJECTORY_GLASSES
 		11, # LOUDSPEAKER
 		12, # BREACHING_CHARGES
+		16, # RECOIL_COMPENSATOR (Issue #1635)
 		19, # FINE_MOTOR_SKILLS (Issue #1315)
 		20, # DASH (Issue #1071)
 	]
