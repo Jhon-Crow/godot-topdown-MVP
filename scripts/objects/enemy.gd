@@ -472,6 +472,7 @@ func _ready() -> void:
 		_gas_mask_grenade = GasMaskGrenadeComponent.new(); _gas_mask_grenade.name = "GasMaskGrenadeComponent"; add_child(_gas_mask_grenade)
 		if _head_sprite: var _gm_tex := load("res://assets/sprites/characters/enemy/gas_mask_head.png"); if _gm_tex: _head_sprite.texture = _gm_tex; _head_sprite.rotation_degrees = -90.0  # Issue #1363: sprite drawn facing up, rotate to face right
 	if is_drone_operator: _drone_operator = DroneOperatorComponent.new(); _drone_operator.name = "DroneOperatorComponent"; add_child(_drone_operator); _drone_operator.setup(); if _weapon_sprite: _weapon_sprite.visible = false; if initial_state == AIState.IDLE: _transition_to_seeking_cover()  # Issue #1397
+	_apply_gunslinger_enemy_glow()  # Issue #1727: brighter enemies with red glow in Gunslinger mode
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
 	_max_health = 2 if is_grenadier else randi_range(min_health, max_health)  # Issue #604: Grenadiers always 2 HP
@@ -4280,6 +4281,46 @@ func _set_all_sprites_modulate(color: Color) -> void:
 		_left_arm_sprite.modulate = color
 	if _right_arm_sprite:
 		_right_arm_sprite.modulate = color
+
+
+## Issue #1727: Apply bright appearance and red glow to enemies in Gunslinger difficulty mode.
+## Enemies are made brighter (slightly warm white tint) and receive a PointLight2D red glow.
+func _apply_gunslinger_enemy_glow() -> void:
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager == null or not difficulty_manager.has_method("should_apply_gunslinger_enemy_glow"):
+		return
+	if not difficulty_manager.should_apply_gunslinger_enemy_glow():
+		return
+	# Make sprites brighter with a slight warm tint
+	var bright_color := Color(1.3, 1.15, 1.1, 1.0)
+	if _body_sprite:
+		_body_sprite.modulate = bright_color
+	if _head_sprite:
+		_head_sprite.modulate = bright_color
+	if _left_arm_sprite:
+		_left_arm_sprite.modulate = bright_color
+	if _right_arm_sprite:
+		_right_arm_sprite.modulate = bright_color
+	# Add a small red PointLight2D glow around the enemy
+	var glow_light := PointLight2D.new()
+	glow_light.name = "GunslingerEnemyGlow"
+	glow_light.color = Color(1.0, 0.1, 0.05, 1.0)  # Red glow
+	glow_light.energy = 0.6
+	glow_light.texture_scale = 0.4
+	glow_light.shadow_enabled = false
+	glow_light.blend_mode = Light2D.BLEND_MODE_ADD
+	# Use default PointLight2D texture (white circle gradient)
+	var glow_texture := GradientTexture2D.new()
+	var gradient := Gradient.new()
+	gradient.add_point(0.0, Color(1.0, 1.0, 1.0, 1.0))
+	gradient.add_point(1.0, Color(1.0, 1.0, 1.0, 0.0))
+	glow_texture.gradient = gradient
+	glow_texture.fill = GradientTexture2D.FILL_RADIAL
+	glow_texture.width = 256
+	glow_texture.height = 256
+	glow_light.texture = glow_texture
+	add_child(glow_light)
+	_log_to_file("[Gunslinger] Enemy glow applied (bright + red PointLight2D)")
 
 ## Returns the current health as a percentage (0.0 to 1.0).
 func _get_health_percent() -> float:

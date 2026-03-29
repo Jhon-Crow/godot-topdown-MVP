@@ -104,11 +104,14 @@ func _log(message: String) -> void:
 		print("[PowerFantasy] " + message)
 
 
-## Called when an enemy is killed by the player in Power Fantasy mode.
+## Called when an enemy is killed by the player in Power Fantasy or Gunslinger mode.
 ## Triggers the 300ms last chance effect.
 func on_enemy_killed() -> void:
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
-	if difficulty_manager == null or not difficulty_manager.is_power_fantasy_mode():
+	if difficulty_manager == null:
+		return
+	# Only trigger for Power Fantasy or Gunslinger modes
+	if not difficulty_manager.is_power_fantasy_mode() and not difficulty_manager.is_gunslinger_mode():
 		return
 
 	# Issue #505: Skip kill effect if LastChanceEffectsManager is already providing a stronger
