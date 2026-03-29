@@ -545,6 +545,13 @@ func clear_all_saves() -> void:
 	if progress_manager and progress_manager.has_method("clear_all_progress"):
 		progress_manager.clear_all_progress()
 
+	# Reset difficulty settings so the first-launch difficulty screen appears on next startup.
+	# Without this, difficulty_settings.cfg survives the save clear and is_first_launch()
+	# returns false, preventing the difficulty picker from showing (Issue #1734).
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager and difficulty_manager.has_method("reset_to_default"):
+		difficulty_manager.reset_to_default()
+
 	_log_to_file("All saves cleared — game reset to first-launch state")
 
 

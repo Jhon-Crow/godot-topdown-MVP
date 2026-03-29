@@ -145,6 +145,11 @@ class MockDifficultyManager:
 	func simulate_settings_saved() -> void:
 		_settings_file_exists = true
 
+	## Reset difficulty to default and clear the simulated settings file (Issue #1734).
+	func reset_to_default() -> void:
+		current_difficulty = Difficulty.NORMAL
+		_settings_file_exists = false
+
 	## Set night mode active state for testing (Issue #825).
 	func set_night_mode_active(active: bool) -> void:
 		_night_mode_active = active
@@ -803,3 +808,18 @@ func test_first_launch_is_false_after_saving_any_difficulty() -> void:
 
 	assert_false(manager.is_first_launch(),
 		"After saving a difficulty choice is_first_launch() should be false")
+
+
+func test_reset_to_default_restores_first_launch_state() -> void:
+	## After clear_all_saves(), reset_to_default() must delete the settings file so
+	## is_first_launch() returns true again on the next startup (Issue #1734).
+	manager.set_difficulty(MockDifficultyManager.Difficulty.POWER_FANTASY)
+	manager.simulate_settings_saved()
+	assert_false(manager.is_first_launch(), "Precondition: not a first launch")
+
+	manager.reset_to_default()
+
+	assert_true(manager.is_first_launch(),
+		"is_first_launch() must return true after reset_to_default() (Issue #1734)")
+	assert_eq(manager.current_difficulty, MockDifficultyManager.Difficulty.NORMAL,
+		"Difficulty must be reset to NORMAL after reset_to_default()")

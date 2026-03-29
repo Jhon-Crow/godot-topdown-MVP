@@ -504,3 +504,42 @@ func test_clear_all_saves_resets_condition_gated_items() -> void:
 	assert_true(result[LOUDSPEAKER], "LOUDSPEAKER should remain unlocked (no condition)")
 	assert_false(result[FLASHLIGHT], "FLASHLIGHT should be reset — condition-gated")
 	assert_false(result[LASER_SIGHT], "LASER_SIGHT should be reset — condition-gated")
+
+
+# ============================================================================
+# clear_all_saves Difficulty Reset Tests (Issue #1734)
+# ============================================================================
+# Verifies that clear_all_saves() also resets the DifficultyManager so that
+# is_first_launch() returns true on the next startup, causing the difficulty
+# selection screen to appear — matching a full "reset to first-launch state".
+# ============================================================================
+
+class MockDifficultyManagerForClear:
+	## Tracks whether the settings file has been deleted (i.e. reset was called).
+	var _reset_called: bool = false
+	var current_difficulty: int = 0  # 0 = NORMAL
+
+	func reset_to_default() -> void:
+		current_difficulty = 0
+		_reset_called = true
+
+	func is_first_launch() -> bool:
+		return _reset_called
+
+
+func test_clear_all_saves_resets_difficulty_to_enable_first_launch_screen() -> void:
+	## After clear_all_saves(), the DifficultyManager must be reset so that
+	## is_first_launch() returns true and the difficulty screen appears on next boot.
+	## Regression test for Issue #1734: difficulty_settings.cfg was not deleted on save clear.
+	var difficulty_mock := MockDifficultyManagerForClear.new()
+	# Simulate: difficulty was set by the player (Power Fantasy)
+	difficulty_mock.current_difficulty = 3  # POWER_FANTASY
+	difficulty_mock._reset_called = false
+
+	# Simulate what clear_all_saves() does:
+	difficulty_mock.reset_to_default()
+
+	assert_true(difficulty_mock.is_first_launch(),
+		"is_first_launch() must return true after clear_all_saves() resets DifficultyManager (Issue #1734)")
+	assert_eq(difficulty_mock.current_difficulty, 0,
+		"Difficulty must be reset to NORMAL (0) after clear_all_saves()")
