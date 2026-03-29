@@ -306,3 +306,60 @@ func test_footprints_resume_when_re_entering_snow() -> void:
 	comp.process(Vector2(comp.step_distance * 2.0, 0.0))
 	assert_eq(comp.spawned_footprints.size(), 1,
 		"Footprint resumes once character returns to snow surface")
+
+
+# ============================================================================
+# Tests: No Double Footprints When Character Has Bloody Feet (Issue #1627)
+# ============================================================================
+
+
+## Minimal mock for BloodyFeetComponent blood-level query.
+class MockBloodyFeet:
+	var _blood_level: int = 0
+
+	func has_bloody_feet() -> bool:
+		return _blood_level > 0
+
+
+class MockSnowyFeetComponentWithBloodCheck extends MockSnowyFeetComponentWithSnowCheck:
+	## Simulated BloodyFeetComponent reference.
+	var _bloody_feet: MockBloodyFeet = null
+
+
+	func _spawn_footprint() -> void:
+		# Mirror the guard added to SnowyFeetComponent._spawn_footprint().
+		if not is_on_snow:
+			return
+		if _bloody_feet and _bloody_feet.has_bloody_feet():
+			return
+		# Call grandparent _spawn_footprint (skipping the snow check already done above).
+		MockSnowyFeetComponent._spawn_footprint(self)
+
+
+func test_no_snow_footprint_when_character_has_blood() -> void:
+	var comp := MockSnowyFeetComponentWithBloodCheck.new()
+	comp.is_on_snow = true
+	var bloody := MockBloodyFeet.new()
+	bloody._blood_level = 6
+	comp._bloody_feet = bloody
+	comp.ready(Vector2.ZERO)
+	comp.process(Vector2(comp.step_distance, 0.0))
+	assert_eq(comp.spawned_footprints.size(), 0,
+		"No plain snow footprint should appear while character has bloody feet")
+
+
+func test_snow_footprint_resumes_after_blood_runs_out() -> void:
+	var comp := MockSnowyFeetComponentWithBloodCheck.new()
+	comp.is_on_snow = true
+	var bloody := MockBloodyFeet.new()
+	bloody._blood_level = 1
+	comp._bloody_feet = bloody
+	comp.ready(Vector2.ZERO)
+	comp.process(Vector2(comp.step_distance, 0.0))
+	assert_eq(comp.spawned_footprints.size(), 0, "No snow print while blood > 0")
+
+	# Blood runs out.
+	bloody._blood_level = 0
+	comp.process(Vector2(comp.step_distance * 2.0, 0.0))
+	assert_eq(comp.spawned_footprints.size(), 1,
+		"Snow footprint resumes once blood level reaches zero")

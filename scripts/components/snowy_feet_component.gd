@@ -65,6 +65,11 @@ var _character_model: Node2D = null
 ## Running step index, used to compute per-step alpha.
 var _step_index: int = 0
 
+## Cached reference to sibling BloodyFeetComponent (found lazily in _ready).
+## When the character has active blood, SnowyFeetComponent defers to it so both
+## components do not emit footprints simultaneously (Issue #1627).
+var _bloody_feet: Node = null
+
 ## Area2D used to detect overlap with snow-surface areas (group "snow_area").
 var _snow_detector: Area2D = null
 
@@ -89,6 +94,9 @@ func _ready() -> void:
 		push_warning("SnowyFeetComponent: SnowFootprint scene not found at " + footprint_path)
 
 	_find_character_model()
+
+	# Cache sibling BloodyFeetComponent to avoid double-printing when character has blood.
+	_bloody_feet = _parent_body.get_node_or_null("BloodyFeetComponent")
 
 	# Create Area2D detector for snow-surface overlap (deferred so parent is in tree).
 	call_deferred("_setup_snow_detector")
@@ -206,6 +214,13 @@ func _spawn_footprint() -> void:
 	if not _is_on_snow():
 		if debug_logging:
 			_log_info("Skipping snow footprint — not on snow surface")
+		return
+
+	# Skip plain snow prints while the character has bloody feet — BloodyFeetComponent
+	# will handle the snow-blood oval prints itself, preventing double footprints.
+	if _bloody_feet and _bloody_feet.has_method("has_bloody_feet") and _bloody_feet.has_bloody_feet():
+		if debug_logging:
+			_log_info("Skipping snow footprint — character has bloody feet (BloodyFeetComponent handles prints)")
 		return
 
 	var footprint := _footprint_scene.instantiate() as Node2D

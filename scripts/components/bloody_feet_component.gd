@@ -33,8 +33,11 @@ class_name BloodyFeetComponent
 ## Enable debug logging.
 @export var debug_logging: bool = false
 
-## Preloaded footprint scene.
+## Preloaded footprint scene (regular BloodFootprint for non-snow surfaces).
 var _footprint_scene: PackedScene = null
+
+## Preloaded snow-blood footprint scene (oval, pale red — used on snow surfaces, Issue #1627).
+var _snow_blood_footprint_scene: PackedScene = null
 
 ## Current blood level (number of steps remaining).
 var _blood_level: int = 0
@@ -110,6 +113,14 @@ func _ready() -> void:
 		_log_info("Footprint scene loaded")
 	else:
 		push_warning("BloodyFeetComponent: Footprint scene not found at " + footprint_path)
+
+	# Preload snow-blood footprint scene (oval shape + pale red, used on snow surfaces).
+	var snow_blood_path := "res://scenes/effects/SnowBloodFootprint.tscn"
+	if ResourceLoader.exists(snow_blood_path):
+		_snow_blood_footprint_scene = load(snow_blood_path)
+		_log_info("Snow-blood footprint scene loaded")
+	else:
+		push_warning("BloodyFeetComponent: SnowBloodFootprint scene not found at " + snow_blood_path)
 
 	# Create Area2D for blood puddle detection (deferred to ensure parent is in tree)
 	# Performance fix: Defer setup to ensure Area2D is properly in scene tree
@@ -460,10 +471,19 @@ func _is_on_blood_puddle() -> bool:
 
 ## Spawns a footprint at the current position.
 ## Footprints are only spawned on floor without blood.
-## On snow levels (on_snow = true), footprints are restricted to snow surfaces.
+## On snow levels (on_snow = true), footprints are restricted to snow surfaces and
+## use the oval SnowBloodFootprint instead of the boot-shaped BloodFootprint.
 func _spawn_footprint() -> void:
-	if _footprint_scene == null or _blood_level <= 0:
+	if _blood_level <= 0:
 		return
+	# On snow: require the snow-blood scene; off snow: require the regular scene.
+	var use_snow_print := on_snow and _is_on_snow()
+	var active_scene := _snow_blood_footprint_scene if use_snow_print else _footprint_scene
+	if active_scene == null:
+		# Try fallback to regular scene if snow scene is missing.
+		if _footprint_scene == null:
+			return
+		active_scene = _footprint_scene
 
 	# Don't spawn footprint if currently standing on blood
 	# Footprints should only appear on floor without blood
@@ -473,12 +493,14 @@ func _spawn_footprint() -> void:
 		return
 
 	# On snow levels, only spawn bloody footprints when standing on snow.
-	if on_snow and not _is_on_snow():
+	# (use_snow_print already holds whether we're on snow; skip entirely if on_snow mode
+	# and currently off-snow so no boot prints appear on dirt paths either.)
+	if on_snow and not use_snow_print:
 		if debug_logging:
 			_log_info("Skipping footprint - not on snow surface")
 		return
 
-	var footprint := _footprint_scene.instantiate() as Node2D
+	var footprint := active_scene.instantiate() as Node2D
 	if footprint == null:
 		return
 

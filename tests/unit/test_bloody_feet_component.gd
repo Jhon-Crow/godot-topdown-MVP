@@ -207,3 +207,23 @@ func test_snow_detector_created() -> void:
 		"SnowDetectorForBlood Area2D should be created on the parent body")
 	assert_true(snow_detector is Area2D,
 		"SnowDetectorForBlood should be an Area2D")
+
+
+## Test that the snow-blood footprint scene is loaded (Issue #1627).
+func test_snow_blood_footprint_scene_loaded() -> void:
+	await wait_frames(3)
+	assert_not_null(_component._snow_blood_footprint_scene,
+		"_snow_blood_footprint_scene should be loaded (SnowBloodFootprint.tscn must exist)")
+
+
+## Test that on_snow with blood uses oval snow-blood prints not regular boot prints (Issue #1627).
+## The component should have a non-null snow-blood scene distinct from the regular footprint scene.
+func test_on_snow_uses_different_footprint_scene() -> void:
+	await wait_frames(3)
+	_component.on_snow = true
+	var regular := _component._footprint_scene
+	var snow_blood := _component._snow_blood_footprint_scene
+	assert_not_null(regular, "Regular BloodFootprint scene should be loaded")
+	assert_not_null(snow_blood, "SnowBloodFootprint scene should be loaded")
+	assert_ne(regular, snow_blood,
+		"Snow-blood footprint scene must be distinct from regular BloodFootprint scene")
