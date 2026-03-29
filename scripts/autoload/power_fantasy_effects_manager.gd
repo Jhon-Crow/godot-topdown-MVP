@@ -105,7 +105,7 @@ func _log(message: String) -> void:
 
 
 ## Called when an enemy is killed by the player in Power Fantasy or Gunslinger mode.
-## Triggers the 300ms last chance effect.
+## Triggers the kill last chance effect (see KILL_EFFECT_DURATION_MS).
 func on_enemy_killed() -> void:
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager == null:
@@ -121,10 +121,10 @@ func on_enemy_killed() -> void:
 	var last_chance_manager: Node = get_node_or_null("/root/LastChanceEffectsManager")
 	if last_chance_manager and last_chance_manager.has_method("is_effect_active"):
 		if last_chance_manager.is_effect_active():
-			_log("Enemy killed - skipping 300ms effect (LastChance time-freeze already active)")
+			_log("Enemy killed - skipping kill effect (LastChance time-freeze already active)")
 			return
 
-	_log("Enemy killed - triggering 300ms last chance effect")
+	_log("Enemy killed - triggering %.0fms last chance effect" % KILL_EFFECT_DURATION_MS)
 	_start_effect(KILL_EFFECT_DURATION_MS)
 
 
