@@ -29,11 +29,8 @@ var _current_enemy_count: int = 0
 ## Whether game over has been shown.
 var _game_over_shown: bool = false
 
-## Reference to the kills label.
-var _kills_label: Label = null
-
-## Reference to the accuracy label.
-var _accuracy_label: Label = null
+## Reference to the difficulty label.
+var _difficulty_label: Label = null
 
 ## Reference to the magazines label (shows individual magazine ammo counts).
 var _magazines_label: Label = null
@@ -114,6 +111,9 @@ func _ready() -> void:
 
 	# Find and setup player tracking
 	_setup_player_tracking()
+
+	# Restrict camera so the border walls are never visible (Issue #1682).
+	_configure_camera()
 
 	# Setup debug UI
 	_setup_debug_ui()
@@ -663,6 +663,38 @@ func _get_combo_color(combo: int) -> Color:
 		return Color(1.0, 0.8, 0.2, 1.0)   # Gold (combo 1)
 
 
+## Clamps the camera so the outer border walls are never visible (Issue #1682, #1684).
+##
+## BuildingLevel map: 2528x2128 px playfield framed by 32 px walls (size=Vector2(w,32)).
+## Wall positions and inner-edge calculations (half-size = 32/2 = 16 px):
+##   WallTop    (1264,   48), half-h=16  → bottom edge y=48+16=64    → limit_top    = 64
+##   WallBottom (1264, 2080), half-h=16  → top edge   y=2080-16=2064 → limit_bottom = 2064
+##   WallLeft   (  48, 1064), half-w=16  → right edge x=48+16=64     → limit_left   = 64
+##   WallRight  (2480, 1064), half-w=16  → left edge  x=2480-16=2464 → limit_right  = 2464
+func _configure_camera() -> void:
+	if _player == null:
+		push_warning("[BuildingLevel] _configure_camera: _player is null — camera limits not set")
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[BuildingLevel] Camera2D not found on player — cannot set camera limits")
+		return
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge    (y=48+16)
+	const LIMIT_BOTTOM: int = 2064   # WallBottom top edge    (y=2080-16)
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge    (x=48+16)
+	const LIMIT_RIGHT: int  = 2464   # WallRight left edge    (x=2480-16)
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	print("[BuildingLevel] Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1684" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
+	_log_to_file("Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1684" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
+
+
 ## Setup the navigation mesh for enemy pathfinding.
 ## Bakes the NavigationPolygon using physics collision layer 4 (walls).
 func _setup_navigation() -> void:
@@ -822,8 +854,13 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 
 	# Call the ConfigureAmmoForEnemyCount method if it exists
 	if weapon.has_method("ConfigureAmmoForEnemyCount"):
-		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
-		print("[BuildingLevel] Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+		var enemy_count: int = _initial_enemy_count
+		var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+		if ammo_multiplier > 1:
+			enemy_count *= ammo_multiplier
+			print("[BuildingLevel] Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by %dx" % ammo_multiplier)
+		weapon.ConfigureAmmoForEnemyCount(enemy_count)
+		print("[BuildingLevel] Configured silenced pistol ammo for %d enemies" % enemy_count)
 
 		# Update the ammo display after configuration
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
@@ -847,6 +884,10 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		starting_magazines = weapon.StartingMagazineCount
 
 	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+	if ammo_multiplier > 1:
+		pm_magazines *= ammo_multiplier
+		print("[BuildingLevel] Gunslinger/PowerFantasy mode: MakarovPM magazines multiplied by %dx" % ammo_multiplier)
 
 	if weapon.has_method("ReinitializeMagazines"):
 		weapon.ReinitializeMagazines(pm_magazines, true)
@@ -924,27 +965,16 @@ func _setup_debug_ui() -> void:
 	if ui == null:
 		return
 
-	# Create kills label
-	_kills_label = Label.new()
-	_kills_label.name = "KillsLabel"
-	_kills_label.text = "Kills: 0"
-	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left = 10
-	_kills_label.offset_top = 45
-	_kills_label.offset_right = 200
-	_kills_label.offset_bottom = 75
-	ui.add_child(_kills_label)
-
-	# Create accuracy label
-	_accuracy_label = Label.new()
-	_accuracy_label.name = "AccuracyLabel"
-	_accuracy_label.text = "Accuracy: 0%"
-	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left = 10
-	_accuracy_label.offset_top = 75
-	_accuracy_label.offset_right = 200
-	_accuracy_label.offset_bottom = 105
-	ui.add_child(_accuracy_label)
+	# Create difficulty label
+	_difficulty_label = Label.new()
+	_difficulty_label.name = "DifficultyLabel"
+	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_difficulty_label.offset_left = 10
+	_difficulty_label.offset_top = 80
+	_difficulty_label.offset_right = 200
+	_difficulty_label.offset_bottom = 110
+	ui.add_child(_difficulty_label)
 
 	# Create magazines label (shows individual magazine ammo counts)
 	_magazines_label = Label.new()
@@ -952,9 +982,9 @@ func _setup_debug_ui() -> void:
 	_magazines_label.text = "MAGS: -"
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
-	_magazines_label.offset_top = 105
+	_magazines_label.offset_top = 115
 	_magazines_label.offset_right = 400
-	_magazines_label.offset_bottom = 135
+	_magazines_label.offset_bottom = 145
 	ui.add_child(_magazines_label)
 
 	# Create combo label (shows current combo)
@@ -997,11 +1027,8 @@ func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
 
-	if _kills_label:
-		_kills_label.text = "Kills: %d" % GameManager.kills
-
-	if _accuracy_label:
-		_accuracy_label.text = "Accuracy: %.1f%%" % GameManager.get_accuracy()
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 
 
 ## Called when an enemy dies.
@@ -1020,7 +1047,7 @@ func _on_enemy_died() -> void:
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
-		GameManager.register_kill(is_player_kill)
+		GameManager.register_kill(is_player_kill, is_penetration_kill)
 	# Register kill with ScoreManager including special kill info
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
@@ -1553,11 +1580,14 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	else:
 		_log_to_file("Watch Replay button not shown (replay viewing disabled in experimental settings)")
 
-	# Armory button (Issue #897: shown highlighted when items are available to unlock)
+	# Armory button (Issue #897: shown highlighted when items are available to unlock; Issue #1622: always shown)
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
-	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
-		var armory_button := Button.new()
-		armory_button.name = "ArmoryButton"
+	var armory_button := Button.new()
+	armory_button.name = "ArmoryButton"
+	armory_button.pressed.connect(_on_armory_button_pressed)
+	buttons_container.add_child(armory_button)
+	var has_available_unlock: bool = unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock()
+	if has_available_unlock:
 		armory_button.text = "★ Armory — Items Available!"
 		armory_button.custom_minimum_size = Vector2(200, 40)
 		armory_button.add_theme_font_size_override("font_size", 18)
@@ -1574,8 +1604,19 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		armory_style.corner_radius_bottom_left = 4
 		armory_style.corner_radius_bottom_right = 4
 		armory_button.add_theme_stylebox_override("normal", armory_style)
-		armory_button.pressed.connect(_on_armory_button_pressed)
-		buttons_container.add_child(armory_button)
+		# Add gold shine shader overlay (Issue #1536).
+		var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+		if _armory_shine_shader:
+			var _armory_shine_mat := ShaderMaterial.new()
+			_armory_shine_mat.shader = _armory_shine_shader
+			var _armory_shine_overlay := ColorRect.new()
+			_armory_shine_overlay.name = "ArmoryGoldShineOverlay"
+			_armory_shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_armory_shine_overlay.material = _armory_shine_mat
+			armory_button.add_child(_armory_shine_overlay)
+	else:
+		armory_button.text = "Armory"
 
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
@@ -1978,6 +2019,10 @@ func _remove_armory_button_gold_style() -> void:
 		armory_btn.text = "Armory"
 		armory_btn.remove_theme_color_override("font_color")
 		armory_btn.remove_theme_stylebox_override("normal")
+		# Issue #1582: Remove gold shine overlay added by issue #1536
+		var shine_overlay := armory_btn.find_child("ArmoryGoldShineOverlay", true, false)
+		if shine_overlay:
+			shine_overlay.queue_free()
 
 
 ## Get the next level path based on the level ordering from LevelsMenu (Issue #568).
@@ -2001,6 +2046,9 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/FactoryLevel.tscn",
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
+		"res://scenes/levels/SewerLevel.tscn",
+		"res://scenes/levels/WinterForestLevel.tscn",
+		"res://scenes/levels/RailwayStationLevel.tscn",
 	]
 
 	for i in range(level_paths.size()):

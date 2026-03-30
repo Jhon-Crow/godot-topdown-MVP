@@ -198,6 +198,9 @@ const HINT_COLOR_GRENADE_LAUNCHER := Color(1.0, 0.4, 0.2, 1.0)   ## Red-orange �
 func _ready() -> void:
 	print("Tutorial level loaded - Обучение")
 
+	# Issue #1534: bake navmesh so obstacles are carved out (same pattern as all other levels).
+	_setup_navigation()
+
 	# Find player
 	_player = get_node_or_null("Entities/Player")
 	if _player == null:
@@ -231,9 +234,65 @@ func _ready() -> void:
 	# Create initial hints based on starting step
 	_setup_initial_hints()
 
+	# Restrict camera so the border walls are never visible (Issue #1682).
+	_configure_camera()
+
 	# Register player with GameManager
 	if GameManager:
 		GameManager.set_player(_player)
+
+
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## TestTier map: 4128x3088 px playfield framed by 32 px walls.
+##   WallTop    (2064,   48), h=16  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (2064, 3040), h=16  → top edge   y=3024  → limit_bottom = 3024
+##   WallLeft   (  48, 1544), w=16  → right edge x=64    → limit_left   = 64
+##   WallRight  (4080, 1544), w=16  → left edge  x=4064  → limit_right  = 4064
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[TutorialLevel] Camera2D not found on player — cannot set camera limits")
+		return
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 3024   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 4064   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	print("[TutorialLevel] Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
+
+
+## Bake the navigation mesh so StaticBody2D obstacles on collision layer 4 are carved
+## out of the walkable area (Issue #1534). Must await a physics frame so CollisionShape2D
+## nodes are registered before parsing (Issue #1289).
+func _setup_navigation() -> void:
+	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
+	if nav_region == null:
+		push_warning("NavigationRegion2D not found")
+		return
+	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
+	if nav_poly == null:
+		push_warning("NavigationPolygon not found")
+		return
+	# Wait for physics frame so CollisionShape2D nodes are registered with PhysicsServer2D
+	# before parsing source geometry for navmesh carving (Issue #1289).
+	await get_tree().physics_frame
+	# Explicit parse+bake so all wall/obstacle StaticBody2D nodes are found.
+	print("Baking navigation mesh...")
+	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
+	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# Push updated polygon back into the NavigationServer's live map (Issue #1289).
+	nav_region.navigation_polygon = nav_poly
+	nav_region.emit_signal("bake_finished")
+	print("Navigation mesh baked successfully")
 
 
 ## Setup realistic visibility for the player (Issue #540).

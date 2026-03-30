@@ -1,0 +1,32 @@
+[gd_scene load_steps=4 format=3 uid="uid://orange_blinking_light"]
+
+[ext_resource type="Script" path="res://scripts/effects/orange_blinking_light.gd" id="1_orange_blinking_light"]
+
+[sub_resource type="Gradient" id="Gradient_orange"]
+offsets = PackedFloat32Array(0.0, 0.15, 0.4, 0.65, 1.0)
+colors = PackedColorArray(1.0, 0.45, 0.05, 1.0, 1.0, 0.45, 0.05, 0.8, 1.0, 0.45, 0.05, 0.45, 1.0, 0.45, 0.05, 0.1, 1.0, 0.45, 0.05, 0.0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_orange"]
+gradient = SubResource("Gradient_orange")
+width = 256
+height = 256
+fill = 1
+
+[node name="OrangeBlinkingLight" type="Node2D"]
+script = ExtResource("1_orange_blinking_light")
+
+[node name="LightA" type="PointLight2D" parent="."]
+position = Vector2(40, 0)
+color = Color(1.0, 0.45, 0.05, 1.0)
+energy = 4.0
+shadow_enabled = false
+texture = SubResource("GradientTexture2D_orange")
+texture_scale = 8.0
+
+[node name="LightB" type="PointLight2D" parent="."]
+position = Vector2(-40, 0)
+color = Color(1.0, 0.45, 0.05, 1.0)
+energy = 4.0
+shadow_enabled = false
+texture = SubResource("GradientTexture2D_orange")
+texture_scale = 8.0

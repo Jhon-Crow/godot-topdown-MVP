@@ -116,11 +116,8 @@ var _wave_label: Label = null
 ## Reference to the ammo count label.
 var _ammo_label: Label = null
 
-## Reference to the kills label.
-var _kills_label: Label = null
-
-## Reference to the accuracy label.
-var _accuracy_label: Label = null
+## Reference to the difficulty label.
+var _difficulty_label: Label = null
 
 ## Reference to the magazines label.
 var _magazines_label: Label = null
@@ -172,6 +169,9 @@ func _ready() -> void:
 
 	# Find and setup player.
 	_setup_player_tracking()
+
+	# Restrict camera so the border walls are never visible (Issue #1682).
+	_configure_camera()
 
 	# Setup UI.
 	_setup_ui()
@@ -280,7 +280,7 @@ func _on_enemy_died() -> void:
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
-		GameManager.register_kill(is_player_kill)
+		GameManager.register_kill(is_player_kill, is_penetration_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
@@ -790,6 +790,33 @@ func _reconnect_weapon_signals(player: Node2D) -> void:
 # ---------------------------------------------------------------------------
 
 ## Bake NavigationRegion2D for enemy pathfinding.
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## ArenaLevel map: 1920x1080 px playfield framed by 32 px walls.
+##   WallTop    (960,   32), h=32  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (960, 1048), h=32  → top edge   y=1016  → limit_bottom = 1016
+##   WallLeft   ( 32,  540), w=32  → right edge x=64    → limit_left   = 64
+##   WallRight  (1888, 540), w=32  → left edge  x=1856  → limit_right  = 1856
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[ArenaLevel] Camera2D not found on player — cannot set camera limits")
+		return
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 1016   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 1856   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	_log_to_file("Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
+
+
 ## Issue #1289: use explicit parse+bake API so all obstacle StaticBody2D nodes are
 ## reliably found and carved out of the walkable area (bake_navigation_polygon can
 ## miss dynamic/runtime geometry when called from _ready()).
@@ -1060,27 +1087,16 @@ func _setup_ui() -> void:
 	_health_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4, 1.0))
 	ui.add_child(_health_label)
 
-	# Kills label.
-	_kills_label = Label.new()
-	_kills_label.name = "KillsLabel"
-	_kills_label.text = "Убийства: 0"
-	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left = 10
-	_kills_label.offset_top = 72
-	_kills_label.offset_right = 250
-	_kills_label.offset_bottom = 102
-	ui.add_child(_kills_label)
-
-	# Accuracy label.
-	_accuracy_label = Label.new()
-	_accuracy_label.name = "AccuracyLabel"
-	_accuracy_label.text = "Точность: 0%"
-	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left = 10
-	_accuracy_label.offset_top = 102
-	_accuracy_label.offset_right = 250
-	_accuracy_label.offset_bottom = 132
-	ui.add_child(_accuracy_label)
+	# Difficulty label.
+	_difficulty_label = Label.new()
+	_difficulty_label.name = "DifficultyLabel"
+	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_difficulty_label.offset_left = 10
+	_difficulty_label.offset_top = 80
+	_difficulty_label.offset_right = 250
+	_difficulty_label.offset_bottom = 110
+	ui.add_child(_difficulty_label)
 
 	# Magazines label.
 	_magazines_label = Label.new()
@@ -1264,10 +1280,8 @@ func _update_health_label() -> void:
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
-	if _kills_label:
-		_kills_label.text = "Убийства: %d" % GameManager.kills
-	if _accuracy_label:
-		_accuracy_label.text = "Точность: %.1f%%" % GameManager.get_accuracy()
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 	_update_health_label()
 
 

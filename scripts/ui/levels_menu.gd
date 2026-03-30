@@ -37,7 +37,7 @@ const LEVELS: Array[Dictionary] = [
 		"description": "Open training ground for testing weapons and practicing combat skills.",
 		"preview_color": Color(0.2, 0.3, 0.2, 1.0),
 		"preview_accent": Color(0.35, 0.5, 0.35, 1.0),
-		"enemy_count": 5,
+		"enemy_count": 12,
 		"map_size": "1280x720"
 	},
 	{
@@ -47,7 +47,7 @@ const LEVELS: Array[Dictionary] = [
 		"description": "Medieval fortress assault across a massive oval-shaped courtyard.",
 		"preview_color": Color(0.25, 0.25, 0.35, 1.0),
 		"preview_accent": Color(0.4, 0.4, 0.55, 1.0),
-		"enemy_count": 15,
+		"enemy_count": 13,
 		"map_size": "6000x2560"
 	},
 	{
@@ -57,7 +57,7 @@ const LEVELS: Array[Dictionary] = [
 		"description": "H-shaped map with two parallel corridors: penetration zones for multi-enemy kills and cover for reloading.",
 		"preview_color": Color(0.2, 0.15, 0.25, 1.0),
 		"preview_accent": Color(0.4, 0.3, 0.5, 1.0),
-		"enemy_count": 12,
+		"enemy_count": 14,
 		"map_size": "2000x1600"
 	},
 	{
@@ -67,7 +67,7 @@ const LEVELS: Array[Dictionary] = [
 		"description": "Large urban map with enterable buildings and street combat.",
 		"preview_color": Color(0.25, 0.22, 0.2, 1.0),
 		"preview_accent": Color(0.4, 0.35, 0.3, 1.0),
-		"enemy_count": 8,
+		"enemy_count": 9,
 		"map_size": "6000x5000"
 	},
 	{
@@ -87,7 +87,7 @@ const LEVELS: Array[Dictionary] = [
 		"description": "Large industrial docks with shipping containers, warehouses, and open areas between cover zones.",
 		"preview_color": Color(0.15, 0.25, 0.35, 1.0),
 		"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
-		"enemy_count": 20,
+		"enemy_count": 15,
 		"map_size": "5000x4000"
 	},
 	{
@@ -107,30 +107,48 @@ const LEVELS: Array[Dictionary] = [
 		"description": "Hotline Miami: Chapter Three. Neon nightclub with dance floor, bar, VIP rooms, and back alley. Synthwave aesthetic.",
 		"preview_color": Color(0.1, 0.03, 0.18, 1.0),
 		"preview_accent": Color(1.0, 0.2, 0.8, 1.0),
-		"enemy_count": 12,
+		"enemy_count": 13,
 		"map_size": "2400x2000"
 	},
 	{
 		"name": "Labyrinth Complex",
 		"name_ru": "Лабиринт Комплекс",
 		"path": "res://scenes/levels/Labyrinth2Level.tscn",
-		"description": "Larger labyrinth with 3 rows of rooms, winding corridors, and 15 enemies including a grenadier, armored M16 enemy, and a machine gunner.",
+		"description": "Larger labyrinth with 3 rows of rooms, winding corridors, and 17 enemies including a grenadier, armored M16 enemy, and a machine gunner.",
 		"preview_color": Color(0.12, 0.14, 0.2, 1.0),
 		"preview_accent": Color(0.25, 0.3, 0.45, 1.0),
-		"enemy_count": 15,
+		"enemy_count": 17,
 		"map_size": "3200x2400"
 	},
 	{
-		"name": "Arena",
-		"name_ru": "Арена",
-		"path": "res://scenes/levels/ArenaLevel.tscn",
-		"description": "Endless wave survival arena. Fight off waves of enemies. Health, ammo, and weapon pickups spawn between waves.",
-		"preview_color": Color(0.35, 0.1, 0.1, 1.0),
-		"preview_accent": Color(0.8, 0.3, 0.2, 1.0),
-		"enemy_count": 0,
-		"endless": true,
-		"always_unlocked": true,
-		"map_size": "1920x1080"
+		"name": "Sewer",
+		"name_ru": "Канализация",
+		"path": "res://scenes/levels/SewerLevel.tscn",
+		"description": "Underground sewer corridor with narrow passages and a fork. Dark, tight, and dangerous.",
+		"preview_color": Color(0.1, 0.15, 0.1, 1.0),
+		"preview_accent": Color(0.2, 0.35, 0.2, 1.0),
+		"enemy_count": 13,
+		"map_size": "1650x3200"
+	},
+	{
+		"name": "Winter Forest",
+		"name_ru": "Зимний лес",
+		"path": "res://scenes/levels/WinterForestLevel.tscn",
+		"description": "Winter forest with sewer exit start, sparse trees hiding players and enemies, and an open clearing with small cover.",
+		"preview_color": Color(0.6, 0.65, 0.72, 1.0),
+		"preview_accent": Color(0.88, 0.9, 0.93, 1.0),
+		"enemy_count": 5,
+		"map_size": "3200x2400"
+	},
+	{
+		"name": "Railway Station",
+		"name_ru": "ЖД Станция",
+		"path": "res://scenes/levels/RailwayStationLevel.tscn",
+		"description": "Cross the railway station: platform, train tracks, and snow embankment.",
+		"preview_color": Color(0.12, 0.14, 0.18, 1.0),
+		"preview_accent": Color(0.75, 0.78, 0.82, 1.0),
+		"enemy_count": 15,
+		"map_size": "4000x4000"
 	}
 ]
 
@@ -156,7 +174,6 @@ var _level_cards: Dictionary = {}
 
 ## Check whether a level at the given index in LEVELS is unlocked.
 ## The first level (Labyrinth) is always unlocked.
-## The Roguelike level is always unlocked (procedurally generated, no prerequisites).
 ## All other levels require the immediately preceding level to be completed on any difficulty.
 ## If the "all maps unlocked" experimental setting is enabled (Issue #1075), all levels are accessible.
 ## @param level_index: Index into the LEVELS array.
@@ -175,6 +192,32 @@ func is_level_unlocked(level_index: int, progress_manager: Node) -> bool:
 	if progress_manager and progress_manager.has_method("is_level_completed_any_difficulty"):
 		return progress_manager.is_level_completed_any_difficulty(previous_path)
 	return false
+
+
+## Check whether all levels in the LEVELS array have been completed on any difficulty (Issue #1618).
+## Used to determine whether the roguelike mode should be accessible.
+## @param progress_manager: The ProgressManager autoload node (may be null).
+## @return: True if every level has been completed at least once on any difficulty.
+func is_all_levels_completed(progress_manager: Node) -> bool:
+	if progress_manager == null or not progress_manager.has_method("is_level_completed_any_difficulty"):
+		return false
+	for level_data in LEVELS:
+		if not progress_manager.is_level_completed_any_difficulty(level_data["path"]):
+			return false
+	return true
+
+
+## Check whether the roguelike mode is accessible (Issue #1618).
+## Unlocked if: all levels in LEVELS are completed on any difficulty,
+## OR the experimental "roguelike_unlocked" toggle is enabled.
+## @param progress_manager: The ProgressManager autoload node (may be null).
+## @return: True if roguelike is accessible.
+func is_roguelike_unlocked(progress_manager: Node) -> bool:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("is_roguelike_unlocked"):
+		if experimental_settings.is_roguelike_unlocked():
+			return true
+	return is_all_levels_completed(progress_manager)
 
 
 func _ready() -> void:
@@ -575,6 +618,9 @@ func _on_level_selected(level_path: String) -> void:
 	# Issue #997: Use SceneLoader for background loading with loading screen
 	var scene_loader: Node = get_node_or_null("/root/SceneLoader")
 	if scene_loader and scene_loader.has_method("load_level"):
+		# Close the menu before loading so it does not persist into the new scene.
+		# Issue #1633: the menu was staying visible on screen after level selection.
+		back_pressed.emit()
 		scene_loader.load_level(level_path)
 	else:
 		# Fallback to direct loading if SceneLoader not available

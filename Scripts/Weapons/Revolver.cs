@@ -465,7 +465,7 @@ public partial class Revolver : BaseWeapon
         _cylinderUI.OffsetLeft = 10;
         _cylinderUI.OffsetTop = 30;
         _cylinderUI.OffsetRight = 200;
-        _cylinderUI.OffsetBottom = 62;
+        _cylinderUI.OffsetBottom = 68;
         ui.AddChild(_cylinderUI);
 
         _cylinderUI.ConnectToRevolver(this);
@@ -1127,6 +1127,67 @@ public partial class Revolver : BaseWeapon
     {
         // Intentionally empty - revolvers don't eject casings when firing.
         // Spent casings stay in the cylinder until the player opens it.
+    }
+
+    /// <summary>
+    /// Steering speed (radians/sec) for the revolver's built-in slight homing (Issue #1332).
+    /// Very low value gives barely-noticeable bullet correction toward enemies near the crosshair.
+    /// </summary>
+    private const float RevolverHomingSteerSpeed = 0.3f;
+
+    /// <summary>
+    /// Override SpawnBullet to enable slight built-in homing for the RSh-12 revolver (Issue #1332).
+    /// After the bullet is spawned by the base class, weak aim-line homing is applied so that
+    /// bullets nudge toward the nearest enemy near the crosshair without fully tracking them.
+    /// </summary>
+    protected override void SpawnBullet(Vector2 direction)
+    {
+        base.SpawnBullet(direction);
+
+        // Check if revolver aim assist is enabled in GameplaySettings (Issue #1332).
+        var gameplaySettings = GetNodeOrNull("/root/GameplaySettings");
+        if (gameplaySettings != null && !((bool)gameplaySettings.Call("is_revolver_aim_assist_enabled")))
+            return;
+
+        // Find the bullet that was just spawned (last Bullet child of CurrentScene)
+        // and apply weak homing so it gently steers toward nearby enemies.
+        var scene = GetTree().CurrentScene;
+        if (scene == null)
+            return;
+
+        // Only add weak homing if player homing effect is NOT already active
+        // (base.SpawnBullet already enables full-strength homing when player buff is on)
+        if (GetParent() is GodotTopDownTemplate.Characters.Player player && player.IsHomingActive())
+            return;
+
+        // Walk children in reverse to find the most recently added bullet.
+        // The bullet may be a C# Bullet or a GDScript bullet.gd (Area2D), so we check both.
+        var children = scene.GetChildren();
+        for (int i = children.Count - 1; i >= 0; i--)
+        {
+            var child = children[i];
+
+            // C# bullet path
+            if (child is GodotTopDownTemplate.Projectiles.Bullet csBullet && !csBullet.HomingEnabled)
+            {
+                Vector2 aimDir = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+                csBullet.EnableHomingWithAimLine(GlobalPosition, aimDir, RevolverHomingSteerSpeed);
+                break;
+            }
+
+            // GDScript bullet path — bullet.gd is an Area2D with homing_enabled property
+            if (child is Godot.Area2D area && child.HasMethod("enable_homing_with_aim_line"))
+            {
+                bool homingAlreadyOn = (bool)child.Get("homing_enabled");
+                if (!homingAlreadyOn)
+                {
+                    Vector2 aimDir = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+                    child.Set("homing_steer_speed", RevolverHomingSteerSpeed);
+                    child.Call("enable_homing_with_aim_line", GlobalPosition, aimDir);
+                }
+                break;
+            }
+        }
     }
 
     /// <summary>

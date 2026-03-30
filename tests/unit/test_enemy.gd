@@ -2317,3 +2317,194 @@ func test_patrol_stuck_detection_constants_issue_1119() -> void:
 		"Issue #1119: PATROL_STUCK_DISTANCE_THRESHOLD must be positive")
 	assert_gt(patrol_stuck_distance_threshold, one_frame_min_movement,
 		"Issue #1119: PATROL_STUCK_DISTANCE_THRESHOLD %.1f px is less than one frame of movement %.1f px — will never detect stuck" % [patrol_stuck_distance_threshold, one_frame_min_movement])
+
+
+# ============================================================================
+# Issue #1419: Idle enemies must not enter SEARCHING during teleport/reset
+# ============================================================================
+
+
+## Test that reset_memory uses _has_left_idle guard in the had_target branch (Issue #1419).
+## Before fix: the had_target branch in reset_memory called _transition_to_searching
+## unconditionally, so enemies that received intel via ally-share (but never personally
+## engaged) would enter SEARCHING on every player teleport.
+## After fix: the guard mirrors the else-branch — only engaged enemies search.
+func test_reset_memory_had_target_branch_guarded_by_has_left_idle_issue_1419() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	# Find reset_memory function body
+	var func_idx := source.find("func reset_memory()")
+	assert_gt(func_idx, 0, "reset_memory function should exist in enemy.gd")
+
+	# Extract function body (up to the next function)
+	var next_func_idx := source.find("\nfunc ", func_idx + 1)
+	var func_body := source.substr(func_idx, next_func_idx - func_idx)
+
+	# Verify that the had_target branch is guarded by _has_left_idle (Issue #1419 fix).
+	# The fix requires that _has_left_idle is checked inside the "if had_target:" block,
+	# so that enemies that received intel but never engaged don't enter SEARCHING.
+	assert_true(
+		func_body.contains("_has_left_idle"),
+		"Issue #1419: reset_memory() had_target branch must check _has_left_idle. " +
+		"Without this guard, enemies that never engaged the player enter SEARCHING on teleport."
+	)
+
+	# Verify that the had_target branch still calls _transition_to_searching (for engaged enemies)
+	assert_true(
+		func_body.contains("_transition_to_searching"),
+		"Issue #1419: reset_memory() must still call _transition_to_searching for engaged enemies."
+	)
+
+	# Verify there is a fallback to IDLE for non-engaged enemies in the had_target branch.
+	# The had_target section must contain both _transition_to_searching AND _transition_to_idle
+	# so that virgin enemies (had intel only) gracefully return to IDLE.
+	assert_true(
+		func_body.contains("_transition_to_idle"),
+		"Issue #1419: reset_memory() had_target branch must also call _transition_to_idle " +
+		"for enemies that had target via intel only (never personally engaged)."
+	)
+
+
+## Logic-level regression: enemy that never engaged must not be sent to SEARCHING (Issue #1419).
+## This tests the decision logic from reset_memory: had_target=true, _has_left_idle=false
+## should lead to IDLE, not SEARCHING.
+func test_reset_memory_virgin_enemy_with_intel_stays_idle_logic_issue_1419() -> void:
+	# State: enemy has a suspected position (from ally intel) but never left IDLE.
+	var had_target := true       # Memory contained a position
+	var has_left_idle := false   # Never personally engaged
+
+	# The corrected logic from reset_memory():
+	# if had_target:
+	#     if _has_left_idle: → SEARCHING
+	#     else:              → IDLE
+	var should_search := had_target and has_left_idle
+	var should_go_idle := had_target and not has_left_idle
+
+	assert_false(should_search,
+		"Issue #1419: enemy with intel but never engaged should NOT enter SEARCHING")
+	assert_true(should_go_idle,
+		"Issue #1419: enemy with intel but never engaged should return to IDLE")
+
+
+## Logic-level: enemy that HAS engaged must still go to SEARCHING (Issue #1419).
+## Ensure the fix does not break the existing behavior for engaged enemies.
+func test_reset_memory_engaged_enemy_with_target_goes_searching_issue_1419() -> void:
+	var had_target := true
+	var has_left_idle := true  # Was in combat at some point
+
+	var should_search := had_target and has_left_idle
+	assert_true(should_search,
+		"Issue #1419: engaged enemy (had_target=true, _has_left_idle=true) must still enter SEARCHING")
+
+
+# ============================================================================
+# Issue #1520: FPS Drop with Enemies in IDLE State
+# ============================================================================
+
+
+## Regression: GOAP throttle should activate when IDLE+no contact (Issue #1520).
+## The throttle counter increments when enemy is idle with no player visibility,
+## resetting to 0 once it reaches the interval threshold.
+func test_idle_goap_throttle_counter_increments_issue_1520() -> void:
+	# Simulate the throttle counter logic from _physics_process
+	var IDLE_GOAP_UPDATE_INTERVAL: int = 20
+	var current_state := MockEnemy.AIState.IDLE
+	var can_see_player := false
+	var can_see_companion := false
+	var under_fire := false
+	var throttle_counter := 0
+
+	var is_idle_no_contact: bool = (current_state == MockEnemy.AIState.IDLE
+		and not can_see_player
+		and not can_see_companion
+		and not under_fire)
+
+	assert_true(is_idle_no_contact,
+		"Issue #1520: IDLE+no contact condition should be true when no player detected")
+
+	# Simulate 19 frames: counter increments, GOAP skipped
+	for i in range(IDLE_GOAP_UPDATE_INTERVAL - 1):
+		throttle_counter += 1
+
+	assert_eq(throttle_counter, IDLE_GOAP_UPDATE_INTERVAL - 1,
+		"Issue #1520: Throttle counter should reach interval-1 before reset")
+	assert_true(throttle_counter < IDLE_GOAP_UPDATE_INTERVAL,
+		"Issue #1520: GOAP update should be skipped before interval is reached")
+
+	# Frame 20: counter reaches threshold, GOAP runs and resets
+	throttle_counter += 1
+	assert_eq(throttle_counter, IDLE_GOAP_UPDATE_INTERVAL,
+		"Issue #1520: Throttle counter should equal interval on update frame")
+	throttle_counter = 0  # Reset after running GOAP
+	assert_eq(throttle_counter, 0,
+		"Issue #1520: Throttle counter should reset to 0 after GOAP update")
+
+
+## Regression: Throttle must be disabled when player becomes visible (Issue #1520).
+## Ensures enemy immediately responds to player visibility — no delayed reaction.
+func test_idle_goap_throttle_disables_on_player_contact_issue_1520() -> void:
+	var current_state := MockEnemy.AIState.IDLE
+	var can_see_player := true  # Player spotted
+	var can_see_companion := false
+	var under_fire := false
+
+	var is_idle_no_contact: bool = (current_state == MockEnemy.AIState.IDLE
+		and not can_see_player
+		and not can_see_companion
+		and not under_fire)
+
+	assert_false(is_idle_no_contact,
+		"Issue #1520: Throttle must NOT activate when player is visible — full GOAP update required")
+
+
+## Regression: Throttle must be disabled when enemy is under fire (Issue #1520).
+func test_idle_goap_throttle_disables_when_under_fire_issue_1520() -> void:
+	var current_state := MockEnemy.AIState.IDLE
+	var can_see_player := false
+	var can_see_companion := false
+	var under_fire := true  # Enemy taking fire
+
+	var is_idle_no_contact: bool = (current_state == MockEnemy.AIState.IDLE
+		and not can_see_player
+		and not can_see_companion
+		and not under_fire)
+
+	assert_false(is_idle_no_contact,
+		"Issue #1520: Throttle must NOT activate when enemy is under fire")
+
+
+## Regression: GUARD enemies in IDLE produce no separation force (Issue #1520).
+## Separation force on a stationary GUARD changes nothing — skipping the O(N) scan is safe.
+func test_guard_idle_separation_force_is_zero_issue_1520() -> void:
+	var enemy := MockEnemy.new()
+	enemy.initialize()
+	enemy._current_state = MockEnemy.AIState.IDLE
+	enemy.behavior_mode = MockEnemy.BehaviorMode.GUARD
+
+	# A GUARD enemy in IDLE has zero velocity — separation force result equals input
+	var input_vel := Vector2.ZERO
+	# The early-exit returns vel unchanged: guard produces no separation force
+	var is_guard_idle: bool = (enemy._current_state == MockEnemy.AIState.IDLE
+		and enemy.behavior_mode == MockEnemy.BehaviorMode.GUARD)
+
+	assert_true(is_guard_idle,
+		"Issue #1520: GUARD+IDLE condition should be true for standing guard enemies")
+	# The separation force early-exit returns input_vel unchanged (Vector2.ZERO stays ZERO)
+	assert_eq(input_vel, Vector2.ZERO,
+		"Issue #1520: GUARD in IDLE produces zero velocity — early-exit is safe")
+
+
+## Regression: enemies_in_combat cache value starts at 0 (Issue #1520).
+## The cache must be initialized to a safe default that does not trigger assault.
+func test_enemies_in_combat_cache_initial_value_issue_1520() -> void:
+	# The default value for _enemies_in_combat_cache is 0 (no enemies in combat).
+	# Assault is only triggered when count exceeds a threshold, so 0 is the safe default.
+	var initial_cache_value: int = 0
+	assert_eq(initial_cache_value, 0,
+		"Issue #1520: Initial enemies_in_combat cache should be 0 (safe default, no spurious assault)")

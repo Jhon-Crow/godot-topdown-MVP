@@ -77,10 +77,12 @@ public partial class WeaponData : Resource
 
     /// <summary>
     /// Loudness of the weapon in pixels - determines how far gunshots propagate for enemy detection.
-    /// Default is approximately viewport diagonal (~1469 pixels) for assault rifles.
+    /// Each weapon's .tres resource file should explicitly set this value.
+    /// Issue #1524: AssaultRifle (M16) Loudness = 840.0px.
+    /// Issue #1269: All values scaled by factor 800/1469 from original viewport-diagonal baseline.
     /// </summary>
     [Export]
-    public float Loudness { get; set; } = 1469.0f;
+    public float Loudness { get; set; } = 800.0f;
 
     /// <summary>
     /// Aiming sensitivity for the weapon. Controls how fast the weapon rotates toward the cursor.
@@ -124,6 +126,14 @@ public partial class WeaponData : Resource
     public Resource? Caliber { get; set; }
 
     /// <summary>
+    /// Display name of the caliber (e.g., "7.62x39mm", "5.45x39mm") (Issue #1708).
+    /// Mirrors CaliberData.caliber_name as a C# property to avoid GDScript resource interop issues
+    /// where dot-access on a nested GDScript resource returns null when accessed from C#-backed resources.
+    /// </summary>
+    [Export]
+    public string CaliberName { get; set; } = "";
+
+    /// <summary>
     /// Whether this weapon's caliber can ricochet off surfaces (Issue #935).
     /// Mirrors CaliberData.can_ricochet as a C# property to avoid GDScript resource interop issues.
     /// When false, trajectory glasses will show all segments as red (no ricochet).
@@ -146,6 +156,20 @@ public partial class WeaponData : Resource
     /// </summary>
     [Export]
     public int CaliberMaxRicochets { get; set; } = -1;
+
+    /// <summary>
+    /// Whether this weapon's caliber can penetrate walls (Issue #1708).
+    /// Mirrors CaliberData.can_penetrate as a C# property to avoid GDScript resource interop issues.
+    /// </summary>
+    [Export]
+    public bool CaliberCanPenetrate { get; set; } = true;
+
+    /// <summary>
+    /// Maximum wall penetration distance in pixels for this weapon's caliber (Issue #1708).
+    /// Mirrors CaliberData.max_penetration_distance as a C# property to avoid GDScript resource interop issues.
+    /// </summary>
+    [Export(PropertyHint.Range, "0.0,200.0,1.0")]
+    public float CaliberMaxPenetrationDistance { get; set; } = 48.0f;
 
     /// <summary>
     /// Whether bullets from this weapon penetrate through enemies (Issue #829).

@@ -26,10 +26,11 @@ enum ActiveItemType {
 	AUTO_RELOAD,       # Auto-reload on kill - passive: magazine is 2.1x smaller, refilled from reserve on each kill (Issue #1067)
 	DRILLING_BULLETS,  # Drilling bullets - press Space to give current magazine wall-piercing bullets (Issue #751)
 	RECOIL_COMPENSATOR, # Recoil compensator - hold Space to eliminate recoil/spread and boost fire rate 10% (Issue #1073)
-	COMBAT_DISPOSITION, # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
+	COMBAT_DISPOSITION, # Combat Disposition - passive: +0.77 damage, +1.1 fire rate, x2 speed on start (x4 on Black Metal), no drift; on hit: -6.0 damage, -7.2 fire rate, speed/2 (Issue #1047, #1583, #1623)
 	EXPERIMENTAL_SAMPLE, # Experimental Sample - press Space to fire a random active item effect (even unowned). 1–5 charges per battle, randomised on level start (Issue #1127)
 	FINE_MOTOR_SKILLS, # Fine Motor Skills - press Space to instantly reload weapon and bring to combat-ready state. Unlimited charges, no cooldown (Issue #1315)
-	DASH               # Dash - press Space to dash in movement direction with damage immunity. 3 charges, cooldown after 3rd dash (Issue #1071)
+	DASH,              # Dash - press Space to dash in movement direction with damage immunity. 3 charges, cooldown after 3rd dash (Issue #1071)
+	GRENADE_BAG        # Grenade Bag - passive: increases starting grenade count based on selected grenade type (Issue #1590)
 }
 
 ## Currently selected active item type.
@@ -46,31 +47,38 @@ var collected_passive_items: Array = []
 ## FLASHLIGHT (Polygon D+), TELEPORT_BRACERS (Double Corridor D+),
 ## INVISIBILITY_SUIT (Beach S + Building S), HOMING_BULLETS
 ## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S),
-## TRAJECTORY_GLASSES (City D+), LASER_SIGHT (1000 kills without laser sight equipped),
-## and FINE_MOTOR_SKILLS (650 shots with shotgun, sniper rifle, or revolver)
-## have unlock conditions (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346).
+## TRAJECTORY_GLASSES (City D+), LASER_SIGHT (400 kills without laser sight equipped),
+## FINE_MOTOR_SKILLS (650 shots with shotgun, sniper rifle, or revolver),
+## ARMORED_SKIN (100 total deaths), COMBAT_DISPOSITION (complete 1 level without damage),
+## RECOIL_COMPENSATOR (Labyrinth S), EXPERIMENTAL_SAMPLE (complete at least one level on every difficulty),
+## EXTENDED_MAGAZINE (Building B+), AUTO_RELOAD (any level with silenced pistol),
+## DRILLING_BULLETS (50 kills through walls), DASH (Decadence A+),
+## BREACHING_CHARGES (Labyrinth Complex any grade), GRENADE_BAG (Railway Station any grade),
+## BFF_PENDANT (Winter Forest any grade) have unlock conditions
+## (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346, Issue #1389, Issue #1423, Issue #1426, Issue #1624).
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
 	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
 	ActiveItemType.HOMING_BULLETS: false,      # Condition: Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S (Issue #1000 req.8)
 	ActiveItemType.TELEPORT_BRACERS: false,    # Condition: Double Corridor D+ (Issue #1000 req.3)
-	ActiveItemType.BFF_PENDANT: true,          # No unlock condition — freely available from start (Issue #674)
+	ActiveItemType.BFF_PENDANT: false,         # Condition: complete Winter Forest on any grade (Issue #1624 req.9)
 	ActiveItemType.INVISIBILITY_SUIT: false,   # Condition: Beach S + Building S (Issue #1000 req.5)
-	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
-	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
+	ActiveItemType.BREAKER_BULLETS: false,     # Condition: 7 levels completed at rank A or higher (Issue #1589 req.3)
+	ActiveItemType.FORCE_FIELD: false,         # Condition: complete Factory on any grade (Issue #1589 req.2)
 	ActiveItemType.TRAJECTORY_GLASSES: false,  # Condition: City D+ (Issue #1053 req.1)
-	ActiveItemType.LASER_SIGHT: false,         # Condition: 1000 kills without laser sight equipped (Issue #1196)
-	ActiveItemType.EXTENDED_MAGAZINE: true,    # No unlock condition — freely available from start (Issue #1065)
-	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
-	ActiveItemType.BREACHING_CHARGES: true,    # No unlock condition — freely available from start (Issue #1043)
-	ActiveItemType.ARMORED_SKIN: true,         # No unlock condition — freely available from start (Issue #1045)
-	ActiveItemType.AUTO_RELOAD: true,          # No unlock condition — freely available from start (Issue #1067)
-	ActiveItemType.DRILLING_BULLETS: true,     # No unlock condition — freely available from start (Issue #751)
-	ActiveItemType.RECOIL_COMPENSATOR: true,   # No unlock condition — freely available from start (Issue #1073)
-	ActiveItemType.COMBAT_DISPOSITION: true,   # No unlock condition — freely available from start (Issue #1047)
-	ActiveItemType.EXPERIMENTAL_SAMPLE: true,   # No unlock condition — freely available from start (Issue #1127)
+	ActiveItemType.LASER_SIGHT: false,         # Condition: 400 kills without laser sight equipped (Issue #1196, updated by Issue #1589)
+	ActiveItemType.EXTENDED_MAGAZINE: false,   # Condition: Building B+ (Issue #1624 req.1)
+	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start, not selected by default (Issue #959, #1691)
+	ActiveItemType.BREACHING_CHARGES: false,   # Condition: complete Labyrinth Complex on any grade (Issue #1624 req.6)
+	ActiveItemType.ARMORED_SKIN: false,        # Condition: 100 total deaths (Issue #1389)
+	ActiveItemType.AUTO_RELOAD: false,         # Condition: complete any level with silenced pistol (Issue #1624 req.2)
+	ActiveItemType.DRILLING_BULLETS: false,    # Condition: 50 kills through walls (Issue #1624 req.3)
+	ActiveItemType.RECOIL_COMPENSATOR: false,  # Condition: Labyrinth S (Issue #1423 req.2)
+	ActiveItemType.COMBAT_DISPOSITION: false,  # Condition: complete 1 level without taking damage (Issue #1389)
+	ActiveItemType.EXPERIMENTAL_SAMPLE: false,   # Condition: complete at least one level on every difficulty (Issue #1426)
 	ActiveItemType.FINE_MOTOR_SKILLS: false,    # Condition: 300 shots with shotgun, sniper rifle, or revolver (Issue #1346)
-	ActiveItemType.DASH: true                   # No unlock condition — freely available from start (Issue #1071)
+	ActiveItemType.DASH: false,                 # Condition: Decadence A+ (Issue #1624 req.5)
+	ActiveItemType.GRENADE_BAG: false           # Condition: complete Railway Station on any grade (Issue #1624 req.8)
 }
 
 ## Active item data for UI and selection.
@@ -139,7 +147,7 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.LOUDSPEAKER: {
 		"name": "Loudspeaker",
 		"icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
-		"description": "Loudspeaker — press Space to emit sound cone. 2 charges per battle.",
+		"description": "???",
 		"activation_hint": "Press Space to activate"
 	},
 	ActiveItemType.BREACHING_CHARGES: {
@@ -173,7 +181,7 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.COMBAT_DISPOSITION: {
 		"name": "Combat Disposition",
 		"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
-		"description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces damage by 6.0 and fire rate by 7.2."
+		"description": "Combat Disposition — passive: +0.77 damage, +1.1 fire rate, x2 speed on start (x4 on Black Metal). Taking damage reduces damage by 6.0, fire rate by 7.2, and halves movement speed."
 	},
 	ActiveItemType.EXPERIMENTAL_SAMPLE: {
 		"name": "Experimental Sample",
@@ -192,6 +200,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/dash_icon.png",
 		"description": "Dash — press Space to dash in movement direction (Hyper Light Drifter style). Immune to all damage during dash. 3 charges with chain-dash, cooldown after all charges spent.",
 		"activation_hint": "Press Space to dash"
+	},
+	ActiveItemType.GRENADE_BAG: {
+		"name": "Grenade Bag",
+		"icon_path": "res://assets/sprites/weapons/grenade_bag_icon.png",
+		"description": "Grenade Bag — passive: increases starting grenade count based on selected type: 12 flash/stun grenades, 6 frag grenades, 2 gas or F-1 grenades."
 	}
 }
 
@@ -432,6 +445,40 @@ func has_fine_motor_skills() -> bool:
 ## Check if dash is currently equipped (Issue #1071).
 func has_dash() -> bool:
 	return current_active_item == ActiveItemType.DASH
+
+
+## Check if grenade bag is currently equipped (Issue #1590).
+## Also checks collected passive items for roguelike mode (Issue #1303).
+func has_grenade_bag() -> bool:
+	return current_active_item == ActiveItemType.GRENADE_BAG or ActiveItemType.GRENADE_BAG in collected_passive_items
+
+
+## Get the grenade count granted by the Grenade Bag item (Issue #1590).
+## Returns count based on the currently selected grenade type:
+##   FLASHBANG  → 12 grenades
+##   FRAG       → 6 grenades
+##   AGGRESSION_GAS → 2 grenades
+##   DEFENSIVE (F-1) → 2 grenades
+## Returns 0 when Grenade Bag is not equipped.
+func get_grenade_bag_count() -> int:
+	if not has_grenade_bag():
+		return 0
+	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
+	if grenade_manager == null:
+		return 6  # Fallback default
+	var grenade_type: int = grenade_manager.get("current_grenade_type")
+	# GrenadeType enum: FLASHBANG=0, FRAG=1, DEFENSIVE=2, AGGRESSION_GAS=3
+	match grenade_type:
+		0:  # FLASHBANG
+			return 12
+		1:  # FRAG
+			return 6
+		2:  # DEFENSIVE (F-1)
+			return 2
+		3:  # AGGRESSION_GAS
+			return 2
+		_:
+			return 6  # Fallback for unknown types
 
 
 ## Get the laser sight color (purple).

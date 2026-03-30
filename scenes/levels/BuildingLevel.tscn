@@ -1243,6 +1243,10 @@ position = Vector2(1750, 1950)
 [node name="Player" parent="Entities" instance=ExtResource("2_player")]
 position = Vector2(450, 1250)
 
+[node name="Camera2D" parent="Entities/Player"]
+limit_right = 2464
+limit_bottom = 2064
+
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
 [node name="UI" type="Control" parent="CanvasLayer"]

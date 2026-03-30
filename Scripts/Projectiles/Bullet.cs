@@ -908,14 +908,23 @@ public partial class Bullet : Area2D
             hitEnemy = true;
         }
 
+        // Issue #1577: If the area has no recognizable hit method, it is a non-target area
+        // (e.g. WaterBody, ThreatSphere, detection zones). Bullet passes through silently.
+        // This matches GDScript bullet.gd which only destroys on area.has_method("on_hit").
+        if (!hitEnemy)
+        {
+            if (DebugHits) GD.Print($"[Bullet]: Area {area.Name} has no hit methods — bullet passes through");
+            return;
+        }
+
         // Trigger hit effects if this is a player bullet hitting an enemy
-        if (hitEnemy && IsPlayerBullet())
+        if (IsPlayerBullet())
         {
             TriggerPlayerHitEffects();
         }
 
         // Apply stun effect if configured (e.g., silenced pistol)
-        if (hitEnemy && StunDuration > 0 && parent != null)
+        if (StunDuration > 0 && parent != null)
         {
             ApplyStunEffect(parent);
         }
@@ -924,7 +933,7 @@ public partial class Bullet : Area2D
 
         // Issue #829: If enemy penetration is enabled, bullet continues flying after hitting enemy.
         // This is used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
-        if (hitEnemy && PenetratesEnemies)
+        if (PenetratesEnemies)
         {
             if (DebugHits) GD.Print($"[Bullet]: Penetrating through enemy, bullet continues flying");
             // Track the enemy so we don't re-apply damage on subsequent area_entered calls
@@ -1682,6 +1691,27 @@ public partial class Bullet : Area2D
         if (DebugHoming)
         {
             GD.Print($"[Bullet] Homing enabled with aim-line targeting, aim: {_shooterAimDirection}");
+        }
+    }
+
+    /// <summary>
+    /// Enables weak homing on this bullet with aim-line targeting and a custom steer speed (Issue #1332).
+    /// Used by the RSh-12 revolver for slight bullet correction toward enemies.
+    /// </summary>
+    /// <param name="shooterPos">The player's position when firing.</param>
+    /// <param name="aimDir">The player's aim direction when firing.</param>
+    /// <param name="steerSpeed">Steering speed in radians per second (lower = weaker homing).</param>
+    public void EnableHomingWithAimLine(Vector2 shooterPos, Vector2 aimDir, float steerSpeed)
+    {
+        _homingEnabled = true;
+        _homingOriginalDirection = Direction.Normalized();
+        _useAimLineTargeting = true;
+        _shooterOrigin = shooterPos;
+        _shooterAimDirection = aimDir.Normalized();
+        _homingSteerSpeed = steerSpeed;
+        if (DebugHoming)
+        {
+            GD.Print($"[Bullet] Weak homing enabled with aim-line targeting, aim: {_shooterAimDirection}, steerSpeed: {steerSpeed}");
         }
     }
 

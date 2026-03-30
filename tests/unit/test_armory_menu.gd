@@ -55,12 +55,6 @@ class MockArmoryMenu:
 			"icon_path": "",
 			"unlocked": false,
 			"description": "Coming soon"
-		},
-		"smg": {
-			"name": "???",
-			"icon_path": "",
-			"unlocked": false,
-			"description": "Coming soon"
 		}
 	}
 
@@ -179,6 +173,51 @@ class MockArmoryMenu:
 	## Handle back button press.
 	func press_back() -> void:
 		back_pressed_emitted += 1
+
+	## Select weapon and record which reload preview sound was requested.
+	## Mimics the armory menu logic: weapons call play_weapon_reload_preview(weapon_id).
+	func select_weapon_with_sound(weapon_id: String) -> bool:
+		if not select_weapon(weapon_id):
+			return false
+		reload_preview_calls.append(weapon_id)
+		return true
+
+	## Tracks weapon IDs passed to play_weapon_reload_preview.
+	var reload_preview_calls: Array = []
+
+	# ---- Accordion shine overlay simulation (Issue #1561) ----
+
+	## Tracks which mock button names have a shine overlay applied.
+	var accordion_shine_active: Dictionary = {}
+
+	## Simulate applying gold condition-met style (font color + shine overlay) to an accordion button.
+	func apply_accordion_button_condition_met_style(button_name: String) -> void:
+		accordion_shine_active[button_name] = true
+
+	## Simulate resetting accordion button to default style (removes shine overlay).
+	func apply_accordion_button_default_style(button_name: String) -> void:
+		accordion_shine_active.erase(button_name)
+
+	## Returns true if the given button has an active shine overlay.
+	func has_accordion_shine(button_name: String) -> bool:
+		return accordion_shine_active.get(button_name, false)
+
+
+## Mock AudioManager that records play_weapon_reload_preview calls.
+class MockAudioManager:
+	## Weapon IDs for which play_weapon_reload_preview was called.
+	var reload_preview_calls: Array = []
+	## Whether play_ui_click was called.
+	var ui_click_count: int = 0
+
+	func has_method(method_name: String) -> bool:
+		return method_name in ["play_weapon_reload_preview", "play_ui_click"]
+
+	func play_weapon_reload_preview(weapon_id: String) -> void:
+		reload_preview_calls.append(weapon_id)
+
+	func play_ui_click() -> void:
+		ui_click_count += 1
 
 
 var menu: MockArmoryMenu
@@ -623,3 +662,279 @@ func test_apply_weapon_grenade_and_active_item() -> void:
 	assert_eq(menu.applied_weapon, "sniper", "Weapon should be applied")
 	assert_eq(menu.applied_grenade_type, 2, "Grenade should be applied")
 	assert_eq(menu.applied_active_item, 1, "Active item should be applied")
+
+
+# ============================================================================
+# Reload Sound Preview Tests (Issue #1564)
+# ============================================================================
+
+
+func test_select_weapon_records_reload_preview_call() -> void:
+	var result := menu.select_weapon_with_sound("shotgun")
+	assert_true(result,
+		"Selecting shotgun should succeed")
+	assert_eq(menu.reload_preview_calls.size(), 1,
+		"One reload preview should be recorded when weapon is selected")
+	assert_eq(menu.reload_preview_calls[0], "shotgun",
+		"Reload preview should be called with the correct weapon ID")
+
+
+func test_select_each_weapon_records_its_own_reload_preview() -> void:
+	var weapons := ["makarov_pm", "m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper", "revolver"]
+	for weapon_id in weapons:
+		menu.reload_preview_calls.clear()
+		menu.select_weapon_with_sound(weapon_id)
+		assert_eq(menu.reload_preview_calls.size(), 1,
+			"Exactly one reload preview call expected for " + weapon_id)
+		assert_eq(menu.reload_preview_calls[0], weapon_id,
+			"Reload preview weapon_id should match selected weapon for " + weapon_id)
+
+
+func test_mock_audio_manager_play_weapon_reload_preview() -> void:
+	var audio_manager := MockAudioManager.new()
+	audio_manager.play_weapon_reload_preview("revolver")
+	assert_eq(audio_manager.reload_preview_calls.size(), 1,
+		"MockAudioManager should record play_weapon_reload_preview call")
+	assert_eq(audio_manager.reload_preview_calls[0], "revolver",
+		"Recorded weapon_id should be 'revolver'")
+
+
+func test_mock_audio_manager_play_ui_click() -> void:
+	var audio_manager := MockAudioManager.new()
+	audio_manager.play_ui_click()
+	assert_eq(audio_manager.ui_click_count, 1,
+		"MockAudioManager should record play_ui_click call")
+
+
+func test_mock_audio_manager_has_method_reload_preview() -> void:
+	var audio_manager := MockAudioManager.new()
+	assert_true(audio_manager.has_method("play_weapon_reload_preview"),
+		"MockAudioManager should report having play_weapon_reload_preview")
+
+
+func test_mock_audio_manager_has_method_ui_click() -> void:
+	var audio_manager := MockAudioManager.new()
+	assert_true(audio_manager.has_method("play_ui_click"),
+		"MockAudioManager should report having play_ui_click")
+
+
+func test_locked_weapon_does_not_trigger_reload_preview() -> void:
+	var result := menu.select_weapon_with_sound("ak47")  # locked
+	assert_false(result,
+		"Selecting a locked weapon should fail")
+	assert_eq(menu.reload_preview_calls.size(), 0,
+		"No reload preview should be recorded for a locked weapon")
+
+
+func test_unknown_weapon_does_not_trigger_reload_preview() -> void:
+	var result := menu.select_weapon_with_sound("unknown_weapon")
+	assert_false(result,
+		"Selecting an unknown weapon should fail")
+	assert_eq(menu.reload_preview_calls.size(), 0,
+		"No reload preview should be recorded for an unknown weapon")
+
+
+# ============================================================================
+# Accordion Button Shine Overlay Tests (Issue #1561)
+# ============================================================================
+
+
+func test_accordion_button_has_no_shine_by_default() -> void:
+	assert_false(menu.has_accordion_shine("weapon_accordion"),
+		"Accordion button should have no shine overlay by default")
+
+
+func test_condition_met_style_adds_shine_overlay() -> void:
+	menu.apply_accordion_button_condition_met_style("weapon_accordion")
+
+	assert_true(menu.has_accordion_shine("weapon_accordion"),
+		"Applying condition-met style should add shine overlay to accordion button")
+
+
+func test_default_style_removes_shine_overlay() -> void:
+	menu.apply_accordion_button_condition_met_style("weapon_accordion")
+	menu.apply_accordion_button_default_style("weapon_accordion")
+
+	assert_false(menu.has_accordion_shine("weapon_accordion"),
+		"Resetting to default style should remove shine overlay from accordion button")
+
+
+func test_condition_met_style_applied_independently_per_button() -> void:
+	menu.apply_accordion_button_condition_met_style("weapon_accordion")
+
+	assert_true(menu.has_accordion_shine("weapon_accordion"),
+		"Weapon accordion button should have shine overlay")
+	assert_false(menu.has_accordion_shine("grenade_accordion"),
+		"Grenade accordion button should NOT have shine overlay")
+	assert_false(menu.has_accordion_shine("active_item_accordion"),
+		"Active item accordion button should NOT have shine overlay")
+
+
+func test_all_accordion_buttons_can_have_shine_independently() -> void:
+	menu.apply_accordion_button_condition_met_style("weapon_accordion")
+	menu.apply_accordion_button_condition_met_style("grenade_accordion")
+	menu.apply_accordion_button_condition_met_style("active_item_accordion")
+
+	assert_true(menu.has_accordion_shine("weapon_accordion"),
+		"Weapon accordion should have shine")
+	assert_true(menu.has_accordion_shine("grenade_accordion"),
+		"Grenade accordion should have shine")
+	assert_true(menu.has_accordion_shine("active_item_accordion"),
+		"Active item accordion should have shine")
+
+
+func test_default_style_removes_only_targeted_button_shine() -> void:
+	menu.apply_accordion_button_condition_met_style("weapon_accordion")
+	menu.apply_accordion_button_condition_met_style("grenade_accordion")
+	menu.apply_accordion_button_default_style("weapon_accordion")
+
+	assert_false(menu.has_accordion_shine("weapon_accordion"),
+		"Weapon accordion shine should be removed after default style reset")
+	assert_true(menu.has_accordion_shine("grenade_accordion"),
+		"Grenade accordion shine should remain untouched")
+
+
+func test_reapplying_condition_met_style_does_not_duplicate_shine() -> void:
+	menu.apply_accordion_button_condition_met_style("weapon_accordion")
+	menu.apply_accordion_button_condition_met_style("weapon_accordion")
+
+	assert_true(menu.has_accordion_shine("weapon_accordion"),
+		"Shine should still be active after re-applying condition-met style (no duplicate)")
+
+
+func test_default_style_on_button_with_no_shine_is_safe() -> void:
+	# Should not error when removing a non-existent shine overlay.
+	menu.apply_accordion_button_default_style("weapon_accordion")
+
+	assert_false(menu.has_accordion_shine("weapon_accordion"),
+		"Button with no shine should remain without shine after default reset")
+
+
+# ============================================================================
+# Weapon Selection Animation Phase Order Tests (Issue #1575)
+# ============================================================================
+
+
+class MockGlintShaderPhaseOrder:
+	## Mirrors the phase boundary constants from weapon_select_glint.gdshader (Issue #1575).
+	## Phase 1 is the top-edge glint sweep (slow), Phase 2 is the diagonal sweep (fast).
+	const TOTAL_DURATION_S: float = 1.02
+	const PHASE1_END_PROGRESS: float = 0.784   # 0.80 / 1.02 — end of top-edge sweep
+	const PHASE2_START_PROGRESS: float = 0.784 # 0.80 / 1.02 — start of diagonal sweep
+
+	## Returns true if, at the given anim_progress, Phase 1 (top-edge) is active.
+	func is_phase1_active(anim_progress: float) -> bool:
+		return anim_progress < PHASE1_END_PROGRESS
+
+	## Returns true if, at the given anim_progress, Phase 2 (diagonal) is active.
+	func is_phase2_active(anim_progress: float) -> bool:
+		return anim_progress >= PHASE2_START_PROGRESS
+
+
+func test_phase1_top_edge_runs_first() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	# At progress 0.0 (very start), Phase 1 (top-edge) should be active, Phase 2 should not.
+	assert_true(shader.is_phase1_active(0.0),
+		"Phase 1 (top-edge glint) should be active at the very start of the animation")
+	assert_false(shader.is_phase2_active(0.0),
+		"Phase 2 (diagonal sweep) should NOT be active at the very start of the animation")
+
+
+func test_phase2_diagonal_runs_second() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	# At progress 0.9 (late in animation), Phase 2 (diagonal) should be active, Phase 1 should not.
+	assert_false(shader.is_phase1_active(0.9),
+		"Phase 1 (top-edge glint) should NOT be active late in the animation")
+	assert_true(shader.is_phase2_active(0.9),
+		"Phase 2 (diagonal sweep) should be active late in the animation")
+
+
+func test_phase1_occupies_majority_of_animation() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	# Phase 1 covers 0.0 → 0.784 (78.4% of total), Phase 2 covers 0.784 → 1.0 (21.6%).
+	assert_true(shader.PHASE1_END_PROGRESS > 0.5,
+		"Phase 1 (top-edge glint) should occupy more than half of the total animation duration")
+	assert_true(shader.PHASE2_START_PROGRESS > 0.5,
+		"Phase 2 (diagonal sweep) should start after the halfway point")
+
+
+func test_phases_do_not_overlap() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	assert_eq(shader.PHASE1_END_PROGRESS, shader.PHASE2_START_PROGRESS,
+		"Phase 1 end and Phase 2 start must be at the same boundary (no gap or overlap)")
+
+
+func test_phase_boundary_value() -> void:
+	var shader := MockGlintShaderPhaseOrder.new()
+	# 0.80 s / 1.02 s ≈ 0.784 — verify the constant is correct.
+	var expected_boundary: float = 0.80 / shader.TOTAL_DURATION_S
+	assert_almost_eq(shader.PHASE1_END_PROGRESS, expected_boundary, 0.001,
+		"Phase boundary should equal 0.80 s / 1.02 s ≈ 0.784")
+
+
+# ============================================================================
+# Caliber Stats Display — Issue #1708 regression
+# ============================================================================
+
+
+## Mock weapon resource simulating WeaponData accessed via GDScript .get().
+## Replicates the mirror-property pattern used in WeaponData.cs: CaliberName,
+## CaliberCanRicochet, CaliberCanPenetrate, CaliberMaxPenetrationDistance are stored
+## directly on the C# resource to avoid GDScript/C# nested-resource interop issues
+## (godotengine/godot#67167) where dot-access on nested GDScript resources returns null.
+class MockWeaponResource:
+	var _props: Dictionary = {}
+
+	func _init(props: Dictionary) -> void:
+		_props = props
+
+	## Simulates .get("property") which is reliable across C#/GDScript boundary.
+	func get(prop: String) -> Variant:
+		return _props.get(prop, null)
+
+
+## Replicates the _update_weapon_stats caliber display logic from armory_menu.gd.
+## Uses resource.get("CaliberName") — the mirror property approach (Issue #1708).
+func _build_caliber_bbcode_from_weapon(weapon: MockWeaponResource) -> String:
+	if not weapon:
+		return ""
+	var caliber_name: String = weapon.get("CaliberName")
+	if caliber_name == "":
+		return ""
+	return "[color=#aab0b8]Caliber:[/color] %s\n" % caliber_name
+
+
+func test_caliber_name_displayed_via_mirror_property() -> void:
+	# Regression test for Issue #1708: caliber name showed as <null> in AK+GL stats.
+	# Root cause: GDScript .get("caliber_name") on a CaliberData resource nested inside
+	# a C# WeaponData resource returns null due to Godot C#/GDScript interop (godot#67167).
+	# Fix: add CaliberName as a direct string property on WeaponData (mirror property pattern).
+	var weapon := MockWeaponResource.new({"CaliberName": "7.62x39mm"})
+	var result := _build_caliber_bbcode_from_weapon(weapon)
+	assert_true("7.62x39mm" in result,
+		"Caliber name '7.62x39mm' must appear in stats bbcode (Issue #1708)")
+	assert_false("<null>" in result,
+		"Stats bbcode must not contain '<null>' for caliber name (Issue #1708 regression)")
+
+
+func test_caliber_name_empty_does_not_produce_null_string() -> void:
+	# If CaliberName is empty string (default), the caliber line must be omitted.
+	var weapon := MockWeaponResource.new({"CaliberName": ""})
+	var result := _build_caliber_bbcode_from_weapon(weapon)
+	assert_false("<null>" in result,
+		"Empty CaliberName must not produce '<null>' in stats bbcode")
+	assert_false("Caliber:" in result,
+		"Empty CaliberName must omit the Caliber line entirely")
+
+
+func test_ak_gl_description_contains_762() -> void:
+	# Regression: AK+GL static description must mention the 7.62x39mm caliber.
+	var armory_firearms: Dictionary = {
+		"ak_gl": {
+			"name": "AK + GL",
+			"description": "AK with GP-25 underbarrel grenade launcher — 7.62x39mm, 30-round magazine, RMB fires VOG-25 grenade (1 shot)"
+		}
+	}
+	var desc: String = armory_firearms["ak_gl"].get("description", "")
+	assert_true("7.62" in desc,
+		"AK+GL static description must contain '7.62' caliber info (Issue #1708)")

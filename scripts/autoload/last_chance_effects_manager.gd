@@ -358,7 +358,7 @@ func _can_trigger_effect() -> bool:
 		_log_verbose("Effect already active")
 		return false
 
-	# Only trigger in hard mode (not in Black Metal - Issue #985)
+	# Only trigger in hard mode (not in Black Metal - Issue #985, not in Gunslinger - Issue #1727)
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager == null:
 		_log_verbose("DifficultyManager not found")
@@ -368,6 +368,12 @@ func _can_trigger_effect() -> bool:
 	# Black Metal is a separate difficulty that should NOT have the last chance effect.
 	if difficulty_manager.is_black_metal_mode():
 		_log("Black Metal mode - last chance effect disabled (Issue #985)")
+		return false
+
+	# Issue #1727: Gunslinger mode disables the special time-stop last chance effect.
+	# Gunslinger has a different last chance mechanic (kill-triggered via PowerFantasyEffectsManager).
+	if difficulty_manager.has_method("is_special_last_chance_disabled") and difficulty_manager.is_special_last_chance_disabled():
+		_log("Gunslinger mode - special last chance effect disabled (Issue #1727)")
 		return false
 
 	if not difficulty_manager.is_hard_mode():
@@ -423,6 +429,14 @@ func _get_player_health() -> float:
 func _start_last_chance_effect(duration_seconds: float = FREEZE_DURATION_REAL_SECONDS, is_grenade: bool = false) -> void:
 	if _is_effect_active:
 		return
+
+	# Issue #1654: Cancel any ongoing fade-out before starting a new effect.
+	# If a new drone/grenade explosion triggers LastChance while the previous
+	# effect's fade-out is still running, _complete_fade_out() would later call
+	# set_process(false), killing the timer for the new effect and freezing time forever.
+	if _is_fading_out:
+		_is_fading_out = false
+		_log("Cancelled ongoing fade-out — new effect starting immediately")
 
 	_is_effect_active = true
 	_is_grenade_triggered = is_grenade
@@ -488,6 +502,9 @@ func _freeze_time() -> void:
 		_freeze_node_except_player(child)
 
 	_log("Froze all nodes except player and autoloads (including GameManager for quick restart)")
+
+	# Pause precipitation effects (rain, snow, water waves) — Issue #1585.
+	_set_precipitation_time_stopped(true)
 
 	# This manager uses PROCESS_MODE_ALWAYS to keep running the timer
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -754,7 +771,9 @@ func _complete_fade_out() -> void:
 	_remove_visual_effects()
 
 	# Issue #1157: Disable _process after effect is fully done — nothing to update.
-	set_process(false)
+	# Issue #1654: Only disable if no new effect started during the fade-out.
+	if not _is_effect_active:
+		set_process(false)
 
 
 ## Unfreezes time and restores normal processing.
@@ -789,6 +808,21 @@ func _unfreeze_time() -> void:
 
 	# Unfreeze any explosion visual effect containers that were frozen during the time freeze (Issue #505)
 	_unfreeze_explosion_visuals()
+
+	# Resume precipitation effects (rain, snow, water waves) — Issue #1585.
+	_set_precipitation_time_stopped(false)
+
+
+## Pauses or resumes precipitation effects (rain, snow, water waves) — Issue #1585.
+## Uses the "precipitation_effects" group to find RainEffect, SnowEffect, and WaterBody
+## nodes. Group lookup is reliable in both debug and exported builds (unlike
+## script.resource_path which may be empty in exported PCK files).
+func _set_precipitation_time_stopped(paused: bool) -> void:
+	var nodes: Array[Node] = get_tree().get_nodes_in_group("precipitation_effects")
+	for node in nodes:
+		if node.has_method("set_time_stopped"):
+			node.set_time_stopped(paused)
+			_log("Precipitation %s: %s" % ["paused" if paused else "resumed", node.name])
 
 
 ## Restores all stored original process modes.

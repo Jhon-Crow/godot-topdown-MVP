@@ -1,9 +1,10 @@
 extends Node
-## Sniper rifle enemy component (Issues #1163, #1171).
-## Handles two responsibilities:
+## Sniper rifle enemy component (Issues #1163, #1171, #1336).
+## Handles three responsibilities:
 ##   1. AI behaviour: kiting (standoff range), retreat when player closes in,
 ##      and blind-fire through cover at last-known / predicted player positions.
 ##   2. Hitscan shooting: instant raycast avoids physics tunnelling at 10000px/s.
+##   3. Laser sight: always points where the next shot will travel (Issue #1336).
 ## Extracted from enemy.gd to keep the file below the 5000-line CI limit.
 class_name EnemySniperComponent
 
@@ -18,6 +19,25 @@ const MIN_DISTANCE: float = 350.0
 ## Seconds between blind-fire shots through cover.
 const BLIND_FIRE_COOLDOWN: float = 5.0
 
+## Laser sight maximum range (px). Issue #1336. 3× longer per Issue #1581.
+const LASER_MAX_RANGE: float = 15000.0
+## Muzzle offset from weapon sprite origin to barrel tip (px, before scale).
+const MUZZLE_LOCAL_OFFSET: float = 52.0
+
+# ============================================================================
+# Configuration — Aim inertia (Issue #1530)
+# ============================================================================
+
+## EMA smoothing factor for player velocity (0..1).
+## Lower = more inertia (sniper takes longer to correct after player reverses direction).
+## 0.12 ≈ 5-frame half-life at 60 fps (~85 ms). Sniper misses for ~400 ms after a reversal.
+const AIM_INERTIA_ALPHA: float = 0.12
+
+## Sniper aim rotation speed (rad/s) — matches the player's ASVK rotation speed.
+## Player: Sensitivity=8.0, NonAimingSensitivityFactor=0.04, rotationSpeed=8.0*0.04*10.0=3.2 rad/s
+## This makes the sniper only hit stationary/slow-moving players accurately (Issue #1530).
+const SNIPER_AIM_ROTATION_SPEED: float = 3.2
+
 # ============================================================================
 # State
 # ============================================================================
@@ -31,15 +51,101 @@ var enemy: Node2D = null
 ## Enable file logging (forwarded from enemy debug setting).
 var log_to_file_fn: Callable = Callable()
 
+# ============================================================================
+# State — Aim inertia (Issue #1530)
+# ============================================================================
+
+## Exponential moving average of player velocity.  Lags behind sudden direction changes,
+## causing the sniper's lead prediction to aim where the player *was* heading.
+var _smoothed_player_velocity: Vector2 = Vector2.ZERO
+## Whether the EMA has been seeded with at least one real sample.
+var _velocity_ema_initialised: bool = false
+## Whether the sniper had line-of-sight on the previous frame (used to detect re-acquisition).
+var _was_seeing_player: bool = false
+
+## Issue #1336: Current blind-fire target position (Vector2.ZERO when not blind-firing).
+## Updated by process_combat/process_pursuing so the laser always shows where the
+## next bullet will actually fly — matching the direction used in fire_at_predicted_position().
+var _blind_fire_target: Vector2 = Vector2.ZERO
+
+## Issue #1336: Laser sight Line2D node (only created for SNIPER_RIFLE enemies).
+var _laser_line: Line2D = null
+## Issue #1336: Laser endpoint dot (PointLight2D for glow at hit point).
+var _laser_dot: Sprite2D = null
+
+## Issue #1336 smooth laser: current displayed laser angle (radians), interpolated each frame.
+var _laser_current_angle: float = 0.0
+## Laser rotation speed (rad/s). Controls how fast the laser sweeps to a new target.
+const LASER_ROTATION_SPEED: float = 3.0
+## Angle tolerance (rad) below which the laser is considered aligned with the target.
+## ~3 degrees — tight enough to be accurate, loose enough to not feel broken.
+const LASER_ALIGNMENT_THRESHOLD: float = 0.05
+## Issue #1336 snap: exact firing angle set at shot time so tracer and laser match.
+var _laser_snap_angle: float = NAN  # NAN = not snapped; set just before shot fires
+
+## Issue #1581: Glow effect nodes — multi-layer additive Line2D lines matching the
+## player's LaserGlowEffect (same approach: volumetric glow via stacked additive layers).
+var _laser_glow_lines: Array[Line2D] = []
+## Issue #1581: PointLight2D at the laser endpoint for residual glow.
+var _laser_endpoint_glow: PointLight2D = null
+## Issue #1581: GPUParticles2D dust particles along the beam.
+var _laser_dust_particles: GPUParticles2D = null
+## Issue #1581: Cached ParticleProcessMaterial for dust particle extent updates.
+var _laser_dust_material: ParticleProcessMaterial = null
+
+## [Issue #1530] Returns the laser's current interpolated aim direction.
+## Use this for bullet/hitscan direction so tracer always matches laser.
+func get_aim_direction() -> Vector2:
+	return Vector2.from_angle(_laser_current_angle)
+
 
 func _ready() -> void:
 	if enemy == null:
 		enemy = get_parent() as CharacterBody2D
+	# [Issue #1530] Override enemy rotation_speed with sniper-specific slow aim speed.
+	# Default is 25.0 rad/s (instant snap); 3.2 matches the player's ASVK rotation speed.
+	if enemy != null and enemy.get("rotation_speed") != null:
+		enemy.rotation_speed = SNIPER_AIM_ROTATION_SPEED
+	# Issue #1336: Only create laser sight for sniper rifle enemies.
+	# EnemySniperComponent is added to ALL enemies (line 422 of enemy.gd) but
+	# the laser must only appear on snipers. Check weapon_type after enemy is set.
+	if enemy != null and enemy.get("weapon_type") != null:
+		# WeaponType.SNIPER_RIFLE == 7 (enum int value)
+		if int(enemy.weapon_type) == 7:
+			_create_laser_sight()
+
+
+func _process(_delta: float) -> void:
+	if _laser_line != null:
+		_update_laser_sight()
 
 
 # ============================================================================
 # Issue #1163 — AI behaviour: standoff range + blind-fire through cover
 # ============================================================================
+
+## [Issue #1530] Update exponential moving average of player velocity.
+## Seeded cold on first sample or after losing and re-acquiring LOS.
+func _update_velocity_ema(player: Node, can_see_player: bool) -> void:
+	if player == null:
+		return
+	# Re-acquisition: player just came back into view — reset EMA so stale
+	# pre-disappearance velocity does not corrupt the fresh sighting.
+	if can_see_player and not _was_seeing_player:
+		_velocity_ema_initialised = false
+	_was_seeing_player = can_see_player
+	var current_vel := Vector2.ZERO
+	if player is CharacterBody2D:
+		current_vel = (player as CharacterBody2D).velocity
+	if not _velocity_ema_initialised:
+		# Cold-start: seed with the first sample so there is no initial lag on first sighting.
+		_smoothed_player_velocity = current_vel
+		_velocity_ema_initialised = true
+		return
+	# EMA formula: new_smoothed = alpha * sample + (1 - alpha) * old_smoothed
+	_smoothed_player_velocity = AIM_INERTIA_ALPHA * current_vel \
+		+ (1.0 - AIM_INERTIA_ALPHA) * _smoothed_player_velocity
+
 
 ## Process sniper rifle combat behaviour: maintain standoff distance and blind-fire through cover.
 ## Returns true if sniper handling was applied (caller should return early).
@@ -48,6 +154,9 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 	if player == null:
 		return false
 
+	# [Issue #1530] Maintain smoothed velocity EMA for inertia-based lead prediction.
+	_update_velocity_ema(player, can_see_player)
+
 	var player_pos: Vector2 = (player as Node2D).global_position
 	var distance_to_player: float = enemy.global_position.distance_to(player_pos)
 	var direction_to_player: Vector2 = (player_pos - enemy.global_position).normalized()
@@ -55,6 +164,7 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 	blind_fire_timer += delta
 
 	if can_see_player:
+		_blind_fire_target = Vector2.ZERO  # Issue #1336: clear blind-fire target when player visible
 		if distance_to_player < MIN_DISTANCE:
 			var retreat_dir := -direction_to_player
 			retreat_dir = (enemy._apply_wall_avoidance(retreat_dir) as Vector2)
@@ -65,9 +175,15 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 
 		enemy._aim_at_player()
 		if enemy._detection_delay_elapsed and enemy._shoot_timer >= enemy.shoot_cooldown and enemy._can_shoot():
-			enemy._shoot()
-			enemy._shoot_timer = 0.0
-			blind_fire_timer = 0.0
+			# Issue #1336 smooth laser: only shoot once the laser has swept to the player direction.
+			var target_angle := direction_to_player.angle()
+			var angle_diff := absf(wrapf(_laser_current_angle - target_angle, -PI, PI))
+			if angle_diff < LASER_ALIGNMENT_THRESHOLD:
+				# Snap laser exactly to the firing direction so the tracer and laser match.
+				_laser_snap_angle = target_angle
+				enemy._shoot()
+				enemy._shoot_timer = 0.0
+				blind_fire_timer = 0.0
 		return true
 
 	# Player NOT visible: blind-fire at predicted position through cover.
@@ -80,14 +196,22 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 			blind_target = predicted
 
 	if blind_target == Vector2.ZERO:
+		_blind_fire_target = Vector2.ZERO  # Issue #1336: no target
 		enemy._transition_to_pursuing()
 		return true
 
+	_blind_fire_target = blind_target  # Issue #1336: track for laser direction
 	_rotate_toward(blind_target, delta)
 
 	if blind_fire_timer >= BLIND_FIRE_COOLDOWN and enemy._shoot_timer >= enemy.shoot_cooldown and enemy._can_shoot():
-		fire_at_predicted_position(blind_target)
-		blind_fire_timer = 0.0
+		# Issue #1336 smooth laser: only shoot once the laser has swept to the target direction.
+		var target_angle := (_blind_fire_target - enemy.global_position).normalized().angle()
+		var angle_diff := absf(wrapf(_laser_current_angle - target_angle, -PI, PI))
+		if angle_diff < LASER_ALIGNMENT_THRESHOLD:
+			# Snap laser exactly to the firing direction so the tracer and laser match.
+			_laser_snap_angle = target_angle
+			fire_at_predicted_position(blind_target)
+			blind_fire_timer = 0.0
 	return true
 
 
@@ -96,10 +220,14 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 func process_pursuing(delta: float, can_see_player: bool, player: Node,
 		last_known_pos: Vector2, prediction) -> bool:
 	blind_fire_timer += delta
+	# [Issue #1530] Keep EMA fresh even while pursuing so first shot after re-sighting uses
+	# smoothed velocity rather than the instantaneous value.
+	_update_velocity_ema(player, can_see_player)
 
 	# When player is visible and at safe range: shoot directly and let normal
 	# PURSUING code transition to COMBAT (return false so enemy.gd continues).
 	if can_see_player and player != null:
+		_blind_fire_target = Vector2.ZERO  # Issue #1336: clear when player visible
 		var dist := enemy.global_position.distance_to((player as Node2D).global_position)
 		if dist >= MIN_DISTANCE:
 			return false  # Fall through: normal pursuit will transition to COMBAT
@@ -112,15 +240,24 @@ func process_pursuing(delta: float, can_see_player: bool, player: Node,
 		if ph != Vector2.ZERO:
 			blind_pos = ph
 	if blind_pos == Vector2.ZERO:
+		_blind_fire_target = Vector2.ZERO  # Issue #1336: no target
 		return false
 	if enemy.global_position.distance_to(blind_pos) < MIN_DISTANCE:
+		_blind_fire_target = Vector2.ZERO  # Issue #1336: too close, will reposition
 		return false  # Too close — fall through to normal pursuit to reposition
 
+	_blind_fire_target = blind_pos  # Issue #1336: track for laser direction
 	enemy.velocity = Vector2.ZERO
 	_rotate_toward(blind_pos, delta)
 	if blind_fire_timer >= BLIND_FIRE_COOLDOWN and enemy._shoot_timer >= enemy.shoot_cooldown and enemy._can_shoot():
-		fire_at_predicted_position(blind_pos)
-		blind_fire_timer = 0.0
+		# Issue #1336 smooth laser: only shoot once the laser has swept to the target direction.
+		var target_angle := (blind_pos - enemy.global_position).normalized().angle()
+		var angle_diff := absf(wrapf(_laser_current_angle - target_angle, -PI, PI))
+		if angle_diff < LASER_ALIGNMENT_THRESHOLD:
+			# Snap laser exactly to the firing direction so the tracer and laser match.
+			_laser_snap_angle = target_angle
+			fire_at_predicted_position(blind_pos)
+			blind_fire_timer = 0.0
 	return true
 
 
@@ -139,8 +276,9 @@ func fire_at_predicted_position(target_pos: Vector2) -> void:
 	enemy.rotation = to_target.angle()
 
 	var spawn_pos: Vector2 = enemy._get_bullet_spawn_position(to_target)
-	var spread := deg_to_rad(randf_range(-3.0, 3.0))
-	var direction := to_target.rotated(spread)
+	# Issue #1336: No spread for sniper blind fire — sniper is a precision weapon and
+	# the laser shows the exact target direction; applying spread would mismatch tracer vs laser.
+	var direction := to_target
 	enemy._spawn_projectile(direction, spawn_pos)
 	enemy._spawn_muzzle_flash(spawn_pos, direction)
 	enemy._spawn_casing(direction, to_target)
@@ -289,7 +427,6 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 		elif hit_node.has_method("TakeDamage"): hit_node.call("TakeDamage", damage)
 		elif hit_node.has_method("take_damage"): hit_node.call("take_damage", damage)
 		elif hit_node.has_method("on_hit"): hit_node.call("on_hit")
-		if log_to_file_fn.is_valid(): log_to_file_fn.call("[SniperHitscan] Hit %s damage=%.0f" % [hit_node.name, damage])
 	_spawn_sniper_tracer(spawn_pos, bullet_end_point)
 
 ## Spawn a fading smoke tracer Line2D from muzzle to bullet endpoint.
@@ -323,6 +460,338 @@ func _fade_sniper_tracer(tracer: Line2D) -> void:
 		grad.set_color(grad.get_point_count() - 1, Color(0.5, 0.5, 0.5, a * 0.3))
 		tracer.gradient = grad; await get_tree().process_frame
 	if is_instance_valid(tracer): tracer.queue_free()
+
+
+# ============================================================================
+# Issue #1336 — Laser sight: always points where the next shot will travel
+# ============================================================================
+
+## Issue #1581: Laser color — red, matching the existing sniper laser.
+const LASER_COLOR: Color = Color(1.0, 0.0, 0.0, 1.0)
+
+## Issue #1581: Glow layer definitions [width_px, alpha].
+## Mirrors the player's LaserGlowEffect layers for visual parity.
+const LASER_GLOW_LAYERS: Array = [
+	[6.0,  0.6],   # Core boost — tight bright halo around beam
+	[14.0, 0.15],  # Inner glow — visible soft aura
+	[28.0, 0.05],  # Mid glow — subtle extended scatter
+	[48.0, 0.02],  # Outer glow — barely perceptible atmospheric haze
+]
+
+## Create the laser sight Line2D. Only called for SNIPER_RIFLE enemies.
+func _create_laser_sight() -> void:
+	# Issue #1336 smooth laser: initialise to current enemy rotation so the first
+	# frame starts from the actual facing direction instead of angle 0 (right).
+	_laser_current_angle = enemy.rotation if enemy != null else 0.0
+
+	# Core laser beam (narrow, semi-transparent red)
+	_laser_line = Line2D.new()
+	_laser_line.name = "SniperLaserSight"
+	_laser_line.width = 2.0
+	_laser_line.default_color = Color(1.0, 0.0, 0.0, 0.45)
+	_laser_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_laser_line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_laser_line.top_level = true
+	_laser_line.z_index = 9  # Below tracers (z=10) but above most sprites
+	_laser_line.add_point(Vector2.ZERO)
+	_laser_line.add_point(Vector2.ZERO)
+
+	# Issue #1581: Glow layers — additive-blended Line2D nodes at increasing widths
+	# and decreasing opacities, producing a volumetric laser glow identical to the
+	# player's LaserGlowEffect. Additive blending stacks brightness in the centre.
+	var additive_mat := CanvasItemMaterial.new()
+	additive_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var width_curve := Curve.new()
+	width_curve.add_point(Vector2(0.0, 0.0))
+	width_curve.add_point(Vector2(0.05, 1.0))
+	width_curve.add_point(Vector2(0.95, 1.0))
+	width_curve.add_point(Vector2(1.0, 0.0))
+	for layer_def in LASER_GLOW_LAYERS:
+		var glow_line := Line2D.new()
+		glow_line.name = "SniperLaserGlow"
+		glow_line.width = layer_def[0]
+		glow_line.default_color = Color(LASER_COLOR.r, LASER_COLOR.g, LASER_COLOR.b, layer_def[1])
+		glow_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		glow_line.end_cap_mode = Line2D.LINE_CAP_ROUND
+		glow_line.top_level = true
+		glow_line.z_index = 8  # One below core laser
+		glow_line.width_curve = width_curve
+		glow_line.material = additive_mat
+		glow_line.add_point(Vector2.ZERO)
+		glow_line.add_point(Vector2.ZERO)
+		_laser_glow_lines.append(glow_line)
+
+	# Issue #1581: Endpoint PointLight2D — glowing dot where laser hits.
+	_laser_endpoint_glow = PointLight2D.new()
+	_laser_endpoint_glow.name = "SniperLaserEndpointGlow"
+	_laser_endpoint_glow.color = Color(LASER_COLOR.r, LASER_COLOR.g, LASER_COLOR.b, 1.0)
+	_laser_endpoint_glow.energy = 0.7
+	_laser_endpoint_glow.shadow_enabled = false
+	_laser_endpoint_glow.texture_scale = 0.35
+	_laser_endpoint_glow.texture = _create_circular_glow_texture()
+	_laser_endpoint_glow.top_level = true
+	_laser_endpoint_glow.z_index = 8
+
+	# Issue #1581: Dust particles along the beam — tiny motes simulating laser light
+	# on atmospheric dust. Mirrors the player's LaserGlowEffect dust setup.
+	var color_ramp := Gradient.new()
+	color_ramp.set_color(0, Color(1.0, 1.0, 1.0, 0.0))
+	color_ramp.add_point(0.2, Color(1.0, 1.0, 1.0, 0.4))
+	color_ramp.add_point(0.5, Color(1.0, 1.0, 1.0, 0.4))
+	color_ramp.add_point(0.8, Color(1.0, 1.0, 1.0, 0.3))
+	color_ramp.set_color(1, Color(1.0, 1.0, 1.0, 0.0))
+	_laser_dust_material = ParticleProcessMaterial.new()
+	_laser_dust_material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	_laser_dust_material.emission_box_extents = Vector3(100.0, 2.0, 0.0)
+	_laser_dust_material.direction = Vector3(0.0, -1.0, 0.0)
+	_laser_dust_material.spread = 180.0
+	_laser_dust_material.initial_velocity_min = 1.0
+	_laser_dust_material.initial_velocity_max = 4.0
+	_laser_dust_material.gravity = Vector3.ZERO
+	_laser_dust_material.scale_min = 0.3
+	_laser_dust_material.scale_max = 0.8
+	_laser_dust_material.color_ramp = GradientTexture1D.new()
+	(_laser_dust_material.color_ramp as GradientTexture1D).gradient = color_ramp
+	_laser_dust_material.lifetime_randomness = 1.0
+	var particle_mat := CanvasItemMaterial.new()
+	particle_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	_laser_dust_particles = GPUParticles2D.new()
+	_laser_dust_particles.name = "SniperLaserDustParticles"
+	_laser_dust_particles.process_material = _laser_dust_material
+	_laser_dust_particles.amount = 80
+	_laser_dust_particles.lifetime = 0.05
+	_laser_dust_particles.explosiveness = 0.0
+	_laser_dust_particles.randomness = 0.5
+	_laser_dust_particles.emitting = true
+	_laser_dust_particles.texture = _create_dust_texture()
+	_laser_dust_particles.material = particle_mat
+	_laser_dust_particles.z_index = 8
+	_laser_dust_particles.top_level = true
+	_laser_dust_particles.local_coords = false
+
+	# Add as child of current scene so it renders in world space
+	call_deferred("_add_laser_to_scene")
+
+
+## Issue #1581: Create a circular radial gradient texture for the endpoint PointLight2D.
+## Identical approach to LaserGlowEffect.CreateCircularGlowTexture() in C#.
+func _create_circular_glow_texture() -> ImageTexture:
+	var size := 512
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var center := size / 2.0
+	for y in range(size):
+		for x in range(size):
+			var dx := x - center
+			var dy := y - center
+			var dist := sqrt(dx * dx + dy * dy) / center
+			var brightness: float
+			if dist <= 0.1:
+				brightness = lerpf(1.0, 0.8, dist / 0.1)
+			elif dist <= 0.25:
+				brightness = lerpf(0.8, 0.4, (dist - 0.1) / 0.15)
+			elif dist <= 0.4:
+				brightness = lerpf(0.4, 0.1, (dist - 0.25) / 0.15)
+			elif dist <= 0.55:
+				brightness = lerpf(0.1, 0.0, (dist - 0.4) / 0.15)
+			else:
+				brightness = 0.0
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+	return ImageTexture.create_from_image(image)
+
+
+## Issue #1581: Create a tiny dust mote texture for GPUParticles2D.
+## Identical approach to LaserGlowEffect.CreateDustTexture() in C#.
+func _create_dust_texture() -> ImageTexture:
+	var size := 6
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var center := size / 2.0
+	for y in range(size):
+		for x in range(size):
+			var dx := x - center
+			var dy := y - center
+			var dist := sqrt(dx * dx + dy * dy) / center
+			var alpha: float
+			if dist <= 0.15:
+				alpha = 0.5
+			elif dist <= 0.5:
+				var t := (dist - 0.15) / 0.35
+				alpha = 0.5 * (1.0 - t * t * t)
+			else:
+				alpha = 0.0
+			image.set_pixel(x, y, Color(LASER_COLOR.r, LASER_COLOR.g, LASER_COLOR.b, alpha))
+	return ImageTexture.create_from_image(image)
+
+
+## Deferred add to scene tree — ensures current_scene is available.
+func _add_laser_to_scene() -> void:
+	if _laser_line == null: return
+	if not is_inside_tree():
+		_laser_line.queue_free(); _laser_line = null
+		for gl in _laser_glow_lines: gl.queue_free()
+		_laser_glow_lines.clear()
+		if _laser_endpoint_glow: _laser_endpoint_glow.queue_free(); _laser_endpoint_glow = null
+		if _laser_dust_particles: _laser_dust_particles.queue_free(); _laser_dust_particles = null
+		return
+	var current_scene := get_tree().current_scene
+	if current_scene == null:
+		_laser_line.queue_free(); _laser_line = null
+		for gl in _laser_glow_lines: gl.queue_free()
+		_laser_glow_lines.clear()
+		if _laser_endpoint_glow: _laser_endpoint_glow.queue_free(); _laser_endpoint_glow = null
+		if _laser_dust_particles: _laser_dust_particles.queue_free(); _laser_dust_particles = null
+		return
+	# Add glow layers first (rendered below core)
+	for gl in _laser_glow_lines:
+		current_scene.add_child(gl)
+	# Add core laser
+	current_scene.add_child(_laser_line)
+	# Add endpoint glow and dust particles
+	if _laser_endpoint_glow:
+		current_scene.add_child(_laser_endpoint_glow)
+	if _laser_dust_particles:
+		current_scene.add_child(_laser_dust_particles)
+
+
+## Compute the direction the laser should point.
+## This MUST match the exact direction the next bullet will travel.
+##   - Direct fire: same as _get_weapon_forward_direction() which returns
+##     (player.global_position - enemy.global_position).normalized() when player visible.
+##   - Blind fire: (blind_target - enemy.global_position).normalized() — the exact
+##     same vector used by fire_at_predicted_position() for to_target.
+##   - No target: use the enemy model's current rotation (idle/patrol).
+func _get_laser_direction() -> Vector2:
+	# Blind-fire mode: use exact blind-fire target direction
+	if _blind_fire_target != Vector2.ZERO:
+		return (_blind_fire_target - enemy.global_position).normalized()
+	# Direct-fire mode: use the same logic as _get_weapon_forward_direction()
+	# which is what _execute_shoot() uses for the bullet direction.
+	var player: Node2D = enemy.get("_player") as Node2D
+	var can_see: bool = enemy.get("_can_see_player") if enemy.get("_can_see_player") != null else false
+	if player and is_instance_valid(player) and can_see:
+		return (player.global_position - enemy.global_position).normalized()
+	# Check for current target (companion, aggression target)
+	var current_target: Node2D = enemy.get("_current_target") as Node2D
+	if current_target and is_instance_valid(current_target):
+		var can_see_companion: bool = enemy.get("_can_see_companion") if enemy.get("_can_see_companion") != null else false
+		if can_see_companion:
+			return (current_target.global_position - enemy.global_position).normalized()
+	# Fallback: weapon sprite direction or model rotation
+	var weapon_sprite: Node2D = enemy.get("_weapon_sprite") as Node2D
+	if weapon_sprite and is_instance_valid(weapon_sprite):
+		return weapon_sprite.global_transform.x.normalized()
+	var enemy_model: Node2D = enemy.get("_enemy_model") as Node2D
+	if enemy_model and is_instance_valid(enemy_model):
+		return Vector2.from_angle(enemy_model.global_rotation)
+	return Vector2.RIGHT
+
+
+## Compute muzzle position using the laser direction (not the lerped sprite transform).
+## This avoids Bug C from previous attempts: muzzle offset in lerped direction while
+## laser points in target direction, creating a diagonal mismatch.
+func _get_laser_muzzle_pos(weapon_forward: Vector2) -> Vector2:
+	var weapon_sprite: Node2D = enemy.get("_weapon_sprite") as Node2D
+	if weapon_sprite and is_instance_valid(weapon_sprite):
+		var scale_val: float = enemy.enemy_model_scale if enemy.get("enemy_model_scale") != null else 1.3
+		return weapon_sprite.global_position + weapon_forward * (MUZZLE_LOCAL_OFFSET * scale_val)
+	return enemy.global_position + weapon_forward * enemy.bullet_spawn_offset
+
+
+## Issue #1581: Toggle visibility of all laser nodes (core + glow).
+func _set_laser_visible(vis: bool) -> void:
+	_laser_line.visible = vis
+	for gl in _laser_glow_lines:
+		if is_instance_valid(gl): gl.visible = vis
+	if _laser_endpoint_glow and is_instance_valid(_laser_endpoint_glow):
+		_laser_endpoint_glow.visible = vis
+	if _laser_dust_particles and is_instance_valid(_laser_dust_particles):
+		_laser_dust_particles.visible = vis
+		_laser_dust_particles.emitting = vis
+
+
+## Update laser sight position and direction every frame.
+func _update_laser_sight() -> void:
+	if not is_instance_valid(enemy) or not enemy.is_inside_tree():
+		return
+	# Hide laser when enemy is dead
+	if enemy.has_method("is_alive") and not enemy.is_alive():
+		_set_laser_visible(false)
+		return
+	# Hide laser during reload
+	var is_reloading: bool = enemy.get("_is_reloading") if enemy.get("_is_reloading") != null else false
+	if is_reloading:
+		_set_laser_visible(false)
+		return
+	_set_laser_visible(true)
+
+	# Issue #1336 smooth laser: interpolate angle toward the target direction each frame.
+	# If a snap angle was set by the firing code, use it exactly so tracer matches laser.
+	var delta := get_process_delta_time()
+	var target_angle := _get_laser_direction().angle()
+	if not is_nan(_laser_snap_angle):
+		_laser_current_angle = _laser_snap_angle
+		_laser_snap_angle = NAN  # consume the snap — resume normal lerp next frame
+	else:
+		_laser_current_angle = lerp_angle(_laser_current_angle, target_angle, LASER_ROTATION_SPEED * delta)
+	var weapon_forward := Vector2.from_angle(_laser_current_angle)
+
+	var muzzle_pos := _get_laser_muzzle_pos(weapon_forward)
+	var laser_end := muzzle_pos + weapon_forward * LASER_MAX_RANGE
+
+	# Raycast to find the first wall or character (incl. player) the laser hits.
+	# Issue #1662: mask 5 = layer 1 (characters) | layer 4 (walls/obstacles),
+	# so the laser stops at the player instead of passing through them.
+	var world_2d := enemy.get_world_2d()
+	if world_2d:
+		var space_state := world_2d.direct_space_state
+		if space_state:
+			var query := PhysicsRayQueryParameters2D.create(muzzle_pos, laser_end, 5)
+			var result := space_state.intersect_ray(query)
+			if not result.is_empty():
+				laser_end = result["position"]
+
+	_laser_line.set_point_position(0, muzzle_pos)
+	_laser_line.set_point_position(1, laser_end)
+
+	# Issue #1581: Sync glow layers with core laser endpoints
+	for gl in _laser_glow_lines:
+		if is_instance_valid(gl):
+			gl.visible = _laser_line.visible
+			gl.set_point_position(0, muzzle_pos)
+			gl.set_point_position(1, laser_end)
+
+	# Issue #1581: Move endpoint glow to hit point
+	if _laser_endpoint_glow and is_instance_valid(_laser_endpoint_glow):
+		_laser_endpoint_glow.visible = _laser_line.visible
+		_laser_endpoint_glow.global_position = laser_end
+
+	# Issue #1581: Update dust particle emitter along the beam
+	if _laser_dust_particles and is_instance_valid(_laser_dust_particles) and _laser_dust_material:
+		var beam_vec := laser_end - muzzle_pos
+		var beam_len := beam_vec.length()
+		if beam_len < 1.0 or not _laser_line.visible:
+			_laser_dust_particles.visible = false
+		else:
+			_laser_dust_particles.visible = true
+			_laser_dust_particles.global_position = (muzzle_pos + laser_end) * 0.5
+			_laser_dust_particles.global_rotation = beam_vec.angle()
+			_laser_dust_material.emission_box_extents = Vector3(beam_len * 0.5, 2.0, 0.0)
+
+
+## Clean up laser sight when enemy dies or component is removed.
+func _exit_tree() -> void:
+	if _laser_line and is_instance_valid(_laser_line):
+		_laser_line.queue_free()
+		_laser_line = null
+	for gl in _laser_glow_lines:
+		if is_instance_valid(gl):
+			gl.queue_free()
+	_laser_glow_lines.clear()
+	if _laser_endpoint_glow and is_instance_valid(_laser_endpoint_glow):
+		_laser_endpoint_glow.queue_free()
+		_laser_endpoint_glow = null
+	if _laser_dust_particles and is_instance_valid(_laser_dust_particles):
+		_laser_dust_particles.queue_free()
+		_laser_dust_particles = null
 
 
 # ============================================================================

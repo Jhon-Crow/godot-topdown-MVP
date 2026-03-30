@@ -6,11 +6,7 @@ extends Node
 ## 1. DEPLOYING: After spawn, seek nearest cover and deploy a drone.
 ## 2. CONTROLLING: While drone is alive, operator is defenseless (no movement, no vision).
 ## 3. ACTIVE: After drone is destroyed, pull out silenced pistol with laser sight
-##    and act as a normal enemy.
-##
-## Special mechanic: When bullets enter the operator's threat sphere (ACTIVE phase only),
-## instead of being suppressed, the operator performs a Dash (like the player's Dash item)
-## to evade. Can perform 4 consecutive dashes, then cooldown (same as player Dash: 1.2s).
+##    and act as a normal enemy. Dodges bullets perpendicular (same as machete enemy).
 
 ## Operator behavior phases.
 enum Phase {
@@ -18,30 +14,6 @@ enum Phase {
 	CONTROLLING,  ## Controlling the drone (defenseless)
 	ACTIVE        ## Drone destroyed, fighting with pistol
 }
-
-## Number of dash charges for evasion.
-const DASH_CHARGES: int = 4
-
-## Dash cooldown duration (same as player Dash).
-const DASH_COOLDOWN: float = 1.2
-
-## Dash duration per dash (same as player Dash).
-const DASH_DURATION: float = 0.15
-
-## Dash speed multiplier (same as player Dash).
-const DASH_SPEED_MULTIPLIER: float = 4.0
-
-## Chain window for consecutive dashes.
-const DASH_CHAIN_WINDOW: float = 0.4
-
-## Number of afterimage ghosts per dash.
-const AFTERIMAGE_COUNT: int = 4
-
-## Afterimage lifetime.
-const AFTERIMAGE_LIFETIME: float = 0.4
-
-## Afterimage initial alpha.
-const AFTERIMAGE_ALPHA: float = 0.7
 
 ## Time to wait at cover before deploying drone (seconds).
 const DEPLOY_DELAY: float = 0.5
@@ -76,17 +48,9 @@ var _reached_cover: bool = false
 ## Timer for how long we've been seeking cover (deploy anyway if exceeded).
 var _cover_seek_timer: float = 0.0
 
-## Dash state variables.
-var _dash_charges: int = DASH_CHARGES
-var _dash_cooldown_timer: float = 0.0
-var _dash_active: bool = false
-var _dash_timer: float = 0.0
-var _dash_direction: Vector2 = Vector2.ZERO
-var _dash_chain_timer: float = 0.0
-
-## Afterimage spawn timer.
-var _afterimage_timer: float = 0.0
-var _afterimage_interval: float = 0.0
+## EnemyTeleportComponent used for evasion in ACTIVE phase (Issue #1664).
+## Same teleport logic as the teleport enemy — teleport to cover on first bullet, etc.
+var _teleport_component: EnemyTeleportComponent = null
 
 ## VR headset visual node.
 var _vr_headset: Node2D = null
@@ -108,7 +72,6 @@ func _ready() -> void:
 ## Set up the component. Called from enemy._ready().
 func setup() -> void:
 	_phase = Phase.DEPLOYING
-	_dash_charges = DASH_CHARGES
 	_drone_deployed = false
 	_reached_cover = false
 	_deploy_timer = 0.0
@@ -116,7 +79,7 @@ func setup() -> void:
 	_setup_vr_headset_visual()
 	_setup_tablet_visual()
 	_hide_weapon_show_tablet()
-	FileLogger.info("[DroneOperator] Setup complete (dash_charges=%d, cooldown=%.1fs)" % [DASH_CHARGES, DASH_COOLDOWN])
+	FileLogger.info("[DroneOperator] Setup complete")
 
 
 ## Create VR headset visual on the enemy head.
@@ -237,74 +200,38 @@ func get_phase() -> Phase:
 	return _phase
 
 
-## Returns true if the operator is currently dashing (immune to damage).
-func is_dashing() -> bool:
-	return _dash_active
-
-
 ## Returns true if the operator is in the defenseless controlling phase.
 func is_controlling_drone() -> bool:
 	return _phase == Phase.CONTROLLING
 
 
-## Returns true if the operator should override suppression with dash.
-## Only in ACTIVE phase when bullets are in threat sphere.
-func should_dash_instead_of_suppress() -> bool:
-	return _phase == Phase.ACTIVE and not _dash_active
-
-
-## Calculate dash direction from threat and attempt to dash.
-## Called from enemy._update_suppression() when bullets are in threat sphere.
-func try_dash_from_threat(bullets_in_sphere: Array, player: Node2D, enemy_pos: Vector2) -> void:
-	var dash_dir := Vector2.ZERO
-	if not bullets_in_sphere.is_empty():
-		var bullet = bullets_in_sphere[0]
-		if is_instance_valid(bullet) and "velocity" in bullet:
-			dash_dir = -bullet.velocity.normalized().rotated(PI / 4.0 * (1 if randf() > 0.5 else -1))
-	if dash_dir == Vector2.ZERO and player:
-		dash_dir = (enemy_pos - player.global_position).normalized()
-	try_dash(dash_dir)
-
-
-## Attempt to activate a dash in a given direction (called when bullets enter threat sphere).
-## Returns true if dash started successfully.
-func try_dash(direction: Vector2) -> bool:
-	if _phase != Phase.ACTIVE:
+## Returns true if the teleport is ready (off cooldown). ACTIVE phase only.
+func is_teleport_ready() -> bool:
+	if _phase != Phase.ACTIVE or _teleport_component == null:
 		return false
-	if _dash_active:
+	return _teleport_component.is_ready()
+
+
+## Try to teleport to target position. Delegates to EnemyTeleportComponent logic.
+## Returns true if teleport succeeded.
+func try_teleport(target: Vector2) -> bool:
+	if _phase != Phase.ACTIVE or _teleport_component == null:
 		return false
-	if _dash_charges <= 0 and _dash_cooldown_timer > 0.0:
+	return _teleport_component.try_teleport(target)
+
+
+## Try immediate damage-triggered teleport (first bullet). Tries cover first, then flank.
+## Returns true if teleport succeeded.
+func try_damage_teleport(cover_position: Vector2, flank_target: Vector2) -> bool:
+	if _phase != Phase.ACTIVE or _teleport_component == null:
 		return false
+	return _teleport_component.try_damage_teleport(cover_position, flank_target)
 
-	if direction == Vector2.ZERO:
-		# Dash away from the nearest bullet direction
-		if _parent:
-			direction = Vector2.RIGHT.rotated(_parent.rotation + PI)
-		else:
-			return false
 
-	_dash_direction = direction.normalized()
-	_dash_active = true
-	_dash_timer = DASH_DURATION
-	_dash_chain_timer = 0.0
-	_afterimage_timer = 0.0
-	_afterimage_interval = DASH_DURATION / float(AFTERIMAGE_COUNT) if AFTERIMAGE_COUNT > 0 else DASH_DURATION
-
-	_dash_charges -= 1
-
-	# Apply dash velocity
-	if _parent and "velocity" in _parent:
-		var base_speed: float = _parent.get("combat_move_speed") if _parent.get("combat_move_speed") else 320.0
-		_parent.velocity = _dash_direction * base_speed * DASH_SPEED_MULTIPLIER
-
-	FileLogger.info("[DroneOperator] Dash activated! Dir: (%.2f, %.2f), charges left: %d/%d" % [
-		_dash_direction.x, _dash_direction.y, _dash_charges, DASH_CHARGES
-	])
-
-	# Spawn first afterimage immediately
-	_spawn_afterimage()
-
-	return true
+## Advance teleport cooldown. Call from enemy._physics_process() in ACTIVE phase.
+func update_teleport(delta: float) -> void:
+	if _teleport_component != null:
+		_teleport_component.update(delta)
 
 
 ## DEPLOYING phase: seek cover and deploy drone.
@@ -358,11 +285,20 @@ func _deploy_drone() -> void:
 			else:
 				_parent.get_tree().current_scene.add_child(_drone)
 
-			# Connect drone destruction signal
-			var drone_comp: DroneComponent = _drone.get_node_or_null("DroneComponent") as DroneComponent
-			if drone_comp:
-				drone_comp.initialize(_parent)
-				drone_comp.drone_destroyed.connect(_on_drone_destroyed)
+			# Initialize drone and connect destruction signal using duck typing
+			# (drone.gd handles all AI directly — no DroneComponent class cast needed)
+			var drone_script: GDScript = _drone.get_script() as GDScript
+			FileLogger.info("[DroneOperator] Drone node created, script=%s" % (drone_script.resource_path if drone_script else "NONE"))
+			if _drone.has_method("initialize_drone"):
+				_drone.initialize_drone(_parent)
+				FileLogger.info("[DroneOperator] Drone initialized via initialize_drone()")
+			else:
+				FileLogger.info("[DroneOperator] WARNING: Drone has no initialize_drone() method! Script may have failed to load.")
+			if _drone.has_signal("died"):
+				_drone.died.connect(_on_drone_destroyed)
+				FileLogger.info("[DroneOperator] Connected to drone.died signal")
+			else:
+				FileLogger.info("[DroneOperator] WARNING: Drone has no 'died' signal! Script may have failed to load.")
 			FileLogger.info("[DroneOperator] Drone deployed at (%d, %d)" % [int(_drone.global_position.x), int(_drone.global_position.y)])
 	else:
 		FileLogger.info("[DroneOperator] WARNING: Drone scene not found at %s, skipping deployment" % DRONE_SCENE_PATH)
@@ -408,30 +344,38 @@ func _on_drone_destroyed() -> void:
 	_transition_to_active()
 
 
+## Laser sight Line2D node (shown during ACTIVE phase).
+var _laser_sight: Line2D = null
+
 ## Transition to ACTIVE phase with silenced pistol.
 func _transition_to_active() -> void:
 	_phase = Phase.ACTIVE
-	_dash_charges = DASH_CHARGES
-	_dash_cooldown_timer = 0.0
 
 	# Show weapon, hide tablet
 	_show_weapon_hide_tablet()
 
-	# Switch weapon to PM (type 5) — closest to silenced pistol with laser
-	if _parent and _parent.has_method("switch_weapon"):
-		_parent.switch_weapon(5)  # PM = WeaponType 5
-	elif _parent and _parent.get("weapon_type") != null:
-		_parent.set("weapon_type", 5)
+	# Switch weapon to SILENCED_PISTOL (type 9) — Issue #1532
+	if _parent and _parent.get("weapon_type") != null:
+		_parent.set("weapon_type", 9)  # WeaponType.SILENCED_PISTOL
 		if _parent.has_method("_configure_weapon_type"):
 			_parent._configure_weapon_type()
 		if _parent.has_method("_initialize_ammo"):
 			_parent._initialize_ammo()
 
-	# Change VR headset lens to red = disconnected
+	# Scale the weapon sprite down — silenced pistol is a compact sidearm (Issue #1532 fix #1)
+	if _weapon_mount:
+		var weapon_sprite: Sprite2D = _weapon_mount.get_node_or_null("WeaponSprite") as Sprite2D
+		if weapon_sprite:
+			weapon_sprite.scale = Vector2(0.65, 0.65)  # Smaller than the default rifle-sized weapon
+
+	# Add laser sight visual to weapon mount (Issue #1532)
+	_setup_laser_sight()
+
+	# Change VR headset lens to RED = drone destroyed / disconnected (Issue #1532)
 	if _vr_headset:
 		var lens: Polygon2D = _vr_headset.get_node_or_null("Lens") as Polygon2D
 		if lens:
-			lens.color = Color(0.8, 0.1, 0.1, 0.6)  # Red = disconnected
+			lens.color = Color(1.0, 0.05, 0.05, 1.0)  # Bright red = disconnected (Issue #1532)
 
 	# Force transition to COMBAT state
 	if _parent and _parent.has_method("_transition_to_combat"):
@@ -439,123 +383,63 @@ func _transition_to_active() -> void:
 	elif _parent and _parent.get("_current_state") != null:
 		_parent._current_state = 1  # AIState.COMBAT
 
+	# Set up EnemyTeleportComponent for evasion (Issue #1664).
+	# Same teleport behavior as the teleport enemy — teleport to cover on first bullet, etc.
+	_setup_teleport_component()
+
 	phase_changed.emit(Phase.ACTIVE)
-	FileLogger.info("[DroneOperator] Phase: ACTIVE (pistol drawn, dash evasion enabled)")
+	FileLogger.info("[DroneOperator] Phase: ACTIVE (silenced pistol + laser, teleport evasion)")
 
 
-## ACTIVE phase: normal combat + dash evasion instead of suppression.
-func _update_active(delta: float) -> void:
-	# Update dash cooldown
-	if _dash_cooldown_timer > 0.0:
-		_dash_cooldown_timer -= delta
-		if _dash_cooldown_timer <= 0.0:
-			_dash_cooldown_timer = 0.0
-			_dash_charges = DASH_CHARGES
-			FileLogger.info("[DroneOperator] Dash cooldown finished, charges restored: %d" % DASH_CHARGES)
-
-	# Update chain window timer
-	if not _dash_active and _dash_chain_timer > 0.0:
-		_dash_chain_timer -= delta
-		if _dash_chain_timer <= 0.0:
-			_dash_chain_timer = 0.0
-			# Chain window expired — start cooldown if charges remain
-			if _dash_charges > 0 and _dash_charges < DASH_CHARGES:
-				_dash_charges = 0
-			if _dash_charges <= 0 and _dash_cooldown_timer <= 0.0:
-				_dash_cooldown_timer = DASH_COOLDOWN
-				FileLogger.info("[DroneOperator] Dash chain window expired, cooldown started: %.1fs" % DASH_COOLDOWN)
-
-	# Update active dash
-	if _dash_active:
-		_update_dash(delta)
-
-
-## Update active dash state.
-func _update_dash(delta: float) -> void:
-	_dash_timer -= delta
-
-	# Spawn afterimages at intervals
-	_afterimage_timer += delta
-	if _afterimage_timer >= _afterimage_interval:
-		_afterimage_timer -= _afterimage_interval
-		_spawn_afterimage()
-
-	# Maintain dash velocity
-	if _parent and "velocity" in _parent:
-		var base_speed: float = _parent.get("combat_move_speed") if _parent.get("combat_move_speed") else 320.0
-		_parent.velocity = _dash_direction * base_speed * DASH_SPEED_MULTIPLIER
-
-	# End dash when timer expires
-	if _dash_timer <= 0.0:
-		_end_dash()
-
-
-## End the current dash.
-func _end_dash() -> void:
-	_dash_active = false
-	_dash_timer = 0.0
-
-	# Reduce velocity smoothly
-	if _parent and "velocity" in _parent:
-		var base_speed: float = _parent.get("combat_move_speed") if _parent.get("combat_move_speed") else 320.0
-		_parent.velocity = _dash_direction * base_speed * 0.5
-
-	if _dash_charges <= 0:
-		_dash_cooldown_timer = DASH_COOLDOWN
-		FileLogger.info("[DroneOperator] Dash ended (all charges spent). Cooldown: %.1fs" % DASH_COOLDOWN)
+## Create and configure an EnemyTeleportComponent for evasion in ACTIVE phase (Issue #1664).
+func _setup_teleport_component() -> void:
+	if _teleport_component != null:
+		return  # Already set up
+	_teleport_component = EnemyTeleportComponent.new()
+	_teleport_component.name = "TeleportComponent"
+	# IMPORTANT: must be added to _parent (CharacterBody2D), not self (Node).
+	# EnemyTeleportComponent._ready() does get_parent() as CharacterBody2D — if the parent
+	# is DroneOperatorComponent (a plain Node), the cast returns null and _ready_flag stays
+	# false, making is_ready() always return false so teleport never fires (Issue #1664).
+	if _parent != null:
+		_parent.add_child(_teleport_component)
 	else:
-		_dash_chain_timer = DASH_CHAIN_WINDOW
-		FileLogger.info("[DroneOperator] Dash ended. %d charges left, chain window: %.1fs" % [_dash_charges, DASH_CHAIN_WINDOW])
+		add_child(_teleport_component)
+	FileLogger.info("[DroneOperator] Teleport component set up (teleport evasion, Issue #1664)")
 
 
-## Spawn an afterimage at the operator's current position.
-func _spawn_afterimage() -> void:
-	if _parent == null or not is_instance_valid(_parent):
+## Create a laser sight Line2D on the weapon mount (Issue #1532).
+func _setup_laser_sight() -> void:
+	if _weapon_mount == null or _laser_sight != null:
 		return
+	_laser_sight = Line2D.new()
+	_laser_sight.name = "LaserSight"
+	_laser_sight.default_color = Color(1.0, 0.0, 0.0, 0.6)  # Red laser, semi-transparent
+	_laser_sight.width = 1.0
+	# Render BEHIND the weapon sprite and arm — z_as_relative=true means z_index is relative
+	# to parent WeaponMount, so -2 puts it under the weapon/arm sprites (Issue #1532 fix #2)
+	_laser_sight.z_as_relative = true
+	_laser_sight.z_index = -2
+	# Start from under the pistol body (not at the muzzle tip), extends forward
+	_laser_sight.add_point(Vector2(0, 0))    # origin at weapon mount pivot
+	_laser_sight.add_point(Vector2(180, 0))  # extends forward from under the barrel
+	_weapon_mount.add_child(_laser_sight)
+	FileLogger.info("[DroneOperator] Laser sight visual added to weapon mount (z_index=-2, under arm)")
 
-	var model: Node2D = _parent.get_node_or_null("EnemyModel") as Node2D
-	if model == null:
+
+## Update laser sight length each active frame (fade when suppressed).
+func _update_laser_sight(_delta: float) -> void:
+	if _laser_sight == null or not is_instance_valid(_laser_sight):
 		return
+	# Pulse the laser alpha slightly for a realistic effect
+	var pulse: float = 0.5 + 0.15 * sin(Time.get_ticks_msec() * 0.006)
+	_laser_sight.default_color = Color(1.0, 0.0, 0.0, pulse)
 
-	var ghost_container := Node2D.new()
-	ghost_container.global_position = _parent.global_position
-	ghost_container.z_index = _parent.z_index
 
-	var sprites_added: int = 0
-	for child in model.get_children():
-		if child is Sprite2D and child.visible:
-			var ghost_sprite := Sprite2D.new()
-			ghost_sprite.texture = child.texture
-			ghost_sprite.position = child.position
-			ghost_sprite.rotation = child.rotation
-			ghost_sprite.scale = child.scale
-			ghost_sprite.flip_h = child.flip_h
-			ghost_sprite.flip_v = child.flip_v
-			ghost_sprite.offset = child.offset
-			ghost_sprite.hframes = child.hframes
-			ghost_sprite.vframes = child.vframes
-			ghost_sprite.frame = child.frame
-			ghost_sprite.region_enabled = child.region_enabled
-			if child.region_enabled:
-				ghost_sprite.region_rect = child.region_rect
-			ghost_container.add_child(ghost_sprite)
-			sprites_added += 1
+## ACTIVE phase: normal combat + teleport evasion (same as teleport enemy, Issue #1664).
+func _update_active(delta: float) -> void:
+	# Update laser sight pulse (Issue #1532)
+	_update_laser_sight(delta)
 
-	if sprites_added == 0:
-		ghost_container.queue_free()
-		return
-
-	ghost_container.rotation = model.global_rotation
-
-	# Orange-red tint for drone operator dash trail (distinct from player's cyan-blue)
-	ghost_container.modulate = Color(1.0, 0.4, 0.1, AFTERIMAGE_ALPHA)
-
-	var parent_node: Node = _parent.get_parent()
-	if parent_node == null:
-		ghost_container.queue_free()
-		return
-	parent_node.add_child(ghost_container)
-
-	var tween: Tween = ghost_container.create_tween()
-	tween.tween_property(ghost_container, "modulate:a", 0.0, AFTERIMAGE_LIFETIME)
-	tween.tween_callback(ghost_container.queue_free)
+	# Advance teleport cooldown
+	update_teleport(delta)

@@ -32,11 +32,8 @@ var _current_enemy_count: int = 0
 ## Whether game over has been shown.
 var _game_over_shown: bool = false
 
-## Reference to the kills label.
-var _kills_label: Label = null
-
-## Reference to the accuracy label.
-var _accuracy_label: Label = null
+## Reference to the difficulty label.
+var _difficulty_label: Label = null
 
 ## Reference to the magazines label (shows individual magazine ammo counts).
 var _magazines_label: Label = null
@@ -107,6 +104,9 @@ func _ready() -> void:
 
 	# Find and setup player tracking
 	_setup_player_tracking()
+
+	# Restrict camera so the border walls are never visible (Issue #1682).
+	_configure_camera()
 
 	# Setup debug UI
 	_setup_debug_ui()
@@ -512,6 +512,33 @@ func _get_combo_color(combo: int) -> Color:
 ## Setup the navigation mesh for enemy pathfinding.
 ## Issue #1216: Fixed baking — parse source geometry (walls, collision layer 4)
 ## then bake synchronously so walls are excluded from the walkable area.
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## Labyrinth2Level map: 3328x2528 px playfield framed by 32 px walls.
+##   WallTop    (1664,   48), h=16  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (1664, 2480), h=16  → top edge   y=2464  → limit_bottom = 2464
+##   WallLeft   (  48, 1264), w=16  → right edge x=64    → limit_left   = 64
+##   WallRight  (3280, 1264), w=16  → left edge  x=3264  → limit_right  = 3264
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[Labyrinth2Level] Camera2D not found on player — cannot set camera limits")
+		return
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 2464   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 3264   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	_log_to_file("Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
+
+
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
@@ -547,6 +574,10 @@ func _setup_enemy_tracking() -> void:
 		if enemy.has_signal("died"):
 			enemy.died.connect(_on_enemy_died)
 			_enemies.append(enemy)
+			if enemy.has_signal("died_with_info"):
+				enemy.died_with_info.connect(_on_enemy_died_with_info)
+		if enemy.has_signal("hit"):
+			enemy.hit.connect(_on_enemy_hit)
 		# Issue #959: Connect to pacifist signal - pacifists count as eliminated for level completion
 		if enemy.has_signal("became_pacifist"):
 			enemy.became_pacifist.connect(_on_enemy_became_pacifist.bind(enemy))
@@ -562,6 +593,8 @@ func _setup_player_tracking() -> void:
 	if _player == null:
 		push_warning("Player not found")
 		return
+
+	_setup_selected_weapon()
 
 	# Register player with GameManager
 	if GameManager:
@@ -598,6 +631,9 @@ func _setup_player_tracking() -> void:
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
 		if weapon.has_signal("Fired"):
 			weapon.Fired.connect(_on_shot_fired)
+		# Apply ammo config (silenced pistol and makarov_pm handled here as well)
+		_configure_silenced_pistol_ammo(weapon)
+		_configure_makarov_pm_ammo(weapon)
 		# Initial ammo display from weapon
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
@@ -612,8 +648,17 @@ func _setup_player_tracking() -> void:
 
 ## Setup debug UI labels.
 func _setup_debug_ui() -> void:
-	_kills_label = get_node_or_null("CanvasLayer/UI/KillsLabel")
-	_accuracy_label = get_node_or_null("CanvasLayer/UI/AccuracyLabel")
+	var ui := get_node_or_null("CanvasLayer/UI")
+	if ui != null:
+		_difficulty_label = Label.new()
+		_difficulty_label.name = "DifficultyLabel"
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		_difficulty_label.offset_left = 10
+		_difficulty_label.offset_top = 80
+		_difficulty_label.offset_right = 200
+		_difficulty_label.offset_bottom = 110
+		ui.add_child(_difficulty_label)
 	_magazines_label = get_node_or_null("CanvasLayer/UI/MagazinesLabel")
 	_combo_label = get_node_or_null("CanvasLayer/UI/ComboLabel")
 	_update_debug_ui()
@@ -637,6 +682,22 @@ func _on_enemy_died() -> void:
 		_level_cleared = true
 		_activate_exit_zone()
 		print("[Labyrinth2Level] All enemies eliminated! Go to exit.")
+
+
+## Called when an enemy dies with special kill information (ricochet/penetration).
+## Registers the kill with GameManager and ScoreManager for accurate score tracking.
+func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
+	if GameManager:
+		GameManager.register_kill(is_player_kill)
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_method("register_kill"):
+		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
+
+
+## Called when an enemy is hit (for accuracy tracking).
+func _on_enemy_hit() -> void:
+	if GameManager:
+		GameManager.register_hit()
 
 
 ## Called when an enemy becomes a pacifist (Issue #959).
@@ -679,12 +740,8 @@ func _update_debug_ui() -> void:
 	if not GameManager:
 		return
 
-	if _kills_label and GameManager.has_method("get_kill_count"):
-		_kills_label.text = "Kills: %d" % GameManager.get_kill_count()
-
-	if _accuracy_label and GameManager.has_method("get_accuracy"):
-		var acc: float = GameManager.get_accuracy()
-		_accuracy_label.text = "Accuracy: %.0f%%" % (acc * 100.0)
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 
 
 ## Called when player ammo changes.
@@ -873,11 +930,14 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 
 		buttons_container.add_child(replay_button)
 
-	# Armory button (shown when items are available to unlock)
+	# Armory button (Issue #897: shown highlighted when items are available to unlock; Issue #1622: always shown)
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
-	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
-		var armory_button := Button.new()
-		armory_button.name = "ArmoryButton"
+	var armory_button := Button.new()
+	armory_button.name = "ArmoryButton"
+	armory_button.pressed.connect(_on_armory_button_pressed)
+	buttons_container.add_child(armory_button)
+	var has_available_unlock: bool = unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock()
+	if has_available_unlock:
 		armory_button.text = "★ Armory — Items Available!"
 		armory_button.custom_minimum_size = Vector2(200, 40)
 		armory_button.add_theme_font_size_override("font_size", 18)
@@ -894,8 +954,19 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		armory_style.corner_radius_bottom_left = 4
 		armory_style.corner_radius_bottom_right = 4
 		armory_button.add_theme_stylebox_override("normal", armory_style)
-		armory_button.pressed.connect(_on_armory_button_pressed)
-		buttons_container.add_child(armory_button)
+		# Add gold shine shader overlay (Issue #1536).
+		var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+		if _armory_shine_shader:
+			var _armory_shine_mat := ShaderMaterial.new()
+			_armory_shine_mat.shader = _armory_shine_shader
+			var _armory_shine_overlay := ColorRect.new()
+			_armory_shine_overlay.name = "ArmoryGoldShineOverlay"
+			_armory_shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_armory_shine_overlay.material = _armory_shine_mat
+			armory_button.add_child(_armory_shine_overlay)
+	else:
+		armory_button.text = "Armory"
 
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
@@ -996,9 +1067,33 @@ func _on_armory_button_pressed() -> void:
 		armory_menu.layer = 100
 		armory_menu.opened_from_score_screen = true
 		get_tree().root.add_child(armory_menu)
-		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+		armory_menu.back_pressed.connect(func():
+			armory_menu.queue_free()
+			# Issue #1582: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
+		armory_menu.apply_pressed_from_score_screen.connect(func():
+			# Issue #1690: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
 	else:
 		_log_to_file("ERROR: Could not load armory menu scene")
+
+
+func _remove_armory_button_gold_style() -> void:
+	var armory_btn := get_tree().current_scene.find_child("ArmoryButton", true, false)
+	if armory_btn:
+		armory_btn.text = "Armory"
+		armory_btn.remove_theme_color_override("font_color")
+		armory_btn.remove_theme_stylebox_override("normal")
+		# Issue #1582: Remove gold shine overlay added by issue #1536
+		var shine_overlay := armory_btn.find_child("ArmoryGoldShineOverlay", true, false)
+		if shine_overlay:
+			shine_overlay.queue_free()
 
 
 ## Get the next level path based on the level ordering from LevelsMenu.
@@ -1022,6 +1117,9 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/FactoryLevel.tscn",
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
+		"res://scenes/levels/SewerLevel.tscn",
+		"res://scenes/levels/WinterForestLevel.tscn",
+		"res://scenes/levels/RailwayStationLevel.tscn",
 	]
 
 	for i in range(level_paths.size()):
@@ -1137,6 +1235,209 @@ func _setup_weapon_hints() -> void:
 		print("[Labyrinth2Level] Weapon hints component added and setup")
 
 
+## Configure silenced pistol ammo to match enemy count (Issue #1422).
+## The silenced pistol gets exactly as many bullets as there are enemies.
+func _configure_silenced_pistol_ammo(weapon: Node) -> void:
+	if weapon.name != "SilencedPistol":
+		return
+	if weapon.has_method("ConfigureAmmoForEnemyCount"):
+		var enemy_count: int = _initial_enemy_count
+		var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+		if ammo_multiplier > 1:
+			enemy_count *= ammo_multiplier
+			_log_to_file("Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by %dx" % ammo_multiplier)
+		weapon.ConfigureAmmoForEnemyCount(enemy_count)
+		_log_to_file("Configured silenced pistol ammo for %d enemies" % enemy_count)
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+
+
+## Configure Makarov PM ammo - 2.5x magazines (Issue #1422).
+func _configure_makarov_pm_ammo(weapon: Node) -> void:
+	if weapon == null:
+		return
+	if weapon.name != "MakarovPM":
+		return
+	var starting_magazines: int = 4
+	if weapon.get("StartingMagazineCount") != null:
+		starting_magazines = weapon.StartingMagazineCount
+	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+	if ammo_multiplier > 1:
+		pm_magazines *= ammo_multiplier
+		_log_to_file("Gunslinger/PowerFantasy mode: MakarovPM magazines multiplied by %dx" % ammo_multiplier)
+	if weapon.has_method("ReinitializeMagazines"):
+		weapon.ReinitializeMagazines(pm_magazines, true)
+		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
+
+
+## Apply Labyrinth2 level ammo configuration to a weapon (Issue #1422).
+## Silenced pistol: exactly as many bullets as enemies.
+## Mini UZI and rifles: 2 magazines to match level difficulty.
+## Shotgun, sniper, revolver: defaults are sufficient for 17 enemies.
+func _configure_labyrinth2_weapon_ammo(weapon: Node, weapon_id: String) -> void:
+	if weapon == null:
+		return
+
+	if weapon_id == "silenced_pistol":
+		_configure_silenced_pistol_ammo(weapon)
+	elif weapon_id == "mini_uzi" or weapon_id == "m16" or weapon_id == "ak_gl":
+		var base_magazines: int = 2
+		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+		if difficulty_manager:
+			var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+			if ammo_multiplier > 1:
+				base_magazines *= ammo_multiplier
+				_log_to_file("Power Fantasy mode - %s magazines multiplied by %dx" % [weapon.name, ammo_multiplier])
+		if weapon.has_method("ReinitializeMagazines"):
+			weapon.ReinitializeMagazines(base_magazines, true)
+			_log_to_file("%s magazines reinitialized to %d" % [weapon.name, base_magazines])
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
+		_log_to_file("Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+
+
+## Setup and equip the weapon selected by the player (Issue #1422).
+func _setup_selected_weapon() -> void:
+	if _player == null:
+		return
+
+	var selected_weapon_id: String = "makarov_pm"
+	if GameManager:
+		selected_weapon_id = GameManager.get_selected_weapon()
+
+	_log_to_file("Setting up weapon: %s" % selected_weapon_id)
+
+	if selected_weapon_id != "makarov_pm":
+		var weapon_names: Dictionary = {
+			"shotgun": "Shotgun",
+			"mini_uzi": "MiniUzi",
+			"silenced_pistol": "SilencedPistol",
+			"sniper": "SniperRifle",
+			"m16": "AssaultRifle",
+			"ak_gl": "AKGL",
+			"revolver": "Revolver"
+		}
+		if selected_weapon_id in weapon_names:
+			var expected_name: String = weapon_names[selected_weapon_id]
+			var existing_weapon = _player.get_node_or_null(expected_name)
+			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
+				_log_to_file("%s already equipped by C# Player - applying labyrinth2 ammo config" % expected_name)
+				_configure_labyrinth2_weapon_ammo(existing_weapon, selected_weapon_id)
+				return
+
+	if selected_weapon_id == "shotgun":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var shotgun_scene = load("res://scenes/weapons/csharp/Shotgun.tscn")
+		if shotgun_scene:
+			var shotgun = shotgun_scene.instantiate()
+			shotgun.name = "Shotgun"
+			_player.add_child(shotgun)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(shotgun)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = shotgun
+			_log_to_file("Shotgun equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load Shotgun scene!")
+	elif selected_weapon_id == "mini_uzi":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var mini_uzi_scene = load("res://scenes/weapons/csharp/MiniUzi.tscn")
+		if mini_uzi_scene:
+			var mini_uzi = mini_uzi_scene.instantiate()
+			mini_uzi.name = "MiniUzi"
+			if mini_uzi.get("StartingMagazineCount") != null:
+				mini_uzi.StartingMagazineCount = 2
+			_player.add_child(mini_uzi)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(mini_uzi)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = mini_uzi
+			_configure_labyrinth2_weapon_ammo(mini_uzi, "mini_uzi")
+			_log_to_file("Mini UZI equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load MiniUzi scene!")
+	elif selected_weapon_id == "silenced_pistol":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var pistol_scene = load("res://scenes/weapons/csharp/SilencedPistol.tscn")
+		if pistol_scene:
+			var pistol = pistol_scene.instantiate()
+			pistol.name = "SilencedPistol"
+			_player.add_child(pistol)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(pistol)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = pistol
+			_configure_labyrinth2_weapon_ammo(pistol, "silenced_pistol")
+			_log_to_file("Silenced Pistol equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load SilencedPistol scene!")
+	elif selected_weapon_id == "sniper":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
+		if sniper_scene:
+			var sniper = sniper_scene.instantiate()
+			sniper.name = "SniperRifle"
+			_player.add_child(sniper)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(sniper)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = sniper
+			_log_to_file("ASVK Sniper Rifle equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load SniperRifle scene!")
+	elif selected_weapon_id == "m16":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var m16_scene = load("res://scenes/weapons/csharp/AssaultRifle.tscn")
+		if m16_scene:
+			var m16 = m16_scene.instantiate()
+			m16.name = "AssaultRifle"
+			_player.add_child(m16)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(m16)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = m16
+			_configure_labyrinth2_weapon_ammo(m16, "m16")
+			_log_to_file("M16 Assault Rifle equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load AssaultRifle scene!")
+	elif selected_weapon_id == "ak_gl":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var akgl_scene = load("res://scenes/weapons/csharp/AKGL.tscn")
+		if akgl_scene:
+			var akgl = akgl_scene.instantiate()
+			akgl.name = "AKGL"
+			_player.add_child(akgl)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(akgl)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = akgl
+			_configure_labyrinth2_weapon_ammo(akgl, "ak_gl")
+			_log_to_file("AK + GL equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load AKGL scene!")
+	elif selected_weapon_id == "revolver":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov: makarov.queue_free()
+		var revolver_scene = load("res://scenes/weapons/csharp/Revolver.tscn")
+		if revolver_scene:
+			var revolver = revolver_scene.instantiate()
+			revolver.name = "Revolver"
+			_player.add_child(revolver)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(revolver)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = revolver
+			_log_to_file("RSh-12 Revolver equipped")
+		else:
+			push_error("[Labyrinth2Level] Failed to load Revolver scene!")
+	else:
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov and _player.get("CurrentWeapon") == null:
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(makarov)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = makarov
+			_configure_makarov_pm_ammo(makarov)
+
+
 ## Log a message to the level log file for debugging.
 func _log_to_file(message: String) -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
@@ -1149,6 +1450,22 @@ func _log_to_file(message: String) -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_Q:
+			# Block restart while the score screen animation is playing so the
+			# player can always see the Armory button before restarting (Issue #1589).
+			var game_manager: Node = get_node_or_null("/root/GameManager")
+			if game_manager and game_manager.get("score_screen_active"):
+				return
 			get_tree().reload_current_scene()
-		elif event.keycode == KEY_W and _level_cleared:
-			_complete_level_with_score()
+
+
+## Handle W key shortcut for Watch Replay when score is shown (Issue #807: check experimental setting).
+func _unhandled_input(event: InputEvent) -> void:
+	if not _score_shown:
+		return
+
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_W:
+			# Issue #807: Only trigger replay if enabled in experimental settings
+			var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+			if experimental_settings and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled():
+				_on_watch_replay_pressed()

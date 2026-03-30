@@ -29,6 +29,11 @@ const KEY_CURRENT_GRENADE_TYPE := "current_type"
 const KEY_CURRENT_ACTIVE_ITEM := "current_type"
 const KEY_KILLS_WITHOUT_LASER_SIGHT := "kills_without_laser_sight"  # Issue #1196
 const KEY_SHOTS_FIRED_SPECIAL_WEAPONS := "shots_fired_special_weapons"  # Issue #1346
+const KEY_TOTAL_DEATHS := "total_deaths"  # Issue #1389
+const KEY_NO_DAMAGE_LEVELS_COMPLETED := "no_damage_levels_completed"  # Issue #1389
+const KEY_LEVELS_COMPLETED_RANK_A_OR_HIGHER := "levels_completed_rank_a_or_higher"  # Issue #1589
+const KEY_KILLS_THROUGH_WALL := "kills_through_wall"  # Issue #1624
+const KEY_LEVELS_COMPLETED_WITH_SILENCED_PISTOL := "levels_completed_with_silenced_pistol"  # Issue #1624
 
 ## Default level to load when no saved state exists.
 const DEFAULT_LEVEL := "res://scenes/levels/LabyrinthLevel.tscn"
@@ -48,11 +53,25 @@ func _ready() -> void:
 	_log_to_file("PersistManager ready")
 
 
+## Tracks the previous scene to detect level changes (Issue #1456).
+var _previous_scene: Node = null
+
+## Guards against overwriting the saved level during startup.
+## When SceneLoader performs background loading, tree_changed fires while current_scene
+## is still LabyrinthLevel. Auto-saving is suppressed until current_scene has actually
+## changed to _startup_navigation_target (Issue #1456).
+var _navigation_ready: bool = false
+
+## The level we are navigating to on startup. Empty once startup navigation completes.
+var _startup_navigation_target: String = ""
+
+
 ## Navigate to the last played level if saved state exists.
 ## Called deferred so the default main scene finishes loading first.
 func _navigate_to_last_level() -> void:
 	if not has_saved_state():
 		_log_to_file("No saved level — starting at default level")
+		_navigation_ready = true
 		return
 
 	var last_level := get_last_level()
@@ -64,6 +83,11 @@ func _navigate_to_last_level() -> void:
 	# Only navigate if the last level is different from current
 	if last_level != current_path and last_level != "" and ResourceLoader.exists(last_level):
 		_log_to_file("Navigating to last played level: %s" % last_level)
+		# Record the destination so _on_tree_changed can detect when we actually arrive.
+		# SceneLoader performs background loading which fires tree_changed events while
+		# current_scene is still LabyrinthLevel — we must not auto-save until current_scene
+		# has actually changed to the target level (Issue #1456).
+		_startup_navigation_target = last_level
 		# Issue #997: Use SceneLoader for background loading with loading screen
 		var scene_loader: Node = get_node_or_null("/root/SceneLoader")
 		if scene_loader and scene_loader.has_method("load_level"):
@@ -72,10 +96,14 @@ func _navigate_to_last_level() -> void:
 			get_tree().change_scene_to_file(last_level)
 	else:
 		_log_to_file("Already at last played level: %s" % current_path)
+		_navigation_ready = true
 
 
 ## Connect to manager signals to auto-save on changes.
 func _connect_signals() -> void:
+	# Track scene changes to auto-save the current level (Issue #1456)
+	get_tree().tree_changed.connect(_on_tree_changed)
+
 	# GameManager signals
 	var game_manager: Node = get_node_or_null("/root/GameManager")
 	if game_manager:
@@ -87,6 +115,16 @@ func _connect_signals() -> void:
 			game_manager.kills_without_laser_sight_updated.connect(_on_kills_without_laser_sight_updated)
 		if game_manager.has_signal("shots_fired_special_weapons_updated"):
 			game_manager.shots_fired_special_weapons_updated.connect(_on_shots_fired_special_weapons_updated)
+		if game_manager.has_signal("total_deaths_updated"):
+			game_manager.total_deaths_updated.connect(_on_total_deaths_updated)
+		if game_manager.has_signal("no_damage_levels_completed_updated"):
+			game_manager.no_damage_levels_completed_updated.connect(_on_no_damage_levels_completed_updated)
+		if game_manager.has_signal("levels_completed_rank_a_or_higher_updated"):
+			game_manager.levels_completed_rank_a_or_higher_updated.connect(_on_levels_completed_rank_a_or_higher_updated)
+		if game_manager.has_signal("kills_through_wall_updated"):
+			game_manager.kills_through_wall_updated.connect(_on_kills_through_wall_updated)
+		if game_manager.has_signal("levels_completed_with_silenced_pistol_updated"):
+			game_manager.levels_completed_with_silenced_pistol_updated.connect(_on_levels_completed_with_silenced_pistol_updated)
 
 	# GrenadeManager signals
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -167,6 +205,66 @@ func _on_shots_fired_special_weapons_updated(_new_count: int) -> void:
 	_save_state()
 
 
+func _on_total_deaths_updated(_new_count: int) -> void:
+	_save_state()
+
+
+func _on_no_damage_levels_completed_updated(_new_count: int) -> void:
+	_save_state()
+
+
+func _on_levels_completed_rank_a_or_higher_updated(_new_count: int) -> void:
+	_save_state()
+
+
+func _on_kills_through_wall_updated(_new_count: int) -> void:
+	_save_state()
+
+
+func _on_levels_completed_with_silenced_pistol_updated(_new_count: int) -> void:
+	_save_state()
+
+
+## Called when the scene tree structure changes.
+## Detects level scene changes and auto-saves the current level path (Issue #1456).
+## During startup navigation, waits until current_scene has actually changed to the
+## target level before lifting the guard — this prevents SceneLoader's background
+## loading events from overwriting the saved level with LabyrinthLevel.
+func _on_tree_changed() -> void:
+	var current_scene := get_tree().current_scene
+	if current_scene == null or current_scene == _previous_scene:
+		return
+
+	# Startup guard: if we are waiting for the scene to change to the target level,
+	# check whether we have arrived. Lift the guard only when current_scene IS the
+	# target, so that intermediate tree_changed events (fired by SceneLoader during
+	# background loading while current_scene is still LabyrinthLevel) are ignored.
+	if not _navigation_ready:
+		if _startup_navigation_target == "":
+			return
+		var current_path: String = current_scene.scene_file_path
+		if current_path != _startup_navigation_target:
+			return
+		# We have arrived at the target level — lift the guard.
+		_navigation_ready = true
+		_startup_navigation_target = ""
+		_log_to_file("Startup navigation complete — arrived at: %s" % current_path)
+
+	_previous_scene = current_scene
+	var scene_path: String = current_scene.scene_file_path
+	if _is_level_scene(scene_path):
+		_save_state_with_level(scene_path)
+		_log_to_file("Auto-saved current level on scene change: %s" % scene_path)
+
+
+## Return true if the given resource path is a playable level scene.
+## Only paths under res://scenes/levels/ qualify — UI and other scenes are excluded.
+## @param scene_path: The scene_file_path of the current root scene.
+## @return: True if the path represents a level.
+func _is_level_scene(scene_path: String) -> bool:
+	return scene_path.begins_with("res://scenes/levels/") and scene_path.ends_with(".tscn")
+
+
 # ============================================================================
 # Save / Load
 # ============================================================================
@@ -206,6 +304,21 @@ func _save_state_with_level(level_path: String) -> void:
 		# Save shot stats (Issue #1346)
 		config.set_value(SECTION_KILL_STATS, KEY_SHOTS_FIRED_SPECIAL_WEAPONS,
 				game_manager.get("shots_fired_special_weapons") if game_manager.get("shots_fired_special_weapons") != null else 0)
+		# Save death stats (Issue #1389)
+		config.set_value(SECTION_KILL_STATS, KEY_TOTAL_DEATHS,
+				game_manager.get("total_deaths") if game_manager.get("total_deaths") != null else 0)
+		# Save no-damage level stats (Issue #1389)
+		config.set_value(SECTION_KILL_STATS, KEY_NO_DAMAGE_LEVELS_COMPLETED,
+				game_manager.get("no_damage_levels_completed") if game_manager.get("no_damage_levels_completed") != null else 0)
+		# Save rank-A level stats (Issue #1589)
+		config.set_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_RANK_A_OR_HIGHER,
+				game_manager.get("levels_completed_rank_a_or_higher") if game_manager.get("levels_completed_rank_a_or_higher") != null else 0)
+		# Save wall-kill stats (Issue #1624)
+		config.set_value(SECTION_KILL_STATS, KEY_KILLS_THROUGH_WALL,
+				game_manager.get("kills_through_wall") if game_manager.get("kills_through_wall") != null else 0)
+		# Save silenced pistol level completion stats (Issue #1624)
+		config.set_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_WITH_SILENCED_PISTOL,
+				game_manager.get("levels_completed_with_silenced_pistol") if game_manager.get("levels_completed_with_silenced_pistol") != null else 0)
 
 	# Save selected grenade type
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -275,6 +388,31 @@ func _load_state() -> void:
 			var saved_shots: int = config.get_value(SECTION_KILL_STATS, KEY_SHOTS_FIRED_SPECIAL_WEAPONS, 0)
 			game_manager.shots_fired_special_weapons = saved_shots
 			_log_to_file("Restored shots_fired_special_weapons: %d" % saved_shots)
+		# Restore death stats (Issue #1389)
+		if config.has_section_key(SECTION_KILL_STATS, KEY_TOTAL_DEATHS):
+			var saved_deaths: int = config.get_value(SECTION_KILL_STATS, KEY_TOTAL_DEATHS, 0)
+			game_manager.total_deaths = saved_deaths
+			_log_to_file("Restored total_deaths: %d" % saved_deaths)
+		# Restore no-damage level stats (Issue #1389)
+		if config.has_section_key(SECTION_KILL_STATS, KEY_NO_DAMAGE_LEVELS_COMPLETED):
+			var saved_no_damage: int = config.get_value(SECTION_KILL_STATS, KEY_NO_DAMAGE_LEVELS_COMPLETED, 0)
+			game_manager.no_damage_levels_completed = saved_no_damage
+			_log_to_file("Restored no_damage_levels_completed: %d" % saved_no_damage)
+		# Restore rank-A level stats (Issue #1589)
+		if config.has_section_key(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_RANK_A_OR_HIGHER):
+			var saved_rank_a: int = config.get_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_RANK_A_OR_HIGHER, 0)
+			game_manager.levels_completed_rank_a_or_higher = saved_rank_a
+			_log_to_file("Restored levels_completed_rank_a_or_higher: %d" % saved_rank_a)
+		# Restore wall-kill stats (Issue #1624)
+		if config.has_section_key(SECTION_KILL_STATS, KEY_KILLS_THROUGH_WALL):
+			var saved_wall_kills: int = config.get_value(SECTION_KILL_STATS, KEY_KILLS_THROUGH_WALL, 0)
+			game_manager.kills_through_wall = saved_wall_kills
+			_log_to_file("Restored kills_through_wall: %d" % saved_wall_kills)
+		# Restore silenced pistol level completion stats (Issue #1624)
+		if config.has_section_key(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_WITH_SILENCED_PISTOL):
+			var saved_silenced: int = config.get_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_WITH_SILENCED_PISTOL, 0)
+			game_manager.levels_completed_with_silenced_pistol = saved_silenced
+			_log_to_file("Restored levels_completed_with_silenced_pistol: %d" % saved_silenced)
 
 		# Restore selected weapon
 		if config.has_section_key(SECTION_GAME, KEY_SELECTED_WEAPON):
@@ -367,6 +505,11 @@ func clear_all_saves() -> void:
 		game_manager.selected_weapon = "makarov_pm"
 		game_manager.kills_without_laser_sight = 0  # Issue #1196
 		game_manager.shots_fired_special_weapons = 0  # Issue #1346
+		game_manager.total_deaths = 0  # Issue #1389
+		game_manager.no_damage_levels_completed = 0  # Issue #1389
+		game_manager.levels_completed_rank_a_or_higher = 0  # Issue #1589
+		game_manager.kills_through_wall = 0  # Issue #1624
+		game_manager.levels_completed_with_silenced_pistol = 0  # Issue #1624
 
 	# Reset GrenadeManager to defaults
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -378,9 +521,21 @@ func clear_all_saves() -> void:
 	# Reset ActiveItemManager to defaults
 	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
 	if active_item_manager:
+		# Only reset condition-gated items to false.
+		# Items with no unlock condition (NONE, LOUDSPEAKER) keep their default true value
+		# so they remain available after a save clear (Issue #1691).
+		var unlock_manager_node: Node = get_node_or_null("/root/UnlockManager")
+		var condition_gated_items: Array = []
+		if unlock_manager_node and unlock_manager_node.has_method("get_active_items_with_conditions"):
+			condition_gated_items = unlock_manager_node.get_active_items_with_conditions()
 		for item_type in active_item_manager.unlocked_active_items.keys():
-			active_item_manager.unlocked_active_items[item_type] = item_type == active_item_manager.ActiveItemType.NONE
+			if item_type in condition_gated_items:
+				active_item_manager.unlocked_active_items[item_type] = false
+			# else: unconditionally-unlocked items (NONE, LOUDSPEAKER) keep their default value
 		active_item_manager.current_active_item = active_item_manager.ActiveItemType.NONE
+		# Emit active_item_changed so Player de-equips any active item (e.g. auto-reload)
+		# without triggering a level restart (Issue #1697).
+		active_item_manager.active_item_changed.emit(active_item_manager.ActiveItemType.NONE)
 		# Reset loudspeaker progress (Issue #959)
 		if active_item_manager.has_method("reset_loudspeaker_progress"):
 			active_item_manager.reset_loudspeaker_progress()

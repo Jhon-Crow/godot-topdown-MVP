@@ -13,8 +13,7 @@ var _weapon_hints_component: Node = null
 var _initial_enemy_count: int = 0
 var _current_enemy_count: int = 0
 var _game_over_shown: bool = false
-var _kills_label: Label = null
-var _accuracy_label: Label = null
+var _difficulty_label: Label = null
 var _magazines_label: Label = null
 var _saturation_overlay: ColorRect = null
 var _combo_label: Label = null
@@ -49,6 +48,8 @@ func _ready() -> void:
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()
 	_setup_player_tracking()
+	# Restrict camera so the border walls are never visible (Issue #1682).
+	_configure_camera()
 	_setup_debug_ui()
 	_setup_saturation_overlay()
 	if GameManager:
@@ -169,6 +170,33 @@ func _get_combo_color(combo: int) -> Color:
 		return Color(1.0, 1.0, 1.0, 1.0)
 
 
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## DecadenceLevel map: 2528x2128 px playfield framed by 32 px walls.
+##   WallTop    (1264,   48), h=16  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (1264, 2080), h=16  → top edge   y=2064  → limit_bottom = 2064
+##   WallLeft   (  48, 1064), w=16  → right edge x=64    → limit_left   = 64
+##   WallRight  (2480, 1064), w=16  → left edge  x=2464  → limit_right  = 2464
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[DecadenceLevel] Camera2D not found on player — cannot set camera limits")
+		return
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 2064   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 2464   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	_log_to_file("Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
+
+
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
@@ -259,7 +287,12 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 	if weapon.name != "SilencedPistol":
 		return
 	if weapon.has_method("ConfigureAmmoForEnemyCount"):
-		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
+		var enemy_count: int = _initial_enemy_count
+		var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+		if ammo_multiplier > 1:
+			enemy_count *= ammo_multiplier
+			_log_to_file("Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by %dx" % ammo_multiplier)
+		weapon.ConfigureAmmoForEnemyCount(enemy_count)
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
@@ -275,6 +308,10 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 	if weapon.get("StartingMagazineCount") != null:
 		starting_magazines = weapon.StartingMagazineCount
 	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+	if ammo_multiplier > 1:
+		pm_magazines *= ammo_multiplier
+		_log_to_file("Gunslinger/PowerFantasy mode: MakarovPM magazines multiplied by %dx" % ammo_multiplier)
 	if weapon.has_method("ReinitializeMagazines"):
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
@@ -433,32 +470,23 @@ func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
-	_kills_label = Label.new()
-	_kills_label.name = "KillsLabel"
-	_kills_label.text = "Kills: 0"
-	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left = 10
-	_kills_label.offset_top = 45
-	_kills_label.offset_right = 200
-	_kills_label.offset_bottom = 75
-	ui.add_child(_kills_label)
-	_accuracy_label = Label.new()
-	_accuracy_label.name = "AccuracyLabel"
-	_accuracy_label.text = "Accuracy: 0%"
-	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left = 10
-	_accuracy_label.offset_top = 75
-	_accuracy_label.offset_right = 200
-	_accuracy_label.offset_bottom = 105
-	ui.add_child(_accuracy_label)
+	_difficulty_label = Label.new()
+	_difficulty_label.name = "DifficultyLabel"
+	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_difficulty_label.offset_left = 10
+	_difficulty_label.offset_top = 80
+	_difficulty_label.offset_right = 200
+	_difficulty_label.offset_bottom = 110
+	ui.add_child(_difficulty_label)
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
 	_magazines_label.text = "MAGS: -"
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
-	_magazines_label.offset_top = 105
+	_magazines_label.offset_top = 115
 	_magazines_label.offset_right = 400
-	_magazines_label.offset_bottom = 135
+	_magazines_label.offset_bottom = 145
 	ui.add_child(_magazines_label)
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
@@ -500,7 +528,7 @@ func _on_enemy_died() -> void:
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
-		GameManager.register_kill(is_player_kill)
+		GameManager.register_kill(is_player_kill, is_penetration_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
@@ -636,10 +664,8 @@ func _update_enemy_count_label() -> void:
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
-	if _kills_label:
-		_kills_label.text = "Kills: %d" % GameManager.kills
-	if _accuracy_label:
-		_accuracy_label.text = "Accuracy: %.1f%%" % GameManager.get_accuracy()
+	if _difficulty_label:
+		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
 
 
 func _update_ammo_label(current: int, maximum: int) -> void:
@@ -777,14 +803,18 @@ func _show_victory_message() -> void:
 
 func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	_score_shown = true
+
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = 10
 	container.add_child(spacer)
+
 	var buttons_container := VBoxContainer.new()
 	buttons_container.name = "ButtonsContainer"
 	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons_container.add_theme_constant_override("separation", 10)
 	container.add_child(buttons_container)
+
+	# Next Level button
 	var next_level_path: String = _get_next_level_path()
 	if next_level_path != "":
 		var next_button := Button.new()
@@ -794,38 +824,95 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		next_button.add_theme_font_size_override("font_size", 18)
 		next_button.pressed.connect(_on_next_level_pressed.bind(next_level_path))
 		buttons_container.add_child(next_button)
+
+	# Restart button
 	var restart_button := Button.new()
 	restart_button.name = "RestartButton"
-	restart_button.text = "Restart"
+	restart_button.text = "↻ Restart (Q)"
 	restart_button.custom_minimum_size = Vector2(200, 40)
 	restart_button.add_theme_font_size_override("font_size", 18)
 	restart_button.pressed.connect(_on_restart_pressed)
 	buttons_container.add_child(restart_button)
+
+	# Level Select button
 	var level_select_button := Button.new()
 	level_select_button.name = "LevelSelectButton"
-	level_select_button.text = "Level Select"
+	level_select_button.text = "☰ Level Select"
 	level_select_button.custom_minimum_size = Vector2(200, 40)
 	level_select_button.add_theme_font_size_override("font_size", 18)
 	level_select_button.pressed.connect(_on_level_select_pressed)
 	buttons_container.add_child(level_select_button)
+
+	# Watch Replay button (Issue #807: only shown if replay viewing is enabled in experimental settings)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var replay_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled()
+
+	if replay_enabled:
+		var replay_button := Button.new()
+		replay_button.name = "ReplayButton"
+		replay_button.text = "▶ Watch Replay (W)"
+		replay_button.custom_minimum_size = Vector2(200, 40)
+		replay_button.add_theme_font_size_override("font_size", 18)
+
+		var replay_manager: Node = _get_or_create_replay_manager()
+		var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+
+		if has_replay_data:
+			replay_button.pressed.connect(_on_watch_replay_pressed)
+		else:
+			replay_button.disabled = true
+			replay_button.text = "▶ Watch Replay (W) - no data"
+			replay_button.tooltip_text = "Replay recording was not available for this session"
+
+		buttons_container.add_child(replay_button)
+	else:
+		_log_to_file("Watch Replay button not shown (replay viewing disabled in experimental settings)")
+
+	# Armory button (Issue #897: shown highlighted when items are available to unlock; Issue #1622: always shown)
+	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
 	var armory_button := Button.new()
 	armory_button.name = "ArmoryButton"
-	armory_button.text = "Armory"
-	armory_button.custom_minimum_size = Vector2(200, 40)
-	armory_button.add_theme_font_size_override("font_size", 18)
 	armory_button.pressed.connect(_on_armory_button_pressed)
 	buttons_container.add_child(armory_button)
-	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
-	if experimental_settings and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled():
-		var replay_manager: Node = _get_or_create_replay_manager()
-		if replay_manager and replay_manager.has_method("HasReplay") and replay_manager.HasReplay():
-			var replay_button := Button.new()
-			replay_button.name = "WatchReplayButton"
-			replay_button.text = "Watch Replay [W]"
-			replay_button.custom_minimum_size = Vector2(200, 40)
-			replay_button.add_theme_font_size_override("font_size", 18)
-			replay_button.pressed.connect(_on_watch_replay_pressed)
-			buttons_container.add_child(replay_button)
+	var has_available_unlock: bool = unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock()
+	if has_available_unlock:
+		armory_button.text = "★ Armory — Items Available!"
+		armory_button.custom_minimum_size = Vector2(200, 40)
+		armory_button.add_theme_font_size_override("font_size", 18)
+		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
+		var armory_style := StyleBoxFlat.new()
+		armory_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
+		armory_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
+		armory_style.border_width_left = 2
+		armory_style.border_width_right = 2
+		armory_style.border_width_top = 2
+		armory_style.border_width_bottom = 2
+		armory_style.corner_radius_top_left = 4
+		armory_style.corner_radius_top_right = 4
+		armory_style.corner_radius_bottom_left = 4
+		armory_style.corner_radius_bottom_right = 4
+		armory_button.add_theme_stylebox_override("normal", armory_style)
+		# Add gold shine shader overlay (Issue #1536).
+		var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+		if _armory_shine_shader:
+			var _armory_shine_mat := ShaderMaterial.new()
+			_armory_shine_mat.shader = _armory_shine_shader
+			var _armory_shine_overlay := ColorRect.new()
+			_armory_shine_overlay.name = "ArmoryGoldShineOverlay"
+			_armory_shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_armory_shine_overlay.material = _armory_shine_mat
+			armory_button.add_child(_armory_shine_overlay)
+	else:
+		armory_button.text = "Armory"
+
+	# Show cursor for button interaction (Issue #1489: cursor was missing on Decadence score screen)
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+	if next_level_path != "":
+		buttons_container.get_node("NextLevelButton").grab_focus()
+	else:
+		restart_button.grab_focus()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -865,6 +952,7 @@ func _on_next_level_pressed(level_path: String) -> void:
 
 func _on_level_select_pressed() -> void:
 	_log_to_file("Level Select button pressed")
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 	var levels_menu_script = load("res://scripts/ui/levels_menu.gd")
 	if levels_menu_script:
 		var levels_menu = CanvasLayer.new()
@@ -876,17 +964,45 @@ func _on_level_select_pressed() -> void:
 		_log_to_file("ERROR: Could not load levels menu script")
 
 
+## Called when the Armory button is pressed on the score screen (Issue #897).
 func _on_armory_button_pressed() -> void:
 	_log_to_file("Armory button pressed from score screen")
 	var armory_menu_scene = load("res://scenes/ui/ArmoryMenu.tscn")
 	if armory_menu_scene:
 		var armory_menu = armory_menu_scene.instantiate()
 		armory_menu.layer = 100
+		# Issue #1006: Mark as opened from score screen to prevent level restart on Apply
 		armory_menu.opened_from_score_screen = true
 		get_tree().root.add_child(armory_menu)
-		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+		armory_menu.back_pressed.connect(func():
+			armory_menu.queue_free()
+			# Issue #1050: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
+		armory_menu.apply_pressed_from_score_screen.connect(func():
+			# Issue #1050: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
 	else:
 		_log_to_file("ERROR: Could not load armory menu scene")
+
+
+## Issue #1050: Remove gold highlight from the ArmoryButton when no items remain to unlock.
+## The button stays visible but loses its gold styling and reverts to plain "Armory" text.
+func _remove_armory_button_gold_style() -> void:
+	var armory_btn := get_tree().current_scene.find_child("ArmoryButton", true, false)
+	if armory_btn:
+		armory_btn.text = "Armory"
+		armory_btn.remove_theme_color_override("font_color")
+		armory_btn.remove_theme_stylebox_override("normal")
+		# Issue #1582: Remove gold shine overlay added by issue #1536
+		var shine_overlay := armory_btn.find_child("ArmoryGoldShineOverlay", true, false)
+		if shine_overlay:
+			shine_overlay.queue_free()
 
 
 func _get_next_level_path() -> String:
@@ -906,6 +1022,9 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/FactoryLevel.tscn",
 		"res://scenes/levels/DecadenceLevel.tscn",
 		"res://scenes/levels/Labyrinth2Level.tscn",
+		"res://scenes/levels/SewerLevel.tscn",
+		"res://scenes/levels/WinterForestLevel.tscn",
+		"res://scenes/levels/RailwayStationLevel.tscn",
 	]
 	for i in range(level_paths.size()):
 		if level_paths[i] == current_scene_path:

@@ -25,6 +25,9 @@ var _armory_menu: CanvasLayer = null
 ## The instantiated settings menu.
 var _settings_menu: CanvasLayer = null
 
+## Gold shine overlay ColorRect on the armory button (Issue #1536).
+var _armory_shine_overlay: ColorRect = null
+
 ## Reference to the levels menu scene.
 @export var levels_menu_scene: PackedScene
 
@@ -55,6 +58,9 @@ func _ready() -> void:
 	# Highlight armory button if there are available unlocks
 	# Disable it entirely in roguelike mode (Issue #1166)
 	_refresh_armory_button_state()
+
+	# Disable roguelike button until all levels are completed (Issue #1618)
+	_refresh_roguelike_button_state()
 
 	# Preload levels menu if not set
 	if levels_menu_scene == null:
@@ -102,6 +108,9 @@ func pause_game() -> void:
 
 	# Refresh armory button state each time the menu opens
 	_refresh_armory_button_state()
+
+	# Refresh roguelike button lock state each time the menu opens (Issue #1618)
+	_refresh_roguelike_button_state()
 
 	show()
 	resume_button.grab_focus()
@@ -281,7 +290,9 @@ func _refresh_armory_button_state() -> void:
 		# Disable armory button entirely in roguelike mode
 		armory_button.disabled = true
 		armory_button.tooltip_text = "Арсенал недоступен в режиме рогалика"
-		armory_button.remove_theme_stylebox_override("normal")
+		if _armory_shine_overlay != null and is_instance_valid(_armory_shine_overlay):
+			_armory_shine_overlay.queue_free()
+		_armory_shine_overlay = null
 		armory_button.remove_theme_color_override("font_color")
 		return
 
@@ -294,21 +305,79 @@ func _refresh_armory_button_state() -> void:
 		return
 
 	if unlock_manager.has_any_available_unlock():
-		# Highlight armory button in gold to draw attention to unlockable items
-		var highlight_style := StyleBoxFlat.new()
-		highlight_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
-		highlight_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
-		highlight_style.border_width_left = 2
-		highlight_style.border_width_right = 2
-		highlight_style.border_width_top = 2
-		highlight_style.border_width_bottom = 2
-		highlight_style.corner_radius_top_left = 4
-		highlight_style.corner_radius_top_right = 4
-		highlight_style.corner_radius_bottom_left = 4
-		highlight_style.corner_radius_bottom_right = 4
-		armory_button.add_theme_stylebox_override("normal", highlight_style)
+		# Add gold shine shader overlay if not already present (Issue #1536).
+		if _armory_shine_overlay == null or not is_instance_valid(_armory_shine_overlay):
+			var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+			if shine_shader:
+				var mat := ShaderMaterial.new()
+				mat.shader = shine_shader
+				var overlay := ColorRect.new()
+				overlay.name = "ArmoryGoldShineOverlay"
+				overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+				overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				overlay.material = mat
+				armory_button.add_child(overlay)
+				_armory_shine_overlay = overlay
+		# Keep text bright/gold so it stays visible over the additive shine overlay (Issue #1536).
 		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
 	else:
-		# Remove highlight — no available unlocks
-		armory_button.remove_theme_stylebox_override("normal")
+		# Remove shine overlay — no available unlocks
+		if _armory_shine_overlay != null and is_instance_valid(_armory_shine_overlay):
+			_armory_shine_overlay.queue_free()
+		_armory_shine_overlay = null
 		armory_button.remove_theme_color_override("font_color")
+
+
+## Refresh the roguelike button lock state (Issue #1618).
+## Locked until all regular levels are completed on any rank.
+## The experimental "Unlock Roguelike" toggle bypasses the requirement.
+func _refresh_roguelike_button_state() -> void:
+	# Check experimental bypass first
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var experimental_bypass: bool = (
+		experimental_settings != null and
+		experimental_settings.has_method("is_roguelike_unlocked") and
+		experimental_settings.is_roguelike_unlocked()
+	)
+
+	if experimental_bypass:
+		roguelike_button.disabled = false
+		roguelike_button.tooltip_text = ""
+		return
+
+	# Check if all regular levels have been completed on any difficulty
+	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
+	var all_done: bool = _are_all_levels_completed(progress_manager)
+
+	roguelike_button.disabled = not all_done
+	if all_done:
+		roguelike_button.tooltip_text = ""
+	else:
+		roguelike_button.tooltip_text = "Пройдите все уровни на любой ранг, чтобы разблокировать рогалик"
+
+
+## Check if all regular levels (those listed in LevelsMenu.LEVELS) are completed on any difficulty.
+## This mirrors the logic in levels_menu.gd::is_all_levels_completed() (Issue #1618).
+func _are_all_levels_completed(progress_manager: Node) -> bool:
+	if progress_manager == null or not progress_manager.has_method("is_level_completed_any_difficulty"):
+		return false
+	var level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
+		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/TestTier.tscn",
+		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
+		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
+		"res://scenes/levels/SewerLevel.tscn",
+		"res://scenes/levels/WinterForestLevel.tscn",
+		"res://scenes/levels/RailwayStationLevel.tscn",
+	]
+	for level_path in level_paths:
+		if not progress_manager.is_level_completed_any_difficulty(level_path):
+			return false
+	return true

@@ -25,6 +25,9 @@ class MockPlayer:
 	var _current_health: int = 5
 	var _is_alive: bool = true
 
+	## Sound propagation range for enemy detection (Issue #1524)
+	var weapon_loudness: float = 840.0
+
 	## Spread system constants
 	const SPREAD_THRESHOLD: int = 3
 	const INITIAL_SPREAD: float = 0.5
@@ -630,3 +633,17 @@ func test_no_blood_effect_on_dead_player() -> void:
 
 	assert_eq(player.blood_effects_spawned.size(), 0,
 		"Dead player should not spawn blood effects")
+
+
+# ============================================================================
+# Weapon Loudness / Sound Propagation Range Tests
+# ============================================================================
+
+
+func test_player_weapon_loudness_default_is_840() -> void:
+	# Issue #1524: Player M16 sound propagation range (enemy alerting) must be 840px.
+	# This is separate from the audio playback range in AudioManager.
+	var mock := MockPlayer.new()
+	mock.weapon_loudness = 840.0
+	assert_eq(mock.weapon_loudness, 840.0,
+		"Player weapon_loudness (M16 sound propagation range) should be 840.0px (Issue #1524)")

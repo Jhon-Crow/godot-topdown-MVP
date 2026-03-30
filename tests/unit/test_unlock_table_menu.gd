@@ -21,6 +21,12 @@ class MockUnlockTableMenu:
 		"res://scenes/levels/BeachLevel.tscn": "Beach",
 		"res://scenes/levels/DocksLevel.tscn": "Docks",
 		"res://scenes/levels/CityLevel.tscn": "City",
+		"res://scenes/levels/DecadenceLevel.tscn": "Decadence",
+		"res://scenes/levels/FactoryLevel.tscn": "Factory",
+		"res://scenes/levels/Labyrinth2Level.tscn": "Labyrinth Complex",
+		"res://scenes/levels/SewerLevel.tscn": "Sewer",
+		"res://scenes/levels/RailwayStationLevel.tscn": "Railway Station",
+		"res://scenes/levels/WinterForestLevel.tscn": "Winter Forest",
 	}
 
 	## Weapon ID to display name mapping.
@@ -57,6 +63,8 @@ class MockUnlockTableMenu:
 		17: "Combat Disposition",
 		18: "Experimental Sample",
 		19: "Fine Motor Skills",
+		20: "Dash",
+		21: "Grenade Bag",
 	}
 
 	## Grenade type to display name mapping.
@@ -65,6 +73,7 @@ class MockUnlockTableMenu:
 		1: "Frag Grenade",
 		2: "F-1 Grenade",
 		3: "Aggression Gas",
+		4: "Drone",
 	}
 
 	## Get color for a rank display.
@@ -112,8 +121,8 @@ func after_each() -> void:
 
 
 func test_level_names_count() -> void:
-	assert_eq(menu.LEVEL_NAMES.size(), 8,
-		"LEVEL_NAMES should have 8 entries")
+	assert_eq(menu.LEVEL_NAMES.size(), 14,
+		"LEVEL_NAMES should have 14 entries (Issue #1624: added Labyrinth Complex, Sewer, Railway Station, Winter Forest, Factory)")
 
 
 func test_level_names_all_valid_paths() -> void:
@@ -122,6 +131,11 @@ func test_level_names_all_valid_paths() -> void:
 			"Path '%s' should start with res://" % path)
 		assert_true(path.ends_with(".tscn"),
 			"Path '%s' should end with .tscn" % path)
+
+
+func test_level_names_contains_decadence() -> void:
+	assert_eq(menu.LEVEL_NAMES["res://scenes/levels/DecadenceLevel.tscn"], "Decadence",
+		"Decadence level display name should be Decadence (Issue #1423)")
 
 
 # ============================================================================
@@ -155,8 +169,8 @@ func test_weapon_names_contains_ak_gl() -> void:
 
 
 func test_active_item_names_count() -> void:
-	assert_eq(menu.ACTIVE_ITEM_NAMES.size(), 20,
-		"ACTIVE_ITEM_NAMES should have 20 entries (0-19)")
+	assert_eq(menu.ACTIVE_ITEM_NAMES.size(), 22,
+		"ACTIVE_ITEM_NAMES should have 22 entries (0-21, Issue #1624: added Dash and Grenade Bag)")
 
 
 func test_active_item_none_is_zero() -> void:
@@ -170,12 +184,12 @@ func test_active_item_flashlight() -> void:
 
 
 func test_active_item_last_entry() -> void:
-	assert_eq(menu.ACTIVE_ITEM_NAMES[19], "Fine Motor Skills",
-		"Item 19 should be Fine Motor Skills")
+	assert_eq(menu.ACTIVE_ITEM_NAMES[21], "Grenade Bag",
+		"Item 21 should be Grenade Bag (Issue #1624)")
 
 
 func test_active_item_names_sequential_keys() -> void:
-	for i in range(20):
+	for i in range(22):
 		assert_true(menu.ACTIVE_ITEM_NAMES.has(i),
 			"Should have active item with key %d" % i)
 
@@ -186,8 +200,8 @@ func test_active_item_names_sequential_keys() -> void:
 
 
 func test_grenade_names_count() -> void:
-	assert_eq(menu.GRENADE_NAMES.size(), 4,
-		"GRENADE_NAMES should have 4 entries")
+	assert_eq(menu.GRENADE_NAMES.size(), 5,
+		"GRENADE_NAMES should have 5 entries (Issue #1624: added Drone)")
 
 
 func test_grenade_names_flashbang() -> void:

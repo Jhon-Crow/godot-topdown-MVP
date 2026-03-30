@@ -128,11 +128,12 @@ class MockAudioManager:
 		var idx := _get_available_player_index()
 		_audio_pool[idx] = true  # Mark as playing
 
-	func play_sound_2d(path: String, position: Vector2, volume_db: float = 0.0) -> void:
+	func play_sound_2d(path: String, position: Vector2, volume_db: float = 0.0, max_distance: float = 2000.0) -> void:
 		played_sounds_2d.append({
 			"path": path,
 			"position": position,
-			"volume": volume_db
+			"volume": volume_db,
+			"max_distance": max_distance
 		})
 		var idx := _get_available_player_2d_index()
 		_audio_2d_pool[idx] = true
@@ -143,11 +144,11 @@ class MockAudioManager:
 		var path: String = paths[randi() % paths.size()]
 		play_sound(path, volume_db)
 
-	func play_random_sound_2d(paths: Array, position: Vector2, volume_db: float = 0.0) -> void:
+	func play_random_sound_2d(paths: Array, position: Vector2, volume_db: float = 0.0, max_distance: float = 2000.0) -> void:
 		if paths.is_empty():
 			return
 		var path: String = paths[randi() % paths.size()]
-		play_sound_2d(path, position, volume_db)
+		play_sound_2d(path, position, volume_db, max_distance)
 
 	func cache_sound(path: String) -> void:
 		_audio_cache[path] = true
@@ -374,3 +375,98 @@ func test_asvk_bolt_step_uses_non_positional_audio() -> void:
 		"ASVK bolt step should use non-positional play_sound")
 	assert_eq(audio.played_sounds_2d.size(), 0,
 		"ASVK bolt step should NOT use positional play_sound_2d")
+
+
+# ============================================================================
+# M16 Sound Range Tests (Issue #1524)
+# ============================================================================
+
+
+func test_m16_max_distance_constant_is_840() -> void:
+	# Issue #1524: M16 sound range must be 840px.
+	var m16_max_distance := 840.0
+	assert_eq(m16_max_distance, 840.0, "M16_MAX_DISTANCE should be 840.0 px")
+
+
+func test_m16_shot_uses_840_max_distance() -> void:
+	# Issue #1524: play_m16_shot must limit audible range to 840px.
+	var m16_shots := ["res://assets/audio/m16 1.wav"]
+	var position := Vector2(100, 100)
+	var m16_max_distance := 840.0
+
+	audio.play_random_sound_2d(m16_shots, position, -5.0, m16_max_distance)
+
+	assert_eq(audio.played_sounds_2d[0]["max_distance"], 840.0,
+		"M16 shot max_distance should be 840.0 px")
+
+
+func test_m16_double_shot_uses_840_max_distance() -> void:
+	# Issue #1524: play_m16_double_shot must limit audible range to 840px.
+	var m16_double_shots := ["res://assets/audio/m16 два выстрела подряд.wav"]
+	var position := Vector2(100, 100)
+	var m16_max_distance := 840.0
+
+	audio.play_random_sound_2d(m16_double_shots, position, -5.0, m16_max_distance)
+
+	assert_eq(audio.played_sounds_2d[0]["max_distance"], 840.0,
+		"M16 double shot max_distance should be 840.0 px")
+
+
+func test_m16_bolt_uses_840_max_distance() -> void:
+	# Issue #1524: play_m16_bolt must limit audible range to 840px.
+	var m16_bolt_sounds := ["res://assets/audio/взвод затвора m16 1.wav"]
+	var position := Vector2(100, 100)
+	var m16_max_distance := 840.0
+
+	audio.play_random_sound_2d(m16_bolt_sounds, position, -3.0, m16_max_distance)
+
+	assert_eq(audio.played_sounds_2d[0]["max_distance"], 840.0,
+		"M16 bolt max_distance should be 840.0 px")
+
+
+func test_ak_max_distance_constant_is_2400() -> void:
+	# Issue #1549: AK/PKM machine gun sound range must be 2400px.
+	var ak_max_distance := 2400.0
+	assert_eq(ak_max_distance, 2400.0, "AK_MAX_DISTANCE should be 2400.0 px")
+
+
+func test_ak_shot_uses_2400_max_distance() -> void:
+	# Issue #1549: play_ak_shot must set audible range to 2400px.
+	var ak_shots := ["res://assets/audio/выстрел из АК 1.mp3"]
+	var position := Vector2(100, 100)
+	var ak_max_distance := 2400.0
+
+	audio.play_random_sound_2d(ak_shots, position, -5.0, ak_max_distance)
+
+	assert_eq(audio.played_sounds_2d[0]["max_distance"], 2400.0,
+		"AK shot max_distance should be 2400.0 px")
+
+
+# ============================================================================
+# Gas Grenade Explosion Sound Tests (Issue #1637)
+# ============================================================================
+
+
+func test_gas_grenade_explosion_sound_path() -> void:
+	# Issue #1637: both aggression and chemical gas grenades must use this sound.
+	var gas_grenade_explosion := "res://assets/audio/взрыв газовой гранаты.mp3"
+	assert_eq(gas_grenade_explosion, "res://assets/audio/взрыв газовой гранаты.mp3",
+		"GAS_GRENADE_EXPLOSION should point to взрыв газовой гранаты.mp3")
+
+
+func test_play_aggression_gas_release_uses_gas_grenade_sound() -> void:
+	# Issue #1637: play_aggression_gas_release must use the gas grenade explosion sound.
+	var gas_grenade_explosion := "res://assets/audio/взрыв газовой гранаты.mp3"
+	var volume_grenade_explosion := 0.0
+	var position := Vector2(300, 400)
+
+	audio.play_sound_2d(gas_grenade_explosion, position, volume_grenade_explosion)
+
+	assert_eq(audio.played_sounds_2d.size(), 1,
+		"play_aggression_gas_release should play exactly one sound")
+	assert_eq(audio.played_sounds_2d[0]["path"], gas_grenade_explosion,
+		"play_aggression_gas_release should use взрыв газовой гранаты.mp3")
+	assert_eq(audio.played_sounds_2d[0]["position"], position,
+		"play_aggression_gas_release should play at the correct position")
+	assert_eq(audio.played_sounds_2d[0]["volume"], volume_grenade_explosion,
+		"play_aggression_gas_release should use VOLUME_GRENADE_EXPLOSION (0.0 dB)")

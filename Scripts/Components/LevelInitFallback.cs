@@ -83,14 +83,9 @@ public partial class LevelInitFallback : Node
     private ColorRect? _saturationOverlay;
 
     /// <summary>
-    /// Kills label for UI.
+    /// Difficulty label for UI (Issue #1485: replaces old KillsLabel + AccuracyLabel).
     /// </summary>
-    private Label? _killsLabel;
-
-    /// <summary>
-    /// Accuracy label for UI.
-    /// </summary>
-    private Label? _accuracyLabel;
+    private Label? _difficultyLabel;
 
     /// <summary>
     /// Magazines label for UI.
@@ -120,6 +115,12 @@ public partial class LevelInitFallback : Node
         var parent = GetParent();
         if (parent == null) return;
 
+        // Apply camera limits for Building map only, regardless of whether GDScript ran.
+        // This is a safety net: the GDScript _configure_camera() may fail silently (Issue #1684).
+        // Guard: only run on BuildingLevel — other levels set their own camera limits (Issue #1684).
+        if (parent.Name == "BuildingLevel")
+            ConfigureBuildingCameraLimits();
+
         // Check if GDScript _ready() already ran by checking if it set up enemy tracking.
         // The GDScript sets _enemies array and connects died signals.
         // We can detect this by checking if the parent has the _enemies property populated.
@@ -144,10 +145,60 @@ public partial class LevelInitFallback : Node
             return;
         }
 
+        // Check if GDScript created an exit zone (works for zero-enemy levels like RailwayStation).
+        // GDScript sets _exit_zone in _setup_exit_zone() which always runs in _ready().
+        var exitZoneVar = parent.Get("_exit_zone");
+        if (exitZoneVar.VariantType != Variant.Type.Nil && exitZoneVar.AsGodotObject() != null)
+        {
+            LogToFile("GDScript _ready() already ran (_exit_zone is set) - skipping fallback");
+            return;
+        }
+
         // GDScript didn't run - perform fallback initialization
         LogToFile("GDScript _ready() did NOT execute - performing C# fallback initialization");
         _didInitialize = true;
         PerformFallbackInit();
+    }
+
+    /// <summary>
+    /// Set Camera2D limits for the Building map to prevent the camera from scrolling
+    /// past the right and bottom border walls into the void area (Issue #1684).
+    ///
+    /// This runs unconditionally — even when GDScript _ready() already ran — because
+    /// the GDScript _configure_camera() may fail silently if it cannot find Camera2D
+    /// on the player node at runtime.
+    ///
+    /// Wall geometry (from BuildingLevel.tscn):
+    ///   WallRight  position=(2480, 1064), half-w=16 → left edge  x=2464 → limit_right  = 2464
+    ///   WallBottom position=(1264, 2080), half-h=16 → top edge   y=2064 → limit_bottom = 2064
+    ///   WallLeft   position=(  48, 1064), half-w=16 → right edge x=64   → limit_left   = 64
+    ///   WallTop    position=(1264,   48), half-h=16 → bottom edge y=64  → limit_top    = 64
+    /// </summary>
+    private void ConfigureBuildingCameraLimits()
+    {
+        var levelRoot = GetParent();
+        if (levelRoot == null) return;
+
+        var player = levelRoot.GetNodeOrNull<Node2D>("Entities/Player");
+        if (player == null)
+        {
+            LogToFile("WARNING: ConfigureBuildingCameraLimits: Player not found at Entities/Player");
+            return;
+        }
+
+        var camera = player.GetNodeOrNull<Camera2D>("Camera2D");
+        if (camera == null)
+        {
+            LogToFile("WARNING: ConfigureBuildingCameraLimits: Camera2D not found on player");
+            return;
+        }
+
+        camera.LimitLeft   =   64;  // WallLeft right edge  (x=48+16)
+        camera.LimitTop    =   64;  // WallTop bottom edge  (y=48+16)
+        camera.LimitRight  = 2464;  // WallRight left edge  (x=2480-16)
+        camera.LimitBottom = 2064;  // WallBottom top edge  (y=2080-16)
+
+        LogToFile($"ConfigureBuildingCameraLimits: limits set — left={camera.LimitLeft} top={camera.LimitTop} right={camera.LimitRight} bottom={camera.LimitBottom} — Issue #1684");
     }
 
     /// <summary>
@@ -348,8 +399,19 @@ public partial class LevelInitFallback : Node
         // Configure silenced pistol ammo
         if (weapon.Name == "SilencedPistol" && weapon.HasMethod("ConfigureAmmoForEnemyCount"))
         {
-            weapon.Call("ConfigureAmmoForEnemyCount", _initialEnemyCount);
-            LogToFile($"Configured silenced pistol ammo for {_initialEnemyCount} enemies");
+            int enemyCount = _initialEnemyCount;
+            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+            if (difficultyManager != null && difficultyManager.HasMethod("get_ammo_multiplier"))
+            {
+                int multiplier = difficultyManager.Call("get_ammo_multiplier").AsInt32();
+                if (multiplier > 1)
+                {
+                    enemyCount *= multiplier;
+                    LogToFile($"Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by {multiplier}x");
+                }
+            }
+            weapon.Call("ConfigureAmmoForEnemyCount", enemyCount);
+            LogToFile($"Configured silenced pistol ammo for {enemyCount} enemies");
         }
 
         // BuildingLevel-specific ammo config: M16/AK+GL limited to 2 magazines (Issue #949, #1259)
@@ -470,40 +532,39 @@ public partial class LevelInitFallback : Node
 
     /// <summary>
     /// Setup debug UI elements.
+    /// DifficultyLabel is always shown (Issue #1485: replaces old KillsLabel + AccuracyLabel).
+    /// MagazinesLabel is always shown.
     /// </summary>
     private void SetupDebugUI(Node levelRoot)
     {
         var ui = levelRoot.GetNodeOrNull("CanvasLayer/UI");
         if (ui == null) return;
 
-        _killsLabel = new Label();
-        _killsLabel.Name = "KillsLabel";
-        _killsLabel.Text = "Kills: 0";
-        _killsLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
-        _killsLabel.OffsetLeft = 10;
-        _killsLabel.OffsetTop = 45;
-        _killsLabel.OffsetRight = 200;
-        _killsLabel.OffsetBottom = 75;
-        ui.AddChild(_killsLabel);
+        // Issue #1485: Show difficulty instead of old kills/accuracy labels,
+        // matching the layout used by GDScript level scripts.
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        string difficultyName = difficultyManager != null && difficultyManager.HasMethod("get_difficulty_name")
+            ? difficultyManager.Call("get_difficulty_name").AsString()
+            : "";
 
-        _accuracyLabel = new Label();
-        _accuracyLabel.Name = "AccuracyLabel";
-        _accuracyLabel.Text = "Accuracy: 0%";
-        _accuracyLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
-        _accuracyLabel.OffsetLeft = 10;
-        _accuracyLabel.OffsetTop = 75;
-        _accuracyLabel.OffsetRight = 200;
-        _accuracyLabel.OffsetBottom = 105;
-        ui.AddChild(_accuracyLabel);
+        _difficultyLabel = new Label();
+        _difficultyLabel.Name = "DifficultyLabel";
+        _difficultyLabel.Text = "Difficulty: " + difficultyName;
+        _difficultyLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _difficultyLabel.OffsetLeft = 10;
+        _difficultyLabel.OffsetTop = 80;
+        _difficultyLabel.OffsetRight = 200;
+        _difficultyLabel.OffsetBottom = 110;
+        ui.AddChild(_difficultyLabel);
 
         _magazinesLabel = new Label();
         _magazinesLabel.Name = "MagazinesLabel";
         _magazinesLabel.Text = "MAGS: -";
         _magazinesLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         _magazinesLabel.OffsetLeft = 10;
-        _magazinesLabel.OffsetTop = 105;
+        _magazinesLabel.OffsetTop = 115;
         _magazinesLabel.OffsetRight = 400;
-        _magazinesLabel.OffsetBottom = 135;
+        _magazinesLabel.OffsetBottom = 145;
         ui.AddChild(_magazinesLabel);
     }
 
@@ -526,7 +587,7 @@ public partial class LevelInitFallback : Node
         _cylinderUI.OffsetLeft = 10;
         _cylinderUI.OffsetTop = 30;
         _cylinderUI.OffsetRight = 200;
-        _cylinderUI.OffsetBottom = 62;
+        _cylinderUI.OffsetBottom = 68;
         ui.AddChild(_cylinderUI);
 
         _cylinderUI.ConnectToRevolver(revolver);
@@ -629,8 +690,7 @@ public partial class LevelInitFallback : Node
         levelRoot.Set("_ammo_label", _ammoLabel);
         if (_exitZone != null) levelRoot.Set("_exit_zone", _exitZone);
         if (_saturationOverlay != null) levelRoot.Set("_saturation_overlay", _saturationOverlay);
-        if (_killsLabel != null) levelRoot.Set("_kills_label", _killsLabel);
-        if (_accuracyLabel != null) levelRoot.Set("_accuracy_label", _accuracyLabel);
+        if (_difficultyLabel != null) levelRoot.Set("_difficulty_label", _difficultyLabel);
         if (_magazinesLabel != null) levelRoot.Set("_magazines_label", _magazinesLabel);
 
         LogToFile("GDScript properties synced");
@@ -940,6 +1000,19 @@ public partial class LevelInitFallback : Node
             armoryButton.AddThemeStyleboxOverride("normal", armoryStyle);
             armoryButton.Pressed += OnArmoryPressed;
             buttonsContainer.AddChild(armoryButton);
+            // Add gold shine shader overlay (Issue #1536).
+            var armoryShineShader = GD.Load<Shader>("res://scripts/shaders/gold_shine.gdshader");
+            if (armoryShineShader != null)
+            {
+                var armoryShinemat = new ShaderMaterial();
+                armoryShinemat.Shader = armoryShineShader;
+                var armoryShineOverlay = new ColorRect();
+                armoryShineOverlay.Name = "ArmoryGoldShineOverlay";
+                armoryShineOverlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+                armoryShineOverlay.MouseFilter = Control.MouseFilterEnum.Ignore;
+                armoryShineOverlay.Material = armoryShinemat;
+                armoryButton.AddChild(armoryShineOverlay);
+            }
         }
 
         Input.MouseMode = Input.MouseModeEnum.Confined;
@@ -1033,6 +1106,9 @@ public partial class LevelInitFallback : Node
             armoryBtn.Text = "Armory";
             armoryBtn.RemoveThemeColorOverride("font_color");
             armoryBtn.RemoveThemeStyleboxOverride("normal");
+            // Issue #1690: Remove gold shine overlay added by Issue #1536
+            var shineOverlay = armoryBtn.FindChild("ArmoryGoldShineOverlay", true, false);
+            shineOverlay?.QueueFree();
         }
     }
 
@@ -1181,20 +1257,12 @@ public partial class LevelInitFallback : Node
 
     private void UpdateDebugUI()
     {
-        var gameManager = GetNodeOrNull("/root/GameManager");
-        if (gameManager == null) return;
-
-        if (_killsLabel != null)
+        // Issue #1485: Update difficulty label (replaces old kills/accuracy update).
+        if (_difficultyLabel != null)
         {
-            var kills = gameManager.Get("kills");
-            if (kills.VariantType != Variant.Type.Nil)
-                _killsLabel.Text = $"Kills: {kills.AsInt32()}";
-        }
-
-        if (_accuracyLabel != null && gameManager.HasMethod("get_accuracy"))
-        {
-            var accuracy = gameManager.Call("get_accuracy").AsDouble();
-            _accuracyLabel.Text = $"Accuracy: {accuracy:F1}%";
+            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+            if (difficultyManager != null && difficultyManager.HasMethod("get_difficulty_name"))
+                _difficultyLabel.Text = "Difficulty: " + difficultyManager.Call("get_difficulty_name").AsString();
         }
     }
 
@@ -1228,6 +1296,18 @@ public partial class LevelInitFallback : Node
     /// </summary>
     private void SetupRoomWarmLights(Node levelRoot)
     {
+        // Respect PerformanceSettings warm_lights toggle (Issue #1693)
+        var perfSettings = GetNode<Node>("/root/PerformanceSettings");
+        if (perfSettings != null && perfSettings.HasMethod("is_warm_lights_enabled"))
+        {
+            var enabled = (bool)perfSettings.Call("is_warm_lights_enabled");
+            if (!enabled)
+            {
+                LogToFile("Warm ceiling lights skipped — disabled via PerformanceSettings (Issue #1693)");
+                return;
+            }
+        }
+
         var environment = levelRoot.GetNodeOrNull("Environment");
         if (environment == null)
         {
@@ -1289,14 +1369,14 @@ public partial class LevelInitFallback : Node
         fixture.Modulate = new Color(1.0f, 0.85f, 0.5f, 0.5f);
         lightNode.AddChild(fixture);
 
-        // The warm PointLight2D with soft shadows
+        // The warm PointLight2D — shadows disabled for performance (Issue #1693).
+        // PCF5 shadows on each PointLight2D add a full shadow-map render pass per light,
+        // which was causing severe FPS drops (down to ~6 fps baseline) on low-end hardware.
         var light = new PointLight2D();
         light.Name = "PointLight";
         light.Color = new Color(1.0f, 0.75f, 0.3f, 1.0f);
         light.Energy = energy;
-        light.ShadowEnabled = true;
-        light.ShadowFilter = PointLight2D.ShadowFilterEnum.Pcf5;
-        light.ShadowFilterSmooth = 4.0f;
+        light.ShadowEnabled = false;
         light.Texture = lightTexture;
         light.TextureScale = scale;
         lightNode.AddChild(light);

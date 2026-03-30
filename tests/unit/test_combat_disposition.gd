@@ -1,10 +1,10 @@
 extends GutTest
-## Unit tests for the Combat Disposition passive item (Issue #1047).
+## Unit tests for the Combat Disposition passive item (Issue #1047, #1583).
 ##
 ## Tests the combat disposition item including:
 ## - Registration as active item type (index 15)
-## - Passive behavior: +0.77 damage and +1.1 fire rate on start
-## - On-hit penalty: -6.0 damage and -7.2 fire rate per hit
+## - Passive behavior: +0.77 damage, +1.1 fire rate, x2 speed on start (x4 on Black Metal)
+## - On-hit penalty: -6.0 damage, -7.2 fire rate, speed/2 on first hit
 ## - ActiveItemManager detection methods
 ## - No conflict with other items
 
@@ -35,7 +35,10 @@ class MockActiveItemManager:
 		DRILLING_BULLETS = 15,
 		RECOIL_COMPENSATOR = 16,
 		COMBAT_DISPOSITION = 17,
-		EXPERIMENTAL_SAMPLE = 18
+		EXPERIMENTAL_SAMPLE = 18,
+		FINE_MOTOR_SKILLS = 19,
+		DASH = 20,
+		GRENADE_BAG = 21
 	}
 
 	## Currently selected active item type
@@ -54,14 +57,17 @@ class MockActiveItemManager:
 		8: {"name": "Trajectory Glasses", "icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png", "description": "Trajectory glasses."},
 		9: {"name": "Laser Sight", "icon_path": "res://assets/sprites/weapons/laser_sight_icon.png", "description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."},
 		10: {"name": "Extended Magazine", "icon_path": "res://assets/sprites/weapons/extended_magazine_icon.png", "description": "Extended magazine — passive: 2.5x magazine size, 5% less total ammo."},
-		11: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "Loudspeaker."},
+		11: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "???"},
 		12: {"name": "Breaching Charges", "icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png", "description": "Breaching charges."},
 		13: {"name": "Armored Skin", "icon_path": "res://assets/sprites/weapons/armored_skin_icon.png", "description": "Armored skin."},
 		14: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png", "description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."},
 		15: {"name": "Drilling Bullets", "icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png", "description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine."},
 		16: {"name": "Recoil Compensator", "icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png", "description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%."},
-		17: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces damage by 6.0 and fire rate by 7.2."},
-		18: {"name": "Experimental Sample", "icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png", "description": "Experimental Sample — press Space to trigger a random active item effect (including items not yet unlocked). 1–5 charges per battle, randomised on level start.", "activation_hint": "Press Space to trigger random effect"}
+		17: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.77 damage, +1.1 fire rate, x2 speed on start (x4 on Black Metal). Taking damage reduces damage by 6.0, fire rate by 7.2, and halves movement speed."},
+		18: {"name": "Experimental Sample", "icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png", "description": "Experimental Sample — press Space to trigger a random active item effect (including items not yet unlocked). 1–5 charges per battle, randomised on level start.", "activation_hint": "Press Space to trigger random effect"},
+		19: {"name": "Fine Motor Skills", "icon_path": "res://assets/sprites/weapons/fine_motor_skills_icon.png", "description": "Fine Motor Skills — press Space to instantly reload weapon.", "activation_hint": "Press Space to reload"},
+		20: {"name": "Dash", "icon_path": "res://assets/sprites/weapons/dash_icon.png", "description": "Dash — press Space to dash in movement direction.", "activation_hint": "Press Space to dash"},
+		21: {"name": "Grenade Bag", "icon_path": "res://assets/sprites/weapons/grenade_bag_icon.png", "description": "Grenade Bag — passive: increases starting grenade count."}
 	}
 
 	## Check if combat disposition is currently equipped (Issue #1047)
@@ -121,16 +127,33 @@ class MockCombatDispositionSystem:
 	var damage_bonus: float = 0.0
 	## Current fire rate bonus (starts at +1.1, decreases by 7.2 on first hit)
 	var fire_rate_bonus: float = 0.0
+	## Current max speed (modified by speed bonus/penalty)
+	var max_speed: float = 200.0
+	## Base max speed stored before applying the speed bonus
+	var base_speed: float = 200.0
+	## Current friction (set to NO_DRIFT_FRICTION during speed boost to eliminate drift — Issue #1623)
+	var friction: float = 1000.0
+	## Base friction stored before applying the speed boost
+	var base_friction: float = 1000.0
+	## Friction value applied during the speed boost — large enough to stop the player instantly (Issue #1623)
+	const NO_DRIFT_FRICTION: float = 100000.0
 
-	## Initialize with starting bonuses
-	func init_combat_disposition() -> void:
+	## Initialize with starting bonuses (normal difficulty: x2 speed)
+	## Friction is set to NO_DRIFT_FRICTION to eliminate drift entirely during the speed boost (Issue #1623).
+	func init_combat_disposition(is_black_metal: bool = false) -> void:
 		active = true
 		penalty_applied = false
 		damage_bonus = 0.77
 		fire_rate_bonus = 1.1
+		base_speed = max_speed
+		base_friction = friction
+		var speed_mult := 4.0 if is_black_metal else 2.0
+		max_speed = base_speed * speed_mult
+		friction = NO_DRIFT_FRICTION
 
 	## Apply hit penalty (called when player takes damage).
 	## The penalty is only applied once per run (on the first hit).
+	## Friction is restored to base value (no-drift override ends with the speed boost).
 	func apply_hit_penalty() -> void:
 		if not active:
 			return
@@ -139,6 +162,8 @@ class MockCombatDispositionSystem:
 		penalty_applied = true
 		damage_bonus -= 6.0
 		fire_rate_bonus -= 7.2
+		max_speed = base_speed / 2.0
+		friction = base_friction
 
 	## Get effective damage for a weapon with base damage
 	func get_effective_damage(base_damage: float) -> float:
@@ -485,7 +510,163 @@ func test_total_active_items_includes_combat_disposition() -> void:
 
 
 func test_active_item_count_is_nineteen() -> void:
-	# NONE + 18 items = 19 total (including Extended Magazine, Drilling Bullets, Recoil Compensator, Auto-Reload, Combat Disposition and Experimental Sample)
+	# NONE + 21 items = 22 total (FINE_MOTOR_SKILLS, DASH, GRENADE_BAG added by Issues #1315, #1071, #1590)
 	var all_types := manager.get_all_active_item_types()
-	assert_eq(all_types.size(), 19,
-		"Should have 19 active item types total (NONE + 18 items including EXTENDED_MAGAZINE, DRILLING_BULLETS, RECOIL_COMPENSATOR, AUTO_RELOAD, COMBAT_DISPOSITION and EXPERIMENTAL_SAMPLE)")
+	assert_eq(all_types.size(), 22,
+		"Should have 22 active item types total (NONE + 21 items including EXTENDED_MAGAZINE, DRILLING_BULLETS, RECOIL_COMPENSATOR, AUTO_RELOAD, COMBAT_DISPOSITION, EXPERIMENTAL_SAMPLE, FINE_MOTOR_SKILLS, DASH, and GRENADE_BAG)")
+
+
+# ============================================================================
+# Speed Bonus Tests (Issue #1583)
+# ============================================================================
+
+
+func test_combat_disposition_doubles_speed_on_init_normal_difficulty() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 200.0
+	system.init_combat_disposition(false)
+	assert_almost_eq(system.max_speed, 400.0, 0.001,
+		"Normal difficulty: Combat Disposition should double movement speed (200 -> 400)")
+
+
+func test_combat_disposition_quadruples_speed_on_init_black_metal() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 200.0
+	system.init_combat_disposition(true)
+	assert_almost_eq(system.max_speed, 800.0, 0.001,
+		"Black Metal difficulty: Combat Disposition should multiply movement speed by 4 (200 -> 800)")
+
+
+func test_combat_disposition_speed_bonus_stores_base_speed() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 250.0
+	system.init_combat_disposition(false)
+	assert_almost_eq(system.base_speed, 250.0, 0.001,
+		"Base speed should be stored before applying the speed bonus")
+
+
+func test_combat_disposition_speed_penalty_halves_base_speed_on_first_hit() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 200.0
+	system.init_combat_disposition(false)
+	system.apply_hit_penalty()
+	assert_almost_eq(system.max_speed, 100.0, 0.001,
+		"After first hit: speed should be base_speed / 2 = 100 (not halved from the boosted value)")
+
+
+func test_combat_disposition_speed_penalty_not_applied_on_second_hit() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 200.0
+	system.init_combat_disposition(false)
+	system.apply_hit_penalty()
+	system.apply_hit_penalty()  # second call — should be ignored
+	assert_almost_eq(system.max_speed, 100.0, 0.001,
+		"After 2 hits: speed penalty applied only once, max_speed should remain 100")
+
+
+func test_combat_disposition_speed_penalty_not_applied_when_inactive() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 200.0
+	# Do NOT call init — system is not active
+	system.apply_hit_penalty()
+	assert_almost_eq(system.max_speed, 200.0, 0.001,
+		"Speed should not change when combat disposition is not active")
+
+
+func test_combat_disposition_black_metal_speed_penalty_halves_base_speed() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 200.0
+	system.init_combat_disposition(true)  # Black Metal: 200 * 4 = 800
+	system.apply_hit_penalty()
+	# penalty = base_speed / 2 = 200 / 2 = 100
+	assert_almost_eq(system.max_speed, 100.0, 0.001,
+		"Black Metal after first hit: speed should be base_speed / 2 = 100")
+
+
+func test_combat_disposition_description_mentions_speed() -> void:
+	var data := manager.get_active_item_data(manager.ActiveItemType.COMBAT_DISPOSITION)
+	var description: String = data.get("description", "")
+	assert_true(description.to_lower().contains("speed"),
+		"Description should mention movement speed")
+
+
+# ============================================================================
+# Friction (No-Drift) Tests (Issue #1583, #1623)
+# ============================================================================
+
+
+func test_combat_disposition_sets_no_drift_friction_on_init_normal_difficulty() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.friction = 1000.0
+	system.init_combat_disposition(false)
+	assert_almost_eq(system.friction, system.NO_DRIFT_FRICTION, 0.001,
+		"Normal difficulty: Combat Disposition should set friction to NO_DRIFT_FRICTION (100000) to eliminate drift (Issue #1623)")
+
+
+func test_combat_disposition_sets_no_drift_friction_on_init_black_metal() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.friction = 1000.0
+	system.init_combat_disposition(true)
+	assert_almost_eq(system.friction, system.NO_DRIFT_FRICTION, 0.001,
+		"Black Metal difficulty: Combat Disposition should set friction to NO_DRIFT_FRICTION (100000) to eliminate drift (Issue #1623)")
+
+
+func test_combat_disposition_friction_boost_stores_base_friction() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.friction = 1200.0
+	system.init_combat_disposition(false)
+	assert_almost_eq(system.base_friction, 1200.0, 0.001,
+		"Base friction should be stored before applying the no-drift override")
+
+
+func test_combat_disposition_friction_restored_on_hit_penalty() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.friction = 1000.0
+	system.init_combat_disposition(false)
+	# Friction is NO_DRIFT_FRICTION during speed boost
+	assert_almost_eq(system.friction, system.NO_DRIFT_FRICTION, 0.001,
+		"Friction should be NO_DRIFT_FRICTION after speed boost (no drift, Issue #1623)")
+	system.apply_hit_penalty()
+	assert_almost_eq(system.friction, 1000.0, 0.001,
+		"Friction should be restored to base value after hit penalty")
+
+
+func test_combat_disposition_friction_not_changed_when_inactive() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.friction = 1000.0
+	# Do NOT call init — system is not active
+	system.apply_hit_penalty()
+	assert_almost_eq(system.friction, 1000.0, 0.001,
+		"Friction should not change when combat disposition is not active")
+
+
+func test_combat_disposition_black_metal_friction_restored_on_hit_penalty() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.friction = 1000.0
+	system.init_combat_disposition(true)  # Black Metal: speed * 4, friction = NO_DRIFT_FRICTION
+	system.apply_hit_penalty()
+	assert_almost_eq(system.friction, 1000.0, 0.001,
+		"Black Metal after first hit: friction should be restored to base value (1000)")
+
+
+func test_combat_disposition_friction_not_restored_on_second_hit() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.friction = 1000.0
+	system.init_combat_disposition(false)
+	system.apply_hit_penalty()
+	# Restore is idempotent — second call should be no-op
+	system.apply_hit_penalty()
+	assert_almost_eq(system.friction, 1000.0, 0.001,
+		"Friction should remain at base value (penalty applied only once)")
+
+
+func test_combat_disposition_no_drift_friction_large_enough_to_stop_instantly() -> void:
+	# NO_DRIFT_FRICTION * delta must exceed MaxSpeed even after the boost.
+	# Worst case: Black Metal x4, base speed 300 -> boosted speed 1200.
+	# At 60 fps, delta = 1/60 ≈ 0.0167. NO_DRIFT_FRICTION * 0.0167 must exceed 1200.
+	var system := MockCombatDispositionSystem.new()
+	system.max_speed = 300.0
+	system.init_combat_disposition(true)  # x4 -> max_speed = 1200
+	var delta_at_60fps := 1.0 / 60.0
+	assert_true(system.NO_DRIFT_FRICTION * delta_at_60fps > system.max_speed,
+		"NO_DRIFT_FRICTION * delta must exceed boosted MaxSpeed to stop the player instantly (Issue #1623)")

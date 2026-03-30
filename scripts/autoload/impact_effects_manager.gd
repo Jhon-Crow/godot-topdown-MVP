@@ -30,9 +30,12 @@ const MIN_EFFECT_SCALE: float = 0.2
 const MAX_EFFECT_SCALE: float = 2.0
 
 ## Maximum number of blood decals before oldest ones are removed.
-## Set to 0 for unlimited decals (puddles should never disappear per issue #293, #370).
-## CRITICAL: Must remain 0 - do not change without explicit user approval.
-const MAX_BLOOD_DECALS: int = 0
+## Issue #1693: Capped at 200 to prevent unbounded node accumulation causing FPS drops.
+## At 15 decals/hit on a non-lethal shot with a shotgun, a 2-minute combat session was
+## accumulating 1200+ Sprite2D nodes, adding significant render overhead per frame.
+## 200 decals provide plenty of visible blood while keeping render cost bounded.
+## (Was 0 = unlimited per issue #293/#370, but the resulting 1215-node scenes caused ~5fps.)
+const MAX_BLOOD_DECALS: int = 200
 
 ## Maximum distance to check for walls for blood splatters (in pixels).
 const WALL_SPLATTER_CHECK_DISTANCE: float = 100.0

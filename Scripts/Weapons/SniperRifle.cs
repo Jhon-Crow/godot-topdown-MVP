@@ -603,8 +603,9 @@ public partial class SniperRifle : BaseWeapon
     /// Updates the laser sight visualization (Power Fantasy mode only).
     /// The laser always passes through the crosshair center:
     /// - In scope mode: points toward the scope crosshair (screen center world position)
-    /// - In hip-fire mode: points toward the mouse cursor position
+    /// - In hip-fire mode: follows the rifle's aim direction (synchronized with rifle rotation)
     /// (Issue #1384: ensures laser aligns with crosshair in both modes.)
+    /// (Issue #1405: laser rotation synchronized with rifle rotation in hip-fire mode.)
     /// </summary>
     private void UpdateLaserSight()
     {
@@ -613,18 +614,25 @@ public partial class SniperRifle : BaseWeapon
             return;
         }
 
-        // Determine the target point the laser should pass through:
-        // In scope mode, the crosshair is at screen center (not at the mouse cursor),
-        // so use GetScopeAimTarget() which returns the world position at viewport center.
-        // In hip-fire mode, the crosshair follows the mouse cursor.
-        Vector2 targetPoint = _isScopeActive
-            ? GetScopeAimTarget()
-            : GetGlobalMousePosition();
+        Vector2 laserDirection;
 
-        Vector2 toTarget = targetPoint - GlobalPosition;
-        Vector2 laserDirection = toTarget.LengthSquared() > 0.001f
-            ? toTarget.Normalized()
-            : _aimDirection;
+        if (_isScopeActive)
+        {
+            // In scope mode, the crosshair is at screen center (not at the mouse cursor),
+            // so use GetScopeAimTarget() which returns the world position at viewport center.
+            Vector2 targetPoint = GetScopeAimTarget();
+            Vector2 toTarget = targetPoint - GlobalPosition;
+            laserDirection = toTarget.LengthSquared() > 0.001f
+                ? toTarget.Normalized()
+                : _aimDirection;
+        }
+        else
+        {
+            // In hip-fire mode, the laser follows the rifle's aim direction
+            // (which rotates slowly via NonAimingSensitivityFactor), keeping
+            // the laser synchronized with the rifle sprite rotation.
+            laserDirection = _aimDirection;
+        }
 
         // Use weapon range for laser length so the beam is unlimited within shooting distance
         // (Issue #1384: sniper laser should be unlimited length, not limited to viewport size)

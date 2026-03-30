@@ -12,8 +12,8 @@ extends GutTest
 
 class MockGameManager:
 	# Issue #894: "all unspecified items can be opened from the start"
-	# silenced_pistol, ak_gl have no conditions — freely available from start
-	# shotgun, mini_uzi, sniper, revolver, m16 require level completion conditions
+	# silenced_pistol has no condition — freely available from start
+	# shotgun, mini_uzi, sniper, revolver, m16, ak_gl require level completion conditions
 	var unlocked_weapons: Dictionary = {
 		"makarov_pm": true,
 		"m16": false,            # Condition: Beach D+ (Issue #1053 req.3)
@@ -22,8 +22,7 @@ class MockGameManager:
 		"silenced_pistol": true, # No condition — freely available from start
 		"sniper": false,         # Condition: Polygon D+
 		"revolver": false,       # Condition: Castle F+
-		"ak_gl": true,           # No condition — freely available from start
-		"smg": false             # Coming soon — not yet available
+		"ak_gl": false           # Condition: Decadence F+ (Issue #1423 req.1)
 	}
 
 	var unlock_signals: Array = []
@@ -154,9 +153,9 @@ func test_default_weapon_unlock_state() -> void:
 	# Issue #894: "all unspecified items can be opened from the start"
 	assert_true(game_manager.is_weapon_unlocked("silenced_pistol"),
 		"Silenced Pistol should be unlocked by default (no unlock condition)")
-	assert_true(game_manager.is_weapon_unlocked("ak_gl"),
-		"AK+GL should be unlocked by default (no unlock condition)")
 	# Condition-gated weapons should be locked until conditions are met
+	assert_false(game_manager.is_weapon_unlocked("ak_gl"),
+		"AK+GL should be locked by default (requires Decadence F+, Issue #1423)")
 	assert_false(game_manager.is_weapon_unlocked("m16"),
 		"M16 should be locked by default (requires Beach D+, Issue #1053)")
 	assert_false(game_manager.is_weapon_unlocked("shotgun"),

@@ -68,11 +68,6 @@ const FIREARMS: Dictionary = {
 		"name": "AK + GL",
 		"icon_path": "res://assets/sprites/weapons/ak_gl_icon.png",
 		"description": "AK with GP-25 underbarrel grenade launcher — 7.62x39mm, 30-round magazine, RMB fires VOG-25 grenade (1 shot)"
-	},
-	"smg": {
-		"name": "???",
-		"icon_path": "",
-		"description": "Coming soon"
 	}
 }
 
@@ -92,10 +87,14 @@ const WEAPON_RESOURCE_PATHS: Dictionary = {
 const MAX_WEAPON_ROWS_COLLAPSED: int = 2
 
 ## Maximum number of visible grenade rows before accordion hides the rest.
-const MAX_GRENADE_ROWS_COLLAPSED: int = 1
+## Set to 2 so all 5 grenade types (including Drone added in Issue #1628) are visible by default.
+const MAX_GRENADE_ROWS_COLLAPSED: int = 2
 
-## Number of columns in the weapon/grenade grids.
+## Number of columns in the weapon grid.
 const GRID_COLUMNS: int = 4
+
+## Number of columns in the grenade grid (8 per row to fit all types without wrapping).
+const GRENADE_GRID_COLUMNS: int = 8
 
 ## Number of columns in the special items grid.
 const SPECIAL_GRID_COLUMNS: int = 7
@@ -192,6 +191,29 @@ var _slot_progress_overlays: Dictionary = {}
 ## Dictionary: slot -> tween reference
 var _active_reveal_tweens: Dictionary = {}
 
+## Animation state tracking for selection animations (shake + glint).
+## Dictionary: slot -> tween reference — killed if the same slot is re-selected quickly.
+var _active_selection_tweens: Dictionary = {}
+
+## Tracks shine overlay ColorRect nodes added to condition-met slots (Issue #1536).
+## Dictionary: slot -> ColorRect
+var _shine_overlays: Dictionary = {}
+
+## Tracks shine overlay ColorRect nodes added to condition-met accordion buttons (Issue #1561).
+## Dictionary: button -> ColorRect
+var _accordion_shine_overlays: Dictionary = {}
+
+## Tracks unlock-progress bar ColorRect nodes added to locked slots with quantitative conditions.
+## Dictionary: slot -> ColorRect (Issue #1591)
+var _unlock_progress_bars: Dictionary = {}
+
+## Tracks active unlock-progress animation tweens (Issue #1591).
+## Dictionary: slot -> Tween
+var _unlock_progress_tweens: Dictionary = {}
+
+## Audio player dedicated to kill-progress bar count-up sound (Issue #1591).
+var _kill_progress_audio_player: AudioStreamPlayer = null
+
 
 func _ready() -> void:
 	# Get GrenadeManager reference
@@ -239,6 +261,14 @@ func _ready() -> void:
 	_unlock_audio_player = AudioStreamPlayer.new()
 	_unlock_audio_player.bus = "Master"
 	add_child(_unlock_audio_player)
+
+	# Create dedicated audio player for kill-progress bar count-up animation (Issue #1591)
+	_kill_progress_audio_player = AudioStreamPlayer.new()
+	_kill_progress_audio_player.bus = "Master"
+	add_child(_kill_progress_audio_player)
+
+	# Animate kill-progress bars on armory open (Issue #1591)
+	call_deferred("_animate_all_unlock_progress_bars")
 
 
 ## Load weapon .tres resources for stats display.
@@ -558,7 +588,7 @@ func _build_right_area() -> VBoxContainer:
 	# --- GRENADES SECTION ---
 	_add_category_header(right_vbox, "GRENADES")
 	_grenade_grid = GridContainer.new()
-	_grenade_grid.columns = GRID_COLUMNS
+	_grenade_grid.columns = GRENADE_GRID_COLUMNS
 	_grenade_grid.layout_mode = 2
 	_grenade_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_grenade_grid.add_theme_constant_override("h_separation", 6)
@@ -567,7 +597,7 @@ func _build_right_area() -> VBoxContainer:
 
 	# Populate grenade grid from GrenadeManager
 	var grenade_index: int = 0
-	var max_visible_grenades: int = MAX_GRENADE_ROWS_COLLAPSED * GRID_COLUMNS
+	var max_visible_grenades: int = MAX_GRENADE_ROWS_COLLAPSED * GRENADE_GRID_COLUMNS
 	if _grenade_manager:
 		for grenade_type in _grenade_manager.get_all_grenade_types():
 			var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
@@ -672,13 +702,42 @@ func _has_condition_met_in_overflow(overflow_slots: Array) -> bool:
 
 
 ## Apply gold style to an accordion button to indicate hidden condition-met items.
+## Also adds the animated gold shine overlay (Issue #1561).
 func _apply_accordion_button_condition_met_style(button: Button) -> void:
 	button.add_theme_color_override("font_color", Color(1.0, 0.8, 0.1, 1.0))
+	# Remove any existing shine overlay before adding a new one.
+	if button in _accordion_shine_overlays:
+		var old_overlay: ColorRect = _accordion_shine_overlays[button]
+		if is_instance_valid(old_overlay):
+			old_overlay.queue_free()
+		_accordion_shine_overlays.erase(button)
+	# Add a full-size ColorRect on top with the gold shine shader (Issue #1561).
+	# The accordion button is wide/long, so use horizontal_sweep to run the shine
+	# along the full length instead of the default corner-to-corner diagonal.
+	var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+	if shine_shader:
+		var mat := ShaderMaterial.new()
+		mat.shader = shine_shader
+		mat.set_shader_parameter("horizontal_sweep", true)
+		# Faster cycle and slightly tilted stripe per owner feedback (Issue #1561).
+		mat.set_shader_parameter("cycle_duration", 2.0)
+		var overlay := ColorRect.new()
+		overlay.name = "GoldShineOverlay"
+		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.material = mat
+		button.add_child(overlay)
+		_accordion_shine_overlays[button] = overlay
 
 
-## Reset accordion button to default font color.
+## Reset accordion button to default font color and remove shine overlay (Issue #1561).
 func _apply_accordion_button_default_style(button: Button) -> void:
 	button.remove_theme_color_override("font_color")
+	if button in _accordion_shine_overlays:
+		var overlay: ColorRect = _accordion_shine_overlays[button]
+		if is_instance_valid(overlay):
+			overlay.queue_free()
+		_accordion_shine_overlays.erase(button)
 
 
 ## Toggle weapon accordion (expand/collapse overflow items).
@@ -689,6 +748,8 @@ func _toggle_weapon_accordion() -> void:
 		_apply_accordion_button_default_style(_weapon_accordion_button)
 		for slot in _weapon_overflow_slots:
 			slot.visible = true
+		# Animate progress bars for newly visible overflow weapon slots (Issue #1591)
+		_animate_overflow_slots_progress(_weapon_overflow_slots, false, false)
 	else:
 		_apply_accordion_collapsed_weapons()
 
@@ -712,6 +773,8 @@ func _toggle_grenade_accordion() -> void:
 		_apply_accordion_button_default_style(_grenade_accordion_button)
 		for slot in _grenade_overflow_slots:
 			slot.visible = true
+		# Animate progress bars for newly visible overflow grenade slots (Issue #1591)
+		_animate_overflow_slots_progress(_grenade_overflow_slots, true, false)
 	else:
 		_apply_accordion_collapsed_grenades()
 
@@ -735,6 +798,8 @@ func _toggle_active_item_accordion() -> void:
 		_apply_accordion_button_default_style(_active_item_accordion_button)
 		for slot in _active_item_overflow_slots:
 			slot.visible = true
+		# Animate progress bars for newly visible overflow active item slots (Issue #1591)
+		_animate_overflow_slots_progress(_active_item_overflow_slots, false, true)
 	else:
 		_apply_accordion_collapsed_active_items()
 
@@ -836,9 +901,19 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 				var grenade_type: int = item_data.get("grenade_type", int(item_id))
 				if _unlock_manager.has_method("get_grenade_unlock_description"):
 					unlock_desc = _unlock_manager.get_grenade_unlock_description(grenade_type)
+				# Append progress counts for quantitative conditions (Issue #1591)
+				if _unlock_manager.has_method("get_grenade_kill_condition_counts"):
+					var counts: Dictionary = _unlock_manager.get_grenade_kill_condition_counts(grenade_type)
+					if not counts.is_empty():
+						unlock_desc += "\nProgress: %d / %d" % [counts["current"], counts["max"]]
 			else:
 				if _unlock_manager.has_method("get_weapon_unlock_description"):
 					unlock_desc = _unlock_manager.get_weapon_unlock_description(item_id)
+				# Append progress counts for quantitative conditions (Issue #1591)
+				if _unlock_manager.has_method("get_weapon_kill_condition_counts"):
+					var counts: Dictionary = _unlock_manager.get_weapon_kill_condition_counts(item_id)
+					if not counts.is_empty():
+						unlock_desc += "\nProgress: %d / %d" % [counts["current"], counts["max"]]
 		slot.tooltip_text = unlock_desc
 
 	# Make all items clickable (unlocked for selection, locked for unlocking)
@@ -936,6 +1011,11 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 		var unlock_desc: String = ""
 		if _unlock_manager and _unlock_manager.has_method("get_active_item_unlock_description"):
 			unlock_desc = _unlock_manager.get_active_item_unlock_description(item_type)
+		# Append progress counts for quantitative conditions (Issue #1591)
+		if _unlock_manager and _unlock_manager.has_method("get_active_item_kill_condition_counts"):
+			var counts: Dictionary = _unlock_manager.get_active_item_kill_condition_counts(item_type)
+			if not counts.is_empty():
+				unlock_desc += "\nProgress: %d / %d" % [counts["current"], counts["max"]]
 		slot.tooltip_text = unlock_desc
 
 	# Make all items clickable (unlocked for selection, locked for unlocking)
@@ -969,6 +1049,9 @@ func _on_active_item_slot_gui_input(event: InputEvent, slot: PanelContainer, ite
 				_highlight_selected_items()
 				_update_loadout_panel()
 				_update_apply_button_state()
+
+				# Play shake + glint animation on the selected slot
+				_play_weapon_selection_animation(slot)
 			elif condition_met:
 				# Locked item with condition met: start tracking LMB hold for unlocking
 				_lmb_hold_tracking[slot] = {
@@ -1003,6 +1086,12 @@ func _apply_default_style(slot: PanelContainer) -> void:
 	style.corner_radius_bottom_left = 4
 	style.corner_radius_bottom_right = 4
 	slot.add_theme_stylebox_override("panel", style)
+	# Remove gold shine overlay if present (Issue #1536).
+	if slot in _shine_overlays:
+		var overlay: ColorRect = _shine_overlays[slot]
+		if is_instance_valid(overlay):
+			overlay.queue_free()
+		_shine_overlays.erase(slot)
 
 
 ## Apply selected (highlighted) style to a slot.
@@ -1019,23 +1108,45 @@ func _apply_selected_style(slot: PanelContainer) -> void:
 	selected_style.corner_radius_bottom_left = 4
 	selected_style.corner_radius_bottom_right = 4
 	slot.add_theme_stylebox_override("panel", selected_style)
+	# Remove gold shine overlay if present (Issue #1536).
+	if slot in _shine_overlays:
+		var overlay: ColorRect = _shine_overlays[slot]
+		if is_instance_valid(overlay):
+			overlay.queue_free()
+		_shine_overlays.erase(slot)
 
 
 ## Apply gold "condition met" style to a locked slot whose unlock condition has been satisfied.
 ## This highlights items in gold to indicate the player can now unlock them.
+## Adds an animated shine overlay (Issue #1536): diagonal sweep → border glow → gold wash.
 func _apply_condition_met_style(slot: PanelContainer) -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.28, 0.22, 0.08, 0.85)
-	style.border_color = Color(1.0, 0.8, 0.1, 1.0)
-	style.border_width_left = 2
-	style.border_width_right = 2
-	style.border_width_top = 2
-	style.border_width_bottom = 2
 	style.corner_radius_top_left = 4
 	style.corner_radius_top_right = 4
 	style.corner_radius_bottom_left = 4
 	style.corner_radius_bottom_right = 4
 	slot.add_theme_stylebox_override("panel", style)
+
+	# Remove any existing shine overlay before adding a new one.
+	if slot in _shine_overlays:
+		var old_overlay: ColorRect = _shine_overlays[slot]
+		if is_instance_valid(old_overlay):
+			old_overlay.queue_free()
+		_shine_overlays.erase(slot)
+
+	# Add a full-size ColorRect on top with the gold shine shader (Issue #1536).
+	var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+	if shine_shader:
+		var mat := ShaderMaterial.new()
+		mat.shader = shine_shader
+		var overlay := ColorRect.new()
+		overlay.name = "GoldShineOverlay"
+		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.material = mat
+		slot.add_child(overlay)
+		_shine_overlays[slot] = overlay
 
 
 ## Handle click on an item slot.
@@ -1052,15 +1163,21 @@ func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String
 				else:
 					_pending_weapon_id = item_id
 
-				# Play click sound via AudioManager
+				# Play weapon reload preview sound or generic UI click via AudioManager
 				var audio_manager = get_node_or_null("/root/AudioManager")
-				if audio_manager and audio_manager.has_method("play_ui_click"):
-					audio_manager.play_ui_click()
+				if audio_manager:
+					if not is_grenade and audio_manager.has_method("play_weapon_reload_preview"):
+						audio_manager.play_weapon_reload_preview(item_id)
+					elif audio_manager.has_method("play_ui_click"):
+						audio_manager.play_ui_click()
 
 				# Update visuals to show pending selection
 				_highlight_selected_items()
 				_update_loadout_panel()
 				_update_apply_button_state()
+
+				# Play shake + glint animation on the selected slot
+				_play_weapon_selection_animation(slot)
 			elif condition_met:
 				# Locked item with condition met: start tracking LMB hold for unlocking
 				_lmb_hold_tracking[slot] = {
@@ -1253,10 +1370,16 @@ func _update_weapon_stats() -> void:
 		var fire_mode: String = "Auto" if resource.get("IsAutomatic") else "Semi-Auto"
 		bbcode += "[color=#aab0b8]Fire Mode:[/color] %s\n" % fire_mode
 
-		# Caliber
-		var caliber = resource.get("Caliber")
-		if caliber:
-			bbcode += "[color=#aab0b8]Caliber:[/color] %s\n" % caliber.caliber_name
+		# Caliber — use CaliberName mirror property (Issue #1708)
+		# WeaponData.Caliber is a C#-backed resource; GDScript dot-access on nested
+		# GDScript properties of C#-owned resources returns null due to Godot interop
+		# (see godotengine/godot#67167). CaliberName mirrors CaliberData.caliber_name
+		# directly on WeaponData to avoid the interop issue.
+		var caliber_name: String = resource.get("CaliberName")
+		FileLogger.info("[ArmoryMenu] weapon=%s caliber_name=%s" % [
+			_pending_weapon_id, caliber_name])
+		if caliber_name != "":
+			bbcode += "[color=#aab0b8]Caliber:[/color] %s\n" % caliber_name
 
 		# Damage & Fire rate
 		var damage: float = resource.get("Damage")
@@ -1294,17 +1417,16 @@ func _update_weapon_stats() -> void:
 			loudness_text = "[color=#ef5350]%.0fpx[/color]" % loudness
 		bbcode += "[color=#aab0b8]Loudness:[/color] %s\n" % loudness_text
 
-		# Caliber properties (ricochet / penetration)
-		if caliber:
-			var features: Array[String] = []
-			if caliber.can_ricochet:
-				features.append("Ricochet")
-			if caliber.can_penetrate:
-				features.append("Wall Pen. (%dpx)" % int(caliber.max_penetration_distance))
-			if features.size() > 0:
-				bbcode += "[color=#aab0b8]Ballistics:[/color] %s" % ", ".join(features)
-			else:
-				bbcode += "[color=#aab0b8]Ballistics:[/color] Standard"
+		# Caliber properties (ricochet / penetration) — use mirror properties (Issue #1708)
+		var features: Array[String] = []
+		if resource.get("CaliberCanRicochet"):
+			features.append("Ricochet")
+		if resource.get("CaliberCanPenetrate"):
+			features.append("Wall Pen. (%dpx)" % int(resource.get("CaliberMaxPenetrationDistance")))
+		if features.size() > 0:
+			bbcode += "[color=#aab0b8]Ballistics:[/color] %s" % ", ".join(features)
+		else:
+			bbcode += "[color=#aab0b8]Ballistics:[/color] Standard"
 	else:
 		bbcode += "[color=#888888]%s[/color]" % weapon_info.get("description", "No data available")
 
@@ -1629,6 +1751,125 @@ func _rebuild_active_item_slot_animated(item_type: int) -> void:
 		_highlight_selected_items()
 
 
+## Plays a shake + glint animation on a weapon/grenade/item slot when it is selected.
+## The animation consists of:
+##   1. A 4-step squash-and-stretch scale punch on the weapon icon (saint11 pixel-art style).
+##   2. A two-phase shader animation rendered via a ShaderMaterial on the icon TextureRect:
+##      - Phase 1 (0.00–0.80 s): bright glint runs left → right along the upper edge of the weapon (4× slower).
+##      - Phase 2 (0.80–1.02 s): diagonal glint sweeps left → right across the icon.
+##      Both phases work in UV [0,1]² space so the effect is strictly confined to the icon
+##      pixels and cannot bleed onto the card, border, or label (Issue #1563).
+##   3. A brightness flash (modulate) that briefly bleaches the icon white then fades back.
+##
+## Based on the 4-step pixel art animation principle from saint11.art/blog/pixel-art-tutorials/:
+## anticipation → action → follow-through → settle.
+func _play_weapon_selection_animation(slot: PanelContainer) -> void:
+	var vbox: VBoxContainer = slot.get_child(0) as VBoxContainer
+	if vbox == null:
+		return
+
+	# Get the weapon icon TextureRect — the card itself must NOT be deformed.
+	# All scale, glint, and flash animations target only the icon TextureRect.
+	var icon_container: CenterContainer = vbox.get_child(0) as CenterContainer
+	if icon_container == null:
+		return
+	var icon_rect: TextureRect = icon_container.get_child(0) as TextureRect
+	if icon_rect == null:
+		return
+
+	# Kill any in-progress selection tween for this slot and reset icon state
+	if slot in _active_selection_tweens:
+		var old_tween = _active_selection_tweens[slot]
+		if old_tween and old_tween.is_valid():
+			old_tween.kill()
+		_active_selection_tweens.erase(slot)
+		# Reset icon to clean state so the new animation starts fresh
+		icon_rect.scale = Vector2(1.0, 1.0)
+		icon_rect.modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+	# Ensure the icon pivot is centred for scale/rotation animations
+	icon_rect.pivot_offset = icon_rect.size / 2.0
+
+	# --- GLINT SHADER (runs entirely in icon UV space — never bleeds onto the card) ---
+	# Using a ShaderMaterial on the TextureRect means the effect is computed per-pixel
+	# within the icon's own UV [0,1]² space. There is no separate overlay node and
+	# no clip_contents workaround needed — the glint is mathematically impossible to
+	# appear outside the icon bounds.
+	var glint_shader := load("res://scripts/shaders/weapon_select_glint.gdshader") as Shader
+	var glint_mat: ShaderMaterial = null
+	if glint_shader:
+		glint_mat = ShaderMaterial.new()
+		glint_mat.shader = glint_shader
+		glint_mat.set_shader_parameter("anim_progress", 0.0)
+		# Pass texel size so the shader can detect the top edge of the weapon silhouette.
+		var tex_size := icon_rect.size
+		if tex_size.x > 0.0 and tex_size.y > 0.0:
+			glint_mat.set_shader_parameter("texel_size", Vector2(1.0 / tex_size.x, 1.0 / tex_size.y))
+		icon_rect.material = glint_mat
+
+	# Animate the shader `anim_progress` from 0 → 1 over 1.02 s (two sequential phases):
+	#   Phase 1 (0.00 – 0.80 s): top-edge glint sweeps left → right (Issue #1563, 4× slower)
+	#     a bright highlight spot runs along the uppermost edge of the weapon silhouette
+	#   Phase 2 (0.80 – 1.02 s): diagonal glint sweeps left → right across the icon
+	#     0.80 – 0.84 progress: glint fades in (smoothstep inside shader)
+	#     0.80 – 1.02 progress: stripe sweeps left → right
+	#     0.96 – 1.02 progress: glint fades out
+	if glint_mat:
+		var glint_tween := create_tween()
+		glint_tween.tween_property(glint_mat, "shader_parameter/anim_progress", 1.0, 1.02) \
+			.set_ease(Tween.EASE_IN_OUT)
+		glint_tween.tween_callback(func():
+			if is_instance_valid(icon_rect):
+				icon_rect.material = null
+		)
+
+	# --- ICON SHAKE + SCALE (4-step pixel-art punch, icon only, card is untouched) ---
+	# The TextureRect is inside a CenterContainer whose layout is managed by Godot, so
+	# position tweening is unreliable. Instead, the "shake" uses squash-and-stretch
+	# (asymmetric X/Y scale) — visually equivalent to a snap/punch without fighting
+	# the layout engine.
+	#
+	# 4 steps (mirrors saint11 pixel-art tutorial):
+	#   Step 1 — anticipation : squish wide & flat  (set immediately)
+	#   Step 2 — action       : stretch tall         (snappy upswing)
+	#   Step 3 — follow-through: slight over-squish  (rebound)
+	#   Step 4 — settle       : spring back to normal
+
+	# Step 1 — anticipation: set immediately (wide, flat)
+	icon_rect.scale = Vector2(1.15, 0.85)
+
+	# Sequential tween for the 4-step scale punch
+	var scale_tween := create_tween()
+	_active_selection_tweens[slot] = scale_tween
+
+	# Step 2 — action: stretch tall
+	scale_tween.tween_property(icon_rect, "scale", Vector2(0.85, 1.15), 0.06) \
+		.set_ease(Tween.EASE_OUT)
+	# Step 3 — follow-through: slight over-squish
+	scale_tween.tween_property(icon_rect, "scale", Vector2(1.08, 0.94), 0.05) \
+		.set_ease(Tween.EASE_IN_OUT)
+	# Step 4 — settle: spring back to normal with slight overshoot
+	scale_tween.tween_property(icon_rect, "scale", Vector2(1.0, 1.0), 0.12) \
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
+	# Clean up when the scale animation finishes
+	scale_tween.tween_callback(func():
+		if slot in _active_selection_tweens:
+			_active_selection_tweens.erase(slot)
+		if is_instance_valid(icon_rect):
+			icon_rect.scale = Vector2(1.0, 1.0)
+			icon_rect.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	)
+
+	# Brightness flash on the icon only — separate parallel tween so it fires immediately
+	var flash_tween := create_tween()
+	flash_tween.set_parallel(true)
+	flash_tween.tween_property(icon_rect, "modulate", Color(1.9, 1.9, 1.9, 1.0), 0.05) \
+		.set_ease(Tween.EASE_IN)
+	flash_tween.tween_property(icon_rect, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.18) \
+		.set_ease(Tween.EASE_OUT).set_delay(0.05)
+
+
 ## Animates a newly created slot appearing with fade-in and scale pop.
 func _animate_slot_reveal(slot: PanelContainer) -> void:
 	# Get the VBoxContainer for scale animation
@@ -1816,3 +2057,260 @@ func _play_unlock_reveal_animation(slot: PanelContainer, callback: Callable) -> 
 		_active_reveal_tweens.erase(slot)
 		callback.call()
 	)
+
+
+## Animate unlock-progress bars for a specific set of overflow slots revealed by accordion expand.
+## Called when an accordion section is opened so the newly visible slots get their bars animated.
+## Issue #1591.
+func _animate_overflow_slots_progress(overflow_slots: Array, is_grenade: bool, is_active_item: bool) -> void:
+	if not _unlock_manager:
+		return
+	var slots_to_animate: Array = []
+	for slot in overflow_slots:
+		if slot.get_meta("is_unlocked", true):
+			continue
+		var progress: float = -1.0
+		var raw_id: String = slot.get_meta("item_id", "")
+		if is_active_item:
+			if _unlock_manager.has_method("get_active_item_unlock_progress"):
+				progress = _unlock_manager.get_active_item_unlock_progress(int(raw_id))
+		elif is_grenade:
+			if _unlock_manager.has_method("get_grenade_unlock_progress"):
+				progress = _unlock_manager.get_grenade_unlock_progress(int(raw_id))
+		else:
+			if _unlock_manager.has_method("get_weapon_unlock_progress"):
+				progress = _unlock_manager.get_weapon_unlock_progress(raw_id)
+		if progress >= 0.0:
+			slots_to_animate.append({"slot": slot, "progress": progress})
+	for i in range(slots_to_animate.size()):
+		var entry: Dictionary = slots_to_animate[i]
+		var delay: float = i * 0.12
+		get_tree().create_timer(delay).timeout.connect(
+			func(): _animate_unlock_progress_bar(entry["slot"], entry["progress"])
+		)
+
+
+## Animate unlock-progress bars for all visible locked slots on armory open.
+## Only animates slots that are currently visible (not hidden by accordion).
+## Covers all unlock condition types: kill-based, multi-level, all-difficulties, and single-level.
+## Issue #1591: show progress bar animation for quantitative unlock tasks.
+func _animate_all_unlock_progress_bars() -> void:
+	if not _unlock_manager:
+		return
+	var slots_to_animate: Array = []
+
+	# Collect weapon slots with any unlock condition
+	for weapon_id in _weapon_slots:
+		var slot: PanelContainer = _weapon_slots[weapon_id]
+		if slot.get_meta("is_unlocked", true):
+			continue  # Only locked slots
+		if not slot.visible:
+			continue  # Skip hidden slots (e.g. under collapsed accordion)
+		if not _unlock_manager.has_method("get_weapon_unlock_progress"):
+			continue
+		var progress: float = _unlock_manager.get_weapon_unlock_progress(weapon_id)
+		if progress >= 0.0:  # -1.0 means no condition applies
+			slots_to_animate.append({"slot": slot, "progress": progress})
+
+	# Collect grenade slots with any unlock condition
+	for grenade_type in _grenade_slots:
+		var slot: PanelContainer = _grenade_slots[grenade_type]
+		if slot.get_meta("is_unlocked", true):
+			continue
+		if not slot.visible:
+			continue
+		if not _unlock_manager.has_method("get_grenade_unlock_progress"):
+			continue
+		var progress: float = _unlock_manager.get_grenade_unlock_progress(grenade_type)
+		if progress >= 0.0:
+			slots_to_animate.append({"slot": slot, "progress": progress})
+
+	# Collect active item slots with any unlock condition
+	for item_type in _active_item_slots:
+		var slot: PanelContainer = _active_item_slots[item_type]
+		if slot.get_meta("is_unlocked", true):
+			continue
+		if not slot.visible:
+			continue
+		if not _unlock_manager.has_method("get_active_item_unlock_progress"):
+			continue
+		var progress: float = _unlock_manager.get_active_item_unlock_progress(item_type)
+		if progress >= 0.0:
+			slots_to_animate.append({"slot": slot, "progress": progress})
+
+	# Animate each slot with a small stagger delay for visual flair
+	for i in range(slots_to_animate.size()):
+		var entry: Dictionary = slots_to_animate[i]
+		var delay: float = i * 0.12
+		get_tree().create_timer(delay).timeout.connect(
+			func(): _animate_unlock_progress_bar(entry["slot"], entry["progress"])
+		)
+
+
+## Animate the unlock-progress bar for a single locked slot.
+## The bar fills from 0.0 to target_progress over ~1.5 seconds,
+## playing rising-pitch beeps similar to the score screen (Issue #1591).
+func _animate_unlock_progress_bar(slot: PanelContainer, target_progress: float) -> void:
+	if not is_instance_valid(slot):
+		return
+
+	# Kill any existing tween for this slot
+	if slot in _unlock_progress_tweens:
+		var old_tween = _unlock_progress_tweens[slot]
+		if old_tween and old_tween.is_valid():
+			old_tween.kill()
+		_unlock_progress_tweens.erase(slot)
+
+	# Create or retrieve the progress bar for this slot
+	var bar: ColorRect = _unlock_progress_bars.get(slot)
+	if bar == null or not is_instance_valid(bar):
+		bar = _create_unlock_progress_bar(slot)
+		_unlock_progress_bars[slot] = bar
+
+	# Reset bar to 0
+	bar.anchor_top = 1.0
+	bar.anchor_bottom = 1.0
+	bar.offset_top = 0
+	bar.offset_bottom = 0
+
+	# Animate the fill over 1.5 seconds using a coroutine-style loop via a timer
+	const ANIM_DURATION: float = 1.5
+	const BEEP_STEPS: int = 10  # Number of beep intervals during fill
+
+	var start_time: float = Time.get_ticks_msec() / 1000.0
+	var last_beep_step: int = -1
+
+	var fill_timer := Timer.new()
+	fill_timer.wait_time = 0.016  # ~60 FPS
+	fill_timer.one_shot = false
+	add_child(fill_timer)
+
+	var tween_ref: Array = [fill_timer]  # Use array for capture in closures
+	_unlock_progress_tweens[slot] = fill_timer  # Store for cleanup
+
+	fill_timer.timeout.connect(func():
+		if not is_instance_valid(slot) or not is_instance_valid(bar):
+			fill_timer.stop()
+			fill_timer.queue_free()
+			return
+
+		var elapsed: float = (Time.get_ticks_msec() / 1000.0) - start_time
+		var t: float = clampf(elapsed / ANIM_DURATION, 0.0, 1.0)
+		# Ease-out curve: fast start, slow finish
+		var eased_t: float = 1.0 - pow(1.0 - t, 2.0)
+		var current_progress: float = eased_t * target_progress
+
+		# Update bar fill (grows upward from bottom)
+		bar.anchor_top = 1.0 - current_progress
+		bar.anchor_bottom = 1.0
+		bar.offset_top = 0
+		bar.offset_bottom = 0
+
+		# Update bar color: dim at low progress, brighter as it fills
+		var brightness: float = 0.4 + current_progress * 0.4
+		bar.color = Color(0.7 + brightness * 0.3, 0.5 + brightness * 0.25, 0.05, 0.55 + current_progress * 0.2)
+
+		# Play a beep at each ~10% step
+		var current_step: int = int(current_progress * BEEP_STEPS)
+		if current_step > last_beep_step and current_step > 0:
+			last_beep_step = current_step
+			# Frequency rises from 220Hz to 880Hz with progress
+			var frequency: float = 220.0 * pow(4.0, current_progress)
+			_play_kill_progress_beep(frequency)
+
+		if t >= 1.0:
+			# Animation complete — ensure bar shows final value
+			bar.anchor_top = 1.0 - target_progress
+			# Final landing beep (brighter, higher pitch)
+			if target_progress > 0.01:
+				var final_freq: float = 220.0 * pow(4.0, target_progress) * 1.25
+				_play_kill_progress_beep(final_freq, 0.08, -10.0)
+			fill_timer.stop()
+			fill_timer.queue_free()
+			if slot in _unlock_progress_tweens:
+				_unlock_progress_tweens.erase(slot)
+			# When progress bar is fully filled (condition met), hide it so only
+			# the availability (condition_met) shine on the slot remains visible.
+			# Issue #1621: avoid duplicating shine animations at full progress.
+			if target_progress >= 1.0:
+				var overlay_layer := bar.get_parent()
+				if is_instance_valid(overlay_layer):
+					overlay_layer.hide()
+	)
+	fill_timer.start()
+
+
+## Creates an unlock-progress bar ColorRect at the bottom of a slot (Issue #1591).
+## The bar grows upward as target_progress increases from 0.0 to 1.0.
+## Gold color with animated shine overlay to match the armory's condition-met style.
+## The bar is parented to a non-container Control overlay so PanelContainer does not
+## override the anchor-based height (PanelContainer forces all direct children to fill it).
+func _create_unlock_progress_bar(slot: PanelContainer) -> ColorRect:
+	# Use a plain Control as the overlay layer so PanelContainer does not force-fill it.
+	# PanelContainer calls fit_child_in_rect on direct children, overriding anchor_top/bottom.
+	# A Control node inside a PanelContainer is still fit to full rect, but we need the bar
+	# to be a child of that Control — since Control does NOT manage children, anchors work.
+	var overlay_layer := Control.new()
+	overlay_layer.name = "ProgressBarLayer"
+	overlay_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(overlay_layer)
+
+	var bar := ColorRect.new()
+	bar.name = "UnlockProgressBar"
+	# Anchor to bottom of overlay_layer, zero height initially
+	bar.anchor_left = 0.0
+	bar.anchor_right = 1.0
+	bar.anchor_top = 1.0
+	bar.anchor_bottom = 1.0
+	bar.offset_left = 2
+	bar.offset_right = -2
+	bar.offset_top = 0
+	bar.offset_bottom = 0
+	bar.color = Color(0.7, 0.5, 0.05, 0.55)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay_layer.add_child(bar)
+	# Add the animated gold shine overlay (same shader as condition-met accordion buttons).
+	# Issue #1621: use dimmer sweep/burst colors so the progress bar shine is less prominent
+	# than the availability (condition_met) shine that plays on the slot itself.
+	var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+	if shine_shader:
+		var mat := ShaderMaterial.new()
+		mat.shader = shine_shader
+		mat.set_shader_parameter("horizontal_sweep", false)
+		mat.set_shader_parameter("cycle_duration", 3.0)
+		mat.set_shader_parameter("sweep_color", Color(0.5, 0.42, 0.1, 1.0))
+		mat.set_shader_parameter("burst_color", Color(0.5, 0.37, 0.05, 1.0))
+		var shine_overlay := ColorRect.new()
+		shine_overlay.name = "GoldShineOverlay"
+		shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		shine_overlay.material = mat
+		bar.add_child(shine_overlay)
+	return bar
+
+
+## Play a beep for the unlock-progress bar animation using the dedicated audio player.
+## Similar to _play_beep but uses _kill_progress_audio_player (Issue #1591).
+func _play_kill_progress_beep(frequency: float, duration: float = 0.03, volume_db: float = -15.0) -> void:
+	if _kill_progress_audio_player == null:
+		return
+
+	var generator := AudioStreamGenerator.new()
+	generator.mix_rate = 44100.0
+	generator.buffer_length = 0.1
+
+	_kill_progress_audio_player.stream = generator
+	_kill_progress_audio_player.volume_db = volume_db
+	_kill_progress_audio_player.play()
+
+	var playback: AudioStreamGeneratorPlayback = _kill_progress_audio_player.get_stream_playback()
+	var sample_rate: float = 44100.0
+	var num_samples: int = int(duration * sample_rate)
+
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		var envelope: float = 1.0 - (float(i) / float(num_samples))
+		envelope = envelope * envelope
+		var sample: float = sin(2.0 * PI * frequency * t) * envelope * 0.3
+		playback.push_frame(Vector2(sample, sample))

@@ -15,6 +15,31 @@ var kills_without_laser_sight: int = 0
 ## Persists across sessions — used as the unlock condition for Fine Motor Skills (Issue #1346).
 var shots_fired_special_weapons: int = 0
 
+## Cumulative total deaths across all sessions.
+## Persists across sessions — used as the unlock condition for Armored Skin (Issue #1389).
+var total_deaths: int = 0
+
+## Cumulative levels completed without taking any damage.
+## Persists across sessions — tracked for future use (Issue #1389).
+var no_damage_levels_completed: int = 0
+
+## Cumulative levels completed at rank A or higher (A, A+, or S).
+## Persists across sessions — used as the unlock condition for Breaker Bullets (Issue #1589).
+var levels_completed_rank_a_or_higher: int = 0
+
+## Cumulative kills made through walls (using Drilling Bullets or any wall-piercing effect).
+## Persists across sessions — used as the unlock condition for Drilling Bullets (Issue #1624).
+var kills_through_wall: int = 0
+
+## Cumulative levels completed while the silenced pistol was the selected weapon.
+## Persists across sessions — used as the unlock condition for Auto Reload (Issue #1624).
+var levels_completed_with_silenced_pistol: int = 0
+
+## Set to true while the animated score screen animation is playing.
+## Blocks the Q-key quick-restart shortcut so the player cannot accidentally skip the
+## score screen before seeing the Armory button (Issue #1589).
+var score_screen_active: bool = false
+
 ## Weapon IDs that count toward the Fine Motor Skills unlock condition (Issue #1346).
 const FINE_MOTOR_SKILLS_WEAPONS: Array[String] = ["shotgun", "sniper", "revolver"]
 
@@ -65,8 +90,7 @@ var unlocked_weapons: Dictionary = {
 	"silenced_pistol": true,  # No unlock condition — freely available from start
 	"sniper": false,   # Condition: Polygon D+
 	"revolver": false, # Condition: Castle F+
-	"ak_gl": true,     # No unlock condition — freely available from start
-	"smg": false       # Coming soon — not yet available
+	"ak_gl": true      # No unlock condition — freely available from start
 }
 
 ## Weapon scene paths mapped to weapon IDs.
@@ -91,6 +115,26 @@ signal kills_without_laser_sight_updated(new_count: int)
 ## Signal emitted when shots_fired_special_weapons changes (for shot-based unlock checks).
 ## Issue #1346.
 signal shots_fired_special_weapons_updated(new_count: int)
+
+## Signal emitted when total_deaths changes (for death-based unlock checks).
+## Issue #1389.
+signal total_deaths_updated(new_count: int)
+
+## Signal emitted when no_damage_levels_completed changes.
+## Issue #1389.
+signal no_damage_levels_completed_updated(new_count: int)
+
+## Signal emitted when levels_completed_rank_a_or_higher changes (for rank-A unlock checks).
+## Issue #1589.
+signal levels_completed_rank_a_or_higher_updated(new_count: int)
+
+## Signal emitted when kills_through_wall changes (for wall-kill unlock checks).
+## Issue #1624.
+signal kills_through_wall_updated(new_count: int)
+
+## Signal emitted when levels_completed_with_silenced_pistol changes.
+## Issue #1624.
+signal levels_completed_with_silenced_pistol_updated(new_count: int)
 
 ## Signal emitted when player dies.
 signal player_died
@@ -174,6 +218,30 @@ var roguelike_run_weapon: String = ""
 ## Used to prevent the same item from appearing on a pedestal twice in one run.
 var roguelike_offered_items: Array = []
 
+## ── Branching room map state (Issue #1399) ───────────────────────────────
+## Each level generates an Isaac-style grid map of rooms with branching paths.
+## Players can navigate freely between connected rooms and skip optional ones.
+
+## Array of room dictionaries for the current level.
+## Each entry: {grid_pos: Vector2i, room_type: int, connections: Array[int],
+##              map_room_type: String, cleared: bool, visited: bool}
+## map_room_type is one of: "start", "combat", "treasure", "exit"
+## connections is an array of room indices this room connects to.
+var roguelike_room_map: Array = []
+
+## Index into roguelike_room_map for the room currently being played.
+var roguelike_current_map_room: int = 0
+
+## Set of room indices that have been visited (so minimap can show them).
+var roguelike_visited_rooms: Array = []
+
+## Target room index when player enters a door (used during scene reload).
+var roguelike_target_room: int = -1
+
+## Source room index — the room player was in before navigating (Issue #1399).
+## Used to determine spawn position in the new room.
+var roguelike_source_room: int = -1
+
 ## Resets all roguelike session variables to their default (not-in-run) state.
 func roguelike_reset_session() -> void:
 	roguelike_active = false
@@ -189,6 +257,11 @@ func roguelike_reset_session() -> void:
 	roguelike_in_treasure_room = false
 	roguelike_run_weapon = ""
 	roguelike_offered_items = []
+	roguelike_room_map = []
+	roguelike_current_map_room = 0
+	roguelike_visited_rooms = []
+	roguelike_target_room = -1
+	roguelike_source_room = -1
 
 
 func _ready() -> void:
@@ -201,6 +274,10 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	# Sync debug/invincibility state from ExperimentalSettings (persisted)
 	_sync_from_experimental_settings()
+	# Connect to ScoreManager to track no-damage level completions (Issue #1389)
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_signal("score_calculated"):
+		score_manager.score_calculated.connect(_on_score_calculated)
 	# Log that GameManager is ready
 	_log_to_file("GameManager ready")
 
@@ -209,6 +286,10 @@ func _input(event: InputEvent) -> void:
 	# Handle quick restart with Q key
 	if event is InputEventKey:
 		if event.pressed and event.physical_keycode == KEY_Q:
+			# Block restart while the score screen animation is playing — the player
+			# may not have seen the Armory button yet (Issue #1589).
+			if score_screen_active:
+				return
 			restart_scene()
 		# Handle invincibility toggle with F6 key (works in exported builds)
 		elif event.pressed and event.physical_keycode == KEY_F6:
@@ -335,8 +416,10 @@ func register_hit() -> void:
 
 ## Registers an enemy kill.
 ## @param is_player_kill: Whether the kill was made by the player (not enemy-vs-enemy). Issue #1196.
+## @param is_penetration_kill: Whether the kill was made through a wall (drilling/penetration). Issue #1624.
 ## Also increments kills_without_laser_sight only for player kills without any laser sight active (Issue #1196).
-func register_kill(is_player_kill: bool = true) -> void:
+## Also increments kills_through_wall for player penetration kills (Issue #1624).
+func register_kill(is_player_kill: bool = true, is_penetration_kill: bool = false) -> void:
 	kills += 1
 	enemy_killed.emit()
 	stats_updated.emit()
@@ -360,6 +443,11 @@ func register_kill(is_player_kill: bool = true) -> void:
 		_log_to_file("kills_without_laser_sight: %d" % kills_without_laser_sight)
 	else:
 		_log_to_file("register_kill: laser sight active — kill not counted toward unlock condition")
+	# Track kills through walls for Drilling Bullets unlock condition (Issue #1624).
+	if is_penetration_kill:
+		kills_through_wall += 1
+		kills_through_wall_updated.emit(kills_through_wall)
+		_log_to_file("kills_through_wall: %d" % kills_through_wall)
 
 
 ## Returns the current accuracy as a percentage (0-100).
@@ -383,6 +471,10 @@ func on_player_death() -> void:
 		_log_to_file("on_player_death() — already reloading, skipping")
 		return
 	player_alive = false
+	# Track cumulative death count for Armored Skin unlock (Issue #1389)
+	total_deaths += 1
+	total_deaths_updated.emit(total_deaths)
+	_log_to_file("total_deaths: %d" % total_deaths)
 	# Issue #1334 Round 9: Record wall-clock timestamp of death for absolute failsafe
 	if _player_dead_since_ms <= 0:
 		_player_dead_since_ms = Time.get_ticks_msec()
@@ -757,6 +849,31 @@ func _spawn_selected_enemy_at_player() -> void:
 		current_scene.add_child(enemy)
 
 	_log_to_file("F8 spawn: '%s' at %s" % [meta.get("name", "Unknown"), str(spawn_pos)])
+
+
+## Called when ScoreManager emits score_calculated after level completion.
+## Tracks levels completed without taking any damage for Combat Disposition unlock (Issue #1389).
+## Also tracks levels completed at rank A or higher for Breaker Bullets unlock (Issue #1589).
+## Also tracks levels completed with silenced pistol for Auto Reload unlock (Issue #1624).
+func _on_score_calculated(score_data: Dictionary) -> void:
+	var damage_taken: int = score_data.get("damage_taken", -1)
+	_log_to_file("Level completed — damage_taken: %d" % damage_taken)
+	if damage_taken == 0:
+		no_damage_levels_completed += 1
+		no_damage_levels_completed_updated.emit(no_damage_levels_completed)
+		_log_to_file("No-damage level condition met — no_damage_levels_completed: %d" % no_damage_levels_completed)
+	var rank: String = score_data.get("rank", "")
+	# Ranks A, A+, and S all satisfy the "A or higher" condition (Issue #1589)
+	const A_OR_HIGHER: Array = ["A", "A+", "S"]
+	if rank in A_OR_HIGHER:
+		levels_completed_rank_a_or_higher += 1
+		levels_completed_rank_a_or_higher_updated.emit(levels_completed_rank_a_or_higher)
+		_log_to_file("Rank-A level completed — levels_completed_rank_a_or_higher: %d" % levels_completed_rank_a_or_higher)
+	# Track levels completed with silenced pistol for Auto Reload unlock (Issue #1624).
+	if selected_weapon == "silenced_pistol":
+		levels_completed_with_silenced_pistol += 1
+		levels_completed_with_silenced_pistol_updated.emit(levels_completed_with_silenced_pistol)
+		_log_to_file("Level completed with silenced pistol — levels_completed_with_silenced_pistol: %d" % levels_completed_with_silenced_pistol)
 
 
 ## Log a message to the file logger if available.
