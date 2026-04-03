@@ -120,6 +120,20 @@ func is_level_completed_any_difficulty(level_path: String) -> bool:
 	return false
 
 
+## Check if a level has been completed at rank A or higher on any difficulty.
+## Used by GameManager to count each unique map at most once toward the Breaker Bullets
+## unlock condition (Issue #1749).
+## @param level_path: The scene file path of the level.
+## @return: True if the level has been completed with rank A, A+, or S on any difficulty.
+func is_level_completed_rank_a_or_higher_any_difficulty(level_path: String) -> bool:
+	const A_OR_HIGHER: Array = ["A", "A+", "S"]
+	for difficulty_name in _get_all_difficulty_names():
+		var rank: String = get_best_rank(level_path, difficulty_name)
+		if rank in A_OR_HIGHER:
+			return true
+	return false
+
+
 ## Get the best rank for a level across all difficulties.
 ## @param level_path: The scene file path of the level.
 ## @return: Dictionary with difficulty names as keys and rank strings as values.
