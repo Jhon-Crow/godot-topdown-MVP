@@ -252,11 +252,11 @@ func test_on_tree_changed_method_exists() -> void:
 # ============================================================================
 
 
-func test_max_blood_decals_is_capped() -> void:
-	# MAX_BLOOD_DECALS was raised from 0 (unlimited) to 200 in Issue #1693 to prevent
-	# unbounded node accumulation causing FPS drops.  It must remain > 0.
-	assert_gt(impact_manager.MAX_BLOOD_DECALS, 0,
-		"MAX_BLOOD_DECALS should be > 0 to cap decal accumulation (Issue #1693)")
+func test_max_blood_decals_is_unlimited() -> void:
+	# Issue #1747: Owner requested blood puddles never be deleted.
+	# MAX_BLOOD_DECALS must be 0 (unlimited) so no cleanup is performed.
+	assert_eq(impact_manager.MAX_BLOOD_DECALS, 0,
+		"MAX_BLOOD_DECALS should be 0 (unlimited) so blood puddles are never removed (Issue #1747)")
 
 
 # ============================================================================
