@@ -163,10 +163,63 @@ if body.is_in_group("dead_enemy_ragdoll"):
 
 ---
 
+---
+
+## Additional Finding: VOG (Underbarrel) Grenade Triggers on Dead Enemy Bodies
+
+### Reported in PR comment (2026-04-03)
+
+User `Jhon-Crow` reported via game log (`game_log_20260404_001403.txt`) that the AK underbarrel
+grenade launcher's VOG-25 grenade triggers on a dead enemy's **CharacterBody2D** body (not its
+HitArea), causing an unwanted explosion.
+
+**Log evidence (exact timestamp sequence):**
+
+```
+[00:14:21] [ENEMY] [Enemy1] Hit: dmg=2, hp=2/2->0/2
+[00:14:21] [ENEMY] [Enemy1] Enemy died (ricochet: false, penetration: false, player_kill: true)
+[00:14:22] [GrenadeBase] Collision detected with Enemy1 (type: CharacterBody2D)
+[00:14:22] [VOGGrenade] Impact detected! Body: Enemy1 (type: CharacterBody2D), triggering explosion
+```
+
+Enemy1 died at `00:14:21`. One second later, the VOG grenade collided with the corpse's
+`CharacterBody2D` and detonated — wasting the grenade and potentially harming the player.
+
+### Why bullets were already fixed but grenades weren't
+
+Bullets use `Area2D` hit detection via `_on_area_entered` (HitArea) and `_on_body_entered`
+(CharacterBody2D) — both were patched to check `is_alive()`.
+
+The VOG grenade uses `RigidBody2D` physics and `body_entered` signal in `_on_body_entered`:
+
+```gdscript
+# BEFORE fix (vog_grenade.gd)
+if body is StaticBody2D or body is TileMap or body is CharacterBody2D:
+    _trigger_impact_explosion()  # ← no is_alive() check
+```
+
+Dead enemy `CharacterBody2D` collision shape remains active while the grenade is still flying
+(enemy physics collision layers are disabled with `set_deferred` too, same as HitArea).
+
+### Fix applied
+
+```gdscript
+# AFTER fix (vog_grenade.gd)
+elif body is CharacterBody2D:
+    # Issue #1746: Do not trigger on dead enemies — grenade should pass through corpses.
+    if body.has_method("is_alive") and not body.is_alive():
+        FileLogger.info("[VOGGrenade] Impact with dead enemy %s - not triggering explosion" % body.name)
+        return
+    _trigger_impact_explosion()
+```
+
+---
+
 ## Files Changed
 
 - `scripts/objects/enemy.gd` — `_disable_hit_area_collision()` and `_enable_hit_area_collision()`, `is_alive()` function
 - `scripts/projectiles/bullet.gd` — `is_alive()` guard in `_on_area_entered` and `_on_body_entered`
+- `scripts/projectiles/vog_grenade.gd` — `is_alive()` guard in `_on_body_entered` (Issue #1746 VOG fix)
 - `scripts/components/death_animation_component.gd` — ragdoll `dead_enemy_ragdoll` group (Issue #1413)
 
 ## Tests
@@ -177,3 +230,7 @@ if body.is_in_group("dead_enemy_ragdoll"):
   - HitArea re-enabled on respawn
   - Dead enemy ignores additional hit calls
   - Ragdoll group pass-through (Issue #1413)
+- `tests/unit/test_vog_grenade.gd` — added dead body passthrough tests:
+  - VOG grenade does NOT explode on dead enemy body
+  - VOG grenade DOES explode on alive enemy body
+  - Dead body does not consume the impact (grenade still explodes on next wall hit)
