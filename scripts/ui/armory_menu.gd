@@ -214,6 +214,9 @@ var _unlock_progress_tweens: Dictionary = {}
 ## Audio player dedicated to kill-progress bar count-up sound (Issue #1591).
 var _kill_progress_audio_player: AudioStreamPlayer = null
 
+## Tracks silver shine overlay on the Apply button when pending changes exist (Issue #1762).
+var _apply_button_silver_shine: ColorRect = null
+
 
 func _ready() -> void:
 	# Get GrenadeManager reference
@@ -1220,10 +1223,40 @@ func _has_pending_changes() -> bool:
 	return _pending_weapon_id != current_weapon_id or _pending_grenade_type != current_grenade_type or _pending_active_item_type != current_active_item_type
 
 
-## Update the Apply button enabled state.
+## Update the Apply button enabled state and silver shine overlay (Issue #1762).
 func _update_apply_button_state() -> void:
 	if _apply_button:
 		_apply_button.disabled = not _has_pending_changes()
+		_update_apply_button_silver_shine()
+
+
+## Update the silver shine overlay on the Apply button when pending changes exist (Issue #1762).
+func _update_apply_button_silver_shine() -> void:
+	var has_changes: bool = _has_pending_changes()
+	
+	# Remove existing silver shine if no pending changes
+	if not has_changes:
+		if _apply_button_silver_shine != null and is_instance_valid(_apply_button_silver_shine):
+			_apply_button_silver_shine.queue_free()
+		_apply_button_silver_shine = null
+		return
+	
+	# Add silver shine if pending changes exist and no overlay exists yet
+	if _apply_button_silver_shine == null or not is_instance_valid(_apply_button_silver_shine):
+		var silver_shader := load("res://scripts/shaders/silver_shine.gdshader") as Shader
+		if silver_shader:
+			var mat := ShaderMaterial.new()
+			mat.shader = silver_shader
+			# Enable horizontal sweep for button-sized elements
+			mat.set_shader_parameter("horizontal_sweep", true)
+			
+			var overlay := ColorRect.new()
+			overlay.name = "ApplyButtonSilverShine"
+			overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			overlay.material = mat
+			_apply_button.add_child(overlay)
+			_apply_button_silver_shine = overlay
 
 
 ## Apply the pending selection: update GameManager/GrenadeManager/ActiveItemManager and restart.
