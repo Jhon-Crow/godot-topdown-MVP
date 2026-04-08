@@ -27,6 +27,14 @@ var no_damage_levels_completed: int = 0
 ## Persists across sessions — used as the unlock condition for Breaker Bullets (Issue #1589).
 var levels_completed_rank_a_or_higher: int = 0
 
+## Cumulative kills made through walls (using Drilling Bullets or any wall-piercing effect).
+## Persists across sessions — used as the unlock condition for Drilling Bullets (Issue #1624).
+var kills_through_wall: int = 0
+
+## Cumulative levels completed while the silenced pistol was the selected weapon.
+## Persists across sessions — used as the unlock condition for Auto Reload (Issue #1624).
+var levels_completed_with_silenced_pistol: int = 0
+
 ## Set to true while the animated score screen animation is playing.
 ## Blocks the Q-key quick-restart shortcut so the player cannot accidentally skip the
 ## score screen before seeing the Armory button (Issue #1589).
@@ -82,8 +90,7 @@ var unlocked_weapons: Dictionary = {
 	"silenced_pistol": true,  # No unlock condition — freely available from start
 	"sniper": false,   # Condition: Polygon D+
 	"revolver": false, # Condition: Castle F+
-	"ak_gl": true,     # No unlock condition — freely available from start
-	"smg": false       # Coming soon — not yet available
+	"ak_gl": true      # No unlock condition — freely available from start
 }
 
 ## Weapon scene paths mapped to weapon IDs.
@@ -120,6 +127,14 @@ signal no_damage_levels_completed_updated(new_count: int)
 ## Signal emitted when levels_completed_rank_a_or_higher changes (for rank-A unlock checks).
 ## Issue #1589.
 signal levels_completed_rank_a_or_higher_updated(new_count: int)
+
+## Signal emitted when kills_through_wall changes (for wall-kill unlock checks).
+## Issue #1624.
+signal kills_through_wall_updated(new_count: int)
+
+## Signal emitted when levels_completed_with_silenced_pistol changes.
+## Issue #1624.
+signal levels_completed_with_silenced_pistol_updated(new_count: int)
 
 ## Signal emitted when player dies.
 signal player_died
@@ -401,8 +416,10 @@ func register_hit() -> void:
 
 ## Registers an enemy kill.
 ## @param is_player_kill: Whether the kill was made by the player (not enemy-vs-enemy). Issue #1196.
+## @param is_penetration_kill: Whether the kill was made through a wall (drilling/penetration). Issue #1624.
 ## Also increments kills_without_laser_sight only for player kills without any laser sight active (Issue #1196).
-func register_kill(is_player_kill: bool = true) -> void:
+## Also increments kills_through_wall for player penetration kills (Issue #1624).
+func register_kill(is_player_kill: bool = true, is_penetration_kill: bool = false) -> void:
 	kills += 1
 	enemy_killed.emit()
 	stats_updated.emit()
@@ -426,6 +443,11 @@ func register_kill(is_player_kill: bool = true) -> void:
 		_log_to_file("kills_without_laser_sight: %d" % kills_without_laser_sight)
 	else:
 		_log_to_file("register_kill: laser sight active — kill not counted toward unlock condition")
+	# Track kills through walls for Drilling Bullets unlock condition (Issue #1624).
+	if is_penetration_kill:
+		kills_through_wall += 1
+		kills_through_wall_updated.emit(kills_through_wall)
+		_log_to_file("kills_through_wall: %d" % kills_through_wall)
 
 
 ## Returns the current accuracy as a percentage (0-100).
@@ -832,6 +854,7 @@ func _spawn_selected_enemy_at_player() -> void:
 ## Called when ScoreManager emits score_calculated after level completion.
 ## Tracks levels completed without taking any damage for Combat Disposition unlock (Issue #1389).
 ## Also tracks levels completed at rank A or higher for Breaker Bullets unlock (Issue #1589).
+## Also tracks levels completed with silenced pistol for Auto Reload unlock (Issue #1624).
 func _on_score_calculated(score_data: Dictionary) -> void:
 	var damage_taken: int = score_data.get("damage_taken", -1)
 	_log_to_file("Level completed — damage_taken: %d" % damage_taken)
@@ -843,9 +866,26 @@ func _on_score_calculated(score_data: Dictionary) -> void:
 	# Ranks A, A+, and S all satisfy the "A or higher" condition (Issue #1589)
 	const A_OR_HIGHER: Array = ["A", "A+", "S"]
 	if rank in A_OR_HIGHER:
-		levels_completed_rank_a_or_higher += 1
-		levels_completed_rank_a_or_higher_updated.emit(levels_completed_rank_a_or_higher)
-		_log_to_file("Rank-A level completed — levels_completed_rank_a_or_higher: %d" % levels_completed_rank_a_or_higher)
+		# Only count each unique map once toward the unlock, regardless of difficulty (Issue #1749).
+		# Check if this map was already completed at A-rank or higher on any difficulty before
+		# this run (ProgressManager has not yet saved the current result at this point).
+		var already_counted: bool = false
+		var progress_manager: Node = get_node_or_null("/root/ProgressManager")
+		if progress_manager and progress_manager.has_method("is_level_completed_rank_a_or_higher_any_difficulty"):
+			var current_scene: Node = get_tree().current_scene
+			if current_scene and not current_scene.scene_file_path.is_empty():
+				already_counted = progress_manager.is_level_completed_rank_a_or_higher_any_difficulty(current_scene.scene_file_path)
+		if not already_counted:
+			levels_completed_rank_a_or_higher += 1
+			levels_completed_rank_a_or_higher_updated.emit(levels_completed_rank_a_or_higher)
+			_log_to_file("Rank-A level completed (new unique map) — levels_completed_rank_a_or_higher: %d" % levels_completed_rank_a_or_higher)
+		else:
+			_log_to_file("Rank-A level completed (already counted for this map) — levels_completed_rank_a_or_higher unchanged: %d" % levels_completed_rank_a_or_higher)
+	# Track levels completed with silenced pistol for Auto Reload unlock (Issue #1624).
+	if selected_weapon == "silenced_pistol":
+		levels_completed_with_silenced_pistol += 1
+		levels_completed_with_silenced_pistol_updated.emit(levels_completed_with_silenced_pistol)
+		_log_to_file("Level completed with silenced pistol — levels_completed_with_silenced_pistol: %d" % levels_completed_with_silenced_pistol)
 
 
 ## Log a message to the file logger if available.
