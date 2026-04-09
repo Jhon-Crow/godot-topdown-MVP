@@ -423,7 +423,12 @@ func _physics_process(delta: float) -> void:
 
 	if not is_dash_active():
 		if input_direction != Vector2.ZERO:
-			velocity = velocity.move_toward(input_direction * max_speed, acceleration * delta)
+			# Issue #1769: project target velocity onto wall plane so moving into
+			# a wall does not reduce speed along the wall (wall no longer slows player).
+			var target_velocity := input_direction * max_speed
+			if is_on_wall():
+				target_velocity = target_velocity.slide(get_wall_normal())
+			velocity = velocity.move_toward(target_velocity, acceleration * delta)
 		else:
 			velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
 
