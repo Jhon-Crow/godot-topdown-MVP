@@ -96,7 +96,8 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
 		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released.",
 		"desc_key": "ITEM_FLASHLIGHT_DESC",
-		"activation_hint": "Hold Space to activate"
+		"activation_hint": "Hold Space to activate",
+		"activation_hint_key": "ITEM_HINT_HOLD_SPACE_ACTIVATE"
 	},
 	ActiveItemType.HOMING_BULLETS: {
 		"name": "Homing Bullets",
@@ -111,7 +112,8 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
 		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls.",
 		"desc_key": "ITEM_TELEPORT_BRACERS_DESC",
-		"activation_hint": "Hold Space to aim, release to teleport"
+		"activation_hint": "Hold Space to aim, release to teleport",
+		"activation_hint_key": "ITEM_HINT_HOLD_SPACE_AIM_RELEASE_TELEPORT"
 	},
 	ActiveItemType.BFF_PENDANT: {
 		"name": "BFF Pendant",
@@ -119,7 +121,8 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
 		"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle.",
 		"desc_key": "ITEM_BFF_PENDANT_DESC",
-		"activation_hint": "Press Space to summon"
+		"activation_hint": "Press Space to summon",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_SUMMON"
 	},
 	ActiveItemType.INVISIBILITY_SUIT: {
 		"name": "Invisibility",
@@ -127,7 +130,8 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png",
 		"description": "Invisibility suit — press Space to cloak (Predator-style ripple). Enemies cannot see you for 4 seconds. 2 charges per battle.",
 		"desc_key": "ITEM_INVISIBILITY_DESC",
-		"activation_hint": "Press Space to activate"
+		"activation_hint": "Press Space to activate",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_ACTIVATE"
 	},
 	ActiveItemType.BREAKER_BULLETS: {
 		"name": "Breaker Bullets",
@@ -142,7 +146,8 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/force_field_icon.png",
 		"description": "Force field — hold Space to activate glowing shield. 100% projectile reflection, grenades bounce without detonating. 8 second depletable charge.",
 		"desc_key": "ITEM_FORCE_FIELD_DESC",
-		"activation_hint": "Hold Space to activate"
+		"activation_hint": "Hold Space to activate",
+		"activation_hint_key": "ITEM_HINT_HOLD_SPACE_ACTIVATE"
 	},
 	ActiveItemType.TRAJECTORY_GLASSES: {
 		"name": "Trajectory Glasses",
@@ -150,7 +155,8 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png",
 		"description": "Trajectory glasses — press Space to see ricochet trajectories for 10 seconds. Green laser shows valid ricochets, red shows impossible angles. 2 charges per battle. Passive: ricochet chance is increased by 30% at angles where ricochet is possible (green ray).",
 		"desc_key": "ITEM_TRAJECTORY_GLASSES_DESC",
-		"activation_hint": "Press Space to activate"
+		"activation_hint": "Press Space to activate",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_ACTIVATE"
 	},
 	ActiveItemType.LASER_SIGHT: {
 		"name": "Laser Sight",
@@ -172,7 +178,8 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
 		"description": "???",
 		"desc_key": "ITEM_LOUDSPEAKER_DESC",
-		"activation_hint": "Press Space to activate"
+		"activation_hint": "Press Space to activate",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_ACTIVATE"
 	},
 	ActiveItemType.BREACHING_CHARGES: {
 		"name": "Breaching Charges",
@@ -180,7 +187,8 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png",
 		"description": "Breaching charges — hold Space near a wall to place a charge, release to attach it. Press Space to detonate: blasts open a passage in the wall. 2 charges per battle. Enemies on the other side are stunned and blinded for 3 seconds.",
 		"desc_key": "ITEM_BREACHING_CHARGES_DESC",
-		"activation_hint": "Hold Space near wall to place, press Space to detonate"
+		"activation_hint": "Hold Space near wall to place, press Space to detonate",
+		"activation_hint_key": "ITEM_HINT_HOLD_SPACE_NEAR_WALL"
 	},
 	ActiveItemType.ARMORED_SKIN: {
 		"name": "Armored Skin",
@@ -202,7 +210,8 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png",
 		"description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine. Bullets ignore walls (full damage through walls, no ricochet). One charge per battle.",
 		"desc_key": "ITEM_DRILLING_BULLETS_DESC",
-		"activation_hint": "Press Space to activate"
+		"activation_hint": "Press Space to activate",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_ACTIVATE"
 	},
 	ActiveItemType.RECOIL_COMPENSATOR: {
 		"name": "Recoil Compensator",
@@ -210,7 +219,8 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png",
 		"description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%. 15 second depletable charge, unlimited activations while charge lasts.",
 		"desc_key": "ITEM_RECOIL_COMPENSATOR_DESC",
-		"activation_hint": "Hold Space to activate"
+		"activation_hint": "Hold Space to activate",
+		"activation_hint_key": "ITEM_HINT_HOLD_SPACE_ACTIVATE"
 	},
 	ActiveItemType.COMBAT_DISPOSITION: {
 		"name": "Combat Disposition",
@@ -225,7 +235,8 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png",
 		"description": "Experimental Sample — press Space to trigger a random active item effect (including items not yet unlocked). 1–5 charges per battle, randomised on level start.",
 		"desc_key": "ITEM_EXPERIMENTAL_SAMPLE_DESC",
-		"activation_hint": "Press Space to trigger random effect"
+		"activation_hint": "Press Space to trigger random effect",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_RANDOM"
 	},
 	ActiveItemType.FINE_MOTOR_SKILLS: {
 		"name": "Fine Motor Skills",
@@ -233,7 +244,8 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/fine_motor_skills_icon.png",
 		"description": "Fine Motor Skills — press Space to instantly reload weapon and bring it to combat-ready state. Works with all weapons including revolver, shotgun, and sniper rifle. Unlimited charges, no cooldown.",
 		"desc_key": "ITEM_FINE_MOTOR_SKILLS_DESC",
-		"activation_hint": "Press Space to reload"
+		"activation_hint": "Press Space to reload",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_RELOAD"
 	},
 	ActiveItemType.DASH: {
 		"name": "Dash",
@@ -241,7 +253,8 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/dash_icon.png",
 		"description": "Dash — press Space to dash in movement direction (Hyper Light Drifter style). Immune to all damage during dash. 3 charges with chain-dash, cooldown after all charges spent.",
 		"desc_key": "ITEM_DASH_DESC",
-		"activation_hint": "Press Space to dash"
+		"activation_hint": "Press Space to dash",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_DASH"
 	},
 	ActiveItemType.GRENADE_BAG: {
 		"name": "Grenade Bag",

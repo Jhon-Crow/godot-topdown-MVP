@@ -33,7 +33,7 @@ POWER_FANTASY,Power Fantasy,Фэнтези силы
 EASY,Easy,Легко
 NORMAL,Normal,Нормально
 HARD,Hard,Сложно
-BLACK_METAL,Black Metal,Black Metal
+BLACK_METAL,Black Metal,Блэк Метал
 EASY_SELECTED,Easy (Selected),Легко (выбрано)
 NORMAL_SELECTED,Normal (Selected),Нормально (выбрано)
 HARD_SELECTED,Hard (Selected),Сложно (выбрано)
@@ -106,7 +106,7 @@ WEAPON_AK_GL_NAME,AK + GL,АК + ГП
 WEAPON_AK_GL_DESC,"AK with GP-25 grenade launcher — 7.62x39mm, 30-round magazine. RMB fires VOG-25 grenade (1 shot).","АК с подствольным гранатомётом ГП-25 — 7.62x39мм, магазин 30 патронов. ПКМ — выстрел гранатой ВОГ-25 (1 заряд)."
 GRENADE_FLASHBANG_NAME,Flashbang,Светошумовая
 GRENADE_FLASHBANG_DESC,"Stun grenade — blinds enemies for 12s, stuns for 6s. 4-second fuse.","Светошумовая граната — слепит врагов на 12с, оглушает на 6с. Таймер 4 секунды."
-GRENADE_FRAG_NAME,Frag Grenade,Фрагментационная
+GRENADE_FRAG_NAME,Frag Grenade,Наступательная
 GRENADE_FRAG_DESC,Offensive grenade — explodes on impact. Releases 4 shrapnel pieces.,Наступательная граната — взрыв при ударе. Выпускает 4 осколка.
 GRENADE_DEFENSIVE_NAME,F-1 Grenade,Граната Ф-1
 GRENADE_DEFENSIVE_DESC,"Defensive grenade — 4-second fuse. Releases 40 shrapnel pieces. 700px damage radius.","Оборонительная граната — таймер 4 секунды. 40 осколков. Радиус поражения 700пкс."
@@ -125,7 +125,7 @@ ITEM_BFF_PENDANT_NAME,BFF Pendant,Кулон BFF
 ITEM_BFF_PENDANT_DESC,Press Space to summon a friendly companion armed with M16. One charge per battle.,Нажмите Пробел чтобы призвать союзника с M16. Один заряд на бой.
 ITEM_INVISIBILITY_NAME,Invisibility,Невидимость
 ITEM_INVISIBILITY_DESC,Press Space to cloak. Enemies cannot see you for 4 seconds. 2 charges per battle.,Нажмите Пробел для активации маскировки. Враги не видят вас 4 секунды. 2 заряда на бой.
-ITEM_BREAKER_BULLETS_NAME,Breaker Bullets,Разрывные пули
+ITEM_BREAKER_BULLETS_NAME,Breaker Bullets,Пули с превзрывателем
 ITEM_BREAKER_BULLETS_DESC,"Passive: bullets explode before hitting a wall, dealing damage and releasing shrapnel in a forward cone.","Пассивный: пули взрываются перед стеной, нанося урон и выпуская осколки вперёд."
 ITEM_FORCE_FIELD_NAME,Force Field,Силовое поле
 ITEM_FORCE_FIELD_DESC,Hold Space to activate a glowing shield. 100% projectile reflection. 8-second charge.,Удерживайте Пробел для активации щита. 100% отражение снарядов. Заряд 8 секунд.
@@ -137,13 +137,13 @@ ITEM_EXTENDED_MAGAZINE_NAME,Extended Magazine,Расширенный магаз�
 ITEM_EXTENDED_MAGAZINE_DESC,Passive: increases magazine size by 2.5x but reduces total ammo by 5%.,Пассивный: увеличивает магазин в 2.5 раза но уменьшает общий запас патронов на 5%.
 ITEM_LOUDSPEAKER_NAME,Loudspeaker,Громкоговоритель
 ITEM_LOUDSPEAKER_DESC,???,???
-ITEM_BREACHING_CHARGES_NAME,Breaching Charges,Подрывные заряды
+ITEM_BREACHING_CHARGES_NAME,Breaching Charges,Пробивные заряды
 ITEM_BREACHING_CHARGES_DESC,"Hold Space near a wall to place a charge. Press Space to detonate — blasts open a passage. 2 charges. Stuns enemies on the other side for 3 seconds.","Удерживайте Пробел у стены чтобы заложить заряд. Нажмите Пробел для детонации — пробивает проход. 2 заряда. Оглушает врагов за стеной на 3 секунды."
 ITEM_ARMORED_SKIN_NAME,Armored Skin,Бронированная кожа
 ITEM_ARMORED_SKIN_DESC,"Passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward.","Пассивный: +1 HP. При попадании с 2 HP и менее — 20 стеклянных осколков разлетаются во все стороны."
 ITEM_AUTO_RELOAD_NAME,Auto-Reload,Автоперезарядка
 ITEM_AUTO_RELOAD_DESC,Passive: magazine capacity reduced 2.1x but fully restocked on each kill.,Пассивный: ёмкость магазина уменьшена в 2.1 раза но полностью пополняется с каждым убийством.
-ITEM_DRILLING_BULLETS_NAME,Drilling Bullets,Бронебойные пули
+ITEM_DRILLING_BULLETS_NAME,Drilling Bullets,Бурящие пули
 ITEM_DRILLING_BULLETS_DESC,Press Space to apply wall-piercing effect to the current magazine. Bullets ignore walls. One charge per battle.,Нажмите Пробел для активации пробивания стен на текущий магазин. Пули игнорируют стены. Один заряд на бой.
 ITEM_RECOIL_COMPENSATOR_NAME,Recoil Compensator,Компенсатор отдачи
 ITEM_RECOIL_COMPENSATOR_DESC,Hold Space to eliminate recoil and increase fire rate by 10%. 15-second charge.,Удерживайте Пробел чтобы устранить отдачу и увеличить скорострельность на 10%. Заряд 15 секунд.
@@ -151,16 +151,16 @@ ITEM_COMBAT_DISPOSITION_NAME,Combat Disposition,Боевой настрой
 ITEM_COMBAT_DISPOSITION_DESC,"Passive: +damage, +fire rate, x2 speed on start. Taking damage reduces stats.","Пассивный: +урон, +скорострельность, x2 скорость в начале. Получение урона снижает характеристики."
 ITEM_EXPERIMENTAL_SAMPLE_NAME,Experimental Sample,Экспериментальный образец
 ITEM_EXPERIMENTAL_SAMPLE_DESC,Press Space to trigger a random active item effect. 1–5 charges per battle.,Нажмите Пробел для случайного эффекта активного предмета. 1–5 зарядов на бой.
-ITEM_FINE_MOTOR_SKILLS_NAME,Fine Motor Skills,Мелкая моторика
+ITEM_FINE_MOTOR_SKILLS_NAME,Fine Motor Skills,Хорошая мелкая моторика
 ITEM_FINE_MOTOR_SKILLS_DESC,Press Space to instantly reload weapon. Works with all weapons. Unlimited charges.,Нажмите Пробел для мгновенной перезарядки. Работает со всем оружием. Неограниченные заряды.
 ITEM_DASH_NAME,Dash,Рывок
 ITEM_DASH_DESC,"Press Space to dash in movement direction. Immune to damage during dash. 3 charges, cooldown after all spent.","Нажмите Пробел для рывка в направлении движения. Неуязвимы во время рывка. 3 заряда, перезарядка после всех."
-ITEM_GRENADE_BAG_NAME,Grenade Bag,Сумка с гранатами
+ITEM_GRENADE_BAG_NAME,Grenade Bag,Мешок с гранатами
 ITEM_GRENADE_BAG_DESC,"Passive: increases starting grenade count based on type: 12 flash, 6 frag, 2 gas or F-1.","Пассивный: увеличивает начальное количество гранат: 12 световых, 6 осколочных, 2 газовых или Ф-1."
 LEVEL_LABYRINTH_NAME,Labyrinth,Лабиринт
 LEVEL_LABYRINTH_DESC,Labyrinth of technical rooms with narrow corridors and enclosed spaces.,Лабиринт технических помещений с узкими коридорами.
 LEVEL_BUILDING_NAME,Building Level,Здание
-LEVEL_BUILDING_DESC,Hotline Miami style building with interconnected rooms and corridors. Features a grenadier enemy.,Здание в стиле Hotline Miami с взаимосвязанными комнатами. Есть гранатомётчик.
+LEVEL_BUILDING_DESC,Hotline Miami style building with interconnected rooms and corridors. Features a grenadier enemy.,Здание в стиле Hotline Miami с взаимосвязанными комнатами. Есть гренадер.
 LEVEL_POLYGON_NAME,Polygon,Полигон
 LEVEL_POLYGON_DESC,Open training ground for testing weapons and practicing combat skills.,Открытый полигон для проверки оружия и отработки боевых навыков.
 LEVEL_CASTLE_NAME,Castle,Замок
@@ -178,7 +178,7 @@ LEVEL_FACTORY_DESC,"Industrial factory with interconnected rooms. 13 heavily arm
 LEVEL_DECADENCE_NAME,Decadence,Декаданс
 LEVEL_DECADENCE_DESC,Neon nightclub with dance floor and VIP rooms. Synthwave aesthetic.,Неоновый ночной клуб с танцполом и VIP-зонами. Эстетика синтвейва.
 LEVEL_LABYRINTH_COMPLEX_NAME,Labyrinth Complex,Лабиринт Комплекс
-LEVEL_LABYRINTH_COMPLEX_DESC,"Larger labyrinth with 3 rows of rooms and 17 enemies including a grenadier, armored M16, and machine gunner.","Лабиринт с 3 рядами комнат и 17 врагами: гранатомётчик, бронированный M16 и пулемётчик."
+LEVEL_LABYRINTH_COMPLEX_DESC,"Larger labyrinth with 3 rows of rooms and 17 enemies including a grenadier, armored M16, and machine gunner.","Лабиринт с 3 рядами комнат и 17 врагами: гренадер, бронированный M16 и пулемётчик."
 LEVEL_SEWER_NAME,Sewer,Канализация
 LEVEL_SEWER_DESC,Underground sewer corridor with narrow passages and a fork. Dark and dangerous.,Подземный канализационный коридор с узкими проходами и развилкой. Темно и опасно.
 LEVEL_WINTER_FOREST_NAME,Winter Forest,Зимний лес
@@ -189,3 +189,57 @@ LEVEL_LOCKED_DESC,Complete the previous level to unlock,Пройдите пре�
 LEVEL_LOCKED_TOOLTIP,Complete the previous level to unlock %s,Пройдите предыдущий уровень чтобы разблокировать %s
 LEVEL_LOAD_TOOLTIP,Click to load %s,Нажмите для загрузки %s
 LEVEL_PLAYING,PLAYING,ИГРАЮ
+LEVEL_CURRENTLY_PLAYING,Currently playing this level,Сейчас играю на этом уровне
+ARMORY_STAT_FIRE_MODE,Fire Mode,Режим огня
+ARMORY_STAT_FIRE_MODE_AUTO,Auto,Авто
+ARMORY_STAT_FIRE_MODE_SEMI,Semi-Auto,Полуавтомат
+ARMORY_STAT_CALIBER,Caliber,Калибр
+ARMORY_STAT_DAMAGE,Damage,Урон
+ARMORY_STAT_PELLETS,x%d pellets,x%d картечи
+ARMORY_STAT_RATE,Rate,Скорострельность
+ARMORY_STAT_MAG,Mag,Магазин
+ARMORY_STAT_RESERVE,Reserve,Запас
+ARMORY_STAT_RELOAD,Reload,Перезарядка
+ARMORY_STAT_RANGE,Range,Дальность
+ARMORY_STAT_SPREAD,Spread,Разброс
+ARMORY_STAT_LOUDNESS,Loudness,Громкость
+ARMORY_STAT_SILENT,Silent,Бесшумный
+ARMORY_STAT_BALLISTICS,Ballistics,Баллистика
+ARMORY_STAT_RICOCHET,Ricochet,Рикошет
+ARMORY_STAT_WALL_PEN,Wall Pen. (%dpx),Пробитие стен (%dпкс)
+ARMORY_STAT_STANDARD,Standard,Стандартная
+ARMORY_GRENADE_THROW_HINT,Press G + RMB drag to throw,Нажми G + ПКМ для броска
+ITEM_HINT_HOLD_SPACE_ACTIVATE,Hold Space to activate,Удержи Пробел для активации
+ITEM_HINT_HOLD_SPACE_AIM_RELEASE_TELEPORT,Hold Space to aim release to teleport,Удержи Пробел для прицела отпусти для телепортации
+ITEM_HINT_PRESS_SPACE_SUMMON,Press Space to summon,Нажми Пробел для призыва
+ITEM_HINT_PRESS_SPACE_ACTIVATE,Press Space to activate,Нажми Пробел для активации
+ITEM_HINT_HOLD_SPACE_NEAR_WALL,"Hold Space near wall to place, press Space to detonate","Удержи Пробел у стены чтобы заложить, нажми Пробел для детонации"
+ITEM_HINT_PRESS_SPACE_RANDOM,Press Space to trigger random effect,Нажми Пробел для случайного эффекта
+ITEM_HINT_PRESS_SPACE_RELOAD,Press Space to reload,Нажми Пробел для перезарядки
+ITEM_HINT_PRESS_SPACE_DASH,Press Space to dash,Нажми Пробел для рывка
+HINT_RELOAD_2STEP_0,[R] [R] Reload,[R] [R] Перезарядись
+HINT_RELOAD_2STEP_1,[R] [R] Reload,[R] [R] Перезарядись
+HINT_RELOAD_3STEP_0,[R] [F] [R] Reload,[R] [F] [R] Перезарядись
+HINT_RELOAD_3STEP_1,[R] [F] [R] Reload,[R] [F] [R] Перезарядись
+HINT_RELOAD_3STEP_2,[R] [F] [R] Reload,[R] [F] [R] Перезарядись
+HINT_RELOAD_WORD,Reload,Перезарядись
+HINT_KEY_R_OPEN,R open,R открыть
+HINT_KEY_RMB_UP_BULLET,RMB↑ bullet,ПКМ↑ патрон
+HINT_KEY_SCROLL,scroll,скролл
+HINT_KEY_R_CLOSE,R close,R закрыть
+HINT_KEY_RMB_UP_OPEN,RMB↑ open,ПКМ↑ открыть
+HINT_KEY_MMB_RMB_DOWN,MMB+RMB↓ x%d,СКМ+ПКМ↓ x%d
+HINT_KEY_RMB_DOWN_CLOSE,RMB↓ close,ПКМ↓ закрыть
+HINT_KEY_GRENADE_ARM,G+RMB right,G+ПКМ вправо
+HINT_KEY_GRENADE_AIM,G+RMB→release G,G+ПКМ→отпусти G
+HINT_KEY_GRENADE_THROW,RMB throw,ПКМ бросок
+HINT_BOLT_ACTION_WORD,Cock the bolt,Передёрни затвор
+HINT_COCK_HAMMER,Cock the hammer,Взведи курок
+HINT_SCOPE,Scope in,Прицелься через оптику
+HINT_FIRE_MODE_SWITCH,Switch fire mode,Переключи режим стрельбы
+HINT_LAUNCHER_FIRE,Fire grenade launcher,Выстрели подствольным гранатомётом
+HINT_GRENADE_STEP0,Throw grenade,Брось гранату
+TUTORIAL_LEVEL_COMPLETE,LEVEL COMPLETE!,УРОВЕНЬ ПРОЙДЕН!
+TUTORIAL_RESTART_HINT,Press [Q] to quick restart,Нажми [Q] для быстрого перезапуска
+TUTORIAL_AMMO_LABEL,AMMO: %d/%d,ПАТРОНЫ: %d/%d
+ROGUELIKE_LEVEL_UP,"LEVEL %d\nEnemies got more dangerous!","УРОВЕНЬ %d\nВраги стали опаснее!"

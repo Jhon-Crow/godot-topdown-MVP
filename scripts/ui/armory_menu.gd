@@ -1392,8 +1392,8 @@ func _update_weapon_stats() -> void:
 
 	if resource:
 		# Fire mode
-		var fire_mode: String = "Auto" if resource.get("IsAutomatic") else "Semi-Auto"
-		bbcode += "[color=#aab0b8]Fire Mode:[/color] %s\n" % fire_mode
+		var fire_mode: String = tr("ARMORY_STAT_FIRE_MODE_AUTO") if resource.get("IsAutomatic") else tr("ARMORY_STAT_FIRE_MODE_SEMI")
+		bbcode += "[color=#aab0b8]%s:[/color] %s\n" % [tr("ARMORY_STAT_FIRE_MODE"), fire_mode]
 
 		# Caliber — use CaliberName mirror property (Issue #1708)
 		# WeaponData.Caliber is a C#-backed resource; GDScript dot-access on nested
@@ -1404,7 +1404,7 @@ func _update_weapon_stats() -> void:
 		FileLogger.info("[ArmoryMenu] weapon=%s caliber_name=%s" % [
 			_pending_weapon_id, caliber_name])
 		if caliber_name != "":
-			bbcode += "[color=#aab0b8]Caliber:[/color] %s\n" % caliber_name
+			bbcode += "[color=#aab0b8]%s:[/color] %s\n" % [tr("ARMORY_STAT_CALIBER"), caliber_name]
 
 		# Damage & Fire rate
 		var damage: float = resource.get("Damage")
@@ -1412,46 +1412,46 @@ func _update_weapon_stats() -> void:
 		var pellets: int = resource.get("BulletsPerShot")
 		var damage_text: String = str(damage)
 		if pellets > 1:
-			damage_text += " x%d pellets" % pellets
-		bbcode += "[color=#aab0b8]Damage:[/color] %s\n" % damage_text
-		bbcode += "[color=#aab0b8]Rate:[/color] %.0f/s\n" % fire_rate
+			damage_text += " " + tr("ARMORY_STAT_PELLETS") % pellets
+		bbcode += "[color=#aab0b8]%s:[/color] %s\n" % [tr("ARMORY_STAT_DAMAGE"), damage_text]
+		bbcode += "[color=#aab0b8]%s:[/color] %.0f/s\n" % [tr("ARMORY_STAT_RATE"), fire_rate]
 
 		# Magazine
 		var mag_size: int = resource.get("MagazineSize")
 		var reserve: int = resource.get("MaxReserveAmmo")
-		bbcode += "[color=#aab0b8]Mag:[/color] %d rnd  [color=#aab0b8]Reserve:[/color] %d\n" % [mag_size, reserve]
+		bbcode += "[color=#aab0b8]%s:[/color] %d rnd  [color=#aab0b8]%s:[/color] %d\n" % [tr("ARMORY_STAT_MAG"), mag_size, tr("ARMORY_STAT_RESERVE"), reserve]
 
 		# Reload time
 		var reload: float = resource.get("ReloadTime")
-		bbcode += "[color=#aab0b8]Reload:[/color] %.1fs\n" % reload
+		bbcode += "[color=#aab0b8]%s:[/color] %.1fs\n" % [tr("ARMORY_STAT_RELOAD"), reload]
 
 		# Range & Spread
 		var weapon_range: float = resource.get("Range")
 		var spread: float = resource.get("SpreadAngle")
-		bbcode += "[color=#aab0b8]Range:[/color] %.0fpx\n" % weapon_range
-		bbcode += "[color=#aab0b8]Spread:[/color] %.1f°\n" % spread
+		bbcode += "[color=#aab0b8]%s:[/color] %.0fpx\n" % [tr("ARMORY_STAT_RANGE"), weapon_range]
+		bbcode += "[color=#aab0b8]%s:[/color] %.1f°\n" % [tr("ARMORY_STAT_SPREAD"), spread]
 
 		# Loudness
 		var loudness: float = resource.get("Loudness")
 		var loudness_text: String
 		if loudness <= 0.0:
-			loudness_text = "[color=#66bb6a]Silent[/color]"
+			loudness_text = "[color=#66bb6a]%s[/color]" % tr("ARMORY_STAT_SILENT")
 		elif loudness < 1500.0:
 			loudness_text = "[color=#ffa726]%.0fpx[/color]" % loudness
 		else:
 			loudness_text = "[color=#ef5350]%.0fpx[/color]" % loudness
-		bbcode += "[color=#aab0b8]Loudness:[/color] %s\n" % loudness_text
+		bbcode += "[color=#aab0b8]%s:[/color] %s\n" % [tr("ARMORY_STAT_LOUDNESS"), loudness_text]
 
 		# Caliber properties (ricochet / penetration) — use mirror properties (Issue #1708)
 		var features: Array[String] = []
 		if resource.get("CaliberCanRicochet"):
-			features.append("Ricochet")
+			features.append(tr("ARMORY_STAT_RICOCHET"))
 		if resource.get("CaliberCanPenetrate"):
-			features.append("Wall Pen. (%dpx)" % int(resource.get("CaliberMaxPenetrationDistance")))
+			features.append(tr("ARMORY_STAT_WALL_PEN") % int(resource.get("CaliberMaxPenetrationDistance")))
 		if features.size() > 0:
-			bbcode += "[color=#aab0b8]Ballistics:[/color] %s" % ", ".join(features)
+			bbcode += "[color=#aab0b8]%s:[/color] %s" % [tr("ARMORY_STAT_BALLISTICS"), ", ".join(features)]
 		else:
-			bbcode += "[color=#aab0b8]Ballistics:[/color] Standard"
+			bbcode += "[color=#aab0b8]%s:[/color] %s" % [tr("ARMORY_STAT_BALLISTICS"), tr("ARMORY_STAT_STANDARD")]
 	else:
 		var _wdesc_key: String = weapon_info.get("desc_key", "")
 		var _wdesc: String = tr(_wdesc_key) if _wdesc_key != "" else weapon_info.get("description", tr("ARMORY_NO_DATA"))
@@ -1477,7 +1477,7 @@ func _update_grenade_stats() -> void:
 	var bbcode: String = ""
 	bbcode += "[b][color=#d4c896]%s %s[/color][/b]\n" % [tr("ARMORY_SECTION_GRENADE"), grenade_name]
 	bbcode += "[color=#aab0b8]%s[/color]\n" % grenade_desc
-	bbcode += "\n[color=#888888]Press G + RMB drag to throw[/color]"
+	bbcode += "\n[color=#888888]%s[/color]" % tr("ARMORY_GRENADE_THROW_HINT")
 
 	_grenade_stats_label.text = bbcode
 
@@ -1500,7 +1500,8 @@ func _update_active_item_stats() -> void:
 	bbcode += "[b][color=#d4c896]%s %s[/color][/b]\n" % [tr("ARMORY_SECTION_ACTIVE_ITEM"), item_name]
 	bbcode += "[color=#aab0b8]%s[/color]\n" % item_desc
 	if _pending_active_item_type != 0:  # Not "None" (ActiveItemType.NONE)
-		var activation_hint: String = item_data.get("activation_hint", "Hold Space to activate")
+		var hint_key: String = item_data.get("activation_hint_key", "")
+		var activation_hint: String = tr(hint_key) if hint_key != "" else item_data.get("activation_hint", "Hold Space to activate")
 		bbcode += "\n[color=#888888]%s[/color]" % activation_hint
 
 	_active_item_stats_label.text = bbcode

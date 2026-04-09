@@ -2500,7 +2500,7 @@ func _build_tutorial_sniper_bolt_hint_bbcode(step: int) -> String:
 		var progress := float(step) * 0.125  # 12.5% per step
 		_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, progress)
 
-	return " ".join(parts) + " Передёрни затвор"
+	return " ".join(parts) + " " + tr("HINT_BOLT_ACTION_WORD")
 
 
 ## Build BBCode for shotgun reload hint with dynamic shell count (Bug fix #7).

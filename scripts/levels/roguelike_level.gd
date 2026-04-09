@@ -2863,7 +2863,7 @@ func _start_next_level() -> void:
 	ui.add_child(bg)
 
 	var lbl := Label.new()
-	lbl.text = "УРОВЕНЬ %d\nВраги стали опаснее!" % GameManager.roguelike_current_level
+	lbl.text = tr("ROGUELIKE_LEVEL_UP") % GameManager.roguelike_current_level
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
 	lbl.add_theme_font_size_override("font_size", 44)

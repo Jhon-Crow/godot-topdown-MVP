@@ -564,7 +564,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 
 	# Make card clickable (unless it's the current level or locked)
 	if is_current:
-		card.tooltip_text = "Currently playing this level"
+		card.tooltip_text = tr("LEVEL_CURRENTLY_PLAYING")
 	elif not unlocked:
 		card.tooltip_text = tr("LEVEL_LOCKED_TOOLTIP") % display_name
 	else:
