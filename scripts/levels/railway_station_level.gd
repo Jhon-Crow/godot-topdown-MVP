@@ -786,7 +786,7 @@ func _show_victory_message() -> void:
 		return
 	var victory_label := Label.new()
 	victory_label.name = "VictoryLabel"
-	victory_label.text = "RAILWAY STATION CLEARED!"
+	victory_label.text = "Конец. Спасибо за игру"
 	victory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	victory_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	victory_label.add_theme_font_size_override("font_size", 48)
