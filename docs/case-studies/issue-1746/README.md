@@ -279,9 +279,71 @@ if (body is StaticBody2D || body is TileMap || body is TileMapLayer || body is C
 
 ---
 
+---
+
+## Section 3: Grenade Physically Bounces Off Dead Enemy Body
+
+### Reported in PR comment (2026-04-09) with game_log_20260410_002513.txt
+
+After fixes in Sections 1 and 2, @Jhon-Crow reported: *"теперь VOG просто отскакивает от тела, а не игнорирует (так ещё хуже)"*
+(Translation: *"now the VOG just bounces off the body instead of passing through — even worse than before"*)
+
+### Log evidence (game_log_20260410_002513.txt — exact sequence)
+
+```
+[00:25:40] [GrenadeBase] Collision detected with Enemy (type: CharacterBody2D)
+[00:25:40] [VOGGrenade] Impact with dead enemy Enemy - not triggering explosion    ← GDScript guard OK
+[00:25:40] [GrenadeTimer] Impact with dead enemy Enemy - not triggering explosion  ← C# guard OK
+[00:25:41] [GrenadeTimer] Frag grenade landed - EXPLODING!                         ← Bounced, then landed elsewhere!
+```
+
+The `is_alive()` guards in both GDScript and C# **correctly** prevented the explosion on contact with the dead enemy.
+However, the grenade **physically bounced** off the dead enemy's `CharacterBody2D` physics body (which was still
+active), slowed down, changed direction, then came to rest on the ground and triggered the `_hasLanded` explosion path.
+
+### Root Cause: CharacterBody2D physics body remains active after death
+
+`_disable_hit_area_collision()` only disables the **HitArea** (`Area2D` node) — used for bullet hit detection.
+The `CharacterBody2D` itself has a separate `CollisionShape2D` child with `collision_layer=2`.
+The grenade's `RigidBody2D` has `collision_mask=2` (enemies layer), so it physically collides with the dead
+enemy's physics body even after the explosion logic is skipped.
+
+```
+CharacterBody2D (collision_layer=2)  ← NOT cleared on death until this fix
+  └── CollisionShape2D               ← physics shape, still active → grenade bounces
+  └── HitArea (Area2D)               ← cleared by _disable_hit_area_collision() → bullets pass through
+        └── HitCollisionShape        ← cleared
+```
+
+### Fix: Clear CharacterBody2D.collision_layer on death
+
+In `scripts/objects/enemy.gd`, `_disable_hit_area_collision()` now also calls:
+
+```gdscript
+# Issue #1746: Remove from physics collision layers so grenades pass through the corpse.
+set_deferred("collision_layer", 0)
+```
+
+And `_enable_hit_area_collision()` restores it on respawn:
+
+```gdscript
+collision_layer = _original_body_collision_layer  # Issue #1746: restore physics collision on respawn
+```
+
+The original body layer (`2`) is captured in `_ready()`:
+
+```gdscript
+var _original_body_collision_layer: int = 2  # Issue #1746
+# ...
+_original_body_collision_layer = collision_layer  # stored in _ready() setup block
+```
+
+---
+
 ## Files Changed
 
 - `scripts/objects/enemy.gd` — `_disable_hit_area_collision()` and `_enable_hit_area_collision()`, `is_alive()` function
+  - **Section 3 addition**: clear `CharacterBody2D.collision_layer` on death, restore on respawn
 - `scripts/projectiles/bullet.gd` — `is_alive()` guard in `_on_area_entered` and `_on_body_entered`
 - `scripts/projectiles/vog_grenade.gd` — `is_alive()` guard in `_on_body_entered` (Issue #1746 VOG fix)
 - `scripts/components/death_animation_component.gd` — ragdoll `dead_enemy_ragdoll` group (Issue #1413)
@@ -291,6 +353,7 @@ if (body is StaticBody2D || body is TileMap || body is TileMapLayer || body is C
 
 - `docs/case-studies/issue-1746/game_log_20260404_001403.txt` — first report, before vog_grenade.gd fix
 - `docs/case-studies/issue-1746/game_log_20260404_125335.txt` — second report, after vog_grenade.gd fix (still buggy due to GrenadeTimer.cs)
+- `docs/case-studies/issue-1746/game_log_20260410_002513.txt` — third report, after GrenadeTimer.cs fix (grenade bouncing off physics body)
 
 ## Tests
 
