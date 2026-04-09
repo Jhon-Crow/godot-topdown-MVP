@@ -2130,7 +2130,7 @@ func _on_combo_changed(combo: int, points: int) -> void:
 		_combo_label.text = ""
 		_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		_combo_label.offset_left   = -200
+		_combo_label.offset_left   = -350
 		_combo_label.offset_right  = -10
 		_combo_label.offset_top    = 80
 		_combo_label.offset_bottom = 120
