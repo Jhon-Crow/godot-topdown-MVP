@@ -302,6 +302,15 @@ public abstract partial class BaseWeapon : Node2D
     }
 
     /// <summary>
+    /// Gets the max capacities parallel to GetMagazineAmmoCounts().
+    /// Use together to distinguish full vs partial spare magazines.
+    /// </summary>
+    public int[] GetMagazineMaxCounts()
+    {
+        return MagazineInventory.GetMagazineMaxCounts();
+    }
+
+    /// <summary>
     /// Gets a formatted string showing all magazine ammo counts.
     /// Format: "[30] | 25 | 10" where [30] is current magazine.
     /// </summary>

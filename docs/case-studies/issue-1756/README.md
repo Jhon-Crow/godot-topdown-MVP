@@ -302,3 +302,147 @@ PR is merged and a new build is produced, the fix will be visible in-game.
 | No zero-ammo filter in `_update_magazines_label()` | Empty `\| 0 \|` entries clutter HUD | High | Low | ✅ Fixed in PR #1773 |
 | No cap on spare magazine entries | Label overflows screen in Power Fantasy / high-ammo modes | High | Low | ✅ Fixed in PR #1773 |
 | Fix not yet in released build | Reporter cannot verify the fix in their executable | High | N/A | ⏳ Pending PR merge |
+
+---
+
+## Round 2 Feedback (2026-04-10) — New Game Log & Revised Requirements
+
+After PR #1773 was raised as ready, the reporter (Jhon-Crow) provided a second
+game log (`game_log_20260410_013223.txt`) recorded on **2026-04-10 at 01:32:23**
+and added two clarifications:
+
+### New Requirement 1: Partial spare magazines must be shown individually
+
+> "сейчас если не перезарядиться с неполного магазина на полный (не израсходовав
+> ни одного магазина) то начатый магазин исчезает из счёта."
+
+Translation: "If you reload from a partially-fired magazine to a full spare,
+the partially-fired magazine disappears from the HUD count."
+
+**Root cause identified:** The original fix abbreviated **all** non-empty spare
+magazines beyond the 6th one. When a player had many full spares plus one
+partial spare, the partial magazine was "hidden" inside the `+ xN` counter
+rather than displayed explicitly — the player could not see they still had
+unused partial ammo.
+
+The correct behaviour: partial spare magazines (0 < ammo < capacity) should
+always be shown individually. Full spare magazines (ammo == capacity) may be
+abbreviated.
+
+### New Requirement 2: All full spare magazines should be abbreviated
+
+> "так же сокращай не только после 7 полных магазинов, а все магазины полные
+> магазины (например [20] | + x6)"
+
+Translation: "Also abbreviate not only after 7 full magazines, but ALL full
+magazines (for example `[20] | + x6`)."
+
+**Root cause identified:** The original fix still rendered up to 6 full spare
+magazines individually. The reporter's expectation is that any number of full
+spare magazines should be shown as `+ xN` (since they are interchangeable).
+Partial magazines, being unique in their ammo count, are still shown explicitly.
+
+---
+
+## Revised Algorithm (Round 2 fix, also in PR #1773)
+
+The new `_update_magazines_label()` logic:
+
+1. Current magazine `[N]` — always shown
+2. Spare magazines with `ammo == 0` → **skipped** (empty, not useful)
+3. Spare magazines with `0 < ammo < capacity` → **shown individually** (partial)
+4. Spare magazines with `ammo == capacity` → **counted** and shown as `+ xN`
+
+This requires knowing the magazine capacity, which was not previously available
+in GDScript.
+
+### C# change: `GetMagazineMaxCounts()`
+
+Added to `MagazineInventory` (Scripts/Data/MagazineData.cs) and exposed via
+`BaseWeapon` (Scripts/AbstractClasses/BaseWeapon.cs):
+
+```csharp
+/// <summary>
+/// Gets an array of max capacities parallel to GetMagazineAmmoCounts().
+/// Use alongside GetMagazineAmmoCounts() to distinguish full vs partial magazines.
+/// </summary>
+public int[] GetMagazineMaxCounts()
+```
+
+Returns the same element order as `GetMagazineAmmoCounts()` — index 0 is the
+current magazine capacity, indices 1+ are spare capacities (sorted by ammo
+descending, matching the ammo array).
+
+### GDScript change in all 15 level scripts
+
+```gdscript
+# Get magazine capacities to distinguish full vs partial spares
+var mag_max_counts: Array = []
+if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
+    mag_max_counts = Array(weapon.GetMagazineMaxCounts())
+
+var parts: Array = []
+parts.append("[%d]" % magazine_ammo_counts[0])
+
+var full_spare_count: int = 0
+for i in range(1, magazine_ammo_counts.size()):
+    var ammo: int = magazine_ammo_counts[i]
+    if ammo <= 0:
+        continue
+    var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
+    if cap > 0 and ammo >= cap:
+        full_spare_count += 1
+    else:
+        parts.append("%d" % ammo)  # partial: show explicitly
+
+if full_spare_count > 0:
+    parts.append("+ x%d" % full_spare_count)
+
+_magazines_label.text = "MAGS: " + " | ".join(parts)
+```
+
+### Examples
+
+| Scenario | Before (round 1 fix) | After (round 2 fix) |
+|----------|----------------------|---------------------|
+| 6 full spares | `MAGS: [30] \| 30 \| 30 \| 30 \| 30 \| 30 \| 30` | `MAGS: [30] \| + x6` |
+| 8 full spares | `MAGS: [30] \| 30 \| 30 \| 30 \| 30 \| 30 \| 30 \| + x2` | `MAGS: [30] \| + x8` |
+| 5 full + 1 partial (7) | `MAGS: [30] \| 30 \| 30 \| 30 \| 30 \| 30 \| 7` | `MAGS: [30] \| 7 \| + x5` |
+| Partial only (7) | `MAGS: [30] \| 7` | `MAGS: [30] \| 7` (unchanged) |
+| 1 empty spare | `MAGS: [30]` | `MAGS: [30]` (unchanged) |
+
+---
+
+## Game Log Analysis (`game_log_20260410_013223.txt`)
+
+This log was recorded by the reporter on **2026-04-10 at 01:32:23** using a
+**pre-fix** Windows executable (same build as the first log).
+
+Key observations:
+
+| Timestamp | Event | Significance |
+|-----------|-------|--------------|
+| `01:32:23` | LabyrinthLevel with SilencedPistol (13/13) | Standard ammo |
+| `01:32:25` | DocksLevel — configured 60 enemies | Ammo doubled for DocksLevel |
+| `01:32:31` | First reload animation (GrabMagazine → InsertMagazine → PullBolt) | Reload sequence successful |
+| `01:32:34` | Second reload animation | Player testing reload mechanics |
+| `01:32:39` | Revolver equipped (5/5), ammo doubled to 24 magazines | Different weapon |
+| `01:32:57` | AssaultRifle equipped (30/30), 8 magazines | Demonstrates many-magazine scenario |
+
+The log records reload animation phases but does not trace individual
+`magazine_ammo_counts` values (those are only emitted via C# signals, not
+file-logged). The session demonstrates normal gameplay patterns — the reporter
+was testing the pre-fix build to verify whether PR #1773's changes were
+visible.
+
+---
+
+## Updated Summary Table
+
+| Cause | Impact | Confidence | Fix Complexity | Status |
+|-------|--------|-----------|----------------|--------|
+| No zero-ammo filter in `_update_magazines_label()` | Empty `\| 0 \|` entries clutter HUD | High | Low | ✅ Fixed in PR #1773 (round 1) |
+| No cap on spare magazine entries | Label overflows screen in Power Fantasy / high-ammo modes | High | Low | ✅ Fixed in PR #1773 (round 1) |
+| Full spare magazines shown individually up to 6 | Up to 6 identical full-mag entries waste space | High | Low | ✅ Fixed in PR #1773 (round 2) |
+| Partial spares hidden inside `+ xN` counter | Player cannot see remaining partial ammo | High | Medium | ✅ Fixed in PR #1773 (round 2) |
+| Fix not yet in released build | Reporter cannot verify the fix in their executable | High | N/A | ⏳ Pending PR merge |

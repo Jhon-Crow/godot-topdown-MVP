@@ -782,23 +782,29 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		_magazines_label.text = "MAGS: -"
 		return
 
+	# Get magazine capacities to distinguish full vs partial spares
+	var mag_max_counts: Array = []
+	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
+		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
+
 	var parts: Array = []
 	# Current magazine always shown in brackets
 	parts.append("[%d]" % magazine_ammo_counts[0])
 
-	# Spare magazines: skip empty ones, show at most 6, then + xN for the rest
-	const MAX_VISIBLE_SPARE: int = 6
-	var non_empty_spare: Array = []
+	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
+	var full_spare_count: int = 0
 	for i in range(1, magazine_ammo_counts.size()):
-		if magazine_ammo_counts[i] > 0:
-			non_empty_spare.append(magazine_ammo_counts[i])
+		var ammo: int = magazine_ammo_counts[i]
+		if ammo <= 0:
+			continue
+		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
+		if cap > 0 and ammo >= cap:
+			full_spare_count += 1
+		else:
+			parts.append("%d" % ammo)
 
-	for j in range(mini(non_empty_spare.size(), MAX_VISIBLE_SPARE)):
-		parts.append("%d" % non_empty_spare[j])
-
-	var overflow: int = non_empty_spare.size() - MAX_VISIBLE_SPARE
-	if overflow > 0:
-		parts.append("+ x%d" % overflow)
+	if full_spare_count > 0:
+		parts.append("+ x%d" % full_spare_count)
 
 	_magazines_label.text = "MAGS: " + " | ".join(parts)
 
