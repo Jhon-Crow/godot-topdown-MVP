@@ -121,7 +121,7 @@ const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254
 @onready var _hit_collision_shape: CollisionShape2D = $HitArea/HitCollisionShape  ## Collision on death
 @onready var _casing_pusher: Area2D = $CasingPusher  ## Casing pusher Area2D (Issue #438)
 var _original_hit_area_layer: int = 0  ## Original collision layer (restore on respawn)
-var _original_hit_area_mask: int = 0
+var _original_hit_area_mask: int = 0; var _original_body_collision_layer: int = 2  ## Original CharacterBody2D collision_layer (#1746)
 var _overlapping_casings: Array[RigidBody2D] = []  ## Casings in CasingPusher (Issue #438)
 var _walk_anim_time: float = 0.0  ## Walking animation accumulator
 var _is_walking: bool = false  ## Currently walking (for anim)
@@ -427,6 +427,7 @@ func _ready() -> void:
 	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
+	_original_body_collision_layer = collision_layer  # Issue #1746
 	if _hit_area:  # Store original collision layers for respawn
 		_original_hit_area_layer = _hit_area.collision_layer
 		_original_hit_area_mask = _hit_area.collision_mask
@@ -4481,15 +4482,13 @@ func _reset() -> void:
 	_enable_hit_area_collision()
 	_register_sound_listener()
 
-## Disables hit area collision so bullets pass through dead enemies (multiple approaches due to Godot Area2D limits).
+## Disables hit area collision so bullets/grenades pass through dead enemies (#1746: also clears CharacterBody2D collision_layer).
 func _disable_hit_area_collision() -> void:
-	if _hit_collision_shape:
-		_hit_collision_shape.set_deferred("disabled", true)
+	if _hit_collision_shape: _hit_collision_shape.set_deferred("disabled", true)
 	if _hit_area:
-		_hit_area.set_deferred("collision_layer", 0)
-		_hit_area.set_deferred("collision_mask", 0)
-		_hit_area.set_deferred("monitorable", false)
-		_hit_area.set_deferred("monitoring", false)
+		_hit_area.set_deferred("collision_layer", 0); _hit_area.set_deferred("collision_mask", 0)
+		_hit_area.set_deferred("monitorable", false); _hit_area.set_deferred("monitoring", false)
+	set_deferred("collision_layer", 0)  # Issue #1746: grenades pass through corpse
 
 ## Re-enables hit area collision after respawning (restores all collision properties).
 func _enable_hit_area_collision() -> void:
@@ -4497,6 +4496,7 @@ func _enable_hit_area_collision() -> void:
 	if _hit_area:
 		_hit_area.collision_layer = _original_hit_area_layer; _hit_area.collision_mask = _original_hit_area_mask
 		_hit_area.monitorable = true; _hit_area.monitoring = true
+	collision_layer = _original_body_collision_layer  # Issue #1746
 
 ## Returns whether this enemy is currently alive (used by bullets to check pass-through).
 func is_alive() -> bool:
