@@ -34,6 +34,7 @@ const KEY_NO_DAMAGE_LEVELS_COMPLETED := "no_damage_levels_completed"  # Issue #1
 const KEY_LEVELS_COMPLETED_RANK_A_OR_HIGHER := "levels_completed_rank_a_or_higher"  # Issue #1589
 const KEY_KILLS_THROUGH_WALL := "kills_through_wall"  # Issue #1624
 const KEY_LEVELS_COMPLETED_WITH_SILENCED_PISTOL := "levels_completed_with_silenced_pistol"  # Issue #1624
+const KEY_CLOSE_RANGE_KILLS := "close_range_kills"  # Issue #1587
 
 ## Default level to load when no saved state exists.
 const DEFAULT_LEVEL := "res://scenes/levels/LabyrinthLevel.tscn"
@@ -125,6 +126,8 @@ func _connect_signals() -> void:
 			game_manager.kills_through_wall_updated.connect(_on_kills_through_wall_updated)
 		if game_manager.has_signal("levels_completed_with_silenced_pistol_updated"):
 			game_manager.levels_completed_with_silenced_pistol_updated.connect(_on_levels_completed_with_silenced_pistol_updated)
+		if game_manager.has_signal("close_range_kills_updated"):
+			game_manager.close_range_kills_updated.connect(_on_close_range_kills_updated)
 
 	# GrenadeManager signals
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -225,6 +228,10 @@ func _on_levels_completed_with_silenced_pistol_updated(_new_count: int) -> void:
 	_save_state()
 
 
+func _on_close_range_kills_updated(_new_count: int) -> void:
+	_save_state()
+
+
 ## Called when the scene tree structure changes.
 ## Detects level scene changes and auto-saves the current level path (Issue #1456).
 ## During startup navigation, waits until current_scene has actually changed to the
@@ -319,6 +326,9 @@ func _save_state_with_level(level_path: String) -> void:
 		# Save silenced pistol level completion stats (Issue #1624)
 		config.set_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_WITH_SILENCED_PISTOL,
 				game_manager.get("levels_completed_with_silenced_pistol") if game_manager.get("levels_completed_with_silenced_pistol") != null else 0)
+		# Save close-range kill stats (Issue #1587)
+		config.set_value(SECTION_KILL_STATS, KEY_CLOSE_RANGE_KILLS,
+				game_manager.get("close_range_kills") if game_manager.get("close_range_kills") != null else 0)
 
 	# Save selected grenade type
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -413,6 +423,11 @@ func _load_state() -> void:
 			var saved_silenced: int = config.get_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_WITH_SILENCED_PISTOL, 0)
 			game_manager.levels_completed_with_silenced_pistol = saved_silenced
 			_log_to_file("Restored levels_completed_with_silenced_pistol: %d" % saved_silenced)
+		# Restore close-range kill stats (Issue #1587)
+		if config.has_section_key(SECTION_KILL_STATS, KEY_CLOSE_RANGE_KILLS):
+			var saved_close_range: int = config.get_value(SECTION_KILL_STATS, KEY_CLOSE_RANGE_KILLS, 0)
+			game_manager.close_range_kills = saved_close_range
+			_log_to_file("Restored close_range_kills: %d" % saved_close_range)
 
 		# Restore selected weapon
 		if config.has_section_key(SECTION_GAME, KEY_SELECTED_WEAPON):
@@ -508,6 +523,7 @@ func clear_all_saves() -> void:
 		game_manager.total_deaths = 0  # Issue #1389
 		game_manager.no_damage_levels_completed = 0  # Issue #1389
 		game_manager.levels_completed_rank_a_or_higher = 0  # Issue #1589
+		game_manager.close_range_kills = 0  # Issue #1587
 		game_manager.kills_through_wall = 0  # Issue #1624
 		game_manager.levels_completed_with_silenced_pistol = 0  # Issue #1624
 

@@ -3522,6 +3522,12 @@ public partial class Player
         _dashEffect = null;
         _dashEquipped = false;
 
+        // Combat Knife (Issue #1587)
+        if (_combatKnifeEffect != null && IsInstanceValid(_combatKnifeEffect))
+            _combatKnifeEffect.QueueFree();
+        _combatKnifeEffect = null;
+        _combatKnifeEquipped = false;
+
         LogToFile("[Player.ItemPickup] All active item subsystems de-equipped");
     }
 
@@ -3599,6 +3605,9 @@ public partial class Player
                 break;
             case 21: // GRENADE_BAG (passive) (Issue #1590)
                 InitGrenadeBag();
+                break;
+            case 22: // COMBAT_KNIFE (Issue #1587)
+                InitCombatKnife();
                 break;
             default:
                 // NONE (0), LASER_SIGHT (9), EXTENDED_MAGAZINE (10): no player-side init needed
@@ -5396,6 +5405,89 @@ public partial class Player
         _currentGrenades = bagCount;
         EmitSignal(SignalName.GrenadeChanged, _currentGrenades, MaxGrenades);
         LogToFile($"[Player.GrenadeBag] Grenade Bag equipped — grenades set to {_currentGrenades}/{MaxGrenades}");
+    }
+
+    #endregion
+
+    #region Combat Knife Active Item (Issue #1587)
+
+    /// <summary>Reference to the instantiated CombatKnifeEffect node (GDScript).</summary>
+    private Node? _combatKnifeEffect = null;
+
+    /// <summary>Whether the combat knife active item is currently equipped.</summary>
+    private bool _combatKnifeEquipped = false;
+
+    /// <summary>Path to the CombatKnifeEffect scene.</summary>
+    private const string CombatKnifeEffectScenePath = "res://scenes/effects/CombatKnifeEffect.tscn";
+
+    /// <summary>
+    /// Initialize the combat knife active item by checking ActiveItemManager
+    /// and instantiating the CombatKnifeEffect scene.
+    /// </summary>
+    private void InitCombatKnife()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.CombatKnife] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_combat_knife"))
+        {
+            LogToFile("[Player.CombatKnife] ActiveItemManager missing has_combat_knife method");
+            return;
+        }
+
+        bool hasCombatKnife = (bool)activeItemManager.Call("has_combat_knife");
+        if (!hasCombatKnife)
+        {
+            LogToFile("[Player.CombatKnife] No combat knife selected in ActiveItemManager");
+            return;
+        }
+
+        if (!ResourceLoader.Exists(CombatKnifeEffectScenePath))
+        {
+            LogToFile($"[Player.CombatKnife] CombatKnifeEffect scene not found: {CombatKnifeEffectScenePath}");
+            return;
+        }
+
+        var scene = GD.Load<PackedScene>(CombatKnifeEffectScenePath);
+        if (scene == null)
+        {
+            LogToFile("[Player.CombatKnife] Failed to load CombatKnifeEffect scene");
+            return;
+        }
+
+        _combatKnifeEffect = scene.Instantiate();
+        AddChild(_combatKnifeEffect);
+        // Pass both the player node and the player model (which rotates toward aim/mouse direction)
+        _combatKnifeEffect.Call("initialize", this, _playerModel);
+        _combatKnifeEquipped = true;
+        LogToFile("[Player.CombatKnife] Initialized — unlimited uses, 7 damage, 120° arc");
+    }
+
+    /// <summary>
+    /// Handle combat knife input: press Space to perform a fan melee attack (Issue #1587).
+    /// </summary>
+    private void HandleCombatKnifeInput()
+    {
+        if (!_combatKnifeEquipped || _combatKnifeEffect == null)
+            return;
+
+        if (!Input.IsActionJustPressed("flashlight_toggle"))
+            return;
+
+        // Issue #1036: Block active item use when jammed
+        if (IsActiveItemJammedVerbose())
+        {
+            LogToFile("[Player.CombatKnife] Space blocked by Radio Jammer (Issue #1036)");
+            return;
+        }
+
+        bool started = (bool)_combatKnifeEffect.Call("activate");
+        if (started)
+            LogToFile("[Player.CombatKnife] Fan attack activated");
     }
 
     #endregion

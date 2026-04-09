@@ -1254,6 +1254,9 @@ public partial class Player : BaseCharacter
         // Initialize grenade bag if active item manager has it selected (Issue #1590)
         InitGrenadeBag();
 
+        // Initialize combat knife if active item manager has it selected (Issue #1587)
+        InitCombatKnife();
+
         // Initialize jammer HUD prohibition sign (always created; visibility toggled at runtime) (Issue #1036)
         InitJammerHud();
 
@@ -1600,6 +1603,9 @@ public partial class Player : BaseCharacter
 
         // Handle dash input (press Space to dash in movement direction) (Issue #1071)
         HandleDashInput();
+
+        // Handle combat knife input (press Space for fan melee attack) (Issue #1587)
+        HandleCombatKnifeInput();
 
         // Update jammer HUD visibility (Issue #1036)
         UpdateJammerHud();

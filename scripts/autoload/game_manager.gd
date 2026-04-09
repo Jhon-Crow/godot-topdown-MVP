@@ -35,6 +35,14 @@ var kills_through_wall: int = 0
 ## Persists across sessions — used as the unlock condition for Auto Reload (Issue #1624).
 var levels_completed_with_silenced_pistol: int = 0
 
+## Cumulative kills made while at least one alive enemy was within CLOSE_RANGE_THRESHOLD pixels.
+## Persists across sessions — used as the unlock condition for Combat Knife (Issue #1587).
+var close_range_kills: int = 0
+
+## Distance threshold (pixels) for "being in enemy threat zone" — enemy is close enough to be
+## an immediate melee/short-range threat. Matches roughly 1.5× the machete melee_range (80px).
+const CLOSE_RANGE_THRESHOLD: float = 150.0
+
 ## Set to true while the animated score screen animation is playing.
 ## Blocks the Q-key quick-restart shortcut so the player cannot accidentally skip the
 ## score screen before seeing the Armory button (Issue #1589).
@@ -135,6 +143,10 @@ signal kills_through_wall_updated(new_count: int)
 ## Signal emitted when levels_completed_with_silenced_pistol changes.
 ## Issue #1624.
 signal levels_completed_with_silenced_pistol_updated(new_count: int)
+
+## Signal emitted when close_range_kills changes (for Combat Knife unlock checks).
+## Issue #1587.
+signal close_range_kills_updated(new_count: int)
 
 ## Signal emitted when player dies.
 signal player_died
@@ -448,6 +460,34 @@ func register_kill(is_player_kill: bool = true, is_penetration_kill: bool = fals
 		kills_through_wall += 1
 		kills_through_wall_updated.emit(kills_through_wall)
 		_log_to_file("kills_through_wall: %d" % kills_through_wall)
+	# Track kills while within enemy threat zone for Combat Knife unlock (Issue #1587).
+	if player and is_instance_valid(player) and _is_player_in_enemy_threat_zone():
+		close_range_kills += 1
+		close_range_kills_updated.emit(close_range_kills)
+		_log_to_file("close_range_kills: %d" % close_range_kills)
+
+
+## Check if the player is currently within CLOSE_RANGE_THRESHOLD pixels of any alive enemy.
+## Used to determine if a kill counts toward the Combat Knife unlock condition (Issue #1587).
+func _is_player_in_enemy_threat_zone() -> bool:
+	if player == null or not is_instance_valid(player):
+		return false
+	var enemies: Array = get_tree().get_nodes_in_group("enemies") if get_tree() else []
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+		# Skip dead enemies
+		var is_alive: bool = true
+		if enemy.has_method("is_alive"):
+			is_alive = enemy.is_alive()
+		elif enemy.get("_is_alive") != null:
+			is_alive = enemy.get("_is_alive")
+		if not is_alive:
+			continue
+		var dist: float = player.global_position.distance_to(enemy.global_position)
+		if dist <= CLOSE_RANGE_THRESHOLD:
+			return true
+	return false
 
 
 ## Returns the current accuracy as a percentage (0-100).
