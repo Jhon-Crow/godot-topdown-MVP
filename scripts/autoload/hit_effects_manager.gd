@@ -111,6 +111,16 @@ func _start_slow_effect() -> void:
 func _end_slow_effect() -> void:
 	_is_slow_active = false
 	if not replay_mode:
+		# Issue #1740: If PowerFantasyEffectsManager or PenultimateHitEffectsManager has an
+		# active slowdown effect, do not reset Engine.time_scale to 1.0 here — that would
+		# cancel their deeper slowdown (0.1x) prematurely. Let the active manager restore
+		# time_scale when its own effect expires.
+		var pfm: Node = get_node_or_null("/root/PowerFantasyEffectsManager")
+		if pfm and pfm.has_method("is_effect_active") and pfm.is_effect_active():
+			return
+		var phm: Node = get_node_or_null("/root/PenultimateHitEffectsManager")
+		if phm and phm.has_method("is_effect_active") and phm.is_effect_active():
+			return
 		Engine.time_scale = 1.0
 
 

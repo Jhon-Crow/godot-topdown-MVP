@@ -548,6 +548,11 @@ func _on_tree_changed() -> void:
 		reset_effects()
 
 
+## Returns whether the penultimate hit effect is currently active.
+func is_effect_active() -> bool:
+	return _is_effect_active
+
+
 ## Performs warmup to pre-compile the saturation shader.
 ## This prevents a shader compilation stutter on first use (Issue #343).
 func _warmup_shader() -> void:
