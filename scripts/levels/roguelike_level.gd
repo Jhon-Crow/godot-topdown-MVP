@@ -3279,8 +3279,23 @@ func _update_magazines_label(mag_counts: Array) -> void:
 		_magazines_label.text = "MAGS: -"
 		return
 	var parts: Array = []
-	for i in range(mag_counts.size()):
-		parts.append("[%d]" % mag_counts[i] if i == 0 else "%d" % mag_counts[i])
+	# Current magazine always shown in brackets
+	parts.append("[%d]" % mag_counts[0])
+
+	# Spare magazines: skip empty ones, show at most 6, then + xN for the rest
+	const MAX_VISIBLE_SPARE: int = 6
+	var non_empty_spare: Array = []
+	for i in range(1, mag_counts.size()):
+		if mag_counts[i] > 0:
+			non_empty_spare.append(mag_counts[i])
+
+	for j in range(mini(non_empty_spare.size(), MAX_VISIBLE_SPARE)):
+		parts.append("%d" % non_empty_spare[j])
+
+	var overflow: int = non_empty_spare.size() - MAX_VISIBLE_SPARE
+	if overflow > 0:
+		parts.append("+ x%d" % overflow)
+
 	_magazines_label.text = "MAGS: " + " | ".join(parts)
 
 

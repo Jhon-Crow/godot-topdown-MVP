@@ -49,17 +49,28 @@ class MockLevelHelper:
 
 	## Format the magazines label showing individual magazine ammo counts.
 	## Shows format: MAGS: [30] | 25 | 10 where [30] is current magazine.
+	## Empty spare magazines are hidden. More than 6 spare magazines are shown as + xN.
 	func format_magazines_label(magazine_ammo_counts: Array) -> String:
 		if magazine_ammo_counts.is_empty():
 			return "MAGS: -"
 
 		var parts: Array[String] = []
-		for i in range(magazine_ammo_counts.size()):
-			var ammo: int = magazine_ammo_counts[i]
-			if i == 0:
-				parts.append("[%d]" % ammo)
-			else:
-				parts.append("%d" % ammo)
+		# Current magazine always shown in brackets
+		parts.append("[%d]" % magazine_ammo_counts[0])
+
+		# Spare magazines: skip empty ones, show at most 6, then + xN for the rest
+		const MAX_VISIBLE_SPARE: int = 6
+		var non_empty_spare: Array = []
+		for i in range(1, magazine_ammo_counts.size()):
+			if magazine_ammo_counts[i] > 0:
+				non_empty_spare.append(magazine_ammo_counts[i])
+
+		for j in range(mini(non_empty_spare.size(), MAX_VISIBLE_SPARE)):
+			parts.append("%d" % non_empty_spare[j])
+
+		var overflow: int = non_empty_spare.size() - MAX_VISIBLE_SPARE
+		if overflow > 0:
+			parts.append("+ x%d" % overflow)
 
 		return "MAGS: " + " | ".join(parts)
 
@@ -196,6 +207,37 @@ func test_format_magazines_multiple() -> void:
 func test_format_magazines_with_zeros() -> void:
 	var result := helper.format_magazines_label([0, 30, 30])
 	assert_eq(result, "MAGS: [0] | 30 | 30", "Should handle zero in current magazine")
+
+
+func test_format_magazines_empty_spare_hidden() -> void:
+	var result := helper.format_magazines_label([30, 0, 0, 25])
+	assert_eq(result, "MAGS: [30] | 25", "Empty spare magazines should be hidden")
+
+
+func test_format_magazines_all_spare_empty() -> void:
+	var result := helper.format_magazines_label([30, 0, 0, 0])
+	assert_eq(result, "MAGS: [30]", "All-empty spares should show only current magazine")
+
+
+func test_format_magazines_exactly_6_spare() -> void:
+	var result := helper.format_magazines_label([30, 30, 30, 30, 30, 30, 30])
+	assert_eq(result, "MAGS: [30] | 30 | 30 | 30 | 30 | 30 | 30", "Exactly 6 spare magazines should all be visible")
+
+
+func test_format_magazines_7_spare_shows_overflow() -> void:
+	var result := helper.format_magazines_label([30, 30, 30, 30, 30, 30, 30, 30])
+	assert_eq(result, "MAGS: [30] | 30 | 30 | 30 | 30 | 30 | 30 | + x1", "7 spare magazines should show + x1 overflow")
+
+
+func test_format_magazines_many_spare_shows_overflow() -> void:
+	var result := helper.format_magazines_label([30, 30, 30, 30, 30, 30, 30, 30, 30, 25])
+	assert_eq(result, "MAGS: [30] | 30 | 30 | 30 | 30 | 30 | 30 | + x3", "9 spare magazines should show + x3 overflow")
+
+
+func test_format_magazines_overflow_skips_empty() -> void:
+	# 9 non-empty + 2 empty spares -> 6 shown + x3 overflow (empty ones not counted)
+	var result := helper.format_magazines_label([30, 30, 30, 30, 30, 30, 30, 0, 30, 30, 30])
+	assert_eq(result, "MAGS: [30] | 30 | 30 | 30 | 30 | 30 | 30 | + x3", "Empty spares excluded from overflow count")
 
 
 # ============================================================================

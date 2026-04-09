@@ -1303,8 +1303,23 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		_magazines_label.text = "Магазины: -"
 		return
 	var parts: Array[String] = []
-	for count in magazine_ammo_counts:
-		parts.append(str(count))
+	# Current magazine always shown first
+	parts.append(str(magazine_ammo_counts[0]))
+
+	# Spare magazines: skip empty ones, show at most 6, then + xN for the rest
+	const MAX_VISIBLE_SPARE: int = 6
+	var non_empty_spare: Array = []
+	for i in range(1, magazine_ammo_counts.size()):
+		if magazine_ammo_counts[i] > 0:
+			non_empty_spare.append(magazine_ammo_counts[i])
+
+	for j in range(mini(non_empty_spare.size(), MAX_VISIBLE_SPARE)):
+		parts.append(str(non_empty_spare[j]))
+
+	var overflow: int = non_empty_spare.size() - MAX_VISIBLE_SPARE
+	if overflow > 0:
+		parts.append("+ x%d" % overflow)
+
 	_magazines_label.text = "Магазины: [%s]" % " | ".join(parts)
 
 # ---------------------------------------------------------------------------
