@@ -16,6 +16,9 @@ const ENEMY_RIPPLE_SPEED: float = 0.6
 ## Near-zero shimmer so the blue tint outline is barely visible.
 const ENEMY_SHIMMER_INTENSITY: float = 0.05
 
+## Emitted when the enemy re-cloaks after the reveal timer expires (Issue #1753).
+signal recloaked
+
 ## Whether the enemy invisibility cloak is currently active.
 var is_cloaked: bool = false
 
@@ -55,6 +58,7 @@ func update(delta: float) -> void:
 	if _reveal_timer <= 0.0:
 		_set_mix(1.0)
 		_reveal_timer = 0.0
+		recloaked.emit()  # Issue #1753: notify enemy to hide Gunslinger glow when re-cloaking
 
 
 ## Temporarily reveal the enemy (e.g. when shooting or throwing grenade).

@@ -382,6 +382,7 @@ var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenad
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
+var _gunslinger_glow_node: PointLight2D = null  ## Issue #1753: Gunslinger glow light, hidden while enemy is cloaked.
 var _gas_mask_grenade: GasMaskGrenadeComponent = null; var _drone_operator: DroneOperatorComponent = null  ## Issues #1353, #1397
 var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
 var _tactical_group: TacticalGroupComponent = null  ## Issue #1287: Tactical group movement — enemies within 500 px spread around the player.
@@ -3871,7 +3872,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 		await get_tree().create_timer(0.15).timeout
 		_revolver_cocking = false
 		if not is_inside_tree() or not is_instance_valid(self) or not _is_alive: return  # Issue #1334 Round 11: guard freed node after await
-	if _invisibility: _invisibility.reveal()  # Issue #1121: briefly reveal cloaked enemy when shooting
+	if _invisibility: _invisibility.reveal(); _show_gunslinger_glow_on_reveal()  # Issue #1121: briefly reveal cloaked enemy when shooting; #1753: show glow while visible
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
 	var weapon_forward := _get_weapon_forward_direction()
@@ -4285,15 +4286,11 @@ func _set_all_sprites_modulate(color: Color) -> void:
 
 ## Issue #1727: Apply bright warm tint and red PointLight2D glow in Gunslinger difficulty mode.
 ## Issue #1732: Glow uses circular ImageTexture (like room lights), 2x energy/scale, round shape.
+## Issue #1753: Skip glow when enemy starts cloaked; connect to recloaked signal to toggle visibility.
 func _apply_gunslinger_enemy_glow() -> void:
 	var dm: Node = get_node_or_null("/root/DifficultyManager")
 	if dm == null or not dm.has_method("should_apply_gunslinger_enemy_glow") or not dm.should_apply_gunslinger_enemy_glow():
 		return
-	var bc := Color(1.3, 1.15, 1.1, 1.0)  # bright warm tint
-	if _body_sprite: _body_sprite.modulate = bc
-	if _head_sprite: _head_sprite.modulate = bc
-	if _left_arm_sprite: _left_arm_sprite.modulate = bc
-	if _right_arm_sprite: _right_arm_sprite.modulate = bc
 	var gl := PointLight2D.new(); gl.name = "GunslingerEnemyGlow"; gl.color = Color(1.0, 0.1, 0.05, 1.0); gl.energy = 2.0; gl.texture_scale = 1.6; gl.shadow_enabled = false; gl.blend_mode = Light2D.BLEND_MODE_ADD
 	# Issue #1732: Build circular ImageTexture (pixel-distance falloff, like room lights) so glow is round, not square.
 	var _sz := 256; var _c := Vector2(_sz * 0.5, _sz * 0.5); var _r := _sz * 0.5; var _img := Image.create(_sz, _sz, false, Image.FORMAT_RGBA8)
@@ -4303,7 +4300,41 @@ func _apply_gunslinger_enemy_glow() -> void:
 			_img.set_pixel(_x, _y, Color(_b, _b, _b, 1.0))
 	gl.texture = ImageTexture.create_from_image(_img)
 	add_child(gl)
+	_gunslinger_glow_node = gl
+	# Issue #1753: If enemy starts cloaked, hide the glow until revealed.
+	if _invisibility and _invisibility.is_cloaked:
+		gl.visible = false
+		_invisibility.recloaked.connect(_on_gunslinger_glow_recloaked)  # hide glow again when re-cloaked
+	else:
+		var bc := Color(1.3, 1.15, 1.1, 1.0)  # bright warm tint
+		if _body_sprite: _body_sprite.modulate = bc
+		if _head_sprite: _head_sprite.modulate = bc
+		if _left_arm_sprite: _left_arm_sprite.modulate = bc
+		if _right_arm_sprite: _right_arm_sprite.modulate = bc
 	_log_to_file("[Gunslinger] Enemy glow applied")
+
+
+## Issue #1753: Show Gunslinger glow when a cloaked enemy is revealed.
+func _show_gunslinger_glow_on_reveal() -> void:
+	if _gunslinger_glow_node == null:
+		return
+	_gunslinger_glow_node.visible = true
+	var bc := Color(1.3, 1.15, 1.1, 1.0)
+	if _body_sprite: _body_sprite.modulate = bc
+	if _head_sprite: _head_sprite.modulate = bc
+	if _left_arm_sprite: _left_arm_sprite.modulate = bc
+	if _right_arm_sprite: _right_arm_sprite.modulate = bc
+
+
+## Issue #1753: Hide Gunslinger glow when a revealed enemy re-cloaks.
+func _on_gunslinger_glow_recloaked() -> void:
+	if _gunslinger_glow_node == null:
+		return
+	_gunslinger_glow_node.visible = false
+	if _body_sprite: _body_sprite.modulate = Color.WHITE
+	if _head_sprite: _head_sprite.modulate = Color.WHITE
+	if _left_arm_sprite: _left_arm_sprite.modulate = Color.WHITE
+	if _right_arm_sprite: _right_arm_sprite.modulate = Color.WHITE
 
 ## Returns the current health as a percentage (0.0 to 1.0).
 func _get_health_percent() -> float:
@@ -4911,7 +4942,7 @@ func try_throw_grenade() -> bool:
 		return true  # Callback fires the throw after flash completes
 	return _execute_grenade_throw(tgt)
 func _execute_grenade_throw(tgt: Vector2) -> bool:  ## Issue #824: grenade throw callback.
-	_is_pre_attack_flashing = false; if _invisibility: _invisibility.reveal()  # Issue #1121: reveal on grenade throw
+	_is_pre_attack_flashing = false; if _invisibility: _invisibility.reveal(); _show_gunslinger_glow_on_reveal()  # Issue #1121: reveal on grenade throw; #1753: show glow while visible
 	var result := _grenade_component.try_throw(tgt, _is_alive, _is_stunned, _is_blinded)
 	if result: grenade_thrown.emit(null, tgt)
 	return result
