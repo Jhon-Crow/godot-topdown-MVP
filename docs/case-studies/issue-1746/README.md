@@ -201,7 +201,7 @@ if body is StaticBody2D or body is TileMap or body is CharacterBody2D:
 Dead enemy `CharacterBody2D` collision shape remains active while the grenade is still flying
 (enemy physics collision layers are disabled with `set_deferred` too, same as HitArea).
 
-### Fix applied
+### Fix applied to vog_grenade.gd (partial — GDScript guard only)
 
 ```gdscript
 # AFTER fix (vog_grenade.gd)
@@ -213,6 +213,70 @@ elif body is CharacterBody2D:
     _trigger_impact_explosion()
 ```
 
+**This fix was incomplete.** The vog_grenade.gd guard correctly skipped the explosion in GDScript,
+but the C# `GrenadeTimer.cs` component independently also received the same `body_entered` signal
+and triggered the explosion anyway. See Section 2 below.
+
+---
+
+## Section 2: Persistent Bug — GrenadeTimer.cs Bypasses GDScript Guard
+
+### Reported in PR comment (2026-04-04) with game_log_20260404_125335.txt
+
+After the vog_grenade.gd fix was deployed, @Jhon-Crow confirmed the bug still occurred. The new
+log shows the same sequence repeating 5 times:
+
+```
+[12:53:50] [VOGGrenade] Impact with dead enemy Enemy - not triggering explosion  ← GDScript guard worked
+[12:53:50] [GrenadeTimer] Impact detected with Enemy - EXPLODING!                ← But C# timer fired anyway!
+```
+
+### Root Cause: Dual body_entered handlers
+
+When `GrenadeTimerHelper.AttachGrenadeTimer(grenade, "Frag")` is called on a VOGGrenade, a C#
+`GrenadeTimer` node is added as a child. This node connects to the **same** `body_entered` signal:
+
+```csharp
+// GrenadeTimer.cs _Ready()
+_grenadeBody.BodyEntered += OnBodyEntered;
+```
+
+The `GrenadeTimer.OnBodyEntered` handler (line ~379) triggers on any `CharacterBody2D`:
+
+```csharp
+// BEFORE fix (GrenadeTimer.cs)
+if (body is StaticBody2D || body is TileMap || body is TileMapLayer || body is CharacterBody2D)
+{
+    LogToFile($"[GrenadeTimer] Impact detected with {body.Name} - EXPLODING!");
+    Explode();
+}
+```
+
+There was **no dead-enemy check** for `CharacterBody2D`. The Issue #886 guard in `Explode()` only
+skips if GDScript's `has_exploded()` returns `true`, but since GDScript returned early without
+exploding, `has_exploded()` was still `false` — so C# proceeded to explode.
+
+### Fix applied to GrenadeTimer.cs
+
+```csharp
+// AFTER fix (GrenadeTimer.cs)
+if (body is StaticBody2D || body is TileMap || body is TileMapLayer || body is CharacterBody2D)
+{
+    // Issue #1746: Do not trigger on dead enemies — grenade should pass through corpses.
+    if (body is CharacterBody2D)
+    {
+        if (body.HasMethod("is_alive") && !body.Call("is_alive").AsBool())
+        {
+            LogToFile($"[GrenadeTimer] Impact with dead enemy {body.Name} - not triggering explosion (Issue #1746)");
+            return;
+        }
+    }
+
+    LogToFile($"[GrenadeTimer] Impact detected with {body.Name} - EXPLODING!");
+    Explode();
+}
+```
+
 ---
 
 ## Files Changed
@@ -221,6 +285,12 @@ elif body is CharacterBody2D:
 - `scripts/projectiles/bullet.gd` — `is_alive()` guard in `_on_area_entered` and `_on_body_entered`
 - `scripts/projectiles/vog_grenade.gd` — `is_alive()` guard in `_on_body_entered` (Issue #1746 VOG fix)
 - `scripts/components/death_animation_component.gd` — ragdoll `dead_enemy_ragdoll` group (Issue #1413)
+- `Scripts/Projectiles/GrenadeTimer.cs` — `is_alive()` guard in `OnBodyEntered` for `CharacterBody2D` (Issue #1746 root fix)
+
+## Log Files
+
+- `docs/case-studies/issue-1746/game_log_20260404_001403.txt` — first report, before vog_grenade.gd fix
+- `docs/case-studies/issue-1746/game_log_20260404_125335.txt` — second report, after vog_grenade.gd fix (still buggy due to GrenadeTimer.cs)
 
 ## Tests
 
