@@ -505,7 +505,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
 	var progress_vbox := VBoxContainer.new()
 	progress_vbox.layout_mode = 2
-	progress_vbox.add_theme_constant_override("separation", 1)
+	progress_vbox.add_theme_constant_override("separation", 0)
 	vbox.add_child(progress_vbox)
 
 	# Load custom font for grade display
@@ -534,7 +534,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 
 		var grade_label := Label.new()
 		grade_label.text = best_rank if not best_rank.is_empty() else "—"
-		grade_label.add_theme_font_size_override("font_size", 14)
+		grade_label.add_theme_font_size_override("font_size", 9)
 		if grade_font:
 			grade_label.add_theme_font_override("font", grade_font)
 		if not unlocked:
