@@ -1299,7 +1299,8 @@ func _process_ai_state(delta: float) -> void:
 			return
 
 	# SECOND PRIORITY: pursue vulnerable player who is not close (Issue #1305: respect combat toggle)
-	if _combat_allowed and player_is_vulnerable and _can_see_player and _player and not player_close:
+	# Issue #959: pacifists skip (same guard as FIRST PRIORITY above) — Issue #1744
+	if _combat_allowed and player_is_vulnerable and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _can_see_player and _player and not player_close:
 		var distance_to_player := global_position.distance_to(_player.global_position)
 		var pursue_key := "last_pursue_vuln_frame"
 		var current_frame := Engine.get_physics_frames()
