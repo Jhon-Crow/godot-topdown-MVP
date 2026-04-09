@@ -598,17 +598,17 @@ public partial class AssaultRifle : BaseWeapon
     /// <summary>
     /// Emits a gunshot sound to SoundPropagation system for in-game sound propagation.
     /// This alerts nearby enemies to the player's position.
+    /// Issue #1487: Uses throttled emit_player_gunshot instead of raw emit_sound to
+    /// prevent flooding enemy listeners at high fire rates (automatic mode ~10/sec).
     /// </summary>
     private void EmitGunshotSound()
     {
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
-        if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
+        if (soundPropagation != null && soundPropagation.HasMethod("emit_player_gunshot"))
         {
             // Determine weapon loudness from WeaponData, or use PM-level default (Issue #1269: scaled 800/1469)
             float loudness = WeaponData?.Loudness ?? 800.0f;
-            // emit_sound(sound_type, position, source_type, source_node, custom_range)
-            // sound_type 0 = GUNSHOT, source_type 0 = PLAYER
-            soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
+            soundPropagation.Call("emit_player_gunshot", GlobalPosition, this, loudness);
         }
     }
 

@@ -48,6 +48,27 @@ var _trail_noise_speed: float = 0.0
 ## Enable/disable debug logging.
 var _debug: bool = false
 
+## Trail update interval in seconds (Issue #1487: throttle to 15 Hz to reduce Line2D overhead).
+## At 60 fps with up to 60 concurrent shrapnel, updating every frame causes 360+ add_point()
+## calls per frame. Capping at 15 Hz cuts this by 75% with no visible trail quality loss.
+const TRAIL_UPDATE_INTERVAL: float = 1.0 / 15.0
+
+## Timer counting time since the last trail update.
+var _trail_update_timer: float = 0.0
+
+## Issue #1487 Round 5: Shared counter for throttling shrapnel wall-hit dust effects.
+## Only every Nth shrapnel spawns dust to keep the pool from saturating.
+## With 3 shrapnel/detonation at 15 shots/sec = 45 wall hits/sec,
+## spawning dust on every 4th hit = ~11 dust/sec (within pool budget of 8 concurrent).
+static var _dust_spawn_counter: int = 0
+const DUST_SPAWN_EVERY_NTH: int = 4
+
+## Issue #1487 Round 7: Static counter tracking how many BreakerShrapnel instances are active.
+## Incremented in bullet.gd:_breaker_spawn_shrapnel(); decremented in _destroy() here.
+## Replaces get_nodes_in_group("breaker_shrapnel") scene-tree traversal in bullet.gd which
+## was called on every detonation (~15 traversals/sec at max fire rate, each scanning all nodes).
+static var active_count: int = 0
+
 
 func _ready() -> void:
 	if _debug:
@@ -83,8 +104,11 @@ func _physics_process(delta: float) -> void:
 	# Slow down gradually (air resistance / deceleration)
 	speed = maxf(speed * 0.995, 200.0)
 
-	# Update smoky trail effect
-	_update_smoky_trail(delta)
+	# Update smoky trail at 15 Hz to limit Line2D API overhead (Issue #1487).
+	_trail_update_timer += delta
+	if _trail_update_timer >= TRAIL_UPDATE_INTERVAL:
+		_trail_update_timer -= TRAIL_UPDATE_INTERVAL
+		_update_smoky_trail(delta)
 
 	# Track lifetime and auto-destroy if exceeded
 	_time_alive += delta
@@ -136,13 +160,23 @@ func _on_body_entered(body: Node2D) -> void:
 	if body is StaticBody2D or body is TileMap:
 		if _debug:
 			FileLogger.info("[BreakerShrapnel] Hit wall at %s, destroying (no ricochet)" % global_position)
-		# Spawn wall hit effect
-		_spawn_wall_hit_effect(body)
 
-		# Play wall impact sound and destroy
-		var audio_manager: Node = get_node_or_null("/root/AudioManager")
-		if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
-			audio_manager.play_bullet_wall_hit(global_position)
+		# Issue #1487 Round 5: Spawn dust on every Nth shrapnel wall hit (throttled).
+		# With 3 shrapnel/detonation at 15 shots/sec, spawning on every 4th hit keeps
+		# ~11 dust/sec — within pool budget (8 concurrent, 1.7s lifetime each).
+		# Uses direction-based normal estimate to avoid expensive raycasts.
+		# Wall-hit audio also throttled to same interval (was 45 calls/sec).
+		_dust_spawn_counter += 1
+		if _dust_spawn_counter >= DUST_SPAWN_EVERY_NTH:
+			_dust_spawn_counter = 0
+			var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+			if impact_manager and impact_manager.has_method("spawn_dust_effect"):
+				var surface_normal := -direction.normalized()
+				impact_manager.spawn_dust_effect(global_position, surface_normal, null)
+			var audio_manager: Node = get_node_or_null("/root/AudioManager")
+			if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
+				audio_manager.play_bullet_wall_hit(global_position)
+
 		_destroy()
 		return
 
@@ -288,6 +322,11 @@ func _destroy() -> void:
 	if _is_pooled:
 		return
 
+	# Issue #1487 Round 7: decrement the static active counter (see active_count static var).
+	# Guards against going below 0 in edge cases (e.g., scene reload before all shrapnel die).
+	if active_count > 0:
+		active_count -= 1
+
 	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
 	if pool_manager:
 		pool_deactivate()
@@ -307,6 +346,7 @@ func _reset_state() -> void:
 	# Reset trail noise
 	_trail_noise_offset = 0.0
 	_trail_noise_speed = 10.0
+	_trail_update_timer = 0.0
 
 	# Clear position history
 	_position_history.clear()

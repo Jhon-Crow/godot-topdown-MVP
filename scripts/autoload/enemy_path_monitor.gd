@@ -49,6 +49,12 @@ var _overlay: _EnemyPathOverlay = null
 var _diag_frame_count: int = 0
 var _diag_last_path_count: int = -1
 
+## Issue #1487: Throttle path data refresh to 10 Hz to reduce per-frame overhead.
+## At 60 fps with 10 enemies, refreshing every frame causes hundreds of draw_line() calls
+## per frame. Capping at 10 Hz cuts overhead ~83% while paths still update visibly smoothly.
+const PATH_REFRESH_INTERVAL: float = 0.1  # 10 Hz
+var _path_refresh_timer: float = 0.0
+
 
 func _ready() -> void:
 	_apply_settings()
@@ -58,10 +64,16 @@ func _ready() -> void:
 	get_tree().node_added.connect(_on_node_added)
 
 
-## Refresh the path overlay every frame while visible.
-func _process(_delta: float) -> void:
+## Refresh the path overlay at a throttled rate while visible (Issue #1487).
+## Previously refreshed every frame; with 10 enemies this caused hundreds of draw_line()
+## calls per frame. Now refreshes at PATH_REFRESH_INTERVAL (10 Hz) to reduce overhead.
+func _process(delta: float) -> void:
 	if _overlay != null and is_instance_valid(_overlay) and _overlay.visible:
-		_overlay.refresh()
+		# Issue #1487: throttle to PATH_REFRESH_INTERVAL (10 Hz) to cap draw overhead
+		_path_refresh_timer += delta
+		if _path_refresh_timer >= PATH_REFRESH_INTERVAL:
+			_path_refresh_timer -= PATH_REFRESH_INTERVAL
+			_overlay.refresh()
 		# Issue #1392: periodic diagnostic logging (every 60 frames ≈ 1s)
 		_diag_frame_count += 1
 		if _diag_frame_count % 60 == 1:
@@ -221,15 +233,28 @@ class _EnemyPathDrawNode extends Node2D:
 	var _paths: Array = []
 	## Issue #1392: count _draw() invocations for diagnostics.
 	var _draw_call_count: int = 0
+	## Issue #1487 Round 7: track previous paths size to skip queue_redraw when nothing changed.
+	var _last_paths_size: int = -1
 
 	func set_path_data(paths: Array) -> void:
 		_paths = paths
-		queue_redraw()
+		# Issue #1487 Round 7: only redraw when the path set actually changes (size changed or
+		# always redraw when non-empty so positions update). Skip if both old and new are empty.
+		if paths.size() > 0 or _last_paths_size != 0:
+			_last_paths_size = paths.size()
+			queue_redraw()
 
 	func _draw() -> void:
 		_draw_call_count += 1
 		# Issue #1392: test rectangle at screen origin to verify _draw() rendering works.
 		draw_rect(Rect2(60, 0, 50, 50), Color(1, 1, 0, 0.8))
+		if _paths.is_empty():
+			return
+		# Issue #1487 Round 7: batch all line segments per color into a single draw_multiline()
+		# call instead of one draw_line() per segment. Research shows ~30x speedup for batched
+		# multiline vs individual draw_line calls (Godot forum benchmark, godot-proposals #8618).
+		# Strategy: collect all segment endpoints by state-color, then one draw_multiline per color.
+		var lines_by_color: Dictionary = {}  # Color -> PackedVector2Array (pairs of points)
 		for path_data in _paths:
 			var path: PackedVector2Array = path_data["path"]
 			var state: int = path_data["state"]
@@ -240,27 +265,55 @@ class _EnemyPathDrawNode extends Node2D:
 			var color: Color = EnemyPathMonitor._color_for_state(state)
 			var fill_color: Color = Color(color.r, color.g, color.b, 0.25)
 
-			# Draw path line from enemy to first waypoint, then between waypoints
-			draw_line(enemy_pos, path[0], color, line_width)
+			# Accumulate line segments for batched draw_multiline
+			if not lines_by_color.has(color):
+				lines_by_color[color] = PackedVector2Array()
+			var segments: PackedVector2Array = lines_by_color[color]
+			# Segment: enemy position → first waypoint
+			segments.append(enemy_pos)
+			segments.append(path[0])
+			# Segments between waypoints
 			for i in range(path.size() - 1):
-				draw_line(path[i], path[i + 1], color, line_width)
+				segments.append(path[i])
+				segments.append(path[i + 1])
+			lines_by_color[color] = segments
 
-			# Draw small dots at intermediate waypoints
+			# Draw fill circles for waypoints and destination (these are per-enemy, few calls)
 			for i in range(path.size() - 1):
 				draw_circle(path[i], waypoint_radius, fill_color)
-				_draw_circle_outline(path[i], waypoint_radius, color, line_width)
-
-			# Draw larger dot at the final target
 			var dest: Vector2 = path[path.size() - 1]
 			draw_circle(dest, target_radius, fill_color)
-			_draw_circle_outline(dest, target_radius, color, line_width)
 
-	## Draw a circle outline using line segments.
-	func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: float) -> void:
+		# Issue #1487 Round 7: one draw_multiline call per unique color (replaces N draw_line calls)
+		for color: Color in lines_by_color:
+			draw_multiline(lines_by_color[color], color, line_width)
+
+		# Draw circle outlines via batched multiline (separate pass to keep fill/outline layering)
+		var outline_lines_by_color: Dictionary = {}
+		for path_data in _paths:
+			var path: PackedVector2Array = path_data["path"]
+			var state: int = path_data["state"]
+			if path.size() < 2:
+				continue
+			var color: Color = EnemyPathMonitor._color_for_state(state)
+			if not outline_lines_by_color.has(color):
+				outline_lines_by_color[color] = PackedVector2Array()
+			var outline_segs: PackedVector2Array = outline_lines_by_color[color]
+			for i in range(path.size() - 1):
+				_append_circle_outline_segments(outline_segs, path[i], waypoint_radius)
+			_append_circle_outline_segments(outline_segs, path[path.size() - 1], target_radius)
+			outline_lines_by_color[color] = outline_segs
+		for color: Color in outline_lines_by_color:
+			draw_multiline(outline_lines_by_color[color], color, line_width)
+
+	## Append circle outline line-segment pairs to a PackedVector2Array for batched draw_multiline.
+	## Issue #1487 Round 7: replaces _draw_circle_outline() which called draw_line() 12 times per
+	## circle. Now all circles for the same color are batched into a single draw_multiline call.
+	static func _append_circle_outline_segments(
+			segs: PackedVector2Array, center: Vector2, radius: float) -> void:
 		const SEGMENTS := 12
 		for i in range(SEGMENTS):
 			var angle_a := (TAU * i) / SEGMENTS
 			var angle_b := (TAU * (i + 1)) / SEGMENTS
-			var p1 := center + Vector2(cos(angle_a), sin(angle_a)) * radius
-			var p2 := center + Vector2(cos(angle_b), sin(angle_b)) * radius
-			draw_line(p1, p2, color, width)
+			segs.append(center + Vector2(cos(angle_a), sin(angle_a)) * radius)
+			segs.append(center + Vector2(cos(angle_b), sin(angle_b)) * radius)

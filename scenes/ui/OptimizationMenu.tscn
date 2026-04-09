@@ -52,23 +52,22 @@ horizontal_alignment = 1
 [node name="HSeparator" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="WallHitParticlesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="DustQualityContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="WallHitParticlesLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WallHitParticlesContainer"]
+[node name="DustQualityLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/DustQualityContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Wall Hit Particles"
+text = "Dust Particles"
 autowrap_mode = 2
 
-[node name="WallHitParticlesCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WallHitParticlesContainer"]
+[node name="DustQualityOption" type="OptionButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/DustQualityContainer"]
 layout_mode = 2
-button_pressed = true
 
-[node name="WallHitParticlesDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="DustQualityDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "When enabled (default), a dust effect appears when
-bullets hit walls. Disable to improve FPS on slow hardware."
+text = "Dust puffs when bullets hit walls.
+Full = all particles (default). Half = fewer particles, better FPS. Off = no dust, maximum FPS."
 horizontal_alignment = 1
 autowrap_mode = 2
 

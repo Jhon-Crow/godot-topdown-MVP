@@ -1,24 +1,27 @@
 extends CanvasLayer
-## Optimization settings menu (Issue #1145).
+## Optimization settings menu (Issue #1145, #1487).
 ##
 ## Provides settings that control performance vs. visual quality trade-offs:
-## - Wall hit particles: toggle dust effect when bullets hit walls
+## - Dust particle quality: Full / Half / Off
 
 ## Signal emitted when the back button is pressed.
 signal back_pressed
 
 ## Reference to UI elements.
-@onready var wall_hit_particles_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WallHitParticlesContainer/WallHitParticlesCheckbox
+@onready var dust_quality_option: OptionButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/DustQualityContainer/DustQualityOption
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 
 
 func _ready() -> void:
 	# Setup tooltips and label behaviour for settings rows (Issue #1200)
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WallHitParticlesContainer,
-			"Wall Hit Particles")
+	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/DustQualityContainer,
+			"Dust Particles")
+
+	# Populate dust quality option button
+	_setup_dust_quality_option()
 
 	# Connect button signals
-	wall_hit_particles_checkbox.toggled.connect(_on_wall_hit_particles_toggled)
+	dust_quality_option.item_selected.connect(_on_dust_quality_selected)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update UI from current settings
@@ -33,21 +36,30 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 
+## Populate the dust quality OptionButton with items (Issue #1487).
+func _setup_dust_quality_option() -> void:
+	var gs: Node = get_node_or_null("/root/GameplaySettings")
+	dust_quality_option.clear()
+	dust_quality_option.add_item("Full", gs.DUST_QUALITY_FULL if gs else 0)
+	dust_quality_option.add_item("Half", gs.DUST_QUALITY_HALF if gs else 1)
+	dust_quality_option.add_item("Off", gs.DUST_QUALITY_OFF if gs else 2)
+
+
 func _update_ui() -> void:
 	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
 	if gameplay_settings == null:
 		return
 
 	# Block signals while updating to avoid feedback loops
-	wall_hit_particles_checkbox.set_block_signals(true)
-	wall_hit_particles_checkbox.button_pressed = gameplay_settings.is_wall_hit_particles_enabled()
-	wall_hit_particles_checkbox.set_block_signals(false)
+	dust_quality_option.set_block_signals(true)
+	dust_quality_option.select(gameplay_settings.get_dust_quality())
+	dust_quality_option.set_block_signals(false)
 
 
-func _on_wall_hit_particles_toggled(enabled: bool) -> void:
+func _on_dust_quality_selected(index: int) -> void:
 	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
 	if gameplay_settings:
-		gameplay_settings.set_wall_hit_particles_enabled(enabled)
+		gameplay_settings.set_dust_quality(index)
 	_update_ui()
 
 

@@ -16,7 +16,17 @@ var blood_amount: float = 1.0
 ## Whether wall hit dust particles are enabled (Issue #1145).
 ## When enabled (default), a dust puff effect appears when bullets hit walls.
 ## When disabled, no dust particles are spawned — improves FPS on low-end hardware.
+## Kept for backward compatibility — new code uses dust_quality instead.
 var wall_hit_particles_enabled: bool = true
+
+## Dust particle quality level (Issue #1487).
+## 0 = Full — all particles, default visuals.
+## 1 = Half — amount_ratio 0.5, fewer particles, better FPS on weak GPUs.
+## 2 = Off  — no dust spawned, maximum FPS gain.
+const DUST_QUALITY_FULL: int = 0
+const DUST_QUALITY_HALF: int = 1
+const DUST_QUALITY_OFF: int = 2
+var dust_quality: int = DUST_QUALITY_FULL
 
 ## Whether revolver aim assist (slight bullet homing) is enabled (Issue #1332).
 ## When enabled (default), revolver bullets gently steer toward enemies near the crosshair.
@@ -34,7 +44,7 @@ const MAX_BLOOD_AMOUNT: float = 3.0
 
 func _ready() -> void:
 	_load_settings()
-	_log_to_file("GameplaySettings initialized - blood_amount: %.2f, wall_hit_particles: %s, revolver_aim_assist: %s" % [blood_amount, wall_hit_particles_enabled, revolver_aim_assist_enabled])
+	_log_to_file("GameplaySettings initialized - blood_amount: %.2f, wall_hit_particles: %s, revolver_aim_assist: %s, dust_quality: %d" % [blood_amount, wall_hit_particles_enabled, revolver_aim_assist_enabled, dust_quality])
 
 
 ## Sets the blood amount multiplier.
@@ -68,6 +78,22 @@ func is_wall_hit_particles_enabled() -> bool:
 	return wall_hit_particles_enabled
 
 
+## Sets the dust particle quality level (Issue #1487).
+## @param quality: DUST_QUALITY_FULL (0), DUST_QUALITY_HALF (1), or DUST_QUALITY_OFF (2).
+func set_dust_quality(quality: int) -> void:
+	quality = clampi(quality, DUST_QUALITY_FULL, DUST_QUALITY_OFF)
+	if dust_quality != quality:
+		dust_quality = quality
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Dust quality set to %d" % quality)
+
+
+## Returns the current dust quality level (Issue #1487).
+func get_dust_quality() -> int:
+	return dust_quality
+
+
 ## Sets whether revolver aim assist (slight bullet homing) is enabled (Issue #1332).
 ## @param enabled: true to enable aim assist, false to disable it.
 func set_revolver_aim_assist_enabled(enabled: bool) -> void:
@@ -89,6 +115,7 @@ func _save_settings() -> void:
 	config.set_value("gameplay", "blood_amount", blood_amount)
 	config.set_value("gameplay", "wall_hit_particles_enabled", wall_hit_particles_enabled)
 	config.set_value("gameplay", "revolver_aim_assist_enabled", revolver_aim_assist_enabled)
+	config.set_value("gameplay", "dust_quality", dust_quality)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("GameplaySettings: Failed to save settings: " + str(error))
@@ -103,10 +130,13 @@ func _load_settings() -> void:
 		blood_amount = clamp(blood_amount, MIN_BLOOD_AMOUNT, MAX_BLOOD_AMOUNT)
 		wall_hit_particles_enabled = config.get_value("gameplay", "wall_hit_particles_enabled", true)
 		revolver_aim_assist_enabled = config.get_value("gameplay", "revolver_aim_assist_enabled", true)
+		dust_quality = config.get_value("gameplay", "dust_quality", DUST_QUALITY_FULL)
+		dust_quality = clampi(dust_quality, DUST_QUALITY_FULL, DUST_QUALITY_OFF)
 	else:
 		blood_amount = 1.0
 		wall_hit_particles_enabled = true
 		revolver_aim_assist_enabled = true
+		dust_quality = DUST_QUALITY_FULL
 
 
 ## Logs a message via FileLogger if available.

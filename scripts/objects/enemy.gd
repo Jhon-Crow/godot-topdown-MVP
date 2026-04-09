@@ -153,6 +153,8 @@ const COVER_SECTOR_RAY_COUNT: int = 120  ## Number of rays in sector mode (Issue
 var _current_health: int = 0; var _max_health: int = 0  ## Current / max health (set at spawn)
 var _is_alive: bool = true  ## Is alive
 var _player: Node2D = null  ## Player reference
+var _game_manager_cached: Node = null; var _perf_settings_cached: Node = null; var _file_logger_cached: Node = null  ## Issue #1487: cached autoloads
+var _sound_log_counter: int = 0  ## Issue #1487 Round 9: throttle sound event file logging
 var _shoot_timer: float = 0.0  ## Time since last shot
 ## Issue #969: throttle constants/trackers — prevent raycast floods with 20+ active enemies
 const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5; var _last_gunshot_propagation_time: float = -999.0
@@ -304,6 +306,10 @@ var _player_visibility_ratio: float = 0.0  ## Player visibility (0-1)
 ## Issue #883: Stagger vision raycasts; each enemy checks once every VISION_CHECK_INTERVAL frames.
 var _vision_frame_counter: int = 0; var _vision_frame_offset: int = 0  ## Frame stagger (set in _ready)
 const VISION_CHECK_INTERVAL: int = 6  ## Check vision every N frames (~10 fps at 60 fps physics)
+## Issue #1487: Throttle expensive GOAP queries (cover raycast + group scan) to 10 Hz; staggered per enemy.
+const GOAP_SLOW_INTERVAL: int = 6  ## ~10 Hz at 60 Hz physics (same as VISION_CHECK_INTERVAL)
+var _goap_slow_frame_counter: int = 0; var _goap_slow_frame_offset: int = 0  ## stagger offset set in _ready
+var _cached_can_hit_from_cover: bool = false; var _cached_enemies_in_combat: int = 0  ## cached GOAP results
 var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target (Clear Shot Movement)
 var _seeking_clear_shot: bool = false  ## Moving to clear shot
 var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
@@ -324,7 +330,6 @@ const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing inte
 const INTEL_SHARE_RANGE_LOS: float = 660.0  ## Intel range with LOS (px)
 const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Intel range without LOS (px)
 var _intel_share_timer: float = 0.0; const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5s
-var _enemies_in_combat_cache: int = 0; var _enemies_in_combat_cache_timer: float = 0.0; const ENEMIES_IN_COMBAT_CACHE_INTERVAL: float = 0.5  ## #1520: Cache enemies_in_combat O(N²) scan, refresh 2Hz
 var _idle_goap_throttle_counter: int = 0; const IDLE_GOAP_UPDATE_INTERVAL: int = 20  ## #1520: IDLE GOAP throttle counter (~3Hz)
 var _memory_reset_confusion_timer: float = 0.0  ## Issue #318: blocks visibility after teleport
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## 2s confusion for better player escape window
@@ -391,6 +396,10 @@ func _ready() -> void:
 	add_to_group("enemies")
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
+	_goap_slow_frame_offset = (get_instance_id() >> 1) % GOAP_SLOW_INTERVAL  # Issue #1487: stagger GOAP
+	_game_manager_cached = get_node_or_null("/root/GameManager")  # Issue #1487: cache autoloads
+	_perf_settings_cached = get_node_or_null("/root/PerformanceSettings")
+	_file_logger_cached = get_node_or_null("/root/FileLogger")  # Issue #1487 R11: cache FileLogger
 	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
 
 	# Issue #934: Initialize BFF companion targeting component
@@ -438,15 +447,9 @@ func _ready() -> void:
 	_tactical_movement = TacticalMovementComponent.new(self)  # Issue #1249: narrow passage queuing
 	_tactical_group = TacticalGroupComponent.new(self)  # Issue #1287: tactical group encirclement
 	_pursuit_component = PursuitComponent.new(self)  # Issue #1289: pursuit cover-finding component
-
 	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
-	if bullet_scene == null:  # Preload bullet scene if not set in inspector
-		bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
-
-	# Preload casing scene if not set in inspector
-	if casing_scene == null:
-		casing_scene = preload("res://scenes/effects/Casing.tscn")
-
+	if bullet_scene == null: bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
+	if casing_scene == null: casing_scene = preload("res://scenes/effects/Casing.tscn")
 	# Initialize walking animation base positions
 	if _body_sprite:
 		_base_body_pos = _body_sprite.position
@@ -596,6 +599,7 @@ func on_sound_heard(sound_type: int, position: Vector2, source_type: int, source
 ## Called by SoundPropagation with intensity. Reacts to reload/empty_click/gunshot sounds.
 func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_type: int, source_node: Node2D, intensity: float) -> void:
 	if not _is_alive: return
+	if _perf_settings_cached and not _perf_settings_cached.is_ai_enabled(): return  # Issue #1487 R9: skip sound when AI off
 	var is_player_gunshot := sound_type == 0 and source_type == 0  # GUNSHOT from PLAYER (#910)
 	if _memory_reset_confusion_timer > 0.0 and not is_player_gunshot: return  # #318 + #910: allow gunshots during confusion
 	var distance := global_position.distance_to(position)
@@ -682,7 +686,10 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 
 	var sound_name := "EXPLOSION" if sound_type == 1 else "gunshot"
 	_log_debug("Heard %s (intensity=%.2f, distance=%.0f) at %s" % [sound_name, intensity, distance, position])
-	_log_to_file("Heard %s at %s, intensity=%.2f, distance=%.0f" % [sound_name, position, intensity, distance])
+	_sound_log_counter += 1  # Issue #1487 R9: throttle file I/O to every 5th sound event
+	if _sound_log_counter >= 5:
+		_sound_log_counter = 0
+		_log_to_file("Heard %s at %s, intensity=%.2f, distance=%.0f" % [sound_name, position, intensity, distance])
 
 	if sound_type == 0: _on_gunshot_heard_for_grenade(position)  # #363: sustained fire detection
 
@@ -800,15 +807,10 @@ func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
 
-	# Issue #1334 Round 8-9: Freeze all enemy AI when player is dead or freed to prevent
-	# native crashes from physics queries on dead/freed player nodes.
-	var _gm_r9: Node = get_node_or_null("/root/GameManager")
-	if _gm_r9 and not _gm_r9.player_alive: return
+	# Issue #1334 R8-9: freeze AI when player dead; Issue #1487: use cached refs (not get_node_or_null every frame)
+	if _game_manager_cached and not _game_manager_cached.player_alive: return
 	if _player and not is_instance_valid(_player): _player = null; return
-
-	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
-	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
-	if _perf_settings and not _perf_settings.is_ai_enabled(): return
+	if _perf_settings_cached and not _perf_settings_cached.is_ai_enabled(): return  # Issue #1186
 	if _drone_operator and _drone_operator.get_phase() != DroneOperatorComponent.Phase.ACTIVE:  # Issue #1397: drone operator phase control
 		_drone_operator.update(delta)
 		if _drone_operator.is_controlling_drone(): velocity = Vector2.ZERO; move_and_slide(); return  # CONTROLLING: fully frozen
@@ -837,12 +839,8 @@ func _physics_process(delta: float) -> void:
 			# Reset failure count when cooldown expires
 			_flank_fail_count = 0
 
-	# Update memory reset confusion timer (Issue #318)
-	if _memory_reset_confusion_timer > 0.0:
-		_memory_reset_confusion_timer = maxf(0.0, _memory_reset_confusion_timer - delta)
-
-	# Issue #367: Stuck detection for PURSUING/FLANKING — force SEARCHING if no progress.
-	# Skip when in direct contact (can hit player) or intentionally yielding (#1249).
+	if _memory_reset_confusion_timer > 0.0: _memory_reset_confusion_timer = maxf(0.0, _memory_reset_confusion_timer - delta)  # Update memory reset confusion timer (Issue #318)
+	# Issue #367: Stuck detection for PURSUING/FLANKING — force SEARCHING if no progress. Skip when in direct contact or yielding (#1249).
 	if _current_state == AIState.PURSUING or _current_state == AIState.FLANKING:
 		var moved_distance := global_position.distance_to(_global_stuck_last_position)
 		if moved_distance < GLOBAL_STUCK_DISTANCE_THRESHOLD:
@@ -879,13 +877,9 @@ func _physics_process(delta: float) -> void:
 		_global_stuck_timer = 0.0
 		_global_stuck_last_position = global_position
 
-	# Check for player visibility and try to find player if not found
-	if _player == null:
-		_find_player()
+	if _player == null: _find_player()  # Check for player visibility and try to find player if not found
 	_check_player_visibility()
-	# Issue #934: Check BFF companion as secondary threat target
-	_find_companion()
-	_check_companion_visibility()
+	_find_companion(); _check_companion_visibility()  # Issue #934: Check BFF companion as secondary threat target
 	_select_best_target()
 	_update_memory(delta)
 	if _current_state == AIState.IDLE and not _can_see_player and not _can_see_companion and not _under_fire:  # #1520: throttle GOAP ~3Hz when idle
@@ -952,11 +946,14 @@ func _update_goap_state() -> void:
 	_goap_world_state["is_pursuing"] = _current_state == AIState.PURSUING
 	_goap_world_state["is_assaulting"] = _current_state == AIState.ASSAULT
 	_goap_world_state["player_close"] = _is_target_close()
-	_goap_world_state["can_hit_from_cover"] = _can_hit_target_from_current_position()
-	_enemies_in_combat_cache_timer += get_physics_process_delta_time()  # #1520: throttle O(N²) group scan to 2Hz
-	if _enemies_in_combat_cache_timer >= ENEMIES_IN_COMBAT_CACHE_INTERVAL: _enemies_in_combat_cache_timer = 0.0; _enemies_in_combat_cache = _count_enemies_in_combat()
-	_goap_world_state["enemies_in_combat"] = _enemies_in_combat_cache
 	_goap_world_state["player_distracted"] = _is_player_distracted()
+	# Issue #1487: Throttle expensive GOAP queries (raycast + group scan) to ~10 Hz; use cached results.
+	_goap_slow_frame_counter += 1
+	if (_goap_slow_frame_counter % GOAP_SLOW_INTERVAL) == _goap_slow_frame_offset:
+		_cached_can_hit_from_cover = _can_hit_target_from_current_position()
+		_cached_enemies_in_combat = _count_enemies_in_combat()
+	_goap_world_state["can_hit_from_cover"] = _cached_can_hit_from_cover
+	_goap_world_state["enemies_in_combat"] = _cached_enemies_in_combat
 
 	# Memory system states (Issue #297)
 	if _memory:
@@ -2797,7 +2794,7 @@ func _transition_to_evading_grenade() -> void:
 	_log_to_file("EVADING_GRENADE started: escaping to %s" % str(evasion_target))
 
 func _transition_to_retreating() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_retreating_enabled(): _transition_to_idle(); return  # Issue #1186
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_retreating_enabled(): _transition_to_combat(); return  # Issue #1186 / #1487: use COMBAT fallback (not IDLE) to prevent rapid cycle
 	_current_state = AIState.RETREATING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -4533,7 +4530,7 @@ func _log_debug(message: String) -> void:
 	if debug_logging: print("[Enemy %s] %s" % [name, message])
 func _log_to_file(message: String) -> void:
 	if not is_inside_tree(): return
-	var fl := get_node_or_null("/root/FileLogger")
+	var fl := _file_logger_cached if _file_logger_cached != null else get_node_or_null("/root/FileLogger")  # Issue #1487 R11: use cached ref
 	if fl and fl.has_method("log_enemy"): fl.log_enemy(name, message)
 func _log_spawn_info() -> void:
 	_log_to_file("Spawned at %s, hp: %d, behavior: %s" % [global_position, _max_health, BehaviorMode.keys()[behavior_mode]])

@@ -31,11 +31,12 @@ color = Color(0.6, 0.55, 0.45, 0.8)
 
 [node name="DustEffect" type="GPUParticles2D"]
 emitting = false
-amount = 25
+amount = 12
 process_material = SubResource("ParticleProcessMaterial_dust")
 texture = SubResource("GradientTexture2D_dust")
-lifetime = 2.5
+lifetime = 1.2
 one_shot = true
 explosiveness = 0.85
+fixed_fps = 15
 script = ExtResource("1_effect_cleanup")
-cleanup_delay = 1.0
+cleanup_delay = 0.5

@@ -2092,14 +2092,15 @@ public partial class Shotgun : BaseWeapon
 
     /// <summary>
     /// Emits gunshot sound for enemy detection.
+    /// Issue #1487: Uses throttled emit_player_gunshot instead of raw emit_sound.
     /// </summary>
     private void EmitGunshotSound()
     {
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
-        if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
+        if (soundPropagation != null && soundPropagation.HasMethod("emit_player_gunshot"))
         {
             float loudness = WeaponData?.Loudness ?? 800.0f;  // Issue #1269: scaled 800/1469
-            soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
+            soundPropagation.Call("emit_player_gunshot", GlobalPosition, this, loudness);
         }
     }
 

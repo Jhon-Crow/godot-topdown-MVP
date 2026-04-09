@@ -92,13 +92,22 @@ var _dust_effect_pool: Array[GPUParticles2D] = []
 ## Count of dust effect nodes currently checked out (active / emitting).
 var _dust_effects_active: int = 0
 
+## Toggle used by Half quality mode — alternates between true/false to skip every
+## other spawn call. Godot docs warn that amount_ratio has no GPU performance
+## benefit; skipping every other spawn halves the actual node count instead.
+var _dust_half_skip: bool = false
+
 ## Maximum number of concurrent dust effects allowed.
-## Mini UZI fires ~15 rounds/sec; DustEffect lifetime = 2.5s → up to 37 active at once
-## without limiting. Cap at 16 to bound GPU particle work while keeping visuals dense.
-const MAX_CONCURRENT_DUST_EFFECTS: int = 16
+## Issue #1487: DustEffect lifetime reduced to 1.2s; at 15 shots/sec → ~18 natural concurrency.
+## Cap at 8 to bound GPU particle work while keeping visuals dense.
+const MAX_CONCURRENT_DUST_EFFECTS: int = 8
 
 ## Initial pool size for dust effects (pre-created at startup).
-const DUST_EFFECT_POOL_SIZE: int = 16
+const DUST_EFFECT_POOL_SIZE: int = 8
+
+## Issue #1487 Round 9: Cached autoload references to avoid get_node_or_null() per spawn.
+var _gameplay_settings_cached: Node = null
+var _perf_settings_cached: Node = null
 
 ## Active bullet holes for cleanup management (visual only).
 var _bullet_holes = []
@@ -145,6 +154,10 @@ func _ready() -> void:
 		print("[ImpactEffectsManager] FileLogger found successfully")
 
 	_preload_effect_scenes()
+
+	# Issue #1487 Round 9: Cache autoload references once at startup
+	_gameplay_settings_cached = get_node_or_null("/root/GameplaySettings")
+	_perf_settings_cached = get_node_or_null("/root/PerformanceSettings")
 
 	# Connect to tree_changed to detect scene changes and clear stale references
 	get_tree().tree_changed.connect(_on_tree_changed)
@@ -293,12 +306,20 @@ func _preload_effect_scenes() -> void:
 ## @param caliber_data: Optional caliber data for effect scaling.
 func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data: Resource = null) -> void:
 	# Issue #1145: Respect the wall hit particles optimization setting.
-	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
-	if gameplay_settings and not gameplay_settings.is_wall_hit_particles_enabled():
-		return
+	# Issue #1487: Check dust_quality — Off skips all spawns; Half skips every other spawn.
+	# Issue #1487 Round 9: Use cached refs instead of get_node_or_null() per spawn.
+	if _gameplay_settings_cached:
+		if not _gameplay_settings_cached.is_wall_hit_particles_enabled():
+			return
+		var dust_q: int = _gameplay_settings_cached.get_dust_quality()
+		if dust_q == _gameplay_settings_cached.DUST_QUALITY_OFF:
+			return
+		if dust_q == _gameplay_settings_cached.DUST_QUALITY_HALF:
+			_dust_half_skip = not _dust_half_skip
+			if _dust_half_skip:
+				return
 	# Issue #1186: performance toggle
-	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
-	if perf_settings and not perf_settings.is_particles_enabled():
+	if _perf_settings_cached and not _perf_settings_cached.is_particles_enabled():
 		return
 
 	if _debug_effects:
@@ -328,7 +349,7 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 
 	# Scale effect based on caliber
 	var effect_scale := _get_effect_scale(caliber_data)
-	effect.amount_ratio = effect_scale
+	effect.amount_ratio = clampf(effect_scale, MIN_EFFECT_SCALE, MAX_EFFECT_SCALE)
 	# Use smaller visual scale for more realistic dust particles
 	effect.scale = Vector2(effect_scale * 0.8, effect_scale * 0.8)
 
@@ -344,8 +365,8 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 		print("[ImpactEffectsManager] Dust effect spawned from pool successfully")
 
 	# Schedule return to pool after lifetime + cleanup_delay.
-	# Matches DustEffect.tscn: lifetime=2.5, cleanup_delay=1.0 → 3.5s total.
-	var return_delay := effect.lifetime + 1.0
+	# Matches DustEffect.tscn: lifetime=1.2, cleanup_delay=0.5 → 1.7s total (Issue #1487).
+	var return_delay := effect.lifetime + 0.5
 	get_tree().create_timer(return_delay).timeout.connect(
 		func() -> void: _return_dust_effect_to_pool(effect)
 	)
@@ -358,7 +379,7 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 ## @param is_lethal: Whether the hit was lethal (affects intensity and decal spawning).
 func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data: Resource = null, is_lethal: bool = true) -> void:
 	# Issue #1186: performance toggle for particles
-	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	var perf_settings: Node = _perf_settings_cached
 	var _particles_on: bool = perf_settings == null or perf_settings.is_particles_enabled()
 	var _decals_on: bool = perf_settings == null or perf_settings.is_blood_decals_enabled()
 
@@ -411,7 +432,7 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 		# Issue #969: reduced decal count to limit tree_changed signal spam at high fire rates
 		# Issue #1090: scale by GameplaySettings blood_amount multiplier
 		var base_decals := BLOOD_DECALS_PER_LETHAL_HIT if is_lethal else BLOOD_DECALS_PER_NONLETHAL_HIT
-		var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+		var gameplay_settings: Node = _gameplay_settings_cached
 		var blood_multiplier: float = gameplay_settings.get_blood_amount() if gameplay_settings else 1.0
 		var num_decals := maxi(0, roundi(base_decals * blood_multiplier))
 		_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
@@ -431,7 +452,7 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 ## @param caliber_data: Optional caliber data for effect scaling.
 func spawn_sparks_effect(position: Vector2, hit_direction: Vector2, caliber_data: Resource = null) -> void:
 	# Issue #1186: performance toggle
-	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	var perf_settings: Node = _perf_settings_cached
 	if perf_settings and not perf_settings.is_particles_enabled():
 		return
 
@@ -480,7 +501,7 @@ func spawn_sparks_effect(position: Vector2, hit_direction: Vector2, caliber_data
 ##                        Use this for silenced weapons that need very small flash (e.g., 0.2 for ~100x100 pixels).
 func spawn_muzzle_flash(position: Vector2, direction: Vector2, caliber_data: Resource = null, scale_override: float = 0.0) -> void:
 	# Issue #1186: performance toggle
-	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	var perf_settings: Node = _perf_settings_cached
 	if perf_settings and not perf_settings.is_particles_enabled():
 		return
 
@@ -1289,7 +1310,7 @@ func spawn_explosion_effect(position: Vector2, radius: float) -> void:
 ## @param effect_type: Type name for logging ("flashbang" or "explosion").
 func _spawn_grenade_visual_effect(position: Vector2, radius: float, flash_color: Color, effect_type: String) -> void:
 	# Issue #1186: performance toggle for explosion lights
-	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	var perf_settings: Node = _perf_settings_cached
 	if perf_settings and not perf_settings.is_explosion_lights_enabled():
 		return
 
