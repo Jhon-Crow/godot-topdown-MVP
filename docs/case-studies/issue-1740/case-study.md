@@ -3,7 +3,7 @@
 **Issue title (RU):** fix сложность Стрелок — не при каждом убийстве замедляется время
 **Translation:** "Fix Gunslinger difficulty — time does not slow down on every kill"
 **Status:** OPEN
-**Date of session logs:** 2026-03-29, 2026-03-30 (follow-up)
+**Date of session logs:** 2026-03-29, 2026-03-30 (follow-up), 2026-04-10 (follow-up 2)
 
 ---
 
@@ -14,6 +14,7 @@
 | game_log_20260329_184026.txt | `docs/case-studies/issue-1740/game_log_1.txt` | 6,702 | 18:40:26 – 18:43:50 |
 | game_log_20260329_184429.txt | `docs/case-studies/issue-1740/game_log_2.txt` | 8,770 | 18:44:29 – 18:47:33 |
 | game_log_20260330_103828.txt | `docs/case-studies/issue-1740/game_log_20260330_103828.txt` | 2,229 | 10:38:28 – 10:39:17 (follow-up, 2026-03-30) |
+| game_log_20260410_010625.txt | `docs/case-studies/issue-1740/game_log_20260410_010625.txt` | 1,257 | 01:06:25 – 01:06:43 (follow-up 2, 2026-04-10) |
 
 ---
 
@@ -57,6 +58,39 @@ const EFFECT_TIME_SCALE: float = 0.1           # 10x slowdown
 ---
 
 ## 4. Log Analysis
+
+### Log 4 (game_log_20260410_010625.txt) — Follow-up 2 session (2026-04-10)
+
+**Session:** 01:06:25 – 01:06:43 (Gunslinger mode, PR #1741 fixes 1–3 applied, build from 2026-04-09)
+**Owner comment:** "проблема сохранилась, замедление срабатывает не при каждом убийстве" (the problem persists, slowdown doesn't trigger on every kill)
+
+| Metric | Count |
+|--------|-------|
+| Player kills | 8 |
+| "Enemy killed - triggering" messages | 8 |
+| "Starting power fantasy effect" messages | 7 |
+| "Effect timer reset" (kill during active effect) | 1 |
+| "Effect duration expired" (natural end) | 8 |
+| `[HitEffect]` slow start/skip log messages | 0 (none) |
+| Scenes (restart_scene calls) | 4 |
+
+**Key finding:** All 8 kills DID trigger the PowerFantasy effect. No `[HitEffect]` logs appear, which means the build did not yet include Fix 3 (added 2026-04-09 after the owner's previous log), OR Fix 3 suppresses the `time_scale = 0.8` correctly but `_start_slow_effect()` still set `_is_slow_active = true` and returned early — the log message would only appear in that case if `_log()` was wired. Since no `[HitEffect]` entries appear at all, the version running on the owner's machine lacked the `_log()` helper entirely.
+
+**Critical finding — Root Cause 3 identified:** `_start_slow_effect()` in `HitEffectsManager` sets `Engine.time_scale = 0.8` after `PowerFantasy` already set it to `0.1`. Call order in `Bullet.cs`:
+
+```
+area.Call("on_hit")                          // synchronous
+  └─ Enemy.OnHit() → TakeDamage() → dies
+       └─ HandleDeath()
+            └─ PowerFantasyEffectsManager.on_enemy_killed()  ← time_scale = 0.1
+TriggerPlayerHitEffects()                    // called AFTER area.Call returns
+  └─ HitEffectsManager.on_player_hit_enemy()
+       └─ _start_slow_effect()               ← time_scale = 0.8 (if _is_slow_active == false)
+```
+
+On the first kill (or if the previous 3s hit timer already expired), `_is_slow_active` is `false`. So `_start_slow_effect()` enters the `if not _is_slow_active:` branch and **overwrites `time_scale = 0.1` with `time_scale = 0.8`** on the very same frame the kill slowdown started.
+
+The saturation overlay from PowerFantasy remains visible (it runs on a separate CanvasLayer), explaining why "визуальный эффект срабатывает всегда" (visual effect always triggers) while the time slowdown does not.
 
 ### Log 3 (game_log_20260330_103828.txt) — Follow-up session (2026-03-30)
 
@@ -107,6 +141,18 @@ All PowerFantasy effects in this log completed their full 600ms duration. No pre
 ---
 
 ## 5. Root Cause Analysis
+
+### Root Cause 3 (Follow-up 2 — discovered 2026-04-10): HitEffectsManager START overwrites PowerFantasy kill slowdown
+
+**File:** `scripts/autoload/hit_effects_manager.gd`, `_start_slow_effect()` (line 102)
+
+The **killing shot** calls `area.Call("on_hit")` synchronously in `Bullet.cs`. Inside that call chain, `Enemy.HandleDeath()` triggers `PowerFantasyEffectsManager.on_enemy_killed()` → `Engine.time_scale = 0.1`. After `area.Call()` returns, `Bullet.TriggerPlayerHitEffects()` fires `HitEffectsManager.on_player_hit_enemy()` → `_start_slow_effect()`.
+
+If `_is_slow_active == false` at this point (first kill, or 3s timer expired since last hit), `_start_slow_effect()` sets `Engine.time_scale = SLOW_TIME_SCALE` (0.8) — **directly overwriting the 0.1x kill slowdown that started 1–2 statements ago**.
+
+The visual saturation overlay from PowerFantasy lives on a separate CanvasLayer and is unaffected, explaining why the effect is "always visible" but slowdown is intermittent.
+
+**Fix:** In `_start_slow_effect()`, add the same guard used in `_end_slow_effect()` — skip setting `Engine.time_scale = 0.8` if PowerFantasy or PenultimateHit already has a deeper (0.1x) slowdown active.
 
 ### Root Cause 2 (Follow-up — discovered 2026-03-30): HitEffectsManager resets time_scale during PowerFantasy/PenultimateHit effects
 
@@ -201,8 +247,46 @@ func _end_slow_effect() -> void:
 
 Also added `is_effect_active() -> bool` public method to `PenultimateHitEffectsManager` (required by Fix 3).
 
+### Fix 4 (Follow-up 2 — `hit_effects_manager.gd`, 2026-04-10)
+
+**Root cause:** `_start_slow_effect()` was setting `Engine.time_scale = 0.8` even when PowerFantasy had already set it to `0.1` on the same frame (killing bullet call chain).
+
+In `_start_slow_effect()`, add the same guard before setting `Engine.time_scale = SLOW_TIME_SCALE`:
+
+```gdscript
+func _start_slow_effect() -> void:
+    _slow_timer = SLOW_DURATION
+    if not _is_slow_active:
+        _is_slow_active = true
+        if not replay_mode:
+            var pfm: Node = get_node_or_null("/root/PowerFantasyEffectsManager")
+            if pfm and pfm.has_method("is_effect_active") and pfm.is_effect_active():
+                return  # don't overwrite 0.1x with 0.8x
+            var phm: Node = get_node_or_null("/root/PenultimateHitEffectsManager")
+            if phm and phm.has_method("is_effect_active") and phm.is_effect_active():
+                return  # don't overwrite 0.1x with 0.8x
+            Engine.time_scale = SLOW_TIME_SCALE
+```
+
+Also added:
+- `_log()` helper to `HitEffectsManager` (needed for the guard log messages)
+- `is_slow_active() -> bool` and `get_slow_time_scale() -> float` public methods to `HitEffectsManager`
+
+### Fix 5 (Follow-up 2 — `power_fantasy_effects_manager.gd` and `penultimate_hit_effects_manager.gd`, 2026-04-10)
+
+When PowerFantasy or PenultimateHit effects end, restore `time_scale` to 0.8x (not 1.0x) if `HitEffectsManager`'s 3-second hit-feedback slow is still active:
+
+```gdscript
+# In _end_effect() / _end_penultimate_effect():
+var him: Node = get_node_or_null("/root/HitEffectsManager")
+if him and him.has_method("is_slow_active") and him.is_slow_active():
+    Engine.time_scale = him.get_slow_time_scale()  # 0.8
+else:
+    Engine.time_scale = 1.0
+```
+
 ## 7. Files Modified
 
-- `scripts/autoload/penultimate_hit_effects_manager.gd` — Fix 1 (time_scale conflict) + added `is_effect_active()` public method (Fix 3 support)
-- `scripts/autoload/power_fantasy_effects_manager.gd` — Fix 2 (stale log strings)
-- `scripts/autoload/hit_effects_manager.gd` — Fix 3 (HitEffects resetting time_scale during active slowdown)
+- `scripts/autoload/penultimate_hit_effects_manager.gd` — Fix 1 (time_scale conflict) + `is_effect_active()` public method (Fix 3 support) + Fix 5 (restore 0.8x if HitEffects still active)
+- `scripts/autoload/power_fantasy_effects_manager.gd` — Fix 2 (stale log strings) + Fix 5 (restore 0.8x if HitEffects still active)
+- `scripts/autoload/hit_effects_manager.gd` — Fix 3 (`_end_slow_effect` guard) + Fix 4 (`_start_slow_effect` guard) + `_log()` helper + `is_slow_active()` / `get_slow_time_scale()` public methods

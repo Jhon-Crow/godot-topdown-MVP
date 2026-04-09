@@ -187,9 +187,16 @@ func _end_effect() -> void:
 	_is_effect_active = false
 	_log("Ending power fantasy effect")
 
-	# Restore normal time (skip during replay - Issue #597)
+	# Restore time scale (skip during replay - Issue #597).
+	# Issue #1740 (root cause 3): If HitEffectsManager's 0.8x hit-feedback slow is still
+	# running (its 3s timer hasn't expired yet), restore to 0.8x rather than 1.0x so the
+	# shallow hit-feedback effect remains active after the kill slowdown ends.
 	if not replay_mode:
-		Engine.time_scale = 1.0
+		var him: Node = get_node_or_null("/root/HitEffectsManager")
+		if him and him.has_method("is_slow_active") and him.is_slow_active():
+			Engine.time_scale = him.get_slow_time_scale()
+		else:
+			Engine.time_scale = 1.0
 
 	# Remove screen saturation and contrast
 	_saturation_rect.visible = false

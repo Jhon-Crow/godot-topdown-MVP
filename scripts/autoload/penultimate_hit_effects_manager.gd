@@ -292,16 +292,22 @@ func _end_penultimate_effect() -> void:
 	_is_effect_active = false
 	_log("Ending penultimate hit effect")
 
-	# Restore normal time immediately (skip during replay - Issue #597).
+	# Restore time scale (skip during replay - Issue #597).
 	# Issue #1740: If PowerFantasyEffectsManager has an active kill-slowdown effect,
 	# keep Engine.time_scale at its value so the slowdown is not prematurely cancelled.
-	# PowerFantasy will restore time_scale to 1.0 when its own effect expires.
+	# PowerFantasy will restore time_scale when its own effect expires.
+	# Issue #1740 (root cause 3): If HitEffectsManager's 0.8x hit-feedback slow is still
+	# running, restore to 0.8x rather than 1.0x.
 	if not replay_mode:
 		var pfm: Node = get_node_or_null("/root/PowerFantasyEffectsManager")
 		if pfm and pfm.has_method("is_effect_active") and pfm.is_effect_active():
 			_log("PowerFantasy kill effect still active — keeping time_scale slowed (Issue #1740)")
 		else:
-			Engine.time_scale = 1.0
+			var him: Node = get_node_or_null("/root/HitEffectsManager")
+			if him and him.has_method("is_slow_active") and him.is_slow_active():
+				Engine.time_scale = him.get_slow_time_scale()
+			else:
+				Engine.time_scale = 1.0
 
 	# Start visual effects fade-out animation instead of removing instantly (Issue #442)
 	_start_fade_out()
