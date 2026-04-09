@@ -46,6 +46,6 @@ randomness = 0.2
 [node name="PointLight2D" type="PointLight2D" parent="."]
 color = Color(1, 0.85, 0.5, 1)
 energy = 0.0
-shadow_enabled = false
+shadow_enabled = true
 texture = SubResource("GradientTexture2D_explosion")
 texture_scale = 3.0
