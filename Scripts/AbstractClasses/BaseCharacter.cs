@@ -148,8 +148,12 @@ public abstract partial class BaseCharacter : CharacterBody2D, IDamageable
     {
         if (direction != Vector2.Zero)
         {
-            // Apply acceleration towards the input direction
-            Velocity = Velocity.MoveToward(direction * MaxSpeed, Acceleration * delta);
+            // Issue #1769: project target velocity onto the wall plane so moving into
+            // a wall does not reduce speed along the wall (wall no longer slows character).
+            Vector2 targetVelocity = direction * MaxSpeed;
+            if (IsOnWall())
+                targetVelocity = targetVelocity.Slide(GetWallNormal());
+            Velocity = Velocity.MoveToward(targetVelocity, Acceleration * delta);
         }
         else
         {
