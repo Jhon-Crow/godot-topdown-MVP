@@ -57,7 +57,7 @@ var _power_fantasy_label: RichTextLabel = null
 func _ready() -> void:
 	# Setup tooltips and label behaviour for settings rows (Issue #1200)
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NightModeContainer,
-			"Night Mode")
+			tr("NIGHT_MODE"))
 
 	# Load gothic font for Black Metal button (Issue #1014)
 	_load_gothic_font()
@@ -94,6 +94,11 @@ func _ready() -> void:
 	if experimental_settings:
 		experimental_settings.settings_changed.connect(_on_settings_changed)
 
+	# Connect to locale changes so button text updates immediately on language switch
+	var localization_settings: Node = get_node_or_null("/root/LocalizationSettings")
+	if localization_settings and localization_settings.has_signal("locale_changed"):
+		localization_settings.locale_changed.connect(_on_locale_changed)
+
 	# Set process mode to allow input while paused
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
@@ -121,12 +126,12 @@ func _update_button_states() -> void:
 	# Update button text to show selection
 	# Power Fantasy uses gradient text via RichTextLabel (Issue #1014)
 	_update_power_fantasy_text(is_power_fantasy)
-	gunslinger_button.text = "Gunslinger (Selected)" if is_gunslinger else "Gunslinger"
-	easy_button.text = "Easy (Selected)" if is_easy else "Easy"
-	normal_button.text = "Normal (Selected)" if is_normal else "Normal"
-	hard_button.text = "Hard (Selected)" if is_hard else "Hard"
-	# Use uppercase for Black Metal because the gothic font only has uppercase glyphs (Issue #1014)
-	# Use dash instead of parentheses since the gothic font doesn't have those characters (Issue #1020)
+	gunslinger_button.text = tr("GUNSLINGER_SELECTED") if is_gunslinger else tr("GUNSLINGER")
+	easy_button.text = tr("EASY_SELECTED") if is_easy else tr("EASY")
+	normal_button.text = tr("NORMAL_SELECTED") if is_normal else tr("NORMAL")
+	hard_button.text = tr("HARD_SELECTED") if is_hard else tr("HARD")
+	# Always use hardcoded uppercase ASCII for Black Metal — gothic font only supports uppercase
+	# ASCII glyphs, and the name must not change when switching languages (it is a proper name).
 	black_metal_button.text = "BLACK METAL - SELECTED" if is_black_metal else "BLACK METAL"
 
 	# Update night mode checkbox
@@ -137,20 +142,20 @@ func _update_button_states() -> void:
 	# Update status label based on current difficulty
 	var status_text: String = ""
 	if is_power_fantasy:
-		status_text = "Power Fantasy: 10 HP, 3x ammo, blue lasers"
+		status_text = tr("DIFFICULTY_STATUS_POWER_FANTASY")
 	elif is_gunslinger:
-		status_text = "Gunslinger: 2x less HP, 4x ammo, no laser sights"
+		status_text = tr("DIFFICULTY_STATUS_GUNSLINGER")
 	elif is_easy:
-		status_text = "Easy mode: Enemies react slower"
+		status_text = tr("DIFFICULTY_STATUS_EASY")
 	elif is_hard:
-		status_text = "Hard mode: Enemies react when you look away"
+		status_text = tr("DIFFICULTY_STATUS_HARD")
 	elif is_black_metal:
-		status_text = "Black Metal: 25% less HP, 25% faster, B&W filter"
+		status_text = tr("DIFFICULTY_STATUS_BLACK_METAL")
 	else:
-		status_text = "Normal mode: Classic gameplay"
+		status_text = tr("DIFFICULTY_STATUS_NORMAL")
 
 	if experimental_settings and experimental_settings.is_realistic_visibility_enabled():
-		status_text += " | Night Mode ON"
+		status_text += tr("DIFFICULTY_STATUS_NIGHT_MODE_ON")
 
 	status_label.text = status_text
 
@@ -239,6 +244,10 @@ func _on_difficulty_changed(_new_difficulty: int) -> void:
 
 
 func _on_settings_changed() -> void:
+	_update_button_states()
+
+
+func _on_locale_changed(_new_locale: String) -> void:
 	_update_button_states()
 
 
