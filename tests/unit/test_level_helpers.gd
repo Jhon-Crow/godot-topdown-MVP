@@ -47,19 +47,32 @@ class MockLevelHelper:
 		return "AMMO: %d/%d" % [current_mag, reserve]
 
 
-	## Format the magazines label showing individual magazine ammo counts.
-	## Shows format: MAGS: [30] | 25 | 10 where [30] is current magazine.
-	func format_magazines_label(magazine_ammo_counts: Array) -> String:
+	## Format the magazines label showing magazine ammo counts.
+	## Shows format: MAGS: [30] | 7 | + x5 where [30] is current magazine,
+	## 7 is a partial spare, and + x5 abbreviates full spare magazines.
+	## Empty spares are hidden; partial spares shown individually; full spares abbreviated.
+	func format_magazines_label(magazine_ammo_counts: Array, magazine_max_counts: Array = []) -> String:
 		if magazine_ammo_counts.is_empty():
 			return "MAGS: -"
 
 		var parts: Array[String] = []
-		for i in range(magazine_ammo_counts.size()):
+		# Current magazine always shown in brackets
+		parts.append("[%d]" % magazine_ammo_counts[0])
+
+		# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
+		var full_spare_count: int = 0
+		for i in range(1, magazine_ammo_counts.size()):
 			var ammo: int = magazine_ammo_counts[i]
-			if i == 0:
-				parts.append("[%d]" % ammo)
+			if ammo <= 0:
+				continue
+			var cap: int = magazine_max_counts[i] if i < magazine_max_counts.size() else 0
+			if cap > 0 and ammo >= cap:
+				full_spare_count += 1
 			else:
 				parts.append("%d" % ammo)
+
+		if full_spare_count > 0:
+			parts.append("+ x%d" % full_spare_count)
 
 		return "MAGS: " + " | ".join(parts)
 
@@ -188,14 +201,81 @@ func test_format_magazines_single() -> void:
 	assert_eq(result, "MAGS: [30]", "Single magazine should be in brackets")
 
 
-func test_format_magazines_multiple() -> void:
-	var result := helper.format_magazines_label([30, 25, 10])
-	assert_eq(result, "MAGS: [30] | 25 | 10", "Multiple magazines formatted correctly")
+func test_format_magazines_partial_spares_shown_individually() -> void:
+	# Partial spares (ammo < capacity) are shown individually
+	var result := helper.format_magazines_label([30, 25, 10], [30, 30, 30])
+	assert_eq(result, "MAGS: [30] | 25 | 10", "Partial spare magazines shown individually")
 
 
 func test_format_magazines_with_zeros() -> void:
-	var result := helper.format_magazines_label([0, 30, 30])
-	assert_eq(result, "MAGS: [0] | 30 | 30", "Should handle zero in current magazine")
+	# Zero in current magazine is shown; zero in spares are hidden
+	var result := helper.format_magazines_label([0, 30, 30], [30, 30, 30])
+	assert_eq(result, "MAGS: [0] | + x2", "Zero current shown; full spares abbreviated")
+
+
+func test_format_magazines_empty_spare_hidden() -> void:
+	# Empty spare (0 ammo) is hidden; partial (25) shown individually
+	var result := helper.format_magazines_label([30, 0, 0, 25], [30, 30, 30, 30])
+	assert_eq(result, "MAGS: [30] | 25", "Empty spare magazines should be hidden")
+
+
+func test_format_magazines_all_spare_empty() -> void:
+	var result := helper.format_magazines_label([30, 0, 0, 0], [30, 30, 30, 30])
+	assert_eq(result, "MAGS: [30]", "All-empty spares should show only current magazine")
+
+
+func test_format_magazines_full_spares_abbreviated() -> void:
+	# 6 full spares all abbreviated as + x6
+	var result := helper.format_magazines_label([30, 30, 30, 30, 30, 30, 30], [30, 30, 30, 30, 30, 30, 30])
+	assert_eq(result, "MAGS: [30] | + x6", "Full spare magazines should be abbreviated as + xN")
+
+
+func test_format_magazines_7_full_spare() -> void:
+	# 7 full spares → + x7
+	var result := helper.format_magazines_label([30, 30, 30, 30, 30, 30, 30, 30], [30, 30, 30, 30, 30, 30, 30, 30])
+	assert_eq(result, "MAGS: [30] | + x7", "7 full spare magazines should show + x7")
+
+
+func test_format_magazines_partial_and_full_mixed() -> void:
+	# 1 partial spare (25) shown individually, 8 full spares abbreviated
+	var result := helper.format_magazines_label([30, 30, 30, 30, 30, 30, 30, 30, 30, 25], [30, 30, 30, 30, 30, 30, 30, 30, 30, 30])
+	assert_eq(result, "MAGS: [30] | 25 | + x8", "Partial shown individually, full spares abbreviated")
+
+
+func test_format_magazines_empty_skipped_full_abbreviated() -> void:
+	# 9 full spares (non-empty), 2 empty (hidden) -> + x9
+	var result := helper.format_magazines_label([30, 30, 30, 30, 30, 30, 30, 0, 30, 30, 30], [30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30])
+	assert_eq(result, "MAGS: [30] | + x9", "Empty spares hidden, non-empty full spares abbreviated")
+
+
+func test_format_magazines_no_capacity_info_treats_as_partial() -> void:
+	# When no max_counts provided (empty array), all non-empty spares shown individually
+	var result := helper.format_magazines_label([30, 25, 10])
+	assert_eq(result, "MAGS: [30] | 25 | 10", "Without capacity info, all non-empty spares shown individually")
+
+
+func test_format_magazines_mini_uzi_full_spares() -> void:
+	# MiniUzi has 32-round magazines — 4 full spares should be abbreviated
+	var result := helper.format_magazines_label([32, 32, 32, 32, 32], [32, 32, 32, 32, 32])
+	assert_eq(result, "MAGS: [32] | + x4", "MiniUzi: 4 full spares should abbreviate to + x4")
+
+
+func test_format_magazines_silenced_pistol_partial_spare() -> void:
+	# SilencedPistol has 13-round magazines — partial spare shown individually
+	var result := helper.format_magazines_label([13, 7, 13, 13], [13, 13, 13, 13])
+	assert_eq(result, "MAGS: [13] | 7 | + x2", "SilencedPistol: partial shown, full spares abbreviated")
+
+
+func test_format_magazines_sniper_rifle_one_spare() -> void:
+	# ASVK (SniperRifle) has 5-round magazines — 1 spare shown as + x1
+	var result := helper.format_magazines_label([5, 5], [5, 5])
+	assert_eq(result, "MAGS: [5] | + x1", "ASVK: 1 full spare should abbreviate to + x1")
+
+
+func test_format_magazines_sniper_rifle_partial_spare() -> void:
+	# ASVK with partial spare (3/5) should show it individually
+	var result := helper.format_magazines_label([5, 3], [5, 5])
+	assert_eq(result, "MAGS: [5] | 3", "ASVK: partial spare shown individually")
 
 
 # ============================================================================
