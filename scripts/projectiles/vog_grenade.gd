@@ -127,7 +127,14 @@ func _on_body_entered(body: Node) -> void:
 
 	# Only explode on impact if we've been launched and haven't exploded yet
 	if _is_launched and not _has_impacted and not _has_exploded:
-		if body is StaticBody2D or body is TileMap or body is CharacterBody2D:
+		if body is StaticBody2D or body is TileMap:
+			FileLogger.info("[VOGGrenade] Impact detected! Body: %s (type: %s), triggering explosion" % [body.name, body.get_class()])
+			_trigger_impact_explosion()
+		elif body is CharacterBody2D:
+			# Issue #1746: Do not trigger on dead enemies — grenade should pass through corpses.
+			if body.has_method("is_alive") and not body.is_alive():
+				FileLogger.info("[VOGGrenade] Impact with dead enemy %s - not triggering explosion" % body.name)
+				return
 			FileLogger.info("[VOGGrenade] Impact detected! Body: %s (type: %s), triggering explosion" % [body.name, body.get_class()])
 			_trigger_impact_explosion()
 		else:

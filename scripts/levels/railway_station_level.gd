@@ -26,6 +26,9 @@ var _extra_exit_zones: Array = []
 var _level_cleared: bool = false
 var _score_shown: bool = false
 var _level_completed: bool = false
+var _game_end_screen_shown: bool = false
+var _game_end_dismissed: bool = false
+var _pending_score_data: Dictionary = {}
 const SATURATION_DURATION: float = 0.15
 const SATURATION_INTENSITY: float = 0.25
 var _enemies: Array = []
@@ -508,7 +511,7 @@ func _setup_debug_ui() -> void:
 	_combo_label.text = ""
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo_label.offset_left = -200
+	_combo_label.offset_left = -350
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 80
 	_combo_label.offset_bottom = 120
@@ -588,7 +591,89 @@ func _complete_level_with_score() -> void:
 		var aim: Node = get_node_or_null("/root/ActiveItemManager")
 		if aim and aim.has_method("notify_level_completed"):
 			aim.notify_level_completed(score_data.get("kills", 0) > 0)
-		_show_score_screen(score_data)
+		_pending_score_data = score_data
+		_show_game_end_screen()
+	else:
+		_show_game_end_screen()
+
+
+## Shows the end-of-game screen: white text on solid black background (Issue #1755).
+## Player must click or press any key to dismiss it, then the score screen is shown.
+func _show_game_end_screen() -> void:
+	if _game_end_screen_shown:
+		return
+	_game_end_screen_shown = true
+	var canvas_layer := get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		_proceed_to_score_screen()
+		return
+
+	var bg := ColorRect.new()
+	bg.name = "GameEndBackground"
+	bg.color = Color(0.0, 0.0, 0.0, 1.0)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# MOUSE_FILTER_STOP captures mouse clicks so gui_input fires (IGNORE would miss them).
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	bg.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.is_pressed():
+			_dismiss_game_end_screen()
+	)
+	canvas_layer.add_child(bg)
+
+	var label := Label.new()
+	label.name = "GameEndLabel"
+	label.text = "Конец. Спасибо за игру"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 64)
+	label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas_layer.add_child(label)
+
+	var hint := Label.new()
+	hint.name = "GameEndHint"
+	hint.text = "Нажмите любую клавишу или кнопку мыши..."
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	hint.add_theme_font_size_override("font_size", 20)
+	hint.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 1.0))
+	hint.set_anchors_preset(Control.PRESET_FULL_RECT)
+	hint.offset_bottom = -30
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas_layer.add_child(hint)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Game-end screen: any key press dismisses it and shows the score screen.
+	# Mouse clicks are handled via gui_input on the background ColorRect.
+	if _game_end_screen_shown and not _game_end_dismissed:
+		if event is InputEventKey and event.is_pressed() and not event.echo:
+			_dismiss_game_end_screen()
+		return
+	# Score screen: W key triggers the watch-replay shortcut.
+	if _score_shown:
+		if event is InputEventKey and event.pressed and not event.echo:
+			if event.keycode == KEY_W:
+				_on_watch_replay_pressed()
+
+
+func _dismiss_game_end_screen() -> void:
+	if _game_end_dismissed:
+		return
+	_game_end_dismissed = true
+	var canvas_layer := get_node_or_null("CanvasLayer")
+	if canvas_layer:
+		for child_name in ["GameEndBackground", "GameEndLabel", "GameEndHint"]:
+			var node := canvas_layer.get_node_or_null(child_name)
+			if node:
+				node.queue_free()
+	_proceed_to_score_screen()
+
+
+func _proceed_to_score_screen() -> void:
+	if not _pending_score_data.is_empty():
+		_show_score_screen(_pending_score_data)
 	else:
 		_show_victory_message()
 
@@ -717,24 +802,49 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		if weapon == null:
 			weapon = _player.get_node_or_null("AKGL")
 		if weapon == null:
+			weapon = _player.get_node_or_null("MiniUzi")
+		if weapon == null:
+			weapon = _player.get_node_or_null("SilencedPistol")
+		if weapon == null:
+			weapon = _player.get_node_or_null("SniperRifle")
+		if weapon == null:
 			weapon = _player.get_node_or_null("Revolver")
 		if weapon == null:
 			weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
 		_magazines_label.visible = false
 		return
-	else:
-		_magazines_label.visible = true
+	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+		_magazines_label.visible = false
+		return
+	_magazines_label.visible = true
 	if magazine_ammo_counts.is_empty():
 		_magazines_label.text = "MAGS: -"
 		return
+	# Get magazine capacities to distinguish full vs partial spares
+	var mag_max_counts: Array = []
+	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
+		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
+
 	var parts: Array = []
-	for i in range(magazine_ammo_counts.size()):
+	# Current magazine always shown in brackets
+	parts.append("[%d]" % magazine_ammo_counts[0])
+
+	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
+	var full_spare_count: int = 0
+	for i in range(1, magazine_ammo_counts.size()):
 		var ammo: int = magazine_ammo_counts[i]
-		if i == 0:
-			parts.append("[%d]" % ammo)
+		if ammo <= 0:
+			continue
+		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
+		if cap > 0 and ammo >= cap:
+			full_spare_count += 1
 		else:
 			parts.append("%d" % ammo)
+
+	if full_spare_count > 0:
+		parts.append("+ x%d" % full_spare_count)
+
 	_magazines_label.text = "MAGS: " + " | ".join(parts)
 
 
@@ -786,7 +896,7 @@ func _show_victory_message() -> void:
 		return
 	var victory_label := Label.new()
 	victory_label.name = "VictoryLabel"
-	victory_label.text = "RAILWAY STATION CLEARED!"
+	victory_label.text = "Конец. Спасибо за игру"
 	victory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	victory_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	victory_label.add_theme_font_size_override("font_size", 48)
@@ -963,14 +1073,6 @@ func _get_next_level_path() -> String:
 				return level_paths[i + 1]
 			return ""
 	return ""
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if not _score_shown:
-		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_W:
-			_on_watch_replay_pressed()
 
 
 func _on_watch_replay_pressed() -> void:

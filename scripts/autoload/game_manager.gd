@@ -866,9 +866,21 @@ func _on_score_calculated(score_data: Dictionary) -> void:
 	# Ranks A, A+, and S all satisfy the "A or higher" condition (Issue #1589)
 	const A_OR_HIGHER: Array = ["A", "A+", "S"]
 	if rank in A_OR_HIGHER:
-		levels_completed_rank_a_or_higher += 1
-		levels_completed_rank_a_or_higher_updated.emit(levels_completed_rank_a_or_higher)
-		_log_to_file("Rank-A level completed — levels_completed_rank_a_or_higher: %d" % levels_completed_rank_a_or_higher)
+		# Only count each unique map once toward the unlock, regardless of difficulty (Issue #1749).
+		# Check if this map was already completed at A-rank or higher on any difficulty before
+		# this run (ProgressManager has not yet saved the current result at this point).
+		var already_counted: bool = false
+		var progress_manager: Node = get_node_or_null("/root/ProgressManager")
+		if progress_manager and progress_manager.has_method("is_level_completed_rank_a_or_higher_any_difficulty"):
+			var current_scene: Node = get_tree().current_scene
+			if current_scene and not current_scene.scene_file_path.is_empty():
+				already_counted = progress_manager.is_level_completed_rank_a_or_higher_any_difficulty(current_scene.scene_file_path)
+		if not already_counted:
+			levels_completed_rank_a_or_higher += 1
+			levels_completed_rank_a_or_higher_updated.emit(levels_completed_rank_a_or_higher)
+			_log_to_file("Rank-A level completed (new unique map) — levels_completed_rank_a_or_higher: %d" % levels_completed_rank_a_or_higher)
+		else:
+			_log_to_file("Rank-A level completed (already counted for this map) — levels_completed_rank_a_or_higher unchanged: %d" % levels_completed_rank_a_or_higher)
 	# Track levels completed with silenced pistol for Auto Reload unlock (Issue #1624).
 	if selected_weapon == "silenced_pistol":
 		levels_completed_with_silenced_pistol += 1

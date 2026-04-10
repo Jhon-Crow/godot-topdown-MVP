@@ -8,6 +8,6 @@ z_index = 50
 [node name="PointLight2D" type="PointLight2D" parent="."]
 color = Color(1, 1, 0.95, 1)
 energy = 0.0
-shadow_enabled = false
+shadow_enabled = true
 texture = ExtResource("1_cone_texture")
 texture_scale = 6.0

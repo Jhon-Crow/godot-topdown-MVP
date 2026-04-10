@@ -847,7 +847,7 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current, maximum]
+	_ammo_label.text = tr("TUTORIAL_AMMO_LABEL") % [current, maximum]
 
 	# Color coding: red at <=5, yellow at <=10, white otherwise
 	if current <= 5:
@@ -864,7 +864,7 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
+	_ammo_label.text = tr("TUTORIAL_AMMO_LABEL") % [current_mag, reserve]
 
 	# Color coding: red when mag <=5, yellow when mag <=10
 	if current_mag <= 5:
@@ -993,38 +993,39 @@ func _build_reload_hint_bbcode(step: int, total: int) -> String:
 	if _has_shotgun:
 		return ""
 
+	var reload_word: String = tr("HINT_RELOAD_WORD")
 	if _has_makarov_pm or (_has_sniper_rifle == false and total <= 2):
 		# Makarov PM / 2-step reload: R -> R
 		# step=0 → next is R (first); step=1 → next is R (second); step=2 → done
 		match step:
 			0:
-				return "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"
+				return "[color=#ff4444][R][/color] [color=#888888][R][/color] " + reload_word
 			1:
 				# Step 1 completed: extend strikethrough to 50%
 				_extend_hint_strikethrough(HINT_RELOAD, 0.25)
-				return "[color=#888888][R][/color] [color=#ff4444][R][/color] Перезарядись"
+				return "[color=#888888][R][/color] [color=#ff4444][R][/color] " + reload_word
 			_:
 				# All steps done: extend strikethrough to cover both [R] keys (~50%)
 				_extend_hint_strikethrough(HINT_RELOAD, 0.5)
-				return "[color=#888888][R] [R][/color] Перезарядись"
+				return "[color=#888888][R] [R][/color] " + reload_word
 	else:
 		# Standard 3-step reload: R -> F -> R
 		# step=0 → next is R; step=1 → next is F; step=2 → next is R (final); step=3 → done
 		match step:
 			0:
-				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"
+				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] " + reload_word
 			1:
 				# Step 1 completed: extend strikethrough to ~17%
 				_extend_hint_strikethrough(HINT_RELOAD, 0.17)
-				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
+				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] " + reload_word
 			2:
 				# Step 2 completed: extend strikethrough to ~33%
 				_extend_hint_strikethrough(HINT_RELOAD, 0.33)
-				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
+				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] " + reload_word
 			_:
 				# All steps done: extend strikethrough to ~50%
 				_extend_hint_strikethrough(HINT_RELOAD, 0.5)
-				return "[color=#888888][R] [F] [R][/color] Перезарядись"
+				return "[color=#888888][R] [F] [R][/color] " + reload_word
 
 
 ## Reveal the bolt-cycle hint after the 1st shot (sniper/shotgun only).
@@ -1049,7 +1050,7 @@ func _reveal_bolt_cycle_hint() -> void:
 		# Full reload hint appears later via _add_reload_hints() after 2nd shot.
 		if not _hint_labels.has(HINT_BOLT_CYCLE):
 			_add_hint(HINT_BOLT_CYCLE,
-				"[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор",
+				"[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] " + tr("HINT_BOLT_ACTION_WORD"),
 				canvas_layer)
 
 
@@ -1140,14 +1141,17 @@ func _build_sniper_bolt_hint_bbcode(step: int) -> String:
 		var progress := float(step) * 0.125  # 12.5% per step
 		_extend_hint_strikethrough(HINT_BOLT_CYCLE, progress)
 
-	return " ".join(parts) + " Передёрни затвор"
+	return " ".join(parts) + " " + tr("HINT_BOLT_ACTION_WORD")
 
 
 ## Build BBCode for shotgun reload hint with dynamic shell count (Bug fix #7).
 ## Shows: [ПКМ↑ открыть] [СКМ+ПКМ↓ xN] [ПКМ↓ закрыть] where N = shells to load.
 func _build_shotgun_reload_hint_bbcode() -> String:
 	var shells_needed: int = _get_shotgun_shells_to_load()
-	return "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
+	var k_open: String = tr("HINT_KEY_RMB_UP_OPEN")
+	var k_load: String = tr("HINT_KEY_MMB_RMB_DOWN") % shells_needed
+	var k_close: String = tr("HINT_KEY_RMB_DOWN_CLOSE")
+	return "[color=#ff4444][%s][/color] [color=#888888][%s] [%s][/color]" % [k_open, k_load, k_close]
 
 
 ## Return the number of shells the shotgun still needs to fill up to capacity (Bug fix #7).
@@ -1168,22 +1172,26 @@ func _get_shotgun_shells_to_load() -> int:
 ## step=3: cylinder closed → all grey (done)
 ## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_revolver_reload_hint_bbcode(step: int) -> String:
+	var k_open: String = tr("HINT_KEY_R_OPEN")
+	var k_bullet: String = tr("HINT_KEY_RMB_UP_BULLET")
+	var k_scroll: String = tr("HINT_KEY_SCROLL")
+	var k_close: String = tr("HINT_KEY_R_CLOSE")
 	match step:
 		0:
 			# Nothing done yet: highlight open-cylinder (R)
-			return "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]"
+			return "[color=#ff4444][%s][/color] [color=#888888][%s] [%s] [%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
 		1:
 			# Cylinder opened: next is insert cartridges (open is completed)
 			_extend_hint_strikethrough(HINT_RELOAD, 0.15)  # ~15% for first segment
-			return "[color=#888888][R открыть][/color] [color=#ff4444][ПКМ↑ патрон][/color] [color=#888888][скролл] [R закрыть][/color]"
+			return "[color=#888888][%s][/color] [color=#ff4444][%s][/color] [color=#888888][%s] [%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
 		2:
 			# Scrolled (cylinder rotated): next is close cylinder (open and insert completed)
 			_extend_hint_strikethrough(HINT_RELOAD, 0.55)  # ~55% for first three segments
-			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл][/color] [color=#ff4444][R закрыть][/color]"
+			return "[color=#888888][%s] [%s] [%s][/color] [color=#ff4444][%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
 		_:
 			# All steps done
 			_extend_hint_strikethrough(HINT_RELOAD, 0.75)  # ~75% for all key segments
-			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/color]"
+			return "[color=#888888][%s] [%s] [%s] [%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
 
 
 ## Called when the shotgun's action state changes (pump-action between shots).
@@ -1216,16 +1224,17 @@ func _on_shotgun_action_state_changed(new_state: int) -> void:
 ## state=1 (NeedsPumpUp): highlight drag-up; state=2 (NeedsPumpDown): highlight drag-down.
 ## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_shotgun_pump_hint_bbcode(state: int) -> String:
+	var bolt_word: String = tr("HINT_BOLT_ACTION_WORD")
 	match state:
 		1:  # NeedsPumpUp (nothing completed yet)
-			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор"
+			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] " + bolt_word
 		2:  # NeedsPumpDown (pump-up completed)
 			_extend_hint_strikethrough(HINT_BOLT_CYCLE, 0.2)  # ~20% for first key
-			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] Передёрни затвор"
+			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] " + bolt_word
 		_:
 			# Both completed
 			_extend_hint_strikethrough(HINT_BOLT_CYCLE, 0.4)  # ~40% for both keys
-			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] Передёрни затвор"
+			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] " + bolt_word
 
 
 ## Called when the shotgun's reload state changes (full shell-by-shell reload).
@@ -1266,19 +1275,22 @@ func _on_shotgun_reload_state_changed(new_state: int) -> void:
 ## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_shotgun_full_reload_hint_bbcode(state: int) -> String:
 	var shells_needed: int = _get_shotgun_shells_to_load()
+	var k_open: String = tr("HINT_KEY_RMB_UP_OPEN")
+	var k_load: String = tr("HINT_KEY_MMB_RMB_DOWN") % shells_needed
+	var k_close: String = tr("HINT_KEY_RMB_DOWN_CLOSE")
 	match state:
 		0, 1:  # Not reloading or waiting to open
-			return "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
+			return "[color=#ff4444][%s][/color] [color=#888888][%s] [%s][/color]" % [k_open, k_load, k_close]
 		2:  # Loading shells (open is completed)
 			_extend_hint_strikethrough(HINT_BOLT_CYCLE, 0.25)  # ~25% for first segment
-			return "[color=#888888][ПКМ↑ открыть][/color] [color=#ff4444][СКМ+ПКМ↓ x%d][/color] [color=#888888][ПКМ↓ закрыть][/color]" % shells_needed
+			return "[color=#888888][%s][/color] [color=#ff4444][%s][/color] [color=#888888][%s][/color]" % [k_open, k_load, k_close]
 		3:  # Waiting to close (open and loading completed)
 			_extend_hint_strikethrough(HINT_BOLT_CYCLE, 0.55)  # ~55% for first two segments
-			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d][/color] [color=#ff4444][ПКМ↓ закрыть][/color]" % shells_needed
+			return "[color=#888888][%s] [%s][/color] [color=#ff4444][%s][/color]" % [k_open, k_load, k_close]
 		_:
 			# All steps completed
 			_extend_hint_strikethrough(HINT_BOLT_CYCLE, 0.8)  # ~80% for all key segments
-			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
+			return "[color=#888888][%s] [%s] [%s][/color]" % [k_open, k_load, k_close]
 
 
 ## Called when scope state changes (activated/deactivated).
@@ -1332,7 +1344,7 @@ func _on_player_reload_completed() -> void:
 		# This prevents the GL hint and grenade hint from appearing simultaneously (overlap bug).
 		if _has_ak_gl and canvas_layer and _ak_gl_has_round_loaded():
 			_add_hint(HINT_GRENADE_LAUNCHER,
-				"[color=#ff4444][ПКМ][/color] Выстрели подствольным гранатомётом", canvas_layer)
+				"[color=#ff4444][ПКМ][/color] " + tr("HINT_LAUNCHER_FIRE"), canvas_layer)
 			# Do NOT advance to THROW_GRENADE yet — wait for GL to fire (_on_grenade_launcher_fired).
 			return
 		# If grenade was already thrown, go to COMPLETED; otherwise wait for grenade
@@ -1400,17 +1412,20 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 ## step=2: G released, RMB still held, throw (ПКМ highlighted)
 ## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_grenade_hint_bbcode(step: int) -> String:
+	var k_arm: String = tr("HINT_KEY_GRENADE_ARM")
+	var k_aim: String = tr("HINT_KEY_GRENADE_AIM")
+	var k_throw: String = tr("HINT_KEY_GRENADE_THROW")
 	match step:
 		0:
-			return "[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]"
+			return "[color=#ff4444][%s][/color] [color=#888888][%s] [%s][/color]" % [k_arm, k_aim, k_throw]
 		1:
 			# First step completed
 			_extend_hint_strikethrough(HINT_GRENADE, 0.25)  # ~25% for first segment
-			return "[color=#888888][G+ПКМ вправо][/color] [color=#ff4444][G+ПКМ→отпусти G][/color] [color=#888888][ПКМ бросок][/color]"
+			return "[color=#888888][%s][/color] [color=#ff4444][%s][/color] [color=#888888][%s][/color]" % [k_arm, k_aim, k_throw]
 		_:
 			# First two steps completed
 			_extend_hint_strikethrough(HINT_GRENADE, 0.6)  # ~60% for first two segments
-			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G][/color] [color=#ff4444][ПКМ бросок][/color]"
+			return "[color=#888888][%s] [%s][/color] [color=#ff4444][%s][/color]" % [k_arm, k_aim, k_throw]
 
 
 ## Update the grenade hint step based on current input state (Bug fix round 5).
@@ -1458,7 +1473,7 @@ func _on_player_grenade_thrown() -> void:
 			var canvas_layer := get_node_or_null("CanvasLayer")
 			if canvas_layer:
 				_add_hint(HINT_FIRE_MODE,
-					"[color=#ff4444][B][/color] Переключи режим стрельбы", canvas_layer)
+					"[color=#ff4444][B][/color] " + tr("HINT_FIRE_MODE_SWITCH"), canvas_layer)
 			# Don't advance to COMPLETED yet — wait for fire-mode switch to complete.
 			return
 		# If grenade thrown before reload, stay in RELOAD step (reload hint still visible)
@@ -1490,16 +1505,16 @@ func _setup_initial_hints() -> void:
 	match _current_step:
 		TutorialStep.SWITCH_FIRE_MODE:
 			_add_hint(HINT_FIRE_MODE,
-				"[color=#ff4444][B][/color] Переключи режим стрельбы", canvas_layer)
+				"[color=#ff4444][B][/color] " + tr("HINT_FIRE_MODE_SWITCH"), canvas_layer)
 		TutorialStep.RELOAD:
 			# Issue #945: Reload hint is delayed until player fires 2 shots.
 			# Do not show reload hints here; _on_weapon_fired() will reveal them.
 			# Bug fix #3: Revolver hammer-cock hint is shown from the very start (on weapon pickup).
 			if _has_revolver:
-				_add_hint(HINT_HAMMER_COCK, "[color=#ff4444][ПКМ][/color] Взведи курок", canvas_layer)
+				_add_hint(HINT_HAMMER_COCK, "[color=#ff4444][ПКМ][/color] " + tr("HINT_COCK_HAMMER"), canvas_layer)
 			# Issue #998: Scope hint is shown from the very start for sniper rifle.
 			if _has_sniper_rifle:
-				_add_hint(HINT_SCOPE, "[color=#ff4444][ПКМ][/color] Прицелься через оптику", canvas_layer)
+				_add_hint(HINT_SCOPE, "[color=#ff4444][ПКМ][/color] " + tr("HINT_SCOPE"), canvas_layer)
 
 
 ## Show hints appropriate for the given step.
@@ -1519,7 +1534,7 @@ func _show_hints_for_step(step: TutorialStep) -> void:
 				_add_reload_hints(canvas_layer)
 		TutorialStep.SCOPE_TRAINING:
 			# Scope hint added after reload completes
-			_add_hint(HINT_SCOPE, "[color=#ff4444][ПКМ][/color] Прицелься через оптику", canvas_layer)
+			_add_hint(HINT_SCOPE, "[color=#ff4444][ПКМ][/color] " + tr("HINT_SCOPE"), canvas_layer)
 		TutorialStep.THROW_GRENADE:
 			# Bug fix #9: only show grenade hint if the player actually has grenades
 			if _player_has_grenades():
@@ -1583,9 +1598,7 @@ func _add_reload_hints(canvas_layer: Node) -> void:
 		_add_hint(HINT_RELOAD, _build_reload_hint_bbcode(0, 3), canvas_layer)
 	elif _has_revolver:
 		# Revolver: cylinder reload hint. Hammer-cock hint is shown from start (Bug fix #3).
-		_add_hint(HINT_RELOAD,
-			"[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]",
-			canvas_layer)
+		_add_hint(HINT_RELOAD, _build_revolver_reload_hint_bbcode(0), canvas_layer)
 	elif _has_makarov_pm:
 		# Makarov PM uses simplified R->R reload. Initial text = step 0.
 		_add_hint(HINT_RELOAD, _build_reload_hint_bbcode(0, 2), canvas_layer)
@@ -1927,7 +1940,7 @@ func _show_completion_message() -> void:
 	# Create completion label
 	var completion_label := Label.new()
 	completion_label.name = "CompletionLabel"
-	completion_label.text = "УРОВЕНЬ ПРОЙДЕН!"
+	completion_label.text = tr("TUTORIAL_LEVEL_COMPLETE")
 	completion_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	completion_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	completion_label.add_theme_font_size_override("font_size", 48)
@@ -1945,7 +1958,7 @@ func _show_completion_message() -> void:
 	# Create restart hint label
 	var restart_label := Label.new()
 	restart_label.name = "RestartHintLabel"
-	restart_label.text = "Нажми [Q] для быстрого перезапуска"
+	restart_label.text = tr("TUTORIAL_RESTART_HINT")
 	restart_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	restart_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	restart_label.add_theme_font_size_override("font_size", 24)

@@ -30,12 +30,11 @@ const MIN_EFFECT_SCALE: float = 0.2
 const MAX_EFFECT_SCALE: float = 2.0
 
 ## Maximum number of blood decals before oldest ones are removed.
-## Issue #1693: Capped at 200 to prevent unbounded node accumulation causing FPS drops.
-## At 15 decals/hit on a non-lethal shot with a shotgun, a 2-minute combat session was
-## accumulating 1200+ Sprite2D nodes, adding significant render overhead per frame.
-## 200 decals provide plenty of visible blood while keeping render cost bounded.
-## (Was 0 = unlimited per issue #293/#370, but the resulting 1215-node scenes caused ~5fps.)
-const MAX_BLOOD_DECALS: int = 200
+## Issue #1747: Set to 0 (unlimited) per owner request — blood puddles must never be deleted.
+## The previous cap of 200 (Issue #1693) caused visible puddles to disappear during combat.
+## Owner confirmed that accumulation is acceptable and puddles should persist indefinitely.
+## 0 = unlimited, no cleanup performed.
+const MAX_BLOOD_DECALS: int = 0
 
 ## Maximum distance to check for walls for blood splatters (in pixels).
 const WALL_SPLATTER_CHECK_DISTANCE: float = 100.0
@@ -733,15 +732,81 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 	# Track decal for cleanup
 	_blood_decals.append(decal)
 
-	# Remove oldest decals if limit exceeded (0 = unlimited, no cleanup)
+	# Remove oldest off-screen decals if limit exceeded (0 = unlimited, no cleanup).
+	# Issue #1747: prefer culling decals outside the player's viewport first.
 	if MAX_BLOOD_DECALS > 0:
 		while _blood_decals.size() > MAX_BLOOD_DECALS:
-			var oldest := _blood_decals.pop_front() as Node2D
-			if oldest and is_instance_valid(oldest):
-				oldest.queue_free()
+			_remove_oldest_offscreen_decal()
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Delayed blood decal spawned at ", landing_pos)
+
+
+## Removes one blood decal that is outside the player's viewport.
+## Issue #1747: Prefer culling off-screen decals so that decals visible to the
+## player are never removed first.  Only falls back to removing the oldest
+## on-screen decal when every tracked decal is currently inside a viewport
+## (e.g. very small map with camera covering the whole level).
+## Returns true if a decal was removed, false if the list is now empty.
+func _remove_oldest_offscreen_decal() -> bool:
+	# Build the visible world-space rectangle from the active Camera2D.
+	var viewport_rects: Array[Rect2] = []
+	var camera: Camera2D = null
+	var current_scene := get_tree().current_scene if get_tree() else null
+	if current_scene:
+		# Try the "camera" group first (fast path used by PlayerCamera and others).
+		var cameras := get_tree().get_nodes_in_group("camera") if get_tree() else []
+		if cameras.is_empty():
+			# Fallback: walk the scene tree to find any Camera2D.
+			cameras = []
+			_collect_cameras(current_scene, cameras)
+		for cam in cameras:
+			if cam is Camera2D and cam.enabled and is_instance_valid(cam):
+				camera = cam as Camera2D
+				break
+
+	if camera:
+		var viewport_size: Vector2 = camera.get_viewport_rect().size
+		var cam_center: Vector2 = camera.get_screen_center_position()
+		var half: Vector2 = viewport_size * 0.5
+		viewport_rects.append(Rect2(cam_center - half, viewport_size))
+
+	# Walk front-to-back to find the oldest off-screen decal.
+	for i in range(_blood_decals.size()):
+		var decal: Node2D = _blood_decals[i] as Node2D
+		if decal == null or not is_instance_valid(decal):
+			_blood_decals.remove_at(i)
+			return true
+		var on_screen := false
+		if viewport_rects.is_empty():
+			on_screen = false  # no camera info → treat as off-screen (safe to remove)
+		else:
+			for rect in viewport_rects:
+				if rect.has_point(decal.global_position):
+					on_screen = true
+					break
+		if not on_screen:
+			_blood_decals.remove_at(i)
+			decal.queue_free()
+			return true
+
+	# All decals are on-screen — fall back to removing the oldest one to honour the cap.
+	if _blood_decals.size() > 0:
+		var oldest := _blood_decals.pop_front() as Node2D
+		if oldest and is_instance_valid(oldest):
+			oldest.queue_free()
+		return true
+
+	return false
+
+
+## Recursively collects all Camera2D nodes under a parent node.
+func _collect_cameras(parent: Node, result: Array) -> void:
+	for child in parent.get_children():
+		if child is Camera2D:
+			result.append(child)
+		if child.get_child_count() > 0:
+			_collect_cameras(child, result)
 
 
 ## Clears all blood decals from the scene.
@@ -832,12 +897,11 @@ func _spawn_wall_blood_splatter(hit_position: Vector2, hit_direction: Vector2, i
 	# Track as blood decal for cleanup
 	_blood_decals.append(splatter)
 
-	# Remove oldest decals if limit exceeded (0 = unlimited, no cleanup)
+	# Remove oldest off-screen decals if limit exceeded (0 = unlimited, no cleanup).
+	# Issue #1747: prefer culling decals outside the player's viewport first.
 	if MAX_BLOOD_DECALS > 0:
 		while _blood_decals.size() > MAX_BLOOD_DECALS:
-			var oldest := _blood_decals.pop_front() as Node2D
-			if oldest and is_instance_valid(oldest):
-				oldest.queue_free()
+			_remove_oldest_offscreen_decal()
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Wall blood splatter spawned at ", wall_hit_pos)

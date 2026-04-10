@@ -121,7 +121,7 @@ const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254
 @onready var _hit_collision_shape: CollisionShape2D = $HitArea/HitCollisionShape  ## Collision on death
 @onready var _casing_pusher: Area2D = $CasingPusher  ## Casing pusher Area2D (Issue #438)
 var _original_hit_area_layer: int = 0  ## Original collision layer (restore on respawn)
-var _original_hit_area_mask: int = 0
+var _original_hit_area_mask: int = 0; var _original_body_collision_layer: int = 2  ## Original CharacterBody2D collision_layer (#1746)
 var _overlapping_casings: Array[RigidBody2D] = []  ## Casings in CasingPusher (Issue #438)
 var _walk_anim_time: float = 0.0  ## Walking animation accumulator
 var _is_walking: bool = false  ## Currently walking (for anim)
@@ -382,6 +382,7 @@ var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenad
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
+var _gunslinger_glow: GunslingerGlowComponent = null  ## Issue #1753: Gunslinger glow component, manages light and tint while cloaked.
 var _gas_mask_grenade: GasMaskGrenadeComponent = null; var _drone_operator: DroneOperatorComponent = null  ## Issues #1353, #1397
 var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
 var _tactical_group: TacticalGroupComponent = null  ## Issue #1287: Tactical group movement — enemies within 500 px spread around the player.
@@ -426,6 +427,7 @@ func _ready() -> void:
 	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
+	_original_body_collision_layer = collision_layer  # Issue #1746
 	if _hit_area:  # Store original collision layers for respawn
 		_original_hit_area_layer = _hit_area.collision_layer
 		_original_hit_area_mask = _hit_area.collision_mask
@@ -3872,6 +3874,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 		_revolver_cocking = false
 		if not is_inside_tree() or not is_instance_valid(self) or not _is_alive: return  # Issue #1334 Round 11: guard freed node after await
 	if _invisibility: _invisibility.reveal()  # Issue #1121: briefly reveal cloaked enemy when shooting
+	if _gunslinger_glow: _gunslinger_glow.show_glow()  # Issue #1753: show glow while visible
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
 	var weapon_forward := _get_weapon_forward_direction()
@@ -4284,25 +4287,13 @@ func _set_all_sprites_modulate(color: Color) -> void:
 
 
 ## Issue #1727: Apply bright warm tint and red PointLight2D glow in Gunslinger difficulty mode.
-## Issue #1732: Glow uses circular ImageTexture (like room lights), 2x energy/scale, round shape.
+## Issues #1732, #1753: Logic extracted to GunslingerGlowComponent (scripts/components/).
 func _apply_gunslinger_enemy_glow() -> void:
 	var dm: Node = get_node_or_null("/root/DifficultyManager")
 	if dm == null or not dm.has_method("should_apply_gunslinger_enemy_glow") or not dm.should_apply_gunslinger_enemy_glow():
 		return
-	var bc := Color(1.3, 1.15, 1.1, 1.0)  # bright warm tint
-	if _body_sprite: _body_sprite.modulate = bc
-	if _head_sprite: _head_sprite.modulate = bc
-	if _left_arm_sprite: _left_arm_sprite.modulate = bc
-	if _right_arm_sprite: _right_arm_sprite.modulate = bc
-	var gl := PointLight2D.new(); gl.name = "GunslingerEnemyGlow"; gl.color = Color(1.0, 0.1, 0.05, 1.0); gl.energy = 2.0; gl.texture_scale = 1.6; gl.shadow_enabled = false; gl.blend_mode = Light2D.BLEND_MODE_ADD
-	# Issue #1732: Build circular ImageTexture (pixel-distance falloff, like room lights) so glow is round, not square.
-	var _sz := 256; var _c := Vector2(_sz * 0.5, _sz * 0.5); var _r := _sz * 0.5; var _img := Image.create(_sz, _sz, false, Image.FORMAT_RGBA8)
-	for _y in range(_sz):
-		for _x in range(_sz):
-			var _b := pow(1.0 - clampf(Vector2(_x, _y).distance_to(_c) / _r, 0.0, 1.0), 2.0)
-			_img.set_pixel(_x, _y, Color(_b, _b, _b, 1.0))
-	gl.texture = ImageTexture.create_from_image(_img)
-	add_child(gl)
+	_gunslinger_glow = GunslingerGlowComponent.new(); _gunslinger_glow.name = "GunslingerGlowComponent"; add_child(_gunslinger_glow)
+	_gunslinger_glow.initialize(self, _body_sprite, _head_sprite, _left_arm_sprite, _right_arm_sprite, _invisibility)
 	_log_to_file("[Gunslinger] Enemy glow applied")
 
 ## Returns the current health as a percentage (0.0 to 1.0).
@@ -4491,15 +4482,13 @@ func _reset() -> void:
 	_enable_hit_area_collision()
 	_register_sound_listener()
 
-## Disables hit area collision so bullets pass through dead enemies (multiple approaches due to Godot Area2D limits).
+## Disables hit area collision so bullets/grenades pass through dead enemies (#1746: also clears CharacterBody2D collision_layer).
 func _disable_hit_area_collision() -> void:
-	if _hit_collision_shape:
-		_hit_collision_shape.set_deferred("disabled", true)
+	if _hit_collision_shape: _hit_collision_shape.set_deferred("disabled", true)
 	if _hit_area:
-		_hit_area.set_deferred("collision_layer", 0)
-		_hit_area.set_deferred("collision_mask", 0)
-		_hit_area.set_deferred("monitorable", false)
-		_hit_area.set_deferred("monitoring", false)
+		_hit_area.set_deferred("collision_layer", 0); _hit_area.set_deferred("collision_mask", 0)
+		_hit_area.set_deferred("monitorable", false); _hit_area.set_deferred("monitoring", false)
+	set_deferred("collision_layer", 0)  # Issue #1746: grenades pass through corpse
 
 ## Re-enables hit area collision after respawning (restores all collision properties).
 func _enable_hit_area_collision() -> void:
@@ -4507,6 +4496,7 @@ func _enable_hit_area_collision() -> void:
 	if _hit_area:
 		_hit_area.collision_layer = _original_hit_area_layer; _hit_area.collision_mask = _original_hit_area_mask
 		_hit_area.monitorable = true; _hit_area.monitoring = true
+	collision_layer = _original_body_collision_layer  # Issue #1746
 
 ## Returns whether this enemy is currently alive (used by bullets to check pass-through).
 func is_alive() -> bool:
@@ -4912,6 +4902,7 @@ func try_throw_grenade() -> bool:
 	return _execute_grenade_throw(tgt)
 func _execute_grenade_throw(tgt: Vector2) -> bool:  ## Issue #824: grenade throw callback.
 	_is_pre_attack_flashing = false; if _invisibility: _invisibility.reveal()  # Issue #1121: reveal on grenade throw
+	if _gunslinger_glow: _gunslinger_glow.show_glow()  # Issue #1753: show glow while visible
 	var result := _grenade_component.try_throw(tgt, _is_alive, _is_stunned, _is_blinded)
 	if result: grenade_thrown.emit(null, tgt)
 	return result
