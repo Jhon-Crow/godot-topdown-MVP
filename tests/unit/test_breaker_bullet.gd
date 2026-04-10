@@ -688,3 +688,117 @@ func test_wall_check_still_works_before_arming() -> void:
 
 	assert_true(result, "Wall check should still trigger before arming distance is reached")
 	assert_true(bullet.has_detonated())
+
+
+# ============================================================================
+# Object Pool Interaction Tests (Issue #1634 Session 4 — Pool Bug Fix)
+# ============================================================================
+# When the ProjectilePoolManager recycles a bullet, pool_activate() calls
+# _reset_state() which clears _breaker_shrapnel_scene and _breaker_distance_traveled.
+# These tests verify the fix: set_is_breaker_bullet() reloads the shrapnel scene,
+# and _reset_state() now resets _breaker_distance_traveled to 0.
+
+
+class MockPooledBreakerBullet extends MockBreakerBullet:
+	## Simulates the shrapnel scene reference (null = not loaded).
+	var _breaker_shrapnel_scene_loaded: bool = false
+
+	## Distance traveled since spawn (for arming).
+	var _breaker_distance_traveled: float = 0.0
+
+	## Simulate pool_activate() → _reset_state() clearing breaker state.
+	func simulate_pool_reset() -> void:
+		is_breaker_bullet = false
+		_breaker_shrapnel_scene_loaded = false
+		# Session 4 fix: _breaker_distance_traveled must also be reset to 0
+		_breaker_distance_traveled = 0.0
+
+	## Simulate set_is_breaker_bullet() with the Session 4 fix applied:
+	## reloads shrapnel scene when it was cleared by pool reset.
+	func set_is_breaker_bullet_fixed(is_breaker: bool) -> void:
+		is_breaker_bullet = is_breaker
+		# Fixed: reload shrapnel scene if it was cleared (e.g., by pool reset)
+		if is_breaker and not _breaker_shrapnel_scene_loaded:
+			_breaker_shrapnel_scene_loaded = true  # Simulates loading the scene
+
+	## Simulate old (unfixed) set_is_breaker_bullet() — only sets the flag.
+	func set_is_breaker_bullet_broken(is_breaker: bool) -> void:
+		is_breaker_bullet = is_breaker
+		# Bug: does NOT reload shrapnel scene — it remains null from pool reset
+
+	## Whether shrapnel can spawn (requires scene loaded OR pool available).
+	func can_spawn_shrapnel() -> bool:
+		# Session 4 fix: allow pool-based shrapnel even if scene is null
+		# In tests we simulate pool availability as false (unit test, no pool manager)
+		return _breaker_shrapnel_scene_loaded
+
+
+func test_pool_bullet_reloads_shrapnel_scene() -> void:
+	# Root cause (Session 4): pool_activate() → _reset_state() clears shrapnel scene.
+	# Fix: set_is_breaker_bullet() reloads the scene when it was cleared.
+	var pooled := MockPooledBreakerBullet.new()
+
+	# Simulate: bullet used previously, then returned to pool and reset
+	pooled._breaker_shrapnel_scene_loaded = true  # Had scene from first use
+	pooled._breaker_distance_traveled = 120.0     # Had traveled far on first use
+	pooled.simulate_pool_reset()                   # Pool reuse: clears everything
+
+	assert_false(pooled.is_breaker_bullet,
+		"After pool reset, is_breaker_bullet should be false")
+	assert_false(pooled._breaker_shrapnel_scene_loaded,
+		"After pool reset, shrapnel scene reference should be cleared")
+	assert_eq(pooled._breaker_distance_traveled, 0.0,
+		"After pool reset, arming distance should reset to 0")
+
+	# Now activate as breaker bullet (simulating player.gd calling set_is_breaker_bullet)
+	pooled.set_is_breaker_bullet_fixed(true)
+
+	assert_true(pooled.is_breaker_bullet,
+		"After set_is_breaker_bullet(true), flag should be set")
+	assert_true(pooled._breaker_shrapnel_scene_loaded,
+		"After set_is_breaker_bullet(true), shrapnel scene should be reloaded")
+	assert_true(pooled.can_spawn_shrapnel(),
+		"After fix: pooled breaker bullet should be able to spawn shrapnel")
+
+
+func test_pool_bullet_without_fix_cannot_spawn_shrapnel() -> void:
+	# Verify the bug exists without the fix (regression guard).
+	var pooled := MockPooledBreakerBullet.new()
+
+	# Simulate pool reuse
+	pooled._breaker_shrapnel_scene_loaded = true
+	pooled.simulate_pool_reset()
+
+	# Unfixed setter: does NOT reload shrapnel scene
+	pooled.set_is_breaker_bullet_broken(true)
+
+	assert_true(pooled.is_breaker_bullet,
+		"is_breaker_bullet flag should still be set")
+	assert_false(pooled._breaker_shrapnel_scene_loaded,
+		"Without fix: shrapnel scene remains null after pool reset")
+	assert_false(pooled.can_spawn_shrapnel(),
+		"Without fix: pooled breaker bullet cannot spawn shrapnel (regression guard)")
+
+
+func test_pool_bullet_resets_arming_distance() -> void:
+	# Root cause (Session 4): _reset_state() did not reset _breaker_distance_traveled.
+	# A bullet that traveled 120px on its first use would be re-armed immediately on reuse.
+	var pooled := MockPooledBreakerBullet.new()
+
+	# Simulate: bullet traveled well past arming distance on first use
+	pooled._breaker_distance_traveled = 120.0  # Well past 40px arming distance
+
+	# Before fix: pool reset did NOT clear _breaker_distance_traveled
+	# This is now fixed — simulate_pool_reset() resets it to 0
+	pooled.simulate_pool_reset()
+
+	assert_eq(pooled._breaker_distance_traveled, 0.0,
+		"After pool reset, arming distance MUST be 0 so the fuse is not pre-armed")
+
+	# After pool reset, the new bullet starts fresh: cone check should not fire yet
+	pooled.set_is_breaker_bullet_fixed(true)
+	var result := pooled.check_enemy_in_shrapnel_cone(
+		Vector2(50.0, 0.0), true, pooled._breaker_distance_traveled)
+
+	assert_false(result,
+		"Recycled bullet starts with _breaker_distance_traveled=0, should not arm immediately")

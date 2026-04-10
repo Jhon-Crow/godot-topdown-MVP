@@ -1350,8 +1350,13 @@ func set_stun_duration(duration: float) -> void:
 
 ## Sets whether this bullet uses breaker behavior.
 ## NOTE: Call this BEFORE AddChild() so _ready() loads the shrapnel scene.
+## When called on a pooled bullet (after pool_activate), also loads the shrapnel scene
+## because _ready() does not run again on reused pool bullets (Issue #1634).
 func set_is_breaker_bullet(is_breaker: bool) -> void:
 	is_breaker_bullet = is_breaker
+	if is_breaker and _breaker_shrapnel_scene == null:
+		if ResourceLoader.exists(BREAKER_SHRAPNEL_SCENE_PATH):
+			_breaker_shrapnel_scene = load(BREAKER_SHRAPNEL_SCENE_PATH)
 
 
 ## Sets whether this bullet ignores walls (Issue #751).
@@ -1813,9 +1818,14 @@ func _is_position_inside_wall(pos: Vector2) -> bool:
 ## Shrapnel count is capped for performance (Issue #678 optimization).
 ## Validates spawn positions to prevent shrapnel spawning behind walls (Issue #740).
 func _breaker_spawn_shrapnel(center: Vector2) -> void:
-	if _breaker_shrapnel_scene == null:
+	# Check if we have a scene OR a pool manager that can provide shrapnel.
+	# When a pooled bullet is reused as a breaker bullet, _reset_state() clears
+	# _breaker_shrapnel_scene. set_is_breaker_bullet() reloads it, but if that
+	# also fails, the pool manager is the last fallback (Issue #1634).
+	var pool_manager_available := get_node_or_null("/root/ProjectilePoolManager") != null
+	if _breaker_shrapnel_scene == null and not pool_manager_available:
 		if _debug_breaker:
-			FileLogger.info("[Bullet.Breaker] Cannot spawn shrapnel: scene is null")
+			FileLogger.info("[Bullet.Breaker] Cannot spawn shrapnel: scene is null and no pool manager")
 		return
 
 	# Check global concurrent shrapnel limit
@@ -2003,6 +2013,7 @@ func _reset_state() -> void:
 	# Reset breaker state
 	is_breaker_bullet = false
 	_breaker_shrapnel_scene = null
+	_breaker_distance_traveled = 0.0
 
 	# Reset stun
 	stun_duration = 0.0

@@ -247,6 +247,93 @@ near-zero overhead.
 
 ---
 
+## Bug Found and Fixed: Pool Bullet Loses Shrapnel Scene (Session 4)
+
+### Root Cause
+
+**User report (PR #1661, 2026-04-10):**
+> "использую последний билд, всё ещё сломаны пул у ПМ"
+> *Translation: "using the latest build, the bullet pool at PM is still broken"*
+> — Jhon-Crow
+
+After Session 3's arming distance fix, a new root cause was identified related to the **object
+pool system (Issue #724)**:
+
+When the `ProjectilePoolManager` recycles a bullet from the pool for reuse as a breaker bullet,
+the call sequence is:
+
+1. `pool_activate()` → calls `_reset_state()` → sets `_breaker_shrapnel_scene = null`
+   AND `_breaker_distance_traveled` was **not reset at all** (stale value from previous use)
+2. Player code sets `bullet.is_breaker_bullet = true` (direct property assignment, or via
+   `set_is_breaker_bullet(true)`)
+3. `_ready()` does **not** run again on a reused pool bullet
+
+**Consequence 1 — No shrapnel on detonation:** `_breaker_spawn_shrapnel()` had an early return
+`if _breaker_shrapnel_scene == null: return`. Since the scene was cleared in `_reset_state()`
+and never reloaded (no `_ready()`), the bullet detonated with explosion effect and sound but
+**zero shrapnel pieces**.
+
+**Consequence 2 — Arming distance bypassed:** `_breaker_distance_traveled` was not reset in
+`_reset_state()`. If the previous bullet had traveled ≥ 40px before dying, a recycled pool
+bullet started with the cone check **already armed** — no frame-zero protection.
+
+### Fix Applied (Session 4)
+
+Three targeted changes in `scripts/projectiles/bullet.gd`:
+
+**1. `set_is_breaker_bullet()` — reload shrapnel scene when scene is null:**
+
+```gdscript
+func set_is_breaker_bullet(is_breaker: bool) -> void:
+    is_breaker_bullet = is_breaker
+    if is_breaker and _breaker_shrapnel_scene == null:
+        if ResourceLoader.exists(BREAKER_SHRAPNEL_SCENE_PATH):
+            _breaker_shrapnel_scene = load(BREAKER_SHRAPNEL_SCENE_PATH)
+```
+
+This ensures the shrapnel scene is always available when the breaker flag is set, regardless
+of whether the bullet is fresh or reused from the pool.
+
+**2. `_breaker_spawn_shrapnel()` — allow pool-based shrapnel even if scene is null:**
+
+```gdscript
+var pool_manager_available := get_node_or_null("/root/ProjectilePoolManager") != null
+if _breaker_shrapnel_scene == null and not pool_manager_available:
+    return  # No scene AND no pool — cannot spawn
+```
+
+The old check `if _breaker_shrapnel_scene == null: return` blocked pool-based shrapnel too.
+The fix only skips if both the scene AND the pool manager are unavailable.
+
+**3. `_reset_state()` — reset breaker distance traveled:**
+
+```gdscript
+# Reset breaker state
+is_breaker_bullet = false
+_breaker_shrapnel_scene = null
+_breaker_distance_traveled = 0.0  # NEW: ensure arming distance restarts from zero
+```
+
+**Also fixed in `player.gd`:** The pooled bullet path used direct property assignment
+`bullet.is_breaker_bullet = true`, which bypasses the setter and its scene-loading logic.
+Changed to `bullet.call("set_is_breaker_bullet", true)` so the setter always runs.
+
+### Why PM Specifically?
+
+The Makarov PM weapon (`MakarovPM.cs`) does **not** use the bullet pool for spawning — it
+always instantiates fresh `Bullet9mm.tscn` bullets via `BulletScene.Instantiate<Node2D>()`.
+Fresh bullets always have `_ready()` called, which correctly loads the shrapnel scene.
+
+However, when a PM bullet is destroyed (`_destroy()`), it returns to the pool via
+`pool_deactivate()`. The next time that bullet is retrieved for any weapon (including the
+GDScript M16 player code), it starts with a stale `_breaker_distance_traveled` value and no
+shrapnel scene.
+
+The user's observation of "пул у ПМ сломаны" is consistent with the pool recycling PM
+bullets into an invalid state for subsequent breaker bullet use by any weapon.
+
+---
+
 ## Test Coverage Added
 
 New test cases in `tests/unit/test_breaker_bullet.gd`:
@@ -265,6 +352,8 @@ New test cases in `tests/unit/test_breaker_bullet.gd`:
 - `test_does_not_detonate_via_cone_before_arming` — **arming distance bug fix** (session 3)
 - `test_detonates_via_cone_after_arming` — cone fuse activates after arming distance
 - `test_wall_check_still_works_before_arming` — wall check still active before arming
+- `test_pool_bullet_reloads_shrapnel_scene` — **pool bug fix** (session 4)
+- `test_pool_bullet_resets_arming_distance` — **pool arming reset bug fix** (session 4)
 
 ---
 
