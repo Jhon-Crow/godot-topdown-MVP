@@ -36,7 +36,10 @@ class MockActiveItemManager:
 		DRILLING_BULLETS = 15,
 		RECOIL_COMPENSATOR = 16,
 		COMBAT_DISPOSITION = 17,
-		EXPERIMENTAL_SAMPLE = 18
+		EXPERIMENTAL_SAMPLE = 18,
+		FINE_MOTOR_SKILLS = 19,
+		DASH = 20,
+		GRENADE_BAG = 21
 	}
 
 	## Currently selected active item type
@@ -67,7 +70,10 @@ class MockActiveItemManager:
 		},
 		16: {"name": "Recoil Compensator", "icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png", "description": "Recoil compensator."},
 		17: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive."},
-		18: {"name": "Experimental Sample", "icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png", "description": "Experimental Sample."}
+		18: {"name": "Experimental Sample", "icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png", "description": "Experimental Sample."},
+		19: {"name": "Fine Motor Skills", "icon_path": "res://assets/sprites/weapons/fine_motor_skills_icon.png", "description": "Fine Motor Skills — press Space to instantly reload weapon.", "activation_hint": "Press Space to reload"},
+		20: {"name": "Dash", "icon_path": "res://assets/sprites/weapons/dash_icon.png", "description": "Dash — press Space to dash in movement direction.", "activation_hint": "Press Space to dash"},
+		21: {"name": "Grenade Bag", "icon_path": "res://assets/sprites/weapons/grenade_bag_icon.png", "description": "Grenade Bag — passive: increases starting grenade count."}
 	}
 
 	## Check if drilling bullets are currently equipped (Issue #751)

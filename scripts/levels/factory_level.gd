@@ -159,17 +159,31 @@ func _setup_navigation() -> void:
 	nav_region.emit_signal("bake_finished")
 
 
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## FactoryLevel map: 2528x2128 px playfield framed by 32 px walls.
+##   WallTop    (1264,   48), h=16  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (1264, 2080), h=16  → top edge   y=2064  → limit_bottom = 2064
+##   WallLeft   (  48, 1064), w=16  → right edge x=64    → limit_left   = 64
+##   WallRight  (2480, 1064), w=16  → left edge  x=2464  → limit_right  = 2464
 func _configure_camera() -> void:
 	if _player == null:
 		return
 	var camera: Camera2D = _player.get_node_or_null("Camera2D")
 	if camera == null:
+		push_warning("[FactoryLevel] Camera2D not found on player — cannot set camera limits")
 		return
-	camera.limit_left = -10000000
-	camera.limit_top = -10000000
-	camera.limit_right = 10000000
-	camera.limit_bottom = 10000000
-	print("Camera configured: limits removed")
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 2064   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 2464   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	print("[FactoryLevel] Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
 
 
 func _setup_player_tracking() -> void:
@@ -909,6 +923,12 @@ func _on_armory_button_pressed() -> void:
 			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
 				_remove_armory_button_gold_style()
 		)
+		armory_menu.apply_pressed_from_score_screen.connect(func():
+			# Issue #1690: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
 	else:
 		_log_to_file("ERROR: Could not load armory menu scene")
 
@@ -1084,8 +1104,13 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 	if weapon.name != "SilencedPistol":
 		return
 	if weapon.has_method("ConfigureAmmoForEnemyCount"):
-		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
-		_log_to_file("Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+		var enemy_count: int = _initial_enemy_count
+		var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+		if ammo_multiplier > 1:
+			enemy_count *= ammo_multiplier
+			_log_to_file("Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by %dx" % ammo_multiplier)
+		weapon.ConfigureAmmoForEnemyCount(enemy_count)
+		_log_to_file("Configured silenced pistol ammo for %d enemies" % enemy_count)
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
@@ -1103,6 +1128,10 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 	if weapon.get("StartingMagazineCount") != null:
 		starting_magazines = weapon.StartingMagazineCount
 	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+	if ammo_multiplier > 1:
+		pm_magazines *= ammo_multiplier
+		_log_to_file("Gunslinger/PowerFantasy mode: MakarovPM magazines multiplied by %dx" % ammo_multiplier)
 	if weapon.has_method("ReinitializeMagazines"):
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])

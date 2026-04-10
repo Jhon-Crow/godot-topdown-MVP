@@ -62,6 +62,19 @@ var _level_completed: bool = false
 ## Weapon hints component instance (Issue #809).
 var _weapon_hints_component: Node = null
 
+## Castle-specific rank thresholds (Issue #1757).
+## Shifted one step down from the default so that the score for a skilled run gives B.
+## S=70% (was A), A+=55% (was B), A=38% (was C), B=22% (was D), C=12%, D=6%, F=0%.
+const CASTLE_RANK_THRESHOLDS: Dictionary = {
+	"S": 0.70,
+	"A+": 0.55,
+	"A": 0.38,
+	"B": 0.22,
+	"C": 0.12,
+	"D": 0.06,
+	"F": 0.0
+}
+
 
 func _ready() -> void:
 	print("CastleLevel loaded - Medieval Fortress Assault")
@@ -114,6 +127,11 @@ func _initialize_score_manager() -> void:
 
 	# Start tracking for this level
 	score_manager.start_level(_initial_enemy_count)
+
+	# Apply Castle-specific rank thresholds (Issue #1757):
+	# the score that used to give A now gives S, all other ranks shift accordingly.
+	if score_manager.has_method("set_rank_thresholds"):
+		score_manager.set_rank_thresholds(CASTLE_RANK_THRESHOLDS)
 
 	# Set player reference
 	if _player:
@@ -255,23 +273,33 @@ func _setup_navigation() -> void:
 
 ## Configure the player's camera to follow without limits.
 ## This ensures the camera follows the player everywhere on this large map.
+## Clamps the camera so the outer boundary walls are never visible (Issue #1682).
+##
+## CastleLevel map: ~6000x2560 px playfield bounded by 200 px thick boundary walls.
+##   BoundaryTop    (3000, -100), h=100  → bottom edge y=0    → limit_top    = 0
+##   BoundaryBottom (3000, 2660), h=100  → top edge   y=2560  → limit_bottom = 2560
+##   BoundaryLeft   ( 100, 1280), w=300  → right edge x=400   → limit_left   = 400
+##   BoundaryRight  (5900, 1280), w=300  → left edge  x=5600  → limit_right  = 5600
 func _configure_camera() -> void:
 	if _player == null:
 		return
 
 	var camera: Camera2D = _player.get_node_or_null("Camera2D")
 	if camera == null:
+		push_warning("[CastleLevel] Camera2D not found on player — cannot set camera limits")
 		return
 
-	# Remove all camera limits so it follows the player everywhere
-	# This is important for large maps like the Castle where the map extends
-	# beyond the default camera limits set in Player.tscn
-	camera.limit_left = -10000000
-	camera.limit_top = -10000000
-	camera.limit_right = 10000000
-	camera.limit_bottom = 10000000
-
-	print("Camera configured: limits removed to follow player everywhere")
+	const LIMIT_TOP: int    =    0   # BoundaryTop bottom edge
+	const LIMIT_BOTTOM: int = 2560   # BoundaryBottom top edge
+	const LIMIT_LEFT: int   =  400   # BoundaryLeft right edge
+	const LIMIT_RIGHT: int  = 5600   # BoundaryRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	print("[CastleLevel] Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
 
 
 ## Setup realistic visibility for the player (Issue #540).
@@ -446,8 +474,13 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		return
 
 	if weapon.has_method("ConfigureAmmoForEnemyCount"):
-		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
-		print("[CastleLevel] Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+		var enemy_count: int = _initial_enemy_count
+		var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+		if ammo_multiplier > 1:
+			enemy_count *= ammo_multiplier
+			print("[CastleLevel] Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by %dx" % ammo_multiplier)
+		weapon.ConfigureAmmoForEnemyCount(enemy_count)
+		print("[CastleLevel] Configured silenced pistol ammo for %d enemies" % enemy_count)
 
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
@@ -502,6 +535,10 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		starting_magazines = weapon.StartingMagazineCount
 
 	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+	if ammo_multiplier > 1:
+		pm_magazines *= ammo_multiplier
+		print("[CastleLevel] Gunslinger/PowerFantasy mode: MakarovPM magazines multiplied by %dx" % ammo_multiplier)
 
 	if weapon.has_method("ReinitializeMagazines"):
 		weapon.ReinitializeMagazines(pm_magazines, true)

@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=3 uid="uid://railway_station_level_1463"]
+[gd_scene load_steps=31 format=3 uid="uid://railway_station_level_1463"]
 
 [ext_resource type="Script" path="res://scripts/levels/railway_station_level.gd" id="1_railway_station"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -17,6 +17,9 @@ size = Vector2(50, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_exit_gap2_wall"]
 size = Vector2(300, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_top_right"]
+size = Vector2(386, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_top_left"]
 size = Vector2(4064, 32)
@@ -61,6 +64,16 @@ source_geometry_mode = 0
 source_geometry_group_name = &"navigation_source"
 agent_radius = 24.0
 
+[sub_resource type="Gradient" id="Gradient_lantern_warm"]
+offsets = PackedFloat32Array(0.0, 0.15, 0.4, 0.75, 1.0)
+colors = PackedColorArray(1.0, 0.9, 0.5, 1.0, 1.0, 0.85, 0.4, 0.8, 1.0, 0.75, 0.2, 0.4, 1.0, 0.65, 0.1, 0.1, 1.0, 0.55, 0.05, 0.0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_lantern_warm"]
+gradient = SubResource("Gradient_lantern_warm")
+width = 256
+height = 256
+fill = 1
+
 [node name="RailwayStationLevel" type="Node2D"]
 script = ExtResource("1_railway_station")
 
@@ -97,6 +110,23 @@ offset_top = 3280.0
 offset_right = 3220.0
 offset_bottom = 3310.0
 color = Color(0.25, 0.2, 0.16, 1)
+
+; Porch floor — lighter strip to show passable entrance area (issue #1724)
+; distinct from platform and building, no collision object at this y range
+[node name="StationPorchFloor" type="ColorRect" parent="Environment"]
+offset_left = 800.0
+offset_top = 3300.0
+offset_right = 3200.0
+offset_bottom = 3320.0
+color = Color(0.48, 0.42, 0.36, 1)
+
+; Porch step edge line
+[node name="StationPorchEdge" type="ColorRect" parent="Environment"]
+offset_left = 800.0
+offset_top = 3298.0
+offset_right = 3200.0
+offset_bottom = 3302.0
+color = Color(0.6, 0.55, 0.45, 1)
 
 ; Station door markings
 [node name="StationDoor1" type="ColorRect" parent="Environment"]
@@ -1212,6 +1242,17 @@ collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallExitGap2"]
 shape = SubResource("RectangleShape2D_exit_gap2_wall")
+
+; Invisible wall closing the upper-right corner passage (Issue #1686).
+; Embankment4 ends at x=3550 (position 3200 + half-width 350); WallRight is at x=3936.
+; Without this wall the player can walk north past x=3550 into empty space.
+[node name="WallTopRight" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(3743, 900)
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTopRight"]
+shape = SubResource("RectangleShape2D_wall_top_right")
 
 [node name="WallBottom" type="StaticBody2D" parent="Environment/Walls"]
 position = Vector2(2000, 3952)
@@ -2646,6 +2687,7 @@ color = Color(0.35, 0.3, 0.25, 1)
 shape = SubResource("RectangleShape2D_bench")
 
 ; Platform pillars (support columns along platform edge)
+; darkened color for visual readability as obstacles (issue #1724)
 [node name="Pillar1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(600, 2980)
 collision_layer = 4
@@ -2656,7 +2698,7 @@ offset_left = -15.0
 offset_top = -15.0
 offset_right = 15.0
 offset_bottom = 15.0
-color = Color(0.5, 0.48, 0.45, 1)
+color = Color(0.22, 0.20, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Pillar1"]
 shape = SubResource("RectangleShape2D_pillar")
@@ -2674,7 +2716,7 @@ offset_left = -15.0
 offset_top = -15.0
 offset_right = 15.0
 offset_bottom = 15.0
-color = Color(0.5, 0.48, 0.45, 1)
+color = Color(0.22, 0.20, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Pillar2"]
 shape = SubResource("RectangleShape2D_pillar")
@@ -2692,7 +2734,7 @@ offset_left = -15.0
 offset_top = -15.0
 offset_right = 15.0
 offset_bottom = 15.0
-color = Color(0.5, 0.48, 0.45, 1)
+color = Color(0.22, 0.20, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Pillar3"]
 shape = SubResource("RectangleShape2D_pillar")
@@ -2710,7 +2752,7 @@ offset_left = -15.0
 offset_top = -15.0
 offset_right = 15.0
 offset_bottom = 15.0
-color = Color(0.5, 0.48, 0.45, 1)
+color = Color(0.22, 0.20, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Pillar4"]
 shape = SubResource("RectangleShape2D_pillar")
@@ -2728,7 +2770,7 @@ offset_left = -15.0
 offset_top = -15.0
 offset_right = 15.0
 offset_bottom = 15.0
-color = Color(0.5, 0.48, 0.45, 1)
+color = Color(0.22, 0.20, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Pillar5"]
 shape = SubResource("RectangleShape2D_pillar")
@@ -2771,6 +2813,47 @@ offset_top = 2970.0
 offset_right = 3012.0
 offset_bottom = 2994.0
 color = Color(0.65, 0.6, 0.2, 0.8)
+
+; Platform lantern lights (PointLight2D on each lamp post — issue #1724)
+[node name="LanternLight1" type="PointLight2D" parent="Environment/Cover"]
+position = Vector2(600, 2982)
+color = Color(1.0, 0.9, 0.5, 1)
+energy = 1.2
+texture = SubResource("GradientTexture2D_lantern_warm")
+texture_scale = 3.5
+shadow_enabled = true
+
+[node name="LanternLight2" type="PointLight2D" parent="Environment/Cover"]
+position = Vector2(1200, 2982)
+color = Color(1.0, 0.9, 0.5, 1)
+energy = 1.2
+texture = SubResource("GradientTexture2D_lantern_warm")
+texture_scale = 3.5
+shadow_enabled = true
+
+[node name="LanternLight3" type="PointLight2D" parent="Environment/Cover"]
+position = Vector2(1800, 2982)
+color = Color(1.0, 0.9, 0.5, 1)
+energy = 1.2
+texture = SubResource("GradientTexture2D_lantern_warm")
+texture_scale = 3.5
+shadow_enabled = true
+
+[node name="LanternLight4" type="PointLight2D" parent="Environment/Cover"]
+position = Vector2(2400, 2982)
+color = Color(1.0, 0.9, 0.5, 1)
+energy = 1.2
+texture = SubResource("GradientTexture2D_lantern_warm")
+texture_scale = 3.5
+shadow_enabled = true
+
+[node name="LanternLight5" type="PointLight2D" parent="Environment/Cover"]
+position = Vector2(3000, 2982)
+color = Color(1.0, 0.9, 0.5, 1)
+energy = 1.2
+texture = SubResource("GradientTexture2D_lantern_warm")
+texture_scale = 3.5
+shadow_enabled = true
 
 ; Signal lights near tracks (small red/green rectangles)
 [node name="Signal1" type="ColorRect" parent="Environment/Cover"]
@@ -2882,19 +2965,21 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-; === GAS MASK ENEMY NEAR PLAYER SPAWN (player spawn at x=2000, y=3100) ===
+; === GAS MASK ENEMY BEHIND LEFT COVER (PlatformBench1 at x=900, y=3100) ===
+; moved behind left platform bench so enemy is not immediately visible to player (issue #1724)
 [node name="Spawn_GasMaskEnemy" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(2000, 2900)
+position = Vector2(900, 3075)
 behavior_mode = 1
 is_gas_mask = true
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-; === TELEPORTER ENEMIES ON PLATFORM (player spawn at x=2000, y=3100) ===
-; 3 enemies left of player spawn
+; === TELEPORTER ENEMIES BESIDE STATION BUILDING (player spawn at x=2000, y=3100) ===
+; building spans x=800..3200, y=3300..3700 — teleporters are to the left and right of the building
+; 3 enemies left of building
 [node name="Platform_TeleporterLeft1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(600, 3100)
+position = Vector2(200, 3500)
 behavior_mode = 1
 is_teleporter = true
 destroy_on_death = true
@@ -2902,7 +2987,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="Platform_TeleporterLeft2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(1000, 3100)
+position = Vector2(400, 3500)
 behavior_mode = 1
 is_teleporter = true
 destroy_on_death = true
@@ -2910,16 +2995,16 @@ enable_flanking = true
 enable_cover = true
 
 [node name="Platform_TeleporterLeft3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(1400, 3100)
+position = Vector2(600, 3500)
 behavior_mode = 1
 is_teleporter = true
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-; 3 enemies right of player spawn
+; 3 enemies right of building
 [node name="Platform_TeleporterRight1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(2600, 3100)
+position = Vector2(3400, 3500)
 behavior_mode = 1
 is_teleporter = true
 destroy_on_death = true
@@ -2927,7 +3012,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="Platform_TeleporterRight2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(3000, 3100)
+position = Vector2(3600, 3500)
 behavior_mode = 1
 is_teleporter = true
 destroy_on_death = true
@@ -2935,7 +3020,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="Platform_TeleporterRight3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(3400, 3100)
+position = Vector2(3800, 3500)
 behavior_mode = 1
 is_teleporter = true
 destroy_on_death = true

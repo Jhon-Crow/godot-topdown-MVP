@@ -203,6 +203,9 @@ var _shine_overlays: Dictionary = {}
 ## Dictionary: button -> ColorRect
 var _accordion_shine_overlays: Dictionary = {}
 
+## Silver shine overlay shown on the Apply button when there are pending (unapplied) changes (Issue #1762).
+var _apply_button_shine_overlay: ColorRect = null
+
 ## Tracks unlock-progress bar ColorRect nodes added to locked slots with quantitative conditions.
 ## Dictionary: slot -> ColorRect (Issue #1591)
 var _unlock_progress_bars: Dictionary = {}
@@ -1221,9 +1224,50 @@ func _has_pending_changes() -> bool:
 
 
 ## Update the Apply button enabled state.
+## When there are pending changes, enables the button and adds a silver shine overlay (Issue #1762).
+## When there are no pending changes, disables the button and removes the shine overlay.
 func _update_apply_button_state() -> void:
 	if _apply_button:
-		_apply_button.disabled = not _has_pending_changes()
+		var has_changes: bool = _has_pending_changes()
+		_apply_button.disabled = not has_changes
+		if has_changes:
+			_add_apply_button_silver_shine()
+		else:
+			_remove_apply_button_silver_shine()
+
+
+## Add an animated silver shine overlay to the Apply button (Issue #1762).
+## Uses the same gold_shine.gdshader as condition-met slots, but with silver colors
+## overlaid on top of the existing green button background.
+func _add_apply_button_silver_shine() -> void:
+	if not _apply_button:
+		return
+	# Already showing — don't duplicate.
+	if is_instance_valid(_apply_button_shine_overlay):
+		return
+	var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+	if shine_shader:
+		var mat := ShaderMaterial.new()
+		mat.shader = shine_shader
+		mat.set_shader_parameter("horizontal_sweep", true)
+		mat.set_shader_parameter("cycle_duration", 2.0)
+		# Silver palette: bright white-grey sweep + slightly warm silver burst.
+		mat.set_shader_parameter("sweep_color", Color(0.85, 0.90, 0.95, 1.0))
+		mat.set_shader_parameter("burst_color", Color(0.75, 0.80, 0.88, 1.0))
+		var overlay := ColorRect.new()
+		overlay.name = "SilverShineOverlay"
+		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.material = mat
+		_apply_button.add_child(overlay)
+		_apply_button_shine_overlay = overlay
+
+
+## Remove the silver shine overlay from the Apply button (Issue #1762).
+func _remove_apply_button_silver_shine() -> void:
+	if is_instance_valid(_apply_button_shine_overlay):
+		_apply_button_shine_overlay.queue_free()
+	_apply_button_shine_overlay = null
 
 
 ## Apply the pending selection: update GameManager/GrenadeManager/ActiveItemManager and restart.
@@ -1370,10 +1414,16 @@ func _update_weapon_stats() -> void:
 		var fire_mode: String = "Auto" if resource.get("IsAutomatic") else "Semi-Auto"
 		bbcode += "[color=#aab0b8]Fire Mode:[/color] %s\n" % fire_mode
 
-		# Caliber
-		var caliber = resource.get("Caliber")
-		if caliber:
-			bbcode += "[color=#aab0b8]Caliber:[/color] %s\n" % caliber.caliber_name
+		# Caliber — use CaliberName mirror property (Issue #1708)
+		# WeaponData.Caliber is a C#-backed resource; GDScript dot-access on nested
+		# GDScript properties of C#-owned resources returns null due to Godot interop
+		# (see godotengine/godot#67167). CaliberName mirrors CaliberData.caliber_name
+		# directly on WeaponData to avoid the interop issue.
+		var caliber_name: String = resource.get("CaliberName")
+		FileLogger.info("[ArmoryMenu] weapon=%s caliber_name=%s" % [
+			_pending_weapon_id, caliber_name])
+		if caliber_name != "":
+			bbcode += "[color=#aab0b8]Caliber:[/color] %s\n" % caliber_name
 
 		# Damage & Fire rate
 		var damage: float = resource.get("Damage")
@@ -1411,17 +1461,16 @@ func _update_weapon_stats() -> void:
 			loudness_text = "[color=#ef5350]%.0fpx[/color]" % loudness
 		bbcode += "[color=#aab0b8]Loudness:[/color] %s\n" % loudness_text
 
-		# Caliber properties (ricochet / penetration)
-		if caliber:
-			var features: Array[String] = []
-			if caliber.can_ricochet:
-				features.append("Ricochet")
-			if caliber.can_penetrate:
-				features.append("Wall Pen. (%dpx)" % int(caliber.max_penetration_distance))
-			if features.size() > 0:
-				bbcode += "[color=#aab0b8]Ballistics:[/color] %s" % ", ".join(features)
-			else:
-				bbcode += "[color=#aab0b8]Ballistics:[/color] Standard"
+		# Caliber properties (ricochet / penetration) — use mirror properties (Issue #1708)
+		var features: Array[String] = []
+		if resource.get("CaliberCanRicochet"):
+			features.append("Ricochet")
+		if resource.get("CaliberCanPenetrate"):
+			features.append("Wall Pen. (%dpx)" % int(resource.get("CaliberMaxPenetrationDistance")))
+		if features.size() > 0:
+			bbcode += "[color=#aab0b8]Ballistics:[/color] %s" % ", ".join(features)
+		else:
+			bbcode += "[color=#aab0b8]Ballistics:[/color] Standard"
 	else:
 		bbcode += "[color=#888888]%s[/color]" % weapon_info.get("description", "No data available")
 

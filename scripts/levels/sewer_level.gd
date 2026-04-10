@@ -269,7 +269,12 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 	if weapon.name != "SilencedPistol":
 		return
 	if weapon.has_method("ConfigureAmmoForEnemyCount"):
-		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
+		var enemy_count: int = _initial_enemy_count
+		var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+		if ammo_multiplier > 1:
+			enemy_count *= ammo_multiplier
+			_log_to_file("Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by %dx" % ammo_multiplier)
+		weapon.ConfigureAmmoForEnemyCount(enemy_count)
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
@@ -284,6 +289,10 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 	if weapon.get("StartingMagazineCount") != null:
 		starting_magazines = weapon.StartingMagazineCount
 	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+	if ammo_multiplier > 1:
+		pm_magazines *= ammo_multiplier
+		_log_to_file("Gunslinger/PowerFantasy mode: MakarovPM magazines multiplied by %dx" % ammo_multiplier)
 	if weapon.has_method("ReinitializeMagazines"):
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
@@ -920,6 +929,12 @@ func _on_armory_button_pressed() -> void:
 		armory_menu.back_pressed.connect(func():
 			armory_menu.queue_free()
 			# Issue #1582: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
+		armory_menu.apply_pressed_from_score_screen.connect(func():
+			# Issue #1690: Remove gold highlight from armory button if all available items have been opened
 			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
 			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
 				_remove_armory_button_gold_style()

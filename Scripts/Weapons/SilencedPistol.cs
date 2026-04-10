@@ -145,6 +145,18 @@ public partial class SilencedPistol : BaseWeapon
             GD.Print("[SilencedPistol] No PistolSprite node (visual model not yet added)");
         }
 
+        // Issue #1727: Gunslinger mode disables laser sight unless Laser Sight item is equipped
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null)
+        {
+            var shouldDisableLaser = difficultyManager.Call("should_disable_laser_sight");
+            if (shouldDisableLaser.AsBool())
+            {
+                LaserSightEnabled = false;
+                GD.Print("[SilencedPistol] Gunslinger mode: laser sight disabled");
+            }
+        }
+
         // Check for Laser Sight active item - overrides color to purple regardless of difficulty (Issue #947)
         var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
         if (activeItemManager != null)
@@ -152,6 +164,7 @@ public partial class SilencedPistol : BaseWeapon
             var shouldForceLaser = activeItemManager.Call("should_force_laser_sight");
             if (shouldForceLaser.AsBool())
             {
+                LaserSightEnabled = true;  // Laser Sight item overrides Gunslinger disable
                 var purpleColorVariant = activeItemManager.Call("get_laser_sight_color");
                 LaserSightColor = purpleColorVariant.AsColor();
                 GD.Print($"[SilencedPistol] Laser Sight active item: laser color set to purple {LaserSightColor}");

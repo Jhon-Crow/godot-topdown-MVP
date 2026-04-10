@@ -17,6 +17,7 @@ signal back_pressed
 ## Reference to UI elements.
 @onready var night_mode_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NightModeContainer/NightModeCheckbox
 @onready var power_fantasy_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/PowerFantasyButton
+@onready var gunslinger_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/GunslingerButton
 @onready var easy_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/EasyButton
 @onready var normal_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NormalButton
 @onready var hard_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/HardButton
@@ -58,6 +59,7 @@ func _ready() -> void:
 	# Connect button signals
 	night_mode_checkbox.toggled.connect(_on_night_mode_toggled)
 	power_fantasy_button.pressed.connect(_on_power_fantasy_pressed)
+	gunslinger_button.pressed.connect(_on_gunslinger_pressed)
 	easy_button.pressed.connect(_on_easy_pressed)
 	normal_button.pressed.connect(_on_normal_pressed)
 	hard_button.pressed.connect(_on_hard_pressed)
@@ -91,9 +93,11 @@ func _update_button_states() -> void:
 	var is_hard: bool = difficulty_manager.is_hard_mode()
 	var is_power_fantasy: bool = difficulty_manager.is_power_fantasy_mode()
 	var is_black_metal: bool = difficulty_manager.is_black_metal_mode()
+	var is_gunslinger: bool = difficulty_manager.is_gunslinger_mode()
 
 	# Highlight current difficulty - disable the selected button
 	power_fantasy_button.disabled = is_power_fantasy
+	gunslinger_button.disabled = is_gunslinger
 	easy_button.disabled = is_easy
 	normal_button.disabled = is_normal
 	hard_button.disabled = is_hard
@@ -102,6 +106,7 @@ func _update_button_states() -> void:
 	# Update button text to show selection
 	# Power Fantasy uses gradient text via RichTextLabel (Issue #1014)
 	_update_power_fantasy_text(is_power_fantasy)
+	gunslinger_button.text = "Gunslinger (Selected)" if is_gunslinger else "Gunslinger"
 	easy_button.text = "Easy (Selected)" if is_easy else "Easy"
 	normal_button.text = "Normal (Selected)" if is_normal else "Normal"
 	hard_button.text = "Hard (Selected)" if is_hard else "Hard"
@@ -118,6 +123,8 @@ func _update_button_states() -> void:
 	var status_text: String = ""
 	if is_power_fantasy:
 		status_text = "Power Fantasy: 10 HP, 3x ammo, blue lasers"
+	elif is_gunslinger:
+		status_text = "Gunslinger: 2x less HP, 4x ammo, no laser sights"
 	elif is_easy:
 		status_text = "Easy mode: Enemies react slower"
 	elif is_hard:
@@ -144,6 +151,14 @@ func _on_power_fantasy_pressed() -> void:
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.POWER_FANTASY)
+	_update_button_states()
+	_restart_if_in_game()
+
+
+func _on_gunslinger_pressed() -> void:
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager:
+		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.GUNSLINGER)
 	_update_button_states()
 	_restart_if_in_game()
 

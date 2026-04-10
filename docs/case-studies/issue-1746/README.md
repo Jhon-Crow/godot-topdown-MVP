@@ -1,0 +1,369 @@
+# Case Study: Issue #1746 — Enemy Collision Blocks Projectiles After Death
+
+## Summary
+
+After an enemy is killed, its collision area remains active for a short time, blocking
+projectiles that are fired at or through the position where the enemy died. This causes
+bullets to be consumed by the dead enemy body, wasting ammunition and disrupting combat
+flow.
+
+Issue text (original, Russian): *«сейчас после смерти враг его колизия некоторое время
+блокирует заряды»*  
+Translation: *"currently after death the enemy's collision blocks projectiles for some time"*
+
+---
+
+## Relationship to Issue #1413
+
+Issue #1413 addressed a specific variant of this problem: **ragdoll body parts** (created
+during death animation) blocking bullets because `RigidBody2D` nodes have no `is_alive()`
+method. That fix added the `dead_enemy_ragdoll` group check in `bullet.gd`.
+
+Issue #1746 addresses the **root cause** more broadly: the HitArea collision is not
+disabled immediately when the enemy dies, meaning any bullet that enters the HitArea in
+the same or next physics frame before deferred disabling takes effect still triggers the
+hit handler.
+
+---
+
+## Timeline / Sequence of Events
+
+### Normal case (alive enemy)
+
+1. Player fires bullet → `Bullet` (Area2D, `collision_layer=16`, `collision_mask=39`) moves.
+2. Bullet's `_on_area_entered` fires when it overlaps `HitArea` (Area2D, `collision_layer=2`,
+   `collision_mask=16`).
+3. `bullet.gd:_on_area_entered` calls `area.on_hit_with_bullet_info(...)` → enemy takes damage.
+4. Bullet is destroyed.
+
+### Bug case (enemy just died — same/next frame)
+
+1. Bullet A kills enemy: `on_hit_with_bullet_info` → health ≤ 0 → `_on_death()` called.
+2. `_on_death()`:
+   - Sets `_is_alive = false` **synchronously** ✓
+   - Calls `_disable_hit_area_collision()` which uses `set_deferred(...)` → executes **next frame**.
+3. Bullet B (already in flight) enters `HitArea` in the **same physics frame** as Bullet A.
+4. `_on_area_entered` fires for Bullet B.
+5. **Before the fix**: No `is_alive()` check existed in `_on_area_entered`. Bullet B
+   continues to `area.on_hit_with_bullet_info(...)`.
+6. `on_hit_with_bullet_info` checks `if not _is_alive: return` → correctly ignores the hit.
+7. **However**, bullet B was still **destroyed** by `_destroy()` at the end of
+   `_on_area_entered` because the code path did not return early enough.
+
+### After the fix
+
+The fix adds an early `is_alive()` check in `bullet.gd:_on_area_entered` **before** the
+bullet is destroyed:
+
+```gdscript
+# Check if the parent is dead - bullets should pass through dead entities
+if parent and parent.has_method("is_alive") and not parent.is_alive():
+    return  # Pass through dead entities
+```
+
+This ensures bullets pass through the dead enemy's HitArea even when the deferred
+`set_deferred("collision_layer", 0)` hasn't taken effect yet.
+
+---
+
+## Root Cause Analysis
+
+### Primary root cause
+
+**Godot's `set_deferred` creates a one-frame gap between death and collision disabling.**
+
+When `_on_death()` is called:
+- `_is_alive = false` — synchronous (takes effect immediately)
+- `_hit_collision_shape.set_deferred("disabled", true)` — deferred (next frame)
+- `_hit_area.set_deferred("collision_layer", 0)` — deferred (next frame)
+- `_hit_area.set_deferred("monitorable", false)` — deferred (next frame)
+
+Godot's [known issue #62506](https://github.com/godotengine/godot/issues/62506) and
+[#100687](https://github.com/godotengine/godot/issues/100687) confirm that Area2D
+collision layer changes only take effect after the current physics step, making immediate
+`collision_layer = 0` assignments unreliable during physics callbacks.
+
+### Secondary root cause (Issue #1413 — already fixed)
+
+Death animation creates `RigidBody2D` ragdoll parts with `collision_layer=32` (bit 5,
+"targets" layer). The bullet's `collision_mask=39=0b100111` includes this bit, so bullets
+physically interact with ragdoll parts. Since ragdoll `RigidBody2D` nodes have no
+`is_alive()` method, the old dead-enemy check was silently skipped.
+
+---
+
+## Collision Layer Map (from `project.godot`)
+
+| Layer | Bit | Name        |
+|-------|-----|-------------|
+| 1     | 0   | player      |
+| 2     | 1   | enemies     |
+| 3     | 2   | obstacles   |
+| 4     | 3   | pickups     |
+| 5     | 4   | projectiles |
+| 6     | 5   | targets     |
+| 7     | 6   | decorative  |
+
+**Enemy CharacterBody2D**: `collision_layer=2, collision_mask=6`  
+**HitArea**: `collision_layer=2, collision_mask=16`  
+**Bullet**: `collision_layer=16, collision_mask=39=0b100111` (layers 1, 2, 3, 6)  
+**Ragdoll**: `collision_layer=32=0b100000` (layer 6 — in bullet mask)
+
+---
+
+## Fix
+
+### Multi-layered approach in `scripts/objects/enemy.gd`
+
+`_disable_hit_area_collision()` uses all available Godot Area2D disabling approaches:
+
+```gdscript
+func _disable_hit_area_collision() -> void:
+    if _hit_collision_shape:
+        _hit_collision_shape.set_deferred("disabled", true)   # Approach 1: shape
+    if _hit_area:
+        _hit_area.set_deferred("collision_layer", 0)          # Approach 2: layers
+        _hit_area.set_deferred("collision_mask", 0)
+        _hit_area.set_deferred("monitorable", false)          # Approach 3: monitoring
+        _hit_area.set_deferred("monitoring", false)
+```
+
+`is_alive()` returns `false` **immediately** (synchronous), acting as a fast-path guard
+before any deferred calls take effect.
+
+### Early check in `scripts/projectiles/bullet.gd:_on_area_entered`
+
+Added before the bullet processes the hit:
+
+```gdscript
+# Check if the parent is dead - bullets should pass through dead entities
+# This is a fallback check in case the collision shape/layer disabling
+# doesn't take effect immediately (see Godot issues #62506, #100687)
+if parent and parent.has_method("is_alive") and not parent.is_alive():
+    return  # Pass through dead entities
+```
+
+### Ragdoll fix in `scripts/projectiles/bullet.gd:_on_body_entered` (Issue #1413)
+
+```gdscript
+if body.is_in_group("dead_enemy_ragdoll"):
+    return  # Pass through dead enemy ragdoll parts
+```
+
+---
+
+## Alternative Solutions Considered
+
+| Option | Pros | Cons |
+|--------|------|------|
+| Use immediate (non-deferred) collision disable | No frame gap | Godot crashes/warns when physics properties changed during callback |
+| Move `is_alive()` check to `HitArea.on_hit` | Single place | HitArea doesn't own the alive state |
+| Change bullet collision mask to exclude enemy layer | Prevents all body-level collisions | Breaks alive-enemy hit detection |
+| **Synchronous `_is_alive=false` + deferred layer clear + `is_alive()` guard in bullet** (chosen) | No crashes, robust, multi-layered | Requires checks in multiple places |
+
+---
+
+---
+
+## Additional Finding: VOG (Underbarrel) Grenade Triggers on Dead Enemy Bodies
+
+### Reported in PR comment (2026-04-03)
+
+User `Jhon-Crow` reported via game log (`game_log_20260404_001403.txt`) that the AK underbarrel
+grenade launcher's VOG-25 grenade triggers on a dead enemy's **CharacterBody2D** body (not its
+HitArea), causing an unwanted explosion.
+
+**Log evidence (exact timestamp sequence):**
+
+```
+[00:14:21] [ENEMY] [Enemy1] Hit: dmg=2, hp=2/2->0/2
+[00:14:21] [ENEMY] [Enemy1] Enemy died (ricochet: false, penetration: false, player_kill: true)
+[00:14:22] [GrenadeBase] Collision detected with Enemy1 (type: CharacterBody2D)
+[00:14:22] [VOGGrenade] Impact detected! Body: Enemy1 (type: CharacterBody2D), triggering explosion
+```
+
+Enemy1 died at `00:14:21`. One second later, the VOG grenade collided with the corpse's
+`CharacterBody2D` and detonated — wasting the grenade and potentially harming the player.
+
+### Why bullets were already fixed but grenades weren't
+
+Bullets use `Area2D` hit detection via `_on_area_entered` (HitArea) and `_on_body_entered`
+(CharacterBody2D) — both were patched to check `is_alive()`.
+
+The VOG grenade uses `RigidBody2D` physics and `body_entered` signal in `_on_body_entered`:
+
+```gdscript
+# BEFORE fix (vog_grenade.gd)
+if body is StaticBody2D or body is TileMap or body is CharacterBody2D:
+    _trigger_impact_explosion()  # ← no is_alive() check
+```
+
+Dead enemy `CharacterBody2D` collision shape remains active while the grenade is still flying
+(enemy physics collision layers are disabled with `set_deferred` too, same as HitArea).
+
+### Fix applied to vog_grenade.gd (partial — GDScript guard only)
+
+```gdscript
+# AFTER fix (vog_grenade.gd)
+elif body is CharacterBody2D:
+    # Issue #1746: Do not trigger on dead enemies — grenade should pass through corpses.
+    if body.has_method("is_alive") and not body.is_alive():
+        FileLogger.info("[VOGGrenade] Impact with dead enemy %s - not triggering explosion" % body.name)
+        return
+    _trigger_impact_explosion()
+```
+
+**This fix was incomplete.** The vog_grenade.gd guard correctly skipped the explosion in GDScript,
+but the C# `GrenadeTimer.cs` component independently also received the same `body_entered` signal
+and triggered the explosion anyway. See Section 2 below.
+
+---
+
+## Section 2: Persistent Bug — GrenadeTimer.cs Bypasses GDScript Guard
+
+### Reported in PR comment (2026-04-04) with game_log_20260404_125335.txt
+
+After the vog_grenade.gd fix was deployed, @Jhon-Crow confirmed the bug still occurred. The new
+log shows the same sequence repeating 5 times:
+
+```
+[12:53:50] [VOGGrenade] Impact with dead enemy Enemy - not triggering explosion  ← GDScript guard worked
+[12:53:50] [GrenadeTimer] Impact detected with Enemy - EXPLODING!                ← But C# timer fired anyway!
+```
+
+### Root Cause: Dual body_entered handlers
+
+When `GrenadeTimerHelper.AttachGrenadeTimer(grenade, "Frag")` is called on a VOGGrenade, a C#
+`GrenadeTimer` node is added as a child. This node connects to the **same** `body_entered` signal:
+
+```csharp
+// GrenadeTimer.cs _Ready()
+_grenadeBody.BodyEntered += OnBodyEntered;
+```
+
+The `GrenadeTimer.OnBodyEntered` handler (line ~379) triggers on any `CharacterBody2D`:
+
+```csharp
+// BEFORE fix (GrenadeTimer.cs)
+if (body is StaticBody2D || body is TileMap || body is TileMapLayer || body is CharacterBody2D)
+{
+    LogToFile($"[GrenadeTimer] Impact detected with {body.Name} - EXPLODING!");
+    Explode();
+}
+```
+
+There was **no dead-enemy check** for `CharacterBody2D`. The Issue #886 guard in `Explode()` only
+skips if GDScript's `has_exploded()` returns `true`, but since GDScript returned early without
+exploding, `has_exploded()` was still `false` — so C# proceeded to explode.
+
+### Fix applied to GrenadeTimer.cs
+
+```csharp
+// AFTER fix (GrenadeTimer.cs)
+if (body is StaticBody2D || body is TileMap || body is TileMapLayer || body is CharacterBody2D)
+{
+    // Issue #1746: Do not trigger on dead enemies — grenade should pass through corpses.
+    if (body is CharacterBody2D)
+    {
+        if (body.HasMethod("is_alive") && !body.Call("is_alive").AsBool())
+        {
+            LogToFile($"[GrenadeTimer] Impact with dead enemy {body.Name} - not triggering explosion (Issue #1746)");
+            return;
+        }
+    }
+
+    LogToFile($"[GrenadeTimer] Impact detected with {body.Name} - EXPLODING!");
+    Explode();
+}
+```
+
+---
+
+---
+
+## Section 3: Grenade Physically Bounces Off Dead Enemy Body
+
+### Reported in PR comment (2026-04-09) with game_log_20260410_002513.txt
+
+After fixes in Sections 1 and 2, @Jhon-Crow reported: *"теперь VOG просто отскакивает от тела, а не игнорирует (так ещё хуже)"*
+(Translation: *"now the VOG just bounces off the body instead of passing through — even worse than before"*)
+
+### Log evidence (game_log_20260410_002513.txt — exact sequence)
+
+```
+[00:25:40] [GrenadeBase] Collision detected with Enemy (type: CharacterBody2D)
+[00:25:40] [VOGGrenade] Impact with dead enemy Enemy - not triggering explosion    ← GDScript guard OK
+[00:25:40] [GrenadeTimer] Impact with dead enemy Enemy - not triggering explosion  ← C# guard OK
+[00:25:41] [GrenadeTimer] Frag grenade landed - EXPLODING!                         ← Bounced, then landed elsewhere!
+```
+
+The `is_alive()` guards in both GDScript and C# **correctly** prevented the explosion on contact with the dead enemy.
+However, the grenade **physically bounced** off the dead enemy's `CharacterBody2D` physics body (which was still
+active), slowed down, changed direction, then came to rest on the ground and triggered the `_hasLanded` explosion path.
+
+### Root Cause: CharacterBody2D physics body remains active after death
+
+`_disable_hit_area_collision()` only disables the **HitArea** (`Area2D` node) — used for bullet hit detection.
+The `CharacterBody2D` itself has a separate `CollisionShape2D` child with `collision_layer=2`.
+The grenade's `RigidBody2D` has `collision_mask=2` (enemies layer), so it physically collides with the dead
+enemy's physics body even after the explosion logic is skipped.
+
+```
+CharacterBody2D (collision_layer=2)  ← NOT cleared on death until this fix
+  └── CollisionShape2D               ← physics shape, still active → grenade bounces
+  └── HitArea (Area2D)               ← cleared by _disable_hit_area_collision() → bullets pass through
+        └── HitCollisionShape        ← cleared
+```
+
+### Fix: Clear CharacterBody2D.collision_layer on death
+
+In `scripts/objects/enemy.gd`, `_disable_hit_area_collision()` now also calls:
+
+```gdscript
+# Issue #1746: Remove from physics collision layers so grenades pass through the corpse.
+set_deferred("collision_layer", 0)
+```
+
+And `_enable_hit_area_collision()` restores it on respawn:
+
+```gdscript
+collision_layer = _original_body_collision_layer  # Issue #1746: restore physics collision on respawn
+```
+
+The original body layer (`2`) is captured in `_ready()`:
+
+```gdscript
+var _original_body_collision_layer: int = 2  # Issue #1746
+# ...
+_original_body_collision_layer = collision_layer  # stored in _ready() setup block
+```
+
+---
+
+## Files Changed
+
+- `scripts/objects/enemy.gd` — `_disable_hit_area_collision()` and `_enable_hit_area_collision()`, `is_alive()` function
+  - **Section 3 addition**: clear `CharacterBody2D.collision_layer` on death, restore on respawn
+- `scripts/projectiles/bullet.gd` — `is_alive()` guard in `_on_area_entered` and `_on_body_entered`
+- `scripts/projectiles/vog_grenade.gd` — `is_alive()` guard in `_on_body_entered` (Issue #1746 VOG fix)
+- `scripts/components/death_animation_component.gd` — ragdoll `dead_enemy_ragdoll` group (Issue #1413)
+- `Scripts/Projectiles/GrenadeTimer.cs` — `is_alive()` guard in `OnBodyEntered` for `CharacterBody2D` (Issue #1746 root fix)
+
+## Log Files
+
+- `docs/case-studies/issue-1746/game_log_20260404_001403.txt` — first report, before vog_grenade.gd fix
+- `docs/case-studies/issue-1746/game_log_20260404_125335.txt` — second report, after vog_grenade.gd fix (still buggy due to GrenadeTimer.cs)
+- `docs/case-studies/issue-1746/game_log_20260410_002513.txt` — third report, after GrenadeTimer.cs fix (grenade bouncing off physics body)
+
+## Tests
+
+- `tests/integration/test_enemy_death_bullet_passthrough.gd` — comprehensive test suite:
+  - HitArea disabled after death (collision shape, layers, monitorable/monitoring)
+  - `is_alive()` returns `false` immediately (synchronous, no await needed)
+  - HitArea re-enabled on respawn
+  - Dead enemy ignores additional hit calls
+  - Ragdoll group pass-through (Issue #1413)
+- `tests/unit/test_vog_grenade.gd` — added dead body passthrough tests:
+  - VOG grenade does NOT explode on dead enemy body
+  - VOG grenade DOES explode on alive enemy body
+  - Dead body does not consume the impact (grenade still explodes on next wall hit)
