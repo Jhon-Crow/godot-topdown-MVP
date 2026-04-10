@@ -2,14 +2,14 @@ extends Node
 ## PowerFantasyEffectsManager - Manages special effects for Power Fantasy difficulty mode.
 ##
 ## This autoload singleton provides:
-## 1. "Last chance" effect (300ms) after killing an enemy - penultimate hit effect
+## 1. "Last chance" effect (600ms) after killing an enemy - penultimate hit effect
 ## 2. "Special last chance" effect (2000ms) when a grenade explodes - penultimate hit effect
 ##
 ## These effects use the penultimate hit system (time slowdown + saturation boost)
 ## but with shorter durations specific to Power Fantasy mode.
 
-## Duration of the last chance effect when killing an enemy (300ms).
-const KILL_EFFECT_DURATION_MS: float = 300.0
+## Duration of the last chance effect when killing an enemy (600ms, 2x longer per Issue #1732).
+const KILL_EFFECT_DURATION_MS: float = 600.0
 
 ## Duration of the special last chance effect when grenade explodes (2000ms).
 const GRENADE_EFFECT_DURATION_MS: float = 2000.0
@@ -105,7 +105,7 @@ func _log(message: String) -> void:
 
 
 ## Called when an enemy is killed by the player in Power Fantasy or Gunslinger mode.
-## Triggers the 300ms last chance effect.
+## Triggers the kill last chance effect (see KILL_EFFECT_DURATION_MS).
 func on_enemy_killed() -> void:
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager == null:
@@ -121,10 +121,10 @@ func on_enemy_killed() -> void:
 	var last_chance_manager: Node = get_node_or_null("/root/LastChanceEffectsManager")
 	if last_chance_manager and last_chance_manager.has_method("is_effect_active"):
 		if last_chance_manager.is_effect_active():
-			_log("Enemy killed - skipping 300ms effect (LastChance time-freeze already active)")
+			_log("Enemy killed - skipping kill effect (LastChance time-freeze already active)")
 			return
 
-	_log("Enemy killed - triggering 300ms last chance effect")
+	_log("Enemy killed - triggering %.0fms last chance effect" % KILL_EFFECT_DURATION_MS)
 	_start_effect(KILL_EFFECT_DURATION_MS)
 
 
@@ -149,11 +149,14 @@ func on_grenade_exploded() -> void:
 
 ## Starts the power fantasy effect with the specified duration.
 func _start_effect(duration_ms: float) -> void:
-	# If effect is already active, reset the timer
+	# If effect is already active, reset the timer and ensure time_scale is still applied
+	# (e.g. if reset_effects was called mid-effect by a scene change and then another kill fires)
 	if _is_effect_active:
 		_effect_start_time = Time.get_ticks_msec() / 1000.0
 		_current_effect_duration_ms = duration_ms
 		_log("Effect timer reset to %.0fms" % duration_ms)
+		if not replay_mode and Engine.time_scale != EFFECT_TIME_SCALE:
+			Engine.time_scale = EFFECT_TIME_SCALE
 		return
 
 	_is_effect_active = true
@@ -184,9 +187,16 @@ func _end_effect() -> void:
 	_is_effect_active = false
 	_log("Ending power fantasy effect")
 
-	# Restore normal time (skip during replay - Issue #597)
+	# Restore time scale (skip during replay - Issue #597).
+	# Issue #1740 (root cause 3): If HitEffectsManager's 0.8x hit-feedback slow is still
+	# running (its 3s timer hasn't expired yet), restore to 0.8x rather than 1.0x so the
+	# shallow hit-feedback effect remains active after the kill slowdown ends.
 	if not replay_mode:
-		Engine.time_scale = 1.0
+		var him: Node = get_node_or_null("/root/HitEffectsManager")
+		if him and him.has_method("is_slow_active") and him.is_slow_active():
+			Engine.time_scale = him.get_slow_time_scale()
+		else:
+			Engine.time_scale = 1.0
 
 	# Remove screen saturation and contrast
 	_saturation_rect.visible = false

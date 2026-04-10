@@ -27,6 +27,29 @@ class MockTarget:
 		damage_received += 1
 
 
+class MockEnemy:
+	## Tracks damage received.
+	var damage_received: int = 0
+
+	## Global position for distance calculation.
+	var global_position: Vector2 = Vector2.ZERO
+
+	## Alive state.
+	var _alive: bool = true
+
+	func has_method(method_name: String) -> bool:
+		return method_name in ["on_hit_with_info", "on_hit", "is_alive"]
+
+	func is_alive() -> bool:
+		return _alive
+
+	func on_hit_with_info(_hit_direction: Vector2, _caliber_data: Resource) -> void:
+		damage_received += 1
+
+	func on_hit() -> void:
+		damage_received += 1
+
+
 class MockVOGGrenade:
 	## Effect radius (50% larger than frag grenade: 225 * 1.5 = 337).
 	var effect_radius: float = 337.0
@@ -113,6 +136,15 @@ class MockVOGGrenade:
 	func on_body_entered_solid() -> void:
 		if _is_launched and not _has_impacted and not _has_exploded:
 			trigger_impact_explosion()
+
+	## On body entered with alive check — mirrors the fix for Issue #1746.
+	## Dead enemies (is_alive() == false) do not trigger the explosion.
+	func on_body_entered_enemy(enemy: Object) -> void:
+		if not _is_launched or _has_impacted or _has_exploded:
+			return
+		if enemy.has_method("is_alive") and not enemy.is_alive():
+			return
+		trigger_impact_explosion()
 
 	## On grenade landed — detonate on landing.
 	func on_grenade_landed() -> void:
@@ -328,3 +360,52 @@ func test_is_not_in_effect_radius_outside() -> void:
 	var outside_pos := Vector2(300 + 338, 300)
 	assert_false(grenade.is_in_effect_radius(outside_pos),
 		"Position beyond radius should not be in range")
+
+
+# ============================================================================
+# Issue #1746: Dead Enemy Body Passthrough Tests
+# ============================================================================
+
+
+func test_does_not_explode_on_dead_enemy_body() -> void:
+	var dead_enemy := MockEnemy.new()
+	dead_enemy._alive = false
+	dead_enemy.global_position = Vector2(310, 300)
+
+	grenade.mark_as_launched()
+	grenade.on_body_entered_enemy(dead_enemy)
+
+	assert_false(grenade._has_exploded,
+		"VOG grenade should NOT explode when contacting a dead enemy body (Issue #1746)")
+	assert_false(grenade._has_impacted,
+		"Impact flag should NOT be set when contacting a dead enemy body")
+
+
+func test_explodes_on_alive_enemy_body() -> void:
+	var alive_enemy := MockEnemy.new()
+	alive_enemy._alive = true
+	alive_enemy.global_position = Vector2(310, 300)
+
+	grenade.mark_as_launched()
+	grenade.on_body_entered_enemy(alive_enemy)
+
+	assert_true(grenade._has_exploded,
+		"VOG grenade should still explode when contacting a living enemy body")
+	assert_true(grenade._has_impacted,
+		"Impact flag should be set when contacting a living enemy body")
+
+
+func test_dead_enemy_body_does_not_consume_impact() -> void:
+	## After passing through a dead body, grenade should still explode on next solid hit.
+	var dead_enemy := MockEnemy.new()
+	dead_enemy._alive = false
+
+	grenade.mark_as_launched()
+	grenade.on_body_entered_enemy(dead_enemy)
+	assert_false(grenade._has_exploded,
+		"Dead body should not trigger explosion")
+
+	# Now hit a wall — should still explode
+	grenade.on_body_entered_solid()
+	assert_true(grenade._has_exploded,
+		"Grenade should still explode after passing through a dead body and hitting a wall")
