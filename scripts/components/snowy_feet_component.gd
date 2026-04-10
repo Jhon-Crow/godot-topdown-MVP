@@ -117,6 +117,12 @@ func _ready() -> void:
 	# Cache sibling BloodyFeetComponent to read blood state (Issue #1627).
 	_bloody_feet = _parent_body.get_node_or_null("BloodyFeetComponent")
 
+	# Connect to BloodyFeetComponent's blood_contact signal so we arm the red-print
+	# counter immediately on contact — before BloodyFeetComponent's _blood_level
+	# decrements could drain to zero (Issue #1627 race-condition fix).
+	if _bloody_feet and _bloody_feet.has_signal("blood_contact"):
+		_bloody_feet.blood_contact.connect(_on_blood_contact)
+
 	# Create Area2D detector for snow-surface overlap (deferred so parent is in tree).
 	call_deferred("_setup_snow_detector")
 
@@ -167,6 +173,19 @@ func _on_snow_area_exited(area: Area2D) -> void:
 					still_on_snow = true
 					break
 			_is_overlapping_snow = still_on_snow
+
+
+## Called immediately when the sibling BloodyFeetComponent detects blood contact.
+## Arms the red-print counter right away so _spawn_footprint() can start emitting
+## red oval snow prints on the very next step (Issue #1627 race-condition fix).
+func _on_blood_contact(blood_color: Color) -> void:
+	var steps := snow_blood_steps_count
+	if _bloody_feet and _bloody_feet.get("snow_blood_steps_count") != null:
+		steps = _bloody_feet.snow_blood_steps_count
+	_blood_snow_steps_remaining = steps
+	if debug_logging:
+		_log_info("Blood contact signal received — arming %d red snow prints (color: %s)" % [
+			_blood_snow_steps_remaining, blood_color])
 
 
 ## Returns true when the character is standing on a snow surface.
@@ -234,16 +253,8 @@ func _spawn_footprint() -> void:
 			_log_info("Skipping snow footprint — not on snow surface")
 		return
 
-	# Check if the character just stepped in blood and start the red-print counter.
-	if _bloody_feet and _bloody_feet.has_method("has_bloody_feet") and _bloody_feet.has_bloody_feet():
-		if _blood_snow_steps_remaining <= 0:
-			# Character freshly stepped in blood — start spawning red prints.
-			var steps := snow_blood_steps_count
-			if _bloody_feet.get("snow_blood_steps_count") != null:
-				steps = _bloody_feet.snow_blood_steps_count
-			_blood_snow_steps_remaining = steps
-			if debug_logging:
-				_log_info("Blood detected — will spawn %d red snow prints" % _blood_snow_steps_remaining)
+	# _blood_snow_steps_remaining is armed by _on_blood_contact() signal handler the moment
+	# BloodyFeetComponent detects blood.  No lazy poll needed here (Issue #1627).
 
 	# Decide which scene to use: red blood print or normal white print.
 	var use_blood_print := _blood_snow_steps_remaining > 0

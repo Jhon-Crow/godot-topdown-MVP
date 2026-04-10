@@ -237,3 +237,24 @@ func test_on_snow_blood_level_exposed_for_snowy_feet() -> void:
 		"has_bloody_feet() must return true so SnowyFeetComponent can detect blood and spawn red prints")
 	assert_eq(_component.get_blood_level(), 4,
 		"Blood level should be snow_blood_steps_count (4) for SnowyFeetComponent to count down")
+
+
+## Test that blood_contact signal is emitted on blood puddle contact (Issue #1627 race-condition fix).
+## SnowyFeetComponent connects to this signal to arm its red-print counter immediately,
+## before BloodyFeetComponent's _blood_level can drain to zero.
+func test_blood_contact_signal_emitted_on_puddle_contact() -> void:
+	var signal_received := false
+	var received_color := Color.BLACK
+
+	_component.blood_contact.connect(func(color: Color) -> void:
+		signal_received = true
+		received_color = color
+	)
+
+	var puddle_color := Color(0.6, 0.0, 0.0, 1.0)
+	_component._on_blood_puddle_contact(puddle_color)
+
+	assert_true(signal_received,
+		"blood_contact signal must be emitted when _on_blood_puddle_contact is called")
+	assert_almost_eq(received_color.r, puddle_color.r, 0.01,
+		"Signal should carry the puddle color so SnowyFeetComponent can tint prints correctly")

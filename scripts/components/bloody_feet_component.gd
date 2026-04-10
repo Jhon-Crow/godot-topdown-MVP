@@ -11,6 +11,11 @@ extends Node
 ## - Uses distance_squared_to() for faster distance comparisons
 class_name BloodyFeetComponent
 
+## Emitted immediately when the character steps in blood (Issue #1627).
+## SnowyFeetComponent connects to this to set its red-print counter synchronously,
+## avoiding the race condition where _blood_level drains before SnowyFeet checks it.
+signal blood_contact(blood_color: Color)
+
 ## Number of bloody footprints before the blood runs out.
 @export var blood_steps_count: int = 12
 
@@ -365,6 +370,10 @@ func _on_blood_puddle_contact(puddle_color: Color = Color(0.545, 0.0, 0.0, 1.0))
 		_log_info("Stepped in blood! %d footprints to spawn, color: %s" % [_blood_level, puddle_color])
 		# Reset distance counter when first stepping in blood
 		_distance_since_last_footprint = 0.0
+
+	# Notify SnowyFeetComponent immediately so it can arm its red-print counter
+	# before any _blood_level decrements happen (Issue #1627 race-condition fix).
+	blood_contact.emit(puddle_color)
 
 
 ## Called when an area enters the blood detector.
