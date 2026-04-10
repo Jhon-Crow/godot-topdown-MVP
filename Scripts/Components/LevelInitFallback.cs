@@ -656,6 +656,7 @@ public partial class LevelInitFallback : Node
         var gothicFont = GD.Load<Font>("res://assets/fonts/gothic_bitmap.fnt");
         if (gothicFont != null)
             _comboLabel.AddThemeFontOverride("font", gothicFont);
+        _comboLabel.ClipContents = true;
         _comboLabel.Visible = false;
         ui.AddChild(_comboLabel);
     }
