@@ -95,3 +95,76 @@ This eliminates the parse error, allowing the script to load correctly, `_ready(
 2. **Duplicate virtual method definitions** in GDScript cause a parse error at runtime rather than a compile-time warning visible to the developer.
 3. **Test with the full scene**: unit tests that mock the scene would not have caught this, because the parse error only manifests when the full `.gd` file is loaded by Godot's script engine.
 4. **Always search for existing definitions** before adding a new override of a built-in virtual method like `_unhandled_input`, `_process`, `_ready`, etc.
+
+---
+
+## Follow-up Issue: Two New Bugs (Reported 2026-04-10)
+
+After the parse-error fix landed, the game-end screen appeared correctly. However two new bugs were reported in the PR comments:
+
+> 1. не исчезает при клике мышкой (doesn't disappear on mouse click)
+> 2. если нажать любую клавишу срабатывает переход к экрану счёта, но если ещё раз нажать любую клавишу экран счёта появляется заново (должно обрабатываться только одно нажатие) — if you press any key the score screen appears, but pressing any key again makes the score screen appear again (only one press should be handled)
+
+### Artifact
+
+- [`game_log_20260410_155902.txt`](game_log_20260410_155902.txt) — second game log from the owner's Windows session; confirms GDScript now loads correctly (`GDScript _ready() already ran (enemies tracked: 15)`)
+
+### Root Cause: Bug 1 — Mouse Click Does Not Dismiss
+
+`_show_game_end_screen()` created the black background `ColorRect` with `mouse_filter = Control.MOUSE_FILTER_IGNORE`. In Godot 4, a Control node with `MOUSE_FILTER_IGNORE` passes input events through — it does **not** generate `gui_input` signals and does **not** cause the engine to route a `InputEventMouseButton` through `_unhandled_input` on a Node2D parent.
+
+Godot 4's input routing for mouse events on a Control node with `MOUSE_FILTER_IGNORE`:
+- The event is forwarded to the next control in the focus chain, not bubbled to `_unhandled_input` on the scene root.
+- `_unhandled_input` receives events only after **all Control nodes in the scene tree have explicitly ignored** them. A full-screen `ColorRect` with `MOUSE_FILTER_IGNORE` is still a visible viewport-covering Control; the engine considers mouse events "handled by the GUI" at that layer before they reach `_unhandled_input`.
+
+Result: mouse button presses were silently consumed by the GUI system and never delivered to `_unhandled_input`.
+
+### Root Cause: Bug 2 — Score Screen Re-Appears on Repeated Key Presses
+
+After `_dismiss_game_end_screen()` was called:
+1. The function removed the overlay nodes and called `_proceed_to_score_screen()`.
+2. But `_game_end_screen_shown` was **never reset to `false`** — it stayed `true`.
+3. The next key press triggered `_unhandled_input` again.
+4. `_game_end_screen_shown` was `true` → entered the if-block → called `_dismiss_game_end_screen()` again.
+5. `_proceed_to_score_screen()` was called a second time → score screen appeared again.
+
+There was no guard preventing `_dismiss_game_end_screen()` from running more than once.
+
+### Fix Applied (2026-04-10)
+
+Two changes in `scripts/levels/railway_station_level.gd`:
+
+**1. Mouse input — switch to `gui_input` on the background ColorRect:**
+
+```gdscript
+bg.mouse_filter = Control.MOUSE_FILTER_STOP   # was MOUSE_FILTER_IGNORE
+bg.gui_input.connect(func(ev: InputEvent) -> void:
+    if ev is InputEventMouseButton and ev.is_pressed():
+        _dismiss_game_end_screen()
+)
+```
+
+`MOUSE_FILTER_STOP` causes the ColorRect to absorb mouse events and emit `gui_input`, which we use to call `_dismiss_game_end_screen()` exactly once.
+
+**2. Idempotent dismiss guard:**
+
+Added `var _game_end_dismissed: bool = false` to the class variables.
+
+`_dismiss_game_end_screen()` now starts with:
+```gdscript
+if _game_end_dismissed:
+    return
+_game_end_dismissed = true
+```
+
+`_unhandled_input()` checks `_game_end_screen_shown and not _game_end_dismissed` so that once dismissed, subsequent key presses fall through to the score-screen branch (W key replay shortcut) instead of re-triggering dismiss.
+
+### Why This Was Not Obvious
+
+- `MOUSE_FILTER_IGNORE` sounds like "ignore the mouse filter", but it actually means "this node ignores mouse input" (i.e., the node is invisible to mouse events). The naming is counterintuitive.
+- The lack of a dismiss guard was an oversight: the assumption was that the `_game_end_screen_shown` flag would prevent a second call, but that flag was never cleared.
+
+### Lessons Learned (Follow-up)
+
+1. **Control.MOUSE_FILTER_IGNORE means "this node ignores mouse"** — use `MOUSE_FILTER_STOP` + `gui_input` signal when you need a full-screen overlay to capture mouse clicks.
+2. **One-shot handlers need an explicit "already fired" guard** — flags that gate entry (`_game_end_screen_shown`) must be cleared or supplemented with a "dismissed" flag to prevent re-entry after the action executes.

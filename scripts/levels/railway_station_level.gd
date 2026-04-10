@@ -27,6 +27,7 @@ var _level_cleared: bool = false
 var _score_shown: bool = false
 var _level_completed: bool = false
 var _game_end_screen_shown: bool = false
+var _game_end_dismissed: bool = false
 var _pending_score_data: Dictionary = {}
 const SATURATION_DURATION: float = 0.15
 const SATURATION_INTENSITY: float = 0.25
@@ -611,7 +612,12 @@ func _show_game_end_screen() -> void:
 	bg.name = "GameEndBackground"
 	bg.color = Color(0.0, 0.0, 0.0, 1.0)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# MOUSE_FILTER_STOP captures mouse clicks so gui_input fires (IGNORE would miss them).
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	bg.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.is_pressed():
+			_dismiss_game_end_screen()
+	)
 	canvas_layer.add_child(bg)
 
 	var label := Label.new()
@@ -639,11 +645,11 @@ func _show_game_end_screen() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Game-end screen: any click or key dismisses it and shows the score screen.
-	if _game_end_screen_shown:
-		if event is InputEventMouseButton or event is InputEventKey:
-			if event.is_pressed():
-				_dismiss_game_end_screen()
+	# Game-end screen: any key press dismisses it and shows the score screen.
+	# Mouse clicks are handled via gui_input on the background ColorRect.
+	if _game_end_screen_shown and not _game_end_dismissed:
+		if event is InputEventKey and event.is_pressed() and not event.echo:
+			_dismiss_game_end_screen()
 		return
 	# Score screen: W key triggers the watch-replay shortcut.
 	if _score_shown:
@@ -653,6 +659,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _dismiss_game_end_screen() -> void:
+	if _game_end_dismissed:
+		return
+	_game_end_dismissed = true
 	var canvas_layer := get_node_or_null("CanvasLayer")
 	if canvas_layer:
 		for child_name in ["GameEndBackground", "GameEndLabel", "GameEndHint"]:

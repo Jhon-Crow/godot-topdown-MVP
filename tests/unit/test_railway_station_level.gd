@@ -15,11 +15,13 @@ class MockRailwayStationLevel:
 	## Mirrors the new state variables added for Issue #1755.
 	var _level_completed: bool = false
 	var _game_end_screen_shown: bool = false
+	var _game_end_dismissed: bool = false   # guard added to fix Bug 2 (re-appearance)
 	var _pending_score_data: Dictionary = {}
 	var _level_cleared: bool = false
 
 	## Tracking flags used by the tests.
 	var game_end_screen_displayed: bool = false
+	var score_screen_display_count: int = 0
 	var score_screen_displayed: bool = false
 	var victory_message_displayed: bool = false
 	var dismissed: bool = false
@@ -39,14 +41,21 @@ class MockRailwayStationLevel:
 		_game_end_screen_shown = true
 		game_end_screen_displayed = true
 
-	## Simulate the player pressing a key or clicking the mouse.
-	func handle_dismiss_input() -> void:
-		if not _game_end_screen_shown:
-			return
-		_dismiss_game_end_screen()
+	## Simulate the player pressing a key (keyboard path via _unhandled_input).
+	func handle_key_input() -> void:
+		if _game_end_screen_shown and not _game_end_dismissed:
+			_dismiss_game_end_screen()
+
+	## Simulate the player clicking the mouse (mouse path via gui_input on bg).
+	func handle_mouse_input() -> void:
+		if _game_end_screen_shown:
+			_dismiss_game_end_screen()
 
 	## Remove the end screen and proceed to score.
 	func _dismiss_game_end_screen() -> void:
+		if _game_end_dismissed:
+			return
+		_game_end_dismissed = true
 		dismissed = true
 		_proceed_to_score_screen()
 
@@ -58,6 +67,7 @@ class MockRailwayStationLevel:
 			_show_victory_message()
 
 	func _show_score_screen(_score_data: Dictionary) -> void:
+		score_screen_display_count += 1
 		score_screen_displayed = true
 
 	func _show_victory_message() -> void:
@@ -97,7 +107,7 @@ func test_score_screen_not_shown_immediately_after_exit() -> void:
 func test_score_screen_appears_after_dismiss() -> void:
 	var score_data := {"rank": "B", "total_score": 25, "kills": 0}
 	level.complete_level_with_score(score_data)
-	level.handle_dismiss_input()
+	level.handle_key_input()
 	assert_true(level.score_screen_displayed,
 		"Score screen must appear after the player dismisses the end screen")
 
@@ -118,7 +128,7 @@ func test_complete_level_idempotent() -> void:
 	var score_data := {"rank": "S", "total_score": 200, "kills": 5}
 	level.complete_level_with_score(score_data)
 	level.complete_level_with_score(score_data)  # Second call should be ignored.
-	level.handle_dismiss_input()
+	level.handle_key_input()
 	assert_true(level.score_screen_displayed,
 		"Score screen must appear exactly once even if complete_level called twice")
 
@@ -142,8 +152,46 @@ func test_fallback_to_victory_message_when_no_score_data() -> void:
 
 func test_input_before_end_screen_does_nothing() -> void:
 	# Calling dismiss before the screen is shown should be a no-op.
-	level.handle_dismiss_input()
+	level.handle_key_input()
 	assert_false(level.dismissed,
 		"Dismiss must have no effect before the end screen is shown")
 	assert_false(level.score_screen_displayed,
 		"Score screen must not appear if dismiss is called prematurely")
+
+
+# ============================================================================
+# Regression tests for Bug 1 and Bug 2 (Issue #1755 follow-up, 2026-04-10)
+# ============================================================================
+
+
+func test_mouse_click_dismisses_end_screen() -> void:
+	## Bug 1 regression: mouse click must dismiss the game-end screen.
+	var score_data := {"rank": "S", "total_score": 100, "kills": 0}
+	level.complete_level_with_score(score_data)
+	level.handle_mouse_input()
+	assert_true(level.dismissed,
+		"Mouse click must dismiss the game-end screen")
+	assert_true(level.score_screen_displayed,
+		"Score screen must appear after mouse-click dismiss")
+
+
+func test_score_screen_appears_only_once_after_repeated_key_presses() -> void:
+	## Bug 2 regression: repeated key presses must not re-show the score screen.
+	var score_data := {"rank": "A", "total_score": 50, "kills": 0}
+	level.complete_level_with_score(score_data)
+	level.handle_key_input()   # First press — dismisses end screen, shows score
+	level.handle_key_input()   # Second press — must be ignored
+	level.handle_key_input()   # Third press — must be ignored
+	assert_eq(level.score_screen_display_count, 1,
+		"Score screen must appear exactly once, no matter how many keys are pressed")
+
+
+func test_score_screen_appears_only_once_after_repeated_mouse_clicks() -> void:
+	## Bug 2 regression (mouse path): repeated clicks must not re-show the score screen.
+	var score_data := {"rank": "B", "total_score": 30, "kills": 0}
+	level.complete_level_with_score(score_data)
+	level.handle_mouse_input()   # First click — dismisses end screen, shows score
+	level.handle_mouse_input()   # Second click — must be ignored (gui_input lambda also
+	level.handle_mouse_input()   # Third click    checks _game_end_dismissed guard)
+	assert_eq(level.score_screen_display_count, 1,
+		"Score screen must appear exactly once even if the mouse is clicked multiple times")
