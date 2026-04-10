@@ -373,7 +373,7 @@ class MockWaterBodyTimeStop:
 	var _wave_speed: float = 0.3
 	var _ripple_speed: float = 0.5
 	var _surf_speed: float = 0.5
-	var _distortion_strength: float = 0.025
+	var _distortion_strength: float = 0.35
 
 	## Whether time is currently stopped.
 	var _time_stopped: bool = false

@@ -221,9 +221,83 @@ Check game log for: `[WaterBody] Ready — ... distortion_strength=0.0250`
 
 ---
 
+## Third Investigation — 2026-04-10 (Iteration 3)
+
+### User Feedback
+
+Owner comment on PR #1739 (2026-04-10):
+> "проверил новый билд нет изменений" (checked new build, no changes)
+
+After both previous fixes, the owner still reports no visible distortion in a fresh build.
+
+### Finding 6: Screen-space refraction fundamentally cannot produce visible water distortion at 88% opacity
+
+The entire approach of relying on `hint_screen_texture` + blending to produce the visible distortion was architecturally flawed:
+
+```glsl
+// 88% opaque water → only 12% of distorted screen bleeds through
+vec3 final_rgb = mix(screen_col.rgb, water_col.rgb, water_col.a);
+//                                                  ^^^^ = 0.88
+```
+
+Even with a 27px offset, if the distorted background pixels differ only slightly from the undistorted ones (and against blue-ish sandy/beach ground, they often don't differ much at all), the 12% contribution is imperceptible.
+
+**Godot forum research** confirms this is a known issue: water shaders with `hint_screen_texture` and high opacity values have invisible refraction because the screen bleed is overwhelmed by the opaque water color.
+
+### Finding 7: The reference image shows internal water color modulation, not see-through transparency
+
+Looking at the reference image (attached to PR comment on 2026-03-30):
+- The water shows **horizontal bands of lighter/darker blue** scrolling across the surface
+- This is NOT the background showing through — the water itself is the source of the distortion
+- This is a **brightness/luminance modulation** effect: wave crests appear brighter, troughs appear darker
+- This is how real ocean looks from above: sunlight reflects differently at wave crests vs troughs
+
+### Fix Applied — Third Iteration (2026-04-10)
+
+**Root cause**: Relying on screen texture bleed (12% contribution) as the sole distortion signal.
+
+**Fix**: Add **wave-band shimmer** as the primary distortion — multiply the water's own base color by a wave-derived brightness multiplier. This is **always visible** regardless of opacity.
+
+```glsl
+// shimmer_signal ∈ [-1, 1]: positive = crest (bright), negative = trough (dark)
+float shimmer_signal = (wave1_occ + wave2_occ * 0.6) * (1.0 / 1.6);
+
+// distortion_strength = 0.35 → crests at 1.35×, troughs at 0.65× brightness
+float shimmer = 1.0 + shimmer_signal * distortion_strength;
+
+// Apply to the water base colour — ALWAYS visible regardless of alpha
+vec4 water_shimmered = vec4(clamp(water_base.rgb * shimmer, 0.0, 1.0), water_base.a);
+```
+
+**Changed parameters:**
+- `distortion_strength`: range changed from `hint_range(0.0, 0.1)` → `hint_range(0.0, 1.0)`, default `0.025` → `0.35`
+- Screen-space refraction offset: `distortion_strength * 0.04` (so at 0.35, offset = 0.014 screen-UV ≈ 15px — secondary effect)
+- Primary distortion: internal water color shimmer (always visible)
+
+**Why shimmer = 0.35 is correct:**
+- At `wave1_occ = +1.0` (wave crest): `shimmer = 1 + 1.0 × 0.35 = 1.35` → water is 35% brighter → clearly visible as a lighter band
+- At `wave1_occ = -1.0` (wave trough): `shimmer = 1 - 1.0 × 0.35 = 0.65` → water is 35% darker → clearly visible as a darker band
+- Combined with `wave2` (Y-axis), this creates horizontal bands of alternating bright/dark water exactly matching the reference image
+
+---
+
+## What the User Should See After Third-Iteration Fix
+
+On the Beach level with a fresh build from branch `issue-1738-ed6a6a650ce1`:
+- Clear horizontal wavy bands of lighter/darker water scroll across the surface
+- Effect is **always visible** — it's within the water color itself, not a transparency trick
+- Bands scroll from deep water toward the shore in sync with wave animation
+- During last-chance time-stop: `distortion_strength` is set to `0.0` → flat water (no shimmer)
+- After time resumes: distortion restores to `0.35`
+
+Check game log for: `[WaterBody] Ready — ... distortion_strength=0.3500`
+
+---
+
 ## Prevention
 
-1. Always verify shader offset magnitudes against a known-working reference (e.g. `last_chance.gdshader` uses `ripple_strength = 0.01` directly)
-2. When combining two scaled quantities as a product, check the resulting magnitude is in the visible range (>0.001 screen UV = >1 pixel at 1080p)
-3. For 2D top-down water distortion, use **both X and Y** wave displacement — Y-axis displacement creates the characteristic wave-band shimmer effect
-4. The `distortion_strength=X.XXXX` log line in `_ready()` makes future regressions immediately visible in game logs
+1. Never use `hint_screen_texture` blending as the **sole** distortion mechanism for opaque nodes — 88% opacity means only 12% of the distorted scene bleeds through, making the effect imperceptible.
+2. For opaque water surfaces, use **internal colour modulation** (brightness ×shimmer factor): wave crests brighter, troughs darker — always visible regardless of alpha.
+3. Always verify shader offset magnitudes against a known-working reference (e.g. `last_chance.gdshader` uses `ripple_strength = 0.01` directly).
+4. The `distortion_strength=X.XXXX` log line in `_ready()` makes future regressions immediately visible in game logs.
+5. When iterating on visual effects, ask the user for a **reference screenshot** early — the reference image on 2026-03-30 would have clarified the desired effect (internal color modulation) immediately.
