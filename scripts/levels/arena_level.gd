@@ -1115,7 +1115,7 @@ func _setup_ui() -> void:
 	_combo_label.text = ""
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo_label.offset_left = -220
+	_combo_label.offset_left = -350
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 90
 	_combo_label.offset_bottom = 130
@@ -1300,12 +1300,47 @@ func _update_ammo_label_magazine(current_ammo: int, reserve_ammo: int) -> void:
 func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
+	# Find equipped weapon
+	var _weapon_for_caps: Node = null
+	if _player != null:
+		for _wn in ["MakarovPM", "Shotgun", "AssaultRifle", "AKGL", "Revolver", "SilencedPistol", "SniperRifle", "MiniUzi"]:
+			_weapon_for_caps = _player.get_node_or_null(_wn)
+			if _weapon_for_caps != null:
+				break
+	if _weapon_for_caps != null and _weapon_for_caps.get("UsesTubeMagazine") == true:
+		_magazines_label.visible = false
+		return
+	if _weapon_for_caps != null and _weapon_for_caps.has_signal("CylinderStateChanged"):
+		_magazines_label.visible = false
+		return
+	_magazines_label.visible = true
 	if magazine_ammo_counts.is_empty():
 		_magazines_label.text = "Магазины: -"
 		return
+	# Get magazine capacities to distinguish full vs partial spares
+	var mag_max_counts: Array = []
+	if _weapon_for_caps != null and _weapon_for_caps.has_method("GetMagazineMaxCounts"):
+		mag_max_counts = Array(_weapon_for_caps.GetMagazineMaxCounts())
+
 	var parts: Array[String] = []
-	for count in magazine_ammo_counts:
-		parts.append(str(count))
+	# Current magazine always shown first
+	parts.append(str(magazine_ammo_counts[0]))
+
+	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
+	var full_spare_count: int = 0
+	for i in range(1, magazine_ammo_counts.size()):
+		var ammo: int = magazine_ammo_counts[i]
+		if ammo <= 0:
+			continue
+		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
+		if cap > 0 and ammo >= cap:
+			full_spare_count += 1
+		else:
+			parts.append(str(ammo))
+
+	if full_spare_count > 0:
+		parts.append("+ x%d" % full_spare_count)
+
 	_magazines_label.text = "Магазины: [%s]" % " | ".join(parts)
 
 # ---------------------------------------------------------------------------
