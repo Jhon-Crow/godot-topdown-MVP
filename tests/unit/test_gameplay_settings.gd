@@ -28,10 +28,10 @@ class MockGameplaySettings:
 	const MAX_BLOOD_AMOUNT: float = 3.0
 
 	## Minimum combo font size.
-	const MIN_COMBO_FONT_SIZE: int = 20
+	const MIN_COMBO_FONT_SIZE: int = 28
 
 	## Maximum combo font size.
-	const MAX_COMBO_FONT_SIZE: int = 200
+	const MAX_COMBO_FONT_SIZE: int = 224
 
 	func set_blood_amount(amount: float) -> void:
 		amount = clamp(amount, MIN_BLOOD_AMOUNT, MAX_BLOOD_AMOUNT)
@@ -180,25 +180,25 @@ func test_default_combo_font_size_is_112() -> void:
 
 
 func test_set_combo_font_size() -> void:
-	settings.set_combo_font_size(80)
-	assert_eq(settings.get_combo_font_size(), 80,
-		"Combo font size should be 80 after setting to 80")
+	settings.set_combo_font_size(84)
+	assert_eq(settings.get_combo_font_size(), 84,
+		"Combo font size should be 84 after setting to 84")
 
 
 func test_set_combo_font_size_clamps_above_max() -> void:
 	settings.set_combo_font_size(999)
-	assert_eq(settings.get_combo_font_size(), 200,
-		"Combo font size above 200 should be clamped to 200")
+	assert_eq(settings.get_combo_font_size(), 224,
+		"Combo font size above 224 should be clamped to 224")
 
 
 func test_set_combo_font_size_clamps_below_min() -> void:
 	settings.set_combo_font_size(0)
-	assert_eq(settings.get_combo_font_size(), 20,
-		"Combo font size below 20 should be clamped to 20")
+	assert_eq(settings.get_combo_font_size(), 28,
+		"Combo font size below 28 should be clamped to 28")
 
 
 func test_set_combo_font_size_emits_signal_on_change() -> void:
-	settings.set_combo_font_size(80)
+	settings.set_combo_font_size(84)
 	assert_eq(settings.settings_changed_count, 1,
 		"settings_changed should fire once when combo font size changes")
 

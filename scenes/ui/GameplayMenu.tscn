@@ -107,23 +107,23 @@ button_pressed = true
 [node name="HSeparator4" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="ComboFontSizeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="ComboSizeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "COMBO_FONT_SIZE"
 
-[node name="ComboFontSizeContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="ComboSizeContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="ComboFontSizeSlider" type="HSlider" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComboFontSizeContainer"]
+[node name="ComboSizeSlider" type="HSlider" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComboSizeContainer"]
 custom_minimum_size = Vector2(250, 30)
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 20.0
-max_value = 200.0
-step = 4.0
+min_value = 28.0
+max_value = 224.0
+step = 14.0
 value = 112.0
 
-[node name="ComboFontSizeValueLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComboFontSizeContainer"]
+[node name="ComboSizeValueLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComboSizeContainer"]
 custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
 text = "112"

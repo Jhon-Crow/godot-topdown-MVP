@@ -171,25 +171,7 @@ func _initialize_score_manager() -> void:
 ## Called when combo changes.
 func _on_combo_changed(combo: int, points: int) -> void:
 	if _combo_label == null:
-		# Create combo label if it doesn't exist yet
-		var ui := get_node_or_null("CanvasLayer/UI")
-		if ui == null:
-			return
-		_combo_label = Label.new()
-		_combo_label.name = "ComboLabel"
-		_combo_label.text = ""
-		_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		_combo_label.offset_left = -500
-		_combo_label.offset_right = -10
-		_combo_label.offset_top = 80
-		_combo_label.offset_bottom = 150
-		_combo_label.add_theme_font_size_override("font_size", get_node_or_null("/root/GameplaySettings").get_combo_font_size() if get_node_or_null("/root/GameplaySettings") else 112)
-		_combo_label.add_theme_constant_override("line_spacing", 0)
-		_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
-		_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
-		_combo_label.visible = false
-		ui.add_child(_combo_label)
+		return
 
 	if combo > 0:
 		_combo_label.text = "x%d COMBO\n+%d" % [combo, points]
@@ -538,6 +520,24 @@ func _setup_debug_ui() -> void:
 	_magazines_label.offset_bottom = 145
 	ui.add_child(_magazines_label)
 
+	# Create combo label
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	var combo_size: int = gameplay_settings.get_combo_font_size() if gameplay_settings and gameplay_settings.has_method("get_combo_font_size") else 112
+	_combo_label = Label.new()
+	_combo_label.name = "ComboLabel"
+	_combo_label.text = ""
+	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_combo_label.offset_left = -500
+	_combo_label.offset_right = -10
+	_combo_label.offset_top = 80
+	_combo_label.offset_bottom = 150
+	_combo_label.add_theme_font_size_override("font_size", combo_size)
+	_combo_label.add_theme_constant_override("line_spacing", 0)
+	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
+	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
+	_combo_label.visible = false
+	ui.add_child(_combo_label)
 
 
 ## Setup saturation overlay for kill effect.

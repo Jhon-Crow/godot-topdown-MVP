@@ -513,6 +513,8 @@ func _setup_debug_ui() -> void:
 	ui.add_child(_magazines_label)
 
 	# Create combo label
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	var combo_size: int = gameplay_settings.get_combo_font_size() if gameplay_settings and gameplay_settings.has_method("get_combo_font_size") else 112
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
 	_combo_label.text = ""
@@ -522,7 +524,7 @@ func _setup_debug_ui() -> void:
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 80
 	_combo_label.offset_bottom = 150
-	_combo_label.add_theme_font_size_override("font_size", get_node_or_null("/root/GameplaySettings").get_combo_font_size() if get_node_or_null("/root/GameplaySettings") else 112)
+	_combo_label.add_theme_font_size_override("font_size", combo_size)
 	_combo_label.add_theme_constant_override("line_spacing", 0)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
 	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))

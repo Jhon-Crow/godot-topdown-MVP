@@ -3,7 +3,7 @@ extends Node
 ##
 ## Provides centralized control over gameplay-affecting visual settings:
 ## - Blood amount (количество крови): multiplier for blood decals spawned per hit
-## - Combo font size (Issue #1790): size of the combo counter label text
+## - Combo font size (Issue #1790): pixel size of the combo counter label
 ##
 ## Settings are persisted to disk.
 
@@ -23,8 +23,8 @@ var wall_hit_particles_enabled: bool = true
 ## When enabled (default), revolver bullets gently steer toward enemies near the crosshair.
 var revolver_aim_assist_enabled: bool = true
 
-## Combo label font size in pixels (Issue #1790). Default is 112 (2× the old 56px size).
-## Range: [20, 200].
+## Combo label font size in pixels (Issue #1790). Default is 112 (2× the base 56px).
+## Range: [28, 224].
 var combo_font_size: int = 112
 
 ## Settings file path for persistence.
@@ -36,11 +36,11 @@ const MIN_BLOOD_AMOUNT: float = 0.0
 ## Maximum blood amount multiplier.
 const MAX_BLOOD_AMOUNT: float = 3.0
 
-## Minimum combo font size in pixels.
-const MIN_COMBO_FONT_SIZE: int = 20
+## Minimum combo font size.
+const MIN_COMBO_FONT_SIZE: int = 28
 
-## Maximum combo font size in pixels.
-const MAX_COMBO_FONT_SIZE: int = 200
+## Maximum combo font size.
+const MAX_COMBO_FONT_SIZE: int = 224
 
 
 func _ready() -> void:
@@ -94,8 +94,8 @@ func is_revolver_aim_assist_enabled() -> bool:
 	return revolver_aim_assist_enabled
 
 
-## Sets the combo label font size in pixels (Issue #1790).
-## @param size: Font size [20, 200].
+## Sets the combo label font size (Issue #1790).
+## @param size: Pixel size [28, 224].
 func set_combo_font_size(size: int) -> void:
 	size = clampi(size, MIN_COMBO_FONT_SIZE, MAX_COMBO_FONT_SIZE)
 	if combo_font_size != size:
