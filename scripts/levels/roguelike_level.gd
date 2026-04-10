@@ -3274,13 +3274,37 @@ func _update_magazines_label(mag_counts: Array) -> void:
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
 		_magazines_label.visible = false
 		return
+	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+		_magazines_label.visible = false
+		return
 	_magazines_label.visible = true
 	if mag_counts.is_empty():
 		_magazines_label.text = "MAGS: -"
 		return
+	# Get magazine capacities to distinguish full vs partial spares
+	var mag_max_counts: Array = []
+	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
+		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
+
 	var parts: Array = []
-	for i in range(mag_counts.size()):
-		parts.append("[%d]" % mag_counts[i] if i == 0 else "%d" % mag_counts[i])
+	# Current magazine always shown in brackets
+	parts.append("[%d]" % mag_counts[0])
+
+	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
+	var full_spare_count: int = 0
+	for i in range(1, mag_counts.size()):
+		var ammo: int = mag_counts[i]
+		if ammo <= 0:
+			continue
+		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
+		if cap > 0 and ammo >= cap:
+			full_spare_count += 1
+		else:
+			parts.append("%d" % ammo)
+
+	if full_spare_count > 0:
+		parts.append("+ x%d" % full_spare_count)
+
 	_magazines_label.text = "MAGS: " + " | ".join(parts)
 
 
