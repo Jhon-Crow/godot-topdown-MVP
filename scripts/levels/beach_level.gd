@@ -515,8 +515,9 @@ func _setup_debug_ui() -> void:
 	_combo_label.offset_left = -500
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 80
-	_combo_label.offset_bottom = 310
-	_combo_label.add_theme_font_size_override("font_size", 112)
+	_combo_label.offset_bottom = 180
+	_combo_label.add_theme_font_size_override("font_size", 56)
+	_combo_label.add_theme_constant_override("line_separation", -10)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
 	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
 	_combo_label.visible = false
