@@ -198,6 +198,23 @@ func test_on_snow_can_be_enabled() -> void:
 		"on_snow should be settable to true by the level script")
 
 
+## Test that snow_blood_steps_count defaults to 4 (Issue #1627).
+func test_snow_blood_steps_count_defaults_to_4() -> void:
+	assert_eq(_component.snow_blood_steps_count, 4,
+		"snow_blood_steps_count should default to 4 (four red oval prints then normal)")
+
+
+## Test that on snow, blood contact sets blood level to snow_blood_steps_count (4) not halved 12 (Issue #1627).
+func test_on_snow_blood_contact_uses_snow_blood_steps_count() -> void:
+	_component.on_snow = true
+	_component.snow_blood_steps_count = 4
+	_component.blood_steps_count = 12
+	# Simulate stepping in blood via the internal method
+	_component._on_blood_puddle_contact(Color(0.545, 0.0, 0.0, 1.0))
+	assert_eq(_component.get_blood_level(), 4,
+		"On snow, blood_level should be set to snow_blood_steps_count (4)")
+
+
 ## Test that snow surface detector is created when component initializes.
 func test_snow_detector_created() -> void:
 	# The detector is named "SnowDetectorForBlood" and attached to the parent body.

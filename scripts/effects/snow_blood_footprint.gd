@@ -1,14 +1,16 @@
 extends Sprite2D
-## Bloody snow indentation decal — oval shape like SnowFootprint but tinted pale red.
+## Bloody snow indentation decal — oval shape like SnowFootprint but tinted red.
 ##
 ## Spawned by BloodyFeetComponent when the character is on a snow surface and
-## has blood on their feet.  Uses the same oval snow_print textures but with a
-## pale pinkish-red modulate so it looks like blood absorbed/pressed into snow.
+## has blood on their feet (first snow_blood_steps_count steps after stepping in blood).
+## Uses the same oval snow_print textures but with the blood puddle's red color applied
+## so it looks like blood pressed into the snow. After these steps SnowyFeetComponent
+## resumes normal white snow prints (Issue #1627).
 ## Does NOT use boot-shaped textures — only oval dents, same as SnowFootprint.
 class_name SnowBloodFootprint
 
-## Default pale red blood-on-snow color.
-var _blood_color: Color = Color(0.85, 0.35, 0.35, 1.0)
+## Default red blood color.
+var _blood_color: Color = Color(0.545, 0.0, 0.0, 1.0)
 
 ## Preloaded oval snow indentation textures (shared with SnowFootprint).
 static var _left_texture: Texture2D = null
@@ -55,16 +57,13 @@ func set_foot(is_left: bool) -> void:
 			texture = _right_texture
 
 
-## Sets the blood color (pale red tint applied as modulate).
+## Sets the blood color (red tint applied as modulate — full blood color, not desaturated).
 func set_blood_color(puddle_color: Color) -> void:
 	_blood_color = puddle_color
-	# Desaturate toward pale pink-red to look like blood absorbed into snow.
-	var pale_r := lerpf(puddle_color.r, 1.0, 0.45)
-	var pale_g := lerpf(puddle_color.g, 0.85, 0.45)
-	var pale_b := lerpf(puddle_color.b, 0.85, 0.45)
-	modulate.r = pale_r
-	modulate.g = pale_g
-	modulate.b = pale_b
+	# Apply the blood puddle color directly so prints look like red blood on snow (Issue #1627).
+	modulate.r = puddle_color.r
+	modulate.g = puddle_color.g
+	modulate.b = puddle_color.b
 
 
 ## Sets the alpha of this footprint.

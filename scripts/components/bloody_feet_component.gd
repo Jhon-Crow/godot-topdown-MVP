@@ -14,9 +14,13 @@ class_name BloodyFeetComponent
 ## Number of bloody footprints before the blood runs out.
 @export var blood_steps_count: int = 12
 
-## When true, blood_steps_count is halved upon first contact to simulate blood
-## fading faster on cold snow (Issue #1627).  Set by the Winter Forest level script.
+## When true, exactly snow_blood_steps_count red oval footprints are spawned on snow
+## after stepping in blood, then SnowyFeetComponent resumes normal white prints (Issue #1627).
+## Set by the Winter Forest level script.
 @export var on_snow: bool = false
+
+## Number of red oval bloody footprints to leave on snow after stepping in blood (Issue #1627).
+@export var snow_blood_steps_count: int = 4
 
 ## Distance in pixels between footprint spawns.
 @export var step_distance: float = 30.0
@@ -36,7 +40,7 @@ class_name BloodyFeetComponent
 ## Preloaded footprint scene (regular BloodFootprint for non-snow surfaces).
 var _footprint_scene: PackedScene = null
 
-## Preloaded snow-blood footprint scene (oval, pale red — used on snow surfaces, Issue #1627).
+## Preloaded snow-blood footprint scene (oval, red — used on snow surfaces for snow_blood_steps_count steps, Issue #1627).
 var _snow_blood_footprint_scene: PackedScene = null
 
 ## Current blood level (number of steps remaining).
@@ -360,9 +364,10 @@ func _get_puddle_color(puddle_node: Node) -> Color:
 ## Called when the character contacts a blood puddle.
 ## puddle_color: The color of the blood puddle stepped in.
 func _on_blood_puddle_contact(puddle_color: Color = Color(0.545, 0.0, 0.0, 1.0)) -> void:
-	# Reset blood level to maximum (halved on snow so prints fade faster — Issue #1627).
+	# Reset blood level: on snow use snow_blood_steps_count (default 4) oval red prints,
+	# then SnowyFeetComponent resumes normal white snow prints (Issue #1627).
 	var previous_level := _blood_level
-	_blood_level = maxi(blood_steps_count / 2, 2) if on_snow else blood_steps_count
+	_blood_level = snow_blood_steps_count if on_snow else blood_steps_count
 
 	# Store the blood color for footprints
 	_blood_color = puddle_color
@@ -504,9 +509,11 @@ func _spawn_footprint() -> void:
 	if footprint == null:
 		return
 
-	# Calculate alpha based on remaining steps
-	# First step has highest alpha, last step has lowest
-	var steps_taken := blood_steps_count - _blood_level
+	# Calculate alpha based on remaining steps.
+	# On snow, decay is based on snow_blood_steps_count (4 steps) so the
+	# four red prints are evenly faded from initial_alpha down.
+	var total_steps := snow_blood_steps_count if use_snow_print else blood_steps_count
+	var steps_taken := total_steps - _blood_level
 	var alpha := initial_alpha - (steps_taken * alpha_decay_rate)
 	alpha = maxf(alpha, 0.05)  # Minimum visible alpha
 
