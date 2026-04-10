@@ -26,6 +26,9 @@ var _extra_exit_zones: Array = []
 var _level_cleared: bool = false
 var _score_shown: bool = false
 var _level_completed: bool = false
+var _game_end_screen_shown: bool = false
+var _game_end_dismissed: bool = false
+var _pending_score_data: Dictionary = {}
 const SATURATION_DURATION: float = 0.15
 const SATURATION_INTENSITY: float = 0.25
 var _enemies: Array = []
@@ -588,7 +591,89 @@ func _complete_level_with_score() -> void:
 		var aim: Node = get_node_or_null("/root/ActiveItemManager")
 		if aim and aim.has_method("notify_level_completed"):
 			aim.notify_level_completed(score_data.get("kills", 0) > 0)
-		_show_score_screen(score_data)
+		_pending_score_data = score_data
+		_show_game_end_screen()
+	else:
+		_show_game_end_screen()
+
+
+## Shows the end-of-game screen: white text on solid black background (Issue #1755).
+## Player must click or press any key to dismiss it, then the score screen is shown.
+func _show_game_end_screen() -> void:
+	if _game_end_screen_shown:
+		return
+	_game_end_screen_shown = true
+	var canvas_layer := get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		_proceed_to_score_screen()
+		return
+
+	var bg := ColorRect.new()
+	bg.name = "GameEndBackground"
+	bg.color = Color(0.0, 0.0, 0.0, 1.0)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# MOUSE_FILTER_STOP captures mouse clicks so gui_input fires (IGNORE would miss them).
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	bg.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.is_pressed():
+			_dismiss_game_end_screen()
+	)
+	canvas_layer.add_child(bg)
+
+	var label := Label.new()
+	label.name = "GameEndLabel"
+	label.text = "Конец. Спасибо за игру"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 64)
+	label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas_layer.add_child(label)
+
+	var hint := Label.new()
+	hint.name = "GameEndHint"
+	hint.text = "Нажмите любую клавишу или кнопку мыши..."
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	hint.add_theme_font_size_override("font_size", 20)
+	hint.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 1.0))
+	hint.set_anchors_preset(Control.PRESET_FULL_RECT)
+	hint.offset_bottom = -30
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas_layer.add_child(hint)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Game-end screen: any key press dismisses it and shows the score screen.
+	# Mouse clicks are handled via gui_input on the background ColorRect.
+	if _game_end_screen_shown and not _game_end_dismissed:
+		if event is InputEventKey and event.is_pressed() and not event.echo:
+			_dismiss_game_end_screen()
+		return
+	# Score screen: W key triggers the watch-replay shortcut.
+	if _score_shown:
+		if event is InputEventKey and event.pressed and not event.echo:
+			if event.keycode == KEY_W:
+				_on_watch_replay_pressed()
+
+
+func _dismiss_game_end_screen() -> void:
+	if _game_end_dismissed:
+		return
+	_game_end_dismissed = true
+	var canvas_layer := get_node_or_null("CanvasLayer")
+	if canvas_layer:
+		for child_name in ["GameEndBackground", "GameEndLabel", "GameEndHint"]:
+			var node := canvas_layer.get_node_or_null(child_name)
+			if node:
+				node.queue_free()
+	_proceed_to_score_screen()
+
+
+func _proceed_to_score_screen() -> void:
+	if not _pending_score_data.is_empty():
+		_show_score_screen(_pending_score_data)
 	else:
 		_show_victory_message()
 
@@ -811,7 +896,7 @@ func _show_victory_message() -> void:
 		return
 	var victory_label := Label.new()
 	victory_label.name = "VictoryLabel"
-	victory_label.text = "RAILWAY STATION CLEARED!"
+	victory_label.text = "Конец. Спасибо за игру"
 	victory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	victory_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	victory_label.add_theme_font_size_override("font_size", 48)
@@ -988,14 +1073,6 @@ func _get_next_level_path() -> String:
 				return level_paths[i + 1]
 			return ""
 	return ""
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if not _score_shown:
-		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_W:
-			_on_watch_replay_pressed()
 
 
 func _on_watch_replay_pressed() -> void:

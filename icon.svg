@@ -1,5 +1,79 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <rect width="128" height="128" fill="#478cbf"/>
-  <circle cx="64" cy="64" r="48" fill="#ffffff" opacity="0.2"/>
-  <polygon points="64,24 96,96 32,96" fill="#ffffff"/>
+  <defs>
+    <!-- Dark background gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0d0d1a"/>
+    </radialGradient>
+    <!-- Neon glow filter for crosshair -->
+    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Subtle figure glow -->
+    <filter id="figureGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="128" height="128" fill="url(#bgGrad)"/>
+
+  <!-- Blood/neon splatter spots (Hotline Miami energy) -->
+  <circle cx="30" cy="27" r="3" fill="#ff2244" opacity="0.18"/>
+  <circle cx="98" cy="35" r="2" fill="#ff2244" opacity="0.12"/>
+  <circle cx="22" cy="92" r="2.5" fill="#ff2244" opacity="0.15"/>
+  <circle cx="105" cy="97" r="3.5" fill="#ff2244" opacity="0.10"/>
+  <circle cx="85" cy="20" r="1.5" fill="#cc1133" opacity="0.20"/>
+
+  <!-- Top-down figure: body (viewed from above) -->
+  <!-- Torso -->
+  <ellipse cx="64" cy="61" rx="9" ry="13" fill="#111111" filter="url(#figureGlow)"/>
+
+  <!-- Head (top-down circle) -->
+  <circle cx="64" cy="46" r="7" fill="#0f0f0f" filter="url(#figureGlow)"/>
+
+  <!-- Arms extended holding weapon -->
+  <ellipse cx="52" cy="58" rx="4" ry="2.5" fill="#111111" transform="rotate(-20, 52, 58)"/>
+  <ellipse cx="76" cy="58" rx="4" ry="2.5" fill="#111111" transform="rotate(20, 76, 58)"/>
+
+  <!-- Weapon barrel -->
+  <rect x="61.5" y="29" width="5" height="16" rx="1" fill="#1a1a1a"/>
+  <!-- Gun grip/body -->
+  <rect x="60" y="39" width="8" height="10" rx="1.5" fill="#222222"/>
+
+  <!-- Legs -->
+  <ellipse cx="58" cy="76" rx="4.5" ry="6" fill="#111111" transform="rotate(-5, 58, 76)"/>
+  <ellipse cx="70" cy="76" rx="4.5" ry="6" fill="#111111" transform="rotate(5, 70, 76)"/>
+
+  <!-- === CROSSHAIR (neon pink-red, Hotline Miami style) === -->
+  <!-- Outer circle -->
+  <circle cx="64" cy="64" r="34" fill="none" stroke="#ff2244" stroke-width="1.2" opacity="0.9" filter="url(#neonGlow)"/>
+
+  <!-- Inner circle -->
+  <circle cx="64" cy="64" r="22" fill="none" stroke="#ff2244" stroke-width="0.8" opacity="0.7" filter="url(#neonGlow)"/>
+
+  <!-- Crosshair lines - horizontal -->
+  <line x1="25" y1="64" x2="40" y2="64" stroke="#ff2244" stroke-width="1.2" stroke-linecap="round" filter="url(#neonGlow)"/>
+  <line x1="88" y1="64" x2="103" y2="64" stroke="#ff2244" stroke-width="1.2" stroke-linecap="round" filter="url(#neonGlow)"/>
+
+  <!-- Crosshair lines - vertical -->
+  <line x1="64" y1="25" x2="64" y2="40" stroke="#ff2244" stroke-width="1.2" stroke-linecap="round" filter="url(#neonGlow)"/>
+  <line x1="64" y1="88" x2="64" y2="103" stroke="#ff2244" stroke-width="1.2" stroke-linecap="round" filter="url(#neonGlow)"/>
+
+  <!-- Center dot -->
+  <circle cx="64" cy="64" r="1.8" fill="#ff2244" filter="url(#neonGlow)"/>
+
+  <!-- Corner brackets (Door Kickers 2 tactical HUD style) -->
+  <path d="M 15 15 L 25 15 L 25 25" fill="none" stroke="#ff2244" stroke-width="1" opacity="0.5"/>
+  <path d="M 113 15 L 103 15 L 103 25" fill="none" stroke="#ff2244" stroke-width="1" opacity="0.5"/>
+  <path d="M 15 113 L 25 113 L 25 103" fill="none" stroke="#ff2244" stroke-width="1" opacity="0.5"/>
+  <path d="M 113 113 L 103 113 L 103 103" fill="none" stroke="#ff2244" stroke-width="1" opacity="0.5"/>
 </svg>
