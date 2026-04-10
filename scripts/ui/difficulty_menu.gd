@@ -32,11 +32,13 @@ var _gothic_font: Font = null
 ## Path to the Gothic bitmap font file.
 const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
 
-## Cowboy bitmap font for Strelok (Gunslinger) button (Issue #1742).
+## Cowboy TTF font for Gunslinger button (Issue #1742).
+## Rye is a Western/cowboy-style slab serif font for Latin characters.
+## Cyrillic characters fall back to a system serif font automatically.
 var _cowboy_font: Font = null
 
-## Path to the cowboy bitmap font file.
-const COWBOY_FONT_PATH: String = "res://assets/fonts/cowboy_bitmap.fnt"
+## Path to the Rye Western-style TTF font file.
+const COWBOY_FONT_PATH: String = "res://assets/fonts/rye/Rye-Regular.ttf"
 
 ## Gradient colors for Power Fantasy text (Issue #1014).
 ## Bright vibrant gradient from cyan through magenta to yellow.
@@ -119,7 +121,7 @@ func _update_button_states() -> void:
 	# Update button text to show selection
 	# Power Fantasy uses gradient text via RichTextLabel (Issue #1014)
 	_update_power_fantasy_text(is_power_fantasy)
-	gunslinger_button.text = "Стрелок (Selected)" if is_gunslinger else "Стрелок"
+	gunslinger_button.text = "Gunslinger (Selected)" if is_gunslinger else "Gunslinger"
 	easy_button.text = "Easy (Selected)" if is_easy else "Easy"
 	normal_button.text = "Normal (Selected)" if is_normal else "Normal"
 	hard_button.text = "Hard (Selected)" if is_hard else "Hard"
@@ -252,16 +254,23 @@ func _load_gothic_font() -> void:
 		push_warning("[DifficultyMenu] Gothic font file not found: " + GOTHIC_FONT_PATH)
 
 
-## Loads the cowboy bitmap font for Strelok (Gunslinger) button (Issue #1742).
+## Loads the Rye Western-style font for Gunslinger button (Issue #1742).
+## Rye handles Latin characters with a cowboy/Western aesthetic.
+## A SystemFont fallback covers Cyrillic characters (for Russian "Стрелок" text).
 func _load_cowboy_font() -> void:
-	if ResourceLoader.exists(COWBOY_FONT_PATH):
-		var font = load(COWBOY_FONT_PATH)
-		if font != null:
-			_cowboy_font = font
-		else:
-			push_warning("[DifficultyMenu] Failed to load Cowboy font from: " + COWBOY_FONT_PATH)
-	else:
+	if not ResourceLoader.exists(COWBOY_FONT_PATH):
 		push_warning("[DifficultyMenu] Cowboy font file not found: " + COWBOY_FONT_PATH)
+		return
+	var rye_font := FontFile.new()
+	var err := rye_font.load_dynamic_font(COWBOY_FONT_PATH)
+	if err != OK:
+		push_warning("[DifficultyMenu] Failed to load Rye font from: " + COWBOY_FONT_PATH)
+		return
+	# Add a Cyrillic-capable serif system font as fallback so Russian text renders correctly
+	var cyrillic_fallback := SystemFont.new()
+	cyrillic_fallback.font_names = ["FreeSerif", "DejaVu Serif", "Georgia", "Times New Roman", "serif"]
+	rye_font.fallbacks = [cyrillic_fallback]
+	_cowboy_font = rye_font
 
 
 ## Sets up the Power Fantasy button with gradient text (Issue #1014).
@@ -476,9 +485,9 @@ func _setup_black_metal_button() -> void:
 	black_metal_button.add_theme_stylebox_override("disabled", disabled_style)
 
 
-## Sets up the Strelok (Gunslinger) button with cowboy-style font and glowing red background (Issue #1742).
-## The glowing red background evokes the danger and intensity of the Strelok difficulty.
-## The cowboy/western font (FreeSerifBold bitmap) supports both Russian and English characters.
+## Sets up the Gunslinger button with cowboy-style font and glowing red background (Issue #1742).
+## The glowing semi-transparent red background evokes the danger of the Gunslinger difficulty.
+## The Rye Western font handles Latin; Cyrillic falls back to a system serif font.
 func _setup_strelok_button() -> void:
 	# Apply cowboy font if loaded
 	if _cowboy_font != null:
@@ -491,18 +500,18 @@ func _setup_strelok_button() -> void:
 	gunslinger_button.add_theme_color_override("font_pressed_color", Color(0.9, 0.7, 0.3))
 	gunslinger_button.add_theme_color_override("font_disabled_color", Color(0.8, 0.6, 0.4))
 
-	# Normal state: glowing red background with red shadow to simulate glow
+	# Normal state: semi-transparent glowing red background
 	var normal_style := StyleBoxFlat.new()
-	normal_style.bg_color = Color(0.55, 0.02, 0.02)  # Deep crimson background
+	normal_style.bg_color = Color(0.7, 0.05, 0.05, 0.55)  # Semi-transparent crimson
 	normal_style.set_corner_radius_all(4)
 	normal_style.set_content_margin_all(8)
 	normal_style.shadow_color = Color(1.0, 0.1, 0.1, 0.75)  # Bright red glow
 	normal_style.shadow_size = 8
 	gunslinger_button.add_theme_stylebox_override("normal", normal_style)
 
-	# Hover state: brighter red glow on mouse hover
+	# Hover state: slightly more opaque on hover
 	var hover_style := StyleBoxFlat.new()
-	hover_style.bg_color = Color(0.75, 0.04, 0.04)  # Brighter red
+	hover_style.bg_color = Color(0.8, 0.07, 0.07, 0.7)  # More visible on hover
 	hover_style.set_corner_radius_all(4)
 	hover_style.set_content_margin_all(8)
 	hover_style.shadow_color = Color(1.0, 0.15, 0.15, 0.9)  # Intense glow on hover
@@ -511,16 +520,16 @@ func _setup_strelok_button() -> void:
 
 	# Pressed state: darker, compressed look
 	var pressed_style := StyleBoxFlat.new()
-	pressed_style.bg_color = Color(0.4, 0.01, 0.01)  # Darker red when pressed
+	pressed_style.bg_color = Color(0.5, 0.02, 0.02, 0.6)  # Semi-transparent dark red
 	pressed_style.set_corner_radius_all(4)
 	pressed_style.set_content_margin_all(8)
 	pressed_style.shadow_color = Color(0.8, 0.1, 0.1, 0.6)
 	pressed_style.shadow_size = 4
 	gunslinger_button.add_theme_stylebox_override("pressed", pressed_style)
 
-	# Disabled state: when Strelok is already selected
+	# Disabled state: when Gunslinger is already selected
 	var disabled_style := StyleBoxFlat.new()
-	disabled_style.bg_color = Color(0.45, 0.02, 0.02)  # Muted red when selected/disabled
+	disabled_style.bg_color = Color(0.6, 0.03, 0.03, 0.5)  # Muted semi-transparent red
 	disabled_style.set_corner_radius_all(4)
 	disabled_style.set_content_margin_all(8)
 	disabled_style.shadow_color = Color(0.9, 0.1, 0.1, 0.5)
