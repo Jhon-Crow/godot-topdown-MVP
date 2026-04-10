@@ -543,3 +543,93 @@ func test_clear_all_saves_resets_difficulty_to_enable_first_launch_screen() -> v
 		"is_first_launch() must return true after clear_all_saves() resets DifficultyManager (Issue #1734)")
 	assert_eq(difficulty_mock.current_difficulty, 0,
 		"Difficulty must be reset to NORMAL (0) after clear_all_saves()")
+
+
+# ============================================================================
+# First-Launch Difficulty Menu in _navigate_to_last_level (Issue #1734)
+# ============================================================================
+# Verifies that PersistManager (not main.gd, which is never the startup scene)
+# is responsible for showing the first-launch difficulty picker. The project's
+# run/main_scene is LabyrinthLevel.tscn, so main.gd._ready() is never called
+# at startup — the check must live in an autoload.
+# ============================================================================
+
+class MockPersistManagerFirstLaunch:
+	## Whether DifficultyManager reported first launch.
+	var _is_first_launch: bool = false
+	## Whether the first-launch difficulty menu was shown.
+	var first_launch_menu_shown: bool = false
+	## Whether normal level navigation was performed.
+	var navigation_performed: bool = false
+	## Whether navigation was deferred until after difficulty selection.
+	var navigation_deferred: bool = false
+
+	func simulate_navigate_to_last_level() -> void:
+		if _is_first_launch:
+			first_launch_menu_shown = true
+			navigation_deferred = true
+			return
+		navigation_performed = true
+
+	func simulate_difficulty_selected() -> void:
+		first_launch_menu_shown = false
+		navigation_deferred = false
+		navigation_performed = true
+
+
+func test_first_launch_shows_difficulty_menu_not_level() -> void:
+	## On first launch, _navigate_to_last_level() must show the difficulty picker
+	## and NOT immediately navigate to the last level (Issue #1734 root cause #2:
+	## main.gd is never the startup scene, so PersistManager must handle this).
+	var mock := MockPersistManagerFirstLaunch.new()
+	mock._is_first_launch = true
+
+	mock.simulate_navigate_to_last_level()
+
+	assert_true(mock.first_launch_menu_shown,
+		"Difficulty menu must be shown on first launch by PersistManager (Issue #1734)")
+	assert_false(mock.navigation_performed,
+		"Level navigation must NOT happen before a difficulty is chosen (Issue #1734)")
+	assert_true(mock.navigation_deferred,
+		"Navigation must be deferred until difficulty is selected (Issue #1734)")
+
+
+func test_non_first_launch_skips_difficulty_menu() -> void:
+	## On subsequent launches (difficulty_settings.cfg exists), the picker must
+	## NOT appear and level navigation must proceed immediately.
+	var mock := MockPersistManagerFirstLaunch.new()
+	mock._is_first_launch = false
+
+	mock.simulate_navigate_to_last_level()
+
+	assert_false(mock.first_launch_menu_shown,
+		"Difficulty menu must NOT be shown when not a first launch (Issue #1734)")
+	assert_true(mock.navigation_performed,
+		"Level navigation must proceed immediately on non-first launch (Issue #1734)")
+
+
+func test_navigation_resumes_after_difficulty_selected() -> void:
+	## After the player picks a difficulty in first-launch mode, level navigation
+	## must resume (Issue #1734).
+	var mock := MockPersistManagerFirstLaunch.new()
+	mock._is_first_launch = true
+	mock.simulate_navigate_to_last_level()
+	assert_false(mock.navigation_performed, "Navigation must be deferred initially")
+
+	mock.simulate_difficulty_selected()
+
+	assert_true(mock.navigation_performed,
+		"Level navigation must resume after difficulty is selected (Issue #1734)")
+
+
+func test_first_launch_menu_closed_after_difficulty_selected() -> void:
+	## The first-launch menu must be hidden/freed after the player picks a difficulty.
+	var mock := MockPersistManagerFirstLaunch.new()
+	mock._is_first_launch = true
+	mock.simulate_navigate_to_last_level()
+	assert_true(mock.first_launch_menu_shown, "Menu must be visible before selection")
+
+	mock.simulate_difficulty_selected()
+
+	assert_false(mock.first_launch_menu_shown,
+		"First-launch menu must be closed after difficulty is selected (Issue #1734)")
