@@ -358,7 +358,7 @@ func _can_trigger_effect() -> bool:
 		_log_verbose("Effect already active")
 		return false
 
-	# Only trigger in hard mode (not in Black Metal - Issue #985)
+	# Only trigger in hard mode (not in Black Metal - Issue #985, not in Gunslinger - Issue #1727)
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager == null:
 		_log_verbose("DifficultyManager not found")
@@ -368,6 +368,12 @@ func _can_trigger_effect() -> bool:
 	# Black Metal is a separate difficulty that should NOT have the last chance effect.
 	if difficulty_manager.is_black_metal_mode():
 		_log("Black Metal mode - last chance effect disabled (Issue #985)")
+		return false
+
+	# Issue #1727: Gunslinger mode disables the special time-stop last chance effect.
+	# Gunslinger has a different last chance mechanic (kill-triggered via PowerFantasyEffectsManager).
+	if difficulty_manager.has_method("is_special_last_chance_disabled") and difficulty_manager.is_special_last_chance_disabled():
+		_log("Gunslinger mode - special last chance effect disabled (Issue #1727)")
 		return false
 
 	if not difficulty_manager.is_hard_mode():

@@ -62,6 +62,19 @@ var _level_completed: bool = false
 ## Weapon hints component instance (Issue #809).
 var _weapon_hints_component: Node = null
 
+## Castle-specific rank thresholds (Issue #1757).
+## Shifted one step down from the default so that the score for a skilled run gives B.
+## S=70% (was A), A+=55% (was B), A=38% (was C), B=22% (was D), C=12%, D=6%, F=0%.
+const CASTLE_RANK_THRESHOLDS: Dictionary = {
+	"S": 0.70,
+	"A+": 0.55,
+	"A": 0.38,
+	"B": 0.22,
+	"C": 0.12,
+	"D": 0.06,
+	"F": 0.0
+}
+
 
 func _ready() -> void:
 	print("CastleLevel loaded - Medieval Fortress Assault")
@@ -114,6 +127,11 @@ func _initialize_score_manager() -> void:
 
 	# Start tracking for this level
 	score_manager.start_level(_initial_enemy_count)
+
+	# Apply Castle-specific rank thresholds (Issue #1757):
+	# the score that used to give A now gives S, all other ranks shift accordingly.
+	if score_manager.has_method("set_rank_thresholds"):
+		score_manager.set_rank_thresholds(CASTLE_RANK_THRESHOLDS)
 
 	# Set player reference
 	if _player:
@@ -456,8 +474,13 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		return
 
 	if weapon.has_method("ConfigureAmmoForEnemyCount"):
-		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
-		print("[CastleLevel] Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+		var enemy_count: int = _initial_enemy_count
+		var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+		if ammo_multiplier > 1:
+			enemy_count *= ammo_multiplier
+			print("[CastleLevel] Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by %dx" % ammo_multiplier)
+		weapon.ConfigureAmmoForEnemyCount(enemy_count)
+		print("[CastleLevel] Configured silenced pistol ammo for %d enemies" % enemy_count)
 
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
@@ -512,6 +535,10 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		starting_magazines = weapon.StartingMagazineCount
 
 	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+	if ammo_multiplier > 1:
+		pm_magazines *= ammo_multiplier
+		print("[CastleLevel] Gunslinger/PowerFantasy mode: MakarovPM magazines multiplied by %dx" % ammo_multiplier)
 
 	if weapon.has_method("ReinitializeMagazines"):
 		weapon.ReinitializeMagazines(pm_magazines, true)
