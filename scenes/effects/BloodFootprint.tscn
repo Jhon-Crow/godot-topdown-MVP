@@ -3,6 +3,6 @@
 [ext_resource type="Script" path="res://scripts/effects/blood_footprint.gd" id="1_blood_footprint"]
 
 [node name="BloodFootprint" type="Sprite2D"]
-z_index = 1
+z_index = 0
 modulate = Color(1, 1, 1, 0.9)
 script = ExtResource("1_blood_footprint")

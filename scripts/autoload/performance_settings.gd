@@ -28,6 +28,12 @@ var screen_shake_enabled: bool = true
 ## PointLight2D is a known GPU bottleneck (Issue #724).
 var explosion_lights_enabled: bool = true
 
+## Whether warm ceiling lights (PointLight2D from Issue #1206) are enabled.
+## When disabled, no warm room-light nodes are added by LevelInitFallback.
+## Each warm light is GPU-expensive; disabling them significantly improves
+## FPS on low-end hardware (Issue #1693).
+var warm_lights_enabled: bool = true
+
 ## Whether AI is enabled for all enemies.
 ## When disabled, enemies do not process AI logic (they stand still).
 ## Disabling this helps identify the CPU cost of the AI system.
@@ -55,8 +61,8 @@ func _ready() -> void:
 	_load_settings()
 	# Apply screen shake setting immediately
 	_apply_screen_shake()
-	_log_to_file("PerformanceSettings initialized - particles: %s, blood_decals: %s, screen_shake: %s, explosion_lights: %s, ai: %s" % [
-		particles_enabled, blood_decals_enabled, screen_shake_enabled, explosion_lights_enabled, ai_enabled])
+	_log_to_file("PerformanceSettings initialized - particles: %s, blood_decals: %s, screen_shake: %s, explosion_lights: %s, warm_lights: %s, ai: %s" % [
+		particles_enabled, blood_decals_enabled, screen_shake_enabled, explosion_lights_enabled, warm_lights_enabled, ai_enabled])
 
 
 ## Set particles enabled/disabled (Issue #1186).
@@ -114,6 +120,20 @@ func set_explosion_lights_enabled(enabled: bool) -> void:
 ## Check if explosion lights are enabled (Issue #1186).
 func is_explosion_lights_enabled() -> bool:
 	return explosion_lights_enabled
+
+
+## Set warm ceiling lights enabled/disabled (Issue #1693).
+func set_warm_lights_enabled(enabled: bool) -> void:
+	if warm_lights_enabled != enabled:
+		warm_lights_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Warm lights %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if warm ceiling lights are enabled (Issue #1693).
+func is_warm_lights_enabled() -> bool:
+	return warm_lights_enabled
 
 
 ## Set AI enabled/disabled for all enemies (Issue #1186).
@@ -234,6 +254,7 @@ func _save_settings() -> void:
 	config.set_value("performance", "blood_decals_enabled", blood_decals_enabled)
 	config.set_value("performance", "screen_shake_enabled", screen_shake_enabled)
 	config.set_value("performance", "explosion_lights_enabled", explosion_lights_enabled)
+	config.set_value("performance", "warm_lights_enabled", warm_lights_enabled)
 	config.set_value("performance", "ai_enabled", ai_enabled)
 	config.set_value("ai_states", "idle", ai_state_idle_enabled)
 	config.set_value("ai_states", "combat", ai_state_combat_enabled)
@@ -259,6 +280,7 @@ func _load_settings() -> void:
 		blood_decals_enabled = config.get_value("performance", "blood_decals_enabled", true)
 		screen_shake_enabled = config.get_value("performance", "screen_shake_enabled", true)
 		explosion_lights_enabled = config.get_value("performance", "explosion_lights_enabled", true)
+		warm_lights_enabled = config.get_value("performance", "warm_lights_enabled", true)
 		ai_enabled = config.get_value("performance", "ai_enabled", true)
 		ai_state_idle_enabled = config.get_value("ai_states", "idle", true)
 		ai_state_combat_enabled = config.get_value("ai_states", "combat", true)
@@ -275,6 +297,7 @@ func _load_settings() -> void:
 		blood_decals_enabled = true
 		screen_shake_enabled = true
 		explosion_lights_enabled = true
+		warm_lights_enabled = true
 		ai_enabled = true
 		ai_state_idle_enabled = true
 		ai_state_combat_enabled = true

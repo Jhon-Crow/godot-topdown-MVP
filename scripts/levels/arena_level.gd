@@ -170,6 +170,9 @@ func _ready() -> void:
 	# Find and setup player.
 	_setup_player_tracking()
 
+	# Restrict camera so the border walls are never visible (Issue #1682).
+	_configure_camera()
+
 	# Setup UI.
 	_setup_ui()
 
@@ -277,7 +280,7 @@ func _on_enemy_died() -> void:
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
-		GameManager.register_kill(is_player_kill)
+		GameManager.register_kill(is_player_kill, is_penetration_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
@@ -787,6 +790,33 @@ func _reconnect_weapon_signals(player: Node2D) -> void:
 # ---------------------------------------------------------------------------
 
 ## Bake NavigationRegion2D for enemy pathfinding.
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## ArenaLevel map: 1920x1080 px playfield framed by 32 px walls.
+##   WallTop    (960,   32), h=32  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (960, 1048), h=32  → top edge   y=1016  → limit_bottom = 1016
+##   WallLeft   ( 32,  540), w=32  → right edge x=64    → limit_left   = 64
+##   WallRight  (1888, 540), w=32  → left edge  x=1856  → limit_right  = 1856
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[ArenaLevel] Camera2D not found on player — cannot set camera limits")
+		return
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 1016   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 1856   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	_log_to_file("Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
+
+
 ## Issue #1289: use explicit parse+bake API so all obstacle StaticBody2D nodes are
 ## reliably found and carved out of the walkable area (bake_navigation_polygon can
 ## miss dynamic/runtime geometry when called from _ready()).
@@ -1085,7 +1115,7 @@ func _setup_ui() -> void:
 	_combo_label.text = ""
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo_label.offset_left = -220
+	_combo_label.offset_left = -350
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 90
 	_combo_label.offset_bottom = 130
@@ -1269,12 +1299,47 @@ func _update_ammo_label_magazine(current_ammo: int, reserve_ammo: int) -> void:
 func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
+	# Find equipped weapon
+	var _weapon_for_caps: Node = null
+	if _player != null:
+		for _wn in ["MakarovPM", "Shotgun", "AssaultRifle", "AKGL", "Revolver", "SilencedPistol", "SniperRifle", "MiniUzi"]:
+			_weapon_for_caps = _player.get_node_or_null(_wn)
+			if _weapon_for_caps != null:
+				break
+	if _weapon_for_caps != null and _weapon_for_caps.get("UsesTubeMagazine") == true:
+		_magazines_label.visible = false
+		return
+	if _weapon_for_caps != null and _weapon_for_caps.has_signal("CylinderStateChanged"):
+		_magazines_label.visible = false
+		return
+	_magazines_label.visible = true
 	if magazine_ammo_counts.is_empty():
 		_magazines_label.text = "Магазины: -"
 		return
+	# Get magazine capacities to distinguish full vs partial spares
+	var mag_max_counts: Array = []
+	if _weapon_for_caps != null and _weapon_for_caps.has_method("GetMagazineMaxCounts"):
+		mag_max_counts = Array(_weapon_for_caps.GetMagazineMaxCounts())
+
 	var parts: Array[String] = []
-	for count in magazine_ammo_counts:
-		parts.append(str(count))
+	# Current magazine always shown first
+	parts.append(str(magazine_ammo_counts[0]))
+
+	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
+	var full_spare_count: int = 0
+	for i in range(1, magazine_ammo_counts.size()):
+		var ammo: int = magazine_ammo_counts[i]
+		if ammo <= 0:
+			continue
+		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
+		if cap > 0 and ammo >= cap:
+			full_spare_count += 1
+		else:
+			parts.append(str(ammo))
+
+	if full_spare_count > 0:
+		parts.append("+ x%d" % full_spare_count)
+
 	_magazines_label.text = "Магазины: [%s]" % " | ".join(parts)
 
 # ---------------------------------------------------------------------------

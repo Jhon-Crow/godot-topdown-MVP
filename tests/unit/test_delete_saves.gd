@@ -21,8 +21,7 @@ class MockGameManager:
 		"silenced_pistol": false,
 		"sniper": false,
 		"revolver": false,
-		"ak_gl": false,
-		"smg": false
+		"ak_gl": false
 	}
 
 	## Simulate unlocking several weapons to set up a "used" state.

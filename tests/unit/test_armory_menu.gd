@@ -55,12 +55,6 @@ class MockArmoryMenu:
 			"icon_path": "",
 			"unlocked": false,
 			"description": "Coming soon"
-		},
-		"smg": {
-			"name": "???",
-			"icon_path": "",
-			"unlocked": false,
-			"description": "Coming soon"
 		}
 	}
 
@@ -207,6 +201,19 @@ class MockArmoryMenu:
 	## Returns true if the given button has an active shine overlay.
 	func has_accordion_shine(button_name: String) -> bool:
 		return accordion_shine_active.get(button_name, false)
+
+	# ---- Apply button silver shine simulation (Issue #1762) ----
+
+	## Tracks whether the Apply button currently has its silver shine overlay active.
+	var apply_button_shine_active: bool = false
+
+	## Simulate updating the Apply button state with silver shine logic.
+	## Mirrors the real _update_apply_button_state behaviour introduced in Issue #1762.
+	func update_apply_button_state() -> void:
+		if has_pending_changes():
+			apply_button_shine_active = true
+		else:
+			apply_button_shine_active = false
 
 
 ## Mock AudioManager that records play_weapon_reload_preview calls.
@@ -876,3 +883,130 @@ func test_phase_boundary_value() -> void:
 	var expected_boundary: float = 0.80 / shader.TOTAL_DURATION_S
 	assert_almost_eq(shader.PHASE1_END_PROGRESS, expected_boundary, 0.001,
 		"Phase boundary should equal 0.80 s / 1.02 s ≈ 0.784")
+
+
+# ============================================================================
+# Caliber Stats Display — Issue #1708 regression
+# ============================================================================
+
+
+## Mock weapon resource simulating WeaponData accessed via GDScript .get().
+## Replicates the mirror-property pattern used in WeaponData.cs: CaliberName,
+## CaliberCanRicochet, CaliberCanPenetrate, CaliberMaxPenetrationDistance are stored
+## directly on the C# resource to avoid GDScript/C# nested-resource interop issues
+## (godotengine/godot#67167) where dot-access on nested GDScript resources returns null.
+class MockWeaponResource:
+	var _props: Dictionary = {}
+
+	func _init(props: Dictionary) -> void:
+		_props = props
+
+	## Simulates .get("property") which is reliable across C#/GDScript boundary.
+	func get(prop: String) -> Variant:
+		return _props.get(prop, null)
+
+
+## Replicates the _update_weapon_stats caliber display logic from armory_menu.gd.
+## Uses resource.get("CaliberName") — the mirror property approach (Issue #1708).
+func _build_caliber_bbcode_from_weapon(weapon: MockWeaponResource) -> String:
+	if not weapon:
+		return ""
+	var caliber_name: String = weapon.get("CaliberName")
+	if caliber_name == "":
+		return ""
+	return "[color=#aab0b8]Caliber:[/color] %s\n" % caliber_name
+
+
+func test_caliber_name_displayed_via_mirror_property() -> void:
+	# Regression test for Issue #1708: caliber name showed as <null> in AK+GL stats.
+	# Root cause: GDScript .get("caliber_name") on a CaliberData resource nested inside
+	# a C# WeaponData resource returns null due to Godot C#/GDScript interop (godot#67167).
+	# Fix: add CaliberName as a direct string property on WeaponData (mirror property pattern).
+	var weapon := MockWeaponResource.new({"CaliberName": "7.62x39mm"})
+	var result := _build_caliber_bbcode_from_weapon(weapon)
+	assert_true("7.62x39mm" in result,
+		"Caliber name '7.62x39mm' must appear in stats bbcode (Issue #1708)")
+	assert_false("<null>" in result,
+		"Stats bbcode must not contain '<null>' for caliber name (Issue #1708 regression)")
+
+
+func test_caliber_name_empty_does_not_produce_null_string() -> void:
+	# If CaliberName is empty string (default), the caliber line must be omitted.
+	var weapon := MockWeaponResource.new({"CaliberName": ""})
+	var result := _build_caliber_bbcode_from_weapon(weapon)
+	assert_false("<null>" in result,
+		"Empty CaliberName must not produce '<null>' in stats bbcode")
+	assert_false("Caliber:" in result,
+		"Empty CaliberName must omit the Caliber line entirely")
+
+
+func test_ak_gl_description_contains_762() -> void:
+	# Regression: AK+GL static description must mention the 7.62x39mm caliber.
+	var armory_firearms: Dictionary = {
+		"ak_gl": {
+			"name": "AK + GL",
+			"description": "AK with GP-25 underbarrel grenade launcher — 7.62x39mm, 30-round magazine, RMB fires VOG-25 grenade (1 shot)"
+		}
+	}
+	var desc: String = armory_firearms["ak_gl"].get("description", "")
+	assert_true("7.62" in desc,
+		"AK+GL static description must contain '7.62' caliber info (Issue #1708)")
+
+
+# ============================================================================
+# Apply Button Silver Shine Tests (Issue #1762)
+# ============================================================================
+
+
+func test_apply_button_shine_inactive_by_default() -> void:
+	# On first open (no pending changes), the Apply button must NOT show a shine.
+	menu.update_apply_button_state()
+	assert_false(menu.apply_button_shine_active,
+		"Apply button shine must be inactive when there are no pending changes (Issue #1762)")
+
+
+func test_apply_button_shine_activates_when_weapon_selected() -> void:
+	# Selecting a different weapon creates a pending change → shine must activate.
+	menu.select_weapon("m16")
+	menu.update_apply_button_state()
+	assert_true(menu.apply_button_shine_active,
+		"Apply button silver shine must activate after selecting a new weapon (Issue #1762)")
+
+
+func test_apply_button_shine_activates_when_grenade_selected() -> void:
+	# Selecting a different grenade creates a pending change → shine must activate.
+	menu.select_grenade(1)
+	menu.update_apply_button_state()
+	assert_true(menu.apply_button_shine_active,
+		"Apply button silver shine must activate after selecting a new grenade (Issue #1762)")
+
+
+func test_apply_button_shine_activates_when_active_item_selected() -> void:
+	# Selecting a different active item creates a pending change → shine must activate.
+	menu.select_active_item(2)
+	menu.update_apply_button_state()
+	assert_true(menu.apply_button_shine_active,
+		"Apply button silver shine must activate after selecting a new active item (Issue #1762)")
+
+
+func test_apply_button_shine_deactivates_after_apply() -> void:
+	# After applying pending changes, there are no more pending changes → shine must stop.
+	menu.select_weapon("m16")
+	menu.update_apply_button_state()
+	assert_true(menu.apply_button_shine_active,
+		"Pre-condition: shine must be active after selecting new weapon")
+	menu.apply()
+	menu.update_apply_button_state()
+	assert_false(menu.apply_button_shine_active,
+		"Apply button silver shine must deactivate after pending changes are applied (Issue #1762)")
+
+
+func test_apply_button_shine_deactivates_when_same_weapon_reselected() -> void:
+	# Re-selecting the already-applied weapon removes the pending change → no shine.
+	menu.select_weapon("m16")
+	menu.update_apply_button_state()
+	assert_true(menu.apply_button_shine_active, "Pre-condition: shine active with pending change")
+	menu.select_weapon(menu.applied_weapon)
+	menu.update_apply_button_state()
+	assert_false(menu.apply_button_shine_active,
+		"Apply button silver shine must deactivate when selection reverts to current weapon (Issue #1762)")

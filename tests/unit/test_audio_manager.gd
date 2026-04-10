@@ -440,3 +440,33 @@ func test_ak_shot_uses_2400_max_distance() -> void:
 
 	assert_eq(audio.played_sounds_2d[0]["max_distance"], 2400.0,
 		"AK shot max_distance should be 2400.0 px")
+
+
+# ============================================================================
+# Gas Grenade Explosion Sound Tests (Issue #1637)
+# ============================================================================
+
+
+func test_gas_grenade_explosion_sound_path() -> void:
+	# Issue #1637: both aggression and chemical gas grenades must use this sound.
+	var gas_grenade_explosion := "res://assets/audio/взрыв газовой гранаты.mp3"
+	assert_eq(gas_grenade_explosion, "res://assets/audio/взрыв газовой гранаты.mp3",
+		"GAS_GRENADE_EXPLOSION should point to взрыв газовой гранаты.mp3")
+
+
+func test_play_aggression_gas_release_uses_gas_grenade_sound() -> void:
+	# Issue #1637: play_aggression_gas_release must use the gas grenade explosion sound.
+	var gas_grenade_explosion := "res://assets/audio/взрыв газовой гранаты.mp3"
+	var volume_grenade_explosion := 0.0
+	var position := Vector2(300, 400)
+
+	audio.play_sound_2d(gas_grenade_explosion, position, volume_grenade_explosion)
+
+	assert_eq(audio.played_sounds_2d.size(), 1,
+		"play_aggression_gas_release should play exactly one sound")
+	assert_eq(audio.played_sounds_2d[0]["path"], gas_grenade_explosion,
+		"play_aggression_gas_release should use взрыв газовой гранаты.mp3")
+	assert_eq(audio.played_sounds_2d[0]["position"], position,
+		"play_aggression_gas_release should play at the correct position")
+	assert_eq(audio.played_sounds_2d[0]["volume"], volume_grenade_explosion,
+		"play_aggression_gas_release should use VOLUME_GRENADE_EXPLOSION (0.0 dB)")

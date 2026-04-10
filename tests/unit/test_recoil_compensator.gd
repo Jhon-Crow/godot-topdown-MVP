@@ -61,7 +61,7 @@ class MockActiveItemManager:
 		9: {"name": "Laser Sight", "icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 			"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."},
 		10: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
-			"description": "Loudspeaker — press Space to emit sound cone. 2 charges per battle.",
+			"description": "???",
 			"activation_hint": "Press Space to activate"},
 		11: {"name": "Breaching Charges", "icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png",
 			"description": "Breaching charges — hold Space near a wall to place a charge, release to attach it. Press Space to detonate.",

@@ -10,7 +10,8 @@ enum GrenadeType {
 	FLASHBANG,       # Default: Stun grenade (blinds and stuns enemies)
 	FRAG,            # Offensive: Fragmentation grenade (explodes on impact, releases shrapnel)
 	DEFENSIVE,       # Defensive: F-1 grenade (timer-based, 40 shrapnel pieces, 700px radius)
-	AGGRESSION_GAS   # Aggression gas: Makes enemies fight each other (Issue #675)
+	AGGRESSION_GAS,  # Aggression gas: Makes enemies fight each other (Issue #675)
+	DRONE            # Drone grenade: player pilots a drone that explodes RPG-style (Issue #1628)
 }
 
 ## Currently selected grenade type.
@@ -20,39 +21,57 @@ var current_grenade_type: int = GrenadeType.FLASHBANG
 ## Unlocked grenades tracking.
 ## FLASHBANG is always unlocked (default grenade, explicitly stated in issue #894).
 ## FRAG (Building D+) and DEFENSIVE (Beach S) have unlock conditions (Issue #1000).
+## AGGRESSION_GAS (Docks D+) and DRONE (Sewer any grade) have unlock conditions (Issue #1624).
 ## Issue #894: "all unspecified items can be opened from the start"
 var unlocked_grenades: Dictionary = {
 	GrenadeType.FLASHBANG: true,
 	GrenadeType.FRAG: false,         # Condition: Building D+ (Issue #1000 req.1)
 	GrenadeType.DEFENSIVE: false,    # Condition: Beach S (Issue #1000 req.6)
-	GrenadeType.AGGRESSION_GAS: true # No unlock condition — freely available from start
+	GrenadeType.AGGRESSION_GAS: false, # Condition: complete Docks D+ (Issue #1624 req.4)
+	GrenadeType.DRONE: false           # Condition: complete Sewer on any grade (Issue #1624 req.7)
 }
 
 ## Grenade type data for UI and selection.
 const GRENADE_DATA: Dictionary = {
 	GrenadeType.FLASHBANG: {
 		"name": "Flashbang",
+		"name_key": "GRENADE_FLASHBANG_NAME",
 		"icon_path": "res://assets/sprites/weapons/flashbang.png",
 		"scene_path": "res://scenes/projectiles/FlashbangGrenade.tscn",
-		"description": "Stun grenade - blinds enemies for 12s, stuns for 6s. 4 second fuse timer."
+		"description": "Stun grenade - blinds enemies for 12s, stuns for 6s. 4 second fuse timer.",
+		"desc_key": "GRENADE_FLASHBANG_DESC"
 	},
 	GrenadeType.FRAG: {
 		"name": "Frag Grenade",
+		"name_key": "GRENADE_FRAG_NAME",
 		"icon_path": "res://assets/sprites/weapons/frag_grenade.png",
 		"scene_path": "res://scenes/projectiles/FragGrenade.tscn",
-		"description": "Offensive grenade - explodes on impact, releases 4 shrapnel pieces. Smaller radius."
+		"description": "Offensive grenade - explodes on impact, releases 4 shrapnel pieces. Smaller radius.",
+		"desc_key": "GRENADE_FRAG_DESC"
 	},
 	GrenadeType.DEFENSIVE: {
 		"name": "F-1 Grenade",
+		"name_key": "GRENADE_DEFENSIVE_NAME",
 		"icon_path": "res://assets/sprites/weapons/defensive_grenade.png",
 		"scene_path": "res://scenes/projectiles/DefensiveGrenade.tscn",
-		"description": "Defensive grenade - 4 second fuse, releases 40 shrapnel pieces. 700px damage radius."
+		"description": "Defensive grenade - 4 second fuse, releases 40 shrapnel pieces. 700px damage radius.",
+		"desc_key": "GRENADE_DEFENSIVE_DESC"
 	},
 	GrenadeType.AGGRESSION_GAS: {
 		"name": "Aggression Gas",
+		"name_key": "GRENADE_AGGRESSION_GAS_NAME",
 		"icon_path": "res://assets/sprites/weapons/aggression_gas_grenade.png",
 		"scene_path": "res://scenes/projectiles/AggressionGasGrenade.tscn",
-		"description": "Gas grenade - 4 second fuse, releases aggression gas cloud. Enemies attack each other for 10s. Gas lasts 20s."
+		"description": "Gas grenade - 4 second fuse, releases aggression gas cloud. Enemies attack each other for 10s. Gas lasts 20s.",
+		"desc_key": "GRENADE_AGGRESSION_GAS_DESC"
+	},
+	GrenadeType.DRONE: {
+		"name": "Drone",
+		"name_key": "GRENADE_DRONE_NAME",
+		"icon_path": "res://assets/sprites/weapons/drone_grenade_icon.png",
+		"scene_path": "res://scenes/projectiles/DroneGrenade.tscn",
+		"description": "Drone grenade - pilot a drone toward enemies. Explodes RPG-style on contact or when hit by a bullet. Control returns after explosion.",
+		"desc_key": "GRENADE_DRONE_DESC"
 	}
 }
 
