@@ -2312,10 +2312,7 @@ func _process_searching_state(delta: float) -> void:
 		_transition_to_idle()
 		return
 	if _can_see_player:
-		# Issue #1744: Pacifist enemies must not resume COMBAT from SEARCHING
-		if _pacifist and _pacifist.is_pacifist:
-			_log_to_file("SEARCHING: Player spotted but enemy is pacifist — staying in SEARCHING (Issue #1744)")
-			return
+		if _pacifist and _pacifist.is_pacifist: _log_to_file("SEARCHING: pacifist ignores player (Issue #1744)"); return  # #1744
 		_log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
 		_transition_to_combat()
 		return
@@ -3718,11 +3715,9 @@ func reset_memory() -> void:
 		# Enemies that never left IDLE (e.g. received intel via ally-share only) must not enter
 		# SEARCHING on teleport — they have never personally seen or heard the player.
 		if _has_left_idle:
-			# Issue #1744: Pacifist enemies must not enter SEARCHING — keep them pacifist
-			if _pacifist and _pacifist.is_pacifist:
-				_log_to_file("Memory reset: %s stays PACIFIST (not entering SEARCHING) (Issue #1744)" % AIState.keys()[_current_state])
-				if _memory != null: _memory.reset()
-				_last_known_player_position = Vector2.ZERO
+			if _pacifist and _pacifist.is_pacifist:  # #1744: stay pacifist, don't enter SEARCHING
+				_log_to_file("Memory reset: %s stays PACIFIST (Issue #1744)" % AIState.keys()[_current_state])
+				if _memory != null: _memory.reset(); _last_known_player_position = Vector2.ZERO
 			else:
 				# Set LOW confidence (0.35) - puts enemy in search mode at old position
 				if _memory != null:
