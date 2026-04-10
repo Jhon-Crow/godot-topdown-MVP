@@ -35,6 +35,13 @@ public static class BreakerDetonation
     public const float ShrapnelHalfAngle = 45.0f;
 
     /// <summary>
+    /// Minimum travel distance (pixels) before the enemy-cone proximity fuse can trigger (Issue #1634).
+    /// Prevents immediate detonation when enemies are within the cone at the moment of firing.
+    /// The wall check is still active from spawn — only the enemy cone is gated.
+    /// </summary>
+    public const float ArmingDistance = 40.0f;
+
+    /// <summary>
     /// Damage per breaker shrapnel piece.
     /// </summary>
     public const float ShrapnelDamage = 0.1f;
@@ -92,6 +99,7 @@ public static class BreakerDetonation
     /// <param name="damageMultiplier">Damage multiplier (e.g., from ricochets).</param>
     /// <param name="shooterId">Instance ID of the shooter (to prevent self-damage).</param>
     /// <param name="isPenetrating">Whether the bullet is currently penetrating a wall.</param>
+    /// <param name="distanceTraveled">Distance the bullet has traveled since spawn (for arming).</param>
     /// <returns>True if detonation occurred, false otherwise.</returns>
     public static bool CheckAndDetonate(
         Area2D projectile,
@@ -99,7 +107,8 @@ public static class BreakerDetonation
         float damage,
         float damageMultiplier,
         ulong shooterId,
-        bool isPenetrating)
+        bool isPenetrating,
+        float distanceTraveled = 0.0f)
     {
         // Don't detonate while penetrating a wall
         if (isPenetrating)
@@ -134,12 +143,14 @@ public static class BreakerDetonation
         }
 
         // 2. Cone sector check for enemies (Issue #1634).
-        // Detonate when an alive enemy is inside the shrapnel cone sector:
-        // distance <= DetonationDistance AND angle from bullet direction <= ShrapnelHalfAngle.
-        // Optimization: dot product comparison avoids acos.
-        if (CheckEnemyInShrapnelCone(projectile, direction, damage, damageMultiplier, shooterId))
+        // Gated by arming distance: the enemy-cone fuse only activates after ArmingDistance pixels,
+        // preventing immediate detonation when enemies are close to the player at fire time.
+        if (distanceTraveled >= ArmingDistance)
         {
-            return true;
+            if (CheckEnemyInShrapnelCone(projectile, direction, damage, damageMultiplier, shooterId))
+            {
+                return true;
+            }
         }
 
         return false;

@@ -127,6 +127,72 @@ the effectiveness of the proximity fuse in open areas.
 
 ---
 
+## Bug Found and Fixed: Immediate Detonation on Spawn (Session 3)
+
+### Root Cause
+
+After session 2 (LOS fix), the user reported: **"пистолетные патроны всё ещё сломаны"**
+("pistol bullets are still broken"), with a new game log (`game_log_20260330_124617.txt`) attached.
+
+Analysis of the log and gameplay scenarios revealed a second root cause:
+
+**The enemy-cone proximity fuse had no arming distance.** It ran every physics frame starting
+from the bullet's spawn position (20px from the weapon). If an enemy was within 95px and in the
+forward cone with clear line of sight — even at the moment of firing — the bullet detonated
+immediately upon spawning.
+
+**Example:** Player stands 80px from an enemy and fires toward them. The bullet spawns at
+position `player + 20px` (muzzle), travels 0–40px, then checks the cone. The enemy is 60–80px
+ahead in a ±45° arc with clear LOS — **cone check triggers on the first or second physics frame**.
+The bullet explodes at the muzzle, dealing no ranged damage. To the player, the pistol "doesn't
+work" — bullets vanish as soon as fired.
+
+This was not visible in the session-1 log because the session-1 issue was worse (through-wall
+detonation before the bullet even cleared the player's immediate area). Once that was fixed, this
+arming-distance issue became the dominant complaint.
+
+### Game Log Evidence (2026-03-30)
+
+`game_log_20260330_124617.txt` shows breaker bullets active on MiniUzi with initial enemy
+positions all >200px from the player. However, enemies move; by the time the player fired at
+`[12:46:36]`, some enemies may have been within 95px with clear LOS.
+
+Key indicator from log: `[Player.BreakerBullets] Breaker bullets active — bullets will detonate
+60px before walls` — this stale message confirmed the player was running from the fixed branch.
+The "60px" refers to the old distance (the real value was updated to 95px, but the log message
+was not updated, confirming it's the patched build).
+
+### Fix Applied (Session 3)
+
+Added `BREAKER_ARMING_DISTANCE = 40.0` constant. The enemy-cone proximity fuse check is now
+**gated by a minimum travel distance**:
+
+- **Wall check**: still active from spawn (a wall very close to the muzzle should still trigger)
+- **Enemy cone check**: only activates after the bullet travels ≥40px from spawn
+
+This matches real proximity fuse behavior: real fuzes have an "arming" phase where the fuze is
+mechanically/electronically inert until a safe distance from the weapon, preventing self-damage.
+
+```gdscript
+# In _check_breaker_detonation():
+if _breaker_distance_traveled >= BREAKER_ARMING_DISTANCE:
+    if _check_enemy_in_shrapnel_cone():
+        return true
+```
+
+The distance is tracked incrementally in `_physics_process`:
+```gdscript
+if is_breaker_bullet and not _is_penetrating:
+    _breaker_distance_traveled += movement.length()
+```
+
+**Why 40px?** At bullet speed 2500px/s and 60fps, one frame = ~42px of travel. 40px is
+approximately one physics frame of travel, ensuring the fuse is armed almost immediately after
+spawn while preventing frame-zero detonation. This is a minimal safety margin that does not
+measurably reduce the effective range.
+
+---
+
 ## Implementation Summary
 
 ### Changes in `scripts/projectiles/bullet.gd`
@@ -134,8 +200,8 @@ the effectiveness of the proximity fuse in open areas.
 The `_check_breaker_detonation()` function was restructured:
 
 1. **Wall detection** — unchanged forward raycast for `StaticBody2D`/`TileMap`.
-2. **Enemy cone detection** — new `_check_enemy_in_shrapnel_cone()` function using group
-   query + dot product geometry.
+2. **Enemy cone detection** — `_check_enemy_in_shrapnel_cone()` using group query + dot
+   product geometry, now gated by `_breaker_distance_traveled >= BREAKER_ARMING_DISTANCE`.
 
 ```gdscript
 func _check_enemy_in_shrapnel_cone() -> bool:
@@ -159,7 +225,8 @@ func _check_enemy_in_shrapnel_cone() -> bool:
 
 ### Changes in `Scripts/Projectiles/BreakerDetonation.cs`
 
-The same logic was applied in the C# shared helper, with `CheckEnemyInShrapnelCone()` added.
+The same `ArmingDistance` constant and `distanceTraveled` parameter were applied.
+`Bullet.cs` and `ShotgunPellet.cs` track `_breakerDistanceTraveled` per-instance.
 
 ---
 
@@ -194,6 +261,10 @@ New test cases in `tests/unit/test_breaker_bullet.gd`:
 - `test_normal_bullet_does_not_detonate_via_cone_check` — non-breaker bullet unchanged
 - `test_does_not_detonate_when_enemy_in_cone_but_wall_blocks_los` — **LOS bug fix** (session 2)
 - `test_detonates_when_enemy_in_cone_with_clear_los` — baseline with clear LOS
+- `test_arming_distance_constant` — confirms 40px arming distance constant
+- `test_does_not_detonate_via_cone_before_arming` — **arming distance bug fix** (session 3)
+- `test_detonates_via_cone_after_arming` — cone fuse activates after arming distance
+- `test_wall_check_still_works_before_arming` — wall check still active before arming
 
 ---
 

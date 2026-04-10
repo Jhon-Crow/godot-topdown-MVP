@@ -274,8 +274,16 @@ const BREAKER_SHRAPNEL_COUNT_MULTIPLIER: float = 10.0
 ## Breaker shrapnel scene path.
 const BREAKER_SHRAPNEL_SCENE_PATH: String = "res://scenes/projectiles/BreakerShrapnel.tscn"
 
+## Minimum travel distance (pixels) before the enemy-cone proximity fuse can trigger (Issue #1634).
+## Prevents immediate detonation when enemies are within the cone at the moment of firing.
+## The wall check is still active from spawn — only the enemy cone is gated.
+const BREAKER_ARMING_DISTANCE: float = 40.0
+
 ## Cached breaker shrapnel scene (loaded once).
 var _breaker_shrapnel_scene: PackedScene = null
+
+## Distance traveled since spawn (used to arm the enemy-cone fuse after BREAKER_ARMING_DISTANCE).
+var _breaker_distance_traveled: float = 0.0
 
 ## Enable/disable debug logging for breaker bullet behavior.
 var _debug_breaker: bool = false
@@ -444,6 +452,10 @@ func _physics_process(delta: float) -> void:
 		# Note: body_exited signal also triggers _exit_penetration for reliability
 		if not _is_still_inside_obstacle():
 			_exit_penetration()
+
+	# Track distance traveled for breaker arming (Issue #1634)
+	if is_breaker_bullet and not _is_penetrating:
+		_breaker_distance_traveled += movement.length()
 
 	# Check for breaker detonation (raycast ahead for walls)
 	if is_breaker_bullet and not _is_penetrating:
@@ -1605,9 +1617,11 @@ func _check_breaker_detonation() -> bool:
 	# 2. Cone sector check for enemies (Issue #1634).
 	# Detonate when an alive enemy is inside the shrapnel cone sector:
 	# distance <= BREAKER_DETONATION_DISTANCE AND angle from bullet direction <= BREAKER_SHRAPNEL_HALF_ANGLE.
-	# This is a simple geometric check — no additional physics queries needed.
-	if _check_enemy_in_shrapnel_cone():
-		return true
+	# Gated by arming distance: the enemy-cone fuse only activates after the bullet has traveled
+	# BREAKER_ARMING_DISTANCE pixels, preventing immediate detonation when enemies are close to the player.
+	if _breaker_distance_traveled >= BREAKER_ARMING_DISTANCE:
+		if _check_enemy_in_shrapnel_cone():
+			return true
 
 	return false  # Nothing triggering detonation
 

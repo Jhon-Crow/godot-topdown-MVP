@@ -1512,7 +1512,7 @@ public partial class Player
         }
 
         _breakerBulletsActive = true;
-        LogToFile("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls");
+        LogToFile("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 95px before walls, with enemy proximity fuse (40px arming distance)");
 
         // Set breaker bullet flag on current weapon so all spawned bullets get the flag
         if (CurrentWeapon != null)

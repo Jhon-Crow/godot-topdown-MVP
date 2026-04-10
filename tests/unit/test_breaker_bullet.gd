@@ -30,6 +30,8 @@ class MockBreakerBullet:
 	const BREAKER_SHRAPNEL_DAMAGE: float = 0.1
 	const BREAKER_SHRAPNEL_COUNT_MULTIPLIER: float = 10.0
 	const BREAKER_MAX_SHRAPNEL_PER_DETONATION: int = 10
+	## Minimum travel distance before enemy-cone fuse arms (Issue #1634 arming fix).
+	const BREAKER_ARMING_DISTANCE: float = 40.0
 
 	## Position simulation.
 	var global_position: Vector2 = Vector2.ZERO
@@ -59,11 +61,16 @@ class MockBreakerBullet:
 	## Simulate cone sector check: returns true and detonates if enemy_pos is
 	## within the shrapnel cone sector (distance <= BREAKER_DETONATION_DISTANCE
 	## AND angle from direction <= BREAKER_SHRAPNEL_HALF_ANGLE)
-	## AND line of sight is not blocked (has_line_of_sight = true, default).
+	## AND line of sight is not blocked (has_line_of_sight = true, default)
+	## AND distance_traveled >= BREAKER_ARMING_DISTANCE (Issue #1634 arming fix).
 	## Pass Vector2.INF (or a position outside range/cone) to simulate no enemy.
-	## Pass has_line_of_sight=false to simulate a wall between bullet and enemy (Issue #1634 fix).
-	func check_enemy_in_shrapnel_cone(enemy_pos: Vector2, has_line_of_sight: bool = true) -> bool:
+	## Pass has_line_of_sight=false to simulate a wall between bullet and enemy.
+	## Pass distance_traveled < BREAKER_ARMING_DISTANCE to simulate unarmed fuse.
+	func check_enemy_in_shrapnel_cone(enemy_pos: Vector2, has_line_of_sight: bool = true, distance_traveled: float = BREAKER_ARMING_DISTANCE) -> bool:
 		if not is_breaker_bullet:
+			return false
+		# Arming distance guard: cone fuse only triggers after bullet travels BREAKER_ARMING_DISTANCE
+		if distance_traveled < BREAKER_ARMING_DISTANCE:
 			return false
 		var cos_half_angle := cos(deg_to_rad(BREAKER_SHRAPNEL_HALF_ANGLE))
 		var to_enemy := enemy_pos - global_position
@@ -630,4 +637,54 @@ func test_detonates_when_enemy_in_cone_with_clear_los() -> void:
 	var result := bullet.check_enemy_in_shrapnel_cone(enemy_pos, true)
 
 	assert_true(result, "Should detonate when enemy in cone with clear line of sight")
+	assert_true(bullet.has_detonated())
+
+
+# ============================================================================
+# Arming Distance Tests (Issue #1634 — prevents immediate detonation on spawn)
+# ============================================================================
+
+
+func test_arming_distance_constant() -> void:
+	assert_eq(MockBreakerBullet.BREAKER_ARMING_DISTANCE, 40.0,
+		"Arming distance should be 40px")
+
+
+func test_does_not_detonate_via_cone_before_arming() -> void:
+	# Root cause of 'pistol bullets still broken': enemy within 95px in cone at fire time
+	# caused immediate detonation even with LOS check. Arming distance prevents this.
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+	var enemy_pos := Vector2(50.0, 0.0)  # In cone, within range, clear LOS
+
+	# Bullet has not yet traveled the arming distance (just spawned)
+	var result := bullet.check_enemy_in_shrapnel_cone(enemy_pos, true, 0.0)
+
+	assert_false(result, "Should NOT detonate via cone when bullet has not traveled arming distance yet")
+	assert_false(bullet.has_detonated())
+
+
+func test_detonates_via_cone_after_arming() -> void:
+	# After traveling >= BREAKER_ARMING_DISTANCE, the cone fuse activates normally.
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+	var enemy_pos := Vector2(50.0, 0.0)  # In cone, within range, clear LOS
+
+	# Bullet has traveled exactly the arming distance
+	var result := bullet.check_enemy_in_shrapnel_cone(enemy_pos, true, MockBreakerBullet.BREAKER_ARMING_DISTANCE)
+
+	assert_true(result, "Should detonate via cone after bullet has traveled the arming distance")
+	assert_true(bullet.has_detonated())
+
+
+func test_wall_check_still_works_before_arming() -> void:
+	# The wall check (straight raycast) must still trigger even before arming.
+	# Only the enemy-cone check is gated by arming distance.
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+
+	# Wall at 30px — should still detonate regardless of arming
+	var result := bullet.check_breaker_detonation(30.0)
+
+	assert_true(result, "Wall check should still trigger before arming distance is reached")
 	assert_true(bullet.has_detonated())

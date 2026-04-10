@@ -3660,7 +3660,7 @@ func _init_breaker_bullets() -> void:
 		return
 
 	_breaker_bullets_active = true
-	FileLogger.info("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls")
+	FileLogger.info("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 95px before walls, with enemy proximity fuse (40px arming distance)")
 
 # Force Field (Issue #676)
 ## Whether force field is equipped.
