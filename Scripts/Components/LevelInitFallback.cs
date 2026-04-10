@@ -93,6 +93,11 @@ public partial class LevelInitFallback : Node
     private Label? _magazinesLabel;
 
     /// <summary>
+    /// Combo label for UI (Issue #1751: shows current combo count).
+    /// </summary>
+    private Label? _comboLabel;
+
+    /// <summary>
     /// Revolver cylinder HUD display (Issue #691).
     /// Shows 5 cylinder slots with color-coded active chamber.
     /// </summary>
@@ -527,7 +532,51 @@ public partial class LevelInitFallback : Node
         if (_player != null && scoreManager.HasMethod("set_player"))
             scoreManager.Call("set_player", _player);
 
+        // Issue #1751: Connect to combo_changed signal to update the combo label.
+        if (scoreManager.HasSignal("combo_changed") &&
+            !scoreManager.IsConnected("combo_changed", new Callable(this, MethodName.OnComboChanged)))
+        {
+            scoreManager.Connect("combo_changed", new Callable(this, MethodName.OnComboChanged));
+        }
+
         LogToFile($"ScoreManager initialized with {_initialEnemyCount} enemies");
+    }
+
+    /// <summary>
+    /// Called when the combo count changes (Issue #1751).
+    /// Updates the combo label in the HUD.
+    /// </summary>
+    private void OnComboChanged(int combo, int points)
+    {
+        if (_comboLabel == null) return;
+        if (combo > 0)
+        {
+            _comboLabel.Text = $"x{combo} COMBO (+{points})";
+            _comboLabel.Visible = true;
+            _comboLabel.AddThemeColorOverride("font_color", GetComboColor(combo));
+            _comboLabel.Modulate = Colors.White;
+            var tween = CreateTween();
+            tween.TweenProperty(_comboLabel, "modulate", Colors.White, 0.1);
+        }
+        else
+        {
+            _comboLabel.Visible = false;
+        }
+    }
+
+    /// <summary>
+    /// Returns a color based on the current combo count (Issue #1751).
+    /// Matches the color scheme used by GDScript level scripts.
+    /// </summary>
+    private static Color GetComboColor(int combo)
+    {
+        if (combo >= 10) return new Color(1.0f, 0.0f, 1.0f, 1.0f);   // Magenta - extreme
+        if (combo >= 7)  return new Color(1.0f, 0.3f, 0.0f, 1.0f);   // Deep orange
+        if (combo >= 5)  return new Color(1.0f, 0.5f, 0.0f, 1.0f);   // Orange
+        if (combo >= 4)  return new Color(1.0f, 0.7f, 0.0f, 1.0f);   // Amber
+        if (combo >= 3)  return new Color(1.0f, 0.8f, 0.0f, 1.0f);   // Yellow-orange
+        if (combo >= 2)  return new Color(1.0f, 0.9f, 0.1f, 1.0f);   // Yellow
+        return new Color(1.0f, 0.8f, 0.2f, 1.0f);                     // Gold (combo 1)
     }
 
     /// <summary>
@@ -566,6 +615,22 @@ public partial class LevelInitFallback : Node
         _magazinesLabel.OffsetRight = 400;
         _magazinesLabel.OffsetBottom = 145;
         ui.AddChild(_magazinesLabel);
+
+        // Issue #1751: Create combo label to show current combo count.
+        // Matches GDScript level scripts: top-right anchored, 340px wide, gold color.
+        _comboLabel = new Label();
+        _comboLabel.Name = "ComboLabel";
+        _comboLabel.Text = "";
+        _comboLabel.HorizontalAlignment = HorizontalAlignment.Right;
+        _comboLabel.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+        _comboLabel.OffsetLeft = -350;
+        _comboLabel.OffsetRight = -10;
+        _comboLabel.OffsetTop = 80;
+        _comboLabel.OffsetBottom = 120;
+        _comboLabel.AddThemeFontSizeOverride("font_size", 28);
+        _comboLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.8f, 0.2f, 1.0f));
+        _comboLabel.Visible = false;
+        ui.AddChild(_comboLabel);
     }
 
     /// <summary>
