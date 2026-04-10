@@ -254,6 +254,30 @@ func test_format_magazines_no_capacity_info_treats_as_partial() -> void:
 	assert_eq(result, "MAGS: [30] | 25 | 10", "Without capacity info, all non-empty spares shown individually")
 
 
+func test_format_magazines_mini_uzi_full_spares() -> void:
+	# MiniUzi has 32-round magazines — 4 full spares should be abbreviated
+	var result := helper.format_magazines_label([32, 32, 32, 32, 32], [32, 32, 32, 32, 32])
+	assert_eq(result, "MAGS: [32] | + x4", "MiniUzi: 4 full spares should abbreviate to + x4")
+
+
+func test_format_magazines_silenced_pistol_partial_spare() -> void:
+	# SilencedPistol has 13-round magazines — partial spare shown individually
+	var result := helper.format_magazines_label([13, 7, 13, 13], [13, 13, 13, 13])
+	assert_eq(result, "MAGS: [13] | 7 | + x2", "SilencedPistol: partial shown, full spares abbreviated")
+
+
+func test_format_magazines_sniper_rifle_one_spare() -> void:
+	# ASVK (SniperRifle) has 5-round magazines — 1 spare shown as + x1
+	var result := helper.format_magazines_label([5, 5], [5, 5])
+	assert_eq(result, "MAGS: [5] | + x1", "ASVK: 1 full spare should abbreviate to + x1")
+
+
+func test_format_magazines_sniper_rifle_partial_spare() -> void:
+	# ASVK with partial spare (3/5) should show it individually
+	var result := helper.format_magazines_label([5, 3], [5, 5])
+	assert_eq(result, "MAGS: [5] | 3", "ASVK: partial spare shown individually")
+
+
 # ============================================================================
 # Enemy Count Format Tests
 # ============================================================================

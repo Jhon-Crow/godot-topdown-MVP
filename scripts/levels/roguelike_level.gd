@@ -3274,6 +3274,9 @@ func _update_magazines_label(mag_counts: Array) -> void:
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
 		_magazines_label.visible = false
 		return
+	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+		_magazines_label.visible = false
+		return
 	_magazines_label.visible = true
 	if mag_counts.is_empty():
 		_magazines_label.text = "MAGS: -"

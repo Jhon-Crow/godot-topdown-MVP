@@ -437,7 +437,7 @@ visible.
 
 ---
 
-## Updated Summary Table
+## Updated Summary Table (after Round 2 fix)
 
 | Cause | Impact | Confidence | Fix Complexity | Status |
 |-------|--------|-----------|----------------|--------|
@@ -446,3 +446,119 @@ visible.
 | Full spare magazines shown individually up to 6 | Up to 6 identical full-mag entries waste space | High | Low | ✅ Fixed in PR #1773 (round 2) |
 | Partial spares hidden inside `+ xN` counter | Player cannot see remaining partial ammo | High | Medium | ✅ Fixed in PR #1773 (round 2) |
 | Fix not yet in released build | Reporter cannot verify the fix in their executable | High | N/A | ⏳ Pending PR merge |
+
+---
+
+## Round 3 Feedback (2026-04-10) — New Game Log & Additional Requirements
+
+After the round 2 fix was committed, the reporter (Jhon-Crow) provided a third
+game log (`game_log_20260410_023525.txt`) recorded on **2026-04-10 at 02:35:25**
+and added two more issues:
+
+### New Issue 1: Fix "doesn't work" for UZI, silenced pistol, ASVK (SniperRifle)
+
+> "не работает для uzi, пистолете с глушителем, ASVK"
+> 
+> Translation: "doesn't work for uzi, pistol with silencer, ASVK"
+
+**Root cause identified:**
+
+The weapon lookup inside `_update_magazines_label()` was incomplete in most
+level scripts. The function looked up weapon nodes to call `GetMagazineMaxCounts()`
+for distinguishing full vs partial magazines. The lookup chain was:
+
+```gdscript
+weapon = _player.get_node_or_null("Shotgun")
+if weapon == null: weapon = _player.get_node_or_null("AssaultRifle")
+if weapon == null: weapon = _player.get_node_or_null("AKGL")
+if weapon == null: weapon = _player.get_node_or_null("Revolver")
+if weapon == null: weapon = _player.get_node_or_null("MakarovPM")
+```
+
+Missing: **MiniUzi, SilencedPistol, SniperRifle**
+
+When any of these three weapons was equipped:
+- `weapon` resolved to `null`
+- `GetMagazineMaxCounts()` was never called
+- `mag_max_counts` was empty
+- Every spare magazine fell into the "partial" branch: `cap = 0`, so
+  `cap > 0 and ammo >= cap` was always false
+- All spares were shown individually (old broken behaviour) instead of
+  abbreviated as `+ xN`
+
+**Additional bug in `revolver_level.gd`:** The round 2 fix introduced `if weapon
+!= null and weapon.has_method("GetMagazineMaxCounts")` but `weapon` was not
+defined as a local variable or class-level variable in the `_update_magazines_label`
+function of `revolver_level.gd`. GDScript would treat it as `null`, silently
+disabling the capacity lookup in that level.
+
+**Fix (round 3):** Added MiniUzi, SilencedPistol, and SniperRifle to the weapon
+lookup chain in all 15 level scripts. Fixed `revolver_level.gd` to use a proper
+local weapon lookup loop.
+
+### New Issue 2: Revolver should not show MAGS counter (Issue #1750)
+
+> "так же не должно быть подсчёта магазинов у револьвера (подробнее тут
+> https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1750)"
+> 
+> Translation: "also, revolver should not have magazine counter (see #1750)"
+
+**Issue #1750 context:** The revolver uses a 5-round cylinder instead of detachable
+magazines. It already has a dedicated cylinder HUD (`RevolverCylinderUI`). Showing
+an additional `MAGS:` label alongside the cylinder UI is confusing and incorrect —
+the revolver has no spare magazines in the traditional sense.
+
+**Root cause:** The `_update_magazines_label()` function checked for `UsesTubeMagazine`
+(shotgun) to hide the label, but had no equivalent check for the revolver. The
+revolver's `MagazineInventory` is used internally (each "magazine" represents one
+cylinder load), so `GetMagazineAmmoCounts()` returns non-empty data, causing the
+label to appear.
+
+**Fix (round 3):** After the `UsesTubeMagazine` check, added a check for the
+revolver's unique `CylinderStateChanged` signal:
+
+```gdscript
+if weapon != null and weapon.has_signal("CylinderStateChanged"):
+    _magazines_label.visible = false
+    return
+```
+
+The `CylinderStateChanged` signal is defined only on the `Revolver` C# class, so
+this detection is specific to revolvers without needing a type cast.
+
+---
+
+## Game Log Analysis (`game_log_20260410_023525.txt`)
+
+This log was recorded by the reporter on **2026-04-10 at 02:35:25** using the
+same **pre-fix** Windows executable (Engine 4.3-stable).
+
+Key observations:
+
+| Timestamp | Event | Significance |
+|-----------|-------|--------------|
+| `02:35:25` | LabyrinthLevel, weapon = ak_gl | Normal start |
+| `02:35:44` | MakarovPM equipped | Weapon switch via armory |
+| `02:35:51` | **Revolver equipped** (5/5) | Reporter testing revolver HUD |
+| `02:36:00` | Back to ak_gl | |
+| `02:36:46` | **SniperRifle (ASVK) equipped** | Reporter testing sniper HUD |
+
+The reporter switched to the revolver and sniper specifically to check whether
+those weapons were also affected. This confirms they were observing bugs in the
+pre-fix executable for UZI, silenced pistol, and ASVK — all of which share the
+same root cause (incomplete weapon lookup in `_update_magazines_label()`).
+
+---
+
+## Final Summary Table (after Round 3 fix)
+
+| Cause | Impact | Confidence | Fix Complexity | Status |
+|-------|--------|-----------|----------------|--------|
+| No zero-ammo filter in `_update_magazines_label()` | Empty `\| 0 \|` entries clutter HUD | High | Low | ✅ Fixed (round 1) |
+| No cap on spare magazine entries | Label overflows in Power Fantasy / high-ammo modes | High | Low | ✅ Fixed (round 1) |
+| Full spare magazines shown individually up to 6 | Up to 6 identical full-mag entries waste space | High | Low | ✅ Fixed (round 2) |
+| Partial spares hidden inside `+ xN` counter | Player cannot see remaining partial ammo | High | Medium | ✅ Fixed (round 2) |
+| Incomplete weapon lookup (missing MiniUzi, SilencedPistol, SniperRifle) | Full spares shown individually for those weapons | High | Low | ✅ Fixed (round 3) |
+| Undefined `weapon` variable in `revolver_level.gd` | GetMagazineMaxCounts never called in that level | High | Low | ✅ Fixed (round 3) |
+| Revolver shown in MAGS counter (should show cylinder HUD only) | Incorrect double HUD for revolver | High | Low | ✅ Fixed (round 3) |
+| Fix not yet in released build | Reporter verifying in pre-fix executable | High | N/A | ⏳ Pending PR merge |

@@ -841,6 +841,12 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		if weapon == null:
 			weapon = _player.get_node_or_null("AKGL")
 		if weapon == null:
+			weapon = _player.get_node_or_null("MiniUzi")
+		if weapon == null:
+			weapon = _player.get_node_or_null("SilencedPistol")
+		if weapon == null:
+			weapon = _player.get_node_or_null("SniperRifle")
+		if weapon == null:
 			weapon = _player.get_node_or_null("Revolver")
 		if weapon == null:
 			weapon = _player.get_node_or_null("MakarovPM")
@@ -848,8 +854,10 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
 		_magazines_label.visible = false
 		return
-	else:
-		_magazines_label.visible = true
+	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+		_magazines_label.visible = false
+		return
+	_magazines_label.visible = true
 
 	if magazine_ammo_counts.is_empty():
 		_magazines_label.text = "MAGS: -"
