@@ -308,7 +308,7 @@ public partial class Enemy : Area2D, IDamageable
     {
         EmitSignal(SignalName.Died);
 
-        // Trigger Power Fantasy kill effect (300ms last chance effect)
+        // Trigger Power Fantasy / Gunslinger kill effect (slow-motion effect on kill)
         var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
         if (powerFantasyManager != null && powerFantasyManager.HasMethod("on_enemy_killed"))
         {

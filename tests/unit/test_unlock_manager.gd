@@ -75,9 +75,9 @@ class MockActiveItemManager:
 		5: false,  # INVISIBILITY_SUIT — condition: Beach S + Building S (Issue #1000)
 		6: false,  # BREAKER_BULLETS — condition: 7 levels at rank A or higher (Issue #1589 req.3)
 		7: false,  # FORCE_FIELD — condition: complete Factory on any grade (Issue #1589 req.2)
-		8: false,  # TRAJECTORY_GLASSES — condition: City D+ (Issue #1053 req.1)
+		8: false,  # TRAJECTORY_GLASSES — condition: City F+ (Issue #1692 req.2)
 		9: false,  # LASER_SIGHT — condition: 400 kills without laser sight equipped (Issue #1196)
-		10: false, # EXTENDED_MAGAZINE — condition: Building B+ (Issue #1624 req.1)
+		10: false, # EXTENDED_MAGAZINE — condition: Double Corridor A+ (Issue #1692 req.1)
 		11: true,  # LOUDSPEAKER — no condition, freely available from start (Issue #959)
 		12: false, # BREACHING_CHARGES — condition: complete Labyrinth Complex (Issue #1624 req.6)
 		13: false, # ARMORED_SKIN — condition: 100 total deaths (Issue #1389)
@@ -169,10 +169,10 @@ class TestableUnlockManager extends Node:
 			"active_items": [3]  # TELEPORT_BRACERS
 		},
 		"res://scenes/levels/CityLevel.tscn": {
-			"min_rank": "D",
+			"min_rank": "F",
 			"weapons": [],
 			"grenades": [],
-			"active_items": [8]  # TRAJECTORY_GLASSES (Issue #1053 req.1)
+			"active_items": [8]  # TRAJECTORY_GLASSES (Issue #1692 req.2)
 		},
 		"res://scenes/levels/BeachLevel.tscn": {
 			"min_rank": "D",
@@ -204,11 +204,11 @@ class TestableUnlockManager extends Node:
 			"grenades": [],
 			"active_items": [16]  # RECOIL_COMPENSATOR (Issue #1423 req.2)
 		},
-		"res://scenes/levels/BuildingLevel.tscn:B": {
-			"min_rank": "B",
+		"res://scenes/levels/RevolverLevel.tscn:A": {
+			"min_rank": "A",
 			"weapons": [],
 			"grenades": [],
-			"active_items": [10]  # EXTENDED_MAGAZINE (Issue #1624 req.1)
+			"active_items": [10]  # EXTENDED_MAGAZINE (Issue #1692 req.1)
 		},
 		"res://scenes/levels/DecadenceLevel.tscn:A+": {
 			"min_rank": "A+",
@@ -412,7 +412,7 @@ class TestableUnlockManager extends Node:
 		return true
 
 	func _get_all_difficulty_names() -> Array[String]:
-		return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
+		return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal", "Gunslinger"]
 
 	func is_all_difficulties_condition_met() -> bool:
 		if mock_progress_manager == null:
@@ -844,17 +844,18 @@ func test_teleport_not_unlocked_by_castle_alone() -> void:
 		"Teleport Bracers should NOT be unlocked by Castle completion alone (moved to Double Corridor)")
 
 
-func test_city_d_unlocks_trajectory_glasses() -> void:
-	# Issue #1053 req.1: City D+ → Trajectory Glasses
+func test_city_f_unlocks_trajectory_glasses() -> void:
+	# Issue #1692 req.2: City F+ → Trajectory Glasses (any completion)
+	progress_manager.set_rank("res://scenes/levels/CityLevel.tscn", "Normal", "F")
+	assert_true(unlock_manager.is_active_item_condition_met(8),
+		"Trajectory Glasses condition should be met after City grade F (Issue #1692)")
+
+
+func test_city_d_also_unlocks_trajectory_glasses() -> void:
+	# Issue #1692 req.2: City D+ → Trajectory Glasses (D is higher than F)
 	progress_manager.set_rank("res://scenes/levels/CityLevel.tscn", "Normal", "D")
 	assert_true(unlock_manager.is_active_item_condition_met(8),
-		"Trajectory Glasses condition should be met after City grade D (Issue #1053)")
-
-
-func test_city_f_does_not_unlock_trajectory_glasses() -> void:
-	progress_manager.set_rank("res://scenes/levels/CityLevel.tscn", "Normal", "F")
-	assert_false(unlock_manager.is_active_item_condition_met(8),
-		"Trajectory Glasses condition should NOT be met with City grade F (requires D+)")
+		"Trajectory Glasses condition should also be met after City grade D (Issue #1692)")
 
 
 func test_beach_d_unlocks_m16() -> void:
@@ -1035,6 +1036,39 @@ func test_teleport_condition_met_after_double_corridor_d() -> void:
 	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "D")
 	assert_true(unlock_manager.is_active_item_condition_met(3),  # TELEPORT_BRACERS = 3
 		"Teleport Bracers condition should be met after Double Corridor (RevolverLevel) grade D")
+
+
+# ============================================================================
+# New unlock condition tests (Issue #1692)
+# ============================================================================
+
+
+func test_double_corridor_a_unlocks_extended_magazine() -> void:
+	# Issue #1692 req.1: Double Corridor A+ → Extended Magazine
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "A")
+	assert_true(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
+		"Extended Magazine condition should be met after Double Corridor grade A (Issue #1692)")
+
+
+func test_double_corridor_s_unlocks_extended_magazine() -> void:
+	# Issue #1692 req.1: Double Corridor S also satisfies the A+ condition
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "S")
+	assert_true(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
+		"Extended Magazine condition should be met after Double Corridor grade S (Issue #1692)")
+
+
+func test_double_corridor_b_does_not_unlock_extended_magazine() -> void:
+	# Issue #1692 req.1: Double Corridor B is below A, should NOT unlock Extended Magazine
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "B")
+	assert_false(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
+		"Extended Magazine should NOT be unlocked with Double Corridor grade B (requires A+)")
+
+
+func test_extended_magazine_not_unlocked_without_double_corridor() -> void:
+	# Issue #1692 req.1: Extended Magazine requires Double Corridor, not Building
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "S")
+	assert_false(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
+		"Extended Magazine should NOT be unlocked by Building completion (moved to Double Corridor in Issue #1692)")
 
 
 # ============================================================================
@@ -1412,68 +1446,73 @@ func test_all_difficulties_condition_not_met_when_only_some_difficulties() -> vo
 		"All-difficulties condition should not be met when only 2 of 5 difficulties have progress")
 
 
-func test_all_difficulties_condition_met_when_all_five_difficulties_have_progress() -> void:
-	# Complete one level on each of the 5 difficulties (can be different levels)
+func test_all_difficulties_condition_met_when_all_six_difficulties_have_progress() -> void:
+	# Complete one level on each of the 6 difficulties (can be different levels)
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
 	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
 	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
 	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
 	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Black Metal", "D")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Gunslinger", "D")
 	assert_true(unlock_manager.is_all_difficulties_condition_met(),
 		"All-difficulties condition should be met when at least one level completed on each difficulty")
 
 
 func test_all_difficulties_condition_met_with_same_level_on_all_difficulties() -> void:
-	# Same level completed on every difficulty
+	# Same level completed on every difficulty (including Gunslinger - Issue #1732)
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "S")
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "A")
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Hard", "B")
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Power Fantasy", "C")
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Black Metal", "D")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Gunslinger", "D")
 	assert_true(unlock_manager.is_all_difficulties_condition_met(),
 		"All-difficulties condition should be met when same level completed on all difficulties")
 
 
 func test_experimental_sample_active_item_condition_met_when_all_difficulties_complete() -> void:
-	# Complete one level on each difficulty — EXPERIMENTAL_SAMPLE (type 18) condition should be met
+	# Complete one level on each difficulty (including Gunslinger) — EXPERIMENTAL_SAMPLE (type 18) condition should be met
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
 	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
 	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
 	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
 	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Black Metal", "D")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Gunslinger", "D")
 	assert_true(unlock_manager.is_active_item_condition_met(18),
 		"EXPERIMENTAL_SAMPLE condition should be met when all difficulties have progress (Issue #1426)")
 
 
 func test_experimental_sample_condition_not_met_before_all_difficulties() -> void:
-	# Only 4 difficulties — condition not met yet
+	# Only 4 difficulties — condition not met yet (missing Black Metal and Gunslinger)
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
 	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
 	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
 	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
-	# Missing Black Metal
+	# Missing Black Metal and Gunslinger
 	assert_false(unlock_manager.is_active_item_condition_met(18),
 		"EXPERIMENTAL_SAMPLE condition should NOT be met when Black Metal difficulty is missing (Issue #1426)")
 
 
 func test_has_available_unlock_when_all_difficulties_condition_met() -> void:
-	# Complete one level on each difficulty — Experimental Sample should appear as available
+	# Complete one level on each difficulty (including Gunslinger) — Experimental Sample should appear as available
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
 	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
 	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
 	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
 	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Black Metal", "D")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Gunslinger", "D")
 	assert_true(unlock_manager.has_any_available_unlock(),
 		"has_any_available_unlock should return true when Experimental Sample is unlockable (Issue #1426)")
 
 
 func test_experimental_sample_stays_unlocked_after_restart_when_condition_met() -> void:
-	# Simulate saved state: all difficulties done and EXPERIMENTAL_SAMPLE (18) already unlocked
+	# Simulate saved state: all difficulties done (including Gunslinger) and EXPERIMENTAL_SAMPLE (18) already unlocked
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
 	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
 	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
 	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
 	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Black Metal", "D")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Gunslinger", "D")
 	active_item_manager.unlocked_active_items[18] = true  # Saved as unlocked
 
 	unlock_manager.reset_and_apply_all_unlocks()
@@ -1491,6 +1530,35 @@ func test_experimental_sample_stays_locked_after_restart_when_condition_not_met(
 
 	assert_false(active_item_manager.is_active_item_unlocked(18),
 		"EXPERIMENTAL_SAMPLE should be locked — all-difficulties condition not met, treating save as corrupt (Issue #1426)")
+
+
+func test_experimental_sample_condition_not_met_when_gunslinger_missing() -> void:
+	# Issue #1732: Gunslinger difficulty must be counted for Experimental Sample unlock
+	# Having all 5 original difficulties but missing Gunslinger should NOT meet the condition
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
+	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Black Metal", "D")
+	# Missing Gunslinger
+	assert_false(unlock_manager.is_all_difficulties_condition_met(),
+		"All-difficulties condition should NOT be met when Gunslinger is missing (Issue #1732)")
+	assert_false(unlock_manager.is_active_item_condition_met(18),
+		"EXPERIMENTAL_SAMPLE should NOT unlock when Gunslinger difficulty is missing (Issue #1732)")
+
+
+func test_experimental_sample_condition_met_when_gunslinger_included() -> void:
+	# Issue #1732: Adding a Gunslinger run satisfies the all-difficulties condition
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Hard", "F")
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Power Fantasy", "C")
+	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Black Metal", "D")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Gunslinger", "F")
+	assert_true(unlock_manager.is_all_difficulties_condition_met(),
+		"All-difficulties condition should be met once Gunslinger is also completed (Issue #1732)")
+	assert_true(unlock_manager.is_active_item_condition_met(18),
+		"EXPERIMENTAL_SAMPLE should unlock once Gunslinger difficulty is completed (Issue #1732)")
 
 
 # ============================================================================

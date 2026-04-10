@@ -378,6 +378,17 @@ namespace GodotTopdown.Scripts.Projectiles
             // Note: Check TileMap for legacy Godot 4 and TileMapLayer for newer versions
             if (body is StaticBody2D || body is TileMap || body is TileMapLayer || body is CharacterBody2D)
             {
+                // Issue #1746: Do not trigger on dead enemies — grenade should pass through corpses.
+                // Check is_alive() before exploding to mirror the GDScript vog_grenade.gd guard.
+                if (body is CharacterBody2D)
+                {
+                    if (body.HasMethod("is_alive") && !body.Call("is_alive").AsBool())
+                    {
+                        LogToFile($"[GrenadeTimer] Impact with dead enemy {body.Name} - not triggering explosion (Issue #1746)");
+                        return;
+                    }
+                }
+
                 LogToFile($"[GrenadeTimer] Impact detected with {body.Name} - EXPLODING!");
                 Explode();
             }

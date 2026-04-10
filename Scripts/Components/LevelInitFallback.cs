@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 using GodotTopDownTemplate.Components;
 using GodotTopDownTemplate.Weapons;
@@ -93,6 +94,11 @@ public partial class LevelInitFallback : Node
     private Label? _magazinesLabel;
 
     /// <summary>
+    /// Combo label for UI (Issue #1751: shows current combo count).
+    /// </summary>
+    private Label? _comboLabel;
+
+    /// <summary>
     /// Revolver cylinder HUD display (Issue #691).
     /// Shows 5 cylinder slots with color-coded active chamber.
     /// </summary>
@@ -114,6 +120,12 @@ public partial class LevelInitFallback : Node
     {
         var parent = GetParent();
         if (parent == null) return;
+
+        // Apply camera limits for Building map only, regardless of whether GDScript ran.
+        // This is a safety net: the GDScript _configure_camera() may fail silently (Issue #1684).
+        // Guard: only run on BuildingLevel — other levels set their own camera limits (Issue #1684).
+        if (parent.Name == "BuildingLevel")
+            ConfigureBuildingCameraLimits();
 
         // Check if GDScript _ready() already ran by checking if it set up enemy tracking.
         // The GDScript sets _enemies array and connects died signals.
@@ -152,6 +164,47 @@ public partial class LevelInitFallback : Node
         LogToFile("GDScript _ready() did NOT execute - performing C# fallback initialization");
         _didInitialize = true;
         PerformFallbackInit();
+    }
+
+    /// <summary>
+    /// Set Camera2D limits for the Building map to prevent the camera from scrolling
+    /// past the right and bottom border walls into the void area (Issue #1684).
+    ///
+    /// This runs unconditionally — even when GDScript _ready() already ran — because
+    /// the GDScript _configure_camera() may fail silently if it cannot find Camera2D
+    /// on the player node at runtime.
+    ///
+    /// Wall geometry (from BuildingLevel.tscn):
+    ///   WallRight  position=(2480, 1064), half-w=16 → left edge  x=2464 → limit_right  = 2464
+    ///   WallBottom position=(1264, 2080), half-h=16 → top edge   y=2064 → limit_bottom = 2064
+    ///   WallLeft   position=(  48, 1064), half-w=16 → right edge x=64   → limit_left   = 64
+    ///   WallTop    position=(1264,   48), half-h=16 → bottom edge y=64  → limit_top    = 64
+    /// </summary>
+    private void ConfigureBuildingCameraLimits()
+    {
+        var levelRoot = GetParent();
+        if (levelRoot == null) return;
+
+        var player = levelRoot.GetNodeOrNull<Node2D>("Entities/Player");
+        if (player == null)
+        {
+            LogToFile("WARNING: ConfigureBuildingCameraLimits: Player not found at Entities/Player");
+            return;
+        }
+
+        var camera = player.GetNodeOrNull<Camera2D>("Camera2D");
+        if (camera == null)
+        {
+            LogToFile("WARNING: ConfigureBuildingCameraLimits: Camera2D not found on player");
+            return;
+        }
+
+        camera.LimitLeft   =   64;  // WallLeft right edge  (x=48+16)
+        camera.LimitTop    =   64;  // WallTop bottom edge  (y=48+16)
+        camera.LimitRight  = 2464;  // WallRight left edge  (x=2480-16)
+        camera.LimitBottom = 2064;  // WallBottom top edge  (y=2080-16)
+
+        LogToFile($"ConfigureBuildingCameraLimits: limits set — left={camera.LimitLeft} top={camera.LimitTop} right={camera.LimitRight} bottom={camera.LimitBottom} — Issue #1684");
     }
 
     /// <summary>
@@ -352,8 +405,19 @@ public partial class LevelInitFallback : Node
         // Configure silenced pistol ammo
         if (weapon.Name == "SilencedPistol" && weapon.HasMethod("ConfigureAmmoForEnemyCount"))
         {
-            weapon.Call("ConfigureAmmoForEnemyCount", _initialEnemyCount);
-            LogToFile($"Configured silenced pistol ammo for {_initialEnemyCount} enemies");
+            int enemyCount = _initialEnemyCount;
+            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+            if (difficultyManager != null && difficultyManager.HasMethod("get_ammo_multiplier"))
+            {
+                int multiplier = difficultyManager.Call("get_ammo_multiplier").AsInt32();
+                if (multiplier > 1)
+                {
+                    enemyCount *= multiplier;
+                    LogToFile($"Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by {multiplier}x");
+                }
+            }
+            weapon.Call("ConfigureAmmoForEnemyCount", enemyCount);
+            LogToFile($"Configured silenced pistol ammo for {enemyCount} enemies");
         }
 
         // BuildingLevel-specific ammo config: M16/AK+GL limited to 2 magazines (Issue #949, #1259)
@@ -469,7 +533,51 @@ public partial class LevelInitFallback : Node
         if (_player != null && scoreManager.HasMethod("set_player"))
             scoreManager.Call("set_player", _player);
 
+        // Issue #1751: Connect to combo_changed signal to update the combo label.
+        if (scoreManager.HasSignal("combo_changed") &&
+            !scoreManager.IsConnected("combo_changed", new Callable(this, MethodName.OnComboChanged)))
+        {
+            scoreManager.Connect("combo_changed", new Callable(this, MethodName.OnComboChanged));
+        }
+
         LogToFile($"ScoreManager initialized with {_initialEnemyCount} enemies");
+    }
+
+    /// <summary>
+    /// Called when the combo count changes (Issue #1751).
+    /// Updates the combo label in the HUD.
+    /// </summary>
+    private void OnComboChanged(int combo, int points)
+    {
+        if (_comboLabel == null) return;
+        if (combo > 0)
+        {
+            _comboLabel.Text = $"x{combo} COMBO (+{points})";
+            _comboLabel.Visible = true;
+            _comboLabel.AddThemeColorOverride("font_color", GetComboColor(combo));
+            _comboLabel.Modulate = Colors.White;
+            var tween = CreateTween();
+            tween.TweenProperty(_comboLabel, "modulate", Colors.White, 0.1);
+        }
+        else
+        {
+            _comboLabel.Visible = false;
+        }
+    }
+
+    /// <summary>
+    /// Returns a color based on the current combo count (Issue #1751).
+    /// Matches the color scheme used by GDScript level scripts.
+    /// </summary>
+    private static Color GetComboColor(int combo)
+    {
+        if (combo >= 10) return new Color(1.0f, 0.0f, 1.0f, 1.0f);   // Magenta - extreme
+        if (combo >= 7)  return new Color(1.0f, 0.3f, 0.0f, 1.0f);   // Deep orange
+        if (combo >= 5)  return new Color(1.0f, 0.5f, 0.0f, 1.0f);   // Orange
+        if (combo >= 4)  return new Color(1.0f, 0.7f, 0.0f, 1.0f);   // Amber
+        if (combo >= 3)  return new Color(1.0f, 0.8f, 0.0f, 1.0f);   // Yellow-orange
+        if (combo >= 2)  return new Color(1.0f, 0.9f, 0.1f, 1.0f);   // Yellow
+        return new Color(1.0f, 0.8f, 0.2f, 1.0f);                     // Gold (combo 1)
     }
 
     /// <summary>
@@ -508,20 +616,70 @@ public partial class LevelInitFallback : Node
         _magazinesLabel.OffsetRight = 400;
         _magazinesLabel.OffsetBottom = 145;
         ui.AddChild(_magazinesLabel);
+
+        // Issue #1751: Create combo label to show current combo count.
+        // Matches GDScript level scripts: top-right anchored, 340px wide, gold color.
+        _comboLabel = new Label();
+        _comboLabel.Name = "ComboLabel";
+        _comboLabel.Text = "";
+        _comboLabel.HorizontalAlignment = HorizontalAlignment.Right;
+        _comboLabel.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+        _comboLabel.OffsetLeft = -350;
+        _comboLabel.OffsetRight = -10;
+        _comboLabel.OffsetTop = 80;
+        _comboLabel.OffsetBottom = 120;
+        _comboLabel.AddThemeFontSizeOverride("font_size", 28);
+        _comboLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.8f, 0.2f, 1.0f));
+        _comboLabel.Visible = false;
+        ui.AddChild(_comboLabel);
     }
 
     /// <summary>
+    /// CanvasLayer order for the revolver drum HUD (Issue #1765).
+    /// Must be above the Black Metal B&amp;W filter (layer 97) and all other difficulty
+    /// visual filters (layers 97–103) so the HUD is never desaturated.
+    /// </summary>
+    private const int CylinderHUDLayer = 110;
+
+    /// <summary>
+    /// Name of the dedicated CanvasLayer used for the cylinder HUD (Issue #1765).
+    /// </summary>
+    private const string CylinderHUDLayerName = "RevolverCylinderHUDLayer";
+
+    /// <summary>
     /// Setup revolver cylinder HUD display (Issue #691).
-    /// Creates the cylinder slot visualization and connects it to the revolver.
-    /// Positioned below the ammo label in the top-left UI area.
+    /// Issue #1765: The HUD is placed in a dedicated CanvasLayer at layer 110 so that
+    /// difficulty visual filters (Black Metal B&amp;W at layer 97, etc.) do not affect it.
     /// </summary>
     private void SetupRevolverCylinderUI(Revolver revolver)
     {
         var levelRoot = GetParent();
         if (levelRoot == null) return;
 
-        var ui = levelRoot.GetNodeOrNull("CanvasLayer/UI");
-        if (ui == null) return;
+        // Issue #1765: Don't create duplicate HUD if one already exists (e.g. from Revolver.cs)
+        var existingLayer = levelRoot.GetNodeOrNull<CanvasLayer>(CylinderHUDLayerName);
+        if (existingLayer != null)
+        {
+            LogToFile("[LevelInitFallback] Cylinder HUD layer already exists, connecting to existing");
+            _cylinderUI = existingLayer.GetNodeOrNull<RevolverCylinderUI>("HUDContainer/RevolverCylinderUI");
+            _cylinderUI?.ConnectToRevolver(revolver);
+            return;
+        }
+
+        // Issue #1765: Create a dedicated CanvasLayer above all difficulty visual filters
+        // (Black Metal B&W at layer 97, lightning at 98, cinema at 99, hit at 100, etc.)
+        // so the drum HUD always renders in its original colors regardless of difficulty mode.
+        var hudLayer = new CanvasLayer();
+        hudLayer.Name = CylinderHUDLayerName;
+        hudLayer.Layer = CylinderHUDLayer;
+        levelRoot.AddChild(hudLayer);
+
+        // Add a full-screen Control as layout container
+        var hudContainer = new Control();
+        hudContainer.Name = "HUDContainer";
+        hudContainer.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        hudContainer.MouseFilter = Control.MouseFilterEnum.Ignore;
+        hudLayer.AddChild(hudContainer);
 
         _cylinderUI = new RevolverCylinderUI();
         _cylinderUI.Name = "RevolverCylinderUI";
@@ -530,11 +688,11 @@ public partial class LevelInitFallback : Node
         _cylinderUI.OffsetTop = 30;
         _cylinderUI.OffsetRight = 200;
         _cylinderUI.OffsetBottom = 68;
-        ui.AddChild(_cylinderUI);
+        hudContainer.AddChild(_cylinderUI);
 
         _cylinderUI.ConnectToRevolver(revolver);
 
-        LogToFile("[LevelInitFallback] Revolver cylinder HUD created (Issue #691)");
+        LogToFile("[LevelInitFallback] Revolver cylinder HUD created in dedicated layer 110 above visual filters (Issue #1765)");
     }
 
     /// <summary>
@@ -1048,6 +1206,9 @@ public partial class LevelInitFallback : Node
             armoryBtn.Text = "Armory";
             armoryBtn.RemoveThemeColorOverride("font_color");
             armoryBtn.RemoveThemeStyleboxOverride("normal");
+            // Issue #1690: Remove gold shine overlay added by Issue #1536
+            var shineOverlay = armoryBtn.FindChild("ArmoryGoldShineOverlay", true, false);
+            shineOverlay?.QueueFree();
         }
     }
 
@@ -1162,19 +1323,36 @@ public partial class LevelInitFallback : Node
     {
         if (_magazinesLabel == null) return;
 
-        // Check if player has a weapon with tube magazine (shotgun)
+        // Resolve the currently equipped weapon (same lookup order as ConnectWeaponSignals)
+        Node? weapon = null;
         if (_player != null)
         {
-            var weapon = _player.GetNodeOrNull("Shotgun");
-            if (weapon != null)
+            weapon = _player.GetNodeOrNull("Shotgun");
+            weapon ??= _player.GetNodeOrNull("MiniUzi");
+            weapon ??= _player.GetNodeOrNull("SilencedPistol");
+            weapon ??= _player.GetNodeOrNull("SniperRifle");
+            weapon ??= _player.GetNodeOrNull("AssaultRifle");
+            weapon ??= _player.GetNodeOrNull("AKGL");
+            weapon ??= _player.GetNodeOrNull("Revolver");
+            weapon ??= _player.GetNodeOrNull("MakarovPM");
+        }
+
+        // Hide MAGS for tube-magazine weapons (shotgun) — no detachable magazines
+        if (weapon != null)
+        {
+            var usesTube = weapon.Get("UsesTubeMagazine");
+            if (usesTube.VariantType != Variant.Type.Nil && usesTube.AsBool())
             {
-                var usesTube = weapon.Get("UsesTubeMagazine");
-                if (usesTube.VariantType != Variant.Type.Nil && usesTube.AsBool())
-                {
-                    _magazinesLabel.Visible = false;
-                    return;
-                }
+                _magazinesLabel.Visible = false;
+                return;
             }
+        }
+
+        // Hide MAGS for revolver — cylinder HUD already shows ammo (Issue #1750)
+        if (weapon != null && weapon.HasSignal("CylinderStateChanged"))
+        {
+            _magazinesLabel.Visible = false;
+            return;
         }
 
         _magazinesLabel.Visible = true;
@@ -1185,12 +1363,36 @@ public partial class LevelInitFallback : Node
             return;
         }
 
+        // Get magazine capacities to distinguish full vs partial spares
+        int[] magMaxCounts = Array.Empty<int>();
+        if (weapon != null && weapon.HasMethod("GetMagazineMaxCounts"))
+        {
+            var maxArray = weapon.Call("GetMagazineMaxCounts").AsGodotArray();
+            magMaxCounts = new int[maxArray.Count];
+            for (int i = 0; i < maxArray.Count; i++)
+                magMaxCounts[i] = maxArray[i].AsInt32();
+        }
+
         var parts = new List<string>();
-        for (int i = 0; i < magazineAmmoCounts.Count; i++)
+        // Current magazine always shown in brackets
+        parts.Add($"[{magazineAmmoCounts[0].AsInt32()}]");
+
+        // Spare magazines: skip empty, show partial individually, abbreviate full as + xN
+        int fullSpareCount = 0;
+        for (int i = 1; i < magazineAmmoCounts.Count; i++)
         {
             int ammo = magazineAmmoCounts[i].AsInt32();
-            parts.Add(i == 0 ? $"[{ammo}]" : ammo.ToString());
+            if (ammo <= 0) continue;
+            int cap = i < magMaxCounts.Length ? magMaxCounts[i] : 0;
+            if (cap > 0 && ammo >= cap)
+                fullSpareCount++;
+            else
+                parts.Add(ammo.ToString());
         }
+
+        if (fullSpareCount > 0)
+            parts.Add($"+ x{fullSpareCount}");
+
         _magazinesLabel.Text = "MAGS: " + string.Join(" | ", parts);
     }
 
@@ -1235,6 +1437,18 @@ public partial class LevelInitFallback : Node
     /// </summary>
     private void SetupRoomWarmLights(Node levelRoot)
     {
+        // Respect PerformanceSettings warm_lights toggle (Issue #1693)
+        var perfSettings = GetNode<Node>("/root/PerformanceSettings");
+        if (perfSettings != null && perfSettings.HasMethod("is_warm_lights_enabled"))
+        {
+            var enabled = (bool)perfSettings.Call("is_warm_lights_enabled");
+            if (!enabled)
+            {
+                LogToFile("Warm ceiling lights skipped — disabled via PerformanceSettings (Issue #1693)");
+                return;
+            }
+        }
+
         var environment = levelRoot.GetNodeOrNull("Environment");
         if (environment == null)
         {
@@ -1296,14 +1510,14 @@ public partial class LevelInitFallback : Node
         fixture.Modulate = new Color(1.0f, 0.85f, 0.5f, 0.5f);
         lightNode.AddChild(fixture);
 
-        // The warm PointLight2D with soft shadows
+        // The warm PointLight2D — shadows disabled for performance (Issue #1693).
+        // PCF5 shadows on each PointLight2D add a full shadow-map render pass per light,
+        // which was causing severe FPS drops (down to ~6 fps baseline) on low-end hardware.
         var light = new PointLight2D();
         light.Name = "PointLight";
         light.Color = new Color(1.0f, 0.75f, 0.3f, 1.0f);
         light.Energy = energy;
-        light.ShadowEnabled = true;
-        light.ShadowFilter = PointLight2D.ShadowFilterEnum.Pcf5;
-        light.ShadowFilterSmooth = 4.0f;
+        light.ShadowEnabled = false;
         light.Texture = lightTexture;
         light.TextureScale = scale;
         lightNode.AddChild(light);

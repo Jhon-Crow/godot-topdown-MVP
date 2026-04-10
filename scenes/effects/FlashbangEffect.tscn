@@ -20,6 +20,6 @@ script = ExtResource("1_flashbang_effect")
 [node name="PointLight2D" type="PointLight2D" parent="."]
 color = Color(1, 1, 0.95, 1)
 energy = 0.0
-shadow_enabled = false
+shadow_enabled = true
 texture = SubResource("GradientTexture2D_flash_light")
 texture_scale = 8.0
