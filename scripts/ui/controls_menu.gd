@@ -125,7 +125,7 @@ func _start_rebinding(action_name: String) -> void:
 
 	# Update button text to show waiting state
 	var button: Button = _action_buttons[action_name]
-	button.text = "Press a key..."
+	button.text = tr("CONTROLS_PRESS_KEY")
 
 	# Update status
 	status_label.text = "Press a key for " + InputSettings.get_action_display_name(action_name) + " (Escape to cancel)"
@@ -160,7 +160,7 @@ func _apply_pending_binding(action_name: String, event: InputEvent) -> void:
 
 	# Clear rebinding state
 	_rebinding_action = ""
-	status_label.text = "Changes pending. Click Apply to save."
+	status_label.text = tr("CONTROLS_CHANGES_PENDING")
 
 
 func _show_conflict_dialog(conflicting_action: String, new_event: InputEvent) -> void:
@@ -183,7 +183,7 @@ func _on_conflict_confirmed() -> void:
 	# Clear the conflicting action's binding
 	_pending_bindings[conflicting_action] = null
 	var conflict_button: Button = _action_buttons[conflicting_action]
-	conflict_button.text = "Not Set"
+	conflict_button.text = tr("CONTROLS_NOT_SET")
 
 	# Apply the new binding
 	_apply_pending_binding(_rebinding_action, pending_event)
@@ -207,11 +207,11 @@ func _on_apply_pressed() -> void:
 	_has_changes = false
 	_update_button_states()
 
-	status_label.text = "Settings saved!"
+	status_label.text = tr("CONTROLS_SETTINGS_SAVED")
 
 	# Clear status after a delay
 	await get_tree().create_timer(2.0).timeout
-	if status_label.text == "Settings saved!":
+	if status_label.text == tr("CONTROLS_SETTINGS_SAVED"):
 		status_label.text = ""
 
 
@@ -227,7 +227,7 @@ func _on_reset_pressed() -> void:
 	_refresh_all_buttons()
 	_update_button_states()
 
-	status_label.text = "Controls reset to defaults."
+	status_label.text = tr("CONTROLS_RESET_DEFAULTS")
 
 
 func _unhandled_input(event: InputEvent) -> void:
