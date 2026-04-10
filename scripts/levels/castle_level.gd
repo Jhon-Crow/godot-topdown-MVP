@@ -213,15 +213,21 @@ func _on_combo_changed(combo: int, points: int) -> void:
 		return
 
 	if combo > 0:
-		_combo_label.text = "x%d COMBO +%d" % [combo, points]
+		_combo_label.text = "x%d COMBO\n+%d" % [combo, points]
 		_combo_label.visible = true
 		# Color changes based on combo count
 		var combo_color := _get_combo_color(combo)
 		_combo_label.add_theme_color_override("font_color", combo_color)
-		# Flash effect for combo
-		_combo_label.modulate = Color.WHITE
+		# Combo pop animation: scale bounce + fade in, then fade out
+		_combo_label.scale = Vector2(0.7, 0.7)
+		_combo_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
 		var tween := create_tween()
-		tween.tween_property(_combo_label, "modulate", Color.WHITE, 0.1)
+		tween.set_parallel(true)
+		tween.tween_property(_combo_label, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.tween_property(_combo_label, "modulate:a", 1.0, 0.1)
+		tween.set_parallel(false)
+		tween.tween_interval(1.0)
+		tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
 	else:
 		_combo_label.visible = false
 
@@ -591,8 +597,8 @@ func _setup_debug_ui() -> void:
 	_combo_label.offset_left = -500
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 80
-	_combo_label.offset_bottom = 150
-	_combo_label.add_theme_font_size_override("font_size", 56)
+	_combo_label.offset_bottom = 310
+	_combo_label.add_theme_font_size_override("font_size", 112)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
 	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
 	_combo_label.visible = false

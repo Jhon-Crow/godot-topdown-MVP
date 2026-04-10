@@ -2,6 +2,7 @@
 """
 Renders the combo counter text using the actual gothic_bitmap.fnt and gothic_bitmap.png,
 simulating how it looks in-game after the font change.
+Now shows: 2x larger font, two-line format (x3 COMBO / +3000).
 """
 
 from PIL import Image, ImageDraw, ImageFilter
@@ -88,8 +89,8 @@ def render_text_gothic(text, scale=0.4, color=(255, 255, 255)):
 
 
 # --- Build the combo UI screenshot ---
-# Simulates a game HUD panel with combo text
-bg_w, bg_h = 620, 220
+# Simulates a game HUD panel with two-line combo text (2x font size)
+bg_w, bg_h = 620, 300
 bg = Image.new('RGBA', (bg_w, bg_h), (15, 12, 20, 255))
 
 # Subtle gradient overlay (vignette-like)
@@ -99,16 +100,24 @@ for i in range(bg_h // 2):
     draw.line([(0, i), (bg_w, i)], fill=(60, 40, 80, alpha))
     draw.line([(0, bg_h - 1 - i), (bg_w, bg_h - 1 - i)], fill=(30, 20, 40, alpha))
 
-# Render the full combo text in one line: "x3 COMBO +150"
-# This is the new format after fix (removed parentheses which were unsupported by font)
-# Font size doubled from 28 to 56, so scale is doubled from ~0.18 to ~0.37
-combo_text = "x3 COMBO +150"
-combo_img = render_text_gothic(combo_text, scale=0.37, color=(255, 200, 50))
+# font_size 112 in Godot ~ scale 0.74 of the 151px lineHeight font
+# Two-line format: "x3 COMBO" on line 1, "+3000" on line 2
+scale = 0.74
+line1 = "x3 COMBO"
+line2 = "+3000"
+combo_color = (255, 200, 50)
 
-# Place combo text centered, vertically centered
-cx = (bg_w - combo_img.width) // 2
-cy = (bg_h - combo_img.height) // 2 - 10
-bg.paste(combo_img, (cx, cy), combo_img)
+line1_img = render_text_gothic(line1, scale=scale, color=combo_color)
+line2_img = render_text_gothic(line2, scale=scale, color=combo_color)
+
+# Place lines centered with tight spacing (no gap)
+cx1 = (bg_w - line1_img.width) // 2
+cy1 = bg_h // 2 - line1_img.height
+bg.paste(line1_img, (cx1, cy1), line1_img)
+
+cx2 = (bg_w - line2_img.width) // 2
+cy2 = cy1 + line1_img.height  # immediate next line, no gap
+bg.paste(line2_img, (cx2, cy2), line2_img)
 
 # Decorative border lines
 draw = ImageDraw.Draw(bg)
@@ -122,7 +131,7 @@ try:
 except Exception:
     fnt = ImageFont.load_default()
 
-caption = "Combo counter — Gothic font, 2x size, no broken chars (x3 COMBO +150)"
+caption = "Combo counter — Gothic font, 2x size, two-line (x3 COMBO / +3000), with bounce animation"
 draw.text((bg_w // 2, bg_h - 22), caption, fill=(180, 160, 200, 220), anchor='mm', font=fnt)
 
 # Save
