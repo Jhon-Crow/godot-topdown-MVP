@@ -28,6 +28,9 @@ The reporter included a screenshot showing the overflowing HUD:
 | File | Source | Notes |
 |------|--------|-------|
 | `game_log_20260410_002044.txt` | Provided by reporter (Jhon-Crow) in PR comment | Session recorded on Windows with the pre-fix executable |
+| `game_log_20260410_013223.txt` | Provided by reporter (Jhon-Crow) in PR comment | Round 2 feedback — partial spare disappears; full spares not abbreviated |
+| `game_log_20260410_023525.txt` | Provided by reporter (Jhon-Crow) in PR comment | Round 3 feedback — fix not working for UZI, silenced pistol, ASVK |
+| `game_log_20260410_160920.txt` | Provided by reporter (Jhon-Crow) in PR comment | Round 4 feedback — old display on BuildingLevel; shotgun shows MAGS: - |
 
 ---
 
@@ -550,7 +553,86 @@ same root cause (incomplete weapon lookup in `_update_magazines_label()`).
 
 ---
 
-## Final Summary Table (after Round 3 fix)
+## Round 4 Fix — BuildingLevel + Shotgun MAGS Label
+
+### Issue 1 — Old MAGS display on BuildingLevel for all weapons
+
+**Observed:** Reporter confirmed correct display on all levels except `BuildingLevel`
+(Здание), where old-style individual magazine entries still appeared for all weapons.
+
+**Root cause found via `game_log_20260410_160920.txt`:**
+
+Lines 941–943 in the log:
+```
+[LevelInitFallback] BuildingLevel: Power Fantasy mode - AKGL magazines multiplied by 4x
+[LevelInitFallback] BuildingLevel: AKGL magazines reinitialized to 8 (C# fallback, Issue #1259)
+[LevelInitFallback] BuildingLevel: Re-applied auto-reload magazine reduction...
+```
+
+No "GDScript `_ready()` already ran — skipping fallback" message appears. This means
+`building_level.gd`'s `_ready()` did **not** execute on the reporter's build due to the
+[Godot 4.3 binary tokenisation bug (godotengine/godot#94150)](https://github.com/godotengine/godot/issues/94150).
+`LevelInitFallback.cs` took over full level initialisation, including connecting the
+`MagazinesChanged` signal to its own `OnMagazinesChanged` → `UpdateMagazinesLabel`
+C# method.
+
+The C# `UpdateMagazinesLabel` in `LevelInitFallback.cs` was never updated to match the
+Round 2 / Round 3 GDScript changes:
+
+| Feature | GDScript `_update_magazines_label()` | C# `UpdateMagazinesLabel()` (before fix) |
+|---------|-------------------------------------|------------------------------------------|
+| Skip empty spares (`ammo <= 0`) | ✅ Round 1 | ❌ Missing — showed `\| 0 \|` |
+| Abbreviate all full spares as `+ xN` | ✅ Round 2 | ❌ Missing — listed individually |
+| Show partial spares individually | ✅ Round 2 | ❌ Missing |
+| Use `GetMagazineMaxCounts()` for full/partial check | ✅ Round 2 | ❌ Missing |
+| Full weapon lookup (all 8 types) | ✅ Round 3 | ❌ Only checked `"Shotgun"` node |
+| Hide MAGS for revolver (`CylinderStateChanged`) | ✅ Round 3 | ❌ Missing |
+
+**Fix (round 4):** Updated `UpdateMagazinesLabel` in `LevelInitFallback.cs` to:
+1. Resolve the equipped weapon via the same 8-type lookup chain used in
+   `ConnectWeaponSignals`.
+2. Hide the label for tube-magazine weapons (`UsesTubeMagazine`).
+3. Hide the label for revolvers (`CylinderStateChanged` signal).
+4. Skip empty spare magazines (`ammo <= 0`).
+5. Call `GetMagazineMaxCounts()` to distinguish full from partial spares.
+6. Show partial spares individually; abbreviate all full spares as `+ xN`.
+
+---
+
+### Issue 2 — Shotgun shows `MAGS: -` (should be hidden entirely)
+
+**Observed:** Reporter reports MAGS label shows `MAGS: -` when shotgun is equipped
+(by analogy with revolver: shotgun has no detachable magazines, so the entire MAGS
+row should disappear).
+
+**Root cause:** The C# `UpdateMagazinesLabel` did check for `UsesTubeMagazine` on the
+`"Shotgun"` child — but only that node. If the shotgun was equipped under a different
+name, or if `GetMagazineAmmoCounts()` returned an empty array before the weapon check
+ran, the code fell through to `MAGS: -`. The full-weapon-lookup fix (issue 1) resolves
+this: now `UsesTubeMagazine` is checked on whichever weapon is currently equipped.
+
+---
+
+## Game Log Analysis (`game_log_20260410_160920.txt`)
+
+Recorded **2026-04-10 at 16:09:20** on the reporter's Windows machine (Engine 4.3-stable).
+
+| Timestamp | Event | Significance |
+|-----------|-------|--------------|
+| `16:09:21` | LabyrinthLevel, ak_gl | Normal start |
+| `16:09:37` | **BuildingLevel** entered | Fallback C# init runs (no GDScript _ready log) |
+| `16:09:38` | `LevelInitFallback: Power Fantasy mode` | Confirms C# fallback is handling HUD |
+| `16:09:38` | `ReplayManager: Level: BuildingLevel` | Only fallback log entries, no GDScript log |
+| `16:11:54` | Docks level — Shotgun enemies | Reporter testing shotgun-related HUD |
+| `16:12:22` | BuildingLevel re-entered multiple times | Reporter repeatedly checking MAGS display |
+
+The absence of `GDScript _ready() already ran` messages for any BuildingLevel entry
+confirms the GDScript did not execute and `LevelInitFallback` owned HUD updates
+throughout.
+
+---
+
+## Final Summary Table (after Round 4 fix)
 
 | Cause | Impact | Confidence | Fix Complexity | Status |
 |-------|--------|-----------|----------------|--------|
@@ -561,4 +643,6 @@ same root cause (incomplete weapon lookup in `_update_magazines_label()`).
 | Incomplete weapon lookup (missing MiniUzi, SilencedPistol, SniperRifle) | Full spares shown individually for those weapons | High | Low | ✅ Fixed (round 3) |
 | Undefined `weapon` variable in `revolver_level.gd` | GetMagazineMaxCounts never called in that level | High | Low | ✅ Fixed (round 3) |
 | Revolver shown in MAGS counter (should show cylinder HUD only) | Incorrect double HUD for revolver | High | Low | ✅ Fixed (round 3) |
+| `LevelInitFallback.cs UpdateMagazinesLabel` not updated with round 2/3 logic | BuildingLevel (Godot tokenisation fallback) showed old format for all weapons | High | Medium | ✅ Fixed (round 4) |
+| Shotgun shows `MAGS: -` in fallback path | MAGS row visible for tube-magazine weapon that has no magazines | High | Low | ✅ Fixed (round 4) |
 | Fix not yet in released build | Reporter verifying in pre-fix executable | High | N/A | ⏳ Pending PR merge |

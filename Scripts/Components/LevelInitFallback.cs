@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 using GodotTopDownTemplate.Components;
 using GodotTopDownTemplate.Weapons;
@@ -1223,19 +1224,36 @@ public partial class LevelInitFallback : Node
     {
         if (_magazinesLabel == null) return;
 
-        // Check if player has a weapon with tube magazine (shotgun)
+        // Resolve the currently equipped weapon (same lookup order as ConnectWeaponSignals)
+        Node? weapon = null;
         if (_player != null)
         {
-            var weapon = _player.GetNodeOrNull("Shotgun");
-            if (weapon != null)
+            weapon = _player.GetNodeOrNull("Shotgun");
+            weapon ??= _player.GetNodeOrNull("MiniUzi");
+            weapon ??= _player.GetNodeOrNull("SilencedPistol");
+            weapon ??= _player.GetNodeOrNull("SniperRifle");
+            weapon ??= _player.GetNodeOrNull("AssaultRifle");
+            weapon ??= _player.GetNodeOrNull("AKGL");
+            weapon ??= _player.GetNodeOrNull("Revolver");
+            weapon ??= _player.GetNodeOrNull("MakarovPM");
+        }
+
+        // Hide MAGS for tube-magazine weapons (shotgun) — no detachable magazines
+        if (weapon != null)
+        {
+            var usesTube = weapon.Get("UsesTubeMagazine");
+            if (usesTube.VariantType != Variant.Type.Nil && usesTube.AsBool())
             {
-                var usesTube = weapon.Get("UsesTubeMagazine");
-                if (usesTube.VariantType != Variant.Type.Nil && usesTube.AsBool())
-                {
-                    _magazinesLabel.Visible = false;
-                    return;
-                }
+                _magazinesLabel.Visible = false;
+                return;
             }
+        }
+
+        // Hide MAGS for revolver — cylinder HUD already shows ammo (Issue #1750)
+        if (weapon != null && weapon.HasSignal("CylinderStateChanged"))
+        {
+            _magazinesLabel.Visible = false;
+            return;
         }
 
         _magazinesLabel.Visible = true;
@@ -1246,12 +1264,36 @@ public partial class LevelInitFallback : Node
             return;
         }
 
+        // Get magazine capacities to distinguish full vs partial spares
+        int[] magMaxCounts = Array.Empty<int>();
+        if (weapon != null && weapon.HasMethod("GetMagazineMaxCounts"))
+        {
+            var maxArray = weapon.Call("GetMagazineMaxCounts").AsGodotArray();
+            magMaxCounts = new int[maxArray.Count];
+            for (int i = 0; i < maxArray.Count; i++)
+                magMaxCounts[i] = maxArray[i].AsInt32();
+        }
+
         var parts = new List<string>();
-        for (int i = 0; i < magazineAmmoCounts.Count; i++)
+        // Current magazine always shown in brackets
+        parts.Add($"[{magazineAmmoCounts[0].AsInt32()}]");
+
+        // Spare magazines: skip empty, show partial individually, abbreviate full as + xN
+        int fullSpareCount = 0;
+        for (int i = 1; i < magazineAmmoCounts.Count; i++)
         {
             int ammo = magazineAmmoCounts[i].AsInt32();
-            parts.Add(i == 0 ? $"[{ammo}]" : ammo.ToString());
+            if (ammo <= 0) continue;
+            int cap = i < magMaxCounts.Length ? magMaxCounts[i] : 0;
+            if (cap > 0 && ammo >= cap)
+                fullSpareCount++;
+            else
+                parts.Add(ammo.ToString());
         }
+
+        if (fullSpareCount > 0)
+            parts.Add($"+ x{fullSpareCount}");
+
         _magazinesLabel.Text = "MAGS: " + string.Join(" | ", parts);
     }
 
