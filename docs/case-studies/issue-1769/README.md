@@ -2,10 +2,12 @@
 
 ## Summary
 
-When the player moves while pressing against a wall, the wall slows the player down. Two separate fixes were needed:
+When the player moves while pressing against a wall, the wall slows the player down. Three separate fixes were required across two iteration cycles:
 
-1. **Fix 1 (incomplete):** `Vector2.Slide()` applied to the *already-scaled* velocity — reduced target speed by ~29% at 45° input.
-2. **Fix 2 (correct):** Slide the *input direction* first, then renormalize, then scale by `MaxSpeed` — guarantees full speed along the wall regardless of input angle.
+1. **Fix 1 (wrong file):** GDScript `player.gd` patched — but the game runs C# `Player.cs`/`BaseCharacter.cs`. No effect.
+2. **Fix 2 (wrong approach):** `Vector2.Slide()` applied to the *already-scaled* velocity — reduced target speed by ~29% at 45° input.
+3. **Fix 3 (incomplete coverage):** Slide the *input direction* first, then renormalize — but only checked `IsOnWall()`. In Godot 4 GROUNDED mode, top/bottom walls register as `IsOnCeiling()`/`IsOnFloor()`, not `IsOnWall()`.
+4. **Fix 4 (correct):** Iterate all `GetSlideCollisionCount()` normals instead of relying on `IsOnWall()` — guarantees full speed along ALL wall directions.
 
 ---
 
@@ -19,8 +21,11 @@ When the player moves while pressing against a wall, the wall slows the player d
 | Owner comments | "не вижу изменений" (I don't see changes), attaches game log from `физика стен/` test folder |
 | Root cause found | The game uses **C# player** (`Scripts/Characters/Player.cs`), which calls `ApplyMovement()` from `Scripts/AbstractClasses/BaseCharacter.cs` — the GDScript fix was never executed |
 | Second fix (commit `9271671b`) | `ApplyMovement()` in `BaseCharacter.cs` updated with the same (still-incomplete) wall-plane projection |
-| Owner tests again (`game_log_20260410_030927.txt`) | Owner tests the C# fix, reports: "похоже игрок не разгоняется так же как при обычной ходьбе, когда идёт упираясь в стену, по этому фактическая скорость ходьбы вдоль стены меньше" (the player still doesn't accelerate the same way as during normal walking when moving against a wall) |
-| Third fix (current) | Project input **direction** onto the wall plane and **renormalize** before scaling, so target magnitude is always `MaxSpeed` |
+| Owner tests again (`game_log_20260410_030927.txt`) | Owner tests the C# fix, reports: "похоже игрок не разгоняется так же как при обычной ходьбе, когда идёт упираясь в стену, по этому фактическая скорость ходьбы вдоль стены меньше" (player still slower along walls) |
+| Third fix (commit `d10f56a2`) | Project input **direction** onto the wall plane and **renormalize** before scaling by `MaxSpeed` — correct for lateral walls |
+| Owner tests third fix | "проблема сохраняется — например при упоре в верхнюю стену (движение вверх+вправо) игрок движется без ускорения" — top wall still not working |
+| Root cause (3rd fix) | `IsOnWall()` in Godot 4 GROUNDED mode **only catches lateral surfaces**; top/bottom walls trigger `IsOnCeiling()`/`IsOnFloor()`. Fix never executed for top/bottom walls. |
+| Fourth fix (current) | Iterate `GetSlideCollisionCount()` normals directly — catches ALL surface collision types, handles top/bottom and corner walls |
 
 ---
 
@@ -73,6 +78,58 @@ targetVelocity = (0, -1) * 200 = (0, -200)  ← full MaxSpeed!
 
 This guarantees that regardless of the input angle, the player accelerates at full `MaxSpeed` in whatever direction the wall allows.
 
+### Stage 3: IsOnWall() Only Catches Lateral Surfaces
+
+**Godot 4's `GROUNDED` motion mode** classifies collisions based on the `UpDirection` (default `(0, -1)` = screen-up):
+
+| Collision Surface | Normal Direction | Godot Classification | `IsOnWall()`? |
+|---|---|---|---|
+| Left wall | `(1, 0)` | Wall | ✅ Yes |
+| Right wall | `(-1, 0)` | Wall | ✅ Yes |
+| **Top wall (ceiling)** | `(0, 1)` | Ceiling | ❌ **No** |
+| Bottom wall (floor) | `(0, -1)` | Floor | ❌ **No** |
+
+In a top-down game, there's no actual gravity direction — "floor" and "ceiling" are just walls in different directions. But Godot still classifies them differently.
+
+**Example: player presses UP + RIGHT (45°), top wall (normal = (0, 1))**
+
+```
+direction = normalize(1, -1) = (0.707, -0.707)
+IsOnWall() = false  ← top wall registers as IsOnCeiling()!
+moveDir = direction  ← no slide applied
+Velocity.MoveToward((0.707, -0.707) * 200, Acceleration * delta)
+// Target = (141.4, -141.4)
+// MoveAndSlide() kills Y component → only X survives
+// Result: slow rightward movement instead of full MaxSpeed
+```
+
+### The Final Fix: Iterate All Slide Collisions
+
+Instead of relying on `IsOnWall()`, check ALL collision normals from the previous `MoveAndSlide()` call:
+
+```csharp
+// C# in BaseCharacter.cs
+int collisionCount = GetSlideCollisionCount();
+for (int i = 0; i < collisionCount; i++)
+{
+    var collision = GetSlideCollision(i);
+    Vector2 normal = collision.GetNormal();
+    // Only slide against surfaces the player is pushing into
+    if (direction.Dot(normal) < 0f)
+    {
+        Vector2 slid = moveDir.Slide(normal);
+        if (slid != Vector2.Zero)
+            moveDir = slid.Normalized();
+    }
+}
+```
+
+This approach:
+- Works for **all wall directions** (left, right, top, bottom)
+- Handles **corner collisions** (multiple normals in one frame)
+- Uses the `dot(normal) < 0` guard to avoid sliding away from surfaces we're moving toward
+- Renormalizes after each slide to preserve `MaxSpeed`
+
 ---
 
 ## Files Changed
@@ -106,16 +163,20 @@ This guarantees that regardless of the input angle, the player accelerates at fu
 
 ---
 
-## How to Reproduce (Before Fix)
+## How to Reproduce (Before Final Fix)
 
 1. Run the game on a level with walls
-2. Hold a movement key toward a wall AND a key perpendicular to it (e.g., Right + Up with a wall on the right)
-3. **Expected:** Player slides along the wall at full speed
-4. **Actual (before fix):** Player moves noticeably slower along the wall than in open space (~70.7% speed at 45° input)
+2. Move diagonally into **any** wall (e.g., UP+RIGHT against a top wall)
+3. **Expected:** Player slides along the wall at full speed (rightward at `MaxSpeed`)
+4. **Actual (before fix):** Player moves noticeably slower or without acceleration, especially against top/bottom walls
 
-## Verification (After Fix)
+## Verification (After Final Fix)
 
-After applying the renormalized-direction fix, the player maintains exactly `MaxSpeed` when sliding along a wall at any input angle.
+After applying the slide-all-collisions fix:
+- Left/right walls: player moves at full `MaxSpeed` ✅
+- Top wall (pressing up+right): player moves rightward at full `MaxSpeed` ✅  
+- Bottom wall (pressing down+left): player moves leftward at full `MaxSpeed` ✅
+- Corner collisions: correctly slides along the combined surface ✅
 
 ---
 

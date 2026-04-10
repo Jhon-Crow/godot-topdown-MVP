@@ -423,15 +423,21 @@ func _physics_process(delta: float) -> void:
 
 	if not is_dash_active():
 		if input_direction != Vector2.ZERO:
-			# Issue #1769: project the input direction onto the wall plane and
-			# renormalize before scaling by max_speed, so diagonal input into a wall
-			# does not reduce speed along the wall.  Without renormalization the
-			# slide shrinks the vector magnitude to ~70% when input is at 45 degrees.
+			# Issue #1769: project the input direction onto any collision surface and
+			# renormalize so the player moves at full max_speed along walls from all
+			# directions.  In Godot 4's default GROUNDED motion mode only lateral
+			# surfaces register as is_on_wall(); top/bottom surfaces register as
+			# is_on_ceiling()/is_on_floor() instead.  We therefore iterate all
+			# slide-collision normals from the previous move_and_slide() call.
 			var move_dir := input_direction
-			if is_on_wall():
-				var slid := input_direction.slide(get_wall_normal())
-				if slid != Vector2.ZERO:
-					move_dir = slid.normalized()
+			for i in get_slide_collision_count():
+				var collision := get_slide_collision(i)
+				var normal := collision.get_normal()
+				# Only slide against surfaces the player is pushing into.
+				if input_direction.dot(normal) < 0.0:
+					var slid := move_dir.slide(normal)
+					if slid != Vector2.ZERO:
+						move_dir = slid.normalized()
 			velocity = velocity.move_toward(move_dir * max_speed, acceleration * delta)
 		else:
 			velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
