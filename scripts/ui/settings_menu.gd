@@ -8,6 +8,7 @@ extends CanvasLayer
 ## - Gameplay
 ## - Performance (includes wall hit particles, AI toggles - Issue #1186)
 ## - Experimental
+## - Language (Issue #1718)
 
 ## Signal emitted when the back button is pressed.
 signal back_pressed
@@ -19,6 +20,7 @@ signal back_pressed
 @export var gameplay_menu_scene: PackedScene
 @export var performance_menu_scene: PackedScene
 @export var experimental_menu_scene: PackedScene
+@export var language_menu_scene: PackedScene
 
 ## Instantiated sub-menus.
 var _controls_menu: CanvasLayer = null
@@ -27,6 +29,7 @@ var _sound_menu: CanvasLayer = null
 var _gameplay_menu: CanvasLayer = null
 var _performance_menu: CanvasLayer = null
 var _experimental_menu: CanvasLayer = null
+var _language_menu: CanvasLayer = null
 
 ## Reference to the menu container (hidden when a sub-menu is open).
 @onready var menu_container: Control = $MenuContainer
@@ -36,17 +39,19 @@ var _experimental_menu: CanvasLayer = null
 @onready var gameplay_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/GameplayButton
 @onready var performance_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/PerformanceButton
 @onready var experimental_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ExperimentalButton
+@onready var language_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/LanguageButton
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 
 
 func _ready() -> void:
 	# Setup short-name tooltips for category buttons (Issue #1200)
-	controls_button.tooltip_text = "Controls"
-	difficulty_button.tooltip_text = "Difficulty"
-	sound_button.tooltip_text = "Sound"
-	gameplay_button.tooltip_text = "Gameplay"
-	experimental_button.tooltip_text = "Experimental"
-	performance_button.tooltip_text = "Performance"
+	controls_button.tooltip_text = tr("CONTROLS")
+	difficulty_button.tooltip_text = tr("DIFFICULTY")
+	sound_button.tooltip_text = tr("SOUND")
+	gameplay_button.tooltip_text = tr("GAMEPLAY")
+	experimental_button.tooltip_text = tr("EXPERIMENTAL")
+	performance_button.tooltip_text = tr("PERFORMANCE")
+	language_button.tooltip_text = tr("LANGUAGE")
 
 	controls_button.pressed.connect(_on_controls_pressed)
 	difficulty_button.pressed.connect(_on_difficulty_pressed)
@@ -54,6 +59,7 @@ func _ready() -> void:
 	gameplay_button.pressed.connect(_on_gameplay_pressed)
 	performance_button.pressed.connect(_on_performance_pressed)
 	experimental_button.pressed.connect(_on_experimental_pressed)
+	language_button.pressed.connect(_on_language_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
 	if controls_menu_scene == null:
@@ -68,6 +74,8 @@ func _ready() -> void:
 		performance_menu_scene = preload("res://scenes/ui/PerformanceMenu.tscn")
 	if experimental_menu_scene == null:
 		experimental_menu_scene = preload("res://scenes/ui/ExperimentalMenu.tscn")
+	if language_menu_scene == null:
+		language_menu_scene = preload("res://scenes/ui/LanguageMenu.tscn")
 
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
@@ -130,6 +138,16 @@ func _on_experimental_pressed() -> void:
 		add_child(_experimental_menu)
 	else:
 		_experimental_menu.show()
+
+
+func _on_language_pressed() -> void:
+	menu_container.hide()
+	if _language_menu == null:
+		_language_menu = language_menu_scene.instantiate()
+		_language_menu.back_pressed.connect(_on_sub_back.bind(_language_menu, language_button))
+		add_child(_language_menu)
+	else:
+		_language_menu.show()
 
 
 ## Generic back handler for all sub-menus.

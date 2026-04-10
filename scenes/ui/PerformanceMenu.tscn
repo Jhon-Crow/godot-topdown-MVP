@@ -60,13 +60,13 @@ theme_override_constants/separation = 15
 
 [node name="TitleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
-text = "Performance"
+text = "PERFORMANCE_TITLE"
 label_settings = ExtResource("2_neon_label")
 horizontal_alignment = 1
 
 [node name="DescriptionLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
-text = "Toggle subsystems to measure their performance impact."
+text = "PERFORMANCE_DESCRIPTION"
 horizontal_alignment = 1
 autowrap_mode = 2
 
@@ -79,7 +79,7 @@ layout_mode = 2
 [node name="ParticlesLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ParticlesContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Particle Effects"
+text = "PARTICLE_EFFECTS"
 autowrap_mode = 2
 
 [node name="ParticlesCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ParticlesContainer"]
@@ -101,7 +101,7 @@ layout_mode = 2
 [node name="BloodDecalsLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BloodDecalsContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Blood Decals on Floor/Walls"
+text = "BLOOD_DECALS"
 autowrap_mode = 2
 
 [node name="BloodDecalsCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BloodDecalsContainer"]
@@ -123,7 +123,7 @@ layout_mode = 2
 [node name="ScreenShakeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ScreenShakeContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Screen Shake"
+text = "SCREEN_SHAKE"
 autowrap_mode = 2
 
 [node name="ScreenShakeCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ScreenShakeContainer"]
@@ -145,7 +145,7 @@ layout_mode = 2
 [node name="ExplosionLightsLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ExplosionLightsContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Explosion/Flashbang Lights"
+text = "EXPLOSION_LIGHTS"
 autowrap_mode = 2
 
 [node name="ExplosionLightsCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ExplosionLightsContainer"]
@@ -185,7 +185,7 @@ layout_mode = 2
 [node name="WallHitParticlesLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WallHitParticlesContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Wall Hit Particles"
+text = "WALL_HIT_PARTICLES"
 autowrap_mode = 2
 
 [node name="WallHitParticlesCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WallHitParticlesContainer"]
@@ -207,7 +207,7 @@ layout_mode = 2
 [node name="AILabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Enemy AI"
+text = "ENEMY_AI"
 autowrap_mode = 2
 
 [node name="AICheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIContainer"]
@@ -363,12 +363,12 @@ autowrap_mode = 2
 [node name="BenchmarkButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BenchmarkContainer"]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
-text = "Run Benchmark"
+text = "RUN_BENCHMARK"
 
 [node name="QuickBenchmarkButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BenchmarkContainer"]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
-text = "Quick Test (1 cycle)"
+text = "QUICK_TEST"
 
 [node name="BenchmarkLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
@@ -388,16 +388,16 @@ autowrap_mode = 2
 [node name="StressBenchmarkButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StressBenchmarkContainer"]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
-text = "Stress Benchmark"
+text = "STRESS_BENCHMARK"
 
 [node name="QuickStressBenchmarkButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StressBenchmarkContainer"]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
-text = "Quick Test (1 cycle)"
+text = "QUICK_TEST"
 
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
-text = "All performance features enabled"
+text = "PERFORMANCE_ALL_ENABLED"
 horizontal_alignment = 1
 autowrap_mode = 2
 
@@ -405,4 +405,4 @@ autowrap_mode = 2
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 size_flags_horizontal = 4
-text = "Back"
+text = "BACK"
