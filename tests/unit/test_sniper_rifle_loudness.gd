@@ -20,7 +20,7 @@ class MockWeaponData:
 	var MaxReserveAmmo: int = 5
 	var ReloadTime: float = 2.5
 	var BulletSpeed: float = 10000.0
-	var Range: float = 5000.0
+	var Range: float = 35000.0
 	var SpreadAngle: float = 0.0
 	var BulletsPerShot: int = 1
 	var IsAutomatic: bool = false
@@ -106,3 +106,24 @@ func test_sniper_rifle_data_loudness_in_resource() -> void:
 
 	assert_true(content.contains("Loudness = 3594.3"),
 		"SniperRifleData.tres must have Loudness = 3594.3 (Issue #1269: scaled by 800/1469 from 6600.0)")
+
+
+func test_range_is_35000() -> void:
+	# Issue #1586: maximum aiming range increased by 30000px (from 5000 to 35000).
+	assert_eq(weapon.Range, 35000.0,
+		"ASVK Range must be 35000.0 px (increased by 30000 per Issue #1586)")
+
+
+func test_sniper_rifle_data_range_in_resource() -> void:
+	# Regression test: verify the resource file has the updated Range.
+	# This prevents future changes from accidentally reverting the fix for issue #1586.
+	var file := FileAccess.open("res://resources/weapons/SniperRifleData.tres", FileAccess.READ)
+	if file == null:
+		pass_test("Skipped: SniperRifleData.tres not accessible in test environment")
+		return
+
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("Range = 35000.0"),
+		"SniperRifleData.tres must have Range = 35000.0 (Issue #1586: increased by 30000px from 5000)")
