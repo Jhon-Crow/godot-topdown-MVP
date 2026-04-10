@@ -130,6 +130,11 @@ var _apply_button: Button
 var _weapon_accordion_button: Button
 var _grenade_accordion_button: Button
 var _active_item_accordion_button: Button
+var _title_label: Label
+var _weapons_header_label: Label
+var _grenades_header_label: Label
+var _special_header_label: Label
+var _loadout_header_label: Label
 
 ## Currently pending weapon selection (not yet applied).
 var _pending_weapon_id: String = ""
@@ -289,6 +294,11 @@ func _ready() -> void:
 	# Animate kill-progress bars on armory open (Issue #1591)
 	call_deferred("_animate_all_unlock_progress_bars")
 
+	# Connect to locale changes so tooltips and labels update on language switch (Issue #1802)
+	var localization_settings: Node = get_node_or_null("/root/LocalizationSettings")
+	if localization_settings and localization_settings.has_signal("locale_changed"):
+		localization_settings.locale_changed.connect(_on_locale_changed)
+
 
 ## Load weapon .tres resources for stats display.
 func _load_weapon_resources() -> void:
@@ -296,6 +306,93 @@ func _load_weapon_resources() -> void:
 		var path: String = WEAPON_RESOURCE_PATHS[weapon_id]
 		if ResourceLoader.exists(path):
 			_weapon_resources[weapon_id] = load(path)
+
+
+## Called when the locale changes. Refreshes all translated text and tooltips (Issue #1802).
+func _on_locale_changed(_new_locale: String) -> void:
+	_refresh_all_texts()
+
+
+## Refresh all UI text that depends on the current locale.
+## Updates static labels, button texts, and slot tooltips for locked items.
+func _refresh_all_texts() -> void:
+	# Static labels
+	if _title_label:
+		_title_label.text = tr("ARMORY_TITLE")
+	if _weapons_header_label:
+		_weapons_header_label.text = tr("ARMORY_WEAPONS")
+	if _grenades_header_label:
+		_grenades_header_label.text = tr("ARMORY_GRENADES")
+	if _special_header_label:
+		_special_header_label.text = tr("ARMORY_SPECIAL")
+	if _loadout_header_label:
+		_loadout_header_label.text = tr("ARMORY_CURRENT_LOADOUT")
+	if _back_button:
+		_back_button.text = tr("BACK")
+	if _apply_button:
+		_apply_button.text = tr("APPLY")
+	if _weapon_accordion_button:
+		_weapon_accordion_button.text = tr("ARMORY_SHOW_LESS") if _weapons_expanded else tr("ARMORY_SHOW_ALL")
+	if _grenade_accordion_button:
+		_grenade_accordion_button.text = tr("ARMORY_SHOW_LESS") if _grenades_expanded else tr("ARMORY_SHOW_ALL")
+	if _active_item_accordion_button:
+		_active_item_accordion_button.text = tr("ARMORY_SHOW_LESS") if _active_items_expanded else tr("ARMORY_SHOW_ALL")
+
+	# Weapon slot tooltips and names
+	for weapon_id in _weapon_slots:
+		var slot: PanelContainer = _weapon_slots[weapon_id]
+		var is_unlocked: bool = slot.get_meta("is_unlocked", true)
+		if is_unlocked:
+			var weapon_data: Dictionary = FIREARMS.get(weapon_id, {})
+			var desc_key: String = weapon_data.get("desc_key", "")
+			slot.tooltip_text = tr(desc_key) if desc_key != "" else weapon_data.get("description", "")
+		else:
+			var unlock_desc: String = ""
+			if _unlock_manager and _unlock_manager.has_method("get_weapon_unlock_description"):
+				unlock_desc = _unlock_manager.get_weapon_unlock_description(weapon_id)
+			if _unlock_manager and _unlock_manager.has_method("get_weapon_kill_condition_counts"):
+				var counts: Dictionary = _unlock_manager.get_weapon_kill_condition_counts(weapon_id)
+				if not counts.is_empty():
+					unlock_desc += "\n" + tr("UNLOCK_COND_PROGRESS") % [counts["current"], counts["max"]]
+			slot.tooltip_text = unlock_desc
+
+	# Grenade slot tooltips
+	for grenade_type in _grenade_slots:
+		var slot: PanelContainer = _grenade_slots[grenade_type]
+		var is_unlocked: bool = slot.get_meta("is_unlocked", true)
+		if is_unlocked:
+			if _grenade_manager:
+				var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
+				var desc_key: String = gdata.get("desc_key", "")
+				slot.tooltip_text = tr(desc_key) if desc_key != "" else gdata.get("description", "")
+		else:
+			var unlock_desc: String = ""
+			if _unlock_manager and _unlock_manager.has_method("get_grenade_unlock_description"):
+				unlock_desc = _unlock_manager.get_grenade_unlock_description(grenade_type)
+			if _unlock_manager and _unlock_manager.has_method("get_grenade_kill_condition_counts"):
+				var counts: Dictionary = _unlock_manager.get_grenade_kill_condition_counts(grenade_type)
+				if not counts.is_empty():
+					unlock_desc += "\n" + tr("UNLOCK_COND_PROGRESS") % [counts["current"], counts["max"]]
+			slot.tooltip_text = unlock_desc
+
+	# Active item slot tooltips
+	for item_type in _active_item_slots:
+		var slot: PanelContainer = _active_item_slots[item_type]
+		var is_unlocked: bool = slot.get_meta("is_unlocked", true)
+		if is_unlocked:
+			if _active_item_manager:
+				var adata: Dictionary = _active_item_manager.get_active_item_data(item_type)
+				var desc_key: String = adata.get("desc_key", "")
+				slot.tooltip_text = tr(desc_key) if desc_key != "" else adata.get("description", "")
+		else:
+			var unlock_desc: String = ""
+			if _unlock_manager and _unlock_manager.has_method("get_active_item_unlock_description"):
+				unlock_desc = _unlock_manager.get_active_item_unlock_description(item_type)
+			if _unlock_manager and _unlock_manager.has_method("get_active_item_kill_condition_counts"):
+				var counts: Dictionary = _unlock_manager.get_active_item_kill_condition_counts(item_type)
+				if not counts.is_empty():
+					unlock_desc += "\n" + tr("UNLOCK_COND_PROGRESS") % [counts["current"], counts["max"]]
+			slot.tooltip_text = unlock_desc
 
 
 ## Build the complete UI layout programmatically.
@@ -358,7 +455,8 @@ func _build_ui() -> void:
 	margin.add_child(main_vbox)
 
 	# Title with neon styling
-	var title := Label.new()
+	_title_label = Label.new()
+	var title: Label = _title_label
 	title.text = tr("ARMORY_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var neon_label_settings = load("res://resources/themes/neon_label_settings.tres")
@@ -501,7 +599,8 @@ func _build_sidebar() -> VBoxContainer:
 	sidebar_margin.add_child(stats_vbox)
 
 	# Header
-	var loadout_header := Label.new()
+	_loadout_header_label = Label.new()
+	var loadout_header: Label = _loadout_header_label
 	loadout_header.text = tr("ARMORY_CURRENT_LOADOUT")
 	loadout_header.add_theme_font_size_override("font_size", 14)
 	loadout_header.add_theme_color_override("font_color", Color(0.7, 0.75, 0.8, 1.0))
@@ -558,7 +657,7 @@ func _build_right_area() -> VBoxContainer:
 	right_vbox.add_theme_constant_override("separation", 6)
 
 	# --- WEAPONS SECTION ---
-	_add_category_header(right_vbox, tr("ARMORY_WEAPONS"))
+	_weapons_header_label = _add_category_header(right_vbox, tr("ARMORY_WEAPONS"))
 	_weapon_grid = GridContainer.new()
 	_weapon_grid.columns = GRID_COLUMNS
 	_weapon_grid.layout_mode = 2
@@ -605,7 +704,7 @@ func _build_right_area() -> VBoxContainer:
 	right_vbox.add_child(grenade_sep)
 
 	# --- GRENADES SECTION ---
-	_add_category_header(right_vbox, tr("ARMORY_GRENADES"))
+	_grenades_header_label = _add_category_header(right_vbox, tr("ARMORY_GRENADES"))
 	_grenade_grid = GridContainer.new()
 	_grenade_grid.columns = GRENADE_GRID_COLUMNS
 	_grenade_grid.layout_mode = 2
@@ -661,7 +760,7 @@ func _build_right_area() -> VBoxContainer:
 	right_vbox.add_child(active_sep)
 
 	# --- SPECIAL SECTION ---
-	_add_category_header(right_vbox, tr("ARMORY_SPECIAL"))
+	_special_header_label = _add_category_header(right_vbox, tr("ARMORY_SPECIAL"))
 	_active_item_grid = GridContainer.new()
 	_active_item_grid.columns = SPECIAL_GRID_COLUMNS
 	_active_item_grid.layout_mode = 2
@@ -838,13 +937,14 @@ func _apply_accordion_collapsed_active_items() -> void:
 		_apply_accordion_button_default_style(_active_item_accordion_button)
 
 
-## Add a styled category header label.
-func _add_category_header(parent: VBoxContainer, text: String) -> void:
+## Add a styled category header label and return it for later text refresh.
+func _add_category_header(parent: VBoxContainer, text: String) -> Label:
 	var header := Label.new()
 	header.text = text
 	header.add_theme_font_size_override("font_size", 14)
 	header.add_theme_color_override("font_color", Color(0.7, 0.75, 0.8, 1.0))
 	parent.add_child(header)
+	return header
 
 
 ## Create an item slot (used for both weapons and grenades).
@@ -930,7 +1030,7 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 				if _unlock_manager.has_method("get_grenade_kill_condition_counts"):
 					var counts: Dictionary = _unlock_manager.get_grenade_kill_condition_counts(grenade_type)
 					if not counts.is_empty():
-						unlock_desc += "\nProgress: %d / %d" % [counts["current"], counts["max"]]
+						unlock_desc += "\n" + tr("UNLOCK_COND_PROGRESS") % [counts["current"], counts["max"]]
 			else:
 				if _unlock_manager.has_method("get_weapon_unlock_description"):
 					unlock_desc = _unlock_manager.get_weapon_unlock_description(item_id)
@@ -938,7 +1038,7 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 				if _unlock_manager.has_method("get_weapon_kill_condition_counts"):
 					var counts: Dictionary = _unlock_manager.get_weapon_kill_condition_counts(item_id)
 					if not counts.is_empty():
-						unlock_desc += "\nProgress: %d / %d" % [counts["current"], counts["max"]]
+						unlock_desc += "\n" + tr("UNLOCK_COND_PROGRESS") % [counts["current"], counts["max"]]
 		slot.tooltip_text = unlock_desc
 
 	# Make all items clickable (unlocked for selection, locked for unlocking)
@@ -1042,7 +1142,7 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 		if _unlock_manager and _unlock_manager.has_method("get_active_item_kill_condition_counts"):
 			var counts: Dictionary = _unlock_manager.get_active_item_kill_condition_counts(item_type)
 			if not counts.is_empty():
-				unlock_desc += "\nProgress: %d / %d" % [counts["current"], counts["max"]]
+				unlock_desc += "\n" + tr("UNLOCK_COND_PROGRESS") % [counts["current"], counts["max"]]
 		slot.tooltip_text = unlock_desc
 
 	# Make all items clickable (unlocked for selection, locked for unlocking)
