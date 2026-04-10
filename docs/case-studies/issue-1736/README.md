@@ -54,8 +54,44 @@ This is stored as:
 
 ## Implementation
 
-- `export_presets.cfg`: `application/icon` set to `res://assets/icon.ico`
-- `icon.svg`: Updated root project icon (Godot editor icon)
+- `export_presets.cfg`: `application/icon` set to `res://assets/icon.ico`, `application/modify_resources=true`
+- `icon.svg`: Updated root project icon (used by Godot editor, taskbar, window title)
+- `assets/icon.ico`: Multi-size Windows ICO (16, 24, 32, 48, 64, 128, 256 px)
+- `.github/workflows/build-windows.yml`: Installs Wine and passes `wine_path` to `firebelley/godot-export`
+
+---
+
+## Root Cause: EXE Still Shows Default Icon
+
+### First Fix (session 1)
+Only `assets/icon.ico` was added and `export_presets.cfg` was updated, but the root `icon.svg`
+was still the default Godot blue triangle. This caused the running game to show the default icon
+in the taskbar/window title.
+
+**Fix**: Updated root `icon.svg` with the custom design.
+
+### Second Issue (reported by Jhon-Crow on 2026-03-30)
+"значок запущенной игры правильный, но у самого exe всё ещё дэфолтный"
+(The running game icon is correct, but the exe file itself still has the default icon)
+
+**Root Cause**: Godot uses the `rcedit` tool to embed the ICO into the Windows EXE binary during
+export. On Linux/CI, rcedit can only run via **Wine** (since rcedit is a Windows-only tool).
+
+The CI workflow (`build-windows.yml`) was using `firebelley/godot-export@v7.0.0` but did **not**:
+1. Install Wine on the Ubuntu runner
+2. Pass `wine_path` to the action
+
+Without Wine, Godot silently skips the rcedit step, leaving the EXE with the default icon even
+though `export_presets.cfg` has `application/icon="res://assets/icon.ico"` configured.
+
+**Fix**: Added Wine installation step and `wine_path` parameter to the CI workflow.
+
+### How Godot EXE Icon Works
+1. During Windows export, Godot calls `rcedit` to patch the EXE binary
+2. `rcedit` is a Windows-only tool — on Linux/macOS it must be run through Wine
+3. Godot's Editor Settings has `Export > Windows > rcedit` path setting
+4. The `firebelley/godot-export` action exposes a `wine_path` input that configures this
+5. If Wine is not available, rcedit is skipped and the EXE keeps the default icon
 
 ---
 
@@ -63,4 +99,7 @@ This is stored as:
 
 - Hotline Miami visual design: https://en.wikipedia.org/wiki/Hotline_Miami
 - Door Kickers 2 tactical aesthetic: https://en.wikipedia.org/wiki/Door_Kickers_2
-- Godot export icon docs: https://docs.godotengine.org/en/stable/tutorials/export/feature_tags.html
+- Godot export icon docs: https://docs.godotengine.org/en/stable/tutorials/export/changing_application_icon_for_windows.html
+- firebelley/godot-export action: https://github.com/firebelley/godot-export
+- rcedit Wine issue: https://github.com/godotengine/godot/issues/14441
+- Reddit discussion on exe icon: https://www.reddit.com/r/godot/comments/j8tka9/how_do_you_change_the_exe_files_icon_the_taskbar/
