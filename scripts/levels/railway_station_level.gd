@@ -639,11 +639,17 @@ func _show_game_end_screen() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not _game_end_screen_shown:
+	# Game-end screen: any click or key dismisses it and shows the score screen.
+	if _game_end_screen_shown:
+		if event is InputEventMouseButton or event is InputEventKey:
+			if event.is_pressed():
+				_dismiss_game_end_screen()
 		return
-	if event is InputEventMouseButton or event is InputEventKey:
-		if event.is_pressed():
-			_dismiss_game_end_screen()
+	# Score screen: W key triggers the watch-replay shortcut.
+	if _score_shown:
+		if event is InputEventKey and event.pressed and not event.echo:
+			if event.keycode == KEY_W:
+				_on_watch_replay_pressed()
 
 
 func _dismiss_game_end_screen() -> void:
@@ -1033,14 +1039,6 @@ func _get_next_level_path() -> String:
 				return level_paths[i + 1]
 			return ""
 	return ""
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if not _score_shown:
-		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_W:
-			_on_watch_replay_pressed()
 
 
 func _on_watch_replay_pressed() -> void:
