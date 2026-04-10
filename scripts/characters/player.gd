@@ -4518,43 +4518,44 @@ func _trigger_experimental_sample_effect(item_type: int) -> bool:
 			_summon_bff_companion()
 			FileLogger.info("[Player.ExperimentalSample] BFF companion summoned via experimental sample")
 			return true
-		5:  # INVISIBILITY_SUIT — activate invisibility if the node is available
-			if _invisibility_suit_equipped and _invisibility_suit != null \
-					and is_instance_valid(_invisibility_suit) and not _invisibility_suit.is_active:
+		5:  # INVISIBILITY_SUIT — create temp node if needed, activate briefly (Issue #1635)
+			if _invisibility_suit == null or not is_instance_valid(_invisibility_suit):
+				_experimental_sample_init_temp_invisibility()
+			if _invisibility_suit != null and is_instance_valid(_invisibility_suit) \
+					and not _invisibility_suit.is_active:
 				_invisibility_suit.activate()
 				FileLogger.info("[Player.ExperimentalSample] Invisibility suit activated via experimental sample")
 				return true
-			FileLogger.info("[Player.ExperimentalSample] Invisibility suit not equipped or already active; re-roll")
+			FileLogger.info("[Player.ExperimentalSample] Invisibility suit unavailable or already active; re-roll")
 			return false
-		7:  # FORCE_FIELD — activate for a brief window if equipped (Issue #1635)
-			if _force_field_equipped and _force_field != null and is_instance_valid(_force_field) \
-					and not _force_field.is_active:
+		7:  # FORCE_FIELD — create temp node if needed, activate briefly (Issue #1635)
+			if _force_field == null or not is_instance_valid(_force_field):
+				_experimental_sample_init_temp_force_field()
+			if _force_field != null and is_instance_valid(_force_field) and not _force_field.is_active:
 				_force_field.activate()
 				FileLogger.info("[Player.ExperimentalSample] Force field activated via experimental sample")
 				_experimental_sample_activate_force_field_briefly()
 				return true
-			FileLogger.info("[Player.ExperimentalSample] Force field not equipped or already active; re-roll")
+			FileLogger.info("[Player.ExperimentalSample] Force field unavailable or already active; re-roll")
 			return false
-		8:  # TRAJECTORY_GLASSES — activate glasses if node exists, else skip
-			if _trajectory_glasses_equipped and _trajectory_glasses != null \
-					and is_instance_valid(_trajectory_glasses) and not _trajectory_glasses.is_active:
+		8:  # TRAJECTORY_GLASSES — create temp node if needed, activate (Issue #1635)
+			if _trajectory_glasses == null or not is_instance_valid(_trajectory_glasses):
+				_experimental_sample_init_temp_trajectory_glasses()
+			if _trajectory_glasses != null and is_instance_valid(_trajectory_glasses) \
+					and not _trajectory_glasses.is_active:
 				_update_trajectory_glasses_weapon()
 				_trajectory_glasses.activate()
 				FileLogger.info("[Player.ExperimentalSample] Trajectory glasses activated via experimental sample")
 				return true
-			FileLogger.info("[Player.ExperimentalSample] Trajectory glasses not equipped or already active; re-roll")
+			FileLogger.info("[Player.ExperimentalSample] Trajectory glasses unavailable or already active; re-roll")
 			return false
-		11: # LOUDSPEAKER — trigger loudspeaker effect if progress system allows it
-			var lp := get_loudspeaker_progress()
-			if has_loudspeaker() and lp != null and lp.can_activate():
-				var is_first_use: bool = not lp.used_this_level
-				lp.use()
-				_loudspeaker_component.apply_loudspeaker_effect(_get_aim_direction(),
-					1.0 if is_first_use else lp.get_effect_chance(),
-					lp.get_hostility_chance())
+		11: # LOUDSPEAKER — trigger effect directly via component (Issue #1635)
+			if _loudspeaker_component != null and is_instance_valid(_loudspeaker_component):
+				var aim_dir := _get_aim_direction()
+				_loudspeaker_component.apply_loudspeaker_effect(aim_dir, 1.0, 0.0)
 				FileLogger.info("[Player.ExperimentalSample] Loudspeaker activated via experimental sample")
 				return true
-			FileLogger.info("[Player.ExperimentalSample] Loudspeaker not equipped or no charges; re-roll")
+			FileLogger.info("[Player.ExperimentalSample] Loudspeaker component unavailable; re-roll")
 			return false
 		12: # BREACHING_CHARGES — detonate existing charges if any placed, else skip
 			if _breaching_charges != null and is_instance_valid(_breaching_charges):
@@ -4626,6 +4627,35 @@ func _experimental_sample_init_temp_dash() -> void:
 	add_child(_dash_effect)
 	_dash_effect.initialize(self)
 	FileLogger.info("[Player.ExperimentalSample] Temporary dash effect node created")
+
+## Create a temporary invisibility suit node for Experimental Sample use (Issue #1635).
+func _experimental_sample_init_temp_invisibility() -> void:
+	_invisibility_suit = InvisibilitySuitEffectScript.new()
+	_invisibility_suit.name = "ExperimentalSampleInvisibilityEffect"
+	add_child(_invisibility_suit)
+	_invisibility_suit.initialize(self)
+	FileLogger.info("[Player.ExperimentalSample] Temporary invisibility effect node created")
+
+## Create a temporary force field node for Experimental Sample use (Issue #1635).
+func _experimental_sample_init_temp_force_field() -> void:
+	const FORCE_FIELD_SCENE: String = "res://scenes/effects/ForceFieldEffect.tscn"
+	if not ResourceLoader.exists(FORCE_FIELD_SCENE):
+		FileLogger.info("[Player.ExperimentalSample] Force field scene not found; skip")
+		return
+	var scene: PackedScene = load(FORCE_FIELD_SCENE)
+	if scene == null:
+		return
+	_force_field = scene.instantiate()
+	add_child(_force_field)
+	FileLogger.info("[Player.ExperimentalSample] Temporary force field node created")
+
+## Create a temporary trajectory glasses node for Experimental Sample use (Issue #1635).
+func _experimental_sample_init_temp_trajectory_glasses() -> void:
+	_trajectory_glasses = TrajectoryGlassesEffectScript.new()
+	_trajectory_glasses.name = "ExperimentalSampleTrajectoryGlassesEffect"
+	add_child(_trajectory_glasses)
+	_trajectory_glasses.initialize(self)
+	FileLogger.info("[Player.ExperimentalSample] Temporary trajectory glasses node created")
 
 # =========================================================================
 # Fine Motor Skills Active Item (Issue #1315)
