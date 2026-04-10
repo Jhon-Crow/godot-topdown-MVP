@@ -219,6 +219,85 @@ else:
 
 ---
 
+## Issue 5: Score Shows 0 But Aggressive Enemies Remain — PACIFIST → SEARCHING → COMBAT (Follow-up 2)
+
+**Reported:** 2026-04-10 — "Drone operator issue fixed, but there are still situations when the score shows 0, yet aggressive enemies remain"
+
+**Log:** [`game_log_20260410_164848.txt`](./game_log_20260410_164848.txt) (23,107 lines)
+
+### Timeline Reconstruction
+
+| Time     | Event |
+|----------|-------|
+| 16:52:39 | `FarTracks_MachineGunnerRight` transitions: `PACIFIST → SEARCHING` (memory reset triggered) |
+| 16:53:08 | Enemy3 in LabyrinthLevel becomes pacifist → counter decrements → counted as eliminated |
+| 16:55:15 | Enemy4 (was PACIFIST → SEARCHING) spots player → `SEARCHING → COMBAT` — **no pacifist check!** |
+| 16:55:15 | Enemy2 (was PACIFIST → SEARCHING) spots player → `SEARCHING → COMBAT` |
+| 16:55:15+ | Both enemies find cover, aim at player, fire — counter unchanged (still shows 0) |
+
+The `reset_memory()` function (called when the player uses the LastChance teleport item) transitions **all** enemies that `_has_left_idle` and have a known player target into SEARCHING — **including enemies currently in PACIFIST state**. The SEARCHING state then has no guard against transitioning back to COMBAT.
+
+### Root Cause
+
+Two separate flaws combine to produce this bug:
+
+**Flaw A — `reset_memory()` sends PACIFIST enemies to SEARCHING:**
+
+```gdscript
+# scripts/objects/enemy.gd, reset_memory() — no pacifist guard:
+if _has_left_idle:
+    _log_to_file("Search mode: %s -> SEARCHING at %s" % [AIState.keys()[_current_state], old_position])
+    _transition_to_searching(old_position)  # ← fires even if _current_state == PACIFIST
+```
+
+**Flaw B — `_process_searching_state()` transitions to COMBAT without checking pacifist:**
+
+```gdscript
+# scripts/objects/enemy.gd, _process_searching_state() — no pacifist guard:
+if _can_see_player:
+    _log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
+    _transition_to_combat()  # ← no check if enemy is pacifist
+    return
+```
+
+Either flaw alone could be blocked. Together they form a complete bypass:
+`PACIFIST → (memory reset) → SEARCHING → (spots player) → COMBAT`
+
+### Fix
+
+**Fix A — `reset_memory()`: skip SEARCHING transition for pacifist enemies:**
+
+```gdscript
+if _has_left_idle:
+    # Issue #1744: Pacifist enemies must not enter SEARCHING — keep them pacifist
+    if _pacifist and _pacifist.is_pacifist:
+        _log_to_file("Memory reset: %s stays PACIFIST (not entering SEARCHING) (Issue #1744)" % AIState.keys()[_current_state])
+        if _memory != null: _memory.reset()
+        _last_known_player_position = Vector2.ZERO
+    else:
+        # Set LOW confidence (0.35) - puts enemy in search mode at old position
+        ...
+        _transition_to_searching(old_position)
+```
+
+**Fix B — `_process_searching_state()`: block COMBAT transition for pacifist enemies:**
+
+```gdscript
+if _can_see_player:
+    # Issue #1744: Pacifist enemies must not resume COMBAT from SEARCHING
+    if _pacifist and _pacifist.is_pacifist:
+        _log_to_file("SEARCHING: Player spotted but enemy is pacifist — staying in SEARCHING (Issue #1744)")
+        return
+    _log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
+    _transition_to_combat()
+    return
+```
+
+Both fixes are defense-in-depth: Fix A prevents the SEARCHING entry; Fix B prevents the COMBAT exit even if SEARCHING is somehow entered in future.
+
+---
+
 ## Log Files
 
 - [`game_log_20260410_021834.txt`](./game_log_20260410_021834.txt) — Winter Forest drone operator follow-up (3,366 lines)
+- [`game_log_20260410_164848.txt`](./game_log_20260410_164848.txt) — PACIFIST→SEARCHING→COMBAT follow-up (23,107 lines)
