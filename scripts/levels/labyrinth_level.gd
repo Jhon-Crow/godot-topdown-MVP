@@ -663,7 +663,7 @@ func _on_combo_changed(combo: int, points: int) -> void:
 		return
 
 	if combo > 0:
-		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
+		_combo_label.text = "x%d COMBO +%d" % [combo, points]
 		_combo_label.visible = true
 		var combo_color := _get_combo_color(combo)
 		_combo_label.add_theme_color_override("font_color", combo_color)
@@ -1034,11 +1034,11 @@ func _setup_debug_ui() -> void:
 	_combo_label.text = ""
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo_label.offset_left = -350
+	_combo_label.offset_left = -500
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 80
-	_combo_label.offset_bottom = 120
-	_combo_label.add_theme_font_size_override("font_size", 28)
+	_combo_label.offset_bottom = 150
+	_combo_label.add_theme_font_size_override("font_size", 56)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
 	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
 	_combo_label.visible = false

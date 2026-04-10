@@ -99,23 +99,16 @@ for i in range(bg_h // 2):
     draw.line([(0, i), (bg_w, i)], fill=(60, 40, 80, alpha))
     draw.line([(0, bg_h - 1 - i), (bg_w, bg_h - 1 - i)], fill=(30, 20, 40, alpha))
 
-# Render "x3 COMBO" - yellow-ish game text color
-combo_text = "x3 COMBO"
-combo_img = render_text_gothic(combo_text, scale=0.55, color=(255, 220, 80))
+# Render the full combo text in one line: "x3 COMBO +150"
+# This is the new format after fix (removed parentheses which were unsupported by font)
+# Font size doubled from 28 to 56, so scale is doubled from ~0.18 to ~0.37
+combo_text = "x3 COMBO +150"
+combo_img = render_text_gothic(combo_text, scale=0.37, color=(255, 200, 50))
 
-# Render "+150" in slightly smaller size, greenish
-bonus_text = "+150"
-bonus_img = render_text_gothic(bonus_text, scale=0.38, color=(120, 255, 120))
-
-# Place combo text centered, vertically upper portion
+# Place combo text centered, vertically centered
 cx = (bg_w - combo_img.width) // 2
-cy = 30
+cy = (bg_h - combo_img.height) // 2 - 10
 bg.paste(combo_img, (cx, cy), combo_img)
-
-# Place bonus text centered, just below combo
-bx = (bg_w - bonus_img.width) // 2
-by = cy + combo_img.height + 5
-bg.paste(bonus_img, (bx, by), bonus_img)
 
 # Decorative border lines
 draw = ImageDraw.Draw(bg)
@@ -129,7 +122,7 @@ try:
 except Exception:
     fnt = ImageFont.load_default()
 
-caption = "Combo counter — Gothic bitmap font applied"
+caption = "Combo counter — Gothic font, 2x size, no broken chars (x3 COMBO +150)"
 draw.text((bg_w // 2, bg_h - 22), caption, fill=(180, 160, 200, 220), anchor='mm', font=fnt)
 
 # Save
