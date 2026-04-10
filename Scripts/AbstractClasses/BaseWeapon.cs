@@ -178,15 +178,22 @@ public abstract partial class BaseWeapon : Node2D
         GD.Print($"[BaseWeapon] _Ready() called for weapon: {Name}");
         GD.Print($"[BaseWeapon]   WeaponData: {(WeaponData != null ? "Present" : "NULL")}");
 
-        // Issue #765 Fix: Validate WeaponData and provide clear error if missing
+        // Issue #765 Fix: Validate WeaponData and provide clear error if missing.
+        // Issue #1774 Fix: When WeaponData is null (C# GlobalClass resource not yet registered
+        // during early scene initialization), schedule a deferred retry so initialization
+        // completes in the next frame once Godot's resource system is fully ready.
         if (WeaponData == null)
         {
             GD.PrintErr($"[BaseWeapon] CRITICAL ERROR: WeaponData is NULL for weapon {Name}!");
-            GD.PrintErr($"[BaseWeapon] This weapon will not function correctly. Check that:");
+            GD.PrintErr($"[BaseWeapon] Scheduling deferred re-initialization (Issue #1774).");
+            GD.PrintErr($"[BaseWeapon] Check that:");
             GD.PrintErr($"[BaseWeapon]   1. The weapon scene (.tscn) has WeaponData resource assigned");
             GD.PrintErr($"[BaseWeapon]   2. The .tres file exists and is not corrupted");
             GD.PrintErr($"[BaseWeapon]   3. Scene reload hasn't cleared the resource reference");
-            // Don't initialize if WeaponData is missing - prevents using wrong defaults
+            // Issue #1774: Defer initialization to the next frame. On the first load of a C#
+            // [GlobalClass] weapon resource, Godot may not have registered the WeaponData type
+            // yet, causing ExtResource to resolve to null. By the next frame it will be ready.
+            CallDeferred(MethodName.DeferredReadyInit);
             return;
         }
 
@@ -270,6 +277,54 @@ public abstract partial class BaseWeapon : Node2D
 
         // Emit initial magazine state
         EmitMagazinesChanged();
+    }
+
+    /// <summary>
+    /// Deferred initialization called when WeaponData was null during _Ready().
+    /// Issue #1774: On the first load of a C# [GlobalClass] weapon resource, Godot may not have
+    /// registered the WeaponData type yet, causing the ExtResource to resolve as null.
+    /// This method is called via CallDeferred from _Ready() and runs in the next frame, by which
+    /// time the C# resource type will be registered and WeaponData will be properly resolved.
+    /// </summary>
+    private void DeferredReadyInit()
+    {
+        GD.Print($"[BaseWeapon] DeferredReadyInit() for {Name}: WeaponData={(WeaponData != null ? $"Present (Name={WeaponData.Name})" : "still NULL")}");
+
+        if (WeaponData == null)
+        {
+            GD.PrintErr($"[BaseWeapon] DeferredReadyInit: WeaponData still NULL for {Name}. Weapon will not function. Check scene file.");
+            return;
+        }
+
+        GD.Print($"[BaseWeapon]   WeaponData.Name: {WeaponData.Name}");
+        GD.Print($"[BaseWeapon]   WeaponData.MagazineSize: {WeaponData.MagazineSize}");
+        GD.Print($"[BaseWeapon]   WeaponData.IsAutomatic: {WeaponData.IsAutomatic}");
+
+        // Issue #1774: Only reinitialize magazines from WeaponData defaults when the level script
+        // has NOT already initialized them via ReinitializeMagazines(). Level scripts run between
+        // _Ready() returning and DeferredReadyInit() executing (same frame, next notification).
+        // If MagazineInventory already has ammo (initialized by the level), preserve that config.
+        bool alreadyInitialized = MagazineInventory.CurrentMagazine != null;
+        if (alreadyInitialized)
+        {
+            GD.Print($"[BaseWeapon] DeferredReadyInit: magazines already initialized (ammo={CurrentAmmo}/{WeaponData.MagazineSize}), skipping re-init to preserve level config.");
+        }
+        else
+        {
+            InitializeMagazinesWithDifficulty();
+        }
+
+        // Connect to difficulty_changed signal (same as normal _Ready() path)
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null && !difficultyManager.IsConnected("difficulty_changed", Callable.From<int>(OnDifficultyChanged)))
+        {
+            difficultyManager.Connect("difficulty_changed", Callable.From<int>(OnDifficultyChanged));
+        }
+
+        // Always emit signals so the HUD updates with the current ammo state
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
+        GD.Print($"[BaseWeapon] DeferredReadyInit complete for {Name}: ammo={CurrentAmmo}/{WeaponData.MagazineSize}");
     }
 
     /// <summary>
@@ -977,15 +1032,22 @@ public abstract partial class BaseWeapon : Node2D
     /// <summary>
     /// Reinitializes the magazine inventory with a custom magazine size.
     /// Used by the auto-reload passive item (Issue #1067) to reduce magazine capacity.
+    /// Issue #1774: WeaponData null check is intentionally removed here — when a level script
+    /// provides an explicit magazineSize, it can reinitialize ammo even when WeaponData has not
+    /// yet been resolved (first-load C# resource race condition). The magazine system does not
+    /// require WeaponData when size is provided explicitly.
     /// </summary>
     /// <param name="magazineCount">Number of magazines to initialize with.</param>
     /// <param name="magazineSize">Custom magazine capacity (overrides WeaponData.MagazineSize).</param>
     /// <param name="fillAllMagazines">If true, all magazines start full. Otherwise, only current is full.</param>
     public virtual void ReinitializeMagazines(int magazineCount, int magazineSize, bool fillAllMagazines = true)
     {
-        if (WeaponData == null)
+        // Issue #1774: Do NOT require WeaponData when magazineSize is explicitly provided.
+        // Level scripts pass explicit sizes so ammo can be initialized even during first-load
+        // scenarios where WeaponData may be null (C# GlobalClass resource registration race).
+        if (magazineCount <= 0 || magazineSize <= 0)
         {
-            GD.PrintErr("[BaseWeapon] Cannot reinitialize magazines: WeaponData is null");
+            GD.PrintErr($"[BaseWeapon] ReinitializeMagazines: invalid magazineCount={magazineCount} or magazineSize={magazineSize}");
             return;
         }
 
