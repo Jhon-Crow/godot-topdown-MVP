@@ -1,5 +1,5 @@
 shader_type canvas_item;
-// Realistic 2D water shader (Issue #1445, enhanced in Issue #1550)
+// Realistic 2D water shader (Issue #1445, enhanced in Issue #1550, distortion in Issue #1738)
 // Simulates ocean waves on the Beach level with:
 //   - Animated wave bands scrolling horizontally
 //   - Foam / white-caps near wave crests
@@ -10,6 +10,8 @@ shader_type canvas_item;
 //   - Wave interruption by obstacles (player/enemies) — Issue #1550
 //     Mirrors the light-ray occlusion logic: wave amplitude is attenuated
 //     within a radius around each obstacle UV coordinate.
+//   - Screen-space refraction distortion (Issue #1738) — wave bands visibly distort
+//     the background scene and the water's internal UV, producing a "lensing" shimmer.
 
 // --- Wave animation (primary — broad horizontal bands) ---
 uniform float wave_speed : hint_range(0.0, 5.0) = 0.3;
@@ -58,13 +60,13 @@ uniform vec2 obstacle_uvs[8];
 // Radius in UV space within which the wave is attenuated around an obstacle.
 uniform float obstacle_radius : hint_range(0.0, 0.2) = 0.045;
 
-// --- Screen-space refraction (Issue #1738) ---
-// Direct screen-UV offset magnitude. 0.0 = no refraction, 0.012 gives a subtle
-// but clearly visible wave-lensing effect (~1.2% of screen width ≈ 13 px at 1080p).
-// The wave phase (not the tiny final displacement) drives the distortion direction so
-// the offset is always in the useful ±distortion_strength range.
+// --- Screen-space refraction distortion (Issue #1738) ---
+// Controls how strongly wave bands distort the screen-UV when sampling the background.
+// 0.025 ≈ 2.5% of screen width ≈ ~27 px at 1080p — clearly visible wave-lensing shimmer.
+// Pattern mirrors last_chance.gdshader (ripple_strength = 0.01) but stronger since water
+// covers a large area and the effect needs to be prominent.
 // Set to 0.0 by WaterBody.set_time_stopped() when time is paused.
-uniform float distortion_strength : hint_range(0.0, 0.05) = 0.012;
+uniform float distortion_strength : hint_range(0.0, 0.1) = 0.025;
 
 // Screen texture for refraction sampling.
 // filter_nearest + textureLod for gl_compatibility renderer support
@@ -89,15 +91,16 @@ float wave_occlusion(vec2 uv) {
 void fragment() {
 	vec2 uv = UV;
 
-	// ---- Primary wave ----
+	// ---- Primary wave — drives the distortion bands ----
+	// Two overlapping sine waves along X create irregular, ocean-like ripples.
 	float wave1 = sin(uv.x * wave_frequency + TIME * wave_speed)
 	            + sin(uv.x * wave_frequency * 0.73 - TIME * wave_speed * 0.6);
 	wave1 *= 0.5; // normalise to [-1, 1]
 
-	// ---- Secondary ripple (horizontal surface undulation) ----
-	// Kept horizontal (uv.x only) so it looks like gentle water surface texture,
-	// not diagonal lines at the wrong angle.
-	float wave2 = sin(uv.x * ripple_frequency + TIME * ripple_speed)
+	// ---- Secondary wave — vertical surf bands (Y-axis) ----
+	// Runs along uv.y so it creates horizontal bands moving toward shore.
+	// Combined with wave1 it produces a 2D irregular surface pattern.
+	float wave2 = sin(uv.y * ripple_frequency + TIME * ripple_speed)
 	            * sin(uv.x * ripple_frequency * 0.7 - TIME * ripple_speed * 0.5);
 
 	// ---- Obstacle occlusion (wave interruption — Issue #1550) ----
@@ -110,7 +113,20 @@ void fragment() {
 	float wave1_occ = wave1 * occ_factor;
 	float wave2_occ = wave2 * occ_factor;
 
-	// ---- UV distortion for wave motion ----
+	// ---- Screen-space refraction distortion (Issue #1738) ----
+	// Wave1 displaces in X; wave2 displaces in Y — together they produce a
+	// 2D lensing shimmer visible as wavy bands across the whole water surface.
+	// distortion_strength = 0.025 → ≈ 2.5% of screen width ≈ 27 px at 1080p.
+	// This is the dominant visible effect: the background scene (sand, beach)
+	// is bent by the wave surface exactly like looking through moving water.
+	// wave1_occ / wave2_occ already carry occ_factor, so refraction is
+	// automatically suppressed near obstacles.
+	vec2 refract_offset = vec2(wave1_occ, wave2_occ) * distortion_strength;
+	vec4 screen_col = textureLod(screen_texture, SCREEN_UV + refract_offset, 0.0);
+
+	// ---- UV distortion for the water's own internal colour bands ----
+	// Apply a smaller UV warp to the water colour lookup so the depth gradient
+	// and foam also undulate — giving the water a "wavy glass" internal texture.
 	float total_disp = wave1_occ * wave_amplitude + wave2_occ * ripple_amplitude;
 	vec2 distorted_uv = uv + vec2(total_disp, total_disp * 0.5);
 
@@ -140,20 +156,13 @@ void fragment() {
 	// Blend surf foam on top of the water colour
 	water_col = mix(water_col, foam_color, surf_foam * surf_intensity);
 
-	// ---- Screen-space refraction (Issue #1738) ----
-	// Use normalised wave phase (wave1, wave2) — not the tiny final displacement —
-	// so distortion_strength is the direct screen-UV offset in [0..1] units
-	// (0.012 ≈ 1.2% of screen width, clearly visible).
-	// Combining both waves gives an irregular, natural-looking shimmer.
-	// wave1_occ / wave2_occ already have occ_factor applied, so refraction is
-	// automatically suppressed near obstacles (same as surf_foam logic).
-	// wave1_occ and wave2_occ already incorporate occ_factor, so no extra multiply needed.
-	vec2 refract_offset = vec2(wave1_occ, wave2_occ * 0.5) * distortion_strength;
-	vec4 screen_col = textureLod(screen_texture, SCREEN_UV + refract_offset, 0.0);
-	// Blend: water_col.a drives how much water colour vs refracted scene is shown.
-	// Opaque deep water → mostly water colour; transparent shore edges → more scene.
-	// When distortion_strength = 0 (time-stopped) refract_offset = vec2(0,0) so
-	// screen_col is an unshifted sample — the blend is still visually correct.
+	// ---- Compose final colour ----
+	// Blend distorted background (screen_col) with water colour using water alpha.
+	// water_col.a ≈ 0.88–0.94 → ~10–12% of the distorted scene shows through.
+	// The distortion is large enough (±27 px) that even 12% contribution is
+	// clearly visible as wavy bands across the water surface.
+	// When distortion_strength = 0 (time-stopped), refract_offset = vec2(0,0)
+	// and screen_col is an unshifted sample — visually correct (frozen water).
 	vec3 final_rgb = mix(screen_col.rgb, water_col.rgb, water_col.a);
 
 	// ---- Blood diffusion tint ----
