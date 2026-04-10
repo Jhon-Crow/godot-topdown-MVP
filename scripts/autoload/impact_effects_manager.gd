@@ -18,6 +18,12 @@ var _bullet_hole_scene: PackedScene = null
 var _muzzle_flash_scene: PackedScene = null
 var _flashbang_effect_scene: PackedScene = null
 var _explosion_scorch_mark_scene: PackedScene = null
+## Bullet projectile scene for warmup (Issue #1743).
+## Pre-warming this scene prevents the first-shot lag caused by JIT compilation
+## of the Line2D gradient trail shader and first-time scene instantiation overhead.
+var _bullet_scene: PackedScene = null
+## Bullet casing scene for warmup (Issue #1743).
+var _casing_scene: PackedScene = null
 
 ## Default effect scale for calibers without explicit setting.
 const DEFAULT_EFFECT_SCALE: float = 1.0
@@ -283,6 +289,29 @@ func _preload_effect_scenes() -> void:
 		# Scorch mark is optional - don't warn, just log in debug mode
 		if _debug_effects:
 			print("[ImpactEffectsManager] ExplosionScorchMark scene not found (optional)")
+
+	# Issue #1743: Load bullet projectile and casing scenes for warmup.
+	# The C# bullet scene contains a Line2D with a Gradient resource whose CanvasItem
+	# shader is compiled JIT on first render, causing a frame stall on the first shot.
+	var csharp_bullet_path := "res://scenes/projectiles/csharp/Bullet.tscn"
+	var gdscript_bullet_path := "res://scenes/projectiles/Bullet.tscn"
+	if ResourceLoader.exists(csharp_bullet_path):
+		_bullet_scene = load(csharp_bullet_path)
+		loaded_scenes.append("Bullet(C#)")
+		if _debug_effects:
+			print("[ImpactEffectsManager] Loaded C# Bullet scene for warmup")
+	elif ResourceLoader.exists(gdscript_bullet_path):
+		_bullet_scene = load(gdscript_bullet_path)
+		loaded_scenes.append("Bullet(GDScript)")
+		if _debug_effects:
+			print("[ImpactEffectsManager] Loaded GDScript Bullet scene for warmup")
+
+	var casing_path := "res://scenes/effects/Casing.tscn"
+	if ResourceLoader.exists(casing_path):
+		_casing_scene = load(casing_path)
+		loaded_scenes.append("Casing")
+		if _debug_effects:
+			print("[ImpactEffectsManager] Loaded Casing scene for warmup")
 
 
 ## Spawns a dust effect at the given position when a bullet hits a wall.
@@ -1237,6 +1266,50 @@ func _warmup_particle_shaders() -> void:
 
 			warmed_up_count += 1
 			warmup_nodes.append(flashbang)
+
+	# --- PART 6: Warmup bullet projectile scene (Issue #1743) ---
+	# The bullet scene contains a Line2D with a Gradient resource.
+	# Godot 4 compiles the CanvasItem gradient shader JIT on first render,
+	# causing a visible frame stall on the very first shot fired each level.
+	if _bullet_scene:
+		var bullet: Node2D = _bullet_scene.instantiate() as Node2D
+		if bullet:
+			bullet.global_position = warmup_pos
+			# Make nearly invisible but still rendered so GPU compiles the shader
+			bullet.modulate = Color(1, 1, 1, 0.01)
+			bullet.z_index = -100
+
+			if scene_root:
+				scene_root.add_child(bullet)
+			else:
+				add_child(bullet)
+
+			if _debug_effects:
+				print("[ImpactEffectsManager] Warmup: Bullet at %s (alpha=0.01)" % warmup_pos)
+
+			warmed_up_count += 1
+			warmup_nodes.append(bullet)
+
+	# --- PART 7: Warmup casing scene (Issue #1743) ---
+	# The casing RigidBody2D is instantiated on every shot.
+	# Pre-warming it avoids first-instantiation overhead on the first shot.
+	if _casing_scene:
+		var casing: Node2D = _casing_scene.instantiate() as Node2D
+		if casing:
+			casing.global_position = warmup_pos
+			casing.modulate = Color(1, 1, 1, 0.01)
+			casing.z_index = -100
+
+			if scene_root:
+				scene_root.add_child(casing)
+			else:
+				add_child(casing)
+
+			if _debug_effects:
+				print("[ImpactEffectsManager] Warmup: Casing at %s (alpha=0.01)" % warmup_pos)
+
+			warmed_up_count += 1
+			warmup_nodes.append(casing)
 
 	# Wait multiple frames to ensure GPU fully processes and compiles all shaders
 	# One frame may not be enough for complex particle systems
