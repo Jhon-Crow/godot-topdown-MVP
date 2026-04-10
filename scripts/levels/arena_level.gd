@@ -1121,6 +1121,7 @@ func _setup_ui() -> void:
 	_combo_label.offset_bottom = 130
 	_combo_label.add_theme_font_size_override("font_size", 26)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
+	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 

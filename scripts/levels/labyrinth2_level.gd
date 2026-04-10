@@ -661,6 +661,8 @@ func _setup_debug_ui() -> void:
 		ui.add_child(_difficulty_label)
 	_magazines_label = get_node_or_null("CanvasLayer/UI/MagazinesLabel")
 	_combo_label = get_node_or_null("CanvasLayer/UI/ComboLabel")
+	if _combo_label != null:
+		_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
 	_update_debug_ui()
 
 
