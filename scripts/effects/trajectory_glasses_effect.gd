@@ -608,21 +608,39 @@ func _restore_weapon_lasers() -> void:
 	if _weapon == null:
 		return
 
+	# Determine whether the built-in laser should be re-enabled.
+	# In Gunslinger mode the laser is disabled unless the Laser Sight active item is equipped.
+	# Restoring it unconditionally would introduce the bug reported in Issue #1754.
+	var should_enable_laser: bool = true
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager and difficulty_manager.has_method("should_disable_laser_sight"):
+		if difficulty_manager.should_disable_laser_sight():
+			# Laser is disabled in this difficulty — check whether the Laser Sight item overrides it.
+			var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+			var has_laser_item: bool = (
+				active_item_manager != null
+				and active_item_manager.has_method("should_force_laser_sight")
+				and active_item_manager.call("should_force_laser_sight")
+			)
+			should_enable_laser = has_laser_item
+			FileLogger.info("[TrajectoryGlasses] _restore_weapon_lasers: Gunslinger mode — laser_item=%s, should_enable=%s" % [
+				str(has_laser_item), str(should_enable_laser)
+			])
+
 	# Re-enable laser sight on C# weapons
 	if _weapon.has_method("SetLaserSightEnabled"):
-		_weapon.call("SetLaserSightEnabled", true)
-		FileLogger.info("[TrajectoryGlasses] Restored weapon laser sight")
+		_weapon.call("SetLaserSightEnabled", should_enable_laser)
+		FileLogger.info("[TrajectoryGlasses] Restored weapon laser sight (enabled=%s)" % str(should_enable_laser))
 	elif _weapon.has_method("set_laser_sight_enabled"):
-		_weapon.call("set_laser_sight_enabled", true)
-		FileLogger.info("[TrajectoryGlasses] Restored weapon laser sight (GDScript)")
+		_weapon.call("set_laser_sight_enabled", should_enable_laser)
+		FileLogger.info("[TrajectoryGlasses] Restored weapon laser sight GDScript (enabled=%s)" % str(should_enable_laser))
 
 	# Restore any Line2D children named "LaserSight"
 	var laser := _weapon.get_node_or_null("LaserSight")
 	if laser and laser is Line2D:
-		laser.visible = true
+		laser.visible = should_enable_laser
 
 	# Restore Power Fantasy laser if applicable
-	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager and difficulty_manager.has_method("should_force_blue_laser_sight"):
 		if difficulty_manager.should_force_blue_laser_sight():
 			var pf_laser := _weapon.get_node_or_null("PowerFantasyLaser")

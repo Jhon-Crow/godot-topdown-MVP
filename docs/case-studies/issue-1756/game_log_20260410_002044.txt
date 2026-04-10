@@ -1,0 +1,2208 @@
+[00:20:44] [INFO] ============================================================
+[00:20:44] [INFO] GAME LOG STARTED
+[00:20:44] [INFO] ============================================================
+[00:20:44] [INFO] Timestamp: 2026-04-10T00:20:44
+[00:20:44] [INFO] Log file: I:/Загрузки/godot exe/hud/game_log_20260410_002044.txt
+[00:20:44] [INFO] Executable: I:/Загрузки/godot exe/hud/Godot-Top-Down-Template.exe
+[00:20:44] [INFO] OS: Windows
+[00:20:44] [INFO] Debug build: false
+[00:20:44] [INFO] Engine version: 4.3-stable (official)
+[00:20:44] [INFO] Project: Godot Top-Down Template
+[00:20:44] [INFO] Build info: not available (build_info.cfg not found)
+[00:20:44] [INFO] ------------------------------------------------------------
+[00:20:44] [INFO] [GameManager] GameManager ready
+[00:20:44] [INFO] [ScoreManager] ScoreManager ready
+[00:20:44] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[00:20:44] [INFO] [DifficultyManager] Loaded difficulty: Normal (value: 1)
+[00:20:44] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[00:20:44] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[00:20:44] [INFO] [ImpactEffects] Explosion light pool initialized: 12 lights pre-created
+[00:20:44] [INFO] [ImpactEffects] Dust effect pool initialized: 16 effects pre-created
+[00:20:44] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[00:20:44] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[00:20:44] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[00:20:44] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[00:20:44] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[00:20:44] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[00:20:44] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[00:20:44] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[00:20:44] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[00:20:44] [INFO] [LastChance] Resetting all effects (scene change detected)
+[00:20:44] [INFO] [LastChance] Last chance shader loaded successfully
+[00:20:44] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[00:20:44] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[00:20:44] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[00:20:44] [INFO] [LastChance]   Sepia intensity: 0.70
+[00:20:44] [INFO] [LastChance]   Brightness: 0.60
+[00:20:44] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[00:20:44] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[00:20:44] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[00:20:44] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn
+[00:20:44] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DroneGrenade.tscn
+[00:20:44] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: false, Invincibility: false, Realistic visibility: false, Replay: false, Logging: true, Enemy flashlight blinding: false, FPS counter: false, FPS drop logging: true, All weapons unlocked: false, All maps unlocked: false, Global stuck max time: 20.0s, Nav mesh visible: false, Search path visible: false, Passage waypoints visible: false, Passage waypoints: false, Sound visualizer: false, Enemy path visible: false, Cover raycast visible: false, Tactical group: false, Cover infinite rays: true, Cover sector rays: true, Roguelike unlocked: false
+[00:20:44] [INFO] [NavMeshMonitor] NavMeshMonitor ready
+[00:20:44] [INFO] [SoundSettings] SoundSettings initialized - effects: 0.49, music: 1.00
+[00:20:44] [INFO] [GameplaySettings] GameplaySettings initialized - blood_amount: 1.00, wall_hit_particles: true, revolver_aim_assist: true
+[00:20:44] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[00:20:44] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[00:20:44] [INFO] [CinemaEffects] Created effects layer at layer 99
+[00:20:44] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[00:20:44] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[00:20:44] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[00:20:44] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[00:20:44] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[00:20:44] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[00:20:44] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[00:20:44] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[00:20:44] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[00:20:44] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[00:20:44] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[00:20:44] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[00:20:44] [INFO] [GrenadeTimerHelper] Autoload ready
+[00:20:44] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[00:20:44] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[00:20:44] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[00:20:44] [INFO] [PowerFantasy]   Kill effect duration: 600ms
+[00:20:44] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[00:20:44] [INFO] [BlackMetalEffectsManager] BlackMetalEffectsManager initializing...
+[00:20:44] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+[00:20:44] [INFO] [BlackMetalEffectsManager] Black Metal shader loaded (B&W+red, hint_screen_texture approach)
+[00:20:44] [INFO] [BlackMetalEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[00:20:44] [INFO] [BlackMetalEffectsManager] Black Metal filter DISABLED
+[00:20:44] [INFO] [BlackMetalLightningEffectsManager] BlackMetalLightningEffectsManager initializing...
+[00:20:44] [INFO] [BlackMetalLightningEffectsManager] Lightning bolt drawer created (v10 - no shader, pure draw calls)
+[00:20:44] [INFO] [BlackMetalLightningEffectsManager] Connected to GameManager.enemy_killed signal
+[00:20:44] [INFO] [BlackMetalLightningEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[00:20:44] [INFO] [ProgressManager] ProgressManager ready, loaded 23 entries
+[00:20:44] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[00:20:44] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[00:20:44] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
+[00:20:44] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
+[00:20:44] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
+[00:20:44] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
+[00:20:44] [INFO] [SceneLoader] SceneLoader initialized
+[00:20:44] [INFO] [PersistManager] Loading saved state from user://game_state.cfg
+[00:20:44] [INFO] [PersistManager] Restored unlocked weapon: makarov_pm
+[00:20:44] [INFO] [PersistManager] Restored unlocked weapon: m16
+[00:20:44] [INFO] [PersistManager] Restored unlocked weapon: shotgun
+[00:20:44] [INFO] [PersistManager] Restored unlocked weapon: mini_uzi
+[00:20:44] [INFO] [PersistManager] Restored unlocked weapon: silenced_pistol
+[00:20:44] [INFO] [PersistManager] Restored unlocked weapon: sniper
+[00:20:44] [INFO] [PersistManager] Restored unlocked weapon: revolver
+[00:20:44] [INFO] [PersistManager] Restored unlocked weapon: ak_gl
+[00:20:44] [INFO] [PersistManager] Restored kills_without_laser_sight: 592
+[00:20:44] [INFO] [PersistManager] Restored shots_fired_special_weapons: 358
+[00:20:44] [INFO] [PersistManager] Restored total_deaths: 72
+[00:20:44] [INFO] [PersistManager] Restored no_damage_levels_completed: 12
+[00:20:44] [INFO] [PersistManager] Restored levels_completed_rank_a_or_higher: 9
+[00:20:44] [INFO] [PersistManager] Restored kills_through_wall: 10
+[00:20:44] [INFO] [PersistManager] Restored levels_completed_with_silenced_pistol: 1
+[00:20:44] [INFO] [GameManager] Weapon selected: ak_gl
+[00:20:44] [INFO] [PersistManager] Restored selected weapon: ak_gl
+[00:20:44] [INFO] [PersistManager] Restored unlocked grenade type: 0
+[00:20:44] [INFO] [PersistManager] Restored unlocked grenade type: 1
+[00:20:44] [INFO] [PersistManager] Restored unlocked grenade type: 2
+[00:20:44] [INFO] [PersistManager] Restored unlocked grenade type: 3
+[00:20:44] [INFO] [PersistManager] Restored unlocked grenade type: 4
+[00:20:44] [INFO] [PersistManager] Restored selected grenade type: 0
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 0
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 1
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 2
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 3
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 4
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 5
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 6
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 7
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 8
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 9
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 10
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 11
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 12
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 14
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 16
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 17
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 18
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 20
+[00:20:44] [INFO] [PersistManager] Restored unlocked active item type: 21
+[00:20:44] [INFO] [ActiveItemManager] Active item changed from None to Homing Bullets
+[00:20:44] [INFO] [PersistManager] Restored selected active item type: 2
+[00:20:44] [INFO] [PersistManager] Loudspeaker progress restored: level 1, levels_completed=0
+[00:20:44] [INFO] [PersistManager] State loaded successfully
+[00:20:44] [INFO] [PersistManager] PersistManager ready
+[00:20:44] [INFO] [UnlockManager] UnlockManager ready
+[00:20:44] [INFO] [WeaponHintsSettings] WeaponHintsSettings initialized - mode: ALWAYS, weapons seen: ["makarov_pm", "shotgun", "mini_uzi", "sniper", "revolver", "ak_gl"]
+[00:20:44] [INFO] [PerformanceSettings] PerformanceSettings initialized - particles: true, blood_decals: true, screen_shake: true, explosion_lights: true, warm_lights: true, ai: true
+[00:20:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:44] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[00:20:44] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[00:20:44] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[00:20:44] [ENEMY] [Enemy1] Death animation component initialized
+[00:20:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:44] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[00:20:44] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[00:20:44] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[00:20:44] [ENEMY] [Enemy2] Death animation component initialized
+[00:20:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:44] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[00:20:44] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[00:20:44] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[00:20:44] [ENEMY] [Enemy3] Death animation component initialized
+[00:20:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:44] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[00:20:44] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[00:20:44] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[00:20:44] [ENEMY] [Enemy4] Death animation component initialized
+[00:20:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:44] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[00:20:44] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[00:20:44] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[00:20:44] [ENEMY] [Enemy5] Death animation component initialized
+[00:20:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:44] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[00:20:44] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[00:20:44] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[00:20:44] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[00:20:44] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:20:44] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[00:20:44] [INFO] [Player.Weapon] Removed current weapon: MakarovPM
+[00:20:44] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[00:20:44] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[00:20:44] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[00:20:44] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[00:20:44] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[00:20:44] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[00:20:44] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[00:20:44] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[00:20:44] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[00:20:44] [INFO] [Player.Homing] Homing activation sound loaded
+[00:20:44] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[00:20:44] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[00:20:44] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[00:20:44] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[00:20:44] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[00:20:44] [INFO] [Player.DrillingBullets] Drilling bullets not selected in ActiveItemManager
+[00:20:44] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[00:20:44] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[00:20:44] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[00:20:44] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[00:20:44] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[00:20:44] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[00:20:44] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[00:20:44] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[00:20:44] [INFO] [Player.ItemVisual] Visual applied for item type: 2
+[00:20:44] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[00:20:44] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[00:20:44] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[00:20:44] [INFO] [Player.RecoilCompensator] Recoil compensator not selected in ActiveItemManager
+[00:20:44] [INFO] [Player.ExperimentalSample] Experimental sample not selected
+[00:20:44] [INFO] [Player.FineMotorSkills] Fine motor skills not selected in ActiveItemManager
+[00:20:44] [INFO] [Player.Dash] No dash selected in ActiveItemManager
+[00:20:44] [INFO] [Player.GrenadeBag] No grenade bag selected in ActiveItemManager
+[00:20:44] [INFO] [Player.Jammer] JammerHUD initialized
+[00:20:44] [INFO] [Player.ItemPickup] Connected to ActiveItemManager.active_item_changed
+[00:20:44] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[00:20:44] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:20:44] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[00:20:44] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[00:20:44] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[00:20:44] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[00:20:44] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[00:20:44] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[00:20:44] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[00:20:44] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[00:20:44] [INFO] [LabyrinthLevel] Setting up weapon: ak_gl
+[00:20:44] [INFO] [LabyrinthLevel] AKGL already equipped by C# Player - applying labyrinth ammo config
+[00:20:44] [INFO] [LabyrinthLevel] Re-applied auto-reload magazine reduction after ammo config for ak_gl
+[00:20:44] [INFO] [GameManager] set_player() called with: <CharacterBody2D#83818972930> (class: CharacterBody2D)
+[00:20:44] [INFO] [GameManager] set_player: player_alive reset to true (new player registered)
+[00:20:44] [INFO] [GameManager] set_player: has_signal('Died')=true, has_signal('died')=false
+[00:20:44] [INFO] [GameManager] Connected to player 'Died' signal (C# naming)
+[00:20:44] [INFO] [GameManager] set_player: initial collision_layer=1 (poll expects 0 on death)
+[00:20:44] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+[00:20:44] [INFO] [ScoreManager] Level started with 5 enemies
+[00:20:44] [INFO] [ScoreManager] Custom rank thresholds set: S=0.70 A+=0.55 A=0.38 B=0.22 C=0.12 D=0.06
+[00:20:45] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[00:20:45] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[00:20:45] [INFO] [ReplayManager] Replay data cleared
+[00:20:45] [INFO] [LabyrinthLevel] Previous replay data cleared
+[00:20:45] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[00:20:45] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[00:20:45] [INFO] [ReplayManager] Level: LabyrinthLevel
+[00:20:45] [INFO] [ReplayManager] Player: Player (valid: True)
+[00:20:45] [INFO] [ReplayManager] Enemies count: 5
+[00:20:45] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[00:20:45] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[00:20:45] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[00:20:45] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[00:20:45] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[00:20:45] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[00:20:45] [INFO] [LabyrinthLevel] Replay recording started successfully
+[00:20:45] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[00:20:45] [ENEMY] [Enemy3] Patrol points snapped to navmesh (Issue #1216)
+[00:20:45] [INFO] [CinemaEffects] Found player node: Player
+[00:20:45] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[00:20:45] [INFO] [PersistManager] Navigating to last played level: res://scenes/levels/BuildingLevel.tscn
+[00:20:45] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/BuildingLevel.tscn
+[00:20:45] [INFO] [UnlockManager] Reset condition-gated items to locked state
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for weapon: mini_uzi
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for weapon: shotgun
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for weapon: silenced_pistol
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for weapon: sniper
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for weapon: revolver
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for weapon: m16
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for weapon: ak_gl
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for grenade type: 1
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for grenade type: 2
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for grenade type: 3
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for grenade type: 4
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 1
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 3
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 8
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 7
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 16
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 10
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 20
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 12
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 21
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 4
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 5
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 2
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 9
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 17
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 6
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 14
+[00:20:45] [INFO] [UnlockManager] Restored saved unlock for active item type: 18
+[00:20:45] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[00:20:45] [ENEMY] [Enemy1] Registered as sound listener
+[00:20:45] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 1, behavior: GUARD
+[00:20:45] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[00:20:45] [ENEMY] [Enemy2] Registered as sound listener
+[00:20:45] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 1, behavior: GUARD
+[00:20:45] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[00:20:45] [ENEMY] [Enemy3] Registered as sound listener
+[00:20:45] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 2, behavior: PATROL
+[00:20:45] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[00:20:45] [ENEMY] [Enemy4] Registered as sound listener
+[00:20:45] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 2, behavior: GUARD
+[00:20:45] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[00:20:45] [ENEMY] [Enemy5] Registered as sound listener
+[00:20:45] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 4, behavior: GUARD
+[00:20:45] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[00:20:45] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:20:45] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:20:45] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:20:45] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=191.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:20:45] [INFO] [Player] Detecting weapon pose (frame 3)...
+[00:20:45] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[00:20:45] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[00:20:45] [INFO] [PenultimateHit] Shader warmup complete in 1116 ms
+[00:20:45] [INFO] [LastChance] Shader warmup complete in 1115 ms
+[00:20:45] [INFO] [CinemaEffects] Cinema shader warmup complete in 997 ms
+[00:20:45] [INFO] [BlackMetalEffectsManager] Shader warmup complete in 989 ms
+[00:20:45] [INFO] [BlackMetalLightningEffectsManager] Shader warmup complete in 0 ms
+[00:20:45] [INFO] [FlashbangPlayer] Shader warmup complete in 986 ms
+[00:20:45] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[00:20:45] [INFO] [SceneLoader] ERROR: Invalid resource (falling back to sync): res://scenes/levels/BuildingLevel.tscn
+[00:20:45] [INFO] [SceneLoader] Using synchronous load fallback
+[00:20:45] [INFO] [SoundPropagation] Unregistered listener: Enemy5 (remaining: 4)
+[00:20:45] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 3)
+[00:20:45] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 2)
+[00:20:45] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 1)
+[00:20:45] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 0)
+[00:20:45] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:20:45] [INFO] [NavMeshMonitor] NavigationRegion2D added: NavigationRegion2D
+[00:20:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:45] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[00:20:45] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[00:20:45] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[00:20:45] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:20:45] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[00:20:45] [INFO] [LastChance] Resetting all effects (scene change detected)
+[00:20:45] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[00:20:45] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[00:20:45] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+[00:20:45] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[00:20:45] [INFO] [PersistManager] Startup navigation complete — arrived at: res://scenes/levels/BuildingLevel.tscn
+[00:20:45] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:20:45] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+[00:20:45] [ENEMY] [Enemy1] Death animation component initialized
+[00:20:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:45] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[00:20:45] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[00:20:45] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[00:20:45] [ENEMY] [Enemy2] Death animation component initialized
+[00:20:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:45] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[00:20:45] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[00:20:45] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[00:20:45] [ENEMY] [Enemy3] Death animation component initialized
+[00:20:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:45] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[00:20:45] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[00:20:45] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[00:20:45] [ENEMY] [Enemy4] Death animation component initialized
+[00:20:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:45] [INFO] [BloodyFeet:Grenadier] Footprint scene loaded
+[00:20:45] [INFO] [BloodyFeet:Grenadier] Found EnemyModel for facing direction
+[00:20:45] [INFO] [BloodyFeet:Grenadier] BloodyFeetComponent ready on Grenadier
+[00:20:45] [ENEMY] [Grenadier] Death animation component initialized
+[00:20:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:45] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[00:20:45] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[00:20:45] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[00:20:45] [ENEMY] [Enemy6] Death animation component initialized
+[00:20:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:45] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[00:20:45] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[00:20:45] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[00:20:45] [ENEMY] [Enemy7] Death animation component initialized
+[00:20:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:45] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[00:20:45] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[00:20:45] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[00:20:45] [ENEMY] [Enemy8] Death animation component initialized
+[00:20:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:45] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[00:20:45] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[00:20:45] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[00:20:45] [ENEMY] [Enemy9] Death animation component initialized
+[00:20:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:45] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[00:20:45] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[00:20:45] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[00:20:45] [ENEMY] [Enemy10] Death animation component initialized
+[00:20:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:45] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[00:20:45] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[00:20:45] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[00:20:45] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[00:20:45] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:20:45] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[00:20:45] [INFO] [Player.Weapon] Removed current weapon: MakarovPM
+[00:20:45] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[00:20:45] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[00:20:45] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[00:20:45] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[00:20:45] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[00:20:45] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[00:20:45] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[00:20:45] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[00:20:45] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[00:20:45] [INFO] [Player.Homing] Homing activation sound loaded
+[00:20:45] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[00:20:45] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[00:20:45] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[00:20:45] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[00:20:45] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[00:20:45] [INFO] [Player.DrillingBullets] Drilling bullets not selected in ActiveItemManager
+[00:20:45] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[00:20:45] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[00:20:45] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[00:20:45] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[00:20:45] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[00:20:45] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[00:20:45] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[00:20:45] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[00:20:45] [INFO] [Player.ItemVisual] Visual applied for item type: 2
+[00:20:45] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[00:20:45] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[00:20:45] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[00:20:45] [INFO] [Player.RecoilCompensator] Recoil compensator not selected in ActiveItemManager
+[00:20:45] [INFO] [Player.ExperimentalSample] Experimental sample not selected
+[00:20:45] [INFO] [Player.FineMotorSkills] Fine motor skills not selected in ActiveItemManager
+[00:20:45] [INFO] [Player.Dash] No dash selected in ActiveItemManager
+[00:20:45] [INFO] [Player.GrenadeBag] No grenade bag selected in ActiveItemManager
+[00:20:45] [INFO] [Player.Jammer] JammerHUD initialized
+[00:20:45] [INFO] [Player.ItemPickup] Connected to ActiveItemManager.active_item_changed
+[00:20:45] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[00:20:45] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:20:45] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[00:20:45] [INFO] [CinemaEffects] Found player node: Player
+[00:20:45] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[00:20:45] [ENEMY] [Enemy1] Registered as sound listener
+[00:20:45] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 3, behavior: GUARD
+[00:20:45] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[00:20:45] [ENEMY] [Enemy2] Registered as sound listener
+[00:20:45] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 2, behavior: GUARD
+[00:20:45] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[00:20:45] [ENEMY] [Enemy3] Registered as sound listener
+[00:20:45] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 3, behavior: GUARD
+[00:20:45] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[00:20:45] [ENEMY] [Enemy4] Registered as sound listener
+[00:20:45] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 4, behavior: GUARD
+[00:20:45] [INFO] [BloodyFeet:Grenadier] Blood detector created and attached to Grenadier
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Grenadier (total: 5)
+[00:20:45] [ENEMY] [Grenadier] Registered as sound listener
+[00:20:45] [ENEMY] [Grenadier] Spawned at (1700, 350), hp: 2, behavior: GUARD
+[00:20:45] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[00:20:45] [ENEMY] [Enemy6] Registered as sound listener
+[00:20:45] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 2, behavior: GUARD
+[00:20:45] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[00:20:45] [ENEMY] [Enemy7] Registered as sound listener
+[00:20:45] [ENEMY] [Enemy7] Spawned at (1700, 870), hp: 2, behavior: PATROL
+[00:20:45] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[00:20:45] [ENEMY] [Enemy8] Registered as sound listener
+[00:20:45] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 3, behavior: GUARD
+[00:20:45] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[00:20:45] [ENEMY] [Enemy9] Registered as sound listener
+[00:20:45] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 3, behavior: GUARD
+[00:20:45] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[00:20:45] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[00:20:45] [ENEMY] [Enemy10] Registered as sound listener
+[00:20:45] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 4, behavior: PATROL
+[00:20:45] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[00:20:45] [INFO] [LevelInitFallback] ConfigureBuildingCameraLimits: limits set — left=64 top=64 right=2464 bottom=2064 — Issue #1684
+[00:20:45] [INFO] [LevelInitFallback] GDScript _ready() did NOT execute - performing C# fallback initialization
+[00:20:45] [INFO] [LevelInitFallback] Полигон loaded (C# fallback) - Tactical Combat Arena
+[00:20:45] [INFO] [LevelInitFallback] Found Environment/Enemies node with 10 children
+[00:20:45] [INFO] [LevelInitFallback] Child 'Enemy1': has_died_signal=True
+[00:20:45] [INFO] [LevelInitFallback] Child 'Enemy2': has_died_signal=True
+[00:20:45] [INFO] [LevelInitFallback] Child 'Enemy3': has_died_signal=True
+[00:20:45] [INFO] [LevelInitFallback] Child 'Enemy4': has_died_signal=True
+[00:20:45] [INFO] [LevelInitFallback] Child 'Grenadier': has_died_signal=True
+[00:20:45] [INFO] [LevelInitFallback] Child 'Enemy6': has_died_signal=True
+[00:20:45] [INFO] [LevelInitFallback] Child 'Enemy7': has_died_signal=True
+[00:20:45] [INFO] [LevelInitFallback] Child 'Enemy8': has_died_signal=True
+[00:20:45] [INFO] [LevelInitFallback] Child 'Enemy9': has_died_signal=True
+[00:20:45] [INFO] [LevelInitFallback] Child 'Enemy10': has_died_signal=True
+[00:20:45] [INFO] [LevelInitFallback] Enemy tracking complete: 10 enemies registered
+[00:20:45] [INFO] [LevelInitFallback] Realistic visibility component added to player (night mode)
+[00:20:45] [INFO] [GameManager] set_player() called with: <CharacterBody2D#146616094298> (class: CharacterBody2D)
+[00:20:45] [INFO] [GameManager] set_player: player_alive reset to true (new player registered)
+[00:20:45] [INFO] [GameManager] set_player: has_signal('Died')=true, has_signal('died')=false
+[00:20:45] [INFO] [GameManager] Connected to player 'Died' signal (C# naming)
+[00:20:45] [INFO] [GameManager] set_player: initial collision_layer=1 (poll expects 0 on death)
+[00:20:45] [INFO] [LevelInitFallback] BuildingLevel: AKGL magazines reinitialized to 2 (C# fallback, Issue #1259)
+[00:20:45] [INFO] [LevelInitFallback] BuildingLevel: Re-applied auto-reload magazine reduction after ammo config for AKGL
+[00:20:45] [INFO] [ScoreManager] Level started with 10 enemies
+[00:20:45] [INFO] [LevelInitFallback] ScoreManager initialized with 10 enemies
+[00:20:45] [INFO] [LevelInitFallback] Exit zone created at position (120, 1544)
+[00:20:45] [INFO] [ReplayManager] Replay data cleared
+[00:20:45] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[00:20:45] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[00:20:45] [INFO] [ReplayManager] Level: BuildingLevel
+[00:20:45] [INFO] [ReplayManager] Player: Player (valid: True)
+[00:20:45] [INFO] [ReplayManager] Enemies count: 10
+[00:20:45] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[00:20:45] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[00:20:45] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[00:20:45] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[00:20:45] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[00:20:45] [INFO] [ReplayManager]   Enemy 4: Grenadier
+[00:20:45] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[00:20:45] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[00:20:45] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[00:20:45] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[00:20:45] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[00:20:45] [INFO] [LevelInitFallback] Replay recording started with 10 enemies
+[00:20:45] [INFO] [LevelInitFallback] GDScript properties synced
+[00:20:45] [INFO] [LevelInitFallback] Warm ceiling lights placed in all rooms (Issue #1206, C# fallback)
+[00:20:45] [INFO] [LevelInitFallback] Baking navigation mesh (C# fallback)...
+[00:20:45] [INFO] [LevelInitFallback] Navigation mesh baked successfully (C# fallback) — poly_count=97, vertex_count=138
+[00:20:45] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[00:20:45] [ENEMY] [Enemy7] Patrol points snapped to navmesh (Issue #1216)
+[00:20:45] [ENEMY] [Enemy10] Patrol points snapped to navmesh (Issue #1216)
+[00:20:45] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:45] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:45] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:45] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:45] [ENEMY] [Grenadier] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:45] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:45] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=78.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:45] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:45] [INFO] [Player] Detecting weapon pose (frame 3)...
+[00:20:45] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[00:20:45] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[00:20:45] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[00:20:45] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[00:20:45] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[00:20:45] [INFO] [LastChance] Found player: Player
+[00:20:45] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[00:20:45] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[00:20:45] [INFO] [LastChance] Connected to player Died signal (C#)
+[00:20:45] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[00:20:45] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 1592 ms
+[00:20:45] [INFO] [SceneLoader] Background load started successfully
+[00:20:46] [WARN] [FPS] Drop detected: 2 fps (threshold: 30)
+[00:20:46] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[00:20:47] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[00:20:47] [ENEMY] [Enemy7] ROT_CHANGE: none -> P3:corner, state=IDLE, target=90.0°, current=0.0°, player=(450,1250), corner_timer=0.30
+[00:20:47] [ENEMY] [Enemy10] ROT_CHANGE: none -> P4:velocity, state=IDLE, target=0.0°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:47] [ENEMY] [Enemy10] PATROL corner check: angle 90.0°
+[00:20:47] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=0.0°, player=(450,1250), corner_timer=0.30
+[00:20:47] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=54.4°, player=(450,1250), corner_timer=-0.02
+[00:20:47] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[00:20:47] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=51.6°, player=(450,1250), corner_timer=0.30
+[00:20:47] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[00:20:47] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=54.4°, player=(450,1249), corner_timer=-0.02
+[00:20:47] [ENEMY] [Enemy10] PATROL corner check: angle -90.0°
+[00:20:47] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=51.6°, player=(450,1248), corner_timer=0.30
+[00:20:48] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=10
+[00:20:49] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=84.3°, player=(450,780), corner_timer=-0.02
+[00:20:49] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[00:20:49] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=84.1°, player=(450,778), corner_timer=0.30
+[00:20:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 773.6666), source=PLAYER (AKGL), range=871, listeners=10
+[00:20:49] [ENEMY] [Enemy1] Heard gunshot at (450, 773.6666), intensity=0.01, distance=449
+[00:20:49] [ENEMY] [Enemy2] Heard gunshot at (450, 773.6666), intensity=0.05, distance=229
+[00:20:49] [ENEMY] [Enemy3] Heard gunshot at (450, 773.6666), intensity=0.04, distance=251
+[00:20:49] [ENEMY] [Enemy4] Heard gunshot at (450, 773.6666), intensity=0.02, distance=372
+[00:20:49] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=6, self=0
+[00:20:49] [ENEMY] [Enemy1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=70.5°, current=33.8°, player=(450,773), corner_timer=0.00
+[00:20:49] [ENEMY] [Enemy1] Found cover at (376.4442, 637.1736) (distance: 297.2, player at (450, 773.6666))
+[00:20:49] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=77.4°, current=-101.3°, player=(450,773), corner_timer=0.00
+[00:20:49] [ENEMY] [Enemy2] Found cover at (412.2476, 629.783) (distance: 80.7, player at (450, 773.6666))
+[00:20:49] [ENEMY] [Enemy3] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=174.6°, current=11.3°, player=(450,773), corner_timer=0.00
+[00:20:49] [ENEMY] [Enemy3] Found cover at (807.9701, 837.678) (distance: 139.1, player at (450, 773.6666))
+[00:20:49] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=-160.2°, current=-108.2°, player=(450,773), corner_timer=0.00
+[00:20:49] [ENEMY] [Enemy4] Found cover at (802.5986, 898.0231) (distance: 3.3, player at (450, 773.6666))
+[00:20:49] [ENEMY] [Enemy3] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:20:49] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=10
+[00:20:49] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=-93.8°, player=(450,773), corner_timer=-0.02
+[00:20:49] [ENEMY] [Enemy10] PATROL corner check: angle 90.0°
+[00:20:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 773.4444), source=PLAYER (AKGL), range=871, listeners=10
+[00:20:49] [ENEMY] [Enemy1] Heard gunshot at (450, 773.4444), intensity=0.01, distance=413
+[00:20:49] [ENEMY] [Enemy2] Heard gunshot at (450, 773.4444), intensity=0.05, distance=229
+[00:20:49] [ENEMY] [Enemy3] Heard gunshot at (450, 773.4444), intensity=0.04, distance=241
+[00:20:49] [ENEMY] [Enemy4] Heard gunshot at (450, 773.4444), intensity=0.02, distance=336
+[00:20:49] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=6, self=0
+[00:20:49] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=-99.7°, player=(450,773), corner_timer=0.30
+[00:20:49] [ENEMY] [Enemy3] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:20:49] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=80.5°, player=(450,773), corner_timer=-0.02
+[00:20:49] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[00:20:49] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=80.3°, player=(450,773), corner_timer=0.30
+[00:20:49] [ENEMY] [Enemy3] Hit: dmg=2, hp=3/3->1/3
+[00:20:49] [INFO] [ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times
+[00:20:49] [ENEMY] [Enemy3] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=171.1°, current=171.1°, player=(450,773), corner_timer=0.00
+[00:20:49] [ENEMY] [Enemy3] Found cover at (574.7119, 841.1078) (distance: 154.2, player at (450, 773.4444))
+[00:20:49] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[00:20:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 773.4444), source=PLAYER (AKGL), range=871, listeners=10
+[00:20:49] [ENEMY] [Enemy1] Heard gunshot at (450, 773.4444), intensity=0.02, distance=396
+[00:20:49] [ENEMY] [Enemy2] Heard gunshot at (450, 773.4444), intensity=0.05, distance=229
+[00:20:49] [ENEMY] [Enemy4] Heard gunshot at (450, 773.4444), intensity=0.03, distance=288
+[00:20:49] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=6, self=0
+[00:20:50] [ENEMY] [Enemy3] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:20:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(681.4465, 741.9753), source=ENEMY (Enemy3), range=840, listeners=10
+[00:20:50] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=1
+[00:20:50] [ENEMY] [Enemy3] Hit: dmg=2, hp=1/3->-1/3
+[00:20:50] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[00:20:50] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false, player_kill: true)
+[00:20:50] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:20:50] [INFO] [UnlockManager] Kill condition met — items now available to unlock in armory
+[00:20:50] [INFO] [GameManager] kills_without_laser_sight: 593
+[00:20:50] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[00:20:50] [ENEMY] [Enemy3] [AllyDeath] Notified 2 enemies
+[00:20:50] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[00:20:50] [INFO] [DeathAnim] Started - Angle: -4.2 deg, Index: 11
+[00:20:50] [ENEMY] [Enemy3] Death animation started with hit direction: (0.997364, -0.072566)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (766.3292, 763.321) (added to group)
+[00:20:50] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=150.1°, player=(450,773), corner_timer=-0.01
+[00:20:50] [ENEMY] [Enemy10] PATROL corner check: angle 90.0°
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (729.6068, 729.1231) (added to group)
+[00:20:50] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=150.0°, player=(450,773), corner_timer=0.30
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (746.1605, 731.2383) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (800.1877, 784.7252) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (752.9973, 760.2258) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (805.9843, 726.3074) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (796.8835, 747.2324) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (752.6135, 776.2311) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (741.1497, 741.316) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (838.6679, 759.8308) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (758.1431, 795.1871) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (820.4076, 707.7213) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (807.5068, 741.6299) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (748.082, 736.9617) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (756.3256, 745.9013) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (784.2093, 795.6992) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (760.9749, 746.6504) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (765.0204, 777.0532) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (783.4647, 773.5867) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (732.196, 779.2399) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (748.651, 773.8414) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (790.3864, 806.1635) (added to group)
+[00:20:50] [INFO] [GameManager] restart_scene() — starting scene reload
+[00:20:50] [INFO] [SoundPropagation] Unregistered listener: Enemy10 (remaining: 8)
+[00:20:50] [INFO] [SoundPropagation] Unregistered listener: Enemy9 (remaining: 7)
+[00:20:50] [INFO] [SoundPropagation] Unregistered listener: Enemy8 (remaining: 6)
+[00:20:50] [INFO] [SoundPropagation] Unregistered listener: Enemy7 (remaining: 5)
+[00:20:50] [INFO] [SoundPropagation] Unregistered listener: Enemy6 (remaining: 4)
+[00:20:50] [INFO] [SoundPropagation] Unregistered listener: Grenadier (remaining: 3)
+[00:20:50] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 2)
+[00:20:50] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 1)
+[00:20:50] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 0)
+[00:20:50] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:20:50] [INFO] [NavMeshMonitor] NavigationRegion2D added: NavigationRegion2D
+[00:20:50] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:50] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[00:20:50] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[00:20:50] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[00:20:50] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:20:50] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[00:20:50] [INFO] [LastChance] Resetting all effects (scene change detected)
+[00:20:50] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[00:20:50] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[00:20:50] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+[00:20:50] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[00:20:50] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:20:50] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+[00:20:50] [ENEMY] [Enemy1] Death animation component initialized
+[00:20:50] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:50] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[00:20:50] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[00:20:50] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[00:20:50] [ENEMY] [Enemy2] Death animation component initialized
+[00:20:50] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:50] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[00:20:50] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[00:20:50] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[00:20:50] [ENEMY] [Enemy3] Death animation component initialized
+[00:20:50] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:50] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[00:20:50] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[00:20:50] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[00:20:50] [ENEMY] [Enemy4] Death animation component initialized
+[00:20:50] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:50] [INFO] [BloodyFeet:Grenadier] Footprint scene loaded
+[00:20:50] [INFO] [BloodyFeet:Grenadier] Found EnemyModel for facing direction
+[00:20:50] [INFO] [BloodyFeet:Grenadier] BloodyFeetComponent ready on Grenadier
+[00:20:50] [ENEMY] [Grenadier] Death animation component initialized
+[00:20:50] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:50] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[00:20:50] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[00:20:50] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[00:20:50] [ENEMY] [Enemy6] Death animation component initialized
+[00:20:50] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:50] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[00:20:50] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[00:20:50] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[00:20:50] [ENEMY] [Enemy7] Death animation component initialized
+[00:20:50] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:50] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[00:20:50] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[00:20:50] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[00:20:50] [ENEMY] [Enemy8] Death animation component initialized
+[00:20:50] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:50] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[00:20:50] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[00:20:50] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[00:20:50] [ENEMY] [Enemy9] Death animation component initialized
+[00:20:50] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:50] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[00:20:50] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[00:20:50] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[00:20:50] [ENEMY] [Enemy10] Death animation component initialized
+[00:20:50] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:20:50] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[00:20:50] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[00:20:50] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[00:20:50] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[00:20:50] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:20:50] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[00:20:50] [INFO] [Player.Weapon] Removed current weapon: MakarovPM
+[00:20:50] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[00:20:50] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[00:20:50] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[00:20:50] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[00:20:50] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[00:20:50] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[00:20:50] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[00:20:50] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[00:20:50] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[00:20:50] [INFO] [Player.Homing] Homing activation sound loaded
+[00:20:50] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[00:20:50] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[00:20:50] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[00:20:50] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[00:20:50] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[00:20:50] [INFO] [Player.DrillingBullets] Drilling bullets not selected in ActiveItemManager
+[00:20:50] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[00:20:50] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[00:20:50] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[00:20:50] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[00:20:50] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[00:20:50] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[00:20:50] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[00:20:50] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[00:20:50] [INFO] [Player.ItemVisual] Visual applied for item type: 2
+[00:20:50] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[00:20:50] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[00:20:50] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[00:20:50] [INFO] [Player.RecoilCompensator] Recoil compensator not selected in ActiveItemManager
+[00:20:50] [INFO] [Player.ExperimentalSample] Experimental sample not selected
+[00:20:50] [INFO] [Player.FineMotorSkills] Fine motor skills not selected in ActiveItemManager
+[00:20:50] [INFO] [Player.Dash] No dash selected in ActiveItemManager
+[00:20:50] [INFO] [Player.GrenadeBag] No grenade bag selected in ActiveItemManager
+[00:20:50] [INFO] [Player.Jammer] JammerHUD initialized
+[00:20:50] [INFO] [Player.ItemPickup] Connected to ActiveItemManager.active_item_changed
+[00:20:50] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[00:20:50] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (743.462, 746.6033) (added to group)
+[00:20:50] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[00:20:50] [INFO] [CinemaEffects] Found player node: Player
+[00:20:50] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[00:20:50] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[00:20:50] [ENEMY] [Enemy1] Registered as sound listener
+[00:20:50] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 2, behavior: GUARD
+[00:20:50] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[00:20:50] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[00:20:50] [ENEMY] [Enemy2] Registered as sound listener
+[00:20:50] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 4, behavior: GUARD
+[00:20:50] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[00:20:50] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[00:20:50] [ENEMY] [Enemy3] Registered as sound listener
+[00:20:50] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 2, behavior: GUARD
+[00:20:50] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[00:20:50] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[00:20:50] [ENEMY] [Enemy4] Registered as sound listener
+[00:20:50] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 4, behavior: GUARD
+[00:20:50] [INFO] [BloodyFeet:Grenadier] Blood detector created and attached to Grenadier
+[00:20:50] [INFO] [SoundPropagation] Registered listener: Grenadier (total: 5)
+[00:20:50] [ENEMY] [Grenadier] Registered as sound listener
+[00:20:50] [ENEMY] [Grenadier] Spawned at (1700, 350), hp: 2, behavior: GUARD
+[00:20:50] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[00:20:50] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[00:20:50] [ENEMY] [Enemy6] Registered as sound listener
+[00:20:50] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 2, behavior: GUARD
+[00:20:50] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[00:20:50] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[00:20:50] [ENEMY] [Enemy7] Registered as sound listener
+[00:20:50] [ENEMY] [Enemy7] Spawned at (1700, 870), hp: 2, behavior: PATROL
+[00:20:50] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[00:20:50] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[00:20:50] [ENEMY] [Enemy8] Registered as sound listener
+[00:20:50] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 3, behavior: GUARD
+[00:20:50] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[00:20:50] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[00:20:50] [ENEMY] [Enemy9] Registered as sound listener
+[00:20:50] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 4, behavior: GUARD
+[00:20:50] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[00:20:50] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[00:20:50] [ENEMY] [Enemy10] Registered as sound listener
+[00:20:50] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 3, behavior: PATROL
+[00:20:50] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[00:20:50] [INFO] [LevelInitFallback] ConfigureBuildingCameraLimits: limits set — left=64 top=64 right=2464 bottom=2064 — Issue #1684
+[00:20:50] [INFO] [LevelInitFallback] GDScript _ready() did NOT execute - performing C# fallback initialization
+[00:20:50] [INFO] [LevelInitFallback] Полигон loaded (C# fallback) - Tactical Combat Arena
+[00:20:50] [INFO] [LevelInitFallback] Found Environment/Enemies node with 10 children
+[00:20:50] [INFO] [LevelInitFallback] Child 'Enemy1': has_died_signal=True
+[00:20:50] [INFO] [LevelInitFallback] Child 'Enemy2': has_died_signal=True
+[00:20:50] [INFO] [LevelInitFallback] Child 'Enemy3': has_died_signal=True
+[00:20:50] [INFO] [LevelInitFallback] Child 'Enemy4': has_died_signal=True
+[00:20:50] [INFO] [LevelInitFallback] Child 'Grenadier': has_died_signal=True
+[00:20:50] [INFO] [LevelInitFallback] Child 'Enemy6': has_died_signal=True
+[00:20:50] [INFO] [LevelInitFallback] Child 'Enemy7': has_died_signal=True
+[00:20:50] [INFO] [LevelInitFallback] Child 'Enemy8': has_died_signal=True
+[00:20:50] [INFO] [LevelInitFallback] Child 'Enemy9': has_died_signal=True
+[00:20:50] [INFO] [LevelInitFallback] Child 'Enemy10': has_died_signal=True
+[00:20:50] [INFO] [LevelInitFallback] Enemy tracking complete: 10 enemies registered
+[00:20:50] [INFO] [LevelInitFallback] Realistic visibility component added to player (night mode)
+[00:20:50] [INFO] [GameManager] set_player() called with: <CharacterBody2D#287225942699> (class: CharacterBody2D)
+[00:20:50] [INFO] [GameManager] set_player: player_alive reset to true (new player registered)
+[00:20:50] [INFO] [GameManager] set_player: has_signal('Died')=true, has_signal('died')=false
+[00:20:50] [INFO] [GameManager] Connected to player 'Died' signal (C# naming)
+[00:20:50] [INFO] [GameManager] set_player: initial collision_layer=1 (poll expects 0 on death)
+[00:20:50] [INFO] [LevelInitFallback] BuildingLevel: AKGL magazines reinitialized to 2 (C# fallback, Issue #1259)
+[00:20:50] [INFO] [LevelInitFallback] BuildingLevel: Re-applied auto-reload magazine reduction after ammo config for AKGL
+[00:20:50] [INFO] [ScoreManager] Level started with 10 enemies
+[00:20:50] [INFO] [LevelInitFallback] ScoreManager initialized with 10 enemies
+[00:20:50] [INFO] [LevelInitFallback] Exit zone created at position (120, 1544)
+[00:20:50] [INFO] [ReplayManager] Replay data cleared
+[00:20:50] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[00:20:50] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[00:20:50] [INFO] [ReplayManager] Level: BuildingLevel
+[00:20:50] [INFO] [ReplayManager] Player: Player (valid: True)
+[00:20:50] [INFO] [ReplayManager] Enemies count: 10
+[00:20:50] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[00:20:50] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[00:20:50] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[00:20:50] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[00:20:50] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[00:20:50] [INFO] [ReplayManager]   Enemy 4: Grenadier
+[00:20:50] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[00:20:50] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[00:20:50] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[00:20:50] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[00:20:50] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[00:20:50] [INFO] [LevelInitFallback] Replay recording started with 10 enemies
+[00:20:50] [INFO] [LevelInitFallback] GDScript properties synced
+[00:20:50] [INFO] [LevelInitFallback] Warm ceiling lights placed in all rooms (Issue #1206, C# fallback)
+[00:20:50] [INFO] [LevelInitFallback] Baking navigation mesh (C# fallback)...
+[00:20:50] [INFO] [LevelInitFallback] Navigation mesh baked successfully (C# fallback) — poly_count=97, vertex_count=138
+[00:20:50] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[00:20:50] [ENEMY] [Enemy7] Patrol points snapped to navmesh (Issue #1216)
+[00:20:50] [ENEMY] [Enemy10] Patrol points snapped to navmesh (Issue #1216)
+[00:20:50] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=33.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:50] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:50] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=236.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:50] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:50] [ENEMY] [Grenadier] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=56.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:50] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=56.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:50] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=303.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:50] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:20:50] [INFO] [Player] Detecting weapon pose (frame 3)...
+[00:20:50] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[00:20:50] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[00:20:50] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[00:20:50] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[00:20:50] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[00:20:50] [INFO] [LastChance] Found player: Player
+[00:20:50] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[00:20:50] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[00:20:50] [INFO] [LastChance] Connected to player Died signal (C#)
+[00:20:50] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (863.2935, 788.139) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (889.5769, 825.7898) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (823.6652, 796.3734) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (793.2261, 802.3355) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (740.9285, 754.6894) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (784.9808, 793.001) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (758.1942, 783.2059) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (823.1525, 816.4229) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (786.0667, 770.2486) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (819.4139, 795.6647) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (814.0947, 780.6091) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (752.8062, 778.8151) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (837.8914, 784.7366) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (816.4188, 728.0432) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (820.2115, 852.6446) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (816.0882, 728.4089) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (797.6489, 823.2117) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (794.3039, 806.3776) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (800.1876, 809.5585) (added to group)
+[00:20:50] [INFO] [BloodDecal] Blood puddle created at (877.3243, 862.0992) (added to group)
+[00:20:51] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[00:20:52] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[00:20:52] [ENEMY] [Enemy7] ROT_CHANGE: none -> P3:corner, state=IDLE, target=90.0°, current=0.0°, player=(450,908), corner_timer=0.30
+[00:20:52] [ENEMY] [Enemy10] ROT_CHANGE: none -> P4:velocity, state=IDLE, target=0.0°, current=0.0°, player=(450,908), corner_timer=0.00
+[00:20:52] [ENEMY] [Enemy10] PATROL corner check: angle 90.0°
+[00:20:52] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=0.0°, player=(450,866), corner_timer=0.30
+[00:20:52] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=54.4°, player=(450,866), corner_timer=-0.02
+[00:20:52] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[00:20:52] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=51.6°, player=(450,866), corner_timer=0.30
+[00:20:52] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[00:20:52] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=54.4°, player=(450,866), corner_timer=-0.02
+[00:20:52] [ENEMY] [Enemy10] PATROL corner check: angle -90.0°
+[00:20:52] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=51.6°, player=(450,866), corner_timer=0.30
+[00:20:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(448.3575, 806.6683), source=PLAYER (AKGL), range=871, listeners=10
+[00:20:53] [ENEMY] [Enemy1] Heard gunshot at (448.3575, 806.6683), intensity=0.01, distance=480
+[00:20:53] [ENEMY] [Enemy2] Heard gunshot at (448.3575, 806.6683), intensity=0.04, distance=261
+[00:20:53] [ENEMY] [Enemy3] Heard gunshot at (448.3575, 806.6683), intensity=0.04, distance=258
+[00:20:53] [ENEMY] [Enemy4] Heard gunshot at (448.3575, 806.6683), intensity=0.02, distance=364
+[00:20:53] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=6, self=0
+[00:20:53] [ENEMY] [Enemy1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=72.0°, current=33.8°, player=(448,806), corner_timer=0.00
+[00:20:53] [ENEMY] [Enemy1] Found cover at (359.2765, 636.7148) (distance: 292.8, player at (448.3575, 806.6683))
+[00:20:53] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=79.3°, current=-157.5°, player=(448,806), corner_timer=0.00
+[00:20:53] [ENEMY] [Enemy2] Found cover at (408.1115, 629.1026) (distance: 79.5, player at (448.3575, 806.6683))
+[00:20:53] [ENEMY] [Enemy3] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=167.3°, current=-123.8°, player=(448,806), corner_timer=0.00
+[00:20:53] [ENEMY] [Enemy3] Found cover at (584.9985, 807.4655) (distance: 128.6, player at (448.3575, 806.6683))
+[00:20:53] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=-165.1°, current=168.8°, player=(448,806), corner_timer=0.00
+[00:20:53] [ENEMY] [Enemy4] Found cover at (580.1313, 853.2966) (distance: 224.8, player at (448.3575, 806.6683))
+[00:20:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(433.6362, 777.2216), source=PLAYER (AKGL), range=871, listeners=10
+[00:20:53] [ENEMY] [Enemy1] Heard gunshot at (433.6362, 777.2216), intensity=0.01, distance=424
+[00:20:53] [ENEMY] [Enemy2] Heard gunshot at (433.6362, 777.2216), intensity=0.05, distance=214
+[00:20:53] [ENEMY] [Enemy3] Heard gunshot at (433.6362, 777.2216), intensity=0.04, distance=252
+[00:20:53] [ENEMY] [Enemy4] Heard gunshot at (433.6362, 777.2216), intensity=0.02, distance=369
+[00:20:53] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=6, self=0
+[00:20:53] [ENEMY] [Enemy3] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:20:53] [ENEMY] [Enemy3] Hit: dmg=2, hp=2/2->0/2
+[00:20:53] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[00:20:53] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false, player_kill: true)
+[00:20:53] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:20:53] [INFO] [UnlockManager] Kill condition met — items now available to unlock in armory
+[00:20:53] [INFO] [GameManager] kills_without_laser_sight: 594
+[00:20:53] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[00:20:53] [ENEMY] [Enemy3] [AllyDeath] Notified 2 enemies
+[00:20:53] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[00:20:53] [INFO] [DeathAnim] Started - Angle: -5.2 deg, Index: 11
+[00:20:53] [ENEMY] [Enemy3] Death animation started with hit direction: (0.995849, -0.091021)
+[00:20:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(411.0158, 765.5789), source=PLAYER (AKGL), range=871, listeners=9
+[00:20:53] [ENEMY] [Enemy1] Heard gunshot at (411.0158, 765.5789), intensity=0.02, distance=385
+[00:20:53] [ENEMY] [Enemy2] Heard gunshot at (411.0158, 765.5789), intensity=0.06, distance=200
+[00:20:53] [ENEMY] [Enemy4] Heard gunshot at (411.0158, 765.5789), intensity=0.02, distance=395
+[00:20:53] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0
+[00:20:53] [ENEMY] [Enemy3] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:20:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(386.5677, 771.3576), source=PLAYER (AKGL), range=871, listeners=9
+[00:20:53] [ENEMY] [Enemy1] Heard gunshot at (386.5677, 771.3576), intensity=0.02, distance=377
+[00:20:53] [ENEMY] [Enemy2] Heard gunshot at (386.5677, 771.3576), intensity=0.06, distance=206
+[00:20:53] [ENEMY] [Enemy4] Heard gunshot at (386.5677, 771.3576), intensity=0.01, distance=416
+[00:20:53] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0
+[00:20:53] [ENEMY] [Enemy3] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (728.596, 773.5516) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (725.1346, 753.8237) (added to group)
+[00:20:53] [INFO] [ReplayManager] Recording frame 180 (2,9s): player_valid=True, enemies=10
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (731.1794, 781.369) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (737.0116, 767.0874) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (749.2024, 766.4559) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (738.5645, 764.4287) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (752.5122, 753.6454) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (756.5863, 735.4142) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (768.9343, 788.7567) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (740.9751, 796.0971) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (783.9898, 803.9304) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (764.6165, 788.3621) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (778.5604, 767.3815) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (819.149, 770.562) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (749.62, 788.3307) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (800.5714, 814.5067) (added to group)
+[00:20:53] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+[00:20:53] [ENEMY] [Enemy1] Player reloading: false -> true
+[00:20:53] [ENEMY] [Enemy2] Player reloading: false -> true
+[00:20:53] [ENEMY] [Enemy3] Player reloading: false -> true
+[00:20:53] [ENEMY] [Enemy4] Player reloading: false -> true
+[00:20:53] [ENEMY] [Grenadier] Player reloading: false -> true
+[00:20:53] [ENEMY] [Enemy6] Player reloading: false -> true
+[00:20:53] [ENEMY] [Enemy7] Player reloading: false -> true
+[00:20:53] [ENEMY] [Enemy8] Player reloading: false -> true
+[00:20:53] [ENEMY] [Enemy9] Player reloading: false -> true
+[00:20:53] [ENEMY] [Enemy10] Player reloading: false -> true
+[00:20:53] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(362.6896, 846.2603), source=PLAYER (Player), range=900, listeners=9
+[00:20:53] [ENEMY] [Enemy1] Heard player RELOAD at (362.6896, 846.2603), intensity=0.01, distance=458
+[00:20:53] [ENEMY] [Enemy2] Heard player RELOAD at (362.6896, 846.2603), intensity=0.03, distance=283
+[00:20:53] [ENEMY] [Enemy4] Heard player RELOAD at (362.6896, 846.2603), intensity=0.01, distance=423
+[00:20:53] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0
+[00:20:53] [ENEMY] [Enemy3] Ragdoll activated
+[00:20:53] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (817.7697, 738.283) (added to group)
+[00:20:53] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=458), can_see=false
+[00:20:53] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=true (dist=283), can_see=false
+[00:20:53] [ENEMY] [Enemy4] Player vulnerable (reloading) but cannot attack: close=false (dist=423), can_see=false
+[00:20:53] [ENEMY] [Grenadier] Player vulnerable (reloading) but cannot attack: close=false (dist=1426), can_see=false
+[00:20:53] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1636), can_see=false
+[00:20:53] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=1429), can_see=false
+[00:20:53] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1652), can_see=false
+[00:20:53] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1874), can_see=false
+[00:20:53] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=1246), can_see=false
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (794.8833, 786.5568) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (771.9728, 805.3832) (added to group)
+[00:20:53] [INFO] [BloodDecal] Blood puddle created at (769.2709, 772.2218) (added to group)
+[00:20:54] [INFO] [BloodDecal] Blood puddle created at (833.9203, 799.9672) (added to group)
+[00:20:54] [INFO] [BloodDecal] Blood puddle created at (830.7375, 745.0415) (added to group)
+[00:20:54] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+[00:20:54] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[00:20:54] [INFO] [BloodDecal] Blood puddle created at (868.1097, 751.1492) (added to group)
+[00:20:54] [ENEMY] [Enemy4] Pursuing vulnerability sound at (362.6896, 846.2603), distance=423
+[00:20:54] [INFO] [BloodDecal] Blood puddle created at (871.2414, 823.1001) (added to group)
+[00:20:54] [INFO] [BloodDecal] Blood puddle created at (878.957, 884.2548) (added to group)
+[00:20:54] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+[00:20:54] [ENEMY] [Enemy1] Player reloading: true -> false
+[00:20:54] [ENEMY] [Enemy2] Player reloading: true -> false
+[00:20:54] [ENEMY] [Enemy3] Player reloading: true -> false
+[00:20:54] [ENEMY] [Enemy4] Player reloading: true -> false
+[00:20:54] [ENEMY] [Grenadier] Player reloading: true -> false
+[00:20:54] [ENEMY] [Enemy6] Player reloading: true -> false
+[00:20:54] [ENEMY] [Enemy7] Player reloading: true -> false
+[00:20:54] [ENEMY] [Enemy8] Player reloading: true -> false
+[00:20:54] [ENEMY] [Enemy9] Player reloading: true -> false
+[00:20:54] [ENEMY] [Enemy10] Player reloading: true -> false
+[00:20:54] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+[00:20:54] [INFO] [BloodyFeet:Enemy4] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[00:20:54] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+[00:20:54] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=85.0°, player=(363,1029), corner_timer=-0.01
+[00:20:54] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[00:20:54] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=84.8°, player=(364,1033), corner_timer=0.30
+[00:20:54] [INFO] [ReplayManager] Recording frame 240 (3,7s): player_valid=True, enemies=10
+[00:20:55] [INFO] [PauseMenu] Armory button pressed
+[00:20:55] [INFO] [PauseMenu] Creating new armory menu instance
+[00:20:55] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[00:20:55] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[00:20:55] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[00:20:55] [INFO] [PauseMenu] back_pressed signal exists on instance
+[00:20:55] [INFO] [PauseMenu] back_pressed signal connected
+[00:20:55] [INFO] [ArmoryMenu] weapon=ak_gl caliber_name=7.62x39mm
+[00:20:55] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[00:20:55] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[00:20:55] [INFO] [ReplayManager] Recording frame 300 (4,5s): player_valid=True, enemies=10
+[00:20:56] [INFO] [ArmoryMenu] weapon=makarov_pm caliber_name=9x18mm Makarov
+[00:20:56] [INFO] [ReplayManager] Recording frame 360 (5,3s): player_valid=True, enemies=10
+[00:20:57] [INFO] [ReplayManager] Recording frame 420 (6,1s): player_valid=True, enemies=10
+[00:20:58] [INFO] [ReplayManager] Recording frame 480 (6,9s): player_valid=True, enemies=10
+[00:20:59] [INFO] [ScoreManager] Combo ended at 1. Max combo: 1
+[00:20:59] [INFO] [ReplayManager] Recording frame 540 (7,7s): player_valid=True, enemies=10
+[00:21:00] [INFO] [ReplayManager] Recording frame 600 (8,5s): player_valid=True, enemies=10
+[00:21:01] [INFO] [ReplayManager] Recording frame 660 (9,3s): player_valid=True, enemies=10
+[00:21:02] [INFO] [DifficultyManager] Difficulty changed: Normal -> Gunslinger
+[00:21:02] [INFO] [BlackMetalEffectsManager] Black Metal filter DISABLED
+[00:21:02] [INFO] [GameManager] restart_scene() — starting scene reload
+[00:21:02] [INFO] [SoundPropagation] Unregistered listener: Enemy10 (remaining: 8)
+[00:21:02] [INFO] [SoundPropagation] Unregistered listener: Enemy9 (remaining: 7)
+[00:21:02] [INFO] [SoundPropagation] Unregistered listener: Enemy8 (remaining: 6)
+[00:21:02] [INFO] [SoundPropagation] Unregistered listener: Enemy7 (remaining: 5)
+[00:21:02] [INFO] [SoundPropagation] Unregistered listener: Enemy6 (remaining: 4)
+[00:21:02] [INFO] [SoundPropagation] Unregistered listener: Grenadier (remaining: 3)
+[00:21:02] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 2)
+[00:21:02] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 1)
+[00:21:02] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 0)
+[00:21:02] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:21:02] [INFO] [NavMeshMonitor] NavigationRegion2D added: NavigationRegion2D
+[00:21:02] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:21:02] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[00:21:02] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[00:21:02] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[00:21:02] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:21:02] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[00:21:02] [INFO] [LastChance] Resetting all effects (scene change detected)
+[00:21:02] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[00:21:02] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[00:21:02] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+[00:21:02] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[00:21:02] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:21:02] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+[00:21:02] [ENEMY] [Enemy1] Death animation component initialized
+[00:21:02] [ENEMY] [Enemy1] [Gunslinger] Enemy glow applied
+[00:21:02] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:21:02] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[00:21:02] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[00:21:02] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[00:21:02] [ENEMY] [Enemy2] Death animation component initialized
+[00:21:02] [ENEMY] [Enemy2] [Gunslinger] Enemy glow applied
+[00:21:02] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:21:02] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[00:21:02] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[00:21:02] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[00:21:02] [ENEMY] [Enemy3] Death animation component initialized
+[00:21:02] [ENEMY] [Enemy3] [Gunslinger] Enemy glow applied
+[00:21:02] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:21:02] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[00:21:02] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[00:21:02] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[00:21:02] [ENEMY] [Enemy4] Death animation component initialized
+[00:21:02] [ENEMY] [Enemy4] [Gunslinger] Enemy glow applied
+[00:21:02] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:21:02] [INFO] [BloodyFeet:Grenadier] Footprint scene loaded
+[00:21:02] [INFO] [BloodyFeet:Grenadier] Found EnemyModel for facing direction
+[00:21:02] [INFO] [BloodyFeet:Grenadier] BloodyFeetComponent ready on Grenadier
+[00:21:02] [ENEMY] [Grenadier] Death animation component initialized
+[00:21:02] [ENEMY] [Grenadier] [Gunslinger] Enemy glow applied
+[00:21:02] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:21:02] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[00:21:02] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[00:21:02] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[00:21:02] [ENEMY] [Enemy6] Death animation component initialized
+[00:21:02] [ENEMY] [Enemy6] [Gunslinger] Enemy glow applied
+[00:21:02] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:21:02] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[00:21:02] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[00:21:02] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[00:21:02] [ENEMY] [Enemy7] Death animation component initialized
+[00:21:02] [ENEMY] [Enemy7] [Gunslinger] Enemy glow applied
+[00:21:02] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:21:02] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[00:21:02] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[00:21:02] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[00:21:02] [ENEMY] [Enemy8] Death animation component initialized
+[00:21:02] [ENEMY] [Enemy8] [Gunslinger] Enemy glow applied
+[00:21:02] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:21:02] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[00:21:02] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[00:21:02] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[00:21:02] [ENEMY] [Enemy9] Death animation component initialized
+[00:21:02] [ENEMY] [Enemy9] [Gunslinger] Enemy glow applied
+[00:21:02] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:21:02] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[00:21:02] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[00:21:02] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[00:21:02] [ENEMY] [Enemy10] Death animation component initialized
+[00:21:02] [ENEMY] [Enemy10] [Gunslinger] Enemy glow applied
+[00:21:02] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:21:02] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[00:21:02] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[00:21:02] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[00:21:02] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[00:21:02] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:21:02] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[00:21:02] [INFO] [Player.Weapon] Removed current weapon: MakarovPM
+[00:21:02] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[00:21:02] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[00:21:02] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[00:21:02] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[00:21:02] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[00:21:02] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[00:21:02] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[00:21:02] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[00:21:02] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[00:21:02] [INFO] [Player.Homing] Homing activation sound loaded
+[00:21:02] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[00:21:02] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[00:21:02] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[00:21:02] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[00:21:02] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[00:21:02] [INFO] [Player.DrillingBullets] Drilling bullets not selected in ActiveItemManager
+[00:21:02] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[00:21:02] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[00:21:02] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[00:21:02] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[00:21:02] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[00:21:02] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[00:21:02] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[00:21:02] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[00:21:02] [INFO] [Player.ItemVisual] Visual applied for item type: 2
+[00:21:02] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[00:21:02] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[00:21:02] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[00:21:02] [INFO] [Player.RecoilCompensator] Recoil compensator not selected in ActiveItemManager
+[00:21:02] [INFO] [Player.ExperimentalSample] Experimental sample not selected
+[00:21:02] [INFO] [Player.FineMotorSkills] Fine motor skills not selected in ActiveItemManager
+[00:21:02] [INFO] [Player.Dash] No dash selected in ActiveItemManager
+[00:21:02] [INFO] [Player.GrenadeBag] No grenade bag selected in ActiveItemManager
+[00:21:02] [INFO] [Player.Jammer] JammerHUD initialized
+[00:21:02] [INFO] [Player.ItemPickup] Connected to ActiveItemManager.active_item_changed
+[00:21:02] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[00:21:02] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:21:02] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[00:21:02] [INFO] [CinemaEffects] Found player node: Player
+[00:21:02] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[00:21:02] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[00:21:02] [ENEMY] [Enemy1] Registered as sound listener
+[00:21:02] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 1, behavior: GUARD
+[00:21:02] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[00:21:02] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[00:21:02] [ENEMY] [Enemy2] Registered as sound listener
+[00:21:02] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 2, behavior: GUARD
+[00:21:02] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[00:21:02] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[00:21:02] [ENEMY] [Enemy3] Registered as sound listener
+[00:21:02] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 1, behavior: GUARD
+[00:21:02] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[00:21:02] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[00:21:02] [ENEMY] [Enemy4] Registered as sound listener
+[00:21:02] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 2, behavior: GUARD
+[00:21:02] [INFO] [BloodyFeet:Grenadier] Blood detector created and attached to Grenadier
+[00:21:02] [INFO] [SoundPropagation] Registered listener: Grenadier (total: 5)
+[00:21:02] [ENEMY] [Grenadier] Registered as sound listener
+[00:21:02] [ENEMY] [Grenadier] Spawned at (1700, 350), hp: 1, behavior: GUARD
+[00:21:02] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[00:21:02] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[00:21:02] [ENEMY] [Enemy6] Registered as sound listener
+[00:21:02] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 1, behavior: GUARD
+[00:21:02] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[00:21:02] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[00:21:02] [ENEMY] [Enemy7] Registered as sound listener
+[00:21:02] [ENEMY] [Enemy7] Spawned at (1700, 870), hp: 2, behavior: PATROL
+[00:21:02] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[00:21:02] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[00:21:02] [ENEMY] [Enemy8] Registered as sound listener
+[00:21:02] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 1, behavior: GUARD
+[00:21:02] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[00:21:02] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[00:21:02] [ENEMY] [Enemy9] Registered as sound listener
+[00:21:02] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 2, behavior: GUARD
+[00:21:02] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[00:21:02] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[00:21:02] [ENEMY] [Enemy10] Registered as sound listener
+[00:21:02] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 1, behavior: PATROL
+[00:21:02] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[00:21:02] [INFO] [LevelInitFallback] ConfigureBuildingCameraLimits: limits set — left=64 top=64 right=2464 bottom=2064 — Issue #1684
+[00:21:02] [INFO] [LevelInitFallback] GDScript _ready() did NOT execute - performing C# fallback initialization
+[00:21:02] [INFO] [LevelInitFallback] Полигон loaded (C# fallback) - Tactical Combat Arena
+[00:21:02] [INFO] [LevelInitFallback] Found Environment/Enemies node with 10 children
+[00:21:02] [INFO] [LevelInitFallback] Child 'Enemy1': has_died_signal=True
+[00:21:02] [INFO] [LevelInitFallback] Child 'Enemy2': has_died_signal=True
+[00:21:02] [INFO] [LevelInitFallback] Child 'Enemy3': has_died_signal=True
+[00:21:02] [INFO] [LevelInitFallback] Child 'Enemy4': has_died_signal=True
+[00:21:02] [INFO] [LevelInitFallback] Child 'Grenadier': has_died_signal=True
+[00:21:02] [INFO] [LevelInitFallback] Child 'Enemy6': has_died_signal=True
+[00:21:02] [INFO] [LevelInitFallback] Child 'Enemy7': has_died_signal=True
+[00:21:02] [INFO] [LevelInitFallback] Child 'Enemy8': has_died_signal=True
+[00:21:02] [INFO] [LevelInitFallback] Child 'Enemy9': has_died_signal=True
+[00:21:02] [INFO] [LevelInitFallback] Child 'Enemy10': has_died_signal=True
+[00:21:02] [INFO] [LevelInitFallback] Enemy tracking complete: 10 enemies registered
+[00:21:02] [INFO] [LevelInitFallback] Realistic visibility component added to player (night mode)
+[00:21:02] [INFO] [GameManager] set_player() called with: <CharacterBody2D#461138564370> (class: CharacterBody2D)
+[00:21:02] [INFO] [GameManager] set_player: player_alive reset to true (new player registered)
+[00:21:02] [INFO] [GameManager] set_player: has_signal('Died')=true, has_signal('died')=false
+[00:21:02] [INFO] [GameManager] Connected to player 'Died' signal (C# naming)
+[00:21:02] [INFO] [GameManager] set_player: initial collision_layer=1 (poll expects 0 on death)
+[00:21:02] [INFO] [LevelInitFallback] BuildingLevel: Power Fantasy mode - AKGL magazines multiplied by 4x
+[00:21:02] [INFO] [LevelInitFallback] BuildingLevel: AKGL magazines reinitialized to 8 (C# fallback, Issue #1259)
+[00:21:02] [INFO] [LevelInitFallback] BuildingLevel: Re-applied auto-reload magazine reduction after ammo config for AKGL
+[00:21:02] [INFO] [ScoreManager] Level started with 10 enemies
+[00:21:02] [INFO] [LevelInitFallback] ScoreManager initialized with 10 enemies
+[00:21:02] [INFO] [LevelInitFallback] Exit zone created at position (120, 1544)
+[00:21:02] [INFO] [ReplayManager] Replay data cleared
+[00:21:02] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[00:21:02] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[00:21:02] [INFO] [ReplayManager] Level: BuildingLevel
+[00:21:02] [INFO] [ReplayManager] Player: Player (valid: True)
+[00:21:02] [INFO] [ReplayManager] Enemies count: 10
+[00:21:02] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[00:21:02] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[00:21:02] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[00:21:02] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[00:21:02] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[00:21:02] [INFO] [ReplayManager]   Enemy 4: Grenadier
+[00:21:02] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[00:21:02] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[00:21:02] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[00:21:02] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[00:21:02] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[00:21:02] [INFO] [LevelInitFallback] Replay recording started with 10 enemies
+[00:21:02] [INFO] [LevelInitFallback] GDScript properties synced
+[00:21:02] [INFO] [LevelInitFallback] Warm ceiling lights placed in all rooms (Issue #1206, C# fallback)
+[00:21:02] [INFO] [LevelInitFallback] Baking navigation mesh (C# fallback)...
+[00:21:02] [INFO] [LevelInitFallback] Navigation mesh baked successfully (C# fallback) — poly_count=97, vertex_count=138
+[00:21:02] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[00:21:02] [ENEMY] [Enemy7] Patrol points snapped to navmesh (Issue #1216)
+[00:21:02] [ENEMY] [Enemy10] Patrol points snapped to navmesh (Issue #1216)
+[00:21:02] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:21:02] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:21:02] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=281.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:21:02] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=292.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:21:02] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:21:02] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=157.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:21:02] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=180.0°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:21:02] [INFO] [Player] Detecting weapon pose (frame 3)...
+[00:21:02] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[00:21:02] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[00:21:02] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[00:21:02] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[00:21:02] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[00:21:02] [INFO] [LastChance] Found player: Player
+[00:21:02] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[00:21:02] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[00:21:02] [INFO] [LastChance] Connected to player Died signal (C#)
+[00:21:02] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[00:21:03] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[00:21:04] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[00:21:04] [ENEMY] [Enemy7] ROT_CHANGE: none -> P3:corner, state=IDLE, target=90.0°, current=0.0°, player=(450,918), corner_timer=0.30
+[00:21:04] [ENEMY] [Enemy10] ROT_CHANGE: none -> P4:velocity, state=IDLE, target=0.0°, current=0.0°, player=(450,918), corner_timer=0.00
+[00:21:04] [ENEMY] [Enemy10] PATROL corner check: angle 90.0°
+[00:21:04] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=0.0°, player=(429,833), corner_timer=0.30
+[00:21:04] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=54.4°, player=(422,825), corner_timer=-0.02
+[00:21:04] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[00:21:04] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=51.6°, player=(418,821), corner_timer=0.30
+[00:21:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.7554, 802.3929), source=PLAYER (AKGL), range=871, listeners=10
+[00:21:04] [ENEMY] [Enemy1] Heard gunshot at (398.7554, 802.3929), intensity=0.01, distance=463
+[00:21:04] [ENEMY] [Enemy2] Heard gunshot at (398.7554, 802.3929), intensity=0.04, distance=252
+[00:21:04] [ENEMY] [Enemy3] Heard gunshot at (398.7554, 802.3929), intensity=0.03, distance=306
+[00:21:04] [ENEMY] [Enemy4] Heard gunshot at (398.7554, 802.3929), intensity=0.01, distance=413
+[00:21:04] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=6, self=0
+[00:21:04] [ENEMY] [Enemy1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=77.7°, current=-33.8°, player=(398,802), corner_timer=0.00
+[00:21:04] [ENEMY] [Enemy1] Found cover at (341.1703, 631.4476) (distance: 284.4, player at (398.7554, 802.3929))
+[00:21:04] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=90.3°, current=168.8°, player=(398,802), corner_timer=0.00
+[00:21:04] [ENEMY] [Enemy2] Found cover at (400.9065, 627.0064) (distance: 77.0, player at (398.7554, 802.3929))
+[00:21:04] [ENEMY] [Enemy3] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=170.1°, current=-78.7°, player=(398,802), corner_timer=0.00
+[00:21:04] [ENEMY] [Enemy3] Found cover at (584.793, 815.3995) (distance: 132.5, player at (398.7554, 802.3929))
+[00:21:04] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=-166.3°, current=-67.5°, player=(398,802), corner_timer=0.00
+[00:21:04] [ENEMY] [Enemy4] Found cover at (579.8867, 868.229) (distance: 222.4, player at (398.7554, 802.3929))
+[00:21:04] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[00:21:04] [ENEMY] [Enemy3] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:04] [ENEMY] [Enemy3] Hit: dmg=2, hp=1/1->-1/1
+[00:21:04] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[00:21:04] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false, player_kill: true)
+[00:21:04] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:21:04] [INFO] [UnlockManager] Kill condition met — items now available to unlock in armory
+[00:21:04] [INFO] [GameManager] kills_without_laser_sight: 595
+[00:21:04] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[00:21:04] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+[00:21:04] [INFO] [PowerFantasy] Starting power fantasy effect:
+[00:21:04] [INFO] [PowerFantasy]   - Time scale: 0.10
+[00:21:04] [INFO] [PowerFantasy]   - Duration: 600ms
+[00:21:04] [ENEMY] [Enemy3] [AllyDeath] Notified 2 enemies
+[00:21:04] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[00:21:04] [INFO] [DeathAnim] Started - Angle: -7.2 deg, Index: 11
+[00:21:04] [ENEMY] [Enemy3] Death animation started with hit direction: (0.992183, -0.124794)
+[00:21:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(358.4066, 778.1104), source=PLAYER (AKGL), range=871, listeners=9
+[00:21:04] [ENEMY] [Enemy1] Heard gunshot at (358.4066, 778.1104), intensity=0.02, distance=387
+[00:21:04] [ENEMY] [Enemy2] Heard gunshot at (358.4066, 778.1104), intensity=0.05, distance=221
+[00:21:04] [ENEMY] [Enemy4] Heard gunshot at (358.4066, 778.1104), intensity=0.01, distance=437
+[00:21:04] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0
+[00:21:04] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=53.9°, player=(351,776), corner_timer=-0.01
+[00:21:04] [ENEMY] [Enemy10] PATROL corner check: angle -90.0°
+[00:21:04] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=51.6°, player=(347,775), corner_timer=0.30
+[00:21:04] [ENEMY] [Enemy3] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(327.7555, 776.4431), source=PLAYER (AKGL), range=871, listeners=9
+[00:21:04] [ENEMY] [Enemy1] Heard gunshot at (327.7555, 776.4431), intensity=0.02, distance=381
+[00:21:04] [ENEMY] [Enemy2] Heard gunshot at (327.7555, 776.4431), intensity=0.05, distance=228
+[00:21:04] [ENEMY] [Enemy4] Heard gunshot at (327.7555, 776.4431), intensity=0.01, distance=437
+[00:21:04] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0
+[00:21:04] [INFO] [BloodDecal] Blood puddle created at (734.2906, 748.0843) (added to group)
+[00:21:04] [INFO] [BloodDecal] Blood puddle created at (724.3607, 754.4018) (added to group)
+[00:21:04] [ENEMY] [Enemy3] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:04] [INFO] [BloodDecal] Blood puddle created at (758.5248, 777.6812) (added to group)
+[00:21:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(314.3278, 786.3251), source=PLAYER (AKGL), range=871, listeners=9
+[00:21:04] [ENEMY] [Enemy1] Heard gunshot at (314.3278, 786.3251), intensity=0.02, distance=395
+[00:21:04] [ENEMY] [Enemy2] Heard gunshot at (314.3278, 786.3251), intensity=0.04, distance=241
+[00:21:04] [ENEMY] [Enemy4] Heard gunshot at (314.3278, 786.3251), intensity=0.02, distance=405
+[00:21:04] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0
+[00:21:04] [INFO] [BloodDecal] Blood puddle created at (763.8371, 798.5533) (added to group)
+[00:21:04] [INFO] [BloodDecal] Blood puddle created at (727.2043, 783.5803) (added to group)
+[00:21:04] [INFO] [BloodDecal] Blood puddle created at (739.2872, 767.608) (added to group)
+[00:21:04] [INFO] [BloodDecal] Blood puddle created at (789.2993, 746.8312) (added to group)
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (777.4467, 766.4836) (added to group)
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (726.7359, 759.9045) (added to group)
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (755.0174, 783.2234) (added to group)
+[00:21:05] [ENEMY] [Enemy3] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (770.5007, 803.5214) (added to group)
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (740.2568, 784.2861) (added to group)
+[00:21:05] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(337.826, 796.4001), source=NEUTRAL (null), range=900, listeners=9
+[00:21:05] [ENEMY] [Enemy1] Heard CASING_KICK at (337.826, 796.4001), intensity=0.01, dist=410
+[00:21:05] [ENEMY] [Enemy2] Heard CASING_KICK at (337.826, 796.4001), intensity=0.04, dist=244
+[00:21:05] [ENEMY] [Enemy4] Heard CASING_KICK at (337.826, 796.4001), intensity=0.02, dist=343
+[00:21:05] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (797.4597, 752.6744) (added to group)
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (765.384, 758.0906) (added to group)
+[00:21:05] [ENEMY] [Enemy3] Ragdoll activated
+[00:21:05] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (773.3364, 804.6669) (added to group)
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (770.3143, 760.1504) (added to group)
+[00:21:05] [INFO] [PowerFantasy] Effect duration expired after 615.00 ms
+[00:21:05] [INFO] [PowerFantasy] Ending power fantasy effect
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (813.5242, 729.9902) (added to group)
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (771.6556, 756.7881) (added to group)
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (796.4581, 756.2678) (added to group)
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (798.5148, 738.0593) (added to group)
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (798.1755, 798.4805) (added to group)
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (879.8174, 856.6828) (added to group)
+[00:21:05] [INFO] [BloodDecal] Blood puddle created at (834.6434, 766.072) (added to group)
+[00:21:05] [INFO] [ReplayManager] Recording frame 180 (2,9s): player_valid=True, enemies=10
+[00:21:05] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[00:21:05] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[00:21:05] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[00:21:05] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+[00:21:05] [ENEMY] [Enemy1] Player reloading: false -> true
+[00:21:05] [ENEMY] [Enemy2] Player reloading: false -> true
+[00:21:05] [ENEMY] [Enemy3] Player reloading: false -> true
+[00:21:05] [ENEMY] [Enemy4] Player reloading: false -> true
+[00:21:05] [ENEMY] [Grenadier] Player reloading: false -> true
+[00:21:05] [ENEMY] [Enemy6] Player reloading: false -> true
+[00:21:05] [ENEMY] [Enemy7] Player reloading: false -> true
+[00:21:05] [ENEMY] [Enemy8] Player reloading: false -> true
+[00:21:05] [ENEMY] [Enemy9] Player reloading: false -> true
+[00:21:05] [ENEMY] [Enemy10] Player reloading: false -> true
+[00:21:05] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(415.0457, 878.0918), source=PLAYER (Player), range=900, listeners=9
+[00:21:05] [ENEMY] [Enemy1] Heard player RELOAD at (415.0457, 878.0918), intensity=0.01, distance=463
+[00:21:05] [ENEMY] [Enemy2] Heard player RELOAD at (415.0457, 878.0918), intensity=0.02, distance=318
+[00:21:05] [ENEMY] [Enemy4] Heard player RELOAD at (415.0457, 878.0918), intensity=0.08, distance=178
+[00:21:05] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0
+[00:21:05] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=463), can_see=false
+[00:21:05] [ENEMY] [Enemy1] Pursuing vulnerability sound at (415.0457, 878.0918), distance=463
+[00:21:05] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=true (dist=318), can_see=false
+[00:21:05] [ENEMY] [Enemy2] Pursuing vulnerability sound at (415.0457, 878.0918), distance=318
+[00:21:05] [ENEMY] [Enemy4] Player vulnerable (reloading) but cannot attack: close=true (dist=178), can_see=false
+[00:21:05] [ENEMY] [Enemy4] Pursuing vulnerability sound at (415.0457, 878.0918), distance=178
+[00:21:05] [ENEMY] [Grenadier] Player vulnerable (reloading) but cannot attack: close=false (dist=1389), can_see=false
+[00:21:05] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1594), can_see=false
+[00:21:05] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=1377), can_see=false
+[00:21:05] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1591), can_see=false
+[00:21:05] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1814), can_see=false
+[00:21:05] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=1185), can_see=false
+[00:21:06] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+[00:21:06] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+[00:21:06] [ENEMY] [Enemy1] Player reloading: true -> false
+[00:21:06] [ENEMY] [Enemy2] Player reloading: true -> false
+[00:21:06] [ENEMY] [Enemy3] Player reloading: true -> false
+[00:21:06] [ENEMY] [Enemy4] Player reloading: true -> false
+[00:21:06] [ENEMY] [Grenadier] Player reloading: true -> false
+[00:21:06] [ENEMY] [Enemy6] Player reloading: true -> false
+[00:21:06] [ENEMY] [Enemy7] Player reloading: true -> false
+[00:21:06] [ENEMY] [Enemy8] Player reloading: true -> false
+[00:21:06] [ENEMY] [Enemy9] Player reloading: true -> false
+[00:21:06] [ENEMY] [Enemy10] Player reloading: true -> false
+[00:21:06] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+[00:21:06] [ENEMY] [Enemy3] Death animation completed
+[00:21:06] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=84.3°, player=(415,878), corner_timer=-0.02
+[00:21:06] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[00:21:06] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=84.1°, player=(415,878), corner_timer=0.30
+[00:21:06] [INFO] [Player.Reload.Anim] LeftArm: pos=(23.605894, 5.9929204), target=(24, 6), base=(24, 6)
+[00:21:06] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.000002, 6.0597854), target=(-2, 6), base=(-2, 6)
+[00:21:06] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+[00:21:06] [INFO] [ReplayManager] Recording frame 240 (3,9s): player_valid=True, enemies=10
+[00:21:06] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=-93.6°, player=(415,873), corner_timer=-0.01
+[00:21:06] [ENEMY] [Enemy10] PATROL corner check: angle 90.0°
+[00:21:06] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=-99.5°, player=(415,871), corner_timer=0.30
+[00:21:06] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(426.2024, 852.1873), source=NEUTRAL (null), range=900, listeners=9
+[00:21:06] [ENEMY] [Enemy1] Heard CASING_KICK at (426.2024, 852.1873), intensity=0.03, dist=268
+[00:21:06] [ENEMY] [Enemy2] Heard CASING_KICK at (426.2024, 852.1873), intensity=0.06, dist=204
+[00:21:06] [ENEMY] [Enemy4] Heard CASING_KICK at (426.2024, 852.1873), intensity=0.15, dist=131
+[00:21:06] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0
+[00:21:06] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=80.5°, player=(415,863), corner_timer=-0.02
+[00:21:06] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[00:21:06] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=80.3°, player=(415,859), corner_timer=0.30
+[00:21:06] [ENEMY] [Enemy1] Pursuing vulnerability sound at (426.2024, 852.1873), distance=230
+[00:21:06] [ENEMY] [Enemy2] Pursuing vulnerability sound at (426.2024, 852.1873), distance=194
+[00:21:06] [ENEMY] [Enemy4] Pursuing vulnerability sound at (426.2024, 852.1873), distance=131
+[00:21:06] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=148.0°, player=(378,810), corner_timer=-0.02
+[00:21:06] [ENEMY] [Enemy10] PATROL corner check: angle 90.0°
+[00:21:06] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=147.8°, player=(374,808), corner_timer=0.30
+[00:21:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(349.395, 803.8232), source=PLAYER (AKGL), range=871, listeners=9
+[00:21:07] [ENEMY] [Enemy1] Heard gunshot at (349.395, 803.8232), intensity=0.04, distance=236
+[00:21:07] [ENEMY] [Enemy2] Heard gunshot at (349.395, 803.8232), intensity=0.07, distance=183
+[00:21:07] [ENEMY] [Enemy4] Heard gunshot at (349.395, 803.8232), intensity=0.06, distance=199
+[00:21:07] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0
+[00:21:07] [ENEMY] [Enemy4] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:07] [ENEMY] [Enemy4] Hit: dmg=2, hp=2/2->0/2
+[00:21:07] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[00:21:07] [ENEMY] [Enemy4] Enemy died (ricochet: false, penetration: false, player_kill: true)
+[00:21:07] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:21:07] [INFO] [UnlockManager] Kill condition met — items now available to unlock in armory
+[00:21:07] [INFO] [GameManager] kills_without_laser_sight: 596
+[00:21:07] [INFO] [ScoreManager] Kill registered. Combo: 2 (points: 1500)
+[00:21:07] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+[00:21:07] [INFO] [PowerFantasy] Starting power fantasy effect:
+[00:21:07] [INFO] [PowerFantasy]   - Time scale: 0.10
+[00:21:07] [INFO] [PowerFantasy]   - Duration: 600ms
+[00:21:07] [ENEMY] [Enemy4] [AllyDeath] Notified 2 enemies
+[00:21:07] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 8)
+[00:21:07] [INFO] [DeathAnim] Started - Angle: -8.5 deg, Index: 11
+[00:21:07] [ENEMY] [Enemy4] Death animation started with hit direction: (0.988942, -0.148302)
+[00:21:07] [INFO] [ReplayManager] Recording frame 300 (4,6s): player_valid=True, enemies=10
+[00:21:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(339.1821, 809.6459), source=PLAYER (AKGL), range=871, listeners=8
+[00:21:07] [ENEMY] [Enemy1] Heard gunshot at (339.1821, 809.6459), intensity=0.04, distance=247
+[00:21:07] [ENEMY] [Enemy2] Heard gunshot at (339.1821, 809.6459), intensity=0.07, distance=184
+[00:21:07] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=6, self=0
+[00:21:07] [INFO] [PowerFantasy] Effect duration expired after 602.00 ms
+[00:21:07] [INFO] [PowerFantasy] Ending power fantasy effect
+[00:21:07] [ENEMY] [Enemy4] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:07] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=85.5°, player=(339,811), corner_timer=-0.01
+[00:21:07] [INFO] [BloodDecal] Blood puddle created at (626.3624, 815.9069) (added to group)
+[00:21:07] [INFO] [BloodDecal] Blood puddle created at (605.1887, 805.2774) (added to group)
+[00:21:07] [INFO] [BloodDecal] Blood puddle created at (624.3319, 777.1978) (added to group)
+[00:21:07] [INFO] [BloodDecal] Blood puddle created at (603.4437, 783.3267) (added to group)
+[00:21:07] [INFO] [BloodDecal] Blood puddle created at (614.368, 788.4252) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (633.0164, 790.0452) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (656.8495, 794.4695) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (653.2532, 845.4387) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (616.6722, 850.1136) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (640.5322, 802.9382) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (666.0192, 825.733) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (673.5357, 823.6591) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (676.8726, 789.1116) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (656.42, 829.9219) (added to group)
+[00:21:08] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(419.4659, 750.1172), source=NEUTRAL (null), range=900, listeners=8
+[00:21:08] [ENEMY] [Enemy1] Heard CASING_KICK at (419.4659, 750.1172), intensity=0.10, dist=157
+[00:21:08] [ENEMY] [Enemy2] Heard CASING_KICK at (419.4659, 750.1172), intensity=0.12, dist=146
+[00:21:08] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=6, self=0
+[00:21:08] [ENEMY] [Enemy4] Ragdoll activated
+[00:21:08] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (679.5905, 795.221) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (627.0385, 829.3609) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (636.7457, 814.3548) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (650.5567, 830.4597) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (699.4285, 907.4977) (added to group)
+[00:21:08] [ENEMY] [Enemy10] PATROL corner check: angle 90.0°
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (647.7058, 835.7866) (added to group)
+[00:21:08] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[00:21:08] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[00:21:08] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=113.2°, player=(413,738), corner_timer=0.30
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (633.8079, 897.2319) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (689.6672, 923.8455) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (656.0709, 887.7889) (added to group)
+[00:21:08] [INFO] [BloodDecal] Blood puddle created at (670.0804, 933.5394) (added to group)
+[00:21:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(462.5128, 728.0667), source=PLAYER (AKGL), range=871, listeners=8
+[00:21:08] [ENEMY] [Enemy1] Heard gunshot at (462.5128, 728.0667), intensity=0.16, distance=125
+[00:21:08] [ENEMY] [Enemy2] Heard gunshot at (462.5128, 728.0667), intensity=0.07, distance=189
+[00:21:08] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=6, self=0
+[00:21:08] [ENEMY] [Enemy1] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:08] [ENEMY] [Enemy1] Hit: dmg=2, hp=1/1->-1/1
+[00:21:08] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[00:21:08] [ENEMY] [Enemy1] Enemy died (ricochet: false, penetration: false, player_kill: true)
+[00:21:08] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:21:08] [INFO] [UnlockManager] Kill condition met — items now available to unlock in armory
+[00:21:08] [INFO] [GameManager] kills_without_laser_sight: 597
+[00:21:08] [INFO] [ScoreManager] Kill registered. Combo: 3 (points: 3000)
+[00:21:08] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+[00:21:08] [INFO] [PowerFantasy] Starting power fantasy effect:
+[00:21:08] [INFO] [PowerFantasy]   - Time scale: 0.10
+[00:21:08] [INFO] [PowerFantasy]   - Duration: 600ms
+[00:21:08] [ENEMY] [Enemy1] [AllyDeath] Notified 1 enemies
+[00:21:08] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 7)
+[00:21:08] [INFO] [DeathAnim] Started - Angle: -76.4 deg, Index: 6
+[00:21:08] [ENEMY] [Enemy1] Death animation started with hit direction: (0.234591, -0.972094)
+[00:21:08] [INFO] [ReplayManager] Recording frame 360 (5,3s): player_valid=True, enemies=10
+[00:21:08] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(480.7835, 714.2569), source=NEUTRAL (null), range=900, listeners=7
+[00:21:08] [ENEMY] [Enemy2] Heard CASING_KICK at (480.7835, 714.2569), intensity=0.07, dist=193
+[00:21:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=6, self=0
+[00:21:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(499.1293, 728.0746), source=PLAYER (AKGL), range=871, listeners=7
+[00:21:08] [ENEMY] [Enemy2] Heard gunshot at (499.1293, 728.0746), intensity=0.05, distance=215
+[00:21:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=6, self=0
+[00:21:08] [ENEMY] [Enemy4] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:09] [INFO] [PowerFantasy] Effect duration expired after 601.00 ms
+[00:21:09] [INFO] [PowerFantasy] Ending power fantasy effect
+[00:21:09] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=90.0°, player=(509,728), corner_timer=-0.01
+[00:21:09] [ENEMY] [Enemy10] PATROL corner check: angle 90.0°
+[00:21:09] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=92.9°, player=(514,727), corner_timer=0.30
+[00:21:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(544.4404, 719.4517), source=PLAYER (AKGL), range=871, listeners=7
+[00:21:09] [ENEMY] [Enemy2] Heard gunshot at (544.4404, 719.4517), intensity=0.04, distance=256
+[00:21:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=6, self=0
+[00:21:09] [ENEMY] [Enemy4] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:09] [ENEMY] [Enemy1] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (468.7626, 538.3533) (added to group)
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (487.5948, 526.8452) (added to group)
+[00:21:09] [ENEMY] [Enemy2] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=12.4°, current=12.5°, player=(565,704), corner_timer=0.00
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (480.1713, 564.1734) (added to group)
+[00:21:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(577.2295, 692.3864), source=PLAYER (AKGL), range=871, listeners=7
+[00:21:09] [ENEMY] [Enemy2] Heard gunshot at (577.2295, 692.3864), intensity=0.04, distance=253
+[00:21:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=6, self=0
+[00:21:09] [ENEMY] [Enemy1] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (498.6678, 546.0571) (added to group)
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (489.0012, 508.5861) (added to group)
+[00:21:09] [ENEMY] [Enemy2] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (452.257, 517.2972) (added to group)
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (492.3383, 545.393) (added to group)
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (454.3591, 518.1035) (added to group)
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (468.4951, 555.0836) (added to group)
+[00:21:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(608.3423, 661.2736), source=PLAYER (AKGL), range=871, listeners=7
+[00:21:09] [ENEMY] [Enemy2] Heard gunshot at (608.3423, 661.2736), intensity=0.04, distance=265
+[00:21:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=6, self=0
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (487.2335, 579.1816) (added to group)
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (498.1874, 561.2853) (added to group)
+[00:21:09] [ENEMY] [Enemy1] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:09] [ENEMY] [Enemy1] Ragdoll activated
+[00:21:09] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (468.2896, 580.503) (added to group)
+[00:21:09] [INFO] [ReplayManager] Recording frame 420 (5,8s): player_valid=True, enemies=10
+[00:21:09] [INFO] [BloodyFeet:Enemy1] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (450.3149, 525.8319) (added to group)
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (467.5472, 498.3382) (added to group)
+[00:21:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(644.0474, 641.2475), source=PLAYER (AKGL), range=871, listeners=7
+[00:21:09] [ENEMY] [Enemy2] Heard gunshot at (644.0474, 641.2475), intensity=0.04, distance=261
+[00:21:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=6, self=0
+[00:21:09] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=-3.0°, current=93.8°, player=(644,641), corner_timer=-0.02
+[00:21:09] [ENEMY] [Enemy7] PATROL corner check: angle 85.9°
+[00:21:09] [ENEMY] [Enemy1] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:09] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=85.9°, current=94.0°, player=(649,640), corner_timer=0.30
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (538.4803, 615.0108) (added to group)
+[00:21:09] [ENEMY] [Enemy2] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (487.2714, 599.5289) (added to group)
+[00:21:09] [ENEMY] [Enemy2] Hit: dmg=2, hp=2/2->0/2
+[00:21:09] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[00:21:09] [ENEMY] [Enemy2] Enemy died (ricochet: false, penetration: false, player_kill: true)
+[00:21:09] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:21:09] [INFO] [UnlockManager] Kill condition met — items now available to unlock in armory
+[00:21:09] [INFO] [GameManager] kills_without_laser_sight: 598
+[00:21:09] [INFO] [ScoreManager] Kill registered. Combo: 4 (points: 5000)
+[00:21:09] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+[00:21:09] [INFO] [PowerFantasy] Starting power fantasy effect:
+[00:21:09] [INFO] [PowerFantasy]   - Time scale: 0.10
+[00:21:09] [INFO] [PowerFantasy]   - Duration: 600ms
+[00:21:09] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 6)
+[00:21:09] [INFO] [DeathAnim] Started - Angle: -174.5 deg, Index: 0
+[00:21:09] [ENEMY] [Enemy2] Death animation started with hit direction: (-0.995358, -0.096244)
+[00:21:09] [INFO] [BloodDecal] Blood puddle created at (505.695, 606.0019) (added to group)
+[00:21:09] [ENEMY] [Enemy4] Death animation completed
+[00:21:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(679.6771, 638.9488), source=PLAYER (AKGL), range=871, listeners=6
+[00:21:09] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0
+[00:21:10] [ENEMY] [Enemy1] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:21:10] [INFO] [PowerFantasy] Effect duration expired after 601.00 ms
+[00:21:10] [INFO] [PowerFantasy] Ending power fantasy effect
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (310.3112, 622.4089) (added to group)
+[00:21:10] [INFO] [ReplayManager] Recording frame 480 (6,3s): player_valid=True, enemies=10
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (358.4597, 618.999) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (328.9471, 672.9118) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (344.7702, 665.7281) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (305.8716, 621.8124) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (328.5105, 662.317) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (349.7466, 631.16) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (302.4223, 614.9364) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (289.5688, 650.4572) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (314.2288, 626.2364) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (305.5636, 658.2393) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (336.1852, 630.9517) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (300.0158, 677.6691) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (327.9876, 668.3049) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (258.3354, 634.1374) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (312.5711, 669.6365) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (289.2717, 681.8321) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (247.4938, 646.9765) (added to group)
+[00:21:10] [INFO] [BloodDecal] Blood puddle created at (236.5877, 683.2428) (added to group)
+[00:21:11] [INFO] [ReplayManager] Recording frame 540 (7,3s): player_valid=True, enemies=10
+[00:21:12] [INFO] [ReplayManager] Recording frame 600 (8,3s): player_valid=True, enemies=10
+[00:21:13] [INFO] [ReplayManager] Recording frame 660 (9,3s): player_valid=True, enemies=10
+[00:21:14] [INFO] [ReplayManager] Recording frame 720 (10,3s): player_valid=True, enemies=10
+[00:21:15] [INFO] [ScoreManager] Combo ended at 4. Max combo: 4
+[00:21:15] [INFO] [ReplayManager] Recording frame 780 (11,3s): player_valid=True, enemies=10
+[00:21:16] [INFO] [ReplayManager] Recording frame 840 (12,3s): player_valid=True, enemies=10
+[00:21:17] [INFO] [ReplayManager] Recording frame 900 (13,3s): player_valid=True, enemies=10
+[00:21:18] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=86.4°, player=(731,645), corner_timer=-0.02
+[00:21:18] [ENEMY] [Enemy10] PATROL corner check: angle -90.0°
+[00:21:18] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=80.5°, player=(731,645), corner_timer=0.30
+[00:21:18] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=-32.0°, player=(731,645), corner_timer=-0.02
+[00:21:18] [ENEMY] [Enemy10] PATROL corner check: angle 90.0°
+[00:21:18] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=-32.2°, player=(731,645), corner_timer=0.30
+[00:21:18] [INFO] [ReplayManager] Recording frame 960 (14,3s): player_valid=True, enemies=10
+[00:21:19] [INFO] [ReplayManager] Recording frame 1020 (15,3s): player_valid=True, enemies=10
+[00:21:20] [INFO] [ReplayManager] Recording frame 1080 (16,3s): player_valid=True, enemies=10
+[00:21:21] [INFO] [ReplayManager] Recording frame 1140 (17,3s): player_valid=True, enemies=10
+[00:21:22] [INFO] [ReplayManager] Recording frame 1200 (18,3s): player_valid=True, enemies=10
+[00:21:23] [INFO] [ReplayManager] Recording frame 1260 (19,3s): player_valid=True, enemies=10
+[00:21:24] [INFO] [ReplayManager] Recording frame 1320 (20,3s): player_valid=True, enemies=10
+[00:21:25] [INFO] [ReplayManager] Recording frame 1380 (21,3s): player_valid=True, enemies=10
+[00:21:26] [INFO] [ReplayManager] Recording frame 1440 (22,3s): player_valid=True, enemies=10
+[00:21:27] [INFO] [ReplayManager] Recording frame 1500 (23,3s): player_valid=True, enemies=10
+[00:21:28] [INFO] [ReplayManager] Recording frame 1560 (24,3s): player_valid=True, enemies=10
+[00:21:29] [INFO] [ReplayManager] Recording frame 1620 (25,3s): player_valid=True, enemies=10
+[00:21:30] [INFO] [ReplayManager] Recording frame 1680 (26,3s): player_valid=True, enemies=10
+[00:21:31] [INFO] [ReplayManager] Recording frame 1740 (27,3s): player_valid=True, enemies=10
+[00:21:32] [INFO] [ReplayManager] Recording frame 1800 (28,3s): player_valid=True, enemies=10
+[00:21:33] [INFO] [ReplayManager] Recording frame 1860 (29,3s): player_valid=True, enemies=10
+[00:21:34] [INFO] [ReplayManager] Recording frame 1920 (30,3s): player_valid=True, enemies=10
+[00:21:35] [INFO] [ReplayManager] Recording frame 1980 (31,3s): player_valid=True, enemies=10
+[00:21:36] [INFO] [ReplayManager] Recording frame 2040 (32,3s): player_valid=True, enemies=10
+[00:21:37] [INFO] [ReplayManager] Recording frame 2100 (33,3s): player_valid=True, enemies=10
+[00:21:38] [INFO] [ReplayManager] Recording frame 2160 (34,3s): player_valid=True, enemies=10
+[00:21:39] [INFO] [ReplayManager] Recording frame 2220 (35,3s): player_valid=True, enemies=10
+[00:21:40] [INFO] [ReplayManager] Recording frame 2280 (36,3s): player_valid=True, enemies=10
+[00:21:41] [INFO] [ReplayManager] Recording frame 2340 (37,3s): player_valid=True, enemies=10
+[00:21:42] [INFO] [ReplayManager] Recording frame 2400 (38,3s): player_valid=True, enemies=10
+[00:21:43] [INFO] [ReplayManager] Recording frame 2460 (39,3s): player_valid=True, enemies=10
+[00:21:44] [INFO] [ReplayManager] Recording frame 2520 (40,3s): player_valid=True, enemies=10
+[00:21:45] [INFO] [ReplayManager] Recording frame 2580 (41,3s): player_valid=True, enemies=10
+[00:21:46] [INFO] [ReplayManager] Recording frame 2640 (42,3s): player_valid=True, enemies=10
+[00:21:47] [INFO] [ReplayManager] Recording frame 2700 (43,3s): player_valid=True, enemies=10
+[00:21:48] [INFO] [ReplayManager] Recording frame 2760 (44,3s): player_valid=True, enemies=10
+[00:21:49] [INFO] [ReplayManager] Recording frame 2820 (45,3s): player_valid=True, enemies=10
+[00:21:50] [INFO] [ReplayManager] Recording frame 2880 (46,3s): player_valid=True, enemies=10
+[00:21:51] [INFO] [ReplayManager] Recording frame 2940 (47,3s): player_valid=True, enemies=10
+[00:21:52] [INFO] [ReplayManager] Recording frame 3000 (48,3s): player_valid=True, enemies=10
+[00:21:53] [INFO] [ReplayManager] Recording frame 3060 (49,3s): player_valid=True, enemies=10
+[00:21:54] [INFO] [ReplayManager] Recording frame 3120 (50,3s): player_valid=True, enemies=10
+[00:21:55] [INFO] [ReplayManager] Recording frame 3180 (51,3s): player_valid=True, enemies=10
+[00:21:56] [INFO] [ReplayManager] Recording frame 3240 (52,3s): player_valid=True, enemies=10
+[00:21:57] [INFO] [ReplayManager] Recording frame 3300 (53,3s): player_valid=True, enemies=10
+[00:21:58] [INFO] [ReplayManager] Recording frame 3360 (54,3s): player_valid=True, enemies=10
+[00:21:59] [INFO] [ReplayManager] Recording frame 3420 (55,3s): player_valid=True, enemies=10
+[00:22:00] [INFO] [ReplayManager] Recording frame 3480 (56,3s): player_valid=True, enemies=10
+[00:22:01] [INFO] [ReplayManager] Recording frame 3540 (57,3s): player_valid=True, enemies=10
+[00:22:02] [INFO] [ReplayManager] Recording frame 3600 (58,3s): player_valid=True, enemies=10
+[00:22:03] [INFO] [ReplayManager] Recording frame 3660 (59,3s): player_valid=True, enemies=10
+[00:22:04] [INFO] [ReplayManager] Recording frame 3720 (60,3s): player_valid=True, enemies=10
+[00:22:05] [INFO] [ReplayManager] Recording frame 3780 (61,3s): player_valid=True, enemies=10
+[00:22:06] [INFO] [ReplayManager] Recording frame 3840 (62,3s): player_valid=True, enemies=10
+[00:22:07] [INFO] [ReplayManager] Recording frame 3900 (63,3s): player_valid=True, enemies=10
+[00:22:08] [INFO] [ReplayManager] Recording frame 3960 (64,3s): player_valid=True, enemies=10
+[00:22:08] [INFO] [PauseMenu] Armory button pressed
+[00:22:08] [INFO] [PauseMenu] Creating new armory menu instance
+[00:22:08] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[00:22:08] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[00:22:08] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[00:22:08] [INFO] [PauseMenu] back_pressed signal exists on instance
+[00:22:08] [INFO] [PauseMenu] back_pressed signal connected
+[00:22:08] [INFO] [ArmoryMenu] weapon=ak_gl caliber_name=7.62x39mm
+[00:22:08] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[00:22:08] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[00:22:09] [INFO] [ReplayManager] Recording frame 4020 (65,3s): player_valid=True, enemies=10
+[00:22:09] [INFO] [ArmoryMenu] weapon=revolver caliber_name=12.7x55mm STs-130
+[00:22:10] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:22:10] [INFO] [GameManager] Weapon selected: revolver
+[00:22:10] [INFO] [GameManager] restart_scene() — starting scene reload
+[00:22:10] [INFO] [SoundPropagation] Unregistered listener: Enemy10 (remaining: 5)
+[00:22:10] [INFO] [SoundPropagation] Unregistered listener: Enemy9 (remaining: 4)
+[00:22:10] [INFO] [SoundPropagation] Unregistered listener: Enemy8 (remaining: 3)
+[00:22:10] [INFO] [SoundPropagation] Unregistered listener: Enemy7 (remaining: 2)
+[00:22:10] [INFO] [SoundPropagation] Unregistered listener: Enemy6 (remaining: 1)
+[00:22:10] [INFO] [SoundPropagation] Unregistered listener: Grenadier (remaining: 0)
+[00:22:10] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:22:10] [INFO] [NavMeshMonitor] NavigationRegion2D added: NavigationRegion2D
+[00:22:10] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:22:10] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[00:22:10] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[00:22:10] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[00:22:10] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:22:10] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[00:22:10] [INFO] [LastChance] Resetting all effects (scene change detected)
+[00:22:10] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[00:22:10] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[00:22:10] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+[00:22:10] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[00:22:10] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:22:10] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+[00:22:10] [ENEMY] [Enemy1] Death animation component initialized
+[00:22:10] [ENEMY] [Enemy1] [Gunslinger] Enemy glow applied
+[00:22:10] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:22:10] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[00:22:10] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[00:22:10] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[00:22:10] [ENEMY] [Enemy2] Death animation component initialized
+[00:22:10] [ENEMY] [Enemy2] [Gunslinger] Enemy glow applied
+[00:22:10] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:22:10] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[00:22:10] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[00:22:10] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[00:22:10] [ENEMY] [Enemy3] Death animation component initialized
+[00:22:10] [ENEMY] [Enemy3] [Gunslinger] Enemy glow applied
+[00:22:10] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:22:10] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[00:22:10] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[00:22:10] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[00:22:10] [ENEMY] [Enemy4] Death animation component initialized
+[00:22:10] [ENEMY] [Enemy4] [Gunslinger] Enemy glow applied
+[00:22:10] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:22:10] [INFO] [BloodyFeet:Grenadier] Footprint scene loaded
+[00:22:10] [INFO] [BloodyFeet:Grenadier] Found EnemyModel for facing direction
+[00:22:10] [INFO] [BloodyFeet:Grenadier] BloodyFeetComponent ready on Grenadier
+[00:22:10] [ENEMY] [Grenadier] Death animation component initialized
+[00:22:10] [ENEMY] [Grenadier] [Gunslinger] Enemy glow applied
+[00:22:10] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:22:10] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[00:22:10] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[00:22:10] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[00:22:10] [ENEMY] [Enemy6] Death animation component initialized
+[00:22:10] [ENEMY] [Enemy6] [Gunslinger] Enemy glow applied
+[00:22:10] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:22:10] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[00:22:10] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[00:22:10] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[00:22:10] [ENEMY] [Enemy7] Death animation component initialized
+[00:22:10] [ENEMY] [Enemy7] [Gunslinger] Enemy glow applied
+[00:22:10] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:22:10] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[00:22:10] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[00:22:10] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[00:22:10] [ENEMY] [Enemy8] Death animation component initialized
+[00:22:10] [ENEMY] [Enemy8] [Gunslinger] Enemy glow applied
+[00:22:10] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:22:10] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[00:22:10] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[00:22:10] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[00:22:10] [ENEMY] [Enemy9] Death animation component initialized
+[00:22:10] [ENEMY] [Enemy9] [Gunslinger] Enemy glow applied
+[00:22:10] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:22:10] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[00:22:10] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[00:22:10] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[00:22:10] [ENEMY] [Enemy10] Death animation component initialized
+[00:22:10] [ENEMY] [Enemy10] [Gunslinger] Enemy glow applied
+[00:22:10] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:22:10] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[00:22:10] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[00:22:10] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[00:22:10] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[00:22:10] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:22:10] [INFO] [Player.Weapon] GameManager weapon selection: revolver (Revolver)
+[00:22:10] [INFO] [Player.Weapon] Removed current weapon: MakarovPM
+[00:22:10] [INFO] [Player.Weapon] Equipped Revolver (ammo: 5/5)
+[00:22:10] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[00:22:10] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[00:22:10] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[00:22:10] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[00:22:10] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[00:22:10] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[00:22:10] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[00:22:10] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[00:22:10] [INFO] [Player.Homing] Homing activation sound loaded
+[00:22:10] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[00:22:10] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[00:22:10] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[00:22:10] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[00:22:10] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[00:22:10] [INFO] [Player.DrillingBullets] Drilling bullets not selected in ActiveItemManager
+[00:22:10] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[00:22:10] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[00:22:10] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[00:22:10] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[00:22:10] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[00:22:10] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[00:22:10] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[00:22:10] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[00:22:10] [INFO] [Player.ItemVisual] Visual applied for item type: 2
+[00:22:10] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[00:22:10] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[00:22:10] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[00:22:10] [INFO] [Player.RecoilCompensator] Recoil compensator not selected in ActiveItemManager
+[00:22:10] [INFO] [Player.ExperimentalSample] Experimental sample not selected
+[00:22:10] [INFO] [Player.FineMotorSkills] Fine motor skills not selected in ActiveItemManager
+[00:22:10] [INFO] [Player.Dash] No dash selected in ActiveItemManager
+[00:22:10] [INFO] [Player.GrenadeBag] No grenade bag selected in ActiveItemManager
+[00:22:10] [INFO] [Player.Jammer] JammerHUD initialized
+[00:22:10] [INFO] [Player.ItemPickup] Connected to ActiveItemManager.active_item_changed
+[00:22:10] [INFO] [Player] Ready! Ammo: 5/5, Grenades: 1/3, Health: 3/4
+[00:22:10] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:22:10] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[00:22:10] [INFO] [CinemaEffects] Found player node: Player
+[00:22:10] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[00:22:10] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[00:22:10] [ENEMY] [Enemy1] Registered as sound listener
+[00:22:10] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 1, behavior: GUARD
+[00:22:10] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[00:22:10] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[00:22:10] [ENEMY] [Enemy2] Registered as sound listener
+[00:22:10] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 1, behavior: GUARD
+[00:22:10] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[00:22:10] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[00:22:10] [ENEMY] [Enemy3] Registered as sound listener
+[00:22:10] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 1, behavior: GUARD
+[00:22:10] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[00:22:10] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[00:22:10] [ENEMY] [Enemy4] Registered as sound listener
+[00:22:10] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 2, behavior: GUARD
+[00:22:10] [INFO] [BloodyFeet:Grenadier] Blood detector created and attached to Grenadier
+[00:22:10] [INFO] [SoundPropagation] Registered listener: Grenadier (total: 5)
+[00:22:10] [ENEMY] [Grenadier] Registered as sound listener
+[00:22:10] [ENEMY] [Grenadier] Spawned at (1700, 350), hp: 1, behavior: GUARD
+[00:22:10] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[00:22:10] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[00:22:10] [ENEMY] [Enemy6] Registered as sound listener
+[00:22:10] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 1, behavior: GUARD
+[00:22:10] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[00:22:10] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[00:22:10] [ENEMY] [Enemy7] Registered as sound listener
+[00:22:10] [ENEMY] [Enemy7] Spawned at (1700, 870), hp: 1, behavior: PATROL
+[00:22:10] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[00:22:10] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[00:22:10] [ENEMY] [Enemy8] Registered as sound listener
+[00:22:10] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 2, behavior: GUARD
+[00:22:10] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[00:22:10] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[00:22:10] [ENEMY] [Enemy9] Registered as sound listener
+[00:22:10] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 2, behavior: GUARD
+[00:22:10] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[00:22:10] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[00:22:10] [ENEMY] [Enemy10] Registered as sound listener
+[00:22:10] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 2, behavior: PATROL
+[00:22:10] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[00:22:10] [INFO] [LevelInitFallback] ConfigureBuildingCameraLimits: limits set — left=64 top=64 right=2464 bottom=2064 — Issue #1684
+[00:22:10] [INFO] [LevelInitFallback] GDScript _ready() did NOT execute - performing C# fallback initialization
+[00:22:10] [INFO] [LevelInitFallback] Полигон loaded (C# fallback) - Tactical Combat Arena
+[00:22:10] [INFO] [LevelInitFallback] Found Environment/Enemies node with 10 children
+[00:22:10] [INFO] [LevelInitFallback] Child 'Enemy1': has_died_signal=True
+[00:22:10] [INFO] [LevelInitFallback] Child 'Enemy2': has_died_signal=True
+[00:22:10] [INFO] [LevelInitFallback] Child 'Enemy3': has_died_signal=True
+[00:22:10] [INFO] [LevelInitFallback] Child 'Enemy4': has_died_signal=True
+[00:22:10] [INFO] [LevelInitFallback] Child 'Grenadier': has_died_signal=True
+[00:22:10] [INFO] [LevelInitFallback] Child 'Enemy6': has_died_signal=True
+[00:22:10] [INFO] [LevelInitFallback] Child 'Enemy7': has_died_signal=True
+[00:22:10] [INFO] [LevelInitFallback] Child 'Enemy8': has_died_signal=True
+[00:22:10] [INFO] [LevelInitFallback] Child 'Enemy9': has_died_signal=True
+[00:22:10] [INFO] [LevelInitFallback] Child 'Enemy10': has_died_signal=True
+[00:22:10] [INFO] [LevelInitFallback] Enemy tracking complete: 10 enemies registered
+[00:22:10] [INFO] [LevelInitFallback] Realistic visibility component added to player (night mode)
+[00:22:10] [INFO] [GameManager] set_player() called with: <CharacterBody2D#739623570993> (class: CharacterBody2D)
+[00:22:10] [INFO] [GameManager] set_player: player_alive reset to true (new player registered)
+[00:22:10] [INFO] [GameManager] set_player: has_signal('Died')=true, has_signal('died')=false
+[00:22:10] [INFO] [GameManager] Connected to player 'Died' signal (C# naming)
+[00:22:10] [INFO] [GameManager] set_player: initial collision_layer=1 (poll expects 0 on death)
+[00:22:10] [INFO] [LevelInitFallback] [LevelInitFallback] Revolver cylinder HUD created (Issue #691)
+[00:22:10] [INFO] [ScoreManager] Level started with 10 enemies
+[00:22:10] [INFO] [LevelInitFallback] ScoreManager initialized with 10 enemies
+[00:22:10] [INFO] [LevelInitFallback] Exit zone created at position (120, 1544)
+[00:22:10] [INFO] [ReplayManager] Replay data cleared
+[00:22:10] [INFO] [ReplayManager] Detected player weapon: Revolver
+[00:22:10] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[00:22:10] [INFO] [ReplayManager] Level: BuildingLevel
+[00:22:10] [INFO] [ReplayManager] Player: Player (valid: True)
+[00:22:10] [INFO] [ReplayManager] Enemies count: 10
+[00:22:10] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/revolver_topdown.png
+[00:22:10] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[00:22:10] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[00:22:10] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[00:22:10] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[00:22:10] [INFO] [ReplayManager]   Enemy 4: Grenadier
+[00:22:10] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[00:22:10] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[00:22:10] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[00:22:10] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[00:22:10] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[00:22:10] [INFO] [LevelInitFallback] Replay recording started with 10 enemies
+[00:22:10] [INFO] [LevelInitFallback] GDScript properties synced
+[00:22:10] [INFO] [LevelInitFallback] Warm ceiling lights placed in all rooms (Issue #1206, C# fallback)
+[00:22:10] [INFO] [LevelInitFallback] Baking navigation mesh (C# fallback)...
+[00:22:10] [INFO] [LevelInitFallback] Navigation mesh baked successfully (C# fallback) — poly_count=97, vertex_count=138
+[00:22:10] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[00:22:10] [ENEMY] [Enemy10] Patrol points snapped to navmesh (Issue #1216)
+[00:22:10] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:22:10] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:22:10] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=292.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:22:10] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=56.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:22:10] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=303.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:22:10] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=180.0°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:22:10] [INFO] [Player] Detecting weapon pose (frame 3)...
+[00:22:10] [INFO] [Player] Detected weapon: RSh-12 Revolver (Pistol pose)
+[00:22:10] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[00:22:10] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[00:22:10] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[00:22:10] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[00:22:10] [INFO] [LastChance] Found player: Player
+[00:22:10] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[00:22:10] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[00:22:10] [INFO] [LastChance] Connected to player Died signal (C#)
+[00:22:10] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[00:22:11] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[00:22:11] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:22:11] [INFO] [GameManager] shots_fired_special_weapons: 359 (weapon: revolver)
+[00:22:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1127.667), source=PLAYER (Revolver), range=681, listeners=10
+[00:22:11] [ENEMY] [Enemy2] Heard gunshot at (450, 1127.667), intensity=0.01, distance=580
+[00:22:11] [ENEMY] [Enemy3] Heard gunshot at (450, 1127.667), intensity=0.01, distance=453
+[00:22:11] [ENEMY] [Enemy4] Heard gunshot at (450, 1127.667), intensity=0.01, distance=418
+[00:22:11] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=7, self=0
+[00:22:11] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=85.1°, current=-101.3°, player=(450,1127), corner_timer=0.00
+[00:22:11] [ENEMY] [Enemy2] Found cover at (402.9983, 627.3727) (distance: 77.4, player at (450, 1127.667))
+[00:22:11] [ENEMY] [Enemy3] ROT_CHANGE: none -> P2:combat_state, state=COMBAT, target=123.5°, current=0.0°, player=(450,1127), corner_timer=0.00
+[00:22:11] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=147.0°, current=-67.5°, player=(450,1127), corner_timer=0.00
+[00:22:11] [ENEMY] [Enemy4] Found cover at (789.4714, 968.9366) (distance: 69.7, player at (450, 1127.667))
+[00:22:12] [ENEMY] [Enemy10] ROT_CHANGE: none -> P4:velocity, state=IDLE, target=0.0°, current=0.0°, player=(450,1012), corner_timer=0.00
+[00:22:12] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[00:22:12] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[00:22:12] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[00:22:12] [ENEMY] [Enemy10] PATROL corner check: angle 90.0°
+[00:22:12] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=0.0°, player=(450,918), corner_timer=0.30
+[00:22:12] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[00:22:12] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=54.4°, player=(450,814), corner_timer=-0.02
+[00:22:12] [ENEMY] [Enemy10] PATROL corner check: angle -90.0°
+[00:22:12] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=51.6°, player=(450,808), corner_timer=0.30
+[00:22:12] [ENEMY] [Enemy3] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=168.0°, current=166.8°, player=(450,803), corner_timer=0.00
+[00:22:12] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:22:12] [INFO] [GameManager] shots_fired_special_weapons: 360 (weapon: revolver)
+[00:22:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(443.2316, 756.8154), source=PLAYER (Revolver), range=681, listeners=10
+[00:22:12] [ENEMY] [Enemy1] Heard gunshot at (443.2316, 756.8154), intensity=0.01, distance=431
+[00:22:12] [ENEMY] [Enemy2] Heard gunshot at (443.2316, 756.8154), intensity=0.21, distance=110
+[00:22:12] [ENEMY] [Enemy3] Heard gunshot at (443.2316, 756.8154), intensity=0.04, distance=257
+[00:22:12] [ENEMY] [Enemy4] Heard gunshot at (443.2316, 756.8154), intensity=0.02, distance=323
+[00:22:12] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=6, self=0
+[00:22:12] [ENEMY] [Enemy1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=70.6°, current=-157.5°, player=(443,756), corner_timer=0.00
+[00:22:12] [ENEMY] [Enemy1] Found cover at (382.8708, 635.9564) (distance: 297.7, player at (443.2316, 756.8154))
+[00:22:12] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[00:22:13] [ENEMY] [Enemy3] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:22:13] [ENEMY] [Enemy3] ROT_CHANGE: P1:visible -> P0:grenade_throw, state=COMBAT, target=-177.6°, current=-177.6°, player=(422,738), corner_timer=0.00
+[00:22:13] [ENEMY] [Enemy3] Found cover at (807.2933, 844.6389) (distance: 143.1, player at (422.3679, 738.2277))
+[00:22:13] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:22:13] [INFO] [GameManager] shots_fired_special_weapons: 361 (weapon: revolver)
+[00:22:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(415.3467, 739.6627), source=PLAYER (Revolver), range=681, listeners=10
+[00:22:13] [ENEMY] [Enemy1] Heard gunshot at (415.3467, 739.6627), intensity=0.02, distance=361
+[00:22:13] [ENEMY] [Enemy2] Heard gunshot at (415.3467, 739.6627), intensity=0.20, distance=110
+[00:22:13] [ENEMY] [Enemy3] Heard gunshot at (415.3467, 739.6627), intensity=0.04, distance=264
+[00:22:13] [ENEMY] [Enemy4] Heard gunshot at (415.3467, 739.6627), intensity=0.03, distance=285
+[00:22:13] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=6, self=0
+[00:22:13] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[00:22:13] [ENEMY] [Enemy3] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:22:13] [ENEMY] [Enemy3] Hit: dmg=20, hp=1/1->-19/1
+[00:22:13] [INFO] [ImpactEffects] Blood decals scheduled: 30 to spawn at particle landing times
+[00:22:13] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false, player_kill: true)
+[00:22:13] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:22:13] [INFO] [UnlockManager] Kill condition met — items now available to unlock in armory
+[00:22:13] [INFO] [GameManager] kills_without_laser_sight: 599
+[00:22:13] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[00:22:13] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+[00:22:13] [INFO] [PowerFantasy] Starting power fantasy effect:
+[00:22:13] [INFO] [PowerFantasy]   - Time scale: 0.10
+[00:22:13] [INFO] [PowerFantasy]   - Duration: 600ms
+[00:22:13] [ENEMY] [Enemy3] [AllyDeath] Notified 2 enemies
+[00:22:13] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[00:22:13] [INFO] [DeathAnim] Started - Angle: 1.5 deg, Index: 12
+[00:22:13] [ENEMY] [Enemy3] Death animation started with hit direction: (0.999672, 0.025627)
+[00:22:13] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:22:13] [INFO] [GameManager] shots_fired_special_weapons: 362 (weapon: revolver)
+[00:22:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(404.3254, 779.9816), source=PLAYER (Revolver), range=681, listeners=9
+[00:22:13] [ENEMY] [Enemy1] Heard gunshot at (404.3254, 779.9816), intensity=0.02, distance=404
+[00:22:13] [ENEMY] [Enemy2] Heard gunshot at (404.3254, 779.9816), intensity=0.09, distance=163
+[00:22:13] [ENEMY] [Enemy4] Heard gunshot at (404.3254, 779.9816), intensity=0.05, distance=235
+[00:22:13] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0
+[00:22:13] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[00:22:13] [ENEMY] [Enemy3] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:22:13] [ENEMY] [Enemy4] [#1311] Player bullet entered threat sphere — suppression triggered
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (722.0045, 742.946) (added to group)
+[00:22:13] [INFO] [ReplayManager] Recording frame 180 (2,9s): player_valid=True, enemies=10
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (698.5251, 757.5208) (added to group)
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (727.5344, 749.0621) (added to group)
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (701.524, 776.0306) (added to group)
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (748.6985, 801.0331) (added to group)
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (724.8375, 735.781) (added to group)
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (759.6774, 762.0175) (added to group)
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (708.4999, 777.1019) (added to group)
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (722.9907, 766.8606) (added to group)
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (712.5776, 760.5117) (added to group)
+[00:22:13] [ENEMY] [Enemy4] Found cover at (584.2844, 867.4734) (distance: 36.6, player at (436.7822, 848.2109))
+[00:22:13] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (787.6469, 811.0842) (added to group)
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (720.6776, 790.0993) (added to group)
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (735.6174, 777.4225) (added to group)
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (732.009, 787.7043) (added to group)
+[00:22:13] [ENEMY] [Enemy3] Ragdoll activated
+[00:22:13] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (756.9087, 788.3358) (added to group)
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (758.358, 788.4418) (added to group)
+[00:22:13] [INFO] [PowerFantasy] Effect duration expired after 602.00 ms
+[00:22:13] [INFO] [PowerFantasy] Ending power fantasy effect
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (779.6676, 766.0599) (added to group)
+[00:22:13] [INFO] [BloodDecal] Blood puddle created at (816.5447, 783.0759) (added to group)
+[00:22:13] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[00:22:13] [INFO] [GrenadeBase] Grenade created at (612.2294, 752.2269) (frozen)
+[00:22:13] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:22:13] [INFO] [GrenadeTimer] Initialized for Frag grenade, effect radius: 225
+[00:22:13] [INFO] [GrenadeTimerHelper] Attached GrenadeTimer to FragGrenade (type: Frag)
+[00:22:13] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:22:13] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+[00:22:13] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (-0.995067, 0.099202), Speed: 455.7 (unfrozen)
+[00:22:13] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
+[00:22:13] [INFO] [FragGrenade] Grenade thrown (legacy) - impact detection enabled
+[00:22:13] [INFO] [GrenadeTimer] Grenade marked as thrown - impact detection enabled
+[00:22:13] [INFO] [GrenadeTimer] Thrower set to instance ID: 735244717962
+[00:22:14] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[00:22:14] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[00:22:14] [INFO] [BloodDecal] Blood puddle created at (865.7346, 826.4161) (added to group)
+[00:22:14] [ENEMY] [Enemy4] State: RETREATING -> IN_COVER
+[00:22:14] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[00:22:14] [ENEMY] [Enemy4] ROT_CHANGE: P2:combat_state -> P4:velocity, state=SUPPRESSED, target=-151.5°, current=-160.9°, player=(483,855), corner_timer=0.00
+[00:22:14] [INFO] [ReplayManager] Recording frame 240 (3,9s): player_valid=True, enemies=10
+[00:22:15] [INFO] [ReplayManager] Recording frame 300 (4,9s): player_valid=True, enemies=10
+[00:22:16] [INFO] [ReplayManager] Recording frame 360 (5,9s): player_valid=True, enemies=10
+[00:22:17] [INFO] [ReplayManager] Recording frame 420 (6,9s): player_valid=True, enemies=10
+[00:22:17] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=-93.8°, player=(483,855), corner_timer=-0.02
+[00:22:17] [ENEMY] [Enemy10] PATROL corner check: angle 90.0°
+[00:22:17] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=-99.7°, player=(483,855), corner_timer=0.30
+[00:22:18] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=147.8°, player=(483,855), corner_timer=-0.02
+[00:22:18] [ENEMY] [Enemy10] PATROL corner check: angle 90.0°
+[00:22:18] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=147.6°, player=(483,855), corner_timer=0.30
+[00:22:18] [INFO] [ScoreManager] Combo ended at 1. Max combo: 1
+[00:22:18] [INFO] [GrenadeTimer] Frag grenade landed - EXPLODING!
+[00:22:18] [INFO] [GrenadeTimer] Frag grenade activated at (251.8354, 788.15594)!
+[00:22:18] [INFO] [GrenadeTimer] Applying frag explosion damage (radius: 225, damage: 99)
+[00:22:18] [INFO] [GrenadeTimer] Skipping all enemies - enemy-thrown grenade (thrower ID: 735244717962)
+[00:22:18] [INFO] [GrenadeTimer] Spawned 4 shrapnel pieces (source_id: 900751951928, thrower_id: 735244717962)
+[00:22:18] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(251.8354, 788.1559), source=NEUTRAL (FragGrenade), range=2938, listeners=9
+[00:22:18] [ENEMY] [Grenadier] Heard EXPLOSION at (251.8354, 788.1559), intensity=0.00, distance=1513
+[00:22:18] [ENEMY] [Enemy6] Heard EXPLOSION at (251.8354, 788.1559), intensity=0.00, distance=1732
+[00:22:18] [ENEMY] [Enemy7] Heard EXPLOSION at (251.8354, 788.1559), intensity=0.00, distance=1450
+[00:22:18] [ENEMY] [Enemy8] Heard EXPLOSION at (251.8354, 788.1559), intensity=0.00, distance=1776
+[00:22:18] [ENEMY] [Enemy9] Heard EXPLOSION at (251.8354, 788.1559), intensity=0.00, distance=1999
+[00:22:18] [ENEMY] [Enemy10] Heard EXPLOSION at (251.8354, 788.1559), intensity=0.00, distance=1239
+[00:22:18] [INFO] [SoundPropagation] Sound result: notified=9, out_of_range=0, self=0
+[00:22:18] [INFO] [GrenadeTimer] Spawned PointLight2D frag explosion flash at (251.8354, 788.15594)
+[00:22:18] [ENEMY] [Grenadier] ROT_CHANGE: none -> P2:combat_state, state=COMBAT, target=155.4°, current=0.0°, player=(483,906), corner_timer=0.00
+[00:22:18] [ENEMY] [Enemy6] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=162.7°, current=101.3°, player=(483,906), corner_timer=0.00
+[00:22:18] [ENEMY] [Enemy6] Found cover at (562.2102, 762.7854) (distance: 1422.6, player at (483.935, 906.4113))
+[00:22:18] [ENEMY] [Enemy7] ROT_CHANGE: none -> P2:combat_state, state=COMBAT, target=178.3°, current=0.0°, player=(483,906), corner_timer=0.00
+[00:22:18] [ENEMY] [Enemy8] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=-159.0°, current=168.8°, player=(483,906), corner_timer=0.00
+[00:22:18] [ENEMY] [Enemy8] Found cover at (582.8128, 1090.484) (distance: 1365.4, player at (483.935, 906.4113))
+[00:22:18] [ENEMY] [Enemy9] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=-158.3°, current=-101.3°, player=(483,906), corner_timer=0.00
+[00:22:18] [ENEMY] [Enemy9] Found cover at (583.152, 1090.144) (distance: 1585.0, player at (483.935, 906.4113))
+[00:22:18] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P2:combat_state, state=COMBAT, target=-139.2°, current=85.6°, player=(483,906), corner_timer=0.00
+[00:22:18] [ENEMY] [Enemy10] Found cover at (567.8274, 1472.08) (distance: 666.1, player at (483.935, 906.4113))
+[00:22:18] [INFO] [ReplayManager] Recording frame 480 (7,9s): player_valid=True, enemies=10
+[00:22:18] [ENEMY] [Enemy1] PURSUING corner check: angle 140.4°
+[00:22:18] [ENEMY] [Enemy2] PURSUING corner check: angle -147.7°
+[00:22:18] [ENEMY] [Enemy2] PURSUING corner check: angle -80.9°
+[00:22:18] [ENEMY] [Enemy6] State: COMBAT -> PURSUING
+[00:22:18] [ENEMY] [Enemy8] State: COMBAT -> PURSUING
+[00:22:18] [ENEMY] [Enemy9] State: COMBAT -> PURSUING
+[00:22:18] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[00:22:18] [ENEMY] [Enemy1] PURSUING corner check: angle 30.7°
+[00:22:19] [ENEMY] [Enemy10] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=-150.9°, current=178.2°, player=(483,1109), corner_timer=0.00
+[00:22:19] [ENEMY] [Enemy4] State: SUPPRESSED -> IN_COVER
+[00:22:19] [ENEMY] [Enemy4] State: IN_COVER -> PURSUING
+[00:22:19] [ENEMY] [Enemy4] ROT_CHANGE: P4:velocity -> P2:combat_state, state=PURSUING, target=109.6°, current=-175.7°, player=(483,1164), corner_timer=0.00
+[00:22:19] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[00:22:19] [ENEMY] [Enemy2] PURSUING corner check: angle -96.1°
+[00:22:19] [ENEMY] [Enemy1] PURSUING corner check: angle -29.4°
+[00:22:19] [INFO] [ReplayManager] Recording frame 540 (8,9s): player_valid=True, enemies=10
+[00:22:19] [ENEMY] [Enemy2] PURSUING corner check: angle 60.6°
+[00:22:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(976.6889, 1402.147), source=ENEMY (Enemy10), range=840, listeners=9
+[00:22:19] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=6, self=1
+[00:22:19] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(964.7605, 1386.26), source=NEUTRAL (null), range=900, listeners=9
+[00:22:19] [ENEMY] [Enemy2] Heard CASING_KICK at (964.7605, 1386.26), intensity=0.00, dist=874
+[00:22:19] [ENEMY] [Enemy4] Heard CASING_KICK at (964.7605, 1386.26), intensity=0.01, dist=640
+[00:22:19] [ENEMY] [Enemy7] Heard CASING_KICK at (964.7605, 1386.26), intensity=0.00, dist=898
+[00:22:19] [ENEMY] [Enemy8] Heard CASING_KICK at (964.7605, 1386.26), intensity=0.00, dist=793
+[00:22:19] [ENEMY] [Enemy10] Heard CASING_KICK at (964.7605, 1386.26), intensity=1.00, dist=31
+[00:22:19] [INFO] [SoundPropagation] Sound result: notified=5, out_of_range=4, self=0
+[00:22:19] [INFO] [LastChance] Gunslinger mode - special last chance effect disabled (Issue #1727)
+[00:22:19] [ENEMY] [Enemy2] PURSUING corner check: angle 7.7°
+[00:22:20] [ENEMY] [Enemy10] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=179.5°, current=179.5°, player=(483,1397), corner_timer=0.00
+[00:22:20] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[00:22:20] [ENEMY] [Enemy2] PURSUING corner check: angle 0.0°
+[00:22:20] [ENEMY] [Enemy6] PURSUING corner check: angle 155.4°
+[00:22:20] [ENEMY] [Enemy8] PURSUING corner check: angle -34.6°
+[00:22:20] [ENEMY] [Enemy9] PURSUING corner check: angle -91.3°
+[00:22:20] [INFO] [ReplayManager] Recording frame 600 (9,9s): player_valid=True, enemies=10
+[00:22:20] [ENEMY] [Enemy2] PURSUING corner check: angle 178.3°
+[00:22:20] [ENEMY] [Enemy6] PURSUING corner check: angle 160.9°
+[00:22:20] [ENEMY] [Enemy9] PURSUING corner check: angle 89.6°
+[00:22:20] [ENEMY] [Enemy8] PURSUING corner check: angle -137.6°
+[00:22:20] [ENEMY] [Enemy8] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=174.9°, current=178.8°, player=(483,1398), corner_timer=0.27
+[00:22:20] [ENEMY] [Enemy2] PURSUING corner check: angle -8.6°
+[00:22:21] [ENEMY] [Enemy6] PURSUING corner check: angle 144.8°
+[00:22:21] [ENEMY] [Enemy9] PURSUING corner check: angle 89.6°
+[00:22:21] [ENEMY] [Enemy1] PURSUING corner check: angle -138.2°
+[00:22:21] [ENEMY] [Enemy2] PURSUING corner check: angle 1.4°
+[00:22:21] [ENEMY] [Enemy9] PURSUING corner check: angle -90.9°
+[00:22:21] [ENEMY] [Enemy1] PURSUING corner check: angle -100.2°
+[00:22:21] [INFO] [ReplayManager] Recording frame 660 (10,9s): player_valid=True, enemies=10
+[00:22:21] [ENEMY] [Enemy2] PURSUING corner check: angle -20.6°
+[00:22:21] [ENEMY] [Enemy10] PURSUING corner check: angle -72.4°
+[00:22:21] [ENEMY] [Enemy9] PURSUING corner check: angle 102.4°
+[00:22:21] [ENEMY] [Enemy1] PURSUING corner check: angle -166.0°
+[00:22:21] [ENEMY] [Enemy2] PURSUING corner check: angle 5.4°
+[00:22:21] [ENEMY] [Enemy10] PURSUING corner check: angle -87.4°
+[00:22:22] [ENEMY] [Enemy9] PURSUING corner check: angle -90.1°
+[00:22:22] [ENEMY] [Enemy1] PURSUING corner check: angle 19.8°
+[00:22:22] [ENEMY] [Enemy2] PURSUING corner check: angle -125.6°
+[00:22:22] [ENEMY] [Enemy10] PURSUING corner check: angle 85.5°
+[00:22:22] [ENEMY] [Enemy4] PURSUING corner check: angle -99.4°
+[00:22:22] [ENEMY] [Enemy1] PURSUING corner check: angle 20.6°
+[00:22:22] [INFO] [ReplayManager] Recording frame 720 (11,9s): player_valid=True, enemies=10
+[00:22:22] [ENEMY] [Enemy2] PURSUING corner check: angle -171.4°
+[00:22:22] [ENEMY] [Enemy8] PURSUING corner check: angle 41.3°
+[00:22:22] [ENEMY] [Enemy1] PURSUING corner check: angle -164.0°
+[00:22:22] [ENEMY] [Enemy2] PURSUING corner check: angle -156.3°
+[00:22:23] [ENEMY] [Enemy6] PURSUING corner check: angle -73.0°
+[00:22:23] [ENEMY] [Enemy8] PURSUING corner check: angle 174.3°
+[00:22:23] [ENEMY] [Enemy1] PURSUING corner check: angle -175.4°
+[00:22:23] [ENEMY] [Enemy2] PURSUING corner check: angle -25.5°
+[00:22:23] [ENEMY] [Enemy6] PURSUING corner check: angle 144.7°
+[00:22:23] [ENEMY] [Enemy8] PURSUING corner check: angle 174.3°
+[00:22:23] [ENEMY] [Enemy1] PURSUING corner check: angle 52.4°
+[00:22:23] [INFO] [ReplayManager] Recording frame 780 (12,9s): player_valid=True, enemies=10
+[00:22:23] [ENEMY] [Enemy2] PURSUING corner check: angle 8.6°
+[00:22:23] [ENEMY] [Enemy6] PURSUING corner check: angle 95.6°
+[00:22:23] [ENEMY] [Enemy1] PURSUING corner check: angle -39.2°
+[00:22:23] [ENEMY] [Enemy2] PURSUING corner check: angle -14.6°
+[00:22:24] [ENEMY] [Enemy10] PURSUING corner check: angle -24.4°
+[00:22:24] [ENEMY] [Enemy1] PURSUING corner check: angle -141.8°
+[00:22:24] [ENEMY] [Enemy2] PURSUING corner check: angle -33.2°
+[00:22:24] [ENEMY] [Enemy10] PURSUING corner check: angle -10.4°
+[00:22:24] [ENEMY] [Enemy1] PURSUING corner check: angle 12.4°
+[00:22:24] [INFO] [ReplayManager] Recording frame 840 (13,9s): player_valid=True, enemies=10
+[00:22:24] [ENEMY] [Enemy2] PURSUING corner check: angle -135.0°
+[00:22:24] [ENEMY] [Enemy10] PURSUING corner check: angle 173.8°
+[00:22:24] [ENEMY] [Enemy1] PURSUING corner check: angle -41.5°
+[00:22:24] [ENEMY] [Enemy2] PURSUING corner check: angle -175.9°
+[00:22:25] [ENEMY] [Enemy10] PURSUING corner check: angle 1.5°
+[00:22:25] [ENEMY] [Enemy1] PURSUING corner check: angle -8.0°
+[00:22:25] [ENEMY] [Enemy8] PURSUING corner check: angle 39.2°
+[00:22:25] [ENEMY] [Enemy2] PURSUING corner check: angle -175.9°
+[00:22:25] [ENEMY] [Enemy8] ROT_CHANGE: P1:visible -> P2:combat_state, state=PURSUING, target=159.7°, current=167.0°, player=(483,1398), corner_timer=0.17
+[00:22:25] [ENEMY] [Enemy10] PURSUING corner check: angle 0.8°
+[00:22:25] [ENEMY] [Enemy1] PURSUING corner check: angle 0.8°
+[00:22:25] [ENEMY] [Enemy6] PURSUING corner check: angle 106.1°
+[00:22:25] [ENEMY] [Enemy8] PURSUING corner check: angle -140.8°
+[00:22:25] [INFO] [ReplayManager] Recording frame 900 (14,9s): player_valid=True, enemies=10
+[00:22:25] [ENEMY] [Enemy2] PURSUING corner check: angle -139.2°
+[00:22:25] [ENEMY] [Enemy10] PURSUING corner check: angle -178.7°
+[00:22:25] [ENEMY] [Enemy1] PURSUING corner check: angle 7.5°
+[00:22:25] [ENEMY] [Enemy6] PURSUING corner check: angle 109.6°
+[00:22:25] [ENEMY] [Enemy8] PURSUING corner check: angle -37.5°
+[00:22:25] [ENEMY] [Enemy2] PURSUING corner check: angle -103.9°
+[00:22:26] [ENEMY] [Enemy10] PURSUING corner check: angle 0.4°
+[00:22:26] [ENEMY] [Enemy1] PURSUING corner check: angle 10.2°
+[00:22:26] [ENEMY] [Enemy6] PURSUING corner check: angle 111.7°
+[00:22:26] [ENEMY] [Enemy8] PURSUING corner check: angle 179.5°
+[00:22:26] [ENEMY] [Enemy2] PURSUING corner check: angle -110.6°
+[00:22:26] [ENEMY] [Enemy10] PURSUING corner check: angle 0.4°
+[00:22:26] [ENEMY] [Enemy1] PURSUING corner check: angle -135.9°
+[00:22:26] [ENEMY] [Enemy8] PURSUING corner check: angle -34.0°
+[00:22:26] [INFO] [ReplayManager] Recording frame 960 (15,9s): player_valid=True, enemies=10
+[00:22:26] [ENEMY] [Enemy2] PURSUING corner check: angle -107.4°
+[00:22:26] [ENEMY] [Enemy1] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=91.4°, current=94.7°, player=(483,1398), corner_timer=0.08
+[00:22:26] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[00:22:26] [ENEMY] [Enemy10] PURSUING corner check: angle -178.4°
+[00:22:26] [ENEMY] [Enemy1] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=91.2°, current=91.2°, player=(483,1398), corner_timer=0.05
+[00:22:26] [ENEMY] [Enemy8] PURSUING corner check: angle -179.3°
+[00:22:26] [ENEMY] [Enemy2] PURSUING corner check: angle 6.4°
+[00:22:27] [ENEMY] [Enemy10] PURSUING corner check: angle 0.2°
+[00:22:27] [ENEMY] [Enemy8] PURSUING corner check: angle -179.4°
+[00:22:27] [ENEMY] [Enemy2] PURSUING corner check: angle 13.9°
+[00:22:27] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[00:22:27] [INFO] ------------------------------------------------------------
+[00:22:27] [INFO] GAME LOG ENDED: 2026-04-10T00:22:27
+[00:22:27] [INFO] ============================================================

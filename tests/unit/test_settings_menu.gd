@@ -18,6 +18,7 @@ class MockSettingsMenu:
 		"gameplay",
 		"performance",
 		"experimental",
+		"language",
 	]
 
 	## Submenu visibility tracking.
@@ -28,6 +29,7 @@ class MockSettingsMenu:
 		"gameplay": false,
 		"performance": false,
 		"experimental": false,
+		"language": false,
 	}
 
 	## Main menu container visibility.
@@ -80,13 +82,13 @@ func after_each() -> void:
 
 
 func test_submenu_count_is_6() -> void:
-	assert_eq(menu.get_submenu_count(), 6,
-		"Settings menu should have 6 submenu categories")
+	assert_eq(menu.get_submenu_count(), 7,
+		"Settings menu should have 7 submenu categories")
 
 
 func test_submenu_types_size() -> void:
-	assert_eq(menu.SUBMENU_TYPES.size(), 6,
-		"SUBMENU_TYPES array should have 6 entries")
+	assert_eq(menu.SUBMENU_TYPES.size(), 7,
+		"SUBMENU_TYPES array should have 7 entries")
 
 
 # ============================================================================
@@ -122,6 +124,11 @@ func test_performance_submenu_exists() -> void:
 func test_experimental_submenu_exists() -> void:
 	assert_true(menu.SUBMENU_TYPES.has("experimental"),
 		"Should have experimental submenu")
+
+
+func test_language_submenu_exists() -> void:
+	assert_true(menu.SUBMENU_TYPES.has("language"),
+		"Should have language submenu (Issue #1718)")
 
 
 # ============================================================================

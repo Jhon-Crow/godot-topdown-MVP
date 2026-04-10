@@ -249,6 +249,30 @@ public class MagazineInventory
     }
 
     /// <summary>
+    /// Gets an array of max capacities parallel to GetMagazineAmmoCounts().
+    /// First element is current magazine capacity, rest are spares sorted by ammo count (descending).
+    /// Use alongside GetMagazineAmmoCounts() to distinguish full vs partial magazines.
+    /// </summary>
+    public int[] GetMagazineMaxCounts()
+    {
+        var caps = new List<int>();
+
+        if (CurrentMagazine != null)
+        {
+            caps.Add(CurrentMagazine.MaxCapacity);
+        }
+
+        // Same sort order as GetMagazineAmmoCounts: highest ammo first
+        var sortedSpares = _spareMagazines.OrderByDescending(m => m.CurrentAmmo).ToList();
+        foreach (var mag in sortedSpares)
+        {
+            caps.Add(mag.MaxCapacity);
+        }
+
+        return caps.ToArray();
+    }
+
+    /// <summary>
     /// Adds a new magazine to the spare magazines.
     /// </summary>
     /// <param name="magazine">The magazine to add.</param>
