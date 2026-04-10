@@ -91,7 +91,7 @@ text = "HARD"
 [node name="BlackMetalButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(260, 50)
 layout_mode = 2
-text = "BLACK_METAL"
+text = "BLACK METAL"
 
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 40)

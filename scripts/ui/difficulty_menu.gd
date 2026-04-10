@@ -115,9 +115,9 @@ func _update_button_states() -> void:
 	easy_button.text = tr("EASY_SELECTED") if is_easy else tr("EASY")
 	normal_button.text = tr("NORMAL_SELECTED") if is_normal else tr("NORMAL")
 	hard_button.text = tr("HARD_SELECTED") if is_hard else tr("HARD")
-	# Use uppercase for Black Metal because the gothic font only has uppercase glyphs (Issue #1014)
-	# Use dash instead of parentheses since the gothic font doesn't have those characters (Issue #1020)
-	black_metal_button.text = tr("BLACK_METAL_SELECTED") if is_black_metal else tr("BLACK_METAL")
+	# Always use hardcoded uppercase ASCII for Black Metal — gothic font only supports uppercase
+	# ASCII glyphs, and the name must not change when switching languages (it is a proper name).
+	black_metal_button.text = "BLACK METAL - SELECTED" if is_black_metal else "BLACK METAL"
 
 	# Update night mode checkbox
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
