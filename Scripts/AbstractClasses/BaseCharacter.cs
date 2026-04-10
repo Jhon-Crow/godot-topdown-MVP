@@ -148,12 +148,18 @@ public abstract partial class BaseCharacter : CharacterBody2D, IDamageable
     {
         if (direction != Vector2.Zero)
         {
-            // Issue #1769: project target velocity onto the wall plane so moving into
-            // a wall does not reduce speed along the wall (wall no longer slows character).
-            Vector2 targetVelocity = direction * MaxSpeed;
+            // Issue #1769: project the input direction onto the wall plane and
+            // renormalize before scaling by MaxSpeed, so diagonal input into a wall
+            // does not reduce speed along the wall.  Without renormalization the
+            // slide shrinks the vector magnitude to ~70% when input is at 45°.
+            Vector2 moveDir = direction;
             if (IsOnWall())
-                targetVelocity = targetVelocity.Slide(GetWallNormal());
-            Velocity = Velocity.MoveToward(targetVelocity, Acceleration * delta);
+            {
+                Vector2 slid = direction.Slide(GetWallNormal());
+                if (slid != Vector2.Zero)
+                    moveDir = slid.Normalized();
+            }
+            Velocity = Velocity.MoveToward(moveDir * MaxSpeed, Acceleration * delta);
         }
         else
         {

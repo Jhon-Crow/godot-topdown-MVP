@@ -423,12 +423,16 @@ func _physics_process(delta: float) -> void:
 
 	if not is_dash_active():
 		if input_direction != Vector2.ZERO:
-			# Issue #1769: project target velocity onto wall plane so moving into
-			# a wall does not reduce speed along the wall (wall no longer slows player).
-			var target_velocity := input_direction * max_speed
+			# Issue #1769: project the input direction onto the wall plane and
+			# renormalize before scaling by max_speed, so diagonal input into a wall
+			# does not reduce speed along the wall.  Without renormalization the
+			# slide shrinks the vector magnitude to ~70% when input is at 45 degrees.
+			var move_dir := input_direction
 			if is_on_wall():
-				target_velocity = target_velocity.slide(get_wall_normal())
-			velocity = velocity.move_toward(target_velocity, acceleration * delta)
+				var slid := input_direction.slide(get_wall_normal())
+				if slid != Vector2.ZERO:
+					move_dir = slid.normalized()
+			velocity = velocity.move_toward(move_dir * max_speed, acceleration * delta)
 		else:
 			velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
 
