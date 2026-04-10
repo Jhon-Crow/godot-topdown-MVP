@@ -309,13 +309,15 @@ func test_footprints_resume_when_re_entering_snow() -> void:
 
 
 # ============================================================================
-# Tests: No Double Footprints When Character Has Bloody Feet (Issue #1627)
+# Tests: Red Blood-Snow Footprints After Stepping in Blood (Issue #1627)
 # ============================================================================
 
 
-## Minimal mock for BloodyFeetComponent blood-level query.
+## Minimal mock for BloodyFeetComponent blood-level / blood-color query.
 class MockBloodyFeet:
 	var _blood_level: int = 0
+	var _blood_color: Color = Color(0.545, 0.0, 0.0, 1.0)
+	var snow_blood_steps_count: int = 4
 
 	func has_bloody_feet() -> bool:
 		return _blood_level > 0
@@ -324,42 +326,158 @@ class MockBloodyFeet:
 class MockSnowyFeetComponentWithBloodCheck extends MockSnowyFeetComponentWithSnowCheck:
 	## Simulated BloodyFeetComponent reference.
 	var _bloody_feet: MockBloodyFeet = null
+	var snow_blood_steps_count: int = 4
+	var _blood_snow_steps_remaining: int = 0
+
+	## Tracks whether last spawned print was a blood print.
+	var last_was_blood_print: bool = false
 
 
 	func _spawn_footprint() -> void:
-		# Mirror the guard added to SnowyFeetComponent._spawn_footprint().
 		if not is_on_snow:
 			return
+
+		# Mirror the blood-check logic from SnowyFeetComponent._spawn_footprint().
 		if _bloody_feet and _bloody_feet.has_bloody_feet():
-			return
-		# Call grandparent _spawn_footprint (skipping the snow check already done above).
-		MockSnowyFeetComponent._spawn_footprint(self)
+			if _blood_snow_steps_remaining <= 0:
+				var steps := snow_blood_steps_count
+				if _bloody_feet.get("snow_blood_steps_count") != null:
+					steps = _bloody_feet.snow_blood_steps_count
+				_blood_snow_steps_remaining = steps
+
+		var use_blood_print := _blood_snow_steps_remaining > 0
+		last_was_blood_print = use_blood_print
+
+		if use_blood_print:
+			var total := snow_blood_steps_count
+			if _bloody_feet and _bloody_feet.get("snow_blood_steps_count") != null:
+				total = _bloody_feet.snow_blood_steps_count
+			var steps_taken := total - _blood_snow_steps_remaining
+			var alpha := initial_alpha - steps_taken * alpha_decay_rate
+			alpha = maxf(alpha, 0.05)
+			var facing := _get_facing_direction()
+			var perpendicular := facing.rotated(PI / 2.0)
+			var foot_offset := 4.0 if _is_left_foot else -4.0
+			var pos := character_position + perpendicular * foot_offset
+			spawned_footprints.append({
+				"position": pos,
+				"rotation": facing.angle() + PI / 2.0,
+				"alpha": alpha,
+				"is_left": _is_left_foot,
+				"is_blood": true,
+			})
+			_is_left_foot = not _is_left_foot
+			_blood_snow_steps_remaining -= 1
+		else:
+			# Normal white print.
+			var steps_taken_white := _step_index % snow_steps_count
+			var alpha := initial_alpha - steps_taken_white * alpha_decay_rate
+			alpha = maxf(alpha, 0.05)
+			var facing := _get_facing_direction()
+			var perpendicular := facing.rotated(PI / 2.0)
+			var foot_offset := 4.0 if _is_left_foot else -4.0
+			var pos := character_position + perpendicular * foot_offset
+			spawned_footprints.append({
+				"position": pos,
+				"rotation": facing.angle() + PI / 2.0,
+				"alpha": alpha,
+				"is_left": _is_left_foot,
+				"is_blood": false,
+			})
+			_is_left_foot = not _is_left_foot
+			_step_index += 1
 
 
-func test_no_snow_footprint_when_character_has_blood() -> void:
+func test_red_snow_footprint_when_character_has_blood() -> void:
+	## After stepping in blood the next footprint on snow should be a blood print (Issue #1627).
 	var comp := MockSnowyFeetComponentWithBloodCheck.new()
 	comp.is_on_snow = true
 	var bloody := MockBloodyFeet.new()
-	bloody._blood_level = 6
+	bloody._blood_level = 4
 	comp._bloody_feet = bloody
 	comp.ready(Vector2.ZERO)
 	comp.process(Vector2(comp.step_distance, 0.0))
-	assert_eq(comp.spawned_footprints.size(), 0,
-		"No plain snow footprint should appear while character has bloody feet")
-
-
-func test_snow_footprint_resumes_after_blood_runs_out() -> void:
-	var comp := MockSnowyFeetComponentWithBloodCheck.new()
-	comp.is_on_snow = true
-	var bloody := MockBloodyFeet.new()
-	bloody._blood_level = 1
-	comp._bloody_feet = bloody
-	comp.ready(Vector2.ZERO)
-	comp.process(Vector2(comp.step_distance, 0.0))
-	assert_eq(comp.spawned_footprints.size(), 0, "No snow print while blood > 0")
-
-	# Blood runs out.
-	bloody._blood_level = 0
-	comp.process(Vector2(comp.step_distance * 2.0, 0.0))
 	assert_eq(comp.spawned_footprints.size(), 1,
-		"Snow footprint resumes once blood level reaches zero")
+		"A footprint should be spawned when character has bloody feet on snow")
+	assert_true(comp.spawned_footprints[0].get("is_blood", false),
+		"The footprint should be a blood-snow print (red), not a plain white snow print")
+
+
+func test_exactly_snow_blood_steps_count_red_prints() -> void:
+	## Exactly snow_blood_steps_count (4) red prints, then white prints (Issue #1627).
+	var comp := MockSnowyFeetComponentWithBloodCheck.new()
+	comp.is_on_snow = true
+	comp.snow_blood_steps_count = 4
+	var bloody := MockBloodyFeet.new()
+	bloody._blood_level = 4
+	comp._bloody_feet = bloody
+	comp.ready(Vector2.ZERO)
+
+	for i in range(6):
+		comp.process(Vector2(comp.step_distance * (i + 1), 0.0))
+		# Simulate blood level decrementing as BloodyFeetComponent would.
+		if bloody._blood_level > 0:
+			bloody._blood_level -= 1
+
+	assert_eq(comp.spawned_footprints.size(), 6,
+		"Six footprints total should be spawned")
+	var blood_count := 0
+	var white_count := 0
+	for fp in comp.spawned_footprints:
+		if fp.get("is_blood", false):
+			blood_count += 1
+		else:
+			white_count += 1
+	assert_eq(blood_count, 4,
+		"Exactly 4 red blood-snow prints should be spawned after stepping in blood")
+	assert_eq(white_count, 2,
+		"After 4 blood steps, normal white snow prints should resume")
+
+
+func test_first_blood_print_has_highest_alpha() -> void:
+	## First blood-snow print is most opaque; alpha decays over snow_blood_steps_count steps.
+	var comp := MockSnowyFeetComponentWithBloodCheck.new()
+	comp.is_on_snow = true
+	comp.snow_blood_steps_count = 4
+	var bloody := MockBloodyFeet.new()
+	bloody._blood_level = 4
+	comp._bloody_feet = bloody
+	comp.ready(Vector2.ZERO)
+
+	for i in range(4):
+		comp.process(Vector2(comp.step_distance * (i + 1), 0.0))
+		if bloody._blood_level > 0:
+			bloody._blood_level -= 1
+
+	assert_eq(comp.spawned_footprints.size(), 4, "Four blood prints spawned")
+	var a0: float = comp.spawned_footprints[0]["alpha"]
+	var a1: float = comp.spawned_footprints[1]["alpha"]
+	var a2: float = comp.spawned_footprints[2]["alpha"]
+	var a3: float = comp.spawned_footprints[3]["alpha"]
+	assert_true(a0 > a1, "First blood print should be more opaque than second")
+	assert_true(a1 > a2, "Second blood print should be more opaque than third")
+	assert_true(a2 > a3, "Third blood print should be more opaque than fourth")
+
+
+func test_white_snow_footprint_resumes_after_blood_runs_out() -> void:
+	var comp := MockSnowyFeetComponentWithBloodCheck.new()
+	comp.is_on_snow = true
+	comp.snow_blood_steps_count = 4
+	var bloody := MockBloodyFeet.new()
+	bloody._blood_level = 4
+	comp._bloody_feet = bloody
+	comp.ready(Vector2.ZERO)
+
+	# Take 4 blood-stained steps.
+	for i in range(4):
+		comp.process(Vector2(comp.step_distance * (i + 1), 0.0))
+		if bloody._blood_level > 0:
+			bloody._blood_level -= 1
+
+	var step5 := Vector2(comp.step_distance * 5.0, 0.0)
+	comp.process(step5)
+
+	assert_eq(comp.spawned_footprints.size(), 5,
+		"Five footprints total (4 blood + 1 white)")
+	assert_false(comp.spawned_footprints[4].get("is_blood", true),
+		"Fifth footprint should be a normal white snow print after blood runs out")

@@ -8,10 +8,17 @@ extends Node
 ## Snow footprints use near-white tinting so they appear as subtle impressions in the
 ## snow rather than dark stains.  Alpha decreases with each step and the prints fade
 ## after a short delay, simulating snow slowly filling the impressions back in.
+##
+## When the character has bloody feet (BloodyFeetComponent.has_bloody_feet() == true),
+## this component spawns red oval SnowBloodFootprint prints for the first
+## snow_blood_steps_count steps, then resumes normal white prints (Issue #1627).
 class_name SnowyFeetComponent
 
 ## Number of steps before the snow impression opacity reaches its minimum.
 @export var snow_steps_count: int = 8
+
+## Number of red blood-stained snow prints to spawn after stepping in blood (Issue #1627).
+@export var snow_blood_steps_count: int = 4
 
 ## Distance in pixels between consecutive footprint spawns.
 @export var step_distance: float = 30.0
@@ -34,8 +41,11 @@ class_name SnowyFeetComponent
 ## Enable verbose debug logging.
 @export var debug_logging: bool = false
 
-## Preloaded footprint scene.
+## Preloaded footprint scene (normal white snow print).
 var _footprint_scene: PackedScene = null
+
+## Preloaded red blood-stained snow footprint scene (Issue #1627).
+var _snow_blood_footprint_scene: PackedScene = null
 
 ## Distance traveled since the last footprint was placed.
 var _distance_since_last_footprint: float = 0.0
@@ -65,10 +75,13 @@ var _character_model: Node2D = null
 ## Running step index, used to compute per-step alpha.
 var _step_index: int = 0
 
-## Cached reference to sibling BloodyFeetComponent (found lazily in _ready).
-## When the character has active blood, SnowyFeetComponent defers to it so both
-## components do not emit footprints simultaneously (Issue #1627).
+## Cached reference to sibling BloodyFeetComponent (Issue #1627).
+## Used to check whether to spawn red or white snow prints.
 var _bloody_feet: Node = null
+
+## Counter for remaining red blood-snow footprints to spawn (Issue #1627).
+## Set when the character first steps in blood; counts down to 0.
+var _blood_snow_steps_remaining: int = 0
 
 ## Area2D used to detect overlap with snow-surface areas (group "snow_area").
 var _snow_detector: Area2D = null
@@ -93,9 +106,15 @@ func _ready() -> void:
 	else:
 		push_warning("SnowyFeetComponent: SnowFootprint scene not found at " + footprint_path)
 
+	var snow_blood_path := "res://scenes/effects/SnowBloodFootprint.tscn"
+	if ResourceLoader.exists(snow_blood_path):
+		_snow_blood_footprint_scene = load(snow_blood_path)
+	else:
+		push_warning("SnowyFeetComponent: SnowBloodFootprint scene not found at " + snow_blood_path)
+
 	_find_character_model()
 
-	# Cache sibling BloodyFeetComponent to avoid double-printing when character has blood.
+	# Cache sibling BloodyFeetComponent to read blood state (Issue #1627).
 	_bloody_feet = _parent_body.get_node_or_null("BloodyFeetComponent")
 
 	# Create Area2D detector for snow-surface overlap (deferred so parent is in tree).
@@ -207,29 +226,37 @@ func _get_facing_direction() -> Vector2:
 
 ## Spawns a single snow footprint at the character's current position.
 ## Only spawns when the character is standing on a snow-surface area.
+## Spawns red SnowBloodFootprint for snow_blood_steps_count steps after blood contact,
+## then resumes normal white SnowFootprint prints (Issue #1627).
 func _spawn_footprint() -> void:
-	if _footprint_scene == null:
-		return
-
 	if not _is_on_snow():
 		if debug_logging:
 			_log_info("Skipping snow footprint — not on snow surface")
 		return
 
-	# Skip plain snow prints while the character has bloody feet — BloodyFeetComponent
-	# will handle the snow-blood oval prints itself, preventing double footprints.
+	# Check if the character just stepped in blood and start the red-print counter.
 	if _bloody_feet and _bloody_feet.has_method("has_bloody_feet") and _bloody_feet.has_bloody_feet():
-		if debug_logging:
-			_log_info("Skipping snow footprint — character has bloody feet (BloodyFeetComponent handles prints)")
+		if _blood_snow_steps_remaining <= 0:
+			# Character freshly stepped in blood — start spawning red prints.
+			var steps := snow_blood_steps_count
+			if _bloody_feet.get("snow_blood_steps_count") != null:
+				steps = _bloody_feet.snow_blood_steps_count
+			_blood_snow_steps_remaining = steps
+			if debug_logging:
+				_log_info("Blood detected — will spawn %d red snow prints" % _blood_snow_steps_remaining)
+
+	# Decide which scene to use: red blood print or normal white print.
+	var use_blood_print := _blood_snow_steps_remaining > 0
+	var active_scene: PackedScene = _snow_blood_footprint_scene if use_blood_print else _footprint_scene
+	if active_scene == null:
+		# Fallback to whichever scene is available.
+		active_scene = _footprint_scene if _footprint_scene != null else _snow_blood_footprint_scene
+	if active_scene == null:
 		return
 
-	var footprint := _footprint_scene.instantiate() as Node2D
+	var footprint := active_scene.instantiate() as Node2D
 	if footprint == null:
 		return
-
-	# Compute alpha: decreases with each step, wraps at snow_steps_count.
-	var alpha := initial_alpha - (_step_index % snow_steps_count) * alpha_decay_rate
-	alpha = maxf(alpha, 0.05)
 
 	var facing_direction := _get_facing_direction()
 
@@ -247,10 +274,46 @@ func _spawn_footprint() -> void:
 	footprint.global_position += perpendicular * foot_offset
 	_is_left_foot = not _is_left_foot
 
-	if footprint.has_method("set_alpha"):
-		footprint.set_alpha(alpha)
+	if use_blood_print:
+		# Apply blood color and compute alpha decaying over snow_blood_steps_count steps.
+		var blood_color := Color(0.545, 0.0, 0.0, 1.0)
+		if _bloody_feet and _bloody_feet.get("_blood_color") != null:
+			blood_color = _bloody_feet._blood_color
+		if footprint.has_method("set_blood_color"):
+			footprint.set_blood_color(blood_color)
+		else:
+			footprint.modulate.r = blood_color.r
+			footprint.modulate.g = blood_color.g
+			footprint.modulate.b = blood_color.b
+
+		var total := snow_blood_steps_count
+		if _bloody_feet and _bloody_feet.get("snow_blood_steps_count") != null:
+			total = _bloody_feet.snow_blood_steps_count
+		var steps_taken := total - _blood_snow_steps_remaining
+		var alpha := initial_alpha - (steps_taken * alpha_decay_rate)
+		alpha = maxf(alpha, 0.05)
+		if footprint.has_method("set_alpha"):
+			footprint.set_alpha(alpha)
+		else:
+			footprint.modulate.a = alpha
+
+		_blood_snow_steps_remaining -= 1
+		if debug_logging:
+			_log_info("Red snow footprint placed (blood steps remaining: %d, alpha %.2f)" % [
+				_blood_snow_steps_remaining, alpha])
 	else:
-		footprint.modulate.a = alpha
+		# Normal white snow print: alpha decreases with each step.
+		var alpha := initial_alpha - (_step_index % snow_steps_count) * alpha_decay_rate
+		alpha = maxf(alpha, 0.05)
+		if footprint.has_method("set_alpha"):
+			footprint.set_alpha(alpha)
+		else:
+			footprint.modulate.a = alpha
+
+		_step_index += 1
+		if debug_logging:
+			_log_info("Snow footprint placed (step %d, alpha %.2f, facing %.2f)" % [
+				_step_index, alpha, facing_direction.angle()])
 
 	# Add to scene root so footprints stay in world space.
 	var scene := get_tree().current_scene
@@ -259,14 +322,8 @@ func _spawn_footprint() -> void:
 	else:
 		_parent_body.get_parent().add_child(footprint)
 
-	_step_index += 1
-
 	# Schedule fade-out so old prints gradually disappear (snow fills them in).
 	_schedule_footprint_fade(footprint)
-
-	if debug_logging:
-		_log_info("Snow footprint placed (step %d, alpha %.2f, facing %.2f)" % [
-			_step_index, alpha, facing_direction.angle()])
 
 
 ## Fades a footprint node out and removes it after footprint_fade_delay seconds.

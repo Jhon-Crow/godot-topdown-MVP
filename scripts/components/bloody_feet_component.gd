@@ -40,9 +40,6 @@ class_name BloodyFeetComponent
 ## Preloaded footprint scene (regular BloodFootprint for non-snow surfaces).
 var _footprint_scene: PackedScene = null
 
-## Preloaded snow-blood footprint scene (oval, red — used on snow surfaces for snow_blood_steps_count steps, Issue #1627).
-var _snow_blood_footprint_scene: PackedScene = null
-
 ## Current blood level (number of steps remaining).
 var _blood_level: int = 0
 
@@ -117,14 +114,6 @@ func _ready() -> void:
 		_log_info("Footprint scene loaded")
 	else:
 		push_warning("BloodyFeetComponent: Footprint scene not found at " + footprint_path)
-
-	# Preload snow-blood footprint scene (oval shape + pale red, used on snow surfaces).
-	var snow_blood_path := "res://scenes/effects/SnowBloodFootprint.tscn"
-	if ResourceLoader.exists(snow_blood_path):
-		_snow_blood_footprint_scene = load(snow_blood_path)
-		_log_info("Snow-blood footprint scene loaded")
-	else:
-		push_warning("BloodyFeetComponent: SnowBloodFootprint scene not found at " + snow_blood_path)
 
 	# Create Area2D for blood puddle detection (deferred to ensure parent is in tree)
 	# Performance fix: Defer setup to ensure Area2D is properly in scene tree
@@ -475,20 +464,29 @@ func _is_on_blood_puddle() -> bool:
 
 
 ## Spawns a footprint at the current position.
-## Footprints are only spawned on floor without blood.
-## On snow levels (on_snow = true), footprints are restricted to snow surfaces and
-## use the oval SnowBloodFootprint instead of the boot-shaped BloodFootprint.
+## Footprints are only spawned on floors without blood.
+## On snow levels (on_snow = true), SnowyFeetComponent handles all snow prints
+## (both normal and bloody), so this component only spawns boot-print footprints
+## on non-snow surfaces (Issue #1627).
 func _spawn_footprint() -> void:
 	if _blood_level <= 0:
 		return
-	# On snow: require the snow-blood scene; off snow: require the regular scene.
-	var use_snow_print := on_snow and _is_on_snow()
-	var active_scene := _snow_blood_footprint_scene if use_snow_print else _footprint_scene
-	if active_scene == null:
-		# Try fallback to regular scene if snow scene is missing.
-		if _footprint_scene == null:
-			return
-		active_scene = _footprint_scene
+
+	# On snow levels, SnowyFeetComponent handles all footprint rendering (both normal
+	# white and red blood-snow prints). This component only tracks the blood level so
+	# SnowyFeetComponent can read it via has_bloody_feet() and _blood_color (Issue #1627).
+	if on_snow:
+		# Decrement blood level so the counter winds down even though we don't render.
+		_blood_level -= 1
+		if debug_logging:
+			_log_info("On snow — SnowyFeetComponent handles prints (blood steps remaining: %d)" % _blood_level)
+		if _blood_level <= 0:
+			_log_info("Blood ran out on snow")
+		return
+
+	# Non-snow level: use regular boot-print BloodFootprint scene.
+	if _footprint_scene == null:
+		return
 
 	# Don't spawn footprint if currently standing on blood
 	# Footprints should only appear on floor without blood
@@ -497,23 +495,12 @@ func _spawn_footprint() -> void:
 			_log_info("Skipping footprint - currently on blood puddle")
 		return
 
-	# On snow levels, only spawn bloody footprints when standing on snow.
-	# (use_snow_print already holds whether we're on snow; skip entirely if on_snow mode
-	# and currently off-snow so no boot prints appear on dirt paths either.)
-	if on_snow and not use_snow_print:
-		if debug_logging:
-			_log_info("Skipping footprint - not on snow surface")
-		return
-
-	var footprint := active_scene.instantiate() as Node2D
+	var footprint := _footprint_scene.instantiate() as Node2D
 	if footprint == null:
 		return
 
 	# Calculate alpha based on remaining steps.
-	# On snow, decay is based on snow_blood_steps_count (4 steps) so the
-	# four red prints are evenly faded from initial_alpha down.
-	var total_steps := snow_blood_steps_count if use_snow_print else blood_steps_count
-	var steps_taken := total_steps - _blood_level
+	var steps_taken := blood_steps_count - _blood_level
 	var alpha := initial_alpha - (steps_taken * alpha_decay_rate)
 	alpha = maxf(alpha, 0.05)  # Minimum visible alpha
 
