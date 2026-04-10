@@ -60,7 +60,9 @@ jobs:
           sudo dpkg --add-architecture i386
           sudo apt-get update -q
           sudo apt-get install -y wine64 wine32:i386
-          echo "WINE_PATH=$(which wine64)" >> $GITHUB_OUTPUT
+          WINE_BIN=$(which wine64 || which wine)
+          echo "Found wine at: $WINE_BIN"
+          echo "WINE_PATH=$WINE_BIN" >> "$GITHUB_OUTPUT"
 
       - name: Export game
         id: export
