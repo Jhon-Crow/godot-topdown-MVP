@@ -127,6 +127,8 @@ var _saturation_overlay: ColorRect = null
 
 ## Reference to the combo label.
 var _combo_label: Label = null
+## Reference to active combo tween (to cancel if needed).
+var _combo_tween: Tween = null
 
 ## Reference to the health label.
 var _health_label: Label = null
@@ -1228,18 +1230,22 @@ func _on_combo_changed(combo: int, points: int) -> void:
 	if combo > 0:
 		_combo_label.text = "x%d COMBO\n+%d" % [combo, points]
 		_combo_label.visible = true
-		# Combo pop animation: scale bounce + fade in, then fade out
+		# Combo pop animation: scale bounce + fade in (stays visible until combo resets)
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
 		_combo_label.scale = Vector2(0.7, 0.7)
 		_combo_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
-		var tween := create_tween()
-		tween.set_parallel(true)
-		tween.tween_property(_combo_label, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		tween.tween_property(_combo_label, "modulate:a", 1.0, 0.1)
-		tween.set_parallel(false)
-		tween.tween_interval(1.0)
-		tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
+		_combo_tween = create_tween()
+		_combo_tween.set_parallel(true)
+		_combo_tween.tween_property(_combo_label, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_combo_tween.tween_property(_combo_label, "modulate:a", 1.0, 0.1)
+		_combo_tween.set_parallel(false)
 	else:
-		_combo_label.visible = false
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_tween = create_tween()
+		_combo_tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
+		_combo_tween.tween_callback(_combo_label.hide)
 
 
 ## Called when the player dies.
