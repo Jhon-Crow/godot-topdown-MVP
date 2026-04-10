@@ -274,6 +274,36 @@ All uses of `TIME` in `realistic_water.gdshader` after the Issue #1608 fix:
 
 Root Cause 1 was already fixed in PR #1592 (merged to `main`).
 
+### Log 7: `game_log_20260330_112529.txt`
+**Build:** Same pre-built binary — `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe` (Downloads folder)
+**Date:** 2026-03-30 11:25 UTC
+**Levels played:** LabyrinthLevel → other levels → BeachLevel
+**Reporter note:** "не сработало" (didn't work)
+
+| Time | Level | Event |
+|------|-------|-------|
+| 11:25:29 | (startup) | Game started — **same binary** `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe` |
+| 11:25:49 | BeachLevel | Level loaded |
+| 11:25:50 | BeachLevel | `[BeachLevel] Water node found OK — visual=true shader=true collision=true pos=(1264, 242)` |
+| 11:25:55 | BeachLevel | Grenade explosion → Last chance triggered (2s freeze, trigger: grenade explosion) |
+| 11:25:55 | BeachLevel | `[LastChance] Precipitation group nodes found: 0` ← **no WaterBody in group** |
+| 11:25:55 | BeachLevel | **ZERO `[WaterBody]` log entries in entire log** — no `[fix#1608]` marker |
+| 11:25:57 | BeachLevel | Last chance ended |
+
+**Key findings in Log 7:**
+
+1. **Same executable path** — `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe`. This is the 7th log from the same old downloaded binary. The fix from branch `issue-1608-32da689d6e29` has never been tested.
+
+2. **`Precipitation group nodes found: 0`** — The new diagnostic line (added in commit `e9b16421`) appears! This is the first log to show this diagnostic. The WaterBody is absent from the `precipitation_effects` group because the old binary's `water_body.gd._ready()` does not call `add_to_group("precipitation_effects")`.
+
+3. **No `[fix#1608]` marker** — The `[fix#1608]` marker (added in commit `bf31cb8e`) is absent from the entire log. If the reporter had tested the branch build, the log would contain `[WaterBody] Ready — ... [fix#1608]`. Its absence conclusively proves the reporter tested the old pre-downloaded binary.
+
+4. **Build info not available** — `Build info: not available (build_info.cfg not found)`. Builds from the CI on branch `issue-1608-32da689d6e29` include `build_info.cfg` with branch name and commit SHA. Its absence confirms this is not a CI artifact from the fix branch.
+
+**Conclusion:** The reporter has tested with the old binary 7 times. The fix has never been applied to the tested build. A CI-built Windows artifact is available at: https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/23711791647 (artifact `windows-build`).
+
+---
+
 ### Comment 7: 2026-03-28 16:58 UTC — "не останавливается" (no log attached)
 **Context:** Posted ~2 hours after the "Ready to merge" comment (15:05 UTC). No game log was attached.
 **PR state at time of test:** Commit `0c2f3639` (PROCESS_MODE_DISABLED fix) was at 14:59 UTC — just 1 hour before the comment.
@@ -330,3 +360,4 @@ Add a `uniform bool time_stopped = false` to the shader. When `true`, replace al
 - `docs/case-studies/issue-1608/logs/game_log_20260327_093030.txt` — fourth game log from reporter (same old binary, fourth confirmation — reporter tried the level twice in this session)
 - `docs/case-studies/issue-1608/logs/game_log_20260327_105401.txt` — fifth game log from reporter (same old binary, fifth confirmation — reporter tried BeachLevel twice with multiple freeze triggers)
 - `docs/case-studies/issue-1608/logs/game_log_20260328_080413.txt` — sixth game log from reporter (same old binary, reporter claims "new build" but exe path unchanged; includes hint to match rain/snow implementation)
+- `docs/case-studies/issue-1608/logs/game_log_20260330_112529.txt` — seventh game log from reporter (same old binary again — `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe`, Precipitation group nodes found: 0, no `[fix#1608]` marker, confirms fix branch was never tested)
