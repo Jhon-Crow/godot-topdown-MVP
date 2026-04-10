@@ -155,6 +155,7 @@ The existing `_process_pacifist_state()` function already handles the case where
 ## Files Changed
 
 - `scripts/objects/enemy.gd` — Add pacifist guard to line 1302
+- `scripts/components/drone_operator_component.gd` — Add pacifist guard to `_transition_to_active()` (see Issue #4 below)
 
 ---
 
@@ -164,11 +165,60 @@ After the fix, the following behaviors should be observed:
 1. **Docks:** Pacifist ContainerYardA_Sniper does not enter PURSUING when player reloads
 2. **Sewer:** Pacifist enemies (Corridor1Guard, Corridor3Guard, etc.) do not enter SEARCHING/PURSUING when LastChance ends or player reloads
 3. **Railway Station:** Pacifist enemies obtained via loudspeaker stay pacifist longer, making the loudspeaker feel more effective
+4. **Winter Forest (and any map with drone operators):** Pacifist drone operators stay pacifist after their drone is destroyed
+
+---
+
+## Issue 4: Winter Forest — Drone Operators Resume Combat After Pacification (Follow-up)
+
+**Reported:** 2026-04-10 — "Drone operators in combat mode still shoot at player, though the counter shows 0 enemies"
+
+**Log:** [`game_log_20260410_021834.txt`](./game_log_20260410_021834.txt) (3,366 lines)
+
+### Timeline Reconstruction
+
+| Time | Event |
+|------|-------|
+| 02:18:43 | `Clearing_DroneOperator1` pacified via loudspeaker → **PACIFIST** |
+| 02:18:54 | `Clearing_DroneOperator2` pacified via loudspeaker → **PACIFIST** |
+| 02:18:54 | Player destroys DroneOperator2's drone |
+| 02:18:57 | Drone destroyed → `DroneOperator2._transition_to_active()` fires → **forces COMBAT** (bug!) |
+| 02:18:57 | `Clearing_DroneOperator2` shown in `state=COMBAT`, starts shooting |
+| 02:19:03 | `Clearing_DroneOperator1` pacified again → **PACIFIST** |
+| 02:19:06 | Player destroys DroneOperator1's drone |
+| 02:19:06 | Drone destroyed → `DroneOperator1._transition_to_active()` fires → **forces COMBAT** (bug!) |
+| 02:19:06 | `Clearing_DroneOperator1` shoots and kills `Clearing_Sniper1` (friendly fire) |
+
+### Root Cause
+
+**File:** `scripts/components/drone_operator_component.gd`, `_transition_to_active()` function
+
+```gdscript
+# BUG: Force transition to COMBAT state — no pacifist check!
+if _parent and _parent.has_method("_transition_to_combat"):
+    _parent._transition_to_combat()
+elif _parent and _parent.get("_current_state") != null:
+    _parent._current_state = 1  # AIState.COMBAT
+```
+
+When the drone is destroyed, `_transition_to_active()` **unconditionally forces the parent enemy to COMBAT state**, bypassing the pacifist state entirely. This is the same class of bug as the original enemy.gd fix (Issue #1744) — the pacifist status is ignored when triggering combat transitions.
+
+### Fix
+
+```gdscript
+# Issue #1744 fix: respect pacifist status when drone is destroyed
+var is_pacifist: bool = _parent and _parent.has_method("is_pacifist") and _parent.is_pacifist()
+if not is_pacifist:
+    if _parent and _parent.has_method("_transition_to_combat"):
+        _parent._transition_to_combat()
+    elif _parent and _parent.get("_current_state") != null:
+        _parent._current_state = 1  # AIState.COMBAT
+else:
+    FileLogger.info("[DroneOperator] Drone destroyed but operator is pacifist — staying pacifist (Issue #1744)")
+```
 
 ---
 
 ## Log Files
 
-- [`game_log_1.txt`](./game_log_1.txt) — Docks level (90,313 lines)
-- [`game_log_2.txt`](./game_log_2.txt) — Sewer level (27,112 lines)  
-- [`game_log_3.txt`](./game_log_3.txt) — Railway Station level (19,488 lines)
+- [`game_log_20260410_021834.txt`](./game_log_20260410_021834.txt) — Winter Forest drone operator follow-up (3,366 lines)

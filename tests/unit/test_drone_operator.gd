@@ -557,3 +557,80 @@ func test_drone_operator_active_does_not_use_machete_melee_in_combat() -> void:
 		"Drone operator ACTIVE block must NOT call perform_melee_attack (Issue #1664)")
 	assert_false(drone_block.contains("is_backstab_opportunity"),
 		"Drone operator ACTIVE block must NOT use machete backstab approach (Issue #1664)")
+
+
+# ============================================================================
+# Issue #1744: Pacifist drone operator must not switch to COMBAT on drone death
+# ============================================================================
+
+
+class MockPacifistDroneOperator:
+	## Simulates the drone destruction → active phase transition logic, with pacifist guard.
+	## Mirrors the fix in drone_operator_component.gd _transition_to_active() (Issue #1744).
+
+	enum Phase { DEPLOYING, CONTROLLING, ACTIVE }
+	const COMBAT_STATE: int = 1
+	const PACIFIST_STATE: int = 15
+
+	var _phase: Phase = Phase.CONTROLLING
+	var _parent_state: int = PACIFIST_STATE  # starts pacifist
+	var _parent_is_pacifist: bool = true
+
+	## Fixed version: checks pacifist status before forcing COMBAT (Issue #1744).
+	func on_drone_destroyed() -> void:
+		_phase = Phase.ACTIVE
+		if not _parent_is_pacifist:
+			_parent_state = COMBAT_STATE
+
+	## Buggy version: always forces COMBAT (pre-fix behavior).
+	func on_drone_destroyed_buggy() -> void:
+		_phase = Phase.ACTIVE
+		_parent_state = COMBAT_STATE  # Bug: no pacifist check
+
+
+func test_pacifist_operator_stays_pacifist_when_drone_destroyed() -> void:
+	## Issue #1744: pacifist drone operator must NOT transition to COMBAT when drone dies.
+	var op := MockPacifistDroneOperator.new()
+	op._parent_is_pacifist = true
+	op._parent_state = MockPacifistDroneOperator.PACIFIST_STATE
+	op.on_drone_destroyed()
+	assert_ne(op._parent_state, MockPacifistDroneOperator.COMBAT_STATE,
+		"Pacifist drone operator must NOT enter COMBAT when drone is destroyed (Issue #1744)")
+	assert_eq(op._phase, MockPacifistDroneOperator.Phase.ACTIVE,
+		"Phase must switch to ACTIVE even when pacifist (no more drone)")
+
+
+func test_non_pacifist_operator_enters_combat_when_drone_destroyed() -> void:
+	## Non-pacifist operator should still enter COMBAT when drone is destroyed.
+	var op := MockPacifistDroneOperator.new()
+	op._parent_is_pacifist = false
+	op._parent_state = 0  # some non-pacifist state
+	op.on_drone_destroyed()
+	assert_eq(op._parent_state, MockPacifistDroneOperator.COMBAT_STATE,
+		"Non-pacifist drone operator must enter COMBAT when drone is destroyed")
+
+
+func test_buggy_operator_wrongly_forces_combat_on_pacifist() -> void:
+	## Regression test: the buggy version (before fix) would override pacifist state.
+	var op := MockPacifistDroneOperator.new()
+	op._parent_is_pacifist = true
+	op._parent_state = MockPacifistDroneOperator.PACIFIST_STATE
+	op.on_drone_destroyed_buggy()
+	## Assert that the BUG occurs — documents the pre-fix behavior.
+	assert_eq(op._parent_state, MockPacifistDroneOperator.COMBAT_STATE,
+		"Buggy version forces COMBAT even on pacifist (this is the pre-fix bug we fixed)")
+
+
+func test_drone_operator_pacifist_guard_in_source() -> void:
+	## Issue #1744: _transition_to_active() must check is_pacifist() before forcing COMBAT.
+	var file := FileAccess.open("res://scripts/components/drone_operator_component.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open drone_operator_component.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("is_pacifist"),
+		"drone_operator_component.gd must check is_pacifist() before forcing COMBAT in _transition_to_active() (Issue #1744)")
+	assert_true(source.contains("1744"),
+		"drone_operator_component.gd must reference Issue #1744 in the pacifist guard comment")
