@@ -316,6 +316,33 @@ Root Cause 1 was already fixed in PR #1592 (merged to `main`).
 
 ---
 
+### Comment 8: 2026-04-10 19:59 UTC — "я использовал новый билд но вода не останавливается" (no log attached)
+**Context:** This is the first comment that explicitly claims to have used a "new build" from CI. The previous session (2026-04-10 18:36 UTC) linked to CI run `23711791647` (built from commit `bf31cb8e`, includes `[fix#1608]` marker and both shader fix + group registration). No log file was attached.
+**Build info for the linked CI artifact:** Commit `bf31cb8e` (2026-03-29) — includes shader fix (`TIME * surf_speed * 0.5`) and `[fix#1608]` marker in `_ready()`.
+
+**Analysis:** Without a log we CANNOT verify:
+1. Whether the reporter actually downloaded and ran the CI artifact (vs. running the old binary again)
+2. Whether the `[fix#1608]` marker appears in the new log
+3. Whether `Precipitation group nodes found: 1` appears (confirming WaterBody IS in the group)
+4. Whether `[WaterBody] Wave animation paused: wave_speed=...→0` appears (confirming `set_time_stopped` was called)
+
+**Key diagnostic checks for a correct new-build log:**
+- Must contain: `[WaterBody] Ready — visual=true shader=OK(ShaderMaterial) ... group=true [fix#1608]`
+- Must contain: `[LastChance] Precipitation group nodes found: 1`
+- Must contain: `[LastChance] Precipitation paused: Water`
+- Must contain: `[WaterBody] Wave animation paused: wave_speed=...→0, ripple_speed=...→0, surf_speed=...→0`
+- Must NOT show executable path as `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe`
+
+**Possible explanations for continued failure (if genuinely using new build):**
+1. The log file is saved next to the executable in the CI artifact folder — the reporter may not know where to find it
+2. Some platform-specific shader compilation difference in exported vs. editor builds
+3. The reporter is observing the static surf-foam stripe pattern (present even when frozen) and interpreting it as continued animation — the water does NOT disappear, it just stops moving
+4. Very unlikely: some additional shader TIME usage we missed (audit shows all 6 TIME references are speed-multiplied)
+
+**Status:** Awaiting log file from reporter confirming new build was used. Fresh CI build available at: https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/24258236171
+
+---
+
 ## Proposed Solutions
 
 ### Solution A (Implemented): Fix Shader TIME Reference
@@ -361,3 +388,11 @@ Add a `uniform bool time_stopped = false` to the shader. When `true`, replace al
 - `docs/case-studies/issue-1608/logs/game_log_20260327_105401.txt` — fifth game log from reporter (same old binary, fifth confirmation — reporter tried BeachLevel twice with multiple freeze triggers)
 - `docs/case-studies/issue-1608/logs/game_log_20260328_080413.txt` — sixth game log from reporter (same old binary, reporter claims "new build" but exe path unchanged; includes hint to match rain/snow implementation)
 - `docs/case-studies/issue-1608/logs/game_log_20260330_112529.txt` — seventh game log from reporter (same old binary again — `I:/Загрузки/godot exe/ОСадКИ/Godot-Top-Down-Template.exe`, Precipitation group nodes found: 0, no `[fix#1608]` marker, confirms fix branch was never tested)
+
+## Comment 8 Follow-Up (2026-04-10)
+
+The reporter claimed to have used the "new build" but provided no log. Without a log we cannot verify which binary was tested. A fresh CI build (run `24258236171`, from commit `672e0bee`, 2026-04-10) is available. The reporter needs to:
+1. Download from https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/24258236171
+2. Extract to a NEW folder (not the Downloads location)
+3. Verify `[fix#1608]` appears in the log at startup
+4. Attach the log to the PR comment
