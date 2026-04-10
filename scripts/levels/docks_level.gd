@@ -159,7 +159,7 @@ func _on_combo_changed(combo: int, points: int) -> void:
 		_combo_label.text = "x%d COMBO\n+%d" % [combo, points]
 		_combo_label.visible = true
 		_combo_label.add_theme_color_override("font_color", _get_combo_color(combo))
-		# Combo pop animation: scale bounce + fade in, then fade out
+		# Combo pop animation: scale bounce + fade in. Label stays visible while combo is active.
 		_combo_label.scale = Vector2(0.7, 0.7)
 		_combo_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
 		var tween := create_tween()
@@ -167,9 +167,10 @@ func _on_combo_changed(combo: int, points: int) -> void:
 		tween.tween_property(_combo_label, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		tween.tween_property(_combo_label, "modulate:a", 1.0, 0.1)
 		tween.set_parallel(false)
-		tween.tween_interval(1.0)
-		tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
 	else:
+		var fade_tween := create_tween()
+		fade_tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
+		await fade_tween.finished
 		_combo_label.visible = false
 
 
