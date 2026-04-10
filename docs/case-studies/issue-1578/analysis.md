@@ -448,6 +448,79 @@ The geometry fallback log line confirms water detection is working despite the `
 
 ---
 
+---
+
+## Seventh Owner Report: "не сработало" (2026-03-30)
+
+Owner tested at 11:10 local time (2026-03-30) and reported "не сработало" (didn't work).
+
+### Log Evidence (game_log_20260330_111035.txt)
+
+**Build verification:**
+```
+Build branch: issue-1578-d6d3b68c9ede          ← correct build ✓
+Build commit: c5038734acc5cd75b10a3632cfcb37333dc5f4a4
+Build date: 2026-03-29T15:15:32Z
+```
+The correct CI artifact was used.
+
+**Water detection:**
+```
+[BeachLevel] Water node registered in 'water_body' group (Issue #1578 fallback — water_body.gd _ready() did NOT pre-register)
+[BeachLevel] Water.has_method('is_point_in_water') = false
+[ImpactEffects] water_body geometry fallback hit at (664.4629, 311.1347) (has_method returned false — Issue #1578)
+... (many more geometry fallback hits)
+```
+The geometry fallback works — water IS detected. Blood positions were correctly identified as inside water.
+
+**But blood decals still scheduled:**
+```
+[ImpactEffects] Blood decals scheduled: 15 to spawn at particle landing times  (×many)
+```
+("Blood decals scheduled" is logged BEFORE the await delay, not at spawn time — the water check happens after the delay.)
+
+**No diffusion spawning logged** — no `Blood landed in water` lines appear.
+
+### Root Cause 3: `WaterBody._blood_diffusion_script` is null when `_ready()` doesn't run
+
+Even though `_find_water_body_at()` returns the water body via geometry fallback, the subsequent call to `WaterBody.spawn_blood_diffusion_at()` is a silent no-op:
+
+```gdscript
+# water_body.gd
+func _spawn_blood_diffusion(world_pos: Vector2, blood_color: Color) -> void:
+    if _blood_diffusion_script == null:  # ← null because _ready() never ran!
+        return
+```
+
+`_blood_diffusion_script` is loaded in `WaterBody._ready()` (line 111). Since `_ready()` never runs in this exported build, the script is `null`, and `_spawn_blood_diffusion()` exits immediately.
+
+Additionally, the old code had a `has_method("spawn_blood_diffusion_at")` guard that also fails for the same reason as `has_method("is_point_in_water")`.
+
+### Fix (session 7)
+
+**`impact_effects_manager.gd`**: Preload `water_blood_diffusion.gd` in `ImpactEffectsManager._preload_effect_scenes()` (which always runs in exported builds) and spawn the diffusion node directly from `ImpactEffectsManager._schedule_delayed_decal()`, bypassing `WaterBody.spawn_blood_diffusion_at()` entirely.
+
+This eliminates all dependency on `WaterBody._ready()` for the blood-in-water interception:
+- Water detection: geometry fallback (set in session 6)
+- Diffusion spawning: direct `Node2D.set_script()` (set in session 7)
+
+### Expected Log Signature After Session 7 Fixes
+
+```
+Build branch: issue-1578-d6d3b68c9ede
+Build commit: <latest>
+...
+[ImpactEffects] Scenes loaded: ..., WaterBloodDiffusion
+...
+[BeachLevel] Water.has_method('is_point_in_water') = false    ← still expected
+...
+[ImpactEffects] water_body geometry fallback hit at (x, y) ...
+[ImpactEffects] Blood landed in water at (x, y) — spawning diffusion effect (Issue #1578)
+```
+The `Blood landed in water — spawning diffusion effect` line confirms the blood cloud is being created.
+
+---
+
 ## Game Log Files
 
 All game logs referenced in this case study are archived in `game-logs/`:
@@ -459,3 +532,4 @@ All game logs referenced in this case study are archived in `game-logs/`:
 | `game_log_20260327_102127.txt`        | Test 3       | "всё ещё простые лужи"  |
 | `game_log_20260328_193137.txt`        | Test 5       | "не работает"           |
 | `game_log_20260329_175815.txt`        | Test 6       | "не сработало"          |
+| `game_log_20260330_111035.txt`        | Test 7       | "не сработало"          |

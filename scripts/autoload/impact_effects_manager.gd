@@ -136,6 +136,10 @@ var _warmup_completed: bool = false
 ## Prevents the same warning from spamming once per blood-decal-in-water check.
 var _debug_water_group_logged: Node = null
 
+## Preloaded blood diffusion script for spawning directly when WaterBody._ready() hasn't run
+## (Issue #1578 — _blood_diffusion_script in WaterBody is null when _ready() doesn't fire).
+var _blood_diffusion_script: GDScript = null
+
 
 func _ready() -> void:
 	# CRITICAL: First line diagnostic - if this doesn't appear, script failed to load
@@ -228,6 +232,15 @@ func _preload_effect_scenes() -> void:
 		# Blood decals are optional - don't warn, just log in debug mode
 		if _debug_effects:
 			print("[ImpactEffectsManager] BloodDecal scene not found (optional)")
+
+	# Preload blood diffusion script for direct spawning (Issue #1578 fallback when WaterBody._ready()
+	# hasn't run and _blood_diffusion_script inside water_body.gd is null).
+	var blood_diffusion_path := "res://scripts/effects/water_blood_diffusion.gd"
+	if ResourceLoader.exists(blood_diffusion_path):
+		_blood_diffusion_script = load(blood_diffusion_path)
+		loaded_scenes.append("WaterBloodDiffusion")
+	else:
+		_log_info("[ImpactEffects] WaterBloodDiffusion script not found — blood-in-water diffusion unavailable (Issue #1578)")
 
 	# Log summary of loaded scenes
 	_log_info("Scenes loaded: %s" % [", ".join(loaded_scenes)])
@@ -724,8 +737,21 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 	# Issue #1578: If landing position is inside water, spawn blood diffusion instead of a decal.
 	var water_body: Node = _find_water_body_at(landing_pos)
 	if water_body != null:
-		if water_body.has_method("spawn_blood_diffusion_at"):
-			water_body.spawn_blood_diffusion_at(landing_pos, Color(0.5, 0.02, 0.02, 0.55))
+		# Spawn blood diffusion directly from ImpactEffectsManager (Issue #1578).
+		# ImpactEffectsManager._ready() always runs in exported builds, so _blood_diffusion_script
+		# is reliably loaded here.  We bypass WaterBody.spawn_blood_diffusion_at() because
+		# water_body.gd._ready() frequently fails to execute in exported builds, leaving its
+		# internal _blood_diffusion_script null and making the delegation a silent no-op.
+		if _blood_diffusion_script != null:
+			var diffusion: Node2D = Node2D.new()
+			diffusion.set_script(_blood_diffusion_script)
+			_add_effect_to_scene(diffusion)
+			diffusion.global_position = landing_pos
+			if diffusion.has_method("set_blood_color"):
+				diffusion.set_blood_color(Color(0.5, 0.02, 0.02, 0.55))
+			_log_info("[ImpactEffects] Blood landed in water at %s — spawning diffusion effect (Issue #1578)" % landing_pos)
+		else:
+			_log_info("[ImpactEffects] Blood landed in water at %s — diffusion script not loaded, skipping decal (Issue #1578)" % landing_pos)
 		if _debug_effects:
 			print("[ImpactEffectsManager] Blood landed in water at ", landing_pos, " — spawning diffusion instead of decal")
 		return
