@@ -1115,7 +1115,7 @@ func _setup_ui() -> void:
 	_combo_label.text = ""
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo_label.offset_left = -220
+	_combo_label.offset_left = -350
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 90
 	_combo_label.offset_bottom = 130
