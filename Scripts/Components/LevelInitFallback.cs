@@ -99,6 +99,11 @@ public partial class LevelInitFallback : Node
     private Label? _comboLabel;
 
     /// <summary>
+    /// Active combo tween (to cancel if needed, Issue #1790).
+    /// </summary>
+    private Tween? _comboTween;
+
+    /// <summary>
     /// Revolver cylinder HUD display (Issue #691).
     /// Shows 5 cylinder slots with color-coded active chamber.
     /// </summary>
@@ -544,24 +549,38 @@ public partial class LevelInitFallback : Node
     }
 
     /// <summary>
-    /// Called when the combo count changes (Issue #1751).
-    /// Updates the combo label in the HUD.
+    /// Called when the combo count changes (Issue #1751, #1790).
+    /// Updates the combo label in the HUD with gothic font and bounce animation.
+    /// Label stays visible until combo resets to zero.
     /// </summary>
     private void OnComboChanged(int combo, int points)
     {
         if (_comboLabel == null) return;
         if (combo > 0)
         {
-            _comboLabel.Text = $"x{combo} COMBO (+{points})";
+            // Two-line format matching GDScript: "x3 COMBO\n+150"
+            _comboLabel.Text = $"x{combo} COMBO\n+{points}";
             _comboLabel.Visible = true;
             _comboLabel.AddThemeColorOverride("font_color", GetComboColor(combo));
-            _comboLabel.Modulate = Colors.White;
-            var tween = CreateTween();
-            tween.TweenProperty(_comboLabel, "modulate", Colors.White, 0.1);
+            // Bounce animation: scale 0.7 -> 1.0 + fade in (stays visible until combo resets)
+            if (_comboTween != null && _comboTween.IsValid())
+                _comboTween.Kill();
+            _comboLabel.Scale = new Vector2(0.7f, 0.7f);
+            _comboLabel.Modulate = new Color(1.0f, 1.0f, 1.0f, 0.0f);
+            _comboTween = CreateTween();
+            _comboTween.SetParallel(true);
+            _comboTween.TweenProperty(_comboLabel, "scale", new Vector2(1.0f, 1.0f), 0.15f)
+                .SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+            _comboTween.TweenProperty(_comboLabel, "modulate:a", 1.0f, 0.1f);
         }
         else
         {
-            _comboLabel.Visible = false;
+            // Combo reset: fade out then hide
+            if (_comboTween != null && _comboTween.IsValid())
+                _comboTween.Kill();
+            _comboTween = CreateTween();
+            _comboTween.TweenProperty(_comboLabel, "modulate:a", 0.0f, 0.3f);
+            _comboTween.TweenCallback(Callable.From(() => { if (_comboLabel != null) _comboLabel.Visible = false; }));
         }
     }
 
@@ -617,19 +636,28 @@ public partial class LevelInitFallback : Node
         _magazinesLabel.OffsetBottom = 145;
         ui.AddChild(_magazinesLabel);
 
-        // Issue #1751: Create combo label to show current combo count.
-        // Matches GDScript level scripts: top-right anchored, 340px wide, gold color.
+        // Issue #1751, #1790: Create combo label with Gothic bitmap font.
+        // Matches GDScript level scripts: PRESET_TOP_WIDE, gothic font, two-line format, bounce animation.
+        var gothicFont = GD.Load<Font>("res://assets/fonts/gothic_bitmap.fnt");
+        int comboSize = 112; // default
+        var gameplaySettings = GetNodeOrNull<Node>("/root/GameplaySettings");
+        if (gameplaySettings != null && gameplaySettings.HasMethod("get_combo_font_size"))
+            comboSize = (int)gameplaySettings.Call("get_combo_font_size");
         _comboLabel = new Label();
         _comboLabel.Name = "ComboLabel";
         _comboLabel.Text = "";
         _comboLabel.HorizontalAlignment = HorizontalAlignment.Right;
-        _comboLabel.SetAnchorsPreset(Control.LayoutPreset.TopRight);
-        _comboLabel.OffsetLeft = -350;
+        _comboLabel.SetAnchorsPreset(Control.LayoutPreset.TopWide);
+        _comboLabel.OffsetLeft = 10;
         _comboLabel.OffsetRight = -10;
         _comboLabel.OffsetTop = 80;
-        _comboLabel.OffsetBottom = 120;
-        _comboLabel.AddThemeFontSizeOverride("font_size", 28);
+        _comboLabel.OffsetBottom = _comboLabel.OffsetTop + comboSize * 2 + 20;
+        _comboLabel.AddThemeFontSizeOverride("font_size", comboSize);
+        _comboLabel.AddThemeConstantOverride("line_spacing", 0);
         _comboLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.8f, 0.2f, 1.0f));
+        if (gothicFont != null)
+            _comboLabel.AddThemeFontOverride("font", gothicFont);
+        _comboLabel.ClipContents = true;
         _comboLabel.Visible = false;
         ui.AddChild(_comboLabel);
     }
