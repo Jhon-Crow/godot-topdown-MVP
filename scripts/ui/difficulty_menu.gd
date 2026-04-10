@@ -10,6 +10,7 @@ extends CanvasLayer
 ## Also includes a Night Mode toggle right under the Difficulty title.
 ##
 ## Issue #1014: Power Fantasy uses bright gradient text, Black Metal uses gothic font.
+## Issue #1742: Strelok (Gunslinger) uses glowing red background and cowboy-style font.
 
 ## Signal emitted when the back button is pressed.
 signal back_pressed
@@ -30,6 +31,12 @@ var _gothic_font: Font = null
 
 ## Path to the Gothic bitmap font file.
 const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
+
+## Cowboy bitmap font for Strelok (Gunslinger) button (Issue #1742).
+var _cowboy_font: Font = null
+
+## Path to the cowboy bitmap font file.
+const COWBOY_FONT_PATH: String = "res://assets/fonts/cowboy_bitmap.fnt"
 
 ## Gradient colors for Power Fantasy text (Issue #1014).
 ## Bright vibrant gradient from cyan through magenta to yellow.
@@ -53,9 +60,15 @@ func _ready() -> void:
 	# Load gothic font for Black Metal button (Issue #1014)
 	_load_gothic_font()
 
+	# Load cowboy font for Strelok (Gunslinger) button (Issue #1742)
+	_load_cowboy_font()
+
 	# Apply special styling to Power Fantasy and Black Metal buttons (Issue #1014)
 	_setup_power_fantasy_button()
 	_setup_black_metal_button()
+
+	# Apply cowboy styling to Strelok (Gunslinger) button (Issue #1742)
+	_setup_strelok_button()
 	# Connect button signals
 	night_mode_checkbox.toggled.connect(_on_night_mode_toggled)
 	power_fantasy_button.pressed.connect(_on_power_fantasy_pressed)
@@ -106,7 +119,7 @@ func _update_button_states() -> void:
 	# Update button text to show selection
 	# Power Fantasy uses gradient text via RichTextLabel (Issue #1014)
 	_update_power_fantasy_text(is_power_fantasy)
-	gunslinger_button.text = "Gunslinger (Selected)" if is_gunslinger else "Gunslinger"
+	gunslinger_button.text = "Стрелок (Selected)" if is_gunslinger else "Стрелок"
 	easy_button.text = "Easy (Selected)" if is_easy else "Easy"
 	normal_button.text = "Normal (Selected)" if is_normal else "Normal"
 	hard_button.text = "Hard (Selected)" if is_hard else "Hard"
@@ -237,6 +250,18 @@ func _load_gothic_font() -> void:
 			push_warning("[DifficultyMenu] Failed to load Gothic font from: " + GOTHIC_FONT_PATH)
 	else:
 		push_warning("[DifficultyMenu] Gothic font file not found: " + GOTHIC_FONT_PATH)
+
+
+## Loads the cowboy bitmap font for Strelok (Gunslinger) button (Issue #1742).
+func _load_cowboy_font() -> void:
+	if ResourceLoader.exists(COWBOY_FONT_PATH):
+		var font = load(COWBOY_FONT_PATH)
+		if font != null:
+			_cowboy_font = font
+		else:
+			push_warning("[DifficultyMenu] Failed to load Cowboy font from: " + COWBOY_FONT_PATH)
+	else:
+		push_warning("[DifficultyMenu] Cowboy font file not found: " + COWBOY_FONT_PATH)
 
 
 ## Sets up the Power Fantasy button with gradient text (Issue #1014).
@@ -449,5 +474,57 @@ func _setup_black_metal_button() -> void:
 	disabled_style.set_corner_radius_all(4)
 	disabled_style.set_content_margin_all(8)
 	black_metal_button.add_theme_stylebox_override("disabled", disabled_style)
+
+
+## Sets up the Strelok (Gunslinger) button with cowboy-style font and glowing red background (Issue #1742).
+## The glowing red background evokes the danger and intensity of the Strelok difficulty.
+## The cowboy/western font (FreeSerifBold bitmap) supports both Russian and English characters.
+func _setup_strelok_button() -> void:
+	# Apply cowboy font if loaded
+	if _cowboy_font != null:
+		gunslinger_button.add_theme_font_override("font", _cowboy_font)
+		gunslinger_button.add_theme_font_size_override("font_size", 18)
+
+	# Warm amber/gold text color for a Western/cowboy feel
+	gunslinger_button.add_theme_color_override("font_color", Color(1.0, 0.88, 0.5))
+	gunslinger_button.add_theme_color_override("font_hover_color", Color(1.0, 0.95, 0.7))
+	gunslinger_button.add_theme_color_override("font_pressed_color", Color(0.9, 0.7, 0.3))
+	gunslinger_button.add_theme_color_override("font_disabled_color", Color(0.8, 0.6, 0.4))
+
+	# Normal state: glowing red background with red shadow to simulate glow
+	var normal_style := StyleBoxFlat.new()
+	normal_style.bg_color = Color(0.55, 0.02, 0.02)  # Deep crimson background
+	normal_style.set_corner_radius_all(4)
+	normal_style.set_content_margin_all(8)
+	normal_style.shadow_color = Color(1.0, 0.1, 0.1, 0.75)  # Bright red glow
+	normal_style.shadow_size = 8
+	gunslinger_button.add_theme_stylebox_override("normal", normal_style)
+
+	# Hover state: brighter red glow on mouse hover
+	var hover_style := StyleBoxFlat.new()
+	hover_style.bg_color = Color(0.75, 0.04, 0.04)  # Brighter red
+	hover_style.set_corner_radius_all(4)
+	hover_style.set_content_margin_all(8)
+	hover_style.shadow_color = Color(1.0, 0.15, 0.15, 0.9)  # Intense glow on hover
+	hover_style.shadow_size = 12
+	gunslinger_button.add_theme_stylebox_override("hover", hover_style)
+
+	# Pressed state: darker, compressed look
+	var pressed_style := StyleBoxFlat.new()
+	pressed_style.bg_color = Color(0.4, 0.01, 0.01)  # Darker red when pressed
+	pressed_style.set_corner_radius_all(4)
+	pressed_style.set_content_margin_all(8)
+	pressed_style.shadow_color = Color(0.8, 0.1, 0.1, 0.6)
+	pressed_style.shadow_size = 4
+	gunslinger_button.add_theme_stylebox_override("pressed", pressed_style)
+
+	# Disabled state: when Strelok is already selected
+	var disabled_style := StyleBoxFlat.new()
+	disabled_style.bg_color = Color(0.45, 0.02, 0.02)  # Muted red when selected/disabled
+	disabled_style.set_corner_radius_all(4)
+	disabled_style.set_content_margin_all(8)
+	disabled_style.shadow_color = Color(0.9, 0.1, 0.1, 0.5)
+	disabled_style.shadow_size = 6
+	gunslinger_button.add_theme_stylebox_override("disabled", disabled_style)
 
 
