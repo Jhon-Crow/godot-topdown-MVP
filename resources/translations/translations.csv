@@ -241,3 +241,15 @@ TUTORIAL_LEVEL_COMPLETE,LEVEL COMPLETE!,УРОВЕНЬ ПРОЙДЕН!
 TUTORIAL_RESTART_HINT,Press [Q] to quick restart,Нажми [Q] для быстрого перезапуска
 TUTORIAL_AMMO_LABEL,AMMO: %d/%d,ПАТРОНЫ: %d/%d
 ROGUELIKE_LEVEL_UP,"LEVEL %d\nEnemies got more dangerous!","УРОВЕНЬ %d\nВраги стали опаснее!"
+UNLOCK_COND_COMPLETE_LEVEL,Complete %s,Пройди %s
+UNLOCK_COND_COMPLETE_LEVEL_AT_RANK,Complete %s at rank %s or higher,Пройди %s на ранге %s или выше
+UNLOCK_COND_COMPLETE_MULTI,"Complete: %s","Пройди: %s"
+UNLOCK_COND_ALL_DIFFICULTIES,Complete at least one level on every difficulty,Пройди хотя бы один уровень на каждой сложности
+UNLOCK_COND_KILLS_NO_LASER,Get %d kills without Laser Sight,Получи %d убийств без Лазерного Прицела
+UNLOCK_COND_SHOTS_SPECIAL_WEAPONS,"Fire %d shots with shotgun, ASVK, or revolver","Сделай %d выстрелов из дробовика, АСВК или револьвера"
+UNLOCK_COND_TOTAL_DEATHS,Die %d times,Умри %d раз
+UNLOCK_COND_NO_DAMAGE_LEVELS,Complete %d level(s) without taking damage,Пройди %d уровень(уровней) без урона
+UNLOCK_COND_RANK_A_LEVELS,Complete %d level(s) at rank A or higher,Пройди %d уровень(уровней) на ранге A или выше
+UNLOCK_COND_WALL_KILLS,Get %d kills through walls,Получи %d убийств сквозь стены
+UNLOCK_COND_SILENCED_PISTOL_LEVEL,Complete any level with the silenced pistol,Пройди любой уровень с глушителем
+UNLOCK_COND_PROGRESS,Progress: %d / %d,Прогресс: %d / %d
