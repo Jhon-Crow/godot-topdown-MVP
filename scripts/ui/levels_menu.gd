@@ -400,6 +400,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 	card_style.corner_radius_top_right = 6
 	card_style.corner_radius_bottom_left = 6
 	card_style.corner_radius_bottom_right = 6
+	card_style.content_margin_bottom = 8.0
 	card.add_theme_stylebox_override("panel", card_style)
 
 	# Card content
@@ -498,6 +499,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 		desc_label.add_theme_color_override("font_color", Color(0.6, 0.65, 0.7, 1.0))
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	desc_label.custom_minimum_size.x = CARD_WIDTH - 20
+	desc_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(desc_label)
 
 	# Progress results for all difficulties (shown as letter grades)
