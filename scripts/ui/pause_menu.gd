@@ -289,7 +289,7 @@ func _refresh_armory_button_state() -> void:
 	if in_roguelike:
 		# Disable armory button entirely in roguelike mode
 		armory_button.disabled = true
-		armory_button.tooltip_text = "Арсенал недоступен в режиме рогалика"
+		armory_button.tooltip_text = tr("ARMORY_UNAVAILABLE_ROGUELIKE")
 		if _armory_shine_overlay != null and is_instance_valid(_armory_shine_overlay):
 			_armory_shine_overlay.queue_free()
 		_armory_shine_overlay = null
@@ -353,7 +353,7 @@ func _refresh_roguelike_button_state() -> void:
 	if all_done:
 		roguelike_button.tooltip_text = ""
 	else:
-		roguelike_button.tooltip_text = "Пройдите все уровни на любой ранг, чтобы разблокировать рогалик"
+		roguelike_button.tooltip_text = tr("COMPLETE_LEVELS_TO_UNLOCK_ROGUELIKE")
 
 
 ## Check if all regular levels (those listed in LevelsMenu.LEVELS) are completed on any difficulty.

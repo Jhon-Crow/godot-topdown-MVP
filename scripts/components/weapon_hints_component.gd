@@ -371,10 +371,10 @@ func _show_initial_hints(weapon_id: String) -> void:
 	match weapon_id:
 		"revolver":
 			_add_hint(HINT_KEY_HAMMER_COCK,
-				"[color=#ff4444][ПКМ][/color] Взведи курок")
+				"[color=#ff4444][ПКМ][/color] " + tr("HINT_COCK_HAMMER"))
 		"sniper":
 			_add_hint(HINT_KEY_SCOPE,
-				"[color=#ff4444][ПКМ][/color] Прицелься через оптику")
+				"[color=#ff4444][ПКМ][/color] " + tr("HINT_SCOPE"))
 
 	# All other weapons: bolt-cycle/pump hint appears after 1st shot,
 	# reload hint appears after 2nd shot (see _on_weapon_fired).
@@ -396,12 +396,12 @@ func _on_weapon_fired() -> void:
 				_bolt_cycle_hint_revealed = true
 				if not _hint_labels.has(HINT_KEY_BOLT_CYCLE):
 					_add_hint(HINT_KEY_BOLT_CYCLE,
-						"[color=#ff4444][←][/color] [color=#888888][↓] [↑] [→][/color] Передёрни затвор")
+						"[color=#ff4444][←][/color] [color=#888888][↓] [↑] [→][/color] " + tr("HINT_BOLT_ACTION_WORD"))
 			"shotgun":
 				_bolt_cycle_hint_revealed = true
 				if not _hint_labels.has(HINT_KEY_BOLT_CYCLE):
 					_add_hint(HINT_KEY_BOLT_CYCLE,
-						"[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор")
+						"[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] " + tr("HINT_BOLT_ACTION_WORD"))
 
 	# After 2nd shot: reveal reload hint for all weapons
 	if _shots_fired >= 2 and not _reload_hint_revealed:
@@ -539,7 +539,7 @@ func _on_reload_completed() -> void:
 		_fire_mode_hint_pending = true
 		if not _hint_labels.has(HINT_KEY_FIRE_MODE):
 			_add_hint(HINT_KEY_FIRE_MODE,
-				"[color=#ff4444][B][/color] Переключи режим стрельбы")
+				"[color=#ff4444][B][/color] " + tr("HINT_FIRE_MODE_SWITCH"))
 
 	# AK GL: show grenade launcher hint after reload (Issue #991 pattern — sequential, no overlap)
 	if _current_weapon_id == "ak_gl" and not _ak_gl_launcher_hint_shown:
@@ -547,7 +547,7 @@ func _on_reload_completed() -> void:
 			_ak_gl_launcher_hint_shown = true
 			if not _hint_labels.has(HINT_KEY_LAUNCHER):
 				_add_hint(HINT_KEY_LAUNCHER,
-					"[color=#ff4444][ПКМ][/color] Выстрели подствольным гранатомётом")
+					"[color=#ff4444][ПКМ][/color] " + tr("HINT_LAUNCHER_FIRE"))
 
 	_log_to_file("Reload completed — reload hint dismissed for: %s" % _current_weapon_id)
 
@@ -584,49 +584,54 @@ func _on_reload_sequence_progress(step: int, total: int) -> void:
 ## Build BBCode reload hint text based on step and total steps.
 ## Mirrors labyrinth_level.gd _build_tutorial_reload_hint_bbcode().
 func _build_reload_hint_bbcode(step: int, total: int) -> String:
+	var reload_word: String = tr("HINT_RELOAD_WORD")
 	if _current_weapon_id == "makarov_pm" or total <= 2:
 		# Makarov PM / 2-step reload: R → R
 		match step:
 			0:
-				return "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"
+				return "[color=#ff4444][R][/color] [color=#888888][R][/color] " + reload_word
 			1:
 				_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.25)
-				return "[color=#888888][R][/color] [color=#ff4444][R][/color] Перезарядись"
+				return "[color=#888888][R][/color] [color=#ff4444][R][/color] " + reload_word
 			_:
 				_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.5)
-				return "[color=#888888][R] [R][/color] Перезарядись"
+				return "[color=#888888][R] [R][/color] " + reload_word
 	else:
 		# Standard 3-step reload: R → F → R
 		match step:
 			0:
-				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"
+				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] " + reload_word
 			1:
 				_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.17)
-				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
+				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] " + reload_word
 			2:
 				_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.33)
-				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
+				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] " + reload_word
 			_:
 				_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.5)
-				return "[color=#888888][R] [F] [R][/color] Перезарядись"
+				return "[color=#888888][R] [F] [R][/color] " + reload_word
 	return ""
 
 
 ## Build BBCode for revolver reload hint with step-based highlighting.
 ## Mirrors labyrinth_level.gd _build_tutorial_revolver_reload_hint_bbcode().
 func _build_revolver_reload_hint_bbcode(step: int) -> String:
+	var k_open: String = tr("HINT_KEY_R_OPEN")
+	var k_bullet: String = tr("HINT_KEY_RMB_UP_BULLET")
+	var k_scroll: String = tr("HINT_KEY_SCROLL")
+	var k_close: String = tr("HINT_KEY_R_CLOSE")
 	match step:
 		0:
-			return "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]"
+			return "[color=#ff4444][%s][/color] [color=#888888][%s] [%s] [%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
 		1:
 			_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.15)
-			return "[color=#888888][R открыть][/color] [color=#ff4444][ПКМ↑ патрон][/color] [color=#888888][скролл] [R закрыть][/color]"
+			return "[color=#888888][%s][/color] [color=#ff4444][%s][/color] [color=#888888][%s] [%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
 		2:
 			_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.55)
-			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл][/color] [color=#ff4444][R закрыть][/color]"
+			return "[color=#888888][%s] [%s] [%s][/color] [color=#ff4444][%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
 		_:
 			_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.75)
-			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/color]"
+			return "[color=#888888][%s] [%s] [%s] [%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
 	return ""
 
 
@@ -635,18 +640,21 @@ func _build_revolver_reload_hint_bbcode(step: int) -> String:
 ## ShotgunReloadState: 0=NotReloading, 1=WaitingToOpen, 2=Loading, 3=WaitingToClose
 func _build_shotgun_full_reload_hint_bbcode(state: int) -> String:
 	var shells_needed: int = _get_shotgun_shells_to_load()
+	var k_open: String = tr("HINT_KEY_RMB_UP_OPEN")
+	var k_load: String = tr("HINT_KEY_MMB_RMB_DOWN") % shells_needed
+	var k_close: String = tr("HINT_KEY_RMB_DOWN_CLOSE")
 	match state:
 		0, 1:
-			return "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
+			return "[color=#ff4444][%s][/color] [color=#888888][%s] [%s][/color]" % [k_open, k_load, k_close]
 		2:
 			_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, 0.25)
-			return "[color=#888888][ПКМ↑ открыть][/color] [color=#ff4444][СКМ+ПКМ↓ x%d][/color] [color=#888888][ПКМ↓ закрыть][/color]" % shells_needed
+			return "[color=#888888][%s][/color] [color=#ff4444][%s][/color] [color=#888888][%s][/color]" % [k_open, k_load, k_close]
 		3:
 			_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, 0.55)
-			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d][/color] [color=#ff4444][ПКМ↓ закрыть][/color]" % shells_needed
+			return "[color=#888888][%s] [%s][/color] [color=#ff4444][%s][/color]" % [k_open, k_load, k_close]
 		_:
 			_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, 0.8)
-			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
+			return "[color=#888888][%s] [%s] [%s][/color]" % [k_open, k_load, k_close]
 	return ""
 
 
@@ -654,15 +662,16 @@ func _build_shotgun_full_reload_hint_bbcode(state: int) -> String:
 ## Mirrors labyrinth_level.gd _build_tutorial_shotgun_pump_hint_bbcode().
 ## ShotgunActionState: 1=NeedsPumpUp, 2=NeedsPumpDown
 func _build_shotgun_pump_hint_bbcode(state: int) -> String:
+	var bolt_word: String = tr("HINT_BOLT_ACTION_WORD")
 	match state:
 		1:
-			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор"
+			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] " + bolt_word
 		2:
 			_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, 0.2)
-			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] Передёрни затвор"
+			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] " + bolt_word
 		_:
 			_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, 0.4)
-			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] Передёрни затвор"
+			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] " + bolt_word
 	return ""
 
 
@@ -680,7 +689,7 @@ func _build_sniper_bolt_hint_bbcode(step: int) -> String:
 			parts.append("[color=#888888][%s][/color]" % STEPS[i])
 	if step > 0:
 		_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, float(step) * 0.125)
-	return " ".join(parts) + " Передёрни затвор"
+	return " ".join(parts) + " " + tr("HINT_BOLT_ACTION_WORD")
 
 
 ## Get number of shells the shotgun needs to reload to capacity.

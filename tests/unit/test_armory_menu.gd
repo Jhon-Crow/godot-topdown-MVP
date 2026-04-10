@@ -202,6 +202,19 @@ class MockArmoryMenu:
 	func has_accordion_shine(button_name: String) -> bool:
 		return accordion_shine_active.get(button_name, false)
 
+	# ---- Apply button silver shine simulation (Issue #1762) ----
+
+	## Tracks whether the Apply button currently has its silver shine overlay active.
+	var apply_button_shine_active: bool = false
+
+	## Simulate updating the Apply button state with silver shine logic.
+	## Mirrors the real _update_apply_button_state behaviour introduced in Issue #1762.
+	func update_apply_button_state() -> void:
+		if has_pending_changes():
+			apply_button_shine_active = true
+		else:
+			apply_button_shine_active = false
+
 
 ## Mock AudioManager that records play_weapon_reload_preview calls.
 class MockAudioManager:
@@ -938,3 +951,127 @@ func test_ak_gl_description_contains_762() -> void:
 	var desc: String = armory_firearms["ak_gl"].get("description", "")
 	assert_true("7.62" in desc,
 		"AK+GL static description must contain '7.62' caliber info (Issue #1708)")
+
+
+# ============================================================================
+# Apply Button Silver Shine Tests (Issue #1762)
+# ============================================================================
+
+
+func test_apply_button_shine_inactive_by_default() -> void:
+	# On first open (no pending changes), the Apply button must NOT show a shine.
+	menu.update_apply_button_state()
+	assert_false(menu.apply_button_shine_active,
+		"Apply button shine must be inactive when there are no pending changes (Issue #1762)")
+
+
+func test_apply_button_shine_activates_when_weapon_selected() -> void:
+	# Selecting a different weapon creates a pending change → shine must activate.
+	menu.select_weapon("m16")
+	menu.update_apply_button_state()
+	assert_true(menu.apply_button_shine_active,
+		"Apply button silver shine must activate after selecting a new weapon (Issue #1762)")
+
+
+func test_apply_button_shine_activates_when_grenade_selected() -> void:
+	# Selecting a different grenade creates a pending change → shine must activate.
+	menu.select_grenade(1)
+	menu.update_apply_button_state()
+	assert_true(menu.apply_button_shine_active,
+		"Apply button silver shine must activate after selecting a new grenade (Issue #1762)")
+
+
+func test_apply_button_shine_activates_when_active_item_selected() -> void:
+	# Selecting a different active item creates a pending change → shine must activate.
+	menu.select_active_item(2)
+	menu.update_apply_button_state()
+	assert_true(menu.apply_button_shine_active,
+		"Apply button silver shine must activate after selecting a new active item (Issue #1762)")
+
+
+func test_apply_button_shine_deactivates_after_apply() -> void:
+	# After applying pending changes, there are no more pending changes → shine must stop.
+	menu.select_weapon("m16")
+	menu.update_apply_button_state()
+	assert_true(menu.apply_button_shine_active,
+		"Pre-condition: shine must be active after selecting new weapon")
+	menu.apply()
+	menu.update_apply_button_state()
+	assert_false(menu.apply_button_shine_active,
+		"Apply button silver shine must deactivate after pending changes are applied (Issue #1762)")
+
+
+func test_apply_button_shine_deactivates_when_same_weapon_reselected() -> void:
+	# Re-selecting the already-applied weapon removes the pending change → no shine.
+	menu.select_weapon("m16")
+	menu.update_apply_button_state()
+	assert_true(menu.apply_button_shine_active, "Pre-condition: shine active with pending change")
+	menu.select_weapon(menu.applied_weapon)
+	menu.update_apply_button_state()
+	assert_false(menu.apply_button_shine_active,
+		"Apply button silver shine must deactivate when selection reverts to current weapon (Issue #1762)")
+
+
+# ============================================================================
+# Locale / i18n refresh tests (Issue #1802)
+# ============================================================================
+
+
+## Minimal mock that captures what _refresh_all_texts would do.
+class MockArmoryMenuI18n:
+	## Simulated weapons_expanded state.
+	var weapons_expanded: bool = false
+	## Simulated grenades_expanded state.
+	var grenades_expanded: bool = false
+	## Simulated active_items_expanded state.
+	var active_items_expanded: bool = false
+
+	## Last text set on accordion buttons (key → text).
+	var accordion_texts: Dictionary = {}
+
+	## Simulates accordion text refresh logic from _refresh_all_texts.
+	func refresh_accordion_texts() -> void:
+		accordion_texts["weapons"] = tr("ARMORY_SHOW_LESS") if weapons_expanded else tr("ARMORY_SHOW_ALL")
+		accordion_texts["grenades"] = tr("ARMORY_SHOW_LESS") if grenades_expanded else tr("ARMORY_SHOW_ALL")
+		accordion_texts["special"] = tr("ARMORY_SHOW_LESS") if active_items_expanded else tr("ARMORY_SHOW_ALL")
+
+	## Simulates tooltip refresh for a locked slot with a weapon unlock description.
+	## Returns the tooltip text that _refresh_all_texts would assign.
+	func build_locked_weapon_tooltip(unlock_description: String, progress_current: int, progress_max: int) -> String:
+		if progress_max > 0:
+			return unlock_description + "\n" + tr("UNLOCK_COND_PROGRESS") % [progress_current, progress_max]
+		return unlock_description
+
+
+func test_locale_refresh_accordion_collapsed_uses_show_all_key() -> void:
+	# Issue #1802: when accordion is collapsed, _refresh_all_texts should use ARMORY_SHOW_ALL key.
+	var mock := MockArmoryMenuI18n.new()
+	mock.weapons_expanded = false
+	mock.refresh_accordion_texts()
+	assert_true(mock.accordion_texts["weapons"].contains("ARMORY_SHOW_ALL"),
+		"Collapsed accordion should use ARMORY_SHOW_ALL translation key after locale refresh")
+
+
+func test_locale_refresh_accordion_expanded_uses_show_less_key() -> void:
+	# Issue #1802: when accordion is expanded, _refresh_all_texts should use ARMORY_SHOW_LESS key.
+	var mock := MockArmoryMenuI18n.new()
+	mock.weapons_expanded = true
+	mock.refresh_accordion_texts()
+	assert_true(mock.accordion_texts["weapons"].contains("ARMORY_SHOW_LESS"),
+		"Expanded accordion should use ARMORY_SHOW_LESS translation key after locale refresh")
+
+
+func test_locale_refresh_locked_slot_tooltip_with_progress_uses_progress_key() -> void:
+	# Issue #1802: locked slot tooltip with progress counts must use UNLOCK_COND_PROGRESS key.
+	var mock := MockArmoryMenuI18n.new()
+	var tooltip: String = mock.build_locked_weapon_tooltip("some unlock condition", 50, 400)
+	assert_true(tooltip.contains("UNLOCK_COND_PROGRESS"),
+		"Locked slot tooltip with progress should use UNLOCK_COND_PROGRESS translation key")
+
+
+func test_locale_refresh_locked_slot_tooltip_without_progress_no_progress_key() -> void:
+	# Issue #1802: locked slot tooltip without progress counts should not contain UNLOCK_COND_PROGRESS.
+	var mock := MockArmoryMenuI18n.new()
+	var tooltip: String = mock.build_locked_weapon_tooltip("complete Labyrinth", 0, 0)
+	assert_false(tooltip.contains("UNLOCK_COND_PROGRESS"),
+		"Locked slot tooltip without progress should not contain UNLOCK_COND_PROGRESS")

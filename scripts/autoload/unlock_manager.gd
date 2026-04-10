@@ -988,7 +988,7 @@ func get_weapon_unlock_description(weapon_id: String) -> String:
 			return _build_kill_condition_description(kill_condition)
 	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
 		if weapon_id in all_diff_condition.get("weapons", []):
-			return "Complete at least one level on every difficulty"
+			return tr("UNLOCK_COND_ALL_DIFFICULTIES")
 	return ""
 
 
@@ -1008,7 +1008,7 @@ func get_grenade_unlock_description(grenade_type: int) -> String:
 			return _build_kill_condition_description(kill_condition)
 	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
 		if grenade_type in all_diff_condition.get("grenades", []):
-			return "Complete at least one level on every difficulty"
+			return tr("UNLOCK_COND_ALL_DIFFICULTIES")
 	return ""
 
 
@@ -1028,37 +1028,38 @@ func get_active_item_unlock_description(item_type: int) -> String:
 			return _build_kill_condition_description(kill_condition)
 	for all_diff_condition in ALL_DIFFICULTIES_UNLOCK_CONDITIONS:
 		if item_type in all_diff_condition.get("active_items", []):
-			return "Complete at least one level on every difficulty"
+			return tr("UNLOCK_COND_ALL_DIFFICULTIES")
 	return ""
 
 
-## Level scene path to display name mapping (mirrors UnlockTableMenu.LEVEL_NAMES).
-const _LEVEL_NAMES: Dictionary = {
-	"res://scenes/levels/LabyrinthLevel.tscn": "Labyrinth",
-	"res://scenes/levels/BuildingLevel.tscn": "Building",
-	"res://scenes/levels/TestTier.tscn": "Polygon",
-	"res://scenes/levels/CastleLevel.tscn": "Castle",
-	"res://scenes/levels/RevolverLevel.tscn": "Double Corridor",
-	"res://scenes/levels/BeachLevel.tscn": "Beach",
-	"res://scenes/levels/DocksLevel.tscn": "Docks",
-	"res://scenes/levels/CityLevel.tscn": "City",
-	"res://scenes/levels/FactoryLevel.tscn": "Factory",
-	"res://scenes/levels/DecadenceLevel.tscn": "Decadence",
-	"res://scenes/levels/Labyrinth2Level.tscn": "Labyrinth Complex",
-	"res://scenes/levels/SewerLevel.tscn": "Sewer",
-	"res://scenes/levels/RailwayStationLevel.tscn": "Railway Station",
-	"res://scenes/levels/WinterForestLevel.tscn": "Winter Forest"
+## Level scene path to translation key mapping (mirrors UnlockTableMenu.LEVEL_NAMES).
+const _LEVEL_NAME_KEYS: Dictionary = {
+	"res://scenes/levels/LabyrinthLevel.tscn": "LEVEL_LABYRINTH_NAME",
+	"res://scenes/levels/BuildingLevel.tscn": "LEVEL_BUILDING_NAME",
+	"res://scenes/levels/TestTier.tscn": "LEVEL_POLYGON_NAME",
+	"res://scenes/levels/CastleLevel.tscn": "LEVEL_CASTLE_NAME",
+	"res://scenes/levels/RevolverLevel.tscn": "LEVEL_DOUBLE_CORRIDOR_NAME",
+	"res://scenes/levels/BeachLevel.tscn": "LEVEL_BEACH_NAME",
+	"res://scenes/levels/DocksLevel.tscn": "LEVEL_DOCKS_NAME",
+	"res://scenes/levels/CityLevel.tscn": "LEVEL_CITY_NAME",
+	"res://scenes/levels/FactoryLevel.tscn": "LEVEL_FACTORY_NAME",
+	"res://scenes/levels/DecadenceLevel.tscn": "LEVEL_DECADENCE_NAME",
+	"res://scenes/levels/Labyrinth2Level.tscn": "LEVEL_LABYRINTH_COMPLEX_NAME",
+	"res://scenes/levels/SewerLevel.tscn": "LEVEL_SEWER_NAME",
+	"res://scenes/levels/RailwayStationLevel.tscn": "LEVEL_RAILWAY_STATION_NAME",
+	"res://scenes/levels/WinterForestLevel.tscn": "LEVEL_WINTER_FOREST_NAME"
 }
 
 
 ## Build a description string for a single-level UNLOCK_CONDITIONS entry.
 func _build_single_level_description(condition_key: String, condition: Dictionary) -> String:
 	var scene_path: String = _extract_scene_path(condition_key)
-	var level_name: String = _LEVEL_NAMES.get(scene_path, scene_path.get_file().get_basename())
+	var name_key: String = _LEVEL_NAME_KEYS.get(scene_path, "")
+	var level_name: String = tr(name_key) if name_key != "" else scene_path.get_file().get_basename()
 	var min_rank: String = condition.get("min_rank", "D")
 	if min_rank == "F":
-		return "Complete %s" % level_name
-	return "Complete %s at rank %s or higher" % [level_name, min_rank]
+		return tr("UNLOCK_COND_COMPLETE_LEVEL") % level_name
+	return tr("UNLOCK_COND_COMPLETE_LEVEL_AT_RANK") % [level_name, min_rank]
 
 
 ## Build a description string for a MULTI_UNLOCK_CONDITIONS entry.
@@ -1067,9 +1068,10 @@ func _build_multi_level_description(multi_condition: Dictionary) -> String:
 	for level_entry in multi_condition.get("levels", []):
 		var path: String = level_entry.get("path", "")
 		var min_rank: String = level_entry.get("min_rank", "S")
-		var level_name: String = _LEVEL_NAMES.get(path, path.get_file().get_basename())
+		var name_key: String = _LEVEL_NAME_KEYS.get(path, "")
+		var level_name: String = tr(name_key) if name_key != "" else path.get_file().get_basename()
 		parts.append("%s %s" % [level_name, min_rank])
-	return "Complete: " + " + ".join(parts)
+	return tr("UNLOCK_COND_COMPLETE_MULTI") % " + ".join(parts)
 
 
 ## Build a description string for a KILL_UNLOCK_CONDITIONS entry.
@@ -1077,18 +1079,18 @@ func _build_kill_condition_description(kill_condition: Dictionary) -> String:
 	var stat: String = kill_condition.get("stat", "")
 	var min_kills: int = kill_condition.get("min_kills", 0)
 	if stat == "shots_fired_special_weapons":
-		return "Fire %d shots with shotgun, ASVK, or revolver" % min_kills
+		return tr("UNLOCK_COND_SHOTS_SPECIAL_WEAPONS") % min_kills
 	if stat == "total_deaths":
-		return "Die %d times" % min_kills
+		return tr("UNLOCK_COND_TOTAL_DEATHS") % min_kills
 	if stat == "no_damage_levels_completed":
-		return "Complete %d level(s) without taking damage" % min_kills
+		return tr("UNLOCK_COND_NO_DAMAGE_LEVELS") % min_kills
 	if stat == "levels_completed_rank_a_or_higher":
-		return "Complete %d level(s) at rank A or higher" % min_kills
+		return tr("UNLOCK_COND_RANK_A_LEVELS") % min_kills
 	if stat == "kills_through_wall":
-		return "Get %d kills through walls" % min_kills
+		return tr("UNLOCK_COND_WALL_KILLS") % min_kills
 	if stat == "levels_completed_with_silenced_pistol":
-		return "Complete any level with the silenced pistol"
-	return "Get %d kills without Laser Sight" % min_kills
+		return tr("UNLOCK_COND_SILENCED_PISTOL_LEVEL")
+	return tr("UNLOCK_COND_KILLS_NO_LASER") % min_kills
 
 
 ## Get the kill-based unlock condition progress for a weapon (0.0–1.0).
@@ -1389,7 +1391,7 @@ func _get_all_difficulty_names() -> Array[String]:
 	if difficulty_manager and difficulty_manager.has_method("get_all_difficulty_names"):
 		return difficulty_manager.get_all_difficulty_names()
 	# Static fallback — must stay in sync with DifficultyManager.Difficulty enum.
-	return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
+	return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal", "Gunslinger"]
 
 
 ## Log a message to the file logger if available.
