@@ -523,6 +523,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 		var difficulty_label := Label.new()
 		difficulty_label.text = difficulty_name + ":"
 		difficulty_label.add_theme_font_size_override("font_size", 9)
+		difficulty_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		if not unlocked:
 			difficulty_label.add_theme_color_override("font_color", Color(0.3, 0.3, 0.35, 0.6))
 		else:
@@ -536,7 +537,8 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 
 		var grade_label := Label.new()
 		grade_label.text = best_rank if not best_rank.is_empty() else "—"
-		grade_label.add_theme_font_size_override("font_size", 9)
+		grade_label.add_theme_font_size_override("font_size", 14)
+		grade_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		if grade_font:
 			grade_label.add_theme_font_override("font", grade_font)
 		if not unlocked:
