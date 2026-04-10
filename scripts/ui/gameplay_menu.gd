@@ -19,11 +19,11 @@ signal back_pressed
 func _ready() -> void:
 	# Setup tooltips and label behaviour for settings rows (Issue #1200)
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BloodContainer,
-			"Blood Amount")
+			tr("BLOOD_AMOUNT"))
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WeaponHintsContainer,
-			"Weapon Hints")
+			tr("WEAPON_HINTS"))
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AimAssistContainer,
-			"Revolver Aim Assist")
+			tr("REVOLVER_AIM_ASSIST"))
 
 	# Connect button and slider signals
 	blood_slider.value_changed.connect(_on_blood_amount_changed)
@@ -71,9 +71,9 @@ func _on_blood_amount_changed(value: float) -> void:
 ## Setup the weapon hints option button with items.
 func _setup_weapon_hints_option() -> void:
 	weapon_hints_option.clear()
-	weapon_hints_option.add_item("Always", 0)
-	weapon_hints_option.add_item("First time only", 1)
-	weapon_hints_option.add_item("Never", 2)
+	weapon_hints_option.add_item(tr("WEAPON_HINTS_ALWAYS"), 0)
+	weapon_hints_option.add_item(tr("WEAPON_HINTS_FIRST_TIME"), 1)
+	weapon_hints_option.add_item(tr("WEAPON_HINTS_NEVER"), 2)
 
 	# Select current mode from settings
 	var weapon_hints_settings: Node = get_node_or_null("/root/WeaponHintsSettings")

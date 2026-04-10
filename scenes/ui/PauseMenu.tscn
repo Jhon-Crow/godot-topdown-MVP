@@ -59,46 +59,46 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 icon = ExtResource("5_icon_resume")
-text = "Resume"
+text = "RESUME"
 
 [node name="ArmoryButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 icon = ExtResource("6_icon_armory")
-text = "Armory"
+text = "ARMORY"
 
 [node name="LevelsButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 icon = ExtResource("7_icon_levels")
-text = "Levels"
+text = "LEVELS"
 
 [node name="TrainingButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 icon = ExtResource("8_icon_training")
-text = "Training"
+text = "TRAINING"
 
 [node name="RoguelikeButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 icon = ExtResource("9_icon_roguelike")
-text = "Рогалик"
+text = "ROGUELIKE"
 
 [node name="ArenaButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 icon = ExtResource("10_icon_arena")
-text = "Arena"
+text = "ARENA"
 
 [node name="SettingsButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 icon = ExtResource("11_icon_settings")
-text = "Settings"
+text = "SETTINGS"
 
 [node name="QuitButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 icon = ExtResource("12_icon_quit")
-text = "Quit"
+text = "QUIT"
