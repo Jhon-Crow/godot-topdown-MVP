@@ -70,11 +70,25 @@ class MockDifficultyMenu:
 	func press_back() -> void:
 		back_pressed_count += 1
 
+	## Tracks mouse mode changes (Issue #1734).
+	## 0 = default, 1 = CONFINED (cursor shown), 2 = CONFINED_HIDDEN (cursor hidden).
+	var mouse_mode_on_enter: int = 0
+	var mouse_mode_on_exit: int = 0
+
+	## Simulate entering first-launch mode (_ready logic) (Issue #1734).
+	func simulate_enter_first_launch() -> void:
+		if first_launch_mode:
+			# Simulates: Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+			mouse_mode_on_enter = 1  # CONFINED = cursor visible
+
 	## Simulate pressing a difficulty button in first-launch mode (Issue #1734).
 	## Returns true if the signal would be emitted (i.e., first_launch_mode is set).
 	func simulate_difficulty_press_first_launch(difficulty: int) -> bool:
 		set_difficulty(difficulty)
 		if first_launch_mode:
+			# Simulates _finish_first_launch_selection():
+			# Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+			mouse_mode_on_exit = 2  # CONFINED_HIDDEN = cursor hidden
 			first_launch_signal_emitted = true
 			return true
 		return false
@@ -440,3 +454,49 @@ func test_first_launch_difficulty_selection_sets_difficulty() -> void:
 
 	assert_true(menu.is_hard_mode(),
 		"Difficulty should be set to HARD after selection in first-launch mode")
+
+
+# ============================================================================
+# Cursor / Mouse Mode Tests (Issue #1734)
+# ============================================================================
+
+
+func test_cursor_shown_on_first_launch_enter() -> void:
+	menu.first_launch_mode = true
+	menu.simulate_enter_first_launch()
+
+	assert_eq(menu.mouse_mode_on_enter, 1,
+		"Mouse mode should be set to CONFINED (cursor visible) when first-launch menu opens")
+
+
+func test_cursor_not_changed_in_normal_mode_enter() -> void:
+	menu.first_launch_mode = false
+	menu.simulate_enter_first_launch()
+
+	assert_eq(menu.mouse_mode_on_enter, 0,
+		"Mouse mode should NOT be changed when opening menu in normal (pause) mode")
+
+
+func test_cursor_hidden_after_first_launch_selection() -> void:
+	menu.first_launch_mode = true
+	menu.simulate_enter_first_launch()
+
+	menu.simulate_difficulty_press_first_launch(MockDifficultyMenu.Difficulty.NORMAL)
+
+	assert_eq(menu.mouse_mode_on_exit, 2,
+		"Mouse mode should be restored to CONFINED_HIDDEN when first-launch selection is made")
+
+
+func test_cursor_restored_regardless_of_difficulty_chosen() -> void:
+	for diff in [MockDifficultyMenu.Difficulty.POWER_FANTASY,
+			MockDifficultyMenu.Difficulty.EASY,
+			MockDifficultyMenu.Difficulty.NORMAL,
+			MockDifficultyMenu.Difficulty.HARD,
+			MockDifficultyMenu.Difficulty.BLACK_METAL]:
+		var m := MockDifficultyMenu.new()
+		m.first_launch_mode = true
+		m.simulate_enter_first_launch()
+		m.simulate_difficulty_press_first_launch(diff)
+
+		assert_eq(m.mouse_mode_on_exit, 2,
+			"Mouse mode should be CONFINED_HIDDEN after choosing difficulty %d" % diff)

@@ -79,6 +79,10 @@ func _ready() -> void:
 	# Hide back button in first-launch mode — player must pick a difficulty (Issue #1734)
 	if first_launch_mode:
 		back_button.hide()
+		# Show cursor so the player can click a difficulty button (Issue #1734).
+		# GameManager sets MOUSE_MODE_CONFINED_HIDDEN at startup; we must override that here
+		# because there is no pause menu to do it for us on first launch.
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 	# Update button states based on current difficulty
 	_update_button_states()
@@ -185,7 +189,7 @@ func _on_power_fantasy_pressed() -> void:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.POWER_FANTASY)
 	_update_button_states()
 	if first_launch_mode:
-		difficulty_selected_first_launch.emit()
+		_finish_first_launch_selection()
 	else:
 		_restart_if_in_game()
 
@@ -196,7 +200,7 @@ func _on_gunslinger_pressed() -> void:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.GUNSLINGER)
 	_update_button_states()
 	if first_launch_mode:
-		difficulty_selected_first_launch.emit()
+		_finish_first_launch_selection()
 	else:
 		_restart_if_in_game()
 
@@ -207,7 +211,7 @@ func _on_easy_pressed() -> void:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.EASY)
 	_update_button_states()
 	if first_launch_mode:
-		difficulty_selected_first_launch.emit()
+		_finish_first_launch_selection()
 	else:
 		_restart_if_in_game()
 
@@ -218,7 +222,7 @@ func _on_normal_pressed() -> void:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.NORMAL)
 	_update_button_states()
 	if first_launch_mode:
-		difficulty_selected_first_launch.emit()
+		_finish_first_launch_selection()
 	else:
 		_restart_if_in_game()
 
@@ -229,7 +233,7 @@ func _on_hard_pressed() -> void:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.HARD)
 	_update_button_states()
 	if first_launch_mode:
-		difficulty_selected_first_launch.emit()
+		_finish_first_launch_selection()
 	else:
 		_restart_if_in_game()
 
@@ -240,9 +244,16 @@ func _on_black_metal_pressed() -> void:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.BLACK_METAL)
 	_update_button_states()
 	if first_launch_mode:
-		difficulty_selected_first_launch.emit()
+		_finish_first_launch_selection()
 	else:
 		_restart_if_in_game()
+
+
+## Restores cursor to gameplay mode and signals that the first-launch selection is done (Issue #1734).
+## We showed the cursor when entering first-launch mode; hide it again before the game starts.
+func _finish_first_launch_selection() -> void:
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+	difficulty_selected_first_launch.emit()
 
 
 ## Restarts the current scene when difficulty changes mid-game (Issue #1432).
