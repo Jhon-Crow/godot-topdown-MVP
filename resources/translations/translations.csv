@@ -72,6 +72,7 @@ DIFFICULTY_STATUS_EASY,Easy mode: Enemies react slower,Лёгкий режим: 
 DIFFICULTY_STATUS_HARD,Hard mode: Enemies react when you look away,Сложный режим: враги реагируют когда смотришь в сторону
 DIFFICULTY_STATUS_BLACK_METAL,"Black Metal: 25% less HP, 25% faster, B&W filter","Black Metal: на 25% меньше HP, быстрее, ч/б фильтр"
 DIFFICULTY_STATUS_NIGHT_MODE_ON, | Night Mode ON, | Ночной режим ВКЛ
+DIFFICULTY_STATUS_FIRST_LAUNCH,Choose your difficulty to begin,Выберите сложность для начала
 ARMORY_TITLE,Armory,Арсенал
 ARMORY_WEAPONS,WEAPONS,ОРУЖИЕ
 ARMORY_GRENADES,GRENADES,ГРАНАТЫ

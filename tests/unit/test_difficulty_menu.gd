@@ -36,6 +36,12 @@ class MockDifficultyMenu:
 	## Signal tracking.
 	var back_pressed_count: int = 0
 
+	## First-launch mode flag (Issue #1734).
+	var first_launch_mode: bool = false
+
+	## Tracks whether difficulty_selected_first_launch was emitted (Issue #1734).
+	var first_launch_signal_emitted: bool = false
+
 	## Set difficulty.
 	func set_difficulty(difficulty: int) -> void:
 		current_difficulty = difficulty
@@ -63,6 +69,49 @@ class MockDifficultyMenu:
 	## Press back.
 	func press_back() -> void:
 		back_pressed_count += 1
+
+	## Tracks mouse mode changes (Issue #1734).
+	## 0 = default, 1 = CONFINED (cursor shown), 2 = CONFINED_HIDDEN (cursor hidden).
+	var mouse_mode_on_enter: int = 0
+	var mouse_mode_on_exit: int = 0
+
+	## Simulate entering first-launch mode (_ready logic) (Issue #1734).
+	func simulate_enter_first_launch() -> void:
+		if first_launch_mode:
+			# Simulates: Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+			mouse_mode_on_enter = 1  # CONFINED = cursor visible
+
+	## Simulate pressing a difficulty button in first-launch mode (Issue #1734).
+	## Returns true if the signal would be emitted (i.e., first_launch_mode is set).
+	func simulate_difficulty_press_first_launch(difficulty: int) -> bool:
+		set_difficulty(difficulty)
+		if first_launch_mode:
+			# Simulates _finish_first_launch_selection():
+			# Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+			mouse_mode_on_exit = 2  # CONFINED_HIDDEN = cursor hidden
+			first_launch_signal_emitted = true
+			return true
+		return false
+
+	## Whether the back button would be visible (Issue #1734).
+	func is_back_button_visible() -> bool:
+		return not first_launch_mode
+
+	## Whether ESC can close the menu (Issue #1734).
+	func can_close_with_esc() -> bool:
+		return not first_launch_mode
+
+	## Returns button text for a difficulty in the current mode (Issue #1734).
+	## In first-launch mode no button shows "(Selected)" even if it matches current difficulty.
+	func get_easy_button_text() -> String:
+		if is_easy_mode() and not first_launch_mode:
+			return "Easy (Selected)"
+		return "Easy"
+
+	func get_normal_button_text() -> String:
+		if is_normal_mode() and not first_launch_mode:
+			return "Normal (Selected)"
+		return "Normal"
 
 
 var menu: MockDifficultyMenu
@@ -312,3 +361,142 @@ func test_restart_is_not_triggered_without_game_manager() -> void:
 	_simulate_restart_if_in_game(null)
 	# If we reach here without errors the test passes.
 	assert_true(true, "Should handle null GameManager gracefully")
+
+
+# ============================================================================
+# First Launch Mode Tests (Issue #1734)
+# ============================================================================
+
+
+func test_first_launch_mode_defaults_to_false() -> void:
+	assert_false(menu.first_launch_mode,
+		"first_launch_mode should be false by default")
+
+
+func test_back_button_visible_in_normal_mode() -> void:
+	menu.first_launch_mode = false
+
+	assert_true(menu.is_back_button_visible(),
+		"Back button should be visible in normal (non-first-launch) mode")
+
+
+func test_back_button_hidden_in_first_launch_mode() -> void:
+	menu.first_launch_mode = true
+
+	assert_false(menu.is_back_button_visible(),
+		"Back button should be hidden in first-launch mode so player must choose")
+
+
+func test_esc_closes_menu_in_normal_mode() -> void:
+	menu.first_launch_mode = false
+
+	assert_true(menu.can_close_with_esc(),
+		"ESC should be able to close the menu in normal mode")
+
+
+func test_esc_blocked_in_first_launch_mode() -> void:
+	menu.first_launch_mode = true
+
+	assert_false(menu.can_close_with_esc(),
+		"ESC should be blocked in first-launch mode")
+
+
+func test_difficulty_press_emits_first_launch_signal() -> void:
+	menu.first_launch_mode = true
+
+	var emitted := menu.simulate_difficulty_press_first_launch(MockDifficultyMenu.Difficulty.EASY)
+
+	assert_true(emitted,
+		"Pressing a difficulty button in first-launch mode should emit difficulty_selected_first_launch")
+	assert_true(menu.first_launch_signal_emitted,
+		"first_launch_signal_emitted flag should be set after selection")
+
+
+func test_difficulty_press_does_not_emit_first_launch_signal_in_normal_mode() -> void:
+	menu.first_launch_mode = false
+
+	var emitted := menu.simulate_difficulty_press_first_launch(MockDifficultyMenu.Difficulty.NORMAL)
+
+	assert_false(emitted,
+		"Pressing a difficulty button in normal mode should NOT emit difficulty_selected_first_launch")
+	assert_false(menu.first_launch_signal_emitted,
+		"first_launch_signal_emitted flag should remain false in normal mode")
+
+
+func test_no_selected_text_on_easy_in_first_launch_mode() -> void:
+	menu.first_launch_mode = true
+	menu.set_difficulty(MockDifficultyMenu.Difficulty.EASY)
+
+	assert_eq(menu.get_easy_button_text(), "Easy",
+		"Easy button should not show '(Selected)' in first-launch mode")
+
+
+func test_selected_text_shown_on_easy_in_normal_mode() -> void:
+	menu.first_launch_mode = false
+	menu.set_difficulty(MockDifficultyMenu.Difficulty.EASY)
+
+	assert_eq(menu.get_easy_button_text(), "Easy (Selected)",
+		"Easy button should show '(Selected)' when active in normal mode")
+
+
+func test_no_selected_text_on_normal_in_first_launch_mode() -> void:
+	menu.first_launch_mode = true
+	# Normal is the default current_difficulty
+
+	assert_eq(menu.get_normal_button_text(), "Normal",
+		"Normal button should not show '(Selected)' in first-launch mode")
+
+
+func test_first_launch_difficulty_selection_sets_difficulty() -> void:
+	menu.first_launch_mode = true
+
+	menu.simulate_difficulty_press_first_launch(MockDifficultyMenu.Difficulty.HARD)
+
+	assert_true(menu.is_hard_mode(),
+		"Difficulty should be set to HARD after selection in first-launch mode")
+
+
+# ============================================================================
+# Cursor / Mouse Mode Tests (Issue #1734)
+# ============================================================================
+
+
+func test_cursor_shown_on_first_launch_enter() -> void:
+	menu.first_launch_mode = true
+	menu.simulate_enter_first_launch()
+
+	assert_eq(menu.mouse_mode_on_enter, 1,
+		"Mouse mode should be set to CONFINED (cursor visible) when first-launch menu opens")
+
+
+func test_cursor_not_changed_in_normal_mode_enter() -> void:
+	menu.first_launch_mode = false
+	menu.simulate_enter_first_launch()
+
+	assert_eq(menu.mouse_mode_on_enter, 0,
+		"Mouse mode should NOT be changed when opening menu in normal (pause) mode")
+
+
+func test_cursor_hidden_after_first_launch_selection() -> void:
+	menu.first_launch_mode = true
+	menu.simulate_enter_first_launch()
+
+	menu.simulate_difficulty_press_first_launch(MockDifficultyMenu.Difficulty.NORMAL)
+
+	assert_eq(menu.mouse_mode_on_exit, 2,
+		"Mouse mode should be restored to CONFINED_HIDDEN when first-launch selection is made")
+
+
+func test_cursor_restored_regardless_of_difficulty_chosen() -> void:
+	for diff in [MockDifficultyMenu.Difficulty.POWER_FANTASY,
+			MockDifficultyMenu.Difficulty.EASY,
+			MockDifficultyMenu.Difficulty.NORMAL,
+			MockDifficultyMenu.Difficulty.HARD,
+			MockDifficultyMenu.Difficulty.BLACK_METAL]:
+		var m := MockDifficultyMenu.new()
+		m.first_launch_mode = true
+		m.simulate_enter_first_launch()
+		m.simulate_difficulty_press_first_launch(diff)
+
+		assert_eq(m.mouse_mode_on_exit, 2,
+			"Mouse mode should be CONFINED_HIDDEN after choosing difficulty %d" % diff)

@@ -136,6 +136,22 @@ class MockDifficultyManager:
 			return 1.25
 		return 1.0
 
+	## Simulated settings file existence for is_first_launch() tests (Issue #1734).
+	var _settings_file_exists: bool = false
+
+	## Simulate is_first_launch() without touching the filesystem (Issue #1734).
+	func is_first_launch() -> bool:
+		return not _settings_file_exists
+
+	## Mark the settings file as existing (simulates a previous save) (Issue #1734).
+	func simulate_settings_saved() -> void:
+		_settings_file_exists = true
+
+	## Reset difficulty to default and clear the simulated settings file (Issue #1734).
+	func reset_to_default() -> void:
+		current_difficulty = Difficulty.NORMAL
+		_settings_file_exists = false
+
 	## Set night mode active state for testing (Issue #825).
 	func set_night_mode_active(active: bool) -> void:
 		_night_mode_active = active
@@ -769,3 +785,50 @@ func test_gunslinger_is_not_active_in_normal_mode() -> void:
 func test_get_difficulty_name_for_gunslinger() -> void:
 	assert_eq(manager.get_difficulty_name_for(MockDifficultyManager.Difficulty.GUNSLINGER),
 		"Gunslinger", "get_difficulty_name_for(GUNSLINGER) should return 'Gunslinger'")
+
+
+# ============================================================================
+# First Launch Tests (Issue #1734)
+# ============================================================================
+
+
+func test_is_first_launch_true_when_no_settings_file() -> void:
+	# Settings file does not exist by default in the mock
+	assert_true(manager.is_first_launch(),
+		"is_first_launch() should return true when no settings file exists")
+
+
+func test_is_first_launch_false_after_settings_saved() -> void:
+	manager.simulate_settings_saved()
+
+	assert_false(manager.is_first_launch(),
+		"is_first_launch() should return false once a settings file exists")
+
+
+func test_first_launch_is_true_before_any_difficulty_set() -> void:
+	# A fresh manager with no persisted file is always a first launch
+	assert_true(manager.is_first_launch(),
+		"New manager with no saved file should report first launch")
+
+
+func test_first_launch_is_false_after_saving_any_difficulty() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.EASY)
+	manager.simulate_settings_saved()
+
+	assert_false(manager.is_first_launch(),
+		"After saving a difficulty choice is_first_launch() should be false")
+
+
+func test_reset_to_default_restores_first_launch_state() -> void:
+	## After clear_all_saves(), reset_to_default() must delete the settings file so
+	## is_first_launch() returns true again on the next startup (Issue #1734).
+	manager.set_difficulty(MockDifficultyManager.Difficulty.POWER_FANTASY)
+	manager.simulate_settings_saved()
+	assert_false(manager.is_first_launch(), "Precondition: not a first launch")
+
+	manager.reset_to_default()
+
+	assert_true(manager.is_first_launch(),
+		"is_first_launch() must return true after reset_to_default() (Issue #1734)")
+	assert_eq(manager.current_difficulty, MockDifficultyManager.Difficulty.NORMAL,
+		"Difficulty must be reset to NORMAL after reset_to_default()")

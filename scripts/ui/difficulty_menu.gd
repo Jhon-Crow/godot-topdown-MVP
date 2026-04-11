@@ -15,6 +15,16 @@ extends CanvasLayer
 ## Signal emitted when the back button is pressed.
 signal back_pressed
 
+## Signal emitted when a difficulty is selected during first launch (Issue #1734).
+## Consumers should hide/free this menu after receiving this signal.
+signal difficulty_selected_first_launch
+
+## When true, the menu is shown as a first-launch selector:
+## - No difficulty is displayed as already selected (all buttons enabled)
+## - The back button is hidden (player must choose before continuing)
+## Set this before adding the node to the scene tree.
+var first_launch_mode: bool = false
+
 ## Reference to UI elements.
 @onready var night_mode_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NightModeContainer/NightModeCheckbox
 @onready var power_fantasy_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/PowerFantasyButton
@@ -81,6 +91,14 @@ func _ready() -> void:
 	black_metal_button.pressed.connect(_on_black_metal_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
+	# Hide back button in first-launch mode — player must pick a difficulty (Issue #1734)
+	if first_launch_mode:
+		back_button.hide()
+		# Show cursor so the player can click a difficulty button (Issue #1734).
+		# GameManager sets MOUSE_MODE_CONFINED_HIDDEN at startup; we must override that here
+		# because there is no pause menu to do it for us on first launch.
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
 	# Update button states based on current difficulty
 	_update_button_states()
 
@@ -115,33 +133,46 @@ func _update_button_states() -> void:
 	var is_black_metal: bool = difficulty_manager.is_black_metal_mode()
 	var is_gunslinger: bool = difficulty_manager.is_gunslinger_mode()
 
-	# Highlight current difficulty - disable the selected button
-	power_fantasy_button.disabled = is_power_fantasy
-	gunslinger_button.disabled = is_gunslinger
-	easy_button.disabled = is_easy
-	normal_button.disabled = is_normal
-	hard_button.disabled = is_hard
-	black_metal_button.disabled = is_black_metal
+	# Highlight current difficulty - disable the selected button.
+	# In first-launch mode all buttons stay enabled (nothing pre-selected) (Issue #1734).
+	if not first_launch_mode:
+		power_fantasy_button.disabled = is_power_fantasy
+		gunslinger_button.disabled = is_gunslinger
+		easy_button.disabled = is_easy
+		normal_button.disabled = is_normal
+		hard_button.disabled = is_hard
+		black_metal_button.disabled = is_black_metal
+	else:
+		power_fantasy_button.disabled = false
+		gunslinger_button.disabled = false
+		easy_button.disabled = false
+		normal_button.disabled = false
+		hard_button.disabled = false
+		black_metal_button.disabled = false
 
-	# Update button text to show selection
-	# Power Fantasy uses gradient text via RichTextLabel (Issue #1014)
-	_update_power_fantasy_text(is_power_fantasy)
-	gunslinger_button.text = tr("GUNSLINGER_SELECTED") if is_gunslinger else tr("GUNSLINGER")
-	easy_button.text = tr("EASY_SELECTED") if is_easy else tr("EASY")
-	normal_button.text = tr("NORMAL_SELECTED") if is_normal else tr("NORMAL")
-	hard_button.text = tr("HARD_SELECTED") if is_hard else tr("HARD")
+	# Update button text to show selection.
+	# In first-launch mode nothing is pre-selected so never show "(Selected)" (Issue #1734).
+	# Power Fantasy uses gradient text via RichTextLabel (Issue #1014).
+	_update_power_fantasy_text(is_power_fantasy and not first_launch_mode)
+	gunslinger_button.text = tr("GUNSLINGER_SELECTED") if (is_gunslinger and not first_launch_mode) else tr("GUNSLINGER")
+	easy_button.text = tr("EASY_SELECTED") if (is_easy and not first_launch_mode) else tr("EASY")
+	normal_button.text = tr("NORMAL_SELECTED") if (is_normal and not first_launch_mode) else tr("NORMAL")
+	hard_button.text = tr("HARD_SELECTED") if (is_hard and not first_launch_mode) else tr("HARD")
 	# Always use hardcoded uppercase ASCII for Black Metal — gothic font only supports uppercase
 	# ASCII glyphs, and the name must not change when switching languages (it is a proper name).
-	black_metal_button.text = "BLACK METAL - SELECTED" if is_black_metal else "BLACK METAL"
+	black_metal_button.text = "BLACK METAL - SELECTED" if (is_black_metal and not first_launch_mode) else "BLACK METAL"
 
 	# Update night mode checkbox
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
 		night_mode_checkbox.button_pressed = experimental_settings.is_realistic_visibility_enabled()
 
-	# Update status label based on current difficulty
+	# Update status label based on current difficulty.
+	# In first-launch mode show a prompt to choose instead (Issue #1734).
 	var status_text: String = ""
-	if is_power_fantasy:
+	if first_launch_mode:
+		status_text = tr("DIFFICULTY_STATUS_FIRST_LAUNCH")
+	elif is_power_fantasy:
 		status_text = tr("DIFFICULTY_STATUS_POWER_FANTASY")
 	elif is_gunslinger:
 		status_text = tr("DIFFICULTY_STATUS_GUNSLINGER")
@@ -172,7 +203,10 @@ func _on_power_fantasy_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.POWER_FANTASY)
 	_update_button_states()
-	_restart_if_in_game()
+	if first_launch_mode:
+		_finish_first_launch_selection()
+	else:
+		_restart_if_in_game()
 
 
 func _on_gunslinger_pressed() -> void:
@@ -180,7 +214,10 @@ func _on_gunslinger_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.GUNSLINGER)
 	_update_button_states()
-	_restart_if_in_game()
+	if first_launch_mode:
+		_finish_first_launch_selection()
+	else:
+		_restart_if_in_game()
 
 
 func _on_easy_pressed() -> void:
@@ -188,7 +225,10 @@ func _on_easy_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.EASY)
 	_update_button_states()
-	_restart_if_in_game()
+	if first_launch_mode:
+		_finish_first_launch_selection()
+	else:
+		_restart_if_in_game()
 
 
 func _on_normal_pressed() -> void:
@@ -196,7 +236,10 @@ func _on_normal_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.NORMAL)
 	_update_button_states()
-	_restart_if_in_game()
+	if first_launch_mode:
+		_finish_first_launch_selection()
+	else:
+		_restart_if_in_game()
 
 
 func _on_hard_pressed() -> void:
@@ -204,7 +247,10 @@ func _on_hard_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.HARD)
 	_update_button_states()
-	_restart_if_in_game()
+	if first_launch_mode:
+		_finish_first_launch_selection()
+	else:
+		_restart_if_in_game()
 
 
 func _on_black_metal_pressed() -> void:
@@ -212,7 +258,17 @@ func _on_black_metal_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.BLACK_METAL)
 	_update_button_states()
-	_restart_if_in_game()
+	if first_launch_mode:
+		_finish_first_launch_selection()
+	else:
+		_restart_if_in_game()
+
+
+## Restores cursor to gameplay mode and signals that the first-launch selection is done (Issue #1734).
+## We showed the cursor when entering first-launch mode; hide it again before the game starts.
+func _finish_first_launch_selection() -> void:
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+	difficulty_selected_first_launch.emit()
 
 
 ## Restarts the current scene when difficulty changes mid-game (Issue #1432).
@@ -230,7 +286,8 @@ func _restart_if_in_game() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if visible and event.is_action_pressed("pause"):
+	# In first-launch mode ESC is blocked — player must choose a difficulty (Issue #1734).
+	if visible and not first_launch_mode and event.is_action_pressed("pause"):
 		_on_back_pressed()
 		get_viewport().set_input_as_handled()
 
