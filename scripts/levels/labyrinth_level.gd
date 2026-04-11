@@ -988,6 +988,16 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 ## Silenced pistol: exactly as many bullets as enemies.
 ## Mini UZI and rifles: 2 magazines to match level difficulty.
 ## Shotgun, sniper, revolver: defaults are sufficient for 5 enemies.
+##
+## Issue #1774 fix: magazine sizes are now passed explicitly to ReinitializeMagazines so
+## that ammo initialisation succeeds even when WeaponData is null (first-load C# resource
+## race where the [GlobalClass] WeaponData type is not yet registered by Godot).
+const _MAGAZINE_SIZES: Dictionary = {
+	"mini_uzi": 32,   ## MiniUziData.tres MagazineSize = 32
+	"m16": 30,        ## AssaultRifleData.tres MagazineSize = 30
+	"ak_gl": 30,      ## AKGLData.tres MagazineSize = 30
+}
+
 func _configure_labyrinth_weapon_ammo(weapon: Node, weapon_id: String) -> void:
 	if weapon == null:
 		return
@@ -1003,8 +1013,11 @@ func _configure_labyrinth_weapon_ammo(weapon: Node, weapon_id: String) -> void:
 				base_magazines *= ammo_multiplier
 				print("[LabyrinthLevel] Power Fantasy mode - %s magazines multiplied by %dx" % [weapon.name, ammo_multiplier])
 		if weapon.has_method("ReinitializeMagazines"):
-			weapon.ReinitializeMagazines(base_magazines, true)
-			print("[LabyrinthLevel] %s magazines reinitialized to %d" % [weapon.name, base_magazines])
+			# Issue #1774: pass explicit magazine size so ReinitializeMagazines works even when
+			# WeaponData is null due to first-load C# resource race condition.
+			var mag_size: int = _MAGAZINE_SIZES.get(weapon_id, 30)
+			weapon.ReinitializeMagazines(base_magazines, mag_size, true)
+			print("[LabyrinthLevel] %s magazines reinitialized to %d x %d rounds" % [weapon.name, base_magazines, mag_size])
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):

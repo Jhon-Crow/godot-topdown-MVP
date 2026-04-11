@@ -2971,6 +2971,14 @@ public partial class Player : BaseCharacter
             weapon.Name = weaponNodeName;
             AddChild(weapon);
             CurrentWeapon = weapon;
+            // Issue #1774: WeaponData may be null here on first load (C# GlobalClass resource
+            // registration race). BaseWeapon._Ready() will have scheduled DeferredReadyInit().
+            // LabyrinthLevel._configure_labyrinth_weapon_ammo() handles ammo setup with explicit
+            // magazine sizes so it works regardless of WeaponData state.
+            if (weapon.WeaponData == null)
+            {
+                LogToFile($"[Player.Weapon] WARNING: {weaponNodeName} WeaponData is null after AddChild (Issue #1774 first-load race). DeferredReadyInit scheduled.");
+            }
             LogToFile($"[Player.Weapon] Equipped {weaponNodeName} (ammo: {weapon.CurrentAmmo}/{weapon.WeaponData?.MagazineSize ?? 0})");
             // Re-detect arm pose so the player's arms match the new weapon immediately.
             _weaponPoseApplied = false;
