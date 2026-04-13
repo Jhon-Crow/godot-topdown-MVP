@@ -80,6 +80,17 @@ const ROOM_FLOOR_COLORS: Dictionary = {
 	RoomType.SEWER:     Color(0.12, 0.14, 0.12, 1.0),
 }
 
+## Wall tint per room type — Issue #1617: name must match visual.
+## Each room type gets a distinct wall colour so the visual matches the name.
+const ROOM_WALL_COLORS: Dictionary = {
+	RoomType.LABYRINTH: Color(0.28, 0.30, 0.38, 1.0),  ## Blue-grey stone — dungeon corridors
+	RoomType.BUILDING:  Color(0.38, 0.30, 0.28, 1.0),  ## Warm brick-red — indoor walls
+	RoomType.BEACH:     Color(0.52, 0.46, 0.32, 1.0),  ## Sandy tan — beach barriers
+	RoomType.DOCKS:     Color(0.26, 0.32, 0.36, 1.0),  ## Steel-blue — metal containers
+	RoomType.CITY:      Color(0.34, 0.34, 0.34, 1.0),  ## Concrete grey — urban cover
+	RoomType.SEWER:     Color(0.22, 0.28, 0.22, 1.0),  ## Mossy green — underground pipes
+}
+
 const ROOM_TYPE_NAMES: Dictionary = {
 	RoomType.LABYRINTH: "Лабиринт",
 	RoomType.BUILDING:  "Здание",
@@ -141,6 +152,8 @@ var _room_w: float = 1280.0
 var _room_h: float = 720.0
 ## Layout variant index chosen at build time (Issue #1240: multiple variants per type)
 var _room_variant: int = 0
+## Wall colour for the current room — set from ROOM_WALL_COLORS in _build_room (Issue #1617)
+var _current_wall_color: Color = WALL_COLOR
 
 var _player: Node2D = null
 
@@ -789,6 +802,9 @@ func _build_room_scene_no_enemies() -> void:
 
 
 func _build_room(parent: Node) -> void:
+	# Issue #1617: set wall colour for this room type so all _create_wall calls match the name.
+	_current_wall_color = ROOM_WALL_COLORS.get(_room_type, WALL_COLOR)
+
 	var floor_color: Color = ROOM_FLOOR_COLORS.get(_room_type, FLOOR_COLOR)
 	var floor_rect := ColorRect.new()
 	floor_rect.position = Vector2(0, 0)
@@ -1980,7 +1996,8 @@ func _create_wall(parent: Node, rect: Rect2) -> void:
 	body.add_child(shape_node)
 
 	var visual      := ColorRect.new()
-	visual.color    = WALL_COLOR
+	# Issue #1617: use the per-room-type wall colour set in _build_room.
+	visual.color    = _current_wall_color
 	visual.size     = rect.size
 	visual.position = -rect.size / 2.0
 	body.add_child(visual)
