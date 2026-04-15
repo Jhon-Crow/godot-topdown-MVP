@@ -3319,17 +3319,19 @@ func _choose_best_flank_side() -> float:
 	var right_path_clear := EnemyFlankNavigationHelper.is_candidate_flank_position_valid(self, _nav_agent, right_flank_pos, player_pos)
 	var left_path_clear := EnemyFlankNavigationHelper.is_candidate_flank_position_valid(self, _nav_agent, left_flank_pos, player_pos)
 
-	# Issue #367: Check LOS to player and combine with path checks
-	var right_valid := right_path_clear and _flank_position_has_los_to_player(right_flank_pos, player_pos)
-	var left_valid := left_path_clear and _flank_position_has_los_to_player(left_flank_pos, player_pos)
+	# Prefer flank routes whose destination already has LOS, but do not block flanking entry
+	# when the player is tucked just behind nearby cover. In that case the route itself is what
+	# matters; LOS can be recovered during the maneuver.
+	var right_has_los := right_path_clear and _flank_position_has_los_to_player(right_flank_pos, player_pos)
+	var left_has_los := left_path_clear and _flank_position_has_los_to_player(left_flank_pos, player_pos)
 
-	if right_valid and not left_valid:
+	if right_has_los and not left_has_los:
 		return 1.0
-	elif left_valid and not right_valid:
+	elif left_has_los and not right_has_los:
 		return -1.0
 
 	# [Issue #574] When both sides are valid, prefer the side NOT lit by the flashlight
-	if right_valid and left_valid and _flashlight_detection and _player:
+	if right_has_los and left_has_los and _flashlight_detection and _player:
 		var right_lit := _flashlight_detection.is_position_lit(right_flank_pos, _player, _raycast)
 		var left_lit := _flashlight_detection.is_position_lit(left_flank_pos, _player, _raycast)
 		if right_lit and not left_lit:
@@ -3340,18 +3342,32 @@ func _choose_best_flank_side() -> float:
 			return 1.0
 
 	# Issue #367: If neither valid, try reduced distance (50%)
-	if not right_valid and not left_valid:
+	if not right_has_los and not left_has_los:
+		if right_path_clear and not left_path_clear:
+			return 1.0
+		elif left_path_clear and not right_path_clear:
+			return -1.0
+
 		var rd := flank_distance * 0.5
 		var rr := EnemyFlankNavigationHelper.get_flank_nav_position(_nav_agent, player_pos + right_flank_dir * rd)
 		var lr := EnemyFlankNavigationHelper.get_flank_nav_position(_nav_agent, player_pos + left_flank_dir * rd)
-		var rrv := EnemyFlankNavigationHelper.is_candidate_flank_position_valid(self, _nav_agent, rr, player_pos) and _flank_position_has_los_to_player(rr, player_pos)
-		var lrv := EnemyFlankNavigationHelper.is_candidate_flank_position_valid(self, _nav_agent, lr, player_pos) and _flank_position_has_los_to_player(lr, player_pos)
+		var rr_path_clear := EnemyFlankNavigationHelper.is_candidate_flank_position_valid(self, _nav_agent, rr, player_pos)
+		var lr_path_clear := EnemyFlankNavigationHelper.is_candidate_flank_position_valid(self, _nav_agent, lr, player_pos)
+		var rrv := rr_path_clear and _flank_position_has_los_to_player(rr, player_pos)
+		var lrv := lr_path_clear and _flank_position_has_los_to_player(lr, player_pos)
 		if rrv and not lrv:
 			return 1.0
 		elif lrv and not rrv:
 			return -1.0
+		if rr_path_clear and not lr_path_clear:
+			return 1.0
+		elif lr_path_clear and not rr_path_clear:
+			return -1.0
 		if not rrv and not lrv:
-			_log_to_file("Warning: No valid flank position (both sides behind walls)")
+			if right_path_clear or left_path_clear or rr_path_clear or lr_path_clear:
+				_log_to_file("Warning: No LOS-positive flank position, falling back to nav-reachable side")
+			else:
+				_log_to_file("Warning: No valid flank position (both sides behind walls)")
 
 	# Choose closer side
 	return 1.0 if global_position.distance_squared_to(right_flank_pos) < global_position.distance_squared_to(left_flank_pos) else -1.0

@@ -340,11 +340,17 @@ class MockEnemy:
 		var left_flank_dir := player_to_enemy.rotated(flank_angle * -1.0)
 		var right_flank_pos := player_pos + right_flank_dir * flank_distance
 		var left_flank_pos := player_pos + left_flank_dir * flank_distance
-		var right_valid := _is_candidate_flank_position_valid(right_flank_pos, player_pos) and _flank_position_has_los_to_player(right_flank_pos, player_pos)
-		var left_valid := _is_candidate_flank_position_valid(left_flank_pos, player_pos) and _flank_position_has_los_to_player(left_flank_pos, player_pos)
-		if right_valid and not left_valid:
+		var right_path_clear := _is_candidate_flank_position_valid(right_flank_pos, player_pos)
+		var left_path_clear := _is_candidate_flank_position_valid(left_flank_pos, player_pos)
+		var right_has_los := right_path_clear and _flank_position_has_los_to_player(right_flank_pos, player_pos)
+		var left_has_los := left_path_clear and _flank_position_has_los_to_player(left_flank_pos, player_pos)
+		if right_has_los and not left_has_los:
 			return 1.0
-		if left_valid and not right_valid:
+		if left_has_los and not right_has_los:
+			return -1.0
+		if right_path_clear and not left_path_clear:
+			return 1.0
+		if left_path_clear and not right_path_clear:
 			return -1.0
 		return 1.0 if right_flank_pos.length_squared() < left_flank_pos.length_squared() else -1.0
 
@@ -876,6 +882,16 @@ func test_choose_best_flank_side_accepts_nav_reachable_route_around_wall() -> vo
 
 	assert_eq(enemy.choose_best_flank_side_for_test(), 1.0,
 		"Flank side selection should prefer the nav-reachable side even when direct pathing is not part of validation")
+
+
+func test_choose_best_flank_side_allows_nav_reachable_side_without_immediate_los() -> void:
+	enemy._nav_candidate_right_ok = true
+	enemy._nav_candidate_left_ok = false
+	enemy._los_candidate_right_ok = false
+	enemy._los_candidate_left_ok = false
+
+	assert_eq(enemy.choose_best_flank_side_for_test(), 1.0,
+		"Flank side selection should still allow a nav-reachable side when close cover blocks LOS at the final flank point")
 
 
 func test_navigation_target_reasonable_accepts_real_path_distance() -> void:
