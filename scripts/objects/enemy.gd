@@ -2701,7 +2701,7 @@ func _transition_to_flanking() -> bool:
 
 ## Check if the current flank target is reachable via navigation mesh.
 func _is_flank_target_reachable() -> bool:
-	return _is_navigation_target_reasonable(_flank_target)
+	return EnemyFlankNavigationHelper.is_navigation_target_reasonable(self, _nav_agent, _flank_target)
 
 func _transition_to_suppressed() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_suppressed_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -3311,13 +3311,13 @@ func _choose_best_flank_side() -> float:
 	var right_flank_dir := player_to_enemy.rotated(flank_angle * 1.0)
 	var left_flank_dir := player_to_enemy.rotated(flank_angle * -1.0)
 
-	var right_flank_pos := _get_flank_nav_position(player_pos + right_flank_dir * flank_distance)
-	var left_flank_pos := _get_flank_nav_position(player_pos + left_flank_dir * flank_distance)
+	var right_flank_pos := EnemyFlankNavigationHelper.get_flank_nav_position(_nav_agent, player_pos + right_flank_dir * flank_distance)
+	var left_flank_pos := EnemyFlankNavigationHelper.get_flank_nav_position(_nav_agent, player_pos + left_flank_dir * flank_distance)
 
 	# Flanking is allowed to route around walls, so require nav-reachability instead of
 	# a direct ray-clear path from the current position to the flank point.
-	var right_path_clear := _is_candidate_flank_position_valid(right_flank_pos, player_pos)
-	var left_path_clear := _is_candidate_flank_position_valid(left_flank_pos, player_pos)
+	var right_path_clear := EnemyFlankNavigationHelper.is_candidate_flank_position_valid(self, _nav_agent, right_flank_pos, player_pos)
+	var left_path_clear := EnemyFlankNavigationHelper.is_candidate_flank_position_valid(self, _nav_agent, left_flank_pos, player_pos)
 
 	# Issue #367: Check LOS to player and combine with path checks
 	var right_valid := right_path_clear and _flank_position_has_los_to_player(right_flank_pos, player_pos)
@@ -3342,10 +3342,10 @@ func _choose_best_flank_side() -> float:
 	# Issue #367: If neither valid, try reduced distance (50%)
 	if not right_valid and not left_valid:
 		var rd := flank_distance * 0.5
-		var rr := _get_flank_nav_position(player_pos + right_flank_dir * rd)
-		var lr := _get_flank_nav_position(player_pos + left_flank_dir * rd)
-		var rrv := _is_candidate_flank_position_valid(rr, player_pos) and _flank_position_has_los_to_player(rr, player_pos)
-		var lrv := _is_candidate_flank_position_valid(lr, player_pos) and _flank_position_has_los_to_player(lr, player_pos)
+		var rr := EnemyFlankNavigationHelper.get_flank_nav_position(_nav_agent, player_pos + right_flank_dir * rd)
+		var lr := EnemyFlankNavigationHelper.get_flank_nav_position(_nav_agent, player_pos + left_flank_dir * rd)
+		var rrv := EnemyFlankNavigationHelper.is_candidate_flank_position_valid(self, _nav_agent, rr, player_pos) and _flank_position_has_los_to_player(rr, player_pos)
+		var lrv := EnemyFlankNavigationHelper.is_candidate_flank_position_valid(self, _nav_agent, lr, player_pos) and _flank_position_has_los_to_player(lr, player_pos)
 		if rrv and not lrv:
 			return 1.0
 		elif lrv and not rrv:
@@ -3355,41 +3355,6 @@ func _choose_best_flank_side() -> float:
 
 	# Choose closer side
 	return 1.0 if global_position.distance_squared_to(right_flank_pos) < global_position.distance_squared_to(left_flank_pos) else -1.0
-
-func _get_flank_nav_position(candidate: Vector2) -> Vector2:
-	if _nav_agent:
-		return NavigationServer2D.map_get_closest_point(_nav_agent.get_navigation_map(), candidate)
-	return candidate
-
-func _is_candidate_flank_position_valid(candidate: Vector2, player_pos: Vector2) -> bool:
-	if candidate == Vector2.ZERO:
-		return false
-	if candidate.distance_to(player_pos) < 20.0:
-		return false
-	return _is_navigation_target_reasonable(candidate)
-
-func _is_navigation_target_reasonable(target: Vector2) -> bool:
-	if _nav_agent == null:
-		return true
-
-	var previous_target := _nav_agent.target_position
-	_nav_agent.target_position = target
-
-	if _nav_agent.is_navigation_finished():
-		var distance := global_position.distance_to(target)
-		_nav_agent.target_position = previous_target
-		return distance <= 50.0
-
-	var path_distance := _nav_agent.distance_to_target()
-	var straight_distance := global_position.distance_to(target)
-	_nav_agent.target_position = previous_target
-
-	if path_distance <= 0.0:
-		return false
-	if path_distance > straight_distance * 3.0 and path_distance > 500.0:
-		_log_debug("Flank path too long: %.0f vs straight %.0f" % [path_distance, straight_distance])
-		return false
-	return true
 
 ## Check if flank position has LOS to player (Issue #367).
 func _flank_position_has_los_to_player(flank_pos: Vector2, player_pos: Vector2) -> bool:
