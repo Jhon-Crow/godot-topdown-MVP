@@ -1846,6 +1846,12 @@ func _handle_simple_grenade_timer_started_state() -> void:
 ## Cursor position = landing point. Release RMB to throw.
 ## G can be released while RMB is held - grenade stays ready.
 func _handle_simple_grenade_aiming_state() -> void:
+	# Issue #1819: simple trajectory mode still requires the left hand to let go
+	# before the grenade can be aimed or thrown with the right hand.
+	if Input.is_action_pressed("grenade_prepare"):
+		FileLogger.info("[Player.Grenade.Simple] G still held during right-hand aiming - waiting for release before aim/throw")
+		return
+
 	# Request redraw for trajectory visualization (always show in simple mode)
 	queue_redraw()
 

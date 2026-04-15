@@ -55,6 +55,13 @@ class MockComplexGrenadePlayer:
 		if rmb_just_released:
 			throw_triggered = true
 
+	func handle_simple_aiming_state(g_pressed: bool, rmb_just_released: bool) -> void:
+		if g_pressed:
+			return
+
+		if rmb_just_released:
+			throw_triggered = true
+
 	func drop_grenade_at_feet() -> void:
 		dropped_at_feet = true
 		grenade_state = GrenadeState.Idle
@@ -118,3 +125,22 @@ func test_aiming_state_rejects_throw_until_g_is_released() -> void:
 
 	assert_eq(player.grenade_state, MockComplexGrenadePlayer.GrenadeState.WaitingForGRelease)
 	assert_false(player.throw_triggered)
+
+
+func test_simple_aiming_state_rejects_throw_while_g_is_held() -> void:
+	player.grenade_state = MockComplexGrenadePlayer.GrenadeState.SimpleAiming
+	player.grenade_anim_phase = MockComplexGrenadePlayer.GrenadeAnimPhase.WindUp
+
+	player.handle_simple_aiming_state(true, true)
+
+	assert_eq(player.grenade_state, MockComplexGrenadePlayer.GrenadeState.SimpleAiming)
+	assert_false(player.throw_triggered)
+
+
+func test_simple_aiming_state_allows_throw_after_g_release() -> void:
+	player.grenade_state = MockComplexGrenadePlayer.GrenadeState.SimpleAiming
+	player.grenade_anim_phase = MockComplexGrenadePlayer.GrenadeAnimPhase.WindUp
+
+	player.handle_simple_aiming_state(false, true)
+
+	assert_true(player.throw_triggered)

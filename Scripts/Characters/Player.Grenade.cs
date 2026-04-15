@@ -312,6 +312,15 @@ public partial class Player
     /// </summary>
     private void HandleSimpleGrenadeAimingState()
     {
+        // Issue #1819: the handoff is not complete until G is released.
+        // Keep the simple path aligned with the complex path so the player
+        // cannot aim or throw while still clutching the grenade with the left hand.
+        if (Input.IsActionPressed("grenade_prepare"))
+        {
+            LogToFile("[Player.Grenade.Simple] G still held during right-hand aiming - waiting for release before aim/throw");
+            return;
+        }
+
         // Request redraw for trajectory visualization (always show in simple mode)
         QueueRedraw();
 
