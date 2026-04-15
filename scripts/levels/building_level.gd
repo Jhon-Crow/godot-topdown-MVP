@@ -1028,6 +1028,8 @@ func _setup_debug_ui() -> void:
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 
+	_update_debug_ui()
+
 
 
 ## Setup saturation overlay for kill effect.

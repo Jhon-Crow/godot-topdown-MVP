@@ -87,6 +87,26 @@ func test_apply_level_label_from_node_updates_canvas_ui_label() -> void:
 	assert_eq(label.text, tr("LEVEL_BUILDING_NAME"))
 
 
+func test_apply_level_label_from_node_overrides_building_scene_default_text() -> void:
+	var level_root := Node.new()
+	add_child_autofree(level_root)
+	var canvas_layer := CanvasLayer.new()
+	canvas_layer.name = "CanvasLayer"
+	level_root.add_child(canvas_layer)
+	var ui := Control.new()
+	ui.name = "UI"
+	canvas_layer.add_child(ui)
+	var label := Label.new()
+	label.name = "LevelLabel"
+	label.text = "BUILDING INTERIOR"
+	ui.add_child(label)
+
+	_helper.apply_level_label_from_node(level_root, "res://scenes/levels/BuildingLevel.tscn")
+
+	assert_eq(label.text, tr("LEVEL_BUILDING_NAME"))
+	assert_ne(label.text, "BUILDING INTERIOR")
+
+
 func test_apply_level_label_from_node_creates_missing_level_label() -> void:
 	var level_root := Node.new()
 	add_child_autofree(level_root)
