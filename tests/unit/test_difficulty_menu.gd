@@ -74,6 +74,12 @@ class MockDifficultyMenu:
 	## 0 = default, 1 = CONFINED (cursor shown), 2 = CONFINED_HIDDEN (cursor hidden).
 	var mouse_mode_on_enter: int = 0
 	var mouse_mode_on_exit: int = 0
+	## Tracks pause state changes caused by restart flow.
+	var tree_paused: bool = true
+	## Tracks whether restart would be requested.
+	var restart_requested: bool = false
+	## Simulated player presence for restart gating.
+	var has_player: bool = false
 
 	## Simulate entering first-launch mode (_ready logic) (Issue #1734).
 	func simulate_enter_first_launch() -> void:
@@ -92,6 +98,13 @@ class MockDifficultyMenu:
 			first_launch_signal_emitted = true
 			return true
 		return false
+
+	## Simulate _restart_if_in_game() including unpausing before restart.
+	func simulate_restart_if_in_game() -> void:
+		if not has_player:
+			return
+		tree_paused = false
+		restart_requested = true
 
 	## Whether the back button would be visible (Issue #1734).
 	func is_back_button_visible() -> bool:
@@ -500,3 +513,27 @@ func test_cursor_restored_regardless_of_difficulty_chosen() -> void:
 
 		assert_eq(m.mouse_mode_on_exit, 2,
 			"Mouse mode should be CONFINED_HIDDEN after choosing difficulty %d" % diff)
+
+
+func test_restart_unpauses_tree_before_restart_when_player_exists() -> void:
+	menu.has_player = true
+	menu.tree_paused = true
+
+	menu.simulate_restart_if_in_game()
+
+	assert_false(menu.tree_paused,
+		"Difficulty change restart should unpause the tree before restarting (Issue #1812)")
+	assert_true(menu.restart_requested,
+		"Difficulty change restart should request scene restart when player exists")
+
+
+func test_restart_without_player_leaves_tree_pause_state_unchanged() -> void:
+	menu.has_player = false
+	menu.tree_paused = true
+
+	menu.simulate_restart_if_in_game()
+
+	assert_true(menu.tree_paused,
+		"Difficulty change should not alter pause state when no player exists")
+	assert_false(menu.restart_requested,
+		"Difficulty change should not request restart when no player exists")
