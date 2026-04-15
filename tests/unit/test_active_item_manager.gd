@@ -94,6 +94,12 @@ func test_flashlight_data_mentions_blinding_enemies() -> void:
 		"Flashlight description should mention blinding enemies")
 
 
+func test_flashlight_translation_description_mentions_blinding_enemies() -> void:
+	var csv_line := 'ITEM_FLASHLIGHT_DESC,"Tactical flashlight — hold Space to illuminate in weapon direction and blind enemies caught in the beam. Bright white light, turns off when released.","Тактический фонарик — удерживайте Пробел для освещения в направлении оружия и ослепления врагов, попавших в луч. Яркий белый свет, выключается при отпускании."'
+	assert_true(csv_line.to_lower().contains("blind enemies"),
+		"Flashlight translation source should mention blinding enemies in the localized armory text")
+
+
 func test_homing_bullets_data_has_name() -> void:
 	var data := {"name": "Homing Bullets"}
 	assert_eq(data["name"], "Homing Bullets", "Homing Bullets should have correct name")
