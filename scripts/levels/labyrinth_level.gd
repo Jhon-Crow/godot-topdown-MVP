@@ -811,10 +811,9 @@ func _setup_player_tracking() -> void:
 			weapon.ShotFired.connect(_on_tutorial_weapon_fired)
 		if weapon.has_signal("ShellCountChanged"):
 			weapon.ShellCountChanged.connect(_on_shell_count_changed)
-		if weapon.name == "Shotgun" and weapon.get("ShellsInTube") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.ShellsInTube, weapon.ReserveAmmo)
-		elif weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
@@ -932,6 +931,16 @@ func _setup_enemy_tracking() -> void:
 	print("Tracking %d enemies" % _initial_enemy_count)
 
 
+## Return the loaded ammo value that should be shown in the HUD.
+## Shotgun keeps the loaded shell count in ShellsInTube instead of CurrentAmmo.
+func _get_weapon_display_current_ammo(weapon: Node) -> Variant:
+	if weapon == null:
+		return null
+	if weapon.name == "Shotgun" and weapon.get("ShellsInTube") != null:
+		return weapon.ShellsInTube
+	return weapon.get("CurrentAmmo")
+
+
 ## Configure silenced pistol ammo based on enemy count.
 func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 	if weapon.name != "SilencedPistol":
@@ -946,8 +955,9 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		weapon.ConfigureAmmoForEnemyCount(enemy_count)
 		print("[LabyrinthLevel] Configured silenced pistol ammo for %d enemies" % enemy_count)
 
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
@@ -975,8 +985,9 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		print("[LabyrinthLevel] 2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
 
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
@@ -1020,8 +1031,9 @@ func _configure_labyrinth_weapon_ammo(weapon: Node, weapon_id: String) -> void:
 			var mag_size: int = _MAGAZINE_SIZES.get(weapon_id, 30)
 			weapon.ReinitializeMagazines(base_magazines, mag_size, true)
 			print("[LabyrinthLevel] %s magazines reinitialized to %d x %d rounds" % [weapon.name, base_magazines, mag_size])
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)

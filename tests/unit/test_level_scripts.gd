@@ -273,11 +273,18 @@ class MockBuildingLevel extends MockLevelBase:
 
 	## Simulate shotgun startup ammo display.
 	## Before the fix, the level read CurrentAmmo which remains 0 for shotgun startup UI.
-	## After the fix, it must read ShellsInTube for the initial display.
-	func simulate_shotgun_startup_display(current_ammo: int, shells_in_tube: int, reserve: int, use_shell_count: bool) -> void:
+	## After the fix, startup and later HUD refreshes must pick ShellsInTube automatically.
+	func _get_weapon_display_current_ammo(weapon: Dictionary) -> Variant:
+		if weapon.get("name") == "Shotgun" and weapon.get("ShellsInTube") != null:
+			return weapon.get("ShellsInTube")
+		return weapon.get("CurrentAmmo")
+
+	func simulate_weapon_display_update(weapon: Dictionary) -> void:
 		init_ammo_label()
-		var displayed_current := shells_in_tube if use_shell_count else current_ammo
-		update_ammo_label_magazine(displayed_current, reserve)
+		var displayed_current = _get_weapon_display_current_ammo(weapon)
+		var reserve = weapon.get("ReserveAmmo")
+		if displayed_current != null and reserve != null:
+			update_ammo_label_magazine(displayed_current, reserve)
 
 	# -------------------------------------------------------------------------
 	# Player death simulation (Issue #1259)
@@ -2168,22 +2175,33 @@ func test_building_ammo_label_update_fails_when_not_initialized() -> void:
 
 func test_building_shotgun_startup_uses_shell_count_not_current_ammo() -> void:
 	## Issue #1808: shotgun startup HUD must show loaded shells before the first shot.
-	building_level.simulate_shotgun_startup_display(0, 8, 8, false)
-	assert_eq(building_level._ammo_label_text, "AMMO: 0/8",
-		"Bug proof: CurrentAmmo-based startup shows empty shotgun tube")
-
-	building_level.simulate_shotgun_startup_display(0, 8, 8, true)
+	building_level.simulate_weapon_display_update({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	})
 	assert_eq(building_level._ammo_label_text, "AMMO: 8/8",
 		"Shotgun startup must use ShellsInTube for the initial HUD state")
+
+	building_level.simulate_weapon_display_update({
+		"name": "MiniUzi",
+		"CurrentAmmo": 24,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 64,
+	})
+	assert_eq(building_level._ammo_label_text, "AMMO: 24/64",
+		"Non-shotgun startup must keep using CurrentAmmo")
 
 
 func test_labyrinth_shotgun_startup_uses_shell_count_not_current_ammo() -> void:
 	## Labyrinth has the same shotgun startup bug as Building (Issue #1808).
-	var labyrinth_level := MockBuildingLevel.new()
-	labyrinth_level.simulate_shotgun_startup_display(0, 8, 8, false)
-	assert_eq(labyrinth_level._ammo_label_text, "AMMO: 0/8",
-		"Bug proof: Labyrinth also misreports the startup shotgun tube as empty")
-
-	labyrinth_level.simulate_shotgun_startup_display(0, 8, 8, true)
-	assert_eq(labyrinth_level._ammo_label_text, "AMMO: 8/8",
+	var shotgun_level := MockBuildingLevel.new()
+	shotgun_level.simulate_weapon_display_update({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	})
+	assert_eq(shotgun_level._ammo_label_text, "AMMO: 8/8",
 		"Labyrinth startup must use ShellsInTube for the initial HUD state")

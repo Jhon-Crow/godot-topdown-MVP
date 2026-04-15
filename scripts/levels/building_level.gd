@@ -788,10 +788,9 @@ func _setup_player_tracking() -> void:
 			weapon.ShellCountChanged.connect(_on_shell_count_changed)
 		# Shotgun stores the loaded shells in ShellsInTube, not CurrentAmmo.
 		# Push the initial value explicitly so the HUD is correct before the first shot.
-		if weapon.name == "Shotgun" and weapon.get("ShellsInTube") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.ShellsInTube, weapon.ReserveAmmo)
-		elif weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 		# Initial magazine display
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
@@ -860,6 +859,16 @@ func _setup_enemy_tracking() -> void:
 	print("Tracking %d enemies" % _initial_enemy_count)
 
 
+## Return the loaded ammo value that should be shown in the HUD.
+## Shotgun keeps the loaded shell count in ShellsInTube instead of CurrentAmmo.
+func _get_weapon_display_current_ammo(weapon: Node) -> Variant:
+	if weapon == null:
+		return null
+	if weapon.name == "Shotgun" and weapon.get("ShellsInTube") != null:
+		return weapon.ShellsInTube
+	return weapon.get("CurrentAmmo")
+
+
 ## Configure silenced pistol ammo based on enemy count.
 ## This ensures the pistol has exactly enough bullets for all enemies in the level.
 func _configure_silenced_pistol_ammo(weapon: Node) -> void:
@@ -878,8 +887,9 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		print("[BuildingLevel] Configured silenced pistol ammo for %d enemies" % enemy_count)
 
 		# Update the ammo display after configuration
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
@@ -915,8 +925,9 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 			_player.ApplyAutoReloadAfterLevelAmmoConfig()
 			_log_to_file("[BuildingLevel] Re-applied auto-reload magazine reduction after ammo config for makarov_pm")
 
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
@@ -943,8 +954,9 @@ func _apply_building_ammo_config(weapon: Node, weapon_id: String) -> void:
 			print("BuildingLevel: %s magazines reinitialized to %d (C# weapon)" % [weapon.name, base_magazines])
 
 		# Update ammo display
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
