@@ -37,7 +37,7 @@ class MockActiveItemManager:
 	const ACTIVE_ITEM_DATA: Dictionary = {
 		0: {"name": "None", "icon_path": "", "description": "No active item equipped."},
 		1: {"name": "Flashlight", "icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
-			"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released.",
+			"description": "Tactical flashlight — hold Space to illuminate in weapon direction and blind enemies caught in the beam. Bright white light, turns off when released.",
 			"activation_hint": "Hold Space to activate"},
 		2: {"name": "Homing Bullets", "icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
 			"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 2 charges per battle, each lasts 1.2 seconds."},
