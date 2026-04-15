@@ -136,6 +136,7 @@ const HINT_KEY_HAMMER_COCK := "hammer_cock"
 const HINT_KEY_SCOPE := "scope"
 const HINT_KEY_FIRE_MODE := "fire_mode"
 const HINT_KEY_LAUNCHER := "launcher"
+const HINT_KEY_GRENADE := "grenade"
 
 ## Per-hint colors matching Labyrinth level color palette.
 const HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)              ## Green
@@ -144,6 +145,7 @@ const HINT_COLOR_HAMMER_COCK := Color(1.0, 0.8, 0.3, 1.0)         ## Yellow
 const HINT_COLOR_SCOPE := Color(0.3, 0.9, 1.0, 1.0)               ## Cyan
 const HINT_COLOR_FIRE_MODE := Color(0.3, 0.9, 1.0, 1.0)           ## Cyan
 const HINT_COLOR_LAUNCHER := Color(1.0, 0.4, 0.2, 1.0)            ## Red-orange
+const HINT_COLOR_GRENADE := Color(1.0, 0.65, 0.0, 1.0)            ## Orange
 const HINT_COLOR_DEFAULT := Color(1.0, 1.0, 0.3, 1.0)             ## Yellow fallback
 
 ## Color mapping by hint key.
@@ -155,6 +157,7 @@ func _get_hint_color(hint_key: String) -> Color:
 		HINT_KEY_SCOPE:     return HINT_COLOR_SCOPE
 		HINT_KEY_FIRE_MODE: return HINT_COLOR_FIRE_MODE
 		HINT_KEY_LAUNCHER:  return HINT_COLOR_LAUNCHER
+		HINT_KEY_GRENADE:   return HINT_COLOR_GRENADE
 		_:                  return HINT_COLOR_DEFAULT
 
 
@@ -202,6 +205,8 @@ func setup(player: Node2D, canvas_layer: Node) -> void:
 func _process(_delta: float) -> void:
 	if _hints_showing:
 		_update_hint_positions()
+	if _hints_active:
+		_update_grenade_hint()
 
 
 ## Called when GameManager emits weapon_unlocked (weapon opened in armory and taken for first time).
@@ -519,6 +524,21 @@ func _on_grenade_launcher_fired() -> void:
 	_log_to_file("Grenade launcher fired — launcher hint dismissed")
 
 
+func _update_grenade_hint() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+
+	var grenade_pressed: bool = Input.is_action_pressed("grenade_prepare")
+	if grenade_pressed and _player_has_grenades():
+		if not _hint_labels.has(HINT_KEY_GRENADE):
+			_add_hint(HINT_KEY_GRENADE, _build_grenade_hint_bbcode())
+			_log_to_file("Grenade prepare pressed — grenade hint shown")
+	elif _hint_labels.has(HINT_KEY_GRENADE):
+		_last_dismiss_was_player_action = true
+		_dismiss_hint(HINT_KEY_GRENADE)
+		_log_to_file("Grenade prepare released — grenade hint dismissed")
+
+
 ## Called when player completes a reload.
 ## Mirrors labyrinth_level.gd _on_tutorial_reload_completed(): dismisses reload hint.
 ## For M16: shows fire-mode hint after reload (mirrors Labyrinth).
@@ -675,6 +695,13 @@ func _build_shotgun_pump_hint_bbcode(state: int) -> String:
 	return ""
 
 
+func _build_grenade_hint_bbcode() -> String:
+	var key_text := tr("HINT_KEY_GRENADE_ARM")
+	var aim_text := tr("HINT_KEY_GRENADE_AIM")
+	var throw_text := tr("HINT_KEY_GRENADE_THROW")
+	return "[color=#ff4444][%s][/color] [color=#888888][%s] [%s][/color]" % [key_text, aim_text, throw_text]
+
+
 ## Build BBCode for sniper bolt-cycle hint showing 4-step sequence.
 ## Mirrors labyrinth_level.gd _build_tutorial_sniper_bolt_hint_bbcode().
 func _build_sniper_bolt_hint_bbcode(step: int) -> String:
@@ -713,6 +740,20 @@ func _ak_gl_has_round_loaded() -> bool:
 	if available != null:
 		return bool(available)
 	return true  # Assume loaded if property not found
+
+
+func _player_has_grenades() -> bool:
+	if _player == null or not is_instance_valid(_player):
+		return false
+
+	if _player.has_method("GetCurrentGrenades"):
+		return int(_player.call("GetCurrentGrenades")) > 0
+
+	var grenade_count = _player.get("GrenadeCount")
+	if grenade_count != null:
+		return int(grenade_count) > 0
+
+	return false
 
 
 ## Extend the strikethrough progress for a hint (used by BBCode builders).
