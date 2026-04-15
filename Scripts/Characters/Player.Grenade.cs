@@ -200,6 +200,16 @@ public partial class Player
         // If G is released while RMB is still held, enter Aiming state
         if (!Input.IsActionPressed("grenade_prepare"))
         {
+            // Issue #1819: if the player releases G before the right hand has actually
+            // taken the grenade, the grenade should slip from the left hand and drop
+            // at the player's feet instead of entering aiming mode.
+            if (_grenadeAnimPhase == GrenadeAnimPhase.HandsApproach && _grenadeAnimTimer > 0.0f)
+            {
+                LogToFile("[Player.Grenade] G released before hand transfer completed - dropping grenade at feet");
+                DropGrenadeAtFeet();
+                return;
+            }
+
             _grenadeState = GrenadeState.Aiming;
             _grenadeDragStart = GetGlobalMousePosition();
             _prevMousePos = _grenadeDragStart;
