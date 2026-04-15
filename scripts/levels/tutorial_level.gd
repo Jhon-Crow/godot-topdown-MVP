@@ -1169,7 +1169,9 @@ func _get_shotgun_shells_to_load() -> int:
 
 ## Build BBCode for the revolver reload hint with step-based highlighting (Bug fix round 4).
 ## step=1: cylinder opened → highlight insert-cartridge action
-## step=3: cylinder closed → all grey (done)
+## step=2: cartridge inserted → highlight scroll action
+## step=3: cylinder rotated after insert → highlight close action
+## step=4: cylinder closed → all grey (done)
 ## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_revolver_reload_hint_bbcode(step: int) -> String:
 	var k_open: String = tr("HINT_KEY_R_OPEN")
@@ -1185,8 +1187,12 @@ func _build_revolver_reload_hint_bbcode(step: int) -> String:
 			_extend_hint_strikethrough(HINT_RELOAD, 0.15)  # ~15% for first segment
 			return "[color=#888888][%s][/color] [color=#ff4444][%s][/color] [color=#888888][%s] [%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
 		2:
-			# Scrolled (cylinder rotated): next is close cylinder (open and insert completed)
-			_extend_hint_strikethrough(HINT_RELOAD, 0.55)  # ~55% for first three segments
+			# Cartridge inserted: next is scroll/rotate cylinder
+			_extend_hint_strikethrough(HINT_RELOAD, 0.35)  # open + insert completed
+			return "[color=#888888][%s] [%s][/color] [color=#ff4444][%s][/color] [color=#888888][%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
+		3:
+			# Cylinder rotated after insertion: next is close cylinder
+			_extend_hint_strikethrough(HINT_RELOAD, 0.55)  # open + insert + scroll completed
 			return "[color=#888888][%s] [%s] [%s][/color] [color=#ff4444][%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
 		_:
 			# All steps done
@@ -1376,9 +1382,10 @@ func _on_revolver_hammer_cocked() -> void:
 
 ## Called when the revolver reload state changes (Bug fix round 5).
 ## RevolverReloadState: 0=NotReloading, 1=CylinderOpen, 2=Loading, 3=ClosingCylinder.
-## Maps reload state to hint step to highlight the next action:
+## Maps actual reload state to the next tutorial action:
 ##   state=1 (CylinderOpen): highlight [ПКМ↑ патрон] (step=1)
-##   state=2 (Loading): highlight [R закрыть] (step=2)
+##   state=2 (Loading) with another insert possible: highlight [скролл] (step=2)
+##   state=2 (Loading) but insertion blocked or chamber occupied: highlight [R закрыть] (step=3)
 ##   state=0/3 (not reloading/closing): all grey (done)
 func _on_revolver_reload_state_changed(new_state: int) -> void:
 	if not _hint_labels.has(HINT_RELOAD):
@@ -1386,24 +1393,37 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 	if not _has_revolver:
 		return
 
-	# Map Revolver reload state to hint step:
-	# state=1 (CylinderOpen) → step=1 (highlight insert cartridge)
-	# state=2 (Loading) → step=2 (highlight close cylinder)
-	# state=0/3 → step=3 (all grey/done)
 	var hint_step: int = 0
 	match new_state:
 		1:
 			hint_step = 1
 		2:
-			hint_step = 2
+			hint_step = _get_revolver_reload_hint_step_for_loading_state()
 		_:
-			hint_step = 3
+			hint_step = 4
 
 	var new_text := _build_revolver_reload_hint_bbcode(hint_step)
 	var label: RichTextLabel = _hint_labels[HINT_RELOAD]
 	if is_instance_valid(label):
 		label.text = new_text
 	print("Tutorial: Revolver reload state %d → hint step %d updated" % [new_state, hint_step])
+
+
+func _get_revolver_reload_hint_step_for_loading_state() -> int:
+	if _player == null:
+		return 2
+
+	var revolver := _player.get_node_or_null("Revolver")
+	if revolver == null:
+		return 2
+
+	if revolver.get("CanInsertCartridge") != null and bool(revolver.get("CanInsertCartridge")):
+		return 3
+
+	if revolver.get("CartridgesLoadedThisReload") != null and int(revolver.get("CartridgesLoadedThisReload")) > 0:
+		return 2
+
+	return 2
 
 
 ## Build BBCode for the grenade throw hint with step-based highlighting (Bug fix round 5).
