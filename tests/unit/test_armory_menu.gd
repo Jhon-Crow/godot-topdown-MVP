@@ -68,7 +68,7 @@ class MockArmoryMenu:
 	## Active item data (separate from firearms and grenades).
 	const ACTIVE_ITEMS: Dictionary = {
 		0: {"name": "None", "description": "No active item equipped."},
-		1: {"name": "Flashlight", "description": "Tactical flashlight"},
+		1: {"name": "Flashlight", "desc_key": "ITEM_FLASHLIGHT_DESC", "description": "Tactical flashlight — hold Space to illuminate in weapon direction and blind enemies caught in the beam. Bright white light, turns off when released."},
 		2: {"name": "Homing Bullets", "description": "Homing bullets active item"},
 		3: {"name": "Teleport Bracers", "description": "Teleportation bracers"}
 	}
@@ -215,6 +215,13 @@ class MockArmoryMenu:
 		else:
 			apply_button_shine_active = false
 
+	func get_active_item_description_for_armory(item_type: int, translations: Dictionary) -> String:
+		var item_data: Dictionary = ACTIVE_ITEMS.get(item_type, {})
+		var desc_key: String = item_data.get("desc_key", "")
+		if desc_key != "" and translations.has(desc_key):
+			return translations[desc_key]
+		return item_data.get("description", "No active item equipped.")
+
 
 ## Mock AudioManager that records play_weapon_reload_preview calls.
 class MockAudioManager:
@@ -319,6 +326,15 @@ func test_count_total_grenades() -> void:
 
 	assert_eq(count, 3,
 		"Should count total grenades correctly (flashbang, frag, defensive)")
+
+
+func test_flashlight_armory_description_prefers_translated_text_with_blinding() -> void:
+	var translations := {
+		"ITEM_FLASHLIGHT_DESC": "Tactical flashlight — hold Space to illuminate in weapon direction and blind enemies caught in the beam. Bright white light, turns off when released."
+	}
+	var description := menu.get_active_item_description_for_armory(1, translations)
+	assert_true(description.to_lower().contains("blind enemies"),
+		"Armory active item description should mention blinding enemies when desc_key translation is used")
 
 
 # ============================================================================
