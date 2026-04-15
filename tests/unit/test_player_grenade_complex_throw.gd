@@ -31,6 +31,7 @@ class MockComplexGrenadePlayer:
 	var grenade_anim_timer: float = 0.0
 	var dropped_at_feet: bool = false
 	var aiming_started: bool = false
+	var throw_triggered: bool = false
 
 	func handle_waiting_for_g_release(rmb_pressed: bool, g_pressed: bool) -> void:
 		if not rmb_pressed:
@@ -45,6 +46,14 @@ class MockComplexGrenadePlayer:
 			grenade_state = GrenadeState.Aiming
 			grenade_anim_phase = GrenadeAnimPhase.Transfer
 			aiming_started = true
+
+	func handle_aiming_state(g_pressed: bool, rmb_just_released: bool) -> void:
+		if g_pressed:
+			grenade_state = GrenadeState.WaitingForGRelease
+			return
+
+		if rmb_just_released:
+			throw_triggered = true
 
 	func drop_grenade_at_feet() -> void:
 		dropped_at_feet = true
@@ -99,3 +108,13 @@ func test_releasing_g_after_hands_meet_enters_aiming() -> void:
 	assert_eq(player.grenade_state, MockComplexGrenadePlayer.GrenadeState.Aiming)
 	assert_eq(player.grenade_anim_phase, MockComplexGrenadePlayer.GrenadeAnimPhase.Transfer)
 	assert_false(player.dropped_at_feet)
+
+
+func test_aiming_state_rejects_throw_until_g_is_released() -> void:
+	player.grenade_state = MockComplexGrenadePlayer.GrenadeState.Aiming
+	player.grenade_anim_phase = MockComplexGrenadePlayer.GrenadeAnimPhase.WindUp
+
+	player.handle_aiming_state(true, true)
+
+	assert_eq(player.grenade_state, MockComplexGrenadePlayer.GrenadeState.WaitingForGRelease)
+	assert_false(player.throw_triggered)

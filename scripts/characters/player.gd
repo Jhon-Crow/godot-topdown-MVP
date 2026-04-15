@@ -1766,6 +1766,13 @@ func _handle_grenade_waiting_for_g_release_state() -> void:
 
 	# If G is released while RMB is still held, enter Aiming state
 	if not Input.is_action_pressed("grenade_prepare"):
+		# Issue #1819: releasing G before the right hand actually takes the grenade
+		# should drop it instead of entering aiming.
+		if _grenade_anim_phase == GrenadeAnimPhase.HANDS_APPROACH and _grenade_anim_timer > 0.0:
+			FileLogger.info("[Player.Grenade] G released before hand transfer completed - dropping grenade at feet")
+			_drop_grenade_at_feet()
+			return
+
 		_grenade_state = GrenadeState.AIMING
 		_aim_drag_start = get_global_mouse_position()
 		_prev_mouse_pos = _aim_drag_start
@@ -1780,8 +1787,13 @@ func _handle_grenade_waiting_for_g_release_state() -> void:
 
 ## Handle AIMING state: only RMB held (G released), drag to aim and release to throw.
 func _handle_grenade_aiming_state() -> void:
-	# In this state, G is already released (that's how we got here)
-	# We only care about RMB
+	# Complex aiming is only valid after G has been released.
+	# If we somehow re-enter aiming with G still held, block the throw until the
+	# handoff sequence is completed correctly.
+	if Input.is_action_pressed("grenade_prepare"):
+		FileLogger.info("[Player.Grenade] Aiming state entered while G is still held - returning to waiting for G release")
+		_grenade_state = GrenadeState.WAITING_FOR_G_RELEASE
+		return
 
 	# Update wind-up intensity based on mouse drag during aiming
 	_update_wind_up_intensity()

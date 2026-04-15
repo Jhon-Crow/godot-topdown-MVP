@@ -230,8 +230,15 @@ public partial class Player
     /// </summary>
     private void HandleGrenadeAimingState()
     {
-        // In this state, G is already released (that's how we got here)
-        // We only care about RMB
+        // Complex throw aiming is only valid after G has been released.
+        // If the state machine somehow reaches aiming while G is still held,
+        // treat it as an invalid handoff and refuse to throw.
+        if (Input.IsActionPressed("grenade_prepare"))
+        {
+            LogToFile("[Player.Grenade] Aiming state entered while G is still held - returning to waiting for G release");
+            _grenadeState = GrenadeState.WaitingForGRelease;
+            return;
+        }
 
         // Transition from transfer to wind-up after transfer completes
         if (_grenadeAnimPhase == GrenadeAnimPhase.Transfer && _grenadeAnimTimer <= 0)
