@@ -154,3 +154,26 @@ func test_player_exit_completes_level() -> void:
 func test_map_dimensions() -> void:
 	assert_eq(level.map_width, 6000, "Castle map width should be 6000 (3 viewports)")
 	assert_eq(level.map_height, 2560, "Castle map height should be 2560")
+
+
+func test_castle_scene_has_outer_wall_collider() -> void:
+	var scene := load("res://scenes/levels/CastleLevel.tscn") as PackedScene
+	assert_not_null(scene, "CastleLevel scene should load")
+
+	var instance := scene.instantiate()
+	add_child_autofree(instance)
+
+	var outer_wall := instance.get_node_or_null("Environment/CastleWalls/WallOvalCollider") as StaticBody2D
+	assert_not_null(outer_wall, "Castle outer oval wall must have a StaticBody2D collider")
+	assert_eq(outer_wall.collision_layer, 4, "Outer wall collider should be on obstacle layer 4")
+
+	var occluder := outer_wall.get_node_or_null("LightOccluder2D") as LightOccluder2D
+	assert_not_null(occluder, "Outer wall collider should also occlude flash/light effects")
+
+	var collision_shape_count := 0
+	for child in outer_wall.get_children():
+		if child is CollisionShape2D:
+			collision_shape_count += 1
+
+	assert_ge(collision_shape_count, 16,
+		"Outer wall should be approximated by multiple collision segments so it blocks movement and LOS")

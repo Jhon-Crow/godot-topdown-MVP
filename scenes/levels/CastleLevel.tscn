@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://dkl8m4wq7r3y2"]
+[gd_scene load_steps=24 format=3 uid="uid://dkl8m4wq7r3y2"]
 
 [ext_resource type="Script" path="res://scripts/levels/castle_level.gd" id="1_castle_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -60,6 +60,89 @@ size = Vector2(6000, 200)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_boundary_vertical"]
 size = Vector2(600, 2560)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_castle_outer_wall"]
+polygon = PackedVector2Array(500, 1280, 520, 900, 700, 500, 1200, 250, 2000, 150, 3000, 100, 4000, 150, 4800, 250, 5300, 500, 5480, 900, 5500, 1280, 5480, 1660, 5300, 2060, 4800, 2310, 4000, 2410, 3000, 2460, 2000, 2410, 1200, 2310, 700, 2060, 520, 1660, 600, 1280, 620, 920, 780, 560, 1250, 330, 2000, 230, 3000, 180, 4000, 230, 4750, 330, 5220, 560, 5380, 920, 5400, 1280, 5380, 1640, 5220, 2000, 4750, 2230, 4000, 2330, 3000, 2380, 2000, 2330, 1250, 2230, 780, 2000, 620, 1640)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_01"]
+a = Vector2(500, 1280)
+b = Vector2(520, 900)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_02"]
+a = Vector2(520, 900)
+b = Vector2(700, 500)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_03"]
+a = Vector2(700, 500)
+b = Vector2(1200, 250)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_04"]
+a = Vector2(1200, 250)
+b = Vector2(2000, 150)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_05"]
+a = Vector2(2000, 150)
+b = Vector2(3000, 100)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_06"]
+a = Vector2(3000, 100)
+b = Vector2(4000, 150)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_07"]
+a = Vector2(4000, 150)
+b = Vector2(4800, 250)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_08"]
+a = Vector2(4800, 250)
+b = Vector2(5300, 500)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_09"]
+a = Vector2(5300, 500)
+b = Vector2(5480, 900)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_10"]
+a = Vector2(5480, 900)
+b = Vector2(5500, 1280)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_11"]
+a = Vector2(5500, 1280)
+b = Vector2(5480, 1660)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_12"]
+a = Vector2(5480, 1660)
+b = Vector2(5300, 2060)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_13"]
+a = Vector2(5300, 2060)
+b = Vector2(4800, 2310)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_14"]
+a = Vector2(4800, 2310)
+b = Vector2(4000, 2410)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_15"]
+a = Vector2(4000, 2410)
+b = Vector2(3000, 2460)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_16"]
+a = Vector2(3000, 2460)
+b = Vector2(2000, 2410)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_17"]
+a = Vector2(2000, 2410)
+b = Vector2(1200, 2310)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_18"]
+a = Vector2(1200, 2310)
+b = Vector2(700, 2060)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_19"]
+a = Vector2(700, 2060)
+b = Vector2(520, 1660)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_20"]
+a = Vector2(520, 1660)
+b = Vector2(500, 1280)
 
 [node name="CastleLevel" type="Node2D"]
 script = ExtResource("1_castle_level")
@@ -148,6 +231,73 @@ shape = SubResource("RectangleShape2D_boundary_vertical")
 [node name="WallOvalTop" type="Polygon2D" parent="Environment/CastleWalls"]
 color = Color(0.4, 0.35, 0.25, 1)
 polygon = PackedVector2Array(500, 1280, 520, 900, 700, 500, 1200, 250, 2000, 150, 3000, 100, 4000, 150, 4800, 250, 5300, 500, 5480, 900, 5500, 1280, 5480, 1660, 5300, 2060, 4800, 2310, 4000, 2410, 3000, 2460, 2000, 2410, 1200, 2310, 700, 2060, 520, 1660, 600, 1280, 620, 920, 780, 560, 1250, 330, 2000, 230, 3000, 180, 4000, 230, 4750, 330, 5220, 560, 5380, 920, 5400, 1280, 5380, 1640, 5220, 2000, 4750, 2230, 4000, 2330, 3000, 2380, 2000, 2330, 1250, 2230, 780, 2000, 620, 1640)
+
+[node name="WallOvalCollider" type="StaticBody2D" parent="Environment/CastleWalls"]
+collision_layer = 4
+collision_mask = 0
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CastleWalls/WallOvalCollider"]
+occluder = SubResource("OccluderPolygon2D_castle_outer_wall")
+
+[node name="CollisionShape2D01" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_01")
+
+[node name="CollisionShape2D02" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_02")
+
+[node name="CollisionShape2D03" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_03")
+
+[node name="CollisionShape2D04" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_04")
+
+[node name="CollisionShape2D05" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_05")
+
+[node name="CollisionShape2D06" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_06")
+
+[node name="CollisionShape2D07" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_07")
+
+[node name="CollisionShape2D08" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_08")
+
+[node name="CollisionShape2D09" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_09")
+
+[node name="CollisionShape2D10" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_10")
+
+[node name="CollisionShape2D11" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_11")
+
+[node name="CollisionShape2D12" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_12")
+
+[node name="CollisionShape2D13" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_13")
+
+[node name="CollisionShape2D14" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_14")
+
+[node name="CollisionShape2D15" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_15")
+
+[node name="CollisionShape2D16" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_16")
+
+[node name="CollisionShape2D17" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_17")
+
+[node name="CollisionShape2D18" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_18")
+
+[node name="CollisionShape2D19" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_19")
+
+[node name="CollisionShape2D20" type="CollisionShape2D" parent="Environment/CastleWalls/WallOvalCollider"]
+shape = SubResource("SegmentShape2D_wall_20")
 
 [node name="CenterTower" type="StaticBody2D" parent="Environment"]
 position = Vector2(3000, 450)
