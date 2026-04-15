@@ -425,3 +425,12 @@ func test_remove_oldest_offscreen_decal_with_multiple_decals() -> void:
 	impact_manager._remove_oldest_offscreen_decal()
 	assert_eq(impact_manager._blood_decals.size(), 1,
 		"Only one decal should be removed per _remove_oldest_offscreen_decal call")
+
+
+func test_pooled_explosion_light_uses_shadows_for_occlusion() -> void:
+	impact_manager._cached_explosion_light_texture = GradientTexture2D.new()
+
+	var light := impact_manager._create_pooled_explosion_light()
+	assert_not_null(light, "Pooled explosion light should be created")
+	assert_true(light.shadow_enabled,
+		"Pooled grenade/explosion lights must enable shadows so LightOccluder2D blockers work")

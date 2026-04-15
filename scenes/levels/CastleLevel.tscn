@@ -64,6 +64,24 @@ size = Vector2(600, 2560)
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_castle_outer_wall"]
 polygon = PackedVector2Array(500, 1280, 520, 900, 700, 500, 1200, 250, 2000, 150, 3000, 100, 4000, 150, 4800, 250, 5300, 500, 5480, 900, 5500, 1280, 5480, 1660, 5300, 2060, 4800, 2310, 4000, 2410, 3000, 2460, 2000, 2410, 1200, 2310, 700, 2060, 520, 1660, 600, 1280, 620, 920, 780, 560, 1250, 330, 2000, 230, 3000, 180, 4000, 230, 4750, 330, 5220, 560, 5380, 920, 5400, 1280, 5380, 1640, 5220, 2000, 4750, 2230, 4000, 2330, 3000, 2380, 2000, 2330, 1250, 2230, 780, 2000, 620, 1640, 500, 1280)
 
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_castle_wall_h"]
+polygon = PackedVector2Array(-600, -12, 600, -12, 600, 12, -600, 12)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_castle_wall_v"]
+polygon = PackedVector2Array(-12, -162, 12, -162, 12, 162, -12, 162)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_center_south_wall"]
+polygon = PackedVector2Array(-450, -12, 450, -12, 450, 12, -450, 12)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_cover_large"]
+polygon = PackedVector2Array(-80, -24, 80, -24, 80, 24, -80, 24)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_center_tower"]
+polygon = PackedVector2Array(-180, 0, -160, -100, -100, -160, 0, -180, 100, -160, 160, -100, 180, 0, 160, 100, 100, 160, 0, 180, -100, 160, -160, 100)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_inner_tower"]
+polygon = PackedVector2Array(-80, 0, -70, -50, -50, -70, 0, -80, 50, -70, 70, -50, 80, 0, 70, 50, 50, 70, 0, 80, -50, 70, -70, 50)
+
 [sub_resource type="SegmentShape2D" id="SegmentShape2D_wall_01"]
 a = Vector2(500, 1280)
 b = Vector2(520, 900)
@@ -312,6 +330,9 @@ polygon = PackedVector2Array(-180, 0, -160, -100, -100, -160, 0, -180, 100, -160
 shape = SubResource("CircleShape2D_inner_tower")
 scale = Vector2(1.8, 1.8)
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CenterTower"]
+occluder = SubResource("OccluderPolygon2D_center_tower")
+
 [node name="InnerTower" type="StaticBody2D" parent="Environment"]
 position = Vector2(3000, 450)
 collision_layer = 4
@@ -324,6 +345,9 @@ polygon = PackedVector2Array(-80, 0, -70, -50, -50, -70, 0, -80, 50, -70, 70, -5
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InnerTower"]
 shape = SubResource("RectangleShape2D_pillar")
 scale = Vector2(1.5, 1.5)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/InnerTower"]
+occluder = SubResource("OccluderPolygon2D_inner_tower")
 
 [node name="CastleBuilding" type="Node2D" parent="Environment"]
 
@@ -343,6 +367,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 shape = SubResource("RectangleShape2D_castle_wall_h")
 scale = Vector2(3.0, 1.0)
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CastleBuilding/LeftWingTopWall"]
+occluder = SubResource("OccluderPolygon2D_castle_wall_h")
+
 [node name="LeftWingBottomWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
 position = Vector2(1400, 650)
 collision_layer = 4
@@ -358,6 +385,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftWingBottomWall"]
 shape = SubResource("RectangleShape2D_castle_wall_h")
 scale = Vector2(3.0, 1.0)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CastleBuilding/LeftWingBottomWall"]
+occluder = SubResource("OccluderPolygon2D_castle_wall_h")
 
 [node name="LeftWingEndWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
 position = Vector2(800, 500)
@@ -375,6 +405,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 shape = SubResource("RectangleShape2D_castle_wall_v")
 scale = Vector2(1.0, 1.08)
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CastleBuilding/LeftWingEndWall"]
+occluder = SubResource("OccluderPolygon2D_castle_wall_v")
+
 [node name="RightWingTopWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
 position = Vector2(4600, 350)
 collision_layer = 4
@@ -390,6 +423,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingTopWall"]
 shape = SubResource("RectangleShape2D_castle_wall_h")
 scale = Vector2(3.0, 1.0)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CastleBuilding/RightWingTopWall"]
+occluder = SubResource("OccluderPolygon2D_castle_wall_h")
 
 [node name="RightWingBottomWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
 position = Vector2(4600, 650)
@@ -407,6 +443,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 shape = SubResource("RectangleShape2D_castle_wall_h")
 scale = Vector2(3.0, 1.0)
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CastleBuilding/RightWingBottomWall"]
+occluder = SubResource("OccluderPolygon2D_castle_wall_h")
+
 [node name="RightWingEndWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
 position = Vector2(5200, 500)
 collision_layer = 4
@@ -422,6 +461,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingEndWall"]
 shape = SubResource("RectangleShape2D_castle_wall_v")
 scale = Vector2(1.0, 1.08)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CastleBuilding/RightWingEndWall"]
+occluder = SubResource("OccluderPolygon2D_castle_wall_v")
 
 [node name="CenterSouthWallLeft" type="StaticBody2D" parent="Environment/CastleBuilding"]
 position = Vector2(2450, 750)
@@ -439,6 +481,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 shape = SubResource("RectangleShape2D_castle_wall_h")
 scale = Vector2(2.25, 1.0)
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CastleBuilding/CenterSouthWallLeft"]
+occluder = SubResource("OccluderPolygon2D_center_south_wall")
+
 [node name="CenterSouthWallRight" type="StaticBody2D" parent="Environment/CastleBuilding"]
 position = Vector2(3550, 750)
 collision_layer = 4
@@ -454,6 +499,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/CenterSouthWallRight"]
 shape = SubResource("RectangleShape2D_castle_wall_h")
 scale = Vector2(2.25, 1.0)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CastleBuilding/CenterSouthWallRight"]
+occluder = SubResource("OccluderPolygon2D_center_south_wall")
 
 [node name="Cover" type="Node2D" parent="Environment"]
 
@@ -472,6 +520,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLowerLeft1"]
 shape = SubResource("RectangleShape2D_cover_large")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverLowerLeft1"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
+
 [node name="CoverLowerLeft2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(1100, 1150)
 collision_layer = 4
@@ -486,6 +537,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLowerLeft2"]
 shape = SubResource("RectangleShape2D_cover_large")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverLowerLeft2"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
 
 [node name="CoverLowerLeft3" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(1400, 1150)
@@ -502,6 +556,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLowerLeft3"]
 shape = SubResource("RectangleShape2D_cover_large")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverLowerLeft3"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
+
 [node name="CoverLowerRight1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(4600, 1150)
 collision_layer = 4
@@ -516,6 +573,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLowerRight1"]
 shape = SubResource("RectangleShape2D_cover_large")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverLowerRight1"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
 
 [node name="CoverLowerRight2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(4900, 1150)
@@ -532,6 +592,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLowerRight2"]
 shape = SubResource("RectangleShape2D_cover_large")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverLowerRight2"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
+
 [node name="CoverLowerRight3" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(5200, 1150)
 collision_layer = 4
@@ -546,6 +609,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLowerRight3"]
 shape = SubResource("RectangleShape2D_cover_large")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverLowerRight3"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
 
 [node name="CoverCenterLeft1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2000, 1350)
@@ -562,6 +628,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverCenterLeft1"]
 shape = SubResource("RectangleShape2D_cover_large")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverCenterLeft1"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
+
 [node name="CoverCenterLeft2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2300, 1350)
 collision_layer = 4
@@ -576,6 +645,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverCenterLeft2"]
 shape = SubResource("RectangleShape2D_cover_large")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverCenterLeft2"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
 
 [node name="CoverCenterLeft3" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2600, 1350)
@@ -592,6 +664,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverCenterLeft3"]
 shape = SubResource("RectangleShape2D_cover_large")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverCenterLeft3"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
+
 [node name="CoverCenterRight1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(3400, 1350)
 collision_layer = 4
@@ -606,6 +681,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverCenterRight1"]
 shape = SubResource("RectangleShape2D_cover_large")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverCenterRight1"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
 
 [node name="CoverCenterRight2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(3700, 1350)
@@ -622,6 +700,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverCenterRight2"]
 shape = SubResource("RectangleShape2D_cover_large")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverCenterRight2"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
+
 [node name="CoverCenterRight3" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(4000, 1350)
 collision_layer = 4
@@ -636,6 +717,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverCenterRight3"]
 shape = SubResource("RectangleShape2D_cover_large")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverCenterRight3"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
 
 [node name="CoverMiddleLeft1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2150, 1550)
@@ -652,6 +736,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverMiddleLeft1"]
 shape = SubResource("RectangleShape2D_cover_large")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverMiddleLeft1"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
+
 [node name="CoverMiddleLeft2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2450, 1550)
 collision_layer = 4
@@ -666,6 +753,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverMiddleLeft2"]
 shape = SubResource("RectangleShape2D_cover_large")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverMiddleLeft2"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
 
 [node name="CoverMiddleRight1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(3550, 1550)
@@ -682,6 +772,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverMiddleRight1"]
 shape = SubResource("RectangleShape2D_cover_large")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverMiddleRight1"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
+
 [node name="CoverMiddleRight2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(3850, 1550)
 collision_layer = 4
@@ -696,6 +789,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverMiddleRight2"]
 shape = SubResource("RectangleShape2D_cover_large")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverMiddleRight2"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
 
 [node name="CoverLowerMidLeft1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2300, 1750)
@@ -712,6 +808,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLowerMidLeft1"]
 shape = SubResource("RectangleShape2D_cover_large")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverLowerMidLeft1"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
+
 [node name="CoverLowerMidRight1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(3700, 1750)
 collision_layer = 4
@@ -726,6 +825,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLowerMidRight1"]
 shape = SubResource("RectangleShape2D_cover_large")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverLowerMidRight1"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
 
 [node name="CoverBottom1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2700, 1950)
@@ -742,6 +844,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverBottom1"]
 shape = SubResource("RectangleShape2D_cover_large")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverBottom1"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
+
 [node name="CoverBottom2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(3300, 1950)
 collision_layer = 4
@@ -757,6 +862,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverBottom2"]
 shape = SubResource("RectangleShape2D_cover_large")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverBottom2"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
+
 [node name="CoverBottom3" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(3000, 1950)
 collision_layer = 4
@@ -771,6 +879,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverBottom3"]
 shape = SubResource("RectangleShape2D_cover_large")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverBottom3"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
 
 [node name="CoverBottom4" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2850, 1950)

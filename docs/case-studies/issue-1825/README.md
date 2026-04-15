@@ -12,11 +12,13 @@ This case study collects the issue payload, attached runtime logs, and the follo
 
 - `game_log_20260413_210446.txt`: original issue runtime log downloaded from the issue attachment
 - `game_log_20260415_220259.txt`: follow-up PR comment runtime log downloaded from the PR attachment
+- `game_log_20260416_000259.txt`: latest PR feedback runtime log downloaded from the PR attachment
 
 ## Timeline
 
 - 2026-04-13 21:04:46 UTC: attached game log started on the reporter's Windows build.
 - 2026-04-15 18:04:21 UTC: PR review feedback reported that Castle light/flash still passed through obstacles and that Beach small obstacles also leaked light.
+- 2026-04-15 21:05:02 UTC: owner reported that the latest build still leaked light and flashes through Castle obstacles.
 - 2026-04-15: issue investigated in the repository branch `issue-1825-fefc5291893b`.
 
 ## Findings
@@ -28,13 +30,18 @@ This case study collects the issue payload, attached runtime logs, and the follo
 - The first fix added collider and occluder data to the Castle outer wall, but the occluder polygon was left open at the seam, which can leak shadows in Godot's 2D lighting.
 - `scenes/levels/BeachLevel.tscn` had several small cover props with physics collision but no `LightOccluder2D`: `Rock2`, `Rock4`, `Rock6`, `Barrel1`, `Barrel2`, and `Barrel3`.
 - `scripts/projectiles/flashbang_grenade.gd` already checks obstacle line of sight using collision layer `4`, so the remaining regressions still pointed back to missing or malformed scene occlusion geometry.
+- `scripts/autoload/impact_effects_manager.gd` pools the grenade `PointLight2D` nodes in `_create_pooled_explosion_light()`, and those pooled lights had `shadow_enabled = false`.
+- Because `shadow_enabled` was disabled, adding `LightOccluder2D` nodes alone could not stop grenade flashes from leaking through walls.
+- The Castle scene also still lacked `LightOccluder2D` nodes on most interior blockers such as the center tower, inner pillar, interior wall bodies, and cover props.
+- The latest log `game_log_20260416_000259.txt` includes multiple `CastleLevel` loads plus active flashlight and grenade usage, which matches the owner's report that the latest build still reproduced the Castle leak.
 
 ## Root Cause
 
-The root cause was incomplete scene authoring, not a central flashlight/flashbang algorithm regression:
+The root cause was twofold:
 
-- On Castle, the outer perimeter initially lacked both collision and occlusion, and the later occluder polygon still had an open seam.
+- On Castle, the outer perimeter initially lacked both collision and occlusion, the later occluder polygon still had an open seam, and many interior blockers still had no `LightOccluder2D`.
 - On Beach, multiple small props blocked movement but were missing `LightOccluder2D`, so light and flash effects visually penetrated those objects.
+- In the shared effect system, pooled grenade flash lights had shadows disabled, so no scene occluder could affect those flashes even when present.
 
 ## Fix Direction
 
@@ -42,5 +49,7 @@ The root cause was incomplete scene authoring, not a central flashlight/flashban
 - Approximate the oval with multiple `SegmentShape2D` collision segments.
 - Add a `LightOccluder2D` using the same perimeter polygon so point-light based flash effects are blocked by the wall.
 - Close the Castle occluder polygon explicitly to remove the seam leak.
+- Enable shadows on pooled grenade `PointLight2D` nodes so `LightOccluder2D` geometry can block flash visuals.
+- Add `LightOccluder2D` nodes to the main Castle interior blockers, not just the outer perimeter.
 - Add `LightOccluder2D` nodes to all Beach small cover props that already have blocking collision.
 - Add regression tests that assert the Castle and Beach scenes keep these occluders in place.

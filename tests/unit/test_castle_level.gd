@@ -197,3 +197,30 @@ func test_castle_outer_wall_occluder_uses_closed_polygon() -> void:
 	assert_gt(polygon.size(), 3, "Outer wall occluder polygon should have enough points")
 	assert_eq(polygon[0], polygon[polygon.size() - 1],
 		"Outer wall occluder polygon should be explicitly closed so shadows do not leak through the seam")
+
+
+func test_castle_scene_key_obstacles_have_light_occluders() -> void:
+	var scene := load("res://scenes/levels/CastleLevel.tscn") as PackedScene
+	assert_not_null(scene, "CastleLevel scene should load")
+
+	var instance := scene.instantiate()
+	add_child_autofree(instance)
+
+	var obstacle_paths := [
+		"Environment/CenterTower",
+		"Environment/InnerTower",
+		"Environment/CastleBuilding/LeftWingTopWall",
+		"Environment/CastleBuilding/RightWingTopWall",
+		"Environment/CastleBuilding/CenterSouthWallLeft",
+		"Environment/Cover/CoverLowerLeft1",
+		"Environment/Cover/CoverCenterRight2",
+		"Environment/Cover/CoverBottom3",
+	]
+
+	for obstacle_path in obstacle_paths:
+		var obstacle := instance.get_node_or_null(obstacle_path) as CollisionObject2D
+		assert_not_null(obstacle, "Castle obstacle should exist: %s" % obstacle_path)
+
+		var occluder := obstacle.get_node_or_null("LightOccluder2D") as LightOccluder2D
+		assert_not_null(occluder, "Castle obstacle should cast 2D shadows: %s" % obstacle_path)
+		assert_not_null(occluder.occluder, "Castle obstacle occluder polygon should be assigned: %s" % obstacle_path)
