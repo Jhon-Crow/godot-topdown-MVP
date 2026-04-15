@@ -15,8 +15,20 @@ Reported problems:
 - `issue.json`: GitHub issue snapshot.
 - `game_log_20260413_203716.txt`: attached runtime log from the issue report.
 - `game_log_20260415_223201.txt`: follow-up runtime log attached in PR comment after the first fix attempt.
-- `game_log_20260416_021320.txt`: latest runtime log attached after the owner confirmed `Building` still showed untranslated HUD text.
+- `game_log_20260416_010941.txt`: follow-up runtime log attached after the owner confirmed the `Building` and `Sewer` regressions still reproduced.
+- `game_log_20260416_021320.txt`: runtime log attached after a second follow-up report that `Building` HUD localization still failed.
+- `game_log_20260416_025240.txt`: latest runtime log attached after the owner confirmed the `Building` top-left HUD still did not translate to Russian.
 - `pr-comment-4254897754-difficulty.png`: screenshot from the PR showing the incorrect difficulty label rendering.
+
+## Timeline
+
+1. `2026-04-13 20:37:16`: initial issue report log captured untranslated HUD labels, missing Russian map names, missing `Sewer` label, and `Polygon` / `Castle` not switching back to English.
+2. `2026-04-15 19:34:18`: PR feedback added the `Power Fantasy` / `Black Metal` difficulty-name regression plus untranslated top-right labels on `Beach`, `Docks`, `Factory`, `Labyrinth Complex`, `Winter Forest`, and `Railway Station`.
+3. `2026-04-15 22:13:00`: follow-up report narrowed the remaining failures to `Building` and `Sewer`.
+4. `2026-04-15 23:14:40`: another report confirmed `Building` HUD localization still failed after the `Sewer` fix path was added.
+5. `2026-04-15 23:18:43`: commit `a1939152` added the `Building` initialization refresh by calling `_update_debug_ui()` at the end of `_setup_debug_ui()`.
+6. `2026-04-15 23:18:47`: upstream CI runs for commit `a1939152` succeeded.
+7. `2026-04-15 23:53:17`: the owner posted one more `Building` runtime log, indicating the validation artifact trail needed to be preserved in this case-study even though the code fix was already present on the branch.
 
 ## Root Cause
 
@@ -36,6 +48,6 @@ The UI used hard-coded strings in multiple level scripts instead of translation 
 ## Verification
 
 - Static review confirms affected level scripts now use `LevelLocalization`.
-- Follow-up artifact review confirms the April 15 report targeted runtime label refresh and special-difficulty naming, both now covered by the shared helper.
+- Follow-up artifact review confirms the April 15 reports targeted runtime label refresh, the missing `Sewer` label, the stale `Building` initialization path, and special-difficulty naming, all now covered by the shared helper plus the `Building` startup refresh.
 - Added unit regression coverage in `tests/unit/test_level_localization.gd`.
 - Local GUT execution could not be run in this environment because the `godot` binary is not installed on `PATH`. CI uses Godot 4.3 mono per `.github/workflows/test.yml`.
