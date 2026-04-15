@@ -19,6 +19,11 @@ public partial class Player
     private bool _simpleGrenadeAwaitingGReleaseForAim = false;
 
     /// <summary>
+    /// Tracks whether the simple-mode grenade handoff has completed and aiming is valid.
+    /// </summary>
+    private bool _simpleGrenadeHandoffComplete = false;
+
+    /// <summary>
     /// Handle grenade input with either simple or complex mechanic.
     /// Simple mode (default): Hold RMB to aim with trajectory preview, release to throw.
     /// Complex mode (experimental): G + RMB drag right → hold G+RMB → release G → drag and release RMB.
@@ -304,11 +309,12 @@ public partial class Player
             _grenadeState = GrenadeState.SimpleAiming;
             _isPreparingGrenade = true;
             _simpleGrenadeAwaitingGReleaseForAim = true;
+            _simpleGrenadeHandoffComplete = false;
             // Store initial mouse position for aiming
             _aimDragStart = GetGlobalMousePosition();
             // Start hands approach animation
             StartGrenadeAnimPhase(GrenadeAnimPhase.HandsApproach, AnimApproachDuration);
-            LogToFile("[Player.Grenade.Simple] RMB pressed after pin pull - waiting for G release before trajectory aiming");
+            LogToFile("[Player.Grenade.Simple] RMB pressed after pin pull - waiting for valid G release handoff before trajectory aiming");
         }
     }
 
@@ -319,35 +325,56 @@ public partial class Player
     /// </summary>
     private void HandleSimpleGrenadeAimingState()
     {
-        if (!Input.IsActionPressed("grenade_throw"))
+        bool rmbPressed = Input.IsActionPressed("grenade_throw");
+        bool rmbJustReleased = Input.IsActionJustReleased("grenade_throw");
+
+        if (!rmbPressed && !rmbJustReleased)
         {
             _grenadeState = GrenadeState.TimerStarted;
             _simpleGrenadeAwaitingGReleaseForAim = false;
+            _simpleGrenadeHandoffComplete = false;
             LogToFile("[Player.Grenade.Simple] RMB released before valid G handoff - back to waiting for RMB");
             return;
         }
 
-        // Issue #1819: the handoff is not complete until G is released.
-        // Keep the simple path aligned with the complex path so the player
-        // cannot aim or throw while still clutching the grenade with the left hand.
-        if (Input.IsActionPressed("grenade_prepare"))
-        {
-            LogToFile("[Player.Grenade.Simple] G still held during right-hand aiming - waiting for release before aim/throw");
-            return;
-        }
+        bool gPressed = Input.IsActionPressed("grenade_prepare");
+        bool gJustReleased = Input.IsActionJustReleased("grenade_prepare");
 
         if (_simpleGrenadeAwaitingGReleaseForAim)
         {
-            if (!Input.IsActionJustReleased("grenade_prepare"))
+            if (gJustReleased)
+            {
+                _simpleGrenadeAwaitingGReleaseForAim = false;
+                _simpleGrenadeHandoffComplete = true;
+                LogToFile("[Player.Grenade.Simple] G released while RMB held - valid handoff completed, trajectory aiming is now active");
+            }
+            else if (!gPressed)
             {
                 _grenadeState = GrenadeState.TimerStarted;
                 _simpleGrenadeAwaitingGReleaseForAim = false;
-                LogToFile("[Player.Grenade.Simple] G was released outside the RMB handoff moment - cancelling aim and returning to waiting for RMB");
+                _simpleGrenadeHandoffComplete = false;
+                LogToFile("[Player.Grenade.Simple] G was already up before the RMB handoff frame - cancelling aim and returning to waiting for RMB");
+                return;
+            }
+        }
+
+        if (!_simpleGrenadeHandoffComplete)
+        {
+            if (gPressed)
+            {
+                LogToFile("[Player.Grenade.Simple] G still held during right-hand aiming - waiting for release before aim/throw");
                 return;
             }
 
-            _simpleGrenadeAwaitingGReleaseForAim = false;
-            LogToFile("[Player.Grenade.Simple] G released while RMB held - trajectory aiming is now active");
+            LogToFile("[Player.Grenade.Simple] G released before right-hand handoff completed - dropping grenade at feet");
+            DropGrenadeAtFeet();
+            return;
+        }
+
+        // If animation phases need to transition
+        if (_grenadeAnimPhase == GrenadeAnimPhase.HandsApproach && _grenadeAnimTimer <= 0)
+        {
+            _grenadeAnimPhase = GrenadeAnimPhase.WindUp;
         }
 
         // Request redraw for trajectory visualization (always show in simple mode)
@@ -362,14 +389,8 @@ public partial class Player
         // Update arm animation based on wind-up
         UpdateSimpleWindUpAnimation();
 
-        // If animation phases need to transition
-        if (_grenadeAnimPhase == GrenadeAnimPhase.HandsApproach && _grenadeAnimTimer <= 0)
-        {
-            _grenadeAnimPhase = GrenadeAnimPhase.WindUp;
-        }
-
         // Check for RMB release - throw the grenade!
-        if (Input.IsActionJustReleased("grenade_throw"))
+        if (rmbJustReleased)
         {
             ThrowSimpleGrenade();
         }

@@ -33,6 +33,7 @@ class MockComplexGrenadePlayer:
 	var aiming_started: bool = false
 	var throw_triggered: bool = false
 	var awaiting_g_release_for_aim: bool = false
+	var simple_handoff_complete: bool = false
 
 	func handle_waiting_for_g_release(rmb_pressed: bool, g_pressed: bool) -> void:
 		if not rmb_pressed:
@@ -56,33 +57,29 @@ class MockComplexGrenadePlayer:
 		if rmb_just_released:
 			throw_triggered = true
 
-	func handle_simple_aiming_state(g_pressed: bool, rmb_just_released: bool) -> void:
-		if not g_pressed and awaiting_g_release_for_aim:
-			awaiting_g_release_for_aim = false
-			return
-
-		if g_pressed:
-			return
-
-		if rmb_just_released:
-			throw_triggered = true
-
 	func handle_simple_aiming_state_with_release_event(g_pressed: bool, g_just_released: bool, rmb_pressed: bool, rmb_just_released: bool) -> void:
 		if not rmb_pressed:
 			grenade_state = GrenadeState.TimerStarted
 			awaiting_g_release_for_aim = false
-			return
-
-		if g_pressed:
+			simple_handoff_complete = false
 			return
 
 		if awaiting_g_release_for_aim:
-			if not g_just_released:
+			if g_just_released:
+				awaiting_g_release_for_aim = false
+				simple_handoff_complete = true
+			elif not g_pressed:
 				grenade_state = GrenadeState.TimerStarted
 				awaiting_g_release_for_aim = false
+				simple_handoff_complete = false
 				return
 
-			awaiting_g_release_for_aim = false
+		if not simple_handoff_complete:
+			if g_pressed:
+				return
+
+			drop_grenade_at_feet()
+			return
 
 		if rmb_just_released:
 			throw_triggered = true
@@ -155,20 +152,48 @@ func test_aiming_state_rejects_throw_until_g_is_released() -> void:
 func test_simple_aiming_state_rejects_throw_while_g_is_held() -> void:
 	player.grenade_state = MockComplexGrenadePlayer.GrenadeState.SimpleAiming
 	player.grenade_anim_phase = MockComplexGrenadePlayer.GrenadeAnimPhase.WindUp
+	player.awaiting_g_release_for_aim = true
 
-	player.handle_simple_aiming_state(true, true)
+	player.handle_simple_aiming_state_with_release_event(true, false, true, true)
 
 	assert_eq(player.grenade_state, MockComplexGrenadePlayer.GrenadeState.SimpleAiming)
 	assert_false(player.throw_triggered)
+	assert_false(player.dropped_at_feet)
 
 
 func test_simple_aiming_state_allows_throw_after_g_release() -> void:
 	player.grenade_state = MockComplexGrenadePlayer.GrenadeState.SimpleAiming
 	player.grenade_anim_phase = MockComplexGrenadePlayer.GrenadeAnimPhase.WindUp
+	player.simple_handoff_complete = true
 
-	player.handle_simple_aiming_state(false, true)
+	player.handle_simple_aiming_state_with_release_event(false, false, true, true)
 
 	assert_true(player.throw_triggered)
+
+
+func test_simple_aiming_still_throws_on_rmb_release_after_valid_handoff() -> void:
+	player.grenade_state = MockComplexGrenadePlayer.GrenadeState.SimpleAiming
+	player.awaiting_g_release_for_aim = true
+
+	player.handle_simple_aiming_state_with_release_event(false, true, true, false)
+	assert_true(player.simple_handoff_complete)
+	assert_false(player.throw_triggered)
+
+	player.handle_simple_aiming_state_with_release_event(false, false, false, true)
+
+	assert_true(player.throw_triggered)
+	assert_false(player.dropped_at_feet)
+
+
+func test_simple_aiming_drops_grenade_when_g_is_released_before_handoff_finishes() -> void:
+	player.grenade_state = MockComplexGrenadePlayer.GrenadeState.SimpleAiming
+	player.awaiting_g_release_for_aim = false
+	player.simple_handoff_complete = false
+
+	player.handle_simple_aiming_state_with_release_event(false, false, true, false)
+
+	assert_true(player.dropped_at_feet)
+	assert_eq(player.grenade_state, MockComplexGrenadePlayer.GrenadeState.Idle)
 
 
 func test_simple_aiming_requires_g_release_event_during_rmb_handoff() -> void:
@@ -190,4 +215,5 @@ func test_simple_aiming_activates_only_when_g_is_just_released_while_rmb_is_held
 
 	assert_eq(player.grenade_state, MockComplexGrenadePlayer.GrenadeState.SimpleAiming)
 	assert_false(player.awaiting_g_release_for_aim)
+	assert_true(player.simple_handoff_complete)
 	assert_false(player.throw_triggered)
