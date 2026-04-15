@@ -18,6 +18,15 @@ const LEVEL_NAME_KEYS: Dictionary = {
 	"res://scenes/levels/RailwayStationLevel.tscn": "LEVEL_RAILWAY_STATION_NAME",
 }
 
+const DIFFICULTY_NAME_KEYS: Dictionary = {
+	"Easy": "EASY",
+	"Normal": "NORMAL",
+	"Hard": "HARD",
+	"Power Fantasy": "POWER_FANTASY",
+	"Black Metal": "BLACK_METAL",
+	"Gunslinger": "GUNSLINGER",
+}
+
 
 func get_level_name_key(scene_path: String) -> String:
 	return LEVEL_NAME_KEYS.get(scene_path, "")
@@ -44,5 +53,18 @@ func get_ammo_text(current_ammo: int, reserve_ammo: int) -> String:
 	return tr("HUD_AMMO") % [current_ammo, reserve_ammo]
 
 
+func get_magazines_text(parts: Array[String]) -> String:
+	if parts.is_empty():
+		return "%s: -" % tr("ARMORY_STAT_MAG")
+	return "%s: %s" % [tr("ARMORY_STAT_MAG"), " | ".join(parts)]
+
+
+func get_localized_difficulty_name(difficulty_name: String) -> String:
+	var key: String = DIFFICULTY_NAME_KEYS.get(difficulty_name, "")
+	if key != "":
+		return tr(key)
+	return difficulty_name
+
+
 func get_difficulty_text(difficulty_name: String) -> String:
-	return tr("HUD_DIFFICULTY") % difficulty_name
+	return tr("HUD_DIFFICULTY") % get_localized_difficulty_name(difficulty_name)

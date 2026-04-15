@@ -498,7 +498,7 @@ func _setup_debug_ui() -> void:
 	ui.add_child(_difficulty_label)
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
-	_magazines_label.text = "MAGS: -"
+	_magazines_label.text = LevelLocalization.get_magazines_text([])
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
 	_magazines_label.offset_top = 115
@@ -742,7 +742,7 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		return
 	_magazines_label.visible = true
 	if magazine_ammo_counts.is_empty():
-		_magazines_label.text = "MAGS: -"
+		_magazines_label.text = LevelLocalization.get_magazines_text([])
 		return
 	# Get magazine capacities to distinguish full vs partial spares
 	var mag_max_counts: Array = []
@@ -768,7 +768,7 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if full_spare_count > 0:
 		parts.append("+ x%d" % full_spare_count)
 
-	_magazines_label.text = "MAGS: " + " | ".join(parts)
+	_magazines_label.text = LevelLocalization.get_magazines_text(parts)
 
 
 func _show_death_message() -> void:
