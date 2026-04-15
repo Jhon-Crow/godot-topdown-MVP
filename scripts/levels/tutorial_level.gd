@@ -11,7 +11,7 @@ extends Node2D
 ##    - Revolver: cylinder reload + hammer-cock hint from weapon pickup
 ## 3. Player throws a grenade — hint appears AFTER reload hint disappears (Bug fix #5)
 ##    (only shown if player actually has grenades, Bug fix #9)
-## 4. Shows completion message with Q restart hint
+## 4. Shows completion message with Q hold-to-restart hint
 ##
 ## Issue #808: Each hint shown independently; dismissed independently when action is done.
 ## Issue #945: (1) Reload hint shown after 2 shots. (2) Each hint has a unique color.
