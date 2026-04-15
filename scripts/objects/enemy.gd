@@ -2153,12 +2153,16 @@ func _process_pursuing_state(delta: float) -> void:
 					_log_debug("Can see target but can't hit, starting approach phase")
 					_pursuit_approaching = true
 					_pursuit_approach_timer = 0.0
+					if _can_attempt_flanking() and _player:
+						_log_debug("Visible target still unhittable from pursuit cover, attempting flanking maneuver")
+						if _transition_to_flanking():
+							return
 					return
 				# Try flanking if player not visible
 				if _can_attempt_flanking() and _player:
 					_log_debug("Attempting flanking maneuver")
-					_transition_to_flanking()
-					return
+					if _transition_to_flanking():
+						return
 				# Last resort: move directly toward player
 				_log_debug("No cover options, transitioning to COMBAT")
 				_transition_to_combat()

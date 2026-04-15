@@ -72,6 +72,12 @@ class MockEnemy:
 	var _can_see_player: bool = false
 	var _under_fire: bool = false
 	var _has_valid_cover: bool = false
+	var _has_pursuit_cover: bool = false
+	var _pursuit_approaching: bool = false
+	var _can_attempt_flank: bool = false
+	var _flank_transition_result: bool = false
+	var _transitioned_to_flanking: bool = false
+	var _transitioned_to_combat: bool = false
 	var _cover_position: Vector2 = Vector2.ZERO
 	var _suppression_timer: float = 0.0
 	var _shoot_timer: float = 0.0
@@ -288,6 +294,37 @@ class MockEnemy:
 
 	func should_flank() -> bool:
 		return enable_flanking and _can_see_player and not _under_fire
+
+
+	func process_pursuit_cover_wait_fallback() -> void:
+		if _can_see_player:
+			_pursuit_approaching = true
+			if _can_attempt_flanking():
+				if _transition_to_flanking():
+					return
+			return
+
+		if _can_attempt_flanking():
+			if _transition_to_flanking():
+				return
+
+		_transition_to_combat()
+
+
+	func _can_attempt_flanking() -> bool:
+		return _can_attempt_flank
+
+
+	func _transition_to_flanking() -> bool:
+		_transitioned_to_flanking = true
+		if _flank_transition_result:
+			_current_state = AIState.FLANKING
+		return _flank_transition_result
+
+
+	func _transition_to_combat() -> void:
+		_transitioned_to_combat = true
+		_current_state = AIState.COMBAT
 
 
 	func set_under_fire(value: bool) -> void:
@@ -759,6 +796,29 @@ func test_should_not_flank_when_disabled() -> void:
 	enemy._can_see_player = true
 
 	assert_false(enemy.should_flank(), "Should not flank when disabled")
+
+
+func test_should_flank_even_without_cover_when_player_visible() -> void:
+	enemy.enable_flanking = true
+	enemy._can_see_player = true
+	enemy._under_fire = false
+	enemy._has_valid_cover = false
+
+	assert_true(enemy.should_flank(),
+		"Visible player without available cover should still allow flanking fallback")
+
+
+func test_pursuit_fallback_prefers_flanking_when_visible_target_is_still_unhittable() -> void:
+	enemy._can_see_player = true
+	enemy._can_attempt_flank = true
+	enemy._flank_transition_result = true
+
+	enemy.process_pursuit_cover_wait_fallback()
+
+	assert_true(enemy._pursuit_approaching, "Visible but unhittable target should start pursuit approach")
+	assert_true(enemy._transitioned_to_flanking, "Pursuit fallback should attempt flanking before combat")
+	assert_false(enemy._transitioned_to_combat, "Successful flanking fallback should avoid direct combat transition")
+	assert_eq(enemy.get_current_state(), MockEnemy.AIState.FLANKING, "Enemy should enter FLANKING state")
 
 
 # ============================================================================
