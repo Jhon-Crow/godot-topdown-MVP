@@ -191,6 +191,7 @@ var _bolt_cycle_hint_revealed: bool = false
 var _revolver_last_inserted_count: int = 0
 var _revolver_last_inserted_chamber_index: int = -1
 var _revolver_minimum_inserts_required: int = 2
+var _revolver_scroll_completed_since_last_insert: bool = false
 
 ## Unique colors for each hint type (Issue #945: simultaneously displayed hints should be different colors).
 const HINT_COLOR_FIRE_MODE := Color(0.3, 0.9, 1.0, 1.0)          ## Cyan — fire mode switch
@@ -718,6 +719,9 @@ func _connect_player_signals() -> void:
 		if revolver.has_signal("ReloadStateChanged"):
 			revolver.ReloadStateChanged.connect(_on_revolver_reload_state_changed)
 			print("Tutorial: Connected to ReloadStateChanged signal (Revolver)")
+		if revolver.has_signal("CylinderRotated"):
+			revolver.CylinderRotated.connect(_on_revolver_cylinder_rotated)
+			print("Tutorial: Connected to CylinderRotated signal (Revolver)")
 
 		# Connect to revolver ammo signal
 		if revolver.has_signal("AmmoChanged"):
@@ -923,8 +927,40 @@ func _on_revolver_cartridge_inserted(loaded: int, _capacity: int) -> void:
 			_update_ammo_label_magazine(revolver.CurrentAmmo, reserve_ammo)
 		if revolver != null:
 			_revolver_last_inserted_count = loaded
+			_revolver_scroll_completed_since_last_insert = false
 			if revolver.get("CurrentChamberIndex") != null:
 				_revolver_last_inserted_chamber_index = int(revolver.get("CurrentChamberIndex"))
+
+
+func _on_revolver_cylinder_rotated(chamber_index: int) -> void:
+	if not _hint_labels.has(HINT_RELOAD):
+		return
+	if not _has_revolver:
+		return
+
+	var revolver := _player.get_node_or_null("Revolver")
+	if revolver == null:
+		return
+
+	var cartridges_loaded: int = 0
+	var current_ammo: int = 0
+	if revolver.get("CartridgesLoadedThisReload") != null:
+		cartridges_loaded = int(revolver.get("CartridgesLoadedThisReload"))
+	if revolver.get("CurrentAmmo") != null:
+		current_ammo = int(revolver.get("CurrentAmmo"))
+
+	if cartridges_loaded <= 0:
+		return
+
+	_revolver_scroll_completed_since_last_insert = true
+	var hint_step := 1
+	if cartridges_loaded >= _revolver_minimum_inserts_required or current_ammo >= 5:
+		hint_step = 3
+
+	var label: RichTextLabel = _hint_labels[HINT_RELOAD]
+	if is_instance_valid(label):
+		label.text = _build_revolver_reload_hint_bbcode(hint_step)
+	print("Tutorial: Revolver cylinder rotated to chamber %d → hint step %d updated" % [chamber_index, hint_step])
 
 
 ## Setup targets for shooting practice (optional, not part of tutorial progression).
@@ -1447,9 +1483,10 @@ func _get_revolver_reload_hint_step_for_loading_state() -> int:
 	if revolver.get("CurrentChamberIndex") != null:
 		current_chamber_index = int(revolver.get("CurrentChamberIndex"))
 
-	# If the chamber changed after the latest insert, the player completed the scroll step.
-	# If the player still needs more inserts for this tutorial, loop back to the insert step.
-	if cartridges_loaded == _revolver_last_inserted_count \
+	# Scroll completion must come from an actual cylinder rotation event, not just a Loading-state
+	# snapshot. Once scroll happened, loop back to another insert until the tutorial quota is met.
+	if _revolver_scroll_completed_since_last_insert \
+	and cartridges_loaded == _revolver_last_inserted_count \
 	and _revolver_last_inserted_chamber_index >= 0 \
 	and current_chamber_index >= 0 \
 	and current_chamber_index != _revolver_last_inserted_chamber_index:

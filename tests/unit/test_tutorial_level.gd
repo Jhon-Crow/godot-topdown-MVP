@@ -105,6 +105,7 @@ class MockTutorialLevel:
 	var _revolver_last_inserted_count: int = 0
 	var _revolver_last_inserted_chamber_index: int = -1
 	var _revolver_minimum_inserts_required: int = 2
+	var _revolver_scroll_completed_since_last_insert: bool = false
 
 	## Issue #945: Shot tracking for delayed reload hint reveal
 	var _shots_fired: int = 0
@@ -411,8 +412,20 @@ class MockTutorialLevel:
 		_revolver_last_inserted_count = loaded
 		_revolver_last_inserted_chamber_index = chamber_index
 		_revolver_current_chamber_index = chamber_index
+		_revolver_scroll_completed_since_last_insert = false
 		if current_ammo >= 0:
 			_revolver_current_ammo = current_ammo
+
+	func on_revolver_cylinder_rotated(chamber_index: int) -> void:
+		_revolver_current_chamber_index = chamber_index
+		if _revolver_cartridges_loaded_this_reload <= 0:
+			return
+		_revolver_scroll_completed_since_last_insert = true
+		if _revolver_cartridges_loaded_this_reload >= _revolver_minimum_inserts_required \
+		or _revolver_current_ammo >= 5:
+			_active_hints[HINT_RELOAD] = _build_revolver_reload_hint_bbcode(3)
+		elif _active_hints.has(HINT_RELOAD):
+			_active_hints[HINT_RELOAD] = _build_revolver_reload_hint_bbcode(1)
 
 	func on_revolver_reload_state_changed(state: int) -> void:
 		if not _active_hints.has(HINT_RELOAD):
@@ -437,7 +450,8 @@ class MockTutorialLevel:
 		if _revolver_cartridges_loaded_this_reload >= _revolver_minimum_inserts_required \
 		or _revolver_current_ammo >= 5:
 			return 3
-		if _revolver_cartridges_loaded_this_reload == _revolver_last_inserted_count \
+		if _revolver_scroll_completed_since_last_insert \
+		and _revolver_cartridges_loaded_this_reload == _revolver_last_inserted_count \
 		and _revolver_last_inserted_chamber_index >= 0 \
 		and _revolver_current_chamber_index >= 0 \
 		and _revolver_current_chamber_index != _revolver_last_inserted_chamber_index:
@@ -1078,7 +1092,7 @@ func test_revolver_reload_hint_shows_close_after_scroll_advances_slot() -> void:
 	tutorial.on_weapon_fired()
 
 	tutorial.on_revolver_cartridge_inserted(1, 2)
-	tutorial._revolver_current_chamber_index = 3
+	tutorial.on_revolver_cylinder_rotated(3)
 	tutorial.on_revolver_reload_state_changed(2)
 
 	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
@@ -1095,7 +1109,7 @@ func test_revolver_reload_hint_keeps_close_after_scroll_to_empty_chamber() -> vo
 	tutorial.on_weapon_fired()
 
 	tutorial.on_revolver_cartridge_inserted(1, 2)
-	tutorial._revolver_current_chamber_index = 4
+	tutorial.on_revolver_cylinder_rotated(4)
 	tutorial._revolver_can_insert_cartridge = true
 	tutorial.on_revolver_reload_state_changed(2)
 
@@ -1104,6 +1118,23 @@ func test_revolver_reload_hint_keeps_close_after_scroll_to_empty_chamber() -> vo
 		"Scrolling to another empty chamber after the first insert should return to the insert step")
 	assert_false(hint_text.contains("[color=#ff4444][скролл][/color]"),
 		"The tutorial must not keep waiting on scroll after the chamber index changed")
+
+
+func test_revolver_reload_hint_does_not_count_scroll_without_rotation_event() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_revolver_cartridge_inserted(1, 2)
+	tutorial._revolver_current_chamber_index = 3
+	tutorial.on_revolver_reload_state_changed(2)
+
+	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
+	assert_true(hint_text.contains("[color=#ff4444][скролл][/color]"),
+		"Scroll should stay highlighted until the explicit cylinder rotation event arrives")
+	assert_false(hint_text.contains("[color=#ff4444][ПКМ↑ патрон][/color]"),
+		"Insert must not reactivate from chamber index drift alone")
 
 
 func test_revolver_reload_hint_shows_close_after_second_insert() -> void:
