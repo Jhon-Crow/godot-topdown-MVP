@@ -389,6 +389,47 @@ class MockEnemy:
 		return candidate
 
 
+	func choose_attack_waypoint_for_test(from_pos: Vector2, toward_pos: Vector2, waypoints: Array[Dictionary]) -> Vector2:
+		var my_dist_to_target := from_pos.distance_to(toward_pos)
+		var best := Vector2.ZERO
+		var best_score := -INF
+		var nearest_fallback := Vector2.ZERO
+		var nearest_fallback_dist := INF
+
+		for candidate in waypoints:
+			var wp: Vector2 = candidate["point"]
+			var dist_from_me := from_pos.distance_to(wp)
+			if dist_from_me < 20.0:
+				continue
+			if dist_from_me < nearest_fallback_dist and dist_from_me <= 350.0:
+				nearest_fallback_dist = dist_from_me
+				nearest_fallback = wp
+			if dist_from_me > 400.0:
+				continue
+			if not candidate.get("reachable", true):
+				continue
+			var path_distance: float = candidate.get("path_distance", dist_from_me)
+			if path_distance > dist_from_me * 2.5 and path_distance > 550.0:
+				continue
+			var wp_dist_to_target := wp.distance_to(toward_pos)
+			if wp_dist_to_target >= my_dist_to_target:
+				continue
+			var progress := my_dist_to_target - wp_dist_to_target
+			var score := progress - dist_from_me * 0.5
+			if score > best_score:
+				best_score = score
+				best = wp
+
+		if best == Vector2.ZERO:
+			for candidate in waypoints:
+				if candidate["point"] == nearest_fallback and candidate.get("reachable", true):
+					var path_distance: float = candidate.get("path_distance", nearest_fallback_dist)
+					if path_distance <= nearest_fallback_dist * 2.5 or path_distance <= 550.0:
+						return nearest_fallback
+			return Vector2.ZERO
+		return best
+
+
 	func _combat_waypoint(_target: Vector2) -> Vector2:
 		return _combat_waypoint_result
 
@@ -944,6 +985,29 @@ func test_calculate_flank_target_falls_back_to_geometric_flank_when_no_combat_wa
 		"Without authored anchors, flank targeting should keep using the geometric flank endpoint")
 	assert_almost_eq(target.y, expected.y, 0.001,
 		"Without authored anchors, flank targeting should keep using the geometric flank endpoint")
+
+
+func test_attack_waypoint_selection_rejects_building_detour_waypoint() -> void:
+	var from_pos := Vector2(700.0, 750.0)
+	var toward_pos := Vector2(952.0, 673.0)
+	var local_progress_waypoint := {
+		"point": Vector2(800.0, 560.0),
+		"reachable": true,
+		"path_distance": 240.0,
+	}
+	var misleading_detour_waypoint := {
+		"point": Vector2(290.0, 660.0),
+		"reachable": true,
+		"path_distance": 900.0,
+	}
+
+	var chosen := enemy.choose_attack_waypoint_for_test(from_pos, toward_pos, [
+		misleading_detour_waypoint,
+		local_progress_waypoint,
+	])
+
+	assert_eq(chosen, local_progress_waypoint["point"],
+		"Combat-path pursuit should reject Building-map waypoints whose nav route is a large detour behind interior walls")
 
 
 # ============================================================================
