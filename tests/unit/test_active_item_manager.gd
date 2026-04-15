@@ -49,7 +49,7 @@ func test_active_item_data_has_flashlight() -> void:
 		1: {
 			"name": "Flashlight",
 			"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
-			"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
+			"description": "Tactical flashlight — hold Space to illuminate in weapon direction and blind enemies caught in the beam. Bright white light, turns off when released."
 		}
 	}
 	assert_true(item_data.has(1), "ACTIVE_ITEM_DATA should contain FLASHLIGHT type")
@@ -83,9 +83,15 @@ func test_flashlight_data_has_icon_path() -> void:
 
 
 func test_flashlight_data_has_description() -> void:
-	var data := {"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."}
+	var data := {"description": "Tactical flashlight — hold Space to illuminate in weapon direction and blind enemies caught in the beam. Bright white light, turns off when released."}
 	assert_true(data["description"].contains("Space"),
 		"Flashlight description should mention Space key")
+
+
+func test_flashlight_data_mentions_blinding_enemies() -> void:
+	var data := {"description": "Tactical flashlight — hold Space to illuminate in weapon direction and blind enemies caught in the beam. Bright white light, turns off when released."}
+	assert_true(data["description"].to_lower().contains("blind enemies"),
+		"Flashlight description should mention blinding enemies")
 
 
 func test_homing_bullets_data_has_name() -> void:
@@ -148,7 +154,7 @@ class MockActiveItemManager:
 		1: {
 			"name": "Flashlight",
 			"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
-			"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
+			"description": "Tactical flashlight — hold Space to illuminate in weapon direction and blind enemies caught in the beam. Bright white light, turns off when released."
 		},
 		2: {
 			"name": "Homing Bullets",
