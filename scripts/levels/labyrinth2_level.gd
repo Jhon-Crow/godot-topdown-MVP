@@ -644,12 +644,15 @@ func _setup_player_tracking() -> void:
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
 		if weapon.has_signal("Fired"):
 			weapon.Fired.connect(_on_shot_fired)
+		if weapon.has_signal("ShellCountChanged"):
+			weapon.ShellCountChanged.connect(_on_shell_count_changed)
 		# Apply ammo config (silenced pistol and makarov_pm handled here as well)
 		_configure_silenced_pistol_ammo(weapon)
 		_configure_makarov_pm_ammo(weapon)
 		# Initial ammo display from weapon
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 	else:
 		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
@@ -1215,6 +1218,16 @@ func _on_shot_fired() -> void:
 		GameManager.register_shot()
 
 
+## Returns the ammo value that should be shown in the HUD for the current weapon.
+## Shotgun keeps the loaded shell count in ShellsInTube instead of CurrentAmmo.
+func _get_weapon_display_current_ammo(weapon: Node) -> Variant:
+	if weapon == null:
+		return null
+	if weapon.name == "Shotgun" and weapon.get("ShellsInTube") != null:
+		return weapon.ShellsInTube
+	return weapon.get("CurrentAmmo")
+
+
 ## Update the ammo label with current/maximum format (for GDScript Player).
 func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
@@ -1280,8 +1293,9 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 			_log_to_file("Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by %dx" % ammo_multiplier)
 		weapon.ConfigureAmmoForEnemyCount(enemy_count)
 		_log_to_file("Configured silenced pistol ammo for %d enemies" % enemy_count)
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 
 
 ## Configure Makarov PM ammo - 2.5x magazines (Issue #1422).
@@ -1301,8 +1315,9 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 	if weapon.has_method("ReinitializeMagazines"):
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
 		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
@@ -1328,8 +1343,9 @@ func _configure_labyrinth2_weapon_ammo(weapon: Node, weapon_id: String) -> void:
 		if weapon.has_method("ReinitializeMagazines"):
 			weapon.ReinitializeMagazines(base_magazines, true)
 			_log_to_file("%s magazines reinitialized to %d" % [weapon.name, base_magazines])
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 
 	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
 		_player.ApplyAutoReloadAfterLevelAmmoConfig()

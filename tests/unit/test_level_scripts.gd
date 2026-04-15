@@ -380,6 +380,9 @@ class MockTestTier extends MockLevelBase:
 	## Default enemy count for test tier (12 enemies: 6 guards, 4 patrols, 2 RPG).
 	var default_enemy_count: int = 12
 
+	## Simulated ammo label text (null means label not yet initialized).
+	var _ammo_label_text: Variant = null
+
 	## Whether the score screen is currently shown (for W key shortcut).
 	var _score_shown: bool = false
 
@@ -405,6 +408,27 @@ class MockTestTier extends MockLevelBase:
 			enemies.append("TestEnemy%d" % (i + 1))
 		setup_enemy_tracking(enemies)
 
+	func init_ammo_label() -> void:
+		_ammo_label_text = "AMMO: 0/0"
+
+	func update_ammo_label_magazine(current_mag: int, reserve: int) -> bool:
+		if _ammo_label_text == null:
+			return false
+		_ammo_label_text = "AMMO: %d/%d" % [current_mag, reserve]
+		return true
+
+	func _get_weapon_display_current_ammo(weapon: Dictionary) -> Variant:
+		if weapon.get("name") == "Shotgun" and weapon.get("ShellsInTube") != null:
+			return weapon.get("ShellsInTube")
+		return weapon.get("CurrentAmmo")
+
+	func simulate_weapon_display_update(weapon: Dictionary) -> void:
+		init_ammo_label()
+		var displayed_current = _get_weapon_display_current_ammo(weapon)
+		var reserve = weapon.get("ReserveAmmo")
+		if displayed_current != null and reserve != null:
+			update_ammo_label_magazine(displayed_current, reserve)
+
 	## Get the next level path.
 	func get_next_level_path(current_scene_path: String) -> String:
 		for i in range(_level_paths.size()):
@@ -413,6 +437,32 @@ class MockTestTier extends MockLevelBase:
 					return _level_paths[i + 1]
 				return ""  # Last level
 		return ""  # Not found
+
+
+class MockLabyrinth2Level extends MockLevelBase:
+	## Simulated ammo label text (null means label not yet initialized).
+	var _ammo_label_text: Variant = null
+
+	func init_ammo_label() -> void:
+		_ammo_label_text = "AMMO: 0/0"
+
+	func update_ammo_label_magazine(current_mag: int, reserve: int) -> bool:
+		if _ammo_label_text == null:
+			return false
+		_ammo_label_text = "AMMO: %d/%d" % [current_mag, reserve]
+		return true
+
+	func _get_weapon_display_current_ammo(weapon: Dictionary) -> Variant:
+		if weapon.get("name") == "Shotgun" and weapon.get("ShellsInTube") != null:
+			return weapon.get("ShellsInTube")
+		return weapon.get("CurrentAmmo")
+
+	func simulate_weapon_display_update(weapon: Dictionary) -> void:
+		init_ammo_label()
+		var displayed_current = _get_weapon_display_current_ammo(weapon)
+		var reserve = weapon.get("ReserveAmmo")
+		if displayed_current != null and reserve != null:
+			update_ammo_label_magazine(displayed_current, reserve)
 
 
 # ============================================================================
@@ -599,6 +649,7 @@ var castle_level: MockCastleLevel
 var test_tier: MockTestTier
 var beach_level: MockBeachLevel
 var labyrinth_level: MockLabyrinthLevel
+var labyrinth2_level: MockLabyrinth2Level
 
 
 func before_each() -> void:
@@ -607,6 +658,7 @@ func before_each() -> void:
 	test_tier = MockTestTier.new()
 	beach_level = MockBeachLevel.new()
 	labyrinth_level = MockLabyrinthLevel.new()
+	labyrinth2_level = MockLabyrinth2Level.new()
 
 
 func after_each() -> void:
@@ -615,6 +667,7 @@ func after_each() -> void:
 	test_tier = null
 	beach_level = null
 	labyrinth_level = null
+	labyrinth2_level = null
 
 
 # ============================================================================
@@ -2196,12 +2249,52 @@ func test_building_shotgun_startup_uses_shell_count_not_current_ammo() -> void:
 
 func test_labyrinth_shotgun_startup_uses_shell_count_not_current_ammo() -> void:
 	## Labyrinth has the same shotgun startup bug as Building (Issue #1808).
-	var shotgun_level := MockBuildingLevel.new()
-	shotgun_level.simulate_weapon_display_update({
+	labyrinth_level.simulate_weapon_display_update({
 		"name": "Shotgun",
 		"CurrentAmmo": 0,
 		"ShellsInTube": 8,
 		"ReserveAmmo": 8,
 	})
-	assert_eq(shotgun_level._ammo_label_text, "AMMO: 8/8",
+	assert_eq(labyrinth_level._ammo_label_text, "AMMO: 8/8",
 		"Labyrinth startup must use ShellsInTube for the initial HUD state")
+
+
+func test_labyrinth2_shotgun_startup_uses_shell_count_not_current_ammo() -> void:
+	labyrinth2_level.simulate_weapon_display_update({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	})
+	assert_eq(labyrinth2_level._ammo_label_text, "AMMO: 8/8",
+		"Labyrinth2 startup must use ShellsInTube for the initial HUD state")
+
+	labyrinth2_level.simulate_weapon_display_update({
+		"name": "Revolver",
+		"CurrentAmmo": 5,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 20,
+	})
+	assert_eq(labyrinth2_level._ammo_label_text, "AMMO: 5/20",
+		"Labyrinth2 non-shotgun startup must keep using CurrentAmmo")
+
+
+func test_testtier_shotgun_startup_uses_shell_count_not_current_ammo() -> void:
+	## PersistManager can redirect startup into TestTier, so that level must also display shotgun shells.
+	test_tier.simulate_weapon_display_update({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	})
+	assert_eq(test_tier._ammo_label_text, "AMMO: 8/8",
+		"TestTier startup must use ShellsInTube for the initial HUD state")
+
+	test_tier.simulate_weapon_display_update({
+		"name": "Revolver",
+		"CurrentAmmo": 5,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 20,
+	})
+	assert_eq(test_tier._ammo_label_text, "AMMO: 5/20",
+		"TestTier non-shotgun startup must keep using CurrentAmmo")
