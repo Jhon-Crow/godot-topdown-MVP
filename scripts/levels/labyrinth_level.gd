@@ -2456,6 +2456,7 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
 	match step:
 		0:
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.0)
 			return "[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]"
 		1:
 			# First step completed
@@ -2484,7 +2485,7 @@ func _update_tutorial_grenade_hint_step() -> void:
 		_tutorial_grenade_hint_step = 1
 		_tutorial_grenade_g_was_held = true
 	elif _tutorial_grenade_hint_step == 1 and not g_pressed and _tutorial_grenade_g_was_held:
-		_tutorial_grenade_hint_step = 2
+		_tutorial_grenade_hint_step = 0
 		_tutorial_grenade_g_was_held = false
 
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_GRENADE]
@@ -2837,8 +2838,8 @@ func _extend_tutorial_hint_strikethrough(hint_key: String, target_progress: floa
 		return
 
 	var current_progress: float = _tutorial_hint_strike_progress.get(hint_key, 0.0)
-	if target_progress <= current_progress:
-		return  # Already at or past this progress
+	if is_equal_approx(target_progress, current_progress):
+		return  # No visual change needed
 
 	# Issue #1080: Use per-line widths if available, otherwise fall back to content width.
 	var line_widths: Array = _tutorial_hint_line_widths.get(hint_key, [])
