@@ -1,0 +1,17 @@
+title:	fix счётчик дробовика
+state:	OPEN
+author:	Jhon-Crow (Jhon-Crow)
+labels:	
+comments:	0
+assignees:	
+projects:	
+milestone:	
+number:	1808
+--
+<img width="205" height="74" alt="Image" src="https://github.com/user-attachments/assets/0e322401-25cb-4481-8ef3-c9f3663408be" />
+на картах Здание и Лабиринт комплекс при старте с дробовиком до первого выстрела на счётчике 0 зарядов, хотя фактически заряжено 8
+после первого выстрела всё нормально - счётчик показывает 7 зарядов и далее работает корректно
+
+[game_log_20260411_015626.txt](https://github.com/user-attachments/files/26641153/game_log_20260411_015626.txt)
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+

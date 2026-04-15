@@ -786,8 +786,11 @@ func _setup_player_tracking() -> void:
 		# Connect to ShellCountChanged for shotgun - updates ammo UI during shell-by-shell reload
 		if weapon.has_signal("ShellCountChanged"):
 			weapon.ShellCountChanged.connect(_on_shell_count_changed)
-		# Initial ammo display from weapon
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+		# Shotgun stores the loaded shells in ShellsInTube, not CurrentAmmo.
+		# Push the initial value explicitly so the HUD is correct before the first shot.
+		if weapon.name == "Shotgun" and weapon.get("ShellsInTube") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.ShellsInTube, weapon.ReserveAmmo)
+		elif weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		# Initial magazine display
 		if weapon.has_method("GetMagazineAmmoCounts"):
