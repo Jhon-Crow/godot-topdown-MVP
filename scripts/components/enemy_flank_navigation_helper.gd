@@ -21,17 +21,23 @@ static func is_navigation_target_reasonable(enemy: Node2D, nav_agent: Navigation
 	if nav_agent == null:
 		return true
 
-	var previous_target := nav_agent.target_position
-	nav_agent.target_position = target
+	var nav_map := nav_agent.get_navigation_map()
+	if not nav_map.is_valid():
+		return true
 
-	if nav_agent.is_navigation_finished():
-		var distance := enemy.global_position.distance_to(target)
-		nav_agent.target_position = previous_target
-		return distance <= 50.0
-
-	var path_distance := nav_agent.distance_to_target()
 	var straight_distance := enemy.global_position.distance_to(target)
-	nav_agent.target_position = previous_target
+	if straight_distance <= 50.0:
+		return true
+
+	var path: PackedVector2Array = NavigationServer2D.map_get_path(nav_map, enemy.global_position, target, true)
+	if path.size() < 2:
+		if enemy.has_method("_log_debug"):
+			enemy._log_debug("Flank path missing between %s and %s" % [enemy.global_position, target])
+		return false
+
+	var path_distance := 0.0
+	for i in range(1, path.size()):
+		path_distance += path[i - 1].distance_to(path[i])
 
 	if path_distance <= 0.0:
 		return false

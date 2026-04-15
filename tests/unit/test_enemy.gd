@@ -82,6 +82,8 @@ class MockEnemy:
 	var _nav_candidate_left_ok: bool = false
 	var _los_candidate_right_ok: bool = false
 	var _los_candidate_left_ok: bool = false
+	var _nav_has_path: bool = true
+	var _nav_path_distance: float = 0.0
 	var _cover_position: Vector2 = Vector2.ZERO
 	var _suppression_timer: float = 0.0
 	var _shoot_timer: float = 0.0
@@ -357,6 +359,19 @@ class MockEnemy:
 		if flank_pos.x >= 0.0:
 			return _los_candidate_right_ok
 		return _los_candidate_left_ok
+
+
+	func is_navigation_target_reasonable_for_test(target: Vector2) -> bool:
+		var straight_distance := target.length()
+		if straight_distance <= 50.0:
+			return true
+		if not _nav_has_path:
+			return false
+		if _nav_path_distance <= 0.0:
+			return false
+		if _nav_path_distance > straight_distance * 3.0 and _nav_path_distance > 500.0:
+			return false
+		return true
 
 
 	func set_under_fire(value: bool) -> void:
@@ -861,6 +876,22 @@ func test_choose_best_flank_side_accepts_nav_reachable_route_around_wall() -> vo
 
 	assert_eq(enemy.choose_best_flank_side_for_test(), 1.0,
 		"Flank side selection should prefer the nav-reachable side even when direct pathing is not part of validation")
+
+
+func test_navigation_target_reasonable_accepts_real_path_distance() -> void:
+	enemy._nav_has_path = true
+	enemy._nav_path_distance = 240.0
+
+	assert_true(enemy.is_navigation_target_reasonable_for_test(Vector2(120.0, 0.0)),
+		"Reachability should accept a valid nav path instead of depending on transient agent state")
+
+
+func test_navigation_target_reasonable_rejects_missing_path() -> void:
+	enemy._nav_has_path = false
+	enemy._nav_path_distance = 240.0
+
+	assert_false(enemy.is_navigation_target_reasonable_for_test(Vector2(120.0, 0.0)),
+		"Reachability should reject flank targets when the navigation map has no path")
 
 
 # ============================================================================

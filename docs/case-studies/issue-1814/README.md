@@ -80,6 +80,15 @@ Second layer, inside flank target selection:
 
 This is why the maintainer still saw no flanking in the reported encounters even after the first transition fix landed.
 
+Third layer, inside nav-reachability validation for flank targets:
+
+- the follow-up helper tried to validate flank targets by mutating `NavigationAgent2D.target_position`
+- it then trusted `is_navigation_finished()` and `distance_to_target()` as a proxy for reachability
+- that makes validation depend on transient agent state instead of the navigation map itself
+- in live encounters this can reject or wobble on valid routes even when the navmesh contains a path
+
+The April 15, 2026 owner report arrived after the second fix and showed that the stuck encounter still reproduced in the latest build. That pointed to the helper-level reachability check as the next remaining false-negative source.
+
 ## Fix Implemented
 
 The final fix has two parts:
@@ -97,6 +106,13 @@ The final fix has two parts:
 - LOS from the flank point to the player is still required
 - direct current-position-to-flank ray clearance is no longer used to reject routes that intentionally go around walls
 
+3. Reachability validation now queries the navigation map path directly instead of depending on mutable `NavigationAgent2D` runtime state:
+
+- flank validation uses `NavigationServer2D.map_get_path(...)` to ask whether a route actually exists
+- path length is measured from the returned path segments
+- the previous `target_position` / `distance_to_target()` probe is no longer used for flank admission
+- this makes flank startup deterministic for the same geometry and removes one more runtime-only rejection path
+
 This preserves existing behavior while restoring the missing FLANKING path for the tactical case described in the issue.
 
 ## Regression Coverage
@@ -106,6 +122,8 @@ Added regression tests in [tests/unit/test_enemy.gd](/tmp/gh-issue-solver-177628
 - `test_should_flank_even_without_cover_when_player_visible`
 - `test_pursuit_fallback_prefers_flanking_when_visible_target_is_still_unhittable`
 - `test_choose_best_flank_side_accepts_nav_reachable_route_around_wall`
+- `test_navigation_target_reasonable_accepts_real_path_distance`
+- `test_navigation_target_reasonable_rejects_missing_path`
 
 The second test directly models the issue path:
 
