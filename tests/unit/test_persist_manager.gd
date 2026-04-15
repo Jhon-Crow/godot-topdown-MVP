@@ -563,18 +563,29 @@ class MockPersistManagerFirstLaunch:
 	var navigation_performed: bool = false
 	## Whether navigation was deferred until after difficulty selection.
 	var navigation_deferred: bool = false
+	## Whether the tree would be paused while waiting for the choice (Issue #1812).
+	var tree_paused: bool = false
+	## Whether quick restart was requested after the choice (Issue #1812).
+	var restart_requested: bool = false
+	## Whether GameManager is available for quick restart.
+	var has_game_manager: bool = true
 
 	func simulate_navigate_to_last_level() -> void:
 		if _is_first_launch:
 			first_launch_menu_shown = true
 			navigation_deferred = true
+			tree_paused = true
 			return
 		navigation_performed = true
 
 	func simulate_difficulty_selected() -> void:
 		first_launch_menu_shown = false
 		navigation_deferred = false
-		navigation_performed = true
+		tree_paused = false
+		if has_game_manager:
+			restart_requested = true
+		else:
+			navigation_performed = true
 
 
 func test_first_launch_shows_difficulty_menu_not_level() -> void:
@@ -633,3 +644,32 @@ func test_first_launch_menu_closed_after_difficulty_selected() -> void:
 
 	assert_false(mock.first_launch_menu_shown,
 		"First-launch menu must be closed after difficulty is selected (Issue #1734)")
+
+
+func test_first_launch_pauses_tree_until_difficulty_selected() -> void:
+	var mock := MockPersistManagerFirstLaunch.new()
+	mock._is_first_launch = true
+
+	mock.simulate_navigate_to_last_level()
+
+	assert_true(mock.tree_paused,
+		"Game tree must be paused while first-launch difficulty selection is open (Issue #1812)")
+
+	mock.simulate_difficulty_selected()
+
+	assert_false(mock.tree_paused,
+		"Game tree must be unpaused after first-launch difficulty selection completes (Issue #1812)")
+
+
+func test_first_launch_selection_requests_quick_restart_when_game_manager_exists() -> void:
+	var mock := MockPersistManagerFirstLaunch.new()
+	mock._is_first_launch = true
+	mock.has_game_manager = true
+
+	mock.simulate_navigate_to_last_level()
+	mock.simulate_difficulty_selected()
+
+	assert_true(mock.restart_requested,
+		"First-launch difficulty selection must trigger quick restart when GameManager is available (Issue #1812)")
+	assert_false(mock.navigation_performed,
+		"Fallback navigation should not run when quick restart is available (Issue #1812)")
