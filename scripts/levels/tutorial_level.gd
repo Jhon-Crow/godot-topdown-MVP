@@ -80,13 +80,12 @@ var _has_switched_fire_mode: bool = false
 ## Whether the player has thrown a grenade.
 var _has_thrown_grenade: bool = false
 
-## Grenade hint step tracking (Issue #1818):
+## Grenade hint step tracking (Issue #1818 / PR review feedback):
 ## 0 = [удерживать G+ПКМ]
-## 1 = [дёрнуть мышкой вправо]
-## 2 = [отпустить ПКМ]
-## 3 = [зажать ПКМ]
-## 4 = [отпустить G]
-## 5 = [прицелиться и отпустить ПКМ]
+## 1 = [дёрнуть мышкой вправо] [отпустить ПКМ]
+## 2 = [зажать ПКМ]
+## 3 = [отпустить G]
+## 4 = [прицелиться и отпустить ПКМ]
 var _grenade_hint_step: int = 0
 
 ## Whether G was held during the last frame (for grenade hint step tracking).
@@ -1417,14 +1416,13 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 func _build_grenade_hint_bbcode(step: int) -> String:
 	var parts := [
 		"[удерживать G+ПКМ]",
-		"[дёрнуть мышкой вправо]",
-		"[отпустить ПКМ]",
+		"[дёрнуть мышкой вправо] [отпустить ПКМ]",
 		"[зажать ПКМ]",
 		"[отпустить G]",
 		"[прицелиться и отпустить ПКМ]",
 	]
 	var clamped_step := clampi(step, 0, parts.size() - 1)
-	var strikethrough_progress := [0.0, 0.16, 0.32, 0.5, 0.68, 0.84]
+	var strikethrough_progress := [0.0, 0.2, 0.4, 0.62, 0.84]
 	_extend_hint_strikethrough(HINT_GRENADE, strikethrough_progress[clamped_step])
 	var styled: PackedStringArray = []
 	for i in range(parts.size()):
@@ -1437,21 +1435,35 @@ func _build_grenade_hint_bbcode(step: int) -> String:
 	return " ".join(styled)
 
 
+func _reset_grenade_hint_tracking() -> void:
+	_grenade_g_was_held = false
+	_grenade_hint_step = 0
+	_grenade_drag_completed = false
+	_grenade_rmb_held_after_release = false
+	_grenade_rmb_was_pressed = false
+	_grenade_hint_drag_start = Vector2.ZERO
+
+
 ## Update the grenade hint step based on current input state (Issue #1818).
 ## Called every frame to dynamically highlight the next required action.
 func _update_grenade_hint_step() -> void:
 	if not _hint_labels.has(HINT_GRENADE):
-		_grenade_g_was_held = false
-		_grenade_hint_step = 0
-		_grenade_drag_completed = false
-		_grenade_rmb_held_after_release = false
-		_grenade_rmb_was_pressed = false
-		_grenade_hint_drag_start = Vector2.ZERO
+		_reset_grenade_hint_tracking()
 		return
 
 	var g_pressed: bool = Input.is_action_pressed("grenade_prepare")
 	var rmb_pressed: bool = Input.is_action_pressed("grenade_throw")
 	var current_mouse_pos := get_global_mouse_position()
+
+	if _grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
+		if g_pressed or rmb_pressed or _grenade_rmb_was_pressed:
+			_reset_grenade_hint_tracking()
+	elif _grenade_hint_step == 1 and not g_pressed and not _grenade_drag_completed:
+		_reset_grenade_hint_tracking()
+	elif _grenade_hint_step == 2 and not g_pressed and not rmb_pressed:
+		_reset_grenade_hint_tracking()
+	elif _grenade_hint_step == 3 and not rmb_pressed:
+		_reset_grenade_hint_tracking()
 
 	if _grenade_hint_step == 0 and g_pressed and rmb_pressed and not _grenade_rmb_was_pressed:
 		_grenade_drag_completed = false
@@ -1460,20 +1472,17 @@ func _update_grenade_hint_step() -> void:
 		if current_mouse_pos.x - _grenade_hint_drag_start.x > 20.0:
 			_grenade_drag_completed = true
 
-	if _grenade_hint_step == 0 and g_pressed:
+	if _grenade_hint_step == 0 and g_pressed and rmb_pressed:
 		_grenade_hint_step = 1
 		_grenade_g_was_held = true
 	elif _grenade_hint_step == 1 and _grenade_drag_completed and not rmb_pressed and _grenade_rmb_was_pressed:
-		_grenade_drag_completed = true
 		_grenade_hint_step = 2
-	elif _grenade_hint_step == 2 and not g_pressed and _grenade_g_was_held:
-		_grenade_hint_step = 3
-		_grenade_g_was_held = false
-	elif _grenade_hint_step == 3 and g_pressed and rmb_pressed:
+	elif _grenade_hint_step == 2 and g_pressed and rmb_pressed:
 		_grenade_rmb_held_after_release = true
+		_grenade_hint_step = 3
+	elif _grenade_hint_step == 3 and not g_pressed and _grenade_rmb_held_after_release:
 		_grenade_hint_step = 4
-	elif _grenade_hint_step == 4 and not g_pressed and _grenade_rmb_held_after_release:
-		_grenade_hint_step = 5
+		_grenade_g_was_held = false
 
 	# Update the label text to reflect current step
 	var label: RichTextLabel = _hint_labels[HINT_GRENADE]
@@ -1572,10 +1581,7 @@ func _show_hints_for_step(step: TutorialStep) -> void:
 			# Bug fix #9: only show grenade hint if the player actually has grenades
 			if _player_has_grenades():
 				if not _hint_labels.has(HINT_GRENADE):
-					_grenade_hint_step = 0
-					_grenade_g_was_held = false
-					_grenade_drag_completed = false
-					_grenade_rmb_held_after_release = false
+					_reset_grenade_hint_tracking()
 					_add_hint(HINT_GRENADE, _build_grenade_hint_bbcode(0), canvas_layer)
 			else:
 				# No grenades — skip grenade step and complete tutorial
