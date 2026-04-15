@@ -168,6 +168,18 @@ var _f8_spawn_triggered: bool = false
 ## Hold duration in seconds required to trigger F8 spawn (Issue #1112).
 const F8_HOLD_THRESHOLD: float = 0.2
 
+## Whether Q is currently being held down for quick restart (Issue #1822).
+var _q_restart_held: bool = false
+
+## Tracks how long Q has been held for quick restart (Issue #1822).
+var _q_restart_hold_time: float = 0.0
+
+## Whether quick restart already triggered during the current Q hold (Issue #1822).
+var _q_restart_triggered: bool = false
+
+## Hold duration in seconds required to trigger quick restart with Q (Issue #1822).
+const Q_RESTART_HOLD_THRESHOLD: float = 2.0
+
 ## ── Roguelike session state (Issue #1061) ─────────────────────────────────
 ## Persists across room-to-room scene reloads so the run can advance
 ## one room at a time (Binding of Isaac style).
@@ -285,12 +297,19 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	# Handle quick restart with Q key
 	if event is InputEventKey:
-		if event.pressed and event.physical_keycode == KEY_Q:
+		if event.physical_keycode == KEY_Q:
 			# Block restart while the score screen animation is playing — the player
 			# may not have seen the Armory button yet (Issue #1589).
 			if score_screen_active:
+				if not event.pressed:
+					_reset_q_restart_hold()
 				return
-			restart_scene()
+			if event.pressed and not event.echo:
+				_q_restart_held = true
+				_q_restart_hold_time = 0.0
+				_q_restart_triggered = false
+			elif not event.pressed:
+				_reset_q_restart_hold()
 		# Handle invincibility toggle with F6 key (works in exported builds)
 		elif event.pressed and event.physical_keycode == KEY_F6:
 			toggle_invincibility()
@@ -310,6 +329,15 @@ func _input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	if _q_restart_held and not _q_restart_triggered:
+		if score_screen_active:
+			_reset_q_restart_hold()
+		else:
+			_q_restart_hold_time += delta
+			if _q_restart_hold_time >= Q_RESTART_HOLD_THRESHOLD:
+				_q_restart_triggered = true
+				restart_scene()
+
 	# F8 hold-to-spawn: after holding F8 for 200ms outside a menu, spawn the selected enemy (Issue #1112).
 	if _f8_held and not _f8_spawn_triggered:
 		_f8_hold_time += delta
@@ -514,6 +542,12 @@ func restart_scene() -> void:
 ## Issue #1334: Deferred callback to clear the reload guard.
 func _reset_reloading() -> void:
 	_reloading = false
+
+
+func _reset_q_restart_hold() -> void:
+	_q_restart_held = false
+	_q_restart_hold_time = 0.0
+	_q_restart_triggered = false
 
 
 ## Sets the player reference and connects to the player's death signal.

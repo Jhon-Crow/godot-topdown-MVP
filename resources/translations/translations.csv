@@ -240,7 +240,7 @@ HINT_FIRE_MODE_SWITCH,Switch fire mode,Переключи режим стрел�
 HINT_LAUNCHER_FIRE,Fire grenade launcher,Выстрели подствольным гранатомётом
 HINT_GRENADE_STEP0,Throw grenade,Брось гранату
 TUTORIAL_LEVEL_COMPLETE,LEVEL COMPLETE!,УРОВЕНЬ ПРОЙДЕН!
-TUTORIAL_RESTART_HINT,Press [Q] to quick restart,Нажми [Q] для быстрого перезапуска
+TUTORIAL_RESTART_HINT,Hold [Q] for 2 seconds to quick restart,Удерживай [Q] 2 секунды для быстрого перезапуска
 TUTORIAL_AMMO_LABEL,AMMO: %d/%d,ПАТРОНЫ: %d/%d
 ROGUELIKE_LEVEL_UP,"LEVEL %d\nEnemies got more dangerous!","УРОВЕНЬ %d\nВраги стали опаснее!"
 UNLOCK_COND_COMPLETE_LEVEL,Complete %s,Пройди %s

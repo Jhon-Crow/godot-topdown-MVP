@@ -18,6 +18,12 @@ class MockGameManager:
 	var player_alive: bool = true
 	var debug_mode_enabled: bool = false
 	var selected_weapon: String = "m16"
+	var score_screen_active: bool = false
+	var _q_restart_held: bool = false
+	var _q_restart_hold_time: float = 0.0
+	var _q_restart_triggered: bool = false
+
+	const Q_RESTART_HOLD_THRESHOLD: float = 2.0
 
 	const WEAPON_SCENES: Dictionary = {
 		"m16": "res://scenes/weapons/csharp/AssaultRifle.tscn",
@@ -78,6 +84,33 @@ class MockGameManager:
 		_reset_stats()
 		last_mouse_mode = Input.MOUSE_MODE_CONFINED_HIDDEN
 		scene_reload_requested = true
+
+	func handle_q_input(pressed: bool, echo: bool = false) -> void:
+		if score_screen_active:
+			if not pressed:
+				_reset_q_restart_hold()
+			return
+		if pressed and not echo:
+			_q_restart_held = true
+			_q_restart_hold_time = 0.0
+			_q_restart_triggered = false
+		elif not pressed:
+			_reset_q_restart_hold()
+
+	func process_restart_hold(delta: float) -> void:
+		if _q_restart_held and not _q_restart_triggered:
+			if score_screen_active:
+				_reset_q_restart_hold()
+				return
+			_q_restart_hold_time += delta
+			if _q_restart_hold_time >= Q_RESTART_HOLD_THRESHOLD:
+				_q_restart_triggered = true
+				restart_scene()
+
+	func _reset_q_restart_hold() -> void:
+		_q_restart_held = false
+		_q_restart_hold_time = 0.0
+		_q_restart_triggered = false
 
 
 var manager: MockGameManager
@@ -387,3 +420,48 @@ func test_restart_scene_triggers_scene_reload() -> void:
 	manager.restart_scene()
 
 	assert_true(manager.scene_reload_requested, "restart_scene() must trigger scene reload")
+
+
+# ============================================================================
+# Quick Restart Hold Tests (Issue #1822)
+# ============================================================================
+
+
+func test_q_tap_does_not_restart_scene() -> void:
+	manager.handle_q_input(true)
+	manager.process_restart_hold(0.5)
+	manager.handle_q_input(false)
+
+	assert_false(manager.scene_reload_requested,
+		"Quick restart must NOT trigger on a short Q tap")
+
+
+func test_q_hold_restarts_after_two_seconds() -> void:
+	manager.handle_q_input(true)
+	manager.process_restart_hold(1.0)
+	assert_false(manager.scene_reload_requested, "Quick restart must wait for the full hold duration")
+
+	manager.process_restart_hold(1.0)
+
+	assert_true(manager.scene_reload_requested,
+		"Quick restart must trigger after holding Q for 2 seconds")
+
+
+func test_q_release_before_threshold_cancels_restart() -> void:
+	manager.handle_q_input(true)
+	manager.process_restart_hold(1.9)
+	manager.handle_q_input(false)
+	manager.process_restart_hold(0.2)
+
+	assert_false(manager.scene_reload_requested,
+		"Releasing Q before 2 seconds must cancel quick restart")
+
+
+func test_q_hold_blocked_while_score_screen_active() -> void:
+	manager.score_screen_active = true
+	manager.handle_q_input(true)
+	manager.process_restart_hold(3.0)
+	manager.handle_q_input(false)
+
+	assert_false(manager.scene_reload_requested,
+		"Quick restart must remain blocked while the score screen animation is active")
