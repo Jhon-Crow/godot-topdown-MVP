@@ -215,6 +215,8 @@ func test_castle_scene_key_obstacles_have_light_occluders() -> void:
 		"Environment/Cover/CoverLowerLeft1",
 		"Environment/Cover/CoverCenterRight2",
 		"Environment/Cover/CoverBottom3",
+		"Environment/Cover/CoverBottom4",
+		"Environment/Cover/CoverBottom5",
 	]
 
 	for obstacle_path in obstacle_paths:

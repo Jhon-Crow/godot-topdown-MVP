@@ -19,6 +19,7 @@ This case study collects the issue payload, attached runtime logs, and the follo
 - 2026-04-13 21:04:46 UTC: attached game log started on the reporter's Windows build.
 - 2026-04-15 18:04:21 UTC: PR review feedback reported that Castle light/flash still passed through obstacles and that Beach small obstacles also leaked light.
 - 2026-04-15 21:05:02 UTC: owner reported that the latest build still leaked light and flashes through Castle obstacles.
+- 2026-04-15 22:08:08 UTC: owner reported one Winter Forest obstacle still leaking light and two false light gaps on the Castle start cover above spawn.
 - 2026-04-15: issue investigated in the repository branch `issue-1825-fefc5291893b`.
 
 ## Findings
@@ -34,6 +35,8 @@ This case study collects the issue payload, attached runtime logs, and the follo
 - Because `shadow_enabled` was disabled, adding `LightOccluder2D` nodes alone could not stop grenade flashes from leaking through walls.
 - The Castle scene also still lacked `LightOccluder2D` nodes on most interior blockers such as the center tower, inner pillar, interior wall bodies, and cover props.
 - The latest log `game_log_20260416_000259.txt` includes multiple `CastleLevel` loads plus active flashlight and grenade usage, which matches the owner's report that the latest build still reproduced the Castle leak.
+- The owner follow-up screenshot from 2026-04-15 points at `WinterForestLevel` `Stump1`, which had collision but no `LightOccluder2D`.
+- In the Castle start area, `CoverBottom4` and `CoverBottom5` sat next to the already-fixed spawn cover row but still lacked `LightOccluder2D`, leaving two visible light leak gaps above the player spawn.
 
 ## Root Cause
 
@@ -42,6 +45,7 @@ The root cause was twofold:
 - On Castle, the outer perimeter initially lacked both collision and occlusion, the later occluder polygon still had an open seam, and many interior blockers still had no `LightOccluder2D`.
 - On Beach, multiple small props blocked movement but were missing `LightOccluder2D`, so light and flash effects visually penetrated those objects.
 - In the shared effect system, pooled grenade flash lights had shadows disabled, so no scene occluder could affect those flashes even when present.
+- Additional follow-up regressions came from the same pattern on other maps: Winter Forest `Stump1` and Castle `CoverBottom4`/`CoverBottom5` still blocked movement but did not participate in 2D light occlusion.
 
 ## Fix Direction
 
@@ -52,4 +56,5 @@ The root cause was twofold:
 - Enable shadows on pooled grenade `PointLight2D` nodes so `LightOccluder2D` geometry can block flash visuals.
 - Add `LightOccluder2D` nodes to the main Castle interior blockers, not just the outer perimeter.
 - Add `LightOccluder2D` nodes to all Beach small cover props that already have blocking collision.
+- Add `LightOccluder2D` nodes to Winter Forest `Stump1` and to the Castle spawn-adjacent `CoverBottom4` and `CoverBottom5` blockers.
 - Add regression tests that assert the Castle and Beach scenes keep these occluders in place.

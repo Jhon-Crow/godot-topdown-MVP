@@ -253,3 +253,25 @@ func test_beach_small_cover_props_have_light_occluders() -> void:
 		var occluder := cover.get_node_or_null("LightOccluder2D") as LightOccluder2D
 		assert_not_null(occluder, "Beach small cover should cast shadows: %s" % cover_path)
 		assert_not_null(occluder.occluder, "Beach cover occluder polygon should be assigned: %s" % cover_path)
+
+
+func test_winter_forest_small_cover_props_have_light_occluders() -> void:
+	var scene := load("res://scenes/levels/WinterForestLevel.tscn") as PackedScene
+	assert_not_null(scene, "WinterForestLevel scene should load")
+
+	var instance := scene.instantiate()
+	add_child_autofree(instance)
+
+	var cover_paths := [
+		"Environment/Cover/Rock1",
+		"Environment/Cover/Stump1",
+		"Environment/Cover/FallenLog1",
+	]
+
+	for cover_path in cover_paths:
+		var cover := instance.get_node_or_null(cover_path) as CollisionObject2D
+		assert_not_null(cover, "Winter Forest cover should exist: %s" % cover_path)
+
+		var occluder := cover.get_node_or_null("LightOccluder2D") as LightOccluder2D
+		assert_not_null(occluder, "Winter Forest small cover should cast shadows: %s" % cover_path)
+		assert_not_null(occluder.occluder, "Winter Forest cover occluder polygon should be assigned: %s" % cover_path)

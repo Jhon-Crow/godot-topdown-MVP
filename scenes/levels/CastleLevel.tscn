@@ -898,6 +898,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverBottom4"]
 shape = SubResource("RectangleShape2D_cover_large")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverBottom4"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
+
 [node name="CoverBottom5" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(3150, 1950)
 collision_layer = 4
@@ -912,6 +915,9 @@ color = Color(0.3, 0.25, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverBottom5"]
 shape = SubResource("RectangleShape2D_cover_large")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CoverBottom5"]
+occluder = SubResource("OccluderPolygon2D_cover_large")
 
 [node name="PatrolZones" type="Node2D" parent="Environment"]
 
