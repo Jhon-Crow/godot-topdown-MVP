@@ -7,16 +7,19 @@
 
 The reported behavior was that enemies reached a PURSUING fallback state, visibly saw the player, but still oscillated in place instead of switching into FLANKING. The owner explicitly noted that FLANKING appeared to never activate, while SEARCHING, PURSUING, and COMBAT still worked.
 
-The issue bundle for this case study contains four attached gameplay logs:
+The issue bundle for this case study contains five attached gameplay logs:
 
 - `game_log_20260411_164253.txt`
 - `game_log_20260411_164631.txt`
 - `game_log_20260411_170145.txt`
 - `game_log_20260413_211243.txt`
+- `game_log_20260415_231752.txt`
 
 ## Evidence From Logs
 
-The attached logs consistently show long PURSUING stretches with repeated corner checks, but no successful FLANKING transitions during the stuck scenarios.
+The April 15, 2026 owner feedback confirmed the first fix was incomplete: the latest build still reproduced the bug and the attached `game_log_20260415_231752.txt` was provided as fresh evidence.
+
+The attached logs consistently show long PURSUING stretches with repeated corner checks, but no successful FLANKING transitions during the stuck scenarios that matter for this issue.
 
 Representative evidence from `game_log_20260413_211243.txt`:
 
@@ -37,6 +40,14 @@ This is followed by a long stream of entries like:
 
 The pattern indicates that enemies are actively updating movement and visibility logic, but remain trapped in pursuit fallback behavior instead of escalating into FLANKING when pursuit cover is exhausted.
 
+The new April 15 log also showed that FLANKING still existed elsewhere in the build, for example:
+
+```text
+[23:17:56] [ENEMY] [ContainerYardB_Machete] FLANKING started: target=(390.9296, 3840.453), side=right, pos=(363.6242, 3172.657)
+```
+
+That detail matters: it proves the state was not globally broken. The remaining problem had to be in the specific transition and target-selection logic used by the stuck enemies.
+
 ## Timeline Reconstruction
 
 1. Enemy enters `COMBAT`.
@@ -45,13 +56,14 @@ The pattern indicates that enemies are actively updating movement and visibility
 4. No next pursuit cover can be found.
 5. Player is still visible, but `_can_hit_target_from_current_position()` remains false.
 6. Existing code starts approach fallback and returns early.
-7. Because that branch returned before a successful flank transition, the enemy keeps oscillating between pursuit fallback movement and combat re-evaluation.
+7. Even after the first patch added a flanking attempt here, flank target validation still rejected many tactically valid routes because it demanded a direct clear path from the enemy to the flank point.
+8. The enemy therefore stayed in PURSUING/approach behavior and oscillated instead of committing to a nav-routed flank around obstacles.
 
 ## Root Cause
 
-The bug was inside the PURSUING fallback branch in [scripts/objects/enemy.gd](/tmp/gh-issue-solver-1776281031188/scripts/objects/enemy.gd:2153).
+The full bug had two layers inside [scripts/objects/enemy.gd](/tmp/gh-issue-solver-1776281031188/scripts/objects/enemy.gd).
 
-Before the fix:
+First layer, inside the PURSUING fallback branch:
 
 - when pursuit cover ran out and the target was still visible but unhittable, the code set `_pursuit_approaching = true`
 - then it returned immediately
@@ -59,15 +71,33 @@ Before the fix:
 
 That made FLANKING effectively unreachable in one of the exact scenarios described by the issue: visible player, no viable shot, no next pursuit cover.
 
+Second layer, inside flank target selection:
+
+- `_choose_best_flank_side()` validated candidate flank positions with `_has_clear_path_to(...)`
+- that required a direct ray-clear line from the enemy to the final flank point
+- but FLANKING is explicitly a navigation maneuver that is supposed to move cover-to-cover around walls
+- as a result, valid navmesh flank routes were rejected before FLANKING could start
+
+This is why the maintainer still saw no flanking in the reported encounters even after the first transition fix landed.
+
 ## Fix Implemented
 
-The PURSUING fallback now attempts FLANKING before falling back to direct approach/combat:
+The final fix has two parts:
+
+1. The PURSUING fallback now attempts FLANKING before falling back to direct approach/combat:
 
 - in the visible-target fallback branch, the enemy now tries `_transition_to_flanking()` after entering approach mode
 - in the no-visible-target fallback branch, the code only returns early if `_transition_to_flanking()` actually succeeds
 - otherwise it continues to the final COMBAT fallback as intended
 
-This preserves existing behavior while restoring the missing FLANKING path.
+2. Flank-side selection now validates navmesh-reachable flank targets instead of requiring a direct unobstructed line from the current enemy position to the flank point:
+
+- candidate flank positions are snapped to navmesh first
+- validation now checks whether the navigation path is reasonable
+- LOS from the flank point to the player is still required
+- direct current-position-to-flank ray clearance is no longer used to reject routes that intentionally go around walls
+
+This preserves existing behavior while restoring the missing FLANKING path for the tactical case described in the issue.
 
 ## Regression Coverage
 
@@ -75,6 +105,7 @@ Added regression tests in [tests/unit/test_enemy.gd](/tmp/gh-issue-solver-177628
 
 - `test_should_flank_even_without_cover_when_player_visible`
 - `test_pursuit_fallback_prefers_flanking_when_visible_target_is_still_unhittable`
+- `test_choose_best_flank_side_accepts_nav_reachable_route_around_wall`
 
 The second test directly models the issue path:
 
@@ -85,4 +116,9 @@ The second test directly models the issue path:
 
 ## Conclusion
 
-This issue was not a broad GOAP failure. The core problem was a narrow state-machine gap in the PURSUING fallback path that prevented FLANKING from being chosen when it should have been the preferred tactical continuation. The fix restores that transition and adds regression coverage for the exact failure mode captured in the logs.
+This issue was not a broad GOAP failure. The final root cause was a combination of:
+
+- a PURSUING fallback transition gap
+- overly strict flank target validation that rejected nav-routed flank paths around walls
+
+The updated fix restores the intended FLANKING transition and aligns flank target selection with the actual purpose of the FLANKING state.
