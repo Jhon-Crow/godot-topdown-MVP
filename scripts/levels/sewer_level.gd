@@ -63,6 +63,10 @@ func _ready() -> void:
 	_start_replay_recording()
 	_setup_weapon_hints()
 
+	var localization_settings: Node = get_node_or_null("/root/LocalizationSettings")
+	if localization_settings and localization_settings.has_signal("locale_changed") and not localization_settings.locale_changed.is_connected(_on_locale_changed):
+		localization_settings.locale_changed.connect(_on_locale_changed)
+
 
 func _initialize_score_manager() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
@@ -675,6 +679,15 @@ func _update_debug_ui() -> void:
 	LevelLocalization.apply_level_label_from_node(self, LEVEL_SCENE_PATH)
 	if _difficulty_label:
 		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
+
+
+func _on_locale_changed(_locale: String) -> void:
+	_update_enemy_count_label()
+	if _ammo_label and _player:
+		var weapon = _player.get("CurrentWeapon")
+		if weapon != null and weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+	_update_debug_ui()
 
 
 func _update_ammo_label(current: int, maximum: int) -> void:

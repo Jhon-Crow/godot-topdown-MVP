@@ -85,3 +85,20 @@ func test_apply_level_label_from_node_updates_canvas_ui_label() -> void:
 	_helper.apply_level_label_from_node(level_root, "res://scenes/levels/BuildingLevel.tscn")
 
 	assert_eq(label.text, tr("LEVEL_BUILDING_NAME"))
+
+
+func test_apply_level_label_from_node_creates_missing_level_label() -> void:
+	var level_root := Node.new()
+	add_child_autofree(level_root)
+	var canvas_layer := CanvasLayer.new()
+	canvas_layer.name = "CanvasLayer"
+	level_root.add_child(canvas_layer)
+	var ui := Control.new()
+	ui.name = "UI"
+	canvas_layer.add_child(ui)
+
+	_helper.apply_level_label_from_node(level_root, "res://scenes/levels/SewerLevel.tscn")
+
+	var label: Label = ui.get_node_or_null("LevelLabel")
+	assert_not_null(label)
+	assert_eq(label.text, tr("LEVEL_SEWER_NAME"))

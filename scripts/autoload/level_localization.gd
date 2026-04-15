@@ -43,10 +43,36 @@ func apply_level_label(label: Label, scene_path: String) -> void:
 	label.text = get_level_display_name(scene_path)
 
 
+func ensure_level_label(owner: Node) -> Label:
+	if owner == null:
+		return null
+	var ui: Control = owner.get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		return null
+	var level_label: Label = ui.get_node_or_null("LevelLabel")
+	if level_label != null:
+		return level_label
+
+	level_label = Label.new()
+	level_label.name = "LevelLabel"
+	level_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	level_label.anchor_left = 1.0
+	level_label.anchor_right = 1.0
+	level_label.offset_left = -250.0
+	level_label.offset_top = 10.0
+	level_label.offset_right = -10.0
+	level_label.offset_bottom = 40.0
+	level_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	ui.add_child(level_label)
+	ui.move_child(level_label, 0)
+	return level_label
+
+
 func apply_level_label_from_node(owner: Node, scene_path: String) -> void:
 	if owner == null:
 		return
-	var level_label: Label = owner.get_node_or_null("CanvasLayer/UI/LevelLabel")
+	var level_label: Label = ensure_level_label(owner)
 	apply_level_label(level_label, scene_path)
 
 

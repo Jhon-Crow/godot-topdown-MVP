@@ -19,7 +19,7 @@ Reported problems:
 
 ## Root Cause
 
-The UI used hard-coded strings in multiple level scripts instead of translation keys. A second regression remained after the first fix attempt: several levels applied the localized top-right level name only during setup or end-state flows, so the HUD could keep the stale scene text or remain blank during normal gameplay. The special difficulty names `Power Fantasy` and `Black Metal` also needed to stay in their canonical English form in the HUD instead of being translated.
+The UI used hard-coded strings in multiple level scripts instead of translation keys. A second regression remained after the first fix attempt: several levels applied the localized top-right level name only during setup or end-state flows, so the HUD could keep the stale scene text or remain blank during normal gameplay. `SewerLevel.tscn` also had no `LevelLabel` node in `CanvasLayer/UI`, so the shared localization helper had nothing to update and the top-right map name stayed missing. `Building` and `Sewer` additionally needed to refresh their HUD labels after locale changes instead of relying on the original scene text. The special difficulty names `Power Fantasy` and `Black Metal` also needed to stay in their canonical English form in the HUD instead of being translated.
 
 ## Fix Strategy
 
@@ -27,8 +27,9 @@ The UI used hard-coded strings in multiple level scripts instead of translation 
 2. Register the helper as an autoload so existing level scripts can use it safely.
 3. Replace per-level hard-coded HUD strings with shared translated formatting.
 4. Refresh top-right level labels from the shared helper during runtime HUD updates for affected levels, including `Building`, `Beach`, `Docks`, `Factory`, `Labyrinth Complex`, `Winter Forest`, `Railway Station`, and `Sewer`.
-5. Keep `Power Fantasy` and `Black Metal` unchanged in the gameplay HUD while preserving translated names for the standard difficulties.
-6. Add regression tests for scene-path-to-translation mapping, HUD difficulty rendering, and label population.
+5. Create a top-right `LevelLabel` dynamically when a level scene is missing that node, which fixes `Sewer` without duplicating scene-specific fallback code.
+6. Keep `Power Fantasy` and `Black Metal` unchanged in the gameplay HUD while preserving translated names for the standard difficulties.
+7. Add regression tests for scene-path-to-translation mapping, HUD difficulty rendering, and label population, including the missing-label case.
 
 ## Verification
 
