@@ -248,6 +248,10 @@ class MockBuildingLevel extends MockLevelBase:
 	## Simulated ammo label text (null means label not yet initialized).
 	var _ammo_label_text: Variant = null  # null = not initialized, String = initialized
 
+	## Simulated equipped C# weapon ammo state.
+	var _weapon_current_ammo: int = 0
+	var _weapon_reserve_ammo: int = 0
+
 	## Initialize ammo label before weapon setup (mirrors the fix in _setup_player_tracking).
 	func init_ammo_label() -> void:
 		_ammo_label_text = "AMMO: 0/0"
@@ -278,6 +282,13 @@ class MockBuildingLevel extends MockLevelBase:
 	## Simulate player dying: triggers death message (mirrors _on_player_died → _show_death_screen).
 	func on_player_died() -> void:
 		show_death_message()
+
+	## Simulate the C# player ammo-depleted path from BuildingLevel._on_player_ammo_depleted().
+	func on_player_ammo_depleted_for_csharp_weapon(current_ammo: int, reserve_ammo: int) -> void:
+		_weapon_current_ammo = current_ammo
+		_weapon_reserve_ammo = reserve_ammo
+		if _current_enemy_count > 0 and not _game_over_shown and current_ammo <= 0 and reserve_ammo <= 0:
+			show_game_over_message()
 
 
 # ============================================================================
@@ -2102,6 +2113,27 @@ func test_building_ammo_label_initialized_before_weapon_setup() -> void:
 		"Ammo label must be initialized before weapon setup (Issue #1259)")
 	assert_eq(building_level._ammo_label_text, "AMMO: 30/60",
 		"Ammo label must show weapon ammo after weapon setup (Issue #1259)")
+
+
+func test_building_csharp_ammo_depleted_shows_game_over_when_no_ammo_left() -> void:
+	## BuildingLevel must show the out-of-ammo label when the C# player emits AmmoDepleted
+	## and the active weapon has neither loaded nor reserve ammo left (Issue #1821).
+	building_level.initialize()
+
+	building_level.on_player_ammo_depleted_for_csharp_weapon(0, 0)
+
+	assert_true(building_level.game_over_message_shown,
+		"C# AmmoDepleted with 0/0 ammo must show the game-over message on BuildingLevel")
+
+
+func test_building_csharp_ammo_depleted_does_not_show_game_over_when_reserve_remains() -> void:
+	## Empty-clicks with reserve ammo remaining must not end the run.
+	building_level.initialize()
+
+	building_level.on_player_ammo_depleted_for_csharp_weapon(0, 12)
+
+	assert_false(building_level.game_over_message_shown,
+		"C# AmmoDepleted with reserve ammo remaining must not show the game-over message")
 
 
 func test_building_ammo_label_buggy_order_misses_initial_update() -> void:
