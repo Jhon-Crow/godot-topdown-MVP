@@ -228,3 +228,31 @@ func test_camera_limit_right_should_match_wall_left_edge() -> void:
 	const EXPECTED_CAMERA_LIMIT_RIGHT: int = 2464
 	assert_eq(EXPECTED_CAMERA_LIMIT_RIGHT, 2464,
 		"Camera limit_right should be 2464 (WallRight left edge) — Issue #1550")
+
+
+# ============================================================================
+# Light Occluder Regression Tests (Issue #1825)
+# ============================================================================
+
+
+func test_beach_small_cover_has_light_occluders() -> void:
+	var scene := load("res://scenes/levels/BeachLevel.tscn") as PackedScene
+	assert_not_null(scene, "BeachLevel scene should load")
+
+	var instance := scene.instantiate()
+	add_child_autofree(instance)
+
+	var cover_paths := [
+		"Environment/Cover/Rock2",
+		"Environment/Cover/Rock4",
+		"Environment/Cover/Rock6",
+		"Environment/Cover/Barrel1",
+		"Environment/Cover/Barrel2",
+		"Environment/Cover/Barrel3",
+	]
+
+	for path in cover_paths:
+		var cover := instance.get_node_or_null(path) as StaticBody2D
+		assert_not_null(cover, "%s should exist in BeachLevel" % path)
+		var occluder := cover.get_node_or_null("LightOccluder2D") as LightOccluder2D
+		assert_not_null(occluder, "%s should have a LightOccluder2D so light is blocked by small cover" % path)

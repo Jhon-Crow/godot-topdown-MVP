@@ -177,3 +177,23 @@ func test_castle_scene_has_outer_wall_collider() -> void:
 
 	assert_ge(collision_shape_count, 16,
 		"Outer wall should be approximated by multiple collision segments so it blocks movement and LOS")
+
+
+func test_castle_outer_wall_occluder_uses_closed_polygon() -> void:
+	var scene := load("res://scenes/levels/CastleLevel.tscn") as PackedScene
+	assert_not_null(scene, "CastleLevel scene should load")
+
+	var instance := scene.instantiate()
+	add_child_autofree(instance)
+
+	var outer_wall := instance.get_node_or_null("Environment/CastleWalls/WallOvalCollider") as StaticBody2D
+	assert_not_null(outer_wall, "Castle outer wall collider must exist")
+
+	var occluder := outer_wall.get_node_or_null("LightOccluder2D") as LightOccluder2D
+	assert_not_null(occluder, "Castle outer wall must expose an occluder")
+	assert_not_null(occluder.occluder, "Castle outer wall occluder polygon must be assigned")
+
+	var polygon := occluder.occluder.polygon
+	assert_gt(polygon.size(), 3, "Outer wall occluder polygon should have enough points")
+	assert_eq(polygon[0], polygon[polygon.size() - 1],
+		"Outer wall occluder polygon should be explicitly closed so shadows do not leak through the seam")
