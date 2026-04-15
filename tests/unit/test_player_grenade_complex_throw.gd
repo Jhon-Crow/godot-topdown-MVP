@@ -32,6 +32,7 @@ class MockComplexGrenadePlayer:
 	var dropped_at_feet: bool = false
 	var aiming_started: bool = false
 	var throw_triggered: bool = false
+	var awaiting_g_release_for_aim: bool = false
 
 	func handle_waiting_for_g_release(rmb_pressed: bool, g_pressed: bool) -> void:
 		if not rmb_pressed:
@@ -56,8 +57,32 @@ class MockComplexGrenadePlayer:
 			throw_triggered = true
 
 	func handle_simple_aiming_state(g_pressed: bool, rmb_just_released: bool) -> void:
+		if not g_pressed and awaiting_g_release_for_aim:
+			awaiting_g_release_for_aim = false
+			return
+
 		if g_pressed:
 			return
+
+		if rmb_just_released:
+			throw_triggered = true
+
+	func handle_simple_aiming_state_with_release_event(g_pressed: bool, g_just_released: bool, rmb_pressed: bool, rmb_just_released: bool) -> void:
+		if not rmb_pressed:
+			grenade_state = GrenadeState.TimerStarted
+			awaiting_g_release_for_aim = false
+			return
+
+		if g_pressed:
+			return
+
+		if awaiting_g_release_for_aim:
+			if not g_just_released:
+				grenade_state = GrenadeState.TimerStarted
+				awaiting_g_release_for_aim = false
+				return
+
+			awaiting_g_release_for_aim = false
 
 		if rmb_just_released:
 			throw_triggered = true
@@ -144,3 +169,25 @@ func test_simple_aiming_state_allows_throw_after_g_release() -> void:
 	player.handle_simple_aiming_state(false, true)
 
 	assert_true(player.throw_triggered)
+
+
+func test_simple_aiming_requires_g_release_event_during_rmb_handoff() -> void:
+	player.grenade_state = MockComplexGrenadePlayer.GrenadeState.SimpleAiming
+	player.awaiting_g_release_for_aim = true
+
+	player.handle_simple_aiming_state_with_release_event(false, false, true, false)
+
+	assert_eq(player.grenade_state, MockComplexGrenadePlayer.GrenadeState.TimerStarted)
+	assert_false(player.throw_triggered)
+	assert_false(player.awaiting_g_release_for_aim)
+
+
+func test_simple_aiming_activates_only_when_g_is_just_released_while_rmb_is_held() -> void:
+	player.grenade_state = MockComplexGrenadePlayer.GrenadeState.SimpleAiming
+	player.awaiting_g_release_for_aim = true
+
+	player.handle_simple_aiming_state_with_release_event(false, true, true, false)
+
+	assert_eq(player.grenade_state, MockComplexGrenadePlayer.GrenadeState.SimpleAiming)
+	assert_false(player.awaiting_g_release_for_aim)
+	assert_false(player.throw_triggered)

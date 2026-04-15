@@ -17,6 +17,7 @@ Original issue text requires two behaviors:
 - `pr-view.json`: current PR metadata and description
 - `pr-comments.json`: PR conversation history including owner feedback
 - `game_log_20260416_000608.txt`: owner-provided reproduction log from the latest build
+- `game_log_20260416_014229.txt`: owner-provided follow-up log for the revised regression
 - `log-key-lines.txt`: extracted grenade-related lines from the reproduction log
 - `pr-files.json`: current PR file list and commit history
 
@@ -28,6 +29,7 @@ Original issue text requires two behaviors:
 | 2026-04-15 20:44 UTC | Follow-up PR commit tightened the complex aiming state machine. |
 | 2026-04-15 21:08 UTC | Owner reported the grenade still throws while `G` remains held in the latest build and attached `game_log_20260416_000608.txt`. |
 | 2026-04-15 22:xx UTC | Evidence review showed the reproduction log was from a build running with `Complex grenades: false`, so the tested code path was the simple grenade path, not the complex one. |
+| 2026-04-15 22:48 UTC | Owner reported a second simple-path regression: after activation, pressing RMB and only then releasing `G` still showed the aim reticle even when the handoff event ordering was wrong, and attached `game_log_20260416_014229.txt`. |
 
 ## Findings
 
@@ -59,11 +61,26 @@ The previous fix correctly hardened the complex path, but the reported gameplay 
 
 The implementation enforced that only for complex mode, while the tested build was running simple mode.
 
+### 4. The first simple-path fix still used a level-trigger instead of an edge-trigger
+
+The follow-up owner log showed repeated
+
+- `RMB pressed after pin pull - starting trajectory aiming`
+- `G still held during right-hand aiming - waiting for release before aim/throw`
+
+That proved the simple state machine entered its aiming sub-state as soon as RMB was pressed and merely suppressed the throw while `G` stayed down.
+
+The missing rule was stricter:
+
+> the reticle should become active only on the exact frame where `G` is released while RMB is already held for the handoff.
+
+Without that edge-trigger requirement, the code still accepted a stale `SimpleAiming` state and enabled aiming after a later `G` release even though the intended handoff sequence had already been broken.
+
 ## Solution Direction
 
 The fix was expanded so both grenade paths obey the same handoff rule:
 
 - complex mode still blocks aiming/throw until `G` is released
-- simple trajectory mode now also refuses to aim/throw while `G` is held during the right-hand aiming phase
+- simple trajectory mode now also requires the actual `G` release event while RMB is held; if that event is missed, the state machine falls back to waiting for RMB again instead of showing the reticle
 
-Regression coverage was extended to include the simple aiming path.
+Regression coverage was extended to include the simple aiming path and the exact release-order edge case from the latest owner feedback.
