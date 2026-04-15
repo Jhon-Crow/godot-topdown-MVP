@@ -11,11 +11,20 @@ const FLASH_DURATION: float = 0.3
 ## Starting energy (intensity) of the point light (3x larger).
 const LIGHT_START_ENERGY: float = 4.5
 
+## Initial alpha for the floor-visible flash sprite.
+const SPRITE_START_ALPHA: float = 0.8
+
+## Minimum sprite scale multiplier at the end of the flash.
+const SPRITE_END_SCALE_MULTIPLIER: float = 0.55
+
 ## Reference to the point light child node.
 var _point_light: PointLight2D = null
 
 ## Reference to the particles child node.
 var _particles: GPUParticles2D = null
+
+## Reference to the additive sprite that keeps the flash readable on flat floors.
+var _flash_sprite: Sprite2D = null
 
 ## Time tracker for fade animation.
 var _elapsed_time: float = 0.0
@@ -28,6 +37,7 @@ func _ready() -> void:
 	# Get references to child nodes
 	_point_light = get_node_or_null("PointLight2D")
 	_particles = get_node_or_null("GPUParticles2D")
+	_flash_sprite = get_node_or_null("FlashSprite")
 
 	# Start the effect
 	_start_effect()
@@ -47,6 +57,11 @@ func _start_effect() -> void:
 		_point_light.energy = LIGHT_START_ENERGY
 		_point_light.visible = true
 
+	if _flash_sprite:
+		_flash_sprite.visible = true
+		_flash_sprite.modulate = Color(1.0, 1.0, 1.0, SPRITE_START_ALPHA)
+		_flash_sprite.scale = Vector2.ONE
+
 
 func _process(delta: float) -> void:
 	if not _is_active:
@@ -63,6 +78,13 @@ func _process(delta: float) -> void:
 		# Apply ease-out curve (starts fast, slows down)
 		fade = fade * fade
 		_point_light.energy = LIGHT_START_ENERGY * fade
+
+	if _flash_sprite:
+		var sprite_fade := 1.0 - progress
+		sprite_fade = sprite_fade * sprite_fade
+		_flash_sprite.modulate.a = SPRITE_START_ALPHA * sprite_fade
+		var scale_mult := lerpf(1.0, SPRITE_END_SCALE_MULTIPLIER, progress)
+		_flash_sprite.scale = Vector2(scale_mult, scale_mult)
 
 	# Check if effect is complete
 	if progress >= 1.0:

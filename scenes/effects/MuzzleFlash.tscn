@@ -40,9 +40,31 @@ height = 512
 fill = 1
 fill_from = Vector2(0.5, 0.5)
 
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_flash_sprite"]
+blend_mode = 1
+
+[sub_resource type="Gradient" id="Gradient_flash_sprite"]
+offsets = PackedFloat32Array(0, 0.18, 0.45, 1)
+colors = PackedColorArray(1, 0.98, 0.9, 0.95, 1, 0.72, 0.3, 0.65, 1, 0.35, 0.08, 0.18, 0.9, 0.25, 0.05, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_flash_sprite"]
+gradient = SubResource("Gradient_flash_sprite")
+width = 192
+height = 192
+fill = 1
+fill_from = Vector2(0.34, 0.5)
+fill_to = Vector2(1, 0.5)
+
 [node name="MuzzleFlash" type="Node2D"]
 z_index = 10
 script = ExtResource("1_muzzle_flash")
+
+[node name="FlashSprite" type="Sprite2D" parent="."]
+visible = false
+position = Vector2(28, 0)
+material = SubResource("CanvasItemMaterial_flash_sprite")
+texture = SubResource("GradientTexture2D_flash_sprite")
+modulate = Color(1, 1, 1, 0.8)
 
 [node name="GPUParticles2D" type="GPUParticles2D" parent="."]
 emitting = false

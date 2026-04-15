@@ -16,6 +16,12 @@ class MockMuzzleFlash:
 	## Starting energy of the point light.
 	const LIGHT_START_ENERGY: float = 4.5
 
+	## Initial alpha of the floor-visible flash sprite.
+	const SPRITE_START_ALPHA: float = 0.8
+
+	## Final sprite scale multiplier.
+	const SPRITE_END_SCALE_MULTIPLIER: float = 0.55
+
 	## Time tracker.
 	var _elapsed_time: float = 0.0
 
@@ -28,11 +34,19 @@ class MockMuzzleFlash:
 	## Whether cleanup was scheduled.
 	var _cleanup_scheduled: bool = false
 
+	## Current alpha of the floor-visible flash sprite.
+	var _sprite_alpha: float = 0.0
+
+	## Current scale multiplier of the floor-visible flash sprite.
+	var _sprite_scale: float = 1.0
+
 	## Simulate starting the effect.
 	func start_effect() -> void:
 		_is_active = true
 		_elapsed_time = 0.0
 		_light_energy = LIGHT_START_ENERGY
+		_sprite_alpha = SPRITE_START_ALPHA
+		_sprite_scale = 1.0
 
 	## Simulate process update.
 	func process(delta: float) -> void:
@@ -45,6 +59,8 @@ class MockMuzzleFlash:
 		var fade := 1.0 - progress
 		fade = fade * fade
 		_light_energy = LIGHT_START_ENERGY * fade
+		_sprite_alpha = SPRITE_START_ALPHA * fade
+		_sprite_scale = lerpf(1.0, SPRITE_END_SCALE_MULTIPLIER, progress)
 
 		if progress >= 1.0:
 			_is_active = false
@@ -77,6 +93,11 @@ func test_light_start_energy() -> void:
 		"LIGHT_START_ENERGY should be 4.5")
 
 
+func test_sprite_start_alpha() -> void:
+	assert_eq(MockMuzzleFlash.SPRITE_START_ALPHA, 0.8,
+		"SPRITE_START_ALPHA should be 0.8")
+
+
 # ============================================================================
 # Effect Lifecycle Tests
 # ============================================================================
@@ -99,6 +120,13 @@ func test_initial_energy_on_start() -> void:
 
 	assert_eq(muzzle._light_energy, 4.5,
 		"Light energy should be LIGHT_START_ENERGY on start")
+
+
+func test_sprite_alpha_initialized_on_start() -> void:
+	muzzle.start_effect()
+
+	assert_eq(muzzle._sprite_alpha, MockMuzzleFlash.SPRITE_START_ALPHA,
+		"Flash sprite should start visible so the flash reads on dark floors")
 
 
 func test_energy_decreases_over_time() -> void:
@@ -143,6 +171,32 @@ func test_ease_out_curve_applied() -> void:
 	# energy = 4.5 * 0.25 = 1.125
 	assert_almost_eq(muzzle._light_energy, 4.5 * 0.25, 0.01,
 		"Ease-out curve should be applied (fade^2)")
+
+
+func test_sprite_fades_with_same_curve() -> void:
+	muzzle.start_effect()
+	muzzle.process(0.15)  # 50% through
+
+	assert_almost_eq(muzzle._sprite_alpha, MockMuzzleFlash.SPRITE_START_ALPHA * 0.25, 0.01,
+		"Flash sprite alpha should fade with the same ease-out curve as the light")
+
+
+func test_sprite_shrinks_over_time() -> void:
+	muzzle.start_effect()
+	muzzle.process(0.15)
+
+	assert_lt(muzzle._sprite_scale, 1.0,
+		"Flash sprite should shrink slightly as it fades")
+	assert_gt(muzzle._sprite_scale, MockMuzzleFlash.SPRITE_END_SCALE_MULTIPLIER,
+		"Mid-flash sprite scale should remain above its final scale")
+
+
+func test_sprite_alpha_zero_after_duration() -> void:
+	muzzle.start_effect()
+	muzzle.process(0.3)
+
+	assert_almost_eq(muzzle._sprite_alpha, 0.0, 0.01,
+		"Flash sprite alpha should be ~0 after full duration")
 
 
 func test_no_update_when_inactive() -> void:
