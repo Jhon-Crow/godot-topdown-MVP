@@ -36,11 +36,11 @@ class MockProgressManager:
 class MockGameManager:
 	var unlocked_weapons: Dictionary = {
 		"makarov_pm": true,
-		"m16": false,             # Condition: Beach D+ (Issue #1053 req.3)
-		"shotgun": false,         # Condition: Building D+
-		"mini_uzi": false,        # Condition: Labyrinth D+
-		"silenced_pistol": false, # Condition: Building S OR Docks D+ (Issue #1000)
-		"sniper": false,          # Condition: Polygon D+
+		"m16": false,             # Condition: Beach F+ (Issue #1053 req.3)
+		"shotgun": false,         # Condition: Building F+
+		"mini_uzi": false,        # Condition: Labyrinth F+
+		"silenced_pistol": false, # Condition: Building S OR Docks F+ (Issue #1000)
+		"sniper": false,          # Condition: Polygon F+
 		"revolver": false,        # Condition: Castle F+
 		"ak_gl": false            # Condition: Decadence F+ (Issue #1423 req.1)
 	}
@@ -68,9 +68,9 @@ class MockGameManager:
 class MockActiveItemManager:
 	var unlocked_active_items: Dictionary = {
 		0: true,   # NONE — always unlocked
-		1: false,  # FLASHLIGHT — condition: Polygon D+
+		1: false,  # FLASHLIGHT — condition: Polygon F+
 		2: false,  # HOMING_BULLETS — condition: Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S (Issue #1000)
-		3: false,  # TELEPORT_BRACERS — condition: Double Corridor D+ (Issue #1000)
+		3: false,  # TELEPORT_BRACERS — condition: Double Corridor F+ (Issue #1000)
 		4: false,  # BFF_PENDANT — condition: complete Winter Forest (Issue #1624 req.9)
 		5: false,  # INVISIBILITY_SUIT — condition: Beach S + Building S (Issue #1000)
 		6: false,  # BREAKER_BULLETS — condition: 7 levels at rank A or higher (Issue #1589 req.3)
@@ -105,9 +105,9 @@ class MockActiveItemManager:
 class MockGrenadeManager:
 	var unlocked_grenades: Dictionary = {
 		0: true,  # FLASHBANG — always unlocked
-		1: false, # FRAG — condition: Building D+ (Issue #1000)
+		1: false, # FRAG — condition: Building F+ (Issue #1000)
 		2: false, # DEFENSIVE — condition: Beach S (Issue #1000)
-		3: false, # AGGRESSION_GAS — condition: complete Docks D+ (Issue #1624 req.4)
+		3: false, # AGGRESSION_GAS — condition: complete Docks F+ (Issue #1624 req.4)
 		4: false  # DRONE — condition: complete Sewer on any grade (Issue #1624 req.7)
 	}
 
@@ -133,7 +133,7 @@ class TestableUnlockManager extends Node:
 
 	const UNLOCK_CONDITIONS: Dictionary = {
 		"res://scenes/levels/LabyrinthLevel.tscn": {
-			"min_rank": "D",
+			"min_rank": "F",
 			"weapons": ["mini_uzi"],
 			"grenades": [],
 			"active_items": []
@@ -151,7 +151,7 @@ class TestableUnlockManager extends Node:
 			"active_items": []
 		},
 		"res://scenes/levels/TestTier.tscn": {
-			"min_rank": "D",
+			"min_rank": "F",
 			"weapons": ["sniper"],
 			"grenades": [],
 			"active_items": [1]  # FLASHLIGHT
@@ -163,7 +163,7 @@ class TestableUnlockManager extends Node:
 			"active_items": []
 		},
 		"res://scenes/levels/RevolverLevel.tscn": {
-			"min_rank": "D",
+			"min_rank": "F",
 			"weapons": [],
 			"grenades": [],
 			"active_items": [3]  # TELEPORT_BRACERS
@@ -175,7 +175,7 @@ class TestableUnlockManager extends Node:
 			"active_items": [8]  # TRAJECTORY_GLASSES (Issue #1692 req.2)
 		},
 		"res://scenes/levels/BeachLevel.tscn": {
-			"min_rank": "D",
+			"min_rank": "F",
 			"weapons": ["m16"],  # Issue #1053 req.3: changed from ak_gl to m16
 			"grenades": [],
 			"active_items": []
@@ -187,7 +187,7 @@ class TestableUnlockManager extends Node:
 			"active_items": []
 		},
 		"res://scenes/levels/DocksLevel.tscn": {
-			"min_rank": "D",
+			"min_rank": "F",
 			"weapons": ["silenced_pistol"],
 			"grenades": [3],    # AGGRESSION_GAS = 3 (Issue #1624 req.4)
 			"active_items": []
@@ -772,10 +772,10 @@ func test_labyrinth_condition_met_with_s_rank() -> void:
 		"Labyrinth condition should be met with grade S")
 
 
-func test_labyrinth_condition_not_met_with_f_rank() -> void:
+func test_labyrinth_condition_met_with_f_rank() -> void:
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
-	assert_false(unlock_manager.is_condition_key_met("res://scenes/levels/LabyrinthLevel.tscn"),
-		"Labyrinth D condition should NOT be met with grade F (requires D or higher)")
+	assert_true(unlock_manager.is_condition_key_met("res://scenes/levels/LabyrinthLevel.tscn"),
+		"Labyrinth condition should be met with grade F")
 
 
 func test_castle_condition_met_with_f_rank() -> void:
@@ -832,9 +832,9 @@ func test_building_a_does_not_unlock_silenced_pistol_via_building() -> void:
 
 func test_teleport_unlocks_after_double_corridor() -> void:
 	# req.3: Teleport unlocks after Double Corridor (RevolverLevel), NOT Castle
-	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "F")
 	assert_true(unlock_manager.is_active_item_condition_met(3),
-		"Teleport Bracers condition should be met after Double Corridor grade D")
+		"Teleport Bracers condition should be met after Double Corridor grade F")
 
 
 func test_teleport_not_unlocked_by_castle_alone() -> void:
@@ -858,17 +858,17 @@ func test_city_d_also_unlocks_trajectory_glasses() -> void:
 		"Trajectory Glasses condition should also be met after City grade D (Issue #1692)")
 
 
-func test_beach_d_unlocks_m16() -> void:
-	# Issue #1053 req.3: Beach D+ → M16 (changed from AK+GL)
+func test_beach_f_unlocks_m16() -> void:
+	# Issue #1053 req.3: Beach completion on any rank → M16 (changed from AK+GL)
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Normal", "F")
+	assert_true(unlock_manager.is_weapon_condition_met("m16"),
+		"M16 condition should be met after Beach grade F (Issue #1053)")
+
+
+func test_beach_d_still_unlocks_m16() -> void:
 	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Normal", "D")
 	assert_true(unlock_manager.is_weapon_condition_met("m16"),
-		"M16 condition should be met after Beach grade D (Issue #1053)")
-
-
-func test_beach_f_does_not_unlock_m16() -> void:
-	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Normal", "F")
-	assert_false(unlock_manager.is_weapon_condition_met("m16"),
-		"M16 condition should NOT be met with Beach grade F (requires D+)")
+		"M16 condition should remain met with Beach grade D")
 
 
 func test_beach_s_and_building_s_unlock_invisibility() -> void:
@@ -905,11 +905,34 @@ func test_beach_a_does_not_unlock_defensive_grenade() -> void:
 		"Beach :S condition should NOT be met with grade A")
 
 
-func test_docks_d_unlocks_silenced_pistol() -> void:
-	# req.7: Docks D+ → silenced_pistol
-	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Normal", "D")
+func test_docks_f_unlocks_silenced_pistol() -> void:
+	# req.7: Docks completion on any rank → silenced_pistol
+	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Normal", "F")
 	assert_true(unlock_manager.is_weapon_condition_met("silenced_pistol"),
-		"Silenced pistol condition should be met after Docks grade D")
+		"Silenced pistol condition should be met after Docks grade F")
+
+
+func test_all_former_d_rank_map_unlocks_now_work_with_f_rank() -> void:
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
+	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "F")
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "F")
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Normal", "F")
+	progress_manager.set_rank("res://scenes/levels/DocksLevel.tscn", "Normal", "F")
+
+	assert_true(unlock_manager.is_weapon_condition_met("mini_uzi"),
+		"Labyrinth F should unlock mini_uzi")
+	assert_true(unlock_manager.is_weapon_condition_met("sniper"),
+		"Polygon F should unlock sniper")
+	assert_true(unlock_manager.is_active_item_condition_met(1),
+		"Polygon F should unlock flashlight")
+	assert_true(unlock_manager.is_active_item_condition_met(3),
+		"Double Corridor F should unlock teleport bracers")
+	assert_true(unlock_manager.is_weapon_condition_met("m16"),
+		"Beach F should unlock m16")
+	assert_true(unlock_manager.is_weapon_condition_met("silenced_pistol"),
+		"Docks F should unlock silenced pistol")
+	assert_true(unlock_manager.is_grenade_condition_met(3),
+		"Docks F should unlock aggression gas")
 
 
 # ============================================================================
@@ -985,16 +1008,10 @@ func test_four_of_five_s_does_not_unlock_homing_bullets() -> void:
 # ============================================================================
 
 
-func test_uzi_condition_met_after_labyrinth_d() -> void:
-	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "D")
-	assert_true(unlock_manager.is_weapon_condition_met("mini_uzi"),
-		"Uzi condition should be met after Labyrinth grade D")
-
-
-func test_uzi_condition_not_met_with_f() -> void:
+func test_uzi_condition_met_after_labyrinth_f() -> void:
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
-	assert_false(unlock_manager.is_weapon_condition_met("mini_uzi"),
-		"Uzi condition should NOT be met with Labyrinth grade F")
+	assert_true(unlock_manager.is_weapon_condition_met("mini_uzi"),
+		"Uzi condition should be met after Labyrinth grade F")
 
 
 func test_shotgun_condition_met_after_building_f() -> void:
@@ -1003,10 +1020,10 @@ func test_shotgun_condition_met_after_building_f() -> void:
 		"Shotgun condition should be met after Building grade F")
 
 
-func test_sniper_condition_met_after_polygon_d() -> void:
-	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "D")
+func test_sniper_condition_met_after_polygon_f() -> void:
+	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "F")
 	assert_true(unlock_manager.is_weapon_condition_met("sniper"),
-		"Sniper condition should be met after Polygon (TestTier) grade D")
+		"Sniper condition should be met after Polygon (TestTier) grade F")
 
 
 func test_revolver_condition_met_after_castle_f() -> void:
@@ -1026,16 +1043,16 @@ func test_m16_has_no_condition() -> void:
 # ============================================================================
 
 
-func test_flashlight_condition_met_after_polygon_d() -> void:
-	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "D")
+func test_flashlight_condition_met_after_polygon_f() -> void:
+	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "F")
 	assert_true(unlock_manager.is_active_item_condition_met(1),  # FLASHLIGHT = 1
-		"Flashlight condition should be met after Polygon (TestTier) grade D")
+		"Flashlight condition should be met after Polygon (TestTier) grade F")
 
 
-func test_teleport_condition_met_after_double_corridor_d() -> void:
-	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "D")
+func test_teleport_condition_met_after_double_corridor_f() -> void:
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "F")
 	assert_true(unlock_manager.is_active_item_condition_met(3),  # TELEPORT_BRACERS = 3
-		"Teleport Bracers condition should be met after Double Corridor (RevolverLevel) grade D")
+		"Teleport Bracers condition should be met after Double Corridor (RevolverLevel) grade F")
 
 
 # ============================================================================
@@ -1085,20 +1102,20 @@ func test_uzi_condition_not_met_with_no_progress() -> void:
 		"Uzi should stay locked — player must use LMB to unlock")
 
 
-func test_uzi_condition_met_after_labyrinth_d_but_still_locked() -> void:
-	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "D")
+func test_uzi_condition_met_after_labyrinth_f_but_still_locked() -> void:
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
 	# Condition is now met (gold in armory)
 	assert_true(unlock_manager.is_weapon_condition_met("mini_uzi"),
-		"Uzi condition should be met after Labyrinth D")
+		"Uzi condition should be met after Labyrinth F")
 	# But item is still locked — no auto-unlock
 	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
 		"Uzi should still be locked until player holds LMB on the gold slot")
 
 
-func test_condition_not_met_for_labyrinth_with_f_rank() -> void:
+func test_condition_met_for_labyrinth_with_f_rank() -> void:
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
-	assert_false(unlock_manager.is_weapon_condition_met("mini_uzi"),
-		"Uzi condition should NOT be met with Labyrinth grade F (requires D+)")
+	assert_true(unlock_manager.is_weapon_condition_met("mini_uzi"),
+		"Uzi condition should be met with Labyrinth grade F")
 	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
 		"Uzi should stay locked")
 
@@ -1111,12 +1128,12 @@ func test_shotgun_condition_met_after_building_f_but_still_locked() -> void:
 		"Shotgun should still be locked — player must hold LMB to unlock")
 
 
-func test_sniper_and_flashlight_condition_met_after_polygon_d() -> void:
-	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "D")
+func test_sniper_and_flashlight_condition_met_after_polygon_f() -> void:
+	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "F")
 	assert_true(unlock_manager.is_weapon_condition_met("sniper"),
-		"Sniper condition should be met after Polygon D")
+		"Sniper condition should be met after Polygon F")
 	assert_true(unlock_manager.is_active_item_condition_met(1),
-		"Flashlight condition should be met after Polygon D")
+		"Flashlight condition should be met after Polygon F")
 	# Neither item auto-unlocks
 	assert_false(game_manager.is_weapon_unlocked("sniper"),
 		"Sniper should stay locked until LMB hold")
@@ -1134,7 +1151,7 @@ func test_revolver_condition_met_after_castle_f_but_still_locked() -> void:
 
 func test_condition_met_on_easy_difficulty() -> void:
 	# Completing on Easy should also mark condition as met
-	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "F")
 	assert_true(unlock_manager.is_weapon_condition_met("mini_uzi"),
 		"Uzi condition should be met even on Easy difficulty")
 	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
@@ -1142,15 +1159,14 @@ func test_condition_met_on_easy_difficulty() -> void:
 
 
 func test_condition_not_met_then_met_after_better_rank() -> void:
-	# F rank on Labyrinth (not enough)
-	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
+	# Start with no qualifying progress
 	assert_false(unlock_manager.is_weapon_condition_met("mini_uzi"),
-		"Uzi condition should NOT be met with F rank")
+		"Uzi condition should NOT be met without completion")
 
-	# Now achieve D rank
-	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "D")
+	# Any completed rank should now qualify
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
 	assert_true(unlock_manager.is_weapon_condition_met("mini_uzi"),
-		"Uzi condition should now be met with D rank")
+		"Uzi condition should now be met with F rank")
 	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
 		"Uzi still locked — player must open it with LMB")
 
@@ -1380,22 +1396,21 @@ func test_no_available_unlocks_when_no_progress() -> void:
 
 
 func test_no_available_unlocks_when_all_locked_but_condition_not_met() -> void:
-	# Items are locked but condition is not met (e.g. rank F when D required)
-	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
+	# Items are locked but condition is not met because the level has not been completed yet.
 	assert_false(unlock_manager.has_any_available_unlock(),
-		"Should return false when condition not met (F rank for D requirement)")
+		"Should return false when no unlock conditions are satisfied")
 
 
 func test_has_available_unlock_when_weapon_condition_met() -> void:
-	# Labyrinth D+ unlocks mini_uzi — condition met, item still locked
-	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "D")
+	# Labyrinth F+ unlocks mini_uzi — condition met, item still locked
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
 	assert_true(unlock_manager.has_any_available_unlock(),
 		"Should return true when mini_uzi condition is met but item is locked")
 
 
 func test_no_available_unlocks_when_weapon_already_unlocked() -> void:
-	# Labyrinth D+ unlocks mini_uzi — condition met, item already unlocked
-	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "D")
+	# Labyrinth F+ unlocks mini_uzi — condition met, item already unlocked
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
 	game_manager.unlocked_weapons["mini_uzi"] = true
 
 	assert_false(unlock_manager.has_any_available_unlock(),
@@ -1678,7 +1693,7 @@ class DescriptionUnlockManager extends Node:
 		var scene_path: String = _extract_scene_path(condition_key)
 		var name_key: String = _LEVEL_NAME_KEYS.get(scene_path, "")
 		var level_name: String = tr(name_key) if name_key != "" else scene_path.get_file().get_basename()
-		var min_rank: String = condition.get("min_rank", "D")
+		var min_rank: String = condition.get("min_rank", "F")
 		if min_rank == "F":
 			return tr("UNLOCK_COND_COMPLETE_LEVEL") % level_name
 		return tr("UNLOCK_COND_COMPLETE_LEVEL_AT_RANK") % [level_name, min_rank]
@@ -1716,7 +1731,7 @@ func test_description_single_level_with_rank_uses_translation_key() -> void:
 	# In test env tr() returns the key — if no %s in key, the result is the key itself.
 	var desc_manager := DescriptionUnlockManager.new()
 	add_child(desc_manager)
-	var condition: Dictionary = {"min_rank": "D"}
+	var condition: Dictionary = {"min_rank": "A"}
 	var desc: String = desc_manager._build_single_level_description(
 		"res://scenes/levels/LabyrinthLevel.tscn", condition)
 	# tr() in test env returns the key; % on a string with no format specifiers returns the key.

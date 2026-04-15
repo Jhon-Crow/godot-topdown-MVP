@@ -20,7 +20,7 @@ const RANK_ORDER: Array[String] = ["F", "D", "C", "B", "A", "A+", "S"]
 ## Issue #1000: update unlock system
 const UNLOCK_CONDITIONS: Dictionary = {
 	"res://scenes/levels/LabyrinthLevel.tscn": {
-		"min_rank": "D",
+		"min_rank": "F",
 		"weapons": ["mini_uzi"],
 		"grenades": [],
 		"active_items": []
@@ -38,7 +38,7 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"active_items": []
 	},
 	"res://scenes/levels/TestTier.tscn": {
-		"min_rank": "D",
+		"min_rank": "F",
 		"weapons": ["sniper"],
 		"grenades": [],
 		"active_items": [1]  # ActiveItemManager.ActiveItemType.FLASHLIGHT = 1
@@ -50,7 +50,7 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"active_items": []  # Teleport moved to Double Corridor (Issue #1000 req.3)
 	},
 	"res://scenes/levels/RevolverLevel.tscn": {
-		"min_rank": "D",
+		"min_rank": "F",
 		"weapons": [],
 		"grenades": [],
 		"active_items": [3]  # ActiveItemManager.ActiveItemType.TELEPORT_BRACERS = 3 (Issue #1000 req.3)
@@ -62,7 +62,7 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"active_items": [8]  # ActiveItemManager.ActiveItemType.TRAJECTORY_GLASSES = 8 (Issue #1692 req.2)
 	},
 	"res://scenes/levels/BeachLevel.tscn": {
-		"min_rank": "D",
+		"min_rank": "F",
 		"weapons": ["m16"],  # Issue #1053 req.3: changed from ak_gl to m16
 		"grenades": [],
 		"active_items": []
@@ -74,7 +74,7 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"active_items": []
 	},
 	"res://scenes/levels/DocksLevel.tscn": {
-		"min_rank": "D",
+		"min_rank": "F",
 		"weapons": ["silenced_pistol"],  # Issue #1000 req.7
 		"grenades": [3],    # GrenadeManager.GrenadeType.AGGRESSION_GAS = 3 (Issue #1624 req.4)
 		"active_items": []
