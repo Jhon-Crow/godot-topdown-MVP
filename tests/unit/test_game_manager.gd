@@ -23,7 +23,7 @@ class MockGameManager:
 	var _q_restart_hold_time: float = 0.0
 	var _q_restart_triggered: bool = false
 
-	const Q_RESTART_HOLD_THRESHOLD: float = 2.0
+	const Q_RESTART_HOLD_THRESHOLD: float = 1.0
 
 	const WEAPON_SCENES: Dictionary = {
 		"m16": "res://scenes/weapons/csharp/AssaultRifle.tscn",
@@ -436,25 +436,25 @@ func test_q_tap_does_not_restart_scene() -> void:
 		"Quick restart must NOT trigger on a short Q tap")
 
 
-func test_q_hold_restarts_after_two_seconds() -> void:
+func test_q_hold_restarts_after_one_second() -> void:
 	manager.handle_q_input(true)
-	manager.process_restart_hold(1.0)
+	manager.process_restart_hold(0.5)
 	assert_false(manager.scene_reload_requested, "Quick restart must wait for the full hold duration")
 
-	manager.process_restart_hold(1.0)
+	manager.process_restart_hold(0.5)
 
 	assert_true(manager.scene_reload_requested,
-		"Quick restart must trigger after holding Q for 2 seconds")
+		"Quick restart must trigger after holding Q for 1 second")
 
 
 func test_q_release_before_threshold_cancels_restart() -> void:
 	manager.handle_q_input(true)
-	manager.process_restart_hold(1.9)
+	manager.process_restart_hold(0.9)
 	manager.handle_q_input(false)
 	manager.process_restart_hold(0.2)
 
 	assert_false(manager.scene_reload_requested,
-		"Releasing Q before 2 seconds must cancel quick restart")
+		"Releasing Q before 1 second must cancel quick restart")
 
 
 func test_q_hold_blocked_while_score_screen_active() -> void:

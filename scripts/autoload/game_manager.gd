@@ -178,7 +178,7 @@ var _q_restart_hold_time: float = 0.0
 var _q_restart_triggered: bool = false
 
 ## Hold duration in seconds required to trigger quick restart with Q (Issue #1822).
-const Q_RESTART_HOLD_THRESHOLD: float = 2.0
+const Q_RESTART_HOLD_THRESHOLD: float = 1.0
 
 ## ── Roguelike session state (Issue #1061) ─────────────────────────────────
 ## Persists across room-to-room scene reloads so the run can advance
