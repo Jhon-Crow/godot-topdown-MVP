@@ -3,10 +3,14 @@ extends GutTest
 
 class MockGrenadeTutorial:
 	const TUTORIAL_HINT_GRENADE := "grenade"
+	const GRENADE_STATE_IDLE := 0
+	const GRENADE_STATE_WAITING_FOR_G_RELEASE := 2
+	const GRENADE_STATE_AIMING := 3
 
 	var _tutorial_hints: Dictionary = {}
 	var _tutorial_grenade_hint_step: int = 0
 	var _tutorial_grenade_g_was_held: bool = false
+	var _tutorial_grenade_throw_was_held: bool = false
 	var _tutorial_hint_strike_progress: Dictionary = {TUTORIAL_HINT_GRENADE: 0.0}
 
 	func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
@@ -33,6 +37,7 @@ class MockGrenadeTutorial:
 	func _reset_tutorial_grenade_hint_progress() -> void:
 		_tutorial_grenade_hint_step = 0
 		_tutorial_grenade_g_was_held = false
+		_tutorial_grenade_throw_was_held = false
 
 		if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
 			return
@@ -42,15 +47,20 @@ class MockGrenadeTutorial:
 		if label.text != new_text:
 			label.text = new_text
 
-	func update_step(g_pressed: bool) -> void:
+	func update_step(g_pressed: bool, grenade_throw_pressed: bool, grenade_state: int = GRENADE_STATE_IDLE) -> void:
 		if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
 			_reset_tutorial_grenade_hint_progress()
 			return
 
-		if _tutorial_grenade_hint_step == 0 and g_pressed:
+		if grenade_state == GRENADE_STATE_WAITING_FOR_G_RELEASE:
 			_tutorial_grenade_hint_step = 1
 			_tutorial_grenade_g_was_held = true
-		elif _tutorial_grenade_hint_step == 1 and not g_pressed and _tutorial_grenade_g_was_held:
+			_tutorial_grenade_throw_was_held = true
+		elif grenade_state == GRENADE_STATE_AIMING:
+			_tutorial_grenade_hint_step = 2
+			_tutorial_grenade_g_was_held = false
+			_tutorial_grenade_throw_was_held = true
+		elif grenade_state == GRENADE_STATE_IDLE and _tutorial_grenade_hint_step > 0:
 			_reset_tutorial_grenade_hint_progress()
 			return
 
@@ -75,19 +85,40 @@ func after_each() -> void:
 
 
 func test_grenade_hint_resets_when_prepare_is_aborted() -> void:
-	tutorial.update_step(true)
+	tutorial.update_step(true, true, tutorial.GRENADE_STATE_WAITING_FOR_G_RELEASE)
 	assert_eq(tutorial._tutorial_grenade_hint_step, 1,
-		"Holding grenade prepare should advance the hint to the release step")
+		"Only the real G+RMB prepare state should advance the hint to the release step")
 	assert_eq(tutorial._tutorial_hint_strike_progress[tutorial.TUTORIAL_HINT_GRENADE], 0.25,
-		"First hint segment should be struck through while the combo is held")
+		"First hint segment should be struck through while the prepare state is active")
 
-	tutorial.update_step(false)
+	tutorial.update_step(true, false, tutorial.GRENADE_STATE_IDLE)
 	assert_eq(tutorial._tutorial_grenade_hint_step, 0,
-		"Aborting the combo should reset the grenade tutorial back to the first step")
+		"Releasing RMB before the throw is armed should reset the grenade tutorial back to the first step")
 	assert_eq(tutorial._tutorial_hint_strike_progress[tutorial.TUTORIAL_HINT_GRENADE], 0.0,
 		"Aborting the combo should clear the partial strikethrough progress")
 	assert_string_contains(tutorial._tutorial_hints[tutorial.TUTORIAL_HINT_GRENADE].text, "[color=#ff4444][G+ПКМ вправо][/color]",
 		"After reset the first instruction should be highlighted again")
+
+
+func test_grenade_hint_advances_to_throw_only_after_g_is_released_while_rmb_stays_held() -> void:
+	tutorial.update_step(true, true, tutorial.GRENADE_STATE_WAITING_FOR_G_RELEASE)
+	tutorial.update_step(false, true, tutorial.GRENADE_STATE_AIMING)
+
+	assert_eq(tutorial._tutorial_grenade_hint_step, 2,
+		"Releasing G while RMB remains held should move the tutorial to the throw step")
+	assert_eq(tutorial._tutorial_hint_strike_progress[tutorial.TUTORIAL_HINT_GRENADE], 0.6,
+		"Throw step should extend the strikethrough through the first two segments")
+	assert_string_contains(tutorial._tutorial_hints[tutorial.TUTORIAL_HINT_GRENADE].text, "[color=#ff4444][ПКМ бросок][/color]",
+		"Throw step should highlight the final RMB throw action")
+
+
+func test_grenade_hint_does_not_advance_without_real_prepare_state() -> void:
+	tutorial.update_step(true, true, tutorial.GRENADE_STATE_IDLE)
+
+	assert_eq(tutorial._tutorial_grenade_hint_step, 0,
+		"Raw input alone must not advance the grenade tutorial before the grenade state machine arms the throw")
+	assert_eq(tutorial._tutorial_hint_strike_progress[tutorial.TUTORIAL_HINT_GRENADE], 0.0,
+		"Without the real prepare state, the grenade hint should stay at its initial strikethrough progress")
 
 
 class MockShotgunReloadTutorial:
@@ -96,6 +127,7 @@ class MockShotgunReloadTutorial:
 	var _tutorial_hints: Dictionary = {}
 	var _tutorial_hint_strike_progress: Dictionary = {TUTORIAL_HINT_BOLT_CYCLE: 0.0}
 	var _tutorial_has_reloaded: bool = false
+	var _tutorial_shotgun_reload_started: bool = false
 	var _reload_completed_calls: int = 0
 	var _shells_needed: int = 8
 
@@ -127,9 +159,11 @@ class MockShotgunReloadTutorial:
 		if not _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
 			return
 
+		if new_state >= 2:
+			_tutorial_shotgun_reload_started = true
+
 		if new_state == 0:
-			var strike_progress: float = _tutorial_hint_strike_progress.get(TUTORIAL_HINT_BOLT_CYCLE, 0.0)
-			if strike_progress >= 0.25:
+			if _tutorial_shotgun_reload_started:
 				_on_tutorial_reload_completed()
 			else:
 				_tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE].text = _build_tutorial_shotgun_full_reload_hint_bbcode(0)

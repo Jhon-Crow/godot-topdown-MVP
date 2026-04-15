@@ -200,6 +200,12 @@ var _tutorial_grenade_hint_step: int = 0
 ## Whether G key was held last frame (for grenade hint step tracking).
 var _tutorial_grenade_g_was_held: bool = false
 
+## Whether grenade throw button was held last frame during tutorial tracking.
+var _tutorial_grenade_throw_was_held: bool = false
+
+## Whether the shotgun full-reload tutorial reached the shell-loading phase.
+var _tutorial_shotgun_reload_started: bool = false
+
 ## Unique colors per hint type (Issue #945: simultaneously displayed hints should be different colors).
 const TUTORIAL_HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)              ## Green — reload
 const TUTORIAL_HINT_COLOR_GRENADE := Color(1.0, 0.65, 0.0, 1.0)            ## Orange — grenade
@@ -2391,6 +2397,7 @@ func _on_tutorial_reload_completed() -> void:
 		if _tutorial_has_shotgun:
 			_dismiss_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE)
 			_tutorial_shotgun_full_reload_active = false  # Bug fix round 5: reset flag
+			_tutorial_shotgun_reload_started = false
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		# Bug fix round 5: M16 fire-mode [B] hint should appear after grenade, not now.
 		if _tutorial_assault_rifle != null and not _tutorial_has_ak_gl:
@@ -2414,6 +2421,7 @@ func _on_tutorial_reload_completed() -> void:
 				if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
 					_tutorial_grenade_hint_step = 0
 					_tutorial_grenade_g_was_held = false
+					_tutorial_grenade_throw_was_held = false
 					_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
 						_build_tutorial_grenade_hint_bbcode(0),
 						canvas_layer)
@@ -2442,6 +2450,7 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 			if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
 				_tutorial_grenade_hint_step = 0
 				_tutorial_grenade_g_was_held = false
+				_tutorial_grenade_throw_was_held = false
 				_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
 					_build_tutorial_grenade_hint_bbcode(0),
 					canvas_layer)
@@ -2476,6 +2485,7 @@ func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
 func _reset_tutorial_grenade_hint_progress() -> void:
 	_tutorial_grenade_hint_step = 0
 	_tutorial_grenade_g_was_held = false
+	_tutorial_grenade_throw_was_held = false
 
 	if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
 		return
@@ -2493,12 +2503,20 @@ func _update_tutorial_grenade_hint_step() -> void:
 		_reset_tutorial_grenade_hint_progress()
 		return
 
-	var g_pressed: bool = Input.is_action_pressed("grenade_prepare")
+	var player_grenade_state = _player.get("_grenade_state") if _player != null else null
+	var waiting_for_g_release_state = _player.get("GrenadeState").WAITING_FOR_G_RELEASE if _player != null and _player.get("GrenadeState") != null else null
+	var aiming_state = _player.get("GrenadeState").AIMING if _player != null and _player.get("GrenadeState") != null else null
+	var idle_state = _player.get("GrenadeState").IDLE if _player != null and _player.get("GrenadeState") != null else null
 
-	if _tutorial_grenade_hint_step == 0 and g_pressed:
+	if player_grenade_state == waiting_for_g_release_state:
 		_tutorial_grenade_hint_step = 1
 		_tutorial_grenade_g_was_held = true
-	elif _tutorial_grenade_hint_step == 1 and not g_pressed and _tutorial_grenade_g_was_held:
+		_tutorial_grenade_throw_was_held = true
+	elif player_grenade_state == aiming_state:
+		_tutorial_grenade_hint_step = 2
+		_tutorial_grenade_g_was_held = false
+		_tutorial_grenade_throw_was_held = true
+	elif player_grenade_state == idle_state and _tutorial_grenade_hint_step > 0:
 		_reset_tutorial_grenade_hint_progress()
 		return
 
@@ -2684,12 +2702,14 @@ func _on_tutorial_shotgun_reload_state_changed(new_state: int) -> void:
 	if not _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
 		return
 
-	# state=0 is only a completed reload if the player actually reached the loading/closing phases.
+	if new_state >= 2:
+		_tutorial_shotgun_reload_started = true
+
+	# state=0 is only a completed reload if the player actually reached the shell-loading phase.
 	# If the state returns to 0 from the initial open-bolt step, the player canceled the reload and
 	# the hint should roll back to its initial state instead of completing the tutorial.
 	if new_state == 0:
-		var strike_progress: float = _tutorial_hint_strike_progress.get(TUTORIAL_HINT_BOLT_CYCLE, 0.0)
-		if strike_progress >= 0.25:
+		if _tutorial_shotgun_reload_started:
 			print("[LabyrinthLevel] Shotgun reload completed via ReloadStateChanged(0)")
 			_on_tutorial_reload_completed()
 		else:
