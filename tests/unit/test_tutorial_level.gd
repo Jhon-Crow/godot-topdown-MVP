@@ -93,6 +93,10 @@ class MockTutorialLevel:
 	var _scope_used: bool = false
 	## Simulated grenade count for fix 3rd#9
 	var _grenade_count: int = 3
+	var _grenade_hint_drag_completed: bool = false
+	var _grenade_hint_rmb_held_after_release: bool = false
+	var _grenade_hint_rmb_was_pressed: bool = false
+	var _grenade_hint_drag_start_x: float = 0.0
 	## Simulated AK GL ammo for fix 3rd#10
 	var _ak_gl_has_round: bool = true
 	## Simulated shotgun capacity for fix 3rd#7
@@ -155,6 +159,25 @@ class MockTutorialLevel:
 	func _add_hint(hint_key: String, text: String) -> void:
 		_active_hints[hint_key] = text
 		_active_hint_colors[hint_key] = _get_hint_color(hint_key)
+
+	func _build_grenade_hint_bbcode(step: int) -> String:
+		var parts := [
+			"[удерживать G+ПКМ]",
+			"[дёрнуть мышкой вправо]",
+			"[отпустить ПКМ]",
+			"[зажать ПКМ]",
+			"[отпустить G]",
+			"[прицелиться и отпустить ПКМ]",
+		]
+		var styled: PackedStringArray = []
+		for i in range(parts.size()):
+			if i < step:
+				styled.append("[color=#888888]%s[/color]" % parts[i])
+			elif i == step:
+				styled.append("[color=#ff4444]%s[/color]" % parts[i])
+			else:
+				styled.append("[color=#888888]%s[/color]" % parts[i])
+		return " ".join(styled)
 
 	## Build BBCode for sniper bolt-cycle hint showing 4-step sequence (fix 3rd#4, 3rd#3).
 	func _build_sniper_bolt_hint_bbcode(step: int) -> String:
@@ -270,11 +293,58 @@ class MockTutorialLevel:
 				# Fix 3rd#9: only show grenade hint if player has grenades
 				if _grenade_count > 0:
 					if not _active_hints.has(HINT_GRENADE):
-						_add_hint(HINT_GRENADE, "[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]")
+						_add_hint(HINT_GRENADE, _build_grenade_hint_bbcode(0))
 				# else: no grenades, tutorial auto-completes (handled in advance_to_step)
 			TutorialStep.COMPLETED:
 				_active_hints.clear()
 				_active_hint_colors.clear()
+
+	func set_grenade_hint_progress(g_held: bool, drag_completed: bool, rmb_held_after_release: bool) -> void:
+		if not _active_hints.has(HINT_GRENADE):
+			return
+		_grenade_hint_drag_completed = drag_completed
+		_grenade_hint_rmb_held_after_release = rmb_held_after_release
+		var step := 0
+		if g_held:
+			step = 1 if not drag_completed else 2
+		else:
+			step = 4 if rmb_held_after_release else 3
+		_active_hints[HINT_GRENADE] = _build_grenade_hint_bbcode(step)
+
+	func update_grenade_hint_from_input(g_pressed: bool, rmb_pressed: bool, mouse_x: float) -> void:
+		if not _active_hints.has(HINT_GRENADE):
+			_grenade_hint_step = 0
+			_grenade_g_was_held = false
+			_grenade_hint_drag_completed = false
+			_grenade_hint_rmb_held_after_release = false
+			_grenade_hint_rmb_was_pressed = false
+			_grenade_hint_drag_start_x = 0.0
+			return
+
+		if _grenade_hint_step == 0 and g_pressed and rmb_pressed and not _grenade_hint_rmb_was_pressed:
+			_grenade_hint_drag_completed = false
+		if _grenade_hint_step == 0 and g_pressed and rmb_pressed and _grenade_hint_rmb_was_pressed:
+			if mouse_x - _grenade_hint_drag_start_x > 20.0:
+				_grenade_hint_drag_completed = true
+
+		if _grenade_hint_step == 0 and g_pressed:
+			_grenade_hint_step = 1
+			_grenade_g_was_held = true
+		elif _grenade_hint_step == 1 and _grenade_hint_drag_completed and not rmb_pressed and _grenade_hint_rmb_was_pressed:
+			_grenade_hint_step = 2
+		elif _grenade_hint_step == 2 and not g_pressed and _grenade_g_was_held:
+			_grenade_hint_step = 3
+			_grenade_g_was_held = false
+		elif _grenade_hint_step == 3 and g_pressed and rmb_pressed:
+			_grenade_hint_rmb_held_after_release = true
+			_grenade_hint_step = 4
+		elif _grenade_hint_step == 4 and not g_pressed and _grenade_hint_rmb_held_after_release:
+			_grenade_hint_step = 5
+
+		if g_pressed and rmb_pressed and not _grenade_hint_rmb_was_pressed:
+			_grenade_hint_drag_start_x = mouse_x
+		_grenade_hint_rmb_was_pressed = rmb_pressed
+		_active_hints[HINT_GRENADE] = _build_grenade_hint_bbcode(_grenade_hint_step)
 
 	## Issue #945: Called when the weapon fires — counts shots and reveals hints.
 	## Bug fix #4: bolt-cycle hint (sniper/shotgun) shown after 1st shot.
@@ -1863,6 +1933,83 @@ func test_shotgun_shells_to_load_zero_when_full() -> void:
 	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_BOLT_CYCLE, "")
 	assert_true(hint_text.contains("x0"),
 		"Issue #983 Fix 2: Shotgun hint shows x0 when tube is full")
+
+
+func test_grenade_hint_uses_issue_1818_six_step_text() -> void:
+	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.THROW_GRENADE)
+
+	var hint_text: String = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[удерживать G+ПКМ]"),
+		"Grenade hint should start with hold G+RMB text from issue #1818")
+	assert_true(hint_text.contains("[дёрнуть мышкой вправо]"),
+		"Grenade hint should include drag-right step from issue #1818")
+	assert_true(hint_text.contains("[отпустить ПКМ]"),
+		"Grenade hint should include RMB release step from issue #1818")
+	assert_true(hint_text.contains("[зажать ПКМ]"),
+		"Grenade hint should include RMB hold step from issue #1818")
+	assert_true(hint_text.contains("[отпустить G]"),
+		"Grenade hint should include G release step from issue #1818")
+	assert_true(hint_text.contains("[прицелиться и отпустить ПКМ]"),
+		"Grenade hint should include final aim-and-release step from issue #1818")
+
+
+func test_grenade_hint_progression_updates_next_issue_1818_step() -> void:
+	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.THROW_GRENADE)
+
+	tutorial.set_grenade_hint_progress(true, false, false)
+	var hint_text := tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][дёрнуть мышкой вправо][/color]"),
+		"After holding G, the drag-right step should be highlighted next")
+
+	tutorial.set_grenade_hint_progress(true, true, false)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][отпустить ПКМ][/color]"),
+		"After dragging right, the RMB release step should be highlighted next")
+
+	tutorial.set_grenade_hint_progress(false, true, false)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][зажать ПКМ][/color]"),
+		"After releasing RMB, the hold-RMB-again step should be highlighted next")
+
+	tutorial.set_grenade_hint_progress(false, true, true)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][отпустить G][/color]"),
+		"After holding RMB again, the release-G step should be highlighted next")
+
+
+func test_grenade_hint_requires_actual_input_transitions_for_issue_1818_steps() -> void:
+	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.THROW_GRENADE)
+
+	tutorial.update_grenade_hint_from_input(true, false, 0.0)
+	var hint_text := tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][дёрнуть мышкой вправо][/color]"),
+		"Holding G alone should only advance to the drag-right step")
+
+	tutorial.update_grenade_hint_from_input(true, true, 10.0)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][дёрнуть мышкой вправо][/color]"),
+		"Pressing RMB without enough drag should keep the drag-right step highlighted")
+
+	tutorial.update_grenade_hint_from_input(true, true, 40.0)
+	tutorial.update_grenade_hint_from_input(true, false, 40.0)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][отпустить ПКМ][/color]"),
+		"Releasing RMB after a right drag should advance to the RMB release step")
+
+	tutorial.update_grenade_hint_from_input(false, false, 40.0)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][зажать ПКМ][/color]"),
+		"Releasing G after the drag should advance to the hold-RMB-again step")
+
+	tutorial.update_grenade_hint_from_input(true, true, 40.0)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][отпустить G][/color]"),
+		"Holding G+RMB again should advance to the release-G step")
+
+	tutorial.update_grenade_hint_from_input(false, true, 40.0)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][прицелиться и отпустить ПКМ][/color]"),
+		"Releasing G while RMB stays held should advance to the final throw step")
 
 
 # ============================================================================

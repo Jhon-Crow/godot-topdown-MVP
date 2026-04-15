@@ -80,14 +80,21 @@ var _has_switched_fire_mode: bool = false
 ## Whether the player has thrown a grenade.
 var _has_thrown_grenade: bool = false
 
-## Grenade hint step tracking (Bug fix round 5):
-## 0 = initial (arm grenade: [G+ПКМ вправо])
-## 1 = G held (aim: [G+ПКМ→отпусти G])
-## 2 = G released, RMB held (throw: [ПКМ бросок])
+## Grenade hint step tracking (Issue #1818):
+## 0 = [удерживать G+ПКМ]
+## 1 = [дёрнуть мышкой вправо]
+## 2 = [отпустить ПКМ]
+## 3 = [зажать ПКМ]
+## 4 = [отпустить G]
+## 5 = [прицелиться и отпустить ПКМ]
 var _grenade_hint_step: int = 0
 
 ## Whether G was held during the last frame (for grenade hint step tracking).
 var _grenade_g_was_held: bool = false
+var _grenade_drag_completed: bool = false
+var _grenade_rmb_held_after_release: bool = false
+var _grenade_rmb_was_pressed: bool = false
+var _grenade_hint_drag_start: Vector2 = Vector2.ZERO
 
 ## Whether the player has an assault rifle (for fire mode tutorial step).
 var _has_assault_rifle: bool = false
@@ -1406,45 +1413,67 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 	print("Tutorial: Revolver reload state %d → hint step %d updated" % [new_state, hint_step])
 
 
-## Build BBCode for the grenade throw hint with step-based highlighting (Bug fix round 5).
-## step=0: arm grenade (G+ПКМ вправо highlighted)
-## step=1: G held, aim with RMB (G+ПКМ→отпусти G highlighted)
-## step=2: G released, RMB still held, throw (ПКМ highlighted)
-## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
+## Build BBCode for the grenade throw hint with step-based highlighting (Issue #1818).
 func _build_grenade_hint_bbcode(step: int) -> String:
-	var k_arm: String = tr("HINT_KEY_GRENADE_ARM")
-	var k_aim: String = tr("HINT_KEY_GRENADE_AIM")
-	var k_throw: String = tr("HINT_KEY_GRENADE_THROW")
-	match step:
-		0:
-			return "[color=#ff4444][%s][/color] [color=#888888][%s] [%s][/color]" % [k_arm, k_aim, k_throw]
-		1:
-			# First step completed
-			_extend_hint_strikethrough(HINT_GRENADE, 0.25)  # ~25% for first segment
-			return "[color=#888888][%s][/color] [color=#ff4444][%s][/color] [color=#888888][%s][/color]" % [k_arm, k_aim, k_throw]
-		_:
-			# First two steps completed
-			_extend_hint_strikethrough(HINT_GRENADE, 0.6)  # ~60% for first two segments
-			return "[color=#888888][%s] [%s][/color] [color=#ff4444][%s][/color]" % [k_arm, k_aim, k_throw]
+	var parts := [
+		"[удерживать G+ПКМ]",
+		"[дёрнуть мышкой вправо]",
+		"[отпустить ПКМ]",
+		"[зажать ПКМ]",
+		"[отпустить G]",
+		"[прицелиться и отпустить ПКМ]",
+	]
+	var clamped_step := clampi(step, 0, parts.size() - 1)
+	var strikethrough_progress := [0.0, 0.16, 0.32, 0.5, 0.68, 0.84]
+	_extend_hint_strikethrough(HINT_GRENADE, strikethrough_progress[clamped_step])
+	var styled: PackedStringArray = []
+	for i in range(parts.size()):
+		if i < clamped_step:
+			styled.append("[color=#888888]%s[/color]" % parts[i])
+		elif i == clamped_step:
+			styled.append("[color=#ff4444]%s[/color]" % parts[i])
+		else:
+			styled.append("[color=#888888]%s[/color]" % parts[i])
+	return " ".join(styled)
 
 
-## Update the grenade hint step based on current input state (Bug fix round 5).
+## Update the grenade hint step based on current input state (Issue #1818).
 ## Called every frame to dynamically highlight the next required action.
 func _update_grenade_hint_step() -> void:
 	if not _hint_labels.has(HINT_GRENADE):
 		_grenade_g_was_held = false
 		_grenade_hint_step = 0
+		_grenade_drag_completed = false
+		_grenade_rmb_held_after_release = false
+		_grenade_rmb_was_pressed = false
+		_grenade_hint_drag_start = Vector2.ZERO
 		return
 
 	var g_pressed: bool = Input.is_action_pressed("grenade_prepare")
+	var rmb_pressed: bool = Input.is_action_pressed("grenade_throw")
+	var current_mouse_pos := get_global_mouse_position()
 
-	# Detect state transitions
+	if _grenade_hint_step == 0 and g_pressed and rmb_pressed and not _grenade_rmb_was_pressed:
+		_grenade_drag_completed = false
+
+	if _grenade_hint_step == 0 and g_pressed and rmb_pressed and _grenade_rmb_was_pressed:
+		if current_mouse_pos.x - _grenade_hint_drag_start.x > 20.0:
+			_grenade_drag_completed = true
+
 	if _grenade_hint_step == 0 and g_pressed:
 		_grenade_hint_step = 1
 		_grenade_g_was_held = true
-	elif _grenade_hint_step == 1 and not g_pressed and _grenade_g_was_held:
+	elif _grenade_hint_step == 1 and _grenade_drag_completed and not rmb_pressed and _grenade_rmb_was_pressed:
+		_grenade_drag_completed = true
 		_grenade_hint_step = 2
+	elif _grenade_hint_step == 2 and not g_pressed and _grenade_g_was_held:
+		_grenade_hint_step = 3
 		_grenade_g_was_held = false
+	elif _grenade_hint_step == 3 and g_pressed and rmb_pressed:
+		_grenade_rmb_held_after_release = true
+		_grenade_hint_step = 4
+	elif _grenade_hint_step == 4 and not g_pressed and _grenade_rmb_held_after_release:
+		_grenade_hint_step = 5
 
 	# Update the label text to reflect current step
 	var label: RichTextLabel = _hint_labels[HINT_GRENADE]
@@ -1452,6 +1481,10 @@ func _update_grenade_hint_step() -> void:
 		var new_text := _build_grenade_hint_bbcode(_grenade_hint_step)
 		if label.text != new_text:
 			label.text = new_text
+
+	if g_pressed and rmb_pressed and not _grenade_rmb_was_pressed:
+		_grenade_hint_drag_start = current_mouse_pos
+	_grenade_rmb_was_pressed = rmb_pressed
 
 
 ## Called when player throws a grenade.
@@ -1541,6 +1574,8 @@ func _show_hints_for_step(step: TutorialStep) -> void:
 				if not _hint_labels.has(HINT_GRENADE):
 					_grenade_hint_step = 0
 					_grenade_g_was_held = false
+					_grenade_drag_completed = false
+					_grenade_rmb_held_after_release = false
 					_add_hint(HINT_GRENADE, _build_grenade_hint_bbcode(0), canvas_layer)
 			else:
 				# No grenades — skip grenade step and complete tutorial

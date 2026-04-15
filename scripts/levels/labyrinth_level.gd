@@ -194,11 +194,15 @@ var _tutorial_shotgun_full_reload_active: bool = false
 ## Whether M16 fire-mode [B] hint should appear after grenade training (Bug fix round 5).
 var _tutorial_m16_needs_fire_mode_hint: bool = false
 
-## Grenade hint step (Bug fix round 5): 0=arm, 1=G held, 2=G released.
+## Grenade hint step (Issue #1818): 0..5 map to the six requested on-screen actions.
 var _tutorial_grenade_hint_step: int = 0
 
 ## Whether G key was held last frame (for grenade hint step tracking).
 var _tutorial_grenade_g_was_held: bool = false
+var _tutorial_grenade_drag_completed: bool = false
+var _tutorial_grenade_rmb_held_after_release: bool = false
+var _tutorial_grenade_rmb_was_pressed: bool = false
+var _tutorial_grenade_hint_drag_start: Vector2 = Vector2.ZERO
 
 ## Unique colors per hint type (Issue #945: simultaneously displayed hints should be different colors).
 const TUTORIAL_HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)              ## Green — reload
@@ -2414,6 +2418,8 @@ func _on_tutorial_reload_completed() -> void:
 				if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
 					_tutorial_grenade_hint_step = 0
 					_tutorial_grenade_g_was_held = false
+					_tutorial_grenade_drag_completed = false
+					_tutorial_grenade_rmb_held_after_release = false
 					_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
 						_build_tutorial_grenade_hint_bbcode(0),
 						canvas_layer)
@@ -2442,6 +2448,8 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 			if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
 				_tutorial_grenade_hint_step = 0
 				_tutorial_grenade_g_was_held = false
+				_tutorial_grenade_drag_completed = false
+				_tutorial_grenade_rmb_held_after_release = false
 				_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
 					_build_tutorial_grenade_hint_bbcode(0),
 					canvas_layer)
@@ -2451,47 +2459,76 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 			_dismiss_all_tutorial_hints()
 
 
-## Build BBCode for the grenade throw hint with step-based highlighting (Bug fix round 5).
-## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
+## Build BBCode for the grenade throw hint with the six issue #1818 steps.
 func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
-	match step:
-		0:
-			return "[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]"
-		1:
-			# First step completed
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.25)
-			return "[color=#888888][G+ПКМ вправо][/color] [color=#ff4444][G+ПКМ→отпусти G][/color] [color=#888888][ПКМ бросок][/color]"
-		2:
-			# First two steps completed
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.6)
-			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G][/color] [color=#ff4444][ПКМ бросок][/color]"
-		_:
-			# All steps done
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.85)
-			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок][/color]"
+	var parts := [
+		"[удерживать G+ПКМ]",
+		"[дёрнуть мышкой вправо]",
+		"[отпустить ПКМ]",
+		"[зажать ПКМ]",
+		"[отпустить G]",
+		"[прицелиться и отпустить ПКМ]",
+	]
+	var clamped_step := clampi(step, 0, parts.size() - 1)
+	var strikethrough_progress := [0.0, 0.16, 0.32, 0.5, 0.68, 0.84]
+	_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, strikethrough_progress[clamped_step])
+	var styled: PackedStringArray = []
+	for i in range(parts.size()):
+		if i < clamped_step:
+			styled.append("[color=#888888]%s[/color]" % parts[i])
+		elif i == clamped_step:
+			styled.append("[color=#ff4444]%s[/color]" % parts[i])
+		else:
+			styled.append("[color=#888888]%s[/color]" % parts[i])
+	return " ".join(styled)
 
 
-## Update the grenade hint step based on current input (Bug fix round 5).
+## Update the grenade hint step based on current input (Issue #1818).
 func _update_tutorial_grenade_hint_step() -> void:
 	if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
 		_tutorial_grenade_g_was_held = false
 		_tutorial_grenade_hint_step = 0
+		_tutorial_grenade_drag_completed = false
+		_tutorial_grenade_rmb_held_after_release = false
+		_tutorial_grenade_rmb_was_pressed = false
+		_tutorial_grenade_hint_drag_start = Vector2.ZERO
 		return
 
 	var g_pressed: bool = Input.is_action_pressed("grenade_prepare")
+	var rmb_pressed: bool = Input.is_action_pressed("grenade_throw")
+	var current_mouse_pos := get_global_mouse_position()
+
+	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed and not _tutorial_grenade_rmb_was_pressed:
+		_tutorial_grenade_drag_completed = false
+
+	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed and _tutorial_grenade_rmb_was_pressed:
+		if current_mouse_pos.x - _tutorial_grenade_hint_drag_start.x > 20.0:
+			_tutorial_grenade_drag_completed = true
 
 	if _tutorial_grenade_hint_step == 0 and g_pressed:
 		_tutorial_grenade_hint_step = 1
 		_tutorial_grenade_g_was_held = true
-	elif _tutorial_grenade_hint_step == 1 and not g_pressed and _tutorial_grenade_g_was_held:
+	elif _tutorial_grenade_hint_step == 1 and _tutorial_grenade_drag_completed and not rmb_pressed and _tutorial_grenade_rmb_was_pressed:
+		_tutorial_grenade_drag_completed = true
 		_tutorial_grenade_hint_step = 2
+	elif _tutorial_grenade_hint_step == 2 and not g_pressed and _tutorial_grenade_g_was_held:
+		_tutorial_grenade_hint_step = 3
 		_tutorial_grenade_g_was_held = false
+	elif _tutorial_grenade_hint_step == 3 and g_pressed and rmb_pressed:
+		_tutorial_grenade_rmb_held_after_release = true
+		_tutorial_grenade_hint_step = 4
+	elif _tutorial_grenade_hint_step == 4 and not g_pressed and _tutorial_grenade_rmb_held_after_release:
+		_tutorial_grenade_hint_step = 5
 
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_GRENADE]
 	if is_instance_valid(label):
 		var new_text := _build_tutorial_grenade_hint_bbcode(_tutorial_grenade_hint_step)
 		if label.text != new_text:
 			label.text = new_text
+
+	if g_pressed and rmb_pressed and not _tutorial_grenade_rmb_was_pressed:
+		_tutorial_grenade_hint_drag_start = current_mouse_pos
+	_tutorial_grenade_rmb_was_pressed = rmb_pressed
 
 
 ## Called when player throws a grenade — dismisses grenade hint (Issue #808).
