@@ -218,6 +218,9 @@ ITEM_HINT_PRESS_SPACE_RANDOM,Press Space to trigger random effect,Нажми П�
 ITEM_HINT_PRESS_SPACE_RELOAD,Press Space to reload,Нажми Пробел для перезарядки
 ITEM_HINT_PRESS_SPACE_DASH,Press Space to dash,Нажми Пробел для рывка
 HINT_RELOAD_2STEP_0,[R] [R] Reload,[R] [R] Перезарядись
+HUD_ENEMIES,Enemies: %d,Враги: %d
+HUD_AMMO,Ammo: %d / %d,Патроны: %d / %d
+HUD_DIFFICULTY,Difficulty: %s,Сложность: %s
 HINT_RELOAD_2STEP_1,[R] [R] Reload,[R] [R] Перезарядись
 HINT_RELOAD_3STEP_0,[R] [F] [R] Reload,[R] [F] [R] Перезарядись
 HINT_RELOAD_3STEP_1,[R] [F] [R] Reload,[R] [F] [R] Перезарядись

@@ -1,4 +1,6 @@
 extends Node2D
+
+const LEVEL_SCENE_PATH := "res://scenes/levels/ArenaLevel.tscn"
 ## Arena Mode level — endless wave survival.
 ##
 ## Features:
@@ -1067,7 +1069,7 @@ func _setup_ui() -> void:
 	# Ammo label (top-left).
 	_ammo_label = Label.new()
 	_ammo_label.name = "AmmoLabel"
-	_ammo_label.text = "Патроны: -"
+	_ammo_label.text = tr("HUD_AMMO") % [0, 0]
 	_ammo_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_ammo_label.offset_left = 10
 	_ammo_label.offset_top = 10
@@ -1092,7 +1094,7 @@ func _setup_ui() -> void:
 	# Difficulty label.
 	_difficulty_label = Label.new()
 	_difficulty_label.name = "DifficultyLabel"
-	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
 	_difficulty_label.offset_top = 80
@@ -1274,7 +1276,7 @@ func _on_player_died() -> void:
 
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
-		_enemy_count_label.text = "Враги: %d" % _enemies_alive
+		_enemy_count_label.text = LevelLocalization.get_enemy_count_text(_enemies_alive)
 
 	# Update health label whenever we check enemies (player data may have changed).
 	_update_health_label()
@@ -1299,13 +1301,13 @@ func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
 	if _difficulty_label:
-		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_update_health_label()
 
 
 func _update_ammo_label_magazine(current_ammo: int, reserve_ammo: int) -> void:
 	if _ammo_label:
-		_ammo_label.text = "Патроны: %d / %d" % [current_ammo, reserve_ammo]
+		_ammo_label.text = LevelLocalization.get_ammo_text(current_ammo, reserve_ammo)
 		if current_ammo <= 5:
 			_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3, 1.0))
 		elif current_ammo <= 10:
@@ -1418,6 +1420,8 @@ func _show_victory_message() -> void:
 	var ui: Node = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
+	var level_label: Label = ui.get_node_or_null("LevelLabel")
+	LevelLocalization.apply_level_label(level_label, LEVEL_SCENE_PATH)
 	var msg := Label.new()
 	msg.name = "VictoryLabel"
 	msg.text = "Волна %d — Игра окончена!\nНажмите Q для рестарта." % _wave_number
