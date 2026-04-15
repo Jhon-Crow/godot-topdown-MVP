@@ -185,6 +185,12 @@ var _reload_hint_revealed: bool = false
 ## Whether the bolt-cycle hint has already been revealed (sniper/shotgun after 1st shot).
 var _bolt_cycle_hint_revealed: bool = false
 
+## Revolver tutorial state snapshot used to distinguish "inserted" vs "scrolled".
+## `CanInsertCartridge` alone is ambiguous because it becomes true both before the first insert
+## and after scrolling to another empty chamber.
+var _revolver_last_inserted_count: int = 0
+var _revolver_last_inserted_chamber_index: int = -1
+
 ## Unique colors for each hint type (Issue #945: simultaneously displayed hints should be different colors).
 const HINT_COLOR_FIRE_MODE := Color(0.3, 0.9, 1.0, 1.0)          ## Cyan — fire mode switch
 const HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)             ## Green — reload
@@ -914,6 +920,10 @@ func _on_revolver_cartridge_inserted(loaded: int, _capacity: int) -> void:
 			reserve_ammo = revolver.ReserveAmmo
 		if revolver != null and revolver.get("CurrentAmmo") != null:
 			_update_ammo_label_magazine(revolver.CurrentAmmo, reserve_ammo)
+		if revolver != null:
+			_revolver_last_inserted_count = loaded
+			if revolver.get("CurrentChamberIndex") != null:
+				_revolver_last_inserted_chamber_index = int(revolver.get("CurrentChamberIndex"))
 
 
 ## Setup targets for shooting practice (optional, not part of tutorial progression).
@@ -1417,11 +1427,24 @@ func _get_revolver_reload_hint_step_for_loading_state() -> int:
 	if revolver == null:
 		return 2
 
-	if revolver.get("CanInsertCartridge") != null and bool(revolver.get("CanInsertCartridge")):
-		return 3
+	var cartridges_loaded: int = 0
+	if revolver.get("CartridgesLoadedThisReload") != null:
+		cartridges_loaded = int(revolver.get("CartridgesLoadedThisReload"))
 
-	if revolver.get("CartridgesLoadedThisReload") != null and int(revolver.get("CartridgesLoadedThisReload")) > 0:
+	if cartridges_loaded <= 0:
 		return 2
+
+	var current_chamber_index: int = -1
+	if revolver.get("CurrentChamberIndex") != null:
+		current_chamber_index = int(revolver.get("CurrentChamberIndex"))
+
+	# If the chamber changed after the latest insert, the player completed the scroll step.
+	# This remains true whether the next chamber is empty (can insert again) or occupied.
+	if cartridges_loaded == _revolver_last_inserted_count \
+	and _revolver_last_inserted_chamber_index >= 0 \
+	and current_chamber_index >= 0 \
+	and current_chamber_index != _revolver_last_inserted_chamber_index:
+		return 3
 
 	return 2
 
