@@ -100,9 +100,11 @@ class MockTutorialLevel:
 	var _shotgun_current_ammo: int = 0
 	var _revolver_can_insert_cartridge: bool = false
 	var _revolver_cartridges_loaded_this_reload: int = 0
+	var _revolver_current_ammo: int = 0
 	var _revolver_current_chamber_index: int = -1
 	var _revolver_last_inserted_count: int = 0
 	var _revolver_last_inserted_chamber_index: int = -1
+	var _revolver_minimum_inserts_required: int = 2
 
 	## Issue #945: Shot tracking for delayed reload hint reveal
 	var _shots_fired: int = 0
@@ -404,11 +406,13 @@ class MockTutorialLevel:
 		## Fix 3rd#8: ONLY via this signal, not via reload_completed.
 		_dismiss_hint(HINT_HAMMER_COCK)
 
-	func on_revolver_cartridge_inserted(loaded: int, chamber_index: int) -> void:
+	func on_revolver_cartridge_inserted(loaded: int, chamber_index: int, current_ammo: int = -1) -> void:
 		_revolver_cartridges_loaded_this_reload = loaded
 		_revolver_last_inserted_count = loaded
 		_revolver_last_inserted_chamber_index = chamber_index
 		_revolver_current_chamber_index = chamber_index
+		if current_ammo >= 0:
+			_revolver_current_ammo = current_ammo
 
 	func on_revolver_reload_state_changed(state: int) -> void:
 		if not _active_hints.has(HINT_RELOAD):
@@ -430,11 +434,14 @@ class MockTutorialLevel:
 	func _get_revolver_reload_hint_step_for_loading_state() -> int:
 		if _revolver_cartridges_loaded_this_reload <= 0:
 			return 2
+		if _revolver_cartridges_loaded_this_reload >= _revolver_minimum_inserts_required \
+		or _revolver_current_ammo >= 5:
+			return 3
 		if _revolver_cartridges_loaded_this_reload == _revolver_last_inserted_count \
 		and _revolver_last_inserted_chamber_index >= 0 \
 		and _revolver_current_chamber_index >= 0 \
 		and _revolver_current_chamber_index != _revolver_last_inserted_chamber_index:
-			return 3
+			return 1
 		return 2
 
 	## Fix 3rd#5: Grenade hint shown AFTER reload disappears.
@@ -1075,8 +1082,10 @@ func test_revolver_reload_hint_shows_close_after_scroll_advances_slot() -> void:
 	tutorial.on_revolver_reload_state_changed(2)
 
 	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
-	assert_true(hint_text.contains("[color=#ff4444][R закрыть][/color]"),
-		"After scrolling to the next slot, close cylinder should become the highlighted step")
+	assert_true(hint_text.contains("[color=#ff4444][ПКМ↑ патрон][/color]"),
+		"After the first scroll, the tutorial should repeat the insert step for the second missing round")
+	assert_false(hint_text.contains("[color=#ff4444][R закрыть][/color]"),
+		"Close cylinder must stay inactive until two rounds are inserted or the cylinder reaches 5/5")
 
 
 func test_revolver_reload_hint_keeps_close_after_scroll_to_empty_chamber() -> void:
@@ -1091,10 +1100,38 @@ func test_revolver_reload_hint_keeps_close_after_scroll_to_empty_chamber() -> vo
 	tutorial.on_revolver_reload_state_changed(2)
 
 	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
-	assert_true(hint_text.contains("[color=#ff4444][R закрыть][/color]"),
-		"Scrolling to another empty chamber must still mark the scroll step as completed")
+	assert_true(hint_text.contains("[color=#ff4444][ПКМ↑ патрон][/color]"),
+		"Scrolling to another empty chamber after the first insert should return to the insert step")
 	assert_false(hint_text.contains("[color=#ff4444][скролл][/color]"),
 		"The tutorial must not keep waiting on scroll after the chamber index changed")
+
+
+func test_revolver_reload_hint_shows_close_after_second_insert() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_revolver_cartridge_inserted(2, 4, 4)
+	tutorial.on_revolver_reload_state_changed(2)
+
+	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
+	assert_true(hint_text.contains("[color=#ff4444][R закрыть][/color]"),
+		"After two inserted rounds during this tutorial prompt, only close cylinder should remain")
+
+
+func test_revolver_reload_hint_shows_close_when_cylinder_becomes_full() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_revolver_cartridge_inserted(1, 2, 5)
+	tutorial.on_revolver_reload_state_changed(2)
+
+	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
+	assert_true(hint_text.contains("[color=#ff4444][R закрыть][/color]"),
+		"When the cylinder reaches 5/5, the tutorial should skip straight to the close step")
 
 
 func test_shotgun_shows_bolt_cycle_hint_after_first_shot() -> void:

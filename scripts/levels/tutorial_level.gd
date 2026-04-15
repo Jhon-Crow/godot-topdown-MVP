@@ -190,6 +190,7 @@ var _bolt_cycle_hint_revealed: bool = false
 ## and after scrolling to another empty chamber.
 var _revolver_last_inserted_count: int = 0
 var _revolver_last_inserted_chamber_index: int = -1
+var _revolver_minimum_inserts_required: int = 2
 
 ## Unique colors for each hint type (Issue #945: simultaneously displayed hints should be different colors).
 const HINT_COLOR_FIRE_MODE := Color(0.3, 0.9, 1.0, 1.0)          ## Cyan — fire mode switch
@@ -1428,23 +1429,31 @@ func _get_revolver_reload_hint_step_for_loading_state() -> int:
 		return 2
 
 	var cartridges_loaded: int = 0
+	var current_ammo: int = 0
 	if revolver.get("CartridgesLoadedThisReload") != null:
 		cartridges_loaded = int(revolver.get("CartridgesLoadedThisReload"))
+	if revolver.get("CurrentAmmo") != null:
+		current_ammo = int(revolver.get("CurrentAmmo"))
 
 	if cartridges_loaded <= 0:
 		return 2
+
+	# After the player inserts enough cartridges during this tutorial prompt, or fully tops off
+	# the cylinder to 5/5, only the final close step should remain.
+	if cartridges_loaded >= _revolver_minimum_inserts_required or current_ammo >= 5:
+		return 3
 
 	var current_chamber_index: int = -1
 	if revolver.get("CurrentChamberIndex") != null:
 		current_chamber_index = int(revolver.get("CurrentChamberIndex"))
 
 	# If the chamber changed after the latest insert, the player completed the scroll step.
-	# This remains true whether the next chamber is empty (can insert again) or occupied.
+	# If the player still needs more inserts for this tutorial, loop back to the insert step.
 	if cartridges_loaded == _revolver_last_inserted_count \
 	and _revolver_last_inserted_chamber_index >= 0 \
 	and current_chamber_index >= 0 \
 	and current_chamber_index != _revolver_last_inserted_chamber_index:
-		return 3
+		return 1
 
 	return 2
 
