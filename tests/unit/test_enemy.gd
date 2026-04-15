@@ -84,7 +84,6 @@ class MockEnemy:
 	var _los_candidate_left_ok: bool = false
 	var _nav_has_path: bool = true
 	var _nav_path_distance: float = 0.0
-	var _combat_waypoint_result: Vector2 = Vector2.ZERO
 	var _cover_position: Vector2 = Vector2.ZERO
 	var _suppression_timer: float = 0.0
 	var _shoot_timer: float = 0.0
@@ -383,9 +382,6 @@ class MockEnemy:
 
 	func calculate_flank_target_for_test(player_pos: Vector2, enemy_pos: Vector2, side: float) -> Vector2:
 		var candidate := player_pos + (enemy_pos - player_pos).normalized().rotated(flank_angle * side) * flank_distance
-		var waypoint := _combat_waypoint(candidate)
-		if waypoint != Vector2.ZERO:
-			return waypoint
 		return candidate
 
 
@@ -428,10 +424,6 @@ class MockEnemy:
 						return nearest_fallback
 			return Vector2.ZERO
 		return best
-
-
-	func _combat_waypoint(_target: Vector2) -> Vector2:
-		return _combat_waypoint_result
 
 
 	func set_under_fire(value: bool) -> void:
@@ -964,17 +956,7 @@ func test_navigation_target_reasonable_rejects_missing_path() -> void:
 		"Reachability should reject flank targets when the navigation map has no path")
 
 
-func test_calculate_flank_target_prefers_combat_waypoint_anchor_on_building_style_maps() -> void:
-	enemy._combat_waypoint_result = Vector2(950.0, 1400.0)
-
-	var target := enemy.calculate_flank_target_for_test(Vector2(1200.0, 1500.0), Vector2(900.0, 900.0), -1.0)
-
-	assert_eq(target, Vector2(950.0, 1400.0),
-		"Flank target selection should prefer authored combat-path anchors when room geometry makes the geometric flank point a poor route target")
-
-
-func test_calculate_flank_target_falls_back_to_geometric_flank_when_no_combat_waypoint_exists() -> void:
-	enemy._combat_waypoint_result = Vector2.ZERO
+func test_calculate_flank_target_keeps_geometric_flank_instead_of_combat_waypoint() -> void:
 	var player_pos := Vector2(1200.0, 1500.0)
 	var enemy_pos := Vector2(900.0, 900.0)
 	var expected := player_pos + (enemy_pos - player_pos).normalized().rotated(enemy.flank_angle * -1.0) * enemy.flank_distance
@@ -982,9 +964,9 @@ func test_calculate_flank_target_falls_back_to_geometric_flank_when_no_combat_wa
 	var target := enemy.calculate_flank_target_for_test(player_pos, enemy_pos, -1.0)
 
 	assert_almost_eq(target.x, expected.x, 0.001,
-		"Without authored anchors, flank targeting should keep using the geometric flank endpoint")
+		"Flank targeting should keep using the geometric lateral endpoint instead of snapping back to a generic combat waypoint")
 	assert_almost_eq(target.y, expected.y, 0.001,
-		"Without authored anchors, flank targeting should keep using the geometric flank endpoint")
+		"Flank targeting should keep using the geometric lateral endpoint instead of snapping back to a generic combat waypoint")
 
 
 func test_attack_waypoint_selection_rejects_building_detour_waypoint() -> void:

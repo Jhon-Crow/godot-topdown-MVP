@@ -3294,14 +3294,11 @@ func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, directio
 func _calculate_flank_position() -> void:
 	if _player == null: return
 	var _fp := _player.global_position + (global_position - _player.global_position).normalized().rotated(flank_angle * _flank_side) * flank_distance
-	# Prefer authored combat-path anchors when they move us toward the tactical flank side.
-	# Building-style room/corridor layouts can make the raw geometric flank endpoint land
-	# inside an adjacent room behind walls even though a valid flanking route exists via doorways.
-	var wp_f := _combat_waypoint(_fp)
-	if wp_f != Vector2.ZERO:
-		_flank_target = wp_f
+	# Do not reuse generic combat waypoints for flank targets.
+	# Combat-path waypoints are authored for forward progress toward the player and can
+	# collapse a lateral flank back into the same doorway/corridor pursuit loop.
 	# Issue #1107: Snap to nearest valid navmesh point — prevents flanking to wall corners
-	elif _nav_agent:
+	if _nav_agent:
 		_flank_target = NavigationServer2D.map_get_closest_point(_nav_agent.get_navigation_map(), _fp)
 	else:
 		_flank_target = _fp
