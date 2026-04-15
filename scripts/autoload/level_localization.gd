@@ -22,8 +22,6 @@ const DIFFICULTY_NAME_KEYS: Dictionary = {
 	"Easy": "EASY",
 	"Normal": "NORMAL",
 	"Hard": "HARD",
-	"Power Fantasy": "POWER_FANTASY",
-	"Black Metal": "BLACK_METAL",
 	"Gunslinger": "GUNSLINGER",
 }
 
@@ -43,6 +41,13 @@ func apply_level_label(label: Label, scene_path: String) -> void:
 	if label == null:
 		return
 	label.text = get_level_display_name(scene_path)
+
+
+func apply_level_label_from_node(owner: Node, scene_path: String) -> void:
+	if owner == null:
+		return
+	var level_label: Label = owner.get_node_or_null("CanvasLayer/UI/LevelLabel")
+	apply_level_label(level_label, scene_path)
 
 
 func get_enemy_count_text(count: int) -> String:

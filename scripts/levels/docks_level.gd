@@ -722,6 +722,7 @@ func _update_enemy_count_label() -> void:
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
+	LevelLocalization.apply_level_label_from_node(self, LEVEL_SCENE_PATH)
 
 	if _difficulty_label:
 		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())

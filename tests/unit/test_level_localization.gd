@@ -48,10 +48,11 @@ func test_owner_reported_level_names_are_all_mapped() -> void:
 
 
 func test_special_difficulties_are_localized_for_hud() -> void:
-	assert_eq(_helper.get_localized_difficulty_name("Power Fantasy"), tr("POWER_FANTASY"))
-	assert_eq(_helper.get_localized_difficulty_name("Black Metal"), tr("BLACK_METAL"))
-	assert_eq(_helper.get_difficulty_text("Power Fantasy"), tr("HUD_DIFFICULTY") % tr("POWER_FANTASY"))
-	assert_eq(_helper.get_difficulty_text("Black Metal"), tr("HUD_DIFFICULTY") % tr("BLACK_METAL"))
+	assert_eq(_helper.get_localized_difficulty_name("Power Fantasy"), "Power Fantasy")
+	assert_eq(_helper.get_localized_difficulty_name("Black Metal"), "Black Metal")
+	assert_eq(_helper.get_difficulty_text("Power Fantasy"), tr("HUD_DIFFICULTY") % "Power Fantasy")
+	assert_eq(_helper.get_difficulty_text("Black Metal"), tr("HUD_DIFFICULTY") % "Black Metal")
+	assert_eq(_helper.get_difficulty_text("Gunslinger"), tr("HUD_DIFFICULTY") % tr("GUNSLINGER"))
 
 
 func test_magazines_label_uses_translated_mag_prefix() -> void:
@@ -66,3 +67,21 @@ func test_apply_level_label_populates_top_right_label_text() -> void:
 	_helper.apply_level_label(label, "res://scenes/levels/SewerLevel.tscn")
 
 	assert_eq(label.text, tr("LEVEL_SEWER_NAME"))
+
+
+func test_apply_level_label_from_node_updates_canvas_ui_label() -> void:
+	var level_root := Node.new()
+	add_child_autofree(level_root)
+	var canvas_layer := CanvasLayer.new()
+	canvas_layer.name = "CanvasLayer"
+	level_root.add_child(canvas_layer)
+	var ui := Control.new()
+	ui.name = "UI"
+	canvas_layer.add_child(ui)
+	var label := Label.new()
+	label.name = "LevelLabel"
+	ui.add_child(label)
+
+	_helper.apply_level_label_from_node(level_root, "res://scenes/levels/BuildingLevel.tscn")
+
+	assert_eq(label.text, tr("LEVEL_BUILDING_NAME"))
