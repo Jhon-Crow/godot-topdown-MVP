@@ -66,7 +66,6 @@ class MockBuildingLevel:
 			return
 		_level_completed = true
 
-
 var level: MockBuildingLevel
 
 
@@ -170,3 +169,16 @@ func test_debug_mode_default_off() -> void:
 func test_map_dimensions() -> void:
 	assert_eq(level.map_width, 2400, "Building map width should be 2400")
 	assert_eq(level.map_height, 2000, "Building map height should be 2000")
+
+
+func test_building_level_uses_shared_weapon_hints_component() -> void:
+	var script := load("res://scripts/levels/building_level.gd") as GDScript
+	assert_not_null(script, "Building level script should load")
+
+	var source := script.source_code
+	assert_string_contains(source, "func _setup_weapon_hints() -> void:",
+		"Building level should define weapon hints setup for issue #1810")
+	assert_string_contains(source, "load(\"res://scripts/components/weapon_hints_component.gd\")",
+		"Building level should load the shared weapon hints component")
+	assert_string_contains(source, "_weapon_hints_component.setup(_player, canvas_layer)",
+		"Building level should initialize the shared weapon hints component with player and CanvasLayer")
