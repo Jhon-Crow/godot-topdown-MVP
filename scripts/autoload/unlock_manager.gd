@@ -26,9 +26,9 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"active_items": []
 	},
 	"res://scenes/levels/BuildingLevel.tscn": {
-		"min_rank": "D",
+		"min_rank": "F",
 		"weapons": ["shotgun"],
-		"grenades": [1],    # GrenadeManager.GrenadeType.FRAG = 1 (Issue #1000 req.1)
+		"grenades": [1],    # GrenadeManager.GrenadeType.FRAG = 1; Building completion on any rank (Issue #1826)
 		"active_items": []
 	},
 	"res://scenes/levels/BuildingLevel.tscn:S": {

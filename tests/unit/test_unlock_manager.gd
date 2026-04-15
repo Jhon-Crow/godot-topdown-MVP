@@ -139,7 +139,7 @@ class TestableUnlockManager extends Node:
 			"active_items": []
 		},
 		"res://scenes/levels/BuildingLevel.tscn": {
-			"min_rank": "D",
+			"min_rank": "F",
 			"weapons": ["shotgun"],
 			"grenades": [1],    # FRAG = 1
 			"active_items": []
@@ -339,7 +339,7 @@ class TestableUnlockManager extends Node:
 	var mock_active_item_manager: MockActiveItemManager
 	var mock_grenade_manager: MockGrenadeManager
 
-	func get_node_or_null(path: String) -> Variant:
+	func get_node_or_null(path: NodePath) -> Node:
 		match path:
 			"/root/ProgressManager":
 				return mock_progress_manager
@@ -792,7 +792,7 @@ func test_castle_condition_met_with_d_rank() -> void:
 
 func test_condition_met_on_any_difficulty() -> void:
 	# Set rank only on Hard difficulty (not Normal)
-	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Hard", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Hard", "F")
 	assert_true(unlock_manager.is_condition_key_met("res://scenes/levels/BuildingLevel.tscn"),
 		"Condition should be met if any difficulty has qualifying rank")
 
@@ -802,17 +802,17 @@ func test_condition_met_on_any_difficulty() -> void:
 # ============================================================================
 
 
-func test_building_d_unlocks_frag_grenade() -> void:
-	# req.1: Building D+ → FRAG grenade
+func test_building_f_unlocks_frag_grenade() -> void:
+	# Issue #1826: Building completion on any rank → FRAG grenade
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "F")
+	assert_true(unlock_manager.is_grenade_condition_met(1),
+		"Frag grenade condition should be met after Building grade F")
+
+
+func test_building_d_still_unlocks_frag_grenade() -> void:
 	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
 	assert_true(unlock_manager.is_grenade_condition_met(1),
-		"Frag grenade condition should be met after Building grade D")
-
-
-func test_building_f_does_not_unlock_frag_grenade() -> void:
-	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "F")
-	assert_false(unlock_manager.is_grenade_condition_met(1),
-		"Frag grenade condition should NOT be met with Building grade F")
+		"Frag grenade condition should remain met with Building grade D")
 
 
 func test_building_s_unlocks_silenced_pistol() -> void:
@@ -997,10 +997,10 @@ func test_uzi_condition_not_met_with_f() -> void:
 		"Uzi condition should NOT be met with Labyrinth grade F")
 
 
-func test_shotgun_condition_met_after_building_d() -> void:
-	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+func test_shotgun_condition_met_after_building_f() -> void:
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "F")
 	assert_true(unlock_manager.is_weapon_condition_met("shotgun"),
-		"Shotgun condition should be met after Building grade D")
+		"Shotgun condition should be met after Building grade F")
 
 
 func test_sniper_condition_met_after_polygon_d() -> void:
@@ -1103,10 +1103,10 @@ func test_condition_not_met_for_labyrinth_with_f_rank() -> void:
 		"Uzi should stay locked")
 
 
-func test_shotgun_condition_met_after_building_d_but_still_locked() -> void:
-	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+func test_shotgun_condition_met_after_building_f_but_still_locked() -> void:
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "F")
 	assert_true(unlock_manager.is_weapon_condition_met("shotgun"),
-		"Shotgun condition should be met after Building D")
+		"Shotgun condition should be met after Building F")
 	assert_false(game_manager.is_weapon_unlocked("shotgun"),
 		"Shotgun should still be locked — player must hold LMB to unlock")
 
@@ -1124,7 +1124,7 @@ func test_sniper_and_flashlight_condition_met_after_polygon_d() -> void:
 		"Flashlight should stay locked until LMB hold")
 
 
-func test_revolver_condition_met_after_castle_f() -> void:
+func test_revolver_condition_met_after_castle_f_but_still_locked() -> void:
 	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
 	assert_true(unlock_manager.is_weapon_condition_met("revolver"),
 		"Revolver condition should be met after Castle F")
@@ -1403,8 +1403,8 @@ func test_no_available_unlocks_when_weapon_already_unlocked() -> void:
 
 
 func test_has_available_unlock_when_grenade_condition_met() -> void:
-	# Building D+ unlocks frag grenade — condition met, item still locked
-	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	# Issue #1826: Building completion on any rank unlocks frag grenade — condition met, item still locked
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "F")
 	assert_true(unlock_manager.has_any_available_unlock(),
 		"Should return true when frag grenade condition is met but item is locked")
 
