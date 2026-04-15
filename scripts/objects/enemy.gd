@@ -3294,9 +3294,17 @@ func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, directio
 func _calculate_flank_position() -> void:
 	if _player == null: return
 	var _fp := _player.global_position + (global_position - _player.global_position).normalized().rotated(flank_angle * _flank_side) * flank_distance
+	# Prefer authored combat-path anchors when they move us toward the tactical flank side.
+	# Building-style room/corridor layouts can make the raw geometric flank endpoint land
+	# inside an adjacent room behind walls even though a valid flanking route exists via doorways.
+	var wp_f := _combat_waypoint(_fp)
+	if wp_f != Vector2.ZERO:
+		_flank_target = wp_f
 	# Issue #1107: Snap to nearest valid navmesh point — prevents flanking to wall corners
-	if _nav_agent: _flank_target = NavigationServer2D.map_get_closest_point(_nav_agent.get_navigation_map(), _fp)
-	else: _flank_target = _fp
+	elif _nav_agent:
+		_flank_target = NavigationServer2D.map_get_closest_point(_nav_agent.get_navigation_map(), _fp)
+	else:
+		_flank_target = _fp
 	_log_debug("Flank target: %s (side: %s)" % [_flank_target, "right" if _flank_side > 0 else "left"])
 
 ## Choose best flank side (1.0=right, -1.0=left) — prefers LoS to player, avoids walls (#367).
