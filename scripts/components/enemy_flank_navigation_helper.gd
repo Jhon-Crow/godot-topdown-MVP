@@ -46,3 +46,26 @@ static func is_navigation_target_reasonable(enemy: Node2D, nav_agent: Navigation
 			enemy._log_debug("Flank path too long: %.0f vs straight %.0f" % [path_distance, straight_distance])
 		return false
 	return true
+
+
+static func calculate_flank_timeout(enemy: Node2D, nav_agent: NavigationAgent2D, target: Vector2, move_speed: float, minimum_timeout: float) -> float:
+	var path_distance := get_navigation_path_distance(enemy, nav_agent, target)
+	if path_distance <= 0.0:
+		return minimum_timeout
+	var travel_time := path_distance / maxf(move_speed, 1.0)
+	return clampf(travel_time + 2.0, minimum_timeout, 12.0)
+
+
+static func get_navigation_path_distance(enemy: Node2D, nav_agent: NavigationAgent2D, target: Vector2) -> float:
+	if nav_agent == null:
+		return 0.0
+	var nav_map := nav_agent.get_navigation_map()
+	if not nav_map.is_valid():
+		return 0.0
+	var path: PackedVector2Array = NavigationServer2D.map_get_path(nav_map, enemy.global_position, target, true)
+	if path.size() < 2:
+		return 0.0
+	var path_distance := 0.0
+	for i in range(1, path.size()):
+		path_distance += path[i - 1].distance_to(path[i])
+	return path_distance

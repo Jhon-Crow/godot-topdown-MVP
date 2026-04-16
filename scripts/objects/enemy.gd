@@ -258,6 +258,7 @@ var _flank_side: float = 1.0  ## Flank side (1=right, -1=left)
 var _flank_side_initialized: bool = false  ## Flank side set
 var _flank_state_timer: float = 0.0  ## Total flanking time
 const FLANK_STATE_MAX_TIME: float = 5.0  ## Max flanking time (sec)
+var _flank_state_max_time: float = FLANK_STATE_MAX_TIME  ## Per-attempt timeout scaled by nav distance
 var _flank_last_position: Vector2 = Vector2.ZERO  ## Last pos for progress
 var _flank_stuck_timer: float = 0.0  ## Stuck check timer
 const FLANK_STUCK_MAX_TIME: float = 2.0  ## Max time without progress
@@ -1759,7 +1760,7 @@ func _process_in_cover_state(delta: float) -> void:
 func _process_flanking_state(delta: float) -> void:
 	_flank_state_timer += delta
 
-	if _flank_state_timer >= FLANK_STATE_MAX_TIME:
+	if _flank_state_timer >= _flank_state_max_time:
 		_log_to_file("FLANKING timeout (%.1fs), target=%s, pos=%s" % [_flank_state_timer, _flank_target, global_position])
 		_flank_side_initialized = false
 		if _can_see_player or _can_see_companion: _transition_to_combat()  # #934: incl. companion
@@ -1803,8 +1804,6 @@ func _process_flanking_state(delta: float) -> void:
 		else:
 			_transition_to_idle()
 		return
-
-	_calculate_flank_position()  # Recalculate (player may have moved)
 
 	if global_position.distance_to(_flank_target) < 30.0:
 		_flank_side_initialized = false
@@ -2687,6 +2686,7 @@ func _transition_to_flanking() -> bool:
 	_has_valid_cover = false
 	# Initialize timeout and progress tracking for stuck detection (Issue #367)
 	_flank_state_timer = 0.0
+	_flank_state_max_time = EnemyFlankNavigationHelper.calculate_flank_timeout(self, _nav_agent, _flank_target, combat_move_speed, FLANK_STATE_MAX_TIME)
 	_flank_stuck_timer = 0.0
 	_flank_last_position = global_position
 	# Reset global stuck detection

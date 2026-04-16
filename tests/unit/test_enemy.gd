@@ -84,6 +84,8 @@ class MockEnemy:
 	var _los_candidate_left_ok: bool = false
 	var _nav_has_path: bool = true
 	var _nav_path_distance: float = 0.0
+	var combat_move_speed: float = 320.0
+	var _flank_target: Vector2 = Vector2.ZERO
 	var _cover_position: Vector2 = Vector2.ZERO
 	var _suppression_timer: float = 0.0
 	var _shoot_timer: float = 0.0
@@ -383,6 +385,21 @@ class MockEnemy:
 	func calculate_flank_target_for_test(player_pos: Vector2, enemy_pos: Vector2, side: float) -> Vector2:
 		var candidate := player_pos + (enemy_pos - player_pos).normalized().rotated(flank_angle * side) * flank_distance
 		return candidate
+
+
+	func start_flank_attempt_for_test(player_pos: Vector2, enemy_pos: Vector2, side: float) -> void:
+		_flank_target = calculate_flank_target_for_test(player_pos, enemy_pos, side)
+
+
+	func process_flank_attempt_for_test(_player_pos: Vector2, _enemy_pos: Vector2, _side: float) -> Vector2:
+		return _flank_target
+
+
+	func calculate_flank_timeout_for_test(path_distance: float) -> float:
+		if path_distance <= 0.0:
+			return 5.0
+		var travel_time := path_distance / maxf(combat_move_speed, 1.0)
+		return clampf(travel_time + 2.0, 5.0, 12.0)
 
 
 	func choose_attack_waypoint_for_test(from_pos: Vector2, toward_pos: Vector2, waypoints: Array[Dictionary]) -> Vector2:
@@ -992,6 +1009,35 @@ func test_calculate_flank_target_keeps_geometric_flank_instead_of_combat_waypoin
 		"Flank targeting should keep using the geometric lateral endpoint instead of snapping back to a generic combat waypoint")
 	assert_almost_eq(target.y, expected.y, 0.001,
 		"Flank targeting should keep using the geometric lateral endpoint instead of snapping back to a generic combat waypoint")
+
+
+func test_flank_attempt_keeps_initial_target_when_player_moves() -> void:
+	var initial_player_pos := Vector2(952.0, 673.0)
+	var moved_player_pos := Vector2(968.0, 669.0)
+	var enemy_pos := Vector2(1424.0, 841.0)
+	var initial_target := enemy.calculate_flank_target_for_test(initial_player_pos, enemy_pos, 1.0)
+	var recalculated_target := enemy.calculate_flank_target_for_test(moved_player_pos, enemy_pos, 1.0)
+	enemy.start_flank_attempt_for_test(initial_player_pos, enemy_pos, 1.0)
+	var active_target := enemy.process_flank_attempt_for_test(moved_player_pos, enemy_pos, 1.0)
+
+	assert_ne(initial_target, recalculated_target,
+		"Moving players would shift a recalculated flank target every frame")
+	assert_eq(active_target, initial_target,
+		"An active flank attempt should keep its entry target stable until it reaches, times out, or aborts")
+
+
+func test_flank_timeout_keeps_minimum_for_short_nav_route() -> void:
+	var timeout := enemy.calculate_flank_timeout_for_test(960.0)
+
+	assert_almost_eq(timeout, 5.0, 0.001,
+		"At the default combat speed, a 960px route receives the minimum 5s timeout")
+
+
+func test_flank_timeout_extends_for_long_building_nav_route() -> void:
+	var timeout := enemy.calculate_flank_timeout_for_test(1600.0)
+
+	assert_almost_eq(timeout, 7.0, 0.001,
+		"Long Building-map flank routes should not abort before their nav travel time plus buffer elapses")
 
 
 func test_attack_waypoint_selection_rejects_building_detour_waypoint() -> void:
