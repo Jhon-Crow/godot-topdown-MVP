@@ -30,11 +30,22 @@ FONT_NEON = ROOT / "assets" / "fonts" / "neon" / "Beon-Regular.ttf"
 FONT_ACCENT = ROOT / "assets" / "fonts" / "rye" / "Rye-Regular.ttf"
 
 SPRITES = ROOT / "assets" / "sprites"
-PLAYER = SPRITES / "characters" / "player" / "player_combined_preview.png"
-ENEMY = SPRITES / "characters" / "enemy" / "enemy_combined_preview.png"
 M16 = SPRITES / "weapons" / "m16_rifle_topdown.png"
 SHOTGUN = SPRITES / "weapons" / "shotgun_topdown.png"
 REVOLVER = SPRITES / "weapons" / "revolver_topdown.png"
+ASVK = SPRITES / "weapons" / "asvk_topdown.png"
+AK_GL = SPRITES / "weapons" / "ak_gl_topdown.png"
+PKM = SPRITES / "weapons" / "pkm_topdown.png"
+RPG = SPRITES / "weapons" / "rpg_topdown.png"
+MINI_UZI = SPRITES / "weapons" / "mini_uzi_topdown.png"
+SILENCED_PISTOL = SPRITES / "weapons" / "silenced_pistol_topdown.png"
+MAKAROV = SPRITES / "weapons" / "makarov_pm_topdown.png"
+MACHETE = SPRITES / "weapons" / "machete_topdown.png"
+FRAG_GRENADE = SPRITES / "weapons" / "frag_grenade.png"
+FLASHBANG = SPRITES / "weapons" / "flashbang.png"
+CASING_RIFLE = SPRITES / "effects" / "casing_rifle.png"
+CASING_PISTOL = SPRITES / "effects" / "casing_pistol.png"
+CASING_SHOTGUN = SPRITES / "effects" / "casing_shotgun.png"
 FLASHLIGHT = SPRITES / "effects" / "flashlight_cone_18deg.png"
 
 
@@ -215,6 +226,41 @@ def draw_room_grid(img: Image.Image, pal: Palette, seed: int, red_black: bool = 
         draw.rectangle((x, y, x + w, y + h), fill=fill)
 
 
+def draw_tactical_routes(
+    img: Image.Image,
+    pal: Palette,
+    seed: int,
+    *,
+    red_black: bool = False,
+    variant: int = 0,
+) -> None:
+    rng = random.Random(seed)
+    draw = ImageDraw.Draw(img, "RGBA")
+    route_color = (255, 0, 0) if red_black else pal.accent2
+    alt_color = (255, 0, 0) if red_black else pal.accent
+    alpha = 76 if red_black else 82
+    node_alpha = 145 if red_black else 155
+    routes = [
+        [(150, 500), (246, 462), (342, 472), (430, 392), (566, 398), (668, 314), (808, 332), (940, 250)],
+        [(250, 204), (376, 234), (520, 216), (636, 284), (760, 260), (880, 310), (1018, 284)],
+        [(190, 596), (324, 552), (480, 562), (626, 512), (762, 540), (936, 474), (1070, 506)],
+        [(130, 142), (286, 164), (428, 132), (566, 172), (718, 136), (878, 178), (1054, 146)],
+    ]
+    for i, path in enumerate(routes):
+        shifted = []
+        for x, y in path:
+            jitter_x = rng.randrange(-10, 11)
+            jitter_y = rng.randrange(-8, 9)
+            shifted.append((x + jitter_x, y + jitter_y + variant * (i % 2) * 7))
+        color = route_color if i % 2 == 0 else alt_color
+        width = 2 if i != variant % len(routes) else 3
+        draw.line(shifted, fill=rgba(color, alpha), width=width)
+        for x, y in shifted:
+            radius = 5 if i == variant % len(routes) else 4
+            draw.ellipse((x - radius, y - radius, x + radius, y + radius), outline=rgba(color, node_alpha), width=2)
+            draw.ellipse((x - 2, y - 2, x + 2, y + 2), fill=rgba(color, node_alpha))
+
+
 def paste_sprite(
     img: Image.Image,
     path: Path,
@@ -223,6 +269,8 @@ def paste_sprite(
     angle: float,
     tint: tuple[int, int, int] | None = None,
     alpha: int = 255,
+    glow: tuple[int, int, int] | None = None,
+    glow_alpha: int = 115,
 ) -> None:
     sprite = Image.open(path).convert("RGBA")
     if tint is not None:
@@ -238,12 +286,97 @@ def paste_sprite(
     sprite = sprite.resize((sprite.width * scale, sprite.height * scale), Image.Resampling.NEAREST)
     sprite = sprite.rotate(angle, expand=True, resample=Image.Resampling.NEAREST)
 
-    shadow = Image.new("RGBA", sprite.size, (0, 0, 0, 0))
-    shadow.putalpha(sprite.getchannel("A").filter(ImageFilter.GaussianBlur(6)))
     x = int(center[0] - sprite.width / 2)
     y = int(center[1] - sprite.height / 2)
+    if glow is not None:
+        glow_layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        glow_sprite = Image.new("RGBA", sprite.size, rgba(glow, 0))
+        glow_sprite.putalpha(sprite.getchannel("A").filter(ImageFilter.GaussianBlur(13)).point(lambda v: int(v * glow_alpha / 255)))
+        glow_layer.alpha_composite(glow_sprite, (x, y))
+        overlay(img, glow_layer, 1.0)
+
+    shadow = Image.new("RGBA", sprite.size, (0, 0, 0, 0))
+    shadow.putalpha(sprite.getchannel("A").filter(ImageFilter.GaussianBlur(6)))
     img.alpha_composite(shadow, (x + 10, y + 16))
     img.alpha_composite(sprite, (x, y))
+
+
+def draw_soft_weapon_plinth(
+    img: Image.Image,
+    center: tuple[int, int],
+    size: tuple[int, int],
+    pal: Palette,
+    *,
+    red_black: bool = False,
+) -> None:
+    cx, cy = center
+    w, h = size
+    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer, "RGBA")
+    fill = (255, 0, 0, 52) if red_black else rgba(pal.dark, 132)
+    outline = (255, 0, 0, 128) if red_black else rgba(pal.accent2, 86)
+    draw.rounded_rectangle((cx - w // 2, cy - h // 2, cx + w // 2, cy + h // 2), radius=8, fill=fill, outline=outline, width=2)
+    blurred = layer.filter(ImageFilter.GaussianBlur(12))
+    overlay(img, blurred, 0.5)
+    overlay(img, layer, 1.0)
+
+
+def scatter_casings(img: Image.Image, pal: Palette, seed: int, *, red_black: bool = False) -> None:
+    rng = random.Random(seed)
+    casing_paths = [CASING_RIFLE, CASING_PISTOL, CASING_SHOTGUN]
+    tint = (255, 0, 0) if red_black else None
+    for i in range(18):
+        path = casing_paths[i % len(casing_paths)]
+        x = rng.randrange(120, W - 120)
+        y = rng.randrange(120, H - 80)
+        if 420 < x < 820 and 230 < y < 500:
+            x += 230 if x < W // 2 else -230
+        alpha = 180 if red_black else rng.randrange(112, 172)
+        paste_sprite(img, path, (x, y), rng.choice([2, 3]), rng.randrange(0, 180), tint=tint, alpha=alpha)
+
+
+def draw_armory_cross(
+    img: Image.Image,
+    pal: Palette,
+    *,
+    red_black: bool = False,
+    compact: bool = False,
+) -> None:
+    tint = (255, 0, 0) if red_black else None
+    glow = (255, 0, 0) if red_black else pal.accent2
+    draw_soft_weapon_plinth(img, (620, 396), (620, 250 if compact else 300), pal, red_black=red_black)
+    paste_sprite(img, ASVK, (622, 348), 9 if compact else 10, -16, tint=tint, glow=glow, glow_alpha=150)
+    paste_sprite(img, AK_GL, (618, 424), 9 if compact else 10, 18, tint=tint, glow=pal.accent if not red_black else glow, glow_alpha=130)
+    paste_sprite(img, SHOTGUN, (414, 492), 7, -8, tint=tint, alpha=235, glow=glow, glow_alpha=80)
+    paste_sprite(img, M16, (840, 498), 7, 9, tint=tint, alpha=235, glow=glow, glow_alpha=80)
+    paste_sprite(img, REVOLVER, (424, 276), 7, 21, tint=tint, alpha=230)
+    paste_sprite(img, MINI_UZI, (820, 260), 7, -24, tint=tint, alpha=230)
+
+
+def draw_armory_knolling(
+    img: Image.Image,
+    pal: Palette,
+    *,
+    red_black: bool = False,
+) -> None:
+    tint = (255, 0, 0) if red_black else None
+    glow = (255, 0, 0) if red_black else pal.accent2
+    draw_soft_weapon_plinth(img, (670, 410), (720, 310), pal, red_black=red_black)
+    items = [
+        (ASVK, (640, 276), 8, 0),
+        (PKM, (640, 350), 8, 0),
+        (M16, (640, 424), 8, 0),
+        (SHOTGUN, (640, 500), 8, 0),
+        (REVOLVER, (322, 354), 7, 0),
+        (SILENCED_PISTOL, (332, 430), 7, 0),
+        (MAKAROV, (335, 500), 7, 0),
+        (RPG, (958, 350), 7, 0),
+        (MACHETE, (956, 478), 7, 0),
+    ]
+    for idx, (path, center, scale, angle) in enumerate(items):
+        paste_sprite(img, path, center, scale, angle, tint=tint, alpha=238, glow=glow if idx in (0, 1, 7) else None, glow_alpha=100)
+    paste_sprite(img, FRAG_GRENADE, (492, 585), 5, 0, tint=tint, alpha=224)
+    paste_sprite(img, FLASHBANG, (750, 585), 5, 0, tint=tint, alpha=224)
 
 
 def draw_title(
@@ -301,26 +434,6 @@ def draw_title(
     )
 
 
-def draw_weapon_badge(
-    img: Image.Image,
-    path: Path,
-    center: tuple[int, int],
-    scale: int,
-    angle: float,
-    pal: Palette,
-) -> None:
-    draw = ImageDraw.Draw(img, "RGBA")
-    cx, cy = center
-    draw.rounded_rectangle(
-        (cx - 108, cy - 42, cx + 108, cy + 42),
-        radius=8,
-        fill=rgba(pal.dark, 160),
-        outline=rgba(pal.accent2, 120),
-        width=2,
-    )
-    paste_sprite(img, path, center, scale, angle)
-
-
 def add_scanlines(img: Image.Image, color: tuple[int, int, int], alpha: int = 28, step: int = 5) -> None:
     draw = ImageDraw.Draw(img, "RGBA")
     for y in range(0, H, step):
@@ -342,18 +455,13 @@ def add_corner_frame(img: Image.Image, pal: Palette, thick: int = 5) -> None:
 def poster_neon_crossfire() -> Image.Image:
     img = make_base(NEON, 181501)
     draw_room_grid(img, NEON, 181502)
+    draw_tactical_routes(img, NEON, 181521, variant=0)
 
-    glow_line(img, [(205, 515), (374, 402), (595, 352), (837, 238), (1052, 166)], NEON.accent2, 6, 16, 210)
-    glow_line(img, [(1006, 506), (828, 432), (612, 392), (390, 281), (180, 180)], NEON.accent, 5, 14, 210)
-    glow_line(img, [(285, 500), (472, 486), (636, 430), (818, 374), (1000, 358)], (248, 221, 90), 3, 10, 180)
-
-    paste_sprite(img, PLAYER, (284, 495), 5, -28)
-    paste_sprite(img, ENEMY, (1001, 170), 4, 148)
-    paste_sprite(img, ENEMY, (915, 490), 3, 204)
-    paste_sprite(img, PLAYER, (620, 346), 3, -8, alpha=220)
-
-    draw_weapon_badge(img, M16, (973, 606), 5, -11, NEON)
-    draw_weapon_badge(img, REVOLVER, (740, 113), 5, 21, NEON)
+    glow_line(img, [(122, 574), (320, 570), (520, 580), (720, 566), (960, 590), (1120, 574)], NEON.accent2, 2, 8, 90)
+    draw_armory_cross(img, NEON)
+    scatter_casings(img, NEON, 181522)
+    paste_sprite(img, FRAG_GRENADE, (1020, 180), 5, 0, alpha=220, glow=NEON.accent, glow_alpha=90)
+    paste_sprite(img, FLASHBANG, (190, 430), 5, 0, alpha=210, glow=NEON.accent2, glow_alpha=70)
 
     add_scanlines(img, NEON.accent2, 8, 8)
     draw_title(img, NEON, (72, 54), 108, "left", True)
@@ -367,17 +475,15 @@ def poster_red_black() -> Image.Image:
     draw = ImageDraw.Draw(img, "RGBA")
 
     for x in range(-250, W + 250, 80):
-        draw.line((x, 0, x + 390, H), fill=(80, 0, 0, 90), width=10)
+        draw.line((x, 0, x + 390, H), fill=(80, 0, 0, 54), width=8)
     for y in range(85, H, 75):
-        draw.line((0, y, W, y), fill=(255, 0, 0, 38), width=2)
+        draw.line((0, y, W, y), fill=(255, 0, 0, 30), width=1)
 
-    glow_line(img, [(174, 548), (368, 437), (620, 350), (846, 248), (1085, 156)], RED_BLACK.accent, 11, 18, 255)
-    glow_line(img, [(1058, 551), (872, 452), (656, 376), (408, 284), (150, 154)], RED_BLACK.accent, 5, 8, 210)
-
-    paste_sprite(img, PLAYER, (218, 526), 7, -30, tint=RED_BLACK.accent)
-    paste_sprite(img, ENEMY, (1008, 155), 6, 150, tint=RED_BLACK.accent)
-    paste_sprite(img, ENEMY, (916, 518), 4, 198, tint=(110, 0, 0))
-    paste_sprite(img, M16, (582, 344), 7, -7, tint=RED_BLACK.accent)
+    draw_tactical_routes(img, RED_BLACK, 181523, red_black=True, variant=1)
+    draw_armory_cross(img, RED_BLACK, red_black=True, compact=True)
+    scatter_casings(img, RED_BLACK, 181524, red_black=True)
+    paste_sprite(img, RPG, (944, 602), 6, 0, tint=RED_BLACK.accent, alpha=230)
+    paste_sprite(img, MACHETE, (283, 600), 7, 0, tint=RED_BLACK.accent, alpha=230)
 
     title_font = font(FONT_TITLE, 118)
     bbox = draw.textbbox((0, 0), TITLE, font=title_font, stroke_width=2)
@@ -423,16 +529,10 @@ def poster_blueprint() -> Image.Image:
             width=1,
         )
 
-    path = [(156, 514), (288, 464), (456, 403), (604, 348), (750, 316), (948, 218), (1080, 188)]
-    glow_line(img, path, BLUEPRINT.accent, 4, 10, 230)
-    for point in path:
-        draw.ellipse((point[0] - 10, point[1] - 10, point[0] + 10, point[1] + 10), fill=rgba(BLUEPRINT.accent, 220))
-
-    paste_sprite(img, PLAYER, (156, 514), 5, -38)
-    paste_sprite(img, ENEMY, (1080, 188), 4, 145)
-    paste_sprite(img, ENEMY, (762, 318), 3, 110, alpha=210)
-    paste_sprite(img, SHOTGUN, (480, 545), 6, 12)
-    paste_sprite(img, REVOLVER, (965, 510), 6, -24)
+    draw_tactical_routes(img, BLUEPRINT, 181525, variant=2)
+    draw_armory_knolling(img, BLUEPRINT)
+    paste_sprite(img, FRAG_GRENADE, (496, 596), 5, 0, alpha=230, glow=BLUEPRINT.accent, glow_alpha=80)
+    paste_sprite(img, FLASHBANG, (744, 596), 5, 0, alpha=220, glow=BLUEPRINT.accent2, glow_alpha=80)
 
     add_scanlines(img, BLUEPRINT.accent2, 9, 7)
     draw_title(img, BLUEPRINT, (616, 52), 102, "center", True, FONT_NEON, stroke=2)
@@ -443,6 +543,7 @@ def poster_blueprint() -> Image.Image:
 def poster_close_quarters() -> Image.Image:
     img = make_base(CQB, 181506)
     draw_room_grid(img, CQB, 181507)
+    draw_tactical_routes(img, CQB, 181526, variant=3)
 
     cone = Image.open(FLASHLIGHT).convert("RGBA")
     cone = cone.resize((640, 640), Image.Resampling.BILINEAR)
@@ -453,15 +554,11 @@ def poster_close_quarters() -> Image.Image:
     cone.putalpha(a)
     img.alpha_composite(cone, (166, 120))
 
-    glow_line(img, [(258, 500), (438, 430), (636, 355), (810, 306), (1004, 250)], CQB.accent2, 7, 18, 220)
-    glow_line(img, [(1015, 240), (878, 296), (714, 334), (535, 416), (350, 542)], CQB.accent, 4, 12, 190)
-    glow_line(img, [(328, 225), (480, 282), (620, 330), (812, 396), (1000, 466)], (230, 90, 70), 3, 9, 150)
-
-    paste_sprite(img, PLAYER, (257, 499), 7, -31)
-    paste_sprite(img, ENEMY, (1015, 240), 6, 150)
-    paste_sprite(img, ENEMY, (790, 468), 4, 215)
-    paste_sprite(img, M16, (604, 160), 7, 15)
-    paste_sprite(img, SHOTGUN, (910, 586), 6, -18)
+    draw_armory_cross(img, CQB)
+    paste_sprite(img, PKM, (606, 178), 8, 6, alpha=230, glow=CQB.accent2, glow_alpha=70)
+    paste_sprite(img, SILENCED_PISTOL, (955, 546), 8, -18, alpha=235)
+    paste_sprite(img, MAKAROV, (270, 548), 8, 22, alpha=235)
+    scatter_casings(img, CQB, 181527)
 
     draw_title(img, CQB, (70, 55), 106, "left", True, FONT_ACCENT, stroke=4)
     add_corner_frame(img, CQB, thick=5)
@@ -501,10 +598,10 @@ def make_contact_sheet(paths: list[Path]) -> Path:
     draw = ImageDraw.Draw(sheet)
     label_font = font(FONT_TITLE, 24)
     labels = [
-        "Neon Crossfire",
+        "Neon Arsenal",
         "Red / Black",
-        "Blueprint Route",
-        "Close Quarters",
+        "Blueprint Loadout",
+        "Close Quarters Armory",
     ]
     for i, path in enumerate(paths):
         row = i // 2
