@@ -79,6 +79,11 @@ public partial class LevelInitFallback : Node
     private bool _isDying;
 
     /// <summary>
+    /// Prevents duplicate out-of-ammo overlays when the empty-click signal fires repeatedly.
+    /// </summary>
+    private bool _gameOverShown;
+
+    /// <summary>
     /// Saturation overlay for kill effects.
     /// </summary>
     private ColorRect? _saturationOverlay;
@@ -952,6 +957,23 @@ public partial class LevelInitFallback : Node
             var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
             if (soundPropagation != null && soundPropagation.HasMethod("emit_player_empty_click"))
                 soundPropagation.Call("emit_player_empty_click", _player.GlobalPosition, _player);
+
+            if (_currentEnemyCount > 0 && !_gameOverShown)
+            {
+                var currentAmmoValue = _player.Get("CurrentWeapon");
+                if (currentAmmoValue.Obj is Node weapon)
+                {
+                    var currentAmmo = weapon.Get("CurrentAmmo");
+                    var reserveAmmo = weapon.Get("ReserveAmmo");
+                    if (currentAmmo.VariantType != Variant.Type.Nil &&
+                        reserveAmmo.VariantType != Variant.Type.Nil &&
+                        currentAmmo.AsInt32() <= 0 &&
+                        reserveAmmo.AsInt32() <= 0)
+                    {
+                        ShowOutOfAmmoMessage();
+                    }
+                }
+            }
         }
     }
 
@@ -1316,6 +1338,34 @@ public partial class LevelInitFallback : Node
         deathLabel.OffsetTop = -50;
         deathLabel.OffsetBottom = 50;
         ui.AddChild(deathLabel);
+    }
+
+    private void ShowOutOfAmmoMessage()
+    {
+        var parent = GetParent();
+        if (parent == null) return;
+        var ui = parent.GetNodeOrNull("CanvasLayer/UI");
+        if (ui == null) return;
+
+        _gameOverShown = true;
+
+        var existing = ui.GetNodeOrNull<Label>("GameOverLabel");
+        if (existing != null)
+            existing.QueueFree();
+
+        var gameOverLabel = new Label();
+        gameOverLabel.Name = "GameOverLabel";
+        gameOverLabel.Text = "OUT OF AMMO!";
+        gameOverLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        gameOverLabel.VerticalAlignment = VerticalAlignment.Center;
+        gameOverLabel.AddThemeFontSizeOverride("font_size", 56);
+        gameOverLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.35f, 0.1f, 1.0f));
+        gameOverLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
+        gameOverLabel.OffsetLeft = -240;
+        gameOverLabel.OffsetRight = 240;
+        gameOverLabel.OffsetTop = -120;
+        gameOverLabel.OffsetBottom = -40;
+        ui.AddChild(gameOverLabel);
     }
 
     private void ShowSaturationEffect()
