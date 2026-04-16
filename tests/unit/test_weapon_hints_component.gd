@@ -25,6 +25,7 @@ class MockPlayer:
 
 	signal ReloadCompleted
 	signal ReloadSequenceProgress(step: int, total: int)
+	signal grenade_thrown
 
 	var grenade_count: int = 0
 	var use_method_for_grenades: bool = false
@@ -53,6 +54,8 @@ func before_each() -> void:
 
 func after_each() -> void:
 	Input.flush_buffered_events()
+	Input.action_release("grenade_prepare")
+	Input.action_release("grenade_throw")
 	for action in _input_actions_to_cleanup:
 		if InputMap.has_action(action):
 			InputMap.erase_action(action)
@@ -248,11 +251,13 @@ func test_grenade_hint_shows_when_grenade_prepare_pressed_in_always_mode() -> vo
 
 	assert_true(comp._hint_labels.has("grenade"),
 		"Grenade hint should appear when grenade_prepare is pressed and grenades are available")
+	assert_eq(comp._grenade_hint_step, 1,
+		"Grenade hint should advance to the aim step once grenade_prepare is held")
 
 	_release_action("grenade_prepare", KEY_G)
 
 
-func test_grenade_hint_uses_player_method_and_dismisses_on_release() -> void:
+func test_grenade_hint_uses_player_method_and_stays_visible_until_throw() -> void:
 	_ensure_action("grenade_prepare", KEY_G)
 
 	var canvas := CanvasLayer.new()
@@ -277,5 +282,37 @@ func test_grenade_hint_uses_player_method_and_dismisses_on_release() -> void:
 
 	_release_action("grenade_prepare", KEY_G)
 	comp._process(0.016)
-	assert_false(comp._hint_labels.has("grenade"),
-		"Grenade hint should dismiss when grenade_prepare is released")
+	assert_true(comp._hint_labels.has("grenade"),
+		"Grenade hint should stay visible after grenade_prepare is released")
+	assert_eq(comp._grenade_hint_step, 2,
+		"Grenade hint should advance to the throw step after grenade_prepare is released")
+
+	player.grenade_thrown.emit()
+	assert_true(comp._animating_hints.has("grenade"),
+		"Grenade hint should only start dismissing after grenade_thrown is emitted")
+
+
+func test_grenade_hint_is_not_limited_to_m16_weapon_id() -> void:
+	_ensure_action("grenade_prepare", KEY_G)
+
+	var canvas := CanvasLayer.new()
+	add_child_autofree(canvas)
+
+	var player := MockPlayer.new()
+	player.grenade_count = 1
+	add_child_autofree(player)
+
+	var comp := WeaponHintsComp.new()
+	add_child_autofree(comp)
+	comp.setup(player, canvas)
+	comp._current_weapon_id = "mini_uzi"
+	comp._hints_active = true
+	comp._hints_showing = true
+
+	_press_action("grenade_prepare", KEY_G)
+	comp._process(0.016)
+
+	assert_true(comp._hint_labels.has("grenade"),
+		"Grenade hint should work on non-tutorial levels even when current weapon ID is not m16")
+
+	_release_action("grenade_prepare", KEY_G)
