@@ -623,6 +623,9 @@ class MockLabyrinthLevel extends MockLevelBase:
 	enum TutorialStep { RELOAD, THROW_GRENADE, COMPLETED }
 	var _tutorial_step: int = TutorialStep.RELOAD
 
+	## Simulated ammo label text (null means label not yet initialized).
+	var _ammo_label_text: Variant = null
+
 	## Weapon type flags.
 	var _tutorial_has_shotgun: bool = false
 	var _tutorial_has_sniper_rifle: bool = false
@@ -710,6 +713,34 @@ class MockLabyrinthLevel extends MockLevelBase:
 		setup_enemy_tracking(enemies)
 		setup_tutorial_hints()
 
+	func init_ammo_label() -> void:
+		_ammo_label_text = "AMMO: 0/0"
+
+	func update_ammo_label_magazine(current_mag: int, reserve: int) -> bool:
+		if _ammo_label_text == null:
+			return false
+		_ammo_label_text = "AMMO: %d/%d" % [current_mag, reserve]
+		return true
+
+	func _get_weapon_display_current_ammo(weapon: Dictionary) -> Variant:
+		if weapon.get("name") == "Shotgun" and weapon.get("ShellsInTube") != null:
+			return weapon.get("ShellsInTube")
+		return weapon.get("CurrentAmmo")
+
+	func simulate_weapon_display_update(weapon: Dictionary) -> void:
+		init_ammo_label()
+		refresh_weapon_hud(weapon)
+
+	func refresh_weapon_hud(weapon: Dictionary) -> void:
+		var displayed_current = _get_weapon_display_current_ammo(weapon)
+		var reserve = weapon.get("ReserveAmmo")
+		if displayed_current != null and reserve != null:
+			update_ammo_label_magazine(displayed_current, reserve)
+
+	func simulate_csharp_pre_equipped_weapon_setup(weapon: Dictionary) -> void:
+		init_ammo_label()
+		refresh_weapon_hud(weapon)
+
 
 var building_level: MockBuildingLevel
 var castle_level: MockCastleLevel
@@ -737,6 +768,37 @@ func after_each() -> void:
 	beach_level = null
 	labyrinth_level = null
 	labyrinth2_level = null
+
+
+func _get_function_body(script_path: String, function_name: String) -> String:
+	var file := FileAccess.open(script_path, FileAccess.READ)
+	assert_not_null(file, "Expected to open %s" % script_path)
+	if file == null:
+		return ""
+	var source := file.get_as_text()
+	var function_start := source.find("func %s" % function_name)
+	assert_gt(function_start, -1, "Expected %s to define %s" % [script_path, function_name])
+	if function_start < 0:
+		return ""
+	var next_function := source.find("\nfunc ", function_start + 1)
+	if next_function < 0:
+		return source.substr(function_start)
+	return source.substr(function_start, next_function - function_start)
+
+
+func _assert_ready_sets_counters_before_navigation(script_path: String, level_name: String) -> void:
+	var ready_body := _get_function_body(script_path, "_ready")
+	var navigation_index := ready_body.find("_setup_navigation")
+	var enemy_index := ready_body.find("_setup_enemy_tracking()")
+	var player_index := ready_body.find("_setup_player_tracking()")
+
+	assert_gt(navigation_index, -1, "%s _ready should schedule navigation setup" % level_name)
+	assert_gt(enemy_index, -1, "%s _ready should set up enemy counters" % level_name)
+	assert_gt(player_index, -1, "%s _ready should set up player ammo HUD" % level_name)
+	assert_lt(enemy_index, navigation_index,
+		"%s enemy counter setup must happen before navmesh bake" % level_name)
+	assert_lt(player_index, navigation_index,
+		"%s ammo HUD setup must happen before navmesh bake" % level_name)
 
 
 # ============================================================================
@@ -1097,11 +1159,11 @@ func test_pm_multiplier_greater_than_castle_base() -> void:
 # ============================================================================
 
 
-func test_castle_level_is_last_level() -> void:
+func test_castle_level_next_is_revolver() -> void:
 	var next := castle_level.get_next_level_path("res://scenes/levels/CastleLevel.tscn")
 
-	assert_eq(next, "",
-		"Castle is the last level, next should be empty")
+	assert_eq(next, "res://scenes/levels/RevolverLevel.tscn",
+		"Next level after CastleLevel should be RevolverLevel")
 
 
 func test_castle_level_test_tier_next_is_castle() -> void:
@@ -1963,18 +2025,18 @@ func test_beach_level_rank_colors_match_other_levels() -> void:
 # ============================================================================
 
 
-func test_beach_level_is_last_in_ordering() -> void:
+func test_beach_level_next_is_docks() -> void:
 	var next := beach_level.get_next_level_path("res://scenes/levels/BeachLevel.tscn")
 
-	assert_eq(next, "",
-		"BeachLevel should be the last level (no next)")
+	assert_eq(next, "res://scenes/levels/DocksLevel.tscn",
+		"Next level after BeachLevel should be DocksLevel")
 
 
-func test_beach_level_after_castle() -> void:
+func test_beach_level_castle_next_is_revolver() -> void:
 	var next := beach_level.get_next_level_path("res://scenes/levels/CastleLevel.tscn")
 
-	assert_eq(next, "res://scenes/levels/BeachLevel.tscn",
-		"Next level after CastleLevel should be BeachLevel")
+	assert_eq(next, "res://scenes/levels/RevolverLevel.tscn",
+		"Next level after CastleLevel should be RevolverLevel")
 
 
 # ============================================================================
@@ -2334,6 +2396,35 @@ func test_building_ammo_label_update_fails_when_not_initialized() -> void:
 		"Ammo update must be skipped when label is null (Issue #1259 root cause)")
 	assert_null(building_level._ammo_label_text,
 		"Ammo label text must remain null when not initialized")
+
+
+func test_building_ready_sets_hud_and_enemy_counters_before_navigation_bake() -> void:
+	## Owner log 2026-04-16 19:25 shows Building entered, Player ready with shotgun 0/8,
+	## then no BuildingLevel HUD/enemy setup logs before the next scene change. The
+	## expensive navigation bake must not run before visible HUD counters are initialized.
+	_assert_ready_sets_counters_before_navigation(
+		"res://scripts/levels/building_level.gd",
+		"BuildingLevel")
+
+
+func test_labyrinth2_ready_sets_hud_and_enemy_counters_before_navigation_bake() -> void:
+	## Same runtime symptom on Labyrinth Complex: the owner log has Player ready at 0/8
+	## but no Labyrinth2Level counter setup before the user leaves the level.
+	_assert_ready_sets_counters_before_navigation(
+		"res://scripts/levels/labyrinth2_level.gd",
+		"Labyrinth2Level")
+
+
+func test_labyrinth_ready_sets_hud_and_enemy_counters_before_navigation_bake() -> void:
+	_assert_ready_sets_counters_before_navigation(
+		"res://scripts/levels/labyrinth_level.gd",
+		"LabyrinthLevel")
+
+
+func test_test_tier_ready_sets_hud_and_enemy_counters_before_navigation_bake() -> void:
+	_assert_ready_sets_counters_before_navigation(
+		"res://scripts/levels/test_tier.gd",
+		"TestTier")
 
 
 func test_building_shotgun_startup_uses_shell_count_not_current_ammo() -> void:

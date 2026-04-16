@@ -13,10 +13,14 @@
 - `issue.txt` - saved issue body
 - `issue-1808-screenshot.png` - screenshot from the issue
 - `game_log_20260411_015626.txt` - original runtime log from the report
-- `game_log_20260416_023550.txt` - latest owner repro log showing persisted startup navigation and remaining `Labyrinth2` startup failures
 - `issue-1808-comment-4256398298.png` - latest owner screenshot showing `0/8` on startup
+- `issue-1808-comment-20260416-023550.png` - owner screenshot showing `AMMO: 0/84`
+- `logs/game_log_20260416_000103.txt` - owner follow-up showing Building and Labyrinth Complex still at `0`
+- `logs/game_log_20260416_012901.txt` - owner follow-up from the next build with the same symptom
+- `logs/game_log_20260416_023550.txt` - owner repro log showing persisted startup navigation and remaining `Labyrinth2` startup failures
 - `logs/game_log_20260416_095403.txt` - owner follow-up showing Building still at `0` for shotgun and Labyrinth Complex HUD counters broken
 - `logs/game_log_20260416_101928.txt` - owner follow-up showing the C# player equips shotgun as `0/8`, then level scripts take the already-equipped early-return path
+- `logs/game_log_20260416_192552.txt` - latest owner follow-up showing `LabyrinthLevel` refreshes shotgun HUD correctly, while `BuildingLevel` and `Labyrinth2Level` do not reach their level HUD setup before the user leaves the map
 
 ## Timeline
 
@@ -78,6 +82,19 @@ The same sequence repeats after persisted navigation to `BuildingLevel` and afte
 
 The previous fix made startup display helpers read `ShellsInTube`, but the level ammo config functions only refreshed the HUD inside selected weapon branches. For `shotgun`, those functions intentionally do not reinitialize magazines, so the "already equipped by C# Player" early-return path could apply no branch-specific refresh and leave the HUD at the C# player's initial `CurrentAmmo`-based `0/8` display.
 
+### 2026-04-16 19:25:52 UTC
+
+The latest owner log changes the diagnosis. `LabyrinthLevel` now reaches the expected post-config refresh:
+
+- `HUD ammo refreshed (post level ammo config): Shotgun 8/28`
+
+The same log then enters `BuildingLevel` and `Labyrinth2Level`, and both scenes show the C# player ready with:
+
+- `Player.Weapon] Equipped Shotgun (ammo: 0/8)`
+- `Player] Ready! Ammo: 0/8`
+
+However, neither scene emits the expected level-script setup logs before the owner navigates away. `BuildingLevel` has no `Found Environment/Enemies`, `Setting up weapon`, or `HUD ammo refreshed` lines. `Labyrinth2Level` similarly has no level counter/HUD setup lines. Both scripts were running `_setup_navigation()` before enemy tracking and player/HUD tracking. On the larger maps, the navigation parse/bake can delay the rest of `_ready()`, leaving visible HUD counters at their default C# startup state during the first seconds of the level.
+
 ## Code Evidence
 
 Affected files:
@@ -112,6 +129,8 @@ The affected level ammo config functions now also perform an unconditional post-
 
 Labyrinth and Labyrinth2 now find `CanvasLayer/UI/AmmoLabel` before selected weapon setup, matching Building's ordering, so config-time HUD refreshes cannot silently no-op because the label reference has not been initialized yet.
 
+The final fix also moves navigation baking behind the critical startup work on Building, Labyrinth, Labyrinth2, and TestTier. Enemy tracking, enemy labels, player tracking, weapon setup, and the first shotgun HUD refresh now complete before `_setup_navigation` is deferred. This preserves the Issue #1289 navmesh bake, but prevents expensive navigation work from blocking first-frame counters on large maps.
+
 ## Test Coverage
 
 Added unit coverage in:
@@ -132,6 +151,8 @@ Additional regression tests cover stale child-node selection:
 
 Additional regression tests now cover the C# pre-equipped shotgun path on Building, Labyrinth, and Labyrinth2. These tests model the newest log sequence where `CurrentAmmo` is `0`, `ShellsInTube` is `8`, and the level must still push `AMMO: 8/8` during setup.
 
+Additional regression tests read the real level scripts and assert that Building, Labyrinth, Labyrinth2, and TestTier initialize enemy/player HUD counters before scheduling navigation setup. This protects the specific 2026-04-16 19:25 failure mode where the level scene loaded but the level script had not reached HUD setup before the visible `0/8` state was observed.
+
 ## Online / External Facts
 
 No external web facts were needed to identify the fault. The issue was fully explained by:
@@ -143,4 +164,4 @@ No external web facts were needed to identify the fault. The issue was fully exp
 
 ## Outcome
 
-The HUD now receives the correct initial shotgun ammo state before the first shot on the affected maps, on `Labyrinth2`, and on the persisted startup path that reaches `TestTier`, while the existing `ShellCountChanged` path continues handling subsequent updates. HUD setup is also bound to the actual equipped C# weapon, reducing the risk of stale weapon children breaking ammo counters.
+The HUD now receives the correct initial shotgun ammo state before the first shot on the affected maps, on `Labyrinth2`, and on the persisted startup path that reaches `TestTier`, while the existing `ShellCountChanged` path continues handling subsequent updates. HUD setup is also bound to the actual equipped C# weapon, and critical HUD/enemy counters are initialized before deferred navmesh baking can consume startup time on larger maps.
