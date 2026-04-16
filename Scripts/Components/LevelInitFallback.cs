@@ -952,6 +952,23 @@ public partial class LevelInitFallback : Node
             var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
             if (soundPropagation != null && soundPropagation.HasMethod("emit_player_empty_click"))
                 soundPropagation.Call("emit_player_empty_click", _player.GlobalPosition, _player);
+
+            if (_currentEnemyCount > 0 && !_gameOverShown)
+            {
+                var currentAmmoValue = _player.Get("CurrentWeapon");
+                if (currentAmmoValue.Obj is Node weapon)
+                {
+                    var currentAmmo = weapon.Get("CurrentAmmo");
+                    var reserveAmmo = weapon.Get("ReserveAmmo");
+                    if (currentAmmo.VariantType != Variant.Type.Nil &&
+                        reserveAmmo.VariantType != Variant.Type.Nil &&
+                        currentAmmo.AsInt32() <= 0 &&
+                        reserveAmmo.AsInt32() <= 0)
+                    {
+                        ShowGameOverMessage();
+                    }
+                }
+            }
         }
     }
 

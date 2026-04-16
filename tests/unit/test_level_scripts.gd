@@ -291,6 +291,20 @@ class MockBuildingLevel extends MockLevelBase:
 			show_game_over_message()
 
 
+class MockLevelInitFallback:
+	var _current_enemy_count: int = 0
+	var _game_over_shown: bool = false
+	var game_over_message_shown: bool = false
+
+	func show_game_over_message() -> void:
+		_game_over_shown = true
+		game_over_message_shown = true
+
+	func on_player_ammo_depleted_for_current_weapon(current_ammo: int, reserve_ammo: int) -> void:
+		if _current_enemy_count > 0 and not _game_over_shown and current_ammo <= 0 and reserve_ammo <= 0:
+			show_game_over_message()
+
+
 # ============================================================================
 # Mock CastleLevel for Testing
 # ============================================================================
@@ -592,6 +606,7 @@ class MockLabyrinthLevel extends MockLevelBase:
 
 var building_level: MockBuildingLevel
 var castle_level: MockCastleLevel
+var level_init_fallback: MockLevelInitFallback
 var test_tier: MockTestTier
 var beach_level: MockBeachLevel
 var labyrinth_level: MockLabyrinthLevel
@@ -600,6 +615,7 @@ var labyrinth_level: MockLabyrinthLevel
 func before_each() -> void:
 	building_level = MockBuildingLevel.new()
 	castle_level = MockCastleLevel.new()
+	level_init_fallback = MockLevelInitFallback.new()
 	test_tier = MockTestTier.new()
 	beach_level = MockBeachLevel.new()
 	labyrinth_level = MockLabyrinthLevel.new()
@@ -2134,6 +2150,26 @@ func test_building_csharp_ammo_depleted_does_not_show_game_over_when_reserve_rem
 
 	assert_false(building_level.game_over_message_shown,
 		"C# AmmoDepleted with reserve ammo remaining must not show the game-over message")
+
+
+func test_level_init_fallback_csharp_ammo_depleted_shows_game_over_when_no_ammo_left() -> void:
+	## The C# fallback path must mirror BuildingLevel.gd when the project skips the
+	## GDScript setup and LevelInitFallback handles the map state (Issue #1821).
+	level_init_fallback._current_enemy_count = 10
+
+	level_init_fallback.on_player_ammo_depleted_for_current_weapon(0, 0)
+
+	assert_true(level_init_fallback.game_over_message_shown,
+		"LevelInitFallback must show the game-over message when CurrentWeapon ammo is 0/0")
+
+
+func test_level_init_fallback_csharp_ammo_depleted_ignores_empty_click_with_reserve() -> void:
+	level_init_fallback._current_enemy_count = 10
+
+	level_init_fallback.on_player_ammo_depleted_for_current_weapon(0, 30)
+
+	assert_false(level_init_fallback.game_over_message_shown,
+		"LevelInitFallback must not show the game-over message when reserve ammo remains")
 
 
 func test_building_ammo_label_buggy_order_misses_initial_update() -> void:
