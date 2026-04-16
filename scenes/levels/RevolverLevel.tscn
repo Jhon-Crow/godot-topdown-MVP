@@ -1,4 +1,4 @@
-[gd_scene load_steps=34 format=3 uid="uid://revolver_level_scene"]
+[gd_scene load_steps=36 format=3 uid="uid://revolver_level_scene"]
 
 [ext_resource type="Script" path="res://scripts/levels/revolver_level.gd" id="1_revolver_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -71,6 +71,18 @@ polygon = PackedVector2Array(-16, -48, 16, -48, 16, 48, -16, 48)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_cover_square"]
 polygon = PackedVector2Array(-32, -32, 32, -32, 32, 32, -32, 32)
+
+[sub_resource type="Gradient" id="Gradient_cold_store_lamp"]
+offsets = PackedFloat32Array(0, 0.55, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0.72, 0.88, 1, 0.48, 0.45, 0.68, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_cold_store_lamp"]
+gradient = SubResource("Gradient_cold_store_lamp")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_level"]
 vertices = PackedVector2Array(64, 64, 2064, 64, 2064, 1664, 64, 1664)
@@ -635,6 +647,71 @@ shape = SubResource("RectangleShape2D_cover_square")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/FinalCover2"]
 occluder = SubResource("OccluderPolygon2D_cover_square")
+
+[node name="Lighting" type="Node2D" parent="Environment"]
+
+[node name="ColdStoreLamp_TopCorridor_W" type="PointLight2D" parent="Environment/Lighting"]
+position = Vector2(620, 550)
+color = Color(0.72, 0.88, 1, 1)
+energy = 0.9
+shadow_enabled = true
+shadow_filter = 2
+texture = SubResource("GradientTexture2D_cold_store_lamp")
+texture_scale = 3.25
+
+[node name="ColdStoreLamp_TopCorridor_E" type="PointLight2D" parent="Environment/Lighting"]
+position = Vector2(900, 550)
+color = Color(0.72, 0.88, 1, 1)
+energy = 0.9
+shadow_enabled = true
+shadow_filter = 2
+texture = SubResource("GradientTexture2D_cold_store_lamp")
+texture_scale = 3.25
+
+[node name="ColdStoreLamp_MiddleCorridor_W" type="PointLight2D" parent="Environment/Lighting"]
+position = Vector2(1180, 700)
+color = Color(0.72, 0.88, 1, 1)
+energy = 0.9
+shadow_enabled = true
+shadow_filter = 2
+texture = SubResource("GradientTexture2D_cold_store_lamp")
+texture_scale = 3.25
+
+[node name="ColdStoreLamp_MiddleCorridor_E" type="PointLight2D" parent="Environment/Lighting"]
+position = Vector2(1180, 1000)
+color = Color(0.72, 0.88, 1, 1)
+energy = 0.9
+shadow_enabled = true
+shadow_filter = 2
+texture = SubResource("GradientTexture2D_cold_store_lamp")
+texture_scale = 3.25
+
+[node name="ColdStoreLamp_BottomCorridor_W" type="PointLight2D" parent="Environment/Lighting"]
+position = Vector2(620, 1150)
+color = Color(0.72, 0.88, 1, 1)
+energy = 0.9
+shadow_enabled = true
+shadow_filter = 2
+texture = SubResource("GradientTexture2D_cold_store_lamp")
+texture_scale = 3.25
+
+[node name="ColdStoreLamp_BottomCorridor_E" type="PointLight2D" parent="Environment/Lighting"]
+position = Vector2(900, 1150)
+color = Color(0.72, 0.88, 1, 1)
+energy = 0.9
+shadow_enabled = true
+shadow_filter = 2
+texture = SubResource("GradientTexture2D_cold_store_lamp")
+texture_scale = 3.25
+
+[node name="ColdStoreLamp_Exit" type="PointLight2D" parent="Environment/Lighting"]
+position = Vector2(1900, 800)
+color = Color(0.72, 0.88, 1, 1)
+energy = 0.95
+shadow_enabled = true
+shadow_filter = 2
+texture = SubResource("GradientTexture2D_cold_store_lamp")
+texture_scale = 3.5
 
 [node name="Enemies" type="Node2D" parent="Environment"]
 

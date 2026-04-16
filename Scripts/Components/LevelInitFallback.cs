@@ -104,6 +104,13 @@ public partial class LevelInitFallback : Node
     private Label? _comboLabel;
 
     /// <summary>
+    /// Shared weapon hints component used on non-tutorial combat maps (Issue #1810).
+    /// This must also be initialized by the fallback path when the GDScript level
+    /// _ready() failed to execute, otherwise Building loses its onboarding hints.
+    /// </summary>
+    private Node? _weaponHintsComponent;
+
+    /// <summary>
     /// Active combo tween (to cancel if needed, Issue #1790).
     /// </summary>
     private Tween? _comboTween;
@@ -131,11 +138,13 @@ public partial class LevelInitFallback : Node
         var parent = GetParent();
         if (parent == null) return;
 
-        // Apply camera limits for Building map only, regardless of whether GDScript ran.
-        // This is a safety net: the GDScript _configure_camera() may fail silently (Issue #1684).
-        // Guard: only run on BuildingLevel — other levels set their own camera limits (Issue #1684).
+        // Apply camera limits for maps known to use this fallback, regardless of
+        // whether GDScript ran. This is a safety net: the GDScript _configure_camera()
+        // may fail silently in exported builds (Issue #1684).
         if (parent.Name == "BuildingLevel")
             ConfigureBuildingCameraLimits();
+        else if (parent.Name == "Labyrinth2Level")
+            ConfigureLabyrinth2CameraLimits();
 
         // Check if GDScript _ready() already ran by checking if it set up enemy tracking.
         // The GDScript sets _enemies array and connects died signals.
@@ -218,6 +227,37 @@ public partial class LevelInitFallback : Node
     }
 
     /// <summary>
+    /// Set Camera2D limits for Labyrinth Complex when GDScript initialization is skipped.
+    /// Matches scripts/levels/labyrinth2_level.gd.
+    /// </summary>
+    private void ConfigureLabyrinth2CameraLimits()
+    {
+        var levelRoot = GetParent();
+        if (levelRoot == null) return;
+
+        var player = levelRoot.GetNodeOrNull<Node2D>("Entities/Player");
+        if (player == null)
+        {
+            LogToFile("WARNING: ConfigureLabyrinth2CameraLimits: Player not found at Entities/Player");
+            return;
+        }
+
+        var camera = player.GetNodeOrNull<Camera2D>("Camera2D");
+        if (camera == null)
+        {
+            LogToFile("WARNING: ConfigureLabyrinth2CameraLimits: Camera2D not found on player");
+            return;
+        }
+
+        camera.LimitLeft = 64;
+        camera.LimitTop = 64;
+        camera.LimitRight = 3264;
+        camera.LimitBottom = 2464;
+
+        LogToFile($"ConfigureLabyrinth2CameraLimits: limits set — left={camera.LimitLeft} top={camera.LimitTop} right={camera.LimitRight} bottom={camera.LimitBottom} — Issue #1682");
+    }
+
+    /// <summary>
     /// Perform the critical level initialization that GDScript _ready() should have done.
     /// </summary>
     private void PerformFallbackInit()
@@ -239,6 +279,9 @@ public partial class LevelInitFallback : Node
 
         // 4. Setup debug UI (kills, accuracy, magazines labels)
         SetupDebugUI(levelRoot);
+        var currentWeapon = GetCurrentWeaponNode();
+        if (currentWeapon != null)
+            RefreshWeaponHud(currentWeapon, "post fallback debug UI setup");
 
         // 5. Setup saturation overlay
         SetupSaturationOverlay(levelRoot);
@@ -266,13 +309,16 @@ public partial class LevelInitFallback : Node
         // 9. Start replay recording
         StartReplayRecording(levelRoot);
 
-        // 10. Update GDScript properties so they are in sync
+        // 10. Setup shared weapon hints component (Issue #1810).
+        SetupWeaponHints(levelRoot);
+
+        // 11. Update GDScript properties so they are in sync
         SyncGDScriptProperties(levelRoot);
 
-        // 11. Setup warm ceiling lights (Issue #1206) — mirrors GDScript _setup_room_warm_lights()
+        // 12. Setup warm ceiling lights (Issue #1206) — mirrors GDScript _setup_room_warm_lights()
         SetupRoomWarmLights(levelRoot);
 
-        // 12. Setup navigation mesh (Issue #1289) — mirrors GDScript _setup_navigation()
+        // 13. Setup navigation mesh (Issue #1289) — mirrors GDScript _setup_navigation()
         // Must run after physics frame so CollisionShape2D nodes are registered.
         SetupNavigationDeferred(levelRoot);
     }
@@ -370,16 +416,7 @@ public partial class LevelInitFallback : Node
     {
         if (_player == null) return;
 
-        // Try weapons in order of preference
-        Node? weapon = _player.GetNodeOrNull("Shotgun");
-        weapon ??= _player.GetNodeOrNull("MiniUzi");
-        weapon ??= _player.GetNodeOrNull("SilencedPistol");
-        weapon ??= _player.GetNodeOrNull("SniperRifle");
-        weapon ??= _player.GetNodeOrNull("AssaultRifle");
-        weapon ??= _player.GetNodeOrNull("Revolver");
-        weapon ??= _player.GetNodeOrNull("AKGL");
-        weapon ??= _player.GetNodeOrNull("MakarovPM");
-
+        var weapon = GetCurrentWeaponNode();
         if (weapon == null) return;
 
         if (weapon.HasSignal("AmmoChanged"))
@@ -391,20 +428,7 @@ public partial class LevelInitFallback : Node
         if (weapon.HasSignal("ShellCountChanged"))
             weapon.Connect("ShellCountChanged", new Callable(this, MethodName.OnShellCountChanged));
 
-        // Initial ammo display
-        var currentAmmo = weapon.Get("CurrentAmmo");
-        var reserveAmmo = weapon.Get("ReserveAmmo");
-        if (currentAmmo.VariantType != Variant.Type.Nil && reserveAmmo.VariantType != Variant.Type.Nil)
-        {
-            UpdateAmmoLabelMagazine(currentAmmo.AsInt32(), reserveAmmo.AsInt32());
-        }
-
-        // Initial magazine display
-        if (weapon.HasMethod("GetMagazineAmmoCounts"))
-        {
-            var magCounts = weapon.Call("GetMagazineAmmoCounts").AsGodotArray();
-            UpdateMagazinesLabel(magCounts);
-        }
+        RefreshWeaponHud(weapon, "fallback initial weapon setup");
 
         // Issue #691: Setup revolver cylinder HUD when revolver is equipped
         if (weapon is Revolver revolver)
@@ -412,42 +436,171 @@ public partial class LevelInitFallback : Node
             SetupRevolverCylinderUI(revolver);
         }
 
-        // Configure silenced pistol ammo
-        if (weapon.Name == "SilencedPistol" && weapon.HasMethod("ConfigureAmmoForEnemyCount"))
+        ApplySilencedPistolAmmoConfig(weapon);
+        ApplyMakarovPmAmmoConfig(weapon);
+        ApplyLevelSpecificAmmoConfig(weapon);
+
+        if (_player.HasMethod("ApplyAutoReloadAfterLevelAmmoConfig"))
         {
-            int enemyCount = _initialEnemyCount;
-            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
-            if (difficultyManager != null && difficultyManager.HasMethod("get_ammo_multiplier"))
-            {
-                int multiplier = difficultyManager.Call("get_ammo_multiplier").AsInt32();
-                if (multiplier > 1)
-                {
-                    enemyCount *= multiplier;
-                    LogToFile($"Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by {multiplier}x");
-                }
-            }
-            weapon.Call("ConfigureAmmoForEnemyCount", enemyCount);
-            LogToFile($"Configured silenced pistol ammo for {enemyCount} enemies");
+            _player.Call("ApplyAutoReloadAfterLevelAmmoConfig");
+            LogToFile($"Re-applied auto-reload magazine reduction after fallback ammo config for {weapon.Name}");
         }
 
-        // BuildingLevel-specific ammo config: M16/AK+GL limited to 2 magazines (Issue #949, #1259)
-        ApplyBuildingLevelAmmoConfig(weapon);
+        RefreshWeaponHud(weapon, "post fallback level ammo config");
     }
 
     /// <summary>
-    /// Apply BuildingLevel-specific ammo limits (2 magazines for M16/AKGL) when running as fallback
-    /// for BuildingLevel (Issue #949, #1259). Other levels use default ammo counts.
+    /// Return the player's authoritative current weapon. C# Player.CurrentWeapon is
+    /// preferred; child-node probing is only a fallback for older scenes.
     /// </summary>
-    private void ApplyBuildingLevelAmmoConfig(Node weapon)
+    private Node? GetCurrentWeaponNode()
+    {
+        if (_player == null) return null;
+
+        var currentWeaponValue = _player.Get("CurrentWeapon");
+        if (currentWeaponValue.Obj is Node currentWeapon && IsInstanceValid(currentWeapon))
+            return currentWeapon;
+
+        var selectedWeaponNodeName = GetSelectedWeaponNodeName();
+        if (!string.IsNullOrEmpty(selectedWeaponNodeName))
+        {
+            var selectedWeapon = _player.GetNodeOrNull(selectedWeaponNodeName);
+            if (selectedWeapon != null)
+                return selectedWeapon;
+        }
+
+        Node? weapon = _player.GetNodeOrNull("Shotgun");
+        weapon ??= _player.GetNodeOrNull("MiniUzi");
+        weapon ??= _player.GetNodeOrNull("SilencedPistol");
+        weapon ??= _player.GetNodeOrNull("SniperRifle");
+        weapon ??= _player.GetNodeOrNull("AssaultRifle");
+        weapon ??= _player.GetNodeOrNull("Revolver");
+        weapon ??= _player.GetNodeOrNull("AKGL");
+        weapon ??= _player.GetNodeOrNull("MakarovPM");
+        return weapon;
+    }
+
+    private string GetSelectedWeaponNodeName()
+    {
+        var gameManager = GetNodeOrNull("/root/GameManager");
+        if (gameManager == null || !gameManager.HasMethod("get_selected_weapon"))
+            return string.Empty;
+
+        return gameManager.Call("get_selected_weapon").AsString() switch
+        {
+            "shotgun" => "Shotgun",
+            "mini_uzi" => "MiniUzi",
+            "silenced_pistol" => "SilencedPistol",
+            "sniper" => "SniperRifle",
+            "m16" => "AssaultRifle",
+            "ak_gl" => "AKGL",
+            "revolver" => "Revolver",
+            "makarov_pm" => "MakarovPM",
+            _ => string.Empty,
+        };
+    }
+
+    private static bool TryGetWeaponDisplayAmmo(Node weapon, out int currentAmmo, out int reserveAmmo)
+    {
+        if (weapon is Shotgun shotgun)
+        {
+            currentAmmo = shotgun.ShellsInTube;
+            reserveAmmo = shotgun.ReserveAmmo;
+            return true;
+        }
+
+        var currentAmmoValue = weapon.Get("CurrentAmmo");
+        var reserveAmmoValue = weapon.Get("ReserveAmmo");
+        if (currentAmmoValue.VariantType != Variant.Type.Nil &&
+            reserveAmmoValue.VariantType != Variant.Type.Nil)
+        {
+            currentAmmo = currentAmmoValue.AsInt32();
+            reserveAmmo = reserveAmmoValue.AsInt32();
+            return true;
+        }
+
+        currentAmmo = 0;
+        reserveAmmo = 0;
+        return false;
+    }
+
+    private void RefreshWeaponHud(Node weapon, string reason)
+    {
+        if (TryGetWeaponDisplayAmmo(weapon, out var currentAmmo, out var reserveAmmo))
+        {
+            UpdateAmmoLabelMagazine(currentAmmo, reserveAmmo);
+            LogToFile($"HUD ammo refreshed ({reason}): {weapon.Name} {currentAmmo}/{reserveAmmo}");
+        }
+
+        if (weapon.HasMethod("GetMagazineAmmoCounts"))
+        {
+            var magCounts = weapon.Call("GetMagazineAmmoCounts").AsGodotArray();
+            UpdateMagazinesLabel(magCounts);
+        }
+    }
+
+    private void ApplySilencedPistolAmmoConfig(Node weapon)
+    {
+        if (weapon.Name != "SilencedPistol" || !weapon.HasMethod("ConfigureAmmoForEnemyCount"))
+            return;
+
+        int enemyCount = _initialEnemyCount;
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null && difficultyManager.HasMethod("get_ammo_multiplier"))
+        {
+            int multiplier = difficultyManager.Call("get_ammo_multiplier").AsInt32();
+            if (multiplier > 1)
+            {
+                enemyCount *= multiplier;
+                LogToFile($"Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by {multiplier}x");
+            }
+        }
+
+        weapon.Call("ConfigureAmmoForEnemyCount", enemyCount);
+        LogToFile($"Configured silenced pistol ammo for {enemyCount} enemies");
+        RefreshWeaponHud(weapon, "silenced pistol config");
+    }
+
+    private void ApplyMakarovPmAmmoConfig(Node weapon)
+    {
+        if (weapon.Name != "MakarovPM" || !weapon.HasMethod("ReinitializeMagazines"))
+            return;
+
+        int startingMagazines = 4;
+        var startingMagazineValue = weapon.Get("StartingMagazineCount");
+        if (startingMagazineValue.VariantType != Variant.Type.Nil)
+            startingMagazines = startingMagazineValue.AsInt32();
+
+        int magazines = Mathf.RoundToInt(startingMagazines * 2.5f);
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null && difficultyManager.HasMethod("get_ammo_multiplier"))
+        {
+            int multiplier = difficultyManager.Call("get_ammo_multiplier").AsInt32();
+            if (multiplier > 1)
+            {
+                magazines *= multiplier;
+                LogToFile($"Gunslinger/PowerFantasy mode: MakarovPM magazines multiplied by {multiplier}x");
+            }
+        }
+
+        weapon.Call("ReinitializeMagazines", magazines, true);
+        LogToFile($"2.5x ammo for MakarovPM: {magazines} magazines (was {startingMagazines})");
+        RefreshWeaponHud(weapon, "makarov config");
+    }
+
+    /// <summary>
+    /// Apply level-specific ammo limits when this fallback replaces GDScript setup.
+    /// Building and Labyrinth Complex both limit compact automatic weapons to 2 magazines.
+    /// </summary>
+    private void ApplyLevelSpecificAmmoConfig(Node weapon)
     {
         var levelRoot = GetParent();
         if (levelRoot == null) return;
 
-        // Only apply on BuildingLevel
-        if (levelRoot.Name != "BuildingLevel") return;
+        bool isLimitedLevel = levelRoot.Name == "BuildingLevel" || levelRoot.Name == "Labyrinth2Level";
+        if (!isLimitedLevel) return;
 
-        // M16 (AssaultRifle) and AK+GL should have 2 magazines (30+30) on Building level
-        bool isLimitedWeapon = weapon.Name == "AKGL" || weapon.Name == "AssaultRifle";
+        bool isLimitedWeapon = weapon.Name == "AKGL" || weapon.Name == "AssaultRifle" || weapon.Name == "MiniUzi";
         if (!isLimitedWeapon) return;
 
         int baseMagazines = 2;
@@ -460,29 +613,15 @@ public partial class LevelInitFallback : Node
             if (multiplier > 1)
             {
                 baseMagazines *= multiplier;
-                LogToFile($"BuildingLevel: Power Fantasy mode - {weapon.Name} magazines multiplied by {multiplier}x");
+                LogToFile($"{levelRoot.Name}: Power Fantasy mode - {weapon.Name} magazines multiplied by {multiplier}x");
             }
         }
 
         if (weapon.HasMethod("ReinitializeMagazines"))
         {
             weapon.Call("ReinitializeMagazines", baseMagazines, true);
-            LogToFile($"BuildingLevel: {weapon.Name} magazines reinitialized to {baseMagazines} (C# fallback, Issue #1259)");
-        }
-
-        // Refresh ammo display after reinitializing
-        var currentAmmo = weapon.Get("CurrentAmmo");
-        var reserveAmmo = weapon.Get("ReserveAmmo");
-        if (currentAmmo.VariantType != Variant.Type.Nil && reserveAmmo.VariantType != Variant.Type.Nil)
-        {
-            UpdateAmmoLabelMagazine(currentAmmo.AsInt32(), reserveAmmo.AsInt32());
-        }
-
-        // Apply auto-reload magazine size reduction if active (Issue #1067)
-        if (_player != null && _player.HasMethod("ApplyAutoReloadAfterLevelAmmoConfig"))
-        {
-            _player.Call("ApplyAutoReloadAfterLevelAmmoConfig");
-            LogToFile($"BuildingLevel: Re-applied auto-reload magazine reduction after ammo config for {weapon.Name}");
+            LogToFile($"{levelRoot.Name}: {weapon.Name} magazines reinitialized to {baseMagazines} (C# fallback)");
+            RefreshWeaponHud(weapon, "level-specific fallback ammo config");
         }
     }
 
@@ -527,6 +666,55 @@ public partial class LevelInitFallback : Node
         visibilityComponent.SetScript(visibilityScript);
         _player.AddChild(visibilityComponent);
         LogToFile("Realistic visibility component added to player (night mode)");
+    }
+
+    /// <summary>
+    /// Mirrors the GDScript level setup for WeaponHintsComponent.
+    /// Required for BuildingLevel when the GDScript _ready() path is skipped and
+    /// this fallback performs level initialization instead.
+    /// </summary>
+    private void SetupWeaponHints(Node levelRoot)
+    {
+        if (_player == null)
+        {
+            LogToFile("WARNING: Weapon hints setup skipped - player is null");
+            return;
+        }
+
+        var canvasLayer = levelRoot.GetNodeOrNull("CanvasLayer");
+        if (canvasLayer == null)
+        {
+            LogToFile("WARNING: Weapon hints setup skipped - CanvasLayer not found");
+            return;
+        }
+
+        if (levelRoot.GetNodeOrNull("WeaponHintsComponent") != null)
+        {
+            LogToFile("Weapon hints component already exists - skipping fallback setup");
+            return;
+        }
+
+        var hintsScript = GD.Load<Script>("res://scripts/components/weapon_hints_component.gd");
+        if (hintsScript == null)
+        {
+            LogToFile("WARNING: WeaponHintsComponent script not found");
+            return;
+        }
+
+        _weaponHintsComponent = new Node();
+        _weaponHintsComponent.Name = "WeaponHintsComponent";
+        _weaponHintsComponent.SetScript(hintsScript);
+        levelRoot.AddChild(_weaponHintsComponent);
+
+        if (_weaponHintsComponent.HasMethod("setup"))
+        {
+            _weaponHintsComponent.Call("setup", _player, canvasLayer);
+            LogToFile("Weapon hints component added and setup");
+        }
+        else
+        {
+            LogToFile("WARNING: WeaponHintsComponent has no setup() method");
+        }
     }
 
     /// <summary>
@@ -758,9 +946,10 @@ public partial class LevelInitFallback : Node
         }
 
         _exitZone = exitZoneScene.Instantiate<Area2D>();
-        _exitZone.Position = new Vector2(120, 1544);
-        _exitZone.Set("zone_width", 60.0f);
-        _exitZone.Set("zone_height", 100.0f);
+        var exitConfig = GetExitZoneConfig(levelRoot.Name.ToString());
+        _exitZone.Position = exitConfig.Position;
+        _exitZone.Set("zone_width", exitConfig.Width);
+        _exitZone.Set("zone_height", exitConfig.Height);
 
         if (_exitZone.HasSignal("player_reached_exit"))
         {
@@ -773,7 +962,17 @@ public partial class LevelInitFallback : Node
         else
             levelRoot.AddChild(_exitZone);
 
-        LogToFile("Exit zone created at position (120, 1544)");
+        LogToFile($"Exit zone created at position ({exitConfig.Position.X}, {exitConfig.Position.Y})");
+    }
+
+    private static (Vector2 Position, float Width, float Height) GetExitZoneConfig(string levelName)
+    {
+        return levelName switch
+        {
+            "BuildingLevel" => (new Vector2(120, 1250), 60.0f, 100.0f),
+            "Labyrinth2Level" => (new Vector2(3200, 1200), 60.0f, 100.0f),
+            _ => (new Vector2(120, 1544), 60.0f, 100.0f),
+        };
     }
 
     /// <summary>
@@ -825,6 +1024,7 @@ public partial class LevelInitFallback : Node
         if (_saturationOverlay != null) levelRoot.Set("_saturation_overlay", _saturationOverlay);
         if (_difficultyLabel != null) levelRoot.Set("_difficulty_label", _difficultyLabel);
         if (_magazinesLabel != null) levelRoot.Set("_magazines_label", _magazinesLabel);
+        if (_weaponHintsComponent != null) levelRoot.Set("_weapon_hints_component", _weaponHintsComponent);
 
         LogToFile("GDScript properties synced");
     }
@@ -896,15 +1096,12 @@ public partial class LevelInitFallback : Node
     private void OnShellCountChanged(int shellCount, int capacity)
     {
         int reserveAmmo = 0;
-        if (_player != null)
+        var weapon = GetCurrentWeaponNode();
+        if (weapon != null)
         {
-            var weapon = _player.GetNodeOrNull("Shotgun");
-            if (weapon != null)
-            {
-                var reserve = weapon.Get("ReserveAmmo");
-                if (reserve.VariantType != Variant.Type.Nil)
-                    reserveAmmo = reserve.AsInt32();
-            }
+            var reserve = weapon.Get("ReserveAmmo");
+            if (reserve.VariantType != Variant.Type.Nil)
+                reserveAmmo = reserve.AsInt32();
         }
         UpdateAmmoLabelMagazine(shellCount, reserveAmmo);
     }
@@ -963,12 +1160,9 @@ public partial class LevelInitFallback : Node
                 var currentAmmoValue = _player.Get("CurrentWeapon");
                 if (currentAmmoValue.Obj is Node weapon)
                 {
-                    var currentAmmo = weapon.Get("CurrentAmmo");
-                    var reserveAmmo = weapon.Get("ReserveAmmo");
-                    if (currentAmmo.VariantType != Variant.Type.Nil &&
-                        reserveAmmo.VariantType != Variant.Type.Nil &&
-                        currentAmmo.AsInt32() <= 0 &&
-                        reserveAmmo.AsInt32() <= 0)
+                    if (TryGetWeaponDisplayAmmo(weapon, out var currentAmmo, out var reserveAmmo) &&
+                        currentAmmo <= 0 &&
+                        reserveAmmo <= 0)
                     {
                         ShowOutOfAmmoMessage();
                     }
@@ -1509,9 +1703,8 @@ public partial class LevelInitFallback : Node
     /// that lights are created even when GDScript _ready() silently fails due to the Godot 4.3
     /// binary-tokenization bug (godotengine/godot#94150).
     ///
-    /// Room positions match those in building_level.gd:
-    ///   Conference Room (1918,340), Break Room (1918,994), Server Room (2200,1638),
-    ///   Main Hall (1200,1724), Office 1 (290,384), Office 2 (718,780).
+    /// Room positions match the level-specific GDScript setup for Building and
+    /// Labyrinth Complex.
     /// </summary>
     private void SetupRoomWarmLights(Node levelRoot)
     {
@@ -1549,24 +1742,44 @@ public partial class LevelInitFallback : Node
         var lightTexture = CreateWarmLightTexture();
         var fixtureTexture = CreateLampFixtureTexture();
 
-        // Room config: position, energy, texture_scale, label
-        var rooms = new (Vector2 Pos, float Energy, float Scale, string Label)[]
-        {
-            // Large rooms — bigger lights
-            (new Vector2(1918, 340),  0.9f, 5.0f, "ConferenceRoom"),
-            (new Vector2(1918, 994),  0.9f, 5.0f, "BreakRoom"),
-            (new Vector2(2200, 1638), 0.9f, 5.0f, "ServerRoom"),
-            (new Vector2(1200, 1724), 0.85f, 4.5f, "MainHall"),
-            // Smaller rooms — softer lights
-            (new Vector2(290, 384),   0.7f, 3.5f, "Office1"),
-            // Office 2: shifted to upper half (y=780 instead of centre y=856)
-            (new Vector2(718, 780),   0.7f, 3.5f, "Office2"),
-        };
+        var rooms = GetWarmLightRooms(levelRoot.Name.ToString());
 
         foreach (var room in rooms)
             CreateRoomWarmLight(container, room.Pos, room.Energy, room.Scale, room.Label, lightTexture, fixtureTexture);
 
-        LogToFile("Warm ceiling lights placed in all rooms (Issue #1206, C# fallback)");
+        var logScope = levelRoot.Name == "Labyrinth2Level" ? "all zones" : "all rooms";
+        LogToFile($"Warm ceiling lights placed in {logScope} (C# fallback)");
+    }
+
+    private static (Vector2 Pos, float Energy, float Scale, string Label)[] GetWarmLightRooms(string levelName)
+    {
+        if (levelName == "Labyrinth2Level")
+        {
+            return new (Vector2 Pos, float Energy, float Scale, string Label)[]
+            {
+                (new Vector2(334, 290),   0.7f, 3.5f, "EntryHall"),
+                (new Vector2(906, 290),   0.7f, 3.5f, "WestWing"),
+                (new Vector2(1512, 440),  0.85f, 4.5f, "CentralHub"),
+                (new Vector2(2112, 290),  0.7f, 3.5f, "NorthSector"),
+                (new Vector2(2836, 290),  0.7f, 3.5f, "EastWing"),
+                (new Vector2(800, 1512),  0.85f, 4.5f, "CentralCorridor_W"),
+                (new Vector2(1664, 1512), 0.85f, 4.5f, "CentralCorridor_C"),
+                (new Vector2(2528, 1512), 0.85f, 4.5f, "CentralCorridor_E"),
+                (new Vector2(800, 2136),  0.85f, 4.5f, "LowerLabyrinth_W"),
+                (new Vector2(1664, 2136), 0.85f, 4.5f, "LowerLabyrinth_C"),
+                (new Vector2(2528, 2136), 0.85f, 4.5f, "LowerLabyrinth_E"),
+            };
+        }
+
+        return new (Vector2 Pos, float Energy, float Scale, string Label)[]
+        {
+            (new Vector2(1918, 340),  0.9f, 5.0f, "ConferenceRoom"),
+            (new Vector2(1918, 994),  0.9f, 5.0f, "BreakRoom"),
+            (new Vector2(2200, 1638), 0.9f, 5.0f, "ServerRoom"),
+            (new Vector2(1200, 1724), 0.85f, 4.5f, "MainHall"),
+            (new Vector2(290, 384),   0.7f, 3.5f, "Office1"),
+            (new Vector2(718, 780),   0.7f, 3.5f, "Office2"),
+        };
     }
 
     /// <summary>
