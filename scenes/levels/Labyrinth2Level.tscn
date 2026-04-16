@@ -1,9 +1,10 @@
-[gd_scene load_steps=34 format=3 uid="uid://labyrinth2level"]
+[gd_scene load_steps=35 format=3 uid="uid://labyrinth2level"]
 
 [ext_resource type="Script" path="res://scripts/levels/labyrinth2_level.gd" id="1_labyrinth2_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="3_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="4_enemy"]
+[ext_resource type="Script" path="res://Scripts/Components/LevelInitFallback.cs" id="5_fallback"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_h_long"]
 size = Vector2(3264, 32)
@@ -1543,6 +1544,9 @@ offset_bottom = 45.0
 text = "AMMO: 30/30"
 
 [node name="PauseMenu" parent="." instance=ExtResource("3_pause_menu")]
+
+[node name="LevelInitFallback" type="Node" parent="."]
+script = ExtResource("5_fallback")
 
 [node name="SearchPathWaypoints" type="Node2D" parent="."]
 editor_description = "Pre-planned search path waypoints for enemy SEARCHING state (Issue #1246). Enemies traverse these in order starting from the nearest point to their current position."

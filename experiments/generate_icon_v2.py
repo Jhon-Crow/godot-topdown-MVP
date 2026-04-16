@@ -4,7 +4,6 @@ Generate a Hotline Miami / Door Kickers 2 style icon for the game's .exe
 Produces a proper multi-size ICO file using PNG compression inside ICO container.
 """
 import io
-import math
 import os
 import struct
 from PIL import Image, ImageDraw, ImageFilter
@@ -142,6 +141,47 @@ def draw_icon(size: int) -> Image.Image:
     return img
 
 
+def draw_small_icon(size: int) -> Image.Image:
+    """Draw a pixel-aligned icon for Windows Explorer's smallest slots."""
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    center = size // 2
+    bg = (18, 18, 31, 255)
+    neon = (255, 34, 68, 255)
+    figure = (10, 10, 12, 255)
+
+    margin = max(1, size // 8)
+    draw.ellipse(
+        [margin, margin, size - margin - 1, size - margin - 1],
+        fill=bg,
+        outline=(68, 18, 34, 255),
+        width=1,
+    )
+
+    ring_margin = max(3, size // 4)
+    draw.ellipse(
+        [ring_margin, ring_margin, size - ring_margin - 1, size - ring_margin - 1],
+        outline=neon,
+        width=1,
+    )
+
+    arm_y = center - 1
+    draw.line([(center - 4, arm_y), (center + 4, arm_y)], fill=figure, width=2)
+    draw.rectangle([center - 1, center - 6, center + 1, center + 1], fill=figure)
+    draw.ellipse([center - 2, center - 5, center + 2, center - 1], fill=figure)
+    draw.rectangle([center - 2, center - 1, center + 2, center + 4], fill=figure)
+    draw.point((center, center), fill=neon)
+
+    if size >= 24:
+        draw.line([(center, ring_margin - 1), (center, ring_margin + 2)], fill=neon)
+        draw.line([(center, size - ring_margin - 3), (center, size - ring_margin)], fill=neon)
+        draw.line([(ring_margin - 1, center), (ring_margin + 2, center)], fill=neon)
+        draw.line([(size - ring_margin - 3, center), (size - ring_margin, center)], fill=neon)
+
+    return img
+
+
 def save_ico_proper(images, path):
     """Save a proper multi-size ICO with PNG-compressed entries (ICNS-style)."""
     # ICO format: header + directory + image data
@@ -194,7 +234,7 @@ def main():
     images = []
     for size in sizes:
         print(f"  Rendering {size}x{size}...")
-        im = draw_icon(size)
+        im = draw_small_icon(size) if size <= 32 else draw_icon(size)
         images.append(im)
 
     # Save proper multi-size ICO
