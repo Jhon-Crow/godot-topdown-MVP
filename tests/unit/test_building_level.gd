@@ -45,6 +45,9 @@ class MockBuildingLevel:
 	## Debug mode flag.
 	var _debug_mode: bool = false
 
+	## Shared weapon hints component state (Issue #1810).
+	var _weapon_hints_component: Variant = null
+
 	## Initialize with default enemies.
 	func initialize() -> void:
 		_enemies.clear()
@@ -65,6 +68,34 @@ class MockBuildingLevel:
 		if not _level_cleared or _level_completed:
 			return
 		_level_completed = true
+
+
+class MockLevelInitFallback:
+	## Mirrors the critical fallback branch from Scripts/Components/LevelInitFallback.cs
+	## for BuildingLevel. This is the path that was missing tutorial hints in issue #1810
+	## when GDScript _ready() did not execute.
+	var player_ready: bool = true
+	var canvas_layer_ready: bool = true
+	var weapon_hints_script_ready: bool = true
+	var existing_component: bool = false
+	var setup_calls: int = 0
+	var _weapon_hints_component: Dictionary = {}
+
+	func setup_weapon_hints() -> void:
+		if not player_ready:
+			return
+		if not canvas_layer_ready:
+			return
+		if existing_component:
+			return
+		if not weapon_hints_script_ready:
+			return
+
+		_weapon_hints_component = {
+			"name": "WeaponHintsComponent",
+			"setup_called": true,
+		}
+		setup_calls += 1
 
 var level: MockBuildingLevel
 
@@ -182,3 +213,22 @@ func test_building_level_uses_shared_weapon_hints_component() -> void:
 		"Building level should load the shared weapon hints component")
 	assert_string_contains(source, "_weapon_hints_component.setup(_player, canvas_layer)",
 		"Building level should initialize the shared weapon hints component with player and CanvasLayer")
+
+
+func test_building_level_fallback_sets_up_weapon_hints() -> void:
+	var fallback := MockLevelInitFallback.new()
+	fallback.setup_weapon_hints()
+
+	assert_eq(fallback.setup_calls, 1,
+		"Fallback initialization should setup weapon hints exactly once when GDScript _ready() is skipped")
+	assert_true(fallback._weapon_hints_component.get("setup_called", false),
+		"Fallback initialization should keep Building weapon hints active for issue #1810")
+
+
+func test_building_level_fallback_skips_duplicate_weapon_hints_setup() -> void:
+	var fallback := MockLevelInitFallback.new()
+	fallback.existing_component = true
+	fallback.setup_weapon_hints()
+
+	assert_eq(fallback.setup_calls, 0,
+		"Fallback initialization should not create a duplicate weapon hints component")
