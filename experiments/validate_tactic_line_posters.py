@@ -1,68 +1,21 @@
 #!/usr/bin/env python3
-"""Validate generated ASVK-only poster assets for issue #1815."""
+"""Validate generated Tactic Line poster assets for issue #1815."""
 
 from __future__ import annotations
 
+import importlib.util
 import struct
+import sys
 import zlib
 from collections import Counter
 from pathlib import Path
+from types import ModuleType
 
 
 ROOT = Path(__file__).resolve().parents[1]
 GENERATOR = ROOT / "experiments" / "generate_tactic_line_posters.py"
 POSTER_DIR = ROOT / "assets" / "posters"
-
-POSTER_NAMES = [
-    "tactic_line_poster_close_quarters.png",
-    "tactic_line_asvk_close_quarters_02.png",
-    "tactic_line_asvk_close_quarters_03.png",
-    "tactic_line_asvk_close_quarters_04.png",
-    "tactic_line_asvk_close_quarters_05.png",
-    "tactic_line_asvk_close_quarters_06.png",
-    "tactic_line_asvk_close_quarters_07.png",
-    "tactic_line_asvk_close_quarters_08.png",
-    "tactic_line_asvk_close_quarters_09.png",
-    "tactic_line_asvk_close_quarters_10.png",
-    "tactic_line_asvk_close_quarters_11.png",
-    "tactic_line_asvk_close_quarters_12.png",
-    "tactic_line_asvk_close_quarters_13.png",
-    "tactic_line_asvk_close_quarters_14.png",
-    "tactic_line_asvk_close_quarters_15.png",
-    "tactic_line_asvk_close_quarters_16.png",
-    "tactic_line_asvk_close_quarters_17.png",
-    "tactic_line_asvk_close_quarters_18.png",
-    "tactic_line_asvk_close_quarters_19.png",
-    "tactic_line_asvk_close_quarters_20.png",
-]
-POSTERS = [POSTER_DIR / name for name in POSTER_NAMES]
 CONTACT_SHEET = POSTER_DIR / "tactic_line_poster_contact_sheet.png"
-
-STALE_POSTERS = [
-    "tactic_line_poster_neon_crossfire.png",
-    "tactic_line_poster_red_black.png",
-    "tactic_line_poster_blueprint.png",
-    "tactic_line_single_asvk.png",
-    "tactic_line_single_m16.png",
-    "tactic_line_single_shotgun.png",
-    "tactic_line_single_mini_uzi.png",
-    "tactic_line_single_silenced_pistol.png",
-    "tactic_line_single_revolver.png",
-    "tactic_line_single_ak_gl.png",
-    "tactic_line_single_makarov_pm.png",
-    "tactic_line_multi_primary_rifles.png",
-    "tactic_line_multi_sidearms.png",
-    "tactic_line_multi_full_armory.png",
-    "tactic_line_multi_precision_cell.png",
-    "tactic_line_multi_breach_cell.png",
-    "tactic_line_multi_quiet_entry.png",
-    "tactic_line_multi_heavy_wall.png",
-    "tactic_line_multi_compact_sweep.png",
-    "tactic_line_multi_unlock_progression.png",
-    "tactic_line_multi_balanced_loadout.png",
-    "tactic_line_red_black_asvk.png",
-    "tactic_line_red_black_loadout.png",
-]
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
@@ -74,6 +27,16 @@ class PngInfo:
         self.bit_depth = bit_depth
         self.color_type = color_type
         self.idat = idat
+
+
+def load_generator() -> ModuleType:
+    spec = importlib.util.spec_from_file_location("generate_tactic_line_posters", GENERATOR)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load generator module from {GENERATOR}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def read_png_info(path: Path) -> PngInfo:
@@ -186,6 +149,12 @@ def validate_generator_source() -> list[str]:
         "draw_focus_field",
         "draw_soft_weapon_plinth",
         "rounded_rectangle",
+        "add_scanlines",
+        "scanline_alpha",
+        "draw_caption",
+        "CAPTION",
+        "\"ASVK\"",
+        "'ASVK'",
     ]
     failures = [f"generator still references forbidden asset/source token: {token}" for token in forbidden if token in source]
 
@@ -193,18 +162,23 @@ def validate_generator_source() -> list[str]:
         "asvk_topdown.png",
         "Rye-Regular.ttf",
         "Tactic Line",
-        "ASVK",
+        "POSTER_VARIANTS",
+        "tactic_line_experiment_40.png",
     ]
     for token in required:
         if token not in source:
-            failures.append(f"generator no longer references required close-quarters ASVK token: {token}")
+            failures.append(f"generator no longer references required poster token: {token}")
 
     return failures
 
 
-def validate_png_outputs() -> list[str]:
+def validate_png_outputs(poster_names: list[str]) -> list[str]:
     failures: list[str] = []
-    for poster in POSTERS:
+    if len(poster_names) != 40:
+        failures.append(f"generator defines {len(poster_names)} posters, expected 40")
+
+    expected = {POSTER_DIR / name for name in poster_names}
+    for poster in expected:
         if not poster.exists():
             failures.append(f"{poster.relative_to(ROOT)} is missing")
             continue
@@ -212,10 +186,9 @@ def validate_png_outputs() -> list[str]:
         if (info.width, info.height) != (1232, 706):
             failures.append(f"{poster.relative_to(ROOT)} is {info.width}x{info.height}, expected 1232x706")
 
-    for name in STALE_POSTERS:
-        poster = POSTER_DIR / name
-        if poster.exists():
-            failures.append(f"stale non-ASVK poster still exists: {poster.relative_to(ROOT)}")
+    unexpected = sorted(path for path in POSTER_DIR.glob("tactic_line*.png") if path not in expected and path != CONTACT_SHEET)
+    for poster in unexpected:
+        failures.append(f"stale or unexpected poster exists: {poster.relative_to(ROOT)}")
 
     contact = read_png_info(CONTACT_SHEET)
     if contact.width <= 0 or contact.height <= 0:
@@ -224,9 +197,9 @@ def validate_png_outputs() -> list[str]:
     return failures
 
 
-def validate_not_red_black_batch() -> list[str]:
+def validate_not_red_black_batch(posters: list[Path]) -> list[str]:
     failures: list[str] = []
-    for path in POSTERS:
+    for path in posters:
         colors = png_rgb_counter(path)
         total = sum(colors.values())
         red_dominant = sum(
@@ -241,9 +214,13 @@ def validate_not_red_black_batch() -> list[str]:
 
 
 def main() -> int:
+    module = load_generator()
+    poster_names = list(module.POSTER_NAMES)
+    posters = [POSTER_DIR / name for name in poster_names]
+
     failures = validate_generator_source()
-    failures.extend(validate_png_outputs())
-    failures.extend(validate_not_red_black_batch())
+    failures.extend(validate_png_outputs(poster_names))
+    failures.extend(validate_not_red_black_batch(posters))
 
     if failures:
         print("Poster validation failed:")
