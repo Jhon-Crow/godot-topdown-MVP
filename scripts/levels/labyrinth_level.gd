@@ -2494,6 +2494,8 @@ func _update_tutorial_grenade_hint_step() -> void:
 	var g_pressed: bool = Input.is_action_pressed("grenade_prepare")
 	var rmb_pressed: bool = Input.is_action_pressed("grenade_throw")
 	var current_mouse_pos := get_global_mouse_position()
+	var rmb_just_pressed := rmb_pressed and not _tutorial_grenade_rmb_was_pressed
+	var rmb_just_released := not rmb_pressed and _tutorial_grenade_rmb_was_pressed
 
 	if _tutorial_grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
 		if g_pressed or rmb_pressed or _tutorial_grenade_rmb_was_pressed:
@@ -2502,27 +2504,33 @@ func _update_tutorial_grenade_hint_step() -> void:
 		_reset_tutorial_grenade_hint_tracking()
 	elif _tutorial_grenade_hint_step == 2 and not g_pressed and not rmb_pressed:
 		_reset_tutorial_grenade_hint_tracking()
-	elif _tutorial_grenade_hint_step == 3 and not rmb_pressed:
+	elif _tutorial_grenade_hint_step == 3 and not g_pressed and not rmb_pressed:
+		_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 4 and not rmb_pressed and not _tutorial_grenade_rmb_held_after_release:
 		_reset_tutorial_grenade_hint_tracking()
 
-	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed and not _tutorial_grenade_rmb_was_pressed:
+	if _tutorial_grenade_hint_step <= 1 and g_pressed and rmb_pressed and rmb_just_pressed:
 		_tutorial_grenade_drag_completed = false
+		_tutorial_grenade_hint_drag_start = current_mouse_pos
 
-	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed and _tutorial_grenade_rmb_was_pressed:
+	if _tutorial_grenade_hint_step == 1 and g_pressed and rmb_pressed:
 		if current_mouse_pos.x - _tutorial_grenade_hint_drag_start.x > 20.0:
 			_tutorial_grenade_drag_completed = true
+			_tutorial_grenade_hint_step = 2
 
 	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed:
 		_tutorial_grenade_hint_step = 1
 		_tutorial_grenade_g_was_held = true
-	elif _tutorial_grenade_hint_step == 1 and _tutorial_grenade_drag_completed and not rmb_pressed and _tutorial_grenade_rmb_was_pressed:
-		_tutorial_grenade_hint_step = 2
-	elif _tutorial_grenade_hint_step == 2 and g_pressed and rmb_pressed:
-		_tutorial_grenade_rmb_held_after_release = true
+	elif _tutorial_grenade_hint_step == 2 and _tutorial_grenade_drag_completed and rmb_just_released:
 		_tutorial_grenade_hint_step = 3
-	elif _tutorial_grenade_hint_step == 3 and not g_pressed and _tutorial_grenade_rmb_held_after_release:
+	elif _tutorial_grenade_hint_step == 3 and g_pressed and rmb_just_pressed:
+		_tutorial_grenade_rmb_held_after_release = true
 		_tutorial_grenade_hint_step = 4
+	elif _tutorial_grenade_hint_step == 4 and not g_pressed and rmb_pressed and _tutorial_grenade_rmb_held_after_release:
+		_tutorial_grenade_hint_step = 5
 		_tutorial_grenade_g_was_held = false
+	elif _tutorial_grenade_hint_step == 5 and not rmb_pressed and _tutorial_grenade_rmb_held_after_release:
+		_tutorial_grenade_hint_step = 4
 
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_GRENADE]
 	if is_instance_valid(label):
@@ -2530,8 +2538,6 @@ func _update_tutorial_grenade_hint_step() -> void:
 		if label.text != new_text:
 			label.text = new_text
 
-	if g_pressed and rmb_pressed and not _tutorial_grenade_rmb_was_pressed:
-		_tutorial_grenade_hint_drag_start = current_mouse_pos
 	_tutorial_grenade_rmb_was_pressed = rmb_pressed
 
 
