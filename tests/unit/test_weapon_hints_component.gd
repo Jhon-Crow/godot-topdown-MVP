@@ -257,6 +257,29 @@ func test_grenade_hint_shows_when_grenade_prepare_pressed_in_always_mode() -> vo
 	_release_action("grenade_prepare", KEY_G)
 
 
+func test_grenade_hint_does_not_show_before_grenade_prepare_pressed() -> void:
+	_ensure_action("grenade_prepare", KEY_G)
+
+	var canvas := CanvasLayer.new()
+	add_child_autofree(canvas)
+
+	var player := MockPlayer.new()
+	player.grenade_count = 2
+	add_child_autofree(player)
+
+	var comp := WeaponHintsComp.new()
+	add_child_autofree(comp)
+	comp.setup(player, canvas)
+	comp._current_weapon_id = "m16"
+	comp._hints_active = true
+	comp._hints_showing = true
+
+	comp._process(0.016)
+
+	assert_false(comp._hint_labels.has("grenade"),
+		"Grenade hint should stay hidden until grenade_prepare is pressed on non-Labyrinth maps")
+
+
 func test_grenade_hint_uses_player_method_and_stays_visible_until_throw() -> void:
 	_ensure_action("grenade_prepare", KEY_G)
 

@@ -548,6 +548,10 @@ func _update_grenade_hint() -> void:
 			_dismiss_hint(HINT_KEY_GRENADE)
 		return
 
+	var grenade_pressed: bool = Input.is_action_pressed("grenade_prepare")
+	if not _hint_labels.has(HINT_KEY_GRENADE) and not grenade_pressed:
+		return
+
 	if not _hint_labels.has(HINT_KEY_GRENADE):
 		_grenade_hint_step = 0
 		_grenade_g_was_held = false
