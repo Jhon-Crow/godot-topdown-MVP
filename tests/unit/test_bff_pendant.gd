@@ -83,7 +83,7 @@ class MockActiveItemManager:
 		1: {
 			"name": "Flashlight",
 			"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
-			"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
+			"description": "Tactical flashlight — hold Space to illuminate in weapon direction and blind enemies caught in the beam. Bright white light, turns off when released."
 		},
 		2: {
 			"name": "Homing Bullets",

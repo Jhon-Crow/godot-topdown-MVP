@@ -135,6 +135,7 @@ func _show_first_launch_difficulty_menu() -> void:
 	_first_launch_menu = packed.instantiate()
 	_first_launch_menu.first_launch_mode = true
 	_first_launch_menu.difficulty_selected_first_launch.connect(_on_first_launch_difficulty_selected)
+	get_tree().paused = true
 	get_tree().root.add_child(_first_launch_menu)
 	_log_to_file("First-launch difficulty menu shown")
 
@@ -146,7 +147,12 @@ func _on_first_launch_difficulty_selected() -> void:
 	if _first_launch_menu != null:
 		_first_launch_menu.queue_free()
 		_first_launch_menu = null
-	_do_navigate_to_last_level()
+	get_tree().paused = false
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager and game_manager.has_method("restart_scene"):
+		game_manager.restart_scene()
+	else:
+		_do_navigate_to_last_level()
 
 
 ## Connect to manager signals to auto-save on changes.
