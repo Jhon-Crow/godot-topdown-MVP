@@ -27,9 +27,15 @@ var _score_audio_player: AudioStreamPlayer = null
 ## Gothic bitmap font for score screen labels (loaded on demand).
 var _gothic_font: Font = null
 
+## Gold shine shader for the rank contour animation (loaded on demand).
+var _rank_shine_shader: Shader = null
+
 ## Path to the Gothic bitmap font file (.fnt).
 ## Loaded via Godot's resource system (editor imports .fnt as FontFile).
 const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
+
+## Path to the reusable armory-style gold shine shader.
+const RANK_SHINE_SHADER_PATH: String = "res://scripts/shaders/gold_shine.gdshader"
 
 ## Duration for counting animation per stat item (seconds).
 const SCORE_COUNT_DURATION: float = 1.5
@@ -133,6 +139,45 @@ func _apply_gothic_font(label: Label) -> void:
 		label.add_theme_font_override("font", font)
 	else:
 		push_warning("[AnimatedScoreScreen] Gothic font not available for label: " + label.name)
+
+
+## Loads and returns the armory-style shine shader used for rank labels.
+func _get_rank_shine_shader() -> Shader:
+	if _rank_shine_shader == null:
+		if ResourceLoader.exists(RANK_SHINE_SHADER_PATH):
+			var shader = load(RANK_SHINE_SHADER_PATH)
+			if shader != null and shader is Shader:
+				_rank_shine_shader = shader
+			else:
+				push_warning("[AnimatedScoreScreen] Failed to load rank shine shader from: " + RANK_SHINE_SHADER_PATH)
+		else:
+			push_warning("[AnimatedScoreScreen] Rank shine shader file not found: " + RANK_SHINE_SHADER_PATH)
+	return _rank_shine_shader
+
+
+## Adds an additive shine overlay behind a rank label, matching the armory shine animation.
+func _add_rank_shine_overlay(label: Label, overlay_size: Vector2) -> ColorRect:
+	var shader := _get_rank_shine_shader()
+	if shader == null:
+		return null
+
+	var shine_mat := ShaderMaterial.new()
+	shine_mat.shader = shader
+	shine_mat.set_shader_parameter("horizontal_sweep", true)
+	shine_mat.set_shader_parameter("cycle_duration", 2.8)
+
+	var overlay := ColorRect.new()
+	overlay.name = "RankContourShineOverlay"
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.material = shine_mat
+	overlay.z_index = -1
+	overlay.set_anchors_preset(Control.PRESET_CENTER)
+	overlay.offset_left = -overlay_size.x * 0.5
+	overlay.offset_right = overlay_size.x * 0.5
+	overlay.offset_top = -overlay_size.y * 0.5
+	overlay.offset_bottom = overlay_size.y * 0.5
+	label.add_child(overlay)
+	return overlay
 
 
 ## Creates a simple sine wave beep sound and plays it.
@@ -622,6 +667,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	big_rank_label.offset_bottom = 150
 	big_rank_label.modulate.a = 0.0  # Start invisible
 	ui.add_child(big_rank_label)
+	_add_rank_shine_overlay(big_rank_label, Vector2(460, 320))
 	_big_rank_label = big_rank_label
 
 	# Create final rank label in container (starts invisible)
@@ -634,6 +680,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	_apply_gothic_font(final_rank_label)
 	final_rank_label.modulate.a = 0.0
 	container.add_child(final_rank_label)
+	_add_rank_shine_overlay(final_rank_label, Vector2(430, 92))
 	_final_rank_label = final_rank_label
 
 	get_tree().create_timer(start_delay).timeout.connect(

@@ -17,6 +17,9 @@ const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
 ## Path to the Gothic bitmap font texture.
 const GOTHIC_FONT_TEXTURE: String = "res://assets/fonts/gothic_bitmap.png"
 
+## Path to the armory-style shine shader used on score rank labels.
+const RANK_SHINE_SHADER_PATH: String = "res://scripts/shaders/gold_shine.gdshader"
+
 
 class MockAnimatedScoreScreen:
 	## Mock class that mirrors AnimatedScoreScreen's testable functionality.
@@ -138,6 +141,19 @@ func test_animated_score_screen_has_gothic_font_path() -> void:
 		"AnimatedScoreScreen should have correct Gothic font path")
 
 
+func test_animated_score_screen_has_rank_shine_shader_path() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+	assert_eq(instance.RANK_SHINE_SHADER_PATH, RANK_SHINE_SHADER_PATH,
+		"AnimatedScoreScreen should reuse the armory shine shader for rank labels")
+
+
+func test_rank_shine_shader_file_exists() -> void:
+	assert_true(FileAccess.file_exists(RANK_SHINE_SHADER_PATH),
+		"Rank shine shader should exist at %s" % RANK_SHINE_SHADER_PATH)
+
+
 func test_animated_score_screen_get_gothic_font() -> void:
 	var script = load("res://scripts/ui/animated_score_screen.gd")
 	var instance = script.new()
@@ -176,6 +192,56 @@ func test_apply_gothic_font_to_label() -> void:
 		assert_not_null(applied_font, "Label should have a font override after _apply_gothic_font()")
 	else:
 		pass_test("Font not available for label test (requires Godot editor import)")
+
+
+func test_add_rank_shine_overlay_creates_non_interactive_shader_overlay() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+
+	var label := Label.new()
+	add_child_autofree(label)
+	var overlay = instance._add_rank_shine_overlay(label, Vector2(430, 92))
+
+	assert_not_null(overlay, "Rank label should receive a shine overlay")
+	assert_eq(overlay.name, "RankContourShineOverlay")
+	assert_eq(overlay.mouse_filter, Control.MOUSE_FILTER_IGNORE,
+		"Rank shine overlay must not block score screen input")
+	assert_eq(overlay.z_index, -1,
+		"Rank shine overlay should sit behind the rank text as a contour glow")
+	assert_true(overlay.material is ShaderMaterial,
+		"Rank shine overlay should use a ShaderMaterial")
+
+	var mat := overlay.material as ShaderMaterial
+	assert_true(mat.shader is Shader, "Rank shine overlay material should contain a shader")
+	assert_true(mat.get_shader_parameter("horizontal_sweep"),
+		"Rank shine should sweep horizontally along the rank text")
+	assert_almost_eq(float(mat.get_shader_parameter("cycle_duration")), 2.8, 0.01,
+		"Rank shine should use a snappy armory-style cycle")
+
+
+func test_animate_rank_reveal_attaches_shine_to_big_and_final_rank_labels() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+
+	var ui := Control.new()
+	add_child_autofree(ui)
+	var container := VBoxContainer.new()
+	add_child_autofree(container)
+	var score_data := {"rank": "S"}
+
+	instance._animate_rank_reveal(ui, container, score_data, 1000.0)
+
+	var big_rank_label := ui.find_child("BigRankLabel", true, false)
+	assert_not_null(big_rank_label, "Big rank label should be created")
+	assert_not_null(big_rank_label.find_child("RankContourShineOverlay", true, false),
+		"Big rank reveal label should have the contour shine overlay")
+
+	var final_rank_label := container.find_child("FinalRankLabel", true, false)
+	assert_not_null(final_rank_label, "Final rank label should be created")
+	assert_not_null(final_rank_label.find_child("RankContourShineOverlay", true, false),
+		"Final score rank label should have the contour shine overlay")
 
 
 # ============================================================================
@@ -341,7 +407,7 @@ func test_score_count_duration_is_slow_enough() -> void:
 	# Score counting should take at least 1 second per item for readability
 	var score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
 	var duration: float = score_screen_script.SCORE_COUNT_DURATION
-	assert_gte(duration, 1.0, "Score count duration should be >= 1.0s for readability")
+	assert_true(duration >= 1.0, "Score count duration should be >= 1.0s for readability")
 
 
 func test_total_score_counting_is_longer_than_items() -> void:
