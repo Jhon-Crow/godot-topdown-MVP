@@ -143,7 +143,7 @@ func build_notification_text(kind: String, item_name: String) -> String:
 	var clean_name: String = item_name.strip_edges()
 	var template: String = tr(NOTIFICATION_TEMPLATE_KEY)
 	if template == NOTIFICATION_TEMPLATE_KEY or template.is_empty():
-		template = "Открыто %s !"
+		template = "Открыт %s !"
 	return template % _build_notification_subject(clean_kind, clean_name)
 
 
