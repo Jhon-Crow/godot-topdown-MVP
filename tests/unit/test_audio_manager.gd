@@ -123,32 +123,33 @@ class MockAudioManager:
 			_audio_pool.append(false)  # false = not playing
 			_audio_2d_pool.append(false)
 
-	func play_sound(path: String, volume_db: float = 0.0) -> void:
+	func play_sound(path: String, volume_db: float = 0.0, pitch_scale: float = 1.0) -> void:
 		played_sounds.append(path)
 		var idx := _get_available_player_index()
 		_audio_pool[idx] = true  # Mark as playing
 
-	func play_sound_2d(path: String, position: Vector2, volume_db: float = 0.0, max_distance: float = 2000.0) -> void:
+	func play_sound_2d(path: String, position: Vector2, volume_db: float = 0.0, max_distance: float = 2000.0, pitch_scale: float = 1.0) -> void:
 		played_sounds_2d.append({
 			"path": path,
 			"position": position,
 			"volume": volume_db,
-			"max_distance": max_distance
+			"max_distance": max_distance,
+			"pitch": pitch_scale
 		})
 		var idx := _get_available_player_2d_index()
 		_audio_2d_pool[idx] = true
 
-	func play_random_sound(paths: Array, volume_db: float = 0.0) -> void:
+	func play_random_sound(paths: Array, volume_db: float = 0.0, pitch_scale: float = 1.0) -> void:
 		if paths.is_empty():
 			return
 		var path: String = paths[randi() % paths.size()]
-		play_sound(path, volume_db)
+		play_sound(path, volume_db, pitch_scale)
 
-	func play_random_sound_2d(paths: Array, position: Vector2, volume_db: float = 0.0, max_distance: float = 2000.0) -> void:
+	func play_random_sound_2d(paths: Array, position: Vector2, volume_db: float = 0.0, max_distance: float = 2000.0, pitch_scale: float = 1.0) -> void:
 		if paths.is_empty():
 			return
 		var path: String = paths[randi() % paths.size()]
-		play_sound_2d(path, position, volume_db, max_distance)
+		play_sound_2d(path, position, volume_db, max_distance, pitch_scale)
 
 	func cache_sound(path: String) -> void:
 		_audio_cache[path] = true
@@ -346,6 +347,25 @@ func test_reload_sound_uses_correct_volume() -> void:
 	audio.play_sound_2d("res://reload.wav", position, volume_reload)
 
 	assert_eq(audio.played_sounds_2d[0]["volume"], -3.0)
+
+
+func test_pm_second_reload_action_is_louder_and_lower_pitch_than_first() -> void:
+	# Issue #1820: the second PM reload action should be louder and slightly lower-pitched.
+	var pm_reload_action_1 := "res://assets/audio/первое действие перезарядки.mp3"
+	var pm_reload_action_2 := "res://assets/audio/второе действие перезарядки.mp3"
+	var volume_pm_reload_action_1 := -4.0
+	var volume_pm_reload_action_2 := -1.5
+	var pitch_pm_reload_action_1 := 1.0
+	var pitch_pm_reload_action_2 := 0.94
+	var position := Vector2(100, 100)
+
+	audio.play_sound_2d(pm_reload_action_1, position, volume_pm_reload_action_1, 2000.0, pitch_pm_reload_action_1)
+	audio.play_sound_2d(pm_reload_action_2, position, volume_pm_reload_action_2, 2000.0, pitch_pm_reload_action_2)
+
+	assert_gt(audio.played_sounds_2d[1]["volume"], audio.played_sounds_2d[0]["volume"],
+		"PM reload action 2 should be louder than action 1")
+	assert_lt(audio.played_sounds_2d[1]["pitch"], audio.played_sounds_2d[0]["pitch"],
+		"PM reload action 2 should have a slightly lower pitch than action 1")
 
 
 # ============================================================================
