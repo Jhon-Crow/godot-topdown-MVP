@@ -632,14 +632,14 @@ func _setup_player_tracking() -> void:
 		push_warning("Player not found")
 		return
 
+	# Find the ammo label before selected weapon setup so config-time HUD refreshes work.
+	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
+
 	_setup_selected_weapon()
 
 	# Register player with GameManager
 	if GameManager:
 		GameManager.set_player(_player)
-
-	# Find the ammo label
-	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
 	# Connect to player death signal (handles both GDScript "died" and C# "Died")
 	if _player.has_signal("died"):
@@ -1238,6 +1238,16 @@ func _get_weapon_display_current_ammo(weapon: Node) -> Variant:
 	return weapon.get("CurrentAmmo")
 
 
+## Pushes the authoritative current weapon ammo state into the HUD.
+func _refresh_weapon_hud(weapon: Node, reason: String) -> void:
+	if weapon == null:
+		return
+	var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+	if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+		_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
+		_log_to_file("HUD ammo refreshed (%s): %s %s/%s" % [reason, weapon.name, display_current_ammo, weapon.ReserveAmmo])
+
+
 ## Update the ammo label with current/maximum format (for GDScript Player).
 func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
@@ -1303,9 +1313,7 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 			_log_to_file("Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by %dx" % ammo_multiplier)
 		weapon.ConfigureAmmoForEnemyCount(enemy_count)
 		_log_to_file("Configured silenced pistol ammo for %d enemies" % enemy_count)
-		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
-		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
+		_refresh_weapon_hud(weapon, "silenced pistol config")
 
 
 ## Configure Makarov PM ammo - 2.5x magazines (Issue #1422).
@@ -1325,9 +1333,7 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 	if weapon.has_method("ReinitializeMagazines"):
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
-		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
-		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
+		_refresh_weapon_hud(weapon, "makarov config")
 	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
 		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
@@ -1353,13 +1359,12 @@ func _configure_labyrinth2_weapon_ammo(weapon: Node, weapon_id: String) -> void:
 		if weapon.has_method("ReinitializeMagazines"):
 			weapon.ReinitializeMagazines(base_magazines, true)
 			_log_to_file("%s magazines reinitialized to %d" % [weapon.name, base_magazines])
-		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
-		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
+		_refresh_weapon_hud(weapon, "labyrinth2 ammo config")
 
 	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
 		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 		_log_to_file("Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+	_refresh_weapon_hud(weapon, "post level ammo config")
 
 
 ## Setup and equip the weapon selected by the player (Issue #1422).

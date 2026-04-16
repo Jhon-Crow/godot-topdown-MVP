@@ -281,10 +281,17 @@ class MockBuildingLevel extends MockLevelBase:
 
 	func simulate_weapon_display_update(weapon: Dictionary) -> void:
 		init_ammo_label()
+		refresh_weapon_hud(weapon)
+
+	func refresh_weapon_hud(weapon: Dictionary) -> void:
 		var displayed_current = _get_weapon_display_current_ammo(weapon)
 		var reserve = weapon.get("ReserveAmmo")
 		if displayed_current != null and reserve != null:
 			update_ammo_label_magazine(displayed_current, reserve)
+
+	func simulate_csharp_pre_equipped_weapon_setup(weapon: Dictionary) -> void:
+		init_ammo_label()
+		refresh_weapon_hud(weapon)
 
 	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
 		if not current_weapon.is_empty():
@@ -431,10 +438,17 @@ class MockTestTier extends MockLevelBase:
 
 	func simulate_weapon_display_update(weapon: Dictionary) -> void:
 		init_ammo_label()
+		refresh_weapon_hud(weapon)
+
+	func refresh_weapon_hud(weapon: Dictionary) -> void:
 		var displayed_current = _get_weapon_display_current_ammo(weapon)
 		var reserve = weapon.get("ReserveAmmo")
 		if displayed_current != null and reserve != null:
 			update_ammo_label_magazine(displayed_current, reserve)
+
+	func simulate_csharp_pre_equipped_weapon_setup(weapon: Dictionary) -> void:
+		init_ammo_label()
+		refresh_weapon_hud(weapon)
 
 	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
 		if not current_weapon.is_empty():
@@ -473,10 +487,17 @@ class MockLabyrinth2Level extends MockLevelBase:
 
 	func simulate_weapon_display_update(weapon: Dictionary) -> void:
 		init_ammo_label()
+		refresh_weapon_hud(weapon)
+
+	func refresh_weapon_hud(weapon: Dictionary) -> void:
 		var displayed_current = _get_weapon_display_current_ammo(weapon)
 		var reserve = weapon.get("ReserveAmmo")
 		if displayed_current != null and reserve != null:
 			update_ammo_label_magazine(displayed_current, reserve)
+
+	func simulate_csharp_pre_equipped_weapon_setup(weapon: Dictionary) -> void:
+		init_ammo_label()
+		refresh_weapon_hud(weapon)
 
 	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
 		if not current_weapon.is_empty():
@@ -2320,6 +2341,20 @@ func test_building_hud_binds_to_current_weapon_before_stale_child() -> void:
 		"Building HUD must use the equipped CurrentWeapon, not an arbitrary stale child")
 
 
+func test_building_csharp_pre_equipped_shotgun_refreshes_post_config_hud() -> void:
+	## Regression from owner log 2026-04-16 10:19: C# equips Shotgun as CurrentAmmo 0,
+	## then Building returns early after level config. The post-config path must still
+	## push ShellsInTube to the HUD before the first shot.
+	building_level.simulate_csharp_pre_equipped_weapon_setup({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	})
+	assert_eq(building_level._ammo_label_text, "AMMO: 8/8",
+		"Building C# pre-equipped shotgun setup must refresh HUD from ShellsInTube")
+
+
 func test_labyrinth2_hud_binds_to_current_weapon_before_stale_child() -> void:
 	## Owner feedback showed Labyrinth Complex HUD counters regressed after stale-node selection.
 	var equipped_revolver := {
@@ -2338,6 +2373,30 @@ func test_labyrinth2_hud_binds_to_current_weapon_before_stale_child() -> void:
 	labyrinth2_level.simulate_weapon_display_update(chosen)
 	assert_eq(labyrinth2_level._ammo_label_text, "AMMO: 5/20",
 		"Labyrinth2 HUD must use the equipped CurrentWeapon so stale shotgun nodes cannot break counters")
+
+
+func test_labyrinth_csharp_pre_equipped_shotgun_refreshes_post_config_hud() -> void:
+	## Labyrinth startup can auto-redirect, but it still runs the same C# pre-equipped path first.
+	labyrinth_level.simulate_csharp_pre_equipped_weapon_setup({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	})
+	assert_eq(labyrinth_level._ammo_label_text, "AMMO: 8/8",
+		"Labyrinth C# pre-equipped shotgun setup must refresh HUD from ShellsInTube")
+
+
+func test_labyrinth2_csharp_pre_equipped_shotgun_refreshes_post_config_hud() -> void:
+	## Labyrinth Complex uses its own level script and needs the same post-config HUD refresh.
+	labyrinth2_level.simulate_csharp_pre_equipped_weapon_setup({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	})
+	assert_eq(labyrinth2_level._ammo_label_text, "AMMO: 8/8",
+		"Labyrinth2 C# pre-equipped shotgun setup must refresh HUD from ShellsInTube")
 
 
 func test_testtier_shotgun_startup_uses_shell_count_not_current_ammo() -> void:

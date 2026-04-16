@@ -766,14 +766,15 @@ func _setup_player_tracking() -> void:
 	# Setup realistic visibility component
 	_setup_realistic_visibility()
 
+	# Find the ammo label before selected weapon setup so config-time HUD refreshes work.
+	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
+
 	# Setup selected weapon based on GameManager selection
 	_setup_selected_weapon()
 
 	# Register player with GameManager
 	if GameManager:
 		GameManager.set_player(_player)
-
-	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
 	# Connect to player death signal
 	if _player.has_signal("died"):
@@ -951,6 +952,19 @@ func _get_weapon_display_current_ammo(weapon: Node) -> Variant:
 	return weapon.get("CurrentAmmo")
 
 
+## Pushes the authoritative current weapon ammo state into the HUD.
+func _refresh_weapon_hud(weapon: Node, reason: String) -> void:
+	if weapon == null:
+		return
+	var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+	if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+		_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
+		_log_to_file("HUD ammo refreshed (%s): %s %s/%s" % [reason, weapon.name, display_current_ammo, weapon.ReserveAmmo])
+	if weapon.has_method("GetMagazineAmmoCounts"):
+		var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+		_update_magazines_label(mag_counts)
+
+
 ## Configure silenced pistol ammo based on enemy count.
 func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 	if weapon.name != "SilencedPistol":
@@ -965,12 +979,7 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		weapon.ConfigureAmmoForEnemyCount(enemy_count)
 		print("[LabyrinthLevel] Configured silenced pistol ammo for %d enemies" % enemy_count)
 
-		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
-		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "silenced pistol config")
 
 
 ## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
@@ -995,12 +1004,7 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		print("[LabyrinthLevel] 2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
 
-		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
-		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "makarov config")
 
 	# Reapply auto-reload magazine size reduction if active (Issue #1067).
 	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
@@ -1041,16 +1045,12 @@ func _configure_labyrinth_weapon_ammo(weapon: Node, weapon_id: String) -> void:
 			var mag_size: int = _MAGAZINE_SIZES.get(weapon_id, 30)
 			weapon.ReinitializeMagazines(base_magazines, mag_size, true)
 			print("[LabyrinthLevel] %s magazines reinitialized to %d x %d rounds" % [weapon.name, base_magazines, mag_size])
-		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
-		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "labyrinth ammo config")
 
 	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
 		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 		_log_to_file("Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+	_refresh_weapon_hud(weapon, "post level ammo config")
 
 
 ## Setup debug UI elements for kills and accuracy.

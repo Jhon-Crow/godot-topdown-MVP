@@ -16,6 +16,7 @@
 - `game_log_20260416_023550.txt` - latest owner repro log showing persisted startup navigation and remaining `Labyrinth2` startup failures
 - `issue-1808-comment-4256398298.png` - latest owner screenshot showing `0/8` on startup
 - `logs/game_log_20260416_095403.txt` - owner follow-up showing Building still at `0` for shotgun and Labyrinth Complex HUD counters broken
+- `logs/game_log_20260416_101928.txt` - owner follow-up showing the C# player equips shotgun as `0/8`, then level scripts take the already-equipped early-return path
 
 ## Timeline
 
@@ -65,6 +66,18 @@ In each affected level script:
 
 So the bug is not in the ongoing counter update logic. It is an initialization/binding bug in the first HUD push.
 
+### 2026-04-16 10:19:28 UTC
+
+The newest owner log narrowed the remaining failure further. It shows this order on startup:
+
+1. `Player.Weapon] Equipped Shotgun (ammo: 0/8)`
+2. `Player] Ready! Ammo: 0/8`
+3. `LabyrinthLevel] Shotgun already equipped by C# Player - applying labyrinth ammo config`
+
+The same sequence repeats after persisted navigation to `BuildingLevel` and after manual navigation to `Labyrinth2Level`.
+
+The previous fix made startup display helpers read `ShellsInTube`, but the level ammo config functions only refreshed the HUD inside selected weapon branches. For `shotgun`, those functions intentionally do not reinitialize magazines, so the "already equipped by C# Player" early-return path could apply no branch-specific refresh and leave the HUD at the C# player's initial `CurrentAmmo`-based `0/8` display.
+
 ## Code Evidence
 
 Affected files:
@@ -95,6 +108,10 @@ All other weapons keep using:
 
 The level scripts now also use `Player.CurrentWeapon` first when binding HUD signals and pushing the initial HUD state. Child-node probing remains only as a fallback by selected weapon id. This prevents stale child nodes from overriding the actual equipped weapon.
 
+The affected level ammo config functions now also perform an unconditional post-config HUD refresh through a shared helper. This matters for the C# pre-equipped shotgun path because shotgun does not enter the magazine-reinitialization branches, but it still must push `ShellsInTube/ReserveAmmo` to the HUD after the early-return config path.
+
+Labyrinth and Labyrinth2 now find `CanvasLayer/UI/AmmoLabel` before selected weapon setup, matching Building's ordering, so config-time HUD refreshes cannot silently no-op because the label reference has not been initialized yet.
+
 ## Test Coverage
 
 Added unit coverage in:
@@ -112,6 +129,8 @@ Additional regression tests cover stale child-node selection:
 
 1. Building uses the equipped shotgun from `CurrentWeapon` even if another weapon child exists.
 2. Labyrinth2 uses the equipped non-shotgun weapon from `CurrentWeapon` even if a stale shotgun child exists.
+
+Additional regression tests now cover the C# pre-equipped shotgun path on Building, Labyrinth, and Labyrinth2. These tests model the newest log sequence where `CurrentAmmo` is `0`, `ShellsInTube` is `8`, and the level must still push `AMMO: 8/8` during setup.
 
 ## Online / External Facts
 

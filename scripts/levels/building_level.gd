@@ -878,6 +878,19 @@ func _get_weapon_display_current_ammo(weapon: Node) -> Variant:
 	return weapon.get("CurrentAmmo")
 
 
+## Pushes the authoritative current weapon ammo state into the HUD.
+func _refresh_weapon_hud(weapon: Node, reason: String) -> void:
+	if weapon == null:
+		return
+	var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+	if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+		_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
+		_log_to_file("HUD ammo refreshed (%s): %s %s/%s" % [reason, weapon.name, display_current_ammo, weapon.ReserveAmmo])
+	if weapon.has_method("GetMagazineAmmoCounts"):
+		var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+		_update_magazines_label(mag_counts)
+
+
 ## Configure silenced pistol ammo based on enemy count.
 ## This ensures the pistol has exactly enough bullets for all enemies in the level.
 func _configure_silenced_pistol_ammo(weapon: Node) -> void:
@@ -895,13 +908,7 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		weapon.ConfigureAmmoForEnemyCount(enemy_count)
 		print("[BuildingLevel] Configured silenced pistol ammo for %d enemies" % enemy_count)
 
-		# Update the ammo display after configuration
-		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
-		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "silenced pistol config")
 
 
 ## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
@@ -934,12 +941,7 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 			_player.ApplyAutoReloadAfterLevelAmmoConfig()
 			_log_to_file("[BuildingLevel] Re-applied auto-reload magazine reduction after ammo config for makarov_pm")
 
-		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
-		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "makarov config")
 
 
 ## Apply building-level ammo configuration to weapons already equipped by C# Player (Issue #949).
@@ -962,13 +964,7 @@ func _apply_building_ammo_config(weapon: Node, weapon_id: String) -> void:
 			weapon.ReinitializeMagazines(base_magazines, true)
 			print("BuildingLevel: %s magazines reinitialized to %d (C# weapon)" % [weapon.name, base_magazines])
 
-		# Update ammo display
-		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
-		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "building ammo config")
 
 	# Silenced pistol: configure ammo for enemy count
 	elif weapon_id == "silenced_pistol":
@@ -993,6 +989,7 @@ func _apply_building_ammo_config(weapon: Node, weapon_id: String) -> void:
 	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
 		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 		_log_to_file("[BuildingLevel] Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+	_refresh_weapon_hud(weapon, "post level ammo config")
 
 
 ## Setup debug UI elements for kills and accuracy.
