@@ -684,3 +684,24 @@ func test_hit_areas_forward_attacker_node() -> void:
 			"%s must accept optional attacker_node" % path)
 		assert_true(source.contains("is_from_player, attacker_node"),
 			"%s must forward attacker_node with hit source data" % path)
+
+
+func test_attacker_node_signature_compatibility_for_existing_targets() -> void:
+	## Issue #1744 follow-up: every bullet-info receiver must tolerate the new optional attacker_node.
+	var expected_signatures := {
+		"res://scripts/characters/player.gd": "_attacker_node: Node2D = null",
+		"res://scripts/objects/drone.gd": "_attacker_node: Node2D = null",
+		"res://scripts/effects/illusion_hit_area.gd": "_attacker_node: Node2D = null",
+		"res://scripts/projectiles/rpg_rocket.gd": "_attacker_node: Node2D = null",
+		"res://scripts/projectiles/bullet.gd": "_attacker_node: Node2D = null"
+	}
+	for path in expected_signatures.keys():
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			gut.p("Cannot open %s — skipping (export build)" % path)
+			pass_test("Skipped in export build")
+			continue
+		var source := file.get_as_text()
+		file.close()
+		assert_true(source.contains(expected_signatures[path]),
+			"%s bullet-info receiver must accept optional attacker_node so enemy bullets still damage the player and other targets" % path)

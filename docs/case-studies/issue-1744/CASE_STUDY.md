@@ -324,7 +324,33 @@ This keeps pacifists in `PACIFIST` state while making their temporary retaliatio
 
 ---
 
+## Issue 7: Player Ignores Enemy Bullet Hits
+
+**Reported:** 2026-04-16 — "player ignores enemy hits"
+
+### Evidence
+
+The attached `game_log_20260416_213016.txt` shows repeated level reloads where the player stays at the same health value while enemies continue attacking. The log was added to this case-study directory for preservation and later manual replay comparison.
+
+### Root Cause
+
+The Issue 6 fix added an `attacker_node` argument to bullet hit forwarding so pacifist enemies can retaliate against the real shooter. The main player/enemy paths were updated, but two existing target adapters still exposed the old bullet-info signatures:
+
+- `scripts/objects/drone.gd`
+- `scripts/effects/illusion_hit_area.gd`
+
+This created an inconsistent callback contract: `bullet.gd` now calls bullet-info receivers with the optional attacker argument, while some receivers still expected the pre-fix arity. The same class of mismatch is risky for player damage because player hit handling uses the same bullet-info callback family.
+
+### Fix
+
+Every existing bullet-info receiver now accepts the optional attacker argument, including the player, drone, illusion, RPG rocket, and bullet interception paths. The attacker argument remains optional and unused where the target does not need source attribution.
+
+Regression source checks cover this compatibility so future hit receivers do not silently reintroduce a stale signature that can break enemy bullet damage.
+
+---
+
 ## Log Files
 
 - [`game_log_20260410_021834.txt`](./game_log_20260410_021834.txt) — Winter Forest drone operator follow-up (3,366 lines)
 - [`game_log_20260410_164848.txt`](./game_log_20260410_164848.txt) — PACIFIST→SEARCHING→COMBAT follow-up (23,107 lines)
+- [`game_log_20260416_213016.txt`](./game_log_20260416_213016.txt) — player ignored enemy hits follow-up (27,988 lines)
