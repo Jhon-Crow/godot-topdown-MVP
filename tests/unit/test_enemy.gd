@@ -426,6 +426,31 @@ class MockEnemy:
 		return best
 
 
+	func choose_flank_cover_for_test(flank_target: Vector2, covers: Array[Dictionary]) -> Vector2:
+		var best_cover := Vector2.ZERO
+		var best_score := -INF
+
+		for candidate in covers:
+			var cover_pos: Vector2 = candidate["point"]
+			var my_distance_to_target := Vector2.ZERO.distance_to(flank_target)
+			var cover_distance_to_target := cover_pos.distance_to(flank_target)
+			var cover_distance_from_me := cover_pos.length()
+
+			if cover_distance_to_target >= my_distance_to_target:
+				continue
+			if cover_distance_from_me > 250.0:
+				continue
+			if not candidate.get("reachable", true):
+				continue
+
+			var score := (my_distance_to_target - cover_distance_to_target) - cover_distance_from_me * 0.3
+			if score > best_score:
+				best_score = score
+				best_cover = cover_pos
+
+		return best_cover
+
+
 	func set_under_fire(value: bool) -> void:
 		_under_fire = value
 
@@ -990,6 +1015,26 @@ func test_attack_waypoint_selection_rejects_building_detour_waypoint() -> void:
 
 	assert_eq(chosen, local_progress_waypoint["point"],
 		"Combat-path pursuit should reject Building-map waypoints whose nav route is a large detour behind interior walls")
+
+
+func test_flank_cover_selection_does_not_reuse_building_attack_waypoint() -> void:
+	var flank_target := Vector2(952.0, 673.0)
+	var local_cover := {
+		"point": Vector2(820.0, 690.0),
+		"reachable": true,
+	}
+	var building_attack_waypoint := {
+		"point": Vector2(290.0, 660.0),
+		"reachable": true,
+	}
+
+	var chosen := enemy.choose_flank_cover_for_test(flank_target, [
+		building_attack_waypoint,
+		local_cover,
+	])
+
+	assert_eq(chosen, local_cover["point"],
+		"Flank cover selection should stay on local flank-progress cover instead of reusing Building attack-path waypoints that collapse the maneuver")
 
 
 # ============================================================================

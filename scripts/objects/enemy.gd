@@ -3405,8 +3405,6 @@ func _has_clear_path_to(target: Vector2) -> bool:
 
 ## Find cover position closer to the flank target for cover-to-cover movement.
 func _find_flank_cover_toward_target() -> void:
-	var wp_f := _combat_waypoint(_flank_target)  # Issue #1227
-	if wp_f != Vector2.ZERO: _flank_next_cover = wp_f; _has_flank_cover = true; return
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
 	var found_valid_cover: bool = false
