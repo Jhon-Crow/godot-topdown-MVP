@@ -225,6 +225,32 @@ func test_building_level_fallback_sets_up_weapon_hints() -> void:
 		"Fallback initialization should keep Building weapon hints active for issue #1810")
 
 
+func test_building_level_scene_has_export_safe_weapon_hints_component() -> void:
+	var scene_text := FileAccess.get_file_as_string("res://scenes/levels/BuildingLevel.tscn")
+
+	assert_string_contains(scene_text, "path=\"res://scripts/components/weapon_hints_component.gd\"",
+		"Building scene should directly include WeaponHintsComponent so exported builds do not depend on level GDScript _ready()")
+	assert_string_contains(scene_text, "[node name=\"WeaponHintsComponent\" type=\"Node\" parent=\".\"]",
+		"Building scene should have a scene-owned WeaponHintsComponent")
+	assert_string_contains(scene_text, "player_path = NodePath(\"../Entities/Player\")",
+		"Scene-owned WeaponHintsComponent should resolve the Building player")
+	assert_string_contains(scene_text, "canvas_layer_path = NodePath(\"../CanvasLayer\")",
+		"Scene-owned WeaponHintsComponent should resolve the Building CanvasLayer")
+
+
+func test_weapon_hints_component_supports_scene_owned_auto_setup() -> void:
+	var script := load("res://scripts/components/weapon_hints_component.gd") as GDScript
+	assert_not_null(script, "Weapon hints component script should load")
+
+	var source := script.source_code
+	assert_string_contains(source, "@export var player_path: NodePath",
+		"WeaponHintsComponent should expose player_path for scene-owned setup")
+	assert_string_contains(source, "@export var canvas_layer_path: NodePath",
+		"WeaponHintsComponent should expose canvas_layer_path for scene-owned setup")
+	assert_string_contains(source, "setup(configured_player, configured_canvas_layer)",
+		"WeaponHintsComponent should auto-call setup when exported NodePaths resolve")
+
+
 func test_building_level_fallback_skips_duplicate_weapon_hints_setup() -> void:
 	var fallback := MockLevelInitFallback.new()
 	fallback.existing_component = true

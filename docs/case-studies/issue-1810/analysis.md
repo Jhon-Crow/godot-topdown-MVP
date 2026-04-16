@@ -37,6 +37,8 @@ The April 16 runtime log confirms that `BuildingLevel` uses `LevelInitFallback` 
 
 Current branch code now calls `SetupWeaponHints(levelRoot)` before `SyncGDScriptProperties(levelRoot)`. The April 16 log does not include the expected `Weapon hints component added and setup` message before `GDScript properties synced`, which means the attached test build did not contain the current fallback fix or was built from a commit before `9c005143`.
 
+To make the Building map robust even when GDScript `_ready()` is skipped, the scene should also own a `WeaponHintsComponent` with exported player/canvas paths. That component can auto-call `setup()` from its own `_ready()`, while the fallback path remains duplicate-safe because it already skips setup when a `WeaponHintsComponent` child exists.
+
 ## Proposed Fix Shape
 
 1. Replace remaining hardcoded tutorial strings with translation-backed builders.
@@ -45,3 +47,4 @@ Current branch code now calls `SetupWeaponHints(levelRoot)` before `SyncGDScript
    - English locale must not show Russian tutorial text on Labyrinth.
    - Building and Factory level scripts must keep the shared weapon hints wiring in place.
    - `LevelInitFallback.cs` must initialize `WeaponHintsComponent` before syncing Building GDScript properties.
+   - `BuildingLevel.tscn` must directly include an export-safe `WeaponHintsComponent` with player and canvas paths.
