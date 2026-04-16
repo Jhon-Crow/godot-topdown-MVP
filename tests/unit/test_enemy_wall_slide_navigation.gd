@@ -54,15 +54,17 @@ func test_issue_1357_enemy_source_uses_player_style_wall_slide() -> void:
 
 	var func_idx := source.find("func _move_to_target_nav(")
 	assert_gt(func_idx, 0, "_move_to_target_nav function should exist in enemy.gd")
-	var func_body := source.substr(func_idx, 1600)
+	var func_body := source.substr(func_idx, 2200)
 
-	assert_true(func_body.contains("Issue #1357: mirror player wall-slide behavior"),
-		"Issue #1357: enemy nav movement should document the player-style wall-slide fix")
+	assert_true(source.contains("_get_issue_1357_wall_slide_direction(nav_dir)"),
+		"Issue #1357: SEARCHING should use the same wall-slide path direction as pursuing")
 	assert_true(func_body.contains("nav_direction.dot(avoided_direction) >= 0.5"),
 		"Issue #1357: wall avoidance must stay path-consistent")
 	assert_true(func_body.contains("direction.slide(_normal)"),
 		"Issue #1357: enemy movement should project along real slide-collision normals")
 	assert_true(func_body.contains("direction.slide(_p.get_normal())"),
 		"Issue #1357: speculative collision probe should use the same slide projection")
+	assert_true(source.contains("dir.dot(_avoidance_velocity.normalized()) >= 0.5"),
+		"Issue #1357: ORCA avoidance should not override searching with a path-opposing velocity")
 	assert_false(func_body.contains("escape-dominant weight") or func_body.contains("_en * (1.5"),
 		"Issue #1357: enemy movement should not push away from the path with escape normals")

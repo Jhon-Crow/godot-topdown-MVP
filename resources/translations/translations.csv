@@ -233,6 +233,12 @@ HINT_KEY_RMB_DOWN_CLOSE,RMB↓ close,ПКМ↓ закрыть
 HINT_KEY_GRENADE_ARM,G+RMB right,G+ПКМ вправо
 HINT_KEY_GRENADE_AIM,G+RMB→release G,G+ПКМ→отпусти G
 HINT_KEY_GRENADE_THROW,RMB throw,ПКМ бросок
+HINT_GRENADE_HOLD_G_RMB,hold G+RMB,удерживать G+ПКМ
+HINT_GRENADE_DRAG_RIGHT,flick mouse right,дёрнуть мышкой вправо
+HINT_GRENADE_RELEASE_RMB,release RMB,отпустить ПКМ
+HINT_GRENADE_HOLD_RMB,hold RMB,зажать ПКМ
+HINT_GRENADE_RELEASE_G,release G,отпустить G
+HINT_GRENADE_AIM_RELEASE_RMB,aim and release RMB,прицелиться и отпустить ПКМ
 HINT_BOLT_ACTION_WORD,Cock the bolt,Передёрни затвор
 HINT_COCK_HAMMER,Cock the hammer,Взведи курок
 HINT_SCOPE,Scope in,Прицелься через оптику

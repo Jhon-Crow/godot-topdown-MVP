@@ -10,12 +10,13 @@ The reported bug is not about ordinary patrol routes. The screenshots show a vis
 
 The root cause is in the enemy movement layer after NavigationAgent2D has already produced a valid next path point. Enemy navigation direction was modified by raycast wall avoidance and by a normal-based "corner escape" push. At the failing corner, that can pull the enemy away from the planned path or remove the tangential part of the motion. The player already solved the same class of wall-speed problem by projecting the intended direction along slide collision normals and normalizing it.
 
-The implemented fix mirrors that player-side behavior inside enemy path movement:
+The implemented fix mirrors that player-side behavior inside enemy path movement and SEARCHING recovery:
 
 - keep the NavigationAgent2D direction as the source of truth;
 - allow wall avoidance only when it remains reasonably aligned with the path;
 - project the enemy direction along real slide-collision normals instead of adding an escape normal away from the path;
 - use the same projection for the speculative collision probe when the enemy is nearly stopped.
+- reject ORCA avoidance velocities that are no longer aligned with the current path direction.
 
 ## Collected Data
 
@@ -31,6 +32,7 @@ Owner logs are preserved under `logs/`. The most relevant files are:
 - `game_log_20260324_200849.txt`
 - `game_log_20260325_064110.txt`
 - `game_log_20260325_171900.txt`
+- `game_log_20260417_001147.txt`
 - PR 1477 follow-up logs from March 25 and March 26, including broken-binary reports
 
 Screenshots are preserved under `images/`:
@@ -86,6 +88,12 @@ PR 1477 owner feedback screenshot:
 - Owner requested updating from main, collecting failed attempts, and using a new approach.
 - The owner specifically suggested changing enemy-wall interaction by analogy with the player, because the player does not lose speed against walls.
 
+2026-04-16, PR 1857 owner feedback:
+
+- Owner reported that enemies still get stuck and attached `game_log_20260417_001147.txt`.
+- The log records `Enemy2` globally stuck at `(461.8564, 663.9341)` after 20 seconds, then repeated `SEARCHING: Stuck at wp ... skipping` messages.
+- That shows the previous PR 1857 draft fixed only the pursuing/path helper path; SEARCHING still used direct waypoint velocity and raw ORCA output without the same wall projection.
+
 ## Evidence
 
 The path exists:
@@ -98,6 +106,7 @@ The failure is at the movement/collision layer:
 
 - The enemy stalls at the physical wall/corner, while the planned path remains visible.
 - Repeated corner-check logs appear while navigation and enemy tracking are otherwise alive.
+- `game_log_20260417_001147.txt` shows BuildingLevel navigation baked with `poly_count=97`, then `Enemy2` entering GLOBAL STUCK at line 2250 and repeated SEARCHING waypoint skips at lines 2259, 2270, 2278, 2285, and 2299.
 - The owner's "can pass only if another enemy pushes it" observation points to contact physics/tangential velocity, not missing navigation data.
 
 Prior fixes did not target the exact contact behavior:
@@ -129,14 +138,14 @@ The player uses a different model: when pushing into a wall, project the request
 
 ## Implemented Solution
 
-Changed `scripts/objects/enemy.gd::_move_to_target_nav()`:
+Changed `scripts/objects/enemy.gd`:
 
-- stores the raw `nav_direction`;
-- computes the raycast avoidance direction;
-- keeps the avoided direction only when `nav_direction.dot(avoided_direction) >= 0.5`;
-- iterates previous slide-collision normals and applies `direction.slide(normal)` when the enemy is pushing into the wall;
-- applies the same slide projection to the speculative collision probe used when velocity is nearly zero;
-- removes the old escape-normal addition from this movement path.
+- `_get_issue_1357_wall_slide_direction()` stores the raw `nav_direction`, computes raycast avoidance, and keeps avoidance only when `nav_direction.dot(avoided_direction) >= 0.5`;
+- the helper iterates previous slide-collision normals and applies `direction.slide(normal)` when the enemy is pushing into the wall;
+- the helper applies the same slide projection to the speculative collision probe used when velocity is nearly zero;
+- `_move_to_target_nav()` and SEARCHING waypoint movement both use that helper;
+- ORCA avoidance velocity is accepted only when it remains aligned with the corrected path direction;
+- the old escape-normal addition is removed from this movement path.
 
 This is intentionally narrow. It does not modify patrol point generation, enemy scene collision masks, global stuck timing, NavigationAgent parameters, or motion mode.
 
@@ -147,6 +156,7 @@ Added `tests/unit/test_enemy_wall_slide_navigation.gd`:
 - pure vector test proving wall projection preserves a normalized path tangent;
 - pure vector test proving perpendicular avoidance is rejected while aligned avoidance is accepted;
 - source-level guard test proving `_move_to_target_nav()` contains the Issue 1357 wall-slide projection and no longer contains the old escape-normal weight pattern.
+- source-level guard test proving SEARCHING also uses the same helper and rejects path-opposing ORCA output.
 
 ## Alternatives Considered
 

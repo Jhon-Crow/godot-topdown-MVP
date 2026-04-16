@@ -1,0 +1,2 @@
+# Allow game logs in case study evidence folders
+!game_log*.txt
