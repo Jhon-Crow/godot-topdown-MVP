@@ -1514,7 +1514,7 @@ func _build_grenade_hint_bbcode(step: int) -> String:
 		"[отпустить G]",
 		"[прицелиться и отпустить ПКМ]",
 	]
-	var strikethrough_progress := [0.0, 0.2, 0.34, 0.5, 0.68, 0.86]
+	var strikethrough_progress := [0.0, 0.17, 0.28, 0.45, 0.62, 0.78]
 	var clamped_step := clampi(step, 0, strikethrough_progress.size() - 1)
 	var highlighted_part := mini(clamped_step, parts.size() - 1)
 	_extend_hint_strikethrough(HINT_GRENADE, strikethrough_progress[clamped_step])

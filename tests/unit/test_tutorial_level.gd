@@ -123,6 +123,7 @@ class MockTutorialLevel:
 	var _active_hints: Dictionary = {}
 	## Active hint colors dictionary: hint_key -> Color (Issue #945)
 	var _active_hint_colors: Dictionary = {}
+	var _hint_strike_progress: Dictionary = {}
 
 	func get_current_step() -> TutorialStep:
 		return _current_step
@@ -132,6 +133,9 @@ class MockTutorialLevel:
 
 	func get_hint_color(hint_key: String) -> Color:
 		return _active_hint_colors.get(hint_key, Color.WHITE)
+
+	func get_hint_strike_progress(hint_key: String) -> float:
+		return _hint_strike_progress.get(hint_key, 0.0)
 
 	func is_hint_active(hint_key: String) -> bool:
 		return _active_hints.has(hint_key)
@@ -146,6 +150,7 @@ class MockTutorialLevel:
 	func _dismiss_hint(hint_key: String) -> void:
 		_active_hints.erase(hint_key)
 		_active_hint_colors.erase(hint_key)
+		_hint_strike_progress.erase(hint_key)
 
 	func _get_hint_color(hint_key: String) -> Color:
 		match hint_key:
@@ -169,6 +174,7 @@ class MockTutorialLevel:
 	func _add_hint(hint_key: String, text: String) -> void:
 		_active_hints[hint_key] = text
 		_active_hint_colors[hint_key] = _get_hint_color(hint_key)
+		_hint_strike_progress[hint_key] = 0.0
 
 	func _build_grenade_hint_bbcode(step: int) -> String:
 		var parts := [
@@ -178,7 +184,10 @@ class MockTutorialLevel:
 			"[отпустить G]",
 			"[прицелиться и отпустить ПКМ]",
 		]
-		var highlighted_part := mini(step, parts.size() - 1)
+		var strikethrough_progress := [0.0, 0.17, 0.28, 0.45, 0.62, 0.78]
+		var clamped_step := clampi(step, 0, strikethrough_progress.size() - 1)
+		var highlighted_part := mini(clamped_step, parts.size() - 1)
+		_hint_strike_progress[HINT_GRENADE] = strikethrough_progress[clamped_step]
 		var styled: PackedStringArray = []
 		for i in range(parts.size()):
 			if i < highlighted_part:
@@ -2173,11 +2182,15 @@ func test_grenade_hint_requires_actual_input_transitions_for_reviewed_steps() ->
 	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
 	assert_true(hint_text.contains("[color=#ff4444][дёрнуть мышкой вправо] [отпустить ПКМ][/color]"),
 		"Dragging right should complete only the right-flick action and keep the RMB release action highlighted")
+	assert_eq(tutorial.get_hint_strike_progress(MockTutorialLevel.HINT_GRENADE), 0.28,
+		"Dragging right should strike through only the first two internal actions, not the RMB release action")
 
 	tutorial.update_grenade_hint_from_input(true, false, 40.0)
 	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
 	assert_true(hint_text.contains("[color=#ff4444][зажать ПКМ][/color]"),
 		"Releasing RMB should immediately complete that step and highlight RMB hold next")
+	assert_eq(tutorial.get_hint_strike_progress(MockTutorialLevel.HINT_GRENADE), 0.45,
+		"Only releasing RMB should advance the strikethrough past the combined visual drag/release group")
 
 	tutorial.update_grenade_hint_from_input(false, false, 40.0)
 	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")

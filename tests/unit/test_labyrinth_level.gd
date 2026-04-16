@@ -126,6 +126,7 @@ class MockLabyrinthTutorial:
 	var _active_hints: Dictionary = {}
 	## Active hint colors: hint_key -> Color (Issue #945).
 	var _active_hint_colors: Dictionary = {}
+	var _hint_strike_progress: Dictionary = {}
 
 	func is_hint_active(hint_key: String) -> bool:
 		return _active_hints.has(hint_key)
@@ -138,6 +139,9 @@ class MockLabyrinthTutorial:
 
 	func get_hint_color(hint_key: String) -> Color:
 		return _active_hint_colors.get(hint_key, Color.WHITE)
+
+	func get_hint_strike_progress(hint_key: String) -> float:
+		return _hint_strike_progress.get(hint_key, 0.0)
 
 	func get_active_hint_count() -> int:
 		return _active_hints.size()
@@ -165,6 +169,7 @@ class MockLabyrinthTutorial:
 	func _add_hint(hint_key: String, text: String) -> void:
 		_active_hints[hint_key] = text
 		_active_hint_colors[hint_key] = _get_tutorial_hint_color(hint_key)
+		_hint_strike_progress[hint_key] = 0.0
 
 	func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
 		var parts := [
@@ -174,7 +179,10 @@ class MockLabyrinthTutorial:
 			"[отпустить G]",
 			"[прицелиться и отпустить ПКМ]",
 		]
-		var highlighted_part := mini(step, parts.size() - 1)
+		var strikethrough_progress := [0.0, 0.17, 0.28, 0.45, 0.62, 0.78]
+		var clamped_step := clampi(step, 0, strikethrough_progress.size() - 1)
+		var highlighted_part := mini(clamped_step, parts.size() - 1)
+		_hint_strike_progress[TUTORIAL_HINT_GRENADE] = strikethrough_progress[clamped_step]
 		var styled: PackedStringArray = []
 		for i in range(parts.size()):
 			if i < highlighted_part:
@@ -188,6 +196,7 @@ class MockLabyrinthTutorial:
 	func _dismiss_hint(hint_key: String) -> void:
 		_active_hints.erase(hint_key)
 		_active_hint_colors.erase(hint_key)
+		_hint_strike_progress.erase(hint_key)
 
 	## Fix 3rd#4, 3rd#3: Build BBCode for sniper bolt-cycle hint with 4-step sequence.
 	func _build_tutorial_sniper_bolt_hint_bbcode(step: int) -> String:
@@ -1297,11 +1306,15 @@ func test_lab_grenade_hint_requires_actual_input_transitions_for_reviewed_steps(
 	hint_text = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
 	assert_true(hint_text.contains("[color=#ff4444][дёрнуть мышкой вправо] [отпустить ПКМ][/color]"),
 		"Dragging right should complete only the right-flick action and keep the RMB release action highlighted")
+	assert_eq(grenade_lab.get_hint_strike_progress(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE), 0.28,
+		"Dragging right should strike through only the first two internal lab actions, not the RMB release action")
 
 	grenade_lab.update_tutorial_grenade_hint_from_input(true, false, 40.0)
 	hint_text = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
 	assert_true(hint_text.contains("[color=#ff4444][зажать ПКМ][/color]"),
 		"Releasing RMB should immediately complete that lab step and highlight RMB hold next")
+	assert_eq(grenade_lab.get_hint_strike_progress(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE), 0.45,
+		"Only releasing RMB should advance the lab strikethrough past the combined visual drag/release group")
 
 	grenade_lab.update_tutorial_grenade_hint_from_input(false, false, 40.0)
 	hint_text = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
