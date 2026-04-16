@@ -52,6 +52,10 @@ class MockGrenadeTutorial:
 			_reset_tutorial_grenade_hint_progress()
 			return
 
+		if grenade_state == GRENADE_STATE_IDLE and _tutorial_grenade_hint_step > 0:
+			_reset_tutorial_grenade_hint_progress()
+			return
+
 		if grenade_state == GRENADE_STATE_WAITING_FOR_G_RELEASE:
 			_tutorial_grenade_hint_step = 1
 			_tutorial_grenade_g_was_held = true
@@ -60,10 +64,6 @@ class MockGrenadeTutorial:
 			_tutorial_grenade_hint_step = 2
 			_tutorial_grenade_g_was_held = false
 			_tutorial_grenade_throw_was_held = true
-		elif grenade_state == GRENADE_STATE_IDLE and _tutorial_grenade_hint_step > 0:
-			_reset_tutorial_grenade_hint_progress()
-			return
-
 		var label = _tutorial_hints[TUTORIAL_HINT_GRENADE]
 		var new_text := _build_tutorial_grenade_hint_bbcode(_tutorial_grenade_hint_step)
 		if label.text != new_text:
@@ -119,6 +119,16 @@ func test_grenade_hint_does_not_advance_without_real_prepare_state() -> void:
 		"Raw input alone must not advance the grenade tutorial before the grenade state machine arms the throw")
 	assert_eq(tutorial._tutorial_hint_strike_progress[tutorial.TUTORIAL_HINT_GRENADE], 0.0,
 		"Without the real prepare state, the grenade hint should stay at its initial strikethrough progress")
+
+
+func test_grenade_hint_press_and_release_g_without_activation_stays_initial() -> void:
+	tutorial.update_step(true, false, tutorial.GRENADE_STATE_IDLE)
+	tutorial.update_step(false, false, tutorial.GRENADE_STATE_IDLE)
+
+	assert_eq(tutorial._tutorial_grenade_hint_step, 0,
+		"Pressing and releasing G without activating the grenade must leave the tutorial at the initial step")
+	assert_eq(tutorial._tutorial_hint_strike_progress[tutorial.TUTORIAL_HINT_GRENADE], 0.0,
+		"Pressing and releasing G without activation must not strike through any grenade hint segment")
 
 
 class MockShotgunReloadTutorial:

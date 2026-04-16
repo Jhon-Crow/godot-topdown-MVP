@@ -2523,13 +2523,20 @@ func _update_tutorial_grenade_hint_step() -> void:
 		_reset_tutorial_grenade_hint_tracking()
 		return
 
+	var grenade_state := 0
+	if _player != null and _player.has_method("GetGrenadeState"):
+		grenade_state = int(_player.GetGrenadeState())
 	var g_pressed: bool = Input.is_action_pressed("grenade_prepare")
 	var rmb_pressed: bool = Input.is_action_pressed("grenade_throw")
 	var current_mouse_pos := get_global_mouse_position()
 	var rmb_just_pressed := rmb_pressed and not _tutorial_grenade_rmb_was_pressed
 	var rmb_just_released := not rmb_pressed and _tutorial_grenade_rmb_was_pressed
 
-	if _tutorial_grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
+	if grenade_state == 0 and _tutorial_grenade_hint_step > 0:
+		_reset_tutorial_grenade_hint_tracking()
+	elif grenade_state == 1 and _tutorial_grenade_hint_step > 3:
+		_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
 		if g_pressed or rmb_pressed or _tutorial_grenade_rmb_was_pressed:
 			_reset_tutorial_grenade_hint_tracking()
 	elif _tutorial_grenade_hint_step == 1 and not g_pressed and not _tutorial_grenade_drag_completed:
@@ -2549,7 +2556,7 @@ func _update_tutorial_grenade_hint_step() -> void:
 			_tutorial_grenade_drag_completed = true
 			_tutorial_grenade_hint_step = 2
 
-	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed:
+	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed and grenade_state >= 1:
 		_tutorial_grenade_hint_step = 1
 		_tutorial_grenade_g_was_held = true
 	elif _tutorial_grenade_hint_step == 2 and _tutorial_grenade_drag_completed and rmb_just_released:

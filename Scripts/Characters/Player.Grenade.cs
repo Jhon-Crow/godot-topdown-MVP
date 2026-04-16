@@ -926,6 +926,14 @@ public partial class Player
         return _grenadeState != GrenadeState.Idle;
     }
 
+    /// <summary>
+    /// Numeric grenade state for GDScript tutorial hint tracking.
+    /// </summary>
+    public int GetGrenadeState()
+    {
+        return (int)_grenadeState;
+    }
+
     #endregion
 
     #region Grenade Animation Methods
