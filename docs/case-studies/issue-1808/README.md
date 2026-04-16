@@ -21,6 +21,10 @@
 - `logs/game_log_20260416_095403.txt` - owner follow-up showing Building still at `0` for shotgun and Labyrinth Complex HUD counters broken
 - `logs/game_log_20260416_101928.txt` - owner follow-up showing the C# player equips shotgun as `0/8`, then level scripts take the already-equipped early-return path
 - `logs/game_log_20260416_192552.txt` - latest owner follow-up showing `LabyrinthLevel` refreshes shotgun HUD correctly, while `BuildingLevel` and `Labyrinth2Level` do not reach their level HUD setup before the user leaves the map
+- `logs/game_log_20260416_204334.txt` - latest owner follow-up showing `BuildingLevel` is initialized by `LevelInitFallback` and `Labyrinth2Level` has no level-script/fallback HUD refresh
+- `raw-comments/issue-comments-20260416-latest.json` - latest issue/PR conversation comment export for this case-study pass
+- `raw-comments/pr-review-comments-20260416-latest.json` - latest PR inline review comment export
+- `raw-comments/pr-reviews-20260416-latest.json` - latest PR review export
 
 ## Timeline
 
@@ -84,7 +88,7 @@ The previous fix made startup display helpers read `ShellsInTube`, but the level
 
 ### 2026-04-16 19:25:52 UTC
 
-The latest owner log changes the diagnosis. `LabyrinthLevel` now reaches the expected post-config refresh:
+The owner log changed the diagnosis. `LabyrinthLevel` reached the expected post-config refresh:
 
 - `HUD ammo refreshed (post level ammo config): Shotgun 8/28`
 
@@ -94,6 +98,17 @@ The same log then enters `BuildingLevel` and `Labyrinth2Level`, and both scenes 
 - `Player] Ready! Ammo: 0/8`
 
 However, neither scene emits the expected level-script setup logs before the owner navigates away. `BuildingLevel` has no `Found Environment/Enemies`, `Setting up weapon`, or `HUD ammo refreshed` lines. `Labyrinth2Level` similarly has no level counter/HUD setup lines. Both scripts were running `_setup_navigation()` before enemy tracking and player/HUD tracking. On the larger maps, the navigation parse/bake can delay the rest of `_ready()`, leaving visible HUD counters at their default C# startup state during the first seconds of the level.
+
+### 2026-04-16 20:43:34 UTC
+
+The newest owner log narrowed the remaining failure to the exported-build fallback path:
+
+1. `BuildingLevel` logs `GDScript _ready() did NOT execute - performing C# fallback initialization`.
+2. The fallback tracks enemies and starts replay recording, but it never logs an ammo HUD refresh.
+3. The fallback weapon binding probes child weapon nodes and initializes the HUD from `CurrentAmmo`, so shotgun startup remains `0/8`.
+4. `Labyrinth2Level` logs the C# player equipping shotgun and `Ready! Ammo: 0/8`, but it emits no `Labyrinth2Level` setup logs and had no `LevelInitFallback` node in the scene.
+
+So the previous GDScript fixes were correct for the editor/GDScript path, but incomplete for the exported fallback path that the owner is actually hitting on Building and Labyrinth Complex.
 
 ## Code Evidence
 
@@ -131,6 +146,14 @@ Labyrinth and Labyrinth2 now find `CanvasLayer/UI/AmmoLabel` before selected wea
 
 The final fix also moves navigation baking behind the critical startup work on Building, Labyrinth, Labyrinth2, and TestTier. Enemy tracking, enemy labels, player tracking, weapon setup, and the first shotgun HUD refresh now complete before `_setup_navigation` is deferred. This preserves the Issue #1289 navmesh bake, but prevents expensive navigation work from blocking first-frame counters on large maps.
 
+The newest fix extends the same rule to the C# exported fallback path:
+
+- `LevelInitFallback` now binds to `Player.CurrentWeapon` before probing child nodes.
+- `LevelInitFallback` refreshes shotgun HUD ammo from `Shotgun.ShellsInTube` and `ReserveAmmo`.
+- `LevelInitFallback` applies a post-config HUD refresh so the visible counter is corrected even when no shotgun-specific magazine reinitialization branch runs.
+- `Labyrinth2Level.tscn` now includes `LevelInitFallback`, so Labyrinth Complex still gets enemy tracking, ammo HUD setup, camera limits, exit zone, warm lights, replay, and navmesh baking if GDScript `_ready()` is skipped in an exported build.
+- Player weapon equip/ready logs now use the same shotgun display ammo helper, so future owner logs should show `8/8` instead of `0/8` for a loaded shotgun.
+
 ## Test Coverage
 
 Added unit coverage in:
@@ -153,15 +176,20 @@ Additional regression tests now cover the C# pre-equipped shotgun path on Buildi
 
 Additional regression tests read the real level scripts and assert that Building, Labyrinth, Labyrinth2, and TestTier initialize enemy/player HUD counters before scheduling navigation setup. This protects the specific 2026-04-16 19:25 failure mode where the level scene loaded but the level script had not reached HUD setup before the visible `0/8` state was observed.
 
+New fallback regression coverage models the 2026-04-16 20:43 log:
+
+1. `LevelInitFallback` shotgun startup display uses `ShellsInTube`, not `CurrentAmmo`.
+2. `LevelInitFallback` chooses `Player.CurrentWeapon` before stale child nodes.
+3. `LevelInitFallback` does not treat a shotgun with shells in the tube as out of ammo just because `CurrentAmmo` is `0`.
+4. `Labyrinth2Level.tscn` includes `LevelInitFallback`.
+5. `Player` ready/equip logs use the shotgun display ammo helper.
+
 ## Online / External Facts
 
-No external web facts were needed to identify the fault. The issue was fully explained by:
-
-- the owner report
-- the attached screenshot
-- the attached runtime log
-- the local level-script code
+- Godot issue [godotengine/godot#94150](https://github.com/godotengine/godot/issues/94150) documents exported Godot 4.3 builds failing under binary-token GDScript export mode, which is the class of failure this project already guards with `LevelInitFallback`.
+- The Godot 4.3 [`Signal.connect`](https://docs.godotengine.org/en/4.3/classes/class_signal.html#class-signal-method-connect) documentation notes that a signal should not be connected twice to the same callable. In this case, `LevelInitFallback` only connects after it proves GDScript `_ready()` did not initialize the level.
+- Godot's deferred-call behavior supports the fallback design: `LevelInitFallback._Ready()` uses `CallDeferred(CheckAndInitialize)` so the level GDScript gets a chance to run before fallback initialization decides whether to take over.
 
 ## Outcome
 
-The HUD now receives the correct initial shotgun ammo state before the first shot on the affected maps, on `Labyrinth2`, and on the persisted startup path that reaches `TestTier`, while the existing `ShellCountChanged` path continues handling subsequent updates. HUD setup is also bound to the actual equipped C# weapon, and critical HUD/enemy counters are initialized before deferred navmesh baking can consume startup time on larger maps.
+The HUD now receives the correct initial shotgun ammo state before the first shot on the affected maps, on `Labyrinth2`, and on the persisted startup path that reaches `TestTier`, while the existing `ShellCountChanged` path continues handling subsequent updates. HUD setup is bound to the actual equipped C# weapon, critical HUD/enemy counters are initialized before deferred navmesh baking can consume startup time on larger maps, and exported fallback initialization now mirrors the shotgun-aware GDScript HUD path.

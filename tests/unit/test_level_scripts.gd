@@ -324,6 +324,7 @@ class MockLevelInitFallback:
 	var _current_enemy_count: int = 0
 	var _game_over_shown: bool = false
 	var game_over_message_shown: bool = false
+	var _ammo_label_text: String = ""
 
 	func show_game_over_message() -> void:
 		_game_over_shown = true
@@ -332,6 +333,28 @@ class MockLevelInitFallback:
 	func on_player_ammo_depleted_for_current_weapon(current_ammo: int, reserve_ammo: int) -> void:
 		if _current_enemy_count > 0 and not _game_over_shown and current_ammo <= 0 and reserve_ammo <= 0:
 			show_game_over_message()
+
+	func get_weapon_display_current_ammo(weapon: Dictionary) -> int:
+		if weapon.get("name", "") == "Shotgun" and weapon.has("ShellsInTube"):
+			return weapon["ShellsInTube"]
+		return weapon.get("CurrentAmmo", 0)
+
+	func refresh_weapon_hud(weapon: Dictionary) -> void:
+		var current_ammo := get_weapon_display_current_ammo(weapon)
+		var reserve_ammo: int = weapon.get("ReserveAmmo", 0)
+		_ammo_label_text = "AMMO: %d/%d" % [current_ammo, reserve_ammo]
+
+	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
+		if not current_weapon.is_empty():
+			return current_weapon
+		if not selected_weapon.is_empty():
+			return selected_weapon
+		return stale_first_child
+
+	func on_player_ammo_depleted_for_weapon(weapon: Dictionary) -> void:
+		var current_ammo := get_weapon_display_current_ammo(weapon)
+		var reserve_ammo: int = weapon.get("ReserveAmmo", 0)
+		on_player_ammo_depleted_for_current_weapon(current_ammo, reserve_ammo)
 
 
 # ============================================================================
@@ -784,6 +807,16 @@ func _get_function_body(script_path: String, function_name: String) -> String:
 	if next_function < 0:
 		return source.substr(function_start)
 	return source.substr(function_start, next_function - function_start)
+
+
+func _read_text_file(path: String) -> String:
+	var file := FileAccess.open(path, FileAccess.READ)
+	assert_not_null(file, "Expected to open %s" % path)
+	if file == null:
+		return ""
+	var text := file.get_as_text()
+	file.close()
+	return text
 
 
 func _assert_ready_sets_counters_before_navigation(script_path: String, level_name: String) -> void:
@@ -2342,6 +2375,88 @@ func test_level_init_fallback_csharp_ammo_depleted_ignores_empty_click_with_rese
 
 	assert_false(level_init_fallback.game_over_message_shown,
 		"LevelInitFallback must not show the game-over message when reserve ammo remains")
+
+
+func test_level_init_fallback_shotgun_startup_uses_shell_count_not_current_ammo() -> void:
+	## Latest owner log showed Building using LevelInitFallback while shotgun CurrentAmmo was 0.
+	level_init_fallback.refresh_weapon_hud({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 28,
+	})
+
+	assert_eq(level_init_fallback._ammo_label_text, "AMMO: 8/28",
+		"LevelInitFallback must display Shotgun ShellsInTube during startup")
+
+
+func test_level_init_fallback_binds_to_current_weapon_before_stale_child() -> void:
+	var equipped_shotgun := {
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 28,
+	}
+	var stale_revolver := {
+		"name": "Revolver",
+		"CurrentAmmo": 0,
+		"ReserveAmmo": 20,
+	}
+
+	var chosen := level_init_fallback.choose_current_weapon(equipped_shotgun, {}, stale_revolver)
+	level_init_fallback.refresh_weapon_hud(chosen)
+
+	assert_eq(level_init_fallback._ammo_label_text, "AMMO: 8/28",
+		"LevelInitFallback must use Player.CurrentWeapon before child-node probing")
+
+
+func test_level_init_fallback_csharp_ammo_depleted_uses_shotgun_shell_count() -> void:
+	level_init_fallback._current_enemy_count = 10
+
+	level_init_fallback.on_player_ammo_depleted_for_weapon({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 1,
+		"ReserveAmmo": 0,
+	})
+
+	assert_false(level_init_fallback.game_over_message_shown,
+		"LevelInitFallback must not treat a loaded shotgun as out of ammo because CurrentAmmo is 0")
+
+
+func test_level_init_fallback_source_uses_current_weapon_and_shotgun_shells() -> void:
+	var source := _read_text_file("res://Scripts/Components/LevelInitFallback.cs")
+
+	assert_string_contains(source, "GetCurrentWeaponNode()",
+		"LevelInitFallback should resolve the authoritative Player.CurrentWeapon")
+	assert_string_contains(source, "currentWeaponValue.Obj is Node currentWeapon",
+		"LevelInitFallback should prefer Player.CurrentWeapon before child probing")
+	assert_string_contains(source, "weapon is Shotgun shotgun",
+		"LevelInitFallback should detect shotgun weapons directly")
+	assert_string_contains(source, "currentAmmo = shotgun.ShellsInTube",
+		"LevelInitFallback should display shotgun ShellsInTube instead of CurrentAmmo")
+	assert_string_contains(source, "RefreshWeaponHud(weapon, \"post fallback level ammo config\")",
+		"LevelInitFallback should push an explicit HUD refresh after fallback ammo setup")
+
+
+func test_labyrinth2_scene_has_level_init_fallback() -> void:
+	var scene_text := _read_text_file("res://scenes/levels/Labyrinth2Level.tscn")
+
+	assert_string_contains(scene_text, "path=\"res://Scripts/Components/LevelInitFallback.cs\"",
+		"Labyrinth Complex needs the C# fallback when exported GDScript _ready() is skipped")
+	assert_string_contains(scene_text, "[node name=\"LevelInitFallback\" type=\"Node\" parent=\".\"]",
+		"Labyrinth Complex scene should instantiate LevelInitFallback")
+
+
+func test_player_ready_log_uses_shotgun_shell_count() -> void:
+	var source := _read_text_file("res://Scripts/Characters/Player.cs")
+
+	assert_string_contains(source, "GetCurrentWeaponReadyAmmoDisplay()",
+		"Player ready/equip logs should use the same display ammo helper")
+	assert_string_contains(source, "CurrentWeapon is Shotgun shotgun",
+		"Player ready/equip logs should special-case shotgun display ammo")
+	assert_string_contains(source, "return (shotgun.ShellsInTube, shotgun.TubeMagazineCapacity)",
+		"Player ready/equip logs should report loaded shotgun shells, not CurrentAmmo")
 
 
 func test_building_ammo_label_buggy_order_misses_initial_update() -> void:
