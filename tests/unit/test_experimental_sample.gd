@@ -1,5 +1,4 @@
-Match found
-noextends GutTest
+extends GutTest
 ## Unit tests for the Experimental Sample active item (Issue #1127).
 ##
 ## Tests the experimental sample item including:
@@ -180,6 +179,16 @@ class MockExperimentalSampleSystem:
 
 
 var manager: MockActiveItemManager
+
+
+func _read_text_file(path: String) -> String:
+	var file := FileAccess.open(path, FileAccess.READ)
+	assert_true(file != null, "Expected file to open: %s" % path)
+	if file == null:
+		return ""
+	var text := file.get_as_text()
+	file.close()
+	return text
 
 
 func before_each() -> void:
@@ -431,6 +440,31 @@ func test_experimental_sample_random_types_cover_full_range() -> void:
 	for expected_type in MockExperimentalSampleSystem.ELIGIBLE_TYPES:
 		assert_true(expected_type in unique_types,
 			"Eligible type %d should appear at least once in 10,000 activations" % expected_type)
+
+
+# ============================================================================
+# C# Runtime Implementation Regression Tests
+# ============================================================================
+
+
+func test_csharp_experimental_sample_pool_includes_new_active_items() -> void:
+	var source := _read_text_file("res://Scripts/Characters/Player.ActiveItems.cs")
+	assert_true(source.contains("19, // FINE_MOTOR_SKILLS"),
+		"C# Experimental Sample pool must include FINE_MOTOR_SKILLS (19)")
+	assert_true(source.contains("20, // DASH"),
+		"C# Experimental Sample pool must include DASH (20)")
+
+
+func test_csharp_experimental_sample_handles_new_active_items() -> void:
+	var source := _read_text_file("res://Scripts/Characters/Player.ActiveItems.cs")
+	assert_true(source.contains("case 19: // FINE_MOTOR_SKILLS"),
+		"C# Experimental Sample switch must handle FINE_MOTOR_SKILLS (19)")
+	assert_true(source.contains("FineMotorSkillsActivateAsync();"),
+		"C# FINE_MOTOR_SKILLS case must trigger the reload sequence")
+	assert_true(source.contains("case 20: // DASH"),
+		"C# Experimental Sample switch must handle DASH (20)")
+	assert_true(source.contains("EnsureExperimentalSampleDashEffect()"),
+		"C# DASH case must create a temporary dash effect when Dash is not equipped")
 
 
 # ============================================================================

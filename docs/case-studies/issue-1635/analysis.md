@@ -4,7 +4,7 @@
 
 **Issue:** The Experimental Sample active item does not trigger effects for FINE_MOTOR_SKILLS (type 19) or DASH (type 20), even though those items exist in the game.
 
-**Root cause:** Two compounding bugs — a hard-coded type range that excluded new items, and incorrect equipped-flag checks that prevented execution even after the range was expanded.
+**Root cause:** Three compounding bugs — a hard-coded type range that excluded new items, incorrect equipped-flag checks that prevented execution even after the range was expanded, and a later C# runtime implementation that still omitted types 19 and 20 from its weighted pool.
 
 ---
 
@@ -14,6 +14,7 @@
 |------|-------------|
 | `game_log_20260329_171906.txt` | Game session log provided by owner on 2026-03-29 (first log). Shows 139 Experimental Sample activations with the pre-fix main-branch binary. Types 19 and 20 never appear. |
 | `game_log_20260329_180633.txt` | Game session log provided by owner on 2026-03-29 (second log, ~1 hour later). 134 Experimental Sample activations with an intermediate/alternative binary. Types 7 and 16 work (new helper code present), but types 19 and 20 still never appear. |
+| `game_log_20260410_221212.txt` | Game session log provided by owner on 2026-04-10 after more fixes. Shows 216 Experimental Sample activations from the shipped C# player path. Types 19 and 20 still never appear because the C# weighted pool omits them. |
 
 ---
 
@@ -97,11 +98,40 @@ The user ran a second game session (~1 hour after Phase 4) using a **different b
 
 The second log reinforces the root cause analysis: even with partial fixes that enable types 7 and 16 to fire, the code path for types 19 and 20 still fails. This is consistent with Bug 2 (equipped-flag guards) being the primary remaining blocker.
 
+### Phase 6 — Third user test (2026-04-10 22:12 – 22:14)
+
+The user ran another session after the PR changed `scripts/characters/player.gd`. The uploaded log (`game_log_20260410_221212.txt`) records 216 Experimental Sample activations. The active level scenes instantiate `res://scenes/characters/csharp/Player.tscn`, so the runtime implementation is `Scripts/Characters/Player.ActiveItems.cs`, not the GDScript player file that had received most of the previous fix.
+
+**Key observations about this binary:**
+- Runtime log messages exactly match the C# implementation, including `Charges remaining: ... — triggering random effect for type ...`.
+- `Scripts/Characters/Player.ActiveItems.cs` used `int[] activeTypes = { 1, 2, 3, 4, 5, 7, 8, 11, 12, 15, 16 };`, so types 19 and 20 were structurally impossible to select.
+- The C# `TriggerExperimentalSampleEffect` switch also had no `case 19` or `case 20`; even forced values would fall through to the homing fallback.
+
+**Type frequency distribution (third log):**
+
+| Type | Item | Count |
+|------|------|-------|
+| 7 | FORCE_FIELD | 36 |
+| 8 | TRAJECTORY_GLASSES | 24 |
+| 15 | DRILLING_BULLETS | 24 |
+| 16 | RECOIL_COMPENSATOR | 24 |
+| 5 | INVISIBILITY_SUIT | 23 |
+| 1 | FLASHLIGHT | 21 |
+| 3 | TELEPORT_BRACERS | 21 |
+| 12 | BREACHING_CHARGES | 18 |
+| 11 | LOUDSPEAKER | 15 |
+| 2 | HOMING_BULLETS | 6 |
+| 4 | BFF_PENDANT | 4 |
+| **19** | **FINE_MOTOR_SKILLS** | **0** |
+| **20** | **DASH** | **0** |
+
+This changes the final root cause: previous GDScript fixes were directionally correct, but they did not affect the shipped C# player scene. The fix must update `Scripts/Characters/Player.ActiveItems.cs`.
+
 ---
 
 ## Root Cause Analysis
 
-Two distinct bugs:
+Three distinct bugs:
 
 ### Bug 1: Hard-coded range excluded new items
 
@@ -131,43 +161,59 @@ Types 19 and 20 are numerically above 17 and thus unreachable.
 
 Similarly, `_dash_equipped` and `_dash_effect` are only set when DASH is the player's equipped item.
 
+### Bug 3: Runtime C# implementation stayed out of sync
+
+All playable level scenes currently instantiate `scenes/characters/csharp/Player.tscn`, which attaches `Scripts/Characters/Player.cs` and its partial `Player.ActiveItems.cs`. The C# Experimental Sample code had an independent weighted pool and switch statement. That pool stopped at type 16:
+
+```csharp
+int[] activeTypes = { 1, 2, 3, 4, 5, 7, 8, 11, 12, 15, 16 };
+```
+
+As a result, FINE_MOTOR_SKILLS (19) and DASH (20) could never be selected in the actual exported build, even though the GDScript implementation had been updated.
+
+Official Godot documentation reviewed during this investigation:
+
+- [Godot C# basics](https://docs.godotengine.org/en/stable/tutorials/scripting/c_sharp/c_sharp_basics.html) — C# scripts are first-class Godot scripts backed by the .NET runtime, so attached C# scene scripts must be updated directly.
+- [Godot Singletons/Autoload](https://docs.godotengine.org/en/stable/tutorials/scripting/singletons_autoload.html) — autoloaded scripts are nodes in the scene tree, matching this project's `/root/ActiveItemManager` access pattern from C#.
+
 ---
 
 ## Solution
 
-The fix in the second iteration addresses all issues:
+The final fix addresses all issues in the shipped C# path and keeps the GDScript-side correction in place:
 
 ### 1. Eligible types updated
 
-Types 7 (FORCE_FIELD) and 16 (RECOIL_COMPENSATOR) re-added to the pool (they have valid on-press effects). Types 19 (FINE_MOTOR_SKILLS) and 20 (DASH) remain in the pool.
+Types 19 (FINE_MOTOR_SKILLS) and 20 (DASH) are added to the C# weighted pool:
+
+```csharp
+private static readonly int[] ExperimentalSampleActiveTypes =
+{
+    1, 2, 3, 4, 5, 7, 8, 11, 12, 15, 16, 19, 20
+};
+```
 
 ### 2. Case 19 — works without FMS equipped
 
-```gdscript
-19: # FINE_MOTOR_SKILLS — instant reload regardless of whether FMS is equipped
-    if _fine_motor_skills_active:
-        return false  # already reloading, re-roll
-    _fine_motor_skills_active = true
-    _fine_motor_skills_activate_async()
-    return true
+```csharp
+case 19: // FINE_MOTOR_SKILLS
+    _fineMotorSkillsActive = true;
+    FineMotorSkillsActivateAsync();
+    return 2.0f;
 ```
 
-The reload logic itself (`_fine_motor_skills_activate_async`) only references the player's weapon node and does not require `_fine_motor_skills_equipped`.
+The reload logic itself (`FineMotorSkillsActivateAsync`) only references the player's weapon and does not require `_fineMotorSkillsEquipped`.
 
 ### 3. Case 20 — creates temporary DashEffect if needed
 
-```gdscript
-20: # DASH — create temporary dash effect if needed, then dash
-    if _dash_effect == null or not is_instance_valid(_dash_effect):
-        _experimental_sample_init_temp_dash()  # create temp node
-    if _dash_effect != null and is_instance_valid(_dash_effect) and not _dash_effect.is_dashing():
-        var dir := (get_global_mouse_position() - global_position).normalized()
-        _dash_effect.activate(dir)
-        return true
-    return false
+```csharp
+case 20: // DASH
+    Node? dashNode = EnsureExperimentalSampleDashEffect();
+    dashNode.Call("activate", dir);
+    return 1.0f;
 ```
 
-`_experimental_sample_init_temp_dash()` instantiates the `DashEffect.tscn` scene, adds it as a child node, and initializes it — the same way `_init_dash()` would, but on demand rather than at equip time.
+`EnsureExperimentalSampleDashEffect()` instantiates `DashEffect.tscn`, adds it as a child node, and initializes it without setting Dash as the equipped active item. `IsDashActive()` now checks the dash effect node directly so movement override and damage immunity work during Experimental Sample dashes.
 
 ### 4. Cases 7 and 16 added
 
@@ -178,7 +224,9 @@ The reload logic itself (`_fine_motor_skills_activate_async`) only references th
 
 ## Files Changed
 
-- `scripts/characters/player.gd` — updated `EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES`, fixed cases 19 and 20, added cases 7 and 16, added three helper functions
-- `tests/unit/test_experimental_sample.gd` — mirrored updated `ELIGIBLE_TYPES` in mock
+- `Scripts/Characters/Player.ActiveItems.cs` — added C# runtime pool entries and handlers for FINE_MOTOR_SKILLS (19) and DASH (20), plus temporary DashEffect creation for Experimental Sample
+- `scripts/characters/player.gd` — previous GDScript-side correction kept in place
+- `tests/unit/test_experimental_sample.gd` — restored broken test header and added C# runtime regression checks for types 19 and 20
 - `docs/case-studies/issue-1635/game_log_20260329_171906.txt` — first game log submitted by owner (pre-fix binary, 139 activations)
 - `docs/case-studies/issue-1635/game_log_20260329_180633.txt` — second game log submitted by owner (partial-fix binary, 134 activations)
+- `docs/case-studies/issue-1635/game_log_20260410_221212.txt` — third game log submitted by owner (C# runtime pool omission, 216 activations)
