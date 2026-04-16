@@ -1598,7 +1598,7 @@ func _setup_player_tracking() -> void:
 	elif _player.has_signal("Died"):
 		_player.Died.connect(_on_player_died)
 
-	var weapon: Node = _find_player_weapon()
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
 	if weapon != null:
 		if weapon.has_signal("AmmoChanged"):
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
@@ -1637,7 +1637,7 @@ func _setup_player_tracking() -> void:
 ## Called after a mid-game weapon swap (e.g. pedestal pickup in Issue #1323) so the
 ## ammo/shot counter UI stays in sync with the new weapon node.
 func _reconnect_weapon_signals() -> void:
-	var weapon: Node = _find_player_weapon()
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
 	if weapon == null:
 		return
 	if weapon.has_signal("AmmoChanged") and not weapon.AmmoChanged.is_connected(_on_weapon_ammo_changed):
@@ -3285,11 +3285,8 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 func _update_magazines_label(mag_counts: Array) -> void:
 	if _magazines_label == null:
 		return
-	var weapon: Node = _find_player_weapon()
-	if weapon != null and weapon.get("UsesTubeMagazine") == true:
-		_magazines_label.visible = false
-		return
-	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
+	if LevelLocalization.weapon_hides_magazines(weapon):
 		_magazines_label.visible = false
 		return
 	_magazines_label.visible = true

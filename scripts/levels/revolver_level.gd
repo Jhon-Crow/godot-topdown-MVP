@@ -772,18 +772,9 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
 
-	# Find equipped weapon to check type and get magazine capacities
-	var weapon: Node = null
-	if _player != null:
-		for _wn in ["Revolver", "Shotgun", "MiniUzi", "SilencedPistol", "SniperRifle", "AssaultRifle", "AKGL", "MakarovPM"]:
-			weapon = _player.get_node_or_null(_wn)
-			if weapon != null:
-				break
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
 
-	if weapon != null and weapon.get("UsesTubeMagazine") == true:
-		_magazines_label.visible = false
-		return
-	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+	if LevelLocalization.weapon_hides_magazines(weapon):
 		_magazines_label.visible = false
 		return
 	_magazines_label.visible = true

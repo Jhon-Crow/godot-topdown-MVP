@@ -1447,13 +1447,9 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 
 	# Check if player has a weapon with tube magazine (shotgun)
 	# If so, hide the magazine label as shotguns don't use detachable magazines
-	var weapon: Node = _find_player_weapon(_player) if _player else null
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
 
-	if weapon != null and weapon.get("UsesTubeMagazine") == true:
-		# Shotgun equipped - hide magazine display
-		_magazines_label.visible = false
-		return
-	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+	if LevelLocalization.weapon_hides_magazines(weapon):
 		_magazines_label.visible = false
 		return
 	_magazines_label.visible = true

@@ -90,6 +90,70 @@ func get_magazines_text(parts: Array[String]) -> String:
 	return "%s: %s" % [tr("ARMORY_STAT_MAG"), " | ".join(parts)]
 
 
+func get_active_player_weapon(player: Node) -> Node:
+	if player == null:
+		return null
+
+	var current_weapon = player.get("CurrentWeapon")
+	if current_weapon != null and is_instance_valid(current_weapon):
+		return current_weapon
+
+	var selected_weapon_node_name := get_selected_weapon_node_name()
+	if selected_weapon_node_name != "":
+		var selected_weapon := player.get_node_or_null(selected_weapon_node_name)
+		if selected_weapon != null:
+			return selected_weapon
+
+	var weapon_names: Array[String] = [
+		"AssaultRifle",
+		"AKGL",
+		"MiniUzi",
+		"SilencedPistol",
+		"SniperRifle",
+		"MakarovPM",
+		"Shotgun",
+		"Revolver",
+	]
+	for weapon_name in weapon_names:
+		var weapon := player.get_node_or_null(weapon_name)
+		if weapon != null:
+			return weapon
+	return null
+
+
+func get_selected_weapon_node_name() -> String:
+	var game_manager := get_node_or_null("/root/GameManager")
+	if game_manager == null or not game_manager.has_method("get_selected_weapon"):
+		return ""
+	match game_manager.get_selected_weapon():
+		"m16":
+			return "AssaultRifle"
+		"ak_gl":
+			return "AKGL"
+		"mini_uzi":
+			return "MiniUzi"
+		"silenced_pistol":
+			return "SilencedPistol"
+		"sniper":
+			return "SniperRifle"
+		"shotgun":
+			return "Shotgun"
+		"revolver":
+			return "Revolver"
+		"makarov_pm":
+			return "MakarovPM"
+		_:
+			return ""
+
+
+func weapon_hides_magazines(weapon: Node) -> bool:
+	if weapon == null:
+		return false
+	if weapon.get("UsesTubeMagazine") == true:
+		return true
+	return weapon.has_signal("CylinderStateChanged")
+
+
 func get_localized_difficulty_name(difficulty_name: String) -> String:
 	var key: String = DIFFICULTY_NAME_KEYS.get(difficulty_name, "")
 	if key != "":

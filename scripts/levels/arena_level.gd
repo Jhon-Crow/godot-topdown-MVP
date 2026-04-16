@@ -1105,7 +1105,7 @@ func _setup_ui() -> void:
 	# Magazines label.
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
-	_magazines_label.text = "Магазины: -"
+	_magazines_label.text = LevelLocalization.get_magazines_text([])
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
 	_magazines_label.offset_top = 132
@@ -1319,22 +1319,13 @@ func _update_ammo_label_magazine(current_ammo: int, reserve_ammo: int) -> void:
 func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
-	# Find equipped weapon
-	var _weapon_for_caps: Node = null
-	if _player != null:
-		for _wn in ["MakarovPM", "Shotgun", "AssaultRifle", "AKGL", "Revolver", "SilencedPistol", "SniperRifle", "MiniUzi"]:
-			_weapon_for_caps = _player.get_node_or_null(_wn)
-			if _weapon_for_caps != null:
-				break
-	if _weapon_for_caps != null and _weapon_for_caps.get("UsesTubeMagazine") == true:
-		_magazines_label.visible = false
-		return
-	if _weapon_for_caps != null and _weapon_for_caps.has_signal("CylinderStateChanged"):
+	var _weapon_for_caps: Node = LevelLocalization.get_active_player_weapon(_player)
+	if LevelLocalization.weapon_hides_magazines(_weapon_for_caps):
 		_magazines_label.visible = false
 		return
 	_magazines_label.visible = true
 	if magazine_ammo_counts.is_empty():
-		_magazines_label.text = "Магазины: -"
+		_magazines_label.text = LevelLocalization.get_magazines_text([])
 		return
 	# Get magazine capacities to distinguish full vs partial spares
 	var mag_max_counts: Array = []

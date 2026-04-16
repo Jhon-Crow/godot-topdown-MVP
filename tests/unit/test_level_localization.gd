@@ -61,6 +61,37 @@ func test_magazines_label_uses_translated_mag_prefix() -> void:
 	assert_eq(_helper.get_magazines_text(["[30]", "25", "10"]), "%s: [30] | 25 | 10" % tr("ARMORY_STAT_MAG"))
 
 
+func test_active_weapon_prefers_current_weapon_before_inactive_shotgun_child() -> void:
+	var player := Node2D.new()
+	add_child_autofree(player)
+	var shotgun := Node.new()
+	shotgun.name = "Shotgun"
+	shotgun.set("UsesTubeMagazine", true)
+	player.add_child(shotgun)
+	var assault_rifle := Node.new()
+	assault_rifle.name = "AssaultRifle"
+	player.add_child(assault_rifle)
+	player.set("CurrentWeapon", assault_rifle)
+
+	assert_eq(_helper.get_active_player_weapon(player), assault_rifle)
+	assert_false(_helper.weapon_hides_magazines(_helper.get_active_player_weapon(player)))
+
+
+func test_active_weapon_fallback_prefers_detachable_weapons_before_shotgun() -> void:
+	var player := Node2D.new()
+	add_child_autofree(player)
+	var shotgun := Node.new()
+	shotgun.name = "Shotgun"
+	shotgun.set("UsesTubeMagazine", true)
+	player.add_child(shotgun)
+	var assault_rifle := Node.new()
+	assault_rifle.name = "AssaultRifle"
+	player.add_child(assault_rifle)
+
+	assert_eq(_helper.get_active_player_weapon(player), assault_rifle)
+	assert_false(_helper.weapon_hides_magazines(_helper.get_active_player_weapon(player)))
+
+
 func test_apply_level_label_populates_top_right_label_text() -> void:
 	var label := Label.new()
 	add_child_autofree(label)
