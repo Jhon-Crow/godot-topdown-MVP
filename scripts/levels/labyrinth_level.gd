@@ -170,6 +170,9 @@ var _tutorial_hint_strike_lines: Dictionary = {}
 ## Progress increases as each step completes; used to animate Line2D extension.
 var _tutorial_hint_strike_progress: Dictionary = {}
 
+## Active strikethrough tween per hint, so rollback can cancel an older forward animation.
+var _tutorial_hint_strike_tweens: Dictionary = {}
+
 ## Issue #944 Session 4: Track line count for each hint (hint_key -> int).
 ## Multi-line hints need multiple Line2D segments, one per line.
 var _tutorial_hint_line_counts: Dictionary = {}
@@ -194,11 +197,15 @@ var _tutorial_shotgun_full_reload_active: bool = false
 ## Whether M16 fire-mode [B] hint should appear after grenade training (Bug fix round 5).
 var _tutorial_m16_needs_fire_mode_hint: bool = false
 
-## Grenade hint step (Bug fix round 5): 0=arm, 1=G held, 2=G released.
+## Grenade hint step (Issue #1818 / PR review feedback): 0..4 map to the effective actions.
 var _tutorial_grenade_hint_step: int = 0
 
 ## Whether G key was held last frame (for grenade hint step tracking).
 var _tutorial_grenade_g_was_held: bool = false
+var _tutorial_grenade_drag_completed: bool = false
+var _tutorial_grenade_rmb_held_after_release: bool = false
+var _tutorial_grenade_rmb_was_pressed: bool = false
+var _tutorial_grenade_hint_drag_start: Vector2 = Vector2.ZERO
 
 ## Unique colors per hint type (Issue #945: simultaneously displayed hints should be different colors).
 const TUTORIAL_HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)              ## Green — reload
@@ -2414,8 +2421,7 @@ func _on_tutorial_reload_completed() -> void:
 			# Bug fix #9 (round 4 fix): use GetCurrentGrenades() method for reliable check.
 			if _tutorial_player_has_grenades():
 				if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-					_tutorial_grenade_hint_step = 0
-					_tutorial_grenade_g_was_held = false
+					_reset_tutorial_grenade_hint_tracking()
 					_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
 						_build_tutorial_grenade_hint_bbcode(0),
 						canvas_layer)
@@ -2442,8 +2448,7 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		if _tutorial_player_has_grenades():
 			if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-				_tutorial_grenade_hint_step = 0
-				_tutorial_grenade_g_was_held = false
+				_reset_tutorial_grenade_hint_tracking()
 				_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
 					_build_tutorial_grenade_hint_bbcode(0),
 					canvas_layer)
@@ -2453,43 +2458,105 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 			_dismiss_all_tutorial_hints()
 
 
-## Build BBCode for the grenade throw hint with step-based highlighting (Bug fix round 5).
-## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
+## Build BBCode for the grenade throw hint with the reviewed issue #1818 steps.
+func _get_tutorial_grenade_hint_actions() -> Array:
+	return [
+		"[%s]" % tr("HINT_GRENADE_HOLD_G_RMB"),
+		"[%s]" % tr("HINT_GRENADE_DRAG_RIGHT"),
+		"[%s]" % tr("HINT_GRENADE_RELEASE_RMB"),
+		"[%s]" % tr("HINT_GRENADE_HOLD_RMB"),
+		"[%s]" % tr("HINT_GRENADE_RELEASE_G"),
+		"[%s]" % tr("HINT_GRENADE_AIM_RELEASE_RMB"),
+	]
+
+
+func _get_tutorial_grenade_hint_strikethrough_progress(completed_actions: int, actions: Array) -> float:
+	if completed_actions <= 0 or actions.is_empty():
+		return 0.0
+	var all_actions := PackedStringArray()
+	for action in actions:
+		all_actions.append(str(action))
+	var total_text := " ".join(all_actions)
+	if total_text.is_empty():
+		return 0.0
+
+	var completed := PackedStringArray()
+	var completed_count := mini(completed_actions, actions.size())
+	for i in range(completed_count):
+		completed.append(str(actions[i]))
+	return float(" ".join(completed).length()) / float(total_text.length())
+
+
 func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
-	var k_arm: String = tr("HINT_KEY_GRENADE_ARM")
-	var k_aim: String = tr("HINT_KEY_GRENADE_AIM")
-	var k_throw: String = tr("HINT_KEY_GRENADE_THROW")
-	match step:
-		0:
-			return "[color=#ff4444][%s][/color] [color=#888888][%s] [%s][/color]" % [k_arm, k_aim, k_throw]
-		1:
-			# First step completed
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.25)
-			return "[color=#888888][%s][/color] [color=#ff4444][%s][/color] [color=#888888][%s][/color]" % [k_arm, k_aim, k_throw]
-		2:
-			# First two steps completed
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.6)
-			return "[color=#888888][%s] [%s][/color] [color=#ff4444][%s][/color]" % [k_arm, k_aim, k_throw]
-		_:
-			# All steps done
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.85)
-			return "[color=#888888][%s] [%s] [%s][/color]" % [k_arm, k_aim, k_throw]
+	var parts := _get_tutorial_grenade_hint_actions()
+	var clamped_step := clampi(step, 0, parts.size() - 1)
+	_extend_tutorial_hint_strikethrough(
+		TUTORIAL_HINT_GRENADE,
+		_get_tutorial_grenade_hint_strikethrough_progress(clamped_step, parts)
+	)
+	var styled: PackedStringArray = []
+	for i in range(parts.size()):
+		if i < clamped_step:
+			styled.append("[color=#888888]%s[/color]" % parts[i])
+		elif i == clamped_step:
+			styled.append("[color=#ff4444]%s[/color]" % parts[i])
+		else:
+			styled.append("[color=#888888]%s[/color]" % parts[i])
+	return " ".join(styled)
 
 
-## Update the grenade hint step based on current input (Bug fix round 5).
+func _reset_tutorial_grenade_hint_tracking() -> void:
+	_tutorial_grenade_g_was_held = false
+	_tutorial_grenade_hint_step = 0
+	_tutorial_grenade_drag_completed = false
+	_tutorial_grenade_rmb_held_after_release = false
+	_tutorial_grenade_rmb_was_pressed = false
+	_tutorial_grenade_hint_drag_start = Vector2.ZERO
+
+
+## Update the grenade hint step based on current input (Issue #1818).
 func _update_tutorial_grenade_hint_step() -> void:
 	if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-		_tutorial_grenade_g_was_held = false
-		_tutorial_grenade_hint_step = 0
+		_reset_tutorial_grenade_hint_tracking()
 		return
 
 	var g_pressed: bool = Input.is_action_pressed("grenade_prepare")
+	var rmb_pressed: bool = Input.is_action_pressed("grenade_throw")
+	var current_mouse_pos := get_global_mouse_position()
+	var rmb_just_pressed := rmb_pressed and not _tutorial_grenade_rmb_was_pressed
+	var rmb_just_released := not rmb_pressed and _tutorial_grenade_rmb_was_pressed
 
-	if _tutorial_grenade_hint_step == 0 and g_pressed:
+	if _tutorial_grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
+		if g_pressed or rmb_pressed or _tutorial_grenade_rmb_was_pressed:
+			_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 1 and not g_pressed and not _tutorial_grenade_drag_completed:
+		_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 2 and not g_pressed and not rmb_pressed:
+		_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 3 and not g_pressed and not rmb_pressed:
+		_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 4 and not rmb_pressed and not _tutorial_grenade_rmb_held_after_release:
+		_reset_tutorial_grenade_hint_tracking()
+
+	if _tutorial_grenade_hint_step <= 1 and g_pressed and rmb_pressed and rmb_just_pressed:
+		_tutorial_grenade_drag_completed = false
+		_tutorial_grenade_hint_drag_start = current_mouse_pos
+
+	if _tutorial_grenade_hint_step == 1 and g_pressed and rmb_pressed:
+		if current_mouse_pos.x - _tutorial_grenade_hint_drag_start.x > 20.0:
+			_tutorial_grenade_drag_completed = true
+			_tutorial_grenade_hint_step = 2
+
+	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed:
 		_tutorial_grenade_hint_step = 1
 		_tutorial_grenade_g_was_held = true
-	elif _tutorial_grenade_hint_step == 1 and not g_pressed and _tutorial_grenade_g_was_held:
-		_tutorial_grenade_hint_step = 2
+	elif _tutorial_grenade_hint_step == 2 and _tutorial_grenade_drag_completed and rmb_just_released:
+		_tutorial_grenade_hint_step = 3
+	elif _tutorial_grenade_hint_step == 3 and g_pressed and rmb_just_pressed:
+		_tutorial_grenade_rmb_held_after_release = true
+		_tutorial_grenade_hint_step = 4
+	elif _tutorial_grenade_hint_step == 4 and not g_pressed and rmb_pressed and _tutorial_grenade_rmb_held_after_release:
+		_tutorial_grenade_hint_step = 5
 		_tutorial_grenade_g_was_held = false
 
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_GRENADE]
@@ -2497,6 +2564,8 @@ func _update_tutorial_grenade_hint_step() -> void:
 		var new_text := _build_tutorial_grenade_hint_bbcode(_tutorial_grenade_hint_step)
 		if label.text != new_text:
 			label.text = new_text
+
+	_tutorial_grenade_rmb_was_pressed = rmb_pressed
 
 
 ## Called when player throws a grenade — dismisses grenade hint (Issue #808).
@@ -2843,8 +2912,10 @@ func _extend_tutorial_hint_strikethrough(hint_key: String, target_progress: floa
 		return
 
 	var current_progress: float = _tutorial_hint_strike_progress.get(hint_key, 0.0)
-	if target_progress <= current_progress:
-		return  # Already at or past this progress
+	if is_equal_approx(target_progress, current_progress):
+		return  # Already at this progress
+	if target_progress < current_progress and hint_key != TUTORIAL_HINT_GRENADE:
+		return  # Existing non-grenade hints only advance forward.
 
 	# Issue #1080: Use per-line widths if available, otherwise fall back to content width.
 	var line_widths: Array = _tutorial_hint_line_widths.get(hint_key, [])
@@ -2865,12 +2936,22 @@ func _extend_tutorial_hint_strikethrough(hint_key: String, target_progress: floa
 	var line_count: int = _tutorial_hint_line_counts.get(hint_key, 1)
 
 	# Animate the line extension from current position to new position.
+	if _tutorial_hint_strike_tweens.has(hint_key):
+		var previous_tween: Tween = _tutorial_hint_strike_tweens[hint_key]
+		if is_instance_valid(previous_tween):
+			previous_tween.kill()
+
 	var tween := create_tween()
+	_tutorial_hint_strike_tweens[hint_key] = tween
 	tween.tween_method(
 		func(progress: float):
 			_update_tutorial_strikethrough_points(strike_lines, line_count, line_widths, progress),
 		current_progress, target_progress, TUTORIAL_HINT_STRIKETHROUGH_DURATION * 0.5
 	).set_ease(Tween.EASE_OUT)
+	tween.finished.connect(func():
+		if _tutorial_hint_strike_tweens.get(hint_key) == tween:
+			_tutorial_hint_strike_tweens.erase(hint_key)
+	)
 
 	_tutorial_hint_strike_progress[hint_key] = target_progress
 	print("[LabyrinthLevel] Strikethrough extended for '%s': %.0f%% -> %.0f%%" % [hint_key, current_progress * 100, target_progress * 100])
@@ -2953,6 +3034,12 @@ func _animate_tutorial_hint_strikethrough_and_fade(hint_key: String, label: Rich
 	var current_progress: float = _tutorial_hint_strike_progress.get(hint_key, 0.0)
 
 	# Animate the lines from current position to full width (100%)
+	if _tutorial_hint_strike_tweens.has(hint_key):
+		var previous_tween: Tween = _tutorial_hint_strike_tweens[hint_key]
+		if is_instance_valid(previous_tween):
+			previous_tween.kill()
+		_tutorial_hint_strike_tweens.erase(hint_key)
+
 	var tween := create_tween()
 
 	if not strike_lines.is_empty():
@@ -2973,6 +3060,7 @@ func _finalize_tutorial_hint_dismiss(hint_key: String, label: RichTextLabel) -> 
 	_tutorial_hints.erase(hint_key)
 	_tutorial_hint_strike_lines.erase(hint_key)
 	_tutorial_hint_strike_progress.erase(hint_key)
+	_tutorial_hint_strike_tweens.erase(hint_key)
 	_tutorial_hint_line_counts.erase(hint_key)
 	_tutorial_hint_line_widths.erase(hint_key)
 	if is_instance_valid(label):
