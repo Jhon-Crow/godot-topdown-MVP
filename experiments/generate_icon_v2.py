@@ -147,16 +147,14 @@ def draw_small_icon(size: int) -> Image.Image:
     draw = ImageDraw.Draw(img)
 
     center = size // 2
-    bg = (18, 18, 31, 255)
+    bg = (0, 0, 0, 255)
     neon = (255, 34, 68, 255)
     figure = (10, 10, 12, 255)
 
-    margin = 0
+    margin = 1
     draw.ellipse(
         [margin, margin, size - margin - 1, size - margin - 1],
         fill=bg,
-        outline=(68, 18, 34, 255),
-        width=1,
     )
 
     ring_margin = max(2, size // 5)
