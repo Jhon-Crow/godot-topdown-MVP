@@ -542,6 +542,21 @@ func test_no_hints_shown_at_level_start() -> void:
 		"No tutorial hints should be visible at Lab level start (Issue #945)")
 
 
+func test_labyrinth_tutorial_strings_have_translation_keys_for_english_locale() -> void:
+	var script := load("res://scripts/levels/labyrinth_level.gd") as GDScript
+	assert_not_null(script, "Labyrinth level script should load")
+
+	var source := script.source_code
+	assert_string_contains(source, "tr(\"HINT_COCK_HAMMER\")",
+		"Labyrinth hammer-cock tutorial text should use a translation key for English locale support")
+	assert_string_contains(source, "tr(\"HINT_SCOPE\")",
+		"Labyrinth scope tutorial text should use a translation key for English locale support")
+	assert_string_not_contains(source, "[color=#ff4444][ПКМ][/color] Взведи курок",
+		"Labyrinth hammer-cock tutorial text should not be hardcoded in Russian")
+	assert_string_not_contains(source, "[color=#ff4444][ПКМ][/color] Прицелься через оптику",
+		"Labyrinth scope tutorial text should not be hardcoded in Russian")
+
+
 func test_reload_hint_not_shown_after_one_shot() -> void:
 	## Issue #945: After only 1 shot, reload hint should still be hidden.
 	lab.on_tutorial_weapon_fired()

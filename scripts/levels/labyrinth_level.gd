@@ -2099,12 +2099,14 @@ func _setup_tutorial_hints() -> void:
 	if _tutorial_has_revolver:
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		if canvas_layer:
-			_add_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK, "[color=#ff4444][ПКМ][/color] Взведи курок", canvas_layer)
+			_add_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK,
+				"[color=#ff4444][ПКМ][/color] " + tr("HINT_COCK_HAMMER"), canvas_layer)
 	# Issue #998: Show scope hint from the very start for sniper rifle.
 	if _tutorial_has_sniper_rifle:
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		if canvas_layer:
-			_add_tutorial_hint(TUTORIAL_HINT_SCOPE, "[color=#ff4444][ПКМ][/color] Прицелься через оптику", canvas_layer)
+			_add_tutorial_hint(TUTORIAL_HINT_SCOPE,
+				"[color=#ff4444][ПКМ][/color] " + tr("HINT_SCOPE"), canvas_layer)
 
 
 ## Called when player's weapon fires a shot (Issue #945).
@@ -2146,7 +2148,7 @@ func _reveal_tutorial_bolt_cycle_hint() -> void:
 		# Bug fix round 4: show pump-action hint (open/close bolt between shots), NOT full reload.
 		if not _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
 			_add_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE,
-				"[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор",
+				_build_tutorial_shotgun_pump_hint_bbcode(1),
 				canvas_layer)
 
 
@@ -2205,37 +2207,39 @@ func _build_tutorial_reload_hint_bbcode(step: int, total: int) -> String:
 		return ""
 
 	if _tutorial_has_makarov_pm or (not _tutorial_has_sniper_rifle and total <= 2):
+		var reload_word := tr("HINT_RELOAD_WORD")
 		# Makarov PM / 2-step reload: R -> R
 		# step=0 → next is R (first); step=1 → next is R (second); step=2 → done
 		match step:
 			0:
-				return "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"
+				return "[color=#ff4444][R][/color] [color=#888888][R][/color] " + reload_word
 			1:
 				# Step 1 completed: extend strikethrough to 25%
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.25)
-				return "[color=#888888][R][/color] [color=#ff4444][R][/color] Перезарядись"
+				return "[color=#888888][R][/color] [color=#ff4444][R][/color] " + reload_word
 			_:
 				# All steps done: extend strikethrough to cover both [R] keys (~50%)
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.5)
-				return "[color=#888888][R] [R][/color] Перезарядись"
+				return "[color=#888888][R] [R][/color] " + reload_word
 	else:
+		var reload_word := tr("HINT_RELOAD_WORD")
 		# Standard 3-step reload: R -> F -> R
 		# step=0 → next is R; step=1 → next is F; step=2 → next is R (final); step=3 → done
 		match step:
 			0:
-				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"
+				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] " + reload_word
 			1:
 				# Step 1 completed: extend strikethrough to ~17%
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.17)
-				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
+				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] " + reload_word
 			2:
 				# Step 2 completed: extend strikethrough to ~33%
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.33)
-				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
+				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] " + reload_word
 			_:
 				# All steps done: extend strikethrough to ~50%
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.5)
-				return "[color=#888888][R] [F] [R][/color] Перезарядись"
+				return "[color=#888888][R] [F] [R][/color] " + reload_word
 
 
 ## Get the unique color for a tutorial hint by its key (Issue #945).
@@ -2278,9 +2282,7 @@ func _add_tutorial_reload_hints(canvas_layer: Node) -> void:
 		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, _build_tutorial_reload_hint_bbcode(0, 3), canvas_layer)
 	elif _tutorial_has_revolver:
 		# Revolver: cylinder reload hint. Hammer-cock hint is shown from start (Bug fix #3).
-		_add_tutorial_hint(TUTORIAL_HINT_RELOAD,
-			"[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]",
-			canvas_layer)
+		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, _build_tutorial_revolver_reload_hint_bbcode(0), canvas_layer)
 	elif _tutorial_has_makarov_pm:
 		# Makarov PM uses simplified R->R reload. Initial text = step 0.
 		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, _build_tutorial_reload_hint_bbcode(0, 2), canvas_layer)
@@ -2404,7 +2406,7 @@ func _on_tutorial_reload_completed() -> void:
 		# This prevents the GL hint and grenade hint from appearing simultaneously (overlap bug).
 		if _tutorial_has_ak_gl and canvas_layer and _tutorial_ak_gl_has_round_loaded():
 			_add_tutorial_hint(TUTORIAL_HINT_GRENADE_LAUNCHER,
-				"[color=#ff4444][ПКМ][/color] Выстрели подствольным гранатомётом", canvas_layer)
+				"[color=#ff4444][ПКМ][/color] " + tr("HINT_LAUNCHER_FIRE"), canvas_layer)
 			# Do NOT advance to THROW_GRENADE yet — wait for GL to fire (_on_tutorial_grenade_launcher_fired).
 			return
 		if _tutorial_has_thrown_grenade:
@@ -2693,16 +2695,17 @@ func _on_tutorial_shotgun_action_state_changed(new_state: int) -> void:
 ## state=1 (NeedsPumpUp): highlight drag-up; state=2 (NeedsPumpDown): highlight drag-down.
 ## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_shotgun_pump_hint_bbcode(state: int) -> String:
+	var bolt_word := tr("HINT_BOLT_ACTION_WORD")
 	match state:
 		1:  # NeedsPumpUp (nothing completed yet)
-			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор"
+			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] " + bolt_word
 		2:  # NeedsPumpDown (pump-up completed)
 			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.2)
-			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] Передёрни затвор"
+			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] " + bolt_word
 		_:
 			# Both completed
 			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.4)
-			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] Передёрни затвор"
+			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] " + bolt_word
 
 
 ## Called when the shotgun's reload state changes (full shell-by-shell reload).

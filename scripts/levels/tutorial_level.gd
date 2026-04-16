@@ -1223,8 +1223,9 @@ func _get_shotgun_shells_to_load() -> int:
 
 ## Build BBCode for the revolver reload hint with step-based highlighting (Bug fix round 4).
 ## step=1: cylinder opened → highlight insert-cartridge action
-## step=2: cartridge inserted → highlight scroll action
-## step=3: cylinder rotated after insert → highlight close action
+## step=2: first cartridge inserted → remove insert highlight, keep scroll active without
+##         visually completing the insert step yet
+## step=3: enough cartridges inserted / cylinder full → highlight close action
 ## step=4: cylinder closed → all grey (done)
 ## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_revolver_reload_hint_bbcode(step: int) -> String:
@@ -1241,11 +1242,12 @@ func _build_revolver_reload_hint_bbcode(step: int) -> String:
 			_extend_hint_strikethrough(HINT_RELOAD, 0.15)  # ~15% for first segment
 			return "[color=#888888][%s][/color] [color=#ff4444][%s][/color] [color=#888888][%s] [%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
 		2:
-			# Cartridge inserted: next is scroll/rotate cylinder
-			_extend_hint_strikethrough(HINT_RELOAD, 0.35)  # open + insert completed
-			return "[color=#888888][%s] [%s][/color] [color=#ff4444][%s][/color] [color=#888888][%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
+			# First cartridge inserted: open is completed, but insert should no longer be highlighted
+			# without looking fully completed yet. Keep scroll highlighted on its own.
+			_extend_hint_strikethrough(HINT_RELOAD, 0.15)
+			return "[color=#888888][%s][/color] [%s] [color=#ff4444][%s][/color] [color=#888888][%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
 		3:
-			# Cylinder rotated after insertion: next is close cylinder
+			# Tutorial quota satisfied: insert + scroll are now treated as completed.
 			_extend_hint_strikethrough(HINT_RELOAD, 0.55)  # open + insert + scroll completed
 			return "[color=#888888][%s] [%s] [%s][/color] [color=#ff4444][%s][/color]" % [k_open, k_bullet, k_scroll, k_close]
 		_:
@@ -1438,8 +1440,9 @@ func _on_revolver_hammer_cocked() -> void:
 ## RevolverReloadState: 0=NotReloading, 1=CylinderOpen, 2=Loading, 3=ClosingCylinder.
 ## Maps actual reload state to the next tutorial action:
 ##   state=1 (CylinderOpen): highlight [ПКМ↑ патрон] (step=1)
-##   state=2 (Loading) with another insert possible: highlight [скролл] (step=2)
-##   state=2 (Loading) but insertion blocked or chamber occupied: highlight [R закрыть] (step=3)
+##   state=2 (Loading) after first insert: highlight [скролл] without visually completing
+##           [ПКМ↑ патрон] yet (step=2)
+##   state=2 (Loading) after enough inserts / full cylinder: highlight [R закрыть] (step=3)
 ##   state=0/3 (not reloading/closing): all grey (done)
 func _on_revolver_reload_state_changed(new_state: int) -> void:
 	if not _hint_labels.has(HINT_RELOAD):
