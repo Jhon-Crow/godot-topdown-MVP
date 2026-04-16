@@ -591,6 +591,9 @@ func _connect_player_signals() -> void:
 	if _player.has_signal("ReloadSequenceProgress"):
 		_player.ReloadSequenceProgress.connect(_on_reload_sequence_progress)
 		print("Tutorial: Connected to ReloadSequenceProgress signal")
+	if _player.has_signal("ReloadSequenceCanceled"):
+		_player.ReloadSequenceCanceled.connect(_on_reload_sequence_canceled)
+		print("Tutorial: Connected to ReloadSequenceCanceled signal")
 
 	# Try to connect to weapon signals (C# Player)
 	var weapon = _player.get_node_or_null("AssaultRifle")
@@ -1037,6 +1040,24 @@ func _on_reload_sequence_progress(step: int, total: int) -> void:
 	if is_instance_valid(label):
 		label.text = new_text
 	print("Tutorial: Reload sequence step %d/%d - hint updated" % [step, total])
+
+
+## Called when the player cancels an in-progress reload action.
+## Rolls the tutorial hint back to the first action, including strikethrough progress.
+func _on_reload_sequence_canceled() -> void:
+	if _current_step != TutorialStep.RELOAD:
+		return
+	if not _hint_labels.has(HINT_RELOAD):
+		return
+	if _has_shotgun or _has_revolver:
+		return
+
+	var total := 2 if _has_makarov_pm else 3
+	var label: RichTextLabel = _hint_labels[HINT_RELOAD]
+	if is_instance_valid(label):
+		label.text = _build_reload_hint_bbcode(0, total)
+	_reset_hint_strikethrough(HINT_RELOAD)
+	print("Tutorial: Reload sequence canceled - hint rolled back")
 
 
 ## Build BBCode text for the reload hint based on current step (Issue #945).
@@ -1564,6 +1585,16 @@ func _reset_grenade_hint_tracking() -> void:
 	_grenade_hint_drag_start = Vector2.ZERO
 
 
+func _reset_grenade_hint_to_start() -> void:
+	_reset_grenade_hint_tracking()
+	if not _hint_labels.has(HINT_GRENADE):
+		return
+	var label: RichTextLabel = _hint_labels[HINT_GRENADE]
+	if is_instance_valid(label):
+		label.text = _build_grenade_hint_bbcode(0)
+	_reset_hint_strikethrough(HINT_GRENADE)
+
+
 ## Update the grenade hint step based on current input state (Issue #1818).
 ## Called every frame to dynamically highlight the next required action.
 func _update_grenade_hint_step() -> void:
@@ -1579,15 +1610,15 @@ func _update_grenade_hint_step() -> void:
 
 	if _grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
 		if g_pressed or rmb_pressed or _grenade_rmb_was_pressed:
-			_reset_grenade_hint_tracking()
+			_reset_grenade_hint_to_start()
 	elif _grenade_hint_step == 1 and not g_pressed and not _grenade_drag_completed:
-		_reset_grenade_hint_tracking()
+		_reset_grenade_hint_to_start()
 	elif _grenade_hint_step == 2 and not g_pressed and not rmb_pressed:
-		_reset_grenade_hint_tracking()
+		_reset_grenade_hint_to_start()
 	elif _grenade_hint_step == 3 and not g_pressed and not rmb_pressed:
-		_reset_grenade_hint_tracking()
+		_reset_grenade_hint_to_start()
 	elif _grenade_hint_step == 4 and not rmb_pressed and not _grenade_rmb_held_after_release:
-		_reset_grenade_hint_tracking()
+		_reset_grenade_hint_to_start()
 
 	if _grenade_hint_step <= 1 and g_pressed and rmb_pressed and rmb_just_pressed:
 		_grenade_drag_completed = false
@@ -1966,6 +1997,25 @@ func _extend_hint_strikethrough(hint_key: String, target_progress: float) -> voi
 
 	_hint_strike_progress[hint_key] = target_progress
 	print("Tutorial: Strikethrough extended for '%s': %.0f%% -> %.0f%%" % [hint_key, current_progress * 100, target_progress * 100])
+
+
+func _reset_hint_strikethrough(hint_key: String) -> void:
+	if _hint_strike_tweens.has(hint_key):
+		var previous_tween: Tween = _hint_strike_tweens[hint_key]
+		if is_instance_valid(previous_tween):
+			previous_tween.kill()
+		_hint_strike_tweens.erase(hint_key)
+
+	_hint_strike_progress[hint_key] = 0.0
+	var strike_lines: Array = _hint_strike_lines.get(hint_key, [])
+	if strike_lines.is_empty():
+		return
+	var line_count: int = _hint_line_counts.get(hint_key, 1)
+	var line_widths: Array = _hint_line_widths.get(hint_key, [])
+	if line_widths.is_empty():
+		for _i in range(line_count):
+			line_widths.append(300.0)
+	_update_strikethrough_points(strike_lines, line_count, line_widths, 0.0)
 
 
 ## Issue #944 Session 5: Update per-line Line2D end points for multi-line strikethrough.

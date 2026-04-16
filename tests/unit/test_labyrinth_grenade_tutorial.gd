@@ -131,6 +131,104 @@ func test_grenade_hint_press_and_release_g_without_activation_stays_initial() ->
 		"Pressing and releasing G without activation must not strike through any grenade hint segment")
 
 
+func test_tutorial_level_resets_grenade_hint_text_and_strikethrough_on_abort() -> void:
+	var file := FileAccess.open("res://scripts/levels/tutorial_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("tutorial_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("func _reset_grenade_hint_to_start()"),
+		"Tutorial level should have an explicit grenade rollback helper")
+	assert_true(content.contains("label.text = _build_grenade_hint_bbcode(0)"),
+		"Aborted grenade preparation should restore the initial highlighted instruction")
+	assert_true(content.contains("_reset_hint_strikethrough(HINT_GRENADE)"),
+		"Aborted grenade preparation should clear the already drawn strikethrough")
+
+
+class MockReloadRollbackTutorial:
+	const HINT_RELOAD := "reload"
+
+	var _hint_text: String = ""
+	var _hint_strike_progress: Dictionary = {HINT_RELOAD: 0.0}
+	var _has_makarov_pm: bool = false
+
+	func _extend_hint_strikethrough(hint_key: String, target_progress: float) -> void:
+		var current_progress: float = _hint_strike_progress.get(hint_key, 0.0)
+		if target_progress < current_progress:
+			return
+		_hint_strike_progress[hint_key] = target_progress
+
+	func _reset_hint_strikethrough(hint_key: String) -> void:
+		_hint_strike_progress[hint_key] = 0.0
+
+	func _build_reload_hint_bbcode(step: int, total: int) -> String:
+		if _has_makarov_pm or total <= 2:
+			match step:
+				0:
+					return "[color=#ff4444][R][/color] [color=#888888][R][/color] reload"
+				1:
+					_extend_hint_strikethrough(HINT_RELOAD, 0.25)
+					return "[color=#888888][R][/color] [color=#ff4444][R][/color] reload"
+				_:
+					_extend_hint_strikethrough(HINT_RELOAD, 0.5)
+					return "[color=#888888][R] [R][/color] reload"
+		match step:
+			0:
+				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] reload"
+			1:
+				_extend_hint_strikethrough(HINT_RELOAD, 0.17)
+				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] reload"
+			2:
+				_extend_hint_strikethrough(HINT_RELOAD, 0.33)
+				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] reload"
+			_:
+				_extend_hint_strikethrough(HINT_RELOAD, 0.5)
+				return "[color=#888888][R] [F] [R][/color] reload"
+
+	func show_reload_hint() -> void:
+		_hint_text = _build_reload_hint_bbcode(0, 3)
+
+	func on_reload_sequence_progress(step: int, total: int) -> void:
+		_hint_text = _build_reload_hint_bbcode(step, total)
+
+	func on_reload_sequence_canceled() -> void:
+		var total := 2 if _has_makarov_pm else 3
+		_hint_text = _build_reload_hint_bbcode(0, total)
+		_reset_hint_strikethrough(HINT_RELOAD)
+
+
+func test_reload_hint_rolls_back_when_reload_sequence_is_canceled() -> void:
+	var reload_tutorial := MockReloadRollbackTutorial.new()
+	reload_tutorial.show_reload_hint()
+	reload_tutorial.on_reload_sequence_progress(1, 3)
+
+	assert_eq(reload_tutorial._hint_strike_progress[reload_tutorial.HINT_RELOAD], 0.17,
+		"Completing the first reload action should strike through its segment")
+
+	reload_tutorial.on_reload_sequence_canceled()
+
+	assert_eq(reload_tutorial._hint_strike_progress[reload_tutorial.HINT_RELOAD], 0.0,
+		"Canceling reload should remove the partial strikethrough")
+	assert_string_contains(reload_tutorial._hint_text, "[color=#ff4444][R][/color]",
+		"Canceling reload should highlight the initial R action again")
+
+
+func test_player_exposes_reload_sequence_canceled_signal() -> void:
+	var file := FileAccess.open("res://Scripts/Characters/Player.cs", FileAccess.READ)
+	if file == null:
+		pass_test("Player.cs not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("ReloadSequenceCanceledEventHandler"),
+		"Player should emit a dedicated signal when the taught reload action rolls back")
+	assert_true(content.contains("EmitSignal(SignalName.ReloadSequenceCanceled)"),
+		"Player reload reset should notify tutorial hints about cancellation")
+
+
 class MockShotgunReloadTutorial:
 	const TUTORIAL_HINT_BOLT_CYCLE := "bolt_cycle"
 
