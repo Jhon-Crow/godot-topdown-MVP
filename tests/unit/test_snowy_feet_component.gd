@@ -507,3 +507,45 @@ func test_white_snow_footprint_resumes_after_blood_runs_out() -> void:
 		"Five footprints total (4 blood + 1 white)")
 	assert_false(comp.spawned_footprints[4].get("is_blood", true),
 		"Fifth footprint should be a normal white snow print after blood runs out")
+
+
+# ============================================================================
+# Tests: Real Component Signal Wiring (Issue #1627 regression)
+# ============================================================================
+
+
+class RealSignalTestCharacter extends CharacterBody2D:
+	pass
+
+
+func test_snowy_feet_retries_bloody_feet_signal_connection() -> void:
+	var character := RealSignalTestCharacter.new()
+	add_child(character)
+
+	var snowy_script = load("res://scripts/components/snowy_feet_component.gd")
+	var snowy := snowy_script.new()
+	snowy.name = "SnowyFeetComponent"
+	character.add_child(snowy)
+	await wait_frames(2)
+
+	assert_false(snowy._blood_contact_connected,
+		"SnowyFeetComponent starts disconnected when BloodyFeetComponent is not present yet")
+
+	var bloody_script = load("res://scripts/components/bloody_feet_component.gd")
+	var bloody := bloody_script.new()
+	bloody.name = "BloodyFeetComponent"
+	bloody.on_snow = true
+	bloody.snow_blood_steps_count = 4
+	character.add_child(bloody)
+	await wait_frames(3)
+
+	snowy._physics_process(0.016)
+	assert_true(snowy._blood_contact_connected,
+		"SnowyFeetComponent should retry until it connects to BloodyFeetComponent.blood_contact")
+
+	bloody.set_blood_level(4)
+	assert_eq(snowy._blood_snow_steps_remaining, 4,
+		"Late-connected SnowyFeetComponent should arm four red snow prints when blood is acquired")
+
+	character.queue_free()
+	await wait_frames(2)

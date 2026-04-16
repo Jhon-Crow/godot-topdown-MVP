@@ -360,12 +360,13 @@ func _get_puddle_color(puddle_node: Node) -> Color:
 func _on_blood_puddle_contact(puddle_color: Color = Color(0.545, 0.0, 0.0, 1.0)) -> void:
 	# Reset blood level: on snow use snow_blood_steps_count (default 4) oval red prints,
 	# then SnowyFeetComponent resumes normal white snow prints (Issue #1627).
+	var target_level := snow_blood_steps_count if on_snow else blood_steps_count
+	_apply_blood_contact(target_level, puddle_color)
+
+func _apply_blood_contact(target_level: int, puddle_color: Color) -> void:
 	var previous_level := _blood_level
-	_blood_level = snow_blood_steps_count if on_snow else blood_steps_count
-
-	# Store the blood color for footprints
+	_blood_level = target_level
 	_blood_color = puddle_color
-
 	if previous_level == 0:
 		_log_info("Stepped in blood! %d footprints to spawn, color: %s" % [_blood_level, puddle_color])
 		# Reset distance counter when first stepping in blood
@@ -569,8 +570,13 @@ func _spawn_footprint() -> void:
 
 ## Manually set blood level (for testing or external triggers).
 func set_blood_level(level: int) -> void:
-	_blood_level = clampi(level, 0, blood_steps_count)
-	_distance_since_last_footprint = 0.0
+	var max_level := snow_blood_steps_count if on_snow else blood_steps_count
+	var clamped_level := clampi(level, 0, max_level)
+	if clamped_level > 0:
+		_apply_blood_contact(clamped_level, _blood_color)
+	else:
+		_blood_level = 0
+		_distance_since_last_footprint = 0.0
 	_log_info("Blood level set to %d" % _blood_level)
 
 

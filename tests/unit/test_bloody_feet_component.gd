@@ -258,3 +258,32 @@ func test_blood_contact_signal_emitted_on_puddle_contact() -> void:
 		"blood_contact signal must be emitted when _on_blood_puddle_contact is called")
 	assert_almost_eq(received_color.r, puddle_color.r, 0.01,
 		"Signal should carry the puddle color so SnowyFeetComponent can tint prints correctly")
+
+
+## Test that manual blood-level changes also emit blood_contact on snow.
+## This covers scene/setup paths that grant blood without an area_entered signal.
+func test_set_blood_level_on_snow_emits_blood_contact_signal() -> void:
+	_component.on_snow = true
+	_component.snow_blood_steps_count = 4
+	var signal_received := false
+
+	_component.blood_contact.connect(func(_color: Color) -> void:
+		signal_received = true
+	)
+
+	_component.set_blood_level(4)
+
+	assert_true(signal_received,
+		"set_blood_level() with blood on snow must emit blood_contact so SnowyFeetComponent arms red prints")
+	assert_eq(_component.get_blood_level(), 4,
+		"Blood level should be set to the requested snow blood count")
+
+
+## Test that on snow, manual blood level is clamped to snow_blood_steps_count.
+func test_set_blood_level_on_snow_clamps_to_snow_blood_steps_count() -> void:
+	_component.on_snow = true
+	_component.snow_blood_steps_count = 4
+	_component.set_blood_level(12)
+
+	assert_eq(_component.get_blood_level(), 4,
+		"Snow blood level should clamp to snow_blood_steps_count, not regular blood_steps_count")

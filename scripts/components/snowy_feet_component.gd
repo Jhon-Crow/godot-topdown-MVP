@@ -79,6 +79,9 @@ var _step_index: int = 0
 ## Used to check whether to spawn red or white snow prints.
 var _bloody_feet: Node = null
 
+## Whether this component is connected to BloodyFeetComponent.blood_contact.
+var _blood_contact_connected: bool = false
+
 ## Counter for remaining red blood-snow footprints to spawn (Issue #1627).
 ## Set when the character first steps in blood; counts down to 0.
 var _blood_snow_steps_remaining: int = 0
@@ -114,14 +117,7 @@ func _ready() -> void:
 
 	_find_character_model()
 
-	# Cache sibling BloodyFeetComponent to read blood state (Issue #1627).
-	_bloody_feet = _parent_body.get_node_or_null("BloodyFeetComponent")
-
-	# Connect to BloodyFeetComponent's blood_contact signal so we arm the red-print
-	# counter immediately on contact — before BloodyFeetComponent's _blood_level
-	# decrements could drain to zero (Issue #1627 race-condition fix).
-	if _bloody_feet and _bloody_feet.has_signal("blood_contact"):
-		_bloody_feet.blood_contact.connect(_on_blood_contact)
+	_connect_bloody_feet()
 
 	# Create Area2D detector for snow-surface overlap (deferred so parent is in tree).
 	call_deferred("_setup_snow_detector")
@@ -213,7 +209,20 @@ func _find_character_model() -> void:
 func _physics_process(_delta: float) -> void:
 	if not _initialized or _parent_body == null:
 		return
+	if not _blood_contact_connected:
+		_connect_bloody_feet()
 	_track_movement()
+
+
+## Connects to the sibling BloodyFeetComponent once it is available.
+func _connect_bloody_feet() -> void:
+	if _parent_body == null or _blood_contact_connected:
+		return
+	_bloody_feet = _parent_body.get_node_or_null("BloodyFeetComponent")
+	if _bloody_feet and _bloody_feet.has_signal("blood_contact"):
+		if not _bloody_feet.blood_contact.is_connected(_on_blood_contact):
+			_bloody_feet.blood_contact.connect(_on_blood_contact)
+		_blood_contact_connected = true
 
 
 ## Measures movement and spawns footprints at the configured interval.
