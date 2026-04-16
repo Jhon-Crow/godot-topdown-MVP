@@ -334,6 +334,83 @@ bullets into an invalid state for subsequent breaker bullet use by any weapon.
 
 ---
 
+## Bug Found and Fixed: PM Bullet Pool Contamination (Session 5)
+
+### New User Report and Preserved Data
+
+**User report (PR #1661, 2026-04-11):**
+> "всё ещё полностью сломаны пули ПМ это точно новый билд ТОЧНО!!!"
+> *Translation: "PM bullets are still completely broken, this is definitely the new build, definitely."*
+
+All available evidence from the issue/PR was downloaded for offline review:
+
+- `data/logs/game_log_20260328_085423.txt` — 10,972 lines
+- `data/logs/game_log_20260330_124617.txt` — 1,066 lines
+- `data/logs/game_log_20260411_014724.txt` — 723 lines
+- `data/github/issue-1634.json`
+- `data/github/pr-1661.json`
+- `data/github/pr-1661-comments.json`
+
+The latest log confirms the user was on the newer branch: breaker bullets report **95px** wall
+detonation and **40px** enemy-fuse arming distance. It also confirms the exact PM path:
+
+- `game_log_20260411_014724.txt:580-581` — weapon selection is `makarov_pm (MakarovPM)`.
+- `game_log_20260411_014724.txt:593-594` — breaker bullets are active and applied to `MakarovPM`.
+- `game_log_20260411_014724.txt:704-716` — two PM shots are fired.
+
+There are no projectile-level diagnostics after those shots, so the log proves activation and
+firing but not the exact runtime projectile state. The root cause came from tracing the PM bullet
+scene and pool ownership code.
+
+### Root Cause
+
+The Session 4 conclusion was incomplete. The real PM-specific bug is not only that pooled bullets
+lost breaker shrapnel state. The deeper bug is that **fresh PM bullets were entering a generic
+autoload pool they did not belong to**.
+
+The chain before this fix:
+
+1. `MakarovPM.tscn` uses `res://scenes/projectiles/Bullet9mm.tscn`.
+2. `BaseWeapon.SpawnBullet()` instantiates that scene directly for PM shots.
+3. `Bullet9mm.tscn` runs `scripts/projectiles/bullet.gd`.
+4. When destroyed, `_destroy()` checked only whether `/root/ProjectilePoolManager` exists.
+5. If the singleton existed, the fresh PM bullet called `pool_deactivate()` and was appended to
+   `_bullet_pool`.
+
+That generic pool is warmed with `res://scenes/projectiles/Bullet.tscn`, not `Bullet9mm.tscn`.
+Mixing direct weapon-instantiated 9mm scenes into that pool contaminates later reuse with the wrong
+scene resource, caliber defaults, per-scene state, and lifetime ownership. It also leaves a serious
+scene-lifecycle risk: Godot's `queue_free()` docs state that deleting a node deletes its children
+and invalidates references, and Object docs warn that object references can become invalid without
+becoming `null`. A singleton pool must therefore not store nodes owned by a gameplay scene that can
+later be freed during scene changes.
+
+A second pool bug was found in the same path: warmup used `pool_deactivate()` on newly created pool
+objects, and `pool_deactivate()` called back into `return_*()`. That means warmup could append the
+same object from both the create loop and the self-return path, producing duplicate idle references.
+Duplicate pool references can make one active projectile appear in the idle pool again.
+
+### Fix Applied (Session 5)
+
+The pool now has explicit ownership:
+
+- `bullet.gd`, `shrapnel.gd`, and `breaker_shrapnel.gd` gained `_pool_managed`.
+- `ProjectilePoolManager` marks only the projectiles it instantiates as pool-managed.
+- `_destroy()` returns to the pool only when `_pool_managed == true`; fresh PM `Bullet9mm.tscn`
+  bullets now `queue_free()` normally.
+- `pool_deactivate(return_to_manager := true)` supports internal deactivation without recursive
+  self-return during warmup and recycling.
+- `return_bullet()`, `return_shrapnel()`, and `return_breaker_shrapnel()` reject unmanaged nodes and
+  append only unique pool entries.
+- `get_*()` skips stale, unmanaged, or already-active duplicate entries before returning a projectile.
+- `_breaker_spawn_shrapnel()` now skips a shard cleanly if both the pool and fallback scene fail,
+  instead of calling `instantiate()` on a null scene.
+
+This keeps the performance benefit for pool-owned generic bullets and shrapnel, while preventing
+PM's fresh 9mm bullets from poisoning the pool.
+
+---
+
 ## Test Coverage Added
 
 New test cases in `tests/unit/test_breaker_bullet.gd`:
@@ -355,6 +432,13 @@ New test cases in `tests/unit/test_breaker_bullet.gd`:
 - `test_pool_bullet_reloads_shrapnel_scene` — **pool bug fix** (session 4)
 - `test_pool_bullet_resets_arming_distance` — **pool arming reset bug fix** (session 4)
 
+Additional Session 5 regression tests in `tests/unit/test_projectile_pool_manager.gd`:
+
+- `test_warmup_deactivation_does_not_self_return` — warmup does not recursively append pool objects
+- `test_return_bullet_rejects_unmanaged_projectile` — PM-style fresh bullets cannot contaminate the pool
+- `test_duplicate_return_does_not_duplicate_pool_entry` — duplicate returns do not duplicate references
+- `test_get_bullet_skips_active_duplicate_reference` — active duplicate references are discarded before reuse
+
 ---
 
 ## References
@@ -364,6 +448,8 @@ New test cases in `tests/unit/test_breaker_bullet.gd`:
 - [PhysicsDirectSpaceState2D — Godot Engine docs](https://docs.godotengine.org/en/stable/classes/class_physicsdirectspacestate2d.html)
 - [PhysicsShapeQueryParameters2D — Godot Engine docs](https://docs.godotengine.org/en/stable/classes/class_physicsshapequeryparameters2d.html)
 - [Ray-casting — Godot Engine 4.4 docs](https://docs.godotengine.org/en/4.4/tutorials/physics/ray-casting.html)
+- [Node.queue_free — Godot Engine 4.3 docs](https://docs.godotengine.org/en/4.3/classes/class_node.html#class-node-method-queue-free)
+- [Object lifecycle and invalid references — Godot Engine 4.3 docs](https://docs.godotengine.org/en/4.3/classes/class_object.html)
 - [How to implement a vision cone for AI in Godot](https://playgama.com/blog/godot/how-can-i-implement-a-vision-cone-for-ai-characters-in-godot-to-detect-the-player/)
 - [General optimization tips — Godot Engine docs](https://docs.godotengine.org/en/stable/tutorials/performance/general_optimization.html)
 - [Godot Projectile Engine (Asset Library)](https://godotengine.org/asset-library/asset/4165)
