@@ -182,19 +182,14 @@ func _spawn_illusions_for_nearby_enemies() -> void:
 		var original_index: int = 0  # Default: keep enemy in place (center)
 		var original_offset: Vector2 = Vector2.ZERO
 		var candidate_indices: Array[int] = []
-		for i in range(total_positions):
+		for i in range(1, total_positions):
 			candidate_indices.append(i)
 		candidate_indices.shuffle()
-		var space_state: PhysicsDirectSpaceState2D = get_tree().current_scene.get_world_2d().direct_space_state if get_tree().current_scene else null
+		var validation_context := _create_position_validation_context()
 		for ci in candidate_indices:
 			var candidate_offset: Vector2 = offsets[ci]
-			if candidate_offset == Vector2.ZERO:
-				# Center is always valid (enemy is already there)
-				original_index = ci
-				original_offset = Vector2.ZERO
-				break
 			var candidate_pos: Vector2 = enemy.global_position + candidate_offset.rotated(enemy.rotation)
-			if _is_position_valid(enemy, candidate_pos, space_state):
+			if _is_position_valid(enemy, candidate_pos, validation_context):
 				original_index = ci
 				original_offset = candidate_offset
 				break
@@ -393,19 +388,49 @@ func _update_cloud_visual() -> void:
 ## Falls back to nav-mesh snap check when physics space is unavailable.
 const NAV_SNAP_TOLERANCE: float = 20.0  ## Tightened: agent radius is ~10-20px.
 const WALL_COLLISION_MASK: int = 4  ## Layer 3 = obstacles/walls (matches enemy.gd).
-func _is_position_valid(enemy: Node2D, pos: Vector2, space_state: PhysicsDirectSpaceState2D) -> bool:
+func _create_position_validation_context() -> Dictionary:
+	var context := {
+		"space_state": null,
+		"point_query": null,
+		"ray_query": null,
+	}
+	var scene := get_tree().current_scene
+	if scene == null:
+		return context
+	var world_2d := scene.get_world_2d()
+	if world_2d == null:
+		return context
+	context.space_state = world_2d.direct_space_state
+	if context.space_state == null:
+		return context
+	var point_query := PhysicsPointQueryParameters2D.new()
+	point_query.collision_mask = WALL_COLLISION_MASK
+	context.point_query = point_query
+	var ray_query := PhysicsRayQueryParameters2D.new()
+	ray_query.collision_mask = WALL_COLLISION_MASK
+	context.ray_query = ray_query
+	return context
+
+
+func _is_position_valid(enemy: Node2D, pos: Vector2, validation_context) -> bool:
+	var context: Dictionary = validation_context if validation_context is Dictionary else {"space_state": validation_context}
+	var space_state: PhysicsDirectSpaceState2D = context.get("space_state", null)
 	if space_state != null:
 		# Check 1: is the destination physically inside a wall?
-		var point_query := PhysicsPointQueryParameters2D.new()
+		var point_query: PhysicsPointQueryParameters2D = context.get("point_query", null)
+		if point_query == null:
+			point_query = PhysicsPointQueryParameters2D.new()
+			point_query.collision_mask = WALL_COLLISION_MASK
 		point_query.position = pos
-		point_query.collision_mask = WALL_COLLISION_MASK
 		if not space_state.intersect_point(point_query, 1).is_empty():
 			return false  # Destination is inside a wall collider.
 		# Check 2: does the straight path from current position to destination cross a wall?
-		var ray_query := PhysicsRayQueryParameters2D.new()
+		var ray_query: PhysicsRayQueryParameters2D = context.get("ray_query", null)
+		if ray_query == null:
+			ray_query = PhysicsRayQueryParameters2D.new()
+			ray_query.collision_mask = WALL_COLLISION_MASK
 		ray_query.from = enemy.global_position
 		ray_query.to = pos
-		ray_query.collision_mask = WALL_COLLISION_MASK
 		ray_query.exclude = [enemy.get_rid()]
 		if not space_state.intersect_ray(ray_query).is_empty():
 			return false  # Path crosses a wall.

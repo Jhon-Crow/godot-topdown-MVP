@@ -1,0 +1,452 @@
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:347:[23:33:09] [WARN] [FPS] Drop detected: 26 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:718:[23:33:21] [WARN] [FPS] Drop detected: 17 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:832:[23:33:22] [INFO] [ChemicalCloud] _ready() at (120.6023, 2672.214)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:833:[23:33:22] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:834:[23:33:22] [INFO] [ChemicalCloud] Cloud spawned at (120.6023, 2672.214), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:843:[23:33:22] [INFO] [ChemicalCloud] Moving original enemy from (200, 2750) to (272.3861, 2753.318) (offset=(70.74397, -15.68593))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:848:[23:33:22] [INFO] [ChemicalCloud] Moving original enemy from (201.7133, 2609.248) to (210.1428, 2676.377) (offset=(30.09162, 60.59631))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:854:[23:33:23] [INFO] [ChemicalCloud] Moving original enemy from (200.1174, 2453.773) to (196.1501, 2391.972) (offset=(-43.63301, -43.94596))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:856:[23:33:23] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:857:[23:33:23] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:943:[23:33:23] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:1095:[23:33:25] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:1341:[23:33:27] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:1511:[23:33:29] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:1636:[23:33:31] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:1775:[23:33:33] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:1982:[23:33:35] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:2013:[23:33:36] [WARN] [FPS] Drop detected: 8 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:2273:[23:33:38] [WARN] [FPS] Drop detected: 2 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:2309:[23:33:39] [WARN] [FPS] Drop detected: 28 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:2384:[23:33:40] [INFO] [ChemicalCloud] _ready() at (120.736, 2683.007)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:2385:[23:33:40] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:2386:[23:33:40] [INFO] [ChemicalCloud] Cloud spawned at (120.736, 2683.007), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:2412:[23:33:40] [INFO] [ChemicalCloud] Moving original enemy from (208.9288, 2645.749) to (277.0185, 2658.148) (offset=(67.66189, -14.55409))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:2416:[23:33:40] [INFO] [ChemicalCloud] Moving original enemy from (206.1081, 2426.772) to (239.9578, 2361.464) (offset=(7.698843, -73.15494))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:2422:[23:33:40] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:2423:[23:33:40] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:2498:[23:33:41] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:2702:[23:33:42] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:2985:[23:33:45] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:3199:[23:33:47] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:3353:[23:33:49] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:3639:[23:33:51] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:3736:[23:33:53] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:3747:[23:33:54] [WARN] [FPS] Drop detected: 7 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:3758:[23:33:55] [WARN] [FPS] Drop detected: 8 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:3784:[23:33:56] [WARN] [FPS] Drop detected: 14 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4060:[23:33:58] [WARN] [FPS] Drop detected: 2 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4072:[23:33:58] [INFO] [ChemicalCloud] _ready() at (120.5198, 2597.389)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4073:[23:33:58] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4074:[23:33:58] [INFO] [ChemicalCloud] Cloud spawned at (120.5198, 2597.389), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4093:[23:33:58] [INFO] [ChemicalCloud] Moving original enemy from (199.9261, 2602.673) to (245.2166, 2533.264) (offset=(44.73377, -69.7682))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4099:[23:33:59] [INFO] [ChemicalCloud] Moving original enemy from (219.1216, 2555.134) to (255.1384, 2621.918) (offset=(75.51994, -7.358139))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4102:[23:33:59] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4103:[23:33:59] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4122:[23:33:59] [WARN] [FPS] Drop detected: 14 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4131:[23:34:00] [WARN] [FPS] Drop detected: 23 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4150:[23:34:01] [WARN] [FPS] Drop detected: 27 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4171:[23:34:02] [WARN] [FPS] Drop detected: 16 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4186:[23:34:03] [WARN] [FPS] Drop detected: 20 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4196:[23:34:04] [WARN] [FPS] Drop detected: 17 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4209:[23:34:05] [WARN] [FPS] Drop detected: 20 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4221:[23:34:06] [WARN] [FPS] Drop detected: 15 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4331:[23:34:08] [WARN] [FPS] Drop detected: 17 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4565:[23:34:10] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:4780:[23:34:12] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:5164:[23:34:15] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:5503:[23:34:17] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:5673:[23:34:20] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:5725:[23:34:21] [INFO] [ChemicalCloud] Stopped emission, dissipating
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:5796:[23:34:22] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:5882:[23:34:24] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6161:[23:34:25] [INFO] [ChemicalCloud] _ready() at (120.8811, 2647.287)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6162:[23:34:25] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6163:[23:34:25] [INFO] [ChemicalCloud] Cloud spawned at (120.8811, 2647.287), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6179:[23:34:25] [INFO] [ChemicalCloud] Moving original enemy from (200, 2752.667) to (261.7064, 2770.068) (offset=(61.84359, 16.90676))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6182:[23:34:25] [INFO] [ChemicalCloud] Moving original enemy from (199.9966, 2602.673) to (209.865, 2714.839) (offset=(10.76549, 112.0832))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6191:[23:34:25] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6192:[23:34:25] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6195:[23:34:26] [WARN] [FPS] Drop detected: 3 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6371:[23:34:27] [WARN] [FPS] Drop detected: 12 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6531:[23:34:28] [WARN] [FPS] Drop detected: 7 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6642:[23:34:29] [WARN] [FPS] Drop detected: 7 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6716:[23:34:31] [WARN] [FPS] Drop detected: 7 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6813:[23:34:32] [WARN] [FPS] Drop detected: 11 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6897:[23:34:34] [WARN] [FPS] Drop detected: 8 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:6972:[23:34:35] [WARN] [FPS] Drop detected: 11 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:7244:[23:34:37] [WARN] [FPS] Drop detected: 19 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:7271:[23:34:37] [INFO] [ChemicalCloud] _ready() at (192.7727, 2569.19)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:7272:[23:34:37] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:7273:[23:34:37] [INFO] [ChemicalCloud] Cloud spawned at (192.7727, 2569.19), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:7292:[23:34:37] [INFO] [ChemicalCloud] Moving original enemy from (201.0931, 2607.925) to (128.6555, 2519.334) (offset=(-73.14403, -88.00823))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:7301:[23:34:37] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:7302:[23:34:37] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:7353:[23:34:38] [WARN] [FPS] Drop detected: 11 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:7502:[23:34:39] [WARN] [FPS] Drop detected: 11 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:7605:[23:34:41] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:7805:[23:34:43] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:8069:[23:34:45] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:8207:[23:34:47] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:8413:[23:34:49] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:8960:[23:34:54] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9043:[23:35:04] [WARN] [FPS] Drop detected: 27 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9069:[23:35:05] [INFO] [ChemicalCloud] _ready() at (72.49291, 1195.813)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9070:[23:35:05] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9071:[23:35:05] [INFO] [ChemicalCloud] Cloud spawned at (72.49291, 1195.813), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9077:[23:35:05] [INFO] [ChemicalCloud] Moving original enemy from (299.6763, 354.2544) to (364.1859, 432.1794) (offset=(67.77467, 75.1025))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9088:[23:35:05] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9089:[23:35:05] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 11 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9107:[23:35:06] [WARN] [FPS] Drop detected: 18 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9145:[23:35:06] [INFO] [ChemicalCloud] _ready() at (71.83555, 1299.046)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9146:[23:35:06] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9147:[23:35:06] [INFO] [ChemicalCloud] Cloud spawned at (71.83555, 1299.046), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9151:[23:35:06] [INFO] [ChemicalCloud] Moving original enemy from (364.0672, 462.2409) to (365.1344, 398.6905) (offset=(-63.52313, 2.14447))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9154:[23:35:06] [INFO] [ChemicalCloud] Global illusion cap reached (12), stopping
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9155:[23:35:06] [INFO] [ChemicalCloud] Spawned 2 illusion copies for 11 enemies (total: 2/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9195:[23:35:07] [WARN] [FPS] Drop detected: 16 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9284:[23:35:08] [WARN] [FPS] Drop detected: 8 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9315:[23:35:09] [INFO] [ChemicalCloud] Progressive spawn skipped — global illusion cap reached
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9414:[23:35:10] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9514:[23:35:12] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9542:[23:35:12] [INFO] [ChemicalCloud] Progressive spawn skipped — global illusion cap reached
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9690:[23:35:14] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:9864:[23:35:16] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10095:[23:35:18] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10155:[23:35:19] [INFO] [ChemicalCloud] _ready() at (742.9131, 1032.063)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10156:[23:35:19] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10157:[23:35:19] [INFO] [ChemicalCloud] Cloud spawned at (742.9131, 1032.063), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10161:[23:35:19] [INFO] [ChemicalCloud] Moving original enemy from (436.776, 841.4738) to (486.7103, 765.4718) (offset=(90.41523, -9.73752))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10167:[23:35:19] [INFO] [ChemicalCloud] Moving original enemy from (1699.719, 350.5687) to (1644.671, 435.0377) (offset=(-55.04855, 84.46898))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10173:[23:35:19] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10174:[23:35:19] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 10 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10199:[23:35:20] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10244:[23:35:22] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10274:[23:35:23] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10365:[23:35:24] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10584:[23:35:27] [INFO] [ChemicalCloud] Progressive illusion spawned (total: 3/10, player in cloud: 6.0s)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10613:[23:35:27] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10838:[23:35:29] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10890:[23:35:30] [INFO] [ChemicalCloud] Stopped emission, dissipating
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10912:[23:35:31] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:10968:[23:35:32] [INFO] [ChemicalCloud] Stopped emission, dissipating
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:11055:[23:35:33] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:11204:[23:35:35] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:11281:[23:35:36] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:11328:[23:35:38] [WARN] [FPS] Drop detected: 7 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:11345:[23:35:38] [INFO] [ChemicalCloud] Cloud dissipated at (72.49291, 1195.813) (spawned 10 total illusions)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:11435:[23:35:39] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:11455:[23:35:40] [INFO] [ChemicalCloud] Cloud dissipated at (71.83555, 1299.046) (spawned 3 total illusions)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:11484:[23:35:41] [WARN] [FPS] Drop detected: 7 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:11514:[23:35:42] [WARN] [FPS] Drop detected: 10 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:11605:[23:35:43] [INFO] [ChemicalCloud] Stopped emission, dissipating
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:11635:[23:35:44] [WARN] [FPS] Drop detected: 8 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:12242:[23:35:46] [WARN] [FPS] Drop detected: 8 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:12767:[23:35:49] [WARN] [FPS] Drop detected: 3 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:12840:[23:35:50] [WARN] [FPS] Drop detected: 7 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:12905:[23:35:52] [WARN] [FPS] Drop detected: 8 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:12999:[23:35:52] [INFO] [ChemicalCloud] Cloud dissipated at (742.9131, 1032.063) (spawned 10 total illusions)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:13023:[23:35:53] [WARN] [FPS] Drop detected: 11 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:13243:[23:35:55] [WARN] [FPS] Drop detected: 15 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:13445:[23:36:01] [INFO] [ChemicalCloud] _ready() at (671.7202, 859.3359)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:13446:[23:36:01] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:13447:[23:36:01] [INFO] [ChemicalCloud] Cloud spawned at (671.7202, 859.3359), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:13460:[23:36:01] [INFO] [ChemicalCloud] Moving original enemy from (400.2181, 436.4195) to (474.7062, 523.8954) (offset=(113.0261, 20.63064))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:13464:[23:36:01] [INFO] [ChemicalCloud] Moving original enemy from (460.4308, 591.7866) to (498.3223, 496.5308) (offset=(5.233058, -102.3819))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:13470:[23:36:01] [INFO] [ChemicalCloud] Moving original enemy from (700, 750) to (676.441, 659.2634) (offset=(93.09225, -11.04496))
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:13473:[23:36:01] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:13474:[23:36:01] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 11 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:13652:[23:36:02] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:13782:[23:36:04] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:14103:[23:36:06] [WARN] [FPS] Drop detected: 3 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:14585:[23:36:09] [WARN] [FPS] Drop detected: 3 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_233304.txt:14789:[23:36:11] [WARN] [FPS] Drop detected: 4 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:348:[23:21:39] [WARN] [FPS] Drop detected: 27 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:744:[23:21:55] [INFO] [ChemicalCloud] _ready() at (120.6669, 2643.474)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:745:[23:21:55] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:746:[23:21:55] [INFO] [ChemicalCloud] Cloud spawned at (120.6669, 2643.474), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:761:[23:21:56] [INFO] [ChemicalCloud] Moving original enemy from (200, 2752.667) to (280.1556, 2766.735) (offset=(80.26556, 13.42618))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:768:[23:21:56] [INFO] [ChemicalCloud] Moving original enemy from (199.9959, 2602.673) to (156.1063, 2710.732) (offset=(-43.02375, 108.4073))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:772:[23:21:56] [INFO] [ChemicalCloud] Moving original enemy from (228.3099, 2559.598) to (268.4061, 2668.34) (offset=(115.3478, 11.28631))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:774:[23:21:56] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:775:[23:21:56] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:1156:[23:21:58] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:1433:[23:22:00] [WARN] [FPS] Drop detected: 26 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:1686:[23:22:01] [WARN] [FPS] Drop detected: 18 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:1813:[23:22:02] [WARN] [FPS] Drop detected: 17 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:1975:[23:22:03] [WARN] [FPS] Drop detected: 18 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:2082:[23:22:05] [WARN] [FPS] Drop detected: 17 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:2265:[23:22:06] [WARN] [FPS] Drop detected: 21 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:2332:[23:22:07] [WARN] [FPS] Drop detected: 19 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:2541:[23:22:08] [WARN] [FPS] Drop detected: 27 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:2848:[23:22:10] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:2991:[23:22:12] [INFO] [ChemicalCloud] _ready() at (121.1362, 2597.863)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:2992:[23:22:12] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:2993:[23:22:12] [INFO] [ChemicalCloud] Cloud spawned at (121.1362, 2597.863), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:3001:[23:22:12] [INFO] [ChemicalCloud] Moving original enemy from (200, 2828.372) to (197.6862, 2760.498) (offset=(-40.23407, -54.71228))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:3005:[23:22:12] [INFO] [ChemicalCloud] Moving original enemy from (200.1823, 2670.089) to (180.3731, 2583.844) (offset=(-61.07677, -64.03383))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:3009:[23:22:12] [INFO] [ChemicalCloud] Moving original enemy from (206.9717, 2622.37) to (146.1256, 2619.233) (offset=(-5.823735, 60.64795))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:3014:[23:22:12] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:3015:[23:22:12] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:3412:[23:22:14] [WARN] [FPS] Drop detected: 22 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:3702:[23:22:15] [WARN] [FPS] Drop detected: 16 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:3983:[23:22:16] [WARN] [FPS] Drop detected: 9 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:4244:[23:22:18] [WARN] [FPS] Drop detected: 8 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:4490:[23:22:19] [WARN] [FPS] Drop detected: 9 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:4699:[23:22:20] [WARN] [FPS] Drop detected: 8 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:4851:[23:22:21] [WARN] [FPS] Drop detected: 16 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:5116:[23:22:23] [WARN] [FPS] Drop detected: 20 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:5197:[23:22:24] [INFO] [ChemicalCloud] _ready() at (277.0653, 2601.163)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:5198:[23:22:24] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:5199:[23:22:24] [INFO] [ChemicalCloud] Cloud spawned at (277.0653, 2601.163), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:5207:[23:22:24] [INFO] [ChemicalCloud] Moving original enemy from (200, 2750) to (125.2215, 2830.04) (offset=(-84.38394, 69.84002))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:5213:[23:22:24] [INFO] [ChemicalCloud] Moving original enemy from (202.8832, 2614.45) to (145.9407, 2698.092) (offset=(-42.88957, 91.64535))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:5217:[23:22:24] [INFO] [ChemicalCloud] Moving original enemy from (169.6258, 2579.733) to (183.109, 2691.242) (offset=(108.0354, 30.73077))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:5220:[23:22:24] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:5221:[23:22:24] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:5523:[23:22:26] [WARN] [FPS] Drop detected: 28 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:5815:[23:22:27] [WARN] [FPS] Drop detected: 12 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:5991:[23:22:28] [WARN] [FPS] Drop detected: 12 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:6191:[23:22:29] [WARN] [FPS] Drop detected: 9 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:6408:[23:22:30] [WARN] [FPS] Drop detected: 11 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:6563:[23:22:31] [WARN] [FPS] Drop detected: 9 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:6835:[23:22:32] [WARN] [FPS] Drop detected: 11 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:6912:[23:22:33] [WARN] [FPS] Drop detected: 8 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:6968:[23:22:34] [WARN] [FPS] Drop detected: 20 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:7112:[23:22:35] [WARN] [FPS] Drop detected: 15 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:7443:[23:22:37] [WARN] [FPS] Drop detected: 10 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:7487:[23:22:37] [INFO] [ChemicalCloud] _ready() at (122.7113, 2612.766)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:7488:[23:22:37] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:7489:[23:22:37] [INFO] [ChemicalCloud] Cloud spawned at (122.7113, 2612.766), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:7505:[23:22:37] [INFO] [ChemicalCloud] Moving original enemy from (200, 2752.667) to (139.5666, 2734.746) (offset=(-60.57482, -17.43718))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:7508:[23:22:37] [INFO] [ChemicalCloud] Moving original enemy from (199.9963, 2602.673) to (135.1339, 2503.673) (offset=(-65.65231, -98.47746))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:7512:[23:22:37] [INFO] [ChemicalCloud] Moving original enemy from (227.273, 2558.268) to (153.0292, 2539.873) (offset=(-60.24685, 47.12557))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:7518:[23:22:37] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:7519:[23:22:37] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:8007:[23:22:40] [WARN] [FPS] Drop detected: 17 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:8266:[23:22:41] [WARN] [FPS] Drop detected: 18 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:8540:[23:22:43] [WARN] [FPS] Drop detected: 15 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:8744:[23:22:44] [WARN] [FPS] Drop detected: 13 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:9428:[23:22:46] [WARN] [FPS] Drop detected: 15 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:9563:[23:22:47] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:9701:[23:22:49] [WARN] [FPS] Drop detected: 11 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:9918:[23:22:50] [WARN] [FPS] Drop detected: 12 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:10149:[23:22:51] [WARN] [FPS] Drop detected: 19 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:10530:[23:22:52] [INFO] [ChemicalCloud] _ready() at (120.6083, 2629.546)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:10531:[23:22:52] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:10532:[23:22:52] [INFO] [ChemicalCloud] Cloud spawned at (120.6083, 2629.546), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:10547:[23:22:52] [INFO] [ChemicalCloud] Moving original enemy from (200, 2750) to (176.6575, 2681.624) (offset=(-23.34249, -68.37576))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:10554:[23:22:52] [INFO] [ChemicalCloud] Moving original enemy from (200.0617, 2602.672) to (138.7715, 2610.624) (offset=(-61.22469, 8.441783))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:10559:[23:22:52] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:10560:[23:22:52] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:10595:[23:22:52] [WARN] [FPS] Drop detected: 19 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:10946:[23:22:55] [WARN] [FPS] Drop detected: 28 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:11112:[23:22:56] [WARN] [FPS] Drop detected: 24 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:11264:[23:22:57] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:12862:[23:23:00] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:13361:[23:23:02] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:13799:[23:23:04] [WARN] [FPS] Drop detected: 7 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:13812:[23:23:04] [INFO] [ChemicalCloud] _ready() at (120.62, 2620.021)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:13813:[23:23:04] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:13814:[23:23:04] [INFO] [ChemicalCloud] Cloud spawned at (120.62, 2620.021), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:13832:[23:23:04] [INFO] [ChemicalCloud] Moving original enemy from (200, 2752.667) to (264.7643, 2755.797) (offset=(64.78722, 2.612044))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:13843:[23:23:04] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:13844:[23:23:04] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:14280:[23:23:07] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:14436:[23:23:08] [WARN] [FPS] Drop detected: 19 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:14555:[23:23:10] [WARN] [FPS] Drop detected: 25 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:14655:[23:23:11] [WARN] [FPS] Drop detected: 25 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:14711:[23:23:12] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:14876:[23:23:14] [WARN] [FPS] Drop detected: 28 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:15268:[23:23:15] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:15284:[23:23:15] [INFO] [ChemicalCloud] _ready() at (120.0658, 2565.394)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:15285:[23:23:15] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:15286:[23:23:15] [INFO] [ChemicalCloud] Cloud spawned at (120.0658, 2565.394), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:15308:[23:23:15] [INFO] [ChemicalCloud] Moving original enemy from (200.127, 2602.67) to (172.7311, 2683.376) (offset=(-26.74938, 80.92194))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:15312:[23:23:15] [INFO] [ChemicalCloud] Moving original enemy from (219.8118, 2555.576) to (132.2904, 2600.984) (offset=(13.21719, 97.70943))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:15316:[23:23:15] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:15317:[23:23:15] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:15695:[23:23:18] [WARN] [FPS] Drop detected: 25 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:15935:[23:23:20] [WARN] [FPS] Drop detected: 27 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:16132:[23:23:21] [WARN] [FPS] Drop detected: 12 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:16295:[23:23:22] [WARN] [FPS] Drop detected: 16 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:16377:[23:23:23] [WARN] [FPS] Drop detected: 27 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:16668:[23:23:25] [WARN] [FPS] Drop detected: 26 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:16712:[23:23:25] [INFO] [ChemicalCloud] _ready() at (181.4581, 2573.532)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:16713:[23:23:25] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:16714:[23:23:25] [INFO] [ChemicalCloud] Cloud spawned at (181.4581, 2573.532), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:16728:[23:23:25] [INFO] [ChemicalCloud] Moving original enemy from (201.0931, 2607.925) to (215.0068, 2547.574) (offset=(8.064925, -61.40605))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:16734:[23:23:25] [INFO] [ChemicalCloud] Moving original enemy from (158.0015, 2518.393) to (251.8815, 2544.987) (offset=(94.36206, -24.82881))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:16736:[23:23:25] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:16737:[23:23:25] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:17079:[23:23:28] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:17396:[23:23:29] [WARN] [FPS] Drop detected: 21 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:17547:[23:23:30] [WARN] [FPS] Drop detected: 18 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:17659:[23:23:31] [INFO] [ChemicalCloud] _ready() at (120.3918, 2790.261)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:17660:[23:23:31] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:17661:[23:23:31] [INFO] [ChemicalCloud] Cloud spawned at (120.3918, 2790.261), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:17678:[23:23:31] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:17679:[23:23:31] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 11 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:17708:[23:23:32] [WARN] [FPS] Drop detected: 24 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:17833:[23:23:33] [WARN] [FPS] Drop detected: 22 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:18099:[23:23:34] [WARN] [FPS] Drop detected: 18 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:18424:[23:23:36] [WARN] [FPS] Drop detected: 10 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:18638:[23:23:37] [WARN] [FPS] Drop detected: 7 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:18792:[23:23:38] [WARN] [FPS] Drop detected: 8 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:18959:[23:23:39] [WARN] [FPS] Drop detected: 15 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:19137:[23:23:40] [WARN] [FPS] Drop detected: 17 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:19434:[23:23:41] [WARN] [FPS] Drop detected: 18 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:19458:[23:23:42] [INFO] [ChemicalCloud] _ready() at (121.6509, 2621.811)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:19459:[23:23:42] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:19460:[23:23:42] [INFO] [ChemicalCloud] Cloud spawned at (121.6509, 2621.811), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:19478:[23:23:42] [INFO] [ChemicalCloud] Moving original enemy from (200, 2752.667) to (155.1387, 2669.6) (offset=(-45.52438, -82.70503))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:19482:[23:23:42] [INFO] [ChemicalCloud] Moving original enemy from (199.9958, 2602.673) to (176.9909, 2686.605) (offset=(-22.33273, 84.11379))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:19490:[23:23:42] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:19491:[23:23:42] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:20011:[23:23:45] [WARN] [FPS] Drop detected: 22 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:20220:[23:23:46] [WARN] [FPS] Drop detected: 21 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:20514:[23:23:48] [WARN] [FPS] Drop detected: 13 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:20782:[23:23:49] [WARN] [FPS] Drop detected: 13 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:21043:[23:23:50] [WARN] [FPS] Drop detected: 10 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:21234:[23:23:51] [WARN] [FPS] Drop detected: 14 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:21531:[23:23:53] [WARN] [FPS] Drop detected: 20 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:21660:[23:23:53] [INFO] [ChemicalCloud] _ready() at (120.5004, 2714.723)
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:21661:[23:23:53] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:21662:[23:23:53] [INFO] [ChemicalCloud] Cloud spawned at (120.5004, 2714.723), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:21672:[23:23:53] [INFO] [ChemicalCloud] Moving original enemy from (200.005, 2756.667) to (248.1273, 2697.677) (offset=(33.48893, -68.36667))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:21678:[23:23:53] [INFO] [ChemicalCloud] Moving original enemy from (202.9438, 2651.282) to (280.567, 2687.964) (offset=(82.84668, 22.52357))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:21681:[23:23:53] [INFO] [ChemicalCloud] Moving original enemy from (222.2222, 2600.722) to (140.6441, 2552.271) (offset=(-68.4199, 65.73593))
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:21685:[23:23:53] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_232137.txt:21686:[23:23:53] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:355:[23:10:59] [WARN] [FPS] Drop detected: 10 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:694:[23:11:09] [INFO] [ChemicalCloud] _ready() at (202.9636, 2606.904)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:695:[23:11:09] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:696:[23:11:09] [INFO] [ChemicalCloud] Cloud spawned at (202.9636, 2606.904), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:718:[23:11:09] [INFO] [ChemicalCloud] Moving original enemy from (202.0481, 2646.572) to (284.6769, 2648.536) (offset=(80.72755, -17.73258))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:723:[23:11:09] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:724:[23:11:09] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:942:[23:11:11] [WARN] [FPS] Drop detected: 20 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:1200:[23:11:12] [WARN] [FPS] Drop detected: 22 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:1532:[23:11:13] [WARN] [FPS] Drop detected: 10 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:1825:[23:11:15] [WARN] [FPS] Drop detected: 10 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:1952:[23:11:15] [INFO] [ChemicalCloud] _ready() at (196.8228, 2879.955)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:1953:[23:11:15] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:1954:[23:11:15] [INFO] [ChemicalCloud] Cloud spawned at (196.8228, 2879.955), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:1956:[23:11:15] [INFO] [ChemicalCloud] Moving original enemy from (180.6042, 2790.966) to (163.9844, 2690.502) (offset=(-100.6817, -15.24688))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:1966:[23:11:15] [INFO] [ChemicalCloud] Moving original enemy from (238.65, 2323.269) to (205.9045, 2403.918) (offset=(86.61996, 8.578646))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:1968:[23:11:15] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:1969:[23:11:15] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 11 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:2199:[23:11:16] [WARN] [FPS] Drop detected: 10 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:2415:[23:11:18] [WARN] [FPS] Drop detected: 7 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:2497:[23:11:19] [WARN] [FPS] Drop detected: 12 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:2636:[23:11:20] [WARN] [FPS] Drop detected: 10 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:2763:[23:11:21] [WARN] [FPS] Drop detected: 23 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:2840:[23:11:23] [WARN] [FPS] Drop detected: 27 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:3102:[23:11:24] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:3218:[23:11:25] [INFO] [ChemicalCloud] _ready() at (120.6011, 2620.555)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:3219:[23:11:25] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:3220:[23:11:25] [INFO] [ChemicalCloud] Cloud spawned at (120.6011, 2620.555), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:3229:[23:11:25] [INFO] [ChemicalCloud] Moving original enemy from (203.0499, 2646.565) to (306.923, 2696.996) (offset=(114.0081, 18.30271))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:3234:[23:11:25] [INFO] [ChemicalCloud] Moving original enemy from (175.5025, 2590.712) to (207.5915, 2698) (offset=(111.9777, 1.213953))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:3241:[23:11:25] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:3242:[23:11:25] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:3827:[23:11:29] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:3986:[23:11:30] [WARN] [FPS] Drop detected: 19 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:4153:[23:11:31] [WARN] [FPS] Drop detected: 24 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:4464:[23:11:32] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:4510:[23:11:33] [INFO] [ChemicalCloud] _ready() at (120.3278, 2526.089)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:4511:[23:11:33] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:4512:[23:11:33] [INFO] [ChemicalCloud] Cloud spawned at (120.3278, 2526.089), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:4537:[23:11:33] [INFO] [ChemicalCloud] Moving original enemy from (263.9334, 1979.801) to (168.1421, 1928.293) (offset=(107.8362, 14.16008))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:4539:[23:11:33] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:4540:[23:11:33] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:5152:[23:11:37] [WARN] [FPS] Drop detected: 13 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:5460:[23:11:38] [WARN] [FPS] Drop detected: 8 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:6073:[23:11:40] [WARN] [FPS] Drop detected: 12 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:7783:[23:11:43] [WARN] [FPS] Drop detected: 3 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:7899:[23:11:44] [WARN] [FPS] Drop detected: 7 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:8029:[23:11:46] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:8290:[23:11:47] [WARN] [FPS] Drop detected: 5 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:8345:[23:11:47] [INFO] [ChemicalCloud] _ready() at (199.7979, 2568.061)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:8346:[23:11:47] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:8347:[23:11:47] [INFO] [ChemicalCloud] Cloud spawned at (199.7979, 2568.061), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:8358:[23:11:47] [INFO] [ChemicalCloud] Moving original enemy from (200, 2750) to (128.8653, 2832.573) (offset=(-62.8923, 89.01105))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:8369:[23:11:47] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:8370:[23:11:47] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:8763:[23:11:50] [INFO] [ChemicalCloud] _ready() at (279.3538, 2979.333)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:8764:[23:11:50] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:8765:[23:11:50] [INFO] [ChemicalCloud] Cloud spawned at (279.3538, 2979.333), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:8770:[23:11:50] [INFO] [ChemicalCloud] Moving original enemy from (190.0879, 2054.21) to (270.038, 2080.915) (offset=(25.64385, -80.29667))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:8778:[23:11:50] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:8779:[23:11:50] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 12 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:9011:[23:11:52] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:9211:[23:11:53] [WARN] [FPS] Drop detected: 21 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:9379:[23:11:54] [WARN] [FPS] Drop detected: 16 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:9530:[23:11:55] [WARN] [FPS] Drop detected: 25 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:9686:[23:11:56] [INFO] [ChemicalCloud] _ready() at (294.36, 1940.07)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:9687:[23:11:56] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:9688:[23:11:56] [INFO] [ChemicalCloud] Cloud spawned at (294.36, 1940.07), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:9690:[23:11:56] [INFO] [ChemicalCloud] Moving original enemy from (172.6712, 1658.452) to (213.8009, 1706.028) (offset=(61.66478, 12.35173))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:9697:[23:11:56] [INFO] [ChemicalCloud] Moving original enemy from (158.3232, 1126.805) to (206.7346, 1038.399) (offset=(44.59646, -90.39098))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:9702:[23:11:56] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:9703:[23:11:56] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 9 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:9712:[23:11:57] [WARN] [FPS] Drop detected: 17 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:9917:[23:11:58] [WARN] [FPS] Drop detected: 19 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:10143:[23:11:59] [WARN] [FPS] Drop detected: 21 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:10452:[23:12:00] [WARN] [FPS] Drop detected: 26 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:10538:[23:12:02] [INFO] [ChemicalCloud] _ready() at (120.8352, 2666.807)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:10539:[23:12:02] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:10540:[23:12:02] [INFO] [ChemicalCloud] Cloud spawned at (120.8352, 2666.807), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:10558:[23:12:02] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:10559:[23:12:02] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:11068:[23:12:06] [WARN] [FPS] Drop detected: 16 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:11244:[23:12:07] [WARN] [FPS] Drop detected: 11 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:11492:[23:12:08] [WARN] [FPS] Drop detected: 14 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:11588:[23:12:08] [INFO] [ChemicalCloud] _ready() at (120.2114, 2680.522)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:11589:[23:12:08] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:11590:[23:12:08] [INFO] [ChemicalCloud] Cloud spawned at (120.2114, 2680.522), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:11592:[23:12:08] [INFO] [ChemicalCloud] Moving original enemy from (263.4118, 2453.795) to (277.994, 2387.774) (offset=(-67.58344, -1.973417))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:11599:[23:12:08] [INFO] [ChemicalCloud] Moving original enemy from (451.9989, 1913.925) to (340.5701, 1927.364) (offset=(59.42557, 95.21323))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:11604:[23:12:08] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:11605:[23:12:08] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 12 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:11687:[23:12:09] [WARN] [FPS] Drop detected: 12 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:11748:[23:12:10] [WARN] [FPS] Drop detected: 19 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:11920:[23:12:12] [WARN] [FPS] Drop detected: 24 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:12236:[23:12:13] [WARN] [FPS] Drop detected: 15 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:12451:[23:12:14] [WARN] [FPS] Drop detected: 15 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:12567:[23:12:15] [WARN] [FPS] Drop detected: 18 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:12901:[23:12:17] [WARN] [FPS] Drop detected: 28 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:12959:[23:12:18] [INFO] [ChemicalCloud] _ready() at (120.2168, 2534.457)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:12960:[23:12:18] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:12961:[23:12:18] [INFO] [ChemicalCloud] Cloud spawned at (120.2168, 2534.457), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:12974:[23:12:18] [INFO] [ChemicalCloud] Moving original enemy from (159.378, 2626.277) to (128.5228, 2682.872) (offset=(34.02182, 54.75008))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:12980:[23:12:18] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:12981:[23:12:18] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:13002:[23:12:18] [INFO] [ChemicalCloud] _ready() at (120.822, 2758.618)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:13003:[23:12:18] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:13004:[23:12:18] [INFO] [ChemicalCloud] Cloud spawned at (120.822, 2758.618), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:13010:[23:12:18] [INFO] [ChemicalCloud] Global illusion cap reached (12), stopping
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:13011:[23:12:18] [INFO] [ChemicalCloud] Spawned 2 illusion copies for 13 enemies (total: 2/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:13423:[23:12:20] [INFO] [ChemicalCloud] Progressive illusion spawned (total: 3/10, player in cloud: 2.0s)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:13630:[23:12:21] [WARN] [FPS] Drop detected: 17 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:13861:[23:12:23] [WARN] [FPS] Drop detected: 16 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:13914:[23:12:23] [INFO] [ChemicalCloud] Progressive illusion spawned (total: 4/10, player in cloud: 4.0s)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:13998:[23:12:24] [WARN] [FPS] Drop detected: 21 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:14056:[23:12:25] [INFO] [ChemicalCloud] Progressive illusion spawned (total: 5/10, player in cloud: 6.0s)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:14206:[23:12:26] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:14372:[23:12:27] [WARN] [FPS] Drop detected: 22 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:14542:[23:12:28] [WARN] [FPS] Drop detected: 17 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:14558:[23:12:28] [INFO] [ChemicalCloud] Progressive illusion spawned (total: 6/10, player in cloud: 8.0s)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:14741:[23:12:30] [WARN] [FPS] Drop detected: 16 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:15041:[23:12:30] [INFO] [ChemicalCloud] _ready() at (122.0609, 2601.382)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:15042:[23:12:30] [INFO] [ChemicalCloud] Particle system created
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:15043:[23:12:30] [INFO] [ChemicalCloud] Cloud spawned at (122.0609, 2601.382), radius=600, duration=20s
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:15059:[23:12:30] [INFO] [ChemicalCloud] Moving original enemy from (200, 2752.667) to (267.218, 2766.98) (offset=(67.33036, 13.77519))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:15064:[23:12:30] [INFO] [ChemicalCloud] Moving original enemy from (199.9979, 2602.674) to (156.6345, 2507.917) (offset=(-44.12006, -94.40674))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:15068:[23:12:30] [INFO] [ChemicalCloud] Moving original enemy from (214.222, 2553.548) to (255.2363, 2637.14) (offset=(92.63429, 9.418393))
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:15072:[23:12:30] [INFO] [ChemicalCloud] Per-cloud cap reached (10), stopping initial batch
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:15073:[23:12:30] [INFO] [ChemicalCloud] Spawned 10 illusion copies for 13 enemies (total: 10/10)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:15096:[23:12:31] [WARN] [FPS] Drop detected: 17 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:15530:[23:12:33] [WARN] [FPS] Drop detected: 23 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:15644:[23:12:34] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+docs/case-studies/issue-1632/logs/game_log_20260327_231057.txt:15689:[23:12:36] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)

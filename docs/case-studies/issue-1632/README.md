@@ -4,9 +4,14 @@
 
 **Issue**: When a gas-mask enemy throws a chemical grenade and illusory copies are spawned (`ChemicalCloud._spawn_illusions_for_nearby_enemies`), the original enemy is teleported to a randomly chosen offset position. In narrow corridors, this sometimes placed the enemy inside wall geometry.
 
-**Status**: Partially fixed in PR #1646 (nav-mesh validation added). Problem persists at lower frequency per user report on 2026-03-27.
+**Status**: Updated in PR #1646 after two follow-up reports: wall placement persisted at lower frequency after the nav-mesh-only fix, then the physics validation raised performance concerns in long chemical-cloud sessions.
 
-**Game log**: `game_log_20260327_223228.txt` (session from 2026-03-27 22:32–22:33)
+**Input logs**:
+- `logs/game_log_20260327_223228.txt` (session from 2026-03-27 22:32-22:33)
+- `logs/game_log_20260327_231057.txt` (performance follow-up)
+- `logs/game_log_20260327_232137.txt` (performance follow-up)
+- `logs/game_log_20260327_233304.txt` (performance follow-up)
+- `logs/performance-key-lines.txt` (extracted chemical-cloud and FPS events)
 
 ---
 
@@ -85,6 +90,32 @@ This uses Godot's physics engine to directly test overlap with colliders. The na
 
 Even if the destination is on the navmesh, the straight line from the enemy's current position to the target may cross a wall. Moving through a wall (even briefly via `global_position =`) clips the enemy into geometry, and the physics engine may not push them out correctly.
 
+### Root Cause 5: Center Candidate Could Short-Circuit Random Placement
+
+The first physics-validation draft shuffled all candidate indices, including index `0` (the original center position). Because the center was accepted immediately as always valid, any shuffle that put index `0` before valid non-center offsets would keep the real enemy in place without testing those offsets.
+
+That behavior did not cause wall clipping, but it weakened the "random position for the original" behavior requested in issue #1361. The final selection now shuffles and validates only non-center offsets first, and uses center strictly as the fallback when no random offset is safe.
+
+---
+
+## Performance Follow-up
+
+The owner reported on 2026-03-27 that the fix appeared to affect performance heavily and attached three more logs. Those logs show:
+
+| Log | Chemical cloud pattern | FPS pattern |
+|-----|------------------------|-------------|
+| `game_log_20260327_231057.txt` | Repeated radius-600 clouds spawning capped illusion batches | FPS drops continue while clouds/illusions remain active |
+| `game_log_20260327_232137.txt` | Many clouds spawn 10 illusion copies for 11-13 enemies | Drops range from high 20s down to single digits after cloud spawn |
+| `game_log_20260327_233304.txt` | Multiple overlapping clouds, frequent per-cloud cap hits, global cap hits | Drops continue for the 20s cloud/illusion lifetime |
+
+The log evidence points to the sustained cost of active chemical clouds and illusion copies, not only the one-time placement validation. The validation checks run during spawn candidate selection, while the severe FPS drops persist for many seconds after the spawn line and often until the cloud dissipates.
+
+Still, the final implementation keeps validation allocation-light:
+
+- One validation context is created per enemy placement batch.
+- One `PhysicsPointQueryParameters2D` and one `PhysicsRayQueryParameters2D` are reused for all candidates in that batch.
+- Only non-center candidates are validated. Center is not queried because it is the fallback no-move position.
+
 ---
 
 ## Evidence from the Log
@@ -107,7 +138,7 @@ These warnings appear immediately after the first batch of illusion spawns (line
 
 Added nav-mesh validation via `NavigationServer2D.map_get_closest_point()` with 50 px tolerance. This reduced frequency but did not eliminate the bug.
 
-### Improved Fix (Required)
+### Improved Fix (Implemented)
 
 Replace (or supplement) the nav-mesh check with **physics-based overlap detection**:
 
@@ -117,7 +148,11 @@ Replace (or supplement) the nav-mesh check with **physics-based overlap detectio
 
 3. **Line-of-sight check**: Cast a ray from `enemy.global_position` to `candidate_pos` with `collision_mask = 4`. Reject candidates where the path crosses a wall.
 
-The combined approach matches what `player.gd` already uses for BFF companion spawning (see `_is_spawn_position_valid` at line 3431).
+4. **Preserve random original placement**: Shuffle only non-center candidates first. Keep index `0` as a deterministic fallback only if every random candidate fails validation.
+
+5. **Reduce validation overhead**: Reuse physics query parameter objects inside a validation context instead of allocating new query objects for every candidate.
+
+The combined approach matches the physics-query pattern used elsewhere in the codebase while avoiding the nav-mesh false positives that caused the wall placement bug.
 
 ---
 
@@ -125,7 +160,7 @@ The combined approach matches what `player.gd` already uses for BFF companion sp
 
 | File | Role |
 |------|------|
-| `scripts/effects/chemical_cloud.gd` | Main fix location — `_spawn_illusions_for_nearby_enemies()` and `_is_position_on_nav_map()` |
+| `scripts/effects/chemical_cloud.gd` | Main fix location — `_spawn_illusions_for_nearby_enemies()`, `_create_position_validation_context()`, and `_is_position_valid()` |
 | `scripts/effects/illusion_effect.gd` | IllusionEffect node — not involved in position validation |
 | `scripts/components/enemy_teleport_component.gd` | Reference: uses same nav-mesh approach (50px tolerance) |
 | `scripts/characters/player.gd` | Reference: `_is_spawn_position_valid()` uses physics overlap check (correct approach) |

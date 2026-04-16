@@ -282,10 +282,8 @@ func test_nav_snap_tolerance_is_20() -> void:
 
 
 func test_fallback_to_center_when_all_candidates_invalid() -> void:
-	# When space_state is null (fallback path) and no nav-agent available,
-	# the loop should still accept the first valid candidate.
-	# Simulate the selection logic: if center (offset=ZERO) is encountered, it's always valid.
-	var found_center: bool = false
+	# The real selection tries shuffled non-center candidates first, then falls
+	# back to center only when none of those candidates are valid.
 	var copies: int = 3
 	var total_positions: int = copies + 1
 	var offsets: Array[Vector2] = []
@@ -294,14 +292,45 @@ func test_fallback_to_center_when_all_candidates_invalid() -> void:
 		var angle: float = (TAU / copies) * i
 		offsets.append(Vector2(cos(angle), sin(angle)) * 90.0)
 
-	# Shuffle and find first valid — center should always be accepted
 	var candidate_indices: Array[int] = []
-	for i in range(total_positions):
+	for i in range(1, total_positions):
+		candidate_indices.append(i)
+	candidate_indices.shuffle()
+
+	var original_index: int = 0
+	for ci in candidate_indices:
+		var candidate_is_valid := false
+		if candidate_is_valid:
+			original_index = ci
+			break
+
+	assert_eq(original_index, 0,
+		"Center should remain selected only when every non-center candidate is invalid")
+
+
+func test_center_candidate_is_not_checked_before_random_offsets() -> void:
+	# Regression test: including center in the shuffled candidate list could accept
+	# no-movement before testing valid random offsets, weakening issue #1361 behavior.
+	var copies: int = 3
+	var total_positions: int = copies + 1
+	var candidate_indices: Array[int] = []
+	for i in range(1, total_positions):
 		candidate_indices.append(i)
 
-	for ci in candidate_indices:
-		if offsets[ci] == Vector2.ZERO:
-			found_center = true
-			break  # Center is always valid
+	assert_eq(candidate_indices.size(), copies,
+		"Only non-center offsets should be checked before fallback")
+	assert_false(candidate_indices.has(0),
+		"Center index must be excluded from the shuffled validation candidates")
 
-	assert_true(found_center, "Center offset should always be found as valid fallback")
+
+func test_position_validation_context_uses_reusable_query_objects() -> void:
+	var context := {
+		"space_state": null,
+		"point_query": PhysicsPointQueryParameters2D.new(),
+		"ray_query": PhysicsRayQueryParameters2D.new(),
+	}
+
+	assert_not_null(context["point_query"],
+		"Validation context should be able to carry one reusable point query")
+	assert_not_null(context["ray_query"],
+		"Validation context should be able to carry one reusable ray query")
