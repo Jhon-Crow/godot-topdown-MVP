@@ -569,9 +569,11 @@ class MockPersistManagerFirstLaunch:
 	var restart_requested: bool = false
 	## Whether GameManager is available for quick restart.
 	var has_game_manager: bool = true
+	## Whether startup is running through the GUT command-line runner.
+	var running_gut_tests: bool = false
 
 	func simulate_navigate_to_last_level() -> void:
-		if _is_first_launch:
+		if _is_first_launch and not running_gut_tests:
 			first_launch_menu_shown = true
 			navigation_deferred = true
 			tree_paused = true
@@ -619,11 +621,29 @@ func test_non_first_launch_skips_difficulty_menu() -> void:
 		"Level navigation must proceed immediately on non-first launch (Issue #1734)")
 
 
+func test_first_launch_skips_difficulty_menu_during_gut_run() -> void:
+	## GUT loads normal project autoloads. PersistManager must not pause the
+	## test tree before await-based tests such as wait_frames() can resume.
+	var mock := MockPersistManagerFirstLaunch.new()
+	mock._is_first_launch = true
+	mock.running_gut_tests = true
+
+	mock.simulate_navigate_to_last_level()
+
+	assert_false(mock.first_launch_menu_shown,
+		"Difficulty menu must not pause the tree during GUT runs")
+	assert_false(mock.tree_paused,
+		"GUT startup must leave the tree unpaused so await-based tests can run")
+	assert_true(mock.navigation_performed,
+		"Normal startup navigation should continue under GUT instead of waiting for a UI choice")
+
+
 func test_navigation_resumes_after_difficulty_selected() -> void:
 	## After the player picks a difficulty in first-launch mode, level navigation
 	## must resume (Issue #1734).
 	var mock := MockPersistManagerFirstLaunch.new()
 	mock._is_first_launch = true
+	mock.has_game_manager = false
 	mock.simulate_navigate_to_last_level()
 	assert_false(mock.navigation_performed, "Navigation must be deferred initially")
 

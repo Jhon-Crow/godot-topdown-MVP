@@ -248,6 +248,7 @@ const PURSUIT_APPROACH_MAX_TIME: float = 3.0  ## Max approach time (sec)
 const PURSUING_MIN_DURATION_BEFORE_COMBAT: float = 0.3  ## Min before COMBAT
 const PURSUIT_MIN_PROGRESS_FRACTION: float = 0.10  ## Min progress fraction
 const PURSUIT_SAME_OBSTACLE_PENALTY: float = 4.0  ## Penalty for same cover
+const PURSUIT_FLANK_PRIORITY_DISTANCE: float = 900.0  ## Visible/unhittable targets inside one screen should flank before more pursuit cover.
 const PURSUIT_PATH_DESIRED_DISTANCE: float = PursuitComponent.PURSUIT_PATH_DESIRED_DISTANCE  ## Issue #1289: enlarged nav step length while pursuing (from PursuitComponent)
 var _nav_default_path_desired_distance: float = 40.0  ## Issue #1289: saved default path_desired_distance
 var _flank_cover_wait_timer: float = 0.0  ## Wait at cover timer (Flanking State)
@@ -258,7 +259,11 @@ var _flank_side: float = 1.0  ## Flank side (1=right, -1=left)
 var _flank_side_initialized: bool = false  ## Flank side set
 var _flank_state_timer: float = 0.0  ## Total flanking time
 const FLANK_STATE_MAX_TIME: float = 5.0  ## Max flanking time (sec)
+var _flank_state_max_time: float = FLANK_STATE_MAX_TIME  ## Per-attempt timeout scaled by nav distance
+const FLANK_MIN_COMMIT_TIME: float = 0.6  ## Minimum visible time before FLANKING can collapse to COMBAT.
+const FLANK_MIN_COMMIT_DISTANCE: float = 80.0  ## Minimum move before early FLANKING->COMBAT exit.
 var _flank_last_position: Vector2 = Vector2.ZERO  ## Last pos for progress
+var _flank_start_position: Vector2 = Vector2.ZERO  ## Entry pos for commit checks
 var _flank_stuck_timer: float = 0.0  ## Stuck check timer
 const FLANK_STUCK_MAX_TIME: float = 2.0  ## Max time without progress
 const FLANK_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
@@ -1759,7 +1764,7 @@ func _process_in_cover_state(delta: float) -> void:
 func _process_flanking_state(delta: float) -> void:
 	_flank_state_timer += delta
 
-	if _flank_state_timer >= FLANK_STATE_MAX_TIME:
+	if _flank_state_timer >= _flank_state_max_time:
 		_log_to_file("FLANKING timeout (%.1fs), target=%s, pos=%s" % [_flank_state_timer, _flank_target, global_position])
 		_flank_side_initialized = false
 		if _can_see_player or _can_see_companion: _transition_to_combat()  # #934: incl. companion
@@ -1791,7 +1796,8 @@ func _process_flanking_state(delta: float) -> void:
 		_flank_side_initialized = false; _transition_to_retreating(); return
 
 	# Only transition to combat if we can ACTUALLY HIT the target (#934: incl. companion)
-	if (_can_see_player or _can_see_companion) and _can_hit_target_from_current_position():
+	var flank_committed := _flank_state_timer >= FLANK_MIN_COMMIT_TIME or global_position.distance_to(_flank_start_position) >= FLANK_MIN_COMMIT_DISTANCE
+	if (_can_see_player or _can_see_companion) and _can_hit_target_from_current_position() and flank_committed:
 		_flank_side_initialized = false
 		_transition_to_combat()
 		return
@@ -1803,8 +1809,6 @@ func _process_flanking_state(delta: float) -> void:
 		else:
 			_transition_to_idle()
 		return
-
-	_calculate_flank_position()  # Recalculate (player may have moved)
 
 	if global_position.distance_to(_flank_target) < 30.0:
 		_flank_side_initialized = false
@@ -2047,6 +2051,11 @@ func _process_pursuing_state(delta: float) -> void:
 			_transition_to_combat()
 			return
 
+	if _should_prioritize_flanking_target():
+		_log_to_file("PURSUING: close/visible unhittable target, attempting FLANKING before pursuit cover")
+		if _transition_to_flanking() or _current_state != AIState.PURSUING:
+			return
+
 	if _suppressive_fire: _suppressive_fire.try_suppress_pursuing(_can_see_player, _last_known_player_position, _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown)  # Issue #910
 	# VULNERABILITY SOUND PURSUIT: pursue reload/empty click sound position
 	if _pursuing_vulnerability_sound and _last_known_player_position != Vector2.ZERO:
@@ -2153,12 +2162,16 @@ func _process_pursuing_state(delta: float) -> void:
 					_log_debug("Can see target but can't hit, starting approach phase")
 					_pursuit_approaching = true
 					_pursuit_approach_timer = 0.0
+					if _can_attempt_flanking() and _player:
+						_log_debug("Visible target still unhittable from pursuit cover, attempting flanking maneuver")
+						if _transition_to_flanking():
+							return
 					return
 				# Try flanking if player not visible
 				if _can_attempt_flanking() and _player:
 					_log_debug("Attempting flanking maneuver")
-					_transition_to_flanking()
-					return
+					if _transition_to_flanking():
+						return
 				# Last resort: move directly toward player
 				_log_debug("No cover options, transitioning to COMBAT")
 				_transition_to_combat()
@@ -2229,6 +2242,25 @@ func _process_pursuing_state(delta: float) -> void:
 			_transition_to_flanking()
 		else:
 			_transition_to_combat()
+
+func _should_prioritize_flanking_target() -> bool:
+	if not _can_attempt_flanking():
+		return false
+	var target := _current_target if _current_target != null else _player
+	var target_visible := target != null and is_instance_valid(target) and (
+		(target == _player and _can_see_player) or (target == _companion and _can_see_companion)
+	)
+	var target_pos := _get_target_position()
+	if target_visible:
+		target_pos = target.global_position
+	if target_pos == global_position:
+		return false
+	var priority_distance := PURSUIT_FLANK_PRIORITY_DISTANCE if target_visible else CLOSE_COMBAT_DISTANCE
+	if global_position.distance_to(target_pos) > priority_distance:
+		return false
+	if _can_hit_target_from_current_position():
+		return false
+	return true
 
 ## Process ASSAULT state - disabled per issue #169. Immediately transitions to COMBAT.
 func _process_assault_state(_delta: float) -> void:
@@ -2669,7 +2701,7 @@ func _transition_to_flanking() -> bool:
 
 	# Validate that the flank target is reachable via navigation
 	if not _is_flank_target_reachable():
-		var msg := "Flank target unreachable via navigation, skipping flanking"
+		var msg := "Flank target unreachable via navigation, skipping flanking: target=%s pos=%s" % [_flank_target, global_position]
 		_log_debug(msg)
 		_log_to_file(msg)
 		_flank_fail_count += 1
@@ -2683,8 +2715,10 @@ func _transition_to_flanking() -> bool:
 	_has_valid_cover = false
 	# Initialize timeout and progress tracking for stuck detection (Issue #367)
 	_flank_state_timer = 0.0
+	_flank_state_max_time = EnemyFlankNavigationHelper.calculate_flank_timeout(self, _nav_agent, _flank_target, combat_move_speed, FLANK_STATE_MAX_TIME)
 	_flank_stuck_timer = 0.0
 	_flank_last_position = global_position
+	_flank_start_position = global_position
 	# Reset global stuck detection
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
@@ -2697,30 +2731,7 @@ func _transition_to_flanking() -> bool:
 
 ## Check if the current flank target is reachable via navigation mesh.
 func _is_flank_target_reachable() -> bool:
-	if _nav_agent == null:
-		return true  # Assume reachable if no nav agent
-
-	# Set target and check if path exists
-	_nav_agent.target_position = _flank_target
-
-	# If navigation says we're already finished, the target might be unreachable
-	# or we're already there. Check distance to determine.
-	if _nav_agent.is_navigation_finished():
-		var distance: float = global_position.distance_to(_flank_target)
-		# If we're far from target but navigation is "finished", it's unreachable
-		if distance > 50.0:
-			return false
-
-	# Check if the path distance is reasonable (not excessively long)
-	var path_distance: float = _nav_agent.distance_to_target()
-	var straight_distance: float = global_position.distance_to(_flank_target)
-
-	# If path distance is more than 3x the straight line distance, consider it blocked
-	if path_distance > straight_distance * 3.0 and path_distance > 500.0:
-		_log_debug("Flank path too long: %.0f vs straight %.0f" % [path_distance, straight_distance])
-		return false
-
-	return true
+	return EnemyFlankNavigationHelper.is_navigation_target_reasonable(self, _nav_agent, _flank_target)
 
 func _transition_to_suppressed() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_suppressed_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -3312,73 +3323,12 @@ func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, directio
 ## Calculate flank position based on player location and stored _flank_side.
 func _calculate_flank_position() -> void:
 	if _player == null: return
-	var _fp := _player.global_position + (global_position - _player.global_position).normalized().rotated(flank_angle * _flank_side) * flank_distance
-	# Issue #1107: Snap to nearest valid navmesh point — prevents flanking to wall corners
-	if _nav_agent: _flank_target = NavigationServer2D.map_get_closest_point(_nav_agent.get_navigation_map(), _fp)
-	else: _flank_target = _fp
+	_flank_target = EnemyFlankNavigationHelper.calculate_flank_target(self, _player, _nav_agent, flank_angle, _flank_side, flank_distance)
 	_log_debug("Flank target: %s (side: %s)" % [_flank_target, "right" if _flank_side > 0 else "left"])
 
 ## Choose best flank side (1.0=right, -1.0=left) — prefers LoS to player, avoids walls (#367).
 func _choose_best_flank_side() -> float:
-	if _player == null:
-		return 1.0 if randf() > 0.5 else -1.0
-
-	var player_pos := _player.global_position
-	var player_to_enemy := (global_position - player_pos).normalized()
-
-	# Calculate potential flank positions for both sides
-	var right_flank_dir := player_to_enemy.rotated(flank_angle * 1.0)
-	var left_flank_dir := player_to_enemy.rotated(flank_angle * -1.0)
-
-	var right_flank_pos := player_pos + right_flank_dir * flank_distance
-	var left_flank_pos := player_pos + left_flank_dir * flank_distance
-
-	# Check if paths are clear for both sides (from enemy to flank position)
-	var right_path_clear := _has_clear_path_to(right_flank_pos)
-	var left_path_clear := _has_clear_path_to(left_flank_pos)
-
-	# Issue #367: Check LOS to player and combine with path checks
-	var right_valid := right_path_clear and _flank_position_has_los_to_player(right_flank_pos, player_pos)
-	var left_valid := left_path_clear and _flank_position_has_los_to_player(left_flank_pos, player_pos)
-
-	if right_valid and not left_valid:
-		return 1.0
-	elif left_valid and not right_valid:
-		return -1.0
-
-	# [Issue #574] When both sides are valid, prefer the side NOT lit by the flashlight
-	if right_valid and left_valid and _flashlight_detection and _player:
-		var right_lit := _flashlight_detection.is_position_lit(right_flank_pos, _player, _raycast)
-		var left_lit := _flashlight_detection.is_position_lit(left_flank_pos, _player, _raycast)
-		if right_lit and not left_lit:
-			_log_to_file("[#574] Choosing left flank — right side lit by flashlight")
-			return -1.0
-		elif left_lit and not right_lit:
-			_log_to_file("[#574] Choosing right flank — left side lit by flashlight")
-			return 1.0
-
-	# Issue #367: If neither valid, try reduced distance (50%)
-	if not right_valid and not left_valid:
-		var rd := flank_distance * 0.5
-		var rr := player_pos + right_flank_dir * rd
-		var lr := player_pos + left_flank_dir * rd
-		var rrv := _has_clear_path_to(rr) and _flank_position_has_los_to_player(rr, player_pos)
-		var lrv := _has_clear_path_to(lr) and _flank_position_has_los_to_player(lr, player_pos)
-		if rrv and not lrv:
-			return 1.0
-		elif lrv and not rrv:
-			return -1.0
-		if not rrv and not lrv:
-			_log_to_file("Warning: No valid flank position (both sides behind walls)")
-
-	# Choose closer side
-	return 1.0 if global_position.distance_squared_to(right_flank_pos) < global_position.distance_squared_to(left_flank_pos) else -1.0
-
-## Check if flank position has LOS to player (Issue #367).
-func _flank_position_has_los_to_player(flank_pos: Vector2, player_pos: Vector2) -> bool:
-	var query := PhysicsRayQueryParameters2D.create(flank_pos, player_pos)
-	query.collision_mask = 0b100  # Walls only
-	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
+	return EnemyFlankNavigationHelper.choose_best_flank_side(self, _player, _nav_agent, flank_angle, flank_distance, _flashlight_detection, _raycast)
 
 ## Check if there's a clear path (no obstacles) to the target position.
 func _has_clear_path_to(target: Vector2) -> bool:
@@ -3402,8 +3352,6 @@ func _has_clear_path_to(target: Vector2) -> bool:
 
 ## Find cover position closer to the flank target for cover-to-cover movement.
 func _find_flank_cover_toward_target() -> void:
-	var wp_f := _combat_waypoint(_flank_target)  # Issue #1227
-	if wp_f != Vector2.ZERO: _flank_next_cover = wp_f; _has_flank_cover = true; return
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
 	var found_valid_cover: bool = false
@@ -4468,6 +4416,7 @@ func _reset() -> void:
 	_flank_state_timer = 0.0
 	_flank_stuck_timer = 0.0
 	_flank_last_position = Vector2.ZERO
+	_flank_start_position = Vector2.ZERO
 	_flank_fail_count = 0
 	_flank_cooldown_timer = 0.0
 	_last_known_player_position = Vector2.ZERO
