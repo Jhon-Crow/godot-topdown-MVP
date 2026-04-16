@@ -250,6 +250,7 @@ const PURSUIT_MIN_PROGRESS_FRACTION: float = 0.10  ## Min progress fraction
 const PURSUIT_SAME_OBSTACLE_PENALTY: float = 4.0  ## Penalty for same cover
 const PURSUIT_PATH_DESIRED_DISTANCE: float = PursuitComponent.PURSUIT_PATH_DESIRED_DISTANCE  ## Issue #1289: enlarged nav step length while pursuing (from PursuitComponent)
 var _nav_default_path_desired_distance: float = 40.0  ## Issue #1289: saved default path_desired_distance
+const NAV_TARGET_REPATH_DISTANCE: float = 24.0; var _nav_has_target: bool = false; var _nav_target_cache: Vector2 = Vector2.ZERO  ## Issue #1457: avoid per-frame repath churn on stable cover targets.
 var _flank_cover_wait_timer: float = 0.0  ## Wait at cover timer (Flanking State)
 const FLANK_COVER_WAIT_DURATION: float = 0.8  ## Cover wait time (sec)
 var _flank_next_cover: Vector2 = Vector2.ZERO  ## Next cover position
@@ -390,6 +391,7 @@ var _pursuit_component: PursuitComponent = null  ## Issue #1289: Cover-finding l
 
 func _ready() -> void:
 	add_to_group("enemies")
+	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING; wall_min_slide_angle = 0.0  # Issue #1457: top-down wall contacts should slide instead of catching.
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
 	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
@@ -4456,6 +4458,7 @@ func _reset() -> void:
 	_pursuit_approaching = false
 	_pursuit_approach_timer = 0.0
 	_pursuing_state_timer = 0.0
+	_nav_has_target = false; _avoidance_velocity = Vector2.ZERO; if _nav_agent and _nav_agent.avoidance_enabled: _nav_agent.set_velocity_forced(Vector2.ZERO)
 	# Reset global stuck detection (Issue #367)
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = Vector2.ZERO
@@ -4712,7 +4715,10 @@ func _is_player_distracted() -> bool:
 ## Get direction to follow NavigationAgent2D path toward target_pos. Returns Vector2.ZERO if finished.
 func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 	if _nav_agent == null: return (target_pos - global_position).normalized()
-	_nav_agent.target_position = target_pos
+	var target_distance := global_position.distance_to(target_pos)
+	var reached_distance := _nav_agent.target_desired_distance if _nav_agent.target_desired_distance > 0.0 else 10.0
+	if not _nav_has_target or _nav_target_cache.distance_to(target_pos) > NAV_TARGET_REPATH_DISTANCE or (_nav_agent.is_navigation_finished() and target_distance > reached_distance):
+		_nav_agent.target_position = target_pos; _nav_target_cache = target_pos; _nav_has_target = true
 	if _nav_agent.is_navigation_finished(): return Vector2.ZERO
 	return (_nav_agent.get_next_path_position() - global_position).normalized()
 
