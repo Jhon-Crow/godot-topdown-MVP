@@ -1319,7 +1319,9 @@ func _process_ai_state(delta: float) -> void:
 		if _has_valid_cover and _teleport_component.try_teleport(_cover_position): _transition_to_in_cover(); return
 	if _teleport_component and _teleport_component.is_ready() and not _can_see_player and _current_state == AIState.FLANKING: _teleport_component.try_teleport(_flank_target)  # #752: flank-teleport
 	# GRENADE THROW PRIORITY (Issue #363, #959, #1305): Non-pacifists check grenade triggers; respect combat toggle.
-	if _combat_allowed and _goap_world_state.get("ready_to_throw_grenade", false) and not (_pacifist and _pacifist.is_pacifist):
+	# Issue #1805: Grenadiers in COMBAT state should shoot their rifle, not only throw grenades.
+	# Grenade throws still happen during PURSUING (passage throws) and other non-COMBAT states.
+	if _combat_allowed and _goap_world_state.get("ready_to_throw_grenade", false) and not (_pacifist and _pacifist.is_pacifist) and not (is_grenadier and _current_state == AIState.COMBAT):
 		if try_throw_grenade():
 			return
 

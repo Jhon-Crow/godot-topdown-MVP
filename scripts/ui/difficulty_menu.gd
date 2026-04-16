@@ -10,9 +10,20 @@ extends CanvasLayer
 ## Also includes a Night Mode toggle right under the Difficulty title.
 ##
 ## Issue #1014: Power Fantasy uses bright gradient text, Black Metal uses gothic font.
+## Issue #1742: Strelok (Gunslinger) uses glowing red background and cowboy-style font.
 
 ## Signal emitted when the back button is pressed.
 signal back_pressed
+
+## Signal emitted when a difficulty is selected during first launch (Issue #1734).
+## Consumers should hide/free this menu after receiving this signal.
+signal difficulty_selected_first_launch
+
+## When true, the menu is shown as a first-launch selector:
+## - No difficulty is displayed as already selected (all buttons enabled)
+## - The back button is hidden (player must choose before continuing)
+## Set this before adding the node to the scene tree.
+var first_launch_mode: bool = false
 
 ## Reference to UI elements.
 @onready var night_mode_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NightModeContainer/NightModeCheckbox
@@ -31,6 +42,14 @@ var _gothic_font: Font = null
 ## Path to the Gothic bitmap font file.
 const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
 
+## Cowboy TTF font for Gunslinger button (Issue #1742).
+## Rye is a Western/cowboy-style slab serif font for Latin characters.
+## Cyrillic characters fall back to a system serif font automatically.
+var _cowboy_font: Font = null
+
+## Path to the Rye Western-style TTF font file.
+const COWBOY_FONT_PATH: String = "res://assets/fonts/rye/Rye-Regular.ttf"
+
 ## Gradient colors for Power Fantasy text (Issue #1014).
 ## Bright vibrant gradient from cyan through magenta to yellow.
 const POWER_FANTASY_GRADIENT_COLORS: Array[Color] = [
@@ -48,14 +67,20 @@ var _power_fantasy_label: RichTextLabel = null
 func _ready() -> void:
 	# Setup tooltips and label behaviour for settings rows (Issue #1200)
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NightModeContainer,
-			"Night Mode")
+			tr("NIGHT_MODE"))
 
 	# Load gothic font for Black Metal button (Issue #1014)
 	_load_gothic_font()
 
+	# Load cowboy font for Strelok (Gunslinger) button (Issue #1742)
+	_load_cowboy_font()
+
 	# Apply special styling to Power Fantasy and Black Metal buttons (Issue #1014)
 	_setup_power_fantasy_button()
 	_setup_black_metal_button()
+
+	# Apply cowboy styling to Strelok (Gunslinger) button (Issue #1742)
+	_setup_strelok_button()
 	# Connect button signals
 	night_mode_checkbox.toggled.connect(_on_night_mode_toggled)
 	power_fantasy_button.pressed.connect(_on_power_fantasy_pressed)
@@ -65,6 +90,14 @@ func _ready() -> void:
 	hard_button.pressed.connect(_on_hard_pressed)
 	black_metal_button.pressed.connect(_on_black_metal_pressed)
 	back_button.pressed.connect(_on_back_pressed)
+
+	# Hide back button in first-launch mode — player must pick a difficulty (Issue #1734)
+	if first_launch_mode:
+		back_button.hide()
+		# Show cursor so the player can click a difficulty button (Issue #1734).
+		# GameManager sets MOUSE_MODE_CONFINED_HIDDEN at startup; we must override that here
+		# because there is no pause menu to do it for us on first launch.
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 	# Update button states based on current difficulty
 	_update_button_states()
@@ -78,6 +111,11 @@ func _ready() -> void:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
 		experimental_settings.settings_changed.connect(_on_settings_changed)
+
+	# Connect to locale changes so button text updates immediately on language switch
+	var localization_settings: Node = get_node_or_null("/root/LocalizationSettings")
+	if localization_settings and localization_settings.has_signal("locale_changed"):
+		localization_settings.locale_changed.connect(_on_locale_changed)
 
 	# Set process mode to allow input while paused
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -95,47 +133,60 @@ func _update_button_states() -> void:
 	var is_black_metal: bool = difficulty_manager.is_black_metal_mode()
 	var is_gunslinger: bool = difficulty_manager.is_gunslinger_mode()
 
-	# Highlight current difficulty - disable the selected button
-	power_fantasy_button.disabled = is_power_fantasy
-	gunslinger_button.disabled = is_gunslinger
-	easy_button.disabled = is_easy
-	normal_button.disabled = is_normal
-	hard_button.disabled = is_hard
-	black_metal_button.disabled = is_black_metal
+	# Highlight current difficulty - disable the selected button.
+	# In first-launch mode all buttons stay enabled (nothing pre-selected) (Issue #1734).
+	if not first_launch_mode:
+		power_fantasy_button.disabled = is_power_fantasy
+		gunslinger_button.disabled = is_gunslinger
+		easy_button.disabled = is_easy
+		normal_button.disabled = is_normal
+		hard_button.disabled = is_hard
+		black_metal_button.disabled = is_black_metal
+	else:
+		power_fantasy_button.disabled = false
+		gunslinger_button.disabled = false
+		easy_button.disabled = false
+		normal_button.disabled = false
+		hard_button.disabled = false
+		black_metal_button.disabled = false
 
-	# Update button text to show selection
-	# Power Fantasy uses gradient text via RichTextLabel (Issue #1014)
-	_update_power_fantasy_text(is_power_fantasy)
-	gunslinger_button.text = "Gunslinger (Selected)" if is_gunslinger else "Gunslinger"
-	easy_button.text = "Easy (Selected)" if is_easy else "Easy"
-	normal_button.text = "Normal (Selected)" if is_normal else "Normal"
-	hard_button.text = "Hard (Selected)" if is_hard else "Hard"
-	# Use uppercase for Black Metal because the gothic font only has uppercase glyphs (Issue #1014)
-	# Use dash instead of parentheses since the gothic font doesn't have those characters (Issue #1020)
-	black_metal_button.text = "BLACK METAL - SELECTED" if is_black_metal else "BLACK METAL"
+	# Update button text to show selection.
+	# In first-launch mode nothing is pre-selected so never show "(Selected)" (Issue #1734).
+	# Power Fantasy uses gradient text via RichTextLabel (Issue #1014).
+	_update_power_fantasy_text(is_power_fantasy and not first_launch_mode)
+	gunslinger_button.text = tr("GUNSLINGER_SELECTED") if (is_gunslinger and not first_launch_mode) else tr("GUNSLINGER")
+	easy_button.text = tr("EASY_SELECTED") if (is_easy and not first_launch_mode) else tr("EASY")
+	normal_button.text = tr("NORMAL_SELECTED") if (is_normal and not first_launch_mode) else tr("NORMAL")
+	hard_button.text = tr("HARD_SELECTED") if (is_hard and not first_launch_mode) else tr("HARD")
+	# Always use hardcoded uppercase ASCII for Black Metal — gothic font only supports uppercase
+	# ASCII glyphs, and the name must not change when switching languages (it is a proper name).
+	black_metal_button.text = "BLACK METAL - SELECTED" if (is_black_metal and not first_launch_mode) else "BLACK METAL"
 
 	# Update night mode checkbox
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
 		night_mode_checkbox.button_pressed = experimental_settings.is_realistic_visibility_enabled()
 
-	# Update status label based on current difficulty
+	# Update status label based on current difficulty.
+	# In first-launch mode show a prompt to choose instead (Issue #1734).
 	var status_text: String = ""
-	if is_power_fantasy:
-		status_text = "Power Fantasy: 10 HP, 3x ammo, blue lasers"
+	if first_launch_mode:
+		status_text = tr("DIFFICULTY_STATUS_FIRST_LAUNCH")
+	elif is_power_fantasy:
+		status_text = tr("DIFFICULTY_STATUS_POWER_FANTASY")
 	elif is_gunslinger:
-		status_text = "Gunslinger: 2x less HP, 4x ammo, no laser sights"
+		status_text = tr("DIFFICULTY_STATUS_GUNSLINGER")
 	elif is_easy:
-		status_text = "Easy mode: Enemies react slower"
+		status_text = tr("DIFFICULTY_STATUS_EASY")
 	elif is_hard:
-		status_text = "Hard mode: Enemies react when you look away"
+		status_text = tr("DIFFICULTY_STATUS_HARD")
 	elif is_black_metal:
-		status_text = "Black Metal: 25% less HP, 25% faster, B&W filter"
+		status_text = tr("DIFFICULTY_STATUS_BLACK_METAL")
 	else:
-		status_text = "Normal mode: Classic gameplay"
+		status_text = tr("DIFFICULTY_STATUS_NORMAL")
 
 	if experimental_settings and experimental_settings.is_realistic_visibility_enabled():
-		status_text += " | Night Mode ON"
+		status_text += tr("DIFFICULTY_STATUS_NIGHT_MODE_ON")
 
 	status_label.text = status_text
 
@@ -152,7 +203,10 @@ func _on_power_fantasy_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.POWER_FANTASY)
 	_update_button_states()
-	_restart_if_in_game()
+	if first_launch_mode:
+		_finish_first_launch_selection()
+	else:
+		_restart_if_in_game()
 
 
 func _on_gunslinger_pressed() -> void:
@@ -160,7 +214,10 @@ func _on_gunslinger_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.GUNSLINGER)
 	_update_button_states()
-	_restart_if_in_game()
+	if first_launch_mode:
+		_finish_first_launch_selection()
+	else:
+		_restart_if_in_game()
 
 
 func _on_easy_pressed() -> void:
@@ -168,7 +225,10 @@ func _on_easy_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.EASY)
 	_update_button_states()
-	_restart_if_in_game()
+	if first_launch_mode:
+		_finish_first_launch_selection()
+	else:
+		_restart_if_in_game()
 
 
 func _on_normal_pressed() -> void:
@@ -176,7 +236,10 @@ func _on_normal_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.NORMAL)
 	_update_button_states()
-	_restart_if_in_game()
+	if first_launch_mode:
+		_finish_first_launch_selection()
+	else:
+		_restart_if_in_game()
 
 
 func _on_hard_pressed() -> void:
@@ -184,7 +247,10 @@ func _on_hard_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.HARD)
 	_update_button_states()
-	_restart_if_in_game()
+	if first_launch_mode:
+		_finish_first_launch_selection()
+	else:
+		_restart_if_in_game()
 
 
 func _on_black_metal_pressed() -> void:
@@ -192,7 +258,17 @@ func _on_black_metal_pressed() -> void:
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.BLACK_METAL)
 	_update_button_states()
-	_restart_if_in_game()
+	if first_launch_mode:
+		_finish_first_launch_selection()
+	else:
+		_restart_if_in_game()
+
+
+## Restores cursor to gameplay mode and signals that the first-launch selection is done (Issue #1734).
+## We showed the cursor when entering first-launch mode; hide it again before the game starts.
+func _finish_first_launch_selection() -> void:
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+	difficulty_selected_first_launch.emit()
 
 
 ## Restarts the current scene when difficulty changes mid-game (Issue #1432).
@@ -210,7 +286,8 @@ func _restart_if_in_game() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if visible and event.is_action_pressed("pause"):
+	# In first-launch mode ESC is blocked — player must choose a difficulty (Issue #1734).
+	if visible and not first_launch_mode and event.is_action_pressed("pause"):
 		_on_back_pressed()
 		get_viewport().set_input_as_handled()
 
@@ -227,6 +304,10 @@ func _on_settings_changed() -> void:
 	_update_button_states()
 
 
+func _on_locale_changed(_new_locale: String) -> void:
+	_update_button_states()
+
+
 ## Loads the Gothic bitmap font for Black Metal button (Issue #1014).
 func _load_gothic_font() -> void:
 	if ResourceLoader.exists(GOTHIC_FONT_PATH):
@@ -237,6 +318,25 @@ func _load_gothic_font() -> void:
 			push_warning("[DifficultyMenu] Failed to load Gothic font from: " + GOTHIC_FONT_PATH)
 	else:
 		push_warning("[DifficultyMenu] Gothic font file not found: " + GOTHIC_FONT_PATH)
+
+
+## Loads the Rye Western-style font for Gunslinger button (Issue #1742).
+## Rye handles Latin characters with a cowboy/Western aesthetic.
+## A SystemFont fallback covers Cyrillic characters (for Russian "Стрелок" text).
+func _load_cowboy_font() -> void:
+	if not ResourceLoader.exists(COWBOY_FONT_PATH):
+		push_warning("[DifficultyMenu] Cowboy font file not found: " + COWBOY_FONT_PATH)
+		return
+	var rye_font := FontFile.new()
+	var err := rye_font.load_dynamic_font(COWBOY_FONT_PATH)
+	if err != OK:
+		push_warning("[DifficultyMenu] Failed to load Rye font from: " + COWBOY_FONT_PATH)
+		return
+	# Add a Cyrillic-capable serif system font as fallback so Russian text renders correctly
+	var cyrillic_fallback := SystemFont.new()
+	cyrillic_fallback.font_names = ["FreeSerif", "DejaVu Serif", "Georgia", "Times New Roman", "serif"]
+	rye_font.fallbacks = [cyrillic_fallback]
+	_cowboy_font = rye_font
 
 
 ## Sets up the Power Fantasy button with gradient text (Issue #1014).
@@ -449,5 +549,57 @@ func _setup_black_metal_button() -> void:
 	disabled_style.set_corner_radius_all(4)
 	disabled_style.set_content_margin_all(8)
 	black_metal_button.add_theme_stylebox_override("disabled", disabled_style)
+
+
+## Sets up the Gunslinger button with cowboy-style font and glowing red background (Issue #1742).
+## The glowing semi-transparent red background evokes the danger of the Gunslinger difficulty.
+## The Rye Western font handles Latin; Cyrillic falls back to a system serif font.
+func _setup_strelok_button() -> void:
+	# Apply cowboy font if loaded
+	if _cowboy_font != null:
+		gunslinger_button.add_theme_font_override("font", _cowboy_font)
+		gunslinger_button.add_theme_font_size_override("font_size", 18)
+
+	# Warm amber/gold text color for a Western/cowboy feel
+	gunslinger_button.add_theme_color_override("font_color", Color(1.0, 0.88, 0.5))
+	gunslinger_button.add_theme_color_override("font_hover_color", Color(1.0, 0.95, 0.7))
+	gunslinger_button.add_theme_color_override("font_pressed_color", Color(0.9, 0.7, 0.3))
+	gunslinger_button.add_theme_color_override("font_disabled_color", Color(0.8, 0.6, 0.4))
+
+	# Normal state: semi-transparent glowing red background
+	var normal_style := StyleBoxFlat.new()
+	normal_style.bg_color = Color(0.7, 0.05, 0.05, 0.55)  # Semi-transparent crimson
+	normal_style.set_corner_radius_all(4)
+	normal_style.set_content_margin_all(8)
+	normal_style.shadow_color = Color(1.0, 0.1, 0.1, 0.75)  # Bright red glow
+	normal_style.shadow_size = 8
+	gunslinger_button.add_theme_stylebox_override("normal", normal_style)
+
+	# Hover state: slightly more opaque on hover
+	var hover_style := StyleBoxFlat.new()
+	hover_style.bg_color = Color(0.8, 0.07, 0.07, 0.7)  # More visible on hover
+	hover_style.set_corner_radius_all(4)
+	hover_style.set_content_margin_all(8)
+	hover_style.shadow_color = Color(1.0, 0.15, 0.15, 0.9)  # Intense glow on hover
+	hover_style.shadow_size = 12
+	gunslinger_button.add_theme_stylebox_override("hover", hover_style)
+
+	# Pressed state: darker, compressed look
+	var pressed_style := StyleBoxFlat.new()
+	pressed_style.bg_color = Color(0.5, 0.02, 0.02, 0.6)  # Semi-transparent dark red
+	pressed_style.set_corner_radius_all(4)
+	pressed_style.set_content_margin_all(8)
+	pressed_style.shadow_color = Color(0.8, 0.1, 0.1, 0.6)
+	pressed_style.shadow_size = 4
+	gunslinger_button.add_theme_stylebox_override("pressed", pressed_style)
+
+	# Disabled state: when Gunslinger is already selected
+	var disabled_style := StyleBoxFlat.new()
+	disabled_style.bg_color = Color(0.6, 0.03, 0.03, 0.5)  # Muted semi-transparent red
+	disabled_style.set_corner_radius_all(4)
+	disabled_style.set_content_margin_all(8)
+	disabled_style.shadow_color = Color(0.9, 0.1, 0.1, 0.5)
+	disabled_style.shadow_size = 6
+	gunslinger_button.add_theme_stylebox_override("disabled", disabled_style)
 
 

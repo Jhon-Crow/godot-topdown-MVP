@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 using GodotTopDownTemplate.Components;
 using GodotTopDownTemplate.Weapons;
@@ -78,6 +79,11 @@ public partial class LevelInitFallback : Node
     private bool _isDying;
 
     /// <summary>
+    /// Prevents duplicate out-of-ammo overlays when the empty-click signal fires repeatedly.
+    /// </summary>
+    private bool _gameOverShown;
+
+    /// <summary>
     /// Saturation overlay for kill effects.
     /// </summary>
     private ColorRect? _saturationOverlay;
@@ -91,6 +97,23 @@ public partial class LevelInitFallback : Node
     /// Magazines label for UI.
     /// </summary>
     private Label? _magazinesLabel;
+
+    /// <summary>
+    /// Combo label for UI (Issue #1751: shows current combo count).
+    /// </summary>
+    private Label? _comboLabel;
+
+    /// <summary>
+    /// Shared weapon hints component used on non-tutorial combat maps (Issue #1810).
+    /// This must also be initialized by the fallback path when the GDScript level
+    /// _ready() failed to execute, otherwise Building loses its onboarding hints.
+    /// </summary>
+    private Node? _weaponHintsComponent;
+
+    /// <summary>
+    /// Active combo tween (to cancel if needed, Issue #1790).
+    /// </summary>
+    private Tween? _comboTween;
 
     /// <summary>
     /// Revolver cylinder HUD display (Issue #691).
@@ -250,13 +273,16 @@ public partial class LevelInitFallback : Node
         // 9. Start replay recording
         StartReplayRecording(levelRoot);
 
-        // 10. Update GDScript properties so they are in sync
+        // 10. Setup shared weapon hints component (Issue #1810).
+        SetupWeaponHints(levelRoot);
+
+        // 11. Update GDScript properties so they are in sync
         SyncGDScriptProperties(levelRoot);
 
-        // 11. Setup warm ceiling lights (Issue #1206) — mirrors GDScript _setup_room_warm_lights()
+        // 12. Setup warm ceiling lights (Issue #1206) — mirrors GDScript _setup_room_warm_lights()
         SetupRoomWarmLights(levelRoot);
 
-        // 12. Setup navigation mesh (Issue #1289) — mirrors GDScript _setup_navigation()
+        // 13. Setup navigation mesh (Issue #1289) — mirrors GDScript _setup_navigation()
         // Must run after physics frame so CollisionShape2D nodes are registered.
         SetupNavigationDeferred(levelRoot);
     }
@@ -514,6 +540,55 @@ public partial class LevelInitFallback : Node
     }
 
     /// <summary>
+    /// Mirrors the GDScript level setup for WeaponHintsComponent.
+    /// Required for BuildingLevel when the GDScript _ready() path is skipped and
+    /// this fallback performs level initialization instead.
+    /// </summary>
+    private void SetupWeaponHints(Node levelRoot)
+    {
+        if (_player == null)
+        {
+            LogToFile("WARNING: Weapon hints setup skipped - player is null");
+            return;
+        }
+
+        var canvasLayer = levelRoot.GetNodeOrNull("CanvasLayer");
+        if (canvasLayer == null)
+        {
+            LogToFile("WARNING: Weapon hints setup skipped - CanvasLayer not found");
+            return;
+        }
+
+        if (levelRoot.GetNodeOrNull("WeaponHintsComponent") != null)
+        {
+            LogToFile("Weapon hints component already exists - skipping fallback setup");
+            return;
+        }
+
+        var hintsScript = GD.Load<Script>("res://scripts/components/weapon_hints_component.gd");
+        if (hintsScript == null)
+        {
+            LogToFile("WARNING: WeaponHintsComponent script not found");
+            return;
+        }
+
+        _weaponHintsComponent = new Node();
+        _weaponHintsComponent.Name = "WeaponHintsComponent";
+        _weaponHintsComponent.SetScript(hintsScript);
+        levelRoot.AddChild(_weaponHintsComponent);
+
+        if (_weaponHintsComponent.HasMethod("setup"))
+        {
+            _weaponHintsComponent.Call("setup", _player, canvasLayer);
+            LogToFile("Weapon hints component added and setup");
+        }
+        else
+        {
+            LogToFile("WARNING: WeaponHintsComponent has no setup() method");
+        }
+    }
+
+    /// <summary>
     /// Initialize ScoreManager for this level.
     /// </summary>
     private void InitializeScoreManager()
@@ -527,7 +602,65 @@ public partial class LevelInitFallback : Node
         if (_player != null && scoreManager.HasMethod("set_player"))
             scoreManager.Call("set_player", _player);
 
+        // Issue #1751: Connect to combo_changed signal to update the combo label.
+        if (scoreManager.HasSignal("combo_changed") &&
+            !scoreManager.IsConnected("combo_changed", new Callable(this, MethodName.OnComboChanged)))
+        {
+            scoreManager.Connect("combo_changed", new Callable(this, MethodName.OnComboChanged));
+        }
+
         LogToFile($"ScoreManager initialized with {_initialEnemyCount} enemies");
+    }
+
+    /// <summary>
+    /// Called when the combo count changes (Issue #1751, #1790).
+    /// Updates the combo label in the HUD with gothic font and bounce animation.
+    /// Label stays visible until combo resets to zero.
+    /// </summary>
+    private void OnComboChanged(int combo, int points)
+    {
+        if (_comboLabel == null) return;
+        if (combo > 0)
+        {
+            // Two-line format matching GDScript: "x3 COMBO\n+150"
+            _comboLabel.Text = $"x{combo} COMBO\n+{points}";
+            _comboLabel.Visible = true;
+            _comboLabel.AddThemeColorOverride("font_color", GetComboColor(combo));
+            // Bounce animation: scale 0.7 -> 1.0 + fade in (stays visible until combo resets)
+            if (_comboTween != null && _comboTween.IsValid())
+                _comboTween.Kill();
+            _comboLabel.Scale = new Vector2(0.7f, 0.7f);
+            _comboLabel.Modulate = new Color(1.0f, 1.0f, 1.0f, 0.0f);
+            _comboTween = CreateTween();
+            _comboTween.SetParallel(true);
+            _comboTween.TweenProperty(_comboLabel, "scale", new Vector2(1.0f, 1.0f), 0.15f)
+                .SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+            _comboTween.TweenProperty(_comboLabel, "modulate:a", 1.0f, 0.1f);
+        }
+        else
+        {
+            // Combo reset: fade out then hide
+            if (_comboTween != null && _comboTween.IsValid())
+                _comboTween.Kill();
+            _comboTween = CreateTween();
+            _comboTween.TweenProperty(_comboLabel, "modulate:a", 0.0f, 0.3f);
+            _comboTween.TweenCallback(Callable.From(() => { if (_comboLabel != null) _comboLabel.Visible = false; }));
+        }
+    }
+
+    /// <summary>
+    /// Returns a color based on the current combo count (Issue #1751).
+    /// Matches the color scheme used by GDScript level scripts.
+    /// </summary>
+    private static Color GetComboColor(int combo)
+    {
+        if (combo >= 10) return new Color(1.0f, 0.0f, 1.0f, 1.0f);   // Magenta - extreme
+        if (combo >= 7)  return new Color(1.0f, 0.3f, 0.0f, 1.0f);   // Deep orange
+        if (combo >= 5)  return new Color(1.0f, 0.5f, 0.0f, 1.0f);   // Orange
+        if (combo >= 4)  return new Color(1.0f, 0.7f, 0.0f, 1.0f);   // Amber
+        if (combo >= 3)  return new Color(1.0f, 0.8f, 0.0f, 1.0f);   // Yellow-orange
+        if (combo >= 2)  return new Color(1.0f, 0.9f, 0.1f, 1.0f);   // Yellow
+        return new Color(1.0f, 0.8f, 0.2f, 1.0f);                     // Gold (combo 1)
     }
 
     /// <summary>
@@ -566,6 +699,31 @@ public partial class LevelInitFallback : Node
         _magazinesLabel.OffsetRight = 400;
         _magazinesLabel.OffsetBottom = 145;
         ui.AddChild(_magazinesLabel);
+
+        // Issue #1751, #1790: Create combo label with Gothic bitmap font.
+        // Matches GDScript level scripts: PRESET_TOP_WIDE, gothic font, two-line format, bounce animation.
+        var gothicFont = GD.Load<Font>("res://assets/fonts/gothic_bitmap.fnt");
+        int comboSize = 112; // default
+        var gameplaySettings = GetNodeOrNull<Node>("/root/GameplaySettings");
+        if (gameplaySettings != null && gameplaySettings.HasMethod("get_combo_font_size"))
+            comboSize = (int)gameplaySettings.Call("get_combo_font_size");
+        _comboLabel = new Label();
+        _comboLabel.Name = "ComboLabel";
+        _comboLabel.Text = "";
+        _comboLabel.HorizontalAlignment = HorizontalAlignment.Right;
+        _comboLabel.SetAnchorsPreset(Control.LayoutPreset.TopWide);
+        _comboLabel.OffsetLeft = 10;
+        _comboLabel.OffsetRight = -10;
+        _comboLabel.OffsetTop = 80;
+        _comboLabel.OffsetBottom = _comboLabel.OffsetTop + comboSize * 2 + 20;
+        _comboLabel.AddThemeFontSizeOverride("font_size", comboSize);
+        _comboLabel.AddThemeConstantOverride("line_spacing", 0);
+        _comboLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.8f, 0.2f, 1.0f));
+        if (gothicFont != null)
+            _comboLabel.AddThemeFontOverride("font", gothicFont);
+        _comboLabel.ClipContents = true;
+        _comboLabel.Visible = false;
+        ui.AddChild(_comboLabel);
     }
 
     /// <summary>
@@ -726,6 +884,7 @@ public partial class LevelInitFallback : Node
         if (_saturationOverlay != null) levelRoot.Set("_saturation_overlay", _saturationOverlay);
         if (_difficultyLabel != null) levelRoot.Set("_difficulty_label", _difficultyLabel);
         if (_magazinesLabel != null) levelRoot.Set("_magazines_label", _magazinesLabel);
+        if (_weaponHintsComponent != null) levelRoot.Set("_weapon_hints_component", _weaponHintsComponent);
 
         LogToFile("GDScript properties synced");
     }
@@ -858,6 +1017,23 @@ public partial class LevelInitFallback : Node
             var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
             if (soundPropagation != null && soundPropagation.HasMethod("emit_player_empty_click"))
                 soundPropagation.Call("emit_player_empty_click", _player.GlobalPosition, _player);
+
+            if (_currentEnemyCount > 0 && !_gameOverShown)
+            {
+                var currentAmmoValue = _player.Get("CurrentWeapon");
+                if (currentAmmoValue.Obj is Node weapon)
+                {
+                    var currentAmmo = weapon.Get("CurrentAmmo");
+                    var reserveAmmo = weapon.Get("ReserveAmmo");
+                    if (currentAmmo.VariantType != Variant.Type.Nil &&
+                        reserveAmmo.VariantType != Variant.Type.Nil &&
+                        currentAmmo.AsInt32() <= 0 &&
+                        reserveAmmo.AsInt32() <= 0)
+                    {
+                        ShowOutOfAmmoMessage();
+                    }
+                }
+            }
         }
     }
 
@@ -1224,6 +1400,34 @@ public partial class LevelInitFallback : Node
         ui.AddChild(deathLabel);
     }
 
+    private void ShowOutOfAmmoMessage()
+    {
+        var parent = GetParent();
+        if (parent == null) return;
+        var ui = parent.GetNodeOrNull("CanvasLayer/UI");
+        if (ui == null) return;
+
+        _gameOverShown = true;
+
+        var existing = ui.GetNodeOrNull<Label>("GameOverLabel");
+        if (existing != null)
+            existing.QueueFree();
+
+        var gameOverLabel = new Label();
+        gameOverLabel.Name = "GameOverLabel";
+        gameOverLabel.Text = "OUT OF AMMO!";
+        gameOverLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        gameOverLabel.VerticalAlignment = VerticalAlignment.Center;
+        gameOverLabel.AddThemeFontSizeOverride("font_size", 56);
+        gameOverLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.35f, 0.1f, 1.0f));
+        gameOverLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
+        gameOverLabel.OffsetLeft = -240;
+        gameOverLabel.OffsetRight = 240;
+        gameOverLabel.OffsetTop = -120;
+        gameOverLabel.OffsetBottom = -40;
+        ui.AddChild(gameOverLabel);
+    }
+
     private void ShowSaturationEffect()
     {
         if (_saturationOverlay == null) return;
@@ -1257,19 +1461,36 @@ public partial class LevelInitFallback : Node
     {
         if (_magazinesLabel == null) return;
 
-        // Check if player has a weapon with tube magazine (shotgun)
+        // Resolve the currently equipped weapon (same lookup order as ConnectWeaponSignals)
+        Node? weapon = null;
         if (_player != null)
         {
-            var weapon = _player.GetNodeOrNull("Shotgun");
-            if (weapon != null)
+            weapon = _player.GetNodeOrNull("Shotgun");
+            weapon ??= _player.GetNodeOrNull("MiniUzi");
+            weapon ??= _player.GetNodeOrNull("SilencedPistol");
+            weapon ??= _player.GetNodeOrNull("SniperRifle");
+            weapon ??= _player.GetNodeOrNull("AssaultRifle");
+            weapon ??= _player.GetNodeOrNull("AKGL");
+            weapon ??= _player.GetNodeOrNull("Revolver");
+            weapon ??= _player.GetNodeOrNull("MakarovPM");
+        }
+
+        // Hide MAGS for tube-magazine weapons (shotgun) — no detachable magazines
+        if (weapon != null)
+        {
+            var usesTube = weapon.Get("UsesTubeMagazine");
+            if (usesTube.VariantType != Variant.Type.Nil && usesTube.AsBool())
             {
-                var usesTube = weapon.Get("UsesTubeMagazine");
-                if (usesTube.VariantType != Variant.Type.Nil && usesTube.AsBool())
-                {
-                    _magazinesLabel.Visible = false;
-                    return;
-                }
+                _magazinesLabel.Visible = false;
+                return;
             }
+        }
+
+        // Hide MAGS for revolver — cylinder HUD already shows ammo (Issue #1750)
+        if (weapon != null && weapon.HasSignal("CylinderStateChanged"))
+        {
+            _magazinesLabel.Visible = false;
+            return;
         }
 
         _magazinesLabel.Visible = true;
@@ -1280,12 +1501,36 @@ public partial class LevelInitFallback : Node
             return;
         }
 
+        // Get magazine capacities to distinguish full vs partial spares
+        int[] magMaxCounts = Array.Empty<int>();
+        if (weapon != null && weapon.HasMethod("GetMagazineMaxCounts"))
+        {
+            var maxArray = weapon.Call("GetMagazineMaxCounts").AsGodotArray();
+            magMaxCounts = new int[maxArray.Count];
+            for (int i = 0; i < maxArray.Count; i++)
+                magMaxCounts[i] = maxArray[i].AsInt32();
+        }
+
         var parts = new List<string>();
-        for (int i = 0; i < magazineAmmoCounts.Count; i++)
+        // Current magazine always shown in brackets
+        parts.Add($"[{magazineAmmoCounts[0].AsInt32()}]");
+
+        // Spare magazines: skip empty, show partial individually, abbreviate full as + xN
+        int fullSpareCount = 0;
+        for (int i = 1; i < magazineAmmoCounts.Count; i++)
         {
             int ammo = magazineAmmoCounts[i].AsInt32();
-            parts.Add(i == 0 ? $"[{ammo}]" : ammo.ToString());
+            if (ammo <= 0) continue;
+            int cap = i < magMaxCounts.Length ? magMaxCounts[i] : 0;
+            if (cap > 0 && ammo >= cap)
+                fullSpareCount++;
+            else
+                parts.Add(ammo.ToString());
         }
+
+        if (fullSpareCount > 0)
+            parts.Add($"+ x{fullSpareCount}");
+
         _magazinesLabel.Text = "MAGS: " + string.Join(" | ", parts);
     }
 

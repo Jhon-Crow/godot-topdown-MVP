@@ -40,6 +40,8 @@ var _saturation_overlay: ColorRect = null
 
 ## Reference to the combo label.
 var _combo_label: Label = null
+## Reference to active combo tween (to cancel if needed).
+var _combo_tween: Tween = null
 
 ## Reference to the exit zone.
 var _exit_zone: Area2D = null
@@ -663,15 +665,26 @@ func _on_combo_changed(combo: int, points: int) -> void:
 		return
 
 	if combo > 0:
-		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
+		_combo_label.text = "x%d COMBO\n+%d" % [combo, points]
 		_combo_label.visible = true
 		var combo_color := _get_combo_color(combo)
 		_combo_label.add_theme_color_override("font_color", combo_color)
-		_combo_label.modulate = Color.WHITE
-		var tween := create_tween()
-		tween.tween_property(_combo_label, "modulate", Color.WHITE, 0.1)
+		# Combo pop animation: scale bounce + fade in (stays visible until combo resets)
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_label.scale = Vector2(0.7, 0.7)
+		_combo_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		_combo_tween = create_tween()
+		_combo_tween.set_parallel(true)
+		_combo_tween.tween_property(_combo_label, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_combo_tween.tween_property(_combo_label, "modulate:a", 1.0, 0.1)
+		_combo_tween.set_parallel(false)
 	else:
-		_combo_label.visible = false
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_tween = create_tween()
+		_combo_tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
+		_combo_tween.tween_callback(_combo_label.hide)
 
 
 ## Returns a color based on the current combo count.
@@ -975,6 +988,16 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 ## Silenced pistol: exactly as many bullets as enemies.
 ## Mini UZI and rifles: 2 magazines to match level difficulty.
 ## Shotgun, sniper, revolver: defaults are sufficient for 5 enemies.
+##
+## Issue #1774 fix: magazine sizes are now passed explicitly to ReinitializeMagazines so
+## that ammo initialisation succeeds even when WeaponData is null (first-load C# resource
+## race where the [GlobalClass] WeaponData type is not yet registered by Godot).
+const _MAGAZINE_SIZES: Dictionary = {
+	"mini_uzi": 32,   ## MiniUziData.tres MagazineSize = 32
+	"m16": 30,        ## AssaultRifleData.tres MagazineSize = 30
+	"ak_gl": 30,      ## AKGLData.tres MagazineSize = 30
+}
+
 func _configure_labyrinth_weapon_ammo(weapon: Node, weapon_id: String) -> void:
 	if weapon == null:
 		return
@@ -990,8 +1013,11 @@ func _configure_labyrinth_weapon_ammo(weapon: Node, weapon_id: String) -> void:
 				base_magazines *= ammo_multiplier
 				print("[LabyrinthLevel] Power Fantasy mode - %s magazines multiplied by %dx" % [weapon.name, ammo_multiplier])
 		if weapon.has_method("ReinitializeMagazines"):
-			weapon.ReinitializeMagazines(base_magazines, true)
-			print("[LabyrinthLevel] %s magazines reinitialized to %d" % [weapon.name, base_magazines])
+			# Issue #1774: pass explicit magazine size so ReinitializeMagazines works even when
+			# WeaponData is null due to first-load C# resource race condition.
+			var mag_size: int = _MAGAZINE_SIZES.get(weapon_id, 30)
+			weapon.ReinitializeMagazines(base_magazines, mag_size, true)
+			print("[LabyrinthLevel] %s magazines reinitialized to %d x %d rounds" % [weapon.name, base_magazines, mag_size])
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
@@ -1029,17 +1055,22 @@ func _setup_debug_ui() -> void:
 	_magazines_label.offset_bottom = 145
 	ui.add_child(_magazines_label)
 
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	var combo_size: int = gameplay_settings.get_combo_font_size() if gameplay_settings and gameplay_settings.has_method("get_combo_font_size") else 112
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
 	_combo_label.text = ""
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo_label.offset_left = -200
+	_combo_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_combo_label.offset_left = 10
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 80
-	_combo_label.offset_bottom = 120
-	_combo_label.add_theme_font_size_override("font_size", 28)
+	_combo_label.offset_bottom = _combo_label.offset_top + combo_size * 2 + 20
+	_combo_label.add_theme_font_size_override("font_size", combo_size)
+	_combo_label.add_theme_constant_override("line_spacing", 0)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
+	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
+	_combo_label.clip_contents = true
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 
@@ -1329,27 +1360,55 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _player:
 		weapon = _player.get_node_or_null("Shotgun")
 		if weapon == null:
+			weapon = _player.get_node_or_null("MiniUzi")
+		if weapon == null:
+			weapon = _player.get_node_or_null("SilencedPistol")
+		if weapon == null:
+			weapon = _player.get_node_or_null("SniperRifle")
+		if weapon == null:
 			weapon = _player.get_node_or_null("AssaultRifle")
+		if weapon == null:
+			weapon = _player.get_node_or_null("AKGL")
+		if weapon == null:
+			weapon = _player.get_node_or_null("Revolver")
 		if weapon == null:
 			weapon = _player.get_node_or_null("MakarovPM")
 
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
 		_magazines_label.visible = false
 		return
-	else:
-		_magazines_label.visible = true
+	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+		_magazines_label.visible = false
+		return
+	_magazines_label.visible = true
 
 	if magazine_ammo_counts.is_empty():
 		_magazines_label.text = "MAGS: -"
 		return
 
+	# Get magazine capacities to distinguish full vs partial spares
+	var mag_max_counts: Array = []
+	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
+		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
+
 	var parts: Array = []
-	for i in range(magazine_ammo_counts.size()):
+	# Current magazine always shown in brackets
+	parts.append("[%d]" % magazine_ammo_counts[0])
+
+	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
+	var full_spare_count: int = 0
+	for i in range(1, magazine_ammo_counts.size()):
 		var ammo: int = magazine_ammo_counts[i]
-		if i == 0:
-			parts.append("[%d]" % ammo)
+		if ammo <= 0:
+			continue
+		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
+		if cap > 0 and ammo >= cap:
+			full_spare_count += 1
 		else:
 			parts.append("%d" % ammo)
+
+	if full_spare_count > 0:
+		parts.append("+ x%d" % full_spare_count)
 
 	_magazines_label.text = "MAGS: " + " | ".join(parts)
 
@@ -2036,12 +2095,14 @@ func _setup_tutorial_hints() -> void:
 	if _tutorial_has_revolver:
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		if canvas_layer:
-			_add_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK, "[color=#ff4444][ПКМ][/color] Взведи курок", canvas_layer)
+			_add_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK,
+				"[color=#ff4444][ПКМ][/color] " + tr("HINT_COCK_HAMMER"), canvas_layer)
 	# Issue #998: Show scope hint from the very start for sniper rifle.
 	if _tutorial_has_sniper_rifle:
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		if canvas_layer:
-			_add_tutorial_hint(TUTORIAL_HINT_SCOPE, "[color=#ff4444][ПКМ][/color] Прицелься через оптику", canvas_layer)
+			_add_tutorial_hint(TUTORIAL_HINT_SCOPE,
+				"[color=#ff4444][ПКМ][/color] " + tr("HINT_SCOPE"), canvas_layer)
 
 
 ## Called when player's weapon fires a shot (Issue #945).
@@ -2083,7 +2144,7 @@ func _reveal_tutorial_bolt_cycle_hint() -> void:
 		# Bug fix round 4: show pump-action hint (open/close bolt between shots), NOT full reload.
 		if not _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
 			_add_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE,
-				"[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор",
+				_build_tutorial_shotgun_pump_hint_bbcode(1),
 				canvas_layer)
 
 
@@ -2142,37 +2203,39 @@ func _build_tutorial_reload_hint_bbcode(step: int, total: int) -> String:
 		return ""
 
 	if _tutorial_has_makarov_pm or (not _tutorial_has_sniper_rifle and total <= 2):
+		var reload_word := tr("HINT_RELOAD_WORD")
 		# Makarov PM / 2-step reload: R -> R
 		# step=0 → next is R (first); step=1 → next is R (second); step=2 → done
 		match step:
 			0:
-				return "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"
+				return "[color=#ff4444][R][/color] [color=#888888][R][/color] " + reload_word
 			1:
 				# Step 1 completed: extend strikethrough to 25%
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.25)
-				return "[color=#888888][R][/color] [color=#ff4444][R][/color] Перезарядись"
+				return "[color=#888888][R][/color] [color=#ff4444][R][/color] " + reload_word
 			_:
 				# All steps done: extend strikethrough to cover both [R] keys (~50%)
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.5)
-				return "[color=#888888][R] [R][/color] Перезарядись"
+				return "[color=#888888][R] [R][/color] " + reload_word
 	else:
+		var reload_word := tr("HINT_RELOAD_WORD")
 		# Standard 3-step reload: R -> F -> R
 		# step=0 → next is R; step=1 → next is F; step=2 → next is R (final); step=3 → done
 		match step:
 			0:
-				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"
+				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] " + reload_word
 			1:
 				# Step 1 completed: extend strikethrough to ~17%
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.17)
-				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
+				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] " + reload_word
 			2:
 				# Step 2 completed: extend strikethrough to ~33%
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.33)
-				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
+				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] " + reload_word
 			_:
 				# All steps done: extend strikethrough to ~50%
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.5)
-				return "[color=#888888][R] [F] [R][/color] Перезарядись"
+				return "[color=#888888][R] [F] [R][/color] " + reload_word
 
 
 ## Get the unique color for a tutorial hint by its key (Issue #945).
@@ -2215,9 +2278,7 @@ func _add_tutorial_reload_hints(canvas_layer: Node) -> void:
 		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, _build_tutorial_reload_hint_bbcode(0, 3), canvas_layer)
 	elif _tutorial_has_revolver:
 		# Revolver: cylinder reload hint. Hammer-cock hint is shown from start (Bug fix #3).
-		_add_tutorial_hint(TUTORIAL_HINT_RELOAD,
-			"[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]",
-			canvas_layer)
+		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, _build_tutorial_revolver_reload_hint_bbcode(0), canvas_layer)
 	elif _tutorial_has_makarov_pm:
 		# Makarov PM uses simplified R->R reload. Initial text = step 0.
 		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, _build_tutorial_reload_hint_bbcode(0, 2), canvas_layer)
@@ -2341,7 +2402,7 @@ func _on_tutorial_reload_completed() -> void:
 		# This prevents the GL hint and grenade hint from appearing simultaneously (overlap bug).
 		if _tutorial_has_ak_gl and canvas_layer and _tutorial_ak_gl_has_round_loaded():
 			_add_tutorial_hint(TUTORIAL_HINT_GRENADE_LAUNCHER,
-				"[color=#ff4444][ПКМ][/color] Выстрели подствольным гранатомётом", canvas_layer)
+				"[color=#ff4444][ПКМ][/color] " + tr("HINT_LAUNCHER_FIRE"), canvas_layer)
 			# Do NOT advance to THROW_GRENADE yet — wait for GL to fire (_on_tutorial_grenade_launcher_fired).
 			return
 		if _tutorial_has_thrown_grenade:
@@ -2395,21 +2456,24 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 ## Build BBCode for the grenade throw hint with step-based highlighting (Bug fix round 5).
 ## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
+	var k_arm: String = tr("HINT_KEY_GRENADE_ARM")
+	var k_aim: String = tr("HINT_KEY_GRENADE_AIM")
+	var k_throw: String = tr("HINT_KEY_GRENADE_THROW")
 	match step:
 		0:
-			return "[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]"
+			return "[color=#ff4444][%s][/color] [color=#888888][%s] [%s][/color]" % [k_arm, k_aim, k_throw]
 		1:
 			# First step completed
 			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.25)
-			return "[color=#888888][G+ПКМ вправо][/color] [color=#ff4444][G+ПКМ→отпусти G][/color] [color=#888888][ПКМ бросок][/color]"
+			return "[color=#888888][%s][/color] [color=#ff4444][%s][/color] [color=#888888][%s][/color]" % [k_arm, k_aim, k_throw]
 		2:
 			# First two steps completed
 			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.6)
-			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G][/color] [color=#ff4444][ПКМ бросок][/color]"
+			return "[color=#888888][%s] [%s][/color] [color=#ff4444][%s][/color]" % [k_arm, k_aim, k_throw]
 		_:
 			# All steps done
 			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.85)
-			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок][/color]"
+			return "[color=#888888][%s] [%s] [%s][/color]" % [k_arm, k_aim, k_throw]
 
 
 ## Update the grenade hint step based on current input (Bug fix round 5).
@@ -2509,7 +2573,7 @@ func _build_tutorial_sniper_bolt_hint_bbcode(step: int) -> String:
 		var progress := float(step) * 0.125  # 12.5% per step
 		_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, progress)
 
-	return " ".join(parts) + " Передёрни затвор"
+	return " ".join(parts) + " " + tr("HINT_BOLT_ACTION_WORD")
 
 
 ## Build BBCode for shotgun reload hint with dynamic shell count (Bug fix #7).
@@ -2586,16 +2650,17 @@ func _on_tutorial_shotgun_action_state_changed(new_state: int) -> void:
 ## state=1 (NeedsPumpUp): highlight drag-up; state=2 (NeedsPumpDown): highlight drag-down.
 ## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_shotgun_pump_hint_bbcode(state: int) -> String:
+	var bolt_word := tr("HINT_BOLT_ACTION_WORD")
 	match state:
 		1:  # NeedsPumpUp (nothing completed yet)
-			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор"
+			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] " + bolt_word
 		2:  # NeedsPumpDown (pump-up completed)
 			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.2)
-			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] Передёрни затвор"
+			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] " + bolt_word
 		_:
 			# Both completed
 			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.4)
-			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] Передёрни затвор"
+			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] " + bolt_word
 
 
 ## Called when the shotgun's reload state changes (full shell-by-shell reload).

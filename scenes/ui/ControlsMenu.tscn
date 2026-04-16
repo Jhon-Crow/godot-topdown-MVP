@@ -45,7 +45,7 @@ theme_override_constants/separation = 15
 
 [node name="TitleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Controls"
+text = "CONTROLS_TITLE"
 label_settings = ExtResource("2_neon_label")
 horizontal_alignment = 1
 
@@ -76,19 +76,19 @@ theme_override_constants/separation = 10
 [node name="ApplyButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(100, 35)
 layout_mode = 2
-text = "Apply"
+text = "APPLY"
 
 [node name="ResetButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(100, 35)
 layout_mode = 2
-text = "Reset"
+text = "RESET"
 
 [node name="BackButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(100, 35)
 layout_mode = 2
-text = "Back"
+text = "BACK"
 
 [node name="ConflictDialog" type="AcceptDialog" parent="."]
-title = "Key Conflict"
+title = "CONTROLS_KEY_CONFLICT_TITLE"
 initial_position = 1
 size = Vector2i(300, 100)

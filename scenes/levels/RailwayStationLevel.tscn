@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3 uid="uid://railway_station_level_1463"]
+[gd_scene load_steps=32 format=3 uid="uid://railway_station_level_1463"]
 
 [ext_resource type="Script" path="res://scripts/levels/railway_station_level.gd" id="1_railway_station"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -53,6 +53,9 @@ polygon = PackedVector2Array(-120, -50, 120, -50, 120, 50, -120, 50)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_embankment"]
 polygon = PackedVector2Array(-350, -100, 350, -100, 350, 100, -350, 100)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_bench"]
+polygon = PackedVector2Array(-40, -15, 40, -15, 40, 15, -40, 15)
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_railway"]
 vertices = PackedVector2Array(64, 64, 3936, 64, 3936, 3936, 64, 3936)
@@ -2626,6 +2629,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/PlatformBench1"]
 shape = SubResource("RectangleShape2D_bench")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/PlatformBench1"]
+occluder = SubResource("OccluderPolygon2D_bench")
+
 [node name="PlatformBench2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(1500, 3100)
 collision_layer = 4
@@ -2640,6 +2646,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/PlatformBench2"]
 shape = SubResource("RectangleShape2D_bench")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/PlatformBench2"]
+occluder = SubResource("OccluderPolygon2D_bench")
 
 [node name="PlatformBench3" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2100, 3100)
@@ -2656,6 +2665,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/PlatformBench3"]
 shape = SubResource("RectangleShape2D_bench")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/PlatformBench3"]
+occluder = SubResource("OccluderPolygon2D_bench")
+
 [node name="PlatformBench4" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2700, 3100)
 collision_layer = 4
@@ -2671,6 +2683,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/PlatformBench4"]
 shape = SubResource("RectangleShape2D_bench")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/PlatformBench4"]
+occluder = SubResource("OccluderPolygon2D_bench")
+
 [node name="PlatformBench5" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(3300, 3100)
 collision_layer = 4
@@ -2685,6 +2700,9 @@ color = Color(0.35, 0.3, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/PlatformBench5"]
 shape = SubResource("RectangleShape2D_bench")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/PlatformBench5"]
+occluder = SubResource("OccluderPolygon2D_bench")
 
 ; Platform pillars (support columns along platform edge)
 ; darkened color for visual readability as obstacles (issue #1724)

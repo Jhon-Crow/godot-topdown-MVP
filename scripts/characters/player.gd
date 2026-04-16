@@ -423,7 +423,22 @@ func _physics_process(delta: float) -> void:
 
 	if not is_dash_active():
 		if input_direction != Vector2.ZERO:
-			velocity = velocity.move_toward(input_direction * max_speed, acceleration * delta)
+			# Issue #1769: project the input direction onto any collision surface and
+			# renormalize so the player moves at full max_speed along walls from all
+			# directions.  In Godot 4's default GROUNDED motion mode only lateral
+			# surfaces register as is_on_wall(); top/bottom surfaces register as
+			# is_on_ceiling()/is_on_floor() instead.  We therefore iterate all
+			# slide-collision normals from the previous move_and_slide() call.
+			var move_dir := input_direction
+			for i in get_slide_collision_count():
+				var collision := get_slide_collision(i)
+				var normal := collision.get_normal()
+				# Only slide against surfaces the player is pushing into.
+				if input_direction.dot(normal) < 0.0:
+					var slid := move_dir.slide(normal)
+					if slid != Vector2.ZERO:
+						move_dir = slid.normalized()
+			velocity = velocity.move_toward(move_dir * max_speed, acceleration * delta)
 		else:
 			velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
 
@@ -1751,6 +1766,13 @@ func _handle_grenade_waiting_for_g_release_state() -> void:
 
 	# If G is released while RMB is still held, enter Aiming state
 	if not Input.is_action_pressed("grenade_prepare"):
+		# Issue #1819: releasing G before the right hand actually takes the grenade
+		# should drop it instead of entering aiming.
+		if _grenade_anim_phase == GrenadeAnimPhase.HANDS_APPROACH and _grenade_anim_timer > 0.0:
+			FileLogger.info("[Player.Grenade] G released before hand transfer completed - dropping grenade at feet")
+			_drop_grenade_at_feet()
+			return
+
 		_grenade_state = GrenadeState.AIMING
 		_aim_drag_start = get_global_mouse_position()
 		_prev_mouse_pos = _aim_drag_start
@@ -1765,8 +1787,13 @@ func _handle_grenade_waiting_for_g_release_state() -> void:
 
 ## Handle AIMING state: only RMB held (G released), drag to aim and release to throw.
 func _handle_grenade_aiming_state() -> void:
-	# In this state, G is already released (that's how we got here)
-	# We only care about RMB
+	# Complex aiming is only valid after G has been released.
+	# If we somehow re-enter aiming with G still held, block the throw until the
+	# handoff sequence is completed correctly.
+	if Input.is_action_pressed("grenade_prepare"):
+		FileLogger.info("[Player.Grenade] Aiming state entered while G is still held - returning to waiting for G release")
+		_grenade_state = GrenadeState.WAITING_FOR_G_RELEASE
+		return
 
 	# Update wind-up intensity based on mouse drag during aiming
 	_update_wind_up_intensity()
@@ -1819,6 +1846,12 @@ func _handle_simple_grenade_timer_started_state() -> void:
 ## Cursor position = landing point. Release RMB to throw.
 ## G can be released while RMB is held - grenade stays ready.
 func _handle_simple_grenade_aiming_state() -> void:
+	# Issue #1819: simple trajectory mode still requires the left hand to let go
+	# before the grenade can be aimed or thrown with the right hand.
+	if Input.is_action_pressed("grenade_prepare"):
+		FileLogger.info("[Player.Grenade.Simple] G still held during right-hand aiming - waiting for release before aim/throw")
+		return
+
 	# Request redraw for trajectory visualization (always show in simple mode)
 	queue_redraw()
 

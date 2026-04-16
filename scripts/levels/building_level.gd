@@ -40,6 +40,8 @@ var _saturation_overlay: ColorRect = null
 
 ## Reference to the combo label.
 var _combo_label: Label = null
+## Reference to active combo tween (to cancel if needed).
+var _combo_tween: Tween = null
 
 ## Reference to the exit zone.
 var _exit_zone: Area2D = null
@@ -631,17 +633,27 @@ func _on_combo_changed(combo: int, points: int) -> void:
 		return
 
 	if combo > 0:
-		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
+		_combo_label.text = "x%d COMBO\n+%d" % [combo, points]
 		_combo_label.visible = true
 		# Color changes based on combo count
 		var combo_color := _get_combo_color(combo)
 		_combo_label.add_theme_color_override("font_color", combo_color)
-		# Flash effect for combo
-		_combo_label.modulate = Color.WHITE
-		var tween := create_tween()
-		tween.tween_property(_combo_label, "modulate", Color.WHITE, 0.1)
+		# Combo pop animation: scale bounce + fade in (stays visible until combo resets)
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_label.scale = Vector2(0.7, 0.7)
+		_combo_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		_combo_tween = create_tween()
+		_combo_tween.set_parallel(true)
+		_combo_tween.tween_property(_combo_label, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_combo_tween.tween_property(_combo_label, "modulate:a", 1.0, 0.1)
+		_combo_tween.set_parallel(false)
 	else:
-		_combo_label.visible = false
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_tween = create_tween()
+		_combo_tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
+		_combo_tween.tween_callback(_combo_label.hide)
 
 
 ## Returns a color based on the current combo count.
@@ -989,17 +1001,22 @@ func _setup_debug_ui() -> void:
 
 	# Create combo label (shows current combo)
 	# Positioned below the enemy count label (which ends at offset_bottom = 75)
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	var combo_size: int = gameplay_settings.get_combo_font_size() if gameplay_settings and gameplay_settings.has_method("get_combo_font_size") else 112
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
 	_combo_label.text = ""
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo_label.offset_left = -200
+	_combo_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_combo_label.offset_left = 10
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 80
-	_combo_label.offset_bottom = 120
-	_combo_label.add_theme_font_size_override("font_size", 28)
+	_combo_label.offset_bottom = _combo_label.offset_top + combo_size * 2 + 20
+	_combo_label.add_theme_font_size_override("font_size", combo_size)
+	_combo_label.add_theme_constant_override("line_spacing", 0)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
+	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
+	_combo_label.clip_contents = true
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 
@@ -1187,13 +1204,49 @@ func _on_player_ammo_depleted() -> void:
 			sound_propagation.emit_player_empty_click(_player.global_position, _player)
 
 	# For GDScript player, check if truly out of all ammo (no reserve)
-	# For C# player, game over is handled in _on_weapon_ammo_changed
+	# For C# player, also check the equipped weapon directly. Some empty-click flows emit
+	# AmmoDepleted without a final AmmoChanged update on BuildingLevel, so the game-over label
+	# must not depend solely on _on_weapon_ammo_changed (Issue #1821).
 	if _player and _player.has_method("get_current_ammo"):
 		# GDScript player - max_ammo is the only ammo they have
 		var current_ammo: int = _player.get_current_ammo()
 		if current_ammo <= 0 and _current_enemy_count > 0 and not _game_over_shown:
 			_show_game_over_message()
-	# C# player game over is handled via _on_weapon_ammo_changed signal
+	elif _player and _current_enemy_count > 0 and not _game_over_shown:
+		var weapon: Node = _find_player_weapon(_player)
+		if weapon != null:
+			var current_variant: Variant = weapon.get("CurrentAmmo")
+			var reserve_variant: Variant = weapon.get("ReserveAmmo")
+			if current_variant != null and reserve_variant != null:
+				var current_ammo: int = int(current_variant)
+				var reserve_ammo: int = int(reserve_variant)
+				if current_ammo <= 0 and reserve_ammo <= 0:
+					_show_game_over_message()
+
+
+## Find the currently active weapon node on the player.
+## Prefer the C# Player.CurrentWeapon property so ammo-depleted checks stay
+## aligned with the actually equipped weapon.
+func _find_player_weapon(player: Node2D) -> Node:
+	var current_weapon: Variant = player.get("CurrentWeapon")
+	if current_weapon != null and is_instance_valid(current_weapon):
+		return current_weapon
+
+	var weapon_names: Array[String] = [
+		"AssaultRifle",
+		"Shotgun",
+		"MiniUzi",
+		"SilencedPistol",
+		"SniperRifle",
+		"AKGL",
+		"Revolver",
+		"MakarovPM",
+	]
+	for weapon_name in weapon_names:
+		var weapon: Node = player.get_node_or_null(weapon_name)
+		if weapon != null:
+			return weapon
+	return null
 
 
 ## Called when player starts reloading.
@@ -1319,6 +1372,12 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		if weapon == null:
 			weapon = _player.get_node_or_null("AKGL")
 		if weapon == null:
+			weapon = _player.get_node_or_null("MiniUzi")
+		if weapon == null:
+			weapon = _player.get_node_or_null("SilencedPistol")
+		if weapon == null:
+			weapon = _player.get_node_or_null("SniperRifle")
+		if weapon == null:
 			weapon = _player.get_node_or_null("Revolver")
 		if weapon == null:
 			weapon = _player.get_node_or_null("MakarovPM")
@@ -1327,22 +1386,38 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		# Shotgun equipped - hide magazine display
 		_magazines_label.visible = false
 		return
-	else:
-		_magazines_label.visible = true
+	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+		_magazines_label.visible = false
+		return
+	_magazines_label.visible = true
 
 	if magazine_ammo_counts.is_empty():
 		_magazines_label.text = "MAGS: -"
 		return
 
+	# Get magazine capacities to distinguish full vs partial spares
+	var mag_max_counts: Array = []
+	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
+		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
+
 	var parts: Array = []
-	for i in range(magazine_ammo_counts.size()):
+	# Current magazine always shown in brackets
+	parts.append("[%d]" % magazine_ammo_counts[0])
+
+	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
+	var full_spare_count: int = 0
+	for i in range(1, magazine_ammo_counts.size()):
 		var ammo: int = magazine_ammo_counts[i]
-		if i == 0:
-			# Current magazine in brackets
-			parts.append("[%d]" % ammo)
+		if ammo <= 0:
+			continue
+		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
+		if cap > 0 and ammo >= cap:
+			full_spare_count += 1
 		else:
-			# Spare magazines
 			parts.append("%d" % ammo)
+
+	if full_spare_count > 0:
+		parts.append("+ x%d" % full_spare_count)
 
 	_magazines_label.text = "MAGS: " + " | ".join(parts)
 
