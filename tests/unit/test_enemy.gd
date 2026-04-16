@@ -78,6 +78,7 @@ class MockEnemy:
 	var _flank_transition_result: bool = false
 	var _transitioned_to_flanking: bool = false
 	var _transitioned_to_combat: bool = false
+	var _can_hit_target: bool = false
 	var _nav_candidate_right_ok: bool = false
 	var _nav_candidate_left_ok: bool = false
 	var _los_candidate_right_ok: bool = false
@@ -317,6 +318,16 @@ class MockEnemy:
 				return
 
 		_transition_to_combat()
+
+
+	func should_flank_close_hidden_target_for_test(enemy_pos: Vector2, target_pos: Vector2) -> bool:
+		if not _can_attempt_flanking():
+			return false
+		if enemy_pos.distance_to(target_pos) > 400.0:
+			return false
+		if _can_hit_target:
+			return false
+		return true
 
 
 	func _can_attempt_flanking() -> bool:
@@ -960,6 +971,30 @@ func test_pursuit_fallback_prefers_flanking_when_visible_target_is_still_unhitta
 	assert_true(enemy._transitioned_to_flanking, "Pursuit fallback should attempt flanking before combat")
 	assert_false(enemy._transitioned_to_combat, "Successful flanking fallback should avoid direct combat transition")
 	assert_eq(enemy.get_current_state(), MockEnemy.AIState.FLANKING, "Enemy should enter FLANKING state")
+
+
+func test_pursuit_prefers_flanking_for_close_hidden_building_target_before_more_cover() -> void:
+	enemy._can_attempt_flank = true
+	enemy._can_hit_target = false
+
+	assert_true(enemy.should_flank_close_hidden_target_for_test(Vector2(820, 700), Vector2(980, 650)),
+		"Close Building-map target behind cover should trigger FLANKING before selecting another pursuit waypoint")
+
+
+func test_pursuit_keeps_distant_hidden_target_in_pursuing() -> void:
+	enemy._can_attempt_flank = true
+	enemy._can_hit_target = false
+
+	assert_false(enemy.should_flank_close_hidden_target_for_test(Vector2(300, 700), Vector2(980, 650)),
+		"Distant hidden target should stay in PURSUING instead of using close-cover flanking")
+
+
+func test_pursuit_does_not_flank_when_close_target_is_hittable() -> void:
+	enemy._can_attempt_flank = true
+	enemy._can_hit_target = true
+
+	assert_false(enemy.should_flank_close_hidden_target_for_test(Vector2(820, 700), Vector2(980, 650)),
+		"Hittable close target should transition to COMBAT, not FLANKING")
 
 
 func test_choose_best_flank_side_accepts_nav_reachable_route_around_wall() -> void:

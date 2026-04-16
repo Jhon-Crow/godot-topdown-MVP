@@ -2189,6 +2189,11 @@ func _process_pursuing_state(delta: float) -> void:
 			_process_corner_check(delta, velocity.normalized(), "PURSUING")
 		return
 
+	if _should_flank_close_hidden_target():
+		_log_to_file("PURSUING: close hidden/unhittable target, attempting FLANKING before next cover")
+		if _transition_to_flanking():
+			return
+
 	# No cover and no pursuit target - find initial pursuit cover
 	_find_pursuit_cover_toward_player()
 	if not _has_pursuit_cover:
@@ -2232,6 +2237,18 @@ func _process_pursuing_state(delta: float) -> void:
 			_transition_to_flanking()
 		else:
 			_transition_to_combat()
+
+func _should_flank_close_hidden_target() -> bool:
+	if _player == null or not _can_attempt_flanking():
+		return false
+	var target_pos := _get_target_position()
+	if target_pos == global_position:
+		target_pos = _player.global_position
+	if global_position.distance_to(target_pos) > CLOSE_COMBAT_DISTANCE:
+		return false
+	if _can_hit_target_from_current_position():
+		return false
+	return true
 
 ## Process ASSAULT state - disabled per issue #169. Immediately transitions to COMBAT.
 func _process_assault_state(_delta: float) -> void:
