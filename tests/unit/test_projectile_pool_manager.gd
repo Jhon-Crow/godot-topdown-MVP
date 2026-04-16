@@ -12,13 +12,29 @@ extends GutTest
 
 class MockProjectile:
 	var is_active: bool = false
+	var is_pooled: bool = true
+	var pool_managed: bool = false
+	var return_requested_count: int = 0
 	var id: int = 0
 
-	func pool_deactivate() -> void:
+	func set_pool_managed(managed: bool) -> void:
+		pool_managed = managed
+
+	func is_pool_managed() -> bool:
+		return pool_managed
+
+	func pool_deactivate(return_to_manager: bool = true) -> void:
+		if is_pooled:
+			return
 		is_active = false
+		is_pooled = true
+		if return_to_manager and pool_managed:
+			return_requested_count += 1
 
 	func pool_activate() -> void:
+		pool_managed = true
 		is_active = true
+		is_pooled = false
 
 
 class MockProjectilePoolManager:
@@ -45,14 +61,21 @@ class MockProjectilePoolManager:
 		for i in range(count):
 			var bullet := MockProjectile.new()
 			bullet.id = i
+			bullet.set_pool_managed(true)
+			bullet.is_pooled = false
+			bullet.pool_deactivate(false)
 			_bullet_pool.append(bullet)
 			_stats["bullets_created"] += 1
 		_is_warmed_up = true
 
 	## Gets a bullet from the pool.
 	func get_bullet() -> MockProjectile:
-		if _bullet_pool.size() > 0:
+		while _bullet_pool.size() > 0:
 			var bullet: MockProjectile = _bullet_pool.pop_back()
+			if not bullet.is_pool_managed():
+				continue
+			if _active_bullets.find(bullet) >= 0:
+				continue
 			_active_bullets.append(bullet)
 			_stats["bullets_reused"] += 1
 			return bullet
@@ -60,7 +83,7 @@ class MockProjectilePoolManager:
 		# Pool exhausted - recycle oldest active bullet.
 		if _active_bullets.size() > 0:
 			var oldest: MockProjectile = _active_bullets.pop_front()
-			oldest.pool_deactivate()
+			oldest.pool_deactivate(false)
 			_active_bullets.append(oldest)
 			_stats["bullets_recycled"] += 1
 			return oldest
@@ -71,11 +94,14 @@ class MockProjectilePoolManager:
 	func return_bullet(bullet: MockProjectile) -> void:
 		if bullet == null:
 			return
+		if not bullet.is_pool_managed():
+			return
 		var idx := _active_bullets.find(bullet)
 		if idx >= 0:
 			_active_bullets.remove_at(idx)
-		bullet.pool_deactivate()
-		_bullet_pool.append(bullet)
+		bullet.pool_deactivate(false)
+		if _bullet_pool.find(bullet) < 0:
+			_bullet_pool.append(bullet)
 
 	## Returns pool statistics.
 	func get_stats() -> Dictionary:
@@ -94,8 +120,11 @@ class MockProjectilePoolManager:
 	## Clears all pools and returns active projectiles.
 	func clear_all() -> void:
 		for bullet in _active_bullets:
-			bullet.pool_deactivate()
-			_bullet_pool.append(bullet)
+			if not bullet.is_pool_managed():
+				continue
+			bullet.pool_deactivate(false)
+			if _bullet_pool.find(bullet) < 0:
+				_bullet_pool.append(bullet)
 		_active_bullets.clear()
 
 
@@ -163,6 +192,14 @@ func test_warmup_creates_bullets() -> void:
 	assert_true(pool.is_ready(), "Pool should be warmed up after warmup()")
 
 
+func test_warmup_deactivation_does_not_self_return() -> void:
+	pool.warmup(3)
+
+	for bullet in pool._bullet_pool:
+		assert_eq(bullet.return_requested_count, 0,
+			"Warmup should deactivate pool-owned bullets without routing through return_bullet()")
+
+
 func test_get_bullet_from_pool() -> void:
 	pool.warmup(5)
 
@@ -178,6 +215,7 @@ func test_get_bullet_from_pool() -> void:
 func test_return_bullet_to_pool() -> void:
 	pool.warmup(5)
 	var bullet := pool.get_bullet()
+	bullet.pool_activate()
 
 	pool.return_bullet(bullet)
 
@@ -185,6 +223,49 @@ func test_return_bullet_to_pool() -> void:
 	assert_eq(stats["bullets_available"], 5, "Available should return to 5")
 	assert_eq(stats["bullets_active"], 0, "Active should return to 0")
 	assert_false(bullet.is_active, "Returned bullet should be deactivated")
+
+
+func test_return_bullet_rejects_unmanaged_projectile() -> void:
+	pool.warmup(5)
+	var unmanaged := MockProjectile.new()
+
+	pool.return_bullet(unmanaged)
+
+	var stats := pool.get_stats()
+	assert_eq(stats["bullets_available"], 5,
+		"Unmanaged projectiles must not enter the generic bullet pool")
+	assert_eq(pool._bullet_pool.find(unmanaged), -1,
+		"Freshly instantiated weapon bullets must not contaminate the pool")
+
+
+func test_duplicate_return_does_not_duplicate_pool_entry() -> void:
+	pool.warmup(1)
+	var bullet := pool.get_bullet()
+	bullet.pool_activate()
+
+	pool.return_bullet(bullet)
+	pool.return_bullet(bullet)
+
+	var stats := pool.get_stats()
+	assert_eq(stats["bullets_available"], 1,
+		"Returning the same projectile twice must not create duplicate pool references")
+	assert_eq(stats["bullets_active"], 0,
+		"Duplicate returns should leave no active references")
+
+
+func test_get_bullet_skips_active_duplicate_reference() -> void:
+	pool.warmup(1)
+	var bullet := pool.get_bullet()
+	pool._bullet_pool.append(bullet)
+
+	var reused := pool.get_bullet()
+
+	assert_eq(reused, bullet,
+		"With no inactive projectiles left, the active projectile may only be recycled once")
+	assert_eq(pool.get_stats()["bullets_active"], 1,
+		"An active projectile duplicated in the idle pool must not be tracked twice")
+	assert_eq(pool._bullet_pool.find(bullet), -1,
+		"Active duplicate references should be discarded from the idle pool")
 
 
 func test_get_and_return_multiple_bullets() -> void:

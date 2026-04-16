@@ -1,5 +1,4 @@
 extends Node
-class_name ProjectilePoolManager
 ## Manages pools of reusable projectile objects for bullet-hell optimization.
 ##
 ## Object pooling eliminates the performance overhead of repeatedly creating
@@ -171,9 +170,11 @@ func _create_bullet() -> Node:
 
 	# Initialize in inactive state
 	if bullet.has_method("pool_deactivate"):
-		bullet.pool_deactivate()
+		_mark_pool_managed(bullet)
+		bullet.call("pool_deactivate", false)
 	else:
 		# Fallback for non-pooling-aware bullets
+		_mark_pool_managed(bullet)
 		bullet.visible = false
 		bullet.set_physics_process(false)
 		bullet.set_process(false)
@@ -187,8 +188,10 @@ func _create_shrapnel() -> Node:
 	_shrapnel_container.add_child(shrapnel)
 
 	if shrapnel.has_method("pool_deactivate"):
-		shrapnel.pool_deactivate()
+		_mark_pool_managed(shrapnel)
+		shrapnel.call("pool_deactivate", false)
 	else:
+		_mark_pool_managed(shrapnel)
 		shrapnel.visible = false
 		shrapnel.set_physics_process(false)
 		shrapnel.set_process(false)
@@ -202,13 +205,76 @@ func _create_breaker_shrapnel() -> Node:
 	_breaker_shrapnel_container.add_child(breaker)
 
 	if breaker.has_method("pool_deactivate"):
-		breaker.pool_deactivate()
+		_mark_pool_managed(breaker)
+		breaker.call("pool_deactivate", false)
 	else:
+		_mark_pool_managed(breaker)
 		breaker.visible = false
 		breaker.set_physics_process(false)
 		breaker.set_process(false)
 
 	return breaker
+
+
+## Marks a projectile as owned by this pool. Fresh weapon-spawned projectile scenes
+## are intentionally unmanaged and should queue_free instead of entering this pool.
+func _mark_pool_managed(projectile: Node) -> void:
+	projectile.set_meta("projectile_pool_managed", true)
+	if projectile.has_method("set_pool_managed"):
+		projectile.call("set_pool_managed", true)
+
+
+## Returns true only for projectiles created and owned by this manager.
+func _is_pool_managed(projectile: Node) -> bool:
+	if not is_instance_valid(projectile):
+		return false
+	if projectile.has_method("is_pool_managed"):
+		return projectile.call("is_pool_managed") == true
+	return projectile.get_meta("projectile_pool_managed", false) == true
+
+
+## Deactivates a managed projectile without recursively routing back through
+## return_*(). Used during warmup and active-projectile recycling.
+func _deactivate_without_return(projectile: Node) -> void:
+	if projectile.has_method("pool_deactivate"):
+		projectile.call("pool_deactivate", false)
+	else:
+		projectile.visible = false
+		projectile.set_physics_process(false)
+		projectile.set_process(false)
+
+
+func _append_unique(pool: Array[Node], projectile: Node) -> void:
+	if pool.find(projectile) < 0:
+		pool.append(projectile)
+
+
+func _pop_ready_projectile(pool: Array[Node], active: Array[Node]) -> Node:
+	while pool.size() > 0:
+		var projectile: Node = pool.pop_back()
+		if not _is_pool_managed(projectile):
+			continue
+		if active.find(projectile) >= 0:
+			continue
+		return projectile
+	return null
+
+
+func _pop_oldest_active_projectile(active: Array[Node]) -> Node:
+	while active.size() > 0:
+		var projectile: Node = active.pop_front()
+		if _is_pool_managed(projectile):
+			return projectile
+	return null
+
+
+func _return_active_projectiles(active: Array[Node], pool: Array[Node]) -> void:
+	for projectile in active:
+		if not _is_pool_managed(projectile):
+			continue
+		_deactivate_without_return(projectile)
+		_append_unique(pool, projectile)
+	active.clear()
 
 
 # =============================================================================
@@ -222,8 +288,8 @@ func get_bullet() -> Node:
 	if not _is_warmed_up:
 		warmup()
 
-	if _bullet_pool.size() > 0:
-		var bullet: Node = _bullet_pool.pop_back()
+	var bullet := _pop_ready_projectile(_bullet_pool, _active_bullets)
+	if bullet:
 		_active_bullets.append(bullet)
 		_stats["bullets_reused"] += 1
 		if _debug:
@@ -232,22 +298,22 @@ func get_bullet() -> Node:
 
 	# Pool exhausted - recycle oldest active bullet
 	if _active_bullets.size() > 0:
-		var oldest: Node = _active_bullets.pop_front()
-		if oldest.has_method("pool_deactivate"):
-			oldest.pool_deactivate()
-		_active_bullets.append(oldest)
-		_stats["bullets_recycled"] += 1
-		if _debug:
-			print("[ProjectilePoolManager] Bullet recycled (active: %d)" % _active_bullets.size())
-		return oldest
+		var oldest := _pop_oldest_active_projectile(_active_bullets)
+		if oldest:
+			_deactivate_without_return(oldest)
+			_active_bullets.append(oldest)
+			_stats["bullets_recycled"] += 1
+			if _debug:
+				print("[ProjectilePoolManager] Bullet recycled (active: %d)" % _active_bullets.size())
+			return oldest
 
 	# Fallback: create new bullet (shouldn't happen if pool sized correctly)
 	if _bullet_scene:
-		var bullet := _create_bullet()
-		_active_bullets.append(bullet)
+		var new_bullet := _create_bullet()
+		_active_bullets.append(new_bullet)
 		_stats["bullets_created"] += 1
 		push_warning("[ProjectilePoolManager] Bullet pool exhausted, created new instance")
-		return bullet
+		return new_bullet
 
 	return null
 
@@ -257,27 +323,27 @@ func get_shrapnel() -> Node:
 	if not _is_warmed_up:
 		warmup()
 
-	if _shrapnel_pool.size() > 0:
-		var shrapnel: Node = _shrapnel_pool.pop_back()
+	var shrapnel := _pop_ready_projectile(_shrapnel_pool, _active_shrapnel)
+	if shrapnel:
 		_active_shrapnel.append(shrapnel)
 		_stats["shrapnel_reused"] += 1
 		return shrapnel
 
 	# Pool exhausted - recycle oldest
 	if _active_shrapnel.size() > 0:
-		var oldest: Node = _active_shrapnel.pop_front()
-		if oldest.has_method("pool_deactivate"):
-			oldest.pool_deactivate()
-		_active_shrapnel.append(oldest)
-		_stats["shrapnel_recycled"] += 1
-		return oldest
+		var oldest := _pop_oldest_active_projectile(_active_shrapnel)
+		if oldest:
+			_deactivate_without_return(oldest)
+			_active_shrapnel.append(oldest)
+			_stats["shrapnel_recycled"] += 1
+			return oldest
 
 	# Fallback: create new
 	if _shrapnel_scene:
-		var shrapnel := _create_shrapnel()
-		_active_shrapnel.append(shrapnel)
+		var new_shrapnel := _create_shrapnel()
+		_active_shrapnel.append(new_shrapnel)
 		_stats["shrapnel_created"] += 1
-		return shrapnel
+		return new_shrapnel
 
 	return null
 
@@ -287,27 +353,27 @@ func get_breaker_shrapnel() -> Node:
 	if not _is_warmed_up:
 		warmup()
 
-	if _breaker_shrapnel_pool.size() > 0:
-		var breaker: Node = _breaker_shrapnel_pool.pop_back()
+	var breaker := _pop_ready_projectile(_breaker_shrapnel_pool, _active_breaker_shrapnel)
+	if breaker:
 		_active_breaker_shrapnel.append(breaker)
 		_stats["breaker_reused"] += 1
 		return breaker
 
 	# Pool exhausted - recycle oldest
 	if _active_breaker_shrapnel.size() > 0:
-		var oldest: Node = _active_breaker_shrapnel.pop_front()
-		if oldest.has_method("pool_deactivate"):
-			oldest.pool_deactivate()
-		_active_breaker_shrapnel.append(oldest)
-		_stats["breaker_recycled"] += 1
-		return oldest
+		var oldest := _pop_oldest_active_projectile(_active_breaker_shrapnel)
+		if oldest:
+			_deactivate_without_return(oldest)
+			_active_breaker_shrapnel.append(oldest)
+			_stats["breaker_recycled"] += 1
+			return oldest
 
 	# Fallback: create new
 	if _breaker_shrapnel_scene:
-		var breaker := _create_breaker_shrapnel()
-		_active_breaker_shrapnel.append(breaker)
+		var new_breaker := _create_breaker_shrapnel()
+		_active_breaker_shrapnel.append(new_breaker)
 		_stats["breaker_created"] += 1
-		return breaker
+		return new_breaker
 
 	return null
 
@@ -319,7 +385,7 @@ func get_breaker_shrapnel() -> Node:
 
 ## Returns a bullet to the pool for reuse.
 func return_bullet(bullet: Node) -> void:
-	if not is_instance_valid(bullet):
+	if not _is_pool_managed(bullet):
 		return
 
 	# Remove from active tracking
@@ -328,14 +394,8 @@ func return_bullet(bullet: Node) -> void:
 		_active_bullets.remove_at(idx)
 
 	# Deactivate and return to pool
-	if bullet.has_method("pool_deactivate"):
-		bullet.pool_deactivate()
-	else:
-		bullet.visible = false
-		bullet.set_physics_process(false)
-		bullet.set_process(false)
-
-	_bullet_pool.append(bullet)
+	_deactivate_without_return(bullet)
+	_append_unique(_bullet_pool, bullet)
 
 	if _debug:
 		print("[ProjectilePoolManager] Bullet returned to pool (available: %d)" % _bullet_pool.size())
@@ -343,40 +403,28 @@ func return_bullet(bullet: Node) -> void:
 
 ## Returns a shrapnel to the pool for reuse.
 func return_shrapnel(shrapnel: Node) -> void:
-	if not is_instance_valid(shrapnel):
+	if not _is_pool_managed(shrapnel):
 		return
 
 	var idx := _active_shrapnel.find(shrapnel)
 	if idx >= 0:
 		_active_shrapnel.remove_at(idx)
 
-	if shrapnel.has_method("pool_deactivate"):
-		shrapnel.pool_deactivate()
-	else:
-		shrapnel.visible = false
-		shrapnel.set_physics_process(false)
-		shrapnel.set_process(false)
-
-	_shrapnel_pool.append(shrapnel)
+	_deactivate_without_return(shrapnel)
+	_append_unique(_shrapnel_pool, shrapnel)
 
 
 ## Returns a breaker shrapnel to the pool for reuse.
 func return_breaker_shrapnel(breaker: Node) -> void:
-	if not is_instance_valid(breaker):
+	if not _is_pool_managed(breaker):
 		return
 
 	var idx := _active_breaker_shrapnel.find(breaker)
 	if idx >= 0:
 		_active_breaker_shrapnel.remove_at(idx)
 
-	if breaker.has_method("pool_deactivate"):
-		breaker.pool_deactivate()
-	else:
-		breaker.visible = false
-		breaker.set_physics_process(false)
-		breaker.set_process(false)
-
-	_breaker_shrapnel_pool.append(breaker)
+	_deactivate_without_return(breaker)
+	_append_unique(_breaker_shrapnel_pool, breaker)
 
 
 # =============================================================================
@@ -415,26 +463,9 @@ func is_ready() -> bool:
 ## Clears all pools and active projectiles. Use when changing levels.
 func clear_all() -> void:
 	# Return all active projectiles to pools
-	for bullet in _active_bullets:
-		if is_instance_valid(bullet):
-			if bullet.has_method("pool_deactivate"):
-				bullet.pool_deactivate()
-			_bullet_pool.append(bullet)
-	_active_bullets.clear()
-
-	for shrapnel in _active_shrapnel:
-		if is_instance_valid(shrapnel):
-			if shrapnel.has_method("pool_deactivate"):
-				shrapnel.pool_deactivate()
-			_shrapnel_pool.append(shrapnel)
-	_active_shrapnel.clear()
-
-	for breaker in _active_breaker_shrapnel:
-		if is_instance_valid(breaker):
-			if breaker.has_method("pool_deactivate"):
-				breaker.pool_deactivate()
-			_breaker_shrapnel_pool.append(breaker)
-	_active_breaker_shrapnel.clear()
+	_return_active_projectiles(_active_bullets, _bullet_pool)
+	_return_active_projectiles(_active_shrapnel, _shrapnel_pool)
+	_return_active_projectiles(_active_breaker_shrapnel, _breaker_shrapnel_pool)
 
 	if _debug:
 		print("[ProjectilePoolManager] All projectiles returned to pools")

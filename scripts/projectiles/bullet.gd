@@ -1643,10 +1643,11 @@ func _check_enemy_in_shrapnel_cone() -> bool:
 	for enemy in enemies:
 		if not (enemy is Node2D):
 			continue
-		if not (enemy.has_method("is_alive") and enemy.is_alive()):
+		var enemy_node := enemy as Node2D
+		if not (enemy_node.has_method("is_alive") and enemy_node.is_alive()):
 			continue
-		var to_enemy := enemy.global_position - global_position
-		var dist := to_enemy.length()
+		var to_enemy: Vector2 = enemy_node.global_position - global_position
+		var dist: float = to_enemy.length()
 		if dist > BREAKER_DETONATION_DISTANCE:
 			continue
 		# Dot product of normalized vectors: equals cos(angle_between).
@@ -1654,11 +1655,11 @@ func _check_enemy_in_shrapnel_cone() -> bool:
 		if dist > 0.0 and (to_enemy / dist).dot(direction) >= cos_half_angle:
 			# Only detonate if there is no wall between the bullet and the enemy.
 			# Without this check, bullets detonate against enemies through walls.
-			if not _breaker_has_line_of_sight(global_position, enemy.global_position):
+			if not _breaker_has_line_of_sight(global_position, enemy_node.global_position):
 				continue
 			if _debug_breaker:
 				FileLogger.info("[Bullet.Breaker] Enemy %s in shrapnel cone at distance %.1f, detonating" % [
-					enemy.name, dist])
+					enemy_node.name, dist])
 			_breaker_detonate(global_position)
 			return true
 	return false
@@ -1883,8 +1884,12 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 				continue  # Shrapnel is ready, skip to next
 
 		# Fallback to instantiation
+		if _breaker_shrapnel_scene == null:
+			skipped_count += 1
+			continue
 		shrapnel = _breaker_shrapnel_scene.instantiate()
 		if shrapnel == null:
+			skipped_count += 1
 			continue
 
 		# Set shrapnel properties
@@ -1913,6 +1918,9 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 ## Whether this bullet is currently pooled (inactive).
 var _is_pooled: bool = false
 
+## Whether this bullet was created by ProjectilePoolManager.
+var _pool_managed: bool = false
+
 ## Original speed value for reset.
 var _original_speed: float = 2500.0
 
@@ -1924,6 +1932,8 @@ var _original_speed: float = 2500.0
 ## @param shooter: Instance ID of the shooter (for self-damage prevention).
 ## @param caliber: Optional caliber data resource.
 func pool_activate(pos: Vector2, dir: Vector2, shooter: int, caliber: Resource = null) -> void:
+	_pool_managed = true
+
 	# Reset all state to defaults
 	_reset_state()
 
@@ -1953,7 +1963,7 @@ func pool_activate(pos: Vector2, dir: Vector2, shooter: int, caliber: Resource =
 
 ## Deactivates the bullet and prepares it for return to the pool.
 ## Call this instead of queue_free() when using pooling.
-func pool_deactivate() -> void:
+func pool_deactivate(return_to_manager: bool = true) -> void:
 	if _is_pooled:
 		return
 
@@ -1976,9 +1986,10 @@ func pool_deactivate() -> void:
 	_position_history.clear()
 
 	# Return to pool manager
-	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
-	if pool_manager and pool_manager.has_method("return_bullet"):
-		pool_manager.return_bullet(self)
+	if return_to_manager and _pool_managed:
+		var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+		if pool_manager and pool_manager.has_method("return_bullet"):
+			pool_manager.return_bullet(self)
 
 
 ## Resets all bullet state to defaults for reuse.
@@ -2031,15 +2042,25 @@ func is_pooled() -> bool:
 	return _is_pooled
 
 
+## Marks this projectile as owned by ProjectilePoolManager.
+func set_pool_managed(managed: bool) -> void:
+	_pool_managed = managed
+
+
+## Returns whether this projectile belongs to ProjectilePoolManager.
+func is_pool_managed() -> bool:
+	return _pool_managed
+
+
 ## Destroys the bullet using pooling when available, otherwise queue_free.
 ## This method should be used instead of direct queue_free() calls for proper pooling.
 func _destroy() -> void:
 	if _is_pooled:
 		return  # Already pooled
 
-	# Try to use pooling if pool manager is available
-	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
-	if pool_manager:
+	# Only bullets created by ProjectilePoolManager can return to the generic pool.
+	# Weapon-instantiated bullets such as Bullet9mm.tscn must be freed normally.
+	if _pool_managed and get_node_or_null("/root/ProjectilePoolManager"):
 		pool_deactivate()
 	else:
 		queue_free()

@@ -266,6 +266,9 @@ func _spawn_wall_hit_effect(body: Node2D) -> void:
 ## Whether this shrapnel is currently pooled (inactive).
 var _is_pooled: bool = false
 
+## Whether this shrapnel was created by ProjectilePoolManager.
+var _pool_managed: bool = false
+
 ## Original speed value for reset.
 var _original_speed: float = 5000.0
 
@@ -276,6 +279,8 @@ var _original_speed: float = 5000.0
 ## @param source: Instance ID of the source (grenade) for self-damage prevention.
 ## @param thrower: Instance ID of the enemy thrower (for friendly fire prevention).
 func pool_activate(pos: Vector2, dir: Vector2, source: int, thrower: int = -1) -> void:
+	_pool_managed = true
+
 	# Reset all state to defaults
 	_reset_state()
 
@@ -301,7 +306,7 @@ func pool_activate(pos: Vector2, dir: Vector2, source: int, thrower: int = -1) -
 
 
 ## Deactivates the shrapnel and prepares it for return to the pool.
-func pool_deactivate() -> void:
+func pool_deactivate(return_to_manager: bool = true) -> void:
 	if _is_pooled:
 		return
 
@@ -324,9 +329,10 @@ func pool_deactivate() -> void:
 	_position_history.clear()
 
 	# Return to pool manager
-	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
-	if pool_manager and pool_manager.has_method("return_shrapnel"):
-		pool_manager.return_shrapnel(self)
+	if return_to_manager and _pool_managed:
+		var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+		if pool_manager and pool_manager.has_method("return_shrapnel"):
+			pool_manager.return_shrapnel(self)
 
 
 ## Destroys the shrapnel using pooling when available, otherwise queue_free.
@@ -334,8 +340,7 @@ func _destroy() -> void:
 	if _is_pooled:
 		return
 
-	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
-	if pool_manager:
+	if _pool_managed and get_node_or_null("/root/ProjectilePoolManager"):
 		pool_deactivate()
 	else:
 		queue_free()
@@ -365,6 +370,16 @@ func _reset_state() -> void:
 ## Returns whether this shrapnel is currently pooled (inactive).
 func is_pooled() -> bool:
 	return _is_pooled
+
+
+## Marks this projectile as owned by ProjectilePoolManager.
+func set_pool_managed(managed: bool) -> void:
+	_pool_managed = managed
+
+
+## Returns whether this projectile belongs to ProjectilePoolManager.
+func is_pool_managed() -> bool:
+	return _pool_managed
 
 
 ## Convenience method to get a shrapnel from the pool.
