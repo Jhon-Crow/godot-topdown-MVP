@@ -64,6 +64,10 @@ func _collect_markers_from(node: Node, out: Array[Vector2]) -> void:
 ## Keeps the fallback local so enemies don't navigate across rooms to escape corners.
 const FALLBACK_MAX_DIST: float = 350.0
 
+## Only allow non-progress fallback when the enemy is already close enough to
+## the target that a local corner escape is more important than pure approach.
+const FALLBACK_TARGET_DISTANCE: float = 120.0
+
 ## Maximum straight-line travel distance to a candidate waypoint.
 ## Prevents enemies from being routed to waypoints in other rooms that are
 ## reachable on the scoring map but blocked by walls on the nav mesh.
@@ -99,11 +103,13 @@ func get_nearest_attacking_waypoint(from_pos: Vector2, toward_pos: Vector2) -> V
 
 	for wp in _attacking_waypoints:
 		var dist_from_me := from_pos.distance_to(wp)
+		var wp_dist_to_target := wp.distance_to(toward_pos)
 		# Skip waypoints that are essentially where we already are
 		if dist_from_me < 20.0:
 			continue
 		# Track the raw-nearest nearby waypoint as a local fallback
-		if dist_from_me < nearest_fallback_dist and dist_from_me <= FALLBACK_MAX_DIST:
+		var fallback_makes_sense := wp_dist_to_target < my_dist_to_target or my_dist_to_target <= FALLBACK_TARGET_DISTANCE
+		if fallback_makes_sense and dist_from_me < nearest_fallback_dist and dist_from_me <= FALLBACK_MAX_DIST:
 			nearest_fallback_dist = dist_from_me
 			nearest_fallback = wp
 		# Skip waypoints that are too far away; they likely require navigating around
@@ -112,7 +118,6 @@ func get_nearest_attacking_waypoint(from_pos: Vector2, toward_pos: Vector2) -> V
 			continue
 		if not _is_waypoint_reachable(nav_map, from_pos, wp, dist_from_me):
 			continue
-		var wp_dist_to_target := wp.distance_to(toward_pos)
 		# Only score waypoints that bring us closer to the target
 		if wp_dist_to_target >= my_dist_to_target:
 			continue

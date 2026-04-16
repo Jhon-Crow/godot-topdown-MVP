@@ -103,6 +103,8 @@ class MockEnemy:
 	var _memory_reset_confusion_timer: float = 0.0
 	const MEMORY_RESET_CONFUSION_DURATION: float = 0.5
 	const PURSUIT_FLANK_PRIORITY_DISTANCE: float = 900.0
+	const FLANK_MIN_COMMIT_TIME: float = 0.6
+	const FLANK_MIN_COMMIT_DISTANCE: float = 80.0
 	var _continuous_visibility_timer: float = 0.0
 
 	## Ally death observation (Issue #409)
@@ -422,6 +424,12 @@ class MockEnemy:
 		return clampf(travel_time + 2.0, 5.0, 12.0)
 
 
+	func should_exit_flanking_to_combat_for_test(timer: float, start_pos: Vector2, current_pos: Vector2, can_hit: bool) -> bool:
+		if not can_hit:
+			return false
+		return timer >= FLANK_MIN_COMMIT_TIME or current_pos.distance_to(start_pos) >= FLANK_MIN_COMMIT_DISTANCE
+
+
 	func choose_attack_waypoint_for_test(from_pos: Vector2, toward_pos: Vector2, waypoints: Array[Dictionary]) -> Vector2:
 		var my_dist_to_target := from_pos.distance_to(toward_pos)
 		var best := Vector2.ZERO
@@ -432,9 +440,11 @@ class MockEnemy:
 		for candidate in waypoints:
 			var wp: Vector2 = candidate["point"]
 			var dist_from_me := from_pos.distance_to(wp)
+			var wp_dist_to_target := wp.distance_to(toward_pos)
 			if dist_from_me < 20.0:
 				continue
-			if dist_from_me < nearest_fallback_dist and dist_from_me <= 350.0:
+			var fallback_makes_sense := wp_dist_to_target < my_dist_to_target or my_dist_to_target <= 120.0
+			if fallback_makes_sense and dist_from_me < nearest_fallback_dist and dist_from_me <= 350.0:
 				nearest_fallback_dist = dist_from_me
 				nearest_fallback = wp
 			if dist_from_me > 400.0:
@@ -444,7 +454,6 @@ class MockEnemy:
 			var path_distance: float = candidate.get("path_distance", dist_from_me)
 			if path_distance > dist_from_me * 2.5 and path_distance > 550.0:
 				continue
-			var wp_dist_to_target := wp.distance_to(toward_pos)
 			if wp_dist_to_target >= my_dist_to_target:
 				continue
 			var progress := my_dist_to_target - wp_dist_to_target
@@ -1106,6 +1115,27 @@ func test_flank_timeout_extends_for_long_building_nav_route() -> void:
 		"Long Building-map flank routes should not abort before their nav travel time plus buffer elapses")
 
 
+func test_flanking_does_not_collapse_to_combat_before_commitment() -> void:
+	var can_exit := enemy.should_exit_flanking_to_combat_for_test(0.1, Vector2(643, 917), Vector2(650, 908), true)
+
+	assert_false(can_exit,
+		"A one-frame FLANKING start should not immediately collapse to COMBAT before the enemy commits movement")
+
+
+func test_flanking_can_exit_to_combat_after_minimum_commit_time() -> void:
+	var can_exit := enemy.should_exit_flanking_to_combat_for_test(0.7, Vector2(643, 917), Vector2(660, 890), true)
+
+	assert_true(can_exit,
+		"FLANKING may transition to COMBAT once it has been visible long enough to be a committed maneuver")
+
+
+func test_flanking_can_exit_to_combat_after_meaningful_movement() -> void:
+	var can_exit := enemy.should_exit_flanking_to_combat_for_test(0.2, Vector2(643, 917), Vector2(730, 900), true)
+
+	assert_true(can_exit,
+		"FLANKING may transition to COMBAT early after meaningful movement toward the flank")
+
+
 func test_attack_waypoint_selection_rejects_building_detour_waypoint() -> void:
 	var from_pos := Vector2(700.0, 750.0)
 	var toward_pos := Vector2(952.0, 673.0)
@@ -1127,6 +1157,15 @@ func test_attack_waypoint_selection_rejects_building_detour_waypoint() -> void:
 
 	assert_eq(chosen, local_progress_waypoint["point"],
 		"Combat-path pursuit should reject Building-map waypoints whose nav route is a large detour behind interior walls")
+
+
+func test_attack_waypoint_selection_rejects_local_fallback_that_moves_away() -> void:
+	var chosen := enemy.choose_attack_waypoint_for_test(Vector2(500.0, 0.0), Vector2.ZERO, [
+		{"point": Vector2(650.0, 0.0), "reachable": true, "path_distance": 150.0},
+	])
+
+	assert_eq(chosen, Vector2.ZERO,
+		"PURSUING should not keep a distant target in a nearest-waypoint loop that increases distance to the player")
 
 
 func test_flank_cover_selection_does_not_reuse_building_attack_waypoint() -> void:

@@ -260,7 +260,10 @@ var _flank_side_initialized: bool = false  ## Flank side set
 var _flank_state_timer: float = 0.0  ## Total flanking time
 const FLANK_STATE_MAX_TIME: float = 5.0  ## Max flanking time (sec)
 var _flank_state_max_time: float = FLANK_STATE_MAX_TIME  ## Per-attempt timeout scaled by nav distance
+const FLANK_MIN_COMMIT_TIME: float = 0.6  ## Minimum visible time before FLANKING can collapse to COMBAT.
+const FLANK_MIN_COMMIT_DISTANCE: float = 80.0  ## Minimum move before early FLANKING->COMBAT exit.
 var _flank_last_position: Vector2 = Vector2.ZERO  ## Last pos for progress
+var _flank_start_position: Vector2 = Vector2.ZERO  ## Entry pos for commit checks
 var _flank_stuck_timer: float = 0.0  ## Stuck check timer
 const FLANK_STUCK_MAX_TIME: float = 2.0  ## Max time without progress
 const FLANK_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
@@ -1793,7 +1796,8 @@ func _process_flanking_state(delta: float) -> void:
 		_flank_side_initialized = false; _transition_to_retreating(); return
 
 	# Only transition to combat if we can ACTUALLY HIT the target (#934: incl. companion)
-	if (_can_see_player or _can_see_companion) and _can_hit_target_from_current_position():
+	var flank_committed := _flank_state_timer >= FLANK_MIN_COMMIT_TIME or global_position.distance_to(_flank_start_position) >= FLANK_MIN_COMMIT_DISTANCE
+	if (_can_see_player or _can_see_companion) and _can_hit_target_from_current_position() and flank_committed:
 		_flank_side_initialized = false
 		_transition_to_combat()
 		return
@@ -2710,6 +2714,7 @@ func _transition_to_flanking() -> bool:
 	_flank_state_max_time = EnemyFlankNavigationHelper.calculate_flank_timeout(self, _nav_agent, _flank_target, combat_move_speed, FLANK_STATE_MAX_TIME)
 	_flank_stuck_timer = 0.0
 	_flank_last_position = global_position
+	_flank_start_position = global_position
 	# Reset global stuck detection
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
@@ -4407,6 +4412,7 @@ func _reset() -> void:
 	_flank_state_timer = 0.0
 	_flank_stuck_timer = 0.0
 	_flank_last_position = Vector2.ZERO
+	_flank_start_position = Vector2.ZERO
 	_flank_fail_count = 0
 	_flank_cooldown_timer = 0.0
 	_last_known_player_position = Vector2.ZERO
