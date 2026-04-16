@@ -1472,7 +1472,31 @@ public partial class LevelInitFallback : Node
 
     private static string TrFormat(string key, params object[] args)
     {
-        return string.Format(Tr(key), args);
+        return GodotPercentFormat(Tr(key), args);
+    }
+
+    private static string GodotPercentFormat(string format, params object[] args)
+    {
+        string result = format;
+        foreach (var arg in args)
+        {
+            string replacement = arg?.ToString() ?? "";
+            int intIndex = result.IndexOf("%d", StringComparison.Ordinal);
+            int stringIndex = result.IndexOf("%s", StringComparison.Ordinal);
+            int placeholderIndex;
+            if (intIndex == -1)
+                placeholderIndex = stringIndex;
+            else if (stringIndex == -1)
+                placeholderIndex = intIndex;
+            else
+                placeholderIndex = Math.Min(intIndex, stringIndex);
+
+            if (placeholderIndex == -1)
+                break;
+
+            result = result.Substring(0, placeholderIndex) + replacement + result.Substring(placeholderIndex + 2);
+        }
+        return result;
     }
 
     private static string GetMagazinesText(IReadOnlyList<string> parts)

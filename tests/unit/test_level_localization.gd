@@ -212,6 +212,8 @@ func test_level_init_fallback_localizes_building_hud_source() -> void:
 	assert_string_contains(source, "HUD_AMMO")
 	assert_string_contains(source, "HUD_DIFFICULTY")
 	assert_string_contains(source, "ARMORY_STAT_MAG")
+	assert_string_contains(source, "GodotPercentFormat")
+	assert_false(source.contains("string.Format(Tr(key), args)"))
 	assert_false(source.contains("\"Enemies: "))
 	assert_false(source.contains("\"AMMO: "))
 	assert_false(source.contains("\"MAGS: "))
