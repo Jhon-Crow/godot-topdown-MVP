@@ -110,6 +110,7 @@ class MockLabyrinthTutorial:
 	var _grenade_hint_rmb_held_after_release: bool = false
 	var _grenade_hint_rmb_was_pressed: bool = false
 	var _grenade_hint_drag_start_x: float = 0.0
+	var _tutorial_shotgun_reload_started: bool = false
 	## Fix 3rd#10: AK GL round
 	var _ak_gl_has_round: bool = true
 
@@ -317,8 +318,18 @@ class MockLabyrinthTutorial:
 
 	## Called when shotgun reload state changes (Fix 4th#2).
 	func on_tutorial_shotgun_reload_state_changed(state: int) -> void:
-		if _active_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
-			_active_hints[TUTORIAL_HINT_BOLT_CYCLE] = _build_tutorial_shotgun_full_reload_hint_bbcode(state)
+		if not _active_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
+			return
+		if state >= 2:
+			_tutorial_shotgun_reload_started = true
+		if state == 0:
+			if _tutorial_shotgun_reload_started:
+				on_tutorial_reload_completed()
+			else:
+				_active_hints[TUTORIAL_HINT_BOLT_CYCLE] = _build_tutorial_shotgun_full_reload_hint_bbcode(0)
+			_tutorial_shotgun_reload_started = false
+			return
+		_active_hints[TUTORIAL_HINT_BOLT_CYCLE] = _build_tutorial_shotgun_full_reload_hint_bbcode(state)
 
 	## Build BBCode text for the reload hint based on current step (Issue #945).
 	## Bug fix #2: `step` is LAST COMPLETED step (0=nothing done, 1=first press done, etc.).
@@ -1452,6 +1463,44 @@ func test_lab_grenade_hint_rolls_back_when_preparation_is_canceled() -> void:
 		"Canceling grenade preparation should reset the lab hint to the first incomplete step")
 	assert_eq(grenade_lab.get_hint_strike_progress(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE), 0.0,
 		"Canceling grenade preparation should reset the lab strikethrough progress")
+
+
+func test_lab_shotgun_reload_hint_rolls_back_when_bolt_closes_without_loading_shells() -> void:
+	var shotgun_lab := MockLabyrinthTutorial.new()
+	shotgun_lab._tutorial_has_shotgun = true
+	shotgun_lab._add_hint(
+		MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE,
+		shotgun_lab._build_tutorial_shotgun_full_reload_hint_bbcode(0)
+	)
+
+	shotgun_lab.on_tutorial_shotgun_reload_state_changed(1)
+	shotgun_lab.on_tutorial_shotgun_reload_state_changed(0)
+
+	assert_true(shotgun_lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE),
+		"Closing the shotgun bolt without loading shells must keep the reload hint active")
+	assert_eq(
+		shotgun_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE),
+		shotgun_lab._build_tutorial_shotgun_full_reload_hint_bbcode(0),
+		"Closing the shotgun bolt without loading shells should restore the initial full-reload hint")
+	assert_eq(shotgun_lab.get_step(), MockLabyrinthTutorial.TutorialStep.RELOAD,
+		"Closing the shotgun bolt without loading shells must not complete the reload tutorial")
+
+
+func test_lab_shotgun_reload_hint_completes_after_loading_phase_started() -> void:
+	var shotgun_lab := MockLabyrinthTutorial.new()
+	shotgun_lab._tutorial_has_shotgun = true
+	shotgun_lab._add_hint(
+		MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE,
+		shotgun_lab._build_tutorial_shotgun_full_reload_hint_bbcode(0)
+	)
+
+	shotgun_lab.on_tutorial_shotgun_reload_state_changed(2)
+	shotgun_lab.on_tutorial_shotgun_reload_state_changed(0)
+
+	assert_false(shotgun_lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE),
+		"Returning to idle after entering the shell-loading phase should complete the shotgun reload hint")
+	assert_eq(shotgun_lab.get_step(), MockLabyrinthTutorial.TutorialStep.THROW_GRENADE,
+		"Completed shotgun reload should advance to grenade training")
 
 
 func test_lab_sniper_scope_hint_dismissed_when_scope_used() -> void:
