@@ -2052,7 +2052,7 @@ func _process_pursuing_state(delta: float) -> void:
 			return
 
 	if _should_prioritize_flanking_target():
-		_log_to_file("PURSUING: visible target within %.0fpx but unhittable, attempting FLANKING before pursuit cover" % PURSUIT_FLANK_PRIORITY_DISTANCE)
+		_log_to_file("PURSUING: close/visible unhittable target, attempting FLANKING before pursuit cover")
 		if _transition_to_flanking() or _current_state != AIState.PURSUING:
 			return
 
@@ -2247,12 +2247,16 @@ func _should_prioritize_flanking_target() -> bool:
 	if not _can_attempt_flanking():
 		return false
 	var target := _current_target if _current_target != null else _player
-	if target == null or not is_instance_valid(target):
+	var target_visible := target != null and is_instance_valid(target) and (
+		(target == _player and _can_see_player) or (target == _companion and _can_see_companion)
+	)
+	var target_pos := _get_target_position()
+	if target_visible:
+		target_pos = target.global_position
+	if target_pos == global_position:
 		return false
-	var target_visible := (target == _player and _can_see_player) or (target == _companion and _can_see_companion)
-	if not target_visible:
-		return false
-	if global_position.distance_to(target.global_position) > PURSUIT_FLANK_PRIORITY_DISTANCE:
+	var priority_distance := PURSUIT_FLANK_PRIORITY_DISTANCE if target_visible else CLOSE_COMBAT_DISTANCE
+	if global_position.distance_to(target_pos) > priority_distance:
 		return false
 	if _can_hit_target_from_current_position():
 		return false

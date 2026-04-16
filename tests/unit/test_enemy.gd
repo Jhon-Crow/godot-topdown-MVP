@@ -103,6 +103,7 @@ class MockEnemy:
 	var _memory_reset_confusion_timer: float = 0.0
 	const MEMORY_RESET_CONFUSION_DURATION: float = 0.5
 	const PURSUIT_FLANK_PRIORITY_DISTANCE: float = 900.0
+	const CLOSE_COMBAT_DISTANCE: float = 400.0
 	const FLANK_MIN_COMMIT_TIME: float = 0.6
 	const FLANK_MIN_COMMIT_DISTANCE: float = 80.0
 	var _continuous_visibility_timer: float = 0.0
@@ -323,19 +324,20 @@ class MockEnemy:
 		_transition_to_combat()
 
 
-	func should_flank_close_hidden_target_for_test(enemy_pos: Vector2, target_pos: Vector2) -> bool:
+	func should_prioritize_flanking_target_for_test(enemy_pos: Vector2, target_pos: Vector2, target_visible: bool) -> bool:
 		if not _can_attempt_flanking():
 			return false
-		if enemy_pos.distance_to(target_pos) > PURSUIT_FLANK_PRIORITY_DISTANCE:
+		var priority_distance := PURSUIT_FLANK_PRIORITY_DISTANCE if target_visible else CLOSE_COMBAT_DISTANCE
+		if enemy_pos.distance_to(target_pos) > priority_distance:
 			return false
 		if _can_hit_target:
 			return false
 		return true
 
 
-	func process_existing_pursuit_cover_for_test(enemy_pos: Vector2, target_pos: Vector2) -> void:
+	func process_existing_pursuit_cover_for_test(enemy_pos: Vector2, target_pos: Vector2, target_visible: bool = false) -> void:
 		_has_pursuit_cover = true
-		if should_flank_close_hidden_target_for_test(enemy_pos, target_pos):
+		if should_prioritize_flanking_target_for_test(enemy_pos, target_pos, target_visible):
 			if _transition_to_flanking():
 				return
 		_continued_pursuit_cover = true
@@ -995,16 +997,24 @@ func test_pursuit_prefers_flanking_for_close_hidden_building_target_before_more_
 	enemy._can_attempt_flank = true
 	enemy._can_hit_target = false
 
-	assert_true(enemy.should_flank_close_hidden_target_for_test(Vector2(820, 700), Vector2(980, 650)),
+	assert_true(enemy.should_prioritize_flanking_target_for_test(Vector2(820, 700), Vector2(980, 650), false),
 		"Close Building-map target behind cover should trigger FLANKING before selecting another pursuit waypoint")
 
 
-func test_pursuit_prefers_flanking_for_screen_distance_unhittable_building_target() -> void:
+func test_pursuit_prefers_flanking_for_screen_distance_visible_unhittable_building_target() -> void:
 	enemy._can_attempt_flank = true
 	enemy._can_hit_target = false
 
-	assert_true(enemy.should_flank_close_hidden_target_for_test(Vector2(100, 0), Vector2(850, 0)),
-		"On-screen Building-map target behind cover should trigger FLANKING even beyond close-combat shooting range")
+	assert_true(enemy.should_prioritize_flanking_target_for_test(Vector2(100, 0), Vector2(850, 0), true),
+		"On-screen visible Building-map target without a shot lane should trigger FLANKING beyond close-combat range")
+
+
+func test_hidden_target_beyond_close_cover_range_stays_in_pursuing() -> void:
+	enemy._can_attempt_flank = true
+	enemy._can_hit_target = false
+
+	assert_false(enemy.should_prioritize_flanking_target_for_test(Vector2(100, 0), Vector2(850, 0), false),
+		"Hidden Building-map target outside close-cover range should stay in PURSUING until the enemy closes distance")
 
 
 func test_existing_pursuit_cover_does_not_starve_visible_unhittable_flanking() -> void:
@@ -1012,7 +1022,7 @@ func test_existing_pursuit_cover_does_not_starve_visible_unhittable_flanking() -
 	enemy._can_hit_target = false
 	enemy._flank_transition_result = true
 
-	enemy.process_existing_pursuit_cover_for_test(Vector2(100, 0), Vector2(850, 0))
+	enemy.process_existing_pursuit_cover_for_test(Vector2(100, 0), Vector2(850, 0), true)
 
 	assert_true(enemy._transitioned_to_flanking,
 		"Visible/unhittable Building target should try FLANKING before continuing current pursuit cover")
@@ -1021,11 +1031,25 @@ func test_existing_pursuit_cover_does_not_starve_visible_unhittable_flanking() -
 	assert_eq(enemy.get_current_state(), MockEnemy.AIState.FLANKING, "Enemy should enter FLANKING state")
 
 
+func test_latest_building_log_hidden_pursuit_case_switches_to_flanking() -> void:
+	enemy._can_attempt_flank = true
+	enemy._can_hit_target = false
+	enemy._flank_transition_result = true
+
+	enemy.process_existing_pursuit_cover_for_test(Vector2(784.0745, 868.2076), Vector2(952.0, 677.0), false)
+
+	assert_true(enemy._transitioned_to_flanking,
+		"Latest Building log case is a close hidden target and should switch from PURSUING to FLANKING")
+	assert_false(enemy._continued_pursuit_cover,
+		"Existing pursuit cover should not keep the enemy in the corner-check loop for this close hidden case")
+	assert_eq(enemy.get_current_state(), MockEnemy.AIState.FLANKING, "Enemy should enter FLANKING state")
+
+
 func test_pursuit_keeps_distant_hidden_target_in_pursuing() -> void:
 	enemy._can_attempt_flank = true
 	enemy._can_hit_target = false
 
-	assert_false(enemy.should_flank_close_hidden_target_for_test(Vector2(0, 0), Vector2(1200, 0)),
+	assert_false(enemy.should_prioritize_flanking_target_for_test(Vector2(0, 0), Vector2(1200, 0), false),
 		"Distant hidden target should stay in PURSUING instead of using close-cover flanking")
 
 
@@ -1033,8 +1057,40 @@ func test_pursuit_does_not_flank_when_close_target_is_hittable() -> void:
 	enemy._can_attempt_flank = true
 	enemy._can_hit_target = true
 
-	assert_false(enemy.should_flank_close_hidden_target_for_test(Vector2(820, 700), Vector2(980, 650)),
+	assert_false(enemy.should_prioritize_flanking_target_for_test(Vector2(820, 700), Vector2(980, 650), false),
 		"Hittable close target should transition to COMBAT, not FLANKING")
+
+
+func test_enemy_source_prioritizes_close_hidden_flanking_before_pursuit_cover() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis - skipping")
+		return
+	var source := file.get_as_text()
+
+	var pursuing_idx := source.find("func _process_pursuing_state(")
+	assert_true(pursuing_idx >= 0, "Enemy source should contain _process_pursuing_state")
+	var pursuing_end := source.find("\nfunc ", pursuing_idx + 1)
+	var pursuing_body := source.substr(pursuing_idx, pursuing_end - pursuing_idx)
+	var priority_idx := pursuing_body.find("if _should_prioritize_flanking_target():")
+	var cover_idx := pursuing_body.find("if _has_pursuit_cover:")
+	assert_true(priority_idx >= 0, "PURSUING should evaluate flanking priority")
+	assert_true(cover_idx >= 0, "PURSUING should still contain pursuit-cover movement")
+	assert_true(priority_idx < cover_idx,
+		"Close hidden flanking must run before existing pursuit-cover movement can keep corner checking")
+
+	var helper_idx := source.find("func _should_prioritize_flanking_target() -> bool:")
+	assert_true(helper_idx >= 0, "Enemy source should contain flanking-priority helper")
+	var helper_end := source.find("\nfunc ", helper_idx + 1)
+	var helper_body := source.substr(helper_idx, helper_end - helper_idx)
+	assert_true(helper_body.contains("_get_target_position()"),
+		"Hidden targets should use last-known/memory target position for flanking priority")
+	assert_true(helper_body.contains("CLOSE_COMBAT_DISTANCE"),
+		"Hidden targets should only use close-cover flanking priority")
+	assert_true(helper_body.contains("PURSUIT_FLANK_PRIORITY_DISTANCE"),
+		"Visible targets should keep the wider screen-scale flanking priority")
+	assert_false(helper_body.contains("if not target_visible:\n\t\treturn false"),
+		"Hidden close-cover targets must not be rejected just because the player is not visible")
 
 
 func test_choose_best_flank_side_accepts_nav_reachable_route_around_wall() -> void:
