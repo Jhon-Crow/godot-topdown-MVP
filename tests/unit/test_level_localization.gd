@@ -1,6 +1,7 @@
 extends GutTest
 
 const LevelLocalizationScript := preload("res://scripts/autoload/level_localization.gd")
+const BuildingLevelScript := preload("res://scripts/levels/building_level.gd")
 
 var _helper: Node
 
@@ -136,3 +137,20 @@ func test_apply_level_label_from_node_creates_missing_level_label() -> void:
 	var label: Label = ui.get_node_or_null("LevelLabel")
 	assert_not_null(label)
 	assert_eq(label.text, tr("LEVEL_SEWER_NAME"))
+
+
+func test_building_locale_change_refreshes_cached_magazine_label() -> void:
+	var building := BuildingLevelScript.new()
+	add_child_autofree(building)
+
+	var magazine_label := Label.new()
+	building.set("_magazines_label", magazine_label)
+
+	building.call("_update_magazines_label", ["[30]", "25", "10"])
+	assert_eq(magazine_label.text, "%s: [30] | 25 | 10" % tr("ARMORY_STAT_MAG"))
+
+	magazine_label.text = "MAGS: [30] | 25 | 10"
+	building.call("_on_locale_changed", "ru")
+
+	assert_eq(magazine_label.text, "%s: [30] | 25 | 10" % tr("ARMORY_STAT_MAG"))
+	assert_ne(magazine_label.text, "MAGS: [30] | 25 | 10")

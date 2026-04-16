@@ -36,6 +36,7 @@ var _difficulty_label: Label = null
 
 ## Reference to the magazines label (shows individual magazine ammo counts).
 var _magazines_label: Label = null
+var _last_magazine_ammo_counts: Array = []
 
 ## Reference to the ColorRect for saturation effect.
 var _saturation_overlay: ColorRect = null
@@ -1065,6 +1066,7 @@ func _on_locale_changed(_locale: String) -> void:
 		var weapon = _player.get("CurrentWeapon")
 		if weapon != null and weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+	_update_magazines_label(_last_magazine_ammo_counts)
 	_update_debug_ui()
 
 
@@ -1345,6 +1347,7 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
+	_last_magazine_ammo_counts = magazine_ammo_counts.duplicate()
 
 	# Check if player has a weapon with tube magazine (shotgun)
 	# If so, hide the magazine label as shotguns don't use detachable magazines
