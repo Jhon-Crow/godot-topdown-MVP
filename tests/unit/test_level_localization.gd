@@ -154,3 +154,47 @@ func test_building_locale_change_refreshes_cached_magazine_label() -> void:
 
 	assert_eq(magazine_label.text, "%s: [30] | 25 | 10" % tr("ARMORY_STAT_MAG"))
 	assert_ne(magazine_label.text, "MAGS: [30] | 25 | 10")
+
+
+func test_building_debug_ui_refresh_updates_all_existing_hud_labels() -> void:
+	var building := BuildingLevelScript.new()
+	add_child_autofree(building)
+	var canvas_layer := CanvasLayer.new()
+	canvas_layer.name = "CanvasLayer"
+	building.add_child(canvas_layer)
+	var ui := Control.new()
+	ui.name = "UI"
+	canvas_layer.add_child(ui)
+	var level_label := Label.new()
+	level_label.name = "LevelLabel"
+	level_label.text = "Building Level"
+	ui.add_child(level_label)
+	var enemy_label := Label.new()
+	enemy_label.name = "EnemyCountLabel"
+	enemy_label.text = "Enemies: 10"
+	ui.add_child(enemy_label)
+	var ammo_label := Label.new()
+	ammo_label.name = "AmmoLabel"
+	ammo_label.text = "AMMO: 30/30"
+	ui.add_child(ammo_label)
+
+	building.set("_enemy_count_label", enemy_label)
+	building.set("_ammo_label", ammo_label)
+	building.set("_current_enemy_count", 10)
+	building.call("_update_ammo_label_magazine", 30, 30)
+	building.set("_last_magazine_ammo_counts", [30, 30, 30])
+
+	building.call("_setup_debug_ui")
+
+	var difficulty_label: Label = ui.get_node_or_null("DifficultyLabel")
+	var magazines_label: Label = ui.get_node_or_null("MagazinesLabel")
+	assert_not_null(difficulty_label)
+	assert_not_null(magazines_label)
+	assert_eq(level_label.text, tr("LEVEL_BUILDING_NAME"))
+	assert_eq(enemy_label.text, tr("HUD_ENEMIES") % 10)
+	assert_eq(ammo_label.text, tr("HUD_AMMO") % [30, 30])
+	assert_eq(difficulty_label.text, tr("HUD_DIFFICULTY") % tr("NORMAL"))
+	assert_eq(magazines_label.text, "%s: [30] | 30 | 30" % tr("ARMORY_STAT_MAG"))
+	assert_ne(level_label.text, "Building Level")
+	assert_ne(enemy_label.text, "Enemies: 10")
+	assert_ne(ammo_label.text, "AMMO: 30/30")

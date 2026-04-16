@@ -983,8 +983,7 @@ func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
-	var level_label: Label = ui.get_node_or_null("LevelLabel")
-	LevelLocalization.apply_level_label(level_label, LEVEL_SCENE_PATH)
+	LevelLocalization.apply_level_label_from_node(self, LEVEL_SCENE_PATH)
 
 	# Create difficulty label
 	_difficulty_label = Label.new()
@@ -1029,7 +1028,7 @@ func _setup_debug_ui() -> void:
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 
-	_update_debug_ui()
+	_refresh_localized_hud_labels()
 
 
 
@@ -1054,20 +1053,26 @@ func _setup_saturation_overlay() -> void:
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
-	LevelLocalization.apply_level_label_from_node(self, LEVEL_SCENE_PATH)
+	_refresh_localized_hud_labels()
 
+
+func _refresh_localized_hud_labels() -> void:
+	LevelLocalization.apply_level_label_from_node(self, LEVEL_SCENE_PATH)
+	_update_enemy_count_label()
 	if _difficulty_label:
 		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
-
-
-func _on_locale_changed(_locale: String) -> void:
-	_update_enemy_count_label()
-	if _ammo_label and _player:
+	if _player:
 		var weapon = _player.get("CurrentWeapon")
 		if weapon != null and weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-	_update_magazines_label(_last_magazine_ammo_counts)
-	_update_debug_ui()
+		elif _player.has_method("get_current_ammo") and _player.has_method("get_max_ammo"):
+			_update_ammo_label(_player.get_current_ammo(), _player.get_max_ammo())
+	if _magazines_label:
+		_update_magazines_label(_last_magazine_ammo_counts)
+
+
+func _on_locale_changed(_locale: String) -> void:
+	_refresh_localized_hud_labels()
 
 
 ## Called when an enemy dies.
