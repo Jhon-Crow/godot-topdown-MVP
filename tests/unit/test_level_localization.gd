@@ -198,3 +198,21 @@ func test_building_debug_ui_refresh_updates_all_existing_hud_labels() -> void:
 	assert_ne(level_label.text, "Building Level")
 	assert_ne(enemy_label.text, "Enemies: 10")
 	assert_ne(ammo_label.text, "AMMO: 30/30")
+
+
+func test_level_init_fallback_localizes_building_hud_source() -> void:
+	var file := FileAccess.open("res://Scripts/Components/LevelInitFallback.cs", FileAccess.READ)
+	assert_not_null(file)
+	var source := file.get_as_text()
+
+	assert_string_contains(source, "TranslationServer.Translate")
+	assert_string_contains(source, "locale_changed")
+	assert_string_contains(source, "OnLocaleChanged")
+	assert_string_contains(source, "HUD_ENEMIES")
+	assert_string_contains(source, "HUD_AMMO")
+	assert_string_contains(source, "HUD_DIFFICULTY")
+	assert_string_contains(source, "ARMORY_STAT_MAG")
+	assert_false(source.contains("\"Enemies: "))
+	assert_false(source.contains("\"AMMO: "))
+	assert_false(source.contains("\"MAGS: "))
+	assert_false(source.contains("\"Difficulty: "))

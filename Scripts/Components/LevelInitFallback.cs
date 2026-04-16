@@ -94,6 +94,11 @@ public partial class LevelInitFallback : Node
     private Label? _magazinesLabel;
 
     /// <summary>
+    /// Last magazine counts received from the current weapon, used to rebuild localized text on locale changes.
+    /// </summary>
+    private Godot.Collections.Array _lastMagazineAmmoCounts = new();
+
+    /// <summary>
     /// Combo label for UI (Issue #1751: shows current combo count).
     /// </summary>
     private Label? _comboLabel;
@@ -252,6 +257,14 @@ public partial class LevelInitFallback : Node
             }
         }
 
+        var localizationSettings = GetNodeOrNull("/root/LocalizationSettings");
+        if (localizationSettings != null &&
+            localizationSettings.HasSignal("locale_changed") &&
+            !localizationSettings.IsConnected("locale_changed", new Callable(this, MethodName.OnLocaleChanged)))
+        {
+            localizationSettings.Connect("locale_changed", new Callable(this, MethodName.OnLocaleChanged));
+        }
+
         // 7. Initialize ScoreManager
         InitializeScoreManager();
 
@@ -270,6 +283,8 @@ public partial class LevelInitFallback : Node
         // 12. Setup navigation mesh (Issue #1289) — mirrors GDScript _setup_navigation()
         // Must run after physics frame so CollisionShape2D nodes are registered.
         SetupNavigationDeferred(levelRoot);
+
+        RefreshLocalizedHudLabels();
     }
 
     /// <summary>
@@ -618,7 +633,7 @@ public partial class LevelInitFallback : Node
 
         _difficultyLabel = new Label();
         _difficultyLabel.Name = "DifficultyLabel";
-        _difficultyLabel.Text = "Difficulty: " + difficultyName;
+        _difficultyLabel.Text = GetDifficultyText(difficultyName);
         _difficultyLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         _difficultyLabel.OffsetLeft = 10;
         _difficultyLabel.OffsetTop = 80;
@@ -628,7 +643,7 @@ public partial class LevelInitFallback : Node
 
         _magazinesLabel = new Label();
         _magazinesLabel.Name = "MagazinesLabel";
-        _magazinesLabel.Text = "MAGS: -";
+        _magazinesLabel.Text = GetMagazinesText(new List<string>());
         _magazinesLabel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         _magazinesLabel.OffsetLeft = 10;
         _magazinesLabel.OffsetTop = 115;
@@ -886,6 +901,11 @@ public partial class LevelInitFallback : Node
     private void OnMagazinesChanged(Godot.Collections.Array magazineAmmoCounts)
     {
         UpdateMagazinesLabel(magazineAmmoCounts);
+    }
+
+    private void OnLocaleChanged(string _locale)
+    {
+        RefreshLocalizedHudLabels();
     }
 
     private void OnShellCountChanged(int shellCount, int capacity)
@@ -1330,14 +1350,14 @@ public partial class LevelInitFallback : Node
     private void UpdateEnemyCountLabel()
     {
         if (_enemyCountLabel != null)
-            _enemyCountLabel.Text = $"Enemies: {_currentEnemyCount}";
+            _enemyCountLabel.Text = TrFormat("HUD_ENEMIES", _currentEnemyCount);
     }
 
     private void UpdateAmmoLabelMagazine(int currentMag, int reserve)
     {
         if (_ammoLabel == null) return;
 
-        _ammoLabel.Text = $"AMMO: {currentMag}/{reserve}";
+        _ammoLabel.Text = TrFormat("HUD_AMMO", currentMag, reserve);
 
         if (currentMag <= 5)
             _ammoLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.2f, 0.2f, 1.0f));
@@ -1350,6 +1370,7 @@ public partial class LevelInitFallback : Node
     private void UpdateMagazinesLabel(Godot.Collections.Array magazineAmmoCounts)
     {
         if (_magazinesLabel == null) return;
+        _lastMagazineAmmoCounts = magazineAmmoCounts.Duplicate();
 
         // Resolve the currently equipped weapon (same lookup order as ConnectWeaponSignals)
         Node? weapon = null;
@@ -1387,7 +1408,7 @@ public partial class LevelInitFallback : Node
 
         if (magazineAmmoCounts.Count == 0)
         {
-            _magazinesLabel.Text = "MAGS: -";
+            _magazinesLabel.Text = GetMagazinesText(new List<string>());
             return;
         }
 
@@ -1421,18 +1442,60 @@ public partial class LevelInitFallback : Node
         if (fullSpareCount > 0)
             parts.Add($"+ x{fullSpareCount}");
 
-        _magazinesLabel.Text = "MAGS: " + string.Join(" | ", parts);
+        _magazinesLabel.Text = GetMagazinesText(parts);
     }
 
     private void UpdateDebugUI()
     {
-        // Issue #1485: Update difficulty label (replaces old kills/accuracy update).
+        RefreshLocalizedHudLabels();
+    }
+
+    private void RefreshLocalizedHudLabels()
+    {
+        UpdateEnemyCountLabel();
+
         if (_difficultyLabel != null)
         {
             var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
             if (difficultyManager != null && difficultyManager.HasMethod("get_difficulty_name"))
-                _difficultyLabel.Text = "Difficulty: " + difficultyManager.Call("get_difficulty_name").AsString();
+                _difficultyLabel.Text = GetDifficultyText(difficultyManager.Call("get_difficulty_name").AsString());
         }
+
+        if (_magazinesLabel != null)
+            UpdateMagazinesLabel(_lastMagazineAmmoCounts);
+    }
+
+    private static string Tr(string key)
+    {
+        return TranslationServer.Translate(key).ToString();
+    }
+
+    private static string TrFormat(string key, params object[] args)
+    {
+        return string.Format(Tr(key), args);
+    }
+
+    private static string GetMagazinesText(IReadOnlyList<string> parts)
+    {
+        string prefix = Tr("ARMORY_STAT_MAG");
+        return parts.Count == 0 ? $"{prefix}: -" : $"{prefix}: {string.Join(" | ", parts)}";
+    }
+
+    private static string GetDifficultyText(string difficultyName)
+    {
+        return TrFormat("HUD_DIFFICULTY", GetLocalizedDifficultyName(difficultyName));
+    }
+
+    private static string GetLocalizedDifficultyName(string difficultyName)
+    {
+        return difficultyName switch
+        {
+            "Easy" => Tr("EASY"),
+            "Normal" => Tr("NORMAL"),
+            "Hard" => Tr("HARD"),
+            "Gunslinger" => Tr("GUNSLINGER"),
+            _ => difficultyName,
+        };
     }
 
     public override void _Process(double delta)
