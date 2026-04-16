@@ -1281,7 +1281,7 @@ func spawn_explosion_effect(position: Vector2, radius: float) -> void:
 ## Performance optimization (Issue #724):
 ## - PointLight2D objects are pooled and reused instead of created/destroyed
 ## - Maximum concurrent lights is limited (beyond limit, effects are skipped)
-## - Shadows are disabled (brief flashes don't need accurate shadow casting)
+## - Lights stay pooled even though shadows are enabled, so brief flashes can respect occluders
 ##
 ## @param position: World position of the explosion.
 ## @param radius: Effect radius for visual size.
@@ -1501,7 +1501,9 @@ func _create_pooled_explosion_light() -> PointLight2D:
 	var light := PointLight2D.new()
 	light.visible = false
 	light.z_index = 10
-	light.shadow_enabled = false  # Shadows are expensive, brief flashes don't need them
+	# Issue #1825: flash and explosion lights must respect LightOccluder2D blockers in the level.
+	# Keep the nodes pooled to limit the runtime cost of enabling shadows.
+	light.shadow_enabled = true
 	light.texture = _get_cached_light_texture()
 
 	# Add to scene tree (as child of autoload so it persists)
@@ -1643,5 +1645,4 @@ func clear_scorch_marks() -> void:
 	_scorch_marks.clear()
 	if _debug_effects:
 		print("[ImpactEffectsManager] All scorch marks cleared")
-
 

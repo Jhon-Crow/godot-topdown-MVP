@@ -200,6 +200,32 @@ func test_building_debug_ui_refresh_updates_all_existing_hud_labels() -> void:
 	assert_ne(ammo_label.text, "AMMO: 30/30")
 
 
+func test_building_magazines_label_uses_current_weapon_before_inactive_shotgun_child() -> void:
+	var building := BuildingLevelScript.new()
+	add_child_autofree(building)
+	var magazine_label := Label.new()
+	building.set("_magazines_label", magazine_label)
+
+	var player := Node2D.new()
+	var shotgun := Node.new()
+	shotgun.name = "Shotgun"
+	shotgun.set("UsesTubeMagazine", true)
+	player.add_child(shotgun)
+	var assault_rifle := Node.new()
+	assault_rifle.name = "AssaultRifle"
+	assault_rifle.set("CurrentAmmo", 30)
+	assault_rifle.set("ReserveAmmo", 30)
+	player.add_child(assault_rifle)
+	player.set("CurrentWeapon", assault_rifle)
+	building.set("_player", player)
+	building.add_child(player)
+
+	building.call("_update_magazines_label", [30, 30])
+
+	assert_true(magazine_label.visible)
+	assert_eq(magazine_label.text, "%s: [30] | 30" % tr("ARMORY_STAT_MAG"))
+
+
 func test_level_init_fallback_localizes_building_hud_source() -> void:
 	var file := FileAccess.open("res://Scripts/Components/LevelInitFallback.cs", FileAccess.READ)
 	assert_not_null(file)

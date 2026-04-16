@@ -77,11 +77,25 @@ func _navigate_to_last_level() -> void:
 	# check placed there is never executed.
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager and difficulty_manager.is_first_launch():
-		_log_to_file("First launch detected — showing difficulty selection before level load")
+		if _is_gut_test_run():
+			_log_to_file("First launch detected during GUT test run - skipping difficulty menu pause")
+			_do_navigate_to_last_level()
+			return
+		_log_to_file("First launch detected - showing difficulty selection before level load")
 		_show_first_launch_difficulty_menu()
 		return  # Navigation resumes in _on_first_launch_difficulty_selected()
 
 	_do_navigate_to_last_level()
+
+
+## Returns true when the project is running under the GUT command-line runner.
+## The first-launch difficulty picker pauses the tree, which can deadlock await-based
+## unit tests before any gameplay scene is involved.
+func _is_gut_test_run() -> bool:
+	for argument in OS.get_cmdline_args():
+		if argument.find("gut_cmdln.gd") != -1 or argument.begins_with("-g"):
+			return true
+	return false
 
 
 ## Perform the actual startup navigation to the last played level.
@@ -135,6 +149,7 @@ func _show_first_launch_difficulty_menu() -> void:
 	_first_launch_menu = packed.instantiate()
 	_first_launch_menu.first_launch_mode = true
 	_first_launch_menu.difficulty_selected_first_launch.connect(_on_first_launch_difficulty_selected)
+	get_tree().paused = true
 	get_tree().root.add_child(_first_launch_menu)
 	_log_to_file("First-launch difficulty menu shown")
 
@@ -146,7 +161,12 @@ func _on_first_launch_difficulty_selected() -> void:
 	if _first_launch_menu != null:
 		_first_launch_menu.queue_free()
 		_first_launch_menu = null
-	_do_navigate_to_last_level()
+	get_tree().paused = false
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager and game_manager.has_method("restart_scene"):
+		game_manager.restart_scene()
+	else:
+		_do_navigate_to_last_level()
 
 
 ## Connect to manager signals to auto-save on changes.
