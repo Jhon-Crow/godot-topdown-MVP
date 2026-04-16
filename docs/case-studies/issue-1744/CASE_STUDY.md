@@ -332,20 +332,31 @@ This keeps pacifists in `PACIFIST` state while making their temporary retaliatio
 
 The attached `game_log_20260416_213016.txt` shows repeated level reloads where the player stays at the same health value while enemies continue attacking. The log was added to this case-study directory for preservation and later manual replay comparison.
 
+Follow-up `game_log_20260417_004243.txt` (reported 2026-04-16 21:44 UTC) reproduces the same symptom after the compatibility-only fix: the player starts at `Health: 2/4` or `Health: 3/4`, enemies attack, but no player damage/death events are emitted.
+
 ### Root Cause
 
-The Issue 6 fix added an `attacker_node` argument to bullet hit forwarding so pacifist enemies can retaliate against the real shooter. The main player/enemy paths were updated, but two existing target adapters still exposed the old bullet-info signatures:
+The Issue 6 fix added an `attacker_node` argument to bullet hit forwarding so pacifist enemies can retaliate against the real shooter. The first follow-up fix made every known receiver tolerate the new optional argument, but it missed the direct no-damage-adapter call shape in `scripts/projectiles/bullet.gd`:
 
-- `scripts/objects/drone.gd`
-- `scripts/effects/illusion_hit_area.gd`
+```gdscript
+area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, from_player, attacker_node)
+```
 
-This created an inconsistent callback contract: `bullet.gd` now calls bullet-info receivers with the optional attacker argument, while some receivers still expected the pre-fix arity. The same class of mismatch is risky for player damage because player hit handling uses the same bullet-info callback family.
+That signature is valid for `HitArea.on_hit_with_bullet_info(...)`, where the fifth argument is `is_from_player`. It is not valid for direct targets like `Player.on_hit_with_bullet_info(...)`, where the fifth argument is `damage` and source attribution is sixth.
+
+For enemy bullets, `from_player == false`. When an enemy bullet hit the player directly, the player received `damage=false`, which becomes zero damage. That matches the report: hit callbacks executed, but player health did not decrease.
 
 ### Fix
 
-Every existing bullet-info receiver now accepts the optional attacker argument, including the player, drone, illusion, RPG rocket, and bullet interception paths. The attacker argument remains optional and unused where the target does not need source attribution.
+The legacy bullet-info fallback now preserves the default damage slot before passing source attribution:
 
-Regression source checks cover this compatibility so future hit receivers do not silently reintroduce a stale signature that can break enemy bullet damage.
+```gdscript
+area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, 1.0, from_player, attacker_node)
+```
+
+Targets that need explicit bullet damage still use `on_hit_with_bullet_info_and_damage(...)`. Targets that only implement the older bullet-info method now receive `damage=1.0`, `is_from_player=false`, and the optional attacker node in the correct positions.
+
+Regression source checks now cover both compatibility dimensions: receivers must accept the optional attacker argument, and `bullet.gd` must keep the default damage argument before source attribution.
 
 ---
 
@@ -354,3 +365,4 @@ Regression source checks cover this compatibility so future hit receivers do not
 - [`game_log_20260410_021834.txt`](./game_log_20260410_021834.txt) — Winter Forest drone operator follow-up (3,366 lines)
 - [`game_log_20260410_164848.txt`](./game_log_20260410_164848.txt) — PACIFIST→SEARCHING→COMBAT follow-up (23,107 lines)
 - [`game_log_20260416_213016.txt`](./game_log_20260416_213016.txt) — player ignored enemy hits follow-up (27,988 lines)
+- [`game_log_20260417_004243.txt`](./game_log_20260417_004243.txt) — player damage still not applied after callback compatibility follow-up (2,465 lines)

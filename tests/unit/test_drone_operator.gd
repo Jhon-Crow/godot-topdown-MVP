@@ -668,6 +668,8 @@ func test_projectile_hit_forwarding_passes_shooter_node() -> void:
 		"bullet.gd must pass shooter node through hit callbacks")
 	assert_true(source.contains("effective_damage, from_player, attacker_node"),
 		"bullet.gd damage hit path must include attacker_node")
+	assert_true(source.contains("1.0, from_player, attacker_node"),
+		"bullet.gd legacy bullet-info path must keep default damage before source data so player damage is not false/0")
 
 
 func test_hit_areas_forward_attacker_node() -> void:
