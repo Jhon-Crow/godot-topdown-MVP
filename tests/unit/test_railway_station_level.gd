@@ -195,3 +195,69 @@ func test_score_screen_appears_only_once_after_repeated_mouse_clicks() -> void:
 	level.handle_mouse_input()   # Third click    checks _game_end_dismissed guard)
 	assert_eq(level.score_screen_display_count, 1,
 		"Score screen must appear exactly once even if the mouse is clicked multiple times")
+
+
+# ============================================================================
+# Enemy placement tests (Issue #1861)
+# ============================================================================
+
+
+func test_issue_1861_force_field_enemies_added_to_central_walkway() -> void:
+	var scene := load("res://scenes/levels/RailwayStationLevel.tscn") as PackedScene
+	assert_not_null(scene, "RailwayStationLevel scene should load")
+
+	var instance := scene.instantiate()
+	add_child_autofree(instance)
+
+	var left_enemy := instance.get_node_or_null("Environment/Enemies/CentralWalkway_ForceFieldLeft")
+	var right_enemy := instance.get_node_or_null("Environment/Enemies/CentralWalkway_ForceFieldRight")
+	assert_not_null(left_enemy, "Left central walkway force-field enemy should exist")
+	assert_not_null(right_enemy, "Right central walkway force-field enemy should exist")
+
+	assert_eq(left_enemy.position, Vector2(1700, 2300),
+		"Left force-field enemy should stand on the platform between train pairs")
+	assert_eq(right_enemy.position, Vector2(2300, 2300),
+		"Right force-field enemy should stand on the platform between train pairs")
+	assert_true(left_enemy.has_force_field,
+		"Left central walkway enemy must have force field enabled")
+	assert_true(right_enemy.has_force_field,
+		"Right central walkway enemy must have force field enabled")
+
+
+func test_issue_1861_machine_gunners_control_outer_passages() -> void:
+	var scene := load("res://scenes/levels/RailwayStationLevel.tscn") as PackedScene
+	assert_not_null(scene, "RailwayStationLevel scene should load")
+
+	var instance := scene.instantiate()
+	add_child_autofree(instance)
+
+	var expected_positions := {
+		"NearTracks_MachineGunnerLeft": Vector2(300, 2670),
+		"NearTracks_MachineGunnerRight": Vector2(3700, 2670),
+		"FarTracks_MachineGunnerLeft": Vector2(300, 1890),
+		"FarTracks_MachineGunnerRight": Vector2(3700, 1890),
+	}
+
+	for enemy_name in expected_positions.keys():
+		var enemy := instance.get_node_or_null("Environment/Enemies/%s" % enemy_name)
+		assert_not_null(enemy, "%s should exist" % enemy_name)
+		assert_eq(enemy.position, expected_positions[enemy_name],
+			"%s should stay at the side wall while preserving its height" % enemy_name)
+		assert_eq(enemy.weapon_type, 6,
+			"%s should remain a machine gunner" % enemy_name)
+
+
+func test_issue_1861_shield_enemy_added_to_right_teleporter_group() -> void:
+	var scene := load("res://scenes/levels/RailwayStationLevel.tscn") as PackedScene
+	assert_not_null(scene, "RailwayStationLevel scene should load")
+
+	var instance := scene.instantiate()
+	add_child_autofree(instance)
+
+	var shield_enemy := instance.get_node_or_null("Environment/Enemies/Platform_ShieldRight")
+	assert_not_null(shield_enemy,
+		"Right teleporter group should include an additional shield enemy")
+	assert_eq(shield_enemy.position, Vector2(3600, 3650),
+		"Shield enemy should be beside the right teleporter group")
+	assert_true(shield_enemy.has_swat_shield,
+		"Right group reinforcement must have SWAT shield enabled")
