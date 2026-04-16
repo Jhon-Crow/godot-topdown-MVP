@@ -194,17 +194,29 @@ var _tutorial_shotgun_full_reload_active: bool = false
 ## Whether M16 fire-mode [B] hint should appear after grenade training (Bug fix round 5).
 var _tutorial_m16_needs_fire_mode_hint: bool = false
 
-## Grenade hint step (Bug fix round 5): 0=arm, 1=G held, 2=G released.
+## Grenade hint step (Issue #1818 / PR #1832 reviewed flow): 0..4 are active hint stages.
 var _tutorial_grenade_hint_step: int = 0
 
 ## Whether G key was held last frame (for grenade hint step tracking).
 var _tutorial_grenade_g_was_held: bool = false
 
+## Whether the reviewed grenade drag-right step has already been completed.
+var _tutorial_grenade_drag_completed: bool = false
+
+## Whether RMB was held again after the drag-right/release phase.
+var _tutorial_grenade_rmb_held_after_release: bool = false
+
 ## Whether grenade throw button was held last frame during tutorial tracking.
-var _tutorial_grenade_throw_was_held: bool = false
+var _tutorial_grenade_rmb_was_pressed: bool = false
+
+## Mouse position where the reviewed grenade drag step started.
+var _tutorial_grenade_hint_drag_start: Vector2 = Vector2.ZERO
 
 ## Whether the shotgun full-reload tutorial reached the shell-loading phase.
 var _tutorial_shotgun_reload_started: bool = false
+
+## Whether the revolver reload tutorial reached the loading phase before returning to idle.
+var _tutorial_revolver_reload_started: bool = false
 
 ## Unique colors per hint type (Issue #945: simultaneously displayed hints should be different colors).
 const TUTORIAL_HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)              ## Green — reload
@@ -2350,8 +2362,13 @@ func _on_tutorial_revolver_reload_state_changed(new_state: int) -> void:
 	if not _tutorial_has_revolver:
 		return
 
+	if new_state >= 2:
+		_tutorial_revolver_reload_started = true
+
 	var hint_step: int = 0
 	match new_state:
+		0:
+			hint_step = 3 if _tutorial_revolver_reload_started else 0
 		1:
 			hint_step = 1  # CylinderOpen → highlight insert cartridge
 		2:
@@ -2363,6 +2380,8 @@ func _on_tutorial_revolver_reload_state_changed(new_state: int) -> void:
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_RELOAD]
 	if is_instance_valid(label):
 		label.text = new_text
+	if new_state == 0 and not _tutorial_revolver_reload_started:
+		_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.0)
 	print("[LabyrinthLevel] Revolver reload state %d → hint step %d updated" % [new_state, hint_step])
 
 
@@ -2398,6 +2417,7 @@ func _on_tutorial_reload_completed() -> void:
 			_dismiss_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE)
 			_tutorial_shotgun_full_reload_active = false  # Bug fix round 5: reset flag
 			_tutorial_shotgun_reload_started = false
+		_tutorial_revolver_reload_started = false
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		# Bug fix round 5: M16 fire-mode [B] hint should appear after grenade, not now.
 		if _tutorial_assault_rifle != null and not _tutorial_has_ak_gl:
@@ -2419,9 +2439,7 @@ func _on_tutorial_reload_completed() -> void:
 			# Bug fix #9 (round 4 fix): use GetCurrentGrenades() method for reliable check.
 			if _tutorial_player_has_grenades():
 				if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-					_tutorial_grenade_hint_step = 0
-					_tutorial_grenade_g_was_held = false
-					_tutorial_grenade_throw_was_held = false
+					_reset_tutorial_grenade_hint_tracking()
 					_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
 						_build_tutorial_grenade_hint_bbcode(0),
 						canvas_layer)
@@ -2448,9 +2466,7 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		if _tutorial_player_has_grenades():
 			if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-				_tutorial_grenade_hint_step = 0
-				_tutorial_grenade_g_was_held = false
-				_tutorial_grenade_throw_was_held = false
+				_reset_tutorial_grenade_hint_tracking()
 				_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
 					_build_tutorial_grenade_hint_bbcode(0),
 					canvas_layer)
@@ -2460,32 +2476,36 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 			_dismiss_all_tutorial_hints()
 
 
-## Build BBCode for the grenade throw hint with step-based highlighting (Bug fix round 5).
-## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
+## Build BBCode for the grenade throw hint with the reviewed issue #1818 steps.
 func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
-	match step:
-		0:
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.0)
-			return "[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]"
-		1:
-			# First step completed
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.25)
-			return "[color=#888888][G+ПКМ вправо][/color] [color=#ff4444][G+ПКМ→отпусти G][/color] [color=#888888][ПКМ бросок][/color]"
-		2:
-			# First two steps completed
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.6)
-			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G][/color] [color=#ff4444][ПКМ бросок][/color]"
-		_:
-			# All steps done
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.85)
-			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок][/color]"
+	var parts := [
+		"[удерживать G+ПКМ]",
+		"[дёрнуть мышкой вправо] [отпустить ПКМ]",
+		"[зажать ПКМ]",
+		"[отпустить G]",
+		"[прицелиться и отпустить ПКМ]",
+	]
+	var clamped_step := clampi(step, 0, parts.size() - 1)
+	var strikethrough_progress := [0.0, 0.2, 0.4, 0.62, 0.84]
+	_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, strikethrough_progress[clamped_step])
+	var styled: PackedStringArray = []
+	for i in range(parts.size()):
+		if i < clamped_step:
+			styled.append("[color=#888888]%s[/color]" % parts[i])
+		elif i == clamped_step:
+			styled.append("[color=#ff4444]%s[/color]" % parts[i])
+		else:
+			styled.append("[color=#888888]%s[/color]" % parts[i])
+	return " ".join(styled)
 
 
-## Reset the grenade tutorial back to its initial prompt after an aborted prepare action.
-func _reset_tutorial_grenade_hint_progress() -> void:
+func _reset_tutorial_grenade_hint_tracking() -> void:
 	_tutorial_grenade_hint_step = 0
 	_tutorial_grenade_g_was_held = false
-	_tutorial_grenade_throw_was_held = false
+	_tutorial_grenade_drag_completed = false
+	_tutorial_grenade_rmb_held_after_release = false
+	_tutorial_grenade_rmb_was_pressed = false
+	_tutorial_grenade_hint_drag_start = Vector2.ZERO
 
 	if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
 		return
@@ -2497,34 +2517,59 @@ func _reset_tutorial_grenade_hint_progress() -> void:
 			label.text = new_text
 
 
-## Update the grenade hint step based on current input (Bug fix round 5).
+## Update the grenade hint step based on current input (Issue #1818 / PR #1832).
 func _update_tutorial_grenade_hint_step() -> void:
 	if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-		_reset_tutorial_grenade_hint_progress()
+		_reset_tutorial_grenade_hint_tracking()
 		return
 
-	var player_grenade_state = _player.get("_grenade_state") if _player != null else null
-	var waiting_for_g_release_state = _player.get("GrenadeState").WAITING_FOR_G_RELEASE if _player != null and _player.get("GrenadeState") != null else null
-	var aiming_state = _player.get("GrenadeState").AIMING if _player != null and _player.get("GrenadeState") != null else null
-	var idle_state = _player.get("GrenadeState").IDLE if _player != null and _player.get("GrenadeState") != null else null
+	var g_pressed: bool = Input.is_action_pressed("grenade_prepare")
+	var rmb_pressed: bool = Input.is_action_pressed("grenade_throw")
+	var current_mouse_pos := get_global_mouse_position()
+	var rmb_just_pressed := rmb_pressed and not _tutorial_grenade_rmb_was_pressed
+	var rmb_just_released := not rmb_pressed and _tutorial_grenade_rmb_was_pressed
 
-	if player_grenade_state == waiting_for_g_release_state:
+	if _tutorial_grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
+		if g_pressed or rmb_pressed or _tutorial_grenade_rmb_was_pressed:
+			_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 1 and not g_pressed and not _tutorial_grenade_drag_completed:
+		_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 2 and not g_pressed and not rmb_pressed:
+		_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 3 and not g_pressed and not rmb_pressed:
+		_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 4 and not rmb_pressed and not _tutorial_grenade_rmb_held_after_release:
+		_reset_tutorial_grenade_hint_tracking()
+
+	if _tutorial_grenade_hint_step <= 1 and g_pressed and rmb_pressed and rmb_just_pressed:
+		_tutorial_grenade_drag_completed = false
+		_tutorial_grenade_hint_drag_start = current_mouse_pos
+	if _tutorial_grenade_hint_step == 1 and g_pressed and rmb_pressed:
+		if current_mouse_pos.x - _tutorial_grenade_hint_drag_start.x > 20.0:
+			_tutorial_grenade_drag_completed = true
+			_tutorial_grenade_hint_step = 2
+
+	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed:
 		_tutorial_grenade_hint_step = 1
 		_tutorial_grenade_g_was_held = true
-		_tutorial_grenade_throw_was_held = true
-	elif player_grenade_state == aiming_state:
-		_tutorial_grenade_hint_step = 2
+	elif _tutorial_grenade_hint_step == 2 and _tutorial_grenade_drag_completed and rmb_just_released:
+		_tutorial_grenade_hint_step = 3
+	elif _tutorial_grenade_hint_step == 3 and g_pressed and rmb_just_pressed:
+		_tutorial_grenade_rmb_held_after_release = true
+		_tutorial_grenade_hint_step = 4
+	elif _tutorial_grenade_hint_step == 4 and not g_pressed and rmb_pressed and _tutorial_grenade_rmb_held_after_release:
+		_tutorial_grenade_hint_step = 5
 		_tutorial_grenade_g_was_held = false
-		_tutorial_grenade_throw_was_held = true
-	elif player_grenade_state == idle_state and _tutorial_grenade_hint_step > 0:
-		_reset_tutorial_grenade_hint_progress()
-		return
+	elif _tutorial_grenade_hint_step == 5 and not rmb_pressed and _tutorial_grenade_rmb_held_after_release:
+		_tutorial_grenade_hint_step = 4
 
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_GRENADE]
 	if is_instance_valid(label):
 		var new_text := _build_tutorial_grenade_hint_bbcode(_tutorial_grenade_hint_step)
 		if label.text != new_text:
 			label.text = new_text
+
+	_tutorial_grenade_rmb_was_pressed = rmb_pressed
 
 
 ## Called when player throws a grenade — dismisses grenade hint (Issue #808).
@@ -2534,7 +2579,7 @@ func _on_tutorial_grenade_thrown() -> void:
 		return
 	if not _tutorial_has_thrown_grenade:
 		_tutorial_has_thrown_grenade = true
-		_reset_tutorial_grenade_hint_progress()
+		_reset_tutorial_grenade_hint_tracking()
 		_dismiss_tutorial_hint(TUTORIAL_HINT_GRENADE)
 		# Bug fix round 5: show M16 fire-mode [B] hint as the last training hint.
 		if _tutorial_m16_needs_fire_mode_hint and _tutorial_step == TutorialStep.THROW_GRENADE:
@@ -2716,6 +2761,8 @@ func _on_tutorial_shotgun_reload_state_changed(new_state: int) -> void:
 			var label_reset: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]
 			if is_instance_valid(label_reset):
 				label_reset.text = _build_tutorial_shotgun_full_reload_hint_bbcode(0)
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.0)
+			_tutorial_shotgun_reload_started = false
 		return
 
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]

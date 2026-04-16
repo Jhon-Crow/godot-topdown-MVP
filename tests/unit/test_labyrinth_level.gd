@@ -106,6 +106,10 @@ class MockLabyrinthTutorial:
 	var _grenade_count: int = 3
 	## Fix 3rd#10: AK GL round
 	var _ak_gl_has_round: bool = true
+	var _tutorial_shotgun_reload_started: bool = false
+	var _tutorial_revolver_reload_started: bool = false
+	var _tutorial_m16_needs_fire_mode_hint: bool = false
+	var _tutorial_has_m16: bool = false
 
 	## Issue #945: shot counter and reveal flag.
 	var _tutorial_shots_fired: int = 0
@@ -203,6 +207,24 @@ class MockLabyrinthTutorial:
 			_:
 				return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
 
+	func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
+		var parts := [
+			"[удерживать G+ПКМ]",
+			"[дёрнуть мышкой вправо] [отпустить ПКМ]",
+			"[зажать ПКМ]",
+			"[отпустить G]",
+			"[прицелиться и отпустить ПКМ]",
+		]
+		var styled: PackedStringArray = []
+		for i in range(parts.size()):
+			if i < step:
+				styled.append("[color=#888888]%s[/color]" % parts[i])
+			elif i == step:
+				styled.append("[color=#ff4444]%s[/color]" % parts[i])
+			else:
+				styled.append("[color=#888888]%s[/color]" % parts[i])
+		return " ".join(styled)
+
 	## Fix 4th#2: Build BBCode for revolver reload hint with step-based highlighting.
 	func _build_tutorial_revolver_reload_hint_bbcode(step: int) -> String:
 		match step:
@@ -230,8 +252,17 @@ class MockLabyrinthTutorial:
 
 	## Called when shotgun reload state changes (Fix 4th#2).
 	func on_tutorial_shotgun_reload_state_changed(state: int) -> void:
-		if _active_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
-			_active_hints[TUTORIAL_HINT_BOLT_CYCLE] = _build_tutorial_shotgun_full_reload_hint_bbcode(state)
+		if not _active_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
+			return
+		if state >= 2:
+			_tutorial_shotgun_reload_started = true
+		if state == 0:
+			if _tutorial_shotgun_reload_started:
+				_active_hints[TUTORIAL_HINT_BOLT_CYCLE] = _build_tutorial_shotgun_full_reload_hint_bbcode(4)
+			else:
+				_active_hints[TUTORIAL_HINT_BOLT_CYCLE] = _build_tutorial_shotgun_full_reload_hint_bbcode(0)
+			return
+		_active_hints[TUTORIAL_HINT_BOLT_CYCLE] = _build_tutorial_shotgun_full_reload_hint_bbcode(state)
 
 	## Build BBCode text for the reload hint based on current step (Issue #945).
 	## Bug fix #2: `step` is LAST COMPLETED step (0=nothing done, 1=first press done, etc.).
@@ -361,7 +392,12 @@ class MockLabyrinthTutorial:
 			# Fix 3rd#7: dismiss bolt-cycle hint for shotgun on reload
 			if _tutorial_has_shotgun:
 				_dismiss_hint(TUTORIAL_HINT_BOLT_CYCLE)
+				_tutorial_shotgun_reload_started = false
+			if _tutorial_has_revolver:
+				_tutorial_revolver_reload_started = false
 			# Fix 3rd#8: do NOT dismiss hammer-cock — stays until player manually cocks
+			if _tutorial_has_m16:
+				_tutorial_m16_needs_fire_mode_hint = true
 			# Fix 3rd#10: AK GL shows underbarrel grenade launcher hint after reload
 			if _tutorial_has_ak_gl and _ak_gl_has_round:
 				_add_hint(TUTORIAL_HINT_GRENADE_LAUNCHER,
@@ -374,8 +410,7 @@ class MockLabyrinthTutorial:
 				# Fix 3rd#9: only show grenade hint if player has grenades
 				if _grenade_count > 0:
 					if not _active_hints.has(TUTORIAL_HINT_GRENADE):
-						_add_hint(TUTORIAL_HINT_GRENADE,
-							"[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]")
+						_add_hint(TUTORIAL_HINT_GRENADE, _build_tutorial_grenade_hint_bbcode(0))
 				else:
 					# Fix 3rd#9: no grenades — auto-complete tutorial
 					_tutorial_step = TutorialStep.COMPLETED
@@ -389,8 +424,35 @@ class MockLabyrinthTutorial:
 		if not _tutorial_has_thrown_grenade:
 			_tutorial_has_thrown_grenade = true
 			_dismiss_hint(TUTORIAL_HINT_GRENADE)
+			if _tutorial_m16_needs_fire_mode_hint:
+				_add_hint("fire_mode", "[color=#ff4444][B][/color] Переключи режим стрельбы")
+				return
 			_tutorial_step = TutorialStep.COMPLETED
 			_dismiss_all_hints()
+
+	func on_tutorial_fire_mode_changed(new_mode: int) -> void:
+		if _tutorial_m16_needs_fire_mode_hint and _active_hints.has("fire_mode") and new_mode != 0:
+			_tutorial_m16_needs_fire_mode_hint = false
+			_dismiss_hint("fire_mode")
+			_tutorial_step = TutorialStep.COMPLETED
+			_dismiss_all_hints()
+
+	func on_tutorial_revolver_reload_state_changed(state: int) -> void:
+		if not _active_hints.has(TUTORIAL_HINT_RELOAD):
+			return
+		if state >= 2:
+			_tutorial_revolver_reload_started = true
+		var hint_step := 0
+		match state:
+			0:
+				hint_step = 3 if _tutorial_revolver_reload_started else 0
+			1:
+				hint_step = 1
+			2:
+				hint_step = 2
+			_:
+				hint_step = 3
+		_active_hints[TUTORIAL_HINT_RELOAD] = _build_tutorial_revolver_reload_hint_bbcode(hint_step)
 
 	## Simulate _on_tutorial_sniper_bolt_step_changed() (Issue #808).
 	## Fix 3rd#3: Dynamically update bolt-cycle hint text per step.
@@ -523,6 +585,76 @@ func test_grenade_hint_has_orange_color() -> void:
 	assert_eq(lab.get_hint_color(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
 		MockLabyrinthTutorial.TUTORIAL_HINT_COLOR_GRENADE,
 		"Grenade hint should have orange color (Issue #945)")
+
+
+func test_grenade_hint_uses_reviewed_issue_1818_text_on_labyrinth() -> void:
+	lab.on_tutorial_weapon_fired()
+	lab.on_tutorial_weapon_fired()
+	lab.on_tutorial_reload_completed()
+
+	var hint_text := lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[удерживать G+ПКМ]"),
+		"Grenade hint should start with the reviewed hold G+RMB step")
+	assert_true(hint_text.contains("[дёрнуть мышкой вправо] [отпустить ПКМ]"),
+		"Grenade hint should include the reviewed drag-right and RMB release step")
+	assert_true(hint_text.contains("[прицелиться и отпустить ПКМ]"),
+		"Grenade hint should end with the reviewed aim-and-release step")
+
+
+func test_shotgun_reload_hint_rolls_back_when_player_returns_to_idle_without_shells() -> void:
+	var shotgun_lab := MockLabyrinthTutorial.new()
+	shotgun_lab._tutorial_has_shotgun = true
+	shotgun_lab._add_hint(
+		MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE,
+		shotgun_lab._build_tutorial_shotgun_full_reload_hint_bbcode(0)
+	)
+
+	shotgun_lab.on_tutorial_shotgun_reload_state_changed(1)
+	shotgun_lab.on_tutorial_shotgun_reload_state_changed(0)
+
+	assert_eq(
+		shotgun_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE),
+		shotgun_lab._build_tutorial_shotgun_full_reload_hint_bbcode(0),
+		"Closing the shotgun without loading shells should restore the initial tutorial step"
+	)
+
+
+func test_revolver_reload_hint_rolls_back_when_cylinder_is_closed_without_loading() -> void:
+	var revolver_lab := MockLabyrinthTutorial.new()
+	revolver_lab._tutorial_has_revolver = true
+	revolver_lab._add_hint(
+		MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD,
+		revolver_lab._build_tutorial_revolver_reload_hint_bbcode(0)
+	)
+
+	revolver_lab.on_tutorial_revolver_reload_state_changed(1)
+	revolver_lab.on_tutorial_revolver_reload_state_changed(0)
+
+	assert_eq(
+		revolver_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD),
+		revolver_lab._build_tutorial_revolver_reload_hint_bbcode(0),
+		"Closing the revolver cylinder without reaching the load phase should reset the tutorial"
+	)
+
+
+func test_m16_fire_mode_hint_stays_incomplete_until_player_leaves_default_mode() -> void:
+	var m16_lab := MockLabyrinthTutorial.new()
+	m16_lab._tutorial_has_m16 = true
+	m16_lab.on_tutorial_weapon_fired()
+	m16_lab.on_tutorial_weapon_fired()
+	m16_lab.on_tutorial_reload_completed()
+	m16_lab.on_tutorial_grenade_thrown()
+
+	assert_true(m16_lab.is_hint_active("fire_mode"),
+		"After grenade training the M16 branch should show the fire-mode tutorial")
+
+	m16_lab.on_tutorial_fire_mode_changed(0)
+	assert_true(m16_lab.is_hint_active("fire_mode"),
+		"Returning to the neutral fire mode must not complete the tutorial")
+
+	m16_lab.on_tutorial_fire_mode_changed(1)
+	assert_false(m16_lab.is_hint_active("fire_mode"),
+		"Switching away from the default fire mode should complete the M16 tutorial")
 
 
 func test_bolt_cycle_hint_has_purple_color() -> void:
