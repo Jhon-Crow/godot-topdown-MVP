@@ -8,6 +8,7 @@ extends CanvasLayer
 
 const DISPLAY_DURATION: float = 4.0
 const SLIDE_DURATION: float = 0.35
+const SLIDE_OUT_REPEAT_COUNT: int = 1
 const TOAST_WIDTH: float = 460.0
 const TOAST_HEIGHT: float = 78.0
 const TOAST_TOP_MARGIN: float = 18.0
@@ -15,6 +16,21 @@ const TOAST_SIDE_MARGIN: float = 18.0
 const ARMORY_ICON_PATH: String = "res://assets/sprites/ui/menu_icons/icon_armory.svg"
 const GOLD_SHINE_SHADER_PATH: String = "res://scripts/shaders/gold_shine.gdshader"
 const NOTIFICATION_TEMPLATE_KEY: String = "UNLOCK_NOTIFICATION_OPENED"
+const NOTIFICATION_KIND_KEYS: Dictionary = {
+	"weapon": "UNLOCK_NOTIFICATION_KIND_WEAPON",
+	"grenade": "UNLOCK_NOTIFICATION_KIND_GRENADE",
+	"active_item": "UNLOCK_NOTIFICATION_KIND_ACTIVE_ITEM"
+}
+const NOTIFICATION_KIND_FALLBACKS_RU: Dictionary = {
+	"weapon": "оружие",
+	"grenade": "граната",
+	"active_item": "предмет"
+}
+const NOTIFICATION_KIND_FALLBACKS_EN: Dictionary = {
+	"weapon": "weapon",
+	"grenade": "grenade",
+	"active_item": "item"
+}
 
 const WEAPON_NAME_KEYS: Dictionary = {
 	"m16": "WEAPON_M16_NAME",
@@ -103,6 +119,7 @@ const ACTIVE_ITEM_FALLBACK_NAMES: Dictionary = {
 var _announced_available_keys: Dictionary = {}
 var _pending_notifications: Array[Dictionary] = []
 var _is_showing: bool = false
+var _animation_phase: String = "idle"
 
 var _root_control: Control = null
 var _toast: PanelContainer = null
@@ -121,19 +138,42 @@ func _ready() -> void:
 
 ## Builds the user-facing text. Falls back to Russian to match the issue text when
 ## compiled translation resources have not been regenerated yet.
-func build_notification_text(item_name: String) -> String:
+func build_notification_text(kind: String, item_name: String) -> String:
+	var clean_kind: String = kind.strip_edges()
+	var clean_name: String = item_name.strip_edges()
 	var template: String = tr(NOTIFICATION_TEMPLATE_KEY)
 	if template == NOTIFICATION_TEMPLATE_KEY or template.is_empty():
 		template = "Открыто %s !"
-	return template % item_name
+	return template % _build_notification_subject(clean_kind, clean_name)
+
+
+func _build_notification_subject(kind: String, item_name: String) -> String:
+	var kind_label: String = get_unlock_kind_display_name(kind)
+	if kind_label.is_empty():
+		return item_name
+	if item_name.is_empty():
+		return kind_label
+	return "%s %s" % [kind_label, item_name]
+
+
+func get_unlock_kind_display_name(kind: String) -> String:
+	var kind_key: String = NOTIFICATION_KIND_KEYS.get(kind, "")
+	var fallback: String = NOTIFICATION_KIND_FALLBACKS_RU.get(kind, kind)
+	var locale: String = TranslationServer.get_locale()
+	if locale.begins_with("en"):
+		fallback = NOTIFICATION_KIND_FALLBACKS_EN.get(kind, fallback)
+	return _translate_with_fallback(kind_key, fallback)
 
 
 ## Public entry point for tests and one-off scripted announcements.
-func show_unlock_notification(item_name: String) -> void:
+func show_unlock_notification(item_name: String, kind: String = "") -> void:
 	var clean_name: String = item_name.strip_edges()
 	if clean_name.is_empty():
 		return
-	_pending_notifications.append({"item_name": clean_name})
+	_pending_notifications.append({
+		"kind": kind.strip_edges(),
+		"item_name": clean_name
+	})
 	if _toast != null and not _is_showing:
 		_show_next_notification()
 
@@ -276,7 +316,7 @@ func _queue_new_available_unlocks() -> void:
 		if _announced_available_keys.get(key, false):
 			continue
 		_announced_available_keys[key] = true
-		show_unlock_notification(entry["name"])
+		show_unlock_notification(entry["name"], entry["kind"])
 
 
 func _collect_weapon_entries(unlock_manager: Node, game_manager: Node) -> Array[Dictionary]:
@@ -387,11 +427,14 @@ func _show_next_notification() -> void:
 		return
 	if _pending_notifications.is_empty():
 		_is_showing = false
+		_animation_phase = "idle"
 		return
 
 	_is_showing = true
 	var notification: Dictionary = _pending_notifications.pop_front()
-	_message_label.text = build_notification_text(notification.get("item_name", ""))
+	_message_label.text = build_notification_text(
+		notification.get("kind", ""),
+		notification.get("item_name", ""))
 	_position_toast(false)
 	_toast.modulate.a = 0.0
 	_toast.show()
@@ -401,10 +444,13 @@ func _show_next_notification() -> void:
 
 	_active_tween = create_tween()
 	_active_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_animation_phase = "entering"
 	_active_tween.tween_property(_toast, "position:y", TOAST_TOP_MARGIN, SLIDE_DURATION) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_active_tween.parallel().tween_property(_toast, "modulate:a", 1.0, SLIDE_DURATION * 0.75)
+	_active_tween.tween_callback(func(): _animation_phase = "visible")
 	_active_tween.tween_interval(DISPLAY_DURATION)
+	_active_tween.tween_callback(func(): _animation_phase = "exiting")
 	_active_tween.tween_property(_toast, "position:y", _get_hidden_y(), SLIDE_DURATION) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 	_active_tween.parallel().tween_property(_toast, "modulate:a", 0.0, SLIDE_DURATION)
@@ -413,6 +459,7 @@ func _show_next_notification() -> void:
 
 func _on_current_notification_finished() -> void:
 	_is_showing = false
+	_animation_phase = "idle"
 	if _toast:
 		_toast.hide()
 	if _pending_notifications.is_empty():

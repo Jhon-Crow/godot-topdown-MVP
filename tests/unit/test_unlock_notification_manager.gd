@@ -82,8 +82,34 @@ func test_notification_uses_requested_opened_text() -> void:
 
 	var previous_locale: String = TranslationServer.get_locale()
 	TranslationServer.set_locale("ru")
-	assert_eq(manager.build_notification_text("Дробовик"), "Открыто Дробовик !",
-		"Toast text should match the issue wording")
+	assert_eq(manager.build_notification_text("weapon", "Дробовик"), "Открыт оружие Дробовик !",
+		"Toast text should include the unlocked weapon category and name")
+	TranslationServer.set_locale(previous_locale)
+
+
+func test_notification_text_includes_active_item_category_and_name() -> void:
+	var script: GDScript = load(NOTIFICATION_MANAGER_SCRIPT)
+	assert_not_null(script, "UnlockNotificationManager script should load")
+	var manager: Node = autofree(script.new())
+
+	var previous_locale: String = TranslationServer.get_locale()
+	TranslationServer.set_locale("ru")
+	assert_eq(manager.build_notification_text("active_item", "Бронированная кожа"),
+		"Открыт предмет Бронированная кожа !",
+		"Toast text should include the item category and Armored Skin name")
+	TranslationServer.set_locale(previous_locale)
+
+
+func test_notification_text_includes_grenade_category_and_name() -> void:
+	var script: GDScript = load(NOTIFICATION_MANAGER_SCRIPT)
+	assert_not_null(script, "UnlockNotificationManager script should load")
+	var manager: Node = autofree(script.new())
+
+	var previous_locale: String = TranslationServer.get_locale()
+	TranslationServer.set_locale("ru")
+	assert_eq(manager.build_notification_text("grenade", "Наступательная"),
+		"Открыт граната Наступательная !",
+		"Toast text should include the grenade category and name")
 	TranslationServer.set_locale(previous_locale)
 
 
@@ -94,6 +120,8 @@ func test_display_duration_is_four_seconds() -> void:
 
 	assert_eq(manager.DISPLAY_DURATION, 4.0,
 		"Unlock notifications should stay visible for exactly four seconds")
+	assert_eq(manager.SLIDE_OUT_REPEAT_COUNT, 1,
+		"Unlock notifications should play the exit slide exactly once per toast")
 
 
 func test_collects_only_locked_items_with_met_conditions() -> void:
