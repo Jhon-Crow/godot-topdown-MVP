@@ -4732,13 +4732,20 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 		target_pos = _tactical_group.get_adjusted_target(target_pos, get_physics_process_delta_time())
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
-	direction = _apply_wall_avoidance(direction)
-	# Issue #1107: Corner escape — use escape-dominant weight (1.5) when wall opposes nav dir
-	var _esc: Vector2 = Vector2.ZERO
-	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
-	if _esc.length_squared() > 0.01: var _en := _esc.normalized(); direction = (direction + _en * (1.5 if _en.dot(direction) < -0.5 else 0.6)).normalized()
-	elif velocity.length_squared() < 1.0:
-		var _p := move_and_collide(direction * 2.0, true); if _p: direction = (direction + _p.get_normal() * 0.8).normalized()
+	var nav_direction := direction
+	var avoided_direction := _apply_wall_avoidance(nav_direction)
+	direction = avoided_direction if nav_direction.dot(avoided_direction) >= 0.5 else nav_direction
+	# Issue #1357: mirror player wall-slide behavior so path following keeps tangential speed.
+	for _si: int in range(get_slide_collision_count()):
+		var _normal := get_slide_collision(_si).get_normal()
+		if direction.dot(_normal) < 0.0:
+			var _slid := direction.slide(_normal)
+			if _slid.length_squared() > 0.01: direction = _slid.normalized()
+	if velocity.length_squared() < 1.0:
+		var _p := move_and_collide(direction * 2.0, true)
+		if _p != null and direction.dot(_p.get_normal()) < 0.0:
+			var _probe_slid := direction.slide(_p.get_normal())
+			if _probe_slid.length_squared() > 0.01: direction = _probe_slid.normalized()
 	var intended_vel: Vector2 = direction * speed
 	# Issue #1146: Feed intended velocity to NavigationAgent2D ORCA so it can steer us away from other agents.
 	if _nav_agent and _nav_agent.avoidance_enabled:
