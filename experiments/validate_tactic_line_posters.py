@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate generated poster assets for issue #1815."""
+"""Validate generated ASVK-only poster assets for issue #1815."""
 
 from __future__ import annotations
 
@@ -14,6 +14,34 @@ GENERATOR = ROOT / "experiments" / "generate_tactic_line_posters.py"
 POSTER_DIR = ROOT / "assets" / "posters"
 
 POSTER_NAMES = [
+    "tactic_line_poster_close_quarters.png",
+    "tactic_line_asvk_close_quarters_02.png",
+    "tactic_line_asvk_close_quarters_03.png",
+    "tactic_line_asvk_close_quarters_04.png",
+    "tactic_line_asvk_close_quarters_05.png",
+    "tactic_line_asvk_close_quarters_06.png",
+    "tactic_line_asvk_close_quarters_07.png",
+    "tactic_line_asvk_close_quarters_08.png",
+    "tactic_line_asvk_close_quarters_09.png",
+    "tactic_line_asvk_close_quarters_10.png",
+    "tactic_line_asvk_close_quarters_11.png",
+    "tactic_line_asvk_close_quarters_12.png",
+    "tactic_line_asvk_close_quarters_13.png",
+    "tactic_line_asvk_close_quarters_14.png",
+    "tactic_line_asvk_close_quarters_15.png",
+    "tactic_line_asvk_close_quarters_16.png",
+    "tactic_line_asvk_close_quarters_17.png",
+    "tactic_line_asvk_close_quarters_18.png",
+    "tactic_line_asvk_close_quarters_19.png",
+    "tactic_line_asvk_close_quarters_20.png",
+]
+POSTERS = [POSTER_DIR / name for name in POSTER_NAMES]
+CONTACT_SHEET = POSTER_DIR / "tactic_line_poster_contact_sheet.png"
+
+STALE_POSTERS = [
+    "tactic_line_poster_neon_crossfire.png",
+    "tactic_line_poster_red_black.png",
+    "tactic_line_poster_blueprint.png",
     "tactic_line_single_asvk.png",
     "tactic_line_single_m16.png",
     "tactic_line_single_shotgun.png",
@@ -34,15 +62,6 @@ POSTER_NAMES = [
     "tactic_line_multi_balanced_loadout.png",
     "tactic_line_red_black_asvk.png",
     "tactic_line_red_black_loadout.png",
-]
-POSTERS = [POSTER_DIR / name for name in POSTER_NAMES]
-CONTACT_SHEET = POSTER_DIR / "tactic_line_poster_contact_sheet.png"
-
-LEGACY_POSTERS = [
-    POSTER_DIR / "tactic_line_poster_neon_crossfire.png",
-    POSTER_DIR / "tactic_line_poster_red_black.png",
-    POSTER_DIR / "tactic_line_poster_blueprint.png",
-    POSTER_DIR / "tactic_line_poster_close_quarters.png",
 ]
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
@@ -147,33 +166,38 @@ def validate_generator_source() -> list[str]:
         "characters/enemy",
         "player_combined_preview",
         "enemy_combined_preview",
+        "m16_rifle.png",
         "m16_rifle_topdown.png",
+        "shotgun_icon.png",
         "shotgun_topdown.png",
+        "revolver_icon.png",
         "revolver_topdown.png",
+        "ak_gl_icon.png",
         "ak_gl_topdown.png",
+        "mini_uzi_icon.png",
         "mini_uzi_topdown.png",
+        "silenced_pistol_icon.png",
         "silenced_pistol_topdown.png",
+        "makarov_pm_icon.png",
+        "makarov_pm_topdown.png",
         "pkm_topdown.png",
         "rpg_topdown.png",
         "machete_topdown.png",
-        "paste_weapon(img, PLAYER",
-        "paste_weapon(img, ENEMY",
+        "draw_focus_field",
+        "draw_soft_weapon_plinth",
+        "rounded_rectangle",
     ]
     failures = [f"generator still references forbidden asset/source token: {token}" for token in forbidden if token in source]
 
-    required_armory_assets = [
+    required = [
         "asvk_topdown.png",
-        "m16_rifle.png",
-        "shotgun_icon.png",
-        "mini_uzi_icon.png",
-        "silenced_pistol_icon.png",
-        "revolver_icon.png",
-        "ak_gl_icon.png",
-        "makarov_pm_icon.png",
+        "Rye-Regular.ttf",
+        "Tactic Line",
+        "ASVK",
     ]
-    for token in required_armory_assets:
+    for token in required:
         if token not in source:
-            failures.append(f"generator no longer references required armory side-view asset: {token}")
+            failures.append(f"generator no longer references required close-quarters ASVK token: {token}")
 
     return failures
 
@@ -188,9 +212,10 @@ def validate_png_outputs() -> list[str]:
         if (info.width, info.height) != (1232, 706):
             failures.append(f"{poster.relative_to(ROOT)} is {info.width}x{info.height}, expected 1232x706")
 
-    for poster in LEGACY_POSTERS:
+    for name in STALE_POSTERS:
+        poster = POSTER_DIR / name
         if poster.exists():
-            failures.append(f"legacy rejected poster still exists: {poster.relative_to(ROOT)}")
+            failures.append(f"stale non-ASVK poster still exists: {poster.relative_to(ROOT)}")
 
     contact = read_png_info(CONTACT_SHEET)
     if contact.width <= 0 or contact.height <= 0:
@@ -199,9 +224,9 @@ def validate_png_outputs() -> list[str]:
     return failures
 
 
-def validate_red_black_balance() -> list[str]:
+def validate_not_red_black_batch() -> list[str]:
     failures: list[str] = []
-    for path in [POSTER_DIR / "tactic_line_red_black_asvk.png", POSTER_DIR / "tactic_line_red_black_loadout.png"]:
+    for path in POSTERS:
         colors = png_rgb_counter(path)
         total = sum(colors.values())
         red_dominant = sum(
@@ -210,15 +235,15 @@ def validate_red_black_balance() -> list[str]:
             if r >= 130 and r > g * 1.45 and r > b * 1.45
         )
         red_ratio = red_dominant / total
-        if red_ratio > 0.10:
-            failures.append(f"{path.relative_to(ROOT)} uses too much red: {red_ratio:.1%}, expected <= 10%")
+        if red_ratio > 0.075:
+            failures.append(f"{path.relative_to(ROOT)} uses too much red for the close-quarters batch: {red_ratio:.1%}, expected <= 7.5%")
     return failures
 
 
 def main() -> int:
     failures = validate_generator_source()
     failures.extend(validate_png_outputs())
-    failures.extend(validate_red_black_balance())
+    failures.extend(validate_not_red_black_batch())
 
     if failures:
         print("Poster validation failed:")
