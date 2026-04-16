@@ -54,8 +54,6 @@ func test_ready_flag_set_with_character_parent() -> void:
 	parent.add_child(comp)
 	add_child_autofree(parent)
 
-	await wait_frames(2)
-
 	assert_true(comp._ready_flag,
 		"Ready flag should be true when parent is a CharacterBody2D")
 
@@ -65,8 +63,6 @@ func test_ready_flag_false_with_non_character_parent() -> void:
 	var parent := Node2D.new()
 	parent.add_child(comp)
 	add_child_autofree(parent)
-
-	await wait_frames(2)
 
 	assert_false(comp._ready_flag,
 		"Ready flag should be false when parent is not a CharacterBody2D")
@@ -82,8 +78,6 @@ func test_is_ready_when_flag_set_and_cooldown_zero() -> void:
 	parent.add_child(comp)
 	add_child_autofree(parent)
 
-	await wait_frames(2)
-
 	assert_true(comp.is_ready(),
 		"Should be ready when flag is set and cooldown is zero")
 
@@ -93,8 +87,6 @@ func test_is_not_ready_when_on_cooldown() -> void:
 	var parent := CharacterBody2D.new()
 	parent.add_child(comp)
 	add_child_autofree(parent)
-
-	await wait_frames(2)
 
 	comp._cooldown_timer = 3.0
 	assert_false(comp.is_ready(),
@@ -167,8 +159,6 @@ func test_try_teleport_rejects_zero_target() -> void:
 	parent.add_child(comp)
 	add_child_autofree(parent)
 
-	await wait_frames(2)
-
 	var result := comp.try_teleport(Vector2.ZERO)
 	assert_false(result, "Should reject teleport to (0,0)")
 
@@ -178,8 +168,6 @@ func test_try_teleport_rejects_too_close() -> void:
 	var parent := CharacterBody2D.new()
 	parent.add_child(comp)
 	add_child_autofree(parent)
-
-	await wait_frames(2)
 
 	parent.global_position = Vector2(100, 100)
 	var result := comp.try_teleport(Vector2(105, 100))  # 5px away < MIN_DISTANCE
@@ -204,8 +192,6 @@ func test_try_damage_teleport_rejects_zero_positions() -> void:
 	var parent := CharacterBody2D.new()
 	parent.add_child(comp)
 	add_child_autofree(parent)
-
-	await wait_frames(2)
 
 	var result := comp.try_damage_teleport(Vector2.ZERO, Vector2.ZERO)
 	assert_false(result, "try_damage_teleport should reject zero positions")

@@ -94,7 +94,7 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Flashlight",
 		"name_key": "ITEM_FLASHLIGHT_NAME",
 		"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
-		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released.",
+		"description": "Tactical flashlight — hold Space to illuminate in weapon direction and blind enemies caught in the beam. Bright white light, turns off when released.",
 		"desc_key": "ITEM_FLASHLIGHT_DESC",
 		"activation_hint": "Hold Space to activate",
 		"activation_hint_key": "ITEM_HINT_HOLD_SPACE_ACTIVATE"

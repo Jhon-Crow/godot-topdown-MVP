@@ -24,6 +24,7 @@ GAMEPLAY_SETTINGS_TITLE,Gameplay Settings,Настройки геймплея
 BLOOD_AMOUNT,Blood Amount,Количество крови
 WEAPON_HINTS,Weapon Hints,Подсказки оружия
 REVOLVER_AIM_ASSIST,Revolver Aim Assist,Помощь прицеливания револьвера
+COMBO_FONT_SIZE,Combo Font Size,Размер шрифта комбо
 WEAPON_HINTS_ALWAYS,Always,Всегда
 WEAPON_HINTS_FIRST_TIME,First time only,Только первый раз
 WEAPON_HINTS_NEVER,Never,Никогда
@@ -71,6 +72,7 @@ DIFFICULTY_STATUS_EASY,Easy mode: Enemies react slower,Лёгкий режим: 
 DIFFICULTY_STATUS_HARD,Hard mode: Enemies react when you look away,Сложный режим: враги реагируют когда смотришь в сторону
 DIFFICULTY_STATUS_BLACK_METAL,"Black Metal: 25% less HP, 25% faster, B&W filter","Black Metal: на 25% меньше HP, быстрее, ч/б фильтр"
 DIFFICULTY_STATUS_NIGHT_MODE_ON, | Night Mode ON, | Ночной режим ВКЛ
+DIFFICULTY_STATUS_FIRST_LAUNCH,Choose your difficulty to begin,Выберите сложность для начала
 ARMORY_TITLE,Armory,Арсенал
 ARMORY_WEAPONS,WEAPONS,ОРУЖИЕ
 ARMORY_GRENADES,GRENADES,ГРАНАТЫ
@@ -114,7 +116,7 @@ GRENADE_DRONE_NAME,Drone,Дрон
 GRENADE_DRONE_DESC,Drone grenade — pilot a drone toward enemies. Explodes on contact or when hit by a bullet. Control returns after explosion.,Гранатодрон — управляйте дроном и направляйте его на врагов. Взрывается при контакте или попадании пули.
 ITEM_NONE_NAME,None,Нет
 ITEM_FLASHLIGHT_NAME,Flashlight,Фонарик
-ITEM_FLASHLIGHT_DESC,Tactical flashlight — hold Space to illuminate in weapon direction.,Тактический фонарик — удерживайте Пробел для освещения в направлении оружия.
+ITEM_FLASHLIGHT_DESC,"Tactical flashlight — hold Space to illuminate in weapon direction and blind enemies caught in the beam. Bright white light, turns off when released.","Тактический фонарик — удерживайте Пробел для освещения в направлении оружия и ослепления врагов, попавших в луч. Яркий белый свет, выключается при отпускании."
 ITEM_HOMING_BULLETS_NAME,Homing Bullets,Самонаводящиеся пули
 ITEM_HOMING_BULLETS_DESC,"Press Space to activate — bullets steer toward the nearest enemy. 2 charges, each lasts 1.2 seconds.","Нажмите Пробел — пули наводятся на ближайшего врага. 2 заряда, каждый длится 1.2 секунды."
 ITEM_TELEPORT_BRACERS_NAME,Teleport Bracers,Браслеты телепортации
@@ -231,6 +233,12 @@ HINT_KEY_RMB_DOWN_CLOSE,RMB↓ close,ПКМ↓ закрыть
 HINT_KEY_GRENADE_ARM,G+RMB right,G+ПКМ вправо
 HINT_KEY_GRENADE_AIM,G+RMB→release G,G+ПКМ→отпусти G
 HINT_KEY_GRENADE_THROW,RMB throw,ПКМ бросок
+HINT_GRENADE_HOLD_G_RMB,hold G+RMB,удерживать G+ПКМ
+HINT_GRENADE_DRAG_RIGHT,flick mouse right,дёрнуть мышкой вправо
+HINT_GRENADE_RELEASE_RMB,release RMB,отпустить ПКМ
+HINT_GRENADE_HOLD_RMB,hold RMB,зажать ПКМ
+HINT_GRENADE_RELEASE_G,release G,отпустить G
+HINT_GRENADE_AIM_RELEASE_RMB,aim and release RMB,прицелиться и отпустить ПКМ
 HINT_BOLT_ACTION_WORD,Cock the bolt,Передёрни затвор
 HINT_COCK_HAMMER,Cock the hammer,Взведи курок
 HINT_SCOPE,Scope in,Прицелься через оптику
@@ -238,6 +246,18 @@ HINT_FIRE_MODE_SWITCH,Switch fire mode,Переключи режим стрел�
 HINT_LAUNCHER_FIRE,Fire grenade launcher,Выстрели подствольным гранатомётом
 HINT_GRENADE_STEP0,Throw grenade,Брось гранату
 TUTORIAL_LEVEL_COMPLETE,LEVEL COMPLETE!,УРОВЕНЬ ПРОЙДЕН!
-TUTORIAL_RESTART_HINT,Press [Q] to quick restart,Нажми [Q] для быстрого перезапуска
+TUTORIAL_RESTART_HINT,Hold [Q] for 1 second to quick restart,Удерживай [Q] 1 секунду для быстрого перезапуска
 TUTORIAL_AMMO_LABEL,AMMO: %d/%d,ПАТРОНЫ: %d/%d
 ROGUELIKE_LEVEL_UP,"LEVEL %d\nEnemies got more dangerous!","УРОВЕНЬ %d\nВраги стали опаснее!"
+UNLOCK_COND_COMPLETE_LEVEL,Complete %s,Пройди %s
+UNLOCK_COND_COMPLETE_LEVEL_AT_RANK,Complete %s at rank %s or higher,Пройди %s на ранге %s или выше
+UNLOCK_COND_COMPLETE_MULTI,"Complete: %s","Пройди: %s"
+UNLOCK_COND_ALL_DIFFICULTIES,Complete at least one level on every difficulty,Пройди хотя бы один уровень на каждой сложности
+UNLOCK_COND_KILLS_NO_LASER,Get %d kills without Laser Sight,Получи %d убийств без Лазерного Прицела
+UNLOCK_COND_SHOTS_SPECIAL_WEAPONS,"Fire %d shots with shotgun, ASVK, or revolver","Сделай %d выстрелов из дробовика, АСВК или револьвера"
+UNLOCK_COND_TOTAL_DEATHS,Die %d times,Умри %d раз
+UNLOCK_COND_NO_DAMAGE_LEVELS,Complete %d level(s) without taking damage,Пройди %d уровень(уровней) без урона
+UNLOCK_COND_RANK_A_LEVELS,Complete %d level(s) at rank A or higher,Пройди %d уровень(уровней) на ранге A или выше
+UNLOCK_COND_WALL_KILLS,Get %d kills through walls,Получи %d убийств сквозь стены
+UNLOCK_COND_SILENCED_PISTOL_LEVEL,Complete any level with the silenced pistol,Пройди любой уровень с глушителем
+UNLOCK_COND_PROGRESS,Progress: %d / %d,Прогресс: %d / %d

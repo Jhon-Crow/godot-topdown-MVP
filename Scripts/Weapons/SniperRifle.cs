@@ -2607,7 +2607,14 @@ public partial class SniperRifle : BaseWeapon
         _scopeOverlay = new CanvasLayer
         {
             Name = "ScopeOverlay",
-            Layer = 10
+            // Layer 110: above the Black Metal visual filter (layer 97), Black Metal lightning
+            // (layer 98), cinema effects (layer 99), hit effects (layer 100-103), and the
+            // revolver cylinder HUD (layer 110) so the scope crosshair and vignette are not
+            // processed by the B&W+red shader.
+            // Without this, on Black Metal difficulty the scope background gets run through the
+            // high-contrast B&W shader, making the entire view nearly black and unplayable.
+            // See: Issue #1764.
+            Layer = 110
         };
 
         Viewport? viewport = GetViewport();

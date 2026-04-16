@@ -36,6 +36,9 @@ polygon = PackedVector2Array(-25, -20, 25, -20, 25, 20, -25, 20)
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_log"]
 polygon = PackedVector2Array(-50, -15, 50, -15, 50, 15, -50, 15)
 
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_stump"]
+polygon = PackedVector2Array(-18, -18, 18, -18, 18, 18, -18, 18)
+
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_sewer_exit"]
 polygon = PackedVector2Array(-40, -30, 40, -30, 40, 30, -40, 30)
 
@@ -536,6 +539,9 @@ color = Color(0.4, 0.3, 0.2, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Stump1"]
 shape = SubResource("RectangleShape2D_stump")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Stump1"]
+occluder = SubResource("OccluderPolygon2D_stump")
 
 [node name="FallenLog1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2200, 650)

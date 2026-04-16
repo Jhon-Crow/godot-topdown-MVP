@@ -40,6 +40,8 @@ var _saturation_overlay: ColorRect = null
 
 ## Reference to the combo label.
 var _combo_label: Label = null
+## Reference to active combo tween (to cancel if needed).
+var _combo_tween: Tween = null
 
 ## Reference to the exit zone.
 var _exit_zone: Area2D = null
@@ -99,9 +101,6 @@ func _ready() -> void:
 	print("Clear all rooms to win!")
 	print("Press Q for quick restart")
 
-	# Setup navigation mesh for enemy pathfinding
-	_setup_navigation()
-
 	# Find and connect to all enemies
 	_setup_enemy_tracking()
 
@@ -147,6 +146,10 @@ func _ready() -> void:
 
 	# Setup weapon hints (Issue #809)
 	_setup_weapon_hints()
+
+	# Build the navigation mesh after HUD/player/enemy setup so expensive baking
+	# cannot leave startup counters at their default values.
+	call_deferred("_setup_navigation")
 
 
 ## Initialize the ScoreManager for this level.
@@ -631,17 +634,27 @@ func _on_combo_changed(combo: int, points: int) -> void:
 		return
 
 	if combo > 0:
-		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
+		_combo_label.text = "x%d COMBO\n+%d" % [combo, points]
 		_combo_label.visible = true
 		# Color changes based on combo count
 		var combo_color := _get_combo_color(combo)
 		_combo_label.add_theme_color_override("font_color", combo_color)
-		# Flash effect for combo
-		_combo_label.modulate = Color.WHITE
-		var tween := create_tween()
-		tween.tween_property(_combo_label, "modulate", Color.WHITE, 0.1)
+		# Combo pop animation: scale bounce + fade in (stays visible until combo resets)
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_label.scale = Vector2(0.7, 0.7)
+		_combo_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		_combo_tween = create_tween()
+		_combo_tween.set_parallel(true)
+		_combo_tween.tween_property(_combo_label, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_combo_tween.tween_property(_combo_label, "modulate:a", 1.0, 0.1)
+		_combo_tween.set_parallel(false)
 	else:
-		_combo_label.visible = false
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_tween = create_tween()
+		_combo_tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
+		_combo_tween.tween_callback(_combo_label.hide)
 
 
 ## Returns a color based on the current combo count.
@@ -709,6 +722,8 @@ func _setup_navigation() -> void:
 	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
 	# with PhysicsServer2D before parsing source geometry for navmesh carving.
 	await get_tree().physics_frame
+	if not is_inside_tree() or not is_instance_valid(nav_region):
+		return
 	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	print("Baking navigation mesh...")
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
@@ -746,23 +761,7 @@ func _setup_player_tracking() -> void:
 	elif _player.has_signal("Died"):
 		_player.Died.connect(_on_player_died)
 
-	# Try to get the player's weapon for C# Player
-	# First try shotgun (if selected), then Mini UZI, then Silenced Pistol, then assault rifle, then MakarovPM
-	var weapon = _player.get_node_or_null("Shotgun")
-	if weapon == null:
-		weapon = _player.get_node_or_null("MiniUzi")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SilencedPistol")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SniperRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("AssaultRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("AKGL")
-	if weapon == null:
-		weapon = _player.get_node_or_null("Revolver")
-	if weapon == null:
-		weapon = _player.get_node_or_null("MakarovPM")
+	var weapon = _get_current_player_weapon()
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
@@ -774,9 +773,11 @@ func _setup_player_tracking() -> void:
 		# Connect to ShellCountChanged for shotgun - updates ammo UI during shell-by-shell reload
 		if weapon.has_signal("ShellCountChanged"):
 			weapon.ShellCountChanged.connect(_on_shell_count_changed)
-		# Initial ammo display from weapon
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		# Shotgun stores the loaded shells in ShellsInTube, not CurrentAmmo.
+		# Push the initial value explicitly so the HUD is correct before the first shot.
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 		# Initial magazine display
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
@@ -845,6 +846,54 @@ func _setup_enemy_tracking() -> void:
 	print("Tracking %d enemies" % _initial_enemy_count)
 
 
+## Return the player's actual equipped weapon.
+## C# Player owns the authoritative CurrentWeapon; child-node probing is only a fallback.
+func _get_current_player_weapon() -> Node:
+	if _player == null:
+		return null
+
+	var current_weapon = _player.get("CurrentWeapon")
+	if current_weapon != null and current_weapon is Node and is_instance_valid(current_weapon):
+		return current_weapon
+
+	var selected_weapon_id: String = GameManager.get_selected_weapon() if GameManager else "makarov_pm"
+	var weapon_names: Dictionary = {
+		"shotgun": "Shotgun",
+		"mini_uzi": "MiniUzi",
+		"silenced_pistol": "SilencedPistol",
+		"sniper": "SniperRifle",
+		"m16": "AssaultRifle",
+		"ak_gl": "AKGL",
+		"revolver": "Revolver",
+		"makarov_pm": "MakarovPM"
+	}
+	var expected_name: String = weapon_names.get(selected_weapon_id, "MakarovPM")
+	return _player.get_node_or_null(expected_name)
+
+
+## Return the loaded ammo value that should be shown in the HUD.
+## Shotgun keeps the loaded shell count in ShellsInTube instead of CurrentAmmo.
+func _get_weapon_display_current_ammo(weapon: Node) -> Variant:
+	if weapon == null:
+		return null
+	if weapon.name == "Shotgun" and weapon.get("ShellsInTube") != null:
+		return weapon.ShellsInTube
+	return weapon.get("CurrentAmmo")
+
+
+## Pushes the authoritative current weapon ammo state into the HUD.
+func _refresh_weapon_hud(weapon: Node, reason: String) -> void:
+	if weapon == null:
+		return
+	var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+	if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+		_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
+		_log_to_file("HUD ammo refreshed (%s): %s %s/%s" % [reason, weapon.name, display_current_ammo, weapon.ReserveAmmo])
+	if weapon.has_method("GetMagazineAmmoCounts"):
+		var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+		_update_magazines_label(mag_counts)
+
+
 ## Configure silenced pistol ammo based on enemy count.
 ## This ensures the pistol has exactly enough bullets for all enemies in the level.
 func _configure_silenced_pistol_ammo(weapon: Node) -> void:
@@ -862,12 +911,7 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		weapon.ConfigureAmmoForEnemyCount(enemy_count)
 		print("[BuildingLevel] Configured silenced pistol ammo for %d enemies" % enemy_count)
 
-		# Update the ammo display after configuration
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "silenced pistol config")
 
 
 ## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
@@ -900,11 +944,7 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 			_player.ApplyAutoReloadAfterLevelAmmoConfig()
 			_log_to_file("[BuildingLevel] Re-applied auto-reload magazine reduction after ammo config for makarov_pm")
 
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "makarov config")
 
 
 ## Apply building-level ammo configuration to weapons already equipped by C# Player (Issue #949).
@@ -927,12 +967,7 @@ func _apply_building_ammo_config(weapon: Node, weapon_id: String) -> void:
 			weapon.ReinitializeMagazines(base_magazines, true)
 			print("BuildingLevel: %s magazines reinitialized to %d (C# weapon)" % [weapon.name, base_magazines])
 
-		# Update ammo display
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "building ammo config")
 
 	# Silenced pistol: configure ammo for enemy count
 	elif weapon_id == "silenced_pistol":
@@ -957,6 +992,7 @@ func _apply_building_ammo_config(weapon: Node, weapon_id: String) -> void:
 	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
 		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 		_log_to_file("[BuildingLevel] Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+	_refresh_weapon_hud(weapon, "post level ammo config")
 
 
 ## Setup debug UI elements for kills and accuracy.
@@ -989,17 +1025,22 @@ func _setup_debug_ui() -> void:
 
 	# Create combo label (shows current combo)
 	# Positioned below the enemy count label (which ends at offset_bottom = 75)
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	var combo_size: int = gameplay_settings.get_combo_font_size() if gameplay_settings and gameplay_settings.has_method("get_combo_font_size") else 112
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
 	_combo_label.text = ""
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo_label.offset_left = -350
+	_combo_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_combo_label.offset_left = 10
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 80
-	_combo_label.offset_bottom = 120
-	_combo_label.add_theme_font_size_override("font_size", 28)
+	_combo_label.offset_bottom = _combo_label.offset_top + combo_size * 2 + 20
+	_combo_label.add_theme_font_size_override("font_size", combo_size)
+	_combo_label.add_theme_constant_override("line_spacing", 0)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
+	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
+	_combo_label.clip_contents = true
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 
@@ -1187,13 +1228,49 @@ func _on_player_ammo_depleted() -> void:
 			sound_propagation.emit_player_empty_click(_player.global_position, _player)
 
 	# For GDScript player, check if truly out of all ammo (no reserve)
-	# For C# player, game over is handled in _on_weapon_ammo_changed
+	# For C# player, also check the equipped weapon directly. Some empty-click flows emit
+	# AmmoDepleted without a final AmmoChanged update on BuildingLevel, so the game-over label
+	# must not depend solely on _on_weapon_ammo_changed (Issue #1821).
 	if _player and _player.has_method("get_current_ammo"):
 		# GDScript player - max_ammo is the only ammo they have
 		var current_ammo: int = _player.get_current_ammo()
 		if current_ammo <= 0 and _current_enemy_count > 0 and not _game_over_shown:
 			_show_game_over_message()
-	# C# player game over is handled via _on_weapon_ammo_changed signal
+	elif _player and _current_enemy_count > 0 and not _game_over_shown:
+		var weapon: Node = _find_player_weapon(_player)
+		if weapon != null:
+			var current_variant: Variant = weapon.get("CurrentAmmo")
+			var reserve_variant: Variant = weapon.get("ReserveAmmo")
+			if current_variant != null and reserve_variant != null:
+				var current_ammo: int = int(current_variant)
+				var reserve_ammo: int = int(reserve_variant)
+				if current_ammo <= 0 and reserve_ammo <= 0:
+					_show_game_over_message()
+
+
+## Find the currently active weapon node on the player.
+## Prefer the C# Player.CurrentWeapon property so ammo-depleted checks stay
+## aligned with the actually equipped weapon.
+func _find_player_weapon(player: Node2D) -> Node:
+	var current_weapon: Variant = player.get("CurrentWeapon")
+	if current_weapon != null and is_instance_valid(current_weapon):
+		return current_weapon
+
+	var weapon_names: Array[String] = [
+		"AssaultRifle",
+		"Shotgun",
+		"MiniUzi",
+		"SilencedPistol",
+		"SniperRifle",
+		"AKGL",
+		"Revolver",
+		"MakarovPM",
+	]
+	for weapon_name in weapon_names:
+		var weapon: Node = player.get_node_or_null(weapon_name)
+		if weapon != null:
+			return weapon
+	return null
 
 
 ## Called when player starts reloading.

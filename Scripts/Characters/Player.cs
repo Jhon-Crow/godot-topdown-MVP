@@ -1263,12 +1263,19 @@ public partial class Player : BaseCharacter
         ConnectActiveItemChangedSignal();
 
         // Log ready status with full info
-        int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
-        int maxAmmo = CurrentWeapon?.WeaponData?.MagazineSize ?? 0;
+        var readyAmmo = GetCurrentWeaponReadyAmmoDisplay();
         int currentHealth = (int)(HealthComponent?.CurrentHealth ?? 0);
         int maxHealth = (int)(HealthComponent?.MaxHealth ?? 0);
-        LogToFile($"[Player] Ready! Ammo: {currentAmmo}/{maxAmmo}, Grenades: {_currentGrenades}/{MaxGrenades}, Health: {currentHealth}/{maxHealth}");
+        LogToFile($"[Player] Ready! Ammo: {readyAmmo.Current}/{readyAmmo.Maximum}, Grenades: {_currentGrenades}/{MaxGrenades}, Health: {currentHealth}/{maxHealth}");
         LogToFile("[Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)");
+    }
+
+    private (int Current, int Maximum) GetCurrentWeaponReadyAmmoDisplay()
+    {
+        if (CurrentWeapon is Shotgun shotgun)
+            return (shotgun.ShellsInTube, shotgun.TubeMagazineCapacity);
+
+        return (CurrentWeapon?.CurrentAmmo ?? 0, CurrentWeapon?.WeaponData?.MagazineSize ?? 0);
     }
 
     /// <summary>
@@ -2971,7 +2978,16 @@ public partial class Player : BaseCharacter
             weapon.Name = weaponNodeName;
             AddChild(weapon);
             CurrentWeapon = weapon;
-            LogToFile($"[Player.Weapon] Equipped {weaponNodeName} (ammo: {weapon.CurrentAmmo}/{weapon.WeaponData?.MagazineSize ?? 0})");
+            // Issue #1774: WeaponData may be null here on first load (C# GlobalClass resource
+            // registration race). BaseWeapon._Ready() will have scheduled DeferredReadyInit().
+            // LabyrinthLevel._configure_labyrinth_weapon_ammo() handles ammo setup with explicit
+            // magazine sizes so it works regardless of WeaponData state.
+            if (weapon.WeaponData == null)
+            {
+                LogToFile($"[Player.Weapon] WARNING: {weaponNodeName} WeaponData is null after AddChild (Issue #1774 first-load race). DeferredReadyInit scheduled.");
+            }
+            var equippedAmmo = GetCurrentWeaponReadyAmmoDisplay();
+            LogToFile($"[Player.Weapon] Equipped {weaponNodeName} (ammo: {equippedAmmo.Current}/{equippedAmmo.Maximum})");
             // Re-detect arm pose so the player's arms match the new weapon immediately.
             _weaponPoseApplied = false;
             _weaponDetectFrameCount = 0;

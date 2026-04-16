@@ -102,7 +102,6 @@ class MockFactoryLevel:
 			return
 		_level_completed = true
 
-
 var level: MockFactoryLevel
 
 
@@ -199,6 +198,23 @@ func test_player_exit_blocked_before_clear() -> void:
 func test_map_dimensions() -> void:
 	assert_eq(level.map_width, 2400, "Factory map width should be 2400")
 	assert_eq(level.map_height, 2000, "Factory map height should be 2000")
+
+
+func test_factory_level_uses_shared_weapon_hints_component() -> void:
+	var script := load("res://scripts/levels/factory_level.gd") as GDScript
+	assert_not_null(script, "Factory level script should load")
+
+	var source := script.source_code
+	assert_string_contains(source, "func _setup_weapon_hints() -> void:",
+		"Factory level should define weapon hints setup for issue #1810")
+	assert_string_contains(source, "var _weapon_hints_component: Node = null",
+		"Factory level should track the shared weapon hints component instance")
+	assert_string_contains(source, "_setup_weapon_hints()",
+		"Factory level should invoke weapon hints setup during initialization")
+	assert_string_contains(source, "load(\"res://scripts/components/weapon_hints_component.gd\")",
+		"Factory level should load the shared weapon hints component")
+	assert_string_contains(source, "_weapon_hints_component.setup(_player, canvas_layer)",
+		"Factory level should initialize the shared weapon hints component with player and CanvasLayer")
 
 
 # ============================================================================

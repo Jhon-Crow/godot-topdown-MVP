@@ -68,7 +68,39 @@ var _startup_navigation_target: String = ""
 
 ## Navigate to the last played level if saved state exists.
 ## Called deferred so the default main scene finishes loading first.
+## Issue #1734: If this is a first launch (no difficulty_settings.cfg), show the
+## difficulty selection menu first and delay level navigation until the player picks.
 func _navigate_to_last_level() -> void:
+	# Issue #1734: Show difficulty picker on first launch before any level navigation.
+	# The check must live here (an autoload) because the project's run/main_scene is
+	# LabyrinthLevel.tscn — Main.tscn and main.gd are never the startup scene, so any
+	# check placed there is never executed.
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager and difficulty_manager.is_first_launch():
+		if _is_gut_test_run():
+			_log_to_file("First launch detected during GUT test run - skipping difficulty menu pause")
+			_do_navigate_to_last_level()
+			return
+		_log_to_file("First launch detected - showing difficulty selection before level load")
+		_show_first_launch_difficulty_menu()
+		return  # Navigation resumes in _on_first_launch_difficulty_selected()
+
+	_do_navigate_to_last_level()
+
+
+## Returns true when the project is running under the GUT command-line runner.
+## The first-launch difficulty picker pauses the tree, which can deadlock await-based
+## unit tests before any gameplay scene is involved.
+func _is_gut_test_run() -> bool:
+	for argument in OS.get_cmdline_args():
+		if argument.find("gut_cmdln.gd") != -1 or argument.begins_with("-g"):
+			return true
+	return false
+
+
+## Perform the actual startup navigation to the last played level.
+## Extracted so it can be called both directly and after first-launch difficulty selection.
+func _do_navigate_to_last_level() -> void:
 	if not has_saved_state():
 		_log_to_file("No saved level — starting at default level")
 		_navigation_ready = true
@@ -97,6 +129,44 @@ func _navigate_to_last_level() -> void:
 	else:
 		_log_to_file("Already at last played level: %s" % current_path)
 		_navigation_ready = true
+
+
+## Path to the DifficultyMenu scene used for first-launch selection (Issue #1734).
+const DIFFICULTY_MENU_SCENE_PATH: String = "res://scenes/ui/DifficultyMenu.tscn"
+
+## Held reference while the first-launch difficulty picker is shown (Issue #1734).
+var _first_launch_menu: CanvasLayer = null
+
+
+## Instantiate and display the DifficultyMenu in first-launch mode (Issue #1734).
+## Added to the root so it appears over whatever the current scene is.
+func _show_first_launch_difficulty_menu() -> void:
+	var packed: PackedScene = load(DIFFICULTY_MENU_SCENE_PATH)
+	if packed == null:
+		push_error("[PersistManager] Could not load DifficultyMenu scene: " + DIFFICULTY_MENU_SCENE_PATH)
+		_do_navigate_to_last_level()
+		return
+	_first_launch_menu = packed.instantiate()
+	_first_launch_menu.first_launch_mode = true
+	_first_launch_menu.difficulty_selected_first_launch.connect(_on_first_launch_difficulty_selected)
+	get_tree().paused = true
+	get_tree().root.add_child(_first_launch_menu)
+	_log_to_file("First-launch difficulty menu shown")
+
+
+## Called when the player picks a difficulty during first launch (Issue #1734).
+## Removes the picker and resumes normal startup navigation.
+func _on_first_launch_difficulty_selected() -> void:
+	_log_to_file("First-launch difficulty selected — resuming level navigation")
+	if _first_launch_menu != null:
+		_first_launch_menu.queue_free()
+		_first_launch_menu = null
+	get_tree().paused = false
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager and game_manager.has_method("restart_scene"):
+		game_manager.restart_scene()
+	else:
+		_do_navigate_to_last_level()
 
 
 ## Connect to manager signals to auto-save on changes.
@@ -544,6 +614,13 @@ func clear_all_saves() -> void:
 	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
 	if progress_manager and progress_manager.has_method("clear_all_progress"):
 		progress_manager.clear_all_progress()
+
+	# Reset difficulty settings so the first-launch difficulty screen appears on next startup.
+	# Without this, difficulty_settings.cfg survives the save clear and is_first_launch()
+	# returns false, preventing the difficulty picker from showing (Issue #1734).
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager and difficulty_manager.has_method("reset_to_default"):
+		difficulty_manager.reset_to_default()
 
 	_log_to_file("All saves cleared — game reset to first-launch state")
 
