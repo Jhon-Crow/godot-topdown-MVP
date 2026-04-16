@@ -155,8 +155,8 @@ func _get_rank_shine_shader() -> Shader:
 	return _rank_shine_shader
 
 
-## Adds an additive shine overlay behind a rank label, matching the armory shine animation.
-func _add_rank_shine_overlay(label: Label, overlay_size: Vector2) -> ColorRect:
+## Adds a matching outline-only label behind a rank label, with the armory shine animation.
+func _add_rank_contour_shine(label: Label, outline_size: int) -> Label:
 	var shader := _get_rank_shine_shader()
 	if shader == null:
 		return null
@@ -166,18 +166,24 @@ func _add_rank_shine_overlay(label: Label, overlay_size: Vector2) -> ColorRect:
 	shine_mat.set_shader_parameter("horizontal_sweep", true)
 	shine_mat.set_shader_parameter("cycle_duration", 2.8)
 
-	var overlay := ColorRect.new()
-	overlay.name = "RankContourShineOverlay"
-	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.material = shine_mat
-	overlay.z_index = -1
-	overlay.set_anchors_preset(Control.PRESET_CENTER)
-	overlay.offset_left = -overlay_size.x * 0.5
-	overlay.offset_right = overlay_size.x * 0.5
-	overlay.offset_top = -overlay_size.y * 0.5
-	overlay.offset_bottom = overlay_size.y * 0.5
-	label.add_child(overlay)
-	return overlay
+	var contour := Label.new()
+	contour.name = "RankContourShineLabel"
+	contour.text = label.text
+	contour.horizontal_alignment = label.horizontal_alignment
+	contour.vertical_alignment = label.vertical_alignment
+	contour.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	contour.material = shine_mat
+	contour.z_index = -1
+	contour.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	contour.add_theme_font_size_override("font_size", label.get_theme_font_size("font_size"))
+	contour.add_theme_color_override("font_color", Color(0.0, 0.0, 0.0, 0.0))
+	contour.add_theme_constant_override("outline_size", outline_size)
+	contour.add_theme_color_override("font_outline_color", Color(1.0, 0.85, 0.2, 1.0))
+	var font := label.get_theme_font("font")
+	if font != null:
+		contour.add_theme_font_override("font", font)
+	label.add_child(contour)
+	return contour
 
 
 ## Creates a simple sine wave beep sound and plays it.
@@ -667,7 +673,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	big_rank_label.offset_bottom = 150
 	big_rank_label.modulate.a = 0.0  # Start invisible
 	ui.add_child(big_rank_label)
-	_add_rank_shine_overlay(big_rank_label, Vector2(460, 320))
+	_add_rank_contour_shine(big_rank_label, 18)
 	_big_rank_label = big_rank_label
 
 	# Create final rank label in container (starts invisible)
@@ -680,7 +686,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	_apply_gothic_font(final_rank_label)
 	final_rank_label.modulate.a = 0.0
 	container.add_child(final_rank_label)
-	_add_rank_shine_overlay(final_rank_label, Vector2(430, 92))
+	_add_rank_contour_shine(final_rank_label, 6)
 	_final_rank_label = final_rank_label
 
 	get_tree().create_timer(start_delay).timeout.connect(

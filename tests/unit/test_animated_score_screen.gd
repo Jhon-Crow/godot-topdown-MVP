@@ -194,26 +194,37 @@ func test_apply_gothic_font_to_label() -> void:
 		pass_test("Font not available for label test (requires Godot editor import)")
 
 
-func test_add_rank_shine_overlay_creates_non_interactive_shader_overlay() -> void:
+func test_add_rank_contour_shine_creates_non_interactive_outline_label() -> void:
 	var script = load("res://scripts/ui/animated_score_screen.gd")
 	var instance = script.new()
 	add_child_autofree(instance)
 
 	var label := Label.new()
+	label.text = "S"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 280)
 	add_child_autofree(label)
-	var overlay = instance._add_rank_shine_overlay(label, Vector2(430, 92))
+	var contour = instance._add_rank_contour_shine(label, 18)
 
-	assert_not_null(overlay, "Rank label should receive a shine overlay")
-	assert_eq(overlay.name, "RankContourShineOverlay")
-	assert_eq(overlay.mouse_filter, Control.MOUSE_FILTER_IGNORE,
-		"Rank shine overlay must not block score screen input")
-	assert_eq(overlay.z_index, -1,
-		"Rank shine overlay should sit behind the rank text as a contour glow")
-	assert_true(overlay.material is ShaderMaterial,
-		"Rank shine overlay should use a ShaderMaterial")
+	assert_not_null(contour, "Rank label should receive a shine contour label")
+	assert_eq(contour.name, "RankContourShineLabel")
+	assert_eq(contour.text, "S", "Rank contour shine should mirror the rank text")
+	assert_eq(contour.mouse_filter, Control.MOUSE_FILTER_IGNORE,
+		"Rank contour shine must not block score screen input")
+	assert_eq(contour.z_index, -1,
+		"Rank contour shine should sit behind the rank text")
+	assert_true(contour.material is ShaderMaterial,
+		"Rank contour shine should use a ShaderMaterial")
+	assert_eq(contour.get_theme_constant("outline_size"), 18,
+		"Rank contour shine should render as a text outline")
+	assert_eq(contour.get_theme_color("font_color"), Color(0.0, 0.0, 0.0, 0.0),
+		"Rank contour shine fill should be transparent so only the contour shines")
+	assert_true(contour.get_theme_color("font_outline_color").a > 0.0,
+		"Rank contour shine outline should be visible")
 
-	var mat := overlay.material as ShaderMaterial
-	assert_true(mat.shader is Shader, "Rank shine overlay material should contain a shader")
+	var mat := contour.material as ShaderMaterial
+	assert_true(mat.shader is Shader, "Rank contour shine material should contain a shader")
 	assert_true(mat.get_shader_parameter("horizontal_sweep"),
 		"Rank shine should sweep horizontally along the rank text")
 	assert_almost_eq(float(mat.get_shader_parameter("cycle_duration")), 2.8, 0.01,
@@ -235,13 +246,17 @@ func test_animate_rank_reveal_attaches_shine_to_big_and_final_rank_labels() -> v
 
 	var big_rank_label := ui.find_child("BigRankLabel", true, false)
 	assert_not_null(big_rank_label, "Big rank label should be created")
-	assert_not_null(big_rank_label.find_child("RankContourShineOverlay", true, false),
-		"Big rank reveal label should have the contour shine overlay")
+	assert_not_null(big_rank_label.find_child("RankContourShineLabel", true, false),
+		"Big rank reveal label should have a contour shine label")
+	assert_null(big_rank_label.find_child("RankContourShineOverlay", true, false),
+		"Big rank reveal label should not use a background shine overlay")
 
 	var final_rank_label := container.find_child("FinalRankLabel", true, false)
 	assert_not_null(final_rank_label, "Final rank label should be created")
-	assert_not_null(final_rank_label.find_child("RankContourShineOverlay", true, false),
-		"Final score rank label should have the contour shine overlay")
+	assert_not_null(final_rank_label.find_child("RankContourShineLabel", true, false),
+		"Final score rank label should have a contour shine label")
+	assert_null(final_rank_label.find_child("RankContourShineOverlay", true, false),
+		"Final score rank label should not use a background shine overlay")
 
 
 # ============================================================================
