@@ -76,12 +76,21 @@ func _navigate_to_last_level() -> void:
 	# LabyrinthLevel.tscn — Main.tscn and main.gd are never the startup scene, so any
 	# check placed there is never executed.
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
-	if difficulty_manager and difficulty_manager.is_first_launch():
+	if difficulty_manager and difficulty_manager.is_first_launch() and not _is_running_gut_tests():
 		_log_to_file("First launch detected — showing difficulty selection before level load")
 		_show_first_launch_difficulty_menu()
 		return  # Navigation resumes in _on_first_launch_difficulty_selected()
 
 	_do_navigate_to_last_level()
+
+
+## GUT runs inside the normal project autoload set. Showing the first-launch
+## difficulty picker there pauses the tree before await-based tests can resume.
+func _is_running_gut_tests() -> bool:
+	for arg in OS.get_cmdline_args():
+		if arg.find("gut_cmdln.gd") != -1 or arg.begins_with("-g"):
+			return true
+	return false
 
 
 ## Perform the actual startup navigation to the last played level.
