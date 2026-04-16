@@ -194,44 +194,39 @@ func test_apply_gothic_font_to_label() -> void:
 		pass_test("Font not available for label test (requires Godot editor import)")
 
 
-func test_add_rank_contour_shine_creates_non_interactive_outline_label() -> void:
+func test_create_rank_letter_cutout_builds_one_shader_letter_per_character() -> void:
 	var script = load("res://scripts/ui/animated_score_screen.gd")
 	var instance = script.new()
 	add_child_autofree(instance)
 
-	var label := Label.new()
-	label.text = "S"
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 280)
-	add_child_autofree(label)
-	var contour = instance._add_rank_contour_shine(label, 18)
+	var cutout := instance._create_rank_letter_cutout("A+", 280, 18, Color.GOLD)
+	add_child_autofree(cutout)
 
-	assert_not_null(contour, "Rank label should receive a shine contour label")
-	assert_eq(contour.name, "RankContourShineLabel")
-	assert_eq(contour.text, "S", "Rank contour shine should mirror the rank text")
-	assert_eq(contour.mouse_filter, Control.MOUSE_FILTER_IGNORE,
-		"Rank contour shine must not block score screen input")
-	assert_eq(contour.z_index, -1,
-		"Rank contour shine should sit behind the rank text")
-	assert_true(contour.material is ShaderMaterial,
-		"Rank contour shine should use a ShaderMaterial")
-	assert_eq(contour.get_theme_constant("outline_size"), 18,
-		"Rank contour shine should render as a text outline")
-	assert_eq(contour.get_theme_color("font_color"), Color(0.0, 0.0, 0.0, 0.0),
-		"Rank contour shine fill should be transparent so only the contour shines")
-	assert_true(contour.get_theme_color("font_outline_color").a > 0.0,
-		"Rank contour shine outline should be visible")
+	assert_eq(cutout.name, "RankLetterCutout")
+	assert_eq(cutout.get_child_count(), 2,
+		"Rank cutout should split every rank character into its own letter node")
+	assert_null(cutout.find_child("RankContourShineOverlay", true, false),
+		"Rank cutout must not contain a rectangular shine overlay")
 
-	var mat := contour.material as ShaderMaterial
-	assert_true(mat.shader is Shader, "Rank contour shine material should contain a shader")
-	assert_true(mat.get_shader_parameter("horizontal_sweep"),
-		"Rank shine should sweep horizontally along the rank text")
-	assert_almost_eq(float(mat.get_shader_parameter("cycle_duration")), 2.8, 0.01,
-		"Rank shine should use a snappy armory-style cycle")
+	for child in cutout.get_children():
+		assert_true(child is Label, "Each rank cutout child should be a letter label")
+		assert_true(child.name.begins_with("RankLetterMask_"),
+			"Each rank cutout child should be named as a letter mask")
+		assert_eq(child.mouse_filter, Control.MOUSE_FILTER_IGNORE,
+			"Rank letter masks must not block score screen input")
+		assert_eq(child.get_theme_constant("outline_size"), 18,
+			"Each rank letter mask should render a visible contour")
+		assert_true(child.material is ShaderMaterial,
+			"Each rank letter mask should use the armory shine shader material")
+		var mat := child.material as ShaderMaterial
+		assert_true(mat.shader is Shader, "Rank letter mask material should contain a shader")
+		assert_true(mat.get_shader_parameter("horizontal_sweep"),
+			"Rank shine should sweep horizontally along each cutout letter")
+		assert_almost_eq(float(mat.get_shader_parameter("cycle_duration")), 2.8, 0.01,
+			"Rank shine should use a snappy armory-style cycle")
 
 
-func test_animate_rank_reveal_attaches_shine_to_big_and_final_rank_labels() -> void:
+func test_animate_rank_reveal_uses_assembled_letter_cutouts_without_overlay() -> void:
 	var script = load("res://scripts/ui/animated_score_screen.gd")
 	var instance = script.new()
 	add_child_autofree(instance)
@@ -246,17 +241,21 @@ func test_animate_rank_reveal_attaches_shine_to_big_and_final_rank_labels() -> v
 
 	var big_rank_label := ui.find_child("BigRankLabel", true, false)
 	assert_not_null(big_rank_label, "Big rank label should be created")
-	assert_not_null(big_rank_label.find_child("RankContourShineLabel", true, false),
-		"Big rank reveal label should have a contour shine label")
+	assert_not_null(big_rank_label.find_child("RankLetterMask_S", true, false),
+		"Big rank reveal should assemble rank text from cutout letter masks")
 	assert_null(big_rank_label.find_child("RankContourShineOverlay", true, false),
 		"Big rank reveal label should not use a background shine overlay")
+	assert_null(big_rank_label.find_child("RankContourShineLabel", true, false),
+		"Big rank reveal label should not use whole-label shine children")
 
 	var final_rank_label := container.find_child("FinalRankLabel", true, false)
 	assert_not_null(final_rank_label, "Final rank label should be created")
-	assert_not_null(final_rank_label.find_child("RankContourShineLabel", true, false),
-		"Final score rank label should have a contour shine label")
+	assert_not_null(final_rank_label.find_child("RankLetterMask_R", true, false),
+		"Final score rank should assemble rank text from cutout letter masks")
 	assert_null(final_rank_label.find_child("RankContourShineOverlay", true, false),
 		"Final score rank label should not use a background shine overlay")
+	assert_null(final_rank_label.find_child("RankContourShineLabel", true, false),
+		"Final score rank label should not use whole-label shine children")
 
 
 # ============================================================================

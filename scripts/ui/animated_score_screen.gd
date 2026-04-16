@@ -97,8 +97,8 @@ var _active_timers: Array[Timer] = []
 ## References to rank reveal UI nodes (for cleanup on skip).
 var _rank_flash_bg: ColorRect = null
 var _rank_gradient_bg: ColorRect = null
-var _big_rank_label: Label = null
-var _final_rank_label: Label = null
+var _big_rank_label: Control = null
+var _final_rank_label: Control = null
 
 ## Reference to the UI and container (for skip logic).
 var _ui: Control = null
@@ -155,35 +155,38 @@ func _get_rank_shine_shader() -> Shader:
 	return _rank_shine_shader
 
 
-## Adds a matching outline-only label behind a rank label, with the armory shine animation.
-func _add_rank_contour_shine(label: Label, outline_size: int) -> Label:
+## Creates a transparent cutout sprite for each character, then assembles them into one rank image.
+## The shader is applied only to those letter sprites, so empty background pixels stay transparent.
+func _create_rank_letter_cutout(text: String, font_size: int, outline_size: int, rank_color: Color) -> Control:
 	var shader := _get_rank_shine_shader()
-	if shader == null:
-		return null
+	var holder := HBoxContainer.new()
+	holder.name = "RankLetterCutout"
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.alignment = BoxContainer.ALIGNMENT_CENTER
+	holder.add_theme_constant_override("separation", 0)
 
-	var shine_mat := ShaderMaterial.new()
-	shine_mat.shader = shader
-	shine_mat.set_shader_parameter("horizontal_sweep", true)
-	shine_mat.set_shader_parameter("cycle_duration", 2.8)
+	for i in range(text.length()):
+		var ch := text.substr(i, 1)
+		var letter := Label.new()
+		letter.name = "RankLetterMask_%s_%d" % [ch, i]
+		letter.text = ch
+		letter.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		letter.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		letter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		letter.add_theme_font_size_override("font_size", font_size)
+		letter.add_theme_color_override("font_color", rank_color)
+		letter.add_theme_constant_override("outline_size", outline_size)
+		letter.add_theme_color_override("font_outline_color", Color(1.0, 0.85, 0.2, 1.0))
+		_apply_gothic_font(letter)
+		if shader != null:
+			var shine_mat := ShaderMaterial.new()
+			shine_mat.shader = shader
+			shine_mat.set_shader_parameter("horizontal_sweep", true)
+			shine_mat.set_shader_parameter("cycle_duration", 2.8)
+			letter.material = shine_mat
+		holder.add_child(letter)
 
-	var contour := Label.new()
-	contour.name = "RankContourShineLabel"
-	contour.text = label.text
-	contour.horizontal_alignment = label.horizontal_alignment
-	contour.vertical_alignment = label.vertical_alignment
-	contour.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	contour.material = shine_mat
-	contour.z_index = -1
-	contour.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	contour.add_theme_font_size_override("font_size", label.get_theme_font_size("font_size"))
-	contour.add_theme_color_override("font_color", Color(0.0, 0.0, 0.0, 0.0))
-	contour.add_theme_constant_override("outline_size", outline_size)
-	contour.add_theme_color_override("font_outline_color", Color(1.0, 0.85, 0.2, 1.0))
-	var font := label.get_theme_font("font")
-	if font != null:
-		contour.add_theme_font_override("font", font)
-	label.add_child(contour)
-	return contour
+	return holder
 
 
 ## Creates a simple sine wave beep sound and plays it.
@@ -657,15 +660,9 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	ui.add_child(rank_bg)
 	_rank_gradient_bg = rank_bg
 
-	# Create large centered rank label
-	var big_rank_label := Label.new()
+	# Create large centered rank cutout assembled from transparent letter sprites.
+	var big_rank_label := _create_rank_letter_cutout(rank, 280, 18, rank_color)
 	big_rank_label.name = "BigRankLabel"
-	big_rank_label.text = rank
-	big_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	big_rank_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	big_rank_label.add_theme_font_size_override("font_size", 280)
-	big_rank_label.add_theme_color_override("font_color", rank_color)
-	_apply_gothic_font(big_rank_label)
 	big_rank_label.set_anchors_preset(Control.PRESET_CENTER)
 	big_rank_label.offset_left = -200
 	big_rank_label.offset_right = 200
@@ -673,20 +670,13 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	big_rank_label.offset_bottom = 150
 	big_rank_label.modulate.a = 0.0  # Start invisible
 	ui.add_child(big_rank_label)
-	_add_rank_contour_shine(big_rank_label, 18)
 	_big_rank_label = big_rank_label
 
 	# Create final rank label in container (starts invisible)
-	var final_rank_label := Label.new()
+	var final_rank_label := _create_rank_letter_cutout("RANK:%s" % rank, 67, 6, rank_color)
 	final_rank_label.name = "FinalRankLabel"
-	final_rank_label.text = "RANK: %s" % rank
-	final_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	final_rank_label.add_theme_font_size_override("font_size", 67)
-	final_rank_label.add_theme_color_override("font_color", rank_color)
-	_apply_gothic_font(final_rank_label)
 	final_rank_label.modulate.a = 0.0
 	container.add_child(final_rank_label)
-	_add_rank_contour_shine(final_rank_label, 6)
 	_final_rank_label = final_rank_label
 
 	get_tree().create_timer(start_delay).timeout.connect(
