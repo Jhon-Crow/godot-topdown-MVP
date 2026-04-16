@@ -2462,14 +2462,15 @@ func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
 		"[отпустить G]",
 		"[прицелиться и отпустить ПКМ]",
 	]
-	var clamped_step := clampi(step, 0, parts.size() - 1)
-	var strikethrough_progress := [0.0, 0.2, 0.4, 0.62, 0.84]
+	var strikethrough_progress := [0.0, 0.2, 0.34, 0.5, 0.68, 0.86]
+	var clamped_step := clampi(step, 0, strikethrough_progress.size() - 1)
+	var highlighted_part := mini(clamped_step, parts.size() - 1)
 	_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, strikethrough_progress[clamped_step])
 	var styled: PackedStringArray = []
 	for i in range(parts.size()):
-		if i < clamped_step:
+		if i < highlighted_part:
 			styled.append("[color=#888888]%s[/color]" % parts[i])
-		elif i == clamped_step:
+		elif i == highlighted_part:
 			styled.append("[color=#ff4444]%s[/color]" % parts[i])
 		else:
 			styled.append("[color=#888888]%s[/color]" % parts[i])

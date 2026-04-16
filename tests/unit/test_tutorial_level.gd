@@ -178,11 +178,12 @@ class MockTutorialLevel:
 			"[отпустить G]",
 			"[прицелиться и отпустить ПКМ]",
 		]
+		var highlighted_part := mini(step, parts.size() - 1)
 		var styled: PackedStringArray = []
 		for i in range(parts.size()):
-			if i < step:
+			if i < highlighted_part:
 				styled.append("[color=#888888]%s[/color]" % parts[i])
-			elif i == step:
+			elif i == highlighted_part:
 				styled.append("[color=#ff4444]%s[/color]" % parts[i])
 			else:
 				styled.append("[color=#888888]%s[/color]" % parts[i])
@@ -317,9 +318,9 @@ class MockTutorialLevel:
 		_grenade_hint_rmb_held_after_release = rmb_held_after_release
 		var step := 0
 		if g_and_rmb_held:
-			step = 1 if drag_completed else 0
+			step = 2 if drag_completed else 0
 		else:
-			step = 3 if rmb_held_after_release else 2
+			step = 4 if rmb_held_after_release else 3
 		_active_hints[HINT_GRENADE] = _build_grenade_hint_bbcode(step)
 
 	func _reset_grenade_hint_tracking() -> void:
@@ -2166,8 +2167,8 @@ func test_grenade_hint_requires_actual_input_transitions_for_reviewed_steps() ->
 
 	tutorial.update_grenade_hint_from_input(true, true, 40.0)
 	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
-	assert_true(hint_text.contains("[color=#ff4444][отпустить ПКМ][/color]"),
-		"Dragging right should immediately complete the drag action and highlight RMB release next")
+	assert_true(hint_text.contains("[color=#ff4444][дёрнуть мышкой вправо] [отпустить ПКМ][/color]"),
+		"Dragging right should complete only the right-flick action and keep the RMB release action highlighted")
 
 	tutorial.update_grenade_hint_from_input(true, false, 40.0)
 	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
