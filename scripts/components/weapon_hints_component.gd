@@ -570,7 +570,7 @@ func _update_grenade_hint() -> void:
 		_grenade_hint_step = 0
 		_grenade_g_was_held = false
 		_add_hint(HINT_KEY_GRENADE, _build_grenade_hint_bbcode(0))
-		_log_to_file("Grenade hint shown")
+		_log_to_file("Grenade hint shown after grenade_prepare")
 
 	_update_grenade_hint_step()
 
