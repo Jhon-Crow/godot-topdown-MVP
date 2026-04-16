@@ -21,11 +21,16 @@ var _difficulty_label: Label = null
 var _magazines_label: Label = null
 var _saturation_overlay: ColorRect = null
 var _combo_label: Label = null
+## Reference to active combo tween (to cancel if needed).
+var _combo_tween: Tween = null
 var _exit_zone: Area2D = null
 var _extra_exit_zones: Array = []
 var _level_cleared: bool = false
 var _score_shown: bool = false
 var _level_completed: bool = false
+var _game_end_screen_shown: bool = false
+var _game_end_dismissed: bool = false
+var _pending_score_data: Dictionary = {}
 const SATURATION_DURATION: float = 0.15
 const SATURATION_INTENSITY: float = 0.25
 var _enemies: Array = []
@@ -189,14 +194,25 @@ func _process(_delta: float) -> void:
 func _on_combo_changed(combo: int, points: int) -> void:
 	if _combo_label == null: return
 	if combo > 0:
-		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
+		_combo_label.text = "x%d COMBO\n+%d" % [combo, points]
 		_combo_label.visible = true
 		_combo_label.add_theme_color_override("font_color", _get_combo_color(combo))
-		_combo_label.modulate = Color.WHITE
-		var tween := create_tween()
-		tween.tween_property(_combo_label, "modulate", Color.WHITE, 0.1)
+		# Combo pop animation: scale bounce + fade in (stays visible until combo resets)
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_label.scale = Vector2(0.7, 0.7)
+		_combo_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		_combo_tween = create_tween()
+		_combo_tween.set_parallel(true)
+		_combo_tween.tween_property(_combo_label, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_combo_tween.tween_property(_combo_label, "modulate:a", 1.0, 0.1)
+		_combo_tween.set_parallel(false)
 	else:
-		_combo_label.visible = false
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_tween = create_tween()
+		_combo_tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
+		_combo_tween.tween_callback(_combo_label.hide)
 
 
 func _get_combo_color(combo: int) -> Color:
@@ -223,20 +239,35 @@ func _setup_navigation() -> void:
 	nav_region.emit_signal("bake_finished")
 
 
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## RailwayStationLevel map: 4000x4000 px playfield framed by 32 px walls.
+##   WallTopLeft (2000,   48), h=16  → bottom edge y=64   → limit_top    = 64
+##   WallBottom  (2000, 3952), h=16  → top edge   y=3936  → limit_bottom = 3936
+##   WallLeft    (  48, 2000), w=16  → right edge x=64    → limit_left   = 64
+##   WallRight   (3952, 2000), w=16  → left edge  x=3936  → limit_right  = 3936
+##
+## Note: limit_top is additionally clamped to 900 so the camera cannot show the
+## area above the embankment line (y=900), which has no playable content above it
+## and the exit gaps are only reachable from the south side of the embankment.
 func _configure_camera() -> void:
 	if _player == null:
 		return
 	var camera: Camera2D = _player.get_node_or_null("Camera2D")
 	if camera == null:
+		push_warning("[RailwayStationLevel] Camera2D not found on player — cannot set camera limits")
 		return
-	# Map is 4000x4000. Camera is clamped so the player cannot see above the
-	# embankment / exit zone. The exit gap is at y=900..1100 (embankment top y=900).
-	# limit_top=900 keeps the view from going above the embankment line.
-	camera.limit_left = 0
-	camera.limit_top = 900
-	camera.limit_right = 4000
-	camera.limit_bottom = 4000
-	print("[RailwayStationLevel] Camera clamped: limit_top=900 (embankment top), full width/bottom")
+	const LIMIT_TOP: int    =  900   # embankment top (more restrictive than wall edge y=64)
+	const LIMIT_BOTTOM: int = 3936   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 3936   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	print("[RailwayStationLevel] Camera clamped — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
 
 
 func _setup_player_tracking() -> void:
@@ -316,8 +347,13 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 	if weapon.name != "SilencedPistol":
 		return
 	if weapon.has_method("ConfigureAmmoForEnemyCount"):
-		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
-		_log_to_file("Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+		var enemy_count: int = _initial_enemy_count
+		var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+		if ammo_multiplier > 1:
+			enemy_count *= ammo_multiplier
+			_log_to_file("Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by %dx" % ammo_multiplier)
+		weapon.ConfigureAmmoForEnemyCount(enemy_count)
+		_log_to_file("Configured silenced pistol ammo for %d enemies" % enemy_count)
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
@@ -334,6 +370,10 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 	if weapon.get("StartingMagazineCount") != null:
 		starting_magazines = weapon.StartingMagazineCount
 	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+	if ammo_multiplier > 1:
+		pm_magazines *= ammo_multiplier
+		_log_to_file("Gunslinger/PowerFantasy mode: MakarovPM magazines multiplied by %dx" % ammo_multiplier)
 	if weapon.has_method("ReinitializeMagazines"):
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
@@ -479,17 +519,22 @@ func _setup_debug_ui() -> void:
 	_magazines_label.offset_bottom = 135
 	ui.add_child(_magazines_label)
 
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	var combo_size: int = gameplay_settings.get_combo_font_size() if gameplay_settings and gameplay_settings.has_method("get_combo_font_size") else 112
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
 	_combo_label.text = ""
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo_label.offset_left = -200
+	_combo_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_combo_label.offset_left = 10
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 80
-	_combo_label.offset_bottom = 120
-	_combo_label.add_theme_font_size_override("font_size", 28)
+	_combo_label.offset_bottom = _combo_label.offset_top + combo_size * 2 + 20
+	_combo_label.add_theme_font_size_override("font_size", combo_size)
+	_combo_label.add_theme_constant_override("line_spacing", 0)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
+	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
+	_combo_label.clip_contents = true
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 
@@ -518,7 +563,7 @@ func _on_enemy_died() -> void:
 
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
 	if GameManager:
-		GameManager.register_kill(is_player_kill)
+		GameManager.register_kill(is_player_kill, is_penetration_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
@@ -564,7 +609,89 @@ func _complete_level_with_score() -> void:
 		var aim: Node = get_node_or_null("/root/ActiveItemManager")
 		if aim and aim.has_method("notify_level_completed"):
 			aim.notify_level_completed(score_data.get("kills", 0) > 0)
-		_show_score_screen(score_data)
+		_pending_score_data = score_data
+		_show_game_end_screen()
+	else:
+		_show_game_end_screen()
+
+
+## Shows the end-of-game screen: white text on solid black background (Issue #1755).
+## Player must click or press any key to dismiss it, then the score screen is shown.
+func _show_game_end_screen() -> void:
+	if _game_end_screen_shown:
+		return
+	_game_end_screen_shown = true
+	var canvas_layer := get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		_proceed_to_score_screen()
+		return
+
+	var bg := ColorRect.new()
+	bg.name = "GameEndBackground"
+	bg.color = Color(0.0, 0.0, 0.0, 1.0)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# MOUSE_FILTER_STOP captures mouse clicks so gui_input fires (IGNORE would miss them).
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	bg.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.is_pressed():
+			_dismiss_game_end_screen()
+	)
+	canvas_layer.add_child(bg)
+
+	var label := Label.new()
+	label.name = "GameEndLabel"
+	label.text = "Конец. Спасибо за игру"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 64)
+	label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas_layer.add_child(label)
+
+	var hint := Label.new()
+	hint.name = "GameEndHint"
+	hint.text = "Нажмите любую клавишу или кнопку мыши..."
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	hint.add_theme_font_size_override("font_size", 20)
+	hint.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 1.0))
+	hint.set_anchors_preset(Control.PRESET_FULL_RECT)
+	hint.offset_bottom = -30
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas_layer.add_child(hint)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Game-end screen: any key press dismisses it and shows the score screen.
+	# Mouse clicks are handled via gui_input on the background ColorRect.
+	if _game_end_screen_shown and not _game_end_dismissed:
+		if event is InputEventKey and event.is_pressed() and not event.echo:
+			_dismiss_game_end_screen()
+		return
+	# Score screen: W key triggers the watch-replay shortcut.
+	if _score_shown:
+		if event is InputEventKey and event.pressed and not event.echo:
+			if event.keycode == KEY_W:
+				_on_watch_replay_pressed()
+
+
+func _dismiss_game_end_screen() -> void:
+	if _game_end_dismissed:
+		return
+	_game_end_dismissed = true
+	var canvas_layer := get_node_or_null("CanvasLayer")
+	if canvas_layer:
+		for child_name in ["GameEndBackground", "GameEndLabel", "GameEndHint"]:
+			var node := canvas_layer.get_node_or_null(child_name)
+			if node:
+				node.queue_free()
+	_proceed_to_score_screen()
+
+
+func _proceed_to_score_screen() -> void:
+	if not _pending_score_data.is_empty():
+		_show_score_screen(_pending_score_data)
 	else:
 		_show_victory_message()
 
@@ -693,24 +820,49 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		if weapon == null:
 			weapon = _player.get_node_or_null("AKGL")
 		if weapon == null:
+			weapon = _player.get_node_or_null("MiniUzi")
+		if weapon == null:
+			weapon = _player.get_node_or_null("SilencedPistol")
+		if weapon == null:
+			weapon = _player.get_node_or_null("SniperRifle")
+		if weapon == null:
 			weapon = _player.get_node_or_null("Revolver")
 		if weapon == null:
 			weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
 		_magazines_label.visible = false
 		return
-	else:
-		_magazines_label.visible = true
+	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+		_magazines_label.visible = false
+		return
+	_magazines_label.visible = true
 	if magazine_ammo_counts.is_empty():
 		_magazines_label.text = "MAGS: -"
 		return
+	# Get magazine capacities to distinguish full vs partial spares
+	var mag_max_counts: Array = []
+	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
+		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
+
 	var parts: Array = []
-	for i in range(magazine_ammo_counts.size()):
+	# Current magazine always shown in brackets
+	parts.append("[%d]" % magazine_ammo_counts[0])
+
+	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
+	var full_spare_count: int = 0
+	for i in range(1, magazine_ammo_counts.size()):
 		var ammo: int = magazine_ammo_counts[i]
-		if i == 0:
-			parts.append("[%d]" % ammo)
+		if ammo <= 0:
+			continue
+		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
+		if cap > 0 and ammo >= cap:
+			full_spare_count += 1
 		else:
 			parts.append("%d" % ammo)
+
+	if full_spare_count > 0:
+		parts.append("+ x%d" % full_spare_count)
+
 	_magazines_label.text = "MAGS: " + " | ".join(parts)
 
 
@@ -762,7 +914,7 @@ func _show_victory_message() -> void:
 		return
 	var victory_label := Label.new()
 	victory_label.name = "VictoryLabel"
-	victory_label.text = "RAILWAY STATION CLEARED!"
+	victory_label.text = "Конец. Спасибо за игру"
 	victory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	victory_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	victory_label.add_theme_font_size_override("font_size", 48)
@@ -849,10 +1001,14 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 			replay_button.tooltip_text = "Replay recording was not available for this session"
 		buttons_container.add_child(replay_button)
 
+	# Armory button (Issue #897: shown highlighted when items are available to unlock; Issue #1622: always shown)
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
-	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
-		var armory_button := Button.new()
-		armory_button.name = "ArmoryButton"
+	var armory_button := Button.new()
+	armory_button.name = "ArmoryButton"
+	armory_button.pressed.connect(_on_armory_button_pressed)
+	buttons_container.add_child(armory_button)
+	var has_available_unlock: bool = unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock()
+	if has_available_unlock:
 		armory_button.text = "★ Armory — Items Available!"
 		armory_button.custom_minimum_size = Vector2(200, 40)
 		armory_button.add_theme_font_size_override("font_size", 18)
@@ -869,8 +1025,19 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		armory_style.corner_radius_bottom_left = 4
 		armory_style.corner_radius_bottom_right = 4
 		armory_button.add_theme_stylebox_override("normal", armory_style)
-		armory_button.pressed.connect(_on_armory_button_pressed)
-		buttons_container.add_child(armory_button)
+		# Add gold shine shader overlay (Issue #1536).
+		var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+		if _armory_shine_shader:
+			var _armory_shine_mat := ShaderMaterial.new()
+			_armory_shine_mat.shader = _armory_shine_shader
+			var _armory_shine_overlay := ColorRect.new()
+			_armory_shine_overlay.name = "ArmoryGoldShineOverlay"
+			_armory_shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_armory_shine_overlay.material = _armory_shine_mat
+			armory_button.add_child(_armory_shine_overlay)
+	else:
+		armory_button.text = "Armory"
 
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
@@ -924,14 +1091,6 @@ func _get_next_level_path() -> String:
 				return level_paths[i + 1]
 			return ""
 	return ""
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if not _score_shown:
-		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_W:
-			_on_watch_replay_pressed()
 
 
 func _on_watch_replay_pressed() -> void:

@@ -63,10 +63,21 @@ var _player_time_in_cloud: float = 0.0
 ## Timer for progressive illusion spawning.
 var _progressive_spawn_timer: float = 0.0
 
+## Issue #1688: Duration for gradual grow-in when cloud first appears (seconds).
+## When > 0, the cloud scale grows from 0 to 1 over this duration, making it
+## appear to spread gradually starting when the sound begins playing.
+@export var grow_in_duration: float = 0.0
+
+## Elapsed time since cloud was spawned (used for grow-in).
+var _spawn_elapsed: float = 0.0
+
 
 func _ready() -> void:
 	FileLogger.info("[ChemicalCloud] _ready() at %s" % str(global_position))
 	_time_remaining = cloud_duration
+	# Issue #1688: Start at grenade size (scale 0) so cloud grows from nothing
+	if grow_in_duration > 0.0:
+		scale = Vector2.ZERO
 	_setup_detection_area()
 	_setup_cloud_visual()
 	# Find player
@@ -80,6 +91,12 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_time_remaining -= delta
+	_spawn_elapsed += delta
+
+	# Issue #1688: Grow-in effect — scale cloud from 0 to 1 over grow_in_duration
+	if grow_in_duration > 0.0:
+		var grow_progress := clampf(_spawn_elapsed / grow_in_duration, 0.0, 1.0)
+		scale = Vector2(grow_progress, grow_progress)
 
 	# Spawn initial batch of illusions when the cloud first appears
 	# Only if player is within blast radius
@@ -331,7 +348,7 @@ func _create_particle_visual() -> GPUParticles2D:
 	particles.process_material = material
 	particles.texture = tex
 	particles.lifetime = 4.0
-	particles.preprocess = 1.0
+	particles.preprocess = 0.0  # No pre-fill — cloud grows from zero scale
 	particles.explosiveness = 0.1
 	particles.randomness = 0.3
 	particles.one_shot = false

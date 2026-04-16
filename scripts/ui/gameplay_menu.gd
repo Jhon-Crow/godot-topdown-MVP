@@ -13,23 +13,28 @@ signal back_pressed
 @onready var blood_value_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BloodContainer/BloodValueLabel
 @onready var weapon_hints_option: OptionButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WeaponHintsContainer/WeaponHintsOption
 @onready var aim_assist_toggle: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AimAssistContainer/AimAssistToggle
+@onready var combo_size_slider: HSlider = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComboSizeContainer/ComboSizeSlider
+@onready var combo_size_value_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComboSizeContainer/ComboSizeValueLabel
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 
 
 func _ready() -> void:
 	# Setup tooltips and label behaviour for settings rows (Issue #1200)
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BloodContainer,
-			"Blood Amount")
+			tr("BLOOD_AMOUNT"))
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WeaponHintsContainer,
-			"Weapon Hints")
+			tr("WEAPON_HINTS"))
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AimAssistContainer,
-			"Revolver Aim Assist")
+			tr("REVOLVER_AIM_ASSIST"))
+	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComboSizeContainer,
+			tr("COMBO_FONT_SIZE"))
 
 	# Connect button and slider signals
 	blood_slider.value_changed.connect(_on_blood_amount_changed)
 	_setup_weapon_hints_option()
 	weapon_hints_option.item_selected.connect(_on_weapon_hints_selected)
 	aim_assist_toggle.toggled.connect(_on_aim_assist_toggled)
+	combo_size_slider.value_changed.connect(_on_combo_size_changed)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update slider from current settings
@@ -60,6 +65,12 @@ func _update_ui() -> void:
 	aim_assist_toggle.button_pressed = gameplay_settings.is_revolver_aim_assist_enabled()
 	aim_assist_toggle.set_block_signals(false)
 
+	# Combo font size slider (Issue #1790)
+	combo_size_slider.set_block_signals(true)
+	combo_size_slider.value = gameplay_settings.get_combo_font_size()
+	combo_size_slider.set_block_signals(false)
+	combo_size_value_label.text = str(gameplay_settings.get_combo_font_size())
+
 
 func _on_blood_amount_changed(value: float) -> void:
 	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
@@ -71,9 +82,9 @@ func _on_blood_amount_changed(value: float) -> void:
 ## Setup the weapon hints option button with items.
 func _setup_weapon_hints_option() -> void:
 	weapon_hints_option.clear()
-	weapon_hints_option.add_item("Always", 0)
-	weapon_hints_option.add_item("First time only", 1)
-	weapon_hints_option.add_item("Never", 2)
+	weapon_hints_option.add_item(tr("WEAPON_HINTS_ALWAYS"), 0)
+	weapon_hints_option.add_item(tr("WEAPON_HINTS_FIRST_TIME"), 1)
+	weapon_hints_option.add_item(tr("WEAPON_HINTS_NEVER"), 2)
 
 	# Select current mode from settings
 	var weapon_hints_settings: Node = get_node_or_null("/root/WeaponHintsSettings")
@@ -90,6 +101,14 @@ func _on_aim_assist_toggled(enabled: bool) -> void:
 	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
 	if gameplay_settings:
 		gameplay_settings.set_revolver_aim_assist_enabled(enabled)
+
+
+## Called when the combo font size slider is changed (Issue #1790).
+func _on_combo_size_changed(value: float) -> void:
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	if gameplay_settings and gameplay_settings.has_method("set_combo_font_size"):
+		gameplay_settings.set_combo_font_size(int(value))
+	combo_size_value_label.text = str(int(value))
 
 
 ## Called when weapon hints option is changed.

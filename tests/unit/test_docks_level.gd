@@ -2,7 +2,7 @@ extends GutTest
 ## Unit tests for docks_level.gd level script.
 ##
 ## Tests saturation constants, exit zone configuration, and level initialization
-## for the large industrial docks environment with 20 enemies.
+## for the large industrial docks environment with 15 enemies.
 
 
 # ============================================================================
@@ -40,7 +40,7 @@ class MockDocksLevel:
 	var map_height: int = 4000
 
 	## Default enemy count for docks level.
-	var default_enemy_count: int = 20
+	var default_enemy_count: int = 15
 
 	## Initialize with default enemies.
 	func initialize() -> void:
@@ -113,8 +113,8 @@ func test_exit_zone_dimensions() -> void:
 
 
 func test_default_enemy_count() -> void:
-	assert_eq(level.default_enemy_count, 20,
-		"Docks level should have 20 enemies by default")
+	assert_eq(level.default_enemy_count, 15,
+		"Docks level should have 15 enemies by default")
 
 
 func test_level_starts_not_cleared() -> void:
@@ -125,25 +125,25 @@ func test_level_starts_not_cleared() -> void:
 
 func test_enemy_count_initialized_correctly() -> void:
 	level.initialize()
-	assert_eq(level._initial_enemy_count, 20,
-		"Initial enemy count should be 20")
-	assert_eq(level._current_enemy_count, 20,
-		"Current enemy count should be 20 at start")
+	assert_eq(level._initial_enemy_count, 15,
+		"Initial enemy count should be 15")
+	assert_eq(level._current_enemy_count, 15,
+		"Current enemy count should be 15 at start")
 
 
 func test_level_cleared_when_all_enemies_dead() -> void:
 	level.initialize()
-	for i in range(19):
+	for i in range(14):
 		level.on_enemy_died()
 	assert_false(level._level_cleared, "Not cleared with 1 enemy remaining")
 	level.on_enemy_died()
-	assert_true(level._level_cleared, "Level should be cleared when all 20 enemies dead")
+	assert_true(level._level_cleared, "Level should be cleared when all 15 enemies dead")
 	assert_true(level.exit_zone_activated, "Exit zone should activate on clear")
 
 
 func test_player_exit_completes_level() -> void:
 	level.initialize()
-	for i in range(20):
+	for i in range(15):
 		level.on_enemy_died()
 	level.on_player_reached_exit()
 	assert_true(level._level_completed,

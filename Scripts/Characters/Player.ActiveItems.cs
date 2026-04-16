@@ -1727,10 +1727,17 @@ public partial class Player
 
     /// <summary>
     /// The original Friction stored before Combat Disposition's speed bonus is applied (Issue #1583).
-    /// Friction is doubled alongside the speed boost to keep the stopping feel proportional (halving drift).
+    /// Set to a very large value during the speed boost to eliminate drift entirely (Issue #1623).
     /// Restored when the hit penalty is applied.
     /// </summary>
     private float _combatDispositionBaseFriction = 0.0f;
+
+    /// <summary>
+    /// Friction value applied during the Combat Disposition speed boost (Issue #1623).
+    /// Large enough that Friction * delta always exceeds the boosted MaxSpeed,
+    /// so the player stops instantly when input is released (zero drift).
+    /// </summary>
+    private const float CombatDispositionNoDriftFriction = 100000.0f;
 
     /// <summary>Sword icon shown near the player when the positive effect is active.</summary>
     private Sprite2D? _combatDispositionSwordIcon = null;
@@ -1779,20 +1786,20 @@ public partial class Player
 
         // Apply movement speed bonus (Issue #1583):
         // Normal difficulties: x2 speed. Black Metal difficulty: x4 speed total.
-        // Friction is scaled by the same multiplier to keep stopping feel proportional (halving drift).
+        // Friction is set to a very large value to eliminate drift entirely (Issue #1623).
         _combatDispositionBaseSpeed = MaxSpeed;
         _combatDispositionBaseFriction = Friction;
         var diffMgr = GetNodeOrNull("/root/DifficultyManager");
         bool isBlackMetal = diffMgr != null && diffMgr.HasMethod("is_black_metal_mode") && (bool)diffMgr.Call("is_black_metal_mode");
         float speedMult = isBlackMetal ? 4.0f : 2.0f;
         MaxSpeed = _combatDispositionBaseSpeed * speedMult;
-        Friction = _combatDispositionBaseFriction * speedMult;
-        LogToFile($"[Player.CombatDisposition] Speed boost applied ({(isBlackMetal ? "Black Metal x4" : "Normal x2")}): speed {_combatDispositionBaseSpeed} -> {MaxSpeed}, friction {_combatDispositionBaseFriction} -> {Friction}");
+        Friction = CombatDispositionNoDriftFriction;
+        LogToFile($"[Player.CombatDisposition] Speed boost applied ({(isBlackMetal ? "Black Metal x4" : "Normal x2")}): speed {_combatDispositionBaseSpeed} -> {MaxSpeed}, friction set to {Friction} (no drift, Issue #1623)");
 
         // Show sword icon (positive effect active)
         UpdateCombatDispositionIcons();
 
-        LogToFile($"[Player.CombatDisposition] Active — damage bonus: +{_combatDispositionDamageBonus}, fire rate bonus: +{_combatDispositionFireRateBonus}, max speed: {MaxSpeed}, friction: {Friction}");
+        LogToFile($"[Player.CombatDisposition] Active — damage bonus: +{_combatDispositionDamageBonus}, fire rate bonus: +{_combatDispositionFireRateBonus}, max speed: {MaxSpeed}, friction: {Friction} (no drift)");
     }
 
     /// <summary>
@@ -1820,7 +1827,7 @@ public partial class Player
         }
 
         // Halve movement speed penalty (Issue #1583): divide speed by 2 after first hit.
-        // Restore friction to base value so stopping feel is proportional to the reduced speed.
+        // Restore friction to base value (no-drift override ends with the speed boost).
         MaxSpeed = _combatDispositionBaseSpeed / 2.0f;
         Friction = _combatDispositionBaseFriction;
         LogToFile($"[Player.CombatDisposition] Speed penalty applied: speed {_combatDispositionBaseSpeed} -> {MaxSpeed} (divided by 2), friction restored to {Friction}");
@@ -3590,6 +3597,9 @@ public partial class Player
             case 20: // DASH (Issue #1071)
                 InitDash();
                 break;
+            case 21: // GRENADE_BAG (passive) (Issue #1590)
+                InitGrenadeBag();
+                break;
             default:
                 // NONE (0), LASER_SIGHT (9), EXTENDED_MAGAZINE (10): no player-side init needed
                 LogToFile($"[Player.ItemPickup] No player-side init required for item type {itemType}");
@@ -4490,6 +4500,28 @@ public partial class Player
     #region Experimental Sample (Issue #1127)
 
     /// <summary>
+    /// Active item types that Experimental Sample can trigger.
+    /// Keep this list in sync with TriggerExperimentalSampleEffect so newly added
+    /// active items are not omitted from the shipped C# player implementation.
+    /// </summary>
+    private static readonly int[] ExperimentalSampleActiveTypes =
+    {
+        1,  // FLASHLIGHT
+        2,  // HOMING_BULLETS
+        3,  // TELEPORT_BRACERS
+        4,  // BFF_PENDANT
+        5,  // INVISIBILITY_SUIT
+        7,  // FORCE_FIELD
+        8,  // TRAJECTORY_GLASSES
+        11, // LOUDSPEAKER
+        12, // BREACHING_CHARGES
+        15, // DRILLING_BULLETS
+        16, // RECOIL_COMPENSATOR
+        19, // FINE_MOTOR_SKILLS
+        20, // DASH
+    };
+
+    /// <summary>
     /// Initialize the experimental sample if it is the selected active item.
     /// Randomises charge count (1–5) at the start of each level.
     /// </summary>
@@ -4543,7 +4575,7 @@ public partial class Player
 
     /// <summary>
     /// Handle experimental sample input: press Space to trigger a random active item effect.
-    /// The randomly chosen effect can be ANY item type 1–17, even items the player has not unlocked.
+    /// The randomly chosen effect can be any listed active item, even items the player has not unlocked.
     /// </summary>
     private void HandleExperimentalSampleInput()
     {
@@ -4572,16 +4604,10 @@ public partial class Player
         _experimentalSampleChargeBarVisible = true;
         QueueRedraw();
 
-        // Active-only item pool (Issue #1127): passive items are excluded.
-        // Passive items excluded: 6=BREAKER_BULLETS, 9=LASER_SIGHT, 10=EXTENDED_MAGAZINE,
-        //   13=ARMORED_SKIN, 14=AUTO_RELOAD, 17=COMBAT_DISPOSITION
-        // Active items kept: 1=FLASHLIGHT, 2=HOMING_BULLETS, 3=TELEPORT_BRACERS,
-        //   4=BFF_PENDANT, 5=INVISIBILITY_SUIT, 7=FORCE_FIELD, 8=TRAJECTORY_GLASSES,
-        //   11=LOUDSPEAKER, 12=BREACHING_CHARGES, 15=DRILLING_BULLETS, 16=RECOIL_COMPENSATOR
+        // Active-only item pool (Issue #1127, #1635): passive items are excluded.
         // Homing (2): 5 tickets (~5%); BFF (4): 2 tickets (~2%); all others: 10 tickets each.
-        int[] activeTypes = { 1, 2, 3, 4, 5, 7, 8, 11, 12, 15, 16 };
         var poolList = new System.Collections.Generic.List<int>();
-        foreach (int t in activeTypes)
+        foreach (int t in ExperimentalSampleActiveTypes)
         {
             int tickets = t == 4 ? 2 : (t == 2 ? 5 : 10);
             for (int k = 0; k < tickets; k++)
@@ -5022,11 +5048,82 @@ public partial class Player
                 LogToFile("[Player.ExperimentalSample] Combat disposition effect: homing burst triggered");
                 return HomingDuration;
 
+            case 19: // FINE_MOTOR_SKILLS — instant reload regardless of whether FMS is equipped (Issue #1635)
+            {
+                if (_fineMotorSkillsActive)
+                {
+                    LogToFile("[Player.ExperimentalSample] Fine motor skills already active");
+                    return 0.5f;
+                }
+
+                _fineMotorSkillsActive = true;
+                FineMotorSkillsActivateAsync();
+                LogToFile("[Player.ExperimentalSample] Fine motor skills instant reload triggered via experimental sample");
+                return 2.0f;
+            }
+
+            case 20: // DASH — create a temporary dash effect if Dash is not equipped (Issue #1635)
+            {
+                Node? dashNode = EnsureExperimentalSampleDashEffect();
+                if (dashNode != null && IsInstanceValid(dashNode))
+                {
+                    bool isDashing = dashNode.HasMethod("is_dashing") && (bool)dashNode.Call("is_dashing");
+                    if (!isDashing)
+                    {
+                        Vector2 dir = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+                        if (dir == Vector2.Zero)
+                        {
+                            dir = _playerModel != null ? Vector2.Right.Rotated(_playerModel.GlobalRotation) : Vector2.Right;
+                        }
+                        dashNode.Call("activate", dir);
+                        LogToFile("[Player.ExperimentalSample] Dash triggered via experimental sample");
+                    }
+                    else
+                    {
+                        LogToFile("[Player.ExperimentalSample] Dash already active");
+                    }
+                    return 1.0f;
+                }
+
+                LogToFile("[Player.ExperimentalSample] Dash effect unavailable, homing fallback");
+                if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
+                return HomingDuration;
+            }
+
             default:
                 LogToFile($"[Player.ExperimentalSample] Unknown item type {itemType} — homing fallback");
                 if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
                 return HomingDuration;
         }
+    }
+
+    /// <summary>
+    /// Ensure Experimental Sample can use Dash without requiring Dash to be the equipped active item.
+    /// </summary>
+    private Node? EnsureExperimentalSampleDashEffect()
+    {
+        if (_dashEffect != null && IsInstanceValid(_dashEffect))
+            return _dashEffect;
+
+        if (!ResourceLoader.Exists(DashEffectScenePath))
+        {
+            LogToFile($"[Player.ExperimentalSample] DashEffect scene not found: {DashEffectScenePath}");
+            return null;
+        }
+
+        var scene = GD.Load<PackedScene>(DashEffectScenePath);
+        if (scene == null)
+        {
+            LogToFile("[Player.ExperimentalSample] Failed to load DashEffect scene");
+            return null;
+        }
+
+        _dashEffect = scene.Instantiate();
+        _dashEffect.Name = "DashEffectTemp";
+        AddChild(_dashEffect);
+        _dashEffect.Call("initialize", this);
+        LogToFile("[Player.ExperimentalSample] Dash: temporary effect node created");
+        return _dashEffect;
     }
 
     #endregion
@@ -5326,11 +5423,66 @@ public partial class Player
     /// </summary>
     public bool IsDashActive()
     {
-        if (!_dashEquipped || _dashEffect == null)
+        if (_dashEffect == null)
             return false;
         if (!IsInstanceValid(_dashEffect))
             return false;
         return (bool)_dashEffect.Call("is_dashing");
+    }
+
+    #endregion
+
+    #region Grenade Bag Passive Item (Issue #1590)
+
+    /// <summary>
+    /// Initialize the Grenade Bag passive item if ActiveItemManager has it selected.
+    /// Sets MaxGrenades and _currentGrenades based on the selected grenade type:
+    ///   FLASHBANG       → 12 grenades
+    ///   FRAG            → 6 grenades
+    ///   AGGRESSION_GAS  → 2 grenades
+    ///   DEFENSIVE (F-1) → 2 grenades
+    /// Does nothing in tutorial levels (they already grant unlimited grenades).
+    /// </summary>
+    private void InitGrenadeBag()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.GrenadeBag] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_grenade_bag"))
+        {
+            LogToFile("[Player.GrenadeBag] ActiveItemManager missing has_grenade_bag method");
+            return;
+        }
+
+        bool hasGrenadeBag = (bool)activeItemManager.Call("has_grenade_bag");
+        if (!hasGrenadeBag)
+        {
+            LogToFile("[Player.GrenadeBag] No grenade bag selected in ActiveItemManager");
+            return;
+        }
+
+        // Tutorial levels already grant MaxGrenades — no override needed
+        if (_isTutorialLevel)
+        {
+            LogToFile("[Player.GrenadeBag] Tutorial level — grenade bag has no additional effect");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("get_grenade_bag_count"))
+        {
+            LogToFile("[Player.GrenadeBag] ActiveItemManager missing get_grenade_bag_count method");
+            return;
+        }
+
+        int bagCount = (int)activeItemManager.Call("get_grenade_bag_count");
+        MaxGrenades = bagCount;
+        _currentGrenades = bagCount;
+        EmitSignal(SignalName.GrenadeChanged, _currentGrenades, MaxGrenades);
+        LogToFile($"[Player.GrenadeBag] Grenade Bag equipped — grenades set to {_currentGrenades}/{MaxGrenades}");
     }
 
     #endregion

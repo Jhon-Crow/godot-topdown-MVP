@@ -36,7 +36,10 @@ class MockActiveItemManager:
 		DRILLING_BULLETS = 15,
 		RECOIL_COMPENSATOR = 16,
 		COMBAT_DISPOSITION = 17,
-		EXPERIMENTAL_SAMPLE = 18
+		EXPERIMENTAL_SAMPLE = 18,
+		FINE_MOTOR_SKILLS = 19,
+		DASH = 20,
+		GRENADE_BAG = 21
 	}
 
 	## Currently selected active item type
@@ -55,7 +58,7 @@ class MockActiveItemManager:
 		8: {"name": "Trajectory Glasses", "icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png", "description": "Trajectory glasses."},
 		9: {"name": "Laser Sight", "icon_path": "res://assets/sprites/weapons/laser_sight_icon.png", "description": "Laser sight."},
 		10: {"name": "Extended Magazine", "icon_path": "res://assets/sprites/weapons/extended_magazine_icon.png", "description": "Extended magazine."},
-		11: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "Loudspeaker."},
+		11: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "???"},
 		12: {"name": "Breaching Charges", "icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png", "description": "Breaching charges."},
 		13: {"name": "Armored Skin", "icon_path": "res://assets/sprites/weapons/armored_skin_icon.png", "description": "Armored skin."},
 		14: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png", "description": "Auto-reload."},
@@ -67,7 +70,10 @@ class MockActiveItemManager:
 			"icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png",
 			"description": "Experimental Sample — press Space to trigger a random active item effect (including items not yet unlocked). 1–5 charges per battle, randomised on level start.",
 			"activation_hint": "Press Space to trigger random effect"
-		}
+		},
+		19: {"name": "Fine Motor Skills", "icon_path": "res://assets/sprites/weapons/fine_motor_skills_icon.png", "description": "Fine Motor Skills — press Space to instantly reload weapon.", "activation_hint": "Press Space to reload"},
+		20: {"name": "Dash", "icon_path": "res://assets/sprites/weapons/dash_icon.png", "description": "Dash — press Space to dash in movement direction.", "activation_hint": "Press Space to dash"},
+		21: {"name": "Grenade Bag", "icon_path": "res://assets/sprites/weapons/grenade_bag_icon.png", "description": "Grenade Bag — passive: increases starting grenade count."}
 	}
 
 	## Check if experimental sample is currently equipped (Issue #1127)
@@ -124,6 +130,20 @@ class MockActiveItemManager:
 class MockExperimentalSampleSystem:
 	const MIN_CHARGES: int = 1
 	const MAX_CHARGES: int = 5
+	## Mirror of EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES from player.gd (Issue #1635).
+	## To add a new triggerable item: append its type ID here (and handle it in player.gd).
+	const ELIGIBLE_TYPES: Array = [
+		2,  # HOMING_BULLETS
+		4,  # BFF_PENDANT
+		5,  # INVISIBILITY_SUIT
+		7,  # FORCE_FIELD (Issue #1635)
+		8,  # TRAJECTORY_GLASSES
+		11, # LOUDSPEAKER
+		12, # BREACHING_CHARGES
+		16, # RECOIL_COMPENSATOR (Issue #1635)
+		19, # FINE_MOTOR_SKILLS (Issue #1315)
+		20, # DASH (Issue #1071)
+	]
 
 	## Whether the experimental sample is equipped
 	var equipped: bool = false
@@ -140,13 +160,13 @@ class MockExperimentalSampleSystem:
 		rng.seed = seed_value
 		charges = rng.randi_range(MIN_CHARGES, MAX_CHARGES)
 
-	## Activate: consume a charge and pick a random effect type (1–17)
+	## Activate: consume a charge and pick a random effect type from ELIGIBLE_TYPES (Issue #1635)
 	## Returns true if activation succeeded, false if no charges remain.
 	func activate(rng: RandomNumberGenerator) -> bool:
 		if not equipped or charges <= 0:
 			return false
 		charges -= 1
-		last_triggered_type = rng.randi_range(1, 17)
+		last_triggered_type = ELIGIBLE_TYPES[rng.randi() % ELIGIBLE_TYPES.size()]
 		return true
 
 	## Simulate multiple activations and collect triggered types
@@ -159,6 +179,16 @@ class MockExperimentalSampleSystem:
 
 
 var manager: MockActiveItemManager
+
+
+func _read_text_file(path: String) -> String:
+	var file := FileAccess.open(path, FileAccess.READ)
+	assert_true(file != null, "Expected file to open: %s" % path)
+	if file == null:
+		return ""
+	var text := file.get_as_text()
+	file.close()
+	return text
 
 
 func before_each() -> void:
@@ -360,7 +390,7 @@ func test_experimental_sample_activation_count_matches_charges() -> void:
 
 
 func test_experimental_sample_triggers_valid_item_types() -> void:
-	# Each activation must produce a type in range 1–17 (all existing items except NONE and EXPERIMENTAL_SAMPLE)
+	# Each activation must produce a type from the ELIGIBLE_TYPES list (Issue #1635)
 	var system := MockExperimentalSampleSystem.new()
 	system.equipped = true
 	system.charges = 50
@@ -368,8 +398,8 @@ func test_experimental_sample_triggers_valid_item_types() -> void:
 	rng.seed = 12345
 	var types := system.activate_n_times(50, rng)
 	for t in types:
-		assert_true(t >= 1 and t <= 17,
-			"Triggered type %d must be in range 1–17" % t)
+		assert_true(t in MockExperimentalSampleSystem.ELIGIBLE_TYPES,
+			"Triggered type %d must be in ELIGIBLE_TYPES" % t)
 
 
 func test_experimental_sample_never_triggers_none_type() -> void:
@@ -397,7 +427,7 @@ func test_experimental_sample_never_triggers_itself() -> void:
 
 
 func test_experimental_sample_random_types_cover_full_range() -> void:
-	# With enough activations, all item types 1–17 should appear at least once
+	# With enough activations, all types in ELIGIBLE_TYPES should appear at least once (Issue #1635)
 	var system := MockExperimentalSampleSystem.new()
 	system.equipped = true
 	system.charges = 10000
@@ -407,9 +437,34 @@ func test_experimental_sample_random_types_cover_full_range() -> void:
 	var unique_types := {}
 	for t in types:
 		unique_types[t] = true
-	for expected_type in range(1, 18):
+	for expected_type in MockExperimentalSampleSystem.ELIGIBLE_TYPES:
 		assert_true(expected_type in unique_types,
-			"Item type %d should appear at least once in 10,000 activations" % expected_type)
+			"Eligible type %d should appear at least once in 10,000 activations" % expected_type)
+
+
+# ============================================================================
+# C# Runtime Implementation Regression Tests
+# ============================================================================
+
+
+func test_csharp_experimental_sample_pool_includes_new_active_items() -> void:
+	var source := _read_text_file("res://Scripts/Characters/Player.ActiveItems.cs")
+	assert_true(source.contains("19, // FINE_MOTOR_SKILLS"),
+		"C# Experimental Sample pool must include FINE_MOTOR_SKILLS (19)")
+	assert_true(source.contains("20, // DASH"),
+		"C# Experimental Sample pool must include DASH (20)")
+
+
+func test_csharp_experimental_sample_handles_new_active_items() -> void:
+	var source := _read_text_file("res://Scripts/Characters/Player.ActiveItems.cs")
+	assert_true(source.contains("case 19: // FINE_MOTOR_SKILLS"),
+		"C# Experimental Sample switch must handle FINE_MOTOR_SKILLS (19)")
+	assert_true(source.contains("FineMotorSkillsActivateAsync();"),
+		"C# FINE_MOTOR_SKILLS case must trigger the reload sequence")
+	assert_true(source.contains("case 20: // DASH"),
+		"C# Experimental Sample switch must handle DASH (20)")
+	assert_true(source.contains("EnsureExperimentalSampleDashEffect()"),
+		"C# DASH case must create a temporary dash effect when Dash is not equipped")
 
 
 # ============================================================================
@@ -461,18 +516,18 @@ func test_total_active_items_includes_experimental_sample() -> void:
 
 
 func test_active_item_count_is_nineteen() -> void:
-	# NONE + 18 items = 19 total (including Experimental Sample)
+	# NONE + 21 items = 22 total (FINE_MOTOR_SKILLS, DASH, GRENADE_BAG added by Issues #1315, #1071, #1590)
 	var all_types := manager.get_all_active_item_types()
-	assert_eq(all_types.size(), 19,
-		"Should have 19 active item types total (NONE + 18 items including EXPERIMENTAL_SAMPLE)")
+	assert_eq(all_types.size(), 22,
+		"Should have 22 active item types total (NONE + 21 items including EXPERIMENTAL_SAMPLE, FINE_MOTOR_SKILLS, DASH, and GRENADE_BAG)")
 
 
-func test_experimental_sample_is_last_item_type() -> void:
-	# EXPERIMENTAL_SAMPLE=18 should be the highest enum value
+func test_experimental_sample_type_is_not_highest() -> void:
+	# EXPERIMENTAL_SAMPLE=18 is not the highest; FINE_MOTOR_SKILLS(19), DASH(20), GRENADE_BAG(21) were added after
 	var all_types := manager.get_all_active_item_types()
 	var max_type := 0
 	for t in all_types:
 		if t > max_type:
 			max_type = t
-	assert_eq(max_type, manager.ActiveItemType.EXPERIMENTAL_SAMPLE,
-		"EXPERIMENTAL_SAMPLE should have the highest type value (18)")
+	assert_true(max_type > manager.ActiveItemType.EXPERIMENTAL_SAMPLE,
+		"Newer items (FINE_MOTOR_SKILLS, DASH, GRENADE_BAG) should have higher type values than EXPERIMENTAL_SAMPLE (18)")

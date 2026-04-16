@@ -35,7 +35,10 @@ class MockActiveItemManager:
 		DRILLING_BULLETS = 15,
 		RECOIL_COMPENSATOR = 16,
 		COMBAT_DISPOSITION = 17,
-		EXPERIMENTAL_SAMPLE = 18
+		EXPERIMENTAL_SAMPLE = 18,
+		FINE_MOTOR_SKILLS = 19,
+		DASH = 20,
+		GRENADE_BAG = 21
 	}
 
 	## Currently selected active item type
@@ -54,14 +57,17 @@ class MockActiveItemManager:
 		8: {"name": "Trajectory Glasses", "icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png", "description": "Trajectory glasses."},
 		9: {"name": "Laser Sight", "icon_path": "res://assets/sprites/weapons/laser_sight_icon.png", "description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."},
 		10: {"name": "Extended Magazine", "icon_path": "res://assets/sprites/weapons/extended_magazine_icon.png", "description": "Extended magazine — passive: increases magazine size by 2.5x (including revolver cylinder), but reduces total ammo by 5%."},
-		11: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "Loudspeaker."},
+		11: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "???"},
 		12: {"name": "Breaching Charges", "icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png", "description": "Breaching charges."},
 		13: {"name": "Armored Skin", "icon_path": "res://assets/sprites/weapons/armored_skin_icon.png", "description": "Armored Skin."},
 		14: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png", "description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."},
 		15: {"name": "Drilling Bullets", "icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png", "description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine."},
 		16: {"name": "Recoil Compensator", "icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png", "description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%."},
 		17: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces bonuses."},
-		18: {"name": "Experimental Sample", "icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png", "description": "Experimental Sample — press Space to trigger a random active item effect.", "activation_hint": "Press Space to trigger random effect"}
+		18: {"name": "Experimental Sample", "icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png", "description": "Experimental Sample — press Space to trigger a random active item effect.", "activation_hint": "Press Space to trigger random effect"},
+		19: {"name": "Fine Motor Skills", "icon_path": "res://assets/sprites/weapons/fine_motor_skills_icon.png", "description": "Fine Motor Skills — press Space to instantly reload weapon.", "activation_hint": "Press Space to reload"},
+		20: {"name": "Dash", "icon_path": "res://assets/sprites/weapons/dash_icon.png", "description": "Dash — press Space to dash in movement direction.", "activation_hint": "Press Space to dash"},
+		21: {"name": "Grenade Bag", "icon_path": "res://assets/sprites/weapons/grenade_bag_icon.png", "description": "Grenade Bag — passive: increases starting grenade count."}
 	}
 
 	## Check if laser sight is currently equipped (Issue #947)
@@ -269,10 +275,10 @@ func test_total_active_items_includes_laser_sight() -> void:
 
 
 func test_active_item_count_is_eighteen() -> void:
-	# NONE + 18 items = 19 total (EXPERIMENTAL_SAMPLE added by Issue #1127)
+	# NONE + 21 items = 22 total (FINE_MOTOR_SKILLS, DASH, GRENADE_BAG added by Issues #1315, #1071, #1590)
 	var all_types := manager.get_all_active_item_types()
-	assert_eq(all_types.size(), 19,
-		"Should have 19 active item types total (NONE + 18 items including LASER_SIGHT, EXTENDED_MAGAZINE, LOUDSPEAKER, BREACHING_CHARGES, ARMORED_SKIN, AUTO_RELOAD, DRILLING_BULLETS, RECOIL_COMPENSATOR, COMBAT_DISPOSITION, and EXPERIMENTAL_SAMPLE)")
+	assert_eq(all_types.size(), 22,
+		"Should have 22 active item types total (NONE + 21 items including LASER_SIGHT, EXTENDED_MAGAZINE, LOUDSPEAKER, BREACHING_CHARGES, ARMORED_SKIN, AUTO_RELOAD, DRILLING_BULLETS, RECOIL_COMPENSATOR, COMBAT_DISPOSITION, EXPERIMENTAL_SAMPLE, FINE_MOTOR_SKILLS, DASH, and GRENADE_BAG)")
 
 
 # ============================================================================

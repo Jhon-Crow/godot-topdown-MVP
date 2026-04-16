@@ -26,10 +26,11 @@ enum ActiveItemType {
 	AUTO_RELOAD,       # Auto-reload on kill - passive: magazine is 2.1x smaller, refilled from reserve on each kill (Issue #1067)
 	DRILLING_BULLETS,  # Drilling bullets - press Space to give current magazine wall-piercing bullets (Issue #751)
 	RECOIL_COMPENSATOR, # Recoil compensator - hold Space to eliminate recoil/spread and boost fire rate 10% (Issue #1073)
-	COMBAT_DISPOSITION, # Combat Disposition - passive: +0.77 damage, +1.1 fire rate, x2 speed on start (x4 on Black Metal); on hit: -6.0 damage, -7.2 fire rate, speed/2 (Issue #1047, #1583)
+	COMBAT_DISPOSITION, # Combat Disposition - passive: +0.77 damage, +1.1 fire rate, x2 speed on start (x4 on Black Metal), no drift; on hit: -6.0 damage, -7.2 fire rate, speed/2 (Issue #1047, #1583, #1623)
 	EXPERIMENTAL_SAMPLE, # Experimental Sample - press Space to fire a random active item effect (even unowned). 1–5 charges per battle, randomised on level start (Issue #1127)
 	FINE_MOTOR_SKILLS, # Fine Motor Skills - press Space to instantly reload weapon and bring to combat-ready state. Unlimited charges, no cooldown (Issue #1315)
-	DASH               # Dash - press Space to dash in movement direction with damage immunity. 3 charges, cooldown after 3rd dash (Issue #1071)
+	DASH,              # Dash - press Space to dash in movement direction with damage immunity. 3 charges, cooldown after 3rd dash (Issue #1071)
+	GRENADE_BAG        # Grenade Bag - passive: increases starting grenade count based on selected grenade type (Issue #1590)
 }
 
 ## Currently selected active item type.
@@ -46,154 +47,221 @@ var collected_passive_items: Array = []
 ## FLASHLIGHT (Polygon D+), TELEPORT_BRACERS (Double Corridor D+),
 ## INVISIBILITY_SUIT (Beach S + Building S), HOMING_BULLETS
 ## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S),
-## TRAJECTORY_GLASSES (City D+), LASER_SIGHT (1000 kills without laser sight equipped),
+## TRAJECTORY_GLASSES (City D+), LASER_SIGHT (400 kills without laser sight equipped),
 ## FINE_MOTOR_SKILLS (650 shots with shotgun, sniper rifle, or revolver),
 ## ARMORED_SKIN (100 total deaths), COMBAT_DISPOSITION (complete 1 level without damage),
-## RECOIL_COMPENSATOR (Labyrinth S) and EXPERIMENTAL_SAMPLE (complete at least one level on every difficulty)
-## have unlock conditions (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346, Issue #1389, Issue #1423, Issue #1426).
+## RECOIL_COMPENSATOR (Labyrinth S), EXPERIMENTAL_SAMPLE (complete at least one level on every difficulty),
+## EXTENDED_MAGAZINE (Building B+), AUTO_RELOAD (any level with silenced pistol),
+## DRILLING_BULLETS (50 kills through walls), DASH (Decadence A+),
+## BREACHING_CHARGES (Labyrinth Complex any grade), GRENADE_BAG (Railway Station any grade),
+## BFF_PENDANT (Winter Forest any grade) have unlock conditions
+## (Issue #894, Issue #1000, Issue #1053, Issue #1196, Issue #1346, Issue #1389, Issue #1423, Issue #1426, Issue #1624).
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
 	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
 	ActiveItemType.HOMING_BULLETS: false,      # Condition: Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S (Issue #1000 req.8)
 	ActiveItemType.TELEPORT_BRACERS: false,    # Condition: Double Corridor D+ (Issue #1000 req.3)
-	ActiveItemType.BFF_PENDANT: true,          # No unlock condition — freely available from start (Issue #674)
+	ActiveItemType.BFF_PENDANT: false,         # Condition: complete Winter Forest on any grade (Issue #1624 req.9)
 	ActiveItemType.INVISIBILITY_SUIT: false,   # Condition: Beach S + Building S (Issue #1000 req.5)
 	ActiveItemType.BREAKER_BULLETS: false,     # Condition: 7 levels completed at rank A or higher (Issue #1589 req.3)
 	ActiveItemType.FORCE_FIELD: false,         # Condition: complete Factory on any grade (Issue #1589 req.2)
 	ActiveItemType.TRAJECTORY_GLASSES: false,  # Condition: City D+ (Issue #1053 req.1)
 	ActiveItemType.LASER_SIGHT: false,         # Condition: 400 kills without laser sight equipped (Issue #1196, updated by Issue #1589)
-	ActiveItemType.EXTENDED_MAGAZINE: true,    # No unlock condition — freely available from start (Issue #1065)
-	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
-	ActiveItemType.BREACHING_CHARGES: true,    # No unlock condition — freely available from start (Issue #1043)
+	ActiveItemType.EXTENDED_MAGAZINE: false,   # Condition: Building B+ (Issue #1624 req.1)
+	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start, not selected by default (Issue #959, #1691)
+	ActiveItemType.BREACHING_CHARGES: false,   # Condition: complete Labyrinth Complex on any grade (Issue #1624 req.6)
 	ActiveItemType.ARMORED_SKIN: false,        # Condition: 100 total deaths (Issue #1389)
-	ActiveItemType.AUTO_RELOAD: true,          # No unlock condition — freely available from start (Issue #1067)
-	ActiveItemType.DRILLING_BULLETS: true,     # No unlock condition — freely available from start (Issue #751)
+	ActiveItemType.AUTO_RELOAD: false,         # Condition: complete any level with silenced pistol (Issue #1624 req.2)
+	ActiveItemType.DRILLING_BULLETS: false,    # Condition: 50 kills through walls (Issue #1624 req.3)
 	ActiveItemType.RECOIL_COMPENSATOR: false,  # Condition: Labyrinth S (Issue #1423 req.2)
 	ActiveItemType.COMBAT_DISPOSITION: false,  # Condition: complete 1 level without taking damage (Issue #1389)
 	ActiveItemType.EXPERIMENTAL_SAMPLE: false,   # Condition: complete at least one level on every difficulty (Issue #1426)
 	ActiveItemType.FINE_MOTOR_SKILLS: false,    # Condition: 300 shots with shotgun, sniper rifle, or revolver (Issue #1346)
-	ActiveItemType.DASH: true                   # No unlock condition — freely available from start (Issue #1071)
+	ActiveItemType.DASH: false,                 # Condition: Decadence A+ (Issue #1624 req.5)
+	ActiveItemType.GRENADE_BAG: false           # Condition: complete Railway Station on any grade (Issue #1624 req.8)
 }
 
 ## Active item data for UI and selection.
 const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.NONE: {
 		"name": "None",
+		"name_key": "ITEM_NONE_NAME",
 		"icon_path": "",
-		"description": "No active item equipped."
+		"description": "No active item equipped.",
+		"desc_key": "ARMORY_NO_ACTIVE_ITEM_DESC"
 	},
 	ActiveItemType.FLASHLIGHT: {
 		"name": "Flashlight",
+		"name_key": "ITEM_FLASHLIGHT_NAME",
 		"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
-		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released.",
-		"activation_hint": "Hold Space to activate"
+		"description": "Tactical flashlight — hold Space to illuminate in weapon direction and blind enemies caught in the beam. Bright white light, turns off when released.",
+		"desc_key": "ITEM_FLASHLIGHT_DESC",
+		"activation_hint": "Hold Space to activate",
+		"activation_hint_key": "ITEM_HINT_HOLD_SPACE_ACTIVATE"
 	},
 	ActiveItemType.HOMING_BULLETS: {
 		"name": "Homing Bullets",
+		"name_key": "ITEM_HOMING_BULLETS_NAME",
 		"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
-		"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 2 charges per battle, each lasts 1.2 seconds."
+		"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 2 charges per battle, each lasts 1.2 seconds.",
+		"desc_key": "ITEM_HOMING_BULLETS_DESC"
 	},
 	ActiveItemType.TELEPORT_BRACERS: {
 		"name": "Teleport Bracers",
+		"name_key": "ITEM_TELEPORT_BRACERS_NAME",
 		"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
 		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls.",
-		"activation_hint": "Hold Space to aim, release to teleport"
+		"desc_key": "ITEM_TELEPORT_BRACERS_DESC",
+		"activation_hint": "Hold Space to aim, release to teleport",
+		"activation_hint_key": "ITEM_HINT_HOLD_SPACE_AIM_RELEASE_TELEPORT"
 	},
 	ActiveItemType.BFF_PENDANT: {
 		"name": "BFF Pendant",
+		"name_key": "ITEM_BFF_PENDANT_NAME",
 		"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
 		"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle.",
-		"activation_hint": "Press Space to summon"
+		"desc_key": "ITEM_BFF_PENDANT_DESC",
+		"activation_hint": "Press Space to summon",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_SUMMON"
 	},
 	ActiveItemType.INVISIBILITY_SUIT: {
 		"name": "Invisibility",
+		"name_key": "ITEM_INVISIBILITY_NAME",
 		"icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png",
 		"description": "Invisibility suit — press Space to cloak (Predator-style ripple). Enemies cannot see you for 4 seconds. 2 charges per battle.",
-		"activation_hint": "Press Space to activate"
+		"desc_key": "ITEM_INVISIBILITY_DESC",
+		"activation_hint": "Press Space to activate",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_ACTIVATE"
 	},
 	ActiveItemType.BREAKER_BULLETS: {
 		"name": "Breaker Bullets",
+		"name_key": "ITEM_BREAKER_BULLETS_NAME",
 		"icon_path": "res://assets/sprites/weapons/breaker_bullets_icon.png",
-		"description": "Breaker bullets — passive: bullets explode 60px before hitting a wall, dealing 1 damage in a 15px radius and releasing shrapnel in a forward cone."
+		"description": "Breaker bullets — passive: bullets explode 60px before hitting a wall, dealing 1 damage in a 15px radius and releasing shrapnel in a forward cone.",
+		"desc_key": "ITEM_BREAKER_BULLETS_DESC"
 	},
 	ActiveItemType.FORCE_FIELD: {
 		"name": "Force Field",
+		"name_key": "ITEM_FORCE_FIELD_NAME",
 		"icon_path": "res://assets/sprites/weapons/force_field_icon.png",
 		"description": "Force field — hold Space to activate glowing shield. 100% projectile reflection, grenades bounce without detonating. 8 second depletable charge.",
-		"activation_hint": "Hold Space to activate"
+		"desc_key": "ITEM_FORCE_FIELD_DESC",
+		"activation_hint": "Hold Space to activate",
+		"activation_hint_key": "ITEM_HINT_HOLD_SPACE_ACTIVATE"
 	},
 	ActiveItemType.TRAJECTORY_GLASSES: {
 		"name": "Trajectory Glasses",
+		"name_key": "ITEM_TRAJECTORY_GLASSES_NAME",
 		"icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png",
 		"description": "Trajectory glasses — press Space to see ricochet trajectories for 10 seconds. Green laser shows valid ricochets, red shows impossible angles. 2 charges per battle. Passive: ricochet chance is increased by 30% at angles where ricochet is possible (green ray).",
-		"activation_hint": "Press Space to activate"
+		"desc_key": "ITEM_TRAJECTORY_GLASSES_DESC",
+		"activation_hint": "Press Space to activate",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_ACTIVATE"
 	},
 	ActiveItemType.LASER_SIGHT: {
 		"name": "Laser Sight",
+		"name_key": "ITEM_LASER_SIGHT_NAME",
 		"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
-		"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
+		"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty.",
+		"desc_key": "ITEM_LASER_SIGHT_DESC"
 	},
 	ActiveItemType.EXTENDED_MAGAZINE: {
 		"name": "Extended Magazine",
+		"name_key": "ITEM_EXTENDED_MAGAZINE_NAME",
 		"icon_path": "res://assets/sprites/weapons/extended_magazine_icon.png",
-		"description": "Extended magazine — passive: increases magazine size by 2.5x (including revolver cylinder), but reduces total ammo by 5%."
+		"description": "Extended magazine — passive: increases magazine size by 2.5x (including revolver cylinder), but reduces total ammo by 5%.",
+		"desc_key": "ITEM_EXTENDED_MAGAZINE_DESC"
 	},
 	ActiveItemType.LOUDSPEAKER: {
 		"name": "Loudspeaker",
+		"name_key": "ITEM_LOUDSPEAKER_NAME",
 		"icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
-		"description": "Loudspeaker — press Space to emit sound cone. 2 charges per battle.",
-		"activation_hint": "Press Space to activate"
+		"description": "???",
+		"desc_key": "ITEM_LOUDSPEAKER_DESC",
+		"activation_hint": "Press Space to activate",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_ACTIVATE"
 	},
 	ActiveItemType.BREACHING_CHARGES: {
 		"name": "Breaching Charges",
+		"name_key": "ITEM_BREACHING_CHARGES_NAME",
 		"icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png",
 		"description": "Breaching charges — hold Space near a wall to place a charge, release to attach it. Press Space to detonate: blasts open a passage in the wall. 2 charges per battle. Enemies on the other side are stunned and blinded for 3 seconds.",
-		"activation_hint": "Hold Space near wall to place, press Space to detonate"
+		"desc_key": "ITEM_BREACHING_CHARGES_DESC",
+		"activation_hint": "Hold Space near wall to place, press Space to detonate",
+		"activation_hint_key": "ITEM_HINT_HOLD_SPACE_NEAR_WALL"
 	},
 	ActiveItemType.ARMORED_SKIN: {
 		"name": "Armored Skin",
+		"name_key": "ITEM_ARMORED_SKIN_NAME",
 		"icon_path": "res://assets/sprites/weapons/armored_skin_icon.png",
-		"description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward in all directions."
+		"description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward in all directions.",
+		"desc_key": "ITEM_ARMORED_SKIN_DESC"
 	},
 	ActiveItemType.AUTO_RELOAD: {
 		"name": "Auto-Reload",
+		"name_key": "ITEM_AUTO_RELOAD_NAME",
 		"icon_path": "res://assets/sprites/weapons/auto_reload_icon.png",
-		"description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."
+		"description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill.",
+		"desc_key": "ITEM_AUTO_RELOAD_DESC"
 	},
 	ActiveItemType.DRILLING_BULLETS: {
 		"name": "Drilling Bullets",
+		"name_key": "ITEM_DRILLING_BULLETS_NAME",
 		"icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png",
 		"description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine. Bullets ignore walls (full damage through walls, no ricochet). One charge per battle.",
-		"activation_hint": "Press Space to activate"
+		"desc_key": "ITEM_DRILLING_BULLETS_DESC",
+		"activation_hint": "Press Space to activate",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_ACTIVATE"
 	},
 	ActiveItemType.RECOIL_COMPENSATOR: {
 		"name": "Recoil Compensator",
+		"name_key": "ITEM_RECOIL_COMPENSATOR_NAME",
 		"icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png",
 		"description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%. 15 second depletable charge, unlimited activations while charge lasts.",
-		"activation_hint": "Hold Space to activate"
+		"desc_key": "ITEM_RECOIL_COMPENSATOR_DESC",
+		"activation_hint": "Hold Space to activate",
+		"activation_hint_key": "ITEM_HINT_HOLD_SPACE_ACTIVATE"
 	},
 	ActiveItemType.COMBAT_DISPOSITION: {
 		"name": "Combat Disposition",
+		"name_key": "ITEM_COMBAT_DISPOSITION_NAME",
 		"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
-		"description": "Combat Disposition — passive: +0.77 damage, +1.1 fire rate, x2 speed on start (x4 on Black Metal). Taking damage reduces damage by 6.0, fire rate by 7.2, and halves movement speed."
+		"description": "Combat Disposition — passive: +0.77 damage, +1.1 fire rate, x2 speed on start (x4 on Black Metal). Taking damage reduces damage by 6.0, fire rate by 7.2, and halves movement speed.",
+		"desc_key": "ITEM_COMBAT_DISPOSITION_DESC"
 	},
 	ActiveItemType.EXPERIMENTAL_SAMPLE: {
 		"name": "Experimental Sample",
+		"name_key": "ITEM_EXPERIMENTAL_SAMPLE_NAME",
 		"icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png",
 		"description": "Experimental Sample — press Space to trigger a random active item effect (including items not yet unlocked). 1–5 charges per battle, randomised on level start.",
-		"activation_hint": "Press Space to trigger random effect"
+		"desc_key": "ITEM_EXPERIMENTAL_SAMPLE_DESC",
+		"activation_hint": "Press Space to trigger random effect",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_RANDOM"
 	},
 	ActiveItemType.FINE_MOTOR_SKILLS: {
 		"name": "Fine Motor Skills",
+		"name_key": "ITEM_FINE_MOTOR_SKILLS_NAME",
 		"icon_path": "res://assets/sprites/weapons/fine_motor_skills_icon.png",
 		"description": "Fine Motor Skills — press Space to instantly reload weapon and bring it to combat-ready state. Works with all weapons including revolver, shotgun, and sniper rifle. Unlimited charges, no cooldown.",
-		"activation_hint": "Press Space to reload"
+		"desc_key": "ITEM_FINE_MOTOR_SKILLS_DESC",
+		"activation_hint": "Press Space to reload",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_RELOAD"
 	},
 	ActiveItemType.DASH: {
 		"name": "Dash",
+		"name_key": "ITEM_DASH_NAME",
 		"icon_path": "res://assets/sprites/weapons/dash_icon.png",
 		"description": "Dash — press Space to dash in movement direction (Hyper Light Drifter style). Immune to all damage during dash. 3 charges with chain-dash, cooldown after all charges spent.",
-		"activation_hint": "Press Space to dash"
+		"desc_key": "ITEM_DASH_DESC",
+		"activation_hint": "Press Space to dash",
+		"activation_hint_key": "ITEM_HINT_PRESS_SPACE_DASH"
+	},
+	ActiveItemType.GRENADE_BAG: {
+		"name": "Grenade Bag",
+		"name_key": "ITEM_GRENADE_BAG_NAME",
+		"icon_path": "res://assets/sprites/weapons/grenade_bag_icon.png",
+		"description": "Grenade Bag — passive: increases starting grenade count based on selected type: 12 flash/stun grenades, 6 frag grenades, 2 gas or F-1 grenades.",
+		"desc_key": "ITEM_GRENADE_BAG_DESC"
 	}
 }
 
@@ -434,6 +502,40 @@ func has_fine_motor_skills() -> bool:
 ## Check if dash is currently equipped (Issue #1071).
 func has_dash() -> bool:
 	return current_active_item == ActiveItemType.DASH
+
+
+## Check if grenade bag is currently equipped (Issue #1590).
+## Also checks collected passive items for roguelike mode (Issue #1303).
+func has_grenade_bag() -> bool:
+	return current_active_item == ActiveItemType.GRENADE_BAG or ActiveItemType.GRENADE_BAG in collected_passive_items
+
+
+## Get the grenade count granted by the Grenade Bag item (Issue #1590).
+## Returns count based on the currently selected grenade type:
+##   FLASHBANG  → 12 grenades
+##   FRAG       → 6 grenades
+##   AGGRESSION_GAS → 2 grenades
+##   DEFENSIVE (F-1) → 2 grenades
+## Returns 0 when Grenade Bag is not equipped.
+func get_grenade_bag_count() -> int:
+	if not has_grenade_bag():
+		return 0
+	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
+	if grenade_manager == null:
+		return 6  # Fallback default
+	var grenade_type: int = grenade_manager.get("current_grenade_type")
+	# GrenadeType enum: FLASHBANG=0, FRAG=1, DEFENSIVE=2, AGGRESSION_GAS=3
+	match grenade_type:
+		0:  # FLASHBANG
+			return 12
+		1:  # FRAG
+			return 6
+		2:  # DEFENSIVE (F-1)
+			return 2
+		3:  # AGGRESSION_GAS
+			return 2
+		_:
+			return 6  # Fallback for unknown types
 
 
 ## Get the laser sight color (purple).

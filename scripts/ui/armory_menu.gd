@@ -31,48 +31,59 @@ const ITEM_CASE_ICON_PATH: String = "res://assets/sprites/weapons/item_case_icon
 const FIREARMS: Dictionary = {
 	"makarov_pm": {
 		"name": "PM",
+		"name_key": "WEAPON_PM_NAME",
 		"icon_path": "res://assets/sprites/weapons/makarov_pm_icon.png",
-		"description": "Makarov PM — 9x18mm starting pistol, 9-round magazine, medium ricochets"
+		"description": "Makarov PM — 9x18mm starting pistol, 9-round magazine, medium ricochets",
+		"desc_key": "WEAPON_PM_DESC"
 	},
 	"m16": {
 		"name": "M16",
+		"name_key": "WEAPON_M16_NAME",
 		"icon_path": "res://assets/sprites/weapons/m16_rifle.png",
-		"description": "Standard assault rifle with auto/burst modes, red laser sight"
+		"description": "Standard assault rifle with auto/burst modes, red laser sight",
+		"desc_key": "WEAPON_M16_DESC"
 	},
 	"shotgun": {
 		"name": "Shotgun",
+		"name_key": "WEAPON_SHOTGUN_NAME",
 		"icon_path": "res://assets/sprites/weapons/shotgun_icon.png",
-		"description": "Pump-action shotgun — shell-by-shell loading, multi-pellet spread"
+		"description": "Pump-action shotgun — shell-by-shell loading, multi-pellet spread",
+		"desc_key": "WEAPON_SHOTGUN_DESC"
 	},
 	"mini_uzi": {
 		"name": "Mini UZI",
+		"name_key": "WEAPON_MINI_UZI_NAME",
 		"icon_path": "res://assets/sprites/weapons/mini_uzi_icon.png",
-		"description": "High fire rate SMG — progressive spread, ricochets at shallow angles"
+		"description": "High fire rate SMG — progressive spread, ricochets at shallow angles",
+		"desc_key": "WEAPON_MINI_UZI_DESC"
 	},
 	"silenced_pistol": {
 		"name": "Silenced Pistol",
+		"name_key": "WEAPON_SILENCED_PISTOL_NAME",
 		"icon_path": "res://assets/sprites/weapons/silenced_pistol_icon.png",
-		"description": "Beretta M9 with suppressor — silent, stuns enemies on hit"
+		"description": "Beretta M9 with suppressor — silent, stuns enemies on hit",
+		"desc_key": "WEAPON_SILENCED_PISTOL_DESC"
 	},
 	"sniper": {
 		"name": "ASVK",
+		"name_key": "WEAPON_ASVK_NAME",
 		"icon_path": "res://assets/sprites/weapons/asvk_topdown.png",
-		"description": "ASVK anti-materiel sniper rifle - 12.7x108mm, 50 damage, penetrates 2 walls and enemies, bolt-action (Down→Left→Down→Up). 5-round magazine. RMB to scope (mouse wheel to zoom)."
+		"description": "ASVK anti-materiel sniper rifle - 12.7x108mm, 50 damage, penetrates 2 walls and enemies, bolt-action (Down→Left→Down→Up). 5-round magazine. RMB to scope (mouse wheel to zoom).",
+		"desc_key": "WEAPON_ASVK_DESC"
 	},
 	"revolver": {
 		"name": "RSh-12",
+		"name_key": "WEAPON_RSH12_NAME",
 		"icon_path": "res://assets/sprites/weapons/revolver_icon.png",
-		"description": "RSh-12 heavy revolver - 12.7x55mm STs-130, 20 damage, penetrates walls (200px), weak ricochet, strong recoil. 5-round cylinder. Comfortable aiming like silenced pistol."
+		"description": "RSh-12 heavy revolver - 12.7x55mm STs-130, 20 damage, penetrates walls (200px), weak ricochet, strong recoil. 5-round cylinder. Comfortable aiming like silenced pistol.",
+		"desc_key": "WEAPON_RSH12_DESC"
 	},
 	"ak_gl": {
 		"name": "AK + GL",
+		"name_key": "WEAPON_AK_GL_NAME",
 		"icon_path": "res://assets/sprites/weapons/ak_gl_icon.png",
-		"description": "AK with GP-25 underbarrel grenade launcher — 7.62x39mm, 30-round magazine, RMB fires VOG-25 grenade (1 shot)"
-	},
-	"smg": {
-		"name": "???",
-		"icon_path": "",
-		"description": "Coming soon"
+		"description": "AK with GP-25 underbarrel grenade launcher — 7.62x39mm, 30-round magazine, RMB fires VOG-25 grenade (1 shot)",
+		"desc_key": "WEAPON_AK_GL_DESC"
 	}
 }
 
@@ -92,10 +103,14 @@ const WEAPON_RESOURCE_PATHS: Dictionary = {
 const MAX_WEAPON_ROWS_COLLAPSED: int = 2
 
 ## Maximum number of visible grenade rows before accordion hides the rest.
-const MAX_GRENADE_ROWS_COLLAPSED: int = 1
+## Set to 2 so all 5 grenade types (including Drone added in Issue #1628) are visible by default.
+const MAX_GRENADE_ROWS_COLLAPSED: int = 2
 
-## Number of columns in the weapon/grenade grids.
+## Number of columns in the weapon grid.
 const GRID_COLUMNS: int = 4
+
+## Number of columns in the grenade grid (8 per row to fit all types without wrapping).
+const GRENADE_GRID_COLUMNS: int = 8
 
 ## Number of columns in the special items grid.
 const SPECIAL_GRID_COLUMNS: int = 7
@@ -115,6 +130,11 @@ var _apply_button: Button
 var _weapon_accordion_button: Button
 var _grenade_accordion_button: Button
 var _active_item_accordion_button: Button
+var _title_label: Label
+var _weapons_header_label: Label
+var _grenades_header_label: Label
+var _special_header_label: Label
+var _loadout_header_label: Label
 
 ## Currently pending weapon selection (not yet applied).
 var _pending_weapon_id: String = ""
@@ -204,6 +224,9 @@ var _shine_overlays: Dictionary = {}
 ## Dictionary: button -> ColorRect
 var _accordion_shine_overlays: Dictionary = {}
 
+## Silver shine overlay shown on the Apply button when there are pending (unapplied) changes (Issue #1762).
+var _apply_button_shine_overlay: ColorRect = null
+
 ## Tracks unlock-progress bar ColorRect nodes added to locked slots with quantitative conditions.
 ## Dictionary: slot -> ColorRect (Issue #1591)
 var _unlock_progress_bars: Dictionary = {}
@@ -271,6 +294,11 @@ func _ready() -> void:
 	# Animate kill-progress bars on armory open (Issue #1591)
 	call_deferred("_animate_all_unlock_progress_bars")
 
+	# Connect to locale changes so tooltips and labels update on language switch (Issue #1802)
+	var localization_settings: Node = get_node_or_null("/root/LocalizationSettings")
+	if localization_settings and localization_settings.has_signal("locale_changed"):
+		localization_settings.locale_changed.connect(_on_locale_changed)
+
 
 ## Load weapon .tres resources for stats display.
 func _load_weapon_resources() -> void:
@@ -278,6 +306,93 @@ func _load_weapon_resources() -> void:
 		var path: String = WEAPON_RESOURCE_PATHS[weapon_id]
 		if ResourceLoader.exists(path):
 			_weapon_resources[weapon_id] = load(path)
+
+
+## Called when the locale changes. Refreshes all translated text and tooltips (Issue #1802).
+func _on_locale_changed(_new_locale: String) -> void:
+	_refresh_all_texts()
+
+
+## Refresh all UI text that depends on the current locale.
+## Updates static labels, button texts, and slot tooltips for locked items.
+func _refresh_all_texts() -> void:
+	# Static labels
+	if _title_label:
+		_title_label.text = tr("ARMORY_TITLE")
+	if _weapons_header_label:
+		_weapons_header_label.text = tr("ARMORY_WEAPONS")
+	if _grenades_header_label:
+		_grenades_header_label.text = tr("ARMORY_GRENADES")
+	if _special_header_label:
+		_special_header_label.text = tr("ARMORY_SPECIAL")
+	if _loadout_header_label:
+		_loadout_header_label.text = tr("ARMORY_CURRENT_LOADOUT")
+	if _back_button:
+		_back_button.text = tr("BACK")
+	if _apply_button:
+		_apply_button.text = tr("APPLY")
+	if _weapon_accordion_button:
+		_weapon_accordion_button.text = tr("ARMORY_SHOW_LESS") if _weapons_expanded else tr("ARMORY_SHOW_ALL")
+	if _grenade_accordion_button:
+		_grenade_accordion_button.text = tr("ARMORY_SHOW_LESS") if _grenades_expanded else tr("ARMORY_SHOW_ALL")
+	if _active_item_accordion_button:
+		_active_item_accordion_button.text = tr("ARMORY_SHOW_LESS") if _active_items_expanded else tr("ARMORY_SHOW_ALL")
+
+	# Weapon slot tooltips and names
+	for weapon_id in _weapon_slots:
+		var slot: PanelContainer = _weapon_slots[weapon_id]
+		var is_unlocked: bool = slot.get_meta("is_unlocked", true)
+		if is_unlocked:
+			var weapon_data: Dictionary = FIREARMS.get(weapon_id, {})
+			var desc_key: String = weapon_data.get("desc_key", "")
+			slot.tooltip_text = tr(desc_key) if desc_key != "" else weapon_data.get("description", "")
+		else:
+			var unlock_desc: String = ""
+			if _unlock_manager and _unlock_manager.has_method("get_weapon_unlock_description"):
+				unlock_desc = _unlock_manager.get_weapon_unlock_description(weapon_id)
+			if _unlock_manager and _unlock_manager.has_method("get_weapon_kill_condition_counts"):
+				var counts: Dictionary = _unlock_manager.get_weapon_kill_condition_counts(weapon_id)
+				if not counts.is_empty():
+					unlock_desc += "\n" + tr("UNLOCK_COND_PROGRESS") % [counts["current"], counts["max"]]
+			slot.tooltip_text = unlock_desc
+
+	# Grenade slot tooltips
+	for grenade_type in _grenade_slots:
+		var slot: PanelContainer = _grenade_slots[grenade_type]
+		var is_unlocked: bool = slot.get_meta("is_unlocked", true)
+		if is_unlocked:
+			if _grenade_manager:
+				var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
+				var desc_key: String = gdata.get("desc_key", "")
+				slot.tooltip_text = tr(desc_key) if desc_key != "" else gdata.get("description", "")
+		else:
+			var unlock_desc: String = ""
+			if _unlock_manager and _unlock_manager.has_method("get_grenade_unlock_description"):
+				unlock_desc = _unlock_manager.get_grenade_unlock_description(grenade_type)
+			if _unlock_manager and _unlock_manager.has_method("get_grenade_kill_condition_counts"):
+				var counts: Dictionary = _unlock_manager.get_grenade_kill_condition_counts(grenade_type)
+				if not counts.is_empty():
+					unlock_desc += "\n" + tr("UNLOCK_COND_PROGRESS") % [counts["current"], counts["max"]]
+			slot.tooltip_text = unlock_desc
+
+	# Active item slot tooltips
+	for item_type in _active_item_slots:
+		var slot: PanelContainer = _active_item_slots[item_type]
+		var is_unlocked: bool = slot.get_meta("is_unlocked", true)
+		if is_unlocked:
+			if _active_item_manager:
+				var adata: Dictionary = _active_item_manager.get_active_item_data(item_type)
+				var desc_key: String = adata.get("desc_key", "")
+				slot.tooltip_text = tr(desc_key) if desc_key != "" else adata.get("description", "")
+		else:
+			var unlock_desc: String = ""
+			if _unlock_manager and _unlock_manager.has_method("get_active_item_unlock_description"):
+				unlock_desc = _unlock_manager.get_active_item_unlock_description(item_type)
+			if _unlock_manager and _unlock_manager.has_method("get_active_item_kill_condition_counts"):
+				var counts: Dictionary = _unlock_manager.get_active_item_kill_condition_counts(item_type)
+				if not counts.is_empty():
+					unlock_desc += "\n" + tr("UNLOCK_COND_PROGRESS") % [counts["current"], counts["max"]]
+			slot.tooltip_text = unlock_desc
 
 
 ## Build the complete UI layout programmatically.
@@ -340,8 +455,9 @@ func _build_ui() -> void:
 	margin.add_child(main_vbox)
 
 	# Title with neon styling
-	var title := Label.new()
-	title.text = "ARMORY"
+	_title_label = Label.new()
+	var title: Label = _title_label
+	title.text = tr("ARMORY_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var neon_label_settings = load("res://resources/themes/neon_label_settings.tres")
 	if neon_label_settings:
@@ -394,13 +510,13 @@ func _build_ui() -> void:
 	main_vbox.add_child(button_hbox)
 
 	_back_button = Button.new()
-	_back_button.text = "Back"
+	_back_button.text = tr("BACK")
 	_back_button.custom_minimum_size = Vector2(140, 36)
 	_back_button.pressed.connect(_on_back_pressed)
 	button_hbox.add_child(_back_button)
 
 	_apply_button = Button.new()
-	_apply_button.text = "Apply"
+	_apply_button.text = tr("APPLY")
 	_apply_button.custom_minimum_size = Vector2(140, 36)
 	_apply_button.pressed.connect(_on_apply_pressed)
 	_apply_button.disabled = true
@@ -483,8 +599,9 @@ func _build_sidebar() -> VBoxContainer:
 	sidebar_margin.add_child(stats_vbox)
 
 	# Header
-	var loadout_header := Label.new()
-	loadout_header.text = "CURRENT LOADOUT"
+	_loadout_header_label = Label.new()
+	var loadout_header: Label = _loadout_header_label
+	loadout_header.text = tr("ARMORY_CURRENT_LOADOUT")
 	loadout_header.add_theme_font_size_override("font_size", 14)
 	loadout_header.add_theme_color_override("font_color", Color(0.7, 0.75, 0.8, 1.0))
 	stats_vbox.add_child(loadout_header)
@@ -540,7 +657,7 @@ func _build_right_area() -> VBoxContainer:
 	right_vbox.add_theme_constant_override("separation", 6)
 
 	# --- WEAPONS SECTION ---
-	_add_category_header(right_vbox, "WEAPONS")
+	_weapons_header_label = _add_category_header(right_vbox, tr("ARMORY_WEAPONS"))
 	_weapon_grid = GridContainer.new()
 	_weapon_grid.columns = GRID_COLUMNS
 	_weapon_grid.layout_mode = 2
@@ -571,7 +688,7 @@ func _build_right_area() -> VBoxContainer:
 
 	# Weapon accordion button (only shown if items overflow)
 	_weapon_accordion_button = Button.new()
-	_weapon_accordion_button.text = "Show all ▼"
+	_weapon_accordion_button.text = tr("ARMORY_SHOW_ALL")
 	_weapon_accordion_button.add_theme_font_size_override("font_size", 11)
 	_weapon_accordion_button.pressed.connect(_toggle_weapon_accordion)
 	right_vbox.add_child(_weapon_accordion_button)
@@ -587,9 +704,9 @@ func _build_right_area() -> VBoxContainer:
 	right_vbox.add_child(grenade_sep)
 
 	# --- GRENADES SECTION ---
-	_add_category_header(right_vbox, "GRENADES")
+	_grenades_header_label = _add_category_header(right_vbox, tr("ARMORY_GRENADES"))
 	_grenade_grid = GridContainer.new()
-	_grenade_grid.columns = GRID_COLUMNS
+	_grenade_grid.columns = GRENADE_GRID_COLUMNS
 	_grenade_grid.layout_mode = 2
 	_grenade_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_grenade_grid.add_theme_constant_override("h_separation", 6)
@@ -598,7 +715,7 @@ func _build_right_area() -> VBoxContainer:
 
 	# Populate grenade grid from GrenadeManager
 	var grenade_index: int = 0
-	var max_visible_grenades: int = MAX_GRENADE_ROWS_COLLAPSED * GRID_COLUMNS
+	var max_visible_grenades: int = MAX_GRENADE_ROWS_COLLAPSED * GRENADE_GRID_COLUMNS
 	if _grenade_manager:
 		for grenade_type in _grenade_manager.get_all_grenade_types():
 			var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
@@ -610,10 +727,12 @@ func _build_right_area() -> VBoxContainer:
 			var condition_met: bool = false
 			if not is_unlocked and _unlock_manager and _unlock_manager.has_method("is_grenade_condition_met"):
 				condition_met = _unlock_manager.is_grenade_condition_met(grenade_type)
+			var _gname_key: String = gdata.get("name_key", "")
+			var _gdesc_key: String = gdata.get("desc_key", "")
 			var grenade_info := {
-				"name": gdata.get("name", "Unknown"),
+				"name": tr(_gname_key) if _gname_key != "" else gdata.get("name", "Unknown"),
 				"icon_path": gdata.get("icon_path", ""),
-				"description": gdata.get("description", ""),
+				"description": tr(_gdesc_key) if _gdesc_key != "" else gdata.get("description", ""),
 				"grenade_type": grenade_type
 			}
 			var slot := _create_item_slot(str(grenade_type), grenade_info, true, is_unlocked, condition_met)
@@ -625,7 +744,7 @@ func _build_right_area() -> VBoxContainer:
 
 	# Grenade accordion button (only shown if items overflow)
 	_grenade_accordion_button = Button.new()
-	_grenade_accordion_button.text = "Show all ▼"
+	_grenade_accordion_button.text = tr("ARMORY_SHOW_ALL")
 	_grenade_accordion_button.add_theme_font_size_override("font_size", 11)
 	_grenade_accordion_button.pressed.connect(_toggle_grenade_accordion)
 	right_vbox.add_child(_grenade_accordion_button)
@@ -641,7 +760,7 @@ func _build_right_area() -> VBoxContainer:
 	right_vbox.add_child(active_sep)
 
 	# --- SPECIAL SECTION ---
-	_add_category_header(right_vbox, "SPECIAL")
+	_special_header_label = _add_category_header(right_vbox, tr("ARMORY_SPECIAL"))
 	_active_item_grid = GridContainer.new()
 	_active_item_grid.columns = SPECIAL_GRID_COLUMNS
 	_active_item_grid.layout_mode = 2
@@ -664,10 +783,12 @@ func _build_right_area() -> VBoxContainer:
 			var condition_met: bool = false
 			if not is_unlocked and _unlock_manager and _unlock_manager.has_method("is_active_item_condition_met"):
 				condition_met = _unlock_manager.is_active_item_condition_met(item_type)
+			var _aname_key: String = adata.get("name_key", "")
+			var _adesc_key: String = adata.get("desc_key", "")
 			var item_info := {
-				"name": adata.get("name", "Unknown"),
+				"name": tr(_aname_key) if _aname_key != "" else adata.get("name", "Unknown"),
 				"icon_path": adata.get("icon_path", ""),
-				"description": adata.get("description", ""),
+				"description": tr(_adesc_key) if _adesc_key != "" else adata.get("description", ""),
 				"active_item_type": item_type
 			}
 			var slot := _create_active_item_slot(str(item_type), item_info, item_type, is_unlocked, condition_met)
@@ -679,7 +800,7 @@ func _build_right_area() -> VBoxContainer:
 
 	# Active item accordion button (only shown if items overflow)
 	_active_item_accordion_button = Button.new()
-	_active_item_accordion_button.text = "Show all ▼"
+	_active_item_accordion_button.text = tr("ARMORY_SHOW_ALL")
 	_active_item_accordion_button.add_theme_font_size_override("font_size", 11)
 	_active_item_accordion_button.pressed.connect(_toggle_active_item_accordion)
 	right_vbox.add_child(_active_item_accordion_button)
@@ -745,7 +866,7 @@ func _apply_accordion_button_default_style(button: Button) -> void:
 func _toggle_weapon_accordion() -> void:
 	_weapons_expanded = not _weapons_expanded
 	if _weapons_expanded:
-		_weapon_accordion_button.text = "Collapse ▲"
+		_weapon_accordion_button.text = tr("ARMORY_SHOW_LESS")
 		_apply_accordion_button_default_style(_weapon_accordion_button)
 		for slot in _weapon_overflow_slots:
 			slot.visible = true
@@ -757,7 +878,7 @@ func _toggle_weapon_accordion() -> void:
 
 ## Collapse weapon overflow slots.
 func _apply_accordion_collapsed_weapons() -> void:
-	_weapon_accordion_button.text = "Show all ▼"
+	_weapon_accordion_button.text = tr("ARMORY_SHOW_ALL")
 	for slot in _weapon_overflow_slots:
 		slot.visible = false
 	if _has_condition_met_in_overflow(_weapon_overflow_slots):
@@ -770,7 +891,7 @@ func _apply_accordion_collapsed_weapons() -> void:
 func _toggle_grenade_accordion() -> void:
 	_grenades_expanded = not _grenades_expanded
 	if _grenades_expanded:
-		_grenade_accordion_button.text = "Collapse ▲"
+		_grenade_accordion_button.text = tr("ARMORY_SHOW_LESS")
 		_apply_accordion_button_default_style(_grenade_accordion_button)
 		for slot in _grenade_overflow_slots:
 			slot.visible = true
@@ -782,7 +903,7 @@ func _toggle_grenade_accordion() -> void:
 
 ## Collapse grenade overflow slots.
 func _apply_accordion_collapsed_grenades() -> void:
-	_grenade_accordion_button.text = "Show all ▼"
+	_grenade_accordion_button.text = tr("ARMORY_SHOW_ALL")
 	for slot in _grenade_overflow_slots:
 		slot.visible = false
 	if _has_condition_met_in_overflow(_grenade_overflow_slots):
@@ -795,7 +916,7 @@ func _apply_accordion_collapsed_grenades() -> void:
 func _toggle_active_item_accordion() -> void:
 	_active_items_expanded = not _active_items_expanded
 	if _active_items_expanded:
-		_active_item_accordion_button.text = "Collapse ▲"
+		_active_item_accordion_button.text = tr("ARMORY_SHOW_LESS")
 		_apply_accordion_button_default_style(_active_item_accordion_button)
 		for slot in _active_item_overflow_slots:
 			slot.visible = true
@@ -807,7 +928,7 @@ func _toggle_active_item_accordion() -> void:
 
 ## Collapse active item overflow slots.
 func _apply_accordion_collapsed_active_items() -> void:
-	_active_item_accordion_button.text = "Show all ▼"
+	_active_item_accordion_button.text = tr("ARMORY_SHOW_ALL")
 	for slot in _active_item_overflow_slots:
 		slot.visible = false
 	if _has_condition_met_in_overflow(_active_item_overflow_slots):
@@ -816,13 +937,14 @@ func _apply_accordion_collapsed_active_items() -> void:
 		_apply_accordion_button_default_style(_active_item_accordion_button)
 
 
-## Add a styled category header label.
-func _add_category_header(parent: VBoxContainer, text: String) -> void:
+## Add a styled category header label and return it for later text refresh.
+func _add_category_header(parent: VBoxContainer, text: String) -> Label:
 	var header := Label.new()
 	header.text = text
 	header.add_theme_font_size_override("font_size", 14)
 	header.add_theme_color_override("font_color", Color(0.7, 0.75, 0.8, 1.0))
 	parent.add_child(header)
+	return header
 
 
 ## Create an item slot (used for both weapons and grenades).
@@ -884,7 +1006,8 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 	# Item name - hidden for locked items (requirement: names of closed items should be hidden)
 	var name_label := Label.new()
 	if is_unlocked:
-		name_label.text = item_data.get("name", "???")
+		var _slot_name_key: String = item_data.get("name_key", "")
+		name_label.text = tr(_slot_name_key) if _slot_name_key != "" else item_data.get("name", "???")
 	else:
 		# Hide name for locked items - empty label preserves slot layout
 		name_label.text = ""
@@ -894,7 +1017,8 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 
 	# Tooltip: description for unlocked items, unlock condition for locked items
 	if is_unlocked:
-		slot.tooltip_text = item_data.get("description", "")
+		var _slot_desc_key: String = item_data.get("desc_key", "")
+		slot.tooltip_text = tr(_slot_desc_key) if _slot_desc_key != "" else item_data.get("description", "")
 	else:
 		var unlock_desc: String = ""
 		if _unlock_manager:
@@ -906,7 +1030,7 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 				if _unlock_manager.has_method("get_grenade_kill_condition_counts"):
 					var counts: Dictionary = _unlock_manager.get_grenade_kill_condition_counts(grenade_type)
 					if not counts.is_empty():
-						unlock_desc += "\nProgress: %d / %d" % [counts["current"], counts["max"]]
+						unlock_desc += "\n" + tr("UNLOCK_COND_PROGRESS") % [counts["current"], counts["max"]]
 			else:
 				if _unlock_manager.has_method("get_weapon_unlock_description"):
 					unlock_desc = _unlock_manager.get_weapon_unlock_description(item_id)
@@ -914,7 +1038,7 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 				if _unlock_manager.has_method("get_weapon_kill_condition_counts"):
 					var counts: Dictionary = _unlock_manager.get_weapon_kill_condition_counts(item_id)
 					if not counts.is_empty():
-						unlock_desc += "\nProgress: %d / %d" % [counts["current"], counts["max"]]
+						unlock_desc += "\n" + tr("UNLOCK_COND_PROGRESS") % [counts["current"], counts["max"]]
 		slot.tooltip_text = unlock_desc
 
 	# Make all items clickable (unlocked for selection, locked for unlocking)
@@ -961,7 +1085,8 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 	vbox.add_child(icon_container)
 
 	var icon_path: String = item_data.get("icon_path", "")
-	var item_name: String = item_data.get("name", "")
+	var _ai_name_key: String = item_data.get("name_key", "")
+	var item_name: String = tr(_ai_name_key) if _ai_name_key != "" else item_data.get("name", "")
 
 	if not is_unlocked:
 		# Locked active item: show item case icon
@@ -1007,7 +1132,8 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 
 	# Tooltip: description for unlocked items, unlock condition for locked items
 	if is_unlocked:
-		slot.tooltip_text = item_data.get("description", "")
+		var _ai_desc_key: String = item_data.get("desc_key", "")
+		slot.tooltip_text = tr(_ai_desc_key) if _ai_desc_key != "" else item_data.get("description", "")
 	else:
 		var unlock_desc: String = ""
 		if _unlock_manager and _unlock_manager.has_method("get_active_item_unlock_description"):
@@ -1016,7 +1142,7 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 		if _unlock_manager and _unlock_manager.has_method("get_active_item_kill_condition_counts"):
 			var counts: Dictionary = _unlock_manager.get_active_item_kill_condition_counts(item_type)
 			if not counts.is_empty():
-				unlock_desc += "\nProgress: %d / %d" % [counts["current"], counts["max"]]
+				unlock_desc += "\n" + tr("UNLOCK_COND_PROGRESS") % [counts["current"], counts["max"]]
 		slot.tooltip_text = unlock_desc
 
 	# Make all items clickable (unlocked for selection, locked for unlocking)
@@ -1222,9 +1348,50 @@ func _has_pending_changes() -> bool:
 
 
 ## Update the Apply button enabled state.
+## When there are pending changes, enables the button and adds a silver shine overlay (Issue #1762).
+## When there are no pending changes, disables the button and removes the shine overlay.
 func _update_apply_button_state() -> void:
 	if _apply_button:
-		_apply_button.disabled = not _has_pending_changes()
+		var has_changes: bool = _has_pending_changes()
+		_apply_button.disabled = not has_changes
+		if has_changes:
+			_add_apply_button_silver_shine()
+		else:
+			_remove_apply_button_silver_shine()
+
+
+## Add an animated silver shine overlay to the Apply button (Issue #1762).
+## Uses the same gold_shine.gdshader as condition-met slots, but with silver colors
+## overlaid on top of the existing green button background.
+func _add_apply_button_silver_shine() -> void:
+	if not _apply_button:
+		return
+	# Already showing — don't duplicate.
+	if is_instance_valid(_apply_button_shine_overlay):
+		return
+	var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
+	if shine_shader:
+		var mat := ShaderMaterial.new()
+		mat.shader = shine_shader
+		mat.set_shader_parameter("horizontal_sweep", true)
+		mat.set_shader_parameter("cycle_duration", 2.0)
+		# Silver palette: bright white-grey sweep + slightly warm silver burst.
+		mat.set_shader_parameter("sweep_color", Color(0.85, 0.90, 0.95, 1.0))
+		mat.set_shader_parameter("burst_color", Color(0.75, 0.80, 0.88, 1.0))
+		var overlay := ColorRect.new()
+		overlay.name = "SilverShineOverlay"
+		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.material = mat
+		_apply_button.add_child(overlay)
+		_apply_button_shine_overlay = overlay
+
+
+## Remove the silver shine overlay from the Apply button (Issue #1762).
+func _remove_apply_button_silver_shine() -> void:
+	if is_instance_valid(_apply_button_shine_overlay):
+		_apply_button_shine_overlay.queue_free()
+	_apply_button_shine_overlay = null
 
 
 ## Apply the pending selection: update GameManager/GrenadeManager/ActiveItemManager and restart.
@@ -1358,23 +1525,30 @@ func _update_weapon_stats() -> void:
 		return
 
 	var weapon_info: Dictionary = FIREARMS.get(_pending_weapon_id, {})
-	var weapon_name: String = weapon_info.get("name", "Unknown")
+	var _wname_key: String = weapon_info.get("name_key", "")
+	var weapon_name: String = tr(_wname_key) if _wname_key != "" else weapon_info.get("name", "Unknown")
 
 	# Try to load weapon resource for detailed stats
 	var resource = _weapon_resources.get(_pending_weapon_id)
 
 	var bbcode: String = ""
-	bbcode += "[b][color=#d4c896]WEAPON: %s[/color][/b]\n" % weapon_name
+	bbcode += "[b][color=#d4c896]%s %s[/color][/b]\n" % [tr("ARMORY_SECTION_WEAPON"), weapon_name]
 
 	if resource:
 		# Fire mode
-		var fire_mode: String = "Auto" if resource.get("IsAutomatic") else "Semi-Auto"
-		bbcode += "[color=#aab0b8]Fire Mode:[/color] %s\n" % fire_mode
+		var fire_mode: String = tr("ARMORY_STAT_FIRE_MODE_AUTO") if resource.get("IsAutomatic") else tr("ARMORY_STAT_FIRE_MODE_SEMI")
+		bbcode += "[color=#aab0b8]%s:[/color] %s\n" % [tr("ARMORY_STAT_FIRE_MODE"), fire_mode]
 
-		# Caliber
-		var caliber = resource.get("Caliber")
-		if caliber:
-			bbcode += "[color=#aab0b8]Caliber:[/color] %s\n" % caliber.caliber_name
+		# Caliber — use CaliberName mirror property (Issue #1708)
+		# WeaponData.Caliber is a C#-backed resource; GDScript dot-access on nested
+		# GDScript properties of C#-owned resources returns null due to Godot interop
+		# (see godotengine/godot#67167). CaliberName mirrors CaliberData.caliber_name
+		# directly on WeaponData to avoid the interop issue.
+		var caliber_name: String = resource.get("CaliberName")
+		FileLogger.info("[ArmoryMenu] weapon=%s caliber_name=%s" % [
+			_pending_weapon_id, caliber_name])
+		if caliber_name != "":
+			bbcode += "[color=#aab0b8]%s:[/color] %s\n" % [tr("ARMORY_STAT_CALIBER"), caliber_name]
 
 		# Damage & Fire rate
 		var damage: float = resource.get("Damage")
@@ -1382,49 +1556,50 @@ func _update_weapon_stats() -> void:
 		var pellets: int = resource.get("BulletsPerShot")
 		var damage_text: String = str(damage)
 		if pellets > 1:
-			damage_text += " x%d pellets" % pellets
-		bbcode += "[color=#aab0b8]Damage:[/color] %s\n" % damage_text
-		bbcode += "[color=#aab0b8]Rate:[/color] %.0f/s\n" % fire_rate
+			damage_text += " " + tr("ARMORY_STAT_PELLETS") % pellets
+		bbcode += "[color=#aab0b8]%s:[/color] %s\n" % [tr("ARMORY_STAT_DAMAGE"), damage_text]
+		bbcode += "[color=#aab0b8]%s:[/color] %.0f/s\n" % [tr("ARMORY_STAT_RATE"), fire_rate]
 
 		# Magazine
 		var mag_size: int = resource.get("MagazineSize")
 		var reserve: int = resource.get("MaxReserveAmmo")
-		bbcode += "[color=#aab0b8]Mag:[/color] %d rnd  [color=#aab0b8]Reserve:[/color] %d\n" % [mag_size, reserve]
+		bbcode += "[color=#aab0b8]%s:[/color] %d rnd  [color=#aab0b8]%s:[/color] %d\n" % [tr("ARMORY_STAT_MAG"), mag_size, tr("ARMORY_STAT_RESERVE"), reserve]
 
 		# Reload time
 		var reload: float = resource.get("ReloadTime")
-		bbcode += "[color=#aab0b8]Reload:[/color] %.1fs\n" % reload
+		bbcode += "[color=#aab0b8]%s:[/color] %.1fs\n" % [tr("ARMORY_STAT_RELOAD"), reload]
 
 		# Range & Spread
 		var weapon_range: float = resource.get("Range")
 		var spread: float = resource.get("SpreadAngle")
-		bbcode += "[color=#aab0b8]Range:[/color] %.0fpx\n" % weapon_range
-		bbcode += "[color=#aab0b8]Spread:[/color] %.1f°\n" % spread
+		bbcode += "[color=#aab0b8]%s:[/color] %.0fpx\n" % [tr("ARMORY_STAT_RANGE"), weapon_range]
+		bbcode += "[color=#aab0b8]%s:[/color] %.1f°\n" % [tr("ARMORY_STAT_SPREAD"), spread]
 
 		# Loudness
 		var loudness: float = resource.get("Loudness")
 		var loudness_text: String
 		if loudness <= 0.0:
-			loudness_text = "[color=#66bb6a]Silent[/color]"
+			loudness_text = "[color=#66bb6a]%s[/color]" % tr("ARMORY_STAT_SILENT")
 		elif loudness < 1500.0:
 			loudness_text = "[color=#ffa726]%.0fpx[/color]" % loudness
 		else:
 			loudness_text = "[color=#ef5350]%.0fpx[/color]" % loudness
-		bbcode += "[color=#aab0b8]Loudness:[/color] %s\n" % loudness_text
+		bbcode += "[color=#aab0b8]%s:[/color] %s\n" % [tr("ARMORY_STAT_LOUDNESS"), loudness_text]
 
-		# Caliber properties (ricochet / penetration)
-		if caliber:
-			var features: Array[String] = []
-			if caliber.can_ricochet:
-				features.append("Ricochet")
-			if caliber.can_penetrate:
-				features.append("Wall Pen. (%dpx)" % int(caliber.max_penetration_distance))
-			if features.size() > 0:
-				bbcode += "[color=#aab0b8]Ballistics:[/color] %s" % ", ".join(features)
-			else:
-				bbcode += "[color=#aab0b8]Ballistics:[/color] Standard"
+		# Caliber properties (ricochet / penetration) — use mirror properties (Issue #1708)
+		var features: Array[String] = []
+		if resource.get("CaliberCanRicochet"):
+			features.append(tr("ARMORY_STAT_RICOCHET"))
+		if resource.get("CaliberCanPenetrate"):
+			features.append(tr("ARMORY_STAT_WALL_PEN") % int(resource.get("CaliberMaxPenetrationDistance")))
+		if features.size() > 0:
+			bbcode += "[color=#aab0b8]%s:[/color] %s" % [tr("ARMORY_STAT_BALLISTICS"), ", ".join(features)]
+		else:
+			bbcode += "[color=#aab0b8]%s:[/color] %s" % [tr("ARMORY_STAT_BALLISTICS"), tr("ARMORY_STAT_STANDARD")]
 	else:
-		bbcode += "[color=#888888]%s[/color]" % weapon_info.get("description", "No data available")
+		var _wdesc_key: String = weapon_info.get("desc_key", "")
+		var _wdesc: String = tr(_wdesc_key) if _wdesc_key != "" else weapon_info.get("description", tr("ARMORY_NO_DATA"))
+		bbcode += "[color=#888888]%s[/color]" % _wdesc
 
 	_weapon_stats_label.text = bbcode
 
@@ -1438,13 +1613,15 @@ func _update_grenade_stats() -> void:
 	if _grenade_manager:
 		grenade_data = _grenade_manager.get_grenade_data(_pending_grenade_type)
 
-	var grenade_name: String = grenade_data.get("name", "Unknown")
-	var grenade_desc: String = grenade_data.get("description", "No data available")
+	var _grname_key: String = grenade_data.get("name_key", "")
+	var grenade_name: String = tr(_grname_key) if _grname_key != "" else grenade_data.get("name", "Unknown")
+	var _grdesc_key: String = grenade_data.get("desc_key", "")
+	var grenade_desc: String = tr(_grdesc_key) if _grdesc_key != "" else grenade_data.get("description", tr("ARMORY_NO_DATA"))
 
 	var bbcode: String = ""
-	bbcode += "[b][color=#d4c896]GRENADE: %s[/color][/b]\n" % grenade_name
+	bbcode += "[b][color=#d4c896]%s %s[/color][/b]\n" % [tr("ARMORY_SECTION_GRENADE"), grenade_name]
 	bbcode += "[color=#aab0b8]%s[/color]\n" % grenade_desc
-	bbcode += "\n[color=#888888]Press G + RMB drag to throw[/color]"
+	bbcode += "\n[color=#888888]%s[/color]" % tr("ARMORY_GRENADE_THROW_HINT")
 
 	_grenade_stats_label.text = bbcode
 
@@ -1458,14 +1635,17 @@ func _update_active_item_stats() -> void:
 	if _active_item_manager:
 		item_data = _active_item_manager.get_active_item_data(_pending_active_item_type)
 
-	var item_name: String = item_data.get("name", "None")
-	var item_desc: String = item_data.get("description", "No active item equipped.")
+	var _ainame_key: String = item_data.get("name_key", "")
+	var item_name: String = tr(_ainame_key) if _ainame_key != "" else item_data.get("name", "None")
+	var _aidesc_key: String = item_data.get("desc_key", "")
+	var item_desc: String = tr(_aidesc_key) if _aidesc_key != "" else item_data.get("description", tr("ARMORY_NO_ACTIVE_ITEM_DESC"))
 
 	var bbcode: String = ""
-	bbcode += "[b][color=#d4c896]SPECIAL: %s[/color][/b]\n" % item_name
+	bbcode += "[b][color=#d4c896]%s %s[/color][/b]\n" % [tr("ARMORY_SECTION_ACTIVE_ITEM"), item_name]
 	bbcode += "[color=#aab0b8]%s[/color]\n" % item_desc
 	if _pending_active_item_type != 0:  # Not "None" (ActiveItemType.NONE)
-		var activation_hint: String = item_data.get("activation_hint", "Hold Space to activate")
+		var hint_key: String = item_data.get("activation_hint_key", "")
+		var activation_hint: String = tr(hint_key) if hint_key != "" else item_data.get("activation_hint", "Hold Space to activate")
 		bbcode += "\n[color=#888888]%s[/color]" % activation_hint
 
 	_active_item_stats_label.text = bbcode
@@ -1623,10 +1803,12 @@ func _rebuild_grenade_slot(grenade_type: int) -> void:
 	# Create new unlocked slot
 	if _grenade_manager:
 		var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
+		var _rb_gname_key: String = gdata.get("name_key", "")
+		var _rb_gdesc_key: String = gdata.get("desc_key", "")
 		var grenade_info := {
-			"name": gdata.get("name", "Unknown"),
+			"name": tr(_rb_gname_key) if _rb_gname_key != "" else gdata.get("name", "Unknown"),
 			"icon_path": gdata.get("icon_path", ""),
-			"description": gdata.get("description", ""),
+			"description": tr(_rb_gdesc_key) if _rb_gdesc_key != "" else gdata.get("description", ""),
 			"grenade_type": grenade_type
 		}
 		var new_slot := _create_item_slot(str(grenade_type), grenade_info, true, true)
@@ -1656,10 +1838,12 @@ func _rebuild_grenade_slot_animated(grenade_type: int) -> void:
 	# Create new unlocked slot
 	if _grenade_manager:
 		var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
+		var _rb_gname_key: String = gdata.get("name_key", "")
+		var _rb_gdesc_key: String = gdata.get("desc_key", "")
 		var grenade_info := {
-			"name": gdata.get("name", "Unknown"),
+			"name": tr(_rb_gname_key) if _rb_gname_key != "" else gdata.get("name", "Unknown"),
 			"icon_path": gdata.get("icon_path", ""),
-			"description": gdata.get("description", ""),
+			"description": tr(_rb_gdesc_key) if _rb_gdesc_key != "" else gdata.get("description", ""),
 			"grenade_type": grenade_type
 		}
 		var new_slot := _create_item_slot(str(grenade_type), grenade_info, true, true)
@@ -1693,10 +1877,12 @@ func _rebuild_active_item_slot(item_type: int) -> void:
 	# Create new unlocked slot
 	if _active_item_manager:
 		var adata: Dictionary = _active_item_manager.get_active_item_data(item_type)
+		var _rb_aname_key: String = adata.get("name_key", "")
+		var _rb_adesc_key: String = adata.get("desc_key", "")
 		var item_info := {
-			"name": adata.get("name", "Unknown"),
+			"name": tr(_rb_aname_key) if _rb_aname_key != "" else adata.get("name", "Unknown"),
 			"icon_path": adata.get("icon_path", ""),
-			"description": adata.get("description", ""),
+			"description": tr(_rb_adesc_key) if _rb_adesc_key != "" else adata.get("description", ""),
 			"active_item_type": item_type
 		}
 		var new_slot := _create_active_item_slot(str(item_type), item_info, item_type, true)
@@ -1726,10 +1912,12 @@ func _rebuild_active_item_slot_animated(item_type: int) -> void:
 	# Create new unlocked slot
 	if _active_item_manager:
 		var adata: Dictionary = _active_item_manager.get_active_item_data(item_type)
+		var _rb_aname_key: String = adata.get("name_key", "")
+		var _rb_adesc_key: String = adata.get("desc_key", "")
 		var item_info := {
-			"name": adata.get("name", "Unknown"),
+			"name": tr(_rb_aname_key) if _rb_aname_key != "" else adata.get("name", "Unknown"),
 			"icon_path": adata.get("icon_path", ""),
-			"description": adata.get("description", ""),
+			"description": tr(_rb_adesc_key) if _rb_adesc_key != "" else adata.get("description", ""),
 			"active_item_type": item_type
 		}
 		var new_slot := _create_active_item_slot(str(item_type), item_info, item_type, true)
@@ -2225,6 +2413,13 @@ func _animate_unlock_progress_bar(slot: PanelContainer, target_progress: float) 
 			fill_timer.queue_free()
 			if slot in _unlock_progress_tweens:
 				_unlock_progress_tweens.erase(slot)
+			# When progress bar is fully filled (condition met), hide it so only
+			# the availability (condition_met) shine on the slot remains visible.
+			# Issue #1621: avoid duplicating shine animations at full progress.
+			if target_progress >= 1.0:
+				var overlay_layer := bar.get_parent()
+				if is_instance_valid(overlay_layer):
+					overlay_layer.hide()
 	)
 	fill_timer.start()
 
@@ -2260,12 +2455,16 @@ func _create_unlock_progress_bar(slot: PanelContainer) -> ColorRect:
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay_layer.add_child(bar)
 	# Add the animated gold shine overlay (same shader as condition-met accordion buttons).
+	# Issue #1621: use dimmer sweep/burst colors so the progress bar shine is less prominent
+	# than the availability (condition_met) shine that plays on the slot itself.
 	var shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
 	if shine_shader:
 		var mat := ShaderMaterial.new()
 		mat.shader = shine_shader
 		mat.set_shader_parameter("horizontal_sweep", false)
 		mat.set_shader_parameter("cycle_duration", 3.0)
+		mat.set_shader_parameter("sweep_color", Color(0.5, 0.42, 0.1, 1.0))
+		mat.set_shader_parameter("burst_color", Color(0.5, 0.37, 0.05, 1.0))
 		var shine_overlay := ColorRect.new()
 		shine_overlay.name = "GoldShineOverlay"
 		shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

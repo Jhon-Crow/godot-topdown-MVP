@@ -253,10 +253,10 @@ func test_on_tree_changed_method_exists() -> void:
 
 
 func test_max_blood_decals_is_unlimited() -> void:
-	# MAX_BLOOD_DECALS should be 0 for unlimited decals (per issue #293, #370)
-	# Puddles should never disappear - this is a critical requirement
+	# Issue #1747: Owner requested blood puddles never be deleted.
+	# MAX_BLOOD_DECALS must be 0 (unlimited) so no cleanup is performed.
 	assert_eq(impact_manager.MAX_BLOOD_DECALS, 0,
-		"MAX_BLOOD_DECALS should be 0 for unlimited decals (Issues #293, #370)")
+		"MAX_BLOOD_DECALS should be 0 (unlimited) so blood puddles are never removed (Issue #1747)")
 
 
 # ============================================================================
@@ -353,3 +353,84 @@ func test_create_light_texture_returns_valid_texture() -> void:
 	assert_not_null(texture, "Should create a valid light texture")
 	assert_true(texture is GradientTexture2D,
 		"Light texture should be a GradientTexture2D")
+
+
+# ============================================================================
+# Viewport-Aware Blood Decal Culling Tests (Issue #1747)
+# ============================================================================
+
+
+func test_remove_oldest_offscreen_decal_method_exists() -> void:
+	assert_true(impact_manager.has_method("_remove_oldest_offscreen_decal"),
+		"Manager should have _remove_oldest_offscreen_decal method (Issue #1747)")
+
+
+func test_collect_cameras_method_exists() -> void:
+	assert_true(impact_manager.has_method("_collect_cameras"),
+		"Manager should have _collect_cameras method for viewport detection (Issue #1747)")
+
+
+func test_remove_oldest_offscreen_decal_returns_false_on_empty_list() -> void:
+	# When there are no tracked decals the method should return false.
+	impact_manager._blood_decals.clear()
+	var removed: bool = impact_manager._remove_oldest_offscreen_decal()
+	assert_false(removed,
+		"_remove_oldest_offscreen_decal should return false when decal list is empty")
+
+
+func test_remove_oldest_offscreen_decal_removes_invalid_references() -> void:
+	# Stale (null) entries in _blood_decals should be cleaned up and counted as removed.
+	impact_manager._blood_decals.clear()
+	impact_manager._blood_decals.append(null)
+	var removed: bool = impact_manager._remove_oldest_offscreen_decal()
+	assert_true(removed,
+		"_remove_oldest_offscreen_decal should remove null entries and return true")
+	assert_eq(impact_manager._blood_decals.size(), 0,
+		"Null entry should have been removed from the decal list")
+
+
+func test_remove_oldest_offscreen_decal_reduces_decal_count() -> void:
+	# With a real Node2D that has no camera context it will be treated as off-screen
+	# and removed, reducing the list size by exactly 1.
+	impact_manager._blood_decals.clear()
+	var dummy := Node2D.new()
+	add_child_autoqfree(dummy)
+	impact_manager._blood_decals.append(dummy)
+	var size_before: int = impact_manager._blood_decals.size()
+	var removed: bool = impact_manager._remove_oldest_offscreen_decal()
+	assert_true(removed,
+		"_remove_oldest_offscreen_decal should return true when a decal was removed")
+	assert_lt(impact_manager._blood_decals.size(), size_before,
+		"Decal list size should decrease by 1 after removal")
+
+
+func test_blood_decals_array_is_accessible() -> void:
+	# The internal _blood_decals array must be accessible for testing.
+	assert_not_null(impact_manager._blood_decals,
+		"_blood_decals array should be accessible")
+	assert_true(impact_manager._blood_decals is Array,
+		"_blood_decals should be an Array")
+
+
+func test_remove_oldest_offscreen_decal_with_multiple_decals() -> void:
+	# With multiple decals and no camera, all are treated as off-screen.
+	# Only the first (oldest) one should be removed per call.
+	impact_manager._blood_decals.clear()
+	var d1 := Node2D.new()
+	var d2 := Node2D.new()
+	add_child_autoqfree(d1)
+	add_child_autoqfree(d2)
+	impact_manager._blood_decals.append(d1)
+	impact_manager._blood_decals.append(d2)
+	impact_manager._remove_oldest_offscreen_decal()
+	assert_eq(impact_manager._blood_decals.size(), 1,
+		"Only one decal should be removed per _remove_oldest_offscreen_decal call")
+
+
+func test_pooled_explosion_light_uses_shadows_for_occlusion() -> void:
+	impact_manager._cached_explosion_light_texture = GradientTexture2D.new()
+
+	var light := impact_manager._create_pooled_explosion_light()
+	assert_not_null(light, "Pooled explosion light should be created")
+	assert_true(light.shadow_enabled,
+		"Pooled grenade/explosion lights must enable shadows so LightOccluder2D blockers work")

@@ -14,6 +14,7 @@ signal back_pressed
 @onready var blood_decals_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BloodDecalsContainer/BloodDecalsCheckbox
 @onready var screen_shake_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ScreenShakeContainer/ScreenShakeCheckbox
 @onready var explosion_lights_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ExplosionLightsContainer/ExplosionLightsCheckbox
+@onready var warm_lights_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WarmLightsContainer/WarmLightsCheckbox
 @onready var wall_hit_particles_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WallHitParticlesContainer/WallHitParticlesCheckbox
 @onready var ai_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIContainer/AICheckbox
 @onready var ai_idle_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIIdleContainer/AIIdleCheckbox
@@ -77,6 +78,9 @@ func _ready() -> void:
 	_setup_row_hover(_vbox.get_node("ExplosionLightsContainer"),
 			"Explosion/Flashbang Lights",
 			_vbox.get_node("ExplosionLightsDescription"))
+	_setup_row_hover(_vbox.get_node("WarmLightsContainer"),
+			"Warm Ceiling Lights",
+			_vbox.get_node("WarmLightsDescription"))
 	_setup_row_hover(_vbox.get_node("WallHitParticlesContainer"),
 			"Wall Hit Particles",
 			_vbox.get_node("WallHitParticlesDescription"))
@@ -109,6 +113,7 @@ func _ready() -> void:
 	blood_decals_checkbox.toggled.connect(_on_blood_decals_toggled)
 	screen_shake_checkbox.toggled.connect(_on_screen_shake_toggled)
 	explosion_lights_checkbox.toggled.connect(_on_explosion_lights_toggled)
+	warm_lights_checkbox.toggled.connect(_on_warm_lights_toggled)
 	wall_hit_particles_checkbox.toggled.connect(_on_wall_hit_particles_toggled)
 	ai_checkbox.toggled.connect(_on_ai_toggled)
 	ai_idle_checkbox.toggled.connect(func(e): _on_ai_state_toggled("idle", e))
@@ -152,6 +157,7 @@ func _update_ui() -> void:
 	blood_decals_checkbox.button_pressed = perf_settings.is_blood_decals_enabled()
 	screen_shake_checkbox.button_pressed = perf_settings.is_screen_shake_enabled()
 	explosion_lights_checkbox.button_pressed = perf_settings.is_explosion_lights_enabled()
+	warm_lights_checkbox.button_pressed = perf_settings.is_warm_lights_enabled()
 	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
 	wall_hit_particles_checkbox.button_pressed = gameplay_settings.is_wall_hit_particles_enabled() if gameplay_settings else true
 	ai_checkbox.button_pressed = perf_settings.is_ai_enabled()
@@ -172,6 +178,7 @@ func _update_ui() -> void:
 	if not perf_settings.is_blood_decals_enabled(): disabled_parts.append("Blood decals")
 	if not perf_settings.is_screen_shake_enabled(): disabled_parts.append("Screen shake")
 	if not perf_settings.is_explosion_lights_enabled(): disabled_parts.append("Explosion lights")
+	if not perf_settings.is_warm_lights_enabled(): disabled_parts.append("Warm lights")
 	var gs: Node = get_node_or_null("/root/GameplaySettings")
 	if gs and not gs.is_wall_hit_particles_enabled(): disabled_parts.append("Wall hit particles")
 	if not perf_settings.is_ai_enabled(): disabled_parts.append("AI")
@@ -217,6 +224,13 @@ func _on_explosion_lights_toggled(enabled: bool) -> void:
 	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if perf_settings:
 		perf_settings.set_explosion_lights_enabled(enabled)
+	_update_ui()
+
+
+func _on_warm_lights_toggled(enabled: bool) -> void:
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	if perf_settings:
+		perf_settings.set_warm_lights_enabled(enabled)
 	_update_ui()
 
 

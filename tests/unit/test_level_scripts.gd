@@ -248,6 +248,10 @@ class MockBuildingLevel extends MockLevelBase:
 	## Simulated ammo label text (null means label not yet initialized).
 	var _ammo_label_text: Variant = null  # null = not initialized, String = initialized
 
+	## Simulated equipped C# weapon ammo state.
+	var _weapon_current_ammo: int = 0
+	var _weapon_reserve_ammo: int = 0
+
 	## Initialize ammo label before weapon setup (mirrors the fix in _setup_player_tracking).
 	func init_ammo_label() -> void:
 		_ammo_label_text = "AMMO: 0/0"
@@ -271,6 +275,35 @@ class MockBuildingLevel extends MockLevelBase:
 		if not ammo_label_before_weapon:
 			init_ammo_label()
 
+	## Simulate shotgun startup ammo display.
+	## Before the fix, the level read CurrentAmmo which remains 0 for shotgun startup UI.
+	## After the fix, startup and later HUD refreshes must pick ShellsInTube automatically.
+	func _get_weapon_display_current_ammo(weapon: Dictionary) -> Variant:
+		if weapon.get("name") == "Shotgun" and weapon.get("ShellsInTube") != null:
+			return weapon.get("ShellsInTube")
+		return weapon.get("CurrentAmmo")
+
+	func simulate_weapon_display_update(weapon: Dictionary) -> void:
+		init_ammo_label()
+		refresh_weapon_hud(weapon)
+
+	func refresh_weapon_hud(weapon: Dictionary) -> void:
+		var displayed_current = _get_weapon_display_current_ammo(weapon)
+		var reserve = weapon.get("ReserveAmmo")
+		if displayed_current != null and reserve != null:
+			update_ammo_label_magazine(displayed_current, reserve)
+
+	func simulate_csharp_pre_equipped_weapon_setup(weapon: Dictionary) -> void:
+		init_ammo_label()
+		refresh_weapon_hud(weapon)
+
+	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
+		if not current_weapon.is_empty():
+			return current_weapon
+		if not selected_weapon.is_empty():
+			return selected_weapon
+		return stale_first_child
+
 	# -------------------------------------------------------------------------
 	# Player death simulation (Issue #1259)
 	# -------------------------------------------------------------------------
@@ -278,6 +311,50 @@ class MockBuildingLevel extends MockLevelBase:
 	## Simulate player dying: triggers death message (mirrors _on_player_died → _show_death_screen).
 	func on_player_died() -> void:
 		show_death_message()
+
+	## Simulate the C# player ammo-depleted path from BuildingLevel._on_player_ammo_depleted().
+	func on_player_ammo_depleted_for_csharp_weapon(current_ammo: int, reserve_ammo: int) -> void:
+		_weapon_current_ammo = current_ammo
+		_weapon_reserve_ammo = reserve_ammo
+		if _current_enemy_count > 0 and not _game_over_shown and current_ammo <= 0 and reserve_ammo <= 0:
+			show_game_over_message()
+
+
+class MockLevelInitFallback:
+	var _current_enemy_count: int = 0
+	var _game_over_shown: bool = false
+	var game_over_message_shown: bool = false
+	var _ammo_label_text: String = ""
+
+	func show_game_over_message() -> void:
+		_game_over_shown = true
+		game_over_message_shown = true
+
+	func on_player_ammo_depleted_for_current_weapon(current_ammo: int, reserve_ammo: int) -> void:
+		if _current_enemy_count > 0 and not _game_over_shown and current_ammo <= 0 and reserve_ammo <= 0:
+			show_game_over_message()
+
+	func get_weapon_display_current_ammo(weapon: Dictionary) -> int:
+		if weapon.get("name", "") == "Shotgun" and weapon.has("ShellsInTube"):
+			return weapon["ShellsInTube"]
+		return weapon.get("CurrentAmmo", 0)
+
+	func refresh_weapon_hud(weapon: Dictionary) -> void:
+		var current_ammo := get_weapon_display_current_ammo(weapon)
+		var reserve_ammo: int = weapon.get("ReserveAmmo", 0)
+		_ammo_label_text = "AMMO: %d/%d" % [current_ammo, reserve_ammo]
+
+	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
+		if not current_weapon.is_empty():
+			return current_weapon
+		if not selected_weapon.is_empty():
+			return selected_weapon
+		return stale_first_child
+
+	func on_player_ammo_depleted_for_weapon(weapon: Dictionary) -> void:
+		var current_ammo := get_weapon_display_current_ammo(weapon)
+		var reserve_ammo: int = weapon.get("ReserveAmmo", 0)
+		on_player_ammo_depleted_for_current_weapon(current_ammo, reserve_ammo)
 
 
 # ============================================================================
@@ -365,6 +442,9 @@ class MockTestTier extends MockLevelBase:
 	## Default enemy count for test tier (12 enemies: 6 guards, 4 patrols, 2 RPG).
 	var default_enemy_count: int = 12
 
+	## Simulated ammo label text (null means label not yet initialized).
+	var _ammo_label_text: Variant = null
+
 	## Whether the score screen is currently shown (for W key shortcut).
 	var _score_shown: bool = false
 
@@ -390,6 +470,41 @@ class MockTestTier extends MockLevelBase:
 			enemies.append("TestEnemy%d" % (i + 1))
 		setup_enemy_tracking(enemies)
 
+	func init_ammo_label() -> void:
+		_ammo_label_text = "AMMO: 0/0"
+
+	func update_ammo_label_magazine(current_mag: int, reserve: int) -> bool:
+		if _ammo_label_text == null:
+			return false
+		_ammo_label_text = "AMMO: %d/%d" % [current_mag, reserve]
+		return true
+
+	func _get_weapon_display_current_ammo(weapon: Dictionary) -> Variant:
+		if weapon.get("name") == "Shotgun" and weapon.get("ShellsInTube") != null:
+			return weapon.get("ShellsInTube")
+		return weapon.get("CurrentAmmo")
+
+	func simulate_weapon_display_update(weapon: Dictionary) -> void:
+		init_ammo_label()
+		refresh_weapon_hud(weapon)
+
+	func refresh_weapon_hud(weapon: Dictionary) -> void:
+		var displayed_current = _get_weapon_display_current_ammo(weapon)
+		var reserve = weapon.get("ReserveAmmo")
+		if displayed_current != null and reserve != null:
+			update_ammo_label_magazine(displayed_current, reserve)
+
+	func simulate_csharp_pre_equipped_weapon_setup(weapon: Dictionary) -> void:
+		init_ammo_label()
+		refresh_weapon_hud(weapon)
+
+	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
+		if not current_weapon.is_empty():
+			return current_weapon
+		if not selected_weapon.is_empty():
+			return selected_weapon
+		return stale_first_child
+
 	## Get the next level path.
 	func get_next_level_path(current_scene_path: String) -> String:
 		for i in range(_level_paths.size()):
@@ -398,6 +513,46 @@ class MockTestTier extends MockLevelBase:
 					return _level_paths[i + 1]
 				return ""  # Last level
 		return ""  # Not found
+
+
+class MockLabyrinth2Level extends MockLevelBase:
+	## Simulated ammo label text (null means label not yet initialized).
+	var _ammo_label_text: Variant = null
+
+	func init_ammo_label() -> void:
+		_ammo_label_text = "AMMO: 0/0"
+
+	func update_ammo_label_magazine(current_mag: int, reserve: int) -> bool:
+		if _ammo_label_text == null:
+			return false
+		_ammo_label_text = "AMMO: %d/%d" % [current_mag, reserve]
+		return true
+
+	func _get_weapon_display_current_ammo(weapon: Dictionary) -> Variant:
+		if weapon.get("name") == "Shotgun" and weapon.get("ShellsInTube") != null:
+			return weapon.get("ShellsInTube")
+		return weapon.get("CurrentAmmo")
+
+	func simulate_weapon_display_update(weapon: Dictionary) -> void:
+		init_ammo_label()
+		refresh_weapon_hud(weapon)
+
+	func refresh_weapon_hud(weapon: Dictionary) -> void:
+		var displayed_current = _get_weapon_display_current_ammo(weapon)
+		var reserve = weapon.get("ReserveAmmo")
+		if displayed_current != null and reserve != null:
+			update_ammo_label_magazine(displayed_current, reserve)
+
+	func simulate_csharp_pre_equipped_weapon_setup(weapon: Dictionary) -> void:
+		init_ammo_label()
+		refresh_weapon_hud(weapon)
+
+	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
+		if not current_weapon.is_empty():
+			return current_weapon
+		if not selected_weapon.is_empty():
+			return selected_weapon
+		return stale_first_child
 
 
 # ============================================================================
@@ -491,6 +646,9 @@ class MockLabyrinthLevel extends MockLevelBase:
 	enum TutorialStep { RELOAD, THROW_GRENADE, COMPLETED }
 	var _tutorial_step: int = TutorialStep.RELOAD
 
+	## Simulated ammo label text (null means label not yet initialized).
+	var _ammo_label_text: Variant = null
+
 	## Weapon type flags.
 	var _tutorial_has_shotgun: bool = false
 	var _tutorial_has_sniper_rifle: bool = false
@@ -578,20 +736,52 @@ class MockLabyrinthLevel extends MockLevelBase:
 		setup_enemy_tracking(enemies)
 		setup_tutorial_hints()
 
+	func init_ammo_label() -> void:
+		_ammo_label_text = "AMMO: 0/0"
+
+	func update_ammo_label_magazine(current_mag: int, reserve: int) -> bool:
+		if _ammo_label_text == null:
+			return false
+		_ammo_label_text = "AMMO: %d/%d" % [current_mag, reserve]
+		return true
+
+	func _get_weapon_display_current_ammo(weapon: Dictionary) -> Variant:
+		if weapon.get("name") == "Shotgun" and weapon.get("ShellsInTube") != null:
+			return weapon.get("ShellsInTube")
+		return weapon.get("CurrentAmmo")
+
+	func simulate_weapon_display_update(weapon: Dictionary) -> void:
+		init_ammo_label()
+		refresh_weapon_hud(weapon)
+
+	func refresh_weapon_hud(weapon: Dictionary) -> void:
+		var displayed_current = _get_weapon_display_current_ammo(weapon)
+		var reserve = weapon.get("ReserveAmmo")
+		if displayed_current != null and reserve != null:
+			update_ammo_label_magazine(displayed_current, reserve)
+
+	func simulate_csharp_pre_equipped_weapon_setup(weapon: Dictionary) -> void:
+		init_ammo_label()
+		refresh_weapon_hud(weapon)
+
 
 var building_level: MockBuildingLevel
 var castle_level: MockCastleLevel
+var level_init_fallback: MockLevelInitFallback
 var test_tier: MockTestTier
 var beach_level: MockBeachLevel
 var labyrinth_level: MockLabyrinthLevel
+var labyrinth2_level: MockLabyrinth2Level
 
 
 func before_each() -> void:
 	building_level = MockBuildingLevel.new()
 	castle_level = MockCastleLevel.new()
+	level_init_fallback = MockLevelInitFallback.new()
 	test_tier = MockTestTier.new()
 	beach_level = MockBeachLevel.new()
 	labyrinth_level = MockLabyrinthLevel.new()
+	labyrinth2_level = MockLabyrinth2Level.new()
 
 
 func after_each() -> void:
@@ -600,6 +790,48 @@ func after_each() -> void:
 	test_tier = null
 	beach_level = null
 	labyrinth_level = null
+	labyrinth2_level = null
+
+
+func _get_function_body(script_path: String, function_name: String) -> String:
+	var file := FileAccess.open(script_path, FileAccess.READ)
+	assert_not_null(file, "Expected to open %s" % script_path)
+	if file == null:
+		return ""
+	var source := file.get_as_text()
+	var function_start := source.find("func %s" % function_name)
+	assert_gt(function_start, -1, "Expected %s to define %s" % [script_path, function_name])
+	if function_start < 0:
+		return ""
+	var next_function := source.find("\nfunc ", function_start + 1)
+	if next_function < 0:
+		return source.substr(function_start)
+	return source.substr(function_start, next_function - function_start)
+
+
+func _read_text_file(path: String) -> String:
+	var file := FileAccess.open(path, FileAccess.READ)
+	assert_not_null(file, "Expected to open %s" % path)
+	if file == null:
+		return ""
+	var text := file.get_as_text()
+	file.close()
+	return text
+
+
+func _assert_ready_sets_counters_before_navigation(script_path: String, level_name: String) -> void:
+	var ready_body := _get_function_body(script_path, "_ready")
+	var navigation_index := ready_body.find("_setup_navigation")
+	var enemy_index := ready_body.find("_setup_enemy_tracking()")
+	var player_index := ready_body.find("_setup_player_tracking()")
+
+	assert_gt(navigation_index, -1, "%s _ready should schedule navigation setup" % level_name)
+	assert_gt(enemy_index, -1, "%s _ready should set up enemy counters" % level_name)
+	assert_gt(player_index, -1, "%s _ready should set up player ammo HUD" % level_name)
+	assert_lt(enemy_index, navigation_index,
+		"%s enemy counter setup must happen before navmesh bake" % level_name)
+	assert_lt(player_index, navigation_index,
+		"%s ammo HUD setup must happen before navmesh bake" % level_name)
 
 
 # ============================================================================
@@ -960,11 +1192,11 @@ func test_pm_multiplier_greater_than_castle_base() -> void:
 # ============================================================================
 
 
-func test_castle_level_is_last_level() -> void:
+func test_castle_level_next_is_revolver() -> void:
 	var next := castle_level.get_next_level_path("res://scenes/levels/CastleLevel.tscn")
 
-	assert_eq(next, "",
-		"Castle is the last level, next should be empty")
+	assert_eq(next, "res://scenes/levels/RevolverLevel.tscn",
+		"Next level after CastleLevel should be RevolverLevel")
 
 
 func test_castle_level_test_tier_next_is_castle() -> void:
@@ -1826,18 +2058,18 @@ func test_beach_level_rank_colors_match_other_levels() -> void:
 # ============================================================================
 
 
-func test_beach_level_is_last_in_ordering() -> void:
+func test_beach_level_next_is_docks() -> void:
 	var next := beach_level.get_next_level_path("res://scenes/levels/BeachLevel.tscn")
 
-	assert_eq(next, "",
-		"BeachLevel should be the last level (no next)")
+	assert_eq(next, "res://scenes/levels/DocksLevel.tscn",
+		"Next level after BeachLevel should be DocksLevel")
 
 
-func test_beach_level_after_castle() -> void:
+func test_beach_level_castle_next_is_revolver() -> void:
 	var next := beach_level.get_next_level_path("res://scenes/levels/CastleLevel.tscn")
 
-	assert_eq(next, "res://scenes/levels/BeachLevel.tscn",
-		"Next level after CastleLevel should be BeachLevel")
+	assert_eq(next, "res://scenes/levels/RevolverLevel.tscn",
+		"Next level after CastleLevel should be RevolverLevel")
 
 
 # ============================================================================
@@ -2104,6 +2336,129 @@ func test_building_ammo_label_initialized_before_weapon_setup() -> void:
 		"Ammo label must show weapon ammo after weapon setup (Issue #1259)")
 
 
+func test_building_csharp_ammo_depleted_shows_game_over_when_no_ammo_left() -> void:
+	## BuildingLevel must show the out-of-ammo label when the C# player emits AmmoDepleted
+	## and the active weapon has neither loaded nor reserve ammo left (Issue #1821).
+	building_level.initialize()
+
+	building_level.on_player_ammo_depleted_for_csharp_weapon(0, 0)
+
+	assert_true(building_level.game_over_message_shown,
+		"C# AmmoDepleted with 0/0 ammo must show the game-over message on BuildingLevel")
+
+
+func test_building_csharp_ammo_depleted_does_not_show_game_over_when_reserve_remains() -> void:
+	## Empty-clicks with reserve ammo remaining must not end the run.
+	building_level.initialize()
+
+	building_level.on_player_ammo_depleted_for_csharp_weapon(0, 12)
+
+	assert_false(building_level.game_over_message_shown,
+		"C# AmmoDepleted with reserve ammo remaining must not show the game-over message")
+
+
+func test_level_init_fallback_csharp_ammo_depleted_shows_game_over_when_no_ammo_left() -> void:
+	## The C# fallback path must mirror BuildingLevel.gd when the project skips the
+	## GDScript setup and LevelInitFallback handles the map state (Issue #1821).
+	level_init_fallback._current_enemy_count = 10
+
+	level_init_fallback.on_player_ammo_depleted_for_current_weapon(0, 0)
+
+	assert_true(level_init_fallback.game_over_message_shown,
+		"LevelInitFallback must show the game-over message when CurrentWeapon ammo is 0/0")
+
+
+func test_level_init_fallback_csharp_ammo_depleted_ignores_empty_click_with_reserve() -> void:
+	level_init_fallback._current_enemy_count = 10
+
+	level_init_fallback.on_player_ammo_depleted_for_current_weapon(0, 30)
+
+	assert_false(level_init_fallback.game_over_message_shown,
+		"LevelInitFallback must not show the game-over message when reserve ammo remains")
+
+
+func test_level_init_fallback_shotgun_startup_uses_shell_count_not_current_ammo() -> void:
+	## Latest owner log showed Building using LevelInitFallback while shotgun CurrentAmmo was 0.
+	level_init_fallback.refresh_weapon_hud({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 28,
+	})
+
+	assert_eq(level_init_fallback._ammo_label_text, "AMMO: 8/28",
+		"LevelInitFallback must display Shotgun ShellsInTube during startup")
+
+
+func test_level_init_fallback_binds_to_current_weapon_before_stale_child() -> void:
+	var equipped_shotgun := {
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 28,
+	}
+	var stale_revolver := {
+		"name": "Revolver",
+		"CurrentAmmo": 0,
+		"ReserveAmmo": 20,
+	}
+
+	var chosen := level_init_fallback.choose_current_weapon(equipped_shotgun, {}, stale_revolver)
+	level_init_fallback.refresh_weapon_hud(chosen)
+
+	assert_eq(level_init_fallback._ammo_label_text, "AMMO: 8/28",
+		"LevelInitFallback must use Player.CurrentWeapon before child-node probing")
+
+
+func test_level_init_fallback_csharp_ammo_depleted_uses_shotgun_shell_count() -> void:
+	level_init_fallback._current_enemy_count = 10
+
+	level_init_fallback.on_player_ammo_depleted_for_weapon({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 1,
+		"ReserveAmmo": 0,
+	})
+
+	assert_false(level_init_fallback.game_over_message_shown,
+		"LevelInitFallback must not treat a loaded shotgun as out of ammo because CurrentAmmo is 0")
+
+
+func test_level_init_fallback_source_uses_current_weapon_and_shotgun_shells() -> void:
+	var source := _read_text_file("res://Scripts/Components/LevelInitFallback.cs")
+
+	assert_string_contains(source, "GetCurrentWeaponNode()",
+		"LevelInitFallback should resolve the authoritative Player.CurrentWeapon")
+	assert_string_contains(source, "currentWeaponValue.Obj is Node currentWeapon",
+		"LevelInitFallback should prefer Player.CurrentWeapon before child probing")
+	assert_string_contains(source, "weapon is Shotgun shotgun",
+		"LevelInitFallback should detect shotgun weapons directly")
+	assert_string_contains(source, "currentAmmo = shotgun.ShellsInTube",
+		"LevelInitFallback should display shotgun ShellsInTube instead of CurrentAmmo")
+	assert_string_contains(source, "RefreshWeaponHud(weapon, \"post fallback level ammo config\")",
+		"LevelInitFallback should push an explicit HUD refresh after fallback ammo setup")
+
+
+func test_labyrinth2_scene_has_level_init_fallback() -> void:
+	var scene_text := _read_text_file("res://scenes/levels/Labyrinth2Level.tscn")
+
+	assert_string_contains(scene_text, "path=\"res://Scripts/Components/LevelInitFallback.cs\"",
+		"Labyrinth Complex needs the C# fallback when exported GDScript _ready() is skipped")
+	assert_string_contains(scene_text, "[node name=\"LevelInitFallback\" type=\"Node\" parent=\".\"]",
+		"Labyrinth Complex scene should instantiate LevelInitFallback")
+
+
+func test_player_ready_log_uses_shotgun_shell_count() -> void:
+	var source := _read_text_file("res://Scripts/Characters/Player.cs")
+
+	assert_string_contains(source, "GetCurrentWeaponReadyAmmoDisplay()",
+		"Player ready/equip logs should use the same display ammo helper")
+	assert_string_contains(source, "CurrentWeapon is Shotgun shotgun",
+		"Player ready/equip logs should special-case shotgun display ammo")
+	assert_string_contains(source, "return (shotgun.ShellsInTube, shotgun.TubeMagazineCapacity)",
+		"Player ready/equip logs should report loaded shotgun shells, not CurrentAmmo")
+
+
 func test_building_ammo_label_buggy_order_misses_initial_update() -> void:
 	## In the BUGGY code (before fix), _ammo_label was null when weapon setup called
 	## _update_ammo_label_magazine, so the initial ammo display was skipped.
@@ -2156,3 +2511,184 @@ func test_building_ammo_label_update_fails_when_not_initialized() -> void:
 		"Ammo update must be skipped when label is null (Issue #1259 root cause)")
 	assert_null(building_level._ammo_label_text,
 		"Ammo label text must remain null when not initialized")
+
+
+func test_building_ready_sets_hud_and_enemy_counters_before_navigation_bake() -> void:
+	## Owner log 2026-04-16 19:25 shows Building entered, Player ready with shotgun 0/8,
+	## then no BuildingLevel HUD/enemy setup logs before the next scene change. The
+	## expensive navigation bake must not run before visible HUD counters are initialized.
+	_assert_ready_sets_counters_before_navigation(
+		"res://scripts/levels/building_level.gd",
+		"BuildingLevel")
+
+
+func test_labyrinth2_ready_sets_hud_and_enemy_counters_before_navigation_bake() -> void:
+	## Same runtime symptom on Labyrinth Complex: the owner log has Player ready at 0/8
+	## but no Labyrinth2Level counter setup before the user leaves the level.
+	_assert_ready_sets_counters_before_navigation(
+		"res://scripts/levels/labyrinth2_level.gd",
+		"Labyrinth2Level")
+
+
+func test_labyrinth_ready_sets_hud_and_enemy_counters_before_navigation_bake() -> void:
+	_assert_ready_sets_counters_before_navigation(
+		"res://scripts/levels/labyrinth_level.gd",
+		"LabyrinthLevel")
+
+
+func test_test_tier_ready_sets_hud_and_enemy_counters_before_navigation_bake() -> void:
+	_assert_ready_sets_counters_before_navigation(
+		"res://scripts/levels/test_tier.gd",
+		"TestTier")
+
+
+func test_building_shotgun_startup_uses_shell_count_not_current_ammo() -> void:
+	## Issue #1808: shotgun startup HUD must show loaded shells before the first shot.
+	building_level.simulate_weapon_display_update({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	})
+	assert_eq(building_level._ammo_label_text, "AMMO: 8/8",
+		"Shotgun startup must use ShellsInTube for the initial HUD state")
+
+	building_level.simulate_weapon_display_update({
+		"name": "MiniUzi",
+		"CurrentAmmo": 24,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 64,
+	})
+	assert_eq(building_level._ammo_label_text, "AMMO: 24/64",
+		"Non-shotgun startup must keep using CurrentAmmo")
+
+
+func test_labyrinth_shotgun_startup_uses_shell_count_not_current_ammo() -> void:
+	## Labyrinth has the same shotgun startup bug as Building (Issue #1808).
+	labyrinth_level.simulate_weapon_display_update({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	})
+	assert_eq(labyrinth_level._ammo_label_text, "AMMO: 8/8",
+		"Labyrinth startup must use ShellsInTube for the initial HUD state")
+
+
+func test_labyrinth2_shotgun_startup_uses_shell_count_not_current_ammo() -> void:
+	labyrinth2_level.simulate_weapon_display_update({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	})
+	assert_eq(labyrinth2_level._ammo_label_text, "AMMO: 8/8",
+		"Labyrinth2 startup must use ShellsInTube for the initial HUD state")
+
+	labyrinth2_level.simulate_weapon_display_update({
+		"name": "Revolver",
+		"CurrentAmmo": 5,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 20,
+	})
+	assert_eq(labyrinth2_level._ammo_label_text, "AMMO: 5/20",
+		"Labyrinth2 non-shotgun startup must keep using CurrentAmmo")
+
+
+func test_building_hud_binds_to_current_weapon_before_stale_child() -> void:
+	## Regression: child-node probing can pick a stale weapon before the equipped C# CurrentWeapon.
+	var equipped_shotgun := {
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	}
+	var stale_revolver := {
+		"name": "Revolver",
+		"CurrentAmmo": 0,
+		"ReserveAmmo": 20,
+	}
+
+	var chosen := building_level.choose_current_weapon(equipped_shotgun, {}, stale_revolver)
+	building_level.simulate_weapon_display_update(chosen)
+	assert_eq(building_level._ammo_label_text, "AMMO: 8/8",
+		"Building HUD must use the equipped CurrentWeapon, not an arbitrary stale child")
+
+
+func test_building_csharp_pre_equipped_shotgun_refreshes_post_config_hud() -> void:
+	## Regression from owner log 2026-04-16 10:19: C# equips Shotgun as CurrentAmmo 0,
+	## then Building returns early after level config. The post-config path must still
+	## push ShellsInTube to the HUD before the first shot.
+	building_level.simulate_csharp_pre_equipped_weapon_setup({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	})
+	assert_eq(building_level._ammo_label_text, "AMMO: 8/8",
+		"Building C# pre-equipped shotgun setup must refresh HUD from ShellsInTube")
+
+
+func test_labyrinth2_hud_binds_to_current_weapon_before_stale_child() -> void:
+	## Owner feedback showed Labyrinth Complex HUD counters regressed after stale-node selection.
+	var equipped_revolver := {
+		"name": "Revolver",
+		"CurrentAmmo": 5,
+		"ReserveAmmo": 20,
+	}
+	var stale_shotgun := {
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 0,
+		"ReserveAmmo": 8,
+	}
+
+	var chosen := labyrinth2_level.choose_current_weapon(equipped_revolver, {}, stale_shotgun)
+	labyrinth2_level.simulate_weapon_display_update(chosen)
+	assert_eq(labyrinth2_level._ammo_label_text, "AMMO: 5/20",
+		"Labyrinth2 HUD must use the equipped CurrentWeapon so stale shotgun nodes cannot break counters")
+
+
+func test_labyrinth_csharp_pre_equipped_shotgun_refreshes_post_config_hud() -> void:
+	## Labyrinth startup can auto-redirect, but it still runs the same C# pre-equipped path first.
+	labyrinth_level.simulate_csharp_pre_equipped_weapon_setup({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	})
+	assert_eq(labyrinth_level._ammo_label_text, "AMMO: 8/8",
+		"Labyrinth C# pre-equipped shotgun setup must refresh HUD from ShellsInTube")
+
+
+func test_labyrinth2_csharp_pre_equipped_shotgun_refreshes_post_config_hud() -> void:
+	## Labyrinth Complex uses its own level script and needs the same post-config HUD refresh.
+	labyrinth2_level.simulate_csharp_pre_equipped_weapon_setup({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	})
+	assert_eq(labyrinth2_level._ammo_label_text, "AMMO: 8/8",
+		"Labyrinth2 C# pre-equipped shotgun setup must refresh HUD from ShellsInTube")
+
+
+func test_testtier_shotgun_startup_uses_shell_count_not_current_ammo() -> void:
+	## PersistManager can redirect startup into TestTier, so that level must also display shotgun shells.
+	test_tier.simulate_weapon_display_update({
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	})
+	assert_eq(test_tier._ammo_label_text, "AMMO: 8/8",
+		"TestTier startup must use ShellsInTube for the initial HUD state")
+
+	test_tier.simulate_weapon_display_update({
+		"name": "Revolver",
+		"CurrentAmmo": 5,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 20,
+	})
+	assert_eq(test_tier._ammo_label_text, "AMMO: 5/20",
+		"TestTier non-shotgun startup must keep using CurrentAmmo")

@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3 uid="uid://c8hmf4bnwx2qk"]
+[gd_scene load_steps=31 format=3 uid="uid://c8hmf4bnwx2qk"]
 
 [ext_resource type="Script" path="res://scripts/levels/building_level.gd" id="1_building_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="4_enemy"]
 [ext_resource type="Script" path="res://scripts/components/combat_path_component.gd" id="5_combat_path"]
 [ext_resource type="Script" path="res://Scripts/Components/LevelInitFallback.cs" id="6_fallback"]
+[ext_resource type="Script" path="res://scripts/components/weapon_hints_component.gd" id="7_weapon_hints"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_horizontal"]
 size = Vector2(2464, 32)
@@ -1243,6 +1244,10 @@ position = Vector2(1750, 1950)
 [node name="Player" parent="Entities" instance=ExtResource("2_player")]
 position = Vector2(450, 1250)
 
+[node name="Camera2D" parent="Entities/Player"]
+limit_right = 2464
+limit_bottom = 2064
+
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
 [node name="UI" type="Control" parent="CanvasLayer"]
@@ -1407,6 +1412,11 @@ position = Vector2(2350, 1800)
 position = Vector2(2150, 1400)
 
 [node name="PauseMenu" parent="." instance=ExtResource("3_pause_menu")]
+
+[node name="WeaponHintsComponent" type="Node" parent="."]
+script = ExtResource("7_weapon_hints")
+player_path = NodePath("../Entities/Player")
+canvas_layer_path = NodePath("../CanvasLayer")
 
 [node name="LevelInitFallback" type="Node" parent="."]
 script = ExtResource("6_fallback")

@@ -272,6 +272,13 @@ public partial class Revolver : BaseWeapon
     public delegate void CylinderStateChangedEventHandler();
 
     /// <summary>
+    /// Signal emitted when the cylinder is explicitly rotated by scroll input.
+    /// Provides the new chamber index after rotation.
+    /// </summary>
+    [Signal]
+    public delegate void CylinderRotatedEventHandler(int chamberIndex);
+
+    /// <summary>
     /// Timer for the delay between hammer cock and actual shot (Issue #661).
     /// The hammer cocks and cylinder rotates first, then the shot fires.
     /// </summary>
@@ -420,9 +427,22 @@ public partial class Revolver : BaseWeapon
     private RevolverCylinderUI? _cylinderUI;
 
     /// <summary>
-    /// Creates and attaches the cylinder HUD display to the level UI (Issue #691).
+    /// CanvasLayer order for the revolver drum HUD (Issue #1765).
+    /// Must be above the Black Metal B&amp;W filter (layer 97) and all other difficulty
+    /// visual filters (layers 97–103) so the HUD is never desaturated.
+    /// </summary>
+    private const int CylinderHUDLayer = 110;
+
+    /// <summary>
+    /// Name of the dedicated CanvasLayer used for the cylinder HUD (Issue #1765).
+    /// </summary>
+    private const string CylinderHUDLayerName = "RevolverCylinderHUDLayer";
+
+    /// <summary>
+    /// Creates and attaches the cylinder HUD display to the level (Issue #691).
     /// Called via CallDeferred from _Ready() to ensure the scene tree is fully initialized.
-    /// The HUD is added to CanvasLayer/UI in the level root, positioned below the ammo label.
+    /// Issue #1765: The HUD is placed in a dedicated CanvasLayer at layer 110 so that
+    /// difficulty visual filters (Black Metal B&amp;W at layer 97, etc.) do not affect it.
     /// Traverses up the tree to find the level root (handles Player being under Entities, etc).
     /// </summary>
     private void SetupCylinderHUD()
@@ -431,33 +451,49 @@ public partial class Revolver : BaseWeapon
         // The hierarchy can be: LevelRoot → Entities → Player → Revolver
         // or: LevelRoot → Player → Revolver (depending on level structure)
         var current = GetParent();
-        Control? ui = null;
+        Node? levelRoot = null;
 
         while (current != null)
         {
-            ui = current.GetNodeOrNull<Control>("CanvasLayer/UI");
-            if (ui != null)
+            if (current.GetNodeOrNull<Control>("CanvasLayer/UI") != null)
             {
-                GD.Print($"[Revolver] Found CanvasLayer/UI in: {current.Name}");
+                GD.Print($"[Revolver] Found level root with CanvasLayer/UI in: {current.Name}");
+                levelRoot = current;
                 break;
             }
             current = current.GetParent();
         }
 
-        if (ui == null)
+        if (levelRoot == null)
         {
-            GD.Print("[Revolver] Warning: Could not find CanvasLayer/UI for cylinder HUD (Issue #691)");
+            GD.Print("[Revolver] Warning: Could not find level root for cylinder HUD (Issue #691)");
             return;
         }
 
-        // Don't create duplicate HUD if one already exists (e.g. from LevelInitFallback)
-        if (ui.GetNodeOrNull("RevolverCylinderUI") != null)
+        // Issue #1765: Don't create duplicate HUD if one already exists (e.g. from LevelInitFallback)
+        var existingLayer = levelRoot.GetNodeOrNull<CanvasLayer>(CylinderHUDLayerName);
+        if (existingLayer != null)
         {
-            GD.Print("[Revolver] Cylinder HUD already exists in UI, connecting to existing");
-            _cylinderUI = ui.GetNodeOrNull<RevolverCylinderUI>("RevolverCylinderUI");
+            GD.Print("[Revolver] Cylinder HUD layer already exists, connecting to existing");
+            _cylinderUI = existingLayer.GetNodeOrNull<RevolverCylinderUI>("HUDContainer/RevolverCylinderUI");
             _cylinderUI?.ConnectToRevolver(this);
             return;
         }
+
+        // Issue #1765: Create a dedicated CanvasLayer above all difficulty visual filters
+        // (Black Metal B&W at layer 97, lightning at 98, cinema at 99, hit at 100, etc.)
+        // so the drum HUD always renders in its original colors regardless of difficulty mode.
+        var hudLayer = new CanvasLayer();
+        hudLayer.Name = CylinderHUDLayerName;
+        hudLayer.Layer = CylinderHUDLayer;
+        levelRoot.AddChild(hudLayer);
+
+        // Add a full-screen Control as layout container
+        var hudContainer = new Control();
+        hudContainer.Name = "HUDContainer";
+        hudContainer.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        hudContainer.MouseFilter = Control.MouseFilterEnum.Ignore;
+        hudLayer.AddChild(hudContainer);
 
         _cylinderUI = new RevolverCylinderUI();
         _cylinderUI.Name = "RevolverCylinderUI";
@@ -466,11 +502,11 @@ public partial class Revolver : BaseWeapon
         _cylinderUI.OffsetTop = 30;
         _cylinderUI.OffsetRight = 200;
         _cylinderUI.OffsetBottom = 68;
-        ui.AddChild(_cylinderUI);
+        hudContainer.AddChild(_cylinderUI);
 
         _cylinderUI.ConnectToRevolver(this);
 
-        GD.Print("[Revolver] Cylinder HUD created and connected (Issue #691)");
+        GD.Print("[Revolver] Cylinder HUD created in dedicated layer 110 above visual filters (Issue #1765)");
     }
 
     public override void _Process(double delta)
@@ -1547,6 +1583,8 @@ public partial class Revolver : BaseWeapon
 
         // Play cylinder rotation click sound
         PlayCylinderRotateSound();
+
+        EmitSignal(SignalName.CylinderRotated, _currentChamberIndex);
 
         // Issue #691: Notify UI of cylinder state change
         EmitSignal(SignalName.CylinderStateChanged);

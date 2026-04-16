@@ -1,0 +1,15 @@
+Godot Engine v4.3.stable.mono.official.77dcf97d8 - https://godotengine.org
+
+ERROR: No loader found for resource: res://resources/translations/translations.csv (expected type: )
+   at: _load (core/io/resource_loader.cpp:291)
+Error: Can't open display: 
+ERROR: .NET: Assemblies not found
+   at: initialize (modules/mono/mono_gd/gd_mono.cpp:381)
+
+================================================================
+handle_crash: Program crashed with signal 11
+Engine version: Godot Engine v4.3.stable.mono.official (77dcf97d82cbfe4e4615475fa52ca03da645dbd8)
+Dumping the backtrace. Please include this when reporting the bug to the project developer.
+[1] /lib/x86_64-linux-gnu/libc.so.6(+0x45330) [0x708b61f37330] (??:0)
+-- END OF BACKTRACE --
+================================================================

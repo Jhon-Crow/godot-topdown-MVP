@@ -16,6 +16,8 @@ var _difficulty_label: Label = null
 var _magazines_label: Label = null
 var _saturation_overlay: ColorRect = null
 var _combo_label: Label = null
+## Reference to active combo tween (to cancel if needed).
+var _combo_tween: Tween = null
 var _exit_zone: Area2D = null
 var _level_cleared: bool = false
 var _score_shown: bool = false
@@ -24,6 +26,7 @@ const SATURATION_DURATION: float = 0.15
 const SATURATION_INTENSITY: float = 0.25
 var _enemies: Array = []
 var _replay_manager: Node = null
+var _weapon_hints_component: Node = null
 
 
 func _get_or_create_replay_manager() -> Node:
@@ -54,6 +57,7 @@ func _ready() -> void:
 	_initialize_score_manager()
 	_setup_exit_zone()
 	_start_replay_recording()
+	_setup_weapon_hints()
 
 
 func _initialize_score_manager() -> void:
@@ -107,6 +111,32 @@ func _setup_realistic_visibility() -> void:
 	_player.add_child(visibility_component)
 
 
+## Setup weapon hints component so Factory shares the same tutorial-style weapon
+## onboarding used on other combat maps (Issue #1810).
+func _setup_weapon_hints() -> void:
+	if _player == null:
+		return
+
+	var canvas_layer: Node = get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		push_warning("[FactoryLevel] CanvasLayer node not found for weapon hints")
+		return
+
+	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
+	if hints_script == null:
+		push_warning("[FactoryLevel] WeaponHintsComponent script not found")
+		return
+
+	_weapon_hints_component = Node.new()
+	_weapon_hints_component.name = "WeaponHintsComponent"
+	_weapon_hints_component.set_script(hints_script)
+	add_child(_weapon_hints_component)
+
+	if _weapon_hints_component.has_method("setup"):
+		_weapon_hints_component.setup(_player, canvas_layer)
+		print("[FactoryLevel] Weapon hints component added and setup")
+
+
 func _process(_delta: float) -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("update_enemy_positions"):
@@ -120,14 +150,25 @@ func _process(_delta: float) -> void:
 func _on_combo_changed(combo: int, points: int) -> void:
 	if _combo_label == null: return
 	if combo > 0:
-		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
+		_combo_label.text = "x%d COMBO\n+%d" % [combo, points]
 		_combo_label.visible = true
 		_combo_label.add_theme_color_override("font_color", _get_combo_color(combo))
-		_combo_label.modulate = Color.WHITE
-		var tween := create_tween()
-		tween.tween_property(_combo_label, "modulate", Color.WHITE, 0.1)
+		# Combo pop animation: scale bounce + fade in (stays visible until combo resets)
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_label.scale = Vector2(0.7, 0.7)
+		_combo_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		_combo_tween = create_tween()
+		_combo_tween.set_parallel(true)
+		_combo_tween.tween_property(_combo_label, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_combo_tween.tween_property(_combo_label, "modulate:a", 1.0, 0.1)
+		_combo_tween.set_parallel(false)
 	else:
-		_combo_label.visible = false
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_tween = create_tween()
+		_combo_tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
+		_combo_tween.tween_callback(_combo_label.hide)
 
 
 func _get_combo_color(combo: int) -> Color:
@@ -159,17 +200,31 @@ func _setup_navigation() -> void:
 	nav_region.emit_signal("bake_finished")
 
 
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## FactoryLevel map: 2528x2128 px playfield framed by 32 px walls.
+##   WallTop    (1264,   48), h=16  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (1264, 2080), h=16  → top edge   y=2064  → limit_bottom = 2064
+##   WallLeft   (  48, 1064), w=16  → right edge x=64    → limit_left   = 64
+##   WallRight  (2480, 1064), w=16  → left edge  x=2464  → limit_right  = 2464
 func _configure_camera() -> void:
 	if _player == null:
 		return
 	var camera: Camera2D = _player.get_node_or_null("Camera2D")
 	if camera == null:
+		push_warning("[FactoryLevel] Camera2D not found on player — cannot set camera limits")
 		return
-	camera.limit_left = -10000000
-	camera.limit_top = -10000000
-	camera.limit_right = 10000000
-	camera.limit_bottom = 10000000
-	print("Camera configured: limits removed")
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 2064   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 2464   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	print("[FactoryLevel] Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
 
 
 func _setup_player_tracking() -> void:
@@ -371,17 +426,22 @@ func _setup_debug_ui() -> void:
 	_magazines_label.offset_bottom = 145
 	ui.add_child(_magazines_label)
 
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	var combo_size: int = gameplay_settings.get_combo_font_size() if gameplay_settings and gameplay_settings.has_method("get_combo_font_size") else 112
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
 	_combo_label.text = ""
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo_label.offset_left = -200
+	_combo_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_combo_label.offset_left = 10
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 80
-	_combo_label.offset_bottom = 120
-	_combo_label.add_theme_font_size_override("font_size", 28)
+	_combo_label.offset_bottom = _combo_label.offset_top + combo_size * 2 + 20
+	_combo_label.add_theme_font_size_override("font_size", combo_size)
+	_combo_label.add_theme_constant_override("line_spacing", 0)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
+	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
+	_combo_label.clip_contents = true
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 
@@ -412,7 +472,7 @@ func _on_enemy_died() -> void:
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
-		GameManager.register_kill(is_player_kill)
+		GameManager.register_kill(is_player_kill, is_penetration_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
@@ -593,26 +653,48 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		weapon = _player.get_node_or_null("Shotgun")
 		if weapon == null: weapon = _player.get_node_or_null("AssaultRifle")
 		if weapon == null: weapon = _player.get_node_or_null("AKGL")
+		if weapon == null: weapon = _player.get_node_or_null("MiniUzi")
+		if weapon == null: weapon = _player.get_node_or_null("SilencedPistol")
+		if weapon == null: weapon = _player.get_node_or_null("SniperRifle")
 		if weapon == null: weapon = _player.get_node_or_null("Revolver")
 		if weapon == null: weapon = _player.get_node_or_null("MakarovPM")
 
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
 		_magazines_label.visible = false
 		return
-	else:
-		_magazines_label.visible = true
+	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+		_magazines_label.visible = false
+		return
+	_magazines_label.visible = true
 
 	if magazine_ammo_counts.is_empty():
 		_magazines_label.text = "MAGS: -"
 		return
 
+	# Get magazine capacities to distinguish full vs partial spares
+	var mag_max_counts: Array = []
+	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
+		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
+
 	var parts: Array = []
-	for i in range(magazine_ammo_counts.size()):
+	# Current magazine always shown in brackets
+	parts.append("[%d]" % magazine_ammo_counts[0])
+
+	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
+	var full_spare_count: int = 0
+	for i in range(1, magazine_ammo_counts.size()):
 		var ammo: int = magazine_ammo_counts[i]
-		if i == 0:
-			parts.append("[%d]" % ammo)
+		if ammo <= 0:
+			continue
+		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
+		if cap > 0 and ammo >= cap:
+			full_spare_count += 1
 		else:
 			parts.append("%d" % ammo)
+
+	if full_spare_count > 0:
+		parts.append("+ x%d" % full_spare_count)
+
 	_magazines_label.text = "MAGS: " + " | ".join(parts)
 
 
@@ -756,10 +838,14 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 
 		buttons_container.add_child(replay_button)
 
+	# Armory button (Issue #897: shown highlighted when items are available to unlock; Issue #1622: always shown)
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
-	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
-		var armory_button := Button.new()
-		armory_button.name = "ArmoryButton"
+	var armory_button := Button.new()
+	armory_button.name = "ArmoryButton"
+	armory_button.pressed.connect(_on_armory_button_pressed)
+	buttons_container.add_child(armory_button)
+	var has_available_unlock: bool = unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock()
+	if has_available_unlock:
 		armory_button.text = "★ Armory — Items Available!"
 		armory_button.custom_minimum_size = Vector2(200, 40)
 		armory_button.add_theme_font_size_override("font_size", 18)
@@ -776,8 +862,6 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		armory_style.corner_radius_bottom_left = 4
 		armory_style.corner_radius_bottom_right = 4
 		armory_button.add_theme_stylebox_override("normal", armory_style)
-		armory_button.pressed.connect(_on_armory_button_pressed)
-		buttons_container.add_child(armory_button)
 		# Add gold shine shader overlay (Issue #1536).
 		var _armory_shine_shader := load("res://scripts/shaders/gold_shine.gdshader") as Shader
 		if _armory_shine_shader:
@@ -789,6 +873,8 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 			_armory_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_armory_shine_overlay.material = _armory_shine_mat
 			armory_button.add_child(_armory_shine_overlay)
+	else:
+		armory_button.text = "Armory"
 
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
@@ -901,6 +987,12 @@ func _on_armory_button_pressed() -> void:
 		armory_menu.back_pressed.connect(func():
 			armory_menu.queue_free()
 			# Issue #1582: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
+		armory_menu.apply_pressed_from_score_screen.connect(func():
+			# Issue #1690: Remove gold highlight from armory button if all available items have been opened
 			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
 			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
 				_remove_armory_button_gold_style()
@@ -1080,8 +1172,13 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 	if weapon.name != "SilencedPistol":
 		return
 	if weapon.has_method("ConfigureAmmoForEnemyCount"):
-		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
-		_log_to_file("Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+		var enemy_count: int = _initial_enemy_count
+		var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+		if ammo_multiplier > 1:
+			enemy_count *= ammo_multiplier
+			_log_to_file("Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by %dx" % ammo_multiplier)
+		weapon.ConfigureAmmoForEnemyCount(enemy_count)
+		_log_to_file("Configured silenced pistol ammo for %d enemies" % enemy_count)
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
@@ -1099,6 +1196,10 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 	if weapon.get("StartingMagazineCount") != null:
 		starting_magazines = weapon.StartingMagazineCount
 	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+	if ammo_multiplier > 1:
+		pm_magazines *= ammo_multiplier
+		_log_to_file("Gunslinger/PowerFantasy mode: MakarovPM magazines multiplied by %dx" % ammo_multiplier)
 	if weapon.has_method("ReinitializeMagazines"):
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
