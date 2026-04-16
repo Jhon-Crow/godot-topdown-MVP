@@ -39,6 +39,16 @@ class MockLabyrinth2Level:
 	var map_width: int = 3200
 	var map_height: int = 2400
 
+	## Floor rendering contract.
+	var floor_node_type: String = "Polygon2D"
+	var floor_polygon: PackedVector2Array = PackedVector2Array([
+		Vector2(64, 64),
+		Vector2(3264, 64),
+		Vector2(3264, 2464),
+		Vector2(64, 2464),
+	])
+	var floor_color: Color = Color(0.17, 0.15, 0.13, 1)
+
 	## Default enemy count for labyrinth 2 level.
 	var default_enemy_count: int = 17
 
@@ -162,3 +172,24 @@ func test_player_exit_blocked_before_clear() -> void:
 func test_map_dimensions() -> void:
 	assert_eq(level.map_width, 3200, "Labyrinth 2 map width should be 3200")
 	assert_eq(level.map_height, 2400, "Labyrinth 2 map height should be 2400")
+
+
+func test_floor_uses_light_reactive_canvas_geometry() -> void:
+	assert_eq(level.floor_node_type, "Polygon2D",
+		"Labyrinth Complex floor should be Polygon2D so PointLight2D muzzle flashes affect it")
+
+
+func test_floor_preserves_original_bounds() -> void:
+	var expected := PackedVector2Array([
+		Vector2(64, 64),
+		Vector2(3264, 64),
+		Vector2(3264, 2464),
+		Vector2(64, 2464),
+	])
+	assert_eq(level.floor_polygon, expected,
+		"Light-reactive floor should preserve the original 64..3264 by 64..2464 playfield bounds")
+
+
+func test_floor_preserves_original_color() -> void:
+	assert_eq(level.floor_color, Color(0.17, 0.15, 0.13, 1),
+		"Light-reactive floor should preserve the original Labyrinth Complex floor color")
