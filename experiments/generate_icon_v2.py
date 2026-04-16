@@ -151,7 +151,7 @@ def draw_small_icon(size: int) -> Image.Image:
     neon = (255, 34, 68, 255)
     figure = (10, 10, 12, 255)
 
-    margin = max(1, size // 8)
+    margin = 0
     draw.ellipse(
         [margin, margin, size - margin - 1, size - margin - 1],
         fill=bg,
@@ -159,7 +159,7 @@ def draw_small_icon(size: int) -> Image.Image:
         width=1,
     )
 
-    ring_margin = max(3, size // 4)
+    ring_margin = max(2, size // 5)
     draw.ellipse(
         [ring_margin, ring_margin, size - ring_margin - 1, size - ring_margin - 1],
         outline=neon,
