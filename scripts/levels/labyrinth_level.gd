@@ -197,7 +197,7 @@ var _tutorial_shotgun_full_reload_active: bool = false
 ## Whether M16 fire-mode [B] hint should appear after grenade training (Bug fix round 5).
 var _tutorial_m16_needs_fire_mode_hint: bool = false
 
-## Grenade hint step (Issue #1818 / PR review feedback): 0..4 map to the effective actions.
+## Grenade hint step (Issue #1818 / PR review feedback): 0..5 map to the effective actions.
 var _tutorial_grenade_hint_step: int = 0
 
 ## Whether G key was held last frame (for grenade hint step tracking).
@@ -206,6 +206,9 @@ var _tutorial_grenade_drag_completed: bool = false
 var _tutorial_grenade_rmb_held_after_release: bool = false
 var _tutorial_grenade_rmb_was_pressed: bool = false
 var _tutorial_grenade_hint_drag_start: Vector2 = Vector2.ZERO
+
+## Whether the shotgun full-reload tutorial reached the shell-loading phase.
+var _tutorial_shotgun_reload_started: bool = false
 
 ## Unique colors per hint type (Issue #945: simultaneously displayed hints should be different colors).
 const TUTORIAL_HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)              ## Green — reload
@@ -2427,6 +2430,7 @@ func _on_tutorial_reload_completed() -> void:
 		if _tutorial_has_shotgun:
 			_dismiss_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE)
 			_tutorial_shotgun_full_reload_active = false  # Bug fix round 5: reset flag
+			_tutorial_shotgun_reload_started = false
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		# Bug fix round 5: M16 fire-mode [B] hint should appear after grenade, not now.
 		if _tutorial_assault_rifle != null and not _tutorial_has_ak_gl:
@@ -2547,13 +2551,20 @@ func _update_tutorial_grenade_hint_step() -> void:
 		_reset_tutorial_grenade_hint_tracking()
 		return
 
+	var grenade_state := 0
+	if _player != null and _player.has_method("GetGrenadeState"):
+		grenade_state = int(_player.GetGrenadeState())
 	var g_pressed: bool = Input.is_action_pressed("grenade_prepare")
 	var rmb_pressed: bool = Input.is_action_pressed("grenade_throw")
 	var current_mouse_pos := get_global_mouse_position()
 	var rmb_just_pressed := rmb_pressed and not _tutorial_grenade_rmb_was_pressed
 	var rmb_just_released := not rmb_pressed and _tutorial_grenade_rmb_was_pressed
 
-	if _tutorial_grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
+	if grenade_state == 0 and _tutorial_grenade_hint_step > 0:
+		_reset_tutorial_grenade_hint_tracking()
+	elif grenade_state == 1 and _tutorial_grenade_hint_step > 3:
+		_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
 		if g_pressed or rmb_pressed or _tutorial_grenade_rmb_was_pressed:
 			_reset_tutorial_grenade_hint_tracking()
 	elif _tutorial_grenade_hint_step == 1 and not g_pressed and not _tutorial_grenade_drag_completed:
@@ -2574,7 +2585,7 @@ func _update_tutorial_grenade_hint_step() -> void:
 			_tutorial_grenade_drag_completed = true
 			_tutorial_grenade_hint_step = 2
 
-	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed:
+	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed and grenade_state >= 1:
 		_tutorial_grenade_hint_step = 1
 		_tutorial_grenade_g_was_held = true
 	elif _tutorial_grenade_hint_step == 2 and _tutorial_grenade_drag_completed and rmb_just_released:
@@ -2770,10 +2781,21 @@ func _on_tutorial_shotgun_reload_state_changed(new_state: int) -> void:
 	if not _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
 		return
 
-	# state=0 means reload is fully complete (bolt closed) — treat as reload done.
+	if new_state >= 2:
+		_tutorial_shotgun_reload_started = true
+
+	# state=0 is only a completed reload if the player actually reached the shell-loading phase.
+	# If the state returns to 0 from the initial open-bolt step, the player canceled the reload and
+	# the hint should roll back to its initial state instead of completing the tutorial.
 	if new_state == 0:
-		print("[LabyrinthLevel] Shotgun reload completed via ReloadStateChanged(0)")
-		_on_tutorial_reload_completed()
+		if _tutorial_shotgun_reload_started:
+			print("[LabyrinthLevel] Shotgun reload completed via ReloadStateChanged(0)")
+			_on_tutorial_reload_completed()
+		else:
+			var label_reset: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]
+			if is_instance_valid(label_reset):
+				label_reset.text = _build_tutorial_shotgun_full_reload_hint_bbcode(0)
+		_tutorial_shotgun_reload_started = false
 		return
 
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]
