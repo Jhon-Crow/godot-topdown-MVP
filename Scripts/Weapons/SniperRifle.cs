@@ -290,7 +290,7 @@ public partial class SniperRifle : BaseWeapon
             }
         }
 
-        GD.Print($"[SniperRifle] ASVK initialized - bolt ready, laser={_laserSightEnabled}");
+        GD.Print($"[SniperRifle] ASVK initialized - bolt ready, laser={_laserSightEnabled}, range={GetMaxAimRange():F0}px");
     }
 
     public override void _ExitTree()
@@ -679,6 +679,16 @@ public partial class SniperRifle : BaseWeapon
     private bool _skipBulletSpawn = false;
 
     /// <summary>
+    /// Returns the ASVK's current maximum aim and hitscan range.
+    /// WeaponData is the authoritative source so the C# firing code stays in sync
+    /// with the SniperRifleData.tres configuration.
+    /// </summary>
+    private float GetMaxAimRange()
+    {
+        return WeaponData?.Range > 0.0f ? WeaponData.Range : 5000.0f;
+    }
+
+    /// <summary>
     /// Fires the sniper rifle using hitscan (instant raycast damage).
     /// All enemies along the bullet path take damage instantly.
     /// The smoke tracer only extends to the point where the bullet stops
@@ -887,7 +897,7 @@ public partial class SniperRifle : BaseWeapon
     /// </summary>
     private Vector2 ComputeHitscanEndpoint(Vector2 origin, Vector2 direction)
     {
-        float maxRange = 5000.0f;
+        float maxRange = GetMaxAimRange();
         Vector2 startPos = origin + direction * BulletSpawnOffset;
         Vector2 endPos = origin + direction * maxRange;
         int wallsPenetrated = 0;
@@ -978,7 +988,7 @@ public partial class SniperRifle : BaseWeapon
     /// </summary>
     private Vector2 ComputeBreakerHitscanEndpoint(Vector2 origin, Vector2 direction)
     {
-        float maxRange = 5000.0f;
+        float maxRange = GetMaxAimRange();
         Vector2 startPos = origin + direction * BulletSpawnOffset;
         Vector2 endPos = origin + direction * maxRange;
 
@@ -1170,7 +1180,7 @@ public partial class SniperRifle : BaseWeapon
     /// <returns>The endpoint where the bullet stops (for smoke tracer).</returns>
     private Vector2 PerformHitscan(Vector2 origin, Vector2 direction)
     {
-        float maxRange = 5000.0f;
+        float maxRange = GetMaxAimRange();
         Vector2 startPos = origin + direction * BulletSpawnOffset;
         Vector2 endPos = origin + direction * maxRange;
         int wallsPenetrated = 0;
@@ -1363,7 +1373,7 @@ public partial class SniperRifle : BaseWeapon
     /// <returns>The endpoint where the bullet detonated (for smoke tracer).</returns>
     private Vector2 PerformBreakerHitscan(Vector2 origin, Vector2 direction)
     {
-        float maxRange = 5000.0f;
+        float maxRange = GetMaxAimRange();
         Vector2 startPos = origin + direction * BulletSpawnOffset;
         Vector2 endPos = origin + direction * maxRange;
         float damage = WeaponData?.Damage ?? 50.0f;

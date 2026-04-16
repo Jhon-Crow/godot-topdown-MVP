@@ -20,7 +20,7 @@ class MockWeaponData:
 	var MaxReserveAmmo: int = 5
 	var ReloadTime: float = 2.5
 	var BulletSpeed: float = 10000.0
-	var Range: float = 5000.0
+	var Range: float = 30000.0
 	var SpreadAngle: float = 0.0
 	var BulletsPerShot: int = 1
 	var IsAutomatic: bool = false
@@ -50,6 +50,11 @@ func after_each() -> void:
 func test_weapon_name() -> void:
 	assert_eq(weapon.Name, "ASVK",
 		"Weapon name should be ASVK (sniper rifle)")
+
+
+func test_asvk_maximum_aiming_range_is_30000() -> void:
+	assert_eq(weapon.Range, 30000.0,
+		"ASVK maximum aiming range must be 30000 px (Issue #1586)")
 
 
 # ============================================================================
@@ -106,3 +111,33 @@ func test_sniper_rifle_data_loudness_in_resource() -> void:
 
 	assert_true(content.contains("Loudness = 3594.3"),
 		"SniperRifleData.tres must have Loudness = 3594.3 (Issue #1269: scaled by 800/1469 from 6600.0)")
+
+
+func test_sniper_rifle_data_range_in_resource() -> void:
+	var file := FileAccess.open("res://resources/weapons/SniperRifleData.tres", FileAccess.READ)
+	if file == null:
+		pass_test("Skipped: SniperRifleData.tres not accessible in test environment")
+		return
+
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("Range = 30000.0"),
+		"SniperRifleData.tres must set ASVK maximum aiming range to 30000 px (Issue #1586)")
+
+
+func test_sniper_rifle_csharp_uses_weapon_data_range_for_hitscan() -> void:
+	var file := FileAccess.open("res://Scripts/Weapons/SniperRifle.cs", FileAccess.READ)
+	if file == null:
+		pass_test("Skipped: SniperRifle.cs not accessible in test environment")
+		return
+
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("private float GetMaxAimRange()"),
+		"SniperRifle.cs must expose one helper for maximum ASVK aim range (Issue #1586)")
+	assert_true(content.contains("return WeaponData?.Range > 0.0f ? WeaponData.Range : 5000.0f;"),
+		"SniperRifle.cs must treat WeaponData.Range as authoritative for ASVK aim range (Issue #1586)")
+	assert_false(content.contains("float maxRange = 5000.0f;"),
+		"SniperRifle.cs hitscan paths must not hardcode the old 5000 px range (Issue #1586)")
