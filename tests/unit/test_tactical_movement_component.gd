@@ -235,3 +235,37 @@ func test_debug_info_shows_yielding_state() -> void:
 	var info := comp.get_debug_info()
 	assert_true(info.begins_with("YIELDING"),
 		"Debug info should show YIELDING state")
+
+
+# =============================================================================
+# Ally Blocking Lane Filter
+# =============================================================================
+
+func test_ally_blocking_path_rejects_side_lane_hits() -> void:
+	var enemy := CharacterBody2D.new()
+	add_child_autofree(enemy)
+	enemy.global_position = Vector2.ZERO
+
+	var ally := CharacterBody2D.new()
+	add_child_autofree(ally)
+	ally.global_position = Vector2(40, TacticalMovementComp.NARROW_PASSAGE_HALF_WIDTH)
+	ally.add_to_group("enemies")
+
+	var comp := TacticalMovementComp.new(enemy)
+	assert_false(comp._is_ally_blocking_path(Vector2.RIGHT),
+		"Ally far to the side should not count as blocking the same corridor lane")
+
+
+func test_ally_blocking_path_accepts_forward_lane_hits() -> void:
+	var enemy := CharacterBody2D.new()
+	add_child_autofree(enemy)
+	enemy.global_position = Vector2.ZERO
+
+	var ally := CharacterBody2D.new()
+	add_child_autofree(ally)
+	ally.global_position = Vector2(40, 8)
+	ally.add_to_group("enemies")
+
+	var comp := TacticalMovementComp.new(enemy)
+	assert_true(comp._is_ally_blocking_path(Vector2.RIGHT),
+		"Ally ahead in the same lane should count as blocking")

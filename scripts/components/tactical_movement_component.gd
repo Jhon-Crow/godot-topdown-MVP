@@ -137,6 +137,8 @@ func _is_path_through_narrow_passage(move_dir: Vector2) -> bool:
 
 
 ## Returns true if an ally enemy is within ALLY_BLOCK_DETECTION_RANGE directly ahead.
+## The ally must also be roughly in the same forward lane so side-by-side allies
+## near an intersection do not trigger unnecessary yielding.
 func _is_ally_blocking_path(move_dir: Vector2) -> bool:
 	if enemy == null:
 		return false
@@ -151,7 +153,16 @@ func _is_ally_blocking_path(move_dir: Vector2) -> bool:
 	# Confirm the hit body is actually an enemy (in "enemies" group).
 	var hit_body: Object = result.get("collider")
 	if hit_body != null and is_instance_valid(hit_body) and (hit_body as Node).is_in_group("enemies"):
-		return true
+		var hit_node := hit_body as Node2D
+		if hit_node == null:
+			return false
+		var offset := hit_node.global_position - enemy.global_position
+		var forward_distance := offset.dot(move_dir)
+		if forward_distance <= 0.0:
+			return false
+		var lateral_offset := abs(offset.dot(move_dir.orthogonal()))
+		var lane_half_width := max(16.0, NARROW_PASSAGE_HALF_WIDTH * 0.5)
+		return lateral_offset <= lane_half_width
 	return false
 
 
