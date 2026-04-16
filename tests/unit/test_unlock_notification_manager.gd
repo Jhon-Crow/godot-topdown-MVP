@@ -40,7 +40,8 @@ class MockGrenadeManager extends Node:
 class MockActiveItemManager extends Node:
 	var unlocked_active_items: Dictionary = {
 		7: false,
-		8: true
+		8: true,
+		9: false
 	}
 
 	func get_all_active_item_types() -> Array:
@@ -55,6 +56,8 @@ class MockActiveItemManager extends Node:
 				return {"name": "Force Field", "name_key": "ITEM_FORCE_FIELD_NAME"}
 			8:
 				return {"name": "Trajectory Glasses", "name_key": "ITEM_TRAJECTORY_GLASSES_NAME"}
+			9:
+				return {"name": "Laser Sight", "name_key": "ITEM_LASER_SIGHT_NAME"}
 			_:
 				return {}
 
@@ -67,7 +70,7 @@ class MockUnlockManager extends Node:
 		return grenade_type == 1 or grenade_type == 2
 
 	func is_active_item_condition_met(item_type: int) -> bool:
-		return item_type == 7 or item_type == 8
+		return item_type == 7 or item_type == 8 or item_type == 9
 
 
 func test_unlock_notification_manager_script_exists() -> void:
@@ -146,6 +149,39 @@ func test_collects_only_locked_items_with_met_conditions() -> void:
 	assert_true("weapon:shotgun" in keys, "Locked shotgun with met condition should be announced")
 	assert_true("grenade:1" in keys, "Locked frag grenade with met condition should be announced")
 	assert_true("active_item:7" in keys, "Locked force field with met condition should be announced")
+	assert_true("active_item:9" in keys, "Locked laser sight with met condition should be announced")
 	assert_false("weapon:m16" in keys, "Already unlocked weapons should not be announced")
 	assert_false("grenade:2" in keys, "Already unlocked grenades should not be announced")
 	assert_false("active_item:8" in keys, "Already unlocked active items should not be announced")
+
+
+func test_startup_suppressed_unlock_can_announce_after_live_signal() -> void:
+	var script: GDScript = load(NOTIFICATION_MANAGER_SCRIPT)
+	assert_not_null(script, "UnlockNotificationManager script should load")
+	var manager: Node = autofree(script.new())
+
+	manager._startup_suppressed_available_keys["active_item:9"] = true
+	manager._announced_available_keys.clear()
+
+	var unlock_manager: Node = autofree(MockUnlockManager.new())
+	var game_manager: Node = autofree(MockGameManager.new())
+	var grenade_manager: Node = autofree(MockGrenadeManager.new())
+	var active_item_manager: Node = autofree(MockActiveItemManager.new())
+	for entry in manager.collect_available_unlock_entries_from_managers(
+			unlock_manager,
+			game_manager,
+			grenade_manager,
+			active_item_manager):
+		var key: String = entry["key"]
+		if manager._announced_available_keys.get(key, false):
+			continue
+		manager._announced_available_keys[key] = true
+		manager._startup_suppressed_available_keys.erase(key)
+		manager.show_unlock_notification(entry["name"], entry["kind"])
+
+	assert_true(manager._announced_available_keys.get("active_item:9", false),
+		"Live stat signals should announce an item even if it was available during startup seeding")
+	assert_false(manager._startup_suppressed_available_keys.has("active_item:9"),
+		"Startup suppression should be consumed once a live signal announces the unlock")
+	assert_true(manager._pending_notifications.size() > 0,
+		"A notification should be queued for the live condition signal")

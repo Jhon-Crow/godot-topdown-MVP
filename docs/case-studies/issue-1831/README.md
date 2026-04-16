@@ -15,6 +15,7 @@ Request: when an item becomes available during play, show a top-screen Armory no
 - `data/related-prs-gold-shine.json`: recent merged PRs involving the gold shine visual language.
 - `attachments/game_log_20260417_003202.txt`: owner-supplied runtime log from the PR feedback round.
 - `attachments/game_log_20260417_003202_unlock_excerpt.txt`: filtered unlock/toast/error lines from the runtime log.
+- `attachments/game_log_20260417_023049.txt`: owner-supplied follow-up runtime log where Armored Skin and Laser Sight availability notifications did not appear.
 - `online-research.md`: external references used for the implementation approach.
 
 ## Timeline
@@ -25,6 +26,10 @@ Request: when an item becomes available during play, show a top-screen Armory no
 - 2026-04-16 21:41:29 UTC: PR feedback reported that the toast text did not include the category (`предмет`/`оружие`/`граната`) and item name, and that the exit animation appeared to replay many times.
 - 2026-04-17 00:32:02 local log time: owner-supplied `game_log_20260417_003202.txt` starts from a Windows build.
 - 2026-04-17 00:37:21, 00:37:44, 00:37:46 local log time: `UnlockManager` reports the Fine Motor Skills shot condition as available three times, confirming repeated availability signals can happen while the item is still locked in Armory.
+- 2026-04-17 02:30:49 local log time: owner-supplied `game_log_20260417_023049.txt` starts from a Windows build.
+- 2026-04-17 02:30:49 local log time: `PersistManager` restores `kills_without_laser_sight: 448`, `shots_fired_special_weapons: 654`, and `total_deaths: 125`, so several kill/stat conditions are already met at startup while their items may still be locked.
+- 2026-04-17 02:37:37 local log time: runtime death counter reaches 100 during the session.
+- 2026-04-17 02:50:02 local log time: runtime kills-without-laser-sight counter reaches 400 during the session.
 
 ## Existing System
 
@@ -46,6 +51,13 @@ Follow-up PR feedback exposed two presentation gaps in the first implementation:
 - The queued notification stored only the display name, so the label could only render `Открыто <name> !` and could not include the requested category prefix.
 - The runtime log shows repeated availability signals for the same locked item. The manager already deduplicates by unlock key, but the animation needed an explicit one-toast lifecycle so the exit slide is represented as a single phase rather than being restartable presentation state.
 
+The second owner log exposed a functional gap in the dedupe logic:
+
+- The notification manager seeded all currently available locked items into the same `_announced_available_keys` table used for shown toasts.
+- In the reported save, persisted counters already satisfied Armored Skin and Laser Sight conditions at startup, so those keys were silently marked as already announced.
+- Later live stat updates at 100 deaths and 400 kills still emitted availability signals, but the notification manager ignored them because the keys were already in the announced table.
+- The fix separates startup suppression from actual announcement history. Startup-available keys are suppressed only to avoid a stale burst on load, then a live availability signal can consume that suppression and show the toast once.
+
 ## Solution Direction
 
 Add a global `UnlockNotificationManager` autoload:
@@ -56,9 +68,11 @@ Add a global `UnlockNotificationManager` autoload:
 - Queues notifications so several items becoming available from one condition are shown one after another.
 - Carries unlock kind through the queue so the text renders `Открыт предмет Бронированная кожа !`, `Открыт оружие ... !`, or `Открыт граната ... !`.
 - Seeds already-available locked items on startup so old save progress does not replay stale notifications.
+- Keeps startup-suppressed entries separate from actually announced entries so a later live stat signal can still show Armored Skin, Laser Sight, or similar toasts when the player crosses the threshold during play.
 - Shows only newly available locked items, avoiding notifications for already-open items.
 - Keeps each toast visible for exactly `4.0` seconds between slide-in and slide-out.
 - Tracks toast animation phase and keeps the slide-out phase to one scheduled tween segment per toast.
+- Logs connection, startup suppression, and live-announcement decisions through `FileLogger` to make future runtime logs diagnosable.
 
 ## Alternatives Considered
 
@@ -79,7 +93,8 @@ Add a global `UnlockNotificationManager` autoload:
   - the Armored Skin example text `Открыт предмет Бронированная кожа !`,
   - 4-second display duration,
   - single slide-out contract,
-  - only locked items with met conditions being collected.
+  - only locked items with met conditions being collected,
+  - startup-suppressed locked items still queue a notification after a live condition signal.
 - Run targeted GUT test when a Godot binary is available:
   - `godot --headless -s addons/gut/gut_cmdln.gd -gselect=test_unlock_notification_manager -gexit`
 - Run broader checks:
@@ -98,7 +113,7 @@ Add a global `UnlockNotificationManager` autoload:
 - `git diff --check`: passed.
 - `dotnet build`: passed with existing warnings and 0 errors.
 - `/tmp/godot-4.3-mono/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 --headless --import`: completed, while reporting existing unrelated test script parse noise during import.
-- Focused GUT rerun for `test_unlock_notification_manager`: Godot exited nonzero during autoload shutdown with existing `current_scene` null errors in several visual/effects autoloads; no target test assertion failure was visible in the captured log tail.
+- Focused GUT rerun for `test_unlock_notification_manager`: passed 7 tests / 22 assertions; Godot log still includes existing unrelated autoload shutdown `current_scene` null noise after the GUT summary.
 
 ## Visual Preview
 

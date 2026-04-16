@@ -117,6 +117,7 @@ const ACTIVE_ITEM_FALLBACK_NAMES: Dictionary = {
 }
 
 var _announced_available_keys: Dictionary = {}
+var _startup_suppressed_available_keys: Dictionary = {}
 var _pending_notifications: Array[Dictionary] = []
 var _is_showing: bool = false
 var _animation_phase: String = "idle"
@@ -286,20 +287,25 @@ func _build_ui() -> void:
 func _connect_unlock_manager() -> void:
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
 	if unlock_manager == null:
+		_log("UnlockManager not found; unlock notifications are disabled")
 		return
 	if unlock_manager.has_signal("items_unlocked_by_condition"):
 		var condition_callable := Callable(self, "_on_condition_unlocks_changed")
 		if not unlock_manager.is_connected("items_unlocked_by_condition", condition_callable):
 			unlock_manager.connect("items_unlocked_by_condition", condition_callable)
+			_log("Connected to items_unlocked_by_condition")
 	if unlock_manager.has_signal("items_unlocked_by_kill_condition"):
 		var kill_callable := Callable(self, "_on_kill_condition_unlocks_changed")
 		if not unlock_manager.is_connected("items_unlocked_by_kill_condition", kill_callable):
 			unlock_manager.connect("items_unlocked_by_kill_condition", kill_callable)
+			_log("Connected to items_unlocked_by_kill_condition")
 
 
 func _seed_announced_available_unlocks() -> void:
 	for entry in collect_available_unlock_entries():
-		_announced_available_keys[entry["key"]] = true
+		_startup_suppressed_available_keys[entry["key"]] = true
+	if not _startup_suppressed_available_keys.is_empty():
+		_log("Suppressed %d already-available startup unlock notification(s)" % _startup_suppressed_available_keys.size())
 
 
 func _on_condition_unlocks_changed(_level_path: String) -> void:
@@ -316,6 +322,8 @@ func _queue_new_available_unlocks() -> void:
 		if _announced_available_keys.get(key, false):
 			continue
 		_announced_available_keys[key] = true
+		if _startup_suppressed_available_keys.erase(key):
+			_log("Announcing previously startup-available unlock after live condition signal: %s" % key)
 		show_unlock_notification(entry["name"], entry["kind"])
 
 
@@ -481,3 +489,11 @@ func _position_toast(visible_position: bool) -> void:
 
 func _get_hidden_y() -> float:
 	return -TOAST_HEIGHT - TOAST_TOP_MARGIN
+
+
+func _log(message: String) -> void:
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[UnlockNotificationManager] " + message)
+	else:
+		print("[UnlockNotificationManager] " + message)
