@@ -104,6 +104,13 @@ public partial class LevelInitFallback : Node
     private Label? _comboLabel;
 
     /// <summary>
+    /// Shared weapon hints component used on non-tutorial combat maps (Issue #1810).
+    /// This must also be initialized by the fallback path when the GDScript level
+    /// _ready() failed to execute, otherwise Building loses its onboarding hints.
+    /// </summary>
+    private Node? _weaponHintsComponent;
+
+    /// <summary>
     /// Active combo tween (to cancel if needed, Issue #1790).
     /// </summary>
     private Tween? _comboTween;
@@ -266,13 +273,16 @@ public partial class LevelInitFallback : Node
         // 9. Start replay recording
         StartReplayRecording(levelRoot);
 
-        // 10. Update GDScript properties so they are in sync
+        // 10. Setup shared weapon hints component (Issue #1810).
+        SetupWeaponHints(levelRoot);
+
+        // 11. Update GDScript properties so they are in sync
         SyncGDScriptProperties(levelRoot);
 
-        // 11. Setup warm ceiling lights (Issue #1206) — mirrors GDScript _setup_room_warm_lights()
+        // 12. Setup warm ceiling lights (Issue #1206) — mirrors GDScript _setup_room_warm_lights()
         SetupRoomWarmLights(levelRoot);
 
-        // 12. Setup navigation mesh (Issue #1289) — mirrors GDScript _setup_navigation()
+        // 13. Setup navigation mesh (Issue #1289) — mirrors GDScript _setup_navigation()
         // Must run after physics frame so CollisionShape2D nodes are registered.
         SetupNavigationDeferred(levelRoot);
     }
@@ -527,6 +537,55 @@ public partial class LevelInitFallback : Node
         visibilityComponent.SetScript(visibilityScript);
         _player.AddChild(visibilityComponent);
         LogToFile("Realistic visibility component added to player (night mode)");
+    }
+
+    /// <summary>
+    /// Mirrors the GDScript level setup for WeaponHintsComponent.
+    /// Required for BuildingLevel when the GDScript _ready() path is skipped and
+    /// this fallback performs level initialization instead.
+    /// </summary>
+    private void SetupWeaponHints(Node levelRoot)
+    {
+        if (_player == null)
+        {
+            LogToFile("WARNING: Weapon hints setup skipped - player is null");
+            return;
+        }
+
+        var canvasLayer = levelRoot.GetNodeOrNull("CanvasLayer");
+        if (canvasLayer == null)
+        {
+            LogToFile("WARNING: Weapon hints setup skipped - CanvasLayer not found");
+            return;
+        }
+
+        if (levelRoot.GetNodeOrNull("WeaponHintsComponent") != null)
+        {
+            LogToFile("Weapon hints component already exists - skipping fallback setup");
+            return;
+        }
+
+        var hintsScript = GD.Load<Script>("res://scripts/components/weapon_hints_component.gd");
+        if (hintsScript == null)
+        {
+            LogToFile("WARNING: WeaponHintsComponent script not found");
+            return;
+        }
+
+        _weaponHintsComponent = new Node();
+        _weaponHintsComponent.Name = "WeaponHintsComponent";
+        _weaponHintsComponent.SetScript(hintsScript);
+        levelRoot.AddChild(_weaponHintsComponent);
+
+        if (_weaponHintsComponent.HasMethod("setup"))
+        {
+            _weaponHintsComponent.Call("setup", _player, canvasLayer);
+            LogToFile("Weapon hints component added and setup");
+        }
+        else
+        {
+            LogToFile("WARNING: WeaponHintsComponent has no setup() method");
+        }
     }
 
     /// <summary>
@@ -825,6 +884,7 @@ public partial class LevelInitFallback : Node
         if (_saturationOverlay != null) levelRoot.Set("_saturation_overlay", _saturationOverlay);
         if (_difficultyLabel != null) levelRoot.Set("_difficulty_label", _difficultyLabel);
         if (_magazinesLabel != null) levelRoot.Set("_magazines_label", _magazinesLabel);
+        if (_weaponHintsComponent != null) levelRoot.Set("_weapon_hints_component", _weaponHintsComponent);
 
         LogToFile("GDScript properties synced");
     }

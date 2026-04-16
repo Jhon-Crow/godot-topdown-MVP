@@ -29,6 +29,11 @@ extends Node
 
 class_name WeaponHintsComponent
 
+## Optional NodePaths let a scene-owned component bootstrap itself without relying
+## on level GDScript _ready() or the C# fallback to call setup().
+@export var player_path: NodePath = NodePath("")
+@export var canvas_layer_path: NodePath = NodePath("")
+
 ## Reference to the player node.
 var _player: Node2D = null
 
@@ -164,6 +169,15 @@ func _ready() -> void:
 	_dismiss_timer.one_shot = true
 	_dismiss_timer.timeout.connect(_on_dismiss_timer_timeout)
 	add_child(_dismiss_timer)
+
+	if not player_path.is_empty() and not canvas_layer_path.is_empty():
+		var configured_player := get_node_or_null(player_path) as Node2D
+		var configured_canvas_layer := get_node_or_null(canvas_layer_path)
+		if configured_player != null and configured_canvas_layer != null:
+			setup(configured_player, configured_canvas_layer)
+			_log_to_file("Auto-setup from exported NodePaths")
+		else:
+			push_warning("[WeaponHintsComponent] Auto-setup paths could not be resolved")
 
 
 ## Setup the component with required references.
