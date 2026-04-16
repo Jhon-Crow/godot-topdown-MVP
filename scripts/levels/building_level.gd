@@ -1225,13 +1225,49 @@ func _on_player_ammo_depleted() -> void:
 			sound_propagation.emit_player_empty_click(_player.global_position, _player)
 
 	# For GDScript player, check if truly out of all ammo (no reserve)
-	# For C# player, game over is handled in _on_weapon_ammo_changed
+	# For C# player, also check the equipped weapon directly. Some empty-click flows emit
+	# AmmoDepleted without a final AmmoChanged update on BuildingLevel, so the game-over label
+	# must not depend solely on _on_weapon_ammo_changed (Issue #1821).
 	if _player and _player.has_method("get_current_ammo"):
 		# GDScript player - max_ammo is the only ammo they have
 		var current_ammo: int = _player.get_current_ammo()
 		if current_ammo <= 0 and _current_enemy_count > 0 and not _game_over_shown:
 			_show_game_over_message()
-	# C# player game over is handled via _on_weapon_ammo_changed signal
+	elif _player and _current_enemy_count > 0 and not _game_over_shown:
+		var weapon: Node = _find_player_weapon(_player)
+		if weapon != null:
+			var current_variant: Variant = weapon.get("CurrentAmmo")
+			var reserve_variant: Variant = weapon.get("ReserveAmmo")
+			if current_variant != null and reserve_variant != null:
+				var current_ammo: int = int(current_variant)
+				var reserve_ammo: int = int(reserve_variant)
+				if current_ammo <= 0 and reserve_ammo <= 0:
+					_show_game_over_message()
+
+
+## Find the currently active weapon node on the player.
+## Prefer the C# Player.CurrentWeapon property so ammo-depleted checks stay
+## aligned with the actually equipped weapon.
+func _find_player_weapon(player: Node2D) -> Node:
+	var current_weapon: Variant = player.get("CurrentWeapon")
+	if current_weapon != null and is_instance_valid(current_weapon):
+		return current_weapon
+
+	var weapon_names: Array[String] = [
+		"AssaultRifle",
+		"Shotgun",
+		"MiniUzi",
+		"SilencedPistol",
+		"SniperRifle",
+		"AKGL",
+		"Revolver",
+		"MakarovPM",
+	]
+	for weapon_name in weapon_names:
+		var weapon: Node = player.get_node_or_null(weapon_name)
+		if weapon != null:
+			return weapon
+	return null
 
 
 ## Called when player starts reloading.

@@ -31,7 +31,7 @@ class MockActiveItemManagerWithArmoredSkin:
 	const ACTIVE_ITEM_DATA: Dictionary = {
 		0: {"name": "None", "icon_path": "", "description": "No active item equipped."},
 		1: {"name": "Flashlight", "icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
-			"description": "Tactical flashlight — hold Space to illuminate in weapon direction."},
+			"description": "Tactical flashlight — hold Space to illuminate in weapon direction and blind enemies caught in the beam."},
 		2: {"name": "Homing Bullets", "icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
 			"description": "Press Space to activate — bullets steer toward the nearest enemy."},
 		3: {"name": "Teleport Bracers", "icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
