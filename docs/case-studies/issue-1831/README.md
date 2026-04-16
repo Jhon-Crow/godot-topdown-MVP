@@ -78,3 +78,7 @@ Add a global `UnlockNotificationManager` autoload:
 - `git diff --check`: passed.
 - `dotnet build`: passed.
 - `Godot_v4.3-stable_mono_linux.x86_64 --headless -s addons/gut/gut_cmdln.gd -gselect=test_unlock_notification_manager -gexit`: passed 4 tests / 12 assertions.
+
+## Visual Preview
+
+![Unlock notification preview](unlock-notification-preview.png)
