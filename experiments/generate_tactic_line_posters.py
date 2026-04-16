@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Generate poster variants for issue #1815.
+"""Generate Tactic Line poster variants for issue #1815.
 
 The script builds deterministic promotional art from existing repository
-sprites and fonts. It intentionally does not touch any Godot scene or game
-resource reference; the output PNG files are standalone assets.
+armory sprites and fonts. It intentionally does not touch Godot scenes or
+runtime resources; the output PNG files are standalone review assets.
 """
 
 from __future__ import annotations
@@ -30,19 +30,7 @@ FONT_NEON = ROOT / "assets" / "fonts" / "neon" / "Beon-Regular.ttf"
 FONT_ACCENT = ROOT / "assets" / "fonts" / "rye" / "Rye-Regular.ttf"
 
 SPRITES = ROOT / "assets" / "sprites"
-M16 = SPRITES / "weapons" / "m16_rifle_topdown.png"
-SHOTGUN = SPRITES / "weapons" / "shotgun_topdown.png"
-REVOLVER = SPRITES / "weapons" / "revolver_topdown.png"
-ASVK = SPRITES / "weapons" / "asvk_topdown.png"
-AK_GL = SPRITES / "weapons" / "ak_gl_topdown.png"
-PKM = SPRITES / "weapons" / "pkm_topdown.png"
-RPG = SPRITES / "weapons" / "rpg_topdown.png"
-MINI_UZI = SPRITES / "weapons" / "mini_uzi_topdown.png"
-SILENCED_PISTOL = SPRITES / "weapons" / "silenced_pistol_topdown.png"
-MAKAROV = SPRITES / "weapons" / "makarov_pm_topdown.png"
-MACHETE = SPRITES / "weapons" / "machete_topdown.png"
-FRAG_GRENADE = SPRITES / "weapons" / "frag_grenade.png"
-FLASHBANG = SPRITES / "weapons" / "flashbang.png"
+WEAPON_SPRITES = SPRITES / "weapons"
 CASING_RIFLE = SPRITES / "effects" / "casing_rifle.png"
 CASING_PISTOL = SPRITES / "effects" / "casing_pistol.png"
 CASING_SHOTGUN = SPRITES / "effects" / "casing_shotgun.png"
@@ -60,12 +48,28 @@ class Palette:
     dark: tuple[int, int, int]
 
 
+@dataclass(frozen=True)
+class WeaponSpec:
+    key: str
+    label: str
+    path: Path
+    single_scale: int
+    multi_scale: int
+    accent: tuple[int, int, int]
+
+
+@dataclass(frozen=True)
+class PosterSpec:
+    filename: str
+    label: str
+
+
 NEON = Palette(
     bg=(5, 8, 11),
-    floor=(15, 26, 28),
-    wall=(43, 62, 58),
-    accent=(232, 61, 72),
-    accent2=(74, 226, 188),
+    floor=(14, 27, 29),
+    wall=(47, 67, 61),
+    accent=(224, 55, 68),
+    accent2=(68, 214, 184),
     text=(245, 246, 230),
     dark=(3, 5, 7),
 )
@@ -73,32 +77,97 @@ NEON = Palette(
 BLUEPRINT = Palette(
     bg=(4, 13, 24),
     floor=(10, 31, 46),
-    wall=(34, 78, 99),
-    accent=(244, 171, 54),
-    accent2=(80, 210, 229),
+    wall=(36, 82, 103),
+    accent=(238, 168, 56),
+    accent2=(78, 198, 220),
     text=(235, 248, 252),
     dark=(2, 8, 14),
 )
 
 CQB = Palette(
     bg=(11, 9, 7),
-    floor=(29, 29, 22),
-    wall=(74, 62, 40),
-    accent=(215, 54, 48),
-    accent2=(218, 185, 86),
+    floor=(28, 29, 22),
+    wall=(76, 64, 42),
+    accent=(218, 185, 86),
+    accent2=(64, 196, 160),
     text=(249, 236, 201),
     dark=(5, 4, 3),
 )
 
-RED_BLACK = Palette(
+STEEL = Palette(
+    bg=(8, 10, 12),
+    floor=(22, 25, 29),
+    wall=(65, 70, 76),
+    accent=(232, 188, 86),
+    accent2=(130, 194, 196),
+    text=(238, 239, 232),
+    dark=(4, 5, 6),
+)
+
+GREEN = Palette(
+    bg=(6, 12, 9),
+    floor=(18, 32, 25),
+    wall=(54, 76, 58),
+    accent=(232, 180, 88),
+    accent2=(118, 214, 124),
+    text=(236, 242, 220),
+    dark=(3, 6, 4),
+)
+
+RED_ACCENT = Palette(
     bg=(0, 0, 0),
-    floor=(15, 0, 0),
-    wall=(63, 0, 0),
-    accent=(255, 0, 0),
-    accent2=(255, 0, 0),
-    text=(255, 0, 0),
+    floor=(12, 12, 12),
+    wall=(42, 42, 42),
+    accent=(210, 22, 32),
+    accent2=(160, 160, 160),
+    text=(238, 238, 232),
     dark=(0, 0, 0),
 )
+
+# The ASVK path is the current armory menu path. The file name says "topdown",
+# but the sprite itself is a side-profile armory-style icon.
+ARMORY_WEAPONS: list[WeaponSpec] = [
+    WeaponSpec("asvk", "ASVK", WEAPON_SPRITES / "asvk_topdown.png", 11, 7, (92, 216, 190)),
+    WeaponSpec("m16", "M16", WEAPON_SPRITES / "m16_rifle.png", 10, 6, (92, 210, 236)),
+    WeaponSpec("shotgun", "Shotgun", WEAPON_SPRITES / "shotgun_icon.png", 10, 6, (238, 178, 76)),
+    WeaponSpec("mini_uzi", "Mini UZI", WEAPON_SPRITES / "mini_uzi_icon.png", 13, 8, (112, 222, 128)),
+    WeaponSpec("silenced_pistol", "Silenced Pistol", WEAPON_SPRITES / "silenced_pistol_icon.png", 10, 6, (186, 186, 210)),
+    WeaponSpec("revolver", "RSh-12", WEAPON_SPRITES / "revolver_icon.png", 10, 6, (228, 196, 96)),
+    WeaponSpec("ak_gl", "AK + GL", WEAPON_SPRITES / "ak_gl_icon.png", 10, 6, (226, 138, 84)),
+    WeaponSpec("makarov_pm", "Makarov PM", WEAPON_SPRITES / "makarov_pm_icon.png", 12, 7, (176, 200, 220)),
+]
+
+WEAPONS = {weapon.key: weapon for weapon in ARMORY_WEAPONS}
+
+POSTERS: list[PosterSpec] = [
+    PosterSpec("tactic_line_single_asvk.png", "Single: ASVK"),
+    PosterSpec("tactic_line_single_m16.png", "Single: M16"),
+    PosterSpec("tactic_line_single_shotgun.png", "Single: Shotgun"),
+    PosterSpec("tactic_line_single_mini_uzi.png", "Single: Mini UZI"),
+    PosterSpec("tactic_line_single_silenced_pistol.png", "Single: Silenced Pistol"),
+    PosterSpec("tactic_line_single_revolver.png", "Single: RSh-12"),
+    PosterSpec("tactic_line_single_ak_gl.png", "Single: AK + GL"),
+    PosterSpec("tactic_line_single_makarov_pm.png", "Single: Makarov PM"),
+    PosterSpec("tactic_line_multi_primary_rifles.png", "Multi: Primary Rifles"),
+    PosterSpec("tactic_line_multi_sidearms.png", "Multi: Sidearms"),
+    PosterSpec("tactic_line_multi_full_armory.png", "Multi: Full Armory"),
+    PosterSpec("tactic_line_multi_precision_cell.png", "Multi: Precision Cell"),
+    PosterSpec("tactic_line_multi_breach_cell.png", "Multi: Breach Cell"),
+    PosterSpec("tactic_line_multi_quiet_entry.png", "Multi: Quiet Entry"),
+    PosterSpec("tactic_line_multi_heavy_wall.png", "Multi: Heavy Wall"),
+    PosterSpec("tactic_line_multi_compact_sweep.png", "Multi: Compact Sweep"),
+    PosterSpec("tactic_line_multi_unlock_progression.png", "Multi: Unlock Progression"),
+    PosterSpec("tactic_line_multi_balanced_loadout.png", "Multi: Balanced Loadout"),
+    PosterSpec("tactic_line_red_black_asvk.png", "Red/Black: ASVK"),
+    PosterSpec("tactic_line_red_black_loadout.png", "Red/Black: Loadout"),
+]
+
+LEGACY_POSTERS = [
+    "tactic_line_poster_neon_crossfire.png",
+    "tactic_line_poster_red_black.png",
+    "tactic_line_poster_blueprint.png",
+    "tactic_line_poster_close_quarters.png",
+]
 
 
 def font(path: Path, size: int) -> ImageFont.FreeTypeFont:
@@ -117,26 +186,25 @@ def blend(a: tuple[int, int, int], b: tuple[int, int, int], t: float) -> tuple[i
     return lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)
 
 
-def make_base(pal: Palette, seed: int, vignette: bool = True) -> Image.Image:
+def make_base(pal: Palette, seed: int, *, red_black: bool = False) -> Image.Image:
     rng = random.Random(seed)
     img = Image.new("RGBA", (W, H), rgba(pal.bg))
     pix = img.load()
-    center_x = W * 0.54
-    center_y = H * 0.50
+    center_x = W * 0.52
+    center_y = H * 0.54
     max_dist = math.hypot(center_x, center_y)
 
     for y in range(H):
         gy = y / H
         for x in range(W):
             gx = x / W
-            t = (gx * 0.56 + gy * 0.44)
-            base = blend(pal.bg, pal.floor, min(1.0, t * 1.25))
-            noise = rng.randint(-7, 7)
-            if vignette:
-                d = math.hypot(x - center_x, y - center_y) / max_dist
-                shade = max(0.35, 1.0 - d * 0.95)
-            else:
-                shade = 1.0
+            t = gx * 0.45 + gy * 0.55
+            base = blend(pal.bg, pal.floor, min(1.0, t * 1.18))
+            d = math.hypot(x - center_x, y - center_y) / max_dist
+            shade = max(0.32, 1.0 - d * 0.92)
+            noise = rng.randint(-5, 5)
+            if red_black:
+                noise = rng.randint(-3, 3)
             pix[x, y] = (
                 max(0, min(255, int(base[0] * shade) + noise)),
                 max(0, min(255, int(base[1] * shade) + noise)),
@@ -160,31 +228,26 @@ def glow_line(
     xy: Iterable[tuple[float, float]],
     color: tuple[int, int, int],
     width: int,
-    blur: int = 12,
-    alpha: int = 255,
+    *,
+    blur: int = 10,
+    alpha: int = 180,
 ) -> None:
     points = list(xy)
     glow = Image.new("RGBA", img.size, (0, 0, 0, 0))
     gd = ImageDraw.Draw(glow)
     gd.line(points, fill=rgba(color, alpha), width=width + blur, joint="curve")
     glow = glow.filter(ImageFilter.GaussianBlur(blur))
-    overlay(img, glow, 0.65)
+    overlay(img, glow, 0.5)
     draw = ImageDraw.Draw(img)
     draw.line(points, fill=rgba(color, alpha), width=width, joint="curve")
 
 
-def draw_room_grid(img: Image.Image, pal: Palette, seed: int, red_black: bool = False) -> None:
+def draw_room_grid(img: Image.Image, pal: Palette, seed: int, *, red_black: bool = False) -> None:
     rng = random.Random(seed)
     draw = ImageDraw.Draw(img, "RGBA")
-
-    if red_black:
-        floor_fill = (10, 0, 0, 255)
-        wall_fill = (105, 0, 0, 255)
-        line_fill = (255, 0, 0, 45)
-    else:
-        floor_fill = rgba(pal.floor, 198)
-        wall_fill = rgba(pal.wall, 210)
-        line_fill = rgba(pal.accent2, 30)
+    floor_alpha = 164 if red_black else 190
+    wall_alpha = 132 if red_black else 205
+    line_alpha = 18 if red_black else 28
 
     rooms = [
         (86, 112, 350, 308),
@@ -205,25 +268,24 @@ def draw_room_grid(img: Image.Image, pal: Palette, seed: int, red_black: bool = 
     ]
 
     for rect in rooms + corridors:
-        draw.rectangle(rect, fill=floor_fill)
+        draw.rectangle(rect, fill=rgba(pal.floor, floor_alpha))
 
     for rect in rooms:
-        draw.rectangle(rect, outline=wall_fill, width=8)
+        draw.rectangle(rect, outline=rgba(pal.wall, wall_alpha), width=8)
     for rect in corridors:
-        draw.rectangle(rect, outline=rgba(pal.wall, 120), width=3)
+        draw.rectangle(rect, outline=rgba(pal.wall, max(70, wall_alpha - 70)), width=3)
 
     for x in range(72, W, 44):
-        draw.line((x, 62, x, H - 52), fill=line_fill, width=1)
+        draw.line((x, 62, x, H - 52), fill=rgba(pal.accent2, line_alpha), width=1)
     for y in range(66, H, 44):
-        draw.line((54, y, W - 54, y), fill=line_fill, width=1)
+        draw.line((54, y, W - 54, y), fill=rgba(pal.accent2, line_alpha), width=1)
 
-    for _ in range(34):
+    for _ in range(28):
         x = rng.randrange(80, W - 80)
-        y = rng.randrange(90, H - 70)
+        y = rng.randrange(96, H - 70)
         w = rng.randrange(14, 56)
         h = rng.randrange(8, 26)
-        fill = rgba(pal.wall if not red_black else (120, 0, 0), rng.randrange(92, 170))
-        draw.rectangle((x, y, x + w, y + h), fill=fill)
+        draw.rectangle((x, y, x + w, y + h), fill=rgba(pal.wall, rng.randrange(52, 122)))
 
 
 def draw_tactical_routes(
@@ -236,12 +298,12 @@ def draw_tactical_routes(
 ) -> None:
     rng = random.Random(seed)
     draw = ImageDraw.Draw(img, "RGBA")
-    route_color = (255, 0, 0) if red_black else pal.accent2
-    alt_color = (255, 0, 0) if red_black else pal.accent
-    alpha = 76 if red_black else 82
-    node_alpha = 145 if red_black else 155
+    route_color = pal.accent if red_black else pal.accent2
+    alt_color = pal.accent2 if red_black else pal.accent
+    alpha = 42 if red_black else 66
+    node_alpha = 86 if red_black else 128
     routes = [
-        [(150, 500), (246, 462), (342, 472), (430, 392), (566, 398), (668, 314), (808, 332), (940, 250)],
+        [(140, 500), (246, 462), (342, 472), (430, 392), (566, 398), (668, 314), (808, 332), (940, 250)],
         [(250, 204), (376, 234), (520, 216), (636, 284), (760, 260), (880, 310), (1018, 284)],
         [(190, 596), (324, 552), (480, 562), (626, 512), (762, 540), (936, 474), (1070, 506)],
         [(130, 142), (286, 164), (428, 132), (566, 172), (718, 136), (878, 178), (1054, 146)],
@@ -249,59 +311,91 @@ def draw_tactical_routes(
     for i, path in enumerate(routes):
         shifted = []
         for x, y in path:
-            jitter_x = rng.randrange(-10, 11)
-            jitter_y = rng.randrange(-8, 9)
-            shifted.append((x + jitter_x, y + jitter_y + variant * (i % 2) * 7))
+            shifted.append((x + rng.randrange(-9, 10), y + rng.randrange(-7, 8) + variant * (i % 2) * 4))
         color = route_color if i % 2 == 0 else alt_color
-        width = 2 if i != variant % len(routes) else 3
-        draw.line(shifted, fill=rgba(color, alpha), width=width)
+        draw.line(shifted, fill=rgba(color, alpha), width=2)
         for x, y in shifted:
             radius = 5 if i == variant % len(routes) else 4
             draw.ellipse((x - radius, y - radius, x + radius, y + radius), outline=rgba(color, node_alpha), width=2)
             draw.ellipse((x - 2, y - 2, x + 2, y + 2), fill=rgba(color, node_alpha))
 
 
-def paste_sprite(
+def add_scanlines(img: Image.Image, color: tuple[int, int, int], *, alpha: int = 18, step: int = 7) -> None:
+    draw = ImageDraw.Draw(img, "RGBA")
+    for y in range(0, H, step):
+        draw.line((0, y, W, y), fill=rgba(color, alpha), width=1)
+
+
+def add_corner_frame(img: Image.Image, pal: Palette, *, thick: int = 4, red_black: bool = False) -> None:
+    draw = ImageDraw.Draw(img, "RGBA")
+    pad = 28
+    length = 122
+    alpha = 126 if red_black else 172
+    for sx in (pad, W - pad):
+        for sy in (pad, H - pad):
+            xsign = 1 if sx == pad else -1
+            ysign = 1 if sy == pad else -1
+            draw.line((sx, sy, sx + xsign * length, sy), fill=rgba(pal.accent, alpha), width=thick)
+            draw.line((sx, sy, sx, sy + ysign * length), fill=rgba(pal.accent, alpha), width=thick)
+
+
+def draw_title(
     img: Image.Image,
-    path: Path,
-    center: tuple[int, int],
-    scale: int,
-    angle: float,
-    tint: tuple[int, int, int] | None = None,
-    alpha: int = 255,
-    glow: tuple[int, int, int] | None = None,
-    glow_alpha: int = 115,
+    pal: Palette,
+    xy: tuple[int, int],
+    size: int,
+    *,
+    align: str = "left",
+    red_black: bool = False,
+    font_path: Path = FONT_TITLE,
 ) -> None:
-    sprite = Image.open(path).convert("RGBA")
-    if tint is not None:
-        alpha_channel = sprite.getchannel("A")
-        gray = sprite.convert("L")
-        tinted = Image.new("RGBA", sprite.size, rgba(tint, 0))
-        tinted.putalpha(alpha_channel.point(lambda v: min(alpha, v)))
-        sprite = Image.composite(tinted, sprite, gray.point(lambda v: 255 if v > 8 else 0))
-    elif alpha != 255:
-        a = sprite.getchannel("A")
-        sprite.putalpha(a.point(lambda v: int(v * alpha / 255)))
+    title_font = font(font_path, size)
+    draw = ImageDraw.Draw(img, "RGBA")
+    bbox = draw.textbbox((0, 0), TITLE, font=title_font, stroke_width=3)
+    text_w = bbox[2] - bbox[0]
+    x, y = xy
+    if align == "center":
+        x -= text_w // 2
+    elif align == "right":
+        x -= text_w
 
-    sprite = sprite.resize((sprite.width * scale, sprite.height * scale), Image.Resampling.NEAREST)
-    sprite = sprite.rotate(angle, expand=True, resample=Image.Resampling.NEAREST)
+    glow_alpha = 42 if red_black else 72
+    glow_layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    gd = ImageDraw.Draw(glow_layer)
+    for off in range(12, 0, -3):
+        gd.text(
+            (x, y),
+            TITLE,
+            font=title_font,
+            fill=rgba(pal.accent, glow_alpha),
+            stroke_width=3 + off // 3,
+            stroke_fill=rgba(pal.accent, glow_alpha),
+        )
+    glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(8))
+    overlay(img, glow_layer, 0.62)
 
-    x = int(center[0] - sprite.width / 2)
-    y = int(center[1] - sprite.height / 2)
-    if glow is not None:
-        glow_layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
-        glow_sprite = Image.new("RGBA", sprite.size, rgba(glow, 0))
-        glow_sprite.putalpha(sprite.getchannel("A").filter(ImageFilter.GaussianBlur(13)).point(lambda v: int(v * glow_alpha / 255)))
-        glow_layer.alpha_composite(glow_sprite, (x, y))
-        overlay(img, glow_layer, 1.0)
+    fill = pal.accent if red_black else pal.text
+    draw.text(
+        (x, y),
+        TITLE,
+        font=title_font,
+        fill=rgba(fill),
+        stroke_width=3,
+        stroke_fill=rgba(pal.dark),
+    )
 
-    shadow = Image.new("RGBA", sprite.size, (0, 0, 0, 0))
-    shadow.putalpha(sprite.getchannel("A").filter(ImageFilter.GaussianBlur(6)))
-    img.alpha_composite(shadow, (x + 10, y + 16))
-    img.alpha_composite(sprite, (x, y))
+    underline_y = y + bbox[3] - bbox[1] + 16
+    glow_line(
+        img,
+        [(x + 8, underline_y), (x + text_w - 8, underline_y)],
+        pal.accent,
+        width=max(4, size // 20),
+        blur=9,
+        alpha=166 if red_black else 205,
+    )
 
 
-def draw_soft_weapon_plinth(
+def draw_focus_field(
     img: Image.Image,
     center: tuple[int, int],
     size: tuple[int, int],
@@ -313,273 +407,206 @@ def draw_soft_weapon_plinth(
     w, h = size
     layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(layer, "RGBA")
-    fill = (255, 0, 0, 52) if red_black else rgba(pal.dark, 132)
-    outline = (255, 0, 0, 128) if red_black else rgba(pal.accent2, 86)
-    draw.rounded_rectangle((cx - w // 2, cy - h // 2, cx + w // 2, cy + h // 2), radius=8, fill=fill, outline=outline, width=2)
-    blurred = layer.filter(ImageFilter.GaussianBlur(12))
-    overlay(img, blurred, 0.5)
-    overlay(img, layer, 1.0)
+    fill = rgba(pal.dark, 120 if not red_black else 170)
+    outline = rgba(pal.accent if red_black else pal.accent2, 80 if red_black else 100)
+    draw.ellipse((cx - w // 2, cy - h // 2, cx + w // 2, cy + h // 2), fill=fill, outline=outline, width=3)
+    blurred = layer.filter(ImageFilter.GaussianBlur(18))
+    overlay(img, blurred, 0.72)
+    overlay(img, layer, 0.82)
 
 
-def scatter_casings(img: Image.Image, pal: Palette, seed: int, *, red_black: bool = False) -> None:
-    rng = random.Random(seed)
-    casing_paths = [CASING_RIFLE, CASING_PISTOL, CASING_SHOTGUN]
-    tint = (255, 0, 0) if red_black else None
-    for i in range(18):
-        path = casing_paths[i % len(casing_paths)]
-        x = rng.randrange(120, W - 120)
-        y = rng.randrange(120, H - 80)
-        if 420 < x < 820 and 230 < y < 500:
-            x += 230 if x < W // 2 else -230
-        alpha = 180 if red_black else rng.randrange(112, 172)
-        paste_sprite(img, path, (x, y), rng.choice([2, 3]), rng.randrange(0, 180), tint=tint, alpha=alpha)
+def load_weapon_sprite(path: Path, scale: int, angle: float = 0) -> Image.Image:
+    sprite = Image.open(path).convert("RGBA")
+    alpha = sprite.getchannel("A")
+    rgb = ImageEnhance.Brightness(sprite.convert("RGB")).enhance(1.22)
+    rgb = ImageEnhance.Contrast(rgb).enhance(1.08)
+    sprite = rgb.convert("RGBA")
+    sprite.putalpha(alpha)
+    sprite = sprite.resize((sprite.width * scale, sprite.height * scale), Image.Resampling.NEAREST)
+    if angle:
+        sprite = sprite.rotate(angle, expand=True, resample=Image.Resampling.NEAREST)
+    return sprite
 
 
-def draw_armory_cross(
+def paste_weapon(
     img: Image.Image,
-    pal: Palette,
+    weapon: WeaponSpec,
+    center: tuple[int, int],
+    scale: int,
     *,
-    red_black: bool = False,
-    compact: bool = False,
+    angle: float = 0,
+    alpha: int = 255,
+    glow: tuple[int, int, int] | None = None,
+    red_outline: bool = False,
 ) -> None:
-    tint = (255, 0, 0) if red_black else None
-    glow = (255, 0, 0) if red_black else pal.accent2
-    draw_soft_weapon_plinth(img, (620, 396), (620, 250 if compact else 300), pal, red_black=red_black)
-    paste_sprite(img, ASVK, (622, 348), 9 if compact else 10, -16, tint=tint, glow=glow, glow_alpha=150)
-    paste_sprite(img, AK_GL, (618, 424), 9 if compact else 10, 18, tint=tint, glow=pal.accent if not red_black else glow, glow_alpha=130)
-    paste_sprite(img, SHOTGUN, (414, 492), 7, -8, tint=tint, alpha=235, glow=glow, glow_alpha=80)
-    paste_sprite(img, M16, (840, 498), 7, 9, tint=tint, alpha=235, glow=glow, glow_alpha=80)
-    paste_sprite(img, REVOLVER, (424, 276), 7, 21, tint=tint, alpha=230)
-    paste_sprite(img, MINI_UZI, (820, 260), 7, -24, tint=tint, alpha=230)
+    sprite = load_weapon_sprite(weapon.path, scale, angle)
+    if alpha != 255:
+        a = sprite.getchannel("A")
+        sprite.putalpha(a.point(lambda v: int(v * alpha / 255)))
 
+    x = int(center[0] - sprite.width / 2)
+    y = int(center[1] - sprite.height / 2)
+    mask = sprite.getchannel("A")
 
-def draw_armory_knolling(
-    img: Image.Image,
-    pal: Palette,
-    *,
-    red_black: bool = False,
-) -> None:
-    tint = (255, 0, 0) if red_black else None
-    glow = (255, 0, 0) if red_black else pal.accent2
-    draw_soft_weapon_plinth(img, (670, 410), (720, 310), pal, red_black=red_black)
-    items = [
-        (ASVK, (640, 276), 8, 0),
-        (PKM, (640, 350), 8, 0),
-        (M16, (640, 424), 8, 0),
-        (SHOTGUN, (640, 500), 8, 0),
-        (REVOLVER, (322, 354), 7, 0),
-        (SILENCED_PISTOL, (332, 430), 7, 0),
-        (MAKAROV, (335, 500), 7, 0),
-        (RPG, (958, 350), 7, 0),
-        (MACHETE, (956, 478), 7, 0),
-    ]
-    for idx, (path, center, scale, angle) in enumerate(items):
-        paste_sprite(img, path, center, scale, angle, tint=tint, alpha=238, glow=glow if idx in (0, 1, 7) else None, glow_alpha=100)
-    paste_sprite(img, FRAG_GRENADE, (492, 585), 5, 0, tint=tint, alpha=224)
-    paste_sprite(img, FLASHBANG, (750, 585), 5, 0, tint=tint, alpha=224)
-
-
-def draw_title(
-    img: Image.Image,
-    pal: Palette,
-    xy: tuple[int, int],
-    size: int,
-    align: str = "left",
-    glow: bool = True,
-    font_path: Path = FONT_TITLE,
-    stroke: int = 3,
-) -> None:
-    title_font = font(font_path, size)
-    draw = ImageDraw.Draw(img, "RGBA")
-    bbox = draw.textbbox((0, 0), TITLE, font=title_font, stroke_width=stroke)
-    text_w = bbox[2] - bbox[0]
-    x, y = xy
-    if align == "center":
-        x -= text_w // 2
-    elif align == "right":
-        x -= text_w
-
-    if glow:
+    if glow is not None:
         glow_layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
-        gd = ImageDraw.Draw(glow_layer)
-        for off in range(14, 0, -3):
-            gd.text(
-                (x, y),
-                TITLE,
-                font=title_font,
-                fill=rgba(pal.accent, 20 + off * 8),
-                stroke_width=stroke + off // 3,
-                stroke_fill=rgba(pal.accent, 20 + off * 8),
-            )
-        glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(8))
-        overlay(img, glow_layer, 0.8)
+        glow_sprite = Image.new("RGBA", sprite.size, rgba(glow, 0))
+        glow_sprite.putalpha(mask.filter(ImageFilter.GaussianBlur(15)).point(lambda v: int(v * 0.7)))
+        glow_layer.alpha_composite(glow_sprite, (x, y))
+        overlay(img, glow_layer, 0.84)
 
-    draw.text(
-        (x, y),
-        TITLE,
-        font=title_font,
-        fill=rgba(pal.text),
-        stroke_width=stroke,
-        stroke_fill=rgba(pal.dark),
-    )
+    shadow = Image.new("RGBA", sprite.size, (0, 0, 0, 0))
+    shadow.putalpha(mask.filter(ImageFilter.GaussianBlur(6)).point(lambda v: int(v * 0.62)))
+    img.alpha_composite(shadow, (x + 10, y + 15))
 
-    underline_y = y + bbox[3] - bbox[1] + 18
-    glow_line(
-        img,
-        [(x + 8, underline_y), (x + text_w - 8, underline_y)],
-        pal.accent,
-        width=max(4, size // 18),
-        blur=10,
-        alpha=220,
-    )
+    if red_outline:
+        outline = Image.new("RGBA", sprite.size, (0, 0, 0, 0))
+        outline_mask = mask.filter(ImageFilter.MaxFilter(5))
+        outline.putalpha(outline_mask.point(lambda v: min(120, v)))
+        red = Image.new("RGBA", sprite.size, rgba(RED_ACCENT.accent, 0))
+        red.putalpha(outline.getchannel("A"))
+        img.alpha_composite(red, (x, y))
+
+    img.alpha_composite(sprite, (x, y))
 
 
-def add_scanlines(img: Image.Image, color: tuple[int, int, int], alpha: int = 28, step: int = 5) -> None:
+def draw_weapon_label(
+    img: Image.Image,
+    pal: Palette,
+    label: str,
+    *,
+    red_black: bool = False,
+    y: int = 596,
+) -> None:
+    label_font = font(FONT_NEON if red_black else FONT_TITLE, 34)
     draw = ImageDraw.Draw(img, "RGBA")
-    for y in range(0, H, step):
-        draw.line((0, y, W, y), fill=rgba(color, alpha), width=1)
+    bbox = draw.textbbox((0, 0), label, font=label_font, stroke_width=2)
+    w = bbox[2] - bbox[0]
+    x = W // 2 - w // 2
+    fill = pal.accent if red_black else pal.text
+    draw.text((x, y), label, font=label_font, fill=rgba(fill, 232), stroke_width=2, stroke_fill=rgba(pal.dark, 240))
 
 
-def add_corner_frame(img: Image.Image, pal: Palette, thick: int = 5) -> None:
-    draw = ImageDraw.Draw(img, "RGBA")
-    pad = 26
-    length = 130
-    for sx in (pad, W - pad):
-        for sy in (pad, H - pad):
-            xsign = 1 if sx == pad else -1
-            ysign = 1 if sy == pad else -1
-            draw.line((sx, sy, sx + xsign * length, sy), fill=rgba(pal.accent, 190), width=thick)
-            draw.line((sx, sy, sx, sy + ysign * length), fill=rgba(pal.accent, 190), width=thick)
+def scatter_casings(img: Image.Image, pal: Palette, seed: int, *, sparse: bool = True) -> None:
+    rng = random.Random(seed)
+    count = 8 if sparse else 16
+    casing_paths = [CASING_RIFLE, CASING_PISTOL, CASING_SHOTGUN]
+    for i in range(count):
+        path = casing_paths[i % len(casing_paths)]
+        x = rng.randrange(130, W - 130)
+        y = rng.randrange(145, H - 88)
+        if 330 < x < 900 and 250 < y < 520:
+            y += 160 if y < H // 2 else -160
+        weapon = WeaponSpec("casing", "Casing", path, 1, 1, pal.accent)
+        paste_weapon(img, weapon, (x, y), rng.choice([2, 3]), angle=rng.randrange(0, 180), alpha=rng.randrange(96, 150))
 
 
-def poster_neon_crossfire() -> Image.Image:
-    img = make_base(NEON, 181501)
-    draw_room_grid(img, NEON, 181502)
-    draw_tactical_routes(img, NEON, 181521, variant=0)
-
-    glow_line(img, [(122, 574), (320, 570), (520, 580), (720, 566), (960, 590), (1120, 574)], NEON.accent2, 2, 8, 90)
-    draw_armory_cross(img, NEON)
-    scatter_casings(img, NEON, 181522)
-    paste_sprite(img, FRAG_GRENADE, (1020, 180), 5, 0, alpha=220, glow=NEON.accent, glow_alpha=90)
-    paste_sprite(img, FLASHBANG, (190, 430), 5, 0, alpha=210, glow=NEON.accent2, glow_alpha=70)
-
-    add_scanlines(img, NEON.accent2, 8, 8)
-    draw_title(img, NEON, (72, 54), 108, "left", True)
-    add_corner_frame(img, NEON)
-    return img
-
-
-def poster_red_black() -> Image.Image:
-    img = Image.new("RGBA", (W, H), (0, 0, 0, 255))
-    draw_room_grid(img, RED_BLACK, 181503, red_black=True)
-    draw = ImageDraw.Draw(img, "RGBA")
-
-    for x in range(-250, W + 250, 80):
-        draw.line((x, 0, x + 390, H), fill=(80, 0, 0, 54), width=8)
-    for y in range(85, H, 75):
-        draw.line((0, y, W, y), fill=(255, 0, 0, 30), width=1)
-
-    draw_tactical_routes(img, RED_BLACK, 181523, red_black=True, variant=1)
-    draw_armory_cross(img, RED_BLACK, red_black=True, compact=True)
-    scatter_casings(img, RED_BLACK, 181524, red_black=True)
-    paste_sprite(img, RPG, (944, 602), 6, 0, tint=RED_BLACK.accent, alpha=230)
-    paste_sprite(img, MACHETE, (283, 600), 7, 0, tint=RED_BLACK.accent, alpha=230)
-
-    title_font = font(FONT_TITLE, 118)
-    bbox = draw.textbbox((0, 0), TITLE, font=title_font, stroke_width=2)
-    title_w = bbox[2] - bbox[0]
-    title_x = (W - title_w) // 2
-    title_y = 62
-    for off in (18, 12, 7):
-        draw.text(
-            (title_x, title_y),
-            TITLE,
-            font=title_font,
-            fill=(255, 0, 0, 30),
-            stroke_width=off,
-            stroke_fill=(255, 0, 0, 24),
-        )
-    draw.text(
-        (title_x, title_y),
-        TITLE,
-        font=title_font,
-        fill=(255, 0, 0, 255),
-        stroke_width=3,
-        stroke_fill=(0, 0, 0, 255),
-    )
-    draw.rectangle((title_x + 4, title_y + 136, title_x + title_w - 4, title_y + 148), fill=(255, 0, 0, 255))
-
-    add_corner_frame(img, RED_BLACK, thick=7)
-    img = to_red_black(img)
-    return img
-
-
-def poster_blueprint() -> Image.Image:
-    img = make_base(BLUEPRINT, 181504, vignette=False)
-    draw_room_grid(img, BLUEPRINT, 181505)
-    draw = ImageDraw.Draw(img, "RGBA")
-
-    for r in (78, 128, 182, 246, 318):
-        draw.ellipse((W // 2 - r, H // 2 - r, W // 2 + r, H // 2 + r), outline=rgba(BLUEPRINT.accent2, 36), width=2)
-    for angle in range(0, 360, 15):
-        a = math.radians(angle)
-        draw.line(
-            (W // 2, H // 2, W // 2 + math.cos(a) * 620, H // 2 + math.sin(a) * 620),
-            fill=rgba(BLUEPRINT.accent2, 22),
-            width=1,
-        )
-
-    draw_tactical_routes(img, BLUEPRINT, 181525, variant=2)
-    draw_armory_knolling(img, BLUEPRINT)
-    paste_sprite(img, FRAG_GRENADE, (496, 596), 5, 0, alpha=230, glow=BLUEPRINT.accent, glow_alpha=80)
-    paste_sprite(img, FLASHBANG, (744, 596), 5, 0, alpha=220, glow=BLUEPRINT.accent2, glow_alpha=80)
-
-    add_scanlines(img, BLUEPRINT.accent2, 9, 7)
-    draw_title(img, BLUEPRINT, (616, 52), 102, "center", True, FONT_NEON, stroke=2)
-    add_corner_frame(img, BLUEPRINT, thick=4)
-    return img
-
-
-def poster_close_quarters() -> Image.Image:
-    img = make_base(CQB, 181506)
-    draw_room_grid(img, CQB, 181507)
-    draw_tactical_routes(img, CQB, 181526, variant=3)
-
+def add_flashlight_wash(img: Image.Image, pal: Palette, *, alpha: float = 0.18) -> None:
     cone = Image.open(FLASHLIGHT).convert("RGBA")
-    cone = cone.resize((640, 640), Image.Resampling.BILINEAR)
-    cone = cone.rotate(-34, expand=True, resample=Image.Resampling.BILINEAR)
-    cone = ImageEnhance.Color(cone).enhance(0.4)
-    cone = ImageEnhance.Brightness(cone).enhance(1.55)
-    a = cone.getchannel("A").point(lambda v: int(v * 0.25))
+    cone = cone.resize((620, 620), Image.Resampling.BILINEAR)
+    cone = cone.rotate(-35, expand=True, resample=Image.Resampling.BILINEAR)
+    cone = ImageEnhance.Color(cone).enhance(0.3)
+    cone = ImageEnhance.Brightness(cone).enhance(1.35)
+    a = cone.getchannel("A").point(lambda v: int(v * alpha))
     cone.putalpha(a)
-    img.alpha_composite(cone, (166, 120))
+    img.alpha_composite(cone, (170, 126))
 
-    draw_armory_cross(img, CQB)
-    paste_sprite(img, PKM, (606, 178), 8, 6, alpha=230, glow=CQB.accent2, glow_alpha=70)
-    paste_sprite(img, SILENCED_PISTOL, (955, 546), 8, -18, alpha=235)
-    paste_sprite(img, MAKAROV, (270, 548), 8, 22, alpha=235)
-    scatter_casings(img, CQB, 181527)
 
-    draw_title(img, CQB, (70, 55), 106, "left", True, FONT_ACCENT, stroke=4)
-    add_corner_frame(img, CQB, thick=5)
+def prepare_canvas(pal: Palette, seed: int, *, red_black: bool = False, route_variant: int = 0) -> Image.Image:
+    img = make_base(pal, seed, red_black=red_black)
+    draw_room_grid(img, pal, seed + 1, red_black=red_black)
+    draw_tactical_routes(img, pal, seed + 2, red_black=red_black, variant=route_variant)
+    if not red_black and seed % 2 == 0:
+        add_flashlight_wash(img, pal, alpha=0.14)
+    add_scanlines(img, pal.accent2, alpha=7 if red_black else 9, step=8)
     return img
 
 
-def to_red_black(img: Image.Image) -> Image.Image:
-    result = Image.new("RGBA", img.size, (0, 0, 0, 255))
-    src = img.convert("RGBA").load()
-    dst = result.load()
-    for y in range(img.height):
-        for x in range(img.width):
-            r, g, b, a = src[x, y]
-            if a == 0:
-                dst[x, y] = (0, 0, 0, 255)
-                continue
-            if r > 28 or (r + g + b) > 45:
-                dst[x, y] = (255, 0, 0, 255)
-            else:
-                dst[x, y] = (0, 0, 0, 255)
-    return result
+def single_poster(weapon: WeaponSpec, pal: Palette, seed: int, *, red_black: bool = False) -> Image.Image:
+    img = prepare_canvas(pal, seed, red_black=red_black, route_variant=seed % 4)
+    draw_focus_field(img, (W // 2, 392), (900, 285), pal, red_black=red_black)
+    draw_title(img, pal, (66, 54), 104, red_black=red_black, font_path=FONT_TITLE if not red_black else FONT_NEON)
+    glow = pal.accent if red_black else weapon.accent
+    paste_weapon(
+        img,
+        weapon,
+        (W // 2, 386),
+        weapon.single_scale,
+        glow=glow,
+        red_outline=red_black,
+    )
+    draw_weapon_label(img, pal, weapon.label, red_black=red_black)
+    scatter_casings(img, pal, seed + 9, sparse=True)
+    add_corner_frame(img, pal, red_black=red_black, thick=5 if red_black else 4)
+    return img
+
+
+def draw_multi_row(
+    img: Image.Image,
+    weapons: list[WeaponSpec],
+    centers: list[tuple[int, int]],
+    pal: Palette,
+    *,
+    red_black: bool = False,
+    highlight: str | None = None,
+) -> None:
+    for weapon, center in zip(weapons, centers):
+        scale = weapon.multi_scale
+        is_highlight = highlight == weapon.key
+        paste_weapon(
+            img,
+            weapon,
+            center,
+            scale + (1 if is_highlight else 0),
+            alpha=255 if is_highlight else 232,
+            glow=pal.accent if red_black else (weapon.accent if is_highlight else pal.accent2),
+            red_outline=red_black and is_highlight,
+        )
+
+
+def multi_poster(
+    keys: list[str],
+    pal: Palette,
+    seed: int,
+    label: str,
+    *,
+    layout: str = "stack",
+    red_black: bool = False,
+    highlight: str | None = None,
+) -> Image.Image:
+    img = prepare_canvas(pal, seed, red_black=red_black, route_variant=seed % 4)
+    draw_focus_field(img, (W // 2, 405), (960, 370), pal, red_black=red_black)
+    draw_title(img, pal, (66, 52), 100, red_black=red_black, font_path=FONT_NEON if red_black else FONT_TITLE)
+    weapons = [WEAPONS[key] for key in keys]
+
+    if layout == "full":
+        centers = [
+            (448, 288),
+            (780, 288),
+            (448, 372),
+            (780, 372),
+            (448, 456),
+            (780, 456),
+            (448, 540),
+            (780, 540),
+        ]
+        draw_multi_row(img, weapons, centers, pal, red_black=red_black, highlight=highlight)
+    elif layout == "line":
+        centers = [(W // 2, 286), (W // 2, 376), (W // 2, 466), (W // 2, 556)]
+        draw_multi_row(img, weapons, centers[: len(weapons)], pal, red_black=red_black, highlight=highlight)
+    elif layout == "two_column":
+        centers = [(430, 330), (800, 330), (430, 470), (800, 470)]
+        draw_multi_row(img, weapons, centers[: len(weapons)], pal, red_black=red_black, highlight=highlight)
+    else:
+        start_y = 302 if len(weapons) <= 3 else 278
+        step = 94 if len(weapons) <= 3 else 82
+        centers = [(W // 2, start_y + i * step) for i in range(len(weapons))]
+        draw_multi_row(img, weapons, centers, pal, red_black=red_black, highlight=highlight)
+
+    draw_weapon_label(img, pal, label, red_black=red_black, y=602)
+    scatter_casings(img, pal, seed + 11, sparse=True)
+    add_corner_frame(img, pal, red_black=red_black, thick=5 if red_black else 4)
+    return img
 
 
 def save_rgb(img: Image.Image, name: str) -> Path:
@@ -590,43 +617,106 @@ def save_rgb(img: Image.Image, name: str) -> Path:
 
 
 def make_contact_sheet(paths: list[Path]) -> Path:
-    thumb_w = 560
+    thumb_w = 300
     thumb_h = int(thumb_w * H / W)
-    pad = 34
-    label_h = 46
-    sheet = Image.new("RGB", (thumb_w * 2 + pad * 3, (thumb_h + label_h) * 2 + pad * 3), (8, 8, 8))
+    pad = 22
+    label_h = 42
+    cols = 5
+    rows = 4
+    sheet = Image.new("RGB", (thumb_w * cols + pad * (cols + 1), (thumb_h + label_h) * rows + pad * (rows + 1)), (8, 8, 8))
     draw = ImageDraw.Draw(sheet)
-    label_font = font(FONT_TITLE, 24)
-    labels = [
-        "Neon Arsenal",
-        "Red / Black",
-        "Blueprint Loadout",
-        "Close Quarters Armory",
-    ]
+    label_font = font(FONT_TITLE, 18)
+
     for i, path in enumerate(paths):
-        row = i // 2
-        col = i % 2
+        row = i // cols
+        col = i % cols
         x = pad + col * (thumb_w + pad)
         y = pad + row * (thumb_h + label_h + pad)
         poster = Image.open(path).convert("RGB").resize((thumb_w, thumb_h), Image.Resampling.LANCZOS)
         sheet.paste(poster, (x, y))
-        draw.rectangle((x, y, x + thumb_w, y + thumb_h), outline=(210, 40, 50), width=2)
-        draw.text((x, y + thumb_h + 12), labels[i], font=label_font, fill=(236, 236, 218))
+        draw.rectangle((x, y, x + thumb_w, y + thumb_h), outline=(160, 44, 50), width=2)
+        label = POSTERS[i].label
+        if len(label) > 28:
+            label = label[:25] + "..."
+        draw.text((x, y + thumb_h + 10), label, font=label_font, fill=(236, 236, 218))
+
     out = OUT_DIR / "tactic_line_poster_contact_sheet.png"
     sheet.save(out, optimize=True)
     return out
 
 
+def remove_legacy_outputs() -> None:
+    for filename in LEGACY_POSTERS:
+        path = OUT_DIR / filename
+        if path.exists():
+            path.unlink()
+
+
+def generate_posters() -> list[Path]:
+    outputs = [
+        save_rgb(single_poster(WEAPONS["asvk"], NEON, 181601), "tactic_line_single_asvk.png"),
+        save_rgb(single_poster(WEAPONS["m16"], BLUEPRINT, 181602), "tactic_line_single_m16.png"),
+        save_rgb(single_poster(WEAPONS["shotgun"], CQB, 181603), "tactic_line_single_shotgun.png"),
+        save_rgb(single_poster(WEAPONS["mini_uzi"], GREEN, 181604), "tactic_line_single_mini_uzi.png"),
+        save_rgb(single_poster(WEAPONS["silenced_pistol"], STEEL, 181605), "tactic_line_single_silenced_pistol.png"),
+        save_rgb(single_poster(WEAPONS["revolver"], CQB, 181606), "tactic_line_single_revolver.png"),
+        save_rgb(single_poster(WEAPONS["ak_gl"], NEON, 181607), "tactic_line_single_ak_gl.png"),
+        save_rgb(single_poster(WEAPONS["makarov_pm"], BLUEPRINT, 181608), "tactic_line_single_makarov_pm.png"),
+        save_rgb(
+            multi_poster(["asvk", "m16", "ak_gl"], BLUEPRINT, 181609, "Primary Rifles", layout="line", highlight="asvk"),
+            "tactic_line_multi_primary_rifles.png",
+        ),
+        save_rgb(
+            multi_poster(["makarov_pm", "silenced_pistol", "revolver", "mini_uzi"], STEEL, 181610, "Sidearms", layout="two_column"),
+            "tactic_line_multi_sidearms.png",
+        ),
+        save_rgb(
+            multi_poster([w.key for w in ARMORY_WEAPONS], GREEN, 181611, "Full Armory", layout="full", highlight="asvk"),
+            "tactic_line_multi_full_armory.png",
+        ),
+        save_rgb(
+            multi_poster(["asvk", "revolver", "silenced_pistol"], NEON, 181612, "Precision Cell", layout="line", highlight="asvk"),
+            "tactic_line_multi_precision_cell.png",
+        ),
+        save_rgb(
+            multi_poster(["shotgun", "ak_gl", "m16"], CQB, 181613, "Breach Cell", layout="line", highlight="shotgun"),
+            "tactic_line_multi_breach_cell.png",
+        ),
+        save_rgb(
+            multi_poster(["silenced_pistol", "makarov_pm", "mini_uzi"], BLUEPRINT, 181614, "Quiet Entry", layout="line", highlight="silenced_pistol"),
+            "tactic_line_multi_quiet_entry.png",
+        ),
+        save_rgb(
+            multi_poster(["asvk", "revolver", "ak_gl"], STEEL, 181615, "Heavy Wall", layout="line", highlight="revolver"),
+            "tactic_line_multi_heavy_wall.png",
+        ),
+        save_rgb(
+            multi_poster(["mini_uzi", "makarov_pm", "shotgun"], GREEN, 181616, "Compact Sweep", layout="line", highlight="mini_uzi"),
+            "tactic_line_multi_compact_sweep.png",
+        ),
+        save_rgb(
+            multi_poster(["makarov_pm", "m16", "shotgun", "asvk"], NEON, 181617, "Unlock Progression", layout="line", highlight="asvk"),
+            "tactic_line_multi_unlock_progression.png",
+        ),
+        save_rgb(
+            multi_poster(["m16", "shotgun", "silenced_pistol", "revolver"], CQB, 181618, "Balanced Loadout", layout="two_column"),
+            "tactic_line_multi_balanced_loadout.png",
+        ),
+        save_rgb(single_poster(WEAPONS["asvk"], RED_ACCENT, 181619, red_black=True), "tactic_line_red_black_asvk.png"),
+        save_rgb(
+            multi_poster(["asvk", "m16", "revolver"], RED_ACCENT, 181620, "Redline Loadout", layout="line", red_black=True, highlight="asvk"),
+            "tactic_line_red_black_loadout.png",
+        ),
+    ]
+    make_contact_sheet(outputs)
+    return outputs
+
+
 def main() -> None:
     os.chdir(ROOT)
-    outputs = [
-        save_rgb(poster_neon_crossfire(), "tactic_line_poster_neon_crossfire.png"),
-        save_rgb(poster_red_black(), "tactic_line_poster_red_black.png"),
-        save_rgb(poster_blueprint(), "tactic_line_poster_blueprint.png"),
-        save_rgb(poster_close_quarters(), "tactic_line_poster_close_quarters.png"),
-    ]
-    outputs.append(make_contact_sheet(outputs))
-    for path in outputs:
+    remove_legacy_outputs()
+    outputs = generate_posters()
+    for path in outputs + [OUT_DIR / "tactic_line_poster_contact_sheet.png"]:
         print(path.relative_to(ROOT))
 
 

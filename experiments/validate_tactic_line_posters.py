@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import struct
 import zlib
+from collections import Counter
 from pathlib import Path
 
 
@@ -12,13 +13,37 @@ ROOT = Path(__file__).resolve().parents[1]
 GENERATOR = ROOT / "experiments" / "generate_tactic_line_posters.py"
 POSTER_DIR = ROOT / "assets" / "posters"
 
-POSTERS = [
+POSTER_NAMES = [
+    "tactic_line_single_asvk.png",
+    "tactic_line_single_m16.png",
+    "tactic_line_single_shotgun.png",
+    "tactic_line_single_mini_uzi.png",
+    "tactic_line_single_silenced_pistol.png",
+    "tactic_line_single_revolver.png",
+    "tactic_line_single_ak_gl.png",
+    "tactic_line_single_makarov_pm.png",
+    "tactic_line_multi_primary_rifles.png",
+    "tactic_line_multi_sidearms.png",
+    "tactic_line_multi_full_armory.png",
+    "tactic_line_multi_precision_cell.png",
+    "tactic_line_multi_breach_cell.png",
+    "tactic_line_multi_quiet_entry.png",
+    "tactic_line_multi_heavy_wall.png",
+    "tactic_line_multi_compact_sweep.png",
+    "tactic_line_multi_unlock_progression.png",
+    "tactic_line_multi_balanced_loadout.png",
+    "tactic_line_red_black_asvk.png",
+    "tactic_line_red_black_loadout.png",
+]
+POSTERS = [POSTER_DIR / name for name in POSTER_NAMES]
+CONTACT_SHEET = POSTER_DIR / "tactic_line_poster_contact_sheet.png"
+
+LEGACY_POSTERS = [
     POSTER_DIR / "tactic_line_poster_neon_crossfire.png",
     POSTER_DIR / "tactic_line_poster_red_black.png",
     POSTER_DIR / "tactic_line_poster_blueprint.png",
     POSTER_DIR / "tactic_line_poster_close_quarters.png",
 ]
-CONTACT_SHEET = POSTER_DIR / "tactic_line_poster_contact_sheet.png"
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
@@ -74,7 +99,7 @@ def paeth_predictor(a: int, b: int, c: int) -> int:
     return c
 
 
-def png_rgb_colors(path: Path) -> set[tuple[int, int, int]]:
+def png_rgb_counter(path: Path) -> Counter[tuple[int, int, int]]:
     info = read_png_info(path)
     if info.bit_depth != 8 or info.color_type not in (2, 6):
         raise ValueError(f"{path} must be 8-bit RGB/RGBA, got bit_depth={info.bit_depth}, color_type={info.color_type}")
@@ -108,10 +133,10 @@ def png_rgb_colors(path: Path) -> set[tuple[int, int, int]]:
                 raise ValueError(f"{path} uses unsupported PNG filter {filter_type}")
         rows.append(row)
 
-    colors: set[tuple[int, int, int]] = set()
+    colors: Counter[tuple[int, int, int]] = Counter()
     for row in rows:
         for i in range(0, len(row), channels):
-            colors.add((row[i], row[i + 1], row[i + 2]))
+            colors[(row[i], row[i + 1], row[i + 2])] += 1
     return colors
 
 
@@ -122,37 +147,78 @@ def validate_generator_source() -> list[str]:
         "characters/enemy",
         "player_combined_preview",
         "enemy_combined_preview",
-        "paste_sprite(img, PLAYER",
-        "paste_sprite(img, ENEMY",
+        "m16_rifle_topdown.png",
+        "shotgun_topdown.png",
+        "revolver_topdown.png",
+        "ak_gl_topdown.png",
+        "mini_uzi_topdown.png",
+        "silenced_pistol_topdown.png",
+        "pkm_topdown.png",
+        "rpg_topdown.png",
+        "machete_topdown.png",
+        "paste_weapon(img, PLAYER",
+        "paste_weapon(img, ENEMY",
     ]
-    return [f"generator still references forbidden character asset: {token}" for token in forbidden if token in source]
+    failures = [f"generator still references forbidden asset/source token: {token}" for token in forbidden if token in source]
+
+    required_armory_assets = [
+        "asvk_topdown.png",
+        "m16_rifle.png",
+        "shotgun_icon.png",
+        "mini_uzi_icon.png",
+        "silenced_pistol_icon.png",
+        "revolver_icon.png",
+        "ak_gl_icon.png",
+        "makarov_pm_icon.png",
+    ]
+    for token in required_armory_assets:
+        if token not in source:
+            failures.append(f"generator no longer references required armory side-view asset: {token}")
+
+    return failures
 
 
 def validate_png_outputs() -> list[str]:
     failures: list[str] = []
     for poster in POSTERS:
+        if not poster.exists():
+            failures.append(f"{poster.relative_to(ROOT)} is missing")
+            continue
         info = read_png_info(poster)
         if (info.width, info.height) != (1232, 706):
             failures.append(f"{poster.relative_to(ROOT)} is {info.width}x{info.height}, expected 1232x706")
+
+    for poster in LEGACY_POSTERS:
+        if poster.exists():
+            failures.append(f"legacy rejected poster still exists: {poster.relative_to(ROOT)}")
 
     contact = read_png_info(CONTACT_SHEET)
     if contact.width <= 0 or contact.height <= 0:
         failures.append(f"{CONTACT_SHEET.relative_to(ROOT)} has invalid dimensions {contact.width}x{contact.height}")
 
-    red_black_colors = png_rgb_colors(POSTER_DIR / "tactic_line_poster_red_black.png")
-    expected = {(0, 0, 0), (255, 0, 0)}
-    if red_black_colors != expected:
-        failures.append(
-            "tactic_line_poster_red_black.png must remain strict red/black; "
-            f"found {len(red_black_colors)} colors"
-        )
+    return failures
 
+
+def validate_red_black_balance() -> list[str]:
+    failures: list[str] = []
+    for path in [POSTER_DIR / "tactic_line_red_black_asvk.png", POSTER_DIR / "tactic_line_red_black_loadout.png"]:
+        colors = png_rgb_counter(path)
+        total = sum(colors.values())
+        red_dominant = sum(
+            count
+            for (r, g, b), count in colors.items()
+            if r >= 130 and r > g * 1.45 and r > b * 1.45
+        )
+        red_ratio = red_dominant / total
+        if red_ratio > 0.10:
+            failures.append(f"{path.relative_to(ROOT)} uses too much red: {red_ratio:.1%}, expected <= 10%")
     return failures
 
 
 def main() -> int:
     failures = validate_generator_source()
     failures.extend(validate_png_outputs())
+    failures.extend(validate_red_black_balance())
 
     if failures:
         print("Poster validation failed:")
