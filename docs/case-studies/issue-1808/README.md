@@ -15,6 +15,7 @@
 - `game_log_20260411_015626.txt` - original runtime log from the report
 - `game_log_20260416_023550.txt` - latest owner repro log showing persisted startup navigation and remaining `Labyrinth2` startup failures
 - `issue-1808-comment-4256398298.png` - latest owner screenshot showing `0/8` on startup
+- `logs/game_log_20260416_095403.txt` - owner follow-up showing Building still at `0` for shotgun and Labyrinth Complex HUD counters broken
 
 ## Timeline
 
@@ -45,14 +46,24 @@ That means the bug was broader than the first patch assumed: it was not enough t
 
 The same log later shows `Player.Weapon] Equipped Shotgun (ammo: 0/8)` immediately after entering `Labyrinth2Level`, which exposed another unfixed level-specific startup path.
 
+### 2026-04-16 09:54:03 UTC
+
+The latest owner log confirms a broader HUD binding problem. The level scripts were still finding the weapon by probing player child nodes in a fixed order. That is fragile because the C# `Player` exposes the authoritative equipped weapon as `CurrentWeapon`; stale or transitional child nodes can remain visible during setup and cause the HUD to connect to or initialize from the wrong node.
+
+This explains both remaining symptoms:
+
+- Building can still show `0` for shotgun if the startup HUD path binds to a stale or incompletely initialized child instead of the equipped shotgun's `ShellsInTube`.
+- Labyrinth Complex can have enemy/ammo HUD counters appear broken when level setup follows the wrong weapon node path and skips the actual current weapon state.
+
 In each affected level script:
 
 1. the level connects to the shotgun's `ShellCountChanged` signal
 2. the initial HUD value is still read from `CurrentAmmo`
 3. `CurrentAmmo` is `0` at startup for the shotgun
 4. only after the first shot does `ShellCountChanged` fire and correct the HUD
+5. the script can choose the wrong weapon node before it even reaches the shotgun-specific display helper
 
-So the bug is not in the ongoing counter update logic. It is an initialization bug in the first HUD push.
+So the bug is not in the ongoing counter update logic. It is an initialization/binding bug in the first HUD push.
 
 ## Code Evidence
 
@@ -82,7 +93,7 @@ All other weapons keep using:
 - `CurrentAmmo`
 - `ReserveAmmo`
 
-This keeps the patch minimal and aligned with the existing shotgun runtime update path.
+The level scripts now also use `Player.CurrentWeapon` first when binding HUD signals and pushing the initial HUD state. Child-node probing remains only as a fallback by selected weapon id. This prevents stale child nodes from overriding the actual equipped weapon.
 
 ## Test Coverage
 
@@ -97,6 +108,11 @@ The new tests demonstrate both states:
 
 Coverage was added for Building, Labyrinth, Labyrinth2, and TestTier.
 
+Additional regression tests cover stale child-node selection:
+
+1. Building uses the equipped shotgun from `CurrentWeapon` even if another weapon child exists.
+2. Labyrinth2 uses the equipped non-shotgun weapon from `CurrentWeapon` even if a stale shotgun child exists.
+
 ## Online / External Facts
 
 No external web facts were needed to identify the fault. The issue was fully explained by:
@@ -108,4 +124,4 @@ No external web facts were needed to identify the fault. The issue was fully exp
 
 ## Outcome
 
-The HUD now receives the correct initial shotgun ammo state before the first shot on the affected maps, on `Labyrinth2`, and on the persisted startup path that reaches `TestTier`, while the existing `ShellCountChanged` path continues handling subsequent updates.
+The HUD now receives the correct initial shotgun ammo state before the first shot on the affected maps, on `Labyrinth2`, and on the persisted startup path that reaches `TestTier`, while the existing `ShellCountChanged` path continues handling subsequent updates. HUD setup is also bound to the actual equipped C# weapon, reducing the risk of stale weapon children breaking ammo counters.

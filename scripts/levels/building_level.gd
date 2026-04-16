@@ -758,23 +758,7 @@ func _setup_player_tracking() -> void:
 	elif _player.has_signal("Died"):
 		_player.Died.connect(_on_player_died)
 
-	# Try to get the player's weapon for C# Player
-	# First try shotgun (if selected), then Mini UZI, then Silenced Pistol, then assault rifle, then MakarovPM
-	var weapon = _player.get_node_or_null("Shotgun")
-	if weapon == null:
-		weapon = _player.get_node_or_null("MiniUzi")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SilencedPistol")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SniperRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("AssaultRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("AKGL")
-	if weapon == null:
-		weapon = _player.get_node_or_null("Revolver")
-	if weapon == null:
-		weapon = _player.get_node_or_null("MakarovPM")
+	var weapon = _get_current_player_weapon()
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
@@ -857,6 +841,31 @@ func _setup_enemy_tracking() -> void:
 	_current_enemy_count = _initial_enemy_count
 	_log_to_file("Enemy tracking complete: %d enemies registered" % _initial_enemy_count)
 	print("Tracking %d enemies" % _initial_enemy_count)
+
+
+## Return the player's actual equipped weapon.
+## C# Player owns the authoritative CurrentWeapon; child-node probing is only a fallback.
+func _get_current_player_weapon() -> Node:
+	if _player == null:
+		return null
+
+	var current_weapon = _player.get("CurrentWeapon")
+	if current_weapon != null and current_weapon is Node and is_instance_valid(current_weapon):
+		return current_weapon
+
+	var selected_weapon_id: String = GameManager.get_selected_weapon() if GameManager else "makarov_pm"
+	var weapon_names: Dictionary = {
+		"shotgun": "Shotgun",
+		"mini_uzi": "MiniUzi",
+		"silenced_pistol": "SilencedPistol",
+		"sniper": "SniperRifle",
+		"m16": "AssaultRifle",
+		"ak_gl": "AKGL",
+		"revolver": "Revolver",
+		"makarov_pm": "MakarovPM"
+	}
+	var expected_name: String = weapon_names.get(selected_weapon_id, "MakarovPM")
+	return _player.get_node_or_null(expected_name)
 
 
 ## Return the loaded ammo value that should be shown in the HUD.

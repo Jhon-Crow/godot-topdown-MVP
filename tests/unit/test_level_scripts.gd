@@ -286,6 +286,13 @@ class MockBuildingLevel extends MockLevelBase:
 		if displayed_current != null and reserve != null:
 			update_ammo_label_magazine(displayed_current, reserve)
 
+	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
+		if not current_weapon.is_empty():
+			return current_weapon
+		if not selected_weapon.is_empty():
+			return selected_weapon
+		return stale_first_child
+
 	# -------------------------------------------------------------------------
 	# Player death simulation (Issue #1259)
 	# -------------------------------------------------------------------------
@@ -429,6 +436,13 @@ class MockTestTier extends MockLevelBase:
 		if displayed_current != null and reserve != null:
 			update_ammo_label_magazine(displayed_current, reserve)
 
+	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
+		if not current_weapon.is_empty():
+			return current_weapon
+		if not selected_weapon.is_empty():
+			return selected_weapon
+		return stale_first_child
+
 	## Get the next level path.
 	func get_next_level_path(current_scene_path: String) -> String:
 		for i in range(_level_paths.size()):
@@ -463,6 +477,13 @@ class MockLabyrinth2Level extends MockLevelBase:
 		var reserve = weapon.get("ReserveAmmo")
 		if displayed_current != null and reserve != null:
 			update_ammo_label_magazine(displayed_current, reserve)
+
+	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
+		if not current_weapon.is_empty():
+			return current_weapon
+		if not selected_weapon.is_empty():
+			return selected_weapon
+		return stale_first_child
 
 
 # ============================================================================
@@ -2277,6 +2298,46 @@ func test_labyrinth2_shotgun_startup_uses_shell_count_not_current_ammo() -> void
 	})
 	assert_eq(labyrinth2_level._ammo_label_text, "AMMO: 5/20",
 		"Labyrinth2 non-shotgun startup must keep using CurrentAmmo")
+
+
+func test_building_hud_binds_to_current_weapon_before_stale_child() -> void:
+	## Regression: child-node probing can pick a stale weapon before the equipped C# CurrentWeapon.
+	var equipped_shotgun := {
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 8,
+		"ReserveAmmo": 8,
+	}
+	var stale_revolver := {
+		"name": "Revolver",
+		"CurrentAmmo": 0,
+		"ReserveAmmo": 20,
+	}
+
+	var chosen := building_level.choose_current_weapon(equipped_shotgun, {}, stale_revolver)
+	building_level.simulate_weapon_display_update(chosen)
+	assert_eq(building_level._ammo_label_text, "AMMO: 8/8",
+		"Building HUD must use the equipped CurrentWeapon, not an arbitrary stale child")
+
+
+func test_labyrinth2_hud_binds_to_current_weapon_before_stale_child() -> void:
+	## Owner feedback showed Labyrinth Complex HUD counters regressed after stale-node selection.
+	var equipped_revolver := {
+		"name": "Revolver",
+		"CurrentAmmo": 5,
+		"ReserveAmmo": 20,
+	}
+	var stale_shotgun := {
+		"name": "Shotgun",
+		"CurrentAmmo": 0,
+		"ShellsInTube": 0,
+		"ReserveAmmo": 8,
+	}
+
+	var chosen := labyrinth2_level.choose_current_weapon(equipped_revolver, {}, stale_shotgun)
+	labyrinth2_level.simulate_weapon_display_update(chosen)
+	assert_eq(labyrinth2_level._ammo_label_text, "AMMO: 5/20",
+		"Labyrinth2 HUD must use the equipped CurrentWeapon so stale shotgun nodes cannot break counters")
 
 
 func test_testtier_shotgun_startup_uses_shell_count_not_current_ammo() -> void:
