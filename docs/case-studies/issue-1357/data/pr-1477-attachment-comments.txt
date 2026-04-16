@@ -1,0 +1,57 @@
+враг застрял в том же месте (не исправлено)
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/dc13b6e1-8825-483a-96c1-8a51fdeddfbf" />
+[game_log_20260325_042027.txt](https://github.com/user-attachments/files/26229524/game_log_20260325_042027.txt)
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
+сейчас этот угол проходится только если врага подталкнёт другой, возможно дело в коллизиях?
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f413465d-1f2e-4477-9ab2-b5a099cb2717" />
+[game_log_20260325_044538.txt](https://github.com/user-attachments/files/26229833/game_log_20260325_044538.txt)
+[game_log_20260325_044618.txt](https://github.com/user-attachments/files/26229834/game_log_20260325_044618.txt)
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
+проблема сохранилась, возможно есть какая то сила трения между врагом и стеной? 
+[game_log_20260325_051623.txt](https://github.com/user-attachments/files/26230156/game_log_20260325_051623.txt)
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
+всё ещё застревает в стене
+<img width="165" height="254" alt="image" src="https://github.com/user-attachments/assets/26283bea-fcf7-4f6f-bc31-2af4d738059d" />
+
+Please collect data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), and propose possible solutions  (including known existing components/libraries, that solve similar problem or can help in solutions).
+и реализуй решение
+теперь враг хорошо проходит каждый второй раз.
+но когда строится такой путь - враг зацепляется уже за верхнюю часть прохода
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/b3906412-ef85-4518-9ae2-e716d7122ebb" />
+[game_log_20260325_124738.txt](https://github.com/user-attachments/files/26238571/game_log_20260325_124738.txt)
+[game_log_20260325_124822.txt](https://github.com/user-attachments/files/26238576/game_log_20260325_124822.txt)
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
+враг всё ещё застревает в верхней части прохода
+<img width="380" height="429" alt="image" src="https://github.com/user-attachments/assets/e1b34b7d-e49c-43b0-8cfd-e77d8878b922" />
+[game_log_20260325_131043.txt](https://github.com/user-attachments/files/26239478/game_log_20260325_131043.txt)
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
+теперь полностью сломан ии (откатись к предыдущему коммиту)
+[game_log_20260325_134513.txt](https://github.com/user-attachments/files/26240827/game_log_20260325_134513.txt)
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
+враг опять застревает так же внизу прохода.
+<img width="198" height="261" alt="image" src="https://github.com/user-attachments/assets/b36f7c49-3055-4c5f-94e0-86d54620c86c" />
+[game_log_20260325_140630.txt](https://github.com/user-attachments/files/26241259/game_log_20260325_140630.txt)
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
+полностью сломан ии.
+[game_log_20260325_162320.txt](https://github.com/user-attachments/files/26244309/game_log_20260325_162320.txt)
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
+ии сломан полностью
+[game_log_20260326_063151.txt](https://github.com/user-attachments/files/26259329/game_log_20260326_063151.txt)
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
+ии всё ещё полностью сломан.
+[game_log_20260326_065256.txt](https://github.com/user-attachments/files/26259539/game_log_20260326_065256.txt)
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
+ии полностью сломан
+[game_log_20260326_121901.txt](https://github.com/user-attachments/files/26267616/game_log_20260326_121901.txt)
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
