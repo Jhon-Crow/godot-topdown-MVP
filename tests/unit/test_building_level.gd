@@ -232,3 +232,33 @@ func test_building_level_fallback_skips_duplicate_weapon_hints_setup() -> void:
 
 	assert_eq(fallback.setup_calls, 0,
 		"Fallback initialization should not create a duplicate weapon hints component")
+
+
+func test_level_init_fallback_source_initializes_weapon_hints_before_property_sync() -> void:
+	var source := _read_text_file("res://Scripts/Components/LevelInitFallback.cs")
+
+	assert_string_contains(source, "SetupWeaponHints(levelRoot);",
+		"LevelInitFallback must invoke weapon hints setup on the exported Building fallback path")
+	assert_string_contains(source, "GD.Load<Script>(\"res://scripts/components/weapon_hints_component.gd\")",
+		"LevelInitFallback must load the shared GDScript WeaponHintsComponent")
+	assert_string_contains(source, "_weaponHintsComponent.Call(\"setup\", _player, canvasLayer)",
+		"LevelInitFallback must call WeaponHintsComponent.setup with player and CanvasLayer")
+	assert_string_contains(source, "levelRoot.Set(\"_weapon_hints_component\", _weaponHintsComponent)",
+		"LevelInitFallback must sync the component back to the Building GDScript property")
+
+	var setup_index := source.find("SetupWeaponHints(levelRoot);")
+	var sync_index := source.find("SyncGDScriptProperties(levelRoot);")
+	assert_gt(setup_index, -1, "Fallback setup call should exist")
+	assert_gt(sync_index, -1, "Fallback property sync call should exist")
+	assert_lt(setup_index, sync_index,
+		"Fallback must create weapon hints before syncing GDScript properties")
+
+
+func _read_text_file(path: String) -> String:
+	var file := FileAccess.open(path, FileAccess.READ)
+	assert_not_null(file, "%s should be readable" % path)
+	if file == null:
+		return ""
+	var text := file.get_as_text()
+	file.close()
+	return text

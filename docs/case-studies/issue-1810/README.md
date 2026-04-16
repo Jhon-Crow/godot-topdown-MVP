@@ -13,7 +13,11 @@
 ## Collected Artifacts
 
 - `issue-comments.json`: current issue comments
+- `pr-comments.json`: current PR conversation comments, including follow-up owner reports
+- `pr-review-comments.json`: current PR inline review comments
+- `pr-reviews.json`: current PR reviews
 - `issue-1810-game-log.txt`: owner-provided runtime log from April 11, 2026
+- `game_log_20260416_100413.txt`: owner-provided runtime log from April 16, 2026
 - `analysis.md`: reconstructed findings and root-cause notes
 
 ## Initial Findings
