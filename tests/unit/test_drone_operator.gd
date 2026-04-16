@@ -634,3 +634,53 @@ func test_drone_operator_pacifist_guard_in_source() -> void:
 		"drone_operator_component.gd must check is_pacifist() before forcing COMBAT in _transition_to_active() (Issue #1744)")
 	assert_true(source.contains("1744"),
 		"drone_operator_component.gd must reference Issue #1744 in the pacifist guard comment")
+
+
+func test_enemy_pacifist_retaliation_uses_attacker_node() -> void:
+	## Issue #1744 follow-up: when another enemy hits a pacifist, retaliation targets that enemy, not the player.
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("attacker_node: Node2D = null"),
+		"enemy.gd hit handler must accept the actual attacker node")
+	assert_true(source.contains("var retaliation_target: Node2D = attacker_node"),
+		"pacifist retaliation must prefer the actual attacker node over _player")
+	assert_false(source.contains("_pacifist.start_retaliation(_player);"),
+		"pacifist retaliation must not always target the player")
+
+
+func test_projectile_hit_forwarding_passes_shooter_node() -> void:
+	## Enemy bullets carry shooter_id; hit forwarding must preserve the shooter node for pacifist retaliation.
+	var file := FileAccess.open("res://scripts/projectiles/bullet.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open bullet.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("func _get_shooter_node() -> Node2D"),
+		"bullet.gd must resolve shooter_id to a Node2D")
+	assert_true(source.contains("var attacker_node := _get_shooter_node()"),
+		"bullet.gd must pass shooter node through hit callbacks")
+	assert_true(source.contains("effective_damage, from_player, attacker_node"),
+		"bullet.gd damage hit path must include attacker_node")
+
+
+func test_hit_areas_forward_attacker_node() -> void:
+	## Hit areas sit between bullets and enemies, so both normal and shield hit areas must forward attacker_node.
+	for path in ["res://scripts/objects/hit_area.gd", "res://scripts/components/shield_hit_area.gd"]:
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			gut.p("Cannot open %s — skipping (export build)" % path)
+			pass_test("Skipped in export build")
+			continue
+		var source := file.get_as_text()
+		file.close()
+		assert_true(source.contains("attacker_node: Node2D = null"),
+			"%s must accept optional attacker_node" % path)
+		assert_true(source.contains("is_from_player, attacker_node"),
+			"%s must forward attacker_node with hit source data" % path)

@@ -702,12 +702,13 @@ func _on_area_entered(area: Area2D) -> void:
 
 		# Call on_hit with extended parameters if supported, otherwise use basic call
 		var from_player: bool = _is_player_bullet()  # Issue #1196: track kill source
+		var attacker_node := _get_shooter_node()
 		if area.has_method("on_hit_with_bullet_info_and_damage"):
 			# Pass full bullet information including damage amount and player kill source
-			area.on_hit_with_bullet_info_and_damage(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage, from_player)
+			area.on_hit_with_bullet_info_and_damage(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage, from_player, attacker_node)
 		elif area.has_method("on_hit_with_bullet_info"):
 			# Legacy path - pass bullet info without explicit damage (will use default)
-			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, from_player)
+			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, from_player, attacker_node)
 		elif area.has_method("on_hit_with_info"):
 			area.on_hit_with_info(direction, caliber_data)
 		else:
@@ -987,6 +988,11 @@ func _is_player_bullet() -> bool:
 		return true
 
 	return false
+
+func _get_shooter_node() -> Node2D:
+	if shooter_id == -1: return null
+	var shooter: Object = instance_from_id(shooter_id)
+	return shooter as Node2D
 
 
 ## Triggers hit effects via the HitEffectsManager autoload.
@@ -1667,9 +1673,10 @@ func _breaker_apply_explosion_damage(center: Vector2) -> void:
 func _breaker_apply_damage_to(target: Node2D, amount: float) -> void:
 	var hit_direction := (target.global_position - global_position).normalized()
 	var from_player: bool = _is_player_bullet()  # Issue #1196: track kill source for unlock conditions
+	var attacker_node := _get_shooter_node()
 
 	if target.has_method("on_hit_with_bullet_info_and_damage"):
-		target.on_hit_with_bullet_info_and_damage(hit_direction, null, false, false, amount, from_player)
+		target.on_hit_with_bullet_info_and_damage(hit_direction, null, false, false, amount, from_player, attacker_node)
 	elif target.has_method("on_hit_with_info"):
 		target.on_hit_with_info(hit_direction, null)
 	elif target.has_method("on_hit"):
@@ -2205,7 +2212,8 @@ func on_hit_with_info(_hit_direction: Vector2, _caliber: Resource) -> void:
 
 ## RPG rocket: variant accepting full bullet info including damage amount (Issue #1133).
 func on_hit_with_bullet_info_and_damage(_hit_direction: Vector2, _caliber: Resource,
-		_ricocheted: bool, _penetrated: bool, _dmg: float) -> void:
+		_ricocheted: bool, _penetrated: bool, _dmg: float, _from_player: bool = false,
+		_attacker_node: Node2D = null) -> void:
 	on_hit()
 
 

@@ -60,7 +60,8 @@ class MockRpgRocket:
 
 	## Mirrors bullet.gd on_hit_with_bullet_info_and_damage.
 	func on_hit_with_bullet_info_and_damage(_hit_direction: Vector2, _caliber: Resource,
-			_ricocheted: bool, _penetrated: bool, _dmg: float) -> void:
+			_ricocheted: bool, _penetrated: bool, _dmg: float, _from_player: bool = false,
+			_attacker_node: Node2D = null) -> void:
 		on_hit()
 
 

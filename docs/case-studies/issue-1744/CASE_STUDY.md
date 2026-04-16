@@ -297,6 +297,33 @@ Both fixes are defense-in-depth: Fix A prevents the SEARCHING entry; Fix B preve
 
 ---
 
+## Issue 6: Pacifist Retaliates Against Player After Enemy Friendly Fire
+
+**Reported:** 2026-04-10 — "when another enemy hits a pacifist, the pacifist attacks the player, but should attack the one who hit him"
+
+### Root Cause
+
+The pacifist hit response in `scripts/objects/enemy.gd` always called:
+
+```gdscript
+_pacifist.start_retaliation(_player)
+```
+
+That worked for player bullets, but enemy bullets already carry `shooter_id` and the hit forwarding path only preserved `is_from_player`. By the time the pacifist enemy handled damage, the actual enemy shooter had been discarded, so retaliation incorrectly targeted the player.
+
+### Fix
+
+The projectile and hit-area forwarding path now passes an optional `attacker_node` resolved from `shooter_id`. Pacifist retaliation prefers that node, and only falls back to `_player` for player-sourced hits:
+
+```gdscript
+var retaliation_target: Node2D = attacker_node if attacker_node != null and attacker_node != self and is_instance_valid(attacker_node) else (_player if is_from_player else null)
+_pacifist.start_retaliation(retaliation_target)
+```
+
+This keeps pacifists in `PACIFIST` state while making their temporary retaliation target match the actual source of damage.
+
+---
+
 ## Log Files
 
 - [`game_log_20260410_021834.txt`](./game_log_20260410_021834.txt) — Winter Forest drone operator follow-up (3,366 lines)
