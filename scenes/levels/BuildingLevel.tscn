@@ -1267,7 +1267,7 @@ offset_top = 10.0
 offset_right = -10.0
 offset_bottom = 40.0
 grow_horizontal = 0
-text = "BUILDING INTERIOR"
+text = "LEVEL_BUILDING_NAME"
 horizontal_alignment = 2
 
 [node name="EnemyCountLabel" type="Label" parent="CanvasLayer/UI"]

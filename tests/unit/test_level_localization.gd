@@ -107,6 +107,20 @@ func test_apply_level_label_from_node_overrides_building_scene_default_text() ->
 	assert_ne(label.text, "BUILDING INTERIOR")
 
 
+func test_building_scene_placeholder_is_not_english_only() -> void:
+	var scene_text := ""
+	var file := FileAccess.open("res://scenes/levels/BuildingLevel.tscn", FileAccess.READ)
+	assert_not_null(file)
+	while file and not file.eof_reached():
+		var line := file.get_line()
+		if line.begins_with("text = "):
+			scene_text = line.trim_prefix("text = ").strip_edges()
+			break
+
+	assert_eq(scene_text, "\"LEVEL_BUILDING_NAME\"")
+	assert_ne(scene_text, "\"BUILDING INTERIOR\"")
+
+
 func test_apply_level_label_from_node_creates_missing_level_label() -> void:
 	var level_root := Node.new()
 	add_child_autofree(level_root)
