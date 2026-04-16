@@ -174,6 +174,9 @@ var _hint_strike_lines: Dictionary = {}
 ## Progress increases as each step completes; used to animate Line2D extension.
 var _hint_strike_progress: Dictionary = {}
 
+## Active strikethrough tween per hint, so rollback can cancel an older forward animation.
+var _hint_strike_tweens: Dictionary = {}
+
 ## Issue #944 Session 4: Track line count for each hint (hint_key -> int).
 ## Multi-line hints need multiple Line2D segments, one per line.
 var _hint_line_counts: Dictionary = {}
@@ -1506,23 +1509,46 @@ func _get_revolver_reload_hint_step_for_loading_state() -> int:
 
 
 ## Build BBCode for the grenade throw hint with step-based highlighting (Issue #1818).
-func _build_grenade_hint_bbcode(step: int) -> String:
-	var parts := [
-		"[удерживать G+ПКМ]",
-		"[дёрнуть мышкой вправо] [отпустить ПКМ]",
-		"[зажать ПКМ]",
-		"[отпустить G]",
-		"[прицелиться и отпустить ПКМ]",
+func _get_grenade_hint_actions() -> Array:
+	return [
+		"[%s]" % tr("HINT_GRENADE_HOLD_G_RMB"),
+		"[%s]" % tr("HINT_GRENADE_DRAG_RIGHT"),
+		"[%s]" % tr("HINT_GRENADE_RELEASE_RMB"),
+		"[%s]" % tr("HINT_GRENADE_HOLD_RMB"),
+		"[%s]" % tr("HINT_GRENADE_RELEASE_G"),
+		"[%s]" % tr("HINT_GRENADE_AIM_RELEASE_RMB"),
 	]
-	var strikethrough_progress := [0.0, 0.17, 0.28, 0.45, 0.62, 0.78]
-	var clamped_step := clampi(step, 0, strikethrough_progress.size() - 1)
-	var highlighted_part := mini(clamped_step, parts.size() - 1)
-	_extend_hint_strikethrough(HINT_GRENADE, strikethrough_progress[clamped_step])
+
+
+func _get_grenade_hint_strikethrough_progress(completed_actions: int, actions: Array) -> float:
+	if completed_actions <= 0 or actions.is_empty():
+		return 0.0
+	var all_actions := PackedStringArray()
+	for action in actions:
+		all_actions.append(str(action))
+	var total_text := " ".join(all_actions)
+	if total_text.is_empty():
+		return 0.0
+
+	var completed := PackedStringArray()
+	var completed_count := mini(completed_actions, actions.size())
+	for i in range(completed_count):
+		completed.append(str(actions[i]))
+	return float(" ".join(completed).length()) / float(total_text.length())
+
+
+func _build_grenade_hint_bbcode(step: int) -> String:
+	var parts := _get_grenade_hint_actions()
+	var clamped_step := clampi(step, 0, parts.size() - 1)
+	_extend_hint_strikethrough(
+		HINT_GRENADE,
+		_get_grenade_hint_strikethrough_progress(clamped_step, parts)
+	)
 	var styled: PackedStringArray = []
 	for i in range(parts.size()):
-		if i < highlighted_part:
+		if i < clamped_step:
 			styled.append("[color=#888888]%s[/color]" % parts[i])
-		elif i == highlighted_part:
+		elif i == clamped_step:
 			styled.append("[color=#ff4444]%s[/color]" % parts[i])
 		else:
 			styled.append("[color=#888888]%s[/color]" % parts[i])
@@ -1583,8 +1609,6 @@ func _update_grenade_hint_step() -> void:
 	elif _grenade_hint_step == 4 and not g_pressed and rmb_pressed and _grenade_rmb_held_after_release:
 		_grenade_hint_step = 5
 		_grenade_g_was_held = false
-	elif _grenade_hint_step == 5 and not rmb_pressed and _grenade_rmb_held_after_release:
-		_grenade_hint_step = 4
 
 	# Update the label text to reflect current step
 	var label: RichTextLabel = _hint_labels[HINT_GRENADE]
@@ -1899,8 +1923,10 @@ func _extend_hint_strikethrough(hint_key: String, target_progress: float) -> voi
 		return
 
 	var current_progress: float = _hint_strike_progress.get(hint_key, 0.0)
-	if target_progress <= current_progress:
-		return  # Already at or past this progress
+	if is_equal_approx(target_progress, current_progress):
+		return  # Already at this progress
+	if target_progress < current_progress and hint_key != HINT_GRENADE:
+		return  # Existing non-grenade hints only advance forward.
 
 	# Issue #1080: Use per-line widths if available, otherwise fall back to content width.
 	var line_widths: Array = _hint_line_widths.get(hint_key, [])
@@ -1921,12 +1947,22 @@ func _extend_hint_strikethrough(hint_key: String, target_progress: float) -> voi
 	var line_count: int = _hint_line_counts.get(hint_key, 1)
 
 	# Animate the line extension from current position to new position.
+	if _hint_strike_tweens.has(hint_key):
+		var previous_tween: Tween = _hint_strike_tweens[hint_key]
+		if is_instance_valid(previous_tween):
+			previous_tween.kill()
+
 	var tween := create_tween()
+	_hint_strike_tweens[hint_key] = tween
 	tween.tween_method(
 		func(progress: float):
 			_update_strikethrough_points(strike_lines, line_count, line_widths, progress),
 		current_progress, target_progress, HINT_STRIKETHROUGH_DURATION * 0.5
 	).set_ease(Tween.EASE_OUT)
+	tween.finished.connect(func():
+		if _hint_strike_tweens.get(hint_key) == tween:
+			_hint_strike_tweens.erase(hint_key)
+	)
 
 	_hint_strike_progress[hint_key] = target_progress
 	print("Tutorial: Strikethrough extended for '%s': %.0f%% -> %.0f%%" % [hint_key, current_progress * 100, target_progress * 100])
@@ -2009,6 +2045,12 @@ func _animate_hint_strikethrough_and_fade(hint_key: String, label: RichTextLabel
 	var current_progress: float = _hint_strike_progress.get(hint_key, 0.0)
 
 	# Animate the lines from current position to full width (100%)
+	if _hint_strike_tweens.has(hint_key):
+		var previous_tween: Tween = _hint_strike_tweens[hint_key]
+		if is_instance_valid(previous_tween):
+			previous_tween.kill()
+		_hint_strike_tweens.erase(hint_key)
+
 	var tween := create_tween()
 
 	if not strike_lines.is_empty():
@@ -2029,6 +2071,7 @@ func _finalize_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
 	_hint_labels.erase(hint_key)
 	_hint_strike_lines.erase(hint_key)
 	_hint_strike_progress.erase(hint_key)
+	_hint_strike_tweens.erase(hint_key)
 	_hint_line_counts.erase(hint_key)
 	_hint_line_widths.erase(hint_key)
 	if is_instance_valid(label):
