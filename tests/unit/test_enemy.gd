@@ -85,7 +85,7 @@ class MockEnemy:
 	var _los_candidate_left_ok: bool = false
 	var _nav_has_path: bool = true
 	var _nav_path_distance: float = 0.0
-	var combat_move_speed: float = 320.0
+	var _continued_pursuit_cover: bool = false
 	var _flank_target: Vector2 = Vector2.ZERO
 	var _cover_position: Vector2 = Vector2.ZERO
 	var _suppression_timer: float = 0.0
@@ -102,6 +102,7 @@ class MockEnemy:
 	var _intel_share_timer: float = 0.0
 	var _memory_reset_confusion_timer: float = 0.0
 	const MEMORY_RESET_CONFUSION_DURATION: float = 0.5
+	const PURSUIT_FLANK_PRIORITY_DISTANCE: float = 900.0
 	var _continuous_visibility_timer: float = 0.0
 
 	## Ally death observation (Issue #409)
@@ -323,11 +324,19 @@ class MockEnemy:
 	func should_flank_close_hidden_target_for_test(enemy_pos: Vector2, target_pos: Vector2) -> bool:
 		if not _can_attempt_flanking():
 			return false
-		if enemy_pos.distance_to(target_pos) > 400.0:
+		if enemy_pos.distance_to(target_pos) > PURSUIT_FLANK_PRIORITY_DISTANCE:
 			return false
 		if _can_hit_target:
 			return false
 		return true
+
+
+	func process_existing_pursuit_cover_for_test(enemy_pos: Vector2, target_pos: Vector2) -> void:
+		_has_pursuit_cover = true
+		if should_flank_close_hidden_target_for_test(enemy_pos, target_pos):
+			if _transition_to_flanking():
+				return
+		_continued_pursuit_cover = true
 
 
 	func _can_attempt_flanking() -> bool:
@@ -512,7 +521,7 @@ class MockEnemy:
 	func is_player_distracted(player_rotation: float, enemy_position: Vector2, player_position: Vector2) -> bool:
 		var to_enemy := (enemy_position - player_position).normalized()
 		var player_facing := Vector2.RIGHT.rotated(player_rotation)
-		var angle_diff := abs(to_enemy.angle_to(player_facing))
+		var angle_diff: float = abs(to_enemy.angle_to(player_facing))
 		return angle_diff > PLAYER_DISTRACTION_ANGLE
 
 
@@ -981,11 +990,33 @@ func test_pursuit_prefers_flanking_for_close_hidden_building_target_before_more_
 		"Close Building-map target behind cover should trigger FLANKING before selecting another pursuit waypoint")
 
 
+func test_pursuit_prefers_flanking_for_screen_distance_unhittable_building_target() -> void:
+	enemy._can_attempt_flank = true
+	enemy._can_hit_target = false
+
+	assert_true(enemy.should_flank_close_hidden_target_for_test(Vector2(100, 0), Vector2(850, 0)),
+		"On-screen Building-map target behind cover should trigger FLANKING even beyond close-combat shooting range")
+
+
+func test_existing_pursuit_cover_does_not_starve_visible_unhittable_flanking() -> void:
+	enemy._can_attempt_flank = true
+	enemy._can_hit_target = false
+	enemy._flank_transition_result = true
+
+	enemy.process_existing_pursuit_cover_for_test(Vector2(100, 0), Vector2(850, 0))
+
+	assert_true(enemy._transitioned_to_flanking,
+		"Visible/unhittable Building target should try FLANKING before continuing current pursuit cover")
+	assert_false(enemy._continued_pursuit_cover,
+		"Existing pursuit cover should not starve the flanking transition")
+	assert_eq(enemy.get_current_state(), MockEnemy.AIState.FLANKING, "Enemy should enter FLANKING state")
+
+
 func test_pursuit_keeps_distant_hidden_target_in_pursuing() -> void:
 	enemy._can_attempt_flank = true
 	enemy._can_hit_target = false
 
-	assert_false(enemy.should_flank_close_hidden_target_for_test(Vector2(300, 700), Vector2(980, 650)),
+	assert_false(enemy.should_flank_close_hidden_target_for_test(Vector2(0, 0), Vector2(1200, 0)),
 		"Distant hidden target should stay in PURSUING instead of using close-cover flanking")
 
 
@@ -2642,14 +2673,14 @@ func test_patrol_offsets_large_enough_for_visible_movement_issue_1119() -> void:
 	# LabyrinthLevel Enemy3 offsets after the fix
 	var labyrinth_offsets: Array[Vector2] = [Vector2(200, 0), Vector2(-200, 0)]
 	for offset in labyrinth_offsets:
-		assert_ge(offset.length(), min_visible_offset,
+		assert_true(offset.length() >= min_visible_offset,
 			"Issue #1119: LabyrinthLevel patrol offset %s is too small (%.0f px < %.0f px min)" % [offset, offset.length(), min_visible_offset])
 
 	# Verify travel time is long enough to be visible (> 0.5 s per leg)
 	var min_travel_time := 0.5  # seconds
 	for offset in labyrinth_offsets:
 		var travel_time := offset.length() / move_speed
-		assert_ge(travel_time, min_travel_time,
+		assert_true(travel_time >= min_travel_time,
 			"Issue #1119: patrol leg of %.0f px takes only %.2f s at speed %.0f — too fast to look natural" % [offset.length(), travel_time, move_speed])
 
 
@@ -2660,9 +2691,9 @@ func test_patrol_offsets_large_enough_for_visible_movement_issue_1119() -> void:
 func test_patrol_stuck_detection_constants_issue_1119() -> void:
 	# Max stuck time: long enough not to fire on normal corner brushing, short enough to recover
 	var patrol_stuck_max_time := 1.5
-	assert_ge(patrol_stuck_max_time, 0.5,
+	assert_true(patrol_stuck_max_time >= 0.5,
 		"Issue #1119: PATROL_STUCK_MAX_TIME too small — will skip points on brief wall brushing")
-	assert_le(patrol_stuck_max_time, 3.0,
+	assert_true(patrol_stuck_max_time <= 3.0,
 		"Issue #1119: PATROL_STUCK_MAX_TIME too large — enemy stays stuck too long before recovering")
 
 	# Distance threshold: must be above zero and below one frame of movement at min speed

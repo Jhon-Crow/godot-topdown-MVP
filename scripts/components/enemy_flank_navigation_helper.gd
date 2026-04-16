@@ -69,3 +69,83 @@ static func get_navigation_path_distance(enemy: Node2D, nav_agent: NavigationAge
 	for i in range(1, path.size()):
 		path_distance += path[i - 1].distance_to(path[i])
 	return path_distance
+
+
+static func calculate_flank_target(enemy: Node2D, player: Node2D, nav_agent: NavigationAgent2D, flank_angle: float, flank_side: float, flank_distance: float) -> Vector2:
+	if player == null:
+		return Vector2.ZERO
+	var raw_target := player.global_position + (enemy.global_position - player.global_position).normalized().rotated(flank_angle * flank_side) * flank_distance
+	return get_flank_nav_position(nav_agent, raw_target)
+
+
+static func choose_best_flank_side(enemy: Node2D, player: Node2D, nav_agent: NavigationAgent2D, flank_angle: float, flank_distance: float, flashlight_detection, raycast) -> float:
+	if player == null:
+		return 1.0 if randf() > 0.5 else -1.0
+
+	var player_pos := player.global_position
+	var player_to_enemy := (enemy.global_position - player_pos).normalized()
+	var right_flank_dir := player_to_enemy.rotated(flank_angle)
+	var left_flank_dir := player_to_enemy.rotated(-flank_angle)
+	var right_flank_pos := get_flank_nav_position(nav_agent, player_pos + right_flank_dir * flank_distance)
+	var left_flank_pos := get_flank_nav_position(nav_agent, player_pos + left_flank_dir * flank_distance)
+	var right_path_clear := is_candidate_flank_position_valid(enemy, nav_agent, right_flank_pos, player_pos)
+	var left_path_clear := is_candidate_flank_position_valid(enemy, nav_agent, left_flank_pos, player_pos)
+	var right_has_los := right_path_clear and flank_position_has_los_to_player(enemy, right_flank_pos, player_pos)
+	var left_has_los := left_path_clear and flank_position_has_los_to_player(enemy, left_flank_pos, player_pos)
+
+	if right_has_los and not left_has_los:
+		return 1.0
+	if left_has_los and not right_has_los:
+		return -1.0
+
+	if right_has_los and left_has_los and flashlight_detection and player:
+		var right_lit: bool = flashlight_detection.is_position_lit(right_flank_pos, player, raycast)
+		var left_lit: bool = flashlight_detection.is_position_lit(left_flank_pos, player, raycast)
+		if right_lit and not left_lit:
+			_log_to_file(enemy, "[#574] Choosing left flank - right side lit by flashlight")
+			return -1.0
+		if left_lit and not right_lit:
+			_log_to_file(enemy, "[#574] Choosing right flank - left side lit by flashlight")
+			return 1.0
+
+	if not right_has_los and not left_has_los:
+		if right_path_clear and not left_path_clear:
+			return 1.0
+		if left_path_clear and not right_path_clear:
+			return -1.0
+
+		var reduced_distance := flank_distance * 0.5
+		var reduced_right := get_flank_nav_position(nav_agent, player_pos + right_flank_dir * reduced_distance)
+		var reduced_left := get_flank_nav_position(nav_agent, player_pos + left_flank_dir * reduced_distance)
+		var reduced_right_path_clear := is_candidate_flank_position_valid(enemy, nav_agent, reduced_right, player_pos)
+		var reduced_left_path_clear := is_candidate_flank_position_valid(enemy, nav_agent, reduced_left, player_pos)
+		var reduced_right_has_los := reduced_right_path_clear and flank_position_has_los_to_player(enemy, reduced_right, player_pos)
+		var reduced_left_has_los := reduced_left_path_clear and flank_position_has_los_to_player(enemy, reduced_left, player_pos)
+		if reduced_right_has_los and not reduced_left_has_los:
+			return 1.0
+		if reduced_left_has_los and not reduced_right_has_los:
+			return -1.0
+		if reduced_right_path_clear and not reduced_left_path_clear:
+			return 1.0
+		if reduced_left_path_clear and not reduced_right_path_clear:
+			return -1.0
+		if right_path_clear or left_path_clear or reduced_right_path_clear or reduced_left_path_clear:
+			_log_to_file(enemy, "Warning: No LOS-positive flank position, falling back to nav-reachable side")
+		else:
+			_log_to_file(enemy, "Warning: No valid flank position (both sides behind walls)")
+
+	return 1.0 if enemy.global_position.distance_squared_to(right_flank_pos) < enemy.global_position.distance_squared_to(left_flank_pos) else -1.0
+
+
+static func flank_position_has_los_to_player(enemy: Node2D, flank_pos: Vector2, player_pos: Vector2) -> bool:
+	var world_2d := enemy.get_world_2d()
+	if world_2d == null:
+		return true
+	var query := PhysicsRayQueryParameters2D.create(flank_pos, player_pos)
+	query.collision_mask = 0b100
+	return world_2d.direct_space_state.intersect_ray(query).is_empty()
+
+
+static func _log_to_file(enemy: Node2D, message: String) -> void:
+	if enemy.has_method("_log_to_file"):
+		enemy._log_to_file(message)

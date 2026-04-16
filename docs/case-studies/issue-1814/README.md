@@ -14,10 +14,22 @@ The issue bundle for this case study contains the original attached gameplay log
 - `game_log_20260411_170145.txt`
 - `game_log_20260413_211243.txt`
 - `game_log_20260415_231752.txt`
+- `game_log_20260415_235021.txt`
+- `game_log_20260416_002256.txt`
+- `game_log_20260416_002352.txt`
+- `game_log_20260416_011440.txt`
 - `game_log_20260416_022352.txt`
 - `game_log_20260416_024953.txt`
+- `game_log_20260416_035146.txt`
 - `game_log_20260416_100704.txt`
 - `game_log_20260416_103037.txt`
+- `game_log_20260416_193750.txt`
+
+The issue screenshots were also preserved under `images/`:
+
+- `images/issue-1814-screenshot-1.png`
+- `images/issue-1814-screenshot-2.png`
+- `images/issue-1814-screenshot-3.png`
 
 ## Evidence From Logs
 
@@ -57,6 +69,17 @@ The pattern indicates that the remaining failure is no longer "cannot enter FLAN
 
 The later `game_log_20260416_103037.txt` confirms a more specific remaining failure. `Enemy7` enters `FLANKING` once, but most enemies stay in `PURSUING` and repeatedly run corner checks. The closest-cover case still waits for pursuit cover selection before flanking, so Building's authored/path fallback can keep feeding more pursuit waypoints and delay the close-cover flank that the owner expects.
 
+The latest owner feedback on April 16, 2026 attached `game_log_20260416_193750.txt` and narrowed the symptom further: on Building, enemies that entered `FLANKING` were observed mostly off-screen or roughly 800px+ away, while nearer visible enemies stayed in `PURSUING`. The log supports that shape:
+
+```text
+[19:38:12] [ENEMY] [Enemy7] FLANKING started: target=(1103.39, 546.6495), side=left, pos=(1425.273, 842.1158)
+[19:38:44] [ENEMY] [Grenadier] FLANKING started: target=(500.2328, 1676), side=right, pos=(1412.067, 575.9337)
+[19:38:58] [ENEMY] [Enemy7] FLANKING started: target=(610.0448, 670.3342), side=left, pos=(1412.745, 974.1956)
+[19:39:01] [ENEMY] [Enemy8] FLANKING started: target=(555.6368, 976), side=right, pos=(1412.065, 968.516)
+```
+
+In the same log, near/on-screen enemies repeatedly stayed in `PURSUING` and performed corner checks until they eventually fell back to `COMBAT`. A quick count showed roughly 50 `-> PURSUING` transitions and 896 corner-check entries, but only four `FLANKING started` entries. That is consistent with a flanking admission rule that was reachable, but not being evaluated early enough for enemies that already had a pursuit cover target or were already in the pursuit-cover movement branch.
+
 ## Timeline Reconstruction
 
 1. Enemy enters `COMBAT`.
@@ -73,6 +96,7 @@ The later `game_log_20260416_103037.txt` confirms a more specific remaining fail
 12. That waypoint snap could pull the flank destination back into the same doorway/corridor pursuit loop, making the "flank" either collapse immediately to COMBAT or fail navigation validation altogether.
 13. The latest Building log then showed that flanking could start once, but the dominant behavior was still `PURSUING` corner oscillation.
 14. The remaining ordering bug was that close hidden/unhittable targets only reached flanking after pursuit-cover selection failed, but Building often continues to provide pursuit waypoints.
+15. The `game_log_20260416_193750.txt` feedback showed the final distance/ordering mismatch: the flanking-priority check was tied to `CLOSE_COMBAT_DISTANCE` and placed after existing pursuit-cover movement, so visible on-screen enemies outside 400px or already assigned to cover could keep pursuing instead of immediately trying `FLANKING`.
 
 ## Root Cause
 
@@ -124,11 +148,29 @@ Sixth layer, revealed by `game_log_20260416_103037.txt`:
 - the owner scenario is close-cover combat, where `FLANKING` should win over `PURSUING`
 - `_process_pursuing_state()` still called `_find_pursuit_cover_toward_player()` before trying a close-cover flank
 - on Building, pursuit cover and path waypoints are plentiful enough to keep enemies in pursuit/corner-check movement even though the player is already close and not hittable
-- the correct state priority is therefore: if the target is within `CLOSE_COMBAT_DISTANCE` and cannot be hit from the current position, try `FLANKING` before selecting another pursuit cover
+- the corrected priority started as: if the target is close and cannot be hit from the current position, try `FLANKING` before selecting another pursuit cover
+
+Seventh layer, revealed by `game_log_20260416_193750.txt`:
+
+- the owner observed that enemies entering `FLANKING` were mostly off-screen or around 800px+ away
+- the previous close-cover check used `CLOSE_COMBAT_DISTANCE` (400px), which is a shooting/combat threshold, not a good tactical-flank admission distance for Building interiors
+- `_process_pursuing_state()` still evaluated that check after branches that return early while moving toward existing pursuit cover
+- therefore near visible enemies could keep consuming current pursuit-cover/corner-check behavior, while farther enemies only reached `FLANKING` later through no-cover fallback paths
+
+The corrected priority is: when a target is visible, inside a screen-scale flanking-priority range, and not hittable from the current position, attempt `FLANKING` before any pursuit-cover movement or cover search.
+
+## External Navigation Notes
+
+Official Godot navigation documentation reinforces the separation used in the fix:
+
+- `NavigationAgent2D.get_next_path_position()` is intended to be called every physics frame while following an agent path, because it updates the agent's internal path logic: https://docs.godotengine.org/en/4.4/classes/class_navigationagent2d.html
+- `NavigationServer2D.map_get_path(...)` directly queries a map path and is suitable for validating whether a route exists without mutating the live `NavigationAgent2D` target state: https://docs.godotengine.org/en/4.1/classes/class_navigationserver2d.html
+
+That supports keeping runtime movement on the agent while using `NavigationServer2D` inside the flank helper for deterministic route validation.
 
 ## Fix Implemented
 
-The final fix has six parts:
+The final fix has seven parts:
 
 1. The PURSUING fallback now attempts FLANKING before falling back to direct approach/combat:
 
@@ -168,11 +210,18 @@ The final fix has six parts:
 - `_process_pursuing_state()` calls that check before `_find_pursuit_cover_toward_player()`
 - this prevents Building's pursuit waypoint fallback from starving the close-cover flanking transition
 
+7. PURSUING now prioritizes visible, on-screen, unhittable targets before any pursuit-cover branch can return:
+
+- `_should_prioritize_flanking_target()` requires an actual visible player/companion target, available flanking, target distance within `PURSUIT_FLANK_PRIORITY_DISTANCE` (900px), and no current firing lane
+- `_process_pursuing_state()` calls this immediately after the "can see and can hit" COMBAT transition check
+- this lets on-screen Building enemies attempt `FLANKING` before continuing existing pursuit cover, waiting at cover, or choosing another pursuit waypoint
+- flank-side and flank-target calculations were moved into `EnemyFlankNavigationHelper`, keeping `enemy.gd` below the CI 5000-line architecture limit
+
 This preserves existing behavior while restoring the missing FLANKING path for the tactical case described in the issue.
 
 ## Regression Coverage
 
-Added regression tests in [tests/unit/test_enemy.gd](/tmp/gh-issue-solver-1776288462582/tests/unit/test_enemy.gd:848):
+Added regression tests in `tests/unit/test_enemy.gd`:
 
 - `test_should_flank_even_without_cover_when_player_visible`
 - `test_pursuit_fallback_prefers_flanking_when_visible_target_is_still_unhittable`
@@ -182,6 +231,8 @@ Added regression tests in [tests/unit/test_enemy.gd](/tmp/gh-issue-solver-177628
 - `test_navigation_target_reasonable_rejects_missing_path`
 - `test_calculate_flank_target_keeps_geometric_flank_instead_of_combat_waypoint`
 - `test_pursuit_prefers_flanking_for_close_hidden_building_target_before_more_cover`
+- `test_pursuit_prefers_flanking_for_screen_distance_unhittable_building_target`
+- `test_existing_pursuit_cover_does_not_starve_visible_unhittable_flanking`
 - `test_pursuit_keeps_distant_hidden_target_in_pursuing`
 - `test_pursuit_does_not_flank_when_close_target_is_hittable`
 
@@ -207,5 +258,6 @@ This issue was not a broad GOAP failure. The final root cause was a combination 
 - an extra LOS-only flank admission rule that suppressed `FLANKING` exactly when the player was close behind cover
 - a Building-map-specific flank target snap that redirected lateral flank destinations back onto pursuit-oriented combat waypoints
 - a final state-priority ordering issue where Building pursuit-cover selection could starve close-cover flanking
+- a distance/ordering mismatch where on-screen visible enemies outside 400px or already assigned to cover did not get the early flanking-priority decision
 
 The updated fix restores the intended FLANKING transition and aligns flank target selection with the actual purpose of the FLANKING state.
