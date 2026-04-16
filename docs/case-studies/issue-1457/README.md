@@ -19,8 +19,8 @@ The new fix avoids another wall-avoidance rewrite. It changes two lower-level as
 Raw data is stored under `docs/case-studies/issue-1457/`:
 
 - `data/issue-1457.json` and `data/issue-1457-comments.json`: issue body and owner comments.
-- `failed-prs/pr-1477.json`, `failed-prs/pr-1477.diff`: first failed attempt metadata and diff.
-- `failed-prs/pr-1557.json`, `failed-prs/pr-1557.diff`: second failed attempt metadata and diff.
+- `failed-prs/pr-1477.json`, `failed-prs/pr-1477.diff.gz`: first failed attempt metadata and compressed diff.
+- `failed-prs/pr-1557.json`, `failed-prs/pr-1557.diff.gz`: second failed attempt metadata and compressed diff.
 - `failed-prs/pr-1560-related-ai-regression-tests.json`: related regression-test PR for "AI completely broken" failure classes.
 - `logs/`: 19 downloaded game logs from the issue and failed PR comments.
 - `screenshots/`: 7 downloaded PNG screenshots from the issue and failed PR comments.

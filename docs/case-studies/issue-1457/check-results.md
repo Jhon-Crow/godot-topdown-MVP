@@ -21,4 +21,3 @@ godot/Godot_v4.3-stable_mono_linux.x86_64 --headless \
   -glog=2 \
   -gjunit_xml_file=check-logs/test-issue-1457-results.xml
 ```
-
