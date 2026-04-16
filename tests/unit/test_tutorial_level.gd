@@ -208,7 +208,7 @@ class MockTutorialLevel:
 			1:
 				return "[color=#888888][R открыть][/color] [color=#ff4444][ПКМ↑ патрон][/color] [color=#888888][скролл] [R закрыть][/color]"
 			2:
-				return "[color=#888888][R открыть] [ПКМ↑ патрон][/color] [color=#ff4444][скролл][/color] [color=#888888][R закрыть][/color]"
+				return "[color=#888888][R открыть][/color] [ПКМ↑ патрон] [color=#ff4444][скролл][/color] [color=#888888][R закрыть][/color]"
 			3:
 				return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл][/color] [color=#ff4444][R закрыть][/color]"
 			_:
@@ -1081,6 +1081,10 @@ func test_revolver_reload_hint_shows_scroll_as_separate_step_after_insert() -> v
 	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
 	assert_true(hint_text.contains("[color=#ff4444][скролл][/color]"),
 		"After inserting a cartridge, scroll must be the separate highlighted step")
+	assert_true(hint_text.contains("[ПКМ↑ патрон]"),
+		"The insert step should remain visible after the first cartridge is loaded")
+	assert_false(hint_text.contains("[color=#888888][ПКМ↑ патрон][/color]"),
+		"The first insert must not look completed before the second cartridge is loaded")
 	assert_false(hint_text.contains("[color=#ff4444][R закрыть][/color]"),
 		"Close cylinder must not be highlighted before the scroll step is done")
 
