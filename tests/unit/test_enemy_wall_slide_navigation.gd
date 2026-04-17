@@ -66,5 +66,9 @@ func test_issue_1357_enemy_source_uses_player_style_wall_slide() -> void:
 		"Issue #1357: speculative collision probe should use the same slide projection")
 	assert_true(source.contains("dir.dot(_avoidance_velocity.normalized()) >= 0.5"),
 		"Issue #1357: ORCA avoidance should not override searching with a path-opposing velocity")
+	assert_true(source.contains("func _should_prioritize_flanking_target()"),
+		"Issue #1357: merged main behavior should keep close visible/unhittable targets from looping in pursuit cover movement")
+	assert_true(source.contains("PURSUING: close/visible unhittable target, attempting FLANKING before pursuit cover"),
+		"Issue #1357: latest owner log requires flanking before repeated PURSUING corner checks")
 	assert_false(func_body.contains("escape-dominant weight") or func_body.contains("_en * (1.5"),
 		"Issue #1357: enemy movement should not push away from the path with escape normals")

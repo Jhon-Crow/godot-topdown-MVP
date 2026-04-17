@@ -1,0 +1,4 @@
+  4949 scripts/objects/enemy.gd
+    74 tests/unit/test_enemy_wall_slide_navigation.gd
+   196 docs/case-studies/issue-1357/CASE_STUDY.md
+  5219 total
