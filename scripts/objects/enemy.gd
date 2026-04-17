@@ -816,6 +816,8 @@ func _physics_process(delta: float) -> void:
 	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
 	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if _perf_settings and not _perf_settings.is_ai_enabled(): return
+	if _pacifist and _pacifist.is_pacifist and _drone_operator and _drone_operator.get_phase() != DroneOperatorComponent.Phase.ACTIVE:
+		_drone_operator.update(delta); velocity = Vector2.ZERO; move_and_slide(); return  # Issue #1868: pacifist operators must not deploy/control drones or seek combat cover
 	if _drone_operator and _drone_operator.get_phase() != DroneOperatorComponent.Phase.ACTIVE:  # Issue #1397: drone operator phase control
 		_drone_operator.update(delta)
 		if _drone_operator.is_controlling_drone(): velocity = Vector2.ZERO; move_and_slide(); return  # CONTROLLING: fully frozen
@@ -1305,7 +1307,8 @@ func _process_ai_state(delta: float) -> void:
 			return
 
 	# SECOND PRIORITY: pursue vulnerable player who is not close (Issue #1305: respect combat toggle)
-	if _combat_allowed and player_is_vulnerable and _can_see_player and _player and not player_close:
+	# Issue #959: pacifists skip (same guard as FIRST PRIORITY above) — Issue #1744
+	if _combat_allowed and player_is_vulnerable and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _can_see_player and _player and not player_close:
 		var distance_to_player := global_position.distance_to(_player.global_position)
 		var pursue_key := "last_pursue_vuln_frame"
 		var current_frame := Engine.get_physics_frames()
@@ -2346,6 +2349,7 @@ func _process_searching_state(delta: float) -> void:
 		_transition_to_idle()
 		return
 	if _can_see_player:
+		if _pacifist and _pacifist.is_pacifist: _log_to_file("SEARCHING: pacifist ignores player (Issue #1744)"); return  # #1744
 		_log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
 		_transition_to_combat()
 		return
@@ -2852,6 +2856,7 @@ func _transition_to_pacifist(emit_signal: bool = true) -> void:
 	var was := _pacifist.is_pacifist if _pacifist else false
 	_current_state = AIState.PACIFIST; _has_left_idle = true; velocity = Vector2.ZERO
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
+	if _aggression: _aggression.set_aggressive(false)
 	if _pacifist: _pacifist.start_pacifism()
 	_log_to_file("Transitioned to PACIFIST"); if emit_signal and not was: became_pacifist.emit()
 ## Make this enemy a pacifist via loudspeaker. Returns true if successful.
@@ -3664,14 +3669,18 @@ func reset_memory() -> void:
 		# Enemies that never left IDLE (e.g. received intel via ally-share only) must not enter
 		# SEARCHING on teleport — they have never personally seen or heard the player.
 		if _has_left_idle:
-			# Set LOW confidence (0.35) - puts enemy in search mode at old position
-			if _memory != null:
-				_memory.suspected_position = old_position
-				_memory.confidence = 0.35
-				_memory.last_updated = Time.get_ticks_msec()
-			_last_known_player_position = old_position
-			_log_to_file("Search mode: %s -> SEARCHING at %s" % [AIState.keys()[_current_state], old_position])
-			_transition_to_searching(old_position)
+			if _pacifist and _pacifist.is_pacifist:  # #1744: stay pacifist, don't enter SEARCHING
+				_log_to_file("Memory reset: %s stays PACIFIST (Issue #1744)" % AIState.keys()[_current_state])
+				if _memory != null: _memory.reset(); _last_known_player_position = Vector2.ZERO
+			else:
+				# Set LOW confidence (0.35) - puts enemy in search mode at old position
+				if _memory != null:
+					_memory.suspected_position = old_position
+					_memory.confidence = 0.35
+					_memory.last_updated = Time.get_ticks_msec()
+				_last_known_player_position = old_position
+				_log_to_file("Search mode: %s -> SEARCHING at %s" % [AIState.keys()[_current_state], old_position])
+				_transition_to_searching(old_position)
 		else:
 			if _memory != null:
 				_memory.reset()
@@ -4138,7 +4147,7 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	on_hit_with_bullet_info(hit_direction, caliber_data, false, false, 1.0)
 
 ## Called when enemy is hit with full bullet information. @param damage: Damage amount (default 1.0). @param is_from_player: Whether the hit came from the player (Issue #1196).
-func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0, is_from_player: bool = false) -> void:
+func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0, is_from_player: bool = false, attacker_node: Node2D = null) -> void:
 	if not _is_alive:
 		return
 	if (_force_field_component and _force_field_component.is_active()): _log_to_file("Hit blocked by force field"); return  # Issue #1034 (drone operator dash no longer grants invincibility — #1532 fix #9)
@@ -4184,7 +4193,8 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		_update_health_visual()  # [Issue #919] check_retaliation removed: aggression must not propagate to hit enemies
 		# Issue #959: Pacifist stays in PACIFIST state when hit; only attacks the attacker temporarily.
 		if _pacifist and _pacifist.is_pacifist and _current_state == AIState.PACIFIST:
-			_pacifist.start_retaliation(_player); var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
+			var retaliation_target: Node2D = attacker_node if attacker_node != null and attacker_node != self and is_instance_valid(attacker_node) else (_player if is_from_player else null)
+			_pacifist.start_retaliation(retaliation_target); var est_pos := retaliation_target.global_position if retaliation_target != null else global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
 			if _memory: _memory.update_position(est_pos, 0.8); _memory_reset_confusion_timer = 0.0
 			_log_to_file("[#959] Pacifist hit - retaliates in PACIFIST state (attacker only)"); return
 		# Issue #910: When hit in non-combat state, transition to COMBAT and fire back

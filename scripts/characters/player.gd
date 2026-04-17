@@ -1194,7 +1194,7 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource, incoming_d
 ## @param is_from_player: Unused for the player (hits to the player come from enemies).
 func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource,
 		_has_ricocheted: bool, _has_penetrated: bool, damage: float = 1.0,
-		_is_from_player: bool = false) -> void:
+		_is_from_player: bool = false, _attacker_node: Node2D = null) -> void:
 	on_hit_with_info(hit_direction, caliber_data, damage)
 
 

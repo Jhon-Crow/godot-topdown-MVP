@@ -140,6 +140,7 @@ func test_gold_text_remains_above_shine_overlay() -> void:
 	var content_margin: MarginContainer = toast.get_node("ContentMargin")
 	var content_row: HBoxContainer = content_margin.get_node("ContentRow")
 	var label: Label = content_margin.get_node("ContentRow/MessageLabel")
+	var shadow_label: Label = toast.get_node("MessageShadowLabel")
 	var font_color: Color = label.get_theme_color("font_color")
 
 	assert_eq(toast.modulate.a, 1.0,
@@ -150,12 +151,18 @@ func test_gold_text_remains_above_shine_overlay() -> void:
 		"Content should render above the shine overlay")
 	assert_gt(content_margin.z_index, background.z_index,
 		"Content should render above the toast background")
+	assert_gt(shadow_label.z_index, shine_overlay.z_index,
+		"Fallback text label should render above the shine overlay in exported builds")
 	assert_gt(content_margin.size.x, 0.0,
 		"Content margin should have explicit width so exported builds lay out the label")
 	assert_gt(content_row.size.x, 0.0,
 		"Content row should have explicit width so the label is not clipped to zero")
 	assert_gt(content_row.size.y, 0.0,
 		"Content row should have explicit height so the label is visible")
+	assert_gt(shadow_label.size.x, 0.0,
+		"Fallback text label should have explicit width independent of nested containers")
+	assert_gt(shadow_label.size.y, 0.0,
+		"Fallback text label should have explicit height independent of nested containers")
 	assert_gt(font_color.r, 0.9, "Toast text should use a visible gold color")
 	assert_gt(font_color.g, 0.75, "Toast text should use a visible gold color")
 	assert_gt(font_color.b, 0.25, "Toast text should use a visible gold color")
@@ -175,6 +182,7 @@ func test_toast_animation_keeps_label_opaque_after_entry() -> void:
 	var toast: Control = manager.get_node("UnlockNotificationRoot/UnlockToast")
 	var background: Panel = toast.get_node("ToastBackground")
 	var label: Label = toast.get_node("ContentMargin/ContentRow/MessageLabel")
+	var shadow_label: Label = toast.get_node("MessageShadowLabel")
 
 	assert_eq(manager._animation_phase, "visible",
 		"Toast should enter the stable visible phase after the slide-in animation")
@@ -184,6 +192,10 @@ func test_toast_animation_keeps_label_opaque_after_entry() -> void:
 		"Message label should remain fully opaque after the slide-in animation")
 	assert_eq(label.text, "Открыт предмет Бронированная кожа !",
 		"Stable visible toast should keep the requested Armored Skin text")
+	assert_eq(shadow_label.text, "Открыт предмет Бронированная кожа !",
+		"Fallback text label should mirror the requested Armored Skin text")
+	assert_eq(shadow_label.modulate.a, 1.0,
+		"Fallback text label should remain fully opaque after the slide-in animation")
 	assert_gt(background.modulate.a, 0.95,
 		"Only the background fade target should be fully visible after entry")
 

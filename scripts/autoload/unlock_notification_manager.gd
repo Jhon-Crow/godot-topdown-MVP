@@ -132,6 +132,7 @@ var _toast_background: Panel = null
 var _shine_overlay: ColorRect = null
 var _icon_rect: TextureRect = null
 var _message_label: Label = null
+var _message_shadow_label: Label = null
 var _active_tween: Tween = null
 
 
@@ -299,6 +300,21 @@ func _build_ui() -> void:
 	_message_label.add_theme_constant_override("shadow_offset_y", 1)
 	row.add_child(_message_label)
 
+	_message_shadow_label = Label.new()
+	_message_shadow_label.name = "MessageShadowLabel"
+	_message_shadow_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_message_shadow_label.z_index = 20
+	_message_shadow_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_message_shadow_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_message_shadow_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_message_shadow_label.clip_text = true
+	_message_shadow_label.add_theme_font_size_override("font_size", 20)
+	_message_shadow_label.add_theme_color_override("font_color", Color(1.0, 0.93, 0.68, 1.0))
+	_message_shadow_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.9))
+	_message_shadow_label.add_theme_constant_override("shadow_offset_x", 2)
+	_message_shadow_label.add_theme_constant_override("shadow_offset_y", 2)
+	_toast.add_child(_message_shadow_label)
+
 	_position_toast(false)
 
 
@@ -461,6 +477,8 @@ func _show_next_notification() -> void:
 	_message_label.text = build_notification_text(
 		notification.get("kind", ""),
 		notification.get("item_name", ""))
+	if _message_shadow_label:
+		_message_shadow_label.text = _message_label.text
 	_position_toast(false)
 	_toast.modulate = Color.WHITE
 	if _toast_background:
@@ -469,6 +487,8 @@ func _show_next_notification() -> void:
 		_shine_overlay.modulate.a = 0.0
 	if _message_label:
 		_message_label.modulate = Color.WHITE
+	if _message_shadow_label:
+		_message_shadow_label.modulate = Color.WHITE
 	if _icon_rect:
 		_icon_rect.modulate = Color(1.0, 0.84, 0.22, 1.0)
 	_toast.show()
@@ -529,6 +549,14 @@ func _position_toast(visible_position: bool) -> void:
 			row.size = Vector2(
 				maxf(0.0, toast_width - TOAST_CONTENT_LEFT_MARGIN - TOAST_CONTENT_RIGHT_MARGIN),
 				maxf(0.0, TOAST_HEIGHT - TOAST_CONTENT_TOP_MARGIN - TOAST_CONTENT_BOTTOM_MARGIN))
+	if _message_shadow_label:
+		var icon_column_width: float = 42.0 + 14.0
+		_message_shadow_label.position = Vector2(
+			TOAST_CONTENT_LEFT_MARGIN + icon_column_width,
+			TOAST_CONTENT_TOP_MARGIN)
+		_message_shadow_label.size = Vector2(
+			maxf(0.0, toast_width - TOAST_CONTENT_LEFT_MARGIN - TOAST_CONTENT_RIGHT_MARGIN - icon_column_width),
+			maxf(0.0, TOAST_HEIGHT - TOAST_CONTENT_TOP_MARGIN - TOAST_CONTENT_BOTTOM_MARGIN))
 
 
 func _get_hidden_y() -> float:

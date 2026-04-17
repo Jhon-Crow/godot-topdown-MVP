@@ -41,6 +41,17 @@ class MockPlayer:
 		return grenade_count
 
 
+class MockWeapon:
+	extends Node
+
+	signal Fired
+	signal ActionStateChanged(new_state: int)
+	signal ReloadStateChanged(new_state: int)
+
+	var ShellsInTube: int = 6
+	var TubeMagazineCapacity: int = 8
+
+
 var _weapon_hints_settings: Node = null
 var _input_actions_to_cleanup: Array[String] = []
 
@@ -339,3 +350,100 @@ func test_grenade_hint_is_not_limited_to_m16_weapon_id() -> void:
 		"Grenade hint should work on non-tutorial levels even when current weapon ID is not m16")
 
 	_release_action("grenade_prepare", KEY_G)
+
+
+func test_find_weapon_node_maps_silenced_pistol_for_training_hints() -> void:
+	var player := MockPlayer.new()
+	add_child_autofree(player)
+	var weapon := MockWeapon.new()
+	weapon.name = "SilencedPistol"
+	player.add_child(weapon)
+
+	var comp := WeaponHintsComp.new()
+	add_child_autofree(comp)
+	comp._player = player
+
+	assert_eq(comp._find_weapon_node("silenced_pistol"), weapon,
+		"Silenced pistol should map to the C# SilencedPistol node so training can connect")
+
+
+func test_revolver_open_close_without_loading_rolls_reload_hint_back() -> void:
+	var comp := WeaponHintsComp.new()
+	add_child_autofree(comp)
+	comp._current_weapon_id = "revolver"
+	comp._hints_active = true
+	comp._hint_labels[WeaponHintsComp.HINT_KEY_RELOAD] = RichTextLabel.new()
+	comp._hint_strike_progress[WeaponHintsComp.HINT_KEY_RELOAD] = 0.0
+
+	comp._on_revolver_reload_state_changed(1)
+	assert_true(comp._hint_strike_progress[WeaponHintsComp.HINT_KEY_RELOAD] > 0.0,
+		"Opening the cylinder should advance the reload hint to the insert step")
+
+	comp._on_revolver_reload_state_changed(0)
+
+	assert_true(comp._hint_labels.has(WeaponHintsComp.HINT_KEY_RELOAD),
+		"Closing an empty reload should not dismiss the revolver reload hint")
+	assert_false(comp._animating_hints.has(WeaponHintsComp.HINT_KEY_RELOAD),
+		"Closing without loading should not start the dismiss animation")
+	assert_eq(comp._hint_strike_progress[WeaponHintsComp.HINT_KEY_RELOAD], 0.0,
+		"Closing without loading should clear partial strikethrough progress")
+	assert_false(comp._revolver_reload_loaded_cartridge,
+		"Rollback should clear the revolver loaded-cartridge tracker")
+
+
+func test_revolver_reload_dismisses_after_cartridge_inserted_then_closed() -> void:
+	var comp := WeaponHintsComp.new()
+	add_child_autofree(comp)
+	comp._current_weapon_id = "revolver"
+	comp._hints_active = true
+	comp._hint_labels[WeaponHintsComp.HINT_KEY_RELOAD] = RichTextLabel.new()
+	comp._hint_strike_progress[WeaponHintsComp.HINT_KEY_RELOAD] = 0.0
+
+	comp._on_revolver_reload_state_changed(1)
+	comp._on_revolver_reload_state_changed(2)
+	comp._on_revolver_reload_state_changed(0)
+
+	assert_true(comp._animating_hints.has(WeaponHintsComp.HINT_KEY_RELOAD),
+		"Closing after inserting a cartridge should dismiss the revolver reload hint")
+
+
+func test_shotgun_open_close_without_loading_rolls_full_reload_hint_back() -> void:
+	var comp := WeaponHintsComp.new()
+	add_child_autofree(comp)
+	comp._current_weapon_id = "shotgun"
+	comp._hints_active = true
+	comp._shotgun_full_reload_active = true
+	comp._hint_labels[WeaponHintsComp.HINT_KEY_BOLT_CYCLE] = RichTextLabel.new()
+	comp._hint_strike_progress[WeaponHintsComp.HINT_KEY_BOLT_CYCLE] = 0.0
+
+	comp._on_shotgun_reload_state_changed(2)
+	assert_eq(comp._hint_strike_progress[WeaponHintsComp.HINT_KEY_BOLT_CYCLE], 0.0,
+		"Opening the shotgun bolt should not count as shell loading")
+
+	comp._on_shotgun_reload_state_changed(0)
+
+	assert_true(comp._hint_labels.has(WeaponHintsComp.HINT_KEY_BOLT_CYCLE),
+		"Closing without loading should keep the shotgun full reload hint visible")
+	assert_false(comp._animating_hints.has(WeaponHintsComp.HINT_KEY_BOLT_CYCLE),
+		"Closing without loading should not dismiss the shotgun full reload hint")
+	assert_eq(comp._hint_strike_progress[WeaponHintsComp.HINT_KEY_BOLT_CYCLE], 0.0,
+		"Closing without loading should keep strikethrough cleared")
+	assert_false(comp._shotgun_reload_loaded_shell,
+		"Rollback should clear the shotgun loaded-shell tracker")
+
+
+func test_shotgun_full_reload_dismisses_after_shell_loaded_then_closed() -> void:
+	var comp := WeaponHintsComp.new()
+	add_child_autofree(comp)
+	comp._current_weapon_id = "shotgun"
+	comp._hints_active = true
+	comp._shotgun_full_reload_active = true
+	comp._hint_labels[WeaponHintsComp.HINT_KEY_BOLT_CYCLE] = RichTextLabel.new()
+	comp._hint_strike_progress[WeaponHintsComp.HINT_KEY_BOLT_CYCLE] = 0.0
+
+	comp._on_shotgun_reload_state_changed(2)
+	comp._on_shotgun_reload_state_changed(3)
+	comp._on_shotgun_reload_state_changed(0)
+
+	assert_true(comp._animating_hints.has(WeaponHintsComp.HINT_KEY_BOLT_CYCLE),
+		"Closing after loading a shell should dismiss the shotgun full reload hint")
