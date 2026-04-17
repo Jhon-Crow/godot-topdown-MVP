@@ -542,7 +542,7 @@ class MockTutorialLevel:
 					return "[color=#888888][R] [F] [R][/color] Перезарядись"
 
 	func _uses_two_step_pistol_reload() -> bool:
-		return _has_makarov_pm or _has_silenced_pistol
+		return _has_makarov_pm
 
 	func on_fire_mode_changed() -> void:
 		if _current_step != TutorialStep.SWITCH_FIRE_MODE:
@@ -594,14 +594,23 @@ class MockTutorialLevel:
 		if not _has_revolver:
 			return
 		if state == 0:
-			if _revolver_reload_loaded_cartridge:
+			if _is_revolver_reload_completion_ready():
 				_revolver_reload_loaded_cartridge = false
 				_revolver_last_inserted_count = 0
 				_revolver_last_inserted_chamber_index = -1
 				_revolver_scroll_completed_since_last_insert = false
+				if not _has_reloaded:
+					_has_reloaded = true
+					_dismiss_hint(HINT_RELOAD)
+					if _has_thrown_grenade:
+						advance_to_step(TutorialStep.COMPLETED)
+					else:
+						advance_to_step(TutorialStep.THROW_GRENADE)
+				return
 			else:
 				_hint_strike_progress[HINT_RELOAD] = 0.0
 				_active_hints[HINT_RELOAD] = _build_revolver_reload_hint_bbcode(0)
+				_revolver_reload_loaded_cartridge = false
 				_revolver_last_inserted_count = 0
 				_revolver_last_inserted_chamber_index = -1
 				_revolver_scroll_completed_since_last_insert = false
@@ -617,6 +626,11 @@ class MockTutorialLevel:
 				hint_step = 4
 
 		_active_hints[HINT_RELOAD] = _build_revolver_reload_hint_bbcode(hint_step)
+
+	func _is_revolver_reload_completion_ready() -> bool:
+		return _revolver_reload_loaded_cartridge \
+			and (_revolver_cartridges_loaded_this_reload >= _revolver_minimum_inserts_required \
+				or _revolver_current_ammo >= 5)
 
 	func _get_revolver_reload_hint_step_for_loading_state() -> int:
 		if _revolver_cartridges_loaded_this_reload <= 0:
@@ -2192,7 +2206,7 @@ func test_shotgun_shells_to_load_zero_when_full() -> void:
 		"Issue #983 Fix 2: Shotgun hint shows x0 when tube is full")
 
 
-func test_silenced_pistol_uses_two_step_reload_hint_on_training_level() -> void:
+func test_silenced_pistol_uses_rifle_style_reload_hint_on_training_level() -> void:
 	tutorial._has_silenced_pistol = true
 	tutorial.set_initial_step_based_on_weapon(false)
 	tutorial.on_weapon_fired()
@@ -2201,10 +2215,10 @@ func test_silenced_pistol_uses_two_step_reload_hint_on_training_level() -> void:
 	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_RELOAD, "")
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
 		"Silenced pistol should reveal a reload hint on the Training level after two shots")
-	assert_true(hint_text.contains("[R][/color] [color=#888888][R]"),
-		"Silenced pistol should use the same R->R reload hint as Makarov, not the R->F->R rifle hint")
-	assert_false(hint_text.contains("[F]"),
-		"Silenced pistol reload hint should not include the rifle magazine [F] step")
+	assert_true(hint_text.contains("[F]"),
+		"Silenced pistol reloads like M16/Uzi, so the Training hint must include the magazine [F] step")
+	assert_true(hint_text.contains("[color=#ff4444][R][/color] [color=#888888][F] [R][/color]"),
+		"Silenced pistol should start with the rifle-style R->F->R reload hint")
 
 
 func test_revolver_empty_open_close_after_previous_insert_rolls_training_hint_back() -> void:
@@ -2213,7 +2227,7 @@ func test_revolver_empty_open_close_after_previous_insert_rolls_training_hint_ba
 	tutorial.on_weapon_fired()
 	tutorial.on_weapon_fired()
 
-	tutorial.on_revolver_cartridge_inserted(1, 0, 1)
+	tutorial.on_revolver_cartridge_inserted(2, 0, 2)
 	tutorial.on_revolver_reload_state_changed(0)
 	tutorial.on_revolver_reload_state_changed(1)
 	tutorial.on_revolver_reload_state_changed(0)

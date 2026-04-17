@@ -21,6 +21,7 @@ Observed variants from the issue and PR discussion:
 - `game_log_20260417_033631.txt`: owner-provided runtime log after the first PR #1864 fix, reporting no behavior change.
 - `game_log_20260417_210216.txt`: owner-provided exported-exe startup log after the latest PR #1864 fix, reporting a gray screen.
 - `game_log_20260417_214336.txt`: owner-provided runtime log after the gray-screen fix, reporting two remaining Training-map issues: missing silenced pistol reload training and revolver empty open/close completion.
+- `game_log_20260417_230427.txt`: owner-provided runtime log after the next follow-up, reporting that silenced pistol training used the wrong Makarov-style reload hint and revolver reload training still disappeared after two `R` presses.
 - `game_log_20260417_025935.filtered.txt`: filtered weapon/tutorial timeline from the first April 17 log.
 - `game_log_20260417_030201.filtered.txt`: filtered weapon/tutorial timeline from the second April 17 log.
 - `game_log_20260417_033631.filtered.txt`: filtered weapon/tutorial timeline from the latest April 17 log.
@@ -68,9 +69,9 @@ The tutorial handlers were using coarse state transitions:
   `tutorial_level.gd` handlers. The latest log showed Training map behavior was unchanged because
   the previous patch fixed only the shared component path.
 - Add explicit Training-map handling for `SilencedPistol` so it connects shot, reload, and ammo
-  signals and uses the same two-step `[R] [R]` reload hint as Makarov PM.
+  signals while still using the rifle-style `[R] [F] [R]` reload hint used by Uzi/M16.
 - Reset the Training-map revolver per-attempt cartridge tracker when a reload closes, so a previous
-  successful insert cannot make a later empty open/close look completed.
+  successful insert or single partial insert cannot make a later incomplete close look completed.
 
 ## Verification
 
@@ -88,8 +89,8 @@ Regression coverage added in `tests/unit/test_weapon_hints_component.gd`:
 - shotgun close after shell loading dismisses
 
 Regression coverage added in `tests/unit/test_tutorial_level.gd`:
-- silenced pistol uses the two-step reload hint on the Training map
-- revolver empty open/close rolls back even after a previous reload attempt inserted a cartridge
+- silenced pistol uses the rifle-style reload hint on the Training map
+- revolver incomplete open/insert/close rolls back instead of dismissing the line
 
 Regression coverage added in `tests/unit/test_scene_loader.gd`:
 - invalid threaded resource fallback keeps the loading overlay visible if the sync scene change fails, preventing a blank/gray screen from being exposed without diagnostics

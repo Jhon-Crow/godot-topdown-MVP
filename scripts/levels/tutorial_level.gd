@@ -108,7 +108,7 @@ var _has_sniper_rifle: bool = false
 ## Whether the player has a Makarov PM (for pistol R->R reload tutorial).
 var _has_makarov_pm: bool = false
 
-## Whether the player has a silenced pistol (for pistol R->R reload tutorial).
+## Whether the player has a silenced pistol (uses rifle-style R->F->R reload tutorial).
 var _has_silenced_pistol: bool = false
 
 ## Whether the player has a revolver (for revolver-specific cylinder reload tutorial).
@@ -672,7 +672,7 @@ func _connect_player_signals() -> void:
 
 	elif silenced_pistol != null:
 		_has_silenced_pistol = true
-		print("Tutorial: Player has SilencedPistol - pistol tutorial (R->R reload)")
+		print("Tutorial: Player has SilencedPistol - rifle-style reload tutorial")
 
 		# Connect shot counter for reload hint reveal (Issue #945)
 		_connect_weapon_fired_signal(silenced_pistol)
@@ -1513,16 +1513,26 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 		return
 
 	if new_state == 0:
-		if _revolver_reload_loaded_cartridge:
+		if _is_revolver_reload_completion_ready():
 			_revolver_reload_loaded_cartridge = false
 			_revolver_last_inserted_count = 0
 			_revolver_last_inserted_chamber_index = -1
 			_revolver_scroll_completed_since_last_insert = false
+			if not _has_reloaded:
+				_has_reloaded = true
+				print("Tutorial: Revolver reload completed via ReloadStateChanged(0)")
+				_dismiss_hint(HINT_RELOAD)
+				if _has_thrown_grenade:
+					_advance_to_step(TutorialStep.COMPLETED)
+				else:
+					_advance_to_step(TutorialStep.THROW_GRENADE)
+			return
 		else:
 			_reset_hint_strikethrough(HINT_RELOAD)
 			var reset_label: RichTextLabel = _hint_labels[HINT_RELOAD]
 			if is_instance_valid(reset_label):
 				reset_label.text = _build_revolver_reload_hint_bbcode(0)
+			_revolver_reload_loaded_cartridge = false
 			_revolver_last_inserted_count = 0
 			_revolver_last_inserted_chamber_index = -1
 			_revolver_scroll_completed_since_last_insert = false
@@ -1546,7 +1556,27 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 
 
 func _uses_two_step_pistol_reload() -> bool:
-	return _has_makarov_pm or _has_silenced_pistol
+	return _has_makarov_pm
+
+
+func _is_revolver_reload_completion_ready() -> bool:
+	if not _revolver_reload_loaded_cartridge:
+		return false
+	if _player == null:
+		return _revolver_last_inserted_count >= _revolver_minimum_inserts_required
+
+	var revolver := _player.get_node_or_null("Revolver")
+	if revolver == null:
+		return _revolver_last_inserted_count >= _revolver_minimum_inserts_required
+
+	var cartridges_loaded: int = _revolver_last_inserted_count
+	var current_ammo: int = 0
+	if revolver.get("CartridgesLoadedThisReload") != null:
+		cartridges_loaded = int(revolver.get("CartridgesLoadedThisReload"))
+	if revolver.get("CurrentAmmo") != null:
+		current_ammo = int(revolver.get("CurrentAmmo"))
+
+	return cartridges_loaded >= _revolver_minimum_inserts_required or current_ammo >= 5
 
 
 func _get_revolver_reload_hint_step_for_loading_state() -> int:
@@ -2016,7 +2046,8 @@ func _extend_hint_strikethrough(hint_key: String, target_progress: float) -> voi
 	if is_equal_approx(target_progress, current_progress):
 		return  # Already at this progress
 	if target_progress < current_progress and hint_key != HINT_GRENADE:
-		return  # Existing non-grenade hints only advance forward.
+		if hint_key != HINT_RELOAD or not (_has_revolver or _has_shotgun):
+			return  # Existing non-rollback hints only advance forward.
 
 	# Issue #1080: Use per-line widths if available, otherwise fall back to content width.
 	var line_widths: Array = _hint_line_widths.get(hint_key, [])
