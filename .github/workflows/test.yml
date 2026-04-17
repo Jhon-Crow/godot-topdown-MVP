@@ -42,12 +42,18 @@ jobs:
       - name: Run GUT tests
         run: |
           # Run tests using GUT command line
-          godot/Godot_v4.3-stable_mono_linux.x86_64 --headless -s addons/gut/gut_cmdln.gd \
+          timeout 300 godot/Godot_v4.3-stable_mono_linux.x86_64 --headless -s addons/gut/gut_cmdln.gd \
             -gdir=res://tests/unit,res://tests/integration \
             -ginclude_subdirs \
             -gexit \
             -glog=2 \
             -gjunit_xml_file=test-results.xml 2>&1 | tee test-output.log
+          gut_status=${PIPESTATUS[0]}
+
+          if [ "$gut_status" -eq 124 ]; then
+            echo "GUT tests timed out after 300 seconds"
+            exit 1
+          fi
 
           # Check for test failures in output
           if grep -q "FAILED" test-output.log; then

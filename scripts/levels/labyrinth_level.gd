@@ -1,4 +1,6 @@
 extends Node2D
+
+const LEVEL_SCENE_PATH := "res://scenes/levels/LabyrinthLevel.tscn"
 ## Labyrinth level scene for the Godot Top-Down Template.
 ##
 ## This scene is a labyrinth of technical rooms (enclosed spaces).
@@ -170,6 +172,9 @@ var _tutorial_hint_strike_lines: Dictionary = {}
 ## Progress increases as each step completes; used to animate Line2D extension.
 var _tutorial_hint_strike_progress: Dictionary = {}
 
+## Active strikethrough tween per hint, so rollback can cancel an older forward animation.
+var _tutorial_hint_strike_tweens: Dictionary = {}
+
 ## Issue #944 Session 4: Track line count for each hint (hint_key -> int).
 ## Multi-line hints need multiple Line2D segments, one per line.
 var _tutorial_hint_line_counts: Dictionary = {}
@@ -194,11 +199,18 @@ var _tutorial_shotgun_full_reload_active: bool = false
 ## Whether M16 fire-mode [B] hint should appear after grenade training (Bug fix round 5).
 var _tutorial_m16_needs_fire_mode_hint: bool = false
 
-## Grenade hint step (Bug fix round 5): 0=arm, 1=G held, 2=G released.
+## Grenade hint step (Issue #1818 / PR review feedback): 0..5 map to the effective actions.
 var _tutorial_grenade_hint_step: int = 0
 
 ## Whether G key was held last frame (for grenade hint step tracking).
 var _tutorial_grenade_g_was_held: bool = false
+var _tutorial_grenade_drag_completed: bool = false
+var _tutorial_grenade_rmb_held_after_release: bool = false
+var _tutorial_grenade_rmb_was_pressed: bool = false
+var _tutorial_grenade_hint_drag_start: Vector2 = Vector2.ZERO
+
+## Whether the shotgun full-reload tutorial reached the shell-loading phase.
+var _tutorial_shotgun_reload_started: bool = false
 
 ## Unique colors per hint type (Issue #945: simultaneously displayed hints should be different colors).
 const TUTORIAL_HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)              ## Green — reload
@@ -232,9 +244,6 @@ func _ready() -> void:
 	print("Labyrinth size: 1920x1080 pixels")
 	print("Clear all rooms to win!")
 	print("Press Q for quick restart")
-
-	# Setup navigation mesh for enemy pathfinding
-	_setup_navigation()
 
 	# Find and connect to all enemies
 	_setup_enemy_tracking()
@@ -277,6 +286,10 @@ func _ready() -> void:
 
 	# Start replay recording
 	_start_replay_recording()
+
+	# Build the navigation mesh after HUD/player/enemy setup so expensive baking
+	# cannot leave startup counters at their default values.
+	call_deferred("_setup_navigation")
 
 
 ## Initialize the ScoreManager for this level.
@@ -745,6 +758,8 @@ func _setup_navigation() -> void:
 	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
 	# with PhysicsServer2D before parsing source geometry for navmesh carving.
 	await get_tree().physics_frame
+	if not is_inside_tree() or not is_instance_valid(nav_region):
+		return
 	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	print("Baking navigation mesh...")
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
@@ -766,6 +781,9 @@ func _setup_player_tracking() -> void:
 	# Setup realistic visibility component
 	_setup_realistic_visibility()
 
+	# Find the ammo label before selected weapon setup so config-time HUD refreshes work.
+	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
+
 	# Setup selected weapon based on GameManager selection
 	_setup_selected_weapon()
 
@@ -773,30 +791,13 @@ func _setup_player_tracking() -> void:
 	if GameManager:
 		GameManager.set_player(_player)
 
-	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
-
 	# Connect to player death signal
 	if _player.has_signal("died"):
 		_player.died.connect(_on_player_died)
 	elif _player.has_signal("Died"):
 		_player.Died.connect(_on_player_died)
 
-	# Try to get the player's weapon for C# Player
-	var weapon = _player.get_node_or_null("Shotgun")
-	if weapon == null:
-		weapon = _player.get_node_or_null("MiniUzi")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SilencedPistol")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SniperRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("AssaultRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("AKGL")
-	if weapon == null:
-		weapon = _player.get_node_or_null("Revolver")
-	if weapon == null:
-		weapon = _player.get_node_or_null("MakarovPM")
+	var weapon = _get_current_player_weapon()
 	if weapon != null:
 		if weapon.has_signal("AmmoChanged"):
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
@@ -811,8 +812,9 @@ func _setup_player_tracking() -> void:
 			weapon.ShotFired.connect(_on_tutorial_weapon_fired)
 		if weapon.has_signal("ShellCountChanged"):
 			weapon.ShellCountChanged.connect(_on_shell_count_changed)
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
@@ -930,6 +932,54 @@ func _setup_enemy_tracking() -> void:
 	print("Tracking %d enemies" % _initial_enemy_count)
 
 
+## Return the player's actual equipped weapon.
+## C# Player owns the authoritative CurrentWeapon; child-node probing is only a fallback.
+func _get_current_player_weapon() -> Node:
+	if _player == null:
+		return null
+
+	var current_weapon = _player.get("CurrentWeapon")
+	if current_weapon != null and current_weapon is Node and is_instance_valid(current_weapon):
+		return current_weapon
+
+	var selected_weapon_id: String = GameManager.get_selected_weapon() if GameManager else "makarov_pm"
+	var weapon_names: Dictionary = {
+		"shotgun": "Shotgun",
+		"mini_uzi": "MiniUzi",
+		"silenced_pistol": "SilencedPistol",
+		"sniper": "SniperRifle",
+		"m16": "AssaultRifle",
+		"ak_gl": "AKGL",
+		"revolver": "Revolver",
+		"makarov_pm": "MakarovPM"
+	}
+	var expected_name: String = weapon_names.get(selected_weapon_id, "MakarovPM")
+	return _player.get_node_or_null(expected_name)
+
+
+## Return the loaded ammo value that should be shown in the HUD.
+## Shotgun keeps the loaded shell count in ShellsInTube instead of CurrentAmmo.
+func _get_weapon_display_current_ammo(weapon: Node) -> Variant:
+	if weapon == null:
+		return null
+	if weapon.name == "Shotgun" and weapon.get("ShellsInTube") != null:
+		return weapon.ShellsInTube
+	return weapon.get("CurrentAmmo")
+
+
+## Pushes the authoritative current weapon ammo state into the HUD.
+func _refresh_weapon_hud(weapon: Node, reason: String) -> void:
+	if weapon == null:
+		return
+	var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+	if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+		_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
+		_log_to_file("HUD ammo refreshed (%s): %s %s/%s" % [reason, weapon.name, display_current_ammo, weapon.ReserveAmmo])
+	if weapon.has_method("GetMagazineAmmoCounts"):
+		var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+		_update_magazines_label(mag_counts)
+
+
 ## Configure silenced pistol ammo based on enemy count.
 func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 	if weapon.name != "SilencedPistol":
@@ -944,11 +994,7 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		weapon.ConfigureAmmoForEnemyCount(enemy_count)
 		print("[LabyrinthLevel] Configured silenced pistol ammo for %d enemies" % enemy_count)
 
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "silenced pistol config")
 
 
 ## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
@@ -973,11 +1019,7 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		print("[LabyrinthLevel] 2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
 
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "makarov config")
 
 	# Reapply auto-reload magazine size reduction if active (Issue #1067).
 	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
@@ -1018,15 +1060,12 @@ func _configure_labyrinth_weapon_ammo(weapon: Node, weapon_id: String) -> void:
 			var mag_size: int = _MAGAZINE_SIZES.get(weapon_id, 30)
 			weapon.ReinitializeMagazines(base_magazines, mag_size, true)
 			print("[LabyrinthLevel] %s magazines reinitialized to %d x %d rounds" % [weapon.name, base_magazines, mag_size])
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "labyrinth ammo config")
 
 	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
 		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 		_log_to_file("Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+	_refresh_weapon_hud(weapon, "post level ammo config")
 
 
 ## Setup debug UI elements for kills and accuracy.
@@ -1034,10 +1073,12 @@ func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
+	var level_label: Label = ui.get_node_or_null("LevelLabel")
+	LevelLocalization.apply_level_label(level_label, LEVEL_SCENE_PATH)
 
 	_difficulty_label = Label.new()
 	_difficulty_label.name = "DifficultyLabel"
-	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
 	_difficulty_label.offset_top = 80
@@ -1047,7 +1088,7 @@ func _setup_debug_ui() -> void:
 
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
-	_magazines_label.text = "MAGS: -"
+	_magazines_label.text = LevelLocalization.get_magazines_text([])
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
 	_magazines_label.offset_top = 115
@@ -1096,7 +1137,7 @@ func _update_debug_ui() -> void:
 		return
 
 	if _difficulty_label:
-		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 
 
 ## Called when an enemy dies.
@@ -1326,7 +1367,7 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current, maximum]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current, maximum)
 
 	if current <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
@@ -1341,7 +1382,7 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current_mag, reserve)
 
 	if current_mag <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
@@ -1356,67 +1397,20 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
 
-	var weapon = null
-	if _player:
-		weapon = _player.get_node_or_null("Shotgun")
-		if weapon == null:
-			weapon = _player.get_node_or_null("MiniUzi")
-		if weapon == null:
-			weapon = _player.get_node_or_null("SilencedPistol")
-		if weapon == null:
-			weapon = _player.get_node_or_null("SniperRifle")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AssaultRifle")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AKGL")
-		if weapon == null:
-			weapon = _player.get_node_or_null("Revolver")
-		if weapon == null:
-			weapon = _player.get_node_or_null("MakarovPM")
-
-	if weapon != null and weapon.get("UsesTubeMagazine") == true:
-		_magazines_label.visible = false
-		return
-	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
+	if LevelLocalization.weapon_hides_magazines(weapon):
 		_magazines_label.visible = false
 		return
 	_magazines_label.visible = true
 
-	if magazine_ammo_counts.is_empty():
-		_magazines_label.text = "MAGS: -"
-		return
-
-	# Get magazine capacities to distinguish full vs partial spares
-	var mag_max_counts: Array = []
-	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
-		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
-
-	var parts: Array = []
-	# Current magazine always shown in brackets
-	parts.append("[%d]" % magazine_ammo_counts[0])
-
-	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
-	var full_spare_count: int = 0
-	for i in range(1, magazine_ammo_counts.size()):
-		var ammo: int = magazine_ammo_counts[i]
-		if ammo <= 0:
-			continue
-		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
-		if cap > 0 and ammo >= cap:
-			full_spare_count += 1
-		else:
-			parts.append("%d" % ammo)
-
-	if full_spare_count > 0:
-		parts.append("+ x%d" % full_spare_count)
-
-	_magazines_label.text = "MAGS: " + " | ".join(parts)
+	var parts: Array[String] = LevelLocalization.get_magazine_display_parts(weapon, magazine_ammo_counts)
+	_magazines_label.text = LevelLocalization.get_magazines_text(parts)
 
 
 ## Update the enemy count label in UI.
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
-		_enemy_count_label.text = "Enemies: %d" % _current_enemy_count
+		_enemy_count_label.text = LevelLocalization.get_enemy_count_text(_current_enemy_count)
 
 
 ## Show death message when player dies.
@@ -2393,6 +2387,7 @@ func _on_tutorial_reload_completed() -> void:
 		if _tutorial_has_shotgun:
 			_dismiss_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE)
 			_tutorial_shotgun_full_reload_active = false  # Bug fix round 5: reset flag
+			_tutorial_shotgun_reload_started = false
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		# Bug fix round 5: M16 fire-mode [B] hint should appear after grenade, not now.
 		if _tutorial_assault_rifle != null and not _tutorial_has_ak_gl:
@@ -2414,8 +2409,7 @@ func _on_tutorial_reload_completed() -> void:
 			# Bug fix #9 (round 4 fix): use GetCurrentGrenades() method for reliable check.
 			if _tutorial_player_has_grenades():
 				if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-					_tutorial_grenade_hint_step = 0
-					_tutorial_grenade_g_was_held = false
+					_reset_tutorial_grenade_hint_tracking()
 					_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
 						_build_tutorial_grenade_hint_bbcode(0),
 						canvas_layer)
@@ -2442,8 +2436,7 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		if _tutorial_player_has_grenades():
 			if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-				_tutorial_grenade_hint_step = 0
-				_tutorial_grenade_g_was_held = false
+				_reset_tutorial_grenade_hint_tracking()
 				_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
 					_build_tutorial_grenade_hint_bbcode(0),
 					canvas_layer)
@@ -2453,43 +2446,112 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 			_dismiss_all_tutorial_hints()
 
 
-## Build BBCode for the grenade throw hint with step-based highlighting (Bug fix round 5).
-## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
+## Build BBCode for the grenade throw hint with the reviewed issue #1818 steps.
+func _get_tutorial_grenade_hint_actions() -> Array:
+	return [
+		"[%s]" % tr("HINT_GRENADE_HOLD_G_RMB"),
+		"[%s]" % tr("HINT_GRENADE_DRAG_RIGHT"),
+		"[%s]" % tr("HINT_GRENADE_RELEASE_RMB"),
+		"[%s]" % tr("HINT_GRENADE_HOLD_RMB"),
+		"[%s]" % tr("HINT_GRENADE_RELEASE_G"),
+		"[%s]" % tr("HINT_GRENADE_AIM_RELEASE_RMB"),
+	]
+
+
+func _get_tutorial_grenade_hint_strikethrough_progress(completed_actions: int, actions: Array) -> float:
+	if completed_actions <= 0 or actions.is_empty():
+		return 0.0
+	var all_actions := PackedStringArray()
+	for action in actions:
+		all_actions.append(str(action))
+	var total_text := " ".join(all_actions)
+	if total_text.is_empty():
+		return 0.0
+
+	var completed := PackedStringArray()
+	var completed_count := mini(completed_actions, actions.size())
+	for i in range(completed_count):
+		completed.append(str(actions[i]))
+	return float(" ".join(completed).length()) / float(total_text.length())
+
+
 func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
-	var k_arm: String = tr("HINT_KEY_GRENADE_ARM")
-	var k_aim: String = tr("HINT_KEY_GRENADE_AIM")
-	var k_throw: String = tr("HINT_KEY_GRENADE_THROW")
-	match step:
-		0:
-			return "[color=#ff4444][%s][/color] [color=#888888][%s] [%s][/color]" % [k_arm, k_aim, k_throw]
-		1:
-			# First step completed
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.25)
-			return "[color=#888888][%s][/color] [color=#ff4444][%s][/color] [color=#888888][%s][/color]" % [k_arm, k_aim, k_throw]
-		2:
-			# First two steps completed
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.6)
-			return "[color=#888888][%s] [%s][/color] [color=#ff4444][%s][/color]" % [k_arm, k_aim, k_throw]
-		_:
-			# All steps done
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.85)
-			return "[color=#888888][%s] [%s] [%s][/color]" % [k_arm, k_aim, k_throw]
+	var parts := _get_tutorial_grenade_hint_actions()
+	var clamped_step := clampi(step, 0, parts.size() - 1)
+	_extend_tutorial_hint_strikethrough(
+		TUTORIAL_HINT_GRENADE,
+		_get_tutorial_grenade_hint_strikethrough_progress(clamped_step, parts)
+	)
+	var styled: PackedStringArray = []
+	for i in range(parts.size()):
+		if i < clamped_step:
+			styled.append("[color=#888888]%s[/color]" % parts[i])
+		elif i == clamped_step:
+			styled.append("[color=#ff4444]%s[/color]" % parts[i])
+		else:
+			styled.append("[color=#888888]%s[/color]" % parts[i])
+	return " ".join(styled)
 
 
-## Update the grenade hint step based on current input (Bug fix round 5).
+func _reset_tutorial_grenade_hint_tracking() -> void:
+	_tutorial_grenade_g_was_held = false
+	_tutorial_grenade_hint_step = 0
+	_tutorial_grenade_drag_completed = false
+	_tutorial_grenade_rmb_held_after_release = false
+	_tutorial_grenade_rmb_was_pressed = false
+	_tutorial_grenade_hint_drag_start = Vector2.ZERO
+
+
+## Update the grenade hint step based on current input (Issue #1818).
 func _update_tutorial_grenade_hint_step() -> void:
 	if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-		_tutorial_grenade_g_was_held = false
-		_tutorial_grenade_hint_step = 0
+		_reset_tutorial_grenade_hint_tracking()
 		return
 
+	var grenade_state := 0
+	if _player != null and _player.has_method("GetGrenadeState"):
+		grenade_state = int(_player.GetGrenadeState())
 	var g_pressed: bool = Input.is_action_pressed("grenade_prepare")
+	var rmb_pressed: bool = Input.is_action_pressed("grenade_throw")
+	var current_mouse_pos := get_global_mouse_position()
+	var rmb_just_pressed := rmb_pressed and not _tutorial_grenade_rmb_was_pressed
+	var rmb_just_released := not rmb_pressed and _tutorial_grenade_rmb_was_pressed
 
-	if _tutorial_grenade_hint_step == 0 and g_pressed:
+	if grenade_state == 0 and _tutorial_grenade_hint_step > 0:
+		_reset_tutorial_grenade_hint_tracking()
+	elif grenade_state == 1 and _tutorial_grenade_hint_step > 3:
+		_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
+		if g_pressed or rmb_pressed or _tutorial_grenade_rmb_was_pressed:
+			_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 1 and not g_pressed and not _tutorial_grenade_drag_completed:
+		_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 2 and not g_pressed and not rmb_pressed:
+		_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 3 and not g_pressed and not rmb_pressed:
+		_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 4 and not rmb_pressed and not _tutorial_grenade_rmb_held_after_release:
+		_reset_tutorial_grenade_hint_tracking()
+
+	if _tutorial_grenade_hint_step <= 1 and g_pressed and rmb_pressed and rmb_just_pressed:
+		_tutorial_grenade_drag_completed = false
+		_tutorial_grenade_hint_drag_start = current_mouse_pos
+
+	if _tutorial_grenade_hint_step == 1 and g_pressed and rmb_pressed:
+		if current_mouse_pos.x - _tutorial_grenade_hint_drag_start.x > 20.0:
+			_tutorial_grenade_drag_completed = true
+			_tutorial_grenade_hint_step = 2
+
+	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed and grenade_state >= 1:
 		_tutorial_grenade_hint_step = 1
 		_tutorial_grenade_g_was_held = true
-	elif _tutorial_grenade_hint_step == 1 and not g_pressed and _tutorial_grenade_g_was_held:
-		_tutorial_grenade_hint_step = 2
+	elif _tutorial_grenade_hint_step == 2 and _tutorial_grenade_drag_completed and rmb_just_released:
+		_tutorial_grenade_hint_step = 3
+	elif _tutorial_grenade_hint_step == 3 and g_pressed and rmb_just_pressed:
+		_tutorial_grenade_rmb_held_after_release = true
+		_tutorial_grenade_hint_step = 4
+	elif _tutorial_grenade_hint_step == 4 and not g_pressed and rmb_pressed and _tutorial_grenade_rmb_held_after_release:
+		_tutorial_grenade_hint_step = 5
 		_tutorial_grenade_g_was_held = false
 
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_GRENADE]
@@ -2497,6 +2559,8 @@ func _update_tutorial_grenade_hint_step() -> void:
 		var new_text := _build_tutorial_grenade_hint_bbcode(_tutorial_grenade_hint_step)
 		if label.text != new_text:
 			label.text = new_text
+
+	_tutorial_grenade_rmb_was_pressed = rmb_pressed
 
 
 ## Called when player throws a grenade — dismisses grenade hint (Issue #808).
@@ -2674,10 +2738,21 @@ func _on_tutorial_shotgun_reload_state_changed(new_state: int) -> void:
 	if not _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
 		return
 
-	# state=0 means reload is fully complete (bolt closed) — treat as reload done.
+	if new_state >= 2:
+		_tutorial_shotgun_reload_started = true
+
+	# state=0 is only a completed reload if the player actually reached the shell-loading phase.
+	# If the state returns to 0 from the initial open-bolt step, the player canceled the reload and
+	# the hint should roll back to its initial state instead of completing the tutorial.
 	if new_state == 0:
-		print("[LabyrinthLevel] Shotgun reload completed via ReloadStateChanged(0)")
-		_on_tutorial_reload_completed()
+		if _tutorial_shotgun_reload_started:
+			print("[LabyrinthLevel] Shotgun reload completed via ReloadStateChanged(0)")
+			_on_tutorial_reload_completed()
+		else:
+			var label_reset: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]
+			if is_instance_valid(label_reset):
+				label_reset.text = _build_tutorial_shotgun_full_reload_hint_bbcode(0)
+		_tutorial_shotgun_reload_started = false
 		return
 
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]
@@ -2843,8 +2918,10 @@ func _extend_tutorial_hint_strikethrough(hint_key: String, target_progress: floa
 		return
 
 	var current_progress: float = _tutorial_hint_strike_progress.get(hint_key, 0.0)
-	if target_progress <= current_progress:
-		return  # Already at or past this progress
+	if is_equal_approx(target_progress, current_progress):
+		return  # Already at this progress
+	if target_progress < current_progress and hint_key != TUTORIAL_HINT_GRENADE:
+		return  # Existing non-grenade hints only advance forward.
 
 	# Issue #1080: Use per-line widths if available, otherwise fall back to content width.
 	var line_widths: Array = _tutorial_hint_line_widths.get(hint_key, [])
@@ -2865,12 +2942,22 @@ func _extend_tutorial_hint_strikethrough(hint_key: String, target_progress: floa
 	var line_count: int = _tutorial_hint_line_counts.get(hint_key, 1)
 
 	# Animate the line extension from current position to new position.
+	if _tutorial_hint_strike_tweens.has(hint_key):
+		var previous_tween: Tween = _tutorial_hint_strike_tweens[hint_key]
+		if is_instance_valid(previous_tween):
+			previous_tween.kill()
+
 	var tween := create_tween()
+	_tutorial_hint_strike_tweens[hint_key] = tween
 	tween.tween_method(
 		func(progress: float):
 			_update_tutorial_strikethrough_points(strike_lines, line_count, line_widths, progress),
 		current_progress, target_progress, TUTORIAL_HINT_STRIKETHROUGH_DURATION * 0.5
 	).set_ease(Tween.EASE_OUT)
+	tween.finished.connect(func():
+		if _tutorial_hint_strike_tweens.get(hint_key) == tween:
+			_tutorial_hint_strike_tweens.erase(hint_key)
+	)
 
 	_tutorial_hint_strike_progress[hint_key] = target_progress
 	print("[LabyrinthLevel] Strikethrough extended for '%s': %.0f%% -> %.0f%%" % [hint_key, current_progress * 100, target_progress * 100])
@@ -2953,6 +3040,12 @@ func _animate_tutorial_hint_strikethrough_and_fade(hint_key: String, label: Rich
 	var current_progress: float = _tutorial_hint_strike_progress.get(hint_key, 0.0)
 
 	# Animate the lines from current position to full width (100%)
+	if _tutorial_hint_strike_tweens.has(hint_key):
+		var previous_tween: Tween = _tutorial_hint_strike_tweens[hint_key]
+		if is_instance_valid(previous_tween):
+			previous_tween.kill()
+		_tutorial_hint_strike_tweens.erase(hint_key)
+
 	var tween := create_tween()
 
 	if not strike_lines.is_empty():
@@ -2973,6 +3066,7 @@ func _finalize_tutorial_hint_dismiss(hint_key: String, label: RichTextLabel) -> 
 	_tutorial_hints.erase(hint_key)
 	_tutorial_hint_strike_lines.erase(hint_key)
 	_tutorial_hint_strike_progress.erase(hint_key)
+	_tutorial_hint_strike_tweens.erase(hint_key)
 	_tutorial_hint_line_counts.erase(hint_key)
 	_tutorial_hint_line_widths.erase(hint_key)
 	if is_instance_valid(label):

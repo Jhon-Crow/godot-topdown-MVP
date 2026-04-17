@@ -33,9 +33,14 @@ const LOUDSPEAKER_HOLD_DURATION: float = 0.6
 ## Reference to the parent player node.
 var _player: CharacterBody2D = null
 
+var _loudspeaker_victory_canvas: CanvasLayer = null
+var _loudspeaker_victory_screen_shown: bool = false
+var _loudspeaker_victory_dismissed: bool = false
+
 
 func _ready() -> void:
 	_player = get_parent() as CharacterBody2D
+	set_process_unhandled_input(true)
 
 
 ## Initialize the loudspeaker if the ActiveItemManager has it selected.
@@ -344,14 +349,22 @@ func apply_level_start_state() -> void:
 
 ## Show the victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
 func _show_loudspeaker_victory_message() -> void:
+	_loudspeaker_victory_screen_shown = true
+	_loudspeaker_victory_dismissed = false
+	set_process_unhandled_input(true)
+	if _player:
+		_player.set_process_input(false)
+		_player.set_process_unhandled_input(false)
+
 	var canvas := CanvasLayer.new()
 	canvas.name = "LoudspeakerVictoryCanvas"
 	canvas.layer = 100
+	_loudspeaker_victory_canvas = canvas
 	_player.add_child(canvas)
 
 	# Victory message label
 	var label := Label.new()
-	label.text = "Нам нечего делить по этому мы не будем стрелять друг в друга."
+	label.text = tr("LOUDSPEAKER_TRUE_ENDING_MESSAGE")
 	label.add_theme_font_size_override("font_size", 36)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -362,9 +375,8 @@ func _show_loudspeaker_victory_message() -> void:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	canvas.add_child(label)
 
-	# "Click to continue" hint
 	var hint := Label.new()
-	hint.text = "[ нажмите, чтобы продолжить ]"
+	hint.text = tr("GAME_END_DISMISS_HINT")
 	hint.add_theme_font_size_override("font_size", 18)
 	hint.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8, 0.8))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -385,14 +397,32 @@ func _show_loudspeaker_victory_message() -> void:
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	panel.gui_input.connect(func(ev):
 		if ev is InputEventMouseButton and ev.pressed:
-			_show_loudspeaker_end_screen(canvas)
+			get_viewport().set_input_as_handled()
+			_dismiss_loudspeaker_victory_message()
 	)
 	canvas.add_child(panel)
 
 	FileLogger.info("[Player.Loudspeaker] Victory message shown (Level 7)")
 
 
-## Show end screen after player clicks on victory message (Issue #959).
+func _unhandled_input(event: InputEvent) -> void:
+	if _loudspeaker_victory_screen_shown and not _loudspeaker_victory_dismissed:
+		if event is InputEventKey and event.is_pressed() and not event.echo:
+			get_viewport().set_input_as_handled()
+			_dismiss_loudspeaker_victory_message()
+		elif event is InputEventMouseButton and event.is_pressed():
+			get_viewport().set_input_as_handled()
+			_dismiss_loudspeaker_victory_message()
+
+
+func _dismiss_loudspeaker_victory_message() -> void:
+	if _loudspeaker_victory_dismissed:
+		return
+	_loudspeaker_victory_dismissed = true
+	_show_loudspeaker_end_screen(_loudspeaker_victory_canvas)
+
+
+## Show end screen after player dismisses the victory message (Issue #959).
 func _show_loudspeaker_end_screen(victory_canvas: CanvasLayer) -> void:
 	# Remove victory screen
 	if is_instance_valid(victory_canvas):
@@ -413,9 +443,8 @@ func _show_loudspeaker_end_screen(victory_canvas: CanvasLayer) -> void:
 	bg.set_anchor(SIDE_BOTTOM, 1.0)
 	canvas.add_child(bg)
 
-	# "Конец" title
 	var title := Label.new()
-	title.text = "Конец"
+	title.text = tr("GAME_END_TITLE")
 	title.add_theme_font_size_override("font_size", 72)
 	title.add_theme_color_override("font_color", Color(1, 1, 1, 1))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -428,7 +457,7 @@ func _show_loudspeaker_end_screen(victory_canvas: CanvasLayer) -> void:
 
 	# Thank you message
 	var thanks := Label.new()
-	thanks.text = "Спасибо за игру!"
+	thanks.text = tr("GAME_END_THANKS")
 	thanks.add_theme_font_size_override("font_size", 32)
 	thanks.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85, 1))
 	thanks.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

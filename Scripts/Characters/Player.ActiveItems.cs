@@ -19,6 +19,14 @@ namespace GodotTopDownTemplate.Characters;
 /// </summary>
 public partial class Player
 {
+    private CanvasLayer? _loudspeakerVictoryCanvas = null;
+    private bool _loudspeakerVictoryScreenShown = false;
+    private bool _loudspeakerVictoryDismissed = false;
+    private bool _loudspeakerVictoryPending = false;
+    private bool _loudspeakerVictoryDelayStarted = false;
+    private float _loudspeakerVictoryDelayTimer = 0.0f;
+    private const float LoudspeakerVictoryDelaySeconds = 20.0f;
+
     #region Flashlight Methods (Issue #546)
 
     /// <summary>
@@ -2785,7 +2793,7 @@ public partial class Player
                         enemyNode.Call("apply_pacifism", 0.0f);
                 }
             }
-            ShowLoudspeakerVictoryMessage();
+            StartLoudspeakerVictoryDelay();
             return;
         }
 
@@ -2837,18 +2845,82 @@ public partial class Player
     }
 
     /// <summary>
+    /// Arm the delayed victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
+    /// The player may still move while the ending is pending, but weapon actions stay blocked.
+    /// </summary>
+    private void StartLoudspeakerVictoryDelay()
+    {
+        _loudspeakerVictoryPending = true;
+        _loudspeakerVictoryDelayStarted = false;
+        _loudspeakerVictoryDelayTimer = 0.0f;
+        _semiAutoShootBuffered = false;
+        LogToFile($"[Player.Loudspeaker] Victory pending (Level 7), waiting for first player input then {LoudspeakerVictoryDelaySeconds:F0}s delay");
+    }
+
+    private bool IsLoudspeakerVictoryWeaponLocked()
+    {
+        return _loudspeakerVictoryPending || _loudspeakerVictoryScreenShown || _loudspeakerVictoryDismissed;
+    }
+
+    private void HandleLoudspeakerVictoryDelay(float delta)
+    {
+        if (!_loudspeakerVictoryPending || _loudspeakerVictoryScreenShown)
+            return;
+
+        if (!_loudspeakerVictoryDelayStarted)
+        {
+            if (!HasAnyGameplayInput())
+                return;
+
+            _loudspeakerVictoryDelayStarted = true;
+            _loudspeakerVictoryDelayTimer = LoudspeakerVictoryDelaySeconds;
+            LogToFile($"[Player.Loudspeaker] First player input detected, true-ending message will appear in {LoudspeakerVictoryDelaySeconds:F0}s");
+        }
+
+        _loudspeakerVictoryDelayTimer -= delta;
+        if (_loudspeakerVictoryDelayTimer <= 0.0f)
+        {
+            _loudspeakerVictoryPending = false;
+            _loudspeakerVictoryDelayTimer = 0.0f;
+            ShowLoudspeakerVictoryMessage();
+        }
+    }
+
+    private bool HasAnyGameplayInput()
+    {
+        return Input.IsActionPressed("move_up")
+            || Input.IsActionPressed("move_down")
+            || Input.IsActionPressed("move_left")
+            || Input.IsActionPressed("move_right")
+            || Input.IsActionJustPressed("shoot")
+            || Input.IsActionJustPressed("grenade_throw")
+            || Input.IsActionJustPressed("grenade_prepare")
+            || Input.IsActionJustPressed("reload")
+            || Input.IsActionJustPressed("reload_step")
+            || Input.IsActionJustPressed("toggle_fire_mode")
+            || Input.IsActionJustPressed("flashlight_toggle");
+    }
+
+    /// <summary>
     /// Show the victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
     /// </summary>
     private void ShowLoudspeakerVictoryMessage()
     {
+        _loudspeakerVictoryScreenShown = true;
+        _loudspeakerVictoryDismissed = false;
+        _loudspeakerVictoryPending = false;
+        SetProcessUnhandledInput(true);
+        _semiAutoShootBuffered = false;
+
         var canvas = new CanvasLayer();
         canvas.Name = "LoudspeakerVictoryCanvas";
         canvas.Layer = 100;
         AddChild(canvas);
+        _loudspeakerVictoryCanvas = canvas;
 
         // Victory message label
         var label = new Label();
-        label.Text = "Нам нечего делить по этому мы не будем стрелять друг в друга.";
+        label.Text = Tr("LOUDSPEAKER_TRUE_ENDING_MESSAGE");
         label.AddThemeFontSizeOverride("font_size", 36);
         label.HorizontalAlignment = HorizontalAlignment.Center;
         label.VerticalAlignment = VerticalAlignment.Center;
@@ -2861,7 +2933,7 @@ public partial class Player
 
         // "Click to continue" hint
         var hint = new Label();
-        hint.Text = "[ нажмите, чтобы продолжить ]";
+        hint.Text = Tr("GAME_END_DISMISS_HINT");
         hint.AddThemeFontSizeOverride("font_size", 18);
         hint.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f, 0.8f));
         hint.HorizontalAlignment = HorizontalAlignment.Center;
@@ -2883,21 +2955,57 @@ public partial class Player
         panel.GuiInput += (InputEvent ev) =>
         {
             if (ev is InputEventMouseButton mb && mb.Pressed)
-                ShowLoudspeakerEndScreen(canvas);
+            {
+                GetViewport().SetInputAsHandled();
+                DismissLoudspeakerVictoryMessage();
+            }
         };
         canvas.AddChild(panel);
 
         LogToFile("[Player.Loudspeaker] Victory message shown (Level 7)");
     }
 
+    private bool HandleLoudspeakerVictoryInput(InputEvent @event)
+    {
+        if (!_loudspeakerVictoryScreenShown || _loudspeakerVictoryDismissed)
+            return false;
+
+        if (@event is InputEventKey key && key.Pressed && !key.Echo)
+        {
+            GetViewport().SetInputAsHandled();
+            DismissLoudspeakerVictoryMessage();
+            return true;
+        }
+
+        if (@event is InputEventMouseButton mouseButton && mouseButton.Pressed)
+        {
+            GetViewport().SetInputAsHandled();
+            DismissLoudspeakerVictoryMessage();
+            return true;
+        }
+
+        return false;
+    }
+
+    private void DismissLoudspeakerVictoryMessage()
+    {
+        if (_loudspeakerVictoryDismissed)
+            return;
+
+        _loudspeakerVictoryDismissed = true;
+        _semiAutoShootBuffered = false;
+        ShowLoudspeakerEndScreen(_loudspeakerVictoryCanvas);
+    }
+
     /// <summary>
     /// Show end screen after player clicks on victory message (Issue #959).
     /// </summary>
-    private void ShowLoudspeakerEndScreen(CanvasLayer victoryCanvas)
+    private void ShowLoudspeakerEndScreen(CanvasLayer? victoryCanvas)
     {
         // Remove victory screen
-        if (Godot.GodotObject.IsInstanceValid(victoryCanvas))
+        if (victoryCanvas != null && Godot.GodotObject.IsInstanceValid(victoryCanvas))
             victoryCanvas.QueueFree();
+        _loudspeakerVictoryCanvas = null;
 
         // Create end screen canvas
         var canvas = new CanvasLayer();
@@ -2916,7 +3024,7 @@ public partial class Player
 
         // "Конец" title
         var title = new Label();
-        title.Text = "Конец";
+        title.Text = Tr("GAME_END_TITLE");
         title.AddThemeFontSizeOverride("font_size", 72);
         title.AddThemeColorOverride("font_color", new Color(1, 1, 1, 1));
         title.HorizontalAlignment = HorizontalAlignment.Center;
@@ -2929,7 +3037,7 @@ public partial class Player
 
         // Thank you message
         var thanks = new Label();
-        thanks.Text = "Спасибо за игру!";
+        thanks.Text = Tr("GAME_END_THANKS");
         thanks.AddThemeFontSizeOverride("font_size", 32);
         thanks.AddThemeColorOverride("font_color", new Color(0.85f, 0.85f, 0.85f, 1));
         thanks.HorizontalAlignment = HorizontalAlignment.Center;
@@ -4500,6 +4608,28 @@ public partial class Player
     #region Experimental Sample (Issue #1127)
 
     /// <summary>
+    /// Active item types that Experimental Sample can trigger.
+    /// Keep this list in sync with TriggerExperimentalSampleEffect so newly added
+    /// active items are not omitted from the shipped C# player implementation.
+    /// </summary>
+    private static readonly int[] ExperimentalSampleActiveTypes =
+    {
+        1,  // FLASHLIGHT
+        2,  // HOMING_BULLETS
+        3,  // TELEPORT_BRACERS
+        4,  // BFF_PENDANT
+        5,  // INVISIBILITY_SUIT
+        7,  // FORCE_FIELD
+        8,  // TRAJECTORY_GLASSES
+        11, // LOUDSPEAKER
+        12, // BREACHING_CHARGES
+        15, // DRILLING_BULLETS
+        16, // RECOIL_COMPENSATOR
+        19, // FINE_MOTOR_SKILLS
+        20, // DASH
+    };
+
+    /// <summary>
     /// Initialize the experimental sample if it is the selected active item.
     /// Randomises charge count (1–5) at the start of each level.
     /// </summary>
@@ -4553,7 +4683,7 @@ public partial class Player
 
     /// <summary>
     /// Handle experimental sample input: press Space to trigger a random active item effect.
-    /// The randomly chosen effect can be ANY item type 1–17, even items the player has not unlocked.
+    /// The randomly chosen effect can be any listed active item, even items the player has not unlocked.
     /// </summary>
     private void HandleExperimentalSampleInput()
     {
@@ -4582,16 +4712,10 @@ public partial class Player
         _experimentalSampleChargeBarVisible = true;
         QueueRedraw();
 
-        // Active-only item pool (Issue #1127): passive items are excluded.
-        // Passive items excluded: 6=BREAKER_BULLETS, 9=LASER_SIGHT, 10=EXTENDED_MAGAZINE,
-        //   13=ARMORED_SKIN, 14=AUTO_RELOAD, 17=COMBAT_DISPOSITION
-        // Active items kept: 1=FLASHLIGHT, 2=HOMING_BULLETS, 3=TELEPORT_BRACERS,
-        //   4=BFF_PENDANT, 5=INVISIBILITY_SUIT, 7=FORCE_FIELD, 8=TRAJECTORY_GLASSES,
-        //   11=LOUDSPEAKER, 12=BREACHING_CHARGES, 15=DRILLING_BULLETS, 16=RECOIL_COMPENSATOR
+        // Active-only item pool (Issue #1127, #1635): passive items are excluded.
         // Homing (2): 5 tickets (~5%); BFF (4): 2 tickets (~2%); all others: 10 tickets each.
-        int[] activeTypes = { 1, 2, 3, 4, 5, 7, 8, 11, 12, 15, 16 };
         var poolList = new System.Collections.Generic.List<int>();
-        foreach (int t in activeTypes)
+        foreach (int t in ExperimentalSampleActiveTypes)
         {
             int tickets = t == 4 ? 2 : (t == 2 ? 5 : 10);
             for (int k = 0; k < tickets; k++)
@@ -5032,11 +5156,82 @@ public partial class Player
                 LogToFile("[Player.ExperimentalSample] Combat disposition effect: homing burst triggered");
                 return HomingDuration;
 
+            case 19: // FINE_MOTOR_SKILLS — instant reload regardless of whether FMS is equipped (Issue #1635)
+            {
+                if (_fineMotorSkillsActive)
+                {
+                    LogToFile("[Player.ExperimentalSample] Fine motor skills already active");
+                    return 0.5f;
+                }
+
+                _fineMotorSkillsActive = true;
+                FineMotorSkillsActivateAsync();
+                LogToFile("[Player.ExperimentalSample] Fine motor skills instant reload triggered via experimental sample");
+                return 2.0f;
+            }
+
+            case 20: // DASH — create a temporary dash effect if Dash is not equipped (Issue #1635)
+            {
+                Node? dashNode = EnsureExperimentalSampleDashEffect();
+                if (dashNode != null && IsInstanceValid(dashNode))
+                {
+                    bool isDashing = dashNode.HasMethod("is_dashing") && (bool)dashNode.Call("is_dashing");
+                    if (!isDashing)
+                    {
+                        Vector2 dir = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+                        if (dir == Vector2.Zero)
+                        {
+                            dir = _playerModel != null ? Vector2.Right.Rotated(_playerModel.GlobalRotation) : Vector2.Right;
+                        }
+                        dashNode.Call("activate", dir);
+                        LogToFile("[Player.ExperimentalSample] Dash triggered via experimental sample");
+                    }
+                    else
+                    {
+                        LogToFile("[Player.ExperimentalSample] Dash already active");
+                    }
+                    return 1.0f;
+                }
+
+                LogToFile("[Player.ExperimentalSample] Dash effect unavailable, homing fallback");
+                if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
+                return HomingDuration;
+            }
+
             default:
                 LogToFile($"[Player.ExperimentalSample] Unknown item type {itemType} — homing fallback");
                 if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
                 return HomingDuration;
         }
+    }
+
+    /// <summary>
+    /// Ensure Experimental Sample can use Dash without requiring Dash to be the equipped active item.
+    /// </summary>
+    private Node? EnsureExperimentalSampleDashEffect()
+    {
+        if (_dashEffect != null && IsInstanceValid(_dashEffect))
+            return _dashEffect;
+
+        if (!ResourceLoader.Exists(DashEffectScenePath))
+        {
+            LogToFile($"[Player.ExperimentalSample] DashEffect scene not found: {DashEffectScenePath}");
+            return null;
+        }
+
+        var scene = GD.Load<PackedScene>(DashEffectScenePath);
+        if (scene == null)
+        {
+            LogToFile("[Player.ExperimentalSample] Failed to load DashEffect scene");
+            return null;
+        }
+
+        _dashEffect = scene.Instantiate();
+        _dashEffect.Name = "DashEffectTemp";
+        AddChild(_dashEffect);
+        _dashEffect.Call("initialize", this);
+        LogToFile("[Player.ExperimentalSample] Dash: temporary effect node created");
+        return _dashEffect;
     }
 
     #endregion
@@ -5336,7 +5531,7 @@ public partial class Player
     /// </summary>
     public bool IsDashActive()
     {
-        if (!_dashEquipped || _dashEffect == null)
+        if (_dashEffect == null)
             return false;
         if (!IsInstanceValid(_dashEffect))
             return false;

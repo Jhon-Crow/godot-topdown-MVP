@@ -1,4 +1,6 @@
 extends Node2D
+
+const LEVEL_SCENE_PATH := "res://scenes/levels/BuildingLevel.tscn"
 ## Building level scene for the Godot Top-Down Template.
 ##
 ## This scene is a Hotline Miami 2 style building with rooms and halls.
@@ -34,6 +36,7 @@ var _difficulty_label: Label = null
 
 ## Reference to the magazines label (shows individual magazine ammo counts).
 var _magazines_label: Label = null
+var _last_magazine_ammo_counts: Array = []
 
 ## Reference to the ColorRect for saturation effect.
 var _saturation_overlay: ColorRect = null
@@ -101,9 +104,6 @@ func _ready() -> void:
 	print("Clear all rooms to win!")
 	print("Press Q for quick restart")
 
-	# Setup navigation mesh for enemy pathfinding
-	_setup_navigation()
-
 	# Find and connect to all enemies
 	_setup_enemy_tracking()
 
@@ -149,6 +149,14 @@ func _ready() -> void:
 
 	# Setup weapon hints (Issue #809)
 	_setup_weapon_hints()
+
+	var localization_settings: Node = get_node_or_null("/root/LocalizationSettings")
+	if localization_settings and localization_settings.has_signal("locale_changed") and not localization_settings.locale_changed.is_connected(_on_locale_changed):
+		localization_settings.locale_changed.connect(_on_locale_changed)
+
+	# Build the navigation mesh after HUD/player/enemy setup so expensive baking
+	# cannot leave startup counters at their default values.
+	call_deferred("_setup_navigation")
 
 
 ## Initialize the ScoreManager for this level.
@@ -721,6 +729,8 @@ func _setup_navigation() -> void:
 	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
 	# with PhysicsServer2D before parsing source geometry for navmesh carving.
 	await get_tree().physics_frame
+	if not is_inside_tree() or not is_instance_valid(nav_region):
+		return
 	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	print("Baking navigation mesh...")
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
@@ -758,23 +768,7 @@ func _setup_player_tracking() -> void:
 	elif _player.has_signal("Died"):
 		_player.Died.connect(_on_player_died)
 
-	# Try to get the player's weapon for C# Player
-	# First try shotgun (if selected), then Mini UZI, then Silenced Pistol, then assault rifle, then MakarovPM
-	var weapon = _player.get_node_or_null("Shotgun")
-	if weapon == null:
-		weapon = _player.get_node_or_null("MiniUzi")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SilencedPistol")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SniperRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("AssaultRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("AKGL")
-	if weapon == null:
-		weapon = _player.get_node_or_null("Revolver")
-	if weapon == null:
-		weapon = _player.get_node_or_null("MakarovPM")
+	var weapon = _get_current_player_weapon()
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
@@ -786,9 +780,11 @@ func _setup_player_tracking() -> void:
 		# Connect to ShellCountChanged for shotgun - updates ammo UI during shell-by-shell reload
 		if weapon.has_signal("ShellCountChanged"):
 			weapon.ShellCountChanged.connect(_on_shell_count_changed)
-		# Initial ammo display from weapon
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		# Shotgun stores the loaded shells in ShellsInTube, not CurrentAmmo.
+		# Push the initial value explicitly so the HUD is correct before the first shot.
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 		# Initial magazine display
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
@@ -857,6 +853,54 @@ func _setup_enemy_tracking() -> void:
 	print("Tracking %d enemies" % _initial_enemy_count)
 
 
+## Return the player's actual equipped weapon.
+## C# Player owns the authoritative CurrentWeapon; child-node probing is only a fallback.
+func _get_current_player_weapon() -> Node:
+	if _player == null:
+		return null
+
+	var current_weapon = _player.get("CurrentWeapon")
+	if current_weapon != null and current_weapon is Node and is_instance_valid(current_weapon):
+		return current_weapon
+
+	var selected_weapon_id: String = GameManager.get_selected_weapon() if GameManager else "makarov_pm"
+	var weapon_names: Dictionary = {
+		"shotgun": "Shotgun",
+		"mini_uzi": "MiniUzi",
+		"silenced_pistol": "SilencedPistol",
+		"sniper": "SniperRifle",
+		"m16": "AssaultRifle",
+		"ak_gl": "AKGL",
+		"revolver": "Revolver",
+		"makarov_pm": "MakarovPM"
+	}
+	var expected_name: String = weapon_names.get(selected_weapon_id, "MakarovPM")
+	return _player.get_node_or_null(expected_name)
+
+
+## Return the loaded ammo value that should be shown in the HUD.
+## Shotgun keeps the loaded shell count in ShellsInTube instead of CurrentAmmo.
+func _get_weapon_display_current_ammo(weapon: Node) -> Variant:
+	if weapon == null:
+		return null
+	if weapon.name == "Shotgun" and weapon.get("ShellsInTube") != null:
+		return weapon.ShellsInTube
+	return weapon.get("CurrentAmmo")
+
+
+## Pushes the authoritative current weapon ammo state into the HUD.
+func _refresh_weapon_hud(weapon: Node, reason: String) -> void:
+	if weapon == null:
+		return
+	var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+	if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+		_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
+		_log_to_file("HUD ammo refreshed (%s): %s %s/%s" % [reason, weapon.name, display_current_ammo, weapon.ReserveAmmo])
+	if weapon.has_method("GetMagazineAmmoCounts"):
+		var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+		_update_magazines_label(mag_counts)
+
+
 ## Configure silenced pistol ammo based on enemy count.
 ## This ensures the pistol has exactly enough bullets for all enemies in the level.
 func _configure_silenced_pistol_ammo(weapon: Node) -> void:
@@ -874,12 +918,7 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		weapon.ConfigureAmmoForEnemyCount(enemy_count)
 		print("[BuildingLevel] Configured silenced pistol ammo for %d enemies" % enemy_count)
 
-		# Update the ammo display after configuration
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "silenced pistol config")
 
 
 ## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
@@ -912,11 +951,7 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 			_player.ApplyAutoReloadAfterLevelAmmoConfig()
 			_log_to_file("[BuildingLevel] Re-applied auto-reload magazine reduction after ammo config for makarov_pm")
 
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "makarov config")
 
 
 ## Apply building-level ammo configuration to weapons already equipped by C# Player (Issue #949).
@@ -939,12 +974,7 @@ func _apply_building_ammo_config(weapon: Node, weapon_id: String) -> void:
 			weapon.ReinitializeMagazines(base_magazines, true)
 			print("BuildingLevel: %s magazines reinitialized to %d (C# weapon)" % [weapon.name, base_magazines])
 
-		# Update ammo display
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "building ammo config")
 
 	# Silenced pistol: configure ammo for enemy count
 	elif weapon_id == "silenced_pistol":
@@ -969,6 +999,7 @@ func _apply_building_ammo_config(weapon: Node, weapon_id: String) -> void:
 	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
 		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 		_log_to_file("[BuildingLevel] Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+	_refresh_weapon_hud(weapon, "post level ammo config")
 
 
 ## Setup debug UI elements for kills and accuracy.
@@ -976,11 +1007,12 @@ func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
+	LevelLocalization.apply_level_label_from_node(self, LEVEL_SCENE_PATH)
 
 	# Create difficulty label
 	_difficulty_label = Label.new()
 	_difficulty_label.name = "DifficultyLabel"
-	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
 	_difficulty_label.offset_top = 80
@@ -991,7 +1023,7 @@ func _setup_debug_ui() -> void:
 	# Create magazines label (shows individual magazine ammo counts)
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
-	_magazines_label.text = "MAGS: -"
+	_magazines_label.text = LevelLocalization.get_magazines_text([])
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
 	_magazines_label.offset_top = 115
@@ -1020,6 +1052,8 @@ func _setup_debug_ui() -> void:
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 
+	_refresh_localized_hud_labels()
+
 
 
 ## Setup saturation overlay for kill effect.
@@ -1043,9 +1077,26 @@ func _setup_saturation_overlay() -> void:
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
+	_refresh_localized_hud_labels()
 
+
+func _refresh_localized_hud_labels() -> void:
+	LevelLocalization.apply_level_label_from_node(self, LEVEL_SCENE_PATH)
+	_update_enemy_count_label()
 	if _difficulty_label:
-		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
+	if _player:
+		var weapon = _player.get("CurrentWeapon")
+		if weapon != null and weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		elif _player.has_method("get_current_ammo") and _player.has_method("get_max_ammo"):
+			_update_ammo_label(_player.get_current_ammo(), _player.get_max_ammo())
+	if _magazines_label:
+		_update_magazines_label(_last_magazine_ammo_counts)
+
+
+func _on_locale_changed(_locale: String) -> void:
+	_refresh_localized_hud_labels()
 
 
 ## Called when an enemy dies.
@@ -1232,6 +1283,12 @@ func _find_player_weapon(player: Node2D) -> Node:
 	if current_weapon != null and is_instance_valid(current_weapon):
 		return current_weapon
 
+	var selected_weapon_node_name := _get_selected_weapon_node_name()
+	if selected_weapon_node_name != "":
+		var selected_weapon := player.get_node_or_null(selected_weapon_node_name)
+		if selected_weapon != null:
+			return selected_weapon
+
 	var weapon_names: Array[String] = [
 		"AssaultRifle",
 		"Shotgun",
@@ -1247,6 +1304,31 @@ func _find_player_weapon(player: Node2D) -> Node:
 		if weapon != null:
 			return weapon
 	return null
+
+
+func _get_selected_weapon_node_name() -> String:
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager == null or not game_manager.has_method("get_selected_weapon"):
+		return ""
+	match game_manager.get_selected_weapon():
+		"shotgun":
+			return "Shotgun"
+		"mini_uzi":
+			return "MiniUzi"
+		"silenced_pistol":
+			return "SilencedPistol"
+		"sniper":
+			return "SniperRifle"
+		"m16":
+			return "AssaultRifle"
+		"ak_gl":
+			return "AKGL"
+		"revolver":
+			return "Revolver"
+		"makarov_pm":
+			return "MakarovPM"
+		_:
+			return ""
 
 
 ## Called when player starts reloading.
@@ -1327,7 +1409,7 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current, maximum]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current, maximum)
 
 	# Color coding: red at <=5, yellow at <=10, white otherwise
 	if current <= 5:
@@ -1344,7 +1426,7 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current_mag, reserve)
 
 	# Color coding: red when mag <=5, yellow when mag <=10
 	if current_mag <= 5:
@@ -1361,71 +1443,25 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
+	_last_magazine_ammo_counts = magazine_ammo_counts.duplicate()
 
 	# Check if player has a weapon with tube magazine (shotgun)
 	# If so, hide the magazine label as shotguns don't use detachable magazines
-	var weapon = null
-	if _player:
-		weapon = _player.get_node_or_null("Shotgun")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AssaultRifle")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AKGL")
-		if weapon == null:
-			weapon = _player.get_node_or_null("MiniUzi")
-		if weapon == null:
-			weapon = _player.get_node_or_null("SilencedPistol")
-		if weapon == null:
-			weapon = _player.get_node_or_null("SniperRifle")
-		if weapon == null:
-			weapon = _player.get_node_or_null("Revolver")
-		if weapon == null:
-			weapon = _player.get_node_or_null("MakarovPM")
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
 
-	if weapon != null and weapon.get("UsesTubeMagazine") == true:
-		# Shotgun equipped - hide magazine display
-		_magazines_label.visible = false
-		return
-	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+	if LevelLocalization.weapon_hides_magazines(weapon):
 		_magazines_label.visible = false
 		return
 	_magazines_label.visible = true
 
-	if magazine_ammo_counts.is_empty():
-		_magazines_label.text = "MAGS: -"
-		return
-
-	# Get magazine capacities to distinguish full vs partial spares
-	var mag_max_counts: Array = []
-	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
-		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
-
-	var parts: Array = []
-	# Current magazine always shown in brackets
-	parts.append("[%d]" % magazine_ammo_counts[0])
-
-	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
-	var full_spare_count: int = 0
-	for i in range(1, magazine_ammo_counts.size()):
-		var ammo: int = magazine_ammo_counts[i]
-		if ammo <= 0:
-			continue
-		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
-		if cap > 0 and ammo >= cap:
-			full_spare_count += 1
-		else:
-			parts.append("%d" % ammo)
-
-	if full_spare_count > 0:
-		parts.append("+ x%d" % full_spare_count)
-
-	_magazines_label.text = "MAGS: " + " | ".join(parts)
+	var parts: Array[String] = LevelLocalization.get_magazine_display_parts(weapon, magazine_ammo_counts)
+	_magazines_label.text = LevelLocalization.get_magazines_text(parts)
 
 
 ## Update the enemy count label in UI.
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
-		_enemy_count_label.text = "Enemies: %d" % _current_enemy_count
+		_enemy_count_label.text = LevelLocalization.get_enemy_count_text(_current_enemy_count)
 
 
 ## Show death message when player dies.

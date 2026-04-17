@@ -54,6 +54,11 @@ RUN_BENCHMARK,Run Benchmark,Запустить тест
 QUICK_TEST,Quick Test (1 cycle),Быстрый тест (1 цикл)
 STRESS_BENCHMARK,Stress Benchmark,Стресс-тест
 PERFORMANCE_ALL_ENABLED,All performance features enabled,Все функции производительности включены
+LEVEL_CLEAR_ALL_PACIFIED,All enemies eliminated or pacified! Level cleared!,Все враги устранены или стали пацифистами! Уровень очищен!
+LOUDSPEAKER_TRUE_ENDING_MESSAGE,"We have nothing to fight over, so we will not shoot each other.","Нам нечего делить, поэтому мы не будем стрелять друг в друга."
+GAME_END_TITLE,The End,Конец
+GAME_END_THANKS,Thanks for playing,Спасибо за игру
+GAME_END_DISMISS_HINT,Press any key or mouse button...,Нажмите любую клавишу или кнопку мыши...
 LANGUAGE_TITLE,Language,Язык
 LANGUAGE_ENGLISH,English,English
 LANGUAGE_RUSSIAN,Русский,Русский
@@ -218,6 +223,9 @@ ITEM_HINT_PRESS_SPACE_RANDOM,Press Space to trigger random effect,Нажми П�
 ITEM_HINT_PRESS_SPACE_RELOAD,Press Space to reload,Нажми Пробел для перезарядки
 ITEM_HINT_PRESS_SPACE_DASH,Press Space to dash,Нажми Пробел для рывка
 HINT_RELOAD_2STEP_0,[R] [R] Reload,[R] [R] Перезарядись
+HUD_ENEMIES,Enemies: %d,Враги: %d
+HUD_AMMO,Ammo: %d / %d,Патроны: %d / %d
+HUD_DIFFICULTY,Difficulty: %s,Сложность: %s
 HINT_RELOAD_2STEP_1,[R] [R] Reload,[R] [R] Перезарядись
 HINT_RELOAD_3STEP_0,[R] [F] [R] Reload,[R] [F] [R] Перезарядись
 HINT_RELOAD_3STEP_1,[R] [F] [R] Reload,[R] [F] [R] Перезарядись
@@ -233,6 +241,12 @@ HINT_KEY_RMB_DOWN_CLOSE,RMB↓ close,ПКМ↓ закрыть
 HINT_KEY_GRENADE_ARM,G+RMB right,G+ПКМ вправо
 HINT_KEY_GRENADE_AIM,G+RMB→release G,G+ПКМ→отпусти G
 HINT_KEY_GRENADE_THROW,RMB throw,ПКМ бросок
+HINT_GRENADE_HOLD_G_RMB,hold G+RMB,удерживать G+ПКМ
+HINT_GRENADE_DRAG_RIGHT,flick mouse right,дёрнуть мышкой вправо
+HINT_GRENADE_RELEASE_RMB,release RMB,отпустить ПКМ
+HINT_GRENADE_HOLD_RMB,hold RMB,зажать ПКМ
+HINT_GRENADE_RELEASE_G,release G,отпустить G
+HINT_GRENADE_AIM_RELEASE_RMB,aim and release RMB,прицелиться и отпустить ПКМ
 HINT_BOLT_ACTION_WORD,Cock the bolt,Передёрни затвор
 HINT_COCK_HAMMER,Cock the hammer,Взведи курок
 HINT_SCOPE,Scope in,Прицелься через оптику
