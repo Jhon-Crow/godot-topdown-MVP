@@ -21,6 +21,92 @@ path* — the proximity fuse had no awareness of targets within the shrapnel con
 
 ---
 
+## Latest Regression: Exported EXE Gray Screen (2026-04-17)
+
+### Owner Report
+
+After the previous PM bullet/pool fix, the owner reported:
+
+> "после запуска exe серый экран."
+>
+> Translation: "After launching the exe, there is a gray screen."
+
+New evidence downloaded into this repository:
+
+- `docs/case-studies/issue-1634/data/logs/game_log_20260417_205433.txt`
+- `docs/case-studies/issue-1634/data/logs/game_log_20260417_205531.txt`
+- `docs/case-studies/issue-1634/data/logs/game_log_20260417_205615.txt`
+
+### Timeline Reconstruction
+
+All three logs show the same startup sequence:
+
+1. The exported Windows build starts successfully.
+2. `LabyrinthLevel` loads normally, including `Player` and 5 enemies.
+3. `ReplayManager` starts recording with `player_valid=True`.
+4. `PersistManager` navigates to the saved last level: `res://scenes/levels/RoguelikeLevel.tscn`.
+5. `SceneLoader` reports `THREAD_LOAD_INVALID_RESOURCE` and uses its synchronous fallback.
+6. The scene tree changes to `RoguelikeLevel`.
+7. No `RoguelikeLevel` startup logs appear, even though `roguelike_level.gd` logs new-run setup through `FileLogger`.
+8. `ReplayManager` continues logging `player_valid=False` every second until shutdown.
+
+Representative evidence from the new logs:
+
+```text
+[SceneLoader] ERROR: Invalid resource (falling back to sync): res://scenes/levels/RoguelikeLevel.tscn
+[SceneLoader] Using synchronous load fallback
+[CinemaEffects] Scene changed to: RoguelikeLevel
+[CinemaEffects] Player not found yet, will connect when scene changes
+[ReplayManager] Recording frame 60 (1,0s): player_valid=False, enemies=5
+```
+
+### Root Cause
+
+`SceneLoader._fallback_sync_load()` used bare GDScript `load(_current_load_path)` after a threaded
+load returned `THREAD_LOAD_INVALID_RESOURCE`. In the exported Windows build, this fallback could
+change to a packed scene whose attached GDScript startup did not execute, leaving the procedural
+Roguelike scene as only its static root/navigation nodes — visually a gray/empty screen.
+
+This path was especially risky because `RoguelikeLevel.tscn` is almost entirely built by
+`scripts/levels/roguelike_level.gd` at `_ready()` time. If that script does not run, no room,
+player, HUD, enemies, or doors are created.
+
+### Online Research Used
+
+- Godot 4.3 `ResourceLoader` docs: `THREAD_LOAD_INVALID_RESOURCE` means the resource is invalid
+  or was not loaded through `load_threaded_request()`, and loaded threaded resources should be
+  accessed via `load_threaded_get()`.
+  Source: https://docs.godotengine.org/en/4.3/classes/class_resourceloader.html
+- The same docs warn that GDScript's simplified `load()` can fail to read converted resources in
+  exported projects when `editor/export/convert_text_resources_to_binary` is enabled; runtime
+  resource loading should use `ResourceLoader.load()` for this advanced path.
+  Source: https://docs.godotengine.org/en/4.3/classes/class_resourceloader.html
+- Existing repository case studies already document Godot 4.3 exported-build GDScript execution
+  failures and the `LevelInitFallback` workaround for static levels. Roguelike has no such fallback
+  and depends on its GDScript `_ready()` for nearly all scene contents.
+  Local references: `docs/case-studies/issue-1684/case-study.md`,
+  `docs/case-studies/issue-1751/README.md`.
+- Related Godot issue: binary-token GDScript export mode has caused exported-build runtime
+  failures in Godot 4.3-era builds.
+  Source: https://github.com/godotengine/godot/issues/94150
+
+### Fix Applied
+
+`scripts/autoload/scene_loader.gd` now makes scene loading explicit and export-safe:
+
+- `ResourceLoader.exists(level_path, "PackedScene")` validates scene resources with a type hint.
+- `ResourceLoader.load_threaded_request(_current_load_path, "PackedScene", false)` requests a
+  `PackedScene` directly and avoids sub-thread loading on Godot 4.3 exports.
+- `_fallback_sync_load()` uses `ResourceLoader.load(path, "PackedScene")` instead of bare
+  GDScript `load()`.
+- `_hide_loading_screen()` disables processing immediately so stale polling stops after fallback.
+- The fallback path now logs scene-change failures and successful fallback scene changes.
+
+Regression tests were added to `tests/unit/test_scene_loader.gd` to prevent reintroducing bare
+`load()` in the exported-build fallback path.
+
+---
+
 ## Real-World Analogy: How Proximity Fuses Work
 
 A proximity fuze detonates an explosive automatically when the projectile comes within a

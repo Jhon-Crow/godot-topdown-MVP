@@ -226,3 +226,39 @@ func test_after_invalid_resource_can_load_again() -> void:
 	fallback_loader.load_level("res://scenes/levels/CastleLevel.tscn")
 	assert_true(fallback_loader.is_loading(),
 		"Should be able to load a new level after INVALID_RESOURCE fallback")
+
+
+# ============================================================================
+# Exported Build Fallback Source Tests
+# ============================================================================
+
+func _read_scene_loader_source() -> String:
+	var file := FileAccess.open("res://scripts/autoload/scene_loader.gd", FileAccess.READ)
+	if file == null:
+		return ""
+	var text := file.get_as_text()
+	file.close()
+	return text
+
+
+func test_sync_fallback_uses_resource_loader_for_exported_pck() -> void:
+	## Regression guard for the exported exe gray-screen report from PR #1661.
+	## Godot 4.3 docs warn that bare GDScript load() can fail on converted resources
+	## inside an exported PCK; the fallback path must use ResourceLoader.load().
+	var source := _read_scene_loader_source()
+	assert_string_contains(source, 'ResourceLoader.load(path, "PackedScene")',
+		"SceneLoader sync fallback should load scenes through ResourceLoader with PackedScene type hint")
+	assert_eq(source.find("var loaded_scene := load(_current_load_path)"), -1,
+		"SceneLoader sync fallback must not use bare GDScript load() for exported builds")
+
+
+func test_threaded_request_uses_packed_scene_type_hint_without_subthreads() -> void:
+	var source := _read_scene_loader_source()
+	assert_string_contains(source, 'ResourceLoader.load_threaded_request(_current_load_path, "PackedScene", false)',
+		"Threaded scene load should request PackedScene directly and avoid Godot 4.3 sub-thread export flakiness")
+
+
+func test_hide_loading_screen_disables_processing() -> void:
+	var source := _read_scene_loader_source()
+	assert_string_contains(source, "func _hide_loading_screen() -> void:\n\tset_process(false)",
+		"Hiding the loading screen should stop polling immediately after fallback or completion")
