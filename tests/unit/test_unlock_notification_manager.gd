@@ -138,6 +138,7 @@ func test_gold_text_remains_above_shine_overlay() -> void:
 	var shine_overlay: ColorRect = toast.get_node("GoldShineOverlay")
 	var background: Panel = toast.get_node("ToastBackground")
 	var content_margin: MarginContainer = toast.get_node("ContentMargin")
+	var content_row: HBoxContainer = content_margin.get_node("ContentRow")
 	var label: Label = content_margin.get_node("ContentRow/MessageLabel")
 	var font_color: Color = label.get_theme_color("font_color")
 
@@ -149,6 +150,12 @@ func test_gold_text_remains_above_shine_overlay() -> void:
 		"Content should render above the shine overlay")
 	assert_gt(content_margin.z_index, background.z_index,
 		"Content should render above the toast background")
+	assert_gt(content_margin.size.x, 0.0,
+		"Content margin should have explicit width so exported builds lay out the label")
+	assert_gt(content_row.size.x, 0.0,
+		"Content row should have explicit width so the label is not clipped to zero")
+	assert_gt(content_row.size.y, 0.0,
+		"Content row should have explicit height so the label is visible")
 	assert_gt(font_color.r, 0.9, "Toast text should use a visible gold color")
 	assert_gt(font_color.g, 0.75, "Toast text should use a visible gold color")
 	assert_gt(font_color.b, 0.25, "Toast text should use a visible gold color")

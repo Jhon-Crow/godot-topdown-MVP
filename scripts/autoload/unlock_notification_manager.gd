@@ -13,6 +13,10 @@ const TOAST_WIDTH: float = 460.0
 const TOAST_HEIGHT: float = 78.0
 const TOAST_TOP_MARGIN: float = 18.0
 const TOAST_SIDE_MARGIN: float = 18.0
+const TOAST_CONTENT_LEFT_MARGIN: float = 16.0
+const TOAST_CONTENT_TOP_MARGIN: float = 10.0
+const TOAST_CONTENT_RIGHT_MARGIN: float = 18.0
+const TOAST_CONTENT_BOTTOM_MARGIN: float = 10.0
 const ARMORY_ICON_PATH: String = "res://assets/sprites/ui/menu_icons/icon_armory.svg"
 const GOLD_SHINE_SHADER_PATH: String = "res://scripts/shaders/gold_shine.gdshader"
 const NOTIFICATION_TEMPLATE_KEY: String = "UNLOCK_NOTIFICATION_OPENED"
@@ -258,10 +262,10 @@ func _build_ui() -> void:
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.z_index = 10
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_right", 18)
-	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.add_theme_constant_override("margin_left", int(TOAST_CONTENT_LEFT_MARGIN))
+	margin.add_theme_constant_override("margin_top", int(TOAST_CONTENT_TOP_MARGIN))
+	margin.add_theme_constant_override("margin_right", int(TOAST_CONTENT_RIGHT_MARGIN))
+	margin.add_theme_constant_override("margin_bottom", int(TOAST_CONTENT_BOTTOM_MARGIN))
 	_toast.add_child(margin)
 
 	var row := HBoxContainer.new()
@@ -513,6 +517,18 @@ func _position_toast(visible_position: bool) -> void:
 	_toast.position = Vector2(
 		(viewport_size.x - toast_width) * 0.5,
 		TOAST_TOP_MARGIN if visible_position else _get_hidden_y())
+	_toast_background.size = _toast.size
+	_shine_overlay.size = _toast.size
+	var margin: MarginContainer = _toast.get_node_or_null("ContentMargin")
+	if margin:
+		margin.position = Vector2.ZERO
+		margin.size = _toast.size
+		var row: HBoxContainer = margin.get_node_or_null("ContentRow")
+		if row:
+			row.position = Vector2(TOAST_CONTENT_LEFT_MARGIN, TOAST_CONTENT_TOP_MARGIN)
+			row.size = Vector2(
+				maxf(0.0, toast_width - TOAST_CONTENT_LEFT_MARGIN - TOAST_CONTENT_RIGHT_MARGIN),
+				maxf(0.0, TOAST_HEIGHT - TOAST_CONTENT_TOP_MARGIN - TOAST_CONTENT_BOTTOM_MARGIN))
 
 
 func _get_hidden_y() -> float:
