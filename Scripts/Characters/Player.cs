@@ -1508,6 +1508,15 @@ public partial class Player : BaseCharacter
         // Handle throw rotation animation (restore player rotation after throw)
         HandleThrowRotationAnimation((float)delta);
 
+        // Level-7 loudspeaker ending: player can move while the delayed ending is pending,
+        // but all weapon and item inputs are blocked until the end screen takes over.
+        HandleLoudspeakerVictoryDelay((float)delta);
+        if (IsLoudspeakerVictoryWeaponLocked())
+        {
+            _semiAutoShootBuffered = false;
+            return;
+        }
+
         // Handle sniper scope input (RMB) when SniperRifle is equipped
         // This takes priority over grenade input since the sniper uses RMB for scoping
         bool sniperScopeConsumedInput = HandleSniperScopeInput();
@@ -3065,6 +3074,11 @@ public partial class Player : BaseCharacter
     public override void _UnhandledInput(InputEvent @event)
     {
         base._UnhandledInput(@event);
+
+        if (HandleLoudspeakerVictoryInput(@event))
+        {
+            return;
+        }
 
         var sniperRifle = CurrentWeapon as SniperRifle;
         if (sniperRifle == null || !sniperRifle.IsScopeActive)

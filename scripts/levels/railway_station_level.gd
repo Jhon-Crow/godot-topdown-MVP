@@ -188,7 +188,7 @@ func _process(_delta: float) -> void:
 	if score_manager and score_manager.has_method("update_enemy_positions"):
 		score_manager.update_enemy_positions(_enemies)
 	if _current_enemy_count <= 0 and not _level_cleared and not _has_retaliating_pacifists():
-		print("All enemies eliminated or pacified! Level cleared!")
+		print(tr("LEVEL_CLEAR_ALL_PACIFIED"))
 		_level_cleared = true
 		call_deferred("_activate_exit_zone")
 
@@ -578,7 +578,7 @@ func _on_enemy_became_pacifist(enemy: Node) -> void:
 	_update_enemy_count_label()
 	print("[RailwayStation] Enemy became pacifist - counting as eliminated")
 	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
-		print("All enemies eliminated or pacified! Level cleared!")
+		print(tr("LEVEL_CLEAR_ALL_PACIFIED"))
 		_level_cleared = true
 		call_deferred("_activate_exit_zone")
 
@@ -642,7 +642,7 @@ func _show_game_end_screen() -> void:
 
 	var label := Label.new()
 	label.name = "GameEndLabel"
-	label.text = "Конец. Спасибо за игру"
+	label.text = tr("GAME_END_THANKS")
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 64)
@@ -653,7 +653,7 @@ func _show_game_end_screen() -> void:
 
 	var hint := Label.new()
 	hint.name = "GameEndHint"
-	hint.text = "Нажмите любую клавишу или кнопку мыши..."
+	hint.text = tr("GAME_END_DISMISS_HINT")
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	hint.add_theme_font_size_override("font_size", 20)
@@ -665,10 +665,13 @@ func _show_game_end_screen() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Game-end screen: any key press dismisses it and shows the score screen.
-	# Mouse clicks are handled via gui_input on the background ColorRect.
+	# Game-end screen: consume every pressed key or mouse button before gameplay can react.
 	if _game_end_screen_shown and not _game_end_dismissed:
 		if event is InputEventKey and event.is_pressed() and not event.echo:
+			get_viewport().set_input_as_handled()
+			_dismiss_game_end_screen()
+		elif event is InputEventMouseButton and event.is_pressed():
+			get_viewport().set_input_as_handled()
 			_dismiss_game_end_screen()
 		return
 	# Score screen: W key triggers the watch-replay shortcut.
