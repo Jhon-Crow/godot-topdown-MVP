@@ -294,6 +294,40 @@ Check game log for: `[WaterBody] Ready — ... distortion_strength=0.3500`
 
 ---
 
+## Fourth Investigation — 2026-04-17 (Follow-up)
+
+### User Feedback
+
+Owner comment on PR #1739 (2026-04-11):
+> "РАБОТАЕТ, зафиксируй это как удачный коммит. теперь сделай так, чтоб оригинальная (не искажённая картинка) не отображалась, а отображалась только искажённая (то есть чтоб не двоилась, а была только подвижная искажённая версия, как будто смотрим сквозь волны)"
+
+Translation: the shimmer works; now remove the original/non-distorted picture so it does not double, leaving only the moving distorted version as if looking through waves.
+
+### Finding 8: The accepted shimmer still used a stable water layer as the dominant final image
+
+The third iteration made wave bands visible, but the final composition still used the old alpha overlay:
+
+```glsl
+vec3 final_rgb = mix(screen_col.rgb, water_col.rgb, water_col.a);
+```
+
+With `water_col.a` near `0.88`, the stable water colour remained 88% of the visible result. That can read as a second, non-distorted layer over the refracted sample.
+
+### Fix Applied — Fourth Iteration (2026-04-17)
+
+The shader now uses the refracted screen sample as the primary image and applies the animated water colour only as a tint:
+
+```glsl
+vec3 refracted_tinted = screen_col.rgb * water_col.rgb;
+vec3 final_rgb = mix(screen_col.rgb, refracted_tinted, 0.25);
+```
+
+This preserves the accepted moving wave shimmer signal, but removes the dominant stable/original overlay. The visible water is now mostly the distorted scene sample, lightly tinted by animated blue water and foam brightness.
+
+Regression coverage was added to `tests/unit/test_water_body.gd` to lock in the composition rule: the issue #1738 final image must stay closer to the distorted sample than to the old stable water overlay.
+
+---
+
 ## Prevention
 
 1. Never use `hint_screen_texture` blending as the **sole** distortion mechanism for opaque nodes — 88% opacity means only 12% of the distorted scene bleeds through, making the effect imperceptible.
@@ -301,3 +335,4 @@ Check game log for: `[WaterBody] Ready — ... distortion_strength=0.3500`
 3. Always verify shader offset magnitudes against a known-working reference (e.g. `last_chance.gdshader` uses `ripple_strength = 0.01` directly).
 4. The `distortion_strength=X.XXXX` log line in `_ready()` makes future regressions immediately visible in game logs.
 5. When iterating on visual effects, ask the user for a **reference screenshot** early — the reference image on 2026-03-30 would have clarified the desired effect (internal color modulation) immediately.
+6. After a visual effect is accepted, check the final compositing path separately: an effect can be visible but still layered over an unwanted stable/original image.

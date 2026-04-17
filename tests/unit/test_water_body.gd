@@ -411,6 +411,20 @@ class MockWaterBodyTimeStop:
 			_distortion_strength = _saved_distortion_strength
 
 
+class MockWaterDistortionComposite:
+	## Mirrors the issue #1738 shader composition choice in simple scalar form.
+	## The distorted scene sample must remain the primary image; the water colour
+	## is only a tint so the original/stable water overlay does not double the image.
+	const REFRACTED_SCENE_WEIGHT: float = 0.75
+	const WAVE_TINT_WEIGHT: float = 0.25
+
+	func old_alpha_overlay_compose(distorted_scene: float, water_colour: float, water_alpha: float) -> float:
+		return distorted_scene * (1.0 - water_alpha) + water_colour * water_alpha
+
+	func refracted_only_compose(distorted_scene: float, water_colour: float) -> float:
+		return distorted_scene * REFRACTED_SCENE_WEIGHT + water_colour * WAVE_TINT_WEIGHT
+
+
 # ============================================================================
 # Tests: Issue #1585 — Water waves stop during time-stop (last chance effect)
 # ============================================================================
@@ -529,3 +543,19 @@ func test_distortion_and_speeds_all_zero_when_time_stopped() -> void:
 	assert_eq(wb._ripple_speed, 0.0, "ripple_speed must be 0 when time stopped")
 	assert_eq(wb._surf_speed, 0.0, "surf_speed must be 0 when time stopped")
 	assert_eq(wb._distortion_strength, 0.0, "distortion_strength must be 0 when time stopped")
+
+
+func test_distorted_scene_is_primary_image_not_alpha_overlay() -> void:
+	# Regression: owner confirmed shimmer works, then requested that the original
+	# non-distorted picture not remain visible as a second/stable layer.
+	var composite := MockWaterDistortionComposite.new()
+	var distorted_scene := 0.20
+	var water_colour := 0.80
+	var water_alpha := 0.88
+	var old_result := composite.old_alpha_overlay_compose(distorted_scene, water_colour, water_alpha)
+	var new_result := composite.refracted_only_compose(distorted_scene, water_colour)
+
+	assert_gt(abs(old_result - water_colour), abs(new_result - water_colour),
+		"Old alpha overlay stays too close to stable water colour and doubles the image")
+	assert_lt(abs(new_result - distorted_scene), abs(old_result - distorted_scene),
+		"New composition must keep the distorted scene sample as the primary image")

@@ -12,8 +12,8 @@ shader_type canvas_item;
 //     within a radius around each obstacle UV coordinate.
 //   - Wave-band shimmer distortion (Issue #1738) — prominent horizontal bands
 //     of lighter/darker water scroll across the surface, making waves look real.
-//     Uses both internal colour modulation (always visible) and screen-space
-//     refraction (blends distorted background through water at ~15% opacity).
+//     Uses the distorted screen sample as the primary image, then tints it with
+//     animated water colour so the stable/original image does not double up.
 
 // --- Wave animation (primary — broad horizontal bands) ---
 uniform float wave_speed : hint_range(0.0, 5.0) = 0.3;
@@ -64,8 +64,8 @@ uniform float obstacle_radius : hint_range(0.0, 0.2) = 0.045;
 
 // --- Wave-band shimmer distortion (Issue #1738) ---
 // Primary distortion mechanism: modulates the water's own colour with bright wave
-// crests and dark troughs — produces horizontal bands of lighter/darker water
-// scrolling across the surface, visible regardless of water opacity.
+// crests and dark troughs, then uses that result as a tint over the refracted
+// scene. This keeps only the moving distorted view visible through the water.
 // shimmer_strength = 0.35 → wave crests are 35% brighter, troughs 35% darker.
 // Also drives the screen-space refraction component.
 // Set to 0.0 by WaterBody.set_time_stopped() when time is paused.
@@ -147,16 +147,20 @@ void fragment() {
 	surf_foam *= (1.0 - depth * 0.8);
 	water_col = mix(water_col, foam_color, surf_foam * surf_intensity);
 
-	// ---- Screen-space refraction (Issue #1738) — secondary distortion ----
-	// Bends the background visible through the water (sand, edges).
-	// Scaled to 0.015 screen-UV units so the beach/sand at edges visibly shimmers.
-	// Even at 12% blend the offset is visible near water edges / shallow zones.
+	// ---- Screen-space refraction (Issue #1738) — primary distorted image ----
+	// Bends the background visible through the water (sand, edges).  The final
+	// composition uses this refracted sample as the base image instead of mixing
+	// it behind an 88% opaque stable water layer, which previously made the
+	// original/non-distorted picture appear doubled.
 	vec2 refract_offset = vec2(wave1_occ, wave2_occ) * distortion_strength * 0.04;
 	vec4 screen_col = textureLod(screen_texture, SCREEN_UV + refract_offset, 0.0);
 
 	// ---- Compose final colour ----
-	// Blend distorted background through water (water_col.a ≈ 0.88 → 12% bleed).
-	vec3 final_rgb = mix(screen_col.rgb, water_col.rgb, water_col.a);
+	// Keep the distorted screen sample as the primary visible image, then apply
+	// the animated water colour as a tint. This removes the stable original layer
+	// while preserving blue depth and foam/wave brightness.
+	vec3 refracted_tinted = screen_col.rgb * water_col.rgb;
+	vec3 final_rgb = mix(screen_col.rgb, refracted_tinted, 0.25);
 
 	// ---- Blood diffusion tint ----
 	final_rgb = mix(final_rgb, blood_tint.rgb, blood_tint.a);
