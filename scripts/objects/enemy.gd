@@ -4459,7 +4459,10 @@ func _reset() -> void:
 	_pursuit_approaching = false
 	_pursuit_approach_timer = 0.0
 	_pursuing_state_timer = 0.0
-	_nav_has_target = false; _avoidance_velocity = Vector2.ZERO; if _nav_agent and _nav_agent.avoidance_enabled: _nav_agent.set_velocity_forced(Vector2.ZERO)
+	_nav_has_target = false
+	_avoidance_velocity = Vector2.ZERO
+	if _nav_agent and _nav_agent.avoidance_enabled:
+		_nav_agent.set_velocity_forced(Vector2.ZERO)
 	# Reset global stuck detection (Issue #367)
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = Vector2.ZERO
