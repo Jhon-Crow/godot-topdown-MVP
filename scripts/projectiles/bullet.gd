@@ -706,9 +706,11 @@ func _on_area_entered(area: Area2D) -> void:
 		if area.has_method("on_hit_with_bullet_info_and_damage"):
 			# Pass full bullet information including damage amount and player kill source
 			area.on_hit_with_bullet_info_and_damage(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage, from_player, attacker_node)
-		elif area.has_method("on_hit_with_bullet_info"):
+		elif area.has_method("on_hit_with_bullet_info") and _supports_explicit_bullet_damage(area):
 			# Legacy path - preserve damage and pass source data in the correct slots.
 			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage, from_player, attacker_node)
+		elif area.has_method("on_hit_with_bullet_info"):
+			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, from_player, attacker_node)
 		elif area.has_method("on_hit_with_info"):
 			area.on_hit_with_info(direction, caliber_data)
 		else:
@@ -993,6 +995,18 @@ func _get_shooter_node() -> Node2D:
 	if shooter_id == -1: return null
 	var shooter: Object = instance_from_id(shooter_id)
 	return shooter as Node2D
+
+
+## Returns true for bullet-info receivers that accept an explicit damage argument.
+## Legacy hit areas keep the old six-argument shape where the fifth argument is source data.
+func _supports_explicit_bullet_damage(target: Node) -> bool:
+	if target.has_method("on_hit_with_bullet_info_and_damage"):
+		return true
+	var script := target.get_script()
+	if script == null:
+		return false
+	var path: String = script.resource_path
+	return path.ends_with("player.gd") or path.ends_with("enemy.gd") or path.ends_with("drone.gd")
 
 
 ## Triggers hit effects via the HitEffectsManager autoload.

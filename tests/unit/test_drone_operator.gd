@@ -672,6 +672,10 @@ func test_projectile_hit_forwarding_passes_shooter_node() -> void:
 		"bullet.gd legacy bullet-info path must not hardcode damage before source data")
 	assert_true(source.contains("_has_penetrated, effective_damage, from_player, attacker_node"),
 		"bullet.gd legacy bullet-info path must pass effective_damage before source data so player damage is not false/0")
+	assert_true(source.contains("func _supports_explicit_bullet_damage"),
+		"bullet.gd must distinguish damage-aware direct targets from legacy six-argument hit areas")
+	assert_true(source.contains("_has_penetrated, from_player, attacker_node"),
+		"bullet.gd must keep legacy hit-area calls in the old six-argument source-data shape")
 
 
 func test_hit_areas_forward_attacker_node() -> void:

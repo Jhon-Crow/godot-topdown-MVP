@@ -350,15 +350,28 @@ For enemy bullets, `from_player == false`. When an enemy bullet hit the player d
 
 ### Fix
 
-The legacy bullet-info fallback now preserves the damage slot before passing source attribution:
+The first legacy bullet-info fallback fix preserved the damage slot before passing source attribution:
 
 ```gdscript
 area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage, from_player, attacker_node)
 ```
 
-Targets that need explicit bullet damage still use `on_hit_with_bullet_info_and_damage(...)`. Targets that only implement the older bullet-info method now receive the computed damage, `is_from_player=false`, and the optional attacker node in the correct positions.
+However, `game_log_20260417_210339.txt` (reported 2026-04-17 18:04 UTC) showed the damage problem still reproducing while enemies fired repeatedly. That exposed a second compatibility edge: the fallback was now always using the seven-argument direct-target shape, even for old six-argument hit-area receivers where the fifth argument is still `is_from_player`, not `damage`.
 
-Regression source checks now cover both compatibility dimensions: receivers must accept the optional attacker argument, and `bullet.gd` must keep the computed damage argument before source attribution.
+`scripts/projectiles/bullet.gd` now separates those contracts explicitly:
+
+```gdscript
+if area.has_method("on_hit_with_bullet_info_and_damage"):
+    area.on_hit_with_bullet_info_and_damage(..., effective_damage, from_player, attacker_node)
+elif area.has_method("on_hit_with_bullet_info") and _supports_explicit_bullet_damage(area):
+    area.on_hit_with_bullet_info(..., effective_damage, from_player, attacker_node)
+elif area.has_method("on_hit_with_bullet_info"):
+    area.on_hit_with_bullet_info(..., from_player, attacker_node)
+```
+
+Direct damage-aware receivers such as the player, enemies, and drones receive computed damage in the damage slot. Legacy hit-area adapters keep their original six-argument source-data shape, avoiding arity/signature drift.
+
+Regression source checks now cover all compatibility dimensions: receivers must accept the optional attacker argument, damage-aware fallback must keep the computed damage argument before source attribution, and legacy hit-area fallback must keep source data in the older six-argument shape.
 
 ---
 
@@ -369,3 +382,4 @@ Regression source checks now cover both compatibility dimensions: receivers must
 - [`game_log_20260416_213016.txt`](./game_log_20260416_213016.txt) — player ignored enemy hits follow-up (27,988 lines)
 - [`game_log_20260417_004243.txt`](./game_log_20260417_004243.txt) — player damage still not applied after callback compatibility follow-up (2,465 lines)
 - [`game_log_20260417_033236.txt`](./game_log_20260417_033236.txt) — player damage still not applied after damage-slot fallback follow-up (386 lines)
+- [`game_log_20260417_210339.txt`](./game_log_20260417_210339.txt) — player damage still not applied after direct fallback fix; exposed mixed six/seven-argument bullet-info contracts (599 lines)
