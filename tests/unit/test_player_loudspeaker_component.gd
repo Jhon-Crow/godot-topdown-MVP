@@ -212,3 +212,34 @@ func test_issue_1869_loudspeaker_true_ending_strings_are_localized() -> void:
 		"translations.csv must define the loudspeaker true-ending message")
 	assert_true(translations.contains("GAME_END_TITLE,"),
 		"translations.csv must define the game-end title")
+
+
+func test_issue_1869_csharp_loudspeaker_victory_input_is_consumed() -> void:
+	var active_items_source := FileAccess.get_file_as_string("res://Scripts/Characters/Player.ActiveItems.cs")
+	var player_source := FileAccess.get_file_as_string("res://Scripts/Characters/Player.cs")
+
+	assert_true(player_source.contains("HandleLoudspeakerVictoryInput(@event)"),
+		"C# Player._UnhandledInput must route input to the loudspeaker victory overlay")
+	assert_true(active_items_source.contains("private bool HandleLoudspeakerVictoryInput(InputEvent @event)"),
+		"C# loudspeaker path must handle true-ending dismissal input")
+	assert_true(active_items_source.contains("@event is InputEventKey key && key.Pressed && !key.Echo"),
+		"C# loudspeaker true-ending message must dismiss on keyboard input")
+	assert_true(active_items_source.contains("@event is InputEventMouseButton mouseButton && mouseButton.Pressed"),
+		"C# loudspeaker true-ending message must dismiss on mouse input")
+	assert_true(active_items_source.contains("GetViewport().SetInputAsHandled()"),
+		"C# loudspeaker dismiss input must be consumed so LMB does not also shoot")
+	assert_true(active_items_source.contains("SetProcessInput(false)"),
+		"C# player input processing must be disabled while the true-ending message is visible")
+
+
+func test_issue_1869_csharp_loudspeaker_true_ending_strings_are_localized() -> void:
+	var source := FileAccess.get_file_as_string("res://Scripts/Characters/Player.ActiveItems.cs")
+
+	assert_true(source.contains("Tr(\"LOUDSPEAKER_TRUE_ENDING_MESSAGE\")"),
+		"C# loudspeaker true-ending message must use a translation key")
+	assert_true(source.contains("Tr(\"GAME_END_TITLE\")"),
+		"C# loudspeaker end title must use a translation key")
+	assert_true(source.contains("Tr(\"GAME_END_THANKS\")"),
+		"C# loudspeaker thanks text must use a translation key")
+	assert_true(source.contains("Tr(\"GAME_END_DISMISS_HINT\")"),
+		"C# loudspeaker dismiss hint must use a translation key")

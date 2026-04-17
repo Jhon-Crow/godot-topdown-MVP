@@ -19,6 +19,10 @@ namespace GodotTopDownTemplate.Characters;
 /// </summary>
 public partial class Player
 {
+    private CanvasLayer? _loudspeakerVictoryCanvas = null;
+    private bool _loudspeakerVictoryScreenShown = false;
+    private bool _loudspeakerVictoryDismissed = false;
+
     #region Flashlight Methods (Issue #546)
 
     /// <summary>
@@ -2841,14 +2845,20 @@ public partial class Player
     /// </summary>
     private void ShowLoudspeakerVictoryMessage()
     {
+        _loudspeakerVictoryScreenShown = true;
+        _loudspeakerVictoryDismissed = false;
+        SetProcessUnhandledInput(true);
+        SetProcessInput(false);
+
         var canvas = new CanvasLayer();
         canvas.Name = "LoudspeakerVictoryCanvas";
         canvas.Layer = 100;
         AddChild(canvas);
+        _loudspeakerVictoryCanvas = canvas;
 
         // Victory message label
         var label = new Label();
-        label.Text = "Нам нечего делить по этому мы не будем стрелять друг в друга.";
+        label.Text = Tr("LOUDSPEAKER_TRUE_ENDING_MESSAGE");
         label.AddThemeFontSizeOverride("font_size", 36);
         label.HorizontalAlignment = HorizontalAlignment.Center;
         label.VerticalAlignment = VerticalAlignment.Center;
@@ -2861,7 +2871,7 @@ public partial class Player
 
         // "Click to continue" hint
         var hint = new Label();
-        hint.Text = "[ нажмите, чтобы продолжить ]";
+        hint.Text = Tr("GAME_END_DISMISS_HINT");
         hint.AddThemeFontSizeOverride("font_size", 18);
         hint.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f, 0.8f));
         hint.HorizontalAlignment = HorizontalAlignment.Center;
@@ -2883,21 +2893,56 @@ public partial class Player
         panel.GuiInput += (InputEvent ev) =>
         {
             if (ev is InputEventMouseButton mb && mb.Pressed)
-                ShowLoudspeakerEndScreen(canvas);
+            {
+                GetViewport().SetInputAsHandled();
+                DismissLoudspeakerVictoryMessage();
+            }
         };
         canvas.AddChild(panel);
 
         LogToFile("[Player.Loudspeaker] Victory message shown (Level 7)");
     }
 
+    private bool HandleLoudspeakerVictoryInput(InputEvent @event)
+    {
+        if (!_loudspeakerVictoryScreenShown || _loudspeakerVictoryDismissed)
+            return false;
+
+        if (@event is InputEventKey key && key.Pressed && !key.Echo)
+        {
+            GetViewport().SetInputAsHandled();
+            DismissLoudspeakerVictoryMessage();
+            return true;
+        }
+
+        if (@event is InputEventMouseButton mouseButton && mouseButton.Pressed)
+        {
+            GetViewport().SetInputAsHandled();
+            DismissLoudspeakerVictoryMessage();
+            return true;
+        }
+
+        return false;
+    }
+
+    private void DismissLoudspeakerVictoryMessage()
+    {
+        if (_loudspeakerVictoryDismissed)
+            return;
+
+        _loudspeakerVictoryDismissed = true;
+        ShowLoudspeakerEndScreen(_loudspeakerVictoryCanvas);
+    }
+
     /// <summary>
     /// Show end screen after player clicks on victory message (Issue #959).
     /// </summary>
-    private void ShowLoudspeakerEndScreen(CanvasLayer victoryCanvas)
+    private void ShowLoudspeakerEndScreen(CanvasLayer? victoryCanvas)
     {
         // Remove victory screen
-        if (Godot.GodotObject.IsInstanceValid(victoryCanvas))
+        if (victoryCanvas != null && Godot.GodotObject.IsInstanceValid(victoryCanvas))
             victoryCanvas.QueueFree();
+        _loudspeakerVictoryCanvas = null;
 
         // Create end screen canvas
         var canvas = new CanvasLayer();
@@ -2916,7 +2961,7 @@ public partial class Player
 
         // "Конец" title
         var title = new Label();
-        title.Text = "Конец";
+        title.Text = Tr("GAME_END_TITLE");
         title.AddThemeFontSizeOverride("font_size", 72);
         title.AddThemeColorOverride("font_color", new Color(1, 1, 1, 1));
         title.HorizontalAlignment = HorizontalAlignment.Center;
@@ -2929,7 +2974,7 @@ public partial class Player
 
         // Thank you message
         var thanks = new Label();
-        thanks.Text = "Спасибо за игру!";
+        thanks.Text = Tr("GAME_END_THANKS");
         thanks.AddThemeFontSizeOverride("font_size", 32);
         thanks.AddThemeColorOverride("font_color", new Color(0.85f, 0.85f, 0.85f, 1));
         thanks.HorizontalAlignment = HorizontalAlignment.Center;

@@ -3054,6 +3054,11 @@ public partial class Player : BaseCharacter
     {
         base._UnhandledInput(@event);
 
+        if (HandleLoudspeakerVictoryInput(@event))
+        {
+            return;
+        }
+
         var sniperRifle = CurrentWeapon as SniperRifle;
         if (sniperRifle == null || !sniperRifle.IsScopeActive)
         {
