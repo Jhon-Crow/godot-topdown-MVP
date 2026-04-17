@@ -50,6 +50,7 @@ UnlockManager="*res://scripts/autoload/unlock_manager.gd"
 WeaponHintsSettings="*res://scripts/autoload/weapon_hints_settings.gd"
 PerformanceSettings="*res://scripts/autoload/performance_settings.gd"
 LocalizationSettings="*res://scripts/autoload/localization_settings.gd"
+LevelLocalization="*res://scripts/autoload/level_localization.gd"
 
 [application]
 

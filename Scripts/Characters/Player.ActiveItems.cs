@@ -4500,6 +4500,28 @@ public partial class Player
     #region Experimental Sample (Issue #1127)
 
     /// <summary>
+    /// Active item types that Experimental Sample can trigger.
+    /// Keep this list in sync with TriggerExperimentalSampleEffect so newly added
+    /// active items are not omitted from the shipped C# player implementation.
+    /// </summary>
+    private static readonly int[] ExperimentalSampleActiveTypes =
+    {
+        1,  // FLASHLIGHT
+        2,  // HOMING_BULLETS
+        3,  // TELEPORT_BRACERS
+        4,  // BFF_PENDANT
+        5,  // INVISIBILITY_SUIT
+        7,  // FORCE_FIELD
+        8,  // TRAJECTORY_GLASSES
+        11, // LOUDSPEAKER
+        12, // BREACHING_CHARGES
+        15, // DRILLING_BULLETS
+        16, // RECOIL_COMPENSATOR
+        19, // FINE_MOTOR_SKILLS
+        20, // DASH
+    };
+
+    /// <summary>
     /// Initialize the experimental sample if it is the selected active item.
     /// Randomises charge count (1–5) at the start of each level.
     /// </summary>
@@ -4553,7 +4575,7 @@ public partial class Player
 
     /// <summary>
     /// Handle experimental sample input: press Space to trigger a random active item effect.
-    /// The randomly chosen effect can be ANY item type 1–17, even items the player has not unlocked.
+    /// The randomly chosen effect can be any listed active item, even items the player has not unlocked.
     /// </summary>
     private void HandleExperimentalSampleInput()
     {
@@ -4582,16 +4604,10 @@ public partial class Player
         _experimentalSampleChargeBarVisible = true;
         QueueRedraw();
 
-        // Active-only item pool (Issue #1127): passive items are excluded.
-        // Passive items excluded: 6=BREAKER_BULLETS, 9=LASER_SIGHT, 10=EXTENDED_MAGAZINE,
-        //   13=ARMORED_SKIN, 14=AUTO_RELOAD, 17=COMBAT_DISPOSITION
-        // Active items kept: 1=FLASHLIGHT, 2=HOMING_BULLETS, 3=TELEPORT_BRACERS,
-        //   4=BFF_PENDANT, 5=INVISIBILITY_SUIT, 7=FORCE_FIELD, 8=TRAJECTORY_GLASSES,
-        //   11=LOUDSPEAKER, 12=BREACHING_CHARGES, 15=DRILLING_BULLETS, 16=RECOIL_COMPENSATOR
+        // Active-only item pool (Issue #1127, #1635): passive items are excluded.
         // Homing (2): 5 tickets (~5%); BFF (4): 2 tickets (~2%); all others: 10 tickets each.
-        int[] activeTypes = { 1, 2, 3, 4, 5, 7, 8, 11, 12, 15, 16 };
         var poolList = new System.Collections.Generic.List<int>();
-        foreach (int t in activeTypes)
+        foreach (int t in ExperimentalSampleActiveTypes)
         {
             int tickets = t == 4 ? 2 : (t == 2 ? 5 : 10);
             for (int k = 0; k < tickets; k++)
@@ -5032,11 +5048,82 @@ public partial class Player
                 LogToFile("[Player.ExperimentalSample] Combat disposition effect: homing burst triggered");
                 return HomingDuration;
 
+            case 19: // FINE_MOTOR_SKILLS — instant reload regardless of whether FMS is equipped (Issue #1635)
+            {
+                if (_fineMotorSkillsActive)
+                {
+                    LogToFile("[Player.ExperimentalSample] Fine motor skills already active");
+                    return 0.5f;
+                }
+
+                _fineMotorSkillsActive = true;
+                FineMotorSkillsActivateAsync();
+                LogToFile("[Player.ExperimentalSample] Fine motor skills instant reload triggered via experimental sample");
+                return 2.0f;
+            }
+
+            case 20: // DASH — create a temporary dash effect if Dash is not equipped (Issue #1635)
+            {
+                Node? dashNode = EnsureExperimentalSampleDashEffect();
+                if (dashNode != null && IsInstanceValid(dashNode))
+                {
+                    bool isDashing = dashNode.HasMethod("is_dashing") && (bool)dashNode.Call("is_dashing");
+                    if (!isDashing)
+                    {
+                        Vector2 dir = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+                        if (dir == Vector2.Zero)
+                        {
+                            dir = _playerModel != null ? Vector2.Right.Rotated(_playerModel.GlobalRotation) : Vector2.Right;
+                        }
+                        dashNode.Call("activate", dir);
+                        LogToFile("[Player.ExperimentalSample] Dash triggered via experimental sample");
+                    }
+                    else
+                    {
+                        LogToFile("[Player.ExperimentalSample] Dash already active");
+                    }
+                    return 1.0f;
+                }
+
+                LogToFile("[Player.ExperimentalSample] Dash effect unavailable, homing fallback");
+                if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
+                return HomingDuration;
+            }
+
             default:
                 LogToFile($"[Player.ExperimentalSample] Unknown item type {itemType} — homing fallback");
                 if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
                 return HomingDuration;
         }
+    }
+
+    /// <summary>
+    /// Ensure Experimental Sample can use Dash without requiring Dash to be the equipped active item.
+    /// </summary>
+    private Node? EnsureExperimentalSampleDashEffect()
+    {
+        if (_dashEffect != null && IsInstanceValid(_dashEffect))
+            return _dashEffect;
+
+        if (!ResourceLoader.Exists(DashEffectScenePath))
+        {
+            LogToFile($"[Player.ExperimentalSample] DashEffect scene not found: {DashEffectScenePath}");
+            return null;
+        }
+
+        var scene = GD.Load<PackedScene>(DashEffectScenePath);
+        if (scene == null)
+        {
+            LogToFile("[Player.ExperimentalSample] Failed to load DashEffect scene");
+            return null;
+        }
+
+        _dashEffect = scene.Instantiate();
+        _dashEffect.Name = "DashEffectTemp";
+        AddChild(_dashEffect);
+        _dashEffect.Call("initialize", this);
+        LogToFile("[Player.ExperimentalSample] Dash: temporary effect node created");
+        return _dashEffect;
     }
 
     #endregion
@@ -5336,7 +5423,7 @@ public partial class Player
     /// </summary>
     public bool IsDashActive()
     {
-        if (!_dashEquipped || _dashEffect == null)
+        if (_dashEffect == null)
             return false;
         if (!IsInstanceValid(_dashEffect))
             return false;
