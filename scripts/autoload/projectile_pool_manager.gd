@@ -249,6 +249,37 @@ func _append_unique(pool: Array[Node], projectile: Node) -> void:
 		pool.append(projectile)
 
 
+func _move_to_parent(projectile: Node, parent: Node) -> void:
+	if projectile == null or parent == null or projectile.get_parent() == parent:
+		return
+	var old_parent := projectile.get_parent()
+	if old_parent:
+		old_parent.remove_child(projectile)
+	parent.add_child(projectile)
+
+
+func _activate_projectile_parent(projectile: Node) -> void:
+	var scene := get_tree().current_scene
+	if scene:
+		_move_to_parent(projectile, scene)
+
+
+func _pool_container_for(projectile: Node) -> Node:
+	if projectile in _bullet_pool or projectile in _active_bullets:
+		return _bullet_container
+	if projectile in _shrapnel_pool or projectile in _active_shrapnel:
+		return _shrapnel_container
+	if projectile in _breaker_shrapnel_pool or projectile in _active_breaker_shrapnel:
+		return _breaker_shrapnel_container
+	return null
+
+
+func _return_to_pool_container(projectile: Node, container: Node = null) -> void:
+	var target := container if container else _pool_container_for(projectile)
+	if target:
+		_move_to_parent(projectile, target)
+
+
 func _pop_ready_projectile(pool: Array[Node], active: Array[Node]) -> Node:
 	while pool.size() > 0:
 		var projectile: Node = pool.pop_back()
@@ -272,7 +303,9 @@ func _return_active_projectiles(active: Array[Node], pool: Array[Node]) -> void:
 	for projectile in active:
 		if not _is_pool_managed(projectile):
 			continue
+		var container := _pool_container_for(projectile)
 		_deactivate_without_return(projectile)
+		_return_to_pool_container(projectile, container)
 		_append_unique(pool, projectile)
 	active.clear()
 
@@ -291,6 +324,7 @@ func get_bullet() -> Node:
 	var bullet := _pop_ready_projectile(_bullet_pool, _active_bullets)
 	if bullet:
 		_active_bullets.append(bullet)
+		_activate_projectile_parent(bullet)
 		_stats["bullets_reused"] += 1
 		if _debug:
 			print("[ProjectilePoolManager] Bullet retrieved from pool (available: %d)" % _bullet_pool.size())
@@ -302,6 +336,7 @@ func get_bullet() -> Node:
 		if oldest:
 			_deactivate_without_return(oldest)
 			_active_bullets.append(oldest)
+			_activate_projectile_parent(oldest)
 			_stats["bullets_recycled"] += 1
 			if _debug:
 				print("[ProjectilePoolManager] Bullet recycled (active: %d)" % _active_bullets.size())
@@ -311,6 +346,7 @@ func get_bullet() -> Node:
 	if _bullet_scene:
 		var new_bullet := _create_bullet()
 		_active_bullets.append(new_bullet)
+		_activate_projectile_parent(new_bullet)
 		_stats["bullets_created"] += 1
 		push_warning("[ProjectilePoolManager] Bullet pool exhausted, created new instance")
 		return new_bullet
@@ -326,6 +362,7 @@ func get_shrapnel() -> Node:
 	var shrapnel := _pop_ready_projectile(_shrapnel_pool, _active_shrapnel)
 	if shrapnel:
 		_active_shrapnel.append(shrapnel)
+		_activate_projectile_parent(shrapnel)
 		_stats["shrapnel_reused"] += 1
 		return shrapnel
 
@@ -335,6 +372,7 @@ func get_shrapnel() -> Node:
 		if oldest:
 			_deactivate_without_return(oldest)
 			_active_shrapnel.append(oldest)
+			_activate_projectile_parent(oldest)
 			_stats["shrapnel_recycled"] += 1
 			return oldest
 
@@ -342,6 +380,7 @@ func get_shrapnel() -> Node:
 	if _shrapnel_scene:
 		var new_shrapnel := _create_shrapnel()
 		_active_shrapnel.append(new_shrapnel)
+		_activate_projectile_parent(new_shrapnel)
 		_stats["shrapnel_created"] += 1
 		return new_shrapnel
 
@@ -356,6 +395,7 @@ func get_breaker_shrapnel() -> Node:
 	var breaker := _pop_ready_projectile(_breaker_shrapnel_pool, _active_breaker_shrapnel)
 	if breaker:
 		_active_breaker_shrapnel.append(breaker)
+		_activate_projectile_parent(breaker)
 		_stats["breaker_reused"] += 1
 		return breaker
 
@@ -365,6 +405,7 @@ func get_breaker_shrapnel() -> Node:
 		if oldest:
 			_deactivate_without_return(oldest)
 			_active_breaker_shrapnel.append(oldest)
+			_activate_projectile_parent(oldest)
 			_stats["breaker_recycled"] += 1
 			return oldest
 
@@ -372,6 +413,7 @@ func get_breaker_shrapnel() -> Node:
 	if _breaker_shrapnel_scene:
 		var new_breaker := _create_breaker_shrapnel()
 		_active_breaker_shrapnel.append(new_breaker)
+		_activate_projectile_parent(new_breaker)
 		_stats["breaker_created"] += 1
 		return new_breaker
 
@@ -395,6 +437,7 @@ func return_bullet(bullet: Node) -> void:
 
 	# Deactivate and return to pool
 	_deactivate_without_return(bullet)
+	_return_to_pool_container(bullet, _bullet_container)
 	_append_unique(_bullet_pool, bullet)
 
 	if _debug:
@@ -411,6 +454,7 @@ func return_shrapnel(shrapnel: Node) -> void:
 		_active_shrapnel.remove_at(idx)
 
 	_deactivate_without_return(shrapnel)
+	_return_to_pool_container(shrapnel, _shrapnel_container)
 	_append_unique(_shrapnel_pool, shrapnel)
 
 
@@ -424,6 +468,7 @@ func return_breaker_shrapnel(breaker: Node) -> void:
 		_active_breaker_shrapnel.remove_at(idx)
 
 	_deactivate_without_return(breaker)
+	_return_to_pool_container(breaker, _breaker_shrapnel_container)
 	_append_unique(_breaker_shrapnel_pool, breaker)
 
 

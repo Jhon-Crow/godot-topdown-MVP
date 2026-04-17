@@ -16,6 +16,7 @@ class MockProjectile:
 	var pool_managed: bool = false
 	var return_requested_count: int = 0
 	var id: int = 0
+	var parent_name: String = "PoolContainer"
 
 	func set_pool_managed(managed: bool) -> void:
 		pool_managed = managed
@@ -46,6 +47,8 @@ class MockProjectilePoolManager:
 	## Pool arrays (inactive projectiles ready for use).
 	var _bullet_pool: Array = []
 	var _active_bullets: Array = []
+	var _bullet_container_name: String = "BulletPool"
+	var _current_scene_name: String = "CurrentScene"
 
 	## Statistics for debugging/profiling.
 	var _stats: Dictionary = {
@@ -77,6 +80,7 @@ class MockProjectilePoolManager:
 			if _active_bullets.find(bullet) >= 0:
 				continue
 			_active_bullets.append(bullet)
+			_activate_projectile_parent(bullet)
 			_stats["bullets_reused"] += 1
 			return bullet
 
@@ -85,10 +89,17 @@ class MockProjectilePoolManager:
 			var oldest: MockProjectile = _active_bullets.pop_front()
 			oldest.pool_deactivate(false)
 			_active_bullets.append(oldest)
+			_activate_projectile_parent(oldest)
 			_stats["bullets_recycled"] += 1
 			return oldest
 
 		return null
+
+	func _activate_projectile_parent(projectile: MockProjectile) -> void:
+		projectile.parent_name = _current_scene_name
+
+	func _return_to_pool_container(projectile: MockProjectile) -> void:
+		projectile.parent_name = _bullet_container_name
 
 	## Returns a bullet to the pool for reuse.
 	func return_bullet(bullet: MockProjectile) -> void:
@@ -100,6 +111,7 @@ class MockProjectilePoolManager:
 		if idx >= 0:
 			_active_bullets.remove_at(idx)
 		bullet.pool_deactivate(false)
+		_return_to_pool_container(bullet)
 		if _bullet_pool.find(bullet) < 0:
 			_bullet_pool.append(bullet)
 
@@ -123,6 +135,7 @@ class MockProjectilePoolManager:
 			if not bullet.is_pool_managed():
 				continue
 			bullet.pool_deactivate(false)
+			_return_to_pool_container(bullet)
 			if _bullet_pool.find(bullet) < 0:
 				_bullet_pool.append(bullet)
 		_active_bullets.clear()
@@ -206,6 +219,8 @@ func test_get_bullet_from_pool() -> void:
 	var bullet := pool.get_bullet()
 
 	assert_not_null(bullet, "get_bullet() should return a bullet")
+	assert_eq(bullet.parent_name, "CurrentScene",
+		"Checked-out pooled projectiles should be reparented into the active gameplay scene")
 	var stats := pool.get_stats()
 	assert_eq(stats["bullets_available"], 4, "Available should decrease by 1")
 	assert_eq(stats["bullets_active"], 1, "Active should increase by 1")
@@ -223,6 +238,8 @@ func test_return_bullet_to_pool() -> void:
 	assert_eq(stats["bullets_available"], 5, "Available should return to 5")
 	assert_eq(stats["bullets_active"], 0, "Active should return to 0")
 	assert_false(bullet.is_active, "Returned bullet should be deactivated")
+	assert_eq(bullet.parent_name, "BulletPool",
+		"Returned projectiles should move back under their pool container")
 
 
 func test_return_bullet_rejects_unmanaged_projectile() -> void:
@@ -324,6 +341,8 @@ func test_overflow_deactivates_recycled_bullet() -> void:
 
 	assert_eq(recycled, b1, "Should recycle the only active bullet")
 	assert_false(recycled.is_active, "Recycled bullet should be deactivated")
+	assert_eq(recycled.parent_name, "CurrentScene",
+		"Recycled projectiles should stay in the active gameplay scene for the next activation")
 
 
 func test_multiple_overflow_cycles() -> void:

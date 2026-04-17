@@ -626,6 +626,62 @@ fragments.
 
 ---
 
+## Bug Found and Fixed: Pooled Breaker Shrapnel Stayed Under Pool Autoload (Session 9)
+
+### New User Report and Preserved Data
+
+**User report (PR #1661, 2026-04-17):**
+> "всё ещё нет осколков у пуль с превзрывателем."
+> *Translation: "breaker bullets still have no shrapnel."*
+
+Preserved log:
+
+- `data/logs/game_log_20260417_234854.txt` — downloaded from the PR comment, 2,089 lines.
+
+The log confirms Breaker Bullets were enabled and applied to both `AKGL` and `MakarovPM`:
+
+- `game_log_20260417_234854.txt:795` — active item changed from Homing Bullets to Breaker Bullets.
+- `game_log_20260417_234854.txt:800-801` — breaker bullets active and applied to `AKGL`.
+- `game_log_20260417_234854.txt:864-865` — breaker bullets active and applied to `MakarovPM`.
+
+The log has no explicit breaker shrapnel diagnostics, which means the failure was still in a silent
+runtime path rather than a logged load error.
+
+### Root Cause
+
+Session 7 made C# breaker bullets use `ProjectilePoolManager.get_breaker_shrapnel()` when the
+fallback scene path is unavailable. The pool manager returned an inactive `BreakerShrapnel` node,
+but it left that node parented under the autoload-owned `BreakerShrapnelPool` container.
+
+That is a bad lifecycle boundary for active gameplay projectiles:
+
+1. The active fragment is no longer a child of the gameplay scene where the bullet detonated.
+2. `global_position` set during `pool_activate()` is interpreted relative to the pool/autoload
+   branch until the next transform update, which can make fragments appear at the wrong place or not
+   in the visible world.
+3. Scene-local systems that reason from `current_scene` do not own the active pooled fragments.
+
+The earlier regression tests only checked that the C# helper *asked* the pool for shrapnel. They did
+not check that pooled projectiles are reparented into the active scene before activation.
+
+### Fix Applied (Session 9)
+
+`scripts/autoload/projectile_pool_manager.gd` now moves pool-owned projectiles across the correct
+scene-tree boundary:
+
+- `get_bullet()`, `get_shrapnel()`, and `get_breaker_shrapnel()` reparent checked-out projectiles to
+  `get_tree().current_scene`.
+- Overflow recycling also reparents the recycled projectile back to the current scene before reuse.
+- `return_bullet()`, `return_shrapnel()`, `return_breaker_shrapnel()`, and `clear_all()` move
+  deactivated projectiles back under their pool containers.
+
+Regression coverage in `tests/unit/test_projectile_pool_manager.gd` now asserts that checked-out
+projectiles move to the active gameplay scene and returned projectiles move back under their pool
+container. This specifically guards the invisible pooled-fragment path that made breaker explosions
+appear without shrapnel.
+
+---
+
 ## References
 
 - [Proximity fuze — Wikipedia](https://en.wikipedia.org/wiki/Proximity_fuze)
