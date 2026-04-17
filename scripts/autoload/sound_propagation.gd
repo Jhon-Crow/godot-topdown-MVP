@@ -102,6 +102,14 @@ const EMPTY_CLICK_PROPAGATION_COOLDOWN: float = 0.4
 ## Timestamp of the last EMPTY_CLICK propagation (for throttling).
 var _last_empty_click_time: float = -999.0
 
+## #1528: Per-frame sound emission throttle to prevent cascading callbacks.
+## When many enemies fire simultaneously, each gunshot iterates all listeners.
+## Cap total emissions per physics frame to spread load across frames.
+const SOUND_EMISSIONS_PER_FRAME_MAX: int = 3  ## Max sound emissions processed per physics frame
+var _emissions_this_frame: int = 0  ## Counter reset each physics frame
+var _last_emission_frame: int = -1  ## Track physics frame for counter reset
+var _deferred_sounds: Array = []  ## Sounds queued for next frame(s) when throttle exceeded
+
 ## Reference to FileLogger for persistent logging.
 var _file_logger: Node = null
 
@@ -119,6 +127,15 @@ func _ready() -> void:
 		if game_manager.has_signal("debug_mode_toggled"):
 			game_manager.debug_mode_toggled.connect(_on_debug_mode_toggled)
 
+
+## #1528: Process deferred sounds from previous frame and reset emission counter.
+func _physics_process(_delta: float) -> void:
+	_emissions_this_frame = 0
+	# Process deferred sounds (up to the per-frame cap)
+	while _deferred_sounds.size() > 0 and _emissions_this_frame < SOUND_EMISSIONS_PER_FRAME_MAX:
+		var deferred: Dictionary = _deferred_sounds.pop_front()
+		_emit_sound_internal(deferred["type"], deferred["pos"], deferred["source_type"],
+			deferred["source_node"], deferred["range"])
 
 ## Called when debug mode is toggled via GameManager.
 func _on_debug_mode_toggled(enabled: bool) -> void:
@@ -140,8 +157,7 @@ func unregister_listener(listener: Node2D) -> void:
 	var idx := _listeners.find(listener)
 	if idx >= 0:
 		_listeners.remove_at(idx)
-		_log_debug("Unregistered sound listener: %s" % listener.name)
-		_log_to_file("Unregistered listener: %s (remaining: %d)" % [listener.name, _listeners.size()])
+		_log_debug("Unregistered listener: %s (remaining: %d)" % [listener.name, _listeners.size()])  # #1528 v7: debug level only
 
 
 ## Emit a sound at a given position.
@@ -156,6 +172,25 @@ func unregister_listener(listener: Node2D) -> void:
 ## - custom_range: Override the default propagation distance (optional, -1 uses default)
 func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceType,
 				source_node: Node2D = null, custom_range: float = -1.0) -> void:
+	# #1528: Throttle sound emissions per physics frame to prevent cascading callbacks.
+	# When many enemies fire simultaneously (e.g. 5+ in one frame), each emission iterates
+	# all listeners producing 100+ callbacks. Defer excess sounds to the next frame.
+	_emissions_this_frame += 1
+	if _emissions_this_frame > SOUND_EMISSIONS_PER_FRAME_MAX:
+		# Defer this sound — will be processed in next frame's _physics_process.
+		# Keep deferred queue bounded to prevent memory growth in extreme cases.
+		if _deferred_sounds.size() < 10:
+			_deferred_sounds.append({
+				"type": sound_type, "pos": position, "source_type": source_type,
+				"source_node": source_node, "range": custom_range
+			})
+		return
+	_emit_sound_internal(sound_type, position, source_type, source_node, custom_range)
+
+
+## #1528: Internal sound emission — separated from emit_sound for deferred processing.
+func _emit_sound_internal(sound_type: SoundType, position: Vector2, source_type: SourceType,
+				source_node: Node2D = null, custom_range: float = -1.0) -> void:
 	var propagation_distance: float = custom_range if custom_range > 0 else float(PROPAGATION_DISTANCES.get(sound_type, 1000.0))
 
 	# Notify SoundVisualizer for debug overlay (Issue #1253).
@@ -168,7 +203,8 @@ func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceTyp
 		SourceType.keys()[source_type],
 		propagation_distance
 	])
-	_log_to_file("Sound emitted: type=%s, pos=%s, source=%s (%s), range=%.0f, listeners=%d" % [
+	# #1528 v6: Changed to _log_debug — was ~30 file writes/sec during combat (every sound event × 2 log lines)
+	_log_debug("Sound emitted: type=%s, pos=%s, source=%s (%s), range=%.0f, listeners=%d" % [
 		SoundType.keys()[sound_type],
 		position,
 		SourceType.keys()[source_type],
@@ -177,48 +213,34 @@ func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceTyp
 		_listeners.size()
 	])
 
-	# Clean up invalid listeners (destroyed nodes)
-	var prev_count := _listeners.size()
-	_listeners = _listeners.filter(func(l): return is_instance_valid(l))
-	if _listeners.size() < prev_count:
-		_log_to_file("Cleaned up %d invalid listeners" % (prev_count - _listeners.size()))
-
-	# Notify all listeners within range  (Issue #1261: below_threshold tracking removed)
+	# #1528 v3: Lazy-clean invalid listeners — remove invalids only when found (not filter() rebuild every call).
+	# filter() creates a new Array every invocation; with 20 enemies and 5+ sounds/frame this adds up fast.
 	var listeners_notified := 0
 	var listeners_out_of_range := 0
 	var listeners_skipped_self := 0
-
-	for listener: Node2D in _listeners:
+	var i := _listeners.size() - 1
+	while i >= 0:
+		var listener: Node2D = _listeners[i]
 		if not is_instance_valid(listener):
-			continue
-
+			_listeners.remove_at(i); i -= 1; continue
+		i -= 1
 		# Skip if listener is the source (can't hear your own sounds as external)
 		if source_node and listener == source_node:
 			listeners_skipped_self += 1
 			continue
-
 		# Check if listener is within propagation range
 		var distance: float = listener.global_position.distance_to(position)
 		if distance <= propagation_distance:
-			# Calculate sound intensity using inverse square law.
-			# Intensity = 1.0 at reference distance, falls off with 1/r².
-			# Issue #1261: intensity is passed for confidence scaling only — it must NOT
-			# gate notification delivery. Any listener inside propagation_distance is by
-			# definition "able to hear" this sound; skipping them via MIN_INTENSITY_THRESHOLD
-			# caused enemies beyond ~500 px to receive zero alerts even when well within range.
 			var intensity: float = calculate_intensity(distance)
-
-			# Notify the listener with intensity information
-			if listener.has_method("on_sound_heard_with_intensity"):
-				listener.on_sound_heard_with_intensity(sound_type, position, source_type, source_node, intensity)
-				listeners_notified += 1
-			elif listener.has_method("on_sound_heard"):
-				listener.on_sound_heard(sound_type, position, source_type, source_node)
-				listeners_notified += 1
+			# #1528 v3: Avoid has_method() per listener per frame — call on_sound_heard_with_intensity directly.
+			# All registered enemies implement this method (checked at registration time via register_listener).
+			listener.on_sound_heard_with_intensity(sound_type, position, source_type, source_node, intensity)
+			listeners_notified += 1
 		else:
 			listeners_out_of_range += 1
 
-	_log_to_file("Sound result: notified=%d, out_of_range=%d, self=%d" % [
+	# #1528 v6: Changed to _log_debug — was ~30 file writes/sec during combat
+	_log_debug("Sound result: notified=%d, out_of_range=%d, self=%d" % [
 		listeners_notified, listeners_out_of_range, listeners_skipped_self
 	])
 

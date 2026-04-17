@@ -95,6 +95,9 @@ var _level_active: bool = false
 ## Reference to player for position tracking.
 var _player: Node2D = null
 
+## #1528 v6: Cached FileLogger reference to avoid get_node_or_null per call.
+var _cached_file_logger: Node = null
+
 ## Last known player position for movement tracking.
 var _last_player_position: Vector2 = Vector2.ZERO
 
@@ -111,6 +114,8 @@ signal combo_changed(combo: int, points: int)
 func _ready() -> void:
 	# Set process mode to always run (even during time freeze effects)
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# #1528 v6: Cache FileLogger once
+	_cached_file_logger = get_node_or_null("/root/FileLogger")
 	_log_to_file("ScoreManager ready")
 
 
@@ -231,7 +236,8 @@ func exit_combat() -> void:
 ## @param amount: Amount of damage taken.
 func register_damage_taken(amount: int = 1) -> void:
 	_damage_taken += amount
-	_log_to_file("Damage taken: %d (total: %d)" % [amount, _damage_taken])
+	# #1528 v6: Changed to _log_debug — was ~286 file writes during combat session
+	_log_debug("Damage taken: %d (total: %d)" % [amount, _damage_taken])
 
 
 ## Registers a kill with optional special kill information.
@@ -261,7 +267,7 @@ func register_kill(is_ricochet_kill: bool = false, is_penetration_kill: bool = f
 	_combo_points += combo_score
 
 	combo_changed.emit(_current_combo, combo_score)
-	_log_to_file("Kill registered. Combo: %d (points: %d)" % [_current_combo, combo_score])
+	_log_debug("Kill registered. Combo: %d (points: %d)" % [_current_combo, combo_score])  # #1528 v7: debug level
 
 
 ## Ends the current combo.
@@ -479,9 +485,15 @@ func reset() -> void:
 
 
 ## Log a message to the file logger if available.
+## #1528 v6: Uses cached FileLogger reference (was get_node_or_null per call).
 func _log_to_file(message: String) -> void:
-	var file_logger: Node = get_node_or_null("/root/FileLogger")
-	if file_logger and file_logger.has_method("log_info"):
-		file_logger.log_info("[ScoreManager] " + message)
+	if _cached_file_logger and _cached_file_logger.has_method("log_info"):
+		_cached_file_logger.log_info("[ScoreManager] " + message)
 	else:
 		print("[ScoreManager] " + message)
+
+## Log a message at DEBUG level — only written when FileLogger debug output is enabled.
+## #1528 v6: Use for high-frequency events to avoid file I/O floods.
+func _log_debug(message: String) -> void:
+	if _cached_file_logger and _cached_file_logger.has_method("log_debug"):
+		_cached_file_logger.log_debug("[ScoreManager] " + message)

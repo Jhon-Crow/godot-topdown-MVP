@@ -26,18 +26,22 @@ var _puddle_area: Area2D = null
 
 
 ## Reference to FileLogger for persistent logging.
+## #1528 v4: Left as null — the per-decal FileLogger lookup (get_node_or_null per _ready) was
+## generating ~1,800 node-tree searches/sec at 20-enemy combat (60 shots/sec × 30 decals/shot).
+## Blood puddle position logging was purely informational with no debug value at this volume.
 var _file_logger: Node = null
 
 
 func _ready() -> void:
-	_file_logger = get_node_or_null("/root/FileLogger")
+	# #1528 v4: Do NOT call get_node_or_null here — this runs 30×/lethal-hit × ~60 shots/sec.
+	# FileLogger lookup per-decal accounted for ~1,800 get_node_or_null calls/sec in combat.
 	_initial_alpha = modulate.a
 
 	# Add to blood_puddle group for detection
 	if is_puddle:
 		add_to_group("blood_puddle")
 		_setup_puddle_area()
-		_log_info("Blood puddle created at %s (added to group)" % global_position)
+		# #1528 v4: Removed per-decal "Blood puddle created at" log — ~1,800 file writes/sec during combat
 
 	if auto_fade:
 		_start_fade_timer()

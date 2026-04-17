@@ -169,7 +169,9 @@ func _setup_blood_detector() -> void:
 	_blood_detector.area_entered.connect(_on_area_entered)
 	_blood_detector.area_exited.connect(_on_area_exited)
 
-	_log_info("Blood detector created and attached to %s" % _parent_body.name)
+	# #1528 v7: Debug only — per-enemy init log is not needed at INFO level
+	if debug_logging:
+		print("[BloodyFeet:%s] Blood detector created and attached to %s" % [_parent_body.name, _parent_body.name])
 
 
 func _physics_process(delta: float) -> void:
@@ -288,7 +290,9 @@ func _on_blood_puddle_contact(puddle_color: Color = Color(0.545, 0.0, 0.0, 1.0))
 	_blood_color = puddle_color
 
 	if previous_level == 0:
-		_log_info("Stepped in blood! %d footprints to spawn, color: %s" % [_blood_level, puddle_color])
+		# #1528 v7: Debug only — was frequent file writes during combat
+		if debug_logging:
+			print("[BloodyFeet:%s] Stepped in blood! %d footprints to spawn, color: %s" % [_parent_body.name if _parent_body else "?", _blood_level, puddle_color])
 		# Reset distance counter when first stepping in blood
 		_distance_since_last_footprint = 0.0
 
@@ -463,7 +467,9 @@ func _spawn_footprint() -> void:
 		_log_info("Footprint spawned (steps remaining: %d, alpha: %.2f, facing: %.2f, color: %s)" % [_blood_level, alpha, facing_direction.angle(), _blood_color])
 
 	if _blood_level <= 0:
-		_log_info("Blood ran out - no more footprints")
+		# #1528 v7: Debug only
+		if debug_logging:
+			print("[BloodyFeet:%s] Blood ran out - no more footprints" % [_parent_body.name if _parent_body else "?"])
 
 
 ## Manually set blood level (for testing or external triggers).

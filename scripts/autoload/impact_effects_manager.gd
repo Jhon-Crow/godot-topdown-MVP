@@ -128,6 +128,11 @@ var _file_logger: Node = null
 ## Track the last known scene to detect scene changes.
 var _last_scene: Node = null
 
+## #1528 v4: Cached autoload references — avoid per-shot get_node_or_null in hot paths.
+## spawn_blood_effect / spawn_sparks_effect / spawn_muzzle_flash are called 60-100×/sec.
+var _cached_perf_settings: Node = null
+var _cached_gameplay_settings: Node = null
+
 ## Whether the shader warmup has been completed.
 ## Warmup pre-compiles GPU shaders to prevent first-shot lag (Issue #343).
 var _warmup_completed: bool = false
@@ -143,6 +148,10 @@ func _ready() -> void:
 		print("[ImpactEffectsManager] WARNING: FileLogger not found at /root/FileLogger")
 	else:
 		print("[ImpactEffectsManager] FileLogger found successfully")
+
+	# #1528 v4: Cache hot-path autoloads once to avoid per-shot get_node_or_null
+	_cached_perf_settings = get_node_or_null("/root/PerformanceSettings")
+	_cached_gameplay_settings = get_node_or_null("/root/GameplaySettings")
 
 	_preload_effect_scenes()
 
@@ -293,12 +302,10 @@ func _preload_effect_scenes() -> void:
 ## @param caliber_data: Optional caliber data for effect scaling.
 func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data: Resource = null) -> void:
 	# Issue #1145: Respect the wall hit particles optimization setting.
-	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
-	if gameplay_settings and not gameplay_settings.is_wall_hit_particles_enabled():
+	if _cached_gameplay_settings and not _cached_gameplay_settings.is_wall_hit_particles_enabled():  # #1528 v4: cached ref
 		return
 	# Issue #1186: performance toggle
-	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
-	if perf_settings and not perf_settings.is_particles_enabled():
+	if _cached_perf_settings and not _cached_perf_settings.is_particles_enabled():  # #1528 v4: cached ref
 		return
 
 	if _debug_effects:
@@ -357,10 +364,9 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 ## @param caliber_data: Optional caliber data for effect scaling.
 ## @param is_lethal: Whether the hit was lethal (affects intensity and decal spawning).
 func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data: Resource = null, is_lethal: bool = true) -> void:
-	# Issue #1186: performance toggle for particles
-	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
-	var _particles_on: bool = perf_settings == null or perf_settings.is_particles_enabled()
-	var _decals_on: bool = perf_settings == null or perf_settings.is_blood_decals_enabled()
+	# Issue #1186: performance toggle for particles; #1528 v4: use cached refs
+	var _particles_on: bool = _cached_perf_settings == null or _cached_perf_settings.is_particles_enabled()
+	var _decals_on: bool = _cached_perf_settings == null or _cached_perf_settings.is_blood_decals_enabled()
 
 	if not _particles_on and not _decals_on:
 		return
@@ -411,8 +417,7 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 		# Issue #969: reduced decal count to limit tree_changed signal spam at high fire rates
 		# Issue #1090: scale by GameplaySettings blood_amount multiplier
 		var base_decals := BLOOD_DECALS_PER_LETHAL_HIT if is_lethal else BLOOD_DECALS_PER_NONLETHAL_HIT
-		var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
-		var blood_multiplier: float = gameplay_settings.get_blood_amount() if gameplay_settings else 1.0
+		var blood_multiplier: float = _cached_gameplay_settings.get_blood_amount() if _cached_gameplay_settings else 1.0  # #1528 v4: cached ref
 		var num_decals := maxi(0, roundi(base_decals * blood_multiplier))
 		_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
 
@@ -430,9 +435,8 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 ## @param hit_direction: Direction the bullet was traveling.
 ## @param caliber_data: Optional caliber data for effect scaling.
 func spawn_sparks_effect(position: Vector2, hit_direction: Vector2, caliber_data: Resource = null) -> void:
-	# Issue #1186: performance toggle
-	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
-	if perf_settings and not perf_settings.is_particles_enabled():
+	# Issue #1186: performance toggle; #1528 v4: use cached ref
+	if _cached_perf_settings and not _cached_perf_settings.is_particles_enabled():
 		return
 
 	if _debug_effects:
@@ -479,9 +483,8 @@ func spawn_sparks_effect(position: Vector2, hit_direction: Vector2, caliber_data
 ## @param scale_override: Optional explicit scale override (ignores caliber_data if > 0).
 ##                        Use this for silenced weapons that need very small flash (e.g., 0.2 for ~100x100 pixels).
 func spawn_muzzle_flash(position: Vector2, direction: Vector2, caliber_data: Resource = null, scale_override: float = 0.0) -> void:
-	# Issue #1186: performance toggle
-	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
-	if perf_settings and not perf_settings.is_particles_enabled():
+	# Issue #1186: performance toggle; #1528 v4: use cached ref
+	if _cached_perf_settings and not _cached_perf_settings.is_particles_enabled():
 		return
 
 	if _debug_effects:
@@ -677,8 +680,9 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		_schedule_delayed_decal(origin, landing_pos, decal_rotation, decal_scale, land_time)
 		decals_scheduled += 1
 
-	# Log scheduled count unconditionally (matches Feb 16 backup behavior, enables log verification)
-	_log_info("Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
+	# #1528 v7: Changed to debug level — was 144+ file writes per session during combat
+	if OS.is_debug_build():
+		print("[ImpactEffects] Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
 	if _debug_effects:
 		print("[ImpactEffectsManager] Blood decals scheduled: ", decals_scheduled)
 
@@ -1288,9 +1292,8 @@ func spawn_explosion_effect(position: Vector2, radius: float) -> void:
 ## @param flash_color: Color of the flash effect.
 ## @param effect_type: Type name for logging ("flashbang" or "explosion").
 func _spawn_grenade_visual_effect(position: Vector2, radius: float, flash_color: Color, effect_type: String) -> void:
-	# Issue #1186: performance toggle for explosion lights
-	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
-	if perf_settings and not perf_settings.is_explosion_lights_enabled():
+	# Issue #1186: performance toggle for explosion lights; #1528 v4: use cached ref
+	if _cached_perf_settings and not _cached_perf_settings.is_explosion_lights_enabled():
 		return
 
 	# Check if we've hit the concurrent light limit (Issue #724 optimization)

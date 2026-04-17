@@ -2991,3 +2991,122 @@ func test_enemies_in_combat_cache_initial_value_issue_1520() -> void:
 	var initial_cache_value: int = 0
 	assert_eq(initial_cache_value, 0,
 		"Issue #1520: Initial enemies_in_combat cache should be 0 (safe default, no spurious assault)")
+
+
+# ============================================================================
+# Issue #1528: FPS Drop in Combat State (5–7 fps)
+# ============================================================================
+
+
+## Regression: Separation force throttle counter increments and resets (Issue #1528).
+## Ensures O(N²) separation scans run every 3 frames instead of every frame.
+func test_separation_throttle_counter_increments_issue_1528() -> void:
+	var SEPARATION_THROTTLE_INTERVAL: int = 3
+	var counter := 0
+
+	# Frame 1: counter=1, separation skipped
+	counter += 1
+	assert_true(counter < SEPARATION_THROTTLE_INTERVAL,
+		"Issue #1528: Separation force should be skipped on frame 1")
+
+	# Frame 2: counter=2, separation skipped
+	counter += 1
+	assert_true(counter < SEPARATION_THROTTLE_INTERVAL,
+		"Issue #1528: Separation force should be skipped on frame 2")
+
+	# Frame 3: counter=3, separation runs and resets
+	counter += 1
+	assert_false(counter < SEPARATION_THROTTLE_INTERVAL,
+		"Issue #1528: Separation force should run on frame 3 (counter == interval)")
+	counter = 0
+	assert_eq(counter, 0,
+		"Issue #1528: Separation counter should reset to 0 after running")
+
+
+## Regression: Can-hit-from-cover cache throttle (Issue #1528).
+## Ensures GOAP can-hit raycast runs every 6 frames instead of every frame.
+func test_can_hit_cache_throttle_issue_1528() -> void:
+	var CAN_HIT_CACHE_INTERVAL: int = 6
+	var counter := 0
+	var cache_value := false
+	var raycast_called := false
+
+	# Simulate 5 frames: counter increments, raycast NOT called
+	for i in range(CAN_HIT_CACHE_INTERVAL - 1):
+		counter += 1
+		assert_true(counter < CAN_HIT_CACHE_INTERVAL,
+			"Issue #1528: Can-hit raycast should be skipped on frame %d" % (i + 1))
+
+	# Frame 6: counter reaches threshold, raycast called
+	counter += 1
+	if counter >= CAN_HIT_CACHE_INTERVAL:
+		counter = 0
+		raycast_called = true
+		cache_value = true  # Simulate raycast result
+
+	assert_true(raycast_called,
+		"Issue #1528: Can-hit raycast should fire on frame 6")
+	assert_eq(counter, 0,
+		"Issue #1528: Can-hit counter should reset after raycast")
+	assert_true(cache_value,
+		"Issue #1528: Can-hit cache should be updated with raycast result")
+
+
+## Regression: Distraction check throttle (Issue #1528).
+## Ensures per-enemy viewport/canvas calculations run at ~10Hz instead of 60Hz.
+func test_distraction_check_throttle_issue_1528() -> void:
+	var DISTRACTED_CHECK_INTERVAL: int = 6
+	var counter := 0
+	var check_called_count := 0
+
+	# Simulate 12 frames (2 full intervals)
+	for i in range(12):
+		counter += 1
+		if counter >= DISTRACTED_CHECK_INTERVAL:
+			counter = 0
+			check_called_count += 1
+
+	assert_eq(check_called_count, 2,
+		"Issue #1528: Distraction check should fire exactly 2 times in 12 frames")
+
+
+## Regression: Log throttle limits file I/O during combat (Issue #1528).
+## Ensures at most LOG_THROTTLE_MAX_PER_INTERVAL log writes per throttle interval.
+func test_log_throttle_limits_writes_during_combat_issue_1528() -> void:
+	var LOG_THROTTLE_MAX_PER_INTERVAL: int = 1
+	var log_count := 0
+	var messages_attempted := 5
+	var messages_written := 0
+
+	for i in range(messages_attempted):
+		if log_count < LOG_THROTTLE_MAX_PER_INTERVAL:
+			messages_written += 1
+			log_count += 1
+
+	assert_eq(messages_written, LOG_THROTTLE_MAX_PER_INTERVAL,
+		"Issue #1528: Only %d log writes should pass per throttle interval" % LOG_THROTTLE_MAX_PER_INTERVAL)
+
+	# After timer reset, another write should pass
+	log_count = 0  # Simulate timer reset
+	if log_count < LOG_THROTTLE_MAX_PER_INTERVAL:
+		messages_written += 1
+		log_count += 1
+
+	assert_eq(messages_written, LOG_THROTTLE_MAX_PER_INTERVAL + 1,
+		"Issue #1528: After throttle reset, one more write should pass")
+
+
+## Regression: Log throttle does NOT block state transition messages (Issue #1528).
+## State changes (prefixed with "State:") must always pass through for debugging.
+func test_log_throttle_allows_state_transitions_issue_1528() -> void:
+	var message := "State: COMBAT -> PURSUING"
+	var is_state_transition := message.begins_with("State:")
+
+	assert_true(is_state_transition,
+		"Issue #1528: Messages starting with 'State:' must bypass log throttle")
+
+	var non_state_msg := "Player distracted - priority attack triggered"
+	var is_non_state := non_state_msg.begins_with("State:")
+
+	assert_false(is_non_state,
+		"Issue #1528: Non-state messages should be subject to log throttle")

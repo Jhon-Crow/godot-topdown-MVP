@@ -1113,7 +1113,7 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource, incoming_d
 
 	# Check invincibility mode (F6 toggle)
 	if _invincibility_enabled:
-		FileLogger.info("[Player] Hit blocked by invincibility mode")
+		FileLogger.debug("[Player] Hit blocked by invincibility mode")  # #1528 v5: fires per-hit during invincibility → debug-only
 		# Still show hit flash for visual feedback
 		_show_hit_flash()
 		# Spawn blood effect for visual feedback even in invincibility mode
