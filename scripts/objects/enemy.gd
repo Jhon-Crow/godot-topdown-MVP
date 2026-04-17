@@ -156,7 +156,7 @@ var _player: Node2D = null  ## Player reference
 var _shoot_timer: float = 0.0  ## Time since last shot
 ## Issue #969: throttle constants/trackers — prevent raycast floods with 20+ active enemies
 const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5; var _last_gunshot_propagation_time: float = -999.0
-const COVER_SEARCH_COOLDOWN: float = 0.3; var _last_cover_search_time: float = -999.0
+const COVER_SEARCH_COOLDOWN: float = 1.0; var _last_cover_search_time: float = -999.0  ## Issue #1526 RC10: increased from 0.3→1.0s; cover positions are stable so less frequent searches are fine
 const SUPPRESSED_MIN_DURATION: float = 0.5; var _suppressed_entry_time: float = -999.0  ## RCA-11: prevent SUPPRESSED→SEEKING_COVER cycling
 const POST_SUPPRESSION_COVER_DURATION: float = 3.0; var _post_suppression_timer: float = 0.0  ## Issue #1338: stay in cover after being suppressed
 const SEEKING_COVER_MIN_DURATION: float = 0.3; var _seeking_cover_entry_time: float = -999.0  ## Issue #997 RCA-17
@@ -274,6 +274,10 @@ const GLOBAL_STUCK_MAX_TIME: float = 4.0; const GLOBAL_STUCK_DISTANCE_THRESHOLD:
 var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1107: Stuck detection for machete COMBAT state
 const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
 var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
+var _distraction_attack_logged: bool = false  ## Issue #1526: Rate-limit distraction-attack log to once per episode
+var _nav_path_update_frame: int = 0; const NAV_PATH_UPDATE_INTERVAL: int = 10; var _nav_dir_cached: Vector2 = Vector2.ZERO  ## Issue #1526: Stagger navmesh path updates (~6×/sec at 60 Hz); cache nav dir between updates
+var _sep_force_frame: int = 0; var _sep_force_cached: Vector2 = Vector2.ZERO; const SEP_FORCE_INTERVAL: int = 6  ## Issue #1526: Stagger O(N²) sep scan every 6 frames in SEARCHING/PURSUING (~10×/sec at 60 Hz)
+var _cover_search_time_offset: float = 0.0; var _cover_inf_rays: bool = false; var _cover_sec_rays: bool = false; var _cover_flags_cached: bool = false  ## Issue #1526 RC10: stagger+cache cover search: offset staggers 20 enemies; flags cached once instead of get_node_or_null per search
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
 var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 100.0  ## Search center / current radius (Search State - Issue #322)
@@ -398,6 +402,7 @@ func _ready() -> void:
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
 	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
+	_cover_search_time_offset = (get_instance_id() % 20) * (COVER_SEARCH_COOLDOWN / 20.0)  ## Issue #1526 RC10: stagger cover searches so 20 enemies don't all search simultaneously
 
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
@@ -964,7 +969,7 @@ func _update_goap_state() -> void:
 	if _enemies_in_combat_cache_timer >= ENEMIES_IN_COMBAT_CACHE_INTERVAL: _enemies_in_combat_cache_timer = 0.0; _enemies_in_combat_cache = _count_enemies_in_combat()
 	_goap_world_state["enemies_in_combat"] = _enemies_in_combat_cache
 	_goap_world_state["player_distracted"] = _is_player_distracted()
-
+	if not _goap_world_state["player_distracted"]: _distraction_attack_logged = false  # #1526: reset log flag
 	# Memory system states (Issue #297)
 	if _memory:
 		_goap_world_state["has_suspected_position"] = _memory.has_target()
@@ -1250,7 +1255,7 @@ func _process_ai_state(delta: float) -> void:
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
-			_log_to_file("Player distracted - priority attack triggered")
+			if not _distraction_attack_logged: _log_to_file("Player distracted - priority attack triggered"); _distraction_attack_logged = true  # #1526: once per episode
 			_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 			if _shield_component and _shield_component.get_rotation_multiplier() < 1.0: _set_hit_reaction_target(direction_to_player)  # Issue #1242: shield enemy slowly aims
 			else: _force_model_to_face_direction(direction_to_player)  # Fix issue #264: ensure correct aim
@@ -2003,10 +2008,8 @@ func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void
 		# After burst, run to cover without shooting using navigation
 		_move_to_target_nav(_cover_position, combat_move_speed)
 
-## Process MULTIPLE_HITS retreat: quick burst of 2-4 shots then run to cover (same as ONE_HIT).
-func _process_retreat_multiple_hits(delta: float, direction_to_cover: Vector2) -> void:
-	# Same behavior as ONE_HIT - quick burst then escape
-	_process_retreat_one_hit(delta, direction_to_cover)
+## Process MULTIPLE_HITS retreat: same as ONE_HIT — quick burst then escape.
+func _process_retreat_multiple_hits(delta: float, direction_to_cover: Vector2) -> void: _process_retreat_one_hit(delta, direction_to_cover)
 
 ## Process PURSUING state - move cover-to-cover toward player or vulnerability sound.
 func _process_pursuing_state(delta: float) -> void:
@@ -2263,13 +2266,7 @@ func _should_prioritize_flanking_target() -> bool:
 	return true
 
 ## Process ASSAULT state - disabled per issue #169. Immediately transitions to COMBAT.
-func _process_assault_state(_delta: float) -> void:
-	# ASSAULT state is disabled per issue #169
-	# Immediately transition to COMBAT state
-	_log_debug("ASSAULT state disabled (issue #169), transitioning to COMBAT")
-	_in_assault = false
-	_assault_ready = false
-	_transition_to_combat()
+func _process_assault_state(_delta: float) -> void: _log_debug("ASSAULT state disabled (issue #169), transitioning to COMBAT"); _in_assault = false; _assault_ready = false; _transition_to_combat()
 
 ## Load predefined search waypoints from SearchPathWaypoints node (Issue #1225). Returns true if loaded.
 func _load_predefined_search_path(_near_pos: Vector2) -> bool:
@@ -2346,7 +2343,7 @@ func _process_searching_state(delta: float) -> void:
 		_transition_to_idle()
 		return
 	if _can_see_player:
-		_log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
+		var _ps2 := get_node_or_null("/root/PerformanceSettings"); if not _ps2 or _ps2.is_ai_state_combat_enabled(): _log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")  # #1526: skip log when COMBAT disabled to avoid per-frame spam
 		_transition_to_combat()
 		return
 	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
@@ -2388,7 +2385,7 @@ func _process_searching_state(delta: float) -> void:
 			_search_moving_to_waypoint = false; _search_scan_timer = 0.0; _search_stuck_timer = 0.0
 			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
-			_nav_agent.target_position = target_waypoint
+			var _frame := Engine.get_physics_frames(); if _frame - _nav_path_update_frame >= NAV_PATH_UPDATE_INTERVAL: _nav_agent.target_position = target_waypoint; _nav_path_update_frame = _frame  # #1526: stagger navmesh updates
 			if _nav_agent.is_navigation_finished():
 				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
@@ -2623,6 +2620,7 @@ func _shoot_burst_shot() -> void:
 func _transition_to_idle() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings")
 	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
+		if _current_state == AIState.SEARCHING: return  # #1526: already searching — don't reset waypoints every frame
 		_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _generate_search_waypoints(); return
 	_current_state = AIState.IDLE
 	# Reset various state tracking when returning to idle
@@ -3249,16 +3247,14 @@ func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 	var space_state := get_world_2d().direct_space_state
 	var nav_map: RID = _nav_agent.get_navigation_map() if _nav_agent else RID()
 	var has_nav := nav_map.is_valid()
-	var exp_s: Node = get_node_or_null("/root/ExperimentalSettings")
-	var inf_rays: bool = exp_s != null and exp_s.has_method("is_cover_infinite_rays_enabled") and exp_s.is_cover_infinite_rays_enabled()
-	var sec_rays: bool = exp_s != null and exp_s.has_method("is_cover_sector_rays_enabled") and exp_s.is_cover_sector_rays_enabled()
-	var ray_dist: float = COVER_INFINITE_RAY_DISTANCE if inf_rays else COVER_CHECK_DISTANCE
-	var ray_count: int = COVER_SECTOR_RAY_COUNT if sec_rays else COVER_CHECK_COUNT
-	var sec_ctr: Vector2 = (global_position - player_pos).normalized() if sec_rays else Vector2.ZERO
+	if not _cover_flags_cached: var _es := get_node_or_null("/root/ExperimentalSettings"); _cover_inf_rays = _es != null and _es.has_method("is_cover_infinite_rays_enabled") and _es.is_cover_infinite_rays_enabled(); _cover_sec_rays = _es != null and _es.has_method("is_cover_sector_rays_enabled") and _es.is_cover_sector_rays_enabled(); _cover_flags_cached = true  ## Issue #1526 RC10: cache cover flags once
+	var ray_dist: float = COVER_INFINITE_RAY_DISTANCE if _cover_inf_rays else COVER_CHECK_DISTANCE
+	var ray_count: int = COVER_SECTOR_RAY_COUNT if _cover_sec_rays else COVER_CHECK_COUNT
+	var sec_ctr: Vector2 = (global_position - player_pos).normalized() if _cover_sec_rays else Vector2.ZERO
 	if store_debug_rays: _last_cover_search_rays.clear()
 	for i in range(ray_count):
 		var direction: Vector2
-		if sec_rays:
+		if _cover_sec_rays:
 			var frac := float(i) / float(ray_count - 1) if ray_count > 1 else 0.5
 			direction = Vector2.from_angle(sec_ctr.angle() + (frac - 0.5) * 2.0 * COVER_SECTOR_HALF_ANGLE)
 		else: direction = Vector2.from_angle((float(i) / float(ray_count)) * TAU)
@@ -3282,8 +3278,8 @@ func _get_hidden_cover_candidates(store_debug_rays: bool) -> Array[Vector2]:
 func _find_cover_position() -> void:
 	if _player == null: _has_valid_cover = false; return
 	var current_time := Time.get_ticks_msec() / 1000.0
-	if current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return  ## Issue #1411: cooldown applies even without valid cover to prevent frame-burst searches
-	_last_cover_search_time = current_time
+	if current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN + _cover_search_time_offset: return  ## Issue #1411/1526 RC10: cooldown + per-enemy stagger offset (cleared after first search)
+	_cover_search_time_offset = 0.0; _last_cover_search_time = current_time
 	var candidates := _get_hidden_cover_candidates(true)
 	if candidates.is_empty():
 		_has_valid_cover = false
@@ -4658,9 +4654,15 @@ func _is_player_distracted() -> bool:
 		_log_debug("Player distracted: aim angle %.1f° > %.1f° threshold" % [rad_to_deg(angle), rad_to_deg(PLAYER_DISTRACTION_ANGLE)])
 	return is_distracted
 
-## Get direction to follow NavigationAgent2D path toward target_pos. Returns Vector2.ZERO if finished.
+## Get direction to follow NavigationAgent2D path. #1526: stagger SEARCHING/PURSUING path updates; reuse cached dir between updates.
 func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 	if _nav_agent == null: return (target_pos - global_position).normalized()
+	var frame := Engine.get_physics_frames()
+	if _current_state in [AIState.SEARCHING, AIState.PURSUING]:  # #1526: stagger expensive path update
+		if frame - _nav_path_update_frame >= NAV_PATH_UPDATE_INTERVAL:
+			_nav_agent.target_position = target_pos; _nav_path_update_frame = frame
+			_nav_dir_cached = Vector2.ZERO if _nav_agent.is_navigation_finished() else (_nav_agent.get_next_path_position() - global_position).normalized()
+		return _nav_dir_cached  # Reuse cached direction on non-update frames
 	_nav_agent.target_position = target_pos
 	if _nav_agent.is_navigation_finished(): return Vector2.ZERO
 	return (_nav_agent.get_next_path_position() - global_position).normalized()
@@ -4700,22 +4702,20 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	if velocity.length_squared() > 0.01: _rotate_body_toward(velocity.angle(), get_physics_process_delta_time())
 	return true
 
-## Issue #1146: Called by NavigationAgent2D when ORCA computes a safe avoidance velocity.
-func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
-	_avoidance_velocity = safe_velocity
-
-## Issue #1146: Separation steering — push away from nearby allies.
-## Issue #1249: Skip separation while yielding so the passing enemy isn't pushed aside.
+func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void: _avoidance_velocity = safe_velocity  ## Issue #1146: ORCA safe velocity callback
+## Issue #1146: Separation steering. #1249: skip while yielding. #1526: stagger O(N²) scan every SEP_FORCE_INTERVAL frames in ALL states.
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
 	if _tactical_movement and _tactical_movement.is_yielding: return vel  # #1249: yielding — don't push
 	if _current_state == AIState.IDLE and behavior_mode == BehaviorMode.GUARD: return vel  # #1520: GUARD stands still — skip O(N) scan
-	var sep_force: Vector2 = Vector2.ZERO
-	for body in get_tree().get_nodes_in_group("enemies"):
-		if body == self or not is_instance_valid(body): continue
-		var diff: Vector2 = global_position - (body as Node2D).global_position
-		var dist: float = diff.length()
-		if dist < SEPARATION_RADIUS and dist > 0.1: sep_force += diff.normalized() * (SEPARATION_RADIUS - dist) / SEPARATION_RADIUS
-	if sep_force != Vector2.ZERO: vel += sep_force * SEPARATION_STRENGTH * delta
+	var frame := Engine.get_physics_frames()  # #1526: recompute O(N²) scan every SEP_FORCE_INTERVAL frames; reuse cache otherwise (applies to ALL states)
+	if (frame - _sep_force_frame) >= SEP_FORCE_INTERVAL:
+		var sep_force: Vector2 = Vector2.ZERO
+		for body in get_tree().get_nodes_in_group("enemies"):
+			if body == self or not is_instance_valid(body): continue
+			var diff: Vector2 = global_position - (body as Node2D).global_position; var dist: float = diff.length()
+			if dist < SEPARATION_RADIUS and dist > 0.1: sep_force += diff.normalized() * (SEPARATION_RADIUS - dist) / SEPARATION_RADIUS
+		_sep_force_cached = sep_force; _sep_force_frame = frame
+	if _sep_force_cached != Vector2.ZERO: vel += _sep_force_cached * SEPARATION_STRENGTH * delta
 	return vel
 
 ## Check if the navigation agent has a valid path to the target.

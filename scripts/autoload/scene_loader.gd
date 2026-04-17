@@ -99,6 +99,20 @@ func load_level(level_path: String) -> void:
 
 ## Start the background loading after fade in
 func _start_background_load() -> void:
+	# Issue #1526: Check if resource is already cached. In Godot 4.3, requesting a
+	# threaded load for an already-loaded resource can return INVALID_RESOURCE during
+	# polling, causing a freeze from the sync fallback. Use the cache directly instead.
+	if ResourceLoader.has_cached(_current_load_path):
+		_log("Resource already cached, skipping threaded load: %s" % _current_load_path)
+		var cached := load(_current_load_path) as PackedScene
+		if cached:
+			get_tree().paused = false
+			get_tree().change_scene_to_packed(cached)
+			_log("Scene changed successfully (from cache)")
+			var fade_tween := create_tween()
+			fade_tween.tween_property(_loading_overlay, "modulate:a", 0.0, FADE_DURATION)
+			fade_tween.tween_callback(_hide_loading_screen)
+			return
 	# Request background loading
 	var error := ResourceLoader.load_threaded_request(_current_load_path, "", true)
 	if error != OK:
@@ -135,10 +149,27 @@ func _process(_delta: float) -> void:
 			_fallback_sync_load()
 
 		ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
-			# Issue #1456: treat invalid-resource the same as failed — fall back to
-			# synchronous loading so the scene transition still completes.
-			_log("ERROR: Invalid resource (falling back to sync): %s" % _current_load_path)
-			_fallback_sync_load()
+			# Issue #1456/1526: INVALID_RESOURCE can appear in two scenarios in Godot 4.3:
+			# (a) Revisit: resource is already in Godot's cache — load_threaded_get() will
+			#     return the cached copy immediately.
+			# (b) First load: rare race where the thread hasn't started yet — try
+			#     load_threaded_get() first; if that fails, fall back to sync.
+			_log("WARNING: Invalid resource status — trying load_threaded_get before sync fallback: %s" % _current_load_path)
+			var maybe_scene := ResourceLoader.load_threaded_get(_current_load_path) as PackedScene
+			if maybe_scene:
+				_log("load_threaded_get succeeded despite INVALID_RESOURCE status, proceeding")
+				set_process(false)
+				_progress_bar.value = 1.0
+				get_tree().paused = false
+				var err := get_tree().change_scene_to_packed(maybe_scene)
+				if err != OK:
+					_log("ERROR: Failed to change to packed scene: %d" % err)
+				var fade_tween := create_tween()
+				fade_tween.tween_property(_loading_overlay, "modulate:a", 0.0, FADE_DURATION)
+				fade_tween.tween_callback(_hide_loading_screen)
+			else:
+				_log("ERROR: Invalid resource (falling back to sync): %s" % _current_load_path)
+				_fallback_sync_load()
 
 
 ## Called when background loading is complete

@@ -625,6 +625,10 @@ func _run_stress_benchmark(cycles: int) -> void:
 		step_index, total_steps, STRESS_PARTICLE_COUNT])
 
 	var particle_nodes: Array = _spawn_stress_particles()
+	# Issue #1526: Wait for emitters to reach steady-state before measuring.
+	# Without this, the "enabled" sample captures partially warmed-up particles,
+	# making the delta near zero and understating the true GPU cost.
+	await get_tree().create_timer(1.0).timeout
 	var fps_particles_on := await _sample_fps(STRESS_SAMPLE_DURATION, cycles)
 	perf_settings.set_particles_enabled(false)
 	# Stop already-spawned emitters so the disabled sample reflects zero particle work.
@@ -710,7 +714,8 @@ func _run_stress_benchmark(cycles: int) -> void:
 	var combo_particles: Array = _spawn_stress_particles()
 	var combo_lights: Array = _spawn_stress_lights()
 	var combo_enemies: Array = _spawn_stress_enemies()
-	await get_tree().create_timer(0.5).timeout
+	# Issue #1526: 1s warm-up for particles + 0.5s for enemy init = 1s total (overlapping).
+	await get_tree().create_timer(1.0).timeout
 	var fps_combo_on := await _sample_fps(STRESS_SAMPLE_DURATION, cycles)
 
 	# Disable all subsystems
