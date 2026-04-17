@@ -228,6 +228,21 @@ func _build_ui() -> void:
 	_toast.add_theme_stylebox_override("panel", style)
 	_root_control.add_child(_toast)
 
+	var shine_overlay := ColorRect.new()
+	shine_overlay.name = "GoldShineOverlay"
+	shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shine_overlay.color = Color.TRANSPARENT
+	shine_overlay.show_behind_parent = true
+	var shine_shader := load(GOLD_SHINE_SHADER_PATH) as Shader
+	if shine_shader:
+		var mat := ShaderMaterial.new()
+		mat.shader = shine_shader
+		mat.set_shader_parameter("horizontal_sweep", true)
+		mat.set_shader_parameter("cycle_duration", 2.4)
+		shine_overlay.material = mat
+	_toast.add_child(shine_overlay)
+
 	var margin := MarginContainer.new()
 	margin.name = "ContentMargin"
 	margin.add_theme_constant_override("margin_left", 16)
@@ -266,20 +281,6 @@ func _build_ui() -> void:
 	_message_label.add_theme_constant_override("shadow_offset_x", 1)
 	_message_label.add_theme_constant_override("shadow_offset_y", 1)
 	row.add_child(_message_label)
-
-	var shine_overlay := ColorRect.new()
-	shine_overlay.name = "GoldShineOverlay"
-	shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	shine_overlay.color = Color.TRANSPARENT
-	var shine_shader := load(GOLD_SHINE_SHADER_PATH) as Shader
-	if shine_shader:
-		var mat := ShaderMaterial.new()
-		mat.shader = shine_shader
-		mat.set_shader_parameter("horizontal_sweep", true)
-		mat.set_shader_parameter("cycle_duration", 2.4)
-		shine_overlay.material = mat
-	_toast.add_child(shine_overlay)
 
 	_position_toast(false)
 

@@ -127,6 +127,28 @@ func test_display_duration_is_four_seconds() -> void:
 		"Unlock notifications should play the exit slide exactly once per toast")
 
 
+func test_gold_text_remains_above_shine_overlay() -> void:
+	var script: GDScript = load(NOTIFICATION_MANAGER_SCRIPT)
+	assert_not_null(script, "UnlockNotificationManager script should load")
+	var manager: CanvasLayer = autofree(script.new())
+	add_child(manager)
+	await get_tree().process_frame
+
+	var toast: PanelContainer = manager.get_node("UnlockNotificationRoot/UnlockToast")
+	var shine_overlay: ColorRect = toast.get_node("GoldShineOverlay")
+	var label: Label = toast.get_node("ContentMargin/ContentRow/MessageLabel")
+	var font_color: Color = label.get_theme_color("font_color")
+
+	assert_true(shine_overlay.show_behind_parent,
+		"Gold shine overlay should render behind the toast content so it cannot cover text")
+	assert_gt(toast.get_children().find(label.get_parent().get_parent()), toast.get_children().find(shine_overlay),
+		"Content should be ordered after the shine overlay")
+	assert_gt(font_color.r, 0.9, "Toast text should use a visible gold color")
+	assert_gt(font_color.g, 0.75, "Toast text should use a visible gold color")
+	assert_gt(font_color.b, 0.25, "Toast text should use a visible gold color")
+	assert_eq(font_color.a, 1.0, "Toast text should be fully opaque")
+
+
 func test_collects_only_locked_items_with_met_conditions() -> void:
 	var script: GDScript = load(NOTIFICATION_MANAGER_SCRIPT)
 	assert_not_null(script, "UnlockNotificationManager script should load")
