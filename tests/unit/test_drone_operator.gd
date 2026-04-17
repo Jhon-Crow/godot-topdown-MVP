@@ -557,3 +557,174 @@ func test_drone_operator_active_does_not_use_machete_melee_in_combat() -> void:
 		"Drone operator ACTIVE block must NOT call perform_melee_attack (Issue #1664)")
 	assert_false(drone_block.contains("is_backstab_opportunity"),
 		"Drone operator ACTIVE block must NOT use machete backstab approach (Issue #1664)")
+
+
+# ============================================================================
+# Issue #1744: Pacifist drone operator must not switch to COMBAT on drone death
+# ============================================================================
+
+
+class MockPacifistDroneOperator:
+	## Simulates the drone destruction → active phase transition logic, with pacifist guard.
+	## Mirrors the fix in drone_operator_component.gd _transition_to_active() (Issue #1744).
+
+	enum Phase { DEPLOYING, CONTROLLING, ACTIVE }
+	const COMBAT_STATE: int = 1
+	const PACIFIST_STATE: int = 15
+
+	var _phase: Phase = Phase.CONTROLLING
+	var _parent_state: int = PACIFIST_STATE  # starts pacifist
+	var _parent_is_pacifist: bool = true
+
+	## Fixed version: checks pacifist status before forcing COMBAT (Issue #1744).
+	func on_drone_destroyed() -> void:
+		_phase = Phase.ACTIVE
+		if not _parent_is_pacifist:
+			_parent_state = COMBAT_STATE
+
+	## Buggy version: always forces COMBAT (pre-fix behavior).
+	func on_drone_destroyed_buggy() -> void:
+		_phase = Phase.ACTIVE
+		_parent_state = COMBAT_STATE  # Bug: no pacifist check
+
+
+func test_pacifist_operator_stays_pacifist_when_drone_destroyed() -> void:
+	## Issue #1744: pacifist drone operator must NOT transition to COMBAT when drone dies.
+	var op := MockPacifistDroneOperator.new()
+	op._parent_is_pacifist = true
+	op._parent_state = MockPacifistDroneOperator.PACIFIST_STATE
+	op.on_drone_destroyed()
+	assert_ne(op._parent_state, MockPacifistDroneOperator.COMBAT_STATE,
+		"Pacifist drone operator must NOT enter COMBAT when drone is destroyed (Issue #1744)")
+	assert_eq(op._phase, MockPacifistDroneOperator.Phase.ACTIVE,
+		"Phase must switch to ACTIVE even when pacifist (no more drone)")
+
+
+func test_non_pacifist_operator_enters_combat_when_drone_destroyed() -> void:
+	## Non-pacifist operator should still enter COMBAT when drone is destroyed.
+	var op := MockPacifistDroneOperator.new()
+	op._parent_is_pacifist = false
+	op._parent_state = 0  # some non-pacifist state
+	op.on_drone_destroyed()
+	assert_eq(op._parent_state, MockPacifistDroneOperator.COMBAT_STATE,
+		"Non-pacifist drone operator must enter COMBAT when drone is destroyed")
+
+
+func test_buggy_operator_wrongly_forces_combat_on_pacifist() -> void:
+	## Regression test: the buggy version (before fix) would override pacifist state.
+	var op := MockPacifistDroneOperator.new()
+	op._parent_is_pacifist = true
+	op._parent_state = MockPacifistDroneOperator.PACIFIST_STATE
+	op.on_drone_destroyed_buggy()
+	## Assert that the BUG occurs — documents the pre-fix behavior.
+	assert_eq(op._parent_state, MockPacifistDroneOperator.COMBAT_STATE,
+		"Buggy version forces COMBAT even on pacifist (this is the pre-fix bug we fixed)")
+
+
+func test_drone_operator_pacifist_guard_in_source() -> void:
+	## Issue #1744: _transition_to_active() must check is_pacifist() before forcing COMBAT.
+	var file := FileAccess.open("res://scripts/components/drone_operator_component.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open drone_operator_component.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("is_pacifist"),
+		"drone_operator_component.gd must check is_pacifist() before forcing COMBAT in _transition_to_active() (Issue #1744)")
+	assert_true(source.contains("1744"),
+		"drone_operator_component.gd must reference Issue #1744 in the pacifist guard comment")
+
+
+func test_enemy_pacifist_retaliation_uses_attacker_node() -> void:
+	## Issue #1744 follow-up: when another enemy hits a pacifist, retaliation targets that enemy, not the player.
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("attacker_node: Node2D = null"),
+		"enemy.gd hit handler must accept the actual attacker node")
+	assert_true(source.contains("var retaliation_target: Node2D = attacker_node"),
+		"pacifist retaliation must prefer the actual attacker node over _player")
+	assert_false(source.contains("_pacifist.start_retaliation(_player);"),
+		"pacifist retaliation must not always target the player")
+
+
+func test_projectile_hit_forwarding_passes_shooter_node() -> void:
+	## Enemy bullets carry shooter_id; hit forwarding must preserve the shooter node for pacifist retaliation.
+	var file := FileAccess.open("res://scripts/projectiles/bullet.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open bullet.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("func _get_shooter_node() -> Node2D"),
+		"bullet.gd must resolve shooter_id to a Node2D")
+	assert_true(source.contains("var attacker_node := _get_shooter_node()"),
+		"bullet.gd must pass shooter node through hit callbacks")
+	assert_true(source.contains("effective_damage, from_player, attacker_node"),
+		"bullet.gd damage hit path must include attacker_node")
+	assert_false(source.contains("1.0, from_player, attacker_node"),
+		"bullet.gd legacy bullet-info path must not hardcode damage before source data")
+	assert_true(source.contains("_has_penetrated, effective_damage, from_player, attacker_node"),
+		"bullet.gd legacy bullet-info path must pass effective_damage before source data so player damage is not false/0")
+	assert_true(source.contains("func _supports_explicit_bullet_damage"),
+		"bullet.gd must distinguish damage-aware direct targets from legacy six-argument hit areas")
+	assert_true(source.contains("_has_penetrated, from_player, attacker_node"),
+		"bullet.gd must keep legacy hit-area calls in the old six-argument source-data shape")
+
+
+func test_hit_areas_forward_attacker_node() -> void:
+	## Hit areas sit between bullets and enemies, so both normal and shield hit areas must forward attacker_node.
+	for path in ["res://scripts/objects/hit_area.gd", "res://scripts/components/shield_hit_area.gd"]:
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			gut.p("Cannot open %s — skipping (export build)" % path)
+			pass_test("Skipped in export build")
+			continue
+		var source := file.get_as_text()
+		file.close()
+		assert_true(source.contains("attacker_node: Node2D = null"),
+			"%s must accept optional attacker_node" % path)
+		assert_true(source.contains("is_from_player, attacker_node"),
+			"%s must forward attacker_node with hit source data" % path)
+
+
+func test_attacker_node_signature_compatibility_for_existing_targets() -> void:
+	## Issue #1744 follow-up: every bullet-info receiver must tolerate the new optional attacker_node.
+	var expected_signatures := {
+		"res://scripts/characters/player.gd": "_attacker_node: Node2D = null",
+		"res://scripts/objects/drone.gd": "_attacker_node: Node2D = null",
+		"res://scripts/effects/illusion_hit_area.gd": "_attacker_node: Node2D = null",
+		"res://scripts/projectiles/rpg_rocket.gd": "_attacker_node: Node2D = null",
+		"res://scripts/projectiles/bullet.gd": "_attacker_node: Node2D = null"
+	}
+	for path in expected_signatures.keys():
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			gut.p("Cannot open %s — skipping (export build)" % path)
+			pass_test("Skipped in export build")
+			continue
+		var source := file.get_as_text()
+		file.close()
+		assert_true(source.contains(expected_signatures[path]),
+			"%s bullet-info receiver must accept optional attacker_node so enemy bullets still damage the player and other targets" % path)
+
+
+func test_csharp_player_accepts_attacker_node_bullet_info_overload() -> void:
+	## Issue #1744 follow-up: GDScript bullet.gd calls Player with seven args after attacker forwarding.
+	var file := FileAccess.open("res://Scripts/Characters/Player.cs", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open Player.cs — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("float damage, bool isFromPlayer, Node2D? attackerNode"),
+		"C# Player must expose the seven-argument bullet-info overload used by GDScript bullet.gd")
+	assert_true(source.contains("damage, isFromPlayer);"),
+		"seven-argument Player overload should preserve explicit damage and delegate to the existing damage path")

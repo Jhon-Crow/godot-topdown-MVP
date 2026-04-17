@@ -418,7 +418,7 @@ func on_hit_with_info(_dir: Vector2, _cal: Resource) -> void:
 	on_hit()
 
 
-func on_hit_with_bullet_info(_dir: Vector2, _cal: Resource, ricocheted: bool, penetrated: bool, dmg: float = 1.0, from_player: bool = false) -> void:
+func on_hit_with_bullet_info(_dir: Vector2, _cal: Resource, ricocheted: bool, penetrated: bool, dmg: float = 1.0, from_player: bool = false, _attacker_node: Node2D = null) -> void:
 	if not _is_alive:
 		return
 	hit.emit()

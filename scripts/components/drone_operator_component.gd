@@ -377,11 +377,17 @@ func _transition_to_active() -> void:
 		if lens:
 			lens.color = Color(1.0, 0.05, 0.05, 1.0)  # Bright red = disconnected (Issue #1532)
 
-	# Force transition to COMBAT state
-	if _parent and _parent.has_method("_transition_to_combat"):
-		_parent._transition_to_combat()
-	elif _parent and _parent.get("_current_state") != null:
-		_parent._current_state = 1  # AIState.COMBAT
+	# Force transition to COMBAT state — unless the operator is already pacifist (Issue #1744).
+	# A pacifist drone operator should stay pacifist even after their drone is destroyed;
+	# forcing COMBAT here would override the loudspeaker effect and make them attack again.
+	var is_pacifist: bool = _parent and _parent.has_method("is_pacifist") and _parent.is_pacifist()
+	if not is_pacifist:
+		if _parent and _parent.has_method("_transition_to_combat"):
+			_parent._transition_to_combat()
+		elif _parent and _parent.get("_current_state") != null:
+			_parent._current_state = 1  # AIState.COMBAT
+	else:
+		FileLogger.info("[DroneOperator] Drone destroyed but operator is pacifist — staying pacifist (Issue #1744)")
 
 	# Set up EnemyTeleportComponent for evasion (Issue #1664).
 	# Same teleport behavior as the teleport enemy — teleport to cover on first bullet, etc.
