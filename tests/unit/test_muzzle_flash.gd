@@ -14,7 +14,13 @@ class MockMuzzleFlash:
 	const FLASH_DURATION: float = 0.3
 
 	## Starting energy of the point light.
-	const LIGHT_START_ENERGY: float = 8.0
+	const LIGHT_START_ENERGY: float = 12.0
+
+	## Muzzle flash light texture scale from MuzzleFlash.tscn.
+	const LIGHT_TEXTURE_SCALE: float = 8.0
+
+	## Godot PointLight2D.BLEND_MODE_MIX. This brightens canvas items and keeps shadows.
+	const LIGHT_BLEND_MODE: int = 0
 
 	## Time tracker.
 	var _elapsed_time: float = 0.0
@@ -73,8 +79,18 @@ func test_flash_duration() -> void:
 
 
 func test_light_start_energy() -> void:
-	assert_eq(MockMuzzleFlash.LIGHT_START_ENERGY, 8.0,
-		"LIGHT_START_ENERGY should be 8.0")
+	assert_eq(MockMuzzleFlash.LIGHT_START_ENERGY, 12.0,
+		"LIGHT_START_ENERGY should be 12.0")
+
+
+func test_light_texture_scale_covers_floor_and_walls() -> void:
+	assert_eq(MockMuzzleFlash.LIGHT_TEXTURE_SCALE, 8.0,
+		"Muzzle flash should cover enough radius for visible floor and wall flashes")
+
+
+func test_light_uses_mix_blend_mode_for_canvas_items() -> void:
+	assert_eq(MockMuzzleFlash.LIGHT_BLEND_MODE, 0,
+		"Muzzle flash should use PointLight2D BLEND_MODE_MIX so floors and walls receive visible light")
 
 
 # ============================================================================
