@@ -1,4 +1,6 @@
 extends Node2D
+
+const LEVEL_SCENE_PATH := "res://scenes/levels/LabyrinthLevel.tscn"
 ## Labyrinth level scene for the Godot Top-Down Template.
 ##
 ## This scene is a labyrinth of technical rooms (enclosed spaces).
@@ -197,7 +199,7 @@ var _tutorial_shotgun_full_reload_active: bool = false
 ## Whether M16 fire-mode [B] hint should appear after grenade training (Bug fix round 5).
 var _tutorial_m16_needs_fire_mode_hint: bool = false
 
-## Grenade hint step (Issue #1818 / PR review feedback): 0..4 map to the effective actions.
+## Grenade hint step (Issue #1818 / PR review feedback): 0..5 map to the effective actions.
 var _tutorial_grenade_hint_step: int = 0
 
 ## Whether G key was held last frame (for grenade hint step tracking).
@@ -206,6 +208,9 @@ var _tutorial_grenade_drag_completed: bool = false
 var _tutorial_grenade_rmb_held_after_release: bool = false
 var _tutorial_grenade_rmb_was_pressed: bool = false
 var _tutorial_grenade_hint_drag_start: Vector2 = Vector2.ZERO
+
+## Whether the shotgun full-reload tutorial reached the shell-loading phase.
+var _tutorial_shotgun_reload_started: bool = false
 
 ## Unique colors per hint type (Issue #945: simultaneously displayed hints should be different colors).
 const TUTORIAL_HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)              ## Green — reload
@@ -1068,10 +1073,12 @@ func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
+	var level_label: Label = ui.get_node_or_null("LevelLabel")
+	LevelLocalization.apply_level_label(level_label, LEVEL_SCENE_PATH)
 
 	_difficulty_label = Label.new()
 	_difficulty_label.name = "DifficultyLabel"
-	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
 	_difficulty_label.offset_top = 80
@@ -1081,7 +1088,7 @@ func _setup_debug_ui() -> void:
 
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
-	_magazines_label.text = "MAGS: -"
+	_magazines_label.text = LevelLocalization.get_magazines_text([])
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
 	_magazines_label.offset_top = 115
@@ -1130,7 +1137,7 @@ func _update_debug_ui() -> void:
 		return
 
 	if _difficulty_label:
-		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 
 
 ## Called when an enemy dies.
@@ -1360,7 +1367,7 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current, maximum]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current, maximum)
 
 	if current <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
@@ -1375,7 +1382,7 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current_mag, reserve)
 
 	if current_mag <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
@@ -1390,67 +1397,20 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
 
-	var weapon = null
-	if _player:
-		weapon = _player.get_node_or_null("Shotgun")
-		if weapon == null:
-			weapon = _player.get_node_or_null("MiniUzi")
-		if weapon == null:
-			weapon = _player.get_node_or_null("SilencedPistol")
-		if weapon == null:
-			weapon = _player.get_node_or_null("SniperRifle")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AssaultRifle")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AKGL")
-		if weapon == null:
-			weapon = _player.get_node_or_null("Revolver")
-		if weapon == null:
-			weapon = _player.get_node_or_null("MakarovPM")
-
-	if weapon != null and weapon.get("UsesTubeMagazine") == true:
-		_magazines_label.visible = false
-		return
-	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
+	if LevelLocalization.weapon_hides_magazines(weapon):
 		_magazines_label.visible = false
 		return
 	_magazines_label.visible = true
 
-	if magazine_ammo_counts.is_empty():
-		_magazines_label.text = "MAGS: -"
-		return
-
-	# Get magazine capacities to distinguish full vs partial spares
-	var mag_max_counts: Array = []
-	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
-		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
-
-	var parts: Array = []
-	# Current magazine always shown in brackets
-	parts.append("[%d]" % magazine_ammo_counts[0])
-
-	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
-	var full_spare_count: int = 0
-	for i in range(1, magazine_ammo_counts.size()):
-		var ammo: int = magazine_ammo_counts[i]
-		if ammo <= 0:
-			continue
-		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
-		if cap > 0 and ammo >= cap:
-			full_spare_count += 1
-		else:
-			parts.append("%d" % ammo)
-
-	if full_spare_count > 0:
-		parts.append("+ x%d" % full_spare_count)
-
-	_magazines_label.text = "MAGS: " + " | ".join(parts)
+	var parts: Array[String] = LevelLocalization.get_magazine_display_parts(weapon, magazine_ammo_counts)
+	_magazines_label.text = LevelLocalization.get_magazines_text(parts)
 
 
 ## Update the enemy count label in UI.
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
-		_enemy_count_label.text = "Enemies: %d" % _current_enemy_count
+		_enemy_count_label.text = LevelLocalization.get_enemy_count_text(_current_enemy_count)
 
 
 ## Show death message when player dies.
@@ -2427,6 +2387,7 @@ func _on_tutorial_reload_completed() -> void:
 		if _tutorial_has_shotgun:
 			_dismiss_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE)
 			_tutorial_shotgun_full_reload_active = false  # Bug fix round 5: reset flag
+			_tutorial_shotgun_reload_started = false
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		# Bug fix round 5: M16 fire-mode [B] hint should appear after grenade, not now.
 		if _tutorial_assault_rifle != null and not _tutorial_has_ak_gl:
@@ -2547,13 +2508,20 @@ func _update_tutorial_grenade_hint_step() -> void:
 		_reset_tutorial_grenade_hint_tracking()
 		return
 
+	var grenade_state := 0
+	if _player != null and _player.has_method("GetGrenadeState"):
+		grenade_state = int(_player.GetGrenadeState())
 	var g_pressed: bool = Input.is_action_pressed("grenade_prepare")
 	var rmb_pressed: bool = Input.is_action_pressed("grenade_throw")
 	var current_mouse_pos := get_global_mouse_position()
 	var rmb_just_pressed := rmb_pressed and not _tutorial_grenade_rmb_was_pressed
 	var rmb_just_released := not rmb_pressed and _tutorial_grenade_rmb_was_pressed
 
-	if _tutorial_grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
+	if grenade_state == 0 and _tutorial_grenade_hint_step > 0:
+		_reset_tutorial_grenade_hint_tracking()
+	elif grenade_state == 1 and _tutorial_grenade_hint_step > 3:
+		_reset_tutorial_grenade_hint_tracking()
+	elif _tutorial_grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
 		if g_pressed or rmb_pressed or _tutorial_grenade_rmb_was_pressed:
 			_reset_tutorial_grenade_hint_tracking()
 	elif _tutorial_grenade_hint_step == 1 and not g_pressed and not _tutorial_grenade_drag_completed:
@@ -2574,7 +2542,7 @@ func _update_tutorial_grenade_hint_step() -> void:
 			_tutorial_grenade_drag_completed = true
 			_tutorial_grenade_hint_step = 2
 
-	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed:
+	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed and grenade_state >= 1:
 		_tutorial_grenade_hint_step = 1
 		_tutorial_grenade_g_was_held = true
 	elif _tutorial_grenade_hint_step == 2 and _tutorial_grenade_drag_completed and rmb_just_released:
@@ -2770,10 +2738,21 @@ func _on_tutorial_shotgun_reload_state_changed(new_state: int) -> void:
 	if not _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
 		return
 
-	# state=0 means reload is fully complete (bolt closed) — treat as reload done.
+	if new_state >= 2:
+		_tutorial_shotgun_reload_started = true
+
+	# state=0 is only a completed reload if the player actually reached the shell-loading phase.
+	# If the state returns to 0 from the initial open-bolt step, the player canceled the reload and
+	# the hint should roll back to its initial state instead of completing the tutorial.
 	if new_state == 0:
-		print("[LabyrinthLevel] Shotgun reload completed via ReloadStateChanged(0)")
-		_on_tutorial_reload_completed()
+		if _tutorial_shotgun_reload_started:
+			print("[LabyrinthLevel] Shotgun reload completed via ReloadStateChanged(0)")
+			_on_tutorial_reload_completed()
+		else:
+			var label_reset: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]
+			if is_instance_valid(label_reset):
+				label_reset.text = _build_tutorial_shotgun_full_reload_hint_bbcode(0)
+		_tutorial_shotgun_reload_started = false
 		return
 
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]
