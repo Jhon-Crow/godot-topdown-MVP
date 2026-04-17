@@ -17,6 +17,9 @@ class MockProjectile:
 	var return_requested_count: int = 0
 	var id: int = 0
 	var parent_name: String = "PoolContainer"
+	var monitoring: bool = false
+	var monitorable: bool = false
+	var deferred_writes: Array = []
 
 	func set_pool_managed(managed: bool) -> void:
 		pool_managed = managed
@@ -29,6 +32,7 @@ class MockProjectile:
 			return
 		is_active = false
 		is_pooled = true
+		set_collision_enabled(false)
 		if return_to_manager and pool_managed:
 			return_requested_count += 1
 
@@ -36,6 +40,18 @@ class MockProjectile:
 		pool_managed = true
 		is_active = true
 		is_pooled = false
+		set_collision_enabled(true)
+
+	func set_collision_enabled(enabled: bool) -> void:
+		monitoring = enabled
+		monitorable = enabled
+		deferred_writes.append(["monitoring", enabled])
+		deferred_writes.append(["monitorable", enabled])
+
+	func apply_deferred_writes() -> void:
+		for write in deferred_writes:
+			set(write[0], write[1])
+		deferred_writes.clear()
 
 
 class MockProjectilePoolManager:
@@ -268,6 +284,23 @@ func test_duplicate_return_does_not_duplicate_pool_entry() -> void:
 		"Returning the same projectile twice must not create duplicate pool references")
 	assert_eq(stats["bullets_active"], 0,
 		"Duplicate returns should leave no active references")
+
+
+func test_same_frame_reuse_leaves_collision_enabled_after_deferred_flush() -> void:
+	pool.warmup(1)
+	var bullet := pool.get_bullet()
+	bullet.pool_activate()
+	bullet.apply_deferred_writes()
+
+	pool.return_bullet(bullet)
+	var reused := pool.get_bullet()
+	reused.pool_activate()
+	reused.apply_deferred_writes()
+
+	assert_true(reused.monitoring,
+		"A pooled projectile reused in the same frame must not be disabled by stale deferred return state")
+	assert_true(reused.monitorable,
+		"A pooled projectile reused in the same frame must stay monitorable after deferred writes flush")
 
 
 func test_get_bullet_skips_active_duplicate_reference() -> void:

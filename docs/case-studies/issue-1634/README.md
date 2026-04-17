@@ -741,6 +741,46 @@ activation, and that `BreakerShrapnel.pool_activate()` applies damage and speed 
 
 ---
 
+## Bug Found and Fixed: Same-Frame Pooled Shrapnel Reuse (Session 11)
+
+### New User Report and Preserved Data
+
+**User report (PR #1661, 2026-04-17):**
+> "при первом выстреле после запуска игры осколки пуль с превзрывателем есть, при последующих всё ещё нет."
+> *Translation: "on the first shot after launching the game, breaker-bullet shrapnel exists; on subsequent shots, still none."*
+
+Preserved logs:
+
+- `data/logs/game_log_20260418_015919.txt` — downloaded from the PR comment, 2,375 lines.
+- `data/logs/game_log_20260418_020001.txt` — downloaded from the PR comment, 307 lines.
+
+The logs show breaker bullets are selected and applied to `AKGL`/`MakarovPM`, and that `Bullet9mm`
+explosions are emitted repeatedly. That narrows this regression to reused breaker shrapnel instances:
+fresh first checkout can render, but returned fragments become inert on later checkouts.
+
+### Root Cause
+
+Pooled bullets already used deferred collision toggles because directly changing `Area2D.monitoring`
+during physics callbacks can corrupt Godot's physics flush. Breaker shrapnel still toggled
+`monitoring` and `monitorable` directly during `pool_activate()`/`pool_deactivate()`.
+
+When a fragment is destroyed and returned to the pool during a physics callback, a stale collision
+disable can land after the same fragment is checked out again for the next detonation. That exactly
+matches the user report: the first freshly warmed-up fragment works, while subsequent reused
+fragments can become invisible/inactive for collisions and effects.
+
+### Fix Applied (Session 11)
+
+`scripts/projectiles/breaker_shrapnel.gd` and `scripts/projectiles/shrapnel.gd` now use a shared
+`_set_collision_enabled()` helper that updates immediate state and queues the same final value with
+`set_deferred()`. Activation queues `true` after all reset/spawn parameters are applied; deactivation
+queues `false` after the projectile is marked pooled.
+
+Regression coverage now simulates same-frame pool return and checkout, then applies deferred writes
+in order to confirm the reused projectile remains `monitoring=true` and `monitorable=true`.
+
+---
+
 ## References
 
 - [Proximity fuze — Wikipedia](https://en.wikipedia.org/wiki/Proximity_fuze)

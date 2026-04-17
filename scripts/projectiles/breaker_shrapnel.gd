@@ -225,6 +225,13 @@ var _pool_managed: bool = false
 var _original_speed: float = 1800.0
 
 
+func _set_collision_enabled(enabled: bool) -> void:
+	monitoring = enabled
+	monitorable = enabled
+	set_deferred("monitoring", enabled)
+	set_deferred("monitorable", enabled)
+
+
 ## Activates the breaker shrapnel from the pool with the given parameters.
 ## @param pos: Global position to spawn at.
 ## @param dir: Direction of travel.
@@ -254,11 +261,8 @@ func pool_activate(pos: Vector2, dir: Vector2, source: int, shrapnel_damage: flo
 	set_physics_process(true)
 	set_process(true)
 
-	# Re-enable collision detection
-	monitoring = true
-	monitorable = true
-
 	_is_pooled = false
+	_set_collision_enabled(true)
 
 
 ## Deactivates the breaker shrapnel and prepares it for return to the pool.
@@ -275,9 +279,9 @@ func pool_deactivate(return_to_manager: bool = true) -> void:
 	# Hide shrapnel
 	visible = false
 
-	# Disable collision detection
-	monitoring = false
-	monitorable = false
+	# Disable collision detection after the current physics step. Directly toggling
+	# Area2D monitoring from an overlap callback can corrupt Godot's physics flush.
+	_set_collision_enabled(false)
 
 	# Clear trail
 	if _trail:
