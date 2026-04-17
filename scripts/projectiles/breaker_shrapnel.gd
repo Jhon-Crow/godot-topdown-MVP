@@ -232,6 +232,11 @@ func _set_collision_enabled(enabled: bool) -> void:
 	set_deferred("monitorable", enabled)
 
 
+func _queue_collision_enabled(enabled: bool) -> void:
+	set_deferred("monitoring", enabled)
+	set_deferred("monitorable", enabled)
+
+
 ## Activates the breaker shrapnel from the pool with the given parameters.
 ## @param pos: Global position to spawn at.
 ## @param dir: Direction of travel.
@@ -263,6 +268,7 @@ func pool_activate(pos: Vector2, dir: Vector2, source: int, shrapnel_damage: flo
 
 	_is_pooled = false
 	_set_collision_enabled(true)
+	call_deferred("_queue_collision_enabled", true)
 
 
 ## Deactivates the breaker shrapnel and prepares it for return to the pool.

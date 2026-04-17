@@ -188,13 +188,21 @@ func test_multiple_invalid_paths_all_rejected() -> void:
 class MockSceneLoaderWithFallback extends MockSceneLoader:
 	## Tracks whether fallback sync load was triggered.
 	var fallback_triggered: bool = false
+	var overlay_visible: bool = false
+	var fallback_change_error: int = OK
 
 	## Simulates THREAD_LOAD_INVALID_RESOURCE — should trigger fallback, not silent fail.
 	func simulate_invalid_resource_during_poll() -> void:
 		# The fix: fall back to sync load instead of silently hiding the screen
 		fallback_triggered = true
-		_is_loading = false
-		_current_load_path = ""
+		overlay_visible = true
+		if fallback_change_error == OK:
+			_is_loading = false
+			_current_load_path = ""
+			overlay_visible = false
+
+	func fallback_overlay_is_visible() -> bool:
+		return overlay_visible
 
 
 func test_invalid_resource_during_poll_triggers_fallback() -> void:
@@ -262,3 +270,22 @@ func test_hide_loading_screen_disables_processing() -> void:
 	var source := _read_scene_loader_source()
 	assert_ne(source.find("func _hide_loading_screen() -> void:\n\tset_process(false)"), -1,
 		"Hiding the loading screen should stop polling immediately after fallback or completion")
+
+
+func test_invalid_resource_fallback_keeps_overlay_on_scene_change_error() -> void:
+	## Issue #1817: exported startup can report THREAD_LOAD_INVALID_RESOURCE and
+	## then fail the sync scene change. In that case the loading overlay must stay
+	## visible instead of exposing a blank/gray scene.
+	var fallback_loader := MockSceneLoaderWithFallback.new()
+	fallback_loader.register_valid_path("res://scenes/levels/RoguelikeLevel.tscn")
+	fallback_loader.fallback_change_error = ERR_CANT_CREATE
+
+	fallback_loader.load_level("res://scenes/levels/RoguelikeLevel.tscn")
+	fallback_loader.simulate_invalid_resource_during_poll()
+
+	assert_true(fallback_loader.fallback_triggered,
+		"Invalid threaded resource should still attempt sync fallback")
+	assert_true(fallback_loader.is_loading(),
+		"Failed sync fallback should keep loader state active for diagnostics")
+	assert_true(fallback_loader.fallback_overlay_is_visible(),
+		"Failed sync fallback should keep the loading overlay visible")

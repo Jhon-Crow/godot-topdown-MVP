@@ -490,3 +490,17 @@ func test_breaker_shrapnel_pool_activate_applies_damage_and_speed_atomically() -
 		"Activation should set damage before the shard can process")
 	assert_almost_eq(shrapnel.speed, 2100.0, 0.001,
 		"Activation should set speed before the shard can process")
+
+
+func test_breaker_shrapnel_activation_requeues_final_collision_enable() -> void:
+	# Regression guard for exported builds where returned breaker shrapnel could be
+	# reused after a stale deferred collision-disable was already queued.
+	var source := _read_text_file("res://scripts/projectiles/breaker_shrapnel.gd")
+	var body := _extract_gdscript_method(source, "func pool_activate(")
+
+	assert_true(source.contains("func _queue_collision_enabled(enabled: bool) -> void:"),
+		"Breaker shrapnel should expose a deferred collision-state writer")
+	assert_true(body.contains("_set_collision_enabled(true)"),
+		"Activation should immediately enable Area2D collision state")
+	assert_true(body.contains('call_deferred("_queue_collision_enabled", true)'),
+		"Activation should queue the final enabled collision state after prior deferred disables")

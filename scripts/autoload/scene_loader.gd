@@ -162,6 +162,7 @@ func _on_load_complete() -> void:
 	var error := get_tree().change_scene_to_packed(loaded_scene)
 	if error != OK:
 		_log("ERROR: Failed to change to loaded scene: %s" % error)
+		return
 	else:
 		_log("Scene changed successfully")
 
@@ -189,8 +190,10 @@ func _fallback_sync_load() -> void:
 		var error := get_tree().change_scene_to_packed(loaded_scene)
 		if error != OK:
 			_log("ERROR: Failed to change scene in sync fallback: %s" % error)
+			return
 		else:
 			_log("Sync fallback scene changed successfully: %s" % path)
 	else:
 		_log("ERROR: Sync fallback could not load scene: %s" % path)
+		return
 	_hide_loading_screen()
