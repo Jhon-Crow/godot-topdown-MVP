@@ -581,6 +581,51 @@ pool ownership fixes from Session 5.
 
 ---
 
+## Bug Found and Fixed: Enemy Specialized Bullets Replaced by Generic Pool Bullets (Session 8)
+
+### New User Report and Preserved Data
+
+**User report (PR #1661, 2026-04-17):**
+> "пропали пули врагов, осколки у пуль с превзрываетелем не появились."
+> *Translation: "enemy bullets disappeared, shrapnel for breaker bullets did not appear."*
+
+Preserved log:
+
+- `data/logs/game_log_20260417_225855.txt` — downloaded from the PR comment.
+
+The log shows enemy gunshots and casing sounds during combat, but the visual report says enemy
+bullets were not visible. That points at projectile creation/rendering rather than enemy AI or sound
+propagation: enemies still enter combat and fire, but the spawned projectile is not the expected
+configured projectile.
+
+### Root Cause
+
+`scripts/objects/enemy.gd::_spawn_projectile()` always tried
+`ProjectilePoolManager.get_bullet()` before instantiating the enemy's configured `bullet_scene`.
+The pool only owns generic `res://scenes/projectiles/Bullet.tscn` instances. Several enemy weapon
+configs use specialized scenes such as `Bullet9mm.tscn` and C# projectile scenes.
+
+That meant a specialized enemy weapon could fire and receive a generic pooled bullet instead of its
+configured scene. The result can look like missing enemy bullets or mismatched projectile behavior,
+especially after the pool ownership hardening in earlier sessions.
+
+### Fix Applied (Session 8)
+
+Enemy projectile pooling is now limited to the scene the pool actually contains:
+
+- If `bullet_scene.resource_path == "res://scenes/projectiles/Bullet.tscn"`, enemies may use
+  `ProjectilePoolManager.get_bullet()`.
+- Otherwise enemies instantiate their configured `bullet_scene` directly.
+
+This preserves pooling for generic bullets while preventing specialized enemy projectiles from being
+silently replaced by the wrong pooled scene.
+
+Session 8 also strengthened the C# breaker shrapnel fallback: if the pool misses, the helper retries
+`GetShrapnelScene()` before skipping a fragment, so a stale local scene variable cannot suppress all
+fragments.
+
+---
+
 ## References
 
 - [Proximity fuze — Wikipedia](https://en.wikipedia.org/wiki/Proximity_fuze)

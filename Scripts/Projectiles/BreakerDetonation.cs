@@ -442,12 +442,13 @@ public static class BreakerDetonation
                 }
             }
 
-            if (shrapnelScene == null)
+            var fallbackScene = shrapnelScene ?? GetShrapnelScene();
+            if (fallbackScene == null)
             {
                 continue;
             }
 
-            var shrapnel = shrapnelScene.Instantiate<Node2D>();
+            var shrapnel = fallbackScene.Instantiate<Node2D>();
             if (shrapnel == null)
             {
                 continue;

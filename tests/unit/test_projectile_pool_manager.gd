@@ -383,3 +383,39 @@ func test_clear_all_returns_active_to_pool() -> void:
 	var stats := pool.get_stats()
 	assert_eq(stats["bullets_available"], 5, "All bullets should be available after clear_all")
 	assert_eq(stats["bullets_active"], 0, "No bullets should be active after clear_all")
+
+
+func _read_text_file(path: String) -> String:
+	var file := FileAccess.open(path, FileAccess.READ)
+	assert_not_null(file, "%s must be readable" % path)
+	if file == null:
+		return ""
+	var text := file.get_as_text()
+	file.close()
+	return text
+
+
+func _extract_gdscript_method(source: String, signature: String) -> String:
+	var start := source.find(signature)
+	assert_true(start >= 0, "Source should contain method signature: %s" % signature)
+	if start < 0:
+		return ""
+	var next_func := source.find("\nfunc ", start + signature.length())
+	if next_func < 0:
+		return source.substr(start)
+	return source.substr(start, next_func - start)
+
+
+func test_enemy_specialized_bullet_scenes_bypass_generic_pool() -> void:
+	# Regression from issue #1634 review: enemy shots with Bullet9mm.tscn were routed
+	# through ProjectilePoolManager.get_bullet(), which returns generic Bullet.tscn.
+	# That made some enemy bullets disappear or behave unlike the configured weapon.
+	var source := _read_text_file("res://scripts/objects/enemy.gd")
+	var body := _extract_gdscript_method(source, "func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:")
+
+	assert_true(body.contains("bullet_scene.resource_path == \"res://scenes/projectiles/Bullet.tscn\""),
+		"Enemy projectile pooling should be limited to the generic Bullet.tscn scene")
+	assert_true(body.contains("can_use_generic_bullet_pool and pm and pm.has_method(\"get_bullet\")"),
+		"Enemy projectile spawn should only call get_bullet() when the configured scene matches the pool scene")
+	assert_eq(body.find("if pm and pm.has_method(\"get_bullet\"):"), -1,
+		"Enemy projectile spawn must not blindly replace configured bullet_scene with generic pooled bullets")

@@ -848,5 +848,9 @@ func test_csharp_breaker_shrapnel_uses_pool_fallback_when_scene_missing() -> voi
 		"C# breaker shrapnel must only return early when both scene and pool fallback are unavailable")
 	assert_true(body.contains("pool_activate"),
 		"Pooled breaker shrapnel should be activated instead of manually added to the scene")
+	assert_true(body.contains("var fallbackScene = shrapnelScene ?? GetShrapnelScene();"),
+		"C# breaker shrapnel should retry the PackedScene fallback after a pool miss")
+	assert_true(body.contains("fallbackScene.Instantiate<Node2D>()"),
+		"C# breaker shrapnel should instantiate from the refreshed fallback scene when the pool misses")
 	assert_eq(body.find("var shrapnelScene = GetShrapnelScene();\n        if (shrapnelScene == null)\n        {\n            return;\n        }"), -1,
 		"C# breaker shrapnel must not skip spawning just because the PackedScene cache is null")
