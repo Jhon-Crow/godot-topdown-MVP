@@ -246,7 +246,7 @@ func test_sync_fallback_uses_resource_loader_for_exported_pck() -> void:
 	## Godot 4.3 docs warn that bare GDScript load() can fail on converted resources
 	## inside an exported PCK; the fallback path must use ResourceLoader.load().
 	var source := _read_scene_loader_source()
-	assert_string_contains(source, 'ResourceLoader.load(path, "PackedScene")',
+	assert_ne(source.find('ResourceLoader.load(path, "PackedScene")'), -1,
 		"SceneLoader sync fallback should load scenes through ResourceLoader with PackedScene type hint")
 	assert_eq(source.find("var loaded_scene := load(_current_load_path)"), -1,
 		"SceneLoader sync fallback must not use bare GDScript load() for exported builds")
@@ -254,11 +254,11 @@ func test_sync_fallback_uses_resource_loader_for_exported_pck() -> void:
 
 func test_threaded_request_uses_packed_scene_type_hint_without_subthreads() -> void:
 	var source := _read_scene_loader_source()
-	assert_string_contains(source, 'ResourceLoader.load_threaded_request(_current_load_path, "PackedScene", false)',
+	assert_ne(source.find('ResourceLoader.load_threaded_request(_current_load_path, "PackedScene", false)'), -1,
 		"Threaded scene load should request PackedScene directly and avoid Godot 4.3 sub-thread export flakiness")
 
 
 func test_hide_loading_screen_disables_processing() -> void:
 	var source := _read_scene_loader_source()
-	assert_string_contains(source, "func _hide_loading_screen() -> void:\n\tset_process(false)",
+	assert_ne(source.find("func _hide_loading_screen() -> void:\n\tset_process(false)"), -1,
 		"Hiding the loading screen should stop polling immediately after fallback or completion")
