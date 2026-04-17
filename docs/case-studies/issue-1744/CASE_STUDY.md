@@ -334,6 +334,8 @@ The attached `game_log_20260416_213016.txt` shows repeated level reloads where t
 
 Follow-up `game_log_20260417_004243.txt` (reported 2026-04-16 21:44 UTC) reproduces the same symptom after the compatibility-only fix: the player starts at `Health: 2/4` or `Health: 3/4`, enemies attack, but no player damage/death events are emitted.
 
+Follow-up `game_log_20260417_033236.txt` (reported 2026-04-17 00:33 UTC) reproduces the symptom again in `LabyrinthLevel`: the player starts at `Health: 4/4`, Enemy2 and Enemy3 fire repeatedly, and the run ends without player hit/death logging. This run had Breaker Bullets active, but the direct projectile fallback still must preserve the bullet's effective damage for any target that only implements `on_hit_with_bullet_info`.
+
 ### Root Cause
 
 The Issue 6 fix added an `attacker_node` argument to bullet hit forwarding so pacifist enemies can retaliate against the real shooter. The first follow-up fix made every known receiver tolerate the new optional argument, but it missed the direct no-damage-adapter call shape in `scripts/projectiles/bullet.gd`:
@@ -348,15 +350,15 @@ For enemy bullets, `from_player == false`. When an enemy bullet hit the player d
 
 ### Fix
 
-The legacy bullet-info fallback now preserves the default damage slot before passing source attribution:
+The legacy bullet-info fallback now preserves the damage slot before passing source attribution:
 
 ```gdscript
-area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, 1.0, from_player, attacker_node)
+area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage, from_player, attacker_node)
 ```
 
-Targets that need explicit bullet damage still use `on_hit_with_bullet_info_and_damage(...)`. Targets that only implement the older bullet-info method now receive `damage=1.0`, `is_from_player=false`, and the optional attacker node in the correct positions.
+Targets that need explicit bullet damage still use `on_hit_with_bullet_info_and_damage(...)`. Targets that only implement the older bullet-info method now receive the computed damage, `is_from_player=false`, and the optional attacker node in the correct positions.
 
-Regression source checks now cover both compatibility dimensions: receivers must accept the optional attacker argument, and `bullet.gd` must keep the default damage argument before source attribution.
+Regression source checks now cover both compatibility dimensions: receivers must accept the optional attacker argument, and `bullet.gd` must keep the computed damage argument before source attribution.
 
 ---
 
@@ -366,3 +368,4 @@ Regression source checks now cover both compatibility dimensions: receivers must
 - [`game_log_20260410_164848.txt`](./game_log_20260410_164848.txt) — PACIFIST→SEARCHING→COMBAT follow-up (23,107 lines)
 - [`game_log_20260416_213016.txt`](./game_log_20260416_213016.txt) — player ignored enemy hits follow-up (27,988 lines)
 - [`game_log_20260417_004243.txt`](./game_log_20260417_004243.txt) — player damage still not applied after callback compatibility follow-up (2,465 lines)
+- [`game_log_20260417_033236.txt`](./game_log_20260417_033236.txt) — player damage still not applied after damage-slot fallback follow-up (386 lines)

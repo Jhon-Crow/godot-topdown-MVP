@@ -707,8 +707,8 @@ func _on_area_entered(area: Area2D) -> void:
 			# Pass full bullet information including damage amount and player kill source
 			area.on_hit_with_bullet_info_and_damage(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage, from_player, attacker_node)
 		elif area.has_method("on_hit_with_bullet_info"):
-			# Legacy path - preserve default damage and pass source data in the correct slots.
-			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, 1.0, from_player, attacker_node)
+			# Legacy path - preserve damage and pass source data in the correct slots.
+			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage, from_player, attacker_node)
 		elif area.has_method("on_hit_with_info"):
 			area.on_hit_with_info(direction, caliber_data)
 		else:
