@@ -22,6 +22,9 @@ class MockMuzzleFlash:
 	## Godot PointLight2D.BLEND_MODE_MIX. This brightens canvas items and keeps shadows.
 	const LIGHT_BLEND_MODE: int = 0
 
+	## Muzzle flash and Labyrinth Complex environment share these canvas light layers.
+	const LIGHT_MASK: int = 3
+
 	## Time tracker.
 	var _elapsed_time: float = 0.0
 
@@ -91,6 +94,11 @@ func test_light_texture_scale_covers_floor_and_walls() -> void:
 func test_light_uses_mix_blend_mode_for_canvas_items() -> void:
 	assert_eq(MockMuzzleFlash.LIGHT_BLEND_MODE, 0,
 		"Muzzle flash should use PointLight2D BLEND_MODE_MIX so floors and walls receive visible light")
+
+
+func test_light_mask_matches_labyrinth_complex_environment() -> void:
+	assert_eq(MockMuzzleFlash.LIGHT_MASK, 3,
+		"Muzzle flash should illuminate both default-lit items and Labyrinth Complex environment visuals")
 
 
 # ============================================================================

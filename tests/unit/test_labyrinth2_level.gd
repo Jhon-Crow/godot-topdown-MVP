@@ -41,6 +41,8 @@ class MockLabyrinth2Level:
 
 	## Floor rendering contract.
 	var floor_node_type: String = "Polygon2D"
+	var environment_light_mask: int = 3
+	var muzzle_flash_light_mask: int = 3
 	var floor_polygon: PackedVector2Array = PackedVector2Array([
 		Vector2(64, 64),
 		Vector2(3264, 64),
@@ -193,3 +195,13 @@ func test_floor_preserves_original_bounds() -> void:
 func test_floor_preserves_original_color() -> void:
 	assert_eq(level.floor_color, Color(0.17, 0.15, 0.13, 1),
 		"Light-reactive floor should preserve the original Labyrinth Complex floor color")
+
+
+func test_floor_shares_muzzle_flash_light_mask() -> void:
+	assert_eq(level.environment_light_mask, level.muzzle_flash_light_mask,
+		"Labyrinth Complex floor should share the muzzle flash light mask so it visibly pulses")
+
+
+func test_wall_and_cover_visuals_share_muzzle_flash_light_mask() -> void:
+	assert_eq(level.environment_light_mask, 3,
+		"Labyrinth Complex wall and cover ColorRects should stay on light mask 3 for muzzle flashes and shadows")

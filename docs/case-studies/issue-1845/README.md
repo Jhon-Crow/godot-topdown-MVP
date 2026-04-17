@@ -15,6 +15,7 @@ The muzzle flash logic was spawning correctly, but on `Labyrinth2Level` (`Labyri
 - `game_log_20260416_021858.txt`: owner-provided follow-up runtime log from PR feedback
 - `game_log_20260416_231945.txt`: owner-provided follow-up runtime log confirming the remaining problem on `Labyrinth Complex`
 - `game_log_20260417_041119.txt`: owner-provided follow-up runtime log confirming that blood still lights up while the floor does not
+- `game_log_20260417_233940.txt`: owner-provided follow-up runtime log reporting no floor flash and suggesting a layer/mask issue
 
 ### Timeline
 
@@ -28,19 +29,21 @@ The muzzle flash logic was spawning correctly, but on `Labyrinth2Level` (`Labyri
 6. 2026-04-15: owner feedback rejected the sprite-heavy result and requested the original wall-respecting light behavior with a brighter floor/wall flash and clear shadows.
 7. 2026-04-16: owner feedback clarified that `Labyrinth Complex` still showed flash response on particles, blood, and shell casings, but not on the map floor.
 8. Code inspection showed `Labyrinth2Level.tscn` used `Environment/Floor` as a `ColorRect`, while the desired behavior requires light-reactive world geometry under `PointLight2D`.
-9. 2026-04-17: owner feedback reported the floor still had no visible flash after the floor geometry change, while blood remained clearly lit. This narrowed the remaining issue to muzzle flash light intensity/radius/2D-light configuration on dark world surfaces rather than effect spawning.
+9. 2026-04-17: owner feedback reported the floor still had no visible flash after the floor geometry change, while blood remained clearly lit.
+10. 2026-04-17: owner follow-up suggested a layer issue. That matched the symptom: dynamic blood/casings could be lit while the static `Labyrinth Complex` environment visuals did not visibly receive the same flash.
 
 ### Root cause
 
-The muzzle flash was already spawning and using a shadow-enabled `PointLight2D`, proven by bright response on blood, particles, and shell casings. The remaining `Labyrinth Complex` failure had two contributing parts: the level floor originally used a `ColorRect`, and the flash light configuration was still too weak/narrow for a visible flash on the dark floor/wall surfaces after the geometry correction. The user-visible requirement is an environmental light pulse, not a barrel flare.
+The muzzle flash was already spawning and using a shadow-enabled `PointLight2D`, proven by bright response on blood, particles, and shell casings. The remaining `Labyrinth Complex` failure had three contributing parts: the level floor originally used a `ColorRect`, the flash light configuration was too weak/narrow for a visible flash on dark world surfaces, and the static environment visuals did not explicitly share the muzzle flash light mask. The user-visible requirement is an environmental light pulse, not a barrel flare.
 
 ### Fix
 
-The final fix keeps the original `GPUParticles2D` plus shadow-enabled `PointLight2D` structure and removes the additive sprite draft. It raises muzzle flash light energy from `4.5` to `12.0`, increases `PointLight2D.texture_scale` from `4.5` to `8.0`, explicitly keeps the `PointLight2D` in mix blend mode for canvas item lighting, strengthens the warm light gradient, and changes `Labyrinth2Level.tscn` `Environment/Floor` from `ColorRect` to a same-bounds, same-color `Polygon2D` so the Complex floor can receive the muzzle flash light while wall occluders still cast shadows.
+The final fix keeps the original `GPUParticles2D` plus shadow-enabled `PointLight2D` structure and removes the additive sprite draft. It raises muzzle flash light energy from `4.5` to `12.0`, increases `PointLight2D.texture_scale` from `4.5` to `8.0`, explicitly keeps the `PointLight2D` in mix blend mode for canvas item lighting, sets `range_item_cull_mask = 3`, strengthens the warm light gradient, changes `Labyrinth2Level.tscn` `Environment/Floor` from `ColorRect` to a same-bounds, same-color `Polygon2D`, and assigns `light_mask = 3` to the Complex floor/wall/cover visuals so the floor receives the muzzle flash light while wall occluders still cast shadows.
 
 ### Verification strategy
 
 - Updated unit coverage for the brighter light start energy in `tests/unit/test_muzzle_flash.gd`
 - Added regression coverage that `Labyrinth Complex` floor uses light-reactive `Polygon2D` geometry while preserving bounds and color in `tests/unit/test_labyrinth2_level.gd`
+- Added regression coverage that the muzzle flash and `Labyrinth Complex` environment share light mask `3`
 - Preserved existing duration, particles, shadow-enabled light, and light fade behavior
-- Kept the effect changes local to the muzzle flash and changed only the problematic Complex floor rendering primitive
+- Kept the effect changes local to the muzzle flash and changed only the problematic Complex environment rendering contract

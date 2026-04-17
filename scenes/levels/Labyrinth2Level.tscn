@@ -92,6 +92,7 @@ offset_bottom = 2528.0
 color = Color(0.05, 0.05, 0.08, 1)
 
 [node name="Floor" type="Polygon2D" parent="Environment"]
+light_mask = 3
 polygon = PackedVector2Array(64, 64, 3264, 64, 3264, 2464, 64, 2464)
 color = Color(0.17, 0.15, 0.13, 1)
 
@@ -103,6 +104,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallTop"]
+light_mask = 3
 offset_left = -1632.0
 offset_top = -16.0
 offset_right = 1632.0
@@ -121,6 +123,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallBottom"]
+light_mask = 3
 offset_left = -1632.0
 offset_top = -16.0
 offset_right = 1632.0
@@ -139,6 +142,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallLeft"]
+light_mask = 3
 offset_left = -16.0
 offset_top = -1232.0
 offset_right = 16.0
@@ -157,6 +161,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallRight"]
+light_mask = 3
 offset_left = -16.0
 offset_top = -1232.0
 offset_right = 16.0
@@ -177,6 +182,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColA_WallV1"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -200.0
 offset_right = 12.0
@@ -195,6 +201,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColA_WallH1"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -213,6 +220,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColA_WallV2"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -200.0
 offset_right = 12.0
@@ -231,6 +239,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColA_WallH2"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -249,6 +258,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColB_WallH1"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -267,6 +277,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColB_WallV1"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -200.0
 offset_right = 12.0
@@ -285,6 +296,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColB_WallV2"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -100.0
 offset_right = 12.0
@@ -303,6 +315,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColB_WallH2"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -321,6 +334,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColC_WallV1"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -200.0
 offset_right = 12.0
@@ -339,6 +353,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColC_WallH1"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -357,6 +372,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColC_WallV2"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -200.0
 offset_right = 12.0
@@ -375,6 +391,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColC_WallH2"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -393,6 +410,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColD_WallV1"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -200.0
 offset_right = 12.0
@@ -411,6 +429,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColD_WallH1"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -429,6 +448,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColD_WallV2"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -100.0
 offset_right = 12.0
@@ -447,6 +467,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColD_WallH2"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -465,6 +486,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColE_WallV1"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -200.0
 offset_right = 12.0
@@ -483,6 +505,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/ColE_WallH1"]
+light_mask = 3
 offset_left = -100.0
 offset_top = -12.0
 offset_right = 100.0
@@ -501,6 +524,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MidRow_WallH1"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -519,6 +543,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MidRow_WallV1"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -200.0
 offset_right = 12.0
@@ -537,6 +562,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MidRow_WallH2"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -555,6 +581,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MidRow_WallV2"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -200.0
 offset_right = 12.0
@@ -573,6 +600,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MidRow_WallH3"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -591,6 +619,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MidRow_WallV3"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -200.0
 offset_right = 12.0
@@ -609,6 +638,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MidRow_WallH4"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -627,6 +657,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MidRow_WallV4"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -100.0
 offset_right = 12.0
@@ -645,6 +676,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MidRow_WallH5"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -663,6 +695,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MidRow_WallV5"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -200.0
 offset_right = 12.0
@@ -681,6 +714,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MidRow_WallH6"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -699,6 +733,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/LowRow_WallH1"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -717,6 +752,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/LowRow_WallV1"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -100.0
 offset_right = 12.0
@@ -735,6 +771,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/LowRow_WallH2"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -753,6 +790,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/LowRow_WallV2"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -100.0
 offset_right = 12.0
@@ -771,6 +809,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/LowRow_WallH3"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -789,6 +828,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/LowRow_WallV3"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -100.0
 offset_right = 12.0
@@ -807,6 +847,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/LowRow_WallH4"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -825,6 +866,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/LowRow_WallV4"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -100.0
 offset_right = 12.0
@@ -843,6 +885,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/LowRow_WallH5"]
+light_mask = 3
 offset_left = -200.0
 offset_top = -12.0
 offset_right = 200.0
@@ -861,6 +904,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/LowRow_WallV5"]
+light_mask = 3
 offset_left = -12.0
 offset_top = -100.0
 offset_right = 12.0
@@ -879,6 +923,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/LowRow_WallH6"]
+light_mask = 3
 offset_left = -100.0
 offset_top = -12.0
 offset_right = 100.0
@@ -899,6 +944,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Desk1"]
+light_mask = 3
 offset_left = -60.0
 offset_top = -24.0
 offset_right = 60.0
@@ -917,6 +963,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Desk2"]
+light_mask = 3
 offset_left = -60.0
 offset_top = -24.0
 offset_right = 60.0
@@ -935,6 +982,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Table1"]
+light_mask = 3
 offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0
@@ -953,6 +1001,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Cabinet1"]
+light_mask = 3
 offset_left = -24.0
 offset_top = -48.0
 offset_right = 24.0
@@ -971,6 +1020,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Cabinet2"]
+light_mask = 3
 offset_left = -24.0
 offset_top = -48.0
 offset_right = 24.0
@@ -989,6 +1039,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Desk3"]
+light_mask = 3
 offset_left = -60.0
 offset_top = -24.0
 offset_right = 60.0
@@ -1007,6 +1058,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Table2"]
+light_mask = 3
 offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0
@@ -1025,6 +1077,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Cabinet3"]
+light_mask = 3
 offset_left = -24.0
 offset_top = -48.0
 offset_right = 24.0
@@ -1043,6 +1096,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Desk4"]
+light_mask = 3
 offset_left = -60.0
 offset_top = -24.0
 offset_right = 60.0
@@ -1061,6 +1115,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Table3"]
+light_mask = 3
 offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0
@@ -1079,6 +1134,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Desk5"]
+light_mask = 3
 offset_left = -60.0
 offset_top = -24.0
 offset_right = 60.0
@@ -1097,6 +1153,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Cabinet4"]
+light_mask = 3
 offset_left = -24.0
 offset_top = -48.0
 offset_right = 24.0
@@ -1115,6 +1172,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Table4"]
+light_mask = 3
 offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0
@@ -1133,6 +1191,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Desk6"]
+light_mask = 3
 offset_left = -60.0
 offset_top = -24.0
 offset_right = 60.0
@@ -1151,6 +1210,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Crate1"]
+light_mask = 3
 offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0
@@ -1169,6 +1229,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Crate2"]
+light_mask = 3
 offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0
@@ -1187,6 +1248,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Crate3"]
+light_mask = 3
 offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0
@@ -1205,6 +1267,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Crate4"]
+light_mask = 3
 offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0
@@ -1223,6 +1286,7 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/Crate5"]
+light_mask = 3
 offset_left = -40.0
 offset_top = -40.0
 offset_right = 40.0

@@ -59,5 +59,6 @@ color = Color(1, 0.82, 0.42, 1)
 energy = 0.0
 blend_mode = 0
 shadow_enabled = true
+range_item_cull_mask = 3
 texture = SubResource("GradientTexture2D_light")
 texture_scale = 8.0
