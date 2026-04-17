@@ -1,4 +1,6 @@
 extends Node2D
+
+const LEVEL_SCENE_PATH := "res://scenes/levels/ArenaLevel.tscn"
 ## Arena Mode level — endless wave survival.
 ##
 ## Features:
@@ -1067,7 +1069,7 @@ func _setup_ui() -> void:
 	# Ammo label (top-left).
 	_ammo_label = Label.new()
 	_ammo_label.name = "AmmoLabel"
-	_ammo_label.text = "Патроны: -"
+	_ammo_label.text = tr("HUD_AMMO") % [0, 0]
 	_ammo_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_ammo_label.offset_left = 10
 	_ammo_label.offset_top = 10
@@ -1092,7 +1094,7 @@ func _setup_ui() -> void:
 	# Difficulty label.
 	_difficulty_label = Label.new()
 	_difficulty_label.name = "DifficultyLabel"
-	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
 	_difficulty_label.offset_top = 80
@@ -1103,7 +1105,7 @@ func _setup_ui() -> void:
 	# Magazines label.
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
-	_magazines_label.text = "Магазины: -"
+	_magazines_label.text = LevelLocalization.get_magazines_text([])
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
 	_magazines_label.offset_top = 132
@@ -1274,7 +1276,7 @@ func _on_player_died() -> void:
 
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
-		_enemy_count_label.text = "Враги: %d" % _enemies_alive
+		_enemy_count_label.text = LevelLocalization.get_enemy_count_text(_enemies_alive)
 
 	# Update health label whenever we check enemies (player data may have changed).
 	_update_health_label()
@@ -1299,13 +1301,13 @@ func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
 	if _difficulty_label:
-		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_update_health_label()
 
 
 func _update_ammo_label_magazine(current_ammo: int, reserve_ammo: int) -> void:
 	if _ammo_label:
-		_ammo_label.text = "Патроны: %d / %d" % [current_ammo, reserve_ammo]
+		_ammo_label.text = LevelLocalization.get_ammo_text(current_ammo, reserve_ammo)
 		if current_ammo <= 5:
 			_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3, 1.0))
 		elif current_ammo <= 10:
@@ -1317,48 +1319,13 @@ func _update_ammo_label_magazine(current_ammo: int, reserve_ammo: int) -> void:
 func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
-	# Find equipped weapon
-	var _weapon_for_caps: Node = null
-	if _player != null:
-		for _wn in ["MakarovPM", "Shotgun", "AssaultRifle", "AKGL", "Revolver", "SilencedPistol", "SniperRifle", "MiniUzi"]:
-			_weapon_for_caps = _player.get_node_or_null(_wn)
-			if _weapon_for_caps != null:
-				break
-	if _weapon_for_caps != null and _weapon_for_caps.get("UsesTubeMagazine") == true:
-		_magazines_label.visible = false
-		return
-	if _weapon_for_caps != null and _weapon_for_caps.has_signal("CylinderStateChanged"):
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
+	if LevelLocalization.weapon_hides_magazines(weapon):
 		_magazines_label.visible = false
 		return
 	_magazines_label.visible = true
-	if magazine_ammo_counts.is_empty():
-		_magazines_label.text = "Магазины: -"
-		return
-	# Get magazine capacities to distinguish full vs partial spares
-	var mag_max_counts: Array = []
-	if _weapon_for_caps != null and _weapon_for_caps.has_method("GetMagazineMaxCounts"):
-		mag_max_counts = Array(_weapon_for_caps.GetMagazineMaxCounts())
-
-	var parts: Array[String] = []
-	# Current magazine always shown first
-	parts.append(str(magazine_ammo_counts[0]))
-
-	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
-	var full_spare_count: int = 0
-	for i in range(1, magazine_ammo_counts.size()):
-		var ammo: int = magazine_ammo_counts[i]
-		if ammo <= 0:
-			continue
-		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
-		if cap > 0 and ammo >= cap:
-			full_spare_count += 1
-		else:
-			parts.append(str(ammo))
-
-	if full_spare_count > 0:
-		parts.append("+ x%d" % full_spare_count)
-
-	_magazines_label.text = "Магазины: [%s]" % " | ".join(parts)
+	var parts: Array[String] = LevelLocalization.get_magazine_display_parts(weapon, magazine_ammo_counts)
+	_magazines_label.text = LevelLocalization.get_magazines_text(parts)
 
 # ---------------------------------------------------------------------------
 # Level Completion (on player death)
@@ -1418,6 +1385,8 @@ func _show_victory_message() -> void:
 	var ui: Node = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
+	var level_label: Label = ui.get_node_or_null("LevelLabel")
+	LevelLocalization.apply_level_label(level_label, LEVEL_SCENE_PATH)
 	var msg := Label.new()
 	msg.name = "VictoryLabel"
 	msg.text = "Волна %d — Игра окончена!\nНажмите Q для рестарта." % _wave_number

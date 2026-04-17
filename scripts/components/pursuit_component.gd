@@ -43,6 +43,10 @@ const PURSUIT_ENEMY_OCCUPIED_RADIUS: float = 80.0
 var _enemy: Node2D = null
 
 
+static func waypoint_moves_toward_target(from_pos: Vector2, target_pos: Vector2, waypoint: Vector2) -> bool:
+	return waypoint.distance_to(target_pos) < from_pos.distance_to(target_pos)
+
+
 func _init(enemy_ref: Node2D) -> void:
 	_enemy = enemy_ref
 
@@ -157,12 +161,19 @@ func find_cover() -> Dictionary:
 
 	# Fallback: nearest passage waypoint (Issue #1226).
 	var best_wp: Vector2 = Vector2.ZERO
-	var best_d: float    = INF
+	var best_wp_score: float = -INF
 	for wp in _enemy._passage_waypoints:
-		var d: float = _enemy.global_position.distance_to(wp.global_position)
-		if d >= 50.0 and d < best_d:
-			best_d  = d
-			best_wp = wp.global_position
+		var wp_pos: Vector2 = wp.global_position
+		var d: float = _enemy.global_position.distance_to(wp_pos)
+		if d < 50.0:
+			continue
+		if not waypoint_moves_toward_target(_enemy.global_position, player_pos, wp_pos):
+			continue
+		var progress := my_dist - wp_pos.distance_to(player_pos)
+		var score := progress - d * 0.25
+		if score > best_wp_score:
+			best_wp_score = score
+			best_wp = wp_pos
 	if best_wp != Vector2.ZERO:
 		return {found = true, cover = best_wp, obstacle = null}
 

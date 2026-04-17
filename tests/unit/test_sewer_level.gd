@@ -39,6 +39,10 @@ class MockSewerLevel:
 	var map_width: int = 1200
 	var map_height: int = 3200
 
+	## Far-left impassable wall bounds.
+	var left_wall_position: Vector2 = Vector2(88, 1600)
+	var left_wall_size: Vector2 = Vector2(48, 3200)
+
 	## Initialize with enemies.
 	func initialize(enemy_count: int) -> void:
 		_enemies.clear()
@@ -154,6 +158,17 @@ func test_player_exit_blocked_before_clear() -> void:
 func test_map_dimensions() -> void:
 	assert_eq(level.map_width, 1200, "Sewer map width should be 1200 (corridor + right branch)")
 	assert_eq(level.map_height, 3200, "Sewer map height should be 3200 (long corridor)")
+
+
+func test_left_wall_is_thickened_left_without_narrowing_corridor() -> void:
+	var left_edge := level.left_wall_position.x - level.left_wall_size.x / 2.0
+	var right_edge := level.left_wall_position.x + level.left_wall_size.x / 2.0
+	assert_eq(level.left_wall_size, Vector2(48, 3200),
+		"Far-left wall should be twice as thick to block illusion pathing")
+	assert_eq(left_edge, 64.0,
+		"Far-left wall should extend left from its old 24px footprint")
+	assert_eq(right_edge, 112.0,
+		"Far-left wall right edge should stay aligned with the corridor floor")
 
 
 func test_double_exit_prevented() -> void:

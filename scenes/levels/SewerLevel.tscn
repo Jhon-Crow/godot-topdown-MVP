@@ -17,8 +17,8 @@ source_geometry_mode = 0
 source_geometry_group_name = &"navigation_source"
 agent_radius = 24.0
 
-[sub_resource type="RectangleShape2D" id="S_v3200"]
-size = Vector2(24, 3200)
+[sub_resource type="RectangleShape2D" id="S_left_wall"]
+size = Vector2(48, 3200)
 
 [sub_resource type="RectangleShape2D" id="S_h200"]
 size = Vector2(200, 24)
@@ -56,8 +56,8 @@ size = Vector2(40, 40)
 [sub_resource type="RectangleShape2D" id="S_pipe_v"]
 size = Vector2(24, 60)
 
-[sub_resource type="OccluderPolygon2D" id="O_v3200"]
-polygon = PackedVector2Array(-12, -1600, 12, -1600, 12, 1600, -12, 1600)
+[sub_resource type="OccluderPolygon2D" id="O_left_wall"]
+polygon = PackedVector2Array(-24, -1600, 24, -1600, 24, 1600, -24, 1600)
 
 [sub_resource type="OccluderPolygon2D" id="O_h200"]
 polygon = PackedVector2Array(-100, -12, 100, -12, 100, 12, -100, 12)
@@ -375,22 +375,22 @@ color = Color(0.11, 0.13, 0.11, 1)
 [node name="Walls" type="Node2D" parent="Environment"]
 
 [node name="WallLeft" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(100, 1600)
+position = Vector2(88, 1600)
 collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallLeft"]
-offset_left = -12.0
+offset_left = -24.0
 offset_top = -1600.0
-offset_right = 12.0
+offset_right = 24.0
 offset_bottom = 1600.0
 color = Color(0.18, 0.22, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLeft"]
-shape = SubResource("S_v3200")
+shape = SubResource("S_left_wall")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallLeft"]
-occluder = SubResource("O_v3200")
+occluder = SubResource("O_left_wall")
 
 [node name="WallBottom" type="StaticBody2D" parent="Environment/Walls"]
 position = Vector2(200, 3188)
