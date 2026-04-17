@@ -136,17 +136,46 @@ func test_gold_text_remains_above_shine_overlay() -> void:
 
 	var toast: PanelContainer = manager.get_node("UnlockNotificationRoot/UnlockToast")
 	var shine_overlay: ColorRect = toast.get_node("GoldShineOverlay")
+	var background: Panel = toast.get_node("ToastBackground")
 	var label: Label = toast.get_node("ContentMargin/ContentRow/MessageLabel")
 	var font_color: Color = label.get_theme_color("font_color")
 
-	assert_true(shine_overlay.show_behind_parent,
-		"Gold shine overlay should render behind the toast content so it cannot cover text")
+	assert_eq(toast.modulate.a, 1.0,
+		"Toast container alpha should stay opaque so child label text is never faded by parent modulation")
+	assert_eq(background.modulate.a, 0.0,
+		"Toast background should own fade animation instead of the content parent")
 	assert_gt(toast.get_children().find(label.get_parent().get_parent()), toast.get_children().find(shine_overlay),
 		"Content should be ordered after the shine overlay")
 	assert_gt(font_color.r, 0.9, "Toast text should use a visible gold color")
 	assert_gt(font_color.g, 0.75, "Toast text should use a visible gold color")
 	assert_gt(font_color.b, 0.25, "Toast text should use a visible gold color")
 	assert_eq(font_color.a, 1.0, "Toast text should be fully opaque")
+
+
+func test_toast_animation_keeps_label_opaque_after_entry() -> void:
+	var script: GDScript = load(NOTIFICATION_MANAGER_SCRIPT)
+	assert_not_null(script, "UnlockNotificationManager script should load")
+	var manager: CanvasLayer = autofree(script.new())
+	add_child(manager)
+	await get_tree().process_frame
+
+	manager.show_unlock_notification("Бронированная кожа", "active_item")
+	await wait_seconds(manager.SLIDE_DURATION + 0.1)
+
+	var toast: PanelContainer = manager.get_node("UnlockNotificationRoot/UnlockToast")
+	var background: Panel = toast.get_node("ToastBackground")
+	var label: Label = toast.get_node("ContentMargin/ContentRow/MessageLabel")
+
+	assert_eq(manager._animation_phase, "visible",
+		"Toast should enter the stable visible phase after the slide-in animation")
+	assert_eq(toast.modulate.a, 1.0,
+		"Toast parent should remain opaque during the stable visible phase")
+	assert_eq(label.modulate.a, 1.0,
+		"Message label should remain fully opaque after the slide-in animation")
+	assert_eq(label.text, "Открыт предмет Бронированная кожа !",
+		"Stable visible toast should keep the requested Armored Skin text")
+	assert_gt(background.modulate.a, 0.95,
+		"Only the background fade target should be fully visible after entry")
 
 
 func test_collects_only_locked_items_with_met_conditions() -> void:

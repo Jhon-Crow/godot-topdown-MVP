@@ -72,6 +72,21 @@ class MockEnemy:
 	var _can_see_player: bool = false
 	var _under_fire: bool = false
 	var _has_valid_cover: bool = false
+	var _has_pursuit_cover: bool = false
+	var _pursuit_approaching: bool = false
+	var _can_attempt_flank: bool = false
+	var _flank_transition_result: bool = false
+	var _transitioned_to_flanking: bool = false
+	var _transitioned_to_combat: bool = false
+	var _can_hit_target: bool = false
+	var _nav_candidate_right_ok: bool = false
+	var _nav_candidate_left_ok: bool = false
+	var _los_candidate_right_ok: bool = false
+	var _los_candidate_left_ok: bool = false
+	var _nav_has_path: bool = true
+	var _nav_path_distance: float = 0.0
+	var _continued_pursuit_cover: bool = false
+	var _flank_target: Vector2 = Vector2.ZERO
 	var _cover_position: Vector2 = Vector2.ZERO
 	var _suppression_timer: float = 0.0
 	var _shoot_timer: float = 0.0
@@ -87,6 +102,10 @@ class MockEnemy:
 	var _intel_share_timer: float = 0.0
 	var _memory_reset_confusion_timer: float = 0.0
 	const MEMORY_RESET_CONFUSION_DURATION: float = 0.5
+	const PURSUIT_FLANK_PRIORITY_DISTANCE: float = 900.0
+	const CLOSE_COMBAT_DISTANCE: float = 400.0
+	const FLANK_MIN_COMMIT_TIME: float = 0.6
+	const FLANK_MIN_COMMIT_DISTANCE: float = 80.0
 	var _continuous_visibility_timer: float = 0.0
 
 	## Ally death observation (Issue #409)
@@ -290,6 +309,196 @@ class MockEnemy:
 		return enable_flanking and _can_see_player and not _under_fire
 
 
+	func process_pursuit_cover_wait_fallback() -> void:
+		if _can_see_player:
+			_pursuit_approaching = true
+			if _can_attempt_flanking():
+				if _transition_to_flanking():
+					return
+			return
+
+		if _can_attempt_flanking():
+			if _transition_to_flanking():
+				return
+
+		_transition_to_combat()
+
+
+	func should_prioritize_flanking_target_for_test(enemy_pos: Vector2, target_pos: Vector2, target_visible: bool) -> bool:
+		if not _can_attempt_flanking():
+			return false
+		var priority_distance := PURSUIT_FLANK_PRIORITY_DISTANCE if target_visible else CLOSE_COMBAT_DISTANCE
+		if enemy_pos.distance_to(target_pos) > priority_distance:
+			return false
+		if _can_hit_target:
+			return false
+		return true
+
+
+	func process_existing_pursuit_cover_for_test(enemy_pos: Vector2, target_pos: Vector2, target_visible: bool = false) -> void:
+		_has_pursuit_cover = true
+		if should_prioritize_flanking_target_for_test(enemy_pos, target_pos, target_visible):
+			if _transition_to_flanking():
+				return
+		_continued_pursuit_cover = true
+
+
+	func _can_attempt_flanking() -> bool:
+		return _can_attempt_flank
+
+
+	func _transition_to_flanking() -> bool:
+		_transitioned_to_flanking = true
+		if _flank_transition_result:
+			_current_state = AIState.FLANKING
+		return _flank_transition_result
+
+
+	func _transition_to_combat() -> void:
+		_transitioned_to_combat = true
+		_current_state = AIState.COMBAT
+
+
+	func choose_best_flank_side_for_test() -> float:
+		var player_pos := Vector2.ZERO
+		var player_to_enemy := Vector2.RIGHT
+		var right_flank_dir := player_to_enemy.rotated(flank_angle * 1.0)
+		var left_flank_dir := player_to_enemy.rotated(flank_angle * -1.0)
+		var right_flank_pos := player_pos + right_flank_dir * flank_distance
+		var left_flank_pos := player_pos + left_flank_dir * flank_distance
+		var right_path_clear := _is_candidate_flank_position_valid(right_flank_pos, player_pos)
+		var left_path_clear := _is_candidate_flank_position_valid(left_flank_pos, player_pos)
+		var right_has_los := right_path_clear and _flank_position_has_los_to_player(right_flank_pos, player_pos)
+		var left_has_los := left_path_clear and _flank_position_has_los_to_player(left_flank_pos, player_pos)
+		if right_has_los and not left_has_los:
+			return 1.0
+		if left_has_los and not right_has_los:
+			return -1.0
+		if right_path_clear and not left_path_clear:
+			return 1.0
+		if left_path_clear and not right_path_clear:
+			return -1.0
+		return 1.0 if right_flank_pos.length_squared() < left_flank_pos.length_squared() else -1.0
+
+
+	func _is_candidate_flank_position_valid(flank_pos: Vector2, _player_pos: Vector2) -> bool:
+		if flank_pos.x >= 0.0:
+			return _nav_candidate_right_ok
+		return _nav_candidate_left_ok
+
+
+	func _flank_position_has_los_to_player(flank_pos: Vector2, _player_pos: Vector2) -> bool:
+		if flank_pos.x >= 0.0:
+			return _los_candidate_right_ok
+		return _los_candidate_left_ok
+
+
+	func is_navigation_target_reasonable_for_test(target: Vector2) -> bool:
+		var straight_distance := target.length()
+		if straight_distance <= 50.0:
+			return true
+		if not _nav_has_path:
+			return false
+		if _nav_path_distance <= 0.0:
+			return false
+		if _nav_path_distance > straight_distance * 3.0 and _nav_path_distance > 500.0:
+			return false
+		return true
+
+
+	func calculate_flank_target_for_test(player_pos: Vector2, enemy_pos: Vector2, side: float) -> Vector2:
+		var candidate := player_pos + (enemy_pos - player_pos).normalized().rotated(flank_angle * side) * flank_distance
+		return candidate
+
+
+	func start_flank_attempt_for_test(player_pos: Vector2, enemy_pos: Vector2, side: float) -> void:
+		_flank_target = calculate_flank_target_for_test(player_pos, enemy_pos, side)
+
+
+	func process_flank_attempt_for_test(_player_pos: Vector2, _enemy_pos: Vector2, _side: float) -> Vector2:
+		return _flank_target
+
+
+	func calculate_flank_timeout_for_test(path_distance: float) -> float:
+		if path_distance <= 0.0:
+			return 5.0
+		var travel_time := path_distance / maxf(combat_move_speed, 1.0)
+		return clampf(travel_time + 2.0, 5.0, 12.0)
+
+
+	func should_exit_flanking_to_combat_for_test(timer: float, start_pos: Vector2, current_pos: Vector2, can_hit: bool) -> bool:
+		if not can_hit:
+			return false
+		return timer >= FLANK_MIN_COMMIT_TIME or current_pos.distance_to(start_pos) >= FLANK_MIN_COMMIT_DISTANCE
+
+
+	func choose_attack_waypoint_for_test(from_pos: Vector2, toward_pos: Vector2, waypoints: Array[Dictionary]) -> Vector2:
+		var my_dist_to_target := from_pos.distance_to(toward_pos)
+		var best := Vector2.ZERO
+		var best_score := -INF
+		var nearest_fallback := Vector2.ZERO
+		var nearest_fallback_dist := INF
+
+		for candidate in waypoints:
+			var wp: Vector2 = candidate["point"]
+			var dist_from_me := from_pos.distance_to(wp)
+			var wp_dist_to_target := wp.distance_to(toward_pos)
+			if dist_from_me < 20.0:
+				continue
+			var fallback_makes_sense := wp_dist_to_target < my_dist_to_target or my_dist_to_target <= 120.0
+			if fallback_makes_sense and dist_from_me < nearest_fallback_dist and dist_from_me <= 350.0:
+				nearest_fallback_dist = dist_from_me
+				nearest_fallback = wp
+			if dist_from_me > 400.0:
+				continue
+			if not candidate.get("reachable", true):
+				continue
+			var path_distance: float = candidate.get("path_distance", dist_from_me)
+			if path_distance > dist_from_me * 2.5 and path_distance > 550.0:
+				continue
+			if wp_dist_to_target >= my_dist_to_target:
+				continue
+			var progress := my_dist_to_target - wp_dist_to_target
+			var score := progress - dist_from_me * 0.5
+			if score > best_score:
+				best_score = score
+				best = wp
+
+		if best == Vector2.ZERO:
+			for candidate in waypoints:
+				if candidate["point"] == nearest_fallback and candidate.get("reachable", true):
+					var path_distance: float = candidate.get("path_distance", nearest_fallback_dist)
+					if path_distance <= nearest_fallback_dist * 2.5 or path_distance <= 550.0:
+						return nearest_fallback
+			return Vector2.ZERO
+		return best
+
+
+	func choose_flank_cover_for_test(flank_target: Vector2, covers: Array[Dictionary]) -> Vector2:
+		var best_cover := Vector2.ZERO
+		var best_score := -INF
+
+		for candidate in covers:
+			var cover_pos: Vector2 = candidate["point"]
+			var my_distance_to_target := Vector2.ZERO.distance_to(flank_target)
+			var cover_distance_to_target := cover_pos.distance_to(flank_target)
+			var cover_distance_from_me := cover_pos.length()
+
+			if cover_distance_to_target >= my_distance_to_target:
+				continue
+			if cover_distance_from_me > 250.0:
+				continue
+			if not candidate.get("reachable", true):
+				continue
+
+			var score := (my_distance_to_target - cover_distance_to_target) - cover_distance_from_me * 0.3
+			if score > best_score:
+				best_score = score
+				best_cover = cover_pos
+
+		return best_cover
+
+
 	func set_under_fire(value: bool) -> void:
 		_under_fire = value
 
@@ -323,7 +532,7 @@ class MockEnemy:
 	func is_player_distracted(player_rotation: float, enemy_position: Vector2, player_position: Vector2) -> bool:
 		var to_enemy := (enemy_position - player_position).normalized()
 		var player_facing := Vector2.RIGHT.rotated(player_rotation)
-		var angle_diff := abs(to_enemy.angle_to(player_facing))
+		var angle_diff: float = abs(to_enemy.angle_to(player_facing))
 		return angle_diff > PLAYER_DISTRACTION_ANGLE
 
 
@@ -759,6 +968,280 @@ func test_should_not_flank_when_disabled() -> void:
 	enemy._can_see_player = true
 
 	assert_false(enemy.should_flank(), "Should not flank when disabled")
+
+
+func test_should_flank_even_without_cover_when_player_visible() -> void:
+	enemy.enable_flanking = true
+	enemy._can_see_player = true
+	enemy._under_fire = false
+	enemy._has_valid_cover = false
+
+	assert_true(enemy.should_flank(),
+		"Visible player without available cover should still allow flanking fallback")
+
+
+func test_pursuit_fallback_prefers_flanking_when_visible_target_is_still_unhittable() -> void:
+	enemy._can_see_player = true
+	enemy._can_attempt_flank = true
+	enemy._flank_transition_result = true
+
+	enemy.process_pursuit_cover_wait_fallback()
+
+	assert_true(enemy._pursuit_approaching, "Visible but unhittable target should start pursuit approach")
+	assert_true(enemy._transitioned_to_flanking, "Pursuit fallback should attempt flanking before combat")
+	assert_false(enemy._transitioned_to_combat, "Successful flanking fallback should avoid direct combat transition")
+	assert_eq(enemy.get_current_state(), MockEnemy.AIState.FLANKING, "Enemy should enter FLANKING state")
+
+
+func test_pursuit_prefers_flanking_for_close_hidden_building_target_before_more_cover() -> void:
+	enemy._can_attempt_flank = true
+	enemy._can_hit_target = false
+
+	assert_true(enemy.should_prioritize_flanking_target_for_test(Vector2(820, 700), Vector2(980, 650), false),
+		"Close Building-map target behind cover should trigger FLANKING before selecting another pursuit waypoint")
+
+
+func test_pursuit_prefers_flanking_for_screen_distance_visible_unhittable_building_target() -> void:
+	enemy._can_attempt_flank = true
+	enemy._can_hit_target = false
+
+	assert_true(enemy.should_prioritize_flanking_target_for_test(Vector2(100, 0), Vector2(850, 0), true),
+		"On-screen visible Building-map target without a shot lane should trigger FLANKING beyond close-combat range")
+
+
+func test_hidden_target_beyond_close_cover_range_stays_in_pursuing() -> void:
+	enemy._can_attempt_flank = true
+	enemy._can_hit_target = false
+
+	assert_false(enemy.should_prioritize_flanking_target_for_test(Vector2(100, 0), Vector2(850, 0), false),
+		"Hidden Building-map target outside close-cover range should stay in PURSUING until the enemy closes distance")
+
+
+func test_existing_pursuit_cover_does_not_starve_visible_unhittable_flanking() -> void:
+	enemy._can_attempt_flank = true
+	enemy._can_hit_target = false
+	enemy._flank_transition_result = true
+
+	enemy.process_existing_pursuit_cover_for_test(Vector2(100, 0), Vector2(850, 0), true)
+
+	assert_true(enemy._transitioned_to_flanking,
+		"Visible/unhittable Building target should try FLANKING before continuing current pursuit cover")
+	assert_false(enemy._continued_pursuit_cover,
+		"Existing pursuit cover should not starve the flanking transition")
+	assert_eq(enemy.get_current_state(), MockEnemy.AIState.FLANKING, "Enemy should enter FLANKING state")
+
+
+func test_latest_building_log_hidden_pursuit_case_switches_to_flanking() -> void:
+	enemy._can_attempt_flank = true
+	enemy._can_hit_target = false
+	enemy._flank_transition_result = true
+
+	enemy.process_existing_pursuit_cover_for_test(Vector2(784.0745, 868.2076), Vector2(952.0, 677.0), false)
+
+	assert_true(enemy._transitioned_to_flanking,
+		"Latest Building log case is a close hidden target and should switch from PURSUING to FLANKING")
+	assert_false(enemy._continued_pursuit_cover,
+		"Existing pursuit cover should not keep the enemy in the corner-check loop for this close hidden case")
+	assert_eq(enemy.get_current_state(), MockEnemy.AIState.FLANKING, "Enemy should enter FLANKING state")
+
+
+func test_pursuit_keeps_distant_hidden_target_in_pursuing() -> void:
+	enemy._can_attempt_flank = true
+	enemy._can_hit_target = false
+
+	assert_false(enemy.should_prioritize_flanking_target_for_test(Vector2(0, 0), Vector2(1200, 0), false),
+		"Distant hidden target should stay in PURSUING instead of using close-cover flanking")
+
+
+func test_pursuit_does_not_flank_when_close_target_is_hittable() -> void:
+	enemy._can_attempt_flank = true
+	enemy._can_hit_target = true
+
+	assert_false(enemy.should_prioritize_flanking_target_for_test(Vector2(820, 700), Vector2(980, 650), false),
+		"Hittable close target should transition to COMBAT, not FLANKING")
+
+
+func test_enemy_source_prioritizes_close_hidden_flanking_before_pursuit_cover() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis - skipping")
+		return
+	var source := file.get_as_text()
+
+	var pursuing_idx := source.find("func _process_pursuing_state(")
+	assert_true(pursuing_idx >= 0, "Enemy source should contain _process_pursuing_state")
+	var pursuing_end := source.find("\nfunc ", pursuing_idx + 1)
+	var pursuing_body := source.substr(pursuing_idx, pursuing_end - pursuing_idx)
+	var priority_idx := pursuing_body.find("if _should_prioritize_flanking_target():")
+	var cover_idx := pursuing_body.find("if _has_pursuit_cover:")
+	assert_true(priority_idx >= 0, "PURSUING should evaluate flanking priority")
+	assert_true(cover_idx >= 0, "PURSUING should still contain pursuit-cover movement")
+	assert_true(priority_idx < cover_idx,
+		"Close hidden flanking must run before existing pursuit-cover movement can keep corner checking")
+
+	var helper_idx := source.find("func _should_prioritize_flanking_target() -> bool:")
+	assert_true(helper_idx >= 0, "Enemy source should contain flanking-priority helper")
+	var helper_end := source.find("\nfunc ", helper_idx + 1)
+	var helper_body := source.substr(helper_idx, helper_end - helper_idx)
+	assert_true(helper_body.contains("_get_target_position()"),
+		"Hidden targets should use last-known/memory target position for flanking priority")
+	assert_true(helper_body.contains("CLOSE_COMBAT_DISTANCE"),
+		"Hidden targets should only use close-cover flanking priority")
+	assert_true(helper_body.contains("PURSUIT_FLANK_PRIORITY_DISTANCE"),
+		"Visible targets should keep the wider screen-scale flanking priority")
+	assert_false(helper_body.contains("if not target_visible:\n\t\treturn false"),
+		"Hidden close-cover targets must not be rejected just because the player is not visible")
+
+
+func test_choose_best_flank_side_accepts_nav_reachable_route_around_wall() -> void:
+	enemy._nav_candidate_right_ok = true
+	enemy._nav_candidate_left_ok = false
+	enemy._los_candidate_right_ok = true
+	enemy._los_candidate_left_ok = false
+
+	assert_eq(enemy.choose_best_flank_side_for_test(), 1.0,
+		"Flank side selection should prefer the nav-reachable side even when direct pathing is not part of validation")
+
+
+func test_choose_best_flank_side_allows_nav_reachable_side_without_immediate_los() -> void:
+	enemy._nav_candidate_right_ok = true
+	enemy._nav_candidate_left_ok = false
+	enemy._los_candidate_right_ok = false
+	enemy._los_candidate_left_ok = false
+
+	assert_eq(enemy.choose_best_flank_side_for_test(), 1.0,
+		"Flank side selection should still allow a nav-reachable side when close cover blocks LOS at the final flank point")
+
+
+func test_navigation_target_reasonable_accepts_real_path_distance() -> void:
+	enemy._nav_has_path = true
+	enemy._nav_path_distance = 240.0
+
+	assert_true(enemy.is_navigation_target_reasonable_for_test(Vector2(120.0, 0.0)),
+		"Reachability should accept a valid nav path instead of depending on transient agent state")
+
+
+func test_navigation_target_reasonable_rejects_missing_path() -> void:
+	enemy._nav_has_path = false
+	enemy._nav_path_distance = 240.0
+
+	assert_false(enemy.is_navigation_target_reasonable_for_test(Vector2(120.0, 0.0)),
+		"Reachability should reject flank targets when the navigation map has no path")
+
+
+func test_calculate_flank_target_keeps_geometric_flank_instead_of_combat_waypoint() -> void:
+	var player_pos := Vector2(1200.0, 1500.0)
+	var enemy_pos := Vector2(900.0, 900.0)
+	var expected := player_pos + (enemy_pos - player_pos).normalized().rotated(enemy.flank_angle * -1.0) * enemy.flank_distance
+
+	var target := enemy.calculate_flank_target_for_test(player_pos, enemy_pos, -1.0)
+
+	assert_almost_eq(target.x, expected.x, 0.001,
+		"Flank targeting should keep using the geometric lateral endpoint instead of snapping back to a generic combat waypoint")
+	assert_almost_eq(target.y, expected.y, 0.001,
+		"Flank targeting should keep using the geometric lateral endpoint instead of snapping back to a generic combat waypoint")
+
+
+func test_flank_attempt_keeps_initial_target_when_player_moves() -> void:
+	var initial_player_pos := Vector2(952.0, 673.0)
+	var moved_player_pos := Vector2(968.0, 669.0)
+	var enemy_pos := Vector2(1424.0, 841.0)
+	var initial_target := enemy.calculate_flank_target_for_test(initial_player_pos, enemy_pos, 1.0)
+	var recalculated_target := enemy.calculate_flank_target_for_test(moved_player_pos, enemy_pos, 1.0)
+	enemy.start_flank_attempt_for_test(initial_player_pos, enemy_pos, 1.0)
+	var active_target := enemy.process_flank_attempt_for_test(moved_player_pos, enemy_pos, 1.0)
+
+	assert_ne(initial_target, recalculated_target,
+		"Moving players would shift a recalculated flank target every frame")
+	assert_eq(active_target, initial_target,
+		"An active flank attempt should keep its entry target stable until it reaches, times out, or aborts")
+
+
+func test_flank_timeout_keeps_minimum_for_short_nav_route() -> void:
+	var timeout := enemy.calculate_flank_timeout_for_test(960.0)
+
+	assert_almost_eq(timeout, 5.0, 0.001,
+		"At the default combat speed, a 960px route receives the minimum 5s timeout")
+
+
+func test_flank_timeout_extends_for_long_building_nav_route() -> void:
+	var timeout := enemy.calculate_flank_timeout_for_test(1600.0)
+
+	assert_almost_eq(timeout, 7.0, 0.001,
+		"Long Building-map flank routes should not abort before their nav travel time plus buffer elapses")
+
+
+func test_flanking_does_not_collapse_to_combat_before_commitment() -> void:
+	var can_exit := enemy.should_exit_flanking_to_combat_for_test(0.1, Vector2(643, 917), Vector2(650, 908), true)
+
+	assert_false(can_exit,
+		"A one-frame FLANKING start should not immediately collapse to COMBAT before the enemy commits movement")
+
+
+func test_flanking_can_exit_to_combat_after_minimum_commit_time() -> void:
+	var can_exit := enemy.should_exit_flanking_to_combat_for_test(0.7, Vector2(643, 917), Vector2(660, 890), true)
+
+	assert_true(can_exit,
+		"FLANKING may transition to COMBAT once it has been visible long enough to be a committed maneuver")
+
+
+func test_flanking_can_exit_to_combat_after_meaningful_movement() -> void:
+	var can_exit := enemy.should_exit_flanking_to_combat_for_test(0.2, Vector2(643, 917), Vector2(730, 900), true)
+
+	assert_true(can_exit,
+		"FLANKING may transition to COMBAT early after meaningful movement toward the flank")
+
+
+func test_attack_waypoint_selection_rejects_building_detour_waypoint() -> void:
+	var from_pos := Vector2(700.0, 750.0)
+	var toward_pos := Vector2(952.0, 673.0)
+	var local_progress_waypoint := {
+		"point": Vector2(800.0, 560.0),
+		"reachable": true,
+		"path_distance": 240.0,
+	}
+	var misleading_detour_waypoint := {
+		"point": Vector2(290.0, 660.0),
+		"reachable": true,
+		"path_distance": 900.0,
+	}
+
+	var chosen := enemy.choose_attack_waypoint_for_test(from_pos, toward_pos, [
+		misleading_detour_waypoint,
+		local_progress_waypoint,
+	])
+
+	assert_eq(chosen, local_progress_waypoint["point"],
+		"Combat-path pursuit should reject Building-map waypoints whose nav route is a large detour behind interior walls")
+
+
+func test_attack_waypoint_selection_rejects_local_fallback_that_moves_away() -> void:
+	var chosen := enemy.choose_attack_waypoint_for_test(Vector2(500.0, 0.0), Vector2.ZERO, [
+		{"point": Vector2(650.0, 0.0), "reachable": true, "path_distance": 150.0},
+	])
+
+	assert_eq(chosen, Vector2.ZERO,
+		"PURSUING should not keep a distant target in a nearest-waypoint loop that increases distance to the player")
+
+
+func test_flank_cover_selection_does_not_reuse_building_attack_waypoint() -> void:
+	var flank_target := Vector2(952.0, 673.0)
+	var local_cover := {
+		"point": Vector2(820.0, 690.0),
+		"reachable": true,
+	}
+	var building_attack_waypoint := {
+		"point": Vector2(290.0, 660.0),
+		"reachable": true,
+	}
+
+	var chosen := enemy.choose_flank_cover_for_test(flank_target, [
+		building_attack_waypoint,
+		local_cover,
+	])
+
+	assert_eq(chosen, local_cover["point"],
+		"Flank cover selection should stay on local flank-progress cover instead of reusing Building attack-path waypoints that collapse the maneuver")
 
 
 # ============================================================================
@@ -2285,14 +2768,14 @@ func test_patrol_offsets_large_enough_for_visible_movement_issue_1119() -> void:
 	# LabyrinthLevel Enemy3 offsets after the fix
 	var labyrinth_offsets: Array[Vector2] = [Vector2(200, 0), Vector2(-200, 0)]
 	for offset in labyrinth_offsets:
-		assert_ge(offset.length(), min_visible_offset,
+		assert_true(offset.length() >= min_visible_offset,
 			"Issue #1119: LabyrinthLevel patrol offset %s is too small (%.0f px < %.0f px min)" % [offset, offset.length(), min_visible_offset])
 
 	# Verify travel time is long enough to be visible (> 0.5 s per leg)
 	var min_travel_time := 0.5  # seconds
 	for offset in labyrinth_offsets:
 		var travel_time := offset.length() / move_speed
-		assert_ge(travel_time, min_travel_time,
+		assert_true(travel_time >= min_travel_time,
 			"Issue #1119: patrol leg of %.0f px takes only %.2f s at speed %.0f — too fast to look natural" % [offset.length(), travel_time, move_speed])
 
 
@@ -2303,9 +2786,9 @@ func test_patrol_offsets_large_enough_for_visible_movement_issue_1119() -> void:
 func test_patrol_stuck_detection_constants_issue_1119() -> void:
 	# Max stuck time: long enough not to fire on normal corner brushing, short enough to recover
 	var patrol_stuck_max_time := 1.5
-	assert_ge(patrol_stuck_max_time, 0.5,
+	assert_true(patrol_stuck_max_time >= 0.5,
 		"Issue #1119: PATROL_STUCK_MAX_TIME too small — will skip points on brief wall brushing")
-	assert_le(patrol_stuck_max_time, 3.0,
+	assert_true(patrol_stuck_max_time <= 3.0,
 		"Issue #1119: PATROL_STUCK_MAX_TIME too large — enemy stays stuck too long before recovering")
 
 	# Distance threshold: must be above zero and below one frame of movement at min speed

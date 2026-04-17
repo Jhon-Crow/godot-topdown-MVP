@@ -124,6 +124,8 @@ var _animation_phase: String = "idle"
 
 var _root_control: Control = null
 var _toast: PanelContainer = null
+var _toast_background: Panel = null
+var _shine_overlay: ColorRect = null
 var _icon_rect: TextureRect = null
 var _message_label: Label = null
 var _active_tween: Tween = null
@@ -212,7 +214,17 @@ func _build_ui() -> void:
 	_toast.name = "UnlockToast"
 	_toast.custom_minimum_size = Vector2(TOAST_WIDTH, TOAST_HEIGHT)
 	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_toast.modulate.a = 0.0
+	_toast.modulate = Color.WHITE
+
+	var empty_panel_style := StyleBoxEmpty.new()
+	_toast.add_theme_stylebox_override("panel", empty_panel_style)
+	_root_control.add_child(_toast)
+
+	_toast_background = Panel.new()
+	_toast_background.name = "ToastBackground"
+	_toast_background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_toast_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_toast_background.modulate.a = 0.0
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.09, 0.08, 0.055, 0.94)
@@ -225,23 +237,22 @@ func _build_ui() -> void:
 	style.corner_radius_top_right = 6
 	style.corner_radius_bottom_left = 6
 	style.corner_radius_bottom_right = 6
-	_toast.add_theme_stylebox_override("panel", style)
-	_root_control.add_child(_toast)
+	_toast_background.add_theme_stylebox_override("panel", style)
+	_toast.add_child(_toast_background)
 
-	var shine_overlay := ColorRect.new()
-	shine_overlay.name = "GoldShineOverlay"
-	shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	shine_overlay.color = Color.TRANSPARENT
-	shine_overlay.show_behind_parent = true
+	_shine_overlay = ColorRect.new()
+	_shine_overlay.name = "GoldShineOverlay"
+	_shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_shine_overlay.color = Color(1.0, 1.0, 1.0, 0.0)
 	var shine_shader := load(GOLD_SHINE_SHADER_PATH) as Shader
 	if shine_shader:
 		var mat := ShaderMaterial.new()
 		mat.shader = shine_shader
 		mat.set_shader_parameter("horizontal_sweep", true)
 		mat.set_shader_parameter("cycle_duration", 2.4)
-		shine_overlay.material = mat
-	_toast.add_child(shine_overlay)
+		_shine_overlay.material = mat
+	_toast.add_child(_shine_overlay)
 
 	var margin := MarginContainer.new()
 	margin.name = "ContentMargin"
@@ -445,7 +456,15 @@ func _show_next_notification() -> void:
 		notification.get("kind", ""),
 		notification.get("item_name", ""))
 	_position_toast(false)
-	_toast.modulate.a = 0.0
+	_toast.modulate = Color.WHITE
+	if _toast_background:
+		_toast_background.modulate.a = 0.0
+	if _shine_overlay:
+		_shine_overlay.modulate.a = 0.0
+	if _message_label:
+		_message_label.modulate = Color.WHITE
+	if _icon_rect:
+		_icon_rect.modulate = Color(1.0, 0.84, 0.22, 1.0)
 	_toast.show()
 
 	if _active_tween and _active_tween.is_valid():
@@ -456,13 +475,19 @@ func _show_next_notification() -> void:
 	_animation_phase = "entering"
 	_active_tween.tween_property(_toast, "position:y", TOAST_TOP_MARGIN, SLIDE_DURATION) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_active_tween.parallel().tween_property(_toast, "modulate:a", 1.0, SLIDE_DURATION * 0.75)
+	if _toast_background:
+		_active_tween.parallel().tween_property(_toast_background, "modulate:a", 1.0, SLIDE_DURATION * 0.75)
+	if _shine_overlay:
+		_active_tween.parallel().tween_property(_shine_overlay, "modulate:a", 1.0, SLIDE_DURATION * 0.75)
 	_active_tween.tween_callback(func(): _animation_phase = "visible")
 	_active_tween.tween_interval(DISPLAY_DURATION)
 	_active_tween.tween_callback(func(): _animation_phase = "exiting")
 	_active_tween.tween_property(_toast, "position:y", _get_hidden_y(), SLIDE_DURATION) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
-	_active_tween.parallel().tween_property(_toast, "modulate:a", 0.0, SLIDE_DURATION)
+	if _toast_background:
+		_active_tween.parallel().tween_property(_toast_background, "modulate:a", 0.0, SLIDE_DURATION)
+	if _shine_overlay:
+		_active_tween.parallel().tween_property(_shine_overlay, "modulate:a", 0.0, SLIDE_DURATION)
 	_active_tween.tween_callback(Callable(self, "_on_current_notification_finished"))
 
 
