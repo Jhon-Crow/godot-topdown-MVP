@@ -1877,9 +1877,13 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 		if pool_manager and pool_manager.has_method("get_breaker_shrapnel"):
 			shrapnel = pool_manager.get_breaker_shrapnel()
 			if shrapnel and shrapnel.has_method("pool_activate"):
-				shrapnel.pool_activate(spawn_pos, shrapnel_direction, shooter_id)
-				shrapnel.damage = BREAKER_SHRAPNEL_DAMAGE
-				shrapnel.speed = randf_range(1400.0, 2200.0)
+				shrapnel.pool_activate(
+					spawn_pos,
+					shrapnel_direction,
+					shooter_id,
+					BREAKER_SHRAPNEL_DAMAGE,
+					randf_range(1400.0, 2200.0)
+				)
 				spawned_count += 1
 				continue  # Shrapnel is ready, skip to next
 

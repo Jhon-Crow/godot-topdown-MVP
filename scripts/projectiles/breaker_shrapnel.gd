@@ -229,7 +229,7 @@ var _original_speed: float = 1800.0
 ## @param pos: Global position to spawn at.
 ## @param dir: Direction of travel.
 ## @param source: Instance ID of the source (bullet shooter) for self-damage prevention.
-func pool_activate(pos: Vector2, dir: Vector2, source: int) -> void:
+func pool_activate(pos: Vector2, dir: Vector2, source: int, shrapnel_damage: float = 0.1, shrapnel_speed: float = 1800.0) -> void:
 	_pool_managed = true
 
 	# Reset all state to defaults
@@ -239,6 +239,8 @@ func pool_activate(pos: Vector2, dir: Vector2, source: int) -> void:
 	global_position = pos
 	direction = dir.normalized()
 	source_id = source
+	damage = shrapnel_damage
+	speed = shrapnel_speed
 
 	# Randomize trail noise for unique look
 	_trail_noise_offset = randf() * 100.0

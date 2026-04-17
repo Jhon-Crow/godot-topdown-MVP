@@ -438,3 +438,22 @@ func test_enemy_specialized_bullet_scenes_bypass_generic_pool() -> void:
 		"Enemy projectile spawn should only call get_bullet() when the configured scene matches the pool scene")
 	assert_eq(body.find("if pm and pm.has_method(\"get_bullet\"):"), -1,
 		"Enemy projectile spawn must not blindly replace configured bullet_scene with generic pooled bullets")
+
+
+func test_breaker_shrapnel_pool_activate_applies_damage_and_speed_atomically() -> void:
+	var shrapnel := preload("res://scripts/projectiles/breaker_shrapnel.gd").new()
+	add_child(shrapnel)
+
+	shrapnel.pool_deactivate(false)
+	shrapnel.pool_activate(Vector2(12, 34), Vector2.DOWN, 12345, 0.25, 2100.0)
+
+	assert_eq(shrapnel.global_position, Vector2(12, 34),
+		"Activation should place pooled breaker shrapnel at the spawn position")
+	assert_eq(shrapnel.direction, Vector2.DOWN,
+		"Activation should set the travel direction")
+	assert_eq(shrapnel.source_id, 12345,
+		"Activation should set the shooter/source id")
+	assert_almost_eq(shrapnel.damage, 0.25, 0.001,
+		"Activation should set damage before the shard can process")
+	assert_almost_eq(shrapnel.speed, 2100.0, 0.001,
+		"Activation should set speed before the shard can process")

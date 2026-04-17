@@ -435,9 +435,7 @@ public static class BreakerDetonation
                 var pooledVariant = poolManager!.Call("get_breaker_shrapnel");
                 if (pooledVariant.Obj is Node pooledShrapnel && pooledShrapnel.HasMethod("pool_activate"))
                 {
-                    pooledShrapnel.Call("pool_activate", spawnPosition, shrapnelDirection, (int)shooterId);
-                    pooledShrapnel.Set("damage", ShrapnelDamage);
-                    pooledShrapnel.Set("speed", shrapnelSpeed);
+                    pooledShrapnel.Call("pool_activate", spawnPosition, shrapnelDirection, (int)shooterId, ShrapnelDamage, shrapnelSpeed);
                     continue;
                 }
             }

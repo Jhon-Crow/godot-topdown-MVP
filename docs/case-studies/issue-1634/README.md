@@ -682,6 +682,65 @@ appear without shrapnel.
 
 ---
 
+## Bug Found and Fixed: Pooled Breaker Shrapnel Activation Order (Session 10)
+
+### New User Report and Preserved Data
+
+**User report (PR #1661, 2026-04-17):**
+> "всё ещё нет осколков, проверено по последнему билду."
+> *Translation: "still no shrapnel, checked on the latest build."*
+
+Preserved log:
+
+- `data/logs/game_log_20260418_013245.txt` — downloaded from the PR comment, 1,765 lines.
+
+The log confirms the latest build reached the C# `Bullet9mm` breaker detonation path:
+
+- `game_log_20260418_013245.txt:1038` — active item changed from Flashlight to Breaker Bullets.
+- `game_log_20260418_013245.txt:1043-1044` — breaker bullets active and applied to `AKGL`.
+- `game_log_20260418_013245.txt:1107-1108` — breaker bullets active and applied to `MakarovPM`.
+- `game_log_20260418_013245.txt:1216`, `1231`, `1242`, `1250`, `1295`, `1590`, `1603`,
+  `1618`, `1652` — explosions emitted from player `Bullet9mm` projectiles.
+
+That sequence narrows the failure: detonation and explosion sound are working, but the pooled
+breaker-fragment activation path is still not reliably producing visible shrapnel.
+
+### Root Cause
+
+Both GDScript and C# breaker paths activated pooled breaker shrapnel and then changed its gameplay
+properties afterward:
+
+1. `pool_activate(spawn_pos, shrapnel_direction, shooter_id)` reset state and re-enabled processing,
+   visibility, monitoring, and monitorability.
+2. The caller then assigned `damage` and randomized `speed`.
+
+That split activation was fragile for reused scene-tree nodes. A pooled fragment could become active
+with reset/default values before its final damage and randomized speed were applied, especially
+around deferred scene-tree work and first-frame physics/collision processing. It also made the C#
+and GDScript code depend on mutating GDScript fields after activation instead of letting the pooled
+projectile own its full initialization.
+
+### Fix Applied (Session 10)
+
+`scripts/projectiles/breaker_shrapnel.gd` now accepts damage and speed in `pool_activate()`:
+
+```gdscript
+pool_activate(pos, dir, source, shrapnel_damage, shrapnel_speed)
+```
+
+The method resets the pooled shard, applies position, direction, source id, damage, and speed, then
+enables visibility, processing, and collisions. Both callers now pass the final values during
+activation:
+
+- `scripts/projectiles/bullet.gd` passes `BREAKER_SHRAPNEL_DAMAGE` and randomized speed.
+- `Scripts/Projectiles/BreakerDetonation.cs` passes `ShrapnelDamage` and randomized speed in the
+  `pool_activate` call.
+
+Regression coverage now checks the C# helper no longer mutates pooled shard damage/speed after
+activation, and that `BreakerShrapnel.pool_activate()` applies damage and speed atomically.
+
+---
+
 ## References
 
 - [Proximity fuze — Wikipedia](https://en.wikipedia.org/wiki/Proximity_fuze)
