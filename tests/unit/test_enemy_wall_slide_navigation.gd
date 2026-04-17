@@ -58,6 +58,8 @@ func test_issue_1357_enemy_source_uses_player_style_wall_slide() -> void:
 
 	assert_true(source.contains("_get_issue_1357_wall_slide_direction(nav_dir)"),
 		"Issue #1357: SEARCHING should use the same wall-slide path direction as pursuing")
+	assert_true(func_body.contains("_get_issue_1357_wall_slide_direction((_wp - global_position).normalized())"),
+		"Issue #1357: tactical yield sidesteps should keep player-style wall slide at crowded corners")
 	assert_true(func_body.contains("nav_direction.dot(avoided_direction) >= 0.5"),
 		"Issue #1357: wall avoidance must stay path-consistent")
 	assert_true(func_body.contains("direction.slide(_normal)"),

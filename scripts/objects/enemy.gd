@@ -4672,7 +4672,7 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 		if _tactical_movement.check_and_yield(target_pos, speed, get_physics_process_delta_time()):
 			var _wp: Vector2 = _tactical_movement.get_yield_position()
 			if _wp != Vector2.ZERO and global_position.distance_to(_wp) > 20.0:
-				var _wd := _apply_wall_avoidance((_wp - global_position).normalized())
+				var _wd := _get_issue_1357_wall_slide_direction((_wp - global_position).normalized())
 				velocity = _wd * speed * 0.6; if velocity.length_squared() > 0.01: _rotate_body_toward(velocity.angle(), get_physics_process_delta_time())
 			else: velocity = Vector2.ZERO
 			return true

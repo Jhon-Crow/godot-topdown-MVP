@@ -17,6 +17,7 @@ The implemented fix mirrors that player-side behavior inside enemy path movement
 - project the enemy direction along real slide-collision normals instead of adding an escape normal away from the path;
 - use the same projection for the speculative collision probe when the enemy is nearly stopped.
 - reject ORCA avoidance velocities that are no longer aligned with the current path direction.
+- apply the same projection to tactical-yield sidesteps, so crowded enemies at a corner do not fall back to the older wall-avoidance-only steering path.
 
 ## Collected Data
 
@@ -100,6 +101,7 @@ PR 1477 owner feedback screenshot:
 - Owner reported that the branch still was not better after the first PR 1857 update and attached `game_log_20260417_040217.txt`.
 - The log shows the run on `LabyrinthLevel`, repeated `PURSUING corner check` loops for Enemy1, Enemy2, and Enemy3 between roughly 04:02:52 and 04:03:10, while the player was around `(483,925)`.
 - This branch was then merged with latest `upstream/main`, which brings the recent Building/Labyrinth pursuit update that prioritizes FLANKING for close visible targets that cannot be hit, instead of continuing to ask pursuit cover movement to solve a hard corner indefinitely.
+- Follow-up review found one remaining movement branch inside `_move_to_target_nav()`: tactical yielding used `_apply_wall_avoidance()` directly when moving toward a lateral wait position. That can still matter in the owner-reported hard corner because several enemies were pursuing at the same time, and the tactical movement component exists specifically to resolve crowded narrow-passage conflicts.
 
 ## Evidence
 
@@ -152,6 +154,7 @@ Changed `scripts/objects/enemy.gd`:
 - the helper iterates previous slide-collision normals and applies `direction.slide(normal)` when the enemy is pushing into the wall;
 - the helper applies the same slide projection to the speculative collision probe used when velocity is nearly zero;
 - `_move_to_target_nav()` and SEARCHING waypoint movement both use that helper;
+- tactical yield movement toward a lateral wait position now uses that helper too;
 - ORCA avoidance velocity is accepted only when it remains aligned with the corrected path direction;
 - the old escape-normal addition is removed from this movement path.
 - latest `upstream/main` is merged into the branch, preserving the close visible/unhittable FLANKING priority that stops pursuit cover movement from looping at the owner-reported corner.
@@ -166,6 +169,7 @@ Added `tests/unit/test_enemy_wall_slide_navigation.gd`:
 - pure vector test proving perpendicular avoidance is rejected while aligned avoidance is accepted;
 - source-level guard test proving `_move_to_target_nav()` contains the Issue 1357 wall-slide projection and no longer contains the old escape-normal weight pattern.
 - source-level guard test proving SEARCHING also uses the same helper and rejects path-opposing ORCA output.
+- source-level guard test proving tactical-yield sidesteps inside `_move_to_target_nav()` also use the same helper.
 - source-level guard test proving the merged close visible/unhittable flanking priority is still present before pursuit cover movement.
 
 ## Alternatives Considered
