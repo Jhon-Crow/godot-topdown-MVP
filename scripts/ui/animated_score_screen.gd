@@ -27,15 +27,15 @@ var _score_audio_player: AudioStreamPlayer = null
 ## Gothic bitmap font for score screen labels (loaded on demand).
 var _gothic_font: Font = null
 
-## Gold shine shader for the rank contour animation (loaded on demand).
+## Alpha-aware shine shader for the rank contour animation (loaded on demand).
 var _rank_shine_shader: Shader = null
 
 ## Path to the Gothic bitmap font file (.fnt).
 ## Loaded via Godot's resource system (editor imports .fnt as FontFile).
 const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
 
-## Path to the reusable armory-style gold shine shader.
-const RANK_SHINE_SHADER_PATH: String = "res://scripts/shaders/gold_shine.gdshader"
+## Path to the rank letter shader that clips the armory-style shine to glyph alpha.
+const RANK_SHINE_SHADER_PATH: String = "res://scripts/shaders/rank_letter_shine.gdshader"
 
 ## Duration for counting animation per stat item (seconds).
 const SCORE_COUNT_DURATION: float = 1.5
@@ -141,7 +141,7 @@ func _apply_gothic_font(label: Label) -> void:
 		push_warning("[AnimatedScoreScreen] Gothic font not available for label: " + label.name)
 
 
-## Loads and returns the armory-style shine shader used for rank labels.
+## Loads and returns the alpha-aware shine shader used for rank labels.
 func _get_rank_shine_shader() -> Shader:
 	if _rank_shine_shader == null:
 		if ResourceLoader.exists(RANK_SHINE_SHADER_PATH):
@@ -155,10 +155,68 @@ func _get_rank_shine_shader() -> Shader:
 	return _rank_shine_shader
 
 
-## Creates a transparent cutout sprite for each character, then assembles them into one rank image.
-## The shader is applied only to those letter sprites, so empty background pixels stay transparent.
-func _create_rank_letter_cutout(text: String, font_size: int, outline_size: int, rank_color: Color) -> Control:
+## Renders a rank character into a transparent TextureRect with the shine clipped to glyph alpha.
+func _create_rank_letter_texture_rect(ch: String, index: int, font_size: int, outline_size: int, rank_color: Color) -> Control:
+	var label := Label.new()
+	label.name = "RankLetterSource_%s_%d" % [ch, index]
+	label.text = ch
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", rank_color)
+	label.add_theme_constant_override("outline_size", outline_size)
+	label.add_theme_color_override("font_outline_color", Color(1.0, 0.85, 0.2, 1.0))
+	_apply_gothic_font(label)
+
+	var font := label.get_theme_font("font")
+	var glyph_size := Vector2(float(font_size) * 0.72, float(font_size)) if font == null else font.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+	var padding := float(outline_size * 2 + maxi(8, font_size / 12))
+	var viewport_size := Vector2i(
+		maxi(8, int(ceil(glyph_size.x + padding * 2.0))),
+		maxi(8, int(ceil(float(font_size) * 1.25 + padding * 2.0)))
+	)
+
+	label.custom_minimum_size = Vector2(viewport_size)
+	label.size = Vector2(viewport_size)
+
+	var viewport := SubViewport.new()
+	viewport.name = "RankLetterViewport_%s_%d" % [ch, index]
+	viewport.size = viewport_size
+	viewport.transparent_bg = true
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	viewport.disable_3d = true
+	viewport.gui_disable_input = true
+	viewport.add_child(label)
+
+	var letter := TextureRect.new()
+	letter.name = "RankLetterMask_%s_%d" % [ch, index]
+	letter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	letter.texture = viewport.get_texture()
+	letter.custom_minimum_size = Vector2(viewport_size)
+	letter.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	letter.stretch_mode = TextureRect.STRETCH_SCALE
+	letter.set_meta("rank_letter_text", ch)
+	letter.set_meta("rank_font_size", font_size)
+	letter.set_meta("rank_outline_size", outline_size)
+	letter.set_meta("rank_uses_alpha_texture", true)
+	letter.add_child(viewport)
+
 	var shader := _get_rank_shine_shader()
+	if shader != null:
+		var shine_mat := ShaderMaterial.new()
+		shine_mat.shader = shader
+		shine_mat.set_shader_parameter("horizontal_sweep", true)
+		shine_mat.set_shader_parameter("cycle_duration", 2.8)
+		shine_mat.set_shader_parameter("texel_size", Vector2(1.0 / float(viewport_size.x), 1.0 / float(viewport_size.y)))
+		letter.material = shine_mat
+
+	return letter
+
+
+## Creates a transparent cutout texture for each character, then assembles them into one rank image.
+## The shader samples each rendered letter texture, so empty background pixels stay transparent.
+func _create_rank_letter_cutout(text: String, font_size: int, outline_size: int, rank_color: Color) -> Control:
 	var holder := HBoxContainer.new()
 	holder.name = "RankLetterCutout"
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -167,24 +225,7 @@ func _create_rank_letter_cutout(text: String, font_size: int, outline_size: int,
 
 	for i in range(text.length()):
 		var ch := text.substr(i, 1)
-		var letter := Label.new()
-		letter.name = "RankLetterMask_%s_%d" % [ch, i]
-		letter.text = ch
-		letter.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		letter.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		letter.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		letter.add_theme_font_size_override("font_size", font_size)
-		letter.add_theme_color_override("font_color", rank_color)
-		letter.add_theme_constant_override("outline_size", outline_size)
-		letter.add_theme_color_override("font_outline_color", Color(1.0, 0.85, 0.2, 1.0))
-		_apply_gothic_font(letter)
-		if shader != null:
-			var shine_mat := ShaderMaterial.new()
-			shine_mat.shader = shader
-			shine_mat.set_shader_parameter("horizontal_sweep", true)
-			shine_mat.set_shader_parameter("cycle_duration", 2.8)
-			letter.material = shine_mat
-		holder.add_child(letter)
+		holder.add_child(_create_rank_letter_texture_rect(ch, i, font_size, outline_size, rank_color))
 
 	return holder
 

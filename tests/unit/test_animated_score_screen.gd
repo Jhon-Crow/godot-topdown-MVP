@@ -17,8 +17,8 @@ const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
 ## Path to the Gothic bitmap font texture.
 const GOTHIC_FONT_TEXTURE: String = "res://assets/fonts/gothic_bitmap.png"
 
-## Path to the armory-style shine shader used on score rank labels.
-const RANK_SHINE_SHADER_PATH: String = "res://scripts/shaders/gold_shine.gdshader"
+## Path to the alpha-aware shine shader used on score rank letter textures.
+const RANK_SHINE_SHADER_PATH: String = "res://scripts/shaders/rank_letter_shine.gdshader"
 
 
 class MockAnimatedScoreScreen:
@@ -146,7 +146,7 @@ func test_animated_score_screen_has_rank_shine_shader_path() -> void:
 	var instance = script.new()
 	add_child_autofree(instance)
 	assert_eq(instance.RANK_SHINE_SHADER_PATH, RANK_SHINE_SHADER_PATH,
-		"AnimatedScoreScreen should reuse the armory shine shader for rank labels")
+		"AnimatedScoreScreen should use the alpha-aware rank shine shader")
 
 
 func test_rank_shine_shader_file_exists() -> void:
@@ -209,15 +209,19 @@ func test_create_rank_letter_cutout_builds_one_shader_letter_per_character() -> 
 		"Rank cutout must not contain a rectangular shine overlay")
 
 	for child in cutout.get_children():
-		assert_true(child is Label, "Each rank cutout child should be a letter label")
+		assert_true(child is TextureRect, "Each rank cutout child should be a transparent letter texture")
 		assert_true(child.name.begins_with("RankLetterMask_"),
 			"Each rank cutout child should be named as a letter mask")
 		assert_eq(child.mouse_filter, Control.MOUSE_FILTER_IGNORE,
 			"Rank letter masks must not block score screen input")
-		assert_eq(child.get_theme_constant("outline_size"), 18,
-			"Each rank letter mask should render a visible contour")
+		assert_eq(int(child.get_meta("rank_outline_size")), 18,
+			"Each rank letter texture should be rendered with a visible contour")
+		assert_true(bool(child.get_meta("rank_uses_alpha_texture")),
+			"Rank shine must be clipped by the rendered letter alpha texture")
+		assert_not_null(child.find_child("RankLetterViewport_*", true, false),
+			"Each rank letter mask should keep its transparent render viewport alive")
 		assert_true(child.material is ShaderMaterial,
-			"Each rank letter mask should use the armory shine shader material")
+			"Each rank letter mask should use the alpha-aware shine shader material")
 		var mat := child.material as ShaderMaterial
 		assert_true(mat.shader is Shader, "Rank letter mask material should contain a shader")
 		assert_true(mat.get_shader_parameter("horizontal_sweep"),
