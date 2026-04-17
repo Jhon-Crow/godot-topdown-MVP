@@ -636,6 +636,47 @@ func test_drone_operator_pacifist_guard_in_source() -> void:
 		"drone_operator_component.gd must reference Issue #1744 in the pacifist guard comment")
 
 
+func test_drone_operator_update_returns_early_when_parent_is_pacifist() -> void:
+	## Issue #1868: level-7 pacifist operators must not deploy drones or keep controlling them.
+	var file := FileAccess.open("res://scripts/components/drone_operator_component.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open drone_operator_component.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	var update_start: int = source.find("func update(delta: float) -> void:")
+	assert_gt(update_start, 0, "drone_operator_component.gd must define update()")
+	var next_func: int = source.find("func get_phase()", update_start)
+	assert_gt(next_func, update_start, "get_phase() should follow update()")
+	var update_body: String = source.substr(update_start, next_func - update_start)
+	assert_true(update_body.contains("_parent_is_pacifist()"),
+		"DroneOperatorComponent.update() must check parent pacifism before phase updates")
+	assert_true(update_body.contains("return"),
+		"DroneOperatorComponent.update() must return early for pacifist operators")
+	assert_true(source.contains("Issue #1868"),
+		"DroneOperatorComponent must document the Issue #1868 pacifist operator guard")
+
+
+func test_enemy_physics_blocks_pacifist_operator_phase_control_before_deploying() -> void:
+	## Issue #1868: enemy.gd must not run the normal DEPLOYING/CONTROLLING branch for pacifist operators.
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	var pacifist_guard: int = source.find("Issue #1868: pacifist operators")
+	var phase_control: int = source.find("Issue #1397: drone operator phase control")
+	assert_gt(pacifist_guard, 0,
+		"enemy.gd must contain a pacifist drone-operator guard for Issue #1868")
+	assert_gt(phase_control, pacifist_guard,
+		"The Issue #1868 pacifist guard must run before normal drone-operator phase control")
+	assert_true(source.contains("_aggression.set_aggressive(false)"),
+		"Pacifist transition must clear aggression so pacifists cannot keep aggressive behavior")
+
+
 func test_enemy_pacifist_retaliation_uses_attacker_node() -> void:
 	## Issue #1744 follow-up: when another enemy hits a pacifist, retaliation targets that enemy, not the player.
 	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
