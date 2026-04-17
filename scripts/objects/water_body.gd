@@ -71,6 +71,13 @@ var _saved_wave_speed: float = 0.0
 var _saved_ripple_speed: float = 0.0
 var _saved_surf_speed: float = 0.0
 
+## Water pigment tint from blood diffusion events. Stored as world-space source
+## positions so waves near the cloud can become redder without tinting the whole sea.
+const MAX_BLOOD_TINT_SHADER_SLOTS: int = 8
+const BLOOD_TINT_DURATION: float = 75.0
+const BLOOD_TINT_HOLD_DURATION: float = 62.0
+var _blood_tint_sources: Array[Dictionary] = []
+
 
 func _ready() -> void:
 	# Unconditional early log — confirms this script's _ready() is running in the build (Issue #1578).
@@ -151,6 +158,9 @@ func _process(_delta: float) -> void:
 	# Clean up stale grenade references — skip when no grenades tracked.
 	if not _connected_grenades.is_empty():
 		_cleanup_grenades()
+
+	if not _blood_tint_sources.is_empty():
+		_update_blood_tint_shader_params()
 
 
 ## Push current body positions inside water to the shader as UV-space coordinates.
@@ -256,9 +266,7 @@ func _on_area_entered(area: Area2D) -> void:
 	if area.is_in_group("blood_puddle") or (area.get_parent() and area.get_parent().is_in_group("blood_puddle")):
 		# Prefer the Sprite2D decal root; fall back to the area itself for position.
 		var blood_node: Node2D
-		if area is Sprite2D:
-			blood_node = area
-		elif area.get_parent() is Sprite2D:
+		if area.get_parent() is Sprite2D:
 			blood_node = area.get_parent() as Node2D
 		else:
 			blood_node = area
@@ -382,6 +390,18 @@ func spawn_blood_diffusion_at(world_pos: Vector2, blood_color: Color) -> void:
 	_spawn_blood_diffusion(world_pos, blood_color)
 
 
+## Public entry point for direct-spawn fallbacks to register pigment in this water.
+func register_blood_tint_at(world_pos: Vector2, blood_color: Color) -> void:
+	_add_blood_tint_source(world_pos, blood_color)
+
+
+## Returns the parent that should receive under-water diffusion nodes.
+func get_underwater_effect_parent() -> Node:
+	if _visual != null:
+		return _visual.get_parent()
+	return get_parent()
+
+
 ## Spawn blood diffusion effect in water at a position.
 func _spawn_blood_diffusion(world_pos: Vector2, blood_color: Color) -> void:
 	if _blood_diffusion_script == null:
@@ -392,6 +412,50 @@ func _spawn_blood_diffusion(world_pos: Vector2, blood_color: Color) -> void:
 	diffusion.global_position = world_pos
 	if diffusion.has_method("set_blood_color"):
 		diffusion.set_blood_color(blood_color)
+	_add_blood_tint_source(world_pos, blood_color)
+
+
+func _add_blood_tint_source(world_pos: Vector2, blood_color: Color) -> void:
+	_blood_tint_sources.append({
+		"position": world_pos,
+		"color": Color(blood_color.r, blood_color.g, blood_color.b, 1.0),
+		"start_msec": Time.get_ticks_msec()
+	})
+	while _blood_tint_sources.size() > MAX_BLOOD_TINT_SHADER_SLOTS:
+		_blood_tint_sources.pop_front()
+	_update_blood_tint_shader_params()
+
+
+func _update_blood_tint_shader_params() -> void:
+	if _visual == null or not (_visual.material is ShaderMaterial):
+		return
+	var mat: ShaderMaterial = _visual.material as ShaderMaterial
+	var now_sec := Time.get_ticks_msec() / 1000.0
+	var uvs: Array[Vector2] = []
+	var strengths: Array[float] = []
+	var kept: Array[Dictionary] = []
+	for source in _blood_tint_sources:
+		var elapsed: float = now_sec - float(source.get("start_msec", 0)) / 1000.0
+		if elapsed >= BLOOD_TINT_DURATION:
+			continue
+		kept.append(source)
+		var world_pos: Vector2 = source.get("position", global_position)
+		var local: Vector2 = world_pos - global_position
+		uvs.append(Vector2(
+			(local.x + water_width * 0.5) / water_width,
+			(local.y + water_height * 0.5) / water_height
+		).clamp(Vector2.ZERO, Vector2.ONE))
+		var fade_t: float = clampf((elapsed - BLOOD_TINT_HOLD_DURATION) / maxf(BLOOD_TINT_DURATION - BLOOD_TINT_HOLD_DURATION, 0.001), 0.0, 1.0)
+		strengths.append(0.36 * (1.0 - fade_t * fade_t))
+		if uvs.size() >= MAX_BLOOD_TINT_SHADER_SLOTS:
+			break
+	_blood_tint_sources = kept
+	while uvs.size() < MAX_BLOOD_TINT_SHADER_SLOTS:
+		uvs.append(Vector2(-1.0, -1.0))
+		strengths.append(0.0)
+	mat.set_shader_parameter("blood_tint_count", mini(kept.size(), MAX_BLOOD_TINT_SHADER_SLOTS))
+	mat.set_shader_parameter("blood_tint_uvs", uvs)
+	mat.set_shader_parameter("blood_tint_strengths", strengths)
 
 
 ## Pauses or resumes wave animation for time-stop effects (e.g. last chance).

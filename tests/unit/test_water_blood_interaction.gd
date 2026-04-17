@@ -28,6 +28,7 @@ class MockWaterBody:
 
 	## Track calls to spawn_blood_diffusion_at.
 	var diffusion_spawned_count: int = 0
+	var tint_registered_count: int = 0
 	var last_diffusion_pos: Vector2 = Vector2.ZERO
 	var last_diffusion_color: Color = Color.BLACK
 
@@ -42,12 +43,13 @@ class MockWaterBody:
 		var half_h: float = water_height * 0.5
 		return abs(local_pos.x) <= half_w and abs(local_pos.y) <= half_h
 
-	## Public API added in Issue #1578.
-	func has_method(method_name: String) -> bool:
-		return method_name in ["is_point_in_water", "spawn_blood_diffusion_at"]
-
 	func spawn_blood_diffusion_at(world_pos: Vector2, blood_color: Color) -> void:
 		diffusion_spawned_count += 1
+		last_diffusion_pos = world_pos
+		last_diffusion_color = blood_color
+
+	func register_blood_tint_at(world_pos: Vector2, blood_color: Color) -> void:
+		tint_registered_count += 1
 		last_diffusion_pos = world_pos
 		last_diffusion_color = blood_color
 
@@ -65,9 +67,6 @@ class MockBloodDecalNode:
 
 	func is_in_group(_g: String) -> bool:
 		return false
-
-	func has_method(method_name: String) -> bool:
-		return method_name == "fade_out_quick"
 
 	func fade_out_quick() -> void:
 		_quick_fade_called = true
@@ -204,7 +203,10 @@ func test_spawn_blood_diffusion_at_records_color() -> void:
 
 
 func test_spawn_blood_diffusion_at_has_method_returns_true() -> void:
-	assert_true(water.has_method("spawn_blood_diffusion_at"),
+	var node := Area2D.new()
+	node.set_script(load("res://scripts/objects/water_body.gd"))
+	add_child_autofree(node)
+	assert_true(node.has_method("spawn_blood_diffusion_at"),
 		"WaterBody must expose spawn_blood_diffusion_at so ImpactEffectsManager can call it")
 
 
@@ -270,6 +272,33 @@ func test_default_blood_diffusion_color_is_dark_red() -> void:
 	assert_almost_eq(default_color.g, 0.02, 0.01, "Green channel should be ~0.02 (near zero)")
 	assert_almost_eq(default_color.b, 0.02, 0.01, "Blue channel should be ~0.02 (near zero)")
 	assert_almost_eq(default_color.a, 0.55, 0.01, "Alpha should be ~0.55 (semi-transparent cloud)")
+
+
+func test_blood_diffusion_persists_more_than_one_minute() -> void:
+	var script := load("res://scripts/effects/water_blood_diffusion.gd")
+	assert_not_null(script, "WaterBloodDiffusion script must load")
+	assert_gt(script.DURATION, 60.0,
+		"Blood pigment in water must remain visible for more than one minute")
+
+
+func test_blood_diffusion_renders_below_water_layer() -> void:
+	var script := load("res://scripts/effects/water_blood_diffusion.gd")
+	var diffusion: Node2D = script.new()
+	add_child_autofree(diffusion)
+	diffusion._ready()
+	assert_eq(diffusion.z_index, 0,
+		"Water blood diffusion should render below WaterVisual so waves/water sit above it")
+
+
+func test_water_body_exposes_blood_tint_registration_api() -> void:
+	var node := Area2D.new()
+	node.set_script(load("res://scripts/objects/water_body.gd"))
+	add_child_autofree(node)
+	assert_true(node.has_method("register_blood_tint_at"),
+		"WaterBody must expose register_blood_tint_at for direct-spawn exported-build fallback")
+	water.register_blood_tint_at(water.global_position, Color(0.5, 0.02, 0.02, 0.55))
+	assert_eq(water.tint_registered_count, 1,
+		"Direct blood diffusion fallback must also register red water tint")
 
 
 # ============================================================================

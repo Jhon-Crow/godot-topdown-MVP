@@ -745,10 +745,12 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 		if _blood_diffusion_script != null:
 			var diffusion: Node2D = Node2D.new()
 			diffusion.set_script(_blood_diffusion_script)
-			_add_effect_to_scene(diffusion)
+			_add_underwater_effect_to_scene(diffusion, water_body)
 			diffusion.global_position = landing_pos
 			if diffusion.has_method("set_blood_color"):
 				diffusion.set_blood_color(Color(0.5, 0.02, 0.02, 0.55))
+			if water_body.has_method("register_blood_tint_at"):
+				water_body.register_blood_tint_at(landing_pos, Color(0.5, 0.02, 0.02, 0.55))
 			_log_info("[ImpactEffects] Blood landed in water at %s — spawning diffusion effect (Issue #1578)" % landing_pos)
 		else:
 			_log_info("[ImpactEffects] Blood landed in water at %s — diffusion script not loaded, skipping decal (Issue #1578)" % landing_pos)
@@ -814,6 +816,20 @@ func _find_water_body_at(world_pos: Vector2) -> Node:
 				_log_info("[ImpactEffects] water_body geometry fallback hit at %s (has_method returned false — Issue #1578)" % world_pos)
 				return wb
 	return null
+
+
+func _add_underwater_effect_to_scene(effect: Node2D, water_body: Node) -> void:
+	var parent: Node = null
+	if water_body != null and water_body.has_method("get_underwater_effect_parent"):
+		parent = water_body.get_underwater_effect_parent()
+	if parent == null and water_body != null:
+		parent = water_body.get_parent()
+	if parent == null:
+		_add_effect_to_scene(effect)
+		return
+	parent.add_child(effect)
+	if effect is CanvasItem:
+		(effect as CanvasItem).z_index = 0
 
 
 ## Removes one blood decal that is outside the player's viewport.
@@ -1717,5 +1733,4 @@ func clear_scorch_marks() -> void:
 	_scorch_marks.clear()
 	if _debug_effects:
 		print("[ImpactEffectsManager] All scorch marks cleared")
-
 

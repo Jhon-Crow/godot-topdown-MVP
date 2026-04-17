@@ -48,6 +48,10 @@ uniform float shore_wash_width : hint_range(0.0, 0.5) = 0.18;
 
 // --- Blood diffusion overlay ---
 uniform vec4 blood_tint : source_color = vec4(0.6, 0.05, 0.05, 0.0);
+uniform int blood_tint_count = 0;
+uniform vec2 blood_tint_uvs[8];
+uniform float blood_tint_strengths[8];
+uniform float blood_tint_radius : hint_range(0.0, 0.4) = 0.16;
 
 // --- Wave obstacle interruption (Issue #1550) ---
 // Positions of up to 8 obstacles in UV space [0..1, 0..1].
@@ -71,6 +75,19 @@ float wave_occlusion(vec2 uv) {
 		occ = max(occ, 1.0 - smoothstep(0.0, obstacle_radius, dist));
 	}
 	return occ;
+}
+
+float blood_tint_mask(vec2 uv) {
+	float tint = 0.0;
+	for (int i = 0; i < 8; i++) {
+		if (i >= blood_tint_count) {
+			break;
+		}
+		float dist = distance(uv, blood_tint_uvs[i]);
+		float local = 1.0 - smoothstep(0.0, blood_tint_radius, dist);
+		tint = max(tint, local * blood_tint_strengths[i]);
+	}
+	return tint;
 }
 
 void fragment() {
@@ -128,7 +145,8 @@ void fragment() {
 	water_col = mix(water_col, foam_color, surf_foam * surf_intensity);
 
 	// ---- Blood diffusion tint ----
-	vec3 final_rgb = mix(water_col.rgb, blood_tint.rgb, blood_tint.a);
+	float local_blood_tint = max(blood_tint.a, blood_tint_mask(uv));
+	vec3 final_rgb = mix(water_col.rgb, vec3(0.50, 0.02, 0.025), local_blood_tint);
 	float alpha = water_col.a;
 
 	// ---- Shore fade at the top edge (transition from land to water) ----

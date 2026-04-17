@@ -521,6 +521,47 @@ The `Blood landed in water — spawning diffusion effect` line confirms the bloo
 
 ---
 
+## Eighth Owner Feedback: diffusion appears, but needs realistic liquid behavior (2026-04-10)
+
+Owner confirmed the clouds appear, then requested the visual/physical behavior to better match dense paint or blood entering water:
+
+1. Clouds should appear **under** the water layer.
+2. Clouds should look more like smoke/gas grenade clouds, not flat circles.
+3. Clouds disappear too quickly; they should remain semi-dissolved for more than one minute.
+4. Floor blood puddles still appear under the water and must not.
+5. Nearby waves should become redder.
+
+### Research notes
+
+External research on real-time fluid and VFX approaches points to two broad options:
+
+- **Full fluid simulation**: 2D Navier-Stokes / SPH / GPU render-texture simulation. This can produce physically richer advection and diffusion, but it requires shader/render-texture infrastructure and is excessive for a small top-down Godot effect.
+- **Game VFX approximation**: layered particles, radial density masks, color-over-lifetime gradients, and local shader tint. This is the common lightweight approach for stylized blood/water/gas effects and matches the existing `AggressionCloud` / `ChemicalCloud` particle pattern in this codebase.
+
+Chosen approach: implement a lightweight approximation that behaves like pigment density in water:
+
+- Procedural long-lived soft stain below `WaterVisual`.
+- `GPUParticles2D` wisps using radial gradient particles, similar to gas clouds.
+- Local water shader tint sources so waves near the blood cloud become redder.
+- No floor decal is spawned when landing is inside water; direct-spawn fallback registers both the diffusion visual and shader tint.
+
+Reference links used:
+
+- GPU water simulation overview: https://xiaojiangbrian.com/gpu-water-simulation/
+- 2D water effects discussion: https://code.tutsplus.com/make-a-splash-with-dynamic-2d-water-effects--gamedev-236t
+- Real-time VFX water/game effect discussion: https://realtimevfx.com/t/gamejam-assets-megapost-water-effects-and-more/10789
+- 2D fluid/surface simulation research: https://arxiv.org/abs/2009.00408
+
+### Implementation plan from this feedback
+
+1. `water_blood_diffusion.gd`: change from a 4-second flat circle to a 75-second under-water pigment cloud with smoke-like particle wisps and asymmetric procedural lobes.
+2. `impact_effects_manager.gd`: when direct-spawning the diffusion fallback, parent it through the water body when possible so it is layered under the water visual instead of above the surface.
+3. `water_body.gd`: expose `register_blood_tint_at()` and `get_underwater_effect_parent()`, then push local blood tint source positions/strengths into the water shader.
+4. `realistic_water.gdshader`: add up to 8 local blood tint sources with smooth radial falloff so only nearby waves become redder.
+5. Tests: verify the diffusion duration is over one minute, z-index is under-water, and WaterBody exposes the tint registration API used by the exported-build fallback.
+
+---
+
 ## Game Log Files
 
 All game logs referenced in this case study are archived in `game-logs/`:
