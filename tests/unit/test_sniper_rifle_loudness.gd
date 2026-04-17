@@ -141,3 +141,24 @@ func test_sniper_rifle_csharp_uses_weapon_data_range_for_hitscan() -> void:
 		"SniperRifle.cs must treat WeaponData.Range as authoritative for ASVK aim range (Issue #1586)")
 	assert_false(content.contains("float maxRange = 5000.0f;"),
 		"SniperRifle.cs hitscan paths must not hardcode the old 5000 px range (Issue #1586)")
+
+
+func test_sniper_rifle_scope_visual_range_uses_weapon_data_range() -> void:
+	var file := FileAccess.open("res://Scripts/Weapons/SniperRifle.cs", FileAccess.READ)
+	if file == null:
+		pass_test("Skipped: SniperRifle.cs not accessible in test environment")
+		return
+
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("private float GetMaxScopeZoomDistance()"),
+		"SniperRifle.cs must compute scope visual aim range from ASVK range (Issue #1586)")
+	assert_true(content.contains("return Mathf.Max(MinScopeZoomDistance, GetMaxAimRange() / baseDistance);"),
+		"Scope maximum zoom must derive from WeaponData.Range instead of the old viewport-only cap (Issue #1586)")
+	assert_true(content.contains("Mathf.Clamp(_scopeZoomDistance, MinScopeZoomDistance, GetMaxScopeZoomDistance())"),
+		"Scope zoom adjustment must clamp to range-derived max distance (Issue #1586)")
+	assert_true(content.contains("float maxLaserLength = GetMaxAimRange();"),
+		"Sniper laser visual range must use the same helper as hitscan and scope range (Issue #1586)")
+	assert_false(content.contains("float maxLaserLength = WeaponData?.Range ?? 5000.0f;"),
+		"Sniper laser visual range must not keep a separate fallback path from hitscan range (Issue #1586)")

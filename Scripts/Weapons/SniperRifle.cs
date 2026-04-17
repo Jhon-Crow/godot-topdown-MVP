@@ -636,7 +636,7 @@ public partial class SniperRifle : BaseWeapon
 
         // Use weapon range for laser length so the beam is unlimited within shooting distance
         // (Issue #1384: sniper laser should be unlimited length, not limited to viewport size)
-        float maxLaserLength = WeaponData?.Range ?? 5000.0f;
+        float maxLaserLength = GetMaxAimRange();
 
         // Calculate the end point of the laser
         Vector2 endPoint = laserDirection * maxLaserLength;
@@ -2294,8 +2294,8 @@ public partial class SniperRifle : BaseWeapon
     private const float MinScopeZoomDistance = 1.5f;
 
     /// <summary>
-    /// Maximum scope zoom distance (viewport multiplier).
-    /// Allows zooming up to 4x viewport distance for long-range aiming.
+    /// Maximum scope zoom distance fallback (viewport multiplier).
+    /// Runtime scope travel is capped by WeaponData.Range when available.
     /// </summary>
     private const float MaxScopeZoomDistance = 4.0f;
 
@@ -2366,7 +2366,28 @@ public partial class SniperRifle : BaseWeapon
     /// Gets the effective scope zoom distance (without fine-tune pixel offset).
     /// Fine-tune offset is applied separately as a pixel-based displacement.
     /// </summary>
-    private float EffectiveScopeZoomDistance => _scopeZoomDistance;
+    private float EffectiveScopeZoomDistance => Mathf.Min(_scopeZoomDistance, GetMaxScopeZoomDistance());
+
+    /// <summary>
+    /// Returns the viewport-relative zoom multiplier needed for the scope to reach
+    /// the ASVK's configured maximum aiming range.
+    /// </summary>
+    private float GetMaxScopeZoomDistance()
+    {
+        Viewport? viewport = GetViewport();
+        if (viewport == null)
+        {
+            return MaxScopeZoomDistance;
+        }
+
+        float baseDistance = viewport.GetVisibleRect().Size.Length() * 0.5f;
+        if (baseDistance <= 0.001f)
+        {
+            return MaxScopeZoomDistance;
+        }
+
+        return Mathf.Max(MinScopeZoomDistance, GetMaxAimRange() / baseDistance);
+    }
 
     /// <summary>
     /// Gets the maximum fine-tune range in pixels (1/3 of viewport diagonal).
@@ -2468,7 +2489,7 @@ public partial class SniperRifle : BaseWeapon
         CreateScopeOverlay();
 
         EmitSignal(SignalName.ScopeStateChanged, true);
-        GD.Print($"[SniperRifle] Scope activated. Zoom distance: {_scopeZoomDistance:F1}x");
+        GD.Print($"[SniperRifle] Scope activated. Zoom distance: {_scopeZoomDistance:F1}x, max={GetMaxScopeZoomDistance():F1}x, range={GetMaxAimRange():F0}px");
     }
 
     /// <summary>
@@ -2507,7 +2528,7 @@ public partial class SniperRifle : BaseWeapon
         }
 
         _scopeZoomDistance += direction * ScopeZoomStep;
-        _scopeZoomDistance = Mathf.Clamp(_scopeZoomDistance, MinScopeZoomDistance, MaxScopeZoomDistance);
+        _scopeZoomDistance = Mathf.Clamp(_scopeZoomDistance, MinScopeZoomDistance, GetMaxScopeZoomDistance());
 
         // Reset fine-tune offset when zoom changes to avoid going out of range
         float fineTuneMax = GetFineTuneMaxPixels();
