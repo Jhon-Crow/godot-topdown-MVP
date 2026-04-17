@@ -86,6 +86,10 @@ var _blood_contact_connected: bool = false
 ## Set when the character first steps in blood; counts down to 0.
 var _blood_snow_steps_remaining: int = 0
 
+## Blood color captured at contact time.  This keeps snow blood prints red even
+## after BloodyFeetComponent drains its internal level.
+var _blood_snow_color: Color = Color(0.545, 0.0, 0.0, 1.0)
+
 ## Area2D used to detect overlap with snow-surface areas (group "snow_area").
 var _snow_detector: Area2D = null
 
@@ -179,6 +183,7 @@ func _on_blood_contact(blood_color: Color) -> void:
 	if _bloody_feet and _bloody_feet.get("snow_blood_steps_count") != null:
 		steps = _bloody_feet.snow_blood_steps_count
 	_blood_snow_steps_remaining = steps
+	_blood_snow_color = blood_color
 	if debug_logging:
 		_log_info("Blood contact signal received — arming %d red snow prints (color: %s)" % [
 			_blood_snow_steps_remaining, blood_color])
@@ -205,6 +210,8 @@ func _arm_blood_snow_steps_from_bloody_feet_if_needed() -> void:
 	if _bloody_feet.has_method("get_blood_level"):
 		steps = mini(steps, _bloody_feet.get_blood_level())
 	_blood_snow_steps_remaining = max(steps, 0)
+	if _bloody_feet.get("_blood_color") != null:
+		_blood_snow_color = _bloody_feet._blood_color
 	if debug_logging and _blood_snow_steps_remaining > 0:
 		_log_info("Armed %d red snow prints from current BloodyFeetComponent state" % _blood_snow_steps_remaining)
 
@@ -322,9 +329,7 @@ func _spawn_footprint() -> void:
 
 	if use_blood_print:
 		# Apply blood color and compute alpha decaying over snow_blood_steps_count steps.
-		var blood_color := Color(0.545, 0.0, 0.0, 1.0)
-		if _bloody_feet and _bloody_feet.get("_blood_color") != null:
-			blood_color = _bloody_feet._blood_color
+		var blood_color := _blood_snow_color
 		if footprint.has_method("set_blood_color"):
 			footprint.set_blood_color(blood_color)
 		else:

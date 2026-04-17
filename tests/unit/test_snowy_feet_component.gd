@@ -337,6 +337,7 @@ class MockSnowyFeetComponentWithBloodCheck extends MockSnowyFeetComponentWithSno
 	var snow_blood_steps_count: int = 2
 	## Counter armed by _on_blood_contact() signal handler (Issue #1627 race-condition fix).
 	var _blood_snow_steps_remaining: int = 0
+	var _blood_snow_color: Color = Color(0.545, 0.0, 0.0, 1.0)
 	var on_snow: bool = true
 
 	## Tracks whether last spawned print was a blood print.
@@ -349,6 +350,8 @@ class MockSnowyFeetComponentWithBloodCheck extends MockSnowyFeetComponentWithSno
 		if _bloody_feet and _bloody_feet.get("snow_blood_steps_count") != null:
 			steps = _bloody_feet.snow_blood_steps_count
 		_blood_snow_steps_remaining = steps
+		if _bloody_feet:
+			_blood_snow_color = _bloody_feet._blood_color
 
 
 	func arm_blood_snow_steps_from_bloody_feet_if_needed() -> void:
@@ -361,6 +364,7 @@ class MockSnowyFeetComponentWithBloodCheck extends MockSnowyFeetComponentWithSno
 			steps = _bloody_feet.snow_blood_steps_count
 		steps = mini(steps, _bloody_feet.get_blood_level())
 		_blood_snow_steps_remaining = max(steps, 0)
+		_blood_snow_color = _bloody_feet._blood_color
 
 
 	func _spawn_footprint() -> void:
@@ -390,6 +394,7 @@ class MockSnowyFeetComponentWithBloodCheck extends MockSnowyFeetComponentWithSno
 				"alpha": alpha,
 				"is_left": _is_left_foot,
 				"is_blood": true,
+				"blood_color": _blood_snow_color,
 			})
 			_is_left_foot = not _is_left_foot
 			_blood_snow_steps_remaining -= 1
@@ -566,6 +571,29 @@ func test_red_snow_footprints_consume_bloody_feet_after_rendering() -> void:
 	comp.process(Vector2(comp.step_distance * 2.0, 0.0))
 	assert_eq(bloody.get_blood_level(), 0,
 		"Second rendered red snow print should consume the last BloodyFeetComponent snow blood step")
+
+
+func test_signal_captured_blood_color_survives_bloody_feet_drain() -> void:
+	## The visible red snow print should use the color captured at blood contact time,
+	## even if BloodyFeetComponent has already drained before SnowyFeetComponent steps.
+	var comp := MockSnowyFeetComponentWithBloodCheck.new()
+	comp.is_on_snow = true
+	var bloody := MockBloodyFeet.new()
+	bloody._blood_level = 2
+	bloody._blood_color = Color(0.7, 0.02, 0.01, 1.0)
+	comp._bloody_feet = bloody
+	comp.ready(Vector2.ZERO)
+	comp.on_blood_contact()
+
+	bloody._blood_level = 0
+	bloody._blood_color = Color.WHITE
+	comp.process(Vector2(comp.step_distance, 0.0))
+
+	var used_color: Color = comp.spawned_footprints[0]["blood_color"]
+	assert_almost_eq(used_color.r, 0.7, 0.01,
+		"SnowyFeetComponent should use the contact-time blood color")
+	assert_almost_eq(used_color.g, 0.02, 0.01,
+		"SnowyFeetComponent should not fall back to a later white BloodyFeetComponent color")
 
 
 # ============================================================================

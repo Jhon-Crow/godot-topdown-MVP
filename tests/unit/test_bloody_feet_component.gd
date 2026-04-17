@@ -174,14 +174,14 @@ func test_requires_characterbody2d_parent() -> void:
 
 ## Test blood detection area is created.
 func test_blood_detector_created() -> void:
-	var blood_detector := _component.get_node_or_null("BloodDetector")
+	var blood_detector := _character.get_node_or_null("BloodDetector")
 	assert_not_null(blood_detector, "BloodDetector Area2D should be created")
 	assert_true(blood_detector is Area2D, "BloodDetector should be an Area2D")
 
 
 ## Test blood detector has collision shape.
 func test_blood_detector_has_collision() -> void:
-	var blood_detector := _component.get_node_or_null("BloodDetector")
+	var blood_detector := _character.get_node_or_null("BloodDetector")
 	if blood_detector:
 		var collision := blood_detector.get_node_or_null("FootCollision")
 		assert_not_null(collision, "BloodDetector should have FootCollision shape")
