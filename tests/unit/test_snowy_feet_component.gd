@@ -327,6 +327,9 @@ class MockBloodyFeet:
 	func get_blood_level() -> int:
 		return _blood_level
 
+	func consume_snow_blood_step() -> void:
+		_blood_level = max(_blood_level - 1, 0)
+
 
 class MockSnowyFeetComponentWithBloodCheck extends MockSnowyFeetComponentWithSnowCheck:
 	## Simulated BloodyFeetComponent reference.
@@ -390,6 +393,8 @@ class MockSnowyFeetComponentWithBloodCheck extends MockSnowyFeetComponentWithSno
 			})
 			_is_left_foot = not _is_left_foot
 			_blood_snow_steps_remaining -= 1
+			if _bloody_feet:
+				_bloody_feet.consume_snow_blood_step()
 		else:
 			# Normal white print.
 			var steps_taken_white := _step_index % snow_steps_count
@@ -541,6 +546,26 @@ func test_red_snow_footprint_when_signal_was_missed_but_blood_level_is_active() 
 	assert_eq(comp.spawned_footprints.size(), 1, "A footprint should be spawned")
 	assert_true(comp.spawned_footprints[0].get("is_blood", false),
 		"Missed blood_contact signal must still produce a red snow footprint while blood level is active")
+
+
+func test_red_snow_footprints_consume_bloody_feet_after_rendering() -> void:
+	var comp := MockSnowyFeetComponentWithBloodCheck.new()
+	comp.is_on_snow = true
+	comp.snow_blood_steps_count = 2
+	var bloody := MockBloodyFeet.new()
+	bloody._blood_level = 2
+	bloody.snow_blood_steps_count = 2
+	comp._bloody_feet = bloody
+	comp.ready(Vector2.ZERO)
+	comp.on_blood_contact()
+
+	comp.process(Vector2(comp.step_distance, 0.0))
+	assert_eq(bloody.get_blood_level(), 1,
+		"First rendered red snow print should consume exactly one BloodyFeetComponent snow blood step")
+
+	comp.process(Vector2(comp.step_distance * 2.0, 0.0))
+	assert_eq(bloody.get_blood_level(), 0,
+		"Second rendered red snow print should consume the last BloodyFeetComponent snow blood step")
 
 
 # ============================================================================

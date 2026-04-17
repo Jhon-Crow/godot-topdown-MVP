@@ -344,6 +344,8 @@ func _spawn_footprint() -> void:
 			footprint.modulate.a = alpha
 
 		_blood_snow_steps_remaining -= 1
+		if _bloody_feet and _bloody_feet.has_method("consume_snow_blood_step"):
+			_bloody_feet.consume_snow_blood_step()
 		if debug_logging:
 			_log_info("Red snow footprint placed (blood steps remaining: %d, alpha %.2f)" % [
 				_blood_snow_steps_remaining, alpha])

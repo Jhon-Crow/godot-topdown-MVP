@@ -1,129 +1,92 @@
-# Case Study: Snow Interaction System for Winter Forest Map (Issue #1627)
+# Case Study: Issue #1627 Snow And Blood Footprints
 
-## Problem Statement
+## Current User-Visible Problem
 
-The Winter Forest level (`WinterForestLevel.tscn`) has a snow-covered ground rendered as a
-plain `ColorRect` (`Color(0.88, 0.9, 0.93, 1)`) overlaid with a falling-snow particle effect
-(`SnowEffect.tscn`). The issue requests realistic snow interaction:
+The Winter Forest should leave normal oval snow dents while walking on snow. After stepping in a blood puddle on snow, the next two snow dents should be red/bloody snow dents, then footprints should return to normal white snow dents. The latest PR feedback says the game still shows ordinary snow footprints after blood puddles.
 
-1. **Snow surface texture** — slight visual unevenness/irregularities on the ground snow layer.
-2. **Footprints in snow** — player and enemy movement should leave visible tracks.
-3. **Blood absorbed by snow** — blood should recolor/stain the snow without forming a standing
-   puddle. Stained snow must **not** create bloody footprints when stepped on.
-4. **Faster bloody-footprint fade** — when walking through blood stains on snow, the blood
-   trail on boots should disappear in fewer steps than on dry floor.
+## Collected Data
 
----
+- `logs/game_log_20260418_000122.txt` — user-attached runtime log from Windows build, 1,851 lines.
+- `sources/issue-comments.json` — paginated issue comments for issue #1627.
+- `sources/pr-1720.json` — PR metadata and discussion snapshot.
+- `sources/pr-review-comments.json` — paginated inline PR comments.
 
-## Existing Systems Analysis
+The GitHub attachment was downloaded with authenticated `curl -L -H "Authorization: token $(gh auth token)"` and stored locally under this case-study folder.
 
-### Snow (particle layer)
-- `scripts/effects/snow_effect.gd` — two-layer `GPUParticles2D` world-space emitter that
-  tracks the camera center so new flakes always appear within the viewport.
-- `scenes/effects/SnowEffect.tscn` — defines SnowFlakesLarge (80 particles, 2 s lifetime)
-  and SnowFlakesSmall (120 particles, 2.5 s lifetime). Both use additive blend + fade-out
-  gradient.
+## Timeline Reconstruction
 
-### Blood system
-- `scripts/effects/blood_decal.gd` (`BloodDecal`) — persistent floor stain, `Sprite2D`,
-  joins `blood_puddle` group, sets up `Area2D` with `CircleShape2D` so characters can detect
-  it via signals. Supports optional auto-fade.
-- `scripts/effects/blood_footprint.gd` (`BloodFootprint`) — individual boot print,
-  `Sprite2D`, alpha set at spawn time. Alternates left/right textures
-  (`assets/sprites/effects/boot_print_left.png`, `boot_print_right.png`).
-- `scripts/components/bloody_feet_component.gd` (`BloodyFeetComponent`) — attached to any
-  `CharacterBody2D`; detects `blood_puddle` areas via signals + throttled fallback; spawns
-  footprints at `step_distance` intervals with decreasing alpha over `blood_steps_count`
-  steps.
+1. Original issue requested snow texture, snow footprints, and blood interacting with snow.
+2. First implementation added snow footprint spawning but used boot-shaped/red-tinted assets, so tracks looked bloody and foot-shaped.
+3. Follow-up changed snow tracks to oval snow-print textures.
+4. Follow-up required blood on snow to produce red oval snow dents, not normal boot-shaped blood prints, and not duplicate snow plus blood prints.
+5. Follow-up narrowed expected behavior to exactly 2 red snow footprints after stepping in blood, then normal snow footprints.
+6. Several fixes tried to arm `SnowyFeetComponent` from `BloodyFeetComponent.blood_contact`, but user screenshots/logs still showed normal snow prints after blood.
+7. The latest attached log confirms `BloodyFeetComponent` and `SnowyFeetComponent` initialize on Winter Forest and blood contact events happen, but contact colors are logged as white: `Stepped in blood! 2 footprints to spawn, color: (1, 1, 1, 1)`.
 
-### Blood detection protocol
-Blood puddles join the `"blood_puddle"` group and expose a `monitorable` `Area2D` on
-collision layer 7 (bitmask 64). `BloodyFeetComponent` creates a `monitoring` `Area2D` on the
-character and connects `area_entered`/`area_exited` signals.
+## Evidence From Log
 
----
+Relevant runtime sequence from `game_log_20260418_000122.txt`:
 
-## Root Cause
+- Lines 409-411: `BloodyFeetComponent` initializes for `Player` on Winter Forest.
+- Lines 485-490: `SnowyFeetComponent` initializes for player and enemies.
+- Lines 519-523: player blood and snow detectors are created.
+- Lines 997, 1787, 1794, 1811, 1814, 1818, 1820, 1822, 1827, 1831, 1836, 1844: player repeatedly steps in blood on snow, but the logged color is `(1, 1, 1, 1)`.
+- Lines 1025, 1791, 1796, 1813, 1815, 1819, 1821, 1824, 1828, 1832, 1837, 1846: blood runs out on snow very quickly.
 
-There is no snow-surface interaction system at all. The white `ColorRect` representing snow
-is a purely passive visual element. No component detects characters walking over it, no
-decal system marks footprints in snow, and the existing `BloodDecal` system spawns
-interactive puddles that invite further bloody tracking — the opposite of what snow-absorbed
-blood should do.
+The white color is inconsistent with a red blood puddle. It means the detector frequently used the child `Area2D` (`PuddleArea`) color instead of the parent `BloodDecal` sprite color. `Area2D` defaults to white `modulate`, so red snow footprints were tinted white and looked like ordinary snow footprints.
 
----
+## Root Causes
 
-## Solution Design
+### Root Cause 1: Child Area Color Lookup
 
-### A. Snow Footprints — `SnowyFeetComponent`
+`BloodDecal` is a `Sprite2D` with the actual red visual color. Its child `PuddleArea` is an `Area2D` used only for overlap detection. `BloodyFeetComponent._on_area_entered()` can receive either the parent decal or the child area. Previous `_get_puddle_color()` returned `CanvasItem.modulate` directly from the received node. When the received node was `PuddleArea`, the color was `(1, 1, 1, 1)`, so `SnowBloodFootprint` was tinted white.
 
-Mirrors `BloodyFeetComponent` but detects proximity to the snow surface rather than blood
-puddles. Because the entire Winter Forest floor is snow, detection is simpler: the component
-is enabled/disabled by the level script rather than by area overlap. Footprints fade across
-`snow_steps_count` steps (default 8, fewer than blood's 12) since snow shows lighter marks.
+Fix: when the received node is an `Area2D` whose parent is in `blood_puddle`, resolve color from the parent decal.
 
-**Scene:** `SnowFootprint.tscn` — `Sprite2D` that re-uses the same boot-print textures
-(white-tinted instead of red) and fades to invisible over its lifetime.
+### Root Cause 2: Invisible Snow Blood Counter Drain
 
-**Script:** `snow_footprint.gd` — identical interface to `BloodFootprint` but defaults to a
-near-white tint, no `blood_puddle` group membership.
+On snow, `BloodyFeetComponent._spawn_footprint()` intentionally does not render regular boot-shaped blood footprints because `SnowyFeetComponent` owns snow rendering. However, it still decremented `_blood_level` every `step_distance`. If its movement counter fired before `SnowyFeetComponent` spawned a print, the blood state could reach zero before any red snow footprint was rendered.
 
-**Component:** `snowy_feet_component.gd` — attached alongside `BloodyFeetComponent` on each
-character in the Winter Forest level. Spawns `SnowFootprint` instances at `step_distance`
-intervals. Uses a separate scene path and tint so footprints are visually distinct from
-bloody ones.
+Fix: `BloodyFeetComponent` no longer decrements snow blood state invisibly. `SnowyFeetComponent` calls `consume_snow_blood_step()` only after it renders a red snow footprint.
 
-### B. Snow Blood Decal — `SnowBloodDecal`
+## Online/External Research
 
-Replaces `BloodDecal` for hits that occur on the Winter Forest snow ground. Key differences:
+Godot 4 `Area2D` documentation confirms that `Area2D` detects overlapping `CollisionObject2D` nodes and tracks currently overlapping objects. It also confirms `area_entered` requires `monitoring = true`, and the other object's collision layer must be in the monitoring area's mask. This supports the existing detector architecture but also explains why the callback naturally receives the collision child area rather than the visual parent decal.
 
-| Property | `BloodDecal` | `SnowBloodDecal` |
-|----------|-------------|-----------------|
-| `is_puddle` default | `true` | `false` |
-| Group membership | `"blood_puddle"` | `"snow_blood_stain"` |
-| Area2D monitorable | yes | no |
-| Auto fade | optional | yes (30 s delay, 5 s fade) |
-| Appearance | opaque red stain | semi-transparent, desaturated |
+Source: https://docs.godotengine.org/en/stable/classes/class_area2d.html
 
-Because `SnowBloodDecal` does **not** join `"blood_puddle"`, `BloodyFeetComponent` never
-detects it, so no bloody footprints propagate from blood-stained snow.
+## Solution Options Considered
 
-### C. Faster Bloody Footprints on Snow — `on_snow` flag in `BloodyFeetComponent`
+1. Make `SnowBloodDecal` interactive again by adding it to `blood_puddle`.
+   Rejected because previous requirements explicitly said blood absorbed by snow should not behave as a reusable wet puddle.
 
-A new exported bool `on_snow: bool = false` is added. When `true`, `blood_steps_count` is
-halved (floored at 2) when the component first picks up blood. The Winter Forest level
-script sets this flag after instantiating characters.
+2. Let `BloodyFeetComponent` render red snow prints directly.
+   Rejected because it reintroduces duplicate ownership and risks both snow and blood components spawning at once.
 
-### D. Snow Surface Texture (visual irregularities)
+3. Keep `SnowyFeetComponent` as the single renderer for snow, and make `BloodyFeetComponent` only detect/hold/consume blood state.
+   Chosen because it matches the visual rule: one footprint per snow step, either red or white.
 
-The plain `ColorRect` snow layer is supplemented with a subtle `NoiseTexture2D`-based
-`TextureRect` rendered at low opacity, giving the impression of uneven drifted snow without
-requiring imported art assets. This is added directly in the `.tscn` scene.
+## Implemented Fix
 
----
+- `scripts/components/bloody_feet_component.gd`
+  - `_get_puddle_color()` resolves child `PuddleArea` contact to parent `BloodDecal` color.
+  - `on_snow` path no longer decrements `_blood_level` inside `_spawn_footprint()`.
+  - Added `consume_snow_blood_step()` for `SnowyFeetComponent` to call after rendering a red snow footprint.
 
-## Files Changed / Added
+- `scripts/components/snowy_feet_component.gd`
+  - Calls `BloodyFeetComponent.consume_snow_blood_step()` immediately after spawning a red snow footprint.
 
-| File | Change |
-|------|--------|
-| `scripts/effects/snow_footprint.gd` | **NEW** — `SnowFootprint` Sprite2D class |
-| `scenes/effects/SnowFootprint.tscn` | **NEW** — scene for snow footprint decal |
-| `scripts/components/snowy_feet_component.gd` | **NEW** — component spawning snow footprints |
-| `scripts/effects/snow_blood_decal.gd` | **NEW** — `SnowBloodDecal`, blood absorbed by snow |
-| `scenes/effects/SnowBloodDecal.tscn` | **NEW** — scene for snow blood stain decal |
-| `scripts/components/bloody_feet_component.gd` | **MODIFIED** — `on_snow` flag for faster fade |
-| `scripts/levels/winter_forest_level.gd` | **MODIFIED** — wires up new components |
-| `scenes/levels/WinterForestLevel.tscn` | **MODIFIED** — adds SnowTexture layer; injects components |
-| `tests/unit/test_snowy_feet_component.gd` | **NEW** — unit tests |
-| `tests/unit/test_snow_blood_decal.gd` | **NEW** — unit tests |
+- `tests/unit/test_bloody_feet_component.gd`
+  - Covers child area color lookup.
+  - Covers that on-snow `_spawn_footprint()` does not drain blood before rendering.
+  - Covers explicit post-render snow blood consumption.
 
----
+- `tests/unit/test_snowy_feet_component.gd`
+  - Covers red snow footprints consuming blood only after rendering.
 
-## References
+## Expected Behavior After Fix
 
-- Issue #1440 — Winter Forest level design (map size, layout, color palette)
-- Issue #1571 — SnowEffect scene resource ordering (load_steps must match sub_resource count)
-- Issue #1585 — Time-stop freeze for precipitation effects (process_mode approach)
-- Issue #407 — BloodyFeetComponent performance fix (signal-based detection)
-- `scripts/effects/blood_decal.gd` — reference implementation for decal pattern
-- `scripts/components/bloody_feet_component.gd` — reference for footprint component pattern
+- Step on clean snow: one normal white oval snow dent per step interval.
+- Step in blood on snow: next 2 snow dents are red oval snow dents using the parent blood decal color.
+- After those 2 rendered red snow dents: normal white oval snow dents resume.
+- No duplicate ordinary snow plus blood footprints are spawned for the same step.

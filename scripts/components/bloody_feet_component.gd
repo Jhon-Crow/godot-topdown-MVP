@@ -345,6 +345,10 @@ func _get_puddle_color(puddle_node: Node) -> Color:
 	if puddle_node == null:
 		return Color(0.545, 0.0, 0.0, 1.0)  # Default dark red
 
+	var parent := puddle_node.get_parent()
+	if puddle_node is Area2D and parent != null and parent.is_in_group("blood_puddle"):
+		return _get_puddle_color(parent)
+
 	# If it's a CanvasItem (Sprite2D, etc.), get its modulate color
 	if puddle_node is CanvasItem:
 		var color := (puddle_node as CanvasItem).modulate
@@ -486,12 +490,8 @@ func _spawn_footprint() -> void:
 	# white and red blood-snow prints). This component only tracks the blood level so
 	# SnowyFeetComponent can read it via has_bloody_feet() and _blood_color (Issue #1627).
 	if on_snow:
-		# Decrement blood level so the counter winds down even though we don't render.
-		_blood_level -= 1
 		if debug_logging:
 			_log_info("On snow — SnowyFeetComponent handles prints (blood steps remaining: %d)" % _blood_level)
-		if _blood_level <= 0:
-			_log_info("Blood ran out on snow")
 		return
 
 	# Non-snow level: use regular boot-print BloodFootprint scene.
@@ -583,6 +583,19 @@ func set_blood_level(level: int) -> void:
 ## Get current blood level.
 func get_blood_level() -> int:
 	return _blood_level
+
+
+## Called by SnowyFeetComponent after it renders one red snow footprint.
+## Keeps blood-state ownership synchronized without letting this component drain
+## the counter before SnowyFeetComponent has rendered the visible red oval print.
+func consume_snow_blood_step() -> void:
+	if _blood_level <= 0:
+		return
+	_blood_level -= 1
+	if debug_logging:
+		_log_info("Snow blood step consumed (blood steps remaining: %d)" % _blood_level)
+	if _blood_level <= 0:
+		_log_info("Blood ran out on snow")
 
 
 ## Check if currently has bloody feet.

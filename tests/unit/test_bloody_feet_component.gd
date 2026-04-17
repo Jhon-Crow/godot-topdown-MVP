@@ -23,6 +23,17 @@ class MockBloodPuddle extends Area2D:
 		monitorable = true
 
 
+class MockBloodDecal extends Sprite2D:
+	var puddle_area: Area2D = Area2D.new()
+
+	func _init() -> void:
+		add_to_group("blood_puddle")
+		modulate = Color(0.55, 0.02, 0.02, 0.85)
+		puddle_area.name = "PuddleArea"
+		puddle_area.add_to_group("blood_puddle")
+		add_child(puddle_area)
+
+
 var _component: Node = null
 var _character: MockCharacter = null
 
@@ -287,3 +298,43 @@ func test_set_blood_level_on_snow_clamps_to_snow_blood_steps_count() -> void:
 
 	assert_eq(_component.get_blood_level(), 2,
 		"Snow blood level should clamp to snow_blood_steps_count, not regular blood_steps_count")
+
+
+func test_get_puddle_color_uses_parent_decal_color_for_child_area() -> void:
+	var decal := MockBloodDecal.new()
+	add_child(decal)
+	await wait_frames(1)
+
+	var color: Color = _component._get_puddle_color(decal.puddle_area)
+
+	assert_almost_eq(color.r, decal.modulate.r, 0.01,
+		"Child PuddleArea contact should use the parent BloodDecal red color, not Area2D white")
+	assert_almost_eq(color.g, decal.modulate.g, 0.01,
+		"Child PuddleArea contact should preserve parent BloodDecal green channel")
+	assert_almost_eq(color.b, decal.modulate.b, 0.01,
+		"Child PuddleArea contact should preserve parent BloodDecal blue channel")
+
+	decal.queue_free()
+	await wait_frames(1)
+
+
+func test_on_snow_spawn_footprint_does_not_drain_before_snowy_feet_renders() -> void:
+	_component.on_snow = true
+	_component.snow_blood_steps_count = 2
+	_component.set_blood_level(2)
+
+	_component._spawn_footprint()
+
+	assert_eq(_component.get_blood_level(), 2,
+		"BloodyFeetComponent must not drain snow blood before SnowyFeetComponent renders red oval prints")
+
+
+func test_consume_snow_blood_step_drains_after_snowy_feet_render() -> void:
+	_component.on_snow = true
+	_component.snow_blood_steps_count = 2
+	_component.set_blood_level(2)
+
+	_component.consume_snow_blood_step()
+
+	assert_eq(_component.get_blood_level(), 1,
+		"SnowyFeetComponent should explicitly consume one blood step after rendering a red snow print")
