@@ -17,6 +17,8 @@ Issue [#1817](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1817) starte
   - [game_log_20260417_025935.txt](./game_log_20260417_025935.txt)
   - [game_log_20260417_030201.txt](./game_log_20260417_030201.txt)
   - [game_log_20260417_033631.txt](./game_log_20260417_033631.txt)
+  - [game_log_20260417_210216.txt](./game_log_20260417_210216.txt)
+  - [game_log_20260417_214336.txt](./game_log_20260417_214336.txt)
 - Filtered timeline extracts:
   - [game_log_20260417_025935.filtered.txt](./game_log_20260417_025935.filtered.txt)
   - [game_log_20260417_030201.filtered.txt](./game_log_20260417_030201.filtered.txt)
@@ -33,6 +35,7 @@ Issue [#1817](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1817) starte
 5. April 17, 2026: new logs show revolver open/close sequences at `03:01:16` -> `03:01:19` and `03:01:26` -> `03:01:33`, plus shotgun open/close-without-load sequences at `03:02:30`, `03:02:37`, and nearby repeated attempts.
 6. April 17, 2026 00:37:57 UTC: owner attached `game_log_20260417_033631.txt` and reported "nothing changed" in the latest build.
 7. April 17, 2026 18:02:49 UTC: owner attached `game_log_20260417_210216.txt` and reported a gray screen after launching the exported exe.
+8. April 17, 2026 18:47:33 UTC: owner attached `game_log_20260417_214336.txt` and reported that shotgun was now correct, but silenced pistol reload training still did not appear on the Training map and revolver empty open/close still completed the line.
 
 ## Findings
 
@@ -50,6 +53,7 @@ The April 17 logs add useful weapon-level transitions:
 - shotgun logs show `Bolt opened for loading`, then `Reload complete - bolt closed` with unchanged shell counts such as `6/8` and `7/8`, which is an aborted reload from the tutorial perspective.
 - the latest log confirms the same Training map path: revolver opens and closes at `03:36:40` without a cartridge insert, and shotgun opens at `03:37:23` / `03:37:25` then closes with `shouldLoad=False` and still `6 shells`.
 - the exported-exe startup log shows `SceneLoader` reporting `THREAD_LOAD_INVALID_RESOURCE` for `res://scenes/levels/RoguelikeLevel.tscn`, falling back to synchronous loading, and then arriving at `RoguelikeLevel` while dependent systems still report no player. This is consistent with the user-visible gray/blank startup state.
+- `game_log_20260417_214336.txt` confirms the later build launched successfully and that `WeaponHintsSettings` was still in `ALWAYS` mode. The remaining owner report is therefore not a settings/first-time-only problem; it is a Training-level signal wiring and rollback-state problem.
 
 ## Root Causes
 
@@ -95,7 +99,25 @@ Result:
 - factory/labyrinth-style shared weapon hints had rollback guards, but Training still completed shotgun reload on every `ReloadStateChanged(0)`
 - Training revolver still rendered the all-grey final step when the cylinder returned to idle without any inserted cartridge
 
-### 6. SceneLoader fallback could expose a blank screen after exported startup failure
+### 6. Training map never treated SilencedPistol as a pistol reload tutorial weapon
+
+`scripts/levels/tutorial_level.gd` detected `Shotgun`, `MiniUzi`, `AssaultRifle`, `AKGL`, `Revolver`, and `MakarovPM`, but did not have a `SilencedPistol` branch in `_connect_player_signals()`.
+
+Result:
+
+- the silenced pistol could be equipped, but the Training map did not connect its fired/reload/ammo signals for the tutorial flow
+- the reload hint did not appear after the two-shot threshold on the Training map
+- even if a hint was manually forced, the generic fallback would use the rifle-style `R -> F -> R` sequence instead of the pistol `R -> R` sequence
+
+### 7. Training revolver rollback used stale cartridge state across attempts
+
+`tutorial_level.gd` used `_revolver_last_inserted_count` to decide whether `ReloadStateChanged(0)` was a real completion or an aborted empty close. That value could persist after a previous reload attempt inserted a cartridge.
+
+Result:
+
+- a later sequence of open cylinder -> close cylinder without insertion could still see stale inserted-count state and render the line as completed
+
+### 8. SceneLoader fallback could expose a blank screen after exported startup failure
 
 `SceneLoader._fallback_sync_load()` ignored the return value from `change_scene_to_packed()` and always hid the loading overlay. `_on_load_complete()` had the same overlay-clearing behavior after a scene-change error. If threaded loading reports `THREAD_LOAD_INVALID_RESOURCE` in an exported build and the synchronous scene change also fails, the loader clears its visual guard and exposes the underlying not-yet-ready or failed scene.
 
@@ -108,10 +130,13 @@ Result:
 - Drive grenade tutorial progression strictly from the player grenade state machine (`WAITING_FOR_G_RELEASE`, `AIMING`, `IDLE`).
 - Track whether shotgun reload reached the meaningful loaded-shell state before allowing `ReloadStateChanged(0)` to complete the tutorial.
 - Track whether revolver reload inserted a cartridge before allowing `ReloadStateChanged(0)` to complete the tutorial.
+- Add a Training-map `SilencedPistol` branch that connects shot/reload/ammo signals and uses the same two-step pistol reload path as Makarov PM.
+- Reset Training-map revolver per-attempt loaded-cartridge state on every close, so empty open/close attempts after previous inserts roll back correctly.
 - Reset hint label text and strikethrough progress when a reload action closes without the meaningful load step.
 - Mirror those guards inside `tutorial_level.gd`, because Training does not rely solely on the shared weapon hint component.
 - Keep the loading overlay visible and preserve loader state when SceneLoader cannot complete either threaded or synchronous scene transition.
 - Add focused tests for silenced pistol node lookup, aborted revolver reload rollback, successful revolver completion, aborted shotgun reload rollback, and successful shotgun completion.
+- Add focused Training-map tests for silenced pistol two-step reload and revolver stale-state rollback after a previous cartridge insert.
 - Add a SceneLoader regression test for failed synchronous fallback after invalid threaded resource status.
 - Keep regression coverage for both canceled and completed flows.
 

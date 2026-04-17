@@ -87,6 +87,7 @@ class MockTutorialLevel:
 	var _has_revolver: bool = false
 	var _has_shotgun: bool = false
 	var _has_makarov_pm: bool = false
+	var _has_silenced_pistol: bool = false
 	var _has_ak_gl: bool = false  ## Fix 3rd#10: AK GL flag
 	var _sniper_bolt_step: int = 0  ## Fix 3rd#3: tracks current sniper bolt step
 	var _sniper_bolt_cycled: bool = false
@@ -112,6 +113,7 @@ class MockTutorialLevel:
 	var _revolver_last_inserted_chamber_index: int = -1
 	var _revolver_minimum_inserts_required: int = 2
 	var _revolver_scroll_completed_since_last_insert: bool = false
+	var _revolver_reload_loaded_cartridge: bool = false
 
 	## Issue #945: Shot tracking for delayed reload hint reveal
 	var _shots_fired: int = 0
@@ -293,12 +295,16 @@ class MockTutorialLevel:
 			0:
 				return "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]"
 			1:
+				_hint_strike_progress[HINT_RELOAD] = maxf(_hint_strike_progress.get(HINT_RELOAD, 0.0), 0.15)
 				return "[color=#888888][R открыть][/color] [color=#ff4444][ПКМ↑ патрон][/color] [color=#888888][скролл] [R закрыть][/color]"
 			2:
+				_hint_strike_progress[HINT_RELOAD] = maxf(_hint_strike_progress.get(HINT_RELOAD, 0.0), 0.15)
 				return "[color=#888888][R открыть][/color] [ПКМ↑ патрон] [color=#ff4444][скролл][/color] [color=#888888][R закрыть][/color]"
 			3:
+				_hint_strike_progress[HINT_RELOAD] = maxf(_hint_strike_progress.get(HINT_RELOAD, 0.0), 0.55)
 				return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл][/color] [color=#ff4444][R закрыть][/color]"
 			_:
+				_hint_strike_progress[HINT_RELOAD] = maxf(_hint_strike_progress.get(HINT_RELOAD, 0.0), 0.75)
 				return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/color]"
 
 	## Fix 3rd#7 + Fix 4th#2: Update shotgun hint when shells are loaded.
@@ -346,7 +352,7 @@ class MockTutorialLevel:
 		elif _has_revolver:
 			# Revolver: cylinder reload hint. Hammer-cock hint shown from start (fix #3).
 			_add_hint(HINT_RELOAD, "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]")
-		elif _has_makarov_pm:
+		elif _uses_two_step_pistol_reload():
 			_add_hint(HINT_RELOAD, _build_reload_hint_bbcode(0, 2))
 		else:
 			_add_hint(HINT_RELOAD, _build_reload_hint_bbcode(0, 3))
@@ -514,7 +520,7 @@ class MockTutorialLevel:
 		# Guard: shotgun uses separate action/reload state signals
 		if _has_shotgun:
 			return ""
-		if _has_makarov_pm or (not _has_sniper_rifle and total <= 2):
+		if _uses_two_step_pistol_reload() or (not _has_sniper_rifle and total <= 2):
 			# 2-step reload R -> R; step=0 → next is first R
 			match step:
 				0:
@@ -534,6 +540,9 @@ class MockTutorialLevel:
 					return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
 				_:
 					return "[color=#888888][R] [F] [R][/color] Перезарядись"
+
+	func _uses_two_step_pistol_reload() -> bool:
+		return _has_makarov_pm or _has_silenced_pistol
 
 	func on_fire_mode_changed() -> void:
 		if _current_step != TutorialStep.SWITCH_FIRE_MODE:
@@ -561,6 +570,7 @@ class MockTutorialLevel:
 	func on_revolver_cartridge_inserted(loaded: int, chamber_index: int, current_ammo: int = -1) -> void:
 		_revolver_cartridges_loaded_this_reload = loaded
 		_revolver_last_inserted_count = loaded
+		_revolver_reload_loaded_cartridge = loaded > 0
 		_revolver_last_inserted_chamber_index = chamber_index
 		_revolver_current_chamber_index = chamber_index
 		_revolver_scroll_completed_since_last_insert = false
@@ -583,6 +593,19 @@ class MockTutorialLevel:
 			return
 		if not _has_revolver:
 			return
+		if state == 0:
+			if _revolver_reload_loaded_cartridge:
+				_revolver_reload_loaded_cartridge = false
+				_revolver_last_inserted_count = 0
+				_revolver_last_inserted_chamber_index = -1
+				_revolver_scroll_completed_since_last_insert = false
+			else:
+				_hint_strike_progress[HINT_RELOAD] = 0.0
+				_active_hints[HINT_RELOAD] = _build_revolver_reload_hint_bbcode(0)
+				_revolver_last_inserted_count = 0
+				_revolver_last_inserted_chamber_index = -1
+				_revolver_scroll_completed_since_last_insert = false
+				return
 
 		var hint_step: int = 0
 		match state:
@@ -2167,6 +2190,41 @@ func test_shotgun_shells_to_load_zero_when_full() -> void:
 	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_BOLT_CYCLE, "")
 	assert_true(hint_text.contains("x0"),
 		"Issue #983 Fix 2: Shotgun hint shows x0 when tube is full")
+
+
+func test_silenced_pistol_uses_two_step_reload_hint_on_training_level() -> void:
+	tutorial._has_silenced_pistol = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_RELOAD, "")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Silenced pistol should reveal a reload hint on the Training level after two shots")
+	assert_true(hint_text.contains("[R][/color] [color=#888888][R]"),
+		"Silenced pistol should use the same R->R reload hint as Makarov, not the R->F->R rifle hint")
+	assert_false(hint_text.contains("[F]"),
+		"Silenced pistol reload hint should not include the rifle magazine [F] step")
+
+
+func test_revolver_empty_open_close_after_previous_insert_rolls_training_hint_back() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_revolver_cartridge_inserted(1, 0, 1)
+	tutorial.on_revolver_reload_state_changed(0)
+	tutorial.on_revolver_reload_state_changed(1)
+	tutorial.on_revolver_reload_state_changed(0)
+
+	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_RELOAD, "")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Closing the revolver after opening without inserting should keep reload training visible")
+	assert_true(hint_text.begins_with("[color=#ff4444][R открыть]"),
+		"Empty open-close should roll the revolver hint back to the first open-cylinder step")
+	assert_eq(tutorial.get_hint_strike_progress(MockTutorialLevel.HINT_RELOAD), 0.0,
+		"Empty open-close should clear partial revolver strikethrough progress")
 
 
 func test_grenade_hint_uses_issue_1818_reviewed_text() -> void:

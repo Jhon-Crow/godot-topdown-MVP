@@ -108,6 +108,9 @@ var _has_sniper_rifle: bool = false
 ## Whether the player has a Makarov PM (for pistol R->R reload tutorial).
 var _has_makarov_pm: bool = false
 
+## Whether the player has a silenced pistol (for pistol R->R reload tutorial).
+var _has_silenced_pistol: bool = false
+
 ## Whether the player has a revolver (for revolver-specific cylinder reload tutorial).
 var _has_revolver: bool = false
 
@@ -206,6 +209,7 @@ var _revolver_last_inserted_count: int = 0
 var _revolver_last_inserted_chamber_index: int = -1
 var _revolver_minimum_inserts_required: int = 2
 var _revolver_scroll_completed_since_last_insert: bool = false
+var _revolver_reload_loaded_cartridge: bool = false
 
 ## Unique colors for each hint type (Issue #945: simultaneously displayed hints should be different colors).
 const HINT_COLOR_FIRE_MODE := Color(0.3, 0.9, 1.0, 1.0)          ## Cyan — fire mode switch
@@ -605,6 +609,7 @@ func _connect_player_signals() -> void:
 	var sniper_rifle = _player.get_node_or_null("SniperRifle")
 	var shotgun = _player.get_node_or_null("Shotgun")
 	var mini_uzi = _player.get_node_or_null("MiniUzi")
+	var silenced_pistol = _player.get_node_or_null("SilencedPistol")
 	var makarov_pm = _player.get_node_or_null("MakarovPM")
 	var revolver = _player.get_node_or_null("Revolver")
 
@@ -664,6 +669,23 @@ func _connect_player_signals() -> void:
 		# Connect to Mini UZI ammo signal
 		if mini_uzi.has_signal("AmmoChanged"):
 			mini_uzi.AmmoChanged.connect(_on_weapon_ammo_changed)
+
+	elif silenced_pistol != null:
+		_has_silenced_pistol = true
+		print("Tutorial: Player has SilencedPistol - pistol tutorial (R->R reload)")
+
+		# Connect shot counter for reload hint reveal (Issue #945)
+		_connect_weapon_fired_signal(silenced_pistol)
+
+		# Connect to reload signals from player (C# Player)
+		if _player.has_signal("ReloadCompleted"):
+			_player.ReloadCompleted.connect(_on_player_reload_completed)
+		elif _player.has_signal("reload_completed"):
+			_player.reload_completed.connect(_on_player_reload_completed)
+
+		# Connect to SilencedPistol ammo signal
+		if silenced_pistol.has_signal("AmmoChanged"):
+			silenced_pistol.AmmoChanged.connect(_on_weapon_ammo_changed)
 
 	elif weapon != null:
 		_assault_rifle = weapon
@@ -944,6 +966,7 @@ func _on_revolver_cartridge_inserted(loaded: int, _capacity: int) -> void:
 			_update_ammo_label_magazine(revolver.CurrentAmmo, reserve_ammo)
 		if revolver != null:
 			_revolver_last_inserted_count = loaded
+			_revolver_reload_loaded_cartridge = loaded > 0
 			_revolver_scroll_completed_since_last_insert = false
 			if revolver.get("CurrentChamberIndex") != null:
 				_revolver_last_inserted_chamber_index = int(revolver.get("CurrentChamberIndex"))
@@ -1056,7 +1079,7 @@ func _on_reload_sequence_canceled() -> void:
 	if _has_shotgun or _has_revolver:
 		return
 
-	var total := 2 if _has_makarov_pm else 3
+	var total := 2 if _uses_two_step_pistol_reload() else 3
 	var label: RichTextLabel = _hint_labels[HINT_RELOAD]
 	if is_instance_valid(label):
 		label.text = _build_reload_hint_bbcode(0, total)
@@ -1076,7 +1099,7 @@ func _build_reload_hint_bbcode(step: int, total: int) -> String:
 		return ""
 
 	var reload_word: String = tr("HINT_RELOAD_WORD")
-	if _has_makarov_pm or (_has_sniper_rifle == false and total <= 2):
+	if _uses_two_step_pistol_reload() or (_has_sniper_rifle == false and total <= 2):
 		# Makarov PM / 2-step reload: R -> R
 		# step=0 → next is R (first); step=1 → next is R (second); step=2 → done
 		match step:
@@ -1489,13 +1512,22 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 	if not _has_revolver:
 		return
 
-	if new_state == 0 and _revolver_last_inserted_count <= 0:
-		_reset_hint_strikethrough(HINT_RELOAD)
-		var reset_label: RichTextLabel = _hint_labels[HINT_RELOAD]
-		if is_instance_valid(reset_label):
-			reset_label.text = _build_revolver_reload_hint_bbcode(0)
-		print("Tutorial: Revolver reload rolled back before cartridge insertion")
-		return
+	if new_state == 0:
+		if _revolver_reload_loaded_cartridge:
+			_revolver_reload_loaded_cartridge = false
+			_revolver_last_inserted_count = 0
+			_revolver_last_inserted_chamber_index = -1
+			_revolver_scroll_completed_since_last_insert = false
+		else:
+			_reset_hint_strikethrough(HINT_RELOAD)
+			var reset_label: RichTextLabel = _hint_labels[HINT_RELOAD]
+			if is_instance_valid(reset_label):
+				reset_label.text = _build_revolver_reload_hint_bbcode(0)
+			_revolver_last_inserted_count = 0
+			_revolver_last_inserted_chamber_index = -1
+			_revolver_scroll_completed_since_last_insert = false
+			print("Tutorial: Revolver reload rolled back before cartridge insertion")
+			return
 
 	var hint_step: int = 0
 	match new_state:
@@ -1511,6 +1543,10 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 	if is_instance_valid(label):
 		label.text = new_text
 	print("Tutorial: Revolver reload state %d → hint step %d updated" % [new_state, hint_step])
+
+
+func _uses_two_step_pistol_reload() -> bool:
+	return _has_makarov_pm or _has_silenced_pistol
 
 
 func _get_revolver_reload_hint_step_for_loading_state() -> int:
@@ -1818,7 +1854,7 @@ func _add_reload_hints(canvas_layer: Node) -> void:
 	elif _has_revolver:
 		# Revolver: cylinder reload hint. Hammer-cock hint is shown from start (Bug fix #3).
 		_add_hint(HINT_RELOAD, _build_revolver_reload_hint_bbcode(0), canvas_layer)
-	elif _has_makarov_pm:
+	elif _uses_two_step_pistol_reload():
 		# Makarov PM uses simplified R->R reload. Initial text = step 0.
 		_add_hint(HINT_RELOAD, _build_reload_hint_bbcode(0, 2), canvas_layer)
 	else:

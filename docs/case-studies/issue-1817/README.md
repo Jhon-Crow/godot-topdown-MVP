@@ -20,10 +20,12 @@ Observed variants from the issue and PR discussion:
 - `game_log_20260417_030201.txt`: owner-provided runtime log for shotgun reload training feedback.
 - `game_log_20260417_033631.txt`: owner-provided runtime log after the first PR #1864 fix, reporting no behavior change.
 - `game_log_20260417_210216.txt`: owner-provided exported-exe startup log after the latest PR #1864 fix, reporting a gray screen.
+- `game_log_20260417_214336.txt`: owner-provided runtime log after the gray-screen fix, reporting two remaining Training-map issues: missing silenced pistol reload training and revolver empty open/close completion.
 - `game_log_20260417_025935.filtered.txt`: filtered weapon/tutorial timeline from the first April 17 log.
 - `game_log_20260417_030201.filtered.txt`: filtered weapon/tutorial timeline from the second April 17 log.
 - `game_log_20260417_033631.filtered.txt`: filtered weapon/tutorial timeline from the latest April 17 log.
 - `dotnet-build.log`: local build verification log.
+- `dotnet-build-latest.log`: local build verification log for the final follow-up patch.
 
 ## Reconstructed Sequence
 
@@ -65,6 +67,10 @@ The tutorial handlers were using coarse state transitions:
 - Apply the rollback gates in both the shared `WeaponHintsComponent` and the Training map's own
   `tutorial_level.gd` handlers. The latest log showed Training map behavior was unchanged because
   the previous patch fixed only the shared component path.
+- Add explicit Training-map handling for `SilencedPistol` so it connects shot, reload, and ammo
+  signals and uses the same two-step `[R] [R]` reload hint as Makarov PM.
+- Reset the Training-map revolver per-attempt cartridge tracker when a reload closes, so a previous
+  successful insert cannot make a later empty open/close look completed.
 
 ## Verification
 
@@ -80,6 +86,10 @@ Regression coverage added in `tests/unit/test_weapon_hints_component.gd`:
 - revolver close after cartridge insertion dismisses
 - shotgun open/close without shell loading rolls back
 - shotgun close after shell loading dismisses
+
+Regression coverage added in `tests/unit/test_tutorial_level.gd`:
+- silenced pistol uses the two-step reload hint on the Training map
+- revolver empty open/close rolls back even after a previous reload attempt inserted a cartridge
 
 Regression coverage added in `tests/unit/test_scene_loader.gd`:
 - invalid threaded resource fallback keeps the loading overlay visible if the sync scene change fails, preventing a blank/gray screen from being exposed without diagnostics
