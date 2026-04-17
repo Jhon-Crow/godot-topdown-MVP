@@ -221,6 +221,9 @@ HINT_RELOAD_2STEP_0,[R] [R] Reload,[R] [R] Перезарядись
 HUD_ENEMIES,Enemies: %d,Враги: %d
 HUD_AMMO,Ammo: %d / %d,Патроны: %d / %d
 HUD_DIFFICULTY,Difficulty: %s,Сложность: %s
+ROGUELIKE_ROOM_START,START,СТАРТ
+ROGUELIKE_ROOM_TREASURE,TREASURE,СОКРОВИЩНИЦА
+ROGUELIKE_ROOM_EXIT,EXIT,ВЫХОД
 HINT_RELOAD_2STEP_1,[R] [R] Reload,[R] [R] Перезарядись
 HINT_RELOAD_3STEP_0,[R] [F] [R] Reload,[R] [F] [R] Перезарядись
 HINT_RELOAD_3STEP_1,[R] [F] [R] Reload,[R] [F] [R] Перезарядись

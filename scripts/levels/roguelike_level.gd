@@ -2146,9 +2146,9 @@ func _get_room_progress_text() -> String:
 		var total_count: int = rooms.size()
 		var map_type_label: String = ""
 		match map_type:
-			"start": map_type_label = "СТАРТ"
-			"treasure": map_type_label = "СОКРОВИЩНИЦА"
-			"exit": map_type_label = "ВЫХОД"
+			"start": map_type_label = tr("ROGUELIKE_ROOM_START")
+			"treasure": map_type_label = tr("ROGUELIKE_ROOM_TREASURE")
+			"exit": map_type_label = tr("ROGUELIKE_ROOM_EXIT")
 			_: map_type_label = type_name
 		return "РОГАЛИК — Ур.%d — %s — Комнат: %d/%d" % [
 			GameManager.roguelike_current_level,

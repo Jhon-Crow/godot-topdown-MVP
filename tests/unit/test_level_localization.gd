@@ -27,6 +27,15 @@ func test_localized_hud_labels_use_translation_keys() -> void:
 	assert_eq(_helper.get_difficulty_text("Hard"), tr("HUD_DIFFICULTY") % tr("HARD"))
 
 
+func test_roguelike_exit_room_label_has_english_translation() -> void:
+	var file := FileAccess.open("res://resources/translations/translations.csv", FileAccess.READ)
+	assert_not_null(file)
+	var source := file.get_as_text()
+
+	assert_string_contains(source, "ROGUELIKE_ROOM_EXIT,EXIT,ВЫХОД")
+	assert_false(source.contains("ROGUELIKE_ROOM_EXIT,ВЫХОД,ВЫХОД"))
+
+
 func test_known_level_name_translations_resolve_for_bidirectional_locales() -> void:
 	assert_eq(_helper.get_level_display_name("res://scenes/levels/TestTier.tscn"), tr("LEVEL_POLYGON_NAME"))
 	assert_eq(_helper.get_level_display_name("res://scenes/levels/CastleLevel.tscn"), tr("LEVEL_CASTLE_NAME"))
@@ -303,3 +312,14 @@ func test_level_init_fallback_localizes_building_hud_source() -> void:
 	assert_false(source.contains("\"AMMO: "))
 	assert_false(source.contains("\"MAGS: "))
 	assert_false(source.contains("\"Difficulty: "))
+
+
+func test_roguelike_room_progress_uses_localized_exit_label_source() -> void:
+	var file := FileAccess.open("res://scripts/levels/roguelike_level.gd", FileAccess.READ)
+	assert_not_null(file)
+	var source := file.get_as_text()
+
+	assert_string_contains(source, "ROGUELIKE_ROOM_EXIT")
+	assert_string_contains(source, "ROGUELIKE_ROOM_START")
+	assert_string_contains(source, "ROGUELIKE_ROOM_TREASURE")
+	assert_false(source.contains("\"exit\": map_type_label = \"ВЫХОД\""))
