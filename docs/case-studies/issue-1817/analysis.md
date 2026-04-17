@@ -20,6 +20,7 @@ Issue [#1817](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1817) starte
   - [game_log_20260417_210216.txt](./game_log_20260417_210216.txt)
   - [game_log_20260417_214336.txt](./game_log_20260417_214336.txt)
   - [game_log_20260417_230427.txt](./game_log_20260417_230427.txt)
+  - [game_log_20260417_235155.txt](./game_log_20260417_235155.txt)
 - Filtered timeline extracts:
   - [game_log_20260417_025935.filtered.txt](./game_log_20260417_025935.filtered.txt)
   - [game_log_20260417_030201.filtered.txt](./game_log_20260417_030201.filtered.txt)
@@ -38,6 +39,7 @@ Issue [#1817](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1817) starte
 7. April 17, 2026 18:02:49 UTC: owner attached `game_log_20260417_210216.txt` and reported a gray screen after launching the exported exe.
 8. April 17, 2026 18:47:33 UTC: owner attached `game_log_20260417_214336.txt` and reported that shotgun was now correct, but silenced pistol reload training still did not appear on the Training map and revolver empty open/close still completed the line.
 9. April 17, 2026 20:06:34 UTC: owner attached `game_log_20260417_230427.txt` and clarified that the silenced pistol hint appears, but it uses the Makarov two-press hint even though the weapon reloads like Uzi/M16. The revolver reload line still disappears after two `R` presses.
+10. April 17, 2026 20:54:07 UTC: owner attached `game_log_20260417_235155.txt` and narrowed the remaining failure: revolver reload training reacts to cylinder close even though close is not the active training step after an empty open/close.
 
 ## Findings
 
@@ -57,6 +59,7 @@ The April 17 logs add useful weapon-level transitions:
 - the exported-exe startup log shows `SceneLoader` reporting `THREAD_LOAD_INVALID_RESOURCE` for `res://scenes/levels/RoguelikeLevel.tscn`, falling back to synchronous loading, and then arriving at `RoguelikeLevel` while dependent systems still report no player. This is consistent with the user-visible gray/blank startup state.
 - `game_log_20260417_214336.txt` confirms the later build launched successfully and that `WeaponHintsSettings` was still in `ALWAYS` mode. The remaining owner report is therefore not a settings/first-time-only problem; it is a Training-level signal wiring and rollback-state problem.
 - `game_log_20260417_230427.txt` confirms the latest reproduction happened in the exported Windows Training build. The owner feedback attached to that log narrows the remaining failures to Training hint classification and revolver completion gating, not startup loading or shotgun handling.
+- `game_log_20260417_235155.txt` confirms the remaining failure is specifically in the Training revolver state mapping: cylinder close emits a `ClosingCylinder`/idle sequence and the tutorial must not render that close as completion unless the current reload attempt already inserted enough cartridges or filled the cylinder.
 
 ## Root Causes
 
@@ -121,6 +124,7 @@ Result:
 
 - closing after only the first `R -> insert -> R` partial attempt could dismiss the line
 - a later sequence of open cylinder -> close cylinder without enough current-attempt insertion could still render the line as completed
+- the `ClosingCylinder` state could briefly render the all-grey completed line even before the final idle rollback check ran
 
 ### 8. SceneLoader fallback could expose a blank screen after exported startup failure
 
@@ -137,6 +141,7 @@ Result:
 - Track whether revolver reload inserted a cartridge before allowing `ReloadStateChanged(0)` to complete the tutorial.
 - Add a Training-map `SilencedPistol` branch that connects shot/reload/ammo signals, but keep it on the rifle-style `R -> F -> R` reload path.
 - Reset Training-map revolver per-attempt loaded-cartridge state on every close, and only dismiss the reload hint when the current attempt inserted the tutorial quota or filled the cylinder.
+- Treat Training-map revolver `ClosingCylinder` as rollback unless that same completion gate is already satisfied; close is not a standalone active tutorial step after an empty open/close.
 - Reset hint label text and strikethrough progress when a reload action closes without the meaningful load step.
 - Mirror those guards inside `tutorial_level.gd`, because Training does not rely solely on the shared weapon hint component.
 - Keep the loading overlay visible and preserve loader state when SceneLoader cannot complete either threaded or synchronous scene transition.

@@ -1545,6 +1545,16 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 			hint_step = 1
 		2:
 			hint_step = _get_revolver_reload_hint_step_for_loading_state()
+		3:
+			if _is_revolver_reload_completion_ready():
+				hint_step = 3
+			else:
+				_reset_hint_strikethrough(HINT_RELOAD)
+				_revolver_reload_loaded_cartridge = false
+				_revolver_last_inserted_count = 0
+				_revolver_last_inserted_chamber_index = -1
+				_revolver_scroll_completed_since_last_insert = false
+				hint_step = 0
 		_:
 			hint_step = 4
 

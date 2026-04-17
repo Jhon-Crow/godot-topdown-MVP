@@ -622,6 +622,16 @@ class MockTutorialLevel:
 				hint_step = 1
 			2:
 				hint_step = _get_revolver_reload_hint_step_for_loading_state()
+			3:
+				if _is_revolver_reload_completion_ready():
+					hint_step = 3
+				else:
+					_hint_strike_progress[HINT_RELOAD] = 0.0
+					_revolver_reload_loaded_cartridge = false
+					_revolver_last_inserted_count = 0
+					_revolver_last_inserted_chamber_index = -1
+					_revolver_scroll_completed_since_last_insert = false
+					hint_step = 0
 			_:
 				hint_step = 4
 
@@ -2239,6 +2249,24 @@ func test_revolver_empty_open_close_after_previous_insert_rolls_training_hint_ba
 		"Empty open-close should roll the revolver hint back to the first open-cylinder step")
 	assert_eq(tutorial.get_hint_strike_progress(MockTutorialLevel.HINT_RELOAD), 0.0,
 		"Empty open-close should clear partial revolver strikethrough progress")
+
+
+func test_revolver_closing_cylinder_without_insert_does_not_complete_training_hint() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_revolver_reload_state_changed(1)
+	tutorial.on_revolver_reload_state_changed(3)
+
+	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_RELOAD, "")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"ClosingCylinder without a cartridge insert should keep revolver reload training visible")
+	assert_true(hint_text.begins_with("[color=#ff4444][R открыть]"),
+		"ClosingCylinder without an insert should roll back to the open-cylinder step")
+	assert_false(hint_text.contains("[color=#888888][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/color]"),
+		"ClosingCylinder must not render the all-grey completed revolver reload line")
 
 
 func test_grenade_hint_uses_issue_1818_reviewed_text() -> void:
