@@ -220,6 +220,10 @@ func test_issue_1869_csharp_loudspeaker_victory_input_is_consumed() -> void:
 
 	assert_true(player_source.contains("HandleLoudspeakerVictoryInput(@event)"),
 		"C# Player._UnhandledInput must route input to the loudspeaker victory overlay")
+	assert_true(player_source.contains("HandleLoudspeakerVictoryDelay((float)delta)"),
+		"C# Player._PhysicsProcess must update the delayed loudspeaker ending timer")
+	assert_true(player_source.contains("IsLoudspeakerVictoryWeaponLocked()"),
+		"C# Player._PhysicsProcess must block weapon handling while the ending is pending or visible")
 	assert_true(active_items_source.contains("private bool HandleLoudspeakerVictoryInput(InputEvent @event)"),
 		"C# loudspeaker path must handle true-ending dismissal input")
 	assert_true(active_items_source.contains("@event is InputEventKey key && key.Pressed && !key.Echo"),
@@ -228,8 +232,12 @@ func test_issue_1869_csharp_loudspeaker_victory_input_is_consumed() -> void:
 		"C# loudspeaker true-ending message must dismiss on mouse input")
 	assert_true(active_items_source.contains("GetViewport().SetInputAsHandled()"),
 		"C# loudspeaker dismiss input must be consumed so LMB does not also shoot")
-	assert_true(active_items_source.contains("SetProcessInput(false)"),
-		"C# player input processing must be disabled while the true-ending message is visible")
+	assert_true(active_items_source.contains("private const float LoudspeakerVictoryDelaySeconds = 20.0f"),
+		"C# loudspeaker true-ending message must appear 20 seconds after first player input")
+	assert_true(active_items_source.contains("StartLoudspeakerVictoryDelay()"),
+		"C# loudspeaker level-7 state must arm a delayed ending instead of showing it immediately")
+	assert_true(active_items_source.contains("_semiAutoShootBuffered = false"),
+		"C# loudspeaker ending lock must clear buffered shots so clicks cannot fire later")
 
 
 func test_issue_1869_csharp_loudspeaker_true_ending_strings_are_localized() -> void:

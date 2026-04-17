@@ -22,6 +22,10 @@ public partial class Player
     private CanvasLayer? _loudspeakerVictoryCanvas = null;
     private bool _loudspeakerVictoryScreenShown = false;
     private bool _loudspeakerVictoryDismissed = false;
+    private bool _loudspeakerVictoryPending = false;
+    private bool _loudspeakerVictoryDelayStarted = false;
+    private float _loudspeakerVictoryDelayTimer = 0.0f;
+    private const float LoudspeakerVictoryDelaySeconds = 20.0f;
 
     #region Flashlight Methods (Issue #546)
 
@@ -2789,7 +2793,7 @@ public partial class Player
                         enemyNode.Call("apply_pacifism", 0.0f);
                 }
             }
-            ShowLoudspeakerVictoryMessage();
+            StartLoudspeakerVictoryDelay();
             return;
         }
 
@@ -2841,14 +2845,72 @@ public partial class Player
     }
 
     /// <summary>
+    /// Arm the delayed victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
+    /// The player may still move while the ending is pending, but weapon actions stay blocked.
+    /// </summary>
+    private void StartLoudspeakerVictoryDelay()
+    {
+        _loudspeakerVictoryPending = true;
+        _loudspeakerVictoryDelayStarted = false;
+        _loudspeakerVictoryDelayTimer = 0.0f;
+        _semiAutoShootBuffered = false;
+        LogToFile($"[Player.Loudspeaker] Victory pending (Level 7), waiting for first player input then {LoudspeakerVictoryDelaySeconds:F0}s delay");
+    }
+
+    private bool IsLoudspeakerVictoryWeaponLocked()
+    {
+        return _loudspeakerVictoryPending || _loudspeakerVictoryScreenShown || _loudspeakerVictoryDismissed;
+    }
+
+    private void HandleLoudspeakerVictoryDelay(float delta)
+    {
+        if (!_loudspeakerVictoryPending || _loudspeakerVictoryScreenShown)
+            return;
+
+        if (!_loudspeakerVictoryDelayStarted)
+        {
+            if (!HasAnyGameplayInput())
+                return;
+
+            _loudspeakerVictoryDelayStarted = true;
+            _loudspeakerVictoryDelayTimer = LoudspeakerVictoryDelaySeconds;
+            LogToFile($"[Player.Loudspeaker] First player input detected, true-ending message will appear in {LoudspeakerVictoryDelaySeconds:F0}s");
+        }
+
+        _loudspeakerVictoryDelayTimer -= delta;
+        if (_loudspeakerVictoryDelayTimer <= 0.0f)
+        {
+            _loudspeakerVictoryPending = false;
+            _loudspeakerVictoryDelayTimer = 0.0f;
+            ShowLoudspeakerVictoryMessage();
+        }
+    }
+
+    private bool HasAnyGameplayInput()
+    {
+        return Input.IsActionPressed("move_up")
+            || Input.IsActionPressed("move_down")
+            || Input.IsActionPressed("move_left")
+            || Input.IsActionPressed("move_right")
+            || Input.IsActionJustPressed("shoot")
+            || Input.IsActionJustPressed("grenade_throw")
+            || Input.IsActionJustPressed("grenade_prepare")
+            || Input.IsActionJustPressed("reload")
+            || Input.IsActionJustPressed("reload_step")
+            || Input.IsActionJustPressed("toggle_fire_mode")
+            || Input.IsActionJustPressed("flashlight_toggle");
+    }
+
+    /// <summary>
     /// Show the victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
     /// </summary>
     private void ShowLoudspeakerVictoryMessage()
     {
         _loudspeakerVictoryScreenShown = true;
         _loudspeakerVictoryDismissed = false;
+        _loudspeakerVictoryPending = false;
         SetProcessUnhandledInput(true);
-        SetProcessInput(false);
+        _semiAutoShootBuffered = false;
 
         var canvas = new CanvasLayer();
         canvas.Name = "LoudspeakerVictoryCanvas";
@@ -2931,6 +2993,7 @@ public partial class Player
             return;
 
         _loudspeakerVictoryDismissed = true;
+        _semiAutoShootBuffered = false;
         ShowLoudspeakerEndScreen(_loudspeakerVictoryCanvas);
     }
 
