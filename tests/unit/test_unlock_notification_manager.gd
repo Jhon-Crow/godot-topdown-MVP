@@ -134,18 +134,21 @@ func test_gold_text_remains_above_shine_overlay() -> void:
 	add_child(manager)
 	await get_tree().process_frame
 
-	var toast: PanelContainer = manager.get_node("UnlockNotificationRoot/UnlockToast")
+	var toast: Control = manager.get_node("UnlockNotificationRoot/UnlockToast")
 	var shine_overlay: ColorRect = toast.get_node("GoldShineOverlay")
 	var background: Panel = toast.get_node("ToastBackground")
-	var label: Label = toast.get_node("ContentMargin/ContentRow/MessageLabel")
+	var content_margin: MarginContainer = toast.get_node("ContentMargin")
+	var label: Label = content_margin.get_node("ContentRow/MessageLabel")
 	var font_color: Color = label.get_theme_color("font_color")
 
 	assert_eq(toast.modulate.a, 1.0,
 		"Toast container alpha should stay opaque so child label text is never faded by parent modulation")
 	assert_eq(background.modulate.a, 0.0,
 		"Toast background should own fade animation instead of the content parent")
-	assert_gt(toast.get_children().find(label.get_parent().get_parent()), toast.get_children().find(shine_overlay),
-		"Content should be ordered after the shine overlay")
+	assert_gt(content_margin.z_index, shine_overlay.z_index,
+		"Content should render above the shine overlay")
+	assert_gt(content_margin.z_index, background.z_index,
+		"Content should render above the toast background")
 	assert_gt(font_color.r, 0.9, "Toast text should use a visible gold color")
 	assert_gt(font_color.g, 0.75, "Toast text should use a visible gold color")
 	assert_gt(font_color.b, 0.25, "Toast text should use a visible gold color")
@@ -162,7 +165,7 @@ func test_toast_animation_keeps_label_opaque_after_entry() -> void:
 	manager.show_unlock_notification("Бронированная кожа", "active_item")
 	await wait_seconds(manager.SLIDE_DURATION + 0.1)
 
-	var toast: PanelContainer = manager.get_node("UnlockNotificationRoot/UnlockToast")
+	var toast: Control = manager.get_node("UnlockNotificationRoot/UnlockToast")
 	var background: Panel = toast.get_node("ToastBackground")
 	var label: Label = toast.get_node("ContentMargin/ContentRow/MessageLabel")
 

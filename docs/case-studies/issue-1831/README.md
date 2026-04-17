@@ -69,6 +69,14 @@ The third owner log exposed a startup diagnostics and scene-loader robustness ga
 - The log contains no `RoguelikeLevel` room construction or player-spawn milestones after the scene change, so there was not enough exported-build telemetry to distinguish a scene-change failure from a Roguelike `_ready()` failure.
 - The fix keeps the loading overlay visible on scene-change failure, logs fallback scene-change errors, and adds `FileLogger` milestones for Roguelike `_ready()`, room construction, and player spawn so the next exported-build log identifies the exact failing phase instead of leaving a silent gray-screen state.
 
+The fourth owner log confirmed the Armored Skin availability signal fires while the toast remains textless:
+
+- The notification manager connects to both unlock availability signals at startup.
+- At local log time 22:18:47, `UnlockManager` logs `Death condition met — Armored Skin now available to unlock in armory`.
+- That narrows the remaining defect to the toast rendering tree, not unlock detection or signal connection.
+- The prior implementation used a `PanelContainer` as a plain overlay host while adding full-rect background and shine children before the content margin. In exported UI rendering, those decorative layers could cover the label even though the label text and alpha were correct.
+- The follow-up fix changes the toast host to a plain `Control`, anchors the content margin to the full toast rect, and assigns explicit z-indexes: background `0`, shine `1`, content `10`.
+
 ## Solution Direction
 
 Add a global `UnlockNotificationManager` autoload:
@@ -83,6 +91,7 @@ Add a global `UnlockNotificationManager` autoload:
 - Shows only newly available locked items, avoiding notifications for already-open items.
 - Keeps each toast visible for exactly `4.0` seconds between slide-in and slide-out.
 - Tracks toast animation phase and keeps the slide-out phase to one scheduled tween segment per toast.
+- Renders text content above the decorative background and shine layers with explicit z-indexes so the toast cannot appear without its label.
 - Logs connection, startup suppression, and live-announcement decisions through `FileLogger` to make future runtime logs diagnosable.
 - Hardens `SceneLoader` so invalid-resource fallback only hides the loading overlay after a successful scene change and reports failures through `FileLogger`.
 - Adds exported-build `FileLogger` milestones in `RoguelikeLevel` startup to diagnose whether the scene script reaches `_ready()`, room construction, and player spawn.
@@ -106,6 +115,8 @@ Add a global `UnlockNotificationManager` autoload:
   - the Armored Skin example text `Открыт предмет Бронированная кожа !`,
   - 4-second display duration,
   - single slide-out contract,
+  - content z-index above the shine/background layers,
+  - Armored Skin label still opaque after the entry animation,
   - only locked items with met conditions being collected,
   - startup-suppressed locked items still queue a notification after a live condition signal.
 - Add SceneLoader regression tests for:
@@ -130,6 +141,11 @@ Add a global `UnlockNotificationManager` autoload:
 - `dotnet build`: passed with existing warnings and 0 errors.
 - `/tmp/godot-4.3-mono/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 --headless --import`: completed, while reporting existing unrelated test script parse noise during import.
 - Focused GUT rerun for `test_unlock_notification_manager`: passed 7 tests / 22 assertions; Godot log still includes existing unrelated autoload shutdown `current_scene` null noise after the GUT summary.
+- 2026-04-17 textless-toast follow-up:
+  - downloaded `attachments/game_log_20260417_221135.txt`,
+  - `git diff --check`: passed,
+  - `dotnet build`: passed with existing warnings and 0 errors,
+  - focused GUT could not be rerun in this workspace because no `godot`, `godot4`, or `Godot_v4.3-stable_mono_linux.x86_64` binary is installed.
 
 ## Visual Preview
 

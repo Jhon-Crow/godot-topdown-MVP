@@ -123,7 +123,7 @@ var _is_showing: bool = false
 var _animation_phase: String = "idle"
 
 var _root_control: Control = null
-var _toast: PanelContainer = null
+var _toast: Control = null
 var _toast_background: Panel = null
 var _shine_overlay: ColorRect = null
 var _icon_rect: TextureRect = null
@@ -210,14 +210,11 @@ func _build_ui() -> void:
 	_root_control.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root_control)
 
-	_toast = PanelContainer.new()
+	_toast = Control.new()
 	_toast.name = "UnlockToast"
 	_toast.custom_minimum_size = Vector2(TOAST_WIDTH, TOAST_HEIGHT)
 	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_toast.modulate = Color.WHITE
-
-	var empty_panel_style := StyleBoxEmpty.new()
-	_toast.add_theme_stylebox_override("panel", empty_panel_style)
 	_root_control.add_child(_toast)
 
 	_toast_background = Panel.new()
@@ -225,6 +222,7 @@ func _build_ui() -> void:
 	_toast_background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_toast_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_toast_background.modulate.a = 0.0
+	_toast_background.z_index = 0
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.09, 0.08, 0.055, 0.94)
@@ -245,6 +243,7 @@ func _build_ui() -> void:
 	_shine_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_shine_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_shine_overlay.color = Color(1.0, 1.0, 1.0, 0.0)
+	_shine_overlay.z_index = 1
 	var shine_shader := load(GOLD_SHINE_SHADER_PATH) as Shader
 	if shine_shader:
 		var mat := ShaderMaterial.new()
@@ -256,6 +255,9 @@ func _build_ui() -> void:
 
 	var margin := MarginContainer.new()
 	margin.name = "ContentMargin"
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.z_index = 10
 	margin.add_theme_constant_override("margin_left", 16)
 	margin.add_theme_constant_override("margin_top", 10)
 	margin.add_theme_constant_override("margin_right", 18)
