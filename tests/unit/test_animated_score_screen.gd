@@ -218,8 +218,15 @@ func test_create_rank_letter_cutout_builds_one_shader_letter_per_character() -> 
 			"Each rank letter texture should be rendered with a visible contour")
 		assert_true(bool(child.get_meta("rank_uses_alpha_texture")),
 			"Rank shine must be clipped by the rendered letter alpha texture")
-		assert_not_null(child.find_child("RankLetterViewport_*", true, false),
-			"Each rank letter mask should keep its transparent render viewport alive")
+		assert_true(child.has_meta("rank_viewport_path"),
+			"Each rank letter mask should reference its live transparent render viewport")
+		var viewport := child.get_node_or_null(NodePath(str(child.get_meta("rank_viewport_path"))))
+		assert_not_null(viewport,
+			"Each rank letter mask should keep its transparent render viewport alive outside the visible UI")
+		assert_true(viewport is SubViewport,
+			"Rank letter render owner should keep SubViewport nodes, not visible rectangle children")
+		assert_null(child.find_child("RankLetterViewport_*", true, false),
+			"Rank letter masks should not parent SubViewports under visible TextureRects")
 		assert_true(child.material is ShaderMaterial,
 			"Each rank letter mask should use the alpha-aware shine shader material")
 		var mat := child.material as ShaderMaterial

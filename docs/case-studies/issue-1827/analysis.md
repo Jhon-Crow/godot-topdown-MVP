@@ -8,6 +8,7 @@ Issue 1827 asks for the score-screen rank text to receive a contour shine animat
 - PR state and review discussion: `docs/case-studies/issue-1827/pr-1853.json`
 - Raw PR comments: `docs/case-studies/issue-1827/raw-comments/`
 - Owner feedback log from 2026-04-17: `docs/case-studies/issue-1827/logs/game_log_20260417_040452.txt`
+- Owner startup gray-screen logs from 2026-04-17: `docs/case-studies/issue-1827/logs/game_log_20260417_044942.txt`, `docs/case-studies/issue-1827/logs/game_log_20260417_045040.txt`, `docs/case-studies/issue-1827/logs/game_log_20260417_045135.txt`
 - Relevant implementation: `scripts/ui/animated_score_screen.gd`
 - Armory-style shader reused by existing UI: `scripts/shaders/gold_shine.gdshader`
 - Alpha-aware rank shader added for this issue: `scripts/shaders/rank_letter_shine.gdshader`
@@ -27,10 +28,10 @@ The second PR version moved to one Label per character, but still applied the ad
 3. Build the rank graphic from individual character masks and apply an alpha-aware shine shader to transparent letter textures. Chosen because each letter is explicitly rendered into a transparent texture before being assembled, avoids a large rectangular overlay child, and clips all shine output to glyph alpha.
 
 ## Implemented Direction
-The score screen now creates a `RankLetterCutout` container and adds one `RankLetterMask_*` TextureRect per visible rank character. Each TextureRect is backed by a transparent SubViewport rendering the gothic Label glyph with outline. The new `rank_letter_shine.gdshader` samples that texture, adds an armory-style sweep only where texture alpha exists, and preserves `COLOR.a = tex.a`. The fullscreen reveal and final score rank both use these assembled cutout textures instead of a background shine overlay or whole-label contour child.
+The score screen now creates a `RankLetterCutout` container and adds one `RankLetterMask_*` TextureRect per visible rank character. Each TextureRect is backed by a transparent SubViewport rendering the gothic Label glyph with outline. Those live SubViewports are owned by a hidden `RankLetterViewportOwner` node on the score-screen script, not by the visible TextureRects, so the render sources stay alive without becoming part of the visible UI layout. The new `rank_letter_shine.gdshader` samples that texture, adds an armory-style sweep only where texture alpha exists, and preserves `COLOR.a = tex.a`. The fullscreen reveal and final score rank both use these assembled cutout textures instead of a background shine overlay or whole-label contour child.
 
 ## Verification Plan
 - Unit tests assert that rank cutouts split text into per-character masks.
-- Unit tests assert that each rank mask is a TextureRect with a kept-alive transparent render viewport and alpha-texture metadata.
+- Unit tests assert that each rank mask is a TextureRect with a kept-alive transparent render viewport outside the visible UI tree and alpha-texture metadata.
 - Unit tests assert no `RankContourShineOverlay` or old `RankContourShineLabel` is used under big/final rank nodes.
 - Local build/check commands should be run before pushing.

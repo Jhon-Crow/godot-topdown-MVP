@@ -115,6 +115,9 @@ var _stat_labels: Array = []  # Array of [Label, target_value, prefix, base_colo
 var _total_label: Label = null
 var _total_separator: HSeparator = null
 
+## Hidden owner for live SubViewports used to render rank letters as alpha textures.
+var _rank_letter_viewport_owner: Node = null
+
 
 ## Loads and returns the Gothic bitmap font, caching it for reuse.
 ## Uses Godot's resource system (load) which works in both editor and exports.
@@ -157,6 +160,14 @@ func _get_rank_shine_shader() -> Shader:
 
 ## Renders a rank character into a transparent TextureRect with the shine clipped to glyph alpha.
 func _create_rank_letter_texture_rect(ch: String, index: int, font_size: int, outline_size: int, rank_color: Color) -> Control:
+	if ch.strip_edges().is_empty():
+		var spacer := Control.new()
+		spacer.name = "RankLetterSpace_%d" % index
+		spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		spacer.custom_minimum_size = Vector2(float(font_size) * 0.28, float(font_size))
+		spacer.set_meta("rank_letter_text", ch)
+		return spacer
+
 	var label := Label.new()
 	label.name = "RankLetterSource_%s_%d" % [ch, index]
 	label.text = ch
@@ -189,6 +200,12 @@ func _create_rank_letter_texture_rect(ch: String, index: int, font_size: int, ou
 	viewport.gui_disable_input = true
 	viewport.add_child(label)
 
+	if _rank_letter_viewport_owner == null or not is_instance_valid(_rank_letter_viewport_owner):
+		_rank_letter_viewport_owner = Node.new()
+		_rank_letter_viewport_owner.name = "RankLetterViewportOwner"
+		add_child(_rank_letter_viewport_owner)
+	_rank_letter_viewport_owner.add_child(viewport)
+
 	var letter := TextureRect.new()
 	letter.name = "RankLetterMask_%s_%d" % [ch, index]
 	letter.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -200,7 +217,7 @@ func _create_rank_letter_texture_rect(ch: String, index: int, font_size: int, ou
 	letter.set_meta("rank_font_size", font_size)
 	letter.set_meta("rank_outline_size", outline_size)
 	letter.set_meta("rank_uses_alpha_texture", true)
-	letter.add_child(viewport)
+	letter.set_meta("rank_viewport_path", letter.get_path_to(viewport))
 
 	var shader := _get_rank_shine_shader()
 	if shader != null:
