@@ -124,8 +124,7 @@ func test_check_and_yield_returns_false_with_freed_enemy() -> void:
 	add_child_autofree(mock_enemy)
 	var comp := TacticalMovementComp.new(mock_enemy)
 
-	mock_enemy.queue_free()
-	await wait_frames(2)
+	mock_enemy.free()
 
 	var result := comp.check_and_yield(Vector2(100, 100), 200.0, 0.016)
 	assert_false(result, "Should return false with freed enemy")
