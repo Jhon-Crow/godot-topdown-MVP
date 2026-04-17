@@ -18,7 +18,7 @@ class_name SnowyFeetComponent
 @export var snow_steps_count: int = 8
 
 ## Number of red blood-stained snow prints to spawn after stepping in blood (Issue #1627).
-@export var snow_blood_steps_count: int = 4
+@export var snow_blood_steps_count: int = 2
 
 ## Distance in pixels between consecutive footprint spawns.
 @export var step_distance: float = 30.0
@@ -184,6 +184,31 @@ func _on_blood_contact(blood_color: Color) -> void:
 			_blood_snow_steps_remaining, blood_color])
 
 
+## Fallback for live setup paths where blood was acquired before this component
+## connected to BloodyFeetComponent.blood_contact.  The signal remains the primary
+## path, but this keeps snow prints red even if node order or deferred setup races.
+func _arm_blood_snow_steps_from_bloody_feet_if_needed() -> void:
+	if _blood_snow_steps_remaining > 0:
+		return
+	if _bloody_feet == null:
+		_connect_bloody_feet()
+	if _bloody_feet == null:
+		return
+	if _bloody_feet.get("on_snow") == null or not _bloody_feet.on_snow:
+		return
+	if not _bloody_feet.has_method("has_bloody_feet") or not _bloody_feet.has_bloody_feet():
+		return
+
+	var steps := snow_blood_steps_count
+	if _bloody_feet.get("snow_blood_steps_count") != null:
+		steps = _bloody_feet.snow_blood_steps_count
+	if _bloody_feet.has_method("get_blood_level"):
+		steps = mini(steps, _bloody_feet.get_blood_level())
+	_blood_snow_steps_remaining = max(steps, 0)
+	if debug_logging and _blood_snow_steps_remaining > 0:
+		_log_info("Armed %d red snow prints from current BloodyFeetComponent state" % _blood_snow_steps_remaining)
+
+
 ## Returns true when the character is standing on a snow surface.
 func _is_on_snow() -> bool:
 	if _is_overlapping_snow:
@@ -262,8 +287,9 @@ func _spawn_footprint() -> void:
 			_log_info("Skipping snow footprint — not on snow surface")
 		return
 
-	# _blood_snow_steps_remaining is armed by _on_blood_contact() signal handler the moment
-	# BloodyFeetComponent detects blood.  No lazy poll needed here (Issue #1627).
+	# Primary arming happens in _on_blood_contact(); this fallback covers blood
+	# acquired before the signal connection was established.
+	_arm_blood_snow_steps_from_bloody_feet_if_needed()
 
 	# Decide which scene to use: red blood print or normal white print.
 	var use_blood_print := _blood_snow_steps_remaining > 0

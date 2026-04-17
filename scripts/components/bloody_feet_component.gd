@@ -25,7 +25,7 @@ signal blood_contact(blood_color: Color)
 @export var on_snow: bool = false
 
 ## Number of red oval bloody footprints to leave on snow after stepping in blood (Issue #1627).
-@export var snow_blood_steps_count: int = 4
+@export var snow_blood_steps_count: int = 2
 
 ## Distance in pixels between footprint spawns.
 @export var step_distance: float = 30.0
@@ -358,7 +358,7 @@ func _get_puddle_color(puddle_node: Node) -> Color:
 ## Called when the character contacts a blood puddle.
 ## puddle_color: The color of the blood puddle stepped in.
 func _on_blood_puddle_contact(puddle_color: Color = Color(0.545, 0.0, 0.0, 1.0)) -> void:
-	# Reset blood level: on snow use snow_blood_steps_count (default 4) oval red prints,
+	# Reset blood level: on snow use snow_blood_steps_count (default 2) oval red prints,
 	# then SnowyFeetComponent resumes normal white snow prints (Issue #1627).
 	var target_level := snow_blood_steps_count if on_snow else blood_steps_count
 	_apply_blood_contact(target_level, puddle_color)
