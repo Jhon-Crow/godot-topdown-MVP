@@ -21,6 +21,7 @@ Issue [#1817](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1817) starte
   - [game_log_20260417_214336.txt](./game_log_20260417_214336.txt)
   - [game_log_20260417_230427.txt](./game_log_20260417_230427.txt)
   - [game_log_20260417_235155.txt](./game_log_20260417_235155.txt)
+  - [game_log_20260418_014100.txt](./game_log_20260418_014100.txt)
 - Filtered timeline extracts:
   - [game_log_20260417_025935.filtered.txt](./game_log_20260417_025935.filtered.txt)
   - [game_log_20260417_030201.filtered.txt](./game_log_20260417_030201.filtered.txt)
@@ -40,6 +41,7 @@ Issue [#1817](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1817) starte
 8. April 17, 2026 18:47:33 UTC: owner attached `game_log_20260417_214336.txt` and reported that shotgun was now correct, but silenced pistol reload training still did not appear on the Training map and revolver empty open/close still completed the line.
 9. April 17, 2026 20:06:34 UTC: owner attached `game_log_20260417_230427.txt` and clarified that the silenced pistol hint appears, but it uses the Makarov two-press hint even though the weapon reloads like Uzi/M16. The revolver reload line still disappears after two `R` presses.
 10. April 17, 2026 20:54:07 UTC: owner attached `game_log_20260417_235155.txt` and narrowed the remaining failure: revolver reload training reacts to cylinder close even though close is not the active training step after an empty open/close.
+11. April 17, 2026 22:42:22 UTC: owner attached `game_log_20260418_014100.txt` and confirmed the same remaining Training-map failure after commit `e088219c`: pressing `R R` still skips revolver reload training.
 
 ## Findings
 
@@ -60,6 +62,7 @@ The April 17 logs add useful weapon-level transitions:
 - `game_log_20260417_214336.txt` confirms the later build launched successfully and that `WeaponHintsSettings` was still in `ALWAYS` mode. The remaining owner report is therefore not a settings/first-time-only problem; it is a Training-level signal wiring and rollback-state problem.
 - `game_log_20260417_230427.txt` confirms the latest reproduction happened in the exported Windows Training build. The owner feedback attached to that log narrows the remaining failures to Training hint classification and revolver completion gating, not startup loading or shotgun handling.
 - `game_log_20260417_235155.txt` confirms the remaining failure is specifically in the Training revolver state mapping: cylinder close emits a `ClosingCylinder`/idle sequence and the tutorial must not render that close as completion unless the current reload attempt already inserted enough cartridges or filled the cylinder.
+- `game_log_20260418_014100.txt` shows the follow-up was tested in the exported Windows build. The remaining owner report after that log points to a second completion path: `Player.cs` emits generic `ReloadCompleted` whenever `Revolver.CloseCylinder()` succeeds, even for an empty open/close cancellation.
 
 ## Root Causes
 
@@ -134,6 +137,15 @@ Result:
 
 - exported startup can appear as a gray/blank screen instead of staying on the loading overlay with useful log diagnostics
 
+### 9. Training revolver also listened to generic ReloadCompleted
+
+The Training map connects both revolver-specific `ReloadStateChanged` and player-level `ReloadCompleted`. The revolver-specific handler correctly rolled back empty close attempts after the previous patch, but `Player.HandleRevolverReloadInput()` emits `ReloadCompleted` after every successful `CloseCylinder()` call.
+
+Result:
+
+- pressing `R R` can first roll the hint back through `ReloadStateChanged(0)`, then immediately dismiss it through `_on_player_reload_completed()`
+- the generic completion handler must apply the same revolver-specific gate before marking reload training complete
+
 ## Solution Direction
 
 - Drive grenade tutorial progression strictly from the player grenade state machine (`WAITING_FOR_G_RELEASE`, `AIMING`, `IDLE`).
@@ -142,6 +154,7 @@ Result:
 - Add a Training-map `SilencedPistol` branch that connects shot/reload/ammo signals, but keep it on the rifle-style `R -> F -> R` reload path.
 - Reset Training-map revolver per-attempt loaded-cartridge state on every close, and only dismiss the reload hint when the current attempt inserted the tutorial quota or filled the cylinder.
 - Treat Training-map revolver `ClosingCylinder` as rollback unless that same completion gate is already satisfied; close is not a standalone active tutorial step after an empty open/close.
+- In Training-map `_on_player_reload_completed()`, ignore generic revolver completion when the current attempt has not inserted the tutorial quota or filled the cylinder.
 - Reset hint label text and strikethrough progress when a reload action closes without the meaningful load step.
 - Mirror those guards inside `tutorial_level.gd`, because Training does not rely solely on the shared weapon hint component.
 - Keep the loading overlay visible and preserve loader state when SceneLoader cannot complete either threaded or synchronous scene transition.

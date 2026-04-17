@@ -1439,6 +1439,19 @@ func _on_player_reload_completed() -> void:
 	if _current_step != TutorialStep.RELOAD:
 		return
 
+	if _has_revolver and not _is_revolver_reload_completion_ready():
+		_reset_hint_strikethrough(HINT_RELOAD)
+		if _hint_labels.has(HINT_RELOAD):
+			var revolver_label: RichTextLabel = _hint_labels[HINT_RELOAD]
+			if is_instance_valid(revolver_label):
+				revolver_label.text = _build_revolver_reload_hint_bbcode(0)
+		_revolver_reload_loaded_cartridge = false
+		_revolver_last_inserted_count = 0
+		_revolver_last_inserted_chamber_index = -1
+		_revolver_scroll_completed_since_last_insert = false
+		print("Tutorial: Ignored revolver ReloadCompleted before cartridge insertion")
+		return
+
 	if not _has_reloaded:
 		_has_reloaded = true
 		print("Tutorial: Player reloaded")

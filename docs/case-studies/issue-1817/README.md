@@ -23,6 +23,7 @@ Observed variants from the issue and PR discussion:
 - `game_log_20260417_214336.txt`: owner-provided runtime log after the gray-screen fix, reporting two remaining Training-map issues: missing silenced pistol reload training and revolver empty open/close completion.
 - `game_log_20260417_230427.txt`: owner-provided runtime log after the next follow-up, reporting that silenced pistol training used the wrong Makarov-style reload hint and revolver reload training still disappeared after two `R` presses.
 - `game_log_20260417_235155.txt`: owner-provided runtime log after the latest follow-up, reporting that revolver reload training still reacts to cylinder close even though close is not the active step after empty open/close.
+- `game_log_20260418_014100.txt`: owner-provided runtime log after commit `e088219c`, reporting that revolver reload training is still skipped by pressing `R R`.
 - `game_log_20260417_025935.filtered.txt`: filtered weapon/tutorial timeline from the first April 17 log.
 - `game_log_20260417_030201.filtered.txt`: filtered weapon/tutorial timeline from the second April 17 log.
 - `game_log_20260417_033631.filtered.txt`: filtered weapon/tutorial timeline from the latest April 17 log.
@@ -75,6 +76,9 @@ The tutorial handlers were using coarse state transitions:
   successful insert or single partial insert cannot make a later incomplete close look completed.
 - Treat the Training-map revolver `ClosingCylinder` transition as rollback unless the current attempt
   already inserted the tutorial quota or filled the cylinder.
+- Ignore the generic player `ReloadCompleted` signal for revolver training unless the same
+  revolver-specific completion gate is satisfied; `Player.cs` emits this signal on every cylinder
+  close, including empty `R R` cancellation.
 
 ## Verification
 
@@ -95,6 +99,7 @@ Regression coverage added in `tests/unit/test_tutorial_level.gd`:
 - silenced pistol uses the rifle-style reload hint on the Training map
 - revolver incomplete open/insert/close rolls back instead of dismissing the line
 - revolver `ClosingCylinder` without cartridge insertion does not render the completed all-grey line
+- generic `ReloadCompleted` after an empty revolver `R R` sequence does not dismiss the reload line
 
 Regression coverage added in `tests/unit/test_scene_loader.gd`:
 - invalid threaded resource fallback keeps the loading overlay visible if the sync scene change fails, preventing a blank/gray screen from being exposed without diagnostics
