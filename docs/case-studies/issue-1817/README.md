@@ -19,6 +19,7 @@ Observed variants from the issue and PR discussion:
 - `game_log_20260417_025935.txt`: owner-provided runtime log for revolver reload training feedback.
 - `game_log_20260417_030201.txt`: owner-provided runtime log for shotgun reload training feedback.
 - `game_log_20260417_033631.txt`: owner-provided runtime log after the first PR #1864 fix, reporting no behavior change.
+- `game_log_20260417_210216.txt`: owner-provided exported-exe startup log after the latest PR #1864 fix, reporting a gray screen.
 - `game_log_20260417_025935.filtered.txt`: filtered weapon/tutorial timeline from the first April 17 log.
 - `game_log_20260417_030201.filtered.txt`: filtered weapon/tutorial timeline from the second April 17 log.
 - `game_log_20260417_033631.filtered.txt`: filtered weapon/tutorial timeline from the latest April 17 log.
@@ -79,5 +80,8 @@ Regression coverage added in `tests/unit/test_weapon_hints_component.gd`:
 - revolver close after cartridge insertion dismisses
 - shotgun open/close without shell loading rolls back
 - shotgun close after shell loading dismisses
+
+Regression coverage added in `tests/unit/test_scene_loader.gd`:
+- invalid threaded resource fallback keeps the loading overlay visible if the sync scene change fails, preventing a blank/gray screen from being exposed without diagnostics
 
 Local execution of GUT was not possible in this environment because no `godot` executable is installed.
