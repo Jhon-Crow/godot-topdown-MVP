@@ -8,6 +8,7 @@ ROGUELIKE,Roguelike,Рогалик
 ARENA,Arena,Арена
 SETTINGS,Settings,Настройки
 QUIT,Quit,Выход
+EXIT_ZONE_LABEL,EXIT,ВЫХОД
 SETTINGS_TITLE,Settings,Настройки
 CONTROLS,Controls,Управление
 DIFFICULTY,Difficulty,Сложность
