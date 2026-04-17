@@ -5,10 +5,10 @@ Checked on 2026-04-16 UTC from branch `issue-1457-db8615491310`.
 | Check | Result | Notes |
 | --- | --- | --- |
 | `git diff --check` | Passed | No whitespace errors. |
-| Script line-count check | Passed | `scripts/objects/enemy.gd` is 4999 lines, below the 5000-line CI limit. |
+| Script line-count check | Passed | `scripts/objects/enemy.gd` is 5000 lines, at the 5000-line CI limit. |
 | `dotnet restore` + `dotnet build --no-restore --configuration Debug` | Passed | C# project builds successfully. |
 | Godot 4.3 headless import | Completed with existing warnings | The import exited 0. It reported pre-existing project/test parse warnings also seen outside this issue scope; no new fatal result was produced by this change. |
-| `gut_cmdln.gd -gselect=enemy_navigation_issue_1457` | Passed | 1 script, 6 tests, 10 assertions, all passing. |
+| `gut_cmdln.gd -gselect=test_enemy_navigation_issue_1457.gd` | Passed | 1 script, 7 tests, 13 assertions, all passing. |
 
 The exact focused GUT invocation used:
 

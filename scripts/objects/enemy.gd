@@ -266,7 +266,7 @@ const FLANK_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
 var _flank_fail_count: int = 0; const FLANK_FAIL_MAX_COUNT: int = 2  ## Consecutive flank failures / max before cooldown
 var _flank_cooldown_timer: float = 0.0; const FLANK_COOLDOWN_DURATION: float = 5.0  ## Cooldown timer / duration (sec) after failures
 var _global_stuck_timer: float = 0.0; var _global_stuck_last_position: Vector2 = Vector2.ZERO  ## Stuck timer (Issue #367) / last position
-const GLOBAL_STUCK_MAX_TIME: float = 4.0; const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Max stuck time / min move distance  ## Issue #1173: restored 1.5→4.0; machete wall-escape is handled by MACHETE_COMBAT_STUCK_MAX_TIME
+const GLOBAL_STUCK_MAX_TIME: float = 4.0; const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0; const NAV_MOVEMENT_STUCK_MAX_TIME: float = 4.0  ## #1457: hard cap for nav movement stalls even when debug stuck time is raised.
 var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1107: Stuck detection for machete COMBAT state
 const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
 var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
@@ -845,9 +845,9 @@ func _physics_process(delta: float) -> void:
 	if _memory_reset_confusion_timer > 0.0:
 		_memory_reset_confusion_timer = maxf(0.0, _memory_reset_confusion_timer - delta)
 
-	# Issue #367: Stuck detection for PURSUING/FLANKING — force SEARCHING if no progress.
+	# Issue #367/#1457: Stuck detection for navigation movement — force SEARCHING if no progress.
 	# Skip when in direct contact (can hit player) or intentionally yielding (#1249).
-	if _current_state == AIState.PURSUING or _current_state == AIState.FLANKING:
+	if _current_state in [AIState.PURSUING, AIState.FLANKING, AIState.SEEKING_COVER]:
 		var moved_distance := global_position.distance_to(_global_stuck_last_position)
 		if moved_distance < GLOBAL_STUCK_DISTANCE_THRESHOLD:
 			if not (_can_see_player and _can_hit_player_from_current_position()) \
@@ -857,6 +857,7 @@ func _physics_process(delta: float) -> void:
 				var _effective_stuck_max_time: float = GLOBAL_STUCK_MAX_TIME
 				if _experimental_settings != null and _experimental_settings.has_method("get_global_stuck_max_time"):
 					_effective_stuck_max_time = _experimental_settings.get_global_stuck_max_time()
+				if _current_state in [AIState.PURSUING, AIState.FLANKING, AIState.SEEKING_COVER]: _effective_stuck_max_time = minf(_effective_stuck_max_time, NAV_MOVEMENT_STUCK_MAX_TIME)
 				if _global_stuck_timer >= _effective_stuck_max_time:
 					_log_to_file("GLOBAL STUCK: pos=%s for %.1fs without player contact, State: %s -> SEARCHING" % [global_position, _global_stuck_timer, AIState.keys()[_current_state]])
 					_global_stuck_timer = 0.0

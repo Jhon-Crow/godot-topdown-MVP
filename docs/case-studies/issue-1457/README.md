@@ -23,6 +23,7 @@ Raw data is stored under `docs/case-studies/issue-1457/`:
 - `failed-prs/pr-1557.json`, `failed-prs/pr-1557.diff.gz`: second failed attempt metadata and compressed diff.
 - `failed-prs/pr-1560-related-ai-regression-tests.json`: related regression-test PR for "AI completely broken" failure classes.
 - `logs/`: 19 downloaded game logs from the issue and failed PR comments.
+- `pr-comment-4262387973/game_log_20260416_211123.txt`: owner follow-up log from PR #1856 showing the previous fix still failing on `BuildingLevel`.
 - `screenshots/`: 7 downloaded PNG screenshots from the issue and failed PR comments.
 - `data/attachment-urls.txt`: source URL list for downloaded attachments.
 
@@ -38,6 +39,7 @@ PNG headers were verified with `head -c 8 | od` because the `file` utility is no
 | 2026-03-26 to 2026-04-11 | PR #1557 | Wall-avoidance rewrite attempted. Owner reports "gets stuck in lower part of passage", then "not fixed", then "now worse, cannot pass the passage at all". |
 | 2026-04-11 | Issue comment | Owner asks to start from current `main`, collect failed-attempt data, reconstruct events, and find a new approach. |
 | 2026-04-16 | PR #1856 | New branch starts from current `main` with only generated placeholder commit on top. |
+| 2026-04-16 | PR #1856 comment | Owner reports the first PR #1856 fix still fails on `BuildingLevel` and attaches `game_log_20260416_211123.txt`. |
 
 ## Log Findings
 
@@ -53,6 +55,11 @@ The logs show three distinct symptom families:
 
 3. Configuration amplifying visibility of the bug:
    - Many sessions have `Global stuck max time: 20.0s`, so the global fallback was intentionally delayed. The wall catch therefore remains visible for much longer than the default global stuck timer.
+
+4. BuildingLevel follow-up:
+   - `game_log_20260416_211123.txt` loads `BuildingLevel`, then enemy pursuit and cover seeking repeatedly produce near-backward `PURSUING corner check` angles such as `175.1`, `-177.9`, `178.3`, and `-178.7` degrees.
+   - The same log starts with `Global stuck max time: 20.0s`, so the existing global recovery path waits too long for a visible wall catch in PURSUING/FLANKING states.
+   - The log also shows enemies frequently entering `SEEKING_COVER`; that state uses `_move_to_target_nav()` but was not covered by the global no-progress recovery.
 
 ## Root Causes
 
@@ -111,6 +118,7 @@ Primary sources used:
   - the requested target moved more than one enemy radius (`24px`);
   - the agent reports navigation finished but the enemy is still outside the target reach distance.
 - Reset cached navigation target and ORCA avoidance velocity during `_reset()`, including `set_velocity_forced(Vector2.ZERO)` for the avoidance simulation after respawn/teleport-style position reset.
+- Add a hard `NAV_MOVEMENT_STUCK_MAX_TIME` cap for PURSUING, FLANKING, and SEEKING_COVER movement so the experimental 20-second global stuck setting cannot leave BuildingLevel wall catches visible for the full debug interval.
 
 ## Regression Tests
 

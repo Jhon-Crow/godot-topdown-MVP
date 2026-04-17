@@ -66,6 +66,16 @@ func test_navigation_target_cache_markers_exist_issue_1457() -> void:
 		"Issue #1457: enemy.gd must use a distance threshold before requesting a new path")
 
 
+func test_nav_movement_stuck_recovery_has_hard_cap_issue_1457() -> void:
+	var source := _read_enemy_source()
+	assert_true(source.contains("NAV_MOVEMENT_STUCK_MAX_TIME"),
+		"Issue #1457: nav movement states need a hard stuck cap independent of debug settings")
+	assert_true(source.contains("minf(_effective_stuck_max_time, NAV_MOVEMENT_STUCK_MAX_TIME)"),
+		"Issue #1457: debug global stuck time must not make wall catches last 20 seconds")
+	assert_true(source.contains("AIState.SEEKING_COVER"),
+		"Issue #1457: cover navigation can catch on BuildingLevel walls and must recover too")
+
+
 func test_navigation_target_cache_repaths_only_on_meaningful_change_issue_1457() -> void:
 	const REPATH_DISTANCE: float = 24.0
 	var cached_target := Vector2(500, 600)
