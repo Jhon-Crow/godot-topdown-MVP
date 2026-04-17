@@ -86,6 +86,12 @@ var _shotgun_full_reload_active: bool = false
 ## Reference to the weapon node used for shotgun shell-count queries.
 var _shotgun_node: Node = null
 
+## Tracks whether a shotgun full reload inserted at least one shell before closing.
+var _shotgun_reload_loaded_shell: bool = false
+
+## Tracks whether a revolver reload inserted at least one cartridge before closing.
+var _revolver_reload_loaded_cartridge: bool = false
+
 ## Whether the AK GL grenade launcher hint has been shown (to avoid re-showing).
 var _ak_gl_launcher_hint_shown: bool = false
 
@@ -506,11 +512,18 @@ func _on_shotgun_reload_state_changed(new_state: int) -> void:
 	if not _hint_labels.has(HINT_KEY_BOLT_CYCLE):
 		return
 
-	# State 0 = reload fully complete — treat as reload done
+	# State 0 means the action was closed. Only dismiss if at least one shell was loaded;
+	# otherwise the player just opened/closed the bolt and the training must roll back.
 	if new_state == 0:
-		_log_to_file("Shotgun reload completed via ReloadStateChanged(0)")
-		_on_reload_completed()
+		if _shotgun_reload_loaded_shell:
+			_log_to_file("Shotgun reload completed after shell load")
+			_on_reload_completed()
+		else:
+			_rollback_shotgun_reload_hint()
 		return
+
+	if new_state == 2 or new_state == 3:
+		_shotgun_reload_loaded_shell = new_state == 3
 
 	var label: RichTextLabel = _hint_labels[HINT_KEY_BOLT_CYCLE]
 	if is_instance_valid(label):
@@ -589,6 +602,7 @@ func _on_reload_completed() -> void:
 		if _hint_labels.has(HINT_KEY_BOLT_CYCLE):
 			_dismiss_hint(HINT_KEY_BOLT_CYCLE)
 		_shotgun_full_reload_active = false
+		_shotgun_reload_loaded_shell = false
 
 	# M16: show fire-mode hint after reload (mirrors Labyrinth)
 	if _current_weapon_id == "m16":
@@ -1127,6 +1141,8 @@ func _reset_hint_state() -> void:
 	_fire_mode_hint_pending = false
 	_shotgun_full_reload_active = false
 	_shotgun_node = null
+	_shotgun_reload_loaded_shell = false
+	_revolver_reload_loaded_cartridge = false
 	_ak_gl_launcher_hint_shown = false
 	_last_dismiss_was_player_action = false
 	_disconnect_weapon_signals()
@@ -1159,10 +1175,14 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 	if not _hint_labels.has(HINT_KEY_RELOAD):
 		return
 
-	# State 0 = reload fully complete — dismiss hint (mirrors shotgun handler).
+	# State 0 means the cylinder closed. Only dismiss after a cartridge was inserted;
+	# opening and closing without loading is an aborted taught action.
 	if new_state == 0:
-		_log_to_file("Revolver reload completed via ReloadStateChanged(0)")
-		_on_reload_completed()
+		if _revolver_reload_loaded_cartridge:
+			_log_to_file("Revolver reload completed after cartridge load")
+			_on_reload_completed()
+		else:
+			_rollback_revolver_reload_hint()
 		return
 
 	var hint_step: int = 0
@@ -1171,6 +1191,7 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 			hint_step = 1  # CylinderOpen → highlight insert cartridge
 		2:
 			hint_step = 2  # Loading → highlight close cylinder
+			_revolver_reload_loaded_cartridge = true
 		_:
 			hint_step = 3  # Done (shouldn't normally reach here now)
 
@@ -1178,6 +1199,37 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 	if is_instance_valid(label):
 		label.text = _build_revolver_reload_hint_bbcode(hint_step)
 	_log_to_file("Revolver reload state %d → hint step %d updated" % [new_state, hint_step])
+
+
+func _rollback_shotgun_reload_hint() -> void:
+	_shotgun_reload_loaded_shell = false
+	if _hint_labels.has(HINT_KEY_BOLT_CYCLE):
+		_reset_hint_strikethrough(HINT_KEY_BOLT_CYCLE)
+		var label: RichTextLabel = _hint_labels[HINT_KEY_BOLT_CYCLE]
+		if is_instance_valid(label):
+			label.text = _build_shotgun_full_reload_hint_bbcode(0)
+	_log_to_file("Shotgun reload closed without loading — hint rolled back")
+
+
+func _rollback_revolver_reload_hint() -> void:
+	_revolver_reload_loaded_cartridge = false
+	if _hint_labels.has(HINT_KEY_RELOAD):
+		_reset_hint_strikethrough(HINT_KEY_RELOAD)
+		var label: RichTextLabel = _hint_labels[HINT_KEY_RELOAD]
+		if is_instance_valid(label):
+			label.text = _build_revolver_reload_hint_bbcode(0)
+	_log_to_file("Revolver reload closed without loading — hint rolled back")
+
+
+func _reset_hint_strikethrough(hint_key: String) -> void:
+	if not _hint_strike_progress.has(hint_key):
+		return
+	_hint_strike_progress[hint_key] = 0.0
+	var strike_lines: Array = _hint_strike_lines.get(hint_key, [])
+	var line_count: int = _hint_line_counts.get(hint_key, 1)
+	var line_widths: Array = _hint_line_widths.get(hint_key, [])
+	if not strike_lines.is_empty():
+		_update_strikethrough_points(strike_lines, line_count, line_widths, 0.0)
 
 
 ## Clean up when component is removed.

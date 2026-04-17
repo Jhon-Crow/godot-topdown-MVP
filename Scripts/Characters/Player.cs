@@ -572,6 +572,12 @@ public partial class Player : BaseCharacter
     public delegate void ReloadStartedEventHandler();
 
     /// <summary>
+    /// Signal emitted when an in-progress reload sequence is canceled or reset before completion.
+    /// </summary>
+    [Signal]
+    public delegate void ReloadSequenceCanceledEventHandler();
+
+    /// <summary>
     /// Signal emitted when player tries to shoot with empty weapon.
     /// This signal notifies enemies that the player is out of ammo.
     /// </summary>
@@ -1731,7 +1737,7 @@ public partial class Player : BaseCharacter
             {
                 // Step 1 (only R pressed, waiting for F): shooting resets the combo
                 GD.Print("[Player] Shooting during reload step 1 - resetting reload sequence");
-                ResetReloadSequence();
+                ResetReloadSequence(true);
                 Shoot();
             }
             else if (_reloadSequenceStep == 2)
@@ -2287,7 +2293,7 @@ public partial class Player : BaseCharacter
                 GD.Print("[Player] Wrong key! Reload sequence reset (expected R)");
                 // Restart animation from grab phase
                 StartReloadAnimPhase(ReloadAnimPhase.GrabMagazine, ReloadAnimGrabDuration);
-                ResetReloadSequence();
+                ResetReloadSequence(true);
             }
         }
     }
@@ -2439,8 +2445,9 @@ public partial class Player : BaseCharacter
     /// Resets the reload sequence to the beginning.
     /// Also cancels the weapon's reload sequence state.
     /// </summary>
-    private void ResetReloadSequence()
+    private void ResetReloadSequence(bool emitCanceled = false)
     {
+        bool wasReloading = _isReloadingSequence || _reloadSequenceStep > 0;
         _reloadSequenceStep = 0;
         _isReloadingSequence = false;
         _ammoAtReloadStart = 0;
@@ -2453,6 +2460,11 @@ public partial class Player : BaseCharacter
 
         // Cancel weapon's reload sequence state
         CurrentWeapon?.CancelReloadSequence();
+
+        if (emitCanceled && wasReloading)
+        {
+            EmitSignal(SignalName.ReloadSequenceCanceled);
+        }
     }
 
     /// <summary>

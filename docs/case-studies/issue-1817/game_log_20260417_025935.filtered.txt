@@ -1,0 +1,191 @@
+5:[02:59:35] [INFO] Log file: I:/Загрузки/godot exe/обучение/game_log_20260417_025935.txt
+6:[02:59:35] [INFO] Executable: I:/Загрузки/godot exe/обучение/Godot-Top-Down-Template.exe
+70:[02:59:35] [INFO] [BlackMetalEffectsManager] Black Metal shader loaded (B&W+red, hint_screen_texture approach)
+94:[02:59:35] [INFO] [PersistManager] Restored levels_completed_with_silenced_pistol: 0
+107:[02:59:35] [INFO] [WeaponHintsSettings] WeaponHintsSettings initialized - mode: ALWAYS, weapons seen: ["makarov_pm", "mini_uzi", "shotgun", "sniper", "revolver", "m16", "silenced_pistol", "ak_gl"]
+168:[02:59:35] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+219:[02:59:36] [INFO] [UnlockManager] Skipped restore for weapon 'silenced_pistol' (condition not met — treating as corrupt save)
+384:[02:59:36] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+425:[02:59:36] [INFO] [WeaponHintsComponent] Connected weapon signals for: makarov_pm (node: MakarovPM)
+426:[02:59:36] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: makarov_pm
+621:[02:59:40] [INFO] [CinemaEffects] Scene changed to: Tutorial
+623:[02:59:40] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+632:[02:59:40] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+659:[02:59:40] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+710:[02:59:50] [INFO] [GameManager] restart_scene() — starting scene reload
+717:[02:59:50] [INFO] [CinemaEffects] Scene changed to: Tutorial
+719:[02:59:50] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+728:[02:59:50] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+755:[02:59:50] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+801:[02:59:54] [INFO] [GameManager] restart_scene() — starting scene reload
+808:[02:59:54] [INFO] [CinemaEffects] Scene changed to: Tutorial
+810:[02:59:54] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+819:[02:59:54] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+847:[02:59:54] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+889:[02:59:57] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+891:[02:59:58] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.0000005, 2.0000002), target=(4, 2), base=(24, 6)
+892:[02:59:58] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.0000002, 6), target=(-2, 6), base=(-2, 6)
+894:[02:59:59] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.0000005, 2.0000002), target=(4, 2), base=(24, 6)
+895:[02:59:59] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.0000002, 6), target=(-2, 6), base=(-2, 6)
+897:[03:00:00] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.0000005, 2.0000002), target=(4, 2), base=(24, 6)
+898:[03:00:00] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.0000002, 6), target=(-2, 6), base=(-2, 6)
+900:[03:00:01] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.0000005, 2.0000002), target=(4, 2), base=(24, 6)
+901:[03:00:01] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.0000002, 6), target=(-2, 6), base=(-2, 6)
+902:[03:00:01] [INFO] [GameManager] restart_scene() — starting scene reload
+909:[03:00:01] [INFO] [CinemaEffects] Scene changed to: Tutorial
+911:[03:00:01] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+920:[03:00:01] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+948:[03:00:01] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+994:[03:00:05] [INFO] [GameManager] restart_scene() — starting scene reload
+1001:[03:00:05] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1003:[03:00:05] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1012:[03:00:05] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1040:[03:00:05] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1086:[03:00:06] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1087:[03:00:07] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1090:[03:00:07] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1096:[03:00:08] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1097:[03:00:08] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.52024, 2.104048), target=(4, 2), base=(24, 6)
+1098:[03:00:08] [INFO] [Player.Reload.Anim] RightArm: pos=(-1.9999999, 6), target=(-2, 6), base=(-2, 6)
+1100:[03:00:08] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1103:[03:00:09] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1110:[03:00:10] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1111:[03:00:10] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.0000033, 2.0000007), target=(4, 2), base=(24, 6)
+1112:[03:00:10] [INFO] [Player.Reload.Anim] RightArm: pos=(-1.9999999, 6), target=(-2, 6), base=(-2, 6)
+1114:[03:00:11] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1117:[03:00:11] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1118:[03:00:11] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1120:[03:00:12] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+1123:[03:00:12] [INFO] [Player.Reload.Anim] LeftArm: pos=(11.9980955, 5.9990478), target=(12, 6), base=(24, 6)
+1124:[03:00:12] [INFO] [Player.Reload.Anim] RightArm: pos=(-1.9999999, 7.999524), target=(-2, 8), base=(-2, 6)
+1126:[03:00:13] [INFO] [Player.Reload.Anim] LeftArm: pos=(11.999998, 5.999999), target=(12, 6), base=(24, 6)
+1127:[03:00:13] [INFO] [Player.Reload.Anim] RightArm: pos=(-1.9999999, 7.999999), target=(-2, 8), base=(-2, 6)
+1129:[03:00:13] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+1130:[03:00:13] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1131:[03:00:14] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1155:[03:00:18] [INFO] [GameManager] restart_scene() — starting scene reload
+1162:[03:00:18] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1164:[03:00:18] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1173:[03:00:18] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1201:[03:00:18] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1248:[03:00:21] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1250:[03:00:22] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.000031, 2.0000062), target=(4, 2), base=(24, 6)
+1251:[03:00:22] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.0000002, 6), target=(-2, 6), base=(-2, 6)
+1253:[03:00:23] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.0000005, 2.0000002), target=(4, 2), base=(24, 6)
+1254:[03:00:23] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.0000002, 6), target=(-2, 6), base=(-2, 6)
+1256:[03:00:24] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.0000005, 2.0000002), target=(4, 2), base=(24, 6)
+1257:[03:00:24] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.0000002, 6), target=(-2, 6), base=(-2, 6)
+1265:[03:00:30] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.0000005, 2.0000002), target=(4, 2), base=(24, 6)
+1266:[03:00:30] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.0000002, 6), target=(-2, 6), base=(-2, 6)
+1267:[03:00:30] [INFO] [GameManager] restart_scene() — starting scene reload
+1274:[03:00:30] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1276:[03:00:30] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1285:[03:00:30] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1313:[03:00:30] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1361:[03:00:35] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1363:[03:00:36] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.000016, 2.000003), target=(4, 2), base=(24, 6)
+1364:[03:00:36] [INFO] [Player.Reload.Anim] RightArm: pos=(-1.9999999, 6), target=(-2, 6), base=(-2, 6)
+1365:[03:00:36] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1369:[03:00:36] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1370:[03:00:37] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1372:[03:00:38] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1375:[03:00:38] [INFO] [Player.Reload.Anim] LeftArm: pos=(23.155296, 5.8310595), target=(24, 6), base=(24, 6)
+1376:[03:00:38] [INFO] [Player.Reload.Anim] RightArm: pos=(-1.9999999, 6), target=(-2, 6), base=(-2, 6)
+1377:[03:00:38] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1378:[03:00:38] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1380:[03:00:38] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1383:[03:00:39] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1384:[03:00:39] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1385:[03:00:39] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1389:[03:00:40] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1390:[03:00:40] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1391:[03:00:40] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1394:[03:00:40] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1396:[03:00:40] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1397:[03:00:41] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.018095, 2.003619), target=(4, 2), base=(24, 6)
+1398:[03:00:41] [INFO] [Player.Reload.Anim] RightArm: pos=(-1.9999999, 6), target=(-2, 6), base=(-2, 6)
+1399:[03:00:41] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1402:[03:00:41] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1404:[03:00:41] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1405:[03:00:42] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.0035787, 2.0007157), target=(4, 2), base=(24, 6)
+1406:[03:00:42] [INFO] [Player.Reload.Anim] RightArm: pos=(-1.9999999, 6), target=(-2, 6), base=(-2, 6)
+1407:[03:00:42] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+1409:[03:00:43] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+1410:[03:00:43] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1411:[03:00:43] [INFO] [Player.Reload.Anim] LeftArm: pos=(14.99746, 5.99873), target=(24, 6), base=(24, 6)
+1412:[03:00:43] [INFO] [Player.Reload.Anim] RightArm: pos=(-1.9999999, 7.4993653), target=(-2, 6), base=(-2, 6)
+1413:[03:00:43] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1447:[03:00:53] [INFO] [GameManager] restart_scene() — starting scene reload
+1454:[03:00:53] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1456:[03:00:53] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1465:[03:00:53] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1493:[03:00:53] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1598:[03:00:57] [INFO] [GameManager] restart_scene() — starting scene reload
+1605:[03:00:57] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1607:[03:00:57] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1616:[03:00:57] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1644:[03:00:57] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1684:[03:01:01] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1685:[03:01:02] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+1686:[03:01:02] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+1687:[03:01:02] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1688:[03:01:02] [INFO] [Player.Reload.Anim] LeftArm: pos=(23.080029, 5.9905014), target=(24, 6), base=(24, 6)
+1689:[03:01:02] [INFO] [Player.Reload.Anim] RightArm: pos=(-1.9999999, 6.145413), target=(-2, 6), base=(-2, 6)
+1690:[03:01:02] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1768:[03:01:09] [INFO] [GameManager] restart_scene() — starting scene reload
+1775:[03:01:09] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1777:[03:01:09] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1786:[03:01:09] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1814:[03:01:09] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1860:[03:01:12] [INFO] [GameManager] restart_scene() — starting scene reload
+1867:[03:01:12] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1869:[03:01:12] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1878:[03:01:12] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1879:[03:01:12] [INFO] [Player.Weapon] GameManager weapon selection: revolver (Revolver)
+1881:[03:01:12] [INFO] [Player.Weapon] Equipped Revolver (ammo: 5/30)
+1906:[03:01:13] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1925:[03:01:13] [INFO] [Player] Detected weapon: RSh-12 Revolver (Pistol pose)
+1938:[03:01:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(207.6111, 360), source=PLAYER (Revolver), range=800, listeners=0
+1943:[03:01:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(555.2217, 251.4197), source=PLAYER (Revolver), range=800, listeners=0
+1946:[03:01:16] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1947:[03:01:16] [INFO] [Player] Revolver: cylinder opened (R key)
+1948:[03:01:16] [INFO] [Player.Reload.Anim] LeftArm: pos=(-1.675168, 2.4631557), target=(-4, 2), base=(16, 6)
+1949:[03:01:16] [INFO] [Player.Reload.Anim] RightArm: pos=(3.990947, 6), target=(4, 6), base=(4, 6)
+1951:[03:01:17] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+1952:[03:01:17] [INFO] [Player.Reload.Anim] RightArm: pos=(3.9999998, 6), target=(4, 6), base=(4, 6)
+1955:[03:01:18] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+1956:[03:01:18] [INFO] [Player.Reload.Anim] RightArm: pos=(3.9999998, 6), target=(4, 6), base=(4, 6)
+1958:[03:01:19] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1961:[03:01:19] [INFO] [Player] Revolver: cylinder closed (R key), reload complete
+1962:[03:01:19] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1966:[03:01:22] [INFO] [GameManager] restart_scene() — starting scene reload
+1973:[03:01:22] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1975:[03:01:22] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1984:[03:01:22] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1985:[03:01:22] [INFO] [Player.Weapon] GameManager weapon selection: revolver (Revolver)
+1987:[03:01:22] [INFO] [Player.Weapon] Equipped Revolver (ammo: 5/30)
+2012:[03:01:22] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+2031:[03:01:22] [INFO] [Player] Detected weapon: RSh-12 Revolver (Pistol pose)
+2046:[03:01:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(504.8007, 270.5948), source=PLAYER (Revolver), range=800, listeners=0
+2052:[03:01:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(582.6514, 258.4165), source=PLAYER (Revolver), range=800, listeners=0
+2055:[03:01:26] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+2056:[03:01:26] [INFO] [Player] Revolver: cylinder opened (R key)
+2057:[03:01:26] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9818888, 2.0036223), target=(-4, 2), base=(16, 6)
+2058:[03:01:26] [INFO] [Player.Reload.Anim] RightArm: pos=(4.0000005, 6), target=(4, 6), base=(4, 6)
+2060:[03:01:27] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+2061:[03:01:27] [INFO] [Player.Reload.Anim] RightArm: pos=(4.0000005, 6), target=(4, 6), base=(4, 6)
+2063:[03:01:28] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+2064:[03:01:28] [INFO] [Player.Reload.Anim] RightArm: pos=(4.0000005, 6), target=(4, 6), base=(4, 6)
+2067:[03:01:29] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+2068:[03:01:29] [INFO] [Player.Reload.Anim] RightArm: pos=(4.0000005, 6), target=(4, 6), base=(4, 6)
+2070:[03:01:30] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+2071:[03:01:30] [INFO] [Player.Reload.Anim] RightArm: pos=(4.0000005, 6), target=(4, 6), base=(4, 6)
+2073:[03:01:31] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+2074:[03:01:31] [INFO] [Player.Reload.Anim] RightArm: pos=(4.0000005, 6), target=(4, 6), base=(4, 6)
+2076:[03:01:32] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+2077:[03:01:32] [INFO] [Player.Reload.Anim] RightArm: pos=(4.0000005, 6), target=(4, 6), base=(4, 6)
+2079:[03:01:33] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+2080:[03:01:33] [INFO] [Player.Reload.Anim] RightArm: pos=(4.0000005, 6), target=(4, 6), base=(4, 6)
+2081:[03:01:33] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+2084:[03:01:33] [INFO] [Player] Revolver: cylinder closed (R key), reload complete
+2086:[03:01:34] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
