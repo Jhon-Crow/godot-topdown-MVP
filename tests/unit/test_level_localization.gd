@@ -61,6 +61,34 @@ func test_magazines_label_uses_translated_mag_prefix() -> void:
 	assert_eq(_helper.get_magazines_text(["[30]", "25", "10"]), "%s: [30] | 25 | 10" % tr("ARMORY_STAT_MAG"))
 
 
+func test_magazine_display_parts_uses_signal_counts_when_present() -> void:
+	var weapon := Node.new()
+	add_child_autofree(weapon)
+
+	assert_eq(_helper.get_magazine_display_parts(weapon, [30, 30, 18, 0]), ["[30]", "30", "18"])
+
+
+func test_magazine_display_parts_falls_back_to_weapon_ammo_when_counts_empty() -> void:
+	var weapon := Node.new()
+	add_child_autofree(weapon)
+	weapon.set("CurrentAmmo", 30)
+	weapon.set("ReserveAmmo", 90)
+	weapon.set("MagazineSize", 30)
+
+	assert_eq(_helper.get_magazine_display_parts(weapon, []), ["[30]", "+ x3"])
+	assert_eq(_helper.get_magazines_text(_helper.get_magazine_display_parts(weapon, [])), "%s: [30] | + x3" % tr("ARMORY_STAT_MAG"))
+
+
+func test_magazine_display_parts_keeps_partial_reserve_when_counts_empty() -> void:
+	var weapon := Node.new()
+	add_child_autofree(weapon)
+	weapon.set("CurrentAmmo", 17)
+	weapon.set("ReserveAmmo", 45)
+	weapon.set("MagazineSize", 30)
+
+	assert_eq(_helper.get_magazine_display_parts(weapon, []), ["[17]", "+ x1", "15"])
+
+
 func test_active_weapon_prefers_current_weapon_before_inactive_shotgun_child() -> void:
 	var player := Node2D.new()
 	add_child_autofree(player)

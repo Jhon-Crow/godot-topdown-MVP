@@ -90,6 +90,63 @@ func get_magazines_text(parts: Array[String]) -> String:
 	return "%s: %s" % [tr("ARMORY_STAT_MAG"), " | ".join(parts)]
 
 
+func get_magazine_display_parts(weapon: Node, magazine_ammo_counts: Array) -> Array[String]:
+	var counts: Array = magazine_ammo_counts.duplicate()
+	var max_counts: Array = []
+	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
+		max_counts = Array(weapon.GetMagazineMaxCounts())
+
+	if counts.is_empty() and weapon != null:
+		var current_ammo = weapon.get("CurrentAmmo")
+		if current_ammo != null:
+			counts.append(int(current_ammo))
+		var reserve_ammo = weapon.get("ReserveAmmo")
+		var magazine_size := _get_weapon_magazine_size(weapon, max_counts)
+		if reserve_ammo != null and magazine_size > 0:
+			var remaining_reserve := int(reserve_ammo)
+			while remaining_reserve > 0:
+				var spare_count = mini(magazine_size, remaining_reserve)
+				counts.append(spare_count)
+				max_counts.append(magazine_size)
+				remaining_reserve -= spare_count
+
+	var parts: Array[String] = []
+	if counts.is_empty():
+		return parts
+
+	parts.append("[%d]" % int(counts[0]))
+
+	var full_spare_count := 0
+	for i in range(1, counts.size()):
+		var ammo := int(counts[i])
+		if ammo <= 0:
+			continue
+		var cap := int(max_counts[i]) if i < max_counts.size() else 0
+		if cap > 0 and ammo >= cap:
+			full_spare_count += 1
+		else:
+			parts.append("%d" % ammo)
+
+	if full_spare_count > 0:
+		parts.append("+ x%d" % full_spare_count)
+
+	return parts
+
+
+func _get_weapon_magazine_size(weapon: Node, max_counts: Array) -> int:
+	if not max_counts.is_empty():
+		return int(max_counts[0])
+	var magazine_size = weapon.get("MagazineSize")
+	if magazine_size != null:
+		return int(magazine_size)
+	var weapon_data = weapon.get("WeaponData")
+	if weapon_data != null:
+		var data_magazine_size = weapon_data.get("MagazineSize")
+		if data_magazine_size != null:
+			return int(data_magazine_size)
+	return 0
+
+
 func get_active_player_weapon(player: Node) -> Node:
 	if player == null:
 		return null
