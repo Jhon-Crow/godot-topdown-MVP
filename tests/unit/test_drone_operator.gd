@@ -713,3 +713,18 @@ func test_attacker_node_signature_compatibility_for_existing_targets() -> void:
 		file.close()
 		assert_true(source.contains(expected_signatures[path]),
 			"%s bullet-info receiver must accept optional attacker_node so enemy bullets still damage the player and other targets" % path)
+
+
+func test_csharp_player_accepts_attacker_node_bullet_info_overload() -> void:
+	## Issue #1744 follow-up: GDScript bullet.gd calls Player with seven args after attacker forwarding.
+	var file := FileAccess.open("res://Scripts/Characters/Player.cs", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open Player.cs — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("float damage, bool isFromPlayer, Node2D? attackerNode"),
+		"C# Player must expose the seven-argument bullet-info overload used by GDScript bullet.gd")
+	assert_true(source.contains("damage, isFromPlayer);"),
+		"seven-argument Player overload should preserve explicit damage and delegate to the existing damage path")

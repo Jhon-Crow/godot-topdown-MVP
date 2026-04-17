@@ -373,6 +373,20 @@ Direct damage-aware receivers such as the player, enemies, and drones receive co
 
 Regression source checks now cover all compatibility dimensions: receivers must accept the optional attacker argument, damage-aware fallback must keep the computed damage argument before source attribution, and legacy hit-area fallback must keep source data in the older six-argument shape.
 
+### C# Player Interop Follow-up
+
+`game_log_20260417_215733.txt` (reported 2026-04-17 19:08 UTC) reproduced the same "player damage still does not apply" symptom after the fallback split. The log also shows debug/invincibility toggled on during one run, but the repeated failures across prior non-invincibility logs still pointed to the hit callback contract.
+
+The remaining root cause was C# overload arity. The runtime player scene uses `res://Scripts/Characters/Player.cs`, not `scripts/characters/player.gd`. `bullet.gd` now calls direct damage-aware receivers with seven arguments:
+
+```gdscript
+area.on_hit_with_bullet_info(..., effective_damage, from_player, attacker_node)
+```
+
+`Player.cs` only exposed five- and six-argument `on_hit_with_bullet_info` overloads. Godot 4 GDScript calls into C# do not resolve this by optional/default parameters, so the seven-argument call could fail before reaching `TakeDamage(damage)`.
+
+The C# player now exposes the matching seven-argument overload and delegates to the existing six-argument damage path, preserving the explicit damage value while ignoring `attacker_node` for the player.
+
 ---
 
 ## Log Files
@@ -383,3 +397,4 @@ Regression source checks now cover all compatibility dimensions: receivers must 
 - [`game_log_20260417_004243.txt`](./game_log_20260417_004243.txt) — player damage still not applied after callback compatibility follow-up (2,465 lines)
 - [`game_log_20260417_033236.txt`](./game_log_20260417_033236.txt) — player damage still not applied after damage-slot fallback follow-up (386 lines)
 - [`game_log_20260417_210339.txt`](./game_log_20260417_210339.txt) — player damage still not applied after direct fallback fix; exposed mixed six/seven-argument bullet-info contracts (599 lines)
+- [`game_log_20260417_215733.txt`](./game_log_20260417_215733.txt) — player damage still not applied after fallback split; exposed missing seven-argument C# Player overload (2.07 MB)

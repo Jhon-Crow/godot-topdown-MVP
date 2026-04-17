@@ -2615,6 +2615,10 @@ public partial class Player : BaseCharacter
         TakeDamage(damage);
     }
 
+    public void on_hit_with_bullet_info(Vector2 hitDirection, Godot.Resource? caliberData,
+        bool hasRicocheted, bool hasPenetrated, float damage, bool isFromPlayer, Node2D? attackerNode)
+        => on_hit_with_bullet_info(hitDirection, caliberData, hasRicocheted, hasPenetrated, damage, isFromPlayer);
+
     /// <inheritdoc/>
     public override void TakeDamage(float amount)
     {
