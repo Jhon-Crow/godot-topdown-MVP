@@ -311,3 +311,37 @@ func test_shotgun_reload_hint_completes_only_after_loading_phase_started() -> vo
 		"Returning to idle after entering the loading phase should complete the shotgun reload tutorial")
 	assert_eq(shotgun_tutorial._reload_completed_calls, 1,
 		"Completed shotgun reload should call the reload completion path exactly once")
+
+
+func test_training_shotgun_reload_handler_tracks_loaded_shell_before_completion() -> void:
+	var file := FileAccess.open("res://scripts/levels/tutorial_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("tutorial_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("var _shotgun_reload_loaded_shell: bool = false"),
+		"Training tutorial must track whether the shotgun reload loaded a shell")
+	assert_true(content.contains("if _shotgun_reload_loaded_shell:"),
+		"Training shotgun reload state=0 must complete only after shell loading")
+	assert_true(content.contains("Tutorial: Shotgun reload rolled back before shell loading"),
+		"Training shotgun reload state=0 before shell loading must roll the hint back")
+	assert_true(content.contains("_reset_hint_strikethrough(HINT_BOLT_CYCLE)"),
+		"Training shotgun rollback must clear partial strikethrough progress")
+
+
+func test_training_revolver_open_close_rolls_hint_back_before_insert() -> void:
+	var file := FileAccess.open("res://scripts/levels/tutorial_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("tutorial_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("if new_state == 0 and _revolver_last_inserted_count <= 0:"),
+		"Training revolver reload state=0 must not complete/grey out the hint before cartridge insertion")
+	assert_true(content.contains("Tutorial: Revolver reload rolled back before cartridge insertion"),
+		"Training revolver open/close without insertion must roll the hint back")
+	assert_true(content.contains("_reset_hint_strikethrough(HINT_RELOAD)"),
+		"Training revolver rollback must clear partial strikethrough progress")

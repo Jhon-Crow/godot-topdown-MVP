@@ -16,9 +16,11 @@ Issue [#1817](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1817) starte
 - Owner reproduction logs from PR #1864 feedback:
   - [game_log_20260417_025935.txt](./game_log_20260417_025935.txt)
   - [game_log_20260417_030201.txt](./game_log_20260417_030201.txt)
+  - [game_log_20260417_033631.txt](./game_log_20260417_033631.txt)
 - Filtered timeline extracts:
   - [game_log_20260417_025935.filtered.txt](./game_log_20260417_025935.filtered.txt)
   - [game_log_20260417_030201.filtered.txt](./game_log_20260417_030201.filtered.txt)
+  - [game_log_20260417_033631.filtered.txt](./game_log_20260417_033631.filtered.txt)
 - Relevant code: `scripts/components/weapon_hints_component.gd`, `Scripts/Characters/Player.cs`, `Scripts/Weapons/Revolver.cs`, `Scripts/Weapons/Shotgun.cs`
 - Regression tests: `tests/unit/test_labyrinth_grenade_tutorial.gd`, `tests/unit/test_weapon_hints_component.gd`
 
@@ -29,6 +31,7 @@ Issue [#1817](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1817) starte
 3. April 15, 2026 23:17:51 UTC: owner attached `game_log_20260416_021623.txt`.
 4. April 17, 2026 00:06:57 UTC: owner reported three remaining PR #1864 issues and attached two new logs.
 5. April 17, 2026: new logs show revolver open/close sequences at `03:01:16` -> `03:01:19` and `03:01:26` -> `03:01:33`, plus shotgun open/close-without-load sequences at `03:02:30`, `03:02:37`, and nearby repeated attempts.
+6. April 17, 2026 00:37:57 UTC: owner attached `game_log_20260417_033631.txt` and reported "nothing changed" in the latest build.
 
 ## Findings
 
@@ -44,6 +47,7 @@ The April 17 logs add useful weapon-level transitions:
 - `Player.Weapon` selects and equips `revolver` and `shotgun` in the training scene.
 - revolver logs show `cylinder opened (R key)` followed by `cylinder closed (R key), reload complete` without any matching cartridge-insert signal in the filtered trace.
 - shotgun logs show `Bolt opened for loading`, then `Reload complete - bolt closed` with unchanged shell counts such as `6/8` and `7/8`, which is an aborted reload from the tutorial perspective.
+- the latest log confirms the same Training map path: revolver opens and closes at `03:36:40` without a cartridge insert, and shotgun opens at `03:37:23` / `03:37:25` then closes with `shouldLoad=False` and still `6 shells`.
 
 ## Root Causes
 
@@ -80,12 +84,22 @@ Result:
 
 - future changes could silently break the suppressed pistol hint connection path
 
+### 5. The first PR #1864 follow-up fixed the shared component, not the Training map handler
+
+The owner reproduced the remaining issue on the Training map. That scene uses `scripts/levels/tutorial_level.gd` for its main reload tutorial flow, while the previous patch added rollback state to `scripts/components/weapon_hints_component.gd`.
+
+Result:
+
+- factory/labyrinth-style shared weapon hints had rollback guards, but Training still completed shotgun reload on every `ReloadStateChanged(0)`
+- Training revolver still rendered the all-grey final step when the cylinder returned to idle without any inserted cartridge
+
 ## Solution Direction
 
 - Drive grenade tutorial progression strictly from the player grenade state machine (`WAITING_FOR_G_RELEASE`, `AIMING`, `IDLE`).
 - Track whether shotgun reload reached the meaningful loaded-shell state before allowing `ReloadStateChanged(0)` to complete the tutorial.
 - Track whether revolver reload inserted a cartridge before allowing `ReloadStateChanged(0)` to complete the tutorial.
 - Reset hint label text and strikethrough progress when a reload action closes without the meaningful load step.
+- Mirror those guards inside `tutorial_level.gd`, because Training does not rely solely on the shared weapon hint component.
 - Add focused tests for silenced pistol node lookup, aborted revolver reload rollback, successful revolver completion, aborted shotgun reload rollback, and successful shotgun completion.
 - Keep regression coverage for both canceled and completed flows.
 

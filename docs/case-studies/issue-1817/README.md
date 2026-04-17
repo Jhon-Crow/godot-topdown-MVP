@@ -18,8 +18,10 @@ Observed variants from the issue and PR discussion:
 - `game_log_20260416_021623.txt`: owner-provided runtime log attached in the PR conversation.
 - `game_log_20260417_025935.txt`: owner-provided runtime log for revolver reload training feedback.
 - `game_log_20260417_030201.txt`: owner-provided runtime log for shotgun reload training feedback.
+- `game_log_20260417_033631.txt`: owner-provided runtime log after the first PR #1864 fix, reporting no behavior change.
 - `game_log_20260417_025935.filtered.txt`: filtered weapon/tutorial timeline from the first April 17 log.
 - `game_log_20260417_030201.filtered.txt`: filtered weapon/tutorial timeline from the second April 17 log.
+- `game_log_20260417_033631.filtered.txt`: filtered weapon/tutorial timeline from the latest April 17 log.
 - `dotnet-build.log`: local build verification log.
 
 ## Reconstructed Sequence
@@ -59,6 +61,9 @@ The tutorial handlers were using coarse state transitions:
 - Gate revolver reload completion on observing the loading state after a cartridge insert.
 - Otherwise rebuild the corresponding hint in its initial state and clear strikethrough progress.
 - Add a regression test that `silenced_pistol` resolves to the `SilencedPistol` weapon node.
+- Apply the rollback gates in both the shared `WeaponHintsComponent` and the Training map's own
+  `tutorial_level.gd` handlers. The latest log showed Training map behavior was unchanged because
+  the previous patch fixed only the shared component path.
 
 ## Verification
 
@@ -66,6 +71,7 @@ Regression coverage added in `tests/unit/test_labyrinth_grenade_tutorial.gd`:
 - grenade prepare canceled before completion resets the hint
 - shotgun bolt close without shell loading resets instead of completing
 - shotgun reload still completes after the loading phase has begun
+- Training map shotgun and revolver handlers contain rollback guards for canceled reloads
 
 Regression coverage added in `tests/unit/test_weapon_hints_component.gd`:
 - silenced pistol node lookup

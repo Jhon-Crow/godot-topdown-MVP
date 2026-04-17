@@ -118,6 +118,10 @@ var _has_ak_gl: bool = false
 ## Used to prevent ActionStateChanged from replacing the full-reload hint with pump hint.
 var _shotgun_full_reload_active: bool = false
 
+## Whether the active shotgun full-reload tutorial reached the shell-loading phase.
+## Closing the bolt before this must roll the hint back instead of completing it.
+var _shotgun_reload_loaded_shell: bool = false
+
 ## Whether the M16 fire-mode [B] hint should appear after grenade training (Bug fix round 5).
 ## Set to true after reload completes for M16; hint is shown after grenade step.
 var _m16_needs_fire_mode_hint: bool = false
@@ -1335,18 +1339,28 @@ func _on_shotgun_reload_state_changed(new_state: int) -> void:
 	if not _hint_labels.has(HINT_BOLT_CYCLE):
 		return
 
-	# state=0 means reload is fully complete (bolt closed) — treat as reload done.
 	if new_state == 0:
-		_dismiss_hint(HINT_BOLT_CYCLE)
-		_shotgun_full_reload_active = false
-		if not _has_reloaded:
-			_has_reloaded = true
-			print("Tutorial: Shotgun reload completed via ReloadStateChanged(0)")
-			if _has_thrown_grenade:
-				_advance_to_step(TutorialStep.COMPLETED)
-			else:
-				_advance_to_step(TutorialStep.THROW_GRENADE)
+		if _shotgun_reload_loaded_shell:
+			_dismiss_hint(HINT_BOLT_CYCLE)
+			_shotgun_full_reload_active = false
+			_shotgun_reload_loaded_shell = false
+			if not _has_reloaded:
+				_has_reloaded = true
+				print("Tutorial: Shotgun reload completed via ReloadStateChanged(0)")
+				if _has_thrown_grenade:
+					_advance_to_step(TutorialStep.COMPLETED)
+				else:
+					_advance_to_step(TutorialStep.THROW_GRENADE)
+		else:
+			_reset_hint_strikethrough(HINT_BOLT_CYCLE)
+			var reset_label: RichTextLabel = _hint_labels[HINT_BOLT_CYCLE]
+			if is_instance_valid(reset_label):
+				reset_label.text = _build_shotgun_full_reload_hint_bbcode(0)
+			print("Tutorial: Shotgun reload rolled back before shell loading")
 		return
+
+	if new_state == 3:
+		_shotgun_reload_loaded_shell = true
 
 	var label: RichTextLabel = _hint_labels[HINT_BOLT_CYCLE]
 	if is_instance_valid(label):
@@ -1411,6 +1425,7 @@ func _on_player_reload_completed() -> void:
 		if _has_shotgun:
 			_dismiss_hint(HINT_BOLT_CYCLE)
 			_shotgun_full_reload_active = false
+			_shotgun_reload_loaded_shell = false
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		# Bug fix round 4: sniper uses scope training after magazine reload.
 		# Issue #998: If scope was already used early (hint shown from start), skip SCOPE_TRAINING.
@@ -1472,6 +1487,14 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 	if not _hint_labels.has(HINT_RELOAD):
 		return
 	if not _has_revolver:
+		return
+
+	if new_state == 0 and _revolver_last_inserted_count <= 0:
+		_reset_hint_strikethrough(HINT_RELOAD)
+		var reset_label: RichTextLabel = _hint_labels[HINT_RELOAD]
+		if is_instance_valid(reset_label):
+			reset_label.text = _build_revolver_reload_hint_bbcode(0)
+		print("Tutorial: Revolver reload rolled back before cartridge insertion")
 		return
 
 	var hint_step: int = 0
