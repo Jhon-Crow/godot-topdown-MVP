@@ -816,6 +816,8 @@ func _physics_process(delta: float) -> void:
 	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
 	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if _perf_settings and not _perf_settings.is_ai_enabled(): return
+	if _pacifist and _pacifist.is_pacifist and _drone_operator and _drone_operator.get_phase() != DroneOperatorComponent.Phase.ACTIVE:
+		_drone_operator.update(delta); velocity = Vector2.ZERO; move_and_slide(); return  # Issue #1868: pacifist operators must not deploy/control drones or seek combat cover
 	if _drone_operator and _drone_operator.get_phase() != DroneOperatorComponent.Phase.ACTIVE:  # Issue #1397: drone operator phase control
 		_drone_operator.update(delta)
 		if _drone_operator.is_controlling_drone(): velocity = Vector2.ZERO; move_and_slide(); return  # CONTROLLING: fully frozen
@@ -2854,6 +2856,7 @@ func _transition_to_pacifist(emit_signal: bool = true) -> void:
 	var was := _pacifist.is_pacifist if _pacifist else false
 	_current_state = AIState.PACIFIST; _has_left_idle = true; velocity = Vector2.ZERO
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
+	if _aggression: _aggression.set_aggressive(false)
 	if _pacifist: _pacifist.start_pacifism()
 	_log_to_file("Transitioned to PACIFIST"); if emit_signal and not was: became_pacifist.emit()
 ## Make this enemy a pacifist via loudspeaker. Returns true if successful.
