@@ -197,6 +197,42 @@ func test_score_screen_appears_only_once_after_repeated_mouse_clicks() -> void:
 		"Score screen must appear exactly once even if the mouse is clicked multiple times")
 
 
+func test_issue_1869_end_screen_source_consumes_key_and_mouse_input() -> void:
+	## Issue #1869: while the true-ending message is visible, any pressed key or
+	## mouse button should dismiss it and be consumed before player actions fire.
+	var source := FileAccess.get_file_as_string("res://scripts/levels/railway_station_level.gd")
+	var input_idx := source.find("func _unhandled_input(event: InputEvent) -> void:")
+	assert_ne(input_idx, -1, "RailwayStationLevel must define _unhandled_input")
+	var next_func_idx := source.find("\nfunc ", input_idx + 1)
+	var input_body := source.substr(input_idx) if next_func_idx == -1 else source.substr(input_idx, next_func_idx - input_idx)
+
+	assert_true(input_body.contains("event is InputEventKey"),
+		"Game-end input path must handle any keyboard key")
+	assert_true(input_body.contains("event is InputEventMouseButton"),
+		"Game-end input path must handle mouse buttons before player shooting can react")
+	assert_true(input_body.contains("get_viewport().set_input_as_handled()"),
+		"Game-end input path must consume input so clicks do not also fire the player weapon")
+
+
+func test_issue_1869_end_screen_and_pacifist_messages_are_localized() -> void:
+	## Issue #1869: end screen and all-pacified clear message must use translation keys.
+	var source := FileAccess.get_file_as_string("res://scripts/levels/railway_station_level.gd")
+	assert_true(source.contains("tr(\"GAME_END_THANKS\")"),
+		"Game-end title must use a translation key")
+	assert_true(source.contains("tr(\"GAME_END_DISMISS_HINT\")"),
+		"Game-end dismiss hint must use a translation key")
+	assert_true(source.contains("tr(\"LEVEL_CLEAR_ALL_PACIFIED\")"),
+		"All-pacified clear message must use a translation key")
+
+	var translations := FileAccess.get_file_as_string("res://resources/translations/translations.csv")
+	assert_true(translations.contains("LEVEL_CLEAR_ALL_PACIFIED,"),
+		"translations.csv must define the all-pacified clear message")
+	assert_true(translations.contains("GAME_END_THANKS,"),
+		"translations.csv must define the game-end title")
+	assert_true(translations.contains("GAME_END_DISMISS_HINT,"),
+		"translations.csv must define the game-end dismiss hint")
+
+
 # ============================================================================
 # Enemy placement tests (Issue #1861)
 # ============================================================================

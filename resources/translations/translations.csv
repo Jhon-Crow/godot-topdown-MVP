@@ -54,6 +54,9 @@ RUN_BENCHMARK,Run Benchmark,Запустить тест
 QUICK_TEST,Quick Test (1 cycle),Быстрый тест (1 цикл)
 STRESS_BENCHMARK,Stress Benchmark,Стресс-тест
 PERFORMANCE_ALL_ENABLED,All performance features enabled,Все функции производительности включены
+LEVEL_CLEAR_ALL_PACIFIED,All enemies eliminated or pacified! Level cleared!,Все враги устранены или стали пацифистами! Уровень очищен!
+GAME_END_THANKS,The End. Thanks for playing,Конец. Спасибо за игру
+GAME_END_DISMISS_HINT,Press any key or mouse button...,Нажмите любую клавишу или кнопку мыши...
 LANGUAGE_TITLE,Language,Язык
 LANGUAGE_ENGLISH,English,English
 LANGUAGE_RUSSIAN,Русский,Русский
