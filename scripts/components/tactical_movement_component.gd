@@ -153,17 +153,24 @@ func _is_ally_blocking_path(move_dir: Vector2) -> bool:
 	# Confirm the hit body is actually an enemy (in "enemies" group).
 	var hit_body: Object = result.get("collider")
 	if hit_body != null and is_instance_valid(hit_body) and (hit_body as Node).is_in_group("enemies"):
-		var hit_node := hit_body as Node2D
+		var hit_node: Node2D = hit_body as Node2D
 		if hit_node == null:
 			return false
-		var offset := hit_node.global_position - enemy.global_position
-		var forward_distance := offset.dot(move_dir)
-		if forward_distance <= 0.0:
-			return false
-		var lateral_offset := abs(offset.dot(move_dir.orthogonal()))
-		var lane_half_width := max(16.0, NARROW_PASSAGE_HALF_WIDTH * 0.5)
-		return lateral_offset <= lane_half_width
+		return _is_position_in_forward_lane(hit_node.global_position, move_dir)
 	return false
+
+
+## Pure geometry helper for tests and for keeping ally-blocking lane decisions explicit.
+func _is_position_in_forward_lane(position: Vector2, move_dir: Vector2) -> bool:
+	if enemy == null or move_dir == Vector2.ZERO:
+		return false
+	var offset: Vector2 = position - enemy.global_position
+	var forward_distance: float = offset.dot(move_dir)
+	if forward_distance <= 0.0:
+		return false
+	var lateral_offset: float = abs(offset.dot(move_dir.orthogonal()))
+	var lane_half_width: float = max(16.0, NARROW_PASSAGE_HALF_WIDTH * 0.5)
+	return lateral_offset <= lane_half_width
 
 
 ## Maximum distance (px) within which an ally can trigger a yield.

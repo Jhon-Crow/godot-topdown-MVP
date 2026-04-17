@@ -241,31 +241,33 @@ func test_debug_info_shows_yielding_state() -> void:
 # Ally Blocking Lane Filter
 # =============================================================================
 
-func test_ally_blocking_path_rejects_side_lane_hits() -> void:
+func test_forward_lane_rejects_side_lane_positions() -> void:
 	var enemy := CharacterBody2D.new()
 	add_child_autofree(enemy)
 	enemy.global_position = Vector2.ZERO
 
-	var ally := CharacterBody2D.new()
-	add_child_autofree(ally)
-	ally.global_position = Vector2(40, TacticalMovementComp.NARROW_PASSAGE_HALF_WIDTH)
-	ally.add_to_group("enemies")
-
 	var comp := TacticalMovementComp.new(enemy)
-	assert_false(comp._is_ally_blocking_path(Vector2.RIGHT),
-		"Ally far to the side should not count as blocking the same corridor lane")
+	var side_lane_position: Vector2 = Vector2(40, TacticalMovementComp.NARROW_PASSAGE_HALF_WIDTH)
+	assert_false(comp._is_position_in_forward_lane(side_lane_position, Vector2.RIGHT),
+		"Position far to the side should not count as blocking the same corridor lane")
 
 
-func test_ally_blocking_path_accepts_forward_lane_hits() -> void:
+func test_forward_lane_accepts_same_lane_positions() -> void:
 	var enemy := CharacterBody2D.new()
 	add_child_autofree(enemy)
 	enemy.global_position = Vector2.ZERO
 
-	var ally := CharacterBody2D.new()
-	add_child_autofree(ally)
-	ally.global_position = Vector2(40, 8)
-	ally.add_to_group("enemies")
+	var comp := TacticalMovementComp.new(enemy)
+	var same_lane_position: Vector2 = Vector2(40, 8)
+	assert_true(comp._is_position_in_forward_lane(same_lane_position, Vector2.RIGHT),
+		"Position ahead in the same lane should count as blocking")
+
+
+func test_forward_lane_rejects_positions_behind_enemy() -> void:
+	var enemy := CharacterBody2D.new()
+	add_child_autofree(enemy)
+	enemy.global_position = Vector2.ZERO
 
 	var comp := TacticalMovementComp.new(enemy)
-	assert_true(comp._is_ally_blocking_path(Vector2.RIGHT),
-		"Ally ahead in the same lane should count as blocking")
+	assert_false(comp._is_position_in_forward_lane(Vector2(-20, 0), Vector2.RIGHT),
+		"Position behind the enemy should not count as blocking")

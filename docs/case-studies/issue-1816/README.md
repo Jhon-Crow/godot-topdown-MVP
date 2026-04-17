@@ -7,7 +7,47 @@
 - User report: enemies almost stop moving in passages, likely due to wall interaction and enemies blocking each other
 - Attached evidence collected locally:
   - `docs/case-studies/issue-1816/issue-1816.png`
+  - `docs/case-studies/issue-1816/raw/game_log_20260417_041936.txt`
   - `game_log_20260411_165829.txt` attachment was referenced in the issue, but the authenticated download did not complete in this workspace
+
+## Follow-Up Feedback Data
+
+Owner feedback on April 17, 2026 said that visible movement changes were not apparent,
+especially on the `Здание` / `BuildingLevel` map. The attached runtime log was downloaded
+to `raw/game_log_20260417_041936.txt`.
+
+### Runtime Timeline From `game_log_20260417_041936.txt`
+
+- `04:19:36`: game log started from a Windows exported build using Godot `4.3-stable`
+- `04:19:37`: `ExperimentalSettings` initialized with logging enabled and `Global stuck max time: 20.0s`
+- `04:19:43`: scene load switched to `res://scenes/levels/BuildingLevel.tscn`
+- `04:19:43`: `BuildingLevel` enemy set initialized
+- `04:20:31` through `04:21:25`: frequent `ROT_CHANGE` messages alternate between
+  `P4:velocity` and `P3:corner` for several enemies, which indicates movement/corner
+  steering jitter rather than tactical-yield logging
+- No `GLOBAL STUCK` entries appear in the captured run
+
+### New Observation
+
+The runtime settings in the provided log override enemy global stuck recovery to `20.0s`
+while the code-level fallback constant is `4.0s`. If an enemy makes very small movements
+or repeatedly jitters near corridor corners, the player can observe it as nearly stopped
+for a long time before the global stuck recovery transitions it to searching. This explains
+why the first tactical-yield-only fix could look unchanged on `BuildingLevel`: the evidence
+does not show tactical yielding, but it does show corner/velocity oscillation and a long
+stuck recovery window.
+
+## CI Data Collected
+
+- `ci-logs/run-gut-tests-24485543753.log`
+  - Run created: `2026-04-16T00:32:42Z`
+  - Head SHA: `8941992b9dea95922d6b8d69c272f1fe9451e93e`
+  - Conclusion: cancelled
+  - Relevant branch-introduced compile errors:
+    - `scripts/components/tactical_movement_component.gd:163`
+    - `scripts/components/tactical_movement_component.gd:164`
+  - Godot treated inferred `Variant` warnings as parse errors during import. The fix
+    now uses explicit `Node2D`, `Vector2`, and `float` annotations in that block.
 
 ## Repository Data Collected
 
@@ -59,11 +99,14 @@ Updated `scripts/components/tactical_movement_component.gd`:
 - ally blockers must now be in front of the enemy
 - ally blockers must also be within the same forward lane using a lateral-offset check
 - side-lane or intersection-adjacent allies no longer trigger yielding
+- the lane decision is now isolated in `_is_position_in_forward_lane()` for deterministic
+  regression coverage and to avoid depending on live physics ray hits in unit tests
 
 Added regression coverage in `tests/unit/test_tactical_movement_component.gd`:
 
-- verifies side-lane ally does not count as a blocker
-- verifies forward-lane ally still counts as a blocker
+- verifies side-lane positions do not count as blockers
+- verifies forward-lane positions still count as blockers
+- verifies positions behind the enemy do not count as blockers
 
 ## Proposed Solutions Considered
 
@@ -120,6 +163,7 @@ Cons:
 
 - Code change completed
 - Regression tests added
+- CI cancellation log downloaded and analyzed
 - Local execution blocked in this workspace because no `godot` executable is installed on `PATH`
 
 ## Files Changed For The Fix
