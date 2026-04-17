@@ -1598,7 +1598,7 @@ func _setup_player_tracking() -> void:
 	elif _player.has_signal("Died"):
 		_player.Died.connect(_on_player_died)
 
-	var weapon: Node = _find_player_weapon()
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
 	if weapon != null:
 		if weapon.has_signal("AmmoChanged"):
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
@@ -1637,7 +1637,7 @@ func _setup_player_tracking() -> void:
 ## Called after a mid-game weapon swap (e.g. pedestal pickup in Issue #1323) so the
 ## ammo/shot counter UI stays in sync with the new weapon node.
 func _reconnect_weapon_signals() -> void:
-	var weapon: Node = _find_player_weapon()
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
 	if weapon == null:
 		return
 	if weapon.has_signal("AmmoChanged") and not weapon.AmmoChanged.is_connected(_on_weapon_ammo_changed):
@@ -1853,7 +1853,7 @@ func _setup_debug_ui() -> void:
 	# Enemy count (top-right)
 	_enemy_count_label = Label.new()
 	_enemy_count_label.name = "EnemyCountLabel"
-	_enemy_count_label.text = "Враги: 0"
+	_enemy_count_label.text = LevelLocalization.get_enemy_count_text(0)
 	_enemy_count_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_enemy_count_label.offset_left   = -200
 	_enemy_count_label.offset_right  = -10
@@ -1865,7 +1865,7 @@ func _setup_debug_ui() -> void:
 	# Ammo (top-left)
 	_ammo_label = Label.new()
 	_ammo_label.name = "AmmoLabel"
-	_ammo_label.text = "AMMO: -"
+	_ammo_label.text = tr("HUD_AMMO") % [0, 0]
 	_ammo_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_ammo_label.offset_left   = 10
 	_ammo_label.offset_top    = 10
@@ -1876,7 +1876,7 @@ func _setup_debug_ui() -> void:
 	# Difficulty (top-left, below ammo)
 	_difficulty_label = Label.new()
 	_difficulty_label.name = "DifficultyLabel"
-	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left   = 10
 	_difficulty_label.offset_top    = 80
@@ -1887,7 +1887,7 @@ func _setup_debug_ui() -> void:
 	# Magazines
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
-	_magazines_label.text = "MAGS: -"
+	_magazines_label.text = LevelLocalization.get_magazines_text([])
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left   = 10
 	_magazines_label.offset_top    = 115
@@ -3255,13 +3255,13 @@ func _show_victory_message() -> void:
 
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
-		_enemy_count_label.text = "Враги: %d" % _current_enemy_count
+		_enemy_count_label.text = LevelLocalization.get_enemy_count_text(_current_enemy_count)
 
 
 func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
 		return
-	_ammo_label.text = "AMMO: %d/%d" % [current, maximum]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current, maximum)
 	if current <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
 	elif current <= 10:
@@ -3273,7 +3273,7 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 	if _ammo_label == null:
 		return
-	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current_mag, reserve)
 	if current_mag <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
 	elif current_mag <= 10:
@@ -3285,49 +3285,20 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 func _update_magazines_label(mag_counts: Array) -> void:
 	if _magazines_label == null:
 		return
-	var weapon: Node = _find_player_weapon()
-	if weapon != null and weapon.get("UsesTubeMagazine") == true:
-		_magazines_label.visible = false
-		return
-	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
+	if LevelLocalization.weapon_hides_magazines(weapon):
 		_magazines_label.visible = false
 		return
 	_magazines_label.visible = true
-	if mag_counts.is_empty():
-		_magazines_label.text = "MAGS: -"
-		return
-	# Get magazine capacities to distinguish full vs partial spares
-	var mag_max_counts: Array = []
-	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
-		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
-
-	var parts: Array = []
-	# Current magazine always shown in brackets
-	parts.append("[%d]" % mag_counts[0])
-
-	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
-	var full_spare_count: int = 0
-	for i in range(1, mag_counts.size()):
-		var ammo: int = mag_counts[i]
-		if ammo <= 0:
-			continue
-		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
-		if cap > 0 and ammo >= cap:
-			full_spare_count += 1
-		else:
-			parts.append("%d" % ammo)
-
-	if full_spare_count > 0:
-		parts.append("+ x%d" % full_spare_count)
-
-	_magazines_label.text = "MAGS: " + " | ".join(parts)
+	var parts: Array[String] = LevelLocalization.get_magazine_display_parts(weapon, mag_counts)
+	_magazines_label.text = LevelLocalization.get_magazines_text(parts)
 
 
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
 	if _difficulty_label:
-		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 
 
 func _show_saturation_effect() -> void:
