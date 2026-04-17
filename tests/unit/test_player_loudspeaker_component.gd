@@ -174,3 +174,41 @@ func test_hold_timer_no_update_when_zero() -> void:
 		"Hold timer should stay at 0 when not started")
 	assert_false(comp._loudspeaker_hand_sprite_visible,
 		"Sprite should remain hidden when timer was never started")
+
+
+func test_issue_1869_loudspeaker_victory_source_consumes_key_and_mouse_input() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/components/player_loudspeaker_component.gd")
+	var input_idx := source.find("func _unhandled_input(event: InputEvent) -> void:")
+	assert_ne(input_idx, -1,
+		"PlayerLoudspeakerComponent must define _unhandled_input for true-ending dismissal")
+	var next_func_idx := source.find("\nfunc ", input_idx + 1)
+	var input_body := source.substr(input_idx) if next_func_idx == -1 else source.substr(input_idx, next_func_idx - input_idx)
+
+	assert_true(input_body.contains("event is InputEventKey"),
+		"True-ending victory message must dismiss on keyboard input")
+	assert_true(input_body.contains("event is InputEventMouseButton"),
+		"True-ending victory message must dismiss on mouse input")
+	assert_true(input_body.contains("get_viewport().set_input_as_handled()"),
+		"True-ending input must be consumed so LMB does not also shoot")
+	assert_true(source.contains("_player.set_process_input(false)"),
+		"Player input processing must be disabled while the true-ending message is visible")
+	assert_true(source.contains("_player.set_process_unhandled_input(false)"),
+		"Player unhandled input must be disabled while the true-ending message is visible")
+
+
+func test_issue_1869_loudspeaker_true_ending_strings_are_localized() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/components/player_loudspeaker_component.gd")
+	assert_true(source.contains("tr(\"LOUDSPEAKER_TRUE_ENDING_MESSAGE\")"),
+		"Loudspeaker true-ending message must use a translation key")
+	assert_true(source.contains("tr(\"GAME_END_TITLE\")"),
+		"Loudspeaker end title must use a translation key")
+	assert_true(source.contains("tr(\"GAME_END_THANKS\")"),
+		"Loudspeaker thanks text must use a translation key")
+	assert_true(source.contains("tr(\"GAME_END_DISMISS_HINT\")"),
+		"Loudspeaker dismiss hint must use a translation key")
+
+	var translations := FileAccess.get_file_as_string("res://resources/translations/translations.csv")
+	assert_true(translations.contains("LOUDSPEAKER_TRUE_ENDING_MESSAGE,"),
+		"translations.csv must define the loudspeaker true-ending message")
+	assert_true(translations.contains("GAME_END_TITLE,"),
+		"translations.csv must define the game-end title")

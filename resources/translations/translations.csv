@@ -55,7 +55,9 @@ QUICK_TEST,Quick Test (1 cycle),Быстрый тест (1 цикл)
 STRESS_BENCHMARK,Stress Benchmark,Стресс-тест
 PERFORMANCE_ALL_ENABLED,All performance features enabled,Все функции производительности включены
 LEVEL_CLEAR_ALL_PACIFIED,All enemies eliminated or pacified! Level cleared!,Все враги устранены или стали пацифистами! Уровень очищен!
-GAME_END_THANKS,The End. Thanks for playing,Конец. Спасибо за игру
+LOUDSPEAKER_TRUE_ENDING_MESSAGE,"We have nothing to fight over, so we will not shoot each other.","Нам нечего делить, поэтому мы не будем стрелять друг в друга."
+GAME_END_TITLE,The End,Конец
+GAME_END_THANKS,Thanks for playing,Спасибо за игру
 GAME_END_DISMISS_HINT,Press any key or mouse button...,Нажмите любую клавишу или кнопку мыши...
 LANGUAGE_TITLE,Language,Язык
 LANGUAGE_ENGLISH,English,English
