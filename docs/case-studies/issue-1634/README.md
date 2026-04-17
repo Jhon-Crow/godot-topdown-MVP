@@ -524,6 +524,60 @@ Additional Session 5 regression tests in `tests/unit/test_projectile_pool_manage
 - `test_return_bullet_rejects_unmanaged_projectile` — PM-style fresh bullets cannot contaminate the pool
 - `test_duplicate_return_does_not_duplicate_pool_entry` — duplicate returns do not duplicate references
 - `test_get_bullet_skips_active_duplicate_reference` — active duplicate references are discarded before reuse
+- `test_csharp_breaker_shrapnel_uses_pool_fallback_when_scene_missing` — C# PM/Bullet9mm breaker path
+  does not skip shrapnel when the cached `PackedScene` load is unavailable but `ProjectilePoolManager`
+  can supply breaker shrapnel.
+
+---
+
+## Bug Found and Fixed: C# Breaker Shrapnel Missing in PM Path (Session 7)
+
+### New User Report and Preserved Data
+
+**User report (PR #1661, 2026-04-17):**
+> "всё ещё нет осколков у пуль с превзрывателем"
+> *Translation: "breaker bullets still have no shrapnel."*
+
+Preserved log:
+
+- `data/logs/game_log_20260417_213214.txt` — 2,708 lines
+
+The log confirms the player enabled Breaker Bullets and that the active weapon was repeatedly
+`MakarovPM`:
+
+- `game_log_20260417_213214.txt:614` — active item changed to Breaker Bullets.
+- `game_log_20260417_213214.txt:619-620` — breaker bullets active and applied to `MakarovPM`.
+- `game_log_20260417_213214.txt:683-684`, `876-877`, `1241-1242`, `1462-1463`, and
+  `2519-2520` — later reload/restart cycles still apply breaker bullets to `MakarovPM`.
+
+### Root Cause
+
+The latest missing-shrapnel report was on the C# PM projectile path, not the GDScript pooled bullet
+path that Session 4 and Session 5 hardened. `MakarovPM.tscn` fires `Bullet9mm.tscn`, and the runtime
+bullet is handled by `Scripts/Projectiles/Bullet.cs`, which delegates breaker detonation to
+`Scripts/Projectiles/BreakerDetonation.cs`.
+
+`BreakerDetonation.SpawnShrapnel()` had a C#-specific early return:
+
+1. Load cached `BreakerShrapnel.tscn`.
+2. If that cached scene is `null`, return immediately.
+3. Never ask `/root/ProjectilePoolManager` for breaker shrapnel.
+
+That differs from the fixed GDScript `bullet.gd` behavior, which can still spawn pooled breaker
+shrapnel when the fallback scene reference is unavailable. In exported builds this means C# breaker
+bullets can detonate and play the small explosion while silently producing no fragments.
+
+### Fix Applied (Session 7)
+
+`BreakerDetonation.SpawnShrapnel()` now mirrors the robust GDScript path:
+
+- It looks up `/root/ProjectilePoolManager` before deciding whether shrapnel spawning is possible.
+- It only returns early when both the cached `PackedScene` and the pool fallback are unavailable.
+- It tries `get_breaker_shrapnel()` first and activates the returned shard with `pool_activate()`.
+- It falls back to direct `PackedScene` instantiation only if the pool cannot provide a shard.
+
+This keeps PM/C# breaker bullets aligned with the GDScript breaker bullet behavior and preserves the
+pool ownership fixes from Session 5.
 
 ---
 

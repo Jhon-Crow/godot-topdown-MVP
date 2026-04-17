@@ -384,14 +384,16 @@ public static class BreakerDetonation
         float damageMultiplier,
         ulong shooterId)
     {
-        var shrapnelScene = GetShrapnelScene();
-        if (shrapnelScene == null)
+        var tree = projectile.GetTree();
+        if (tree == null)
         {
             return;
         }
 
-        var tree = projectile.GetTree();
-        if (tree == null)
+        var poolManager = projectile.GetNodeOrNull("/root/ProjectilePoolManager");
+        bool canUsePool = poolManager != null && poolManager.HasMethod("get_breaker_shrapnel");
+        var shrapnelScene = GetShrapnelScene();
+        if (shrapnelScene == null && !canUsePool)
         {
             return;
         }
@@ -425,17 +427,37 @@ public static class BreakerDetonation
             float randomAngle = (float)GD.RandRange(-halfAngleRad, halfAngleRad);
             var shrapnelDirection = direction.Rotated(randomAngle);
 
+            var spawnPosition = center + shrapnelDirection * 5.0f;
+            var shrapnelSpeed = (float)GD.RandRange(1400.0, 2200.0);
+
+            if (canUsePool)
+            {
+                var pooledVariant = poolManager!.Call("get_breaker_shrapnel");
+                if (pooledVariant.Obj is Node pooledShrapnel && pooledShrapnel.HasMethod("pool_activate"))
+                {
+                    pooledShrapnel.Call("pool_activate", spawnPosition, shrapnelDirection, (int)shooterId);
+                    pooledShrapnel.Set("damage", ShrapnelDamage);
+                    pooledShrapnel.Set("speed", shrapnelSpeed);
+                    continue;
+                }
+            }
+
+            if (shrapnelScene == null)
+            {
+                continue;
+            }
+
             var shrapnel = shrapnelScene.Instantiate<Node2D>();
             if (shrapnel == null)
             {
                 continue;
             }
 
-            shrapnel.GlobalPosition = center + shrapnelDirection * 5.0f;
+            shrapnel.GlobalPosition = spawnPosition;
             shrapnel.Set("direction", shrapnelDirection);
             shrapnel.Set("source_id", (int)shooterId);
             shrapnel.Set("damage", ShrapnelDamage);
-            shrapnel.Set("speed", (float)GD.RandRange(1400.0, 2200.0));
+            shrapnel.Set("speed", shrapnelSpeed);
 
             // Use call_deferred for performance (batch scene tree changes)
             scene.CallDeferred("add_child", shrapnel);

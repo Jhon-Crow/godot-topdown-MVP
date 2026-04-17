@@ -802,3 +802,51 @@ func test_pool_bullet_resets_arming_distance() -> void:
 
 	assert_false(result,
 		"Recycled bullet starts with _breaker_distance_traveled=0, should not arm immediately")
+
+
+func _read_text_file(path: String) -> String:
+	var file := FileAccess.open(path, FileAccess.READ)
+	assert_not_null(file, "%s must be readable" % path)
+	if file == null:
+		return ""
+	var text := file.get_as_text()
+	file.close()
+	return text
+
+
+func _extract_csharp_method(source: String, signature: String) -> String:
+	var start := source.find(signature)
+	assert_true(start >= 0, "Source should contain method signature: %s" % signature)
+	if start < 0:
+		return ""
+	var depth := 0
+	var saw_open_brace := false
+	for i in range(start, source.length()):
+		var ch := source.substr(i, 1)
+		if ch == "{":
+			depth += 1
+			saw_open_brace = true
+		elif ch == "}":
+			depth -= 1
+			if saw_open_brace and depth == 0:
+				return source.substr(start, i - start + 1)
+	return source.substr(start)
+
+
+func test_csharp_breaker_shrapnel_uses_pool_fallback_when_scene_missing() -> void:
+	# Regression for PM/Bullet9mm exported builds: MakarovPM fires the C# Bullet.cs path,
+	# whose BreakerDetonation helper used to return immediately when GD.Load<PackedScene>
+	# failed and therefore produced explosions without visible breaker shrapnel.
+	var source := _read_text_file("res://Scripts/Projectiles/BreakerDetonation.cs")
+	var body := _extract_csharp_method(source, "private static void SpawnShrapnel(")
+
+	assert_true(body.contains("GetNodeOrNull(\"/root/ProjectilePoolManager\")"),
+		"C# breaker shrapnel should ask ProjectilePoolManager for pooled fragments")
+	assert_true(body.contains("get_breaker_shrapnel"),
+		"C# breaker shrapnel should use the breaker shrapnel pool")
+	assert_true(body.contains("shrapnelScene == null && !canUsePool"),
+		"C# breaker shrapnel must only return early when both scene and pool fallback are unavailable")
+	assert_true(body.contains("pool_activate"),
+		"Pooled breaker shrapnel should be activated instead of manually added to the scene")
+	assert_eq(body.find("var shrapnelScene = GetShrapnelScene();\n        if (shrapnelScene == null)\n        {\n            return;\n        }"), -1,
+		"C# breaker shrapnel must not skip spawning just because the PackedScene cache is null")
