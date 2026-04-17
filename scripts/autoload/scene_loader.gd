@@ -159,13 +159,16 @@ func _on_load_complete() -> void:
 	var error := get_tree().change_scene_to_packed(loaded_scene)
 	if error != OK:
 		_log("ERROR: Failed to change to loaded scene: %s" % error)
+		_is_loading = false
+		_current_load_path = ""
 	else:
 		_log("Scene changed successfully")
 
-	# Fade out loading screen
-	var fade_tween := create_tween()
-	fade_tween.tween_property(_loading_overlay, "modulate:a", 0.0, FADE_DURATION)
-	fade_tween.tween_callback(_hide_loading_screen)
+		# Fade out loading screen only after a successful scene change. Keeping the
+		# overlay visible on failure avoids exposing an empty gray/partial scene.
+		var fade_tween := create_tween()
+		fade_tween.tween_property(_loading_overlay, "modulate:a", 0.0, FADE_DURATION)
+		fade_tween.tween_callback(_hide_loading_screen)
 
 
 ## Hide loading screen and reset state
@@ -181,5 +184,15 @@ func _fallback_sync_load() -> void:
 	var loaded_scene := load(_current_load_path) as PackedScene
 	if loaded_scene:
 		get_tree().paused = false
-		get_tree().change_scene_to_packed(loaded_scene)
-	_hide_loading_screen()
+		var error := get_tree().change_scene_to_packed(loaded_scene)
+		if error != OK:
+			_log("ERROR: Failed to change to fallback scene: %s" % error)
+			_is_loading = false
+			_current_load_path = ""
+			return
+		_log("Fallback scene changed successfully")
+		_hide_loading_screen()
+	else:
+		_log("ERROR: Failed to synchronously load scene: %s" % _current_load_path)
+		_is_loading = false
+		_current_load_path = ""

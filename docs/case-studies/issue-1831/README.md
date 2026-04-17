@@ -16,6 +16,7 @@ Request: when an item becomes available during play, show a top-screen Armory no
 - `attachments/game_log_20260417_003202.txt`: owner-supplied runtime log from the PR feedback round.
 - `attachments/game_log_20260417_003202_unlock_excerpt.txt`: filtered unlock/toast/error lines from the runtime log.
 - `attachments/game_log_20260417_023049.txt`: owner-supplied follow-up runtime log where Armored Skin and Laser Sight availability notifications did not appear.
+- `attachments/game_log_20260417_205951.txt`: owner-supplied exported exe startup log where the screen stayed gray after launch.
 - `online-research.md`: external references used for the implementation approach.
 
 ## Timeline
@@ -30,6 +31,9 @@ Request: when an item becomes available during play, show a top-screen Armory no
 - 2026-04-17 02:30:49 local log time: `PersistManager` restores `kills_without_laser_sight: 448`, `shots_fired_special_weapons: 654`, and `total_deaths: 125`, so several kill/stat conditions are already met at startup while their items may still be locked.
 - 2026-04-17 02:37:37 local log time: runtime death counter reaches 100 during the session.
 - 2026-04-17 02:50:02 local log time: runtime kills-without-laser-sight counter reaches 400 during the session.
+- 2026-04-17 18:01:01 UTC: PR feedback reports a gray screen after launching the exported exe and attaches `game_log_20260417_205951.txt`.
+- 2026-04-17 20:59:54 local log time: the exported build restores `RoguelikeLevel.tscn` as the last played level, `SceneLoader` receives `THREAD_LOAD_INVALID_RESOURCE`, falls back to synchronous loading, then changes scenes.
+- 2026-04-17 20:59:57-21:00:04 local log time: after arriving at `RoguelikeLevel.tscn`, the log shows repeated `ReplayManager` frames with `player_valid=False` and no `RoguelikeLevel` room/player setup milestones, matching an empty or partially initialized gray screen.
 
 ## Existing System
 
@@ -58,6 +62,13 @@ The second owner log exposed a functional gap in the dedupe logic:
 - Later live stat updates at 100 deaths and 400 kills still emitted availability signals, but the notification manager ignored them because the keys were already in the announced table.
 - The fix separates startup suppression from actual announcement history. Startup-available keys are suppressed only to avoid a stale burst on load, then a live availability signal can consume that suppression and show the toast once.
 
+The third owner log exposed a startup diagnostics and scene-loader robustness gap:
+
+- The exported build starts on `LabyrinthLevel`, then `PersistManager` immediately navigates to the saved `RoguelikeLevel`.
+- `SceneLoader` reports `THREAD_LOAD_INVALID_RESOURCE`, falls back to synchronous loading, and then hides the loading overlay without logging whether `change_scene_to_packed()` succeeded.
+- The log contains no `RoguelikeLevel` room construction or player-spawn milestones after the scene change, so there was not enough exported-build telemetry to distinguish a scene-change failure from a Roguelike `_ready()` failure.
+- The fix keeps the loading overlay visible on scene-change failure, logs fallback scene-change errors, and adds `FileLogger` milestones for Roguelike `_ready()`, room construction, and player spawn so the next exported-build log identifies the exact failing phase instead of leaving a silent gray-screen state.
+
 ## Solution Direction
 
 Add a global `UnlockNotificationManager` autoload:
@@ -73,6 +84,8 @@ Add a global `UnlockNotificationManager` autoload:
 - Keeps each toast visible for exactly `4.0` seconds between slide-in and slide-out.
 - Tracks toast animation phase and keeps the slide-out phase to one scheduled tween segment per toast.
 - Logs connection, startup suppression, and live-announcement decisions through `FileLogger` to make future runtime logs diagnosable.
+- Hardens `SceneLoader` so invalid-resource fallback only hides the loading overlay after a successful scene change and reports failures through `FileLogger`.
+- Adds exported-build `FileLogger` milestones in `RoguelikeLevel` startup to diagnose whether the scene script reaches `_ready()`, room construction, and player spawn.
 
 ## Alternatives Considered
 
@@ -95,6 +108,9 @@ Add a global `UnlockNotificationManager` autoload:
   - single slide-out contract,
   - only locked items with met conditions being collected,
   - startup-suppressed locked items still queue a notification after a live condition signal.
+- Add SceneLoader regression tests for:
+  - failed scene changes keeping the loading overlay visible instead of exposing an empty gray scene,
+  - successful scene changes hiding the loading overlay.
 - Run targeted GUT test when a Godot binary is available:
   - `godot --headless -s addons/gut/gut_cmdln.gd -gselect=test_unlock_notification_manager -gexit`
 - Run broader checks:
