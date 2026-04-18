@@ -73,6 +73,13 @@ class MockUnlockManager extends Node:
 		return item_type == 7 or item_type == 8 or item_type == 9
 
 
+class MockGameplaySettings extends Node:
+	var unlock_notifications_enabled: bool = true
+
+	func are_unlock_notifications_enabled() -> bool:
+		return unlock_notifications_enabled
+
+
 func test_unlock_notification_manager_script_exists() -> void:
 	assert_not_null(load(NOTIFICATION_MANAGER_SCRIPT),
 		"UnlockNotificationManager autoload script should exist")
@@ -198,6 +205,42 @@ func test_toast_animation_keeps_label_opaque_after_entry() -> void:
 		"Fallback text label should remain fully opaque after the slide-in animation")
 	assert_gt(background.modulate.a, 0.95,
 		"Only the background fade target should be fully visible after entry")
+
+
+func test_show_unlock_notification_skips_queue_when_setting_disabled() -> void:
+	var script: GDScript = load(NOTIFICATION_MANAGER_SCRIPT)
+	assert_not_null(script, "UnlockNotificationManager script should load")
+	var manager: CanvasLayer = autofree(script.new())
+	var gameplay_settings: MockGameplaySettings = autofree(MockGameplaySettings.new())
+	gameplay_settings.name = "GameplaySettings"
+	gameplay_settings.unlock_notifications_enabled = false
+	get_tree().root.add_child(gameplay_settings)
+	add_child(manager)
+	await get_tree().process_frame
+
+	manager.show_unlock_notification("Бронированная кожа", "active_item")
+
+	assert_eq(manager._pending_notifications.size(), 0,
+		"Disabled unlock notifications should not queue toast messages")
+
+
+func test_show_unlock_notification_queues_when_setting_enabled() -> void:
+	var script: GDScript = load(NOTIFICATION_MANAGER_SCRIPT)
+	assert_not_null(script, "UnlockNotificationManager script should load")
+	var manager: CanvasLayer = autofree(script.new())
+	var gameplay_settings: MockGameplaySettings = autofree(MockGameplaySettings.new())
+	gameplay_settings.name = "GameplaySettings"
+	gameplay_settings.unlock_notifications_enabled = true
+	get_tree().root.add_child(gameplay_settings)
+	add_child(manager)
+	await get_tree().process_frame
+
+	manager.show_unlock_notification("Бронированная кожа", "active_item")
+
+	assert_eq(manager._pending_notifications.size(), 0,
+		"Enabled unlock notifications should be consumed by the visible toast immediately")
+	assert_eq(manager._animation_phase, "entering",
+		"Enabled unlock notifications should start the toast animation")
 
 
 func test_collects_only_locked_items_with_met_conditions() -> void:

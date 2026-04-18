@@ -178,6 +178,8 @@ func show_unlock_notification(item_name: String, kind: String = "") -> void:
 	var clean_name: String = item_name.strip_edges()
 	if clean_name.is_empty():
 		return
+	if not _are_unlock_notifications_enabled():
+		return
 	_pending_notifications.append({
 		"kind": kind.strip_edges(),
 		"item_name": clean_name
@@ -359,6 +361,15 @@ func _queue_new_available_unlocks() -> void:
 		if _startup_suppressed_available_keys.erase(key):
 			_log("Announcing previously startup-available unlock after live condition signal: %s" % key)
 		show_unlock_notification(entry["name"], entry["kind"])
+
+
+func _are_unlock_notifications_enabled() -> bool:
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	if gameplay_settings == null:
+		return true
+	if not gameplay_settings.has_method("are_unlock_notifications_enabled"):
+		return true
+	return gameplay_settings.are_unlock_notifications_enabled()
 
 
 func _collect_weapon_entries(unlock_manager: Node, game_manager: Node) -> Array[Dictionary]:

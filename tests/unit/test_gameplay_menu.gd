@@ -29,6 +29,9 @@ class MockGameplayMenu:
 	## Current weapon hints mode.
 	var weapon_hints_mode: int = WEAPON_HINTS_ALWAYS
 
+	## Current unlock toast notification visibility.
+	var unlock_notifications_enabled: bool = true
+
 	## Signal tracking.
 	var back_pressed_count: int = 0
 
@@ -48,6 +51,10 @@ class MockGameplayMenu:
 	func set_weapon_hints(mode: int) -> void:
 		if mode >= WEAPON_HINTS_ALWAYS and mode <= WEAPON_HINTS_NEVER:
 			weapon_hints_mode = mode
+
+	## Toggle unlock toast notifications.
+	func set_unlock_notifications(enabled: bool) -> void:
+		unlock_notifications_enabled = enabled
 
 	## Press back.
 	func press_back() -> void:
@@ -177,6 +184,31 @@ func test_weapon_hints_mode_count() -> void:
 	]
 	assert_eq(valid_modes.size(), 3,
 		"Should have 3 weapon hints modes")
+
+
+# ============================================================================
+# Unlock Notifications Tests
+# ============================================================================
+
+
+func test_unlock_notifications_default_enabled() -> void:
+	assert_true(menu.unlock_notifications_enabled,
+		"Unlock notifications should be enabled by default")
+
+
+func test_can_disable_unlock_notifications() -> void:
+	menu.set_unlock_notifications(false)
+
+	assert_false(menu.unlock_notifications_enabled,
+		"Gameplay menu should allow disabling unlock notifications")
+
+
+func test_can_reenable_unlock_notifications() -> void:
+	menu.set_unlock_notifications(false)
+	menu.set_unlock_notifications(true)
+
+	assert_true(menu.unlock_notifications_enabled,
+		"Gameplay menu should allow re-enabling unlock notifications")
 
 
 # ============================================================================
