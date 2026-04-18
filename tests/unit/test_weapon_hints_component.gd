@@ -28,6 +28,7 @@ class MockPlayer:
 	signal grenade_thrown
 
 	var grenade_count: int = 0
+	var grenade_state: int = 0
 	var use_method_for_grenades: bool = false
 
 	func _get(property: StringName) -> Variant:
@@ -39,6 +40,9 @@ class MockPlayer:
 
 	func GetCurrentGrenades() -> int:
 		return grenade_count
+
+	func GetGrenadeState() -> int:
+		return grenade_state
 
 
 class MockWeapon:
@@ -89,22 +93,24 @@ func _ensure_action(action_name: String, keycode: Key) -> void:
 
 
 func _press_action(action_name: String, keycode: Key) -> void:
-	var event := InputEventKey.new()
-	event.action = action_name
-	event.pressed = true
-	event.physical_keycode = keycode
-	event.keycode = keycode
-	Input.parse_input_event(event)
+	_ensure_action(action_name, keycode)
+	Input.action_press(action_name)
 	Input.flush_buffered_events()
 
 
 func _release_action(action_name: String, keycode: Key) -> void:
-	var event := InputEventKey.new()
-	event.action = action_name
-	event.pressed = false
-	event.physical_keycode = keycode
-	event.keycode = keycode
-	Input.parse_input_event(event)
+	_ensure_action(action_name, keycode)
+	Input.action_release(action_name)
+	Input.flush_buffered_events()
+
+
+func _press_action_state(action_name: String) -> void:
+	Input.action_press(action_name)
+	Input.flush_buffered_events()
+
+
+func _release_action_state(action_name: String) -> void:
+	Input.action_release(action_name)
 	Input.flush_buffered_events()
 
 
@@ -262,8 +268,8 @@ func test_grenade_hint_shows_when_grenade_prepare_pressed_in_always_mode() -> vo
 
 	assert_true(comp._hint_labels.has("grenade"),
 		"Grenade hint should appear when grenade_prepare is pressed and grenades are available")
-	assert_eq(comp._grenade_hint_step, 1,
-		"Grenade hint should advance to the aim step once grenade_prepare is held")
+	assert_eq(comp._grenade_hint_step, 0,
+		"Grenade hint should keep the first G+RMB instruction highlighted until RMB is also held")
 
 	_release_action("grenade_prepare", KEY_G)
 
@@ -293,6 +299,7 @@ func test_grenade_hint_does_not_show_before_grenade_prepare_pressed() -> void:
 
 func test_grenade_hint_uses_player_method_and_stays_visible_until_throw() -> void:
 	_ensure_action("grenade_prepare", KEY_G)
+	_ensure_action("grenade_throw", KEY_H)
 
 	var canvas := CanvasLayer.new()
 	add_child_autofree(canvas)
@@ -314,16 +321,23 @@ func test_grenade_hint_uses_player_method_and_stays_visible_until_throw() -> voi
 	assert_true(comp._hint_labels.has("grenade"),
 		"Grenade hint should appear when GetCurrentGrenades() reports grenades")
 
-	_release_action("grenade_prepare", KEY_G)
+	_press_action_state("grenade_throw")
+	comp._process(0.016)
+	comp._grenade_hint_drag_start = Vector2(-40, 0)
+	comp._process(0.016)
+	player.grenade_state = 1
+	player.grenade_count = 0
+	_release_action_state("grenade_throw")
 	comp._process(0.016)
 	assert_true(comp._hint_labels.has("grenade"),
-		"Grenade hint should stay visible after grenade_prepare is released")
-	assert_eq(comp._grenade_hint_step, 2,
-		"Grenade hint should advance to the throw step after grenade_prepare is released")
+		"Grenade hint should stay visible after the pin is pulled even when the normal-level grenade count drops to zero")
+	assert_eq(comp._grenade_hint_step, 3,
+		"Grenade hint should advance to the second RMB hold step after a valid pin-pull release")
 
 	player.grenade_thrown.emit()
 	assert_true(comp._animating_hints.has("grenade"),
 		"Grenade hint should only start dismissing after grenade_thrown is emitted")
+	_release_action("grenade_prepare", KEY_G)
 
 
 func test_grenade_hint_is_not_limited_to_m16_weapon_id() -> void:
@@ -350,6 +364,77 @@ func test_grenade_hint_is_not_limited_to_m16_weapon_id() -> void:
 		"Grenade hint should work on non-tutorial levels even when current weapon ID is not m16")
 
 	_release_action("grenade_prepare", KEY_G)
+
+
+func test_grenade_hint_uses_reviewed_six_step_text_source() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/components/weapon_hints_component.gd")
+
+	assert_true(source.contains("tr(\"HINT_GRENADE_HOLD_G_RMB\")"),
+		"Weapon hints grenade training should use the reviewed hold G+RMB translation")
+	assert_true(source.contains("tr(\"HINT_GRENADE_DRAG_RIGHT\")"),
+		"Weapon hints grenade training should include the drag-right action")
+	assert_true(source.contains("tr(\"HINT_GRENADE_RELEASE_RMB\")"),
+		"Weapon hints grenade training should include the RMB-release action")
+	assert_true(source.contains("tr(\"HINT_GRENADE_HOLD_RMB\")"),
+		"Weapon hints grenade training should include the second RMB-hold action")
+	assert_true(source.contains("tr(\"HINT_GRENADE_RELEASE_G\")"),
+		"Weapon hints grenade training should include the G-release action")
+	assert_true(source.contains("tr(\"HINT_GRENADE_AIM_RELEASE_RMB\")"),
+		"Weapon hints grenade training should include the final aim/release action")
+
+
+func test_grenade_hint_progresses_through_reviewed_sequence() -> void:
+	_ensure_action("grenade_prepare", KEY_G)
+	_ensure_action("grenade_throw", KEY_H)
+
+	var canvas := CanvasLayer.new()
+	add_child_autofree(canvas)
+
+	var player := MockPlayer.new()
+	player.grenade_count = 1
+	add_child_autofree(player)
+
+	var comp := WeaponHintsComp.new()
+	add_child_autofree(comp)
+	comp.setup(player, canvas)
+	comp._current_weapon_id = "mini_uzi"
+	comp._hints_active = true
+	comp._hints_showing = true
+
+	_press_action("grenade_prepare", KEY_G)
+	comp._process(0.016)
+	assert_eq(comp._grenade_hint_step, 0,
+		"G alone should show the hint without marking the first action complete")
+
+	_press_action_state("grenade_throw")
+	comp._process(0.016)
+	assert_eq(comp._grenade_hint_step, 1,
+		"Holding G+RMB should move to the drag-right action")
+
+	comp._grenade_hint_drag_start = Vector2(-40, 0)
+	comp._process(0.016)
+	assert_eq(comp._grenade_hint_step, 2,
+		"Dragging right should move to the RMB-release action")
+
+	player.grenade_state = 1
+	_release_action_state("grenade_throw")
+	comp._process(0.016)
+	assert_eq(comp._grenade_hint_step, 3,
+		"Releasing RMB after the pin is pulled should move to the second RMB-hold action")
+
+	_press_action_state("grenade_throw")
+	player.grenade_state = 4
+	comp._process(0.016)
+	assert_eq(comp._grenade_hint_step, 4,
+		"Holding RMB again should move to the release-G action")
+
+	_release_action("grenade_prepare", KEY_G)
+	player.grenade_state = 4
+	comp._process(0.016)
+	assert_eq(comp._grenade_hint_step, 5,
+		"Releasing G while RMB remains held should highlight the final aim/release action")
+
+	_release_action_state("grenade_throw")
 
 
 func test_find_weapon_node_maps_silenced_pistol_for_training_hints() -> void:

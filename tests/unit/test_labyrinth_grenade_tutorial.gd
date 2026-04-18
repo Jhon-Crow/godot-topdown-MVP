@@ -147,6 +147,26 @@ func test_tutorial_level_resets_grenade_hint_text_and_strikethrough_on_abort() -
 		"Aborted grenade preparation should clear the already drawn strikethrough")
 
 
+func test_labyrinth_grenade_hint_does_not_gate_initial_hold_on_timer_state() -> void:
+	var file := FileAccess.open("res://scripts/levels/labyrinth_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("labyrinth_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("func _reset_tutorial_grenade_hint_to_start()"),
+		"Labyrinth should rebuild the visible grenade hint when a partial attempt rolls back")
+	assert_true(content.contains("_reset_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE)"),
+		"Labyrinth rollback should clear the visible grenade strikethrough")
+	assert_true(content.contains("if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed:"),
+		"Labyrinth should acknowledge the initial G+RMB hold while the C# grenade state is still idle")
+	assert_true(content.contains("elif _tutorial_grenade_hint_step == 2 and _tutorial_grenade_drag_completed and not rmb_pressed and grenade_state >= 1:"),
+		"Labyrinth should wait for the C# pin-pull state before completing the RMB-release step")
+	assert_false(content.contains("_tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed and grenade_state >= 1"),
+		"Labyrinth must not wait for TimerStarted before acknowledging the initial G+RMB hold, because the C# state changes only after the drag-release completes")
+
+
 class MockReloadRollbackTutorial:
 	const HINT_RELOAD := "reload"
 
