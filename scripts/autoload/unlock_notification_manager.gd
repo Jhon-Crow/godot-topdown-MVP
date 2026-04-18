@@ -17,6 +17,7 @@ const TOAST_CONTENT_LEFT_MARGIN: float = 16.0
 const TOAST_CONTENT_TOP_MARGIN: float = 10.0
 const TOAST_CONTENT_RIGHT_MARGIN: float = 18.0
 const TOAST_CONTENT_BOTTOM_MARGIN: float = 10.0
+const ARMORY_ICON_TEXT_GAP: float = 24.0
 const ARMORY_ICON_PATH: String = "res://assets/sprites/ui/menu_icons/icon_armory.svg"
 const GOLD_SHINE_SHADER_PATH: String = "res://scripts/shaders/gold_shine.gdshader"
 const NOTIFICATION_TEMPLATE_KEY: String = "UNLOCK_NOTIFICATION_OPENED"
@@ -272,7 +273,7 @@ func _build_ui() -> void:
 	var row := HBoxContainer.new()
 	row.name = "ContentRow"
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 14)
+	row.add_theme_constant_override("separation", int(ARMORY_ICON_TEXT_GAP))
 	margin.add_child(row)
 
 	_icon_rect = TextureRect.new()
@@ -550,7 +551,7 @@ func _position_toast(visible_position: bool) -> void:
 				maxf(0.0, toast_width - TOAST_CONTENT_LEFT_MARGIN - TOAST_CONTENT_RIGHT_MARGIN),
 				maxf(0.0, TOAST_HEIGHT - TOAST_CONTENT_TOP_MARGIN - TOAST_CONTENT_BOTTOM_MARGIN))
 	if _message_shadow_label:
-		var icon_column_width: float = 42.0 + 14.0
+		var icon_column_width: float = 42.0 + ARMORY_ICON_TEXT_GAP
 		_message_shadow_label.position = Vector2(
 			TOAST_CONTENT_LEFT_MARGIN + icon_column_width,
 			TOAST_CONTENT_TOP_MARGIN)
