@@ -1,0 +1,21 @@
+43:[00:06:09] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: true, Invincibility: true, Realistic visibility: false, Replay: false, Logging: true, Enemy flashlight blinding: false, FPS counter: false, FPS drop logging: true, All weapons unlocked: true, All maps unlocked: true, Global stuck max time: 20.0s, Nav mesh visible: false, Search path visible: false, Passage waypoints visible: false, Passage waypoints: false, Sound visualizer: false, Enemy path visible: false, Cover raycast visible: false, Tactical group: false, Cover infinite rays: true, Cover sector rays: true, Roguelike unlocked: false
+184:[00:06:09] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+397:[00:06:10] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+585:[00:06:15] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+606:[00:06:15] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+633:[00:06:18] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+674:[00:06:20] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+688:[00:06:21] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+720:[00:06:22] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+754:[00:06:22] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+769:[00:06:25] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+775:[00:06:28] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+947:[00:06:36] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+968:[00:06:37] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+972:[00:06:37] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+1130:[00:06:41] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+1151:[00:06:42] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+1154:[00:06:43] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+1246:[00:06:47] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+1268:[00:06:49] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+1271:[00:06:50] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True

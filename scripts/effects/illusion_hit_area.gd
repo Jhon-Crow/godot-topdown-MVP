@@ -17,12 +17,12 @@ func on_hit() -> void:
 
 
 ## Extended hit handler with bullet info and damage (Issue #1196 compatible).
-func on_hit_with_bullet_info_and_damage(_direction: Vector2, _caliber_data: Resource, _is_ricochet: bool, _is_penetration: bool, _damage: float, _from_player: bool) -> void:
+func on_hit_with_bullet_info_and_damage(_direction: Vector2, _caliber_data: Resource, _is_ricochet: bool, _is_penetration: bool, _damage: float, _from_player: bool, _attacker_node: Node2D = null) -> void:
 	on_hit()
 
 
 ## Extended hit handler with bullet info (legacy compatibility).
-func on_hit_with_bullet_info(_direction: Vector2, _caliber_data: Resource, _is_ricochet: bool, _is_penetration: bool, _from_player: bool) -> void:
+func on_hit_with_bullet_info(_direction: Vector2, _caliber_data: Resource, _is_ricochet: bool, _is_penetration: bool, _from_player: bool, _attacker_node: Node2D = null) -> void:
 	on_hit()
 
 

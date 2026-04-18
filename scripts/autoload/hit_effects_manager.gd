@@ -104,6 +104,21 @@ func _start_slow_effect() -> void:
 	if not _is_slow_active:
 		_is_slow_active = true
 		if not replay_mode:
+			# Issue #1740 (root cause 3): If PowerFantasyEffectsManager or
+			# PenultimateHitEffectsManager already has a deeper slowdown active (0.1x), do not
+			# overwrite it with our shallower 0.8x hit-feedback slow. The bullet that just killed
+			# an enemy triggers on_enemy_killed() (→ time_scale = 0.1) synchronously inside
+			# area.Call("on_hit"), then TriggerPlayerHitEffects() fires — if we set time_scale =
+			# 0.8 here we cancel the kill slowdown on the very frame it started.
+			var pfm: Node = get_node_or_null("/root/PowerFantasyEffectsManager")
+			if pfm and pfm.has_method("is_effect_active") and pfm.is_effect_active():
+				_log("Skipping 0.8x slowdown start — PowerFantasy 0.1x already active")
+				return
+			var phm: Node = get_node_or_null("/root/PenultimateHitEffectsManager")
+			if phm and phm.has_method("is_effect_active") and phm.is_effect_active():
+				_log("Skipping 0.8x slowdown start — PenultimateHit 0.1x already active")
+				return
+			_log("Starting 0.8x hit slowdown (%.1fs)" % SLOW_DURATION)
 			Engine.time_scale = SLOW_TIME_SCALE
 
 
@@ -111,6 +126,19 @@ func _start_slow_effect() -> void:
 func _end_slow_effect() -> void:
 	_is_slow_active = false
 	if not replay_mode:
+		# Issue #1740: If PowerFantasyEffectsManager or PenultimateHitEffectsManager has an
+		# active slowdown effect, do not reset Engine.time_scale to 1.0 here — that would
+		# cancel their deeper slowdown (0.1x) prematurely. Let the active manager restore
+		# time_scale when its own effect expires.
+		var pfm: Node = get_node_or_null("/root/PowerFantasyEffectsManager")
+		if pfm and pfm.has_method("is_effect_active") and pfm.is_effect_active():
+			_log("0.8x slow expired — skipping time_scale reset (PowerFantasy 0.1x still active)")
+			return
+		var phm: Node = get_node_or_null("/root/PenultimateHitEffectsManager")
+		if phm and phm.has_method("is_effect_active") and phm.is_effect_active():
+			_log("0.8x slow expired — skipping time_scale reset (PenultimateHit 0.1x still active)")
+			return
+		_log("0.8x slow expired — restoring time_scale to 1.0")
 		Engine.time_scale = 1.0
 
 
@@ -134,6 +162,18 @@ func _end_saturation_effect() -> void:
 		material.set_shader_parameter("saturation_boost", 0.0)
 
 
+## Returns whether the time slowdown effect is currently active.
+## Used by PowerFantasyEffectsManager to restore 0.8x after its 0.1x effect ends.
+func is_slow_active() -> bool:
+	return _is_slow_active
+
+
+## Returns the time scale applied by this manager's hit-feedback slow.
+## Used by PowerFantasyEffectsManager to restore the correct time scale.
+func get_slow_time_scale() -> float:
+	return SLOW_TIME_SCALE
+
+
 ## Resets all effects (useful when restarting the scene).
 func reset_effects() -> void:
 	_end_slow_effect()
@@ -153,6 +193,15 @@ func _on_tree_changed() -> void:
 	if current_scene != null and current_scene != _previous_scene_root:
 		_previous_scene_root = current_scene
 		reset_effects()
+
+
+## Log a message with the HitEffects prefix.
+func _log(message: String) -> void:
+	var logger: Node = get_node_or_null("/root/FileLogger")
+	if logger and logger.has_method("log_info"):
+		logger.log_info("[HitEffects] " + message)
+	elif OS.is_debug_build():
+		print("[HitEffects] " + message)
 
 
 ## Performs warmup to pre-compile the saturation shader.

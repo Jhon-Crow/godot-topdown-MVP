@@ -37,6 +37,8 @@ signal back_pressed
 @onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var unlock_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer/UnlockTableButton
 @onready var enemies_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemiesTableContainer/EnemiesTableButton
+@onready var unlock_toast_item_option: OptionButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockToastContainer/UnlockToastItemOption
+@onready var show_unlock_toast_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockToastContainer/ShowUnlockToastButton
 @onready var enemy_type_option: OptionButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemySpawnerContainer/EnemyTypeOption
 @onready var spawn_enemy_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SpawnEnemyButton
 @onready var spawn_status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SpawnStatusLabel
@@ -63,6 +65,13 @@ var enemies_table_menu_scene: PackedScene = preload("res://scenes/ui/EnemiesTabl
 
 ## The instantiated enemies table menu.
 var enemies_table_menu: CanvasLayer = null
+
+const UNLOCK_TOAST_SAMPLE_ITEMS: Array[Dictionary] = [
+	{"name": "Бурящие пули", "kind": "active_item"},
+	{"name": "Бронированная кожа", "kind": "active_item"},
+	{"name": "Хорошая мелкая моторика", "kind": "active_item"},
+	{"name": "Лазерный прицел", "kind": "active_item"}
+]
 
 
 func _ready() -> void:
@@ -147,6 +156,9 @@ func _ready() -> void:
 	_setup_row_hover(_vbox.get_node("EnemiesTableContainer"),
 			"View Enemies Table",
 			_vbox.get_node("EnemiesTableDescription"))
+	_setup_row_hover(_vbox.get_node("UnlockToastContainer"),
+			"Show Unlock Toast",
+			_vbox.get_node("UnlockToastDescription"))
 	_setup_row_hover(_vbox.get_node("EnemySpawnerContainer"),
 			"Enemy Spawner")
 
@@ -178,6 +190,8 @@ func _ready() -> void:
 	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
 	enemies_table_button.pressed.connect(_on_enemies_table_pressed)
+	_setup_unlock_toast_items()
+	show_unlock_toast_button.pressed.connect(_on_show_unlock_toast_pressed)
 	_setup_enemy_spawner()
 	enemy_type_option.item_selected.connect(_on_enemy_type_selected)
 	spawn_enemy_button.pressed.connect(_on_spawn_enemy_pressed)
@@ -540,6 +554,27 @@ func _on_enemies_table_back_pressed() -> void:
 	_log("Enemies table back button pressed")
 	if enemies_table_menu:
 		enemies_table_menu.hide()
+
+
+func _setup_unlock_toast_items() -> void:
+	unlock_toast_item_option.clear()
+	for item in UNLOCK_TOAST_SAMPLE_ITEMS:
+		unlock_toast_item_option.add_item(item["name"])
+		unlock_toast_item_option.set_item_metadata(unlock_toast_item_option.item_count - 1, item)
+
+
+func _on_show_unlock_toast_pressed() -> void:
+	var notification_manager: Node = get_node_or_null("/root/UnlockNotificationManager")
+	if notification_manager == null or not notification_manager.has_method("show_unlock_notification"):
+		status_label.text = "Error: UnlockNotificationManager not found"
+		return
+
+	var idx: int = unlock_toast_item_option.selected
+	var item: Dictionary = unlock_toast_item_option.get_item_metadata(idx) if idx >= 0 else UNLOCK_TOAST_SAMPLE_ITEMS[0]
+	var item_name: String = item.get("name", "")
+	var kind: String = item.get("kind", "active_item")
+	notification_manager.show_unlock_notification(item_name, kind)
+	status_label.text = "Unlock toast shown: %s" % item_name
 
 
 func _unhandled_input(event: InputEvent) -> void:

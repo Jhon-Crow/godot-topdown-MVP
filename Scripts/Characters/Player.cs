@@ -572,6 +572,12 @@ public partial class Player : BaseCharacter
     public delegate void ReloadStartedEventHandler();
 
     /// <summary>
+    /// Signal emitted when an in-progress reload sequence is canceled or reset before completion.
+    /// </summary>
+    [Signal]
+    public delegate void ReloadSequenceCanceledEventHandler();
+
+    /// <summary>
     /// Signal emitted when player tries to shoot with empty weapon.
     /// This signal notifies enemies that the player is out of ammo.
     /// </summary>
@@ -1263,12 +1269,19 @@ public partial class Player : BaseCharacter
         ConnectActiveItemChangedSignal();
 
         // Log ready status with full info
-        int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
-        int maxAmmo = CurrentWeapon?.WeaponData?.MagazineSize ?? 0;
+        var readyAmmo = GetCurrentWeaponReadyAmmoDisplay();
         int currentHealth = (int)(HealthComponent?.CurrentHealth ?? 0);
         int maxHealth = (int)(HealthComponent?.MaxHealth ?? 0);
-        LogToFile($"[Player] Ready! Ammo: {currentAmmo}/{maxAmmo}, Grenades: {_currentGrenades}/{MaxGrenades}, Health: {currentHealth}/{maxHealth}");
+        LogToFile($"[Player] Ready! Ammo: {readyAmmo.Current}/{readyAmmo.Maximum}, Grenades: {_currentGrenades}/{MaxGrenades}, Health: {currentHealth}/{maxHealth}");
         LogToFile("[Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)");
+    }
+
+    private (int Current, int Maximum) GetCurrentWeaponReadyAmmoDisplay()
+    {
+        if (CurrentWeapon is Shotgun shotgun)
+            return (shotgun.ShellsInTube, shotgun.TubeMagazineCapacity);
+
+        return (CurrentWeapon?.CurrentAmmo ?? 0, CurrentWeapon?.WeaponData?.MagazineSize ?? 0);
     }
 
     /// <summary>
@@ -1494,6 +1507,15 @@ public partial class Player : BaseCharacter
 
         // Handle throw rotation animation (restore player rotation after throw)
         HandleThrowRotationAnimation((float)delta);
+
+        // Level-7 loudspeaker ending: player can move while the delayed ending is pending,
+        // but all weapon and item inputs are blocked until the end screen takes over.
+        HandleLoudspeakerVictoryDelay((float)delta);
+        if (IsLoudspeakerVictoryWeaponLocked())
+        {
+            _semiAutoShootBuffered = false;
+            return;
+        }
 
         // Handle sniper scope input (RMB) when SniperRifle is equipped
         // This takes priority over grenade input since the sniper uses RMB for scoping
@@ -1724,7 +1746,7 @@ public partial class Player : BaseCharacter
             {
                 // Step 1 (only R pressed, waiting for F): shooting resets the combo
                 GD.Print("[Player] Shooting during reload step 1 - resetting reload sequence");
-                ResetReloadSequence();
+                ResetReloadSequence(true);
                 Shoot();
             }
             else if (_reloadSequenceStep == 2)
@@ -2280,7 +2302,7 @@ public partial class Player : BaseCharacter
                 GD.Print("[Player] Wrong key! Reload sequence reset (expected R)");
                 // Restart animation from grab phase
                 StartReloadAnimPhase(ReloadAnimPhase.GrabMagazine, ReloadAnimGrabDuration);
-                ResetReloadSequence();
+                ResetReloadSequence(true);
             }
         }
     }
@@ -2432,8 +2454,9 @@ public partial class Player : BaseCharacter
     /// Resets the reload sequence to the beginning.
     /// Also cancels the weapon's reload sequence state.
     /// </summary>
-    private void ResetReloadSequence()
+    private void ResetReloadSequence(bool emitCanceled = false)
     {
+        bool wasReloading = _isReloadingSequence || _reloadSequenceStep > 0;
         _reloadSequenceStep = 0;
         _isReloadingSequence = false;
         _ammoAtReloadStart = 0;
@@ -2446,6 +2469,11 @@ public partial class Player : BaseCharacter
 
         // Cancel weapon's reload sequence state
         CurrentWeapon?.CancelReloadSequence();
+
+        if (emitCanceled && wasReloading)
+        {
+            EmitSignal(SignalName.ReloadSequenceCanceled);
+        }
     }
 
     /// <summary>
@@ -2614,6 +2642,10 @@ public partial class Player : BaseCharacter
         _lastCaliberData = caliberData;
         TakeDamage(damage);
     }
+
+    public void on_hit_with_bullet_info(Vector2 hitDirection, Godot.Resource? caliberData,
+        bool hasRicocheted, bool hasPenetrated, float damage, bool isFromPlayer, Node2D? attackerNode)
+        => on_hit_with_bullet_info(hitDirection, caliberData, hasRicocheted, hasPenetrated, damage, isFromPlayer);
 
     /// <inheritdoc/>
     public override void TakeDamage(float amount)
@@ -2971,7 +3003,16 @@ public partial class Player : BaseCharacter
             weapon.Name = weaponNodeName;
             AddChild(weapon);
             CurrentWeapon = weapon;
-            LogToFile($"[Player.Weapon] Equipped {weaponNodeName} (ammo: {weapon.CurrentAmmo}/{weapon.WeaponData?.MagazineSize ?? 0})");
+            // Issue #1774: WeaponData may be null here on first load (C# GlobalClass resource
+            // registration race). BaseWeapon._Ready() will have scheduled DeferredReadyInit().
+            // LabyrinthLevel._configure_labyrinth_weapon_ammo() handles ammo setup with explicit
+            // magazine sizes so it works regardless of WeaponData state.
+            if (weapon.WeaponData == null)
+            {
+                LogToFile($"[Player.Weapon] WARNING: {weaponNodeName} WeaponData is null after AddChild (Issue #1774 first-load race). DeferredReadyInit scheduled.");
+            }
+            var equippedAmmo = GetCurrentWeaponReadyAmmoDisplay();
+            LogToFile($"[Player.Weapon] Equipped {weaponNodeName} (ammo: {equippedAmmo.Current}/{equippedAmmo.Maximum})");
             // Re-detect arm pose so the player's arms match the new weapon immediately.
             _weaponPoseApplied = false;
             _weaponDetectFrameCount = 0;
@@ -3033,6 +3074,11 @@ public partial class Player : BaseCharacter
     public override void _UnhandledInput(InputEvent @event)
     {
         base._UnhandledInput(@event);
+
+        if (HandleLoudspeakerVictoryInput(@event))
+        {
+            return;
+        }
 
         var sniperRifle = CurrentWeapon as SniperRifle;
         if (sniperRifle == null || !sniperRifle.IsScopeActive)

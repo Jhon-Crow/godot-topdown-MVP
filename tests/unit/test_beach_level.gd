@@ -228,3 +228,50 @@ func test_camera_limit_right_should_match_wall_left_edge() -> void:
 	const EXPECTED_CAMERA_LIMIT_RIGHT: int = 2464
 	assert_eq(EXPECTED_CAMERA_LIMIT_RIGHT, 2464,
 		"Camera limit_right should be 2464 (WallRight left edge) — Issue #1550")
+
+
+func test_beach_small_cover_props_have_light_occluders() -> void:
+	var scene := load("res://scenes/levels/BeachLevel.tscn") as PackedScene
+	assert_not_null(scene, "BeachLevel scene should load")
+
+	var instance := scene.instantiate()
+	add_child_autofree(instance)
+
+	var cover_paths := [
+		"Environment/Cover/Rock2",
+		"Environment/Cover/Rock4",
+		"Environment/Cover/Rock6",
+		"Environment/Cover/Barrel1",
+		"Environment/Cover/Barrel2",
+		"Environment/Cover/Barrel3",
+	]
+
+	for cover_path in cover_paths:
+		var cover := instance.get_node_or_null(cover_path) as CollisionObject2D
+		assert_not_null(cover, "Beach cover should exist: %s" % cover_path)
+
+		var occluder := cover.get_node_or_null("LightOccluder2D") as LightOccluder2D
+		assert_not_null(occluder, "Beach small cover should cast shadows: %s" % cover_path)
+		assert_not_null(occluder.occluder, "Beach cover occluder polygon should be assigned: %s" % cover_path)
+
+
+func test_winter_forest_small_cover_props_have_light_occluders() -> void:
+	var scene := load("res://scenes/levels/WinterForestLevel.tscn") as PackedScene
+	assert_not_null(scene, "WinterForestLevel scene should load")
+
+	var instance := scene.instantiate()
+	add_child_autofree(instance)
+
+	var cover_paths := [
+		"Environment/Cover/Rock1",
+		"Environment/Cover/Stump1",
+		"Environment/Cover/FallenLog1",
+	]
+
+	for cover_path in cover_paths:
+		var cover := instance.get_node_or_null(cover_path) as CollisionObject2D
+		assert_not_null(cover, "Winter Forest cover should exist: %s" % cover_path)
+
+		var occluder := cover.get_node_or_null("LightOccluder2D") as LightOccluder2D
+		assert_not_null(occluder, "Winter Forest small cover should cast shadows: %s" % cover_path)
+		assert_not_null(occluder.occluder, "Winter Forest cover occluder polygon should be assigned: %s" % cover_path)

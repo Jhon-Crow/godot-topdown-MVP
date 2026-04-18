@@ -1,4 +1,6 @@
 extends Node2D
+
+const LEVEL_SCENE_PATH := "res://scenes/levels/ArenaLevel.tscn"
 ## Arena Mode level — endless wave survival.
 ##
 ## Features:
@@ -127,6 +129,8 @@ var _saturation_overlay: ColorRect = null
 
 ## Reference to the combo label.
 var _combo_label: Label = null
+## Reference to active combo tween (to cancel if needed).
+var _combo_tween: Tween = null
 
 ## Reference to the health label.
 var _health_label: Label = null
@@ -1065,7 +1069,7 @@ func _setup_ui() -> void:
 	# Ammo label (top-left).
 	_ammo_label = Label.new()
 	_ammo_label.name = "AmmoLabel"
-	_ammo_label.text = "Патроны: -"
+	_ammo_label.text = tr("HUD_AMMO") % [0, 0]
 	_ammo_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_ammo_label.offset_left = 10
 	_ammo_label.offset_top = 10
@@ -1090,7 +1094,7 @@ func _setup_ui() -> void:
 	# Difficulty label.
 	_difficulty_label = Label.new()
 	_difficulty_label.name = "DifficultyLabel"
-	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
 	_difficulty_label.offset_top = 80
@@ -1101,7 +1105,7 @@ func _setup_ui() -> void:
 	# Magazines label.
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
-	_magazines_label.text = "Магазины: -"
+	_magazines_label.text = LevelLocalization.get_magazines_text([])
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
 	_magazines_label.offset_top = 132
@@ -1110,17 +1114,22 @@ func _setup_ui() -> void:
 	ui.add_child(_magazines_label)
 
 	# Combo label (top-right).
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	var combo_size: int = gameplay_settings.get_combo_font_size() if gameplay_settings and gameplay_settings.has_method("get_combo_font_size") else 112
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
 	_combo_label.text = ""
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo_label.offset_left = -220
+	_combo_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_combo_label.offset_left = 10
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 90
-	_combo_label.offset_bottom = 130
-	_combo_label.add_theme_font_size_override("font_size", 26)
+	_combo_label.offset_bottom = _combo_label.offset_top + combo_size * 2 + 20
+	_combo_label.add_theme_font_size_override("font_size", combo_size)
+	_combo_label.add_theme_constant_override("line_spacing", 0)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
+	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
+	_combo_label.clip_contents = true
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 
@@ -1224,13 +1233,24 @@ func _on_combo_changed(combo: int, points: int) -> void:
 	if _combo_label == null:
 		return
 	if combo > 0:
-		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
+		_combo_label.text = "x%d COMBO\n+%d" % [combo, points]
 		_combo_label.visible = true
-		_combo_label.modulate = Color.WHITE
-		var tween := create_tween()
-		tween.tween_property(_combo_label, "modulate", Color(1.0, 0.8, 0.2, 1.0), 0.1)
+		# Combo pop animation: scale bounce + fade in (stays visible until combo resets)
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_label.scale = Vector2(0.7, 0.7)
+		_combo_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		_combo_tween = create_tween()
+		_combo_tween.set_parallel(true)
+		_combo_tween.tween_property(_combo_label, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_combo_tween.tween_property(_combo_label, "modulate:a", 1.0, 0.1)
+		_combo_tween.set_parallel(false)
 	else:
-		_combo_label.visible = false
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_tween = create_tween()
+		_combo_tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
+		_combo_tween.tween_callback(_combo_label.hide)
 
 
 ## Called when the player dies.
@@ -1256,7 +1276,7 @@ func _on_player_died() -> void:
 
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
-		_enemy_count_label.text = "Враги: %d" % _enemies_alive
+		_enemy_count_label.text = LevelLocalization.get_enemy_count_text(_enemies_alive)
 
 	# Update health label whenever we check enemies (player data may have changed).
 	_update_health_label()
@@ -1281,13 +1301,13 @@ func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
 	if _difficulty_label:
-		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_update_health_label()
 
 
 func _update_ammo_label_magazine(current_ammo: int, reserve_ammo: int) -> void:
 	if _ammo_label:
-		_ammo_label.text = "Патроны: %d / %d" % [current_ammo, reserve_ammo]
+		_ammo_label.text = LevelLocalization.get_ammo_text(current_ammo, reserve_ammo)
 		if current_ammo <= 5:
 			_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3, 1.0))
 		elif current_ammo <= 10:
@@ -1299,13 +1319,13 @@ func _update_ammo_label_magazine(current_ammo: int, reserve_ammo: int) -> void:
 func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
-	if magazine_ammo_counts.is_empty():
-		_magazines_label.text = "Магазины: -"
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
+	if LevelLocalization.weapon_hides_magazines(weapon):
+		_magazines_label.visible = false
 		return
-	var parts: Array[String] = []
-	for count in magazine_ammo_counts:
-		parts.append(str(count))
-	_magazines_label.text = "Магазины: [%s]" % " | ".join(parts)
+	_magazines_label.visible = true
+	var parts: Array[String] = LevelLocalization.get_magazine_display_parts(weapon, magazine_ammo_counts)
+	_magazines_label.text = LevelLocalization.get_magazines_text(parts)
 
 # ---------------------------------------------------------------------------
 # Level Completion (on player death)
@@ -1365,6 +1385,8 @@ func _show_victory_message() -> void:
 	var ui: Node = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
+	var level_label: Label = ui.get_node_or_null("LevelLabel")
+	LevelLocalization.apply_level_label(level_label, LEVEL_SCENE_PATH)
 	var msg := Label.new()
 	msg.name = "VictoryLabel"
 	msg.text = "Волна %d — Игра окончена!\nНажмите Q для рестарта." % _wave_number

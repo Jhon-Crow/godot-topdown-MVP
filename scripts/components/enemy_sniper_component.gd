@@ -423,7 +423,7 @@ func shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 		if not _check_target_alive(hit_node): continue
 		var hit_walls: int = hit_info["walls_penetrated"]
 		if hit_node.has_method("on_hit_with_bullet_info"):
-			hit_node.call("on_hit_with_bullet_info", direction, enemy.get("_caliber_data"), false, hit_walls > 0, damage)
+			hit_node.call("on_hit_with_bullet_info", direction, enemy.get("_caliber_data"), false, hit_walls > 0, damage, false, enemy)
 		elif hit_node.has_method("TakeDamage"): hit_node.call("TakeDamage", damage)
 		elif hit_node.has_method("take_damage"): hit_node.call("take_damage", damage)
 		elif hit_node.has_method("on_hit"): hit_node.call("on_hit")

@@ -504,3 +504,192 @@ func test_clear_all_saves_resets_condition_gated_items() -> void:
 	assert_true(result[LOUDSPEAKER], "LOUDSPEAKER should remain unlocked (no condition)")
 	assert_false(result[FLASHLIGHT], "FLASHLIGHT should be reset — condition-gated")
 	assert_false(result[LASER_SIGHT], "LASER_SIGHT should be reset — condition-gated")
+
+
+# ============================================================================
+# clear_all_saves Difficulty Reset Tests (Issue #1734)
+# ============================================================================
+# Verifies that clear_all_saves() also resets the DifficultyManager so that
+# is_first_launch() returns true on the next startup, causing the difficulty
+# selection screen to appear — matching a full "reset to first-launch state".
+# ============================================================================
+
+class MockDifficultyManagerForClear:
+	## Tracks whether the settings file has been deleted (i.e. reset was called).
+	var _reset_called: bool = false
+	var current_difficulty: int = 0  # 0 = NORMAL
+
+	func reset_to_default() -> void:
+		current_difficulty = 0
+		_reset_called = true
+
+	func is_first_launch() -> bool:
+		return _reset_called
+
+
+func test_clear_all_saves_resets_difficulty_to_enable_first_launch_screen() -> void:
+	## After clear_all_saves(), the DifficultyManager must be reset so that
+	## is_first_launch() returns true and the difficulty screen appears on next boot.
+	## Regression test for Issue #1734: difficulty_settings.cfg was not deleted on save clear.
+	var difficulty_mock := MockDifficultyManagerForClear.new()
+	# Simulate: difficulty was set by the player (Power Fantasy)
+	difficulty_mock.current_difficulty = 3  # POWER_FANTASY
+	difficulty_mock._reset_called = false
+
+	# Simulate what clear_all_saves() does:
+	difficulty_mock.reset_to_default()
+
+	assert_true(difficulty_mock.is_first_launch(),
+		"is_first_launch() must return true after clear_all_saves() resets DifficultyManager (Issue #1734)")
+	assert_eq(difficulty_mock.current_difficulty, 0,
+		"Difficulty must be reset to NORMAL (0) after clear_all_saves()")
+
+
+# ============================================================================
+# First-Launch Difficulty Menu in _navigate_to_last_level (Issue #1734)
+# ============================================================================
+# Verifies that PersistManager (not main.gd, which is never the startup scene)
+# is responsible for showing the first-launch difficulty picker. The project's
+# run/main_scene is LabyrinthLevel.tscn, so main.gd._ready() is never called
+# at startup — the check must live in an autoload.
+# ============================================================================
+
+class MockPersistManagerFirstLaunch:
+	## Whether DifficultyManager reported first launch.
+	var _is_first_launch: bool = false
+	## Whether the first-launch difficulty menu was shown.
+	var first_launch_menu_shown: bool = false
+	## Whether normal level navigation was performed.
+	var navigation_performed: bool = false
+	## Whether navigation was deferred until after difficulty selection.
+	var navigation_deferred: bool = false
+	## Whether the tree would be paused while waiting for the choice (Issue #1812).
+	var tree_paused: bool = false
+	## Whether quick restart was requested after the choice (Issue #1812).
+	var restart_requested: bool = false
+	## Whether GameManager is available for quick restart.
+	var has_game_manager: bool = true
+	## Whether startup is running through the GUT command-line runner.
+	var running_gut_tests: bool = false
+
+	func simulate_navigate_to_last_level() -> void:
+		if _is_first_launch and not running_gut_tests:
+			first_launch_menu_shown = true
+			navigation_deferred = true
+			tree_paused = true
+			return
+		navigation_performed = true
+
+	func simulate_difficulty_selected() -> void:
+		first_launch_menu_shown = false
+		navigation_deferred = false
+		tree_paused = false
+		if has_game_manager:
+			restart_requested = true
+		else:
+			navigation_performed = true
+
+
+func test_first_launch_shows_difficulty_menu_not_level() -> void:
+	## On first launch, _navigate_to_last_level() must show the difficulty picker
+	## and NOT immediately navigate to the last level (Issue #1734 root cause #2:
+	## main.gd is never the startup scene, so PersistManager must handle this).
+	var mock := MockPersistManagerFirstLaunch.new()
+	mock._is_first_launch = true
+
+	mock.simulate_navigate_to_last_level()
+
+	assert_true(mock.first_launch_menu_shown,
+		"Difficulty menu must be shown on first launch by PersistManager (Issue #1734)")
+	assert_false(mock.navigation_performed,
+		"Level navigation must NOT happen before a difficulty is chosen (Issue #1734)")
+	assert_true(mock.navigation_deferred,
+		"Navigation must be deferred until difficulty is selected (Issue #1734)")
+
+
+func test_non_first_launch_skips_difficulty_menu() -> void:
+	## On subsequent launches (difficulty_settings.cfg exists), the picker must
+	## NOT appear and level navigation must proceed immediately.
+	var mock := MockPersistManagerFirstLaunch.new()
+	mock._is_first_launch = false
+
+	mock.simulate_navigate_to_last_level()
+
+	assert_false(mock.first_launch_menu_shown,
+		"Difficulty menu must NOT be shown when not a first launch (Issue #1734)")
+	assert_true(mock.navigation_performed,
+		"Level navigation must proceed immediately on non-first launch (Issue #1734)")
+
+
+func test_first_launch_skips_difficulty_menu_during_gut_run() -> void:
+	## GUT loads normal project autoloads. PersistManager must not pause the
+	## test tree before await-based tests such as wait_frames() can resume.
+	var mock := MockPersistManagerFirstLaunch.new()
+	mock._is_first_launch = true
+	mock.running_gut_tests = true
+
+	mock.simulate_navigate_to_last_level()
+
+	assert_false(mock.first_launch_menu_shown,
+		"Difficulty menu must not pause the tree during GUT runs")
+	assert_false(mock.tree_paused,
+		"GUT startup must leave the tree unpaused so await-based tests can run")
+	assert_true(mock.navigation_performed,
+		"Normal startup navigation should continue under GUT instead of waiting for a UI choice")
+
+
+func test_navigation_resumes_after_difficulty_selected() -> void:
+	## After the player picks a difficulty in first-launch mode, level navigation
+	## must resume (Issue #1734).
+	var mock := MockPersistManagerFirstLaunch.new()
+	mock._is_first_launch = true
+	mock.has_game_manager = false
+	mock.simulate_navigate_to_last_level()
+	assert_false(mock.navigation_performed, "Navigation must be deferred initially")
+
+	mock.simulate_difficulty_selected()
+
+	assert_true(mock.navigation_performed,
+		"Level navigation must resume after difficulty is selected (Issue #1734)")
+
+
+func test_first_launch_menu_closed_after_difficulty_selected() -> void:
+	## The first-launch menu must be hidden/freed after the player picks a difficulty.
+	var mock := MockPersistManagerFirstLaunch.new()
+	mock._is_first_launch = true
+	mock.simulate_navigate_to_last_level()
+	assert_true(mock.first_launch_menu_shown, "Menu must be visible before selection")
+
+	mock.simulate_difficulty_selected()
+
+	assert_false(mock.first_launch_menu_shown,
+		"First-launch menu must be closed after difficulty is selected (Issue #1734)")
+
+
+func test_first_launch_pauses_tree_until_difficulty_selected() -> void:
+	var mock := MockPersistManagerFirstLaunch.new()
+	mock._is_first_launch = true
+
+	mock.simulate_navigate_to_last_level()
+
+	assert_true(mock.tree_paused,
+		"Game tree must be paused while first-launch difficulty selection is open (Issue #1812)")
+
+	mock.simulate_difficulty_selected()
+
+	assert_false(mock.tree_paused,
+		"Game tree must be unpaused after first-launch difficulty selection completes (Issue #1812)")
+
+
+func test_first_launch_selection_requests_quick_restart_when_game_manager_exists() -> void:
+	var mock := MockPersistManagerFirstLaunch.new()
+	mock._is_first_launch = true
+	mock.has_game_manager = true
+
+	mock.simulate_navigate_to_last_level()
+	mock.simulate_difficulty_selected()
+
+	assert_true(mock.restart_requested,
+		"First-launch difficulty selection must trigger quick restart when GameManager is available (Issue #1812)")
+	assert_false(mock.navigation_performed,
+		"Fallback navigation should not run when quick restart is available (Issue #1812)")

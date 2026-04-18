@@ -121,7 +121,7 @@ const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254
 @onready var _hit_collision_shape: CollisionShape2D = $HitArea/HitCollisionShape  ## Collision on death
 @onready var _casing_pusher: Area2D = $CasingPusher  ## Casing pusher Area2D (Issue #438)
 var _original_hit_area_layer: int = 0  ## Original collision layer (restore on respawn)
-var _original_hit_area_mask: int = 0
+var _original_hit_area_mask: int = 0; var _original_body_collision_layer: int = 2  ## Original CharacterBody2D collision_layer (#1746)
 var _overlapping_casings: Array[RigidBody2D] = []  ## Casings in CasingPusher (Issue #438)
 var _walk_anim_time: float = 0.0  ## Walking animation accumulator
 var _is_walking: bool = false  ## Currently walking (for anim)
@@ -248,6 +248,7 @@ const PURSUIT_APPROACH_MAX_TIME: float = 3.0  ## Max approach time (sec)
 const PURSUING_MIN_DURATION_BEFORE_COMBAT: float = 0.3  ## Min before COMBAT
 const PURSUIT_MIN_PROGRESS_FRACTION: float = 0.10  ## Min progress fraction
 const PURSUIT_SAME_OBSTACLE_PENALTY: float = 4.0  ## Penalty for same cover
+const PURSUIT_FLANK_PRIORITY_DISTANCE: float = 900.0  ## Visible/unhittable targets inside one screen should flank before more pursuit cover.
 const PURSUIT_PATH_DESIRED_DISTANCE: float = PursuitComponent.PURSUIT_PATH_DESIRED_DISTANCE  ## Issue #1289: enlarged nav step length while pursuing (from PursuitComponent)
 var _nav_default_path_desired_distance: float = 40.0  ## Issue #1289: saved default path_desired_distance
 var _flank_cover_wait_timer: float = 0.0  ## Wait at cover timer (Flanking State)
@@ -258,7 +259,11 @@ var _flank_side: float = 1.0  ## Flank side (1=right, -1=left)
 var _flank_side_initialized: bool = false  ## Flank side set
 var _flank_state_timer: float = 0.0  ## Total flanking time
 const FLANK_STATE_MAX_TIME: float = 5.0  ## Max flanking time (sec)
+var _flank_state_max_time: float = FLANK_STATE_MAX_TIME  ## Per-attempt timeout scaled by nav distance
+const FLANK_MIN_COMMIT_TIME: float = 0.6  ## Minimum visible time before FLANKING can collapse to COMBAT.
+const FLANK_MIN_COMMIT_DISTANCE: float = 80.0  ## Minimum move before early FLANKING->COMBAT exit.
 var _flank_last_position: Vector2 = Vector2.ZERO  ## Last pos for progress
+var _flank_start_position: Vector2 = Vector2.ZERO  ## Entry pos for commit checks
 var _flank_stuck_timer: float = 0.0  ## Stuck check timer
 const FLANK_STUCK_MAX_TIME: float = 2.0  ## Max time without progress
 const FLANK_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
@@ -382,6 +387,7 @@ var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenad
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
+var _gunslinger_glow: GunslingerGlowComponent = null  ## Issue #1753: Gunslinger glow component, manages light and tint while cloaked.
 var _gas_mask_grenade: GasMaskGrenadeComponent = null; var _drone_operator: DroneOperatorComponent = null  ## Issues #1353, #1397
 var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
 var _tactical_group: TacticalGroupComponent = null  ## Issue #1287: Tactical group movement — enemies within 500 px spread around the player.
@@ -426,6 +432,7 @@ func _ready() -> void:
 	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
+	_original_body_collision_layer = collision_layer  # Issue #1746
 	if _hit_area:  # Store original collision layers for respawn
 		_original_hit_area_layer = _hit_area.collision_layer
 		_original_hit_area_mask = _hit_area.collision_mask
@@ -809,6 +816,8 @@ func _physics_process(delta: float) -> void:
 	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
 	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if _perf_settings and not _perf_settings.is_ai_enabled(): return
+	if _pacifist and _pacifist.is_pacifist and _drone_operator and _drone_operator.get_phase() != DroneOperatorComponent.Phase.ACTIVE:
+		_drone_operator.update(delta); velocity = Vector2.ZERO; move_and_slide(); return  # Issue #1868: pacifist operators must not deploy/control drones or seek combat cover
 	if _drone_operator and _drone_operator.get_phase() != DroneOperatorComponent.Phase.ACTIVE:  # Issue #1397: drone operator phase control
 		_drone_operator.update(delta)
 		if _drone_operator.is_controlling_drone(): velocity = Vector2.ZERO; move_and_slide(); return  # CONTROLLING: fully frozen
@@ -1298,7 +1307,8 @@ func _process_ai_state(delta: float) -> void:
 			return
 
 	# SECOND PRIORITY: pursue vulnerable player who is not close (Issue #1305: respect combat toggle)
-	if _combat_allowed and player_is_vulnerable and _can_see_player and _player and not player_close:
+	# Issue #959: pacifists skip (same guard as FIRST PRIORITY above) — Issue #1744
+	if _combat_allowed and player_is_vulnerable and not is_confused and not (_pacifist and _pacifist.is_pacifist) and _can_see_player and _player and not player_close:
 		var distance_to_player := global_position.distance_to(_player.global_position)
 		var pursue_key := "last_pursue_vuln_frame"
 		var current_frame := Engine.get_physics_frames()
@@ -1317,7 +1327,9 @@ func _process_ai_state(delta: float) -> void:
 		if _has_valid_cover and _teleport_component.try_teleport(_cover_position): _transition_to_in_cover(); return
 	if _teleport_component and _teleport_component.is_ready() and not _can_see_player and _current_state == AIState.FLANKING: _teleport_component.try_teleport(_flank_target)  # #752: flank-teleport
 	# GRENADE THROW PRIORITY (Issue #363, #959, #1305): Non-pacifists check grenade triggers; respect combat toggle.
-	if _combat_allowed and _goap_world_state.get("ready_to_throw_grenade", false) and not (_pacifist and _pacifist.is_pacifist):
+	# Issue #1805: Grenadiers in COMBAT state should shoot their rifle, not only throw grenades.
+	# Grenade throws still happen during PURSUING (passage throws) and other non-COMBAT states.
+	if _combat_allowed and _goap_world_state.get("ready_to_throw_grenade", false) and not (_pacifist and _pacifist.is_pacifist) and not (is_grenadier and _current_state == AIState.COMBAT):
 		if try_throw_grenade():
 			return
 
@@ -1755,7 +1767,7 @@ func _process_in_cover_state(delta: float) -> void:
 func _process_flanking_state(delta: float) -> void:
 	_flank_state_timer += delta
 
-	if _flank_state_timer >= FLANK_STATE_MAX_TIME:
+	if _flank_state_timer >= _flank_state_max_time:
 		_log_to_file("FLANKING timeout (%.1fs), target=%s, pos=%s" % [_flank_state_timer, _flank_target, global_position])
 		_flank_side_initialized = false
 		if _can_see_player or _can_see_companion: _transition_to_combat()  # #934: incl. companion
@@ -1787,7 +1799,8 @@ func _process_flanking_state(delta: float) -> void:
 		_flank_side_initialized = false; _transition_to_retreating(); return
 
 	# Only transition to combat if we can ACTUALLY HIT the target (#934: incl. companion)
-	if (_can_see_player or _can_see_companion) and _can_hit_target_from_current_position():
+	var flank_committed := _flank_state_timer >= FLANK_MIN_COMMIT_TIME or global_position.distance_to(_flank_start_position) >= FLANK_MIN_COMMIT_DISTANCE
+	if (_can_see_player or _can_see_companion) and _can_hit_target_from_current_position() and flank_committed:
 		_flank_side_initialized = false
 		_transition_to_combat()
 		return
@@ -1799,8 +1812,6 @@ func _process_flanking_state(delta: float) -> void:
 		else:
 			_transition_to_idle()
 		return
-
-	_calculate_flank_position()  # Recalculate (player may have moved)
 
 	if global_position.distance_to(_flank_target) < 30.0:
 		_flank_side_initialized = false
@@ -2043,6 +2054,11 @@ func _process_pursuing_state(delta: float) -> void:
 			_transition_to_combat()
 			return
 
+	if _should_prioritize_flanking_target():
+		_log_to_file("PURSUING: close/visible unhittable target, attempting FLANKING before pursuit cover")
+		if _transition_to_flanking() or _current_state != AIState.PURSUING:
+			return
+
 	if _suppressive_fire: _suppressive_fire.try_suppress_pursuing(_can_see_player, _last_known_player_position, _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown)  # Issue #910
 	# VULNERABILITY SOUND PURSUIT: pursue reload/empty click sound position
 	if _pursuing_vulnerability_sound and _last_known_player_position != Vector2.ZERO:
@@ -2149,12 +2165,16 @@ func _process_pursuing_state(delta: float) -> void:
 					_log_debug("Can see target but can't hit, starting approach phase")
 					_pursuit_approaching = true
 					_pursuit_approach_timer = 0.0
+					if _can_attempt_flanking() and _player:
+						_log_debug("Visible target still unhittable from pursuit cover, attempting flanking maneuver")
+						if _transition_to_flanking():
+							return
 					return
 				# Try flanking if player not visible
 				if _can_attempt_flanking() and _player:
 					_log_debug("Attempting flanking maneuver")
-					_transition_to_flanking()
-					return
+					if _transition_to_flanking():
+						return
 				# Last resort: move directly toward player
 				_log_debug("No cover options, transitioning to COMBAT")
 				_transition_to_combat()
@@ -2225,6 +2245,25 @@ func _process_pursuing_state(delta: float) -> void:
 			_transition_to_flanking()
 		else:
 			_transition_to_combat()
+
+func _should_prioritize_flanking_target() -> bool:
+	if not _can_attempt_flanking():
+		return false
+	var target := _current_target if _current_target != null else _player
+	var target_visible := target != null and is_instance_valid(target) and (
+		(target == _player and _can_see_player) or (target == _companion and _can_see_companion)
+	)
+	var target_pos := _get_target_position()
+	if target_visible:
+		target_pos = target.global_position
+	if target_pos == global_position:
+		return false
+	var priority_distance := PURSUIT_FLANK_PRIORITY_DISTANCE if target_visible else CLOSE_COMBAT_DISTANCE
+	if global_position.distance_to(target_pos) > priority_distance:
+		return false
+	if _can_hit_target_from_current_position():
+		return false
+	return true
 
 ## Process ASSAULT state - disabled per issue #169. Immediately transitions to COMBAT.
 func _process_assault_state(_delta: float) -> void:
@@ -2310,6 +2349,7 @@ func _process_searching_state(delta: float) -> void:
 		_transition_to_idle()
 		return
 	if _can_see_player:
+		if _pacifist and _pacifist.is_pacifist: _log_to_file("SEARCHING: pacifist ignores player (Issue #1744)"); return  # #1744
 		_log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
 		_transition_to_combat()
 		return
@@ -2665,7 +2705,7 @@ func _transition_to_flanking() -> bool:
 
 	# Validate that the flank target is reachable via navigation
 	if not _is_flank_target_reachable():
-		var msg := "Flank target unreachable via navigation, skipping flanking"
+		var msg := "Flank target unreachable via navigation, skipping flanking: target=%s pos=%s" % [_flank_target, global_position]
 		_log_debug(msg)
 		_log_to_file(msg)
 		_flank_fail_count += 1
@@ -2679,8 +2719,10 @@ func _transition_to_flanking() -> bool:
 	_has_valid_cover = false
 	# Initialize timeout and progress tracking for stuck detection (Issue #367)
 	_flank_state_timer = 0.0
+	_flank_state_max_time = EnemyFlankNavigationHelper.calculate_flank_timeout(self, _nav_agent, _flank_target, combat_move_speed, FLANK_STATE_MAX_TIME)
 	_flank_stuck_timer = 0.0
 	_flank_last_position = global_position
+	_flank_start_position = global_position
 	# Reset global stuck detection
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
@@ -2693,30 +2735,7 @@ func _transition_to_flanking() -> bool:
 
 ## Check if the current flank target is reachable via navigation mesh.
 func _is_flank_target_reachable() -> bool:
-	if _nav_agent == null:
-		return true  # Assume reachable if no nav agent
-
-	# Set target and check if path exists
-	_nav_agent.target_position = _flank_target
-
-	# If navigation says we're already finished, the target might be unreachable
-	# or we're already there. Check distance to determine.
-	if _nav_agent.is_navigation_finished():
-		var distance: float = global_position.distance_to(_flank_target)
-		# If we're far from target but navigation is "finished", it's unreachable
-		if distance > 50.0:
-			return false
-
-	# Check if the path distance is reasonable (not excessively long)
-	var path_distance: float = _nav_agent.distance_to_target()
-	var straight_distance: float = global_position.distance_to(_flank_target)
-
-	# If path distance is more than 3x the straight line distance, consider it blocked
-	if path_distance > straight_distance * 3.0 and path_distance > 500.0:
-		_log_debug("Flank path too long: %.0f vs straight %.0f" % [path_distance, straight_distance])
-		return false
-
-	return true
+	return EnemyFlankNavigationHelper.is_navigation_target_reasonable(self, _nav_agent, _flank_target)
 
 func _transition_to_suppressed() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_suppressed_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -2837,6 +2856,7 @@ func _transition_to_pacifist(emit_signal: bool = true) -> void:
 	var was := _pacifist.is_pacifist if _pacifist else false
 	_current_state = AIState.PACIFIST; _has_left_idle = true; velocity = Vector2.ZERO
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
+	if _aggression: _aggression.set_aggressive(false)
 	if _pacifist: _pacifist.start_pacifism()
 	_log_to_file("Transitioned to PACIFIST"); if emit_signal and not was: became_pacifist.emit()
 ## Make this enemy a pacifist via loudspeaker. Returns true if successful.
@@ -3308,73 +3328,12 @@ func _get_far_side_cover(player_pos: Vector2, collision_point: Vector2, directio
 ## Calculate flank position based on player location and stored _flank_side.
 func _calculate_flank_position() -> void:
 	if _player == null: return
-	var _fp := _player.global_position + (global_position - _player.global_position).normalized().rotated(flank_angle * _flank_side) * flank_distance
-	# Issue #1107: Snap to nearest valid navmesh point — prevents flanking to wall corners
-	if _nav_agent: _flank_target = NavigationServer2D.map_get_closest_point(_nav_agent.get_navigation_map(), _fp)
-	else: _flank_target = _fp
+	_flank_target = EnemyFlankNavigationHelper.calculate_flank_target(self, _player, _nav_agent, flank_angle, _flank_side, flank_distance)
 	_log_debug("Flank target: %s (side: %s)" % [_flank_target, "right" if _flank_side > 0 else "left"])
 
 ## Choose best flank side (1.0=right, -1.0=left) — prefers LoS to player, avoids walls (#367).
 func _choose_best_flank_side() -> float:
-	if _player == null:
-		return 1.0 if randf() > 0.5 else -1.0
-
-	var player_pos := _player.global_position
-	var player_to_enemy := (global_position - player_pos).normalized()
-
-	# Calculate potential flank positions for both sides
-	var right_flank_dir := player_to_enemy.rotated(flank_angle * 1.0)
-	var left_flank_dir := player_to_enemy.rotated(flank_angle * -1.0)
-
-	var right_flank_pos := player_pos + right_flank_dir * flank_distance
-	var left_flank_pos := player_pos + left_flank_dir * flank_distance
-
-	# Check if paths are clear for both sides (from enemy to flank position)
-	var right_path_clear := _has_clear_path_to(right_flank_pos)
-	var left_path_clear := _has_clear_path_to(left_flank_pos)
-
-	# Issue #367: Check LOS to player and combine with path checks
-	var right_valid := right_path_clear and _flank_position_has_los_to_player(right_flank_pos, player_pos)
-	var left_valid := left_path_clear and _flank_position_has_los_to_player(left_flank_pos, player_pos)
-
-	if right_valid and not left_valid:
-		return 1.0
-	elif left_valid and not right_valid:
-		return -1.0
-
-	# [Issue #574] When both sides are valid, prefer the side NOT lit by the flashlight
-	if right_valid and left_valid and _flashlight_detection and _player:
-		var right_lit := _flashlight_detection.is_position_lit(right_flank_pos, _player, _raycast)
-		var left_lit := _flashlight_detection.is_position_lit(left_flank_pos, _player, _raycast)
-		if right_lit and not left_lit:
-			_log_to_file("[#574] Choosing left flank — right side lit by flashlight")
-			return -1.0
-		elif left_lit and not right_lit:
-			_log_to_file("[#574] Choosing right flank — left side lit by flashlight")
-			return 1.0
-
-	# Issue #367: If neither valid, try reduced distance (50%)
-	if not right_valid and not left_valid:
-		var rd := flank_distance * 0.5
-		var rr := player_pos + right_flank_dir * rd
-		var lr := player_pos + left_flank_dir * rd
-		var rrv := _has_clear_path_to(rr) and _flank_position_has_los_to_player(rr, player_pos)
-		var lrv := _has_clear_path_to(lr) and _flank_position_has_los_to_player(lr, player_pos)
-		if rrv and not lrv:
-			return 1.0
-		elif lrv and not rrv:
-			return -1.0
-		if not rrv and not lrv:
-			_log_to_file("Warning: No valid flank position (both sides behind walls)")
-
-	# Choose closer side
-	return 1.0 if global_position.distance_squared_to(right_flank_pos) < global_position.distance_squared_to(left_flank_pos) else -1.0
-
-## Check if flank position has LOS to player (Issue #367).
-func _flank_position_has_los_to_player(flank_pos: Vector2, player_pos: Vector2) -> bool:
-	var query := PhysicsRayQueryParameters2D.create(flank_pos, player_pos)
-	query.collision_mask = 0b100  # Walls only
-	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
+	return EnemyFlankNavigationHelper.choose_best_flank_side(self, _player, _nav_agent, flank_angle, flank_distance, _flashlight_detection, _raycast)
 
 ## Check if there's a clear path (no obstacles) to the target position.
 func _has_clear_path_to(target: Vector2) -> bool:
@@ -3398,8 +3357,6 @@ func _has_clear_path_to(target: Vector2) -> bool:
 
 ## Find cover position closer to the flank target for cover-to-cover movement.
 func _find_flank_cover_toward_target() -> void:
-	var wp_f := _combat_waypoint(_flank_target)  # Issue #1227
-	if wp_f != Vector2.ZERO: _flank_next_cover = wp_f; _has_flank_cover = true; return
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
 	var found_valid_cover: bool = false
@@ -3712,14 +3669,18 @@ func reset_memory() -> void:
 		# Enemies that never left IDLE (e.g. received intel via ally-share only) must not enter
 		# SEARCHING on teleport — they have never personally seen or heard the player.
 		if _has_left_idle:
-			# Set LOW confidence (0.35) - puts enemy in search mode at old position
-			if _memory != null:
-				_memory.suspected_position = old_position
-				_memory.confidence = 0.35
-				_memory.last_updated = Time.get_ticks_msec()
-			_last_known_player_position = old_position
-			_log_to_file("Search mode: %s -> SEARCHING at %s" % [AIState.keys()[_current_state], old_position])
-			_transition_to_searching(old_position)
+			if _pacifist and _pacifist.is_pacifist:  # #1744: stay pacifist, don't enter SEARCHING
+				_log_to_file("Memory reset: %s stays PACIFIST (Issue #1744)" % AIState.keys()[_current_state])
+				if _memory != null: _memory.reset(); _last_known_player_position = Vector2.ZERO
+			else:
+				# Set LOW confidence (0.35) - puts enemy in search mode at old position
+				if _memory != null:
+					_memory.suspected_position = old_position
+					_memory.confidence = 0.35
+					_memory.last_updated = Time.get_ticks_msec()
+				_last_known_player_position = old_position
+				_log_to_file("Search mode: %s -> SEARCHING at %s" % [AIState.keys()[_current_state], old_position])
+				_transition_to_searching(old_position)
 		else:
 			if _memory != null:
 				_memory.reset()
@@ -3872,6 +3833,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 		_revolver_cocking = false
 		if not is_inside_tree() or not is_instance_valid(self) or not _is_alive: return  # Issue #1334 Round 11: guard freed node after await
 	if _invisibility: _invisibility.reveal()  # Issue #1121: briefly reveal cloaked enemy when shooting
+	if _gunslinger_glow: _gunslinger_glow.show_glow()  # Issue #1753: show glow while visible
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
 	var weapon_forward := _get_weapon_forward_direction()
@@ -3920,7 +3882,10 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 	var current_scene := get_tree().current_scene
 	if current_scene == null: return
 	var sid := get_instance_id(); var pm: Node = get_node_or_null("/root/ProjectilePoolManager")
-	if pm and pm.has_method("get_bullet"):
+	var can_use_generic_bullet_pool := false
+	if bullet_scene and bullet_scene.resource_path == "res://scenes/projectiles/Bullet.tscn":
+		can_use_generic_bullet_pool = true
+	if can_use_generic_bullet_pool and pm and pm.has_method("get_bullet"):
 		var p = pm.get_bullet()
 		if p and p.has_method("pool_activate"): p.pool_activate(pos, dir, sid, null); if p.get("shooter_position") != null: p.shooter_position = pos; return
 	var p := bullet_scene.instantiate(); p.global_position = pos; current_scene.add_child(p)
@@ -4185,7 +4150,7 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	on_hit_with_bullet_info(hit_direction, caliber_data, false, false, 1.0)
 
 ## Called when enemy is hit with full bullet information. @param damage: Damage amount (default 1.0). @param is_from_player: Whether the hit came from the player (Issue #1196).
-func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0, is_from_player: bool = false) -> void:
+func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0, is_from_player: bool = false, attacker_node: Node2D = null) -> void:
 	if not _is_alive:
 		return
 	if (_force_field_component and _force_field_component.is_active()): _log_to_file("Hit blocked by force field"); return  # Issue #1034 (drone operator dash no longer grants invincibility — #1532 fix #9)
@@ -4231,7 +4196,8 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		_update_health_visual()  # [Issue #919] check_retaliation removed: aggression must not propagate to hit enemies
 		# Issue #959: Pacifist stays in PACIFIST state when hit; only attacks the attacker temporarily.
 		if _pacifist and _pacifist.is_pacifist and _current_state == AIState.PACIFIST:
-			_pacifist.start_retaliation(_player); var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
+			var retaliation_target: Node2D = attacker_node if attacker_node != null and attacker_node != self and is_instance_valid(attacker_node) else (_player if is_from_player else null)
+			_pacifist.start_retaliation(retaliation_target); var est_pos := retaliation_target.global_position if retaliation_target != null else global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
 			if _memory: _memory.update_position(est_pos, 0.8); _memory_reset_confusion_timer = 0.0
 			_log_to_file("[#959] Pacifist hit - retaliates in PACIFIST state (attacker only)"); return
 		# Issue #910: When hit in non-combat state, transition to COMBAT and fire back
@@ -4284,25 +4250,13 @@ func _set_all_sprites_modulate(color: Color) -> void:
 
 
 ## Issue #1727: Apply bright warm tint and red PointLight2D glow in Gunslinger difficulty mode.
-## Issue #1732: Glow uses circular ImageTexture (like room lights), 2x energy/scale, round shape.
+## Issues #1732, #1753: Logic extracted to GunslingerGlowComponent (scripts/components/).
 func _apply_gunslinger_enemy_glow() -> void:
 	var dm: Node = get_node_or_null("/root/DifficultyManager")
 	if dm == null or not dm.has_method("should_apply_gunslinger_enemy_glow") or not dm.should_apply_gunslinger_enemy_glow():
 		return
-	var bc := Color(1.3, 1.15, 1.1, 1.0)  # bright warm tint
-	if _body_sprite: _body_sprite.modulate = bc
-	if _head_sprite: _head_sprite.modulate = bc
-	if _left_arm_sprite: _left_arm_sprite.modulate = bc
-	if _right_arm_sprite: _right_arm_sprite.modulate = bc
-	var gl := PointLight2D.new(); gl.name = "GunslingerEnemyGlow"; gl.color = Color(1.0, 0.1, 0.05, 1.0); gl.energy = 2.0; gl.texture_scale = 1.6; gl.shadow_enabled = false; gl.blend_mode = Light2D.BLEND_MODE_ADD
-	# Issue #1732: Build circular ImageTexture (pixel-distance falloff, like room lights) so glow is round, not square.
-	var _sz := 256; var _c := Vector2(_sz * 0.5, _sz * 0.5); var _r := _sz * 0.5; var _img := Image.create(_sz, _sz, false, Image.FORMAT_RGBA8)
-	for _y in range(_sz):
-		for _x in range(_sz):
-			var _b := pow(1.0 - clampf(Vector2(_x, _y).distance_to(_c) / _r, 0.0, 1.0), 2.0)
-			_img.set_pixel(_x, _y, Color(_b, _b, _b, 1.0))
-	gl.texture = ImageTexture.create_from_image(_img)
-	add_child(gl)
+	_gunslinger_glow = GunslingerGlowComponent.new(); _gunslinger_glow.name = "GunslingerGlowComponent"; add_child(_gunslinger_glow)
+	_gunslinger_glow.initialize(self, _body_sprite, _head_sprite, _left_arm_sprite, _right_arm_sprite, _invisibility)
 	_log_to_file("[Gunslinger] Enemy glow applied")
 
 ## Returns the current health as a percentage (0.0 to 1.0).
@@ -4475,6 +4429,7 @@ func _reset() -> void:
 	_flank_state_timer = 0.0
 	_flank_stuck_timer = 0.0
 	_flank_last_position = Vector2.ZERO
+	_flank_start_position = Vector2.ZERO
 	_flank_fail_count = 0
 	_flank_cooldown_timer = 0.0
 	_last_known_player_position = Vector2.ZERO
@@ -4491,15 +4446,13 @@ func _reset() -> void:
 	_enable_hit_area_collision()
 	_register_sound_listener()
 
-## Disables hit area collision so bullets pass through dead enemies (multiple approaches due to Godot Area2D limits).
+## Disables hit area collision so bullets/grenades pass through dead enemies (#1746: also clears CharacterBody2D collision_layer).
 func _disable_hit_area_collision() -> void:
-	if _hit_collision_shape:
-		_hit_collision_shape.set_deferred("disabled", true)
+	if _hit_collision_shape: _hit_collision_shape.set_deferred("disabled", true)
 	if _hit_area:
-		_hit_area.set_deferred("collision_layer", 0)
-		_hit_area.set_deferred("collision_mask", 0)
-		_hit_area.set_deferred("monitorable", false)
-		_hit_area.set_deferred("monitoring", false)
+		_hit_area.set_deferred("collision_layer", 0); _hit_area.set_deferred("collision_mask", 0)
+		_hit_area.set_deferred("monitorable", false); _hit_area.set_deferred("monitoring", false)
+	set_deferred("collision_layer", 0)  # Issue #1746: grenades pass through corpse
 
 ## Re-enables hit area collision after respawning (restores all collision properties).
 func _enable_hit_area_collision() -> void:
@@ -4507,6 +4460,7 @@ func _enable_hit_area_collision() -> void:
 	if _hit_area:
 		_hit_area.collision_layer = _original_hit_area_layer; _hit_area.collision_mask = _original_hit_area_mask
 		_hit_area.monitorable = true; _hit_area.monitoring = true
+	collision_layer = _original_body_collision_layer  # Issue #1746
 
 ## Returns whether this enemy is currently alive (used by bullets to check pass-through).
 func is_alive() -> bool:
@@ -4912,6 +4866,7 @@ func try_throw_grenade() -> bool:
 	return _execute_grenade_throw(tgt)
 func _execute_grenade_throw(tgt: Vector2) -> bool:  ## Issue #824: grenade throw callback.
 	_is_pre_attack_flashing = false; if _invisibility: _invisibility.reveal()  # Issue #1121: reveal on grenade throw
+	if _gunslinger_glow: _gunslinger_glow.show_glow()  # Issue #1753: show glow while visible
 	var result := _grenade_component.try_throw(tgt, _is_alive, _is_stunned, _is_blinded)
 	if result: grenade_thrown.emit(null, tgt)
 	return result

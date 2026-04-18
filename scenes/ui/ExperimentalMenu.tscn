@@ -713,6 +713,33 @@ autowrap_mode = 2
 [node name="HSeparatorEnemiesTable" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="UnlockToastContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="UnlockToastLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockToastContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Unlock Toast"
+autowrap_mode = 2
+
+[node name="UnlockToastItemOption" type="OptionButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockToastContainer"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+
+[node name="ShowUnlockToastButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockToastContainer"]
+layout_mode = 2
+text = "Show"
+
+[node name="UnlockToastDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Shows the unlock toast for the selected item text:
+Drilling Bullets, Armored Skin, Fine Motor Skills, or Laser Sight."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparatorUnlockToast" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="EnemySpawnerLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 text = "Enemy Spawner"

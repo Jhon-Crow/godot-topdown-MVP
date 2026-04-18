@@ -87,17 +87,33 @@ class MockTutorialLevel:
 	var _has_revolver: bool = false
 	var _has_shotgun: bool = false
 	var _has_makarov_pm: bool = false
+	var _has_silenced_pistol: bool = false
 	var _has_ak_gl: bool = false  ## Fix 3rd#10: AK GL flag
 	var _sniper_bolt_step: int = 0  ## Fix 3rd#3: tracks current sniper bolt step
 	var _sniper_bolt_cycled: bool = false
 	var _scope_used: bool = false
 	## Simulated grenade count for fix 3rd#9
 	var _grenade_count: int = 3
+	var _grenade_hint_step: int = 0
+	var _grenade_g_was_held: bool = false
+	var _grenade_hint_drag_completed: bool = false
+	var _grenade_hint_rmb_held_after_release: bool = false
+	var _grenade_hint_rmb_was_pressed: bool = false
+	var _grenade_hint_drag_start_x: float = 0.0
 	## Simulated AK GL ammo for fix 3rd#10
 	var _ak_gl_has_round: bool = true
 	## Simulated shotgun capacity for fix 3rd#7
 	var _shotgun_capacity: int = 8
 	var _shotgun_current_ammo: int = 0
+	var _revolver_can_insert_cartridge: bool = false
+	var _revolver_cartridges_loaded_this_reload: int = 0
+	var _revolver_current_ammo: int = 0
+	var _revolver_current_chamber_index: int = -1
+	var _revolver_last_inserted_count: int = 0
+	var _revolver_last_inserted_chamber_index: int = -1
+	var _revolver_minimum_inserts_required: int = 2
+	var _revolver_scroll_completed_since_last_insert: bool = false
+	var _revolver_reload_loaded_cartridge: bool = false
 
 	## Issue #945: Shot tracking for delayed reload hint reveal
 	var _shots_fired: int = 0
@@ -109,15 +125,54 @@ class MockTutorialLevel:
 	var _active_hints: Dictionary = {}
 	## Active hint colors dictionary: hint_key -> Color (Issue #945)
 	var _active_hint_colors: Dictionary = {}
+	var _hint_strike_progress: Dictionary = {}
+	var _locale: String = "ru"
+
+	const GRENADE_HINT_TRANSLATIONS := {
+		"HINT_GRENADE_HOLD_G_RMB": {
+			"en": "hold G+RMB",
+			"ru": "удерживать G+ПКМ",
+		},
+		"HINT_GRENADE_DRAG_RIGHT": {
+			"en": "flick mouse right",
+			"ru": "дёрнуть мышкой вправо",
+		},
+		"HINT_GRENADE_RELEASE_RMB": {
+			"en": "release RMB",
+			"ru": "отпустить ПКМ",
+		},
+		"HINT_GRENADE_HOLD_RMB": {
+			"en": "hold RMB",
+			"ru": "зажать ПКМ",
+		},
+		"HINT_GRENADE_RELEASE_G": {
+			"en": "release G",
+			"ru": "отпустить G",
+		},
+		"HINT_GRENADE_AIM_RELEASE_RMB": {
+			"en": "aim and release RMB",
+			"ru": "прицелиться и отпустить ПКМ",
+		},
+	}
 
 	func get_current_step() -> TutorialStep:
 		return _current_step
+
+	func set_locale(locale: String) -> void:
+		_locale = locale
+
+	func _mock_tr(key: String) -> String:
+		var values: Dictionary = GRENADE_HINT_TRANSLATIONS.get(key, {})
+		return values.get(_locale, key)
 
 	func get_active_hints() -> Dictionary:
 		return _active_hints.duplicate()
 
 	func get_hint_color(hint_key: String) -> Color:
 		return _active_hint_colors.get(hint_key, Color.WHITE)
+
+	func get_hint_strike_progress(hint_key: String) -> float:
+		return _hint_strike_progress.get(hint_key, 0.0)
 
 	func is_hint_active(hint_key: String) -> bool:
 		return _active_hints.has(hint_key)
@@ -132,6 +187,7 @@ class MockTutorialLevel:
 	func _dismiss_hint(hint_key: String) -> void:
 		_active_hints.erase(hint_key)
 		_active_hint_colors.erase(hint_key)
+		_hint_strike_progress.erase(hint_key)
 
 	func _get_hint_color(hint_key: String) -> Color:
 		match hint_key:
@@ -155,6 +211,47 @@ class MockTutorialLevel:
 	func _add_hint(hint_key: String, text: String) -> void:
 		_active_hints[hint_key] = text
 		_active_hint_colors[hint_key] = _get_hint_color(hint_key)
+		_hint_strike_progress[hint_key] = 0.0
+
+	func _get_grenade_hint_actions() -> Array:
+		return [
+			"[%s]" % _mock_tr("HINT_GRENADE_HOLD_G_RMB"),
+			"[%s]" % _mock_tr("HINT_GRENADE_DRAG_RIGHT"),
+			"[%s]" % _mock_tr("HINT_GRENADE_RELEASE_RMB"),
+			"[%s]" % _mock_tr("HINT_GRENADE_HOLD_RMB"),
+			"[%s]" % _mock_tr("HINT_GRENADE_RELEASE_G"),
+			"[%s]" % _mock_tr("HINT_GRENADE_AIM_RELEASE_RMB"),
+		]
+
+	func _get_grenade_hint_strikethrough_progress(completed_actions: int, actions: Array) -> float:
+		if completed_actions <= 0 or actions.is_empty():
+			return 0.0
+		var all_actions := PackedStringArray()
+		for action in actions:
+			all_actions.append(str(action))
+		var total_text := " ".join(all_actions)
+		if total_text.is_empty():
+			return 0.0
+
+		var completed := PackedStringArray()
+		var completed_count := mini(completed_actions, actions.size())
+		for i in range(completed_count):
+			completed.append(str(actions[i]))
+		return float(" ".join(completed).length()) / float(total_text.length())
+
+	func _build_grenade_hint_bbcode(step: int) -> String:
+		var parts := _get_grenade_hint_actions()
+		var clamped_step := clampi(step, 0, parts.size() - 1)
+		_hint_strike_progress[HINT_GRENADE] = _get_grenade_hint_strikethrough_progress(clamped_step, parts)
+		var styled: PackedStringArray = []
+		for i in range(parts.size()):
+			if i < clamped_step:
+				styled.append("[color=#888888]%s[/color]" % parts[i])
+			elif i == clamped_step:
+				styled.append("[color=#ff4444]%s[/color]" % parts[i])
+			else:
+				styled.append("[color=#888888]%s[/color]" % parts[i])
+		return " ".join(styled)
 
 	## Build BBCode for sniper bolt-cycle hint showing 4-step sequence (fix 3rd#4, 3rd#3).
 	func _build_sniper_bolt_hint_bbcode(step: int) -> String:
@@ -198,10 +295,16 @@ class MockTutorialLevel:
 			0:
 				return "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]"
 			1:
+				_hint_strike_progress[HINT_RELOAD] = maxf(_hint_strike_progress.get(HINT_RELOAD, 0.0), 0.15)
 				return "[color=#888888][R открыть][/color] [color=#ff4444][ПКМ↑ патрон][/color] [color=#888888][скролл] [R закрыть][/color]"
 			2:
+				_hint_strike_progress[HINT_RELOAD] = maxf(_hint_strike_progress.get(HINT_RELOAD, 0.0), 0.15)
+				return "[color=#888888][R открыть][/color] [ПКМ↑ патрон] [color=#ff4444][скролл][/color] [color=#888888][R закрыть][/color]"
+			3:
+				_hint_strike_progress[HINT_RELOAD] = maxf(_hint_strike_progress.get(HINT_RELOAD, 0.0), 0.55)
 				return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл][/color] [color=#ff4444][R закрыть][/color]"
 			_:
+				_hint_strike_progress[HINT_RELOAD] = maxf(_hint_strike_progress.get(HINT_RELOAD, 0.0), 0.75)
 				return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/color]"
 
 	## Fix 3rd#7 + Fix 4th#2: Update shotgun hint when shells are loaded.
@@ -249,7 +352,7 @@ class MockTutorialLevel:
 		elif _has_revolver:
 			# Revolver: cylinder reload hint. Hammer-cock hint shown from start (fix #3).
 			_add_hint(HINT_RELOAD, "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]")
-		elif _has_makarov_pm:
+		elif _uses_two_step_pistol_reload():
 			_add_hint(HINT_RELOAD, _build_reload_hint_bbcode(0, 2))
 		else:
 			_add_hint(HINT_RELOAD, _build_reload_hint_bbcode(0, 3))
@@ -270,11 +373,75 @@ class MockTutorialLevel:
 				# Fix 3rd#9: only show grenade hint if player has grenades
 				if _grenade_count > 0:
 					if not _active_hints.has(HINT_GRENADE):
-						_add_hint(HINT_GRENADE, "[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]")
-				# else: no grenades, tutorial auto-completes (handled in advance_to_step)
+						_add_hint(HINT_GRENADE, _build_grenade_hint_bbcode(0))
+				else:
+					advance_to_step(TutorialStep.COMPLETED)
 			TutorialStep.COMPLETED:
 				_active_hints.clear()
 				_active_hint_colors.clear()
+
+	func set_grenade_hint_progress(g_and_rmb_held: bool, drag_completed: bool, rmb_held_after_release: bool) -> void:
+		if not _active_hints.has(HINT_GRENADE):
+			return
+		_grenade_hint_drag_completed = drag_completed
+		_grenade_hint_rmb_held_after_release = rmb_held_after_release
+		var step := 0
+		if g_and_rmb_held:
+			step = 2 if drag_completed else 1
+		else:
+			step = 4 if rmb_held_after_release else 3
+		_active_hints[HINT_GRENADE] = _build_grenade_hint_bbcode(step)
+
+	func _reset_grenade_hint_tracking() -> void:
+		_grenade_hint_step = 0
+		_grenade_g_was_held = false
+		_grenade_hint_drag_completed = false
+		_grenade_hint_rmb_held_after_release = false
+		_grenade_hint_rmb_was_pressed = false
+		_grenade_hint_drag_start_x = 0.0
+
+	func update_grenade_hint_from_input(g_pressed: bool, rmb_pressed: bool, mouse_x: float) -> void:
+		if not _active_hints.has(HINT_GRENADE):
+			_reset_grenade_hint_tracking()
+			return
+
+		var rmb_just_pressed := rmb_pressed and not _grenade_hint_rmb_was_pressed
+		var rmb_just_released := not rmb_pressed and _grenade_hint_rmb_was_pressed
+
+		if _grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
+			if g_pressed or rmb_pressed or _grenade_hint_rmb_was_pressed:
+				_reset_grenade_hint_tracking()
+		elif _grenade_hint_step == 1 and not g_pressed and not _grenade_hint_drag_completed:
+			_reset_grenade_hint_tracking()
+		elif _grenade_hint_step == 2 and not g_pressed and not rmb_pressed:
+			_reset_grenade_hint_tracking()
+		elif _grenade_hint_step == 3 and not g_pressed and not rmb_pressed:
+			_reset_grenade_hint_tracking()
+		elif _grenade_hint_step == 4 and not rmb_pressed and not _grenade_hint_rmb_held_after_release:
+			_reset_grenade_hint_tracking()
+
+		if _grenade_hint_step <= 1 and g_pressed and rmb_pressed and rmb_just_pressed:
+			_grenade_hint_drag_completed = false
+			_grenade_hint_drag_start_x = mouse_x
+		if _grenade_hint_step == 1 and g_pressed and rmb_pressed:
+			if mouse_x - _grenade_hint_drag_start_x > 20.0:
+				_grenade_hint_drag_completed = true
+				_grenade_hint_step = 2
+
+		if _grenade_hint_step == 0 and g_pressed and rmb_pressed:
+			_grenade_hint_step = 1
+			_grenade_g_was_held = true
+		elif _grenade_hint_step == 2 and _grenade_hint_drag_completed and rmb_just_released:
+			_grenade_hint_step = 3
+		elif _grenade_hint_step == 3 and g_pressed and rmb_just_pressed:
+			_grenade_hint_rmb_held_after_release = true
+			_grenade_hint_step = 4
+		elif _grenade_hint_step == 4 and not g_pressed and rmb_pressed and _grenade_hint_rmb_held_after_release:
+			_grenade_hint_step = 5
+			_grenade_g_was_held = false
+
+		_grenade_hint_rmb_was_pressed = rmb_pressed
+		_active_hints[HINT_GRENADE] = _build_grenade_hint_bbcode(_grenade_hint_step)
 
 	## Issue #945: Called when the weapon fires — counts shots and reveals hints.
 	## Bug fix #4: bolt-cycle hint (sniper/shotgun) shown after 1st shot.
@@ -353,7 +520,7 @@ class MockTutorialLevel:
 		# Guard: shotgun uses separate action/reload state signals
 		if _has_shotgun:
 			return ""
-		if _has_makarov_pm or (not _has_sniper_rifle and total <= 2):
+		if _uses_two_step_pistol_reload() or (not _has_sniper_rifle and total <= 2):
 			# 2-step reload R -> R; step=0 → next is first R
 			match step:
 				0:
@@ -373,6 +540,9 @@ class MockTutorialLevel:
 					return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
 				_:
 					return "[color=#888888][R] [F] [R][/color] Перезарядись"
+
+	func _uses_two_step_pistol_reload() -> bool:
+		return _has_makarov_pm
 
 	func on_fire_mode_changed() -> void:
 		if _current_step != TutorialStep.SWITCH_FIRE_MODE:
@@ -397,6 +567,95 @@ class MockTutorialLevel:
 		## Fix 3rd#8: ONLY via this signal, not via reload_completed.
 		_dismiss_hint(HINT_HAMMER_COCK)
 
+	func on_revolver_cartridge_inserted(loaded: int, chamber_index: int, current_ammo: int = -1) -> void:
+		_revolver_cartridges_loaded_this_reload = loaded
+		_revolver_last_inserted_count = loaded
+		_revolver_reload_loaded_cartridge = loaded > 0
+		_revolver_last_inserted_chamber_index = chamber_index
+		_revolver_current_chamber_index = chamber_index
+		_revolver_scroll_completed_since_last_insert = false
+		if current_ammo >= 0:
+			_revolver_current_ammo = current_ammo
+
+	func on_revolver_cylinder_rotated(chamber_index: int) -> void:
+		_revolver_current_chamber_index = chamber_index
+		if _revolver_cartridges_loaded_this_reload <= 0:
+			return
+		_revolver_scroll_completed_since_last_insert = true
+		if _revolver_cartridges_loaded_this_reload >= _revolver_minimum_inserts_required \
+		or _revolver_current_ammo >= 5:
+			_active_hints[HINT_RELOAD] = _build_revolver_reload_hint_bbcode(3)
+		elif _active_hints.has(HINT_RELOAD):
+			_active_hints[HINT_RELOAD] = _build_revolver_reload_hint_bbcode(1)
+
+	func on_revolver_reload_state_changed(state: int) -> void:
+		if not _active_hints.has(HINT_RELOAD):
+			return
+		if not _has_revolver:
+			return
+		if state == 0:
+			if _is_revolver_reload_completion_ready():
+				_revolver_reload_loaded_cartridge = false
+				_revolver_last_inserted_count = 0
+				_revolver_last_inserted_chamber_index = -1
+				_revolver_scroll_completed_since_last_insert = false
+				if not _has_reloaded:
+					_has_reloaded = true
+					_dismiss_hint(HINT_RELOAD)
+					if _has_thrown_grenade:
+						advance_to_step(TutorialStep.COMPLETED)
+					else:
+						advance_to_step(TutorialStep.THROW_GRENADE)
+				return
+			else:
+				_hint_strike_progress[HINT_RELOAD] = 0.0
+				_active_hints[HINT_RELOAD] = _build_revolver_reload_hint_bbcode(0)
+				_revolver_reload_loaded_cartridge = false
+				_revolver_last_inserted_count = 0
+				_revolver_last_inserted_chamber_index = -1
+				_revolver_scroll_completed_since_last_insert = false
+				return
+
+		var hint_step: int = 0
+		match state:
+			1:
+				hint_step = 1
+			2:
+				hint_step = _get_revolver_reload_hint_step_for_loading_state()
+			3:
+				if _is_revolver_reload_completion_ready():
+					hint_step = 3
+				else:
+					_hint_strike_progress[HINT_RELOAD] = 0.0
+					_revolver_reload_loaded_cartridge = false
+					_revolver_last_inserted_count = 0
+					_revolver_last_inserted_chamber_index = -1
+					_revolver_scroll_completed_since_last_insert = false
+					hint_step = 0
+			_:
+				hint_step = 4
+
+		_active_hints[HINT_RELOAD] = _build_revolver_reload_hint_bbcode(hint_step)
+
+	func _is_revolver_reload_completion_ready() -> bool:
+		return _revolver_reload_loaded_cartridge \
+			and (_revolver_cartridges_loaded_this_reload >= _revolver_minimum_inserts_required \
+				or _revolver_current_ammo >= 5)
+
+	func _get_revolver_reload_hint_step_for_loading_state() -> int:
+		if _revolver_cartridges_loaded_this_reload <= 0:
+			return 2
+		if _revolver_cartridges_loaded_this_reload >= _revolver_minimum_inserts_required \
+		or _revolver_current_ammo >= 5:
+			return 3
+		if _revolver_scroll_completed_since_last_insert \
+		and _revolver_cartridges_loaded_this_reload == _revolver_last_inserted_count \
+		and _revolver_last_inserted_chamber_index >= 0 \
+		and _revolver_current_chamber_index >= 0 \
+		and _revolver_current_chamber_index != _revolver_last_inserted_chamber_index:
+			return 1
+		return 2
+
 	## Fix 3rd#5: Grenade hint shown AFTER reload disappears.
 	## Fix 3rd#6: M16 shows fire-mode switch hint after reload.
 	## Fix 3rd#7: Shotgun bolt-cycle hint dismissed on reload.
@@ -407,6 +666,15 @@ class MockTutorialLevel:
 	## Issue #998: If scope was already used early, skip SCOPE_TRAINING and go to THROW_GRENADE.
 	func on_reload_completed() -> void:
 		if _current_step != TutorialStep.RELOAD:
+			return
+		if _has_revolver and not _is_revolver_reload_completion_ready():
+			_hint_strike_progress[HINT_RELOAD] = 0.0
+			if _active_hints.has(HINT_RELOAD):
+				_active_hints[HINT_RELOAD] = _build_revolver_reload_hint_bbcode(0)
+			_revolver_reload_loaded_cartridge = false
+			_revolver_last_inserted_count = 0
+			_revolver_last_inserted_chamber_index = -1
+			_revolver_scroll_completed_since_last_insert = false
 			return
 		if not _has_reloaded:
 			_has_reloaded = true
@@ -436,13 +704,14 @@ class MockTutorialLevel:
 				advance_to_step(TutorialStep.THROW_GRENADE)
 
 	func on_grenade_thrown() -> void:
-		# Grenade is now only shown during THROW_GRENADE step (fix 3rd#5)
-		if _current_step != TutorialStep.THROW_GRENADE:
+		# Grenade can be thrown while the hint is visible during RELOAD or THROW_GRENADE.
+		if _current_step != TutorialStep.THROW_GRENADE and _current_step != TutorialStep.RELOAD:
 			return
 		if not _has_thrown_grenade:
 			_has_thrown_grenade = true
 			_dismiss_hint(HINT_GRENADE)
-			advance_to_step(TutorialStep.COMPLETED)
+			if _current_step == TutorialStep.THROW_GRENADE:
+				advance_to_step(TutorialStep.COMPLETED)
 
 	func is_tutorial_complete() -> bool:
 		return _current_step == TutorialStep.COMPLETED
@@ -1008,6 +1277,106 @@ func test_revolver_reload_hint_updates_with_sequence_progress() -> void:
 		"After step 1, [ПКМ↑ патрон] should be highlighted next (Fix 4th#2)")
 
 
+func test_revolver_reload_hint_shows_scroll_as_separate_step_after_insert() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_revolver_cartridge_inserted(1, 2)
+	tutorial.on_revolver_reload_state_changed(2)
+
+	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
+	assert_true(hint_text.contains("[color=#ff4444][скролл][/color]"),
+		"After inserting a cartridge, scroll must be the separate highlighted step")
+	assert_true(hint_text.contains("[ПКМ↑ патрон]"),
+		"The insert step should remain visible after the first cartridge is loaded")
+	assert_false(hint_text.contains("[color=#888888][ПКМ↑ патрон][/color]"),
+		"The first insert must not look completed before the second cartridge is loaded")
+	assert_false(hint_text.contains("[color=#ff4444][R закрыть][/color]"),
+		"Close cylinder must not be highlighted before the scroll step is done")
+
+
+func test_revolver_reload_hint_shows_close_after_scroll_advances_slot() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_revolver_cartridge_inserted(1, 2)
+	tutorial.on_revolver_cylinder_rotated(3)
+	tutorial.on_revolver_reload_state_changed(2)
+
+	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
+	assert_true(hint_text.contains("[color=#ff4444][ПКМ↑ патрон][/color]"),
+		"After the first scroll, the tutorial should repeat the insert step for the second missing round")
+	assert_false(hint_text.contains("[color=#ff4444][R закрыть][/color]"),
+		"Close cylinder must stay inactive until two rounds are inserted or the cylinder reaches 5/5")
+
+
+func test_revolver_reload_hint_keeps_close_after_scroll_to_empty_chamber() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_revolver_cartridge_inserted(1, 2)
+	tutorial.on_revolver_cylinder_rotated(4)
+	tutorial._revolver_can_insert_cartridge = true
+	tutorial.on_revolver_reload_state_changed(2)
+
+	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
+	assert_true(hint_text.contains("[color=#ff4444][ПКМ↑ патрон][/color]"),
+		"Scrolling to another empty chamber after the first insert should return to the insert step")
+	assert_false(hint_text.contains("[color=#ff4444][скролл][/color]"),
+		"The tutorial must not keep waiting on scroll after the chamber index changed")
+
+
+func test_revolver_reload_hint_does_not_count_scroll_without_rotation_event() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_revolver_cartridge_inserted(1, 2)
+	tutorial._revolver_current_chamber_index = 3
+	tutorial.on_revolver_reload_state_changed(2)
+
+	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
+	assert_true(hint_text.contains("[color=#ff4444][скролл][/color]"),
+		"Scroll should stay highlighted until the explicit cylinder rotation event arrives")
+	assert_false(hint_text.contains("[color=#ff4444][ПКМ↑ патрон][/color]"),
+		"Insert must not reactivate from chamber index drift alone")
+
+
+func test_revolver_reload_hint_shows_close_after_second_insert() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_revolver_cartridge_inserted(2, 4, 4)
+	tutorial.on_revolver_reload_state_changed(2)
+
+	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
+	assert_true(hint_text.contains("[color=#ff4444][R закрыть][/color]"),
+		"After two inserted rounds during this tutorial prompt, only close cylinder should remain")
+
+
+func test_revolver_reload_hint_shows_close_when_cylinder_becomes_full() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_revolver_cartridge_inserted(1, 2, 5)
+	tutorial.on_revolver_reload_state_changed(2)
+
+	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
+	assert_true(hint_text.contains("[color=#ff4444][R закрыть][/color]"),
+		"When the cylinder reaches 5/5, the tutorial should skip straight to the close step")
+
+
 func test_shotgun_shows_bolt_cycle_hint_after_first_shot() -> void:
 	## Bug fix #4: Shotgun bolt-cycle hint appears after 1st shot.
 	## Bug fix: Shotgun uses HINT_BOLT_CYCLE (not HINT_RELOAD) for its reload instruction.
@@ -1492,33 +1861,24 @@ func test_complete_revolver_flow() -> void:
 
 
 func test_complete_flow_grenade_first_then_reload() -> void:
-	## Fix 3rd#5: Grenade hint is NOT shown during RELOAD step; player must complete reload first.
-	## This test verifies that grenade thrown during RELOAD step is ignored.
+	## Grenade can be completed before reload; reload completion then finishes the tutorial.
 	tutorial.set_initial_step_based_on_weapon(false)
 	tutorial.on_weapon_fired()
 	tutorial.on_weapon_fired()
 
-	# Grenade thrown during RELOAD step — grenade hint not active, so nothing happens
+	# Grenade thrown during RELOAD step.
 	tutorial.on_grenade_thrown()
 
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
-		"Reload hint still active (grenade throw ignored when not in THROW_GRENADE step)")
+		"Reload hint still active after early grenade throw")
 	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.RELOAD,
-		"Still in RELOAD step (grenade thrown too early — hint not shown yet)")
+		"Still in RELOAD step until reload is completed")
 
-	# Complete reload — grenade hint now appears
+	# Complete reload — grenade was already thrown, so tutorial completes.
 	tutorial.on_reload_completed()
 
-	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.THROW_GRENADE,
-		"Now in THROW_GRENADE step")
-	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
-		"Grenade hint visible after reload (Fix 3rd#5)")
-	assert_false(tutorial.is_tutorial_complete(),
-		"Tutorial NOT complete yet — grenade still needs to be thrown")
-
-	# Throw grenade to complete
-	tutorial.on_grenade_thrown()
-	assert_true(tutorial.is_tutorial_complete(), "Tutorial completes after grenade thrown")
+	assert_true(tutorial.is_tutorial_complete(), "Tutorial completes after reload because grenade was already thrown")
+	assert_false(tutorial.is_any_hint_active(), "No hints remain after early grenade and reload are both done")
 
 
 # ============================================================================
@@ -1863,6 +2223,234 @@ func test_shotgun_shells_to_load_zero_when_full() -> void:
 	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_BOLT_CYCLE, "")
 	assert_true(hint_text.contains("x0"),
 		"Issue #983 Fix 2: Shotgun hint shows x0 when tube is full")
+
+
+func test_silenced_pistol_uses_rifle_style_reload_hint_on_training_level() -> void:
+	tutorial._has_silenced_pistol = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_RELOAD, "")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Silenced pistol should reveal a reload hint on the Training level after two shots")
+	assert_true(hint_text.contains("[F]"),
+		"Silenced pistol reloads like M16/Uzi, so the Training hint must include the magazine [F] step")
+	assert_true(hint_text.contains("[color=#ff4444][R][/color] [color=#888888][F] [R][/color]"),
+		"Silenced pistol should start with the rifle-style R->F->R reload hint")
+
+
+func test_revolver_empty_open_close_after_previous_insert_rolls_training_hint_back() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_revolver_cartridge_inserted(2, 0, 2)
+	tutorial.on_revolver_reload_state_changed(0)
+	tutorial.on_revolver_reload_state_changed(1)
+	tutorial.on_revolver_reload_state_changed(0)
+
+	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_RELOAD, "")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Closing the revolver after opening without inserting should keep reload training visible")
+	assert_true(hint_text.begins_with("[color=#ff4444][R открыть]"),
+		"Empty open-close should roll the revolver hint back to the first open-cylinder step")
+	assert_eq(tutorial.get_hint_strike_progress(MockTutorialLevel.HINT_RELOAD), 0.0,
+		"Empty open-close should clear partial revolver strikethrough progress")
+
+
+func test_revolver_closing_cylinder_without_insert_does_not_complete_training_hint() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_revolver_reload_state_changed(1)
+	tutorial.on_revolver_reload_state_changed(3)
+
+	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_RELOAD, "")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"ClosingCylinder without a cartridge insert should keep revolver reload training visible")
+	assert_true(hint_text.begins_with("[color=#ff4444][R открыть]"),
+		"ClosingCylinder without an insert should roll back to the open-cylinder step")
+	assert_false(hint_text.contains("[color=#888888][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/color]"),
+		"ClosingCylinder must not render the all-grey completed revolver reload line")
+
+
+func test_revolver_generic_reload_completed_after_empty_open_close_is_ignored() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_revolver_reload_state_changed(1)
+	tutorial.on_revolver_reload_state_changed(0)
+	tutorial.on_reload_completed()
+
+	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_RELOAD, "")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Generic ReloadCompleted after R R should not dismiss revolver reload training")
+	assert_false(tutorial._has_reloaded,
+		"Empty revolver open-close should not mark reload training complete")
+	assert_true(hint_text.begins_with("[color=#ff4444][R открыть]"),
+		"Generic ReloadCompleted after R R should leave the hint at the first step")
+
+
+func test_grenade_hint_uses_issue_1818_reviewed_text() -> void:
+	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.THROW_GRENADE)
+
+	var hint_text: String = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[удерживать G+ПКМ]"),
+		"Grenade hint should start with hold G+RMB text from issue #1818")
+	assert_true(hint_text.contains("[дёрнуть мышкой вправо]"),
+		"Grenade hint should include the drag-right action")
+	assert_true(hint_text.contains("[отпустить ПКМ]"),
+		"Grenade hint should include the RMB-release action")
+	assert_true(hint_text.contains("[зажать ПКМ]"),
+		"Grenade hint should include RMB hold step from issue #1818")
+	assert_true(hint_text.contains("[отпустить G]"),
+		"Grenade hint should include G release step from issue #1818")
+	assert_true(hint_text.contains("[прицелиться и отпустить ПКМ]"),
+		"Grenade hint should include final aim-and-release step from issue #1818")
+
+
+func test_grenade_hint_uses_english_translation_when_locale_is_english() -> void:
+	tutorial.set_locale("en")
+	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.THROW_GRENADE)
+
+	var hint_text: String = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[hold G+RMB]"),
+		"Grenade hint should translate the first step to English")
+	assert_true(hint_text.contains("[flick mouse right]"),
+		"Grenade hint should translate the drag step to English")
+	assert_true(hint_text.contains("[release RMB]"),
+		"Grenade hint should translate the RMB-release step to English")
+	assert_true(hint_text.contains("[aim and release RMB]"),
+		"Grenade hint should translate the final throw step to English")
+	assert_false(hint_text.contains("ПКМ"),
+		"English grenade hint should not include Russian RMB text")
+
+
+func test_grenade_hint_uses_translation_keys_in_tutorial_level_source() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/levels/tutorial_level.gd")
+	assert_true(source.contains("tr(\"HINT_GRENADE_HOLD_G_RMB\")"),
+		"Tutorial grenade hint should use translation key for hold G+RMB")
+	assert_true(source.contains("tr(\"HINT_GRENADE_DRAG_RIGHT\")"),
+		"Tutorial grenade hint should use translation key for drag-right action")
+	assert_true(source.contains("tr(\"HINT_GRENADE_RELEASE_RMB\")"),
+		"Tutorial grenade hint should use translation key for RMB release")
+	assert_true(source.contains("tr(\"HINT_GRENADE_AIM_RELEASE_RMB\")"),
+		"Tutorial grenade hint should use translation key for final aim/release action")
+
+
+func test_grenade_hint_translation_csv_has_english_and_russian_values() -> void:
+	var translations := FileAccess.get_file_as_string("res://resources/translations/translations.csv")
+	assert_true(translations.contains("HINT_GRENADE_HOLD_G_RMB,hold G+RMB,удерживать G+ПКМ"),
+		"Grenade hold step should have English and Russian translations")
+	assert_true(translations.contains("HINT_GRENADE_DRAG_RIGHT,flick mouse right,дёрнуть мышкой вправо"),
+		"Grenade drag step should have English and Russian translations")
+	assert_true(translations.contains("HINT_GRENADE_RELEASE_RMB,release RMB,отпустить ПКМ"),
+		"Grenade RMB release step should have English and Russian translations")
+	assert_true(translations.contains("HINT_GRENADE_AIM_RELEASE_RMB,aim and release RMB,прицелиться и отпустить ПКМ"),
+		"Grenade final throw step should have English and Russian translations")
+
+
+func test_grenade_hint_progression_updates_next_reviewed_step() -> void:
+	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.THROW_GRENADE)
+
+	tutorial.set_grenade_hint_progress(true, false, false)
+	var hint_text: String = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][дёрнуть мышкой вправо][/color]"),
+		"After holding G+RMB the drag-right action should be highlighted next")
+
+	tutorial.set_grenade_hint_progress(true, true, false)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][отпустить ПКМ][/color]"),
+		"After dragging right the RMB-release action should be highlighted next")
+
+	tutorial.set_grenade_hint_progress(false, true, false)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][зажать ПКМ][/color]"),
+		"After releasing RMB the hold-RMB-again step should be highlighted next")
+
+	tutorial.set_grenade_hint_progress(false, true, true)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][отпустить G][/color]"),
+		"After holding RMB again, the release-G step should be highlighted next")
+
+
+func test_grenade_hint_requires_actual_input_transitions_for_reviewed_steps() -> void:
+	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.THROW_GRENADE)
+
+	tutorial.update_grenade_hint_from_input(true, false, 0.0)
+	var hint_text: String = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][удерживать G+ПКМ][/color]"),
+		"Holding G alone should not complete the first reviewed step")
+
+	tutorial.update_grenade_hint_from_input(true, true, 10.0)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][дёрнуть мышкой вправо][/color]"),
+		"Pressing G+RMB should complete the first step and highlight the drag-right action")
+
+	tutorial.update_grenade_hint_from_input(true, true, 40.0)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#888888][дёрнуть мышкой вправо][/color]"),
+		"Dragging right should mark only the right-flick action as completed")
+	assert_true(hint_text.contains("[color=#ff4444][отпустить ПКМ][/color]"),
+		"Dragging right should keep the RMB release action highlighted")
+	var progress_after_drag := tutorial.get_hint_strike_progress(MockTutorialLevel.HINT_GRENADE)
+
+	tutorial.update_grenade_hint_from_input(true, false, 40.0)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][зажать ПКМ][/color]"),
+		"Releasing RMB should immediately complete that step and highlight RMB hold next")
+	assert_gt(tutorial.get_hint_strike_progress(MockTutorialLevel.HINT_GRENADE), progress_after_drag,
+		"Only releasing RMB should advance strikethrough past the RMB-release action")
+
+	tutorial.update_grenade_hint_from_input(false, false, 40.0)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][удерживать G+ПКМ][/color]"),
+		"Canceling preparation before re-activating grenade should roll back to the first step")
+	assert_eq(tutorial.get_hint_strike_progress(MockTutorialLevel.HINT_GRENADE), 0.0,
+		"Canceling preparation should roll back the visible strikethrough progress")
+
+	tutorial.update_grenade_hint_from_input(true, true, 40.0)
+	tutorial.update_grenade_hint_from_input(true, true, 70.0)
+	tutorial.update_grenade_hint_from_input(true, false, 70.0)
+	tutorial.update_grenade_hint_from_input(true, true, 70.0)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][отпустить G][/color]"),
+		"Holding G+RMB again should advance to the release-G step")
+
+	tutorial.update_grenade_hint_from_input(false, true, 40.0)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][прицелиться и отпустить ПКМ][/color]"),
+		"Releasing G while RMB stays held should immediately highlight the final throw step")
+
+	tutorial.update_grenade_hint_from_input(false, false, 40.0)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][прицелиться и отпустить ПКМ][/color]"),
+		"The final step should remain highlighted until the actual grenade throw dismisses the hint")
+
+
+func test_grenade_hint_rolls_back_when_preparation_is_canceled() -> void:
+	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.THROW_GRENADE)
+
+	tutorial.update_grenade_hint_from_input(true, true, 0.0)
+	tutorial.update_grenade_hint_from_input(true, true, 40.0)
+	tutorial.update_grenade_hint_from_input(true, false, 40.0)
+
+	var hint_text: String = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][зажать ПКМ][/color]"),
+		"After drag-right and RMB release the next step should be hold RMB again")
+
+	tutorial.update_grenade_hint_from_input(false, false, 40.0)
+	hint_text = tutorial.get_active_hints().get(MockTutorialLevel.HINT_GRENADE, "")
+	assert_true(hint_text.contains("[color=#ff4444][удерживать G+ПКМ][/color]"),
+		"Canceling grenade preparation should reset the hint to the first incomplete step")
+	assert_eq(tutorial.get_hint_strike_progress(MockTutorialLevel.HINT_GRENADE), 0.0,
+		"Canceling grenade preparation should reset the strikethrough progress")
 
 
 # ============================================================================

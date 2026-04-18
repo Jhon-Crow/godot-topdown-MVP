@@ -49,6 +49,9 @@ PersistManager="*res://scripts/autoload/persist_manager.gd"
 UnlockManager="*res://scripts/autoload/unlock_manager.gd"
 WeaponHintsSettings="*res://scripts/autoload/weapon_hints_settings.gd"
 PerformanceSettings="*res://scripts/autoload/performance_settings.gd"
+LocalizationSettings="*res://scripts/autoload/localization_settings.gd"
+UnlockNotificationManager="*res://scripts/autoload/unlock_notification_manager.gd"
+LevelLocalization="*res://scripts/autoload/level_localization.gd"
 
 [application]
 
@@ -148,10 +151,15 @@ flashlight_toggle={
 2d_physics/layer_5="projectiles"
 2d_physics/layer_6="targets"
 2d_physics/layer_7="decorative"
+2d_physics/layer_8="snow"
 
 [dotnet]
 
 project/assembly_name="GodotTopDownTemplate"
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://resources/translations/translations.csv")
 
 [editor_plugins]
 

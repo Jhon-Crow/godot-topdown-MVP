@@ -1,0 +1,8 @@
+Godot Engine v4.3.stable.mono.official.77dcf97d8 - https://godotengine.org
+
+ERROR: No loader found for resource: res://resources/translations/translations.csv (expected type: )
+   at: _load (core/io/resource_loader.cpp:291)
+SCRIPT ERROR: Parse Error: Identifier "GutUtils" not declared in the current scope.
+          at: GDScript::reload (res://addons/gut/gut_cmdln.gd:326)
+ERROR: Failed to load script "res://addons/gut/gut_cmdln.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript.cpp:2936)

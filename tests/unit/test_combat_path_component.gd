@@ -12,6 +12,7 @@ extends GutTest
 
 class MockCombatPathComponent:
 	const FALLBACK_MAX_DIST: float = 350.0
+	const FALLBACK_TARGET_DISTANCE: float = 120.0
 	const MAX_TRAVEL_DIST: float = 400.0
 
 	var _attacking_waypoints: Array[Vector2] = []
@@ -38,14 +39,15 @@ class MockCombatPathComponent:
 
 		for wp in _attacking_waypoints:
 			var dist_from_me := from_pos.distance_to(wp)
+			var wp_dist_to_target := wp.distance_to(toward_pos)
 			if dist_from_me < 20.0:
 				continue
-			if dist_from_me < nearest_fallback_dist and dist_from_me <= FALLBACK_MAX_DIST:
+			var fallback_makes_sense := wp_dist_to_target < my_dist_to_target or my_dist_to_target <= FALLBACK_TARGET_DISTANCE
+			if fallback_makes_sense and dist_from_me < nearest_fallback_dist and dist_from_me <= FALLBACK_MAX_DIST:
 				nearest_fallback_dist = dist_from_me
 				nearest_fallback = wp
 			if dist_from_me > MAX_TRAVEL_DIST:
 				continue
-			var wp_dist_to_target := wp.distance_to(toward_pos)
 			if wp_dist_to_target >= my_dist_to_target:
 				continue
 			var progress := my_dist_to_target - wp_dist_to_target
@@ -101,6 +103,11 @@ func after_each() -> void:
 func test_fallback_max_dist_value() -> void:
 	assert_eq(MockCombatPathComponent.FALLBACK_MAX_DIST, 350.0,
 		"FALLBACK_MAX_DIST should be 350.0")
+
+
+func test_fallback_target_distance_value() -> void:
+	assert_eq(MockCombatPathComponent.FALLBACK_TARGET_DISTANCE, 120.0,
+		"FALLBACK_TARGET_DISTANCE should be 120.0")
 
 
 func test_max_travel_dist_value() -> void:
@@ -201,6 +208,17 @@ func test_attacking_uses_fallback_when_no_progress_waypoint() -> void:
 
 	assert_eq(result, Vector2(100, 50),
 		"Should use fallback waypoint when no progress waypoint exists")
+
+
+func test_attacking_rejects_fallback_that_moves_away_from_far_target() -> void:
+	comp.set_attacking_waypoints([
+		Vector2(-100, 0),  # Local fallback, but farther from the target
+	])
+
+	var result := comp.get_nearest_attacking_waypoint(Vector2(0, 0), Vector2(500, 0))
+
+	assert_eq(result, Vector2.ZERO,
+		"PURSUING must not use a local fallback waypoint that moves farther from a distant player")
 
 
 func test_attacking_fallback_respects_max_dist() -> void:

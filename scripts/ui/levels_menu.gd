@@ -12,9 +12,10 @@ signal back_pressed
 const LEVELS: Array[Dictionary] = [
 	{
 		"name": "Labyrinth",
-		"name_ru": "Лабиринт",
+		"name_key": "LEVEL_LABYRINTH_NAME",
 		"path": "res://scenes/levels/LabyrinthLevel.tscn",
 		"description": "Labyrinth of technical rooms with narrow corridors and enclosed spaces.",
+		"desc_key": "LEVEL_LABYRINTH_DESC",
 		"preview_color": Color(0.15, 0.15, 0.18, 1.0),
 		"preview_accent": Color(0.3, 0.35, 0.4, 1.0),
 		"enemy_count": 5,
@@ -22,9 +23,10 @@ const LEVELS: Array[Dictionary] = [
 	},
 	{
 		"name": "Building Level",
-		"name_ru": "Здание",
+		"name_key": "LEVEL_BUILDING_NAME",
 		"path": "res://scenes/levels/BuildingLevel.tscn",
 		"description": "Hotline Miami style building with interconnected rooms and corridors. Features a grenadier enemy.",
+		"desc_key": "LEVEL_BUILDING_DESC",
 		"preview_color": Color(0.35, 0.25, 0.2, 1.0),
 		"preview_accent": Color(0.6, 0.4, 0.3, 1.0),
 		"enemy_count": 10,
@@ -32,9 +34,10 @@ const LEVELS: Array[Dictionary] = [
 	},
 	{
 		"name": "Polygon",
-		"name_ru": "Полигон",
+		"name_key": "LEVEL_POLYGON_NAME",
 		"path": "res://scenes/levels/TestTier.tscn",
 		"description": "Open training ground for testing weapons and practicing combat skills.",
+		"desc_key": "LEVEL_POLYGON_DESC",
 		"preview_color": Color(0.2, 0.3, 0.2, 1.0),
 		"preview_accent": Color(0.35, 0.5, 0.35, 1.0),
 		"enemy_count": 12,
@@ -42,9 +45,10 @@ const LEVELS: Array[Dictionary] = [
 	},
 	{
 		"name": "Castle",
-		"name_ru": "Замок",
+		"name_key": "LEVEL_CASTLE_NAME",
 		"path": "res://scenes/levels/CastleLevel.tscn",
 		"description": "Medieval fortress assault across a massive oval-shaped courtyard.",
+		"desc_key": "LEVEL_CASTLE_DESC",
 		"preview_color": Color(0.25, 0.25, 0.35, 1.0),
 		"preview_accent": Color(0.4, 0.4, 0.55, 1.0),
 		"enemy_count": 13,
@@ -52,9 +56,10 @@ const LEVELS: Array[Dictionary] = [
 	},
 	{
 		"name": "Double Corridor",
-		"name_ru": "Двойной Коридор",
+		"name_key": "LEVEL_DOUBLE_CORRIDOR_NAME",
 		"path": "res://scenes/levels/RevolverLevel.tscn",
 		"description": "H-shaped map with two parallel corridors: penetration zones for multi-enemy kills and cover for reloading.",
+		"desc_key": "LEVEL_DOUBLE_CORRIDOR_DESC",
 		"preview_color": Color(0.2, 0.15, 0.25, 1.0),
 		"preview_accent": Color(0.4, 0.3, 0.5, 1.0),
 		"enemy_count": 14,
@@ -62,9 +67,10 @@ const LEVELS: Array[Dictionary] = [
 	},
 	{
 		"name": "City",
-		"name_ru": "Город",
+		"name_key": "LEVEL_CITY_NAME",
 		"path": "res://scenes/levels/CityLevel.tscn",
 		"description": "Large urban map with enterable buildings and street combat.",
+		"desc_key": "LEVEL_CITY_DESC",
 		"preview_color": Color(0.25, 0.22, 0.2, 1.0),
 		"preview_accent": Color(0.4, 0.35, 0.3, 1.0),
 		"enemy_count": 9,
@@ -72,9 +78,10 @@ const LEVELS: Array[Dictionary] = [
 	},
 	{
 		"name": "Beach",
-		"name_ru": "Пляж",
+		"name_key": "LEVEL_BEACH_NAME",
 		"path": "res://scenes/levels/BeachLevel.tscn",
 		"description": "Outdoor beach environment with machete-wielding enemies and scattered cover.",
+		"desc_key": "LEVEL_BEACH_DESC",
 		"preview_color": Color(0.2, 0.6, 0.9, 1.0),
 		"preview_accent": Color(0.85, 0.75, 0.55, 1.0),
 		"enemy_count": 8,
@@ -82,9 +89,10 @@ const LEVELS: Array[Dictionary] = [
 	},
 	{
 		"name": "Docks",
-		"name_ru": "Доки",
+		"name_key": "LEVEL_DOCKS_NAME",
 		"path": "res://scenes/levels/DocksLevel.tscn",
 		"description": "Large industrial docks with shipping containers, warehouses, and open areas between cover zones.",
+		"desc_key": "LEVEL_DOCKS_DESC",
 		"preview_color": Color(0.15, 0.25, 0.35, 1.0),
 		"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
 		"enemy_count": 15,
@@ -92,9 +100,10 @@ const LEVELS: Array[Dictionary] = [
 	},
 	{
 		"name": "Factory",
-		"name_ru": "Завод",
+		"name_key": "LEVEL_FACTORY_NAME",
 		"path": "res://scenes/levels/FactoryLevel.tscn",
 		"description": "Industrial factory building with interconnected rooms and corridors. 13 heavily armored enemies, max 2 per room.",
+		"desc_key": "LEVEL_FACTORY_DESC",
 		"preview_color": Color(0.2, 0.18, 0.14, 1.0),
 		"preview_accent": Color(0.45, 0.38, 0.28, 1.0),
 		"enemy_count": 13,
@@ -102,9 +111,10 @@ const LEVELS: Array[Dictionary] = [
 	},
 	{
 		"name": "Decadence",
-		"name_ru": "Декаданс",
+		"name_key": "LEVEL_DECADENCE_NAME",
 		"path": "res://scenes/levels/DecadenceLevel.tscn",
 		"description": "Hotline Miami: Chapter Three. Neon nightclub with dance floor, bar, VIP rooms, and back alley. Synthwave aesthetic.",
+		"desc_key": "LEVEL_DECADENCE_DESC",
 		"preview_color": Color(0.1, 0.03, 0.18, 1.0),
 		"preview_accent": Color(1.0, 0.2, 0.8, 1.0),
 		"enemy_count": 13,
@@ -112,9 +122,10 @@ const LEVELS: Array[Dictionary] = [
 	},
 	{
 		"name": "Labyrinth Complex",
-		"name_ru": "Лабиринт Комплекс",
+		"name_key": "LEVEL_LABYRINTH_COMPLEX_NAME",
 		"path": "res://scenes/levels/Labyrinth2Level.tscn",
 		"description": "Larger labyrinth with 3 rows of rooms, winding corridors, and 17 enemies including a grenadier, armored M16 enemy, and a machine gunner.",
+		"desc_key": "LEVEL_LABYRINTH_COMPLEX_DESC",
 		"preview_color": Color(0.12, 0.14, 0.2, 1.0),
 		"preview_accent": Color(0.25, 0.3, 0.45, 1.0),
 		"enemy_count": 17,
@@ -122,9 +133,10 @@ const LEVELS: Array[Dictionary] = [
 	},
 	{
 		"name": "Sewer",
-		"name_ru": "Канализация",
+		"name_key": "LEVEL_SEWER_NAME",
 		"path": "res://scenes/levels/SewerLevel.tscn",
 		"description": "Underground sewer corridor with narrow passages and a fork. Dark, tight, and dangerous.",
+		"desc_key": "LEVEL_SEWER_DESC",
 		"preview_color": Color(0.1, 0.15, 0.1, 1.0),
 		"preview_accent": Color(0.2, 0.35, 0.2, 1.0),
 		"enemy_count": 13,
@@ -132,9 +144,10 @@ const LEVELS: Array[Dictionary] = [
 	},
 	{
 		"name": "Winter Forest",
-		"name_ru": "Зимний лес",
+		"name_key": "LEVEL_WINTER_FOREST_NAME",
 		"path": "res://scenes/levels/WinterForestLevel.tscn",
 		"description": "Winter forest with sewer exit start, sparse trees hiding players and enemies, and an open clearing with small cover.",
+		"desc_key": "LEVEL_WINTER_FOREST_DESC",
 		"preview_color": Color(0.6, 0.65, 0.72, 1.0),
 		"preview_accent": Color(0.88, 0.9, 0.93, 1.0),
 		"enemy_count": 5,
@@ -142,9 +155,10 @@ const LEVELS: Array[Dictionary] = [
 	},
 	{
 		"name": "Railway Station",
-		"name_ru": "ЖД Станция",
+		"name_key": "LEVEL_RAILWAY_STATION_NAME",
 		"path": "res://scenes/levels/RailwayStationLevel.tscn",
 		"description": "Cross the railway station: platform, train tracks, and snow embankment.",
+		"desc_key": "LEVEL_RAILWAY_STATION_DESC",
 		"preview_color": Color(0.12, 0.14, 0.18, 1.0),
 		"preview_accent": Color(0.75, 0.78, 0.82, 1.0),
 		"enemy_count": 15,
@@ -153,7 +167,7 @@ const LEVELS: Array[Dictionary] = [
 ]
 
 ## Difficulty names in display order (must match DifficultyManager.get_all_difficulty_names()).
-const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
+const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal", "Gunslinger"]
 
 ## Card dimensions.
 const CARD_WIDTH: float = 220.0
@@ -400,6 +414,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 	card_style.corner_radius_top_right = 6
 	card_style.corner_radius_bottom_left = 6
 	card_style.corner_radius_bottom_right = 6
+	card_style.content_margin_bottom = 8.0
 	card.add_theme_stylebox_override("panel", card_style)
 
 	# Card content
@@ -464,14 +479,15 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 		# Current level badge
 		if is_current:
 			var badge := Label.new()
-			badge.text = "PLAYING"
+			badge.text = tr("LEVEL_PLAYING")
 			badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			badge.add_theme_font_size_override("font_size", 10)
 			badge.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4, 1.0))
 			preview_vbox.add_child(badge)
 
-	# Level name
-	var display_name: String = level_data.get("name_ru", level_data["name"])
+	# Level name — use translation key if available, else fall back to raw English name
+	var _lname_key: String = level_data.get("name_key", "")
+	var display_name: String = tr(_lname_key) if _lname_key != "" else level_data.get("name", "")
 	var name_label := Label.new()
 	name_label.text = display_name
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -487,9 +503,10 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 	# Description (wrapped) — for locked levels show "Complete previous level to unlock"
 	var desc_label := Label.new()
 	if not unlocked:
-		desc_label.text = "Complete the previous level to unlock"
+		desc_label.text = tr("LEVEL_LOCKED_DESC")
 	else:
-		desc_label.text = level_data.get("description", "")
+		var _ldesc_key: String = level_data.get("desc_key", "")
+		desc_label.text = tr(_ldesc_key) if _ldesc_key != "" else level_data.get("description", "")
 	desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc_label.add_theme_font_size_override("font_size", 10)
 	if not unlocked:
@@ -498,6 +515,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 		desc_label.add_theme_color_override("font_color", Color(0.6, 0.65, 0.7, 1.0))
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	desc_label.custom_minimum_size.x = CARD_WIDTH - 20
+	desc_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(desc_label)
 
 	# Progress results for all difficulties (shown as letter grades)
@@ -505,7 +523,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
 	var progress_vbox := VBoxContainer.new()
 	progress_vbox.layout_mode = 2
-	progress_vbox.add_theme_constant_override("separation", 1)
+	progress_vbox.add_theme_constant_override("separation", 0)
 	vbox.add_child(progress_vbox)
 
 	# Load custom font for grade display
@@ -521,6 +539,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 		var difficulty_label := Label.new()
 		difficulty_label.text = difficulty_name + ":"
 		difficulty_label.add_theme_font_size_override("font_size", 9)
+		difficulty_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		if not unlocked:
 			difficulty_label.add_theme_color_override("font_color", Color(0.3, 0.3, 0.35, 0.6))
 		else:
@@ -535,6 +554,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 		var grade_label := Label.new()
 		grade_label.text = best_rank if not best_rank.is_empty() else "—"
 		grade_label.add_theme_font_size_override("font_size", 14)
+		grade_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		if grade_font:
 			grade_label.add_theme_font_override("font", grade_font)
 		if not unlocked:
@@ -548,14 +568,14 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 
 	# Make card clickable (unless it's the current level or locked)
 	if is_current:
-		card.tooltip_text = "Currently playing this level"
+		card.tooltip_text = tr("LEVEL_CURRENTLY_PLAYING")
 	elif not unlocked:
-		card.tooltip_text = "Complete the previous level to unlock %s" % display_name
+		card.tooltip_text = tr("LEVEL_LOCKED_TOOLTIP") % display_name
 	else:
 		card.mouse_filter = Control.MOUSE_FILTER_STOP
 		card.gui_input.connect(_on_card_gui_input.bind(level_data["path"]))
 		card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		card.tooltip_text = "Click to load %s" % display_name
+		card.tooltip_text = tr("LEVEL_LOAD_TOOLTIP") % display_name
 
 	return card
 

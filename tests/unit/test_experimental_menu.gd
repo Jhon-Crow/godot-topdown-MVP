@@ -447,3 +447,23 @@ func test_experimental_menu_should_use_process_always() -> void:
 	# Experimental menu must use PROCESS_MODE_ALWAYS to receive input while paused
 	var expected_mode := Node.PROCESS_MODE_ALWAYS
 	assert_eq(expected_mode, 3, "PROCESS_MODE_ALWAYS should be 3")
+
+
+func test_unlock_toast_sample_items_match_issue_request() -> void:
+	var script: GDScript = load("res://scripts/ui/experimental_menu.gd")
+	assert_not_null(script, "ExperimentalMenu script should load")
+
+	var expected_names: Array[String] = [
+		"Бурящие пули",
+		"Бронированная кожа",
+		"Хорошая мелкая моторика",
+		"Лазерный прицел"
+	]
+	var actual_names: Array[String] = []
+	for item in script.UNLOCK_TOAST_SAMPLE_ITEMS:
+		actual_names.append(item["name"])
+		assert_eq(item.get("kind", ""), "active_item",
+			"Unlock toast samples should be active item notifications")
+
+	assert_eq(actual_names, expected_names,
+		"Experimental menu should offer exactly the requested unlock toast item texts")

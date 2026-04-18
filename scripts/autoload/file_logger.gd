@@ -236,6 +236,10 @@ func warning(message: String) -> void:
 	log_warning(message)
 
 
+func warn(message: String) -> void:
+	log_warning(message)
+
+
 func error(message: String) -> void:
 	log_error(message)
 

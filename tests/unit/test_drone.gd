@@ -545,10 +545,43 @@ class MockDroneWithOperatorLink:
 		return _has_exploded
 
 
+class MockDroneWithPacifistOperatorLink:
+	## Mirrors Issue #1868: a live drone must be neutralized when its operator
+	## becomes pacifist, before the drone can enter or continue combat.
+	var _is_alive: bool = true
+	var _is_combat: bool = false
+	var _operator: MockOperatorNode = null
+
+	func initialize_drone(operator: MockOperatorNode) -> void:
+		_operator = operator
+
+	func physics_tick() -> void:
+		if not _is_alive:
+			return
+		if _operator_is_pacifist():
+			_die()
+			return
+		_is_combat = true
+
+	func _operator_is_pacifist() -> bool:
+		return _operator != null and _operator.is_pacifist()
+
+	func _die() -> void:
+		_is_alive = false
+		_is_combat = false
+
+	func is_alive() -> bool:
+		return _is_alive
+
+	func is_in_combat() -> bool:
+		return _is_combat
+
+
 class MockOperatorNode:
 	## Minimal operator node that can emit a died signal (simulated via callbacks).
 	var on_died_callbacks: Array = []
 	var _is_alive: bool = true
+	var _is_pacifist: bool = false
 
 	func die() -> void:
 		_is_alive = false
@@ -557,6 +590,12 @@ class MockOperatorNode:
 
 	func is_alive() -> bool:
 		return _is_alive
+
+	func become_pacifist() -> void:
+		_is_pacifist = true
+
+	func is_pacifist() -> bool:
+		return _is_pacifist
 
 
 func test_drone_explodes_when_operator_killed() -> void:
@@ -597,3 +636,31 @@ func test_drone_without_operator_does_not_crash() -> void:
 	# No initialize_drone() call — operator is null
 	assert_true(drone.is_alive(), "Drone without operator should still be alive initially")
 	assert_false(drone.has_exploded(), "Drone without operator should not have exploded")
+
+
+# ============================================================================
+# Pacifist operator tests (Issue #1868)
+# ============================================================================
+
+
+func test_drone_dies_when_operator_becomes_pacifist() -> void:
+	var operator := MockOperatorNode.new()
+	var drone := MockDroneWithPacifistOperatorLink.new()
+	drone.initialize_drone(operator)
+
+	operator.become_pacifist()
+	drone.physics_tick()
+
+	assert_false(drone.is_alive(), "Drone must be neutralized when its operator becomes pacifist")
+	assert_false(drone.is_in_combat(), "Drone must not stay aggressive after operator pacifism")
+
+
+func test_drone_with_non_pacifist_operator_can_enter_combat() -> void:
+	var operator := MockOperatorNode.new()
+	var drone := MockDroneWithPacifistOperatorLink.new()
+	drone.initialize_drone(operator)
+
+	drone.physics_tick()
+
+	assert_true(drone.is_alive(), "Drone should remain alive while operator is not pacifist")
+	assert_true(drone.is_in_combat(), "Non-pacifist operator should not block normal drone aggression")
