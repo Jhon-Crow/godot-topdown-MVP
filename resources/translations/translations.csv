@@ -8,6 +8,7 @@ ROGUELIKE,Roguelike,Рогалик
 ARENA,Arena,Арена
 SETTINGS,Settings,Настройки
 QUIT,Quit,Выход
+EXIT_ZONE_LABEL,EXIT,ВЫХОД
 SETTINGS_TITLE,Settings,Настройки
 CONTROLS,Controls,Управление
 DIFFICULTY,Difficulty,Сложность
@@ -93,6 +94,10 @@ ARMORY_NO_GRENADE,No grenade,Нет гранаты
 ARMORY_NO_ACTIVE_ITEM,None,Нет
 ARMORY_NO_DATA,No data available,Нет данных
 ARMORY_NO_ACTIVE_ITEM_DESC,No active item equipped.,Спецснаряжение не выбрано.
+UNLOCK_NOTIFICATION_OPENED,Unlocked %s!,Открыт %s !
+UNLOCK_NOTIFICATION_KIND_WEAPON,weapon,оружие
+UNLOCK_NOTIFICATION_KIND_GRENADE,grenade,граната
+UNLOCK_NOTIFICATION_KIND_ACTIVE_ITEM,item,предмет
 WEAPON_PM_NAME,PM,ПМ
 WEAPON_PM_DESC,Makarov PM — 9x18mm starting pistol. 9-round magazine. Medium ricochets.,ПМ — пистолет Макарова 9x18мм. Магазин 9 патронов. Средние рикошеты.
 WEAPON_M16_NAME,M16,M16

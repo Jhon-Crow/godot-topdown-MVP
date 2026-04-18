@@ -23,6 +23,8 @@ class MockSceneLoader:
 
 	## Simulates the valid resource paths.
 	var _valid_paths: Dictionary = {}
+	var overlay_hidden: bool = false
+	var change_scene_error: int = OK
 
 	## Register a path as valid (simulates ResourceLoader.exists).
 	func register_valid_path(path: String) -> void:
@@ -53,6 +55,16 @@ class MockSceneLoader:
 	func finish_loading() -> void:
 		_is_loading = false
 		_current_load_path = ""
+		overlay_hidden = true
+
+	## Simulate the real loader's scene-change completion branch.
+	func finish_loading_with_change_result(error: int) -> void:
+		change_scene_error = error
+		if error != OK:
+			_is_loading = false
+			_current_load_path = ""
+			return
+		finish_loading()
 
 
 var loader: MockSceneLoader
@@ -142,6 +154,28 @@ func test_finish_loading_resets_state() -> void:
 
 	assert_false(loader.is_loading(), "Should not be loading after finish")
 	assert_eq(loader.get_current_load_path(), "", "Path should be cleared after finish")
+
+
+func test_failed_scene_change_keeps_overlay_visible() -> void:
+	loader.register_valid_path("res://scenes/levels/RoguelikeLevel.tscn")
+	loader.load_level("res://scenes/levels/RoguelikeLevel.tscn")
+
+	loader.finish_loading_with_change_result(ERR_CANT_CREATE)
+
+	assert_false(loader.is_loading(), "Failed scene change should release loading state")
+	assert_eq(loader.get_current_load_path(), "", "Failed scene change should clear path")
+	assert_false(loader.overlay_hidden,
+		"Loading overlay should remain visible instead of exposing an empty gray scene")
+
+
+func test_successful_scene_change_hides_overlay() -> void:
+	loader.register_valid_path("res://scenes/levels/RoguelikeLevel.tscn")
+	loader.load_level("res://scenes/levels/RoguelikeLevel.tscn")
+
+	loader.finish_loading_with_change_result(OK)
+
+	assert_false(loader.is_loading(), "Successful scene change should finish loading")
+	assert_true(loader.overlay_hidden, "Successful scene change should hide the overlay")
 
 
 # ============================================================================

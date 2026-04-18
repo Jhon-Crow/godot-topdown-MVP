@@ -243,6 +243,7 @@ const DOOR_GAP: float = 120.0
 
 func _ready() -> void:
 	randomize()
+	FileLogger.info("[RoguelikeLevel] _ready entered")
 
 	if GameManager.roguelike_in_treasure_room:
 		# ── Treasure room: no combat, just item pedestal + exit ──────────
@@ -310,6 +311,12 @@ func _ready() -> void:
 
 	print("[RoguelikeLevel] Level %d — Map Room %d — type: %s" % [
 		GameManager.roguelike_current_level,
+		map_room_idx,
+		ROOM_TYPE_NAMES.get(_room_type, "?")])
+	FileLogger.info("[RoguelikeLevel] Normal room setup — active=%s current_room=%d total_rooms=%d map_room=%d type=%s" % [
+		str(GameManager.roguelike_active),
+		_current_room_idx,
+		_total_rooms,
 		map_room_idx,
 		ROOM_TYPE_NAMES.get(_room_type, "?")])
 
@@ -769,6 +776,7 @@ func _build_room_scene() -> void:
 	_room_h = chosen_size.y
 	_room_variant = randi() % 5  # 0..4 — five layout variants per type (Issue #1619)
 	print("[RoguelikeLevel] Room size: %.0f×%.0f, variant: %d" % [_room_w, _room_h, _room_variant])
+	FileLogger.info("[RoguelikeLevel] Building combat room scene size=%.0fx%.0f variant=%d" % [_room_w, _room_h, _room_variant])
 
 	# Background
 	var bg := ColorRect.new()
@@ -797,6 +805,7 @@ func _build_room_scene_no_enemies() -> void:
 	_room_h = chosen_size.y
 	_room_variant = randi() % 5  # 0..4 — five layout variants per type (Issue #1619)
 	print("[RoguelikeLevel] Room size: %.0f×%.0f, variant: %d (no enemies)" % [_room_w, _room_h, _room_variant])
+	FileLogger.info("[RoguelikeLevel] Building no-enemy room scene size=%.0fx%.0f variant=%d" % [_room_w, _room_h, _room_variant])
 
 	var bg := ColorRect.new()
 	bg.name  = "WorldBackground"
@@ -1742,6 +1751,7 @@ func _spawn_player() -> void:
 	player.position = spawn_pos
 	entities_node.add_child(player)
 	print("[RoguelikeLevel] Player spawned at (%.0f, %.0f)" % [player.position.x, player.position.y])
+	FileLogger.info("[RoguelikeLevel] Player spawned at (%.0f, %.0f)" % [player.position.x, player.position.y])
 
 
 ## ============================================================
