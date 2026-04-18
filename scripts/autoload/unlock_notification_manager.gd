@@ -161,7 +161,7 @@ func build_notification_header_text(kind: String) -> String:
 	var clean_kind: String = kind.strip_edges()
 	var template: String = tr(NOTIFICATION_TEMPLATE_KEY)
 	if template == NOTIFICATION_TEMPLATE_KEY or template.is_empty():
-		template = "Открыт %s !"
+		template = "Открыт %s!"
 	var kind_label: String = get_unlock_kind_display_name(kind)
 	if kind_label.is_empty():
 		kind_label = clean_kind
@@ -295,7 +295,7 @@ func _build_ui() -> void:
 	_message_label = Label.new()
 	_message_label.name = "MessageLabel"
 	_message_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_message_label.clip_text = true
@@ -316,7 +316,7 @@ func _build_ui() -> void:
 	_item_name_label = Label.new()
 	_item_name_label.name = "ItemNameLabel"
 	_item_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_item_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_item_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_item_name_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_item_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_item_name_label.clip_text = true
@@ -331,7 +331,7 @@ func _build_ui() -> void:
 	_message_shadow_label.name = "MessageShadowLabel"
 	_message_shadow_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_message_shadow_label.z_index = 20
-	_message_shadow_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_message_shadow_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message_shadow_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_message_shadow_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_message_shadow_label.clip_text = true
@@ -346,7 +346,7 @@ func _build_ui() -> void:
 	_item_name_shadow_label.name = "ItemNameShadowLabel"
 	_item_name_shadow_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_item_name_shadow_label.z_index = 20
-	_item_name_shadow_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_item_name_shadow_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_item_name_shadow_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_item_name_shadow_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_item_name_shadow_label.clip_text = true

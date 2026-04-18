@@ -92,9 +92,9 @@ func test_notification_uses_requested_opened_text() -> void:
 
 	var previous_locale: String = TranslationServer.get_locale()
 	TranslationServer.set_locale("ru")
-	assert_eq(manager.build_notification_header_text("weapon"), "Открыт оружие !",
+	assert_eq(manager.build_notification_header_text("weapon"), "Открыт оружие!",
 		"Toast header should include only the unlocked weapon category")
-	assert_eq(manager.build_notification_text("weapon", "Дробовик"), "Открыт оружие !\nДробовик",
+	assert_eq(manager.build_notification_text("weapon", "Дробовик"), "Открыт оружие!\nДробовик",
 		"Combined fallback text should split the category header and item name onto separate lines")
 	TranslationServer.set_locale(previous_locale)
 
@@ -106,10 +106,10 @@ func test_notification_text_includes_active_item_category_and_name() -> void:
 
 	var previous_locale: String = TranslationServer.get_locale()
 	TranslationServer.set_locale("ru")
-	assert_eq(manager.build_notification_header_text("active_item"), "Открыт предмет !",
+	assert_eq(manager.build_notification_header_text("active_item"), "Открыт предмет!",
 		"Toast header should include only the item category")
 	assert_eq(manager.build_notification_text("active_item", "Бронированная кожа"),
-		"Открыт предмет !\nБронированная кожа",
+		"Открыт предмет!\nБронированная кожа",
 		"Combined fallback text should put the Armored Skin name on the second line")
 	TranslationServer.set_locale(previous_locale)
 
@@ -121,10 +121,10 @@ func test_notification_text_includes_grenade_category_and_name() -> void:
 
 	var previous_locale: String = TranslationServer.get_locale()
 	TranslationServer.set_locale("ru")
-	assert_eq(manager.build_notification_header_text("grenade"), "Открыт граната !",
+	assert_eq(manager.build_notification_header_text("grenade"), "Открыт граната!",
 		"Toast header should include only the grenade category")
 	assert_eq(manager.build_notification_text("grenade", "Наступательная"),
-		"Открыт граната !\nНаступательная",
+		"Открыт граната!\nНаступательная",
 		"Combined fallback text should put the grenade name on the second line")
 	TranslationServer.set_locale(previous_locale)
 
@@ -144,7 +144,7 @@ func test_toast_uses_smaller_second_line_for_long_item_names() -> void:
 	var header_shadow_label: Label = manager.get_node("UnlockNotificationRoot/UnlockToast/MessageShadowLabel")
 	var item_name_shadow_label: Label = manager.get_node("UnlockNotificationRoot/UnlockToast/ItemNameShadowLabel")
 
-	assert_eq(header_label.text, "Открыт предмет !",
+	assert_eq(header_label.text, "Открыт предмет!",
 		"Header label should keep the generic unlock text without the long item name")
 	assert_eq(item_name_label.text, "Очень длинное название предмета с несколькими словами",
 		"Item name should render on the second line in its own label")
@@ -156,6 +156,14 @@ func test_toast_uses_smaller_second_line_for_long_item_names() -> void:
 		item_name_label.get_theme_font_size("font_size"),
 		header_label.get_theme_font_size("font_size"),
 		"Second-line item name should use a smaller font than the generic unlock text")
+	assert_eq(header_label.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER,
+		"Header text should be centered in the available toast text area")
+	assert_eq(item_name_label.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER,
+		"Item name should be centered in the available toast text area")
+	assert_eq(header_shadow_label.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER,
+		"Fallback header text should use the same centered alignment")
+	assert_eq(item_name_shadow_label.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER,
+		"Fallback item name should use the same centered alignment")
 
 
 func test_display_duration_is_four_seconds() -> void:
@@ -254,11 +262,11 @@ func test_toast_animation_keeps_label_opaque_after_entry() -> void:
 		"Toast parent should remain opaque during the stable visible phase")
 	assert_eq(label.modulate.a, 1.0,
 		"Message label should remain fully opaque after the slide-in animation")
-	assert_eq(label.text, "Открыт предмет !",
+	assert_eq(label.text, "Открыт предмет!",
 		"Stable visible toast should keep the requested generic item text")
 	assert_eq(item_name_label.text, "Бронированная кожа",
 		"Stable visible toast should keep the requested Armored Skin name on the second line")
-	assert_eq(shadow_label.text, "Открыт предмет !",
+	assert_eq(shadow_label.text, "Открыт предмет!",
 		"Fallback text label should mirror the requested generic item text")
 	assert_eq(item_name_shadow_label.text, "Бронированная кожа",
 		"Fallback item label should mirror the requested Armored Skin name")
