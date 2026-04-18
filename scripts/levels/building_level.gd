@@ -298,6 +298,14 @@ func _setup_weapon_hints() -> void:
 		push_warning("[BuildingLevel] CanvasLayer node not found for weapon hints")
 		return
 
+	var existing_component := get_node_or_null("WeaponHintsComponent")
+	if existing_component != null:
+		_weapon_hints_component = existing_component
+		if _weapon_hints_component.has_method("setup"):
+			_weapon_hints_component.setup(_player, canvas_layer)
+			print("[BuildingLevel] Scene-owned weapon hints component setup")
+		return
+
 	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
 	if hints_script == null:
 		push_warning("[BuildingLevel] WeaponHintsComponent script not found")

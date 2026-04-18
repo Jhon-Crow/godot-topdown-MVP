@@ -24,6 +24,9 @@ Raw issue and PR data is stored in `data/`:
 - `pr-1843.diff`, `pr-1864.diff`: related diffs used to reconstruct recent
   tutorial rollback work.
 - `focused-gutconfig.json`: minimal GUT config used for the focused local runs.
+- `pr-comment-4272260526/game_log_20260418_040521.txt`: owner-provided
+  exported Windows log from the follow-up PR comment reporting missing `G`
+  grenade hints on Building and Training Ground.
 
 Local investigation logs are stored in `logs/`:
 
@@ -41,8 +44,11 @@ Local investigation logs are stored in `logs/`:
 - 2026-04-17: PR 1864, "Fix training tutorial hint rollback", merged.
 - 2026-04-18 00:17 UTC: Issue 1879 opened, reporting that Training works,
   Labyrinth rolls back, and other maps still show the old grenade tutorial.
-- 2026-04-18: This branch updated Labyrinth and shared weapon hints to use the
-  same effective six-step grenade sequence.
+- 2026-04-18 00:47 UTC: This branch updated Labyrinth and shared weapon hints to
+  use the same effective six-step grenade sequence.
+- 2026-04-18 01:12 UTC: Follow-up PR feedback reported that pressing `G` did
+  not show grenade training on Building and Training Ground, with
+  `game_log_20260418_040521.txt` attached.
 
 ## Technical Findings
 
@@ -69,6 +75,19 @@ source (`arm`, `aim`, `throw`) instead of the reviewed six-step Training text:
 The shared component also dismissed the grenade hint when normal-level grenade
 count dropped to zero after pin-pull, even though the active grenade sequence was
 still in progress.
+
+The follow-up exported log showed two different setup paths:
+
+- Building loaded `res://scenes/levels/BuildingLevel.tscn` at 04:06:25 and
+  created a scene-owned `WeaponHintsComponent` from exported NodePaths at
+  04:06:26. That confirms Building already had the export-safe component in this
+  PR branch, but its level script still needed to reuse that scene-owned node
+  instead of creating a second dynamic component when `_ready()` also runs.
+- Training Ground loaded `res://scenes/levels/csharp/TestTier.tscn` at 04:05:56
+  and accepted player grenade input at 04:05:57 and 04:06:03, but no
+  `WeaponHintsComponent` lines appeared for that scene. This C# Training Ground
+  scene uses `tutorial_level.gd`, not `test_tier.gd`, so the shared component
+  setup in `test_tier.gd` never ran for the exported route.
 
 During test verification, Godot 4.3 also exposed an adjacent UI bug:
 `RichTextLabel` does not support the `horizontal_alignment` property. That
@@ -104,6 +123,11 @@ Source: https://docs.godotengine.org/en/4.3/classes/class_richtextlabel.html
    was already active.
 4. `RichTextLabel.horizontal_alignment` was used in tutorial hint creation even
    though Godot 4.3 does not support that property on `RichTextLabel`.
+5. The exported C# Training Ground scene did not own a shared
+   `WeaponHintsComponent`, and its script path was `tutorial_level.gd`; therefore
+   `test_tier.gd`'s dynamic weapon-hint setup was bypassed.
+6. Scene-owned and script-created hint components could coexist on regular
+   scenes unless level scripts reused an existing `WeaponHintsComponent`.
 
 ## Fix Strategy
 
@@ -120,6 +144,10 @@ Source: https://docs.godotengine.org/en/4.3/classes/class_richtextlabel.html
   six-step translation keys.
 - Remove unsupported `RichTextLabel.horizontal_alignment` assignments from the
   tutorial hint creators touched by this issue.
+- Add scene-owned `WeaponHintsComponent` nodes with exported player/canvas paths
+  to both Training Ground scene variants, including the exported C# scene.
+- Make Building and TestTier level scripts reuse a scene-owned component when
+  present to avoid duplicate hint systems.
 
 ## Verification
 
@@ -139,6 +167,26 @@ dotnet build GodotTopDownTemplate.sln
 
 Result: succeeded with existing warnings and no errors. See
 `logs/dotnet_build_issue_1879.log`.
+
+Follow-up C# build after the Training Ground export-safe hint fix:
+
+```bash
+dotnet build GodotTopDownTemplate.sln
+```
+
+Result: succeeded with existing warnings and no errors. See
+`logs/dotnet_build_issue_1879_followup.log`.
+
+Follow-up targeted GUT attempt:
+
+```bash
+/tmp/godot-4.3-mono/godot/Godot_v4.3-stable_mono_linux.x86_64 --headless -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_test_tier_level.gd -gtest=res://tests/unit/test_building_level.gd -gtest=res://tests/unit/test_weapon_hints_component.gd -gunit_test_name='weapon|test_tier|building' -gexit -glog=2
+```
+
+Result: failed before test execution because the local Godot/GUT runner could
+not parse `addons/gut/gut_cmdln.gd` (`GutUtils` not declared) after reporting a
+missing translation loader. See
+`logs/gut_issue_1879_export_safe_hints.log`.
 
 The broader two-file focused run reached 39 passing and 2 failing tests. The
 remaining failures are existing non-grenade shotgun/revolver source-test issues
