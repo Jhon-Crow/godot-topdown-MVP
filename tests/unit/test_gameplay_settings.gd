@@ -18,6 +18,9 @@ class MockGameplaySettings:
 	## Combo font size in pixels [20, 200]. Default is 112.
 	var combo_font_size: int = 112
 
+	## Unlock toast notifications are enabled by default.
+	var unlock_notifications_enabled: bool = true
+
 	## Track emitted signals
 	var settings_changed_count: int = 0
 
@@ -51,6 +54,14 @@ class MockGameplaySettings:
 	func get_combo_font_size() -> int:
 		return combo_font_size
 
+	func set_unlock_notifications_enabled(enabled: bool) -> void:
+		if unlock_notifications_enabled != enabled:
+			unlock_notifications_enabled = enabled
+			settings_changed_count += 1
+
+	func are_unlock_notifications_enabled() -> bool:
+		return unlock_notifications_enabled
+
 
 var settings: MockGameplaySettings
 
@@ -71,6 +82,11 @@ func after_each() -> void:
 func test_default_blood_amount_is_one() -> void:
 	assert_eq(settings.get_blood_amount(), 1.0,
 		"Default blood amount should be 1.0 (100%)")
+
+
+func test_default_unlock_notifications_enabled() -> void:
+	assert_true(settings.are_unlock_notifications_enabled(),
+		"Unlock notifications should be enabled by default")
 
 
 # ============================================================================
@@ -131,6 +147,22 @@ func test_set_blood_amount_signal_fires_each_change() -> void:
 	settings.set_blood_amount(1.0)
 	assert_eq(settings.settings_changed_count, 3,
 		"settings_changed should fire for each distinct value change")
+
+
+func test_set_unlock_notifications_emits_signal_on_change() -> void:
+	settings.set_unlock_notifications_enabled(false)
+	assert_false(settings.are_unlock_notifications_enabled(),
+		"Unlock notifications should be disabled after setting false")
+	assert_eq(settings.settings_changed_count, 1,
+		"settings_changed should fire once when unlock notifications change")
+
+
+func test_set_unlock_notifications_no_signal_when_same_value() -> void:
+	settings.set_unlock_notifications_enabled(true)
+	assert_true(settings.are_unlock_notifications_enabled(),
+		"Unlock notifications should remain enabled")
+	assert_eq(settings.settings_changed_count, 0,
+		"settings_changed should not fire when unlock notification value is unchanged")
 
 
 # ============================================================================
