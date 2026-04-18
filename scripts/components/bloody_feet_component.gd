@@ -304,6 +304,9 @@ func _check_blood_puddle_throttled() -> void:
 ## Radius in pixels for distance-based blood detection fallback.
 const BLOOD_DETECTION_RADIUS := 20.0
 
+## Fallback blood color used when a puddle has no readable visual color.
+const DEFAULT_BLOOD_COLOR := Color(0.545, 0.0, 0.0, 1.0)
+
 ## Squared radius for faster distance comparisons (avoids sqrt).
 const BLOOD_DETECTION_RADIUS_SQUARED := BLOOD_DETECTION_RADIUS * BLOOD_DETECTION_RADIUS
 
@@ -340,23 +343,70 @@ func _check_blood_puddle_by_distance() -> void:
 
 
 ## Extracts the color from a blood puddle node.
-## Returns the modulate color of the puddle, or default red if not available.
+## Returns the visual color of the puddle, or default red if not available.
 func _get_puddle_color(puddle_node: Node) -> Color:
 	if puddle_node == null:
-		return Color(0.545, 0.0, 0.0, 1.0)  # Default dark red
+		return DEFAULT_BLOOD_COLOR
 
 	var parent := puddle_node.get_parent()
 	if puddle_node is Area2D and parent != null and parent.is_in_group("blood_puddle"):
 		return _get_puddle_color(parent)
 
-	# If it's a CanvasItem (Sprite2D, etc.), get its modulate color
+	if puddle_node is Sprite2D:
+		var texture_color := _get_sprite_gradient_blood_color(puddle_node as Sprite2D)
+		if texture_color.a >= 0.0:
+			if debug_logging:
+				_log_info("Puddle gradient color: %s (R=%.2f, G=%.2f, B=%.2f)" % [
+					texture_color, texture_color.r, texture_color.g, texture_color.b])
+			return texture_color
+
+	# If it's a tinted CanvasItem, get its modulate color. BloodDecal.tscn uses a
+	# white modulate with a red GradientTexture2D, so untinted white is not a blood
+	# color and must fall through to the default red fallback.
 	if puddle_node is CanvasItem:
 		var color := (puddle_node as CanvasItem).modulate
+		if not _is_untinted_modulate(color):
+			if debug_logging:
+				_log_info("Puddle modulate color: %s (R=%.2f, G=%.2f, B=%.2f)" % [
+					color, color.r, color.g, color.b])
+			return color
 		if debug_logging:
 			_log_info("Puddle color: %s (R=%.2f, G=%.2f, B=%.2f)" % [color, color.r, color.g, color.b])
-		return color
 
-	return Color(0.545, 0.0, 0.0, 1.0)  # Default dark red
+	return DEFAULT_BLOOD_COLOR
+
+
+## Reads the strongest visible color from a Sprite2D GradientTexture2D.
+## BloodDecal.tscn keeps modulate white and stores the red puddle color in this texture.
+func _get_sprite_gradient_blood_color(sprite: Sprite2D) -> Color:
+	var gradient_texture := sprite.texture as GradientTexture2D
+	if gradient_texture == null or gradient_texture.gradient == null:
+		return Color(0.0, 0.0, 0.0, -1.0)
+
+	var colors: PackedColorArray = gradient_texture.gradient.colors
+	if colors.size() == 0:
+		return Color(0.0, 0.0, 0.0, -1.0)
+
+	var strongest_color: Color = colors[0]
+	for color in colors:
+		if color.a > strongest_color.a:
+			strongest_color = color
+
+	# Preserve the sprite's alpha and RGB tint while keeping the texture's red hue.
+	strongest_color.r *= sprite.modulate.r
+	strongest_color.g *= sprite.modulate.g
+	strongest_color.b *= sprite.modulate.b
+	strongest_color.a = sprite.modulate.a
+	return strongest_color
+
+
+## Returns true when modulate only means "show the texture as-is".
+func _is_untinted_modulate(color: Color) -> bool:
+	return (
+		is_equal_approx(color.r, 1.0)
+		and is_equal_approx(color.g, 1.0)
+		and is_equal_approx(color.b, 1.0)
+	)
 
 
 ## Called when the character contacts a blood puddle.

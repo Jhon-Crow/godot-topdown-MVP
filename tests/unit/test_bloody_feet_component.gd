@@ -28,7 +28,17 @@ class MockBloodDecal extends Sprite2D:
 
 	func _init() -> void:
 		add_to_group("blood_puddle")
-		modulate = Color(0.55, 0.02, 0.02, 0.85)
+		modulate = Color(1.0, 1.0, 1.0, 0.85)
+		var gradient := Gradient.new()
+		gradient.colors = PackedColorArray([
+			Color(0.5, 0.02, 0.02, 1.0),
+			Color(0.5, 0.02, 0.02, 0.5),
+			Color(0.5, 0.02, 0.02, 0.0),
+		])
+		gradient.offsets = PackedFloat32Array([0.0, 0.8, 1.0])
+		var gradient_texture := GradientTexture2D.new()
+		gradient_texture.gradient = gradient
+		texture = gradient_texture
 		puddle_area.name = "PuddleArea"
 		puddle_area.add_to_group("blood_puddle")
 		add_child(puddle_area)
@@ -122,23 +132,23 @@ func test_has_bloody_feet_false_when_level_zero() -> void:
 ## Test alpha calculation for first footprint.
 func test_first_footprint_alpha() -> void:
 	# First step should have initial_alpha
-	var expected_alpha := _component.initial_alpha
-	var steps_taken := 0
-	var calculated_alpha := _component.initial_alpha - (steps_taken * _component.alpha_decay_rate)
+	var expected_alpha: float = _component.initial_alpha
+	var steps_taken: int = 0
+	var calculated_alpha: float = _component.initial_alpha - (steps_taken * _component.alpha_decay_rate)
 	assert_almost_eq(calculated_alpha, expected_alpha, 0.001, "First footprint alpha should be initial_alpha")
 
 
 ## Test alpha calculation for subsequent footprints.
 func test_alpha_decreases_per_step() -> void:
-	var initial := _component.initial_alpha
-	var decay := _component.alpha_decay_rate
+	var initial: float = _component.initial_alpha
+	var decay: float = _component.alpha_decay_rate
 
 	# Alpha for step 1 (second footprint)
-	var alpha_1 := initial - (1 * decay)
+	var alpha_1: float = initial - (1 * decay)
 	# Alpha for step 2 (third footprint)
-	var alpha_2 := initial - (2 * decay)
+	var alpha_2: float = initial - (2 * decay)
 	# Alpha for step 3 (fourth footprint)
-	var alpha_3 := initial - (3 * decay)
+	var alpha_3: float = initial - (3 * decay)
 
 	assert_true(alpha_1 < initial, "Alpha should decrease after step 1")
 	assert_true(alpha_2 < alpha_1, "Alpha should decrease after step 2")
@@ -147,9 +157,9 @@ func test_alpha_decreases_per_step() -> void:
 
 ## Test alpha calculation for last footprint.
 func test_last_footprint_alpha() -> void:
-	var steps := _component.blood_steps_count
-	var last_step_index := steps - 1
-	var expected_alpha := _component.initial_alpha - (last_step_index * _component.alpha_decay_rate)
+	var steps: int = _component.blood_steps_count
+	var last_step_index: int = steps - 1
+	var expected_alpha: float = _component.initial_alpha - (last_step_index * _component.alpha_decay_rate)
 	assert_true(expected_alpha > 0, "Last footprint should still have positive alpha")
 
 
@@ -159,8 +169,8 @@ func test_requires_characterbody2d_parent() -> void:
 	var bad_parent := Node2D.new()
 	add_child(bad_parent)
 
-	var script = load("res://scripts/components/bloody_feet_component.gd")
-	var bad_component := script.new()
+	var script: GDScript = load("res://scripts/components/bloody_feet_component.gd")
+	var bad_component: Node = script.new()
 	bad_parent.add_child(bad_component)
 
 	await wait_frames(2)
@@ -307,12 +317,47 @@ func test_get_puddle_color_uses_parent_decal_color_for_child_area() -> void:
 
 	var color: Color = _component._get_puddle_color(decal.puddle_area)
 
-	assert_almost_eq(color.r, decal.modulate.r, 0.01,
-		"Child PuddleArea contact should use the parent BloodDecal red color, not Area2D white")
-	assert_almost_eq(color.g, decal.modulate.g, 0.01,
-		"Child PuddleArea contact should preserve parent BloodDecal green channel")
-	assert_almost_eq(color.b, decal.modulate.b, 0.01,
-		"Child PuddleArea contact should preserve parent BloodDecal blue channel")
+	assert_almost_eq(color.r, 0.5, 0.01,
+		"Child PuddleArea contact should use the parent BloodDecal texture red color, not Area2D white")
+	assert_almost_eq(color.g, 0.02, 0.01,
+		"Child PuddleArea contact should preserve parent BloodDecal texture green channel")
+	assert_almost_eq(color.b, 0.02, 0.01,
+		"Child PuddleArea contact should preserve parent BloodDecal texture blue channel")
+
+	decal.queue_free()
+	await wait_frames(1)
+
+
+func test_get_puddle_color_uses_real_blood_decal_gradient_not_white_modulate() -> void:
+	var decal_scene: PackedScene = load("res://scenes/effects/BloodDecal.tscn")
+	assert_not_null(decal_scene, "BloodDecal scene must load for the regression test")
+	if decal_scene == null:
+		return
+
+	var decal := decal_scene.instantiate() as Sprite2D
+	assert_not_null(decal, "BloodDecal scene should instantiate as Sprite2D")
+	if decal == null:
+		return
+	add_child(decal)
+	await wait_frames(2)
+
+	var puddle_area := decal.get_node_or_null("PuddleArea")
+	assert_not_null(puddle_area, "BloodDecal should create a child PuddleArea for contact detection")
+	if puddle_area == null:
+		decal.queue_free()
+		await wait_frames(1)
+		return
+	assert_almost_eq(decal.modulate.r, 1.0, 0.01,
+		"Real BloodDecal scene is white-modulated, so color must come from the gradient texture")
+
+	var color: Color = _component._get_puddle_color(puddle_area)
+
+	assert_gt(color.r, 0.4,
+		"BloodDecal gradient color should make snow blood footprints visibly red")
+	assert_lt(color.g, 0.1,
+		"BloodDecal gradient color should not be treated as white")
+	assert_lt(color.b, 0.1,
+		"BloodDecal gradient color should not be treated as white")
 
 	decal.queue_free()
 	await wait_frames(1)
