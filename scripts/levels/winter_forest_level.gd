@@ -1414,9 +1414,9 @@ func _setup_snow_interaction() -> void:
 ## Each non-trail region is represented by one Area2D + RectangleShape2D.  Characters
 ## check overlap with nodes in this group to decide whether to leave snow footprints.
 func _create_snow_area() -> void:
-	# Snow collision layer 6 (bit 5, value 32).
-	# Must match the mask used in SnowyFeetComponent and BloodyFeetComponent detectors.
-	const SNOW_LAYER: int = 32
+	# Snow collision layer 8 (bit 7, value 128). Keep snow off layer 6 ("targets")
+	# so bullets and shotgun pellets do not treat snow-surface markers as targets.
+	const SNOW_LAYER: int = 128
 
 	# Snow bounds: matches the "Snow" ColorRect in WinterForestLevel.tscn.
 	const SNOW_LEFT: float   = 64.0
