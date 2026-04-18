@@ -1,0 +1,142 @@
+43:[00:32:03] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: true, Invincibility: true, Realistic visibility: false, Replay: false, Logging: true, Enemy flashlight blinding: false, FPS counter: false, FPS drop logging: true, All weapons unlocked: true, All maps unlocked: false, Global stuck max time: 20.0s, Nav mesh visible: true, Search path visible: false, Passage waypoints visible: false, Passage waypoints: false, Sound visualizer: false, Enemy path visible: true, Cover raycast visible: false, Tactical group: false, Cover infinite rays: true, Cover sector rays: true, Roguelike unlocked: false
+92:[00:32:03] [INFO] [PersistManager] Restored unlocked weapon: makarov_pm
+93:[00:32:03] [INFO] [PersistManager] Restored unlocked weapon: m16
+94:[00:32:03] [INFO] [PersistManager] Restored unlocked weapon: shotgun
+95:[00:32:03] [INFO] [PersistManager] Restored unlocked weapon: mini_uzi
+96:[00:32:03] [INFO] [PersistManager] Restored unlocked weapon: silenced_pistol
+97:[00:32:03] [INFO] [PersistManager] Restored unlocked weapon: sniper
+98:[00:32:03] [INFO] [PersistManager] Restored unlocked weapon: revolver
+99:[00:32:03] [INFO] [PersistManager] Restored unlocked weapon: ak_gl
+109:[00:32:03] [INFO] [PersistManager] Restored unlocked grenade type: 0
+110:[00:32:03] [INFO] [PersistManager] Restored unlocked grenade type: 1
+111:[00:32:03] [INFO] [PersistManager] Restored unlocked grenade type: 2
+112:[00:32:03] [INFO] [PersistManager] Restored unlocked grenade type: 3
+113:[00:32:03] [INFO] [PersistManager] Restored unlocked grenade type: 4
+116:[00:32:03] [INFO] [PersistManager] Restored unlocked active item type: 0
+117:[00:32:03] [INFO] [PersistManager] Restored unlocked active item type: 1
+118:[00:32:03] [INFO] [PersistManager] Restored unlocked active item type: 3
+119:[00:32:03] [INFO] [PersistManager] Restored unlocked active item type: 4
+120:[00:32:03] [INFO] [PersistManager] Restored unlocked active item type: 5
+121:[00:32:03] [INFO] [PersistManager] Restored unlocked active item type: 6
+122:[00:32:03] [INFO] [PersistManager] Restored unlocked active item type: 7
+123:[00:32:03] [INFO] [PersistManager] Restored unlocked active item type: 8
+124:[00:32:03] [INFO] [PersistManager] Restored unlocked active item type: 10
+125:[00:32:03] [INFO] [PersistManager] Restored unlocked active item type: 11
+126:[00:32:03] [INFO] [PersistManager] Restored unlocked active item type: 12
+127:[00:32:03] [INFO] [PersistManager] Restored unlocked active item type: 17
+128:[00:32:03] [INFO] [PersistManager] Restored unlocked active item type: 20
+129:[00:32:03] [INFO] [PersistManager] Restored unlocked active item type: 21
+135:[00:32:03] [INFO] [UnlockManager] UnlockManager ready
+144:[00:32:03] [ENEMY] [Enemy1] Death animation component initialized
+150:[00:32:03] [ENEMY] [Enemy2] Death animation component initialized
+156:[00:32:03] [ENEMY] [Enemy3] Death animation component initialized
+162:[00:32:03] [ENEMY] [Enemy4] Death animation component initialized
+168:[00:32:03] [ENEMY] [Enemy5] Death animation component initialized
+199:[00:32:03] [INFO] [Player.ArmoredSkin] Checking armored skin...
+200:[00:32:03] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+253:[00:32:04] [INFO] [UnlockManager] Reset condition-gated items to locked state
+254:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for weapon: mini_uzi
+255:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for weapon: shotgun
+256:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for weapon: silenced_pistol
+257:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for weapon: sniper
+258:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for weapon: revolver
+259:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for weapon: m16
+260:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for weapon: ak_gl
+261:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for grenade type: 1
+262:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for grenade type: 2
+263:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for grenade type: 3
+264:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for grenade type: 4
+265:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for active item type: 1
+266:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for active item type: 3
+267:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for active item type: 8
+268:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for active item type: 7
+269:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for active item type: 10
+270:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for active item type: 20
+271:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for active item type: 12
+272:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for active item type: 21
+273:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for active item type: 4
+274:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for active item type: 5
+275:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for active item type: 17
+276:[00:32:04] [INFO] [UnlockManager] Restored saved unlock for active item type: 6
+312:[00:32:04] [INFO] [SceneLoader] ERROR: Invalid resource (falling back to sync): res://scenes/levels/csharp/TestTier.tscn
+361:[00:32:04] [INFO] [Player.ArmoredSkin] Checking armored skin...
+362:[00:32:04] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+405:[00:32:05] [WARN] [FPS] Drop detected: 1 fps (threshold: 30)
+452:[00:32:15] [ENEMY] [Enemy1] Death animation component initialized
+458:[00:32:15] [ENEMY] [Enemy2] Death animation component initialized
+464:[00:32:15] [ENEMY] [Enemy3] Death animation component initialized
+470:[00:32:15] [ENEMY] [Enemy4] Death animation component initialized
+476:[00:32:15] [ENEMY] [Enemy5] Death animation component initialized
+507:[00:32:15] [INFO] [Player.ArmoredSkin] Checking armored skin...
+508:[00:32:15] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+613:[00:32:23] [INFO] [ExperimentalSettings] All weapons unlocked disabled
+656:[00:32:28] [ENEMY] [Enemy1] Death animation component initialized
+662:[00:32:28] [ENEMY] [Enemy2] Death animation component initialized
+668:[00:32:28] [ENEMY] [Enemy3] Death animation component initialized
+674:[00:32:28] [ENEMY] [Enemy4] Death animation component initialized
+680:[00:32:28] [ENEMY] [Enemy5] Death animation component initialized
+711:[00:32:28] [INFO] [Player.ArmoredSkin] Checking armored skin...
+712:[00:32:28] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+920:[00:33:28] [INFO] [Player.ArmoredSkin] Checking armored skin...
+921:[00:33:28] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+1024:[00:33:35] [INFO] [Player.ArmoredSkin] Checking armored skin...
+1025:[00:33:35] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+1167:[00:33:41] [INFO] [Player.ArmoredSkin] Checking armored skin...
+1168:[00:33:41] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+1330:[00:33:55] [INFO] [Player.ArmoredSkin] Checking armored skin...
+1331:[00:33:55] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+1499:[00:34:08] [INFO] [Player.ArmoredSkin] Checking armored skin...
+1500:[00:34:08] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+1645:[00:34:14] [INFO] [Player.ArmoredSkin] Checking armored skin...
+1646:[00:34:14] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+1787:[00:34:19] [INFO] [Player.ArmoredSkin] Checking armored skin...
+1788:[00:34:19] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+1925:[00:34:23] [INFO] [Player.ArmoredSkin] Checking armored skin...
+1926:[00:34:23] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+2068:[00:34:29] [INFO] [Player.ArmoredSkin] Checking armored skin...
+2069:[00:34:29] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+2216:[00:34:37] [INFO] [Player.ArmoredSkin] Checking armored skin...
+2217:[00:34:37] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+2363:[00:34:44] [INFO] [Player.ArmoredSkin] Checking armored skin...
+2364:[00:34:44] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+2514:[00:34:50] [INFO] [Player.ArmoredSkin] Checking armored skin...
+2515:[00:34:50] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+2669:[00:34:57] [INFO] [Player.ArmoredSkin] Checking armored skin...
+2670:[00:34:57] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+2813:[00:35:01] [INFO] [Player.ArmoredSkin] Checking armored skin...
+2814:[00:35:01] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+2965:[00:35:07] [INFO] [Player.ArmoredSkin] Checking armored skin...
+2966:[00:35:07] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+3139:[00:35:20] [INFO] [Player.ArmoredSkin] Checking armored skin...
+3140:[00:35:20] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+3299:[00:35:30] [INFO] [Player.ArmoredSkin] Checking armored skin...
+3300:[00:35:30] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+3459:[00:35:36] [INFO] [Player.ArmoredSkin] Checking armored skin...
+3460:[00:35:36] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+3617:[00:35:43] [INFO] [Player.ArmoredSkin] Checking armored skin...
+3618:[00:35:43] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+3773:[00:35:50] [INFO] [Player.ArmoredSkin] Checking armored skin...
+3774:[00:35:50] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+3925:[00:35:56] [INFO] [Player.ArmoredSkin] Checking armored skin...
+3926:[00:35:56] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+4097:[00:36:11] [INFO] [Player.ArmoredSkin] Checking armored skin...
+4098:[00:36:11] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+4251:[00:36:17] [INFO] [Player.ArmoredSkin] Checking armored skin...
+4252:[00:36:17] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+4430:[00:36:32] [INFO] [Player.ArmoredSkin] Checking armored skin...
+4431:[00:36:32] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+4591:[00:36:39] [INFO] [Player.ArmoredSkin] Checking armored skin...
+4592:[00:36:39] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+4735:[00:36:44] [INFO] [Player.ArmoredSkin] Checking armored skin...
+4736:[00:36:44] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+4883:[00:36:49] [INFO] [Player.ArmoredSkin] Checking armored skin...
+4884:[00:36:49] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+5047:[00:37:02] [INFO] [Player.ArmoredSkin] Checking armored skin...
+5048:[00:37:02] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+5196:[00:37:07] [INFO] [Player.ArmoredSkin] Checking armored skin...
+5197:[00:37:07] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+5340:[00:37:12] [INFO] [Player.ArmoredSkin] Checking armored skin...
+5341:[00:37:12] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+5396:[00:37:21] [INFO] [UnlockManager] Shot condition met — Fine Motor Skills now available to unlock in armory
+5416:[00:37:44] [INFO] [UnlockManager] Shot condition met — Fine Motor Skills now available to unlock in armory
+5421:[00:37:46] [INFO] [UnlockManager] Shot condition met — Fine Motor Skills now available to unlock in armory

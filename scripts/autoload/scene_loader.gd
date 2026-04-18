@@ -163,10 +163,11 @@ func _on_load_complete() -> void:
 	else:
 		_log("Scene changed successfully")
 
-	# Fade out loading screen
-	var fade_tween := create_tween()
-	fade_tween.tween_property(_loading_overlay, "modulate:a", 0.0, FADE_DURATION)
-	fade_tween.tween_callback(_hide_loading_screen)
+		# Fade out loading screen only after a successful scene change. Keeping the
+		# overlay visible on failure avoids exposing an empty gray/partial scene.
+		var fade_tween := create_tween()
+		fade_tween.tween_property(_loading_overlay, "modulate:a", 0.0, FADE_DURATION)
+		fade_tween.tween_callback(_hide_loading_screen)
 
 
 ## Hide loading screen and reset state
