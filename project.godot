@@ -151,6 +151,7 @@ flashlight_toggle={
 2d_physics/layer_5="projectiles"
 2d_physics/layer_6="targets"
 2d_physics/layer_7="decorative"
+2d_physics/layer_8="snow"
 
 [dotnet]
 

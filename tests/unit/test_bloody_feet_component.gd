@@ -219,21 +219,21 @@ func test_on_snow_can_be_enabled() -> void:
 		"on_snow should be settable to true by the level script")
 
 
-## Test that snow_blood_steps_count defaults to 2 (Issue #1627).
-func test_snow_blood_steps_count_defaults_to_2() -> void:
-	assert_eq(_component.snow_blood_steps_count, 2,
-		"snow_blood_steps_count should default to 2 (two red oval prints then normal)")
+## Test that snow_blood_steps_count defaults to 5.
+func test_snow_blood_steps_count_defaults_to_5() -> void:
+	assert_eq(_component.snow_blood_steps_count, 5,
+		"snow_blood_steps_count should default to 5 for a longer fading red trail")
 
 
-## Test that on snow, blood contact sets blood level to snow_blood_steps_count (2) not halved 12 (Issue #1627).
+## Test that on snow, blood contact sets blood level to snow_blood_steps_count not halved 12 (Issue #1627).
 func test_on_snow_blood_contact_uses_snow_blood_steps_count() -> void:
 	_component.on_snow = true
-	_component.snow_blood_steps_count = 2
+	_component.snow_blood_steps_count = 5
 	_component.blood_steps_count = 12
 	# Simulate stepping in blood via the internal method
 	_component._on_blood_puddle_contact(Color(0.545, 0.0, 0.0, 1.0))
-	assert_eq(_component.get_blood_level(), 2,
-		"On snow, blood_level should be set to snow_blood_steps_count (2)")
+	assert_eq(_component.get_blood_level(), 5,
+		"On snow, blood_level should be set to snow_blood_steps_count")
 
 
 ## Test that snow surface detector is created when component initializes.
@@ -252,61 +252,52 @@ func test_snow_detector_created() -> void:
 ## tracks blood level and exposes it via has_bloody_feet() and get_blood_level().
 func test_on_snow_blood_level_exposed_for_snowy_feet() -> void:
 	_component.on_snow = true
-	_component.snow_blood_steps_count = 2
+	_component.snow_blood_steps_count = 5
 	_component._on_blood_puddle_contact(Color(0.545, 0.0, 0.0, 1.0))
 	assert_true(_component.has_bloody_feet(),
 		"has_bloody_feet() must return true so SnowyFeetComponent can detect blood and spawn red prints")
-	assert_eq(_component.get_blood_level(), 2,
-		"Blood level should be snow_blood_steps_count (2) for SnowyFeetComponent to count down")
+	assert_eq(_component.get_blood_level(), 5,
+		"Blood level should be snow_blood_steps_count for SnowyFeetComponent to count down")
 
 
 ## Test that blood_contact signal is emitted on blood puddle contact (Issue #1627 race-condition fix).
 ## SnowyFeetComponent connects to this signal to arm its red-print counter immediately,
 ## before BloodyFeetComponent's _blood_level can drain to zero.
 func test_blood_contact_signal_emitted_on_puddle_contact() -> void:
-	var signal_received := false
-	var received_color := Color.BLACK
-
-	_component.blood_contact.connect(func(color: Color) -> void:
-		signal_received = true
-		received_color = color
-	)
+	watch_signals(_component)
 
 	var puddle_color := Color(0.6, 0.0, 0.0, 1.0)
 	_component._on_blood_puddle_contact(puddle_color)
+	await wait_frames(1)
 
-	assert_true(signal_received,
+	assert_signal_emitted(_component, "blood_contact",
 		"blood_contact signal must be emitted when _on_blood_puddle_contact is called")
-	assert_almost_eq(received_color.r, puddle_color.r, 0.01,
-		"Signal should carry the puddle color so SnowyFeetComponent can tint prints correctly")
+	assert_signal_emitted_with_parameters(_component, "blood_contact", [puddle_color])
 
 
 ## Test that manual blood-level changes also emit blood_contact on snow.
 ## This covers scene/setup paths that grant blood without an area_entered signal.
 func test_set_blood_level_on_snow_emits_blood_contact_signal() -> void:
 	_component.on_snow = true
-	_component.snow_blood_steps_count = 2
-	var signal_received := false
+	_component.snow_blood_steps_count = 5
+	watch_signals(_component)
 
-	_component.blood_contact.connect(func(_color: Color) -> void:
-		signal_received = true
-	)
+	_component.set_blood_level(5)
+	await wait_frames(1)
 
-	_component.set_blood_level(2)
-
-	assert_true(signal_received,
+	assert_signal_emitted(_component, "blood_contact",
 		"set_blood_level() with blood on snow must emit blood_contact so SnowyFeetComponent arms red prints")
-	assert_eq(_component.get_blood_level(), 2,
+	assert_eq(_component.get_blood_level(), 5,
 		"Blood level should be set to the requested snow blood count")
 
 
 ## Test that on snow, manual blood level is clamped to snow_blood_steps_count.
 func test_set_blood_level_on_snow_clamps_to_snow_blood_steps_count() -> void:
 	_component.on_snow = true
-	_component.snow_blood_steps_count = 2
+	_component.snow_blood_steps_count = 5
 	_component.set_blood_level(12)
 
-	assert_eq(_component.get_blood_level(), 2,
+	assert_eq(_component.get_blood_level(), 5,
 		"Snow blood level should clamp to snow_blood_steps_count, not regular blood_steps_count")
 
 
@@ -365,21 +356,21 @@ func test_get_puddle_color_uses_real_blood_decal_gradient_not_white_modulate() -
 
 func test_on_snow_spawn_footprint_does_not_drain_before_snowy_feet_renders() -> void:
 	_component.on_snow = true
-	_component.snow_blood_steps_count = 2
-	_component.set_blood_level(2)
+	_component.snow_blood_steps_count = 5
+	_component.set_blood_level(5)
 
 	_component._spawn_footprint()
 
-	assert_eq(_component.get_blood_level(), 2,
+	assert_eq(_component.get_blood_level(), 5,
 		"BloodyFeetComponent must not drain snow blood before SnowyFeetComponent renders red oval prints")
 
 
 func test_consume_snow_blood_step_drains_after_snowy_feet_render() -> void:
 	_component.on_snow = true
-	_component.snow_blood_steps_count = 2
-	_component.set_blood_level(2)
+	_component.snow_blood_steps_count = 5
+	_component.set_blood_level(5)
 
 	_component.consume_snow_blood_step()
 
-	assert_eq(_component.get_blood_level(), 1,
+	assert_eq(_component.get_blood_level(), 4,
 		"SnowyFeetComponent should explicitly consume one blood step after rendering a red snow print")

@@ -25,7 +25,7 @@ signal blood_contact(blood_color: Color)
 @export var on_snow: bool = false
 
 ## Number of red oval bloody footprints to leave on snow after stepping in blood (Issue #1627).
-@export var snow_blood_steps_count: int = 2
+@export var snow_blood_steps_count: int = 5
 
 ## Distance in pixels between footprint spawns.
 @export var step_distance: float = 30.0
@@ -203,7 +203,7 @@ func _setup_snow_detector() -> void:
 	_snow_detector = Area2D.new()
 	_snow_detector.name = "SnowDetectorForBlood"
 	_snow_detector.collision_layer = 0
-	_snow_detector.collision_mask = 32  # Layer 6 = 2^5 = 32 (snow_area layer)
+	_snow_detector.collision_mask = 128  # Layer 8 = snow_area layer.
 	_snow_detector.monitoring = true
 	_snow_detector.monitorable = false
 
