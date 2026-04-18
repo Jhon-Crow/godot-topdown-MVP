@@ -142,6 +142,7 @@ func test_gold_text_remains_above_shine_overlay() -> void:
 	var label: Label = content_margin.get_node("ContentRow/MessageLabel")
 	var shadow_label: Label = toast.get_node("MessageShadowLabel")
 	var font_color: Color = label.get_theme_color("font_color")
+	var row_gap: int = content_row.get_theme_constant("separation")
 
 	assert_eq(toast.modulate.a, 1.0,
 		"Toast container alpha should stay opaque so child label text is never faded by parent modulation")
@@ -153,6 +154,10 @@ func test_gold_text_remains_above_shine_overlay() -> void:
 		"Content should render above the toast background")
 	assert_gt(shadow_label.z_index, shine_overlay.z_index,
 		"Fallback text label should render above the shine overlay in exported builds")
+	assert_eq(row_gap, int(manager.ARMORY_ICON_TEXT_GAP),
+		"Content row should use the configured Armory icon/text gap")
+	assert_ge(row_gap, 24,
+		"Armory icon and text should have a larger readable gap")
 	assert_gt(content_margin.size.x, 0.0,
 		"Content margin should have explicit width so exported builds lay out the label")
 	assert_gt(content_row.size.x, 0.0,
