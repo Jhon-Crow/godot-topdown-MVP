@@ -290,7 +290,7 @@ public partial class SniperRifle : BaseWeapon
             }
         }
 
-        GD.Print($"[SniperRifle] ASVK initialized - bolt ready, laser={_laserSightEnabled}");
+        GD.Print($"[SniperRifle] ASVK initialized - bolt ready, laser={_laserSightEnabled}, range={GetMaxAimRange():F0}px");
     }
 
     public override void _ExitTree()
@@ -636,7 +636,7 @@ public partial class SniperRifle : BaseWeapon
 
         // Use weapon range for laser length so the beam is unlimited within shooting distance
         // (Issue #1384: sniper laser should be unlimited length, not limited to viewport size)
-        float maxLaserLength = WeaponData?.Range ?? 5000.0f;
+        float maxLaserLength = GetMaxAimRange();
 
         // Calculate the end point of the laser
         Vector2 endPoint = laserDirection * maxLaserLength;
@@ -677,6 +677,16 @@ public partial class SniperRifle : BaseWeapon
     /// When true, SpawnBullet() does nothing because hitscan handles damage directly.
     /// </summary>
     private bool _skipBulletSpawn = false;
+
+    /// <summary>
+    /// Returns the ASVK's current maximum aim and hitscan range.
+    /// WeaponData is the authoritative source so the C# firing code stays in sync
+    /// with the SniperRifleData.tres configuration.
+    /// </summary>
+    private float GetMaxAimRange()
+    {
+        return WeaponData?.Range > 0.0f ? WeaponData.Range : 5000.0f;
+    }
 
     /// <summary>
     /// Fires the sniper rifle using hitscan (instant raycast damage).
@@ -887,7 +897,7 @@ public partial class SniperRifle : BaseWeapon
     /// </summary>
     private Vector2 ComputeHitscanEndpoint(Vector2 origin, Vector2 direction)
     {
-        float maxRange = 5000.0f;
+        float maxRange = GetMaxAimRange();
         Vector2 startPos = origin + direction * BulletSpawnOffset;
         Vector2 endPos = origin + direction * maxRange;
         int wallsPenetrated = 0;
@@ -978,7 +988,7 @@ public partial class SniperRifle : BaseWeapon
     /// </summary>
     private Vector2 ComputeBreakerHitscanEndpoint(Vector2 origin, Vector2 direction)
     {
-        float maxRange = 5000.0f;
+        float maxRange = GetMaxAimRange();
         Vector2 startPos = origin + direction * BulletSpawnOffset;
         Vector2 endPos = origin + direction * maxRange;
 
@@ -1170,7 +1180,7 @@ public partial class SniperRifle : BaseWeapon
     /// <returns>The endpoint where the bullet stops (for smoke tracer).</returns>
     private Vector2 PerformHitscan(Vector2 origin, Vector2 direction)
     {
-        float maxRange = 5000.0f;
+        float maxRange = GetMaxAimRange();
         Vector2 startPos = origin + direction * BulletSpawnOffset;
         Vector2 endPos = origin + direction * maxRange;
         int wallsPenetrated = 0;
@@ -1363,7 +1373,7 @@ public partial class SniperRifle : BaseWeapon
     /// <returns>The endpoint where the bullet detonated (for smoke tracer).</returns>
     private Vector2 PerformBreakerHitscan(Vector2 origin, Vector2 direction)
     {
-        float maxRange = 5000.0f;
+        float maxRange = GetMaxAimRange();
         Vector2 startPos = origin + direction * BulletSpawnOffset;
         Vector2 endPos = origin + direction * maxRange;
         float damage = WeaponData?.Damage ?? 50.0f;
@@ -2284,8 +2294,8 @@ public partial class SniperRifle : BaseWeapon
     private const float MinScopeZoomDistance = 1.5f;
 
     /// <summary>
-    /// Maximum scope zoom distance (viewport multiplier).
-    /// Allows zooming up to 4x viewport distance for long-range aiming.
+    /// Maximum scope zoom distance fallback (viewport multiplier).
+    /// Runtime scope travel is capped by WeaponData.Range when available.
     /// </summary>
     private const float MaxScopeZoomDistance = 4.0f;
 
@@ -2356,7 +2366,28 @@ public partial class SniperRifle : BaseWeapon
     /// Gets the effective scope zoom distance (without fine-tune pixel offset).
     /// Fine-tune offset is applied separately as a pixel-based displacement.
     /// </summary>
-    private float EffectiveScopeZoomDistance => _scopeZoomDistance;
+    private float EffectiveScopeZoomDistance => Mathf.Min(_scopeZoomDistance, GetMaxScopeZoomDistance());
+
+    /// <summary>
+    /// Returns the viewport-relative zoom multiplier needed for the scope to reach
+    /// the ASVK's configured maximum aiming range.
+    /// </summary>
+    private float GetMaxScopeZoomDistance()
+    {
+        Viewport? viewport = GetViewport();
+        if (viewport == null)
+        {
+            return MaxScopeZoomDistance;
+        }
+
+        float baseDistance = viewport.GetVisibleRect().Size.Length() * 0.5f;
+        if (baseDistance <= 0.001f)
+        {
+            return MaxScopeZoomDistance;
+        }
+
+        return Mathf.Max(MinScopeZoomDistance, GetMaxAimRange() / baseDistance);
+    }
 
     /// <summary>
     /// Gets the maximum fine-tune range in pixels (1/3 of viewport diagonal).
@@ -2458,7 +2489,7 @@ public partial class SniperRifle : BaseWeapon
         CreateScopeOverlay();
 
         EmitSignal(SignalName.ScopeStateChanged, true);
-        GD.Print($"[SniperRifle] Scope activated. Zoom distance: {_scopeZoomDistance:F1}x");
+        GD.Print($"[SniperRifle] Scope activated. Zoom distance: {_scopeZoomDistance:F1}x, max={GetMaxScopeZoomDistance():F1}x, range={GetMaxAimRange():F0}px");
     }
 
     /// <summary>
@@ -2497,7 +2528,7 @@ public partial class SniperRifle : BaseWeapon
         }
 
         _scopeZoomDistance += direction * ScopeZoomStep;
-        _scopeZoomDistance = Mathf.Clamp(_scopeZoomDistance, MinScopeZoomDistance, MaxScopeZoomDistance);
+        _scopeZoomDistance = Mathf.Clamp(_scopeZoomDistance, MinScopeZoomDistance, GetMaxScopeZoomDistance());
 
         // Reset fine-tune offset when zoom changes to avoid going out of range
         float fineTuneMax = GetFineTuneMaxPixels();
