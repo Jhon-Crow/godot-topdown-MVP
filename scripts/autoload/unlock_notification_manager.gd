@@ -134,6 +134,8 @@ var _shine_overlay: ColorRect = null
 var _icon_rect: TextureRect = null
 var _message_label: Label = null
 var _message_shadow_label: Label = null
+var _item_name_label: Label = null
+var _item_name_shadow_label: Label = null
 var _active_tween: Tween = null
 
 
@@ -148,21 +150,22 @@ func _ready() -> void:
 ## Builds the user-facing text. Falls back to Russian to match the issue text when
 ## compiled translation resources have not been regenerated yet.
 func build_notification_text(kind: String, item_name: String) -> String:
-	var clean_kind: String = kind.strip_edges()
+	var header: String = build_notification_header_text(kind)
 	var clean_name: String = item_name.strip_edges()
+	if clean_name.is_empty():
+		return header
+	return "%s\n%s" % [header, clean_name]
+
+
+func build_notification_header_text(kind: String) -> String:
+	var clean_kind: String = kind.strip_edges()
 	var template: String = tr(NOTIFICATION_TEMPLATE_KEY)
 	if template == NOTIFICATION_TEMPLATE_KEY or template.is_empty():
 		template = "Открыт %s !"
-	return template % _build_notification_subject(clean_kind, clean_name)
-
-
-func _build_notification_subject(kind: String, item_name: String) -> String:
 	var kind_label: String = get_unlock_kind_display_name(kind)
 	if kind_label.is_empty():
-		return item_name
-	if item_name.is_empty():
-		return kind_label
-	return "%s %s" % [kind_label, item_name]
+		kind_label = clean_kind
+	return template % kind_label
 
 
 func get_unlock_kind_display_name(kind: String) -> String:
@@ -291,7 +294,7 @@ func _build_ui() -> void:
 	_message_label.name = "MessageLabel"
 	_message_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_message_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_message_label.clip_text = true
 	_message_label.add_theme_font_size_override("font_size", 20)
@@ -299,7 +302,28 @@ func _build_ui() -> void:
 	_message_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.75))
 	_message_label.add_theme_constant_override("shadow_offset_x", 1)
 	_message_label.add_theme_constant_override("shadow_offset_y", 1)
-	row.add_child(_message_label)
+	var text_column := VBoxContainer.new()
+	text_column.name = "TextColumn"
+	text_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	text_column.alignment = BoxContainer.ALIGNMENT_CENTER
+	text_column.add_theme_constant_override("separation", 0)
+	row.add_child(text_column)
+	text_column.add_child(_message_label)
+
+	_item_name_label = Label.new()
+	_item_name_label.name = "ItemNameLabel"
+	_item_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_item_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_item_name_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	_item_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_item_name_label.clip_text = true
+	_item_name_label.add_theme_font_size_override("font_size", 15)
+	_item_name_label.add_theme_color_override("font_color", Color(0.86, 0.78, 0.52, 1.0))
+	_item_name_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.75))
+	_item_name_label.add_theme_constant_override("shadow_offset_x", 1)
+	_item_name_label.add_theme_constant_override("shadow_offset_y", 1)
+	text_column.add_child(_item_name_label)
 
 	_message_shadow_label = Label.new()
 	_message_shadow_label.name = "MessageShadowLabel"
@@ -315,6 +339,21 @@ func _build_ui() -> void:
 	_message_shadow_label.add_theme_constant_override("shadow_offset_x", 2)
 	_message_shadow_label.add_theme_constant_override("shadow_offset_y", 2)
 	_toast.add_child(_message_shadow_label)
+
+	_item_name_shadow_label = Label.new()
+	_item_name_shadow_label.name = "ItemNameShadowLabel"
+	_item_name_shadow_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_item_name_shadow_label.z_index = 20
+	_item_name_shadow_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_item_name_shadow_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	_item_name_shadow_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_item_name_shadow_label.clip_text = true
+	_item_name_shadow_label.add_theme_font_size_override("font_size", 15)
+	_item_name_shadow_label.add_theme_color_override("font_color", Color(0.86, 0.78, 0.52, 1.0))
+	_item_name_shadow_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.9))
+	_item_name_shadow_label.add_theme_constant_override("shadow_offset_x", 2)
+	_item_name_shadow_label.add_theme_constant_override("shadow_offset_y", 2)
+	_toast.add_child(_item_name_shadow_label)
 
 	_position_toast(false)
 
@@ -475,11 +514,13 @@ func _show_next_notification() -> void:
 
 	_is_showing = true
 	var notification: Dictionary = _pending_notifications.pop_front()
-	_message_label.text = build_notification_text(
-		notification.get("kind", ""),
-		notification.get("item_name", ""))
+	_message_label.text = build_notification_header_text(notification.get("kind", ""))
+	if _item_name_label:
+		_item_name_label.text = notification.get("item_name", "").strip_edges()
 	if _message_shadow_label:
 		_message_shadow_label.text = _message_label.text
+	if _item_name_shadow_label and _item_name_label:
+		_item_name_shadow_label.text = _item_name_label.text
 	_position_toast(false)
 	_toast.modulate = Color.WHITE
 	if _toast_background:
@@ -490,6 +531,10 @@ func _show_next_notification() -> void:
 		_message_label.modulate = Color.WHITE
 	if _message_shadow_label:
 		_message_shadow_label.modulate = Color.WHITE
+	if _item_name_label:
+		_item_name_label.modulate = Color.WHITE
+	if _item_name_shadow_label:
+		_item_name_shadow_label.modulate = Color.WHITE
 	if _icon_rect:
 		_icon_rect.modulate = Color(1.0, 0.84, 0.22, 1.0)
 	_toast.show()
@@ -552,12 +597,21 @@ func _position_toast(visible_position: bool) -> void:
 				maxf(0.0, TOAST_HEIGHT - TOAST_CONTENT_TOP_MARGIN - TOAST_CONTENT_BOTTOM_MARGIN))
 	if _message_shadow_label:
 		var icon_column_width: float = 42.0 + ARMORY_ICON_TEXT_GAP
+		var label_width: float = maxf(0.0, toast_width - TOAST_CONTENT_LEFT_MARGIN - TOAST_CONTENT_RIGHT_MARGIN - icon_column_width)
+		var label_height: float = maxf(0.0, TOAST_HEIGHT - TOAST_CONTENT_TOP_MARGIN - TOAST_CONTENT_BOTTOM_MARGIN)
 		_message_shadow_label.position = Vector2(
 			TOAST_CONTENT_LEFT_MARGIN + icon_column_width,
 			TOAST_CONTENT_TOP_MARGIN)
 		_message_shadow_label.size = Vector2(
-			maxf(0.0, toast_width - TOAST_CONTENT_LEFT_MARGIN - TOAST_CONTENT_RIGHT_MARGIN - icon_column_width),
-			maxf(0.0, TOAST_HEIGHT - TOAST_CONTENT_TOP_MARGIN - TOAST_CONTENT_BOTTOM_MARGIN))
+			label_width,
+			label_height * 0.52)
+		if _item_name_shadow_label:
+			_item_name_shadow_label.position = Vector2(
+				TOAST_CONTENT_LEFT_MARGIN + icon_column_width,
+				TOAST_CONTENT_TOP_MARGIN + label_height * 0.52)
+			_item_name_shadow_label.size = Vector2(
+				label_width,
+				label_height * 0.48)
 
 
 func _get_hidden_y() -> float:

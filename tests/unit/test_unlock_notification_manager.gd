@@ -85,8 +85,10 @@ func test_notification_uses_requested_opened_text() -> void:
 
 	var previous_locale: String = TranslationServer.get_locale()
 	TranslationServer.set_locale("ru")
-	assert_eq(manager.build_notification_text("weapon", "Дробовик"), "Открыт оружие Дробовик !",
-		"Toast text should include the unlocked weapon category and name")
+	assert_eq(manager.build_notification_header_text("weapon"), "Открыт оружие !",
+		"Toast header should include only the unlocked weapon category")
+	assert_eq(manager.build_notification_text("weapon", "Дробовик"), "Открыт оружие !\nДробовик",
+		"Combined fallback text should split the category header and item name onto separate lines")
 	TranslationServer.set_locale(previous_locale)
 
 
@@ -97,9 +99,11 @@ func test_notification_text_includes_active_item_category_and_name() -> void:
 
 	var previous_locale: String = TranslationServer.get_locale()
 	TranslationServer.set_locale("ru")
+	assert_eq(manager.build_notification_header_text("active_item"), "Открыт предмет !",
+		"Toast header should include only the item category")
 	assert_eq(manager.build_notification_text("active_item", "Бронированная кожа"),
-		"Открыт предмет Бронированная кожа !",
-		"Toast text should include the item category and Armored Skin name")
+		"Открыт предмет !\nБронированная кожа",
+		"Combined fallback text should put the Armored Skin name on the second line")
 	TranslationServer.set_locale(previous_locale)
 
 
@@ -110,10 +114,41 @@ func test_notification_text_includes_grenade_category_and_name() -> void:
 
 	var previous_locale: String = TranslationServer.get_locale()
 	TranslationServer.set_locale("ru")
+	assert_eq(manager.build_notification_header_text("grenade"), "Открыт граната !",
+		"Toast header should include only the grenade category")
 	assert_eq(manager.build_notification_text("grenade", "Наступательная"),
-		"Открыт граната Наступательная !",
-		"Toast text should include the grenade category and name")
+		"Открыт граната !\nНаступательная",
+		"Combined fallback text should put the grenade name on the second line")
 	TranslationServer.set_locale(previous_locale)
+
+
+func test_toast_uses_smaller_second_line_for_long_item_names() -> void:
+	var script: GDScript = load(NOTIFICATION_MANAGER_SCRIPT)
+	assert_not_null(script, "UnlockNotificationManager script should load")
+	var manager: CanvasLayer = autofree(script.new())
+	add_child(manager)
+	await get_tree().process_frame
+
+	manager.show_unlock_notification("Очень длинное название предмета с несколькими словами", "active_item")
+	await wait_seconds(manager.SLIDE_DURATION + 0.1)
+
+	var header_label: Label = manager.get_node("UnlockNotificationRoot/UnlockToast/ContentMargin/ContentRow/TextColumn/MessageLabel")
+	var item_name_label: Label = manager.get_node("UnlockNotificationRoot/UnlockToast/ContentMargin/ContentRow/TextColumn/ItemNameLabel")
+	var header_shadow_label: Label = manager.get_node("UnlockNotificationRoot/UnlockToast/MessageShadowLabel")
+	var item_name_shadow_label: Label = manager.get_node("UnlockNotificationRoot/UnlockToast/ItemNameShadowLabel")
+
+	assert_eq(header_label.text, "Открыт предмет !",
+		"Header label should keep the generic unlock text without the long item name")
+	assert_eq(item_name_label.text, "Очень длинное название предмета с несколькими словами",
+		"Item name should render on the second line in its own label")
+	assert_eq(header_shadow_label.text, header_label.text,
+		"Fallback shadow header should mirror the visible header text")
+	assert_eq(item_name_shadow_label.text, item_name_label.text,
+		"Fallback shadow item label should mirror the visible second line")
+	assert_lt(
+		item_name_label.get_theme_font_size("font_size"),
+		header_label.get_theme_font_size("font_size"),
+		"Second-line item name should use a smaller font than the generic unlock text")
 
 
 func test_display_duration_is_four_seconds() -> void:
@@ -139,8 +174,11 @@ func test_gold_text_remains_above_shine_overlay() -> void:
 	var background: Panel = toast.get_node("ToastBackground")
 	var content_margin: MarginContainer = toast.get_node("ContentMargin")
 	var content_row: HBoxContainer = content_margin.get_node("ContentRow")
-	var label: Label = content_margin.get_node("ContentRow/MessageLabel")
+	var text_column: VBoxContainer = content_margin.get_node("ContentRow/TextColumn")
+	var label: Label = text_column.get_node("MessageLabel")
+	var item_name_label: Label = text_column.get_node("ItemNameLabel")
 	var shadow_label: Label = toast.get_node("MessageShadowLabel")
+	var item_name_shadow_label: Label = toast.get_node("ItemNameShadowLabel")
 	var font_color: Color = label.get_theme_color("font_color")
 	var row_gap: int = content_row.get_theme_constant("separation")
 
@@ -154,6 +192,8 @@ func test_gold_text_remains_above_shine_overlay() -> void:
 		"Content should render above the toast background")
 	assert_gt(shadow_label.z_index, shine_overlay.z_index,
 		"Fallback text label should render above the shine overlay in exported builds")
+	assert_gt(item_name_shadow_label.z_index, shine_overlay.z_index,
+		"Fallback item name label should render above the shine overlay in exported builds")
 	assert_eq(row_gap, int(manager.ARMORY_ICON_TEXT_GAP),
 		"Content row should use the configured Armory icon/text gap")
 	assert_ge(row_gap, 24,
@@ -164,10 +204,20 @@ func test_gold_text_remains_above_shine_overlay() -> void:
 		"Content row should have explicit width so the label is not clipped to zero")
 	assert_gt(content_row.size.y, 0.0,
 		"Content row should have explicit height so the label is visible")
+	assert_gt(text_column.size.x, 0.0,
+		"Text column should have explicit width so both toast lines are visible")
+	assert_gt(item_name_label.get_theme_font_size("font_size"), 0,
+		"Item name label should have an explicit font size")
+	assert_lt(item_name_label.get_theme_font_size("font_size"), label.get_theme_font_size("font_size"),
+		"Item name label should be smaller than the generic unlock line")
 	assert_gt(shadow_label.size.x, 0.0,
 		"Fallback text label should have explicit width independent of nested containers")
 	assert_gt(shadow_label.size.y, 0.0,
 		"Fallback text label should have explicit height independent of nested containers")
+	assert_gt(item_name_shadow_label.size.x, 0.0,
+		"Fallback item name label should have explicit width independent of nested containers")
+	assert_gt(item_name_shadow_label.size.y, 0.0,
+		"Fallback item name label should have explicit height independent of nested containers")
 	assert_gt(font_color.r, 0.9, "Toast text should use a visible gold color")
 	assert_gt(font_color.g, 0.75, "Toast text should use a visible gold color")
 	assert_gt(font_color.b, 0.25, "Toast text should use a visible gold color")
@@ -186,8 +236,10 @@ func test_toast_animation_keeps_label_opaque_after_entry() -> void:
 
 	var toast: Control = manager.get_node("UnlockNotificationRoot/UnlockToast")
 	var background: Panel = toast.get_node("ToastBackground")
-	var label: Label = toast.get_node("ContentMargin/ContentRow/MessageLabel")
+	var label: Label = toast.get_node("ContentMargin/ContentRow/TextColumn/MessageLabel")
+	var item_name_label: Label = toast.get_node("ContentMargin/ContentRow/TextColumn/ItemNameLabel")
 	var shadow_label: Label = toast.get_node("MessageShadowLabel")
+	var item_name_shadow_label: Label = toast.get_node("ItemNameShadowLabel")
 
 	assert_eq(manager._animation_phase, "visible",
 		"Toast should enter the stable visible phase after the slide-in animation")
@@ -195,12 +247,20 @@ func test_toast_animation_keeps_label_opaque_after_entry() -> void:
 		"Toast parent should remain opaque during the stable visible phase")
 	assert_eq(label.modulate.a, 1.0,
 		"Message label should remain fully opaque after the slide-in animation")
-	assert_eq(label.text, "Открыт предмет Бронированная кожа !",
-		"Stable visible toast should keep the requested Armored Skin text")
-	assert_eq(shadow_label.text, "Открыт предмет Бронированная кожа !",
-		"Fallback text label should mirror the requested Armored Skin text")
+	assert_eq(label.text, "Открыт предмет !",
+		"Stable visible toast should keep the requested generic item text")
+	assert_eq(item_name_label.text, "Бронированная кожа",
+		"Stable visible toast should keep the requested Armored Skin name on the second line")
+	assert_eq(shadow_label.text, "Открыт предмет !",
+		"Fallback text label should mirror the requested generic item text")
+	assert_eq(item_name_shadow_label.text, "Бронированная кожа",
+		"Fallback item label should mirror the requested Armored Skin name")
 	assert_eq(shadow_label.modulate.a, 1.0,
 		"Fallback text label should remain fully opaque after the slide-in animation")
+	assert_eq(item_name_label.modulate.a, 1.0,
+		"Item name label should remain fully opaque after the slide-in animation")
+	assert_eq(item_name_shadow_label.modulate.a, 1.0,
+		"Fallback item name label should remain fully opaque after the slide-in animation")
 	assert_gt(background.modulate.a, 0.95,
 		"Only the background fade target should be fully visible after entry")
 
