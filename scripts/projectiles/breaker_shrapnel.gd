@@ -53,9 +53,6 @@ func _ready() -> void:
 	if _debug:
 		FileLogger.info("[BreakerShrapnel] Spawned at %s, direction: %s, source_id: %d" % [
 			global_position, direction, source_id])
-	# Add to group for global shrapnel count tracking (Issue #678 optimization)
-	add_to_group("breaker_shrapnel")
-
 	# Connect to collision signals
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
@@ -265,6 +262,7 @@ func pool_activate(pos: Vector2, dir: Vector2, source: int, shrapnel_damage: flo
 	visible = true
 	set_physics_process(true)
 	set_process(true)
+	add_to_group("breaker_shrapnel")
 
 	_is_pooled = false
 	_set_collision_enabled(true)
@@ -284,6 +282,7 @@ func pool_deactivate(return_to_manager: bool = true) -> void:
 
 	# Hide shrapnel
 	visible = false
+	remove_from_group("breaker_shrapnel")
 
 	# Disable collision detection after the current physics step. Directly toggling
 	# Area2D monitoring from an overlap callback can corrupt Godot's physics flush.

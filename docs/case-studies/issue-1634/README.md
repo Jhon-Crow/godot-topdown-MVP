@@ -781,6 +781,55 @@ in order to confirm the reused projectile remains `monitoring=true` and `monitor
 
 ---
 
+## Bug Found and Fixed: Pool Warmup Exhausted Active Shrapnel Cap (Session 13)
+
+### New User Report and Preserved Data
+
+**User report (PR #1661, 2026-04-18):**
+> "нет осколков у пуль с превзрывателем"
+> *Translation: "breaker-fuse bullets have no shrapnel."*
+
+Preserved log:
+
+- `data/logs/game_log_20260418_030531.txt` — downloaded from the PR comment, 1,368 lines.
+
+The log again confirms the exported Windows build selected breaker bullets and applied them to
+`MakarovPM`, then emitted repeated `Bullet9mm` explosion sounds. That means the fuse and detonation
+path were still running; the missing behavior was isolated to the shrapnel spawn budget/reuse path.
+
+### Root Cause
+
+`ProjectilePoolManager.warmup()` pre-instantiates 200 `BreakerShrapnel` nodes. Each
+`BreakerShrapnel` previously added itself to the `breaker_shrapnel` group in `_ready()`, even while
+inactive and hidden inside the pool container.
+
+The breaker bullet spawn code uses:
+
+```gdscript
+get_tree().get_nodes_in_group("breaker_shrapnel")
+```
+
+to enforce `BREAKER_MAX_CONCURRENT_SHRAPNEL = 60`. After pool warmup, the group already contained
+200 inactive pooled nodes, so every breaker detonation believed the active shrapnel cap was already
+exceeded and skipped visible fragment spawning.
+
+This is why the latest user logs showed explosions but no fragments: the global cap counted inactive
+pool inventory as active gameplay shrapnel.
+
+### Fix Applied (Session 13)
+
+`scripts/projectiles/breaker_shrapnel.gd` now treats the `breaker_shrapnel` group as an active-only
+group:
+
+- `_ready()` no longer adds inactive warmup instances to the group.
+- `pool_activate()` adds the shard to `breaker_shrapnel` when it is checked out.
+- `pool_deactivate()` removes the shard from `breaker_shrapnel` before returning it to the pool.
+
+Regression coverage now checks that inactive warmup shards cannot consume the global active cap and
+that the pool size of 200 can safely exceed the active shrapnel cap of 60.
+
+---
+
 ## References
 
 - [Proximity fuze — Wikipedia](https://en.wikipedia.org/wiki/Proximity_fuze)

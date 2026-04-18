@@ -504,3 +504,33 @@ func test_breaker_shrapnel_activation_requeues_final_collision_enable() -> void:
 		"Activation should immediately enable Area2D collision state")
 	assert_true(body.contains('call_deferred("_queue_collision_enabled", true)'),
 		"Activation should queue the final enabled collision state after prior deferred disables")
+
+
+func test_inactive_pooled_breaker_shrapnel_not_counted_in_global_cap() -> void:
+	# Regression from issue #1634 follow-up: pool warmup creates 200 inactive
+	# BreakerShrapnel nodes, while the breaker spawn cap is 60 active nodes.
+	# Inactive pooled shards must not remain in breaker_shrapnel or every
+	# detonation will think the global cap is already exceeded.
+	var source := _read_text_file("res://scripts/projectiles/breaker_shrapnel.gd")
+	var ready_body := _extract_gdscript_method(source, "func _ready() -> void:")
+	var activate_body := _extract_gdscript_method(source, "func pool_activate(")
+	var deactivate_body := _extract_gdscript_method(source, "func pool_deactivate(")
+
+	assert_false(ready_body.contains("add_to_group(\"breaker_shrapnel\")"),
+		"Inactive warmup instances must not be added to the active breaker_shrapnel group in _ready()")
+	assert_true(activate_body.contains("add_to_group(\"breaker_shrapnel\")"),
+		"Breaker shrapnel should join the active group only when checked out from the pool")
+	assert_true(deactivate_body.contains("remove_from_group(\"breaker_shrapnel\")"),
+		"Returned breaker shrapnel should leave the active group before it can consume global spawn budget")
+
+
+func test_breaker_pool_size_exceeds_active_cap_without_warmup_group_membership() -> void:
+	var pool_source := _read_text_file("res://scripts/autoload/projectile_pool_manager.gd")
+	var bullet_source := _read_text_file("res://scripts/projectiles/bullet.gd")
+
+	assert_true(pool_source.contains("@export var breaker_shrapnel_pool_size: int = 200"),
+		"Regression setup: breaker shrapnel pool warmup has more instances than the active cap")
+	assert_true(bullet_source.contains("const BREAKER_MAX_CONCURRENT_SHRAPNEL: int = 60"),
+		"Regression setup: active breaker shrapnel cap remains 60")
+	assert_true(pool_source.contains("breaker.call(\"pool_deactivate\", false)"),
+		"Warmup should deactivate pooled breaker shards without returning them again")
